@@ -1,0 +1,36 @@
+# WebAssembly size probe for the krilla-fit spike: builds the experiment A and C generators
+# (the same source files, via #[path]) as cdylibs and lets scripts/wasm-size.sh measure them.
+[package]
+name = "krilla-fit-wasm-size"
+version = "0.0.0"
+edition = "2024"
+license = "MIT OR Apache-2.0"
+publish = false
+
+[workspace]
+
+[lib]
+crate-type = ["cdylib"]
+path = "src/lib.rs"
+
+[features]
+krilla-gen = ["dep:krilla"]
+lamina-gen = ["dep:pdf-writer", "dep:subsetter", "dep:skrifa", "dep:lamina-syntax"]
+# lamina-cos is always in: @lamina/pdf ships the reader/writer either way.
+
+[dependencies]
+lamina-cos = { path = "../../../crates/lamina-cos" }
+lamina-syntax = { path = "../../../crates/lamina-syntax", optional = true }
+krilla = { version = "=0.8.2", optional = true }
+pdf-writer = { version = "=0.15.0", optional = true }
+subsetter = { version = "=0.2.6", optional = true }
+skrifa = { version = "=0.42.0", optional = true }
+png = "0.18"
+anyhow = "1"
+
+[profile.release]
+opt-level = "s"
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true

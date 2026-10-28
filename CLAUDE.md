@@ -23,7 +23,8 @@ lamina is a platform for anything and everything PDF: creating PDFs from code, p
 ├── tools/xtask/         # `cargo xtask …`: the single task entry point
 ├── .github/             # CI fast lane (workflows/ci.yml) and Dependabot
 ├── spikes/              # research spikes (throwaway code that informs decisions), outside both workspaces
-│   └── pdf-basics/      # minimal PDF core in Rust + TypeScript, its own frozen fixtures and spec (ported to crates/)
+│   ├── pdf-basics/      # minimal PDF core in Rust + TypeScript, its own frozen fixtures and spec (ported to crates/)
+│   └── krilla-fit/      # Round B1: can krilla generate into lamina's object graph? (answer + measurements in its README)
 └── docs/                # all documentation (see docs/README.md)
     ├── research/        # deep dives and research notes, one subfolder per topic
     ├── plans/           # roadmaps and feature design docs
@@ -79,6 +80,8 @@ A single crate: `cargo test -p lamina-cos` (integration tests read the shared `f
 Every crate under `crates/` declares its layer in `Cargo.toml` (`[package.metadata.lamina] layer = "core" | "edge" | "app"`); xtask applies the bytes-in/bytes-out rules to core crates. External tool versions are pinned in `tools/xtask/src/doctor.rs` (CI installs the same ones): `cargo-deny` is required by `check`; `cargo-nextest` is optional (falls back to `cargo test`).
 
 Research spikes (`spikes/`) are throwaway-quality APIs used to inform decisions, not the product. They are outside both workspaces; CI still runs the pdf-basics spike's checks in a separate job.
+
+`spikes/krilla-fit/` — krilla vs a builder over `lamina-cos` (Round B1); standalone, not in CI: `scripts/fetch-font.sh` once, then `cargo run --release` prints the measurements (see its README).
 
 `spikes/pdf-basics/` — the same minimal PDF core in Rust and TypeScript (see its `SPEC.md`):
 
