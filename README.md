@@ -2,7 +2,7 @@
 
 A platform for anything and everything PDF — creating, reading, rendering, editing, filling, signing and transforming PDF documents from code.
 
-> **Status:** early research phase. No code yet.
+> **Status:** foundations. Research is done and the first architecture decisions are accepted ([ADRs](docs/decisions/README.md)); Round A (monorepo skeleton and the first core crates) is under way. No product code yet.
 
 ## Repository layout
 

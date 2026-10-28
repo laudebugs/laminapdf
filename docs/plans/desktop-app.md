@@ -115,8 +115,8 @@ Architecture Round D is delivered as PRs D1–D7. D1 can start as soon as C3 mer
 
 ### D6. Signing, packaging and release pipeline
 
-**Deliverable:** release workflow (tauri-action matrix) producing signed dmg (Developer ID + notarisation + stapling), MSI and NSIS (Azure Artifact Signing), AppImage and deb (rpm optional); uploads to R2 with attestations; manifests updated per channel.
-**Accepted when:** Gatekeeper, SmartScreen and `debsig`/AppImage signature checks pass on clean VMs; release artifacts carry GitHub attestations; a nightly channel build publishes automatically.
+**Deliverable:** release workflow (tauri-action matrix) producing artefacts signed with the owner's identities as publisher: dmg (Developer ID + notarisation + stapling), MSI and NSIS (Azure Artifact Signing if the owner is eligible as an individual, otherwise an OV certificate in a cloud HSM), AppImage and deb (rpm optional); uploads to R2 with attestations; manifests updated per channel.
+**Accepted when:** Gatekeeper and `debsig`/AppImage signature checks pass on clean VMs; on Windows the Authenticode signature is valid and the owner is shown as publisher. With Artifact Signing, the installer runs on a clean VM without a SmartScreen warning; with an OV certificate, a SmartScreen warning is acceptable for early releases (neither OV nor EV gets instant reputation since 2024), and the release notes document how reputation builds up; release artifacts carry GitHub attestations; a nightly channel build publishes automatically.
 
 ### D7. Crash reporting and beta
 
@@ -129,7 +129,7 @@ Architecture Round D is delivered as PRs D1–D7. D1 can start as soon as C3 mer
 | --- | --- |
 | Linux WebKitGTK blank windows, slow canvas, NVIDIA/Wayland issues | Canvas2D only, no GPU dependency; renderer switch; documented env workarounds; Electron-on-Linux fallback ([architecture §6](architecture.md#6-risks)) |
 | IPC throughput too low for smooth zoom | D1 spike before D2; compressed tiles via custom scheme as alternative |
-| Windows signing eligibility (Artifact Signing region rules) | Decide legal entity early ([architecture §8](architecture.md#8-open-questions-for-the-team)); OV certificate as fallback |
+| Windows signing eligibility (Artifact Signing region rules) | The owner signs personally as the publisher (decided 2026-10-28, [architecture §8](architecture.md#8-open-questions-for-the-team) Q5). Artifact Signing's public-trust individual eligibility is US/Canada only: the owner checks eligibility before D6; otherwise an OV certificate in a cloud HSM |
 | Losing the updater key strands users | HSM/secret-manager custody, offline backup, rotation runbook in ADR 0014 |
 | Faithful printing needs per-OS code | Dedicated spike; ship `window.print()` raster path first if native lags |
 | Sandbox restrictions block mmap or IPC | Prototype sandbox in D2 per OS; document what is enforced |
@@ -174,7 +174,7 @@ Architecture Round D is delivered as PRs D1–D7. D1 can start as soon as C3 mer
 - [ ] Record a manual print check per OS in the PR
 
 ### D5. Update service
-- [ ] Write ADR 0014 (channels, rollout, signing identities, key custody and rotation)
+- [ ] Write ADR 0014 (channels, rollout, signing identities with the owner as publisher, key custody and rotation)
 - [ ] Create `apps/updates` Worker: `/{channel}/{target}/{arch}/{current_version}` → 204 or 200 JSON
 - [ ] Implement rollout bucketing by install-ID hash (from the `Lamina-Install-Id` request header), kill switch, 60 s cache
 - [ ] Define the R2 layout and channel manifest schema; tests for every branch
@@ -184,10 +184,11 @@ Architecture Round D is delivered as PRs D1–D7. D1 can start as soon as C3 mer
 ### D6. Signing, packaging and release pipeline
 - [ ] Release workflow with tauri-action matrix (macOS arm64/x64, Windows x64/arm64, Linux x64/arm64)
 - [ ] Apple Developer ID signing, notarisation and stapling
-- [ ] Windows signing via Azure Artifact Signing `signCommand`; MSI and NSIS outputs
+- [ ] Owner confirms Windows Artifact Signing individual eligibility (US/Canada only); otherwise obtain an OV certificate in a cloud HSM
+- [ ] Windows signing via `signCommand` (Artifact Signing or the OV certificate); MSI and NSIS outputs
 - [ ] Linux AppImage (updater) and deb; rpm if the matrix allows
 - [ ] Upload to R2 with `.sig` files and GitHub attestations; update channel manifests
-- [ ] Verify installs on clean VMs (Gatekeeper, SmartScreen, Linux signature checks)
+- [ ] Verify installs on clean VMs (Gatekeeper, Windows signature and publisher, SmartScreen behaviour recorded, Linux signature checks)
 
 ### D7. Crash reporting and beta
 - [ ] Decide the crash backend (record in ADR 0014 or a short ADR)

@@ -4,7 +4,7 @@ Guidance for Claude Code (and humans) working in this repository.
 
 ## What lamina is
 
-lamina is a platform for anything and everything PDF: creating PDFs from code, parsing and extracting content, rendering, editing, form filling, signing, and transforming documents. The project is in its **research phase** — there is no application code yet. The core language, architecture and scope have not been decided; don't assume them. When they are decided, they'll be recorded as ADRs in `docs/decisions/` and summarized here.
+lamina is a platform for anything and everything PDF: creating PDFs from code, parsing and extracting content, rendering, editing, form filling, signing, and transforming documents. There is no application code yet. Decisions are recorded as ADRs in `docs/decisions/`; accepted so far: a Rust core, `MIT OR Apache-2.0`, bytes in / bytes out with no AGPL/GPL dependencies ([0001](docs/decisions/0001-core-language-and-licence.md)); wasm-bindgen + tsify bindings ([0002](docs/decisions/0002-binding-strategy.md)); the Cargo + pnpm + `cargo xtask` monorepo ([0015](docs/decisions/0015-monorepo-layout-and-tooling.md)); cargo-deny and licence hygiene ([0019](docs/decisions/0019-supply-chain-and-licence-hygiene.md)). The plan for the rest is in `docs/plans/architecture.md`; don't assume decisions that aren't in an ADR.
 
 ## Repository layout
 

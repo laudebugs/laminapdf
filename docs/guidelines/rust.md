@@ -50,6 +50,12 @@ allow-expect-in-tests = true
 allow-panic-in-tests = true
 allow-indexing-slicing-in-tests = true
 allow-dbg-in-tests = true
+# Output must be byte-deterministic (ADR 0001): RandomState iteration order must never reach output.
+# Use BTreeMap/BTreeSet, IndexMap/IndexSet or a fixed-seed hasher.
+disallowed-types = [
+  { path = "std::collections::HashMap", reason = "random iteration order; use BTreeMap, IndexMap or a fixed hasher" },
+  { path = "std::collections::HashSet", reason = "random iteration order; use BTreeSet, IndexSet or a fixed hasher" },
+]
 ```
 
 - **MUST:** Clippy passes with `-D warnings`, so `pedantic` is enforced, not advisory. A pedantic lint that is noise for the whole workspace goes on the allow-list in `[workspace.lints.clippy]` with a comment (lint-specific entries at the default priority 0 override the `priority = -1` group). Two runs, because cfg-gated code is only linted when it is compiled:
@@ -92,7 +98,7 @@ allow-dbg-in-tests = true
 - **MUST:** test names read as behavior. Group them by the unit under test: `mod parse_object { #[test] fn rejects_nesting_deeper_than_max_depth() … }` or `open_should_repair_when_xref_offset_is_wrong`. No `test_` prefixes, no `happy_path`.
 - **SHOULD:** check one behavior per test. Use [`rstest`](https://docs.rs/rstest) cases for tables of inputs and [`insta`](https://insta.rs) for snapshotting large text or `Debug` output (never for byte-exact PDFs; those are golden files in `fixtures/golden/`, rewritten only by an explicit regenerate command, see [`code-organization.md` §6](code-organization.md#6-tests-and-fixtures)).
 - **MUST:** every public example in docs is a doc test that compiles and runs (`?` with a hidden `# Ok::<(), Error>(())`, C-QUESTION-MARK).
-- **MUST:** parsers have robustness tests (truncation, byte flips, token soup) with a time budget. Fuzz targets (`cargo fuzz`) live in a `fuzz/` folder of the crate, outside the workspace.
+- **MUST:** parsers have robustness tests (truncation, byte flips, token soup) with a time budget. Fuzz targets (`cargo fuzz`) live in the root `fuzz/` folder (OSS-Fuzz layout, one target per parser entry point), which is its own workspace and excluded from the root one ([ADR 0015](../decisions/0015-monorepo-layout-and-tooling.md)).
 
 ## Documentation
 
