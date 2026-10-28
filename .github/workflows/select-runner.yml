@@ -36,12 +36,17 @@ jobs:
           github-token: ${{ secrets.RUNNER_STATUS_TOKEN || github.token }}
           retries: 0
           script: |
+            // Only runners with all of these labels count, and jobs ask for exactly these, so a
+            // different self-hosted runner (Linux, x64) can't make the check pass or take the job.
+            const selfHosted = ["self-hosted", "macOS", "ARM64"];
             let runner = ["ubuntu-latest"];
             let reason;
             const pr = context.payload.pull_request;
             const repository = `${context.repo.owner}/${context.repo.repo}`;
             if (pr && pr.head.repo?.full_name !== repository) {
-              // Never run untrusted fork code on the self-hosted machines.
+              // Keeps fork code off the self-hosted machines in the normal case. Not a security
+              // boundary: a PR runs its own copy of this workflow. Restricting who can open PRs
+              // (or runner-group settings) is what actually enforces that.
               reason = "Fork pull requests use GitHub-hosted Ubuntu.";
             } else if (process.env.HAS_RUNNER_STATUS_TOKEN !== "true") {
               reason = "RUNNER_STATUS_TOKEN is not configured; using GitHub-hosted Ubuntu.";
@@ -51,14 +56,15 @@ jobs:
                 const runners = await github.paginate(github.rest.actions.listSelfHostedRunnersForRepo, {
                   ...context.repo,
                   per_page: 100,
-                  request: { timeout: 10000 },
+                  // Octokit uses fetch, which ignores request.timeout; abort with a signal instead.
+                  request: { signal: AbortSignal.timeout(10000) },
                 });
                 const online = runners.some((candidate) =>
                   candidate.status === "online" &&
-                  candidate.labels.some((label) => label.name === "self-hosted")
+                  selfHosted.every((name) => candidate.labels.some((label) => label.name === name))
                 );
                 if (online) {
-                  runner = ["self-hosted"];
+                  runner = selfHosted;
                   reason = "An online self-hosted runner is available; busy runners may queue work.";
                 } else {
                   reason = "No online self-hosted runner is available; using GitHub-hosted Ubuntu.";
@@ -70,7 +76,12 @@ jobs:
             }
             core.setOutput("runner", JSON.stringify(runner));
             core.info(reason);
-            await core.summary
-              .addHeading("Runner selection")
-              .addRaw(`${reason}\n\nRequested labels: ${JSON.stringify(runner)}\n`)
-              .write();
+            // The summary is informational: a failure writing it must not fail the job.
+            try {
+              await core.summary
+                .addHeading("Runner selection")
+                .addRaw(`${reason}\n\nRequested labels: ${JSON.stringify(runner)}\n`)
+                .write();
+            } catch (error) {
+              core.warning(`Could not write the job summary: ${error}`);
+            }
