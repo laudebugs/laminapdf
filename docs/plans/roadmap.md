@@ -102,7 +102,7 @@ One row per round. Reader and library rounds are one PR each; editor rounds are 
 | E15 | [editor](full-editor.md#e15-accessibility) | Accessibility | — |
 | E16 | [editor](full-editor.md#e16-optimisation-and-print-production) | Optimisation, print production | — |
 | E17 | [editor](full-editor.md#e17-advanced-interactions) | Advanced interactions | — |
-| E18 | [editor](full-editor.md#e18-collaboration-optional-server-tier) | Collaboration | 0012; `auth` |
+| E18 | [editor](full-editor.md#e18-collaboration-hosted-service) | Collaboration | 0012; `auth` |
 
 ## How we track progress
 

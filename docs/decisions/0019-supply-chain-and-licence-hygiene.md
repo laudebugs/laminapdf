@@ -22,7 +22,7 @@ A root `deny.toml`, checked in the PR fast lane (`cargo xtask check` runs `cargo
   - Not allowed: `GPL-*`, `AGPL-*`, `LGPL-*` in any form. `MPL-2.0` and other weak copyleft licences need a per-crate exception with a written reason, reviewed like an ADR change.
   - Unlicensed crates and crates whose licence can't be determined fail; `[[licenses.clarify]]` is used only with a link to the evidence.
 - **advisories:** the RustSec database; vulnerabilities and yanked versions fail. Unmaintained advisories warn; each ignore entry has an ID, a reason and a review date.
-- **bans:** wildcard version requirements denied; duplicate versions warn. Explicit deny entries for copyleft PDF engines and their bindings (for example `mupdf`, `mupdf-sys`) as a belt-and-braces check.
+- **bans:** `wildcards = "deny"` with `allow-wildcard-paths = true`, so intra-workspace path dependencies without a version are accepted only in crates that are not published. Internal crates (apps' `src-tauri`, `tools/xtask`, test helpers) set `publish = false`; published crates give every path dependency a `version` (through `[workspace.dependencies]`). Duplicate versions warn. Explicit deny entries for copyleft PDF engines and their bindings (for example `mupdf`, `mupdf-sys`) as a belt-and-braces check.
 - **sources:** crates.io only. Git dependencies are denied unless listed with a reason; unknown registries are denied.
 
 ### npm: licence check
@@ -31,19 +31,19 @@ An xtask subcommand reads `pnpm licenses list --json` (production dependencies o
 
 ### Pinned toolchains and lockfiles
 
-- `rust-toolchain.toml` pins the Rust toolchain and targets; `packageManager` in the root `package.json` pins pnpm (via Corepack); `engines` and `.nvmrc` pin Node's major version. `wasm-bindgen-cli` and `wasm-opt` are pinned in xtask ([ADR 0002](0002-binding-strategy.md)).
+- `rust-toolchain.toml` pins the Rust toolchain and targets; `packageManager` in the root `package.json` pins pnpm (via Corepack); Node's version is pinned in `.nvmrc` (used by CI's `setup-node` and by version managers) and declared in `engines`, with `engine-strict=true` in `.npmrc` so pnpm refuses a mismatched Node. `wasm-bindgen-cli` and `wasm-opt` are pinned in xtask ([ADR 0002](0002-binding-strategy.md)).
 - `Cargo.lock` and `pnpm-lock.yaml` are committed. CI runs `cargo … --locked` and `pnpm install --frozen-lockfile`.
 - GitHub Actions are pinned by commit SHA, with the version in a comment.
 
-### Dependency updates: Renovate
+### Dependency updates: Dependabot
 
-We use **Renovate** (with GitHub's Dependabot security *alerts* left on for visibility). Reasons:
+We use **Dependabot** (decided by the project owner), configured in `.github/dependabot.yml`, with security alerts and security updates on. Reasons:
 
-- One config covers every ecosystem we have: Cargo, pnpm including `catalog:` entries, GitHub Actions digests, `rust-toolchain.toml`, and custom managers for pinned tools such as `wasm-bindgen-cli`.
-- Grouping keeps coupled upgrades in one PR (the wasm-bindgen crate with its CLI; `@tauri-apps/*` with the `tauri` crates), which separate Dependabot ecosystem entries make harder.
-- A release-age delay (`minimumReleaseAge`) before proposing a new version reduces exposure to compromised releases that get yanked within days; scheduled lockfile maintenance refreshes transitive dependencies.
+- Built into GitHub: nothing to install or grant, no third-party app with write access to the repository.
+- It covers our ecosystems: `cargo`, `npm` (pnpm lockfiles), `github-actions`, with one entry per directory.
+- `groups` keep coupled upgrades in one PR (the wasm-bindgen crate; `@tauri-apps/*`; dev tooling), and `cooldown` delays brand-new releases for a few days, which reduces exposure to compromised releases that get yanked quickly.
 
-Dependabot would also work and needs no app installation; if Renovate becomes a burden, switching is cheap. Check the exact Renovate options against its docs when the config is written.
+What Dependabot does not track, xtask does: the pinned `wasm-bindgen-cli` must match the crate version in `Cargo.lock` (checked by `cargo xtask wasm`, [ADR 0002](0002-binding-strategy.md)), and binaryen, cargo-deny and the toolchain in `rust-toolchain.toml` are bumped by hand in a reviewed PR. Check the exact Dependabot options (pnpm catalog support, grouping syntax) against GitHub's docs when the config is written.
 
 ### SBOM and notices (at first release)
 
@@ -63,7 +63,7 @@ Not needed in Round A; required before the first public release (Round B for pac
 
 - A copyleft or unknown-licence dependency fails CI before review, rather than being found after a release.
 - Adding a dependency with an unusual licence is possible but visible: it needs a reviewed exception with a reason.
-- Upgrades arrive as small, grouped PRs on a schedule, with a delay before brand-new releases; someone still has to review and merge them.
+- Upgrades arrive as small, grouped Dependabot PRs on a schedule, with a cooldown before brand-new releases; someone still has to review and merge them.
 - Fixtures cost a little paperwork each, which slows down "just drop this PDF in". That's intended: a public repo can't hold documents we may not redistribute.
 - SBOMs and notices add release-pipeline work in Rounds B and D.
 
@@ -71,6 +71,6 @@ Not needed in Round A; required before the first public release (Round B for pac
 
 - **cargo-vet** (Tauri appears to use it). Records human audits of each dependency version; stronger, but costly for a small team. Reconsider once the dependency set stabilises.
 - **cargo-audit only.** Covers advisories but not licences, bans or sources; cargo-deny includes the same RustSec check.
-- **Dependabot** instead of Renovate. Built in and zero-install, with cooldown support; less flexible grouping and no single config for custom-pinned tools. A reasonable fallback.
+- **Renovate.** One config for every ecosystem including pnpm `catalog:` entries, `rust-toolchain.toml` and custom-pinned tools (regex managers), richer grouping, `minimumReleaseAge` and lockfile maintenance; Tauri uses it. Rejected for now because it needs a GitHub App installed with write access, and Dependabot covers what we need. The documented alternative if the hand-bumped tools above become a burden.
 - **license-checker-rseidelsohn** for npm. Works, but a second allow-list format; `pnpm licenses list` plus our own check keeps one list.
 - **Deny-list instead of allow-list** for licences. Misses new or unusual licences by default.

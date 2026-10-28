@@ -219,7 +219,7 @@ Editor rounds are larger than reader rounds. Each starts with a short **feature-
 - **Save:** incremental on `Free`.
 - **Web vs desktop:** media playback depends on codecs per platform; JavaScript never runs outside the ADR 0021 sandbox.
 
-#### E18. Collaboration (optional server tier)
+#### E18. Collaboration (hosted service)
 
 - **Ships:** shared review of annotations, form values and page order; presence; comment notifications (optional email). Content edits and redactions take a lease or run as a server job that mints a new base revision.
 - **Server:** ADR 0012: one Durable Object per document (SQLite storage, WebSocket hibernation), LWW per (record, property), deletes win, fractional indices for page order; base PDFs immutable and content-addressed in R2; PDF bytes never cross the socket; accounts and sharing on D1 (`auth` spike).

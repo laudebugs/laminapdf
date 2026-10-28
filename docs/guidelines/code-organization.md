@@ -31,9 +31,11 @@ lamina/
 │   └── viewer/             #   e.g. @lamina/viewer: UI components
 ├── apps/                   # deployable things, never depended on
 │   ├── web/                #   e.g. web app deployed to Cloudflare
-│   └── desktop/            #   e.g. Tauri app; src-tauri/ is a Cargo workspace member
+│   ├── desktop/            #   e.g. Tauri app; src-tauri/ is a Cargo workspace member
+│   └── updates/            #   e.g. update/download Worker for the desktop app
 ├── fixtures/               # shared test inputs and golden outputs, used by every language
 │   ├── corpus/  golden/  README.md (provenance + license per file)
+├── fuzz/                   # cargo-fuzz targets (OSS-Fuzz layout): own workspace, excluded from the root one
 ├── tools/                  # developer tooling
 │   └── xtask/              #   cargo xtask: codegen, checks, release helpers
 ├── docs/                   # documentation (see docs/README.md)
@@ -47,7 +49,7 @@ lamina/
 - **MUST** put Rust crates directly under `crates/`, with no nesting. The directory name is the crate name, including the `lamina-` prefix.
 - **MUST** put TypeScript libraries under `packages/` and deployables under `apps/`. Nothing may depend on an app.
 - **MUST NOT** nest one package inside another (for example `packages/a/b/package.json`). To group packages, use a glob such as `packages/group/*` and leave the group folder without a `package.json` ([Turborepo: structuring a repository](https://turborepo.dev/docs/crafting-your-repository/structuring-a-repository)).
-- **MUST** exclude `spikes/` from both workspaces (`exclude = ["spikes"]` in `Cargo.toml`, and no glob that matches it in `pnpm-workspace.yaml`). Otherwise Cargo treats a spike's `Cargo.toml` as a stray member of the root workspace and refuses to build it.
+- **MUST** exclude `spikes/` from both workspaces, and `fuzz/` from the Cargo workspace (`exclude = ["spikes", "fuzz"]` in `Cargo.toml`, and no glob that matches it in `pnpm-workspace.yaml`). Otherwise Cargo treats a spike's `Cargo.toml` as a stray member of the root workspace and refuses to build it.
 
 ### Rationale and alternatives
 

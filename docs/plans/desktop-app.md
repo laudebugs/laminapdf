@@ -116,7 +116,7 @@ Architecture Round D is delivered as PRs D1–D7. D1 can start as soon as C3 mer
 ### D6. Signing, packaging and release pipeline
 
 **Deliverable:** release workflow (tauri-action matrix) producing artefacts signed with the owner's identities as publisher: dmg (Developer ID + notarisation + stapling), MSI and NSIS (Azure Artifact Signing if the owner is eligible as an individual, otherwise an OV certificate in a cloud HSM), AppImage and deb (rpm optional); uploads to R2 with attestations; manifests updated per channel.
-**Accepted when:** Gatekeeper, SmartScreen and `debsig`/AppImage signature checks pass on clean VMs; release artifacts carry GitHub attestations; a nightly channel build publishes automatically.
+**Accepted when:** Gatekeeper and `debsig`/AppImage signature checks pass on clean VMs; on Windows the Authenticode signature is valid and the owner is shown as publisher. With Artifact Signing, the installer runs on a clean VM without a SmartScreen warning; with an OV certificate, a SmartScreen warning is acceptable for early releases (neither OV nor EV gets instant reputation since 2024), and the release notes document how reputation builds up; release artifacts carry GitHub attestations; a nightly channel build publishes automatically.
 
 ### D7. Crash reporting and beta
 
@@ -188,7 +188,7 @@ Architecture Round D is delivered as PRs D1–D7. D1 can start as soon as C3 mer
 - [ ] Windows signing via `signCommand` (Artifact Signing or the OV certificate); MSI and NSIS outputs
 - [ ] Linux AppImage (updater) and deb; rpm if the matrix allows
 - [ ] Upload to R2 with `.sig` files and GitHub attestations; update channel manifests
-- [ ] Verify installs on clean VMs (Gatekeeper, SmartScreen, Linux signature checks)
+- [ ] Verify installs on clean VMs (Gatekeeper, Windows signature and publisher, SmartScreen behaviour recorded, Linux signature checks)
 
 ### D7. Crash reporting and beta
 - [ ] Decide the crash backend (record in ADR 0014 or a short ADR)

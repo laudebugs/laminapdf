@@ -32,12 +32,16 @@ The architecture research checked the 2026 state of each option ([report: reposi
 
    ```
    cargo build -p lamina-wasm --target wasm32-unknown-unknown --release
-     → wasm-bindgen (CLI, pinned to exactly the wasm-bindgen crate version in Cargo.lock)
-     → wasm-opt -Oz (binaryen, pinned)
-     → packages/wasm (build output, gitignored)
+     → wasm-bindgen --target web (CLI, pinned to exactly the wasm-bindgen crate version in Cargo.lock)
+     → wasm-opt -Oz --enable-… (binaryen, pinned version; feature flags below)
+     → packages/wasm/dist/ (generated, gitignored)
    ```
 
    The xtask checks the CLI version against `Cargo.lock` and fails on mismatch. CI runs the same command and enforces the size budget on its output.
+
+   **Where the output goes.** `packages/wasm/` is a real workspace package (`@lamina/wasm`) whose `package.json` (and a short README) are **committed**; only its generated contents, `packages/wasm/dist/` (the JS glue, `.d.ts` and `.wasm`), are gitignored. Its `exports` point into `dist/`, and `@lamina/pdf` depends on it with `workspace:*`. Because the manifest is committed, `pnpm install --frozen-lockfile` works on a fresh clone and in CI *before* `cargo xtask wasm` has run; the files only have to exist when a package that imports them is built or tested, and xtask builds them first. (Whether `@lamina/wasm` is published or bundled into `@lamina/pdf` is ADR 0016's call.) We rejected writing the output straight into the consuming package (`packages/pdf/wasm/`), because the render packages will need the same pattern and a separate package keeps the generated code out of hand-written source trees.
+
+   **wasm-opt features.** Recent rustc versions enable WASM features by default for `wasm32-unknown-unknown` (reference-types and multivalue since Rust 1.82, plus others since), and binaryen rejects modules that use features it was not told to allow. We **pin the binaryen version** in xtask next to the Rust toolchain and **pass the feature set rustc emits explicitly** (`--enable-bulk-memory --enable-mutable-globals --enable-nontrapping-float-to-int --enable-sign-ext --enable-reference-types --enable-multivalue`), kept as one list in xtask that is reviewed whenever `rust-toolchain.toml` changes. We don't restrict target features below rustc's defaults: every runtime we target (current browsers, workerd, Node LTS) supports them. CI loads the optimised module in Node and in workerd, so a mismatch fails the build rather than a user.
 
 3. **Handle-based façade.** The public surface that bindings wrap is designed once, in the `lamina` façade crate: owned types, opaque handles, byte buffers in and out, no borrowed lifetimes or generics across the boundary. It maps one-to-one onto wasm-bindgen classes, Tauri commands and UniFFI objects ([report: reference architecture](../research/architecture/app-and-package-architecture.md#the-reference-architecture-is-one-engine-with-three-shells)). Binding crates contain only conversion and error mapping, never PDF logic.
 
@@ -55,7 +59,7 @@ The architecture research checked the 2026 state of each option ([report: reposi
 - `unsafe` stays inside generated code; lamina's own edge crates need little or none ([`rust.md` Unsafe](../guidelines/rust.md#unsafe)).
 - The same WASM file runs in browsers, Workers, Node, Deno and Bun. There is no per-runtime build, at the cost of not using threads or native Node speed in the baseline.
 - wasm-bindgen glue adds some size over the spike's raw C ABI; the size budget in CI makes that visible. `wasm-opt` recovers part of it.
-- Upgrading wasm-bindgen means upgrading the crate and CLI together; Renovate groups them ([ADR 0019](0019-supply-chain-and-licence-hygiene.md)).
+- Upgrading wasm-bindgen means upgrading the crate and CLI together: Dependabot proposes the crate bump and `cargo xtask wasm` fails until the pinned CLI matches ([ADR 0019](0019-supply-chain-and-licence-hygiene.md)).
 - Designing the façade around handles and owned buffers costs some ergonomics for Rust callers, who may also use the core crates directly.
 
 ## Alternatives considered
