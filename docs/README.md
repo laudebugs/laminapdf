@@ -17,7 +17,7 @@ Time-boxed experiments under [`spikes/`](../spikes/) that answer one question ea
 | Spike | Question | Result |
 | --- | --- | --- |
 | [`pdf-basics`](../spikes/pdf-basics/) | Rust or TypeScript for the core? | Rust core (ADR 0001); see [research ch. 07](research/pdf/07-spike-rust-and-typescript.md) |
-| [`krilla-fit`](../spikes/krilla-fit/README.md) | Can krilla generate into lamina's object graph? | No (bytes only). Recommends an own builder over `lamina-cos` reusing `pdf-writer`, `subsetter`, `skrifa`, HarfRust; pending owner / ADR 0005 |
+| [`krilla-fit`](../spikes/krilla-fit/README.md) | Can krilla generate into lamina's object graph? | No (bytes only). Recommends an own builder over `lamina-cos` reusing `pdf-writer`, `subsetter`, `skrifa`, HarfRust; recorded in ADR 0005 §6 |
 
 ## Conventions
 

@@ -36,7 +36,7 @@ All three share one engine, so each of the ~180 operations in the [feature inven
 
 1. **Bytes in, bytes out.** The core never touches the file system, network or clocks, and never spawns threads (shells may run it on several threads or workers). Input arrives through a `ByteSource` trait, output leaves through a `WriteSink` trait. This was proven in the spike, and it is what makes one crate run in a browser worker, a Cloudflare Worker, Tauri and, later, mobile.
 2. **Every change is a typed `Op`.** Undo, dirty tracking, collaboration sync and the public API all consume the same op stream.
-3. **The save planner owns correctness.** `SaveConstraint` (Free / AppendOnly / RequiresRewrite) makes signature-breaking or redaction-leaking saves impossible by default. Fixed order: redact → full rewrite → sign → append-only saves.
+3. **The save planner owns correctness.** `SaveConstraint` (Free / AppendOnly / RequiresRewrite, or Conflict when they overlap; [ADR 0007](../decisions/0007-save-planner.md)) makes signature-breaking or redaction-leaking saves impossible by default. Fixed order: redact → full rewrite → sign → append-only saves.
 4. **Rendering is swappable.** PDFium is the default renderer today. hayro (pure Rust) is diffed against it in CI and becomes the default once it reaches parity on our corpus. MuPDF is excluded (AGPL).
 5. **The UI framework stays off the hot path.** Page virtualisation, the canvas pool, the text layer and the annotation layer are plain TypeScript, so the framework choice is reversible and the viewer can be embedded by others.
 6. **Privacy first.** Documents are processed on the device by default. lamina is also a hosted service with user login and cloud features (§8 Q2), but signing in and every server feature stay opt-in, and the app works fully without an account.
@@ -51,13 +51,13 @@ ADRs go in `docs/decisions/`, one file per decision (`NNNN-title.md`). Each roun
 | [0002](../decisions/0002-binding-strategy.md) | Binding strategy: wasm-bindgen + tsify; UniFFI later; napi-rs and Component Model deferred | Round A | Accepted |
 | [0015](../decisions/0015-monorepo-layout-and-tooling.md) | Monorepo layout and tooling (Cargo + pnpm + xtask) | Round A | Accepted |
 | [0019](../decisions/0019-supply-chain-and-licence-hygiene.md) | Supply-chain and licence hygiene (cargo-deny, npm licence checks, SBOM) | Round A | Accepted |
-| 0003 | Reader tolerance policy and `Limits` defaults | Round B | Ready |
-| 0005 | Document model: lazy COS overlay, typed views, stable `LaminaId`s | Round B | Propose |
-| 0006 | Op log, transactions, undo semantics | Round B | Propose |
-| 0007 | Save planner and `SaveConstraint` | Round B | Propose |
+| [0003](../decisions/0003-reader-tolerance-and-limits.md) | Reader tolerance policy and `Limits` defaults | Round B | Accepted |
+| [0005](../decisions/0005-document-model.md) | Document model: lazy COS overlay, typed views, stable `LaminaId`s | Round B | Accepted (generation strategy Proposed) |
+| [0006](../decisions/0006-op-log-and-undo.md) | Op log, transactions, undo semantics | Round B | Accepted |
+| [0007](../decisions/0007-save-planner.md) | Save planner and `SaveConstraint` | Round B | Accepted |
 | 0016 | Package design: ESM-only, export conditions, split WASM modules, size budgets | Round B | Propose |
 | 0017 | Versioning and release: lockstep core, OIDC trusted publishing, attestations | Round B | Propose |
-| 0018 | Test strategy: goldens, differential corpus, fuzzing, veraPDF | Round B | Ready |
+| [0018](../decisions/0018-test-strategy.md) | Test strategy: goldens, differential corpus, fuzzing, veraPDF | Round B | Accepted |
 | 0004 | `RenderBackend`; PDFium default; hayro oracle; MuPDF prohibited | Round C | Propose |
 | 0009 | Web client: React chrome + framework-free viewer core; typed worker RPC | Round C | Propose |
 | 0010 | Platform adapter and capability flags | Round C | Propose |
@@ -75,7 +75,7 @@ The research couldn't answer these. Each is a small, time-boxed spike under `spi
 | --- | --- | --- |
 | `desktop-ipc` | Throughput of Tauri Channel vs `ipc::Response` vs a `lamina://` scheme for page tiles on macOS, Windows and Linux; do WKWebView and WebKitGTK honour COOP/COEP? | ADR 0008 |
 | `pdfium-wasm` | Load PDFium-WASM in a worker next to the lamina core: bundle size, memory, render time; reload after an incremental save | ADR 0004 |
-| `krilla-fit` | Can krilla write into an existing object graph, or do we build our own builder over `lamina-cos`? | Library plan, Round B. **Done** ([result](../../spikes/krilla-fit/README.md)): no, krilla only emits finished bytes; recommends an own builder over `lamina-cos` reusing `pdf-writer`/`subsetter`/`skrifa`/HarfRust (pending owner / ADR 0005) |
+| `krilla-fit` | Can krilla write into an existing object graph, or do we build our own builder over `lamina-cos`? | Library plan, Round B. **Done** ([result](../../spikes/krilla-fit/README.md)): no, krilla only emits finished bytes; recommends an own builder over `lamina-cos` reusing `pdf-writer`/`subsetter`/`skrifa`/HarfRust (ADR 0005 §6) |
 | `hayro-parity` | hayro vs PDFium pass rate on the pdf.js and PDFBox corpora: the baseline for switching the default | ADR 0004 |
 | `desktop-print` | How to print faithfully from Tauri on each OS (native print of rendered pages vs webview print), given the `hasNativePrint` capability | Round D |
 | `auth` | Better Auth / Auth.js on D1 vs hosted vendors, for the hosted service's user login and accounts (in scope since 2026-10-28, §8 Q2); run before the first round that needs accounts | ADR 0011 |
@@ -120,8 +120,9 @@ Product-level detail (features, milestones, acceptance criteria) lives in the pr
 - [ ] Update `CLAUDE.md` (layout, commands, decided architecture)
 
 ### Round B — Core model and the first package
-- [ ] Write ADRs 0003, 0005, 0006, 0007, 0016, 0017, 0018
-- [x] `krilla-fit` spike ([result](../../spikes/krilla-fit/README.md)), then decide the generation strategy (recommendation pending owner / ADR 0005)
+- [x] Write ADRs 0003, 0005, 0006, 0007, 0018 (B1; 0005 §6, the generation strategy, settled by `krilla-fit`)
+- [ ] Write ADRs 0016, 0017
+- [x] `krilla-fit` spike ([result](../../spikes/krilla-fit/README.md)), then decide the generation strategy (Option B, recorded in [ADR 0005 §6](../decisions/0005-document-model.md))
 - [ ] `lamina-model`: typed pages, annotations, fields, outline; stable IDs
 - [ ] `lamina-ops`: `Op` enum, `transact()`, inverses, undo/redo
 - [ ] `lamina-save`: save planner, `SaveConstraint`, streaming `WriteSink`

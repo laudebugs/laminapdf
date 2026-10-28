@@ -1,7 +1,7 @@
 # Spike: `krilla-fit` (Round B1)
 
 - **Date:** 2026-10-28
-- **Status:** done. The recommendation below is **pending owner / ADR 0005 acceptance**.
+- **Status:** done. The recommendation below is recorded in [ADR 0005 §6](../../docs/decisions/0005-document-model.md#6-generation-strategy--option-b-recommended-by-the-krilla-fit-spike-accepted-when-its-pr-merges) and is accepted when this spike's PR merges (owner sign-off).
 - **Plan:** [architecture §4](../../docs/plans/architecture.md#4-spikes-to-close-open-questions) (`krilla-fit`), [library plan §7 B1, §9 Q1](../../docs/plans/pdf-library.md#9-open-questions)
 - **Code:** throwaway-quality, outside both workspaces, never imported by product code ([code organisation §1](../../docs/guidelines/code-organization.md#1-top-level-layout)).
 
@@ -96,13 +96,14 @@ Times are dominated by Flate-compressing the 147 KB RGBA image. Both generators 
 5. **pdf-writer fits lamina's graph.** The caller allocates every `Ref` (B2), and `Content` produces bytes with no refs. That makes pdf-writer usable as a typed serialisation helper. For object dictionaries, though, lamina already has `Object`/`Dict`, so `lamina-build` should use **`pdf_writer::Content`** for operators and write dictionaries as lamina `Object`s. Parsing pdf-writer chunks back (B2) works but adds an unneeded serialize→parse round trip.
 6. **Writing our own is small for the parts we need, and large for the parts krilla is good at.** The spike's C builder (Type 0 + Identity-H + ToUnicode + `/W` + PNG/SMask + JPEG + paths + links + outline) is about 400 lines and matches krilla's output. What it leaves out is real work, and krilla is the reference for each item: shaping with HarfRust (ligatures, kerning, complex scripts; C maps one glyph per char), CFF/OTF and variable-font instancing (`subsetter` has `subset_with_variations`), compact `/W` runs, COLR/SVG/bitmap glyphs (Type 3), gradients/patterns/masks/blend modes, and above all **tagging + PDF/UA + PDF/A validators**. These are B4 and B8 effort either way.
 
-## Recommendation (pending owner / ADR 0005 acceptance)
+## Recommendation (ADR 0005 §6, accepted when this PR merges)
 
 **Hybrid: build `lamina-build` over `lamina-cos` (later `lamina-model` + `lamina-save`). Reuse krilla's building blocks as dependencies, and use krilla itself as a reference, not as a dependency of the core.**
 
 - **Depend on:** `pdf-writer` (`Content` for operators, and possibly its typed writers in tests and goldens), `subsetter` (TrueType/CFF/CFF2 subsetting, variable instancing), `skrifa`/`read-fonts` (cmap, metrics, outlines), `harfrust` (shaping, B4). All are MIT OR Apache-2.0, maintained, and WASM-clean.
 - **Don't depend on `krilla` in core crates.** It can't target our graph (finding 1), the adapter breaks tagging and catalog features (2, 3), it pins the font stack behind its release cycle, and its generator alone is about 830 KB gzipped in WASM against a 350 KB budget. Its API shape (`Document → page → surface → finish`) is already what the [library plan](../../docs/plans/pdf-library.md#api-sketch-illustrative-not-final) sketches.
 - **Use krilla as the reference and the oracle.** Port ideas, with attribution where code is adapted (MIT/Apache permit it): the font container and `/W` compaction, the Type 3 fallback for colour glyphs, the tag tree → `ParentTree` bookkeeping, and the validator rule lists (`src/configure/PDF_UA1.md`, `PDF_A*.md`). A dev-dependency on krilla in a test-only crate can generate the same documents for differential tests.
+- **Fit with ADR 0005:** `Document` owns an `Arc<dyn ByteSource>` base plus a dirty overlay. The builder allocates its objects in the overlay as `New` entries (the spike's `Writer::reserve`/`set` is the stand-in), so a generated document is a `Document` over an empty base, and "add a page or stamp to an open document" is the same code followed by an incremental save. With krilla, the generated `Vec<u8>` could simply become the base (`Vec<u8>` moves into the `Arc`), which is easy, but it only covers new documents. Adding to an existing document would still need the B1 import into the overlay.
 - **Optional escape hatch (not in core):** if someone needs krilla-only features before we have them, an edge crate such as `lamina-krilla` could expose "import a krilla-generated PDF's pages into a `Document`". This is the B1 adapter, built on the page-import code that full-editor merge/insert needs anyway, and documented as untagged-only until structure-tree merge exists.
 
 ### Trade-offs
@@ -125,7 +126,7 @@ Times are dominated by Flate-compressing the 147 KB RGBA image. Both generators 
 ## What B4 and B5 should do
 
 - **B4 (`lamina-text`):** `skrifa` for loading and metrics, `harfrust` for shaping (the version krilla `main` uses, so the two stay comparable), `subsetter` with `subset_with_variations`, ToUnicode and `/W` writers (compact runs as krilla does), deterministic subset tags (the spike hashes the glyph set), and a `FontContainer`-like accumulator whose PDF objects are reserved at first use and written at `finish`.
-- **B5 (`lamina-build`):** the builder writes lamina `Object`s into the document model (reserving refs or `LaminaId`s for deferred objects such as fonts, the outline and the structure tree) and uses `pdf_writer::Content` for content streams. `finish()` returns a `Document`. Golden tests compare against byte-identical fixtures, and a test-only krilla generator gives differential checks (text extraction, page boxes, rendering via PDFium/hayro).
+- **B5 (`lamina-build`):** the builder writes lamina `Object`s into the ADR 0005 overlay (reserving object numbers for deferred objects such as fonts, the outline and the structure tree) and uses `pdf_writer::Content` for content streams. `finish()` returns a `Document`. Golden tests compare against byte-identical fixtures, and a test-only krilla generator gives differential checks (text extraction, page boxes, rendering via PDFium/hayro).
 - **Later (full editor):** the page-import code from `src/graph.rs` grows into merge/insert-pages. It is also the optional krilla adapter, if one is ever wanted.
 
 ## Files
