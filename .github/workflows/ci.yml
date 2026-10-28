@@ -67,8 +67,18 @@ jobs:
           node-version-file: .nvmrc
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      # xtask is the entry point for the TS checks too; only the host toolchain is needed here.
+      # xtask is the entry point for the TS checks too, but it only needs to build for the host.
+      # Passing `toolchain` makes the action skip rust-toolchain.toml's components and cross
+      # targets and set a directory override, so cargo doesn't install them either. The version
+      # is still read from rust-toolchain.toml.
+      - name: Read the pinned Rust version
+        id: rust
+        run: echo "channel=$(sed -n 's/^channel = "\(.*\)".*/\1/p' rust-toolchain.toml)" >> "$GITHUB_OUTPUT"
       - uses: actions-rust-lang/setup-rust-toolchain@ecabd13d1c56bd1345c230e542e9144811ad706f # v2.0.0
+        with:
+          toolchain: ${{ steps.rust.outputs.channel }}
+          components: ""
+          target: ""
       - run: cargo xtask check ts
 
   # The pdf-basics spike is frozen research code outside both workspaces, but its tests are the

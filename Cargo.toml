@@ -28,6 +28,8 @@ thiserror = { version = "2.0.21", default-features = false }
 anyhow = "1.0.104"
 # MIT OR Apache-2.0
 serde_json = "1.0.154"
+# Reading deny.toml and rust-toolchain.toml in xtask. MIT OR Apache-2.0
+toml = { version = "1.1.8", default-features = false, features = ["std", "parse", "serde"] }
 
 [workspace.lints.rust]
 unsafe_code = "deny"            # core crates additionally #![forbid(unsafe_code)]

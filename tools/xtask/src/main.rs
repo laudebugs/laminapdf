@@ -145,16 +145,19 @@ fn clippy(ws: &Workspace) -> Result<()> {
         "warnings",
     ])?;
     let mut args = vec!["clippy", "--locked", "--target", WASM_TARGET, "--lib"];
-    args.extend(ws.wasm_crates().flat_map(|name| ["-p", name]));
+    args.extend(package_args(ws.wasm_crates(), "wasm32")?);
     args.extend(["--", "-D", "warnings"]);
     ws.cargo(&args)
 }
 
 fn rust_tests(ws: &Workspace) -> Result<()> {
-    if doctor::available(ws, &doctor::cargo_nextest())? {
+    let nextest = doctor::cargo_nextest();
+    let probe = nextest.probe(ws);
+    if use_nextest(&probe) {
         ws.cargo(&["nextest", "run", "--locked", "--workspace", "--all-features"])?;
     } else {
-        eprintln!("note: cargo-nextest not installed, using cargo test (see `cargo xtask doctor`)");
+        // nextest is optional: an absent or off-pin one is a note, not a failure (doctor reports it).
+        eprintln!("note: {}; using cargo test instead", nextest.problem(&probe));
         ws.cargo(&[
             "test",
             "--locked",
@@ -167,6 +170,24 @@ fn rust_tests(ws: &Workspace) -> Result<()> {
     }
     // nextest does not run doc tests.
     ws.cargo(&["test", "--locked", "--workspace", "--all-features", "--doc"])
+}
+
+/// Run tests with nextest only when it is installed at the pinned version.
+fn use_nextest(probe: &doctor::Probe) -> bool {
+    matches!(probe, doctor::Probe::Ok(_))
+}
+
+/// `-p <name>` for each crate. Fails when there are none: without `-p`, cargo would run the
+/// cross-target command on the whole workspace (xtask included) instead of the crates meant.
+fn package_args<'a>(names: impl Iterator<Item = &'a str>, kind: &str) -> Result<Vec<&'a str>> {
+    let args: Vec<&str> = names.flat_map(|name| ["-p", name]).collect();
+    if args.is_empty() {
+        bail!(
+            "no {kind} crates found: every crate in crates/ declares [package.metadata.lamina] layer, \
+             and at least one must be \"core\""
+        );
+    }
+    Ok(args)
 }
 
 /// rustdoc with warnings as errors (broken intra-doc links, bad code blocks); rust.md: Documentation.
@@ -188,7 +209,7 @@ fn portability(ws: &Workspace) -> Result<()> {
     ws.check_core_sources()?;
     for target in PORTABLE_TARGETS {
         let mut args = vec!["check", "--locked", "--lib", "--target", target];
-        args.extend(ws.core_crates().flat_map(|name| ["-p", name]));
+        args.extend(package_args(ws.core_crates(), "core")?);
         ws.cargo(&args)?;
     }
     Ok(())
@@ -204,7 +225,7 @@ fn wasm(ws: &Workspace) -> Result<()> {
         "--target",
         WASM_TARGET,
     ];
-    args.extend(ws.wasm_crates().flat_map(|name| ["-p", name]));
+    args.extend(package_args(ws.wasm_crates(), "wasm32")?);
     // The core crates are rlibs, so there is no .wasm artefact yet; this only proves they build
     // with the shipping profile. When the lamina-wasm cdylib lands (Round B), this task also runs
     // wasm-bindgen and wasm-opt (binaryen pinned in doctor.rs, with explicit feature flags matching
@@ -243,4 +264,31 @@ fn run<S: AsRef<OsStr>>(dir: &Path, program: &str, args: &[S]) -> Result<()> {
         bail!("`{program} {}` failed with {status}", shown.join(" "));
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{package_args, use_nextest};
+    use crate::doctor::Probe;
+
+    #[test]
+    fn package_args_fails_without_crates() {
+        assert!(package_args(std::iter::empty(), "core").is_err());
+    }
+
+    #[test]
+    fn package_args_names_each_crate() {
+        let args = package_args(["a", "b"].into_iter(), "core").unwrap();
+        assert_eq!(args, ["-p", "a", "-p", "b"]);
+    }
+
+    #[test]
+    fn off_pin_nextest_falls_back_to_cargo_test() {
+        assert!(!use_nextest(&Probe::OffPin("cargo-nextest 0.9.151".into())));
+    }
+
+    #[test]
+    fn missing_nextest_falls_back_to_cargo_test() {
+        assert!(!use_nextest(&Probe::Missing));
+    }
 }

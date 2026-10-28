@@ -21,7 +21,7 @@ pub(crate) fn check_npm(ws: &Workspace) -> Result<()> {
         bail!("node_modules is missing: run `pnpm install` at the repository root first");
     }
     let deny_toml = fs::read_to_string(ws.root.join("deny.toml")).context("reading deny.toml")?;
-    let allow_list = allow_list(&deny_toml).context("deny.toml has no `allow = [...]` licence list")?;
+    let allow_list = allow_list(&deny_toml)?;
     let allowed = |id: &str| allow_list.iter().any(|a| a == id);
 
     for entry in disallowed(ws, "--dev", &allowed)? {
@@ -39,17 +39,25 @@ pub(crate) fn check_npm(ws: &Workspace) -> Result<()> {
     }
 }
 
-/// The quoted strings in the first `allow = [ … ]` array of `deny.toml`.
-fn allow_list(deny_toml: &str) -> Option<Vec<String>> {
-    let start = deny_toml.find("\nallow = [")?;
-    let rest = deny_toml.get(start..)?;
-    let body = rest.get(rest.find('[')? + 1..rest.find(']')?)?;
-    let list: Vec<String> = body
-        .lines()
-        .map(|line| line.split('#').next().unwrap_or_default().trim().trim_end_matches(','))
-        .filter_map(|item| item.strip_prefix('"')?.strip_suffix('"').map(str::to_owned))
-        .collect();
-    (!list.is_empty()).then_some(list)
+/// `[licenses] allow` from `deny.toml`.
+fn allow_list(deny_toml: &str) -> Result<Vec<String>> {
+    let table: toml::Table = toml::from_str(deny_toml).context("deny.toml is not valid TOML")?;
+    let list: Vec<String> = table
+        .get("licenses")
+        .and_then(|licenses| licenses.get("allow"))
+        .and_then(toml::Value::as_array)
+        .context("deny.toml has no [licenses] allow list")?
+        .iter()
+        .map(|item| {
+            item.as_str()
+                .map(str::to_owned)
+                .context("[licenses] allow entries must be strings")
+        })
+        .collect::<Result<_>>()?;
+    if list.is_empty() {
+        bail!("deny.toml's [licenses] allow list is empty");
+    }
+    Ok(list)
 }
 
 /// Lists one dependency group (`--prod` or `--dev`) and returns `name (group): licence` for each
@@ -128,12 +136,26 @@ fn term(tokens: &mut Tokens<'_>, allowed: &impl Fn(&str) -> bool) -> Option<bool
 mod tests {
     use super::{allow_list, spdx_allows};
 
-    const DENY_TOML: &str =
-        "[licenses]\nallow = [\n    \"MIT\",\n    \"Apache-2.0 WITH LLVM-exception\", # comment\n]\n";
+    // `[bans] allow` (a crate list) comes first on purpose: only `[licenses] allow` may be read.
+    const DENY_TOML: &str = r#"
+[bans]
+allow = [{ name = "foo" }]
+
+[licenses]
+allow = [
+    "MIT",
+    "Apache-2.0 WITH LLVM-exception", # comment
+]
+"#;
 
     fn shipped(expression: &str) -> bool {
         let list = allow_list(DENY_TOML).unwrap();
         spdx_allows(expression, &|id: &str| list.iter().any(|a| a == id))
+    }
+
+    #[test]
+    fn allow_list_fails_without_licenses_table() {
+        assert!(allow_list("[bans]\nallow = [\"MIT\"]\n").is_err());
     }
 
     #[test]
