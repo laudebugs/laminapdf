@@ -2,7 +2,7 @@
 
 > **Scope.** This chapter covers how a PDF file is physically laid out (bytes, tokens, objects, cross-reference data, trailers, incremental updates, linearization, stream filters) and how it is logically organized (catalog, page tree, resources, name/number trees, metadata, outlines, page labels). It ends with how real parsers read real, often broken, files, plus a byte-exact "Hello, World" PDF that we built and checked.
 >
-> **Primary reference:** ISO 32000-2:2020 (PDF 2.0, 2nd edition), §7 "Syntax" and §7.7 "Document structure", plus Annexes F (linearization) and C (limits). Where PDF 1.7 / ISO 32000-1:2008 differs, the text says so. Clause numbers are for ISO 32000-2. ISO 32000-1 numbers them almost the same way for this material.
+> **Primary reference:** ISO 32000-2:2020 (PDF 2.0, 2nd edition), §7 "Syntax" and §7.7 "Document structure", plus Annexes F (linearization) and C (limits). Where PDF 1.7 / ISO 32000-1:2008 differs, the text says so. Clause numbers are for ISO 32000-2. ISO 32000-1 numbers them almost the same way for this material; where the 32000-1 number differs it is given in parentheses. On 2026-10-28 the PDF 1.7-level claims were checked against the text of ISO 32000-1:2008 (see the Verification log at the end); PDF 2.0-only claims could not be checked against the 2.0 text.
 >
 > Content streams (operators, graphics state, text) are covered in later chapters, as are fonts, encryption, signatures and security. This chapter only touches them where they affect file structure.
 
@@ -25,6 +25,7 @@
 13. Security-relevant parsing pitfalls
 14. Implementation guidance for lamina
 15. References
+16. Verification log
 
 ---
 
@@ -52,7 +53,7 @@ PDF 2.0 changes that matter for this chapter:
 - **Trailer `/ID` is required** in PDF 2.0 files. In 1.7 it was required only when `/Encrypt` was present.
 - **The document information dictionary (`/Info`) is deprecated**, except for `/CreationDate` and `/ModDate`. XMP metadata is the normative store.
 - **UTF-8 text strings** are allowed, marked with the BOM `EF BB BF`. Before 2.0 a text string was either PDFDocEncoding or UTF-16BE with BOM `FE FF`.
-- Deprecations elsewhere in the spec, such as XFA, `NeedsRendering`, RC4 and the older security handler revisions, PostScript XObjects, and relying on non-embedded standard-14 fonts. PDF 2.0 readers must still handle these. Writers should not emit them.
+- Deprecations elsewhere in the spec, such as XFA, `NeedsRendering`, RC4 and the older security handler revisions, and relying on non-embedded standard-14 fonts. PostScript XObjects (already discouraged in 1.7) were removed outright rather than deprecated, per the Library of Congress PDF 2.0 format description. PDF 2.0 readers must still handle these. Writers should not emit them.
 - New document-level features: associated files (`/AF`), document parts (`/DPartRoot`), the document security store (`/DSS`), page-level output intents, and structure namespaces.
 
 **Governance and availability.** The PDF Association (a non-profit industry association) hosts the ISO working groups. From 2017 to 2023 you had to buy ISO 32000-2 from ISO. On **5 April 2023** the PDF Association made ISO 32000-2:2020 available **at no cost**, sponsored by Adobe, Apryse and Foxit. The download is watermarked with the requester's name. The current free copy includes the PDF Association's errata collections. The related ISO/TS 32001 (SHA-3/SHA-512 hash extensions), ISO/TS 32002 (ECC/EdDSA signature extensions) and ISO/TS 32003 (AES-GCM) are also free. Adobe still hosts a free copy of ISO 32000-1:2008 (PDF 1.7) and the older "PDF Reference" editions. The PDF Association also runs a public corrections tracker for PDF 2.0 (`pdf-issues.pdfa.org`).
@@ -82,7 +83,7 @@ The engineering impact is that a writer which wants to produce PDF/A or PDF/X ne
 
 A PDF file is a sequence of **8-bit bytes**. The "text" parts are ASCII-compatible, but the format is binary. Never open a PDF in text mode or run it through newline conversion.
 
-### 3.1 Character classes (§7.2.3)
+### 3.1 Character classes (§7.2.3; 32000-1 §7.2.2)
 
 **White-space characters** (Table 1) are all equivalent outside strings and streams, except that EOL markers carry meaning in a few places.
 
@@ -107,7 +108,7 @@ A PDF file is a sequence of **8-bit bytes**. The "text" parts are ASCII-compatib
 
 Keywords are **case-sensitive**: `obj`, `endobj`, `stream`, `endstream`, `xref`, `trailer`, `startxref`, `true`, `false`, `null`, `R`, `f`, `n`.
 
-### 3.2 Comments (§7.2.4)
+### 3.2 Comments (§7.2.4; 32000-1 §7.2.3)
 
 A `%` outside a string or stream starts a comment that runs to the end of the line. The comment counts as a single white-space. Comments have no meaning to the object model, with two exceptions that are **file markers**:
 
@@ -124,9 +125,9 @@ Comments are also ignored inside content streams, so `%` in content data cannot 
 ```
 
 - The header is `%PDF-` followed by the version: `1.0`…`1.7` or `2.0`. The spec says it is at byte 0.
-- **Real-world tolerance:** Acrobat accepts the header anywhere within the **first 1024 bytes** (an implementation note in the old Adobe reference). Other major readers do the same. This tolerance is the root of many polyglot tricks (§13).
-- If the file contains binary data, which nearly every file does, the header line **should** be followed immediately by a comment line containing **at least four bytes ≥ 128**. The purpose is historical: FTP clients, mail gateways and VCS tools decide "binary vs text" by sniffing the first bytes, and the marker stops them from rewriting EOLs. The sequence `%âãÏÓ` (E2 E3 CF D3) is the one Acrobat writes. Any four high bytes are fine.
-- **Version override (PDF 1.4+):** the catalog's `/Version` name (e.g. `/1.7`) replaces the header's version **if it is later**. This lets an incremental update raise the version without rewriting byte 0.
+- **Real-world tolerance:** Acrobat accepts the header anywhere within the **first 1024 bytes** (an implementation note in the old Adobe PDF Reference; ISO 32000-1 §7.5.2 has no such allowance and simply says the header is the first line). Other major readers do the same. This tolerance is the root of many polyglot tricks (§13).
+- If the file contains binary data, which nearly every file does, the header line **shall** be followed immediately by a comment line containing **at least four bytes ≥ 128** (32000-1 §7.5.2). The purpose is historical: FTP clients, mail gateways and VCS tools decide "binary vs text" by sniffing the first bytes, and the marker stops them from rewriting EOLs. The sequence `%âãÏÓ` (E2 E3 CF D3) is the one Acrobat writes. Any four high bytes are fine.
+- **Version override (PDF 1.4+):** the catalog's `/Version` name (e.g. `/1.7`) replaces the header's version **if it is later** (32000-1 §7.5.2 and Table 28). This lets an incremental update raise the version without rewriting byte 0.
 
 ## 4. The object model (§7.3)
 
@@ -153,16 +154,18 @@ PDF has **eight basic object types** plus the **null** object:
 
 - **Integers**: optional sign, decimal digits. **Reals**: optional sign, digits with exactly one `.`. Leading or trailing digits may be omitted (`.5`, `5.`).
 - Wherever a real is expected, an integer is accepted, and the reverse holds where the spec allows it. In practice readers convert freely, and an integer value in a real slot is common and valid.
-- **Limits.** ISO 32000-1 Annex C gave Acrobat's 32-bit architectural limits:
+- **Limits.** ISO 32000-1 Annex C (Table C.1) gave the minimum limits a typical conforming reader on a 32-bit machine should accommodate, which writers should stay within:
   - integers −2³¹ … 2³¹−1
-  - reals ±3.403×10³⁸, smallest non-zero ±1.175×10⁻³⁸, about 5 significant decimal digits of precision in Acrobat
-  - string length 32,767 bytes (this limit is not respected for strings inside content streams, which are routinely longer)
+  - reals ±3.403×10³⁸, smallest non-zero ±1.175×10⁻³⁸, about 5 significant decimal digits of precision in the fractional part
+  - string length 32,767 bytes, a limit that applies **only to strings in content streams**. Annex C says there is no effective limit on other strings
   - name length 127 bytes
   - 8,388,607 indirect objects
   - `q` nesting depth 28
   - 32 DeviceN colorants
-  - page size 3–14,400 units
-- ISO 32000-2 turned most of these from limits into portability advice. Real files break them: there are 64-bit offsets in huge files, and some writers emit `1.0e-05` (invalid, though many readers accept it).
+  - CID values up to 65,535
+  - page size 3–14,400 units (a recommendation in C.2, not part of Table C.1)
+  - file size 10¹⁰ bytes when a classic xref table is used, because offsets have ten digits (the one limit C.2 calls an architectural limit of PDF itself; it does not apply to files using xref streams)
+- ISO 32000-2 reportedly turned most of these from limits into portability advice (PDF 2.0 claim, not checked against the 2.0 text). Real files break them: there are 64-bit offsets in huge files, and some writers emit `1.0e-05` (invalid, though many readers accept it).
 - **Writer rule:** use integers where possible. Print reals in fixed-point with bounded precision (e.g., up to 6 fractional digits, trailing zeros stripped). Never emit exponents, `NaN` or `Infinity`.
 - **Reader rule:** accept `--5`, `5-`, `1e5` and `.` leniently. pdf.js, for example, treats `--` as a single `-` and logs a warning. Clamp values to sensible ranges.
 
@@ -179,7 +182,7 @@ A string is a **sequence of bytes**. Its interpretation (text, binary, date) dep
 |---|---|
 | `\n` `\r` `\t` `\b` `\f` | LF, CR, HT, BS, FF |
 | `\(` `\)` `\\` | literal `(`, `)`, `\` |
-| `\ddd` | 1–3 **octal** digits. Overflow of the high bit is ignored (`\0053` is `\005` followed by `3`) |
+| `\ddd` | 1–3 **octal** digits; high-order overflow is ignored. At most three digits are read, so `\0053` is `\005` followed by `3` |
 | `\` + EOL | line continuation: both are removed |
 | `\` + any other char | the backslash is **ignored**, and the char is kept |
 
@@ -194,14 +197,14 @@ A string is a **sequence of bytes**. Its interpretation (text, binary, date) dep
 
 - *Byte strings*: arbitrary binary.
 - *Text strings*: human-readable. Encoded as **PDFDocEncoding**, or **UTF-16BE with BOM `FE FF`**, or (PDF 2.0) **UTF-8 with BOM `EF BB BF`**. Readers must handle all three, and a missing or incorrect BOM in the wild. Writers should use PDFDocEncoding for pure ASCII and UTF-16BE otherwise. UTF-8 is unsafe for files that pre-2.0 readers will open.
-- *ASCII strings*, and *date strings*: `D:YYYYMMDDHHmmSSOHH'mm`. In PDF 1.7 a trailing `'` followed the offset minutes. PDF 2.0 dropped it. Readers must accept both forms and partial dates like `D:2026`.
+- *ASCII strings*, and *date strings* (§7.9.4): `D:YYYYMMDDHHmmSSOHH'mm`. The Adobe PDF Reference (up to 1.7) put a trailing `'` after the offset minutes. ISO 32000-1 §7.9.4 already dropped it, and PDF 2.0 keeps the form without it. Readers must accept both forms and partial dates like `D:2026` (only `D:` and the year are required; MM and DD default to 01).
 
-**Encryption note:** when a document is encrypted, every string and stream in the body is encrypted, *except* the strings in the `/Encrypt` dictionary, the `/ID`, cross-reference streams, and strings inside object streams (the stream as a whole is encrypted instead). A parser must therefore know which object a string belongs to (object number and generation) to decrypt it. That is one reason decryption belongs in the object loader, not the tokenizer.
+**Encryption note:** when a document is encrypted, every string and stream in the body is encrypted, *except* the strings in the `/Encrypt` dictionary, the `/ID`, cross-reference streams, and strings inside streams such as content streams and object streams (the stream as a whole is encrypted instead) (32000-1 §7.6.1, §7.5.8.2). A parser must therefore know which object a string belongs to (object number and generation) to decrypt it. That is one reason decryption belongs in the object loader, not the tokenizer.
 
 ### 4.4 Names (§7.3.5)
 
 - `/` followed by regular characters. `/` alone is a valid **empty name**.
-- Since PDF 1.2, any byte can be written as `#xx` (two hex digits). Bytes outside `!`…`~` (0x21–0x7E), and `#` itself, **should** be written this way. Delimiters must be. `/A#20B` is the name `A B`. NUL (`#00`) is not allowed.
+- Since PDF 1.2, any byte can be written as `#xx` (two hex digits). Regular characters outside `!`…`~` (0x21–0x7E) **should** be written this way. `#` itself, delimiters and white-space **must** be. `/A#20B` is the name `A B`. NUL (`#00`) is not allowed.
 - A name is an atomic **byte sequence**. Comparison is byte-wise after decoding `#xx`, so `/Type` and `/Typ#65` are the same name. The spec recommends interpreting names as UTF-8 when they must be shown to users. The only common case is font and separation names.
 - Max length is 127 bytes per the 1.7 limits. Readers should be lenient.
 
@@ -209,9 +212,9 @@ A string is a **sequence of bytes**. Its interpretation (text, binary, date) dep
 
 - **Array**: `[` objects `]`. Elements can be of any type, including other arrays.
 - **Dictionary**: `<<` (name value)* `>>`. Keys **must be names**. Values can be any object, including indirect references.
-- **Duplicate keys** are not allowed. Behavior on duplicates is undefined. Most readers keep the last one, some keep the first, and parser differentials like this are an attack surface (§13).
+- **Duplicate keys** are not allowed ("shall not", §7.3.7). The spec does not say what a reader should do with them. Most readers keep the last one, some keep the first, and parser differentials like this are an attack surface (§13).
 - **Conventions:** `/Type` names the object kind (`/Page`, `/Font`, …). `/Subtype` refines it. Many `/Type` entries are formally optional, but readers rely on them for repair, so writers should always emit them.
-- **Unknown keys must be ignored** (§7.3.7). This makes forward compatibility and private extensions possible. Private keys should use a registered **second-class name prefix** (ISO 32000-2 Annex E) to avoid collisions.
+- **Unknown keys are ignored.** This is not in §7.3.7. In 32000-1 it is Annex I.3: readers behave as if entries they don't know were not there, which is what makes forward compatibility and private extensions possible. Private keys should use a registered **second-class name prefix** (ISO 32000-2 Annex E; 32000-1 Annex E, "PDF Name Registry") to avoid collisions.
 
 ### 4.6 Streams (§7.3.8)
 
@@ -230,7 +233,7 @@ stream⏎                ← EOL here must be CR LF or LF (not CR alone)
 |---|---|
 | `/Filter` | name or array of filter names (§9) |
 | `/DecodeParms` | dict or array of dicts/nulls, one per filter |
-| `/F`, `/FFilter`, `/FDecodeParms` | data stored in an **external file**. `/Length` is then ignored and should be 0. Rare, and a security concern |
+| `/F`, `/FFilter`, `/FDecodeParms` | (PDF 1.2) data stored in an **external file**. The bytes between `stream` and `endstream` are then ignored, and `/Length` should still count them (usually 0). Rare, and a security concern |
 | `/DL` | (PDF 1.5) decoded length hint. Use it for bomb limits, but don't trust it |
 
 - Content streams, images, fonts, ICC profiles, XMP metadata, embedded files, object streams and cross-reference streams are all streams.
@@ -247,14 +250,14 @@ endobj
 
 - **Object number**: positive integer. Object 0 is reserved as the head of the free list.
 - **Generation number**: non-negative integer up to 65,535. All objects in a newly written file have generation 0. The generation only grows when an object number is freed and reused in an incremental update (§5.3).
-- The pair (number, generation) **identifies** the object. A reference whose generation doesn't match the xref entry, or which points to an object that doesn't exist or is free, **is a reference to the null object** (§7.3.10). It is not an error.
+- The pair (number, generation) **identifies** the object. A reference to an undefined object **is a reference to the null object** and is not an error (§7.3.9, §7.3.10). The spec states this for nonexistent objects; readers apply the same rule to references whose generation doesn't match the xref entry or that point to a free entry.
 - **Direct versus indirect:** any object may be indirect, but some **must** be:
   - streams
   - objects shared from several places (pages referenced from `/Kids` and from destinations)
   - many structural objects (pages, page tree nodes, annotations)
   - `/Length` values that are not known up front
 
-  Some **must be direct**, for example most entries of cross-reference stream dictionaries, and the `/Encrypt` dictionary's entries when it is used with cross-reference streams.
+  Some **must be direct**, for example stream dictionaries themselves (§7.3.8.1), the Table 17 entries of cross-reference stream dictionaries (§7.5.8.2), the values in the linearization dictionary (Annex F.3.3), and the trailer `/ID` array and its strings when `/Encrypt` is present (Table 15).
 - **The tokenizer has to look ahead:** `1 0 R` and `1 0 obj` both start with two integers. When a parser sees an integer it must look ahead up to two more tokens to tell whether this is a number, a reference, or an object header. Every PDF lexer has this quirk.
 
 ## 5. Physical file structure (§7.5)
@@ -301,7 +304,7 @@ startxref
 ```
 
 - `startxref` is followed by the byte offset of the **last** cross-reference section. That is either the `xref` keyword of a table, or the `n g obj` of a cross-reference stream.
-- `%%EOF` ends the file. Acrobat only searches the **last 1024 bytes** for `%%EOF`. Garbage after `%%EOF` (padding added by mail gateways or web servers) is common, so readers search backwards for `startxref` rather than assuming exact positions.
+- `%%EOF` ends the file, and each trailer of an incremental update ends with its own `%%EOF` (§7.5.6). Acrobat only searches the **last 1024 bytes** for `%%EOF` (an old Adobe implementation note, not part of ISO 32000-1). Garbage after `%%EOF` (padding added by mail gateways or web servers) is common, so readers search backwards for `startxref` rather than assuming exact positions.
 
 ### 5.3 The cross-reference table (§7.5.4)
 
@@ -359,14 +362,14 @@ trailer
 | Key | Type | Meaning |
 |---|---|---|
 | `/Size` | integer | **One greater than the highest object number** used in this file across all sections. It is not a count of objects. Required. Must not be a reference |
-| `/Prev` | integer | Byte offset of the **previous** cross-reference section. Present only after an incremental update |
+| `/Prev` | integer | Byte offset of the **previous** cross-reference section. Present only when the file has more than one section (incremental update, or linearized). Must be direct (32000-1 Table 15 literally says "shall be an indirect reference", a known typo) |
 | `/Root` | dict ref | The **document catalog**. Required, must be indirect |
 | `/Encrypt` | dict | Encryption dictionary. Present if and only if the document is encrypted |
-| `/Info` | dict ref | Document information dictionary. Deprecated in 2.0 except for the dates |
-| `/ID` | array of 2 byte strings | File identifier. **Required in PDF 2.0** and whenever `/Encrypt` is present. First element: permanent identifier from creation. Second element: changes on each update. Used as input to encryption key derivation and for matching file references. Typically an MD5 or other hash of time, path, size and content, 16 bytes |
+| `/Info` | dict ref | Document information dictionary (§14.3.3). Must be indirect. Deprecated in 2.0 except for the dates |
+| `/ID` | array of 2 byte strings | File identifier (§14.4). **Required in PDF 2.0** and whenever `/Encrypt` is present; with `/Encrypt` the array and strings must be direct and unencrypted. First element: permanent identifier from creation. Second element: changes on each update. Used as input to encryption key derivation and for matching file references. 32000-1 §14.4 suggests an MD5 digest of the current time, file path, file size and the `/Info` values (16 bytes); it need not be reproducible |
 | `/XRefStm` | integer | Hybrid files only: offset of a cross-reference stream (§6.3) |
 
-In an incremental update, each trailer **repeats all keys** of the previous trailer except `/Prev` (which it replaces) and any key whose value changes. A reader uses the newest trailer's `/Root`, `/Info`, `/Encrypt` and `/ID`.
+In an incremental update, each trailer **repeats all keys** of the previous trailer except `/Prev`, whether their values changed or not (changed keys carry their new values), and adds a new `/Prev` (§7.5.6). A reader uses the newest trailer's `/Root`, `/Info`, `/Encrypt` and `/ID`.
 
 ## 6. Cross-reference streams, object streams, hybrid files (§7.5.7–7.5.8)
 
@@ -402,6 +405,8 @@ pairs: (objnum, offset relative to /First)
   - an object that is the `/Length` of an object stream
   - in **linearized** files: the document catalog, the linearization dictionary, and page objects
   - the cross-reference stream itself (it is a stream anyway)
+
+  Also, an object in an object stream must not consist solely of an object reference, and a freed object-stream or compressed-object number may be reused only for an ordinary uncompressed object (§7.5.7).
 - A reader resolving an object inside an object stream must decode the whole stream. Cache decoded object streams (LRU), because random access into them is expensive.
 
 ### 6.2 Cross-reference streams (`/Type /XRef`)
@@ -451,9 +456,9 @@ Decoded rows of the verified example (W = [1 2 1]):
 
 Rules worth knowing:
 
-- The cross-reference stream **should contain an entry for itself**.
-- It is **never encrypted**, even in encrypted documents, because the reader needs it before it has the key.
-- Values in its dictionary must be direct objects, because they are needed before any other object can be resolved.
+- The cross-reference stream needs an xref entry like any indirect object, usually in itself (in hybrid files it can be in the classic table) (§7.5.8.3).
+- It is **never encrypted**, even in encrypted documents, because the reader needs it before it has the key. It must not use a `Crypt` filter (§7.5.8.2).
+- The Table 17 entries (`/Type /Size /Index /Prev /W`), and `/Filter` and `/DecodeParms`, must be direct objects, because they are needed before any other object can be resolved. Other entries may be indirect, and `/Root` must be (§7.5.8.2).
 - The field widths are chosen by the writer. Use the minimum widths that fit (offset width = ceil(log256(file size))). Choosing `/W [1 8 2]` everywhere wastes space but is valid.
 
 ### 6.3 Hybrid-reference files (§7.5.8.4)
@@ -461,7 +466,7 @@ Rules worth knowing:
 Hybrid files were a transition mechanism, so that pre-1.5 readers could still open files that use object streams:
 
 - The file has a **classic xref table and trailer** that list only the objects a 1.4 reader can use, i.e., everything *not* in object streams.
-- The trailer has `/XRefStm offset` pointing to a cross-reference stream that lists the compressed objects.
+- The trailer has `/XRefStm offset` pointing to a cross-reference stream that lists the compressed objects. (32000-1 §7.5.8.4 words this as allowed only in an update section's trailer, not the main section's; files in the wild don't always follow that.) The objects hidden from old readers appear as free entries with generation 65535 in the classic table.
 - **Lookup order for 1.5+ readers within one section:** (1) the classic table, (2) the stream named by `/XRefStm`, (3) then follow `/Prev`. Pre-1.5 readers ignore `/XRefStm` and never see the compressed objects. The writer must make sure the content they can see is still a usable document.
 
 Hybrid files are now mostly legacy (Word "Save as PDF" still produces some). lamina should read them correctly but has no reason to write them.
@@ -548,19 +553,19 @@ The linearization dictionary:
    /O 45                % object number of first page's page object
    /E 9876              % offset of end of first page section
    /N 12                % number of pages
-   /T 53000             % offset of the first entry of the main xref table (PDF 1.7: of the white-space before it)
+   /T 53000             % offset of the white-space before the first entry of the main xref table; with xref streams only, offset of the main xref stream
    /P 0                 % (optional) page number of the first page, 0-based
 >>
 endobj
 ```
 
-**Hint tables** (in the hint stream) are bit-packed tables. They give, per page, the object count, the byte length, and the shared objects it references (**page offset hint table**), plus the locations of shared object groups (**shared object hint table**). Optional tables cover thumbnails, outlines, named destinations, the info dictionary, interactive forms, logical structure, embedded streams and renditions. Their format is fiddly: deltas from minimum values, bit widths stored in headers, and several known Acrobat-specific deviations that Annex F itself acknowledges (implementation notes).
+**Hint tables** (in the hint stream) are bit-packed tables. They give, per page, the object count, the byte length, and the shared objects it references (**page offset hint table**), plus the locations of shared object groups (**shared object hint table**). Optional tables (32000-1 Table F.2 and F.4.6) cover thumbnails, outlines, article threads, named destinations, the info dictionary, interactive forms, logical structure, page labels and embedded file streams. Their format is fiddly: deltas from minimum values and bit widths stored in headers. The old Adobe PDF Reference also listed implementation notes where Acrobat deviates from the hint-table spec; ISO 32000-1 Annex F does not carry them.
 
 ### 8.2 Why it is rarely worth implementing for writing
 
 - **Networks and readers changed.** Range requests work on any PDF: a reader can fetch the tail (`startxref`), then the xref, then the objects it needs. pdf.js does exactly this with range requests and does not need linearization to stream large documents. Linearization only saves the first round trip or two.
 - **It is fragile.** Any incremental update, including a signature, breaks it. Many "linearized" files in the wild have wrong hint tables. Readers must check `/L` against the real length and fall back silently.
-- **It constrains the writer.** Object ordering is forced, the catalog and page objects cannot go in object streams, and the xref has to be written twice. Getting hint tables exactly right is hard. qpdf is the reference open-source implementation (`qpdf --linearize`, `--check-linearization`).
+- **It constrains the writer.** Object ordering is forced, the catalog and page objects cannot go in object streams, page attributes may not be inherited from the page tree (§7.7.3.4), and the xref has to be written twice. Getting hint tables exactly right is hard. qpdf is the reference open-source implementation (`qpdf --linearize`, `--check-linearization`).
 
 **Recommendation for lamina:** the reader must *tolerate* linearized files, which needs nothing special because the file is valid without the hints. It can optionally use `/Linearized` + `/O` + `/E` to render page 1 early over a slow transport. Writing linearized output should come late, probably as an optional post-processing step. Note also that `/Linearized` must be a number in the first object; a stray `/Linearized` dictionary later in the file means nothing.
 
@@ -574,7 +579,7 @@ endobj
 | `ASCII85Decode` | 1.0 | text ↔ binary | — | Base-85, 4 bytes → 5 chars `!`..`u`, `z` = four zero bytes, `~>` = EOD, partial final group |
 | `LZWDecode` | 1.0 | general | `Predictor`, `Colors`, `BitsPerComponent`, `Columns`, `EarlyChange` (default 1) | 9–12-bit codes, codes 256 = clear, 257 = EOD. Forbidden in PDF/A. Don't write it |
 | `FlateDecode` | 1.2 | general | `Predictor`, `Colors`, `BitsPerComponent`, `Columns` | **zlib** stream (RFC 1950 header + RFC 1951 deflate + Adler-32). The workhorse |
-| `RunLengthDecode` | 1.2 | general | — | Length byte L: 0–127 → copy next L+1 bytes. 129–255 → repeat next byte 257−L times. 128 = EOD |
+| `RunLengthDecode` | 1.0 | general | — | Length byte L: 0–127 → copy next L+1 bytes. 129–255 → repeat next byte 257−L times. 128 = EOD |
 | `CCITTFaxDecode` | 1.0 | bilevel image | `K` (<0 G4, 0 G3-1D, >0 G3-2D), `Columns` (1728), `Rows`, `BlackIs1`, `EncodedByteAlign`, `EndOfLine`, `EndOfBlock`, `DamagedRowsBeforeError` | Scanned documents. Note: `BlackIs1` default false means 0 bits are black |
 | `JBIG2Decode` | 1.4 | bilevel image | `JBIG2Globals` (stream with shared segments) | Embedded JBIG2 stream organization (no file header). Its complexity has led to famous exploits (§13) |
 | `DCTDecode` | 1.0 | image | `ColorTransform` | Baseline/progressive **JPEG**. Adobe APP14 marker overrides `ColorTransform`. Embed JPEG files unchanged |
@@ -607,7 +612,7 @@ Parameters: `Colors` (default 1), `BitsPerComponent` (default 8), `Columns` (def
   - Ignore Adler-32 mismatches.
   - On a truncated or corrupt stream, **return what was decoded so far**. Acrobat, pdf.js and MuPDF all do this, and many damaged files still render.
   - Some streams are compressed twice or labeled wrongly. Sniff the `78 xx` zlib header when the declared filter fails.
-- **Filter names:** accept the abbreviations in stream dictionaries as well, as Acrobat does, and accept unknown filters by passing the data through raw (or failing only that object).
+- **Filter names:** accept the abbreviations in stream dictionaries as well, as Acrobat does (the spec allows them only in inline images, §8.9.7), and accept unknown filters by passing the data through raw (or failing only that object).
 - **`/Length`:** treat it as a hint. If the bytes at `start + Length` are not (EOL+)`endstream`, search forward for `endstream` and use that. This is very common in the wild.
 - **Limits:** enforce a maximum decoded size per stream and per document (§13).
 
@@ -679,14 +684,14 @@ Nothing else is inheritable. In particular, `/Contents` and `/Annots` are not.
 
 ### 10.3 Page objects
 
-Keys: `/Type /Page`, `/Parent`, `/MediaBox`, `/Resources`, `/Contents`, plus optional:
+Required keys: `/Type /Page`, `/Parent`, `/MediaBox` and `/Resources` (the last two may be inherited). `/Contents` is optional: a page without it is empty. Other optional keys:
 
 - `/CropBox`, `/BleedBox`, `/TrimBox`, `/ArtBox`, `/BoxColorInfo`
 - `/Rotate`, `/UserUnit` (1.6: default user space unit in multiples of 1/72 inch, to go beyond the 200-inch practical limit)
 - `/Annots`, `/Group` (transparency group), `/Thumb`, `/B` (beads), `/Dur`, `/Trans`, `/AA`
 - `/Metadata`, `/StructParents`, `/Tabs`, `/VP` (viewports, used for geospatial), `/AF`, `/OutputIntents` (2.0), `/DPart` (2.0)
 
-**`/Contents`** is a stream or an **array of streams**. An array is equivalent to the concatenation of the streams with white-space between them. Splits may occur only at lexical token boundaries, although readers should tolerate splits inside tokens produced by sloppy writers.
+**`/Contents`** is a stream or an **array of streams**. An array is equivalent to the concatenation of the streams with white-space between them. Splits may occur only at lexical token boundaries, although readers should tolerate splits inside tokens produced by sloppy writers. Writers must not write an empty `/Contents` array (Table 30).
 
 ### 10.4 Page boundaries (§14.11.2)
 
@@ -713,11 +718,13 @@ All the other boxes are **clipped to the MediaBox**. Viewers display and print t
   /XObject   << /Im1 9 0 R /Fm1 10 0 R >>
   /ExtGState << /GS1 11 0 R >>
   /ColorSpace, /Pattern, /Shading, /Properties
-  /ProcSet [/PDF /Text /ImageB /ImageC /ImageI]   % obsolete since 1.4; ignore on read, may omit on write
+  /ProcSet [/PDF /Text /ImageB /ImageC /ImageI]   % obsolete since 1.4; ignore on read (§14.2)
 >>
 ```
 
-Form XObjects, patterns, Type 3 fonts and annotation appearance streams have their **own** `/Resources`. PDF 1.1 and earlier allowed a form to omit them and inherit the page's resources. This is deprecated, but readers should still fall back to the page's resources.
+ISO 32000-1 §14.2 still says writers *should* keep emitting `/ProcSet` (all five names unless fewer are known to suffice) for old readers, while readers must not depend on it. Omitting it is harmless in practice.
+
+Form XObjects, patterns, Type 3 fonts and annotation appearance streams have their **own** `/Resources`. Files written to earlier PDF versions could omit them from forms and Type 3 fonts and inherit the page's resources. 32000-1 §7.8.3 calls this obsolete, but readers should still fall back to the page's resources.
 
 **Name trees** (§7.9.6): sorted maps from string keys to objects, stored as a B-tree-like structure:
 
@@ -727,7 +734,7 @@ root: << /Kids [ 20 0 R 21 0 R ] >>
 21:   << /Limits [(Orange) (Zebra)] /Kids [ … ] >>
 ```
 
-- Keys are **byte strings sorted in byte order** (not locale order, not decoded text).
+- Keys are **byte strings sorted in byte order** (not locale order, not decoded text). Shorter keys come before longer keys that start with the same bytes, and equality is byte-by-byte (§7.9.6).
 - `/Limits [least greatest]` lets a reader binary-search without loading every node.
 - Uses (in the catalog `/Names` dict): `/Dests`, `/AP`, `/JavaScript`, `/Pages`, `/Templates`, `/IDS`, `/URLS`, `/EmbeddedFiles`, `/AlternatePresentations`, `/Renditions`.
 - **Number trees** (§7.9.7) are the same but with integer keys and `/Nums`. They are used for `/PageLabels` and the structure tree's `/ParentTree`.
@@ -770,7 +777,7 @@ The catalog `/Outlines` points to the outline dictionary (`/First`, `/Last`, `/C
 ] >>
 ```
 
-`/S` is the style: `/D` decimal, `/R` and `/r` Roman upper and lower, `/A` and `/a` letters (A..Z, AA..ZZ, …). `/P` is a prefix, and `/St` is the starting number. If `/S` is omitted, the label is the prefix only. Page *labels* are what viewers display and what users type. Page *indices* are what the API uses. Keep them separate.
+`/S` is the style: `/D` decimal, `/R` and `/r` Roman upper and lower, `/A` and `/a` letters (A..Z, then AA..ZZ, then AAA.., i.e. the letter repeated). The tree must have an entry for page index 0, and `/St` must be ≥ 1. `/P` is a prefix, and `/St` is the starting number. If `/S` is omitted, the label is the prefix only. Page *labels* are what viewers display and what users type. Page *indices* are what the API uses. Keep them separate.
 
 ## 11. How a parser actually reads a PDF
 
@@ -1120,3 +1127,59 @@ This section is brief. Full treatment, with CVEs and mitigations, is in **[chapt
 - PDF Insecurity project (signature spoofing, certification attacks, encryption attacks) — https://pdf-insecurity.org/
 - Google Project Zero, "A deep dive into an NSO zero-click iMessage exploit" (FORCEDENTRY / JBIG2) — https://googleprojectzero.blogspot.com/2021/12/a-deep-dive-into-nso-zero-click.html
 - Ange Albertini, PDF format notes and polyglots (corkami) — https://github.com/corkami/docs/blob/master/PDF/PDF.md
+
+---
+
+## Verification log
+
+**Date:** 2026-10-28
+
+**Sources used:** the text of ISO 32000-1:2008 (PDF 1.7, Adobe-hosted copy), checked clause by clause for §7.2–7.9, §12.3.3, §12.4.2, §14.2, §14.4, §14.11.2 and Annexes C, E, F and I; the Library of Congress format description of PDF 2.0 (fdd000474) for the PDF 2.0 deprecations; the PDF Association's ISO 32000-2 errata pages (clause 12); IDRsolutions, pypdf and Mapsoft explainer pages as secondary context. The ISO 32000-2 text itself was **not** available. The example files in `examples/01-file-structure/` were checked by size, SHA-256 and byte offsets only. No scripts were run.
+
+**Corrections made**
+
+- §1, PDF 2.0 deprecations: "PostScript XObjects" were listed as deprecated → now "removed outright in 2.0 (discouraged in 1.7)", per LoC.
+- §3.1/§3.2 clause numbers: §7.2.3 / §7.2.4 → added the 32000-1 numbers §7.2.2 (Character Set) / §7.2.3 (Comments).
+- §3.3 binary marker: "should be followed" → "**shall**" (32000-1 §7.5.2).
+- §3.3 1024-byte header tolerance: now says plainly that this is an old Adobe implementation note, not in ISO 32000-1 §7.5.2.
+- §4.2 Annex C limits: "Acrobat's 32-bit limits" → "minimum limits for a typical 32-bit conforming reader" (Table C.1). The string limit was **inverted**: "32,767 bytes, not respected for strings in content streams" → "applies **only** to strings in content streams; no effective limit elsewhere". "5 significant digits" → "in the fractional part". Added CID ≤ 65,535 and the 10¹⁰-byte file-size limit for classic xref tables (C.2). Marked the page-size range as a C.2 recommendation.
+- §4.3 `\ddd`: the `\0053` example was described as "high-bit overflow". Now it's described correctly as the three-digit maximum (§7.3.4.2).
+- §4.3 dates: "PDF 1.7 had a trailing `'`; 2.0 dropped it" → the trailing `'` was in the Adobe PDF Reference. **ISO 32000-1 §7.9.4 already omits it.** Also added which fields are required and their defaults.
+- §4.3 encryption exceptions: added content streams to "strings inside streams", and cited §7.6.1.
+- §4.4 names: "`#` should be escaped" → `#`, delimiters and white-space **must** be escaped. Only regular characters outside 0x21–0x7E "should" be (§7.3.5).
+- §4.5 duplicate keys: "behavior undefined" → "shall not occur; the spec doesn't say what readers should do" (§7.3.7).
+- §4.5 unknown keys: citation "§7.3.7" was wrong → 32000-1 Annex I.3. Added the 32000-1 Annex E name (PDF Name Registry).
+- §4.6 `/F` external streams: "`/Length` is then ignored and should be 0" → the bytes between `stream`/`endstream` are ignored, and `/Length` should still count them, usually 0 (Table 5). Marked PDF 1.2.
+- §4.7 null references: the spec only states the rule for undefined objects (§7.3.9–7.3.10). Applying it to a generation mismatch or a free entry is now labelled as reader practice.
+- §4.7 must-be-direct examples: "the `/Encrypt` dictionary's entries when used with xref streams" (not found in the spec) → stream dictionaries, xref-stream Table 17 entries, linearization dictionary values, and `/ID` when encrypted.
+- §5.2: each update's trailer has its own `%%EOF` (§7.5.6). The "last 1024 bytes" claim is now labelled as an Adobe implementation note.
+- §5.4 Table 15: `/Prev` is "present only when there is more than one section" (this includes linearized files). Noted the 32000-1 "shall be an indirect reference" typo. `/Info` must be indirect. With `/Encrypt`, `/ID` must be direct and unencrypted. The `/ID` derivation now follows §14.4 (time, path, size, `/Info` values; need not be reproducible).
+- §5.4 update trailers: "repeats all keys except `/Prev` and any key whose value changes" → repeats **all** keys except `/Prev`, changed or not (§7.5.6).
+- §6.1 object streams: added "must not consist solely of a reference" and the object-number reuse rule (§7.5.7).
+- §6.2 xref streams: "values in its dictionary must be direct" → only the Table 17 entries plus `/Filter` and `/DecodeParms`. `/Root` must be indirect. Added "no Crypt filter". "Should contain an entry for itself" → it needs an entry, usually in itself, or in the classic table of a hybrid file (§7.5.8.2–7.5.8.3).
+- §6.3 hybrid files: added the §7.5.8.4 wording that `/XRefStm` belongs in an update section's trailer, and that hidden objects appear as free entries with generation 65535.
+- §8.1 `/T`: the comment now gives the 32000-1 Table F.1 definition (the white-space before the first entry; or the offset of the main xref stream).
+- §8.1 hint tables: the optional-table list now follows Table F.2 + F.4.6. Added article threads and page labels, and dropped "renditions". The "deviations that Annex F acknowledges" are now attributed to the old Adobe Reference; ISO Annex F does not carry them.
+- §8.2: added that linearized files must not use inherited page attributes (§7.7.3.4).
+- §9 filter table: `RunLengthDecode` "since 1.2" → 1.0 (Table 6 gives it no version tag).
+- §9.2: noted that filter abbreviations are spec-legal only in inline images (§8.9.7).
+- §10.3 page objects: `/Contents` was listed with the required keys → it is optional, and an absent value means an empty page. Writers must not write an empty `/Contents` array (Table 30).
+- §10.5 `/ProcSet`: "may omit on write" → 32000-1 §14.2 still says writers *should* emit it. Inherited form resources: "PDF 1.1 and earlier" → "earlier versions; obsolete per §7.8.3".
+- §10.5 name trees: added the shorter-key-first ordering and byte-wise equality (§7.9.6).
+- §10.8 page labels: clarified the letter-style sequence (AA = letter doubled). Added that index 0 is required and `/St` must be ≥ 1 (§12.4.2).
+
+**Confirmed against 32000-1 (no change needed):** white-space and delimiter tables; EOL rules after `stream`; literal/hex string rules; null-valued entries; number syntax and no exponents; 20-byte xref entries with the SP CR / SP LF / CR LF EOLs; free-list rules and generation 65535; `/Size` semantics; object-stream contents and restrictions; xref stream `/W`, `/Index`, entry types and the "other type → null" rule; hybrid lookup order; linearization dictionary keys and the first-1024-bytes rule; filter parameters (LZW `EarlyChange` default 1, CCITT defaults, PNG predictor rule, Crypt filter first); page-tree keys and inheritable attributes (Resources, MediaBox, CropBox, Rotate); page boundary defaults and clipping; name-dictionary trees; outline `/C`/`/F` (PDF 1.4); `/UserUnit` (PDF 1.6); and the clause numbers §7.3.x, §7.4, §7.5.x, §7.7.x, §7.8.3, §7.9.x, §12.3.3, §12.4.2 and §14.11.2, which match.
+
+**Still unverified**
+
+- All PDF 2.0-only statements:
+  - required `/ID`
+  - UTF-8 text strings (corroborated by LoC)
+  - the `/Info` deprecation (corroborated by LoC)
+  - the `/ISO_` extension prefix and arrays
+  - `/AF`, `/DPartRoot`, `/DSS`, page-level output intents
+  - the "limits became advice" change in Annex C
+  - the 32000-2 numbering of §7.2.x and the 32000-2 Annex E
+- History table (§1): which version introduced each feature, Acrobat versions, dates. Only the items that 32000-1 tags with a version were checked.
+- ISO family table (§2), governance and free-access history, BrotliDecode status, and all tool, implementation and security-research claims (§11, §13). These are outside the spec.
+- Acrobat behaviors: header within 1024 bytes, `%%EOF` within the last 1024 bytes, and accepting abbreviated filter names in stream dictionaries.

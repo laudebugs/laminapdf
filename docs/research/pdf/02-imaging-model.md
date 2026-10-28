@@ -2,7 +2,7 @@
 
 > **Scope.** How PDF describes *what appears on a page*: the painter's model, content-stream syntax and operators, coordinate systems and transforms, the graphics state, paths, color, images, form XObjects, patterns/shadings/functions, transparency, optional content, and how real renderers rasterize all of it. File structure (objects, streams, filters, xref) is in **[chapter 01](01-file-structure.md)**; fonts, text state and glyph positioning are in **[chapter 03](03-text-and-fonts.md)**.
 >
-> **Primary reference:** ISO 32000-2:2020 (PDF 2.0), clauses 8 (Graphics), 10 (Rendering), 11 (Transparency) and 8.11 (Optional content). Clause numbers below refer to ISO 32000-2 unless noted. ISO 32000-1:2008 (PDF 1.7, freely available from Adobe) has almost the same structure and is a fine companion.
+> **Primary reference:** ISO 32000-2:2020 (PDF 2.0), clauses 8 (Graphics), 10 (Rendering), 11 (Transparency) and 8.11 (Optional content). Clause numbers below refer to ISO 32000-2 unless noted. ISO 32000-1:2008 (PDF 1.7, freely available from Adobe) has almost the same structure and is a fine companion. This chapter has been checked against the ISO 32000-1 text (see the verification log at the end); where 1.7 table/clause numbers were confirmed they are given explicitly as "ISO 32000-1 …".
 
 ---
 
@@ -22,7 +22,7 @@ What survived from PostScript:
 
 What PDF added: transparency (1.4), optional content (1.5), marked content and structure, soft masks, JPEG 2000/JBIG2 filters, ICC profiles as first-class color spaces, and in PDF 2.0 black-point compensation, page-level output intents, and lots of clarifications.
 
-What PDF removed: arbitrary computation. The only "code" left is the Type 4 function (a tiny, side-effect-free calculator, §9.4 below). PDF 2.0 deleted PostScript XObjects entirely.
+What PDF removed: arbitrary computation. The only "code" left is the Type 4 function (a tiny, side-effect-free calculator, §9.4 below). PDF 2.0 deleted PostScript XObjects entirely (in PDF 1.7 they still exist — `/Subtype /PS`, ISO 32000-1 §8.8.2 — but are print-only, ignored on screen, and discouraged).
 
 ### 1.2 Device independence
 
@@ -70,7 +70,7 @@ Key facts for implementers:
 
 ### 2.1 The operator catalogue
 
-PDF 2.0 defines **73 operators**. Table (adapted from ISO 32000-2 Table 50/"Operator categories", with operand signatures):
+PDF defines **73 operators** (count verified against ISO 32000-1 Table 51 "Operator Categories" and the alphabetical list in Annex A, Table A.1; PDF 2.0 adds no new content-stream operators as far as we know). Table (adapted from the operator-categories table — ISO 32000-1 Table 51; cited earlier as ISO 32000-2 Table 50, number unverified — with operand signatures):
 
 | Category | Operator | Operands | Meaning |
 |---|---|---|---|
@@ -111,8 +111,8 @@ PDF 2.0 defines **73 operators**. Table (adapted from ISO 32000-2 Table 50/"Oper
 | **Type 3 fonts** | `d0` | *wx wy* | Glyph width; glyph may set color |
 | | `d1` | *wx wy llx lly urx ury* | Width + bbox; glyph is a stencil (color ops forbidden) |
 | **Color** | `CS` / `cs` | *name* | Set stroking / nonstroking color space |
-| | `SC` / `sc` | *c1…cn* | Set color (non-Pattern/Separation/DeviceN/ICC-ok spaces) |
-| | `SCN` / `scn` | *c1…cn [name]* | Set color, any space incl. Pattern (name last) |
+| | `SC` / `sc` | *c1…cn* | Set color in Device, CalGray/CalRGB/Lab, or Indexed spaces only (not ICCBased, Separation, DeviceN or Pattern — ISO 32000-1 Table 74) |
+| | `SCN` / `scn` | *c1…cn [name]* | Same as `SC`/`sc` plus ICCBased, Separation, DeviceN and Pattern (name last) |
 | | `G` / `g` | *gray* | DeviceGray + color |
 | | `RG` / `rg` | *r g b* | DeviceRGB + color |
 | | `K` / `k` | *c m y k* | DeviceCMYK + color |
@@ -130,7 +130,7 @@ Convention: uppercase = stroking, lowercase = nonstroking (`RG`/`rg`, `CS`/`cs`)
 
 ### 2.2 Where operators are legal
 
-The spec defines a small state machine (ISO 32000-2 Figure 9, "Graphics objects"). Writers must respect it; readers should be lenient.
+The spec defines a small state machine (Figure 9, "Graphics objects" — ISO 32000-1 §8.2, figure in Annex L). Writers must respect it; readers should be lenient.
 
 ```
                     ┌────────── general gstate / color / q Q cm / marked content ───────┐
@@ -148,11 +148,11 @@ The spec defines a small state machine (ISO 32000-2 Figure 9, "Graphics objects"
 
 Rules that bite:
 
-- `q`, `Q`, `cm` are **not allowed inside a path object** (between `m` and the painting operator), nor inside `BT…ET` for `cm`/`q` (PDF 2.0 forbids `q`/`Q`/`cm` in text objects; real files do it anyway).
+- `q`, `Q`, `cm` are **not allowed inside a path object** (between `m` and the painting operator), nor inside `BT…ET` (the text-object state in Figure 9 allows general graphics state, color, text and marked-content operators but not the special graphics state `q`/`Q`/`cm` — already so in ISO 32000-1 §8.2, not new in 2.0; real files do it anyway).
 - `W`/`W*` must come immediately before a painting operator; the clip takes effect *after* the painting. Idiom: `… re W n`.
 - `q`/`Q` must balance within each content stream (a page's array of streams counts as one). Unbalanced `Q` is common in the wild; readers clamp.
 - Marked-content `BDC/EMC` must nest properly and must not straddle `BT/ET` boundaries asymmetrically.
-- Historic Acrobat limit: `q` nesting depth 28 (ISO 32000-1 Annex C). Not a PDF 2.0 rule, but stay well under it.
+- Historic limit: `q`/`Q` nesting depth 28 (ISO 32000-1 Annex C, Table C.1 — confirmed; the spec's own note says it "is not a limit as such" but stems from mapping `q`/`Q` to PostScript `gsave`/`grestore` when generating PostScript). Not a PDF 2.0 rule, but stay well under it.
 
 ---
 
@@ -181,7 +181,7 @@ Rules that bite:
 | **Form space** | Form XObject `/Matrix` | Concatenated onto CTM on `Do`. |
 | **Pattern space** | Pattern `/Matrix` | Maps to the default coordinate space of the pattern's **parent stream** (page or form), *not* the current CTM. |
 
-**UserUnit** (PDF 1.6, page dictionary): a positive number, default 1.0, scaling the default unit to `UserUnit/72` inch. It exists because Acrobat caps page size at 14,400 units (200 in); with `UserUnit 10` a page can be 2000 in. Support is spotty in non-Adobe tools — a writer should avoid it unless needed.
+**UserUnit** (PDF 1.6, page dictionary): a positive number, default 1.0, scaling the default unit to `UserUnit/72` inch. It exists because the recommended maximum page size is 14,400 × 14,400 units (200 in at 1/72 in; ISO 32000-1 Annex C.2, a "should" constraint that Acrobat enforces); with `UserUnit 10` a page can be 2000 in. Support is spotty in non-Adobe tools — a writer should avoid it unless needed.
 
 Other page-level geometry that a renderer must apply *before* content: `/MediaBox` and `/CropBox` (visible region), and `/Rotate` (multiple of 90°, clockwise when displayed). Those are covered in chapter 01; just remember that "default user space" is unrotated, and `/Rotate` happens in the display transform.
 
@@ -286,7 +286,7 @@ Recommendation for lamina: expose a y-down API if you want, but keep one flip `c
 
 The **graphics state** is the implicit context for every painting operation. `q` pushes a full copy, `Q` restores it. Everything — CTM, clip, colors, line style, font, alpha, soft mask — is saved; the *path* under construction is **not** part of the graphics state (and must be empty at `q`/`Q`).
 
-### 4.1 Parameters (ISO 32000-2 Tables 51–52)
+### 4.1 Parameters (ISO 32000-2 Tables 51–52; ISO 32000-1 Tables 52–53)
 
 **Device-independent:**
 
@@ -387,7 +387,7 @@ This value makes the curve pass exactly through the circle at the 45° midpoint.
 
 ### 5.2 Subpaths and closing
 
-A path is a list of **subpaths**; each starts with `m` (or `re`, which is `x y m, x+w y l, x+w y+h l, x y+h l, h`). `h` adds a straight closing segment *and* makes the subpath "closed", which matters for stroking: a closed subpath gets a **join** at its start point; an open one whose last point happens to coincide gets two **caps**. Fills implicitly close every subpath. Open subpath with a single point (`x y m` then `S`) draws nothing with butt caps but a dot with round caps — the classic "dot" trick, sanctioned by the spec for caps 1 and 2.
+A path is a list of **subpaths**; each starts with `m` (or `re`, which is `x y m, x+w y l, x+w y+h l, x y+h l, h`). `h` adds a straight closing segment *and* makes the subpath "closed", which matters for stroking: a closed subpath gets a **join** at its start point; an open one whose last point happens to coincide gets two **caps**. Fills implicitly close every subpath. A *degenerate* subpath — a single-point closed path or two or more points at the same coordinates (e.g. `x y m x y l`, or `x y m h`) — is stroked as a filled dot **only with round caps (1)**; with butt (0) or projecting square (2) caps `S` paints nothing, because cap orientation is indeterminate. A single-point *open* subpath (a trailing `x y m` alone) produces no output at all (ISO 32000-1 §8.5.3.2). The classic "dot" trick is therefore `1 J x y m x y l S`. (Zero-length *dashes* within a dash pattern always get caps, since the path direction is known.)
 
 ### 5.3 Fill rules
 
@@ -423,12 +423,12 @@ Parameters:
 
 Strokes and fills are painted with separate colors (stroking vs nonstroking); `B` fills then strokes the same path, so the inner half of the stroke covers the fill edge.
 
-### 5.5 Scan conversion rules (§10.7)
+### 5.5 Scan conversion rules (ISO 32000-1 §10.6.4; originally cited here as 2.0 §10.7, unverified)
 
 The spec describes the *ideal* geometry and then gives rules for mapping to pixels:
 
 - **Filling:** a pixel is painted if **any part** of it lies within the shape ("any part of pixel" rule). This is Adobe's PostScript rule: it guarantees nothing ever disappears, even zero-area shapes, at the price of fattening shapes by up to one pixel on each edge. Anti-aliased renderers instead compute *coverage* and treat it as alpha — which is also compliant in spirit and is what screen viewers do.
-- **Zero-width lines/zero-area fills** still paint at least one pixel under the any-part rule.
+- **Zero-area fills** still paint pixels under the any-part rule (a zero-width or zero-height rectangle paints a 1-pixel line; a degenerate single-point fill paints the one pixel under it). **Zero-width strokes** (`0 w`) are explicitly implementation-defined and may paint fewer pixels than the rule implies (ISO 32000-1 §10.6.4, §8.5.3.3.1).
 - **Stroke adjustment** (`SA true`): the renderer may nudge stroke coordinates so that line widths are uniform after rounding to the pixel grid (a 1.4-pixel line otherwise alternates between 1 and 2 pixels). Important for table rules and hairlines on low-resolution devices.
 - **Images** use a different rule: a pixel is painted with an image sample if the pixel's *centre* lies within the transformed image sample.
 - **Flatness** (`i`, `FL`): the maximum allowed device-pixel distance between the true curve and the polyline a renderer uses to approximate it. Most modern renderers ignore the value and choose their own tolerance (~0.25 px).
@@ -467,7 +467,7 @@ The spec describes the *ideal* geometry and then gives rules for mapping to pixe
 
 Notes:
 
-- **ICCBased** is the workhorse for accurate color: embed sRGB IEC61966-2.1 (≈3 KB) once and reference it everywhere you'd use DeviceRGB. `N` must match the profile's channel count; `Alternate` is a fallback. PDF 2.0 references ICC.1:2010 (profile version 4.3); v2 profiles are universally supported. ICC v5/iccMAX is not part of PDF 2.0.
+- **ICCBased** is the workhorse for accurate color: embed sRGB IEC61966-2.1 (≈3 KB) once and reference it everywhere you'd use DeviceRGB. `N` must match the profile's channel count; `Alternate` is a fallback. PDF 1.7 references ICC.1:2004-10 (ISO 15076-1:2005; ISO 32000-1 Table 67) and says writers *should* use such profiles; PDF 2.0 references ICC.1:2010 (profile version 4.3) — the 2.0 figure is unverified here; v2 profiles are universally supported. ICC v5/iccMAX is not part of PDF 2.0.
 - **Indexed** maps a single component 0…hival through a lookup table (hival+1 entries × base components bytes). Base can't be Pattern or Indexed. Natural for PNG palette images.
 - **Separation** names a single colorant (spot ink: Pantone, varnish, die-cut line). On a device with that ink, the tint is painted on its plate; otherwise the **tint transform** function maps tint → alternate space. Special names: `/All` (every plate, e.g. crop marks) and `/None` (paints nothing).
 - **DeviceN** generalizes to N colorants (duotones, hexachrome, CMYK + spots in one image). `/NChannel` subtype (1.6) adds `Colorants`, `Process`, `MixingHints` for better previews.
@@ -477,9 +477,9 @@ Setting a color space with `cs` also resets the color to its initial value (blac
 
 ### 6.3 Default color spaces and device conversion
 
-A resource dictionary may define `/DefaultGray`, `/DefaultRGB`, `/DefaultCMYK` in its `/ColorSpace` subdictionary; when present, every use of the corresponding device space in that scope is reinterpreted as the given CIE-based space. This lets a producer write simple `rg` operators yet get calibrated color.
+A resource dictionary may define `/DefaultGray`, `/DefaultRGB`, `/DefaultCMYK` in its `/ColorSpace` subdictionary; when present, every use of the corresponding device space in that scope is reinterpreted as the given space — in practice an ICCBased or Cal* space; the spec allows any space except Lab, Indexed or Pattern, with the same number of components, and values are passed through unchanged (ISO 32000-1 §8.6.5.6). This lets a producer write simple `rg` operators yet get calibrated color.
 
-When a device lacks the requested space and no profile is available, the spec gives naive conversions (§10.4): gray = 0.30R + 0.59G + 0.11B; RGB→CMY as complements followed by black generation/UCR; CMYK→RGB as `R = 1 − min(1, C + K)` etc. Viewers use these for DeviceCMYK on screen unless an output intent says otherwise, which is why unmanaged CMYK looks dull and oversaturated in different viewers.
+When a device lacks the requested space and no profile is available, the spec gives naive conversions (ISO 32000-1 §10.3; originally cited as 2.0 §10.4, unverified): gray = 0.30R + 0.59G + 0.11B; RGB→CMY as complements followed by black generation/UCR; CMYK→RGB as `R = 1 − min(1, C + K)` etc. Viewers use these for DeviceCMYK on screen unless an output intent says otherwise, which is why unmanaged CMYK looks dull and oversaturated in different viewers.
 
 ### 6.4 Output intents (PDF/A, PDF/X)
 
@@ -510,7 +510,7 @@ An image is a stream with `/Type /XObject /Subtype /Image` (chapter 01 covers st
 | Key | Meaning |
 |---|---|
 | `Width`, `Height` | Samples per row, rows (required) |
-| `ColorSpace` | Any space except Pattern; optional for JPX and image masks |
+| `ColorSpace` | Any space except Pattern; optional for JPX; **must not be present** for image masks |
 | `BitsPerComponent` | 1, 2, 4, 8, 16 (16 since 1.5); omitted for JPX; 1 for masks |
 | `Decode` | Pairs `[Dmin Dmax]` per component mapping sample values to the color range |
 | `Interpolate` | Hint to smooth when upsampling (viewers vary) |
@@ -521,7 +521,7 @@ An image is a stream with `/Type /XObject /Subtype /Image` (chapter 01 covers st
 | `Intent` | Rendering intent for this image |
 | `Alternates`, `OC`, `Metadata`, `StructParent`, `AF` (2.0) | Alternates, optional content, XMP, structure, associated files |
 
-**Decoding:** sample value `s` (integer 0…2^bpc−1) maps to `Dmin + s·(Dmax − Dmin)/(2^bpc − 1)`. Default Decode is `[0 1]` per component (`[0 2^bpc−1]` for Indexed). `/Decode [1 0]` inverts — used for 1-bit masks and Adobe-inverted CMYK JPEGs.
+**Decoding:** sample value `s` (integer 0…2^bpc−1) maps to `Dmin + s·(Dmax − Dmin)/(2^bpc − 1)`. Default Decode is `[0 1]` per component for most spaces, `[0 2^bpc−1]` for Indexed, and the space's `Range` for Lab (`[0 100 amin amax bmin bmax]`) and ICCBased (ISO 32000-1 §8.9.5.2, Table 90). `/Decode [1 0]` inverts — used for 1-bit masks and Adobe-inverted CMYK JPEGs.
 
 **Geometry:** image space is `Width × Height` with the origin at the **top-left** of the image, first sample row at the top. It's mapped onto the **unit square** of user space, with image row 0 at y = 1. Therefore drawing an image at (x, y) of size (w, h) is always:
 
@@ -536,7 +536,7 @@ The implicit image matrix is `[1/Width 0 0 −1/Height 0 1]`; you never write it
 - **Stencil mask** (`/ImageMask true`, bpc 1, no ColorSpace): 1-bit samples select where the *current nonstroking color* (or pattern) is painted. Default: sample 0 paints (`Decode [0 1]`); `[1 0]` inverts. Ideal for scanned text/line art and Type 3 glyph bitmaps.
 - **Explicit mask** (`/Mask <stencil image stream>`): a separate 1-bit `ImageMask` image (may have a different resolution; both are mapped to the same unit square). Same convention as stencil masks: with the default Decode, sample 0 = paint the base image, 1 = masked out. Rarely used now; prefer SMask.
 - **Color-key mask** (`/Mask [min max …]`): samples whose every component falls within the ranges are not painted (GIF/PNG `tRNS`-style transparency). Ranges are in *raw sample* values, before Decode.
-- **Soft mask** (`/SMask <image>`): per-pixel alpha, 0–1, as a DeviceGray image of arbitrary resolution and bpc. Optional `/Matte [c…]` means the base image color was *pre-blended* with the matte color (premultiplied); the renderer un-premultiplies. Soft-mask images participate in the transparency model (§10): the effective alpha is `SMask × ca`, with the soft mask in the graphics state also applying.
+- **Soft mask** (`/SMask <image>`): per-pixel alpha, 0–1, as an image whose `ColorSpace` is required to be DeviceGray, of independent resolution and bpc — except that with `/Matte` its Width/Height must equal the parent's. Optional `/Matte [c…]` means the base image color was *pre-blended* with the matte color (`c′ = m + α·(c − m)`); the renderer un-premultiplies. Soft-mask images participate in the transparency model (§10): an image's `SMask` (or `Mask`) **overrides** the current soft mask in the graphics state — at most one mask applies to any compositing operation — while the alpha constant `ca` and blend mode still apply; so the effective opacity is `SMask × ca` (ISO 32000-1 Table 89, §11.6.4.3, §11.6.5.3).
 
 ### 7.3 Inline images
 
@@ -544,7 +544,7 @@ The implicit image matrix is `[1/Width 0 0 −1/Height 0 1]`; you never write it
 BI /W 16 /H 16 /BPC 8 /CS /RGB /F /Fl /L 123 ID <binary data> EI
 ```
 
-Abbreviated keys: `W H BPC CS D DP F IM I` (plus `L`/`Length`, optional, added by PDF 2.0); abbreviated values `G RGB CMYK I` (Indexed) and filters `AHx A85 LZW Fl RL CCF DCT`. Inline images may use named color spaces from resources but not JPX/JBIG2. Parsing hazard: the data is raw bytes and may contain `EI`; readers must use the computed/declared length or heuristics (whitespace + `EI` + whitespace + plausible following operator). **Writers should not emit inline images** except for tiny data (Adobe's guidance: a few KB); always include `/L` if you do. Their only benefit — avoiding an indirect object — is irrelevant with object streams.
+Abbreviated keys: `W H BPC CS D DP F IM I` (`Intent` has no abbreviation; PDF 1.7 says `Length` is unnecessary and other keys are ignored — the optional `L`/`Length` key is a PDF 2.0 addition, not verifiable from 1.7); abbreviated values `G RGB CMYK I` (Indexed) and filters `AHx A85 LZW Fl RL CCF DCT`. Without a resource name, `CS` must be a device space or an Indexed space with a device base and a byte-string table; named color spaces from resources may be any space usable by an image XObject. JPXDecode and JBIG2Decode are forbidden. Parsing hazard: the data is raw bytes and may contain `EI`; readers must use the computed/declared length or heuristics (whitespace + `EI` + whitespace + plausible following operator). **Writers should not emit inline images** except for tiny data — ISO 32000-1 §8.9.7 makes this normative: inline images "shall be used only for small images (4 KB or less)"; when writing PDF 2.0, always include `/L` if you do. Their only benefit — avoiding an indirect object — is irrelevant with object streams.
 
 ### 7.4 Compression choices
 
@@ -675,7 +675,7 @@ color = Function(t)   for s ∈ [0,1];  outside → extend endpoints if Extend, 
 
 **Radial math:** the shading is the family of circles `C(s)` centred `P0 + s(P1−P0)` with radius `r0 + s(r1−r0)`; for each point, the *largest* s whose circle contains it determines the color (so later circles paint over earlier — painter's model again). This is the same "two-point conical" gradient as Canvas `createRadialGradient` and Skia, which is why pdf.js can map it directly.
 
-**Mesh streams** (types 4–7) are packed binary: `BitsPerCoordinate` (1–32), `BitsPerComponent` (1–16), `BitsPerFlag` (2, 4, 8), and `Decode` ranges mapping integers to coordinates/colors; or a single parametric component with `Function`. Coordinates are relative to the shading's space. Colors are interpolated (Gouraud: bilinear in barycentric coordinates for triangles; bilinear in (u,v) parameter space for patches). Patch edges are shared with flags 1–3 (reuse an edge of the previous patch).
+**Mesh streams** (types 4–7) are packed binary: `BitsPerCoordinate` (1, 2, 4, 8, 12, 16, 24 or 32), `BitsPerComponent` (1, 2, 4, 8, 12 or 16), `BitsPerFlag` (2, 4, 8; only the low 2 bits used; not used by type 5), and `Decode` ranges mapping integers to coordinates/colors; or a single parametric component with `Function`. Coordinates are relative to the shading's space. Colors are interpolated (Gouraud: bilinear in barycentric coordinates for triangles; bilinear in (u,v) parameter space for patches). Patch edges are shared with flags 1–3 (reuse an edge of the previous patch).
 
 Multi-stop gradients (CSS/SVG `<stop>`s): one type-2/3 shading with a **Type 3 stitching function** whose sub-functions are Type 2 linear segments. Per-stop opacity requires a *soft mask* carrying a gray gradient with the same geometry, because shading colors have no alpha.
 
@@ -690,7 +690,7 @@ PDF functions map m inputs to n outputs; every function has `Domain` (clip input
 | 3 | Stitching | 1 input: `Functions [f0…fk]`, `Bounds [b1…bk]` subdividing Domain, `Encode [e0 e1 …]` remapping each subdomain to its function's domain |
 | 4 | PostScript calculator | Stream `{ … }` using only: arithmetic (`abs add atan ceiling cos cvi cvr div exp floor idiv ln log mod mul neg round sin sqrt sub truncate`), relational/boolean/bitwise (`and bitshift eq false ge gt le lt ne not or true xor`), conditional (`if ifelse`), stack (`copy dup exch index pop roll`). No loops, no variables. Trig in degrees. |
 
-Example Type 4 tint transform for a spot color → CMYK: `{ dup 0.0 mul exch dup 0.81 mul exch dup 0.87 mul exch 0.0 mul }`. Renderers often compile type-4 programs (pdf.js compiles to JS; MuPDF and PDFium interpret with a fixed-size stack — 100 entries is the classic limit) and cache samples of 1-input functions.
+Example Type 4 tint transform for a spot color → CMYK: `{ dup 0.0 mul exch dup 0.81 mul exch dup 0.87 mul exch 0.0 mul }`. Renderers often compile type-4 programs (pdf.js compiles to JS; MuPDF and PDFium interpret with a fixed-size stack — 100 entries, which is the spec's own requirement: implementations shall provide room for at least 100 entries, need not provide more, and overflow is an error, ISO 32000-1 §7.10.5.1) and cache samples of 1-input functions.
 
 ---
 
@@ -698,7 +698,7 @@ Example Type 4 tint transform for a spot color → CMYK: `{ dup 0.0 mul exch dup
 
 ### 10.1 Basic compositing formula
 
-Each painted element ("source") has color `Cs`, shape `fs`, opacity `qs`, combined into alpha `αs = fs · qs` (where `qs` includes the constant alpha `ca`/`CA`, any image SMask, and the graphics-state soft mask, all multiplied). It is composited over the **backdrop** (`Cb`, `αb`):
+Each painted element ("source") has color `Cs`, shape `fs`, opacity `qs`, combined into alpha `αs = fs · qs` (where `qs` is the product of the constant alpha `ca`/`CA` and *one* soft mask — the image's own `SMask` if present, which overrides the graphics-state soft mask, else the graphics-state soft mask; with `AIS true` these contribute to shape instead; ISO 32000-1 §11.6.4). It is composited over the **backdrop** (`Cb`, `αb`):
 
 ```
 αr = αb + αs − αb·αs                                   (union)
@@ -707,7 +707,7 @@ Cr = (1 − αs/αr)·Cb + (αs/αr)·[ (1 − αb)·Cs + αb·B(Cb, Cs) ]
 
 `B` is the blend function. With `αb = 1` (opaque page) this simplifies to `Cr = (1−αs)·Cb + αs·B(Cb,Cs)`, and with `B = Normal` (`B = Cs`) to familiar "over". The full model (ISO 32000-2 §11.3) tracks shape and opacity separately (needed for knockout groups and `AIS`), not just alpha.
 
-**Subtractive spaces.** In DeviceCMYK (and other subtractive spaces), blend modes are applied to the *complements* (1 − c) so that e.g. Multiply darkens as expected; results are complemented back. Separable modes on spot colorants likewise. Non-separable modes are defined on RGB-like additive spaces; for CMYK groups only C, M, Y participate, K is treated with Normal-like rules.
+**Subtractive spaces.** In DeviceCMYK (and other subtractive spaces), blend modes are applied to the *complements* (1 − c) so that e.g. Multiply darkens as expected; results are complemented back. Separable modes on spot colorants likewise. Non-separable modes are defined on RGB; in CMYK blending spaces C, M, Y are complemented to RGB, blended, and converted back, while K is taken from the backdrop (`Cb`) for Hue, Saturation and Color and from the source (`Cs`) for Luminosity (ISO 32000-1 §11.3.5). Only separable modes may be used for spot colorants.
 
 ### 10.2 Blend modes
 
@@ -723,14 +723,16 @@ Values in [0,1]; `Cb` backdrop, `Cs` source.
 | Overlay | HardLight(Cs, Cb) |
 | Darken | min(Cb, Cs) |
 | Lighten | max(Cb, Cs) |
-| ColorDodge | Cb = 0 → 0; Cs = 1 → 1; else min(1, Cb / (1 − Cs)) |
-| ColorBurn | Cb = 1 → 1; Cs = 0 → 0; else 1 − min(1, (1 − Cb) / Cs) |
+| ColorDodge | Cb = 0 → 0; Cs = 1 → 1; else min(1, Cb / (1 − Cs)) ¹ |
+| ColorBurn | Cb = 1 → 1; Cs = 0 → 0; else 1 − min(1, (1 − Cb) / Cs) ¹ |
 | HardLight | Cs ≤ 0.5 → Multiply(Cb, 2Cs); else Screen(Cb, 2Cs − 1) |
 | SoftLight | Cs ≤ 0.5 → Cb − (1 − 2Cs)·Cb·(1 − Cb); else Cb + (2Cs − 1)·(D(Cb) − Cb), with D(x) = x ≤ 0.25 ? ((16x − 12)x + 4)x : √x |
 | Difference | \|Cb − Cs\| |
 | Exclusion | Cb + Cs − 2·Cb·Cs |
 
-(`Compatible` existed in 1.4 as an alias of Normal and should not be written.)
+¹ This is the W3C form. ISO 32000-1 Table 136 omits the leading `Cb` test: ColorDodge = `Cs < 1 → min(1, Cb/(1−Cs)); Cs = 1 → 1`, ColorBurn = `Cs > 0 → 1 − min(1, (1−Cb)/Cs); Cs = 0 → 0`. The two differ only at the corners (Cb = 0, Cs = 1 gives 1 in PDF 1.7 vs 0 in W3C; Cb = 1, Cs = 0 likewise). Whether PDF 2.0 adopted the W3C edge cases is unverified here.
+
+(`Compatible` is still listed in ISO 32000-1 Table 136 as "same as Normal", for compatibility only, and should not be written.)
 
 **Non-separable** (operate on whole RGB color), with helpers:
 
@@ -749,7 +751,7 @@ Color      = SetLum(Cs, Lum(Cb))
 Luminosity = SetLum(Cb, Lum(Cs))
 ```
 
-These are identical to the W3C *Compositing and Blending Level 1* definitions (which were derived from PDF), so a lamina renderer can share code and test vectors with browser implementations.
+These match the W3C *Compositing and Blending Level 1* definitions (which were derived from PDF) apart from the ColorDodge/ColorBurn corner cases noted above, so a lamina renderer can share code and test vectors with browser implementations (pick and document one convention for the corners).
 
 ### 10.3 Constant alpha and soft masks
 
@@ -975,3 +977,40 @@ Reader/renderer hygiene: tolerate unbalanced `Q`, operators in wrong contexts, m
 - Skia PDF backend (SkPDF): https://skia.org/docs/user/sample/pdf/
 - PNG specification (filters/predictors, chunks): https://www.w3.org/TR/png-3/
 - JPEG / JFIF and Adobe APP14 marker: https://www.w3.org/Graphics/JPEG/itu-t81.pdf
+
+---
+
+## Verification log
+
+**Date:** 2026-10-28
+
+**Sources used:** ISO 32000-1:2008 (PDF 1.7), full text (Adobe public copy, text extraction) — clauses 7.8, 7.10, 8.2–8.11, 10.3, 10.6, 11.3–11.6, Annex A (operator summary), Annex B (Type 4 operators), Annex C (implementation limits). Library of Congress format description fdd000474 (PDF 2.0) was available but has no technical detail relevant to this chapter. ISO 32000-2 (PDF 2.0) text was **not** available, so 2.0 clause/table numbers and 2.0-only features remain unverified.
+
+**Confirmed against ISO 32000-1 (no change needed beyond citation):** 73 operators and their categories/operands (Table 51, Annex A); `cm` pre-multiplication `CTM′ = M × CTM` and the row-vector convention (§8.3.3–8.3.4), translate/scale/rotate/skew matrix forms; graphics-state parameters and initial values (Tables 52–53: line width 1.0, miter limit 10 ≈ 11.5°, RelativeColorimetric, SA false, flatness 1.0); ExtGState keys in §4.2 example (Table 58; `UseBlackPtComp` is 2.0); `i` flatness range 0–100 (Table 57); miter ratio `1/sin(φ/2)` and the 1.414 → 90° example (§8.4.3.5); dash semantics restarted per subpath (§8.4.3.6); `re` expansion, `v`/`y` control points (Table 59); path-painting operators incl. `F` obsolete (Table 60); nonzero/even-odd rules and the star/concentric-circle examples (§8.5.3.3); clip takes effect after painting, `W n` idiom (§8.5.4); `Contents` arrays split only at token boundaries (Table 30); no exponent notation in reals; BX/EX semantics (§7.8.2); resource categories (Table 33); color-space families (Table 62); initial colors set by `cs` incl. Separation/DeviceN tint 1.0 (Table 74); Indexed hival ≤ 255 and base restrictions (§8.6.6.3); Separation `/All` and `/None`; device conversion formulas (§10.3); image coordinate system and implicit matrix `[1/w 0 0 −1/h 0 1]` (§8.9.4); Decode formula `Dmin + x·(Dmax−Dmin)/(2^n−1)` (§8.9.5.2); stencil-mask Decode convention, explicit and color-key masking in raw sample values (§8.9.6); inline-image abbreviations (Tables 93–94); progressive JPEG since PDF 1.3 (§7.4.8); scan-conversion "any part of pixel" and image pixel-centre rules (§10.6.4); stroke adjustment (§10.6.5); tiling types and pattern-matrix anchoring to the parent stream's default space (§8.7.2–8.7.3); axial and radial shading math incl. "greatest s wins" (§8.7.4.5); Type 4 operator list (Annex B); basic compositing formula (§11.3.3); subtractive-space complementing (§11.3.4); separable and non-separable blend formulas (Tables 136–137, except the note on dodge/burn); soft-mask dictionary semantics, BC default black, mask coordinate space fixed at `gs` time (§11.6.5.2, Table 144); group `CS`/`I`/`K` and Luminosity-mask `CS` requirement (Table 147); optional-content rules incl. "state operators still execute when hidden" (§8.11.3); marked-content nesting with `BT/ET` (§14.6). The κ constant and circle-error figures are not in the spec; they were re-derived arithmetically and are correct.
+
+**Corrections made (was → now):**
+- §5.2 dot trick: "single-point open subpath `x y m` + `S` draws a dot with round caps; sanctioned for caps 1 and 2" → a trailing single-point `m` paints nothing; only *degenerate* subpaths (closed single point, or coincident points) paint a dot, and only with round caps (1), not projecting caps (2) (ISO 32000-1 §8.5.3.2).
+- §7.2 soft-mask images: "effective alpha is SMask × ca, with the graphics-state soft mask also applying" → the image's SMask/Mask *overrides* the graphics-state soft mask (at most one mask per compositing operation); also noted DeviceGray is required and Matte requires matching dimensions (Table 89, §11.6.4.3, Table 145).
+- §10.1: "qs includes ca, any image SMask and the graphics-state soft mask, all multiplied" → ca × one soft mask (image SMask overrides gstate mask) (§11.6.4.3).
+- §10.1 non-separable blending in CMYK: "K treated with Normal-like rules" → K from backdrop for Hue/Saturation/Color, from source for Luminosity (§11.3.5).
+- §10.2 ColorDodge/ColorBurn: added note that PDF 1.7's formulas lack the W3C `Cb = 0` / `Cb = 1` special cases; "identical to W3C" → "match apart from these corner cases" (Table 136).
+- §2.1 table: `SC`/`sc` "ICC-ok spaces" → not ICCBased (ICCBased needs `SCN`/`scn`) (Table 74).
+- §2.1: operator count 73 now cited as verified (Table 51, Annex A); 1.7 table number given (Table 51; the "ISO 32000-2 Table 50" citation is unverified).
+- §2.2: "PDF 2.0 forbids q/Q/cm in text objects" → already disallowed by Figure 9 in PDF 1.7 (§8.2).
+- §2.2: q nesting depth 28 → confirmed, cited as Annex C Table C.1 with the spec's note that it derives from PostScript gsave/grestore.
+- §3.1 UserUnit: "Acrobat caps page size at 14,400 units" → spec-recommended maximum 14,400 × 14,400 (Annex C.2).
+- §4.1: added 1.7 table numbers (Tables 52–53).
+- §5.5: scan-conversion clause "§10.7" → ISO 32000-1 §10.6.4 (2.0 number unverified); zero-width strokes are implementation-defined and may paint fewer pixels (only zero-area *fills* are guaranteed pixels).
+- §6.2: added PDF 1.7's ICC reference (ICC.1:2004-10, Table 67).
+- §6.3: Default color spaces "the given CIE-based space" → any space except Lab, Indexed, Pattern with same component count (§8.6.5.6); device-conversion clause "§10.4" → ISO 32000-1 §10.3.
+- §7.1: image `ColorSpace` "optional for image masks" → forbidden for image masks (Table 89); default Decode for Lab/ICCBased uses `Range` (Table 90).
+- §7.3 inline images: "Adobe's guidance: a few KB" → normative "shall be used only for small images (4 KB or less)" (§8.9.7); `L`/`Length` labelled PDF 2.0 only (1.7 ignores Length); clarified unnamed `CS` restrictions.
+- §9.3 mesh streams: bit depths "1–32 / 1–16" → the enumerated allowed values (Tables 82–84).
+- §9.4: Type 4 "100 entries is the classic limit" → it is the spec's minimum (§7.10.5.1).
+- §1.1: noted PostScript XObjects still exist (print-only) in PDF 1.7 (§8.8.2).
+
+**Still unverified (PDF 2.0 text unavailable, or outside the spec):**
+- All ISO 32000-2 clause/table/figure numbers (Table 50, Tables 51–52, Figure 9, §10.4, §10.7, §11.3).
+- PDF 2.0-only claims: inline-image `/L` key; `UseBlackPtComp`; `HTO`; page-level output intents; TR/TR2 deprecation; removal of PostScript XObjects; `AF` on images; ICC.1:2010 / v4.3 reference; whether 2.0 changed ColorDodge/ColorBurn edge cases; "no new operators in 2.0".
+- Renderer internals (§12: pdf.js, PDFium, MuPDF, Poppler/Splash, Ghostscript, Skia, Quartz), Acrobat behaviour, PDF/A and PDF/X details (ISO 19005 / 15930), PNG/JPEG embedding details, and history (Camelot memo).
+- The §13 worked example's rendering results (not re-run).

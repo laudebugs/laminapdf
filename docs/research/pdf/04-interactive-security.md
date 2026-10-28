@@ -1,6 +1,6 @@
 # 04 — Interactive Features, Metadata, Security & Signatures
 
-> Part of the lamina PDF research series. Primary reference: **ISO 32000-2:2020 (PDF 2.0)**, available at no cost from the PDF Association. Section numbers cited as "§x.y" refer to ISO 32000-2. File syntax (objects, xref, incremental updates, object streams) is covered in **[01](01-file-structure.md)**. Content streams, XObjects and optional content in **[02](02-imaging-model.md)**. Fonts and text in **[03](03-text-and-fonts.md)**. This chapter covers everything layered *on top of* the page: navigation, annotations, forms, scripting, metadata, attachments, encryption, signatures and redaction. It also treats PDF as an attack surface.
+> Part of the lamina PDF research series. Primary reference: **ISO 32000-2:2020 (PDF 2.0)**, available at no cost from the PDF Association. Section numbers cited as "§x.y" refer to ISO 32000-2. Claims were fact-checked against ISO 32000-1:2008 (PDF 1.7) and the PDF Association's ISO 32000-2 clause 12 errata (see the Verification log at the end). Where the PDF 1.7 clause number differs, it is given as "1.7: §x.y". File syntax (objects, xref, incremental updates, object streams) is covered in **[01](01-file-structure.md)**. Content streams, XObjects and optional content in **[02](02-imaging-model.md)**. Fonts and text in **[03](03-text-and-fonts.md)**. This chapter covers everything layered *on top of* the page: navigation, annotations, forms, scripting, metadata, attachments, encryption, signatures and redaction. It also treats PDF as an attack surface.
 
 ---
 
@@ -49,7 +49,7 @@ A destination is a page reference plus a view. Explicit destinations are arrays:
 | `[page /FitR left bottom right top]` | Fit the rectangle. |
 | `[page /FitB]`, `/FitBH top`, `/FitBV left` | Same, but using the page's content bounding box. |
 
-`page` is an indirect reference to a page object for local destinations. In remote destinations (`GoToR`) it is an **integer page index** (0-based). PDF 2.0 adds **structure destinations** (`/SD` on GoTo actions, §12.3.2.3). They target a structure element, so a link survives reflow and page re-ordering.
+`page` is an indirect reference to a page object for local destinations. In remote destinations (`GoToR`) it is an **integer page number** in the other document (ISO 32000-1 §12.3.2.2 says only "integer page number". Treating it as a 0-based index is the common convention, but that is not stated in 1.7). PDF 2.0 adds **structure destinations** (`/SD` on GoTo actions, §12.3.2.3). They target a structure element, so a link survives reflow and page re-ordering.
 
 **Named destinations** add a level of indirection, so links can be stable across edits:
 - PDF 1.1 style: `Catalog /Dests << /name [dest] >>`, with *name objects* as keys.
@@ -81,7 +81,7 @@ An action is a dictionary `<< /Type /Action /S /<ActionType> ... /Next <action o
 - `Catalog /OpenAction`, which is an action or a destination.
 - `/A` on link annotations and outline items.
 - **Additional-actions** `/AA` dictionaries:
-  - Annotations: `E` enter, `X` exit, `D` down, `U` up, `Fo` focus, `Bl` blur, `PO`/`PC` page open/close, `PV`/`PI` page visible/invisible.
+  - Annotations: `E` enter, `X` exit, `D` down, `U` up, `Fo` focus, `Bl` blur (`Fo`/`Bl` on widgets only), `PO`/`PC` page open/close, `PV`/`PI` page visible/invisible.
   - Pages: `O`/`C`.
   - Form fields: `K` keystroke, `F` format, `V` validate, `C` calculate.
   - Catalog: `WC` will close, `WS` will save, `DS` did save, `WP` will print, `DP` did print.
@@ -116,7 +116,7 @@ An action is a dictionary `<< /Type /Action /S /<ActionType> ... /Next <action o
 - `/H` sets the highlight mode: `N` none, `I` invert (default), `O` outline, `P` push.
 - `/QuadPoints` (PDF 1.6) lets a link follow a multi-line run of text. The spec says to fall back to `/Rect` if the quad points lie outside it.
 - Links usually have **no appearance stream**. They are invisible hit areas, so text extraction never "sees" a URL unless it reads the annotations.
-- Most links in generated PDFs use `/Border [0 0 0]`, which means no border.
+- Most links in generated PDFs use `/Border [0 0 0]`, which means no border. They need it because the default `/Border` is `[0 0 1]`, a 1-unit border (ISO 32000-1 Table 164).
 
 ### 1.5 Page labels, thumbnails, viewer preferences, page mode/layout
 
@@ -157,10 +157,10 @@ An action is a dictionary `<< /Type /Action /S /<ActionType> ... /Next <action o
 | `/StructParent` | Key into the structure parent tree (Tagged PDF/UA) |
 | `/OC` | Optional content membership |
 | `/AF` (2.0) | Associated files |
-| `/ca`, `/CA` (2.0 on all annots), `/BM` (2.0) | Opacity and blend mode for the appearance |
+| `/ca`, `/CA` (2.0 on all annots), `/BM` (2.0) | Opacity and blend mode for the appearance. In 1.7 only markup annotations have `/CA` (Table 170). In 2.0, `ca` defaults to the value of `CA` (errata §12.5.2) |
 | `/Lang` (2.0) | Language |
 
-**Annotation flags `/F`:**
+**Annotation flags `/F`** (bit positions verified against 1.7 Table 165; all other bits shall be 0):
 
 | Bit | Value | Name | Effect |
 |---|---|---|---|
@@ -187,7 +187,7 @@ An action is a dictionary `<< /Type /Action /S /<ActionType> ... /Next <action o
 | `Line` | ✔ | `/L` endpoints, `/LE` line endings, leader lines, `/Measure` |
 | `Square`, `Circle` | ✔ | `/IC` interior color, `/RD` rect differences |
 | `Polygon`, `PolyLine` | ✔ | `/Vertices`; `/IT` PolygonCloud/PolyLineDimension; PDF 2.0 `/Path` for curves |
-| `Highlight`, `Underline`, `Squiggly`, `StrikeOut` | ✔ | "Text markup". `/QuadPoints`, 8 numbers per quad. **Order is x1y1 x2y2 x3y3 x4y4. Acrobat writes UL, UR, LL, LR, which disagrees with the spec's figure.** Readers must not assume an order |
+| `Highlight`, `Underline`, `Squiggly`, `StrikeOut` | ✔ | "Text markup". `/QuadPoints`, 8 numbers per quad. **The spec says x1y1 x2y2 x3y3 x4y4 in counterclockwise order (1.7 Table 179, Figure 64). Acrobat writes UL, UR, LL, LR, which disagrees.** Readers must not assume an order |
 | `Caret` | ✔ | Insertion mark |
 | `Stamp` | ✔ | Rubber stamp (`/Name` Approved, Draft, ...); usually a custom AP image. PDF 2.0 `/IT` StampImage/StampSnapshot |
 | `Ink` | ✔ | `/InkList` array of point arrays (PDF 2.0 also `/Path`) |
@@ -203,7 +203,9 @@ An action is a dictionary `<< /Type /Action /S /<ActionType> ... /Next <action o
 | `3D` | – | U3D/PRC artwork (`/3DD`, `/3DV`, `/3DA`) |
 | `Redact` | ✔ | Marks content for removal (§10) |
 | `Projection` (2.0) | ✔ | Associates measurements with 3D/geospatial content |
-| `RichMedia` (2.0) | – | Flash-era rich media, standardized from Adobe extension level 3 |
+| `RichMedia` (2.0) | – | Rich media, standardized from Adobe Extension Level 3. PDF 2.0 does not support Flash content in it (per LoC FDD000474) |
+
+All subtypes above except `Projection` and `RichMedia` are in ISO 32000-1 Table 169. `Redact` was added in PDF 1.7.
 
 ### 2.3 Markup annotations, replies, review state (§12.5.6.2)
 
@@ -214,15 +216,16 @@ Markup annotations add:
 - `/IT` intent, `/ExData`.
 
 **Review state** is modeled as a *reply* `Text` annotation with `/IRT` to the target annotation:
-- `/StateModel /Review` with `/State`: Accepted, Rejected, Cancelled, Completed, None.
-- `/StateModel /Marked` with Marked/Unmarked.
+- `/StateModel (Review)` with `/State`: Accepted, Rejected, Cancelled, Completed, None (the default).
+- `/StateModel (Marked)` with Marked/Unmarked (the default).
+- In ISO 32000-1 (Table 172) `State` and `StateModel` are **text strings**, not names. Readers should accept both.
 
-These state annotations are usually `Hidden`. Threads are trees of `IRT` references, so they can be cyclic.
+These state annotations are usually `Hidden` (that is common practice, not a spec rule). Threads are trees of `IRT` references, so they can be cyclic.
 
 ### 2.4 Why appearance streams matter
 
 Since PDF 1.2, an annotation's visual is *defined* by its **appearance stream** (`/AP`). Key facts:
-1. **Consistency.** Viewers that honor `/AP` render identically. Viewers that synthesize appearances from `/C`, `/IC`, `/BS`, `/DA` and so on produce visibly different results across Acrobat, pdf.js, PDFium, Preview and Poppler. PDF 2.0 makes `/AP` **required** for all annotations except Popup, Link, and annotations with zero-area `/Rect`. Annotation-related PDF/A and PDF/UA rules also require it.
+1. **Consistency.** Viewers that honor `/AP` render identically. Viewers that synthesize appearances from `/C`, `/IC`, `/BS`, `/DA` and so on produce visibly different results across Acrobat, pdf.js, PDFium, Preview and Poppler. In PDF 1.7, `/AP` is optional, and "individual annotation handlers may ignore this entry" (Table 164). PDF 2.0 makes `/AP` **required** for every annotation, widgets included, with two exceptions. The first is subtypes `Popup`, `Link` and `Projection`. The second is annotations whose `/Rect` is a single point, where x1 = x2 **and** y1 = y2. The 2020 revision changed this condition from "or" to "and" to match PDF/A (PDF Association clause-12 errata, §12.5.2). PDF 2.0 also says a reader rendering `/AP` shall ignore `C`, `IC`, `Border`, `BS`, `BE`, `BM`, `CA`, `ca`, `H`, `DA`, `Q`, `DS`, `LE`, `LL`, `LLE`, `MK` and `Sy` (same errata). Annotation-related PDF/A and PDF/UA rules also require `/AP`.
 2. **Printing and rasterization** in headless pipelines (Ghostscript, Poppler, MuPDF) often use only `/AP`. An annotation without one may simply not print.
 3. **States.** Checkbox/radio `/AP /N << /Off 1 0 R /Yes 2 0 R >>` plus `/AS /Yes`. The "on" state name is *not* always `/Yes`. Discover it from the AP keys.
 4. **`/NeedAppearances true`** in AcroForm asks the viewer to regenerate field appearances. It is **deprecated in PDF 2.0** and forbidden in PDF/A. Its side effects:
@@ -238,7 +241,7 @@ Flattening bakes annotations into page content. For each annotation with `/F` no
 2. Compute the transform per §12.5.5 (Algorithm "appearance streams"):
    - Transform the XObject's `/BBox` by its `/Matrix` and take the bounding box of the result.
    - Compute matrix `A` that maps that box onto `/Rect`.
-   - Draw with `cm = Matrix × A`.
+   - The full mapping from form space to the page is `AA = Matrix × A`. `Do` already applies the form's own `/Matrix`, so the `cm` you emit before `Do` is just `A`.
 3. Append to the page content: `q <A> cm /FlatN Do Q`. Add the XObject to page `/Resources /XObject`, merging resource names without collisions.
 4. Remove the annotation from `/Annots` (and the field from `/AcroForm /Fields` for widgets). Fix the structure tree: the widget's `/StructParent` OBJR becomes marked content, or the struct element is dropped.
 5. Honor NoZoom/NoRotate. These cannot be preserved once flattened, so document that.
@@ -254,7 +257,7 @@ Pitfalls:
 
 ## 3. Forms
 
-### 3.1 AcroForm structure (§12.7)
+### 3.1 AcroForm structure (§12.7; interactive form dictionary §12.7.3, 1.7: §12.7.2)
 
 ```
 Catalog /AcroForm << /Fields [ 10 0 R 20 0 R ]   % root fields only
@@ -284,7 +287,7 @@ Catalog /AcroForm << /Fields [ 10 0 R 20 0 R ]   % root fields only
 
 ### 3.2 Field types and flags
 
-Field flags `/Ff` are 1-based bit positions:
+Field flags `/Ff` are 1-based bit positions. All positions below were verified against ISO 32000-1 §12.7.3.1 and §12.7.4. Undefined bits are reserved and shall be 0.
 
 | Type | Flag bits |
 |---|---|
@@ -342,7 +345,7 @@ Setting `/V` is trivial. Making every viewer *show* it correctly is not. For a t
    ```
    /Tx BMC q <border/background from /MK> BT /F1 12 Tf 0 g 2 6.3 Td (value) Tj ET Q EMC
    ```
-   The `/Tx BMC … EMC` marked-content wrapper is conventional. Acrobat uses it to know which part to replace when regenerating.
+   The `/Tx BMC … EMC` marked-content wrapper comes from the spec, not only from convention. When regenerating, a viewer replaces the content between `/Tx BMC` and the matching `EMC`. If the stream has no such section, the new content is appended (1.7 §12.7.3.3).
 6. **Checkbox/radio:**
    - Choose the existing on-state.
    - Set `/V` (on the parent for radios) and `/AS` on each widget.
@@ -356,7 +359,7 @@ Setting `/V` is trivial. Making every viewer *show* it correctly is not. For a t
 
 ### 3.6 FDF and XFDF
 
-- **FDF** (Forms Data Format, §12.7.8) is a PDF-syntax file: `%FDF-1.2`, then `Root << /FDF << /Fields [ << /T (name) /V (val) /Kids [...] >> ] /F (form.pdf) /Annots [...] >> >>`. It is used by `SubmitForm`/`ImportData`, and can carry annotations.
+- **FDF** (Forms Data Format, §12.7.8; 1.7: §12.7.7) is a PDF-syntax file: `%FDF-1.2`, then `Root << /FDF << /Fields [ << /T (name) /V (val) /Kids [...] >> ] /F (form.pdf) /Annots [...] >> >>`. It is used by `SubmitForm`/`ImportData`, and can carry annotations.
 - **XFDF** is the XML equivalent, **ISO 19444-1:2016**: `<xfdf><fields><field name="x"><value>..</value></field></fields><annots>…</annots></xfdf>`. It is the common format for exchanging comments and form data, and is used by pdf.js/Apryse and Acrobat comment export.
 - Lamina should support import/export of both for fields and annotations. Match fields by FQN. Match annotations by `/NM` plus page.
 
@@ -395,15 +398,16 @@ Setting `/V` is trivial. Making every viewer *show* it correctly is not. For a t
 ### 5.1 The Info dictionary (§14.3.3)
 
 `trailer /Info << /Title /Author /Subject /Keywords /Creator /Producer /CreationDate /ModDate /Trapped >>`.
-- All values are text strings except `/Trapped`, which is a name: `True`, `False` or `Unknown`.
+- `/CreationDate` and `/ModDate` are dates (§7.9.4). `/Trapped` is a name: `True`, `False` or `Unknown` (the default). It must be the name, not a boolean. All other values, including custom keys, are text strings (1.7 Table 317).
 - `/Creator` is the authoring application. `/Producer` is the PDF writer.
 - Custom keys are allowed.
 - Dates use the format `D:YYYYMMDDHHmmSSOHH'mm`. O is `+`, `-` or `Z`.
-  - PDF 1.7 had a trailing `'`. PDF 2.0 drops it.
-  - Readers must accept both, plus truncated forms (`D:2026`) and garbage.
+  - Adobe's PDF Reference (≤1.7) wrote a trailing `'` (`…-08'00'`). The normative grammar in ISO 32000-1 §7.9.4 already has no trailing `'`, although that same document's Info-dictionary example still shows one.
+  - Truncated forms are **valid**. Only `D:` and `YYYY` are required, and any later field may be omitted as long as all earlier fields are present. `D:2026` is legal, and MM and DD default to 01.
+  - Readers must accept the trailing-`'` form, truncated forms and garbage.
   - In our demo pyHanko wrote `/M (D\07220261028150526Z)`. `\072` is just an octal escape for `:`.
 
-**PDF 2.0 deprecates the Info dictionary except `/CreationDate` and `/ModDate`.** Document metadata belongs in XMP. In practice, nearly every reader still shows Info. Writers should keep writing both, synchronized.
+**PDF 2.0 deprecates the Info dictionary except `/CreationDate` and `/ModDate`** (confirmed by LoC FDD000474). Document metadata belongs in XMP. PDF 1.7 has a precedence rule (§14.3.2). If the XMP date stamp is equal to or later than Info `/ModDate`, XMP is authoritative. Otherwise Info overrides, on the assumption that a writer unaware of XMP saved the file. In practice, nearly every reader still shows Info. Writers should keep writing both, synchronized.
 
 ### 5.2 XMP (§14.3.2; ISO 16684-1)
 
@@ -438,7 +442,7 @@ Setting `/V` is trivial. Making every viewer *show* it correctly is not. For a t
 
 - The `begin` attribute holds the UTF-8 BOM (U+FEFF). The `id` is a fixed magic string.
 - The padding plus `end="w"` (writable) let tools edit the packet in place without rewriting offsets.
-- XMP streams should be **unfiltered**, so non-PDF-aware tools can scan for the packet. PDF/A forbids filters on them in practice.
+- XMP streams should be **unfiltered and unencrypted**, so non-PDF-aware tools can scan for the packet (1.7 §14.3.2 NOTE 2). PDF/A forbids filters on them in practice.
 - Metadata streams can also attach to pages, images, fonts and other objects.
 - **PDF/A** needs extension schemas declared in XMP (`pdfaExtension:schemas`) for any non-predefined properties. Factur-X's `fx:` schema is one example.
 
@@ -464,7 +468,7 @@ Also relevant: `xmp:MetadataDate`, `dc:language`, `pdfuaid:part` (PDF/UA), `pdfx
 - The first is set at creation and kept forever.
 - The second changes on each save. In our demo the incremental update kept the first and replaced the second.
 
-The ID is **an input to R2–R4 encryption key derivation**. Rewriting `/ID[0]` on an encrypted file makes it undecryptable. It is required when encrypting, and PDF 2.0 requires it in all files with an `/Encrypt` dictionary and recommends it always. Also correlate with `xmpMM:DocumentID`/`InstanceID`.
+The ID is **an input to R2–R4 encryption key derivation**. Rewriting `/ID[0]` on an encrypted file makes it undecryptable. It is required when encrypting (1.7 Table 15: "Required if an Encrypt entry is present"), and its two strings must then be direct and unencrypted. PDF 2.0 is reported to make `/ID` required in every file. That is not verified here, so write it always. Also correlate with `xmpMM:DocumentID`/`InstanceID`.
 
 **Privacy:** metadata leaks author names, internal paths, software versions, edit history (`xmpMM:History`) and template GUIDs. Sanitization must scrub Info, every XMP stream (document *and* object-level), `/PieceInfo` (application private data, e.g. Illustrator's full native file), `/ID`, and the incremental-update history (§10).
 
@@ -494,7 +498,7 @@ Embedded files are reachable through:
 - `/AF` arrays,
 - `GoToE` targets and `/Collection`.
 
-`/RF` (related files) and `/Thumb` exist but are rare. PDF 2.0 also defines **encrypted payload documents**: an unencrypted wrapper PDF whose real content is an encrypted embedded file. It carries `/AFRelationship /EncryptedPayload` and a `/EncryptedPayload` dict naming the cryptographic filter.
+`/RF` (related files, PDF 1.3) and `/Thumb` (PDF 2.0; not in the 1.7 file-spec table) exist but are rare. `/UF` and `/CI` are PDF 1.7. `/Params /CheckSum` is a 16-byte MD5 of the embedded bytes. PDF 2.0 also defines **encrypted payload documents**: an unencrypted wrapper PDF whose real content is an encrypted embedded file. It carries `/AFRelationship /EncryptedPayload` and a `/EncryptedPayload` dict naming the cryptographic filter.
 
 ### 6.2 Associated files `/AF` (PDF 2.0, PDF/A-3)
 
@@ -521,7 +525,7 @@ Embedded files are reachable through:
 
 ### 6.3 Portfolios / collections (§12.3.5)
 
-`Catalog /Collection << /Schema <<field defs>> /D (initial doc) /View /D|/T|/H|/C /Sort … /Folders … >>` turns the PDF into a container. The "cover sheet" pages are shown only by viewers without portfolio support. Embedded files carry `/CI` collection items, and folders give a hierarchy. `/View /C` (custom navigator) was Flash-based and is dead. Lamina should expose a collection as a list of embedded files plus metadata, and should not try to build a portfolio UI.
+`Catalog /Collection << /Schema <<field defs>> /D (initial doc) /View /D|/T|/H|/C /Sort … /Folders … >>` turns the PDF into a container. ISO 32000-1 defines only `/View` `D` (details), `T` (tile) and `H` (hidden), and has no `/Folders` or `/C`. Folders and navigators came via Adobe Extension Level 3 and PDF 2.0. The "cover sheet" pages are shown only by viewers without portfolio support. Embedded files carry `/CI` collection items, and folders give a hierarchy. `/View /C` (custom navigator) was Flash-based and is dead. Lamina should expose a collection as a list of embedded files plus metadata, and should not try to build a portfolio UI.
 
 ---
 
@@ -546,15 +550,18 @@ trailer /Encrypt << /Filter /Standard   (security handler)
 Exempt from encryption:
 - strings in the `/Encrypt` dict;
 - the trailer `/ID`;
-- **the signature dictionary's `/Contents`** (otherwise signing would be circular);
-- cross-reference streams;
-- the XMP metadata stream when `/EncryptMetadata false`.
+- strings inside streams (content streams, object streams), which are already covered by the stream's encryption (these first three are listed in 1.7 §7.6.1);
+- cross-reference streams (1.7 §7.5.8);
+- the XMP metadata stream when `/EncryptMetadata false` (V4+);
+- **the signature dictionary's `/Contents`**, since otherwise signing would be circular. ISO 32000-1 does not list this exemption. It is PDF 2.0 text and long-standing Acrobat behavior; the exact 2.0 wording is not verified here.
 
 Embedded files can use their own filter (`/EFF`), so an "attachments only" encryption is possible.
 
-**Crypt filters** (V4+) name algorithms:
-- `/CFM /None`, `/V2` (RC4), `/AESV2` (AES-128-CBC), `/AESV3` (AES-256-CBC).
-- `/Identity` means no encryption.
+**Crypt filters** (V4+; 1.7: §7.6.5) name algorithms:
+- `/CFM /V2` (RC4) and `/AESV2` (AES-128-CBC, PDF 1.6) are in ISO 32000-1. `/AESV3` (AES-256-CBC) is **not**: it came from Adobe Extension Level 3 and was standardized in PDF 2.0.
+- `/CFM /None` (the default) does *not* mean "unencrypted". It means the application does not decrypt, and the security handler does its own decryption.
+- The standard crypt filter `/Identity` passes data through unchanged, so it means no encryption.
+- For the standard handler, crypt-filter `/Length` is given in **bytes** (16 = 128-bit), while the public-key handler gives bits (1.7 Table 25). That is why pypdf's AES-256 filter below says `/Length 32`.
 
 Streams can override the default via `/Filter [/Crypt …] /DecodeParms << /Name /X >>`. **`/Identity` and per-object overrides are what make mixed plaintext/ciphertext documents possible.**
 
@@ -568,11 +575,13 @@ AES strings and streams are laid out as `16-byte IV ‖ AES-CBC(PKCS#5-padded pl
 | V2/R3 | RC4 | 40–128-bit | MD5 + 50 rounds | Deprecated (RC4) |
 | V4/R4 | RC4 or AES-128-CBC (crypt filters) | 128-bit | as R3 | Deprecated in PDF 2.0 |
 | V5/R5 | AES-256 | 256-bit | single SHA-256 | Adobe Extension Level 3 (Acrobat 9). **Never standardized**. Fast hash → brute-force friendly. Do not write |
-| V5/R6 | AES-256-CBC | 256-bit | Iterative SHA-256/384/512 (Alg. 2.B) | **The only non-deprecated option in PDF 2.0** |
+| V5/R6 | AES-256-CBC | 256-bit | Iterative SHA-256/384/512 (Alg. 2.B) | Adobe Extension Level 8, then PDF 2.0. **The only non-deprecated option in PDF 2.0** |
+
+ISO 32000-1 defines only V 0–4 and R 2–4 (Tables 20–21), and says V 3 "shall not appear in a conforming PDF file". **V5, R5 and R6 do not exist in PDF 1.7 proper.** In 1.7 the `R` value follows from `V` and `P`. R2 means V < 2 and no R3-only permission cleared. R3 means V 2 or 3, or any R3-only permission cleared. R4 means V 4.
 | ISO/TS 32003 | AES-GCM 128/192/256 | — | — | Extension (2023): authenticated encryption per object |
 | ISO/TS 32004 | — | — | — | Extension (2024): document-level integrity (MAC) for encrypted PDFs. Addresses the PDFex class |
 
-**R2–R4 key derivation (Algorithm 2):**
+**R2–R4 key derivation (Algorithm 2, 1.7 §7.6.3.3; verified step by step against the spec):**
 ```
 pw32  = (password ‖ PAD)[0:32]          # PAD = 28 BF 4E 5E 4E 75 8A 41 64 00 4E 56 FF FA 01 08
                                         #       2E 2E 00 B6 D0 68 3E 80 2F 0C A9 FE 64 53 69 7A
@@ -581,11 +590,11 @@ if R≥3: repeat 50×: h = MD5(h[0:n])     # n = Length/8 (5 for R2)
 key   = h[0:n]
 per-object key = MD5(key ‖ objnum_le24 ‖ gen_le16 ‖ (AES ? "sAlT" : ""))[0 : min(n+5,16)]
 ```
-- `/U` (R3/4) = RC4(key, MD5(PAD ‖ ID[0])), then 19 more RC4 passes with key bytes XOR i (i = 1..19), padded to 32 bytes. Checking the user password means recomputing this.
-- `/O` stores the *user* password, RC4-encrypted under a key derived from the owner password. So the owner password unlocks the user password.
+- `/U` (R3/4) = RC4(key, MD5(PAD ‖ ID[0])), then 19 more RC4 passes with key bytes XOR i (i = 1..19), plus 16 bytes of arbitrary padding to make 32 (Algorithm 5). Checking the user password means recomputing this and comparing **only the first 16 bytes** (Algorithm 6). For R2, `/U` = RC4(key, PAD) (Algorithm 4).
+- `/O` stores the *padded user* password, RC4-encrypted under a key derived from the owner password. For R3+ that is MD5 iterated 50×, and 19 extra RC4 passes (Algorithm 3). So the owner password unlocks the user password (Algorithm 7).
 - Passwords are Latin-1/PDFDocEncoding bytes truncated at 32.
 
-**R6 (Algorithm 2.A/2.B):**
+**R6 (Algorithm 2.A/2.B; PDF 2.0 only, not in ISO 32000-1, so not verified against a spec text here):**
 - Passwords are UTF-8 after SASLprep (RFC 4013), truncated to 127 bytes.
 - `/U` is 48 bytes = 32-byte hash ‖ 8-byte validation salt ‖ 8-byte key salt. `/O` is the same, but its hashes also take the 48-byte `/U` as input.
 
@@ -624,8 +633,10 @@ Encrypted:  yes (print:yes copy:no change:no addNotes:no algorithm:AES-256)
 ```
 - `pdfinfo` decrypted the Title **without any password**, because the user password is empty.
 - `/P 516` = bit 3 (print, 4) + bit 10 (accessibility extraction, 512). pdfinfo reports `copy:no` because bit 5 is clear.
-- Note that pypdf emitted `/P` as a small positive number. The spec says reserved bits 7–8 and 13–32 "shall be 1", which would make `/P` a negative 32-bit value such as `-3388`. Poppler accepted the file anyway.
-- **Lesson for lamina:** readers must accept both encodings, and must interpret `/P` as a 32-bit two's-complement value, masking with `0xFFFFFFFF`. Writers should set the reserved bits.
+- Note that pypdf emitted `/P` as a small positive number, with the reserved high bits clear. With reserved bits 7–8 and 13–32 set, the same permissions would be the negative 32-bit value `-3388` (0xFFFFF2C4).
+  - ISO 32000-1 (§7.6.3.2) states this only in a NOTE: "all the reserved high-order flag bits … are required to be 1", so `P` "shall be specified as a negative integer". The explicit table rows "bits 1–2 shall be 0; 7–8 and 13–32 shall be 1" are from PDF 2.0 Table 22 and Adobe's PDF Reference. They are not in ISO 32000-1's Table 22.
+  - The same 1.7 clause also says "conforming readers shall ignore all flags other than those at bit positions 3, 4, 5, 6, 9, 10, 11, and 12". So Poppler accepting `516` is correct reader behavior, not leniency.
+- **Lesson for lamina:** readers must interpret `/P` as a 32-bit value (two's complement, masked with `0xFFFFFFFF`, then read unsigned) and look only at the defined bits. Writers should set the reserved bits, which gives a negative `P`.
 
 ### 7.4 Permission bits `/P`
 
@@ -640,6 +651,8 @@ Encrypted:  yes (print:yes copy:no change:no addNotes:no algorithm:AES-256)
 | 11 | 1024 | Assemble (insert/rotate/delete pages, bookmarks, thumbnails) |
 | 12 | 2048 | High-quality print |
 
+Bits 3–6 apply to all revisions. Bits 9–12 apply to R≥3, and under R2 their operations fall under bits 5/6. Readers ignore every other bit (1.7 Table 22 and §7.6.3.2). The bit-10 deprecation is PDF 2.0 and is not verified here.
+
 ### 7.5 User vs owner passwords: why "owner-only protection" isn't security
 
 - The **user password** (the "open password") gates derivation of the file key.
@@ -647,16 +660,16 @@ Encrypted:  yes (print:yes copy:no change:no addNotes:no algorithm:AES-256)
 - If the user password is empty, which is the common "protected PDF that opens without a password" case, **anyone can derive the file key**, decrypt everything, and ignore `/P`. Permissions are enforced only by the honesty of the application. `qpdf --decrypt in.pdf out.pdf` removes them in milliseconds, and our pdfinfo run above showed the "encrypted" title in plaintext.
 - Lamina must still **honor `/P` by default** (spec compliance, legal expectations). It should offer an explicit override flag, as qpdf, pypdf and PDFBox do, and document clearly that permission bits are a policy marker, not access control.
 
-### 7.6 Public-key security handler (§7.6.5)
+### 7.6 Public-key security handler (§7.6.5; 1.7: §7.6.4)
 
-- `/Filter /Adobe.PubSec` with `/SubFilter /adbe.pkcs7.s3`, `/adbe.pkcs7.s4` or `/adbe.pkcs7.s5` (s5 uses crypt filters).
-- The file key is wrapped per recipient in CMS **EnvelopedData** objects, listed in `/Recipients`. Each also carries per-recipient permissions.
-- Key derivation is SHA-1 over a 20-byte seed plus the recipients' DER. With AES-256 (`/AESV3`) it is SHA-256.
+- `/Filter /Adobe.PubSec` with `/SubFilter /adbe.pkcs7.s3`, `/adbe.pkcs7.s4` or `/adbe.pkcs7.s5` (s5 uses crypt filters). s3 uses R2 permission semantics and s4 uses R3 semantics.
+- The file key is wrapped per recipient in PKCS#7/CMS **EnvelopedData** objects, listed in `/Recipients`. For s5 the list is in the crypt filter dict instead. Each object's enveloped payload is a 20-byte seed plus 4 bytes of permissions. Its `/P` has an extra bit 2: "change encryption, all permissions" (1.7 Table 24).
+- Key derivation is SHA-1 over the 20-byte seed plus the recipients' DER (1.7 §7.6.4.3). With AES-256 (`/AESV3`) it is SHA-256, which is PDF 2.0 and not verified here.
 - It is used in enterprise and government settings. pyHanko and iText support it. Lamina should support decryption (with a caller-supplied private-key callback, e.g. HSM/PKCS#11) before encryption.
 
 ### 7.7 PDFex (Müller et al., ACM CCS 2019)
 
-The researchers evaluated **27 viewers, and all were vulnerable** to at least one variant.
+The researchers evaluated **27 viewers. 23 (85%) were vulnerable to direct exfiltration, and all 27 to CBC gadgets** (pdf-insecurity.org).
 
 1. **Direct exfiltration.** Because only strings and streams are encrypted, and crypt filters allow `/Identity`, an attacker can *add unencrypted objects* to an encrypted PDF without knowing the key:
    - a `SubmitForm` or `URI` action, or a JavaScript action,
@@ -688,8 +701,8 @@ Page    /Annots [... 7 0 R]
 7 0 obj  % signature field merged with its widget
 << /FT /Sig /T (Sig1) /Type /Annot /Subtype /Widget /F 132 /Rect [50 700 250 750]
    /P 4 0 R /AP << /N 10 0 R >> /V 11 0 R
-   /Lock << /Type /SigFieldLock /Action /All >>  (optional, FieldMDP-on-sign)
-   /SV << seed values: required SubFilter, digest, cert constraints >> (optional) >>
+   /Lock 12 0 R   (optional, PDF 1.5, must be indirect: << /Type /SigFieldLock /Action /All >>)
+   /SV 13 0 R     (optional, PDF 1.5, must be indirect: seed values: SubFilter, digest, cert constraints) >>
 11 0 obj % signature dictionary
 << /Type /Sig /Filter /Adobe.PPKLite /SubFilter /ETSI.CAdES.detached
    /ByteRange [a b c d]  /Contents <hex CMS ...000>
@@ -699,7 +712,7 @@ Page    /Annots [... 7 0 R]
    /Prop_Build << /Filter << /Name /... >> /App << /Name /... >> >> >>
 ```
 
-`/SigFlags` bit 1 is SignaturesExist. Bit 2 is AppendOnly: viewers must save incrementally, never rewrite.
+`/SigFlags` bit 1 is SignaturesExist. Bit 2 is AppendOnly: a non-incremental save may invalidate signatures. 1.7 Table 219 only says readers "may use this flag" to warn the user and require confirmation before a full save. Lamina should treat it as "append only".
 
 ### 8.2 The ByteRange / Contents mechanism
 
@@ -718,7 +731,9 @@ Rules:
 - The gap is exactly the `<…>` hex string *including* its delimiters.
 - `c + d` = the end of the file (of the signed revision).
 - `/ByteRange` itself is inside the signed range, so it cannot be altered.
-- `/Contents` holds a DER-encoded CMS object, hex-encoded and **zero-padded** to the reserved length.
+- `/Contents` holds a DER-encoded CMS object, hex-encoded and **zero-padded** to the reserved length. 1.7 Table 252 says that when `/ByteRange` is present, `/Contents` "shall be a hexadecimal string". It also says space for it "must be allocated before the message digest is computed".
+- The spec itself only says the range "should be the entire file, including the signature dictionary but excluding the signature value". Rules like `a = 0` and "the gap is exactly the hex string" are what robust validators enforce (§8.8). The spec does not spell them out.
+- When a byte range digest is present, **all values in the signature dictionary shall be direct objects** (1.7 §12.8.1).
 
 **Exact signing procedure:**
 
@@ -728,7 +743,7 @@ Rules:
    - the signature dictionary with
      - `/Contents <000…000>`, a hex placeholder of 2×N zeros, where N bounds the expected DER size: certificate chain + timestamp token + revocation info if embedded. 8–16 KB of DER is common for B-T. Placeholders of 16–32 KB are used when OCSP responses go into the CMS.
      - `/ByteRange [0 ********** ********** **********]`, a fixed-width placeholder (spaces or digits).
-   - The signature dictionary must be a direct-written (not compressed-in-object-stream) object. Its `/Contents` can't be in an object stream, because the bytes must be patchable.
+   - The signature dictionary must be written as an ordinary indirect object, not compressed inside an object stream, because its bytes must be patchable in place. This is a practical requirement; ISO 32000-1 does not state it. Its entries must be direct objects, as above.
 2. Serialize the complete file (with xref/trailer) to bytes.
 3. Locate the `<` and `>` of the `/Contents` value: `b` = offset of `<`, `c` = offset after `>`, `d = len − c`. Overwrite the ByteRange placeholder in place with `[0 b c d]`, padded with spaces to the same length. **No byte offsets change.**
 4. Compute `digest = H(bytes[0:b] ‖ bytes[c:c+d])`.
@@ -778,11 +793,13 @@ Arithmetic:
 
 | SubFilter | `/Contents` | Hash | Status |
 |---|---|---|---|
-| `adbe.x509.rsa_sha1` | Raw PKCS#1 RSA signature (DER OCTET STRING). Cert chain in `/Cert` | SHA-1 (later others) | Deprecated in PDF 2.0 |
-| `adbe.pkcs7.sha1` | CMS SignedData *encapsulating* the SHA-1 digest of the ranges | SHA-1 | Deprecated in PDF 2.0 |
-| `adbe.pkcs7.detached` | Detached CMS SignedData over the ranges | Any (SHA-256+) | Widely used ("PDF signature", ISO 32000-1 style; PAdES-compatible-ish "CMS" profile) |
-| `ETSI.CAdES.detached` | Detached CAdES (CMS + ESS signing-certificate-v2, no signing-time) | SHA-256+ | **PAdES baseline**. Use this |
-| `ETSI.RFC3161` | An RFC 3161 TimeStampToken (itself CMS SignedData) over the ranges. Dict `/Type /DocTimeStamp` | — | **Document timestamp** (PDF 2.0, PAdES B-LTA) |
+| `adbe.x509.rsa_sha1` (1.3) | Raw PKCS#1 RSA signature (DER OCTET STRING). Cert chain in `/Cert` (required for this SubFilter) | Not limited to SHA-1 despite the name (1.7 Table 257 note a) | Deprecated in PDF 2.0 (errata, Table 260) |
+| `adbe.pkcs7.sha1` (1.4) | CMS SignedData *encapsulating* the SHA-1 digest of the ranges | SHA-1 over the data | Deprecated in PDF 2.0 (errata, Table 260) |
+| `adbe.pkcs7.detached` (1.3) | Detached CMS SignedData over the ranges | SHA-1 (1.3), SHA-256 (1.6), SHA-384/512, RIPEMD-160 (1.7) | Widely used ("PDF signature", ISO 32000-1 style; PAdES-compatible-ish "CMS" profile) |
+| `ETSI.CAdES.detached` (**PDF 2.0**) | Detached CAdES (CMS + ESS signing-certificate-v2, no signing-time) | SHA-256+ | **PAdES baseline**. Use this. Not in ISO 32000-1; on 1.7 files it is used under the ETSI `ESIC` developer extension |
+| `ETSI.RFC3161` (**PDF 2.0**) | An RFC 3161 TimeStampToken (itself CMS SignedData) over the ranges. Dict `/Type /DocTimeStamp` | — | **Document timestamp** (PAdES B-LTA) |
+
+ISO 32000-1 Table 252 lists only the three `adbe.*` values. The PDF 2.0 SubFilter list, with versions, is confirmed by the clause-12 errata (Table 255).
 
 - ISO/TS 32001 adds SHA-3 and SHA-512/… hash identifiers.
 - **ISO/TS 32002** adds ECDSA curves and EdDSA (Ed25519/Ed448) for PDF signatures.
@@ -807,30 +824,32 @@ B-LTA long-term archival
 - The creation and validation procedures live in **ETSI EN 319 102-1**. Validation reports are in TS 119 102-2.
 - EU eIDAS qualified-signature workflows expect PAdES baseline. The EU **DSS** library (Java) is the reference validator.
 
-**Document Security Store** (§12.8.4.3 in PDF 2.0):
+**Document Security Store** (§12.8.4.3 in PDF 2.0; **not in ISO 32000-1**). The 2.0 errata say "Long term validation (LTV) of signatures was added in PDF 2.0" through DSS and document-timestamp dictionaries, and that all DSS/VRI keys are PDF 2.0. Before 2.0 the DSS came from ETSI TS 102 778-4 (PAdES-LTV) as a developer extension.
 - `Catalog /DSS << /Certs [streams] /OCSPs [streams] /CRLs [streams] /VRI << /<SHA1-HEX-of-sig-Contents-DER> << /Cert [] /OCSP [] /CRL [] /TU (date) /TS stream >> >> >>`.
 - VRI keys are the uppercase hex SHA-1 of the signature's CMS bytes, i.e. the `/Contents` value without padding.
 - VRI is optional and many modern validators ignore it, using the global arrays instead.
-- The DSS is always added by an **incremental update after signing**. That is allowed under DocMDP P≥2 and is classified as an "LTV update" by validators.
+- The DSS is always added by an **incremental update after signing**. Validators classify it as an "LTV update". In PDF 2.0, incremental updates that only add DSS data and/or document timestamps "shall be ignored" when evaluating DocMDP restrictions. That holds for every `P` value, **including P=1** (errata, §12.8.5.3).
 
 **LTV** ("long-term validation") in Adobe terms means B-LT/B-LTA-like material is present. Acrobat shows "Signature is LTV enabled".
 
 ### 8.6 Certification vs approval signatures; MDP
 
 - **Approval signatures**: any number, one per signature field.
-- **Certification signature** (author signature): **at most one**, and it must be the **first** signature in the document.
+- **Certification signature** (author signature, PDF 1.5): **at most one**, and it must be the **first** signed field in the document (1.7 §12.8.1, §12.8.2.2.1).
   - It is referenced from `Catalog /Perms /DocMDP`.
-  - Its `/Reference` holds `<< /TransformMethod /DocMDP /TransformParams << /Type /TransformParams /P n /V /1.2 >> >>`.
+  - Its `/Reference` holds `<< /TransformMethod /DocMDP /TransformParams << /Type /TransformParams /P n /V /1.2 >> >>`. `/V` is the *name* `/1.2`, not a number.
 
-| DocMDP `/P` | Allowed after certification (via incremental updates) |
+| DocMDP `/P` (1.7 Table 254) | Allowed after certification (via incremental updates) |
 |---|---|
 | 1 | No changes at all (any change invalidates the certification) |
-| 2 (default) | Fill in forms, instantiate page templates, sign (incl. DSS/doc timestamps) |
+| 2 (default) | Fill in forms, instantiate page templates, sign |
 | 3 | As 2, plus annotation creation, deletion, and modification |
 
-**FieldMDP** (`/TransformMethod /FieldMDP`, params `/Action /All | /Include | /Exclude`, `/Fields [names]`) locks specific fields when a signature is applied. The signature field's **`/Lock` dictionary** (`/Type /SigFieldLock`) declares which fields to lock *when this field gets signed*. PDF 2.0 adds `/P` to `/Lock`, letting an approval signature also set DocMDP-like restrictions.
+In PDF 2.0, adding DSS data and document timestamps is ignored for MDP purposes at every level (see §8.5).
 
-**Seed values** `/SV` let a form author constrain signers: `/SubFilter`, `/DigestMethod`, `/Cert` constraints (issuer, policy OIDs, key usage), `/Reasons`, `/TimeStamp` URL, `/MDP`, and `/LockDocument` (2.0).
+**FieldMDP** (`/TransformMethod /FieldMDP`, params `/Action /All | /Include | /Exclude`, `/Fields [names]`) locks specific fields when a signature is applied. The signature field's **`/Lock` dictionary** (`/Type /SigFieldLock`, PDF 1.5, so it is in ISO 32000-1 Table 233) declares which fields to lock *when this field gets signed*. PDF 2.0 adds `/P` to `/Lock`, letting an approval signature also set DocMDP-like restrictions. The errata confirm this as Table 236, "P number (Optional; PDF 2.0)".
+
+**Seed values** `/SV` (PDF 1.5) let a form author constrain signers: `/Filter`, `/SubFilter`, `/DigestMethod` (1.7), `/Cert` constraints (subject, issuer, policy OIDs, key usage), `/Reasons`, `/TimeStamp` URL (1.6), `/MDP` (1.6), `/LegalAttestation`, `/AddRevInfo` (1.7), and `/LockDocument` (2.0, unverified). The `/Ff` bits mark which entries are required constraints and which are only hints.
 
 ### 8.7 Incremental updates after signing
 
@@ -851,7 +870,7 @@ The second is the hard one. It needs a semantic diff of the object graph between
 
 ### 8.8 Attacks on signatures (Ruhr-Universität Bochum "PDF Insecurity" research)
 
-**"1 Trillion Dollar Refund – How To Spoof PDF Signatures"** (Mladenov, Mainka, Meyer zu Selhausen, Grothe, Schwenk; ACM CCS 2019). They found **21 of 22 desktop viewers** vulnerable, plus most online validation services tested.
+**"1 Trillion Dollar Refund – How To Spoof PDF Signatures"** (Mladenov, Mainka, Meyer zu Selhausen, Grothe, Schwenk; ACM CCS 2019). They found **21 of 22 desktop viewers** and **5 of 7 online validation services** vulnerable (pdf-insecurity.org; CVE-2018-16042, CVE-2018-18688, CVE-2018-18689).
 
 1. **Universal Signature Forgery (USF).** Malformed signature dicts make the validator skip verification but still show "valid":
    - `/Contents` missing, `null`, or empty;
@@ -880,7 +899,7 @@ The second is the hard one. It needs a semantic diff of the object graph between
 
 **PDFex** (§7.7) appeared at the same venue the same year.
 
-**Shadow Attacks** (Mainka, Mladenov, Rohlmann; disclosed July 2020, NDSS 2021). **16 of 29 viewers** were vulnerable, including Acrobat and Foxit; Adobe CVE-2020-9592/-9596. The attacker prepares the *unsigned* document with hidden "shadow" content. The victim signs it. The attacker then makes a **permitted-looking** incremental update that reveals the shadow:
+**Shadow Attacks** (Mainka, Mladenov, Rohlmann; disclosed July 2020, NDSS 2021). The pdf-insecurity.org site reports **15 of 28 desktop viewers** vulnerable to at least one variant, including Acrobat and Foxit (CVE-2020-9592/-9596). The earlier figure here, "16 of 29", may be the NDSS paper's count; that is not verified. The attacker prepares the *unsigned* document with hidden "shadow" content. The victim signs it. The attacker then makes a **permitted-looking** incremental update that reveals the shadow:
 - **Hide:** a full-page overlay object (image or form XObject) sits in the signed document, *referenced but not displayed*, or the reverse. The later update toggles which one is shown, e.g. by changing an object stream reference or an xref entry so the overlay vanishes.
 - **Replace:**
   - Change form-field values or *font descriptors* through allowed updates.
@@ -890,7 +909,7 @@ The second is the hard one. It needs a semantic diff of the object graph between
 
 *Defense:* object-level diffing must flag *any* redefinition of objects reachable from rendering (content streams, resources, fonts, XObjects, pages tree), not merely "new annotations". Warn when the signed document contains unreferenced objects or optional content toggled by later updates. Validators should render and compare the signed revision with the current one, which is the robust if expensive approach.
 
-**Certification attacks — "Breaking the Specification: PDF Certification"** (Rohlmann, Mladenov, Mainka, Schwenk; IEEE S&P 2021). Of 26 applications, **15 were vulnerable to EAA, 8 to SSA, and 24 to at least one**. 11 implemented the certification permissions incorrectly.
+**Certification attacks — "Breaking the Specification: PDF Certification"** (Rohlmann, Mladenov, Mainka, Schwenk; IEEE S&P 2021). Of 26 applications, **15 were vulnerable to EAA, 8 to SSA, and 24 to at least one**. 11 implemented the certification permissions incorrectly. pdf-insecurity.org confirms the 24/26 and 11/26 figures. The EAA and SSA counts come from the paper and were not re-checked.
 - **Evil Annotation Attack (EAA):** DocMDP P=3 permits adding annotations. The attacker adds a FreeText, Stamp or other annotation whose appearance stream *draws arbitrary content* over the certified page. That makes it visually indistinguishable from page text, and even P=2 is affected in some viewers via widgets.
 - **Sneaky Signature Attack (SSA):** P=2 permits adding signatures. The attacker adds a *signature field* whose widget appearance overlays content, e.g. replaces an IBAN. The signature doesn't even need to be valid in some viewers.
 - The paper also showed **code injection** that runs high-privilege JavaScript in Adobe products in certified documents.
@@ -1089,6 +1108,9 @@ Lamina should separate "mark" (annotate), "preview" (render with overlays) and "
 ## References
 
 **Standards**
+- ISO 32000-1:2008, *Document management — Portable document format — Part 1: PDF 1.7* (Adobe-hosted copy; used for the verification pass)
+- PDF Association, *Errata for PDF specifications: ISO 32000-2:2020, clause 12 (Interactive features)*: https://pdf-issues.pdfa.org/
+- Library of Congress, *PDF 2.0 (ISO 32000-2)*, format description FDD000474: https://www.loc.gov/preservation/digital/formats/fdd/fdd000474.shtml
 - ISO 32000-2:2020, *Document management — Portable document format — Part 2: PDF 2.0* (no-cost access): https://pdfa.org/announcing-no-cost-access-to-iso-32000-2-pdf-2-0/ · https://pdfa.org/sponsored-standards/
 - ISO/TS 32001 (hash extensions), ISO/TS 32002 (signature extensions: ECC/EdDSA), ISO/TS 32003:2023 (AES-GCM), ISO/TS 32004:2024 (integrity protection in encrypted documents): https://pdfa.org/sponsored-standards/ · https://www.iso.org/standard/45877.html
 - ETSI EN 319 142-1 V1.2.1 (2024-01), *PAdES digital signatures; Part 1: Building blocks and PAdES baseline signatures*: https://www.etsi.org/deliver/etsi_en/319100_319199/31914201/ (copy: https://developer.adobe.com/document-services/docs/assets/70fef5ab21077e8ef86384a148080a0d/ETSI_EN_319_142-1.pdf)
@@ -1098,7 +1120,7 @@ Lamina should separate "mark" (annotate), "preview" (render with overlays) and "
 - Factur-X / ZUGFeRD: https://fnfe-mpe.org/factur-x/ · https://www.ferd-net.de/
 
 **Attacks & security research**
-- PDF Insecurity project (RUB/Münster): https://pdf-insecurity.org/ (not reachable from this research environment; content verified via the papers and university pages below)
+- PDF Insecurity project (RUB/Münster): https://pdf-insecurity.org/ (the landing page was checked on 2026-10-28 for the viewer counts in §7.7 and §8.8)
 - Mladenov et al., "1 Trillion Dollar Refund – How To Spoof PDF Signatures", ACM CCS 2019: https://nds.ruhr-uni-bochum.de/research/publications/1-trillion-dollar-refund-how-spoof-pdf-signatures · paper: https://pdf-insecurity.org/download/paper-pdf-signatures-ccs2019.pdf
 - Müller et al., "Practical Decryption exFiltration: Breaking PDF Encryption", ACM CCS 2019, DOI 10.1145/3319535.3354214: https://pdf-insecurity.org/download/paper-pdf_encryption-ccs2019.pdf
 - Mainka, Mladenov, Rohlmann, "Shadow Attacks: Hiding and Replacing Content in Signed PDFs", NDSS 2021: https://www.ndss-symposium.org/ndss-paper/shadow-attacks-hiding-and-replacing-content-in-signed-pdfs/ · https://www.ndss-symposium.org/wp-content/uploads/ndss2021_1B-4_24117_paper.pdf
@@ -1135,3 +1157,66 @@ openssl cms -cmsout -inform DER -in cms.der -print | grep -A3 messageDigest
 pdfinfo signed.pdf                  # "Form: AcroForm"
 pdfinfo enc.pdf                     # "Encrypted: yes (... algorithm:AES-256)"
 ```
+
+---
+
+## Verification log
+
+**Date:** 2026-10-28
+
+**Sources used**
+- ISO 32000-1:2008 (PDF 1.7), full text. Clauses 7.5.5, 7.5.8, 7.6, 7.9.4, 7.11, 12.2–12.8 and 14.3.
+- PDF Association errata for ISO 32000-2:2020 clause 12 (interactive features). Used for PDF 2.0 clause numbers and for the PDF 2.0 text of Tables 166, 176, 236, 255, 260 and 263, and §12.8.4–12.8.5.
+- pdf-insecurity.org landing page (RUB). Used for the viewer counts in the PDFex, signature-spoofing, Shadow and certification attacks.
+- Library of Congress FDD000474 (PDF 2.0). Used for the deprecations: the Info dictionary, Movie/Sound, weak encryption and Flash.
+
+**Corrections (was → now)**
+- PDF 2.0 `/AP` requirement (§2.4, 2.0 §12.5.2). Was: required except Popup, Link and "zero-area" `/Rect`. Now: the exemptions are Popup, **Projection**, Link, and a `/Rect` where x1 = x2 **and** y1 = y2. Also added that 1.7 has `/AP` optional, plus the 2.0 list of keys a reader ignores when rendering `/AP`.
+- Flattening transform (§2.5, §12.5.5). Was: "draw with `cm = Matrix × A`", which contradicted the `q <A> cm … Do Q` step that followed. Now: AA = Matrix × A is the full mapping, and since `Do` already applies `/Matrix`, the emitted `cm` is `A`.
+- Annotation states (§2.3, 1.7 Table 172). Was: `/StateModel /Review` written as names. Now: text strings in 1.7, and readers should accept both. Defaults added. "Usually Hidden" is now labelled as practice, not spec.
+- Text-markup QuadPoints (§2.2, 1.7 Table 179). Added the spec's "counterclockwise" wording.
+- Info dictionary types (§5.1, 1.7 Table 317). Was: "all values are text strings except /Trapped". Now: CreationDate and ModDate are dates, and Trapped is a name (default Unknown).
+- Date format (§5.1, 1.7 §7.9.4). Was: "PDF 1.7 had a trailing `'`; PDF 2.0 drops it". Now: the trailing `'` is Adobe PDF Reference style, and ISO 32000-1's normative grammar already omits it. Truncated forms such as `D:2026` are valid per spec, not garbage.
+- `/ID` (§5.3, 1.7 Table 15). Was: "PDF 2.0 requires it in all files with /Encrypt and recommends it always". Now: 1.7 requires it when `/Encrypt` is present, and the PDF 2.0 "always required" claim is marked unverified.
+- Encryption exemptions (§7.1, 1.7 §7.6.1). Added "strings inside streams" and the §7.5.8 cite for cross-reference streams. The signature `/Contents` exemption is now labelled as PDF 2.0, because it is not in 1.7.
+- Crypt filters (§7.1, 1.7 §7.6.5, Table 25). `/AESV3` is now labelled not-in-1.7 (Extension Level 3 → PDF 2.0). `/CFM /None` was implicitly "no encryption"; it now means "the security handler decrypts", and `/Identity` is the passthrough. Added that the standard handler gives CF `/Length` in bytes.
+- V/R table (§7.2, 1.7 Tables 20–21). Added that ISO 32000-1 has only V 0–4 / R 2–4, and V5/R5/R6 are not in 1.7. Added the rule that derives R from V and P. R6 is now attributed to Extension Level 8 → PDF 2.0.
+- Algorithms 3–7 (§7.2). The `/U` R3+ check compares only the first 16 bytes. Added R2 `/U` = RC4(key, PAD). `/O` encrypts the *padded* user password.
+- Algorithm 2.A/2.B (§7.2). Now labelled PDF 2.0 only and not verified against spec text.
+- `/P` reserved bits (§7.3, 1.7 §7.6.3.2). Was: "the spec says reserved bits 7–8 and 13–32 'shall be 1'; Poppler accepted the file anyway". Now: in ISO 32000-1 this is only a NOTE ("required to be 1", so P is negative). The explicit table rows are PDF 2.0 and the Adobe Reference. 1.7 also says readers "shall ignore all flags other than 3, 4, 5, 6, 9, 10, 11, 12", so accepting `/P 516` is conforming behavior. Checked that the value with reserved bits set is `-3388` (0xFFFFF2C4).
+- Permission table (§7.4). Added the revision applicability and the reader-ignore rule.
+- Public-key handler (§7.6). Clause is now 1.7 §7.6.4 (2.0 §7.6.5). Added s3/s4 permission semantics, the 20-byte seed plus 4-byte permissions payload, `/P` bit 2, and the s5 recipients living in the crypt filter. AESV3/SHA-256 is labelled 2.0.
+- Collections (§6.3, 1.7 §12.3.5). Added that 1.7 defines `/View` D/T/H only, and that `/Folders` and `/C` are Extension Level 3 / PDF 2.0.
+- File specifications (§6.1, 1.7 §7.11.3). `/Thumb` on a file spec is labelled PDF 2.0. Added the versions for `/UF`, `/CI` and `/RF`.
+- FDF clause (§3.6). Added 1.7 §12.7.7 (2.0 §12.7.8 is confirmed by the errata). The AcroForm dictionary clause is now 2.0 §12.7.3 (1.7 §12.7.2).
+- `/Tx BMC … EMC` (§3.5, 1.7 §12.7.3.3). Was: "conventional". Now: specified behavior, including the append-if-absent rule.
+- `/SigFlags` AppendOnly (§8.1, 1.7 Table 219). Was: "viewers must save incrementally". Now: the spec only says readers *may* warn. Lamina policy is stated separately.
+- Signature field example (§8.1, 1.7 Table 232). `/Lock` and `/SV` must be indirect references, and both are PDF 1.5.
+- ByteRange/Contents (§8.2, 1.7 §12.8.1, Table 252). Added the rule that "all values in the signature dictionary shall be direct objects". Added the spec's "should be the entire file" wording and the hex-string requirement. The `a = 0` / exact-gap rules are labelled validator practice, and the object-stream point practical.
+- SubFilters (§8.4, 1.7 Table 252/257; 2.0 errata Table 255/260). `ETSI.CAdES.detached` is now labelled **PDF 2.0**; it was unlabelled. Added the version for each SubFilter, the digest support in 1.7, and the errata cites for the 2.0 deprecations.
+- DSS (§8.5, 2.0 §12.8.4.3). Now labelled not-in-1.7 (LTV "added in PDF 2.0", per the errata). Was: the DSS update is "allowed under DocMDP P≥2". Now: in PDF 2.0, DSS and document-timestamp updates are ignored for MDP at every P, including P=1.
+- DocMDP table (§8.6, 1.7 Table 254). Removed "(incl. DSS/doc timestamps)" from the P=2 row because it is not 1.7 text, and noted the 2.0 rule. `/V /1.2` is a name. The "first signed field" rule is now cited.
+- `/Lock` (§8.6). Confirmed as PDF 1.5 (in 1.7). `/Lock /P` is confirmed as PDF 2.0 by the errata (Table 236). The seed-value entry list is completed with versions.
+- Attack figures (§7.7, §8.8). PDFex: was "27 viewers, all vulnerable"; now 23/27 vulnerable to direct exfiltration and 27/27 to CBC gadgets. Signature spoofing: added 5/7 online validators and the CVEs. Shadow attacks: was "16 of 29"; the site says 15 of 28, and both are now noted. Certification: 24/26 and 11/26 confirmed.
+- References. Added ISO 32000-1, the errata site and LoC. Updated the pdf-insecurity.org note.
+
+**Confirmed without change (selection)**
+- The action-type list, with GoToDp and RichMediaExecute as 2.0 only. The trigger-event keys.
+- Annotation flag bits 1–10. The annotation subtype list and markup column, with Projection and RichMedia as 2.0 only.
+- The IRT, RT and IT entries.
+- The Ff bits for Btn, Tx and Ch. The inheritable field attributes. `/DA`, `/DR` and `/NeedAppearances` (default false).
+- Destination syntax. Outline `/Count` semantics. Page-label indices.
+- Link `/H` (default I) and the QuadPoints fallback.
+- The Info keys. The padding string, the MD5 ×50 rule and the per-object key with "sAlT" in Algorithms 1–2.
+- The meanings of permission bits 3–12.
+- DocMDP P values 1–3 (default 2) and the FieldMDP Action values.
+- The Redact annotation entries.
+
+**Still unverified (no PDF 2.0 spec text available)**
+- PDF 2.0 deprecations: NeedAppearances, XFA (LoC says only that 2.0 "appears to limit" XFA), TrapNet, ViewArea/ViewClip/PrintArea/PrintClip, and permission bit 10.
+- PDF 2.0 additions: `Enforce`, `/SD` structure destinations, UTF-8 text strings, `/Path` on Polygon/Ink, the `StampImage`/`StampSnapshot` intents, `/LockDocument`, and the exact wording of the signature-`/Contents` encryption exemption.
+- PDF 2.0 file-identifier requirement. The 0-based remote page number.
+- R6 Algorithm 2.A/2.B details, the `/Perms` layout and SASLprep. Password encoding for R2–R4.
+- VRI key derivation. The PAdES level descriptions (ETSI EN 319 142-1 not consulted). ISO/TS 32001–32004 contents.
+- The EAA/SSA counts (15 and 8), and the Shadow-attack paper figure.
+- Historical incidents and CVE details (FORCEDENTRY, CVE-2024-4367, redaction failures). The library-landscape table and XFA prevalence.

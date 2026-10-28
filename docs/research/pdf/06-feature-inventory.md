@@ -49,7 +49,7 @@ A "platform for anything and everything PDF" therefore spans at least four very 
 | G | Security & privacy | 13 | security handlers, crypt filters, redaction | 04 |
 | H | Conversion & extraction | 15 | rendering, text reconstruction, OCR, layout analysis | 03, 05 |
 | I | Navigation & structure | 14 | outlines, destinations, actions, structure tree, OCGs | 02, 03, 04 |
-| J | Metadata & attachments | 12 | Info dict, XMP, EmbeddedFiles, `/AF` | 01, 04 |
+| J | Metadata & attachments | 12 | Info dict, XMP, EmbeddedFiles, `/AF` (PDF 2.0) | 01, 04 |
 | K | Printing & optimisation | 15 | filters, object streams, subsetting, colour management | 01, 02, 05 |
 | L | Accessibility | 12 | tagged PDF, structure tree, PDF/UA | 03 |
 | M | Advanced interactions | 14 | JS actions, OCGs, rich media, 3D, measurement, revisions | 02, 04 |
@@ -124,12 +124,12 @@ Difficulty: **1** = straightforward object manipulation · **2** = needs a solid
 | Text-correction annotations | Caret + StrikeOut, grouped via `/IRT` `/RT /Group` | 1 |
 | Freehand ink | Ink annotation, `/InkList` | 1 |
 | Shapes, lines, arrows | Square, Circle, Line (`/LE` arrowheads), Polygon, PolyLine | 1 |
-| Callouts & text boxes | FreeText annotation with `/CL` callout line, `/DA`, `/RC` rich text | 2 |
+| Callouts & text boxes | FreeText annotation with `/IT /FreeTextCallout` + `/CL` callout line (PDF 1.6), required `/DA`, `/RC` rich text (PDF 1.5) | 2 |
 | Custom stamps | Stamp annotation with custom appearance stream | 1 |
 | Attach files as annotations | FileAttachment annotation with embedded file spec | 1 |
-| Audio annotations | Sound annotation (deprecated in PDF 2.0 → RichMedia/Screen) | 1 |
+| Audio annotations | Sound annotation (PDF 1.2; deprecated in PDF 2.0 → Screen + Rendition, or RichMedia, which is PDF 2.0) | 1 |
 | Replies to comments | Annotation with `/IRT` pointing to parent | 1 |
-| Status & review properties | State-model replies (`/StateModel /Review`, `/State /Accepted`) | 1 |
+| Status & review properties | State-model replies (PDF 1.5): a Text annotation with `/IRT` → original, `/T` = user, `/StateModel /Review` + `/State` (`Accepted`/`Rejected`/`Cancelled`/`Completed`/`None`) or `/StateModel /Marked` | 1 |
 | Filter & search comments | Read annotation dicts across pages | 1 |
 | Import & export annotation data | XFDF/FDF serialisation | 1–2 |
 | Flatten annotations into content | Draw each appearance stream as a Form XObject into the page content with the annotation's matrix; remove the annot | 2 |
@@ -140,16 +140,16 @@ Difficulty: **1** = straightforward object manipulation · **2** = needs a solid
 
 | Operation | How it works in PDF | Diff. |
 | --- | --- | --- |
-| Text fields (single/multi-line) | AcroForm `/FT /Tx` field + Widget; `/Ff` multiline flag | 1 |
-| Checkboxes & radio buttons | `/FT /Btn` with on/off appearance states (`/AP /N /Yes`, `/Off`); radio = parent with kids | 1–2 |
-| Dropdowns & list boxes | `/FT /Ch` with `/Opt`, combo flag | 1 |
-| Push buttons | `/FT /Btn` push flag + action | 1 |
-| Date/formatted input | `/AA` Format/Keystroke JavaScript (AFDate_FormatEx…) — only works in JS-capable viewers | 2 |
-| Required & read-only | `/Ff` bits | 1 |
+| Text fields (single/multi-line) | AcroForm `/FT /Tx` field + Widget; `/Ff` Multiline flag (bit 13) | 1 |
+| Checkboxes & radio buttons | `/FT /Btn` with on/off appearance states (`/AP /N` with an on-state name — `/Yes` recommended for checkboxes — plus `/Off`); radio = `/Ff` Radio flag (bit 16), parent with kid widgets | 1–2 |
+| Dropdowns & list boxes | `/FT /Ch` with `/Opt`; `/Ff` Combo flag (bit 18; clear = list box), Edit (bit 19) | 1 |
+| Push buttons | `/FT /Btn` with `/Ff` Pushbutton flag (bit 17) + action | 1 |
+| Date/formatted input | `/AA /F` (format) and `/AA /K` (keystroke) JavaScript (AFDate_FormatEx…) — only works in JS-capable viewers | 2 |
+| Required & read-only | `/Ff` bits: ReadOnly (bit 1), Required (bit 2) | 1 |
 | Input validation | `/AA /V` JavaScript | 2 |
 | Automatic calculations | `/AA /C` scripts + `/CO` calculation order | 2 |
 | Tab order | Page `/Tabs` (`/R` `/C` `/S`) | 1 |
-| Conditional behaviour | JavaScript show/hide actions | 2 |
+| Conditional behaviour | Hide action, or JavaScript (`field.display`) | 2 |
 | Import & export form data | FDF/XFDF/JSON ↔ `/V` values | 1 |
 | Populate fields programmatically | Set `/V` **and regenerate appearance streams** (font, `/DA`, comb, quadding, auto-size) — the hard part | 2–3 |
 | Reset form fields | ResetForm action or set `/V` to `/DV` | 1 |
@@ -164,10 +164,10 @@ Difficulty: **1** = straightforward object manipulation · **2** = needs a solid
 | --- | --- | --- |
 | Handwritten signature image | Just an image/stamp — no cryptographic meaning | 1 |
 | Draw/type e-signature | Ink/stamp + often an external audit trail; not a PDF digital signature unless combined with one | 1 |
-| Certificate-based digital signatures | `/ByteRange` + `/Contents` placeholder, CMS SignedData detached, PAdES profile, written as an incremental update | 2 |
+| Certificate-based digital signatures | `/ByteRange` + `/Contents` placeholder, CMS SignedData detached (`/SubFilter /adbe.pkcs7.detached`), PAdES profile (`/ETSI.CAdES.detached`, PDF 2.0), written as an incremental update | 2 |
 | Verify signatures | Hash byte ranges, verify CMS, build certificate chain, check revocation (OCSP/CRL), **check what changed in later incremental updates** | 3 |
 | Certify a document | DocMDP transform with `/P 1–3` on the first signature | 2 |
-| Trusted timestamps | RFC 3161 token in the CMS unsigned attrs, or document timestamp (`ETSI.RFC3161`) | 2 |
+| Trusted timestamps | RFC 3161 token as a CMS unsigned attribute (PDF 1.6), or document timestamp (`/Type /DocTimeStamp`, `/SubFilter /ETSI.RFC3161`, PDF 2.0) | 2 |
 | Inspect signer identity & certificates | Parse X.509 from CMS | 1 |
 | Lock fields after signing | `/Lock` dict / FieldMDP | 2 |
 | Allowed changes after certification | DocMDP `/P` semantics, enforced by the validator's diff analysis | 3 |
@@ -178,18 +178,18 @@ Difficulty: **1** = straightforward object manipulation · **2** = needs a solid
 
 | Operation | How it works in PDF | Diff. |
 | --- | --- | --- |
-| Document-open password | Standard security handler, user password, AES-256 (R6) | 2 |
+| Document-open password | Standard security handler, user password, AES-256 (`/V 5 /R 6`, PDF 2.0; ISO 32000-1 stops at R4 / AESV2 128-bit) | 2 |
 | Encrypt a PDF | Encrypt all strings & streams with object keys / crypt filters | 2 |
 | Permission passwords | Owner password + `/P` bits — **advisory only**, honoured by compliant viewers | 1 |
 | Restrict print/copy/edit | `/P` bits (advisory) | 1 |
 | Remove security with authorisation | Decrypt with the password and rewrite unencrypted | 2 |
-| Permanent redaction | Remove glyphs/ops intersecting the area, rewrite text runs, burn image pixels, scrub annots/forms/metadata, full rewrite (no incremental history) | 3 |
+| Permanent redaction | Mark areas with Redact annotations (PDF 1.7), then apply: remove glyphs/ops intersecting the area, rewrite text runs, burn image pixels, scrub annots/forms/metadata, full rewrite (no incremental history) | 3 |
 | Search sensitive content to redact | Extraction + regex/NER, then redaction | 2–3 |
 | Remove hidden metadata & comments | Strip Info/XMP, annotations, private app data (`/PieceInfo`), thumbnails | 1–2 |
 | Sanitise embedded content | CDR: drop JS, Launch, embedded files, external refs; rebuild the file | 2 |
-| Remove attachments & scripts | EmbeddedFiles name tree, `/AF`, FileAttachment annots, `/Names /JavaScript`, `/OpenAction`, `/AA` | 1 |
+| Remove attachments & scripts | EmbeddedFiles name tree, `/AF` (PDF 2.0), FileAttachment annots, `/Names /JavaScript`, `/OpenAction`, `/AA` | 1 |
 | Inspect encryption | Read `/Encrypt` dict | 1 |
-| Certificate-based security | Public-key security handler (`/Adobe.PubSec`), recipients | 2 |
+| Certificate-based security | Public-key security handler (`/Filter` e.g. `/Adobe.PubSec`; `/SubFilter /adbe.pkcs7.s5` with crypt filters), `/Recipients` (in the crypt filter dict for s5) | 2 |
 | Remove hidden layers/information | Drop hidden OCG content, off-page content, incremental history | 2 |
 
 ### H. Conversion & extraction
@@ -217,12 +217,12 @@ Difficulty: **1** = straightforward object manipulation · **2** = needs a solid
 | Create/edit bookmarks; nested trees | `/Outlines` doubly linked tree (`/First /Last /Next /Prev /Parent /Count`) | 1 |
 | Internal page links | Link annotation + `/Dest` or GoTo action | 1 |
 | External hyperlinks | Link annotation + URI action | 1 |
-| Named destinations | `/Dests` name tree | 1 |
+| Named destinations | `/Names /Dests` name tree (PDF 1.2), or legacy catalog `/Dests` dictionary (PDF 1.1) | 1 |
 | Clickable table of contents | Generated content + links (+ outline) | 1–2 |
 | Initial view & zoom; page display mode | `/OpenAction`, `/PageMode`, `/PageLayout`, `/ViewerPreferences` | 1 |
 | Define reading order; logical structure tags | Structure tree order + MCIDs | 2–3 |
 | Optional content groups (layers) | `/OCProperties`, `BDC /OC` marked content | 2 |
-| Article threads | `/Threads` beads | 1 |
+| Article threads | Catalog `/Threads` array of thread dicts; beads linked by `/N`/`/V`, page `/B` | 1 |
 | Page labels | `/PageLabels` number tree | 1 |
 | Outline & navigation preferences | ViewerPreferences | 1 |
 
@@ -234,8 +234,8 @@ Difficulty: **1** = straightforward object manipulation · **2** = needs a solid
 | Creation/modification dates | `CreationDate`/`ModDate` + xmp:CreateDate/ModifyDate | 1 |
 | Producer & creator | Info `/Producer` `/Creator`, xmp:CreatorTool | 1 |
 | Manage XMP | Parse/serialise RDF/XML packet | 1–2 |
-| Attach / extract / delete embedded files | EmbeddedFiles name tree, file specs, `/AF` | 1 |
-| Portfolios / collections | `/Collection` dict + navigator | 2 |
+| Attach / extract / delete embedded files | EmbeddedFiles name tree, file specs, `/AF` (PDF 2.0) | 1 |
+| Portfolios / collections | `/Collection` dict (PDF 1.7) + navigator (PDF 2.0 §12.3.5.3; not in ISO 32000-1) | 2 |
 | Inspect version & conformance | Header, catalog `/Version`, XMP `pdfaid:`/`pdfuaid:` | 1 |
 | Identify fonts & colour profiles | Walk resources | 1 |
 | Inspect internal objects, streams, references | A COS-level object browser (like `qpdf --json`, `mutool show`) | 1 |
@@ -284,13 +284,13 @@ Difficulty: **1** = straightforward object manipulation · **2** = needs a solid
 | Interactive buttons | Push-button widgets + actions | 1 |
 | Event-triggered actions | `/AA` dictionaries on doc, page, field | 1 |
 | Manage/show/hide layers | OCGs, `/OCProperties /D`, SetOCGState | 2 |
-| Embed audio & video | RichMedia / Screen + Rendition (viewer support is poor) | 2 |
-| Embed 3D models | 3D annotations (U3D/PRC) — very poor viewer support outside Acrobat | 3 |
-| Measurement tools & scales | Viewport `/VP` + Measure dictionaries | 2 |
-| Geospatial coordinates | GeoPDF / `/Measure /Subtype /GEO` | 2 |
-| Associated files & structured metadata | `/AF` arrays (e.g. Factur-X/ZUGFeRD XML invoice) | 1 |
+| Embed audio & video | Screen annotation + Rendition action (PDF 1.5), or RichMedia (PDF 2.0) (viewer support is poor) | 2 |
+| Embed 3D models | 3D annotations (PDF 1.6; U3D in ISO 32000-1, PRC added in PDF 2.0) — very poor viewer support outside Acrobat | 3 |
+| Measurement tools & scales | Page `/VP` viewport array (PDF 1.6) + `/Measure` dictionaries (`/Subtype /RL`, rectilinear) | 2 |
+| Geospatial coordinates | GeoPDF / `/Measure /Subtype /GEO` (PDF 2.0; not in ISO 32000-1) | 2 |
+| Associated files & structured metadata | `/AF` arrays (PDF 2.0 / PDF/A-3; e.g. Factur-X/ZUGFeRD XML invoice) | 1 |
 | Document open actions | `/OpenAction` | 1 |
-| Rich-media annotations | RichMedia annotations | 2 |
+| Rich-media annotations | RichMedia annotations (PDF 2.0) | 2 |
 | Inspect incremental updates & revisions | Walk `/Prev` chain; reconstruct each revision | 2 |
 | Compare versions visually & structurally | Render-and-diff + text/structure diff | 2–3 |
 
@@ -313,7 +313,7 @@ PDF document
 │   ├── /OCProperties     layers
 │   ├── /StructTreeRoot   semantic structure (accessibility)
 │   ├── /Metadata         XMP stream
-│   └── /AF               associated files
+│   └── /AF               associated files (PDF 2.0)
 ├── /Encrypt              security handler configuration
 └── /Info                 legacy metadata
 (signature dictionaries hang off /Sig fields in /AcroForm)
@@ -332,7 +332,7 @@ PDF document
 | Outlines | Bookmark navigation | 04 |
 | Optional content groups | Layers and visibility | 02 |
 | Structure tree | Semantic structure for accessibility | 03 |
-| EmbeddedFiles / `/AF` | Attachments and associated data | 04 |
+| EmbeddedFiles / `/AF` (PDF 2.0) | Attachments and associated data | 04 |
 | Metadata streams | XMP metadata | 04 |
 | Encryption dictionary | Security configuration | 04 |
 | Signature dictionaries | Cryptographic signatures | 04 |
@@ -462,3 +462,34 @@ Rendering and annotations are comparatively straightforward. Reliable editing of
 - **Build-vs-wrap is per engine.** Rendering, OCR, office conversion and HTML layout are each large enough to wrap at first (subject to licence: avoid AGPL in the core unless we choose that model deliberately). The COS layer, writer, forms, annotations and signing are where owning the code pays off.
 - **Correctness traps to design for from day one:** redaction that only covers content, crop that only hides it, incremental saves that keep "deleted" content, saves that break signatures, flattening without appearance streams, and edits that break PDF/A or PDF/UA conformance.
 - **Track this inventory as a capability matrix.** Each row in §3 can become a test-backed feature flag with a status (unsupported / read / write / round-trip).
+
+---
+
+## Verification log
+
+**2026-10-28 — spec fact-check pass.** Sources: ISO 32000-1:2008 (PDF 1.7) full text; PDF Association ISO 32000-2 clause 12 errata page (pdf-issues, used only to confirm a PDF 2.0 location). PDF 2.0 itself was not available, so items labelled "PDF 2.0" below are labelled from the absence of the mechanism in ISO 32000-1 plus secondary knowledge, not from ISO 32000-2 text.
+
+Corrections and clarifications (was → now):
+
+- §2 group J, §3 J/G/M rows, §4 tree and table: `/AF` unlabelled → labelled **PDF 2.0** (and PDF/A-3); no `/AF` key exists in ISO 32000-1.
+- D "Callouts": `/CL` alone → `/IT /FreeTextCallout` + `/CL` (PDF 1.6; `/CL` is meaningful only with that intent), `/DA` required, `/RC` PDF 1.5 (ISO 32000-1 Table 174).
+- D "Audio annotations": "deprecated → RichMedia/Screen" → Sound is PDF 1.2; replacements are Screen + Rendition (PDF 1.5) or RichMedia, labelled PDF 2.0 (RichMedia is not in Table 169).
+- D "Status & review": made explicit that the state lives in a separate reply **Text** annotation with `/IRT`, `/T`, `/StateModel`, `/State`; listed the valid Review/Marked states (§12.5.6.3, Table 171).
+- E rows: added `/Ff` bit numbers — ReadOnly 1, Required 2 (Table 221); Multiline 13 (Table 228); Radio 16, Pushbutton 17 (Table 226); Combo 18, Edit 19 (Table 230). Checkbox on-state "`/AP /N /Yes`" → on-state name is producer-chosen; the spec says `/Yes` *should* be used for checkboxes (§12.7.4.2.3).
+- E "Date/formatted input": "Format/Keystroke" → explicit `/AA /F` and `/AA /K` keys (Table 196); `/V` and `/C` + AcroForm `/CO` confirmed (Tables 196, 218).
+- E "Conditional behaviour": JS only → Hide action (PDF 1.2, §12.6.4.10) or JavaScript.
+- F "Certificate-based signatures": added SubFilter names; `adbe.pkcs7.detached` is ISO 32000-1, `ETSI.CAdES.detached` (PAdES) labelled PDF 2.0.
+- F "Trusted timestamps": unsigned-attribute timestamp is PDF 1.6 (§12.8.3.3); document timestamp (`/DocTimeStamp`, `ETSI.RFC3161`) labelled PDF 2.0.
+- G "Document-open password": "AES-256 (R6)" unlabelled → `/V 5 /R 6` is PDF 2.0; ISO 32000-1 defines R2–R4 only, max AESV2 128-bit (§7.6.3, Table 21; §7.6.5 Table 25).
+- G "Permanent redaction": added the Redact annotation (PDF 1.7, Table 169) as the mark-then-apply mechanism.
+- G "Certificate-based security": `/Adobe.PubSec` is only an *example* handler name in ISO 32000-1 (§7.6.4.2 note) → described as `/Filter` e.g. `/Adobe.PubSec`, with `/SubFilter /adbe.pkcs7.s5` and `/Recipients` in the crypt filter (Tables 23, 27).
+- I "Named destinations": added the legacy catalog `/Dests` dictionary (PDF 1.1) besides the `/Names /Dests` name tree (PDF 1.2) (§12.3.2.3).
+- I "Article threads": "`/Threads` beads" → catalog `/Threads` array of thread dicts, beads linked by `/N`/`/V`, page `/B` (Tables 28, 30, 160, 161).
+- J "Portfolios": `/Collection` is PDF 1.7; the navigator is not in ISO 32000-1 → labelled PDF 2.0 (§12.3.5.3 per the clause 12 errata page).
+- M "Embed audio & video" / "Rich-media annotations": RichMedia labelled PDF 2.0; Screen + Rendition labelled PDF 1.5.
+- M "Embed 3D models": "U3D/PRC" → 3D annotations PDF 1.6; ISO 32000-1 allows only `U3D` (§13.6.3); PRC is PDF 2.0.
+- M "Measurement": added page `/VP` (PDF 1.6) and `/Subtype /RL` (the only subtype ISO 32000-1 defines, §12.9, Table 261). "Geospatial": `/GEO` labelled PDF 2.0 (not in ISO 32000-1).
+
+Confirmed without change (ISO 32000-1): page `/Tabs` values `/R` `/C` `/S` (PDF 1.5, Table 30, §12.5); `/Rotate` inheritable, multiple of 90 (Table 30); text render modes 2 and 3 (Table 106); `/LE` line endings on Line annotations (PDF 1.4, Table 175/176); `/IRT` + `/RT /Group` grouping (PDF 1.6, §12.5.6.2); annotation subtypes and versions (Table 169, incl. Watermark 1.6, Caret 1.5); `/Lock` and `/SV` on signature fields (PDF 1.5, Table 232); FieldMDP and DocMDP `/P 1–3`, DocMDP only on the first signed field (§12.8.2.2); outline keys `/First /Last /Next /Prev /Parent /Count /Title` (Tables 152–153); catalog `/PageLabels` (1.3), `/OCProperties` (1.5), `/Version` (1.4), `/Perms`, `/OutputIntents`, `/Lang`, `/MarkInfo` (Table 28); `/PieceInfo` on page/form (1.3); `/TU`, `/Alt`, Artifact marked content.
+
+Still unverified in this pass: anything specific to PDF 2.0 wording (ISO 32000-2 text not available); XFDF, PDF/A, PDF/X, PDF/UA and PAdES requirements (other standards); the "attacks catalogue" names; difficulty ratings and viewer-support remarks (opinion/observation, not spec facts).

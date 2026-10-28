@@ -23,4 +23,5 @@ Runnable examples that back the chapters are in [`examples/`](examples/). Source
 ## Caveats
 
 - Chapters were researched in October 2026. Library versions, maintenance status and licences change; re-check before depending on them.
-- Each chapter notes claims that couldn't be verified against the ISO text or a primary source. Some sources (pdfa.org, pdf-insecurity.org) couldn't be fetched from the research environment, so a few facts rest on secondary sources; these are flagged inline.
+- **Verified against ISO 32000-1:2008 (PDF 1.7)** and Adobe TN #5411 (ToUnicode) on 2026-10-28 — about 125 corrections in total. Each chapter ends with a *Verification log* listing every correction and what remains unverified.
+- PDF 2.0-only claims have **not** been checked against ISO 32000-2 text (only its clause-12 errata). They're labelled "PDF 2.0" in the chapters.

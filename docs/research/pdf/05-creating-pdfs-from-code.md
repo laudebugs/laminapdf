@@ -414,7 +414,7 @@ sheet content:  q  0.5 0 0 0.5 0 396 cm  /Pg1 Do  Q
 There are three mechanisms, which differ in reversibility and how viewers treat them:
 
 1. **Content-stream overlay (most common).** Append a new content stream to the page's `/Contents` array: `q <cm> /Stamp Do Q`. The stamp is a Form XObject, so it is defined once and drawn on every page. **Wrap the original content in `q … Q` first** (prepend a stream containing `q`, append one containing `Q`), because the original may leave a modified CTM or clipping path in effect, which would displace the stamp. Underlays prepend instead (which needs opaque-background awareness). Text stamps need a font resource added to each page's `/Resources` (watch for name collisions such as `/F1`).
-2. **Watermark annotation** (`/Subtype /Watermark`, PDF 1.6). The stamp lives in an annotation appearance stream with `/FixedPrint`, so it can be hidden or removed and is known to be "not content".
+2. **Watermark annotation** (`/Subtype /Watermark`, PDF 1.6). The stamp lives in an annotation appearance stream, so it can be hidden or removed and is known to be "not content". The optional `/FixedPrint` dictionary makes it print at a fixed size and position regardless of the printed page's dimensions (ISO 32000-1 §12.5.6.22).
 3. **Optional content.** Put the overlay inside `/OC /oc1 BDC … EMC` so viewers can toggle it and print-only watermarks are possible.
 
 Tagged documents should mark watermarks as `/Artifact` (`/Artifact <</Type /Pagination /Subtype /Watermark>> BDC … EMC`) so screen readers skip them. Any stamping invalidates existing signatures unless it is done as an incremental update that the signature's DocMDP permissions allow (ch. 04).
@@ -436,10 +436,10 @@ Tagged documents should mark watermarks as `/Artifact` (`/Artifact <</Type /Pagi
 
 ### 3.5 Linearisation ("Fast Web View")
 
-Annex F of ISO 32000 defines a layout where the first page's objects come first, followed by a linearisation dictionary and **hint tables** (page offset and shared-object hints), so a viewer can show page 1 before the download finishes.
+Annex F of ISO 32000 defines a layout that starts with the **linearisation parameter dictionary** (entirely within the first 1024 bytes), then the first-page cross-reference section, the catalog and other document-level objects, the primary **hint stream** (page offset and shared-object hint tables), and only then the first page's objects, followed by the remaining pages (ISO 32000-1 F.3). A viewer can therefore show page 1 before the download finishes.
 
 - Writing it is a full rewrite: compute the object ordering and hint streams, then fix up offsets (two passes). `qpdf --linearize`, `mutool clean -l`, Ghostscript `-dFastWebView`.
-- In practice, modern viewers (pdf.js, PDFium) use **HTTP range requests** for *any* PDF with a valid trailer, and they ignore hint tables or treat them as optional. Any incremental update breaks linearisation. **Low priority** for lamina, but the reader must tolerate it and `--check` should validate it.
+- In practice, modern viewers (pdf.js, PDFium) use **HTTP range requests** for *any* PDF with a valid trailer, and they ignore hint tables or treat them as optional. Any incremental update breaks linearisation: it is still permitted, but the result is no longer linearized and must be treated as ordinary PDF (ISO 32000-1 F.1). **Low priority** for lamina, but the reader must tolerate it and `--check` should validate it.
 
 ### 3.6 Repair
 
@@ -939,3 +939,19 @@ The sizes are all within 2× of each other because none embeds a font. With a re
 - OSS-Fuzz: https://github.com/google/oss-fuzz (projects: pdfium, poppler, mupdf, qpdf, ghostscript, xpdf)
 - pdf.js CVE-2024-4367: https://codeanlabs.com/blog/research/cve-2024-4367-arbitrary-js-execution-in-pdf-js/
 - ISO 32000-2:2020 (PDF 2.0) and ISO 19005 (PDF/A), ISO 14289 (PDF/UA): via https://pdfa.org/sponsored-standards/ (no-cost PDF 2.0 access)
+
+---
+
+## Verification log
+
+**2026-10-28 — spec fact-check pass (PDF-format claims only).** Sources: ISO 32000-1:2008 (PDF 1.7) full text. Library versions, licences, benchmarks and tool behaviour were **out of scope** for this pass and were not re-verified.
+
+Corrections (was → now):
+
+- §3.5 Linearisation: "the first page's objects come first, followed by a linearisation dictionary and hint tables" → the file starts with the linearisation parameter dictionary (within the first 1024 bytes), then the first-page xref section, catalog/document-level objects and the primary hint stream, and only then the first page's objects (ISO 32000-1 F.3, F.3.3).
+- §3.5: "any incremental update breaks linearisation" kept, with the spec wording added — updates remain permitted, but the result is no longer linearized (F.1).
+- §3.3 Watermark annotation: "`/FixedPrint`, so it can be hidden or removed" → `/FixedPrint` is optional and controls fixed-size/fixed-position printing; hideability comes from being an annotation (§12.5.6.22, Tables 190–191).
+
+Confirmed without change: inheritable page attributes `/Resources /MediaBox /CropBox /Rotate` (§7.7.3.4, Table 30); `/PageLabels` number tree keyed by zero-based page index (§12.4.2); `/StructParents`/`/StructParent` → `/ParentTree`, `/RoleMap`, `/ClassMap` (§14.7); same fully-qualified field name ⇒ one shared value (§12.7.3.2); `/AcroForm /Fields /DR /NeedAppearances` (Table 218); Artifact `/Type /Pagination /Subtype /Watermark` (Table 330); object streams and xref streams PDF 1.5 (§7.5.7–7.5.8); hint tables = page offset and shared object (F.4); inline images `BI … ID … EI`, filters and `/JBIG2Globals` (§7.4, §8.9.7); classic xref entries are 20 bytes and the demo's header/xref/trailer layout (§7.5.2–7.5.5); incremental updates append after `%%EOF` with `/Prev` (§7.5.6).
+
+Still unverified: PDF/A, PDF/UA and PDF 2.0 claims (namespaces, Arlington coverage) — other standards, not in the sources used; renderer architecture and viewer behaviour (§3.5 range requests, §4); all library versions/licences (out of scope).

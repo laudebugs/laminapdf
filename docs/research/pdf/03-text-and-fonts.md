@@ -1,6 +1,6 @@
 # 03 — Text, Fonts, Extraction & Accessibility
 
-> Part of the lamina PDF research series. Primary reference: ISO 32000-2:2020 (PDF 2.0), chiefly §9 (Text), §14.7–14.9 (Logical structure, Tagged PDF, accessibility support). Object syntax, streams, filters and the xref live in **[Chapter 01 (File syntax)](01-file-structure.md)**; the graphics state, CTM, colour spaces and painting operators live in **[Chapter 02 (Graphics & colour)](02-imaging-model.md)**. This chapter assumes both.
+> Part of the lamina PDF research series. Primary reference: ISO 32000-2:2020 (PDF 2.0), chiefly §9 (Text), §14.7–14.9 (Logical structure, Tagged PDF, accessibility support). Object syntax, streams, filters and the xref live in **[Chapter 01 (File syntax)](01-file-structure.md)**; the graphics state, CTM, colour spaces and painting operators live in **[Chapter 02 (Graphics & colour)](02-imaging-model.md)**. This chapter assumes both. Normative claims were checked against ISO 32000-1:2008 (PDF 1.7) and Adobe TN #5411; clause numbers below are the same in both editions unless a 1.7 number is given — see the **Verification log** at the end.
 
 ---
 
@@ -50,7 +50,7 @@ Tagged PDF (§9 of this chapter) is PDF's answer to all of these: a parallel, lo
 
 ### 2.1 Text objects
 
-Text is shown inside a **text object** delimited by `BT` … `ET`. `BT` resets the text matrix `Tm` and text line matrix `Tlm` to identity. Text objects cannot nest, and only certain operators are permitted inside (text state, positioning, showing, colour, general graphics state such as `w` and `gs`, marked content, `cs`/`sc`). `q`/`Q` and path construction/painting are **not** permitted inside `BT`/`ET`. (Some real-world files violate this; renderers tolerate it, writers must not.)
+Text is shown inside a **text object** delimited by `BT` … `ET`. `BT` resets the text matrix `Tm` and text line matrix `Tlm` to identity. Text objects cannot nest, and only certain operators are permitted inside (text state, positioning, showing, colour, general graphics state such as `w` and `gs`, marked content, `cs`/`sc`). `q`/`Q` and path construction/painting are **not** permitted inside `BT`/`ET` (ISO 32000-1 §8.2, Figure 9 / Annex L: a text object allows general graphics state, colour, text state, text-showing, text-positioning and marked-content operators only). (Some real-world files violate this; renderers tolerate it, writers must not.)
 
 The CTM and graphics state (Chapter 02) still apply: text is transformed by `Tm × CTM`.
 
@@ -61,14 +61,14 @@ Text state is part of the graphics state (saved/restored by `q`/`Q`), **not** re
 | Op | Parameter | Meaning |
 |---|---|---|
 | `Tc` | char spacing `Tc` (0) | Extra space added after **every** glyph, in unscaled text space units. |
-| `Tw` | word spacing `Tw` (0) | Extra space added after every **single-byte code 32**. Does **not** apply to multi-byte codes — so with `Identity-H` (2-byte codes), `Tw` has no effect. Justification in CID fonts must use `TJ` or `Tc`. |
+| `Tw` | word spacing `Tw` (0) | Extra space added after every **single-byte code 32**. Does **not** apply to multi-byte codes — so with `Identity-H` (2-byte codes), `Tw` has no effect. Justification in CID fonts must use `TJ` or `Tc`. (§9.3.3: "shall not apply to occurrences of the byte value 32 in multiple-byte codes"; it does apply to a composite font whose CMap defines code 32 as a single-byte code.) |
 | `Tz` | horizontal scaling `Th` (100 → 1.0) | Percentage stretch of glyphs and spacing horizontally. |
 | `TL` | leading `Tl` (0) | Line distance used by `T*`, `'`, `"`. |
-| `Tf` | font `Tf` and size `Tfs` | `/F1 12 Tf`. **No default — showing text before `Tf` is an error.** |
+| `Tf` | font `Tf` and size `Tfs` | `/F1 12 Tf`. **No default — font and size "shall be specified explicitly by using Tf before any text is shown" (§9.3.1, Table 105).** |
 | `Tr` | render mode `Tmode` (0) | See §2.5. |
 | `Ts` | rise `Trise` (0) | Baseline shift (super/subscript), unscaled text space units. |
 
-Knockout (`TK`) is set via ExtGState, not an operator.
+Knockout (`TK`) is set via ExtGState, not an operator (§9.3.8; it applies to whole text objects and must not be changed between `BT` and `ET`). Text state values persist across text objects and are reset to defaults at the start of each page (§9.3.1).
 
 ### 2.3 Positioning operators
 
@@ -101,7 +101,7 @@ Knockout (`TK`) is set via ExtGState, not an operator.
 | 6 | ✔ | ✔ | ✔ | |
 | 7 | | | ✔ | Text used purely as a clipping path (e.g. image showing through letters) |
 
-Clipping modes accumulate glyph outlines across the whole text object; the clip is applied at `ET`. Mode 3 glyphs are still "shown" — they advance the pen and are extracted — which is exactly why OCR tools (OCRmyPDF, Tesseract's PDF renderer) use it to lay a searchable text layer over a scanned image. Type 3 glyphs are painted by their own content-stream operators, so the fill/stroke distinction does not apply in the usual way; renderer behaviour for Type 3 text in stroke/clip modes varies — don't rely on it.
+Clipping modes accumulate glyph outlines across the whole text object; the clip is applied at `ET`. Mode 3 glyphs are still "shown" — they advance the pen and are extracted — which is exactly why OCR tools (OCRmyPDF, Tesseract's PDF renderer) use it to lay a searchable text layer over a scanned image. Type 3 glyphs are painted by their own content-stream operators, so the fill/stroke distinction does not apply: per §9.3.6, "only a value of 3 for text rendering mode shall have any effect on text displayed in a Type 3 font" — modes 1, 2 and 4–7 are effectively mode 0 for Type 3 text. Clipping modes produce no clip if the only glyphs shown have no outlines (e.g. spaces).
 
 ### 2.6 Matrices and glyph displacement math
 
@@ -115,7 +115,7 @@ Text space → user space is controlled by the **text rendering matrix**:
 
 Glyph outlines are defined in **glyph space** and mapped to text space by the font matrix (`[0.001 0 0 0.001 0 0]` for everything except Type 3, which supplies its own `/FontMatrix`). Hence widths in PDF are expressed in **thousandths of text-space units** (1/1000 em).
 
-After each glyph, `Tm` is updated by `[1 0 0 1 tx ty] × Tm` where, for **horizontal** writing:
+After each glyph, `Tm` is updated by `[1 0 0 1 tx ty] × Tm` where (§9.4.4, verbatim from ISO 32000-1), for **horizontal** writing:
 
 ```
 tx = ((w0 − Tj/1000) · Tfs + Tc + Tw) · Th
@@ -131,7 +131,7 @@ ty = (w1 − Tj/1000) · Tfs + Tc + Tw
 
 where `w0`/`w1` are the glyph's horizontal/vertical displacement in glyph-space/1000 (from `/Widths`, `/W`, `/W2`, `/DW`, `/DW2`, or the font program if missing), `Tj` is the TJ adjustment preceding that glyph (0 for `Tj`), and `Tw` applies only if the code is single-byte 32.
 
-**Important:** the advance width that drives layout comes from the PDF dictionary (`/Widths`, `/W`), **not** from the embedded font's `hmtx`. If they disagree, conforming renderers use the PDF value (PDF/A requires them to agree). Your writer must take widths from the same source the shaper used.
+**Important:** the advance width that drives layout comes from the PDF dictionary (`/Widths`, `/W`), **not** from the embedded font's `hmtx`. ISO 32000-1 requires the two to be consistent (§9.6.2.1 Table 111 `Widths`; §9.7.4.3 for CIDFonts); when they disagree in practice, renderers use the PDF value (and PDF/A validators flag the mismatch). Your writer must take widths from the same source the shaper used.
 
 **Worked check from the example in §10.** `/F1 24 Tf` (Helvetica, W=944, A=V=E=667), `[(W) 120 (AVE) -250 (kerned via TJ)] TJ` starting at x=72:
 
@@ -174,7 +174,7 @@ Shaping engines output per-glyph advances and x/y offsets. Map them to PDF as:
 
 Type 1 is Adobe's 1985 PostScript outline format (cubic Béziers, hinting via hints/`OtherSubrs`, `eexec`-encrypted charstrings). Embedded as `/FontFile` with `/Length1` (clear-text part), `/Length2` (encrypted binary), `/Length3` (trailing zeros). Adobe ended Type 1 support in its authoring apps in 2023; for new work, Type 1 is only relevant as a **parsing** target. CFF ("Compact Font Format", `Type1C`) is its compact successor and remains current.
 
-**Standard 14 fonts**: Times (4 styles), Helvetica (4), Courier (4), Symbol, ZapfDingbats. Historically, every viewer was required to have them, so they could be referenced by name without embedding or metrics. The special treatment has been **deprecated since PDF 1.5**; PDF 2.0 keeps the readers' obligation to handle them (for backwards compatibility) while writers should treat them as ordinary fonts. In practice:
+**Standard 14 fonts**: Times (4 styles), Helvetica (4), Courier (4), Symbol, ZapfDingbats. Historically, every viewer was required to have them, so they could be referenced by name without embedding or metrics. The special treatment has been **deprecated since PDF 1.5** (ISO 32000-1 §9.6.2.1 Table 111: "Conforming writers should represent all fonts using a complete font descriptor. For backwards capability, conforming readers shall still provide the special treatment"; §9.6.2.2: the fonts "or their font metrics and suitable substitution fonts, shall be available to the conforming reader"). PDF 2.0 is understood to keep this reader obligation (not re-checked against the 2.0 text). In practice:
 
 - Unembedded rendering uses a substitute (Liberation, Nimbus, URW, Foxit's built-ins, Adobe's own) — metrics usually match, shapes don't.
 - PDF/A (all parts) and PDF/UA require **all** fonts used for rendering to be embedded, including the standard 14 — except fonts used only in invisible mode 3 text (PDF/A relaxes embedding for mode 3).
@@ -188,29 +188,29 @@ Pre-OpenType variable fonts (axes like weight/width). A PDF can only reference a
 
 ### 3.3 TrueType (simple)
 
-`/Subtype /TrueType`, program in `/FontFile2` (raw `sfnt`). The glyph lookup rules for simple TrueType fonts (§9.6.5.4) are notoriously messy because TrueType fonts identify glyphs via their internal `cmap`, not PDF glyph names:
+`/Subtype /TrueType`, program in `/FontFile2` (raw `sfnt`). The glyph lookup rules for simple TrueType fonts (§9.6.5.4 in PDF 2.0; §9.6.6.4 in ISO 32000-1) are notoriously messy because TrueType fonts identify glyphs via their internal `cmap`, not PDF glyph names:
 
 - **Non-symbolic** font with `/Encoding` (WinAnsi/MacRoman/Differences): code → glyph name → Unicode via AGL → lookup in the (3,1) Microsoft Unicode `cmap`; else via (1,0) Mac Roman `cmap`; else `post` table names.
 - **Symbolic** font: code `c` → lookup in (3,0) Microsoft Symbol `cmap` at `c`, then `0xF000+c`, `0xF100+c`, `0xF200+c`; else (1,0) at `c`.
 
-Real-world renderers (pdf.js, MuPDF, PDFium) layer further heuristics on top. **Writers should avoid all ambiguity** by using Type 0/CIDFontType2 with `CIDToGIDMap`, where the GID is addressed directly.
+Real-world renderers (pdf.js, MuPDF, PDFium) layer further heuristics on top. **Writers should avoid all ambiguity** by using Type 0/CIDFontType2 with `CIDToGIDMap`, where the GID is addressed directly. ISO 32000-1 §9.9 says as much for OpenType/`glyf` fonts: because the simple-font process "sometimes produces ambiguous results, conforming writers, instead of using a simple font, shall use a Type 0 font with an Identity-H encoding and use the glyph indices as character codes".
 
 ### 3.4 Type 3
 
 Glyphs are arbitrary PDF content streams in `/CharProcs`, selected by name through `/Encoding` (which is **required** for Type 3 and must use `/Differences`). Each glyph starts with `d0` (glyph sets its own colour) or `d1` (uncoloured: shape-only, coloured by current fill like a stencil mask). Type 3 has its own `/FontMatrix` (often `[0.001 0 0 0.001 0 0]`, but TeX's bitmapped fonts use odd matrices), `/FontBBox`, `/Resources`.
 
-Type 3 is how you put **anything** into a font: bitmap fonts (old TeX PK fonts), colour emoji, glyphs containing images or shadings. Downsides: no hinting, poor anti-aliasing in some renderers, often no `ToUnicode` and nonsense glyph names (`/a1`, `/g37`) → extraction garbage. PDF/A permits Type 3; PDF/UA requires `ToUnicode` or meaningful mapping as for any font.
+Type 3 is how you put **anything** into a font: bitmap fonts (old TeX PK fonts), colour emoji, glyphs containing images or shadings. Downsides: no hinting, poor anti-aliasing in some renderers, often no `ToUnicode` and nonsense glyph names (`/a1`, `/g37`) → extraction garbage. A Type 3 font's `/Widths` are in glyph space (via `/FontMatrix`), and codes outside `FirstChar`–`LastChar` have width 0 (§9.6.5 Table 112). Its `/FontDescriptor` is required in Tagged PDF documents (Table 112), and `FontFamily`/`FontStretch`/`FontWeight` should be given there (Table 122). PDF/A permits Type 3; PDF/UA requires `ToUnicode` or meaningful mapping as for any font.
 
 ### 3.5 Type 0 (composite) fonts and CIDFonts
 
 A Type 0 font has a **CMap** (`/Encoding`) mapping multi-byte codes → **CIDs** (Character IDs), and exactly one **descendant CIDFont** mapping CIDs → glyphs. This is the only way to address > 256 glyphs from one font resource.
 
 - **CIDFontType0** — CFF outlines. If the CFF is CID-keyed, its `charset` maps CID → GID. If it is a plain (name-keyed) CFF, CID = GID.
-- **CIDFontType2** — TrueType outlines. `/CIDToGIDMap` is either `/Identity` (CID = GID) or a stream of 2-byte big-endian GIDs indexed by CID.
+- **CIDFontType2** — TrueType outlines. `/CIDToGIDMap` is either `/Identity` (CID = GID; the default) or a stream of 2-byte big-endian GIDs indexed by CID. It may appear only when the TrueType program is embedded; a non-embedded CIDFontType2 has no `CIDToGIDMap` and may only be used with predefined CMaps (§9.7.4.2, Table 117).
 - CIDFont dictionaries carry `/CIDSystemInfo` (`Registry`, `Ordering`, `Supplement` — e.g. `Adobe-Japan1-7`, or `Adobe-Identity-0` for an identity mapping), `/DW` (default width, 1000), `/W` (widths), and for vertical writing `/DW2` (default `[880 −1000]`) and `/W2`.
-- The CIDSystemInfo of the CMap and the CIDFont must be compatible; `Identity-H`/`Identity-V` work with any.
+- The CIDSystemInfo of the CMap and the CIDFont must be compatible (same `Registry` and `Ordering`; `Supplement` is not used for compatibility — §9.7.3); `Identity-H`/`Identity-V` work with any. **`Identity-H`/`Identity-V` shall not be used with a non-embedded font** (§9.7.5.2).
 
-The **`/W` array** has two forms, freely mixed:
+The **`/W` array** has two forms, freely mixed (§9.7.4.3; the example below is the spec's own):
 
 ```
 /W [ 120 [400 325 500]        % CIDs 120,121,122 have widths 400,325,500
@@ -232,25 +232,26 @@ OpenType = `sfnt` container with either TrueType (`glyf`) or CFF (`CFF `/`CFF2`)
 
 ### 3.7 Font descriptors
 
-Required for every font except Type 0 (which has none; its descendant does) and, historically, standard 14. Key entries:
+Required for every font except Type 0 ("Font descriptors shall not be used with Type 0 fonts", §9.8.1 — its descendant CIDFont has one), Type 3 (optional since PDF 1.5, but required in Tagged PDF), and, historically, standard 14. Key entries (§9.8, Tables 122–124):
 
 | Key | Notes |
 |---|---|
 | `/FontName` | Must equal `/BaseFont` (including subset tag). |
-| `/Flags` | Bit field (1-based): 1 FixedPitch, 2 Serif, 3 **Symbolic**, 4 Script, 6 **Nonsymbolic**, 7 Italic, 17 AllCap, 18 SmallCap, 19 ForceBold. Exactly one of Symbolic/Nonsymbolic should be set. Symbolic = "contains glyphs outside the Adobe standard Latin set" — it changes TrueType lookup rules (§3.3). |
-| `/FontBBox`, `/ItalicAngle`, `/Ascent`, `/Descent`, `/CapHeight`, `/StemV` | Used for substitution when the font isn't embedded and for some layout (annotation appearance, highlight boxes). `/CapHeight` & `/StemV` are required for non-symbolic fonts that aren't embedded (and good practice everywhere). |
+| `/Flags` | Bit field (1-based): 1 FixedPitch, 2 Serif, 3 **Symbolic**, 4 Script, 6 **Nonsymbolic**, 7 Italic, 17 AllCap, 18 SmallCap, 19 ForceBold. Bits are numbered from 1 (low-order); undefined bits shall be 0. Symbolic and Nonsymbolic "shall not both be set or both be clear" (§9.8.2 Table 123). Symbolic = "contains glyphs outside the Adobe standard Latin character set" — it changes TrueType lookup rules (§3.3) and the implicit base encoding. |
+| `/FontBBox`, `/ItalicAngle`, `/Ascent`, `/Descent`, `/CapHeight`, `/StemV` | Used for substitution when the font isn't embedded and for some layout (annotation appearance, highlight boxes). In ISO 32000-1 Table 122 all are **required** (embedded or not): `/ItalicAngle` always; `/FontBBox`, `/Ascent`, `/Descent`, `/StemV` except for Type 3; `/CapHeight` for fonts that have Latin characters, except Type 3. |
 | `/MissingWidth`, `/XHeight`, `/Leading`, `/AvgWidth`, `/MaxWidth` | Optional. |
 | `/FontFile` / `/FontFile2` / `/FontFile3` | Type 1 / TrueType / CFF-or-OpenType program. At most one. |
-| `/CharSet` (Type 1) / `/CIDSet` (CIDFont) | List of glyphs in a subset. `/CIDSet` was required by PDF/A-1/2/3 for subsets but is **deprecated in PDF 2.0** and PDF/A-4 no longer requires it; if present it must be correct. |
-| `/Lang`, `/Style`, `/FD`, `/Panose` | CIDFont-specific extras. |
+| `/CharSet` (Type 1) / `/CIDSet` (CIDFont) | List of glyphs in a subset (§9.8.1 Table 122; §9.8.3 Table 124 — `/CIDSet` is a bit table indexed by CID, MSB of byte 0 = CID 0). `/CIDSet` was required by PDF/A-1/2/3 for subsets but is **deprecated in PDF 2.0** (not verifiable from the 1.7 text) and PDF/A-4 no longer requires it; if present it must be correct. |
+| `/FontFamily`, `/FontStretch`, `/FontWeight` | Optional (PDF 1.5); should be used for Type 3 fonts in Tagged PDF. |
+| `/Style` (containing `/Panose`), `/Lang`, `/FD` | CIDFont-specific extras (Table 124). `/Panose` is not a top-level key: it is the only defined entry of the `/Style` dictionary (§9.8.3.2). |
 
 ### 3.8 `/Widths` (simple fonts)
 
-`/FirstChar`, `/LastChar`, `/Widths [ … ]` with `LastChar − FirstChar + 1` entries in 1/1000 em; `/MissingWidth` in the descriptor covers codes outside the range. For Type 3, widths are in glyph space (scaled by `/FontMatrix`), not 1/1000.
+`/FirstChar`, `/LastChar`, `/Widths [ … ]` with `LastChar − FirstChar + 1` entries in 1/1000 em; `/MissingWidth` in the descriptor (default 0) covers codes outside the range (§9.6.2.1 Table 111). For Type 3, widths are in glyph space (scaled by `/FontMatrix`), not 1/1000, and out-of-range codes have width 0 (Table 112).
 
 ---
 
-## 4. Encodings (§9.6.5, §9.7.5, Annex D)
+## 4. Encodings (§9.6.5 in PDF 2.0 / §9.6.6 in ISO 32000-1, §9.7.5, Annex D)
 
 ### 4.1 Simple-font encodings
 
@@ -258,12 +259,12 @@ A simple font's `/Encoding` maps byte codes → glyph names.
 
 | Encoding | Where | Notes |
 |---|---|---|
-| `StandardEncoding` | Built-in default of most Type 1 fonts | Adobe's original Latin set; no accented characters at codes ≥ 128 except via `seac`. |
-| `WinAnsiEncoding` | Named, predefined | ≈ Windows-1252. The pragmatic choice for Latin text with simple fonts. Code 0x27 is `quotesingle`, 0x60 `grave`; 0x80 is `Euro`. |
+| `StandardEncoding` | Built-in default of most Type 1 fonts | Adobe's original Latin set; encodes **no** accented letters at all (Annex D.2 shows "—" for every accented letter in the STD column — they exist only as unencoded glyphs, often built with `seac`). "Shall have no special meaning in PDF" except as the implicit base encoding of a non-embedded nonsymbolic font (§9.6.6.1, Table 114). |
+| `WinAnsiEncoding` | Named, predefined | ≈ Windows-1252. The pragmatic choice for Latin text with simple fonts. Code 0x27 is `quotesingle`, 0x60 `grave`; 0x80 is `Euro` (Annex D.2). |
 | `MacRomanEncoding` | Named, predefined | Classic Mac OS. |
 | `MacExpertEncoding` | Named, predefined | Expert sets (small caps, old-style figures). |
 | `PDFDocEncoding` | **Not** a font encoding | Used for *text strings* (metadata, bookmarks, annotation contents) — together with UTF-16BE (BOM `FE FF`) and, in PDF 2.0, UTF-8 (BOM `EF BB BF`). Frequently confused with font encodings. |
-| Dictionary with `/BaseEncoding` + `/Differences` | | `/Differences [ 128 /Euro /bullet 150 /endash ]` — a code followed by names assigned to successive codes. |
+| Dictionary with `/BaseEncoding` + `/Differences` | | `/Differences [ 128 /Euro /bullet 150 /endash ]` — a code followed by names assigned to successive codes; runs may be in any order but shall not overlap (§9.6.6.1). `BaseEncoding` may only be `MacRomanEncoding`, `MacExpertEncoding` or `WinAnsiEncoding`; if absent the base is the font's built-in encoding (embedded) or `StandardEncoding`/built-in (non-embedded nonsymbolic/symbolic). `Differences` "should not be used with TrueType fonts" (Table 114). Type 3 fonts must use a `Differences` encoding (§9.6.6.3). |
 | Font built-in | `Symbol`, `ZapfDingbats`, Type 1 with custom encodings, symbolic TrueType | |
 
 **Glyph names → Unicode** is via the Adobe Glyph List (AGL) and the AGL Specification's algorithm: look up the name (`eacute` → U+00E9); else parse `uniXXXX`, `uniXXXXYYYY…` (multiple BMP code points), `uXXXX[XX]`; strip suffixes after `.` (`a.sc` → `a`); split on `_` for ligatures (`f_f_i` → "ffi"). Extractors use this when `ToUnicode` is missing; arbitrary names (`g37`, `cid12`) defeat it.
@@ -275,7 +276,7 @@ A simple font can address at most 256 glyphs per font resource. Writers that use
 A CMap maps byte sequences to CIDs. It defines **codespace ranges** (how many bytes each code takes — so parsing a string into codes depends on the CMap) and `cidchar`/`cidrange` mappings.
 
 - **Predefined CMaps** (§9.7.5.2): `Identity-H`/`Identity-V` (2-byte code = CID); and Adobe's CJK CMaps by name, e.g. `UniJIS-UTF16-H`, `90ms-RKSJ-H`, `UniGB-UCS2-H`, `GBK-EUC-H`, `UniCNS-UTF16-H`, `UniKS-UTF16-H`, tied to the Adobe-Japan1 / GB1 / CNS1 / Korea1 character collections. Readers need the CMap resource files (Adobe's `cmap-resources` repo; pdf.js and Poppler ship them).
-- **Embedded CMaps**: a stream with `/Type /CMap`, `/CMapName`, `/CIDSystemInfo`, optional `/UseCMap`, containing PostScript-like CMap syntax (Adobe Tech Note #5014).
+- **Embedded CMaps**: a stream with `/Type /CMap`, `/CMapName`, `/CIDSystemInfo`, optional `/WMode` and `/UseCMap`, containing PostScript-like CMap syntax (Adobe Tech Note #5014; §9.7.5.3 Table 120). Codes are 1–4 bytes; codespace ranges shall not overlap (§9.7.6.2). `bfchar`/`bfrange` shall not appear in a CMap used as a Type 0 `/Encoding` (only in ToUnicode CMaps).
 - `-H` vs `-V` selects horizontal vs vertical writing mode (`/WMode`).
 
 ### 4.3 CIDs vs GIDs vs Unicode code points
@@ -293,7 +294,7 @@ With the de facto writer configuration (`Identity-H` + CIDFontType2 + `CIDToGIDM
 
 ### 4.4 `CIDToGIDMap`
 
-Only for CIDFontType2. `/Identity` or a stream of `uint16` GIDs (CID n's GID at bytes 2n, 2n+1). A custom map lets a writer keep stable CIDs while subsetting renumbers GIDs (`retain_gids`-free compaction), or keep original GIDs as CIDs and still emit a compact font. Simplest correct approach: subset with compaction, then encode the **new** GIDs directly (`/Identity`) — what the §10 example does.
+Only for CIDFontType2, and only when its TrueType program is embedded (§9.7.4.2 Table 117). `/Identity` (the default) or a stream of `uint16` big-endian GIDs (CID n's GID at bytes 2n, 2n+1). A custom map lets a writer keep stable CIDs while subsetting renumbers GIDs (`retain_gids`-free compaction), or keep original GIDs as CIDs and still emit a compact font. Simplest correct approach: subset with compaction, then encode the **new** GIDs directly (`/Identity`) — what the §10 example does.
 
 ---
 
@@ -301,7 +302,7 @@ Only for CIDFontType2. `/Identity` or a stream of `uint16` GIDs (CID n's GID at 
 
 ### 5.1 Why
 
-Extractors resolve Unicode in this priority order (§9.10.2): (1) `ToUnicode` CMap; (2) simple fonts with standard/AGL-resolvable glyph names; (3) composite fonts using predefined CMaps of registered collections (via the `Adobe-*-UCS2` CMaps). Otherwise: guesswork, the embedded font's own `cmap` reversed, or OCR. **With `Identity-H` there is no fallback** — no `ToUnicode` means no text. PDF/UA requires that every glyph be mappable to Unicode; PDF/A-2/3 level U and PDF/A-4 likewise.
+Extractors resolve Unicode in this priority order (§9.10.2): (1) `ToUnicode` CMap; (2) simple fonts that use `MacRomanEncoding`, `MacExpertEncoding` or `WinAnsiEncoding`, or a `Differences` array containing **only** names from the Adobe standard Latin character set and the Symbol font (code → name via Annex D → Unicode via the AGL); (3) composite fonts using a predefined CMap from Table 118 **other than `Identity-H`/`Identity-V`**, or whose descendant uses Adobe-GB1/CNS1/Japan1/Korea1 (via the `Adobe-*-UCS2` CMaps). If these fail, "there is no way to determine what the character code represents": guesswork, the embedded font's own `cmap` reversed, or OCR. **With `Identity-H` and an `Adobe-Identity` (or other non-registered) collection there is no fallback** — no `ToUnicode` means no text. Tagged PDF already requires every character code to be mappable by one of these methods (§14.8.2.4.2); PDF/UA requires the same; PDF/A-2/3 level U and PDF/A-4 likewise.
 
 ### 5.2 Syntax
 
@@ -332,10 +333,11 @@ end
 
 Rules writers trip over:
 
-- Destination strings are **UTF-16BE** hex; supplementary-plane characters use surrogate pairs; a destination may contain **several** code points (ligatures, decomposed sequences, Indic conjuncts).
-- In the incrementing `bfrange` form, the range must not cross a boundary in the **last byte** of the source (`<00FE> <0101>` is invalid) and only the last byte of the destination is incremented.
-- Each `begin…` block may contain at most **100** entries (Adobe CMap limits, TN #5014). Split larger lists into multiple blocks. (Real bug: OCRmyPDF 17.12 fixed "CMap block splitting" in its new renderer.)
-- The codespace must match the font's code length (2 bytes for Identity-H). For simple fonts use `<00> <FF>`.
+- Destination strings are **UTF-16BE** hex (§9.10.3: mappings "to Unicode character sequences expressed in UTF-16BE encoding"); supplementary-plane characters use surrogate pairs (spec example `<3A51> <D840DC3E>` = U+2003E; TN #5411 §1.5); a destination may contain **several** code points — up to 512 bytes (§9.10.3; the spec's own example maps ligature glyphs to `<00660066>`, `<00660069>`, `<00660066006C>`) — for ligatures, decomposed sequences, Indic conjuncts. (Very old consumers — Acrobat 4/5 — accepted only UCS-2, i.e. no surrogates; TN #5411 §1.2.)
+- In the incrementing `bfrange` form, all source bytes except the last must be identical — TN #5411 §1.4.1 calls this not crossing "first-byte boundaries" and names it "the most common problem" (`<10FE> <1101>` is invalid; split as `<10FE> <10FF>` + `<1100> <1101>`). Only the last byte of the destination is incremented, and it must not pass 255: its value "shall be less than or equal to 255 − (srcCode2 − srcCode1)", otherwise the result is undefined (§9.10.3). The array form `<lo> <hi> [dst1 … dstm]` has no such destination constraint.
+- Each `begin…` block may contain at most **100** entries: "101 beginbfchar" and "101 beginbfrange" are invalid (TN #5411 §1.4.1, "as with CMap files", i.e. TN #5014). Split larger lists into multiple blocks. (Real bug: OCRmyPDF 17.12 fixed "CMap block splitting" in its new renderer.)
+- The codespace must be consistent with the font's encoding (§9.10.3): 2 bytes (`<0000> <FFFF>`) for Identity-H; for a simple font it "shall be one byte long" — use `<00> <FF>`. In the ToUnicode CMap stream dictionary only `UseCMap` is pertinent.
+- TN #5411 §1.4.1 recommends mapping a code that has no Unicode equivalent to `<FFFD>` rather than omitting it (written for whole-collection ToUnicode files; for subset fonts, omitting unused codes is fine).
 - One code → one Unicode string. If the same glyph is reached from different characters (e.g. U+0041 and U+0391 drawn with one glyph, or a space glyph used for NBSP), the ToUnicode can record only one — use `ActualText` for the other, or duplicate the glyph under a different code/CID (possible with a custom `CIDToGIDMap`: two CIDs → one GID).
 
 ### 5.3 Ligatures, reordering and ActualText
@@ -355,12 +357,12 @@ Shaping breaks the assumption that glyph order = character order:
 The fix is **`ActualText`** on marked content or a structure element (§14.9.4):
 
 ```
-/Span << /ActualText (\376\377\011\025\011\101\011\077) >> BDC   % UTF-16BE "क्ि"-style logical string
-  <0123 0456 0789> Tj
+/Span << /ActualText (\376\377\011\025\011\077) >> BDC   % BOM + UTF-16BE U+0915 U+093F "कि" (logical order)
+  <0456 0123> Tj                                          % glyphs in visual order: i-matra, then KA
 EMC
 ```
 
-Viewers and extractors that honour it (Acrobat, pdf.js, PDFBox, MuPDF, Poppler partially) substitute the replacement text for everything inside. Related keys: `/Alt` (alternate description, for figures/formulae), `/E` (expansion of abbreviations), `/Lang`. For a hyphen inserted by line-breaking, wrap it as `/Span << /ActualText () >>` (empty) or mark it as a soft hyphen (U+00AD) so the extractor rejoins the word — PDF/UA-2/WTPDF guidance favours encoding soft hyphens as U+00AD.
+`ActualText` on a structure element is PDF 1.4; on a marked-content sequence it is PDF 1.5 and must use the **`Span`** tag (§14.9.4). It is a *character* substitution (consecutive `ActualText` sequences are joined with no word break), unlike `/Alt` and `/E`, which are whole-word substitutions (§14.9.3, §14.9.5). Viewers and extractors that honour it (Acrobat, pdf.js, PDFBox, MuPDF, Poppler partially) substitute the replacement text for everything inside. Related keys: `/Alt` (alternate description, for figures/formulae), `/E` (expansion of abbreviations), `/Lang`. For a hyphen inserted by line-breaking, **Tagged PDF already requires** the incidental hyphen to be represented by a soft-hyphen character that maps to U+00AD, distinct from a hard hyphen U+002D (ISO 32000-1 §14.8.2.2.3) — so map the visible hyphen glyph's code to `<00AD>` (a separate code/CID from a real hyphen). Use `ActualText` when hyphenation changes the spelling (the spec's example: German "Druk-/ker" → `/Span <</ActualText (c)>> BDC (k-) Tj EMC`, §14.9.4).
 
 ---
 
@@ -372,9 +374,9 @@ Viewers and extractors that honour it (Acrobat, pdf.js, PDFBox, MuPDF, Poppler p
 |---|---|
 | `head` | `unitsPerEm` (1000 for CFF, often 2048/1000/1024 for TT), `indexToLocFormat` (0 = short `loca`, 1 = long), global bbox, `checkSumAdjustment`. |
 | `hhea` / `hmtx` | Ascender/descender/lineGap; `numberOfHMetrics` and per-glyph advance widths → `/W`/`/Widths`. |
-| `vhea` / `vmtx` | Vertical metrics → `/W2`. |
+| `vhea` / `vmtx` | Vertical metrics → source for `/W2`/`/DW2`. PDF readers "shall never" use these tables; `DW2`/`W2` are the only way to specify vertical metrics (§9.9). |
 | `maxp` | `numGlyphs`; TrueType hinting maxima. |
-| `cmap` | Unicode → GID (format 4 BMP, format 12 full Unicode, format 14 variation selectors). Used to map text to glyphs pre-shaping, and to build `ToUnicode` (reverse map; ambiguous for multiply-mapped glyphs). Not needed in an embedded CIDFontType2. |
+| `cmap` | Unicode → GID (format 4 BMP, format 12 full Unicode, format 14 variation selectors). Used to map text to glyphs pre-shaping, and to build `ToUnicode` (reverse map; ambiguous for multiply-mapped glyphs). In an embedded CIDFontType2 ISO 32000-1 §9.9 says the `cmap` "is not needed and shall not be present" (required for simple TrueType fonts). |
 | `glyf` / `loca` | TrueType outlines; `loca` gives offsets into `glyf`. |
 | `CFF ` / `CFF2` | Type 2 charstrings, local/global subroutines, Private DICT, charset (CID-keyed: CID→GID), FDArray/FDSelect. |
 | `cvt `, `fpgm`, `prep` | TrueType hinting program; required by the spec for TrueType embedding when present (instructions reference them). |
@@ -385,7 +387,7 @@ Viewers and extractors that honour it (Acrobat, pdf.js, PDFBox, MuPDF, Poppler p
 | `fvar`/`gvar`/`avar`/`HVAR`/`MVAR`/`CFF2` blend | Variations — must be instantiated away. |
 | `COLR`/`CPAL`/`sbix`/`CBDT`/`CBLC`/`SVG ` | Colour glyphs — PDF renderers ignore them; see §7.7. |
 
-The PDF spec (§9.9) lists the TrueType tables a PDF font program needs: `head`, `hhea`, `loca`, `maxp`, `cvt `, `prep`, `glyf`, `hmtx`, `fpgm`; plus `cmap` for simple TrueType fonts. Everything else may be dropped. Embedding a whole multi-MB CJK font when using 30 glyphs is the most common file-size bug.
+The PDF spec (§9.9) lists the TrueType tables that "shall always be present if present in the original": `head`, `hhea`, `loca`, `maxp`, `cvt `, `prep`, `glyf`, `hmtx`, `fpgm`; plus `cmap` for simple TrueType fonts (and, per ISO 32000-1, *no* `cmap` for CIDFonts). For `/FontFile3 /OpenType`, a `glyf` font needs `head`, `hhea`, `hmtx`, `loca`, `maxp` (+ `cvt `/`fpgm`/`prep` if the instructions need them); a CFF-flavoured one needs `CFF ` + `cmap` (Table 126). Everything else may be dropped. Embedding a whole multi-MB CJK font when using 30 glyphs is the most common file-size bug.
 
 ### 6.2 Subsetting algorithm
 
@@ -410,7 +412,7 @@ input: font, set U of shaped glyph IDs actually painted
 
 Real numbers from the §10 example: 32 distinct characters → 37 glyphs in the subset. The extra five are `.notdef` plus four **closure** glyphs: Greek `Epsilon` is a composite referencing Latin `E`; `alphatonos` (ά) composes `alpha` + `tonos`; Cyrillic `а` and `р` are composites referencing Latin `a` and `p`. Omit the closure and those characters render blank or crash renderers. DejaVu Sans went from 6,253 glyphs (~757 KB) to an 8.1 KB subset.
 
-**Subset tags.** `ABCDEF+` — exactly six uppercase ASCII letters and a plus. Must differ between different subsets of the same font in one file (derive from a hash of the glyph set to be deterministic and reproducible). Extractors and preflight tools use the tag to know a font is partial — so incremental edits that need new glyphs must embed a *new* subset (or, cleverly, append glyphs to an existing subset and rewrite it).
+**Subset tags.** `ABCDEF+` — exactly six uppercase letters and a plus, on both `/BaseFont` and the descriptor's `/FontName` (§9.6.4). "Different subsets in the same PDF file shall have different tags" (derive from a hash of the glyph set to be deterministic and reproducible). Extractors and preflight tools use the tag to know a font is partial — so incremental edits that need new glyphs must embed a *new* subset (or, cleverly, append glyphs to an existing subset and rewrite it).
 
 **Retain-GIDs vs compaction.** Keeping original GIDs (with empty glyphs in the gaps) makes the content stream independent of the subset — useful for streaming writers that emit content before the glyph set is known — at a small cost (each empty `loca` entry is 2–4 bytes; `hmtx` still has entries). For CJK fonts with 60k glyphs that's ~250 KB of overhead; compaction plus deferred content-stream emission (or a `CIDToGIDMap` stream) is better.
 
@@ -484,7 +486,7 @@ Do **not** shape with features you can't round-trip unless you record the mappin
 
 ### 7.3 Bidirectional text (UAX #9)
 
-Resolve paragraph direction, compute embedding levels (explicit isolates `U+2066–2069`, numbers in RTL, mirrored brackets `U+0028 → )` via Bidi_Mirroring_Glyph), then after line breaking reorder each line's runs into visual order (rule L2) and shape each run in its direction. PDF has no bidi concept: content streams are painted in visual order left-to-right with absolute positions. For extraction, the producer should declare logical order: the structure tree content order + `ActualText` (or simply emit glyph runs so that an extractor running bidi on its own recovers logical order — this works for simple cases but nested numbers/brackets break). Libraries: ICU, FriBidi, `unicode-bidi` (Rust), `bidi-js`.
+Resolve paragraph direction, compute embedding levels (explicit isolates `U+2066–2069`, numbers in RTL, mirrored brackets `U+0028 → )` via Bidi_Mirroring_Glyph), then after line breaking reorder each line's runs into visual order (rule L2) and shape each run in its direction. PDF has no bidi concept: content streams are painted in visual order left-to-right with absolute positions. (The one hook is Tagged PDF's `/ReversedChars` marked-content tag, which declares that each show string's codes are in reverse of logical order; such strings may have a leading/trailing space but no interior spaces — ISO 32000-1 §14.8.2.3.3. Little software emits or honours it.) For extraction, the producer should declare logical order: the structure tree content order + `ActualText` (or simply emit glyph runs so that an extractor running bidi on its own recovers logical order — this works for simple cases but nested numbers/brackets break). Libraries: ICU, FriBidi, `unicode-bidi` (Rust), `bidi-js`.
 
 ### 7.4 Line breaking (UAX #14)
 
@@ -608,10 +610,10 @@ Practical consensus: use the native text layer when it exists and is trustworthy
 ```
 Catalog
  ├─ /MarkInfo << /Marked true >>          (PDF 2.0: Suspects deprecated)
- ├─ /Lang (en-US)                         (default natural language, BCP 47)
+ ├─ /Lang (en-US)                         (default natural language; RFC 3066 tag in 1.7, BCP 47 in 2.0)
  ├─ /ViewerPreferences << /DisplayDocTitle true >>
  └─ /StructTreeRoot
-       ├─ /K → StructElem /Document  (PDF 2.0 also allows /DocumentFragment)
+       ├─ /K → StructElem /Document  (exactly one child in Tagged PDF, §14.8.4.2; PDF 2.0 also allows /DocumentFragment)
        │        └─ /K [ StructElem /H1, StructElem /P, StructElem /Figure /Alt (…), StructElem /Table … ]
        │                 └─ /K  MCID integer │ MCR dict << /Type /MCR /Pg … /MCID n >>
        │                                     │ OBJR dict << /Type /OBJR /Obj annot >> │ child StructElems
@@ -620,12 +622,12 @@ Catalog
        ├─ /ParentTreeNextKey
        ├─ /RoleMap   << /MyHeading /H1 >>     (custom → standard types)
        ├─ /Namespaces [ … ]                   (PDF 2.0)
-       └─ /IDTree, /ClassMap, /PronunciationLexicon, /AF
+       └─ /IDTree, /ClassMap; /PronunciationLexicon, /AF (PDF 2.0 only)
 ```
 
-Content is linked to structure through **marked content**: in the page content stream, `/P <</MCID 0>> BDC … EMC` brackets the operators belonging to marked-content ID 0 of that page. The structure element's `/K` references `(page, MCID)`; the page's `/StructParents` key indexes the **ParentTree**, whose array maps each MCID back to its owning structure element (the reverse lookup used for hit-testing and for "what tag is this glyph in"). Each MCID belongs to exactly one structure element; a structure element may own multiple MCIDs across pages (paragraph spanning pages).
+Content is linked to structure through **marked content**: in the page content stream, `/P <</MCID 0>> BDC … EMC` brackets the operators belonging to marked-content ID 0 of that page. The structure element's `/K` references `(page, MCID)`; the page's `/StructParents` key indexes the **ParentTree**, whose array maps each MCID back to its owning structure element (the reverse lookup used for hit-testing and for "what tag is this glyph in"). The MCID is used as a zero-based index into that array, so keep MCIDs small and dense (§14.7.4.4). Each MCID belongs to exactly one structure element; a structure element may own multiple MCIDs across pages (paragraph spanning pages). `ParentTree` is required whenever any structure element has content items (Table 322). A structural marked-content sequence must not contain another structural one (non-structural marked content may nest, §14.7.4.1), and a Tagged PDF needs `/MarkInfo << /Marked true >>` (§14.8.1).
 
-**Artifacts** are content not part of the logical document — page numbers, running headers/footers, decorative rules, background images, the OCR layer when the image is the "real" content (debatable): `/Artifact BMC … EMC` or `/Artifact <</Type /Pagination /Subtype /Header>> BDC … EMC`. **Every** piece of real content must be either in the structure tree or an artifact (PDF/UA requirement).
+**Artifacts** are content not part of the logical document — page numbers, running headers/footers, decorative rules, background images, the OCR layer when the image is the "real" content (debatable): `/Artifact BMC … EMC` or `/Artifact <</Type /Pagination /Subtype /Header>> BDC … EMC` (§14.8.2.2.2, Table 330: `Type` ∈ `Pagination`/`Layout`/`Page`/`Background` (1.7); `Subtype` (1.7) `Header`/`Footer`/`Watermark`, for Pagination only; `BBox` required for background artifacts; `Attached`). **Every** piece of real content must be either in the structure tree or an artifact (PDF/UA requirement).
 
 ### 9.2 Standard structure types
 
@@ -642,14 +644,14 @@ PDF 2.0 defines two standard structure namespaces: the **PDF 1.7 namespace** (`h
 | Caption, illustration | `Caption`, `Figure`, `Formula` |
 | Other | `Artifact` (as a structure element, new in 2.0) |
 
-PDF 1.7 types not in the 2.0 namespace: `Art`, `BlockQuote`, `TOC`, `TOCI`, `Index`, `Private`, `Quote`, `Note`, `Reference`, `BibEntry`, `Code` (still usable via the 1.7 namespace or role-mapping). Headings: PDF/UA-1 requires either strictly `H` (with `Sect` nesting) or numbered `Hn` without skipping levels; PDF/UA-2 relaxes the no-skipping rule for `Hn`.
+(PDF 1.7 itself — §14.8.4 — has a single standard set, with headings limited to `H` and `H1`–`H6`.) PDF 1.7 types not in the 2.0 namespace: `Art`, `BlockQuote`, `TOC`, `TOCI`, `Index`, `Private`, `Quote`, `Note`, `Reference`, `BibEntry`, `Code` (still usable via the 1.7 namespace or role-mapping). Headings: PDF/UA-1 requires either strictly `H` (with `Sect` nesting) or numbered `Hn` without skipping levels; PDF/UA-2 relaxes the no-skipping rule for `Hn`.
 
 Attributes (`/A`) add semantics: table `Scope` (Row/Column/Both), `Headers` (ids of TH), `RowSpan`/`ColSpan`, list `ListNumbering`, layout attributes (`Placement`, `BBox` for figures), `Summary`. Element keys: `/Alt`, `/ActualText`, `/E`, `/Lang`, `/T` (title), `/ID`, `/AF` (associated files, e.g. MathML source attached to a `Formula`), `/Ref` (PDF 2.0, e.g. link annotations ↔ content).
 
 ### 9.3 Language, alt text, reading order
 
-- `/Lang` on catalog (default), structure elements, marked content (`<</Lang (fr)>> BDC`) and text strings (via escape sequence in UTF-16). Screen readers switch voices by language; hyphenation and search depend on it.
-- `/Alt` is required for `Figure` and `Formula` (unless the figure is an artifact); `ActualText` replaces content; `/E` expands abbreviations.
+- `/Lang` on catalog (default), structure elements, marked content not in the structure tree (`/Span <</Lang (fr)>> BDC` — the `Span` tag is required, §14.9.2.1) and text strings (via escape sequence in UTF-16). Language identifiers are case-insensitive; the empty string means "unknown" (§14.9.2.2). Screen readers switch voices by language; hyphenation and search depend on it.
+- `/Alt` is required for `Figure` and `Formula` by PDF/UA (unless the figure is an artifact) — ISO 32000-1 itself only says Tagged PDF "should" use `Lang`/`Alt`/`ActualText`/`E` (§14.8.2.2.2); `ActualText` replaces content; `/E` expands abbreviations. An illustration's content must be whole graphics objects, never inside `BT`/`ET`, and needs a `BBox` attribute to be useful for reflow (§14.8.4.5).
 - Reading order = **logical order of the structure tree** (depth-first), *not* content stream order. `/Tabs /S` on pages makes annotation tab order follow structure (required by PDF/UA).
 - Links: `Link` structure element containing the link text MCIDs *and* an OBJR to the link annotation, which carries `/Contents` alt text and `/StructParent`.
 
@@ -675,10 +677,10 @@ Regulation drives adoption: the EU **European Accessibility Act** applies from 2
 Rules for a generator:
 
 1. Build the structure tree **from the document model** (the API's paragraphs, headings, lists, tables, images), not after the fact from the page.
-2. While emitting content, wrap each real-content run in `BDC … EMC` with the next MCID for that page; wrap everything else as `/Artifact`. Never let content fall outside both. Marked-content sequences must not cross `BT`/`ET` boundaries improperly — they may contain whole text objects or be inside one, but must nest properly with `q`/`Q`.
+2. While emitting content, wrap each real-content run in `BDC … EMC` with the next MCID for that page; wrap everything else as `/Artifact`. Never let content fall outside both. Marked-content sequences must not cross `BT`/`ET` boundaries improperly — they may contain whole text objects or be inside one (§14.6.1: each `BMC/BDC…EMC` and `BT…ET` pair "shall be properly (separately) nested"), must lie within a single content stream (a page's `/Contents` array counts as one), and — as good practice, not stated in 32000-1 — should nest properly with `q`/`Q`.
 3. Record `(page, MCID) → StructElem`; at page end write the ParentTree array for that page's `/StructParents` key.
 4. Emit `/Lang`, `MarkInfo`, `DisplayDocTitle`, XMP metadata (`dc:title`, `pdfuaid:part`), `/Tabs /S`.
-5. Fonts: embedded, with complete `ToUnicode`; real spaces between words; `ActualText` for non-1:1 clusters; soft hyphens.
+5. Fonts: embedded, with complete `ToUnicode`; real spaces between words (Tagged PDF: "the spacing characters that would be present to separate words in a pure text representation shall be present", §14.8.2.5); `ActualText` for non-1:1 clusters; soft hyphens (§14.8.2.2.3).
 6. Images/vector figures: `Figure` with `/Alt` (API must make alt text a first-class required-or-explicitly-decorative parameter), `/BBox` attribute.
 7. Tables: `Table/THead/TBody/TR/TH/TD` with `Scope`/`Headers`; lists `L/LI/Lbl/LBody`; links with OBJR.
 8. Validate with veraPDF in CI for every example document.
@@ -713,6 +715,8 @@ W = "[ 0 [" + " ".join(str(round(font["hmtx"][n][0]*1000/upem)) for n in order) 
 ```
 
 (In a real engine the GIDs come from HarfBuzz and the ligature from GSUB `liga`; here the script cheats by using the U+FB01 presentation form directly so the example has no shaping dependency.)
+
+(Fact-check note: the options above do not drop the subset's `cmap` table. ISO 32000-1 §9.9 says a TrueType program used with a CIDFont "shall not" contain a `cmap`; Poppler doesn't care, but a strict writer should add `"cmap"` to `drop_tables` for CIDFontType2 output. The script was not re-run as part of this check.)
 
 ### 10.2 The font dictionaries (actual output)
 
@@ -826,7 +830,7 @@ Rendered (Poppler `pdftoppm`) the page shows the three visible lines with correc
 
 Lessons encoded in this example:
 - `pdftotext` coordinates reproduce the §2.6 displacement math to the micropoint.
-- Two Poppler code paths disagree about the TJ gap → **emit a real U+0020 glyph between words** (Identity-H has no `Tw`, so justify with TJ adjustments *around* the space glyph, not instead of it).
+- Two Poppler code paths disagree about the TJ gap → **emit a real U+0020 glyph between words** (for Tagged PDF this is a requirement, §14.8.2.5 — the first line of this example is therefore non-conforming as tagged content) (Identity-H has no `Tw`, so justify with TJ adjustments *around* the space glyph, not instead of it).
 - Glyph closure is not optional: 4 of 32 characters here depend on component glyphs.
 - To make it PDF/UA-1 conformant one would still need: embedded Helvetica replacement, `pdfuaid` in XMP, the two first-line "lines" as separate structure if they're semantically separate, etc. — veraPDF would list each failure.
 
@@ -959,3 +963,49 @@ Each layer must be usable on its own: power users drive L0/L1 (exact placement, 
 - veraPDF (release notes incl. PDF/UA-2 and WTPDF support): https://verapdf.org/ · https://github.com/veraPDF/veraPDF-library/blob/integration/RELEASENOTES.md
 - PAC (PDF Accessibility Checker): https://pac.pdf-accessibility.org/
 - LaTeX tagging project (PDF/UA-2 examples): https://www.latex-project.org/news/2024/03/27/PDFUA2-examples/
+
+---
+
+## Verification log
+
+**Date:** 2026-10-28
+
+**Sources checked against:**
+- ISO 32000-1:2008 (PDF 1.7), full text — §8.2 (Figure 9/Annex L), §9.2–9.10, §14.6–14.9, Annex D.
+- Adobe Technical Note #5411, *ToUnicode Mapping File Tutorial* (29 May 2003).
+- LlamaIndex PDF OCR article and Nowater PDF tools guide (OCR text-layer / mode-3 claims; consistent with the chapter, nothing changed).
+- ISO 32000-2 (PDF 2.0) was **not** available; 2.0-only claims are labelled as such and left unverified.
+
+**Confirmed without change (now cited):** text state parameters, defaults and operators (Tables 104–105); `Td`/`TD`/`Tm`/`T*`/`'`/`"`/`TJ` semantics (Tables 108–109); the `Trm` and glyph-displacement formulas (§9.4.4); `Tw` applying only to single-byte code 32 (§9.3.3); rendering modes 0–7 and clip accumulation until `ET` (§9.3.6); font descriptor flag bit positions 1, 2, 3, 4, 6, 7, 17, 18, 19 (Table 123); `/W` syntax and example, `DW` 1000, `DW2` [880 −1000] (§9.7.4.3, Table 117); CID-keyed vs name-keyed CFF CID→GID rule (§9.7.4.2); `CIDToGIDMap` byte layout; subset tag rule (§9.6.4); WinAnsi codes 0x27/0x60/0x80 (Annex D.2); the predefined CMap names cited (Table 118); OpenType embedding in `FontFile3` since PDF 1.6 (Table 126); `Length1/2/3` (Table 127); TrueType required tables (§9.9); ToUnicode UTF-16BE, multi-code-point destinations, surrogates (§9.10.3, TN #5411 §1.5); 100-entry block limit and the `bfrange` byte-boundary rule (TN #5411 §1.4.1); `ParentTree`/MCID/MCR/OBJR model (§14.7.2–14.7.4); artifact syntax and `Pagination`/`Header` (Table 330).
+
+**Corrections made (was → now, clause):**
+1. Type 3 + rendering modes: "renderer behaviour varies — don't rely on it" → only mode 3 has any effect on Type 3 text (§9.3.6).
+2. Font descriptor required entries: "`/CapHeight` & `/StemV` required only for non-embedded non-symbolic fonts" → `/FontBBox`, `/Ascent`, `/Descent`, `/StemV` required except Type 3; `/CapHeight` required for fonts with Latin characters except Type 3; `/ItalicAngle` always (Table 122).
+3. Font descriptor applicability: added that Type 0 fonts "shall not" have one and that Type 3 descriptors are optional since PDF 1.5 but required in Tagged PDF (§9.8.1, Table 112).
+4. Symbolic/Nonsymbolic: "exactly one should be set" → "shall not both be set or both be clear" (Table 123).
+5. `/Panose` listed as a top-level CIDFont descriptor key → it lives inside `/Style` (§9.8.3.2, Table 124); added `FontFamily/FontStretch/FontWeight`.
+6. Unicode-recovery priority (§9.10.2): method 2 narrowed from "AGL-resolvable glyph names" to the three named encodings or `Differences` using only standard-Latin/Symbol names; method 3 now notes Identity-H/V are excluded but a registered descendant collection still allows fallback; "Identity-H has no fallback" qualified to Identity/unregistered collections.
+7. ToUnicode `bfrange` rule: reworded to TN #5411's "do not cross first-byte boundaries" (all bytes except the last identical) with its `<10FE> <1101>` example; **added** the destination constraint "last byte ≤ 255 − (srcCode2 − srcCode1)" (§9.10.3), and the 512-byte destination limit.
+8. 100-entry limit: source changed from TN #5014 only to TN #5411 §1.4.1 (which cites the CMap-file rule).
+9. Codespace rule: now quotes §9.10.3 ("for a simple font, the codespace shall be one byte long"); added `<FFFD>` guidance (TN #5411) and the UCS-2-only note for Acrobat 4/5.
+10. Soft hyphens: "PDF/UA-2/WTPDF guidance favours U+00AD" → Tagged PDF itself *requires* incidental hyphens to map to U+00AD (§14.8.2.2.3); `ActualText` kept for spelling-changing hyphenation (spec example, §14.9.4).
+11. ActualText example: the UTF-16BE string `\011\025\011\101\011\077` decoded to U+0915 U+0941 U+093F (not the "क्ि" in the comment) → replaced with a correct "कि" (U+0915 U+093F) pre-base-matra example; added that marked-content `ActualText` is PDF 1.5 and needs the `Span` tag.
+12. `/Lang` on marked content: `<</Lang (fr)>> BDC` → `/Span <</Lang (fr)>> BDC` (§14.9.2.1); catalog `/Lang` "BCP 47" → RFC 3066 in 1.7 (§14.9.2.2), BCP 47 for 2.0 (unverified).
+13. `/Alt` "required for Figure/Formula" → attributed to PDF/UA; ISO 32000-1 only says "should" (§14.8.2.2.2).
+14. CIDFontType2 `cmap`: "not needed" → ISO 32000-1 says "not needed and shall not be present" (§9.9); flagged that the §10 example's fontTools options keep `cmap`.
+15. `vhea`/`vmtx`: added that readers shall never use them (§9.9).
+16. `StandardEncoding`: "no accented characters at ≥128 except via seac" → encodes no accented letters at all (Annex D.2).
+17. TrueType lookup clause: §9.6.5.4 → "§9.6.5.4 (PDF 2.0) / §9.6.6.4 (ISO 32000-1)"; chapter §4 heading likewise §9.6.5 → §9.6.6 for 1.7.
+18. Structure tree root keys: `/PronunciationLexicon`, `/AF` now labelled PDF 2.0 only (1.7 Table 322 has Type, K, IDTree, ParentTree, ParentTreeNextKey, RoleMap, ClassMap).
+19. Marked-content nesting: the `q`/`Q` nesting requirement is not in 32000-1 → relabelled as good practice; added the single-content-stream rule (§14.6.1).
+20. Bidi: "PDF has no bidi concept" → added the `/ReversedChars` exception (§14.8.2.3.3).
+21. Widths vs font program: "conforming renderers use the PDF value" → spec requires consistency (Table 111, §9.7.4.3); renderer preference marked as practice.
+
+**Additions (sourced):** `Identity-H/V` shall not be used with non-embedded fonts (§9.7.5.2); `CIDToGIDMap` default `/Identity` and only for embedded TrueType (Table 117); CIDSystemInfo compatibility = same Registry+Ordering (§9.7.3); `bfchar`/`bfrange` not allowed in Type 0 encoding CMaps (§9.7.5.4); spec mandate that writers use Type 0/Identity-H for OpenType `glyf` fonts (§9.9); text objects' allowed-operator list (Figure 9); Tagged PDF requires real spaces between words (§14.8.2.5), a single top-level structure element (§14.8.4.2), and `MarkInfo /Marked true` (§14.8.1); illustration content not inside `BT/ET`, `BBox` needed for reflow (§14.8.4.5); Type 3 out-of-range widths are 0.
+
+**Still unverified (outside these sources):**
+- Everything specific to PDF 2.0: structure namespaces and the 2.0 type list (`DocumentFragment`, `Aside`, `FENote`, `Sub`, `Title`, `Em`/`Strong`, unbounded `Hn`, `Artifact` structure element), `/Ref`, `/AF`, `/Namespaces`, UTF-8 text strings, `Suspects` deprecation, `CIDSet` deprecation, whether 2.0 keeps the CIDFont `cmap` "shall not be present" wording, and 2.0 clause numbers where they differ from 1.7.
+- PDF/A, PDF/UA-1/-2, WTPDF and Matterhorn requirements and counts; EAA/ADA dates; veraPDF/PAC versions.
+- `OS/2.fsType` bit semantics (OpenType spec), AGL algorithm details, UAX algorithms, Knuth–Plass/Liang descriptions.
+- Library versions and behaviours (HarfBuzz, HarfRust, fontations/klippa/skera, fontTools, OCRmyPDF 17.x, Tesseract GlyphLessFont internals) and ML-tool claims (Docling, Marker 2 benchmark numbers, MinerU, olmOCR-bench).
+- The §10 worked example's outputs (script not re-run; arithmetic in §2.6 re-checked and consistent with §9.4.4).
