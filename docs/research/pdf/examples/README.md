@@ -8,5 +8,6 @@ Small, dependency-light scripts and the PDFs they produce, used to verify claims
 | [`02-imaging-model/`](02-imaging-model/) | [02](../02-imaging-model.md) | `make_imaging_demo.py`: filled rect, dashed Bézier circle, clipped axial gradient, rotated semi-transparent square. Rendered output in `imaging-demo.png`. |
 | [`03-text-and-fonts/`](03-text-and-fonts/) | [03](../03-text-and-fonts.md) | `make_text_example.py` (needs `fonttools` and DejaVu Sans): a Type 0 / Identity-H subset font with `/W` widths and ToUnicode, a kerned Helvetica line, invisible text, a minimal structure tree. |
 | [`04-signing-encryption/`](04-signing-encryption/) | [04](../04-interactive-security.md) | `demo.py` (needs `pyhanko`, `pypdf`): a PAdES-style signed PDF, a one-byte-tampered copy that fails validation, and an AES-256 encrypted PDF. Generate a throwaway key with the `openssl req` command in chapter 04 Appendix; no keys are committed. |
+| [`05-generation-approaches/`](05-generation-approaches/) | [05](../05-creating-pdfs-from-code.md) | The same one-page document built four ways: a no-dependency Python writer (`raw_writer.py`), pdf-lib (`pdflib_demo.mjs`), fpdf2 and ReportLab. `montage.png` shows all four rendered side by side. |
 
 Usage: `python3 hello.py hello.pdf`, etc. Scripts write to the current directory or the path given as the first argument.
