@@ -6,6 +6,7 @@ Everything we know, plan and decide lives here, in Markdown, versioned with the 
 | --- | --- |
 | [`research/`](research/) | Research notes and deep dives (e.g. how PDF works). Exploratory, cited, may be opinionated. |
 | [`plans/`](plans/) | Roadmaps, project plans and feature design docs before/while they are built. |
+| [`todos/`](todos/README.md) | The work board: one file per pull request, in `ready/`, `ongoing/` or `done/`, with dependencies. Plans link to their todos. |
 | [`decisions/`](decisions/) | Architecture Decision Records (ADRs) — one file per significant decision, numbered `NNNN-title.md`. |
 | [`guidelines/`](guidelines/) | How we work: contributing, git workflow, code organization, Rust and TypeScript conventions. |
 | [`references/`](references/) | Pointers to external specs, standards, tools and corpora we rely on. |

@@ -1,0 +1,94 @@
+# E3b — Bookmark editor, named destinations, TOC generator
+
+| Field | Value |
+| --- | --- |
+| ID | `E3b` |
+| Status | `ready` |
+| Plan | [full-editor §E3](../../plans/full-editor.md#e3-navigation-attachments-inspection-and-extraction) |
+| Round / milestone | Editor phase 2 (E1–E3) — M5 Organiser |
+| Depends on | [E2b](./E2b-page-structure-ops.md), [E3a](./E3a-navigation-attachments-inspection-feature-plan.md), [E3c](./E3c-links.md) |
+| Blocks | [E3f](./E3f-attachments-and-associated-files.md) |
+| ADRs | Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
+| Branch | `feat/e3b-bookmarks-and-destinations` |
+| PR title | `feat(ops): outline editing, named destinations and TOC generation` |
+| Size | L (600–1,500) |
+| PR | — |
+
+## Goal
+
+Create and edit nested bookmarks (add, rename, retarget, move, nest, colour/style, open state), named destinations, a clickable TOC page generated from bookmarks, and outline-related viewer preferences; with a drag-and-drop bookmark panel.
+
+## Context
+
+- [04 §1.2 Document outline](../../research/pdf/04-interactive-security.md#12-document-outline-1233)
+- [04 §1.1 Destinations](../../research/pdf/04-interactive-security.md#11-destinations-1232)
+- ISO 32000-2 §12.3.3 (outline), §12.3.2.4 (named destinations)
+
+## Scope
+
+**In scope**
+
+- Ops: `AddOutlineItem`, `UpdateOutlineItem` (title, dest/action, colour `/C`, flags `/F`, open/closed count), `MoveOutlineItem`, `DeleteOutlineItem`; `SetNamedDestination`, `DeleteNamedDestination`
+- Doubly linked list maintenance (`/First /Last /Next /Prev /Parent /Count`) with tolerant reading of broken links
+- `GenerateToc { at, levels, style }` composite op: new page(s) via the builder plus link annotations (uses E3c link creation)
+- Bookmark panel: inline rename, drag to reorder/nest, "set destination to current view"
+
+**Out of scope** (and which todo covers it)
+
+- Link annotations → [E3c](E3c-links.md)
+- TOC from struct-tree headings, if decided → [E15b](E15b-structure-tree-editing.md)
+
+**Editor facts**
+
+- **Operations shipped** ([06 §3](../../research/pdf/06-feature-inventory.md#3-full-operation-inventory-with-mechanisms) IDs): `I.01` create/edit bookmarks; nested trees; `I.04` named destinations; `I.05` clickable table of contents; `I.11` outline and navigation preferences
+- **Crates and packages:** `lamina-model` (outline write; name-tree writer from E2b), `lamina-ops`, `lamina-build` (TOC page), `@lamina/ui`
+- **`Op` variants:** outline and destination ops (class `Document`), `GenerateToc` (class `PageStructure`: one class per op, ADR 0006 §1; it inserts a page, which is forbidden at every DocMDP level, so it is more restrictive than the link annotations it adds, which P3 would allow)
+- **`SaveConstraint`:** `Free` → incremental; signed: outline and destination changes are class `Document`, a DocMDP violation at every certification level (ADR 0007 §2: P1 allows no changes; P2 allows only form filling, page templates and signing; P3 adds annotations) → warn and gate (override names the signatures). With approval signatures only (no certification): `AppendOnly`, an incremental update that keeps their `/ByteRange` intact; a violation only when it changes a field locked by FieldMDP/`/Lock`
+- **Web vs desktop:** identical
+- **Server features:** none (this PR adds no server feature; all processing stays on the device)
+- **Capability-matrix rows to flip:** `I.01` → `round-trip` (core, pdf, web, desktop); `I.04` → `round-trip` (core, pdf, web, desktop); `I.05` → `write` (core, pdf, web, desktop); `I.11` → `round-trip` (core, pdf, web, desktop)
+
+## Tasks
+
+- [ ] Outline writer with `/Count` sign semantics
+- [ ] Named-destination ops over [E2b](E2b-page-structure-ops.md)'s name-tree writer (E3b does not write its own; E3f uses the same writer)
+- [ ] Ops with undo
+- [ ] TOC generator using builder text and E3c links
+- [ ] Bookmark panel with DnD and keyboard
+
+## Acceptance criteria
+
+- [ ] Library parity ([full-editor §5](../../plans/full-editor.md#5-requirements-that-hold-for-every-round) req. 7): every new `Op` is exposed in `lamina` and `@lamina/pdf` in this PR, with rustdoc/TSDoc, a runnable example, tsify-generated TS types, and serde samples frozen in `fixtures/ops/v1/` (unknown ops and fields rejected, ADR 0006 §1, §6)
+- [ ] Property tests: for every new op, apply then undo leaves the overlay empty and the next save is byte-identical to the previous one (ADR 0006 §3); redo re-applies the same bytes
+- [ ] Every new op reports its `ModificationClass` and `requires_rewrite` (ADR 0006 §1); a test per op runs `planner.would_violate(&op)` on the signed fixtures (no certification, DocMDP P1, P2, P3, FieldMDP lock) and asserts the verdict ([ADR 0007](../../decisions/0007-save-planner.md) §2), because a misclassified op is a security bug
+- [ ] Round-trip: open → op → save → reopen in lamina, pdf.js and PDFium preserves the change and everything else (page count, outline, annotations, fields, struct tree facts in `expected.json`); `qpdf --check` is clean
+- [ ] Outline facts (titles, levels, targets) match pdf.js and pypdf after edits on corpus files
+- [ ] e2e on both shells: create nested bookmarks, reorder, save, reopen
+
+## Post-merge checks
+
+None.
+
+## Tests
+
+- Unit tests for list maintenance
+- Corpus differential (outline facts)
+- Playwright/WebdriverIO specs
+
+## Docs to update
+
+- API docs: outline, destinations
+- [full-editor §E3](../../plans/full-editor.md#e3-navigation-attachments-inspection-and-extraction) and its §10 to-dos: tick what this PR completes and point the round's todo link at `done/`
+- `docs/capabilities/manifest.toml` statuses (regenerated `docs/capabilities/README.md` via `cargo xtask capabilities`)
+
+## Risks and open questions
+
+- None known beyond the round's risks in the plan
+
+## Definition of done
+
+- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [ ] Work PR opened from a fresh worktree; **PR** field filled in
+- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
+- [ ] CI green
+- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated

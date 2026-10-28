@@ -84,47 +84,56 @@ Architecture details live in [architecture.md](architecture.md) and the research
 - **Packages**: `@lamina/viewer` (framework-free: worker RPC client, virtualiser, canvas pool, text layer, find controller, link layer), `@lamina/ui` (React 19 chrome: toolbar, sidebars, dialogs, `Platform` adapter interface), `@lamina/render-pdfium` (PDFium WASM adapter) and `@lamina/render-hayro` (pure-Rust renderer as its own `.wasm`), both optional so `@lamina/pdf` stays small.
 - **Worker**: one document worker running `lamina-wasm` plus PDFium-WASM, a typed RPC with request IDs, priorities, transfer lists and `AbortSignal` cancellation (ADR 0009).
 - **Platform adapter** (ADR 0010): the web implementation provides file open/save, print, clipboard and capability flags (`canWriteInPlace: false` on most browsers, `multiWindow: false`).
-- **Hosting** (ADR 0011): one Worker with static assets, `not_found_handling: "single-page-application"`, immutable hashed assets, `_headers` for security headers, Wrangler pinned in CI. Production at `<domain>`, previews per PR via Workers preview URLs.
+- **Hosting** (ADR 0011): one Worker with static assets, `not_found_handling: "single-page-application"`, immutable hashed assets, `_headers` for security headers, Wrangler pinned in CI. Production at `<domain>` (deployed only from `web-v*` release tags), staging from `main`, previews per PR via Workers preview URLs.
 - **Storage**: OPFS as the random-access cache for large files and the "recent files" list (IndexedDB holds metadata only; files stay on the device and can be cleared in settings).
 
 ## 6. Rounds
 
-Architecture Round C is delivered as PRs C1–C7. C1 needs B6, because its PDFium spike loads `lamina-wasm` and measures reload after an incremental save; the `hayro-parity` half has no lamina dependency and can start earlier. C2–C4 follow C1; C5 also needs B9 (text extraction).
+Architecture Round C is delivered as rounds C1–C7, each split into todos (one PR each). C1 needs B6, because its PDFium spike loads `lamina-wasm` and measures reload after an incremental save; the `hayro-parity` half has no lamina dependency and can start earlier. C2–C4 follow C1; C5 also needs B9 (text extraction).
+
+Each round is split into one or more todos (one pull request each) on the [todo board](../todos/README.md); they move `ready/` → `ongoing/` → `done/`. When a todo moves, the PR that moves it updates every link to it, including these. Their "Depends on" fields fix the order, including the cross-plan gates on library B6 and B9.
 
 ### C1. Rendering spikes
 
 **Deliverable:** `spikes/pdfium-wasm/` (PDFium-WASM next to `lamina-wasm` in one worker: size, memory, render time, reload after incremental save) and `spikes/hayro-parity/` (pass rate vs PDFium on the pdf.js and PDFBox corpora), each with a written result.
 **Accepted when:** both READMEs report numbers on the same machine and corpus, and recommend the defaults that ADR 0004 records.
+**Todos:** [C1a](../todos/ready/C1a-hayro-parity-spike.md), [C1b](../todos/ready/C1b-pdfium-wasm-spike.md)
 
 ### C2. Render backend and ADRs
 
 **Deliverable:** ADRs 0004, 0009, 0010, 0011; `crates/lamina-render` with the `RenderBackend` trait and PDFium and hayro adapters; `@lamina/render-pdfium`.
 **Accepted when:** golden render tests pass for both adapters on `fixtures/`; the hayro-vs-PDFium diff runs in the nightly lane.
+**Todos:** [C2a](../todos/ready/C2a-render-adrs.md), [C2b](../todos/ready/C2b-lamina-render-crate.md), [C2c](../todos/ready/C2c-render-packages.md)
 
 ### C3. Viewer core
 
 **Deliverable:** `@lamina/viewer`: worker RPC, page virtualiser, canvas pool, progressive rendering, zoom with anchoring; a minimal demo page; performance harness.
 **Accepted when:** a 1,000-page fixture scrolls end to end in Playwright (Chromium, Firefox, WebKit) within the memory and long-task budgets; cancelled renders never paint.
+**Todos:** [C3a](../todos/ready/C3a-viewer-worker-rpc.md), [C3b](../todos/ready/C3b-viewer-virtualiser-and-zoom.md), [C3c](../todos/ready/C3c-viewer-perf-harness.md)
 
 ### C4. App shell on Cloudflare
 
-**Deliverable:** `@lamina/ui` chrome (toolbar, page indicator, zoom, open dialogs, error and password prompts), `apps/web` Worker with static assets, `_headers`, CSP, per-PR preview deploys, production deploy from `main`.
+**Deliverable:** `@lamina/ui` chrome (toolbar, page indicator, zoom, open dialogs, error and password prompts), `apps/web` Worker with static assets, `_headers`, CSP, per-PR preview deploys, staging deploy from `main`, production deploy from `web-v*` release tags.
 **Accepted when:** each PR gets a preview URL comment; local open, drag-drop and `#url=` (CORS-enabled) work; encrypted fixtures open after the password prompt; securityheaders-style checks pass; Playwright asserts that no request body carries document bytes and that no request to our origin (URL, request line or headers, including `Referer`) contains the remote document URL.
+**Todos:** [C4a](../todos/ready/C4a-ui-chrome-and-platform.md), [C4b](../todos/ready/C4b-web-app-shell.md), [C4c](../todos/ready/C4c-remote-files-encryption-privacy.md), [C4d](../todos/ready/C4d-deploy-previews-and-production.md)
 
 ### C5. Text, selection and search
 
 **Deliverable:** text layer from the extraction API of [library B9](pdf-library.md#b9-text-extraction) (`lamina-content` interpreter + `lamina-text`), selection and copy, find bar with streaming results and highlights.
 **Accepted when:** copy from fixtures in five scripts equals expected text, including encrypted fixtures; search results match pdf.js counts on the corpus; selection works with screen readers on tagged fixtures.
+**Todos:** [C5a](../todos/ready/C5a-text-layer-and-selection.md), [C5b](../todos/ready/C5b-find-in-document.md)
 
 ### C6. Navigation, print and properties
 
 **Deliverable:** thumbnails, outline, links (with external-link confirmation), page labels, history, print, download, document properties dialog.
 **Accepted when:** link and outline targets match `expected.json`; printing a 50-page document works in Chrome, Firefox and Safari; download is byte-identical to the input.
+**Todos:** [C6a](../todos/ready/C6a-thumbnails-outline-page-labels.md), [C6b](../todos/ready/C6b-links-and-history.md), [C6c](../todos/ready/C6c-print-download-properties.md)
 
 ### C7. Accessibility, offline and launch
 
 **Deliverable:** keyboard map and help dialog, focus management, ARIA landmarks, high contrast and dark mode; service worker and web app manifest (with `file_handlers`); performance budgets enforced in CI; ADR 0011 privacy page published; public release `web v0.1`.
 **Accepted when:** axe shows zero serious violations; a manual NVDA, VoiceOver and keyboard-only pass is recorded; the app works offline after first load; Lighthouse PWA installability passes; performance targets in §4 are met on the reference machine.
+**Todos:** [C7a](../todos/ready/C7a-accessibility-and-theming.md), [C7b](../todos/ready/C7b-offline-pwa.md), [C7c](../todos/ready/C7c-performance-gates-and-launch.md)
 
 ## 7. Risks
 
@@ -146,6 +155,10 @@ Architecture Round C is delivered as PRs C1–C7. C1 needs B6, because its PDFiu
 5. Is iPad/tablet touch UX in scope for v0.1 beyond "works"?
 
 ## 9. To-dos
+
+Each round's todos (one per PR, with dependencies) are linked from [§6](#6-rounds) and on the [todo board](../todos/README.md); this checklist is the summary.
+
+Ticked by the PR that completes them.
 
 ### C1. Rendering spikes
 - [ ] Build `spikes/pdfium-wasm`: load PDFium-WASM and `lamina-wasm` in one worker
@@ -175,7 +188,7 @@ Architecture Round C is delivered as PRs C1–C7. C1 needs B6, because its PDFiu
 - [ ] Create `apps/web` (Vite 8) with `wrangler.jsonc`, SPA fallback, `_headers`, CSP
 - [ ] Implement open via input, drag-drop, paste, `showOpenFilePicker` and `#url=` (fragment) with range requests
 - [ ] Add password prompt (passes the password to PDFium and `Document::open`) and error/repair notices
-- [ ] Add CI deploy: preview URL per PR (comment on the PR), production on `main`
+- [ ] Add CI deploy: preview URL per PR (comment on the PR), staging on `main`, production from `web-v*` release tags (behind C7c's release gates)
 - [ ] Playwright test asserting no request body contains document bytes and no request to our origin contains the remote document URL
 
 ### C5. Text, selection and search

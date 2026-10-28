@@ -1,0 +1,273 @@
+# Todo board
+
+One file per pull request of work. A todo lives in exactly one state folder:
+
+| Folder | Meaning |
+| --- | --- |
+| [`ready/`](ready/) | Specified and waiting. Start one only when every todo in its **Depends on** is in `done/`. |
+| [`ongoing/`](ongoing/) | Claimed: someone is working on it. Moved here by a small claim PR before the work starts. |
+| [`done/`](done/) | Merged. Moved here by the work PR before it merges. |
+
+New todos start from [`TEMPLATE.md`](TEMPLATE.md). The workflow is in [git workflow §2](../guidelines/git-workflow.md#pick-work-from-the-todo-board); plans link to their todos.
+
+IDs: `A`/`P`/`X` [architecture](../plans/architecture.md) (foundations, publishing, cross-cutting), `B` [library](../plans/pdf-library.md), `C` [web reader](../plans/web-app.md), `D` [desktop reader](../plans/desktop-app.md), `E` [editor](../plans/full-editor.md), `H` hosted service ([full-editor](../plans/full-editor.md)). A letter suffix (`B2a`, `B2b`) splits a round into PRs.
+
+**0 ongoing · 196 ready · 6 done** (202 total).
+
+## Can start now
+
+Ready todos whose dependencies are all done:
+
+- [B2b](ready/B2b-standard-security-decryption.md): Standard security handler decryption (read only)
+- [B2c](ready/B2c-lamina-model-corpus-fuzz.md): `lamina-model` views and IDs, corpus facts, pypdf differential and fuzz targets
+- [B2d](ready/B2d-windowed-reading.md): Windowed reading for sources without `as_slice`
+- [C1a](ready/C1a-hayro-parity-spike.md): `hayro-parity` spike: hayro vs PDFium pass rate on the pdf.js and PDFBox corpora
+- [X1](ready/X1-docs-link-checker.md): Docs link checker and todo-board check in `cargo xtask`, run in CI
+
+## Ongoing
+
+Nothing claimed right now.
+
+
+## Architecture — Round A
+
+| ID | Todo | State | Depends on |
+| --- | --- | --- | --- |
+| A1 | [Foundation ADRs 0001, 0002, 0015, 0019](done/A1-foundation-adrs.md) | done | — |
+| A2 | [Monorepo skeleton, `cargo xtask`, licence checks and CI fast lane](done/A2-monorepo-skeleton.md) | done | [A1](done/A1-foundation-adrs.md) |
+| A3 | [Port the spike reader/writer into `lamina-syntax` and `lamina-cos`](done/A3-port-spike-core.md) | done | [A2](done/A2-monorepo-skeleton.md) |
+
+## Library — Round B
+
+| ID | Todo | State | Depends on |
+| --- | --- | --- | --- |
+| B1a | [Round B ADRs 0003, 0005, 0006, 0007, 0018](done/B1a-round-b-adrs.md) | done | [A3](done/A3-port-spike-core.md) |
+| B1b | [`krilla-fit` spike: can krilla generate into lamina's object graph?](done/B1b-krilla-fit-spike.md) | done | [A3](done/A3-port-spike-core.md) |
+| B2a | [`Limits`, warning codes, strict mode and the owned `Document`](done/B2a-limits-owned-document.md) | done | [B1a](done/B1a-round-b-adrs.md) |
+| B2b | [Standard security handler decryption (read only)](ready/B2b-standard-security-decryption.md) | ready | [B2a](done/B2a-limits-owned-document.md) |
+| B2c | [`lamina-model` views and IDs, corpus facts, pypdf differential and fuzz targets](ready/B2c-lamina-model-corpus-fuzz.md) | ready | [B2a](done/B2a-limits-owned-document.md) |
+| B2d | [Windowed reading for sources without `as_slice`](ready/B2d-windowed-reading.md) | ready | [B2a](done/B2a-limits-owned-document.md) |
+| B3a | [COS overlay and `lamina-ops`: `Op`, `transact`, savepoints, undo/redo](ready/B3a-overlay-and-ops.md) | ready | [B2c](ready/B2c-lamina-model-corpus-fuzz.md) |
+| B3b | [`lamina-save`: move the writer, `WriteSink`, incremental and full writers over the overlay, rebase](ready/B3b-lamina-save-writers.md) | ready | [B3a](ready/B3a-overlay-and-ops.md) |
+| B3c | [`SavePlanner`, `SaveConstraint` detection and round-trip in lamina, pdf.js, PDFium and qpdf](ready/B3c-save-planner-and-roundtrip.md) | ready | [B2b](ready/B2b-standard-security-decryption.md), [B3b](ready/B3b-lamina-save-writers.md), [X4](ready/X4-full-lane-gate.md) |
+| B4a | [`lamina-text`: font loading, subsetting and Type 0 embedding with ToUnicode](ready/B4a-font-loading-and-subsetting.md) | ready | [B1b](done/B1b-krilla-fit-spike.md), [B3b](ready/B3b-lamina-save-writers.md), [X4](ready/X4-full-lane-gate.md) |
+| B4b | [Shaping (HarfRust), bidi and line breaking (ICU4X), with goldens in five scripts](ready/B4b-shaping-bidi-line-breaking.md) | ready | [B4a](ready/B4a-font-loading-and-subsetting.md), [X4](ready/X4-full-lane-gate.md) |
+| B4c | [Standard 14 fonts with AFM metrics and simple-font encoding](ready/B4c-standard-14-and-simple-fonts.md) | ready | [B4a](ready/B4a-font-loading-and-subsetting.md) |
+| B5a | [`lamina-build` core: builder, pages, vectors, colour and images](ready/B5a-lamina-build-core.md) | ready | [B1b](done/B1b-krilla-fit-spike.md), [B3c](ready/B3c-save-planner-and-roundtrip.md) |
+| B5b | [Builder text, links, destinations, outlines, page labels and metadata](ready/B5b-builder-text-and-document-features.md) | ready | [B4b](ready/B4b-shaping-bidi-line-breaking.md), [B4c](ready/B4c-standard-14-and-simple-fonts.md), [B5a](ready/B5a-lamina-build-core.md) |
+| B5c | [The `lamina` façade crate, Rust examples, and byte and render goldens](ready/B5c-lamina-facade-and-examples.md) | ready | [B5b](ready/B5b-builder-text-and-document-features.md), [X4](ready/X4-full-lane-gate.md) |
+| B6a | [`lamina-wasm`, `@lamina/wasm` build, ADR 0016 and size budgets](ready/B6a-lamina-wasm-and-adr-0016.md) | ready | [B5c](ready/B5c-lamina-facade-and-examples.md) |
+| B6b | [`@lamina/pdf`: the TypeScript API, `init()`, export conditions, publint and attw](ready/B6b-lamina-pdf-package.md) | ready | [B2b](ready/B2b-standard-security-decryption.md), [B6a](ready/B6a-lamina-wasm-and-adr-0016.md) |
+| B6c | [Runtime matrix in CI: browsers, Node 22/24/26, Deno, Bun and workerd](ready/B6c-runtime-matrix.md) | ready | [B6b](ready/B6b-lamina-pdf-package.md) |
+| B7a | [Docs site (`apps/docs`): Starlight, quick starts, guides and TypeDoc, with per-PR previews](ready/B7a-docs-site.md) | ready | [B2b](ready/B2b-standard-security-decryption.md), [B6b](ready/B6b-lamina-pdf-package.md), [B6c](ready/B6c-runtime-matrix.md) |
+| B7b | [Changesets, Cargo version sync, ADR 0017 (versioning) and the local `0.1.0-alpha.0` tag](ready/B7b-versioning-and-0-1-0-alpha.md) | ready | [B6c](ready/B6c-runtime-matrix.md), [B7a](ready/B7a-docs-site.md), [X3a](ready/X3a-nightly-lane.md) |
+| B8a | [Tagged PDF: structure tree builder, artifacts, alt text, MCIDs and ParentTree](ready/B8a-structure-tree.md) | ready | [B5c](ready/B5c-lamina-facade-and-examples.md), [B6b](ready/B6b-lamina-pdf-package.md) |
+| B8b | [Conformance profiles (PDF/UA-1, PDF/A-2b/2u/3b), output intents, veraPDF nightly and `0.2.0-alpha`](ready/B8b-conformance-profiles-and-verapdf.md) | ready | [B4c](ready/B4c-standard-14-and-simple-fonts.md), [B7b](ready/B7b-versioning-and-0-1-0-alpha.md), [B8a](ready/B8a-structure-tree.md), [X3a](ready/X3a-nightly-lane.md) |
+| B9a | [ADR 0023 and `lamina-content`: read-only content-stream interpreter](ready/B9a-lamina-content-and-adr-0023.md) | ready | [B2c](ready/B2c-lamina-model-corpus-fuzz.md) |
+| B9b | [Text extraction in `lamina-text`: fonts from files, encodings, ToUnicode, glyph runs and quads](ready/B9b-text-extraction-core.md) | ready | [B2b](ready/B2b-standard-security-decryption.md), [B4a](ready/B4a-font-loading-and-subsetting.md), [B4c](ready/B4c-standard-14-and-simple-fonts.md), [B5c](ready/B5c-lamina-facade-and-examples.md), [B9a](ready/B9a-lamina-content-and-adr-0023.md) |
+| B9c | [`page.text()` in WASM and TypeScript; differential and quad tests; extraction fuzzing](ready/B9c-text-extraction-bindings-and-differential.md) | ready | [B6b](ready/B6b-lamina-pdf-package.md), [B6c](ready/B6c-runtime-matrix.md), [B9b](ready/B9b-text-extraction-core.md) |
+
+## Web reader — Round C
+
+| ID | Todo | State | Depends on |
+| --- | --- | --- | --- |
+| C1a | [`hayro-parity` spike: hayro vs PDFium pass rate on the pdf.js and PDFBox corpora](ready/C1a-hayro-parity-spike.md) | ready | — |
+| C1b | [`pdfium-wasm` spike: PDFium-WASM next to `lamina-wasm` in one worker](ready/C1b-pdfium-wasm-spike.md) | ready | [B3c](ready/B3c-save-planner-and-roundtrip.md), [B6b](ready/B6b-lamina-pdf-package.md), [C1a](ready/C1a-hayro-parity-spike.md) |
+| C2a | [ADRs 0004, 0009, 0010, 0011: render backend, web client, platform adapter, Cloudflare and privacy](ready/C2a-render-adrs.md) | ready | [C1a](ready/C1a-hayro-parity-spike.md), [C1b](ready/C1b-pdfium-wasm-spike.md), [X1](ready/X1-docs-link-checker.md) |
+| C2b | [`crates/lamina-render`: the `RenderBackend` trait, PDFium and hayro adapters, render goldens](ready/C2b-lamina-render-crate.md) | ready | [B2c](ready/B2c-lamina-model-corpus-fuzz.md), [C2a](ready/C2a-render-adrs.md) |
+| C2c | [`@lamina/render-pdfium` and `@lamina/render-hayro`: the web render adapters](ready/C2c-render-packages.md) | ready | [B6b](ready/B6b-lamina-pdf-package.md), [C2b](ready/C2b-lamina-render-crate.md) |
+| C3a | [`@lamina/viewer` part 1: document worker and typed RPC](ready/C3a-viewer-worker-rpc.md) | ready | [B6b](ready/B6b-lamina-pdf-package.md), [C2a](ready/C2a-render-adrs.md), [C2c](ready/C2c-render-packages.md) |
+| C3b | [`@lamina/viewer` part 2: virtualiser, canvas pool, progressive tiles and anchored zoom](ready/C3b-viewer-virtualiser-and-zoom.md) | ready | [C3a](ready/C3a-viewer-worker-rpc.md) |
+| C3c | [Viewer performance harness: long tasks, memory and time-to-first-page in CI](ready/C3c-viewer-perf-harness.md) | ready | [C3b](ready/C3b-viewer-virtualiser-and-zoom.md) |
+| C4a | [`@lamina/ui`: React 19 reader chrome and the `Platform` adapter](ready/C4a-ui-chrome-and-platform.md) | ready | [C2a](ready/C2a-render-adrs.md), [C3b](ready/C3b-viewer-virtualiser-and-zoom.md) |
+| C4b | [`apps/web`: the reader on Cloudflare Workers static assets, with local file opening](ready/C4b-web-app-shell.md) | ready | [C2a](ready/C2a-render-adrs.md), [C4a](ready/C4a-ui-chrome-and-platform.md) |
+| C4c | [Remote files via `#url=`, encrypted files, and the privacy test suite](ready/C4c-remote-files-encryption-privacy.md) | ready | [B2b](ready/B2b-standard-security-decryption.md), [B6b](ready/B6b-lamina-pdf-package.md), [C4b](ready/C4b-web-app-shell.md) |
+| C4d | [Deploy pipeline: preview URL per PR, staging from `main`, production from release tags](ready/C4d-deploy-previews-and-production.md) | ready | [C4b](ready/C4b-web-app-shell.md) |
+| C5a | [Text layer, selection and copy (from lamina's extraction), with struct-tree linking](ready/C5a-text-layer-and-selection.md) | ready | [B9c](ready/B9c-text-extraction-bindings-and-differential.md), [C3c](ready/C3c-viewer-perf-harness.md), [C4c](ready/C4c-remote-files-encryption-privacy.md) |
+| C5b | [Find in document: streaming search, highlights, options and pdf.js count parity](ready/C5b-find-in-document.md) | ready | [B9c](ready/B9c-text-extraction-bindings-and-differential.md), [C3c](ready/C3c-viewer-perf-harness.md), [C5a](ready/C5a-text-layer-and-selection.md) |
+| C6a | [Thumbnails sidebar, outline sidebar, page labels and go-to-page](ready/C6a-thumbnails-outline-page-labels.md) | ready | [B2c](ready/B2c-lamina-model-corpus-fuzz.md), [B6b](ready/B6b-lamina-pdf-package.md), [C3c](ready/C3c-viewer-perf-harness.md), [C4c](ready/C4c-remote-files-encryption-privacy.md) |
+| C6b | [Link layer (internal, named and external links) and back/forward history](ready/C6b-links-and-history.md) | ready | [C5a](ready/C5a-text-layer-and-selection.md), [C6a](ready/C6a-thumbnails-outline-page-labels.md) |
+| C6c | [Print, download of original bytes, and the document properties dialog](ready/C6c-print-download-properties.md) | ready | [B9c](ready/B9c-text-extraction-bindings-and-differential.md), [C3c](ready/C3c-viewer-perf-harness.md), [C4c](ready/C4c-remote-files-encryption-privacy.md), [C5a](ready/C5a-text-layer-and-selection.md) |
+| C7a | [Accessibility: keyboard map and help, focus, landmarks, announcements, themes and axe in CI](ready/C7a-accessibility-and-theming.md) | ready | [C5b](ready/C5b-find-in-document.md), [C6a](ready/C6a-thumbnails-outline-page-labels.md), [C6b](ready/C6b-links-and-history.md), [C6c](ready/C6c-print-download-properties.md) |
+| C7b | [Offline and PWA: service worker, manifest with `file_handlers`, OPFS cache and recent files](ready/C7b-offline-pwa.md) | ready | [C3c](ready/C3c-viewer-perf-harness.md), [C4c](ready/C4c-remote-files-encryption-privacy.md), [C4d](ready/C4d-deploy-previews-and-production.md), [C5b](ready/C5b-find-in-document.md), [C7a](ready/C7a-accessibility-and-theming.md) |
+| C7c | [Performance budgets as CI gates, privacy page, and the `web v0.1` launch](ready/C7c-performance-gates-and-launch.md) | ready | [C3c](ready/C3c-viewer-perf-harness.md), [C4d](ready/C4d-deploy-previews-and-production.md), [C6c](ready/C6c-print-download-properties.md), [C7a](ready/C7a-accessibility-and-theming.md), [C7b](ready/C7b-offline-pwa.md) |
+
+## Desktop reader — Round D
+
+| ID | Todo | State | Depends on |
+| --- | --- | --- | --- |
+| D1a | [`desktop-ipc` spike: tile transport and COOP/COEP in the three webviews](ready/D1a-desktop-ipc-spike.md) | ready | [C2c](ready/C2c-render-packages.md), [C3b](ready/C3b-viewer-virtualiser-and-zoom.md) |
+| D1b | [`desktop-print` spike: faithful printing from Tauri on each OS](ready/D1b-desktop-print-spike.md) | ready | [C2c](ready/C2c-render-packages.md), [C3b](ready/C3b-viewer-virtualiser-and-zoom.md), [D1a](ready/D1a-desktop-ipc-spike.md) |
+| D2a | [ADR 0008 and the `apps/desktop` Tauri 2 scaffold](ready/D2a-adr-0008-and-desktop-scaffold.md) | ready | [C2a](ready/C2a-render-adrs.md), [C4a](ready/C4a-ui-chrome-and-platform.md), [D1a](ready/D1a-desktop-ipc-spike.md), [D1b](ready/D1b-desktop-print-spike.md) |
+| D2b | [Engine child process: protocol, file byte source, restart on crash](ready/D2b-engine-process.md) | ready | [C2b](ready/C2b-lamina-render-crate.md), [C4c](ready/C4c-remote-files-encryption-privacy.md), [C4d](ready/C4d-deploy-previews-and-production.md), [D2a](ready/D2a-adr-0008-and-desktop-scaffold.md) |
+| D2c | [Sandbox the engine process on macOS, Windows and Linux](ready/D2c-engine-sandbox.md) | ready | [D2b](ready/D2b-engine-process.md) |
+| D2d | [Tile transport and the desktop engine client: open and read one document](ready/D2d-tile-transport-and-first-document.md) | ready | [C3b](ready/C3b-viewer-virtualiser-and-zoom.md), [C4a](ready/C4a-ui-chrome-and-platform.md), [D2a](ready/D2a-adr-0008-and-desktop-scaffold.md), [D2b](ready/D2b-engine-process.md) |
+| D2e | [Desktop end-to-end tests with WebdriverIO on three OSes](ready/D2e-desktop-e2e-webdriverio.md) | ready | [D2c](ready/D2c-engine-sandbox.md), [D2d](ready/D2d-tile-transport-and-first-document.md) |
+| D3a | [Open from the OS: file associations, argv, `RunEvent::Opened`, single instance, drag-drop](ready/D3a-open-from-os.md) | ready | [D2e](ready/D2e-desktop-e2e-webdriverio.md) |
+| D3b | [Recent files (OS and in-app) and reload on external change](ready/D3b-recent-files-and-file-watching.md) | ready | [D3a](ready/D3a-open-from-os.md) |
+| D4a | [Multiple windows, tabs, tab drag between windows, session restore](ready/D4a-windows-tabs-and-session-restore.md) | ready | [D3b](ready/D3b-recent-files-and-file-watching.md) |
+| D4b | [Native menus and accelerators from the shared shortcut map](ready/D4b-native-menus.md) | ready | [C7a](ready/C7a-accessibility-and-theming.md), [D4a](ready/D4a-windows-tabs-and-session-restore.md) |
+| D4c | [Native printing per the `desktop-print` spike](ready/D4c-native-printing.md) | ready | [C6c](ready/C6c-print-download-properties.md), [D1b](ready/D1b-desktop-print-spike.md), [D4b](ready/D4b-native-menus.md) |
+| D5a | [ADR 0014 and the `apps/updates` Worker: channels, staged rollout, kill switch](ready/D5a-update-worker-and-adr-0014.md) | ready | [C2a](ready/C2a-render-adrs.md), [C4d](ready/C4d-deploy-previews-and-production.md), [D2a](ready/D2a-adr-0008-and-desktop-scaffold.md), [D3b](ready/D3b-recent-files-and-file-watching.md) |
+| D5b | [Updater in the app: settings, install-ID header, managed policy, staging e2e](ready/D5b-updater-in-app.md) | ready | [D4b](ready/D4b-native-menus.md), [D5a](ready/D5a-update-worker-and-adr-0014.md) |
+| D6a | [Signing runbook and owner setup (certificates, accounts, secrets, Windows eligibility)](ready/D6a-signing-runbook-and-owner-setup.md) | ready | [D2a](ready/D2a-adr-0008-and-desktop-scaffold.md), [D5a](ready/D5a-update-worker-and-adr-0014.md) |
+| D6b | [Release workflow (tauri-action matrix → R2), Linux packages and signing, nightly channel](ready/D6b-release-workflow-and-linux-packages.md) | ready | [D5b](ready/D5b-updater-in-app.md), [D6a](ready/D6a-signing-runbook-and-owner-setup.md) |
+| D6c | [macOS: Developer ID signing, hardened runtime, notarisation and stapling](ready/D6c-macos-signing-and-notarisation.md) | ready | [D6a](ready/D6a-signing-runbook-and-owner-setup.md), [D6b](ready/D6b-release-workflow-and-linux-packages.md) |
+| D6d | [Windows: Authenticode signing (Artifact Signing or OV in a cloud HSM), MSI and NSIS](ready/D6d-windows-signing.md) | ready | [D6a](ready/D6a-signing-runbook-and-owner-setup.md), [D6b](ready/D6b-release-workflow-and-linux-packages.md) |
+| D7a | [Opt-in crash and panic reporting with scrubbing](ready/D7a-crash-reporting.md) | ready | [D5a](ready/D5a-update-worker-and-adr-0014.md), [D5b](ready/D5b-updater-in-app.md), [D6b](ready/D6b-release-workflow-and-linux-packages.md) |
+| D7b | [Complete settings (renderer switch) and the download page](ready/D7b-settings-renderer-switch-and-download-page.md) | ready | [C4b](ready/C4b-web-app-shell.md), [C4d](ready/C4d-deploy-previews-and-production.md), [D6b](ready/D6b-release-workflow-and-linux-packages.md), [D7a](ready/D7a-crash-reporting.md) |
+| D7c | [Ship `desktop v0.1` on the beta channel and complete one auto-update cycle](ready/D7c-desktop-beta-release.md) | ready | [D4c](ready/D4c-native-printing.md), [D6c](ready/D6c-macos-signing-and-notarisation.md), [D6d](ready/D6d-windows-signing.md), [D7a](ready/D7a-crash-reporting.md), [D7b](ready/D7b-settings-renderer-switch-and-download-page.md) |
+
+## Hosted service
+
+| ID | Todo | State | Depends on |
+| --- | --- | --- | --- |
+| H1 | [`auth` spike: Better Auth / Auth.js on D1 vs hosted vendors](ready/H1-auth-spike.md) | ready | [C2b](ready/C2b-lamina-render-crate.md), [C4d](ready/C4d-deploy-previews-and-production.md), [D2e](ready/D2e-desktop-e2e-webdriverio.md) |
+| H2 | [Accounts and login for the hosted service](ready/H2-accounts-and-login.md) | ready | [C7c](ready/C7c-performance-gates-and-launch.md), [D5b](ready/D5b-updater-in-app.md), [H1](ready/H1-auth-spike.md) |
+| H3 | [Opt-in cloud storage of documents (R2 blobs, D1 index, per-user access)](ready/H3-cloud-document-storage.md) | ready | [E1e](ready/E1e-save-and-constraint-banner.md), [H2](ready/H2-accounts-and-login.md) |
+| H4 | [Sync of cloud documents across devices](ready/H4-document-sync.md) | ready | [D3b](ready/D3b-recent-files-and-file-watching.md), [H3](ready/H3-cloud-document-storage.md) |
+
+## Editor — Rounds E1–E18
+
+| ID | Todo | State | Depends on |
+| --- | --- | --- | --- |
+| E1a | [Editing foundation: feature plan](ready/E1a-editing-foundation-feature-plan.md) | ready | [B3c](ready/B3c-save-planner-and-roundtrip.md), [B5c](ready/B5c-lamina-facade-and-examples.md), [C7c](ready/C7c-performance-gates-and-launch.md), [D7c](ready/D7c-desktop-beta-release.md), [X2](ready/X2-capability-matrix.md) |
+| E1b | [XMP packet parse and update for Info-mapped properties](ready/E1b-xmp-packet-model.md) | ready | [B5c](ready/B5c-lamina-facade-and-examples.md), [B8b](ready/B8b-conformance-profiles-and-verapdf.md), [E1a](ready/E1a-editing-foundation-feature-plan.md), [X3a](ready/X3a-nightly-lane.md) |
+| E1c | [Metadata ops: Info and XMP in sync (J.01–J.03, J.10)](ready/E1c-metadata-ops.md) | ready | [B3c](ready/B3c-save-planner-and-roundtrip.md), [B6b](ready/B6b-lamina-pdf-package.md), [B8b](ready/B8b-conformance-profiles-and-verapdf.md), [E1b](ready/E1b-xmp-packet-model.md), [X3a](ready/X3a-nightly-lane.md) |
+| E1d | [Edit session, interaction modes, undo/redo UI and history panel](ready/E1d-edit-session-undo-ui.md) | ready | [B6b](ready/B6b-lamina-pdf-package.md), [C4a](ready/C4a-ui-chrome-and-platform.md), [D4b](ready/D4b-native-menus.md), [E1a](ready/E1a-editing-foundation-feature-plan.md) |
+| E1e | [Save, Save as, Download copy and the SaveConstraint banner](ready/E1e-save-and-constraint-banner.md) | ready | [D3b](ready/D3b-recent-files-and-file-watching.md), [E1c](ready/E1c-metadata-ops.md), [E1d](ready/E1d-edit-session-undo-ui.md) |
+| E1f | [Metadata editor UI and in-app capability-matrix page](ready/E1f-metadata-ui-capability-page.md) | ready | [E1c](ready/E1c-metadata-ops.md), [E1e](ready/E1e-save-and-constraint-banner.md), [X2](ready/X2-capability-matrix.md) |
+| E2a | [Page organisation: feature plan](ready/E2a-page-organisation-feature-plan.md) | ready | [B9c](ready/B9c-text-extraction-bindings-and-differential.md), [E1a](ready/E1a-editing-foundation-feature-plan.md), [E1f](ready/E1f-metadata-ui-capability-page.md) |
+| E2b | [Page-structure ops: insert blank, delete, duplicate, reorder, rotate, reverse](ready/E2b-page-structure-ops.md) | ready | [B8a](ready/B8a-structure-tree.md), [B8b](ready/B8b-conformance-profiles-and-verapdf.md), [E1c](ready/E1c-metadata-ops.md), [E2a](ready/E2a-page-organisation-feature-plan.md) |
+| E2c | [Insert pages from other PDFs, replace pages, extract and export ranges](ready/E2c-cross-document-pages.md) | ready | [E2b](ready/E2b-page-structure-ops.md) |
+| E2d | [Merge documents and split by count, ranges and bookmarks](ready/E2d-merge-and-split.md) | ready | [B8a](ready/B8a-structure-tree.md), [B8b](ready/B8b-conformance-profiles-and-verapdf.md), [E2c](ready/E2c-cross-document-pages.md) |
+| E2e | [`lamina-content` append API](ready/E2e-content-append-api.md) | ready | [B5c](ready/B5c-lamina-facade-and-examples.md), [B9c](ready/B9c-text-extraction-bindings-and-differential.md), [E2a](ready/E2a-page-organisation-feature-plan.md) |
+| E2f | [Crop, resize, page boxes and orientation](ready/E2f-page-geometry.md) | ready | [E2b](ready/E2b-page-structure-ops.md), [E2e](ready/E2e-content-append-api.md) |
+| E2g | [Page labels editor](ready/E2g-page-labels.md) | ready | [E2b](ready/E2b-page-structure-ops.md), [E2c](ready/E2c-cross-document-pages.md), [E2d](ready/E2d-merge-and-split.md) |
+| E2h | [Page organiser UI: thumbnails drag-and-drop, multi-select and page dialogs](ready/E2h-page-organiser-ui.md) | ready | [E1e](ready/E1e-save-and-constraint-banner.md), [E2c](ready/E2c-cross-document-pages.md), [E2d](ready/E2d-merge-and-split.md), [E2f](ready/E2f-page-geometry.md), [E2g](ready/E2g-page-labels.md) |
+| E2i | [DocMDP gating tests on signed fixtures and E2 round close](ready/E2i-signed-gating-and-close.md) | ready | [E2h](ready/E2h-page-organiser-ui.md) |
+| E3a | [Navigation, attachments, inspection and extraction: feature plan](ready/E3a-navigation-attachments-inspection-feature-plan.md) | ready | [E2a](ready/E2a-page-organisation-feature-plan.md) |
+| E3b | [Bookmark editor, named destinations, TOC generator](ready/E3b-bookmarks-and-destinations.md) | ready | [E2b](ready/E2b-page-structure-ops.md), [E3a](ready/E3a-navigation-attachments-inspection-feature-plan.md), [E3c](ready/E3c-links.md) |
+| E3c | [Internal links, external hyperlinks and links on text](ready/E3c-links.md) | ready | [C5b](ready/C5b-find-in-document.md), [E3a](ready/E3a-navigation-attachments-inspection-feature-plan.md) |
+| E3d | [Initial view, page display mode and article threads (read)](ready/E3d-initial-view-and-threads.md) | ready | [E3a](ready/E3a-navigation-attachments-inspection-feature-plan.md) |
+| E3e | [General XMP editor (custom and extension schemas)](ready/E3e-xmp-editor.md) | ready | [B8b](ready/B8b-conformance-profiles-and-verapdf.md), [E1c](ready/E1c-metadata-ops.md), [E3a](ready/E3a-navigation-attachments-inspection-feature-plan.md), [X3a](ready/X3a-nightly-lane.md) |
+| E3f | [Attachments panel, associated files (`/AF`) and portfolios (read)](ready/E3f-attachments-and-associated-files.md) | ready | [B8b](ready/B8b-conformance-profiles-and-verapdf.md), [E3a](ready/E3a-navigation-attachments-inspection-feature-plan.md), [E3b](ready/E3b-bookmarks-and-destinations.md), [X3a](ready/X3a-nightly-lane.md) |
+| E3g | [Version, conformance, fonts, colour profiles and object inspector](ready/E3g-inspectors.md) | ready | [E3a](ready/E3a-navigation-attachments-inspection-feature-plan.md) |
+| E3h | [Images → PDF and page export to PNG/JPEG/TIFF](ready/E3h-images-to-pdf-and-page-export.md) | ready | [C2b](ready/C2b-lamina-render-crate.md), [E3a](ready/E3a-navigation-attachments-inspection-feature-plan.md) |
+| E3i | [Extract text, images, links and bookmarks](ready/E3i-extraction.md) | ready | [B9c](ready/B9c-text-extraction-bindings-and-differential.md), [E3a](ready/E3a-navigation-attachments-inspection-feature-plan.md) |
+| E4a | [Markup and drawing annotations: feature plan](ready/E4a-markup-and-drawing-annotations-feature-plan.md) | ready | [E2e](ready/E2e-content-append-api.md), [E3a](ready/E3a-navigation-attachments-inspection-feature-plan.md) |
+| E4b | [Annotation model with `/NM` IDs, annotation ops and overlay rendering](ready/E4b-annotation-model-and-overlay.md) | ready | [E1d](ready/E1d-edit-session-undo-ui.md), [E3c](ready/E3c-links.md), [E4a](ready/E4a-markup-and-drawing-annotations-feature-plan.md) |
+| E4c | [Appearances and creation: text markup, notes and caret](ready/E4c-appearances-markup-notes-caret.md) | ready | [C5b](ready/C5b-find-in-document.md), [E4b](ready/E4b-annotation-model-and-overlay.md) |
+| E4d | [Appearances and creation: ink, shapes, lines and arrows](ready/E4d-appearances-ink-and-shapes.md) | ready | [E4b](ready/E4b-annotation-model-and-overlay.md) |
+| E4e | [FreeText text boxes and callouts with `/DA` and rich text](ready/E4e-freetext-callouts.md) | ready | [B4b](ready/B4b-shaping-bidi-line-breaking.md), [B4c](ready/B4c-standard-14-and-simple-fonts.md), [E4b](ready/E4b-annotation-model-and-overlay.md) |
+| E4f | [Annotation tools and properties panel](ready/E4f-annotation-tools-ui.md) | ready | [E1e](ready/E1e-save-and-constraint-banner.md), [E4c](ready/E4c-appearances-markup-notes-caret.md), [E4d](ready/E4d-appearances-ink-and-shapes.md), [E4e](ready/E4e-freetext-callouts.md) |
+| E4g | [Cross-viewer appearance parity suite and E4 round close](ready/E4g-appearance-parity-suite.md) | ready | [E4f](ready/E4f-annotation-tools-ui.md), [X3a](ready/X3a-nightly-lane.md) |
+| E5a | [Review, stamps and interchange: feature plan](ready/E5a-review-stamps-interchange-feature-plan.md) | ready | [E4a](ready/E4a-markup-and-drawing-annotations-feature-plan.md) |
+| E5b | [Comment panel: replies, review state, filter and search](ready/E5b-comment-threads-and-review.md) | ready | [E4f](ready/E4f-annotation-tools-ui.md), [E5a](ready/E5a-review-stamps-interchange-feature-plan.md) |
+| E5c | [Custom stamps, file-attachment annotations and audio annotations (read)](ready/E5c-stamps-and-attachments.md) | ready | [E3f](ready/E3f-attachments-and-associated-files.md), [E4b](ready/E4b-annotation-model-and-overlay.md), [E5a](ready/E5a-review-stamps-interchange-feature-plan.md) |
+| E5d | [XFDF and FDF import/export of annotations](ready/E5d-xfdf-fdf.md) | ready | [E5b](ready/E5b-comment-threads-and-review.md), [E5c](ready/E5c-stamps-and-attachments.md) |
+| E5e | [Flatten annotations into content and comment summary](ready/E5e-flatten-and-summary.md) | ready | [E2e](ready/E2e-content-append-api.md), [E5b](ready/E5b-comment-threads-and-review.md) |
+| E6a | [Adding content to pages: feature plan](ready/E6a-adding-content-feature-plan.md) | ready | [E2e](ready/E2e-content-append-api.md), [E5a](ready/E5a-review-stamps-interchange-feature-plan.md) |
+| E6b | [Place images, shapes, logos and stamps as page content](ready/E6b-place-images-and-shapes.md) | ready | [B5c](ready/B5c-lamina-facade-and-examples.md), [E2e](ready/E2e-content-append-api.md), [E6a](ready/E6a-adding-content-feature-plan.md) |
+| E6c | [Add text and special characters as page content](ready/E6c-add-text.md) | ready | [B4b](ready/B4b-shaping-bidi-line-breaking.md), [B4c](ready/B4c-standard-14-and-simple-fonts.md), [B8a](ready/B8a-structure-tree.md), [B8b](ready/B8b-conformance-profiles-and-verapdf.md), [E6b](ready/E6b-place-images-and-shapes.md), [X3a](ready/X3a-nightly-lane.md) |
+| E6d | [Watermarks, backgrounds, headers/footers, page numbers and Bates numbering](ready/E6d-watermarks-headers-footers.md) | ready | [B8a](ready/B8a-structure-tree.md), [B8b](ready/B8b-conformance-profiles-and-verapdf.md), [E6c](ready/E6c-add-text.md) |
+| E6e | [Content insert tools and object handles](ready/E6e-content-tools-ui.md) | ready | [E6b](ready/E6b-place-images-and-shapes.md), [E6c](ready/E6c-add-text.md) |
+| E6f | [Touched-page reload time: measure and budget](ready/E6f-reload-budget.md) | ready | [E6b](ready/E6b-place-images-and-shapes.md) |
+| E7a | [ADR 0022: content-stream editing model for existing content](ready/E7a-adr-0022-content-editing.md) | ready | [B9c](ready/B9c-text-extraction-bindings-and-differential.md), [E6a](ready/E6a-adding-content-feature-plan.md) |
+| E7b | [Editing existing content: feature plan](ready/E7b-editing-existing-content-feature-plan.md) | ready | [E6a](ready/E6a-adding-content-feature-plan.md), [E7a](ready/E7a-adr-0022-content-editing.md) |
+| E7c | [Content IR with object identity and encoder](ready/E7c-content-ir.md) | ready | [E7b](ready/E7b-editing-existing-content-feature-plan.md) |
+| E7d | [Select, move, resize, rotate, delete and replace existing objects; stacking order](ready/E7d-select-transform-existing.md) | ready | [E6e](ready/E6e-content-tools-ui.md), [E7c](ready/E7c-content-ir.md) |
+| E7e | [Text-run detection and in-place text editing with the existing subset](ready/E7e-text-runs-and-inline-edit.md) | ready | [E7c](ready/E7c-content-ir.md) |
+| E7f | [Font handling: re-subset, substitution, font/size/colour/style, alignment and spacing](ready/E7f-font-handling-and-styling.md) | ready | [E6c](ready/E6c-add-text.md), [E7e](ready/E7e-text-runs-and-inline-edit.md) |
+| E7g | [Search and replace across the document](ready/E7g-search-and-replace.md) | ready | [C5b](ready/C5b-find-in-document.md), [E7f](ready/E7f-font-handling-and-styling.md) |
+| E7h | [Vector path editing, fills, strokes, clipping paths and masks](ready/E7h-vector-clipping-masks.md) | ready | [E7d](ready/E7d-select-transform-existing.md) |
+| E7i | [Struct-tree and MCID maintenance; PDF/A and PDF/UA re-checks on save](ready/E7i-structure-and-conformance-maintenance.md) | ready | [B8b](ready/B8b-conformance-profiles-and-verapdf.md), [E7e](ready/E7e-text-runs-and-inline-edit.md) |
+| E7j | [Edit-corpus tests and E7 round close](ready/E7j-edit-corpus.md) | ready | [E7g](ready/E7g-search-and-replace.md), [E7h](ready/E7h-vector-clipping-masks.md), [E7i](ready/E7i-structure-and-conformance-maintenance.md) |
+| E8a | [ADR 0021: PDF JavaScript policy](ready/E8a-adr-0021-javascript-policy.md) | ready | [E7b](ready/E7b-editing-existing-content-feature-plan.md) |
+| E8b | [Form filling and data: feature plan](ready/E8b-form-filling-feature-plan.md) | ready | [E5a](ready/E5a-review-stamps-interchange-feature-plan.md), [E8a](ready/E8a-adr-0021-javascript-policy.md) |
+| E8c | [AcroForm field model, value ops, flags and XFA detection](ready/E8c-acroform-field-model.md) | ready | [E8b](ready/E8b-form-filling-feature-plan.md) |
+| E8d | [Value appearance generation for every field type](ready/E8d-field-appearances.md) | ready | [E4e](ready/E4e-freetext-callouts.md), [E8c](ready/E8c-acroform-field-model.md) |
+| E8e | [Field widgets as DOM overlays, tab order, required/read-only, push buttons and submit](ready/E8e-field-widgets-ui.md) | ready | [E1e](ready/E1e-save-and-constraint-banner.md), [E8d](ready/E8d-field-appearances.md) |
+| E8f | [Formatting, validation, calculation and conditional behaviour (declarative and per ADR 0021)](ready/E8f-declarative-behaviour.md) | ready | [E8a](ready/E8a-adr-0021-javascript-policy.md), [E8e](ready/E8e-field-widgets-ui.md) |
+| E8g | [Form data import/export (FDF, XFDF, JSON), reset, programmatic fill and flatten](ready/E8g-form-data-and-flatten.md) | ready | [E2e](ready/E2e-content-append-api.md), [E5d](ready/E5d-xfdf-fdf.md), [E8d](ready/E8d-field-appearances.md) |
+| E9a | [Form authoring: feature plan](ready/E9a-form-authoring-feature-plan.md) | ready | [E8b](ready/E8b-form-filling-feature-plan.md) |
+| E9b | [Field creation and configuration ops, including signature fields](ready/E9b-field-creation-ops.md) | ready | [E8d](ready/E8d-field-appearances.md), [E9a](ready/E9a-form-authoring-feature-plan.md) |
+| E9c | [Form-design mode: inspector, validation/format/calculation settings, tab-order editor, accessible labels](ready/E9c-form-design-mode.md) | ready | [E8f](ready/E8f-declarative-behaviour.md), [E9b](ready/E9b-field-creation-ops.md) |
+| E9d | [Automatic field detection on flat forms (optional)](ready/E9d-automatic-field-detection.md) | ready | [E7c](ready/E7c-content-ir.md), [E9c](ready/E9c-form-design-mode.md) |
+| E10a | [ADR 0020: signatures, crypto backends and key storage per platform](ready/E10a-adr-0020-signatures.md) | ready | [E9a](ready/E9a-form-authoring-feature-plan.md) |
+| E10b | [Signatures: feature plan](ready/E10b-signatures-feature-plan.md) | ready | [E9a](ready/E9a-form-authoring-feature-plan.md), [E10a](ready/E10a-adr-0020-signatures.md) |
+| E10c | [Visual signatures: image, drawn and typed (non-cryptographic)](ready/E10c-visual-signatures.md) | ready | [E4d](ready/E4d-appearances-ink-and-shapes.md), [E5c](ready/E5c-stamps-and-attachments.md), [E6b](ready/E6b-place-images-and-shapes.md), [E10b](ready/E10b-signatures-feature-plan.md) |
+| E10d | [PAdES B-B signing core with two-phase external signing](ready/E10d-pades-signing-core.md) | ready | [E9b](ready/E9b-field-creation-ops.md), [E10b](ready/E10b-signatures-feature-plan.md) |
+| E10e | [Trusted timestamps (B-T, document timestamps) and the optional TSA proxy Worker](ready/E10e-timestamps-and-tsa-proxy.md) | ready | [C4a](ready/C4a-ui-chrome-and-platform.md), [E10d](ready/E10d-pades-signing-core.md) |
+| E10f | [Certification (DocMDP), field locking (FieldMDP) and allowed changes](ready/E10f-certification-and-locking.md) | ready | [E10d](ready/E10d-pades-signing-core.md) |
+| E10g | [Signature validation: integrity, chain, revocation, signer inspection](ready/E10g-signature-validation.md) | ready | [E10d](ready/E10d-pades-signing-core.md) |
+| E10h | [Revision diff analysis, modification warnings and attack-catalogue tests](ready/E10h-revision-diff-and-attacks.md) | ready | [E10f](ready/E10f-certification-and-locking.md), [E10g](ready/E10g-signature-validation.md) |
+| E10i | [Platform key storage: OS keychains and PKCS#11 (desktop), WebCrypto and PKCS#12 (web)](ready/E10i-platform-signers.md) | ready | [C3a](ready/C3a-viewer-worker-rpc.md), [D2c](ready/D2c-engine-sandbox.md), [E10d](ready/E10d-pades-signing-core.md) |
+| E10j | [Signing flow and signature panel UI](ready/E10j-signature-ui.md) | ready | [E10c](ready/E10c-visual-signatures.md), [E10e](ready/E10e-timestamps-and-tsa-proxy.md), [E10h](ready/E10h-revision-diff-and-attacks.md), [E10i](ready/E10i-platform-signers.md) |
+| E11a | [Security and sanitisation: feature plan](ready/E11a-security-and-sanitisation-feature-plan.md) | ready | [E10b](ready/E10b-signatures-feature-plan.md) |
+| E11b | [AES-256 encryption on write, passwords and permissions; inspect encryption](ready/E11b-encrypt-on-write.md) | ready | [B2b](ready/B2b-standard-security-decryption.md), [E11a](ready/E11a-security-and-sanitisation-feature-plan.md) |
+| E11c | [Remove security with authorisation and change passwords](ready/E11c-remove-security.md) | ready | [E11b](ready/E11b-encrypt-on-write.md) |
+| E11d | [Sanitiser ops with a report](ready/E11d-sanitiser.md) | ready | [E3f](ready/E3f-attachments-and-associated-files.md), [E5b](ready/E5b-comment-threads-and-review.md), [E7c](ready/E7c-content-ir.md), [E11a](ready/E11a-security-and-sanitisation-feature-plan.md) |
+| E11e | [Public-key (certificate) security: read, write behind a flag](ready/E11e-public-key-security.md) | ready | [E10g](ready/E10g-signature-validation.md), [E10i](ready/E10i-platform-signers.md), [E11b](ready/E11b-encrypt-on-write.md) |
+| E12a | [Redaction: feature plan](ready/E12a-redaction-feature-plan.md) | ready | [E7c](ready/E7c-content-ir.md), [E11a](ready/E11a-security-and-sanitisation-feature-plan.md) |
+| E12b | [Mark and review: Redact annotations and preview](ready/E12b-mark-and-review.md) | ready | [E4b](ready/E4b-annotation-model-and-overlay.md), [E12a](ready/E12a-redaction-feature-plan.md) |
+| E12c | [Apply redactions: remove glyphs, paths and image pixels](ready/E12c-apply-content-removal.md) | ready | [E7c](ready/E7c-content-ir.md), [E12b](ready/E12b-mark-and-review.md) |
+| E12d | [Scrub non-content layers, full rewrite and verification report](ready/E12d-scrub-and-rewrite.md) | ready | [E8c](ready/E8c-acroform-field-model.md), [E10d](ready/E10d-pades-signing-core.md), [E11d](ready/E11d-sanitiser.md), [E12c](ready/E12c-apply-content-removal.md) |
+| E12e | [Search sensitive content to redact](ready/E12e-sensitive-search.md) | ready | [C5b](ready/C5b-find-in-document.md), [E12b](ready/E12b-mark-and-review.md), [E12d](ready/E12d-scrub-and-rewrite.md) |
+| E12f | [Redaction leak tests across pdf.js, PDFium, pypdf and pdftotext; round close](ready/E12f-leak-tests.md) | ready | [E12d](ready/E12d-scrub-and-rewrite.md), [E12e](ready/E12e-sensitive-search.md), [X3a](ready/X3a-nightly-lane.md) |
+| E13a | [ADR 0013: heavy jobs on Workflows + Containers; OCR and conversion engines and licences](ready/E13a-adr-0013-heavy-jobs.md) | ready | [C2b](ready/C2b-lamina-render-crate.md), [E12a](ready/E12a-redaction-feature-plan.md) |
+| E13b | [OCR and conversion: feature plan](ready/E13b-ocr-and-conversion-feature-plan.md) | ready | [E13a](ready/E13a-adr-0013-heavy-jobs.md) |
+| E13c | [Invisible OCR text layer from hOCR/ALTO](ready/E13c-ocr-text-layer.md) | ready | [B4b](ready/B4b-shaping-bidi-line-breaking.md), [B4c](ready/B4c-standard-14-and-simple-fonts.md), [E2e](ready/E2e-content-append-api.md), [E13b](ready/E13b-ocr-and-conversion-feature-plan.md) |
+| E13d | [Client-side OCR on web and local OCR on desktop](ready/E13d-local-ocr.md) | ready | [E13c](ready/E13c-ocr-text-layer.md) |
+| E13e | [Opt-in server jobs: Workflows + Containers with R2 lifecycle (OCR and Office conversion)](ready/E13e-server-jobs-infrastructure.md) | ready | [C7c](ready/C7c-performance-gates-and-launch.md), [E13c](ready/E13c-ocr-text-layer.md) |
+| E13f | [Office → PDF and HTML → PDF (Browser Run) with lamina post-processing](ready/E13f-office-and-html-to-pdf.md) | ready | [E13e](ready/E13e-server-jobs-infrastructure.md) |
+| E13g | [PDF → Word and PDF tables → Excel (server)](ready/E13g-pdf-to-word-excel.md) | ready | [E13e](ready/E13e-server-jobs-infrastructure.md) |
+| E14a | [Compare, revisions and batch: feature plan](ready/E14a-compare-revisions-batch-feature-plan.md) | ready | [E13b](ready/E13b-ocr-and-conversion-feature-plan.md) |
+| E14b | [Revision index and revision browser](ready/E14b-revision-browser.md) | ready | [E10h](ready/E10h-revision-diff-and-attacks.md), [E14a](ready/E14a-compare-revisions-batch-feature-plan.md) |
+| E14c | [Visual and structural compare](ready/E14c-compare.md) | ready | [C5b](ready/C5b-find-in-document.md), [E14b](ready/E14b-revision-browser.md) |
+| E14d | [Batch runner over saved op sequences (local)](ready/E14d-batch-runner.md) | ready | [E6d](ready/E6d-watermarks-headers-footers.md), [E14a](ready/E14a-compare-revisions-batch-feature-plan.md) |
+| E14e | [Optional server batch via Workflows](ready/E14e-server-batch.md) | ready | [E13e](ready/E13e-server-jobs-infrastructure.md), [E14d](ready/E14d-batch-runner.md) |
+| E15a | [Accessibility: feature plan](ready/E15a-accessibility-feature-plan.md) | ready | [B8b](ready/B8b-conformance-profiles-and-verapdf.md), [E14a](ready/E14a-compare-revisions-batch-feature-plan.md) |
+| E15b | [Structure-tree editing model, tag tree panel and reading-order overlay](ready/E15b-structure-tree-editing.md) | ready | [B8b](ready/B8b-conformance-profiles-and-verapdf.md), [E7i](ready/E7i-structure-and-conformance-maintenance.md), [E15a](ready/E15a-accessibility-feature-plan.md), [X3a](ready/X3a-nightly-lane.md) |
+| E15c | [Tagging tools: headings, lists, tables, artifacts, alt text, language, form and link labels](ready/E15c-tagging-tools.md) | ready | [E15b](ready/E15b-structure-tree-editing.md) |
+| E15d | [Matterhorn machine checks, missing fonts/Unicode checks and fix-ups](ready/E15d-accessibility-checks.md) | ready | [E15b](ready/E15b-structure-tree-editing.md) |
+| E15e | [PDF/UA output and veraPDF agreement in CI; round close](ready/E15e-pdfua-output.md) | ready | [E15c](ready/E15c-tagging-tools.md), [E15d](ready/E15d-accessibility-checks.md) |
+| E16a | [Optimisation and print production: feature plan](ready/E16a-optimisation-print-feature-plan.md) | ready | [E15a](ready/E15a-accessibility-feature-plan.md) |
+| E16b | [Optimiser: unused objects, dedupe, object streams, linearisation](ready/E16b-structural-optimiser.md) | ready | [E16a](ready/E16a-optimisation-print-feature-plan.md) |
+| E16c | [Downsample and recompress images; embed or subset fonts](ready/E16c-images-and-fonts.md) | ready | [B4b](ready/B4b-shaping-bidi-line-breaking.md), [B4c](ready/B4c-standard-14-and-simple-fonts.md), [E16b](ready/E16b-structural-optimiser.md) |
+| E16d | [Colour conversion, ICC and output intents, spot colours and overprint preview, page boxes for print](ready/E16d-colour.md) | ready | [E2f](ready/E2f-page-geometry.md), [E7c](ready/E7c-content-ir.md), [E16a](ready/E16a-optimisation-print-feature-plan.md) |
+| E16e | [Preflight rules as data; PDF/A and PDF/X conversion and validation; transparency flattening](ready/E16e-preflight-and-conversion.md) | ready | [E15e](ready/E15e-pdfua-output.md), [E16c](ready/E16c-images-and-fonts.md), [E16d](ready/E16d-colour.md) |
+| E16f | [Imposition, booklet and N-up](ready/E16f-imposition.md) | ready | [E2c](ready/E2c-cross-document-pages.md), [E16a](ready/E16a-optimisation-print-feature-plan.md) |
+| E16g | [Optional server batch optimisation](ready/E16g-server-batch-optimise.md) | ready | [E14e](ready/E14e-server-batch.md), [E16b](ready/E16b-structural-optimiser.md), [E16e](ready/E16e-preflight-and-conversion.md) |
+| E17a | [Advanced interactions: feature plan](ready/E17a-advanced-interactions-feature-plan.md) | ready | [E8a](ready/E8a-adr-0021-javascript-policy.md), [E16a](ready/E16a-optimisation-print-feature-plan.md) |
+| E17b | [Action editor: JavaScript authoring, buttons, event-triggered and open actions](ready/E17b-action-editor.md) | ready | [E3c](ready/E3c-links.md), [E9c](ready/E9c-form-design-mode.md), [E17a](ready/E17a-advanced-interactions-feature-plan.md), [E17c](ready/E17c-layers.md) |
+| E17c | [Layers panel: show/hide and edit optional content groups](ready/E17c-layers.md) | ready | [E17a](ready/E17a-advanced-interactions-feature-plan.md) |
+| E17d | [Media: Screen/Rendition, RichMedia and audio annotation playback](ready/E17d-media.md) | ready | [E5c](ready/E5c-stamps-and-attachments.md), [E17a](ready/E17a-advanced-interactions-feature-plan.md) |
+| E17e | [Measurement tools and scales; geospatial read](ready/E17e-measurement.md) | ready | [E4d](ready/E4d-appearances-ink-and-shapes.md), [E17a](ready/E17a-advanced-interactions-feature-plan.md) |
+| E17f | [3D detection with poster fallback; round close](ready/E17f-3d-detection.md) | ready | [E17b](ready/E17b-action-editor.md), [E17c](ready/E17c-layers.md), [E17d](ready/E17d-media.md), [E17e](ready/E17e-measurement.md) |
+| E18a | [ADR 0012: collaboration — Durable Object per document, LWW records, leases](ready/E18a-adr-0012-collaboration.md) | ready | [E17a](ready/E17a-advanced-interactions-feature-plan.md), [H1](ready/H1-auth-spike.md) |
+| E18b | [Collaboration (hosted service): feature plan](ready/E18b-collaboration-feature-plan.md) | ready | [E2b](ready/E2b-page-structure-ops.md), [E4b](ready/E4b-annotation-model-and-overlay.md), [E5b](ready/E5b-comment-threads-and-review.md), [E8c](ready/E8c-acroform-field-model.md), [E18a](ready/E18a-adr-0012-collaboration.md), [H2](ready/H2-accounts-and-login.md), [H3](ready/H3-cloud-document-storage.md) |
+| E18c | [Layer-document schema and record ↔ op mapping](ready/E18c-layer-document-schema.md) | ready | [E2b](ready/E2b-page-structure-ops.md), [E4b](ready/E4b-annotation-model-and-overlay.md), [E5b](ready/E5b-comment-threads-and-review.md), [E8c](ready/E8c-acroform-field-model.md), [E18b](ready/E18b-collaboration-feature-plan.md) |
+| E18d | [Collaboration server: Durable Object per document, R2 base revisions, D1 index](ready/E18d-durable-object-server.md) | ready | [E18c](ready/E18c-layer-document-schema.md), [H3](ready/H3-cloud-document-storage.md), [H4](ready/H4-document-sync.md) |
+| E18e | [Client sync, presence and offline sync on desktop](ready/E18e-client-sync-and-presence.md) | ready | [E2b](ready/E2b-page-structure-ops.md), [E4b](ready/E4b-annotation-model-and-overlay.md), [E5b](ready/E5b-comment-threads-and-review.md), [E8c](ready/E8c-acroform-field-model.md), [E18d](ready/E18d-durable-object-server.md) |
+| E18f | [Sharing, roles and comment notifications](ready/E18f-sharing-and-notifications.md) | ready | [E18d](ready/E18d-durable-object-server.md), [H3](ready/H3-cloud-document-storage.md) |
+| E18g | [Leases for content edits and redactions; server jobs minting new base revisions](ready/E18g-leases-and-base-revisions.md) | ready | [E7d](ready/E7d-select-transform-existing.md), [E10d](ready/E10d-pades-signing-core.md), [E12d](ready/E12d-scrub-and-rewrite.md), [E13e](ready/E13e-server-jobs-infrastructure.md), [E18e](ready/E18e-client-sync-and-presence.md), [H4](ready/H4-document-sync.md) |
+| E18h | [Load test: 50 concurrent reviewers on one document; round close](ready/E18h-load-test.md) | ready | [E18f](ready/E18f-sharing-and-notifications.md), [E18g](ready/E18g-leases-and-base-revisions.md) |
+
+## Publishing (later)
+
+| ID | Todo | State | Depends on |
+| --- | --- | --- | --- |
+| P1 | [Reserve names, ADR 0017 publishing part, OIDC trusted publishing and the release workflow](ready/P1-reserve-names-and-trusted-publishing.md) | ready | [B7b](ready/B7b-versioning-and-0-1-0-alpha.md) |
+| P2 | [First registry pre-release, public stability policy and changelog, cargo-semver-checks](ready/P2-first-registry-prerelease.md) | ready | [P1](ready/P1-reserve-names-and-trusted-publishing.md) |
+
+## Cross-cutting
+
+| ID | Todo | State | Depends on |
+| --- | --- | --- | --- |
+| X1 | [Docs link checker and todo-board check in `cargo xtask`, run in CI](ready/X1-docs-link-checker.md) | ready | — |
+| X2 | [Capability matrix generator: ~180 operations, test-backed statuses](ready/X2-capability-matrix.md) | ready | [B3c](ready/B3c-save-planner-and-roundtrip.md) |
+| X3a | [Nightly CI lane: external-corpus differential, extended fuzzing, scaling tests and benchmarks](ready/X3a-nightly-lane.md) | ready | [B2c](ready/B2c-lamina-model-corpus-fuzz.md) |
+| X3b | [Nightly hayro-vs-PDFium render diffs](ready/X3b-render-diff-nightly.md) | ready | [C2b](ready/C2b-lamina-render-crate.md), [X3a](ready/X3a-nightly-lane.md) |
+| X4 | [Full PR lane with an always-running gate job](ready/X4-full-lane-gate.md) | ready | [B2c](ready/B2c-lamina-model-corpus-fuzz.md) |
+

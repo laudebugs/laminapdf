@@ -80,17 +80,21 @@ The research couldn't answer these. Each is a small, time-boxed spike under `spi
 | `desktop-print` | How to print faithfully from Tauri on each OS (native print of rendered pages vs webview print), given the `hasNativePrint` capability | Round D |
 | `auth` | Better Auth / Auth.js on D1 vs hosted vendors, for the hosted service's user login and accounts (in scope since 2026-10-28, §8 Q2); run before the first round that needs accounts | ADR 0011 |
 
-## 5. Rounds (one pull request each)
+## 5. Rounds
 
-Each round is one focused pull request, in its own worktree, reviewed before merge.
+Each round is split into todos, one pull request each, every one in its own worktree and reviewed before merge (see [Todos](#todos) below).
 
-- **Round A — Foundations.** ADRs 0001, 0002, 0015, 0019. Monorepo skeleton (`crates/`, `packages/`, `apps/`, `fixtures/`, `tools/xtask`, `deny.toml`, `rust-toolchain.toml`, pnpm workspace). CI fast lane. Port the spike's core into `crates/lamina-syntax` and `lamina-cos`, keeping its tests.
-- **Round B — Core model and the first package.** ADRs 0003, 0005–0007, 0016–0018. `lamina-model`, `lamina-ops`, `lamina-save`, `lamina-build`; the `lamina` façade crate; `lamina-wasm` + `@lamina/pdf` with generation; the `krilla-fit` spike. CI full lane with golden tests. The first `0.1.0-alpha` is versioned and tagged but **not published**: crates and npm packages stay local until the owner decides to publish (see [Publishing (later)](#publishing-later)).
-- **Round C — Web reader.** ADRs 0004, 0009–0011. `pdfium-wasm` and `hayro-parity` spikes; `@lamina/viewer`, `@lamina/ui`, `apps/web` on Workers static assets; Playwright tests; preview deploys per PR.
-- **Round D — Desktop reader.** `desktop-ipc` spike; ADRs 0008, 0014; `apps/desktop` (Tauri 2); `apps/updates` Worker + R2; signing and notarisation in CI.
-- **Later rounds.** Editing features by phase ([06 §9](../research/pdf/06-feature-inventory.md)), collaboration (ADR 0012), heavy jobs (ADR 0013). Each feature group gets its own plan and pull requests.
+- **Round A — Foundations** (done: [A1](../todos/done/A1-foundation-adrs.md), [A2](../todos/done/A2-monorepo-skeleton.md), [A3](../todos/done/A3-port-spike-core.md)). ADRs 0001, 0002, 0015, 0019. Monorepo skeleton (`crates/`, `packages/`, `apps/`, `fixtures/`, `tools/xtask`, `deny.toml`, `rust-toolchain.toml`, pnpm workspace). CI fast lane. Port the spike's core into `crates/lamina-syntax` and `lamina-cos`, keeping its tests.
+- **Round B — Core model and the first package** (todos B1a–B9c, listed in the [library plan §7](pdf-library.md#7-rounds)). ADRs 0003, 0005–0007, 0016–0018. `lamina-model`, `lamina-ops`, `lamina-save`, `lamina-build`; the `lamina` façade crate; `lamina-wasm` + `@lamina/pdf` with generation; the `krilla-fit` spike. CI full lane with golden tests ([X4](../todos/ready/X4-full-lane-gate.md)). The first `0.1.0-alpha` is versioned and tagged but **not published**: crates and npm packages stay local until the owner decides to publish (see [Publishing (later)](#publishing-later)).
+- **Round C — Web reader** (todos C1a–C7c, listed in the [web-app plan §6](web-app.md#6-rounds)). ADRs 0004, 0009–0011. `pdfium-wasm` and `hayro-parity` spikes; `@lamina/viewer`, `@lamina/ui`, `apps/web` on Workers static assets; Playwright tests; preview deploys per PR.
+- **Round D — Desktop reader** (todos D1a–D7c, listed in the [desktop-app plan §6](desktop-app.md#6-rounds)). `desktop-ipc` spike; ADRs 0008, 0014; `apps/desktop` (Tauri 2); `apps/updates` Worker + R2; signing and notarisation in CI.
+- **Later rounds** (todos E1a–E18h and H1–H4, listed in the [full-editor plan §7](full-editor.md#7-phases-and-rounds)). Editing features by phase ([06 §9](../research/pdf/06-feature-inventory.md)), collaboration (ADR 0012), heavy jobs (ADR 0013). Each feature group gets its own plan and pull requests.
 
-Product-level detail (features, milestones, acceptance criteria) lives in the product plans (library, web app, desktop app, full-featured editor), which follow in the next pull request.
+Product-level detail (features, milestones, acceptance criteria) lives in the product plans ([library](pdf-library.md), [web app](web-app.md), [desktop app](desktop-app.md), [full-featured editor](full-editor.md)).
+
+### Todos
+
+Every round is broken into todos, one per pull request, in [`docs/todos/`](../todos/README.md): `ready/` → `ongoing/` → `done/`, each with its dependencies. The to-dos in §7 link to them; Round A's are in `done/`.
 
 ## 6. Risks
 
@@ -106,6 +110,8 @@ Product-level detail (features, milestones, acceptance criteria) lives in the pr
 ## 7. To-dos
 
 ### Round A — Foundations
+Todos: [A1](../todos/done/A1-foundation-adrs.md) (ADRs), [A2](../todos/done/A2-monorepo-skeleton.md) (skeleton, xtask, CI), [A3](../todos/done/A3-port-spike-core.md) (port), all done.
+
 - [x] Write ADR 0001 (core language, licence, bytes in / bytes out)
 - [x] Write ADR 0002 (binding strategy)
 - [x] Write ADR 0015 (monorepo layout and tooling)
@@ -116,26 +122,29 @@ Product-level detail (features, milestones, acceptance criteria) lives in the pr
 - [x] Add `deny.toml` (licence allow-list without AGPL/GPL; advisories) and an npm licence check
 - [x] CI fast lane: fmt, clippy `-D warnings`, nextest, wasm32 build, TS typecheck/lint/test, cargo-deny (the wasm size budget moves to Round B, with the first `.wasm` artefact from `lamina-wasm`)
 - [x] Port the spike reader/writer into `crates/lamina-syntax` + `crates/lamina-cos`, with its fixtures moved to `fixtures/`
-- [ ] ~~Reserve package names~~ deferred: crates and npm packages stay local for now (decided 2026-10-28); see [Publishing (later)](#publishing-later)
+- [ ] ~~Reserve package names~~ ([P1](../todos/ready/P1-reserve-names-and-trusted-publishing.md)) deferred: crates and npm packages stay local for now (decided 2026-10-28); see [Publishing (later)](#publishing-later)
 - [ ] Update `CLAUDE.md` (layout, commands, decided architecture)
 
 ### Round B — Core model and the first package
-- [x] Write ADRs 0003, 0005, 0006, 0007, 0018 (B1; 0005 §6, the generation strategy, settled by `krilla-fit`)
-- [ ] Write ADRs 0016, 0017
-- [x] `krilla-fit` spike ([result](../../spikes/krilla-fit/README.md)), then decide the generation strategy (Option B, recorded in [ADR 0005 §6](../decisions/0005-document-model.md))
-- [ ] `lamina-model`: typed pages, annotations, fields, outline; stable IDs
-- [ ] `lamina-ops`: `Op` enum, `transact()`, inverses, undo/redo
-- [ ] `lamina-save`: save planner, `SaveConstraint`, streaming `WriteSink`
-- [ ] Move the writer (`Writer`, `incremental_update`, `XrefEol`) from `lamina-cos` into `lamina-save`, keeping the determinism and golden tests
-- [ ] `lamina-build`: builder API (`Document → page → surface → finish() → Document`)
-- [ ] Promote the spike's content builder and golden samples (`hello`, `imaging_demo`), now test support in `crates/lamina-cos/tests/common/`, into `lamina-build` (API and examples)
-- [ ] `lamina` façade crate: re-exports the public API of the core crates; this is what goes to crates.io
-- [ ] `lamina-text`: font embedding and subsetting for generation (see [03](../research/pdf/03-text-and-fonts.md))
-- [ ] `lamina-wasm` (wasm-bindgen + tsify) and `@lamina/pdf` (ESM-only, `init()`, export conditions; publint + attw)
-- [ ] Golden-file and corpus test harness in CI (full lane); fuzz targets under `fuzz/`
-- [ ] Changesets + Cargo version sync; tag `0.1.0-alpha` locally (no registry publish yet)
+- [x] Write ADRs 0003, 0005, 0006, 0007, 0018 ([B1a](../todos/done/B1a-round-b-adrs.md); 0005 §6, the generation strategy, settled by `krilla-fit`)
+- [ ] Write ADRs 0016 ([B6a](../todos/ready/B6a-lamina-wasm-and-adr-0016.md)), 0017 ([B7b](../todos/ready/B7b-versioning-and-0-1-0-alpha.md))
+- [x] `krilla-fit` spike ([B1b](../todos/done/B1b-krilla-fit-spike.md), [result](../../spikes/krilla-fit/README.md)), then decide the generation strategy (Option B, recorded in [ADR 0005 §6](../decisions/0005-document-model.md))
+- [ ] `lamina-model`: typed pages, annotations, fields, outline; stable IDs ([B2a](../todos/done/B2a-limits-owned-document.md) owned `Document` and `Limits`, [B2b](../todos/ready/B2b-standard-security-decryption.md) decryption, [B2c](../todos/ready/B2c-lamina-model-corpus-fuzz.md) views and IDs; annotations and fields in the editor rounds)
+- [ ] `lamina-ops`: `Op` enum, `transact()`, inverses, undo/redo ([B3a](../todos/ready/B3a-overlay-and-ops.md))
+- [ ] `lamina-save`: save planner, `SaveConstraint`, streaming `WriteSink` ([B3b](../todos/ready/B3b-lamina-save-writers.md), [B3c](../todos/ready/B3c-save-planner-and-roundtrip.md))
+- [ ] Move the writer (`Writer`, `incremental_update`, `XrefEol`) from `lamina-cos` into `lamina-save`, keeping the determinism and golden tests ([B3b](../todos/ready/B3b-lamina-save-writers.md))
+- [ ] `lamina-build`: builder API (`Document → page → surface → finish() → Document`) ([B5a](../todos/ready/B5a-lamina-build-core.md), [B5b](../todos/ready/B5b-builder-text-and-document-features.md))
+- [ ] Promote the spike's content builder and golden samples (`hello`, `imaging_demo`), now test support in `crates/lamina-cos/tests/common/`, into `lamina-build` (API and examples) ([B5a](../todos/ready/B5a-lamina-build-core.md))
+- [ ] `lamina` façade crate: re-exports the public API of the core crates; this is what goes to crates.io ([B5c](../todos/ready/B5c-lamina-facade-and-examples.md))
+- [ ] `lamina-text`: font embedding and subsetting for generation (see [03](../research/pdf/03-text-and-fonts.md)) ([B4a](../todos/ready/B4a-font-loading-and-subsetting.md), [B4b](../todos/ready/B4b-shaping-bidi-line-breaking.md), [B4c](../todos/ready/B4c-standard-14-and-simple-fonts.md))
+- [ ] `lamina-wasm` (wasm-bindgen + tsify) and `@lamina/pdf` (ESM-only, `init()`, export conditions; publint + attw) ([B6a](../todos/ready/B6a-lamina-wasm-and-adr-0016.md), [B6b](../todos/ready/B6b-lamina-pdf-package.md), [B6c](../todos/ready/B6c-runtime-matrix.md))
+- [ ] Golden-file and corpus test harness in CI (full lane); fuzz targets under `fuzz/` ([B2c](../todos/ready/B2c-lamina-model-corpus-fuzz.md) harness and fuzz targets, [X4](../todos/ready/X4-full-lane-gate.md) full lane)
+- [ ] Changesets + Cargo version sync; tag `0.1.0-alpha` locally (no registry publish yet) ([B7b](../todos/ready/B7b-versioning-and-0-1-0-alpha.md); docs site [B7a](../todos/ready/B7a-docs-site.md))
 
 ### Round C — Web reader
+
+Todos: see the [web-app plan §6](web-app.md#6-rounds) (C1a–C7c).
+
 - [ ] `pdfium-wasm` and `hayro-parity` spikes, with written results
 - [ ] Write ADRs 0004, 0009, 0010, 0011
 - [ ] `lamina-render` with the `RenderBackend` trait and PDFium/hayro adapters
@@ -145,6 +154,9 @@ Product-level detail (features, milestones, acceptance criteria) lives in the pr
 - [ ] Playwright and visual regression tests; accessibility checks
 
 ### Round D — Desktop reader
+
+Todos: see the [desktop-app plan §6](desktop-app.md#6-rounds) (D1a–D7c).
+
 - [ ] `desktop-ipc` and `desktop-print` spikes, then ADR 0008
 - [ ] `apps/desktop` (Tauri 2) reusing `@lamina/ui`. Process model: all parsing and rendering of untrusted files runs in a sandboxed engine process; the main process only does file I/O (mmap, file watching) and passes bytes and tiles across the boundary
 - [ ] `apps/updates`: Worker + R2 update manifests with channels and staged rollout
@@ -155,15 +167,18 @@ Product-level detail (features, milestones, acceptance criteria) lives in the pr
 
 Decided 2026-10-28 by the project owner: crates and npm packages stay local (workspace and path dependencies, `pnpm pack` tarballs, git tags) until the owner decides to publish. When that happens:
 
-- [ ] Reserve names: `lamina` and `lamina-*` on crates.io, the `@lamina` scope on npm
-- [ ] Write ADR 0017's publishing part: OIDC trusted publishing on npm and crates.io (first crates.io publish is manual), provenance, GitHub artifact attestations for `.wasm`
-- [ ] Add the release workflow (Changesets version PR → publish job) and switch every crate to trusted-publishing-only
-- [ ] Publish the first pre-release; verify install and quick start from the registries in each runtime
-- [ ] Publish the stability policy and changelog; enable cargo-semver-checks against the published version
+Todos: [P1](../todos/ready/P1-reserve-names-and-trusted-publishing.md) and [P2](../todos/ready/P2-first-registry-prerelease.md), both blocked on the owner's decision to publish.
+
+- [ ] Reserve names: `lamina` and `lamina-*` on crates.io, the `@lamina` scope on npm ([P1](../todos/ready/P1-reserve-names-and-trusted-publishing.md))
+- [ ] Write ADR 0017's publishing part ([P1](../todos/ready/P1-reserve-names-and-trusted-publishing.md)): OIDC trusted publishing on npm and crates.io (first crates.io publish is manual), provenance, GitHub artifact attestations for `.wasm`
+- [ ] Add the release workflow (Changesets version PR → publish job) and switch every crate to trusted-publishing-only ([P1](../todos/ready/P1-reserve-names-and-trusted-publishing.md))
+- [ ] Publish the first pre-release; verify install and quick start from the registries in each runtime ([P2](../todos/ready/P2-first-registry-prerelease.md))
+- [ ] Publish the stability policy and changelog; enable cargo-semver-checks against the published version ([P2](../todos/ready/P2-first-registry-prerelease.md))
 
 ### Cross-cutting
-- [ ] Capability matrix: generate a test-backed table of the ~180 operations (unsupported / read / write / round-trip)
-- [ ] Nightly lane: differential tests vs pdf.js, PDFium, qpdf, pypdf; hayro-vs-PDFium render diffs; veraPDF; benchmarks
+- [ ] Capability matrix: generate a test-backed table of the ~180 operations (unsupported / read / write / round-trip) ([X2](../todos/ready/X2-capability-matrix.md))
+- [ ] Nightly lane: differential tests vs pdf.js, PDFium, qpdf, pypdf; hayro-vs-PDFium render diffs; veraPDF; benchmarks ([X3a](../todos/ready/X3a-nightly-lane.md); render diffs [X3b](../todos/ready/X3b-render-diff-nightly.md); veraPDF added by [B8b](../todos/ready/B8b-conformance-profiles-and-verapdf.md))
+- [ ] Docs link checker in `cargo xtask`, run in CI, so links to todos survive their moves between folders ([X1](../todos/ready/X1-docs-link-checker.md))
 - [ ] Decide product questions (§8; Q2 and Q5 answered 2026-10-28)
 
 ## 8. Open questions for the team

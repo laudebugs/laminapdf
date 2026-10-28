@@ -29,9 +29,9 @@ All four share one Rust core, so every operation is built once ([architecture §
  C7 + D7 ─► E1 ─► E2 ─► E3 ─► E4 ─► E5 ─► E6 ─► E7 ─► E8 ─► E9 ─► E10 ─► E11 … E18 (editor phases 2–6)
 ```
 
-- **A before everything.** Workspace, CI fast lane and `lamina-syntax`/`lamina-cos` ([architecture §5](architecture.md#5-rounds-one-pull-request-each)).
+- **A before everything.** Workspace, CI fast lane and `lamina-syntax`/`lamina-cos` ([architecture §5](architecture.md#5-rounds)).
 - **Library first** (recommended in [architecture §8](architecture.md#8-open-questions-for-the-team), question 1): B1–B3 produce the model (with decryption, so readers can open password-protected files), ops and save path everyone needs.
-- **Web reader after B6:** C1's PDFium spike loads `lamina-wasm` next to PDFium-WASM, so it starts once B6 has merged (its `hayro-parity` half can start earlier). C5's text layer needs B9 (text extraction), which runs alongside C1–C4. B7, B8 and B9 run in parallel with the reader rounds.
+- **Web reader after B6:** C1's PDFium spike loads `lamina-wasm` next to PDFium-WASM, so it starts once B6 has merged (its `hayro-parity` half can start earlier). C5's text layer needs B9 (text extraction), which runs alongside C1–C4. B7, B8 and B9 run in parallel with the reader rounds. Technically B9a (the `lamina-content` interpreter) only needs B2c, so it may start before B6 if people are free; B9c (bindings) needs B6b.
 - **Desktop after the web packages:** D1 can start after C3; D2 needs `@lamina/ui` from C4.
 - **Editor after both readers** ship v0.1, so phase 1 (core viewer) is done once and E-rounds add features to both shells and the packages at the same time.
 - **B8 and later E-rounds** can overlap with reader work as people allow; they don't block each other except where listed.
@@ -54,14 +54,14 @@ All four share one Rust core, so every operation is built once ([architecture §
 
 ## All rounds and PRs
 
-One row per round. Reader and library rounds are one PR each; editor rounds are a feature-plan PR followed by a stack of implementation PRs ([full-editor §7](full-editor.md#7-phases-and-rounds)).
+One row per round. Each round is split into one or more todos, one PR each, on the [todo board](../todos/README.md); editor rounds start with a feature-plan (or ADR) todo followed by implementation todos ([full-editor §7](full-editor.md#7-phases-and-rounds)).
 
 | Round | Plan | Deliverable | Key ADRs and spikes |
 | --- | --- | --- | --- |
 | #2 | [guidelines](../guidelines/README.md) | Code organisation, Rust, TypeScript, git workflow | — |
 | #3 | [architecture](architecture.md) | Architecture research and plan | — |
 | This PR | roadmap + product plans | Plans with to-dos | — |
-| A | [architecture §5](architecture.md#5-rounds-one-pull-request-each) | Monorepo foundations | 0001, 0002, 0015, 0019 |
+| A | [architecture §5](architecture.md#5-rounds) | Monorepo foundations | 0001, 0002, 0015, 0019 |
 | B1 | [library](pdf-library.md#b1-decisions-and-spike) | Decisions and spike | 0003, 0005, 0006, 0007, 0018; `krilla-fit` |
 | B2 | [library](pdf-library.md#b2-document-model) | Document model, decryption (read), corpus harness, fuzzing | — |
 | B3 | [library](pdf-library.md#b3-ops-and-save) | Ops, undo, save planner | — |
@@ -106,7 +106,8 @@ One row per round. Reader and library rounds are one PR each; editor rounds are 
 
 ## How we track progress
 
-- **Plans** hold the to-do checklists; tick them in the PR that completes them.
+- **The [todo board](../todos/README.md)** is the work queue: one file per PR in `ready/`, `ongoing/` or `done/`, each with explicit **Depends on** / **Blocks**. Every round below is split into todos there (for example B2 → B2a, B2b, B2c). Pick only todos whose dependencies are all done ([git workflow §2](../guidelines/git-workflow.md#pick-work-from-the-todo-board)).
+- **Plans** hold the to-do checklists and link each round to its todos; tick them in the PR that completes them.
 - **The capability matrix** ([full-editor §3](full-editor.md#3-tracking-the-capability-matrix)) is the source of truth for which of the ~180 operations work on which surface.
 - **ADRs** in `docs/decisions/` record each decision in the round listed above.
 - A plan's status moves Draft → In progress (first round merged) → Done (last round merged).
