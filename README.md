@@ -2,7 +2,7 @@
 
 A platform for anything and everything PDF — creating, reading, rendering, editing, filling, signing and transforming PDF documents from code.
 
-> **Status:** foundations. Research is done and the first architecture decisions are accepted ([ADRs](docs/decisions/README.md)); Round A is under way: the monorepo skeleton (Cargo + pnpm workspaces, `cargo xtask`, CI) is in place, the first core crates come next. No product code yet.
+> **Status:** foundations. Research is done and the first architecture decisions are accepted ([ADRs](docs/decisions/README.md)); Round A is under way: the monorepo skeleton (Cargo + pnpm workspaces, `cargo xtask`, CI) is in place, and the first core crates, `lamina-syntax` and `lamina-cos` (reading and writing PDF file structure), are ported from the research spike. No packages or apps yet.
 
 ## Repository layout
 

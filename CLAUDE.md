@@ -4,7 +4,7 @@ Guidance for Claude Code (and humans) working in this repository.
 
 ## What lamina is
 
-lamina is a platform for anything and everything PDF: creating PDFs from code, parsing and extracting content, rendering, editing, form filling, signing, and transforming documents. There is no application code yet. Decisions are recorded as ADRs in `docs/decisions/`; accepted so far: a Rust core, `MIT OR Apache-2.0`, bytes in / bytes out with no AGPL/GPL dependencies ([0001](docs/decisions/0001-core-language-and-licence.md)); wasm-bindgen + tsify bindings ([0002](docs/decisions/0002-binding-strategy.md)); the Cargo + pnpm + `cargo xtask` monorepo ([0015](docs/decisions/0015-monorepo-layout-and-tooling.md)); cargo-deny and licence hygiene ([0019](docs/decisions/0019-supply-chain-and-licence-hygiene.md)). The plan for the rest is in `docs/plans/architecture.md`; don't assume decisions that aren't in an ADR.
+lamina is a platform for anything and everything PDF: creating PDFs from code, parsing and extracting content, rendering, editing, form filling, signing, and transforming documents. The first core crates (`lamina-syntax`, `lamina-cos`, ported from the pdf-basics spike) exist; there are no packages or apps yet. Decisions are recorded as ADRs in `docs/decisions/`; accepted so far: a Rust core, `MIT OR Apache-2.0`, bytes in / bytes out with no AGPL/GPL dependencies ([0001](docs/decisions/0001-core-language-and-licence.md)); wasm-bindgen + tsify bindings ([0002](docs/decisions/0002-binding-strategy.md)); the Cargo + pnpm + `cargo xtask` monorepo ([0015](docs/decisions/0015-monorepo-layout-and-tooling.md)); cargo-deny and licence hygiene ([0019](docs/decisions/0019-supply-chain-and-licence-hygiene.md)). The plan for the rest is in `docs/plans/architecture.md`; don't assume decisions that aren't in an ADR.
 
 ## Repository layout
 
@@ -16,11 +16,14 @@ lamina is a platform for anything and everything PDF: creating PDFs from code, p
 ├── rust-toolchain.toml  # pinned Rust toolchain + targets (wasm32, iOS, Android)
 ├── package.json         # private pnpm root: dev tooling only; pnpm-workspace.yaml lists packages/*, apps/*
 ├── biome.json  tsconfig.base.json  deny.toml  clippy.toml  rustfmt.toml
-├── crates/              # Rust crates, flat: crates/lamina-<name> (lamina-syntax is a placeholder for now)
+├── crates/              # Rust crates, flat: crates/lamina-<name>
+│   ├── lamina-syntax/   #   core: object model + serialization, lexer, parser, filters (Flate, PNG predictors)
+│   └── lamina-cos/      #   core: reader (xref, object streams, repair, page tree) and writer (moves to lamina-save in Round B)
+├── fixtures/            # shared test inputs: golden/ (byte-exact), corpus/ + expected.json; README.md has provenance
 ├── tools/xtask/         # `cargo xtask …`: the single task entry point
 ├── .github/             # CI fast lane (workflows/ci.yml) and Dependabot
 ├── spikes/              # research spikes (throwaway code that informs decisions), outside both workspaces
-│   └── pdf-basics/      # minimal PDF core in Rust + TypeScript, shared fixtures and spec
+│   └── pdf-basics/      # minimal PDF core in Rust + TypeScript, its own frozen fixtures and spec (ported to crates/)
 └── docs/                # all documentation (see docs/README.md)
     ├── research/        # deep dives and research notes, one subfolder per topic
     ├── plans/           # roadmaps and feature design docs
@@ -70,6 +73,8 @@ cargo xtask ci               # the whole fast lane locally: check + wasm
 cargo xtask doctor           # are rustc, node, pnpm, cargo-deny, cargo-nextest, wasm-opt … at the pinned versions?
 cargo xtask doctor --install # install the pinned cargo tools
 ```
+
+A single crate: `cargo test -p lamina-cos` (integration tests read the shared `fixtures/`; golden files are never rewritten by a test).
 
 Every crate under `crates/` declares its layer in `Cargo.toml` (`[package.metadata.lamina] layer = "core" | "edge" | "app"`); xtask applies the bytes-in/bytes-out rules to core crates. External tool versions are pinned in `tools/xtask/src/doctor.rs` (CI installs the same ones): `cargo-deny` is required by `check`; `cargo-nextest` is optional (falls back to `cargo test`).
 
