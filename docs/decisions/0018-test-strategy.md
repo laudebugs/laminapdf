@@ -34,9 +34,11 @@ The test layout rules (unit tests in-file, integration tests on the public API, 
 | Lane | When | Runs | Budget |
 | --- | --- | --- | --- |
 | **Fast** | Every PR and push to `main` (exists, `.github/workflows/ci.yml`) | fmt, clippy `-D warnings` (native + wasm32), portability, tiers 1–5, doc tests, wasm build and size budget, TS checks, cargo-deny and npm licences, MSRV | ~10 min |
-| **Full** | PRs touching `crates/`, `packages/` or `fixtures/` (added in B2), required before merge | Fast lane on Linux, macOS and Windows; the 500-mutant differential set; each fuzz target for 2 min; round-trip with qpdf; render goldens and Playwright from Round C | ~30 min |
+| **Full** | Every PR and push to `main` (added in B2); a required check. Runs its suites only when the change touches `crates/`, `packages/`, `apps/`, `fixtures/`, `fuzz/`, `tools/` or `Cargo.lock`, otherwise passes in seconds | Fast lane on Linux, macOS and Windows; the 500-mutant differential set; each fuzz target for 2 min; round-trip with qpdf; render goldens and Playwright from Round C | ~30 min |
 | **Nightly** | Scheduled on `main` | Differential against live pdf.js, PDFium, qpdf and pypdf over the external corpus and all mutants; fuzz 10 min per target; veraPDF; hayro vs PDFium render diffs; perf and scaling | hours |
 | **Release** | Tags | Full + nightly suites on the release commit, packaging checks (publint, attw), clean-install smoke tests in each runtime | — |
+
+The Full lane is never skipped by a workflow-level `paths` filter: GitHub keeps a required check whose workflow didn't run as "Expected — waiting", which would block docs-only PRs. Instead the workflow always runs; a first job computes the changed paths (`git diff --name-only` against the merge base) and a final gate job, the one marked required, succeeds when the suites passed or were not needed. Pushes to `main` always run everything.
 
 A nightly failure opens an issue automatically and blocks the next release, not unrelated PRs.
 

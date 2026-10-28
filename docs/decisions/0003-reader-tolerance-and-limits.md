@@ -31,7 +31,7 @@ The policy already exists in code, ported from the spike and fixed in review of 
 | Unsupported filter | The document opens; only decoding that stream fails (`Error::UnsupportedFilter`) | `filters::decode` |
 | Encrypted file | Opens; `is_encrypted()` reports it. Decryption arrives in Round B2 | `Document::is_encrypted` |
 
-**Rejected** (errors, never repaired): empty input or no `n g obj` anywhere (`NotPdf`); no catalog even after repair (`MissingRoot`); reference and page-tree cycles (`ReferenceCycle`); exceeding any limit in §3. A malformed object is an error *for the call that resolves it*, not for `open`; errors are not cached. **Writing is strict:** an incremental update refuses a repaired base (`RepairedBase`) or an encrypted one (`EncryptedBase`, until full-editor E11), never shrinks `/Size`, and appends a section of the same kind as the newest.
+**Rejected** (errors, never repaired): empty input or no `n g obj` anywhere (`NotPdf`); no catalog even after repair (`MissingRoot`); reference and page-tree cycles (`ReferenceCycle`); exceeding a **hard** limit (§3) outside a tolerant path. Soft limits, and hard limits hit inside a tolerant path, degrade with a warning instead (§3). A malformed object is an error *for the call that resolves it*, not for `open`; errors are not cached. **Writing is strict:** an incremental update refuses a repaired base (`RepairedBase`) or an encrypted one (`EncryptedBase`, until full-editor E11), never shrinks `/Size`, and appends a section of the same kind as the newest.
 
 ### 2. Warnings: stable, enumerated codes
 
@@ -53,35 +53,40 @@ Every repair or substitution the caller might care about is a `Warning`, never s
 
 Warnings raised lazily (on resolve or decode) are recorded on the `Document` and deduplicated by (code, object). `Document::warnings()` returns what has been seen so far. Missing references (`null`) and integer-to-real promotion are documented behaviour, not warnings: they are common in valid files and too frequent to report.
 
-**Strict mode.** `OpenOptions::strict(true)` turns every warning into `Error::Strict { code }`. Validators and signature verification (full-editor E10) use it, so a file that needs repair is reported, not silently mended.
+**Strict mode.** `OpenOptions::default().with_strict(true)` turns every warning into `Error::Strict { code }`. Validators and signature verification (full-editor E10) use it, so a file that needs repair is reported, not silently mended.
 
 ### 3. `Limits`
 
-One `Limits` struct, defined in `lamina-syntax` and re-exported by `lamina-cos`, `lamina-model` and `lamina`, replaces `OpenOptions::max_decoded_size` and the private constants in B2. It is `Copy`, `#[non_exhaustive]`, with public fields read-only to callers and `const fn with_*` setters, like today's `OpenOptions`. `OpenOptions` holds `limits`, `strict` and (B2) the password. Exceeding a limit is `Error::LimitExceeded { limit: Limit, at: Option<u64> }`, which replaces `TooDeep` and `DecompressLimit`. The one exception is the xref loader, where an over-long `/Prev` chain is a load failure and leads to repair, because repair is linear in the file size.
+One `Limits` struct, defined in `lamina-syntax` and re-exported by `lamina-cos`, `lamina-model` and `lamina`, replaces `OpenOptions::max_decoded_size` and the private constants in B2. It is `Copy` with **private fields**: callers read them through `const fn` getters (`limits.max_nesting_depth()`) and change them with `const fn with_*` builders on `Limits::default()`, so new limits can be added without breaking anyone. `OpenOptions` (also private fields and builders) holds the `Limits`, `strict` and (B2) the password; `Document::open(source, OpenOptions)` takes it.
 
-| Field | Default | Today |
-| --- | --- | --- |
-| `max_nesting_depth` (arrays/dictionaries) | 256 | `lamina_syntax::MAX_DEPTH` |
-| `max_stream_decoded` (bytes, one stream) | 64 MiB | `DEFAULT_MAX_DECODED` |
-| `max_decoded_total` (bytes decoded by one top-level call: `open`, one page's content, one save) | 1 GiB | new |
-| `max_filter_chain` (filters per stream) | 8 | new (qpdf caps at 25) |
-| `max_xref_sections` (`/Prev` hops) | 4,096 | `MAX_SECTIONS` |
-| `max_object_number` | 8,388,607 (ISO 32000-1 Annex C) | new |
-| `max_resolve_depth` (reference chains in flight) | 32 | `MAX_RESOLVE_DEPTH` |
-| `max_page_tree_depth` | 256 | new (walk is iterative, so this bounds work, not stack) |
-| `max_tree_depth` (name trees, number trees, outline nesting) | 64 | new, with B2 views |
-| `max_string_length` (bytes, one string) | 16 MiB | new |
-| `max_warnings` | 1,000 | new |
-| `max_content_operators` (per content stream, with ADR 0023) | 10,000,000 | reserved |
-| `max_xobject_depth` (Form XObjects, patterns, Type 3, with ADR 0023) | 32 | reserved |
-| `max_image_pixels` (when lamina decodes images) | 2^28 | reserved |
+Limits are of two kinds:
+
+- **Hard limits** fail the call that hits them with `Error::LimitExceeded { limit: Limit, at: Option<u64> }`, which replaces today's `TooDeep` and `DecompressLimit`. When that call runs inside one of §1's tolerant paths, the path treats it like any other unreadable item and raises its usual warning: the page-tree walk skips the kid (`page-tree-node-skipped`; today `Document::pages` already skips every error except `ReferenceCycle`), the xref loader falls back to repair (`xref-repaired`; today any load error does), and repair skips an object stream it can't decode. A hard limit never changes an interpretation silently, and strict mode turns the fallback's warning into an error. Hit outside a tolerant path (resolving an object, decoding a stream, `open` itself), the error reaches the caller.
+- **Soft limits** stop collecting and carry on, always with a warning: the item over the limit is dropped, and reading continues.
+
+| Field | Kind | Default | On exceeding | Today |
+| --- | --- | --- | --- | --- |
+| `max_nesting_depth` (arrays/dictionaries) | hard | 256 | `LimitExceeded` | `lamina_syntax::MAX_DEPTH`, `TooDeep` |
+| `max_stream_decoded` (bytes, one stream) | hard | 64 MiB | `LimitExceeded` | `DEFAULT_MAX_DECODED`, `DecompressLimit` |
+| `max_decoded_total` (bytes decoded by one top-level call: `open`, one page's content, one save) | hard | 1 GiB | `LimitExceeded` | new |
+| `max_filter_chain` (filters per stream) | hard | 8 | `LimitExceeded` | new (qpdf caps at 25) |
+| `max_resolve_depth` (reference chains in flight) | hard | 32 | `LimitExceeded` | `MAX_RESOLVE_DEPTH`, reported as `ReferenceCycle` today |
+| `max_page_tree_depth` | hard | 256 | `LimitExceeded`; the walk skips the subtree | new (the walk is iterative, so this bounds work, not stack) |
+| `max_tree_depth` (name trees, number trees, outline nesting) | hard | 64 | `LimitExceeded`; views skip the subtree | new, with B2 views |
+| `max_string_length` (bytes, one string) | hard | 16 MiB | `LimitExceeded` | new |
+| `max_xref_sections` (`/Prev` hops) | soft | 4,096 | stored xref abandoned → repair, `xref-repaired` | `MAX_SECTIONS` (load failure → repair) |
+| `max_object_number` | soft | 8,388,607 (ISO 32000-1 Annex C) | entry dropped, `object-number-out-of-range` | new |
+| `max_warnings` | soft | 1,000 | later warnings dropped, `warnings-truncated` | new |
+| `max_content_operators` (per content stream, with ADR 0023) | hard | 10,000,000 | `LimitExceeded` | reserved |
+| `max_xobject_depth` (Form XObjects, patterns, Type 3, with ADR 0023) | hard | 32 | `LimitExceeded` | reserved |
+| `max_image_pixels` (when lamina decodes images) | hard | 2^28 | `LimitExceeded` | reserved |
 
 `max_decoded_total` is per call, not per document lifetime, so a long editing session doesn't run out of budget, while a bomb that multiplies through many small streams or a filter chain still stops. Loops over counts read from the file stay bounded by the bytes actually present, which is why no fuel counter is needed for the COS layer. `Limits::unlimited()` exists for trusted input (lamina's own output in tests). `MAX_FILTER_PARAM_DEPTH` (3) stays an internal constant: it bounds a fixed structure, not input size.
 
 ### 4. Enforcement
 
 - Each rule in §1 has a named test in `crates/lamina-cos/tests/policy.rs` or `reader_tolerance.rs` (most exist; B2 adds one per new warning code).
-- Each limit has a pair of tests: at the limit succeeds, one past fails with `LimitExceeded` (as `parse_object_accepts_nesting_at_the_limit` / `…_rejects_nesting_past_the_limit` do now).
+- Each hard limit has a pair of tests: at the limit succeeds, one past fails with `LimitExceeded` (as `parse_object_accepts_nesting_at_the_limit` / `…_rejects_nesting_past_the_limit` do now), plus a test that a tolerant path hitting it degrades with its warning. Each soft limit has a test that the item is dropped and its warning raised.
 - Warning and error codes are listed once in `fixtures/codes.json`; a Rust test and (from B6) a TS test check that both expose exactly those codes.
 - The differential suite ([ADR 0018](0018-test-strategy.md)) compares page count and repaired/failed outcome with pdf.js, PDFium, qpdf and pypdf. A disagreement is triaged as a lamina bug, a deliberate policy difference (listed with the rule from §1 in the suite's exceptions file), or another reader's bug.
 - Fuzz targets ([ADR 0018](0018-test-strategy.md)) assert no panic and no hang under default `Limits`.

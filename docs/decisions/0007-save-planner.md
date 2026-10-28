@@ -15,63 +15,78 @@ Other engines leave this to callers: PDFium exposes two mutually exclusive flags
 
 ```rust
 let plan = SavePlanner::new(&doc).plan(&SaveOptions { mode: SaveMode::Auto, ..Default::default() })?;
-plan.constraint();          // SaveConstraint
+plan.constraint();          // &SaveConstraint: everything that restricts this save
 plan.mode();                // the resolved mode: Incremental or FullRewrite
-let report = plan.write(&mut sink)?;   // SaveReport
+plan.would_invalidate();    // the signatures this save would break (empty unless overridden)
+let report = doc.write(plan, &mut sink)?;   // SaveReport; the document then rebases (ADR 0005 §3)
 ```
 
-`Document::save(sink, options)` is the shorthand. Planning is separate from writing so the UI can show the constraint and the consequences before anything is written.
+`Document::save(sink, options)` is the shorthand. Planning is separate from writing so the UI can show every restriction and every signature at risk before anything is written.
 
 - `SaveMode::Incremental | FullRewrite | Auto` (default `Auto`).
-- `SaveConstraint::Free | AppendOnly | RequiresRewrite`, computed from the base file plus the overlay ([ADR 0005](0005-document-model.md)).
 - `SaveReport`: bytes written, the resolved mode, signatures invalidated (if any), the old → new object-number map when renumbered, and the offset where appended bytes start.
 
-### 2. Detecting the constraint
+### 2. `SaveConstraint`: all the conditions, not one of them
 
-**`RequiresRewrite`** when any of:
-- the overlay contains an applied redaction (`ApplyRedactions`), or any op that reports `requires_rewrite` ([ADR 0006](0006-op-log-and-undo.md)), such as sanitising or optimising;
-- encryption is being removed or changed (old revisions would keep the old encryption or plaintext);
-- the base was repaired ([ADR 0003](0003-reader-tolerance-and-limits.md)): a revision appended to an unusable xref would be unusable too (today's `RepairedBase`).
+The conditions overlap (a signed document can also have a pending redaction), so the constraint is a struct and the planner reports all of them:
 
-**`AppendOnly`** when the base has any signature: a signature field (`/FT /Sig`) whose `/V` is a signature dictionary, a document timestamp (`/Type /DocTimeStamp`), or `/Perms` with `/DocMDP` or `/UR3`. Within `AppendOnly` the planner also checks each pending transaction's `ModificationClass` against:
-- **DocMDP** `/P` of the certification signature: 1 allows nothing; 2 allows form filling, page templates and signing; 3 adds annotations;
-- **FieldMDP** and `/Lock` dictionaries: changes to locked fields are violations;
-- **UR3**: changes outside the granted rights invalidate usage rights.
+```rust
+#[non_exhaustive]
+pub struct SaveConstraint {
+    pub signatures: Vec<SignatureInfo>,        // field, kind (approval, certification, doc timestamp, UR3), revision
+    pub doc_mdp: Option<DocMdp>,               // P1 | P2 | P3 of the certification signature
+    pub rewrite_reasons: Vec<RewriteReason>,   // why only a full rewrite is safe
+    pub violations: Vec<Violation>,            // pending changes DocMDP, FieldMDP or UR3 forbid
+}
+```
 
-**`Free`** otherwise. A newly built document is `Free` with no base.
+Detection, from the base plus the overlay ([ADR 0005](0005-document-model.md)):
 
-Checks run at plan time, and the editor can ask earlier (`planner.would_violate(&op)`) to block or warn before an edit, but the planner is the authority.
+- **Signatures**: a signature field (`/FT /Sig`) whose `/V` is a signature dictionary, a document timestamp (`/Type /DocTimeStamp`), or `/Perms` with `/DocMDP` or `/UR3`. Because the document rebases after every save, a signature made in this session counts from then on.
+- **Rewrite reasons**: an applied redaction (`ApplyRedactions`) or another op that reports `requires_rewrite` ([ADR 0006](0006-op-log-and-undo.md)), such as sanitising or optimising; encryption being removed or changed (old revisions would keep the old encryption or the plaintext); a repaired base ([ADR 0003](0003-reader-tolerance-and-limits.md)), since a revision appended to an unusable xref would be unusable too (today's `RepairedBase`); an encrypted base while encryption on write is missing (full-editor E11; today's `EncryptedBase`), which can only be saved by removing encryption.
+- **Violations**: each pending transaction's `ModificationClass` checked against DocMDP `/P` (1 allows nothing; 2 allows form filling, page templates and signing; 3 adds annotations), FieldMDP and `/Lock` dictionaries (changes to locked fields), and UR3 (changes outside the granted rights).
 
-### 3. Resolving the mode and conflicts
+`constraint.kind()` summarises it for the UI banner: **`Free`** (no signatures, no rewrite reasons), **`AppendOnly`** (signatures, nothing that conflicts), **`RequiresRewrite`** (rewrite reasons, no signatures), or **`Conflict`** (signatures plus rewrite reasons or violations). The editor can ask before an edit (`planner.would_violate(&op)`) to block or warn early, but the planner is the authority.
 
-| Constraint | `Auto` | `Incremental` requested | `FullRewrite` requested |
+### 3. Resolving the mode
+
+| `kind()` | `Auto` | `Incremental` requested | `FullRewrite` requested |
 | --- | --- | --- | --- |
 | `Free` | Incremental if there is a base, else FullRewrite | OK | OK |
-| `AppendOnly` | Incremental | OK, unless DocMDP/FieldMDP is violated | Error |
+| `AppendOnly` | Incremental | OK | Error, unless overridden |
 | `RequiresRewrite` | FullRewrite | Error | OK |
+| `Conflict` | Error, unless overridden | Error, unless overridden (and only without rewrite reasons) | Error, unless overridden |
 
-- **Conflicts are errors by default**: `SaveError::WouldInvalidateSignatures { signatures }` when a rewrite is needed (or requested) on a signed document, or a pending change violates DocMDP/FieldMDP.
-- **Explicit override only.** With `SaveOptions::invalidate_signatures: true` (the UI asks the user, naming the signatures), the save goes ahead: signature values (`/V`) and `/Perms` entries are removed so the output doesn't carry signatures that would show as broken, the fields stay unsigned, and the report lists them. Redacting a signed document is exactly this path.
-- An encrypted base can't be saved incrementally until encryption on write lands (full-editor E11); until then saving it requires removing encryption, which makes it `RequiresRewrite`.
+- Errors are `SaveError::WouldInvalidateSignatures { signatures, rewrite_reasons, violations }` (the whole constraint, so the UI can name every signature) or `SaveError::RequiresRewrite { reasons }`.
+- **Explicit override only.** With `SaveOptions::invalidate_signatures: true` (the UI asks the user, naming the signatures from `would_invalidate()`), the save goes ahead: with rewrite reasons it is a full rewrite, otherwise incremental. The invalidated signatures' values (`/V`) and the matching `/Perms` entries are removed, so the output doesn't carry signatures that viewers would show as broken; the fields stay, unsigned, and the report lists them. Redacting a signed document is this path.
 
 ### 4. Canonical order
 
-**redact → full rewrite → sign → incremental saves.** In one save the planner runs, in order: pending rewrite-requiring changes as a full rewrite; then a pending signature as an incremental revision on top of that output; later saves are append-only. A signature can never be followed by a rewrite without the override, and a redaction can never be left in an appended revision. Signing is two-phase (placeholder `/Contents` and `/ByteRange`, external signer, inject); its details, including how the sink patches the placeholder, are ADR 0020.
+**redact → full rewrite → sign → incremental saves.** In one save the planner runs, in order: pending rewrite-requiring changes as a full rewrite; then a pending signature as an incremental revision on top of that output; later saves are append-only. A signature is never followed by a rewrite without the override, and a redaction is never left in an appended revision.
+
+**Signing is two-phase and needs no seeking.** The signing revision (changed objects, the signature dictionary with a fixed-size `/Contents` placeholder and `/ByteRange`) is assembled in memory, where its offsets are known. The digest is computed by streaming the base bytes from the `ByteSource` and the in-memory revision, skipping the placeholder. The external signer (WebCrypto, an HSM, a server) returns the CMS, which is injected into the in-memory revision, and only then is anything written to the sink. When a rewrite precedes signing in the same save, the rewrite goes to a readable sink (§6), which becomes the base the signing phase reads. Certificate handling, timestamps and PAdES levels are ADR 0020.
 
 ### 5. Writers
 
-- **Incremental** (§7.5.6): copies the base bytes from the `ByteSource` in chunks, unchanged, then appends the overlay's new and modified objects, deleted objects as free entries with the generation incremented, and a new xref section of the same kind as the newest one (classic or stream), with `/Prev`. It keeps `/ID[0]`, never renumbers, never shrinks `/Size`, and drops xref-stream-only trailer keys ([ch. 07 §4](../research/pdf/07-spike-rust-and-typescript.md#4-what-we-learned)). Option `IncrementalOutput::AppendedOnly` writes only the new bytes, so the desktop app can append in place. A save with an empty overlay writes the base bytes unchanged.
+- **Incremental** (§7.5.6): copies the base bytes from the `ByteSource` in chunks, unchanged, then appends the overlay's new and modified objects, deleted objects as free entries with the generation incremented, and a new xref section of the same kind as the newest one (classic or stream), with `/Prev`. It never renumbers, never shrinks `/Size`, and drops xref-stream-only trailer keys ([ch. 07 §4](../research/pdf/07-spike-rust-and-typescript.md#4-what-we-learned)). Option `IncrementalOutput::AppendedOnly` writes only the new bytes, so the desktop app can append in place. A save with an empty overlay writes the base bytes unchanged.
 - **Full rewrite**: writes only objects reachable from the trailer (`/Root`, `/Info`, `/ID`, and `/Encrypt` when kept), so earlier revisions and unreferenced objects disappear. Object numbers are kept by default (`Renumber::Keep`), which keeps `LaminaId`s ([ADR 0005](0005-document-model.md) §5); `Renumber::Compact` is opt-in. Output is object streams plus an xref stream by default, classic on request ([ch. 01 §14](../research/pdf/01-file-structure.md#14-implementation-guidance-for-lamina-summary)).
+- **`/ID`** (§14.4): `/ID[0]` is the document's permanent identifier and, for the standard security handler R2–R4, an input to the file key (§7.6.3.3). Every save, incremental or full, keeps it. Only `/ID[1]` changes, derived from a hash of the content written. `/ID[0]` is derived the same way only for a new document or when the original has no `/ID`.
 
-### 6. `WriteSink` and determinism
+### 6. Sinks and determinism
 
 ```rust
 pub trait WriteSink {
     fn write_all(&mut self, bytes: &[u8]) -> Result<(), SinkError>;
 }
+pub trait ReadableSink: WriteSink {
+    /// What was written, as a source (for rebasing and for signing on top of a rewrite).
+    fn into_source(self) -> Result<Arc<dyn ByteSource>, SinkError>;
+}
 ```
 
-Output streams through the sink, never as one buffer, so a Worker with 128 MB or wasm32 with 4 GB can save files larger than memory allows. The planner wraps the sink to count the position. Core implementations: `Vec<u8>` and an adapter over any `std::io::Write`; files, OPFS and HTTP uploads are edge implementations. Output is **byte-deterministic** ([ADR 0001](0001-core-language-and-licence.md)): the same document state and options give the same bytes on every platform. No clocks (dates come from ops), `/ID` derived from a hash of the content written, and a test saves twice and compares.
+Output streams through the sink, never as one buffer, so a Worker with 128 MB or wasm32 with 4 GB can save files larger than memory allows. The planner wraps the sink to count the position. Sinks are write-only; nothing ever seeks or patches (§4). Core implementations: `Vec<u8>` (readable) and an adapter over any `std::io::Write`; spooling to OPFS or a temp file, and files and uploads, are edge implementations. A full rewrite into a sink that isn't readable leaves the document in `SavedNotRebased` until the shell calls `rebase` ([ADR 0005](0005-document-model.md) §3); an incremental save always rebases by itself.
+
+Output is **byte-deterministic** ([ADR 0001](0001-core-language-and-licence.md)): the same document state and options give the same bytes on every platform. No clocks (dates come from ops), `/ID[1]` from a content hash, and a test saves twice and compares.
 
 ### 7. Moving the writer
 
@@ -79,16 +94,20 @@ In B3 the current writer moves from `lamina-cos` into `lamina-save` with its gol
 
 ## Consequences
 
-- Signature-breaking and redaction-leaking saves are impossible by default; the only way is an explicit, reported override.
-- The editor can show a `SaveConstraint` banner and block edits early, using the same rules as the save.
+- Signature-breaking and redaction-leaking saves are impossible by default; the only way is an explicit, reported override that names every signature it breaks.
+- The editor can show a constraint banner and block edits early, using the same rules as the save.
 - Callers can't choose "full rewrite of a signed file" by accident, which some will find strict; that is the point.
 - Detecting DocMDP/FieldMDP violations needs every op to classify itself correctly; a misclassified op is a security bug and gets a test per op.
+- Signing with an external signer holds the signing revision in memory between the two phases; it is small.
 - Keeping object numbers on full rewrite makes outputs slightly larger than compacted ones.
 
 ## Alternatives considered
 
 - **Caller-chosen mode only** (PDFium, LibPDF). Leaves every trap to the caller.
+- **A single-valued `SaveConstraint` enum.** Overlapping conditions hide each other; a signed document with a redaction would report only one.
 - **Always full rewrite.** Breaks every signature and loses revision history.
 - **Always incremental.** Leaks redacted content and old encryption in earlier revisions.
+- **Patching the `/Contents` placeholder in a seekable sink.** Rules out streaming sinks (uploads, Workers); building the small signing revision in memory avoids it.
+- **A new `/ID[0]` on full rewrite.** Breaks the permanent identifier and, for older encryption, the key.
 - **Silently keep invalid signatures on override.** Leaves documents that viewers show as tampered.
 - **Compact renumbering by default.** Smaller files, but IDs and sidecars break on every save.
