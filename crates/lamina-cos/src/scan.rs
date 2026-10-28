@@ -2,12 +2,6 @@
 
 use lamina_syntax::is_regular;
 
-/// Finds `needle` in `hay` at or after `from`.
-pub(crate) fn find(hay: &[u8], needle: &[u8], from: usize) -> Option<usize> {
-    let tail = hay.get(from..)?;
-    tail.windows(needle.len()).position(|w| w == needle).map(|p| p + from)
-}
-
 /// Finds the last `needle` in `hay`.
 pub(crate) fn rfind(hay: &[u8], needle: &[u8]) -> Option<usize> {
     hay.windows(needle.len()).rposition(|w| w == needle)

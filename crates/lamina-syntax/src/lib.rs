@@ -34,4 +34,4 @@ mod parser;
 pub use error::{Error, Result};
 pub use lexer::{Lexer, Token, is_delimiter, is_regular, is_whitespace};
 pub use object::{Dict, Name, ObjRef, Object, PdfString, Stream, StringFormat, format_real};
-pub use parser::{MAX_DEPTH, Parser, parse_object};
+pub use parser::{MAX_DEPTH, Parser, find, parse_object};

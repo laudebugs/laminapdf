@@ -13,6 +13,10 @@ fn invalid(message: &'static str) -> Error {
 
 /// Parses decoded object-stream bytes into `(object number, object)` pairs, in order.
 /// Members that fail to parse become `null` so one bad member does not hide the others.
+///
+/// # Errors
+/// [`Error::InvalidStructure`] for a missing or negative `/N` or `/First`, a `/First` past the
+/// end of the data, or a header without any pair when `/N` is positive.
 pub(crate) fn parse(dict: &Dict, decoded: &[u8]) -> Result<Vec<(u32, Object)>> {
     let n = dict
         .get_int("N")
@@ -22,9 +26,15 @@ pub(crate) fn parse(dict: &Dict, decoded: &[u8]) -> Result<Vec<(u32, Object)>> {
         .get_int("First")
         .and_then(|f| usize::try_from(f).ok())
         .ok_or_else(|| invalid("bad /First"))?;
-    let mut header = Lexer::new(decoded, 0);
+    // The `num offset` pairs live strictly before `/First`; lexing past it would read the
+    // first members as extra pairs when `/N` is overstated.
+    let header_bytes = decoded
+        .get(..first)
+        .ok_or_else(|| invalid("/First is past the end of the data"))?;
+    let mut header = Lexer::new(header_bytes, 0);
     let mut pairs = Vec::new();
-    // `n` comes from the file; the header itself bounds the loop.
+    // At most `/N` pairs, and no more than the header holds (`n` comes from the file). A header
+    // with fewer pairs than `/N` keeps the ones it has (tolerant reading).
     while pairs.len() < n {
         let (Ok(Token::Integer(num)), Ok(Token::Integer(off))) = (header.next_token(), header.next_token()) else {
             break;
@@ -64,6 +74,20 @@ mod tests {
                 (2, Object::String(lamina_syntax::PdfString::literal("x")))
             ]
         );
+    }
+
+    #[test]
+    fn parse_should_not_read_members_as_pairs_when_n_is_overstated() {
+        // The header holds 2 pairs; /N claims 3, so lexing past /First would read `7 8`.
+        let dict: Dict = [("N", 3), ("First", 8)].into_iter().collect();
+        let members = parse(&dict, b"1 0 2 2 7 8").unwrap();
+        assert_eq!(members, vec![(1, Object::Integer(7)), (2, Object::Integer(8))]);
+    }
+
+    #[test]
+    fn parse_rejects_first_past_the_end_of_the_data() {
+        let dict: Dict = [("N", 1), ("First", 99)].into_iter().collect();
+        assert!(parse(&dict, b"1 0 7").is_err());
     }
 
     #[test]

@@ -41,6 +41,11 @@ pub enum Error {
     /// An incremental update was requested for a document whose xref had to be repaired.
     #[error("cannot append an incremental update to a document whose xref needed repair")]
     RepairedBase,
+    /// An incremental update was requested for an encrypted document. Its new objects would
+    /// have to be encrypted too, which is not implemented yet (decryption is Round B2,
+    /// encryption on save is full-editor E11).
+    #[error("cannot append an incremental update to an encrypted document")]
+    EncryptedBase,
 }
 
 /// Shorthand for `Result<T, lamina_cos::Error>`.

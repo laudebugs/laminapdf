@@ -10,7 +10,7 @@ use std::collections::BTreeMap;
 use lamina_syntax::{Dict, Name, ObjRef, Object, Stream};
 
 use crate::error::{Error, Result};
-use crate::reader;
+use crate::reader::{self, XREF_STREAM_KEYS};
 
 /// The 20-byte cross-reference entry ends with a two-byte EOL; both forms are legal (§7.5.4).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
@@ -263,10 +263,7 @@ impl Writer {
         ]
         .into_iter()
         .collect();
-        for (k, v) in trailer
-            .iter()
-            .filter(|(k, _)| !XREF_STREAM_KEYS.contains(&k.as_bytes()))
-        {
+        for (k, v) in trailer.iter().filter(|(k, _)| !is_xref_key(k)) {
             dict.insert(k.clone(), v.clone());
         }
         write_indirect(xref_num, &Body::Object(Stream::flate(dict, &table).into()), &mut out);
@@ -275,18 +272,10 @@ impl Writer {
     }
 }
 
-/// Trailer keys that only make sense on an xref *stream* dictionary.
-const XREF_STREAM_KEYS: &[&[u8]] = &[
-    b"Size",
-    b"Prev",
-    b"Type",
-    b"W",
-    b"Index",
-    b"Filter",
-    b"DecodeParms",
-    b"Length",
-    b"XRefStm",
-];
+/// Whether `key` describes an xref section rather than the document (see [`XREF_STREAM_KEYS`]).
+fn is_xref_key(key: &Name) -> bool {
+    XREF_STREAM_KEYS.iter().any(|k| k.as_bytes() == key.as_bytes())
+}
 
 fn write_indirect(num: u32, body: &Body, out: &mut Vec<u8>) {
     out.extend_from_slice(format!("{num} 0 obj\n").as_bytes());
@@ -313,17 +302,31 @@ fn write_trailer(trailer: &Dict, xref: usize, out: &mut Vec<u8>) {
     out.extend_from_slice(format!("\nstartxref\n{xref}\n%%EOF\n").as_bytes());
 }
 
-/// Appends an incremental update (§7.5.6) to `original`: the changed/new objects, an xref
-/// section (a `0 1` free-list head plus one subsection per run of consecutive numbers), and a
-/// trailer repeating the previous trailer's keys with `/Size` updated and `/Prev` last.
-/// The original bytes are copied untouched.
+/// Appends an incremental update (§7.5.6) to `original`: the changed/new objects, then a new
+/// cross-reference section of the same kind as the newest one in `original`, so `/Prev` chains
+/// never mix kinds and objects in object streams stay visible to every reader:
+///
+/// * after a classic table (including a hybrid file's): a classic section (a `0 1` free-list
+///   head plus one subsection per run of consecutive numbers) and a trailer repeating the
+///   previous trailer's keys, with `/Size` updated and `/Prev` last;
+/// * after an xref stream: an uncompressed-row, Flate-compressed xref stream
+///   (`/Type /XRef /W [1 n 2] /Size /Index`, then the previous trailer's document keys, then
+///   `/Prev`), numbered with the next free object number.
+///
+/// `/Size` never shrinks: it is the largest of the previous `/Size`, the highest object number
+/// in any section + 1, and the highest new number + 1. The original bytes are copied untouched.
 ///
 /// # Errors
-/// Any error opening `original`, or [`Error::RepairedBase`] when its xref is broken
-/// (there is no valid section for `/Prev` to point at).
+/// Any error opening `original`; [`Error::RepairedBase`] when its xref is broken (there is no
+/// valid section for `/Prev` to point at); [`Error::EncryptedBase`] when it is encrypted (the
+/// new objects would have to be encrypted too); [`Error::InvalidStructure`] when object
+/// numbers run out.
 pub fn incremental_update(original: &[u8], changes: &[(ObjRef, Object)], eol: XrefEol) -> Result<Vec<u8>> {
     let doc = reader::open(original)?;
     let prev = doc.startxref().ok_or(Error::RepairedBase)?;
+    if doc.is_encrypted() {
+        return Err(Error::EncryptedBase);
+    }
     let by_num: BTreeMap<u32, (u16, &Object)> = changes.iter().map(|(r, o)| (r.num, (r.gen_nr, o))).collect();
 
     let mut out = original.to_vec();
@@ -338,6 +341,35 @@ pub fn incremental_update(original: &[u8], changes: &[(ObjRef, Object)], eol: Xr
         out.extend_from_slice(b"\nendobj\n");
     }
 
+    let old = doc.trailer();
+    let next_free = |max: Option<u32>| max.map_or(0, |n| i64::from(n) + 1);
+    let size = old
+        .get_int("Size")
+        .unwrap_or(0)
+        .max(next_free(doc.max_object_number()))
+        .max(next_free(by_num.keys().next_back().copied()));
+    let prev = i64::try_from(prev).unwrap_or(i64::MAX);
+    if doc.newest_section_is_stream() {
+        append_xref_stream(&mut out, old, &offsets, size, prev)?;
+    } else {
+        append_xref_table(&mut out, old, &offsets, size, prev, eol);
+    }
+    Ok(out)
+}
+
+/// The previous trailer's document keys (no xref-section keys), in their order.
+fn document_keys(old: &Dict) -> impl Iterator<Item = (&Name, &Object)> {
+    old.iter().filter(|(k, _)| !is_xref_key(k))
+}
+
+fn append_xref_table(
+    out: &mut Vec<u8>,
+    old: &Dict,
+    offsets: &BTreeMap<u32, (usize, u16)>,
+    size: i64,
+    prev: i64,
+    eol: XrefEol,
+) {
     let xref = out.len();
     out.extend_from_slice(b"xref\n");
     let nums: Vec<u32> = std::iter::once(0)
@@ -350,24 +382,77 @@ pub fn incremental_update(original: &[u8], changes: &[(ObjRef, Object)], eol: Xr
         out.extend_from_slice(format!("{start} {len}\n").as_bytes());
         for num in run {
             match offsets.get(num) {
-                Some(&(off, gen_nr)) if *num != 0 => write_in_use(off, gen_nr, eol, &mut out),
-                _ => write_free_head(eol, &mut out),
+                Some(&(off, gen_nr)) if *num != 0 => write_in_use(off, gen_nr, eol, out),
+                _ => write_free_head(eol, out),
             }
         }
     }
-
-    let old = doc.trailer();
-    let max_num = by_num.keys().next_back().copied().unwrap_or(0);
-    let size = old.get_int("Size").unwrap_or(0).max(i64::from(max_num) + 1);
+    // `/Size` keeps the previous trailer's position (first when it had none).
     let mut trailer = Dict::new();
-    for (k, v) in old
-        .iter()
-        .filter(|(k, _)| !XREF_STREAM_KEYS.contains(&k.as_bytes()) || k.as_bytes() == b"Size")
-    {
+    for (k, v) in old.iter().filter(|(k, _)| !is_xref_key(k) || k.as_bytes() == b"Size") {
         trailer.insert(k.clone(), v.clone());
     }
     trailer.insert("Size", size);
-    trailer.insert(Name::from("Prev"), i64::try_from(prev).unwrap_or(i64::MAX));
-    write_trailer(&trailer, xref, &mut out);
-    Ok(out)
+    trailer.insert(Name::from("Prev"), prev);
+    write_trailer(&trailer, xref, out);
+}
+
+fn append_xref_stream(
+    out: &mut Vec<u8>,
+    old: &Dict,
+    offsets: &BTreeMap<u32, (usize, u16)>,
+    size: i64,
+    prev: i64,
+) -> Result<()> {
+    let out_of_numbers = || Error::InvalidStructure {
+        kind: "incremental update",
+        message: "object numbers exhausted",
+    };
+    let xref_num = u32::try_from(size).map_err(|_| out_of_numbers())?;
+    let new_size = xref_num.checked_add(1).ok_or_else(out_of_numbers)?;
+    let xref_off = out.len();
+    let mut rows: BTreeMap<u32, (usize, u16)> = offsets
+        .iter()
+        .filter(|(n, _)| **n != 0)
+        .map(|(n, e)| (*n, *e))
+        .collect();
+    rows.insert(xref_num, (xref_off, 0));
+    // Offset field width: 4 bytes like `finish_compact`, wider only for files over 4 GiB.
+    let max_off = u64::try_from(xref_off).unwrap_or(u64::MAX);
+    let width = usize::try_from(8 - max_off.leading_zeros() / 8).unwrap_or(8).max(4);
+    let mut table = Vec::with_capacity(rows.len() * (3 + width));
+    let mut index = Vec::new();
+    let nums: Vec<u32> = rows.keys().copied().collect();
+    for run in nums.chunk_by(|a, b| b.checked_sub(*a) == Some(1)) {
+        let (Some(&start), len) = (run.first(), run.len()) else {
+            continue;
+        };
+        index.push(Object::from(start));
+        index.push(Object::from(i64::try_from(len).unwrap_or(i64::MAX)));
+        for num in run {
+            let Some(&(off, gen_nr)) = rows.get(num) else {
+                continue;
+            };
+            let off = u64::try_from(off).unwrap_or(u64::MAX).to_be_bytes();
+            table.push(1);
+            table.extend_from_slice(off.get(8 - width..).unwrap_or(&off));
+            table.extend_from_slice(&gen_nr.to_be_bytes());
+        }
+    }
+    let width = i64::try_from(width).unwrap_or(8);
+    let mut dict: Dict = [
+        ("Type", Object::name("XRef")),
+        ("W", vec![1.into(), width.into(), 2.into()].into()),
+        ("Size", new_size.into()),
+        ("Index", Object::Array(index)),
+    ]
+    .into_iter()
+    .collect();
+    for (k, v) in document_keys(old) {
+        dict.insert(k.clone(), v.clone());
+    }
+    dict.insert("Prev", prev);
+    write_indirect(xref_num, &Body::Object(Stream::flate(dict, &table).into()), out);
+    out.extend_from_slice(format!("startxref\n{xref_off}\n%%EOF\n").as_bytes());
+    Ok(())
 }

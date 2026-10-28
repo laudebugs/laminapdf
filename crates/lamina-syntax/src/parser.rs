@@ -245,8 +245,15 @@ fn scan_for_endstream(data: &[u8], from: usize) -> Result<usize> {
     Ok(end)
 }
 
-/// Finds `needle` in `hay` at or after `from`.
-fn find(hay: &[u8], needle: &[u8], from: usize) -> Option<usize> {
+/// Finds the first occurrence of `needle` in `hay` at or after byte offset `from`, returning
+/// its offset. Used to recover stream extents (`endstream`) and, in `lamina-cos`, to locate
+/// file-structure keywords. `None` when `from` is past the end or `needle` is absent.
+///
+/// ```
+/// assert_eq!(lamina_syntax::find(b"stream\nabc\nendstream", b"endstream", 0), Some(11));
+/// assert_eq!(lamina_syntax::find(b"abc", b"b", 2), None);
+/// ```
+pub fn find(hay: &[u8], needle: &[u8], from: usize) -> Option<usize> {
     let tail = hay.get(from..)?;
     tail.windows(needle.len()).position(|w| w == needle).map(|p| p + from)
 }

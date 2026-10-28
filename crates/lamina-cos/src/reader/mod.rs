@@ -9,13 +9,17 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::ops;
 use std::rc::Rc;
 
+pub(crate) use xref::XREF_STREAM_KEYS;
 use xref::{XrefEntry, XrefTable};
 
 use lamina_syntax::filters::{self, DEFAULT_MAX_DECODED};
-use lamina_syntax::{Dict, ObjRef, Object, Parser, Stream};
+use lamina_syntax::{Dict, ObjRef, Object, Parser, Stream, find};
 
 use crate::error::{Error, Result};
-use crate::scan::find;
+
+/// How deep [`Document::decode_stream`] resolves references nested in `/Filter` and
+/// `/DecodeParms` (array → parameter dictionary → value).
+const MAX_FILTER_PARAM_DEPTH: usize = 3;
 
 /// How many indirect objects may be "in flight" at once while resolving (e.g. an indirect
 /// `/Length` inside an object stream). Deeper chains are treated as cycles.
@@ -145,6 +149,7 @@ pub struct Document<'a> {
     revisions: usize,
     repaired: bool,
     has_xref_stream: bool,
+    newest_is_stream: bool,
     startxref: Option<usize>,
     header_version: Option<String>,
     warnings: Vec<Warning>,
@@ -222,10 +227,13 @@ fn read_header_version(data: &[u8], header_pos: usize) -> Option<String> {
     (!v.is_empty()).then(|| v.to_owned())
 }
 
-/// True when every in-file xref entry points at its own `num gen obj` header.
+/// True when every in-file xref entry points at its own `num gen obj` header (number and
+/// generation).
 fn entries_are_valid(data: &[u8], table: &XrefTable) -> bool {
     table.entries.iter().all(|(&num, entry)| match *entry {
-        XrefEntry::InFile { offset, .. } => Parser::new(data, offset).object_header().is_ok_and(|id| id.num == num),
+        XrefEntry::InFile { offset, gen_nr } => Parser::new(data, offset)
+            .object_header()
+            .is_ok_and(|id| id.num == num && id.gen_nr == gen_nr),
         XrefEntry::Free | XrefEntry::InStream { .. } => true,
     })
 }
@@ -258,13 +266,16 @@ const INHERITABLE: [&str; 4] = ["MediaBox", "CropBox", "Rotate", "Resources"];
 impl Inherited {
     /// `parent` with any attributes `dict` sets itself replacing the inherited ones.
     /// Returns `parent` unchanged (a pointer copy) when `dict` sets none of them.
-    fn overlay(parent: &Rc<Self>, dict: &Dict) -> Rc<Self> {
-        if !INHERITABLE.iter().any(|key| dict.contains_key(key)) {
+    ///
+    /// A value that is `null`, or a reference that `is_null` says resolves to `null` (a missing
+    /// or free object), counts as absent (§7.3.7, §7.3.10): the inherited value is kept.
+    fn overlay(parent: &Rc<Self>, dict: &Dict, is_null: impl Fn(&Object) -> bool) -> Rc<Self> {
+        let own = |key| dict.get(key).filter(|o| !is_null(o));
+        if !INHERITABLE.iter().any(|key| own(key).is_some()) {
             return Rc::clone(parent);
         }
-        let pick = |key, inherited: &Option<Rc<Object>>| {
-            dict.get(key).map(|o| Rc::new(o.clone())).or_else(|| inherited.clone())
-        };
+        let pick =
+            |key, inherited: &Option<Rc<Object>>| own(key).map(|o| Rc::new(o.clone())).or_else(|| inherited.clone());
         Rc::new(Self {
             media_box: pick("MediaBox", &parent.media_box),
             crop_box: pick("CropBox", &parent.crop_box),
@@ -289,6 +300,7 @@ impl<'a> Document<'a> {
             trailer,
             sections,
             has_xref_stream,
+            newest_is_stream,
         } = table;
         Self {
             data,
@@ -301,6 +313,7 @@ impl<'a> Document<'a> {
             header_version,
             warnings,
             options,
+            newest_is_stream,
             objstm_cache: RefCell::new(BTreeMap::new()),
             object_cache: RefCell::new(BTreeMap::new()),
         }
@@ -361,6 +374,17 @@ impl<'a> Document<'a> {
         self.data
     }
 
+    /// Whether the newest xref section is an xref stream (the incremental writer appends the
+    /// same kind).
+    pub(crate) const fn newest_section_is_stream(&self) -> bool {
+        self.newest_is_stream
+    }
+
+    /// The highest object number in any xref section, free entries included.
+    pub(crate) fn max_object_number(&self) -> Option<u32> {
+        self.entries.keys().next_back().copied()
+    }
+
     /// Numbers of all objects that are not free, ascending.
     pub fn object_numbers(&self) -> impl Iterator<Item = u32> + '_ {
         self.entries
@@ -370,7 +394,8 @@ impl<'a> Document<'a> {
     }
 
     /// Resolves an indirect reference, following reference-to-reference chains.
-    /// Missing or free objects resolve to `null` (§7.3.10).
+    /// Missing or free objects, and references whose generation number does not match the
+    /// xref entry's, resolve to `null` (§7.3.10).
     ///
     /// Objects are parsed once and cached: resolving the same reference again returns a
     /// clone of the same [`Rc`].
@@ -385,7 +410,7 @@ impl<'a> Document<'a> {
                 return Err(Error::ReferenceCycle(current.num));
             }
             chain.push(current.num);
-            let obj = self.load(current.num, &mut Vec::new())?;
+            let obj = self.load(current.num, Some(current.gen_nr), &mut Vec::new())?;
             match *obj {
                 Object::Ref(next) => current = next,
                 _ => return Ok(obj),
@@ -395,11 +420,12 @@ impl<'a> Document<'a> {
 
     /// The value of indirect object `num` exactly as stored, without following a top-level
     /// reference (`1 0 obj 2 0 R endobj` yields `2 0 R`). Missing/free objects are `null`.
+    /// Any generation is accepted: this looks up the number's current definition.
     ///
     /// # Errors
     /// Parse errors for corrupt objects; [`Error::ReferenceCycle`] for self-referential streams.
     pub fn object(&self, num: u32) -> Result<Rc<Object>> {
-        self.load(num, &mut Vec::new())
+        self.load(num, None, &mut Vec::new())
     }
 
     /// Returns `obj` itself, or the object it refers to.
@@ -419,7 +445,16 @@ impl<'a> Document<'a> {
     /// Successful loads are cached. Caching is sound even though a nested load sees a
     /// non-empty `in_flight`: the only thing that depends on it is an indirect `/Length`,
     /// which must resolve to an integer, and integers never depend on other objects.
-    fn load(&self, num: u32, in_flight: &mut Vec<u32>) -> Result<Rc<Object>> {
+    ///
+    /// With `gen_nr`, a reference whose generation does not match the entry's loads `null`
+    /// (§7.3.10). The cache is keyed by number, which is sound because each number has one
+    /// entry, and the generation is checked before the cache is consulted.
+    fn load(&self, num: u32, gen_nr: Option<u16>, in_flight: &mut Vec<u32>) -> Result<Rc<Object>> {
+        if let (Some(gen_nr), Some(entry)) = (gen_nr, self.entries.get(&num))
+            && !entry.matches_gen(gen_nr)
+        {
+            return Ok(Rc::new(Object::Null));
+        }
         if let Some(cached) = self.object_cache.borrow().get(&num) {
             return Ok(Rc::clone(cached));
         }
@@ -433,7 +468,11 @@ impl<'a> Document<'a> {
         let result = match entry {
             XrefEntry::Free => Ok(Rc::new(Object::Null)),
             XrefEntry::InFile { offset, .. } => {
-                let mut resolve_length = |r: ObjRef| self.load(r.num, in_flight).ok().and_then(|o| o.as_int());
+                let mut resolve_length = |r: ObjRef| {
+                    self.load(r.num, Some(r.gen_nr), in_flight)
+                        .ok()
+                        .and_then(|o| o.as_int())
+                };
                 Parser::new(self.data, offset)
                     .indirect_object(&mut resolve_length)
                     .map(|(_, obj)| Rc::new(obj))
@@ -469,7 +508,7 @@ impl<'a> Document<'a> {
                 message: "container is not a top-level object",
             });
         }
-        let container = self.load(stream, in_flight)?;
+        let container = self.load(stream, None, in_flight)?;
         let Object::Stream(s) = &*container else {
             return Err(Error::Type {
                 expected: "stream",
@@ -494,10 +533,33 @@ impl<'a> Document<'a> {
         let mut params = Dict::new();
         for key in ["Filter", "DecodeParms"] {
             if let Some(v) = stream.dict.get(key) {
-                params.insert(key, self.deref(v)?.into_owned());
+                params.insert(key, self.resolve_nested(v, MAX_FILTER_PARAM_DEPTH)?);
             }
         }
         Ok(filters::decode(&params, &stream.data, self.options.max_decoded_size)?)
+    }
+
+    /// `obj` with references resolved, including those inside arrays and dictionaries down to
+    /// `depth` levels (missing objects become `null`, which the filters treat as absent).
+    fn resolve_nested(&self, obj: &Object, depth: usize) -> Result<Object> {
+        let resolved = self.deref(obj)?;
+        let Some(depth) = depth.checked_sub(1) else {
+            return Ok(resolved.into_owned());
+        };
+        Ok(match &*resolved {
+            Object::Array(items) => Object::Array(
+                items
+                    .iter()
+                    .map(|item| self.resolve_nested(item, depth))
+                    .collect::<Result<_>>()?,
+            ),
+            Object::Dict(dict) => Object::Dict(
+                dict.iter()
+                    .map(|(k, v)| Ok((k.clone(), self.resolve_nested(v, depth)?)))
+                    .collect::<Result<Dict>>()?,
+            ),
+            _ => resolved.into_owned(),
+        })
     }
 
     /// The document catalog (`/Root`).
@@ -545,7 +607,11 @@ impl<'a> Document<'a> {
             let Object::Dict(node) = &*resolved else {
                 continue;
             };
-            let attrs = Inherited::overlay(&inherited, node);
+            let attrs = Inherited::overlay(&inherited, node, |o| match o {
+                Object::Null => true,
+                Object::Ref(_) => self.deref(o).is_ok_and(|r| matches!(*r, Object::Null)),
+                _ => false,
+            });
             let is_tree_node = node.get_name("Type") == Some(b"Pages")
                 || (node.get_name("Type") != Some(b"Page") && node.contains_key("Kids"));
             if is_tree_node {
@@ -598,7 +664,8 @@ impl<'a> Document<'a> {
         self.pages().map(|p| p.len())
     }
 
-    /// The decoded content of a page: all `/Contents` streams joined with `\n`.
+    /// The decoded content of a page: all `/Contents` streams joined with `\n`. `/Contents`
+    /// (or an array element) that is `null`, missing or free contributes nothing.
     ///
     /// # Errors
     /// Decode errors, or [`Error::Type`] if `/Contents` is not a stream or array of streams.
@@ -612,17 +679,24 @@ impl<'a> Document<'a> {
             single => std::slice::from_ref(single),
         };
         let mut out = Vec::new();
-        for (i, part) in parts.iter().enumerate() {
+        let mut first = true;
+        for part in parts {
             let part = self.deref(part)?;
-            let Object::Stream(s) = &*part else {
-                return Err(Error::Type {
-                    expected: "stream",
-                    context: "/Contents",
-                });
+            let s = match &*part {
+                Object::Stream(s) => s,
+                // A missing or free object is null (§7.3.10): it contributes no content.
+                Object::Null => continue,
+                _ => {
+                    return Err(Error::Type {
+                        expected: "stream",
+                        context: "/Contents",
+                    });
+                }
             };
-            if i > 0 {
+            if !first {
                 out.push(b'\n');
             }
+            first = false;
             out.extend_from_slice(&self.decode_stream(s)?);
         }
         Ok(out)

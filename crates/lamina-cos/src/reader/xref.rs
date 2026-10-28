@@ -11,12 +11,47 @@ use crate::scan::{is_boundary, rfind};
 /// Upper bound on `/Prev` hops, so a crafted chain cannot keep us busy.
 const MAX_SECTIONS: usize = 4096;
 
+/// Trailer keys that only describe an xref *section* (classic table or xref stream), never the
+/// document: they are not carried over into a rebuilt or appended trailer (`/Size` is
+/// recomputed by whoever writes the new one).
+pub(crate) const XREF_STREAM_KEYS: &[&str] = &[
+    "Size",
+    "Prev",
+    "Type",
+    "W",
+    "Index",
+    "Filter",
+    "DecodeParms",
+    "Length",
+    "XRefStm",
+];
+
 /// Where an object lives.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum XrefEntry {
     Free,
     InFile { offset: usize, gen_nr: u16 },
     InStream { stream: u32, index: u32 },
+}
+
+impl XrefEntry {
+    /// The generation number of the object this entry describes (objects in object streams
+    /// always have generation 0, §7.5.7).
+    pub(crate) const fn gen_nr(self) -> u16 {
+        match self {
+            Self::InFile { gen_nr, .. } => gen_nr,
+            Self::Free | Self::InStream { .. } => 0,
+        }
+    }
+
+    /// Whether a reference with generation `gen_nr` refers to this entry's object. A
+    /// mismatch means the reference is stale and resolves to `null` (§7.3.10).
+    pub(crate) const fn matches_gen(self, gen_nr: u16) -> bool {
+        match self {
+            Self::Free => false,
+            Self::InFile { .. } | Self::InStream { .. } => self.gen_nr() == gen_nr,
+        }
+    }
 }
 
 /// The merged result of walking an xref chain.
@@ -28,6 +63,8 @@ pub(crate) struct XrefTable {
     /// Number of sections reached through `/Prev` (hybrid `/XRefStm` sections do not count).
     pub(crate) sections: usize,
     pub(crate) has_xref_stream: bool,
+    /// Whether the newest section (the one `startxref` points at) is an xref stream.
+    pub(crate) newest_is_stream: bool,
 }
 
 fn invalid(message: &'static str) -> Error {
@@ -73,6 +110,7 @@ pub(crate) fn load(data: &[u8], start: usize, limit: usize) -> Result<XrefTable>
         next = trailer.get_int("Prev").and_then(|p| usize::try_from(p).ok());
         if table.sections == 0 {
             table.trailer = trailer;
+            table.newest_is_stream = is_stream;
         }
         table.sections += 1;
     }

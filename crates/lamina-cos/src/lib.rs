@@ -35,15 +35,23 @@
 //! rules (ported from the `pdf-basics` spike, where the Rust and TypeScript readers were
 //! aligned by differential fuzzing):
 //!
-//! * Missing or free objects resolve to `null` (§7.3.10). The page-tree walk skips children
-//!   that are missing, unparsable or not dictionaries; reference cycles are
-//!   [`Error::ReferenceCycle`].
+//! * Missing or free objects, and references whose generation number does not match the xref
+//!   entry's, resolve to `null` (§7.3.10). A `null` value counts as absent: an inheritable
+//!   page attribute that is `null` keeps the inherited value, and `/Contents` that is `null`
+//!   contributes no content. The page-tree walk skips children that are missing, unparsable
+//!   or not dictionaries; reference cycles are [`Error::ReferenceCycle`].
 //! * The `%PDF-` header is optional: it is looked for in the first 1 024 bytes, and its
 //!   absence is reported as [`Warning::MissingHeader`].
 //! * The stored xref is used only when every in-file entry points at a matching `n g obj`
 //!   header and the trailer's `/Root` resolves to a dictionary; otherwise the xref is rebuilt
-//!   by scanning ([`Warning::XrefRepaired`]). In hybrid files the classic table's in-use
-//!   entries win over `/XRefStm`, which still fills in entries the table marks free.
+//!   by scanning ([`Warning::XrefRepaired`]). Repair keeps, for each object number, the
+//!   definition that comes last in the file (an object-stream member counts at its
+//!   container's offset), and falls back to the newest `/Type /Catalog`. In hybrid files the
+//!   classic table's in-use entries win over `/XRefStm`, which still fills in entries the
+//!   table marks free.
+//! * Writing is strict: an incremental update appends a section of the same kind as the
+//!   newest one (classic table or xref stream), never shrinks `/Size`, and refuses repaired
+//!   ([`Error::RepairedBase`]) and encrypted ([`Error::EncryptedBase`]) bases.
 //! * Limits: nesting depth [`lamina_syntax::MAX_DEPTH`], decoded stream size
 //!   [`OpenOptions::max_decoded_size`], and bounded `/Prev` chains and reference chains.
 //!   Loops over counts read from the file are bounded by the bytes actually present.
