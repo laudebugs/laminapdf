@@ -7,7 +7,7 @@ Everything we know, plan and decide lives here, in Markdown, versioned with the 
 | [`research/`](research/) | Research notes and deep dives (e.g. how PDF works). Exploratory, cited, may be opinionated. |
 | [`plans/`](plans/) | Roadmaps, project plans and feature design docs before/while they are built. |
 | [`decisions/`](decisions/) | Architecture Decision Records (ADRs) — one file per significant decision, numbered `NNNN-title.md`. |
-| [`guidelines/`](guidelines/) | How we work: contributing, coding conventions, documentation style. |
+| [`guidelines/`](guidelines/) | How we work: contributing, git workflow, code organization, Rust and TypeScript conventions. |
 | [`references/`](references/) | Pointers to external specs, standards, tools and corpora we rely on. |
 
 ## Conventions
