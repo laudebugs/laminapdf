@@ -167,10 +167,16 @@ impl Workspace {
 
     /// Runs `pnpm args…` at the workspace root (after checking `pnpm install` has been run).
     pub(crate) fn pnpm(&self, args: &[&str]) -> Result<()> {
+        self.require_node_modules()?;
+        crate::run(&self.root, "pnpm", args)
+    }
+
+    /// Fails with an actionable message when `pnpm install` hasn't been run at the root.
+    pub(crate) fn require_node_modules(&self) -> Result<()> {
         if !self.root.join("node_modules").is_dir() {
             bail!("node_modules is missing: run `pnpm install` at the repository root first");
         }
-        crate::run(&self.root, "pnpm", args)
+        Ok(())
     }
 }
 

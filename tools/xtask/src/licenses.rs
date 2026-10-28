@@ -17,9 +17,7 @@ use crate::workspace::Workspace;
 /// Checks the licences of every npm dependency in the pnpm workspace.
 pub(crate) fn check_npm(ws: &Workspace) -> Result<()> {
     crate::step("npm licences (pnpm licenses list, allow-list from deny.toml)");
-    if !ws.root.join("node_modules").is_dir() {
-        bail!("node_modules is missing: run `pnpm install` at the repository root first");
-    }
+    ws.require_node_modules()?;
     let deny_toml = fs::read_to_string(ws.root.join("deny.toml")).context("reading deny.toml")?;
     let allow_list = allow_list(&deny_toml)?;
     let allowed = |id: &str| allow_list.iter().any(|a| a == id);

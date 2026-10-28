@@ -45,6 +45,11 @@ fn main() -> Result<()> {
     let args: Vec<String> = env::args().skip(1).collect();
     let task = args.first().map_or("help", String::as_str);
     let rest = args.get(1..).unwrap_or_default();
+    // Help must work even when the workspace can't load (stale lock file, missing layer metadata).
+    if matches!(task, "help" | "-h" | "--help") {
+        println!("{USAGE}");
+        return Ok(());
+    }
     let ws = Workspace::load(repo_root()?)?;
 
     match (task, rest) {
@@ -77,10 +82,6 @@ fn main() -> Result<()> {
             check_rust(&ws)?;
             check_ts(&ws)?;
             wasm(&ws)
-        }
-        ("help" | "-h" | "--help", _) => {
-            println!("{USAGE}");
-            Ok(())
         }
         _ => bail!("unknown task or arguments: {}\n\n{USAGE}", args.join(" ")),
     }
