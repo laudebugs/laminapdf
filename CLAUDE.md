@@ -18,18 +18,28 @@ lamina is a platform for anything and everything PDF: creating PDFs from code, p
     ├── research/        # deep dives and research notes, one subfolder per topic
     ├── plans/           # roadmaps and feature design docs
     ├── decisions/       # Architecture Decision Records (NNNN-title.md)
-    ├── guidelines/      # how we work (contributing, conventions)
+    ├── guidelines/      # how we work (contributing, git workflow, code organization, Rust/TS)
     └── references/      # external specs, tools, corpora
 ```
 
 ## Working agreements
 
+- **Always work in a git worktree.** Start every piece of work in a new worktree off main (see docs/guidelines/git-workflow.md). The repo is a bare clone; worktrees are folders inside it: `git worktree add -b <type>/<desc> <type>-<desc> main`. Never `git stash` across worktrees; remove the worktree after merge.
 - **Pull requests only.** `main` was initialized directly; every change since goes through a branch + PR. Branch names: `<type>/<short-description>` (e.g. `docs/pdf-research`).
+- **Review every PR with `/code-review`, then merge.** After opening a PR, run `/code-review high <PR#> --comment` (trivial PRs: `low`), push fixes, reply to each comment with the fixing commit and resolve it; if there were more than 6 findings, run `/code-review low <PR#> --comment` after the fixes. Squash-merge once every thread is resolved and CI is green. See [review and merge process](docs/guidelines/git-workflow.md#7-review-and-merge-process).
 - **Conventional Commits** for commit messages: `type(scope): summary`.
 - **Document as you go.** Plans go in `docs/plans/`, decisions in `docs/decisions/`, research in `docs/research/`. Update the folder's `README.md` index whenever you add a file.
 - **Cite sources.** PDF behavior claims should point to ISO 32000-2 (PDF 2.0) or another primary source. Clearly label recommendations and opinions.
 - **Spec first.** When implementing PDF features, read the relevant research chapter in `docs/research/` and the spec section before writing code. Real-world PDFs are frequently malformed — parsers must be tolerant, writers must be strict.
 - **Mind licenses.** Many PDF libraries are AGPL or dual-licensed (e.g. iText, MuPDF/PyMuPDF). Don't add a dependency without checking its license.
+
+## Code organization
+
+Conventions that hold whatever the architecture ADRs decide (crate/package names in them are examples):
+
+- [`docs/guidelines/code-organization.md`](docs/guidelines/code-organization.md): layout (`crates/lamina-*`, `packages/` as `@lamina/*`, `apps/`, `fixtures/`, `tools/xtask`, `spikes/` outside every workspace), dependency direction (pure bytes-in/bytes-out core, platform code only at the edges), public API, tests, when to split.
+- [`docs/guidelines/rust.md`](docs/guidelines/rust.md): edition 2024, workspace `[lints]`, no `unwrap`/`expect`/`panic`/indexing in libraries, `unsafe` only in edge crates with `// SAFETY:`, `thiserror` errors.
+- [`docs/guidelines/typescript.md`](docs/guidelines/typescript.md): strict tsconfig, ESM-only, no Node-only APIs in shared packages, named exports only, Biome, Vitest.
 
 ## Commands
 
