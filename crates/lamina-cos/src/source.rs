@@ -3,7 +3,7 @@
 //! [ADR 0005]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0005-document-model.md
 
 use std::fmt;
-use std::sync::Arc;
+use std::sync::{Arc, OnceLock};
 
 /// Random-access input bytes: in memory, memory-mapped, a browser `Blob`, an HTTP range cache.
 ///
@@ -96,47 +96,116 @@ in_memory_source!(&'static [u8]);
 /// A shared [`ByteSource`]: what [`Document::open`](crate::Document::open) takes.
 ///
 /// Every [`ByteSource`] converts into one (`Vec<u8>`, `Arc<[u8]>`, `&'static [u8]`, or your
-/// own type), and so does an `Arc<dyn ByteSource>`, which lets several documents (one per
-/// thread, ADR 0005 §7) share one input without copying it.
+/// own type), and so does an `Arc<dyn ByteSource>`. Cloning a `Source` is cheap and shares
+/// everything, including the in-memory copy of a source that has no
+/// [`as_slice`](ByteSource::as_slice): open one document per thread (ADR 0005 §7) from clones
+/// of one `Source`, and the input is read and held once.
 ///
 /// ```
 /// use std::sync::Arc;
 /// use lamina_cos::{ByteSource, Source};
 ///
 /// let shared: Arc<dyn ByteSource> = Arc::new(b"%PDF-1.7".to_vec());
-/// let a = Source::from(Arc::clone(&shared));
-/// let b = Source::from(shared);
-/// assert_eq!(a.get().len(), b.get().len());
+/// let a = Source::from(shared);
+/// let b = a.clone();
+/// assert!(Arc::ptr_eq(a.get(), b.get()));
 /// ```
 #[derive(Clone)]
-pub struct Source(Arc<dyn ByteSource>);
+pub struct Source(Arc<Shared>);
+
+struct Shared {
+    source: Arc<dyn ByteSource>,
+    /// The whole input, read once, for a source without `as_slice`. Windowed reading over
+    /// [`ByteSource::read_at`] (ADR 0005 §2) is later work.
+    buffered: OnceLock<Arc<[u8]>>,
+}
+
+/// Bytes requested per [`ByteSource::read_at`] call when buffering a source.
+const READ_CHUNK: usize = 64 * 1024;
 
 impl Source {
+    fn new(source: Arc<dyn ByteSource>) -> Self {
+        Self(Arc::new(Shared {
+            source,
+            buffered: OnceLock::new(),
+        }))
+    }
+
     /// The underlying source.
     #[must_use]
     pub fn get(&self) -> &Arc<dyn ByteSource> {
-        &self.0
+        &self.0.source
     }
+
+    /// The whole input in memory: the source's own slice, or a copy read once and shared by
+    /// every clone of this `Source`.
+    pub(crate) fn bytes(&self) -> Result<&[u8], SourceError> {
+        if let Some(slice) = self.0.source.as_slice() {
+            return Ok(slice);
+        }
+        if self.0.buffered.get().is_none() {
+            let read = read_all(self.0.source.as_ref())?;
+            // Another thread may have filled it meanwhile; either copy is the same bytes.
+            let _ = self.0.buffered.set(read);
+        }
+        Ok(self.0.buffered.get().map_or(&[][..], |b| &**b))
+    }
+
+    /// [`Source::bytes`] after it has succeeded once (empty before that).
+    pub(crate) fn loaded(&self) -> &[u8] {
+        self.0
+            .source
+            .as_slice()
+            .or_else(|| self.0.buffered.get().map(|b| &**b))
+            .unwrap_or_default()
+    }
+}
+
+/// Reads a whole source in bounded chunks into a growing buffer, so a `len()` that lies
+/// costs nothing until the bytes actually arrive.
+///
+/// # Errors
+/// The source's errors; [`SourceError::Failed`] when it ends before its reported length.
+fn read_all(source: &dyn ByteSource) -> Result<Arc<[u8]>, SourceError> {
+    let len = source.len();
+    let mut out: Vec<u8> = Vec::new();
+    let mut chunk = vec![0; READ_CHUNK];
+    let mut offset: u64 = 0;
+    while offset < len {
+        let want = usize::try_from(len - offset).map_or(READ_CHUNK, |rest| rest.min(READ_CHUNK));
+        let Some(buf) = chunk.get_mut(..want) else { break };
+        let n = source.read_at(offset, buf)?;
+        if n == 0 {
+            return Err(SourceError::Failed {
+                offset,
+                len: len - offset,
+            });
+        }
+        out.extend_from_slice(buf.get(..n).unwrap_or_default());
+        offset = offset.saturating_add(u64::try_from(n).unwrap_or(u64::MAX));
+    }
+    Ok(out.into())
 }
 
 impl fmt::Debug for Source {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("Source")
-            .field("len", &self.0.len())
-            .field("in_memory", &self.0.as_slice().is_some())
+            .field("len", &self.0.source.len())
+            .field("in_memory", &self.0.source.as_slice().is_some())
+            .field("buffered", &self.0.buffered.get().is_some())
             .finish()
     }
 }
 
 impl<S: ByteSource + 'static> From<S> for Source {
     fn from(source: S) -> Self {
-        Self(Arc::new(source))
+        Self::new(Arc::new(source))
     }
 }
 
 impl From<Arc<dyn ByteSource>> for Source {
     fn from(source: Arc<dyn ByteSource>) -> Self {
-        Self(source)
+        Self::new(source)
     }
 }
 
@@ -177,6 +246,47 @@ mod tests {
     #[test]
     fn empty_vec_source_is_empty() {
         assert!(ByteSource::is_empty(&Vec::<u8>::new()));
+    }
+
+    /// Claims a huge length but holds only `data`.
+    struct Liar(Vec<u8>);
+
+    impl ByteSource for Liar {
+        fn len(&self) -> u64 {
+            1 << 40
+        }
+
+        fn read_at(&self, offset: u64, buf: &mut [u8]) -> Result<usize, SourceError> {
+            Ok(read_slice(&self.0, offset, buf))
+        }
+    }
+
+    #[test]
+    fn read_all_fails_cleanly_when_a_source_ends_before_its_length() {
+        assert_eq!(
+            read_all(&Liar(b"abc".to_vec())),
+            Err(SourceError::Failed {
+                offset: 3,
+                len: (1 << 40) - 3
+            })
+        );
+    }
+
+    #[test]
+    fn read_all_reads_across_chunks() {
+        struct NoSlice(Vec<u8>);
+        impl ByteSource for NoSlice {
+            fn len(&self) -> u64 {
+                u64::try_from(self.0.len()).unwrap()
+            }
+            fn read_at(&self, offset: u64, buf: &mut [u8]) -> Result<usize, SourceError> {
+                Ok(read_slice(&self.0, offset, buf))
+            }
+        }
+        let data: Vec<u8> = (0..READ_CHUNK * 2 + 5)
+            .map(|i| u8::try_from(i % 251).unwrap())
+            .collect();
+        assert_eq!(read_all(&NoSlice(data.clone())).map(|b| b.to_vec()), Ok(data));
     }
 
     #[test]

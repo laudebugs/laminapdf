@@ -27,7 +27,11 @@ pub enum Limit {
     FilterChain,
     /// [`Limits::max_resolve_depth`].
     ResolveDepth,
-    /// [`Limits::max_page_tree_depth`].
+    /// [`Limits::max_page_tree_depth`]. The only reader of the page tree today is
+    /// `Document::pages`, one of ADR 0003's tolerant paths: it skips a subtree past this
+    /// limit with the `page-tree-node-skipped` warning (an `Error::Strict` in strict mode)
+    /// instead of returning this error (ADR 0003 §3). Typed views (Round B2c) that read the
+    /// tree outside that walk return it.
     PageTreeDepth,
     /// [`Limits::max_tree_depth`].
     TreeDepth,
@@ -243,8 +247,9 @@ impl Limits {
         max_filter_chain, with_max_filter_chain: usize;
         /// Hard: indirect objects in flight at once while resolving a reference chain (default 32).
         max_resolve_depth, with_max_resolve_depth: usize;
-        /// Hard: `/Kids` levels below the page-tree root; deeper subtrees are skipped with a
-        /// warning (default 256).
+        /// Hard: `/Kids` levels below the page-tree root (default 256). Hit inside the
+        /// tolerant page walk, the subtree is skipped with a `page-tree-node-skipped` warning,
+        /// as ADR 0003 §3 prescribes for hard limits on tolerant paths.
         max_page_tree_depth, with_max_page_tree_depth: usize;
         /// Hard: depth of name trees, number trees and outlines (default 64; enforced by the
         /// typed views).

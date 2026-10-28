@@ -23,8 +23,7 @@ pub enum Error {
         /// Which limit.
         limit: Limit,
         /// Where it was hit, when known: a byte offset for syntax limits (nesting, string
-        /// length), an object number for reference chains and the page tree; `None` for
-        /// decoding budgets.
+        /// length), an object number for reference chains; `None` for decoding budgets.
         at: Option<u64>,
     },
     /// Strict mode ([`OpenOptions::with_strict`](crate::OpenOptions::with_strict)) refused

@@ -100,7 +100,9 @@ impl ops::Deref for Resolved<'_> {
     }
 }
 
-type ObjStmMembers = Arc<Vec<(u32, Arc<Object>)>>;
+/// A decoded object stream's members. A member that does not parse keeps its error, which
+/// resolving that member returns, exactly as for an object stored in the file (ADR 0003 §1).
+type ObjStmMembers = Arc<Vec<(u32, lamina_syntax::Result<Arc<Object>>)>>;
 
 /// An opened PDF ([ADR 0005] §2). Owns its input as a shared [`ByteSource`] and has no
 /// lifetime parameter; objects are parsed lazily on first [`Document::resolve`] and then
@@ -127,12 +129,13 @@ type ObjStmMembers = Arc<Vec<(u32, Arc<Object>)>>;
     reason = "independent facts about the opened file, not states of one machine"
 )]
 pub struct Document {
+    /// The input; a source without an in-memory slice is read once and the copy is shared
+    /// by every document opened from clones of the same [`Source`].
     source: Source,
-    /// A copy of the input when the source has no in-memory slice. Windowed reading over
-    /// [`ByteSource::read_at`] (ADR 0005 §2) is later work; until then such sources are read
-    /// once at open.
-    buffered: Option<Arc<[u8]>>,
     entries: BTreeMap<u32, XrefEntry>,
+    /// The highest object number in any xref section, including entries dropped for
+    /// exceeding [`Limits::max_object_number`] (the incremental writer never goes below it).
+    max_object_number: Option<u32>,
     trailer: Dict,
     revisions: usize,
     repaired: bool,
@@ -184,33 +187,29 @@ impl Drop for Call<'_> {
     }
 }
 
-/// Errors a tolerant path must pass on instead of degrading: cycles (ADR 0003 §1), strict
-/// mode refusals and missing input (the call has to be retried).
-const fn is_fatal(e: &Error) -> bool {
-    matches!(
-        e,
-        Error::ReferenceCycle(_) | Error::Strict { .. } | Error::DataPending { .. }
-    )
+/// Errors no tolerant path may swallow: strict-mode refusals (the caller asked for them) and
+/// input that is missing or unreadable (the call has to be retried or fail).
+const fn must_propagate(e: &Error) -> bool {
+    matches!(e, Error::Strict { .. } | Error::DataPending { .. } | Error::Source(_))
 }
 
-/// Reads a source without an in-memory slice into memory.
-fn read_all(source: &dyn ByteSource) -> Result<Arc<[u8]>> {
-    let len = usize::try_from(source.len()).map_err(|_| Error::InvalidStructure {
-        kind: "input",
-        message: "larger than the address space",
-    })?;
-    let mut buf = vec![0; len];
-    let mut filled = 0;
-    while let Some(rest) = buf.get_mut(filled..).filter(|r| !r.is_empty()) {
-        let offset = u64::try_from(filled).unwrap_or(u64::MAX);
-        let n = source.read_at(offset, rest)?;
-        if n == 0 {
-            break;
-        }
-        filled += n;
+/// Errors that end the page-tree walk instead of skipping a node: cycles (ADR 0003 §1) and
+/// [`must_propagate`] ones. Hard limits are not among them: the walk is one of ADR 0003's
+/// tolerant paths, so it skips the node with `page-tree-node-skipped` (§3).
+const fn ends_page_walk(e: &Error) -> bool {
+    matches!(e, Error::ReferenceCycle(_)) || must_propagate(e)
+}
+
+/// For reads that are not one of ADR 0003's tolerant paths but fall back to "absent" (an
+/// inherited page attribute, `/Count`): `Ok(None)` for an object that is merely malformed,
+/// the error for anything else. Cycles, hard limits ([`Error::LimitExceeded`]) and
+/// [`must_propagate`] errors fail the call, as ADR 0003 §3 requires outside tolerant paths.
+fn absent_if_malformed<T>(result: Result<T>) -> Result<Option<T>> {
+    match result {
+        Ok(value) => Ok(Some(value)),
+        Err(e) if ends_page_walk(&e) || matches!(e, Error::LimitExceeded { .. }) => Err(e),
+        Err(_) => Ok(None),
     }
-    buf.truncate(filled);
-    Ok(buf.into())
 }
 
 fn read_header_version(data: &[u8], header_pos: usize) -> Option<String> {
@@ -237,17 +236,22 @@ fn entries_are_valid(data: &[u8], table: &XrefTable, limits: &Limits) -> bool {
     })
 }
 
-fn as_rect(doc: &Document, obj: &Object) -> Option<[f64; 4]> {
-    let arr = doc.deref(obj).ok()?;
-    let items = arr.as_array()?;
+/// `obj` as a rectangle; `None` when it is absent, malformed or not four numbers.
+fn as_rect(doc: &Document, obj: &Object) -> Result<Option<[f64; 4]>> {
+    let Some(arr) = absent_if_malformed(doc.deref(obj))? else {
+        return Ok(None);
+    };
+    let Some(items) = arr.as_array().filter(|items| items.len() == 4) else {
+        return Ok(None);
+    };
     let mut out = [0.0; 4];
-    if items.len() != 4 {
-        return None;
-    }
     for (slot, item) in out.iter_mut().zip(items) {
-        *slot = doc.deref(item).ok()?.as_f64()?;
+        match absent_if_malformed(doc.deref(item))?.and_then(|n| n.as_f64()) {
+            Some(n) => *slot = n,
+            None => return Ok(None),
+        }
     }
-    Some(out)
+    Ok(Some(out))
 }
 
 /// Inheritable page attributes carried down the page tree. Values are shared via [`Arc`],
@@ -268,26 +272,37 @@ impl Inherited {
     ///
     /// A value that is `null`, or a reference that `is_null` says resolves to `null` (a missing
     /// or free object), counts as absent (§7.3.7, §7.3.10): the inherited value is kept.
-    fn overlay(parent: &Arc<Self>, dict: &Dict, is_null: impl Fn(&Object) -> bool) -> Arc<Self> {
-        let own = |key| dict.get(key).filter(|o| !is_null(o));
-        if !INHERITABLE.iter().any(|key| own(key).is_some()) {
-            return Arc::clone(parent);
+    ///
+    /// # Errors
+    /// Whatever `is_null` fails with (it resolves references).
+    fn overlay(parent: &Arc<Self>, dict: &Dict, is_null: impl Fn(&Object) -> Result<bool>) -> Result<Arc<Self>> {
+        let mut own: [Option<&Object>; 4] = [None; 4];
+        for (slot, key) in own.iter_mut().zip(INHERITABLE) {
+            if let Some(value) = dict.get(key)
+                && !is_null(value)?
+            {
+                *slot = Some(value);
+            }
         }
-        let pick =
-            |key, inherited: &Option<Arc<Object>>| own(key).map(|o| Arc::new(o.clone())).or_else(|| inherited.clone());
-        Arc::new(Self {
-            media_box: pick("MediaBox", &parent.media_box),
-            crop_box: pick("CropBox", &parent.crop_box),
-            rotate: pick("Rotate", &parent.rotate),
-            resources: pick("Resources", &parent.resources),
-        })
+        if own.iter().all(Option::is_none) {
+            return Ok(Arc::clone(parent));
+        }
+        let [media_box, crop_box, rotate, resources] = own;
+        let pick = |own: Option<&Object>, inherited: &Option<Arc<Object>>| {
+            own.map(|o| Arc::new(o.clone())).or_else(|| inherited.clone())
+        };
+        Ok(Arc::new(Self {
+            media_box: pick(media_box, &parent.media_box),
+            crop_box: pick(crop_box, &parent.crop_box),
+            rotate: pick(rotate, &parent.rotate),
+            resources: pick(resources, &parent.resources),
+        }))
     }
 }
 
 /// What [`Document::new`] needs besides the xref table.
 struct Base {
     source: Source,
-    buffered: Option<Arc<[u8]>>,
     header_version: Option<String>,
     limits: Limits,
     strict: bool,
@@ -326,16 +341,7 @@ impl Document {
     )]
     pub fn open(source: impl Into<Source>, options: OpenOptions) -> Result<Self> {
         let source = source.into();
-        let shared = Arc::clone(source.get());
-        let buffered = match shared.as_slice() {
-            Some(_) => None,
-            None => Some(read_all(shared.as_ref())?),
-        };
-        let owned = buffered.clone();
-        let data: &[u8] = match &owned {
-            Some(bytes) => bytes,
-            None => shared.as_slice().unwrap_or_default(),
-        };
+        let data = source.bytes()?;
         if data.is_empty() {
             return Err(Error::NotPdf("empty input"));
         }
@@ -348,15 +354,11 @@ impl Document {
         if header_version.is_none() {
             log.raise(Warning::MissingHeader, &limits, strict)?;
         }
-        let base = |log: WarningLog| -> (Base, WarningLog) {
-            let base = Base {
-                source: source.clone(),
-                buffered: buffered.clone(),
-                header_version: header_version.clone(),
-                limits,
-                strict,
-            };
-            (base, log)
+        let base = || Base {
+            source: source.clone(),
+            header_version: header_version.clone(),
+            limits,
+            strict,
         };
 
         let mut budget = DecodeBudget::new(&limits);
@@ -365,8 +367,7 @@ impl Document {
             .and_then(|start| xref::load(data, start, &limits, &mut budget).ok())
             .filter(|table| table.trailer.contains_key("Root") && entries_are_valid(data, table, &limits));
         if let Some(table) = loaded {
-            let (b, l) = base(log.clone());
-            let doc = Self::new(b, table, startxref, l)?;
+            let doc = Self::new(base(), table, startxref, log.clone())?;
             // Entries that look valid can still yield an unusable catalog (damaged object
             // stream, syntax error inside the catalog, …): treat that like a broken xref.
             let checked = {
@@ -385,8 +386,7 @@ impl Document {
         }
         log.raise(Warning::XrefRepaired, &limits, strict)?;
         let table = repair::rebuild(data, &limits, &mut budget)?;
-        let (b, l) = base(log);
-        let mut doc = Self::new(b, table, None, l)?;
+        let mut doc = Self::new(base(), table, None, log)?;
         doc.repaired = true;
         Ok(doc)
     }
@@ -405,7 +405,6 @@ impl Document {
         } = table;
         let Base {
             source,
-            buffered,
             header_version,
             limits,
             strict,
@@ -413,13 +412,14 @@ impl Document {
         for offset in ignored_xref_streams {
             log.raise(Warning::XrefStmIgnored { offset }, &limits, strict)?;
         }
+        let max_object_number = entries.keys().chain(&dropped_objects).max().copied();
         for object in dropped_objects {
             log.raise(Warning::ObjectNumberOutOfRange { object }, &limits, strict)?;
         }
         Ok(Self {
             source,
-            buffered,
             entries,
+            max_object_number,
             trailer,
             revisions: sections,
             repaired: false,
@@ -518,10 +518,7 @@ impl Document {
     /// The input bytes.
     #[must_use]
     pub fn data(&self) -> &[u8] {
-        match &self.buffered {
-            Some(bytes) => bytes,
-            None => self.source.get().as_slice().unwrap_or_default(),
-        }
+        self.source.loaded()
     }
 
     /// The input source, shareable with other documents (one per thread).
@@ -536,9 +533,10 @@ impl Document {
         self.newest_is_stream
     }
 
-    /// The highest object number in any xref section, free entries included.
-    pub(crate) fn max_object_number(&self) -> Option<u32> {
-        self.entries.keys().next_back().copied()
+    /// The highest object number in any xref section, free entries and entries dropped for
+    /// exceeding [`Limits::max_object_number`] included.
+    pub(crate) const fn max_object_number(&self) -> Option<u32> {
+        self.max_object_number
     }
 
     /// Numbers of all objects that are not free, ascending.
@@ -652,16 +650,28 @@ impl Document {
     }
 
     fn load_in_file(&self, num: u32, offset: usize, in_flight: &mut Vec<u32>) -> Result<Arc<Object>> {
+        // An unresolvable indirect `/Length` (missing, malformed, a cycle, over a hard limit)
+        // is one of ADR 0003's tolerant paths: the extent is recovered by scanning, with
+        // `stream-length-recovered`. Strict-mode refusals and missing input end the call.
+        let mut fatal = None;
         let parsed = {
-            let mut resolve_length = |r: ObjRef| {
-                self.load(r.num, Some(r.gen_nr), in_flight)
-                    .ok()
-                    .and_then(|o| o.as_int())
+            let mut resolve_length = |r: ObjRef| match self.load(r.num, Some(r.gen_nr), in_flight) {
+                Ok(obj) => obj.as_int(),
+                Err(e) => {
+                    if must_propagate(&e) {
+                        fatal.get_or_insert(e);
+                    }
+                    None
+                }
             };
             Parser::new(self.data(), offset)
                 .with_limits(&self.limits)
-                .indirect_object(&mut resolve_length)?
+                .indirect_object(&mut resolve_length)
         };
+        if let Some(e) = fatal {
+            return Err(e);
+        }
+        let parsed = parsed?;
         if parsed.length_recovered {
             self.warn(Warning::StreamLengthRecovered { object: num })?;
         }
@@ -674,14 +684,14 @@ impl Document {
             .ok()
             .and_then(|i| members.get(i))
             .filter(|(n, _)| *n == num);
-        if let Some((_, obj)) = by_index {
-            return Ok(Arc::clone(obj));
+        if let Some((_, member)) = by_index {
+            return member.clone().map_err(Error::from);
         }
         // Fall back to a search when the index is stale or wrong.
         match members.iter().find(|(n, _)| *n == num) {
-            Some((_, obj)) => {
+            Some((_, member)) => {
                 self.warn(Warning::ObjStmIndexMismatch { object: num })?;
-                Ok(Arc::clone(obj))
+                member.clone().map_err(Error::from)
             }
             None => Ok(Arc::new(Object::Null)),
         }
@@ -707,7 +717,7 @@ impl Document {
         let decoded = self.decode_stream_of(s, Some(stream))?;
         let members: Vec<_> = objstm::parse(&s.dict, &decoded, &self.limits)?
             .into_iter()
-            .map(|(n, obj)| (n, Arc::new(obj)))
+            .map(|(n, member)| (n, member.map(Arc::new)))
             .collect();
         let members = Arc::new(members);
         self.objstm_cache.borrow_mut().insert(stream, Arc::clone(&members));
@@ -790,10 +800,14 @@ impl Document {
     /// [`Warning::PageTreeNodeSkipped`]. `/Count` is not trusted: the walk is authoritative,
     /// and a root `/Count` that differs raises [`Warning::PageCountMismatch`].
     ///
+    /// A page attribute (`/MediaBox`, `/CropBox`, `/Rotate`, `/Resources`) or `/Count` that is
+    /// malformed reads as absent.
+    ///
     /// # Errors
     /// [`Error::ReferenceCycle`] when a page-tree node is reachable twice (e.g. a
     /// self-referencing `/Kids`) or a reference chain loops; [`Error::Strict`] in strict mode
-    /// for any skip; errors from [`Document::catalog`].
+    /// for any skip or any warning raised while reading attributes; [`Error::LimitExceeded`]
+    /// when reading a page attribute exceeds a hard limit; errors from [`Document::catalog`].
     pub fn pages(&self) -> Result<Vec<Page>> {
         let _call = self.call();
         let catalog = self.catalog()?;
@@ -808,6 +822,9 @@ impl Document {
                     object: obj_ref.map(|r| r.num),
                 })
             };
+            // ADR 0003 §3: `max_page_tree_depth` is a hard limit hit inside the walk, one of
+            // the tolerant paths, so the subtree is skipped with `page-tree-node-skipped`
+            // (strict mode: `Error::Strict`) instead of failing the call.
             if depth > self.limits.max_page_tree_depth() {
                 skip()?;
                 continue;
@@ -819,7 +836,7 @@ impl Document {
             }
             let resolved = match self.deref(&node_obj) {
                 Ok(obj) => obj,
-                Err(e) if is_fatal(&e) => return Err(e),
+                Err(e) if ends_page_walk(&e) => return Err(e),
                 Err(_) => {
                     skip()?;
                     continue;
@@ -830,16 +847,18 @@ impl Document {
                 continue;
             };
             let attrs = Inherited::overlay(&inherited, node, |o| match o {
-                Object::Null => true,
-                Object::Ref(_) => self.deref(o).is_ok_and(|r| matches!(*r, Object::Null)),
-                _ => false,
-            });
+                Object::Null => Ok(true),
+                // A malformed object counts as present (it was before): the page keeps the
+                // attribute and reading it later yields `None`.
+                Object::Ref(_) => Ok(absent_if_malformed(self.deref(o))?.is_some_and(|r| matches!(*r, Object::Null))),
+                _ => Ok(false),
+            })?;
             let is_tree_node = node.get_name("Type") == Some(b"Pages")
                 || (node.get_name("Type") != Some(b"Page") && node.contains_key("Kids"));
             if is_tree_node {
                 let kids = match self.deref(node.get("Kids").unwrap_or(&Object::Null)) {
                     Ok(obj) => obj,
-                    Err(e) if is_fatal(&e) => return Err(e),
+                    Err(e) if ends_page_walk(&e) => return Err(e),
                     Err(_) => {
                         skip()?;
                         continue;
@@ -855,7 +874,7 @@ impl Document {
                     skip()?;
                 }
             } else {
-                pages.push(self.make_page(obj_ref, node.clone(), &attrs));
+                pages.push(self.make_page(obj_ref, node.clone(), &attrs)?);
             }
         }
         self.check_page_count(&root, pages.len())?;
@@ -864,10 +883,13 @@ impl Document {
 
     /// Raises [`Warning::PageCountMismatch`] when the root node's `/Count` differs from `walked`.
     fn check_page_count(&self, root: &Object, walked: usize) -> Result<()> {
-        let declared = self.deref(root).ok().and_then(|node| {
-            let count = node.as_dict()?.get("Count")?;
-            self.deref(count).ok()?.as_int()
-        });
+        let declared = match absent_if_malformed(self.deref(root))? {
+            Some(node) => match node.as_dict().and_then(|d| d.get("Count")) {
+                Some(count) => absent_if_malformed(self.deref(count))?.and_then(|c| c.as_int()),
+                None => None,
+            },
+            None => None,
+        };
         let walked = u64::try_from(walked).unwrap_or(u64::MAX);
         match declared {
             Some(declared) if u64::try_from(declared).ok() != Some(walked) => self.warn(Warning::PageCountMismatch {
@@ -879,30 +901,35 @@ impl Document {
         }
     }
 
-    fn make_page(&self, obj_ref: Option<ObjRef>, dict: Dict, attrs: &Inherited) -> Page {
-        let rect = |o: &Option<Arc<Object>>| o.as_deref().and_then(|o| as_rect(self, o));
-        let rotate = attrs
-            .rotate
-            .as_deref()
-            .and_then(|o| self.deref(o).ok()?.as_int())
-            .unwrap_or(0);
+    /// A page from its dictionary and inherited attributes. A malformed attribute is `None`
+    /// (`/Rotate`: 0); cycles, hard limits and strict-mode refusals fail the call.
+    fn make_page(&self, obj_ref: Option<ObjRef>, dict: Dict, attrs: &Inherited) -> Result<Page> {
+        let rect = |o: &Option<Arc<Object>>| match o.as_deref() {
+            Some(o) => as_rect(self, o),
+            None => Ok(None),
+        };
+        let rotate = match attrs.rotate.as_deref() {
+            Some(o) => absent_if_malformed(self.deref(o))?.and_then(|r| r.as_int()),
+            None => None,
+        };
         // A direct dictionary is already shared through `attrs`; a reference resolves to
         // the cached object. Either way no dictionary is copied per page.
-        let resources = attrs.resources.as_ref().and_then(|o| {
-            let shared = match **o {
-                Object::Ref(r) => self.resolve(r).ok()?,
-                _ => Arc::clone(o),
-            };
-            matches!(*shared, Object::Dict(_)).then_some(shared)
-        });
-        Page {
+        let resources = match attrs.resources.as_ref() {
+            Some(o) => match **o {
+                Object::Ref(r) => absent_if_malformed(self.resolve(r))?,
+                _ => Some(Arc::clone(o)),
+            },
+            None => None,
+        }
+        .filter(|shared| matches!(**shared, Object::Dict(_)));
+        Ok(Page {
             obj_ref,
-            media_box: rect(&attrs.media_box),
-            crop_box: rect(&attrs.crop_box),
-            rotate,
+            media_box: rect(&attrs.media_box)?,
+            crop_box: rect(&attrs.crop_box)?,
+            rotate: rotate.unwrap_or(0),
             resources,
             dict,
-        }
+        })
     }
 
     /// Number of leaf pages in the page tree.

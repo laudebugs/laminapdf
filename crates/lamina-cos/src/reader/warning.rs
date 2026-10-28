@@ -1,5 +1,7 @@
 //! Stable, enumerated warning codes (ADR 0003 §2) and the per-document warning log.
 
+use std::collections::BTreeSet;
+
 use lamina_syntax::Limits;
 
 use crate::error::{Error, Result};
@@ -122,7 +124,7 @@ impl Warning {
     }
 
     /// Deduplication key: (code, object, offset).
-    const fn key(&self) -> (&'static str, Option<u32>, Option<u64>) {
+    const fn key(&self) -> WarningKey {
         let offset = match *self {
             Self::XrefStmIgnored { offset } => Some(offset),
             _ => None,
@@ -131,11 +133,15 @@ impl Warning {
     }
 }
 
+type WarningKey = (&'static str, Option<u32>, Option<u64>);
+
 /// The warnings a document has raised so far: deduplicated by (code, object) and capped at
-/// [`Limits::max_warnings`] (soft limit).
+/// [`Limits::max_warnings`] (soft limit). Raising is O(log n): resolving a stale reference
+/// raises on every call, so dedup must not scan the list.
 #[derive(Debug, Clone, Default)]
 pub(crate) struct WarningLog {
     list: Vec<Warning>,
+    seen: BTreeSet<WarningKey>,
     truncated: bool,
 }
 
@@ -145,7 +151,7 @@ impl WarningLog {
         if strict {
             return Err(Error::Strict { warning });
         }
-        if self.truncated || self.list.iter().any(|w| w.key() == warning.key()) {
+        if self.truncated || !self.seen.insert(warning.key()) {
             return Ok(());
         }
         if self.list.len() >= limits.max_warnings() {

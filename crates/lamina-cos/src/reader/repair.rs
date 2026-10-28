@@ -175,7 +175,8 @@ fn object_stream_members(
             let candidate = Candidate {
                 entry: XrefEntry::InStream { stream, index },
                 position: (offset, index),
-                summary: Some(summarize(&obj, false)),
+                // A member that does not parse loses to any definition that does.
+                summary: obj.as_ref().ok().map(|obj| summarize(obj, false)),
             };
             (member, candidate)
         })
