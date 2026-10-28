@@ -101,8 +101,8 @@ export class Lexer {
     for (let i = start; i < this.pos; i++) s += String.fromCharCode(d[i]!);
     if (INT_RE.test(s)) {
       const v = Number(s);
-      if (!Number.isSafeInteger(v)) throw new PdfError("Syntax", `integer out of range: ${s}`, start);
-      return { t: "int", v };
+      // Integers beyond the safe range degrade to a real rather than failing.
+      return Number.isSafeInteger(v) ? { t: "int", v } : { t: "real", v };
     }
     if (REAL_RE.test(s)) return { t: "real", v: Number(s) };
     return { t: "kw", v: s };

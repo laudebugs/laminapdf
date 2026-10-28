@@ -135,3 +135,66 @@ export function rawWriterPdf(): Uint8Array {
   w.add(dict([["Title", str(RAW_TITLE)], ["Producer", str("raw_writer.py")]]));
   return w.toBytes(dict([["Root", ref(1)], ["Info", ref(7)]]), { version: "1.7", xrefEol: "SpaceLf" });
 }
+
+/** Hand-assembles a file byte by byte (latin1 string), recording each object's offset. */
+export class HandPdf {
+  s: string;
+  readonly offsets = new Map<number, number>();
+  constructor(header = "%PDF-1.7\n") {
+    this.s = header;
+  }
+  get length(): number {
+    return this.s.length;
+  }
+  obj(num: number, body: string): number {
+    const at = this.s.length;
+    this.offsets.set(num, at);
+    this.s += `${num} 0 obj\n${body}\nendobj\n`;
+    return at;
+  }
+  /** A stream object; /Length is the exact data length. */
+  streamObj(num: number, dictBody: string, data: string): number {
+    return this.obj(num, `<< ${dictBody} /Length ${data.length} >>\nstream\n${data}\nendstream`);
+  }
+  raw(text: string): this {
+    this.s += text;
+    return this;
+  }
+  bytes(): Uint8Array {
+    const out = new Uint8Array(this.s.length);
+    for (let i = 0; i < this.s.length; i++) out[i] = this.s.charCodeAt(i) & 0xff;
+    return out;
+  }
+}
+
+const latin1Of = (b: Uint8Array): string => {
+  let s = "";
+  for (const x of b) s += String.fromCharCode(x);
+  return s;
+};
+
+/**
+ * One-page file whose only xref section is a Flate xref stream with a PNG Up predictor
+ * (/DecodeParms << /Predictor 12 /Columns 4 >>, /W [1 2 1]) — the pdfTeX/Acrobat shape.
+ */
+export function xrefStreamPredictorPdf(): Uint8Array {
+  const p = new HandPdf("%PDF-1.5\n");
+  p.obj(1, "<< /Type /Catalog /Pages 2 0 R >>");
+  p.obj(2, "<< /Type /Pages /Kids [3 0 R] /Count 1 /MediaBox [0 0 612 792] >>");
+  p.obj(3, "<< /Type /Page /Parent 2 0 R /Resources << >> /Contents 4 0 R >>");
+  p.streamObj(4, "", latin1Of(helloContent("predictor")));
+  const xrefAt = p.length;
+  const rows: number[][] = [[0, 0, 0, 255]];
+  for (let n = 1; n <= 4; n++) rows.push([1, (p.offsets.get(n)! >> 8) & 0xff, p.offsets.get(n)! & 0xff, 0]);
+  rows.push([1, (xrefAt >> 8) & 0xff, xrefAt & 0xff, 0]);
+  const enc: number[] = [];
+  let prev = [0, 0, 0, 0];
+  for (const r of rows) {
+    enc.push(2, ...r.map((b, i) => (b - prev[i]! + 256) & 0xff));
+    prev = r;
+  }
+  const data = latin1Of(flateEncode(Uint8Array.from(enc)));
+  p.streamObj(5, "/Type /XRef /Size 6 /W [1 2 1] /Root 1 0 R /Filter /FlateDecode /DecodeParms << /Predictor 12 /Columns 4 >>", data);
+  p.raw(`startxref\n${xrefAt}\n%%EOF\n`);
+  return p.bytes();
+}

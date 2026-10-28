@@ -28,7 +28,8 @@ pub mod object;
 mod parser;
 pub mod reader;
 pub mod samples;
-#[cfg(target_arch = "wasm32")]
+// Also compiled for host unit tests, so the allocator protocol is tested natively.
+#[cfg(any(target_arch = "wasm32", test))]
 pub mod wasm;
 pub mod writer;
 
@@ -36,5 +37,5 @@ pub use content::{ContentBuilder, Num, fixed};
 pub use error::{Error, Result};
 pub use object::{Dict, Name, ObjRef, Object, PdfString, Stream, StringFormat, format_real};
 pub use parser::{MAX_DEPTH, parse_object};
-pub use reader::{Document, OpenOptions, Page, Warning, open, open_with};
+pub use reader::{Document, OpenOptions, Page, Resolved, Warning, open, open_with};
 pub use writer::{Writer, XrefEol, incremental_update};

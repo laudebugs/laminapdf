@@ -100,12 +100,16 @@ describe("lexer / parser", () => {
   test("numbers: +5, -.5, 4., and refs vs plain ints", () => {
     expect(ser(parse("[+5 -.5 4. 1 2 3 0 R 7]"))).toBe("[5 -0.5 4 1 2 3 0 R 7]");
   });
+  test("integers beyond the safe range degrade to a real", () => {
+    expect(parse("99999999999999999999")).toEqual({ kind: "real", value: 1e20 });
+    expect(parse("-9007199254740993")).toEqual({ kind: "real", value: -9007199254740992 });
+    expect(parse("9007199254740991")).toEqual({ kind: "int", value: 9007199254740991 });
+  });
   test("errors are typed", () => {
     expectPdfError(() => parse("(unterminated"), "UnexpectedEof");
     expectPdfError(() => parse("<zz>"), "Syntax");
     expectPdfError(() => parse("[1 2"), "UnexpectedEof");
     expectPdfError(() => parse("<< 1 2 >>"), "Syntax");
-    expectPdfError(() => parse("99999999999999999999"), "Syntax");
     expectPdfError(() => parse(""), "UnexpectedEof");
   });
 });

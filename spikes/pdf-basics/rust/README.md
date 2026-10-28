@@ -22,13 +22,13 @@ Toolchain: rustc 1.99.1, edition 2024. Measured 2026-10-28 on aarch64-apple-darw
 
 | | |
 | --- | --- |
-| Tests | **151 passing**: 62 unit, 85 integration (golden 4, raw-writer 9, corpus 15, round-trip 16, robustness 18, policy 23), 4 doc tests |
+| Tests | **169 passing**: 70 unit, 95 integration (golden 4, raw-writer 9, corpus 15, round-trip 16, robustness 18, policy 30, reader-cache 3), 4 doc tests |
 | Clippy | clean with `-D warnings` (`clippy::all` denied, plus `unwrap_used`, `expect_used`, `panic`, `indexing_slicing` in library code) |
 | Cross-target `cargo check` | `wasm32-unknown-unknown`, `aarch64-apple-ios`, `aarch64-linux-android`: all pass |
-| src LOC (`wc -l src/**/*.rs`) | 3 685 total, of which ~3 170 are library code (including doc comments) and ~520 are unit tests |
-| Test LOC | 1 285 (`tests/`) |
+| src LOC (`wc -l src/**/*.rs`) | 3 987 total, of which ~3 360 are library code (including doc comments) and ~620 are unit tests |
+| Test LOC | 1 470 (`tests/`) |
 | rlib (release) | 1 904 488 bytes (`target/release/liblamina_pdf_basics.rlib`, contains metadata) |
-| wasm (release, `opt-level="s"`, LTO, `panic=abort`, stripped) | **162 545 bytes** (71 719 gzipped). `opt-level="z"` saved only ~3 KB in a trial. No `wasm-opt` was run |
+| wasm (release, `opt-level="s"`, LTO, `panic=abort`, stripped) | **171 625 bytes** (74 185 gzipped). `opt-level="z"` saved only ~3 KB in a trial. No `wasm-opt` was run |
 | Runtime deps | `miniz_oxide` 0.9.1 (MIT/Zlib/Apache-2.0) → `adler2` (0BSD/MIT/Apache-2.0); `thiserror` 2.0.21 (MIT/Apache-2.0). Dev: `serde_json` (MIT/Apache-2.0) |
 
 External validation: `cargo run --example emit` writes classic, compact (object stream +
@@ -46,22 +46,31 @@ file, and `page_count` returns 1 for every corpus file and -1 for empty input.
 | `object` | `Object`, `Dict` (insertion-ordered `Vec`), `Name`, `PdfString` (remembers literal/hex form), `Stream`, `ObjRef`; exact serialization, `format_real` |
 | `lexer` (private) | tokenizer: whitespace and comments, every literal-string escape, hex strings, `#xx` names, numbers |
 | `parser` | `parse_object`, indirect objects, streams (indirect `/Length`, with an `endstream` scan when the length is wrong), depth limit `MAX_DEPTH = 256` |
-| `filters` | Flate encode/decode with a size limit, PNG predictors 10–15 |
+| `filters` | Flate encode/decode with a size limit, PNG predictors 10–15 (parameters validated, row length bounded by the input) |
 | `reader::xref` | classic tables, xref streams, `/Prev` chains (loop-safe), hybrid `/XRefStm` |
 | `reader::objstm` | object stream members |
 | `reader::repair` | rebuilds the xref by scanning `n g obj`, merges trailers and xref-stream dicts, unpacks object streams, falls back to `/Type /Catalog` |
-| `reader` | `open`/`open_with`, `Document` (`trailer`, `catalog`, `resolve`, `object`, `deref`, `pages`, `page_count`, `page_content`, `decode_stream`, `revisions`, `is_encrypted`, `was_repaired`, `has_xref_stream`, `header_version`, `warnings`), `Page` with inherited attributes, `Warning` |
+| `reader` | `open`/`open_with`, `Document` (`trailer`, `catalog`, `resolve`, `object`, `deref`, `pages`, `page_count`, `page_content`, `decode_stream`, `revisions`, `is_encrypted`, `was_repaired`, `has_xref_stream`, `header_version`, `warnings`), `Page` with inherited attributes (shared `Rc` resources), `Resolved` (the result of `deref`), `Warning` |
 | `writer` | `Writer` (`add`, `add_raw`, `reserve`/`set`, `finish`, `finish_compact`), `incremental_update`, `XrefEol` |
 | `content` | `ContentBuilder` (all operators the fixtures need, `line()` grouping, `circle`), `Num::{Auto, Fixed}` |
 | `samples` | `hello()` and `imaging_demo()`: the golden fixtures rebuilt with the API (also used by the WASM shim) |
-| `wasm` (`cfg(target_arch = "wasm32")`) | `alloc`, `dealloc`, `hello_pdf`, `page_count`: the only `unsafe` code |
+| `wasm` (`cfg(target_arch = "wasm32")`, plus host unit tests) | `alloc`, `dealloc`, `hello_pdf`, `page_count`: the only `unsafe` code |
 
 ## Design notes
 
 - **Bytes in, bytes out.** The library borrows the input (`Document<'a>`) and parses objects
-  lazily on `resolve`. Decoded object streams are cached in a `RefCell` (there are no threads,
-  so `Document` is deliberately `!Sync`). The library never uses `std::fs`, `net`, `process`,
-  `thread` or clocks, and `check-targets.sh` greps for them.
+  lazily on `resolve`. It never uses `std::fs`, `net`, `process`, `thread` or clocks, and
+  `check-targets.sh` greps for them.
+- **Object cache.** Each object is parsed once. `resolve`/`object` return `Rc<Object>`, and a
+  `RefCell<HashMap<u32, Rc<Object>>>` (alongside the decoded object-stream cache) hands out the
+  same `Rc` on every later lookup. Only successful loads are cached. `deref` returns
+  `Resolved<'o>` (the borrowed direct object, or the shared indirect one; it derefs to
+  `Object`). The page-tree walk passes inherited attributes down as `Rc<Inherited>` (one
+  pointer copy per kid; a new node only where a node sets an attribute), and `Page::resources`
+  is an `Rc<Object>` shared by every page that inherits or references the same `/Resources`.
+  A generated 1 000-page file sharing one `/Resources n 0 R` opens and runs `page_count` +
+  `pages` in ~20 ms in debug (`tests/reader_cache.rs`). The caches use `RefCell`/`Rc`, so
+  `Document` is deliberately `!Send + !Sync`: use one per thread.
 - **No panics by construction.** No `unwrap`/`expect`/`panic!`/slice indexing in library code
   (clippy-enforced). Every loop over file-supplied counts (xref subsections, `/Index`, `/N`)
   is bounded by the bytes actually present, so a count of 4 000 000 000 costs nothing.
@@ -74,9 +83,15 @@ file, and `page_count` returns 1 for every corpus file and -1 for empty input.
   iterative with a visited set. A node reached twice is `Error::ReferenceCycle`. Other broken
   page-tree nodes are skipped (see the alignment section below).
 - **When to repair.** The stored xref is used only if every in-file entry points at a
-  matching `num gen obj` header and the trailer has `/Root`. Any failure in the chain
+  matching `num gen obj` header and the trailer's `/Root` resolves to a dictionary (an
+  entry table can look valid while the catalog sits in a damaged object stream or has a
+  syntax error). Any failure in the chain
   (bad offset, `/Prev` loop, unparsable section) triggers a full rebuild. This is simple and
   catches `hello-broken.pdf`'s single wrong entry.
+- **PNG predictor bounds.** `/Colors` must be 1–32, `/BitsPerComponent` 1/2/4/8/16 and
+  `/Columns` 1–2^24. The row length is computed in `u64` with checked arithmetic (32 × 16 ×
+  2^24 bits overflows a 32-bit `usize` on wasm32) and must not exceed the decoded data length
+  + 1, so crafted parameters cannot force a large row-buffer allocation.
 - **Error type.** `Error` (thiserror) is `Clone + PartialEq`, so tests assert exact variants,
   for example `Err(Error::DecompressLimit { limit })`.
 - **Test-crate lints.** Integration test files `#![allow]` `unwrap_used`/`panic`/`indexing_slicing`
@@ -149,7 +164,11 @@ file, and `page_count` returns 1 for every corpus file and -1 for empty input.
     only page *content* decoding fails for that file. Page counts and boxes are unaffected.
 12. **WASM ABI.** `out_len` in `hello_pdf(out_len_ptr)` is a `usize`, so it is a little-endian
     **u32** on wasm32. The TS side reads it with `DataView.getUint32(ptr, true)`.
-    `dealloc(ptr, len)` frees both host-allocated buffers and `hello_pdf` results.
+    `dealloc(ptr, len)` frees both host-allocated buffers and `hello_pdf` results. Buffers come
+    from `std::alloc::alloc` with `Layout::from_size_align(len, 8)`, so they are 8-byte
+    aligned and `dealloc` uses the exact same layout. `alloc(0)` returns a non-null dangling
+    pointer (freeing it is a no-op). Allocation failure or an oversize `len` returns null.
+    `hello_pdf` writes `out_len` with an unaligned store, so any 4 writable bytes will do.
 
 ## Alignment with the TS twin (after differential fuzzing)
 
@@ -171,8 +190,14 @@ decisions below. `tests/policy.rs` covers each one, plus unit tests in `xref.rs`
 3. **Repair is more thorough.** It records every `/Type /XRef` stream dictionary as a trailer
    candidate, with or without `/Root`. A stream whose data or `endstream` is damaged
    still yields its dictionary, because the parser falls back to the leading dict. Members of
-   every `/Type /ObjStm` found by the `n g obj` scan are indexed as type-2 entries. `/Root`
-   is the newest candidate whose `/Root` points at an object that exists. If there is none, the
+   every `/Type /ObjStm` found by the `n g obj` scan are indexed as type-2 entries. The last
+   definition of an object number that *parses* wins, so a damaged newer copy does not hide
+   an intact older one. `/Root` is the newest candidate whose `/Root` points at a dictionary
+   (or a reference, so ref cycles stay `ReferenceCycle` errors). A stored xref whose `/Root`
+   does not resolve to a dictionary also triggers repair. After this, the TS differential
+   fuzz agrees on 4 304 / 4 305 inputs. The one remaining case (`pdflib.pdf` byte 514 = 105,
+   TS 0 pages, Rust -1) is in the object stream's deflate data: miniz_oxide reports invalid
+   data where fflate decodes something. If there is none, the
    last `/Type /Catalog` object found, directly or inside an object stream, is used.
 4. **Shared conventions.** These already matched or were changed to match: `<< >>` for an
    empty dict. Trailer `/Size` is written first when absent; a caller-supplied `/Size` keeps

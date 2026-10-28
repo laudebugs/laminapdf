@@ -232,6 +232,8 @@ function readStreamBody(
   resolveLength: (o: PdfObject) => number | undefined,
 ): { stream: PdfStream; end: number } {
   let p = pos;
+  // Spaces/tabs before the EOL are tolerated; the EOL is CRLF or LF (a lone CR too).
+  while (data[p] === 0x20 || data[p] === 0x09) p++;
   if (data[p] === 0x0d && data[p + 1] === 0x0a) p += 2;
   else if (data[p] === 0x0a || data[p] === 0x0d) p += 1;
   const lenObj = dict.entries.get("Length");

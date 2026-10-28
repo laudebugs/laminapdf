@@ -12,6 +12,7 @@ Primary reference throughout: **ISO 32000-2:2020 (PDF 2.0)**. Section numbers ("
 | 04 | [Interactive features, metadata, security & signatures](04-interactive-security.md) | Links, annotations, forms (AcroForm/XFA), JavaScript, XMP, attachments, encryption, digital signatures and PAdES, redaction, known attacks, PDF as an attack surface. |
 | 05 | [Creating, processing & rendering PDFs from code](05-creating-pdfs-from-code.md) | The approaches (low-level writers to HTML→PDF to typesetting), library ecosystem per language with licences, processing operations, renderers, testing, and a recommendation for lamina. |
 | 06 | [Feature inventory](06-feature-inventory.md) | Every operation a full PDF platform/editor offers (~180, in 13 groups), mapped to the PDF mechanism, difficulty and chapter. Reference architecture and phasing. |
+| 07 | [Spike: Rust and TypeScript](07-spike-rust-and-typescript.md) | The same minimal PDF core built in both languages from one spec, with shared tests (byte-identical golden files, pypdf-checked corpus, fuzzing, Rust→WASM→TS interop). Results, lessons and what it means for the core-language decision. |
 
 Runnable examples that back the chapters are in [`examples/`](examples/). Source documents (e.g. the owner's NotebookLM report) are in [`sources/`](sources/).
 

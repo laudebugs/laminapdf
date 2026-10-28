@@ -107,10 +107,21 @@ fn apply_predictor(data: Vec<u8>, parms: Option<&Dict>) -> Result<Vec<u8>> {
     if !(1..=32).contains(&colors) || ![1, 2, 4, 8, 16].contains(&bpc) || !(1..=1 << 24).contains(&columns) {
         return Err(bad("parameters out of range"));
     }
-    // All three values are small positive integers (checked above), so these fit in usize.
-    let bits_per_pixel = usize::try_from(colors * bpc).map_err(|_| bad("overflow"))?;
-    let row_len = (bits_per_pixel * usize::try_from(columns).map_err(|_| bad("overflow"))?).div_ceil(8);
-    let bpp = bits_per_pixel.div_ceil(8).max(1);
+    // Do the row-length math in u64 so it is exact on 32-bit targets (wasm32) as well:
+    // 32 colours × 16 bits × 2^24 columns is 2^33 bits, which would overflow a 32-bit usize.
+    let bits_per_pixel = u64::try_from(colors * bpc).map_err(|_| bad("overflow"))?;
+    let columns = u64::try_from(columns).map_err(|_| bad("overflow"))?;
+    let row_bits = bits_per_pixel.checked_mul(columns).ok_or(bad("overflow"))?;
+    let row_len = row_bits.div_ceil(8);
+    // A row is a filter byte plus `row_len` bytes, so a row wider than the whole input can
+    // never be complete. Rejecting it caps the `prev` row buffer at the input size instead
+    // of letting crafted parameters force a large allocation.
+    let input_len = u64::try_from(data.len()).map_err(|_| bad("overflow"))?;
+    if row_len > input_len.saturating_add(1) {
+        return Err(bad("row length exceeds stream data"));
+    }
+    let row_len = usize::try_from(row_len).map_err(|_| bad("overflow"))?;
+    let bpp = usize::try_from(bits_per_pixel.div_ceil(8).max(1)).map_err(|_| bad("overflow"))?;
     png_unpredict(&data, row_len, bpp)
 }
 
@@ -223,6 +234,45 @@ mod tests {
         .collect();
         let encoded = flate_encode(&[2, 1, 2, 2, 1, 1]);
         assert_eq!(decode(&dict, &encoded, 1024), Ok(vec![1, 2, 2, 3]));
+    }
+
+    #[test]
+    fn decode_should_reject_predictor_row_longer_than_stream_data() {
+        // 32 colours × 16 bits × 16,777,215 columns ≈ 1 GiB per row; the stream holds 6 bytes.
+        let parms: Dict = [
+            ("Predictor", 12),
+            ("Colors", 32),
+            ("BitsPerComponent", 16),
+            ("Columns", 16_777_215),
+        ]
+        .into_iter()
+        .collect();
+        let dict: Dict = [
+            ("Filter", Object::name("FlateDecode")),
+            ("DecodeParms", Object::Dict(parms)),
+        ]
+        .into_iter()
+        .collect();
+        let encoded = flate_encode(&[2, 1, 2, 2, 1, 1]);
+        assert_eq!(
+            decode(&dict, &encoded, 1024),
+            Err(Error::InvalidStructure {
+                kind: "PNG predictor",
+                message: "row length exceeds stream data",
+            })
+        );
+    }
+
+    #[test]
+    fn decode_should_reject_out_of_range_predictor_colors() {
+        let parms: Dict = [("Predictor", 12), ("Colors", 33)].into_iter().collect();
+        let dict: Dict = [
+            ("Filter", Object::name("FlateDecode")),
+            ("DecodeParms", Object::Dict(parms)),
+        ]
+        .into_iter()
+        .collect();
+        assert!(decode(&dict, &flate_encode(&[0, 1]), 1024).is_err());
     }
 
     #[test]

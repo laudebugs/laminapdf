@@ -4,9 +4,9 @@ import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, test } from "vitest";
-import { array, dict, int, name, PdfWriter, ref, str, stream, writeIncremental } from "../src/index.js";
+import { array, dict, int, name, open, PdfWriter, ref, str, stream, writeIncremental, writePdf } from "../src/index.js";
 import { golden } from "./helpers.js";
-import { helloContent, helloPdf, imagingPdf } from "./recipes.js";
+import { helloContent, helloPdf, imagingPdf, xrefStreamPredictorPdf } from "./recipes.js";
 
 const OUT = process.env.PDF_OUT_DIR;
 const PY = process.env.PYPDF_PYTHON;
@@ -31,6 +31,16 @@ describe.skipIf(OUT === undefined)("external validation outputs", () => {
   const compactZ = twoPageDoc().toBytes(trailer, { mode: "compact", compressStreams: true });
   const inc1 = writeIncremental(golden("hello.pdf"), [{ num: 5, body: stream(dict(), helloContent("Hello, Update")) }]);
   const inc2 = writeIncremental(inc1, [{ num: 6, body: dict([["Title", str("rev 3")]]) }], { trailer: dict([["Info", ref(6)]]) });
+  // Re-pack an xref-stream (Predictor 12) file in compact mode, reusing its trailer verbatim.
+  const src = open(xrefStreamPredictorPdf());
+  const repacked = writePdf(
+    src
+      .objectNumbers()
+      .map((num) => ({ num, body: src.getObject(num) }))
+      .filter((o) => !(o.body.kind === "stream" && o.body.dict.entries.get("Type")?.kind === "name")),
+    src.trailer(),
+    { mode: "compact" },
+  );
   const incOnCompact = writeIncremental(compact, [{ num: 6, body: stream(dict(), helloContent("Page two, revised")) }]);
   files.push(
     ["compact.pdf", compact, 2],
@@ -38,6 +48,7 @@ describe.skipIf(OUT === undefined)("external validation outputs", () => {
     ["incremental-2rev.pdf", inc1, 1],
     ["incremental-3rev.pdf", inc2, 1],
     ["incremental-on-compact.pdf", incOnCompact, 2],
+    ["compact-from-xrefstm.pdf", repacked, 1],
     ["hello.pdf", helloPdf(), 1],
     ["imaging-demo.pdf", imagingPdf(), 1],
   );

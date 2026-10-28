@@ -4,9 +4,9 @@ mod objstm;
 mod repair;
 mod xref;
 
-use std::borrow::Cow;
 use std::cell::RefCell;
 use std::collections::{BTreeMap, HashMap, HashSet};
+use std::ops;
 use std::rc::Rc;
 
 use xref::{XrefEntry, XrefTable};
@@ -57,13 +57,70 @@ pub struct Page {
     pub crop_box: Option<[f64; 4]>,
     /// `/Rotate`, own or inherited (0 if absent).
     pub rotate: i64,
-    /// `/Resources`, own or inherited, resolved to a dictionary.
-    pub resources: Option<Dict>,
+    /// `/Resources`, own or inherited, resolved. Always an [`Object::Dict`]; shared (not
+    /// copied) between pages that inherit the same resources. See [`Page::resources_dict`].
+    pub resources: Option<Rc<Object>>,
 }
 
-type ObjStmMembers = Rc<Vec<(u32, Object)>>;
+impl Page {
+    /// The resolved `/Resources` dictionary, if any.
+    #[must_use]
+    pub fn resources_dict(&self) -> Option<&Dict> {
+        match self.resources.as_deref() {
+            Some(Object::Dict(d)) => Some(d),
+            _ => None,
+        }
+    }
+}
 
-/// An opened PDF. Borrows the input bytes; objects are parsed lazily on [`Document::resolve`].
+/// The result of [`Document::deref`]: either the direct object that was passed in, or the
+/// shared, cached object a reference resolved to. Dereferences to [`Object`].
+#[derive(Debug, Clone, PartialEq)]
+pub enum Resolved<'o> {
+    /// The input was not a reference; this is the input itself.
+    Direct(&'o Object),
+    /// The input was a reference; this is the (cached) object it resolved to.
+    Indirect(Rc<Object>),
+}
+
+impl Resolved<'_> {
+    /// An owned copy of the object (clones unless this is the only handle to it).
+    #[must_use]
+    pub fn into_owned(self) -> Object {
+        match self {
+            Self::Direct(obj) => obj.clone(),
+            Self::Indirect(rc) => Rc::unwrap_or_clone(rc),
+        }
+    }
+
+    /// The object behind a shared pointer (a cheap clone for indirect objects).
+    #[must_use]
+    pub fn into_rc(self) -> Rc<Object> {
+        match self {
+            Self::Direct(obj) => Rc::new(obj.clone()),
+            Self::Indirect(rc) => rc,
+        }
+    }
+}
+
+impl ops::Deref for Resolved<'_> {
+    type Target = Object;
+
+    fn deref(&self) -> &Object {
+        match self {
+            Self::Direct(obj) => obj,
+            Self::Indirect(rc) => rc,
+        }
+    }
+}
+
+type ObjStmMembers = Rc<Vec<(u32, Rc<Object>)>>;
+
+/// An opened PDF. Borrows the input bytes; objects are parsed lazily on first
+/// [`Document::resolve`] and then cached, so repeated lookups share one [`Rc<Object>`].
+///
+/// The caches use [`RefCell`] and [`Rc`], so a `Document` is deliberately `!Sync` and
+/// `!Send`: use one per thread (opening is cheap, and the input bytes can be shared).
 #[derive(Debug)]
 pub struct Document<'a> {
     data: &'a [u8],
@@ -77,6 +134,8 @@ pub struct Document<'a> {
     warnings: Vec<Warning>,
     options: OpenOptions,
     objstm_cache: RefCell<HashMap<u32, ObjStmMembers>>,
+    /// Successfully loaded objects by number (errors are not cached).
+    object_cache: RefCell<HashMap<u32, Rc<Object>>>,
 }
 
 /// Opens a PDF with default [`OpenOptions`].
@@ -90,8 +149,9 @@ pub fn open(data: &[u8]) -> Result<Document<'_>> {
 /// Opens a PDF with explicit limits.
 ///
 /// The xref chain at `startxref` is used when it is valid — every in-file entry points at
-/// a matching `num gen obj` header and the trailer has `/Root`. Otherwise the xref is
-/// rebuilt by scanning, and [`Document::was_repaired`] reports `true`.
+/// a matching `num gen obj` header and the trailer's `/Root` resolves to a dictionary.
+/// Otherwise the xref is rebuilt by scanning (falling back to a `/Type /Catalog` object),
+/// and [`Document::was_repaired`] reports `true`.
 ///
 /// # Errors
 /// [`Error::NotPdf`] for empty input or input without any `n g obj`;
@@ -112,32 +172,26 @@ pub fn open_with(data: &[u8], options: OpenOptions) -> Result<Document<'_>> {
     let loaded = startxref
         .and_then(|start| xref::load(data, start, options.max_decoded_size).ok())
         .filter(|table| table.trailer.contains_key("Root") && entries_are_valid(data, table));
-    let (table, repaired, startxref) = match loaded {
-        Some(table) => (table, false, startxref),
-        None => {
-            warnings.push(Warning::XrefRepaired);
-            (repair::rebuild(data, options.max_decoded_size)?, true, None)
+    if let Some(table) = loaded {
+        let doc = Document::new(
+            data,
+            table,
+            startxref,
+            header_version.clone(),
+            warnings.clone(),
+            options,
+        );
+        // Entries that look valid can still yield an unusable catalog (damaged object
+        // stream, syntax error inside the catalog, …): treat that like a broken xref.
+        if doc.catalog().is_ok() {
+            return Ok(doc);
         }
-    };
-    let XrefTable {
-        entries,
-        trailer,
-        sections,
-        has_xref_stream,
-    } = table;
-    Ok(Document {
-        data,
-        entries,
-        trailer,
-        revisions: sections,
-        repaired,
-        has_xref_stream,
-        startxref,
-        header_version,
-        warnings,
-        options,
-        objstm_cache: RefCell::new(HashMap::new()),
-    })
+    }
+    warnings.push(Warning::XrefRepaired);
+    let table = repair::rebuild(data, options.max_decoded_size)?;
+    let mut doc = Document::new(data, table, None, header_version, warnings, options);
+    doc.repaired = true;
+    Ok(doc)
 }
 
 fn read_header_version(data: &[u8], header_pos: usize) -> Option<String> {
@@ -173,28 +227,69 @@ fn as_rect(doc: &Document<'_>, obj: &Object) -> Option<[f64; 4]> {
     Some(out)
 }
 
-/// Inheritable page attributes carried down the page tree.
+/// Inheritable page attributes carried down the page tree. Values are shared via [`Rc`],
+/// so passing them to every kid (and every page) never copies a dictionary.
 #[derive(Debug, Clone, Default)]
 struct Inherited {
-    media_box: Option<Object>,
-    crop_box: Option<Object>,
-    rotate: Option<Object>,
-    resources: Option<Object>,
+    media_box: Option<Rc<Object>>,
+    crop_box: Option<Rc<Object>>,
+    rotate: Option<Rc<Object>>,
+    resources: Option<Rc<Object>>,
 }
 
+const INHERITABLE: [&str; 4] = ["MediaBox", "CropBox", "Rotate", "Resources"];
+
 impl Inherited {
-    fn overlay(&self, dict: &Dict) -> Self {
-        let pick = |key, parent: &Option<Object>| dict.get(key).cloned().or_else(|| parent.clone());
-        Self {
-            media_box: pick("MediaBox", &self.media_box),
-            crop_box: pick("CropBox", &self.crop_box),
-            rotate: pick("Rotate", &self.rotate),
-            resources: pick("Resources", &self.resources),
+    /// `parent` with any attributes `dict` sets itself replacing the inherited ones.
+    /// Returns `parent` unchanged (a pointer copy) when `dict` sets none of them.
+    fn overlay(parent: &Rc<Self>, dict: &Dict) -> Rc<Self> {
+        if !INHERITABLE.iter().any(|key| dict.contains_key(key)) {
+            return Rc::clone(parent);
         }
+        let pick = |key, inherited: &Option<Rc<Object>>| {
+            dict.get(key).map(|o| Rc::new(o.clone())).or_else(|| inherited.clone())
+        };
+        Rc::new(Self {
+            media_box: pick("MediaBox", &parent.media_box),
+            crop_box: pick("CropBox", &parent.crop_box),
+            rotate: pick("Rotate", &parent.rotate),
+            resources: pick("Resources", &parent.resources),
+        })
     }
 }
 
 impl<'a> Document<'a> {
+    /// A document over `data` using `table` (not marked repaired).
+    fn new(
+        data: &'a [u8],
+        table: XrefTable,
+        startxref: Option<usize>,
+        header_version: Option<String>,
+        warnings: Vec<Warning>,
+        options: OpenOptions,
+    ) -> Self {
+        let XrefTable {
+            entries,
+            trailer,
+            sections,
+            has_xref_stream,
+        } = table;
+        Self {
+            data,
+            entries,
+            trailer,
+            revisions: sections,
+            repaired: false,
+            has_xref_stream,
+            startxref,
+            header_version,
+            warnings,
+            options,
+            objstm_cache: RefCell::new(HashMap::new()),
+            object_cache: RefCell::new(HashMap::new()),
+        }
+    }
+
     /// The newest trailer dictionary (for xref-stream files, the stream dictionary).
     #[must_use]
     pub const fn trailer(&self) -> &Dict {
@@ -261,9 +356,12 @@ impl<'a> Document<'a> {
     /// Resolves an indirect reference, following reference-to-reference chains.
     /// Missing or free objects resolve to `null` (§7.3.10).
     ///
+    /// Objects are parsed once and cached: resolving the same reference again returns a
+    /// clone of the same [`Rc`].
+    ///
     /// # Errors
     /// [`Error::ReferenceCycle`] for chains that loop; parse errors for corrupt objects.
-    pub fn resolve(&self, r: ObjRef) -> Result<Object> {
+    pub fn resolve(&self, r: ObjRef) -> Result<Rc<Object>> {
         let mut chain = Vec::new();
         let mut current = r;
         loop {
@@ -271,9 +369,10 @@ impl<'a> Document<'a> {
                 return Err(Error::ReferenceCycle(current.num));
             }
             chain.push(current.num);
-            match self.load(current.num, &mut Vec::new())? {
+            let obj = self.load(current.num, &mut Vec::new())?;
+            match *obj {
                 Object::Ref(next) => current = next,
-                obj => return Ok(obj),
+                _ => return Ok(obj),
             }
         }
     }
@@ -283,7 +382,7 @@ impl<'a> Document<'a> {
     ///
     /// # Errors
     /// Parse errors for corrupt objects; [`Error::ReferenceCycle`] for self-referential streams.
-    pub fn object(&self, num: u32) -> Result<Object> {
+    pub fn object(&self, num: u32) -> Result<Rc<Object>> {
         self.load(num, &mut Vec::new())
     }
 
@@ -291,38 +390,48 @@ impl<'a> Document<'a> {
     ///
     /// # Errors
     /// As [`Document::resolve`].
-    pub fn deref<'o>(&self, obj: &'o Object) -> Result<Cow<'o, Object>> {
+    pub fn deref<'o>(&self, obj: &'o Object) -> Result<Resolved<'o>> {
         match obj {
-            Object::Ref(r) => self.resolve(*r).map(Cow::Owned),
-            other => Ok(Cow::Borrowed(other)),
+            Object::Ref(r) => self.resolve(*r).map(Resolved::Indirect),
+            other => Ok(Resolved::Direct(other)),
         }
     }
 
     /// Loads object `num` without following a top-level reference. `in_flight` holds the
     /// objects currently being loaded further up the stack, to break `/Length` cycles.
-    fn load(&self, num: u32, in_flight: &mut Vec<u32>) -> Result<Object> {
+    ///
+    /// Successful loads are cached. Caching is sound even though a nested load sees a
+    /// non-empty `in_flight`: the only thing that depends on it is an indirect `/Length`,
+    /// which must resolve to an integer, and integers never depend on other objects.
+    fn load(&self, num: u32, in_flight: &mut Vec<u32>) -> Result<Rc<Object>> {
+        if let Some(cached) = self.object_cache.borrow().get(&num) {
+            return Ok(Rc::clone(cached));
+        }
         if in_flight.contains(&num) || in_flight.len() >= MAX_RESOLVE_DEPTH {
             return Err(Error::ReferenceCycle(num));
         }
         let Some(&entry) = self.entries.get(&num) else {
-            return Ok(Object::Null);
+            return Ok(Rc::new(Object::Null));
         };
         in_flight.push(num);
         let result = match entry {
-            XrefEntry::Free => Ok(Object::Null),
+            XrefEntry::Free => Ok(Rc::new(Object::Null)),
             XrefEntry::InFile { offset, .. } => {
                 let mut resolve_length = |r: ObjRef| self.load(r.num, in_flight).ok().and_then(|o| o.as_int());
                 Parser::new(self.data, offset)
                     .indirect_object(&mut resolve_length)
-                    .map(|(_, obj)| obj)
+                    .map(|(_, obj)| Rc::new(obj))
             }
             XrefEntry::InStream { stream, index } => self.load_compressed(num, stream, index, in_flight),
         };
         in_flight.pop();
+        if let Ok(obj) = &result {
+            self.object_cache.borrow_mut().insert(num, Rc::clone(obj));
+        }
         result
     }
 
-    fn load_compressed(&self, num: u32, stream: u32, index: u32, in_flight: &mut Vec<u32>) -> Result<Object> {
+    fn load_compressed(&self, num: u32, stream: u32, index: u32, in_flight: &mut Vec<u32>) -> Result<Rc<Object>> {
         let members = self.object_stream(stream, in_flight)?;
         let by_index = usize::try_from(index)
             .ok()
@@ -330,7 +439,7 @@ impl<'a> Document<'a> {
             .filter(|(n, _)| *n == num);
         // Fall back to a search when the index is stale or wrong.
         let found = by_index.or_else(|| members.iter().find(|(n, _)| *n == num));
-        Ok(found.map(|(_, obj)| obj.clone()).unwrap_or_default())
+        Ok(found.map_or_else(|| Rc::new(Object::Null), |(_, obj)| Rc::clone(obj)))
     }
 
     fn object_stream(&self, stream: u32, in_flight: &mut Vec<u32>) -> Result<ObjStmMembers> {
@@ -343,14 +452,19 @@ impl<'a> Document<'a> {
                 message: "container is not a top-level object",
             });
         }
-        let Object::Stream(s) = self.load(stream, in_flight)? else {
+        let container = self.load(stream, in_flight)?;
+        let Object::Stream(s) = &*container else {
             return Err(Error::Type {
                 expected: "stream",
                 context: "object stream container",
             });
         };
-        let decoded = self.decode_stream(&s)?;
-        let members = Rc::new(objstm::parse(&s.dict, &decoded)?);
+        let decoded = self.decode_stream(s)?;
+        let members: Vec<_> = objstm::parse(&s.dict, &decoded)?
+            .into_iter()
+            .map(|(n, obj)| (n, Rc::new(obj)))
+            .collect();
+        let members = Rc::new(members);
         self.objstm_cache.borrow_mut().insert(stream, Rc::clone(&members));
         Ok(members)
     }
@@ -375,8 +489,8 @@ impl<'a> Document<'a> {
     /// [`Error::Type`] when `/Root` is not a dictionary.
     pub fn catalog(&self) -> Result<Dict> {
         let root = self.trailer.get("Root").ok_or(Error::MissingRoot)?;
-        match self.deref(root)?.into_owned() {
-            Object::Dict(d) => Ok(d),
+        match &*self.deref(root)? {
+            Object::Dict(d) => Ok(d.clone()),
             _ => Err(Error::Type {
                 expected: "dictionary",
                 context: "/Root",
@@ -395,9 +509,9 @@ impl<'a> Document<'a> {
     /// self-referencing `/Kids`) or a reference chain loops; errors from [`Document::catalog`].
     pub fn pages(&self) -> Result<Vec<Page>> {
         let catalog = self.catalog()?;
-        let root = catalog.get("Pages").unwrap_or(&Object::Null);
+        let root = catalog.get("Pages").cloned().unwrap_or(Object::Null);
         let mut visited = HashSet::new();
-        let mut stack = vec![(root.clone(), Inherited::default())];
+        let mut stack = vec![(root, Rc::new(Inherited::default()))];
         let mut pages = Vec::new();
         while let Some((node_obj, inherited)) = stack.pop() {
             let obj_ref = node_obj.as_ref();
@@ -406,45 +520,49 @@ impl<'a> Document<'a> {
             {
                 return Err(Error::ReferenceCycle(r.num));
             }
-            let node = match self.deref(&node_obj) {
-                Ok(obj) => match obj.into_owned() {
-                    Object::Dict(d) => d,
-                    _ => continue,
-                },
+            let resolved = match self.deref(&node_obj) {
+                Ok(obj) => obj,
                 Err(e @ Error::ReferenceCycle(_)) => return Err(e),
                 Err(_) => continue,
             };
-            let attrs = inherited.overlay(&node);
+            let Object::Dict(node) = &*resolved else {
+                continue;
+            };
+            let attrs = Inherited::overlay(&inherited, node);
             let is_tree_node = node.get_name("Type") == Some(b"Pages")
                 || (node.get_name("Type") != Some(b"Page") && node.contains_key("Kids"));
             if is_tree_node {
                 let kids = match self.deref(node.get("Kids").unwrap_or(&Object::Null)) {
-                    Ok(obj) => match obj.into_owned() {
-                        Object::Array(kids) => kids,
-                        _ => Vec::new(),
-                    },
+                    Ok(obj) => obj,
                     Err(e @ Error::ReferenceCycle(_)) => return Err(e),
-                    Err(_) => Vec::new(),
+                    Err(_) => continue,
                 };
-                stack.extend(kids.into_iter().rev().map(|kid| (kid, attrs.clone())));
+                if let Object::Array(kids) = &*kids {
+                    stack.extend(kids.iter().rev().map(|kid| (kid.clone(), Rc::clone(&attrs))));
+                }
             } else {
-                pages.push(self.make_page(obj_ref, node, &attrs));
+                pages.push(self.make_page(obj_ref, node.clone(), &attrs));
             }
         }
         Ok(pages)
     }
 
     fn make_page(&self, obj_ref: Option<ObjRef>, dict: Dict, attrs: &Inherited) -> Page {
-        let rect = |o: &Option<Object>| o.as_ref().and_then(|o| as_rect(self, o));
+        let rect = |o: &Option<Rc<Object>>| o.as_deref().and_then(|o| as_rect(self, o));
         let rotate = attrs
             .rotate
-            .as_ref()
+            .as_deref()
             .and_then(|o| self.deref(o).ok()?.as_int())
             .unwrap_or(0);
-        let resources = attrs
-            .resources
-            .as_ref()
-            .and_then(|o| self.deref(o).ok()?.as_dict().cloned());
+        // A direct dictionary is already shared through `attrs`; a reference resolves to
+        // the cached object. Either way no dictionary is copied per page.
+        let resources = attrs.resources.as_ref().and_then(|o| {
+            let shared = match **o {
+                Object::Ref(r) => self.resolve(r).ok()?,
+                _ => Rc::clone(o),
+            };
+            matches!(*shared, Object::Dict(_)).then_some(shared)
+        });
         Page {
             obj_ref,
             media_box: rect(&attrs.media_box),
@@ -471,13 +589,15 @@ impl<'a> Document<'a> {
         let Some(contents) = page.dict.get("Contents") else {
             return Ok(Vec::new());
         };
-        let parts = match self.deref(contents)?.into_owned() {
-            Object::Array(items) => items,
-            single => vec![single],
+        let resolved = self.deref(contents)?;
+        let parts = match &*resolved {
+            Object::Array(items) => items.as_slice(),
+            single => std::slice::from_ref(single),
         };
         let mut out = Vec::new();
         for (i, part) in parts.iter().enumerate() {
-            let Object::Stream(s) = self.deref(part)?.into_owned() else {
+            let part = self.deref(part)?;
+            let Object::Stream(s) = &*part else {
                 return Err(Error::Type {
                     expected: "stream",
                     context: "/Contents",
@@ -486,7 +606,7 @@ impl<'a> Document<'a> {
             if i > 0 {
                 out.push(b'\n');
             }
-            out.extend_from_slice(&self.decode_stream(&s)?);
+            out.extend_from_slice(&self.decode_stream(s)?);
         }
         Ok(out)
     }

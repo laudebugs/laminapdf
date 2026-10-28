@@ -23,12 +23,12 @@ PDF_OUT_DIR=/some/dir PYPDF_PYTHON=/path/to/venv/bin/python pnpm validate
 
 | | |
 | --- | --- |
-| Tests | **206 passed** (8 files). Two of them (`external.test.ts`) only run when `PDF_OUT_DIR` / `PYPDF_PYTHON` are set; without those it reports 204 passed, 2 skipped |
+| Tests | **222 passed** (9 files). Two of them (`external.test.ts`) only run when `PDF_OUT_DIR` / `PYPDF_PYTHON` are set; without those it reports 220 passed, 2 skipped. `regressions.test.ts` holds one test per code-review finding, each confirmed to fail on the pre-fix code |
 | Typecheck / lint | clean (`strict`, `noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`; biome recommended) |
-| `src/` size | 2,242 lines in 12 files (1,878 excluding comments and blank lines) |
-| Bundle (esbuild `--minify`, ESM) | **16.3 KiB min+gz** with fflate inlined (42.8 KiB min). 11.5 KiB min+gz for the library alone (33.0 KiB min) |
+| `src/` size | 2,277 lines in 12 files (1,889 excluding comments and blank lines) |
+| Bundle (esbuild `--minify`, ESM) | **16.4 KiB min+gz** with fflate inlined (43.2 KiB min). 11.6 KiB min+gz for the library alone (33.4 KiB min) |
 | WASM interop (§7) | **ran, 17/17 pass.** Rust `hello_pdf()` is byte-identical to `golden/hello.pdf`, and `page_count` agrees with the TS reader on all 13 corpus files |
-| pypdf `strict=True` | all 7 outputs read with the expected page count and text: compact, compact + Flate streams, incremental 2-rev and 3-rev, incremental on top of a compact file, hello, imaging-demo |
+| pypdf `strict=True` | all 8 outputs read with the expected page count and text: compact, compact + Flate streams, compact re-pack of an xref-stream (Predictor 12) file using its own trailer, incremental 2-rev and 3-rev, incremental on top of a compact file, hello, imaging-demo |
 | Wall time | about 2 s for the full suite (the robustness suite opens about 13k mutated inputs) |
 
 ### Coverage of the SPEC test cases
@@ -45,12 +45,10 @@ PDF_OUT_DIR=/some/dir PYPDF_PYTHON=/path/to/venv/bin/python pnpm validate
 
 ### Differential fuzz: TS reader vs Rust WASM (informational)
 
-The test feeds 4,305 truncated or byte-mutated corpus inputs to both readers. The Rust build never trapped (a trap is what a panic looks like through WASM). **3,783 of 4,305 agree.** The disagreements are policy differences, not crashes, and both teams should align them:
+The test feeds 4,305 truncated or byte-mutated corpus inputs to both readers. The Rust build never trapped (a trap is what a panic looks like through WASM). **4,294 of 4,305 agree** (up from 3,783 in the first run and 4,274 before the code-review alignments). The 11 remaining disagreements have two causes:
 
-- **Missing page objects** (mostly truncated files): `/Kids` points at an object that doesn't exist. TS reads that reference as `null`, which is ISO 32000 semantics, skips it and returns 0 pages. Rust returns an error (-1).
-- **TS succeeds where Rust fails:**
-  - a corrupted `%PDF-` header byte: TS does not require the header, repair finds the objects
-  - damaged trailer, `startxref` or xref-stream bytes: TS repair also scans `/Type /XRef` streams and ObjStm members
+- **Rust does not repair when `/Root` fails to resolve (10 cases, TS 1 / Rust -1).** The xref loads and its in-file entries point at the right headers, but the catalog is unreadable: a `/Prev` damaged out of an incremental trailer (the newest section lacks object 1), an xref stream whose `/Filter` key or Flate data is damaged (garbage rows, so `/Root` lands nowhere), an ObjStm that no longer decodes, or a catalog dict with a syntax error (`signed.pdf`/`tampered.pdf`, where repair recovers the older revision's catalog). TS treats "`/Root` doesn't resolve to a dictionary" as a repair trigger; Rust's `open_with` only checks that `/Root` is present. **Rust gap**: it should add the same check.
+- **fflate is laxer than miniz (1 case, `pdflib.pdf` byte 514, TS 0 / Rust -1).** A flipped byte in the ObjStm's Flate data makes the Huffman code tables invalid. fflate doesn't validate code completeness and decodes 410 bytes of garbage (CPython's zlib rejects it with "invalid literal/lengths set"), so TS gets a damaged `/Pages` dict and returns 0 pages, while miniz fails and Rust's catalog lookup errors. This can't be fixed without replacing the inflater, so it is left as a known divergence.
 
 ## Design notes
 
@@ -58,36 +56,37 @@ The test feeds 4,305 truncated or byte-mutated corpus inputs to both readers. Th
   - Names and dict keys are *binary strings* (one char per byte, no slash). This makes them usable as `Map` keys and keeps `#xx` bytes exact.
   - Dicts are `Map`s, so they keep insertion order.
   - Strings keep their bytes and remember whether they were hex.
-- **Integers** are JS numbers. The lexer rejects integers outside ±2^53 with `Syntax` rather than losing precision silently. (This differs from Rust's `i64`.)
+- **Integers** are JS numbers. An integer token outside ±(2^53 − 1) degrades to a `real` (like Rust's `integer_overflow_degrades_to_real`). Remaining divergence: Rust keeps integers up to the `i64` range exact, so tokens between 2^53 and 2^63 are `int` in Rust and `real` in TS.
 - **Number formatting.** `formatFixed(x, d)` reproduces Python's `f"{x:.{d}f}"`: it rounds the exact binary value half-to-even, using BigInt arithmetic on the IEEE bits.
   - `Number#toFixed` would be wrong on exact ties: `0.125.toFixed(2)` gives `"0.13"`, Python gives `"0.12"`.
   - It was cross-checked against CPython on 18,266 random values with 0 mismatches.
   - `formatReal` (the §1 rule) is `formatFixed(x, 6)` with trailing zeros trimmed and `-0` mapped to `0`.
 - **Errors.** There is one error class, `PdfError`, with a `code` (`Syntax`, `UnexpectedEof`, `DepthLimit`, `Cycle`, `Xref`, `Filter`, `UnsupportedFilter`, `LimitExceeded`, `Invalid`) and an optional byte `offset`. Internal "try" paths catch only `PdfError` and rethrow anything else, so the robustness tests expose real bugs instead of hiding them.
 - **Reader pipeline:**
-  1. `startxref` → classic table or xref stream. The `/Prev` chain is followed with a visited set, and hybrid `/XRefStm` entries fill gaps.
+  1. `startxref` → classic table or xref stream. The `/Prev` chain is followed with a visited set; the newest section wins per number. Within one section a later entry for the same number wins, and unknown xref-stream row types are free (so they shadow older revisions). In a hybrid file the table's in-use entries win and `/XRefStm` fills numbers the table omits or marks free (the usual way compressed objects are hidden from pre-1.5 readers).
   2. Every in-use offset entry is then validated: it must land on its own `n g obj`.
   3. Any failure, a missing `/Root`, or a `/Root` that isn't a dict triggers **repair**:
      - scan for the `obj` keyword and walk back over `num gen`
      - parse the candidates in file order, ignoring candidates that fall inside an object already parsed (e.g. `1 0 obj` text in stream data); later definitions win
-     - take trailers from the last 32 `trailer` keywords and from `/Type /XRef` streams, preferring the newest with a resolvable `/Root`
+     - take trailers from the last 32 `trailer` keywords and from `/Type /XRef` streams, sort them all by file offset, and use the newest with a resolvable `/Root` (so a classic incremental trailer after an xref stream wins)
      - add ObjStm members as type-2 entries
      - if no trailer is found, use any `/Type /Catalog`
 - **Linear-time guarantees** against hostile inputs:
   - Each object parse is bounded by the next known object offset: the next xref offset, the next scan candidate, or the next ObjStm member offset. Stream data is not bounded.
   - `endstream` positions are indexed once per buffer.
   - The trailer scan is capped at 32 candidates.
-  - Flate is fed in 1 KiB chunks, so a bomb overshoots the 64 MiB cap by at most about 1 MiB before `LimitExceeded`.
+  - Flate is fed in 1 KiB chunks, so a bomb overshoots the 64 MiB cap by at most about 1 MiB before `LimitExceeded`. A truncated Flate stream returns what was decoded (an error only if nothing was), as in Rust.
+  - PNG predictor parameters are range-checked (`/Colors` 1–32, `/BitsPerComponent` 1/2/4/8/16, `/Columns` 1–2^24) and a row longer than the stream data is rejected before anything is allocated. A short final row is decoded as far as it goes.
   - The page tree is walked with an explicit stack and a visited set.
   - Parser recursion is capped at 256.
-- **Page tree.** `/MediaBox`, `/CropBox`, `/Rotate` and `/Resources` are inherited. Below the root, kids and attributes that are broken or missing are read as `null` and skipped. Reference cycles always throw `Cycle`.
+- **Page tree.** `/MediaBox`, `/CropBox`, `/Rotate` and `/Resources` are inherited. Nodes and attributes that are broken or missing are read as `null` and skipped, including the root: a catalog without `/Pages`, or with a `/Pages` that doesn't load as a dict, has 0 pages (as in Rust). A missing or non-dict `/Root` catalog is still an error, and reference cycles always throw `Cycle`.
 - **Writer.** `PdfWriter` (`alloc`/`add`/`set`/`toBytes`) or `writePdf(objects, trailer, opts)`.
   - Objects are written in ascending number order. Classic mode writes a single subsection `0..Size`, and gaps become a linked free list.
   - `/Size` is computed. It is overwritten in place if the caller gave it, otherwise written first, which matches the fixtures.
   - Streams get `/Length` per the SPEC rule. `compressStreams` adds `/Filter /FlateDecode` to unfiltered streams.
   - `raw(bytes)` emits a pre-serialized body verbatim (see the first spec issue below).
 - **Compact mode.** Every gen-0, non-stream, non-raw object goes into one ObjStm (`n off` pairs, then each object + `\n`, Flate). The ObjStm is numbered `max+1` and the xref stream `max+2`.
-  - The xref stream has `/W [1 4 2] /Index [0 Size]`, is Flate-encoded without a predictor, and carries the trailer keys.
+  - The xref stream has `/W [1 4 2] /Index [0 Size]`, is Flate-encoded without a predictor, and carries the trailer keys minus xref-stream/chaining keys (`/Type /W /Index /Filter /DecodeParms /DP /Length /XRefStm /F /FFilter /FDecodeParms /DL /Prev /Size`), so an xref-stream file's own trailer can be passed straight back in.
   - Header versions below 1.5 are bumped to 1.5.
 - **Incremental.** `writeIncremental(original, objects, {xrefEol, compressStreams, trailer})`.
   - It opens the original to get the trailer and `startxref`, and appends the new objects plus `xref` (entry `0 1` and one subsection per run of consecutive numbers) plus a trailer.
@@ -120,7 +119,7 @@ The test feeds 4,305 truncated or byte-mutated corpus inputs to both readers. Th
    | Free entries for numbering gaps | linked list, gen 0 |
    | What "depth 256" means | 256 nested containers OK, 257 rejected |
    | `revisions()` after repair | number of trailer candidates found, min 1 |
-   | Hybrid `/XRefStm` precedence | table entries win |
-6. **The `/Kids` policy differs between the twins.** A missing or broken kid gives 0 pages in TS and an error in Rust. See the differential section.
+   | Hybrid `/XRefStm` precedence | table in-use entries win; `/XRefStm` fills free/absent ones (same as Rust) |
+6. **Repair triggers differ between the twins.** TS also repairs when the loaded xref's `/Root` doesn't resolve to a dict; Rust doesn't. See the differential section.
 7. **The case 6 grep is blunt.** `node:` also matches object keys like `{ node: x }`; I had to rename a variable in the page walker. `fs` is matched as a whole word. A narrower pattern for import specifiers (`from "node:`) would avoid false positives. The compile-time guard (`types: []`, `lib: ES2022`) is the stronger check anyway.
 8. **`expected.json` has no `revisions` definition for repaired files.** Its `revisions` is "count of `%%EOF`", which matches the `/Prev` chain length for every corpus file. They could diverge for files with updates appended without a new xref.

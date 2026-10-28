@@ -101,7 +101,7 @@ fn build() -> Vec<u8> {
 }
 
 fn content_stream(doc: &Document<'_>) -> Stream {
-    match doc.resolve(ObjRef::new(6, 0)).unwrap() {
+    match std::rc::Rc::unwrap_or_clone(doc.resolve(ObjRef::new(6, 0)).unwrap()) {
         Object::Stream(s) => s,
         other => panic!("object 6 is not a stream: {other:?}"),
     }

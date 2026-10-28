@@ -1,11 +1,12 @@
 //! Xref reconstruction for files whose `startxref`/xref is missing or wrong.
 //!
-//! Strategy: scan for `num gen obj` headers (last definition wins), parse each object once,
+//! Strategy: scan for `num gen obj` headers (the last definition that parses wins; an
+//! unparsable one is kept only when there is nothing better), parse each object once,
 //! merge every `trailer` dictionary and every xref-stream dictionary in file order, and add
-//! the members of any object streams found. If no `/Root` survives, adopt the last
-//! `/Type /Catalog` object.
+//! the members of any object streams found. The newest `/Root` that points at a dictionary
+//! wins; if none does, adopt the last `/Type /Catalog` object.
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashSet};
 
 use super::objstm;
 use super::xref::{XrefEntry, XrefTable};
@@ -103,24 +104,35 @@ pub(crate) fn rebuild(data: &[u8], limit: usize) -> Result<XrefTable> {
         return Err(Error::NotPdf("no objects found"));
     }
     let mut entries: BTreeMap<u32, XrefEntry> = BTreeMap::new();
+    let mut parsed: BTreeMap<u32, Object> = BTreeMap::new();
     for &(num, gen_nr, offset) in &headers {
-        entries.insert(num, XrefEntry::InFile { offset, gen_nr });
+        let entry = XrefEntry::InFile { offset, gen_nr };
+        match parse_loose(data, offset) {
+            Some(obj) => {
+                entries.insert(num, entry);
+                parsed.insert(num, obj);
+            }
+            // A damaged later definition must not hide an intact earlier one.
+            None if !parsed.contains_key(&num) => {
+                entries.insert(num, entry);
+            }
+            None => {}
+        }
     }
 
     let mut trailers = trailer_dicts(data);
     let mut catalog: Option<ObjRef> = None;
-    let mut members: Vec<(u32, u32, u32)> = Vec::new();
-    for (&num, entry) in &entries {
-        let XrefEntry::InFile { offset, gen_nr } = *entry else {
+    let mut members: Vec<(u32, u32, u32, bool)> = Vec::new();
+    for (&num, obj) in &parsed {
+        let Some(&XrefEntry::InFile { offset, gen_nr }) = entries.get(&num) else {
             continue;
         };
-        let Some(obj) = parse_loose(data, offset) else { continue };
         let Some(dict) = obj.as_dict() else { continue };
         match dict.get_name("Type") {
             Some(b"Catalog") => catalog = Some(ObjRef::new(num, gen_nr)),
             Some(b"XRef") => trailers.push((offset, dict.clone())),
             Some(b"ObjStm") => {
-                if let Object::Stream(s) = &obj
+                if let Object::Stream(s) = obj
                     && let Ok(decoded) = filters::decode(&s.dict, &s.data, limit)
                     && let Ok(objs) = objstm::parse(&s.dict, &decoded)
                 {
@@ -128,16 +140,22 @@ pub(crate) fn rebuild(data: &[u8], limit: usize) -> Result<XrefTable> {
                         if member_obj.as_dict().and_then(|d| d.get_name("Type")) == Some(b"Catalog") {
                             catalog.get_or_insert(ObjRef::new(member, 0));
                         }
-                        members.push((member, num, index));
+                        members.push((member, num, index, matches!(member_obj, Object::Dict(_))));
                     }
                 }
             }
             _ => {}
         }
     }
-    for (member, stream, index) in members {
+    let mut member_dicts = HashSet::new();
+    for (member, stream, index, is_dict) in members {
         // Objects defined directly in the file take precedence over compressed copies.
-        entries.entry(member).or_insert(XrefEntry::InStream { stream, index });
+        if let std::collections::btree_map::Entry::Vacant(slot) = entries.entry(member) {
+            slot.insert(XrefEntry::InStream { stream, index });
+            if is_dict {
+                member_dicts.insert(member);
+            }
+        }
     }
 
     let has_xref_stream = trailers.iter().any(|(_, d)| d.get_name("Type") == Some(b"XRef"));
@@ -153,12 +171,18 @@ pub(crate) fn rebuild(data: &[u8], limit: usize) -> Result<XrefTable> {
     for key in STALE_TRAILER_KEYS {
         trailer.remove(key);
     }
-    // Newest trailer/xref-stream `/Root` that points at an object we actually found wins;
-    // otherwise adopt a `/Type /Catalog` object.
+    // Newest trailer/xref-stream `/Root` that points at a dictionary we actually found wins
+    // (a ref→ref chain is accepted here and checked on resolve, so cycles stay
+    // `ReferenceCycle` errors); otherwise adopt a `/Type /Catalog` object.
+    let is_dict = |num: u32| match entries.get(&num) {
+        Some(XrefEntry::InFile { .. }) => matches!(parsed.get(&num), Some(Object::Dict(_) | Object::Ref(_))),
+        Some(XrefEntry::InStream { .. }) => member_dicts.contains(&num),
+        Some(XrefEntry::Free) | None => false,
+    };
     let root = trailers_newest_first
         .iter()
         .filter_map(|d| d.get("Root").and_then(Object::as_ref))
-        .find(|r| entries.contains_key(&r.num))
+        .find(|r| is_dict(r.num))
         .or(catalog)
         .ok_or(Error::MissingRoot)?;
     trailer.insert("Root", root);
@@ -190,6 +214,24 @@ mod tests {
     #[test]
     fn rebuild_adopts_catalog_when_trailer_is_missing() {
         let data = b"%PDF-1.4\n1 0 obj << /Type /Catalog /Pages 2 0 R >> endobj\n";
+        assert_eq!(
+            rebuild(data, 1024).unwrap().trailer.get("Root"),
+            Some(&Object::Ref(ObjRef::new(1, 0)))
+        );
+    }
+
+    #[test]
+    fn rebuild_keeps_intact_definition_when_later_one_is_unparsable() {
+        let data = b"%PDF-1.4\n1 0 obj << /Type /Catalog /Pages 2 0 R >> endobj\n1 0 obj << /Pages ] endobj\n";
+        assert_eq!(
+            rebuild(data, 1024).unwrap().entries.get(&1),
+            Some(&XrefEntry::InFile { offset: 9, gen_nr: 0 })
+        );
+    }
+
+    #[test]
+    fn rebuild_skips_trailer_root_that_is_not_a_dictionary() {
+        let data = b"%PDF-1.4\n1 0 obj << /Type /Catalog >> endobj\n2 0 obj 42 endobj\ntrailer << /Root 2 0 R >>\n";
         assert_eq!(
             rebuild(data, 1024).unwrap().trailer.get("Root"),
             Some(&Object::Ref(ObjRef::new(1, 0)))

@@ -101,7 +101,10 @@ fn reference_cycle_among_kids_still_errors() {
 #[test]
 fn missing_object_resolves_to_null() {
     let bytes = fixture("golden/hello.pdf");
-    assert_eq!(open(&bytes).unwrap().resolve(ObjRef::new(99, 0)), Ok(Object::Null));
+    assert_eq!(
+        open(&bytes).unwrap().resolve(ObjRef::new(99, 0)).as_deref(),
+        Ok(&Object::Null)
+    );
 }
 
 // 2. The `%PDF-` header is not required.
@@ -269,4 +272,101 @@ fn integers_beyond_two_pow_53_parse_as_integers() {
         parse_object(b"9007199254740993"),
         Ok(Object::Integer(9_007_199_254_740_993))
     );
+}
+
+// 6. A stored xref whose `/Root` does not resolve to a dictionary triggers repair (like TS).
+//    The single-byte mutations are the 10 cases from the TS differential fuzz where TS found
+//    1 page and Rust returned -1 (the xref loaded and its entries looked valid).
+
+/// `(page_count, was_repaired)` after opening `bytes`.
+fn pages_and_repaired(bytes: &[u8]) -> (Result<usize, Error>, bool) {
+    let doc = open(bytes).unwrap();
+    (doc.page_count(), doc.was_repaired())
+}
+
+/// Replaces the `nth` (0-based) occurrence of `from` with the same-length `to`.
+fn replace_nth(bytes: &[u8], from: &[u8], to: &[u8], nth: usize) -> Vec<u8> {
+    assert_eq!(from.len(), to.len(), "same-length replacement keeps offsets valid");
+    let at = bytes
+        .windows(from.len())
+        .enumerate()
+        .filter(|(_, w)| *w == from)
+        .nth(nth)
+        .unwrap()
+        .0;
+    [&bytes[..at], to, &bytes[at + from.len()..]].concat()
+}
+
+#[test]
+fn syntax_error_in_newest_catalog_repairs_to_the_intact_older_catalog() {
+    let bytes = replace_nth(
+        &fixture("corpus/signed.pdf"),
+        b"/Type /Catalog\n/Pages 2 0 R",
+        b"/Type /Catalog\n/Pages 2 0 ]",
+        1,
+    );
+    assert_eq!(pages_and_repaired(&bytes), (Ok(1), true));
+}
+
+#[test]
+fn syntax_error_in_newest_catalog_of_tampered_file_repairs() {
+    let bytes = replace_nth(
+        &fixture("corpus/tampered.pdf"),
+        b"/Type /Catalog\n/Pages 2 0 R",
+        b"/Type /Catalog\n/Pages 2 0 ]",
+        1,
+    );
+    assert_eq!(pages_and_repaired(&bytes), (Ok(1), true));
+}
+
+/// Results for `file` with each single-byte mutation `(offset, value)` from the TS fuzz.
+fn mutated_results(file: &str, mutations: &[(usize, u8)]) -> Vec<(Result<usize, Error>, bool)> {
+    let original = fixture(&format!("corpus/{file}"));
+    mutations
+        .iter()
+        .map(|&(at, value)| {
+            let mut bytes = original.clone();
+            bytes[at] = value;
+            pages_and_repaired(&bytes)
+        })
+        .collect()
+}
+
+#[test]
+fn hello_incremental_with_damaged_newest_xref_repairs_to_one_page() {
+    assert_eq!(
+        mutated_results("hello-incremental.pdf", &[(781, 68)]),
+        vec![(Ok(1), true)]
+    );
+}
+
+#[test]
+fn hello_xrefstm_with_damaged_xref_stream_repairs_to_one_page() {
+    let mutations = [(412, 138), (415, 178), (415, 56), (454, 87)];
+    assert_eq!(mutated_results("hello-xrefstm.pdf", &mutations), vec![(Ok(1), true); 4]);
+}
+
+#[test]
+fn pdflib_with_unresolvable_root_repairs_to_one_page() {
+    let mutations = [(1064, 41), (1079, 80), (1080, 114)];
+    assert_eq!(mutated_results("pdflib.pdf", &mutations), vec![(Ok(1), true); 3]);
+}
+
+#[test]
+fn signed_and_tampered_with_damaged_catalog_repair_to_one_page() {
+    let results = [
+        mutated_results("signed.pdf", &[(590, 73)]),
+        mutated_results("tampered.pdf", &[(590, 73)]),
+    ]
+    .concat();
+    assert_eq!(results, vec![(Ok(1), true); 2]);
+}
+
+#[test]
+fn intact_files_with_valid_catalog_are_not_repaired() {
+    let repaired: Vec<bool> = ["signed.pdf", "hello-incremental.pdf", "hello-xrefstm.pdf", "pdflib.pdf"]
+        .iter()
+        .map(|f| open(&fixture(&format!("corpus/{f}"))).unwrap().was_repaired())
+        .collect();
+    assert_eq!(repaired, vec![false; 4]);
 }

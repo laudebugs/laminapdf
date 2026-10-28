@@ -254,16 +254,19 @@ export class PdfDocument {
       const sec = this.parseXrefSection(offset);
       revisions++;
       newestTrailer ??= sec.trailer;
-      mergeIn(sec.entries);
       const stm = sec.trailer.entries.get("XRefStm");
       if (stm?.kind === "int" && !visited.has(stm.value)) {
-        // Hybrid file: the table's entries win, the stream fills the gaps.
+        // Hybrid file: the table's in-use entries win; the stream fills numbers the table
+        // omits or marks free (how compressed objects are hidden from pre-1.5 readers).
         try {
-          mergeIn(this.parseXrefSection(stm.value).entries);
+          for (const [n, e] of this.parseXrefSection(stm.value).entries) {
+            if (sec.entries.get(n)?.type !== "offset") sec.entries.set(n, e);
+          }
         } catch (e) {
           if (!(e instanceof PdfError)) throw e;
         }
       }
+      mergeIn(sec.entries);
       const prev = sec.trailer.entries.get("Prev");
       offset = prev?.kind === "int" ? prev.value : undefined;
     }
@@ -313,9 +316,8 @@ export class PdfDocument {
         if (off.t !== "int" || gen.t !== "int" || kind.t !== "kw" || (kind.v !== "n" && kind.v !== "f")) {
           throw new PdfError("Xref", "bad xref entry", ep);
         }
-        const n = t.v + i;
-        if (entries.has(n)) continue;
-        entries.set(n, kind.v === "n" ? { type: "offset", offset: off.v, gen: gen.v } : { type: "free" });
+        // Within one section, a later entry for the same number wins.
+        entries.set(t.v + i, kind.v === "n" ? { type: "offset", offset: off.v, gen: gen.v } : { type: "free" });
       }
     }
     const trailer = new Parser(lex).parseObject();
@@ -371,10 +373,10 @@ export class PdfDocument {
         const f2 = field(w1);
         const f3 = field(w2);
         const n = first + i;
-        if (entries.has(n)) continue;
-        if (type === 0) entries.set(n, { type: "free" });
-        else if (type === 1) entries.set(n, { type: "offset", offset: f2, gen: w2 === 0 ? 0 : f3 });
+        // A later row for the same number wins; unknown (reserved) types are free (§7.5.8.3).
+        if (type === 1) entries.set(n, { type: "offset", offset: f2, gen: w2 === 0 ? 0 : f3 });
         else if (type === 2) entries.set(n, { type: "compressed", stream: f2, index: f3 });
+        else entries.set(n, { type: "free" });
       }
     }
     return entries;
@@ -414,14 +416,15 @@ export class PdfDocument {
     this.cache = parsed;
     this.offsetsSorted = undefined;
 
-    const candidates: PdfDict[] = [];
+    // Trailer candidates (classic trailers and XRef stream dicts) with their file offsets.
+    const candidates: Array<{ at: number; dict: PdfDict }> = [];
     // `trailer` keywords: only the last few matter (the newest with /Root is preferred).
     const trailerAt: number[] = [];
     for (let i = indexOf(d, TRAILER); i >= 0; i = indexOf(d, TRAILER, i + TRAILER.length)) trailerAt.push(i);
     for (const i of trailerAt.slice(-MAX_TRAILER_CANDIDATES)) {
       try {
         const t = new Parser(new Lexer(d, i + TRAILER.length)).parseObject();
-        if (t.kind === "dict") candidates.push(t);
+        if (t.kind === "dict") candidates.push({ at: i, dict: t });
       } catch (e) {
         if (!(e instanceof PdfError)) throw e;
       }
@@ -432,7 +435,8 @@ export class PdfDocument {
       const dd = o.kind === "stream" ? o.dict : o.kind === "dict" ? o : undefined;
       const type = dd?.entries.get("Type");
       const tn = type?.kind === "name" ? type.name : undefined;
-      if (tn === "XRef" && o.kind === "stream") candidates.push(o.dict);
+      const at = found.get(n);
+      if (tn === "XRef" && o.kind === "stream" && at?.type === "offset") candidates.push({ at: at.offset, dict: o.dict });
       else if (tn === "Catalog") catalog ??= n;
       else if (tn === "ObjStm" && o.kind === "stream") {
         try {
@@ -445,9 +449,12 @@ export class PdfDocument {
         }
       }
     }
+    // Newest by file offset wins, whatever its kind (an incremental classic trailer after an
+    // xref stream is newer than the stream, even though streams are collected second).
+    candidates.sort((a, b) => a.at - b.at);
     let trailer: PdfDict | undefined;
     for (let i = candidates.length - 1; i >= 0; i--) {
-      const c = candidates[i]!;
+      const c = candidates[i]!.dict;
       if (c.entries.has("Root") && this.safeIsDict(c.entries.get("Root")!)) {
         trailer = c;
         break;
@@ -601,9 +608,8 @@ export class PdfDocument {
   // Page tree
 
   private walkPages(): Page[] {
-    const root = this.catalog();
-    const top = root.entries.get("Pages");
-    if (top === undefined) throw new PdfError("Invalid", "catalog has no /Pages");
+    // A missing/non-dict catalog is an error; a missing or broken /Pages root is an empty tree.
+    const top = this.catalog().entries.get("Pages") ?? NULL;
     const out: Page[] = [];
     const visited = new Set<number>();
     interface Inherited {
@@ -625,8 +631,8 @@ export class PdfDocument {
         visited.add(item.num);
         ref = item;
       }
-      // The root must resolve; below it, unreadable kids are skipped like any other junk.
-      const d = depth === 0 ? this.resolve(item) : this.lenient(item);
+      // Unreadable nodes (the root included) are skipped like any other junk; cycles throw.
+      const d = this.lenient(item);
       if (d.kind !== "dict") continue;
       const e = d.entries;
       const here: Inherited = {

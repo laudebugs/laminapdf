@@ -54,6 +54,13 @@ function binary(s: string): Uint8Array {
 
 const HEADER_BINARY = "%\xE2\xE3\xCF\xD3\n";
 
+/**
+ * Keys describing an xref *stream* (or chaining a revision) that must not be copied
+ * from a caller/old trailer onto a newly written xref stream or trailer. /Size is
+ * recomputed by each writer.
+ */
+const XREF_STREAM_KEYS = new Set(["Size", "Prev", "Type", "W", "Index", "Filter", "DecodeParms", "DP", "Length", "XRefStm", "F", "FFilter", "FDecodeParms", "DL"]);
+
 /** Collects numbered objects and serializes them as a complete file. */
 export class PdfWriter {
   private readonly objects = new Map<number, WriterObject>();
@@ -188,7 +195,8 @@ function writeCompact(objs: WriterObject[], trailer: PdfDict, options: WriteOpti
   sink.str(`%PDF-${versionAtLeast15(options.version ?? "1.7")}\n${HEADER_BINARY}`);
   const maxNum = objs.at(-1)?.num ?? 0;
   const packed = objs.filter((o) => (o.gen ?? 0) === 0 && o.body.kind !== "stream" && o.body.kind !== "raw");
-  const direct = objs.filter((o) => !packed.includes(o));
+  const packedSet = new Set(packed);
+  const direct = objs.filter((o) => !packedSet.has(o));
   const stmNum = packed.length > 0 ? maxNum + 1 : 0;
   const xrefNum = packed.length > 0 ? maxNum + 2 : maxNum + 1;
   const size = xrefNum + 1;
@@ -240,10 +248,8 @@ function writeCompact(objs: WriterObject[], trailer: PdfDict, options: WriteOpti
     ["W", { kind: "array", items: W.map((w) => int(w)) }],
     ["Index", { kind: "array", items: [int(0), int(size)] }],
   ]);
-  for (const [k, v] of trailer.entries) {
-    if (k === "Size" || k === "Prev" || k === "Type" || k === "W" || k === "Index" || k === "Filter" || k === "Length") continue;
-    d.set(k, v);
-  }
+  // A whole new file: nothing chains to an older revision, so /Prev goes too.
+  for (const [k, v] of trailer.entries) if (!XREF_STREAM_KEYS.has(k)) d.set(k, v);
   d.set("Filter", name("FlateDecode"));
   writeBody(sink, { num: xrefNum, body: { kind: "stream", dict: { kind: "dict", entries: d }, data: flateEncode(table) } }, false);
   sink.str(`startxref\n${xrefOff}\n%%EOF\n`);
@@ -288,7 +294,7 @@ export function writeIncremental(original: Uint8Array, objects: readonly WriterO
   const size = Math.max(oldSize?.kind === "int" ? oldSize.value : 0, (objs.at(-1)?.num ?? 0) + 1);
   const entries = new Map<string, PdfObject>();
   for (const [k, v] of old) {
-    if (k === "Prev" || k === "XRefStm" || k === "Type" || k === "W" || k === "Index" || k === "Filter" || k === "DecodeParms" || k === "Length") continue;
+    if (k !== "Size" && XREF_STREAM_KEYS.has(k)) continue;
     entries.set(k, k === "Size" ? int(size) : v);
   }
   if (!entries.has("Size")) entries.set("Size", int(size));

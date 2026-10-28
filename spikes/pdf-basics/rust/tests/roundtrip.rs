@@ -169,7 +169,7 @@ fn compact_file_raises_header_to_1_5() {
 }
 
 fn value_of(bytes: &[u8], num: u32) -> Object {
-    open(bytes).unwrap().resolve(ObjRef::new(num, 0)).unwrap()
+    std::rc::Rc::unwrap_or_clone(open(bytes).unwrap().resolve(ObjRef::new(num, 0)).unwrap())
 }
 
 fn two_and_three_revisions() -> (Vec<u8>, Vec<u8>, Vec<u8>) {
@@ -224,7 +224,10 @@ fn incremental_update_adds_new_object_and_grows_size() {
     let (_, _, rev3) = two_and_three_revisions();
     let doc = open(&rev3).unwrap();
     assert_eq!(
-        (doc.resolve(ObjRef::new(100, 0)).unwrap(), doc.trailer().get_int("Size")),
+        (
+            doc.resolve(ObjRef::new(100, 0)).unwrap().as_ref().clone(),
+            doc.trailer().get_int("Size")
+        ),
         (PdfString::literal("new").into(), Some(101))
     );
 }
@@ -248,7 +251,7 @@ fn incremental_update_on_compact_file_reads_back() {
     let doc = open(&updated).unwrap();
     assert_eq!(
         (
-            doc.resolve(ObjRef::new(5, 0)).unwrap(),
+            doc.resolve(ObjRef::new(5, 0)).unwrap().as_ref().clone(),
             doc.revisions(),
             doc.page_count()
         ),
