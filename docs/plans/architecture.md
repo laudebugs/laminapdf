@@ -29,7 +29,7 @@ All three share one engine, so each of the ~180 operations in the [feature inven
                                    ▼
         lamina-render: RenderBackend trait → PDFium (default) · hayro (CI oracle → future default)
 
-   Optional server tier (Cloudflare, opt-in): Workers · Durable Objects (sync) · R2 · D1 · Workflows · Containers (OCR, Office)
+   Hosted service tier (Cloudflare; login and cloud features opt-in): Workers · Durable Objects (sync) · R2 · D1 · Workflows · Containers (OCR, Office)
 ```
 
 ### Principles (each becomes part of an ADR)
@@ -39,7 +39,7 @@ All three share one engine, so each of the ~180 operations in the [feature inven
 3. **The save planner owns correctness.** `SaveConstraint` (Free / AppendOnly / RequiresRewrite) makes signature-breaking or redaction-leaking saves impossible by default. Fixed order: redact → full rewrite → sign → append-only saves.
 4. **Rendering is swappable.** PDFium is the default renderer today. hayro (pure Rust) is diffed against it in CI and becomes the default once it reaches parity on our corpus. MuPDF is excluded (AGPL).
 5. **The UI framework stays off the hot path.** Page virtualisation, the canvas pool, the text layer and the annotation layer are plain TypeScript, so the framework choice is reversible and the viewer can be embedded by others.
-6. **Privacy first.** Documents are processed on the device by default. Server features are opt-in.
+6. **Privacy first.** Documents are processed on the device by default. lamina is also a hosted service with user login and cloud features (§8 Q2), but signing in and every server feature stay opt-in, and the app works fully without an account.
 
 ## 3. Decisions to record (ADRs)
 
@@ -47,10 +47,10 @@ ADRs go in `docs/decisions/`, one file per decision (`NNNN-title.md`). Each roun
 
 | # | ADR | When | Status |
 | --- | --- | --- | --- |
-| 0001 | Core language (Rust), licence (MIT OR Apache-2.0), bytes-in/bytes-out | Round A | Ready |
-| 0002 | Binding strategy: wasm-bindgen + tsify; UniFFI later; napi-rs and Component Model deferred | Round A | Ready |
-| 0015 | Monorepo layout and tooling (Cargo + pnpm + xtask) | Round A | Ready |
-| 0019 | Supply-chain and licence hygiene (cargo-deny, npm licence checks, SBOM) | Round A | Ready |
+| [0001](../decisions/0001-core-language-and-licence.md) | Core language (Rust), licence (MIT OR Apache-2.0), bytes-in/bytes-out | Round A | Accepted |
+| [0002](../decisions/0002-binding-strategy.md) | Binding strategy: wasm-bindgen + tsify; UniFFI later; napi-rs and Component Model deferred | Round A | Accepted |
+| [0015](../decisions/0015-monorepo-layout-and-tooling.md) | Monorepo layout and tooling (Cargo + pnpm + xtask) | Round A | Accepted |
+| [0019](../decisions/0019-supply-chain-and-licence-hygiene.md) | Supply-chain and licence hygiene (cargo-deny, npm licence checks, SBOM) | Round A | Accepted |
 | 0003 | Reader tolerance policy and `Limits` defaults | Round B | Ready |
 | 0005 | Document model: lazy COS overlay, typed views, stable `LaminaId`s | Round B | Propose |
 | 0006 | Op log, transactions, undo semantics | Round B | Propose |
@@ -61,9 +61,9 @@ ADRs go in `docs/decisions/`, one file per decision (`NNNN-title.md`). Each roun
 | 0004 | `RenderBackend`; PDFium default; hayro oracle; MuPDF prohibited | Round C | Propose |
 | 0009 | Web client: React chrome + framework-free viewer core; typed worker RPC | Round C | Propose |
 | 0010 | Platform adapter and capability flags | Round C | Propose |
-| 0011 | Cloudflare topology and privacy/retention rules | Round C | Propose |
+| 0011 | Cloudflare topology, privacy/retention rules and the hosted service (accounts, cloud storage, sync) | Round C | Propose |
 | 0008 | Desktop shell: Tauri 2, process model, tile transport, Linux fallback | Round D (after IPC spike) | Propose |
-| 0014 | Desktop distribution: update Worker + R2, channels, signing, key custody | Round D | Propose |
+| 0014 | Desktop distribution: update Worker + R2, channels, signing (the owner as publisher), key custody | Round D | Propose |
 | 0012 | Collaboration: one Durable Object per document, last-writer-wins records | Later (with collaboration) | Defer |
 | 0013 | Heavy jobs: Workflows + Containers; OCR/conversion engines and licences | Later (with OCR) | Defer |
 
@@ -78,7 +78,7 @@ The research couldn't answer these. Each is a small, time-boxed spike under `spi
 | `krilla-fit` | Can krilla write into an existing object graph, or do we build our own builder over `lamina-cos`? | Library plan, Round B |
 | `hayro-parity` | hayro vs PDFium pass rate on the pdf.js and PDFBox corpora: the baseline for switching the default | ADR 0004 |
 | `desktop-print` | How to print faithfully from Tauri on each OS (native print of rendered pages vs webview print), given the `hasNativePrint` capability | Round D |
-| `auth` (later) | Better Auth / Auth.js on D1 vs hosted vendors, for the optional server tier | ADR 0011 |
+| `auth` | Better Auth / Auth.js on D1 vs hosted vendors, for the hosted service's user login and accounts (in scope since 2026-10-28, §8 Q2); run before the first round that needs accounts | ADR 0011 |
 
 ## 5. Rounds (one pull request each)
 
@@ -100,16 +100,16 @@ Product-level detail (features, milestones, acceptance criteria) lives in the pr
 | **Linux WebKitGTK** canvas/compositing failures in Tauri | No GPU dependency; documented workarounds; Electron-on-Linux fallback | Desktop |
 | **4 GB WASM memory cap**, since Safari lacks Memory64 | Streaming `ByteSource`, OPFS cache, tile caps; desktop handles giant files natively | Core / Web |
 | **PDFium supply chain** (prebuilt WASM, single-maintainer `pdfium-render`) | Pin and reproduce builds; isolate in a worker or child process; keep the trait so it can be swapped | Render |
-| **Signing identities and keys** (Windows eligibility, Apple notarisation, losing the updater key) | Legal entity early; secret-manager or HSM custody; key-rotation runbook | Release |
+| **Signing identities and keys** (Windows eligibility, Apple notarisation, losing the updater key) | The owner signs personally as the publisher on all three OSes (§8 Q5). **Check for the owner:** Windows Artifact Signing's public-trust individual eligibility is US/Canada only ([desktop notes, Q6](../research/architecture/notes/desktop-shell.md#q6-code-signing--notarization-linux-packaging-ci)); outside those, use an OV certificate held in a cloud HSM. Secret-manager or HSM custody; key-rotation runbook (ADR 0014) | Release |
 | **Scope**: ~180 operations across three products | Capability matrix as the roadmap; packages ship value before the editor | Maintainers |
 
 ## 7. To-dos
 
 ### Round A — Foundations
-- [ ] Write ADR 0001 (core language, licence, bytes in / bytes out)
-- [ ] Write ADR 0002 (binding strategy)
-- [ ] Write ADR 0015 (monorepo layout and tooling)
-- [ ] Write ADR 0019 (supply-chain and licence hygiene)
+- [x] Write ADR 0001 (core language, licence, bytes in / bytes out)
+- [x] Write ADR 0002 (binding strategy)
+- [x] Write ADR 0015 (monorepo layout and tooling)
+- [x] Write ADR 0019 (supply-chain and licence hygiene)
 - [ ] Create the root Cargo workspace (`[workspace.lints]`, `rust-toolchain.toml`, edition 2024, MSRV policy)
 - [ ] Create the pnpm workspace (`pnpm-workspace.yaml`, shared `tsconfig.base.json`, Biome config)
 - [ ] Add `tools/xtask` with `cargo xtask check`, `test`, `wasm`, `fmt` (the single task entry point, per the code-organization guide)
@@ -151,12 +151,12 @@ Product-level detail (features, milestones, acceptance criteria) lives in the pr
 ### Cross-cutting
 - [ ] Capability matrix: generate a test-backed table of the ~180 operations (unsupported / read / write / round-trip)
 - [ ] Nightly lane: differential tests vs pdf.js, PDFium, qpdf, pypdf; hayro-vs-PDFium render diffs; veraPDF; benchmarks
-- [ ] Decide product questions (§8)
+- [ ] Decide product questions (§8; Q2 and Q5 answered 2026-10-28)
 
 ## 8. Open questions for the team
 
 1. Which ships first, `@lamina/pdf` or the web reader? The research recommends packages first.
-2. Is a hosted lamina service a goal, or just a reference deployment for forks?
+2. ~~Is a hosted lamina service a goal, or just a reference deployment for forks?~~ **Answered 2026-10-28 (project owner):** lamina **will** be a hosted service with user login and cloud features (accounts, cloud storage and sync), not just a reference deployment. Privacy-first local processing stays the default: the apps work without an account, and nothing is uploaded unless the user opts in. ADR 0011 records the topology; the `auth` spike (§4) picks the login stack.
 3. Names: package scope, crate names, domain.
 4. Are the Mac App Store, Flathub and mobile (Tauri mobile vs UniFFI with native UIs) in scope, and when?
-5. Who is the legal entity for code signing?
+5. ~~Who is the legal entity for code signing?~~ **Answered 2026-10-28 (project owner):** the owner, personally, as the publisher, code-signs the desktop app for Windows, macOS and Linux. To check: Windows Artifact Signing accepts public-trust individuals only in the US and Canada; if the owner is elsewhere, Windows needs an OV certificate in a cloud HSM (§6). ADR 0014 records the identities and key custody.

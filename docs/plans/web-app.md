@@ -27,7 +27,7 @@ A fast, accessible, privacy-first **PDF reader in the browser**, served from Clo
 **Non-goals for the reader** (they belong to [full-editor.md](full-editor.md))
 
 - Any modification and save; annotations display only (rendered by PDFium), form fields display only.
-- Accounts, cloud storage, sync, server-side processing.
+- Accounts, cloud storage, sync, server-side processing. lamina will offer these as a hosted service (decided 2026-10-28, [architecture §8](architecture.md#8-open-questions-for-the-team) Q2), but they arrive in later rounds ([full-editor §6](full-editor.md#6-design-summary)); the reader v0.1 has no login and uploads nothing.
 - Running PDF JavaScript (never executed in the reader).
 - Mobile-specific UI beyond a responsive layout (mobile apps are an open question in [architecture §8](architecture.md#8-open-questions-for-the-team)).
 
@@ -158,7 +158,7 @@ Architecture Round C is delivered as PRs C1–C7. C1 needs B6, because its PDFiu
 - [ ] Write ADR 0004 (`RenderBackend`, PDFium default, hayro oracle, MuPDF prohibited)
 - [ ] Write ADR 0009 (React chrome + framework-free viewer, typed worker RPC)
 - [ ] Write ADR 0010 (Platform adapter and capability flags)
-- [ ] Write ADR 0011 (Cloudflare topology, privacy and retention, telemetry policy)
+- [ ] Write ADR 0011 (Cloudflare topology, privacy and retention, telemetry policy, and the hosted service: login, accounts, cloud storage and sync as opt-in features; the login stack is added after the `auth` spike)
 - [ ] Create `crates/lamina-render` with the trait and PDFium and hayro adapters behind features
 - [ ] Create `packages/render-pdfium` (pin and hash the PDFium build) and `packages/render-hayro`
 - [ ] Add golden render tests and the nightly hayro-vs-PDFium diff

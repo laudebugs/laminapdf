@@ -79,7 +79,8 @@ The editing architecture (lazy COS overlay, typed model, op log, save planner, o
 | HTML → PDF | Browser Run, then lamina post-processing (tags, PDF/A) | 0013 | E13 |
 | Batch jobs (optimise, convert, stamp many files) | Workflows + Queues, Worker running `lamina-wasm` for small files, Containers for large | 0013 | E14, E16 |
 | Timestamp authority proxy (TSAs rarely allow CORS) | Worker, no document bytes (hash only) | 0020 | E10 |
-| Accounts | Auth on D1 (`auth` spike) | 0011 | first round that needs it |
+| Accounts and user login (hosted service, decided 2026-10-28) | Auth on D1 or a hosted vendor (`auth` spike) | 0011 | first round that needs it |
+| Cloud storage and sync of the user's documents (opt-in per document) | R2 for blobs, D1 index, per-user access | 0011 | first round that needs it |
 
 ## 7. Phases and rounds
 
@@ -412,7 +413,7 @@ Editor rounds are larger than reader rounds. Each starts with a short **feature-
 
 ### E18. Collaboration
 - [ ] Write ADR 0012 (Durable Object per document, LWW records, leases)
-- [ ] Run the `auth` spike and record the result in ADR 0011
+- [ ] Run the `auth` spike and record the result in ADR 0011 (before the first round that needs accounts, which may be earlier than E18)
 - [ ] Feature-plan PR for E18
 - [ ] Layer-document schema for annotations, field values and page order
 - [ ] Durable Object with SQLite storage and WebSocket hibernation; R2 base revisions; D1 index

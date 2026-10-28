@@ -111,6 +111,11 @@ One row per round. Reader and library rounds are one PR each; editor rounds are 
 - **ADRs** in `docs/decisions/` record each decision in the round listed above.
 - A plan's status moves Draft → In progress (first round merged) → Done (last round merged).
 
+## Decisions made
+
+- **Hosted service** (2026-10-28, project owner): lamina will be a hosted service with user login and cloud features (accounts, cloud storage and sync), not just a reference deployment. Local, on-device processing stays the default and needs no account; the reader v0.1 (M2) still uploads nothing. Accounts arrive with the first round that needs them, after the `auth` spike ([architecture §8](architecture.md#8-open-questions-for-the-team), Q2; ADR 0011).
+- **Code signing** (2026-10-28, project owner): the owner, as the publisher, signs the desktop app for Windows, macOS and Linux (M3). Windows Artifact Signing's individual eligibility is US/Canada only, so the owner must confirm eligibility or use an OV certificate ([architecture §8](architecture.md#8-open-questions-for-the-team), Q5; ADR 0014).
+
 ## Decisions this roadmap assumes (recommendations, not yet decided)
 
 - Packages ship before the reader ([architecture §8](architecture.md#8-open-questions-for-the-team), question 1).
