@@ -4,4 +4,4 @@ Roadmaps and design docs for upcoming work. Name files `kebab-case.md`; include 
 
 | Plan | Status |
 | --- | --- |
-| _(none yet)_ | |
+| [architecture.md](architecture.md) | Draft |
