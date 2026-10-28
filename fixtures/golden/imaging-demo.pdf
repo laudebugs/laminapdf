@@ -1,0 +1,78 @@
+%PDF-1.7
+%‚„œ”
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [3 0 R] /Count 1 >>
+endobj
+3 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R /Resources << /Shading << /Sh1 5 0 R >> /ExtGState << /GS1 7 0 R >> >> >>
+endobj
+4 0 obj
+<< /Length 654 >>
+stream
+% 1. filled rectangle (DeviceRGB)
+q
+0.20 0.40 0.80 rg
+72 600 200 120 re
+f
+Q
+% 2. stroked Bezier circle, round joins, dashed
+q
+0.85 0.10 0.10 RG
+6 w
+1 j
+[18 6] 0 d
+500.000 660.000 m
+500.000 698.660 468.660 730.000 430.000 730.000 c
+391.340 730.000 360.000 698.660 360.000 660.000 c
+360.000 621.340 391.340 590.000 430.000 590.000 c
+468.660 590.000 500.000 621.340 500.000 660.000 c
+h
+S
+Q
+% 3. axial gradient clipped to a rectangle
+q
+72 380 468 150 re
+W n
+/Sh1 sh
+Q
+% 4. rotated square, 30 deg about its centre (306,220), 50% opacity
+q
+/GS1 gs
+1 0 0 1 306 220 cm
+0.866025 0.500000 -0.500000 0.866025 0 0 cm
+0 0.6 0.3 rg
+0 0 0 RG
+2 w
+-60 -60 120 120 re
+B
+Q
+
+endstream
+endobj
+5 0 obj
+<< /ShadingType 2 /ColorSpace /DeviceRGB /Coords [72 0 540 0] /Function 6 0 R /Extend [true true] >>
+endobj
+6 0 obj
+<< /FunctionType 2 /Domain [0 1] /C0 [1 0.85 0.1] /C1 [0.5 0 0.6] /N 1 >>
+endobj
+7 0 obj
+<< /Type /ExtGState /ca 0.5 /CA 0.5 >>
+endobj
+xref
+0 8
+0000000000 65535 f 
+0000000015 00000 n 
+0000000064 00000 n 
+0000000121 00000 n 
+0000000279 00000 n 
+0000000984 00000 n 
+0000001100 00000 n 
+0000001189 00000 n 
+trailer
+<< /Size 8 /Root 1 0 R >>
+startxref
+1243
+%%EOF

@@ -83,7 +83,8 @@ jobs:
       - run: cargo xtask check ts
 
   # The pdf-basics spike is frozen research code outside both workspaces, but its tests are the
-  # evidence behind several decisions; keep them green until its code has been ported (Round A3).
+  # evidence behind several decisions. Its Rust core is ported to crates/lamina-syntax and
+  # crates/lamina-cos (Round A3); this job keeps the frozen record (incl. the TS twin) green.
   spikes:
     name: Spike pdf-basics (Rust + TS)
     runs-on: ubuntu-latest

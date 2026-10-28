@@ -21,6 +21,12 @@ publish = false
 
 [workspace.dependencies]
 # Internal crates are added here as `lamina-x = { path = "crates/lamina-x" }`.
+lamina-syntax = { path = "crates/lamina-syntax" }
+lamina-cos = { path = "crates/lamina-cos" }
+
+# Flate (zlib) codec, pure Rust; `with-alloc` is the default feature, named so it stays on.
+# MIT OR Zlib OR Apache-2.0 (dependency adler2: 0BSD OR MIT OR Apache-2.0)
+miniz_oxide = { version = "0.9.1", default-features = false, features = ["with-alloc"] }
 
 # Library errors. MIT OR Apache-2.0
 thiserror = { version = "2.0.21", default-features = false }
@@ -60,6 +66,13 @@ broken_intra_doc_links = "deny"
 [profile.dev]
 # Line tables are enough for backtraces and keep debug builds and target/ smaller.
 debug = "line-tables-only"
+
+# The flate-bomb robustness test inflates ~64 MiB; keep the codec fast in debug test builds
+# (the spike's setting).
+[profile.dev.package.miniz_oxide]
+opt-level = 3
+[profile.dev.package.adler2]
+opt-level = 3
 
 [profile.release]
 lto = "thin"

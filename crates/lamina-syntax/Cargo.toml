@@ -1,6 +1,6 @@
 [package]
 name = "lamina-syntax"
-description = "PDF lexical layer: tokens and objects from raw bytes (pure, bytes in / bytes out)."
+description = "PDF syntax layer: object model, serialization, lexer, parser and stream filters (pure, bytes in / bytes out)."
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -15,3 +15,7 @@ layer = "core"
 
 [lints]
 workspace = true
+
+[dependencies]
+miniz_oxide = { workspace = true }
+thiserror = { workspace = true }

@@ -115,7 +115,7 @@ Product-level detail (features, milestones, acceptance criteria) lives in the pr
 - [x] Add `tools/xtask` with `cargo xtask check`, `test`, `wasm`, `fmt` (the single task entry point, per the code-organization guide)
 - [x] Add `deny.toml` (licence allow-list without AGPL/GPL; advisories) and an npm licence check
 - [x] CI fast lane: fmt, clippy `-D warnings`, nextest, wasm32 build, TS typecheck/lint/test, cargo-deny (the wasm size budget moves to Round B, with the first `.wasm` artefact from `lamina-wasm`)
-- [ ] Port the spike reader/writer into `crates/lamina-syntax` + `crates/lamina-cos`, with its fixtures moved to `fixtures/`
+- [x] Port the spike reader/writer into `crates/lamina-syntax` + `crates/lamina-cos`, with its fixtures moved to `fixtures/`
 - [ ] Reserve package names: `lamina*` on crates.io and the `@lamina` scope on npm
 - [ ] Update `CLAUDE.md` (layout, commands, decided architecture)
 
@@ -125,7 +125,9 @@ Product-level detail (features, milestones, acceptance criteria) lives in the pr
 - [ ] `lamina-model`: typed pages, annotations, fields, outline; stable IDs
 - [ ] `lamina-ops`: `Op` enum, `transact()`, inverses, undo/redo
 - [ ] `lamina-save`: save planner, `SaveConstraint`, streaming `WriteSink`
+- [ ] Move the writer (`Writer`, `incremental_update`, `XrefEol`) from `lamina-cos` into `lamina-save`, keeping the determinism and golden tests
 - [ ] `lamina-build`: builder API (`Document → page → surface → finish() → Document`)
+- [ ] Promote the spike's content builder and golden samples (`hello`, `imaging_demo`), now test support in `crates/lamina-cos/tests/common/`, into `lamina-build` (API and examples)
 - [ ] `lamina` façade crate: re-exports the public API of the core crates; this is what goes to crates.io
 - [ ] `lamina-text`: font embedding and subsetting for generation (see [03](../research/pdf/03-text-and-fonts.md))
 - [ ] `lamina-wasm` (wasm-bindgen + tsify) and `@lamina/pdf` (ESM-only, `init()`, export conditions; publint + attw)
