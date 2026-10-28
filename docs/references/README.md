@@ -35,8 +35,8 @@ External specifications, standards, tools and reading material we rely on. Group
 - **Nitro Sign** — commercial e-signature product: https://checkout.gonitro.com/sign
 - **Adobe Acrobat Pro** — the reference feature set for desktop PDF editing (see [research/pdf/06-feature-inventory.md](../research/pdf/06-feature-inventory.md)).
 
-## Not yet captured
+## Owner's research report
 
-- *Research report "Technical and Academic Architecture of PDFs"* (NotebookLM export, shared by the project owner). It's held behind a private download link, so its content isn't in the repo yet. Add it under `docs/research/pdf/` if we want to keep it.
+- *Technical and Academic Architecture of PDFs* (NotebookLM, 2026-10-28) — kept verbatim in [`research/pdf/sources/notebooklm-report.md`](../research/pdf/sources/notebooklm-report.md), with one correction noted.
 
 Each chapter in [`docs/research/pdf/`](../research/pdf/) also ends with its own topic-specific reference list.

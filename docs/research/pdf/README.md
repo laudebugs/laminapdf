@@ -13,7 +13,7 @@ Primary reference throughout: **ISO 32000-2:2020 (PDF 2.0)**. Section numbers ("
 | 05 | [Creating, processing & rendering PDFs from code](05-creating-pdfs-from-code.md) | The approaches (low-level writers to HTML→PDF to typesetting), library ecosystem per language with licences, processing operations, renderers, testing, and a recommendation for lamina. |
 | 06 | [Feature inventory](06-feature-inventory.md) | Every operation a full PDF platform/editor offers (~180, in 13 groups), mapped to the PDF mechanism, difficulty and chapter. Reference architecture and phasing. |
 
-Runnable examples that back the chapters are in [`examples/`](examples/).
+Runnable examples that back the chapters are in [`examples/`](examples/). Source documents (e.g. the owner's NotebookLM report) are in [`sources/`](sources/).
 
 ## Reading order
 
