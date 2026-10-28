@@ -47,7 +47,7 @@ cd <type>-<desc>
 The [todo board](../todos/README.md) is the work queue. A todo is one pull request of work; its folder is its state: `ready/` → `ongoing/` → `done/`.
 
 - **MUST:** every PR implements exactly one todo, except the exempt PRs below. Pick a todo from `ready/` whose **Depends on** todos are all in `done/` (the board's "Can start now" list). If no todo fits, write one from [`TEMPLATE.md`](../todos/TEMPLATE.md) in its own small PR (a board-only PR, exempt from the claim step), then claim it like any other.
-- **MUST:** claim the todo before starting, so `main` shows it as taken. Open a **claim PR** that only `git mv`s the todo from `ready/` to `ongoing/`, sets **Status** to `ongoing`, updates the links to it and regenerates the board. A claim PR is trivial: one `/code-review low <PR#> --comment`, then merge. Then start the work PR from a fresh worktree off the updated `main`, and fill in the todo's **PR** field there.
+- **MUST:** claim the todo before starting, so `main` shows it as taken. Open a **claim PR** that only `git mv`s the todo from `ready/` to `ongoing/`, sets **Status** to `ongoing`, updates the links to it and regenerates the board. A claim PR is trivial: one `/code-review low <PR#>`, then merge. Then start the work PR from a fresh worktree off the updated `main`, and fill in the todo's **PR** field there.
 - **MUST:** before the work PR merges, `git mv` the todo from `ongoing/` to `done/` in that PR, set **Status** to `done`, tick its tasks and acceptance criteria, update the links to it, tick the matching to-dos in its plan, and regenerate the board. Anything in its **Post-merge checks** is ticked in a follow-up PR (or noted in the done todo) once it has run.
 - **MUST:** if work stops without merging, a PR moves the todo back to `ready/` with a note on what's left.
 - **Exempt PRs** (no todo needed): Dependabot and other bot PRs, CI and repository-maintenance fixes (e.g. a broken runner, a flaky job), typo/link fixes, and changes to the todo board itself (writing, splitting or reordering todos).
@@ -80,18 +80,19 @@ The [todo board](../todos/README.md) is the work queue. A todo is one pull reque
 
 ## 6. Review
 
-- **MUST:** review every PR with `/code-review`, following the [review and merge process](#7-review-and-merge-process) below; that process is the review (branch protection requires no separate approval). The author answers or resolves every comment. Fix findings with new commits during review so the reviewer can see what changed, then squash on merge.
+- **MUST:** review every PR with `/code-review`, following the [review and merge process](#7-review-and-merge-process) below; that process is the review (branch protection requires no separate approval). Findings and fixes are recorded in commit messages, not PR comments. Fix findings with new commits during review so the reviewer can see what changed, then squash on merge.
 - **SHOULD:** reviewers check in this order: correctness and safety (panics, unbounded allocation, `unsafe`), API surface (what became public), boundaries (does core now depend on an edge?), tests (does a test fail without the change?), then docs and style. Anything a tool can enforce is left to the tool.
 - **SHOULD:** a regression test for a review finding should fail on the pre-fix code (the spike's `regressions.test.ts` practice).
 - **MUST:** merge with **squash merge** by default (the PR title becomes the commit on `main`). Use a rebase merge when every commit in the PR is meaningful on its own. `main`'s branch protection requires linear history, so merge commits are rejected (PR #1 was merged with one before that rule).
 
 ## 7. Review and merge process
 
-- **MUST:** after opening a PR, run `/code-review` on it and post the findings as PR comments: `/code-review high <PR#> --comment`. Non-trivial PRs use effort **high**.
-- **MUST:** push fixes as new commits. For each comment, reply naming the commit that fixes it and resolve the thread, or reply why it won't be fixed.
-- **MUST:** if the first review found **more than 6** issues, run a second, low-effort review after the fixes are pushed (`/code-review low <PR#> --comment`) and handle its findings the same way.
-- **MUST:** merge once every review thread is resolved and CI is green: after the first review's fixes if it found 6 issues or fewer, otherwise after the second review's fixes. Squash-merge (see §6) with `gh pr merge <PR#> --squash --delete-branch`. This deletes the remote branch; the local branch is still checked out in its worktree, so Git can't delete it yet, and §8 removes both.
-- Trivial PRs (a typo, a link, a one-line config change) need only a single `/code-review low <PR#> --comment`.
+- **MUST:** after opening a PR, run `/code-review` on it **without** `--comment`: `/code-review high <PR#>`. Non-trivial PRs use effort **high**. Findings are not posted as PR comments.
+- **MUST:** fix the findings in new commits. Each fix commit's message lists the findings it addresses and how each was fixed (or why one won't be fixed), so the review is recorded in the history.
+- **MUST:** if the first review found **more than 6** issues, run a second, low-effort review after the fixes are pushed (`/code-review low <PR#>`) and record its findings and fixes the same way.
+- **SHOULD:** for large diffs, run the review as several scoped passes (by path) so no file is skipped; a pass whose diff was truncated doesn't count.
+- **MUST:** merge once every finding is fixed or explained in a commit message and CI is green: after the first review's fixes if it found 6 issues or fewer, otherwise after the second review's fixes. Run `cargo xtask ci` locally before merging. Squash-merge (see §6) with `gh pr merge <PR#> --squash --delete-branch`. This deletes the remote branch; the local branch is still checked out in its worktree, so Git can't delete it yet, and §8 removes both.
+- Trivial PRs (a typo, a link, a one-line config change, a claim PR) need only a single `/code-review low <PR#>`.
 
 ## 8. After merge: clean up
 
