@@ -4,4 +4,9 @@ Roadmaps and design docs for upcoming work. Name files `kebab-case.md`; include 
 
 | Plan | Status |
 | --- | --- |
-| _(none yet)_ | |
+| [Architecture](architecture.md): shared architecture, ADR list, spikes, Rounds A–D | Draft |
+| [Roadmap](roadmap.md): sequence of all rounds and PRs across the plans | Draft |
+| [PDF library](pdf-library.md): `@lamina/pdf` and `lamina` generation library (Rounds B1–B8) | Draft |
+| [Web reader](web-app.md): PDF reader on Cloudflare (Rounds C1–C7) | Draft |
+| [Desktop reader](desktop-app.md): Tauri 2 reader for macOS, Windows, Linux (Rounds D1–D7) | Draft |
+| [Full editor](full-editor.md): all 13 feature groups on web and desktop (Rounds E1–E18) | Draft |
