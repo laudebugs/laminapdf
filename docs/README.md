@@ -1,0 +1,18 @@
+# lamina documentation
+
+Everything we know, plan and decide lives here, in Markdown, versioned with the code.
+
+| Folder | Purpose |
+| --- | --- |
+| [`research/`](research/) | Research notes and deep dives (e.g. how PDF works). Exploratory, cited, may be opinionated. |
+| [`plans/`](plans/) | Roadmaps, project plans and feature design docs before/while they are built. |
+| [`decisions/`](decisions/) | Architecture Decision Records (ADRs) — one file per significant decision, numbered `NNNN-title.md`. |
+| [`guidelines/`](guidelines/) | How we work: contributing, coding conventions, documentation style. |
+| [`references/`](references/) | Pointers to external specs, standards, tools and corpora we rely on. |
+
+## Conventions
+
+- File names are `kebab-case.md`. Ordered series use a numeric prefix (`01-…`, `0001-…`).
+- Every folder has a `README.md` index; add your doc to it when you create one.
+- Cite sources with links. Prefer primary sources (ISO 32000, PDF Association, vendor docs) over blog posts.
+- Mark opinions and recommendations clearly so they aren't mistaken for spec facts.
