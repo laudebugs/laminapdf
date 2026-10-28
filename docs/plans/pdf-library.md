@@ -55,7 +55,7 @@ Ship an importable, permissively licensed library that **generates correct PDFs 
 4. **Images, vectors, colour, links, outlines, metadata** as listed in §2.
 5. **Determinism.** Same input → byte-identical output (fixed IDs/dates when supplied), so golden tests work.
 6. **Conformance profiles** (B8): `PdfUa1`, `PdfA2b`, `PdfA2u`, `PdfA3b` (associated files). Missing alt text, missing `Lang` or title, content that is neither tagged nor marked as an artifact, a link without a `Link` structure element and `/Contents`, an unembedded font or an unmapped glyph is an error at `finish()`.
-7. **Read/edit path.** `Document::open(source, limits)` with an optional password (standard security handler, read only: RC4 and AES-128 for R2–R4, AES-256 for R5/R6, [04 §7.2](../research/pdf/04-interactive-security.md#72-standard-security-handler-revisions)), typed read views (pages, outline, metadata), `transact`, undo, `save({ mode: "auto" | "incremental" | "full" })` with `SaveConstraint` honoured (ADRs 0005–0007).
+7. **Read/edit path.** `Document::open(source, OpenOptions)` (`Limits`, strict mode and an optional password; [ADR 0003](../decisions/0003-reader-tolerance-and-limits.md)) (standard security handler, read only: RC4 and AES-128 for R2–R4, AES-256 for R5/R6, [04 §7.2](../research/pdf/04-interactive-security.md#72-standard-security-handler-revisions)), typed read views (pages, outline, metadata), `transact`, undo, `save({ mode: "auto" | "incremental" | "full" })` with `SaveConstraint` honoured (ADRs 0005–0007).
 8. **Text extraction** (B9): per page, glyph runs with Unicode text (ToUnicode first, then encoding and glyph-name fallbacks, [03 §4–5](../research/pdf/03-text-and-fonts.md#4-encodings-965-in-pdf-20--966-in-iso-32000-1-975-annex-d)), font size, writing direction and a quad per glyph in page space; `ActualText` and MCIDs where present.
 9. **Errors and warnings.** One error type per crate and one `PdfError` class with matching string codes in TS ([guidelines §5](../guidelines/code-organization.md#5-error-handling-by-layer)). Tolerant reads report warnings.
 
@@ -122,7 +122,7 @@ const updated = again.save({ mode: "incremental" });
 Rust:
 
 ```rust
-use lamina::{Builder, BuildOptions, Document, Font, Info, Limits, PageSize, Profile, SaveOptions, Tag};
+use lamina::{Builder, BuildOptions, Document, Font, Info, OpenOptions, PageSize, Profile, SaveOptions, Tag};
 
 let inter = Font::from_bytes(inter_bytes)?;
 let mut b = Builder::new(BuildOptions {
@@ -140,7 +140,7 @@ let mut doc: Document = b.finish()?;
 let mut out = Vec::new();
 doc.save(&mut out, SaveOptions::default())?;              // any WriteSink
 
-let mut doc = Document::open(&out[..], &Limits::default())?;
+let mut doc = Document::open(out, OpenOptions::default())?;  // owns the bytes (ADR 0005)
 doc.transact(|tx| tx.set_info(Info { subject: Some("Paid".into()), ..Default::default() }))?;
 ```
 
@@ -173,7 +173,7 @@ Architecture Round B is delivered as a stack of PRs B1–B9. B9 was added after 
 
 ### B2. Document model
 
-**Deliverable:** `lamina-model` (typed `Page`, `Outline`, `Info`, `NameTree` views over lazy COS; `LaminaId`s); `Document::open` with `Limits` and an optional password; standard security handler decryption in `lamina-syntax` (read only: R2–R4 with RC4 and AES-128 crypt filters, R5/R6 AES-256, `/Identity` and per-stream crypt filters, `/EncryptMetadata`; [04 §7](../research/pdf/04-interactive-security.md#7-encryption-76)); the golden and corpus harness and the first `fuzz/` targets. Writing encrypted files is [full-editor E11](full-editor.md#e11-security-and-sanitisation).
+**Deliverable:** `lamina-model` (typed `Page`, `Outline`, `Info`, `NameTree` views over lazy COS; `LaminaId`s); `Document::open(source, OpenOptions)` with `Limits`, strict mode and an optional password; standard security handler decryption in `lamina-syntax` (read only: R2–R4 with RC4 and AES-128 crypt filters, R5/R6 AES-256, `/Identity` and per-stream crypt filters, `/EncryptMetadata`; [04 §7](../research/pdf/04-interactive-security.md#7-encryption-76)); the golden and corpus harness and the first `fuzz/` targets. Writing encrypted files is [full-editor E11](full-editor.md#e11-security-and-sanitisation).
 **Accepted when:** every file in `fixtures/corpus` opens or fails with a coded error; encrypted fixtures for every standard revision (R2, R3, R4 RC4, R4 AES-128, R5, R6; user and owner passwords; empty user password) open and match the unencrypted original's page count, outline and strings; a wrong password fails with a coded error; fuzz targets run 10 min in CI without a panic; page count and outline match pypdf's on the corpus.
 
 ### B3. Ops and save
@@ -238,17 +238,17 @@ Editing operations (merge, split, annotations, forms, signing…) are added to t
 ## 10. To-dos
 
 ### B1. Decisions and spike
-- [ ] Write ADR 0003: tolerance policy, warning codes, `Limits` defaults with numbers
-- [ ] Write ADR 0005: lazy COS overlay, typed views, `LaminaId` rules
-- [ ] Write ADR 0006: `Op` enum shape, transactions, undo scope, barrier ops
-- [ ] Write ADR 0007: `SavePlanner`, `SaveConstraint`, save ordering
-- [ ] Write ADR 0018: goldens, corpus, differential and fuzz tiers
+- [x] Write ADR 0003: tolerance policy, warning codes, `Limits` defaults with numbers
+- [x] Write ADR 0005: lazy COS overlay, typed views, `LaminaId` rules
+- [x] Write ADR 0006: `Op` enum shape, transactions, undo scope, barrier ops
+- [x] Write ADR 0007: `SavePlanner`, `SaveConstraint`, save ordering
+- [x] Write ADR 0018: goldens, corpus, differential and fuzz tiers
 - [ ] Run the `krilla-fit` spike: generate a 3-page document into a `lamina-cos` graph and measure size and time
 - [ ] Record the generation-strategy decision in the spike README and link it from ADR 0005
 
 ### B2. Document model
 - [ ] Create `crates/lamina-model` with `Page`, `Outline`, `Info`, `NameTree` views
-- [ ] Implement `Document::open(source, &Limits)` over `ByteSource`, with an optional password
+- [ ] Implement `Document::open(source, OpenOptions)` over an owned `ByteSource` ([ADR 0005](../decisions/0005-document-model.md)), with `OpenOptions` holding `Limits`, strict mode and an optional password ([ADR 0003](../decisions/0003-reader-tolerance-and-limits.md))
 - [ ] Standard security handler decryption in `lamina-syntax`: R2–R4 (RC4, AES-128), R5/R6 (AES-256), crypt filters, `/EncryptMetadata`
 - [ ] Encrypted fixtures for every revision (user, owner and empty passwords); wrong-password error code
 - [ ] Assign `LaminaId`s to pages and outline items; test stability across reopen
