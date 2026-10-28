@@ -64,7 +64,7 @@ A native **PDF reader for macOS, Windows and Linux** built with Tauri 2. It reus
 | First page of a 1 GB PDF | ≤ 1.5 s after open |
 | Idle memory with one 10-page document | ≤ 150 MB |
 | Installer size | ≤ 40 MB per platform (PDFium native included) |
-| Supported OS | macOS 13+, Windows 10 22H2+ and 11, Ubuntu 22.04+/Fedora 40+ (x64 and arm64 where Tauri supports it) |
+| Supported OS | macOS 13+, Windows 11 (versions in Microsoft servicing), Ubuntu 22.04+ and supported Fedora releases (x64 and arm64 where Tauri supports it). Windows 10 22H2 is best-effort only: not tested in CI, no fixes for Windows 10-only bugs (end of support 14 October 2025, [Microsoft lifecycle](https://learn.microsoft.com/en-us/lifecycle/products/windows-10-home-and-pro)) |
 | Update rollout | Configurable 1% → 10% → 50% → 100%, kill switch effective within 60 s |
 
 ### Security
@@ -81,7 +81,7 @@ Architecture details are in [architecture.md](architecture.md) and the report; t
 - **Layout**: `apps/desktop` is a pnpm package (frontend: `@lamina/ui` + desktop `Platform` adapter) with `src-tauri/` as a Cargo workspace member ([code organisation §1](../guidelines/code-organization.md#1-top-level-layout)).
 - **Process model** (ADR 0008): Tauri main process (windows, menus, updater, file I/O only: mmap and file watching) → one sandboxed engine process per window or per N documents that does all parsing and rendering of untrusted files with the core crates + `lamina-render` (native PDFium via `pdfium-render`). Tiles of 256–512 px.
 - **Platform adapter**: `canWriteInPlace: true`, `canWatchFiles: true`, `hasNativePrint: true`, `multiWindow: true`.
-- **Distribution** (ADR 0014): GitHub Actions + tauri-action matrix → R2 `releases/{version}/{target}-{arch}/` with `.sig` files → channel manifests in R2/KV → `apps/updates` Worker at `updates.<domain>/{channel}/{target}/{arch}/{current_version}` returning 204 or 200 JSON; downloads from `downloads.<domain>` (R2 custom domain). Rollout percentage from a hash of an anonymous install ID.
+- **Distribution** (ADR 0014): GitHub Actions + tauri-action matrix → R2 `releases/{version}/{target}-{arch}/` with `.sig` files → channel manifests in R2/KV → `apps/updates` Worker at `updates.<domain>/{channel}/{target}/{arch}/{current_version}` returning 204 or 200 JSON; downloads from `downloads.<domain>` (R2 custom domain). Rollout percentage from a hash of an anonymous install ID. The updater URL only substitutes `{{target}}`, `{{arch}}` and `{{current_version}}`, so the app sends the ID in a custom request header (`Lamina-Install-Id`) set with the updater plugin's `UpdaterBuilder::header` in Rust or `check({ headers })` in JS ([Tauri updater plugin](https://v2.tauri.app/plugin/updater/)). The ID is a random UUID created on first run, stored only in the app's config, resettable in settings and never linked to crash reports; the Worker hashes it with the release version to pick a bucket and does not log it. A request without the header is served only releases at 100% rollout. ADR 0014 and the privacy page describe this.
 - **Crash reports** (recommendation): an opt-in endpoint on the same Worker storing scrubbed minidumps/panic reports in R2 with 30-day retention, rather than a third-party SaaS. Alternative: self-hosted or SaaS Sentry. Decided in D7.
 
 ## 6. Rounds
@@ -96,7 +96,7 @@ Architecture Round D is delivered as PRs D1–D7. D1 can start as soon as C3 mer
 ### D2. Shell and native core
 
 **Deliverable:** ADR 0008; `apps/desktop` with Tauri 2, desktop `Platform` adapter, engine child process, tile transport, single window opening one file.
-**Accepted when:** the C-round Playwright reader suite runs against the desktop build (WebDriver) on all three OSes; killing the engine process restarts it and the document reloads; a 1 GB fixture opens within target.
+**Accepted when:** the reader end-to-end scenarios run against the desktop build with WebdriverIO and `@wdio/tauri-service` on Windows and Linux (`tauri-driver`) and on macOS (the service's embedded WebDriver server via `tauri-plugin-wdio-webdriver`, compiled into test builds only behind a Cargo feature) ([Tauri WebDriver docs](https://v2.tauri.app/develop/tests/webdriver/)); the C-round Playwright suite keeps running against the web build on all three OSes (Playwright drives browsers, not Tauri webviews); killing the engine process restarts it and the document reloads; a 1 GB fixture opens within target. If the macOS embedded driver proves unreliable, macOS falls back to the web-build Playwright run plus a recorded manual smoke checklist, and ADR 0008 records the gap.
 
 ### D3. Files
 
@@ -111,7 +111,7 @@ Architecture Round D is delivered as PRs D1–D7. D1 can start as soon as C3 mer
 ### D5. Update service
 
 **Deliverable:** ADR 0014; `apps/updates` Worker (channels, staged rollout, kill switch, 60 s cache) with tests; R2 layout and channel manifests; updater plugin wired in the app with settings.
-**Accepted when:** Worker unit tests cover 204/200, rollout bucketing and kill switch; an app on `0.0.1-test` updates to `0.0.2-test` on each OS from a staging channel; a tampered bundle is rejected.
+**Accepted when:** Worker unit tests cover 204/200, rollout bucketing from the `Lamina-Install-Id` header (present, absent, malformed) and kill switch; a test asserts the install ID never reaches logs; an app on `0.0.1-test` updates to `0.0.2-test` on each OS from a staging channel; a tampered bundle is rejected.
 
 ### D6. Signing, packaging and release pipeline
 
@@ -157,7 +157,8 @@ Architecture Round D is delivered as PRs D1–D7. D1 can start as soon as C3 mer
 - [ ] Implement the desktop `Platform` adapter and capability flags
 - [ ] Implement the engine child process with restart on crash
 - [ ] Implement the chosen tile transport and mmap-backed `ByteSource`
-- [ ] Run the reader Playwright suite against the desktop build on three OSes in CI
+- [ ] Port the reader end-to-end scenarios to WebdriverIO (`@wdio/tauri-service`): `tauri-driver` on Windows and Linux, embedded WebDriver plugin (test builds only) on macOS; run in CI on three OSes
+- [ ] Record the per-OS test strategy and any macOS gap in ADR 0008
 
 ### D3. Files
 - [ ] Register `.pdf` file associations in the bundle config for all three OSes
@@ -175,9 +176,9 @@ Architecture Round D is delivered as PRs D1–D7. D1 can start as soon as C3 mer
 ### D5. Update service
 - [ ] Write ADR 0014 (channels, rollout, signing identities, key custody and rotation)
 - [ ] Create `apps/updates` Worker: `/{channel}/{target}/{arch}/{current_version}` → 204 or 200 JSON
-- [ ] Implement rollout bucketing by install-ID hash, kill switch, 60 s cache
+- [ ] Implement rollout bucketing by install-ID hash (from the `Lamina-Install-Id` request header), kill switch, 60 s cache
 - [ ] Define the R2 layout and channel manifest schema; tests for every branch
-- [ ] Wire the Tauri updater plugin with settings (channel, disable, check now)
+- [ ] Wire the Tauri updater plugin with settings (channel, disable, check now, reset install ID); send the install ID header via `UpdaterBuilder::header`
 - [ ] End-to-end update test on a staging channel on three OSes; tampered bundle rejected
 
 ### D6. Signing, packaging and release pipeline

@@ -3,7 +3,7 @@
 - **Status:** Draft
 - **Date:** 2026-10-28
 - **Plans:** [architecture](architecture.md) · [PDF library](pdf-library.md) · [web reader](web-app.md) · [desktop reader](desktop-app.md) · [full editor](full-editor.md)
-- **Prior PRs:** #1 (PDF research and spike, merged), #2 ([guidelines](../guidelines/README.md)), #3 ([architecture](architecture.md) and its [research](../research/architecture/app-and-package-architecture.md)). This roadmap and the product plans come after #2 and #3, and some links here resolve only once those are merged.
+- **Prior PRs (all merged):** #1 (PDF research and spike), #2 ([guidelines](../guidelines/README.md)), #3 ([architecture](architecture.md) and its [research](../research/architecture/app-and-package-architecture.md)). This roadmap and the product plans build on all three.
 
 ## What we are building
 
@@ -18,18 +18,20 @@ All four share one Rust core, so every operation is built once ([architecture §
 
 ```
  #2 guidelines ─┐
- #3 architecture┴─► A foundations ─► B1 ─► B2 ─► B3 ─┬─► B4 ─► B5 ─► B6 ─► B7 (library 0.1 alpha) ─► B8 (0.2: UA/A)
-                                                     │                 │
-                                                     └─► C1 ─► C2 ─────┴─► C3 ─► C4 ─► C5 ─► C6 ─► C7 (web reader v0.1)
-                                                                              │     │
-                                                                              └► D1 └► D2 ─► D3 ─► D4 ─► D5 ─► D6 ─► D7 (desktop beta)
-                                                                                                                     │
-                       C7 + D7 ─► E1 ─► E2 ─► E3 ─► E4 ─► E5 ─► E6 ─► E7 ─► E8 ─► E9 ─► E10 ─► E11 … E18 (editor phases 2–6)
+ #3 architecture┴─► A foundations ─► B1 ─► B2 ─► B3 ─► B4 ─► B5 ─► B6 ─┬─► B7 (library 0.1 alpha) ─► B8 (0.2: UA/A)
+                                                                       │
+                                                                       ├─► B9 (text extraction) ──┐
+                                                                       │                          ▼
+                                                                       └─► C1 ─► C2 ─► C3 ─► C4 ─► C5 ─► C6 ─► C7 (web reader v0.1)
+                                                                                        │     │
+                                                                                        └► D1 └► D2 ─► D3 ─► D4 ─► D5 ─► D6 ─► D7 (desktop beta)
+
+ C7 + D7 ─► E1 ─► E2 ─► E3 ─► E4 ─► E5 ─► E6 ─► E7 ─► E8 ─► E9 ─► E10 ─► E11 … E18 (editor phases 2–6)
 ```
 
 - **A before everything.** Workspace, CI fast lane and `lamina-syntax`/`lamina-cos` ([architecture §5](architecture.md#5-rounds-one-pull-request-each)).
-- **Library first** (recommended in [architecture §8](architecture.md#8-open-questions-for-the-team), question 1): B1–B3 produce the model, ops and save path everyone needs.
-- **Web reader in parallel** after B3: C1–C2 need only the model and the renderer; C3 needs `lamina-wasm` from B6.
+- **Library first** (recommended in [architecture §8](architecture.md#8-open-questions-for-the-team), question 1): B1–B3 produce the model (with decryption, so readers can open password-protected files), ops and save path everyone needs.
+- **Web reader after B6:** C1's PDFium spike loads `lamina-wasm` next to PDFium-WASM, so it starts once B6 has merged (its `hayro-parity` half can start earlier). C5's text layer needs B9 (text extraction), which runs alongside C1–C4. B7, B8 and B9 run in parallel with the reader rounds.
 - **Desktop after the web packages:** D1 can start after C3; D2 needs `@lamina/ui` from C4.
 - **Editor after both readers** ship v0.1, so phase 1 (core viewer) is done once and E-rounds add features to both shells and the packages at the same time.
 - **B8 and later E-rounds** can overlap with reader work as people allow; they don't block each other except where listed.
@@ -39,15 +41,15 @@ All four share one Rust core, so every operation is built once ([architecture §
 | Milestone | Rounds | What ships |
 | --- | --- | --- |
 | M0 Foundations | A | Monorepo, CI fast lane, `lamina-syntax` + `lamina-cos`, ADRs 0001/0002/0015/0019 |
-| M1 Library alpha | B1–B7 | `lamina` and `@lamina/pdf` `0.1.0-alpha`: generate PDFs with fonts, shaping, images, vectors, links, outlines, metadata; open/edit/save basics; docs site |
-| M2 Web reader v0.1 | C1–C7 | Hosted reader on Cloudflare: render, search, select, navigate, print, offline, accessible, no upload |
+| M1 Library alpha | B1–B7 | `lamina` and `@lamina/pdf` `0.1.0-alpha`: generate PDFs with fonts, shaping, images, vectors, links, outlines, metadata; open (including encrypted files)/edit/save basics; docs site |
+| M2 Web reader v0.1 | B9, C1–C7 | Text extraction in the library; hosted reader on Cloudflare: render, search, select, navigate, print, offline, accessible, no upload |
 | M3 Desktop reader beta | D1–D7 | Signed installers for three OSes, file associations, tabs, auto-update channels |
 | M4 Library 0.2 | B8 | Tagged PDF, PDF/UA-1, PDF/A-2/3 profiles, veraPDF-clean |
 | M5 Organiser | E1–E3 | Save/undo, page organisation, bookmarks, attachments, metadata, extraction |
 | M6 Annotator | E4–E5 | Markup, drawing, review threads, stamps, XFDF |
 | M7 Content editor | E6–E7 | Add and edit text, images and vectors |
 | M8 Forms and signing | E8–E10 | Fill and author forms, PAdES signing and validation |
-| M9 Advanced | E11–E17 | Encryption, redaction, OCR/conversion, compare, accessibility, print production, advanced interactions |
+| M9 Advanced | E11–E17 | Encryption on write, sanitisation, redaction, OCR/conversion, compare, accessibility, print production, advanced interactions |
 | M10 Collaboration (optional) | E18 | Shared review on Durable Objects |
 
 ## All rounds and PRs
@@ -61,13 +63,14 @@ One row per round. Reader and library rounds are one PR each; editor rounds are 
 | This PR | roadmap + product plans | Plans with to-dos | — |
 | A | [architecture §5](architecture.md#5-rounds-one-pull-request-each) | Monorepo foundations | 0001, 0002, 0015, 0019 |
 | B1 | [library](pdf-library.md#b1-decisions-and-spike) | Decisions and spike | 0003, 0005, 0006, 0007, 0018; `krilla-fit` |
-| B2 | [library](pdf-library.md#b2-document-model) | Document model, corpus harness, fuzzing | — |
+| B2 | [library](pdf-library.md#b2-document-model) | Document model, decryption (read), corpus harness, fuzzing | — |
 | B3 | [library](pdf-library.md#b3-ops-and-save) | Ops, undo, save planner | — |
 | B4 | [library](pdf-library.md#b4-fonts-and-text) | Fonts, shaping, subsetting | — |
 | B5 | [library](pdf-library.md#b5-builder-and-the-lamina-crate) | Builder and `lamina` crate | — |
 | B6 | [library](pdf-library.md#b6-wasm-and-laminapdf) | `lamina-wasm`, `@lamina/pdf`, runtime matrix | 0016 |
 | B7 | [library](pdf-library.md#b7-docs-examples-and-first-release) | Docs site, examples, `0.1.0-alpha` | 0017 |
 | B8 | [library](pdf-library.md#b8-tagged-pdf-pdfua-and-pdfa) | Tagged PDF, PDF/UA, PDF/A, `0.2.0-alpha` | — |
+| B9 | [library](pdf-library.md#b9-text-extraction) | `lamina-content` read-only interpreter, text extraction (after B6, before C5) | 0023 (proposed) |
 | C1 | [web](web-app.md#c1-rendering-spikes) | Rendering spikes | `pdfium-wasm`, `hayro-parity` |
 | C2 | [web](web-app.md#c2-render-backend-and-adrs) | `lamina-render`, render packages | 0004, 0009, 0010, 0011 |
 | C3 | [web](web-app.md#c3-viewer-core) | `@lamina/viewer` | — |
@@ -82,17 +85,17 @@ One row per round. Reader and library rounds are one PR each; editor rounds are 
 | D5 | [desktop](desktop-app.md#d5-update-service) | `apps/updates` Worker + R2 | 0014 |
 | D6 | [desktop](desktop-app.md#d6-signing-packaging-and-release-pipeline) | Signing and packaging | — |
 | D7 | [desktop](desktop-app.md#d7-crash-reporting-and-beta) | Crash reporting, beta | — |
-| E1 | [editor](full-editor.md#e1-editing-foundation) | Save, undo, metadata edits | — |
-| E2 | [editor](full-editor.md#e2-page-organisation) | Page organisation | — |
+| E1 | [editor](full-editor.md#e1-editing-foundation) | Save, undo, metadata edits (Info + XMP in sync) | — |
+| E2 | [editor](full-editor.md#e2-page-organisation) | Page organisation, content append API | — |
 | E3 | [editor](full-editor.md#e3-navigation-attachments-inspection-and-extraction) | Navigation, attachments, extraction | — |
 | E4 | [editor](full-editor.md#e4-markup-and-drawing-annotations) | Markup and drawing annotations | — |
 | E5 | [editor](full-editor.md#e5-review-stamps-and-interchange) | Review, stamps, XFDF | — |
-| E6 | [editor](full-editor.md#e6-adding-content-to-pages) | Add content | 0022 (proposed) |
-| E7 | [editor](full-editor.md#e7-editing-existing-content) | Edit existing content | — |
+| E6 | [editor](full-editor.md#e6-adding-content-to-pages) | Add content | — |
+| E7 | [editor](full-editor.md#e7-editing-existing-content) | Edit existing content | 0022 (proposed) |
 | E8 | [editor](full-editor.md#e8-form-filling-and-data) | Form filling | 0021 (proposed) |
 | E9 | [editor](full-editor.md#e9-form-authoring) | Form authoring | — |
 | E10 | [editor](full-editor.md#e10-signatures) | Signatures | 0020 (proposed) |
-| E11 | [editor](full-editor.md#e11-security-and-sanitisation) | Encryption, sanitisation | — |
+| E11 | [editor](full-editor.md#e11-security-and-sanitisation) | Encryption on write, sanitisation | — |
 | E12 | [editor](full-editor.md#e12-redaction) | Redaction | — |
 | E13 | [editor](full-editor.md#e13-ocr-and-conversion) | OCR and conversion | 0013 |
 | E14 | [editor](full-editor.md#e14-compare-revisions-and-batch) | Compare, revisions, batch | — |
@@ -112,4 +115,4 @@ One row per round. Reader and library rounds are one PR each; editor rounds are 
 
 - Packages ship before the reader ([architecture §8](architecture.md#8-open-questions-for-the-team), question 1).
 - Readers ship before editing, so phase 1 of [06 §9](../research/pdf/06-feature-inventory.md#9-suggested-phasing) is built once for both shells.
-- Architecture rounds B, C and D are each delivered as a stack of smaller PRs (B1–B8, C1–C7, D1–D7) to stay reviewable ([git workflow §5](../guidelines/git-workflow.md#5-pull-requests)).
+- Architecture rounds B, C and D are each delivered as a stack of smaller PRs (B1–B9, C1–C7, D1–D7) to stay reviewable ([git workflow §5](../guidelines/git-workflow.md#5-pull-requests)).

@@ -3,8 +3,8 @@
 - **Status:** Draft
 - **Date:** 2026-10-28
 - **Builds on:** [architecture plan](architecture.md) Round C (ADRs 0004, 0009, 0010, 0011; spikes `pdfium-wasm`, `hayro-parity`) and the [architecture research report](../research/architecture/app-and-package-architecture.md) (web client and Cloudflare sections)
-- **Depends on:** [pdf-library.md](pdf-library.md) Rounds B2–B3 (`Document::open`, typed model) and Round B6 (`lamina-wasm`)
-- **Research:** [06 §9 phase 1](../research/pdf/06-feature-inventory.md#9-suggested-phasing), [04 §1 navigation](../research/pdf/04-interactive-security.md), [03 §8 extraction](../research/pdf/03-text-and-fonts.md)
+- **Depends on:** [pdf-library.md](pdf-library.md) Rounds B2–B3 (`Document::open` with decryption, typed model), B6 (`lamina-wasm`; gates C1) and B9 (text extraction; gates C5)
+- **Research:** [06 §9 phase 1](../research/pdf/06-feature-inventory.md#9-suggested-phasing), [04 §1 navigation](../research/pdf/04-interactive-security.md#1-navigation), [04 §7 encryption](../research/pdf/04-interactive-security.md#7-encryption-76), [03 §8 extraction](../research/pdf/03-text-and-fonts.md)
 - **Roadmap:** [roadmap.md](roadmap.md)
 
 ## 1. Goal
@@ -15,7 +15,7 @@ A fast, accessible, privacy-first **PDF reader in the browser**, served from Clo
 
 **In scope (Rounds C1–C7)**
 
-- Open: file picker, drag and drop, paste, `?url=` remote files, OS "Open with" (PWA file handling where supported), password-protected files (decrypt on device).
+- Open: file picker, drag and drop, paste, `#url=` remote files (a fragment, so the document URL is never sent to our server), OS "Open with" (PWA file handling where supported), password-protected files (decrypted on device: PDFium for pixels, lamina's standard security handler from [library B2](pdf-library.md#b2-document-model) for text, outline and properties).
 - Render: PDFium-WASM in a Web Worker; virtualised continuous scroll; low-res pass then sharp tiles; zoom (fit width, fit page, actual size, pinch, ctrl+wheel) with anchor preserved; rotation of the view.
 - Navigate: thumbnails sidebar, outline/bookmarks, internal and external links (external links confirm before leaving), page labels, go-to-page, back/forward history.
 - Text: selection and copy via a DOM text layer, find in document with highlighting and match count.
@@ -37,7 +37,7 @@ A fast, accessible, privacy-first **PDF reader in the browser**, served from Clo
 | --- | --- |
 | Anyone with a PDF | Read a file without installing anything and without uploading it |
 | Privacy-conscious users, legal/medical/finance | Open sensitive documents with a guarantee that bytes stay on the device |
-| Developers and sites | Link to `https://<domain>/?url=…` to show a PDF; later embed `@lamina/viewer` |
+| Developers and sites | Link to `https://<domain>/#url=…` to show a PDF; later embed `@lamina/viewer` |
 | Users of assistive technology | Read tagged PDFs with a screen reader; navigate by keyboard |
 | Users with huge files | Scroll a 1,000-page manual or a 500 MB scan without the tab crashing |
 
@@ -45,10 +45,10 @@ A fast, accessible, privacy-first **PDF reader in the browser**, served from Clo
 
 ### Functional
 
-1. **Open** local files (input, drag-drop, `showOpenFilePicker` where available) and remote files by URL with HTTP range requests through a `ByteSource`. A remote file without CORS shows an explanation instead of silently proxying.
+1. **Open** local files (input, drag-drop, `showOpenFilePicker` where available) and remote files by URL with HTTP range requests through a `ByteSource`. The remote URL comes from the `#url=` fragment, which browsers never send in requests, so neither the Worker nor its logs see which document was opened; the file is fetched directly from its host. A remote file without CORS shows an explanation instead of silently proxying. Encrypted files prompt for a password, which stays in the worker's memory.
 2. **Render** every page through `RenderBackend` (PDFium default; hayro selectable in a debug menu for diffing). Annotation appearances render; widgets render read-only.
 3. **Virtualise** pages with a prefix-sum layout; only visible pages ± a margin have canvases; canvases are pooled.
-4. **Text layer** from lamina's model (not the renderer) for selection, copy, find and screen readers; struct-tree linked via `aria-owns` when the file is tagged.
+4. **Text layer** from lamina's text extraction ([library B9](pdf-library.md#b9-text-extraction), not the renderer) for selection, copy, find and screen readers; struct-tree linked via `aria-owns` when the file is tagged.
 5. **Search** incrementally with results streaming in, case and whole-word options, and next/previous with keyboard.
 6. **Navigate** via thumbnails, outline, links, page labels and history.
 7. **Print** via a print-optimised render path (rasterise pages at print DPI into a hidden iframe; native PDF printing where the browser supports it); **download** returns the original bytes.
@@ -72,7 +72,7 @@ A fast, accessible, privacy-first **PDF reader in the browser**, served from Clo
 
 ### Privacy and security
 
-- **No upload by default.** The default build has no `/api` routes ([report, Cloudflare section](../research/architecture/app-and-package-architecture.md)). Any later server feature is opt-in per document and says what leaves the device (ADR 0011).
+- **No upload by default.** The default build has no `/api` routes, and remote-document URLs travel in the fragment (`#url=`), never in a request ([report, Cloudflare section](../research/architecture/app-and-package-architecture.md)). Any later server feature is opt-in per document and says what leaves the device (ADR 0011).
 - **No cookies, no third-party scripts, no fingerprinting.** Telemetry recommendation: none in v0.1. If added later, only cookieless aggregate page views (for example Cloudflare Web Analytics) and opt-in error reports that never include document content, names or URLs. The decision goes in ADR 0011.
 - **Strict CSP** (`script-src 'self' 'wasm-unsafe-eval'`, no inline scripts), `Referrer-Policy: no-referrer`, `Permissions-Policy` minimal; COOP/COEP set via `_headers` for the threaded WASM variant only (ADR 0009 decides).
 - Parsing and rendering happen in a worker with `Limits`; hostile files can crash the worker but not the page, and the worker restarts.
@@ -89,7 +89,7 @@ Architecture details live in [architecture.md](architecture.md) and the research
 
 ## 6. Rounds
 
-Architecture Round C is delivered as PRs C1–C7. C1–C2 can start once B3 has merged; C3 needs B6.
+Architecture Round C is delivered as PRs C1–C7. C1 needs B6, because its PDFium spike loads `lamina-wasm` and measures reload after an incremental save; the `hayro-parity` half has no lamina dependency and can start earlier. C2–C4 follow C1; C5 also needs B9 (text extraction).
 
 ### C1. Rendering spikes
 
@@ -109,12 +109,12 @@ Architecture Round C is delivered as PRs C1–C7. C1–C2 can start once B3 has 
 ### C4. App shell on Cloudflare
 
 **Deliverable:** `@lamina/ui` chrome (toolbar, page indicator, zoom, open dialogs, error and password prompts), `apps/web` Worker with static assets, `_headers`, CSP, per-PR preview deploys, production deploy from `main`.
-**Accepted when:** each PR gets a preview URL comment; local open, drag-drop and `?url=` (CORS-enabled) work; securityheaders-style checks pass; no network request carries document bytes (Playwright asserts).
+**Accepted when:** each PR gets a preview URL comment; local open, drag-drop and `#url=` (CORS-enabled) work; encrypted fixtures open after the password prompt; securityheaders-style checks pass; Playwright asserts that no request body carries document bytes and that no request to our origin (URL, request line or headers, including `Referer`) contains the remote document URL.
 
 ### C5. Text, selection and search
 
-**Deliverable:** text layer from `lamina-text` extraction, selection and copy, find bar with streaming results and highlights.
-**Accepted when:** copy from fixtures in five scripts equals expected text; search results match pdf.js counts on the corpus; selection works with screen readers on tagged fixtures.
+**Deliverable:** text layer from the extraction API of [library B9](pdf-library.md#b9-text-extraction) (`lamina-content` interpreter + `lamina-text`), selection and copy, find bar with streaming results and highlights.
+**Accepted when:** copy from fixtures in five scripts equals expected text, including encrypted fixtures; search results match pdf.js counts on the corpus; selection works with screen readers on tagged fixtures.
 
 ### C6. Navigation, print and properties
 
@@ -173,13 +173,13 @@ Architecture Round C is delivered as PRs C1–C7. C1–C2 can start once B3 has 
 ### C4. App shell on Cloudflare
 - [ ] Create `packages/ui` (React 19, React Compiler) with the `Platform` interface and web implementation
 - [ ] Create `apps/web` (Vite 8) with `wrangler.jsonc`, SPA fallback, `_headers`, CSP
-- [ ] Implement open via input, drag-drop, paste, `showOpenFilePicker` and `?url=` with range requests
-- [ ] Add password prompt and error/repair notices
+- [ ] Implement open via input, drag-drop, paste, `showOpenFilePicker` and `#url=` (fragment) with range requests
+- [ ] Add password prompt (passes the password to PDFium and `Document::open`) and error/repair notices
 - [ ] Add CI deploy: preview URL per PR (comment on the PR), production on `main`
-- [ ] Playwright test asserting no request body contains document bytes
+- [ ] Playwright test asserting no request body contains document bytes and no request to our origin contains the remote document URL
 
 ### C5. Text, selection and search
-- [ ] Expose glyph runs and boxes from `lamina-text` through the worker RPC
+- [ ] Expose glyph runs and quads from the B9 extraction API through the worker RPC
 - [ ] Build the DOM text layer aligned to rendered glyphs at every zoom
 - [ ] Link the struct tree via `aria-owns` for tagged files
 - [ ] Implement the find controller with streaming results, highlights and options

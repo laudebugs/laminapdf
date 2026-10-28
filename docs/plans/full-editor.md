@@ -3,7 +3,7 @@
 - **Status:** Draft
 - **Date:** 2026-10-28
 - **Builds on:** [architecture plan](architecture.md) ("Later rounds", ADRs 0012 and 0013, principles 2–3 on ops and the save planner) and the [architecture research report](../research/architecture/app-and-package-architecture.md) (editing and Cloudflare sections)
-- **Depends on:** the readers ([web-app.md](web-app.md) C1–C7, [desktop-app.md](desktop-app.md) D1–D7) and the library's model, ops and save crates ([pdf-library.md](pdf-library.md) B2–B5)
+- **Depends on:** the readers ([web-app.md](web-app.md) C1–C7, [desktop-app.md](desktop-app.md) D1–D7) and the library's model, decryption, ops, save and extraction crates ([pdf-library.md](pdf-library.md) B2–B5 and B9)
 - **Research:** [06 Feature inventory](../research/pdf/06-feature-inventory.md) (§2 groups, §3 operations, §7 difficulty, §9 phasing, §10 traps), [04 Interactive and security](../research/pdf/04-interactive-security.md), [03 Text and fonts](../research/pdf/03-text-and-fonts.md), [05 §3 processing](../research/pdf/05-creating-pdfs-from-code.md#3-processing-operations-under-the-hood)
 - **Roadmap:** [roadmap.md](roadmap.md)
 
@@ -64,8 +64,11 @@ The capability matrix is the editor's roadmap and progress report ([06 §10](../
 The editing architecture (lazy COS overlay, typed model, op log, save planner, overlays for annotations and fields, reload of touched pages after content edits) is in [architecture.md](architecture.md) and the [report](../research/architecture/app-and-package-architecture.md). This plan adds three things:
 
 - **Interaction modes** (select, hand, text-select, annotate tools, form-fill, form-design, content-edit, redact, measure) as one state machine in `@lamina/ui`, with each tool a small module over `@lamina/viewer` layers.
-- **A content-stream layer** for phases 4 and 6. Proposed as a new crate `lamina-content` (content-stream parser, IR, encoder, shared by render, extract, edit and redact), as in [05 §8.5](../research/pdf/05-creating-pdfs-from-code.md#85-proposed-architecture-for-discussion). It is not in the architecture crate list yet, so E6 starts with an ADR.
-- **New ADRs** (numbers proposed; next free after 0019): 0020 signatures and crypto backends, 0021 PDF JavaScript policy, 0022 content-stream editing model. ADR 0012 (collaboration) and 0013 (heavy jobs) come from the architecture plan.
+- **A content-stream layer** in the crate `lamina-content` ([05 §8.5](../research/pdf/05-creating-pdfs-from-code.md#85-proposed-architecture-for-discussion)), grown in three steps:
+  1. **Read** ([library B9](pdf-library.md#b9-text-extraction), ADR 0023): a read-only interpreter used for text extraction, created before the readers' text layer.
+  2. **Append** (E2): a minimal write API that never parses existing operators. It wraps a page's existing content in `q … Q` by adding new streams to the page's `/Contents` array, appends new streams (for example `q <cm> /Fm1 Do Q`), and registers Form XObjects under unused resource names. A token scan (B9's lexer) checks that existing streams balance `q`/`Q` and adds closing `Q`s when they don't. Resize (E2), flattening (E5) and adding content (E6) use it.
+  3. **Edit** (E7, ADR 0022): IR with object identity and an encoder, for editing and removing existing content (E7, E12).
+- **New ADRs** (numbers proposed; next free after 0019): 0020 signatures and crypto backends, 0021 PDF JavaScript policy, 0022 content-stream editing model (editing existing content). The library plan proposes 0023 (content-stream reading). ADR 0012 (collaboration) and 0013 (heavy jobs) come from the architecture plan.
 
 ### Optional Cloudflare server features
 
@@ -88,22 +91,22 @@ Editor rounds are larger than reader rounds. Each starts with a short **feature-
 
 #### E1. Editing foundation
 
-- **Ships:** edit session, dirty state, undo/redo UI and history panel, Save / Save as / Download copy, `SaveConstraint` banner, capability matrix page in the app. First user-visible write ops from group J: title, author, subject, keywords (J.01), creation/modification dates (J.02), producer and creator (J.03), remove selected metadata (J.10).
-- **Crates:** `lamina-ops`, `lamina-save`, `lamina-model`.
+- **Ships:** edit session, dirty state, undo/redo UI and history panel, Save / Save as / Download copy, `SaveConstraint` banner, capability matrix page in the app. First user-visible write ops from group J: title, author, subject, keywords (J.01), creation/modification dates (J.02), producer and creator (J.03), remove selected metadata (J.10). Every metadata op writes the Info dictionary and the XMP packet together ([04 §5](../research/pdf/04-interactive-security.md#5-metadata): `dc:`, `pdf:` and `xmp:` properties, plus `xmp:MetadataDate` and `xmpMM:InstanceID` on save); a file without XMP gets a new packet. Files that claim PDF/A (`pdfaid:` schema) keep their identification schema and the edit is checked against the claim, with a warning before saving if it would break it (§5 requirement 4). For PDF 2.0 files XMP is authoritative and Info keeps only what 2.0 still allows. The general XMP editor (custom and extension schemas, J.04) stays in E3.
+- **Crates:** `lamina-ops`, `lamina-save`, `lamina-model` (XMP packet parse and update for the Info-mapped properties, sharing the writer from library B5).
 - **Save:** `Free` → incremental by default. Signed files are `AppendOnly`; metadata edits are allowed only as incremental updates.
 - **Web vs desktop:** desktop saves in place and watches for external changes; web saves in place only where the File System Access API exists, otherwise downloads a copy.
 
 #### E2. Page organisation
 
 - **Ships (group C):** insert blank pages, insert pages from other PDFs, delete and duplicate, reorder (drag in thumbnails), extract selected pages, merge documents, split by count/ranges/bookmarks, rotate, crop display area (with a warning that cropped content remains), resize page, margins and page boxes, portrait ↔ landscape, reverse order, page labels, replace pages. From H: export pages/ranges.
-- **Crates:** `lamina-ops` page ops (view-level mapping of `LaminaId`s, no re-parse); merge remaps outlines, named destinations, AcroForm fields and the structure tree ([05 §3.1](../research/pdf/05-creating-pdfs-from-code.md#31-merge-and-split)).
+- **Crates:** `lamina-content` append API (introduced here, see §6): resizing that scales content wraps the existing streams in `q <scale cm> … Q` without parsing them; `lamina-ops` page ops (view-level mapping of `LaminaId`s, no re-parse); merge remaps outlines, named destinations, AcroForm fields and the structure tree ([05 §3.1](../research/pdf/05-creating-pdfs-from-code.md#31-merge-and-split)).
 - **Save:** `Free` → incremental. On signed files, page insertion/deletion is blocked by DocMDP P1/P2 and allowed with warning only when it invalidates signatures.
 - **Web vs desktop:** identical; desktop allows multi-file merge from Finder/Explorer selection.
 
 #### E3. Navigation, attachments, inspection and extraction
 
-- **Ships:** group I: create/edit nested bookmarks, internal page links, external hyperlinks, named destinations, clickable table of contents (generated from bookmarks or headings), initial view and page display mode, article threads (read; edit later). Group J: XMP editing, attach/extract/delete embedded files, portfolios (read), inspect version and conformance claims, identify fonts and colour profiles, object inspector (internal objects, streams, references). Group A: add hyperlinks to text. Group B: extract original embedded images. Group H: images → PDF, pages → PNG/JPEG/TIFF, render pages to images, extract text and images, extract hyperlinks and bookmarks, extract attachments. Group M: associated files (`/AF`, PDF 2.0 / PDF/A-3).
-- **Crates:** `lamina-model` (outline, names, embedded files, XMP), `lamina-build` (images → PDF), `lamina-render` (export), `lamina-text` (extraction).
+- **Ships:** group I: create/edit nested bookmarks, internal page links, external hyperlinks, named destinations, clickable table of contents (generated from bookmarks or headings), initial view and page display mode, article threads (read; edit later). Group J: general XMP editing (J.04: raw packet and custom/extension schemas; the Info-mapped properties are already kept in sync since E1), attach/extract/delete embedded files, portfolios (read), inspect version and conformance claims, identify fonts and colour profiles, object inspector (internal objects, streams, references). Group A: add hyperlinks to text. Group B: extract original embedded images. Group H: images → PDF, pages → PNG/JPEG/TIFF, render pages to images, extract text and images, extract hyperlinks and bookmarks, extract attachments. Group M: associated files (`/AF`, PDF 2.0 / PDF/A-3).
+- **Crates:** `lamina-model` (outline, names, embedded files, XMP extension schemas), `lamina-build` (images → PDF), `lamina-render` (export), `lamina-text` (extraction from library B9).
 - **Save:** `Free`; adding attachments to signed files only as incremental updates where permitted.
 - **Web vs desktop:** object inspector ships on both; desktop exports many pages to a folder, web zips them.
 
@@ -119,7 +122,7 @@ Editor rounds are larger than reader rounds. Each starts with a short **feature-
 #### E5. Review, stamps and interchange
 
 - **Ships (group D):** custom stamps (image and dynamic text), attach files as annotations, replies, status and review state (`/IRT`, `/StateModel`), filter and search comments, import/export XFDF (and FDF), flatten annotations into content, delete or summarise annotations (comment summary as a new PDF). Audio annotations: `read` (listed, playable on desktop) only.
-- **Crates:** as E4, plus XFDF reader/writer; flattening needs E4 appearances.
+- **Crates:** as E4, plus XFDF reader/writer; flattening needs E4 appearances and uses the `lamina-content` append API from E2 (each appearance becomes a Form XObject drawn with an appended `q <cm> /FmN Do Q` stream; the annotation is then removed).
 - **Save:** flattening is a content change → incremental on `Free`; on signed files it invalidates signatures and is gated.
 - **Web vs desktop:** identical. Shared review across users is E18.
 
@@ -128,7 +131,7 @@ Editor rounds are larger than reader rounds. Each starts with a short **feature-
 #### E6. Adding content to pages
 
 - **Ships:** group A: add text anywhere, insert special characters and symbols. Group B: insert images, resize/rotate/crop/reposition **new** images and shapes, opacity, draw lines/rectangles/circles/polygons as page content, add logos/icons/stamps as content, background images and watermarks. Group C: headers/footers and page numbers (Bates numbering as an option).
-- **Crates:** ADR 0022 and `lamina-content` (append-only content wrapping: `q … Q` + Form XObjects), `lamina-build` surfaces reused on existing pages, `lamina-text` for new text.
+- **Crates:** `lamina-content` append API from E2 (new content as Form XObjects drawn by appended streams), `lamina-build` surfaces reused on existing pages, `lamina-text` for new text.
 - **Save:** incremental on `Free`; on signed files these are content changes and invalidate signatures (gated).
 - **Rendering:** touched pages reload in PDFium after an incremental update (the "two parsers" path in [architecture §6](architecture.md#6-risks)); measure and budget reload time.
 - **Web vs desktop:** desktop can use system fonts (font discovery at the edge, passed into the core as bytes); web uses bundled or user-supplied fonts.
@@ -136,7 +139,7 @@ Editor rounds are larger than reader rounds. Each starts with a short **feature-
 #### E7. Editing existing content
 
 - **Ships:** group A: edit existing text, delete or replace text, change font family/size/colour/style, bold/italic/underline/super/subscript, alignment and line spacing, move/resize/rotate text blocks, search and replace across the document. Group B: delete/replace existing images, resize/rotate/crop/reposition existing objects, edit vector paths/fills/strokes, change stacking order, clipping paths and masks, transformations.
-- **Crates:** `lamina-content` IR with object identity; text-run detection via MCIDs where tagged, heuristics otherwise; re-layout with the original subset when it has the glyphs, a new subset otherwise ([03 §11.2 "Editing"](../research/pdf/03-text-and-fonts.md#112-concrete-requirements)). This is the hardest round ([06 §7](../research/pdf/06-feature-inventory.md#7-difficulty-map)); "edit in place" is best-effort and the UI says so.
+- **Crates:** ADR 0022 (content-stream editing model) and the `lamina-content` IR with object identity and encoder, built on B9's interpreter; text-run detection via MCIDs where tagged, heuristics otherwise; re-layout with the original subset when it has the glyphs, a new subset otherwise ([03 §11.2 "Editing"](../research/pdf/03-text-and-fonts.md#112-concrete-requirements)). This is the hardest round ([06 §7](../research/pdf/06-feature-inventory.md#7-difficulty-map)); "edit in place" is best-effort and the UI says so.
 - **Save:** incremental on `Free`; structure tree and MCIDs updated so tagging survives; PDF/A/UA claims re-checked on save.
 - **Web vs desktop:** identical; desktop font substitution can use system fonts.
 
@@ -167,8 +170,8 @@ Editor rounds are larger than reader rounds. Each starts with a short **feature-
 
 #### E11. Security and sanitisation
 
-- **Ships (group G):** document-open password, encrypt (AES-256 `/V 5 /R 6` for writing; read all standard revisions), permission passwords, restrict print/copy/edit, remove security with authorisation, remove hidden metadata and comments, sanitise embedded content, remove attachments and scripts, inspect encryption, certificate-based (public-key) security (read first, write later), remove hidden layers and information.
-- **Crates:** `lamina-syntax` crypt (decrypt), `lamina-save` encrypt on write; sanitiser as a set of ops with a report.
+- **Ships (group G):** document-open password, encrypt (AES-256 `/V 5 /R 6` for writing; reading every standard revision already works since [library B2](pdf-library.md#b2-document-model)), permission passwords, restrict print/copy/edit, remove security with authorisation, remove hidden metadata and comments, sanitise embedded content, remove attachments and scripts, inspect encryption, certificate-based (public-key) security (read first, write later), remove hidden layers and information.
+- **Crates:** `lamina-save` encrypt on write (over the B2 crypt filters in `lamina-syntax`); public-key handler read; sanitiser as a set of ops with a report.
 - **Save:** `RequiresRewrite`. On signed files, warn that signatures will be invalidated.
 - **Web vs desktop:** identical; keys never leave the device.
 
@@ -225,13 +228,13 @@ Editor rounds are larger than reader rounds. Each starts with a short **feature-
 
 | Group | Rounds |
 | --- | --- |
-| A Text and typography | C5 (extract, read), E3 (links), E6 (add), E7 (edit), E13 (OCR) |
+| A Text and typography | B9/C5 (extract, read), E3 (links), E6 (add), E7 (edit), E13 (OCR) |
 | B Images and vector graphics | E3 (extract), E4 (as annotations), E6 (add), E7 (edit existing) |
 | C Page organisation and geometry | E2, E6 (headers/footers), E16 (booklet/N-up) |
 | D Comments and annotations | C6 (display), E4, E5, E17 (audio) |
 | E Interactive forms | C6 (display), E8, E9 |
 | F Signatures and approval | E10 |
-| G Security and privacy | C4 (open encrypted), E11, E12 |
+| G Security and privacy | B2 (decrypt), C4 (open encrypted), E11, E12 |
 | H Conversion and extraction | C5–C6 (render, text), E2, E3, E13, E15, E16 |
 | I Navigation and structure | C6 (read), E2 (labels), E3, E15 (reading order) |
 | J Metadata and attachments | C6 (properties), E1, E3 |
@@ -274,14 +277,17 @@ Editor rounds are larger than reader rounds. Each starts with a short **feature-
 - [ ] Undo/redo commands, shortcuts and history panel
 - [ ] Save, Save as and Download copy through the `Platform` adapter
 - [ ] `SaveConstraint` banner and explanations
-- [ ] Metadata editing ops (J.01–J.03, J.10) with round-trip tests in core, `@lamina/pdf`, web, desktop
+- [ ] Metadata editing ops (J.01–J.03, J.10) writing Info and XMP in sync, with round-trip tests in core, `@lamina/pdf`, web, desktop
+- [ ] XMP packet parse/update for Info-mapped properties; create a packet when missing
+- [ ] PDF/A-aware metadata edits: keep `pdfaid:`, warn before a save that breaks the claim; tests that veraPDF still passes on edited PDF/A fixtures
 
 ### E2. Page organisation
 - [ ] Feature-plan PR for E2
 - [ ] Page ops (insert, delete, duplicate, reorder, rotate, reverse, replace) as view-level `LaminaId` mapping
 - [ ] Merge with outline, destination, AcroForm and struct-tree remapping
 - [ ] Split by count, ranges and bookmarks; extract and export pages
-- [ ] Crop, resize, page boxes, orientation; crop warning
+- [ ] `lamina-content` append API: wrap existing content in `q … Q`, append streams, register Form XObjects, balance `q`/`Q` by token scan
+- [ ] Crop, resize (content scaled via the append API), page boxes, orientation; crop warning
 - [ ] Page labels editor
 - [ ] Thumbnail drag-and-drop and multi-select UI
 - [ ] DocMDP gating tests on signed fixtures
@@ -290,7 +296,7 @@ Editor rounds are larger than reader rounds. Each starts with a short **feature-
 - [ ] Feature-plan PR for E3
 - [ ] Bookmark editor (nested, drag), links and named destinations, TOC generator
 - [ ] Initial view and page display settings
-- [ ] XMP editor; attachments panel (add, extract, delete); `/AF` support
+- [ ] General XMP editor (custom and extension schemas); attachments panel (add, extract, delete); `/AF` support
 - [ ] Object inspector (objects, streams, references, revisions)
 - [ ] Fonts and colour profiles report; version and conformance claims
 - [ ] Images → PDF; page export to PNG/JPEG/TIFF; text, image, link and attachment extraction
@@ -308,16 +314,16 @@ Editor rounds are larger than reader rounds. Each starts with a short **feature-
 - [ ] Comment panel with replies, status, filter and search
 - [ ] Custom stamps (image, dynamic text) and file-attachment annotations
 - [ ] XFDF and FDF import/export with tests against Acrobat-produced fixtures
-- [ ] Flatten annotations; comment summary export
+- [ ] Flatten annotations via the E2 append API; comment summary export
 
 ### E6. Adding content to pages
-- [ ] Write ADR 0022 (content-stream editing model) and create `crates/lamina-content`
 - [ ] Feature-plan PR for E6
 - [ ] Add text, images, shapes and stamps as page content via Form XObjects
 - [ ] Watermarks and backgrounds; headers, footers, page numbers, Bates numbering
 - [ ] Measure and budget touched-page reload time in web and desktop
 
 ### E7. Editing existing content
+- [ ] Write ADR 0022 (content-stream editing model for existing content)
 - [ ] Feature-plan PR for E7
 - [ ] Content IR with object identity; select and transform existing objects
 - [ ] Text-run detection (MCID first, heuristics second) and in-place text editing
@@ -355,7 +361,7 @@ Editor rounds are larger than reader rounds. Each starts with a short **feature-
 
 ### E11. Security and sanitisation
 - [ ] Feature-plan PR for E11
-- [ ] AES-256 encryption on write; passwords and permissions UI
+- [ ] AES-256 encryption on write (decryption exists since library B2); passwords and permissions UI
 - [ ] Remove security with authorisation
 - [ ] Sanitiser ops with a report (metadata, comments, attachments, scripts, hidden layers, embedded content)
 - [ ] Public-key security: read; write behind a flag
