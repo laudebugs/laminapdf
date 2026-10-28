@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [pdf-library §7 B4](../../plans/pdf-library.md#b4-fonts-and-text), requirement [§4 F3](../../plans/pdf-library.md#functional) |
 | Round / milestone | Round B (library) — M1 |
-| Depends on | [B4a](./B4a-font-loading-and-subsetting.md) |
+| Depends on | [B4a](./B4a-font-loading-and-subsetting.md), [X4](./X4-full-lane-gate.md) |
 | Blocks | [B5b](./B5b-builder-text-and-document-features.md), [E4e](./E4e-freetext-callouts.md), [E6c](./E6c-add-text.md), [E13c](./E13c-ocr-text-layer.md), [E16c](./E16c-images-and-fonts.md) |
 | ADRs | Follows [0005 §6](../../decisions/0005-document-model.md#6-generation-strategy--option-b-recommended-by-the-krilla-fit-spike-accepted-when-its-pr-merges) (HarfRust), [0001](../../decisions/0001-core-language-and-licence.md) (pure Rust, determinism), [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) (Unicode-3.0 data licences) |
 | Branch | `feat/b4b-shaping` |
@@ -62,6 +62,10 @@ Turn a Unicode string into positioned glyph runs that render correctly in every 
 - [ ] OpenType features: `liga=0` disables the `fi` ligature (golden)
 - [ ] Results are byte-deterministic across runs and targets (wasm32 vs native in CI)
 
+## Post-merge checks
+
+None.
+
 ## Tests
 
 - Unit tests per module; UAX conformance subsets under `fixtures/unicode/` (Unicode licence noted in `fixtures/README.md`).
@@ -81,8 +85,9 @@ Turn a Unicode string into positioned glyph runs that render correctly in every 
 
 ## Definition of done
 
-- [ ] PR opened from a fresh worktree; this file moved `ready/` → `ongoing/` in the PR's first commit (status field updated, PR link added)
+- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [ ] Work PR opened from a fresh worktree; **PR** field filled in
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the PR (status `done`), plan links updated, plan to-dos ticked
+- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
 - [ ] Squash-merged; dependants' "Depends on" now satisfied

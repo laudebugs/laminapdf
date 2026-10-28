@@ -41,7 +41,7 @@ Edit the structure tree: create/retag/move/delete struct elements, attach conten
 - **Operations shipped** ([06 §3](../../research/pdf/06-feature-inventory.md#3-full-operation-inventory-with-mechanisms) IDs): `L.01` add structure tags; `L.02` logical reading order; `I.07` define reading order; logical structure tags
 - **Crates and packages:** `lamina-model` (struct tree write), `lamina-content`, `@lamina/ui`
 - **`Op` variants:** the ops above (class `Document`, `TagContent` also `Content`)
-- **`SaveConstraint`:** `Free` → incremental. Signed: class `Document` (or `Annotation` where noted) → DocMDP violation unless P3 allows it; gated
+- **`SaveConstraint`:** `Free` → incremental. Signed: class `Document` is a DocMDP violation at every certification level (ADR 0007 §2: P1 allows no changes; P2 allows only form filling, page templates and signing; P3 adds annotations); ops noted as `Annotation` are allowed under P3 or when there is no certification. Violations are gated (override names the signatures). With approval signatures only (no certification): `AppendOnly`, an incremental update that keeps their `/ByteRange` intact; a violation only when it changes a field locked by FieldMDP/`/Lock`
 - **Web vs desktop:** identical
 - **Server features:** none (this PR adds no server feature; all processing stays on the device)
 - **Capability-matrix rows to flip:** `L.01` → `round-trip` (core, pdf, web, desktop); `L.02` → `round-trip` (core, pdf, web, desktop); `I.07` → `round-trip` (core, pdf, web, desktop)
@@ -62,6 +62,10 @@ Edit the structure tree: create/retag/move/delete struct elements, attach conten
 - [ ] veraPDF structure checks pass after edits on tagged fixtures
 - [ ] Screen-reader order in NVDA follows the edited order (manual, recorded)
 
+## Post-merge checks
+
+None.
+
 ## Tests
 
 - veraPDF nightly
@@ -79,8 +83,9 @@ Edit the structure tree: create/retag/move/delete struct elements, attach conten
 
 ## Definition of done
 
-- [ ] PR opened from a fresh worktree; this file moved `ready/` → `ongoing/` in the PR's first commit (status field updated, PR link added)
+- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [ ] Work PR opened from a fresh worktree; **PR** field filled in
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the PR (status `done`), plan links updated, plan to-dos ticked
+- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
 - [ ] Squash-merged; dependants' "Depends on" now satisfied

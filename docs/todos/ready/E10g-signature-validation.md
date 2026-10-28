@@ -42,7 +42,7 @@ Validate each signature per the 04 §8.8 checklist: structural rules (ByteRange 
 - **`SaveConstraint`:** read-only
 - **Web vs desktop:** desktop uses OS trust store; web uses the trust list decided in E10b
 - **Server features:** none (this PR adds no server feature; all processing stays on the device)
-- **Capability-matrix rows to flip:** `F.04` → `read` (core, pdf, web, desktop); `F.07` → `read` (core, pdf, web, desktop)
+- **Capability-matrix rows to flip:** `F.04` → `read` (core, pdf); `F.07` → `read` (core, pdf) (web and desktop columns flip in [E10j](E10j-signature-ui.md), with the signature panel)
 
 ## Tasks
 
@@ -56,6 +56,10 @@ Validate each signature per the 04 §8.8 checklist: structural rules (ByteRange 
 
 - [ ] Validation verdicts match EU DSS on a fixture set of valid/invalid/expired/revoked signatures
 - [ ] Any structural anomaly is a hard failure (USF tests)
+
+## Post-merge checks
+
+None.
 
 ## Tests
 
@@ -73,8 +77,9 @@ Validate each signature per the 04 §8.8 checklist: structural rules (ByteRange 
 
 ## Definition of done
 
-- [ ] PR opened from a fresh worktree; this file moved `ready/` → `ongoing/` in the PR's first commit (status field updated, PR link added)
+- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [ ] Work PR opened from a fresh worktree; **PR** field filled in
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the PR (status `done`), plan links updated, plan to-dos ticked
+- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
 - [ ] Squash-merged; dependants' "Depends on" now satisfied

@@ -42,7 +42,7 @@ Merge whole documents with the hard parts done: outlines appended as subtrees, n
 - **Operations shipped** ([06 §3](../../research/pdf/06-feature-inventory.md#3-full-operation-inventory-with-mechanisms) IDs): `C.06` merge multiple documents; `C.07` split by count, ranges, bookmarks
 - **Crates and packages:** `lamina-model` (outline, names, AcroForm, struct-tree merge helpers), `lamina-ops`
 - **`Op` variants:** `MergeDocuments` op (composite, class `PageStructure` + `Document`); split is a pure function producing new documents
-- **`SaveConstraint`:** `Free` → incremental. Signed: page insertion/deletion/reordering is class `PageStructure`, a violation under DocMDP P1/P2/P3 and of approval signatures' coverage; blocked by default and allowed only by the explicit invalidation override (warning names signatures). Merging into a signed document is always a violation
+- **`SaveConstraint`:** `Free` → incremental. Signed: page insertion/deletion/reordering is class `PageStructure`. Under a certification signature it is a DocMDP violation at every level (ADR 0007 §2: P1 allows no changes; P2 allows only form filling, page templates and signing; P3 adds annotations) → blocked by default and allowed only by the explicit invalidation override (the warning names the signatures, ADR 0007 §3). With approval signatures only (no certification) it is `AppendOnly`: saved as an incremental update that keeps their `/ByteRange` intact (the signature panel, E10h, reports the later page change); it is a violation only when it changes a field locked by FieldMDP/`/Lock` (e.g. deleting or duplicating a page that carries a locked field's widget). Merging into a certified document is a violation at every DocMDP level; into an approval-only-signed document it is an incremental `AppendOnly` save. Split writes new documents (full write, `Free`)
 - **Web vs desktop:** identical; desktop multi-select in Finder/Explorer merges directly (E2h)
 - **Server features:** none (this PR adds no server feature; all processing stays on the device)
 - **Capability-matrix rows to flip:** `C.06` → `round-trip` (core, pdf); `C.07` → `write` (core, pdf)
@@ -65,6 +65,10 @@ Merge whole documents with the hard parts done: outlines appended as subtrees, n
 - [ ] Split by bookmarks on a 3-chapter fixture yields 3 files whose outlines are the chapter subtrees
 - [ ] Merge of 100 files of 10 pages each completes within a budget set in E2a (native and wasm)
 
+## Post-merge checks
+
+None.
+
 ## Tests
 
 - Integration tests with tagged, form and OCG fixtures
@@ -84,8 +88,9 @@ Merge whole documents with the hard parts done: outlines appended as subtrees, n
 
 ## Definition of done
 
-- [ ] PR opened from a fresh worktree; this file moved `ready/` → `ongoing/` in the PR's first commit (status field updated, PR link added)
+- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [ ] Work PR opened from a fresh worktree; **PR** field filled in
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the PR (status `done`), plan links updated, plan to-dos ticked
+- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
 - [ ] Squash-merged; dependants' "Depends on" now satisfied

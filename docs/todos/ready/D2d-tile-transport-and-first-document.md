@@ -23,7 +23,7 @@ Make the desktop app a working single-window reader: File ▸ Open (via a button
 
 - ADR 0008 §tile transport and D1a's README (`spikes/desktop-ipc/`): primary/fallback transport, tile size, compression, in-flight limit.
 - ADR 0009 / web C3: the viewer's engine interface (request IDs, priorities, `AbortSignal` cancellation, `ImageBitmap` painting). The desktop client must implement exactly that interface.
-- D2b: `EngineSupervisor`, `DocumentRegistry`, protocol `RenderTile`/`Cancel`/`Tile`.
+- D2b: `EngineSupervisor`, `DocumentRegistry`, `SessionPassword`, and the protocol (crate `lamina-desktop-protocol`): `RenderTile`/`Cancel`/`Tile`, `UnlockDocument`/`Unlocked`/`NeedsPassword`.
 - [Desktop plan §4 non-functional](../../plans/desktop-app.md#non-functional-targets-are-recommendations): first page of a 1 GB PDF ≤ 1.5 s after open; idle memory ≤ 150 MB with one 10-page document.
 - [Desktop notes Q1](../../research/architecture/notes/desktop-shell.md#q1-shell-options-versions-size-memory-startup-webview-differences-licence-maturity-production-users): Canvas2D only on Linux; no WebGL dependency.
 - Tauri: `tauri::ipc::Channel`, `tauri::ipc::Response`, `InvokeResponseBody::Raw`, `register_asynchronous_uri_scheme_protocol` (per D1a's choice).
@@ -38,7 +38,7 @@ Make the desktop app a working single-window reader: File ▸ Open (via a button
   - The fallback transport behind a runtime setting for diagnosis.
 - `apps/desktop/src/engine/desktop-engine-client.ts`: implements the `@lamina/viewer` engine interface on top of `invoke` + the transport; maps `AbortSignal` to `cancel_tiles`; converts tiles to `ImageBitmap` (`createImageBitmap(new ImageData(...))` for raw RGBA, `createImageBitmap(blob)` for compressed); priority hints (visible > prefetch) forwarded to the engine.
 - Desktop `Platform.openFile()` → `invoke('open_dialog')` → `DocId` + metadata; the viewer's document handle wraps the `DocId`.
-- Password prompt: `@lamina/ui`'s prompt (from C4) → `invoke('unlock_document', { doc, password })` (password zeroised in Rust after use, never logged).
+- Password prompt: `@lamina/ui`'s prompt (from C4) → `invoke('unlock_document', { doc, password })` → main sends the protocol message `UnlockDocument { doc, password }` to the window's engine. On `Unlocked` the main process keeps the password as the document's `SessionPassword` (D2b: locked, zeroised on close, never logged or persisted) so an engine restart re-unlocks without a prompt; on `Error { kind: WrongPassword }` the copy is zeroised and the UI shows the retry prompt. The command's `String` argument is moved into `Zeroizing` immediately; the JS side drops its reference after the call.
 - Engine restart UX: listen to `engine://restarted`, show the shared toast "Document process restarted", re-request visible tiles; on `engine://failed` show the error state with "Reopen".
 - Error mapping: `DesktopError { kind }` → the UI's existing error notices (repair notice when `Opened.repaired`).
 - Performance check: time-to-first-page on the 1 GB fixture and the C3 1,000-page fixture, idle memory (main + engine + webview) with a 10-page document; numbers in the PR and ADR 0008.
@@ -66,8 +66,12 @@ Make the desktop app a working single-window reader: File ▸ Open (via a button
 - [ ] The generated 1 GB fixture shows its first page within **1.5 s** after the open dialog closes on the reference machine (macOS and Windows; Linux recorded).
 - [ ] Idle memory with one 10-page document ≤ **150 MB** across main + engine (webview recorded separately; if over target, note it in ADR 0008 with a plan).
 - [ ] Encrypted fixtures open after the password prompt; a wrong password shows the retry prompt; the password never appears in logs (grep of log output in the test run).
-- [ ] Killing the engine mid-scroll shows "Document process restarted" and the same page re-renders without user action.
+- [ ] Killing the engine mid-scroll shows "Document process restarted" and the same page re-renders without user action — **including for an encrypted document already unlocked** (no second password prompt; D2b's re-unlock).
 - [ ] A webview cannot fetch tiles of a document opened by another window (custom-scheme label check or channel ownership check; unit test).
+
+## Post-merge checks
+
+None.
 
 ## Tests
 
@@ -91,8 +95,9 @@ Make the desktop app a working single-window reader: File ▸ Open (via a button
 
 ## Definition of done
 
-- [ ] PR opened from a fresh worktree; this file moved `ready/` → `ongoing/` in the PR's first commit (status field updated, PR link added)
+- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [ ] Work PR opened from a fresh worktree; **PR** field filled in
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the PR (status `done`), plan links updated, plan to-dos ticked
+- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
 - [ ] Squash-merged; dependants' "Depends on" now satisfied

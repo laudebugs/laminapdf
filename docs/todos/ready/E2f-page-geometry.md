@@ -7,7 +7,7 @@
 | Plan | [full-editor §E2](../../plans/full-editor.md#e2-page-organisation) |
 | Round / milestone | Editor phase 2 (E1–E3) — M5 Organiser |
 | Depends on | [E2b](./E2b-page-structure-ops.md), [E2e](./E2e-content-append-api.md) |
-| Blocks | [E2h](./E2h-page-organiser-ui.md) |
+| Blocks | [E2h](./E2h-page-organiser-ui.md), [E16d](./E16d-colour.md) |
 | ADRs | Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
 | Branch | `feat/e2f-page-geometry` |
 | PR title | `feat(ops): page boxes, crop with warning, resize via content scaling` |
@@ -41,7 +41,7 @@ Page geometry ops: crop (sets `/CropBox`, with a user-visible warning that cropp
 - **Operations shipped** ([06 §3](../../research/pdf/06-feature-inventory.md#3-full-operation-inventory-with-mechanisms) IDs): `C.09` crop display area; `C.10` resize page dimensions; `C.11` modify margins and page boxes; `C.12` portrait ↔ landscape
 - **Crates and packages:** `lamina-ops`, `lamina-content` (append API)
 - **`Op` variants:** `SetPageBoxes`, `CropPages`, `ResizePages`, `SetOrientation` (class `PageStructure`; resize also `Content`)
-- **`SaveConstraint`:** `Free` → incremental. Signed: page insertion/deletion/reordering is class `PageStructure`, a violation under DocMDP P1/P2/P3 and of approval signatures' coverage; blocked by default and allowed only by the explicit invalidation override (warning names signatures)
+- **`SaveConstraint`:** `Free` → incremental. Signed: setting page boxes, cropping and orientation change page-dictionary keys (`/MediaBox`, `/CropBox`, `/BleedBox`, `/TrimBox`, `/ArtBox`, `/Rotate`) and are class `PageStructure`; `ResizePages` is also `Content` (the scaling wrap and the scaled annotation rects). DocMDP allows none of these (ADR 0007 §2: P1 allows no changes; P2 allows only form filling, page templates and signing; P3 adds annotations), so under a certification signature each is a violation → blocked by default, allowed only by the override that names the signatures (ADR 0007 §3). With approval signatures only (no certification): `AppendOnly`, an incremental update that keeps their `/ByteRange` intact while changing what the signed page shows, which the signature panel (E10h) reports; resizing or rotating a page that carries a widget of a field locked by FieldMDP/`/Lock` changes that widget and is a violation
 - **Web vs desktop:** identical
 - **Server features:** none (this PR adds no server feature; all processing stays on the device)
 - **Capability-matrix rows to flip:** `C.09` → `round-trip` (core, pdf); `C.10` → `round-trip` (core, pdf); `C.11` → `round-trip` (core, pdf); `C.12` → `round-trip` (core, pdf)
@@ -62,6 +62,10 @@ Page geometry ops: crop (sets `/CropBox`, with a user-visible warning that cropp
 - [ ] Resizing A4 → Letter with `Scale` renders the same content scaled (PDFium diff after scaling) and annotations stay aligned with their text
 - [ ] A test asserts text outside a new CropBox is still extracted by pdftotext (the warning is justified) and that the UI receives `CroppedContentRemains`
 
+## Post-merge checks
+
+None.
+
 ## Tests
 
 - Geometry unit tests
@@ -80,8 +84,9 @@ Page geometry ops: crop (sets `/CropBox`, with a user-visible warning that cropp
 
 ## Definition of done
 
-- [ ] PR opened from a fresh worktree; this file moved `ready/` → `ongoing/` in the PR's first commit (status field updated, PR link added)
+- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [ ] Work PR opened from a fresh worktree; **PR** field filled in
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the PR (status `done`), plan links updated, plan to-dos ticked
+- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
 - [ ] Squash-merged; dependants' "Depends on" now satisfied

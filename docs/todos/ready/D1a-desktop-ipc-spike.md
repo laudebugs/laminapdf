@@ -82,6 +82,10 @@ Answer, with numbers from all three desktop webviews (WKWebView on macOS, WebVie
 - [ ] Raw CSVs committed under `spikes/desktop-ipc/results/` and reproducible with `scripts/run-all.*`.
 - [ ] The spike builds with `cargo build --release` inside `spikes/desktop-ipc/src-tauri` and `pnpm tauri build --no-bundle`; no change to the root workspaces' CI.
 
+## Post-merge checks
+
+None.
+
 ## Tests
 
 Spike code: no test suite required. Sanity checks inside the benchmark: every received tile's dimensions and a checksum of the first row are compared to what Rust sent (mismatch aborts the run), so a transport that corrupts bytes cannot "win".
@@ -104,8 +108,9 @@ Spike code: no test suite required. Sanity checks inside the benchmark: every re
 
 ## Definition of done
 
-- [ ] PR opened from a fresh worktree; this file moved `ready/` → `ongoing/` in the PR's first commit (status field updated, PR link added)
+- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [ ] Work PR opened from a fresh worktree; **PR** field filled in
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the PR (status `done`), plan links updated, plan to-dos ticked
+- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
 - [ ] Squash-merged; dependants' "Depends on" now satisfied

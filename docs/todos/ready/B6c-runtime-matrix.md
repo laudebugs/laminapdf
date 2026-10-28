@@ -54,6 +54,10 @@ Prove the package works where the plan says it does. The same TS example suite r
 - [ ] A Vite production build of a tiny app importing `@lamina/pdf` works in Chromium
 - [ ] Timings and Worker peak memory are reported per runtime; any miss of the §4 targets is listed in the PR and filed as an issue (not a CI failure)
 
+## Post-merge checks
+
+None.
+
 ## Tests
 
 As above; all under `packages/pdf/test/` sharing one example list.
@@ -70,8 +74,9 @@ As above; all under `packages/pdf/test/` sharing one example list.
 
 ## Definition of done
 
-- [ ] PR opened from a fresh worktree; this file moved `ready/` → `ongoing/` in the PR's first commit (status field updated, PR link added)
+- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [ ] Work PR opened from a fresh worktree; **PR** field filled in
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the PR (status `done`), plan links updated, plan to-dos ticked
+- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
 - [ ] Squash-merged; dependants' "Depends on" now satisfied

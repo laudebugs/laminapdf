@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [web reader §6 C2. Render backend and ADRs](../../plans/web-app.md#c2-render-backend-and-adrs) |
 | Round / milestone | Round C (web reader) — M2 Web reader v0.1 |
-| Depends on | [C1a](./C1a-hayro-parity-spike.md), [C1b](./C1b-pdfium-wasm-spike.md) |
+| Depends on | [C1a](./C1a-hayro-parity-spike.md), [C1b](./C1b-pdfium-wasm-spike.md), [X1](./X1-docs-link-checker.md) |
 | Blocks | [C2b](./C2b-lamina-render-crate.md), [C3a](./C3a-viewer-worker-rpc.md), [C4a](./C4a-ui-chrome-and-platform.md), [C4b](./C4b-web-app-shell.md), [D2a](./D2a-adr-0008-and-desktop-scaffold.md), [D5a](./D5a-update-worker-and-adr-0014.md) |
 | ADRs | **Writes** 0004, 0009, 0010, 0011 (status `Accepted` on merge). Must stay consistent with [0001](../../decisions/0001-core-language-and-licence.md), [0002](../../decisions/0002-binding-strategy.md), [0003](../../decisions/0003-reader-tolerance-and-limits.md), [0005](../../decisions/0005-document-model.md), [0018](../../decisions/0018-test-strategy.md), [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) |
 | Branch | `docs/c2a-render-and-web-adrs` |
@@ -68,11 +68,15 @@ Record the four Round C decisions before any product code depends on them, so C2
 - [ ] 0009 lists the RPC requirements C3a must implement (IDs, priorities, transfer, cancellation, restart) and the threaded-variant policy.
 - [ ] 0010 lists every capability flag with web values.
 - [ ] 0011 states the v0.1 privacy guarantees as testable statements (they become C4c's Playwright assertions and C7c's privacy page) and the opt-in hosted-service rules.
-- [ ] Indexes and CLAUDE.md updated; `python3` link check over `docs/` passes.
+- [ ] Indexes and CLAUDE.md updated; `cargo xtask docs-links` (from [X1](./X1-docs-link-checker.md)) passes.
+
+## Post-merge checks
+
+None.
 
 ## Tests
 
-Docs only. Run the repository's link check over `docs/` and `cargo xtask check` (Biome formats Markdown-adjacent JSON only; nothing else changes).
+Docs only. Run `cargo xtask docs-links` ([X1](./X1-docs-link-checker.md)) and `cargo xtask check` (Biome formats Markdown-adjacent JSON only; nothing else changes).
 
 ## Docs to update
 
@@ -87,8 +91,9 @@ Docs only. Run the repository's link check over `docs/` and `cargo xtask check` 
 
 ## Definition of done
 
-- [ ] PR opened from a fresh worktree; this file moved `ready/` → `ongoing/` in the PR's first commit (status field updated, PR link added)
+- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [ ] Work PR opened from a fresh worktree; **PR** field filled in
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the PR (status `done`), plan links updated, plan to-dos ticked
+- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
 - [ ] Squash-merged; dependants' "Depends on" now satisfied

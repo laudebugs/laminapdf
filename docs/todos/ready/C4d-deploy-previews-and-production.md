@@ -46,7 +46,7 @@ Every PR that touches the reader gets a working preview URL commented on the PR,
 - [ ] Fresh worktree; move this file to `ongoing/`.
 - [ ] Create the Cloudflare Worker `lamina-web` (owner action: account, API token with minimal scope; record the steps in `apps/web/DEPLOY.md`, no secrets in the repo).
 - [ ] Add `preview_urls`/`previews` config to `wrangler.jsonc`; verify `wrangler versions upload --preview-alias pr-<n>` (or the current equivalent for the pinned Wrangler version) yields a stable URL per PR.
-- [ ] Write `web-deploy.yml`: checkout, set up pnpm/Node (versions from `.nvmrc`/`package.json`), Rust toolchain + `cargo xtask wasm` (the app needs the WASM builds), `pnpm --filter apps/web build`, upload/deploy with the pinned Wrangler from the lockfile (`pnpm exec wrangler`), actions pinned by SHA.
+- [ ] Write `web-deploy.yml`: checkout, set up pnpm/Node (versions from `.nvmrc`/`package.json`), Rust toolchain + `cargo xtask wasm` (the app needs the WASM builds), `pnpm --filter @lamina/web build` (package name from C4b; the step fails if `apps/web/dist/index.html` is missing afterwards), upload/deploy with the pinned Wrangler from the lockfile (`pnpm exec wrangler`), actions pinned by SHA.
 - [ ] Sticky PR comment via `gh`/`actions/github-script`: preview URL, commit SHA, build size summary (JS min+gz, WASM gz — used later by C7c).
 - [ ] Path filtering inside the job (only deploy when `apps/web`, `packages/`, `crates/` or `fixtures/` changed); the job reports success otherwise.
 - [ ] Production job on `main` with `environment: production` and the smoke test against the production URL; on smoke failure, roll back with `wrangler rollback` and fail the job.
@@ -57,10 +57,15 @@ Every PR that touches the reader gets a working preview URL commented on the PR,
 
 - [ ] This PR itself receives a preview URL comment, and the smoke test passes against it.
 - [ ] Pushing a second commit updates the same comment (not a new one).
-- [ ] Merging deploys production; the smoke test runs against production and passes; a forced failing smoke on a test branch demonstrates rollback (documented in the PR).
+- [ ] The production job is exercised before merge in dry-run form: on a test branch with the job's `main`-only condition temporarily widened and the deploy target switched to a throwaway Worker name, a forced failing smoke triggers `wrangler rollback` and fails the job (documented in the PR, then reverted).
 - [ ] Fork PRs don't fail CI for lack of secrets (job skipped with an explanatory summary).
 - [ ] Wrangler version is pinned (lockfile) and actions are pinned by SHA.
-- [ ] Live headers on preview and production match ADR 0011 (smoke asserts them).
+- [ ] Live headers on the preview match ADR 0011 (smoke asserts them).
+
+## Post-merge checks
+
+- [ ] Merging deploys production from `main`; the smoke test runs against the production URL and passes.
+- [ ] Live headers on production match ADR 0011 (smoke asserts them).
 
 ## Tests
 
@@ -79,8 +84,9 @@ Every PR that touches the reader gets a working preview URL commented on the PR,
 
 ## Definition of done
 
-- [ ] PR opened from a fresh worktree; this file moved `ready/` → `ongoing/` in the PR's first commit (status field updated, PR link added)
+- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [ ] Work PR opened from a fresh worktree; **PR** field filled in
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the PR (status `done`), plan links updated, plan to-dos ticked
+- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
 - [ ] Squash-merged; dependants' "Depends on" now satisfied

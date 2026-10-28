@@ -7,7 +7,7 @@
 | Plan | [Desktop app §6 D4](../../plans/desktop-app.md#d4-windows-tabs-menus-and-printing) |
 | Round / milestone | Round D (desktop) — M3 Desktop reader beta |
 | Depends on | [C6c](./C6c-print-download-properties.md), [D1b](./D1b-desktop-print-spike.md), [D4b](./D4b-native-menus.md) |
-| Blocks | [D7c](./D7c-desktop-beta-release.md), [E1d](./E1d-edit-session-undo-ui.md), [E10i](./E10i-platform-signers.md) |
+| Blocks | [D7c](./D7c-desktop-beta-release.md) |
 | Dependency notes | [D4b](D4b-native-menus.md) (Print menu item), [D1b](D1b-desktop-print-spike.md) (recommended path). Cross-plan: web **C6** ([web-app §C6](../../plans/web-app.md#c6-navigation-print-and-properties)) only if D1b recommends the webview raster path, which reuses C6's print-at-print-DPI code. |
 | ADRs | Follows ADR 0008 (engine renders, main owns printer handles), ADR 0010 (`hasNativePrint`) |
 | Branch | `feat/d4c-native-printing` |
@@ -32,7 +32,7 @@ Ship faithful printing on macOS, Windows and Linux using the path D1b recommende
 **In scope**
 
 - `src-tauri/src/print/{mod.rs,macos.rs,windows.rs,linux.rs}` implementing `fn print_document(app: &AppHandle, window: &WebviewWindow, doc: DocId, opts: PrintRequest) -> Result<PrintOutcome, PrintError>` with the D1b-chosen path per OS.
-- Engine protocol additions: `RenderPrintPage { doc, page, dpi, format: Rgba | Bgra | Emf? }` streaming pages on demand as the OS print loop asks for them (never all pages in memory); cancellation when the user cancels the print job. If D1b chose a vector path that needs PDFium on the printer DC (Windows), document how this reconciles with the sandbox (e.g. the engine produces EMF/XPS bytes which main plays back on the DC) or record an accepted exception in ADR 0008.
+- Engine protocol additions (in `crates/lamina-desktop-protocol`): `RenderPrintPage { doc, page, dpi, format: Rgba | Bgra | Emf? }` streaming pages on demand as the OS print loop asks for them (never all pages in memory); cancellation when the user cancels the print job. If D1b chose a vector path that needs PDFium on the printer DC (Windows), document how this reconciles with the sandbox (e.g. the engine produces EMF/XPS bytes which main plays back on the DC) or record an accepted exception in ADR 0008.
 - Print options surfaced by the OS dialog: page range (all, current, range), copies, collation, scaling (fit to paper / actual size), orientation auto per page, duplex when the printer supports it.
 - Progress UI: a non-modal progress indicator in the window while spooling, with Cancel.
 - Fallback: the webview raster path (`WebviewWindow::print()` with the C6 print DOM) selectable in settings for troubleshooting, and automatically offered if the native path fails.
@@ -65,6 +65,10 @@ Ship faithful printing on macOS, Windows and Linux using the path D1b recommende
 - [ ] Peak main-process memory while printing the 50-page fixture stays within 2× the single-page raster size at print DPI (streaming, not buffering).
 - [ ] The compatibility path works on each OS as a fallback (manual check).
 
+## Post-merge checks
+
+None.
+
 ## Tests
 
 - Rust unit tests: `PrintRequest` → page list (ranges, current page, reverse order if requested), DPI and scaling maths, per-page orientation selection.
@@ -87,8 +91,9 @@ Ship faithful printing on macOS, Windows and Linux using the path D1b recommende
 
 ## Definition of done
 
-- [ ] PR opened from a fresh worktree; this file moved `ready/` → `ongoing/` in the PR's first commit (status field updated, PR link added)
+- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [ ] Work PR opened from a fresh worktree; **PR** field filled in
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the PR (status `done`), plan links updated, plan to-dos ticked
+- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
 - [ ] Squash-merged; dependants' "Depends on" now satisfied

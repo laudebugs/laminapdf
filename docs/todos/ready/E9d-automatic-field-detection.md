@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [full-editor §E9](../../plans/full-editor.md#e9-form-authoring) |
 | Round / milestone | Editor phase 5 (E8–E10) — M8 Forms and signing |
-| Depends on | [E9c](./E9c-form-design-mode.md) |
+| Depends on | [E7c](./E7c-content-ir.md), [E9c](./E9c-form-design-mode.md) |
 | Blocks | None |
 | ADRs | Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
 | Branch | `feat/e9d-automatic-field-detection` |
@@ -39,7 +39,7 @@ Suggest fields on flat (non-interactive) forms from ruling lines, boxes, undersc
 
 - **Crates and packages:** `lamina-content`, `lamina-text`, `@lamina/ui`
 - **`Op` variants:** suggestions become `CreateField` ops on accept
-- **`SaveConstraint`:** `Free` → incremental. Signed: creating/changing field definitions is not form filling (class `Document`); blocked under any certification and invalidates approval signatures' coverage → only allowed after the user confirms removing/invalidating signatures (ADR 0007 §3 override)
+- **`SaveConstraint`:** `Free` → incremental. Signed: creating/changing field definitions is not form filling (class `Document`), so it is a DocMDP violation at every certification level (ADR 0007 §2: P1 allows no changes; P2 allows only form filling, page templates and signing; P3 adds annotations) → saved only after the user confirms invalidating the named signatures (ADR 0007 §3 override). With approval signatures only (no certification): `AppendOnly`, an incremental update that keeps their `/ByteRange` intact; changing or removing a field locked by FieldMDP/`/Lock`, or a signature field, is a violation
 - **Web vs desktop:** identical
 - **Server features:** none (this PR adds no server feature; all processing stays on the device)
 - **Capability-matrix rows to flip:** none (assists E.01–E.03 authoring; no new inventory row)
@@ -56,6 +56,10 @@ Suggest fields on flat (non-interactive) forms from ruling lines, boxes, undersc
 - [ ] Precision ≥ target and recall ≥ target set in E9a on the labelled set
 - [ ] No suggestion is applied without user action
 
+## Post-merge checks
+
+None.
+
 ## Tests
 
 - Labelled fixture set
@@ -71,8 +75,9 @@ Suggest fields on flat (non-interactive) forms from ruling lines, boxes, undersc
 
 ## Definition of done
 
-- [ ] PR opened from a fresh worktree; this file moved `ready/` → `ongoing/` in the PR's first commit (status field updated, PR link added)
+- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [ ] Work PR opened from a fresh worktree; **PR** field filled in
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the PR (status `done`), plan links updated, plan to-dos ticked
+- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
 - [ ] Squash-merged; dependants' "Depends on" now satisfied

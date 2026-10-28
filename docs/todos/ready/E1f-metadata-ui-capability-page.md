@@ -7,7 +7,7 @@
 | Plan | [full-editor §E1](../../plans/full-editor.md#e1-editing-foundation) |
 | Round / milestone | Editor phase 2 (E1–E3) — M5 Organiser |
 | Depends on | [E1c](./E1c-metadata-ops.md), [E1e](./E1e-save-and-constraint-banner.md), [X2](./X2-capability-matrix.md) |
-| Blocks | None |
+| Blocks | [E2a](./E2a-page-organisation-feature-plan.md) |
 | ADRs | Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
 | Branch | `feat/e1f-metadata-ui-capability-page` |
 | PR title | `feat(ui): editable document properties and capability matrix page` |
@@ -60,6 +60,10 @@ Close round E1: make the C6 document properties dialog editable (title, author, 
 - [ ] The capability page lists every manifest row with four status columns and matches `docs/capabilities/README.md`
 - [ ] axe: zero serious violations on the dialog and the page
 
+## Post-merge checks
+
+None.
+
 ## Tests
 
 - Playwright and WebdriverIO specs tagged `J.01`–`J.03`, `J.10`
@@ -78,8 +82,9 @@ Close round E1: make the C6 document properties dialog editable (title, author, 
 
 ## Definition of done
 
-- [ ] PR opened from a fresh worktree; this file moved `ready/` → `ongoing/` in the PR's first commit (status field updated, PR link added)
+- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [ ] Work PR opened from a fresh worktree; **PR** field filled in
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the PR (status `done`), plan links updated, plan to-dos ticked
+- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
 - [ ] Squash-merged; dependants' "Depends on" now satisfied

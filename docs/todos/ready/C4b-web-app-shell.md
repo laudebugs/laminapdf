@@ -29,9 +29,9 @@ Ship the first runnable reader: `apps/web`, a Vite 8 SPA that composes `@lamina/
 
 **In scope**
 
-- `apps/web/` (private, never depended on): `package.json`, `vite.config.ts` (Vite 8, React plugin + React Compiler, worker `format: "es"`, WASM as hashed asset URLs), `index.html` (no inline script or style), `src/main.tsx`, `src/app.tsx`, `public/_headers`, `wrangler.jsonc`.
+- `apps/web/` (package name `@lamina/web`, `private: true`, never depended on): `package.json`, `vite.config.ts` (Vite 8, React plugin + React Compiler, worker `format: "es"`, WASM as hashed asset URLs), `index.html` (no inline script or style), `src/main.tsx`, `src/app.tsx`, `public/_headers`, `wrangler.jsonc`.
 - `wrangler.jsonc`: `name: "lamina-web"`, `compatibility_date` pinned (≥ 2025-04-01), `assets: { directory: "./dist", not_found_handling: "single-page-application" }`, no `main`, no bindings; `preview_urls` set for C4d.
-- `_headers`: CSP `default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; worker-src 'self'; style-src 'self'; img-src 'self' blob: data:; connect-src 'self' https:` (https: needed for `#url=` fetches in C4c — confirm in ADR 0011); `object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'none'`; `Referrer-Policy: no-referrer`; `Permissions-Policy` denying camera, microphone, geolocation, etc.; `X-Content-Type-Options: nosniff`; `Strict-Transport-Security`; `Cross-Origin-Opener-Policy: same-origin` (no COEP in the single-threaded baseline, per ADR 0009/0011); `Cache-Control: public, max-age=31536000, immutable` for `/assets/*`; `no-cache` for `index.html`.
+- `_headers`: CSP `default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; worker-src 'self'; style-src 'self'; img-src 'self' blob: data:; connect-src 'self' https:` (https: needed for `#url=` fetches in C4c — confirm in ADR 0011; this is the production policy, and C4c adds a test-mode build variant that also allows `http://localhost:*`/`http://127.0.0.1:*` for local fixture hosts, never in production); `object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'none'`; `Referrer-Policy: no-referrer`; `Permissions-Policy` denying camera, microphone, geolocation, etc.; `X-Content-Type-Options: nosniff`; `Strict-Transport-Security`; `Cross-Origin-Opener-Policy: same-origin` (no COEP in the single-threaded baseline, per ADR 0009/0011); `Cache-Control: public, max-age=31536000, immutable` for `/assets/*`; `no-cache` for `index.html`.
 - Opening flows: file input, drag-and-drop on the whole window, paste of a PDF file from the clipboard, `showOpenFilePicker` where available — all via `Platform.openFiles` → `ByteSource` over `File.slice()` → viewer worker.
 - PDFium and lamina WASM lazy-loaded at app start in parallel with file selection (from C3a), served as hashed static assets.
 - Repair/warning notices and error states wired from viewer events to `@lamina/ui`.
@@ -47,7 +47,7 @@ Ship the first runnable reader: `apps/web`, a Vite 8 SPA that composes `@lamina/
 ## Tasks
 
 - [ ] Fresh worktree; move this file to `ongoing/`.
-- [ ] Scaffold `apps/web` with Vite 8; add to `pnpm-workspace.yaml` (already covers `apps/*`); depend on `@lamina/ui`, `@lamina/viewer`, `@lamina/render-pdfium`, `@lamina/render-hayro` via `workspace:*`.
+- [ ] Scaffold `apps/web` (`"name": "@lamina/web"`) with Vite 8; add to `pnpm-workspace.yaml` (already covers `apps/*`); depend on `@lamina/ui`, `@lamina/viewer`, `@lamina/render-pdfium`, `@lamina/render-hayro` via `workspace:*`.
 - [ ] Pin Wrangler as a devDependency (exact version) and add scripts: `dev` (Vite), `build`, `preview` (`wrangler dev` serving `dist/`), `e2e`.
 - [ ] `wrangler.jsonc` and `public/_headers` as in scope; verify headers with `curl -I` against `wrangler dev` for `/`, `/some/deep/link` (SPA fallback 200), `/assets/*.js`, `/assets/*.wasm` (`Content-Type: application/wasm`).
 - [ ] Ensure no inline scripts/styles in the build (Vite `build.modulePreload.polyfill: false` if it injects inline code; check `index.html` output in a test).
@@ -60,12 +60,16 @@ Ship the first runnable reader: `apps/web`, a Vite 8 SPA that composes `@lamina/
 
 ## Acceptance criteria
 
-- [ ] `pnpm --filter apps/web build && pnpm --filter apps/web preview` serves the reader locally through Wrangler; opening `fixtures/corpus/hello.pdf` via input, drag-drop and paste renders page 1 in Chromium, Firefox and WebKit (Playwright).
+- [ ] `pnpm --filter @lamina/web build && pnpm --filter @lamina/web preview` (filter by package name; a bare `apps/web` is a name selector that matches nothing and exits 0) serves the reader locally through Wrangler; opening `fixtures/corpus/hello.pdf` via input, drag-drop and paste renders page 1 in Chromium, Firefox and WebKit (Playwright).
 - [ ] Response headers on `/`, a deep link and a hashed asset match the ADR 0011 policy (asserted in e2e).
 - [ ] No inline script/style in `dist/index.html`; zero CSP violations during the e2e suite.
 - [ ] Opening a local file makes no network request except for same-origin static assets (asserted by request interception).
 - [ ] `hello-broken.pdf` opens with the repaired notice; a `.txt` file is rejected with a message.
 - [ ] `cargo xtask check ts` includes the app's typecheck, Biome and unit tests; e2e runs in the full lane.
+
+## Post-merge checks
+
+None.
 
 ## Tests
 
@@ -84,8 +88,9 @@ Playwright e2e in `apps/web/e2e/*.spec.ts` (three engines) against `wrangler dev
 
 ## Definition of done
 
-- [ ] PR opened from a fresh worktree; this file moved `ready/` → `ongoing/` in the PR's first commit (status field updated, PR link added)
+- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [ ] Work PR opened from a fresh worktree; **PR** field filled in
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the PR (status `done`), plan links updated, plan to-dos ticked
+- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
 - [ ] Squash-merged; dependants' "Depends on" now satisfied

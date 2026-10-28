@@ -54,6 +54,10 @@ Share a cloud document for review: invites and share links (per ADR 0012's Q6 an
 - [ ] Authorisation tests per role
 - [ ] Revoked links stop working immediately
 
+## Post-merge checks
+
+None.
+
 ## Tests
 
 - Worker tests
@@ -70,8 +74,9 @@ Share a cloud document for review: invites and share links (per ADR 0012's Q6 an
 
 ## Definition of done
 
-- [ ] PR opened from a fresh worktree; this file moved `ready/` → `ongoing/` in the PR's first commit (status field updated, PR link added)
+- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [ ] Work PR opened from a fresh worktree; **PR** field filled in
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the PR (status `done`), plan links updated, plan to-dos ticked
+- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
 - [ ] Squash-merged; dependants' "Depends on" now satisfied

@@ -43,7 +43,7 @@ Copy pages between documents: deep-copy a page and everything reachable from it 
 - **Operations shipped** ([06 §3](../../research/pdf/06-feature-inventory.md#3-full-operation-inventory-with-mechanisms) IDs): `C.02` insert pages from other PDFs; `C.05` extract selected pages; `C.16` replace pages, preserving the rest; `H.10` export pages/ranges
 - **Crates and packages:** `lamina-model` (copier), `lamina-ops`, `lamina-save` (new-document save), bindings
 - **`Op` variants:** `InsertPagesFrom`, `ReplacePages` (class `PageStructure`)
-- **`SaveConstraint`:** `Free` → incremental. Signed: page insertion/deletion/reordering is class `PageStructure`, a violation under DocMDP P1/P2/P3 and of approval signatures' coverage; blocked by default and allowed only by the explicit invalidation override (warning names signatures). Extraction writes a new document (full write, `Free`)
+- **`SaveConstraint`:** `Free` → incremental. Signed: page insertion/deletion/reordering is class `PageStructure`. Under a certification signature it is a DocMDP violation at every level (ADR 0007 §2: P1 allows no changes; P2 allows only form filling, page templates and signing; P3 adds annotations) → blocked by default and allowed only by the explicit invalidation override (the warning names the signatures, ADR 0007 §3). With approval signatures only (no certification) it is `AppendOnly`: saved as an incremental update that keeps their `/ByteRange` intact (the signature panel, E10h, reports the later page change); it is a violation only when it changes a field locked by FieldMDP/`/Lock` (e.g. deleting or duplicating a page that carries a locked field's widget). Extraction writes a new document (full write, `Free`)
 - **Web vs desktop:** identical; desktop accepts files dropped from Finder/Explorer as sources, web from the file picker
 - **Server features:** none (this PR adds no server feature; all processing stays on the device)
 - **Capability-matrix rows to flip:** `C.02` → `round-trip` (core, pdf); `C.05` → `round-trip` (core, pdf); `C.16` → `round-trip` (core, pdf); `H.10` → `write` (core, pdf)
@@ -68,6 +68,10 @@ Copy pages between documents: deep-copy a page and everything reachable from it 
 - [ ] Replace keeps outline items and links that pointed at the replaced slot pointing at the new page
 - [ ] Extracted documents pass `qpdf --check` and keep page labels for the extracted range
 
+## Post-merge checks
+
+None.
+
 ## Tests
 
 - Integration tests in `crates/lamina/tests/pages_cross_doc.rs`
@@ -86,8 +90,9 @@ Copy pages between documents: deep-copy a page and everything reachable from it 
 
 ## Definition of done
 
-- [ ] PR opened from a fresh worktree; this file moved `ready/` → `ongoing/` in the PR's first commit (status field updated, PR link added)
+- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [ ] Work PR opened from a fresh worktree; **PR** field filled in
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the PR (status `done`), plan links updated, plan to-dos ticked
+- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
 - [ ] Squash-merged; dependants' "Depends on" now satisfied

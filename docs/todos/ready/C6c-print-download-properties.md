@@ -6,9 +6,9 @@
 | Status | `ready` |
 | Plan | [web reader §6 C6. Navigation, print and properties](../../plans/web-app.md#c6-navigation-print-and-properties) |
 | Round / milestone | Round C (web reader) — M2 Web reader v0.1 |
-| Depends on | [B9c](./B9c-text-extraction-bindings-and-differential.md), [C4c](./C4c-remote-files-encryption-privacy.md), [C5a](./C5a-text-layer-and-selection.md) |
+| Depends on | [B9c](./B9c-text-extraction-bindings-and-differential.md), [C3c](./C3c-viewer-perf-harness.md), [C4c](./C4c-remote-files-encryption-privacy.md), [C5a](./C5a-text-layer-and-selection.md) |
 | Blocks | [C7a](./C7a-accessibility-and-theming.md), [C7c](./C7c-performance-gates-and-launch.md), [D4c](./D4c-native-printing.md) |
-| Dependency notes | [C4c](./C4c-remote-files-encryption-privacy.md) (all open paths, encrypted files); [C5a](./C5a-text-layer-and-selection.md) (font information from B9's font reading via the worker); library **B9** for font listing ([pdf-library B9](../../plans/pdf-library.md#b9-text-extraction)) |
+| Dependency notes | [C4c](./C4c-remote-files-encryption-privacy.md) (all open paths, encrypted files); [C5a](./C5a-text-layer-and-selection.md) (font information from B9's font reading via the worker); library **B9** for font listing ([pdf-library B9](../../plans/pdf-library.md#b9-text-extraction)); [C3c](./C3c-viewer-perf-harness.md) (print preparation measured within the harness budget) |
 | ADRs | Follows 0004 (print rendering via `RenderBackend` with print intent), 0010 (`Platform.print`, `Platform.saveAs`, `hasNativePrint` flag), 0011 (no upload: print and download are local) |
 | Branch | `feat/c6c-print-download-properties` |
 | PR title | `feat(web): add printing, original-bytes download and the document properties dialog` |
@@ -62,6 +62,10 @@ Finish the reader's output features. **Print** rasterises pages at print DPI in 
 - [ ] Properties for corpus files match `expected.json` facts (version, title, producer, encryption revision, font names, signature count for `signed.pdf`).
 - [ ] Properties dialog is keyboard-operable with zero serious axe violations.
 
+## Post-merge checks
+
+None.
+
 ## Tests
 
 Rust unit tests for new accessors; Vitest unit tests (filename sanitisation, XMP subset parsing, print layout CSS generation); Playwright `apps/web/e2e/print.spec.ts`, `download.spec.ts`, `properties.spec.ts`; manual print checklist in the PR description.
@@ -79,8 +83,9 @@ Rust unit tests for new accessors; Vitest unit tests (filename sanitisation, XMP
 
 ## Definition of done
 
-- [ ] PR opened from a fresh worktree; this file moved `ready/` → `ongoing/` in the PR's first commit (status field updated, PR link added)
+- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [ ] Work PR opened from a fresh worktree; **PR** field filled in
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the PR (status `done`), plan links updated, plan to-dos ticked
+- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
 - [ ] Squash-merged; dependants' "Depends on" now satisfied

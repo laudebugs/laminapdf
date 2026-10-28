@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [full-editor §E1](../../plans/full-editor.md#e1-editing-foundation) |
 | Round / milestone | Editor phase 2 (E1–E3) — M5 Organiser |
-| Depends on | [B6b](./B6b-lamina-pdf-package.md), [C4a](./C4a-ui-chrome-and-platform.md), [D4c](./D4c-native-printing.md), [E1a](./E1a-editing-foundation-feature-plan.md) |
+| Depends on | [B6b](./B6b-lamina-pdf-package.md), [C4a](./C4a-ui-chrome-and-platform.md), [D4b](./D4b-native-menus.md), [E1a](./E1a-editing-foundation-feature-plan.md) |
 | Blocks | [E1e](./E1e-save-and-constraint-banner.md), [E4b](./E4b-annotation-model-and-overlay.md) |
 | Dependency notes | [E1a](E1a-editing-foundation-feature-plan.md), `C4` ([web-app §C4](../../plans/web-app.md#c4-app-shell-on-cloudflare): `@lamina/ui`, `apps/web`), `D4` ([desktop-app §D4](../../plans/desktop-app.md#d4-windows-tabs-menus-and-printing): windows, tabs, menus), `B6` ([pdf-library §B6](../../plans/pdf-library.md#b6-wasm-and-laminapdf): `lamina-wasm` and `@lamina/pdf`) |
 | ADRs | Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
@@ -67,6 +67,10 @@ Turn the readers into an editor shell: an edit session per open document that ho
 - [ ] Closing a dirty document prompts on both shells; closing a clean one does not
 - [ ] Keyboard-only and screen-reader pass of the history panel recorded (axe: zero serious violations)
 
+## Post-merge checks
+
+None.
+
 ## Tests
 
 - Unit tests for the mode reducer and session store (Vitest)
@@ -86,8 +90,9 @@ Turn the readers into an editor shell: an edit session per open document that ho
 
 ## Definition of done
 
-- [ ] PR opened from a fresh worktree; this file moved `ready/` → `ongoing/` in the PR's first commit (status field updated, PR link added)
+- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [ ] Work PR opened from a fresh worktree; **PR** field filled in
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the PR (status `done`), plan links updated, plan to-dos ticked
+- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
 - [ ] Squash-merged; dependants' "Depends on" now satisfied

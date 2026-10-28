@@ -69,6 +69,10 @@ Encrypt on full rewrite with the standard security handler R6 (AES-256, `/V 5`, 
 - [ ] Incremental edits on encrypted files stay encrypted (no plaintext objects: scan test)
 - [ ] Determinism holds when tests inject a fixed RNG
 
+## Post-merge checks
+
+None.
+
 ## Tests
 
 - Interop with qpdf and pypdf decryption
@@ -88,8 +92,9 @@ Encrypt on full rewrite with the standard security handler R6 (AES-256, `/V 5`, 
 
 ## Definition of done
 
-- [ ] PR opened from a fresh worktree; this file moved `ready/` → `ongoing/` in the PR's first commit (status field updated, PR link added)
+- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [ ] Work PR opened from a fresh worktree; **PR** field filled in
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the PR (status `done`), plan links updated, plan to-dos ticked
+- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
 - [ ] Squash-merged; dependants' "Depends on" now satisfied

@@ -73,6 +73,10 @@ Prove, in a real browser worker, that PDFium-WASM and `lamina-wasm` can share on
 - [ ] README ends with the joint recommendation (with C1a) that C2a records in ADRs 0004 and 0009.
 - [ ] Nothing large is committed (generated 1,000-page file, scan, `.wasm` builds); the spike is outside the pnpm workspace and CI is unaffected.
 
+## Post-merge checks
+
+None.
+
 ## Tests
 
 Only the Playwright benchmark spec in the spike (run by hand, not in CI). Smoke: `fixtures/corpus/hello.pdf` renders and `enc.pdf` opens with its password in all three browsers.
@@ -92,8 +96,9 @@ Only the Playwright benchmark spec in the spike (run by hand, not in CI). Smoke:
 
 ## Definition of done
 
-- [ ] PR opened from a fresh worktree; this file moved `ready/` → `ongoing/` in the PR's first commit (status field updated, PR link added)
+- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [ ] Work PR opened from a fresh worktree; **PR** field filled in
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the PR (status `done`), plan links updated, plan to-dos ticked
+- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
 - [ ] Squash-merged; dependants' "Depends on" now satisfied

@@ -68,6 +68,10 @@ Build the reusable reader UI both shells share: `@lamina/ui`, a React 19 (React 
 - [ ] All user-visible strings come from the message catalogue.
 - [ ] React Compiler builds the package's demo without bail-out warnings for components in `src/components/` (or bail-outs are justified in code comments).
 
+## Post-merge checks
+
+None.
+
 ## Tests
 
 `packages/ui/src/**/*.test.tsx` (Testing Library, Vitest browser mode); state-machine unit tests; axe check on `examples/ui-demo`; fake `Viewer` and fake `Platform` in `packages/ui/test/fakes.ts`.
@@ -84,8 +88,9 @@ Build the reusable reader UI both shells share: `@lamina/ui`, a React 19 (React 
 
 ## Definition of done
 
-- [ ] PR opened from a fresh worktree; this file moved `ready/` → `ongoing/` in the PR's first commit (status field updated, PR link added)
+- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [ ] Work PR opened from a fresh worktree; **PR** field filled in
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the PR (status `done`), plan links updated, plan to-dos ticked
+- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
 - [ ] Squash-merged; dependants' "Depends on" now satisfied

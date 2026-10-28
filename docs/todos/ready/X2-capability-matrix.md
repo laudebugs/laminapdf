@@ -53,6 +53,10 @@ Make progress measurable and honest: a manifest of every operation in the [featu
 - [ ] The generated README shows at least: page count/outline read (core), `SetInfo`/`RotatePage` round-trip (core)
 - [ ] Runs in the full lane
 
+## Post-merge checks
+
+None.
+
 ## Tests
 
 Unit tests for status aggregation and README generation; an integration test with a fake manifest and fake test results.
@@ -69,8 +73,9 @@ Unit tests for status aggregation and README generation; an integration test wit
 
 ## Definition of done
 
-- [ ] PR opened from a fresh worktree; this file moved `ready/` → `ongoing/` in the PR's first commit (status field updated, PR link added)
+- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [ ] Work PR opened from a fresh worktree; **PR** field filled in
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the PR (status `done`), plan links updated, plan to-dos ticked
+- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
 - [ ] Squash-merged; dependants' "Depends on" now satisfied

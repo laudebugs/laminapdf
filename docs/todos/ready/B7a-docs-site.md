@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [pdf-library §7 B7](../../plans/pdf-library.md#b7-docs-examples-and-first-release), [§6](../../plans/pdf-library.md#6-docs-examples-and-publishing) |
 | Round / milestone | Round B (library) — M1 |
-| Depends on | [B6b](./B6b-lamina-pdf-package.md) |
+| Depends on | [B2b](./B2b-standard-security-decryption.md), [B6b](./B6b-lamina-pdf-package.md) |
 | Blocks | [B7b](./B7b-versioning-and-0-1-0-alpha.md) |
 | ADRs | Follows [0015](../../decisions/0015-monorepo-layout-and-tooling.md) (apps in the pnpm workspace), [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) (npm licences), 0016 (API names); Cloudflare deploy conventions until ADR 0011 (web C2) |
 | Branch | `docs/b7a-docs-site` |
@@ -55,6 +55,10 @@ Publish usable documentation for `lamina` and `@lamina/pdf` before the first tag
 - [ ] Every code snippet on the site is imported from a tested example file
 - [ ] The error/warning code table matches `fixtures/codes.json` (generated)
 
+## Post-merge checks
+
+None.
+
 ## Tests
 
 Site build in CI; snippet sources are already tested by [B5c](./B5c-lamina-facade-and-examples.md)/[B6b](./B6b-lamina-pdf-package.md).
@@ -71,8 +75,9 @@ Site build in CI; snippet sources are already tested by [B5c](./B5c-lamina-facad
 
 ## Definition of done
 
-- [ ] PR opened from a fresh worktree; this file moved `ready/` → `ongoing/` in the PR's first commit (status field updated, PR link added)
+- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [ ] Work PR opened from a fresh worktree; **PR** field filled in
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the PR (status `done`), plan links updated, plan to-dos ticked
+- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
 - [ ] Squash-merged; dependants' "Depends on" now satisfied

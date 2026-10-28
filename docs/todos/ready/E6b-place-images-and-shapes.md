@@ -43,7 +43,7 @@ Add new content objects to existing pages through the append API: images (JPEG p
 - **Operations shipped** ([06 §3](../../research/pdf/06-feature-inventory.md#3-full-operation-inventory-with-mechanisms) IDs): `B.01` insert, delete, replace images; `B.02` resize, rotate, crop, reposition; `B.04` adjust transparency/opacity; `B.05` draw lines, rectangles, circles, polygons; `B.09` add logos, icons, stamps; `B.12` transformations on graphical objects
 - **Crates and packages:** `lamina-content`, `lamina-build`, `lamina-ops`
 - **`Op` variants:** `AddContentObject`, `UpdateContentObject`, `DeleteContentObject` (class `Content`)
-- **`SaveConstraint`:** `Free` → incremental. Signed: class `Content` violates every DocMDP level and approval signatures' integrity → blocked unless the user confirms invalidating the named signatures
+- **`SaveConstraint`:** `Free` → incremental. Signed: class `Content` is a DocMDP violation at every certification level (ADR 0007 §2: P1 allows no changes; P2 allows only form filling, page templates and signing; P3 adds annotations) → blocked unless the user confirms invalidating the named signatures (ADR 0007 §3 override). With approval signatures only (no certification): `AppendOnly`, an incremental update that keeps their `/ByteRange` intact; a violation only when it changes a field locked by FieldMDP/`/Lock` (the signature panel, E10h, reports the later content change)
 - **Web vs desktop:** identical
 - **Server features:** none (this PR adds no server feature; all processing stays on the device)
 - **Capability-matrix rows to flip:** `B.01` → `write` (core, pdf); `B.02` → `write` (core, pdf); `B.04` → `round-trip` (core, pdf); `B.05` → `round-trip` (core, pdf); `B.09` → `round-trip` (core, pdf); `B.12` → `write` (core, pdf)
@@ -64,6 +64,10 @@ Add new content objects to existing pages through the append API: images (JPEG p
 - [ ] Added objects render identically in pdf.js, PDFium and hayro
 - [ ] Original page content renders unchanged (diff outside the added object's bbox is zero)
 
+## Post-merge checks
+
+None.
+
 ## Tests
 
 - Render diffs
@@ -82,8 +86,9 @@ Add new content objects to existing pages through the append API: images (JPEG p
 
 ## Definition of done
 
-- [ ] PR opened from a fresh worktree; this file moved `ready/` → `ongoing/` in the PR's first commit (status field updated, PR link added)
+- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [ ] Work PR opened from a fresh worktree; **PR** field filled in
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the PR (status `done`), plan links updated, plan to-dos ticked
+- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
 - [ ] Squash-merged; dependants' "Depends on" now satisfied

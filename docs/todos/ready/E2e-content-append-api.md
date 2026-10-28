@@ -32,7 +32,7 @@ Add the minimal write API to `lamina-content` that never parses existing operato
 
 - `PageContentWriter` over `CosMut`: `wrap_existing()`, `prepend(stream)`, `append(stream)`, `add_xobject(form) -> Name`, `add_extgstate`, `add_font` with unused-name allocation in the page's (possibly inherited or shared) `/Resources`
 - Copy-on-write of shared `/Resources` dictionaries before adding names
-- `q`/`Q` balance scan over existing streams (tokens only, string and inline-image aware) and closing `Q`s when unbalanced
+- `q`/`Q` balance scan over the page's concatenated streams (tokens only, string and inline-image aware) that returns the minimum running depth `m` (≤ 0; below zero when the content has surplus `Q`s) and the final depth `e`. `wrap_existing()` prepends `1 + |m|` `q`s and appends `1 + e − m` `Q`s, so the outermost saved state is never popped by a stray `Q` inside the original content (its depth never drops below 1) and the stack is back at zero before anything is appended; the appended `q <cm> /Fm1 Do Q` then runs from the page's initial graphics state. Isolating the original content as a Form XObject was rejected: it changes resource inheritance and breaks MCIDs/structure references
 - `Op::AppendContent { page, placement: Prepend|Append, form: BlobId|FormSpec, matrix }` (class `Content`)
 - Idempotent wrapping: a page wrapped once is not wrapped again (marker via structure, not private keys)
 
@@ -44,7 +44,7 @@ Add the minimal write API to `lamina-content` that never parses existing operato
 
 - **Crates and packages:** `lamina-content` (writer module), `lamina-build` (Form XObject construction), `lamina-ops`
 - **`Op` variants:** `AppendContent` (class `Content`)
-- **`SaveConstraint`:** `Free` → incremental. Signed: class `Content` violates every DocMDP level; blocked unless overridden
+- **`SaveConstraint`:** `Free` → incremental. Signed: class `Content` is a DocMDP violation at every certification level (ADR 0007 §2: P1 allows no changes; P2 allows only form filling, page templates and signing; P3 adds annotations) → blocked unless the user confirms invalidating the named signatures (ADR 0007 §3 override). With approval signatures only (no certification): `AppendOnly`, an incremental update that keeps their `/ByteRange` intact (the signature panel, E10h, reports the content change); a violation only when it changes a field locked by FieldMDP/`/Lock`
 - **Web vs desktop:** identical (core)
 - **Server features:** none (this PR adds no server feature; all processing stays on the device)
 - **Capability-matrix rows to flip:** none directly; enables C.10 (E2f), D.14 (E5e), E.14 (E8g), group B/A additions (E6)
@@ -55,15 +55,19 @@ Add the minimal write API to `lamina-content` that never parses existing operato
 - [ ] Resource-name allocator (`Fm1`, `Gs1`, …) avoiding names in inherited resources
 - [ ] Copy-on-write for shared resource dicts and shared content streams
 - [ ] `AppendContent` op with undo
-- [ ] Tests on pages with unbalanced `q`, inline images containing `Q` bytes, shared resources
+- [ ] Tests on pages with surplus `q`, surplus `Q` (e.g. `q 2 0 0 2 0 0 cm … Q Q 0 0 1 rg`), both in different streams of one `/Contents` array, inline images containing `Q` bytes, shared resources
 
 ## Acceptance criteria
 
 - [ ] Property tests: for every new op, apply then undo leaves the overlay empty and the next save is byte-identical to the previous one (ADR 0006 §3); redo re-applies the same bytes
 - [ ] Every new op reports its `ModificationClass` and `requires_rewrite` (ADR 0006 §1); a test per op runs `planner.would_violate(&op)` on the signed fixtures (no certification, DocMDP P1, P2, P3, FieldMDP lock) and asserts the verdict ([ADR 0007](../../decisions/0007-save-planner.md) §2), because a misclassified op is a security bug
 - [ ] Appending a filled rectangle to every page of 30 corpus files renders the original pixels unchanged plus the rectangle (PDFium diff) and passes qpdf `--check`
-- [ ] Pages with unbalanced `q` are rendered identically before/after wrapping
+- [ ] Pages with unbalanced `q` or surplus `Q` are rendered identically before/after wrapping, and a rectangle appended to the surplus-`Q` fixture lands at the same place and colour as on a balanced page (no leaked CTM, clip or colour); a unit test checks the prepended/appended counts against the scan's `m` and `e`
 - [ ] Fuzz target for the token scan runs 10 min without panic
+
+## Post-merge checks
+
+None.
 
 ## Tests
 
@@ -83,8 +87,9 @@ Add the minimal write API to `lamina-content` that never parses existing operato
 
 ## Definition of done
 
-- [ ] PR opened from a fresh worktree; this file moved `ready/` → `ongoing/` in the PR's first commit (status field updated, PR link added)
+- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [ ] Work PR opened from a fresh worktree; **PR** field filled in
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the PR (status `done`), plan links updated, plan to-dos ticked
+- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
 - [ ] Squash-merged; dependants' "Depends on" now satisfied

@@ -43,7 +43,7 @@ Put the desktop reader in users' hands: tag and publish `desktop v0.1.0` to the 
 - Release: tag `desktop-v0.1.0` → workflow publishes to `beta` at the rollout chosen per ADR 0014 (for a first beta, 100 % of a small audience is fine — record), downloads JSON updated, download page shows Beta.
 - Announcement text (README badge/section, project site) — no external posting required by this todo.
 - **Update cycle**: after ≥ 3 days, release `0.1.1` (real fixes from beta feedback, or a small change) through the same pipeline with staged rollout 10 % → 50 % → 100 % on `beta`, observing the Worker's 200/204 counts (aggregate only) and crash reports; confirm on each OS that a `0.1.0` install updated to `0.1.1` without user action beyond the restart prompt (owner/maintainer machines plus at least one external tester per OS if available).
-- Rehearse the kill switch once on `beta` during the 0.1.1 rollout (pause → verify 204 within 60 s → resume), recorded.
+- Rehearse the kill switch once on `beta` during the 0.1.1 rollout (pause → poll the Worker every 5 s from at least two regions, with and without the install-ID header → every response is 204 within 60 s of the R2 write, expected ≤ 30 s given ADR 0014's single 30 s cache layer → resume), recorded with the measured times.
 - Post-release: board updated, plan to-dos ticked, follow-up todos created for issues found (in `ready/` with IDs continuing the D series, e.g. `D8a…`, or under the editor plan if editor-related).
 
 **Out of scope** (and which todo covers it)
@@ -66,9 +66,14 @@ Put the desktop reader in users' hands: tag and publish `desktop v0.1.0` to the 
 
 - [ ] `desktop v0.1.0` is downloadable from `<domain>/download` for macOS, Windows and Linux; each artefact passes the runbook's signature checks (Gatekeeper, Authenticode with the owner as publisher, GPG/debsig/rpm, AppImage) and `gh attestation verify`.
 - [ ] At least one install per OS on the beta channel auto-updated from `0.1.0` to `0.1.1` (recorded: OS version, install type, time to update).
-- [ ] Kill switch rehearsal: `paused` on `beta` → Worker returns 204 within 60 s → resumed (recorded).
+- [ ] Kill switch rehearsal: `paused` on `beta` → every poll returns 204 within 60 s of the manifest write (measured worst case recorded; anything over 30 s is investigated as a sign of a second cache layer) → resumed (recorded).
 - [ ] Crash reporting: zero reports sent without consent (no reports at all is fine); any received reports triaged into follow-up todos.
 - [ ] Known issues and target misses are listed in the release notes and have follow-up todos.
+
+## Post-merge checks
+
+- [ ] Tag `desktop-v0.1.0` from `main` after this PR merges and approve the `release` environment; the publish job and post-publish Worker check are green.
+- [ ] The 0.1.1 update cycle and kill-switch rehearsal (acceptance criteria above) are recorded in a follow-up commit while this file stays in `ongoing/`.
 
 ## Tests
 
@@ -89,8 +94,9 @@ No new automated tests required; the release relies on the CI suites from D2e–
 
 ## Definition of done
 
-- [ ] PR opened from a fresh worktree; this file moved `ready/` → `ongoing/` in the PR's first commit (status field updated, PR link added)
+- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [ ] Work PR opened from a fresh worktree; **PR** field filled in
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the PR (status `done`), plan links updated, plan to-dos ticked
+- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
 - [ ] Squash-merged; dependants' "Depends on" now satisfied

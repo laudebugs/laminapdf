@@ -43,7 +43,7 @@ Attach, extract and delete embedded files (EmbeddedFiles name tree), attach asso
 - **Operations shipped** ([06 §3](../../research/pdf/06-feature-inventory.md#3-full-operation-inventory-with-mechanisms) IDs): `J.05` attach / extract / delete embedded files; `J.06` portfolios / collections; `H.09` extract attachments; `M.09` associated files and structured metadata
 - **Crates and packages:** `lamina-model` (file specs, name tree from E3b), `lamina-ops`, `@lamina/ui`
 - **`Op` variants:** `AttachFile`, `UpdateAttachment`, `DeleteAttachment` (class `Document`)
-- **`SaveConstraint`:** `Free` → incremental; signed: adding attachments is class `Document` → only allowed where permitted (not under DocMDP P1–P3); gated. Deleting an attachment leaves it in earlier revisions: notice offers full rewrite
+- **`SaveConstraint`:** `Free` → incremental; signed: adding or changing attachments is class `Document`, a DocMDP violation at every certification level (ADR 0007 §2: P1 allows no changes; P2 allows only form filling, page templates and signing; P3 adds annotations) → warn and gate (override names the signatures). With approval signatures only (no certification): `AppendOnly`, an incremental update that keeps their `/ByteRange` intact; a violation only when it changes a field locked by FieldMDP/`/Lock`. Deleting an attachment leaves it in earlier revisions: notice offers full rewrite
 - **Web vs desktop:** identical; desktop saves extracted files to disk via dialog, web downloads
 - **Server features:** none (attachments never leave the device)
 - **Capability-matrix rows to flip:** `J.05` → `round-trip` (core, pdf, web, desktop); `J.06` → `read` (core, pdf, web, desktop); `H.09` → `write` (core, pdf, web, desktop); `M.09` → `round-trip` (core, pdf, web, desktop)
@@ -66,6 +66,10 @@ Attach, extract and delete embedded files (EmbeddedFiles name tree), attach asso
 - [ ] Attachments extracted equal the originals byte-for-byte (SHA-256)
 - [ ] pdf.js lists attachments added by lamina
 
+## Post-merge checks
+
+None.
+
 ## Tests
 
 - Unit and round-trip
@@ -86,8 +90,9 @@ Attach, extract and delete embedded files (EmbeddedFiles name tree), attach asso
 
 ## Definition of done
 
-- [ ] PR opened from a fresh worktree; this file moved `ready/` → `ongoing/` in the PR's first commit (status field updated, PR link added)
+- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [ ] Work PR opened from a fresh worktree; **PR** field filled in
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the PR (status `done`), plan links updated, plan to-dos ticked
+- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
 - [ ] Squash-merged; dependants' "Depends on" now satisfied

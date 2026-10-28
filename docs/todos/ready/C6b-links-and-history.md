@@ -31,10 +31,10 @@ Make links in PDFs work safely. A DOM link layer on each mounted page turns link
 **In scope**
 
 - RPC `pageLinks(page) → Link[]` (rect/quads in PDF space, `kind: "dest" | "named" | "uri" | "remote" | "named-action" | "unsupported"`, resolved destination or URI, `/Contents` alt text, border style ignored in the layer) from lamina's annotation reading; add a minimal read-only link-annotation accessor in `lamina-model`/`lamina-wasm` if B2/B6 lack it (coordinate with library owner).
-- `packages/viewer/src/layers/link-layer.ts`: `a` elements positioned over link rects (above the text layer, below highlights; links don't block text selection — pointer events only on the link rect), `href` set to `#page=N` for internal links (so middle-click/new-tab is meaningful) or the URI for external links, `aria-label` from `/Contents` or the URI/destination; Tab order follows page order.
+- `packages/viewer/src/layers/link-layer.ts`: `a` elements positioned over link rects (above the text layer, below highlights; links don't block text selection — pointer events only on the link rect), `href` for internal links built from the **current fragment** with C4c's `buildFragment(current, { page: N })` (e.g. `#url=<encoded>&page=N`), so `#url=` and other keys are preserved and middle-click/new-tab on a remote document opens the same document at that page (for a local file the new tab shows the empty reader — there is no way to hand a `File` to another tab; acceptable), and a primary click/Enter always `preventDefault()`s and routes through `NavigationHistory`; for external links `href` is the URI, `aria-label` from `/Contents` or the URI/destination; Tab order follows page order.
 - External link confirmation dialog in `@lamina/ui` ("This document wants to open https://… — Open / Copy link / Cancel"), showing the full URL with the host emphasised; only `http(s):` and `mailto:` allowed, everything else shown as unsupported; opened via `Platform.openExternal` with `noopener,noreferrer`.
 - Named actions (`NextPage`, `PrevPage`, `FirstPage`, `LastPage`) supported; `GoToR` (remote file) shown as unsupported with the file name; `Launch`, `JavaScript`, `SubmitForm`, `ImportData`, `ResetForm` never executed (logged in debug, listed in the "unsupported features" notice).
-- `NavigationHistory` in `@lamina/viewer`: stack of `{ page, scroll offset, zoom }` with coalescing (scrolling alone doesn't push; jumps do), back/forward methods, max length; keyboard `alt+←`/`alt+→` (and `cmd+[`/`cmd+]` on macOS); toolbar buttons; integration with `history.pushState` using only the fragment (`#page=N`), preserving any `#url=` part, so browser Back works without leaking anything to the server.
+- `NavigationHistory` in `@lamina/viewer`: stack of `{ page, scroll offset, zoom }` with coalescing (scrolling alone doesn't push; jumps do), back/forward methods, max length; keyboard `alt+←`/`alt+→` (and `cmd+[`/`cmd+]` on macOS); toolbar buttons; integration with `history.pushState` using only the fragment, built with `buildFragment(current, { page: N })` so `url` and other keys are preserved (never a bare `#page=N`), and relying on C4c's `hashchange` rule (only a changed `url` re-opens), so browser Back works without leaking anything to the server.
 
 **Out of scope** (and which todo covers it)
 
@@ -56,15 +56,20 @@ Make links in PDFs work safely. A DOM link layer on each mounted page turns link
 
 - [ ] **Link targets match `expected.json`** for every corpus file with links (internal page index and external URI).
 - [ ] Clicking or pressing Enter on an internal link navigates to the destination with the right fit; Back returns to the previous position (page and scroll within 1 page height), Forward re-applies.
-- [ ] Browser Back after an internal jump returns to the previous page without reloading; the URL path never changes, only the fragment; `#url=` stays intact.
+- [ ] Browser Back after an internal jump returns to the previous page without reloading or re-opening (no new `open` RPC, no new remote requests); the URL path never changes, only the fragment; `#url=` stays intact.
+- [ ] Internal link `href`s on a remote document keep the encoded `url` key (`#url=<encoded>&page=N`); a middle-click (`page.click(…, { button: "middle" })`, or reading the `href` and opening it in a new page where the engine doesn't open tabs on middle-click) opens a new tab on the same remote document at page N; a primary click doesn't change the fragment except through `NavigationHistory`.
 - [ ] External link: a confirmation shows the full URL; Cancel does nothing; Open opens a new tab with no `Referer` (asserted with a local test server) and no `window.opener`.
 - [ ] `javascript:`, `file:`, `data:` URIs and `Launch`/`JavaScript` actions are never executed; they're reported as unsupported.
 - [ ] Links are reachable by Tab in page order and have accessible names; zero serious axe violations on a links fixture.
 - [ ] Text under a link can still be selected by dragging from outside the link.
 
+## Post-merge checks
+
+None.
+
 ## Tests
 
-Rust unit tests (accessor); Vitest unit tests (history coalescing, URL validation and display); Vitest browser tests (link-layer DOM); Playwright `apps/web/e2e/links.spec.ts` and `history.spec.ts` (three engines) with a local server checking `Referer`.
+Rust unit tests (accessor); Vitest unit tests (history coalescing, URL validation and display); Vitest browser tests (link-layer DOM); Playwright `apps/web/e2e/links.spec.ts` (including middle-click/new-tab on an internal link of a `#url=` document) and `history.spec.ts` (three engines) with a local server checking `Referer`.
 
 ## Docs to update
 
@@ -78,8 +83,9 @@ Rust unit tests (accessor); Vitest unit tests (history coalescing, URL validatio
 
 ## Definition of done
 
-- [ ] PR opened from a fresh worktree; this file moved `ready/` → `ongoing/` in the PR's first commit (status field updated, PR link added)
+- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [ ] Work PR opened from a fresh worktree; **PR** field filled in
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the PR (status `done`), plan links updated, plan to-dos ticked
+- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
 - [ ] Squash-merged; dependants' "Depends on" now satisfied

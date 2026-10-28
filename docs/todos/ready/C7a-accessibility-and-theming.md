@@ -69,6 +69,10 @@ Make the reader meet WCAG 2.2 AA for its chrome and work fully without a mouse. 
 - [ ] **A manual NVDA, VoiceOver and keyboard-only pass is recorded** in `apps/web/ACCESSIBILITY.md` with date, versions, findings and linked issues; no open finding is severity "blocker".
 - [ ] Page changes and search results are announced (verified in the manual pass and by asserting live-region contents in e2e).
 
+## Post-merge checks
+
+None.
+
 ## Tests
 
 Unit tests (keymap, dispatcher, announcer throttling, contrast script); Playwright `a11y.spec.ts` (axe), `keyboard-journey.spec.ts`, theme screenshots; manual AT checklist.
@@ -85,8 +89,9 @@ Unit tests (keymap, dispatcher, announcer throttling, contrast script); Playwrig
 
 ## Definition of done
 
-- [ ] PR opened from a fresh worktree; this file moved `ready/` → `ongoing/` in the PR's first commit (status field updated, PR link added)
+- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [ ] Work PR opened from a fresh worktree; **PR** field filled in
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the PR (status `done`), plan links updated, plan to-dos ticked
+- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
 - [ ] Squash-merged; dependants' "Depends on" now satisfied

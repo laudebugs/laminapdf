@@ -11,7 +11,7 @@ Keep the section order; delete a section only if it truly doesn't apply (write "
 | --- | --- |
 | ID | `<ID>` |
 | Status | `ready` \| `ongoing` \| `done` (must match the folder) |
-| Plan | [<plan name> §<section>](../../plans/<plan>.md#<anchor>) |
+| Plan | `[<plan name> §<section>](../../plans/<plan>.md#<anchor>)` (a link relative to `docs/todos/<state>/`) |
 | Round / milestone | <e.g. Round B (library) — M1> |
 | Depends on | <todo IDs that must be **done** (merged) first, linked; or "None"> |
 | Blocks | <todo IDs that wait for this one> |
@@ -51,6 +51,12 @@ Observable, checkable conditions (tests that must exist and pass, tools that mus
 
 - [ ] …
 
+## Post-merge checks
+
+Things that can only be verified after merge (scheduled or `workflow_dispatch` runs that need the workflow on `main`, tags, production deploys). They are not acceptance criteria; tick them in a follow-up PR (or note them in the done todo) once they've run. "None" if everything is checkable before merge.
+
+- [ ] …
+
 ## Tests
 
 Which tests to add (unit, integration, golden, corpus, differential, fuzz, browser/e2e), where they live, and what fixtures they need.
@@ -65,8 +71,9 @@ What could go wrong, what's unknown, what to decide during the work (and who dec
 
 ## Definition of done
 
-- [ ] PR opened from a fresh worktree; this file moved `ready/` → `ongoing/` in the PR's first commit (status field updated, PR link added)
+- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [ ] Work PR opened from a fresh worktree; **PR** field filled in
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the PR (status `done`), plan links updated, plan to-dos ticked
+- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
 - [ ] Squash-merged; dependants' "Depends on" now satisfied

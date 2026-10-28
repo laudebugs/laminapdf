@@ -70,6 +70,10 @@ When lamina or its engine crashes or panics, we want to learn why — **only if 
 - [ ] Worker tests: schema validation, size cap, path-like rejection, rate limiting, no body/IP logging (console spy), R2 key layout.
 - [ ] Engine crashes still trigger the D2b restart flow, unaffected by reporting.
 
+## Post-merge checks
+
+None.
+
 ## Tests
 
 - Rust unit tests: scrubber (Unix/Windows paths, UNC, `file://`, home `~`, emails), report builder allow-list (unknown fields impossible by construction), consent state machine.
@@ -91,8 +95,9 @@ When lamina or its engine crashes or panics, we want to learn why — **only if 
 
 ## Definition of done
 
-- [ ] PR opened from a fresh worktree; this file moved `ready/` → `ongoing/` in the PR's first commit (status field updated, PR link added)
+- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [ ] Work PR opened from a fresh worktree; **PR** field filled in
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the PR (status `done`), plan links updated, plan to-dos ticked
+- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
 - [ ] Squash-merged; dependants' "Depends on" now satisfied

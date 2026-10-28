@@ -6,8 +6,8 @@
 | Status | `ready` |
 | Plan | [pdf-library §7 B2](../../plans/pdf-library.md#b2-document-model), requirement [§4 F7](../../plans/pdf-library.md#functional) |
 | Round / milestone | Round B (library) — M1 |
-| Depends on | [B2a](../ongoing/B2a-limits-owned-document.md) |
-| Blocks | [B9b](./B9b-text-extraction-core.md), [C4c](./C4c-remote-files-encryption-privacy.md), [E11b](./E11b-encrypt-on-write.md) |
+| Depends on | [B2a](../done/B2a-limits-owned-document.md) |
+| Blocks | [B3c](./B3c-save-planner-and-roundtrip.md), [B6b](./B6b-lamina-pdf-package.md), [B7a](./B7a-docs-site.md), [B9b](./B9b-text-extraction-core.md), [C4c](./C4c-remote-files-encryption-privacy.md), [E11b](./E11b-encrypt-on-write.md) |
 | ADRs | Follows [0003](../../decisions/0003-reader-tolerance-and-limits.md) (encrypted files open; password in `OpenOptions`), [0001](../../decisions/0001-core-language-and-licence.md) (no C crypto, permissive licences), [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) (new crypto crates through cargo-deny) |
 | Branch | `feat/b2b-decryption` |
 | PR title | `feat(core): standard security handler decryption (R2–R6, crypt filters)` |
@@ -36,7 +36,7 @@ Let `Document::open` read files encrypted with the standard security handler whe
 - Decryption of strings and streams on resolve, per-object keys for R2–R4, the file key for R5/R6; `/Identity` filter; per-stream `/Crypt` filter with `/Name`; `/EncryptMetadata false` leaves the XMP metadata stream plaintext; exempt objects (the `/Encrypt` dict, xref streams, trailer `/ID`, signature `/Contents` of `/Type /Sig` dicts) are never decrypted; strings inside object streams are not decrypted twice.
 - `OpenOptions::with_password(bytes or &str)`; `Document::permissions()` (typed `Permissions` from `/P`, masked per §7.4), `Document::encryption()` summary (V, R, cipher, key bits, `encrypt_metadata`), `Document::is_authenticated()` and which password matched (`User`/`Owner`).
 - Errors: `Error::PasswordRequired` (non-empty user password and none given), `Error::WrongPassword`, `Error::UnsupportedSecurityHandler { filter }` (public-key handler, unknown `/V`/`/R`), with codes in `fixtures/codes.json`.
-- Encrypted fixtures for every revision with a reproducible generator.
+- Encrypted fixtures for every revision with a reproducible generator, in `fixtures/encrypted/` with their own facts file `fixtures/encrypted/expected.json` (the single source of truth for them). [B2c](./B2c-lamina-model-corpus-fuzz.md)'s corpus regeneration only touches `fixtures/corpus/`, so the two todos stay parallel and neither overwrites the other.
 
 **Out of scope** (and which todo covers it)
 
@@ -55,7 +55,8 @@ Let `Document::open` read files encrypted with the standard security handler whe
 - [ ] Object streams: decrypt the container once; members not decrypted again
 - [ ] `OpenOptions::with_password`, `Document::permissions()`, `encryption()`, error variants and codes
 - [ ] `fixtures/encrypted/` generator: `tools/xtask` subcommand `cargo xtask fixtures encrypted` (or a script under `fixtures/encrypted/make.sh`) that uses qpdf (`--encrypt user owner 40|128|256 --use-aes=y|n --cleartext-metadata`) and pypdf to produce from one plaintext source (with Info strings, an outline and text): R2 RC4-40, R3 RC4-128, R4 RC4-128, R4 AES-128, R4 AES-128 with `/EncryptMetadata false`, R5 AES-256 (pypdf), R6 AES-256; each with (a) empty user password and (b) user + owner passwords; one with an `/Identity` stream filter; record commands and tool versions in `fixtures/README.md`
-- [ ] `fixtures/corpus/expected.json` entries for the encrypted set (facts from pypdf/qpdf, not lamina)
+- [ ] `fixtures/encrypted/expected.json` for the encrypted set, written by a password-aware facts script next to the generator (`fixtures/encrypted/facts.py`, pinned pypdf; passwords per file, page count, outline titles, Info strings, `qpdf --show-encryption` permissions) — facts from pypdf/qpdf, never lamina; nothing is written to `fixtures/corpus/expected.json`
+- [ ] Fuzz seeds: whichever of B2b and B2c merges **second** adds `fixtures/encrypted/*.pdf` to the `open` fuzz target's seed script and makes the target try the empty password and each fixture's password from `fixtures/encrypted/expected.json`. If B2c is already merged when this PR opens, do it here; otherwise B2c does it
 - [ ] Remove "Decryption arrives in Round B2" from ADR 0003's tolerance table (amend the row: encrypted file opens and decrypts given a password)
 
 ## Acceptance criteria
@@ -69,18 +70,22 @@ Let `Document::open` read files encrypted with the standard security handler whe
 - [ ] `incremental_update` on an encrypted base still fails with `EncryptedBase`
 - [ ] No new `unsafe`; crypto crates pass cargo-deny and the portability check
 
+## Post-merge checks
+
+None.
+
 ## Tests
 
 - Unit: `lamina-syntax` crypt known-answer tests (RC4, AES-CBC, MD5 rounds, 2.B loop termination).
 - Integration: `crates/lamina-cos/tests/encryption.rs` over `fixtures/encrypted/` vs plaintext originals; wrong/missing password; `/Identity` and `/Crypt` per-stream; mixed plaintext objects (PDFex shape) behave per spec (plaintext strings in an encrypted doc are decrypted as garbage → documented, no panic).
-- Corpus: encrypted entries in `expected.json` (page count from pypdf with the password).
-- Fuzz: [B2c](./B2c-lamina-model-corpus-fuzz.md) seeds include the encrypted fixtures (open with the known password).
+- Facts: `fixtures/encrypted/expected.json` (page count, outline titles and Info from pypdf with the password); `crates/lamina-cos/tests/encryption.rs` reads it.
+- Fuzz: encrypted fixtures seed the `open` target, added by whichever of B2b/[B2c](./B2c-lamina-model-corpus-fuzz.md) merges second (see Tasks).
 
 ## Docs to update
 
 - [ ] [pdf-library §10 B2](../../plans/pdf-library.md#10-to-dos): tick the decryption and encrypted-fixtures to-dos
 - [ ] ADR 0003 tolerance table row "Encrypted file"
-- [ ] `fixtures/README.md` (provenance, generator commands), `crates/lamina-cos/README.md`
+- [ ] `fixtures/README.md` (provenance, generator commands, `fixtures/encrypted/expected.json` and its script), `crates/lamina-cos/README.md`
 
 ## Risks and open questions
 
@@ -92,8 +97,9 @@ Let `Document::open` read files encrypted with the standard security handler whe
 
 ## Definition of done
 
-- [ ] PR opened from a fresh worktree; this file moved `ready/` → `ongoing/` in the PR's first commit (status field updated, PR link added)
+- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [ ] Work PR opened from a fresh worktree; **PR** field filled in
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the PR (status `done`), plan links updated, plan to-dos ticked
+- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
 - [ ] Squash-merged; dependants' "Depends on" now satisfied

@@ -6,9 +6,9 @@
 | Status | `ready` |
 | Plan | [full-editor §E1](../../plans/full-editor.md#e1-editing-foundation) |
 | Round / milestone | Editor phase 2 (E1–E3) — M5 Organiser |
-| Depends on | [D3b](./D3b-recent-files-and-file-watching.md), [E1d](./E1d-edit-session-undo-ui.md) |
+| Depends on | [D3b](./D3b-recent-files-and-file-watching.md), [E1c](./E1c-metadata-ops.md), [E1d](./E1d-edit-session-undo-ui.md) |
 | Blocks | [E1f](./E1f-metadata-ui-capability-page.md), [E2h](./E2h-page-organiser-ui.md), [E4f](./E4f-annotation-tools-ui.md), [E8e](./E8e-field-widgets-ui.md), [H3](./H3-cloud-document-storage.md) |
-| Dependency notes | [E1d](E1d-edit-session-undo-ui.md), `D3` ([desktop-app §D3](../../plans/desktop-app.md#d3-files): files and watching) |
+| Dependency notes | [E1c](E1c-metadata-ops.md) (`SaveOptions { metadata_date, instance_id }`, `ConformanceWarning`, `SaveReport::metadata_not_updated`), [E1d](E1d-edit-session-undo-ui.md), `D3` ([desktop-app §D3](../../plans/desktop-app.md#d3-files): files and watching) |
 | ADRs | Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
 | Branch | `feat/e1e-save-and-constraint-banner` |
 | PR title | `feat(app): save through the platform adapter with the save-constraint banner` |
@@ -34,7 +34,7 @@ Let users save edits safely on both shells: Save (incremental by default), Save 
 - Web: File System Access API (`showSaveFilePicker`, `createWritable`) where available; streamed `WriteSink` into it; otherwise download via Blob URL; OPFS spool for full rewrites (readable sink for rebase)
 - Desktop: in-place save with `IncrementalOutput::AppendedOnly` append for incremental saves (atomic temp-file + rename for full rewrites); suppress the file watcher for our own writes; external change while dirty → conflict dialog (reload / save as / overwrite)
 - `SaveConstraint` banner component: kind, signatures (field, signer, kind), rewrite reasons, violations; explanation texts; confirm dialog naming each signature before `invalidate_signatures: true`
-- Show `ConformanceWarning`s from E1c before saving
+- Show `ConformanceWarning`s from E1c before saving, and say when save-time metadata was left unchanged to keep a certification valid (`metadata_not_updated`)
 - Pass save-time inputs (`metadata_date`, `instance_id`) from the shell (clock at the edge)
 
 **Out of scope** (and which todo covers it)
@@ -67,6 +67,10 @@ Let users save edits safely on both shells: Save (incremental by default), Save 
 - [ ] A failed write leaves the document dirty and the original file intact (desktop test with a read-only file)
 - [ ] Web: Chromium saves in place via FSA; Firefox and WebKit download a copy
 
+## Post-merge checks
+
+None.
+
 ## Tests
 
 - Playwright: `apps/web/e2e/save.spec.ts` (FSA mocked in Chromium, download path elsewhere)
@@ -87,8 +91,9 @@ Let users save edits safely on both shells: Save (incremental by default), Save 
 
 ## Definition of done
 
-- [ ] PR opened from a fresh worktree; this file moved `ready/` → `ongoing/` in the PR's first commit (status field updated, PR link added)
+- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [ ] Work PR opened from a fresh worktree; **PR** field filled in
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the PR (status `done`), plan links updated, plan to-dos ticked
+- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
 - [ ] Squash-merged; dependants' "Depends on" now satisfied

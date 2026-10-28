@@ -6,9 +6,9 @@
 | Status | `ready` |
 | Plan | [web reader §6 C5. Text, selection and search](../../plans/web-app.md#c5-text-selection-and-search) |
 | Round / milestone | Round C (web reader) — M2 Web reader v0.1 |
-| Depends on | [B9c](./B9c-text-extraction-bindings-and-differential.md), [C4c](./C4c-remote-files-encryption-privacy.md) |
+| Depends on | [B9c](./B9c-text-extraction-bindings-and-differential.md), [C3c](./C3c-viewer-perf-harness.md), [C4c](./C4c-remote-files-encryption-privacy.md) |
 | Blocks | [C5b](./C5b-find-in-document.md), [C6b](./C6b-links-and-history.md), [C6c](./C6c-print-download-properties.md) |
-| Dependency notes | Library **B9** (text extraction: `lamina-content`, `lamina-text`, `page.text()` in `@lamina/pdf`; [pdf-library B9](../../plans/pdf-library.md#b9-text-extraction)); [C4c](./C4c-remote-files-encryption-privacy.md) (app opens local, remote and encrypted files) |
+| Dependency notes | Library **B9** (text extraction: `lamina-content`, `lamina-text`, `page.text()` in `@lamina/pdf`; [pdf-library B9](../../plans/pdf-library.md#b9-text-extraction)); [C4c](./C4c-remote-files-encryption-privacy.md) (app opens local, remote and encrypted files); [C3c](./C3c-viewer-perf-harness.md) (perf harness scenario and long-task budget) |
 | ADRs | Follows 0004's two-parsers rule (text geometry from lamina, never from the renderer), 0009 (framework-free layer in `@lamina/viewer`), ADR 0023 (content-stream reading, from B9) |
 | Branch | `feat/c5a-text-layer` |
 | PR title | `feat(viewer): add the text layer with selection, copy and struct-tree linking` |
@@ -68,6 +68,10 @@ Make text in every rendered page selectable, copyable and readable by screen rea
 - [ ] Text-layer construction for a typical page takes no main-thread task > 50 ms (perf harness from C3c, informational).
 - [ ] Selection works across page boundaries for adjacent mounted pages.
 
+## Post-merge checks
+
+None.
+
 ## Tests
 
 Unit tests for `layoutSpans` (matrices, rotation, RTL, vertical); Vitest browser tests for the DOM layer reuse and copy handler; Playwright `apps/web/e2e/text-copy.spec.ts` (five scripts × plain/encrypted), `a11y-structure.spec.ts` (tagged/untagged). Fixtures from B9 (`fixtures/text/` or wherever B9 puts them) and B2 encrypted fixtures; expected texts are those used by B9's tests (one source of truth, ADR 0018 §5).
@@ -85,8 +89,9 @@ Unit tests for `layoutSpans` (matrices, rotation, RTL, vertical); Vitest browser
 
 ## Definition of done
 
-- [ ] PR opened from a fresh worktree; this file moved `ready/` → `ongoing/` in the PR's first commit (status field updated, PR link added)
+- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [ ] Work PR opened from a fresh worktree; **PR** field filled in
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the PR (status `done`), plan links updated, plan to-dos ticked
+- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
 - [ ] Squash-merged; dependants' "Depends on" now satisfied

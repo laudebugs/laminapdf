@@ -57,6 +57,10 @@ Prepare publishing so the first release is safe and needs no long-lived tokens: 
 - [ ] ADR 0017 Accepted in full
 - [ ] Attestation and SBOM steps produce artefacts in the dry run
 
+## Post-merge checks
+
+None.
+
 ## Tests
 
 Workflow dry run; `cargo publish --dry-run` and `pnpm publish --dry-run` for each package.
@@ -75,8 +79,9 @@ Workflow dry run; `cargo publish --dry-run` and `pnpm publish --dry-run` for eac
 
 ## Definition of done
 
-- [ ] PR opened from a fresh worktree; this file moved `ready/` → `ongoing/` in the PR's first commit (status field updated, PR link added)
+- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [ ] Work PR opened from a fresh worktree; **PR** field filled in
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the PR (status `done`), plan links updated, plan to-dos ticked
+- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
 - [ ] Squash-merged; dependants' "Depends on" now satisfied

@@ -6,9 +6,9 @@
 | Status | `ready` |
 | Plan | [web reader §6 C6. Navigation, print and properties](../../plans/web-app.md#c6-navigation-print-and-properties) |
 | Round / milestone | Round C (web reader) — M2 Web reader v0.1 |
-| Depends on | [B2c](./B2c-lamina-model-corpus-fuzz.md), [B6b](./B6b-lamina-pdf-package.md), [C4c](./C4c-remote-files-encryption-privacy.md) |
+| Depends on | [B2c](./B2c-lamina-model-corpus-fuzz.md), [B6b](./B6b-lamina-pdf-package.md), [C3c](./C3c-viewer-perf-harness.md), [C4c](./C4c-remote-files-encryption-privacy.md) |
 | Blocks | [C6b](./C6b-links-and-history.md), [C7a](./C7a-accessibility-and-theming.md) |
-| Dependency notes | [C4c](./C4c-remote-files-encryption-privacy.md) (app opens every file type); library B2 (`Outline` and `NameTree` views, `LaminaId`s; [pdf-library B2](../../plans/pdf-library.md#b2-document-model)) exposed through **B6** |
+| Dependency notes | [C4c](./C4c-remote-files-encryption-privacy.md) (app opens every file type); library B2 (`Outline` and `NameTree` views, `LaminaId`s; [pdf-library B2](../../plans/pdf-library.md#b2-document-model)) exposed through **B6**; [C3c](./C3c-viewer-perf-harness.md) (thumbnails keep the harness's long-task budget) |
 | ADRs | Follows 0004 (thumbnails rendered through `RenderBackend` at low priority), 0009, [0005](../../decisions/0005-document-model.md) §4–5 (typed views, stable IDs) |
 | Branch | `feat/c6a-thumbnails-outline` |
 | PR title | `feat(ui): add thumbnails and outline sidebars with page labels and go-to-page` |
@@ -35,7 +35,7 @@ Give readers the two classic ways to move through a long document: a virtualised
 - If B2's views don't expose page labels or destination resolution, add read-only accessors in `lamina-model`/`lamina-wasm`/`@lamina/pdf` in this PR (small; coordinate with the library owner) — page-label number tree walking with `/S` styles D, R, r, A, a, `/P` prefix, `/St` start.
 - `@lamina/viewer`: `ThumbnailStrip` (framework-free virtualised list using the C3b layout code at thumbnail scale, own small canvas pool, `thumbnail` priority, cancels when scrolled away, current page highlighted), destination navigation (`goToDestination(dest)` with fit modes XYZ/Fit/FitH/FitV/FitR/FitB mapped to zoom + scroll).
 - `@lamina/ui`: `Sidebar` with tabs (Thumbnails, Outline), resizable and collapsible, remembered per session; `OutlineTree` (WAI-ARIA tree pattern: arrow keys, Home/End, expand/collapse, type-ahead), current-section tracking (deepest item whose destination is at or before the top of the viewport); page indicator shows labels (`iv (4 / 120)`) and go-to-page accepts labels or numbers (ambiguity: label wins, show both in a hint).
-- `#page=N` fragment (from C4c parsing) and `#nameddest=` navigate after load.
+- `page=N` and `nameddest=<name>` fragment keys (C4c's `URLSearchParams` fragment format, so they combine with an encoded `url`, e.g. `#url=<encoded>&page=5`) navigate after load; a change to only these keys navigates within the open document (C4c's `hashchange` rule).
 
 **Out of scope** (and which todo covers it)
 
@@ -61,7 +61,11 @@ Give readers the two classic ways to move through a long document: a virtualised
 - [ ] Thumbnails sidebar on the 1,000-page fixture never mounts more than visible ± margin thumbnails, renders at `thumbnail` priority (main view renders preempt it, asserted via scheduler events), and keeps the C3c long-task budget.
 - [ ] Outline tree passes the WAI-ARIA tree keyboard interactions in Playwright and has zero serious axe violations.
 - [ ] Current-section tracking highlights the correct outline item while scrolling a nested-outline fixture.
-- [ ] `#page=5` and `#nameddest=<name>` deep links land on the right page.
+- [ ] `#page=5`, `#nameddest=<name>` and `#url=<encoded>&page=5` deep links land on the right page.
+
+## Post-merge checks
+
+None.
 
 ## Tests
 
@@ -79,8 +83,9 @@ Rust unit tests for any new model accessors (page-label styles, destination reso
 
 ## Definition of done
 
-- [ ] PR opened from a fresh worktree; this file moved `ready/` → `ongoing/` in the PR's first commit (status field updated, PR link added)
+- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [ ] Work PR opened from a fresh worktree; **PR** field filled in
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the PR (status `done`), plan links updated, plan to-dos ticked
+- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
 - [ ] Squash-merged; dependants' "Depends on" now satisfied

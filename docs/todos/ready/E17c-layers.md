@@ -39,7 +39,7 @@ List OCGs and configurations, toggle visibility in the viewer (reader feature on
 - **Operations shipped** ([06 §3](../../research/pdf/06-feature-inventory.md#3-full-operation-inventory-with-mechanisms) IDs): `M.04` manage/show/hide layers; `I.08` optional content groups (layers)
 - **Crates and packages:** `lamina-model`, `lamina-render`, `@lamina/ui`
 - **`Op` variants:** `UpdateOcg`, `SetOcgDefaults` (class `Document`)
-- **`SaveConstraint`:** `Free` → incremental. Signed: class `Document` (or `Annotation` where noted) → DocMDP violation unless P3 allows it; gated
+- **`SaveConstraint`:** `Free` → incremental. Signed: class `Document` is a DocMDP violation at every certification level (ADR 0007 §2: P1 allows no changes; P2 allows only form filling, page templates and signing; P3 adds annotations); ops noted as `Annotation` are allowed under P3 or when there is no certification. Violations are gated (override names the signatures). With approval signatures only (no certification): `AppendOnly`, an incremental update that keeps their `/ByteRange` intact; a violation only when it changes a field locked by FieldMDP/`/Lock`
 - **Web vs desktop:** identical
 - **Server features:** none (this PR adds no server feature; all processing stays on the device)
 - **Capability-matrix rows to flip:** `M.04` → `round-trip` (core, pdf, web, desktop); `I.08` → `round-trip` (core, pdf, web, desktop)
@@ -55,6 +55,10 @@ List OCGs and configurations, toggle visibility in the viewer (reader feature on
 - [ ] Library parity ([full-editor §5](../../plans/full-editor.md#5-requirements-that-hold-for-every-round) req. 7): every new `Op` is exposed in `lamina` and `@lamina/pdf` in this PR, with rustdoc/TSDoc, a runnable example, tsify-generated TS types, and serde samples frozen in `fixtures/ops/v1/` (unknown ops and fields rejected, ADR 0006 §1, §6)
 - [ ] Round-trip: open → op → save → reopen in lamina, pdf.js and PDFium preserves the change and everything else (page count, outline, annotations, fields, struct tree facts in `expected.json`); `qpdf --check` is clean
 - [ ] Toggled defaults honoured in pdf.js
+
+## Post-merge checks
+
+None.
 
 ## Tests
 
@@ -72,8 +76,9 @@ List OCGs and configurations, toggle visibility in the viewer (reader feature on
 
 ## Definition of done
 
-- [ ] PR opened from a fresh worktree; this file moved `ready/` → `ongoing/` in the PR's first commit (status field updated, PR link added)
+- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [ ] Work PR opened from a fresh worktree; **PR** field filled in
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the PR (status `done`), plan links updated, plan to-dos ticked
+- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
 - [ ] Squash-merged; dependants' "Depends on" now satisfied

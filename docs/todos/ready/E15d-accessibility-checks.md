@@ -38,7 +38,7 @@ An in-app accessibility checker implementing the machine-checkable Matterhorn co
 
 - **Operations shipped** ([06 §3](../../research/pdf/06-feature-inventory.md#3-full-operation-inventory-with-mechanisms) IDs): `L.08` check missing fonts / Unicode mappings; `L.09` run accessibility validation; `L.10` fix tagging and structure issues
 - **Crates and packages:** `lamina-model` (checks shared with B8), `@lamina/ui`
-- **`SaveConstraint`:** `Free` → incremental. Signed: class `Document` (or `Annotation` where noted) → DocMDP violation unless P3 allows it; gated
+- **`SaveConstraint`:** `Free` → incremental. Signed: class `Document` is a DocMDP violation at every certification level (ADR 0007 §2: P1 allows no changes; P2 allows only form filling, page templates and signing; P3 adds annotations); ops noted as `Annotation` are allowed under P3 or when there is no certification. Violations are gated (override names the signatures). With approval signatures only (no certification): `AppendOnly`, an incremental update that keeps their `/ByteRange` intact; a violation only when it changes a field locked by FieldMDP/`/Lock`
 - **Web vs desktop:** identical
 - **Server features:** none (this PR adds no server feature; all processing stays on the device)
 - **Capability-matrix rows to flip:** `L.08` → `read` (core, pdf, web, desktop); `L.09` → `read` (core, pdf, web, desktop); `L.10` → `write` (core, pdf, web, desktop)
@@ -52,6 +52,10 @@ An in-app accessibility checker implementing the machine-checkable Matterhorn co
 ## Acceptance criteria
 
 - [ ] Checker results agree with veraPDF on the machine-checkable rules for the fixture set (agreement test)
+
+## Post-merge checks
+
+None.
 
 ## Tests
 
@@ -69,8 +73,9 @@ An in-app accessibility checker implementing the machine-checkable Matterhorn co
 
 ## Definition of done
 
-- [ ] PR opened from a fresh worktree; this file moved `ready/` → `ongoing/` in the PR's first commit (status field updated, PR link added)
+- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [ ] Work PR opened from a fresh worktree; **PR** field filled in
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the PR (status `done`), plan links updated, plan to-dos ticked
+- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
 - [ ] Squash-merged; dependants' "Depends on" now satisfied

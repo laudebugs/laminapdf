@@ -43,7 +43,7 @@ Add text blocks anywhere: shaped and laid out by lamina-text, subset-embedded fo
 - **Operations shipped** ([06 §3](../../research/pdf/06-feature-inventory.md#3-full-operation-inventory-with-mechanisms) IDs): `A.01` add text anywhere on a page; `A.12` insert special characters and symbols
 - **Crates and packages:** `lamina-text`, `lamina-build`, `lamina-content`, `apps/desktop/src-tauri` (font discovery)
 - **`Op` variants:** `AddText` (class `Content`)
-- **`SaveConstraint`:** `Free` → incremental. Signed: class `Content` violates every DocMDP level and approval signatures' integrity → blocked unless the user confirms invalidating the named signatures
+- **`SaveConstraint`:** `Free` → incremental. Signed: class `Content` is a DocMDP violation at every certification level (ADR 0007 §2: P1 allows no changes; P2 allows only form filling, page templates and signing; P3 adds annotations) → blocked unless the user confirms invalidating the named signatures (ADR 0007 §3 override). With approval signatures only (no certification): `AppendOnly`, an incremental update that keeps their `/ByteRange` intact; a violation only when it changes a field locked by FieldMDP/`/Lock` (the signature panel, E10h, reports the later content change)
 - **Web vs desktop:** desktop: system fonts (respect `fsType` embedding permissions); web: bundled OFL fonts and user-supplied files
 - **Server features:** none (this PR adds no server feature; all processing stays on the device)
 - **Capability-matrix rows to flip:** `A.01` → `round-trip` (core, pdf, web, desktop); `A.12` → `round-trip` (core, pdf, web, desktop)
@@ -65,6 +65,10 @@ Add text blocks anywhere: shaped and laid out by lamina-text, subset-embedded fo
 - [ ] Fonts with restricted `fsType` are refused with a coded error
 - [ ] Tagged fixtures stay valid in veraPDF structure checks
 
+## Post-merge checks
+
+None.
+
 ## Tests
 
 - Extraction tests
@@ -83,8 +87,9 @@ Add text blocks anywhere: shaped and laid out by lamina-text, subset-embedded fo
 
 ## Definition of done
 
-- [ ] PR opened from a fresh worktree; this file moved `ready/` → `ongoing/` in the PR's first commit (status field updated, PR link added)
+- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [ ] Work PR opened from a fresh worktree; **PR** field filled in
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the PR (status `done`), plan links updated, plan to-dos ticked
+- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
 - [ ] Squash-merged; dependants' "Depends on" now satisfied

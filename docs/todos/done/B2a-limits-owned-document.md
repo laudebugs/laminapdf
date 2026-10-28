@@ -3,10 +3,10 @@
 | Field | Value |
 | --- | --- |
 | ID | `B2a` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [pdf-library §7 B2](../../plans/pdf-library.md#b2-document-model), [architecture §7 Round B](../../plans/architecture.md#round-b--core-model-and-the-first-package) |
 | Round / milestone | Round B (library) — M1 |
-| Depends on | [B1a](../done/B1a-round-b-adrs.md) |
+| Depends on | [B1a](./B1a-round-b-adrs.md) |
 | Blocks | [B2b](../ready/B2b-standard-security-decryption.md), [B2c](../ready/B2c-lamina-model-corpus-fuzz.md) |
 | ADRs | Implements [0003](../../decisions/0003-reader-tolerance-and-limits.md) §2–§4 and [0005](../../decisions/0005-document-model.md) §2 and §7; follows [0018](../../decisions/0018-test-strategy.md) (no wall-clock assertions in PR lanes) |
 | Branch | `feat/b2a-limits-owned-document` |
@@ -38,7 +38,8 @@ Make the reader's safety policy explicit and configurable, and make `Document` s
 - `OpenOptions` with private fields: `limits`, `strict` (and a reserved slot for the password, filled by [B2b](../ready/B2b-standard-security-decryption.md)); strict mode turns any warning into `Error::Strict { code }`.
 - `ByteSource` trait (`len`, `read_at`, `as_slice`), `SourceError` (incl. `Pending { offset, len }`), core impls for `Vec<u8>`, `Arc<[u8]>`, `&'static [u8]`; `Document` owns `Arc<dyn ByteSource>`, no lifetime; `Document::open(source: impl Into<Arc<dyn ByteSource>>, OpenOptions)`; windowed reading (64 KiB, doubling within `Limits`) for sources without `as_slice`; repair scanning in overlapping chunks; `Error::DataPending { ranges }`.
 - Caches move to `Arc<Object>`; a compile-time assertion that `Document: Send` (and a doc note that it is `!Sync`).
-- nextest config (`.config/nextest.toml`: `slow-timeout = { period = "30s", terminate-after = 2 }`, `retries = 0`) replaces the wall-clock `BUDGET` in `crates/lamina-cos/tests/robustness.rs`.
+- nextest config replaces the wall-clock `BUDGET` in `crates/lamina-cos/tests/robustness.rs`. `.config/nextest.toml`: `retries = 0`; default `slow-timeout = { period = "60s", terminate-after = 2 }` (any test killed at 120 s); an override for `binary(robustness)` with `slow-timeout = { period = "30s", terminate-after = 1 }`, so the robustness tests keep exactly the old 30 s limit (killed at 30 s, not 60 s).
+- The hang guard exists only under nextest. The plain `cargo test` fallback has no per-test timeout; CI always installs the pinned cargo-nextest and runs it, and `cargo xtask test` prints a note (`…; using cargo test instead`) when nextest is missing or off-pin, so a local fallback run is visibly unguarded.
 
 **Out of scope** (and which todo covers it)
 
@@ -61,7 +62,7 @@ Make the reader's safety policy explicit and configurable, and make `Document` s
 - [ ] `crates/lamina-cos/src/source.rs`: `ByteSource`, `SourceError`, impls; windowed reader used by the parser when `as_slice` is `None`; `Error::DataPending`
 - [ ] Make `Document` own its source (`Arc<dyn ByteSource>`), drop the lifetime, `Rc` → `Arc`; update `data()` (returns `Option<&[u8]>` or is removed) and every test helper to pass owned buffers
 - [ ] `fixtures/codes.json` (warnings and errors, kebab-case) and `crates/lamina-cos/tests/codes.rs`
-- [ ] `.config/nextest.toml`; remove `BUDGET`/`Instant` from `robustness.rs`; check `cargo xtask test` uses the profile
+- [ ] `.config/nextest.toml` (default 60 s × 2; `binary(robustness)` override 30 s × 1 = the old 30 s budget); remove `BUDGET`/`Instant` from `robustness.rs`; check `cargo xtask test` uses the profile and notes the `cargo test` fallback (no per-test timeout); CI installs pinned cargo-nextest
 - [ ] Update crate docs (`lamina-cos/src/lib.rs` policy section) and READMEs
 
 ## Acceptance criteria
@@ -73,7 +74,7 @@ Make the reader's safety policy explicit and configurable, and make `Document` s
 - [ ] A document opened from a source without `as_slice` (a test `ByteSource` that only implements `read_at`) yields the same page count, objects and warnings as from a `Vec<u8>` for every file in `fixtures/corpus`
 - [ ] A test source returning `Pending` produces `Error::DataPending` with the requested range, and the retry succeeds
 - [ ] `static_assertions`-style check (or a `fn assert_send<T: Send>()` test) proves `Document: Send`
-- [ ] No `Instant`/`Duration` assertions remain in PR-lane tests; nextest terminates a hung test
+- [ ] No `Instant`/`Duration` assertions remain in PR-lane tests; under nextest (what CI runs) a hung robustness test is killed at 30 s and any other test at 120 s; the `cargo test` fallback is documented as unguarded
 - [ ] All existing goldens, determinism and incremental tests unchanged and green
 
 ## Tests
@@ -96,12 +97,16 @@ Make the reader's safety policy explicit and configurable, and make `Document` s
 - Windowed parsing touches the hottest path; keep the `as_slice` fast path identical to today and benchmark open + walk on the corpus before/after (ratio only).
 - Where to keep the warning sink without `Sync` (a `RefCell<Vec<Warning>>` is fine because `Document` is `!Sync`).
 - `max_decoded_total` "per top-level call" needs a clear definition of the call boundary in `lamina-cos`; document it on the getter.
+- The 30 s guard depends on nextest: a contributor running plain `cargo test` gets no timeout (documented in `CLAUDE.md` and in the config comment; `cargo xtask test` says so when it falls back). Requiring nextest locally was rejected to keep the fallback.
 - Breaking API change for `open(&[u8])`; nothing is published, so acceptable (ADR 0003 consequences).
 
 ## Definition of done
 
+Merged in [#13](https://github.com/laudebugs/lamina/pull/13) (squash). Claimed in PR #14, before the claim-PR rule existed.
+
+
 - [x] PR opened from a fresh worktree; this file moved `ready/` → `ongoing/` in the PR's first commit (status field updated, PR link added)
-- [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
-- [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the PR (status `done`), plan links updated, plan to-dos ticked
-- [ ] Squash-merged; dependants' "Depends on" now satisfied
+- [x] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
+- [x] CI green
+- [x] This file moved `ongoing/` → `done/` in the PR (status `done`), plan links updated, plan to-dos ticked
+- [x] Squash-merged; dependants' "Depends on" now satisfied

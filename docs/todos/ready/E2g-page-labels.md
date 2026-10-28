@@ -40,7 +40,7 @@ Edit the `/PageLabels` number tree (style, prefix, start) per range, keep labels
 - **Operations shipped** ([06 §3](../../research/pdf/06-feature-inventory.md#3-full-operation-inventory-with-mechanisms) IDs): `C.14` labels, page numbers, headers/footers; `I.10` page labels
 - **Crates and packages:** `lamina-model` (`PageLabels` write), `lamina-ops`, `@lamina/ui`
 - **`Op` variants:** `SetPageLabels` (class `Document`)
-- **`SaveConstraint`:** `Free` → incremental; signed: class `Document` is a DocMDP violation at every level (warn and gate)
+- **`SaveConstraint`:** `Free` → incremental; signed: page labels are class `Document`, a DocMDP violation at every certification level (ADR 0007 §2: P1 allows no changes; P2 allows only form filling, page templates and signing; P3 adds annotations) → warn and gate (override names the signatures). With approval signatures only (no certification): `AppendOnly`, an incremental update that keeps their `/ByteRange` intact; a violation only when it changes a field locked by FieldMDP/`/Lock`
 - **Web vs desktop:** identical
 - **Server features:** none (this PR adds no server feature; all processing stays on the device)
 - **Capability-matrix rows to flip:** `I.10` → `round-trip` (core, pdf, web, desktop)
@@ -57,6 +57,10 @@ Edit the `/PageLabels` number tree (style, prefix, start) per range, keep labels
 - [ ] Property tests: for every new op, apply then undo leaves the overlay empty and the next save is byte-identical to the previous one (ADR 0006 §3); redo re-applies the same bytes
 - [ ] Round-trip: open → op → save → reopen in lamina, pdf.js and PDFium preserves the change and everything else (page count, outline, annotations, fields, struct tree facts in `expected.json`); `qpdf --check` is clean
 - [ ] Labels shown in pdf.js and PDFium match the editor's preview on 5 fixtures (roman, alpha, prefixed, restarts)
+
+## Post-merge checks
+
+None.
 
 ## Tests
 
@@ -75,8 +79,9 @@ Edit the `/PageLabels` number tree (style, prefix, start) per range, keep labels
 
 ## Definition of done
 
-- [ ] PR opened from a fresh worktree; this file moved `ready/` → `ongoing/` in the PR's first commit (status field updated, PR link added)
+- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [ ] Work PR opened from a fresh worktree; **PR** field filled in
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the PR (status `done`), plan links updated, plan to-dos ticked
+- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
 - [ ] Squash-merged; dependants' "Depends on" now satisfied

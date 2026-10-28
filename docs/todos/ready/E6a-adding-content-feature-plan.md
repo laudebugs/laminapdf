@@ -44,7 +44,7 @@ The short feature-plan PR that opens round E6 ([full-editor §E6](../../plans/fu
 
 - **Operations shipped** ([06 §3](../../research/pdf/06-feature-inventory.md#3-full-operation-inventory-with-mechanisms) IDs): `A.01` add text anywhere on a page; `A.12` insert special characters and symbols; `B.01` insert, delete, replace images; `B.02` resize, rotate, crop, reposition; `B.04` adjust transparency/opacity; `B.05` draw lines, rectangles, circles, polygons; `B.09` add logos, icons, stamps; `B.10` background images and watermarks; `B.12` transformations on graphical objects; `C.14` labels, page numbers, headers/footers
 - **Crates and packages:** (planned for the round) `lamina-content` append API, `lamina-build` surfaces on existing pages, `lamina-text`
-- **`SaveConstraint`:** (round summary from the plan; the feature plan details it per op) incremental on `Free`; content changes invalidate signatures (gated)
+- **`SaveConstraint`:** (round summary from the plan; the feature plan details it per op) incremental on `Free`; content changes are DocMDP violations under any certification (gated, override names the signatures); with approval signatures only they are `AppendOnly` incremental updates
 - **Web vs desktop:** desktop uses system fonts (edge discovery, bytes into the core); web bundled or user-supplied fonts; touched-page reload measured
 - **Server features:** none
 - **Capability-matrix rows to flip:** none flipped here; rows added with status `unsupported` and the round as target
@@ -69,6 +69,10 @@ The short feature-plan PR that opens round E6 ([full-editor §E6](../../plans/fu
 - [ ] `docs/capabilities/manifest.toml` has a row per op with `target round = "E6"`; `cargo xtask capabilities` regenerates without error
 - [ ] Each open question below is answered or has a named owner and a deadline round
 
+## Post-merge checks
+
+None.
+
 ## Tests
 
 Docs only: the link checker passes; `cargo xtask capabilities` (from `X2`) accepts the new manifest rows.
@@ -87,8 +91,9 @@ Docs only: the link checker passes; `cargo xtask capabilities` (from `X2`) accep
 
 ## Definition of done
 
-- [ ] PR opened from a fresh worktree; this file moved `ready/` → `ongoing/` in the PR's first commit (status field updated, PR link added)
+- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [ ] Work PR opened from a fresh worktree; **PR** field filled in
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the PR (status `done`), plan links updated, plan to-dos ticked
+- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
 - [ ] Squash-merged; dependants' "Depends on" now satisfied

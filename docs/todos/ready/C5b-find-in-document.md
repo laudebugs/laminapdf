@@ -6,9 +6,9 @@
 | Status | `ready` |
 | Plan | [web reader §6 C5. Text, selection and search](../../plans/web-app.md#c5-text-selection-and-search) |
 | Round / milestone | Round C (web reader) — M2 Web reader v0.1 |
-| Depends on | [B9c](./B9c-text-extraction-bindings-and-differential.md), [C5a](./C5a-text-layer-and-selection.md) |
+| Depends on | [B9c](./B9c-text-extraction-bindings-and-differential.md), [C3c](./C3c-viewer-perf-harness.md), [C5a](./C5a-text-layer-and-selection.md) |
 | Blocks | [C7a](./C7a-accessibility-and-theming.md), [E3c](./E3c-links.md), [E4c](./E4c-appearances-markup-notes-caret.md), [E7g](./E7g-search-and-replace.md), [E12e](./E12e-sensitive-search.md), [E14c](./E14c-compare.md) |
-| Dependency notes | [C5a](./C5a-text-layer-and-selection.md); library **B9** ([pdf-library B9](../../plans/pdf-library.md#b9-text-extraction)) |
+| Dependency notes | [C5a](./C5a-text-layer-and-selection.md); library **B9** ([pdf-library B9](../../plans/pdf-library.md#b9-text-extraction)); [C3c](./C3c-viewer-perf-harness.md) (adds a find scenario to the perf harness and is measured against its budgets) |
 | ADRs | Follows 0009 (find controller in the framework-free viewer; search runs in the worker at background priority), [0018](../../decisions/0018-test-strategy.md) §1 tier 4/6 (facts from independent tools: pdf.js counts) |
 | Branch | `feat/c5b-find-in-document` |
 | PR title | `feat(viewer): add find in document with streaming results and highlights` |
@@ -64,6 +64,10 @@ Let users find text across a whole document without blocking scrolling: the work
 - [ ] Search works on encrypted fixtures and on remote (`#url=`) files without downloading pages the user hasn't reached until the search reaches them (range requests show progressive fetches).
 - [ ] Result-count changes are announced via a polite live region (no more than once per second while streaming).
 
+## Post-merge checks
+
+None.
+
 ## Tests
 
 Unit tests for normalisation, offset maps and whole-word logic; Vitest browser tests for `FindController`; Playwright `apps/web/e2e/find.spec.ts` (interaction) and `find-parity.spec.ts` (counts vs facts); perf scenario in the C3c harness.
@@ -80,8 +84,9 @@ Unit tests for normalisation, offset maps and whole-word logic; Vitest browser t
 
 ## Definition of done
 
-- [ ] PR opened from a fresh worktree; this file moved `ready/` → `ongoing/` in the PR's first commit (status field updated, PR link added)
+- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [ ] Work PR opened from a fresh worktree; **PR** field filled in
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the PR (status `done`), plan links updated, plan to-dos ticked
+- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
 - [ ] Squash-merged; dependants' "Depends on" now satisfied

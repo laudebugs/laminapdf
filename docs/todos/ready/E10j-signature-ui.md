@@ -37,12 +37,12 @@ Sign/certify flow (choose field or draw one, choose identity, appearance, reason
 
 **Editor facts**
 
-- **Operations shipped** ([06 §3](../../research/pdf/06-feature-inventory.md#3-full-operation-inventory-with-mechanisms) IDs): `F.03` certificate-based digital signatures; `F.04` verify signatures; `F.05` certify a document; `F.06` trusted timestamps; `F.07` inspect signer identity and certificates; `F.08` lock fields after signing; `F.10` signature status and modification warnings
+- **Operations shipped** ([06 §3](../../research/pdf/06-feature-inventory.md#3-full-operation-inventory-with-mechanisms) IDs): `F.03` certificate-based digital signatures; `F.04` verify signatures; `F.05` certify a document; `F.06` trusted timestamps; `F.07` inspect signer identity and certificates; `F.08` lock fields after signing; `F.09` allowed changes after certification; `F.10` signature status and modification warnings
 - **Crates and packages:** `@lamina/ui`
-- **`SaveConstraint`:** signing makes the document `AppendOnly`; signing always runs last in a save (redact → rewrite → sign, ADR 0007 §4); `Sign` is a barrier op (ADR 0006 §5)
+- **`SaveConstraint`:** signing makes the document `AppendOnly`; adding a signature is allowed without certification and under DocMDP P2/P3, and is a violation under P1 (ADR 0007 §2); signing always runs last in a save (redact → rewrite → sign, ADR 0007 §4); `Sign` is a barrier op (ADR 0006 §5)
 - **Web vs desktop:** identical apart from identity sources
 - **Server features:** none (this PR adds no server feature; all processing stays on the device)
-- **Capability-matrix rows to flip:** `F.03` → `round-trip` (web, desktop); `F.04` → `read` (web, desktop); `F.05` → `round-trip` (web, desktop); `F.06` → `round-trip` (web, desktop); `F.07` → `read` (web, desktop); `F.08` → `round-trip` (web, desktop); `F.10` → `read` (web, desktop)
+- **Capability-matrix rows to flip:** `F.03` `write` → `round-trip` (web, desktop) (from the status E10i set); `F.04` → `read` (web, desktop); `F.05` → `round-trip` (web, desktop); `F.06` → `round-trip` (web, desktop); `F.07` → `read` (web, desktop); `F.08` → `round-trip` (web, desktop); `F.09` → `round-trip` (web, desktop); `F.10` → `read` (web, desktop). These are the only flips of the web and desktop columns for F.04–F.10; E10e–E10h flip core and pdf
 
 ## Tasks
 
@@ -56,6 +56,10 @@ Sign/certify flow (choose field or draw one, choose identity, appearance, reason
 
 - [ ] e2e: sign, reopen, see valid; modify, see modification warning
 - [ ] axe zero serious violations
+
+## Post-merge checks
+
+None.
 
 ## Tests
 
@@ -73,8 +77,9 @@ Sign/certify flow (choose field or draw one, choose identity, appearance, reason
 
 ## Definition of done
 
-- [ ] PR opened from a fresh worktree; this file moved `ready/` → `ongoing/` in the PR's first commit (status field updated, PR link added)
+- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [ ] Work PR opened from a fresh worktree; **PR** field filled in
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the PR (status `done`), plan links updated, plan to-dos ticked
+- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
 - [ ] Squash-merged; dependants' "Depends on" now satisfied

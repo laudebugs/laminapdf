@@ -16,7 +16,7 @@
 
 ## Goal
 
-Prove, across all E2 ops, that signed documents are protected: every page op on approval-signed and certified (P1/P2/P3) fixtures is blocked or requires the named-signature override, and the overridden save produces a document whose broken signatures were removed as ADR 0007 §3 says; then verify the round's capability rows and close the round.
+Prove, across all E2 ops, that signed documents are protected exactly as ADR 0007 §2 says: every page op on certified (P1/P2/P3) fixtures is blocked or requires the named-signature override, and the overridden save produces a document whose broken signatures were removed (§3); on approval-only fixtures the same ops save `AppendOnly` as an incremental update that leaves the signature intact, unless they change a field locked by FieldMDP/`/Lock`; then verify the round's capability rows and close the round.
 
 ## Context
 
@@ -55,9 +55,14 @@ Prove, across all E2 ops, that signed documents are protected: every page op on 
 
 ## Acceptance criteria
 
-- [ ] Every E2 op × signed fixture case has an asserted verdict
+- [ ] Every E2 op × signed fixture case has an asserted verdict: violation under P1, P2 and P3 (`SetPageLabels` and the `PageStructure`/`Content` ops alike); `AppendOnly` with no violation on the approval-only fixture; violation on the FieldMDP-lock fixture only for ops that touch a locked field's widget
+- [ ] Approval-only fixture: each E2 op's incremental save validates in pyHanko with the original signature intact (its `/ByteRange` unchanged) and the later revision reported as a modification
 - [ ] Overridden saves validate as unsigned (no "broken" signatures) in pyHanko and `pdfsig`
 - [ ] All E2 rows at target status
+
+## Post-merge checks
+
+None.
 
 ## Tests
 
@@ -74,8 +79,9 @@ See tasks; the fixture set is reused by E3–E17 gating tests.
 
 ## Definition of done
 
-- [ ] PR opened from a fresh worktree; this file moved `ready/` → `ongoing/` in the PR's first commit (status field updated, PR link added)
+- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [ ] Work PR opened from a fresh worktree; **PR** field filled in
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the PR (status `done`), plan links updated, plan to-dos ticked
+- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
 - [ ] Squash-merged; dependants' "Depends on" now satisfied

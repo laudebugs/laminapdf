@@ -53,6 +53,10 @@ Opt-in server conversions using the engines chosen in ADR 0013 (layout analysis 
 
 - [ ] Metrics meet the thresholds set in E13b on the fixture set
 
+## Post-merge checks
+
+None.
+
 ## Tests
 
 - Quality fixtures
@@ -69,8 +73,9 @@ Opt-in server conversions using the engines chosen in ADR 0013 (layout analysis 
 
 ## Definition of done
 
-- [ ] PR opened from a fresh worktree; this file moved `ready/` → `ongoing/` in the PR's first commit (status field updated, PR link added)
+- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [ ] Work PR opened from a fresh worktree; **PR** field filled in
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the PR (status `done`), plan links updated, plan to-dos ticked
+- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
 - [ ] Squash-merged; dependants' "Depends on" now satisfied

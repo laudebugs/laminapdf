@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [pdf-library §7 B2](../../plans/pdf-library.md#b2-document-model), [architecture §7 Round B](../../plans/architecture.md#round-b--core-model-and-the-first-package) |
 | Round / milestone | Round B (library) — M1 |
-| Depends on | [B2a](../ongoing/B2a-limits-owned-document.md) |
+| Depends on | [B2a](../done/B2a-limits-owned-document.md) |
 | Blocks | [B3a](./B3a-overlay-and-ops.md), [B9a](./B9a-lamina-content-and-adr-0023.md), [C2b](./C2b-lamina-render-crate.md), [C6a](./C6a-thumbnails-outline-page-labels.md), [X3a](./X3a-nightly-lane.md), [X4](./X4-full-lane-gate.md) |
 | ADRs | Implements [0005](../../decisions/0005-document-model.md) §4–§5; [0018](../../decisions/0018-test-strategy.md) tiers 3, 4, 6, 9; follows [0003](../../decisions/0003-reader-tolerance-and-limits.md) (per-field tolerance, `max_tree_depth`) |
 | Branch | `feat/b2c-lamina-model` |
@@ -35,7 +35,7 @@ Give callers a typed, tolerant read API over the lazy COS graph (pages with thei
 - Text-string decoding helper (`PdfDocEncoding`, UTF-16BE with BOM, UTF-8 BOM for PDF 2.0) in `lamina-model` (or `lamina-syntax` if B9 needs it lower).
 - `LaminaId` + typed newtypes (`PageId`, `OutlineItemId`; `AnnotId`/`FieldId` declared for later), JSON string form, `FromStr`/`Display`, allocator on the document (interior state), path IDs for direct dictionaries.
 - New warnings with codes (in `fixtures/codes.json`): `invalid-box`, `invalid-rotate`, `name-tree-node-skipped`, `outline-cycle`, `invalid-date`, `invalid-page-label`.
-- Corpus: `fixtures/corpus/expected.json` gains `outline_titles` (flattened, depth-first) and keeps `page_count`, produced by a script `tools/corpus-facts/` (Python + pypdf, pinned) — **never by lamina**; `fixtures/corpus/exceptions.toml` listing deliberate differences with the ADR 0003 rule.
+- Corpus: `fixtures/corpus/expected.json` gains `outline_titles` (flattened, depth-first) and keeps `page_count`, produced by a script `tools/corpus-facts/` (Python + pypdf, pinned) — **never by lamina**; the script reads and writes only `fixtures/corpus/` (encrypted fixtures and their facts live in `fixtures/encrypted/` + `fixtures/encrypted/expected.json`, owned by [B2b](./B2b-standard-security-decryption.md)); `fixtures/corpus/exceptions.toml` listing deliberate differences with the ADR 0003 rule.
 - Corpus test `crates/lamina-model/tests/corpus.rs`: every file opens or fails with a coded error; facts match.
 - `cargo xtask golden --update` regenerating every golden under `fixtures/golden/` from its source and printing the list.
 - `cargo xtask differential` (pypdf only in this PR): runs pypdf over `fixtures/corpus` + a fixed-seed mutant set, compares page count, outcome (opened/repaired/failed) and outline titles; `--update` writes precomputed expectations to `fixtures/differential/expected.json`.
@@ -65,6 +65,7 @@ Give callers a typed, tolerant read API over the lazy COS graph (pages with thei
 - [ ] `crates/lamina-model/tests/corpus.rs`, `ids.rs` (stable across reopen and after an incremental no-op save with `lamina-cos`'s `incremental_update`), `views.rs`
 - [ ] `tools/xtask`: `golden --update`, `differential [--update]`, `fuzz <target> [--time]`, `corpus` helpers; wire `differential` (precomputed expectations, no Python needed) into `cargo xtask test`
 - [ ] `fuzz/`: five targets, `fuzz/README.md` (how to run, how to minimise into `fixtures/regressions/`), seeds script
+- [ ] Fuzz seeds for encrypted files: if [B2b](./B2b-standard-security-decryption.md) is already merged when this PR opens, add `fixtures/encrypted/*.pdf` to the `open` target's seeds and try the empty password and each fixture's password from `fixtures/encrypted/expected.json`; otherwise B2b does it (whichever merges second)
 - [ ] `.github/workflows/fuzz.yml` (cron, nightly toolchain, `cargo fuzz run <t> -- -max_total_time=600 -timeout=10 -rss_limit_mb=2048`)
 - [ ] Add `fuzz/` exclusion check to xtask if not already present
 
@@ -75,8 +76,13 @@ Give callers a typed, tolerant read API over the lazy COS graph (pages with thei
 - [ ] A direct page dictionary gets a path ID that is stable for the same bytes
 - [ ] `cargo xtask golden --update` on a clean tree produces no diff
 - [ ] `cargo xtask differential` passes in the fast lane using precomputed expectations; `--update` regenerates them with pypdf
-- [ ] Each fuzz target runs 10 minutes without a panic, hang or OOM under default `Limits` (first scheduled run green, link it in the PR)
+- [ ] Each fuzz target runs 10 minutes locally (`cargo xtask fuzz <target> --time 600`) without a panic, hang or OOM under default `Limits`; summary in the PR
+- [ ] `.github/workflows/fuzz.yml` passes `actionlint`; its job runs once on the branch (a temporary `pull_request` trigger with `-max_total_time=60`, removed before merge, or `act`), run linked in the PR
 - [ ] Every model view hitting `max_tree_depth` degrades with a warning (paired limit tests)
+
+## Post-merge checks
+
+- [ ] The first scheduled `fuzz.yml` run on `main` is green for every target (10 min each); link it in a follow-up PR or the done todo
 
 ## Tests
 
@@ -101,8 +107,9 @@ Give callers a typed, tolerant read API over the lazy COS graph (pages with thei
 
 ## Definition of done
 
-- [ ] PR opened from a fresh worktree; this file moved `ready/` → `ongoing/` in the PR's first commit (status field updated, PR link added)
+- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [ ] Work PR opened from a fresh worktree; **PR** field filled in
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the PR (status `done`), plan links updated, plan to-dos ticked
+- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
 - [ ] Squash-merged; dependants' "Depends on" now satisfied

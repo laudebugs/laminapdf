@@ -44,7 +44,7 @@ Diff every revision after a signature at object level and classify changes (LTV,
 - **`SaveConstraint`:** read-only
 - **Web vs desktop:** identical
 - **Server features:** none (this PR adds no server feature; all processing stays on the device)
-- **Capability-matrix rows to flip:** `F.09` → `round-trip` (core, pdf, web, desktop); `F.10` → `read` (core, pdf, web, desktop)
+- **Capability-matrix rows to flip:** `F.09` `write` → `round-trip` (core, pdf) (from the status E10f set); `F.10` → `read` (core, pdf) (web and desktop columns flip in [E10j](E10j-signature-ui.md))
 
 ## Tasks
 
@@ -57,6 +57,10 @@ Diff every revision after a signature at object level and classify changes (LTV,
 
 - [ ] Every attack file is reported as invalid or modified
 - [ ] Legitimate LTV and form-fill updates are classified as allowed
+
+## Post-merge checks
+
+None.
 
 ## Tests
 
@@ -74,8 +78,9 @@ Diff every revision after a signature at object level and classify changes (LTV,
 
 ## Definition of done
 
-- [ ] PR opened from a fresh worktree; this file moved `ready/` → `ongoing/` in the PR's first commit (status field updated, PR link added)
+- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [ ] Work PR opened from a fresh worktree; **PR** field filled in
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the PR (status `done`), plan links updated, plan to-dos ticked
+- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
 - [ ] Squash-merged; dependants' "Depends on" now satisfied

@@ -58,6 +58,10 @@ Edit `/OpenAction` (initial page and zoom), `/PageMode`, `/PageLayout` and `/Vie
 - [ ] Round-trip: open → op → save → reopen in lamina, pdf.js and PDFium preserves the change and everything else (page count, outline, annotations, fields, struct tree facts in `expected.json`); `qpdf --check` is clean
 - [ ] Opening the saved file in pdf.js honours page mode/layout and open action
 
+## Post-merge checks
+
+None.
+
 ## Tests
 
 - Unit, round-trip, e2e
@@ -74,8 +78,9 @@ Edit `/OpenAction` (initial page and zoom), `/PageMode`, `/PageLayout` and `/Vie
 
 ## Definition of done
 
-- [ ] PR opened from a fresh worktree; this file moved `ready/` → `ongoing/` in the PR's first commit (status field updated, PR link added)
+- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [ ] Work PR opened from a fresh worktree; **PR** field filled in
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the PR (status `done`), plan links updated, plan to-dos ticked
+- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
 - [ ] Squash-merged; dependants' "Depends on" now satisfied

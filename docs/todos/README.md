@@ -5,24 +5,28 @@ One file per pull request of work. A todo lives in exactly one state folder:
 | Folder | Meaning |
 | --- | --- |
 | [`ready/`](ready/) | Specified and waiting. Start one only when every todo in its **Depends on** is in `done/`. |
-| [`ongoing/`](ongoing/) | A PR is open or being written. Moved here in the PR's first commit. |
-| [`done/`](done/) | Merged. Moved here by the PR before it merges. |
+| [`ongoing/`](ongoing/) | Claimed: someone is working on it. Moved here by a small claim PR before the work starts. |
+| [`done/`](done/) | Merged. Moved here by the work PR before it merges. |
 
 New todos start from [`TEMPLATE.md`](TEMPLATE.md). The workflow is in [git workflow §2](../guidelines/git-workflow.md#pick-work-from-the-todo-board); plans link to their todos.
 
 IDs: `A`/`P`/`X` [architecture](../plans/architecture.md) (foundations, publishing, cross-cutting), `B` [library](../plans/pdf-library.md), `C` [web reader](../plans/web-app.md), `D` [desktop reader](../plans/desktop-app.md), `E` [editor](../plans/full-editor.md), `H` hosted service ([full-editor](../plans/full-editor.md)). A letter suffix (`B2a`, `B2b`) splits a round into PRs.
 
-**1 ongoing · 195 ready · 5 done** (201 total).
+**0 ongoing · 195 ready · 6 done** (201 total).
 
 ## Can start now
 
 Ready todos whose dependencies are all done:
 
+- [B2b](ready/B2b-standard-security-decryption.md): Standard security handler decryption (read only)
+- [B2c](ready/B2c-lamina-model-corpus-fuzz.md): `lamina-model` views and IDs, corpus facts, pypdf differential and fuzz targets
+- [C1a](ready/C1a-hayro-parity-spike.md): `hayro-parity` spike: hayro vs PDFium pass rate on the pdf.js and PDFBox corpora
 - [X1](ready/X1-docs-link-checker.md): Docs link checker and todo-board check in `cargo xtask`, run in CI
 
 ## Ongoing
 
-- [B2a](ongoing/B2a-limits-owned-document.md): `Limits`, warning codes, strict mode and the owned `Document`
+Nothing claimed right now.
+
 
 ## Architecture — Round A
 
@@ -38,23 +42,23 @@ Ready todos whose dependencies are all done:
 | --- | --- | --- | --- |
 | B1a | [Round B ADRs 0003, 0005, 0006, 0007, 0018](done/B1a-round-b-adrs.md) | done | [A3](done/A3-port-spike-core.md) |
 | B1b | [`krilla-fit` spike: can krilla generate into lamina's object graph?](done/B1b-krilla-fit-spike.md) | done | [A3](done/A3-port-spike-core.md) |
-| B2a | [`Limits`, warning codes, strict mode and the owned `Document`](ongoing/B2a-limits-owned-document.md) | ongoing | [B1a](done/B1a-round-b-adrs.md) |
-| B2b | [Standard security handler decryption (read only)](ready/B2b-standard-security-decryption.md) | ready | [B2a](ongoing/B2a-limits-owned-document.md) |
-| B2c | [`lamina-model` views and IDs, corpus facts, pypdf differential and fuzz targets](ready/B2c-lamina-model-corpus-fuzz.md) | ready | [B2a](ongoing/B2a-limits-owned-document.md) |
+| B2a | [`Limits`, warning codes, strict mode and the owned `Document`](done/B2a-limits-owned-document.md) | done | [B1a](done/B1a-round-b-adrs.md) |
+| B2b | [Standard security handler decryption (read only)](ready/B2b-standard-security-decryption.md) | ready | [B2a](done/B2a-limits-owned-document.md) |
+| B2c | [`lamina-model` views and IDs, corpus facts, pypdf differential and fuzz targets](ready/B2c-lamina-model-corpus-fuzz.md) | ready | [B2a](done/B2a-limits-owned-document.md) |
 | B3a | [COS overlay and `lamina-ops`: `Op`, `transact`, savepoints, undo/redo](ready/B3a-overlay-and-ops.md) | ready | [B2c](ready/B2c-lamina-model-corpus-fuzz.md) |
 | B3b | [`lamina-save`: move the writer, `WriteSink`, incremental and full writers over the overlay, rebase](ready/B3b-lamina-save-writers.md) | ready | [B3a](ready/B3a-overlay-and-ops.md) |
-| B3c | [`SavePlanner`, `SaveConstraint` detection and round-trip in lamina, pdf.js, PDFium and qpdf](ready/B3c-save-planner-and-roundtrip.md) | ready | [B3b](ready/B3b-lamina-save-writers.md), [X4](ready/X4-full-lane-gate.md) |
-| B4a | [`lamina-text`: font loading, subsetting and Type 0 embedding with ToUnicode](ready/B4a-font-loading-and-subsetting.md) | ready | [B1b](done/B1b-krilla-fit-spike.md), [B3b](ready/B3b-lamina-save-writers.md) |
-| B4b | [Shaping (HarfRust), bidi and line breaking (ICU4X), with goldens in five scripts](ready/B4b-shaping-bidi-line-breaking.md) | ready | [B4a](ready/B4a-font-loading-and-subsetting.md) |
+| B3c | [`SavePlanner`, `SaveConstraint` detection and round-trip in lamina, pdf.js, PDFium and qpdf](ready/B3c-save-planner-and-roundtrip.md) | ready | [B2b](ready/B2b-standard-security-decryption.md), [B3b](ready/B3b-lamina-save-writers.md), [X4](ready/X4-full-lane-gate.md) |
+| B4a | [`lamina-text`: font loading, subsetting and Type 0 embedding with ToUnicode](ready/B4a-font-loading-and-subsetting.md) | ready | [B1b](done/B1b-krilla-fit-spike.md), [B3b](ready/B3b-lamina-save-writers.md), [X4](ready/X4-full-lane-gate.md) |
+| B4b | [Shaping (HarfRust), bidi and line breaking (ICU4X), with goldens in five scripts](ready/B4b-shaping-bidi-line-breaking.md) | ready | [B4a](ready/B4a-font-loading-and-subsetting.md), [X4](ready/X4-full-lane-gate.md) |
 | B4c | [Standard 14 fonts with AFM metrics and simple-font encoding](ready/B4c-standard-14-and-simple-fonts.md) | ready | [B4a](ready/B4a-font-loading-and-subsetting.md) |
 | B5a | [`lamina-build` core: builder, pages, vectors, colour and images](ready/B5a-lamina-build-core.md) | ready | [B1b](done/B1b-krilla-fit-spike.md), [B3c](ready/B3c-save-planner-and-roundtrip.md) |
 | B5b | [Builder text, links, destinations, outlines, page labels and metadata](ready/B5b-builder-text-and-document-features.md) | ready | [B4b](ready/B4b-shaping-bidi-line-breaking.md), [B4c](ready/B4c-standard-14-and-simple-fonts.md), [B5a](ready/B5a-lamina-build-core.md) |
 | B5c | [The `lamina` façade crate, Rust examples, and byte and render goldens](ready/B5c-lamina-facade-and-examples.md) | ready | [B5b](ready/B5b-builder-text-and-document-features.md), [X4](ready/X4-full-lane-gate.md) |
 | B6a | [`lamina-wasm`, `@lamina/wasm` build, ADR 0016 and size budgets](ready/B6a-lamina-wasm-and-adr-0016.md) | ready | [B5c](ready/B5c-lamina-facade-and-examples.md) |
-| B6b | [`@lamina/pdf`: the TypeScript API, `init()`, export conditions, publint and attw](ready/B6b-lamina-pdf-package.md) | ready | [B6a](ready/B6a-lamina-wasm-and-adr-0016.md) |
+| B6b | [`@lamina/pdf`: the TypeScript API, `init()`, export conditions, publint and attw](ready/B6b-lamina-pdf-package.md) | ready | [B2b](ready/B2b-standard-security-decryption.md), [B6a](ready/B6a-lamina-wasm-and-adr-0016.md) |
 | B6c | [Runtime matrix in CI: browsers, Node 22/24/26, Deno, Bun and workerd](ready/B6c-runtime-matrix.md) | ready | [B6b](ready/B6b-lamina-pdf-package.md) |
-| B7a | [Docs site (`apps/docs`): Starlight, quick starts, guides and TypeDoc, with per-PR previews](ready/B7a-docs-site.md) | ready | [B6b](ready/B6b-lamina-pdf-package.md) |
-| B7b | [Changesets, Cargo version sync, ADR 0017 (versioning) and the local `0.1.0-alpha.0` tag](ready/B7b-versioning-and-0-1-0-alpha.md) | ready | [B6c](ready/B6c-runtime-matrix.md), [B7a](ready/B7a-docs-site.md) |
+| B7a | [Docs site (`apps/docs`): Starlight, quick starts, guides and TypeDoc, with per-PR previews](ready/B7a-docs-site.md) | ready | [B2b](ready/B2b-standard-security-decryption.md), [B6b](ready/B6b-lamina-pdf-package.md) |
+| B7b | [Changesets, Cargo version sync, ADR 0017 (versioning) and the local `0.1.0-alpha.0` tag](ready/B7b-versioning-and-0-1-0-alpha.md) | ready | [B6c](ready/B6c-runtime-matrix.md), [B7a](ready/B7a-docs-site.md), [X3a](ready/X3a-nightly-lane.md) |
 | B8a | [Tagged PDF: structure tree builder, artifacts, alt text, MCIDs and ParentTree](ready/B8a-structure-tree.md) | ready | [B5c](ready/B5c-lamina-facade-and-examples.md), [B6b](ready/B6b-lamina-pdf-package.md) |
 | B8b | [Conformance profiles (PDF/UA-1, PDF/A-2b/2u/3b), output intents, veraPDF nightly and `0.2.0-alpha`](ready/B8b-conformance-profiles-and-verapdf.md) | ready | [B4c](ready/B4c-standard-14-and-simple-fonts.md), [B7b](ready/B7b-versioning-and-0-1-0-alpha.md), [B8a](ready/B8a-structure-tree.md), [X3a](ready/X3a-nightly-lane.md) |
 | B9a | [ADR 0023 and `lamina-content`: read-only content-stream interpreter](ready/B9a-lamina-content-and-adr-0023.md) | ready | [B2c](ready/B2c-lamina-model-corpus-fuzz.md) |
@@ -65,9 +69,9 @@ Ready todos whose dependencies are all done:
 
 | ID | Todo | State | Depends on |
 | --- | --- | --- | --- |
-| C1a | [`hayro-parity` spike: hayro vs PDFium pass rate on the pdf.js and PDFBox corpora](ready/C1a-hayro-parity-spike.md) | ready | [B6b](ready/B6b-lamina-pdf-package.md) |
+| C1a | [`hayro-parity` spike: hayro vs PDFium pass rate on the pdf.js and PDFBox corpora](ready/C1a-hayro-parity-spike.md) | ready | — |
 | C1b | [`pdfium-wasm` spike: PDFium-WASM next to `lamina-wasm` in one worker](ready/C1b-pdfium-wasm-spike.md) | ready | [B3c](ready/B3c-save-planner-and-roundtrip.md), [B6b](ready/B6b-lamina-pdf-package.md), [C1a](ready/C1a-hayro-parity-spike.md) |
-| C2a | [ADRs 0004, 0009, 0010, 0011: render backend, web client, platform adapter, Cloudflare and privacy](ready/C2a-render-adrs.md) | ready | [C1a](ready/C1a-hayro-parity-spike.md), [C1b](ready/C1b-pdfium-wasm-spike.md) |
+| C2a | [ADRs 0004, 0009, 0010, 0011: render backend, web client, platform adapter, Cloudflare and privacy](ready/C2a-render-adrs.md) | ready | [C1a](ready/C1a-hayro-parity-spike.md), [C1b](ready/C1b-pdfium-wasm-spike.md), [X1](ready/X1-docs-link-checker.md) |
 | C2b | [`crates/lamina-render`: the `RenderBackend` trait, PDFium and hayro adapters, render goldens](ready/C2b-lamina-render-crate.md) | ready | [B2c](ready/B2c-lamina-model-corpus-fuzz.md), [C2a](ready/C2a-render-adrs.md) |
 | C2c | [`@lamina/render-pdfium` and `@lamina/render-hayro`: the web render adapters](ready/C2c-render-packages.md) | ready | [B6b](ready/B6b-lamina-pdf-package.md), [C2b](ready/C2b-lamina-render-crate.md) |
 | C3a | [`@lamina/viewer` part 1: document worker and typed RPC](ready/C3a-viewer-worker-rpc.md) | ready | [B6b](ready/B6b-lamina-pdf-package.md), [C2a](ready/C2a-render-adrs.md), [C2c](ready/C2c-render-packages.md) |
@@ -77,13 +81,13 @@ Ready todos whose dependencies are all done:
 | C4b | [`apps/web`: the reader on Cloudflare Workers static assets, with local file opening](ready/C4b-web-app-shell.md) | ready | [C2a](ready/C2a-render-adrs.md), [C4a](ready/C4a-ui-chrome-and-platform.md) |
 | C4c | [Remote files via `#url=`, encrypted files, and the privacy test suite](ready/C4c-remote-files-encryption-privacy.md) | ready | [B2b](ready/B2b-standard-security-decryption.md), [B6b](ready/B6b-lamina-pdf-package.md), [C4b](ready/C4b-web-app-shell.md) |
 | C4d | [Deploy pipeline: preview URL per PR and production from `main`](ready/C4d-deploy-previews-and-production.md) | ready | [C4b](ready/C4b-web-app-shell.md) |
-| C5a | [Text layer, selection and copy (from lamina's extraction), with struct-tree linking](ready/C5a-text-layer-and-selection.md) | ready | [B9c](ready/B9c-text-extraction-bindings-and-differential.md), [C4c](ready/C4c-remote-files-encryption-privacy.md) |
-| C5b | [Find in document: streaming search, highlights, options and pdf.js count parity](ready/C5b-find-in-document.md) | ready | [B9c](ready/B9c-text-extraction-bindings-and-differential.md), [C5a](ready/C5a-text-layer-and-selection.md) |
-| C6a | [Thumbnails sidebar, outline sidebar, page labels and go-to-page](ready/C6a-thumbnails-outline-page-labels.md) | ready | [B2c](ready/B2c-lamina-model-corpus-fuzz.md), [B6b](ready/B6b-lamina-pdf-package.md), [C4c](ready/C4c-remote-files-encryption-privacy.md) |
+| C5a | [Text layer, selection and copy (from lamina's extraction), with struct-tree linking](ready/C5a-text-layer-and-selection.md) | ready | [B9c](ready/B9c-text-extraction-bindings-and-differential.md), [C3c](ready/C3c-viewer-perf-harness.md), [C4c](ready/C4c-remote-files-encryption-privacy.md) |
+| C5b | [Find in document: streaming search, highlights, options and pdf.js count parity](ready/C5b-find-in-document.md) | ready | [B9c](ready/B9c-text-extraction-bindings-and-differential.md), [C3c](ready/C3c-viewer-perf-harness.md), [C5a](ready/C5a-text-layer-and-selection.md) |
+| C6a | [Thumbnails sidebar, outline sidebar, page labels and go-to-page](ready/C6a-thumbnails-outline-page-labels.md) | ready | [B2c](ready/B2c-lamina-model-corpus-fuzz.md), [B6b](ready/B6b-lamina-pdf-package.md), [C3c](ready/C3c-viewer-perf-harness.md), [C4c](ready/C4c-remote-files-encryption-privacy.md) |
 | C6b | [Link layer (internal, named and external links) and back/forward history](ready/C6b-links-and-history.md) | ready | [C5a](ready/C5a-text-layer-and-selection.md), [C6a](ready/C6a-thumbnails-outline-page-labels.md) |
-| C6c | [Print, download of original bytes, and the document properties dialog](ready/C6c-print-download-properties.md) | ready | [B9c](ready/B9c-text-extraction-bindings-and-differential.md), [C4c](ready/C4c-remote-files-encryption-privacy.md), [C5a](ready/C5a-text-layer-and-selection.md) |
+| C6c | [Print, download of original bytes, and the document properties dialog](ready/C6c-print-download-properties.md) | ready | [B9c](ready/B9c-text-extraction-bindings-and-differential.md), [C3c](ready/C3c-viewer-perf-harness.md), [C4c](ready/C4c-remote-files-encryption-privacy.md), [C5a](ready/C5a-text-layer-and-selection.md) |
 | C7a | [Accessibility: keyboard map and help, focus, landmarks, announcements, themes and axe in CI](ready/C7a-accessibility-and-theming.md) | ready | [C5b](ready/C5b-find-in-document.md), [C6a](ready/C6a-thumbnails-outline-page-labels.md), [C6b](ready/C6b-links-and-history.md), [C6c](ready/C6c-print-download-properties.md) |
-| C7b | [Offline and PWA: service worker, manifest with `file_handlers`, OPFS cache and recent files](ready/C7b-offline-pwa.md) | ready | [C4c](ready/C4c-remote-files-encryption-privacy.md), [C4d](ready/C4d-deploy-previews-and-production.md) |
+| C7b | [Offline and PWA: service worker, manifest with `file_handlers`, OPFS cache and recent files](ready/C7b-offline-pwa.md) | ready | [C3c](ready/C3c-viewer-perf-harness.md), [C4c](ready/C4c-remote-files-encryption-privacy.md), [C4d](ready/C4d-deploy-previews-and-production.md) |
 | C7c | [Performance budgets as CI gates, privacy page, and the `web v0.1` launch](ready/C7c-performance-gates-and-launch.md) | ready | [C3c](ready/C3c-viewer-perf-harness.md), [C4d](ready/C4d-deploy-previews-and-production.md), [C6c](ready/C6c-print-download-properties.md), [C7a](ready/C7a-accessibility-and-theming.md), [C7b](ready/C7b-offline-pwa.md) |
 
 ## Desktop reader — Round D
@@ -128,10 +132,10 @@ Ready todos whose dependencies are all done:
 | E1a | [Editing foundation: feature plan](ready/E1a-editing-foundation-feature-plan.md) | ready | [B3c](ready/B3c-save-planner-and-roundtrip.md), [B5c](ready/B5c-lamina-facade-and-examples.md), [C7c](ready/C7c-performance-gates-and-launch.md), [D7c](ready/D7c-desktop-beta-release.md), [X2](ready/X2-capability-matrix.md) |
 | E1b | [XMP packet parse and update for Info-mapped properties](ready/E1b-xmp-packet-model.md) | ready | [B5c](ready/B5c-lamina-facade-and-examples.md), [E1a](ready/E1a-editing-foundation-feature-plan.md) |
 | E1c | [Metadata ops: Info and XMP in sync (J.01–J.03, J.10)](ready/E1c-metadata-ops.md) | ready | [B3c](ready/B3c-save-planner-and-roundtrip.md), [B6b](ready/B6b-lamina-pdf-package.md), [E1b](ready/E1b-xmp-packet-model.md) |
-| E1d | [Edit session, interaction modes, undo/redo UI and history panel](ready/E1d-edit-session-undo-ui.md) | ready | [B6b](ready/B6b-lamina-pdf-package.md), [C4a](ready/C4a-ui-chrome-and-platform.md), [D4c](ready/D4c-native-printing.md), [E1a](ready/E1a-editing-foundation-feature-plan.md) |
-| E1e | [Save, Save as, Download copy and the SaveConstraint banner](ready/E1e-save-and-constraint-banner.md) | ready | [D3b](ready/D3b-recent-files-and-file-watching.md), [E1d](ready/E1d-edit-session-undo-ui.md) |
+| E1d | [Edit session, interaction modes, undo/redo UI and history panel](ready/E1d-edit-session-undo-ui.md) | ready | [B6b](ready/B6b-lamina-pdf-package.md), [C4a](ready/C4a-ui-chrome-and-platform.md), [D4b](ready/D4b-native-menus.md), [E1a](ready/E1a-editing-foundation-feature-plan.md) |
+| E1e | [Save, Save as, Download copy and the SaveConstraint banner](ready/E1e-save-and-constraint-banner.md) | ready | [D3b](ready/D3b-recent-files-and-file-watching.md), [E1c](ready/E1c-metadata-ops.md), [E1d](ready/E1d-edit-session-undo-ui.md) |
 | E1f | [Metadata editor UI and in-app capability-matrix page](ready/E1f-metadata-ui-capability-page.md) | ready | [E1c](ready/E1c-metadata-ops.md), [E1e](ready/E1e-save-and-constraint-banner.md), [X2](ready/X2-capability-matrix.md) |
-| E2a | [Page organisation: feature plan](ready/E2a-page-organisation-feature-plan.md) | ready | [B9c](ready/B9c-text-extraction-bindings-and-differential.md), [E1a](ready/E1a-editing-foundation-feature-plan.md) |
+| E2a | [Page organisation: feature plan](ready/E2a-page-organisation-feature-plan.md) | ready | [B9c](ready/B9c-text-extraction-bindings-and-differential.md), [E1a](ready/E1a-editing-foundation-feature-plan.md), [E1f](ready/E1f-metadata-ui-capability-page.md) |
 | E2b | [Page-structure ops: insert blank, delete, duplicate, reorder, rotate, reverse](ready/E2b-page-structure-ops.md) | ready | [E1c](ready/E1c-metadata-ops.md), [E2a](ready/E2a-page-organisation-feature-plan.md) |
 | E2c | [Insert pages from other PDFs, replace pages, extract and export ranges](ready/E2c-cross-document-pages.md) | ready | [E2b](ready/E2b-page-structure-ops.md) |
 | E2d | [Merge documents and split by count, ranges and bookmarks](ready/E2d-merge-and-split.md) | ready | [E2c](ready/E2c-cross-document-pages.md) |
@@ -141,7 +145,7 @@ Ready todos whose dependencies are all done:
 | E2h | [Page organiser UI: thumbnails drag-and-drop, multi-select and page dialogs](ready/E2h-page-organiser-ui.md) | ready | [E1e](ready/E1e-save-and-constraint-banner.md), [E2c](ready/E2c-cross-document-pages.md), [E2d](ready/E2d-merge-and-split.md), [E2f](ready/E2f-page-geometry.md), [E2g](ready/E2g-page-labels.md) |
 | E2i | [DocMDP gating tests on signed fixtures and E2 round close](ready/E2i-signed-gating-and-close.md) | ready | [E2h](ready/E2h-page-organiser-ui.md) |
 | E3a | [Navigation, attachments, inspection and extraction: feature plan](ready/E3a-navigation-attachments-inspection-feature-plan.md) | ready | [E2a](ready/E2a-page-organisation-feature-plan.md) |
-| E3b | [Bookmark editor, named destinations, TOC generator](ready/E3b-bookmarks-and-destinations.md) | ready | [E2b](ready/E2b-page-structure-ops.md), [E3a](ready/E3a-navigation-attachments-inspection-feature-plan.md) |
+| E3b | [Bookmark editor, named destinations, TOC generator](ready/E3b-bookmarks-and-destinations.md) | ready | [E2b](ready/E2b-page-structure-ops.md), [E3a](ready/E3a-navigation-attachments-inspection-feature-plan.md), [E3c](ready/E3c-links.md) |
 | E3c | [Internal links, external hyperlinks and links on text](ready/E3c-links.md) | ready | [C5b](ready/C5b-find-in-document.md), [E3a](ready/E3a-navigation-attachments-inspection-feature-plan.md) |
 | E3d | [Initial view, page display mode and article threads (read)](ready/E3d-initial-view-and-threads.md) | ready | [E3a](ready/E3a-navigation-attachments-inspection-feature-plan.md) |
 | E3e | [General XMP editor (custom and extension schemas)](ready/E3e-xmp-editor.md) | ready | [E1c](ready/E1c-metadata-ops.md), [E3a](ready/E3a-navigation-attachments-inspection-feature-plan.md) |
@@ -187,7 +191,7 @@ Ready todos whose dependencies are all done:
 | E9a | [Form authoring: feature plan](ready/E9a-form-authoring-feature-plan.md) | ready | [E8b](ready/E8b-form-filling-feature-plan.md) |
 | E9b | [Field creation and configuration ops, including signature fields](ready/E9b-field-creation-ops.md) | ready | [E8d](ready/E8d-field-appearances.md), [E9a](ready/E9a-form-authoring-feature-plan.md) |
 | E9c | [Form-design mode: inspector, validation/format/calculation settings, tab-order editor, accessible labels](ready/E9c-form-design-mode.md) | ready | [E8f](ready/E8f-declarative-behaviour.md), [E9b](ready/E9b-field-creation-ops.md) |
-| E9d | [Automatic field detection on flat forms (optional)](ready/E9d-automatic-field-detection.md) | ready | [E9c](ready/E9c-form-design-mode.md) |
+| E9d | [Automatic field detection on flat forms (optional)](ready/E9d-automatic-field-detection.md) | ready | [E7c](ready/E7c-content-ir.md), [E9c](ready/E9c-form-design-mode.md) |
 | E10a | [ADR 0020: signatures, crypto backends and key storage per platform](ready/E10a-adr-0020-signatures.md) | ready | [E9a](ready/E9a-form-authoring-feature-plan.md) |
 | E10b | [Signatures: feature plan](ready/E10b-signatures-feature-plan.md) | ready | [E9a](ready/E9a-form-authoring-feature-plan.md), [E10a](ready/E10a-adr-0020-signatures.md) |
 | E10c | [Visual signatures: image, drawn and typed (non-cryptographic)](ready/E10c-visual-signatures.md) | ready | [E5c](ready/E5c-stamps-and-attachments.md), [E10b](ready/E10b-signatures-feature-plan.md) |
@@ -196,18 +200,18 @@ Ready todos whose dependencies are all done:
 | E10f | [Certification (DocMDP), field locking (FieldMDP) and allowed changes](ready/E10f-certification-and-locking.md) | ready | [E10d](ready/E10d-pades-signing-core.md) |
 | E10g | [Signature validation: integrity, chain, revocation, signer inspection](ready/E10g-signature-validation.md) | ready | [E10d](ready/E10d-pades-signing-core.md) |
 | E10h | [Revision diff analysis, modification warnings and attack-catalogue tests](ready/E10h-revision-diff-and-attacks.md) | ready | [E10f](ready/E10f-certification-and-locking.md), [E10g](ready/E10g-signature-validation.md) |
-| E10i | [Platform key storage: OS keychains and PKCS#11 (desktop), WebCrypto and PKCS#12 (web)](ready/E10i-platform-signers.md) | ready | [D4c](ready/D4c-native-printing.md), [E10d](ready/E10d-pades-signing-core.md) |
+| E10i | [Platform key storage: OS keychains and PKCS#11 (desktop), WebCrypto and PKCS#12 (web)](ready/E10i-platform-signers.md) | ready | [C3a](ready/C3a-viewer-worker-rpc.md), [D2c](ready/D2c-engine-sandbox.md), [E10d](ready/E10d-pades-signing-core.md) |
 | E10j | [Signing flow and signature panel UI](ready/E10j-signature-ui.md) | ready | [E10c](ready/E10c-visual-signatures.md), [E10e](ready/E10e-timestamps-and-tsa-proxy.md), [E10h](ready/E10h-revision-diff-and-attacks.md), [E10i](ready/E10i-platform-signers.md) |
 | E11a | [Security and sanitisation: feature plan](ready/E11a-security-and-sanitisation-feature-plan.md) | ready | [E10b](ready/E10b-signatures-feature-plan.md) |
 | E11b | [AES-256 encryption on write, passwords and permissions; inspect encryption](ready/E11b-encrypt-on-write.md) | ready | [B2b](ready/B2b-standard-security-decryption.md), [E11a](ready/E11a-security-and-sanitisation-feature-plan.md) |
 | E11c | [Remove security with authorisation and change passwords](ready/E11c-remove-security.md) | ready | [E11b](ready/E11b-encrypt-on-write.md) |
-| E11d | [Sanitiser ops with a report](ready/E11d-sanitiser.md) | ready | [E3f](ready/E3f-attachments-and-associated-files.md), [E5b](ready/E5b-comment-threads-and-review.md), [E11a](ready/E11a-security-and-sanitisation-feature-plan.md) |
-| E11e | [Public-key (certificate) security: read, write behind a flag](ready/E11e-public-key-security.md) | ready | [E10g](ready/E10g-signature-validation.md), [E11b](ready/E11b-encrypt-on-write.md) |
+| E11d | [Sanitiser ops with a report](ready/E11d-sanitiser.md) | ready | [E3f](ready/E3f-attachments-and-associated-files.md), [E5b](ready/E5b-comment-threads-and-review.md), [E7c](ready/E7c-content-ir.md), [E11a](ready/E11a-security-and-sanitisation-feature-plan.md) |
+| E11e | [Public-key (certificate) security: read, write behind a flag](ready/E11e-public-key-security.md) | ready | [E10g](ready/E10g-signature-validation.md), [E10i](ready/E10i-platform-signers.md), [E11b](ready/E11b-encrypt-on-write.md) |
 | E12a | [Redaction: feature plan](ready/E12a-redaction-feature-plan.md) | ready | [E7c](ready/E7c-content-ir.md), [E11a](ready/E11a-security-and-sanitisation-feature-plan.md) |
 | E12b | [Mark and review: Redact annotations and preview](ready/E12b-mark-and-review.md) | ready | [E4b](ready/E4b-annotation-model-and-overlay.md), [E12a](ready/E12a-redaction-feature-plan.md) |
 | E12c | [Apply redactions: remove glyphs, paths and image pixels](ready/E12c-apply-content-removal.md) | ready | [E7c](ready/E7c-content-ir.md), [E12b](ready/E12b-mark-and-review.md) |
-| E12d | [Scrub non-content layers, full rewrite and verification report](ready/E12d-scrub-and-rewrite.md) | ready | [E11d](ready/E11d-sanitiser.md), [E12c](ready/E12c-apply-content-removal.md) |
-| E12e | [Search sensitive content to redact](ready/E12e-sensitive-search.md) | ready | [C5b](ready/C5b-find-in-document.md), [E12b](ready/E12b-mark-and-review.md) |
+| E12d | [Scrub non-content layers, full rewrite and verification report](ready/E12d-scrub-and-rewrite.md) | ready | [E8c](ready/E8c-acroform-field-model.md), [E10d](ready/E10d-pades-signing-core.md), [E11d](ready/E11d-sanitiser.md), [E12c](ready/E12c-apply-content-removal.md) |
+| E12e | [Search sensitive content to redact](ready/E12e-sensitive-search.md) | ready | [C5b](ready/C5b-find-in-document.md), [E12b](ready/E12b-mark-and-review.md), [E12d](ready/E12d-scrub-and-rewrite.md) |
 | E12f | [Redaction leak tests across pdf.js, PDFium, pypdf and pdftotext; round close](ready/E12f-leak-tests.md) | ready | [E12d](ready/E12d-scrub-and-rewrite.md), [E12e](ready/E12e-sensitive-search.md) |
 | E13a | [ADR 0013: heavy jobs on Workflows + Containers; OCR and conversion engines and licences](ready/E13a-adr-0013-heavy-jobs.md) | ready | [C2b](ready/C2b-lamina-render-crate.md), [E12a](ready/E12a-redaction-feature-plan.md) |
 | E13b | [OCR and conversion: feature plan](ready/E13b-ocr-and-conversion-feature-plan.md) | ready | [E13a](ready/E13a-adr-0013-heavy-jobs.md) |
@@ -229,8 +233,8 @@ Ready todos whose dependencies are all done:
 | E16a | [Optimisation and print production: feature plan](ready/E16a-optimisation-print-feature-plan.md) | ready | [E15a](ready/E15a-accessibility-feature-plan.md) |
 | E16b | [Optimiser: unused objects, dedupe, object streams, linearisation](ready/E16b-structural-optimiser.md) | ready | [E16a](ready/E16a-optimisation-print-feature-plan.md) |
 | E16c | [Downsample and recompress images; embed or subset fonts](ready/E16c-images-and-fonts.md) | ready | [B4b](ready/B4b-shaping-bidi-line-breaking.md), [B4c](ready/B4c-standard-14-and-simple-fonts.md), [E16b](ready/E16b-structural-optimiser.md) |
-| E16d | [Colour conversion, ICC and output intents, spot colours and overprint preview, page boxes for print](ready/E16d-colour.md) | ready | [E7c](ready/E7c-content-ir.md), [E16a](ready/E16a-optimisation-print-feature-plan.md) |
-| E16e | [Preflight rules as data; PDF/A and PDF/X conversion and validation; transparency flattening](ready/E16e-preflight-and-conversion.md) | ready | [E16c](ready/E16c-images-and-fonts.md), [E16d](ready/E16d-colour.md) |
+| E16d | [Colour conversion, ICC and output intents, spot colours and overprint preview, page boxes for print](ready/E16d-colour.md) | ready | [E2f](ready/E2f-page-geometry.md), [E7c](ready/E7c-content-ir.md), [E16a](ready/E16a-optimisation-print-feature-plan.md) |
+| E16e | [Preflight rules as data; PDF/A and PDF/X conversion and validation; transparency flattening](ready/E16e-preflight-and-conversion.md) | ready | [E15e](ready/E15e-pdfua-output.md), [E16c](ready/E16c-images-and-fonts.md), [E16d](ready/E16d-colour.md) |
 | E16f | [Imposition, booklet and N-up](ready/E16f-imposition.md) | ready | [E2c](ready/E2c-cross-document-pages.md), [E16a](ready/E16a-optimisation-print-feature-plan.md) |
 | E16g | [Optional server batch optimisation](ready/E16g-server-batch-optimise.md) | ready | [E14e](ready/E14e-server-batch.md), [E16b](ready/E16b-structural-optimiser.md) |
 | E17a | [Advanced interactions: feature plan](ready/E17a-advanced-interactions-feature-plan.md) | ready | [E8a](ready/E8a-adr-0021-javascript-policy.md), [E16a](ready/E16a-optimisation-print-feature-plan.md) |
@@ -241,11 +245,11 @@ Ready todos whose dependencies are all done:
 | E17f | [3D detection with poster fallback; round close](ready/E17f-3d-detection.md) | ready | [E17b](ready/E17b-action-editor.md), [E17c](ready/E17c-layers.md), [E17d](ready/E17d-media.md), [E17e](ready/E17e-measurement.md) |
 | E18a | [ADR 0012: collaboration — Durable Object per document, LWW records, leases](ready/E18a-adr-0012-collaboration.md) | ready | [E17a](ready/E17a-advanced-interactions-feature-plan.md), [H1](ready/H1-auth-spike.md) |
 | E18b | [Collaboration (hosted service): feature plan](ready/E18b-collaboration-feature-plan.md) | ready | [E18a](ready/E18a-adr-0012-collaboration.md), [H2](ready/H2-accounts-and-login.md), [H3](ready/H3-cloud-document-storage.md) |
-| E18c | [Layer-document schema and record ↔ op mapping](ready/E18c-layer-document-schema.md) | ready | [E18b](ready/E18b-collaboration-feature-plan.md) |
+| E18c | [Layer-document schema and record ↔ op mapping](ready/E18c-layer-document-schema.md) | ready | [E2b](ready/E2b-page-structure-ops.md), [E4b](ready/E4b-annotation-model-and-overlay.md), [E5b](ready/E5b-comment-threads-and-review.md), [E8c](ready/E8c-acroform-field-model.md), [E18b](ready/E18b-collaboration-feature-plan.md) |
 | E18d | [Collaboration server: Durable Object per document, R2 base revisions, D1 index](ready/E18d-durable-object-server.md) | ready | [E18c](ready/E18c-layer-document-schema.md) |
-| E18e | [Client sync, presence and offline sync on desktop](ready/E18e-client-sync-and-presence.md) | ready | [E18d](ready/E18d-durable-object-server.md) |
+| E18e | [Client sync, presence and offline sync on desktop](ready/E18e-client-sync-and-presence.md) | ready | [E2b](ready/E2b-page-structure-ops.md), [E4b](ready/E4b-annotation-model-and-overlay.md), [E5b](ready/E5b-comment-threads-and-review.md), [E8c](ready/E8c-acroform-field-model.md), [E18d](ready/E18d-durable-object-server.md) |
 | E18f | [Sharing, roles and comment notifications](ready/E18f-sharing-and-notifications.md) | ready | [E18d](ready/E18d-durable-object-server.md), [H3](ready/H3-cloud-document-storage.md) |
-| E18g | [Leases for content edits and redactions; server jobs minting new base revisions](ready/E18g-leases-and-base-revisions.md) | ready | [E12d](ready/E12d-scrub-and-rewrite.md), [E18e](ready/E18e-client-sync-and-presence.md) |
+| E18g | [Leases for content edits and redactions; server jobs minting new base revisions](ready/E18g-leases-and-base-revisions.md) | ready | [E7d](ready/E7d-select-transform-existing.md), [E10d](ready/E10d-pades-signing-core.md), [E12d](ready/E12d-scrub-and-rewrite.md), [E13e](ready/E13e-server-jobs-infrastructure.md), [E18e](ready/E18e-client-sync-and-presence.md) |
 | E18h | [Load test: 50 concurrent reviewers on one document; round close](ready/E18h-load-test.md) | ready | [E18f](ready/E18f-sharing-and-notifications.md), [E18g](ready/E18g-leases-and-base-revisions.md) |
 
 ## Publishing (later)

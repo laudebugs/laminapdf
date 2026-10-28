@@ -16,7 +16,7 @@
 
 ## Goal
 
-Run saved op sequences on the server for many files (Worker running `lamina-wasm` for small files, Containers for large), opt-in, with retention rules, if the E14a answer to full-editor §9 Q3 keeps a hosted batch.
+Run saved op sequences on the server for many files (Worker running `lamina-wasm` for small files, Containers for large), opt-in, with retention rules, if the E14a answer to full-editor §9 Q3 keeps a hosted batch. If it does not, this todo is closed as won't-do (see Risks) rather than left in `ready/`.
 
 ## Context
 
@@ -53,6 +53,10 @@ Run saved op sequences on the server for many files (Worker running `lamina-wasm
 
 - [ ] Preview e2e: batch of 20 files processed and expired per retention
 
+## Post-merge checks
+
+None.
+
 ## Tests
 
 - Worker tests
@@ -64,12 +68,14 @@ Run saved op sequences on the server for many files (Worker running `lamina-wasm
 
 ## Risks and open questions
 
-- Depends on the §9 Q3 answer; if batch stays local only, close this todo as won't-do in the E14a PR
+- Depends on the §9 Q3 answer; if batch stays local only, the E14a PR closes this todo as won't-do (below), and [E16g](E16g-server-batch-optimise.md), its only dependant, is closed as won't-do in the same PR
+- **Won't-do close (how the board records it):** the board has no separate won't-do state. A todo closed as won't-do is moved `ready/` → `done/` with Status `done`, a first line in its Goal reading `Closed as won't-do: <reason and link to the decision>`, the PR field pointing at the PR that closed it, and no tasks ticked. Its dependants' "Depends on" are then satisfied, so they show as startable and are either done normally or closed the same way.
 
 ## Definition of done
 
-- [ ] PR opened from a fresh worktree; this file moved `ready/` → `ongoing/` in the PR's first commit (status field updated, PR link added)
+- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [ ] Work PR opened from a fresh worktree; **PR** field filled in
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the PR (status `done`), plan links updated, plan to-dos ticked
+- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
 - [ ] Squash-merged; dependants' "Depends on" now satisfied

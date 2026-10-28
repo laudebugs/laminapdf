@@ -86,7 +86,7 @@ The editing architecture (lazy COS overlay, typed model, op log, save planner, o
 
 Phase 1 (core viewer: open, render, zoom, search, text selection, thumbnails, download) is delivered by the reader rounds [C1–C7](web-app.md#6-rounds) and [D1–D7](desktop-app.md#6-rounds). Editor rounds start at E1.
 
-Editor rounds are larger than reader rounds. Each starts with a short **feature-plan PR** (scope, op list, tests, any ADR) and then lands as a stack of implementation PRs, each mergeable on its own ([git workflow §5](../guidelines/git-workflow.md#5-pull-requests); [architecture §5](architecture.md#5-rounds-one-pull-request-each): "each feature group gets its own plan and pull requests").
+Editor rounds are larger than reader rounds. Each starts with a short **feature-plan PR** (scope, op list, tests, any ADR) and then lands as a stack of implementation PRs, each mergeable on its own ([git workflow §5](../guidelines/git-workflow.md#5-pull-requests); [architecture §5](architecture.md#5-rounds): "each feature group gets its own plan and pull requests").
 
 **Todos.** Each feature-plan PR and implementation PR is one todo file on the [todo board](../todos/README.md) (`ready/` → `ongoing/` → `done/`), with explicit dependencies. Rounds that introduce an ADR (E7, E8, E10, E13, E18) start with an ADR todo (`a`), then the feature plan (`b`); the others start with the feature plan (`a`). The hosted-service foundation (accounts, cloud storage, sync) is todos H1–H4. Links below point at `ready/` and are updated as todos move.
 
@@ -286,6 +286,8 @@ Editor rounds are larger than reader rounds. Each starts with a short **feature-
 
 ## 10. To-dos
 
+Each round's todos (one per PR, with dependencies) are linked from [§7](#7-phases-and-rounds) and on the [todo board](../todos/README.md); this checklist is the summary.
+
 ### Cross-cutting
 Todos: [X2](../todos/ready/X2-capability-matrix.md) (capability matrix; E1a and E1f depend on it)
 - [ ] Assign stable IDs `<group>.<nn>` to all operations in 06 §3 and create `docs/capabilities/manifest.toml`
@@ -294,7 +296,6 @@ Todos: [X2](../todos/ready/X2-capability-matrix.md) (capability matrix; E1a and 
 - [ ] Show the capability matrix in the app (E1) and docs site
 
 ### E1. Editing foundation
-Todos: [E1a](../todos/ready/E1a-editing-foundation-feature-plan.md), [E1b](../todos/ready/E1b-xmp-packet-model.md), [E1c](../todos/ready/E1c-metadata-ops.md), [E1d](../todos/ready/E1d-edit-session-undo-ui.md), [E1e](../todos/ready/E1e-save-and-constraint-banner.md), [E1f](../todos/ready/E1f-metadata-ui-capability-page.md)
 - [ ] Feature-plan PR for E1
 - [ ] Interaction-mode state machine in `@lamina/ui`
 - [ ] Undo/redo commands, shortcuts and history panel
@@ -305,7 +306,6 @@ Todos: [E1a](../todos/ready/E1a-editing-foundation-feature-plan.md), [E1b](../to
 - [ ] PDF/A-aware metadata edits: keep `pdfaid:`, warn before a save that breaks the claim; tests that veraPDF still passes on edited PDF/A fixtures
 
 ### E2. Page organisation
-Todos: [E2a](../todos/ready/E2a-page-organisation-feature-plan.md), [E2b](../todos/ready/E2b-page-structure-ops.md), [E2c](../todos/ready/E2c-cross-document-pages.md), [E2d](../todos/ready/E2d-merge-and-split.md), [E2e](../todos/ready/E2e-content-append-api.md), [E2f](../todos/ready/E2f-page-geometry.md), [E2g](../todos/ready/E2g-page-labels.md), [E2h](../todos/ready/E2h-page-organiser-ui.md), [E2i](../todos/ready/E2i-signed-gating-and-close.md)
 - [ ] Feature-plan PR for E2
 - [ ] Page ops (insert, delete, duplicate, reorder, rotate, reverse, replace) as view-level `LaminaId` mapping
 - [ ] Merge with outline, destination, AcroForm and struct-tree remapping
@@ -317,7 +317,6 @@ Todos: [E2a](../todos/ready/E2a-page-organisation-feature-plan.md), [E2b](../tod
 - [ ] DocMDP gating tests on signed fixtures
 
 ### E3. Navigation, attachments, inspection and extraction
-Todos: [E3a](../todos/ready/E3a-navigation-attachments-inspection-feature-plan.md), [E3b](../todos/ready/E3b-bookmarks-and-destinations.md), [E3c](../todos/ready/E3c-links.md), [E3d](../todos/ready/E3d-initial-view-and-threads.md), [E3e](../todos/ready/E3e-xmp-editor.md), [E3f](../todos/ready/E3f-attachments-and-associated-files.md), [E3g](../todos/ready/E3g-inspectors.md), [E3h](../todos/ready/E3h-images-to-pdf-and-page-export.md), [E3i](../todos/ready/E3i-extraction.md)
 - [ ] Feature-plan PR for E3
 - [ ] Bookmark editor (nested, drag), links and named destinations, TOC generator
 - [ ] Initial view and page display settings
@@ -327,7 +326,6 @@ Todos: [E3a](../todos/ready/E3a-navigation-attachments-inspection-feature-plan.m
 - [ ] Images → PDF; page export to PNG/JPEG/TIFF; text, image, link and attachment extraction
 
 ### E4. Markup and drawing annotations
-Todos: [E4a](../todos/ready/E4a-markup-and-drawing-annotations-feature-plan.md), [E4b](../todos/ready/E4b-annotation-model-and-overlay.md), [E4c](../todos/ready/E4c-appearances-markup-notes-caret.md), [E4d](../todos/ready/E4d-appearances-ink-and-shapes.md), [E4e](../todos/ready/E4e-freetext-callouts.md), [E4f](../todos/ready/E4f-annotation-tools-ui.md), [E4g](../todos/ready/E4g-appearance-parity-suite.md)
 - [ ] Feature-plan PR for E4
 - [ ] Annotation model with `/NM` IDs and overlay rendering
 - [ ] Appearance-stream generator for every subtype shipped
@@ -336,7 +334,6 @@ Todos: [E4a](../todos/ready/E4a-markup-and-drawing-annotations-feature-plan.md),
 - [ ] Round-trip tests: appearance identical in pdf.js and PDFium
 
 ### E5. Review, stamps and interchange
-Todos: [E5a](../todos/ready/E5a-review-stamps-interchange-feature-plan.md), [E5b](../todos/ready/E5b-comment-threads-and-review.md), [E5c](../todos/ready/E5c-stamps-and-attachments.md), [E5d](../todos/ready/E5d-xfdf-fdf.md), [E5e](../todos/ready/E5e-flatten-and-summary.md)
 - [ ] Feature-plan PR for E5
 - [ ] Comment panel with replies, status, filter and search
 - [ ] Custom stamps (image, dynamic text) and file-attachment annotations
@@ -344,14 +341,12 @@ Todos: [E5a](../todos/ready/E5a-review-stamps-interchange-feature-plan.md), [E5b
 - [ ] Flatten annotations via the E2 append API; comment summary export
 
 ### E6. Adding content to pages
-Todos: [E6a](../todos/ready/E6a-adding-content-feature-plan.md), [E6b](../todos/ready/E6b-place-images-and-shapes.md), [E6c](../todos/ready/E6c-add-text.md), [E6d](../todos/ready/E6d-watermarks-headers-footers.md), [E6e](../todos/ready/E6e-content-tools-ui.md), [E6f](../todos/ready/E6f-reload-budget.md)
 - [ ] Feature-plan PR for E6
 - [ ] Add text, images, shapes and stamps as page content via Form XObjects
 - [ ] Watermarks and backgrounds; headers, footers, page numbers, Bates numbering
 - [ ] Measure and budget touched-page reload time in web and desktop
 
 ### E7. Editing existing content
-Todos: [E7a](../todos/ready/E7a-adr-0022-content-editing.md), [E7b](../todos/ready/E7b-editing-existing-content-feature-plan.md), [E7c](../todos/ready/E7c-content-ir.md), [E7d](../todos/ready/E7d-select-transform-existing.md), [E7e](../todos/ready/E7e-text-runs-and-inline-edit.md), [E7f](../todos/ready/E7f-font-handling-and-styling.md), [E7g](../todos/ready/E7g-search-and-replace.md), [E7h](../todos/ready/E7h-vector-clipping-masks.md), [E7i](../todos/ready/E7i-structure-and-conformance-maintenance.md), [E7j](../todos/ready/E7j-edit-corpus.md)
 - [ ] Write ADR 0022 (content-stream editing model for existing content)
 - [ ] Feature-plan PR for E7
 - [ ] Content IR with object identity; select and transform existing objects
@@ -363,7 +358,6 @@ Todos: [E7a](../todos/ready/E7a-adr-0022-content-editing.md), [E7b](../todos/rea
 - [ ] Edit-corpus tests: output renders identically except edited regions
 
 ### E8. Form filling and data
-Todos: [E8a](../todos/ready/E8a-adr-0021-javascript-policy.md), [E8b](../todos/ready/E8b-form-filling-feature-plan.md), [E8c](../todos/ready/E8c-acroform-field-model.md), [E8d](../todos/ready/E8d-field-appearances.md), [E8e](../todos/ready/E8e-field-widgets-ui.md), [E8f](../todos/ready/E8f-declarative-behaviour.md), [E8g](../todos/ready/E8g-form-data-and-flatten.md)
 - [ ] Write ADR 0021 (PDF JavaScript policy)
 - [ ] Feature-plan PR for E8
 - [ ] Field widgets as DOM overlays; tab order; required/read-only
@@ -373,14 +367,12 @@ Todos: [E8a](../todos/ready/E8a-adr-0021-javascript-policy.md), [E8b](../todos/r
 - [ ] XFA detection and user-facing report
 
 ### E9. Form authoring
-Todos: [E9a](../todos/ready/E9a-form-authoring-feature-plan.md), [E9b](../todos/ready/E9b-field-creation-ops.md), [E9c](../todos/ready/E9c-form-design-mode.md), [E9d](../todos/ready/E9d-automatic-field-detection.md)
 - [ ] Feature-plan PR for E9
 - [ ] Form-design mode: create, move, resize, configure every field type
 - [ ] Signature fields; accessible labels; tab-order editor
 - [ ] Optional automatic field detection on flat forms
 
 ### E10. Signatures
-Todos: [E10a](../todos/ready/E10a-adr-0020-signatures.md), [E10b](../todos/ready/E10b-signatures-feature-plan.md), [E10c](../todos/ready/E10c-visual-signatures.md), [E10d](../todos/ready/E10d-pades-signing-core.md), [E10e](../todos/ready/E10e-timestamps-and-tsa-proxy.md), [E10f](../todos/ready/E10f-certification-and-locking.md), [E10g](../todos/ready/E10g-signature-validation.md), [E10h](../todos/ready/E10h-revision-diff-and-attacks.md), [E10i](../todos/ready/E10i-platform-signers.md), [E10j](../todos/ready/E10j-signature-ui.md)
 - [ ] Write ADR 0020 (signatures and crypto backends, key storage per platform)
 - [ ] Feature-plan PR for E10
 - [ ] Visual signatures (image, drawn, typed) clearly labelled as non-cryptographic
@@ -392,7 +384,6 @@ Todos: [E10a](../todos/ready/E10a-adr-0020-signatures.md), [E10b](../todos/ready
 - [ ] Attack-catalogue tests (incremental saving, shadow attacks)
 
 ### E11. Security and sanitisation
-Todos: [E11a](../todos/ready/E11a-security-and-sanitisation-feature-plan.md), [E11b](../todos/ready/E11b-encrypt-on-write.md), [E11c](../todos/ready/E11c-remove-security.md), [E11d](../todos/ready/E11d-sanitiser.md), [E11e](../todos/ready/E11e-public-key-security.md)
 - [ ] Feature-plan PR for E11
 - [ ] AES-256 encryption on write (decryption exists since library B2); passwords and permissions UI
 - [ ] Remove security with authorisation
@@ -400,7 +391,6 @@ Todos: [E11a](../todos/ready/E11a-security-and-sanitisation-feature-plan.md), [E
 - [ ] Public-key security: read; write behind a flag
 
 ### E12. Redaction
-Todos: [E12a](../todos/ready/E12a-redaction-feature-plan.md), [E12b](../todos/ready/E12b-mark-and-review.md), [E12c](../todos/ready/E12c-apply-content-removal.md), [E12d](../todos/ready/E12d-scrub-and-rewrite.md), [E12e](../todos/ready/E12e-sensitive-search.md), [E12f](../todos/ready/E12f-leak-tests.md)
 - [ ] Feature-plan PR for E12
 - [ ] Mark, review and apply Redact annotations
 - [ ] Remove text, image pixels and paths under areas; scrub annotations, fields, metadata, bookmarks, struct tree
@@ -408,7 +398,6 @@ Todos: [E12a](../todos/ready/E12a-redaction-feature-plan.md), [E12b](../todos/re
 - [ ] Leak tests with pdf.js, PDFium, pypdf, pdftotext; revision-drop tests
 
 ### E13. OCR and conversion
-Todos: [E13a](../todos/ready/E13a-adr-0013-heavy-jobs.md), [E13b](../todos/ready/E13b-ocr-and-conversion-feature-plan.md), [E13c](../todos/ready/E13c-ocr-text-layer.md), [E13d](../todos/ready/E13d-local-ocr.md), [E13e](../todos/ready/E13e-server-jobs-infrastructure.md), [E13f](../todos/ready/E13f-office-and-html-to-pdf.md), [E13g](../todos/ready/E13g-pdf-to-word-excel.md)
 - [ ] Write ADR 0013 (Workflows + Containers, engines and licences)
 - [ ] Feature-plan PR for E13
 - [ ] Invisible OCR text layer from hOCR/ALTO in `lamina-build`
@@ -418,14 +407,12 @@ Todos: [E13a](../todos/ready/E13a-adr-0013-heavy-jobs.md), [E13b](../todos/ready
 - [ ] PDF → Word and tables → Excel (server), with quality fixtures
 
 ### E14. Compare, revisions and batch
-Todos: [E14a](../todos/ready/E14a-compare-revisions-batch-feature-plan.md), [E14b](../todos/ready/E14b-revision-browser.md), [E14c](../todos/ready/E14c-compare.md), [E14d](../todos/ready/E14d-batch-runner.md), [E14e](../todos/ready/E14e-server-batch.md)
 - [ ] Feature-plan PR for E14
 - [ ] Revision browser (open any prior revision read-only)
 - [ ] Visual diff and structural diff views
 - [ ] Batch runner over saved op sequences (desktop folders, web file sets, optional Workflows)
 
 ### E15. Accessibility
-Todos: [E15a](../todos/ready/E15a-accessibility-feature-plan.md), [E15b](../todos/ready/E15b-structure-tree-editing.md), [E15c](../todos/ready/E15c-tagging-tools.md), [E15d](../todos/ready/E15d-accessibility-checks.md), [E15e](../todos/ready/E15e-pdfua-output.md)
 - [ ] Feature-plan PR for E15
 - [ ] Tag tree panel and reading-order overlay
 - [ ] Tagging tools: headings, paragraphs, lists, tables, artifacts, alt text, language
@@ -433,7 +420,6 @@ Todos: [E15a](../todos/ready/E15a-accessibility-feature-plan.md), [E15b](../todo
 - [ ] PDF/UA export; veraPDF agreement tests in CI
 
 ### E16. Optimisation and print production
-Todos: [E16a](../todos/ready/E16a-optimisation-print-feature-plan.md), [E16b](../todos/ready/E16b-structural-optimiser.md), [E16c](../todos/ready/E16c-images-and-fonts.md), [E16d](../todos/ready/E16d-colour.md), [E16e](../todos/ready/E16e-preflight-and-conversion.md), [E16f](../todos/ready/E16f-imposition.md), [E16g](../todos/ready/E16g-server-batch-optimise.md)
 - [ ] Feature-plan PR for E16
 - [ ] Optimiser: images, fonts, unused objects, dedupe, object streams, linearisation
 - [ ] Colour conversion, output intents, overprint preview, spot colours
@@ -441,7 +427,6 @@ Todos: [E16a](../todos/ready/E16a-optimisation-print-feature-plan.md), [E16b](..
 - [ ] Imposition, booklet and N-up
 
 ### E17. Advanced interactions
-Todos: [E17a](../todos/ready/E17a-advanced-interactions-feature-plan.md), [E17b](../todos/ready/E17b-action-editor.md), [E17c](../todos/ready/E17c-layers.md), [E17d](../todos/ready/E17d-media.md), [E17e](../todos/ready/E17e-measurement.md), [E17f](../todos/ready/E17f-3d-detection.md)
 - [ ] Feature-plan PR for E17
 - [ ] Action editor (links, buttons, events, open actions; JavaScript per ADR 0021)
 - [ ] Layers panel (show/hide, edit OCGs)
@@ -450,7 +435,6 @@ Todos: [E17a](../todos/ready/E17a-advanced-interactions-feature-plan.md), [E17b]
 - [ ] 3D detection with poster fallback
 
 ### E18. Collaboration
-Todos: [E18a](../todos/ready/E18a-adr-0012-collaboration.md), [E18b](../todos/ready/E18b-collaboration-feature-plan.md), [E18c](../todos/ready/E18c-layer-document-schema.md), [E18d](../todos/ready/E18d-durable-object-server.md), [E18e](../todos/ready/E18e-client-sync-and-presence.md), [E18f](../todos/ready/E18f-sharing-and-notifications.md), [E18g](../todos/ready/E18g-leases-and-base-revisions.md), [E18h](../todos/ready/E18h-load-test.md)
 - [ ] Write ADR 0012 (Durable Object per document, LWW records, leases)
 - [ ] Run the `auth` spike ([H1](../todos/ready/H1-auth-spike.md)) and record the result in ADR 0011 (before the first round that needs accounts, which may be earlier than E18)
 - [ ] Feature-plan PR for E18

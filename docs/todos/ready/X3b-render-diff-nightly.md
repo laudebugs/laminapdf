@@ -47,6 +47,10 @@ Measure, every night, how far hayro is from PDFium on the external corpus, so th
 - [ ] Nightly run produces a pass-rate number and an HTML report for the external corpus
 - [ ] History shows at least two data points; a forced regression opens an issue
 
+## Post-merge checks
+
+None.
+
 ## Tests
 
 Unit tests for the comparator and report generator.
@@ -63,8 +67,9 @@ Unit tests for the comparator and report generator.
 
 ## Definition of done
 
-- [ ] PR opened from a fresh worktree; this file moved `ready/` → `ongoing/` in the PR's first commit (status field updated, PR link added)
+- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [ ] Work PR opened from a fresh worktree; **PR** field filled in
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the PR (status `done`), plan links updated, plan to-dos ticked
+- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
 - [ ] Squash-merged; dependants' "Depends on" now satisfied

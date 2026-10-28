@@ -4,7 +4,7 @@
 | --- | --- |
 | ID | `A3` |
 | Status | `done` |
-| Plan | [architecture §5 Round A](../../plans/architecture.md#5-rounds-one-pull-request-each), [§7 Round A to-dos](../../plans/architecture.md#round-a--foundations) |
+| Plan | [architecture §5 Round A](../../plans/architecture.md#5-rounds), [§7 Round A to-dos](../../plans/architecture.md#round-a--foundations) |
 | Round / milestone | Round A (foundations) — M0 |
 | Depends on | [A2](./A2-monorepo-skeleton.md) |
 | Blocks | [B1a](./B1a-round-b-adrs.md), [B1b](./B1b-krilla-fit-spike.md) |
@@ -36,7 +36,7 @@ Turn the `pdf-basics` spike's Rust core into the first two product crates, keepi
 
 **Out of scope**
 
-- `Limits`, warning codes, owned `Document`: [B2a](../ongoing/B2a-limits-owned-document.md).
+- `Limits`, warning codes, owned `Document`: [B2a](../done/B2a-limits-owned-document.md).
 
 ## Tasks
 
@@ -60,7 +60,7 @@ The integration tests listed above under `crates/lamina-cos/tests/`, unit tests 
 
 ## Risks and open questions
 
-Two known leftovers, both picked up in [B2a](../ongoing/B2a-limits-owned-document.md): the 30 s wall-clock budget in `tests/robustness.rs`, and the borrowed `Document<'a>` with `Rc` caches.
+Two known leftovers, both picked up in [B2a](../done/B2a-limits-owned-document.md): the 30 s wall-clock budget in `tests/robustness.rs`, and the borrowed `Document<'a>` with `Rc` caches.
 
 ## Definition of done
 

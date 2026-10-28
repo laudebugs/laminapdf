@@ -63,6 +63,10 @@ Finish the desktop settings page so every user-facing control the beta needs is 
 - [ ] `<domain>/download` (preview deploy) offers the right installer first on macOS arm64, Windows x64 and Linux x64 browsers (Playwright with UA/client-hint overrides) and lists all artefacts with SHA-256 values matching `SHA256SUMS` (test against the mocked JSON).
 - [ ] The download page works without JavaScript errors in Chromium, Firefox and WebKit (web Playwright suite).
 
+## Post-merge checks
+
+None.
+
 ## Tests
 
 - Rust unit tests: graphics env decision, crash-loop guard state.
@@ -85,8 +89,9 @@ Finish the desktop settings page so every user-facing control the beta needs is 
 
 ## Definition of done
 
-- [ ] PR opened from a fresh worktree; this file moved `ready/` → `ongoing/` in the PR's first commit (status field updated, PR link added)
+- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [ ] Work PR opened from a fresh worktree; **PR** field filled in
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the PR (status `done`), plan links updated, plan to-dos ticked
+- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
 - [ ] Squash-merged; dependants' "Depends on" now satisfied

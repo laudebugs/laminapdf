@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [full-editor §E16](../../plans/full-editor.md#e16-optimisation-and-print-production) |
 | Round / milestone | Editor phase 6 (E11–E17) — M9 Advanced |
-| Depends on | [E16c](./E16c-images-and-fonts.md), [E16d](./E16d-colour.md) |
+| Depends on | [E15e](./E15e-pdfua-output.md), [E16c](./E16c-images-and-fonts.md), [E16d](./E16d-colour.md) |
 | Blocks | None |
 | ADRs | Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
 | Branch | `feat/e16e-preflight-and-conversion` |
@@ -43,7 +43,7 @@ Preflight with rules as data (fonts embedded, colour spaces, resolution, overpri
 - **`SaveConstraint`:** `RequiresRewrite` for optimisation (full rewrite); signed files → `Conflict`, warned and overridden only explicitly
 - **Web vs desktop:** identical; desktop recommended for large print files
 - **Server features:** none (this PR adds no server feature; all processing stays on the device)
-- **Capability-matrix rows to flip:** `K.07` → `write` (core, pdf, web, desktop); `K.11` → `read` (core, pdf, web, desktop); `K.12` → `read` (core, pdf, web, desktop); `H.12` → `round-trip` (core, pdf, web, desktop)
+- **Capability-matrix rows to flip:** `K.07` → `write` (core, pdf, web, desktop); `K.11` → `read` (core, pdf, web, desktop); `K.12` → `read` (core, pdf, web, desktop); `H.12` `write` → `round-trip` (core, pdf, web, desktop) (from the status [E15e](E15e-pdfua-output.md) set; E16e depends on E15e so the flips can't land out of order)
 
 ## Tasks
 
@@ -56,6 +56,10 @@ Preflight with rules as data (fonts embedded, colour spaces, resolution, overpri
 
 - [ ] Converted fixtures pass veraPDF PDF/A-2b
 - [ ] PDF/X outputs pass the chosen PDF/X rule set
+
+## Post-merge checks
+
+None.
 
 ## Tests
 
@@ -74,8 +78,9 @@ Preflight with rules as data (fonts embedded, colour spaces, resolution, overpri
 
 ## Definition of done
 
-- [ ] PR opened from a fresh worktree; this file moved `ready/` → `ongoing/` in the PR's first commit (status field updated, PR link added)
+- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [ ] Work PR opened from a fresh worktree; **PR** field filled in
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the PR (status `done`), plan links updated, plan to-dos ticked
+- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
 - [ ] Squash-merged; dependants' "Depends on" now satisfied

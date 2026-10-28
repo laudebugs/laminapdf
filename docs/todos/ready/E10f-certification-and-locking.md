@@ -40,10 +40,10 @@ Certify documents (DocMDP transform with P1/P2/P3 on the first signature), lock 
 - **Operations shipped** ([06 §3](../../research/pdf/06-feature-inventory.md#3-full-operation-inventory-with-mechanisms) IDs): `F.05` certify a document; `F.08` lock fields after signing; `F.09` allowed changes after certification
 - **Crates and packages:** `lamina-sign`, `lamina-save`
 - **`Op` variants:** `Sign { certify: Some(P) , lock: .. }`
-- **`SaveConstraint`:** signing makes the document `AppendOnly`; signing always runs last in a save (redact → rewrite → sign, ADR 0007 §4); `Sign` is a barrier op (ADR 0006 §5)
+- **`SaveConstraint`:** signing makes the document `AppendOnly`; adding a signature is allowed without certification and under DocMDP P2/P3, and is a violation under P1 (ADR 0007 §2); signing always runs last in a save (redact → rewrite → sign, ADR 0007 §4); `Sign` is a barrier op (ADR 0006 §5)
 - **Web vs desktop:** identical
 - **Server features:** none (this PR adds no server feature; all processing stays on the device)
-- **Capability-matrix rows to flip:** `F.05` → `round-trip` (core, pdf, web, desktop); `F.08` → `round-trip` (core, pdf, web, desktop); `F.09` → `round-trip` (core, pdf, web, desktop)
+- **Capability-matrix rows to flip:** `F.05` → `round-trip` (core, pdf); `F.08` → `round-trip` (core, pdf); `F.09` → `write` (core, pdf) (the planner enforces each level's allowed changes; [E10h](E10h-revision-diff-and-attacks.md) flips it `write` → `round-trip` once existing revisions are checked against them; web and desktop columns flip in [E10j](E10j-signature-ui.md))
 
 ## Tasks
 
@@ -55,6 +55,10 @@ Certify documents (DocMDP transform with P1/P2/P3 on the first signature), lock 
 
 - [ ] Certified outputs show the correct permissions in Adobe Reader (manual) and pyHanko
 - [ ] Every op class × P level verdict matches ISO 32000-2 §12.8.2.2 (table test)
+
+## Post-merge checks
+
+None.
 
 ## Tests
 
@@ -72,8 +76,9 @@ Certify documents (DocMDP transform with P1/P2/P3 on the first signature), lock 
 
 ## Definition of done
 
-- [ ] PR opened from a fresh worktree; this file moved `ready/` → `ongoing/` in the PR's first commit (status field updated, PR link added)
+- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [ ] Work PR opened from a fresh worktree; **PR** field filled in
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the PR (status `done`), plan links updated, plan to-dos ticked
+- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
 - [ ] Squash-merged; dependants' "Depends on" now satisfied

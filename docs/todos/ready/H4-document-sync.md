@@ -9,7 +9,7 @@
 | Depends on | [D3b](./D3b-recent-files-and-file-watching.md), [H3](./H3-cloud-document-storage.md) |
 | Blocks | None |
 | Dependency notes | [H3](H3-cloud-document-storage.md), `D3` ([desktop-app §D3](../../plans/desktop-app.md#d3-files): files and watching) |
-| ADRs | Implements ADR 0011; consistent with ADR 0012 (E18a) for base revisions |
+| ADRs | Implements ADR 0011. Does not follow ADR 0012 ([E18a](E18a-adr-0012-collaboration.md) comes much later): the whole-file `base_revision` chain is defined here, and E18a should reuse it for its base revisions |
 | Branch | `feat/h4-document-sync` |
 | PR title | `feat(hosted): sync cloud documents across devices` |
 | Size | L (600–1,500) |
@@ -31,20 +31,21 @@ Keep a user's cloud documents in sync across their devices: new revisions pushed
 **In scope**
 
 - Revision chain per file with `base_revision` on upload; server rejects stale bases → client creates a conflict copy
-- Change feed (poll endpoint, or a per-user DO channel if E18a's infra exists)
+- Change feed as a poll endpoint (`GET /sync/changes?since=<cursor>`) on the Worker; no Durable Object and no ADR 0012 dependency
 - Desktop: local cache folder, background sync, offline queue
 - Web: sync on open/save; OPFS cache
 
 **Out of scope** (and which todo covers it)
 
 - Real-time multi-user review → [E18c](E18c-layer-document-schema.md)
+- Push notifications over a per-user Durable Object channel: they would follow ADR 0012 ([E18a](E18a-adr-0012-collaboration.md)), so they are a follow-up after E18a, not part of this todo
 
 **Editor facts**
 
 - **Crates and packages:** `apps/web` Worker, `apps/desktop`, `@lamina/ui`
 - **`SaveConstraint`:** not applicable (no PDF writes)
 - **Web vs desktop:** desktop syncs in the background and offline; web syncs when the document is open
-- **Server features:** R2, D1, Workers (optionally a DO per user for notifications)
+- **Server features:** R2, D1, Workers (polling only)
 - **Capability-matrix rows to flip:** none
 
 ## Tasks
@@ -60,6 +61,10 @@ Keep a user's cloud documents in sync across their devices: new revisions pushed
 
 - [ ] Two-device test: edit on A, see on B; concurrent edits produce a conflict copy and no data loss
 - [ ] Offline desktop edits upload on reconnect
+
+## Post-merge checks
+
+None.
 
 ## Tests
 
@@ -78,8 +83,9 @@ Keep a user's cloud documents in sync across their devices: new revisions pushed
 
 ## Definition of done
 
-- [ ] PR opened from a fresh worktree; this file moved `ready/` → `ongoing/` in the PR's first commit (status field updated, PR link added)
+- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [ ] Work PR opened from a fresh worktree; **PR** field filled in
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the PR (status `done`), plan links updated, plan to-dos ticked
+- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
 - [ ] Squash-merged; dependants' "Depends on" now satisfied

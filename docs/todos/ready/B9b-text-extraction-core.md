@@ -63,6 +63,10 @@ Turn a page's text-showing operators into Unicode text with geometry: per page, 
 - [ ] Unit tests for the text-rendering matrix and quad computation match hand-computed values; rotated pages and `UserUnit` covered
 - [ ] Malformed CMaps/ToUnicode degrade with warnings, never panic; limits paired tests
 
+## Post-merge checks
+
+None.
+
 ## Tests
 
 - Unit tests (CMap/ToUnicode parsing, AGL heuristics, matrices).
@@ -81,8 +85,9 @@ Turn a page's text-showing operators into Unicode text with geometry: per page, 
 
 ## Definition of done
 
-- [ ] PR opened from a fresh worktree; this file moved `ready/` → `ongoing/` in the PR's first commit (status field updated, PR link added)
+- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [ ] Work PR opened from a fresh worktree; **PR** field filled in
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the PR (status `done`), plan links updated, plan to-dos ticked
+- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
 - [ ] Squash-merged; dependants' "Depends on" now satisfied

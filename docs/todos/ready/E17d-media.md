@@ -39,7 +39,7 @@ Embed audio/video as Screen annotations with Rendition actions and RichMedia (PD
 - **Operations shipped** ([06 §3](../../research/pdf/06-feature-inventory.md#3-full-operation-inventory-with-mechanisms) IDs): `M.05` embed audio and video; `M.11` rich-media annotations; `D.09` audio annotations
 - **Crates and packages:** `lamina-model`, `@lamina/viewer`
 - **`Op` variants:** `EmbedMedia` (class `Annotation`)
-- **`SaveConstraint`:** annotation rules
+- **`SaveConstraint`:** annotation rules (see E4b): class `Annotation`, allowed under DocMDP P3 or when there is no certification signature (approval-only files save `AppendOnly`); under P1/P2 a violation → warn and gate
 - **Web vs desktop:** desktop first; web limited to browser-supported codecs
 - **Server features:** none (this PR adds no server feature; all processing stays on the device)
 - **Capability-matrix rows to flip:** `M.05` → `round-trip` (core, pdf, web, desktop); `M.11` → `write` (core, pdf, web, desktop); `D.09` → `round-trip` (core, pdf, web, desktop)
@@ -54,6 +54,10 @@ Embed audio/video as Screen annotations with Rendition actions and RichMedia (PD
 
 - [ ] Library parity ([full-editor §5](../../plans/full-editor.md#5-requirements-that-hold-for-every-round) req. 7): every new `Op` is exposed in `lamina` and `@lamina/pdf` in this PR, with rustdoc/TSDoc, a runnable example, tsify-generated TS types, and serde samples frozen in `fixtures/ops/v1/` (unknown ops and fields rejected, ADR 0006 §1, §6)
 - [ ] Embedded media plays in Acrobat (manual) and in lamina desktop
+
+## Post-merge checks
+
+None.
 
 ## Tests
 
@@ -71,8 +75,9 @@ Embed audio/video as Screen annotations with Rendition actions and RichMedia (PD
 
 ## Definition of done
 
-- [ ] PR opened from a fresh worktree; this file moved `ready/` → `ongoing/` in the PR's first commit (status field updated, PR link added)
+- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [ ] Work PR opened from a fresh worktree; **PR** field filled in
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the PR (status `done`), plan links updated, plan to-dos ticked
+- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
 - [ ] Squash-merged; dependants' "Depends on" now satisfied

@@ -6,8 +6,8 @@
 | Status | `ready` |
 | Plan | [pdf-library §7 B6](../../plans/pdf-library.md#b6-wasm-and-laminapdf), [§5 TS sketch](../../plans/pdf-library.md#api-sketch-illustrative-not-final) |
 | Round / milestone | Round B (library) — M1 |
-| Depends on | [B6a](./B6a-lamina-wasm-and-adr-0016.md) |
-| Blocks | [B6c](./B6c-runtime-matrix.md), [B7a](./B7a-docs-site.md), [B8a](./B8a-structure-tree.md), [B9c](./B9c-text-extraction-bindings-and-differential.md), [C1a](./C1a-hayro-parity-spike.md), [C1b](./C1b-pdfium-wasm-spike.md), [C2c](./C2c-render-packages.md), [C3a](./C3a-viewer-worker-rpc.md), [C4c](./C4c-remote-files-encryption-privacy.md), [C6a](./C6a-thumbnails-outline-page-labels.md), [E1c](./E1c-metadata-ops.md), [E1d](./E1d-edit-session-undo-ui.md) |
+| Depends on | [B2b](./B2b-standard-security-decryption.md), [B6a](./B6a-lamina-wasm-and-adr-0016.md) |
+| Blocks | [B6c](./B6c-runtime-matrix.md), [B7a](./B7a-docs-site.md), [B8a](./B8a-structure-tree.md), [B9c](./B9c-text-extraction-bindings-and-differential.md), [C1b](./C1b-pdfium-wasm-spike.md), [C2c](./C2c-render-packages.md), [C3a](./C3a-viewer-worker-rpc.md), [C4c](./C4c-remote-files-encryption-privacy.md), [C6a](./C6a-thumbnails-outline-page-labels.md), [E1c](./E1c-metadata-ops.md), [E1d](./E1d-edit-session-undo-ui.md) |
 | ADRs | Implements 0016 (from [B6a](./B6a-lamina-wasm-and-adr-0016.md)), [0002](../../decisions/0002-binding-strategy.md), [0006](../../decisions/0006-op-log-and-undo.md) §2 (TS transaction handle), [0003](../../decisions/0003-reader-tolerance-and-limits.md) §4 (codes test in TS), [0018](../../decisions/0018-test-strategy.md) §5 (shared expectations) |
 | Branch | `feat/b6b-lamina-pdf` |
 | PR title | `feat(pdf): @lamina/pdf TypeScript API over @lamina/wasm with init() and export conditions` |
@@ -64,6 +64,10 @@ Give TypeScript users the same library as Rust: `init()`, then a synchronous, ty
 - [ ] JS glue + TS API ≤ the ADR 0016 budget (min+gz), enforced in CI
 - [ ] No Node-only API in `src/` (Biome rule or a grep check in xtask)
 
+## Post-merge checks
+
+None.
+
 ## Tests
 
 - Vitest unit tests in `packages/pdf/test/` (Node environment); example goldens; codes and ops shared-fixture tests.
@@ -81,8 +85,9 @@ Give TypeScript users the same library as Rust: `init()`, then a synchronous, ty
 
 ## Definition of done
 
-- [ ] PR opened from a fresh worktree; this file moved `ready/` → `ongoing/` in the PR's first commit (status field updated, PR link added)
+- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [ ] Work PR opened from a fresh worktree; **PR** field filled in
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the PR (status `done`), plan links updated, plan to-dos ticked
+- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
 - [ ] Squash-merged; dependants' "Depends on" now satisfied

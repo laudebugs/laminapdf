@@ -43,7 +43,7 @@ Detect editable text runs/lines (MCIDs where tagged, heuristics otherwise), edit
 - **Operations shipped** ([06 §3](../../research/pdf/06-feature-inventory.md#3-full-operation-inventory-with-mechanisms) IDs): `A.02` edit existing text; `A.03` delete or replace text
 - **Crates and packages:** `lamina-content`, `lamina-text`, `@lamina/ui`
 - **`Op` variants:** `EditText` (class `Content`)
-- **`SaveConstraint`:** `Free` → incremental. Signed: class `Content` violates every DocMDP level and approval signatures' integrity → blocked unless the user confirms invalidating the named signatures
+- **`SaveConstraint`:** `Free` → incremental. Signed: class `Content` is a DocMDP violation at every certification level (ADR 0007 §2: P1 allows no changes; P2 allows only form filling, page templates and signing; P3 adds annotations) → blocked unless the user confirms invalidating the named signatures (ADR 0007 §3 override). With approval signatures only (no certification): `AppendOnly`, an incremental update that keeps their `/ByteRange` intact; a violation only when it changes a field locked by FieldMDP/`/Lock` (the signature panel, E10h, reports the later content change)
 - **Web vs desktop:** identical
 - **Server features:** none (this PR adds no server feature; all processing stays on the device)
 - **Capability-matrix rows to flip:** `A.02` → `write` (core, pdf, web, desktop); `A.03` → `round-trip` (core, pdf, web, desktop)
@@ -65,6 +65,10 @@ Detect editable text runs/lines (MCIDs where tagged, heuristics otherwise), edit
 - [ ] Edited text extracts as typed in pdf.js and pdftotext
 - [ ] Runs that cannot be edited are reported with a reason code
 
+## Post-merge checks
+
+None.
+
 ## Tests
 
 - Edit corpus
@@ -82,8 +86,9 @@ Detect editable text runs/lines (MCIDs where tagged, heuristics otherwise), edit
 
 ## Definition of done
 
-- [ ] PR opened from a fresh worktree; this file moved `ready/` → `ongoing/` in the PR's first commit (status field updated, PR link added)
+- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [ ] Work PR opened from a fresh worktree; **PR** field filled in
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the PR (status `done`), plan links updated, plan to-dos ticked
+- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
 - [ ] Squash-merged; dependants' "Depends on" now satisfied

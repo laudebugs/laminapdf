@@ -16,7 +16,7 @@
 
 ## Goal
 
-Every Windows binary lamina ships — `lamina.exe`, the engine sidecar, PDFium's DLL, the NSIS installer and uninstaller, and the MSI — carries a valid, timestamped Authenticode signature showing **the owner as publisher**, using whichever path D6a recorded: **Azure Artifact Signing** (if the owner is eligible as a US/Canada individual) or an **OV certificate whose key lives in a cloud HSM**. Both MSI (managed deployment) and NSIS (per-user install + updater) are produced. SmartScreen behaviour on a clean VM is recorded and handled as the plan specifies: no warning with Artifact Signing; a warning is acceptable for early releases with OV, and the release notes explain how reputation builds.
+Every Windows binary lamina ships — `lamina.exe`, the engine sidecar, PDFium's DLL, the NSIS installer and uninstaller, and the MSI — carries a valid, timestamped Authenticode signature showing **the owner as publisher**, using whichever path D6a recorded: **Azure Artifact Signing** (if the owner is eligible as a US/Canada individual) or an **OV certificate whose key lives in a cloud HSM**. Both MSI (managed deployment) and NSIS (per-user install + updater) are produced for tagged releases (versions are plain `X.Y.Z`, as WiX requires; nightlies are NSIS-only and unsigned — D6b). SmartScreen behaviour on a clean VM is recorded and handled as the plan specifies: no warning with Artifact Signing; a warning is acceptable for early releases with OV, and the release notes explain how reputation builds.
 
 ## Context
 
@@ -41,7 +41,7 @@ Every Windows binary lamina ships — `lamina.exe`, the engine sidecar, PDFium's
   - File associations from D3a verified in both installers.
 - Signing coverage check: a CI step listing every PE file in the build output and installers (extract MSI with `lessmsi` (MIT) or `msiexec /a`; NSIS with `7z`) and running `signtool verify /pa /v` on each; fails if any is unsigned or the signer subject isn't the owner's name.
 - Lift the D6b guard for Windows.
-- Clean-VM checks (Windows 11 current, fresh, SmartScreen on, Defender on): download each installer via Edge (Mark-of-the-Web set), run; record SmartScreen behaviour, UAC prompt publisher name (MSI), installed app's signature (`Get-AuthenticodeSignature`), file association registration, uninstall cleanliness; update from previous nightly via NSIS updater artefact.
+- Clean-VM checks (Windows 11 current, fresh, SmartScreen on, Defender on): download each installer via Edge (Mark-of-the-Web set), run; record SmartScreen behaviour, UAC prompt publisher name (MSI), installed app's signature (`Get-AuthenticodeSignature`), file association registration, uninstall cleanliness; update from the previous signed build via the NSIS updater artefact (two `release`-environment `workflow_dispatch` runs to the `staging` channel — nightlies are unsigned and NSIS-only per D6b).
 - Windows 10 22H2: best-effort smoke only (no CI), per the plan's supported-OS note.
 - Release-notes snippet (OV path) explaining SmartScreen "Windows protected your PC → More info → Run anyway" during the reputation period, added to the runbook template.
 
@@ -67,7 +67,12 @@ Every Windows binary lamina ships — `lamina.exe`, the engine sidecar, PDFium's
 - [ ] On a clean Windows 11 VM: UAC (MSI) shows the owner as verified publisher; the installed app's `Get-AuthenticodeSignature` status is `Valid`.
 - [ ] SmartScreen: with Artifact Signing, the installer runs **without** a SmartScreen warning; with OV, any warning is recorded and the release notes text is in place (both outcomes per the plan).
 - [ ] MSI and NSIS both install, register `.pdf` "Open with", and uninstall cleanly (manual check recorded).
-- [ ] An NSIS-installed signed nightly updates to the next signed nightly.
+- [ ] An NSIS-installed signed build updates to the next signed build (two `release`-environment `workflow_dispatch` runs to the `staging` channel).
+
+## Post-merge checks
+
+- [ ] Owner removes the temporary `ci/d6c-*` / `ci/d6d-*` deployment-branch patterns from the `release` environment (D6a), leaving `main` and `desktop-v*` tags.
+- [ ] The first scheduled nightly after merge still builds Windows NSIS-only and unsigned in the `nightly` environment (no signing secrets referenced).
 
 ## Tests
 
@@ -90,8 +95,9 @@ Every Windows binary lamina ships — `lamina.exe`, the engine sidecar, PDFium's
 
 ## Definition of done
 
-- [ ] PR opened from a fresh worktree; this file moved `ready/` → `ongoing/` in the PR's first commit (status field updated, PR link added)
+- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [ ] Work PR opened from a fresh worktree; **PR** field filled in
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the PR (status `done`), plan links updated, plan to-dos ticked
+- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
 - [ ] Squash-merged; dependants' "Depends on" now satisfied

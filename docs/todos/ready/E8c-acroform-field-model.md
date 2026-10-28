@@ -7,7 +7,7 @@
 | Plan | [full-editor §E8](../../plans/full-editor.md#e8-form-filling-and-data) |
 | Round / milestone | Editor phase 5 (E8–E10) — M8 Forms and signing |
 | Depends on | [E8b](./E8b-form-filling-feature-plan.md) |
-| Blocks | [E8d](./E8d-field-appearances.md) |
+| Blocks | [E8d](./E8d-field-appearances.md), [E12d](./E12d-scrub-and-rewrite.md), [E18c](./E18c-layer-document-schema.md), [E18e](./E18e-client-sync-and-presence.md) |
 | ADRs | Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
 | Branch | `feat/e8c-acroform-field-model` |
 | PR title | `feat(model): AcroForm field tree and form-fill ops` |
@@ -64,6 +64,10 @@ Typed AcroForm views (field tree, fully qualified names, inheritance of `/FT`, `
 - [ ] Field names/types/values match pypdf and pdf.js on the form corpus
 - [ ] Locked fields refuse `SetFieldValue` with the signature named
 
+## Post-merge checks
+
+None.
+
 ## Tests
 
 - Form corpus differential
@@ -81,8 +85,9 @@ Typed AcroForm views (field tree, fully qualified names, inheritance of `/FT`, `
 
 ## Definition of done
 
-- [ ] PR opened from a fresh worktree; this file moved `ready/` → `ongoing/` in the PR's first commit (status field updated, PR link added)
+- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [ ] Work PR opened from a fresh worktree; **PR** field filled in
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the PR (status `done`), plan links updated, plan to-dos ticked
+- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
 - [ ] Squash-merged; dependants' "Depends on" now satisfied

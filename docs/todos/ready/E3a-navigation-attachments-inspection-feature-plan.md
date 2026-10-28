@@ -42,7 +42,7 @@ The short feature-plan PR that opens round E3 ([full-editor §E3](../../plans/fu
 
 - **Operations shipped** ([06 §3](../../research/pdf/06-feature-inventory.md#3-full-operation-inventory-with-mechanisms) IDs): `I.01` create/edit bookmarks; nested trees; `I.02` internal page links; `I.03` external hyperlinks; `I.04` named destinations; `I.05` clickable table of contents; `I.06` initial view and zoom; page display mode; `I.09` article threads; `I.11` outline and navigation preferences; `J.04` manage XMP; `J.05` attach / extract / delete embedded files; `J.06` portfolios / collections; `J.07` inspect version and conformance; `J.08` identify fonts and colour profiles; `J.09` inspect internal objects, streams, references; `A.09` add hyperlinks to text; `B.03` extract original embedded images; `H.02` images → PDF; `H.06` pages → PNG/JPEG/TIFF; `H.07` extract text and images; `H.08` extract hyperlinks and bookmarks; `H.09` extract attachments; `H.11` render pages to images; `M.09` associated files and structured metadata
 - **Crates and packages:** (planned for the round) `lamina-model` (outline, names, embedded files, XMP schemas), `lamina-build` (images → PDF), `lamina-render` (export), `lamina-text` (extraction)
-- **`SaveConstraint`:** (round summary from the plan; the feature plan details it per op) `Free`; attachments on signed files only as permitted incremental updates
+- **`SaveConstraint`:** (round summary from the plan; the feature plan details it per op) `Free`; on signed files, outline, destination, attachment and XMP changes (class `Document`/`Metadata`) are DocMDP violations under any certification and gated, links (`Annotation`) are allowed under P3; with approval signatures only, all are `AppendOnly` incremental updates
 - **Web vs desktop:** object inspector on both; desktop exports to a folder, web zips
 - **Server features:** none
 - **Capability-matrix rows to flip:** none flipped here; rows added with status `unsupported` and the round as target
@@ -67,6 +67,10 @@ The short feature-plan PR that opens round E3 ([full-editor §E3](../../plans/fu
 - [ ] `docs/capabilities/manifest.toml` has a row per op with `target round = "E3"`; `cargo xtask capabilities` regenerates without error
 - [ ] Each open question below is answered or has a named owner and a deadline round
 
+## Post-merge checks
+
+None.
+
 ## Tests
 
 Docs only: the link checker passes; `cargo xtask capabilities` (from `X2`) accepts the new manifest rows.
@@ -85,8 +89,9 @@ Docs only: the link checker passes; `cargo xtask capabilities` (from `X2`) accep
 
 ## Definition of done
 
-- [ ] PR opened from a fresh worktree; this file moved `ready/` → `ongoing/` in the PR's first commit (status field updated, PR link added)
+- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [ ] Work PR opened from a fresh worktree; **PR** field filled in
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the PR (status `done`), plan links updated, plan to-dos ticked
+- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
 - [ ] Squash-merged; dependants' "Depends on" now satisfied

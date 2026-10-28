@@ -66,6 +66,10 @@ Make the viewer scroll a 1,000-page document like a native app. A prefix-sum pag
 - [ ] After scrolling stops, every visible page reaches sharp tiles (state `sharp` in `renderstats`) — the timing budget itself is enforced by [C3c](./C3c-viewer-perf-harness.md).
 - [ ] No React or other framework import in `packages/viewer` (lint rule / test scanning imports).
 
+## Post-merge checks
+
+None.
+
 ## Tests
 
 Unit tests (layout, zoom maths, cache eviction, pool caps) in `packages/viewer/src/**/*.test.ts`; Vitest browser-mode integration tests for mount/unmount and cancellation; Playwright specs under `packages/viewer/e2e/` against the demo page in three engines. The 1,000-page fixture is generated at test setup with `@lamina/pdf`'s builder (not committed), seeded and deterministic.
@@ -83,8 +87,9 @@ Unit tests (layout, zoom maths, cache eviction, pool caps) in `packages/viewer/s
 
 ## Definition of done
 
-- [ ] PR opened from a fresh worktree; this file moved `ready/` → `ongoing/` in the PR's first commit (status field updated, PR link added)
+- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [ ] Work PR opened from a fresh worktree; **PR** field filled in
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the PR (status `done`), plan links updated, plan to-dos ticked
+- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
 - [ ] Squash-merged; dependants' "Depends on" now satisfied

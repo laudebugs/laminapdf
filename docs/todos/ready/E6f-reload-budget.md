@@ -39,7 +39,7 @@ Measure how long it takes, on web (PDFium-WASM) and desktop (native PDFium), to 
 **Editor facts**
 
 - **Crates and packages:** `@lamina/viewer`, `lamina-render`, `apps/desktop`
-- **`SaveConstraint`:** no new save behaviour beyond the round's: incremental on `Free`; content changes invalidate signatures (gated)
+- **`SaveConstraint`:** no new save behaviour beyond the round's: incremental on `Free`; content changes are DocMDP violations under any certification (gated, override names the signatures); with approval signatures only they are `AppendOnly` incremental updates
 - **Web vs desktop:** measured separately per shell
 - **Server features:** none (this PR adds no server feature; all processing stays on the device)
 - **Capability-matrix rows to flip:** none
@@ -54,6 +54,10 @@ Measure how long it takes, on web (PDFium-WASM) and desktop (native PDFium), to 
 ## Acceptance criteria
 
 - [ ] Budgets met on the reference machine for both shells; CI fails on regressions > 20%
+
+## Post-merge checks
+
+None.
 
 ## Tests
 
@@ -70,8 +74,9 @@ Measure how long it takes, on web (PDFium-WASM) and desktop (native PDFium), to 
 
 ## Definition of done
 
-- [ ] PR opened from a fresh worktree; this file moved `ready/` → `ongoing/` in the PR's first commit (status field updated, PR link added)
+- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [ ] Work PR opened from a fresh worktree; **PR** field filled in
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the PR (status `done`), plan links updated, plan to-dos ticked
+- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
 - [ ] Squash-merged; dependants' "Depends on" now satisfied

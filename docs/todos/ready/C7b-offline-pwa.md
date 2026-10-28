@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [web reader §6 C7. Accessibility, offline and launch](../../plans/web-app.md#c7-accessibility-offline-and-launch) |
 | Round / milestone | Round C (web reader) — M2 Web reader v0.1 |
-| Depends on | [C4c](./C4c-remote-files-encryption-privacy.md), [C4d](./C4d-deploy-previews-and-production.md) |
+| Depends on | [C3c](./C3c-viewer-perf-harness.md), [C4c](./C4c-remote-files-encryption-privacy.md), [C4d](./C4d-deploy-previews-and-production.md) |
 | Blocks | [C7c](./C7c-performance-gates-and-launch.md) |
 | ADRs | Follows 0011 (immutable hashed assets, headers; nothing leaves the device; local storage clearable), 0010 (`Platform.storage`, `hasFileHandlers` capability), 0009 |
 | Branch | `feat/c7b-offline-pwa` |
@@ -50,6 +50,7 @@ After one visit, the reader works with no network: a service worker precaches th
 - [ ] Headers: confirm the SW returns cached responses with the original security headers (CSP etc.) or that `index.html` CSP comes from a `<meta http-equiv>` fallback where needed — test that CSP is still enforced offline.
 - [ ] Update-available toast in `@lamina/ui`.
 - [ ] Manifest + icons (generated from one SVG source; provenance noted) + `<link rel="manifest">`.
+- [ ] Installability checks (Lighthouse 12+ has no PWA category, so no Lighthouse PWA audit): `apps/web/e2e/installability.spec.ts` that (a) fetches the manifest and validates it against the W3C manifest JSON schema from SchemaStore (pinned copy in `apps/web/e2e/fixtures/`) and asserts the install-relevant fields (`name`/`short_name`, `start_url` and `scope` same-origin, `display: standalone`, icons at 192 and 512 px that resolve with an image content type and the declared size, one `maskable`, `file_handlers` accepting `application/pdf`/`.pdf`); (b) asserts `navigator.serviceWorker.controller` is set after reload (the SW controls the page) and the SW has a `fetch` handler serving the navigation offline; (c) in Chromium, calls CDP `Page.getInstallabilityErrors` and asserts an empty list, and records whether `beforeinstallprompt` fired (informational: its timing depends on engagement heuristics).
 - [ ] `launchQueue` consumer and tests (Chromium only; feature-detected).
 - [ ] `OpfsByteSource` + copy-in pipeline with progress and cancellation; quota error handling; unit tests in Vitest browser mode.
 - [ ] Recent-files store (IndexedDB wrapper, schema version, migrations), UI list, reopen flows per capability, clear/disable settings.
@@ -59,16 +60,20 @@ After one visit, the reader works with no network: a service worker precaches th
 ## Acceptance criteria
 
 - [ ] **The app works offline after first load** in Chromium, Firefox and WebKit (Playwright offline test passes: reload, open local file, render, find).
-- [ ] **Lighthouse PWA installability passes** on the preview deployment (manifest valid, SW controls the page, icons present) — report attached to the PR.
+- [ ] **Installability checks pass** on the preview deployment (`installability.spec.ts` with `BASE_URL` set to the preview): manifest valid against the schema with the required fields, every icon resolves, the SW controls the page, Chromium's `Page.getInstallabilityErrors` returns no errors, and the offline-reload test passes.
 - [ ] Installed in Chromium, the PWA appears as a handler for `.pdf` and a launched file opens (manual check recorded; automated `launchQueue` unit test).
 - [ ] A 500 MB local file opens via OPFS without the tab exceeding the C3c memory budget (perf harness scenario added).
 - [ ] "Clear recent files and cached documents" empties IndexedDB and OPFS (asserted in e2e).
 - [ ] CSP and security headers are still enforced when served from the SW cache.
 - [ ] The privacy suite passes with the SW active.
 
+## Post-merge checks
+
+None.
+
 ## Tests
 
-Vitest browser tests (OPFS source, IndexedDB store, launch consumer); Playwright `apps/web/e2e/offline.spec.ts`, `recent-files.spec.ts`, extended `privacy.spec.ts`; Lighthouse CI run against the preview (non-gating here; gating in C7c if chosen).
+Vitest browser tests (OPFS source, IndexedDB store, launch consumer); Playwright `apps/web/e2e/offline.spec.ts`, `recent-files.spec.ts`, `installability.spec.ts`, extended `privacy.spec.ts`; the installability spec also runs against the PR preview (C4d's `BASE_URL` smoke job).
 
 ## Docs to update
 
@@ -83,8 +88,9 @@ Vitest browser tests (OPFS source, IndexedDB store, launch consumer); Playwright
 
 ## Definition of done
 
-- [ ] PR opened from a fresh worktree; this file moved `ready/` → `ongoing/` in the PR's first commit (status field updated, PR link added)
+- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [ ] Work PR opened from a fresh worktree; **PR** field filled in
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the PR (status `done`), plan links updated, plan to-dos ticked
+- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
 - [ ] Squash-merged; dependants' "Depends on" now satisfied

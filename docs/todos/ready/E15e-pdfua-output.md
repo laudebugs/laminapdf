@@ -7,7 +7,7 @@
 | Plan | [full-editor §E15](../../plans/full-editor.md#e15-accessibility) |
 | Round / milestone | Editor phase 6 (E11–E17) — M9 Advanced |
 | Depends on | [E15c](./E15c-tagging-tools.md), [E15d](./E15d-accessibility-checks.md) |
-| Blocks | None |
+| Blocks | [E16e](./E16e-preflight-and-conversion.md) |
 | ADRs | Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
 | Branch | `feat/e15e-pdfua-output` |
 | PR title | `feat(a11y): PDF/UA export with veraPDF agreement tests` |
@@ -52,6 +52,10 @@
 
 - [ ] Exports of fixed fixtures pass veraPDF PDF/UA-1
 
+## Post-merge checks
+
+None.
+
 ## Tests
 
 - veraPDF CI
@@ -68,8 +72,9 @@
 
 ## Definition of done
 
-- [ ] PR opened from a fresh worktree; this file moved `ready/` → `ongoing/` in the PR's first commit (status field updated, PR link added)
+- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [ ] Work PR opened from a fresh worktree; **PR** field filled in
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the PR (status `done`), plan links updated, plan to-dos ticked
+- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
 - [ ] Squash-merged; dependants' "Depends on" now satisfied

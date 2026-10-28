@@ -40,7 +40,7 @@ Place a handwritten-signature image, a drawn (ink) or typed (font) e-signature a
 - **Operations shipped** ([06 §3](../../research/pdf/06-feature-inventory.md#3-full-operation-inventory-with-mechanisms) IDs): `F.01` handwritten signature image; `F.02` draw/type e-signature
 - **Crates and packages:** `lamina-build`, `@lamina/ui`
 - **`Op` variants:** `AddAnnot` spec `Stamp`/`Ink` (class `Annotation`)
-- **`SaveConstraint`:** annotation rules (see E4/E5); on signed files gated by DocMDP
+- **`SaveConstraint`:** annotation rules (see E4b): class `Annotation`, allowed under DocMDP P3 or when there is no certification signature (approval-only files save `AppendOnly`); under P1/P2 a violation → warn and gate
 - **Web vs desktop:** desktop app-data, web IndexedDB
 - **Server features:** none (this PR adds no server feature; all processing stays on the device)
 - **Capability-matrix rows to flip:** `F.01` → `round-trip` (core, pdf, web, desktop); `F.02` → `round-trip` (core, pdf, web, desktop)
@@ -58,6 +58,10 @@ Place a handwritten-signature image, a drawn (ink) or typed (font) e-signature a
 - [ ] Round-trip: open → op → save → reopen in lamina, pdf.js and PDFium preserves the change and everything else (page count, outline, annotations, fields, struct tree facts in `expected.json`); `qpdf --check` is clean
 - [ ] UI never calls these "digital signatures" (copy test)
 
+## Post-merge checks
+
+None.
+
 ## Tests
 
 - e2e
@@ -74,8 +78,9 @@ Place a handwritten-signature image, a drawn (ink) or typed (font) e-signature a
 
 ## Definition of done
 
-- [ ] PR opened from a fresh worktree; this file moved `ready/` → `ongoing/` in the PR's first commit (status field updated, PR link added)
+- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [ ] Work PR opened from a fresh worktree; **PR** field filled in
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the PR (status `done`), plan links updated, plan to-dos ticked
+- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
 - [ ] Squash-merged; dependants' "Depends on" now satisfied

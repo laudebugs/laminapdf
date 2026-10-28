@@ -56,11 +56,16 @@ Make accessible and archival output the easy path: choosing a profile turns ever
 
 ## Acceptance criteria
 
-- [ ] All generated examples pass veraPDF for their profile (PDF/UA-1, PDF/A-2b, 2u, 3b) — nightly green, run linked in the PR
+- [ ] All generated examples pass veraPDF for their profile (PDF/UA-1, PDF/A-2b, 2u, 3b) via `cargo xtask verapdf` (same pinned Docker image as the nightly job; output summarised in the PR); the nightly veraPDF job passes `actionlint`
 - [ ] Missing alt text, missing `Lang`, missing title, an untagged path and a standard 14 font each fail `finish()` with their coded error under the matching profile (one test per rule)
 - [ ] The machine-checkable Matterhorn conditions lamina can produce are covered by tests (list them in the PR with test names)
 - [ ] Outputs are byte-identical across runs; `qpdf --check` clean
-- [ ] `0.2.0-alpha.0` version sync passes and the release lane on the tag is green (no publish)
+- [ ] `0.2.0-alpha.0` version sync passes (`cargo xtask version sync --check`)
+
+## Post-merge checks
+
+- [ ] The nightly veraPDF job is green in the first nightly run on `main` (link it in a follow-up PR or the done todo)
+- [ ] The owner tags `v0.2.0-alpha.0` on `main`; the release lane on the tag is green and publishes nothing
 
 ## Tests
 
@@ -81,8 +86,9 @@ Make accessible and archival output the easy path: choosing a profile turns ever
 
 ## Definition of done
 
-- [ ] PR opened from a fresh worktree; this file moved `ready/` → `ongoing/` in the PR's first commit (status field updated, PR link added)
+- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [ ] Work PR opened from a fresh worktree; **PR** field filled in
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the PR (status `done`), plan links updated, plan to-dos ticked
+- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
 - [ ] Squash-merged; dependants' "Depends on" now satisfied

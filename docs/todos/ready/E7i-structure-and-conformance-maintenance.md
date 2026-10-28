@@ -55,6 +55,10 @@ Keep tagged documents valid across E6/E7 edits: update MCIDs, ParentTree, `/Actu
 - [ ] veraPDF structure checks pass after edits on PDF/UA fixtures
 - [ ] Deleting a tagged run removes its struct element or MCR
 
+## Post-merge checks
+
+None.
+
 ## Tests
 
 - veraPDF nightly
@@ -71,8 +75,9 @@ Keep tagged documents valid across E6/E7 edits: update MCIDs, ParentTree, `/Actu
 
 ## Definition of done
 
-- [ ] PR opened from a fresh worktree; this file moved `ready/` → `ongoing/` in the PR's first commit (status field updated, PR link added)
+- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [ ] Work PR opened from a fresh worktree; **PR** field filled in
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the PR (status `done`), plan links updated, plan to-dos ticked
+- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
 - [ ] Squash-merged; dependants' "Depends on" now satisfied

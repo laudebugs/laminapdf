@@ -32,7 +32,8 @@ Complete the reader's opening story and prove its privacy promise. Remote PDFs o
 **In scope**
 
 - `packages/viewer/src/source/http-range.ts`: `HttpRangeByteSource` (HEAD or `Range: bytes=0-0` probe for size and `Accept-Ranges`, ranged `fetch` with `AbortSignal`, block cache (e.g. 64 KiB blocks, LRU, byte budget), readahead, fallback to full download when ranges unsupported, progress events, `credentials: "omit"`, `referrerPolicy: "no-referrer"`, `cache: "no-store"` option).
-- `apps/web/src/open/url-fragment.ts`: parse `location.hash` (`#url=` encoded; also `#page=N` deep links; ignore unknown keys), validate scheme (`https:` only; `http:` refused with explanation except `localhost` in dev), react to `hashchange`.
+- `apps/web/src/open/url-fragment.ts`: the **fragment format** shared with C6a (`#page=`, `#nameddest=`) and C6b (history). The fragment (without the leading `#`) is parsed with `new URLSearchParams(fragment)`: keys are separated by `&`, and the `url` value **must be percent-encoded as a whole** (`encodeURIComponent(remoteUrl)`), so `#url=https%3A%2F%2Fh%2Fdoc.pdf%3Fx%3D1%26page%3D2&page=5` means remote `https://h/doc.pdf?x=1&page=2`, our page 5. Input whose decoded `url` value is not an absolute URL, or whose raw `url` value contains an unencoded `?`, `#` or `/` (a sign of an unencoded paste such as `#url=https://h/doc.pdf?x=1&page=2`, where `&page=2` is ambiguous) is **rejected with a clear error** ("This link's document address isn't encoded; ask the sender for a link made with the share button, or paste the address in Open URL") instead of guessed. Unknown keys are ignored. A `buildFragment(current, updates)` helper updates individual keys (e.g. `page`) in the existing params and re-serialises with `URLSearchParams`, so every writer (C6a deep links, C6b history and link hrefs) preserves `url`. Validate scheme (`https:` only; `http:` refused with explanation, except `http://localhost`/`http://127.0.0.1` in dev/test builds — see CSP below).
+- `hashchange`/`popstate` handling: re-parse, then compare the parsed `url` with the URL of the open document. **Only a changed `url` (added, removed or different) closes and re-opens**; a fragment that differs only in `page`/`nameddest` navigates within the open document without reloading (so C6b's Back/Forward through `#…page=N` entries never re-fetches or re-opens).
 - CORS failure detection → explanation screen ("This site doesn't allow other sites to read the file. Download it and open it here."), with a link to the URL (opened with `rel="noreferrer noopener"`); no proxy.
 - Encrypted files: worker returns `needs-password`; UI shows `PasswordDialog`; the password is sent once to the worker and passed to both `Document::open` (lamina) and the PDFium adapter; wrong password → retry; owner-password-only files open without prompt (permissions noted, not enforced beyond display in v0.1 — record in properties later).
 - Privacy suite `apps/web/e2e/privacy.spec.ts`.
@@ -48,11 +49,13 @@ Complete the reader's opening story and prove its privacy promise. Remote PDFs o
 - [ ] Fresh worktree; move this file to `ongoing/`.
 - [ ] Implement `HttpRangeByteSource` with unit tests against a local test server (Playwright's `route` or a tiny static server in the test harness) that supports/doesn't support ranges, returns wrong `Content-Range`, changes `ETag` mid-read (→ error `source-changed`), or is slow (abort works).
 - [ ] Hook it into the worker: the worker (not the main thread) performs the fetches, so bytes never cross into the main thread; ADR 0011's CSP `connect-src` allows `https:`.
-- [ ] Fragment parsing and validation with unit tests (encoded/unencoded URLs, `#url=` plus `#page=`, malicious inputs like `javascript:`/`data:`/`file:` rejected).
+- [ ] **Dev/test CSP**: `public/_headers` (C4b) stays the production policy (`connect-src 'self' https:`, no `http:`). Generate `dist/_headers` at build time from one template: production builds emit it unchanged; builds with `--mode test` (and the Vite dev server) append `http://localhost:* http://127.0.0.1:*` to `connect-src` only. The e2e/privacy suites build with `--mode test` and serve through `wrangler dev` over plain `http://localhost:<port>`, with the fixture "remote host" as a separate local HTTP server on another port (`http://127.0.0.1:<port2>`, a different origin, with switchable CORS and range support). A unit test builds both modes and asserts the production `_headers` contains no `localhost`/`127.0.0.1`/`http:` source and is byte-identical to the template apart from that addition; the `http:` exception in fragment validation is compiled out of production builds (`import.meta.env.MODE`) and a unit test checks a production build rejects `#url=http%3A%2F%2Flocalhost…`.
+- [ ] Fragment parsing and validation with unit tests: encoded `url` round-trips through `buildFragment`; `#url=<encodeURIComponent("https://h/doc.pdf?x=1&page=2")>&page=5` yields remote URL `https://h/doc.pdf?x=1&page=2` and page 5; the unencoded `#url=https://h/doc.pdf?x=1&page=2` is rejected with the "not encoded" error (not split or guessed); `buildFragment` changing `page` keeps `url` byte-identical; malicious inputs like `javascript:`/`data:`/`file:` rejected.
+- [ ] `hashchange`/`popstate` handler with unit tests: a page-only change navigates without calling `open`; a `url` change closes and opens; removing `url` closes the remote document.
 - [ ] After reading the fragment, **do not** put the URL into any `history.pushState` path or query; keep it in the fragment only; no `document.title` containing it.
 - [ ] CORS/network error classification (`TypeError` from fetch with opaque failure → `cors-or-network`), explanation UI, retry.
-- [ ] Encrypted flow end to end, including cancel and retry; `PasswordDialog` from C4a; worker zeroes its copy of the password string reference after open where possible (document the JS limits on zeroing).
-- [ ] Privacy suite (`privacy.spec.ts`), run against `wrangler dev` with an extra local "remote host" serving fixtures with CORS + ranges:
+- [ ] Encrypted flow end to end, including cancel and retry, and the re-prompt after a worker crash (C3a's `password-required` event; the main thread never caches the password); `PasswordDialog` from C4a; worker zeroes its copy of the password string reference after open where possible (document the JS limits on zeroing).
+- [ ] Privacy suite (`privacy.spec.ts`), run against `wrangler dev` (a `--mode test` build, see the dev/test CSP task) with an extra local "remote host" serving fixtures with CORS + ranges:
   - [ ] Record every request (`page.on("request")` + service-worker requests + worker requests via `context.on("request")`).
   - [ ] **No request body contains document bytes**: for each request with a body, assert it does not contain any 32-byte window of the opened file (rolling-hash check) nor `%PDF-`.
   - [ ] **No request to our origin contains the remote document URL** (or its encoded forms, or its host) in URL, request line, any header including `Referer`; assert `Referer` is absent on cross-origin fetches.
@@ -64,11 +67,17 @@ Complete the reader's opening story and prove its privacy promise. Remote PDFs o
 
 ## Acceptance criteria
 
-- [ ] `https://localhost:<port>/#url=<cors-host>/big.pdf` renders page 1 after fetching less than 25 % of a 50 MB fixture (range requests), in Chromium, Firefox and WebKit.
+- [ ] `http://localhost:<port>/#url=<encodeURIComponent("http://127.0.0.1:<port2>/big.pdf")>` (test build served by `wrangler dev`; fixture host with CORS) renders page 1 after fetching less than 25 % of a 50 MB fixture (range requests), in Chromium, Firefox and WebKit.
 - [ ] A remote file without CORS shows the explanation, never silently proxies.
 - [ ] All B2 encrypted fixtures open after the password prompt; wrong passwords produce the wrong-password message; `enc.pdf` from `fixtures/corpus` opens.
 - [ ] The privacy suite passes in all three engines and runs in CI on every PR (full lane), covering local, remote and encrypted opens.
 - [ ] The remote URL appears nowhere except in the fragment and in requests to the remote host itself.
+- [ ] Fragment format: percent-encoded `url` with a query containing `&page=` opens the right remote file and page; an unencoded `#url=` shows the "not encoded" error; changing only `page` in the fragment (or Back/Forward between page entries) never re-opens the document (asserted by counting `open` RPC calls and remote requests).
+- [ ] The production build's `_headers` has `connect-src 'self' https:` with no localhost or `http:` source (unit test); zero CSP violations in the e2e suite under the test-mode policy.
+
+## Post-merge checks
+
+None.
 
 ## Tests
 
@@ -88,8 +97,9 @@ Vitest unit tests for `HttpRangeByteSource` and fragment parsing; Playwright `ap
 
 ## Definition of done
 
-- [ ] PR opened from a fresh worktree; this file moved `ready/` → `ongoing/` in the PR's first commit (status field updated, PR link added)
+- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [ ] Work PR opened from a fresh worktree; **PR** field filled in
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the PR (status `done`), plan links updated, plan to-dos ticked
+- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
 - [ ] Squash-merged; dependants' "Depends on" now satisfied

@@ -55,9 +55,13 @@ Expose text extraction everywhere the readers need it and prove it against indep
 - [ ] Extracted text for fixtures in five scripts matches expected text and pdf.js/pdftotext output on the corpus (exceptions listed with reasons)
 - [ ] Glyph quads lie within the documented tolerance of PDFium's character boxes on the quad fixtures
 - [ ] Encrypted fixtures extract the same text as their originals through TS
-- [ ] `extract_text` fuzz target runs 10 min without a panic (run linked)
+- [ ] `extract_text` fuzz target runs 10 min locally (`cargo xtask fuzz extract_text --time 600`) without a panic; summary in the PR
 - [ ] TS `page.text()` output equals the Rust output (shared JSON snapshot in `fixtures/text/`)
 - [ ] WASM size still within ADR 0016 budgets (or a reviewed budget change)
+
+## Post-merge checks
+
+- [ ] `extract_text` is green in the first scheduled fuzz run on `main` (link it in a follow-up PR or the done todo)
 
 ## Tests
 
@@ -76,8 +80,9 @@ Expose text extraction everywhere the readers need it and prove it against indep
 
 ## Definition of done
 
-- [ ] PR opened from a fresh worktree; this file moved `ready/` → `ongoing/` in the PR's first commit (status field updated, PR link added)
+- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [ ] Work PR opened from a fresh worktree; **PR** field filled in
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the PR (status `done`), plan links updated, plan to-dos ticked
+- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
 - [ ] Squash-merged; dependants' "Depends on" now satisfied

@@ -7,7 +7,7 @@
 | Plan | [web reader §6 C3. Viewer core](../../plans/web-app.md#c3-viewer-core) |
 | Round / milestone | Round C (web reader) — M2 Web reader v0.1 |
 | Depends on | [C3b](./C3b-viewer-virtualiser-and-zoom.md) |
-| Blocks | [C7c](./C7c-performance-gates-and-launch.md) |
+| Blocks | [C5a](./C5a-text-layer-and-selection.md), [C5b](./C5b-find-in-document.md), [C6a](./C6a-thumbnails-outline-page-labels.md), [C6c](./C6c-print-download-properties.md), [C7b](./C7b-offline-pwa.md), [C7c](./C7c-performance-gates-and-launch.md) |
 | ADRs | Follows [0018](../../decisions/0018-test-strategy.md) tier 11 and §2 lanes (no wall-clock assertions in PR lanes; perf in nightly; regressions open issues) and §4 (flaky tests are bugs) |
 | Branch | `test/c3c-viewer-perf-harness` |
 | PR title | `test(viewer): add a playwright performance harness for scrolling, memory and first page` |
@@ -56,8 +56,12 @@ Measure the [§4 non-functional targets](../../plans/web-app.md#non-functional-t
 - [ ] The harness runs locally with one command (`pnpm --filter @lamina/viewer perf`) and in CI for Chromium, Firefox and WebKit.
 - [ ] On the reference machine, the report shows for the 1,000-page fixture: no main-thread task > 50 ms during scroll; visible pages sharp within 300 ms of stopping; total memory ≤ 600 MB and stable on the second pass; cancelled-render paints = 0. Any target missed is listed with an issue link (C7c must close it).
 - [ ] First page visible for the 10-page file reported (target ≤ 700 ms warm, ≤ 3 s cold Fast 4G).
-- [ ] Nightly job runs and stores history; regression issue creation tested once with a forced regression.
+- [ ] The nightly job's steps run on the PR branch (the `perf` PR job, or the same script invoked locally with the nightly flags) and produce a history entry; the regression-issue step is exercised once against a forced regression (a dry-run mode that prints the issue it would open is enough before merge).
 - [ ] PR lanes contain no wall-clock assertions (ADR 0018).
+
+## Post-merge checks
+
+- [ ] The scheduled nightly `perf` run on `main` succeeds and stores a history entry (the schedule only fires once the workflow is on `main`).
 
 ## Tests
 
@@ -75,8 +79,9 @@ The harness is itself the test suite (`perf/*.perf.ts`, Playwright). Unit-test t
 
 ## Definition of done
 
-- [ ] PR opened from a fresh worktree; this file moved `ready/` → `ongoing/` in the PR's first commit (status field updated, PR link added)
+- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [ ] Work PR opened from a fresh worktree; **PR** field filled in
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the PR (status `done`), plan links updated, plan to-dos ticked
+- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
 - [ ] Squash-merged; dependants' "Depends on" now satisfied

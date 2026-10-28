@@ -58,6 +58,10 @@ Give power users and developers read-only inspection: header/catalog version and
 - [ ] Font list matches `pdffonts` (external CLI in CI) on 20 files
 - [ ] Inspector never decodes a stream beyond `Limits` (test with a bomb fixture)
 
+## Post-merge checks
+
+None.
+
 ## Tests
 
 - Differential tests vs qpdf and pdffonts (nightly lane)
@@ -75,8 +79,9 @@ Give power users and developers read-only inspection: header/catalog version and
 
 ## Definition of done
 
-- [ ] PR opened from a fresh worktree; this file moved `ready/` → `ongoing/` in the PR's first commit (status field updated, PR link added)
+- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [ ] Work PR opened from a fresh worktree; **PR** field filled in
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the PR (status `done`), plan links updated, plan to-dos ticked
+- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
 - [ ] Squash-merged; dependants' "Depends on" now satisfied

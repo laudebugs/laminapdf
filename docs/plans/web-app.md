@@ -89,7 +89,7 @@ Architecture details live in [architecture.md](architecture.md) and the research
 
 ## 6. Rounds
 
-Architecture Round C is delivered as PRs C1–C7. C1 needs B6, because its PDFium spike loads `lamina-wasm` and measures reload after an incremental save; the `hayro-parity` half has no lamina dependency and can start earlier. C2–C4 follow C1; C5 also needs B9 (text extraction).
+Architecture Round C is delivered as rounds C1–C7, each split into todos (one PR each). C1 needs B6, because its PDFium spike loads `lamina-wasm` and measures reload after an incremental save; the `hayro-parity` half has no lamina dependency and can start earlier. C2–C4 follow C1; C5 also needs B9 (text extraction).
 
 Each round is split into one or more todos (one pull request each) on the [todo board](../todos/README.md); they move `ready/` → `ongoing/` → `done/`, so a link here may point into another folder once work starts. Their "Depends on" fields fix the order, including the cross-plan gates on library B6 and B9.
 
@@ -156,10 +156,11 @@ Each round is split into one or more todos (one pull request each) on the [todo 
 
 ## 9. To-dos
 
+Each round's todos (one per PR, with dependencies) are linked from [§6](#6-rounds) and on the [todo board](../todos/README.md); this checklist is the summary.
+
 Ticked by the PR that completes them; each group lists the todos that own its items (see the [todo board](../todos/README.md)).
 
 ### C1. Rendering spikes
-Todos: [C1a](../todos/ready/C1a-hayro-parity-spike.md), [C1b](../todos/ready/C1b-pdfium-wasm-spike.md)
 - [ ] Build `spikes/pdfium-wasm`: load PDFium-WASM and `lamina-wasm` in one worker
 - [ ] Measure bundle size, peak memory and render time per page on 3 reference files
 - [ ] Measure reload cost after an incremental save from `lamina-save`
@@ -167,7 +168,6 @@ Todos: [C1a](../todos/ready/C1a-hayro-parity-spike.md), [C1b](../todos/ready/C1b
 - [ ] Write both results with a recommendation for ADR 0004
 
 ### C2. Render backend and ADRs
-Todos: [C2a](../todos/ready/C2a-render-adrs.md), [C2b](../todos/ready/C2b-lamina-render-crate.md), [C2c](../todos/ready/C2c-render-packages.md)
 - [ ] Write ADR 0004 (`RenderBackend`, PDFium default, hayro oracle, MuPDF prohibited)
 - [ ] Write ADR 0009 (React chrome + framework-free viewer, typed worker RPC)
 - [ ] Write ADR 0010 (Platform adapter and capability flags)
@@ -177,7 +177,6 @@ Todos: [C2a](../todos/ready/C2a-render-adrs.md), [C2b](../todos/ready/C2b-lamina
 - [ ] Add golden render tests and the nightly hayro-vs-PDFium diff
 
 ### C3. Viewer core
-Todos: [C3a](../todos/ready/C3a-viewer-worker-rpc.md), [C3b](../todos/ready/C3b-viewer-virtualiser-and-zoom.md), [C3c](../todos/ready/C3c-viewer-perf-harness.md)
 - [ ] Create `packages/viewer` with the typed RPC (IDs, priorities, transfer lists, cancellation)
 - [ ] Implement the prefix-sum virtualiser and canvas pool
 - [ ] Implement low-res then tiled sharp rendering with `ImageBitmap` transfer
@@ -185,7 +184,6 @@ Todos: [C3a](../todos/ready/C3a-viewer-worker-rpc.md), [C3b](../todos/ready/C3b-
 - [ ] Add a perf harness: long tasks, memory, time-to-first-page, run in CI on a 1,000-page fixture
 
 ### C4. App shell on Cloudflare
-Todos: [C4a](../todos/ready/C4a-ui-chrome-and-platform.md), [C4b](../todos/ready/C4b-web-app-shell.md), [C4c](../todos/ready/C4c-remote-files-encryption-privacy.md), [C4d](../todos/ready/C4d-deploy-previews-and-production.md)
 - [ ] Create `packages/ui` (React 19, React Compiler) with the `Platform` interface and web implementation
 - [ ] Create `apps/web` (Vite 8) with `wrangler.jsonc`, SPA fallback, `_headers`, CSP
 - [ ] Implement open via input, drag-drop, paste, `showOpenFilePicker` and `#url=` (fragment) with range requests
@@ -194,7 +192,6 @@ Todos: [C4a](../todos/ready/C4a-ui-chrome-and-platform.md), [C4b](../todos/ready
 - [ ] Playwright test asserting no request body contains document bytes and no request to our origin contains the remote document URL
 
 ### C5. Text, selection and search
-Todos: [C5a](../todos/ready/C5a-text-layer-and-selection.md), [C5b](../todos/ready/C5b-find-in-document.md)
 - [ ] Expose glyph runs and quads from the B9 extraction API through the worker RPC
 - [ ] Build the DOM text layer aligned to rendered glyphs at every zoom
 - [ ] Link the struct tree via `aria-owns` for tagged files
@@ -202,7 +199,6 @@ Todos: [C5a](../todos/ready/C5a-text-layer-and-selection.md), [C5b](../todos/rea
 - [ ] Copy/extraction tests in five scripts; search-count parity tests vs pdf.js
 
 ### C6. Navigation, print and properties
-Todos: [C6a](../todos/ready/C6a-thumbnails-outline-page-labels.md), [C6b](../todos/ready/C6b-links-and-history.md), [C6c](../todos/ready/C6c-print-download-properties.md)
 - [ ] Thumbnails sidebar (rendered at low priority, virtualised)
 - [ ] Outline sidebar with expand/collapse and current-section tracking
 - [ ] Link layer: internal destinations, URIs with confirmation, named destinations
@@ -212,7 +208,6 @@ Todos: [C6a](../todos/ready/C6a-thumbnails-outline-page-labels.md), [C6b](../tod
 - [ ] Document properties dialog (metadata, fonts, version, encryption, signatures present)
 
 ### C7. Accessibility, offline and launch
-Todos: [C7a](../todos/ready/C7a-accessibility-and-theming.md), [C7b](../todos/ready/C7b-offline-pwa.md), [C7c](../todos/ready/C7c-performance-gates-and-launch.md)
 - [ ] Keyboard shortcuts map shared with desktop; help dialog
 - [ ] Focus management, landmarks, live-region announcements for search and page changes
 - [ ] High contrast, dark mode, reduced motion

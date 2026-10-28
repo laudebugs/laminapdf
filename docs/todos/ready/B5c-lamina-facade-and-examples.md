@@ -62,6 +62,10 @@ Give Rust users one crate, `lamina`, whose docs open with the invoice example an
 - [ ] `lamina` docs build with no missing docs; the crate docs' first example compiles and runs
 - [ ] `cargo xtask portability` passes for `lamina` (core) with and without the `text` feature
 
+## Post-merge checks
+
+None.
+
 ## Tests
 
 - Doc tests in `crates/lamina`; `crates/lamina/tests/examples.rs` (runs examples, compares goldens).
@@ -81,8 +85,9 @@ Give Rust users one crate, `lamina`, whose docs open with the invoice example an
 
 ## Definition of done
 
-- [ ] PR opened from a fresh worktree; this file moved `ready/` → `ongoing/` in the PR's first commit (status field updated, PR link added)
+- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [ ] Work PR opened from a fresh worktree; **PR** field filled in
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the PR (status `done`), plan links updated, plan to-dos ticked
+- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
 - [ ] Squash-merged; dependants' "Depends on" now satisfied

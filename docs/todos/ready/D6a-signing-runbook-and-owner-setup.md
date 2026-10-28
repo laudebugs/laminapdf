@@ -32,7 +32,7 @@ The project owner signs the desktop app **personally, as the publisher**, on Win
 
 - `docs/guidelines/desktop-release.md` (new; index in `docs/guidelines/README.md`): the release and signing runbook, with:
   1. **Owner setup checklist** (below), each item with cost, lead time, where the result is stored, and renewal date.
-  2. **Secrets inventory**: name, purpose, where stored (secret manager entry name, GitHub environment `release`), who can read it, rotation/renewal cadence. Never values.
+  2. **Secrets inventory**: name, purpose, where stored (secret manager entry name, GitHub environment `release` or `nightly`), who can read it, rotation/renewal cadence. Never values.
   3. **Verification commands** per OS (used in D6b–D6d and every release): `codesign --verify --deep --strict --verbose=2`, `spctl -a -vvv -t exec Lamina.app`, `spctl -a -vvv -t open --context context:primary-signature Lamina.dmg`, `xcrun stapler validate`; `signtool verify /pa /v`, `Get-AuthenticodeSignature`; `gpg --verify`, `debsig-verify`, `rpm -K`, AppImage signature validation; `gh attestation verify`.
   4. **Renewal and incident procedures**: Developer ID certificate expiry (5 years) and renewal; OV certificate yearly renewal; Artifact Signing identity revalidation; GPG subkey expiry (2 years) and extension; compromise of any key (revoke, pause channels per ADR 0014, re-sign, notify).
   5. **SmartScreen policy**: with Artifact Signing a clean-VM install should show no SmartScreen warning; with an OV certificate a warning is acceptable for early releases, reputation builds with downloads; release notes template text explaining "More info → Run anyway" during the reputation period.
@@ -49,8 +49,9 @@ The project owner signs the desktop app **personally, as the publisher**, on Win
   - [ ] **If not eligible**: buy an **OV code-signing certificate issued to the owner as an individual** from a CA that validates individuals and offers cloud-HSM key storage usable headlessly from CI (candidates to compare: SSL.com eSigner, DigiCert KeyLocker, Certum cloud signing, or Azure Key Vault Premium/Managed HSM with a CA that accepts Key Vault CSRs); complete validation; record CA, product, HSM, signing tool (e.g. `jsign` (Apache-2.0), `AzureSignTool`, `smctl`, `CodeSignTool`) and add its credentials (e.g. TOTP seed for eSigner, client cert for KeyLocker) to the `release` environment.
 - [ ] **Owner — Linux GPG key**: create an offline primary key (ed25519) with a signing subkey (2-year expiry) for AppImage/deb/rpm; export the subkey to CI as `LINUX_SIGNING_KEY` (armored, passphrase-protected) + `LINUX_SIGNING_KEY_PASSPHRASE`; publish the public key at `https://<domain>/keys/lamina-release.asc` (after the domain exists) and on keys.openpgp.org; record the fingerprint in ADR 0014 and the runbook.
 - [ ] **Owner — updater key** (generated in D5a): confirm `TAURI_SIGNING_PRIVATE_KEY` and `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` exist in the `release` environment and the offline backups exist in two places.
-- [ ] **Owner — GitHub `release` environment**: required reviewer = owner; deployment branches/tags limited to `desktop-v*` tags and `main` (for nightly); secrets above only in this environment, none at repository level.
-- [ ] **Owner — Cloudflare** (from D5a): R2 bucket, custom domains, scoped API token as `CLOUDFLARE_API_TOKEN` + `CLOUDFLARE_ACCOUNT_ID` in the `release` environment.
+- [ ] **Owner — GitHub `release` environment** (tagged releases and owner-run `workflow_dispatch`): required reviewer = owner; deployment branches/tags limited to `desktop-v*` tags, `main`, and — temporarily, so the signing PRs can prove their steps before merging — `ci/d6c-*` and `ci/d6d-*` (every run still waits for the owner's approval; D6d removes the two branch patterns when it merges); holds every production secret above; none at repository level.
+- [ ] **Owner — GitHub `nightly` environment** (scheduled nightlies; **no required reviewer**, so the cron job isn't blocked waiting for approval): deployment branches limited to `main`; holds **only nightly-scoped secrets** — the nightly updater key from D5a (`TAURI_SIGNING_PRIVATE_KEY`, `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`, same names as in `release`, different values) and a Cloudflare API token scoped to the nightly R2 bucket only (`CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`). **No** Apple certificate, notarisation credentials, Windows signing credentials (and no Azure federated credential for this environment) or Linux GPG key: nightlies are not OS-signed (decided in D6b: macOS ad-hoc, Windows unsigned, Linux packages unsigned with `SHA256SUMS` only), so a compromised nightly run can't produce anything signed with the owner's identity or push an update to beta/stable installs.
+- [ ] **Owner — Cloudflare** (from D5a): R2 buckets (`lamina-releases`, `lamina-nightly`), custom domains, two scoped API tokens — one for `lamina-releases` in the `release` environment, one for `lamina-nightly` in the `nightly` environment — each as `CLOUDFLARE_API_TOKEN` + `CLOUDFLARE_ACCOUNT_ID`.
 
 **Out of scope** (and which todo covers it)
 
@@ -69,8 +70,12 @@ The project owner signs the desktop app **personally, as the publisher**, on Win
 
 - [ ] Every checklist item is ticked by the owner, or explicitly marked "not applicable" with the reason (e.g. Artifact Signing branch vs OV branch).
 - [ ] ADR 0014 records: Windows eligibility outcome with date and source, the chosen Windows signing path, Apple Team ID, Linux GPG fingerprint, publisher name per OS.
-- [ ] The secrets inventory lists every secret D6b–D6d will reference, by exact name, all scoped to the `release` environment.
+- [ ] The secrets inventory lists every secret D6b–D6d will reference, by exact name, each scoped to the `release` or `nightly` environment (never the repository); the `nightly` environment contains no OS-signing secret and no production updater key.
 - [ ] No secret values, private keys or certificate files appear anywhere in the repository (reviewer check + `gitleaks`-style scan if available in CI).
+
+## Post-merge checks
+
+None.
 
 ## Tests
 
@@ -93,8 +98,9 @@ None (documentation and account setup). The secrets are exercised by D6b–D6d's
 
 ## Definition of done
 
-- [ ] PR opened from a fresh worktree; this file moved `ready/` → `ongoing/` in the PR's first commit (status field updated, PR link added)
+- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [ ] Work PR opened from a fresh worktree; **PR** field filled in
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the PR (status `done`), plan links updated, plan to-dos ticked
+- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
 - [ ] Squash-merged; dependants' "Depends on" now satisfied

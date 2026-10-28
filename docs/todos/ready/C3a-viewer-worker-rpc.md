@@ -7,7 +7,7 @@
 | Plan | [web reader §6 C3. Viewer core](../../plans/web-app.md#c3-viewer-core) |
 | Round / milestone | Round C (web reader) — M2 Web reader v0.1 |
 | Depends on | [B6b](./B6b-lamina-pdf-package.md), [C2a](./C2a-render-adrs.md), [C2c](./C2c-render-packages.md) |
-| Blocks | [C3b](./C3b-viewer-virtualiser-and-zoom.md) |
+| Blocks | [C3b](./C3b-viewer-virtualiser-and-zoom.md), [E10i](./E10i-platform-signers.md) |
 | Dependency notes | [C2c](./C2c-render-packages.md) (web render adapters); [C2a](./C2a-render-adrs.md) (ADR 0009 RPC requirements); library **B6** (`@lamina/pdf` `Document` in the worker; [pdf-library B6](../../plans/pdf-library.md#b6-wasm-and-laminapdf)) |
 | ADRs | Implements 0009 (typed worker RPC) and 0004 (backend selection). Follows [0003](../../decisions/0003-reader-tolerance-and-limits.md) (`Limits`, warning codes surfaced to the UI), [0005](../../decisions/0005-document-model.md) (`ByteSource`) |
 | Branch | `feat/c3a-viewer-worker-rpc` |
@@ -56,7 +56,7 @@ Create `packages/viewer` and its foundation: one **document worker** per open do
 - [ ] Client: monotonically increasing IDs; `call(method, params, { priority, signal, transfer })`; on abort send `cancel {id}` and reject with `DOMException("AbortError")`; a response for a cancelled ID is dropped and any transferred `ImageBitmap` is `close()`d (**cancelled renders never paint**).
 - [ ] Worker server: message loop, dispatch, per-method handlers, catch-all error mapping to codes; never `postMessage` an `Error` object (structured clone loses fields) — send codes.
 - [ ] Scheduler: one active render at a time per worker (synchronous WASM), priority queue, coalesce identical `(page, scale, rect, flags)` requests, check cancellation before starting and after each backend step; expose queue depth for the perf harness.
-- [ ] Crash handling: `worker.onerror`/`messageerror` and a heartbeat timeout → reject all pending with `worker-crashed`, emit `crashed`, spawn a new worker, re-open the document from the same `ByteSource` (and cached password in the new worker via the client's re-open call — the password is passed once per worker lifetime and never persisted), resume.
+- [ ] Crash handling: `worker.onerror`/`messageerror` and a heartbeat timeout → reject all pending with `worker-crashed`, emit `crashed`, spawn a new worker, re-open the document from the same `ByteSource`, resume. The main thread **never caches the password**: it lives only in the worker that received it, so it dies with a crashed worker. Re-opening an encrypted document after a crash therefore returns `needs-password` and the client emits a `password-required` event so the UI re-prompts (C4c wires the dialog); unencrypted documents re-open without user action.
 - [ ] Open: `@lamina/pdf` `Document.open` and backend open in parallel (both from the same `ByteSource`); surface ADR 0003 warnings (e.g. repaired xref) as events; return page count and sizes.
 - [ ] Backend loading: `init({ wasmUrl })` for each module, started as soon as the worker is created (before a file is chosen) so WASM downloads in parallel with file selection ([§4 target](../../plans/web-app.md#non-functional-targets-are-recommendations-measured-from-c3-onward)).
 - [ ] Minimal `examples/rpc-demo.html` (served by Vitest/Vite dev) that opens a file and draws page 1 to a canvas — enough for manual checks before C3b.
@@ -69,8 +69,13 @@ Create `packages/viewer` and its foundation: one **document worker** per open do
 - [ ] Cancellation: a test issues 100 render requests and aborts 90 before they finish; no aborted request resolves, every transferred bitmap for an aborted ID is closed, and the 10 kept ones resolve in priority order.
 - [ ] Priority: with a queue of `background` work, a new `visible` request starts next (asserted via scheduler events).
 - [ ] Crash: a test-only `__crash` method kills the worker; pending calls reject with `worker-crashed`, a new worker re-opens the document and the next render succeeds; the page (main thread) never throws.
+- [ ] Crash with an encrypted document: after `__crash`, the re-open yields a `password-required` event (no automatic re-open with a remembered password); supplying the password again via a fresh `open` renders the next page.
 - [ ] A hostile fixture that exceeds `Limits` yields an error code, not a hang (runner timeout per ADR 0018, no wall-clock assertions).
-- [ ] The password never appears in any `postMessage` except the single `open` call to the worker (asserted by wrapping `postMessage` in tests).
+- [ ] The password never appears in any `postMessage` except the `open` call made with the user-entered password (exactly one per user entry, including across a crash/re-prompt cycle), and no main-thread object (client, RPC state) retains it after that call returns (asserted by wrapping `postMessage` in tests and by inspecting the client state after open and after a crash).
+
+## Post-merge checks
+
+None.
 
 ## Tests
 
@@ -89,8 +94,9 @@ Vitest browser-mode tests in `packages/viewer/test/rpc/*.test.ts` (protocol type
 
 ## Definition of done
 
-- [ ] PR opened from a fresh worktree; this file moved `ready/` → `ongoing/` in the PR's first commit (status field updated, PR link added)
+- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [ ] Work PR opened from a fresh worktree; **PR** field filled in
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the PR (status `done`), plan links updated, plan to-dos ticked
+- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
 - [ ] Squash-merged; dependants' "Depends on" now satisfied

@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [full-editor §E11](../../plans/full-editor.md#e11-security-and-sanitisation) |
 | Round / milestone | Editor phase 6 (E11–E17) — M9 Advanced |
-| Depends on | [E3f](./E3f-attachments-and-associated-files.md), [E5b](./E5b-comment-threads-and-review.md), [E11a](./E11a-security-and-sanitisation-feature-plan.md) |
+| Depends on | [E3f](./E3f-attachments-and-associated-files.md), [E5b](./E5b-comment-threads-and-review.md), [E7c](./E7c-content-ir.md), [E11a](./E11a-security-and-sanitisation-feature-plan.md) |
 | Blocks | [E12d](./E12d-scrub-and-rewrite.md) |
 | ADRs | Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
 | Branch | `feat/e11d-sanitiser` |
@@ -59,6 +59,10 @@ A sanitiser as a set of ops, each removing one category and reporting what it re
 - [ ] After `Sanitise(all)` a scan finds no JS, Launch, EmbeddedFiles, `/AA` or `/OpenAction` actions anywhere (test over fixtures)
 - [ ] Report lists every removed item
 
+## Post-merge checks
+
+None.
+
 ## Tests
 
 - Active-content fixtures
@@ -76,8 +80,9 @@ A sanitiser as a set of ops, each removing one category and reporting what it re
 
 ## Definition of done
 
-- [ ] PR opened from a fresh worktree; this file moved `ready/` → `ongoing/` in the PR's first commit (status field updated, PR link added)
+- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [ ] Work PR opened from a fresh worktree; **PR** field filled in
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the PR (status `done`), plan links updated, plan to-dos ticked
+- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
 - [ ] Squash-merged; dependants' "Depends on" now satisfied

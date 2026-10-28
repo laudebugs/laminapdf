@@ -59,11 +59,15 @@ Read what is drawn on a page. A tolerant tokenizer and a read-only interpreter w
 ## Acceptance criteria
 
 - [ ] Every operator in Annex A parses with correct operand arity; unknown/bad ones warn and continue
-- [ ] Interpreting every page of `fixtures/corpus` succeeds or fails with a coded error; operator counts per page match a pdf.js `getOperatorList` count within documented differences (full lane)
+- [ ] Interpreting every page of `fixtures/corpus` succeeds or fails with a coded error; operator counts per page match a pdf.js `getOperatorList` count within documented differences (job added to the full lane from [X4](./X4-full-lane-gate.md), green on this PR)
 - [ ] Nested Form XObjects at depth 32 succeed; depth 33 fails with `LimitExceeded { max_xobject_depth }`; a self-referencing XObject reports `xobject-cycle`
 - [ ] CTM and text matrix after each operator match hand-computed values in unit tests (03 §2.6 formulas)
-- [ ] Fuzz target `content` runs 10 min without panic (scheduled run linked)
+- [ ] Fuzz target `content` runs 10 min locally (`cargo xtask fuzz content --time 600`) without a panic; summary in the PR
 - [ ] ADR 0023 Accepted
+
+## Post-merge checks
+
+- [ ] `content` is green in the first scheduled fuzz run on `main` (link it in a follow-up PR or the done todo)
 
 ## Tests
 
@@ -82,8 +86,9 @@ Read what is drawn on a page. A tolerant tokenizer and a read-only interpreter w
 
 ## Definition of done
 
-- [ ] PR opened from a fresh worktree; this file moved `ready/` → `ongoing/` in the PR's first commit (status field updated, PR link added)
+- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [ ] Work PR opened from a fresh worktree; **PR** field filled in
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the PR (status `done`), plan links updated, plan to-dos ticked
+- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
 - [ ] Squash-merged; dependants' "Depends on" now satisfied

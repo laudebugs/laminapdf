@@ -6,9 +6,9 @@
 | Status | `ready` |
 | Plan | [full-editor §E2](../../plans/full-editor.md#e2-page-organisation) |
 | Round / milestone | Editor phase 2 (E1–E3) — M5 Organiser |
-| Depends on | [B9c](./B9c-text-extraction-bindings-and-differential.md), [E1a](./E1a-editing-foundation-feature-plan.md) |
+| Depends on | [B9c](./B9c-text-extraction-bindings-and-differential.md), [E1a](./E1a-editing-foundation-feature-plan.md), [E1f](./E1f-metadata-ui-capability-page.md) |
 | Blocks | [E2b](./E2b-page-structure-ops.md), [E2e](./E2e-content-append-api.md), [E3a](./E3a-navigation-attachments-inspection-feature-plan.md) |
-| Dependency notes | [E1a](E1a-editing-foundation-feature-plan.md), `B9` ([pdf-library §B9](../../plans/pdf-library.md#b9-text-extraction): content reading and text extraction) |
+| Dependency notes | [E1f](E1f-metadata-ui-capability-page.md) (closes round E1, so every later round inherits the edit session E1d and Save/banner E1e), [E1a](E1a-editing-foundation-feature-plan.md), `B9` ([pdf-library §B9](../../plans/pdf-library.md#b9-text-extraction): content reading and text extraction) |
 | ADRs | Follows ADR 0005, 0006, 0007 |
 | Branch | `docs/e2a-page-organisation-feature-plan` |
 | PR title | `docs(editor): E2 feature plan (page organisation)` |
@@ -45,7 +45,7 @@ The short feature-plan PR that opens round E2 ([full-editor §E2](../../plans/fu
 
 - **Operations shipped** ([06 §3](../../research/pdf/06-feature-inventory.md#3-full-operation-inventory-with-mechanisms) IDs): `C.01` insert blank pages; `C.02` insert pages from other PDFs; `C.03` delete and duplicate pages; `C.04` reorder pages; `C.05` extract selected pages; `C.06` merge multiple documents; `C.07` split by count, ranges, bookmarks; `C.08` rotate pages 90/180/270; `C.09` crop display area; `C.10` resize page dimensions; `C.11` modify margins and page boxes; `C.12` portrait ↔ landscape; `C.13` reverse page order; `C.14` labels, page numbers, headers/footers; `C.16` replace pages, preserving the rest; `H.10` export pages/ranges; `I.10` page labels
 - **Crates and packages:** (planned for the round) `lamina-content` (append API, new here), `lamina-ops` page ops, `lamina-model` merge remapping
-- **`SaveConstraint`:** (round summary from the plan; the feature plan details it per op) `Free` → incremental; on signed files page insertion/deletion is blocked by DocMDP and allowed with a warning only when it invalidates signatures
+- **`SaveConstraint`:** (round summary from the plan; the feature plan details it per op) `Free` → incremental; under a certification signature page insertion/deletion/reordering is a DocMDP violation at every level (ADR 0007 §2) and is allowed only through the override that invalidates the named signatures; with approval signatures only it is `AppendOnly` (incremental), unless it changes a field locked by FieldMDP/`/Lock`
 - **Web vs desktop:** identical; desktop merges a multi-file Finder/Explorer selection
 - **Server features:** none
 - **Capability-matrix rows to flip:** none flipped here; rows added with status `unsupported` and the round as target
@@ -70,6 +70,10 @@ The short feature-plan PR that opens round E2 ([full-editor §E2](../../plans/fu
 - [ ] `docs/capabilities/manifest.toml` has a row per op with `target round = "E2"`; `cargo xtask capabilities` regenerates without error
 - [ ] Each open question below is answered or has a named owner and a deadline round
 
+## Post-merge checks
+
+None.
+
 ## Tests
 
 Docs only: the link checker passes; `cargo xtask capabilities` (from `X2`) accepts the new manifest rows.
@@ -88,8 +92,9 @@ Docs only: the link checker passes; `cargo xtask capabilities` (from `X2`) accep
 
 ## Definition of done
 
-- [ ] PR opened from a fresh worktree; this file moved `ready/` → `ongoing/` in the PR's first commit (status field updated, PR link added)
+- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [ ] Work PR opened from a fresh worktree; **PR** field filled in
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the PR (status `done`), plan links updated, plan to-dos ticked
+- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
 - [ ] Squash-merged; dependants' "Depends on" now satisfied

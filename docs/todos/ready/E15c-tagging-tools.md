@@ -39,7 +39,7 @@ Tools that make tagging practical: select content and tag as H1–H6/P/L/LI/Tabl
 - **Operations shipped** ([06 §3](../../research/pdf/06-feature-inventory.md#3-full-operation-inventory-with-mechanisms) IDs): `L.03` alt text for images; `L.04` document language; `L.05` mark decorative artifacts; `L.06` accessible form labels; `L.07` accessible link descriptions
 - **Crates and packages:** `@lamina/ui`, `lamina-ops`
 - **`Op` variants:** E15b ops + `SetLang`, `SetAlt`, `MarkArtifact`
-- **`SaveConstraint`:** `Free` → incremental. Signed: class `Document` (or `Annotation` where noted) → DocMDP violation unless P3 allows it; gated
+- **`SaveConstraint`:** `Free` → incremental. Signed: class `Document` is a DocMDP violation at every certification level (ADR 0007 §2: P1 allows no changes; P2 allows only form filling, page templates and signing; P3 adds annotations); ops noted as `Annotation` are allowed under P3 or when there is no certification. Violations are gated (override names the signatures). With approval signatures only (no certification): `AppendOnly`, an incremental update that keeps their `/ByteRange` intact; a violation only when it changes a field locked by FieldMDP/`/Lock`
 - **Web vs desktop:** identical
 - **Server features:** none (this PR adds no server feature; all processing stays on the device)
 - **Capability-matrix rows to flip:** `L.03` → `round-trip` (core, pdf, web, desktop); `L.04` → `round-trip` (core, pdf, web, desktop); `L.05` → `round-trip` (core, pdf, web, desktop); `L.06` → `round-trip` (core, pdf, web, desktop); `L.07` → `round-trip` (core, pdf, web, desktop)
@@ -55,6 +55,10 @@ Tools that make tagging practical: select content and tag as H1–H6/P/L/LI/Tabl
 - [ ] Library parity ([full-editor §5](../../plans/full-editor.md#5-requirements-that-hold-for-every-round) req. 7): every new `Op` is exposed in `lamina` and `@lamina/pdf` in this PR, with rustdoc/TSDoc, a runnable example, tsify-generated TS types, and serde samples frozen in `fixtures/ops/v1/` (unknown ops and fields rejected, ADR 0006 §1, §6)
 - [ ] Round-trip: open → op → save → reopen in lamina, pdf.js and PDFium preserves the change and everything else (page count, outline, annotations, fields, struct tree facts in `expected.json`); `qpdf --check` is clean
 - [ ] Tagging a fixture with the tools makes it pass the Matterhorn machine checks it previously failed
+
+## Post-merge checks
+
+None.
 
 ## Tests
 
@@ -73,8 +77,9 @@ Tools that make tagging practical: select content and tag as H1–H6/P/L/LI/Tabl
 
 ## Definition of done
 
-- [ ] PR opened from a fresh worktree; this file moved `ready/` → `ongoing/` in the PR's first commit (status field updated, PR link added)
+- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [ ] Work PR opened from a fresh worktree; **PR** field filled in
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the PR (status `done`), plan links updated, plan to-dos ticked
+- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
 - [ ] Squash-merged; dependants' "Depends on" now satisfied

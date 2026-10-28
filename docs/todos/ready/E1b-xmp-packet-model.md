@@ -50,14 +50,14 @@ Give `lamina-model` a typed view over the catalog's `/Metadata` XMP packet that 
 - **`SaveConstraint`:** read-only here; the writer's output becomes a modified stream object in the overlay when an op uses it
 - **Web vs desktop:** identical (core only)
 - **Server features:** none (this PR adds no server feature; all processing stays on the device)
-- **Capability-matrix rows to flip:** none flipped (J.04 stays `read` until E3e; this PR makes it `read` in core and pdf if not already)
+- **Capability-matrix rows to flip:** `J.04` → `read` (core, pdf) (parse and typed read of the packet; `write`/`round-trip` comes with [E3e](E3e-xmp-editor.md))
 
 ## Tasks
 
 - [ ] Choose the XML approach (a small tolerant reader over `quick-xml` or similar; check licence with `cargo deny` and measure wasm size delta) and record the choice in the E1 feature plan
 - [ ] Implement packet discovery: catalog `/Metadata` stream, decode filters, strip/keep the `<?xpacket … ?>` wrapper and trailing padding
 - [ ] Parse into an ordered tree that keeps unknown elements, attributes, namespaces and comments for lossless re-serialisation
-- [ ] Typed getters/setters for the Info-mapped properties, with language alternatives (`x-default`) and date conversion between PDF dates (`D:YYYYMMDDHHmmSSOHH'mm'`) and ISO 8601
+- [ ] Typed getters/setters for the Info-mapped properties, with language alternatives (`x-default`) and date conversion between PDF dates (`D:YYYYMMDDHHmmSSOHH'mm`, ISO 32000-1 §7.9.4: no apostrophe after the minutes) and ISO 8601; the reader tolerates the trailing `'` that older producers write, the writer never emits it
 - [ ] Writer: update in place keeping padding when the new packet fits; otherwise rewrite with fresh padding (2 KB) and `begin="\uFEFF"`
 - [ ] `XmpPacket::new_minimal()` for files without metadata; namespace prefixes per ISO 16684-1
 - [ ] Move the B5 builder's Info ↔ XMP mapping into one shared table used by both generation and editing
@@ -70,6 +70,11 @@ Give `lamina-model` a typed view over the catalog's `/Metadata` XMP packet that 
 - [ ] A file with no `/Metadata` gets a packet that `exiftool` and veraPDF's XMP parser accept
 - [ ] Malformed packets (fuzz corpus) never panic; a fuzz target runs 10 min in CI
 - [ ] wasm size delta recorded in the PR description and within the B6 budget
+- [ ] Date round-trip tests: `D:20261028143000+01'00` and the legacy `D:20261028143000+01'00'` both parse to the same instant; the writer emits only the form without the trailing apostrophe
+
+## Post-merge checks
+
+None.
 
 ## Tests
 
@@ -92,8 +97,9 @@ Give `lamina-model` a typed view over the catalog's `/Metadata` XMP packet that 
 
 ## Definition of done
 
-- [ ] PR opened from a fresh worktree; this file moved `ready/` → `ongoing/` in the PR's first commit (status field updated, PR link added)
+- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [ ] Work PR opened from a fresh worktree; **PR** field filled in
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the PR (status `done`), plan links updated, plan to-dos ticked
+- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
 - [ ] Squash-merged; dependants' "Depends on" now satisfied

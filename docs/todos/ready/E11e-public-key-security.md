@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [full-editor §E11](../../plans/full-editor.md#e11-security-and-sanitisation) |
 | Round / milestone | Editor phase 6 (E11–E17) — M9 Advanced |
-| Depends on | [E10g](./E10g-signature-validation.md), [E11b](./E11b-encrypt-on-write.md) |
+| Depends on | [E10g](./E10g-signature-validation.md), [E10i](./E10i-platform-signers.md), [E11b](./E11b-encrypt-on-write.md) |
 | Blocks | None |
 | ADRs | Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
 | Branch | `feat/e11e-public-key-security` |
@@ -26,7 +26,8 @@ Open documents encrypted with the public-key handler (`/Adobe.PubSec`, `adbe.pkc
 
 **In scope**
 
-- Recipient decryption (CMS EnvelopedData)
+- Recipient decryption (CMS EnvelopedData): find the `RecipientInfo` matching the user's certificate, unwrap the content-encryption key with the private key, derive the file key (ISO 32000-2 §7.6.5.3)
+- Key unwrap at the edges: a `Decryptor` trait in core (`unwrap_key(recipient_info) -> SecretKey`; RSA PKCS#1 v1.5 and RSA-OAEP key transport, ECDH key agreement) implemented on the [E10i](E10i-platform-signers.md) adapters (Keychain, CNG, NSS/PKCS#11, WebCrypto `unwrapKey`/`decrypt` on non-extractable keys, PKCS#12). E10d's `Signer` is sign-only, so this is new; the private key never leaves its store
 - Writer behind `experimental_pubsec`
 
 **Out of scope** (and which todo covers it)
@@ -44,6 +45,7 @@ Open documents encrypted with the public-key handler (`/Adobe.PubSec`, `adbe.pkc
 
 ## Tasks
 
+- [ ] `Decryptor` trait and the E10i adapters' implementations (SoftHSM-backed test in CI)
 - [ ] Read
 - [ ] Write (flagged)
 - [ ] Fixtures from Acrobat
@@ -51,6 +53,11 @@ Open documents encrypted with the public-key handler (`/Adobe.PubSec`, `adbe.pkc
 ## Acceptance criteria
 
 - [ ] Acrobat-made certificate-encrypted fixtures open with the right key and fail clearly otherwise
+- [ ] Opening works with the key in a SoftHSM token (PKCS#11), an OS keychain test identity on each desktop OS, and a non-extractable WebCrypto key on web; a network assertion shows no key material leaves the device
+
+## Post-merge checks
+
+None.
 
 ## Tests
 
@@ -68,8 +75,9 @@ Open documents encrypted with the public-key handler (`/Adobe.PubSec`, `adbe.pkc
 
 ## Definition of done
 
-- [ ] PR opened from a fresh worktree; this file moved `ready/` → `ongoing/` in the PR's first commit (status field updated, PR link added)
+- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [ ] Work PR opened from a fresh worktree; **PR** field filled in
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the PR (status `done`), plan links updated, plan to-dos ticked
+- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
 - [ ] Squash-merged; dependants' "Depends on" now satisfied

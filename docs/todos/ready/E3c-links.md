@@ -7,7 +7,7 @@
 | Plan | [full-editor §E3](../../plans/full-editor.md#e3-navigation-attachments-inspection-and-extraction) |
 | Round / milestone | Editor phase 2 (E1–E3) — M5 Organiser |
 | Depends on | [C5b](./C5b-find-in-document.md), [E3a](./E3a-navigation-attachments-inspection-feature-plan.md) |
-| Blocks | None |
+| Blocks | [E3b](./E3b-bookmarks-and-destinations.md) |
 | Dependency notes | [E3a](E3a-navigation-attachments-inspection-feature-plan.md), `C5` ([web-app §C5](../../plans/web-app.md#c5-text-selection-and-search): text layer and search) |
 | ADRs | Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
 | Branch | `feat/e3c-links` |
@@ -42,7 +42,7 @@ Create, edit and delete Link annotations: internal (GoTo/destination), external 
 - **Operations shipped** ([06 §3](../../research/pdf/06-feature-inventory.md#3-full-operation-inventory-with-mechanisms) IDs): `I.02` internal page links; `I.03` external hyperlinks; `A.09` add hyperlinks to text
 - **Crates and packages:** `lamina-model` (Link annotation view), `lamina-ops`, `@lamina/ui`
 - **`Op` variants:** `AddLink`, `UpdateLink`, `DeleteLink` (class `Annotation`)
-- **`SaveConstraint`:** `Free` → incremental; signed: annotations allowed under DocMDP P3 only, otherwise gated
+- **`SaveConstraint`:** `Free` → incremental. Signed: link annotations are class `Annotation`, allowed only under DocMDP P3 or when there is no certification signature (approval signatures alone allow annotations, saved `AppendOnly`); under P1/P2 a violation → warn and gate (ADR 0007 §2: P1 allows no changes; P2 allows only form filling, page templates and signing; P3 adds annotations)
 - **Web vs desktop:** identical
 - **Server features:** none (this PR adds no server feature; all processing stays on the device)
 - **Capability-matrix rows to flip:** `I.02` → `round-trip` (core, pdf, web, desktop); `I.03` → `round-trip` (core, pdf, web, desktop); `A.09` → `round-trip` (core, pdf, web, desktop)
@@ -62,6 +62,10 @@ Create, edit and delete Link annotations: internal (GoTo/destination), external 
 - [ ] Round-trip: open → op → save → reopen in lamina, pdf.js and PDFium preserves the change and everything else (page count, outline, annotations, fields, struct tree facts in `expected.json`); `qpdf --check` is clean
 - [ ] Links created in lamina navigate correctly in pdf.js and PDFium (e2e clicks in pdf.js viewer harness)
 
+## Post-merge checks
+
+None.
+
 ## Tests
 
 - Unit, round-trip, e2e
@@ -78,8 +82,9 @@ Create, edit and delete Link annotations: internal (GoTo/destination), external 
 
 ## Definition of done
 
-- [ ] PR opened from a fresh worktree; this file moved `ready/` → `ongoing/` in the PR's first commit (status field updated, PR link added)
+- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [ ] Work PR opened from a fresh worktree; **PR** field filled in
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the PR (status `done`), plan links updated, plan to-dos ticked
+- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
 - [ ] Squash-merged; dependants' "Depends on" now satisfied

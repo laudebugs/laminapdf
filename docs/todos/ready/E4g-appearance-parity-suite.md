@@ -54,8 +54,12 @@ Plan to-do "Round-trip tests: appearance identical in pdf.js and PDFium" as a st
 
 ## Acceptance criteria
 
-- [ ] Suite green nightly; failures produce diff images as artefacts
+- [ ] Suite green when run locally and via `workflow_dispatch` on the PR branch; failures produce diff images as artefacts
 - [ ] All E4 rows at target status
+
+## Post-merge checks
+
+- [ ] The suite is green in the first scheduled nightly run on `main` (link it in a follow-up PR or the done todo)
 
 ## Tests
 
@@ -73,8 +77,9 @@ The suite itself.
 
 ## Definition of done
 
-- [ ] PR opened from a fresh worktree; this file moved `ready/` → `ongoing/` in the PR's first commit (status field updated, PR link added)
+- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [ ] Work PR opened from a fresh worktree; **PR** field filled in
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the PR (status `done`), plan links updated, plan to-dos ticked
+- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
 - [ ] Squash-merged; dependants' "Depends on" now satisfied

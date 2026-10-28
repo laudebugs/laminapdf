@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [pdf-library §7 B4](../../plans/pdf-library.md#b4-fonts-and-text), requirement [§4 F2](../../plans/pdf-library.md#functional) |
 | Round / milestone | Round B (library) — M1 |
-| Depends on | [B1b](../done/B1b-krilla-fit-spike.md), [B3b](./B3b-lamina-save-writers.md) |
+| Depends on | [B1b](../done/B1b-krilla-fit-spike.md), [B3b](./B3b-lamina-save-writers.md), [X4](./X4-full-lane-gate.md) |
 | Blocks | [B4b](./B4b-shaping-bidi-line-breaking.md), [B4c](./B4c-standard-14-and-simple-fonts.md), [B9b](./B9b-text-extraction-core.md) |
 | ADRs | Follows [0005 §6](../../decisions/0005-document-model.md#6-generation-strategy--option-b-recommended-by-the-krilla-fit-spike-accepted-when-its-pr-merges) (own builder; `skrifa`, `subsetter`; reserve-then-fill objects), [0001](../../decisions/0001-core-language-and-licence.md) (caller supplies bytes, determinism), [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) |
 | Branch | `feat/b4a-font-embedding` |
@@ -65,6 +65,10 @@ Embed fonts correctly from code: load TrueType/OpenType/CFF fonts (and TTC membe
 - [ ] A TTC member and a variable-font instance (wght=700) embed and extract
 - [ ] A missing glyph yields `missing-glyph` with the character and font name
 
+## Post-merge checks
+
+None.
+
 ## Tests
 
 - Unit: `/W` compression, CMap writer (bfrange splitting, surrogates), subset tag derivation.
@@ -86,8 +90,9 @@ Embed fonts correctly from code: load TrueType/OpenType/CFF fonts (and TTC membe
 
 ## Definition of done
 
-- [ ] PR opened from a fresh worktree; this file moved `ready/` → `ongoing/` in the PR's first commit (status field updated, PR link added)
+- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [ ] Work PR opened from a fresh worktree; **PR** field filled in
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the PR (status `done`), plan links updated, plan to-dos ticked
+- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
 - [ ] Squash-merged; dependants' "Depends on" now satisfied

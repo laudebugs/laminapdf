@@ -17,7 +17,7 @@
 
 ## Goal
 
-Create the single Rust abstraction every lamina surface renders through. `crates/lamina-render` defines `RenderBackend` exactly as ADR 0004 specifies, with a PDFium adapter (native, `pdfium-render`) and a hayro adapter behind Cargo features, render goldens for both on `fixtures/`, `cargo xtask render-golden`, and the nightly hayro-vs-PDFium diff over the external corpus. This is what desktop links natively and what the hayro WASM package (C2c) compiles.
+Create the single Rust abstraction every lamina surface renders through. `crates/lamina-render` defines `RenderBackend` exactly as ADR 0004 specifies, with a PDFium adapter (native, `pdfium-render`) and a hayro adapter behind Cargo features, render goldens for both on `fixtures/`, and `cargo xtask render-golden`; the nightly hayro-vs-PDFium diff over the external corpus builds on this crate in [X3b](./X3b-render-diff-nightly.md). This is what desktop links natively and what the hayro WASM package (C2c) compiles.
 
 ## Context
 
@@ -34,7 +34,7 @@ Create the single Rust abstraction every lamina surface renders through. `crates
 - `crates/lamina-render` (layer per ADR 0004; likely `core` for the trait + hayro, with the PDFium adapter in `crates/lamina-render-pdfium` as `edge` if `unsafe`/dynamic loading is needed — decide by the portability rules in xtask).
 - Trait, types (`RenderRequest`, `RenderFlags`, `PixelFormat`, `RenderedTile`, `RenderError` via `thiserror`), adapters behind features `pdfium` and `hayro`.
 - Golden PNGs in `fixtures/golden/render/{pdfium,hayro}/` for every `fixtures/corpus` page at 96 DPI; `cargo xtask render-golden [--update]`; comparison helper with perceptual thresholds.
-- Full-lane job running render goldens; nightly job running hayro vs PDFium over the pinned external corpus (`cargo xtask corpus fetch`) and reporting the C1a metric.
+- Full-lane job running render goldens over `fixtures/corpus` (committed fixtures only; no external corpus in this PR).
 - `deny.toml`/licence allow-list updates for new crates.
 
 **Out of scope** (and which todo covers it)
@@ -42,6 +42,7 @@ Create the single Rust abstraction every lamina surface renders through. `crates
 - The PDFium-**WASM** TS adapter and the hayro `.wasm` package → [C2c](./C2c-render-packages.md).
 - Worker RPC and tiles in the browser → [C3a](./C3a-viewer-worker-rpc.md), [C3b](./C3b-viewer-virtualiser-and-zoom.md).
 - Desktop engine process wiring → desktop D2.
+- Nightly hayro-vs-PDFium diffs over the external corpus (`cargo xtask render-diff`, reporting the C1a metric) → [X3b](./X3b-render-diff-nightly.md); `cargo xtask corpus fetch` and the pinned corpus manifest (including the pdf.js/PDFBox corpora C1a used) → [X3a](./X3a-nightly-lane.md). This PR does not add or extend `corpus fetch`.
 
 ## Tasks
 
@@ -51,11 +52,11 @@ Create the single Rust abstraction every lamina surface renders through. `crates
 - [ ] Validate requests: reject zero/oversized dimensions, cap total pixels per request (a `Limits`-style `max_tile_pixels`) so hostile page sizes cannot allocate unbounded buffers; return `RenderError` codes, never panic.
 - [ ] `src/hayro.rs` (feature `hayro`): wrap `hayro` 0.8.x; map errors; convert its pixmap into the caller's buffer without extra allocation where possible.
 - [ ] `src/pdfium.rs` (feature `pdfium`, or the separate edge crate): wrap `pdfium-render`, bind the pinned PDFium library from ADR 0004 (path via env var / xtask-fetched), render with/without `FPDF_ANNOT`, handle password, map `FPDF_GetLastError` to `RenderError`. Every `unsafe` block (if any) has `// SAFETY:`.
-- [ ] `tools/xtask`: add `fetch-pdfium` (pinned URL + SHA-256, per host OS, cached in a gitignored dir), `render-golden [--update]` (renders every page of `fixtures/corpus/*.pdf` with both adapters to `fixtures/golden/render/<backend>/<file>-p<N>.png`), and extend `corpus fetch` with the pinned pdf.js/PDFBox corpora from C1a if not already present; `doctor` checks the PDFium library is available.
+- [ ] `tools/xtask`: add `fetch-pdfium` (pinned URL + SHA-256, per host OS, cached in a gitignored dir), `render-golden [--update]` (renders every page of `fixtures/corpus/*.pdf` with both adapters to `fixtures/golden/render/<backend>/<file>-p<N>.png`); `doctor` checks the PDFium library is available.
 - [ ] `tests/golden.rs`: for each corpus page and backend, render and compare against the golden with the threshold from C1a (SSIM ≥ 0.99 against its **own** backend's golden; cross-backend thresholds only in the nightly diff). A test never writes a golden.
 - [ ] `tests/errors.rs`: wrong password, damaged file (`hello-broken.pdf`), oversize request, out-of-range page → typed errors.
 - [ ] `tests/determinism.rs`: rendering the same page twice gives identical bytes for each backend.
-- [ ] CI: add render goldens to the full lane (Linux; PDFium fetched and cached); add a nightly job `render-diff` that renders the external corpus with both adapters and uploads `summary.md` + failing triplets as an artifact, opening an issue on regression of the pass rate (ADR 0018 §2: nightly failure opens an issue).
+- [ ] CI: add render goldens to the full lane (Linux; PDFium fetched and cached). The nightly external-corpus diff is [X3b](./X3b-render-diff-nightly.md)'s.
 - [ ] `deny.toml`: allow the licences `pdfium-render`, `hayro` and their deps bring (all permissive); `cargo xtask deny` passes.
 - [ ] `README.md` for the crate: what the trait is, feature flags, how to fetch PDFium, how to update goldens.
 - [ ] Update `CLAUDE.md` layout (new crate) and commands (`cargo xtask fetch-pdfium`, `cargo xtask render-golden`).
@@ -66,16 +67,19 @@ Create the single Rust abstraction every lamina surface renders through. `crates
 - [ ] `cargo xtask check` passes, including clippy `-D warnings` native and (for the pure part) wasm32, portability rules for the crate's declared layer, and cargo-deny.
 - [ ] `cargo xtask render-golden --update` regenerates goldens deterministically (running it twice yields no diff).
 - [ ] The full-lane CI job runs render goldens on PRs touching `crates/`, `fixtures/` or `tools/`.
-- [ ] The nightly `render-diff` workflow runs (manually triggered once in the PR to prove it) and produces the pass-rate summary in the same format as C1a.
 - [ ] No panics on hostile input: oversize and broken-file tests return errors.
+
+## Post-merge checks
+
+None.
 
 ## Tests
 
-Integration tests in `crates/lamina-render/tests/` (golden, errors, determinism) using `fixtures/corpus/`; goldens in `fixtures/golden/render/`; nightly differential over the fetched external corpus. A `fuzz/fuzz_targets/render_hayro.rs` target (hayro path only, small DPI) is a nice-to-have; add it if time permits and note it otherwise.
+Integration tests in `crates/lamina-render/tests/` (golden, errors, determinism) using `fixtures/corpus/`; goldens in `fixtures/golden/render/` (the nightly external-corpus differential is X3b's). A `fuzz/fuzz_targets/render_hayro.rs` target (hayro path only, small DPI) is a nice-to-have; add it if time permits and note it otherwise.
 
 ## Docs to update
 
-Crate README; `CLAUDE.md` (layout + commands); `fixtures/README.md` (render goldens section, provenance: generated, ours); tick "Create `crates/lamina-render`…" and "Add golden render tests and the nightly hayro-vs-PDFium diff" in [web-app.md §9](../../plans/web-app.md#9-to-dos) and the `lamina-render` line in [architecture §7](../../plans/architecture.md#7-to-dos).
+Crate README; `CLAUDE.md` (layout + commands); `fixtures/README.md` (render goldens section, provenance: generated, ours); tick "Create `crates/lamina-render`…" in [web-app.md §9](../../plans/web-app.md#9-to-dos) (the "Add golden render tests and the nightly hayro-vs-PDFium diff" item is ticked by X3b, which completes it) and the `lamina-render` line in [architecture §7](../../plans/architecture.md#7-to-dos).
 
 ## Risks and open questions
 
@@ -86,8 +90,9 @@ Crate README; `CLAUDE.md` (layout + commands); `fixtures/README.md` (render gold
 
 ## Definition of done
 
-- [ ] PR opened from a fresh worktree; this file moved `ready/` → `ongoing/` in the PR's first commit (status field updated, PR link added)
+- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [ ] Work PR opened from a fresh worktree; **PR** field filled in
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the PR (status `done`), plan links updated, plan to-dos ticked
+- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
 - [ ] Squash-merged; dependants' "Depends on" now satisfied

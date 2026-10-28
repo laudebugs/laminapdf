@@ -30,9 +30,11 @@ Make lamina behave like a native PDF app: it registers for `.pdf` in every insta
 **In scope**
 
 - `tauri.conf.json` `bundle.fileAssociations`: `[{ "ext": ["pdf"], "mimeType": "application/pdf", "name": "PDF Document", "description": "Portable Document Format", "role": "Viewer", "rank": "Alternate" }]` (macOS `rank: Alternate` so we don't claim the default; Windows/Linux equivalents are "Open with" registrations).
-- `tauri-plugin-single-instance` registered first: callback receives `(app, argv, cwd)`, resolves relative paths against `cwd`, filters to existing `.pdf` files (case-insensitive) and `file://` URLs, focuses/unminimises the target window and opens each path through `DocumentRegistry`.
-- Cold-start argv handling in `setup` (skip `argv[0]`, ignore flags such as `-psn_*` on old macOS and Tauri/WebDriver flags).
-- macOS `RunEvent::Opened { urls }` handled in `App::run(|app, event| …)` with `#[cfg(target_os = "macos")]`: before the frontend is ready, queue paths in a `PendingOpens` state drained by a `take_pending_opens` command the frontend calls after mount; afterwards open directly. Dock-icon drops arrive here too.
+- `tauri-plugin-single-instance` registered first: callback receives `(app, argv, cwd)`, resolves relative paths against `cwd`, filters to existing `.pdf` files (case-insensitive) and `file://` URLs, focuses/unminimises the target window and passes the paths to `route_open` (a second launch can arrive while the first instance is still starting, so it must use the queue too).
+- **One entry point for every OS open request**: `route_open(app, paths)`. Until the frontend reports ready, it appends to a `PendingOpens` state (a `Mutex<PendingOpens { ready: bool, paths: Vec<PathBuf> }>` so the check and the push are atomic); the frontend calls `take_pending_opens` once after mount, which drains the queue and sets `ready`; afterwards `route_open` opens directly. All three sources below go through it — none opens a document itself:
+  - Cold-start argv (Windows/Linux, and macOS when launched from a terminal): parsed in `setup` (skip `argv[0]`, ignore flags such as `-psn_*` on old macOS and Tauri/WebDriver flags) and passed to `route_open`, which queues them because the webview hasn't mounted yet.
+  - The single-instance callback (a second launch while running).
+  - macOS `RunEvent::Opened { urls }` handled in `App::run(|app, event| …)` with `#[cfg(target_os = "macos")]` (cold start before or after `setup`, warm opens, Dock-icon drops).
 - Window drag-drop: handle `WindowEvent::DragDrop(Drop { paths, .. })` in Rust (not in JS), open PDFs, ignore others with a toast; show a drop overlay via `DragDropEvent::Enter/Leave` forwarded as events. `dragDropEnabled` stays `true` on document windows.
 - Open request routing: until tabs exist (D4a), opening while a document is open replaces it in the focused window after confirming nothing is lost (reader: no prompt needed) — or opens a new window if `multiWindow` already supported; record the interim behaviour.
 - Error handling: unreadable/missing path → toast with the file name only (no full path in logs at `info`).
@@ -61,16 +63,20 @@ Make lamina behave like a native PDF app: it registers for `.pdf` in every insta
 ## Acceptance criteria
 
 - [ ] On each OS, with a dev bundle installed (dmg/NSIS/deb), double-clicking a PDF when lamina is **running** opens it in the running instance (no second window process remains — checked with the process list) — manual check recorded in the PR per OS.
-- [ ] Cold start via double-click or `lamina /path/to/file.pdf` opens the file; first page within the cold-start + first-page budgets.
+- [ ] Cold start via double-click or `lamina /path/to/file.pdf` opens the file on every OS through `PendingOpens` (no code path opens a document before the frontend has called `take_pending_opens`); first page within the cold-start + first-page budgets.
 - [ ] Dropping a PDF onto the window opens it; dropping onto the macOS dock icon opens it; dropping a non-PDF shows a toast and opens nothing.
 - [ ] Paths with spaces, non-ASCII characters and (Windows) > 260 characters open correctly (unit tests for parsing + manual check).
 - [ ] lamina appears in "Open with" on all three OSes and does **not** become the default handler unless the user chooses it.
 - [ ] New e2e scenarios pass in `desktop-e2e`.
 
+## Post-merge checks
+
+None.
+
 ## Tests
 
 - Unit: `paths_from_args` (relative paths, `file://` URLs, flags, non-PDF filtering, duplicates, Windows drive-relative paths).
-- Unit: `PendingOpens` queue drained once; opens after ready bypass the queue.
+- Unit: `PendingOpens` queue drained once; opens after ready bypass the queue; cold-start argv paths and single-instance paths received before `take_pending_opens` are queued (not opened, not dropped) and come out in arrival order.
 - e2e (WebdriverIO): cold start with path arg; second-instance forwarding (Windows/Linux) using the e2e harness to launch the binary again.
 - Manual checklist per OS stored in the repo and linked from the PR.
 
@@ -90,8 +96,9 @@ Make lamina behave like a native PDF app: it registers for `.pdf` in every insta
 
 ## Definition of done
 
-- [ ] PR opened from a fresh worktree; this file moved `ready/` → `ongoing/` in the PR's first commit (status field updated, PR link added)
+- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [ ] Work PR opened from a fresh worktree; **PR** field filled in
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the PR (status `done`), plan links updated, plan to-dos ticked
+- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
 - [ ] Squash-merged; dependants' "Depends on" now satisfied

@@ -41,7 +41,7 @@ Import/export field values as FDF, XFDF and JSON; reset form; a library API to p
 - **Operations shipped** ([06 §3](../../research/pdf/06-feature-inventory.md#3-full-operation-inventory-with-mechanisms) IDs): `E.11` import and export form data; `E.12` populate fields programmatically; `E.13` reset form fields; `E.14` flatten forms
 - **Crates and packages:** `lamina-model`, `lamina-content`, `lamina-ops`
 - **`Op` variants:** `ImportFormData` (class `FormFill`), `FlattenForm` (classes `Content` + `Document`)
-- **`SaveConstraint`:** `Free` → incremental. Signed: class `FormFill` is allowed under DocMDP P2 and P3 and under approval signatures, except for fields locked by FieldMDP (`/Lock`) or by a signature's field-lock dictionary → blocked with the locking signature named. Flattening is a content change: blocked on signed files unless overridden
+- **`SaveConstraint`:** `Free` → incremental. Signed: class `FormFill` is allowed under DocMDP P2 and P3 and under approval signatures, except for fields locked by FieldMDP (`/Lock`) or by a signature's field-lock dictionary → blocked with the locking signature named. Flattening is a `Content` change: under a certification signature a violation at every DocMDP level, saved only through the override; with approval signatures only `AppendOnly`, except flattening a field locked by FieldMDP/`/Lock`, which is a violation
 - **Web vs desktop:** identical
 - **Server features:** none (this PR adds no server feature; all processing stays on the device)
 - **Capability-matrix rows to flip:** `E.11` → `round-trip` (core, pdf, web, desktop); `E.12` → `round-trip` (core, pdf, web, desktop); `E.13` → `round-trip` (core, pdf, web, desktop); `E.14` → `round-trip` (core, pdf, web, desktop)
@@ -59,6 +59,10 @@ Import/export field values as FDF, XFDF and JSON; reset form; a library API to p
 - [ ] Property tests: for every new op, apply then undo leaves the overlay empty and the next save is byte-identical to the previous one (ADR 0006 §3); redo re-applies the same bytes
 - [ ] Round-trip: open → op → save → reopen in lamina, pdf.js and PDFium preserves the change and everything else (page count, outline, annotations, fields, struct tree facts in `expected.json`); `qpdf --check` is clean
 - [ ] Export → import into a blank copy reproduces values; flattened forms render identically and have no `/AcroForm` fields left
+
+## Post-merge checks
+
+None.
 
 ## Tests
 
@@ -78,8 +82,9 @@ Import/export field values as FDF, XFDF and JSON; reset form; a library API to p
 
 ## Definition of done
 
-- [ ] PR opened from a fresh worktree; this file moved `ready/` → `ongoing/` in the PR's first commit (status field updated, PR link added)
+- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [ ] Work PR opened from a fresh worktree; **PR** field filled in
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the PR (status `done`), plan links updated, plan to-dos ticked
+- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
 - [ ] Squash-merged; dependants' "Depends on" now satisfied

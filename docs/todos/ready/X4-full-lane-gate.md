@@ -7,7 +7,7 @@
 | Plan | [architecture §7 Round B](../../plans/architecture.md#round-b--core-model-and-the-first-package) ("Golden-file and corpus test harness in CI (full lane)"), [§7 Cross-cutting](../../plans/architecture.md#cross-cutting) |
 | Round / milestone | Cross-cutting (Round B infrastructure) |
 | Depends on | [B2c](./B2c-lamina-model-corpus-fuzz.md) |
-| Blocks | [B3c](./B3c-save-planner-and-roundtrip.md), [B5c](./B5c-lamina-facade-and-examples.md) |
+| Blocks | [B3c](./B3c-save-planner-and-roundtrip.md), [B4a](./B4a-font-loading-and-subsetting.md), [B4b](./B4b-shaping-bidi-line-breaking.md), [B5c](./B5c-lamina-facade-and-examples.md) |
 | ADRs | Implements [0018](../../decisions/0018-test-strategy.md) §2 (full lane: required check, never skipped by a workflow `paths` filter, changed-paths job + gate job), §4 (no retries in PR lanes) |
 | Branch | `ci/x4-full-lane` |
 | PR title | `ci: full PR lane on three OSes with mutant differential, fuzz smoke and a required gate job` |
@@ -28,7 +28,7 @@ Add the second PR lane ADR 0018 defines, without blocking docs-only PRs. The ful
 
 **In scope**
 
-- `.github/workflows/full.yml`: `changes` job (`git diff --name-only $(git merge-base origin/main HEAD)`; code paths = `crates/`, `packages/`, `apps/`, `fixtures/`, `fuzz/`, `tools/`, `Cargo.lock`, `pnpm-lock.yaml`), suite jobs gated by `if: needs.changes.outputs.code == 'true' || github.event_name == 'push'`, and `gate` (`if: always()`, fails if any needed job failed or was cancelled).
+- `.github/workflows/full.yml`: `changes` job (`git diff --name-only $(git merge-base origin/main HEAD)`; code paths = `crates/`, `packages/`, `apps/`, `fixtures/`, `fuzz/`, `tools/`, `Cargo.lock`, `pnpm-lock.yaml`, and the root config that changes builds and checks: `Cargo.toml`, `rust-toolchain.toml`, `deny.toml`, `clippy.toml`, `rustfmt.toml`, `package.json`, `pnpm-workspace.yaml`, `.config/**` (e.g. `.config/nextest.toml`), `.github/workflows/**`; anything else is docs-only), suite jobs gated by `if: needs.changes.outputs.code == 'true' || github.event_name == 'push'`, and `gate` (`if: always()`, fails if any needed job failed or was cancelled).
 - Suites now: `cargo xtask check` on macOS and Windows (Linux is in the fast lane); `cargo xtask differential --mutants 500` against precomputed expectations; `cargo xtask fuzz <each target> --time 120` (nightly toolchain, cached corpus); empty placeholder jobs are **not** added — later todos add their jobs (B3c round-trip, B5c render goldens/qpdf, B4b/B5b external extraction, B6c runtimes) and wire them into `gate`'s `needs`.
 - Branch protection: mark `gate` as required (owner action; documented).
 - `nextest` profile `ci` with `retries = 0` and the slow-timeout from B2a.
@@ -51,9 +51,14 @@ Add the second PR lane ADR 0018 defines, without blocking docs-only PRs. The ful
 
 - [ ] A docs-only PR shows the full lane's `gate` green within a minute and no suite jobs run
 - [ ] A PR touching `crates/` runs all suites; a failing suite turns `gate` red
-- [ ] A push to `main` runs every suite regardless of paths
-- [ ] The 500-mutant differential and 2-minute fuzz runs pass on `main`
+- [ ] A PR touching only root config (e.g. `rust-toolchain.toml` or `.github/workflows/ci.yml`) runs all suites; a unit test (or a `changes`-job dry run over sample path lists) covers every pattern in the filter
+- [ ] The 500-mutant differential and 2-minute fuzz runs pass on this PR's own full-lane run
 - [ ] Full lane completes in ~30 minutes or less
+
+## Post-merge checks
+
+- [ ] The first push to `main` after merge runs every suite regardless of paths, and it is green
+- [ ] The owner has marked `gate` as required in branch protection
 
 ## Tests
 
@@ -71,8 +76,9 @@ The workflow on two test PRs (docs-only and code), linked in the PR description.
 
 ## Definition of done
 
-- [ ] PR opened from a fresh worktree; this file moved `ready/` → `ongoing/` in the PR's first commit (status field updated, PR link added)
+- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [ ] Work PR opened from a fresh worktree; **PR** field filled in
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the PR (status `done`), plan links updated, plan to-dos ticked
+- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
 - [ ] Squash-merged; dependants' "Depends on" now satisfied

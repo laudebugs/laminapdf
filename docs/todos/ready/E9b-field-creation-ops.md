@@ -41,7 +41,7 @@ Ops to create, move, resize, rename, delete and configure fields of every type (
 - **Operations shipped** ([06 §3](../../research/pdf/06-feature-inventory.md#3-full-operation-inventory-with-mechanisms) IDs): `E.01` text fields (single/multi-line); `E.02` checkboxes and radio buttons; `E.03` dropdowns and list boxes; `E.04` push buttons; `E.15` signature fields
 - **Crates and packages:** `lamina-model`, `lamina-build`, `lamina-ops`
 - **`Op` variants:** the ops above (class `Document`)
-- **`SaveConstraint`:** `Free` → incremental. Signed: creating/changing field definitions is not form filling (class `Document`); blocked under any certification and invalidates approval signatures' coverage → only allowed after the user confirms removing/invalidating signatures (ADR 0007 §3 override)
+- **`SaveConstraint`:** `Free` → incremental. Signed: creating/changing field definitions is not form filling (class `Document`), so it is a DocMDP violation at every certification level (ADR 0007 §2: P1 allows no changes; P2 allows only form filling, page templates and signing; P3 adds annotations) → saved only after the user confirms invalidating the named signatures (ADR 0007 §3 override). With approval signatures only (no certification): `AppendOnly`, an incremental update that keeps their `/ByteRange` intact; changing or removing a field locked by FieldMDP/`/Lock`, or a signature field, is a violation
 - **Web vs desktop:** identical
 - **Server features:** none (this PR adds no server feature; all processing stays on the device)
 - **Capability-matrix rows to flip:** `E.01` → `round-trip` (core, pdf); `E.02` → `round-trip` (core, pdf); `E.03` → `round-trip` (core, pdf); `E.04` → `round-trip` (core, pdf); `E.15` → `round-trip` (core, pdf)
@@ -61,6 +61,10 @@ Ops to create, move, resize, rename, delete and configure fields of every type (
 - [ ] Round-trip: open → op → save → reopen in lamina, pdf.js and PDFium preserves the change and everything else (page count, outline, annotations, fields, struct tree facts in `expected.json`); `qpdf --check` is clean
 - [ ] Fields created by lamina are fillable in pdf.js, PDFium and Acrobat Reader (manual check recorded)
 
+## Post-merge checks
+
+None.
+
 ## Tests
 
 - Round-trip
@@ -78,8 +82,9 @@ Ops to create, move, resize, rename, delete and configure fields of every type (
 
 ## Definition of done
 
-- [ ] PR opened from a fresh worktree; this file moved `ready/` → `ongoing/` in the PR's first commit (status field updated, PR link added)
+- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [ ] Work PR opened from a fresh worktree; **PR** field filled in
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the PR (status `done`), plan links updated, plan to-dos ticked
+- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
 - [ ] Squash-merged; dependants' "Depends on" now satisfied

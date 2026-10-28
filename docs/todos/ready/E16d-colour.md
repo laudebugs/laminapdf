@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [full-editor §E16](../../plans/full-editor.md#e16-optimisation-and-print-production) |
 | Round / milestone | Editor phase 6 (E11–E17) — M9 Advanced |
-| Depends on | [E7c](./E7c-content-ir.md), [E16a](./E16a-optimisation-print-feature-plan.md) |
+| Depends on | [E2f](./E2f-page-geometry.md), [E7c](./E7c-content-ir.md), [E16a](./E16a-optimisation-print-feature-plan.md) |
 | Blocks | [E16e](./E16e-preflight-and-conversion.md) |
 | ADRs | Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
 | Branch | `feat/e16d-colour` |
@@ -56,6 +56,10 @@ A colour module: convert content and images between colour spaces with ICC trans
 - [ ] Library parity ([full-editor §5](../../plans/full-editor.md#5-requirements-that-hold-for-every-round) req. 7): every new `Op` is exposed in `lamina` and `@lamina/pdf` in this PR, with rustdoc/TSDoc, a runnable example, tsify-generated TS types, and serde samples frozen in `fixtures/ops/v1/` (unknown ops and fields rejected, ADR 0006 §1, §6)
 - [ ] Converted fixtures match reference conversions within ΔE thresholds
 
+## Post-merge checks
+
+None.
+
 ## Tests
 
 - Colour fixtures
@@ -72,8 +76,9 @@ A colour module: convert content and images between colour spaces with ICC trans
 
 ## Definition of done
 
-- [ ] PR opened from a fresh worktree; this file moved `ready/` → `ongoing/` in the PR's first commit (status field updated, PR link added)
+- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [ ] Work PR opened from a fresh worktree; **PR** field filled in
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the PR (status `done`), plan links updated, plan to-dos ticked
+- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
 - [ ] Squash-merged; dependants' "Depends on" now satisfied

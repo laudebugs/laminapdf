@@ -7,7 +7,7 @@
 | Plan | [full-editor §E5](../../plans/full-editor.md#e5-review-stamps-and-interchange) |
 | Round / milestone | Editor phase 3 (E4–E5) — M6 Annotator |
 | Depends on | [E4f](./E4f-annotation-tools-ui.md), [E5a](./E5a-review-stamps-interchange-feature-plan.md) |
-| Blocks | [E5d](./E5d-xfdf-fdf.md), [E5e](./E5e-flatten-and-summary.md), [E11d](./E11d-sanitiser.md) |
+| Blocks | [E5d](./E5d-xfdf-fdf.md), [E5e](./E5e-flatten-and-summary.md), [E11d](./E11d-sanitiser.md), [E18c](./E18c-layer-document-schema.md), [E18e](./E18e-client-sync-and-presence.md) |
 | ADRs | Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
 | Branch | `feat/e5b-comment-threads-and-review` |
 | PR title | `feat(annots): replies, review states and comment panel` |
@@ -60,6 +60,10 @@ Reply threads (`/IRT`), state-model replies (`/StateModel /Review` Accepted/Reje
 - [ ] Round-trip: open → op → save → reopen in lamina, pdf.js and PDFium preserves the change and everything else (page count, outline, annotations, fields, struct tree facts in `expected.json`); `qpdf --check` is clean
 - [ ] Threads created in lamina show as threads in Acrobat Reader (manual check recorded) and pdf.js (if supported) — XFDF export identical
 
+## Post-merge checks
+
+None.
+
 ## Tests
 
 - Unit tests for cycles
@@ -77,8 +81,9 @@ Reply threads (`/IRT`), state-model replies (`/StateModel /Review` Accepted/Reje
 
 ## Definition of done
 
-- [ ] PR opened from a fresh worktree; this file moved `ready/` → `ongoing/` in the PR's first commit (status field updated, PR link added)
+- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [ ] Work PR opened from a fresh worktree; **PR** field filled in
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the PR (status `done`), plan links updated, plan to-dos ticked
+- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
 - [ ] Squash-merged; dependants' "Depends on" now satisfied

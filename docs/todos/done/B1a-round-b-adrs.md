@@ -7,7 +7,7 @@
 | Plan | [pdf-library §7 B1](../../plans/pdf-library.md#b1-decisions-and-spike), [architecture §7 Round B](../../plans/architecture.md#round-b--core-model-and-the-first-package) |
 | Round / milestone | Round B (library) — M1 |
 | Depends on | [A3](./A3-port-spike-core.md) |
-| Blocks | [B2a](../ongoing/B2a-limits-owned-document.md) |
+| Blocks | [B2a](./B2a-limits-owned-document.md) |
 | ADRs | Writes [0003](../../decisions/0003-reader-tolerance-and-limits.md), [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md), [0018](../../decisions/0018-test-strategy.md) |
 | Branch | `docs/round-b1-adrs` |
 | PR title | `docs(decisions): ADRs 0003, 0005, 0006, 0007, 0018 (Round B1)` |

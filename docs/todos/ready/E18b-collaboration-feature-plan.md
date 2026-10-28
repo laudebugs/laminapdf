@@ -59,14 +59,19 @@ The short feature-plan PR that opens round E18 ([full-editor §E18](../../plans/
 
 ## Acceptance criteria
 
-- [ ] The plan lists every operation in scope by inventory ID with an `Op` name, class and target status
-- [ ] The `SaveConstraint` table covers Free, AppendOnly (P1/P2/P3), RequiresRewrite and Conflict
+- [ ] The plan lists every synced record type (annotations and replies, review state, field values, page order) with the existing `Op` variants it maps to (E4b, E5b, E8c, E2b), its conflict rule per ADR 0012, and which edits are not synced as records but go through a lease or a server job (content edits, redaction, signing)
+- [ ] The plan names the existing inventory rows (D.*, E.*, C.04) that gain a "shared review" note, and adds no new inventory IDs or manifest rows (collaboration has none)
+- [ ] The `SaveConstraint` table covers how leases and server jobs write a new base revision on Free, AppendOnly (signed bases), RequiresRewrite and Conflict documents
 - [ ] Every implementation todo of the round is linked from the plan and each has explicit dependencies
 - [ ] Each open question below is answered or has a named owner and a deadline round
 
+## Post-merge checks
+
+None.
+
 ## Tests
 
-Docs only: the link checker passes; `cargo xtask capabilities` (from `X2`) accepts the new manifest rows.
+Docs only: the link checker passes. If the "shared review" notes are added to `docs/capabilities/manifest.toml` in this PR, `cargo xtask capabilities` (from `X2`) accepts the manifest with no row added and no status changed.
 
 ## Docs to update
 
@@ -81,8 +86,9 @@ Docs only: the link checker passes; `cargo xtask capabilities` (from `X2`) accep
 
 ## Definition of done
 
-- [ ] PR opened from a fresh worktree; this file moved `ready/` → `ongoing/` in the PR's first commit (status field updated, PR link added)
+- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [ ] Work PR opened from a fresh worktree; **PR** field filled in
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the PR (status `done`), plan links updated, plan to-dos ticked
+- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
 - [ ] Squash-merged; dependants' "Depends on" now satisfied

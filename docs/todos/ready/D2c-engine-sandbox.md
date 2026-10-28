@@ -7,7 +7,7 @@
 | Plan | [Desktop app §6 D2](../../plans/desktop-app.md#d2-shell-and-native-core) |
 | Round / milestone | Round D (desktop) — M3 Desktop reader beta |
 | Depends on | [D2b](./D2b-engine-process.md) |
-| Blocks | [D2e](./D2e-desktop-e2e-webdriverio.md) |
+| Blocks | [D2e](./D2e-desktop-e2e-webdriverio.md), [E10i](./E10i-platform-signers.md) |
 | ADRs | Implements and amends ADR 0008 §sandboxing (records what is actually enforced per OS). Follows [Rust guidelines](../../guidelines/rust.md) (`unsafe` only with `// SAFETY:`), [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) |
 | Branch | `feat/d2c-engine-sandbox` |
 | PR title | `feat(desktop): sandbox the engine process per OS` |
@@ -24,7 +24,7 @@ Reduce what a compromised engine process can do to (almost) nothing: no file sys
 - Chromium's sandbox designs (primary sources to cite in ADR 0008): [Mac sandbox](https://chromium.googlesource.com/chromium/src/+/main/sandbox/mac/README.md) (Seatbelt profiles via `sandbox_init`-style APIs), [Windows sandbox](https://chromium.googlesource.com/chromium/src/+/main/docs/design/sandbox.md) (restricted tokens, job objects, alternate desktop, integrity levels), [Linux sandboxing](https://chromium.googlesource.com/chromium/src/+/main/docs/linux/sandboxing.md) (seccomp-bpf + namespaces).
 - Apple: App Sandbox entitlements (`com.apple.security.app-sandbox`, `com.apple.security.inherit`) — a helper with its own `app-sandbox` entitlement runs sandboxed even inside a non-sandboxed app; hardened runtime is required for notarisation anyway (D6c).
 - Windows: `CreateRestrictedToken`, `SetTokenInformation(TokenIntegrityLevel = Low/Untrusted)`, Job Objects (`JOB_OBJECT_LIMIT_PROCESS_MEMORY`, `JOB_OBJECT_LIMIT_ACTIVE_PROCESS = 1`, `JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE`, UI restrictions), `PROCESS_MITIGATION_*` policies via `UpdateProcThreadAttribute` (no child processes, prohibit dynamic code if PDFium allows, image load restrictions), AppContainer (`CreateAppContainerProfile`) as the stronger option.
-- Linux: Landlock (kernel ≥ 5.13; `landlock` crate, MIT/Apache) for fs/net denial, seccomp-bpf (`seccompiler` from Firecracker, Apache-2.0) with an allow-list of syscalls, `PR_SET_NO_NEW_PRIVS`, `setrlimit(RLIMIT_AS/RLIMIT_NPROC)`; user namespaces may be disabled by distro policy (Ubuntu 24.04 AppArmor restricts unprivileged userns) — do not depend on them.
+- Linux: Landlock (kernel ≥ 5.13; `landlock` crate, MIT/Apache) for fs/net denial, seccomp-bpf (`seccompiler` from Firecracker, Apache-2.0) with an allow-list of syscalls, `PR_SET_NO_NEW_PRIVS`, `setrlimit(RLIMIT_AS)`. **Not** `RLIMIT_NPROC`: on Linux it counts every process *and thread* of the real user ID (all of the user's processes, not just the engine), so `0` would make the engine's own `pthread_create` fail with `EAGAIN` and any non-zero value is meaningless across the user's session; process creation is denied with seccomp instead. User namespaces may be disabled by distro policy (Ubuntu 24.04 AppArmor restricts unprivileged userns) — do not depend on them.
 
 ## Scope
 
@@ -34,7 +34,11 @@ Reduce what a compromised engine process can do to (almost) nothing: no file sys
   - **Lock-down order**: load PDFium + fonts the engine needs (PDFium's built-in base-14 fonts; system font access decided here — prefer passing font bytes from main on request over granting font directory reads) → apply sandbox → send `Ready { sandboxed: SandboxLevel }`.
   - **macOS**: engine sidecar signed with an entitlements file `engine.entitlements` containing `com.apple.security.app-sandbox = true` (no file/network entitlements); verify the helper launches from a non-sandboxed parent and that stdio pipes work; fallback: Seatbelt profile via the private `sandbox_init_with_parameters` (Chromium does this) only if App Sandbox breaks pipes — record the choice.
   - **Windows**: spawn with a restricted token at Low integrity, in a Job Object with memory limit (configurable, default e.g. 2 GiB per engine), active-process limit 1, kill-on-close, UI restrictions; child-process creation disabled via `PROCESS_CREATION_CHILD_PROCESS_RESTRICTED`; evaluate AppContainer with no capabilities (record if pipes/PDFium work).
-  - **Linux**: `prctl(PR_SET_NO_NEW_PRIVS)`, Landlock ruleset denying all fs access (best-effort ABI; report level achieved), seccomp-bpf allow-list (read/write on the inherited fds, `mmap`/`munmap`/`mprotect` without `PROT_EXEC` on new mappings if PDFium tolerates it, `futex`, `clock_gettime`, `exit_group`, `sched_yield`, `madvise`, `brk`, `rt_sigreturn`…; default action `SECCOMP_RET_KILL_PROCESS` in release, `SECCOMP_RET_TRAP`/log in a debug feature to discover missing syscalls), `RLIMIT_AS` and `RLIMIT_NPROC=0`.
+  - **Linux**: `prctl(PR_SET_NO_NEW_PRIVS)`, Landlock ruleset denying all fs access (best-effort ABI; report level achieved), seccomp-bpf allow-list (read/write on the inherited fds, `mmap`/`munmap`/`mprotect` without `PROT_EXEC` on new mappings if PDFium tolerates it, `futex`, `clock_gettime`, `exit_group`, `sched_yield`, `madvise`, `brk`, `rt_sigreturn`…; default action `SECCOMP_RET_KILL_PROCESS` in release, `SECCOMP_RET_TRAP`/log in a debug feature to discover missing syscalls), and `RLIMIT_AS`. **No new processes, threads still work**:
+    - `clone` allowed only when its flags argument (arg 0 on x86_64 and aarch64) has `CLONE_THREAD` set (seccomp argument filter with `SECCOMP_CMP_MASKED_EQ`); without it → kill.
+    - `clone3` → `SECCOMP_RET_ERRNO(ENOSYS)`: its flags sit behind a pointer seccomp cannot inspect, and glibc (≥ 2.34) and Rust's std fall back to `clone` on `ENOSYS`, which the rule above filters.
+    - `fork`, `vfork` (x86_64 only; aarch64 has neither), `execve`, `execveat` → kill.
+    - Landlock's deny-all ruleset also handles `LANDLOCK_ACCESS_FS_EXECUTE`, so even a missed exec path finds no executable file.
 - `SandboxLevel` reported per engine to the main process and logged; a setting/env var `LAMINA_ENGINE_SANDBOX=off` only in debug builds.
 - Supervisor treats an engine killed by the sandbox (SIGSYS, job memory limit) like a crash (restart policy from D2b) and logs the reason category.
 - ADR 0008 amendment: a table "what is enforced per OS", known gaps, kernel/OS version requirements.
@@ -53,23 +57,28 @@ Reduce what a compromised engine process can do to (almost) nothing: no file sys
 - [ ] Implement the per-OS modules behind a single `fn apply_engine_sandbox(cfg: &SandboxConfig) -> Result<SandboxLevel, SandboxError>` (engine side) and `fn spawn_sandboxed(cmd: Command, cfg: &SandboxConfig) -> Result<Child, SandboxError>` (main side); keep all `unsafe` FFI in these modules with `// SAFETY:` comments.
 - [ ] Font strategy: implement `FontRequest`/`FontData` protocol messages if PDFium needs system fonts for non-embedded fonts; main reads fonts from system directories; document in ADR 0008.
 - [ ] macOS: `apps/desktop/src-tauri/engine.entitlements`; ad-hoc sign the sidecar in the xtask `desktop-sidecar` step (`codesign -s - --entitlements … --options runtime`) so dev builds exercise the sandbox.
-- [ ] Probe binary/test mode: engine flag `--sandbox-selftest` that, after applying the sandbox, attempts forbidden actions (open `/etc/hosts` or `C:\Windows\win.ini`, TCP connect to 127.0.0.1, spawn a process, write to the user's home) and reports each as blocked/allowed — used by tests below.
+- [ ] Probe binary/test mode: engine flag `--sandbox-selftest` that, after applying the sandbox, attempts forbidden actions (open `/etc/hosts` or `C:\Windows\win.ini`, TCP connect to 127.0.0.1, spawn a process, write to the user's home) and reports each as blocked/allowed, **and** attempts allowed actions that must keep working (spawn 4 `std::thread`s that each render a tile on the worker pool and join) — used by tests below. On Linux the forbidden probes run in a forked-before-sandbox helper or as separate selftest invocations, since a kill action ends the process (one probe per invocation: `--sandbox-selftest=<probe>`).
 - [ ] Measure and record: render time with and without sandbox (should be equal), engine startup time increase.
 - [ ] Amend ADR 0008 with the enforcement table.
 
 ## Acceptance criteria
 
 - [ ] On each OS, `--sandbox-selftest` reports **blocked** for: reading an arbitrary file, writing a file, opening a network socket, spawning a process. Any exception is listed in ADR 0008 with reason and OS version.
+- [ ] On each OS, the selftest's thread probe succeeds after the sandbox is applied (threads are created and join; tiles render on the worker pool); on Linux this holds with `clone3` returning `ENOSYS`.
 - [ ] All D2b integration tests still pass with the sandbox on (rendering, restart).
 - [ ] On Linux without Landlock (older kernel) the engine still starts with seccomp + no-new-privs and reports the reduced `SandboxLevel`; the app shows nothing to the user but logs it.
 - [ ] Windows engine memory limit enforced: a test document that forces excessive allocation (or a test-only "allocate N GiB" command under `e2e`) gets the engine killed and restarted, not the app.
 - [ ] No regression in the 1 GB open time from D2b (≤ 5 % slower).
 
+## Post-merge checks
+
+None.
+
 ## Tests
 
 - `crates/lamina-desktop-engine/tests/sandbox_selftest.rs`: spawn the engine with `--sandbox-selftest` and assert each probe is blocked, per OS (`#[cfg(target_os = …)]`); runs in the three-OS desktop CI job.
 - Supervisor test: engine killed by sandbox violation → restart path taken.
-- Linux-only test that seccomp default action kills on a forbidden syscall (use the selftest's `socket()` probe).
+- Linux-only tests: seccomp default action kills on a forbidden syscall (selftest `socket()` probe → exit by `SIGSYS`); `fork()` and `execve("/bin/true")` probes are killed; a `clone` with `CLONE_THREAD` (via `std::thread::spawn`) succeeds; a raw `clone3` returns `ENOSYS`; `getrlimit(RLIMIT_NPROC)` is unchanged from the parent's value (guards against reintroducing the limit).
 
 ## Docs to update
 
@@ -81,14 +90,16 @@ Reduce what a compromised engine process can do to (almost) nothing: no file sys
 
 - **PDFium needs `PROT_EXEC`/JIT?** It shouldn't (no V8 in our build — confirm the pinned PDFium build has V8/XFA disabled; PDF JavaScript must never run). If it does, the seccomp policy must allow it; record it.
 - **macOS App Sandbox on a helper** may create a container directory and require a matching bundle identifier; test on macOS 13 and the newest release.
+- **libc thread-creation paths**: musl or a future glibc might create threads through a syscall the filter doesn't expect; the thread probe catches it on CI; the debug `SECCOMP_RET_TRAP` feature names the syscall.
 - **Ubuntu AppArmor userns restrictions** — we deliberately avoid namespaces; confirm the approach on Ubuntu 24.04 and Fedora.
 - **Windows Low integrity + pipes**: inherited anonymous pipe handles work across integrity levels; named pipes need an explicit DACL. Use inherited handles only.
 - **Font access** might push us toward granting read access to font directories; prefer the protocol approach.
 
 ## Definition of done
 
-- [ ] PR opened from a fresh worktree; this file moved `ready/` → `ongoing/` in the PR's first commit (status field updated, PR link added)
+- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [ ] Work PR opened from a fresh worktree; **PR** field filled in
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the PR (status `done`), plan links updated, plan to-dos ticked
+- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
 - [ ] Squash-merged; dependants' "Depends on" now satisfied

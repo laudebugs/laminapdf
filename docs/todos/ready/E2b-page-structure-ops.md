@@ -7,7 +7,7 @@
 | Plan | [full-editor §E2](../../plans/full-editor.md#e2-page-organisation) |
 | Round / milestone | Editor phase 2 (E1–E3) — M5 Organiser |
 | Depends on | [E1c](./E1c-metadata-ops.md), [E2a](./E2a-page-organisation-feature-plan.md) |
-| Blocks | [E2c](./E2c-cross-document-pages.md), [E2f](./E2f-page-geometry.md), [E2g](./E2g-page-labels.md), [E3b](./E3b-bookmarks-and-destinations.md) |
+| Blocks | [E2c](./E2c-cross-document-pages.md), [E2f](./E2f-page-geometry.md), [E2g](./E2g-page-labels.md), [E3b](./E3b-bookmarks-and-destinations.md), [E18c](./E18c-layer-document-schema.md), [E18e](./E18e-client-sync-and-presence.md) |
 | ADRs | Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
 | Branch | `feat/e2b-page-structure-ops` |
 | PR title | `feat(ops): page structure ops with reference cleanup` |
@@ -34,7 +34,9 @@ Implement the single-document page ops as view-level mapping of `PageId`s (no re
 - Page-tree editing that materialises inherited attributes (`/Resources`, `/MediaBox`, `/CropBox`, `/Rotate`) before moving a page out of its parent
 - Rebalancing: keep the tree shape for small edits; flatten-and-rebuild only when depth or fan-out passes a threshold
 - Reference cleanup on delete according to the E2a decision, with an `OpReport` listing affected outline items/links/destinations
-- Duplicate copies the page dict and annotations (new `/NM`, new IDs), sharing content streams and resources
+- Duplicate copies the page dict and annotations (new `/NM`, new IDs), sharing content streams and resources, and never leaves shared structure or field links behind:
+  - **Tagged files:** the copy gets a fresh `/StructParents` key (from `/ParentTreeNextKey`, which is advanced), and every copied annotation with `/StructParent` gets a fresh key too. Struct elements whose marked content lies only on the source page are cloned as siblings after the originals with `/Pg` set to the duplicate, and the new ParentTree entries point at the clones (the shared content stream keeps the same MCIDs, so the mapping is one-to-one). MCIDs owned by elements that span pages are mapped to null, and the `OpReport` carries `DuplicateTagsIncomplete`; if the file claims PDF/UA, the planner adds a `ConformanceWarning`. Never reuse the source page's key
+  - **Widgets:** a duplicated widget becomes a new field, never a second widget silently attached to the original. A widget merged with its field (no `/Parent`) is copied with a unique `/T` (`<name>#<n>`, pattern fixed in E2a); a kid widget is copied with a new terminal field dictionary (field-level keys `/FT`, `/V`, `/DV`, `/Ff`, `/DA`, `/Opt` copied) named `<partial>#<n>` and added to the original parent's `/Kids` (or to `/AcroForm /Fields` when the field is top-level). Signature-field widgets (`/FT /Sig`) are not duplicated; the report lists them
 
 **Out of scope** (and which todo covers it)
 
@@ -47,7 +49,7 @@ Implement the single-document page ops as view-level mapping of `PageId`s (no re
 - **Operations shipped** ([06 §3](../../research/pdf/06-feature-inventory.md#3-full-operation-inventory-with-mechanisms) IDs): `C.01` insert blank pages; `C.03` delete and duplicate pages; `C.04` reorder pages; `C.08` rotate pages 90/180/270; `C.13` reverse page order
 - **Crates and packages:** `lamina-model` (page tree mutation helpers), `lamina-ops`, bindings
 - **`Op` variants:** `InsertBlankPages`, `DeletePages`, `DuplicatePages`, `MovePages`, `RotatePages`, `ReversePages` (class `PageStructure`)
-- **`SaveConstraint`:** `Free` → incremental. Signed: page insertion/deletion/reordering is class `PageStructure`, a violation under DocMDP P1/P2/P3 and of approval signatures' coverage; blocked by default and allowed only by the explicit invalidation override (warning names signatures)
+- **`SaveConstraint`:** `Free` → incremental. Signed: page insertion/deletion/reordering is class `PageStructure`. Under a certification signature it is a DocMDP violation at every level (ADR 0007 §2: P1 allows no changes; P2 allows only form filling, page templates and signing; P3 adds annotations) → blocked by default and allowed only by the explicit invalidation override (the warning names the signatures, ADR 0007 §3). With approval signatures only (no certification) it is `AppendOnly`: saved as an incremental update that keeps their `/ByteRange` intact (the signature panel, E10h, reports the later page change); it is a violation only when it changes a field locked by FieldMDP/`/Lock` (e.g. deleting or duplicating a page that carries a locked field's widget)
 - **Web vs desktop:** identical (core); UI in E2h
 - **Server features:** none (this PR adds no server feature; all processing stays on the device)
 - **Capability-matrix rows to flip:** `C.01` → `round-trip` (core, pdf); `C.03` → `round-trip` (core, pdf); `C.04` → `round-trip` (core, pdf); `C.08` → `round-trip` (core, pdf); `C.13` → `round-trip` (core, pdf)
@@ -69,13 +71,19 @@ Implement the single-document page ops as view-level mapping of `PageId`s (no re
 - [ ] Round-trip: open → op → save → reopen in lamina, pdf.js and PDFium preserves the change and everything else (page count, outline, annotations, fields, struct tree facts in `expected.json`); `qpdf --check` is clean
 - [ ] Page count, order and rotation after each op match pypdf and pdf.js on 20 corpus files (incl. deep/unbalanced page trees and inherited attributes)
 - [ ] Deleting a page that an outline item targets follows the E2a policy and the report lists it
+- [ ] Duplicating a page of a tagged fixture gives the copy its own `/StructParents` key; the ParentTree maps the copy's MCIDs to cloned struct elements whose `/Pg` is the copy (or to null with `DuplicateTagsIncomplete` for cross-page elements); no key is shared between the two pages; veraPDF's PDF/UA result on the fixture is no worse than before
+- [ ] Duplicating a page of a form fixture leaves every widget in its parent's `/Kids` (or in `/Fields`), gives each duplicated field a distinct fully qualified name and its own value (filling one in pdf.js and PDFium leaves the other unchanged), and skips signature widgets with a report entry
 - [ ] Determinism: saving the same state twice gives identical bytes on native and wasm32 (ADR 0007 §6)
+
+## Post-merge checks
+
+None.
 
 ## Tests
 
 - Unit/property tests (random sequences of page ops then undo all → empty overlay)
 - Corpus differential vs pypdf (page order facts) and pdf.js (render hashes per page)
-- Fixtures: inherited `/Resources` and `/MediaBox`, 3-level page tree, page referenced by outline + named dest + link
+- Fixtures: inherited `/Resources` and `/MediaBox`, 3-level page tree, page referenced by outline + named dest + link, a tagged page (struct elements on one page and one spanning two pages, a tagged link annotation), and an AcroForm page with a merged field/widget, a kid widget and a signature field
 
 ## Docs to update
 
@@ -89,8 +97,9 @@ Implement the single-document page ops as view-level mapping of `PageId`s (no re
 
 ## Definition of done
 
-- [ ] PR opened from a fresh worktree; this file moved `ready/` → `ongoing/` in the PR's first commit (status field updated, PR link added)
+- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [ ] Work PR opened from a fresh worktree; **PR** field filled in
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the PR (status `done`), plan links updated, plan to-dos ticked
+- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
 - [ ] Squash-merged; dependants' "Depends on" now satisfied

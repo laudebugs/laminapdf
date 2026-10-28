@@ -36,7 +36,7 @@ Close Round D2's acceptance bar: the reader's end-to-end scenarios run against t
   2. Open fixture (test-only command `e2e_open_path` behind the `e2e` feature, because native dialogs can't be automated) → first page painted (pixel probe: canvas not blank).
   3. Scroll to the last page of the 1,000-page fixture; page indicator correct.
   4. Zoom in/out with anchor preserved (page indicator and scroll offset stable).
-  5. Encrypted fixture: password prompt, wrong then right password.
+  5. Encrypted fixture: password prompt, wrong then right password; then `debug_kill_engine` → the page re-renders with **no** second password prompt.
   6. Malformed fixture: repair notice.
   7. Kill engine via `debug_kill_engine` → toast → page re-renders.
   8. 1 GB generated fixture opens; first page painted within 1.5 s (measured in-app via `performance.now()` markers exposed to the test; assert with CI headroom, report raw).
@@ -58,7 +58,7 @@ Close Round D2's acceptance bar: the reader's end-to-end scenarios run against t
 - [ ] Add devDeps `@wdio/cli`, `@wdio/local-runner`, `@wdio/mocha-framework` (or Jasmine), `@wdio/spec-reporter`, `@wdio/tauri-service` (pinned via `catalog:`; licence check: MIT).
 - [ ] Add `tauri-plugin-wdio-webdriver` as an optional dependency of `lamina-desktop` under feature `e2e` (licence check), registered only with `#[cfg(feature = "e2e")]`.
 - [ ] Test-only commands under `e2e`: `e2e_open_path(path)` (path must be under the repo's `fixtures/` or `target/fixtures/` — checked), `e2e_metrics()` (first-paint timestamps), reuse `debug_kill_engine`.
-- [ ] `tauri.e2e.conf.json` adding `app.security.capabilities: ["main", "e2e"]`.
+- [ ] `tauri.e2e.conf.json` setting `app.security.capabilities` to the **full** base list plus `"e2e"` (today `["main", "e2e"]`; later `["main", "settings", "e2e"]` etc.). Tauri merges `--config` files as a JSON merge patch, which replaces arrays wholesale, so listing only `"e2e"` would silently drop `main`. D2a's capability guard test checks the e2e list equals the base list plus `"e2e"`, so a later todo that adds a capability must update both files. `capabilities/e2e.json` is scoped to `"windows": ["main", "doc-*"]` and grants only the `allow-e2e-*` / `allow-debug-kill-engine` permissions.
 - [ ] Page objects and the eight scenarios; deterministic waits (no sleeps): wait for `data-state="painted"` attributes the viewer sets in test builds.
 - [ ] CI job and doctor pins; cache `tauri-driver` install.
 - [ ] Run the macOS job 50 times (workflow_dispatch loop) and record flakiness in the PR; apply the fallback rule if needed.
@@ -71,6 +71,10 @@ Close Round D2's acceptance bar: the reader's end-to-end scenarios run against t
 - [ ] The web build's Playwright suite still runs on all three OSes (no change, verified in the PR).
 - [ ] The release build contains no e2e plugin/commands (CI guard green).
 - [ ] `pnpm --filter @lamina/desktop e2e` runs locally on Linux and Windows with documented prerequisites.
+
+## Post-merge checks
+
+None.
 
 ## Tests
 
@@ -92,8 +96,9 @@ This PR is tests: WebdriverIO scenarios under `apps/desktop/e2e/specs/`, fixture
 
 ## Definition of done
 
-- [ ] PR opened from a fresh worktree; this file moved `ready/` → `ongoing/` in the PR's first commit (status field updated, PR link added)
+- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [ ] Work PR opened from a fresh worktree; **PR** field filled in
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the PR (status `done`), plan links updated, plan to-dos ticked
+- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
 - [ ] Squash-merged; dependants' "Depends on" now satisfied

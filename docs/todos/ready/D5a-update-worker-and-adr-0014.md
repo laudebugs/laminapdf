@@ -37,21 +37,22 @@ Decide and build the server side of desktop updates. ADR 0014 records channels, 
   1. Channels `stable`, `beta`, `nightly` (and `staging` for tests, not user-selectable); default channel for new installs (plan open question 4 — recommend `stable`, with beta opt-in; owner decides); managed pinning (macOS configuration profile key, Windows registry `HKLM\Software\Policies\Lamina\UpdateChannel` / `DisableUpdates`, Linux `/etc/lamina/policy.json`) — implemented in D5b.
   2. Rollout algorithm: `bucket = u32_be(SHA-256(install_id_lowercase ‖ ":" ‖ release_version)[0..4]) mod 10_000`; eligible if `bucket < rollout_percent × 100`. Hashing with the version reshuffles cohorts per release. No header or malformed header → only releases at 100 %.
   3. Install ID: UUID v4, created on first run, stored only in the app's config, resettable, sent only as `Lamina-Install-Id` to the update endpoint, never to the crash endpoint, never logged or stored by the Worker (and how that's verified).
-  4. Kill switch semantics: per-channel `paused: true` → 204 for everyone; per-release `rollout_percent: 0`; emergency rollback via a "bridge" release with a higher version (preferred) or Tauri's `version_comparator` (requires app support; documented).
-  5. R2 layout (below), manifest schema (below), cache rules (≤ 60 s), downloads domain, CORS not needed (the updater is native HTTP).
+  4. Kill switch semantics (effective within 60 s worst case: one cache layer with a 30 s TTL, see below): per-channel `paused: true` → 204 for everyone; per-release `rollout_percent: 0`; emergency rollback via a "bridge" release with a higher version (preferred) or Tauri's `version_comparator` (requires app support; documented).
+  5. R2 layout (below), manifest schema (below), cache rules (a single Cache API layer, TTL 30 s, no isolate memo), downloads domain, CORS not needed (the updater is native HTTP).
   6. Signing identities: the owner as publisher — Apple Developer ID (individual), Windows Artifact Signing if eligible (US/Canada individuals) else OV certificate in a cloud HSM, Linux GPG key for AppImage/deb (/rpm) — details and setup in D6a's runbook.
-  7. **Key custody and rotation**: Tauri updater key (minisign/ed25519) generated offline with `pnpm tauri signer generate -w <path>` with a strong password; private key in a password manager/secret manager **plus** an offline encrypted backup (two physical locations); CI receives it only as a GitHub **environment** secret (`release` environment with required reviewer = owner) as `TAURI_SIGNING_PRIVATE_KEY` and `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`; rotation runbook: ship release N (signed with the old key) whose config embeds the new public key; all later releases signed with the new key; the Worker serves N as a bridge to any `current_version < N` indefinitely; compromise procedure (pause channels, publish bridge, revoke, notify).
+  7. **Key custody and rotation**: Tauri updater key (minisign/ed25519) generated offline with `pnpm tauri signer generate -w <path>` with a strong password; private key in a password manager/secret manager **plus** an offline encrypted backup (two physical locations); CI receives it only as a GitHub **environment** secret (`release` environment with required reviewer = owner) as `TAURI_SIGNING_PRIVATE_KEY` and `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`. **Nightly builds use a separate nightly-only updater key** (its own keypair, stored only in the `nightly` environment, which has no required reviewer so scheduled builds aren't blocked — D6a/D6b): nightly builds embed the nightly public key and only ever install nightly-signed bundles, so a leaked nightly key can't push an update to beta/stable installs; nightly is therefore a separate install line (switching between nightly and beta/stable means reinstalling — D5b). Rotation of the nightly key follows the same runbook; rotation runbook: ship release N (signed with the old key) whose config embeds the new public key; all later releases signed with the new key; the Worker serves N as a bridge to any `current_version < N` indefinitely; compromise procedure (pause channels, publish bridge, revoke, notify).
   8. Attestations (GitHub artifact attestations per ADR 0017) and SBOMs per release (ADR 0019).
   9. Privacy: what the update endpoint sees (IP, user agent, version, target, arch, channel, install-ID header) and the retention/logging rules (no Workers Logs of request headers; head sampling; no Logpush of headers).
-- `apps/updates/` (pnpm package `@lamina/updates`, private): Worker in TypeScript, `wrangler.jsonc` (pinned Wrangler as in C4), compatibility date pinned, routes `updates.<domain>/*`, R2 binding `RELEASES` (bucket `lamina-releases`), optional KV not used (R2 + Cache API suffice), `observability` configured so request headers are **not** logged.
+- `apps/updates/` (pnpm package `@lamina/updates`, private): Worker in TypeScript, `wrangler.jsonc` (pinned Wrangler as in C4), compatibility date pinned, routes `updates.<domain>/*`, R2 bindings `RELEASES` (bucket `lamina-releases`: stable, beta, staging) and `NIGHTLY` (bucket `lamina-nightly`: the nightly channel's manifest and artefacts, written by the reviewer-free `nightly` CI environment with a token scoped to that bucket only, so it can never overwrite release files — D6a/D6b), optional KV not used (R2 + Cache API suffice), `observability` configured so request headers are **not** logged.
   - Routes: `GET /{channel}/{target}/{arch}/{current_version}` → 204/200; `GET /healthz`; everything else 404. `HEAD` supported. Strict parameter validation (`channel` allow-list, `target`/`arch` allow-lists, `current_version` semver) → 400 for malformed.
-  - Manifest read from R2 `channels/{channel}.json`, cached in the Cache API (and an isolate-level memo) for ≤ 60 s; `paused` honoured.
+  - Manifest read from R2 `channels/{channel}.json` and cached in **one** layer only: the Cache API, with a **30 s** TTL (`Cache-Control: max-age=30` on the cached copy; a synthetic cache key per channel). No isolate-level memo — two stacked 60 s layers could serve a stale manifest for ~120 s and break the 60 s kill-switch target. Worst-case staleness = 30 s TTL + R2 read (strongly consistent), well inside 60 s. Note the Cache API is a no-op on `workers.dev` — staging tests of the TTL use the custom-domain staging route or fake timers. `paused` honoured.
   - Response: if the eligible release's version > `current_version` and the platform key `{target}-{arch}` exists → 200 `{ version, pub_date, url, signature, notes }`; else 204. `Cache-Control: no-store` on responses (they depend on the header).
   - Previous-release fallback: if the client is not in the rollout cohort of `release` but `previous` (100 %) is newer than `current_version`, serve `previous`.
-  - Bridge releases: `bridges: [{ below: "0.5.0", serve: "0.5.0" }]` take priority (key rotation, breaking migrations).
+  - Bridge releases: each entry is `{ "below": "0.5.0", "release": { …same shape as `release`: version, pub_date, notes, platforms with `url` + `signature` per `{target}-{arch}`… } }` (`rollout_percent` not allowed — bridges always apply to everyone below the bound). A client with `current_version < below` gets the bridge's platform entry; bridges take priority over `release`/`previous` (key rotation, breaking migrations). Validation rejects a bridge with no platforms, a platform without `url` or `signature`, or `release.version < below`.
 - R2 layout (documented in ADR 0014 and `apps/updates/README.md`):
   - `releases/{version}/{target}-{arch}/{file}` and `{file}.sig` (e.g. `Lamina_0.2.0_aarch64.app.tar.gz`, `Lamina_0.2.0_x64-setup.exe`, `Lamina_0.2.0_x64_en-US.msi`, `Lamina_0.2.0_amd64.AppImage`), plus installers for download (`.dmg`, `.deb`, `.rpm`) and `SHA256SUMS`;
   - `channels/{channel}.json` manifests;
+  - the same layout in `lamina-nightly` for the nightly channel, served through its own custom domain (e.g. `nightly-downloads.<domain>` — one label deep, so Universal SSL covers it);
   - served publicly through the R2 custom domain `downloads.<domain>` (bucket public access only via the custom domain; `r2.dev` disabled).
 - Manifest schema `apps/updates/src/manifest.ts` (validated with a small hand-written validator or `valibot`/`zod` — licence check) plus a JSON Schema file for CI tooling:
   ```json
@@ -69,7 +70,19 @@ Decide and build the server side of desktop updates. ADR 0014 records channels, 
       }
     },
     "previous": { "version": "0.1.3", "...": "same shape, rollout_percent must be 100" },
-    "bridges": []
+    "bridges": [
+      {
+        "below": "0.5.0",
+        "release": {
+          "version": "0.5.0",
+          "pub_date": "2027-06-01T10:00:00Z",
+          "notes": "https://<domain>/desktop/releases/0.5.0",
+          "platforms": {
+            "darwin-aarch64": { "url": "https://downloads.<domain>/releases/0.5.0/darwin-aarch64/Lamina.app.tar.gz", "signature": "<.sig contents>" }
+          }
+        }
+      }
+    ]
   }
   ```
 - `apps/updates/scripts/` (or `cargo xtask updates …`): `manifest set-rollout <channel> <percent>`, `manifest pause|resume <channel>`, `manifest promote <version> --to <channel>` writing to R2 via `wrangler r2 object put` — used by humans and by D6b's workflow.
@@ -87,21 +100,26 @@ Decide and build the server side of desktop updates. ADR 0014 records channels, 
 - [ ] Fresh worktree; move this file to `ongoing/`. Load `tauri-v2`, `workers-best-practices` and `wrangler` skills.
 - [ ] Write ADR 0014 (template in `docs/decisions/README.md`); index it; update the architecture §3 table row.
 - [ ] Scaffold `apps/updates` (package.json, `tsconfig.json` extending the base, Biome, Vitest with `@cloudflare/vitest-pool-workers` — licence check), `wrangler.jsonc` with `r2_buckets`, `routes`, `compatibility_date`, `observability: { enabled: true, head_sampling_rate: … }` and no header logging.
-- [ ] `src/index.ts` (fetch handler), `src/route.ts` (parse/validate), `src/manifest.ts` (schema + validation), `src/rollout.ts` (`bucketFor(installId, version): Promise<number>` with `crypto.subtle.digest`), `src/semver.ts` (compare incl. prerelease like `0.0.1-test`; or a vetted small dependency), `src/cache.ts` (≤ 60 s).
+- [ ] `src/index.ts` (fetch handler), `src/route.ts` (parse/validate), `src/manifest.ts` (schema + validation), `src/rollout.ts` (`bucketFor(installId, version): Promise<number>` with `crypto.subtle.digest`), `src/semver.ts` (compare incl. prerelease like `0.1.1-nightly.20261028.42`; or a vetted small dependency), `src/cache.ts` (single Cache API layer, 30 s TTL).
 - [ ] Header handling: read `Lamina-Install-Id`, validate UUID v4 (case-insensitive), lower-case before hashing; never pass it to `console.*` or include it in errors; strip it before any subrequest.
 - [ ] Manifest tooling commands; JSON Schema; example manifests under `apps/updates/test/fixtures/`.
-- [ ] **Owner action — updater key ceremony** (per ADR 0014 §7, before D5b): on an offline or freshly booted trusted machine run `pnpm tauri signer generate -w lamina-updater.key` with a strong password; store the private key + password in the secret manager and an encrypted offline backup in two places; add them as `release`-environment secrets `TAURI_SIGNING_PRIVATE_KEY` / `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`; give the **public** key to the D5b author. Record in the PR only that it was done and the public key's fingerprint — never the key.
-- [ ] Owner actions listed in the PR: create the R2 bucket `lamina-releases`, connect `downloads.<domain>` as its custom domain, create the `updates.<domain>` route, create a scoped API token and store it as a GitHub secret (environment `release`). Until the domain exists, use a staging zone/`workers.dev` for tests (ADR 0014 notes it).
+- [ ] **Owner action — updater key ceremony** (per ADR 0014 §7, before D5b): on an offline or freshly booted trusted machine run `pnpm tauri signer generate -w lamina-updater.key` with a strong password; store the private key + password in the secret manager and an encrypted offline backup in two places; add them as `release`-environment secrets `TAURI_SIGNING_PRIVATE_KEY` / `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`; repeat for the **nightly** key (`lamina-updater-nightly.key`, stored as `nightly`-environment secrets with the same names; one backup is enough — losing it only strands nightly installs, which can reinstall); give both **public** keys to the D5b author. Record in the PR only that it was done and the public key's fingerprint — never the key.
+- [ ] Owner actions listed in the PR: create the R2 buckets `lamina-releases` and `lamina-nightly`, connect `downloads.<domain>` and `nightly-downloads.<domain>` as their custom domains, create the `updates.<domain>` route, create two scoped API tokens (one per bucket) and store them as GitHub secrets in the `release` and `nightly` environments respectively (D6a). Until the domain exists, use a staging zone/`workers.dev` for tests (ADR 0014 notes it).
 - [ ] Deploy workflow + staging environment (`staging` channel) for D5b's e2e test.
 
 ## Acceptance criteria
 
 - [ ] ADR 0014 is **Accepted** and covers items 1–9 above, including the key rotation runbook and compromise procedure.
-- [ ] Worker unit tests cover: 204 when up to date; 200 with the exact Tauri dynamic JSON when newer; 204 when the platform key is missing; rollout bucketing with the header **present** (in cohort / not in cohort, deterministic for a fixed ID+version), **absent** (only 100 % releases) and **malformed** (treated as absent); `previous` fallback; bridges; `paused` kill switch → 204; manifest cache expiry ≤ 60 s (fake timers); 400 on malformed path segments; unknown channel → 404.
+- [ ] Worker unit tests cover: 204 when up to date; 200 with the exact Tauri dynamic JSON when newer; 204 when the platform key is missing; rollout bucketing with the header **present** (in cohort / not in cohort, deterministic for a fixed ID+version), **absent** (only 100 % releases) and **malformed** (treated as absent); `previous` fallback; bridges (served below the bound with the bridge's own `url` + `signature`; not served at or above it; invalid bridge entries rejected by the validator); `paused` kill switch → 204; manifest cache expiry: a `paused` change in R2 is visible after ≤ 30 s and there is no second cache layer (fake timers: request at t=0, flip `paused` at t=1 s, assert 204 by t=31 s); 400 on malformed path segments; unknown channel → 404.
 - [ ] A test asserts the install ID never reaches logs: spies on every `console` method and on the observability/tail output across all test requests and fails if the ID (or its hash) appears.
 - [ ] Rollout distribution test: 100,000 random UUIDs at 10 % → 10 % ± 0.5 %.
-- [ ] Deployed to staging; `curl -H 'Lamina-Install-Id: <uuid>' https://<staging>/staging/darwin/aarch64/0.0.1-test` returns the expected JSON for a seeded manifest (recorded in the PR).
+- [ ] Deployed to staging; `curl -H 'Lamina-Install-Id: <uuid>' https://<staging>/staging/darwin/aarch64/0.0.1` returns the expected JSON for a seeded manifest (recorded in the PR).
 - [ ] `cargo xtask check ts` covers `apps/updates` (typecheck, Biome, Vitest).
+
+## Post-merge checks
+
+- [ ] The production deploy from `main` succeeds and `GET https://updates.<domain>/healthz` returns 200 (or the staging route until the domain exists — record which).
+- [ ] A request for an unseeded channel/version on production returns 204 and no request header appears in Workers Logs (spot check recorded).
 
 ## Tests
 
@@ -119,14 +137,15 @@ Decide and build the server side of desktop updates. ADR 0014 records channels, 
 
 - **Domain not chosen yet** (web plan §8 Q1): use placeholders `updates.<domain>`/`downloads.<domain>` in code via `vars`; the updater endpoint URL is compiled into the app config (D5b), so the domain must be fixed before the first public release (D7c) — changing it later needs a bridge release.
 - **Cloudflare logging of headers**: Workers Logs/Tail/Logpush may capture request headers by default; verify which products record headers and disable or redact; record the verification in ADR 0014.
-- **Cache vs kill switch**: R2 reads are strongly consistent but the Cache API is per data centre; a 60 s TTL bounds staleness — test the bound.
+- **Cache vs kill switch**: R2 reads are strongly consistent but the Cache API is per data centre; the single 30 s TTL bounds staleness at 30 s per data centre — test the bound. Do not add an in-isolate memo later without subtracting its TTL from the cache TTL (sum must stay ≤ 60 s).
 - **R2 write rate** (1 write/s per key) is irrelevant for manifests but the tooling must not loop-write.
 - **Default channel during 0.x** (open question 4) — the owner decides; recorded in ADR 0014.
 
 ## Definition of done
 
-- [ ] PR opened from a fresh worktree; this file moved `ready/` → `ongoing/` in the PR's first commit (status field updated, PR link added)
+- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [ ] Work PR opened from a fresh worktree; **PR** field filled in
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the PR (status `done`), plan links updated, plan to-dos ticked
+- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
 - [ ] Squash-merged; dependants' "Depends on" now satisfied

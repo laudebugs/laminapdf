@@ -6,9 +6,9 @@
 | Status | `ready` |
 | Plan | [full-editor §E12](../../plans/full-editor.md#e12-redaction) |
 | Round / milestone | Editor phase 6 (E11–E17) — M9 Advanced |
-| Depends on | [C5b](./C5b-find-in-document.md), [E12b](./E12b-mark-and-review.md) |
+| Depends on | [C5b](./C5b-find-in-document.md), [E12b](./E12b-mark-and-review.md), [E12d](./E12d-scrub-and-rewrite.md) |
 | Blocks | [E12f](./E12f-leak-tests.md) |
-| Dependency notes | [E12b](E12b-mark-and-review.md), `C5` ([web-app §C5](../../plans/web-app.md#c5-text-selection-and-search): text layer and search) |
+| Dependency notes | [E12b](E12b-mark-and-review.md), [E12d](E12d-scrub-and-rewrite.md) (`ApplyRedactions` complete, for the search → mark → apply → verify e2e), `C5` ([web-app §C5](../../plans/web-app.md#c5-text-selection-and-search): text layer and search) |
 | ADRs | Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
 | Branch | `feat/e12e-sensitive-search` |
 | PR title | `feat(redact): pattern search for sensitive content` |
@@ -56,6 +56,10 @@ Find redaction candidates by text, regex and built-in patterns (emails, phone nu
 - [ ] Pattern tests with positive/negative samples
 - [ ] e2e: search, mark, apply, verify absent
 
+## Post-merge checks
+
+None.
+
 ## Tests
 
 - Unit, e2e
@@ -72,8 +76,9 @@ Find redaction candidates by text, regex and built-in patterns (emails, phone nu
 
 ## Definition of done
 
-- [ ] PR opened from a fresh worktree; this file moved `ready/` → `ongoing/` in the PR's first commit (status field updated, PR link added)
+- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [ ] Work PR opened from a fresh worktree; **PR** field filled in
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the PR (status `done`), plan links updated, plan to-dos ticked
+- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
 - [ ] Squash-merged; dependants' "Depends on" now satisfied

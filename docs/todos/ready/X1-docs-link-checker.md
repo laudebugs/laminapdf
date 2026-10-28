@@ -7,7 +7,7 @@
 | Plan | [architecture §7 Cross-cutting](../../plans/architecture.md#cross-cutting) |
 | Round / milestone | Cross-cutting (any time; recommended first) |
 | Depends on | None |
-| Blocks | None |
+| Blocks | [C2a](./C2a-render-adrs.md) |
 | ADRs | Follows [0015](../../decisions/0015-monorepo-layout-and-tooling.md) (xtask is the single entry point; CI runs what xtask runs) |
 | Branch | `build/x1-docs-link-checker` |
 | PR title | `build(xtask): check relative links and anchors in every Markdown file` |
@@ -54,6 +54,10 @@ Catch broken documentation links before merge. The todo board makes link rot lik
 - [ ] Runs in the fast lane in under 5 seconds on the repository
 - [ ] `cargo xtask todos --check` passes on main and fails on: a todo in the wrong folder for its Status, an unknown dependency ID, a dependency cycle, a stale Blocks field, a stale board.
 
+## Post-merge checks
+
+None.
+
 ## Tests
 
 Unit tests for the slugger and link extraction; an integration test building a temp directory of Markdown files.
@@ -69,10 +73,11 @@ Unit tests for the slugger and link extraction; an integration test building a t
 
 ## Definition of done
 
-- [ ] PR opened from a fresh worktree; this file moved `ready/` → `ongoing/` in the PR's first commit (status field updated, PR link added)
+- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [ ] Work PR opened from a fresh worktree; **PR** field filled in
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the PR (status `done`), plan links updated, plan to-dos ticked
+- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
 - [ ] Squash-merged; dependants' "Depends on" now satisfied
 
 ## Appendix: reference board generator

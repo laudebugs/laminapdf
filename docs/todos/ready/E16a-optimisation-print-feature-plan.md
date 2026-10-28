@@ -71,6 +71,10 @@ The short feature-plan PR that opens round E16 ([full-editor §E16](../../plans/
 - [ ] `docs/capabilities/manifest.toml` has a row per op with `target round = "E16"`; `cargo xtask capabilities` regenerates without error
 - [ ] Each open question below is answered or has a named owner and a deadline round
 
+## Post-merge checks
+
+None.
+
 ## Tests
 
 Docs only: the link checker passes; `cargo xtask capabilities` (from `X2`) accepts the new manifest rows.
@@ -89,8 +93,9 @@ Docs only: the link checker passes; `cargo xtask capabilities` (from `X2`) accep
 
 ## Definition of done
 
-- [ ] PR opened from a fresh worktree; this file moved `ready/` → `ongoing/` in the PR's first commit (status field updated, PR link added)
+- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [ ] Work PR opened from a fresh worktree; **PR** field filled in
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the PR (status `done`), plan links updated, plan to-dos ticked
+- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
 - [ ] Squash-merged; dependants' "Depends on" now satisfied

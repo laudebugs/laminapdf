@@ -80,15 +80,15 @@ The research couldn't answer these. Each is a small, time-boxed spike under `spi
 | `desktop-print` | How to print faithfully from Tauri on each OS (native print of rendered pages vs webview print), given the `hasNativePrint` capability | Round D |
 | `auth` | Better Auth / Auth.js on D1 vs hosted vendors, for the hosted service's user login and accounts (in scope since 2026-10-28, §8 Q2); run before the first round that needs accounts | ADR 0011 |
 
-## 5. Rounds (one pull request each)
+## 5. Rounds
 
-Each round is one focused pull request, in its own worktree, reviewed before merge.
+Each round is split into todos, one pull request each, every one in its own worktree and reviewed before merge (see [Todos](#todos) below).
 
 - **Round A — Foundations** (done: [A1](../todos/done/A1-foundation-adrs.md), [A2](../todos/done/A2-monorepo-skeleton.md), [A3](../todos/done/A3-port-spike-core.md)). ADRs 0001, 0002, 0015, 0019. Monorepo skeleton (`crates/`, `packages/`, `apps/`, `fixtures/`, `tools/xtask`, `deny.toml`, `rust-toolchain.toml`, pnpm workspace). CI fast lane. Port the spike's core into `crates/lamina-syntax` and `lamina-cos`, keeping its tests.
 - **Round B — Core model and the first package** (todos B1a–B9c, listed in the [library plan §7](pdf-library.md#7-rounds)). ADRs 0003, 0005–0007, 0016–0018. `lamina-model`, `lamina-ops`, `lamina-save`, `lamina-build`; the `lamina` façade crate; `lamina-wasm` + `@lamina/pdf` with generation; the `krilla-fit` spike. CI full lane with golden tests ([X4](../todos/ready/X4-full-lane-gate.md)). The first `0.1.0-alpha` is versioned and tagged but **not published**: crates and npm packages stay local until the owner decides to publish (see [Publishing (later)](#publishing-later)).
-- **Round C — Web reader.** ADRs 0004, 0009–0011. `pdfium-wasm` and `hayro-parity` spikes; `@lamina/viewer`, `@lamina/ui`, `apps/web` on Workers static assets; Playwright tests; preview deploys per PR.
-- **Round D — Desktop reader.** `desktop-ipc` spike; ADRs 0008, 0014; `apps/desktop` (Tauri 2); `apps/updates` Worker + R2; signing and notarisation in CI.
-- **Later rounds.** Editing features by phase ([06 §9](../research/pdf/06-feature-inventory.md)), collaboration (ADR 0012), heavy jobs (ADR 0013). Each feature group gets its own plan and pull requests.
+- **Round C — Web reader** (todos C1a–C7c, listed in the [web-app plan §6](web-app.md#6-rounds)). ADRs 0004, 0009–0011. `pdfium-wasm` and `hayro-parity` spikes; `@lamina/viewer`, `@lamina/ui`, `apps/web` on Workers static assets; Playwright tests; preview deploys per PR.
+- **Round D — Desktop reader** (todos D1a–D7c, listed in the [desktop-app plan §6](desktop-app.md#6-rounds)). `desktop-ipc` spike; ADRs 0008, 0014; `apps/desktop` (Tauri 2); `apps/updates` Worker + R2; signing and notarisation in CI.
+- **Later rounds** (todos E1a–E18h and H1–H4, listed in the [full-editor plan §7](full-editor.md#7-phases-and-rounds)). Editing features by phase ([06 §9](../research/pdf/06-feature-inventory.md)), collaboration (ADR 0012), heavy jobs (ADR 0013). Each feature group gets its own plan and pull requests.
 
 Product-level detail (features, milestones, acceptance criteria) lives in the product plans ([library](pdf-library.md), [web app](web-app.md), [desktop app](desktop-app.md), [full-featured editor](full-editor.md)).
 
@@ -129,7 +129,7 @@ Todos: [A1](../todos/done/A1-foundation-adrs.md) (ADRs), [A2](../todos/done/A2-m
 - [x] Write ADRs 0003, 0005, 0006, 0007, 0018 ([B1a](../todos/done/B1a-round-b-adrs.md); 0005 §6, the generation strategy, settled by `krilla-fit`)
 - [ ] Write ADRs 0016 ([B6a](../todos/ready/B6a-lamina-wasm-and-adr-0016.md)), 0017 ([B7b](../todos/ready/B7b-versioning-and-0-1-0-alpha.md))
 - [x] `krilla-fit` spike ([B1b](../todos/done/B1b-krilla-fit-spike.md), [result](../../spikes/krilla-fit/README.md)), then decide the generation strategy (Option B, recorded in [ADR 0005 §6](../decisions/0005-document-model.md))
-- [ ] `lamina-model`: typed pages, annotations, fields, outline; stable IDs ([B2a](../todos/ongoing/B2a-limits-owned-document.md) owned `Document` and `Limits`, [B2b](../todos/ready/B2b-standard-security-decryption.md) decryption, [B2c](../todos/ready/B2c-lamina-model-corpus-fuzz.md) views and IDs; annotations and fields in the editor rounds)
+- [ ] `lamina-model`: typed pages, annotations, fields, outline; stable IDs ([B2a](../todos/done/B2a-limits-owned-document.md) owned `Document` and `Limits`, [B2b](../todos/ready/B2b-standard-security-decryption.md) decryption, [B2c](../todos/ready/B2c-lamina-model-corpus-fuzz.md) views and IDs; annotations and fields in the editor rounds)
 - [ ] `lamina-ops`: `Op` enum, `transact()`, inverses, undo/redo ([B3a](../todos/ready/B3a-overlay-and-ops.md))
 - [ ] `lamina-save`: save planner, `SaveConstraint`, streaming `WriteSink` ([B3b](../todos/ready/B3b-lamina-save-writers.md), [B3c](../todos/ready/B3c-save-planner-and-roundtrip.md))
 - [ ] Move the writer (`Writer`, `incremental_update`, `XrefEol`) from `lamina-cos` into `lamina-save`, keeping the determinism and golden tests ([B3b](../todos/ready/B3b-lamina-save-writers.md))
@@ -142,6 +142,9 @@ Todos: [A1](../todos/done/A1-foundation-adrs.md) (ADRs), [A2](../todos/done/A2-m
 - [ ] Changesets + Cargo version sync; tag `0.1.0-alpha` locally (no registry publish yet) ([B7b](../todos/ready/B7b-versioning-and-0-1-0-alpha.md); docs site [B7a](../todos/ready/B7a-docs-site.md))
 
 ### Round C — Web reader
+
+Todos: see the [web-app plan §6](web-app.md#6-rounds) (C1a–C7c).
+
 - [ ] `pdfium-wasm` and `hayro-parity` spikes, with written results
 - [ ] Write ADRs 0004, 0009, 0010, 0011
 - [ ] `lamina-render` with the `RenderBackend` trait and PDFium/hayro adapters
@@ -151,6 +154,9 @@ Todos: [A1](../todos/done/A1-foundation-adrs.md) (ADRs), [A2](../todos/done/A2-m
 - [ ] Playwright and visual regression tests; accessibility checks
 
 ### Round D — Desktop reader
+
+Todos: see the [desktop-app plan §6](desktop-app.md#6-rounds) (D1a–D7c).
+
 - [ ] `desktop-ipc` and `desktop-print` spikes, then ADR 0008
 - [ ] `apps/desktop` (Tauri 2) reusing `@lamina/ui`. Process model: all parsing and rendering of untrusted files runs in a sandboxed engine process; the main process only does file I/O (mmap, file watching) and passes bytes and tiles across the boundary
 - [ ] `apps/updates`: Worker + R2 update manifests with channels and staged rollout

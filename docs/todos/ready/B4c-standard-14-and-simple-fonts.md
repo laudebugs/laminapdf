@@ -52,13 +52,17 @@ Let callers write text without supplying font bytes, using the 14 standard Type 
 
 - [ ] Widths for every glyph of every standard 14 font match the AFM source (generated test)
 - [ ] A generated page using each standard 14 font passes `qpdf --check` and extracts the input text with pypdf and pdftotext (WinAnsi-representable strings)
-- [ ] Unencodable characters (e.g. "€" in Symbol, CJK in Helvetica) report `missing-glyph`
+- [ ] Unencodable characters (e.g. "é" U+00E9 in Symbol, whose built-in encoding has no `eacute`; CJK in Helvetica) report `missing-glyph`; "€" encodes in Helvetica (WinAnsi 0x80) and in Symbol (`Euro`, code 160 in Symbol.afm)
 - [ ] `Font::standard(..).requires_embedding()` is `false`; for `Font::from_bytes` it is `true`
 - [ ] Regenerating the tables is byte-identical
 
+## Post-merge checks
+
+None.
+
 ## Tests
 
-- Unit tests for encodings (round-trip code ↔ name ↔ Unicode for all 256 codes per encoding).
+- Unit tests for encodings, per encoding (WinAnsi, Standard, Symbol built-in, ZapfDingbats built-in): every **defined** code maps to a glyph name and the name maps back to that code (for names with one code) or to the canonical one; duplicate codes map to the same glyph (WinAnsi 040/240 → `space`, 055/255 → `hyphen`; the canonical code for encoding is the lower one); every undefined code has no glyph name and nothing encodes to it; name ↔ Unicode via the AGL for every defined name.
 - `crates/lamina-text/tests/std14.rs`; golden `fixtures/golden/std14.pdf`.
 
 ## Docs to update
@@ -73,8 +77,9 @@ Let callers write text without supplying font bytes, using the 14 standard Type 
 
 ## Definition of done
 
-- [ ] PR opened from a fresh worktree; this file moved `ready/` → `ongoing/` in the PR's first commit (status field updated, PR link added)
+- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [ ] Work PR opened from a fresh worktree; **PR** field filled in
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the PR (status `done`), plan links updated, plan to-dos ticked
+- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
 - [ ] Squash-merged; dependants' "Depends on" now satisfied

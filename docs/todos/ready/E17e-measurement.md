@@ -39,7 +39,7 @@ Distance, perimeter and area tools honouring page viewports (`/VP`) and `/Measur
 - **Operations shipped** ([06 §3](../../research/pdf/06-feature-inventory.md#3-full-operation-inventory-with-mechanisms) IDs): `M.07` measurement tools and scales; `M.08` geospatial coordinates
 - **Crates and packages:** `lamina-model`, `@lamina/ui`
 - **`Op` variants:** `AddAnnot` with measure dicts
-- **`SaveConstraint`:** annotation rules
+- **`SaveConstraint`:** annotation rules (see E4b): class `Annotation`, allowed under DocMDP P3 or when there is no certification signature (approval-only files save `AppendOnly`); under P1/P2 a violation → warn and gate
 - **Web vs desktop:** identical
 - **Server features:** none (this PR adds no server feature; all processing stays on the device)
 - **Capability-matrix rows to flip:** `M.07` → `round-trip` (core, pdf, web, desktop); `M.08` → `read` (core, pdf, web, desktop)
@@ -53,6 +53,10 @@ Distance, perimeter and area tools honouring page viewports (`/VP`) and `/Measur
 ## Acceptance criteria
 
 - [ ] Measurements match Acrobat on scaled drawings (fixtures)
+
+## Post-merge checks
+
+None.
 
 ## Tests
 
@@ -70,8 +74,9 @@ Distance, perimeter and area tools honouring page viewports (`/VP`) and `/Measur
 
 ## Definition of done
 
-- [ ] PR opened from a fresh worktree; this file moved `ready/` → `ongoing/` in the PR's first commit (status field updated, PR link added)
+- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [ ] Work PR opened from a fresh worktree; **PR** field filled in
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the PR (status `done`), plan links updated, plan to-dos ticked
+- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
 - [ ] Squash-merged; dependants' "Depends on" now satisfied

@@ -7,7 +7,7 @@
 | Plan | [Desktop app §6 D4](../../plans/desktop-app.md#d4-windows-tabs-menus-and-printing) |
 | Round / milestone | Round D (desktop) — M3 Desktop reader beta |
 | Depends on | [C7a](./C7a-accessibility-and-theming.md), [D4a](./D4a-windows-tabs-and-session-restore.md) |
-| Blocks | [D4c](./D4c-native-printing.md), [D5b](./D5b-updater-in-app.md) |
+| Blocks | [D4c](./D4c-native-printing.md), [D5b](./D5b-updater-in-app.md), [E1d](./E1d-edit-session-undo-ui.md) |
 | Dependency notes | [D4a](D4a-windows-tabs-and-session-restore.md). Cross-plan: the shared shortcut map is a web **C7** to-do ("Keyboard shortcuts map shared with desktop", [web-app §C7](../../plans/web-app.md#c7-accessibility-offline-and-launch)). If C7 has not merged, this PR creates the map in `@lamina/ui` and C7 extends it — the parent board must pick one owner (see Risks). |
 | ADRs | Follows ADR 0010 (Platform adapter), ADR 0008 |
 | Branch | `feat/d4b-native-menus` |
@@ -61,7 +61,7 @@ Give lamina proper native menus on every OS — the macOS app menu and menu bar,
 - [ ] `menu_state` command (manifest + capability) and the UI side that reports state.
 - [ ] Export Copy: Rust-side save dialog (`DialogExt::file().save_file`) and byte copy of the original file; never via the webview.
 - [ ] Disable duplicate webview handlers for native accelerators.
-- [ ] Settings route placeholder (`settings` window label, created on demand, own capability with only the commands it needs — D5b fills it).
+- [ ] Settings route placeholder (`settings` window label, created on demand, own capability `capabilities/settings.json` (`"windows": ["settings"]`) with only the commands it needs — D5b fills it; add `"settings"` to `app.security.capabilities` in `tauri.conf.json` **and** to the full list in `tauri.e2e.conf.json` (D2a's guard test fails otherwise).
 - [ ] Tests (below); manual checklist per OS with screenshots of each top-level menu.
 
 ## Acceptance criteria
@@ -72,6 +72,10 @@ Give lamina proper native menus on every OS — the macOS app menu and menu bar,
 - [ ] Open Recent lists the D3b entries and "Clear Menu" clears them; Window menu lists open windows; Move Tab to Window works from the menu (e2e).
 - [ ] macOS app menu follows the HIG layout (manual screenshot); Windows/Linux show a menu bar per window.
 - [ ] Items are disabled when not applicable (no document → Print, Close Tab disabled) (e2e via `menu_state` assertions or a test-only `menu_snapshot` command under `e2e`).
+
+## Post-merge checks
+
+None.
 
 ## Tests
 
@@ -94,8 +98,9 @@ Give lamina proper native menus on every OS — the macOS app menu and menu bar,
 
 ## Definition of done
 
-- [ ] PR opened from a fresh worktree; this file moved `ready/` → `ongoing/` in the PR's first commit (status field updated, PR link added)
+- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [ ] Work PR opened from a fresh worktree; **PR** field filled in
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the PR (status `done`), plan links updated, plan to-dos ticked
+- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
 - [ ] Squash-merged; dependants' "Depends on" now satisfied

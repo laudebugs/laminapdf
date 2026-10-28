@@ -7,7 +7,7 @@
 | Plan | [full-editor §E13](../../plans/full-editor.md#e13-ocr-and-conversion) |
 | Round / milestone | Editor phase 6 (E11–E17) — M9 Advanced |
 | Depends on | [C7c](./C7c-performance-gates-and-launch.md), [E13c](./E13c-ocr-text-layer.md) |
-| Blocks | [E13f](./E13f-office-and-html-to-pdf.md), [E13g](./E13g-pdf-to-word-excel.md), [E14e](./E14e-server-batch.md) |
+| Blocks | [E13f](./E13f-office-and-html-to-pdf.md), [E13g](./E13g-pdf-to-word-excel.md), [E14e](./E14e-server-batch.md), [E18g](./E18g-leases-and-base-revisions.md) |
 | Dependency notes | [E13c](E13c-ocr-text-layer.md), `C7` ([web-app §C7](../../plans/web-app.md#c7-accessibility-offline-and-launch): web reader v0.1) |
 | ADRs | Implements ADR 0013 and ADR 0011; Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
 | Branch | `feat/e13e-server-jobs-infrastructure` |
@@ -30,7 +30,7 @@ Build the hosted job pipeline: an `apps/jobs` Worker accepting opt-in jobs (uplo
 **In scope**
 
 - Job API (create, status, result, delete) with signed short-lived tokens
-- Container images built and pinned in CI (licences recorded, SBOM)
+- Container images built and pinned in CI (licences recorded, SBOM). `containers/ocr` holds Tesseract + Leptonica + language data and a lamina binary that renders pages (`lamina-render`) and writes the text layer from Tesseract's hOCR (E13c `AddOcrLayer`); no ocrmypdf and no Ghostscript (AGPL), per ADR 0013's Tesseract-only pipeline
 - Workflow with retries and step results in R2
 - Retention: inputs and outputs expire (e.g. 24 h) and are deleted on completion download if the user chooses
 - Client opt-in dialog per document
@@ -60,7 +60,11 @@ Build the hosted job pipeline: an `apps/jobs` Worker accepting opt-in jobs (uplo
 
 - [ ] e2e against a preview deployment: OCR a scan via the server, result downloaded, input deleted from R2 within the retention window
 - [ ] No job runs without explicit opt-in (test)
-- [ ] Container images contain no AGPL components (SBOM check)
+- [ ] Container images contain no AGPL/GPL components (SBOM check that fails the build on Ghostscript, MuPDF or any AGPL/GPL package)
+
+## Post-merge checks
+
+None.
 
 ## Tests
 
@@ -81,8 +85,9 @@ Build the hosted job pipeline: an `apps/jobs` Worker accepting opt-in jobs (uplo
 
 ## Definition of done
 
-- [ ] PR opened from a fresh worktree; this file moved `ready/` → `ongoing/` in the PR's first commit (status field updated, PR link added)
+- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [ ] Work PR opened from a fresh worktree; **PR** field filled in
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the PR (status `done`), plan links updated, plan to-dos ticked
+- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
 - [ ] Squash-merged; dependants' "Depends on" now satisfied

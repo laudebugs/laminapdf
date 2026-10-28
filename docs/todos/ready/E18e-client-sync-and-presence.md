@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [full-editor §E18](../../plans/full-editor.md#e18-collaboration-hosted-service) |
 | Round / milestone | Editor phase 6 (E18) — M10 Collaboration |
-| Depends on | [E18d](./E18d-durable-object-server.md) |
+| Depends on | [E2b](./E2b-page-structure-ops.md), [E4b](./E4b-annotation-model-and-overlay.md), [E5b](./E5b-comment-threads-and-review.md), [E8c](./E8c-acroform-field-model.md), [E18d](./E18d-durable-object-server.md) |
 | Blocks | [E18g](./E18g-leases-and-base-revisions.md) |
 | ADRs | Implements ADR 0012 |
 | Branch | `feat/e18e-client-sync-and-presence` |
@@ -56,6 +56,10 @@ Clients connect to the document's DO, apply remote patches as `Remote` transacti
 - [ ] Two-browser e2e: annotations and field values converge; undo of own change after a remote change behaves per ADR 0006
 - [ ] Desktop offline edits sync on reconnect
 
+## Post-merge checks
+
+None.
+
 ## Tests
 
 - Playwright multi-context
@@ -72,8 +76,9 @@ Clients connect to the document's DO, apply remote patches as `Remote` transacti
 
 ## Definition of done
 
-- [ ] PR opened from a fresh worktree; this file moved `ready/` → `ongoing/` in the PR's first commit (status field updated, PR link added)
+- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [ ] Work PR opened from a fresh worktree; **PR** field filled in
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the PR (status `done`), plan links updated, plan to-dos ticked
+- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
 - [ ] Squash-merged; dependants' "Depends on" now satisfied

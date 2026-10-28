@@ -16,7 +16,7 @@
 
 ## Goal
 
-Register `optimise` (and `convert_pdfa`) as job types in the opt-in server batch (E14e) so large print files can be optimised in Containers.
+Register `optimise` (and `convert_pdfa`) as job types in the opt-in server batch (E14e) so large print files can be optimised in Containers. Closed as won't-do together with E14e if there is no hosted batch (see Risks).
 
 ## Context
 
@@ -51,6 +51,10 @@ Register `optimise` (and `convert_pdfa`) as job types in the opt-in server batch
 
 - [ ] Preview e2e: optimise a 200 MB fixture via the server
 
+## Post-merge checks
+
+None.
+
 ## Tests
 
 - Worker tests
@@ -62,12 +66,14 @@ Register `optimise` (and `convert_pdfa`) as job types in the opt-in server batch
 
 ## Risks and open questions
 
-- Skip if E14a decides batch is local only
+- If E14a decides batch is local only, [E14e](E14e-server-batch.md) is closed as won't-do (moved to `done/` with Status `done` and a `Closed as won't-do` note) and this todo is closed the same way in that PR, with the note `Closed as won't-do: no hosted batch (E14e closed as won't-do); optimisation runs locally`. It is never left in `ready/` waiting for a dependency that will not be built
+- **Won't-do close (how the board records it):** the board has no separate won't-do state. A todo closed as won't-do is moved `ready/` → `done/` with Status `done`, a first line in its Goal reading `Closed as won't-do: <reason and link to the decision>`, the PR field pointing at the PR that closed it, and no tasks ticked. Its dependants' "Depends on" are then satisfied, so they show as startable and are either done normally or closed the same way.
 
 ## Definition of done
 
-- [ ] PR opened from a fresh worktree; this file moved `ready/` → `ongoing/` in the PR's first commit (status field updated, PR link added)
+- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [ ] Work PR opened from a fresh worktree; **PR** field filled in
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the PR (status `done`), plan links updated, plan to-dos ticked
+- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
 - [ ] Squash-merged; dependants' "Depends on" now satisfied

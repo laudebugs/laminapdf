@@ -45,7 +45,7 @@ The short feature-plan PR that opens round E5 ([full-editor §E5](../../plans/fu
 
 - **Operations shipped** ([06 §3](../../research/pdf/06-feature-inventory.md#3-full-operation-inventory-with-mechanisms) IDs): `D.07` custom stamps; `D.08` attach files as annotations; `D.09` audio annotations; `D.10` replies to comments; `D.11` status and review properties; `D.12` filter and search comments; `D.13` import and export annotation data; `D.14` flatten annotations into content; `D.15` delete or summarise annotations
 - **Crates and packages:** (planned for the round) as E4 plus XFDF/FDF and flattening via the E2 append API
-- **`SaveConstraint`:** (round summary from the plan; the feature plan details it per op) flattening is a content change → incremental on `Free`, gated on signed files
+- **`SaveConstraint`:** (round summary from the plan; the feature plan details it per op) flattening is a content change → incremental on `Free`; gated under any certification (DocMDP violation at every level); `AppendOnly` with approval signatures only
 - **Web vs desktop:** identical
 - **Server features:** none (shared review is E18)
 - **Capability-matrix rows to flip:** none flipped here; rows added with status `unsupported` and the round as target
@@ -70,6 +70,10 @@ The short feature-plan PR that opens round E5 ([full-editor §E5](../../plans/fu
 - [ ] `docs/capabilities/manifest.toml` has a row per op with `target round = "E5"`; `cargo xtask capabilities` regenerates without error
 - [ ] Each open question below is answered or has a named owner and a deadline round
 
+## Post-merge checks
+
+None.
+
 ## Tests
 
 Docs only: the link checker passes; `cargo xtask capabilities` (from `X2`) accepts the new manifest rows.
@@ -87,8 +91,9 @@ Docs only: the link checker passes; `cargo xtask capabilities` (from `X2`) accep
 
 ## Definition of done
 
-- [ ] PR opened from a fresh worktree; this file moved `ready/` → `ongoing/` in the PR's first commit (status field updated, PR link added)
+- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [ ] Work PR opened from a fresh worktree; **PR** field filled in
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the PR (status `done`), plan links updated, plan to-dos ticked
+- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
 - [ ] Squash-merged; dependants' "Depends on" now satisfied

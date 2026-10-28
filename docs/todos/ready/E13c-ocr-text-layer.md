@@ -22,7 +22,7 @@ Turn OCR output (hOCR or ALTO: words, boxes, baselines, confidence) into an invi
 ## Context
 
 - [03 §8.3 Scanned PDFs and OCR](../../research/pdf/03-text-and-fonts.md#83-scanned-pdfs-and-ocr)
-- OCRmyPDF's text-layer approach (reference)
+- OCRmyPDF's text-layer approach (reference for the technique only; ocrmypdf is not used because it needs Ghostscript, AGPL; see ADR 0013)
 
 ## Scope
 
@@ -41,7 +41,7 @@ Turn OCR output (hOCR or ALTO: words, boxes, baselines, confidence) into an invi
 - **Operations shipped** ([06 §3](../../research/pdf/06-feature-inventory.md#3-full-operation-inventory-with-mechanisms) IDs): `A.11` convert outlined or scanned text via OCR; `H.13` scanned → searchable PDF
 - **Crates and packages:** `lamina-build`, `lamina-text`, `lamina-content`
 - **`Op` variants:** `AddOcrLayer` (class `Content`)
-- **`SaveConstraint`:** `Free` → incremental; signed: content change, gated
+- **`SaveConstraint`:** `Free` → incremental; signed: the invisible text layer is a `Content` change, a DocMDP violation at every certification level (gated, override names the signatures); with approval signatures only `AppendOnly`
 - **Web vs desktop:** identical (engines differ, E13d)
 - **Server features:** none (this PR adds no server feature; all processing stays on the device)
 - **Capability-matrix rows to flip:** `A.11` → `write` (core, pdf); `H.13` → `write` (core, pdf)
@@ -57,6 +57,10 @@ Turn OCR output (hOCR or ALTO: words, boxes, baselines, confidence) into an invi
 - [ ] Library parity ([full-editor §5](../../plans/full-editor.md#5-requirements-that-hold-for-every-round) req. 7): every new `Op` is exposed in `lamina` and `@lamina/pdf` in this PR, with rustdoc/TSDoc, a runnable example, tsify-generated TS types, and serde samples frozen in `fixtures/ops/v1/` (unknown ops and fields rejected, ADR 0006 §1, §6)
 - [ ] Selecting text over a scan selects the OCR words at the right positions in pdf.js and PDFium
 - [ ] pdftotext extracts the OCR text
+
+## Post-merge checks
+
+None.
 
 ## Tests
 
@@ -75,8 +79,9 @@ Turn OCR output (hOCR or ALTO: words, boxes, baselines, confidence) into an invi
 
 ## Definition of done
 
-- [ ] PR opened from a fresh worktree; this file moved `ready/` → `ongoing/` in the PR's first commit (status field updated, PR link added)
+- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [ ] Work PR opened from a fresh worktree; **PR** field filled in
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the PR (status `done`), plan links updated, plan to-dos ticked
+- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
 - [ ] Squash-merged; dependants' "Depends on" now satisfied

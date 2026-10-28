@@ -31,7 +31,7 @@ Give the browser the same `RenderBackend` contract the Rust crate has. `@lamina/
 
 **In scope**
 
-- `packages/render-core` *(or a `types` subpath of `@lamina/viewer` — decide in the PR; recommendation: tiny `@lamina/render` types package)*: the TS `RenderBackend` interface mirroring the Rust trait (`open`, `pageCount`, `pageSize`, `render(req, signal) → { width, height, pixels: Uint8ClampedArray }`, `close`), error codes shared through `fixtures/codes.json`.
+- `packages/render` (`@lamina/render`, a tiny types-and-helpers package): the TS `RenderBackend` interface mirroring the Rust trait (`open`, `pageCount`, `pageSize`, `render(req, signal) → { width, height, pixels: Uint8ClampedArray }`, `close`), error codes shared through `fixtures/codes.json`.
 - `packages/render-pdfium`: vendored or fetched PDFium-WASM (`pdfium.wasm` + glue), verified by SHA-256 at build time, adapter implementing the interface, custom file access over a `ByteSource`-like `read(offset, length)` callback, password support.
 - `crates/lamina-render-wasm` (edge) + `packages/render-hayro`: wasm-bindgen + tsify build of the hayro adapter, `init()` like `@lamina/pdf`, built by `cargo xtask wasm`.
 - Size budgets for both `.wasm` files in CI; licence notices shipped in each package.
@@ -56,7 +56,7 @@ Give the browser the same `RenderBackend` contract the Rust crate has. `@lamina/
 - [ ] Size budgets: add both `.wasm` gz sizes to the B6 size-budget check (PDFium budget = measured C1b size + 5 %; hayro budget per ADR 0016 measurements).
 - [ ] Tests (Vitest browser mode with Playwright, Chromium/Firefox/WebKit): render page 1 of `fixtures/corpus/hello.pdf` and `imaging-demo.pdf` with each adapter and compare against C2b's PNG goldens with the same perceptual threshold; wrong password → `wrong-password`; aborted request → rejects with `AbortError` and frees memory; 50 sequential renders do not grow WASM memory beyond a fixed bound.
 - [ ] `cargo xtask check ts` runs the new packages' typecheck, Biome and tests; npm licence check passes.
-- [ ] READMEs for both packages; update `CLAUDE.md` layout (`packages/render*`, `crates/lamina-render-wasm`).
+- [ ] READMEs for the three packages (`render`, `render-pdfium`, `render-hayro`); update `CLAUDE.md` layout (`packages/render*`, `crates/lamina-render-wasm`).
 
 ## Acceptance criteria
 
@@ -66,6 +66,10 @@ Give the browser the same `RenderBackend` contract the Rust crate has. `@lamina/
 - [ ] `.wasm` size budgets enforced in CI; `@lamina/pdf`'s own budget is unchanged (neither adapter is a dependency of it).
 - [ ] No Node-only APIs or DOM globals beyond what a worker has (`self`, `fetch`, `WebAssembly`), checked by the portability test.
 - [ ] Third-party notices present for PDFium.
+
+## Post-merge checks
+
+None.
 
 ## Tests
 
@@ -84,8 +88,9 @@ Package READMEs; `CLAUDE.md`; tick "Create `packages/render-pdfium`… and `pack
 
 ## Definition of done
 
-- [ ] PR opened from a fresh worktree; this file moved `ready/` → `ongoing/` in the PR's first commit (status field updated, PR link added)
+- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [ ] Work PR opened from a fresh worktree; **PR** field filled in
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the PR (status `done`), plan links updated, plan to-dos ticked
+- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
 - [ ] Squash-merged; dependants' "Depends on" now satisfied

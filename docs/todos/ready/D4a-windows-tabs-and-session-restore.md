@@ -22,7 +22,7 @@ Let power users work with many documents: each window holds tabs, a tab can be d
 
 - [Desktop plan §4 req. 5](../../plans/desktop-app.md#functional) and §6 D4.
 - Tauri: `WebviewWindowBuilder::new(app, label, WebviewUrl::App("index.html".into()))`, `app.webview_windows()`, `Emitter::emit_to(EventTarget::webview_window(label), …)`, `WindowEvent::CloseRequested { api }` (`api.prevent_close()`), capabilities targeting windows by glob (`"windows": ["main", "doc-*"]`), [`tauri-plugin-window-state`](https://v2.tauri.app/plugin/window-state/) for geometry (`StateFlags`).
-- D2b: `EngineSupervisor` per window label; D3a: open routing; D3b: `RecentFiles` view state.
+- D2b: `EngineSupervisor` per window label, `DocumentRegistry` (trusted path sources); D3a: open routing; D3b: the "Remember recent files" privacy setting (session restore does **not** read `RecentFiles` entries — see Scope).
 - `@lamina/ui` (web C4): tab strip doesn't exist on web (`multiWindow: false`); add a shared `Tabs` component rendered only when the `Platform` reports `multiWindow` — no `isTauri` checks.
 
 ## Scope
@@ -33,7 +33,10 @@ Let power users work with many documents: each window holds tabs, a tab can be d
 - Tabs: open routing from D3a now opens a **new tab** in the frontmost window (setting: "Open files in new tabs / new windows"); tab close, reorder, next/previous (`Ctrl+Tab`, `Ctrl+Shift+Tab`; `Cmd+Shift+]`/`[` on macOS — wired in D4b), duplicate detection (re-focus the existing tab when the same file is opened twice; setting to allow duplicates off by default).
 - Engine affinity: documents move with their tab between windows; since engines are per window (ADR 0008), moving a tab re-opens the document in the target window's engine and transfers the view state (page, offset, zoom). Measure memory with 1, 5, 20 documents across 1 vs 4 windows; record in ADR 0008 and answer open question 3.
 - Tab drag between windows: HTML5 drag inside a window for reorder; dragging outside the window bounds (`dragend` with screen coordinates outside) calls `detach_tab(doc, screen_x, screen_y)` → new window at that position; dropping onto another window's strip: the source sends `tab_drag_start(doc)`, the target window detects pointer entry (via `drag-over` events from Rust, which tracks the cursor using window positions) — implement the simplest reliable approach found and document it; fallback: "Move tab to window ▸" context menu (always available, accessible).
-- Session restore: on quit (and every 30 s while running, debounced), persist `session.json` in `app_config_dir()` (windows → geometry handled by `tauri-plugin-window-state`, tabs → document IDs referencing recent-file entries + view state); on launch, restore if the setting "Reopen last session" is on (default on); missing files restore as "missing" tabs with "Locate…".
+- Session restore: on quit (and every 30 s while running, debounced), persist `session.json` (schema-versioned, atomic write: temp + rename) in `app_config_dir()`; on launch, restore if the setting "Reopen last session" is on (default on); missing files restore as "missing" tabs with "Locate…".
+  - Windows → geometry handled by `tauri-plugin-window-state`; `session.json` stores window order and labels, each window's tabs and active tab.
+  - **Each tab stores its own document reference, independent of the recent list** (the user can clear or disable recent files at any time, and the recent list is capped at 20): `{ path, stamp: { len, mtime }, bookmark?, view: { page, offset, zoom } }`. `path` is the canonical absolute path. On macOS `bookmark` is a regular (not security-scoped — the app isn't sandboxed) `NSURL` bookmark (`bookmarkDataWithOptions:` via `objc2-foundation`) so a file moved or renamed between sessions is still found; it is resolved first and `path` is the fallback; a stale bookmark is refreshed. Windows/Linux store the path only. Restored paths enter `DocumentRegistry` as a trusted source (written by the main process, never by the webview).
+  - **Privacy rule (decided)**: `session.json` is a record of document paths just like the recent list, so it follows the same switch. When "Remember recent files" (D3b) is **off**, lamina writes no session file and deletes an existing one; "Reopen last session" is shown disabled with the note "Needs 'Remember recent files'". Turning "Reopen last session" off also deletes `session.json`. "Clear recent files" clears the recent list only — it doesn't close or forget the documents open now, so the current session is still saved while remembering is on.
 - Window titles: `"<doc title or file name> — Lamina"`; macOS `represented_filename`/proxy icon if Tauri exposes it (else skip), "edited" dot not used (reader).
 - Capabilities: `capabilities/main.json` `windows` glob covers all `doc-*` labels; no window gets more permissions than another.
 
@@ -50,7 +53,7 @@ Let power users work with many documents: each window holds tabs, a tab can be d
 - [ ] `WindowRegistry` + commands (manifest + capability): `new_window`, `close_tab`, `activate_tab`, `move_tab(doc, target_window | new)`, `detach_tab(doc, x, y)`, `reorder_tabs(order)`, `session_state()`.
 - [ ] Per-window engine lifecycle: spawn on window creation, shut down on close; document hand-over on moves (close in source engine after the target reports `Opened`).
 - [ ] Shared `Tabs` component in `@lamina/ui` (keyboard accessible: roving tabindex, `role="tablist"`, close buttons with labels), desktop-only via `Platform.multiWindow`.
-- [ ] Session persistence and restore; `RunEvent::Reopen` on macOS; `RunEvent::ExitRequested` flushes the session.
+- [ ] Session persistence and restore (`src-tauri/src/session.rs`: `SessionFile`, `TabRef { path, stamp, bookmark, view }`, `fn load(dir) -> Result<Option<SessionFile>, SessionError>`, `fn save(dir, &SessionFile)`, `fn resolve(tab: &TabRef) -> Resolved { Found(PathBuf) | Moved(PathBuf) | Missing }`), the macOS bookmark helper, and the privacy rule above; `RunEvent::Reopen` on macOS; `RunEvent::ExitRequested` flushes the session.
 - [ ] Memory measurements; ADR 0008 amendment answering open question 3.
 - [ ] e2e scenarios: open 3 files → 3 tabs; move tab to new window (via context-menu command, deterministic); restart app → same windows/tabs/pages restored; close all tabs → behaviour per OS.
 - [ ] Manual checklist: real drag-out and drag-between windows on each OS (Wayland quirks noted).
@@ -61,12 +64,19 @@ Let power users work with many documents: each window holds tabs, a tab can be d
 - [ ] "Move tab to new window" and "Move tab to window ▸ <name>" keep the page and zoom (e2e).
 - [ ] Drag-out to a new window works on macOS, Windows and Linux X11 (manual check recorded); Wayland behaviour recorded (position may be compositor-controlled).
 - [ ] Quit + relaunch restores windows (geometry), tabs and per-tab page/zoom (e2e); disabling "Reopen last session" starts empty.
+- [ ] Session restore works after the recent list is cleared (e2e: open 3 files, "Clear recent files", quit, relaunch → the 3 tabs come back).
+- [ ] With "Remember recent files" off, quitting leaves no `session.json` in `app_config_dir()` and relaunch starts empty (e2e + unit).
+- [ ] On macOS, a file renamed between sessions is restored through its bookmark (manual check recorded; unit test of the resolve order with a fake resolver).
 - [ ] Engine memory numbers for 1/5/20 documents recorded; ADR 0008 states the pooling decision.
 - [ ] Tab strip passes keyboard-only navigation and axe checks in the shared component tests.
 
+## Post-merge checks
+
+None.
+
 ## Tests
 
-- Rust unit tests: `WindowRegistry` operations (move, detach, close last tab, duplicates), session serialisation round-trip and tolerance of missing files/corrupted JSON.
+- Rust unit tests: `WindowRegistry` operations (move, detach, close last tab, duplicates), session serialisation round-trip and tolerance of missing files/corrupted JSON/unknown schema version; `resolve` order (bookmark → path → missing); the privacy rule (`should_persist_session(remember_recent, reopen_last)` table test; `save` is never called and the file is removed when either is off).
 - Vitest + Testing Library for the `Tabs` component (keyboard, ARIA).
 - WebdriverIO scenarios above (multi-window switching via `browser.switchWindow`/the tauri service's window handling).
 
@@ -85,8 +95,9 @@ Let power users work with many documents: each window holds tabs, a tab can be d
 
 ## Definition of done
 
-- [ ] PR opened from a fresh worktree; this file moved `ready/` → `ongoing/` in the PR's first commit (status field updated, PR link added)
+- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [ ] Work PR opened from a fresh worktree; **PR** field filled in
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the PR (status `done`), plan links updated, plan to-dos ticked
+- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
 - [ ] Squash-merged; dependants' "Depends on" now satisfied

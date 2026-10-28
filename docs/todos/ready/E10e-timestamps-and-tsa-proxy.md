@@ -44,10 +44,10 @@ RFC 3161 timestamp tokens as CMS unsigned attributes (PAdES B-T) and document ti
 - **Operations shipped** ([06 §3](../../research/pdf/06-feature-inventory.md#3-full-operation-inventory-with-mechanisms) IDs): `F.06` trusted timestamps
 - **Crates and packages:** `lamina-sign`, `apps/tsa-proxy` (new Worker)
 - **`Op` variants:** `Sign { timestamp: Some(..) }`, `AddDocumentTimestamp` (barrier)
-- **`SaveConstraint`:** signing makes the document `AppendOnly`; signing always runs last in a save (redact → rewrite → sign, ADR 0007 §4); `Sign` is a barrier op (ADR 0006 §5)
+- **`SaveConstraint`:** signing makes the document `AppendOnly`; adding a signature is allowed without certification and under DocMDP P2/P3, and is a violation under P1 (ADR 0007 §2); signing always runs last in a save (redact → rewrite → sign, ADR 0007 §4); `Sign` is a barrier op (ADR 0006 §5)
 - **Web vs desktop:** desktop calls TSAs directly; web uses the proxy only if the user opts in (sends the hash only)
 - **Server features:** TSA proxy Worker — hash only, no document bytes, no accounts required
-- **Capability-matrix rows to flip:** `F.06` → `round-trip` (core, pdf, web, desktop)
+- **Capability-matrix rows to flip:** `F.06` → `round-trip` (core, pdf) (web and desktop columns flip in [E10j](E10j-signature-ui.md), with the UI)
 
 ## Tasks
 
@@ -60,6 +60,10 @@ RFC 3161 timestamp tokens as CMS unsigned attributes (PAdES B-T) and document ti
 
 - [ ] B-T signatures validate in EU DSS
 - [ ] Worker tests assert no body other than a TimeStampReq is forwarded and nothing is logged
+
+## Post-merge checks
+
+None.
 
 ## Tests
 
@@ -78,8 +82,9 @@ RFC 3161 timestamp tokens as CMS unsigned attributes (PAdES B-T) and document ti
 
 ## Definition of done
 
-- [ ] PR opened from a fresh worktree; this file moved `ready/` → `ongoing/` in the PR's first commit (status field updated, PR link added)
+- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [ ] Work PR opened from a fresh worktree; **PR** field filled in
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the PR (status `done`), plan links updated, plan to-dos ticked
+- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
 - [ ] Squash-merged; dependants' "Depends on" now satisfied

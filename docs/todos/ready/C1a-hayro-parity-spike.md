@@ -6,9 +6,9 @@
 | Status | `ready` |
 | Plan | [web reader §6 C1. Rendering spikes](../../plans/web-app.md#c1-rendering-spikes) |
 | Round / milestone | Round C (web reader) — M2 Web reader v0.1 |
-| Depends on | [B6b](./B6b-lamina-pdf-package.md) |
+| Depends on | None |
 | Blocks | [C1b](./C1b-pdfium-wasm-spike.md), [C2a](./C2a-render-adrs.md) |
-| Dependency notes | None (needs only the merged Round A workspace; it does not load any lamina crate, so it can start before B6) |
+| Dependency notes | None (needs only the merged Round A workspace; it does not load any lamina crate, so it can start before B6 merges) |
 | ADRs | Informs ADR 0004 (`RenderBackend`; PDFium default; hayro oracle; MuPDF prohibited). Must follow [0001](../../decisions/0001-core-language-and-licence.md) (no AGPL/GPL, so no MuPDF even as a comparison), [0018](../../decisions/0018-test-strategy.md) §3 (corpora stay out of git, pinned by SHA-256), [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) |
 | Branch | `spike/c1a-hayro-parity` |
 | PR title | `spike(hayro-parity): measure hayro vs pdfium render parity on the pdf.js and pdfbox corpora` |
@@ -17,7 +17,7 @@
 
 ## Goal
 
-Answer the [architecture §4](../../plans/architecture.md#4-spikes-to-close-open-questions) question **"how close is hayro to PDFium today?"** with numbers. Render every page of the pdf.js and PDFBox test corpora with hayro (pure Rust, MIT/Apache) and with PDFium (native, via `pdfium-render`), compare them with a perceptual metric, and report the pass rate, the failure classes and the speed. The result is the baseline ADR 0004 records for "PDFium is the default, hayro is the CI oracle and the future default", and it defines the threshold the nightly hayro-vs-PDFium diff (C2b) will track. Because it touches no lamina crate, this half of C1 can run before B6 merges.
+Answer the [architecture §4](../../plans/architecture.md#4-spikes-to-close-open-questions) question **"how close is hayro to PDFium today?"** with numbers. Render every page of the pdf.js and PDFBox test corpora with hayro (pure Rust, MIT/Apache) and with PDFium (native, via `pdfium-render`), compare them with a perceptual metric, and report the pass rate, the failure classes and the speed. The result is the baseline ADR 0004 records for "PDFium is the default, hayro is the CI oracle and the future default", and it defines the threshold the nightly hayro-vs-PDFium diff ([X3b](./X3b-render-diff-nightly.md), on top of C2b's `lamina-render`) will track. Because it touches no lamina crate, this half of C1 can run before B6 merges.
 
 ## Context
 
@@ -41,7 +41,7 @@ Answer the [architecture §4](../../plans/architecture.md#4-spikes-to-close-open
 **Out of scope** (and which todo covers it)
 
 - PDFium-WASM size, memory and reload-after-incremental-save measurements in the browser → [C1b](./C1b-pdfium-wasm-spike.md).
-- The product `RenderBackend` trait and adapters, render goldens on `fixtures/`, the nightly diff job → [C2b](./C2b-lamina-render-crate.md).
+- The product `RenderBackend` trait and adapters, render goldens on `fixtures/` → [C2b](./C2b-lamina-render-crate.md); the nightly diff job → [X3b](./X3b-render-diff-nightly.md).
 - Writing ADR 0004 itself → [C2a](./C2a-render-adrs.md).
 - Any MuPDF comparison (AGPL, excluded by ADR 0001).
 
@@ -58,7 +58,7 @@ Answer the [architecture §4](../../plans/architecture.md#4-spikes-to-close-open
 - [ ] Output: `out/results.csv` (file, page, class, ssim, diff %, hayro ms, pdfium ms, error), `out/summary.md` (totals, per-corpus pass rate, top failure classes), and for every `fail` a side-by-side PNG triplet (hayro, PDFium, diff) for manual triage of the first 50.
 - [ ] Manually triage at least 50 failing pages into buckets (fonts/Type3, shading, blend modes/transparency groups, JBIG2/JPX images, annotations, encryption, ICC/colour, broken files) and record counts.
 - [ ] Record the machine (CPU, RAM, OS, rustc version) and the exact versions/commits of hayro, `pdfium-render`, PDFium and both corpora. C1b must report on the same machine.
-- [ ] Write `spikes/hayro-parity/README.md`: question, method, how to reproduce (`scripts/fetch-pdfium.sh && scripts/fetch-corpora.sh && cargo run --release`), results table, failure buckets, speed comparison, limitations, and a **Recommendation for ADR 0004** (default renderer per surface, the parity threshold that would justify switching the default to hayro, which failure buckets must be zero first, the nightly metric C2b tracks).
+- [ ] Write `spikes/hayro-parity/README.md`: question, method, how to reproduce (`scripts/fetch-pdfium.sh && scripts/fetch-corpora.sh && cargo run --release`), results table, failure buckets, speed comparison, limitations, and a **Recommendation for ADR 0004** (default renderer per surface, the parity threshold that would justify switching the default to hayro, which failure buckets must be zero first, the nightly metric X3b tracks).
 - [ ] Add the spike to the `CLAUDE.md` layout tree and the spikes notes (one line each, like `krilla-fit`), and to [architecture §4](../../plans/architecture.md#4-spikes-to-close-open-questions) as "Done" with a link to the result.
 
 ## Acceptance criteria
@@ -70,6 +70,10 @@ Answer the [architecture §4](../../plans/architecture.md#4-spikes-to-close-open
 - [ ] The README ends with a recommendation section that C2a can copy into ADR 0004 (default per surface, switch criteria, nightly metric).
 - [ ] No corpus file, PDFium binary or rendered PNG is committed (checked with `git ls-files spikes/hayro-parity`).
 - [ ] No new dependency in the root workspace or `pnpm-lock.yaml`; `cargo xtask check` is unaffected.
+
+## Post-merge checks
+
+None.
 
 ## Tests
 
@@ -92,8 +96,9 @@ Spike code is throwaway, so no product tests. Add a smoke check in the README's 
 
 ## Definition of done
 
-- [ ] PR opened from a fresh worktree; this file moved `ready/` → `ongoing/` in the PR's first commit (status field updated, PR link added)
+- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [ ] Work PR opened from a fresh worktree; **PR** field filled in
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the PR (status `done`), plan links updated, plan to-dos ticked
+- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
 - [ ] Squash-merged; dependants' "Depends on" now satisfied

@@ -7,7 +7,7 @@
 | Plan | [full-editor §E4](../../plans/full-editor.md#e4-markup-and-drawing-annotations) |
 | Round / milestone | Editor phase 3 (E4–E5) — M6 Annotator |
 | Depends on | [E1d](./E1d-edit-session-undo-ui.md), [E4a](./E4a-markup-and-drawing-annotations-feature-plan.md) |
-| Blocks | [E4c](./E4c-appearances-markup-notes-caret.md), [E4d](./E4d-appearances-ink-and-shapes.md), [E4e](./E4e-freetext-callouts.md), [E5c](./E5c-stamps-and-attachments.md), [E12b](./E12b-mark-and-review.md) |
+| Blocks | [E4c](./E4c-appearances-markup-notes-caret.md), [E4d](./E4d-appearances-ink-and-shapes.md), [E4e](./E4e-freetext-callouts.md), [E5c](./E5c-stamps-and-attachments.md), [E12b](./E12b-mark-and-review.md), [E18c](./E18c-layer-document-schema.md), [E18e](./E18e-client-sync-and-presence.md) |
 | ADRs | Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
 | Branch | `feat/e4b-annotation-model-and-overlay` |
 | PR title | `feat(model): typed annotations, annotation ops and overlay layer` |
@@ -66,6 +66,10 @@ Typed annotation views in `lamina-model` (common dictionary, markup dictionary, 
 - [ ] Unknown annotation keys survive an update (round-trip test)
 - [ ] Editing an existing annotation shows the change immediately without a page re-parse; after save the PDFium render matches the overlay (diff below threshold)
 
+## Post-merge checks
+
+None.
+
 ## Tests
 
 - Unit tests for views over corpus annotations
@@ -83,8 +87,9 @@ Typed annotation views in `lamina-model` (common dictionary, markup dictionary, 
 
 ## Definition of done
 
-- [ ] PR opened from a fresh worktree; this file moved `ready/` → `ongoing/` in the PR's first commit (status field updated, PR link added)
+- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [ ] Work PR opened from a fresh worktree; **PR** field filled in
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the PR (status `done`), plan links updated, plan to-dos ticked
+- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
 - [ ] Squash-merged; dependants' "Depends on" now satisfied

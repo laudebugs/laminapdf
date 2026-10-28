@@ -41,7 +41,7 @@ Flatten selected or all annotations: each appearance becomes a Form XObject draw
 - **Operations shipped** ([06 §3](../../research/pdf/06-feature-inventory.md#3-full-operation-inventory-with-mechanisms) IDs): `D.14` flatten annotations into content; `D.15` delete or summarise annotations
 - **Crates and packages:** `lamina-content` (append API), `lamina-build`, `lamina-ops`
 - **`Op` variants:** `FlattenAnnots` (classes `Content` + `Annotation`)
-- **`SaveConstraint`:** `Free` → incremental. Signed: class `Content` violates every DocMDP level and approval signatures' integrity → blocked unless the user confirms invalidating the named signatures. Note: flattened annotation objects remain in earlier revisions; the dialog offers a full rewrite
+- **`SaveConstraint`:** `Free` → incremental. Signed: class `Content` is a DocMDP violation at every certification level (ADR 0007 §2: P1 allows no changes; P2 allows only form filling, page templates and signing; P3 adds annotations) → blocked unless the user confirms invalidating the named signatures (ADR 0007 §3 override). With approval signatures only (no certification): `AppendOnly`, an incremental update that keeps their `/ByteRange` intact; a violation only when it changes a field locked by FieldMDP/`/Lock` (the signature panel, E10h, reports the later content change). Note: flattened annotation objects remain in earlier revisions; the dialog offers a full rewrite
 - **Web vs desktop:** identical
 - **Server features:** none (this PR adds no server feature; all processing stays on the device)
 - **Capability-matrix rows to flip:** `D.14` → `round-trip` (core, pdf, web, desktop); `D.15` → `round-trip` (core, pdf, web, desktop)
@@ -63,6 +63,10 @@ Flatten selected or all annotations: each appearance becomes a Form XObject draw
 - [ ] Flattened pages render pixel-identical (below threshold) to the annotated pages in PDFium and pdf.js
 - [ ] A test proves no annotation without `/AP` is flattened to nothing
 
+## Post-merge checks
+
+None.
+
 ## Tests
 
 - Render diffs
@@ -81,8 +85,9 @@ Flatten selected or all annotations: each appearance becomes a Form XObject draw
 
 ## Definition of done
 
-- [ ] PR opened from a fresh worktree; this file moved `ready/` → `ongoing/` in the PR's first commit (status field updated, PR link added)
+- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [ ] Work PR opened from a fresh worktree; **PR** field filled in
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the PR (status `done`), plan links updated, plan to-dos ticked
+- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
 - [ ] Squash-merged; dependants' "Depends on" now satisfied

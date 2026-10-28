@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [full-editor §E3](../../plans/full-editor.md#e3-navigation-attachments-inspection-and-extraction) |
 | Round / milestone | Editor phase 2 (E1–E3) — M5 Organiser |
-| Depends on | [E2b](./E2b-page-structure-ops.md), [E3a](./E3a-navigation-attachments-inspection-feature-plan.md) |
+| Depends on | [E2b](./E2b-page-structure-ops.md), [E3a](./E3a-navigation-attachments-inspection-feature-plan.md), [E3c](./E3c-links.md) |
 | Blocks | [E3f](./E3f-attachments-and-associated-files.md) |
 | ADRs | Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
 | Branch | `feat/e3b-bookmarks-and-destinations` |
@@ -43,7 +43,7 @@ Create and edit nested bookmarks (add, rename, retarget, move, nest, colour/styl
 - **Operations shipped** ([06 §3](../../research/pdf/06-feature-inventory.md#3-full-operation-inventory-with-mechanisms) IDs): `I.01` create/edit bookmarks; nested trees; `I.04` named destinations; `I.05` clickable table of contents; `I.11` outline and navigation preferences
 - **Crates and packages:** `lamina-model` (outline write, name tree write), `lamina-ops`, `lamina-build` (TOC page), `@lamina/ui`
 - **`Op` variants:** outline and destination ops (class `Document`), `GenerateToc` (classes `PageStructure` + `Annotation`)
-- **`SaveConstraint`:** `Free` → incremental; signed: outline changes are class `Document` → violation under DocMDP; gated
+- **`SaveConstraint`:** `Free` → incremental; signed: outline and destination changes are class `Document`, a DocMDP violation at every certification level (ADR 0007 §2: P1 allows no changes; P2 allows only form filling, page templates and signing; P3 adds annotations) → warn and gate (override names the signatures). With approval signatures only (no certification): `AppendOnly`, an incremental update that keeps their `/ByteRange` intact; a violation only when it changes a field locked by FieldMDP/`/Lock`
 - **Web vs desktop:** identical
 - **Server features:** none (this PR adds no server feature; all processing stays on the device)
 - **Capability-matrix rows to flip:** `I.01` → `round-trip` (core, pdf, web, desktop); `I.04` → `round-trip` (core, pdf, web, desktop); `I.05` → `write` (core, pdf, web, desktop); `I.11` → `round-trip` (core, pdf, web, desktop)
@@ -65,6 +65,10 @@ Create and edit nested bookmarks (add, rename, retarget, move, nest, colour/styl
 - [ ] Outline facts (titles, levels, targets) match pdf.js and pypdf after edits on corpus files
 - [ ] e2e on both shells: create nested bookmarks, reorder, save, reopen
 
+## Post-merge checks
+
+None.
+
 ## Tests
 
 - Unit tests for list maintenance
@@ -83,8 +87,9 @@ Create and edit nested bookmarks (add, rename, retarget, move, nest, colour/styl
 
 ## Definition of done
 
-- [ ] PR opened from a fresh worktree; this file moved `ready/` → `ongoing/` in the PR's first commit (status field updated, PR link added)
+- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [ ] Work PR opened from a fresh worktree; **PR** field filled in
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the PR (status `done`), plan links updated, plan to-dos ticked
+- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
 - [ ] Squash-merged; dependants' "Depends on" now satisfied

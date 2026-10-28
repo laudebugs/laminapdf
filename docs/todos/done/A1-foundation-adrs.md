@@ -4,7 +4,7 @@
 | --- | --- |
 | ID | `A1` |
 | Status | `done` |
-| Plan | [architecture §5 Round A](../../plans/architecture.md#5-rounds-one-pull-request-each), [§7 Round A to-dos](../../plans/architecture.md#round-a--foundations) |
+| Plan | [architecture §5 Round A](../../plans/architecture.md#5-rounds), [§7 Round A to-dos](../../plans/architecture.md#round-a--foundations) |
 | Round / milestone | Round A (foundations) — M0 |
 | Depends on | None |
 | Blocks | [A2](./A2-monorepo-skeleton.md) |
