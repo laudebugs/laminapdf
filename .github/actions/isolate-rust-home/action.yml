@@ -1,0 +1,16 @@
+# Self-hosted runners run as a real user on a shared machine. Without this, setup-rust-toolchain
+# and install-action write into that user's ~/.cargo and ~/.rustup: they reinstall rustup and add
+# directory overrides, and two runners doing so at once can leave the user without a rustup binary.
+# This points CARGO_HOME and RUSTUP_HOME at the runner's own tool cache instead, so each runner
+# keeps a private, persistent Rust install. GitHub-hosted runners keep their preinstalled one.
+name: Isolate the Rust install on self-hosted runners
+description: Use a per-runner CARGO_HOME and RUSTUP_HOME on self-hosted runners.
+runs:
+  using: composite
+  steps:
+    - if: runner.environment == 'self-hosted'
+      shell: bash
+      run: |
+        echo "CARGO_HOME=$RUNNER_TOOL_CACHE/cargo" >> "$GITHUB_ENV"
+        echo "RUSTUP_HOME=$RUNNER_TOOL_CACHE/rustup" >> "$GITHUB_ENV"
+        echo "$RUNNER_TOOL_CACHE/cargo/bin" >> "$GITHUB_PATH"

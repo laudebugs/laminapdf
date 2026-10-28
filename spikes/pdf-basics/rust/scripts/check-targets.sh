@@ -5,7 +5,8 @@ set -euo pipefail
 
 cd "$(dirname "$0")/.."
 # shellcheck disable=SC1091
-[ -f "$HOME/.cargo/env" ] && source "$HOME/.cargo/env"
+cargo_env="${CARGO_HOME:-$HOME/.cargo}/env"
+[ -f "$cargo_env" ] && source "$cargo_env"
 
 step() { printf '\n==> %s\n' "$*"; }
 
