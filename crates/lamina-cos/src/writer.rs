@@ -167,12 +167,13 @@ impl Writer {
         let mut t = if trailer.contains_key("Size") {
             trailer.clone()
         } else {
-            Dict::new()
+            let mut fresh = Dict::new();
+            fresh.insert("Size", self.size()); // placeholder that fixes `/Size` as the first key
+            for (k, v) in trailer.iter() {
+                fresh.insert(k.clone(), v.clone());
+            }
+            fresh
         };
-        t.insert("Size", self.size());
-        for (k, v) in trailer.iter() {
-            t.insert(k.clone(), v.clone());
-        }
         t.insert("Size", self.size());
         write_trailer(&t, xref, &mut out);
         Ok(out)
@@ -362,6 +363,11 @@ fn document_keys(old: &Dict) -> impl Iterator<Item = (&Name, &Object)> {
     old.iter().filter(|(k, _)| !is_xref_key(k))
 }
 
+/// Like [`document_keys`], but keeps `/Size` so a classic trailer can hold it in its old position.
+fn document_keys_and_size(old: &Dict) -> impl Iterator<Item = (&Name, &Object)> {
+    old.iter().filter(|(k, _)| !is_xref_key(k) || k.as_bytes() == b"Size")
+}
+
 fn append_xref_table(
     out: &mut Vec<u8>,
     old: &Dict,
@@ -389,7 +395,7 @@ fn append_xref_table(
     }
     // `/Size` keeps the previous trailer's position (first when it had none).
     let mut trailer = Dict::new();
-    for (k, v) in old.iter().filter(|(k, _)| !is_xref_key(k) || k.as_bytes() == b"Size") {
+    for (k, v) in document_keys_and_size(old) {
         trailer.insert(k.clone(), v.clone());
     }
     trailer.insert("Size", size);
