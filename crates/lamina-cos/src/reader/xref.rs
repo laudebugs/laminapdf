@@ -3,13 +3,10 @@
 
 use std::collections::{BTreeMap, BTreeSet};
 
-use lamina_syntax::{Dict, Lexer, Object, Parser, Token, filters};
+use lamina_syntax::{DecodeBudget, Dict, Lexer, Limits, Object, Parser, Token, filters};
 
 use crate::error::{Error, Result};
 use crate::scan::{is_boundary, rfind};
-
-/// Upper bound on `/Prev` hops, so a crafted chain cannot keep us busy.
-const MAX_SECTIONS: usize = 4096;
 
 /// Trailer keys that only describe an xref *section* (classic table or xref stream), never the
 /// document: they are not carried over into a rebuilt or appended trailer (`/Size` is
@@ -65,6 +62,10 @@ pub(crate) struct XrefTable {
     pub(crate) has_xref_stream: bool,
     /// Whether the newest section (the one `startxref` points at) is an xref stream.
     pub(crate) newest_is_stream: bool,
+    /// Offsets of hybrid `/XRefStm` sections that could not be read (`xrefstm-ignored`).
+    pub(crate) ignored_xref_streams: Vec<u64>,
+    /// Entries dropped for exceeding `Limits::max_object_number` (`object-number-out-of-range`).
+    pub(crate) dropped_objects: BTreeSet<u32>,
 }
 
 fn invalid(message: &'static str) -> Error {
@@ -81,30 +82,44 @@ pub(crate) fn find_startxref(data: &[u8]) -> Result<usize> {
 }
 
 /// Walks the xref chain starting at `start`; newest entries win.
-pub(crate) fn load(data: &[u8], start: usize, limit: usize) -> Result<XrefTable> {
+///
+/// A chain longer than [`Limits::max_xref_sections`] (soft limit) fails like a loop, so the
+/// caller falls back to repair. Entries above [`Limits::max_object_number`] are dropped and
+/// listed in [`XrefTable::dropped_objects`].
+pub(crate) fn load(data: &[u8], start: usize, limits: &Limits, budget: &mut DecodeBudget) -> Result<XrefTable> {
     let mut table = XrefTable::default();
     let mut seen = BTreeSet::new();
     let mut next = Some(start);
     while let Some(offset) = next {
-        if !seen.insert(offset) || table.sections >= MAX_SECTIONS {
+        if !seen.insert(offset) {
             return Err(invalid("/Prev chain loops"));
         }
-        let (mut entries, trailer, is_stream) = parse_section(data, offset, limit)?;
+        if table.sections >= limits.max_xref_sections() {
+            return Err(invalid("more /Prev sections than Limits::max_xref_sections"));
+        }
+        let (mut entries, trailer, is_stream) = parse_section(data, offset, limits, budget)?;
         table.has_xref_stream |= is_stream;
         if let Some(stm) = trailer.get_int("XRefStm").and_then(|o| usize::try_from(o).ok()) {
             // Hybrid file: the classic table's in-use entries win; the stream only fills in
             // numbers the table omits or marks free (compressed objects are typically
             // hidden from pre-1.5 readers that way). A broken XRefStm is ignored.
-            if let Ok((stream_entries, _, _)) = parse_section(data, stm, limit) {
-                table.has_xref_stream = true;
-                for (num, entry) in stream_entries {
-                    if matches!(entries.get(&num), None | Some(XrefEntry::Free)) {
-                        entries.insert(num, entry);
+            match parse_section(data, stm, limits, budget) {
+                Ok((stream_entries, _, _)) => {
+                    table.has_xref_stream = true;
+                    for (num, entry) in stream_entries {
+                        if matches!(entries.get(&num), None | Some(XrefEntry::Free)) {
+                            entries.insert(num, entry);
+                        }
                     }
                 }
+                Err(_) => table.ignored_xref_streams.push(u64::try_from(stm).unwrap_or(u64::MAX)),
             }
         }
         for (num, entry) in entries {
+            if num > limits.max_object_number() {
+                table.dropped_objects.insert(num);
+                continue;
+            }
             table.entries.entry(num).or_insert(entry);
         }
         next = trailer.get_int("Prev").and_then(|p| usize::try_from(p).ok());
@@ -119,28 +134,30 @@ pub(crate) fn load(data: &[u8], start: usize, limit: usize) -> Result<XrefTable>
 
 type Section = (BTreeMap<u32, XrefEntry>, Dict, bool);
 
-fn parse_section(data: &[u8], offset: usize, limit: usize) -> Result<Section> {
-    let mut lex = Lexer::new(data, offset);
+fn parse_section(data: &[u8], offset: usize, limits: &Limits, budget: &mut DecodeBudget) -> Result<Section> {
+    let mut lex = Lexer::new(data, offset).with_limits(limits);
     lex.skip_whitespace();
     let pos = lex.pos();
     if data.get(pos..).is_some_and(|d| d.starts_with(b"xref")) && is_boundary(data, pos + 4) {
         lex.set_pos(pos + 4);
-        let (entries, trailer) = parse_table(&mut lex)?;
+        let (entries, trailer) = parse_table(&mut lex, limits)?;
         return Ok((entries, trailer, false));
     }
-    let (_, obj) = Parser::new(data, pos).indirect_object(&mut |_| None)?;
-    let Object::Stream(stream) = obj else {
+    let parsed = Parser::new(data, pos)
+        .with_limits(limits)
+        .indirect_object(&mut |_| None)?;
+    let Object::Stream(stream) = parsed.object else {
         return Err(invalid("startxref does not point at an xref"));
     };
     if stream.dict.get_name("Type") != Some(b"XRef") {
         return Err(invalid("stream at startxref is not /Type /XRef"));
     }
-    let decoded = filters::decode(&stream.dict, &stream.data, limit)?;
-    let entries = parse_stream_entries(&stream.dict, &decoded)?;
+    let decoded = filters::decode(&stream.dict, &stream.data, limits, budget)?;
+    let entries = parse_stream_entries(&stream.dict, &decoded.data)?;
     Ok((entries, stream.dict, true))
 }
 
-fn parse_table(lex: &mut Lexer<'_>) -> Result<(BTreeMap<u32, XrefEntry>, Dict)> {
+fn parse_table(lex: &mut Lexer<'_>, limits: &Limits) -> Result<(BTreeMap<u32, XrefEntry>, Dict)> {
     let mut entries = BTreeMap::new();
     loop {
         match lex.next_token()? {
@@ -175,7 +192,7 @@ fn parse_table(lex: &mut Lexer<'_>) -> Result<(BTreeMap<u32, XrefEntry>, Dict)> 
             _ => return Err(invalid("expected subsection or trailer")),
         }
     }
-    match Parser::new(lex.data(), lex.pos()).object()? {
+    match Parser::new(lex.data(), lex.pos()).with_limits(limits).object()? {
         Object::Dict(d) => Ok((entries, d)),
         _ => Err(invalid("trailer is not a dictionary")),
     }
@@ -249,6 +266,16 @@ fn parse_stream_entries(dict: &Dict, decoded: &[u8]) -> Result<BTreeMap<u32, Xre
 mod tests {
     use super::*;
 
+    fn load_default(data: &[u8], start: usize) -> Result<XrefTable> {
+        let limits = Limits::default();
+        load(data, start, &limits, &mut DecodeBudget::new(&limits))
+    }
+
+    fn section(data: &[u8]) -> Result<Section> {
+        let limits = Limits::default();
+        parse_section(data, 0, &limits, &mut DecodeBudget::new(&limits))
+    }
+
     /// A hybrid section: table says obj 1 in use at 100 and obj 2 free; the `/XRefStm`
     /// (uncompressed, `/W [1 2 1]`) says both are compressed in object stream 9.
     fn hybrid() -> (Vec<u8>, usize) {
@@ -267,15 +294,37 @@ mod tests {
     #[test]
     fn hybrid_table_in_use_entry_wins_over_xrefstm() {
         let (d, table) = hybrid();
-        let entry = load(&d, table, 1024).unwrap().entries.get(&1).copied();
+        let entry = load_default(&d, table).unwrap().entries.get(&1).copied();
         assert_eq!(entry, Some(XrefEntry::InFile { offset: 100, gen_nr: 0 }));
     }
 
     #[test]
     fn hybrid_xrefstm_fills_in_entry_the_table_marks_free() {
         let (d, table) = hybrid();
-        let entry = load(&d, table, 1024).unwrap().entries.get(&2).copied();
+        let entry = load_default(&d, table).unwrap().entries.get(&2).copied();
         assert_eq!(entry, Some(XrefEntry::InStream { stream: 9, index: 1 }));
+    }
+
+    #[test]
+    fn hybrid_with_broken_xrefstm_records_its_offset() {
+        let (mut d, table) = hybrid();
+        let at = d.windows(7).position(|w| w == b"7 0 obj").unwrap();
+        d[at] = b'x';
+        assert_eq!(load_default(&d, table).unwrap().ignored_xref_streams, [9]);
+    }
+
+    #[test]
+    fn load_drops_entries_above_max_object_number() {
+        let (d, table) = hybrid();
+        let limits = Limits::default().with_max_object_number(1);
+        let loaded = load(&d, table, &limits, &mut DecodeBudget::new(&limits)).unwrap();
+        assert_eq!(
+            (
+                loaded.entries.keys().copied().collect::<Vec<_>>(),
+                loaded.dropped_objects
+            ),
+            (vec![0, 1], BTreeSet::from([2]))
+        );
     }
 
     #[test]
@@ -286,13 +335,13 @@ mod tests {
     #[test]
     fn parse_table_accepts_mixed_eols() {
         let input = b"xref\n0 2\n0000000000 65535 f\r\n0000000017 00000 n \ntrailer\n<< /Size 2 >>";
-        let (entries, _, _) = parse_section(input, 0, 1024).unwrap();
+        let (entries, _, _) = section(input).unwrap();
         assert_eq!(entries.get(&1), Some(&XrefEntry::InFile { offset: 17, gen_nr: 0 }));
     }
 
     #[test]
     fn parse_table_rejects_huge_count_without_entries() {
-        assert!(parse_section(b"xref\n0 4000000000\ntrailer<<>>", 0, 1024).is_err());
+        assert!(section(b"xref\n0 4000000000\ntrailer<<>>").is_err());
     }
 
     #[test]

@@ -8,12 +8,13 @@
 
 mod common;
 
+use common::open;
 use common::{corpus, expected, fixture};
-use lamina_cos::{Document, ObjRef, open};
+use lamina_cos::{Document, ObjRef};
 use serde_json::Value;
 
 /// Runs `check` on every corpus file, collecting all mismatches into one readable failure.
-fn for_each_file(check: impl Fn(&str, &Document<'_>, &Value) -> Option<String>) {
+fn for_each_file(check: impl Fn(&str, &Document, &Value) -> Option<String>) {
     let expected = expected();
     let mut failures = Vec::new();
     for (name, bytes) in corpus() {

@@ -1,0 +1,46 @@
+{
+  "warnings": [
+    "missing-header",
+    "xref-repaired",
+    "xrefstm-ignored",
+    "stream-length-recovered",
+    "stale-generation",
+    "page-tree-node-skipped",
+    "page-count-mismatch",
+    "flate-truncated",
+    "objstm-index-mismatch",
+    "object-number-out-of-range",
+    "warnings-truncated"
+  ],
+  "errors": [
+    "not-pdf",
+    "missing-root",
+    "reference-cycle",
+    "limit-exceeded",
+    "strict",
+    "data-pending",
+    "source",
+    "type",
+    "invalid-structure",
+    "unset-object",
+    "repaired-base",
+    "encrypted-base",
+    "unexpected-eof",
+    "syntax",
+    "unsupported-filter",
+    "decompress"
+  ],
+  "limits": [
+    "max_nesting_depth",
+    "max_stream_decoded",
+    "max_decoded_total",
+    "max_filter_chain",
+    "max_resolve_depth",
+    "max_page_tree_depth",
+    "max_tree_depth",
+    "max_string_length",
+    "max_content_operators",
+    "max_xobject_depth",
+    "max_image_pixels"
+  ]
+}

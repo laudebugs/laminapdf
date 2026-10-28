@@ -10,11 +10,13 @@
 //! dictionary wins; if none does, the newest `/Type /Catalog` object (by the same file order)
 //! is adopted.
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 
 use super::objstm;
 use super::xref::{XREF_STREAM_KEYS, XrefEntry, XrefTable};
-use lamina_syntax::{Dict, Lexer, ObjRef, Object, Parser, Token, filters, find, is_regular, is_whitespace};
+use lamina_syntax::{
+    DecodeBudget, Dict, Lexer, Limits, ObjRef, Object, Parser, Token, filters, find, is_regular, is_whitespace,
+};
 
 use crate::error::{Error, Result};
 use crate::scan::is_boundary;
@@ -61,7 +63,7 @@ fn header_before(data: &[u8], obj_kw: usize) -> Option<Header> {
     Some((num, gen_nr, num_start))
 }
 
-fn trailer_dicts(data: &[u8]) -> Vec<(usize, Dict)> {
+fn trailer_dicts(data: &[u8], limits: &Limits) -> Vec<(usize, Dict)> {
     let mut out = Vec::new();
     let mut from = 0;
     while let Some(p) = find(data, b"trailer", from) {
@@ -69,7 +71,7 @@ fn trailer_dicts(data: &[u8]) -> Vec<(usize, Dict)> {
         if !is_boundary(data, from) || (p > 0 && !is_boundary(data, p - 1)) {
             continue;
         }
-        if let Ok(Object::Dict(d)) = Parser::new(data, from).object() {
+        if let Ok(Object::Dict(d)) = Parser::new(data, from).with_limits(limits).object() {
             out.push((p, d));
         }
     }
@@ -115,8 +117,8 @@ type Head = (Object, bool);
 /// data. Returns the value and whether it is a complete stream (a dictionary followed by
 /// `stream` and, somewhere later, `endstream`). A stream whose `endstream` is missing still
 /// yields its dictionary, so trailers and catalogs inside broken xref streams are recovered.
-fn parse_head(data: &[u8], offset: usize) -> Option<Head> {
-    let mut parser = Parser::new(data, offset);
+fn parse_head(data: &[u8], offset: usize, limits: &Limits) -> Option<Head> {
+    let mut parser = Parser::new(data, offset).with_limits(limits);
     parser.object_header().ok()?;
     let head = parser.object().ok()?;
     let is_stream = matches!(head, Object::Dict(_)) && {
@@ -143,15 +145,28 @@ fn offer(winners: &mut BTreeMap<u32, Candidate>, num: u32, candidate: Candidate)
     }
 }
 
-/// Decodes the object stream at `offset` and returns its members as candidates.
-fn object_stream_members(data: &[u8], offset: usize, stream: u32, limit: usize) -> Vec<(u32, Candidate)> {
-    let Ok((_, Object::Stream(s))) = Parser::new(data, offset).indirect_object(&mut |_| None) else {
+/// Decodes the object stream at `offset` and returns its members as candidates. A stream that
+/// can't be decoded (including one over a decode limit) contributes nothing.
+fn object_stream_members(
+    data: &[u8],
+    offset: usize,
+    stream: u32,
+    limits: &Limits,
+    budget: &mut DecodeBudget,
+) -> Vec<(u32, Candidate)> {
+    let Ok(parsed) = Parser::new(data, offset)
+        .with_limits(limits)
+        .indirect_object(&mut |_| None)
+    else {
         return Vec::new();
     };
-    let Ok(decoded) = filters::decode(&s.dict, &s.data, limit) else {
+    let Object::Stream(s) = parsed.object else {
         return Vec::new();
     };
-    let Ok(objs) = objstm::parse(&s.dict, &decoded) else {
+    let Ok(decoded) = filters::decode(&s.dict, &s.data, limits, budget) else {
+        return Vec::new();
+    };
+    let Ok(objs) = objstm::parse(&s.dict, &decoded.data, limits) else {
         return Vec::new();
     };
     (0u32..)
@@ -167,18 +182,30 @@ fn object_stream_members(data: &[u8], offset: usize, stream: u32, limit: usize) 
         .collect()
 }
 
-/// Rebuilds the cross-reference table by scanning the whole file.
-pub(crate) fn rebuild(data: &[u8], limit: usize) -> Result<XrefTable> {
+/// Rebuilds the cross-reference table by scanning the whole file. Definitions above
+/// [`Limits::max_object_number`] are dropped and listed in [`XrefTable::dropped_objects`].
+pub(crate) fn rebuild(data: &[u8], limits: &Limits, budget: &mut DecodeBudget) -> Result<XrefTable> {
     let headers = scan_object_headers(data);
     if headers.is_empty() {
         return Err(Error::NotPdf("no objects found"));
     }
+    let mut dropped_objects = BTreeSet::new();
+    let mut in_range = |num: u32| {
+        let ok = num <= limits.max_object_number();
+        if !ok {
+            dropped_objects.insert(num);
+        }
+        ok
+    };
     // In-file definitions first: the trailers and object streams found among the winners
     // decide which compressed members exist.
     let mut winners: BTreeMap<u32, Candidate> = BTreeMap::new();
     let mut heads: Vec<(u32, usize, Option<Head>)> = Vec::new();
     for &(num, gen_nr, offset) in &headers {
-        let head = parse_head(data, offset);
+        if !in_range(num) {
+            continue;
+        }
+        let head = parse_head(data, offset, limits);
         let candidate = Candidate {
             entry: XrefEntry::InFile { offset, gen_nr },
             position: (offset, 0),
@@ -195,7 +222,7 @@ pub(crate) fn rebuild(data: &[u8], limit: usize) -> Result<XrefTable> {
         heads.push((num, offset, head));
     }
 
-    let mut trailers = trailer_dicts(data);
+    let mut trailers = trailer_dicts(data, limits);
     let mut members = Vec::new();
     for (num, offset, head) in heads {
         let Some((Object::Dict(dict), is_stream)) = head else {
@@ -207,12 +234,16 @@ pub(crate) fn rebuild(data: &[u8], limit: usize) -> Result<XrefTable> {
         }
         match dict.get_name("Type") {
             Some(b"XRef") => trailers.push((offset, dict)),
-            Some(b"ObjStm") if is_stream => members.extend(object_stream_members(data, offset, num, limit)),
+            Some(b"ObjStm") if is_stream => {
+                members.extend(object_stream_members(data, offset, num, limits, budget));
+            }
             _ => {}
         }
     }
     for (member, candidate) in members {
-        offer(&mut winners, member, candidate);
+        if in_range(member) {
+            offer(&mut winners, member, candidate);
+        }
     }
 
     let has_xref_stream = trailers.iter().any(|(_, d)| d.get_name("Type") == Some(b"XRef"));
@@ -257,12 +288,19 @@ pub(crate) fn rebuild(data: &[u8], limit: usize) -> Result<XrefTable> {
         sections,
         has_xref_stream,
         newest_is_stream: false,
+        ignored_xref_streams: Vec::new(),
+        dropped_objects,
     })
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn rebuild_default(data: &[u8]) -> Result<XrefTable> {
+        let limits = Limits::default();
+        rebuild(data, &limits, &mut DecodeBudget::new(&limits))
+    }
 
     #[test]
     fn scan_finds_headers_and_skips_endobj() {
@@ -279,7 +317,7 @@ mod tests {
     fn rebuild_adopts_catalog_when_trailer_is_missing() {
         let data = b"%PDF-1.4\n1 0 obj << /Type /Catalog /Pages 2 0 R >> endobj\n";
         assert_eq!(
-            rebuild(data, 1024).unwrap().trailer.get("Root"),
+            rebuild_default(data).unwrap().trailer.get("Root"),
             Some(&Object::Ref(ObjRef::new(1, 0)))
         );
     }
@@ -288,7 +326,7 @@ mod tests {
     fn rebuild_keeps_intact_definition_when_later_one_is_unparsable() {
         let data = b"%PDF-1.4\n1 0 obj << /Type /Catalog /Pages 2 0 R >> endobj\n1 0 obj << /Pages ] endobj\n";
         assert_eq!(
-            rebuild(data, 1024).unwrap().entries.get(&1),
+            rebuild_default(data).unwrap().entries.get(&1),
             Some(&XrefEntry::InFile { offset: 9, gen_nr: 0 })
         );
     }
@@ -297,8 +335,24 @@ mod tests {
     fn rebuild_skips_trailer_root_that_is_not_a_dictionary() {
         let data = b"%PDF-1.4\n1 0 obj << /Type /Catalog >> endobj\n2 0 obj 42 endobj\ntrailer << /Root 2 0 R >>\n";
         assert_eq!(
-            rebuild(data, 1024).unwrap().trailer.get("Root"),
+            rebuild_default(data).unwrap().trailer.get("Root"),
             Some(&Object::Ref(ObjRef::new(1, 0)))
+        );
+    }
+}
+
+#[cfg(test)]
+mod limit_tests {
+    use super::*;
+
+    #[test]
+    fn rebuild_drops_definitions_above_max_object_number() {
+        let data = b"%PDF-1.4\n1 0 obj << /Type /Catalog >> endobj\n9 0 obj 42 endobj\n";
+        let limits = Limits::default().with_max_object_number(8);
+        let table = rebuild(data, &limits, &mut DecodeBudget::new(&limits)).unwrap();
+        assert_eq!(
+            (table.entries.keys().copied().collect::<Vec<_>>(), table.dropped_objects),
+            (vec![1], BTreeSet::from([9]))
         );
     }
 }
