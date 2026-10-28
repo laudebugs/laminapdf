@@ -380,7 +380,8 @@ impl Document {
             match checked {
                 Ok(_) => return Ok(doc),
                 // A cycle is a broken catalog like any other: repair may still find one.
-                Err(e @ (Error::Strict { .. } | Error::DataPending { .. })) => return Err(e),
+                // Strict refusals, missing data and source failures are never repaired around.
+                Err(e) if must_propagate(&e) => return Err(e),
                 Err(_) => {}
             }
         }
