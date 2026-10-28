@@ -46,6 +46,11 @@ jobs:
       - uses: ./.github/actions/isolate-rust-home
       # No `toolchain` input: installs exactly what rust-toolchain.toml pins (version, components, targets).
       - uses: actions-rust-lang/setup-rust-toolchain@ecabd13d1c56bd1345c230e542e9144811ad706f # v2.0.0
+        with:
+          # rust-cache's post step on macOS runs `sudo /usr/sbin/purge`, which hangs forever on
+          # self-hosted runners without passwordless sudo. Self-hosted runners keep their own
+          # CARGO_HOME between jobs, so caching is only for GitHub-hosted runners.
+          cache: ${{ runner.environment == 'github-hosted' }}
       # Same versions as tools/xtask/src/doctor.rs; xtask fails if they drift.
       - uses: taiki-e/install-action@86f7a0ffb25f40114606501a311ebcfaf882ea32 # v2.88.0
         with:
@@ -81,6 +86,10 @@ jobs:
       # runner; the check below names the toolchain explicitly instead.
       - uses: actions-rust-lang/setup-rust-toolchain@ecabd13d1c56bd1345c230e542e9144811ad706f # v2.0.0
         with:
+          # rust-cache's post step on macOS runs `sudo /usr/sbin/purge`, which hangs forever on
+          # self-hosted runners without passwordless sudo. Self-hosted runners keep their own
+          # CARGO_HOME between jobs, so caching is only for GitHub-hosted runners.
+          cache: ${{ runner.environment == 'github-hosted' }}
           toolchain: ${{ steps.msrv.outputs.version }}
           components: ""
           target: ""
@@ -126,6 +135,10 @@ jobs:
           echo "RUSTUP_TOOLCHAIN=$channel" >> "$GITHUB_ENV"
       - uses: actions-rust-lang/setup-rust-toolchain@ecabd13d1c56bd1345c230e542e9144811ad706f # v2.0.0
         with:
+          # rust-cache's post step on macOS runs `sudo /usr/sbin/purge`, which hangs forever on
+          # self-hosted runners without passwordless sudo. Self-hosted runners keep their own
+          # CARGO_HOME between jobs, so caching is only for GitHub-hosted runners.
+          cache: ${{ runner.environment == 'github-hosted' }}
           toolchain: ${{ steps.rust.outputs.channel }}
           components: ""
           target: ""
@@ -149,6 +162,10 @@ jobs:
       - uses: ./.github/actions/isolate-rust-home
       - uses: actions-rust-lang/setup-rust-toolchain@ecabd13d1c56bd1345c230e542e9144811ad706f # v2.0.0
         with:
+          # rust-cache's post step on macOS runs `sudo /usr/sbin/purge`, which hangs forever on
+          # self-hosted runners without passwordless sudo. Self-hosted runners keep their own
+          # CARGO_HOME between jobs, so caching is only for GitHub-hosted runners.
+          cache: ${{ runner.environment == 'github-hosted' }}
           cache-workspaces: spikes/pdf-basics/rust
       - run: spikes/pdf-basics/rust/scripts/check-targets.sh
       - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
