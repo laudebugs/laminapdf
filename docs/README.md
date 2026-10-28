@@ -10,6 +10,15 @@ Everything we know, plan and decide lives here, in Markdown, versioned with the 
 | [`guidelines/`](guidelines/) | How we work: contributing, git workflow, code organization, Rust and TypeScript conventions. |
 | [`references/`](references/) | Pointers to external specs, standards, tools and corpora we rely on. |
 
+## Spikes
+
+Time-boxed experiments under [`spikes/`](../spikes/) that answer one question each; each has a README with the result. They are outside both workspaces and never imported.
+
+| Spike | Question | Result |
+| --- | --- | --- |
+| [`pdf-basics`](../spikes/pdf-basics/) | Rust or TypeScript for the core? | Rust core (ADR 0001); see [research ch. 07](research/pdf/07-spike-rust-and-typescript.md) |
+| [`krilla-fit`](../spikes/krilla-fit/README.md) | Can krilla generate into lamina's object graph? | No (bytes only). Recommends an own builder over `lamina-cos` reusing `pdf-writer`, `subsetter`, `skrifa`, HarfRust; recorded in ADR 0005 §6 |
+
 ## Conventions
 
 - File names are `kebab-case.md`. Ordered series use a numeric prefix (`01-…`, `0001-…`).

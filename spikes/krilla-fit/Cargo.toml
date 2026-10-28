@@ -1,0 +1,20 @@
+[package]
+name = "lamina-krilla-fit"
+version = "0.0.0"
+edition = "2024"
+description = "Research spike: can krilla generate into lamina's object graph? (Round B1)"
+license = "MIT OR Apache-2.0"
+publish = false
+
+# Standalone: spikes are outside the root workspace (docs/guidelines/code-organization.md §1).
+[workspace]
+
+[dependencies]
+lamina-syntax = { path = "../../crates/lamina-syntax" }
+lamina-cos = { path = "../../crates/lamina-cos" }
+krilla = "=0.8.2"
+pdf-writer = "=0.15.0"
+subsetter = "=0.2.6"
+skrifa = "=0.42.0"
+png = "0.18"
+anyhow = "1"

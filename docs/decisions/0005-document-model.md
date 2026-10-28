@@ -1,6 +1,6 @@
 # 0005 — Document model: lazy COS over `ByteSource`, dirty overlay, typed views, `LaminaId`s
 
-- Status: Accepted, except §6 (generation strategy), which stays **Proposed** until the `krilla-fit` spike (B1b) reports
+- Status: Accepted. §6 (generation strategy) is recommended by the [`krilla-fit` spike](../../spikes/krilla-fit/README.md) and accepted when the spike's PR merges (owner sign-off)
 - Date: 2026-10-28
 
 ## Context
@@ -65,14 +65,23 @@ A `LaminaId` is an opaque, typed identifier for a page, annotation, outline item
 - **`/NM` is a hint, never the ID.** It is not unique in practice and is attacker-controlled. The model keeps a document-wide index from `/NM` to IDs for XFDF and sync matching; duplicates are reported as a warning and the lookup returns all matches. Annotations lamina creates get an `/NM` derived from their ID, which is unique document-wide.
 - **Across saves and reopen:** an incremental save never renumbers, and a full rewrite keeps object numbers by default ([ADR 0007](0007-save-planner.md)), so IDs survive save and reopen. With `Renumber::Compact`, the session applies the old → new map, and the `SaveReport` returns it for sidecars (sync, ADR 0012); after reopen, the compacted IDs are the new ones. lamina doesn't write private keys into files just to persist IDs.
 
-### 6. Generation strategy — **Proposed, open point**
+### 6. Generation strategy — Option B (recommended by the `krilla-fit` spike; accepted when its PR merges)
 
-Decided by the `krilla-fit` spike (`spikes/krilla-fit`, B1b), which generates a 3-page document into a `lamina-cos` graph and measures it.
+The `krilla-fit` spike ([`spikes/krilla-fit`](../../spikes/krilla-fit/README.md), B1b) generated the same 3-page document (subset font, PNG with alpha, JPEG, paths, link, outline) with krilla and with a minimal builder over `lamina-cos`, and measured both.
 
 - **Option A: krilla generates, lamina opens.** `finish()` serialises with krilla and opens the bytes as a `Document`. Gains krilla's text, tagging and PDF/A/UA work; costs a serialise-and-parse round trip, and content can't be added to an existing document this way, which full-editor E6 needs.
 - **Option B: `lamina-build` writes into the overlay.** Our own builder over `lamina-cos`, reusing the crates beneath krilla (`subsetter`, `skrifa`, HarfRust). One code path for new documents and for adding content to existing ones; more work up front.
 
-Criteria, in order: can krilla emit objects into a caller-owned object-number space; byte determinism across runs and targets ([ADR 0001](0001-core-language-and-licence.md)); time and output size for the 3-page sample; WASM size delta; coverage of PDF/UA-1 and PDF/A-2/3 needs (B8); licence and maintenance activity. The spike README records the decision and this section is updated to Accepted.
+**Decision: Option B.** Against the criteria, in order:
+
+1. **krilla can't emit into a caller-owned object-number space.** `Document::finish()` returns `Vec<u8>` only. Refs are allocated in a private `SerializeContext` from 1, and `ChunkContainer::finish` renumbers everything and writes its own catalog, XMP and trailer (all `pub(crate)` in krilla 0.8.2). Importing krilla's pages into an existing document works (0.11 ms for 3 pages), but outline, `Lang`, page labels and names need merge code, and the imported pages lose their tagging unless a structure-tree (`ParentTree`) merge is written.
+2. **Determinism:** both are byte-identical across runs.
+3. **Time and size** are equivalent: 3.98 ms / 104 497 B (krilla) against 3.51 ms / 102 624 B (lamina builder), release, best of 30.
+4. **WASM (gzip, no wasm-opt):** 830 KB with krilla against 377 KB for the lamina builder. The budget is 350 KB *including* shaping, so **both are over it**, the lamina builder before a shaper is even added. Own crates can be split into a base module and a lazily loaded text module (skrifa, subsetter, HarfRust); krilla can't. B6 (ADR 0016) must decide the split, re-measure with wasm-opt, and revise the budget if needed.
+5. **PDF/UA and PDF/A:** krilla's validators check the file krilla writes; after an import into a lamina `Document`, conformance has to be checked by lamina anyway. B8 builds lamina-side profiles, with krilla's rule lists as the reference.
+6. **Licence:** both are clean under `deny.toml`. krilla is active but mostly has one maintainer, and it pins the font stack (`skrifa` 0.42 while 0.49 is current).
+
+How it fits this ADR: the builder allocates objects in the overlay (§3) as `New` entries with fresh numbers. Objects that are known only at `finish()` (font programs after subsetting, the outline, the structure tree) are reserved at first use and filled in at the end; the spike does this with `Writer::reserve`/`set`. A new document is a `Document` whose base is empty; adding content to an open document uses the same path and saves incrementally. Content streams use `pdf_writer::Content` (bytes, no refs); dictionaries are lamina `Object`s. krilla is a reference implementation (code ported with attribution) and a test-only oracle for differential tests, not a dependency of core crates.
 
 ### 7. Threads
 
@@ -87,7 +96,7 @@ Criteria, in order: can krilla emit objects into a caller-owned object-number sp
 - Rebasing after every save means constraints, IDs and the next save always refer to what is actually on disk.
 - `Document` owns its input; the borrowed `Document<'a>`, `Rc` → `Arc` and windowed parsing are B2 work in `lamina-cos`, with the existing tests kept.
 - Page IDs are not persisted in the file; collaboration needs a sidecar map, which ADR 0012 already plans.
-- Until §6 is settled, B4 and B5 can't start the builder.
+- The builder is ours (§6): B4 (`lamina-text`) and B5 (`lamina-build`) build over the overlay with `pdf-writer`, `subsetter`, `skrifa` and HarfRust, and own tagging and conformance in B8.
 
 ## Alternatives considered
 

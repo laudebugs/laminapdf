@@ -76,7 +76,7 @@ Ship an importable, permissively licensed library that **generates correct PDFs 
 The architecture is in [architecture.md](architecture.md); this section lists only what the library adds.
 
 - **Crates** (Round B): `lamina-model`, `lamina-ops`, `lamina-save`, `lamina-text`, `lamina-build`, `lamina-content` (B9, proposed in ADR 0023), the `lamina` façade and `lamina-wasm`. Decryption lives in `lamina-syntax` (crypt filters) and is wired into `Document::open` in B2. Packages: `@lamina/pdf` (TS API, ESM-only) over `@lamina/wasm` (build output). Layout per [code organisation §1](../guidelines/code-organization.md#1-top-level-layout).
-- **Generation strategy** depends on the `krilla-fit` spike ([architecture §4](architecture.md#4-spikes-to-close-open-questions)): either depend on krilla and adapt its output into `lamina-cos`, or build a krilla-like builder directly over `lamina-cos`, reusing `subsetter`, `skrifa` and HarfRust. The spike decides in B1.
+- **Generation strategy** depends on the `krilla-fit` spike ([architecture §4](architecture.md#4-spikes-to-close-open-questions)): either depend on krilla and adapt its output into `lamina-cos`, or build a krilla-like builder directly over `lamina-cos`, reusing `subsetter`, `skrifa` and HarfRust. The [spike result](../../spikes/krilla-fit/README.md) recommends the second (recorded in [ADR 0005 §6](../decisions/0005-document-model.md); accepted when the spike's PR merges).
 - **Split WASM modules** (ADR 0016): the base module (COS, model, save, build) and a text module (shaping, subsetting) may be separate so pure-structure users don't pay for HarfRust. Decided by measurement in B6.
 - **TypeScript is synchronous after `init()`**. `init()` takes a URL, `Response`, bytes or a precompiled `WebAssembly.Module` (required on Workers). Export conditions: `browser`, `workerd`, `node`, `deno`, `default`; checked with publint and `attw --pack`.
 - **Lockstep versions** for the core crates, `@lamina/wasm` and `@lamina/pdf`; OIDC trusted publishing (ADR 0017).
@@ -219,7 +219,7 @@ Editing operations (merge, split, annotations, forms, signing…) are added to t
 
 | Risk | Mitigation |
 | --- | --- |
-| krilla cannot target our object graph, forcing a parallel builder | B1 spike before B4/B5; reuse `subsetter`/`skrifa`/HarfRust either way |
+| krilla cannot target our object graph, forcing a parallel builder | Confirmed by the [B1 spike](../../spikes/krilla-fit/README.md): own builder over `lamina-cos`, reusing `pdf-writer`/`subsetter`/`skrifa`/HarfRust and porting krilla's approaches with attribution |
 | WASM size grows past budget (shaping, ICU4X data) | Split text module; ICU4X data slicing; budget gate in CI |
 | Font licensing (fsType, bundled fonts) | Respect fsType; bundle no fonts in the core package; OFL fonts only in examples |
 | PDF/UA and PDF/A rules not testable automatically (Matterhorn has human checks) | Profile errors cover machine-checkable rules; docs state the rest |
@@ -228,7 +228,7 @@ Editing operations (merge, split, annotations, forms, signing…) are added to t
 
 ## 9. Open questions
 
-1. Generation strategy: depend on krilla or build over `lamina-cos`? (B1 decides.)
+1. ~~Generation strategy: depend on krilla or build over `lamina-cos`?~~ **Answered by the [`krilla-fit` spike](../../spikes/krilla-fit/README.md)** (recorded in [ADR 0005 §6](../decisions/0005-document-model.md); accepted when the spike's PR merges): krilla cannot write into an existing object graph (it only returns finished bytes). Recommendation: build `lamina-build` over `lamina-cos` and reuse `pdf-writer` (`Content`), `subsetter`, `skrifa` and HarfRust; use krilla as a reference and a test oracle, not as a core dependency.
 2. Do we ship an optional `@lamina/fonts` package (Noto subsets) for zero-config text, or always require font bytes?
 3. Do we offer a JSX/declarative layer on top of the builder, and when?
 4. Is a layout engine (flowing text, tables, pagination) a library goal, and is Typst embedding the route?
@@ -243,8 +243,8 @@ Editing operations (merge, split, annotations, forms, signing…) are added to t
 - [x] Write ADR 0006: `Op` enum shape, transactions, undo scope, barrier ops
 - [x] Write ADR 0007: `SavePlanner`, `SaveConstraint`, save ordering
 - [x] Write ADR 0018: goldens, corpus, differential and fuzz tiers
-- [ ] Run the `krilla-fit` spike: generate a 3-page document into a `lamina-cos` graph and measure size and time
-- [ ] Record the generation-strategy decision in the spike README and link it from ADR 0005
+- [x] Run the `krilla-fit` spike: generate a 3-page document into a `lamina-cos` graph and measure size and time ([result](../../spikes/krilla-fit/README.md))
+- [x] Record the generation-strategy decision in the spike README and link it from ADR 0005
 
 ### B2. Document model
 - [ ] Create `crates/lamina-model` with `Page`, `Outline`, `Info`, `NameTree` views

@@ -1,0 +1,4 @@
+/target
+# Downloaded by scripts/fetch-font.sh (OFL-1.1; OFL.txt is committed).
+/fonts/*.ttf
+/wasm-size/target

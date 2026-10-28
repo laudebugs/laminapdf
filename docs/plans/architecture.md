@@ -75,7 +75,7 @@ The research couldn't answer these. Each is a small, time-boxed spike under `spi
 | --- | --- | --- |
 | `desktop-ipc` | Throughput of Tauri Channel vs `ipc::Response` vs a `lamina://` scheme for page tiles on macOS, Windows and Linux; do WKWebView and WebKitGTK honour COOP/COEP? | ADR 0008 |
 | `pdfium-wasm` | Load PDFium-WASM in a worker next to the lamina core: bundle size, memory, render time; reload after an incremental save | ADR 0004 |
-| `krilla-fit` | Can krilla write into an existing object graph, or do we build our own builder over `lamina-cos`? | Library plan, Round B |
+| `krilla-fit` | Can krilla write into an existing object graph, or do we build our own builder over `lamina-cos`? | Library plan, Round B. **Done** ([result](../../spikes/krilla-fit/README.md)): no, krilla only emits finished bytes; recommends an own builder over `lamina-cos` reusing `pdf-writer`/`subsetter`/`skrifa`/HarfRust (ADR 0005 §6) |
 | `hayro-parity` | hayro vs PDFium pass rate on the pdf.js and PDFBox corpora: the baseline for switching the default | ADR 0004 |
 | `desktop-print` | How to print faithfully from Tauri on each OS (native print of rendered pages vs webview print), given the `hasNativePrint` capability | Round D |
 | `auth` | Better Auth / Auth.js on D1 vs hosted vendors, for the hosted service's user login and accounts (in scope since 2026-10-28, §8 Q2); run before the first round that needs accounts | ADR 0011 |
@@ -120,9 +120,9 @@ Product-level detail (features, milestones, acceptance criteria) lives in the pr
 - [ ] Update `CLAUDE.md` (layout, commands, decided architecture)
 
 ### Round B — Core model and the first package
-- [x] Write ADRs 0003, 0005, 0006, 0007, 0018 (B1; 0005's generation strategy waits for `krilla-fit`)
+- [x] Write ADRs 0003, 0005, 0006, 0007, 0018 (B1; 0005 §6, the generation strategy, settled by `krilla-fit`)
 - [ ] Write ADRs 0016, 0017
-- [ ] `krilla-fit` spike, then decide the generation strategy
+- [x] `krilla-fit` spike ([result](../../spikes/krilla-fit/README.md)), then decide the generation strategy (Option B, recorded in [ADR 0005 §6](../decisions/0005-document-model.md))
 - [ ] `lamina-model`: typed pages, annotations, fields, outline; stable IDs
 - [ ] `lamina-ops`: `Op` enum, `transact()`, inverses, undo/redo
 - [ ] `lamina-save`: save planner, `SaveConstraint`, streaming `WriteSink`
