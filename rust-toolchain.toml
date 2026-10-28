@@ -1,0 +1,6 @@
+# Pinned development toolchain; CI installs exactly this (rust.md: Toolchain, edition, MSRV).
+[toolchain]
+channel = "1.99.1"
+profile = "minimal"
+components = ["rustfmt", "clippy"]
+targets = ["wasm32-unknown-unknown", "aarch64-apple-ios", "aarch64-linux-android"]

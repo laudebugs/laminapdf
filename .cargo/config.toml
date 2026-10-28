@@ -1,0 +1,4 @@
+[alias]
+# The single task entry point: `cargo xtask <task>` (see tools/xtask and CLAUDE.md).
+# --locked: building xtask must not rewrite a stale Cargo.lock before its own --locked steps run.
+xtask = "run --locked --package xtask --"
