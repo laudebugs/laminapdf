@@ -23,8 +23,8 @@ All three share one engine, so each of the ~180 operations in the [feature inven
    framework-free viewer        native menus, updater           lamina (crates.io)
         │ typed RPC                  │ Channel / lamina://            │ direct calls
         ▼ (Web Worker)               ▼ (native, sandboxed process)    ▼ (WASM or native)
-   ┌──────────────────────── lamina-core (Rust, bytes in / bytes out) ───────────────────────┐
-   │ syntax · cos (lazy, dirty overlay) · model · ops (undo) · save planner · build · text   │
+   ┌──────────────────────── lamina core (Rust, bytes in / bytes out) ───────────────────────┐
+   │ crates: lamina-syntax · -cos · -model · -ops · -save · -build · -text (façade: lamina)   │
    └───────────────────────────────┬─────────────────────────────────────────────────────────┘
                                    ▼
         lamina-render: RenderBackend trait → PDFium (default) · hayro (CI oracle → future default)
@@ -34,7 +34,7 @@ All three share one engine, so each of the ~180 operations in the [feature inven
 
 ### Principles (each becomes part of an ADR)
 
-1. **Bytes in, bytes out.** The core never touches the file system, network, threads or clocks. Input arrives through a `ByteSource` trait, output leaves through a `WriteSink` trait. This was proven in the spike, and it is what makes one crate run in a browser worker, a Cloudflare Worker, Tauri and, later, mobile.
+1. **Bytes in, bytes out.** The core never touches the file system, network or clocks, and never spawns threads (shells may run it on several threads or workers). Input arrives through a `ByteSource` trait, output leaves through a `WriteSink` trait. This was proven in the spike, and it is what makes one crate run in a browser worker, a Cloudflare Worker, Tauri and, later, mobile.
 2. **Every change is a typed `Op`.** Undo, dirty tracking, collaboration sync and the public API all consume the same op stream.
 3. **The save planner owns correctness.** `SaveConstraint` (Free / AppendOnly / RequiresRewrite) makes signature-breaking or redaction-leaking saves impossible by default. Fixed order: redact → full rewrite → sign → append-only saves.
 4. **Rendering is swappable.** PDFium is the default renderer today. hayro (pure Rust) is diffed against it in CI and becomes the default once it reaches parity on our corpus. MuPDF is excluded (AGPL).
@@ -43,13 +43,13 @@ All three share one engine, so each of the ~180 operations in the [feature inven
 
 ## 3. Decisions to record (ADRs)
 
-ADRs go in `docs/decisions/`, one per round of work (see §5). The numbering follows the report.
+ADRs go in `docs/decisions/`, one file per decision (`NNNN-title.md`). Each round writes the ADRs assigned to it below (see §5). The numbering follows the report.
 
 | # | ADR | When | Status |
 | --- | --- | --- | --- |
 | 0001 | Core language (Rust), licence (MIT OR Apache-2.0), bytes-in/bytes-out | Round A | Ready |
 | 0002 | Binding strategy: wasm-bindgen + tsify; UniFFI later; napi-rs and Component Model deferred | Round A | Ready |
-| 0015 | Monorepo layout and tooling (Cargo + pnpm + just) | Round A | Ready |
+| 0015 | Monorepo layout and tooling (Cargo + pnpm + xtask) | Round A | Ready |
 | 0019 | Supply-chain and licence hygiene (cargo-deny, npm licence checks, SBOM) | Round A | Ready |
 | 0003 | Reader tolerance policy and `Limits` defaults | Round B | Ready |
 | 0005 | Document model: lazy COS overlay, typed views, stable `LaminaId`s | Round B | Propose |
@@ -77,14 +77,15 @@ The research couldn't answer these. Each is a small, time-boxed spike under `spi
 | `pdfium-wasm` | Load PDFium-WASM in a worker next to the lamina core: bundle size, memory, render time; reload after an incremental save | ADR 0004 |
 | `krilla-fit` | Can krilla write into an existing object graph, or do we build our own builder over `lamina-cos`? | Library plan, Round B |
 | `hayro-parity` | hayro vs PDFium pass rate on the pdf.js and PDFBox corpora: the baseline for switching the default | ADR 0004 |
+| `desktop-print` | How to print faithfully from Tauri on each OS (native print of rendered pages vs webview print), given the `hasNativePrint` capability | Round D |
 | `auth` (later) | Better Auth / Auth.js on D1 vs hosted vendors, for the optional server tier | ADR 0011 |
 
 ## 5. Rounds (one pull request each)
 
 Each round is one focused pull request, in its own worktree, reviewed before merge.
 
-- **Round A — Foundations.** ADRs 0001, 0002, 0015, 0019. Monorepo skeleton (`crates/`, `packages/`, `apps/`, `fixtures/`, `tools/xtask`, `justfile`, `deny.toml`, `rust-toolchain.toml`, pnpm workspace). CI fast lane. Port the spike's core into `crates/lamina-syntax` and `lamina-cos`, keeping its tests.
-- **Round B — Core model and the first package.** ADRs 0003, 0005–0007, 0016–0018. `lamina-model`, `lamina-ops`, `lamina-save`, `lamina-build`; `lamina-wasm` + `@lamina/pdf` with generation; the `krilla-fit` spike. CI full lane with golden tests. First pre-release to npm and crates.io.
+- **Round A — Foundations.** ADRs 0001, 0002, 0015, 0019. Monorepo skeleton (`crates/`, `packages/`, `apps/`, `fixtures/`, `tools/xtask`, `deny.toml`, `rust-toolchain.toml`, pnpm workspace). CI fast lane. Port the spike's core into `crates/lamina-syntax` and `lamina-cos`, keeping its tests.
+- **Round B — Core model and the first package.** ADRs 0003, 0005–0007, 0016–0018. `lamina-model`, `lamina-ops`, `lamina-save`, `lamina-build`; the `lamina` façade crate; `lamina-wasm` + `@lamina/pdf` with generation; the `krilla-fit` spike. CI full lane with golden tests. First pre-release to npm and crates.io.
 - **Round C — Web reader.** ADRs 0004, 0009–0011. `pdfium-wasm` and `hayro-parity` spikes; `@lamina/viewer`, `@lamina/ui`, `apps/web` on Workers static assets; Playwright tests; preview deploys per PR.
 - **Round D — Desktop reader.** `desktop-ipc` spike; ADRs 0008, 0014; `apps/desktop` (Tauri 2); `apps/updates` Worker + R2; signing and notarisation in CI.
 - **Later rounds.** Editing features by phase ([06 §9](../research/pdf/06-feature-inventory.md)), collaboration (ADR 0012), heavy jobs (ADR 0013). Each feature group gets its own plan and pull requests.
@@ -111,7 +112,7 @@ Product-level detail (features, milestones, acceptance criteria) lives in the pr
 - [ ] Write ADR 0019 (supply-chain and licence hygiene)
 - [ ] Create the root Cargo workspace (`[workspace.lints]`, `rust-toolchain.toml`, edition 2024, MSRV policy)
 - [ ] Create the pnpm workspace (`pnpm-workspace.yaml`, shared `tsconfig.base.json`, Biome config)
-- [ ] Add a `justfile` with `just check`, `just test`, `just wasm`, `just fmt`
+- [ ] Add `tools/xtask` with `cargo xtask check`, `test`, `wasm`, `fmt` (the single task entry point, per the code-organization guide)
 - [ ] Add `deny.toml` (licence allow-list without AGPL/GPL; advisories) and an npm licence check
 - [ ] CI fast lane: fmt, clippy `-D warnings`, nextest, wasm32 build with a size budget, TS typecheck/lint/test, cargo-deny
 - [ ] Port the spike reader/writer into `crates/lamina-syntax` + `crates/lamina-cos`, with its fixtures moved to `fixtures/`
@@ -125,6 +126,7 @@ Product-level detail (features, milestones, acceptance criteria) lives in the pr
 - [ ] `lamina-ops`: `Op` enum, `transact()`, inverses, undo/redo
 - [ ] `lamina-save`: save planner, `SaveConstraint`, streaming `WriteSink`
 - [ ] `lamina-build`: builder API (`Document → page → surface → finish() → Document`)
+- [ ] `lamina` façade crate: re-exports the public API of the core crates; this is what goes to crates.io
 - [ ] `lamina-text`: font embedding and subsetting for generation (see [03](../research/pdf/03-text-and-fonts.md))
 - [ ] `lamina-wasm` (wasm-bindgen + tsify) and `@lamina/pdf` (ESM-only, `init()`, export conditions; publint + attw)
 - [ ] Golden-file and corpus test harness in CI (full lane); fuzz targets under `fuzz/`
@@ -134,13 +136,14 @@ Product-level detail (features, milestones, acceptance criteria) lives in the pr
 - [ ] `pdfium-wasm` and `hayro-parity` spikes, with written results
 - [ ] Write ADRs 0004, 0009, 0010, 0011
 - [ ] `lamina-render` with the `RenderBackend` trait and PDFium/hayro adapters
+- [ ] `@lamina/render-pdfium` (ships pdfium.wasm, used by the web reader) and `@lamina/render-hayro` (pure-Rust renderer as its own .wasm), both optional so `@lamina/pdf` stays small
 - [ ] `@lamina/viewer`: worker RPC, page virtualiser, canvas pool, text layer, search
 - [ ] `@lamina/ui` (React 19) and `apps/web` on Workers static assets; per-PR previews
 - [ ] Playwright and visual regression tests; accessibility checks
 
 ### Round D — Desktop reader
-- [ ] `desktop-ipc` spike, then ADR 0008
-- [ ] `apps/desktop` (Tauri 2) reusing `@lamina/ui`; native core in a sandboxed process
+- [ ] `desktop-ipc` and `desktop-print` spikes, then ADR 0008
+- [ ] `apps/desktop` (Tauri 2) reusing `@lamina/ui`. Process model: all parsing and rendering of untrusted files runs in a sandboxed engine process; the main process only does file I/O (mmap, file watching) and passes bytes and tiles across the boundary
 - [ ] `apps/updates`: Worker + R2 update manifests with channels and staged rollout
 - [ ] Signing: Apple notarisation, Windows Artifact Signing, Linux AppImage/deb; tauri-action release workflow
 - [ ] Write ADR 0014
