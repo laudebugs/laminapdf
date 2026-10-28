@@ -1,10 +1,12 @@
 //! npm licence check: the JavaScript half of the supply-chain rules (cargo-deny covers Rust).
 //!
-//! Production dependencies must use a licence from [`ALLOWED`], the same allow-list as
-//! `deny.toml`. Dev-only tooling (bundlers, linters, test runners) never ships, so it is held to
-//! a looser rule: no copyleft licence ([`COPYLEFT_PREFIXES`]). Licences are SPDX expressions;
-//! `A OR B` passes when either side does, `A AND B` only when both do.
+//! Production dependencies must use a licence from `[licenses] allow` in `deny.toml`: one
+//! allow-list for both ecosystems, so they can't drift (ADR 0019). Dev-only tooling (bundlers,
+//! linters, test runners) is not shipped, so licences outside the list are reported but not
+//! blocked. Licences are SPDX expressions; `A OR B` passes when either side does, `A AND B` only
+//! when both do.
 
+use std::fs;
 use std::process::Command;
 
 use anyhow::{Context, Result, bail};
@@ -12,46 +14,47 @@ use serde_json::Value;
 
 use crate::workspace::Workspace;
 
-/// Licences allowed for shipped dependencies. Keep in sync with `[licenses] allow` in `deny.toml`.
-const ALLOWED: [&str; 10] = [
-    "MIT",
-    "Apache-2.0",
-    "Apache-2.0 WITH LLVM-exception",
-    "BSD-2-Clause",
-    "BSD-3-Clause",
-    "ISC",
-    "Zlib",
-    "0BSD",
-    "Unicode-3.0",
-    "BSL-1.0",
-];
-
-/// SPDX identifier prefixes treated as copyleft (strong or network): rejected even for dev tooling.
-const COPYLEFT_PREFIXES: [&str; 7] = ["GPL", "LGPL", "AGPL", "SSPL", "EUPL", "OSL", "CPAL"];
-
 /// Checks the licences of every npm dependency in the pnpm workspace.
 pub(crate) fn check_npm(ws: &Workspace) -> Result<()> {
-    crate::step("npm licences (pnpm licenses list)");
-    let mut problems = check_group(ws, "--prod", |id| ALLOWED.contains(&id))?;
-    problems.extend(check_group(ws, "--dev", |id| {
-        !COPYLEFT_PREFIXES.iter().any(|prefix| id.starts_with(prefix))
-    })?);
+    crate::step("npm licences (pnpm licenses list, allow-list from deny.toml)");
+    if !ws.root.join("node_modules").is_dir() {
+        bail!("node_modules is missing: run `pnpm install` at the repository root first");
+    }
+    let deny_toml = fs::read_to_string(ws.root.join("deny.toml")).context("reading deny.toml")?;
+    let allow_list = allow_list(&deny_toml).context("deny.toml has no `allow = [...]` licence list")?;
+    let allowed = |id: &str| allow_list.iter().any(|a| a == id);
+
+    for entry in disallowed(ws, "--dev", &allowed)? {
+        println!("note: dev-only dependency outside the allow-list (not shipped, not blocked): {entry}");
+    }
+    let problems = disallowed(ws, "--prod", &allowed)?;
     if problems.is_empty() {
-        println!("all npm licences allowed");
+        println!("all production npm licences allowed");
         Ok(())
     } else {
         bail!(
-            "npm dependencies with disallowed licences (see docs/guidelines/rust.md#dependencies):\n  {}",
+            "production npm dependencies with licences outside deny.toml's allow-list (ADR 0019):\n  {}",
             problems.join("\n  ")
         )
     }
 }
 
-/// Lists one dependency group (`--prod` or `--dev`) and returns the packages whose licence fails `allowed`.
-fn check_group(ws: &Workspace, group: &str, allowed: impl Fn(&str) -> bool) -> Result<Vec<String>> {
-    if !ws.root.join("node_modules").is_dir() {
-        bail!("node_modules is missing: run `pnpm install` at the repository root first");
-    }
+/// The quoted strings in the first `allow = [ … ]` array of `deny.toml`.
+fn allow_list(deny_toml: &str) -> Option<Vec<String>> {
+    let start = deny_toml.find("\nallow = [")?;
+    let rest = deny_toml.get(start..)?;
+    let body = rest.get(rest.find('[')? + 1..rest.find(']')?)?;
+    let list: Vec<String> = body
+        .lines()
+        .map(|line| line.split('#').next().unwrap_or_default().trim().trim_end_matches(','))
+        .filter_map(|item| item.strip_prefix('"')?.strip_suffix('"').map(str::to_owned))
+        .collect();
+    (!list.is_empty()).then_some(list)
+}
+
+/// Lists one dependency group (`--prod` or `--dev`) and returns `name (group): licence` for each
+/// package whose licence expression `allowed` rejects.
+fn disallowed(ws: &Workspace, group: &str, allowed: &impl Fn(&str) -> bool) -> Result<Vec<String>> {
     let output = Command::new("pnpm")
         .args(["licenses", "list", "--recursive", "--json", group])
         .current_dir(&ws.root)
@@ -68,17 +71,17 @@ fn check_group(ws: &Workspace, group: &str, allowed: impl Fn(&str) -> bool) -> R
     let Ok(Value::Object(by_licence)) = serde_json::from_str::<Value>(&stdout) else {
         bail!("unexpected output from pnpm licenses list {group}:\n{stdout}");
     };
-    let mut problems = Vec::new();
+    let mut found = Vec::new();
     for (licence, packages) in &by_licence {
-        if spdx_allows(licence, &allowed) {
+        if spdx_allows(licence, allowed) {
             continue;
         }
         for package in packages.as_array().into_iter().flatten() {
             let name = package.get("name").and_then(Value::as_str).unwrap_or("?");
-            problems.push(format!("{name} ({group}): {licence}"));
+            found.push(format!("{name} ({group}): {licence}"));
         }
     }
-    Ok(problems)
+    Ok(found)
 }
 
 /// Evaluates an SPDX licence expression: `OR` binds looser than `AND`, parentheses group, and
@@ -123,10 +126,22 @@ fn term(tokens: &mut Tokens<'_>, allowed: &impl Fn(&str) -> bool) -> Option<bool
 
 #[cfg(test)]
 mod tests {
-    use super::{ALLOWED, spdx_allows};
+    use super::{allow_list, spdx_allows};
+
+    const DENY_TOML: &str =
+        "[licenses]\nallow = [\n    \"MIT\",\n    \"Apache-2.0 WITH LLVM-exception\", # comment\n]\n";
 
     fn shipped(expression: &str) -> bool {
-        spdx_allows(expression, &|id: &str| ALLOWED.contains(&id))
+        let list = allow_list(DENY_TOML).unwrap();
+        spdx_allows(expression, &|id: &str| list.iter().any(|a| a == id))
+    }
+
+    #[test]
+    fn reads_allow_list_from_deny_toml() {
+        assert_eq!(
+            allow_list(DENY_TOML).unwrap(),
+            ["MIT", "Apache-2.0 WITH LLVM-exception"]
+        );
     }
 
     #[test]

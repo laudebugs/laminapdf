@@ -21,7 +21,7 @@ env:
 
 jobs:
   rust:
-    name: Rust (fmt, portability, clippy, tests, docs, wasm)
+    name: Rust (fmt, portability, clippy, tests, docs, cargo-deny, wasm)
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -30,9 +30,10 @@ jobs:
           persist-credentials: false
       # No `toolchain` input: installs exactly what rust-toolchain.toml pins (version, components, targets).
       - uses: actions-rust-lang/setup-rust-toolchain@ecabd13d1c56bd1345c230e542e9144811ad706f # v2.0.0
+      # Same versions as tools/xtask/src/doctor.rs; xtask fails if they drift.
       - uses: taiki-e/install-action@86f7a0ffb25f40114606501a311ebcfaf882ea32 # v2.88.0
         with:
-          tool: cargo-nextest
+          tool: cargo-nextest@0.9.150,cargo-deny@0.20.2
       - run: cargo xtask check rust
       - run: cargo xtask wasm
 
@@ -50,19 +51,6 @@ jobs:
           echo "MSRV: $msrv"
           rustup toolchain install "$msrv" --profile minimal
           cargo +"$msrv" check --locked --workspace --all-targets --all-features
-
-  deny:
-    name: cargo-deny (licences, advisories, bans, sources)
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-      - uses: EmbarkStudios/cargo-deny-action@3c6349835b2b7b196a839186cb8b78e02f7b5f25 # v2.1.1
-        with:
-          command: check
-          arguments: --all-features
 
   typescript:
     name: TypeScript (biome, typecheck, tests, npm licences)
@@ -82,7 +70,6 @@ jobs:
       # xtask is the entry point for the TS checks too; only the host toolchain is needed here.
       - uses: actions-rust-lang/setup-rust-toolchain@ecabd13d1c56bd1345c230e542e9144811ad706f # v2.0.0
       - run: cargo xtask check ts
-      - run: cargo xtask npm-licenses
 
   # The pdf-basics spike is frozen research code outside both workspaces, but its tests are the
   # evidence behind several decisions; keep them green until its code has been ported (Round A3).

@@ -56,8 +56,8 @@ Every repo-wide task goes through `cargo xtask` (source: `tools/xtask`). It runs
 ```sh
 pnpm install                 # once per worktree: Biome, TypeScript (needed by the TS checks)
 cargo xtask check            # everything a PR must pass: `check rust` + `check ts`
-cargo xtask check rust       # fmt --check, portability, clippy native + wasm32 (-D warnings), tests, rustdoc
-cargo xtask check ts         # biome ci, typecheck and tests of packages/* and apps/*
+cargo xtask check rust       # fmt --check, portability, clippy native + wasm32 (-D warnings), tests, rustdoc, cargo-deny
+cargo xtask check ts         # biome ci, typecheck and tests of packages/* and apps/*, npm licences
 cargo xtask fmt              # format Rust and TS/JSON (fmt --check only verifies)
 cargo xtask lint             # clippy (native all-targets + wasm32 core crates) and biome ci
 cargo xtask test             # cargo nextest (or cargo test) + doc tests, then TS tests
@@ -66,11 +66,12 @@ cargo xtask portability      # core crates: no fs/net/process/thread/clocks, no 
 cargo xtask wasm             # build the wasm32 crates with the size-optimised `wasm-release` profile
 cargo xtask deny             # cargo-deny (licences, advisories, bans, sources) + npm licence check
 cargo xtask npm-licenses     # npm licence check only
-cargo xtask ci               # the whole fast lane locally: check + wasm + deny
-cargo xtask doctor           # are cargo-deny, cargo-nextest, pnpm, node, wasm-opt … installed at the pinned versions?
+cargo xtask ci               # the whole fast lane locally: check + wasm
+cargo xtask doctor           # are rustc, node, pnpm, cargo-deny, cargo-nextest, wasm-opt … at the pinned versions?
+cargo xtask doctor --install # install the pinned cargo tools
 ```
 
-Every crate under `crates/` declares its layer in `Cargo.toml` (`[package.metadata.lamina] layer = "core" | "edge" | "app"`); xtask applies the bytes-in/bytes-out rules to core crates. `cargo-deny` and `cargo-nextest` are optional locally (`cargo install cargo-deny cargo-nextest --locked`); CI always runs them.
+Every crate under `crates/` declares its layer in `Cargo.toml` (`[package.metadata.lamina] layer = "core" | "edge" | "app"`); xtask applies the bytes-in/bytes-out rules to core crates. External tool versions are pinned in `tools/xtask/src/doctor.rs` (CI installs the same ones): `cargo-deny` is required by `check`; `cargo-nextest` is optional (falls back to `cargo test`).
 
 Research spikes (`spikes/`) are throwaway-quality APIs used to inform decisions, not the product. They are outside both workspaces; CI still runs the pdf-basics spike's checks in a separate job.
 

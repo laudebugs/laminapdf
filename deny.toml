@@ -6,13 +6,17 @@
 all-features = true
 
 [advisories]
-# RustSec advisories: vulnerable, unmaintained, unsound and yanked crates fail the check.
+# RustSec advisories: vulnerable, unsound and yanked crates fail the check. ADR 0019 wants
+# unmaintained advisories to warn, but cargo-deny >= 0.18 has no warn level for them: they fail
+# too, and each accepted one goes in `ignore` with its ID, a reason and a review date:
+#   { id = "RUSTSEC-YYYY-NNNN", reason = "…; review 2027-01" }
 yanked = "deny"
 ignore = []
 
 [licenses]
-# Permissive licences only. No GPL, LGPL or AGPL (copyleft) in anything we ship.
-# Keep in sync with ALLOWED in tools/xtask/src/licenses.rs (the npm check).
+# Permissive licences only (ADR 0019). No GPL, LGPL or AGPL in any form; MPL-2.0 and other weak
+# copyleft only as a per-crate exception with a written reason. OFL-1.1 only for font-data crates,
+# as a per-crate exception. This list is also the npm allow-list: `cargo xtask npm-licenses` reads it.
 allow = [
     "MIT",
     "Apache-2.0",
@@ -24,6 +28,7 @@ allow = [
     "0BSD",
     "Unicode-3.0",
     "BSL-1.0",
+    "CC0-1.0",
 ]
 confidence-threshold = 0.93
 # The allow-list is policy, not an inventory: licences nobody uses yet are fine.
@@ -40,7 +45,11 @@ wildcards = "deny"
 # Workspace path dependencies have no version; allowed because every member is publish = false.
 allow-wildcard-paths = true
 highlight = "all"
-deny = []
+# Belt and braces: AGPL PDF engines and their bindings, whatever licence metadata claims.
+deny = [
+    { name = "mupdf", reason = "AGPL-3.0 (ADR 0001, ADR 0019)" },
+    { name = "mupdf-sys", reason = "AGPL-3.0 (ADR 0001, ADR 0019)" },
+]
 skip = []
 
 [sources]

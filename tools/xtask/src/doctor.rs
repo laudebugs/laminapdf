@@ -1,5 +1,9 @@
-//! `cargo xtask doctor`: checks that the external tools xtask and CI rely on are installed, at
-//! the versions the repository pins.
+//! External tools xtask shells out to, pinned in one place (ADR 0015, ADR 0019).
+//!
+//! Tasks call [`require`] before using a tool, so an off-pin version fails with the fix command
+//! instead of producing different results. `cargo xtask doctor` checks them all, and
+//! `cargo xtask doctor --install` runs the fix commands that are safe to automate (`cargo install`).
+//! CI installs the same versions (`.github/workflows/ci.yml`); keep the two in sync.
 
 use std::fs;
 use std::process::Command;
@@ -8,103 +12,183 @@ use anyhow::{Context, Result, bail};
 
 use crate::workspace::Workspace;
 
-/// Binaryen release for `wasm-opt`. Bump it deliberately: its output is part of the shipped .wasm.
+/// cargo-deny release (`cargo xtask deny`, `check rust`).
+const CARGO_DENY_VERSION: &str = "0.20.2";
+/// cargo-nextest release (`cargo xtask test`; plain `cargo test` is the fallback when it is absent).
+const CARGO_NEXTEST_VERSION: &str = "0.9.150";
+/// Binaryen release for `wasm-opt`. Its output is part of the shipped .wasm, so bump it deliberately
+/// and review the wasm-opt feature list (ADR 0002) whenever this or `rust-toolchain.toml` changes.
 const BINARYEN_VERSION: &str = "133";
 /// The oldest Node major we support (`engines` in package.json; `.nvmrc` pins the one we develop on).
 const MIN_NODE_MAJOR: u32 = 22;
 
-/// When a tool must be present.
-#[derive(Clone, Copy, PartialEq, Eq)]
-enum Need {
-    /// Needed by `cargo xtask check`.
-    Required,
-    /// Needed by one task only (named), or not yet needed.
-    Optional(&'static str),
-}
-
-struct Tool {
+/// A pinned external tool.
+pub(crate) struct Tool {
     name: &'static str,
-    command: &'static [&'static str],
-    need: Need,
-    /// Text the version output must contain; `None` accepts any version.
-    pinned: Option<String>,
+    /// Command that prints the version.
+    version_command: &'static [&'static str],
+    /// Text the version output must contain (`None`: any version, checked by [`Tool::accepts`]).
+    pin: Option<String>,
+    /// How to install the pinned version; `cargo install …` commands are run by `doctor --install`.
+    fix: String,
+    /// `None` when every task needs it; otherwise what needs it.
+    optional_for: Option<&'static str>,
 }
 
-/// Checks every tool and fails if a required tool is missing or any present tool is off its pin.
-pub(crate) fn run(ws: &Workspace) -> Result<()> {
-    let wasm_bindgen = locked_version(ws, "wasm-bindgen")?;
-    let tools = [
-        Tool {
-            name: "rustc",
-            command: &["rustc", "--version"],
-            need: Need::Required,
-            pinned: Some(format!("rustc {} ", toolchain_channel(ws)?)),
-        },
-        Tool {
-            name: "pnpm",
-            command: &["pnpm", "--version"],
-            need: Need::Required,
-            pinned: Some(package_manager_pnpm(ws)?),
-        },
-        Tool {
-            name: "node",
-            command: &["node", "--version"],
-            need: Need::Required,
-            pinned: None,
-        },
-        Tool {
-            name: "cargo-deny",
-            command: &["cargo", "deny", "--version"],
-            need: Need::Optional("cargo xtask deny"),
-            pinned: None,
-        },
-        Tool {
-            name: "cargo-nextest",
-            command: &["cargo", "nextest", "--version"],
-            need: Need::Optional("faster tests; cargo test is the fallback"),
-            pinned: None,
-        },
-        Tool {
-            name: "wasm-bindgen-cli",
-            command: &["wasm-bindgen", "--version"],
-            need: Need::Optional("lamina-wasm; must match the wasm-bindgen crate in Cargo.lock"),
-            pinned: wasm_bindgen.map(|v| format!("wasm-bindgen {v}")),
-        },
-        Tool {
-            name: "wasm-opt (binaryen)",
-            command: &["wasm-opt", "--version"],
-            need: Need::Optional("lamina-wasm size optimisation"),
-            pinned: Some(format!("version {BINARYEN_VERSION}")),
-        },
-    ];
+/// What [`Tool::probe`] found.
+enum Probe {
+    Missing,
+    OffPin(String),
+    Ok(String),
+}
 
-    let mut failures = Vec::new();
-    for tool in &tools {
-        let (program, args) = tool.command.split_first().context("empty tool command")?;
+impl Tool {
+    fn probe(&self, ws: &Workspace) -> Probe {
+        let Some((program, args)) = self.version_command.split_first() else {
+            return Probe::Missing;
+        };
         let output = Command::new(program).args(args).current_dir(&ws.root).output();
         let version = match output {
             Ok(out) if out.status.success() => String::from_utf8_lossy(&out.stdout).trim().to_owned(),
-            _ => {
-                match tool.need {
-                    Need::Required => {
-                        println!("✗ {:<20} missing (required)", tool.name);
-                        failures.push(tool.name);
-                    }
-                    Need::Optional(why) => println!("- {:<20} not installed (optional: {why})", tool.name),
-                }
+            _ => return Probe::Missing,
+        };
+        if self.accepts(&version) {
+            Probe::Ok(version)
+        } else {
+            Probe::OffPin(version)
+        }
+    }
+
+    fn accepts(&self, version: &str) -> bool {
+        match &self.pin {
+            Some(pin) => version.contains(pin.as_str()),
+            // Node is the only range check: any major from MIN_NODE_MAJOR up.
+            None => self.name != "node" || node_major(version).is_some_and(|major| major >= MIN_NODE_MAJOR),
+        }
+    }
+
+    fn wanted(&self) -> String {
+        self.pin
+            .clone()
+            .unwrap_or_else(|| format!("v{MIN_NODE_MAJOR} or newer"))
+    }
+}
+
+pub(crate) fn cargo_deny() -> Tool {
+    Tool {
+        name: "cargo-deny",
+        version_command: &["cargo", "deny", "--version"],
+        pin: Some(format!("cargo-deny {CARGO_DENY_VERSION}")),
+        fix: format!("cargo install cargo-deny --locked --version {CARGO_DENY_VERSION}"),
+        optional_for: None,
+    }
+}
+
+pub(crate) fn cargo_nextest() -> Tool {
+    Tool {
+        name: "cargo-nextest",
+        version_command: &["cargo", "nextest", "--version"],
+        pin: Some(format!("cargo-nextest {CARGO_NEXTEST_VERSION}")),
+        fix: format!("cargo install cargo-nextest --locked --version {CARGO_NEXTEST_VERSION}"),
+        optional_for: Some("faster tests; cargo test is the fallback"),
+    }
+}
+
+/// Every tool, with pins read from the repository where they live (toolchain file, package.json, Cargo.lock).
+fn all_tools(ws: &Workspace) -> Result<Vec<Tool>> {
+    let channel = toolchain_channel(ws)?;
+    let pnpm = package_manager_pnpm(ws)?;
+    let wasm_bindgen = locked_version(ws, "wasm-bindgen")?;
+    Ok(vec![
+        Tool {
+            name: "rustc",
+            version_command: &["rustc", "--version"],
+            pin: Some(format!("rustc {channel} ")),
+            fix: "rustup show  # installs the toolchain pinned in rust-toolchain.toml".to_owned(),
+            optional_for: None,
+        },
+        Tool {
+            name: "node",
+            version_command: &["node", "--version"],
+            pin: None,
+            fix: "nvm install  # or any version manager reading .nvmrc".to_owned(),
+            optional_for: None,
+        },
+        Tool {
+            name: "pnpm",
+            version_command: &["pnpm", "--version"],
+            fix: format!("corepack enable  # or: npm install -g pnpm@{pnpm}"),
+            pin: Some(pnpm),
+            optional_for: None,
+        },
+        cargo_deny(),
+        cargo_nextest(),
+        Tool {
+            name: "wasm-bindgen-cli",
+            version_command: &["wasm-bindgen", "--version"],
+            fix: match &wasm_bindgen {
+                Some(v) => format!("cargo install wasm-bindgen-cli --locked --version {v}"),
+                None => "not needed until a crate depends on wasm-bindgen".to_owned(),
+            },
+            pin: wasm_bindgen.map(|v| format!("wasm-bindgen {v}")),
+            optional_for: Some("lamina-wasm (Round B); must match the wasm-bindgen crate in Cargo.lock"),
+        },
+        Tool {
+            name: "wasm-opt",
+            version_command: &["wasm-opt", "--version"],
+            pin: Some(format!("version {BINARYEN_VERSION}")),
+            fix: format!(
+                "download binaryen version_{BINARYEN_VERSION} from https://github.com/WebAssembly/binaryen/releases"
+            ),
+            optional_for: Some("lamina-wasm size optimisation (Round B)"),
+        },
+    ])
+}
+
+/// Fails unless `tool` is installed at its pinned version, naming the fix command.
+pub(crate) fn require(ws: &Workspace, tool: &Tool) -> Result<()> {
+    match tool.probe(ws) {
+        Probe::Ok(_) => Ok(()),
+        Probe::Missing => bail!("{} is not installed; run: {}", tool.name, tool.fix),
+        Probe::OffPin(found) => bail!("{} is {found}, want {}; run: {}", tool.name, tool.wanted(), tool.fix),
+    }
+}
+
+/// Whether `tool` is installed at its pinned version. Fails if it is installed at another version.
+pub(crate) fn available(ws: &Workspace, tool: &Tool) -> Result<bool> {
+    match tool.probe(ws) {
+        Probe::Ok(_) => Ok(true),
+        Probe::Missing => Ok(false),
+        Probe::OffPin(found) => bail!("{} is {found}, want {}; run: {}", tool.name, tool.wanted(), tool.fix),
+    }
+}
+
+/// `cargo xtask doctor [--install]`: reports every tool; fails on a missing required or off-pin tool.
+pub(crate) fn run(ws: &Workspace, install: bool) -> Result<()> {
+    let mut failures = Vec::new();
+    for tool in all_tools(ws)? {
+        let problem = match tool.probe(ws) {
+            Probe::Ok(version) => {
+                println!("✓ {:<17} {version}", tool.name);
                 continue;
             }
+            Probe::Missing => match tool.optional_for {
+                Some(why) => {
+                    println!(
+                        "- {:<17} not installed (optional: {why})\n  {:<17} {}",
+                        tool.name, "", tool.fix
+                    );
+                    continue;
+                }
+                None => "missing".to_owned(),
+            },
+            Probe::OffPin(found) => format!("{found}, want {}", tool.wanted()),
         };
-        let on_pin = tool.pinned.as_deref().is_none_or(|pin| version.contains(pin));
-        let node_ok = tool.name != "node" || node_major(&version).is_some_and(|major| major >= MIN_NODE_MAJOR);
-        if on_pin && node_ok {
-            println!("✓ {:<20} {version}", tool.name);
+        println!("✗ {:<17} {problem}\n  {:<17} fix: {}", tool.name, "", tool.fix);
+        if install && tool.fix.starts_with("cargo install ") {
+            let args: Vec<&str> = tool.fix.split_whitespace().skip(1).collect();
+            crate::run(&ws.root, "cargo", &args)?;
         } else {
-            let wanted = tool
-                .pinned
-                .clone()
-                .unwrap_or_else(|| format!("node >= {MIN_NODE_MAJOR}"));
-            println!("✗ {:<20} {version} (want: {wanted})", tool.name);
             failures.push(tool.name);
         }
     }
@@ -145,7 +229,7 @@ fn locked_version(ws: &Workspace, name: &str) -> Result<Option<String>> {
     Ok(None)
 }
 
-/// The value of a `key = "value"` line in a simple TOML file.
+/// The value of the first `key = "value"` line in a simple TOML file.
 fn toml_string(text: &str, key: &str) -> Option<String> {
     text.lines().find_map(|line| {
         let (k, v) = line.split_once('=')?;

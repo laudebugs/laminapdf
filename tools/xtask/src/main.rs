@@ -21,8 +21,8 @@ usage: cargo xtask <task> [args]
 
 tasks:
   check [rust|ts]   everything a PR must pass (default: rust and ts)
-                    rust: fmt --check, portability, clippy (native + wasm32), tests, rustdoc
-                    ts:   biome ci, typecheck and tests of the pnpm workspace
+                    rust: fmt --check, portability, clippy (native + wasm32), tests, rustdoc, cargo-deny
+                    ts:   biome ci, typecheck and tests of the pnpm workspace, npm licences
   fmt [--check]     format Rust (cargo fmt) and TS/JSON (biome); --check only verifies
   lint              clippy native (all targets) and wasm32 (core crates), biome ci
   test              Rust tests (cargo-nextest when installed, else cargo test) + doc tests, TS tests
@@ -31,8 +31,10 @@ tasks:
   wasm              build the wasm32 crates with the size-optimised `wasm-release` profile
   deny              cargo-deny (licences, advisories, bans, sources) + npm licence check
   npm-licenses      npm licence check only (pnpm licenses list)
-  ci                check + wasm + deny: the whole fast lane, locally
-  doctor            check that external tools are installed at their pinned versions
+  ci                check + wasm: the whole fast lane, locally
+  doctor [--install]
+                    check that external tools are installed at their pinned versions;
+                    --install runs the `cargo install` fixes
   help              show this message";
 
 /// Targets every core crate must build for (they are also pinned in `rust-toolchain.toml`).
@@ -69,13 +71,12 @@ fn main() -> Result<()> {
             licenses::check_npm(&ws)
         }
         ("npm-licenses", []) => licenses::check_npm(&ws),
-        ("doctor", []) => doctor::run(&ws),
+        ("doctor", []) => doctor::run(&ws, false),
+        ("doctor", [flag]) if flag == "--install" => doctor::run(&ws, true),
         ("ci", []) => {
             check_rust(&ws)?;
             check_ts(&ws)?;
-            wasm(&ws)?;
-            cargo_deny(&ws)?;
-            licenses::check_npm(&ws)
+            wasm(&ws)
         }
         ("help" | "-h" | "--help", _) => {
             println!("{USAGE}");
@@ -100,6 +101,7 @@ fn check_rust(ws: &Workspace) -> Result<()> {
     clippy(ws)?;
     rust_tests(ws)?;
     docs(ws)?;
+    cargo_deny(ws)?;
     step("Rust checks passed");
     Ok(())
 }
@@ -108,6 +110,7 @@ fn check_ts(ws: &Workspace) -> Result<()> {
     biome_ci(ws)?;
     ws.pnpm(&["-r", "--if-present", "run", "typecheck"])?;
     ts_tests(ws)?;
+    licenses::check_npm(ws)?;
     step("TypeScript checks passed");
     Ok(())
 }
@@ -148,10 +151,10 @@ fn clippy(ws: &Workspace) -> Result<()> {
 }
 
 fn rust_tests(ws: &Workspace) -> Result<()> {
-    if has_nextest(ws) {
+    if doctor::available(ws, &doctor::cargo_nextest())? {
         ws.cargo(&["nextest", "run", "--locked", "--workspace", "--all-features"])?;
     } else {
-        eprintln!("note: cargo-nextest not found, using cargo test (install: cargo install cargo-nextest --locked)");
+        eprintln!("note: cargo-nextest not installed, using cargo test (see `cargo xtask doctor`)");
         ws.cargo(&[
             "test",
             "--locked",
@@ -177,14 +180,6 @@ fn docs(ws: &Workspace) -> Result<()> {
         "--config",
         "build.rustdocflags=[\"-D\", \"warnings\"]",
     ])
-}
-
-fn has_nextest(ws: &Workspace) -> bool {
-    Command::new("cargo")
-        .args(["nextest", "--version"])
-        .current_dir(&ws.root)
-        .output()
-        .is_ok_and(|out| out.status.success())
 }
 
 /// The bytes-in/bytes-out rules for core crates (code-organization.md §2), then cross-target builds.
@@ -219,13 +214,7 @@ fn wasm(ws: &Workspace) -> Result<()> {
 }
 
 fn cargo_deny(ws: &Workspace) -> Result<()> {
-    let installed = Command::new("cargo")
-        .args(["deny", "--version"])
-        .output()
-        .is_ok_and(|out| out.status.success());
-    if !installed {
-        bail!("cargo-deny is not installed: cargo install cargo-deny --locked");
-    }
+    doctor::require(ws, &doctor::cargo_deny())?;
     ws.cargo(&["deny", "--all-features", "check"])
 }
 

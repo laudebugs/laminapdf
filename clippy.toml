@@ -5,9 +5,9 @@ allow-panic-in-tests = true
 allow-indexing-slicing-in-tests = true
 allow-dbg-in-tests = true
 
-# Determinism: hash iteration order is random, so output (PDF bytes, warnings, op logs) could
-# differ between runs. Use ordered collections instead.
+# Output must be byte-deterministic (ADR 0001): RandomState iteration order must never reach output.
+# Use BTreeMap/BTreeSet, IndexMap/IndexSet or a fixed-seed hasher.
 disallowed-types = [
-    { path = "std::collections::HashMap", reason = "iteration order is random; use BTreeMap (or IndexMap for insertion order)" },
-    { path = "std::collections::HashSet", reason = "iteration order is random; use BTreeSet (or IndexSet for insertion order)" },
+  { path = "std::collections::HashMap", reason = "random iteration order; use BTreeMap, IndexMap or a fixed hasher" },
+  { path = "std::collections::HashSet", reason = "random iteration order; use BTreeSet, IndexSet or a fixed hasher" },
 ]

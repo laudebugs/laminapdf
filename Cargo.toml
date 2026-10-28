@@ -3,9 +3,11 @@
 
 [workspace]
 resolver = "3"
+# ADR 0015 also lists "apps/*/src-tauri"; Cargo rejects a glob that matches nothing, so it is added
+# with the first Tauri app (Round D).
 members = ["crates/*", "tools/xtask"]
-# Spikes are frozen research code with their own manifests; they are never workspace members.
-exclude = ["spikes"]
+# Spikes are frozen research code and fuzz/ is its own (nightly) workspace: never members (ADR 0015).
+exclude = ["spikes", "fuzz"]
 
 [workspace.package]
 version = "0.0.0"
