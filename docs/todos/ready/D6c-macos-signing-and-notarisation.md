@@ -47,7 +47,7 @@ Every macOS artefact lamina publishes — the `.app` inside the updater `.app.ta
 
 ## Tasks
 
-- [ ] Fresh worktree; move this file to `ongoing/`. Load `tauri-v2`.
+- [ ] Fresh worktree; this todo is already claimed via the claim PR (see DoD). Load `tauri-v2`.
 - [ ] Entitlements files and `tauri.conf.json` macOS keys.
 - [ ] Helper/PDFium signing order; verify with `codesign -dvvv` in CI.
 - [ ] dmg notarisation + stapling step; retry/backoff around `notarytool` (Apple service hiccups) and a timeout.
@@ -92,4 +92,3 @@ Every macOS artefact lamina publishes — the `.app` inside the updater `.app.ta
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
 - [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
-- [ ] Squash-merged; dependants' "Depends on" now satisfied

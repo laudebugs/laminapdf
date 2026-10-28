@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [full-editor §E6](../../plans/full-editor.md#e6-adding-content-to-pages) |
 | Round / milestone | Editor phase 4 (E6–E7) — M7 Content editor |
-| Depends on | [B4b](./B4b-shaping-bidi-line-breaking.md), [B4c](./B4c-standard-14-and-simple-fonts.md), [E6b](./E6b-place-images-and-shapes.md) |
+| Depends on | [B4b](./B4b-shaping-bidi-line-breaking.md), [B4c](./B4c-standard-14-and-simple-fonts.md), [B8a](./B8a-structure-tree.md), [B8b](./B8b-conformance-profiles-and-verapdf.md), [E6b](./E6b-place-images-and-shapes.md), [X3a](./X3a-nightly-lane.md) |
 | Blocks | [E6d](./E6d-watermarks-headers-footers.md), [E6e](./E6e-content-tools-ui.md), [E7f](./E7f-font-handling-and-styling.md) |
 | Dependency notes | [E6b](E6b-place-images-and-shapes.md), `B4` ([pdf-library §B4](../../plans/pdf-library.md#b4-fonts-and-text): fonts, shaping, subsetting) |
 | ADRs | Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
@@ -46,7 +46,7 @@ Add text blocks anywhere: shaped and laid out by lamina-text, subset-embedded fo
 - **`SaveConstraint`:** `Free` → incremental. Signed: class `Content` is a DocMDP violation at every certification level (ADR 0007 §2: P1 allows no changes; P2 allows only form filling, page templates and signing; P3 adds annotations) → blocked unless the user confirms invalidating the named signatures (ADR 0007 §3 override). With approval signatures only (no certification): `AppendOnly`, an incremental update that keeps their `/ByteRange` intact; a violation only when it changes a field locked by FieldMDP/`/Lock` (the signature panel, E10h, reports the later content change)
 - **Web vs desktop:** desktop: system fonts (respect `fsType` embedding permissions); web: bundled OFL fonts and user-supplied files
 - **Server features:** none (this PR adds no server feature; all processing stays on the device)
-- **Capability-matrix rows to flip:** `A.01` → `round-trip` (core, pdf, web, desktop); `A.12` → `round-trip` (core, pdf, web, desktop)
+- **Capability-matrix rows to flip:** `A.01` → `round-trip` (core, pdf); `A.12` → `round-trip` (core, pdf) (web and desktop columns flip once, in [E6e](E6e-content-tools-ui.md), with the UI)
 
 ## Tasks
 
@@ -60,6 +60,7 @@ Add text blocks anywhere: shaped and laid out by lamina-text, subset-embedded fo
 
 - [ ] Library parity ([full-editor §5](../../plans/full-editor.md#5-requirements-that-hold-for-every-round) req. 7): every new `Op` is exposed in `lamina` and `@lamina/pdf` in this PR, with rustdoc/TSDoc, a runnable example, tsify-generated TS types, and serde samples frozen in `fixtures/ops/v1/` (unknown ops and fields rejected, ADR 0006 §1, §6)
 - [ ] Property tests: for every new op, apply then undo leaves the overlay empty and the next save is byte-identical to the previous one (ADR 0006 §3); redo re-applies the same bytes
+- [ ] Every new op reports exactly one `ModificationClass` and `requires_rewrite` (ADR 0006 §1); a test per op runs `planner.would_violate(&op)` on the signed fixtures (no certification, DocMDP P1, P2, P3, FieldMDP lock) and asserts the verdict ([ADR 0007](../../decisions/0007-save-planner.md) §2), because a misclassified op is a security bug
 - [ ] Round-trip: open → op → save → reopen in lamina, pdf.js and PDFium preserves the change and everything else (page count, outline, annotations, fields, struct tree facts in `expected.json`); `qpdf --check` is clean
 - [ ] Added text in five scripts extracts exactly (pdf.js, pdftotext, lamina)
 - [ ] Fonts with restricted `fsType` are refused with a coded error
@@ -92,4 +93,3 @@ None.
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
 - [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
-- [ ] Squash-merged; dependants' "Depends on" now satisfied

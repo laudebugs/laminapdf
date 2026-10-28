@@ -41,7 +41,7 @@ Close Round D2's acceptance bar: the reader's end-to-end scenarios run against t
   7. Kill engine via `debug_kill_engine` → toast → page re-renders.
   8. 1 GB generated fixture opens; first page painted within 1.5 s (measured in-app via `performance.now()` markers exposed to the test; assert with CI headroom, report raw).
 - Cargo feature `e2e` on `lamina-desktop` enabling `tauri-plugin-wdio-webdriver` (macOS) and the test-only commands; a separate capability file `capabilities/e2e.json` included only when the feature is on (via `tauri.e2e.conf.json` merged with `--config`), so release builds have neither the plugin nor the permissions.
-- CI job `desktop-e2e` (full lane, path-filtered) on `ubuntu-22.04` (xvfb), `windows-2022`, `macos-14`; builds `pnpm tauri build --debug --no-bundle --features e2e --config src-tauri/tauri.e2e.conf.json`; installs `tauri-driver` (pinned version in `tools/xtask/src/doctor.rs`), `webkit2gtk-driver`, and the matching `msedgedriver`; uploads screenshots/logs on failure.
+- CI job `desktop-e2e` (full lane, path-filtered) on `ubuntu-22.04` (xvfb), `windows-2022`, `macos-14`; runs `cargo xtask desktop-sidecar` (engine + PDFium) and builds `pnpm tauri build --debug --no-bundle --features e2e --config src-tauri/tauri.bundle.conf.json --config src-tauri/tauri.e2e.conf.json` (the bundle config carries the sidecar and PDFium, which D2b keeps out of the base config); installs `tauri-driver` (pinned version in `tools/xtask/src/doctor.rs`), `webkit2gtk-driver`, and the matching `msedgedriver`; uploads screenshots/logs on failure.
 - A release-build guard: CI asserts the release binary does not contain the embedded WebDriver plugin or `e2e_` command names.
 - macOS fallback documented: if the embedded driver is flaky (> 2 % failure over 50 runs in CI), the macOS job is reduced to the web Playwright run plus `apps/desktop/e2e/MANUAL-SMOKE.md` checklist, and ADR 0008 records the gap.
 - ADR 0008 §test strategy finalised.
@@ -54,7 +54,7 @@ Close Round D2's acceptance bar: the reader's end-to-end scenarios run against t
 
 ## Tasks
 
-- [ ] Fresh worktree; move this file to `ongoing/`. Load `tauri-v2`.
+- [ ] Fresh worktree; this todo is already claimed via the claim PR (see DoD). Load `tauri-v2`.
 - [ ] Add devDeps `@wdio/cli`, `@wdio/local-runner`, `@wdio/mocha-framework` (or Jasmine), `@wdio/spec-reporter`, `@wdio/tauri-service` (pinned via `catalog:`; licence check: MIT).
 - [ ] Add `tauri-plugin-wdio-webdriver` as an optional dependency of `lamina-desktop` under feature `e2e` (licence check), registered only with `#[cfg(feature = "e2e")]`.
 - [ ] Test-only commands under `e2e`: `e2e_open_path(path)` (path must be under the repo's `fixtures/` or `target/fixtures/` — checked), `e2e_metrics()` (first-paint timestamps), reuse `debug_kill_engine`.
@@ -101,4 +101,3 @@ This PR is tests: WebdriverIO scenarios under `apps/desktop/e2e/specs/`, fixture
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
 - [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
-- [ ] Squash-merged; dependants' "Depends on" now satisfied

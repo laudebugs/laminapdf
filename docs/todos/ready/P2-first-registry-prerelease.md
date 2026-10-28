@@ -48,14 +48,16 @@ Publish lamina for the first time: a `0.x` pre-release of every public crate on 
 
 ## Acceptance criteria
 
-- [ ] Packages are on crates.io and npm with provenance (npm shows the provenance badge) and attestations on the GitHub release
-- [ ] Clean installs from the registries run the quick start in Node 22/24/26, Deno, Bun, Chromium (Vite), workerd and native Rust
-- [ ] docs.rs builds the crates
-- [ ] cargo-semver-checks runs on PRs and fails a deliberate breaking change in a test branch
+- [ ] The release workflow's publish steps pass a dry run on the branch (`cargo publish --dry-run` for every crate in dependency order; `pnpm publish --dry-run` for each package), with provenance and attestation settings present
+- [ ] `cargo xtask verify-install --from-registry` exists and passes on the branch against local stand-in registries (Verdaccio for npm, a local Cargo alternative registry) populated from this PR's packages, proving the harness before the real publish
+- [ ] cargo-semver-checks runs on PRs and fails a deliberate breaking change in a test branch; the TS API diff job fails a deliberate change the same way
 
 ## Post-merge checks
 
-None.
+- [ ] The release workflow published the version: packages are on crates.io and npm with provenance (npm shows the provenance badge) and attestations on the GitHub release
+- [ ] Clean installs from the registries run the quick start in Node 22/24/26, Deno, Bun, Chromium (Vite), workerd and native Rust (`verify-install --from-registry` in the release lane)
+- [ ] docs.rs builds the crates
+- [ ] The docs site's install pages show registry installs (production deploy)
 
 ## Tests
 
@@ -79,4 +81,3 @@ Release-lane install verification; semver-check job.
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
 - [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
-- [ ] Squash-merged; dependants' "Depends on" now satisfied

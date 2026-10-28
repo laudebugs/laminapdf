@@ -58,7 +58,7 @@ Answer, with numbers from all three desktop webviews (WKWebView on macOS, WebVie
 
 ## Tasks
 
-- [ ] Create a fresh worktree off `main` (`git worktree add -b spike/d1a-desktop-ipc spike-d1a-desktop-ipc main`); move this file to `ongoing/` in the first commit.
+- [ ] Create a fresh worktree off `main` (`git worktree add -b spike/d1a-desktop-ipc spike-d1a-desktop-ipc main`); this todo is already claimed via the claim PR (see DoD), so do not move it here.
 - [ ] Load the `tauri-v2` and `rust-best-practices` skills.
 - [ ] Scaffold `spikes/desktop-ipc/` with `pnpm create tauri-app` (vanilla TS + Vite), then trim: `src-tauri/src/main.rs` thin (`fn main() { desktop_ipc::run() }`), all logic in `src-tauri/src/lib.rs`; `[lib] crate-type = ["staticlib", "cdylib", "rlib"]`; pin `tauri = "2.x.y"` and `@tauri-apps/api`/`@tauri-apps/cli` to the same minor (record versions in the README).
 - [ ] Add `spikes/desktop-ipc` to the list of excluded paths so neither the Cargo workspace nor `pnpm-workspace.yaml` picks it up (check `Cargo.toml` `exclude` and the spike convention in `spikes/krilla-fit`).
@@ -113,4 +113,3 @@ Spike code: no test suite required. Sanity checks inside the benchmark: every re
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
 - [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
-- [ ] Squash-merged; dependants' "Depends on" now satisfied

@@ -54,26 +54,27 @@ Put the desktop reader in users' hands: tag and publish `desktop v0.1.0` to the 
 
 ## Tasks
 
-- [ ] Fresh worktree; move this file to `ongoing/`. Load `tauri-v2`.
+- [ ] Fresh worktree; this todo is already claimed via the claim PR (see DoD). Load `tauri-v2`.
 - [ ] Work through the pre-release checklist; collect evidence links (CI runs, VM notes).
 - [ ] Version bump, changelog, release notes.
 - [ ] Merge the PR (versions and notes) **before** tagging; tag from `main`; approve the `release` environment deployment (owner).
 - [ ] Verify published artefacts with the runbook commands on each OS; verify the download page.
-- [ ] Run the 0.1.1 update cycle and kill-switch rehearsal; record results in a follow-up commit to this todo (the PR may stay open until the cycle completes, or a second small PR records it — keep this file in `ongoing/` until done).
+- [ ] After merge and the `desktop-v0.1.0` tag: run the 0.1.1 update cycle and kill-switch rehearsal (Post-merge checks) and record the results in a follow-up PR that ticks them in the `done/` file.
 - [ ] Update plans and board; open follow-up todos.
 
 ## Acceptance criteria
 
 - [ ] `desktop v0.1.0` is downloadable from `<domain>/download` for macOS, Windows and Linux; each artefact passes the runbook's signature checks (Gatekeeper, Authenticode with the owner as publisher, GPG/debsig/rpm, AppImage) and `gh attestation verify`.
-- [ ] At least one install per OS on the beta channel auto-updated from `0.1.0` to `0.1.1` (recorded: OS version, install type, time to update).
-- [ ] Kill switch rehearsal: `paused` on `beta` → every poll returns 204 within 60 s of the manifest write (measured worst case recorded; anything over 30 s is investigated as a sign of a second cache layer) → resumed (recorded).
+- [ ] The 0.1.1 update-cycle and kill-switch rehearsal procedure (below) is written in the runbook and linked from the PR.
 - [ ] Crash reporting: zero reports sent without consent (no reports at all is fine); any received reports triaged into follow-up todos.
 - [ ] Known issues and target misses are listed in the release notes and have follow-up todos.
 
 ## Post-merge checks
 
 - [ ] Tag `desktop-v0.1.0` from `main` after this PR merges and approve the `release` environment; the publish job and post-publish Worker check are green.
-- [ ] The 0.1.1 update cycle and kill-switch rehearsal (acceptance criteria above) are recorded in a follow-up commit while this file stays in `ongoing/`.
+- [ ] At least one install per OS on the beta channel auto-updated from `0.1.0` to `0.1.1` (recorded: OS version, install type, time to update).
+- [ ] Kill switch rehearsal: `paused` on `beta` → every poll returns 204 within 60 s of the manifest write (measured worst case recorded; anything over 30 s is investigated as a sign of a second cache layer) → resumed (recorded).
+- [ ] Both are recorded in a follow-up PR that ticks these boxes in the `done/` file (this todo moves to `done/` with its work PR, per the DoD).
 
 ## Tests
 
@@ -81,7 +82,7 @@ No new automated tests required; the release relies on the CI suites from D2e–
 
 ## Docs to update
 
-- `docs/plans/desktop-app.md`: tick "Ship `desktop v0.1` on the beta channel and complete one auto-update cycle"; set plan status (e.g. "Beta shipped") — and answer open questions 4 and 5 with links.
+- `docs/plans/desktop-app.md`: tick "Ship `desktop v0.1` on the beta channel and complete one auto-update cycle" in the follow-up PR that records the cycle (Post-merge checks); in the work PR set plan status (e.g. "Beta shipped") — and answer open questions 4 and 5 with links.
 - `docs/plans/roadmap.md` M3 status: **do not edit here** unless the roadmap owner agrees; note M3 completion in the PR for the roadmap owner.
 - `README.md` (project): desktop beta mention and download link; `apps/desktop/CHANGELOG.md`.
 
@@ -90,7 +91,7 @@ No new automated tests required; the release relies on the CI suites from D2e–
 - **SmartScreen warnings** (OV path) will deter some Windows beta users; the release notes and download page explain it.
 - **Linux graphics** issues on NVIDIA/Wayland: the renderer switch and crash-loop guard should cover them; collect reports.
 - **Update failures in the field** (permissions, AV interference on Windows, AppImage location not writable): monitor via user reports; the bridge-release mechanism in ADR 0014 handles bad releases.
-- **Timing**: the update cycle needs real elapsed time; keep this todo `ongoing/` until the cycle is recorded.
+- **Timing**: the update cycle needs real elapsed time, so it is a Post-merge check recorded in a follow-up PR; the plan's "complete one auto-update cycle" box is ticked in that follow-up, not in the work PR.
 
 ## Definition of done
 
@@ -99,4 +100,3 @@ No new automated tests required; the release relies on the CI suites from D2e–
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
 - [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
-- [ ] Squash-merged; dependants' "Depends on" now satisfied

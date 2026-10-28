@@ -61,6 +61,7 @@ Create `lamina-sign`: signature dictionary with `/ByteRange` and fixed-size `/Co
 ## Acceptance criteria
 
 - [ ] Library parity ([full-editor §5](../../plans/full-editor.md#5-requirements-that-hold-for-every-round) req. 7): every new `Op` is exposed in `lamina` and `@lamina/pdf` in this PR, with rustdoc/TSDoc, a runnable example, tsify-generated TS types, and serde samples frozen in `fixtures/ops/v1/` (unknown ops and fields rejected, ADR 0006 §1, §6)
+- [ ] Every new op reports exactly one `ModificationClass` and `requires_rewrite` (ADR 0006 §1); a test per op runs `planner.would_violate(&op)` on the signed fixtures (no certification, DocMDP P1, P2, P3, FieldMDP lock) and asserts the verdict ([ADR 0007](../../decisions/0007-save-planner.md) §2), because a misclassified op is a security bug. Expected for `Sign`: allowed with no certification, on P2 and P3 and on the FieldMDP-lock fixture; violation on P1
 - [ ] Signed output validates in pyHanko, `pdfsig` (external), Adobe Reader (manual, recorded) and EU DSS validation (B-B)
 - [ ] Signing on a base with a pending rewrite reason that exists already (a repaired base, ADR 0007 §2) produces the full rewrite then the signature as an incremental revision in one save (ADR 0007 §4); the same ordering with a pending redaction is tested in [E12d](E12d-scrub-and-rewrite.md), once `ApplyRedactions` exists
 - [ ] Byte layout satisfies the SWA defences (a=0, exact gap, hex-only)
@@ -91,4 +92,3 @@ None.
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
 - [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
-- [ ] Squash-merged; dependants' "Depends on" now satisfied

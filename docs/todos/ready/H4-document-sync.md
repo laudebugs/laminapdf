@@ -7,7 +7,7 @@
 | Plan | [full-editor: optional Cloudflare server features](../../plans/full-editor.md#optional-cloudflare-server-features) (cloud storage and sync) |
 | Round / milestone | Hosted service foundation (accounts, cloud storage, sync) — before the first round that needs accounts |
 | Depends on | [D3b](./D3b-recent-files-and-file-watching.md), [H3](./H3-cloud-document-storage.md) |
-| Blocks | None |
+| Blocks | [E18d](./E18d-durable-object-server.md), [E18g](./E18g-leases-and-base-revisions.md) |
 | Dependency notes | [H3](H3-cloud-document-storage.md), `D3` ([desktop-app §D3](../../plans/desktop-app.md#d3-files): files and watching) |
 | ADRs | Implements ADR 0011. Does not follow ADR 0012 ([E18a](E18a-adr-0012-collaboration.md) comes much later): the whole-file `base_revision` chain is defined here, and E18a should reuse it for its base revisions |
 | Branch | `feat/h4-document-sync` |
@@ -31,6 +31,7 @@ Keep a user's cloud documents in sync across their devices: new revisions pushed
 **In scope**
 
 - Revision chain per file with `base_revision` on upload; server rejects stale bases → client creates a conflict copy
+- This revision chain (and H3's R2 blob store and D1 index) is the single document store: [E18d](E18d-durable-object-server.md) reuses it for shared documents rather than adding its own, and [E18g](E18g-leases-and-base-revisions.md) adds a `base-purged` change-feed event for redaction. The change feed's event schema is versioned so that event can be added without breaking older clients
 - Change feed as a poll endpoint (`GET /sync/changes?since=<cursor>`) on the Worker; no Durable Object and no ADR 0012 dependency
 - Desktop: local cache folder, background sync, offline queue
 - Web: sync on open/save; OPFS cache
@@ -64,7 +65,7 @@ Keep a user's cloud documents in sync across their devices: new revisions pushed
 
 ## Post-merge checks
 
-None.
+- [ ] D1 migration (revision chain, change-feed cursor) applied to production and the Worker deployed by the deploy workflow on `main`; a two-device sync against production works (link the run)
 
 ## Tests
 
@@ -88,4 +89,3 @@ None.
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
 - [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
-- [ ] Squash-merged; dependants' "Depends on" now satisfied

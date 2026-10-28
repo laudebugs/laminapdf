@@ -7,7 +7,7 @@
 | Plan | [full-editor §E16](../../plans/full-editor.md#e16-optimisation-and-print-production) |
 | Round / milestone | Editor phase 6 (E11–E17) — M9 Advanced |
 | Depends on | [E15e](./E15e-pdfua-output.md), [E16c](./E16c-images-and-fonts.md), [E16d](./E16d-colour.md) |
-| Blocks | None |
+| Blocks | [E16g](./E16g-server-batch-optimise.md) |
 | ADRs | Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
 | Branch | `feat/e16e-preflight-and-conversion` |
 | PR title | `feat(preflight): rule-based preflight and PDF/A/X conversion` |
@@ -83,4 +83,3 @@ None.
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
 - [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
-- [ ] Squash-merged; dependants' "Depends on" now satisfied

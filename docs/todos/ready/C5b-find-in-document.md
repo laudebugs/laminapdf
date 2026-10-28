@@ -7,7 +7,7 @@
 | Plan | [web reader §6 C5. Text, selection and search](../../plans/web-app.md#c5-text-selection-and-search) |
 | Round / milestone | Round C (web reader) — M2 Web reader v0.1 |
 | Depends on | [B9c](./B9c-text-extraction-bindings-and-differential.md), [C3c](./C3c-viewer-perf-harness.md), [C5a](./C5a-text-layer-and-selection.md) |
-| Blocks | [C7a](./C7a-accessibility-and-theming.md), [E3c](./E3c-links.md), [E4c](./E4c-appearances-markup-notes-caret.md), [E7g](./E7g-search-and-replace.md), [E12e](./E12e-sensitive-search.md), [E14c](./E14c-compare.md) |
+| Blocks | [C7a](./C7a-accessibility-and-theming.md), [C7b](./C7b-offline-pwa.md), [E3c](./E3c-links.md), [E4c](./E4c-appearances-markup-notes-caret.md), [E7g](./E7g-search-and-replace.md), [E12e](./E12e-sensitive-search.md), [E14c](./E14c-compare.md) |
 | Dependency notes | [C5a](./C5a-text-layer-and-selection.md); library **B9** ([pdf-library B9](../../plans/pdf-library.md#b9-text-extraction)); [C3c](./C3c-viewer-perf-harness.md) (adds a find scenario to the perf harness and is measured against its budgets) |
 | ADRs | Follows 0009 (find controller in the framework-free viewer; search runs in the worker at background priority), [0018](../../decisions/0018-test-strategy.md) §1 tier 4/6 (facts from independent tools: pdf.js counts) |
 | Branch | `feat/c5b-find-in-document` |
@@ -45,7 +45,7 @@ Let users find text across a whole document without blocking scrolling: the work
 
 ## Tasks
 
-- [ ] Fresh worktree; move this file to `ongoing/`.
+- [ ] Claim via a claim PR (see Definition of done); then a fresh worktree off the updated `main`.
 - [ ] Normalisation module with unit tests (ligature `ﬁ`→`fi`, soft hyphen removal, line-end hyphen joining, NBSP→space, case folding with `toLocaleLowerCase` vs `toLowerCase` decision documented, Arabic/Hebrew/Devanagari/CJK behaviour).
 - [ ] Offset map from normalised string to glyph run indices so matches map to quads exactly.
 - [ ] Worker search loop with cooperative yielding (`await` between pages; check cancellation), reusing C5a's per-page text cache; background priority so renders preempt it.
@@ -89,4 +89,3 @@ Unit tests for normalisation, offset maps and whole-word logic; Vitest browser t
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
 - [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
-- [ ] Squash-merged; dependants' "Depends on" now satisfied

@@ -34,11 +34,11 @@ When lamina or its engine crashes or panics, we want to learn why — **only if 
 - **Capture** (`src-tauri/src/crash/`):
   - Main process: `std::panic::set_hook` writing a panic record (message with paths redacted, location file:line from our crates only, backtrace frames as module + offset) to `app_data_dir()/crashes/pending/`; native crash capture via `crash-handler` in-process + `minidumper` server in a small monitor (or the main process monitoring the engine: the engine runs `crash-handler` and the main process acts as the `minidumper` server for it, which fits the sandbox because the dump is written by the unsandboxed side).
   - Engine: panic hook sends a final `Panic { summary }` frame before abort if possible; native crashes captured via the minidumper server in main; supervisor records exit codes/signals.
-  - Webview: unhandled JS errors and rejections in the UI → `report_ui_error` (message + stack with URLs reduced to bundle-relative paths).
-- **Local processing and scrubbing**: minidumps processed locally with `minidump-processor` into `{ crash_reason, crashing_thread_frames: [{ module, offset, function? }], modules: [{ name, version, debug_id }] }`; the raw dump is deleted after processing. The report is built from an **allow-list** of fields: app version, channel, OS name/version, arch, process kind (main/engine/webview), renderer backend (PDFium version / Canvas path), sandbox level, uptime bucket, stack frames, module list (names only, no paths), a random per-report ID. Every string field passes a scrubber that removes anything path-like (`/…/`, `C:\…`, `~`), `file://` URLs, e-mail addresses and long digit runs; no document metadata, no window titles, no file names.
+  - Webview: unhandled JS errors and rejections in the UI → `report_ui_error` (message + stack). The stack is parsed **in Rust** into structured frames `{ file, line, column, function? }`; `file` is kept only if, after stripping the app origin (`tauri://localhost/`, `http://tauri.localhost/`), it matches the bundle asset pattern `^assets/[A-Za-z0-9._-]+\.(js|mjs)$` (Vite's hashed output) — anything else becomes `"<external>"`. Frames are never sent as one free-text string.
+- **Local processing and scrubbing**: minidumps processed locally with `minidump-processor` into `{ crash_reason, crashing_thread_frames: [{ module, offset, function? }], modules: [{ name, version, debug_id }] }`; the raw dump is deleted after processing. The report is built from an **allow-list** of fields: app version, channel, OS name/version, arch, process kind (main/engine/webview), renderer backend (PDFium version / Canvas path), sandbox level, uptime bucket, stack frames, module list (names only, no paths), a random per-report ID. Every **free-text** string field (crash reason, panic or JS message, function names) passes a scrubber that removes anything path-like (`/…/`, `C:\…`, `~`), `file://` URLs, e-mail addresses and long digit runs; no document metadata, no window titles, no file names. The structured `file` field of webview frames is the one exception: it is not scrubbed but must match the asset pattern above (otherwise `"<external>"`), so `assets/index-3f2a.js` survives and a real path cannot.
 - **Consent UX**: setting "Send crash reports" (off by default) in the settings window; after the first crash (on next launch or after engine restart), a one-time dialog: "Lamina crashed. Send an anonymous report? [View report] [Don't send] [Send] ☐ Always send" — shown at most once per install unless the user changes the setting; "View report" shows the exact JSON that would be sent.
 - **Upload**: `POST https://updates.<domain>/crash` with JSON body (no install ID header — the updater's header is never attached to this client), size cap 64 KiB; offline queue with max 10 pending reports, oldest dropped; reports older than 30 days deleted unsent.
-- **Worker** (`apps/updates`): `POST /crash` validates schema and size, rejects bodies containing path-like strings (defence in depth), stores `crash-reports/{yyyy}/{mm}/{dd}/{report_id}.json` in R2, returns 202; rate limiting per IP via the Workers rate-limiting binding or a simple token bucket; no logging of bodies or IPs; R2 lifecycle rule deleting `crash-reports/` after 30 days (owner action or `wrangler r2 bucket lifecycle add`).
+- **Worker** (`apps/updates`): `POST /crash` validates schema and size, rejects bodies whose free-text fields contain path-like strings and whose webview frame `file` values don't match the asset pattern or `"<external>"` (defence in depth; same pattern shared as a constant with the client), stores `crash-reports/{yyyy}/{mm}/{dd}/{report_id}.json` in R2, returns 202; rate limiting per IP via the Workers rate-limiting binding or a simple token bucket; no logging of bodies or IPs; R2 lifecycle rule deleting `crash-reports/` after 30 days (owner action or `wrangler r2 bucket lifecycle add`).
 - **Symbols**: D6b's workflow archives debug symbols (dSYM, PDB, split DWARF via `objcopy --only-keep-debug`) to a **private** R2 bucket `lamina-symbols` keyed by debug ID; `cargo xtask crash symbolicate <report.json>` fetches symbols and prints a symbolicated stack for maintainers.
 - Test-only commands (feature `e2e`): `e2e_crash_main_panic`, `e2e_crash_engine_segv`, `e2e_crash_engine_panic`.
 
@@ -50,7 +50,7 @@ When lamina or its engine crashes or panics, we want to learn why — **only if 
 
 ## Tasks
 
-- [ ] Fresh worktree; move this file to `ongoing/`. Load `tauri-v2`, `rust-best-practices`, `workers-best-practices`.
+- [ ] Fresh worktree; this todo is already claimed via the claim PR (see DoD). Load `tauri-v2`, `rust-best-practices`, `workers-best-practices`.
 - [ ] Backend decision write-up (ADR 0014 amendment or new short ADR) with the privacy rationale for local processing.
 - [ ] Capture: panic hooks (main, engine), crash-handler/minidumper wiring between engine and main, JS error capture.
 - [ ] Local processing + allow-list report builder + scrubber (`fn scrub(s: &str) -> Cow<'_, str>`).
@@ -67,7 +67,7 @@ When lamina or its engine crashes or panics, we want to learn why — **only if 
 - [ ] A test opens a fixture whose path contains a unique marker directory and file name, and whose content contains a unique marker string, forces each crash type, and asserts that **neither marker nor any path-like string** appears in the uploaded JSON (Rust integration test + e2e).
 - [ ] The report never contains the install ID (test asserts no UUID matching the stored install ID; the crash client never sets `Lamina-Install-Id`).
 - [ ] Raw minidumps are deleted after local processing (test).
-- [ ] Worker tests: schema validation, size cap, path-like rejection, rate limiting, no body/IP logging (console spy), R2 key layout.
+- [ ] Worker tests: schema validation, size cap, path-like rejection in free-text fields, a webview report with `assets/…js` frames accepted, rate limiting, no body/IP logging (console spy), R2 key layout.
 - [ ] Engine crashes still trigger the D2b restart flow, unaffected by reporting.
 
 ## Post-merge checks
@@ -76,7 +76,7 @@ None.
 
 ## Tests
 
-- Rust unit tests: scrubber (Unix/Windows paths, UNC, `file://`, home `~`, emails), report builder allow-list (unknown fields impossible by construction), consent state machine.
+- Rust unit tests: scrubber (Unix/Windows paths, UNC, `file://`, home `~`, emails); JS stack parsing (a WebKit and a Chromium-format stack with `tauri://localhost/assets/index-abc.js:1:234` keep `assets/index-abc.js`; a `file:///Users/x/…` frame becomes `<external>`); report builder allow-list (unknown fields impossible by construction), consent state machine.
 - Rust integration test: engine child crashes under the minidumper server → processed summary without markers.
 - Vitest (Workers pool) for `POST /crash`.
 - WebdriverIO: consent dialog flow and "View report".
@@ -100,4 +100,3 @@ None.
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
 - [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
-- [ ] Squash-merged; dependants' "Depends on" now satisfied

@@ -46,7 +46,7 @@ Build the reusable reader UI both shells share: `@lamina/ui`, a React 19 (React 
 
 ## Tasks
 
-- [ ] Fresh worktree; move this file to `ongoing/`.
+- [ ] Claim via a claim PR (see Definition of done); then a fresh worktree off the updated `main`.
 - [ ] Scaffold `packages/ui` (`package.json` with React 19 as peer dependency via `catalog:`, `exports`, `sideEffects: ["*.css"]`, Vitest browser mode + Testing Library, nested `biome.json` allowing DOM globals).
 - [ ] Check licences of React, React Aria (or the chosen primitives) and icons (e.g. Lucide ISC); `cargo xtask npm-licenses` passes.
 - [ ] `src/platform/types.ts`: `Platform`, `Capabilities` exactly as ADR 0010; `src/platform/web.ts`: web implementation with feature detection (no UA sniffing); `src/platform/context.tsx`: `PlatformProvider`, `usePlatform()`, `useCapability(flag)`.
@@ -93,4 +93,3 @@ None.
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
 - [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
-- [ ] Squash-merged; dependants' "Depends on" now satisfied

@@ -6,8 +6,8 @@
 | Status | `ready` |
 | Plan | [full-editor §E4](../../plans/full-editor.md#e4-markup-and-drawing-annotations) |
 | Round / milestone | Editor phase 3 (E4–E5) — M6 Annotator |
-| Depends on | [E1d](./E1d-edit-session-undo-ui.md), [E4a](./E4a-markup-and-drawing-annotations-feature-plan.md) |
-| Blocks | [E4c](./E4c-appearances-markup-notes-caret.md), [E4d](./E4d-appearances-ink-and-shapes.md), [E4e](./E4e-freetext-callouts.md), [E5c](./E5c-stamps-and-attachments.md), [E12b](./E12b-mark-and-review.md), [E18c](./E18c-layer-document-schema.md), [E18e](./E18e-client-sync-and-presence.md) |
+| Depends on | [E1d](./E1d-edit-session-undo-ui.md), [E3c](./E3c-links.md), [E4a](./E4a-markup-and-drawing-annotations-feature-plan.md) |
+| Blocks | [E4c](./E4c-appearances-markup-notes-caret.md), [E4d](./E4d-appearances-ink-and-shapes.md), [E4e](./E4e-freetext-callouts.md), [E5c](./E5c-stamps-and-attachments.md), [E12b](./E12b-mark-and-review.md), [E18b](./E18b-collaboration-feature-plan.md), [E18c](./E18c-layer-document-schema.md), [E18e](./E18e-client-sync-and-presence.md) |
 | ADRs | Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
 | Branch | `feat/e4b-annotation-model-and-overlay` |
 | PR title | `feat(model): typed annotations, annotation ops and overlay layer` |
@@ -32,6 +32,7 @@ Typed annotation views in `lamina-model` (common dictionary, markup dictionary, 
 
 - `Annotation` view (subtype enum incl. unknown passthrough), `MarkupAnnotation` (`/T`, `/Contents`, `/CreationDate`, `/Subj`, `/IRT`, `/RT`, `/CA`, `/RC`), `Popup` pairing
 - Ops: `AddAnnot { page, spec: AnnotSpec }`, `UpdateAnnot { id, patch }`, `DeleteAnnot { id }` (deletes Popup and, per E4a, replies), each with `/NM` derived from the ID
+- Relation to [E3c](E3c-links.md)'s `AddLink`/`UpdateLink`/`DeleteLink`: they stay as ops (v1 wire names, ADR 0006 §6) and are re-implemented here as thin wrappers over the same annotation core. `AnnotSpec` has no `Link` variant (links are created only by `AddLink`); `UpdateAnnot` and `DeleteAnnot` accept a link's ID for the common properties (`/F`, `/C`, border, delete) and produce the same COS changes as `UpdateLink`/`DeleteLink`; a test asserts the two paths are byte-identical
 - `/P` back-reference, `/F` flags (Print default for markup), `/M` modification date from the payload
 - Viewer: annotation editing layer (SVG/canvas) drawing from a JSON projection of the model; per-annotation hide mask for the PDFium raster; selection handles; hit-testing
 - Appearance generator trait (`AppearanceBuilder`) skeleton in `lamina-build`, implemented per subtype in E4c–E4e
@@ -92,4 +93,3 @@ None.
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
 - [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
-- [ ] Squash-merged; dependants' "Depends on" now satisfied

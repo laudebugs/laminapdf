@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [full-editor §E18](../../plans/full-editor.md#e18-collaboration-hosted-service) |
 | Round / milestone | Editor phase 6 (E18) — M10 Collaboration |
-| Depends on | [E18a](./E18a-adr-0012-collaboration.md), [H2](./H2-accounts-and-login.md), [H3](./H3-cloud-document-storage.md) |
+| Depends on | [E2b](./E2b-page-structure-ops.md), [E4b](./E4b-annotation-model-and-overlay.md), [E5b](./E5b-comment-threads-and-review.md), [E8c](./E8c-acroform-field-model.md), [E18a](./E18a-adr-0012-collaboration.md), [H2](./H2-accounts-and-login.md), [H3](./H3-cloud-document-storage.md) |
 | Blocks | [E18c](./E18c-layer-document-schema.md) |
 | ADRs | Follows ADR 0005, 0006, 0007 |
 | Branch | `docs/e18b-collaboration-feature-plan` |
@@ -91,4 +91,3 @@ Docs only: the link checker passes. If the "shared review" notes are added to `d
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
 - [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
-- [ ] Squash-merged; dependants' "Depends on" now satisfied

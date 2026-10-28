@@ -43,7 +43,7 @@
 - **`SaveConstraint`:** `Free` → incremental. Signed: creating/changing field definitions is not form filling (class `Document`), so it is a DocMDP violation at every certification level (ADR 0007 §2: P1 allows no changes; P2 allows only form filling, page templates and signing; P3 adds annotations) → saved only after the user confirms invalidating the named signatures (ADR 0007 §3 override). With approval signatures only (no certification): `AppendOnly`, an incremental update that keeps their `/ByteRange` intact; changing or removing a field locked by FieldMDP/`/Lock`, or a signature field, is a violation
 - **Web vs desktop:** identical
 - **Server features:** none (this PR adds no server feature; all processing stays on the device)
-- **Capability-matrix rows to flip:** `E.07` → `round-trip` (web, desktop); `E.08` → `round-trip` (web, desktop); `E.09` → `round-trip` (web, desktop); `L.06` → `round-trip` (web, desktop); `E.01` → `round-trip` (web, desktop); `E.15` → `round-trip` (web, desktop)
+- **Capability-matrix rows to flip:** `E.07` → `round-trip` (web, desktop); `E.08` → `round-trip` (web, desktop); `E.09` → `round-trip` (web, desktop); `E.01` → `round-trip` (web, desktop); `E.15` → `round-trip` (web, desktop). `L.06` accessible form labels is not flipped here even though the design panel edits `/TU`; it flips once, in [E15c](E15c-tagging-tools.md), which completes it with form tagging
 
 ## Tasks
 
@@ -54,6 +54,8 @@
 
 ## Acceptance criteria
 
+- [ ] Library parity ([full-editor §5](../../plans/full-editor.md#5-requirements-that-hold-for-every-round) req. 7): every new `Op` is exposed in `lamina` and `@lamina/pdf` in this PR, with rustdoc/TSDoc, a runnable example, tsify-generated TS types, and serde samples frozen in `fixtures/ops/v1/` (unknown ops and fields rejected, ADR 0006 §1, §6)
+- [ ] Every new op reports exactly one `ModificationClass` and `requires_rewrite` (ADR 0006 §1); a test per op runs `planner.would_violate(&op)` on the signed fixtures (no certification, DocMDP P1, P2, P3, FieldMDP lock) and asserts the verdict ([ADR 0007](../../decisions/0007-save-planner.md) §2), because a misclassified op is a security bug
 - [ ] e2e: design a form with each field type, save, fill it in pdf.js
 - [ ] axe zero serious violations
 
@@ -82,4 +84,3 @@ None.
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
 - [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
-- [ ] Squash-merged; dependants' "Depends on" now satisfied

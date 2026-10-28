@@ -6,8 +6,8 @@
 | Status | `ready` |
 | Plan | [full-editor §E2](../../plans/full-editor.md#e2-page-organisation) |
 | Round / milestone | Editor phase 2 (E1–E3) — M5 Organiser |
-| Depends on | [E2c](./E2c-cross-document-pages.md) |
-| Blocks | [E2h](./E2h-page-organiser-ui.md) |
+| Depends on | [B8a](./B8a-structure-tree.md), [B8b](./B8b-conformance-profiles-and-verapdf.md), [E2c](./E2c-cross-document-pages.md) |
+| Blocks | [E2g](./E2g-page-labels.md), [E2h](./E2h-page-organiser-ui.md) |
 | ADRs | Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
 | Branch | `feat/e2d-merge-and-split` |
 | PR title | `feat(ops): merge documents with outline, field and structure remapping; split` |
@@ -29,7 +29,7 @@ Merge whole documents with the hard parts done: outlines appended as subtrees, n
 
 **In scope**
 
-- `merge(target, sources, options)` built on `InsertPagesFrom` plus document-level merges: outline, `/Names /Dests`, AcroForm (`/Fields`, `/DR`, `/DA`, `/NeedAppearances`), StructTreeRoot (RoleMap, ClassMap, ParentTree, `/IDTree`), `/OCProperties`, page labels
+- `merge(target, sources, options)` built on `InsertPagesFrom` plus document-level merges: outline, `/Names /Dests`, AcroForm (`/Fields`, `/DR`, `/DA`, `/NeedAppearances`), StructTreeRoot (RoleMap, ClassMap, ParentTree, `/IDTree`), `/OCProperties`, page labels (concatenated with E2b's `PageLabels::remap` and number-tree writer; `/Names /Dests` through E2b's name-tree writer)
 - `split(doc, SplitBy::Count(n) | Ranges(..) | Bookmarks { level })` returning documents with their outline subsets
 - Merge report: renamed fields/destinations, dropped items, conformance claims lost (PDF/A, PDF/UA)
 
@@ -41,7 +41,7 @@ Merge whole documents with the hard parts done: outlines appended as subtrees, n
 
 - **Operations shipped** ([06 §3](../../research/pdf/06-feature-inventory.md#3-full-operation-inventory-with-mechanisms) IDs): `C.06` merge multiple documents; `C.07` split by count, ranges, bookmarks
 - **Crates and packages:** `lamina-model` (outline, names, AcroForm, struct-tree merge helpers), `lamina-ops`
-- **`Op` variants:** `MergeDocuments` op (composite, class `PageStructure` + `Document`); split is a pure function producing new documents
+- **`Op` variants:** `MergeDocuments` op (composite; exactly one class per ADR 0006 §1: `PageStructure`, the most restrictive of the changes it makes, since it inserts pages and is forbidden at every DocMDP level; its document-level merges (outline, names, AcroForm, struct tree) are covered by that verdict); split is a pure function producing new documents
 - **`SaveConstraint`:** `Free` → incremental. Signed: page insertion/deletion/reordering is class `PageStructure`. Under a certification signature it is a DocMDP violation at every level (ADR 0007 §2: P1 allows no changes; P2 allows only form filling, page templates and signing; P3 adds annotations) → blocked by default and allowed only by the explicit invalidation override (the warning names the signatures, ADR 0007 §3). With approval signatures only (no certification) it is `AppendOnly`: saved as an incremental update that keeps their `/ByteRange` intact (the signature panel, E10h, reports the later page change); it is a violation only when it changes a field locked by FieldMDP/`/Lock` (e.g. deleting or duplicating a page that carries a locked field's widget). Merging into a certified document is a violation at every DocMDP level; into an approval-only-signed document it is an incremental `AppendOnly` save. Split writes new documents (full write, `Free`)
 - **Web vs desktop:** identical; desktop multi-select in Finder/Explorer merges directly (E2h)
 - **Server features:** none (this PR adds no server feature; all processing stays on the device)
@@ -59,6 +59,7 @@ Merge whole documents with the hard parts done: outlines appended as subtrees, n
 ## Acceptance criteria
 
 - [ ] Library parity ([full-editor §5](../../plans/full-editor.md#5-requirements-that-hold-for-every-round) req. 7): every new `Op` is exposed in `lamina` and `@lamina/pdf` in this PR, with rustdoc/TSDoc, a runnable example, tsify-generated TS types, and serde samples frozen in `fixtures/ops/v1/` (unknown ops and fields rejected, ADR 0006 §1, §6)
+- [ ] Every new op reports exactly one `ModificationClass` and `requires_rewrite` (ADR 0006 §1); a test per op runs `planner.would_violate(&op)` on the signed fixtures (no certification, DocMDP P1, P2, P3, FieldMDP lock) and asserts the verdict ([ADR 0007](../../decisions/0007-save-planner.md) §2), because a misclassified op is a security bug
 - [ ] Round-trip: open → op → save → reopen in lamina, pdf.js and PDFium preserves the change and everything else (page count, outline, annotations, fields, struct tree facts in `expected.json`); `qpdf --check` is clean
 - [ ] Merging two tagged PDF/UA fixtures gives a tagged result whose struct tree validates (veraPDF structure checks, ignoring the PDF/UA claim which is reported as lost unless both conform)
 - [ ] Merged forms: fields from both sources fillable in pdf.js and PDFium; clashing names handled per rule
@@ -93,4 +94,3 @@ None.
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
 - [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
-- [ ] Squash-merged; dependants' "Depends on" now satisfied

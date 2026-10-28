@@ -45,7 +45,7 @@ Make the viewer scroll a 1,000-page document like a native app. A prefix-sum pag
 
 ## Tasks
 
-- [ ] Fresh worktree; move this file to `ongoing/`.
+- [ ] Claim via a claim PR (see Definition of done); then a fresh worktree off the updated `main`.
 - [ ] `PageLayout` with unit tests: prefix sums for 10,000 variable-size pages computed in < 5 ms equivalent work (asserted by operation count, not wall clock), `pageAt` by binary search, recompute on zoom/rotation in O(n) once.
 - [ ] Page shells: one `div.lamina-page` per mounted page with `data-page-index`, fixed size from layout, child slots in z-order: `canvas` (raster), `div.lamina-layer-text`, `div.lamina-layer-annot`, `div.lamina-layer-highlight` (empty for now), with a `PageLayerHost` API to register layers (`onMount/onUnmount/onZoom`) so later todos plug in.
 - [ ] Virtualisation: mount visible range ± margin (default 2 pages or 1 viewport, whichever is larger); unmount releases canvases and cancels in-flight requests via `AbortController` per page.
@@ -92,4 +92,3 @@ Unit tests (layout, zoom maths, cache eviction, pool caps) in `packages/viewer/s
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
 - [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
-- [ ] Squash-merged; dependants' "Depends on" now satisfied

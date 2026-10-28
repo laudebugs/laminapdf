@@ -45,7 +45,7 @@ Make interactive forms behave without arbitrary JavaScript: Hide actions and `/C
 - **`SaveConstraint`:** `Free` → incremental. Signed: class `FormFill` is allowed under DocMDP P2 and P3 and under approval signatures, except for fields locked by FieldMDP (`/Lock`) or by a signature's field-lock dictionary → blocked with the locking signature named
 - **Web vs desktop:** identical
 - **Server features:** none (this PR adds no server feature; all processing stays on the device)
-- **Capability-matrix rows to flip:** `E.05` → `round-trip` (core, pdf, web, desktop); `E.07` → `round-trip` (core, pdf, web, desktop); `E.08` → `round-trip` (core, pdf, web, desktop); `E.10` → `round-trip` (core, pdf, web, desktop)
+- **Capability-matrix rows to flip:** `E.05` → `round-trip` (core, pdf, web, desktop); `E.07` → `round-trip` (core, pdf), `read` (web, desktop); `E.08` → `round-trip` (core, pdf), `read` (web, desktop) (web and desktop are intermediate: existing validation and calculations run when filling; they flip to `round-trip` once, in [E9c](E9c-form-design-mode.md), which adds authoring them in the UI); `E.10` → `round-trip` (core, pdf, web, desktop)
 
 ## Tasks
 
@@ -58,6 +58,7 @@ Make interactive forms behave without arbitrary JavaScript: Hide actions and `/C
 ## Acceptance criteria
 
 - [ ] Library parity ([full-editor §5](../../plans/full-editor.md#5-requirements-that-hold-for-every-round) req. 7): every new `Op` is exposed in `lamina` and `@lamina/pdf` in this PR, with rustdoc/TSDoc, a runnable example, tsify-generated TS types, and serde samples frozen in `fixtures/ops/v1/` (unknown ops and fields rejected, ADR 0006 §1, §6)
+- [ ] Every new op reports exactly one `ModificationClass` and `requires_rewrite` (ADR 0006 §1); a test per op runs `planner.would_violate(&op)` on the signed fixtures (no certification, DocMDP P1, P2, P3, FieldMDP lock) and asserts the verdict ([ADR 0007](../../decisions/0007-save-planner.md) §2), because a misclassified op is a security bug (here: calculation/format side effects inside a `SetFieldValue` transaction stay `FormFill`; a calculated field that is FieldMDP-locked is a violation)
 - [ ] Recognised AF* formats produce the same displayed values as Acrobat on reference forms
 - [ ] Unhandled scripts are listed in the UI; nothing executes outside ADR 0021
 
@@ -87,4 +88,3 @@ None.
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
 - [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
-- [ ] Squash-merged; dependants' "Depends on" now satisfied

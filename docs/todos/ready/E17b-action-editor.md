@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [full-editor §E17](../../plans/full-editor.md#e17-advanced-interactions) |
 | Round / milestone | Editor phase 6 (E11–E17) — M9 Advanced |
-| Depends on | [E9c](./E9c-form-design-mode.md), [E17a](./E17a-advanced-interactions-feature-plan.md) |
+| Depends on | [E3c](./E3c-links.md), [E9c](./E9c-form-design-mode.md), [E17a](./E17a-advanced-interactions-feature-plan.md), [E17c](./E17c-layers.md) |
 | Blocks | [E17f](./E17f-3d-detection.md) |
 | ADRs | Follows ADR 0021; Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
 | Branch | `feat/e17b-action-editor` |
@@ -85,4 +85,3 @@ None.
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
 - [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
-- [ ] Squash-merged; dependants' "Depends on" now satisfied

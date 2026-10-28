@@ -49,7 +49,7 @@ Prove, in a real browser worker, that PDFium-WASM and `lamina-wasm` can share on
 
 ## Tasks
 
-- [ ] Fresh worktree `spike-c1b-pdfium-wasm`; move this file to `ongoing/` in the first commit.
+- [ ] Claim via a claim PR (see Definition of done); then a fresh worktree `spike-c1b-pdfium-wasm` off the updated `main`.
 - [ ] Check licences: `@embedpdf/pdfium` (MIT), PDFium (Apache-2.0 + third-party: FreeType FTL/BSD, libjpeg-turbo, OpenJPEG BSD-2, lcms2 MIT, zlib, ICU). List them in the README; confirm nothing GPL/AGPL is linked.
 - [ ] Build B6 locally (`cargo xtask wasm`, `pnpm --filter @lamina/pdf build`) and depend on it from the spike by path or `pnpm pack` tarball.
 - [ ] Create `spikes/pdfium-wasm/` with `package.json` (private), `index.html`, `src/main.ts` (file input, buttons, result table), `src/worker.ts` (loads both WASM modules), `src/bench.ts`, `scripts/make-fixtures.ts` (generates the 1,000-page PDF with `@lamina/pdf`), `playwright.config.ts`, `tests/bench.spec.ts`, `.gitignore` (large inputs, `out/`).
@@ -101,4 +101,3 @@ Only the Playwright benchmark spec in the spike (run by hand, not in CI). Smoke:
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
 - [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
-- [ ] Squash-merged; dependants' "Depends on" now satisfied

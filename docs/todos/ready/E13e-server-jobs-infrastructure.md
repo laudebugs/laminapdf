@@ -52,7 +52,7 @@ Build the hosted job pipeline: an `apps/jobs` Worker accepting opt-in jobs (uplo
 
 - [ ] Worker API
 - [ ] Workflow
-- [ ] Images
+- [ ] Images, with an SBOM per image and the licence check above
 - [ ] Retention tests
 - [ ] Opt-in UI
 
@@ -60,11 +60,12 @@ Build the hosted job pipeline: an `apps/jobs` Worker accepting opt-in jobs (uplo
 
 - [ ] e2e against a preview deployment: OCR a scan via the server, result downloaded, input deleted from R2 within the retention window
 - [ ] No job runs without explicit opt-in (test)
-- [ ] Container images contain no AGPL/GPL components (SBOM check that fails the build on Ghostscript, MuPDF or any AGPL/GPL package)
+- [ ] Container licence policy per [E13a](E13a-adr-0013-heavy-jobs.md) / ADR 0013 holds, checked by an SBOM (syft or equivalent, generated in CI for every image) that records every package's licence and fails the build when: any package is AGPL (by licence or by name: Ghostscript, MuPDF, ocrmypdf); or a lamina-built binary in the image links a GPL library (checked against the binary's dynamic dependencies and our Cargo/npm licence reports, which already deny GPL per ADR 0019). GPL packages from the Linux base image (shell, coreutils, …) and GPL engines invoked only as separate executables are allowed and listed in the SBOM
+- [ ] A test image that adds an AGPL package, and one whose lamina binary links a GPL library, both fail the check
 
 ## Post-merge checks
 
-None.
+- [ ] `apps/jobs` and the container images deployed to production by the deploy workflow on `main`; the R2 lifecycle rule that expires job inputs/outputs is active on the production bucket and an expired object is gone after the window (link the run and the bucket config)
 
 ## Tests
 
@@ -90,4 +91,3 @@ None.
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
 - [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
-- [ ] Squash-merged; dependants' "Depends on" now satisfied

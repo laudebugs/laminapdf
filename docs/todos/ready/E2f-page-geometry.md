@@ -29,7 +29,9 @@ Page geometry ops: crop (sets `/CropBox`, with a user-visible warning that cropp
 **In scope**
 
 - Ops: `SetPageBoxes { pages, boxes }`, `CropPages { pages, rect }`, `ResizePages { pages, size, mode: Scale|Extend|Anchor }`, `SetOrientation { pages, orientation, method }`
-- Resize scales annotation `/Rect`, `/QuadPoints`, `/InkList`, `/Vertices` and widget rects consistently
+- Resize scales annotation `/Rect`, `/QuadPoints`, `/InkList`, `/Vertices`, `/CL`, `/L` and widget rects consistently
+- Resize also maps every **explicit destination** that targets a resized page through the same matrix, wherever it lives: outline items (`/Dest` and `/A /GoTo /D`), link annotations, named destinations (`/Names /Dests` name tree and the PDF 1.1 `/Dests` dictionary), `/OpenAction`, and `GoTo` actions in other annotations/fields. Per ISO 32000-2 §12.3.2.2 (explicit destinations; Table 151 "Destination syntax" in ISO 32000-1): `/XYZ left top` → transformed point (null coordinates stay null, zoom unchanged); `/FitH top` and `/FitBH top` → transformed `top`; `/FitV left` and `/FitBV left` → transformed `left`; `/FitR l b r t` → transformed and normalised rectangle; `/Fit` and `/FitB` unchanged. Structure-element `/BBox` attributes (Layout attributes, ISO 32000-2 §14.8.5.4) on elements whose `/Pg` is the page are transformed too. Named destinations are rewritten through E2b's name-tree writer; destinations shared by several pages are only touched for the resized ones
+- `SetOrientation` with a method that changes `/MediaBox` rather than `/Rotate` applies the same destination and `/BBox` mapping
 - `OpReport` warning `CroppedContentRemains` for crop; the UI (E2h) offers "remove hidden content" later (E11d/E12)
 
 **Out of scope** (and which todo covers it)
@@ -40,8 +42,8 @@ Page geometry ops: crop (sets `/CropBox`, with a user-visible warning that cropp
 
 - **Operations shipped** ([06 §3](../../research/pdf/06-feature-inventory.md#3-full-operation-inventory-with-mechanisms) IDs): `C.09` crop display area; `C.10` resize page dimensions; `C.11` modify margins and page boxes; `C.12` portrait ↔ landscape
 - **Crates and packages:** `lamina-ops`, `lamina-content` (append API)
-- **`Op` variants:** `SetPageBoxes`, `CropPages`, `ResizePages`, `SetOrientation` (class `PageStructure`; resize also `Content`)
-- **`SaveConstraint`:** `Free` → incremental. Signed: setting page boxes, cropping and orientation change page-dictionary keys (`/MediaBox`, `/CropBox`, `/BleedBox`, `/TrimBox`, `/ArtBox`, `/Rotate`) and are class `PageStructure`; `ResizePages` is also `Content` (the scaling wrap and the scaled annotation rects). DocMDP allows none of these (ADR 0007 §2: P1 allows no changes; P2 allows only form filling, page templates and signing; P3 adds annotations), so under a certification signature each is a violation → blocked by default, allowed only by the override that names the signatures (ADR 0007 §3). With approval signatures only (no certification): `AppendOnly`, an incremental update that keeps their `/ByteRange` intact while changing what the signed page shows, which the signature panel (E10h) reports; resizing or rotating a page that carries a widget of a field locked by FieldMDP/`/Lock` changes that widget and is a violation
+- **`Op` variants:** `SetPageBoxes`, `CropPages`, `ResizePages`, `SetOrientation` (each exactly one class, ADR 0006 §1: `PageStructure`; `ResizePages` also wraps content and moves annotations, but `PageStructure` is already forbidden at every DocMDP level, so it is the most restrictive class and the single one reported)
+- **`SaveConstraint`:** `Free` → incremental. Signed: setting page boxes, cropping and orientation change page-dictionary keys (`/MediaBox`, `/CropBox`, `/BleedBox`, `/TrimBox`, `/ArtBox`, `/Rotate`) and are class `PageStructure`; `ResizePages` also changes content (the scaling wrap and the scaled annotation rects) but reports only `PageStructure`, which is equally forbidden. Any of these ops on a page holding a signed signature field's widget is E2b's `Violation::SignedWidgetPage` (the signed appearance would move or scale). DocMDP allows none of these (ADR 0007 §2: P1 allows no changes; P2 allows only form filling, page templates and signing; P3 adds annotations), so under a certification signature each is a violation → blocked by default, allowed only by the override that names the signatures (ADR 0007 §3). With approval signatures only (no certification): `AppendOnly`, an incremental update that keeps their `/ByteRange` intact while changing what the signed page shows, which the signature panel (E10h) reports; resizing or rotating a page that carries a widget of a field locked by FieldMDP/`/Lock` changes that widget and is a violation
 - **Web vs desktop:** identical
 - **Server features:** none (this PR adds no server feature; all processing stays on the device)
 - **Capability-matrix rows to flip:** `C.09` → `round-trip` (core, pdf); `C.10` → `round-trip` (core, pdf); `C.11` → `round-trip` (core, pdf); `C.12` → `round-trip` (core, pdf)
@@ -50,6 +52,7 @@ Page geometry ops: crop (sets `/CropBox`, with a user-visible warning that cropp
 
 - [ ] Box validation (inside MediaBox, normalised rects) with tolerant reading of odd boxes
 - [ ] Resize math with anchor modes and annotation transforms
+- [ ] Destination transform: one function mapping an explicit destination array through a matrix (every destination kind), applied to outlines, links, named destinations, `/OpenAction` and `GoTo` actions; struct `/BBox` attributes
 - [ ] Crop warning in `Applied`; a test proves cropped text is still extractable (the trap is documented by a test)
 - [ ] Bindings and examples
 
@@ -60,6 +63,7 @@ Page geometry ops: crop (sets `/CropBox`, with a user-visible warning that cropp
 - [ ] Every new op reports its `ModificationClass` and `requires_rewrite` (ADR 0006 §1); a test per op runs `planner.would_violate(&op)` on the signed fixtures (no certification, DocMDP P1, P2, P3, FieldMDP lock) and asserts the verdict ([ADR 0007](../../decisions/0007-save-planner.md) §2), because a misclassified op is a security bug
 - [ ] Round-trip: open → op → save → reopen in lamina, pdf.js and PDFium preserves the change and everything else (page count, outline, annotations, fields, struct tree facts in `expected.json`); `qpdf --check` is clean
 - [ ] Resizing A4 → Letter with `Scale` renders the same content scaled (PDFium diff after scaling) and annotations stay aligned with their text
+- [ ] Destinations follow the resize: on a fixture with an outline item `/XYZ 72 700 0`, a link `/FitR`, a named destination `/FitH`, an `/OpenAction /FitV` and a struct element with a Layout `/BBox`, all on page 1, `ResizePages { Scale }` A4 → Letter transforms each exactly (unit test on the arrays), and navigating each in pdf.js lands on the same content position as before the resize (render-position check)
 - [ ] A test asserts text outside a new CropBox is still extracted by pdftotext (the warning is justified) and that the UI receives `CroppedContentRemains`
 
 ## Post-merge checks
@@ -89,4 +93,3 @@ None.
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
 - [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
-- [ ] Squash-merged; dependants' "Depends on" now satisfied

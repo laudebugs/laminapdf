@@ -43,7 +43,7 @@ Make links in PDFs work safely. A DOM link layer on each mounted page turns link
 
 ## Tasks
 
-- [ ] Fresh worktree; move this file to `ongoing/`.
+- [ ] Claim via a claim PR (see Definition of done); then a fresh worktree off the updated `main`.
 - [ ] Library accessor for link annotations and actions if missing (Rust unit tests; tolerant to malformed `/A`, `/Dest`, and URI encodings per ADR 0003).
 - [ ] RPC + worker caching per page.
 - [ ] Link layer with transforms shared with the text layer (same matrix helper), hover cursor, focus outline, high-contrast-visible focus.
@@ -88,4 +88,3 @@ Rust unit tests (accessor); Vitest unit tests (history coalescing, URL validatio
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
 - [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
-- [ ] Squash-merged; dependants' "Depends on" now satisfied

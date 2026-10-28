@@ -31,7 +31,8 @@ Turn the overlay into bytes, safely and deterministically, and keep the document
 
 **In scope**
 
-- New core crate `crates/lamina-save`; `git mv` of `writer.rs` and its four test files (history kept), `lamina-cos` keeps reading and the overlay only; `tests/common` content builder stays with `lamina-cos` tests until [B5a](./B5a-lamina-build-core.md) (or is shared via a `dev-dependency` test-support crate if both crates need it — decide and document).
+- New core crate `crates/lamina-save`; `git mv` of `writer.rs` and the four writer test files ADR 0007 §7 names (`golden.rs`, `determinism.rs`, `incremental.rs`, `raw_writer.rs`, history kept); `lamina-cos` keeps reading and the overlay only.
+- The `lamina-cos` tests that stay still build their inputs with the writer: `tests/common/mod.rs` imports `XrefEol` and `incremental_update` and is pulled into every integration test by `mod common;`, `common/samples.rs` uses `Writer`, and `roundtrip.rs`, `policy.rs`, `reader_cache.rs` and `review_fixes.rs` call `Writer`/`incremental_update`. They keep compiling through a `[dev-dependencies] lamina-save = { path = "../lamina-save" }` in `lamina-cos` (Cargo allows this dev-dependency cycle; the integration tests link the single `lamina-cos` that `lamina-save` uses) with imports switched to `lamina_save::…`. `roundtrip.rs` (write → read round trips) moves to `lamina-save` too; `review_fixes.rs` is split: writer cases move, reader cases stay.
 - `WriteSink`, `ReadableSink`, `SinkError`; impls for `Vec<u8>` and `IoWrite<W: std::io::Write>` (behind `std`, still core-safe: no fs); `CountingSink`.
 - `IncrementalWriter` over base `ByteSource` + overlay; `FullWriter` (reachability walk from trailer roots, keep numbers, `Compact` with an old → new map, object streams + xref stream or classic); `SaveOptions { mode, output: IncrementalOutput, renumber, xref: XrefKind, eol }` subset needed here; `SaveReport` (bytes written, mode, renumber map, append offset).
 - `/ID`: keep `[0]`, `[1]` = hash of content written (SHA-256 truncated to 16 bytes, deterministic), `[0]` derived the same way for new documents or when missing.
@@ -48,7 +49,8 @@ Turn the overlay into bytes, safely and deterministically, and keep the document
 ## Tasks
 
 - [ ] Load `/rust-best-practices`; read ADR 0007 §5–7 and ADR 0005 §3
-- [ ] Create `crates/lamina-save` (core); `git mv crates/lamina-cos/src/writer.rs crates/lamina-save/src/legacy.rs` (or `writer/`), move the four tests, fix imports; keep goldens byte-identical
+- [ ] Create `crates/lamina-save` (core); `git mv crates/lamina-cos/src/writer.rs crates/lamina-save/src/legacy.rs` (or `writer/`); `git mv` `golden.rs`, `determinism.rs`, `incremental.rs`, `raw_writer.rs` and `roundtrip.rs`, and the writer cases of `review_fixes.rs`, into `crates/lamina-save/tests/` (with a copy of the `common/` helpers they use); keep goldens byte-identical
+- [ ] In `lamina-cos`: add the `lamina-save` dev-dependency, switch `tests/common/mod.rs`, `common/samples.rs`, `policy.rs`, `reader_cache.rs` and the remaining `review_fixes.rs` cases to `lamina_save::{Writer, XrefEol, incremental_update}`; `cargo test -p lamina-cos` and `cargo test -p lamina-save` both compile and pass
 - [ ] `sink.rs`: traits, `Vec<u8>`/`IoWrite` impls, `CountingSink`
 - [ ] `incremental.rs`: stream base bytes in chunks from `ByteSource::read_at`, append overlay entries in object-number order, free entries for deletes (gen + 1), xref section matching the newest kind, trailer (`/Size` = max(old, new), `/Prev`, `/Root`, `/Info`, `/ID`, drop `/Type /XRef`-only keys)
 - [ ] `full.rs`: reachability walk (iterative, bounded by `Limits`), `Renumber::{Keep, Compact}`, object streams packing (non-stream objects, deterministic grouping), xref stream writer, classic option
@@ -59,7 +61,8 @@ Turn the overlay into bytes, safely and deterministically, and keep the document
 
 ## Acceptance criteria
 
-- [ ] Moved tests (`golden`, `determinism`, `incremental`, `raw_writer`) pass unchanged in `lamina-save` with byte-identical goldens
+- [ ] Moved tests (`golden`, `determinism`, `incremental`, `raw_writer`, `roundtrip`, writer cases of `review_fixes`) pass unchanged in `lamina-save` with byte-identical goldens
+- [ ] Every `lamina-cos` integration test that stays (`corpus`, `robustness`, `policy`, `reader_cache`, `reader_tolerance`, `limits`, `warnings`, `codes`, `source`, `content`, reader cases of `review_fixes`) compiles and passes, with `lamina-cos` having no normal dependency on `lamina-save`
 - [ ] Empty overlay + incremental save writes exactly the base bytes
 - [ ] Open → `SetInfo` → incremental save → reopen shows the new Info, `revisions()` + 1, base bytes are a prefix of the output, `/ID[0]` unchanged
 - [ ] Open → `RotatePage` → full save (`Keep`) → reopen: same object numbers, same `PageId`s, unreachable objects gone
@@ -75,7 +78,7 @@ None.
 
 ## Tests
 
-- `crates/lamina-save/tests/`: moved `golden.rs`, `determinism.rs`, `incremental.rs`, `raw_writer.rs`; new `overlay_incremental.rs`, `full_rewrite.rs`, `rebase.rs`, `id.rs`, `sink_errors.rs`, `encrypted_base.rs` (both writers refuse `enc.pdf`).
+- `crates/lamina-save/tests/`: moved `golden.rs`, `determinism.rs`, `incremental.rs`, `raw_writer.rs`, `roundtrip.rs` and the writer half of `review_fixes.rs`; new `overlay_incremental.rs`, `full_rewrite.rs`, `rebase.rs`, `id.rs`, `sink_errors.rs`, `encrypted_base.rs` (both writers refuse `enc.pdf`).
 - Property test: random op sequences → save (both modes) → reopen → model facts equal the in-memory view.
 - Goldens: new byte-exact outputs in `fixtures/golden/` (generated by `cargo xtask golden --update`).
 
@@ -89,7 +92,7 @@ None.
 
 - Object-stream grouping must be deterministic and must not put the encryption dictionary, xref streams or stream objects inside object streams (§7.5.7).
 - Streaming the base for incremental output with a `Pending` source: propagate `DataPending` before writing anything (check all ranges first).
-- Splitting test support between `lamina-cos` and `lamina-save` may need a small unpublished `lamina-testkit` crate (`publish = false`); decide in the PR.
+- The `lamina-cos` → `lamina-save` dev-dependency is a cycle Cargo accepts for integration tests, but `lamina-cos` unit tests (`src/**` `#[cfg(test)]`) must not use `lamina_save`, or they see two copies of `lamina-cos` types. If that bites, `common/samples.rs` can embed its sample PDFs as committed bytes instead; record the choice in the PR.
 
 ## Definition of done
 
@@ -98,4 +101,3 @@ None.
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
 - [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
-- [ ] Squash-merged; dependants' "Depends on" now satisfied

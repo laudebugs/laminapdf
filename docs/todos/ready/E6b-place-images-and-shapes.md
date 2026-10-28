@@ -7,7 +7,7 @@
 | Plan | [full-editor §E6](../../plans/full-editor.md#e6-adding-content-to-pages) |
 | Round / milestone | Editor phase 4 (E6–E7) — M7 Content editor |
 | Depends on | [B5c](./B5c-lamina-facade-and-examples.md), [E2e](./E2e-content-append-api.md), [E6a](./E6a-adding-content-feature-plan.md) |
-| Blocks | [E6c](./E6c-add-text.md), [E6e](./E6e-content-tools-ui.md), [E6f](./E6f-reload-budget.md) |
+| Blocks | [E6c](./E6c-add-text.md), [E6e](./E6e-content-tools-ui.md), [E6f](./E6f-reload-budget.md), [E10c](./E10c-visual-signatures.md) |
 | Dependency notes | [E6a](E6a-adding-content-feature-plan.md), [E2e](E2e-content-append-api.md), `B5` ([pdf-library §B5](../../plans/pdf-library.md#b5-builder-and-the-lamina-crate): builder and `lamina` crate) |
 | ADRs | Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
 | Branch | `feat/e6b-place-images-and-shapes` |
@@ -29,7 +29,7 @@ Add new content objects to existing pages through the append API: images (JPEG p
 
 **In scope**
 
-- `AddContentObject { page, object: ContentObject, matrix, opacity, placement }` where `ContentObject` = Image(BlobId) | Shape(PathSpec, style) | Form(BlobId)
+- `AddContentObject { page, object: ContentObjectSpec, matrix, opacity, placement }` where `ContentObjectSpec` = Image(BlobId) | Shape(PathSpec, style) | Form(BlobId), defined in `lamina-ops` (op payload). The name `ContentObject` is reserved for [E7c](E7c-content-ir.md)'s IR type in `lamina-content`, so the two never clash
 - `UpdateContentObject` / `DeleteContentObject` for objects lamina added (identity per E6a decision)
 - Each object is its own Form XObject with an appended `q cm /FmN Do Q` stream so it can be transformed or removed without parsing existing content
 - Crop of new images via clip in the form
@@ -50,7 +50,7 @@ Add new content objects to existing pages through the append API: images (JPEG p
 
 ## Tasks
 
-- [ ] ContentObject specs and builders
+- [ ] `ContentObjectSpec` payload type (in `lamina-ops`) and builders
 - [ ] Identity for added objects per E6a
 - [ ] Ops with undo
 - [ ] Bindings and examples
@@ -91,4 +91,3 @@ None.
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
 - [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
-- [ ] Squash-merged; dependants' "Depends on" now satisfied

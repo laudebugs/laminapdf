@@ -44,12 +44,13 @@ Measure, every night, how far hayro is from PDFium on the external corpus, so th
 
 ## Acceptance criteria
 
-- [ ] Nightly run produces a pass-rate number and an HTML report for the external corpus
-- [ ] History shows at least two data points; a forced regression opens an issue
+- [ ] `cargo xtask render-diff --corpus external` run on the branch (locally, or through the nightly job with a temporary `push` trigger on this branch, removed before merge) produces a pass-rate number, a JSON report and an HTML summary
+- [ ] Two branch runs append two points to a scratch history (a test location, not the real one), and a run against a history whose last point is forced > 2 points higher takes the "open an issue" path (dry run: the issue body is printed instead of filed, or filed with a `test` label and closed)
 
 ## Post-merge checks
 
-None.
+- [ ] The first scheduled nightly runs after merge produce a pass-rate number and an HTML report artefact for the external corpus
+- [ ] The real history shows at least two nightly data points (link the runs in the done todo)
 
 ## Tests
 
@@ -72,4 +73,3 @@ Unit tests for the comparator and report generator.
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
 - [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
-- [ ] Squash-merged; dependants' "Depends on" now satisfied

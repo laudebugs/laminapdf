@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [full-editor §E3](../../plans/full-editor.md#e3-navigation-attachments-inspection-and-extraction) |
 | Round / milestone | Editor phase 2 (E1–E3) — M5 Organiser |
-| Depends on | [E3a](./E3a-navigation-attachments-inspection-feature-plan.md), [E3b](./E3b-bookmarks-and-destinations.md) |
+| Depends on | [B8b](./B8b-conformance-profiles-and-verapdf.md), [E3a](./E3a-navigation-attachments-inspection-feature-plan.md), [E3b](./E3b-bookmarks-and-destinations.md), [X3a](./X3a-nightly-lane.md) |
 | Blocks | [E5c](./E5c-stamps-and-attachments.md), [E11d](./E11d-sanitiser.md) |
 | ADRs | Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
 | Branch | `feat/e3f-attachments-and-associated-files` |
@@ -41,7 +41,7 @@ Attach, extract and delete embedded files (EmbeddedFiles name tree), attach asso
 **Editor facts**
 
 - **Operations shipped** ([06 §3](../../research/pdf/06-feature-inventory.md#3-full-operation-inventory-with-mechanisms) IDs): `J.05` attach / extract / delete embedded files; `J.06` portfolios / collections; `H.09` extract attachments; `M.09` associated files and structured metadata
-- **Crates and packages:** `lamina-model` (file specs, name tree from E3b), `lamina-ops`, `@lamina/ui`
+- **Crates and packages:** `lamina-model` (file specs, name-tree writer from [E2b](E2b-page-structure-ops.md)), `lamina-ops`, `@lamina/ui`
 - **`Op` variants:** `AttachFile`, `UpdateAttachment`, `DeleteAttachment` (class `Document`)
 - **`SaveConstraint`:** `Free` → incremental; signed: adding or changing attachments is class `Document`, a DocMDP violation at every certification level (ADR 0007 §2: P1 allows no changes; P2 allows only form filling, page templates and signing; P3 adds annotations) → warn and gate (override names the signatures). With approval signatures only (no certification): `AppendOnly`, an incremental update that keeps their `/ByteRange` intact; a violation only when it changes a field locked by FieldMDP/`/Lock`. Deleting an attachment leaves it in earlier revisions: notice offers full rewrite
 - **Web vs desktop:** identical; desktop saves extracted files to disk via dialog, web downloads
@@ -61,6 +61,7 @@ Attach, extract and delete embedded files (EmbeddedFiles name tree), attach asso
 
 - [ ] Library parity ([full-editor §5](../../plans/full-editor.md#5-requirements-that-hold-for-every-round) req. 7): every new `Op` is exposed in `lamina` and `@lamina/pdf` in this PR, with rustdoc/TSDoc, a runnable example, tsify-generated TS types, and serde samples frozen in `fixtures/ops/v1/` (unknown ops and fields rejected, ADR 0006 §1, §6)
 - [ ] Property tests: for every new op, apply then undo leaves the overlay empty and the next save is byte-identical to the previous one (ADR 0006 §3); redo re-applies the same bytes
+- [ ] Every new op reports exactly one `ModificationClass` and `requires_rewrite` (ADR 0006 §1); a test per op runs `planner.would_violate(&op)` on the signed fixtures (no certification, DocMDP P1, P2, P3, FieldMDP lock) and asserts the verdict ([ADR 0007](../../decisions/0007-save-planner.md) §2), because a misclassified op is a security bug
 - [ ] Round-trip: open → op → save → reopen in lamina, pdf.js and PDFium preserves the change and everything else (page count, outline, annotations, fields, struct tree facts in `expected.json`); `qpdf --check` is clean
 - [ ] veraPDF passes PDF/A-3b on a fixture after attaching an XML with `/AFRelationship /Alternative`
 - [ ] Attachments extracted equal the originals byte-for-byte (SHA-256)
@@ -95,4 +96,3 @@ None.
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
 - [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
-- [ ] Squash-merged; dependants' "Depends on" now satisfied

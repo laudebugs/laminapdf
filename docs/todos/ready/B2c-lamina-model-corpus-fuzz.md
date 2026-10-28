@@ -32,7 +32,7 @@ Give callers a typed, tolerant read API over the lazy COS graph (pages with thei
 
 - New core crate `crates/lamina-model` (`layer = "core"`, `forbid(unsafe_code)`), depending on `lamina-cos`.
 - Views: `Pages` (iterator, `len`, `get(index)`, `by_id(PageId)`), `Page<'d>` (`id`, `media_box`, `crop_box`, `bleed/trim/art_box`, `rotate` as `Rotation`, `user_unit`, `resources`, `contents` refs, `annots` refs, `label`), `Outline`/`OutlineItem` (title decoded from PDFDocEncoding/UTF-16BE/UTF-8, children, open/closed count, destination resolved to `PageId` + view when possible, action kind), `Info` (title, author, subject, keywords, creator, producer, creation/mod dates parsed as `PdfDate` with raw fallback), `NameTree`/`NumberTree` (lookup and ordered iteration, `/Kids`/`/Limits` tolerant, `max_tree_depth`), `PageLabels` (styles D/R/r/A/a, prefix, start → label strings).
-- Text-string decoding helper (`PdfDocEncoding`, UTF-16BE with BOM, UTF-8 BOM for PDF 2.0) in `lamina-model` (or `lamina-syntax` if B9 needs it lower).
+- Text-string decoding (`PdfDocEncoding`, UTF-16BE with BOM, UTF-8 BOM for PDF 2.0) in `lamina_syntax::text`: the one PDFDocEncoding table in the workspace (code ↔ Unicode, both directions) and `decode_text_string`. This todo comes first, so it owns the table; [B3a](./B3a-overlay-and-ops.md) adds the encoder next to it and [B4c](./B4c-standard-14-and-simple-fonts.md) reuses it instead of writing its own.
 - `LaminaId` + typed newtypes (`PageId`, `OutlineItemId`; `AnnotId`/`FieldId` declared for later), JSON string form, `FromStr`/`Display`, allocator on the document (interior state), path IDs for direct dictionaries.
 - New warnings with codes (in `fixtures/codes.json`): `invalid-box`, `invalid-rotate`, `name-tree-node-skipped`, `outline-cycle`, `invalid-date`, `invalid-page-label`.
 - Corpus: `fixtures/corpus/expected.json` gains `outline_titles` (flattened, depth-first) and keeps `page_count`, produced by a script `tools/corpus-facts/` (Python + pypdf, pinned) — **never by lamina**; the script reads and writes only `fixtures/corpus/` (encrypted fixtures and their facts live in `fixtures/encrypted/` + `fixtures/encrypted/expected.json`, owned by [B2b](./B2b-standard-security-decryption.md)); `fixtures/corpus/exceptions.toml` listing deliberate differences with the ADR 0003 rule.
@@ -54,7 +54,7 @@ Give callers a typed, tolerant read API over the lazy COS graph (pages with thei
 - [ ] Load `/rust-best-practices`; read ADR 0005 §4–5, ADR 0018 §1
 - [ ] Create `crates/lamina-model` (Cargo.toml with `[package.metadata.lamina] layer = "core"`, README, `lib.rs` docs)
 - [ ] `id.rs`: `LaminaId`, `Kind`, newtypes, string form, parser, allocator; unit tests for round-trip and uniqueness
-- [ ] `text.rs`: text-string decoding with tests (PDFDocEncoding table, UTF-16BE surrogates, invalid sequences → U+FFFD)
+- [ ] `crates/lamina-syntax/src/text.rs`: the PDFDocEncoding table (code → Unicode and the reverse lookup, ISO 32000-2 Annex D) and `decode_text_string`, with tests (every table entry, UTF-16BE surrogates, invalid sequences → U+FFFD); `lamina-model` uses it
 - [ ] `page.rs`: `Pages`, `Page<'d>`, box rectangles normalised (`Rect` with min/max), inheritance via the COS `Page`, per-field warnings
 - [ ] `outline.rs`: iterative walk with a visited set (cycles → `outline-cycle`, stop), `max_tree_depth`, destination resolution (explicit arrays, named dests via `/Dests` and the `/Names` tree)
 - [ ] `info.rs`, `date.rs` (PDF date parser with tolerant fallbacks)
@@ -65,7 +65,7 @@ Give callers a typed, tolerant read API over the lazy COS graph (pages with thei
 - [ ] `crates/lamina-model/tests/corpus.rs`, `ids.rs` (stable across reopen and after an incremental no-op save with `lamina-cos`'s `incremental_update`), `views.rs`
 - [ ] `tools/xtask`: `golden --update`, `differential [--update]`, `fuzz <target> [--time]`, `corpus` helpers; wire `differential` (precomputed expectations, no Python needed) into `cargo xtask test`
 - [ ] `fuzz/`: five targets, `fuzz/README.md` (how to run, how to minimise into `fixtures/regressions/`), seeds script
-- [ ] Fuzz seeds for encrypted files: if [B2b](./B2b-standard-security-decryption.md) is already merged when this PR opens, add `fixtures/encrypted/*.pdf` to the `open` target's seeds and try the empty password and each fixture's password from `fixtures/encrypted/expected.json`; otherwise B2b does it (whichever merges second)
+- [ ] Fuzz seeds for encrypted files are owned by [B2b](./B2b-standard-security-decryption.md), which writes them to `fuzz/seeds/open/encrypted/` and their passwords to `fuzz/seeds/open/passwords.txt` (creating the directory if this PR hasn't merged yet). Here: the seeds script includes everything under `fuzz/seeds/<target>/`, and the `open` target tries the empty password and then each line of `fuzz/seeds/open/passwords.txt` (`include_str!`). If that file isn't on `main` yet, create it empty (a comment line) for B2b to fill; this works in either merge order
 - [ ] `.github/workflows/fuzz.yml` (cron, nightly toolchain, `cargo fuzz run <t> -- -max_total_time=600 -timeout=10 -rss_limit_mb=2048`)
 - [ ] Add `fuzz/` exclusion check to xtask if not already present
 
@@ -112,4 +112,3 @@ Give callers a typed, tolerant read API over the lazy COS graph (pages with thei
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
 - [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
-- [ ] Squash-merged; dependants' "Depends on" now satisfied

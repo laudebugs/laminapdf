@@ -16,7 +16,7 @@
 
 ## Goal
 
-A sanitiser as a set of ops, each removing one category and reporting what it removed: hidden metadata (Info, XMP, `/PieceInfo`, thumbnails), comments, attachments (EmbeddedFiles, `/AF`, FileAttachment annots), scripts and active content (`/Names /JavaScript`, `/OpenAction` JS, `/AA`, Launch, SubmitForm, external refs), hidden layers and off-page content, and incremental history (via rewrite).
+A sanitiser as a set of ops, each removing one category and reporting what it removed: hidden metadata (Info, XMP, `/PieceInfo`, thumbnails), comments, attachments (EmbeddedFiles, `/AF`, FileAttachment annots), scripts and active content (`/Names /JavaScript`, `/OpenAction` JS, `/AA`, Launch, SubmitForm, external refs, XFA), hidden layers and off-page content, and incremental history (via rewrite).
 
 ## Context
 
@@ -29,6 +29,7 @@ A sanitiser as a set of ops, each removing one category and reporting what it re
 **In scope**
 
 - Ops: `StripMetadata`, `StripAnnotations`, `StripAttachments`, `StripActiveContent`, `StripHiddenContent` (OCG-off content needs the E7c IR; off-page via CropBox), `Sanitise { categories }`
+- XFA in `StripActiveContent`: XFA forms carry their own scripts (`<script>` in the template packet, FormCalc and JavaScript) that ignore the AcroForm action dictionaries, so the op removes `/AcroForm /XFA` entirely (the stream or the packet array and every packet stream it references) and clears `NeedsRendering` in the catalog; the AcroForm fields, if any, remain as the static fallback. A dynamic XFA document (no usable AcroForm) is reported as `XfaOnlyContentRemoved` so the user knows the form will not render as before
 - `SanitiseReport` (JSON + UI)
 - Sanitise dialog with presets
 
@@ -40,7 +41,7 @@ A sanitiser as a set of ops, each removing one category and reporting what it re
 
 - **Operations shipped** ([06 §3](../../research/pdf/06-feature-inventory.md#3-full-operation-inventory-with-mechanisms) IDs): `G.08` remove hidden metadata and comments; `G.09` sanitise embedded content; `G.10` remove attachments and scripts; `G.13` remove hidden layers/information
 - **Crates and packages:** `lamina-ops`, `lamina-content` (hidden content), `@lamina/ui`
-- **`Op` variants:** the ops above (requires rewrite)
+- **`Op` variants:** the ops above (class `Document`, `requires_rewrite = true`)
 - **`SaveConstraint`:** `RequiresRewrite`: a full rewrite, every earlier revision dropped. On signed files the constraint is `Conflict`: the UI names the signatures that will be invalidated and removed (ADR 0007 §3 override); order redact → rewrite → sign
 - **Web vs desktop:** identical
 - **Server features:** none (this PR adds no server feature; all processing stays on the device)
@@ -51,12 +52,13 @@ A sanitiser as a set of ops, each removing one category and reporting what it re
 - [ ] Ops
 - [ ] Report
 - [ ] Dialog
-- [ ] Fixtures with every active-content location
+- [ ] Fixtures with every active-content location, including XFA forms with `<script>` in the template packet
 
 ## Acceptance criteria
 
 - [ ] Library parity ([full-editor §5](../../plans/full-editor.md#5-requirements-that-hold-for-every-round) req. 7): every new `Op` is exposed in `lamina` and `@lamina/pdf` in this PR, with rustdoc/TSDoc, a runnable example, tsify-generated TS types, and serde samples frozen in `fixtures/ops/v1/` (unknown ops and fields rejected, ADR 0006 §1, §6)
-- [ ] After `Sanitise(all)` a scan finds no JS, Launch, EmbeddedFiles, `/AA` or `/OpenAction` actions anywhere (test over fixtures)
+- [ ] Every new op reports exactly one `ModificationClass` and `requires_rewrite` (ADR 0006 §1); a test per op runs `planner.would_violate(&op)` on the signed fixtures (no certification, DocMDP P1, P2, P3, FieldMDP lock) and asserts the verdict ([ADR 0007](../../decisions/0007-save-planner.md) §2), because a misclassified op is a security bug. Expected for the sanitiser ops (`requires_rewrite`): `Conflict` on every signed fixture
+- [ ] After `Sanitise(all)` a scan finds no JS, Launch, EmbeddedFiles, `/AA` or `/OpenAction` actions anywhere, and no `/XFA` entry in `/AcroForm` and no orphaned XFA packet stream (template, datasets, config) left in the file (test over fixtures, including a static and a dynamic XFA form with scripts)
 - [ ] Report lists every removed item
 
 ## Post-merge checks
@@ -85,4 +87,3 @@ None.
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
 - [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
-- [ ] Squash-merged; dependants' "Depends on" now satisfied

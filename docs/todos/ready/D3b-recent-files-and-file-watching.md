@@ -22,7 +22,7 @@ Two desktop-only conveniences that power users expect. **Recent files**: every o
 
 - [Desktop plan §4 req. 1 and §2 scope](../../plans/desktop-app.md#2-scope-and-non-goals): recent files (OS + in-app list), reopen last session (D4a), file watching with reload.
 - [Desktop notes Q3](../../research/architecture/notes/desktop-shell.md#q3-performance-native-rust-over-ipc-vs-wasm-in-webview-bitmaps-1-gb-files-mmap-file-watching): use the `notify` crate in Rust rather than the fs plugin's JS `watch`.
-- D2b: `MmapSource` truncation hazard and the remap requirement; `DocumentRegistry` reload entry point.
+- D2b: `FileSource` (positioned reads on an open handle, no mmap in the main process); `DocumentRegistry` reload entry point.
 - `notify` 8 / `notify-debouncer-full` (CC0/MIT/Apache — verify), OS APIs: macOS `NSDocumentController.noteNewRecentDocumentURL` (objc2-app-kit), Windows `SHAddToRecentDocs(SHARD_PATHW)` (windows crate; feeds the Jump List's Recent category when the app is a registered handler) and [`IApplicationDestinations`](https://learn.microsoft.com/windows/win32/api/shobjidl_core/nn-shobjidl_core-iapplicationdestinations) (`SetAppID`, `RemoveDestination`, `RemoveAllDestinations` — scoped to one AppUserModelID), Linux GTK `RecentManager::default().add_item(uri)` (gtk crate already in Tauri's Linux tree).
 - Privacy: the in-app list stores paths locally only (never sent anywhere; ADR 0011 rules); "clear" also clears the OS entries lamina added where the API allows.
 
@@ -34,9 +34,9 @@ Two desktop-only conveniences that power users expect. **Recent files**: every o
 - OS integration per platform in `src-tauri/src/recent/os_{macos,windows,linux}.rs`; `clear` calls `NSDocumentController.clearRecentDocuments` (macOS; the app's own list), `RecentManager::remove_item` for our URIs (Linux), and on Windows clears **only lamina's Jump List** with `IApplicationDestinations::SetAppID(<lamina AUMID>)` + `RemoveAllDestinations()`; `remove(id)` uses `RemoveDestination` with an `IShellItem` for that one file. **Never** call `SHAddToRecentDocs(SHARD_PIDL, NULL)` (or any `NULL` form): it wipes the user's entire Windows Recent Items for every app. lamina does not touch the system-wide Recent Items folder / Quick Access entries (shared with Explorer and other apps; the user manages them in Explorer); the privacy note and the UI text say so. AppUserModelID: lamina calls `SetCurrentProcessExplicitAppUserModelID` at startup with its bundle identifier, which must match the installer shortcuts' `System.AppUserModel.ID` (verify what Tauri's NSIS/WiX templates set; align in D6d if not), so the Jump List and `RemoveAllDestinations` target the same list.
 - Commands (manifest + capability): `recent_list`, `recent_open(id)` (opens by ID — the webview never sends a path), `recent_remove(id)`, `recent_clear`. UI: `@lamina/ui` recent list on the empty state + a "Recent" popover; desktop `Platform.recentFiles` (web already has an OPFS-backed recent list from C4/C7 — share the component, not the storage).
 - Settings toggle "Remember recent files" (default on); off clears and stops recording (and, from D4a, also stops session persistence — one privacy switch for every stored document path) (settings page arrives in D5b/D7b; store the flag now with a temporary toggle in the recent popover).
-- `src-tauri/src/watch.rs`: one `notify` recommended watcher via `notify-debouncer-full` (debounce 300 ms) watching the **parent directory** of each open file non-recursively (catches atomic-save rename patterns), matching by file identity (path + inode/file ID where available).
-  - On modify/replace: compare size + mtime (+ a fast hash of the first and last 64 KiB) to avoid spurious reloads; remap the file (`MmapSource` new mapping), tell the engine to re-open (`ReopenDocument`), emit `document://reloaded { doc, page_count }`; the UI keeps the current page index and in-page offset (clamped if the page no longer exists) and zoom.
-  - On delete/move-away: keep the current mapping only if still valid (Unix: mapping stays valid after unlink; Windows: file can't be deleted while mapped — note the user-visible implication), emit `document://missing`; UI banner "File was moved or deleted" with "Locate…" (opens dialog) and "Close".
+- `src-tauri/src/watch.rs`: one `notify` recommended watcher via `notify-debouncer-full` (debounce 300 ms) watching the **parent directory** of each open file non-recursively (catches atomic-save rename patterns), matching events **by path**. The inode/file ID is not part of the identity: an atomic save (write temp file, rename over the original) puts a new inode at the same path, and that must count as a modification, not as "missing". Event mapping: create / rename-to / modify at the watched path → **modified**; remove / rename-away of the watched path with nothing at that path after the debounce → **missing**; a remove followed within the debounce by a create or rename-to at the same path → **modified**.
+  - On modified (including replace-by-rename): compare size + mtime + file ID (+ a fast hash of the first and last 64 KiB) with the open handle's to avoid spurious reloads; reopen the path (a new `FileSource` — the old handle still points at the old inode after a replace), tell the engine to re-open (`ReopenDocument`), emit `document://reloaded { doc, page_count }`; the UI keeps the current page index and in-page offset (clamped if the page no longer exists) and zoom.
+  - On missing (deleted or moved away, nothing at the path after the debounce): keep serving from the already-open handle (Unix: an unlinked file stays readable through it; Windows: the handle is opened with `FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE` so other apps can delete, rename or replace the file, and it stays readable), emit `document://missing`; UI banner "File was moved or deleted" with "Locate…" (opens dialog) and "Close".
   - On rapid successive writes (a build writing in chunks): wait until size/mtime are stable for 2 debounce periods before reloading; if the new file fails to parse, keep the old view and show "File changed but could not be read; retrying", retry on the next change.
 - Platform flag `canWatchFiles: true` honoured; setting "Reload when the file changes" (default on).
 
@@ -49,7 +49,7 @@ Two desktop-only conveniences that power users expect. **Recent files**: every o
 
 ## Tasks
 
-- [ ] Fresh worktree; move this file to `ongoing/`. Load `tauri-v2` and `rust-best-practices`.
+- [ ] Fresh worktree; this todo is already claimed via the claim PR (see DoD). Load `tauri-v2` and `rust-best-practices`.
 - [ ] Add deps (`notify`, `notify-debouncer-full`, `objc2-app-kit`/`objc2-foundation` macOS, `windows` features `Win32_UI_Shell`, `gtk` Linux) with licence comments; `cargo deny check`.
 - [ ] Implement `RecentFiles` with unit tests (ordering, dedupe by canonical path, cap 20, atomic persistence, corrupted JSON → reset with a log warning).
 - [ ] OS recent-documents integration per platform (called from the main thread where the API requires it: `run_on_main_thread`; COM initialised as STA on that thread on Windows). A grep-based test (or clippy `disallowed_methods`) fails the build if `SHAddToRecentDocs` is called with a null `pv`.
@@ -62,7 +62,7 @@ Two desktop-only conveniences that power users expect. **Recent files**: every o
 ## Acceptance criteria
 
 - [ ] Editing (overwriting) an open file externally reloads it within 1 s on each OS while keeping page index and zoom (e2e).
-- [ ] Atomic-save replacements (vim/VS Code style) are detected (e2e).
+- [ ] Atomic-save replacements (vim/VS Code style: write temp file, rename over the original — new inode, same path) reload the document like an in-place edit and never show the "missing" banner (e2e).
 - [ ] Deleting the open file shows the banner and the app keeps running (e2e).
 - [ ] Opened files appear in the OS recent list on each OS (manual check recorded) and in the in-app list across restarts (e2e); "clear" empties both. On Windows, "clear" empties lamina's Jump List and leaves another app's recent entries (e.g. a `.txt` opened in Notepad shown in Explorer's Recent) untouched (manual check recorded).
 - [ ] Disabling "Remember recent files" stops recording and clears the list (unit + e2e).
@@ -75,18 +75,19 @@ None.
 ## Tests
 
 - Rust unit tests for `RecentFiles`, change-detection logic (`fn classify_change(old: &FileStamp, new: &FileStamp) -> Change`), and debounce/stability rules (driven with synthetic events, no real fs).
-- Rust integration test with a temp dir and the real watcher (marked `#[ignore]` on CI platforms where fs events are unreliable, but run in `desktop-e2e`).
+- Event-mapping unit tests (synthetic events): write-temp + rename-over the watched path → modified (not missing); remove + create within the debounce → modified; remove with nothing after → missing.
+- Rust integration test with a temp dir and the real watcher (including an atomic save via rename-over, and on Windows: another process deletes and replaces the open file while lamina has it open) (marked `#[ignore]` on CI platforms where fs events are unreliable, but run in `desktop-e2e`).
 - WebdriverIO scenarios listed above.
 
 ## Docs to update
 
 - `docs/plans/desktop-app.md` §9 D3: tick "Recent files…", "Watch open files and reload preserving position", and complete "Integration tests for open-from-OS on each platform".
-- ADR 0008: note the watch strategy (parent-dir watching, stability rule) and the Windows "can't delete while mapped" behaviour.
+- ADR 0008: note the watch strategy (parent-dir watching, stability rule) and the Windows share mode (`FILE_SHARE_DELETE`, other apps can replace or delete an open file).
 - Privacy page draft (ADR 0011's page, owned by web C7): add "the desktop app stores a local recent-files list; clear it in settings".
 
 ## Risks and open questions
 
-- **Windows mapped files can't be deleted or replaced** by other apps while lamina holds the mapping — this could break other apps' saves. Mitigation options: positioned reads instead of mmap on Windows, or `FILE_SHARE_DELETE` + copy-on-change. Decide here (and update ADR 0008); this is a user-visible behaviour.
+- **Windows file locking**: resolved by D2b's decision (positioned reads, no mapping) plus opening the handle with `FILE_SHARE_DELETE` here, so lamina never blocks other apps' saves, renames or deletes. Test it (below) and note it in ADR 0008.
 - **Network shares and cloud-sync folders** (OneDrive/Dropbox placeholders) produce noisy or missing events; stability rule + fallback polling every 5 s for network paths.
 - **Very large files rewritten in place** might be read mid-write; the stability rule mitigates; a parse failure keeps the old view.
 - `notify`'s macOS FSEvents backend reports directory-level events with latency (~1 s); acceptable within the 1 s target? Measure; widen to 2 s if needed and record.
@@ -98,4 +99,3 @@ None.
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
 - [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
-- [ ] Squash-merged; dependants' "Depends on" now satisfied

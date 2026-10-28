@@ -7,7 +7,7 @@
 | Plan | [full-editor: optional Cloudflare server features](../../plans/full-editor.md#optional-cloudflare-server-features) (cloud storage and sync) |
 | Round / milestone | Hosted service foundation (accounts, cloud storage, sync) — before the first round that needs accounts |
 | Depends on | [E1e](./E1e-save-and-constraint-banner.md), [H2](./H2-accounts-and-login.md) |
-| Blocks | [E18b](./E18b-collaboration-feature-plan.md), [E18f](./E18f-sharing-and-notifications.md), [H4](./H4-document-sync.md) |
+| Blocks | [E18b](./E18b-collaboration-feature-plan.md), [E18d](./E18d-durable-object-server.md), [E18f](./E18f-sharing-and-notifications.md), [H4](./H4-document-sync.md) |
 | ADRs | Implements ADR 0011 |
 | Branch | `feat/h3-cloud-document-storage` |
 | PR title | `feat(hosted): opt-in cloud storage for documents` |
@@ -64,7 +64,7 @@ Let signed-in users store chosen documents in the cloud: per-document opt-in upl
 
 ## Post-merge checks
 
-None.
+- [ ] D1 migrations (files, revisions, quotas) applied to production and the Worker deployed by the deploy workflow on `main`; the R2 bucket's lifecycle rules (abort incomplete multipart uploads, purge of deleted users' prefixes) are active in production (link the run and the bucket config)
 
 ## Tests
 
@@ -89,4 +89,3 @@ None.
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
 - [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
-- [ ] Squash-merged; dependants' "Depends on" now satisfied

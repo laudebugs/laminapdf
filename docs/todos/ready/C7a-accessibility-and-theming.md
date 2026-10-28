@@ -7,7 +7,7 @@
 | Plan | [web reader §6 C7. Accessibility, offline and launch](../../plans/web-app.md#c7-accessibility-offline-and-launch) |
 | Round / milestone | Round C (web reader) — M2 Web reader v0.1 |
 | Depends on | [C5b](./C5b-find-in-document.md), [C6a](./C6a-thumbnails-outline-page-labels.md), [C6b](./C6b-links-and-history.md), [C6c](./C6c-print-download-properties.md) |
-| Blocks | [C7c](./C7c-performance-gates-and-launch.md), [D4b](./D4b-native-menus.md) |
+| Blocks | [C7b](./C7b-offline-pwa.md), [C7c](./C7c-performance-gates-and-launch.md), [D4b](./D4b-native-menus.md) |
 | ADRs | Follows 0009 (a11y primitives), 0010 (shortcuts consistent across shells; platform modifiers) |
 | Branch | `feat/c7a-accessibility` |
 | PR title | `feat(ui): add the keyboard map, help dialog, focus management, themes and axe checks` |
@@ -46,7 +46,7 @@ Make the reader meet WCAG 2.2 AA for its chrome and work fully without a mouse. 
 
 ## Tasks
 
-- [ ] Fresh worktree; move this file to `ongoing/`.
+- [ ] Claim via a claim PR (see Definition of done); then a fresh worktree off the updated `main`.
 - [ ] Keymap module + dispatcher + unit tests (no duplicate bindings per scope; every action has a binding or is listed as menu-only; macOS/other variants).
 - [ ] Wire all existing actions (C4a–C6c) through the dispatcher; remove ad-hoc key handlers.
 - [ ] Help dialog component generated from the keymap.
@@ -55,7 +55,7 @@ Make the reader meet WCAG 2.2 AA for its chrome and work fully without a mouse. 
 - [ ] `Announcer` service (one polite + one assertive live region) used by viewer events and find.
 - [ ] Theme tokens for dark and high contrast; `forced-colors` media query styles; contrast check of all token pairs (script asserting ≥ 4.5:1 text and ≥ 3:1 UI components).
 - [ ] Reduced-motion handling in viewer (scroll behaviour) and UI (transitions).
-- [ ] Settings popover (theme, reduced motion override, night filter) stored in `localStorage` (no network).
+- [ ] Settings dialog — **C7a owns the app's single settings UI**: a dialog in `@lamina/ui` with a small section-registration API (`registerSettingsSection({ id, title, render })`) so later todos add sections instead of building their own (C7b adds "Storage and privacy"). C7a ships the "Appearance and accessibility" section (theme, reduced motion override, night filter), stored in `localStorage` (no network); the dialog is keyboard-operable and covered by the axe suite.
 - [ ] axe Playwright suite `apps/web/e2e/a11y.spec.ts` across states and themes; keyboard-only e2e that completes: open (via keyboard to file input), navigate pages, find, follow a link and go back, open properties, print dialog, all without the mouse.
 - [ ] Manual AT pass and write-up.
 
@@ -94,4 +94,3 @@ Unit tests (keymap, dispatcher, announcer throttling, contrast script); Playwrig
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
 - [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
-- [ ] Squash-merged; dependants' "Depends on" now satisfied

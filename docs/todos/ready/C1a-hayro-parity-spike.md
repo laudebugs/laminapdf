@@ -47,7 +47,7 @@ Answer the [architecture §4](../../plans/architecture.md#4-spikes-to-close-open
 
 ## Tasks
 
-- [ ] Create a fresh worktree: `git worktree add -b spike/c1a-hayro-parity spike-c1a-hayro-parity main`; move this file to `docs/todos/ongoing/` in the first commit (status `ongoing`, PR link).
+- [ ] Claim via a claim PR (see Definition of done); then create a fresh worktree off the updated `main`: `git worktree add -b spike/c1a-hayro-parity spike-c1a-hayro-parity main`.
 - [ ] Check licences before adding anything: `hayro` (MIT OR Apache-2.0), `pdfium-render` (confirm MIT OR Apache-2.0 on crates.io; the rendering notes flag it as unconfirmed), the PDFium binary source (e.g. `bblanchon/pdfium-binaries`, Apache-2.0/BSD) and the comparison crate. Record each in the README.
 - [ ] Create `spikes/hayro-parity/` with `Cargo.toml` (edition 2024, `publish = false`, empty `[workspace]` table so it is not pulled into the root workspace), `src/main.rs`, `scripts/fetch-corpora.sh`, `scripts/fetch-pdfium.sh`, `corpora.manifest.toml` (source URL, pinned commit, licence, SHA-256 per file), `.gitignore` (`corpora/`, `out/`, `pdfium/`).
 - [ ] `fetch-pdfium.sh`: download a pinned PDFium native build for the host OS and verify its SHA-256; `pdfium-render` binds it dynamically.
@@ -101,4 +101,3 @@ Spike code is throwaway, so no product tests. Add a smoke check in the README's 
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
 - [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
-- [ ] Squash-merged; dependants' "Depends on" now satisfied

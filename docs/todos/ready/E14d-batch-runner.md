@@ -28,6 +28,8 @@ Record an op sequence (ADR 0006 JSON with `v` envelope), parameterise it, and ap
 **In scope**
 
 - Op-sequence recorder and editor
+- **Batch recipes are document-independent.** Recorded ops name things by `LaminaId` ([ADR 0005](../../decisions/0005-document-model.md)), which only exists in the document they were recorded on, so a recipe is not a replay of op JSON. It is a versioned `Recipe { v, steps: [{ op_template, selector }] }` where each step's targets are **selectors** resolved per input file at run time: `AllPages`, `PageIndex(i)` / `PageRange(a..b)` (0-based, negative = from the end), `PageLabel("iv")` / label ranges, `OddPages`/`EvenPages`, `AllAnnotations { subtype }`, `AllFields { name_glob }`, `Document` (document-level ops). The runner expands each step into concrete ops with that file's IDs; a selector that matches nothing is a per-file warning, not a failure. Recording converts the IDs the user touched into the closest selector (and lets the user edit it)
+- **Blob bundling:** steps that reference blobs (stamp images, fonts, watermark Form XObjects; `BlobId`, ADR 0006 §1) carry them in the recipe bundle (`recipe.json` + `blobs/<hash>`), and the runner loads them into each document's blob store before applying, so a recipe saved on one machine runs on another
 - Runner with per-file transactions and reports
 - Library API and example
 
@@ -45,14 +47,17 @@ Record an op sequence (ADR 0006 JSON with `v` envelope), parameterise it, and ap
 
 ## Tasks
 
-- [ ] Recorder
-- [ ] Runner
+- [ ] Recipe format (versioned, `deny_unknown_fields`) with selectors and blob bundle; JSON samples frozen under `fixtures/recipes/v1/`
+- [ ] Recorder (IDs → selectors)
+- [ ] Runner (selector expansion per file, blob loading)
 - [ ] UI
 - [ ] Examples
 
 ## Acceptance criteria
 
-- [ ] Applying Bates numbering to 100 files produces correct outputs and a report
+- [ ] A recipe recorded on one document (Bates numbering + a watermark image + deleting the last page) runs on 100 *different* corpus files with different page counts, labels and object numbers: every output has the stamp on the selected pages, the watermark blob embedded, the right page removed, and passes `qpdf --check`; the report lists per-file selector matches
+- [ ] A recipe bundle copied to another machine (fresh blob store) runs identically (byte-identical outputs)
+- [ ] Recipes never contain `LaminaId`s (schema test)
 - [ ] A failing file doesn't stop the batch
 
 ## Post-merge checks
@@ -79,4 +84,3 @@ None.
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
 - [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
-- [ ] Squash-merged; dependants' "Depends on" now satisfied

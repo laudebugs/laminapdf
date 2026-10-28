@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [full-editor §E16](../../plans/full-editor.md#e16-optimisation-and-print-production) |
 | Round / milestone | Editor phase 6 (E11–E17) — M9 Advanced |
-| Depends on | [E14e](./E14e-server-batch.md), [E16b](./E16b-structural-optimiser.md) |
+| Depends on | [E14e](./E14e-server-batch.md), [E16b](./E16b-structural-optimiser.md), [E16e](./E16e-preflight-and-conversion.md) |
 | Blocks | None |
 | ADRs | Implements ADR 0013; Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
 | Branch | `feat/e16g-server-batch-optimise` |
@@ -16,7 +16,7 @@
 
 ## Goal
 
-Register `optimise` (and `convert_pdfa`) as job types in the opt-in server batch (E14e) so large print files can be optimised in Containers. Closed as won't-do together with E14e if there is no hosted batch (see Risks).
+Register `optimise` and `convert_pdfa` (the PDF/A conversion from [E16e](E16e-preflight-and-conversion.md)) as job types in the opt-in server batch (E14e) so large print files can be optimised in Containers. Closed as won't-do together with E14e if there is no hosted batch (see Risks).
 
 ## Context
 
@@ -76,4 +76,3 @@ None.
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
 - [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
-- [ ] Squash-merged; dependants' "Depends on" now satisfied

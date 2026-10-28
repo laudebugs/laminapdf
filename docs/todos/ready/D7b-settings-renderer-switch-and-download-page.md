@@ -48,7 +48,7 @@ Finish the desktop settings page so every user-facing control the beta needs is 
 
 ## Tasks
 
-- [ ] Fresh worktree; move this file to `ongoing/`. Load `tauri-v2` and `rust-best-practices`.
+- [ ] Fresh worktree; this todo is already claimed via the claim PR (see DoD). Load `tauri-v2` and `rust-best-practices`.
 - [ ] Renderer switch: early-startup env application, auto-detection, crash-loop guard, `--safe-graphics`; unit tests for the decision function (`fn graphics_env(settings, env_probe) -> Vec<(&str, &str)>`).
 - [ ] Settings UI sections + desktop `Platform` methods; capability for the `settings` window updated (only the commands it uses).
 - [ ] D6b publish job: write `downloads/{channel}.json` (version, files with size/sha256/url) to R2; R2 CORS rule for the web origin (owner action if done in the dashboard).
@@ -94,4 +94,3 @@ None.
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
 - [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
-- [ ] Squash-merged; dependants' "Depends on" now satisfied

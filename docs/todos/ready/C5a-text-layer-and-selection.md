@@ -34,7 +34,7 @@ Make text in every rendered page selectable, copyable and readable by screen rea
 
 - RPC methods: `pageText(page) → { runs: GlyphRun[] }` (Unicode string, per-glyph or per-run quads in PDF user space, font size, direction LTR/RTL/TTB, `ActualText` replacement, MCID), `structTree(page)` and `markInfo()`; low priority (`background`) with per-page LRU cache in the worker.
 - If B9 doesn't expose the struct tree read API, add a minimal read-only view (`StructTreeRoot` → elements with type, alt, lang, MCID refs) in `lamina-model` / `lamina-wasm` / `@lamina/pdf` **in this PR** (small) — coordinate with the library owner; otherwise split it out as `C5a-pre`.
-- `packages/viewer/src/layers/text-layer.ts`: per page, absolutely positioned `span`s per run (or per word for long runs), transformed with CSS `matrix()` from PDF space to CSS px at the current zoom/rotation, horizontally scaled (`scaleX`) so each span's width matches the glyph quads; `color: transparent`; selection highlight via `::selection`; `dir` and `lang` attributes; line breaks / end-of-line markers so copy yields sensible newlines; `user-select` contained per page.
+- `packages/viewer/src/layers/text-layer.ts`: per page, absolutely positioned `span`s per run (or per word for long runs), transformed with CSS `matrix()` from PDF space to CSS px at the current zoom/rotation, horizontally scaled (`scaleX`) so each span's width matches the glyph quads; `color: transparent`; selection highlight via `::selection`; `dir` and `lang` attributes; line breaks / end-of-line markers so copy yields sensible newlines. **Selection scope (decided): real cross-page selection with a single selection root.** The document's page container is the one selection root: `user-select: text` on text-layer spans only, `user-select: none` on canvases, page gaps, other layers and the app chrome. There is no per-page `user-select` boundary, so a drag selection continues from one mounted page into the next. While a selection exists, the virtualiser keeps every page the selection touches mounted (it pins them) so the selection is not destroyed by scrolling. `ctrl/cmd+A` with focus in the document selects the text of the mounted pages only (not the whole document; full-document text is reached via find); the help text says so.
 - Copy: intercept `copy` to normalise output (remove soft hyphen artefacts, apply `ActualText`, join across pages in order) using the extracted Unicode rather than DOM text where they differ.
 - Struct-tree layer: hidden-but-accessible tree (`role`s mapped from standard structure types: H1–H6, P, L/LI, Table/TR/TH/TD, Figure with alt) whose leaves `aria-owns` the matching text spans by MCID; untagged documents announce "untagged document" once and expose text in extraction order.
 - Rotation and zoom updates re-transform existing spans (no re-extraction).
@@ -48,25 +48,25 @@ Make text in every rendered page selectable, copyable and readable by screen rea
 
 ## Tasks
 
-- [ ] Fresh worktree; move this file to `ongoing/`.
+- [ ] Claim via a claim PR (see Definition of done); then a fresh worktree off the updated `main`.
 - [ ] Confirm B9's `@lamina/pdf` API (`page.text()` shape); write a worker adapter producing compact, transferable run data (`Float32Array` of quads + string table) to keep RPC cheap.
 - [ ] Add RPC methods and types; worker cache keyed by page; cancellation on page unmount.
 - [ ] Text-layer builder with a pure function `layoutSpans(runs, viewport) → SpanSpec[]` (unit-testable) and a DOM renderer that reuses span elements across zoom changes.
 - [ ] Width fitting: measure each span's natural width once (canvas `measureText` with a generic font, cached per font-size bucket) and set `transform: … scaleX(k)`; avoid layout thrash (batch reads then writes).
 - [ ] RTL and vertical text: set `dir="rtl"` for RTL runs; rotate spans for vertical writing; test Arabic/Hebrew selection order.
-- [ ] Copy handler and newline/space heuristics consistent with B9's reading order.
+- [ ] Selection root and `user-select` rules as in Scope; pin pages intersecting the active selection in the virtualiser (`selectionchange` → a `keepMounted(pageIndices)` hook on the C3b virtualiser, added in this PR if C3b has none; pinned pages count against the canvas pool); copy handler and newline/space heuristics consistent with B9's reading order, joining pages in page order with a page break newline.
 - [ ] Struct tree: RPC + layer + `aria-owns`; `MarkInfo /Marked` check; fallback for untagged.
 - [ ] Two-parser guard: in dev/debug builds, overlay text-quad outlines on the canvas (debug menu toggle) to spot misalignment; nightly test compares quads to PDFium char boxes on the corpus (reusing B9's quad test data).
 - [ ] Encrypted documents: text extraction runs in lamina with the password from the open call (no second prompt).
 
 ## Acceptance criteria
 
-- [ ] **Copy equals expected text** for the B9 five-script fixtures (Latin, Arabic, Devanagari, Hebrew, CJK) in Chromium, Firefox and WebKit: Playwright selects all text on a page (keyboard `ctrl/cmd+A` inside the page or drag-select), copies, reads the clipboard, and compares with the fixture's expected text (normalised whitespace).
+- [ ] **Copy equals expected text** for the B9 five-script fixtures (Latin, Arabic, Devanagari, Hebrew, CJK) in Chromium, Firefox and WebKit: Playwright selects all text on a page (`Selection.selectAllChildren` on that page's text layer, or drag-select from the first to the last span), copies, reads the clipboard, and compares with the fixture's expected text (normalised whitespace).
 - [ ] The same holds for the encrypted versions of those fixtures (B2 encryption × B9 text).
 - [ ] Alignment: for every span on the corpus fixtures at 100 % and 200 % zoom and 90° rotation, the span's bounding box lies within 1.5 CSS px (or 2 % of font size) of the lamina quad transformed to the viewport (asserted from layout maths; visual spot-check screenshots attached to the PR).
 - [ ] On a tagged fixture, the accessibility tree (Playwright `page.accessibility.snapshot()` / Chromium AX tree) shows headings and paragraphs in struct-tree order with the text spans as children; an untagged fixture announces "untagged document".
 - [ ] Text-layer construction for a typical page takes no main-thread task > 50 ms (perf harness from C3c, informational).
-- [ ] Selection works across page boundaries for adjacent mounted pages.
+- [ ] Selection works across page boundaries: a Playwright drag from the middle of page 1 to the middle of page 2 copies the tail of page 1 then the head of page 2 in order, in three engines; scrolling while the selection exists does not drop it (the touched pages stay mounted); canvas and gap areas are never part of the selection.
 
 ## Post-merge checks
 
@@ -94,4 +94,3 @@ Unit tests for `layoutSpans` (matrices, rotation, RTL, vertical); Vitest browser
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
 - [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
-- [ ] Squash-merged; dependants' "Depends on" now satisfied

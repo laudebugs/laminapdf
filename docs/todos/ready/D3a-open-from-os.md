@@ -50,7 +50,7 @@ Make lamina behave like a native PDF app: it registers for `.pdf` in every insta
 
 ## Tasks
 
-- [ ] Fresh worktree; move this file to `ongoing/`. Load `tauri-v2` and `rust-best-practices`.
+- [ ] Fresh worktree; this todo is already claimed via the claim PR (see DoD). Load `tauri-v2` and `rust-best-practices`.
 - [ ] `cargo tauri add single-instance` equivalent: add `tauri-plugin-single-instance` to workspace deps (licence check); register first in the builder. No webview permission needed (Rust-only).
 - [ ] `src-tauri/src/open.rs`: `fn paths_from_args(args: &[String], cwd: &Path) -> Vec<PathBuf>` (pure, unit-tested), `fn route_open(app: &AppHandle, paths: Vec<PathBuf>)`, `PendingOpens` state, `take_pending_opens` command (manifest + capability).
 - [ ] macOS `RunEvent::Opened` handler converting `Url` → `PathBuf` (`to_file_path()`), skipping non-file URLs.
@@ -101,4 +101,3 @@ None.
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
 - [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
-- [ ] Squash-merged; dependants' "Depends on" now satisfied

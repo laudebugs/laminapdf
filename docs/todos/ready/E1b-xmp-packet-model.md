@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [full-editor §E1](../../plans/full-editor.md#e1-editing-foundation) |
 | Round / milestone | Editor phase 2 (E1–E3) — M5 Organiser |
-| Depends on | [B5c](./B5c-lamina-facade-and-examples.md), [E1a](./E1a-editing-foundation-feature-plan.md) |
+| Depends on | [B5c](./B5c-lamina-facade-and-examples.md), [B8b](./B8b-conformance-profiles-and-verapdf.md), [E1a](./E1a-editing-foundation-feature-plan.md), [X3a](./X3a-nightly-lane.md) |
 | Blocks | [E1c](./E1c-metadata-ops.md) |
 | Dependency notes | [E1a](E1a-editing-foundation-feature-plan.md), `B5` ([pdf-library §B5](../../plans/pdf-library.md#b5-builder-and-the-lamina-crate): builder and `lamina` crate) |
 | ADRs | Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
@@ -102,4 +102,3 @@ None.
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
 - [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
-- [ ] Squash-merged; dependants' "Depends on" now satisfied

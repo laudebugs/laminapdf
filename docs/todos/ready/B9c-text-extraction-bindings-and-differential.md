@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [pdf-library §7 B9](../../plans/pdf-library.md#b9-text-extraction) |
 | Round / milestone | Round B (library) — M2 Web reader v0.1 (prerequisite) |
-| Depends on | [B6b](./B6b-lamina-pdf-package.md), [B9b](./B9b-text-extraction-core.md) |
+| Depends on | [B6b](./B6b-lamina-pdf-package.md), [B6c](./B6c-runtime-matrix.md), [B9b](./B9b-text-extraction-core.md) |
 | Blocks | [C5a](./C5a-text-layer-and-selection.md), [C5b](./C5b-find-in-document.md), [C6c](./C6c-print-download-properties.md), [E2a](./E2a-page-organisation-feature-plan.md), [E2e](./E2e-content-append-api.md), [E3i](./E3i-extraction.md), [E7a](./E7a-adr-0022-content-editing.md) |
 | ADRs | Follows 0023, 0016 (module placement: extraction lives in the text module or base — decide by size), [0018](../../decisions/0018-test-strategy.md) tiers 6 and 9 |
 | Branch | `feat/b9c-text-bindings` |
@@ -44,7 +44,7 @@ Expose text extraction everywhere the readers need it and prove it against indep
 ## Tasks
 
 - [ ] Load `/rust-best-practices`; read ADR 0016 and web plan C5
-- [ ] `lamina-wasm` text bindings; `@lamina/pdf` `page.text()`; tests in Node and Chromium (B6c config)
+- [ ] `lamina-wasm` text bindings; `@lamina/pdf` `page.text()`; tests in Node and Chromium, using the Vitest browser/Playwright config from [B6c](./B6c-runtime-matrix.md)
 - [ ] `tools/differential/` additions (pdf.js script, pdftotext) and `cargo xtask differential --text [--update]`
 - [ ] `tools/render/charbox.py` (pypdfium2) and `cargo xtask quads`
 - [ ] `fuzz/fuzz_targets/extract_text.rs`
@@ -85,4 +85,3 @@ Expose text extraction everywhere the readers need it and prove it against indep
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
 - [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
-- [ ] Squash-merged; dependants' "Depends on" now satisfied

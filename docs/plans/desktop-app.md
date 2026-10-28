@@ -19,7 +19,7 @@ A native **PDF reader for macOS, Windows and Linux** built with Tauri 2. It reus
 - Recent files (OS recent documents plus an in-app list), reopen last session.
 - Multiple windows and tabs, tab drag between windows.
 - Native menus (macOS app menu, Windows/Linux menu bar) with the shared shortcut map.
-- Large files (1 GB+) via mmap; parsing and rendering in a sandboxed child process.
+- Large files (1 GB+) via positioned reads (no mmap in the main process: a file truncated by another app would crash it); parsing and rendering in a sandboxed child process.
 - File watching: reload when the file changes on disk.
 - Printing through a native path (decided by a print spike).
 - Auto-update via the `apps/updates` Worker + R2 with stable/beta/nightly channels, staged rollout and kill switch.
@@ -79,14 +79,14 @@ A native **PDF reader for macOS, Windows and Linux** built with Tauri 2. It reus
 Architecture details are in [architecture.md](architecture.md) and the report; the desktop app adds:
 
 - **Layout**: `apps/desktop` is a pnpm package (frontend: `@lamina/ui` + desktop `Platform` adapter) with `src-tauri/` as a Cargo workspace member ([code organisation §1](../guidelines/code-organization.md#1-top-level-layout)).
-- **Process model** (ADR 0008): Tauri main process (windows, menus, updater, file I/O only: mmap and file watching) → one sandboxed engine process per window or per N documents that does all parsing and rendering of untrusted files with the core crates + `lamina-render` (native PDFium via `pdfium-render`). Tiles of 256–512 px.
+- **Process model** (ADR 0008): Tauri main process (windows, menus, updater, file I/O only: positioned reads and file watching) → one sandboxed engine process per window or per N documents that does all parsing and rendering of untrusted files with the core crates + `lamina-render` (native PDFium via `pdfium-render`). Tiles of 256–512 px.
 - **Platform adapter**: `canWriteInPlace: true`, `canWatchFiles: true`, `hasNativePrint: true`, `multiWindow: true`.
 - **Distribution** (ADR 0014): GitHub Actions + tauri-action matrix → R2 `releases/{version}/{target}-{arch}/` with `.sig` files → channel manifests in R2/KV → `apps/updates` Worker at `updates.<domain>/{channel}/{target}/{arch}/{current_version}` returning 204 or 200 JSON; downloads from `downloads.<domain>` (R2 custom domain). Rollout percentage from a hash of an anonymous install ID. The updater URL only substitutes `{{target}}`, `{{arch}}` and `{{current_version}}`, so the app sends the ID in a custom request header (`Lamina-Install-Id`) set with the updater plugin's `UpdaterBuilder::header` in Rust or `check({ headers })` in JS ([Tauri updater plugin](https://v2.tauri.app/plugin/updater/)). The ID is a random UUID created on first run, stored only in the app's config, resettable in settings and never linked to crash reports; the Worker hashes it with the release version to pick a bucket and does not log it. A request without the header is served only releases at 100% rollout. ADR 0014 and the privacy page describe this.
 - **Crash reports** (recommendation): an opt-in endpoint on the same Worker storing scrubbed minidumps/panic reports in R2 with 30-day retention, rather than a third-party SaaS. Alternative: self-hosted or SaaS Sentry. Decided in D7.
 
 ## 6. Rounds
 
-Architecture Round D is delivered as rounds D1–D7, each split into todos (one PR each). D1 can start as soon as C3 merges; D2 needs C4.
+Architecture Round D is delivered as rounds D1–D7, each split into todos (one PR each). D1 starts once C2c and C3b merge (the viewer core it measures); D2 needs C4a. The exact gates are in each todo's **Depends on**.
 
 **Todos.** Each round is split into one or more todo files, one per pull request, on the [todo board](../todos/README.md) (`ready/` → `ongoing/` → `done/`). Each round below links its todos, and each todo lists its dependencies, including the cross-plan ones on web rounds C2–C4, C6 and C7. The links point into `ready/`; update them when a todo moves.
 
@@ -148,7 +148,7 @@ Architecture Round D is delivered as rounds D1–D7, each split into todos (one 
 | Windows signing eligibility (Artifact Signing region rules) | The owner signs personally as the publisher (decided 2026-10-28, [architecture §8](architecture.md#8-open-questions-for-the-team) Q5). Artifact Signing's public-trust individual eligibility is US/Canada only: the owner checks eligibility before D6; otherwise an OV certificate in a cloud HSM |
 | Losing the updater key strands users | HSM/secret-manager custody, offline backup, rotation runbook in ADR 0014 |
 | Faithful printing needs per-OS code | Dedicated spike; ship `window.print()` raster path first if native lags |
-| Sandbox restrictions block mmap or IPC | Prototype sandbox in D2 per OS; document what is enforced |
+| Sandbox restrictions block file access or IPC | Prototype sandbox in D2 per OS; document what is enforced |
 
 ## 8. Open questions
 
@@ -162,7 +162,7 @@ Architecture Round D is delivered as rounds D1–D7, each split into todos (one 
 
 Each round's todos (one per PR, with dependencies) are linked from [§6](#6-rounds) and on the [todo board](../todos/README.md); this checklist is the summary.
 
-Ticked by the PR that completes them; each group lists the todos that own its items (see the [todo board](../todos/README.md)).
+Ticked by the PR that completes them.
 
 ### D1. IPC and print spikes
 
@@ -178,7 +178,7 @@ Ticked by the PR that completes them; each group lists the todos that own its it
 - [ ] Create `apps/desktop` and `src-tauri` as a workspace member depending on `crates/*` by path
 - [ ] Implement the desktop `Platform` adapter and capability flags
 - [ ] Implement the engine child process with restart on crash
-- [ ] Implement the chosen tile transport and mmap-backed `ByteSource`
+- [ ] Implement the chosen tile transport and a positioned-read `ByteSource` (no mmap in the main process; see [D2b](../todos/ready/D2b-engine-process.md))
 - [ ] Port the reader end-to-end scenarios to WebdriverIO (`@wdio/tauri-service`): `tauri-driver` on Windows and Linux, embedded WebDriver plugin (test builds only) on macOS; run in CI on three OSes
 - [ ] Record the per-OS test strategy and any macOS gap in ADR 0008
 

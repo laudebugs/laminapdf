@@ -67,7 +67,7 @@ Ship opt-in accounts: sign-up/sign-in/sign-out with the H1 stack on the `apps/we
 
 ## Post-merge checks
 
-None.
+- [ ] D1 migrations (users, sessions, credentials) applied to production and the `apps/web` Worker deployed with `/api/auth/*` by the deploy workflow on `main` (link the run); sign-up, sign-in and sign-out work on production
 
 ## Tests
 
@@ -93,4 +93,3 @@ None.
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
 - [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
-- [ ] Squash-merged; dependants' "Depends on" now satisfied

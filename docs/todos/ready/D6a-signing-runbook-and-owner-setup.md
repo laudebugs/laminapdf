@@ -60,7 +60,7 @@ The project owner signs the desktop app **personally, as the publisher**, on Win
 
 ## Tasks
 
-- [ ] Fresh worktree; move this file to `ongoing/` (do this as soon as the owner starts the checklist so the board shows it in progress).
+- [ ] Fresh worktree; claim this todo via the claim PR (see DoD) as soon as the owner starts the checklist, so the board shows it in progress.
 - [ ] Write `docs/guidelines/desktop-release.md` with sections 1–5 above; cite primary sources; mark recommendations as such.
 - [ ] Owner works through the checklist; the PR description tracks progress (ticks only, no secret values or screenshots of secrets).
 - [ ] Amend ADR 0014 with the outcomes.
@@ -103,4 +103,3 @@ None (documentation and account setup). The secrets are exercised by D6b–D6d's
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
 - [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
-- [ ] Squash-merged; dependants' "Depends on" now satisfied

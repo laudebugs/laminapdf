@@ -42,7 +42,7 @@ Measure the [§4 non-functional targets](../../plans/web-app.md#non-functional-t
 
 ## Tasks
 
-- [ ] Fresh worktree; move this file to `ongoing/`.
+- [ ] Claim via a claim PR (see Definition of done); then a fresh worktree off the updated `main`.
 - [ ] Fixture generator `perf/fixtures.ts`: 10-page ~1 MB mixed text/image PDF and 1,000-page text PDF (plus a 300-page image-heavy PDF) generated with `@lamina/pdf` builder, seeded; cached in a gitignored dir.
 - [ ] Instrumentation hook in the demo: expose `window.__laminaPerf` (only in the demo/perf build) collecting `renderstats`, long tasks, memory samples every 500 ms.
 - [ ] Scenario specs `perf/*.perf.ts` with deterministic scrolling (`mouse.wheel` steps at fixed intervals) and network throttling for the cold scenario.
@@ -84,4 +84,3 @@ The harness is itself the test suite (`perf/*.perf.ts`, Playwright). Unit-test t
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
 - [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
-- [ ] Squash-merged; dependants' "Depends on" now satisfied

@@ -7,7 +7,7 @@
 | Plan | [pdf-library §7 B6](../../plans/pdf-library.md#b6-wasm-and-laminapdf), [§5 platform matrix](../../plans/pdf-library.md#platform-matrix) |
 | Round / milestone | Round B (library) — M1 |
 | Depends on | [B6b](./B6b-lamina-pdf-package.md) |
-| Blocks | [B7b](./B7b-versioning-and-0-1-0-alpha.md) |
+| Blocks | [B7a](./B7a-docs-site.md), [B7b](./B7b-versioning-and-0-1-0-alpha.md), [B9c](./B9c-text-extraction-bindings-and-differential.md) |
 | ADRs | Implements 0016's runtime support claims; [0018](../../decisions/0018-test-strategy.md) §2 (lanes: which runtimes run per PR vs nightly/release) |
 | Branch | `ci/b6c-runtime-matrix` |
 | PR title | `ci(pdf): run the @lamina/pdf example suite in browsers, Node, Deno, Bun and workerd` |
@@ -79,4 +79,3 @@ As above; all under `packages/pdf/test/` sharing one example list.
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
 - [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
-- [ ] Squash-merged; dependants' "Depends on" now satisfied

@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [web reader §6 C7. Accessibility, offline and launch](../../plans/web-app.md#c7-accessibility-offline-and-launch) |
 | Round / milestone | Round C (web reader) — M2 Web reader v0.1 |
-| Depends on | [C3c](./C3c-viewer-perf-harness.md), [C4c](./C4c-remote-files-encryption-privacy.md), [C4d](./C4d-deploy-previews-and-production.md) |
+| Depends on | [C3c](./C3c-viewer-perf-harness.md), [C4c](./C4c-remote-files-encryption-privacy.md), [C4d](./C4d-deploy-previews-and-production.md), [C5b](./C5b-find-in-document.md), [C7a](./C7a-accessibility-and-theming.md) |
 | Blocks | [C7c](./C7c-performance-gates-and-launch.md) |
 | ADRs | Follows 0011 (immutable hashed assets, headers; nothing leaves the device; local storage clearable), 0010 (`Platform.storage`, `hasFileHandlers` capability), 0009 |
 | Branch | `feat/c7b-offline-pwa` |
@@ -33,8 +33,8 @@ After one visit, the reader works with no network: a service worker precaches th
 - `manifest.webmanifest`: name, short name, icons (maskable), `start_url: "/"`, `display: "standalone"`, theme colours from tokens, `file_handlers: [{ action: "/", accept: { "application/pdf": [".pdf"] } }]`, optional `share_target` decision (recommendation: not in v0.1).
 - `launchQueue.setConsumer` handling in `apps/web` to open launched files through the same open pipeline; capability `hasFileHandlers`.
 - OPFS: worker-side `OpfsByteSource` using `createSyncAccessHandle`; large local files (> threshold, e.g. 200 MB) and remote files without range support stream into OPFS once, then are read randomly; quota checks (`navigator.storage.estimate()`), `navigator.storage.persist()` only on user action; cleanup policy (LRU by size, user clear).
-- Recent files: IndexedDB store of metadata (name, size, page count, last opened, last page, thumbnail of page 1 as a small blob — stored locally only); on Chromium, the `FileSystemFileHandle` is stored to reopen with permission prompt; elsewhere, reopening needs the user to pick the file again (or the OPFS copy if cached); remote entries store the URL locally (never sent anywhere) — with a setting to disable remembering remote URLs.
-- Settings: "Clear recent files and cached documents" (wipes IndexedDB + OPFS), "Remember recent files" toggle (default on? — decide; recommendation: on, local only, clearly explained).
+- Recent files: IndexedDB store of metadata (name, size, page count, last opened, last page, thumbnail of page 1 as a small blob — stored locally only); on Chromium, the `FileSystemFileHandle` is stored to reopen with permission prompt; elsewhere, reopening needs the user to pick the file again (or the OPFS copy if cached); remote entries store the URL locally (never sent anywhere) — **only if the user opts in** ("Remember remote URLs", default **off**); with it off, remote documents are not added to recents at all.
+- Settings: a **"Storage and privacy" section added to the settings dialog that [C7a](./C7a-accessibility-and-theming.md) owns** (C7b does not build its own settings UI; it registers a section through C7a's settings-section API): "Clear recent files and cached documents" (wipes IndexedDB + OPFS), "Remember recent local files" (default **on**, local only, clearly explained), "Remember remote URLs" (default **off**, opt-in; privacy-first).
 - Empty state lists recent files (keyboard accessible).
 
 **Out of scope** (and which todo covers it)
@@ -45,15 +45,15 @@ After one visit, the reader works with no network: a service worker precaches th
 
 ## Tasks
 
-- [ ] Fresh worktree; move this file to `ongoing/`.
+- [ ] Claim via a claim PR (see Definition of done); then a fresh worktree off the updated `main`.
 - [ ] Choose SW tooling (licence check; Workbox is MIT); configure precache manifest from the Vite build; ensure `.wasm` served with `application/wasm` from cache (streaming instantiation works offline).
-- [ ] Headers: confirm the SW returns cached responses with the original security headers (CSP etc.) or that `index.html` CSP comes from a `<meta http-equiv>` fallback where needed — test that CSP is still enforced offline.
+- [ ] Headers: the SW serves the cached shell **with the real response headers** — no `<meta http-equiv>` CSP fallback, because a `<meta>` CSP cannot carry `frame-ancestors` (nor `X-Frame-Options`, `Permissions-Policy` etc.). The navigation handler returns the cached `index.html` response with its stored headers (the Cache API keeps them); if the chosen tooling rebuilds responses and drops headers, the SW wraps the body in `new Response(body, { headers })` with the header set C4b defines (imported from the same source as `_headers`, so they cannot drift). Test offline: the navigation response carries the exact CSP (including `frame-ancestors 'none'`) and the other security headers, an inline-script injection is blocked, and the page cannot be framed.
 - [ ] Update-available toast in `@lamina/ui`.
 - [ ] Manifest + icons (generated from one SVG source; provenance noted) + `<link rel="manifest">`.
 - [ ] Installability checks (Lighthouse 12+ has no PWA category, so no Lighthouse PWA audit): `apps/web/e2e/installability.spec.ts` that (a) fetches the manifest and validates it against the W3C manifest JSON schema from SchemaStore (pinned copy in `apps/web/e2e/fixtures/`) and asserts the install-relevant fields (`name`/`short_name`, `start_url` and `scope` same-origin, `display: standalone`, icons at 192 and 512 px that resolve with an image content type and the declared size, one `maskable`, `file_handlers` accepting `application/pdf`/`.pdf`); (b) asserts `navigator.serviceWorker.controller` is set after reload (the SW controls the page) and the SW has a `fetch` handler serving the navigation offline; (c) in Chromium, calls CDP `Page.getInstallabilityErrors` and asserts an empty list, and records whether `beforeinstallprompt` fired (informational: its timing depends on engagement heuristics).
 - [ ] `launchQueue` consumer and tests (Chromium only; feature-detected).
 - [ ] `OpfsByteSource` + copy-in pipeline with progress and cancellation; quota error handling; unit tests in Vitest browser mode.
-- [ ] Recent-files store (IndexedDB wrapper, schema version, migrations), UI list, reopen flows per capability, clear/disable settings.
+- [ ] Recent-files store (IndexedDB wrapper, schema version, migrations), UI list, reopen flows per capability; the "Storage and privacy" settings section (clear, remember local files, remember remote URLs — opt-in) registered in C7a's settings dialog. e2e: with the default settings, opening a `#url=` document adds nothing to IndexedDB.
 - [ ] Privacy suite extension (C4c): with recent files and OPFS active, still no request carries document bytes or URLs; the SW makes no network request except same-origin assets.
 - [ ] Offline Playwright test: load once, go offline (`context.setOffline(true)`), reload, open a local fixture, render page 1 and use find.
 
@@ -64,7 +64,7 @@ After one visit, the reader works with no network: a service worker precaches th
 - [ ] Installed in Chromium, the PWA appears as a handler for `.pdf` and a launched file opens (manual check recorded; automated `launchQueue` unit test).
 - [ ] A 500 MB local file opens via OPFS without the tab exceeding the C3c memory budget (perf harness scenario added).
 - [ ] "Clear recent files and cached documents" empties IndexedDB and OPFS (asserted in e2e).
-- [ ] CSP and security headers are still enforced when served from the SW cache.
+- [ ] CSP and security headers (including `frame-ancestors`) are still enforced when served from the SW cache; the offline navigation response carries the same header values as the online one (asserted in e2e).
 - [ ] The privacy suite passes with the SW active.
 
 ## Post-merge checks
@@ -84,7 +84,7 @@ Vitest browser tests (OPFS source, IndexedDB store, launch consumer); Playwright
 - **Stale SW caches** can pin users to old versions; the update flow and versioned caches must be tested across two deploys (preview A → preview B).
 - **`file_handlers`** is Chromium-only; Safari/Firefox users won't get "Open with"; document it.
 - **OPFS quotas** differ and Safari may evict; treat OPFS as a cache, never the only copy.
-- **Recent remote URLs** are sensitive; default to remembering only local files? Owner to decide in review (recommendation: remember remote URLs only if the user opts in).
+- **Recent remote URLs** are sensitive: decided — remembered only if the user opts in (default off); local files are remembered by default and clearable.
 
 ## Definition of done
 
@@ -93,4 +93,3 @@ Vitest browser tests (OPFS source, IndexedDB store, launch consumer); Playwright
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
 - [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
-- [ ] Squash-merged; dependants' "Depends on" now satisfied

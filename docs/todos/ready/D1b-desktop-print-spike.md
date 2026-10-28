@@ -8,7 +8,7 @@
 | Round / milestone | Round D (desktop) — M3 Desktop reader beta |
 | Depends on | [C2c](./C2c-render-packages.md), [C3b](./C3b-viewer-virtualiser-and-zoom.md), [D1a](./D1a-desktop-ipc-spike.md) |
 | Blocks | [D2a](./D2a-adr-0008-and-desktop-scaffold.md), [D4c](./D4c-native-printing.md) |
-| Dependency notes | Web plan **C3** (viewer core, [web-app §C3](../../plans/web-app.md#c3-viewer-core)) — same start gate as D1a per the plan; the spike renders pages with C2's `lamina-render` (PDFium adapter), which C3 already requires. Can run in parallel with [D1a](D1a-desktop-ipc-spike.md). |
+| Dependency notes | Web plan **C3** (viewer core, [web-app §C3](../../plans/web-app.md#c3-viewer-core)) — same start gate as D1a per the plan; the spike renders pages with C2's `lamina-render` (PDFium adapter), which C3 already requires. Starts after [D1a](D1a-desktop-ipc-spike.md) (see Depends on), not in parallel, so it reuses D1a's spike scaffold (a Tauri 2 app outside both workspaces) and its lessons instead of building a second one at the same time. |
 | ADRs | Informs ADR 0008 (D2a) and the `hasNativePrint` capability flag of ADR 0010 (web plan C2). Follows [0001](../../decisions/0001-core-language-and-licence.md) (no AGPL/GPL: no Ghostscript/Poppler linkage), [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) |
 | Branch | `spike/d1b-desktop-print` |
 | PR title | `spike(desktop): compare webview and native print paths per OS` |
@@ -39,7 +39,7 @@ Find out how lamina's desktop app can print a PDF **faithfully** (correct page s
 - Candidate paths per OS:
   - **A. Webview print of rasters** (`window.print()` / `WebviewWindow::print()`): render pages at 300 dpi into `<img>`/`<canvas>` in a print-only DOM with `@page { size: <w> <h>; margin: 0 }`, as web C6 does.
   - **B. Native print of rasters**: our PDFium renderer → per-page RGBA at the printer DPI → OS print API (NSPrintOperation / GDI / GtkPrintOperation+cairo), with the OS dialog for range/copies/duplex.
-  - **C. Native vector print where available**: Windows `FPDF_RenderPage` onto the printer HDC; macOS PDFKit `printOperation`; Linux CUPS submission of the original PDF (or GTK print with PDFium-rendered cairo surfaces).
+  - **C. Native vector print where available**: Windows `FPDF_RenderPage` onto the printer HDC; macOS PDFKit `printOperation`; Linux CUPS submission of the original PDF (or GTK print with PDFium-rendered cairo surfaces). Note for the recommendation: in the app, every path C variant parses the untrusted PDF outside the sandboxed engine (main process or CUPS), against ADR 0008 (D2a). D4c therefore ships raster (path B) by default; a path C win here is recorded as "needs a sandboxed print helper or an owner-accepted ADR 0008 exception".
 - For each path and OS record: dialog shown (native? page range/scaling/duplex controls present?), page size/orientation correctness on mixed-size fixture, presence of browser headers/footers/margins, output fidelity (print to PDF / "Microsoft Print to PDF" / CUPS-PDF, then compare against PDFium renders with a perceptual diff), time to spool 50 pages, peak memory, spool file size, cancel behaviour, and lines of platform code needed.
 - A README with results and a **recommendation**: which path to ship in D4c per OS, whether to ship path A first as a fallback, and what `hasNativePrint` means.
 
@@ -52,7 +52,7 @@ Find out how lamina's desktop app can print a PDF **faithfully** (correct page s
 
 ## Tasks
 
-- [ ] Fresh worktree `spike-d1b-desktop-print`; move this file to `ongoing/` in the first commit. Load `tauri-v2` and `rust-best-practices`.
+- [ ] Fresh worktree `spike-d1b-desktop-print`; this todo is already claimed via the claim PR (see DoD), so do not move it here. Load `tauri-v2` and `rust-best-practices`.
 - [ ] Scaffold `spikes/desktop-print/` (Tauri 2, vanilla TS + Vite), thin `main.rs`, logic in `lib.rs`; exclude from both workspaces; capability `default.json` with `core:default` and app-manifest permissions for `print_webview`, `print_native_raster`, `print_native_vector`.
 - [ ] Fixtures: pick three from `fixtures/` (add any missing ones with provenance in `fixtures/README.md` — or keep spike-local fixtures under `spikes/desktop-print/fixtures/` with a provenance note, per the code-organisation rules).
 - [ ] Path A: print-only DOM (`@media print`), images rendered by PDFium at 300 dpi; invoke `WebviewWindow::print()` from Rust and `window.print()` from JS; note differences.
@@ -103,4 +103,3 @@ Spike: no test suite. The fidelity numbers are the evidence. Keep the diff scrip
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
 - [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
-- [ ] Squash-merged; dependants' "Depends on" now satisfied

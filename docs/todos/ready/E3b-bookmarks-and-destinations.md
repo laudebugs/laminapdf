@@ -41,8 +41,8 @@ Create and edit nested bookmarks (add, rename, retarget, move, nest, colour/styl
 **Editor facts**
 
 - **Operations shipped** ([06 §3](../../research/pdf/06-feature-inventory.md#3-full-operation-inventory-with-mechanisms) IDs): `I.01` create/edit bookmarks; nested trees; `I.04` named destinations; `I.05` clickable table of contents; `I.11` outline and navigation preferences
-- **Crates and packages:** `lamina-model` (outline write, name tree write), `lamina-ops`, `lamina-build` (TOC page), `@lamina/ui`
-- **`Op` variants:** outline and destination ops (class `Document`), `GenerateToc` (classes `PageStructure` + `Annotation`)
+- **Crates and packages:** `lamina-model` (outline write; name-tree writer from E2b), `lamina-ops`, `lamina-build` (TOC page), `@lamina/ui`
+- **`Op` variants:** outline and destination ops (class `Document`), `GenerateToc` (class `PageStructure`: one class per op, ADR 0006 §1; it inserts a page, which is forbidden at every DocMDP level, so it is more restrictive than the link annotations it adds, which P3 would allow)
 - **`SaveConstraint`:** `Free` → incremental; signed: outline and destination changes are class `Document`, a DocMDP violation at every certification level (ADR 0007 §2: P1 allows no changes; P2 allows only form filling, page templates and signing; P3 adds annotations) → warn and gate (override names the signatures). With approval signatures only (no certification): `AppendOnly`, an incremental update that keeps their `/ByteRange` intact; a violation only when it changes a field locked by FieldMDP/`/Lock`
 - **Web vs desktop:** identical
 - **Server features:** none (this PR adds no server feature; all processing stays on the device)
@@ -51,7 +51,7 @@ Create and edit nested bookmarks (add, rename, retarget, move, nest, colour/styl
 ## Tasks
 
 - [ ] Outline writer with `/Count` sign semantics
-- [ ] Name-tree writer (balanced, sorted keys) shared with E3f
+- [ ] Named-destination ops over [E2b](E2b-page-structure-ops.md)'s name-tree writer (E3b does not write its own; E3f uses the same writer)
 - [ ] Ops with undo
 - [ ] TOC generator using builder text and E3c links
 - [ ] Bookmark panel with DnD and keyboard
@@ -92,4 +92,3 @@ None.
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
 - [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
-- [ ] Squash-merged; dependants' "Depends on" now satisfied

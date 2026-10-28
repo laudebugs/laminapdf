@@ -18,7 +18,7 @@ Keep the section order; delete a section only if it truly doesn't apply (write "
 | ADRs | <ADRs this todo writes, implements or must follow> |
 | Branch | `<type>/<id>-<slug>` (e.g. `feat/b2b-decryption`) |
 | PR title | `<conventional commit title>` |
-| Size | S (< 200 lines) \| M (200–600) \| L (600–1,500) \| XL (split it) |
+| Size | S (< 200 changed lines of code) \| M (200–400) \| L (400–800: split if you can; fixtures, lockfiles and generated files don't count) \| XL (> 800: split it) |
 | PR | <link once opened; "—" while ready> |
 
 ## Goal
@@ -53,7 +53,7 @@ Observable, checkable conditions (tests that must exist and pass, tools that mus
 
 ## Post-merge checks
 
-Things that can only be verified after merge (scheduled or `workflow_dispatch` runs that need the workflow on `main`, tags, production deploys). They are not acceptance criteria; tick them in a follow-up PR (or note them in the done todo) once they've run. "None" if everything is checkable before merge.
+Things that can only be verified after merge (scheduled or `workflow_dispatch` runs that need the workflow on `main`, tags, production deploys). They are not acceptance criteria; tick them in a follow-up PR (or note them in the done todo) once they've run. The squash-merge itself is implied: once merged, dependants' **Depends on** is satisfied. "None" if everything is checkable before merge.
 
 - [ ] …
 
@@ -76,4 +76,3 @@ What could go wrong, what's unknown, what to decide during the work (and who dec
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
 - [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
-- [ ] Squash-merged; dependants' "Depends on" now satisfied

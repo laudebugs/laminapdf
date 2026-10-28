@@ -175,7 +175,7 @@ Architecture Round B is delivered as rounds B1–B9, each split into todos (one 
 
 ### B2. Document model
 
-**Todos:** [B2a](../todos/done/B2a-limits-owned-document.md) (`Limits`, warning codes, strict mode, owned `Document`; ongoing), [B2b](../todos/ready/B2b-standard-security-decryption.md) (decryption), [B2c](../todos/ready/B2c-lamina-model-corpus-fuzz.md) (`lamina-model`, IDs, corpus facts, pypdf differential, fuzz targets); B2b and B2c both follow B2a and can run in parallel.
+**Todos:** [B2a](../todos/done/B2a-limits-owned-document.md) (`Limits`, warning codes, strict mode, owned `Document`; done in [#13](https://github.com/laudebugs/lamina/pull/13)), [B2b](../todos/ready/B2b-standard-security-decryption.md) (decryption), [B2d](../todos/ready/B2d-windowed-reading.md) (windowed reading), [B2c](../todos/ready/B2c-lamina-model-corpus-fuzz.md) (`lamina-model`, IDs, corpus facts, pypdf differential, fuzz targets); B2b and B2c both follow B2a and can run in parallel.
 
 **Deliverable:** `lamina-model` (typed `Page`, `Outline`, `Info`, `NameTree` views over lazy COS; `LaminaId`s); `Document::open(source, OpenOptions)` with `Limits`, strict mode and an optional password; standard security handler decryption in `lamina-syntax` (read only: R2–R4 with RC4 and AES-128 crypt filters, R5/R6 AES-256, `/Identity` and per-stream crypt filters, `/EncryptMetadata`; [04 §7](../research/pdf/04-interactive-security.md#7-encryption-76)); the golden and corpus harness and the first `fuzz/` targets. Writing encrypted files is [full-editor E11](full-editor.md#e11-security-and-sanitisation).
 **Accepted when:** every file in `fixtures/corpus` opens or fails with a coded error; encrypted fixtures for every standard revision (R2, R3, R4 RC4, R4 AES-128, R5, R6; user and owner passwords; empty user password) open and match the unencrypted original's page count, outline and strings; a wrong password fails with a coded error; fuzz targets run 10 min in CI without a panic; page count and outline match pypdf's on the corpus.
@@ -259,7 +259,6 @@ Each round's todos (one per PR, with dependencies) are linked from [§7](#7-roun
 
 ### B1. Decisions and spike
 
-
 - [x] Write ADR 0003: tolerance policy, warning codes, `Limits` defaults with numbers
 - [x] Write ADR 0005: lazy COS overlay, typed views, `LaminaId` rules
 - [x] Write ADR 0006: `Op` enum shape, transactions, undo scope, barrier ops
@@ -270,9 +269,8 @@ Each round's todos (one per PR, with dependencies) are linked from [§7](#7-roun
 
 ### B2. Document model
 
-
 - [ ] Create `crates/lamina-model` with `Page`, `Outline`, `Info`, `NameTree` views
-- [ ] Implement `Document::open(source, OpenOptions)` over an owned `ByteSource` ([ADR 0005](../decisions/0005-document-model.md)), with `OpenOptions` holding `Limits`, strict mode and an optional password ([ADR 0003](../decisions/0003-reader-tolerance-and-limits.md))
+- [x] Implement `Document::open(source, OpenOptions)` over an owned `ByteSource` ([ADR 0005](../decisions/0005-document-model.md)), with `OpenOptions` holding `Limits`, strict mode and an optional password ([ADR 0003](../decisions/0003-reader-tolerance-and-limits.md))
 - [ ] Standard security handler decryption in `lamina-syntax`: R2–R4 (RC4, AES-128), R5/R6 (AES-256), crypt filters, `/EncryptMetadata`
 - [ ] Encrypted fixtures for every revision (user, owner and empty passwords); wrong-password error code
 - [ ] Assign `LaminaId`s to pages and outline items; test stability across reopen
@@ -282,7 +280,6 @@ Each round's todos (one per PR, with dependencies) are linked from [§7](#7-roun
 
 ### B3. Ops and save
 
-
 - [ ] Create `crates/lamina-ops`: `Op`, `transact`, inverse ops, undo/redo stack
 - [ ] Create `crates/lamina-save`: `SavePlanner`, incremental and full writers, `WriteSink`
 - [ ] Implement `SaveConstraint` detection (signatures → `AppendOnly`)
@@ -290,7 +287,6 @@ Each round's todos (one per PR, with dependencies) are linked from [§7](#7-roun
 - [ ] Round-trip test: reopen saved output in lamina, pdf.js, PDFium and qpdf `--check`
 
 ### B4. Fonts and text
-
 
 - [ ] Create `crates/lamina-text`: `Font::from_bytes`, TTC index, variable-font instancing
 - [ ] Integrate HarfRust shaping behind a `Shaper` trait; add per-run OpenType features
@@ -302,7 +298,6 @@ Each round's todos (one per PR, with dependencies) are linked from [§7](#7-roun
 
 ### B5. Builder and the `lamina` crate
 
-
 - [ ] Create `crates/lamina-build`: `Builder`, `page()`, `surface()`, `finish() -> Document`
 - [ ] Surface ops: text, text box, image (JPEG, PNG + SMask, raw RGBA), path, clip, opacity, colour spaces
 - [ ] Document ops: links, named destinations, outlines, page labels, Info + XMP, viewer preferences
@@ -311,7 +306,6 @@ Each round's todos (one per PR, with dependencies) are linked from [§7](#7-roun
 - [ ] Byte-identical goldens and render goldens (PDFium and hayro) for every example
 
 ### B6. WASM and `@lamina/pdf`
-
 
 - [ ] Create `crates/lamina-wasm` (wasm-bindgen + tsify) and the `cargo xtask wasm` build with `wasm-opt -Oz`
 - [ ] Create `packages/pdf` with `init()`, `Builder`, `Document`, `Font`, `PdfError` codes matching Rust
@@ -322,7 +316,6 @@ Each round's todos (one per PR, with dependencies) are linked from [§7](#7-roun
 
 ### B7. Docs, examples and first release
 
-
 - [ ] Create `apps/docs` (Starlight) with quick start per runtime, guides and TypeDoc API
 - [ ] Deploy docs to Workers static assets with per-PR preview URLs
 - [ ] Add Changesets and the Cargo version-sync script; write ADR 0017
@@ -332,7 +325,6 @@ Each round's todos (one per PR, with dependencies) are linked from [§7](#7-roun
 
 ### B8. Tagged PDF, PDF/UA and PDF/A
 
-
 - [ ] Add structure-tree building: `tag()`, artifacts, alt text, MCIDs, ParentTree, RoleMap
 - [ ] Add profiles `PdfUa1`, `PdfA2b`, `PdfA2u`, `PdfA3b` with build-time errors
 - [ ] Write XMP identification schemas and output intents with an embedded sRGB profile
@@ -341,7 +333,6 @@ Each round's todos (one per PR, with dependencies) are linked from [§7](#7-roun
 - [ ] Tag `0.2.0-alpha` (local, unpublished)
 
 ### B9. Text extraction
-
 
 - [ ] Write ADR 0023 (content-stream reading; `lamina-content` crate; limits on operators and XObject depth)
 - [ ] Create `crates/lamina-content`: tokenizer and read-only interpreter with graphics and text state

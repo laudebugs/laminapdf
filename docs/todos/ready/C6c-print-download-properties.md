@@ -30,7 +30,7 @@ Finish the reader's output features. **Print** rasterises pages at print DPI in 
 
 **In scope**
 
-- Print pipeline: `Platform.print(job)` web implementation; worker renders each page at print DPI (default 150, option 300; capped by a pixel/memory budget) with `print` intent flags (annotations per their print flags), as JPEG/PNG blobs or `ImageBitmap` → blob; a hidden iframe document with one `img` per page sized via `@page { size: <w>pt <h>pt; margin: 0 }` per page (mixed page sizes supported where browsers allow), `onafterprint` cleanup, progress dialog with cancel; object URLs revoked afterwards. Optional "print with browser's PDF viewer" path when the browser has native PDF printing and the file isn't encrypted (decide behind a capability flag; default to the raster path for consistency).
+- Print pipeline: `Platform.print(job)` web implementation; worker renders each page at print DPI (default 150, option 300; capped by a pixel/memory budget) with `print` intent flags (annotations per their print flags), as JPEG/PNG blobs or `ImageBitmap` → blob; a hidden same-origin `about:blank` iframe document with one `img` per page sized via named pages — `@page p<N> { size: <w>pt <h>pt; margin: 0 }` plus `.page-<N> { page: p<N> }` (mixed page sizes supported where browsers allow). **CSP-safe styling:** the iframe inherits C4b's CSP (`style-src 'self'`, no `'unsafe-inline'`), so a generated `<style>` element or `style="…"` attribute is blocked. The per-page rules are therefore added through CSSOM — a constructable stylesheet created from the iframe's own realm (`new iframe.contentWindow.CSSStyleSheet()`), filled with `insertRule`, assigned to `iframe.contentDocument.adoptedStyleSheets` — and element sizes are set with `el.style.setProperty(…)`, which CSP does not govern. Static print rules (hide everything but the pages) come from a same-origin hashed stylesheet `<link>`. Images are `blob:` URLs (allowed by `img-src`), `onafterprint` cleanup, progress dialog with cancel; object URLs revoked afterwards. Optional "print with browser's PDF viewer" path when the browser has native PDF printing and the file isn't encrypted (decide behind a capability flag; default to the raster path for consistency).
 - Keyboard: `ctrl/cmd+P` triggers our print (preventDefault) when a document is open.
 - Download: `Platform.saveAs(originalBytes, filename)` — for local files reuse the `File`; for remote files stream from the `ByteSource` (full fetch, using the block cache) without modification; filename from the URL path or `Content-Disposition`, sanitised; encrypted files download still encrypted (original bytes).
 - RPC `properties() → { info, xmp (parsed subset: dc:title, dc:creator, xmp:CreateDate, pdf:Producer…), version, pageCount, pageSizes summary, fileSize, linearised?, tagged?, encryption { filter, V, R, keyLength, method, permissions } | null, fonts[{ name, type, embedded, subset, encoding }], signatures { count, fieldNames } , hasJavaScript, hasEmbeddedFiles, hasForms }` from lamina (not PDFium); add small read-only accessors to `lamina-model`/`lamina-wasm` where missing (coordinate with library owner).
@@ -44,9 +44,9 @@ Finish the reader's output features. **Print** rasterises pages at print DPI in 
 
 ## Tasks
 
-- [ ] Fresh worktree; move this file to `ongoing/`.
+- [ ] Claim via a claim PR (see Definition of done); then a fresh worktree off the updated `main`.
 - [ ] Print renderer in the worker with memory budgeting (render → encode → transfer → release, one page at a time; JPEG quality 0.92 for photos vs PNG for text decided per page or globally — measure size/time).
-- [ ] Print iframe builder with per-page `@page` sizing and orientation; test mixed portrait/landscape documents.
+- [ ] Print iframe builder with per-page named `@page` sizing and orientation via CSSOM (constructable stylesheet + `insertRule`, no `<style>`/`style=` markup); test mixed portrait/landscape documents; the e2e listens for `securitypolicyviolation` in the parent and the iframe and asserts zero, and asserts the computed `@page` sizes via `document.styleSheets`/`adoptedStyleSheets`.
 - [ ] Progress/cancel dialog; `beforeprint`/`afterprint` handling; Safari's synchronous print quirks (images must be loaded before `print()`).
 - [ ] Download for local, remote and encrypted documents; filename sanitisation tests.
 - [ ] Library accessors for properties (fonts per page aggregated, encryption dictionary summary, signature field count, XMP packet bytes) with Rust tests; XMP parsed in TS with `DOMParser` (main thread, small) or in Rust (decide; avoid XXE — no external entities).
@@ -57,6 +57,7 @@ Finish the reader's output features. **Print** rasterises pages at print DPI in 
 
 - [ ] **Printing a 50-page document works in Chrome, Firefox and Safari**: Playwright (Chromium, Firefox, WebKit) intercepts `window.print` in the iframe and asserts all 50 images loaded with the right page sizes/orientation; a manual print-to-PDF check on each browser is recorded in the PR (screenshots/notes), including a mixed-orientation file.
 - [ ] Printing never sends data over the network (privacy suite from C4c extended to the print flow).
+- [ ] The print flow causes **zero CSP violations** under the production CSP from C4b (asserted in e2e, parent and iframe).
 - [ ] Peak memory during printing of the 50-page document stays within the C3c budget (pages released as they are encoded).
 - [ ] **Download is byte-identical to the input** for a local file, a remote `#url=` file and an encrypted file (SHA-256 compared in Playwright via the download event).
 - [ ] Properties for corpus files match `expected.json` facts (version, title, producer, encryption revision, font names, signature count for `signed.pdf`).
@@ -88,4 +89,3 @@ Rust unit tests for new accessors; Vitest unit tests (filename sanitisation, XMP
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
 - [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
-- [ ] Squash-merged; dependants' "Depends on" now satisfied

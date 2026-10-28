@@ -46,7 +46,7 @@
 - **`SaveConstraint`:** `Free` → incremental. Signed: class `FormFill` is allowed under DocMDP P2 and P3 and under approval signatures, except for fields locked by FieldMDP (`/Lock`) or by a signature's field-lock dictionary → blocked with the locking signature named
 - **Web vs desktop:** identical; submit uses `fetch` on web and the HTTP plugin on desktop (allow-listed scope)
 - **Server features:** none (this PR adds no server feature; all processing stays on the device)
-- **Capability-matrix rows to flip:** `E.01` → `round-trip` (web, desktop); `E.02` → `round-trip` (web, desktop); `E.03` → `round-trip` (web, desktop); `E.04` → `round-trip` (web, desktop); `E.06` → `round-trip` (web, desktop); `E.09` → `round-trip` (web, desktop); `E.16` → `write` (web, desktop)
+- **Capability-matrix rows to flip:** `E.01` → `write` (web, desktop) (intermediate: existing text fields can be filled in the UI; it flips to `round-trip` once, in [E9c](E9c-form-design-mode.md), when they can also be created); `E.02` → `round-trip` (web, desktop); `E.03` → `round-trip` (web, desktop); `E.04` → `round-trip` (web, desktop); `E.06` → `round-trip` (web, desktop); `E.09` → `read` (web, desktop) (intermediate: the existing tab order is followed; it flips to `round-trip` once, in [E9c](E9c-form-design-mode.md), which edits it); `E.16` → `write` (web, desktop)
 
 ## Tasks
 
@@ -88,4 +88,3 @@ None.
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
 - [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
-- [ ] Squash-merged; dependants' "Depends on" now satisfied

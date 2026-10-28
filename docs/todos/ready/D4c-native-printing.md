@@ -25,14 +25,15 @@ Ship faithful printing on macOS, Windows and Linux using the path D1b recommende
 - [Desktop plan §7](../../plans/desktop-app.md#7-risks): ship the `window.print()` raster path first if native lags.
 - ADR 0008: the engine renders; the main process owns OS handles (printer DC, `NSPrintOperation`, `GtkPrintOperation`) because the engine is sandboxed (D2c) and has no access to printers.
 - Web C6's print path (if the webview raster path is used anywhere).
-- APIs per D1b (NSPrintOperation/PDFKit, PrintDlgEx/GDI or PDFium `FPDF_RenderPage` on an HDC, GtkPrintOperation/cairo or CUPS).
+- APIs per D1b, restricted to the raster paths by the decision below: `NSPrintOperation` + custom `NSView` (macOS), `PrintDlgEx` + GDI `StretchDIBits` (Windows), `GtkPrintOperation` + cairo (Linux).
 
 ## Scope
 
 **In scope**
 
-- `src-tauri/src/print/{mod.rs,macos.rs,windows.rs,linux.rs}` implementing `fn print_document(app: &AppHandle, window: &WebviewWindow, doc: DocId, opts: PrintRequest) -> Result<PrintOutcome, PrintError>` with the D1b-chosen path per OS.
-- Engine protocol additions (in `crates/lamina-desktop-protocol`): `RenderPrintPage { doc, page, dpi, format: Rgba | Bgra | Emf? }` streaming pages on demand as the OS print loop asks for them (never all pages in memory); cancellation when the user cancels the print job. If D1b chose a vector path that needs PDFium on the printer DC (Windows), document how this reconciles with the sandbox (e.g. the engine produces EMF/XPS bytes which main plays back on the DC) or record an accepted exception in ADR 0008.
+- `src-tauri/src/print/{mod.rs,macos.rs,windows.rs,linux.rs}` implementing `fn print_document(app: &AppHandle, window: &WebviewWindow, doc: DocId, opts: PrintRequest) -> Result<PrintOutcome, PrintError>` with the D1b-chosen dialog/spooling API per OS.
+- **Decision: raster printing from the engine on every OS.** ADR 0008 says only the sandboxed engine parses untrusted PDF bytes. So the main process never hands the PDF to PDFKit (`PDFDocument`/`PDFView` printing on macOS), to PDFium on a printer DC (Windows), or to a parser of its own: the engine renders each page to a bitmap at the printer's DPI (`RenderPrintPage`) and the main process only draws that bitmap into the OS print context (`NSPrintOperation` with a custom `NSView` on macOS, the printer DC via `StretchDIBits` on Windows, cairo in `GtkPrintOperation` on Linux), checking the dimensions and byte length first. If D1b recommended a vector path (macOS PDFKit, Windows PDFium-on-DC or EMF playback, Linux raw PDF to CUPS), it is **not** taken in this PR: it would need either a separate sandboxed print helper (follow-up todo) or an exception to ADR 0008 that the owner explicitly accepts in the PR. Cost: bigger spool files and no text selectable in print-to-PDF output; fidelity matches the on-screen renderer.
+- Engine protocol additions (in `crates/lamina-desktop-protocol`): `RenderPrintPage { doc, page, dpi, format: Rgba | Bgra }` streaming pages on demand as the OS print loop asks for them (never all pages in memory; large pages rendered in bands), cancellation when the user cancels the print job. No EMF/XPS format: playing engine-produced metafiles in the main process would hand it bytes a compromised engine controls.
 - Print options surfaced by the OS dialog: page range (all, current, range), copies, collation, scaling (fit to paper / actual size), orientation auto per page, duplex when the printer supports it.
 - Progress UI: a non-modal progress indicator in the window while spooling, with Cancel.
 - Fallback: the webview raster path (`WebviewWindow::print()` with the C6 print DOM) selectable in settings for troubleshooting, and automatically offered if the native path fails.
@@ -47,7 +48,7 @@ Ship faithful printing on macOS, Windows and Linux using the path D1b recommende
 
 ## Tasks
 
-- [ ] Fresh worktree; move this file to `ongoing/`. Load `tauri-v2` and `rust-best-practices`.
+- [ ] Fresh worktree; this todo is already claimed via the claim PR (see DoD). Load `tauri-v2` and `rust-best-practices`.
 - [ ] Port the D1b spike's chosen code paths into `src-tauri/src/print/`, replacing spike shortcuts (`unwrap`, blocking on the main thread) with proper error handling and `run_on_main_thread` where APIs require it; every FFI `unsafe` with `// SAFETY:`.
 - [ ] Engine `RenderPrintPage` message + streaming with back-pressure; protocol version bump; tests.
 - [ ] `print` command (manifest + capability) invoked from the menu event and the toolbar's print button via `Platform.print()`.
@@ -84,9 +85,9 @@ None.
 
 ## Risks and open questions
 
-- **Vector printing vs sandbox** (Windows `FPDF_RenderPage` on a printer DC needs PDFium in the process that owns the DC): EMF playback or an accepted exception — decide and record.
-- **macOS PDFKit path** renders with Apple's engine (fidelity differs from PDFium) — only acceptable if D1b said so.
-- **Linux CUPS path** depends on `libcups` at runtime (dynamic dependency in the deb's `Depends:`/AppImage) — coordinate with D6b's packaging.
+- **Decision recorded (owner to confirm in the PR): raster only, no vector printing in the main process.** The macOS PDFKit path, Windows PDFium-on-DC/EMF playback and Linux raw-PDF-to-CUPS all make something other than the sandboxed engine parse untrusted bytes, breaking ADR 0008. Vector printing comes back only through (a) a sandboxed print helper process (follow-up todo) or (b) an ADR 0008 exception the owner signs off explicitly, naming the OS, the parser and the accepted risk. ADR 0008 gets a "printing" line saying this.
+- **Raster cost**: 600 dpi A4 RGBA is ~140 MB per page uncompressed; render in bands and measure spool size and time for the 50-page check; drop to 300 dpi for non-photo printers if needed (record).
+- **Linux** uses `GtkPrintOperation` + cairo (no direct CUPS PDF submission); `libcups` comes in through GTK — coordinate with D6b's packaging.
 - **Driver quirks** (duplex unsupported, custom paper sizes) — the OS dialog handles most; record failures.
 
 ## Definition of done
@@ -96,4 +97,3 @@ None.
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
 - [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
-- [ ] Squash-merged; dependants' "Depends on" now satisfied

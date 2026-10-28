@@ -44,7 +44,7 @@ Give the browser the same `RenderBackend` contract the Rust crate has. `@lamina/
 
 ## Tasks
 
-- [ ] Fresh worktree; move this file to `ongoing/`; load `/rust-best-practices` for the Rust part.
+- [ ] Claim via a claim PR (see Definition of done); then a fresh worktree off the updated `main`. Load `/rust-best-practices` for the Rust part.
 - [ ] Create the render interface package (`packages/render`, `@lamina/render`, `private: true`): `RenderBackend`, `RenderRequest`, `RenderFlags`, `RenderedPixels`, `RenderErrorCode`; doc comments; unit tests on helpers (request validation, pixel-cap).
 - [ ] `packages/render-pdfium`:
   - [ ] `scripts/fetch-pdfium-wasm.ts` (or an xtask subcommand) downloads the pinned build named in ADR 0004 and checks SHA-256; the build fails on mismatch. Decide vendoring vs fetch-at-build (record in README).
@@ -93,4 +93,3 @@ Package READMEs; `CLAUDE.md`; tick "Create `packages/render-pdfium`… and `pack
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
 - [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
-- [ ] Squash-merged; dependants' "Depends on" now satisfied

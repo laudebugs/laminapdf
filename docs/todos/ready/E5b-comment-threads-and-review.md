@@ -7,7 +7,7 @@
 | Plan | [full-editor §E5](../../plans/full-editor.md#e5-review-stamps-and-interchange) |
 | Round / milestone | Editor phase 3 (E4–E5) — M6 Annotator |
 | Depends on | [E4f](./E4f-annotation-tools-ui.md), [E5a](./E5a-review-stamps-interchange-feature-plan.md) |
-| Blocks | [E5d](./E5d-xfdf-fdf.md), [E5e](./E5e-flatten-and-summary.md), [E11d](./E11d-sanitiser.md), [E18c](./E18c-layer-document-schema.md), [E18e](./E18e-client-sync-and-presence.md) |
+| Blocks | [E5d](./E5d-xfdf-fdf.md), [E5e](./E5e-flatten-and-summary.md), [E11d](./E11d-sanitiser.md), [E18b](./E18b-collaboration-feature-plan.md), [E18c](./E18c-layer-document-schema.md), [E18e](./E18e-client-sync-and-presence.md) |
 | ADRs | Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
 | Branch | `feat/e5b-comment-threads-and-review` |
 | PR title | `feat(annots): replies, review states and comment panel` |
@@ -43,7 +43,7 @@ Reply threads (`/IRT`), state-model replies (`/StateModel /Review` Accepted/Reje
 - **`SaveConstraint`:** `Free` → incremental. Signed: class `Annotation` is allowed only under DocMDP P3 or when there is no certification signature (approval signatures alone allow annotations); otherwise a violation → warn and gate. Note the Evil Annotation Attack: annotations added after certification are shown as such in the signature panel (E10)
 - **Web vs desktop:** identical
 - **Server features:** none (this PR adds no server feature; all processing stays on the device)
-- **Capability-matrix rows to flip:** `D.10` → `round-trip` (core, pdf, web, desktop); `D.11` → `round-trip` (core, pdf, web, desktop); `D.12` → `read` (core, pdf, web, desktop); `D.15` → `round-trip` (core, pdf, web, desktop)
+- **Capability-matrix rows to flip:** `D.10` → `round-trip` (core, pdf, web, desktop); `D.11` → `round-trip` (core, pdf, web, desktop); `D.12` → `read` (core, pdf, web, desktop); `D.15` not flipped here: this PR ships only its delete half (`DeleteAnnots`); the row flips once, to `round-trip`, in [E5e](E5e-flatten-and-summary.md), which adds the summary and completes it
 
 ## Tasks
 
@@ -86,4 +86,3 @@ None.
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
 - [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
-- [ ] Squash-merged; dependants' "Depends on" now satisfied

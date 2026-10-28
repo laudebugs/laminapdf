@@ -44,7 +44,7 @@ Generate `/AP` for field values: text fields (DA parse, auto-size, multiline, co
 - **`SaveConstraint`:** `Free` → incremental. Signed: class `FormFill` is allowed under DocMDP P2 and P3 and under approval signatures, except for fields locked by FieldMDP (`/Lock`) or by a signature's field-lock dictionary → blocked with the locking signature named
 - **Web vs desktop:** identical
 - **Server features:** none (this PR adds no server feature; all processing stays on the device)
-- **Capability-matrix rows to flip:** `E.01` → `round-trip` (core, pdf); `E.02` → `round-trip` (core, pdf); `E.03` → `round-trip` (core, pdf); `E.12` → `round-trip` (core, pdf)
+- **Capability-matrix rows to flip:** `E.01` → `write` (core, pdf); `E.02` → `write` (core, pdf); `E.03` → `write` (core, pdf): an intermediate status that is true here (existing fields of these types can be filled, with appearances, and pass qpdf/pdf.js/PDFium); they flip to their final `round-trip` once, in [E9b](E9b-field-creation-ops.md), when they can also be created. `E.12` is not flipped here; it flips once in [E8g](E8g-form-data-and-flatten.md), which ships `form.fill({...})`
 
 ## Tasks
 
@@ -56,6 +56,7 @@ Generate `/AP` for field values: text fields (DA parse, auto-size, multiline, co
 ## Acceptance criteria
 
 - [ ] Library parity ([full-editor §5](../../plans/full-editor.md#5-requirements-that-hold-for-every-round) req. 7): every new `Op` is exposed in `lamina` and `@lamina/pdf` in this PR, with rustdoc/TSDoc, a runnable example, tsify-generated TS types, and serde samples frozen in `fixtures/ops/v1/` (unknown ops and fields rejected, ADR 0006 §1, §6)
+- [ ] Every new op reports exactly one `ModificationClass` and `requires_rewrite` (ADR 0006 §1); a test per op runs `planner.would_violate(&op)` on the signed fixtures (no certification, DocMDP P1, P2, P3, FieldMDP lock) and asserts the verdict ([ADR 0007](../../decisions/0007-save-planner.md) §2), because a misclassified op is a security bug (here: `SetFieldValue` with regenerated appearances stays `FormFill`; a test proves appearance regeneration never touches anything but the field's widgets)
 - [ ] Round-trip: open → op → save → reopen in lamina, pdf.js and PDFium preserves the change and everything else (page count, outline, annotations, fields, struct tree facts in `expected.json`); `qpdf --check` is clean
 - [ ] Filled values render the same in pdf.js, PDFium and Acrobat reference renders (diff thresholds)
 - [ ] Non-Latin values render and extract correctly
@@ -87,4 +88,3 @@ None.
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
 - [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
-- [ ] Squash-merged; dependants' "Depends on" now satisfied

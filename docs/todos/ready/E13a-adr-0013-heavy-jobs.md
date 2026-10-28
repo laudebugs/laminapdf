@@ -33,6 +33,7 @@ Decide how lamina runs heavy, opt-in server jobs (OCR, Office ↔ PDF, PDF → W
 
 - ADR 0013 file: topology diagram, job lifecycle, retention, limits (Worker 128 MB vs Containers), cost model
 - Engine matrix: Tesseract (Apache-2.0, with Leptonica BSD-2), PaddleOCR (Apache-2.0), LibreOffice (MPL-2.0), others; WASM OCR size. ocrmypdf (MPL-2.0) is listed as excluded: it requires Ghostscript (AGPL-3.0) at run time, and container images we run as a service count as shipped artefacts under ADR 0001/0019
+- Licence rule for container images (the ADR records it): no AGPL component anywhere (in our binaries or in any container image, since images we run as a service count as shipped artefacts under ADR 0001/0019); GPL/LGPL code only as separate executables or system libraries of the base image that our code reaches across a process boundary (invoked as a program, never linked into a lamina binary), recorded in the SBOM; our own binaries link no GPL library. "No GPL in the image" is not achievable, because Linux base images ship GPL tools (bash, coreutils, glibc is LGPL), so the rule is about AGPL and about linking
 - OCR pipeline decision (recommended, no AGPL): Tesseract only, no ocrmypdf and no Ghostscript. lamina renders each page to an image (`lamina-render`), Tesseract produces hOCR, and lamina writes the invisible text layer into the original PDF (`AddOcrLayer`, E13c), so the PDF is never re-encoded by a third-party tool. Using ocrmypdf instead needs an explicit owner decision recorded in this ADR (an exception to ADR 0019 with the AGPL obligations for a network service spelled out); it is not the default
 - Whether jobs require an account (links to H2) — decision or open question
 
@@ -58,7 +59,7 @@ Decide how lamina runs heavy, opt-in server jobs (OCR, Office ↔ PDF, PDF → W
 ## Acceptance criteria
 
 - [ ] ADR accepted with an engine per job type and retention numbers
-- [ ] No engine in the ADR, or in any image it describes, is AGPL/GPL (Ghostscript, MuPDF, ocrmypdf's Ghostscript dependency included); the OCR pipeline is the Tesseract-only one above unless the owner signs off a recorded exception
+- [ ] No engine in the ADR, or in any image it describes, is AGPL (Ghostscript, MuPDF, ocrmypdf's Ghostscript dependency included); any GPL engine is used only as a separate executable behind a process boundary, never linked into a lamina binary; the OCR pipeline is the Tesseract-only one above unless the owner signs off a recorded exception
 
 ## Post-merge checks
 
@@ -87,4 +88,3 @@ None (decision).
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
 - [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
-- [ ] Squash-merged; dependants' "Depends on" now satisfied

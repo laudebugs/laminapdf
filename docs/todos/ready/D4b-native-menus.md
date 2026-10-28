@@ -35,10 +35,10 @@ Give lamina proper native menus on every OS — the macOS app menu and menu bar,
 - `src-tauri/src/menu.rs`: `fn build_menu(app: &AppHandle, ctx: &MenuContext) -> tauri::Result<Menu<Wry>>` producing:
   - macOS app menu: About Lamina (`PredefinedMenuItem::about` with `AboutMetadata`: version, copyright, licences link), Check for Updates… (enabled in D5b), Settings… (`Cmd+,`), Services, Hide/Hide Others/Show All, Quit.
   - File: Open… (`CmdOrCtrl+O`), Open Recent ▸ (from `RecentFiles`, "Clear Menu"), New Window (`CmdOrCtrl+Shift+N`), Close Tab (`CmdOrCtrl+W`), Close Window (`CmdOrCtrl+Shift+W`), Print… (`CmdOrCtrl+P`, enabled in D4c), Export Copy… (save the original bytes elsewhere — byte-identical copy via Rust `std::fs::copy` after a Rust-side save dialog), Quit on Windows/Linux (`Ctrl+Q`).
-  - Edit: Copy, Select All (predefined, so text fields work), Find (`CmdOrCtrl+F`), Find Next/Previous.
+  - Edit: Copy, Select All (predefined, so text fields work), Find (`CmdOrCtrl+F`), Find Next/Previous; on **Windows/Linux** also a separator and Settings… (`Ctrl+,`) at the end of Edit (GNOME/KDE place Preferences there; there is no app menu off macOS). The `settings` shortcut entry therefore has a menu on every OS, and `CmdOrCtrl+,` works everywhere (D7b's e2e uses it).
   - View: Zoom In/Out/Actual Size/Fit Width/Fit Page, Sidebars toggles (check items), Page Layout ▸ (single, continuous, two-page — radio-like check items), Enter Full Screen (predefined on macOS).
   - Window: Minimize, Zoom (macOS), next/previous tab, Move Tab to New Window, Move Tab to Window ▸, window list.
-  - Help: Lamina Help (opens the docs URL via `tauri-plugin-opener` from Rust), Keyboard Shortcuts (opens the shared help dialog), Report an Issue, View Licences (third-party notices from D6b).
+  - Help: Lamina Help (opens the docs URL via `tauri-plugin-opener` from Rust), Keyboard Shortcuts (opens the shared help dialog), Report an Issue, View Licences (third-party notices from D6b); on **Windows/Linux** also Check for Updates… (enabled in D5b) and About Lamina, which live in the app menu on macOS.
 - Menu events → `emit_to(focused window, "menu://command", ShortcutId)`; the UI dispatches through the same command registry used for keyboard shortcuts (no duplicate handlers).
 - **Accelerator ownership**: when a menu accelerator exists, the webview's keydown handler for that shortcut is disabled on desktop (otherwise both fire on Windows/Linux); enforced by a `Platform.nativeMenuShortcuts` set.
 - Dynamic state: enable/disable items per focused window (no document → Print/Close Tab disabled; zoom limits), check states for sidebars/layout; updated via a `menu_state(state)` command from the UI on focus/state change.
@@ -55,7 +55,7 @@ Give lamina proper native menus on every OS — the macOS app menu and menu bar,
 
 ## Tasks
 
-- [ ] Fresh worktree; move this file to `ongoing/`. Load `tauri-v2` and `rust-best-practices`.
+- [ ] Fresh worktree; this todo is already claimed via the claim PR (see DoD). Load `tauri-v2` and `rust-best-practices`.
 - [ ] Create or extend the shared shortcut map + JSON export (`pnpm --filter @lamina/ui build:shortcuts`), with a CI check that the generated JSON is up to date.
 - [ ] `menu.rs` builder + `on_menu_event` dispatch; `MenuContext` (recent files, windows, focus state); rebuild Open Recent and Window submenus on change.
 - [ ] `menu_state` command (manifest + capability) and the UI side that reports state.
@@ -71,6 +71,7 @@ Give lamina proper native menus on every OS — the macOS app menu and menu bar,
 - [ ] Each accelerator fires once (not twice) on Windows and Linux (e2e: press `Ctrl+=` and assert one zoom step).
 - [ ] Open Recent lists the D3b entries and "Clear Menu" clears them; Window menu lists open windows; Move Tab to Window works from the menu (e2e).
 - [ ] macOS app menu follows the HIG layout (manual screenshot); Windows/Linux show a menu bar per window.
+- [ ] `CmdOrCtrl+,` opens the settings window on macOS, Windows and Linux (e2e), with Settings… under Edit on Windows/Linux.
 - [ ] Items are disabled when not applicable (no document → Print, Close Tab disabled) (e2e via `menu_state` assertions or a test-only `menu_snapshot` command under `e2e`).
 
 ## Post-merge checks
@@ -103,4 +104,3 @@ None.
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
 - [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
-- [ ] Squash-merged; dependants' "Depends on" now satisfied

@@ -51,7 +51,7 @@ Make the desktop app a working single-window reader: File ▸ Open (via a button
 
 ## Tasks
 
-- [ ] Fresh worktree; move this file to `ongoing/`. Load `tauri-v2` and `rust-best-practices`.
+- [ ] Fresh worktree; this todo is already claimed via the claim PR (see DoD). Load `tauri-v2` and `rust-best-practices`.
 - [ ] Implement the transport (Rust) and register commands in `generate_handler!`, the app manifest in `build.rs`, and `capabilities/main.json` (`allow-render-tiles`, `allow-cancel-tiles`, `allow-open-dialog`, `allow-unlock-document`, `allow-page-info`, `allow-close-document`).
 - [ ] If a custom scheme is used: update the CSP `img-src`/`connect-src` for both URL forms; add `Cross-Origin-Resource-Policy: same-origin` if COOP/COEP are on.
 - [ ] Implement `DesktopEngineClient` (TS) with strict types shared with Rust via `tsify`-free hand-written types or generated with `ts-rs`/`specta` (decide; record in the PR; licence check), plus Vitest tests using `mockIPC`.
@@ -100,4 +100,3 @@ None.
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
 - [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
-- [ ] Squash-merged; dependants' "Depends on" now satisfied

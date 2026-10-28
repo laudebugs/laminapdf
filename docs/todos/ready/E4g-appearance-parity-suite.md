@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [full-editor §E4](../../plans/full-editor.md#e4-markup-and-drawing-annotations) |
 | Round / milestone | Editor phase 3 (E4–E5) — M6 Annotator |
-| Depends on | [E4f](./E4f-annotation-tools-ui.md) |
+| Depends on | [E4f](./E4f-annotation-tools-ui.md), [X3a](./X3a-nightly-lane.md) |
 | Blocks | None |
 | ADRs | Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
 | Branch | `test/e4g-appearance-parity-suite` |
@@ -82,4 +82,3 @@ The suite itself.
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
 - [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
-- [ ] Squash-merged; dependants' "Depends on" now satisfied

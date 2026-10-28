@@ -7,7 +7,7 @@
 | Plan | [full-editor §E3](../../plans/full-editor.md#e3-navigation-attachments-inspection-and-extraction) |
 | Round / milestone | Editor phase 2 (E1–E3) — M5 Organiser |
 | Depends on | [C5b](./C5b-find-in-document.md), [E3a](./E3a-navigation-attachments-inspection-feature-plan.md) |
-| Blocks | [E3b](./E3b-bookmarks-and-destinations.md) |
+| Blocks | [E3b](./E3b-bookmarks-and-destinations.md), [E4b](./E4b-annotation-model-and-overlay.md), [E17b](./E17b-action-editor.md) |
 | Dependency notes | [E3a](E3a-navigation-attachments-inspection-feature-plan.md), `C5` ([web-app §C5](../../plans/web-app.md#c5-text-selection-and-search): text layer and search) |
 | ADRs | Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
 | Branch | `feat/e3c-links` |
@@ -29,7 +29,7 @@ Create, edit and delete Link annotations: internal (GoTo/destination), external 
 
 **In scope**
 
-- Ops: `AddLink { page, rect, quads, target: Dest|NamedDest|Uri }`, `UpdateLink`, `DeleteLink` with `/NM` = ID
+- Ops: `AddLink { page, rect, quads, target: Dest|NamedDest|Uri }`, `UpdateLink`, `DeleteLink` with `/NM` = ID. They are the link-specific ops for good (frozen on the wire in `fixtures/ops/v1/`): when [E4b](E4b-annotation-model-and-overlay.md) adds the generic annotation core, these three become thin wrappers over it (same undo records, same IDs, same `/NM` and `/P` handling), and E4b's `AddAnnot` has no `Link` spec, so there is exactly one way to create a link
 - Link tool in `@lamina/ui`: draw a rect or make a link from the current text selection; edit target in a popover; `/Contents` description (accessibility, overlaps L.07)
 - URI validation and scheme allow-list (http, https, mailto)
 
@@ -87,4 +87,3 @@ None.
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
 - [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
-- [ ] Squash-merged; dependants' "Depends on" now satisfied

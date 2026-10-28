@@ -45,7 +45,7 @@ Catch broken documentation links before merge. The todo board makes link rot lik
 - [ ] Wire `docs-links` into `main.rs`, `check`, and `ci`
 - [ ] Fix any existing broken links found on `main` in the same PR
 - [ ] Document in `CLAUDE.md` commands and the todo README
-- [ ] Add `cargo xtask todos` (same xtask crate, no new runtime deps beyond what's allowed): parse every `docs/todos/{ready,ongoing,done}/*.md` header table, check that **Status** matches the folder, that every **Depends on** ID exists, that the graph has no cycles, that **Blocks** is exactly the reverse of **Depends on**, and that no `done` todo depends on an unfinished one; regenerate `docs/todos/README.md` (the board: "Can start now", ongoing, one table per plan). `cargo xtask todos --check` fails CI when the board or any Blocks field is stale. Port the logic of the one-off script used to build the board in PR "docs(todos)…" (normalise IDs, reverse edges, cycle check).
+- [ ] Add `cargo xtask todos` (same xtask crate, no new runtime deps beyond what's allowed): parse every `docs/todos/{ready,ongoing,done}/*.md` header table, check that **Status** matches the folder, that every **Depends on** ID exists, that the graph has no cycles, that **Blocks** is exactly the reverse of **Depends on**, and that no `done` todo depends on an unfinished one; regenerate `docs/todos/README.md` (the board: "Can start now", ongoing, one table per plan). `cargo xtask todos --check` fails CI when the board or any Blocks field is stale. Port the reference script in the appendix (explicit Depends-on links only, reverse edges, cycle check, board text as committed).
 
 ## Acceptance criteria
 
@@ -78,16 +78,15 @@ Unit tests for the slugger and link extraction; an integration test building a t
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
 - [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
-- [ ] Squash-merged; dependants' "Depends on" now satisfied
 
 ## Appendix: reference board generator
 
-The one-off Python script that normalised dependencies and generated `docs/todos/README.md` when the board was created. Port its logic to `cargo xtask todos`; don't add the script to the repo (ADR 0015: xtask is the single entry point).
+The one-off Python script that recomputes **Blocks**, checks the graph and generates `docs/todos/README.md`. Port its logic to `cargo xtask todos`; don't add the script to the repo (ADR 0015: xtask is the single entry point). The port must read dependencies **only from the explicit links** in each todo's **Depends on** field (comma-separated `[ID](path)` links, or `None`) and treat anything else there as an error; it must not guess dependencies from prose or resolve round names (`B2`, `C4`) to todos. The board text it writes must match the committed [`docs/todos/README.md`](../README.md) wording: `ongoing/` means claimed by a small claim PR before the work starts, and an empty Ongoing section reads "Nothing claimed right now."
 
 <details><summary><code>todo_graph.py</code></summary>
 
 ```python
-"""Normalise todo dependencies, recompute Blocks, check the graph, write the board.
+"""Read todo dependencies, recompute Blocks, check the graph, write the board.
 
 Usage: python3 -I todo_graph.py <repo-root> [--write]
 """
@@ -115,67 +114,28 @@ for st in STATES:
 
 ids = set(todos)
 
-def members(prefix):
-    return sorted(i for i in ids if re.fullmatch(prefix + r"[a-z]", i))
-
-# Round -> todos that complete it (default when a todo names a whole round).
-GENERIC = {
-    "B2": ["B2b", "B2c"], "B3": ["B3c"], "B4": ["B4b", "B4c"], "B5": ["B5c"],
-    "B6": ["B6b"], "B7": ["B7b"], "B8": ["B8b"], "B9": ["B9c"],
-    "C1": ["C1b"], "C2": ["C2c"], "C3": ["C3c"], "C4": ["C4c", "C4d"],
-    "C5": ["C5b"], "C6": ["C6b", "C6c"], "C7": ["C7c"],
-    "D1": ["D1a", "D1b"], "D2": ["D2e"], "D3": ["D3b"], "D4": ["D4c"],
-    "D5": ["D5b"], "D6": ["D6c", "D6d"], "D7": ["D7c"], "X3": ["X3a"],
-}
-# Precise targets given by the plan owners, per depending todo.
-OVERRIDE = {
-    "C1b": {"B6": ["B6b"]}, "C2c": {"B6": ["B6b"]}, "C3a": {"B6": ["B6b"]},
-    "C2b": {"B2": ["B2c"]}, "C6a": {"B2": ["B2c"], "B6": ["B6b"]},
-    "C4c": {"B2": ["B2b"], "B6": ["B6b"]},
-    "D1a": {"C3": ["C3b"]}, "D1b": {"C3": ["C3b"]},
-    "D2a": {"C4": ["C4a"], "C2": ["C2a"]}, "D2b": {"C2": ["C2b"]},
-    "D2d": {"C3": ["C3b"], "C4": ["C4a"]}, "D4b": {"C7": ["C7a"]},
-    "D4c": {"C6": ["C6c"]}, "D5a": {"C4": ["C4d"], "C2": ["C2a"]},
-    "D7b": {"C4": ["C4b", "C4d"]},
-    "E1d": {"C4": ["C4a"]}, "E10e": {"C4": ["C4a"]},
-    "E11b": {"B2": ["B2b"]},
-    "H1": {"C4": ["C4d"], "C2": ["C2b"], "D2": ["D2e"]},
-    "E3h": {"C2": ["C2b"]}, "E13a": {"C2": ["C2b"]},
-}
-
-# Todos whose Depends-on prose mentions IDs that are context, not prerequisites.
-EXACT = {"B9a": ["B2c"]}
-
 def field(s, name):
     m = re.search(r"^\| " + re.escape(name) + r" \| (.*) \|$", s, re.M)
     return m.group(1) if m else None
 
-problems, notes_needed = [], {}
+# Dependencies are the explicit links in "Depends on" ("[B2a](../done/B2a-….md), …" or "None").
+# No prose parsing and no round-level resolution: a missing or unknown link is an error.
+LINK_RE = r"\[([A-Z]\d+[a-z]?)\]\(([^)]+)\)"
+problems = []
 deps = {}
 for tid, t in todos.items():
-    raw = field(t["text"], "Depends on") or ""
-    found, resolved_any = [], False
-    # "can run in parallel with X" is not a dependency.
-    scan = re.sub(r"[Rr]uns? in parallel with[^.|;]*|[Cc]an run in parallel with[^.|;]*|in parallel with[^.|;]*", "", raw)
-    own_round = re.match(r"[A-Z]\d+", tid).group(0)
-    for ref in ([] if tid in EXACT else re.findall(ID_RE, scan)) + EXACT.get(tid, []):
-        if ref == tid or ref == own_round:
-            continue
-        if ref in ids:
-            found.append(ref)
-        elif ref in GENERIC or members(ref):
-            tgt = OVERRIDE.get(tid, {}).get(ref) or GENERIC.get(ref) or members(ref)
-            found += tgt
-            resolved_any = True
-        else:
-            problems.append(f"{tid}: unknown dependency id {ref!r}")
-    seen, out = set(), []
-    for d in found:
-        if d not in seen:
-            seen.add(d); out.append(d)
+    raw = (field(t["text"], "Depends on") or "").strip()
+    out = []
+    if raw != "None":
+        links = re.findall(LINK_RE, raw)
+        if not links or re.sub(LINK_RE, "", raw).strip(" ,") != "":
+            problems.append(f"{tid}: Depends on must be comma-separated links or None: {raw!r}")
+        for ref, target in links:
+            if ref not in ids:
+                problems.append(f"{tid}: unknown dependency id {ref!r}")
+            elif ref not in out:
+                out.append(ref)
     deps[tid] = out
-    if resolved_any:
-        notes_needed[tid] = raw
 
 # cycle check
 color = {}
@@ -217,9 +177,6 @@ for tid, t in todos.items():
     bl = ", ".join(link(tid, b) for b in sorted(blocks[tid], key=order_key)) or "None"
     s = re.sub(r"^\| Depends on \| .* \|$", lambda _: f"| Depends on | {dl} |", s, count=1, flags=re.M)
     s = re.sub(r"^\| Blocks \| .* \|$", lambda _: f"| Blocks | {bl} |", s, count=1, flags=re.M)
-    if tid in notes_needed and "| Dependency notes |" not in s:
-        note = notes_needed[tid].replace("|", "\\|")
-        s = re.sub(r"^(\| Blocks \| .* \|)$", lambda m: m.group(1) + f"\n| Dependency notes | {note} |", s, count=1, flags=re.M)
     t["new"] = s
 
 # Board
@@ -232,8 +189,8 @@ lines = ["# Todo board", "",
          "One file per pull request of work. A todo lives in exactly one state folder:", "",
          "| Folder | Meaning |", "| --- | --- |",
          "| [`ready/`](ready/) | Specified and waiting. Start one only when every todo in its **Depends on** is in `done/`. |",
-         "| [`ongoing/`](ongoing/) | A PR is open or being written. Moved here in the PR's first commit. |",
-         "| [`done/`](done/) | Merged. Moved here by the PR before it merges. |", "",
+         "| [`ongoing/`](ongoing/) | Claimed: someone is working on it. Moved here by a small claim PR before the work starts. |",
+         "| [`done/`](done/) | Merged. Moved here by the work PR before it merges. |", "",
          "New todos start from [`TEMPLATE.md`](TEMPLATE.md). The workflow is in [git workflow §2](../guidelines/git-workflow.md#pick-work-from-the-todo-board); plans link to their todos.", "",
          "IDs: `A`/`P`/`X` [architecture](../plans/architecture.md) (foundations, publishing, cross-cutting), `B` [library](../plans/pdf-library.md), `C` [web reader](../plans/web-app.md), `D` [desktop reader](../plans/desktop-app.md), `E` [editor](../plans/full-editor.md), `H` hosted service ([full-editor](../plans/full-editor.md)). A letter suffix (`B2a`, `B2b`) splits a round into PRs.", ""]
 counts = {st: sum(1 for t in todos.values() if t["state"] == st) for st in STATES}
@@ -243,6 +200,8 @@ startable = sorted((i for i, t in todos.items() if t["state"] == "ready"
 lines += ["## Can start now", "", "Ready todos whose dependencies are all done:", ""]
 lines += [f"- [{i}]({todos[i]['state']}/{todos[i]['file']}): {todos[i]['title']}" for i in startable] + [""]
 lines += ["## Ongoing", ""]
+if not any(t["state"] == "ongoing" for t in todos.values()):
+    lines += ["Nothing claimed right now.", ""]
 lines += [f"- [{i}](ongoing/{t['file']}): {t['title']}" for i, t in sorted(todos.items(), key=lambda kv: order_key(kv[0])) if t["state"] == "ongoing"] + [""]
 for letter in "ABCDHEPX":
     group = sorted((i for i in todos if i[0] == letter), key=order_key)
@@ -258,7 +217,6 @@ board = "\n".join(lines)
 
 print(f"todos: {len(todos)} {counts}")
 print(f"startable now: {', '.join(startable)}")
-print(f"resolved round refs in {len(notes_needed)} todos")
 print("problems:", len(problems))
 for p in problems[:50]:
     print("  ", p)

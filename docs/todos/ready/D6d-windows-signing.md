@@ -35,10 +35,11 @@ Every Windows binary lamina ships — `lamina.exe`, the engine sidecar, PDFium's
     - **Artifact Signing**: `signtool sign /v /fd SHA256 /tr http://timestamp.acs.microsoft.com /td SHA256 /dlib <path>\Azure.CodeSigning.Dlib.dll /dmdf metadata.json %1` (metadata: endpoint, account, certificate profile) after `azure/login` via OIDC (no client secret); or `trusted-signing-cli` if preferred (licence check).
     - **OV in cloud HSM**: the CA's headless tool or `jsign` (`--storetype` per HSM: `AZUREKEYVAULT`, `DIGICERTONE`, `ESIGNER`, …) with RFC 3161 timestamping (`--tsaurl`), SHA-256.
   - `digestAlgorithm: "sha256"`, `timestampUrl` only if using local thumbprint signing (not used).
-  - `nsis`: `installMode: "currentUser"` (no elevation, updater-friendly) — or `"both"` if the owner wants per-machine NSIS; `languages`, `displayLanguageSelector: false`; installer icon/header images.
-  - `wix`: per-machine MSI for managed deployment (`upgradeCode` fixed forever — generate once, record in ADR 0014), `language: "en-US"`.
+  - `nsis`: `installMode: "currentUser"` (no elevation; the **only** flavour the in-app updater serves); `languages`, `displayLanguageSelector: false`; installer icon/header images.
+  - `wix`: per-machine MSI for managed deployment (`upgradeCode` fixed forever — generate once, record in ADR 0014), `language: "en-US"`. A WiX fragment (`bundle.windows.wix.fragmentPaths` + `componentRefs`) writes `HKLM\Software\Lamina\InstallFlavour = "msi"`, which D5b reads to switch the in-app updater off (see the decision under Risks).
   - `webviewInstallMode: { type: "downloadBootstrapper" }` for NSIS (small) and `embedBootstrapper` for MSI (offline-friendlier) — decide with size budget.
   - File associations from D3a verified in both installers.
+- **Pre-sign PDFium** (like D6c's dylib step): Tauri passes the app binary, sidecars and installers to `signCommand`, but `bundle.resources` files are copied as they are — so `pdfium.dll` would ship unsigned. In the Windows release job, after `cargo xtask desktop-sidecar` has fetched and hash-checked PDFium (the pinned hash is checked on the downloaded archive, and the fetch leaves an existing DLL alone, so signing doesn't trip a later hash check), run `sign-windows` on `src-tauri/resources/pdfium/pdfium.dll` before `tauri build` bundles it. Any other DLL that ends up in resources is signed the same way; the coverage check below catches a miss.
 - Signing coverage check: a CI step listing every PE file in the build output and installers (extract MSI with `lessmsi` (MIT) or `msiexec /a`; NSIS with `7z`) and running `signtool verify /pa /v` on each; fails if any is unsigned or the signer subject isn't the owner's name.
 - Lift the D6b guard for Windows.
 - Clean-VM checks (Windows 11 current, fresh, SmartScreen on, Defender on): download each installer via Edge (Mark-of-the-Web set), run; record SmartScreen behaviour, UAC prompt publisher name (MSI), installed app's signature (`Get-AuthenticodeSignature`), file association registration, uninstall cleanliness; update from the previous signed build via the NSIS updater artefact (two `release`-environment `workflow_dispatch` runs to the `staging` channel — nightlies are unsigned and NSIS-only per D6b).
@@ -53,10 +54,11 @@ Every Windows binary lamina ships — `lamina.exe`, the engine sidecar, PDFium's
 
 ## Tasks
 
-- [ ] Fresh worktree; move this file to `ongoing/`. Load `tauri-v2`.
+- [ ] Fresh worktree; this todo is already claimed via the claim PR (see DoD). Load `tauri-v2`.
 - [ ] Signing script(s) with strict error handling (non-zero exit on failure; retries on transient HSM/timestamp errors; no secret echo).
 - [ ] `bundle.windows` config; generate and record the WiX `upgradeCode`.
 - [ ] OIDC login step (Artifact Signing) or credential setup (OV) in the Windows matrix jobs; arm64 job signs the same way.
+- [ ] PDFium DLL pre-sign step before `tauri build` (and any other resource PE files).
 - [ ] Signing coverage check step.
 - [ ] Clean-VM checklist with results in the PR (SmartScreen screenshots allowed; no secrets).
 - [ ] Runbook updates (commands, troubleshooting, SmartScreen notes).
@@ -67,6 +69,7 @@ Every Windows binary lamina ships — `lamina.exe`, the engine sidecar, PDFium's
 - [ ] On a clean Windows 11 VM: UAC (MSI) shows the owner as verified publisher; the installed app's `Get-AuthenticodeSignature` status is `Valid`.
 - [ ] SmartScreen: with Artifact Signing, the installer runs **without** a SmartScreen warning; with OV, any warning is recorded and the release notes text is in place (both outcomes per the plan).
 - [ ] MSI and NSIS both install, register `.pdf` "Open with", and uninstall cleanly (manual check recorded).
+- [ ] An MSI-installed build shows "Updates are managed by your organisation" and makes no update requests (manual check with a proxy recorded).
 - [ ] An NSIS-installed signed build updates to the next signed build (two `release`-environment `workflow_dispatch` runs to the `staging` channel).
 
 ## Post-merge checks
@@ -83,13 +86,13 @@ Every Windows binary lamina ships — `lamina.exe`, the engine sidecar, PDFium's
 
 - `docs/plans/desktop-app.md` §9 D6: tick "Windows signing via `signCommand` (Artifact Signing or the OV certificate); MSI and NSIS outputs" and complete "Verify installs on clean VMs (Gatekeeper, Windows signature and publisher, SmartScreen behaviour recorded, Linux signature checks)" once D6c's macOS part is also done.
 - `docs/guidelines/desktop-release.md`: Windows commands, SmartScreen notes.
-- ADR 0014: WiX upgrade code, install modes.
+- ADR 0014: WiX upgrade code, install modes, and "MSI installs don't self-update".
 
 ## Risks and open questions
 
 - **Cloud HSM rate limits/latency**: Tauri signs many files; batch or cache sessions where the tool allows; retries.
 - **Artifact Signing region/eligibility changes**: if eligibility lapses, switch to the OV path via `LAMINA_WIN_SIGN_PATH` (both paths kept working in the script).
-- **Per-user NSIS vs per-machine MSI**: the updater installs the same flavour as installed; MSI users on managed machines may get updates through their management tool instead — document; D5b's policy key can disable updates.
+- **Decision: MSI installs disable the in-app updater** (owner to confirm in the PR). The update endpoint gets one URL per `{target}-{arch}` and can't tell an MSI install from an NSIS one, and the manifest ships the NSIS updater artefact (`Lamina_X.Y.Z_x64-setup.exe`) — an MSI install updating itself would gain a second, per-user NSIS copy next to the per-machine one. So MSI is for managed deployments, which update by deploying the next MSI; the app detects the MSI install (registry value above) and shows "Updates are managed by your organisation", like the deb/rpm case in D5b. Alternative not taken: the app sends its install flavour as a header and the manifest gets per-flavour URLs (more Worker/manifest surface, MSI elevation prompts during auto-update). Recorded in ADR 0014.
 - **SmartScreen reputation** with OV takes weeks/thousands of downloads; early beta users will see warnings — acceptable per plan.
 - **arm64 signing** with the same tools: verify `signtool`/`jsign` handle ARM64 PE files (they do for Authenticode; confirm).
 
@@ -100,4 +103,3 @@ Every Windows binary lamina ships — `lamina.exe`, the engine sidecar, PDFium's
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
 - [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
-- [ ] Squash-merged; dependants' "Depends on" now satisfied

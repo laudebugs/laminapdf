@@ -35,7 +35,7 @@ Give readers the two classic ways to move through a long document: a virtualised
 - If B2's views don't expose page labels or destination resolution, add read-only accessors in `lamina-model`/`lamina-wasm`/`@lamina/pdf` in this PR (small; coordinate with the library owner) — page-label number tree walking with `/S` styles D, R, r, A, a, `/P` prefix, `/St` start.
 - `@lamina/viewer`: `ThumbnailStrip` (framework-free virtualised list using the C3b layout code at thumbnail scale, own small canvas pool, `thumbnail` priority, cancels when scrolled away, current page highlighted), destination navigation (`goToDestination(dest)` with fit modes XYZ/Fit/FitH/FitV/FitR/FitB mapped to zoom + scroll).
 - `@lamina/ui`: `Sidebar` with tabs (Thumbnails, Outline), resizable and collapsible, remembered per session; `OutlineTree` (WAI-ARIA tree pattern: arrow keys, Home/End, expand/collapse, type-ahead), current-section tracking (deepest item whose destination is at or before the top of the viewport); page indicator shows labels (`iv (4 / 120)`) and go-to-page accepts labels or numbers (ambiguity: label wins, show both in a hint).
-- `page=N` and `nameddest=<name>` fragment keys (C4c's `URLSearchParams` fragment format, so they combine with an encoded `url`, e.g. `#url=<encoded>&page=5`) navigate after load; a change to only these keys navigates within the open document (C4c's `hashchange` rule).
+- `page=N` and `nameddest=<name>` fragment keys (C4c's fragment format, parsed by `parseFragment` and written by `buildFragment`, so they combine with an encoded `url`, e.g. `#url=<encoded>&page=5`) navigate after load; a change to only these keys navigates within the open document (C4c's `hashchange` rule).
 
 **Out of scope** (and which todo covers it)
 
@@ -44,7 +44,7 @@ Give readers the two classic ways to move through a long document: a virtualised
 
 ## Tasks
 
-- [ ] Fresh worktree; move this file to `ongoing/`.
+- [ ] Claim via a claim PR (see Definition of done); then a fresh worktree off the updated `main`.
 - [ ] Check what B2/B6 expose (`Outline`, `NameTree`, destinations, page labels); add missing read-only accessors with Rust unit tests and TS bindings (ISO 32000-2 §12.3.2, §12.3.3, §12.4.2 cited in doc comments).
 - [ ] RPC methods and worker implementation; outline loaded lazily when the sidebar opens (big outlines can be thousands of items) with a child-on-demand option.
 - [ ] Destination → viewport mapping with unit tests for each fit type and for rotated pages.
@@ -88,4 +88,3 @@ Rust unit tests for any new model accessors (page-label styles, destination reso
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
 - [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
-- [ ] Squash-merged; dependants' "Depends on" now satisfied

@@ -30,8 +30,11 @@ Reduce what a compromised engine process can do to (almost) nothing: no file sys
 
 **In scope**
 
-- `apps/desktop/src-tauri/src/engine/sandbox/{mod.rs,macos.rs,windows.rs,linux.rs}` (spawn-side policy) and `crates/lamina-desktop-engine/src/sandbox/` (self-restriction applied by the engine at startup **after** loading PDFium and before reading the first `OpenDocument`):
-  - **Lock-down order**: load PDFium + fonts the engine needs (PDFium's built-in base-14 fonts; system font access decided here — prefer passing font bytes from main on request over granting font directory reads) → apply sandbox → send `Ready { sandboxed: SandboxLevel }`.
+- `apps/desktop/src-tauri/src/engine/sandbox/{mod.rs,macos.rs,windows.rs,linux.rs}` (spawn-side policy) and `crates/lamina-desktop-engine/src/sandbox/` (self-restriction the engine applies at start-up where the OS allows it; the order differs per OS, see below):
+  - **Lock-down order (per OS)** — fonts: PDFium's built-in base-14 fonts; system font access decided here (prefer passing font bytes from main on request over granting font directory reads). In every case no `OpenDocument` is read before the sandbox is fully on, and `Ready { sandboxed: SandboxLevel }` is sent last.
+    - **Linux**: load PDFium → apply no-new-privs + Landlock + seccomp (all self-applied at run time) → `Ready`.
+    - **macOS**: App Sandbox comes from the entitlement and is in force **from exec**, before `main` runs, so PDFium is loaded *inside* the sandbox. It must be readable there: ship it inside the bundle (`Contents/Frameworks` or `Contents/Resources`, which a sandboxed process can read) and verify `dlopen` works under the sandbox and library validation (same Team ID signature, D6c). If it doesn't, use the Seatbelt fallback below, which is applied at run time after loading (Linux-style order).
+    - **Windows**: the Job Object and Low integrity level are set **at spawn** (a Low-IL process can still read the install directory, so PDFium loads); the stricter restricted token follows Chromium's pattern — the process is created with the locked-down primary token while its first thread impersonates a less restricted token for start-up, loads PDFium, then calls `RevertToSelf()` — plus process mitigation policies set after load (`SetProcessMitigationPolicy`: image-load policy blocking remote/low-label images, child-process policy). → `Ready`.
   - **macOS**: engine sidecar signed with an entitlements file `engine.entitlements` containing `com.apple.security.app-sandbox = true` (no file/network entitlements); verify the helper launches from a non-sandboxed parent and that stdio pipes work; fallback: Seatbelt profile via the private `sandbox_init_with_parameters` (Chromium does this) only if App Sandbox breaks pipes — record the choice.
   - **Windows**: spawn with a restricted token at Low integrity, in a Job Object with memory limit (configurable, default e.g. 2 GiB per engine), active-process limit 1, kill-on-close, UI restrictions; child-process creation disabled via `PROCESS_CREATION_CHILD_PROCESS_RESTRICTED`; evaluate AppContainer with no capabilities (record if pipes/PDFium work).
   - **Linux**: `prctl(PR_SET_NO_NEW_PRIVS)`, Landlock ruleset denying all fs access (best-effort ABI; report level achieved), seccomp-bpf allow-list (read/write on the inherited fds, `mmap`/`munmap`/`mprotect` without `PROT_EXEC` on new mappings if PDFium tolerates it, `futex`, `clock_gettime`, `exit_group`, `sched_yield`, `madvise`, `brk`, `rt_sigreturn`…; default action `SECCOMP_RET_KILL_PROCESS` in release, `SECCOMP_RET_TRAP`/log in a debug feature to discover missing syscalls), and `RLIMIT_AS`. **No new processes, threads still work**:
@@ -52,8 +55,9 @@ Reduce what a compromised engine process can do to (almost) nothing: no file sys
 
 ## Tasks
 
-- [ ] Fresh worktree; move this file to `ongoing/`. Load `tauri-v2` and `rust-best-practices`.
+- [ ] Fresh worktree; this todo is already claimed via the claim PR (see DoD). Load `tauri-v2` and `rust-best-practices`.
 - [ ] Add dependencies with licence comments: `landlock`, `seccompiler` (Linux, `cfg(target_os = "linux")`), `windows` crate features for security/job objects (`cfg(windows)`); no new deps on macOS if entitlements suffice.
+- [ ] Implement the per-OS start-up order above (Linux: all after load; macOS: from exec, PDFium loaded inside; Windows: Job + Low IL at spawn, impersonation token until PDFium is loaded, then `RevertToSelf` + mitigation policies).
 - [ ] Implement the per-OS modules behind a single `fn apply_engine_sandbox(cfg: &SandboxConfig) -> Result<SandboxLevel, SandboxError>` (engine side) and `fn spawn_sandboxed(cmd: Command, cfg: &SandboxConfig) -> Result<Child, SandboxError>` (main side); keep all `unsafe` FFI in these modules with `// SAFETY:` comments.
 - [ ] Font strategy: implement `FontRequest`/`FontData` protocol messages if PDFium needs system fonts for non-embedded fonts; main reads fonts from system directories; document in ADR 0008.
 - [ ] macOS: `apps/desktop/src-tauri/engine.entitlements`; ad-hoc sign the sidecar in the xtask `desktop-sidecar` step (`codesign -s - --entitlements … --options runtime`) so dev builds exercise the sandbox.
@@ -102,4 +106,3 @@ None.
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
 - [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
-- [ ] Squash-merged; dependants' "Depends on" now satisfied

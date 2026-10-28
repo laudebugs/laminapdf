@@ -46,7 +46,7 @@ Create the single Rust abstraction every lamina surface renders through. `crates
 
 ## Tasks
 
-- [ ] Fresh worktree; move this file to `ongoing/`; load `/rust-best-practices`.
+- [ ] Claim via a claim PR (see Definition of done); then a fresh worktree off the updated `main`. Load `/rust-best-practices`.
 - [ ] Add `crates/lamina-render/Cargo.toml` (workspace package fields, `[lints] workspace = true`, `[package.metadata.lamina] layer = …`, features `pdfium`, `hayro`, default none) and register it in the root `Cargo.toml`.
 - [ ] `src/lib.rs`: `pub trait RenderBackend { fn page_count(&self) -> Result<u32, RenderError>; fn page_size(&self, page: PageIndex) -> Result<PageSize, RenderError>; fn render(&self, req: &RenderRequest, out: &mut [u8]) -> Result<RenderedTile, RenderError>; }` plus a loader (`fn open(bytes/ByteSource, password: Option<&str>, limits: &Limits)`) — exact signatures per ADR 0004. `RenderRequest` = page, scale or target pixel size, source rect (for tiles), rotation, flags (annotations, form widgets, print, background), pixel format (RGBA8 premultiplied or not; document which).
 - [ ] Validate requests: reject zero/oversized dimensions, cap total pixels per request (a `Limits`-style `max_tile_pixels`) so hostile page sizes cannot allocate unbounded buffers; return `RenderError` codes, never panic.
@@ -54,19 +54,20 @@ Create the single Rust abstraction every lamina surface renders through. `crates
 - [ ] `src/pdfium.rs` (feature `pdfium`, or the separate edge crate): wrap `pdfium-render`, bind the pinned PDFium library from ADR 0004 (path via env var / xtask-fetched), render with/without `FPDF_ANNOT`, handle password, map `FPDF_GetLastError` to `RenderError`. Every `unsafe` block (if any) has `// SAFETY:`.
 - [ ] `tools/xtask`: add `fetch-pdfium` (pinned URL + SHA-256, per host OS, cached in a gitignored dir), `render-golden [--update]` (renders every page of `fixtures/corpus/*.pdf` with both adapters to `fixtures/golden/render/<backend>/<file>-p<N>.png`); `doctor` checks the PDFium library is available.
 - [ ] `tests/golden.rs`: for each corpus page and backend, render and compare against the golden with the threshold from C1a (SSIM ≥ 0.99 against its **own** backend's golden; cross-backend thresholds only in the nightly diff). A test never writes a golden.
+- [ ] **Feature gating so the fast lane never runs goldens.** `cargo xtask check`/`test` use `--workspace --all-features`, which turns on `pdfium` and `hayro`. So: (a) the PDFium adapter loads the library **dynamically at runtime** (no build-time link), so `--all-features` builds and clippy pass on every OS without a fetched library; (b) every golden test and every test that needs the PDFium library is `#[ignore = "render golden: run via cargo xtask render-golden --check (full lane, Linux)"]`; (c) `cargo xtask render-golden --check` runs `cargo test -p lamina-render --features pdfium,hayro -- --ignored` after `fetch-pdfium`, and is the only thing that runs them. The fast lane and dev machines therefore run only the pure tests (request validation, hayro error mapping), never the PDFium/hayro goldens. (`cargo test -- --include-ignored` locally runs them if you have fetched PDFium.)
 - [ ] `tests/errors.rs`: wrong password, damaged file (`hello-broken.pdf`), oversize request, out-of-range page → typed errors.
 - [ ] `tests/determinism.rs`: rendering the same page twice gives identical bytes for each backend.
-- [ ] CI: add render goldens to the full lane (Linux; PDFium fetched and cached). The nightly external-corpus diff is [X3b](./X3b-render-diff-nightly.md)'s.
+- [ ] CI: add `cargo xtask render-golden --check` to the full lane (Linux; PDFium fetched and cached) — see [X4](./X4-full-lane-gate.md). The nightly external-corpus diff is [X3b](./X3b-render-diff-nightly.md)'s.
 - [ ] `deny.toml`: allow the licences `pdfium-render`, `hayro` and their deps bring (all permissive); `cargo xtask deny` passes.
 - [ ] `README.md` for the crate: what the trait is, feature flags, how to fetch PDFium, how to update goldens.
 - [ ] Update `CLAUDE.md` layout (new crate) and commands (`cargo xtask fetch-pdfium`, `cargo xtask render-golden`).
 
 ## Acceptance criteria
 
-- [ ] `cargo test -p lamina-render --features pdfium,hayro` passes; golden tests cover every page of every file in `fixtures/corpus/` for both backends (except files listed with a reason, e.g. encrypted ones hayro cannot open).
-- [ ] `cargo xtask check` passes, including clippy `-D warnings` native and (for the pure part) wasm32, portability rules for the crate's declared layer, and cargo-deny.
+- [ ] `cargo xtask render-golden --check` (that is, `cargo test -p lamina-render --features pdfium,hayro -- --ignored` with PDFium fetched) passes on Linux; golden tests cover every page of every file in `fixtures/corpus/` for both backends (except files listed with a reason, e.g. encrypted ones hayro cannot open).
+- [ ] `cargo xtask check` passes on macOS, Linux and Windows **without** a fetched PDFium library and runs no golden test (they are `#[ignore]`d), including clippy `-D warnings` native and (for the pure part) wasm32, portability rules for the crate's declared layer, and cargo-deny.
 - [ ] `cargo xtask render-golden --update` regenerates goldens deterministically (running it twice yields no diff).
-- [ ] The full-lane CI job runs render goldens on PRs touching `crates/`, `fixtures/` or `tools/`.
+- [ ] The full-lane CI job runs `cargo xtask render-golden --check` on PRs touching `crates/`, `fixtures/` or `tools/`; the fast lane does not.
 - [ ] No panics on hostile input: oversize and broken-file tests return errors.
 
 ## Post-merge checks
@@ -84,7 +85,7 @@ Crate README; `CLAUDE.md` (layout + commands); `fixtures/README.md` (render gold
 ## Risks and open questions
 
 - **Golden PNG size in git**: ~14 corpus files × pages × 2 backends at 96 DPI is small, but keep PNGs optimised (oxipng) and consider Git LFS only if they exceed a few MB.
-- **Cross-OS pixel differences** in PDFium/FreeType: run goldens on Linux only in the PR lane and document it.
+- **Cross-OS pixel differences** in PDFium/FreeType: goldens are `#[ignore]`d and run only via `render-golden --check` in the Linux full lane; documented in the crate README.
 - **pdfium-render API churn** (0.9.x) and its single maintainer ([architecture §6](../../plans/architecture.md#6-risks)): wrap it thinly so it can be replaced by direct FFI.
 - **Layer classification**: dynamic loading of PDFium is platform code; if xtask's core rules reject it, split the adapter into an edge crate (decide early in the PR).
 
@@ -95,4 +96,3 @@ Crate README; `CLAUDE.md` (layout + commands); `fixtures/README.md` (render gold
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
 - [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
-- [ ] Squash-merged; dependants' "Depends on" now satisfied

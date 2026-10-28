@@ -54,14 +54,25 @@ Let `Document::open` read files encrypted with the standard security handler whe
 - [ ] Hook decryption into `resolve` (strings in the object, recursively, excluding exempt objects) and `decode_stream` (before the filter chain; `/Crypt` in the chain picks a named filter or `/Identity`)
 - [ ] Object streams: decrypt the container once; members not decrypted again
 - [ ] `OpenOptions::with_password`, `Document::permissions()`, `encryption()`, error variants and codes
-- [ ] `fixtures/encrypted/` generator: `tools/xtask` subcommand `cargo xtask fixtures encrypted` (or a script under `fixtures/encrypted/make.sh`) that uses qpdf (`--encrypt user owner 40|128|256 --use-aes=y|n --cleartext-metadata`) and pypdf to produce from one plaintext source (with Info strings, an outline and text): R2 RC4-40, R3 RC4-128, R4 RC4-128, R4 AES-128, R4 AES-128 with `/EncryptMetadata false`, R5 AES-256 (pypdf), R6 AES-256; each with (a) empty user password and (b) user + owner passwords; one with an `/Identity` stream filter; record commands and tool versions in `fixtures/README.md`
+- [ ] `fixtures/encrypted/` generator: `tools/xtask` subcommand `cargo xtask fixtures encrypted` (or a script under `fixtures/encrypted/make.sh`) that produces, from one plaintext source (with Info strings, an outline and text), each case with (a) an empty user password and (b) user + owner passwords. Pin qpdf ≥ 11.7 (11.0+ refuses RC4 output without `--allow-weak-crypto`; flags checked against the [qpdf CLI docs](https://qpdf.readthedocs.io/en/stable/cli.html)) and use the long form `qpdf --encrypt --user-password=U --owner-password=O --bits=N [options] -- in.pdf out.pdf`:
+  - R2 RC4-40: `--bits=40 --allow-weak-crypto`
+  - R3 RC4-128: `--bits=128 --use-aes=n --allow-weak-crypto`
+  - R4 RC4-128: `--bits=128 --use-aes=n --force-V4 --allow-weak-crypto` (without `--force-V4` this comes out as R3)
+  - R4 AES-128: `--bits=128 --use-aes=y`
+  - R4 AES-128 with `/EncryptMetadata false`: `--bits=128 --use-aes=y --cleartext-metadata`
+  - R5 AES-256 (the deprecated Acrobat IX handler): `--bits=256 --force-R5`
+  - R6 AES-256: `--bits=256`
+  - one file with an `/Identity` stream filter (`/StmF /Identity`), written with pypdf or patched from the R4 AES-128 output, since qpdf has no flag for it
+  - the generator checks each output's `/V` and `/R` with `qpdf --show-encryption` and fails if a case comes out at the wrong revision; record the commands and tool versions in `fixtures/README.md`
 - [ ] `fixtures/encrypted/expected.json` for the encrypted set, written by a password-aware facts script next to the generator (`fixtures/encrypted/facts.py`, pinned pypdf; passwords per file, page count, outline titles, Info strings, `qpdf --show-encryption` permissions) — facts from pypdf/qpdf, never lamina; nothing is written to `fixtures/corpus/expected.json`
-- [ ] Fuzz seeds: whichever of B2b and B2c merges **second** adds `fixtures/encrypted/*.pdf` to the `open` fuzz target's seed script and makes the target try the empty password and each fixture's password from `fixtures/encrypted/expected.json`. If B2c is already merged when this PR opens, do it here; otherwise B2c does it
+- [ ] Fuzz seeds (this todo owns them, whichever of B2b and [B2c](./B2c-lamina-model-corpus-fuzz.md) merges first): the generator also writes the encrypted fixtures to `fuzz/seeds/open/encrypted/` and their passwords, one per line, to `fuzz/seeds/open/passwords.txt`, creating `fuzz/seeds/open/` if it doesn't exist yet. B2c's `open` target seeds from everything under `fuzz/seeds/open/` and tries the empty password and each line of `passwords.txt`, so it picks these up whether it merges before or after this PR. If B2c has already created an empty `passwords.txt`, fill it in rather than replacing it
+- [ ] New codes: add the warnings `aes-padding-invalid` and `perms-mismatch` and the errors `password-required`, `wrong-password` and `unsupported-security-handler` to `fixtures/codes.json` and to ADR 0003 §2's code table (status "exists"), so `crates/lamina-cos/tests/codes.rs` keeps the enums and the list in step
 - [ ] Remove "Decryption arrives in Round B2" from ADR 0003's tolerance table (amend the row: encrypted file opens and decrypts given a password)
 
 ## Acceptance criteria
 
 - [ ] Every encrypted fixture (R2, R3, R4 RC4, R4 AES-128, R5, R6; user, owner and empty passwords) opens and matches the plaintext original's page count, outline titles, Info strings and decoded content streams byte for byte
+- [ ] `qpdf --show-encryption` on each fixture reports the intended `/V` and `/R` (in particular, the R3 and R4 RC4-128 files differ), checked by the generator
 - [ ] Opening with the owner password and with the user password both succeed; `matched_password()` reports which
 - [ ] A wrong password fails with `Error::WrongPassword` (code `wrong-password`); a missing one with `Error::PasswordRequired`
 - [ ] `/EncryptMetadata false` fixture: XMP stream read as plaintext, everything else decrypted
@@ -79,12 +90,12 @@ None.
 - Unit: `lamina-syntax` crypt known-answer tests (RC4, AES-CBC, MD5 rounds, 2.B loop termination).
 - Integration: `crates/lamina-cos/tests/encryption.rs` over `fixtures/encrypted/` vs plaintext originals; wrong/missing password; `/Identity` and `/Crypt` per-stream; mixed plaintext objects (PDFex shape) behave per spec (plaintext strings in an encrypted doc are decrypted as garbage → documented, no panic).
 - Facts: `fixtures/encrypted/expected.json` (page count, outline titles and Info from pypdf with the password); `crates/lamina-cos/tests/encryption.rs` reads it.
-- Fuzz: encrypted fixtures seed the `open` target, added by whichever of B2b/[B2c](./B2c-lamina-model-corpus-fuzz.md) merges second (see Tasks).
+- Fuzz: this todo writes the encrypted seeds and `passwords.txt` to `fuzz/seeds/open/` (creating the directory if [B2c](./B2c-lamina-model-corpus-fuzz.md) hasn't merged yet); B2c's `open` target reads that directory (see Tasks).
 
 ## Docs to update
 
 - [ ] [pdf-library §10 B2](../../plans/pdf-library.md#10-to-dos): tick the decryption and encrypted-fixtures to-dos
-- [ ] ADR 0003 tolerance table row "Encrypted file"
+- [ ] ADR 0003: tolerance table row "Encrypted file"; §2 code table gains `aes-padding-invalid` and `perms-mismatch`; the codes [B2a](../done/B2a-limits-owned-document.md) shipped but left marked `B2` in the status column become "exists"
 - [ ] `fixtures/README.md` (provenance, generator commands, `fixtures/encrypted/expected.json` and its script), `crates/lamina-cos/README.md`
 
 ## Risks and open questions
@@ -102,4 +113,3 @@ None.
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
 - [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
-- [ ] Squash-merged; dependants' "Depends on" now satisfied

@@ -31,7 +31,7 @@ Ship **web v0.1**. Turn the §4 performance targets into CI gates (app-shell siz
 **In scope**
 
 - Size gate (PR lane): app shell JS (excluding WASM) min+gz ≤ 200 KB; WASM sizes ≤ their budgets (from C2c/B6); fails the build when exceeded; prints a per-chunk table.
-- Runtime gates (release lane, and nightly reporting): first page ≤ 700 ms warm (10-page 1 MB), ≤ 3 s cold Fast 4G; 1,000-page scroll with no main-thread task > 50 ms and sharp within 300 ms; memory ≤ 600 MB and stable; search first result ≤ 500 ms and full pass ≤ 10 s. Release blocks if the reference-machine run fails.
+- Runtime gates (release lane, and nightly reporting): first page ≤ 700 ms warm (10-page 1 MB), ≤ 3 s cold Fast 4G; 1,000-page scroll with no main-thread task > 50 ms and sharp within 300 ms; memory ≤ 600 MB and stable; search first result ≤ 500 ms and full pass ≤ 10 s. Release blocks if the reference-machine run fails: C4d deploys production **only** from the `web-v*` tag, and its production job `needs:` these release-lane gate jobs, so a failing gate means production is not deployed (staging on `main` already serves the build for testing).
 - Lighthouse CI (performance, accessibility, best practices — Lighthouse 12+ has no PWA category) against the production-like preview, with thresholds; installability is gated by C7b's `installability.spec.ts` (manifest schema + fields, icons, SW control, Chromium `Page.getInstallabilityErrors` empty, offline reload) run against the same preview.
 - Privacy page: `apps/web` route `/privacy` (static, part of the SPA or a static HTML asset) summarising: no upload, documents processed on device, `#url=` fragments never reach our server, no cookies, no third-party scripts, no telemetry (or exactly what, per ADR 0011), what is stored locally and how to clear it, how future opt-in hosted features (accounts, cloud storage) will work and that they are optional; linked from the app footer/menu and the README.
 - Release: `apps/web` version `0.1.0` and `CHANGELOG.md` for the app in this PR; after merge, git tag `web-v0.1.0`, production deploy via C4d's pipeline, post-deploy smoke + privacy suite against production (see Post-merge checks).
@@ -45,9 +45,9 @@ Ship **web v0.1**. Turn the §4 performance targets into CI gates (app-shell siz
 
 ## Tasks
 
-- [ ] Fresh worktree; move this file to `ongoing/`.
-- [ ] Size-budget script (`tools/` or `cargo xtask size web`) reading Vite's build manifest; min+gz each JS chunk loaded on startup (exclude lazy chunks only if they're truly lazy); CI step in the fast lane for PRs touching `apps/web` or `packages/`.
-- [ ] Promote C3c scenarios to gates in the release workflow (on the reference runner or a dedicated self-hosted/large runner); nightly keeps reporting and opening issues.
+- [ ] Claim via a claim PR (see Definition of done); then a fresh worktree off the updated `main`.
+- [ ] Size-budget script (`tools/` or `cargo xtask size web`) reading Vite's build manifest; min+gz each JS chunk loaded on startup (exclude lazy chunks only if they're truly lazy); CI step in the fast lane for PRs touching the same paths as C4d's deploy filter (`apps/web/`, `packages/`, `crates/`, lockfiles `pnpm-lock.yaml`/`Cargo.lock`, root manifests, and the workflow files) — reuse C4d's single filter list, so dependency bumps are size-checked.
+- [ ] Promote C3c scenarios to gates in the release workflow (on the reference runner or a dedicated self-hosted/large runner) and add them to the `needs:` of C4d's tag-triggered production job; nightly keeps reporting and opening issues. If the reference run is manual (see Risks), the production job uses the `production` environment's required reviewer as the gate, and the reviewer approves only with the attached passing run.
 - [ ] Lighthouse CI config (`lighthouserc.json`) with thresholds (accessibility ≥ 95, best practices ≥ 95, performance ≥ 90 on desktop profile; pinned `@lhci/cli` version, no `pwa` category) run against the PR preview (non-required) and release (required); add C7b's `installability.spec.ts` to the same preview job and to the release lane as a required step.
 - [ ] Fix or waive outstanding perf issues from C3c/C5b/C7b (each waiver: issue link, owner, target version) — no silent misses.
 - [ ] Write the privacy page content (plain language, reviewed against ADR 0011 point by point) and add it to the app; add a "Privacy" link in the UI and the README.
@@ -68,8 +68,8 @@ Ship **web v0.1**. Turn the §4 performance targets into CI gates (app-shell siz
 
 ## Post-merge checks
 
-- [ ] Tag `web-v0.1.0` pushed on the squash-merge commit; the release lane (Lighthouse + installability + runtime perf gates) passes on it.
-- [ ] Production (C4d's `main` deploy) serves the tagged build: version `0.1.0` visible in the About/properties area.
+- [ ] Tag `web-v0.1.0` pushed on the squash-merge commit; the release lane (Lighthouse + installability + runtime perf gates) passes on it, and only then C4d's tag-triggered production job deploys.
+- [ ] Production serves the tagged build: version `0.1.0` visible in the About/properties area.
 - [ ] Smoke, privacy and axe suites pass against the production URL; `/privacy` is live there.
 - [ ] Plan statuses updated after the release (web-app status, roadmap M2 shipped) in a follow-up PR if they weren't final at merge.
 
@@ -94,4 +94,3 @@ Size-budget script unit tests; release-lane perf gates (C3c harness); Lighthouse
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
 - [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
-- [ ] Squash-merged; dependants' "Depends on" now satisfied

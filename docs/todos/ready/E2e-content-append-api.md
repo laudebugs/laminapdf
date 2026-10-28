@@ -17,7 +17,7 @@
 
 ## Goal
 
-Add the minimal write API to `lamina-content` that never parses existing operators: wrap a page's existing content in `q … Q` by adding new streams to its `/Contents` array, append new streams (e.g. `q <cm> /Fm1 Do Q`), register Form XObjects under unused resource names, and balance `q`/`Q` by a token scan. Resize (E2f), flattening (E5e, E8g) and adding content (E6) use it.
+Add the minimal write API to `lamina-content` that never interprets existing operators (the only change to existing content is blanking unmatched `Q` tokens): wrap a page's existing content in `q … Q` by adding new streams to its `/Contents` array, append new streams (e.g. `q <cm> /Fm1 Do Q`), register Form XObjects under unused resource names, and balance `q`/`Q` by a token scan. Resize (E2f), flattening (E5e, E8g) and adding content (E6) use it.
 
 ## Context
 
@@ -32,7 +32,10 @@ Add the minimal write API to `lamina-content` that never parses existing operato
 
 - `PageContentWriter` over `CosMut`: `wrap_existing()`, `prepend(stream)`, `append(stream)`, `add_xobject(form) -> Name`, `add_extgstate`, `add_font` with unused-name allocation in the page's (possibly inherited or shared) `/Resources`
 - Copy-on-write of shared `/Resources` dictionaries before adding names
-- `q`/`Q` balance scan over the page's concatenated streams (tokens only, string and inline-image aware) that returns the minimum running depth `m` (≤ 0; below zero when the content has surplus `Q`s) and the final depth `e`. `wrap_existing()` prepends `1 + |m|` `q`s and appends `1 + e − m` `Q`s, so the outermost saved state is never popped by a stray `Q` inside the original content (its depth never drops below 1) and the stack is back at zero before anything is appended; the appended `q <cm> /Fm1 Do Q` then runs from the page's initial graphics state. Isolating the original content as a Form XObject was rejected: it changes resource inheritance and breaks MCIDs/structure references
+- `q`/`Q` balance scan over the page's concatenated streams (tokens only, string and inline-image aware) that records the final depth `e` (≥ 0) and the byte position (stream, offset) of every **unmatched** `Q`, i.e. a `Q` seen at depth 0. Renderers ignore such a `Q` (there is no saved state to restore), so it must stay a no-op after wrapping: if we only prepended extra `q`s, a stray `Q` after depth-0 state changes (`2 0 0 2 0 0 cm Q <draw>`) would pop a real saved state and the following drawing would lose its CTM, clip or colour. So:
+  - **No unmatched `Q`** (the common case): no existing stream is touched; `wrap_existing()` prepends one stream holding `q` and appends one holding `Q` repeated `1 + e` times
+  - **Unmatched `Q`s present:** each stream that contains one is replaced (copy-on-write: a new stream object, the original is never edited in place, shared streams stay shared for other pages) by a copy in which exactly those `Q` tokens are blanked to a space, byte for byte otherwise (same filters re-applied; no other token touched, so MCIDs, marked content and inline images are unchanged). After neutralising, the content is balanced from below and the wrap is `q` + content + `Q`×(`1 + e`)
+  - Re-evaluated alternative: isolating the original content as a Form XObject also makes unmatched `Q` harmless, but it changes resource inheritance and breaks MCIDs/structure references (`/Pg`/MCR targets must be page content), so it stays rejected
 - `Op::AppendContent { page, placement: Prepend|Append, form: BlobId|FormSpec, matrix }` (class `Content`)
 - Idempotent wrapping: a page wrapped once is not wrapped again (marker via structure, not private keys)
 
@@ -55,14 +58,15 @@ Add the minimal write API to `lamina-content` that never parses existing operato
 - [ ] Resource-name allocator (`Fm1`, `Gs1`, …) avoiding names in inherited resources
 - [ ] Copy-on-write for shared resource dicts and shared content streams
 - [ ] `AppendContent` op with undo
-- [ ] Tests on pages with surplus `q`, surplus `Q` (e.g. `q 2 0 0 2 0 0 cm … Q Q 0 0 1 rg`), both in different streams of one `/Contents` array, inline images containing `Q` bytes, shared resources
+- [ ] Unmatched-`Q` neutraliser: rewrite only the streams that contain one, blanking exactly the recorded tokens; copy-on-write for shared streams
+- [ ] Tests on pages with surplus `q`, surplus `Q` (e.g. `q 2 0 0 2 0 0 cm … Q Q 0 0 1 rg`, and `2 0 0 2 0 0 cm Q <draw>` where the depth-0 `Q` follows state changes), both in different streams of one `/Contents` array, inline images containing `Q` bytes, shared resources and shared content streams
 
 ## Acceptance criteria
 
 - [ ] Property tests: for every new op, apply then undo leaves the overlay empty and the next save is byte-identical to the previous one (ADR 0006 §3); redo re-applies the same bytes
 - [ ] Every new op reports its `ModificationClass` and `requires_rewrite` (ADR 0006 §1); a test per op runs `planner.would_violate(&op)` on the signed fixtures (no certification, DocMDP P1, P2, P3, FieldMDP lock) and asserts the verdict ([ADR 0007](../../decisions/0007-save-planner.md) §2), because a misclassified op is a security bug
 - [ ] Appending a filled rectangle to every page of 30 corpus files renders the original pixels unchanged plus the rectangle (PDFium diff) and passes qpdf `--check`
-- [ ] Pages with unbalanced `q` or surplus `Q` are rendered identically before/after wrapping, and a rectangle appended to the surplus-`Q` fixture lands at the same place and colour as on a balanced page (no leaked CTM, clip or colour); a unit test checks the prepended/appended counts against the scan's `m` and `e`
+- [ ] Pages with unbalanced `q` or surplus `Q` are rendered identically before/after wrapping (PDFium and pdf.js pixel diff = 0), including the fixture `2 0 0 2 0 0 cm Q 0 0 10 10 re f` (the rectangle stays at scale 2 after wrapping); streams without an unmatched `Q` are byte-identical after wrapping; and a rectangle appended to the surplus-`Q` fixture lands at the same place and colour as on a balanced page (no leaked CTM, clip or colour); a unit test checks the appended `Q` count against the scan's `e` and that only the recorded unmatched `Q` tokens were blanked
 - [ ] Fuzz target for the token scan runs 10 min without panic
 
 ## Post-merge checks
@@ -92,4 +96,3 @@ None.
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
 - [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
-- [ ] Squash-merged; dependants' "Depends on" now satisfied

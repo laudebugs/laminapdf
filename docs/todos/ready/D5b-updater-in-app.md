@@ -40,7 +40,10 @@ Make the desktop app update itself safely from the D5a Worker: check at start an
 - Commands (manifest + capability, settings window only): `update_status`, `update_check_now`, `update_set_enabled`, `update_set_channel`, `update_reset_install_id`, `update_restart_to_install`. The main document windows get only `update_status` (for a subtle "update ready" indicator).
 - Settings window (first real content of the D4b placeholder): "Updates" section — automatic updates toggle, channel (stable/beta for release builds; nightly builds show "Nightly" read-only, because they embed the nightly-only updater public key from ADR 0014 and can only install nightly-signed bundles — the "advanced" disclosure links to the nightly download instead of switching channel; switching lines means reinstalling), "Check now", status (up to date / downloading x % / ready — restart), "Reset anonymous ID" with an explanation linking to the privacy page.
 - Menu: "Check for Updates…" (macOS app menu, Help menu elsewhere) enabled and wired.
-- Staging e2e workflow `.github/workflows/desktop-update-e2e.yml` (`workflow_dispatch` + nightly schedule + path-filtered `pull_request`, using the non-release test key): builds `0.0.1` and `0.0.2` (plain `X.Y.Z`: WiX/MSI only accepts a numeric pre-release ≤ 65535, so `-test` suffixes would fail the Windows bundle; versions below `0.1.0` are reserved for this staging test and never published to a user channel) for the three OSes with updater artefacts signed by a **test** updater key (separate from production; stored as a non-release secret), uploads 0.0.2 to the staging R2 prefix and seeds the `staging` channel manifest, installs 0.0.1 on the runner, launches it with a test-only flag (feature `e2e`) that forces the `staging` channel and an immediate check, waits for install + relaunch, and asserts the running version is `0.0.2`. A second run serves a tampered bundle (one byte flipped, original `.sig`) and asserts the updater rejects it and the app stays on `0.0.1`.
+- Staging e2e workflow `.github/workflows/desktop-update-e2e.yml`, using the non-release test key, in two modes:
+  - **`local` mode** — path-filtered `pull_request` (forks included; **no secrets at all**): the Worker runs on the runner with `wrangler dev` and local R2 simulation, seeded with `wrangler r2 object put --local`; the `e2e` build points the updater at `http://127.0.0.1:<port>` (`dangerousInsecureTransportProtocol` only under the `e2e` feature, which D2a's guard keeps out of release builds).
+  - **`staging` mode** — `push` to `main` (path-filtered), nightly schedule and `workflow_dispatch`, never `pull_request`: runs in a GitHub `staging` environment (deployment branches: `main` only) holding `CLOUDFLARE_STAGING_R2_TOKEN`, scoped to the separate **`lamina-staging`** bucket only (D5a), against the deployed Worker's `staging` channel. No job here ever gets a token for `lamina-releases`.
+  Both modes build `0.0.1` and `0.0.2` (plain `X.Y.Z`: WiX/MSI only accepts a numeric pre-release ≤ 65535, so `-test` suffixes would fail the Windows bundle; versions below `0.1.0` are reserved for this staging test and never published to a user channel) for the three OSes with updater artefacts signed by a **test** updater key (separate from production; stored as a non-release secret), uploads 0.0.2 to the staging bucket (local or `lamina-staging`) and seeds the `staging` channel manifest, installs 0.0.1 on the runner, launches it with a test-only flag (feature `e2e`) that forces the `staging` channel and an immediate check, waits for install + relaunch, and asserts the running version is `0.0.2`. A second run serves a tampered bundle (one byte flipped, original `.sig`) and asserts the updater rejects it and the app stays on `0.0.1`.
 
 **Out of scope** (and which todo covers it)
 
@@ -50,7 +53,7 @@ Make the desktop app update itself safely from the D5a Worker: check at start an
 
 ## Tasks
 
-- [ ] Fresh worktree; move this file to `ongoing/`. Load `tauri-v2` and `rust-best-practices`.
+- [ ] Fresh worktree; this todo is already claimed via the claim PR (see DoD). Load `tauri-v2` and `rust-best-practices`.
 - [ ] Add `tauri-plugin-updater` and `uuid` (licence checks); register the plugin; config keys above.
 - [ ] Implement settings/policy/service modules with unit tests; ensure no lock is held across `await`.
 - [ ] Commands + capabilities (separate `capabilities/settings.json` for the `settings` window, created in D4b and already listed in `app.security.capabilities` and `tauri.e2e.conf.json`; extend the forbidden-permissions guard from D2a to forbid `updater:` in any capability).
@@ -61,7 +64,8 @@ Make the desktop app update itself safely from the D5a Worker: check at start an
 
 ## Acceptance criteria
 
-- [ ] On macOS, Windows and Linux (AppImage), an installed `0.0.1` updates to `0.0.2` from the `staging` channel without user interaction beyond what `installMode: passive` shows (CI workflow green on all three OSes; run linked in the PR).
+- [ ] On macOS, Windows and Linux (AppImage), an installed `0.0.1` updates to `0.0.2` from the `staging` channel without user interaction beyond what `installMode: passive` shows (`local`-mode CI run green on all three OSes in the PR; run linked).
+- [ ] The workflow's `pull_request` jobs reference no secrets and no environment; only `staging`-mode jobs use the `staging` environment (checked by reading the workflow in review).
 - [ ] A tampered bundle is rejected on each OS (signature error logged; app remains on 0.0.1) — same workflow.
 - [ ] The request to the update endpoint carries `Lamina-Install-Id` as a header and not in the URL (unit test of the builder config + a Worker-side assertion in the staging run).
 - [ ] Disabling updates stops all update network requests (unit test on the scheduler; manual check with a proxy).
@@ -71,7 +75,8 @@ Make the desktop app update itself safely from the D5a Worker: check at start an
 
 ## Post-merge checks
 
-- [ ] The scheduled (nightly) run of `desktop-update-e2e.yml` on `main` is green on all three OSes (the PR proves the workflow through a path-filtered `pull_request` run, since a new workflow can't be dispatched or scheduled until it is on `main`).
+- [ ] Owner has created the `staging` environment (deployment branches: `main`) with `CLOUDFLARE_STAGING_R2_TOKEN` scoped to `lamina-staging` only.
+- [ ] The first `staging`-mode run of `desktop-update-e2e.yml` on `main` (push after merge, or the next scheduled run) is green on all three OSes against `lamina-staging` (the PR only proves `local` mode, since a new workflow can't be dispatched or scheduled until it is on `main` and PRs get no secrets).
 
 ## Tests
 
@@ -89,7 +94,7 @@ Make the desktop app update itself safely from the D5a Worker: check at start an
 
 - **macOS updates of unsigned/ad-hoc test bundles**: Gatekeeper/quarantine may interfere on runners; the staging workflow may need `xattr -dr com.apple.quarantine`; production uses D6c's signed bundles.
 - **Linux deb/rpm installs can't self-update** (Tauri updates AppImage only): the app must detect a non-AppImage install (`APPIMAGE` env var absent) and show "Updates are managed by your package manager" instead of checking — implement here.
-- **Windows per-machine MSI vs per-user NSIS** affects whether the updater can install without elevation; align with D6d's install-scope decision.
+- **Decision: MSI installs don't self-update** (with D6d; owner to confirm there). The update manifest carries only the per-user NSIS updater artefact, so an MSI install updating itself would end up with a second, per-user copy. At start-up the app reads `HKLM\Software\Lamina\InstallFlavour` (written by D6d's MSI only); if it is `msi`, the updater is off exactly as for `DisableUpdates` and the settings show "Updates are managed by your organisation". Absent value → NSIS → updater on. Implement the check here (unit test with a fake registry reader).
 - **Install-on-quit** while documents are open on Windows (installer kills the app): flush session (D4a) before `install`.
 
 ## Definition of done
@@ -99,4 +104,3 @@ Make the desktop app update itself safely from the D5a Worker: check at start an
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
 - [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
-- [ ] Squash-merged; dependants' "Depends on" now satisfied

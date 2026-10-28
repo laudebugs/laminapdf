@@ -50,7 +50,7 @@ Make the document editable through one audited path: an overlay in `lamina-cos` 
 
 - [ ] Load `/rust-best-practices`; read ADR 0005 §3 and ADR 0006 in full
 - [ ] `crates/lamina-cos/src/overlay.rs` + integrate in `Document` resolution; unit tests for create/set/delete/rollback/equal-to-base drop and number allocation (never reused, reserved after undo)
-- [ ] Create `crates/lamina-ops` (core layer); `op.rs`, `info.rs` (`InfoPatch`, PDF text-string encoding: PDFDocEncoding when representable, else UTF-16BE with BOM), `rotate.rs`, `class.rs`
+- [ ] Create `crates/lamina-ops` (core layer); `op.rs`, `info.rs` (`InfoPatch`), `rotate.rs`, `class.rs`. PDF text-string encoding (PDFDocEncoding when representable, else UTF-16BE with BOM) goes in `lamina_syntax::text` as `encode_text_string`, next to the table and decoder that [B2c](./B2c-lamina-model-corpus-fuzz.md) added; reuse that table rather than writing another
 - [ ] `tx.rs`: `Tx`, journal marks, savepoints, error unwinding; `Document::transact` lives in `lamina-ops` as an extension trait or wrapper type (decide; ADR 0005 §1 layering)
 - [ ] `history.rs`: undo record capture (`target`, `before`, `after` per property), inverse computed at undo time, outcome reporting, coalescing
 - [ ] serde: adjacently tagged enum, `deny_unknown_fields`, envelope with version check; `fixtures/ops/v1/set-info.json`, `rotate-page.json`, `envelope.json`
@@ -97,4 +97,3 @@ None.
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
 - [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
-- [ ] Squash-merged; dependants' "Depends on" now satisfied

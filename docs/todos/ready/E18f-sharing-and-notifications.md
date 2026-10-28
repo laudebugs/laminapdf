@@ -30,6 +30,7 @@ Share a cloud document for review: invites and share links (per ADR 0012's Q6 an
 - Sharing API and D1 tables
 - Share dialog
 - Notification sender (opt-in per user)
+- **Revocation reaches open sessions.** Removing a member or a share link updates D1 and then calls the document DO (`revoke { principal | link_id }`); the DO closes every matching WebSocket (hibernated ones included) with close code `4403` ("access revoked"), drops their presence, and from then on re-checks membership on every incoming message and on reconnect, so a client that ignores the close cannot keep writing. The client shows "Your access was removed" and discards unsent ops
 
 **Out of scope** (and which todo covers it)
 
@@ -48,15 +49,17 @@ Share a cloud document for review: invites and share links (per ADR 0012's Q6 an
 - [ ] API
 - [ ] Dialog
 - [ ] Notifications
+- [ ] DO `revoke` handler closing sockets (code 4403) and per-message membership check; client handling of 4403
 
 ## Acceptance criteria
 
 - [ ] Authorisation tests per role
 - [ ] Revoked links stop working immediately
+- [ ] Revocation closes already-open sessions: with two clients connected (one via a share link, one as an invited member, one of them hibernated), revoking each closes its WebSocket with `4403` within 1 s, a write sent afterwards on a stale socket is rejected, and reconnecting fails (Miniflare test)
 
 ## Post-merge checks
 
-None.
+- [ ] D1 migrations for the sharing tables applied to production by the deploy workflow on `main`, and the production deploy of `apps/collab` succeeded (link the run)
 
 ## Tests
 
@@ -79,4 +82,3 @@ None.
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
 - [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
-- [ ] Squash-merged; dependants' "Depends on" now satisfied

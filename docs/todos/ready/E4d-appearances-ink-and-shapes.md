@@ -7,7 +7,7 @@
 | Plan | [full-editor §E4](../../plans/full-editor.md#e4-markup-and-drawing-annotations) |
 | Round / milestone | Editor phase 3 (E4–E5) — M6 Annotator |
 | Depends on | [E4b](./E4b-annotation-model-and-overlay.md) |
-| Blocks | [E4f](./E4f-annotation-tools-ui.md), [E17e](./E17e-measurement.md) |
+| Blocks | [E4f](./E4f-annotation-tools-ui.md), [E10c](./E10c-visual-signatures.md), [E17e](./E17e-measurement.md) |
 | ADRs | Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
 | Branch | `feat/e4d-appearances-ink-and-shapes` |
 | PR title | `feat(build): appearance streams for ink and geometric annotations` |
@@ -55,6 +55,7 @@ Create Ink, Square, Circle, Line (with `/LE` line endings, leader lines), Polygo
 ## Acceptance criteria
 
 - [ ] Library parity ([full-editor §5](../../plans/full-editor.md#5-requirements-that-hold-for-every-round) req. 7): every new `Op` is exposed in `lamina` and `@lamina/pdf` in this PR, with rustdoc/TSDoc, a runnable example, tsify-generated TS types, and serde samples frozen in `fixtures/ops/v1/` (unknown ops and fields rejected, ADR 0006 §1, §6)
+- [ ] Every new op reports exactly one `ModificationClass` and `requires_rewrite` (ADR 0006 §1); a test per op runs `planner.would_violate(&op)` on the signed fixtures (no certification, DocMDP P1, P2, P3, FieldMDP lock) and asserts the verdict ([ADR 0007](../../decisions/0007-save-planner.md) §2), because a misclassified op is a security bug
 - [ ] Round-trip: open → op → save → reopen in lamina, pdf.js and PDFium preserves the change and everything else (page count, outline, annotations, fields, struct tree facts in `expected.json`); `qpdf --check` is clean
 - [ ] Render parity pdf.js/PDFium for every `/LE` style and border style
 
@@ -83,4 +84,3 @@ None.
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
 - [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
-- [ ] Squash-merged; dependants' "Depends on" now satisfied

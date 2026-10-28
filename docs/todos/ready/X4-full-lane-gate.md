@@ -28,7 +28,7 @@ Add the second PR lane ADR 0018 defines, without blocking docs-only PRs. The ful
 
 **In scope**
 
-- `.github/workflows/full.yml`: `changes` job (`git diff --name-only $(git merge-base origin/main HEAD)`; code paths = `crates/`, `packages/`, `apps/`, `fixtures/`, `fuzz/`, `tools/`, `Cargo.lock`, `pnpm-lock.yaml`, and the root config that changes builds and checks: `Cargo.toml`, `rust-toolchain.toml`, `deny.toml`, `clippy.toml`, `rustfmt.toml`, `package.json`, `pnpm-workspace.yaml`, `.config/**` (e.g. `.config/nextest.toml`), `.github/workflows/**`; anything else is docs-only), suite jobs gated by `if: needs.changes.outputs.code == 'true' || github.event_name == 'push'`, and `gate` (`if: always()`, fails if any needed job failed or was cancelled).
+- `.github/workflows/full.yml`: `changes` job (`git diff --name-only $(git merge-base origin/main HEAD)`) that classifies a PR as **docs-only when every changed path matches a short docs allowlist**, and as code otherwise. The allowlist is `docs/**`, `*.md` files anywhere (READMEs, `CLAUDE.md`, `CHANGELOG.md`), `LICENSE*` and `.github/ISSUE_TEMPLATE/**`/`.github/PULL_REQUEST_TEMPLATE.md`. Inverting the filter this way means root config nobody thought to list — `.github/actions/**`, `.cargo/config.toml` (the `xtask` alias), `.gitattributes` (eol rules that decide whether goldens check out byte-identical on Windows), `biome.json`, `tsconfig.base.json`, `.nvmrc`, `.npmrc`, `Cargo.toml`, `rust-toolchain.toml`, `deny.toml`, `.config/**`, `.github/workflows/**`, lockfiles — always runs the suites. Suite jobs are gated by `if: needs.changes.outputs.code == 'true' || github.event_name == 'push'`, and `gate` (`if: always()`) fails if any needed job failed or was cancelled.
 - Suites now: `cargo xtask check` on macOS and Windows (Linux is in the fast lane); `cargo xtask differential --mutants 500` against precomputed expectations; `cargo xtask fuzz <each target> --time 120` (nightly toolchain, cached corpus); empty placeholder jobs are **not** added — later todos add their jobs (B3c round-trip, B5c render goldens/qpdf, B4b/B5b external extraction, B6c runtimes) and wire them into `gate`'s `needs`.
 - Branch protection: mark `gate` as required (owner action; documented).
 - `nextest` profile `ci` with `retries = 0` and the slow-timeout from B2a.
@@ -49,9 +49,9 @@ Add the second PR lane ADR 0018 defines, without blocking docs-only PRs. The ful
 
 ## Acceptance criteria
 
-- [ ] A docs-only PR shows the full lane's `gate` green within a minute and no suite jobs run
+- [ ] A docs-only PR (only allowlisted paths) shows the full lane's `gate` green within a minute and no suite jobs run
 - [ ] A PR touching `crates/` runs all suites; a failing suite turns `gate` red
-- [ ] A PR touching only root config (e.g. `rust-toolchain.toml` or `.github/workflows/ci.yml`) runs all suites; a unit test (or a `changes`-job dry run over sample path lists) covers every pattern in the filter
+- [ ] A PR touching only root config (e.g. `rust-toolchain.toml`, `.github/workflows/ci.yml`, `.github/actions/<x>/action.yml`, `.cargo/config.toml`, `.gitattributes`, `biome.json`, `tsconfig.base.json`, `.nvmrc`, `.npmrc`) runs all suites; a unit test (or a `changes`-job dry run over sample path lists) covers every allowlist pattern and checks that each of those config paths, plus an unknown new root file, is classified as code
 - [ ] The 500-mutant differential and 2-minute fuzz runs pass on this PR's own full-lane run
 - [ ] Full lane completes in ~30 minutes or less
 
@@ -81,4 +81,3 @@ The workflow on two test PRs (docs-only and code), linked in the PR description.
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
 - [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
-- [ ] Squash-merged; dependants' "Depends on" now satisfied

@@ -7,7 +7,7 @@
 | Plan | [full-editor §E2](../../plans/full-editor.md#e2-page-organisation) |
 | Round / milestone | Editor phase 2 (E1–E3) — M5 Organiser |
 | Depends on | [E2b](./E2b-page-structure-ops.md) |
-| Blocks | [E2d](./E2d-merge-and-split.md), [E2h](./E2h-page-organiser-ui.md), [E16f](./E16f-imposition.md) |
+| Blocks | [E2d](./E2d-merge-and-split.md), [E2g](./E2g-page-labels.md), [E2h](./E2h-page-organiser-ui.md), [E16f](./E16f-imposition.md) |
 | ADRs | Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
 | Branch | `feat/e2c-cross-document-pages` |
 | PR title | `feat(ops): import, replace and extract pages across documents` |
@@ -32,6 +32,8 @@ Copy pages between documents: deep-copy a page and everything reachable from it 
 - Rules for what follows a page: annotations (fix `/P`, new `/NM`), widget annotations (fields detached or carried per E2d merge rules), struct-tree parents dropped (warning) unless E2d merge
 - Ops: `InsertPagesFrom { source: SourceDocId, pages, at }`, `ReplacePages { targets, source, pages }`
 - `extract_pages(doc, pages) -> Document` (new document whose base is empty, built in the overlay) and `export_ranges(doc, ranges) -> Vec<Document>`
+- Page labels and named destinations through [E2b](E2b-page-structure-ops.md)'s shared writers: `InsertPagesFrom` and `ReplacePages` call `PageLabels::remap` (target pages keep their labels; inserted pages continue the range they land in), and `extract_pages`/`export_ranges` write the source's labels for the extracted pages with the number-tree writer; named destinations used by imported links are copied with the name-tree writer
+- `ReplacePages` reuses E2b's signed-widget check: replacing a page that holds a signed signature widget is `Violation::SignedWidgetPage`
 - Source documents referenced by a session-level `SourceDocId`, bytes held in the blob store (ADR 0006 §1 `BlobId`)
 
 **Out of scope** (and which todo covers it)
@@ -53,7 +55,7 @@ Copy pages between documents: deep-copy a page and everything reachable from it 
 - [ ] Implement `ObjectCopier` with an old→new number map, recursion limit and stream-hash dedupe
 - [ ] Annotation and widget handling rules; tests for `/P` fix-up
 - [ ] `InsertPagesFrom`/`ReplacePages` with undo (removal of created objects; reserved numbers stay reserved)
-- [ ] `extract_pages` and `export_ranges` producing deterministic output
+- [ ] `extract_pages` and `export_ranges` producing deterministic output, with page labels written through E2b's number-tree writer
 - [ ] Encrypted sources: decrypt on read (B2) and write unencrypted into an unencrypted target; encrypted targets wait for E11
 - [ ] Bindings and examples (`examples/extract-pages.*`)
 
@@ -95,4 +97,3 @@ None.
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
 - [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
-- [ ] Squash-merged; dependants' "Depends on" now satisfied

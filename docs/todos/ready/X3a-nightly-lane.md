@@ -7,7 +7,7 @@
 | Plan | [architecture §7 Cross-cutting](../../plans/architecture.md#cross-cutting) |
 | Round / milestone | Cross-cutting (after the first fuzz targets) |
 | Depends on | [B2c](./B2c-lamina-model-corpus-fuzz.md) |
-| Blocks | [B7b](./B7b-versioning-and-0-1-0-alpha.md), [B8b](./B8b-conformance-profiles-and-verapdf.md), [X3b](./X3b-render-diff-nightly.md) |
+| Blocks | [B7b](./B7b-versioning-and-0-1-0-alpha.md), [B8b](./B8b-conformance-profiles-and-verapdf.md), [E1b](./E1b-xmp-packet-model.md), [E1c](./E1c-metadata-ops.md), [E3e](./E3e-xmp-editor.md), [E3f](./E3f-attachments-and-associated-files.md), [E4g](./E4g-appearance-parity-suite.md), [E6c](./E6c-add-text.md), [E12f](./E12f-leak-tests.md), [E15b](./E15b-structure-tree-editing.md), [X3b](./X3b-render-diff-nightly.md) |
 | ADRs | Implements [0018](../../decisions/0018-test-strategy.md) §2 nightly lane, §3 corpora (`cargo xtask corpus fetch`, pinned manifest), §4 (nightly may retry once only to report flakiness), tier 11 (performance and scaling); [0003](../../decisions/0003-reader-tolerance-and-limits.md) §4 (differential triage, exceptions file) |
 | Branch | `ci/x3a-nightly-lane` |
 | PR title | `ci: nightly lane with external-corpus differential, 10-minute fuzzing, scaling tests and benchmarks` |
@@ -88,4 +88,3 @@ The workflow itself; unit tests for manifest parsing and the differential compar
 - [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
 - [ ] CI green
 - [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
-- [ ] Squash-merged; dependants' "Depends on" now satisfied
