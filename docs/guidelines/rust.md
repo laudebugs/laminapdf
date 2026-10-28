@@ -4,6 +4,8 @@ These apply to all product Rust code in `crates/`, `apps/*/src-tauri` and `tools
 
 **MUST**/**SHOULD** are rules. *Recommendation* marks advice.
 
+**MUST:** load the `rust-best-practices` skill before writing or reviewing Rust code. For Tauri code (`apps/desktop/src-tauri`, commands, IPC, capabilities, plugins), also load the `tauri-v2` skill. This guide takes precedence where they differ.
+
 ## Toolchain, edition, MSRV
 
 - **MUST:** use edition **2024** for every crate. Set it once in `[workspace.package]` and inherit it with `edition.workspace = true`.
