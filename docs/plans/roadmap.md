@@ -41,7 +41,7 @@ All four share one Rust core, so every operation is built once ([architecture §
 | Milestone | Rounds | What ships |
 | --- | --- | --- |
 | M0 Foundations | A | Monorepo, CI fast lane, `lamina-syntax` + `lamina-cos`, ADRs 0001/0002/0015/0019 |
-| M1 Library alpha | B1–B7 | `lamina` and `@lamina/pdf` `0.1.0-alpha`: generate PDFs with fonts, shaping, images, vectors, links, outlines, metadata; open (including encrypted files)/edit/save basics; docs site |
+| M1 Library alpha | B1–B7 | `lamina` and `@lamina/pdf` `0.1.0-alpha` (local and tagged, not published to registries yet): generate PDFs with fonts, shaping, images, vectors, links, outlines, metadata; open (including encrypted files)/edit/save basics; docs site |
 | M2 Web reader v0.1 | B9, C1–C7 | Text extraction in the library; hosted reader on Cloudflare: render, search, select, navigate, print, offline, accessible, no upload |
 | M3 Desktop reader beta | D1–D7 | Signed installers for three OSes, file associations, tabs, auto-update channels |
 | M4 Library 0.2 | B8 | Tagged PDF, PDF/UA-1, PDF/A-2/3 profiles, veraPDF-clean |
@@ -68,8 +68,8 @@ One row per round. Reader and library rounds are one PR each; editor rounds are 
 | B4 | [library](pdf-library.md#b4-fonts-and-text) | Fonts, shaping, subsetting | — |
 | B5 | [library](pdf-library.md#b5-builder-and-the-lamina-crate) | Builder and `lamina` crate | — |
 | B6 | [library](pdf-library.md#b6-wasm-and-laminapdf) | `lamina-wasm`, `@lamina/pdf`, runtime matrix | 0016 |
-| B7 | [library](pdf-library.md#b7-docs-examples-and-first-release) | Docs site, examples, `0.1.0-alpha` | 0017 |
-| B8 | [library](pdf-library.md#b8-tagged-pdf-pdfua-and-pdfa) | Tagged PDF, PDF/UA, PDF/A, `0.2.0-alpha` | — |
+| B7 | [library](pdf-library.md#b7-docs-examples-and-first-release) | Docs site, examples, `0.1.0-alpha` (local) | 0017 |
+| B8 | [library](pdf-library.md#b8-tagged-pdf-pdfua-and-pdfa) | Tagged PDF, PDF/UA, PDF/A, `0.2.0-alpha` (local) | — |
 | B9 | [library](pdf-library.md#b9-text-extraction) | `lamina-content` read-only interpreter, text extraction (after B6, before C5) | 0023 (proposed) |
 | C1 | [web](web-app.md#c1-rendering-spikes) | Rendering spikes | `pdfium-wasm`, `hayro-parity` |
 | C2 | [web](web-app.md#c2-render-backend-and-adrs) | `lamina-render`, render packages | 0004, 0009, 0010, 0011 |
@@ -115,6 +115,8 @@ One row per round. Reader and library rounds are one PR each; editor rounds are 
 
 - **Hosted service** (2026-10-28, project owner): lamina will be a hosted service with user login and cloud features (accounts, cloud storage and sync), not just a reference deployment. Local, on-device processing stays the default and needs no account; the reader v0.1 (M2) still uploads nothing. Accounts arrive with the first round that needs them, after the `auth` spike ([architecture §8](architecture.md#8-open-questions-for-the-team), Q2; ADR 0011).
 - **Code signing** (2026-10-28, project owner): the owner, as the publisher, signs the desktop app for Windows, macOS and Linux (M3). Windows Artifact Signing's individual eligibility is US/Canada only, so the owner must confirm eligibility or use an OV certificate ([architecture §8](architecture.md#8-open-questions-for-the-team), Q5; ADR 0014).
+
+- **Publishing later** (2026-10-28, project owner): crates and npm packages stay local for now; registry names and publishing are a later to-do ([architecture: Publishing (later)](architecture.md#publishing-later)).
 
 ## Decisions this roadmap assumes (recommendations, not yet decided)
 

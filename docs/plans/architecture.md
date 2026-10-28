@@ -85,7 +85,7 @@ The research couldn't answer these. Each is a small, time-boxed spike under `spi
 Each round is one focused pull request, in its own worktree, reviewed before merge.
 
 - **Round A — Foundations.** ADRs 0001, 0002, 0015, 0019. Monorepo skeleton (`crates/`, `packages/`, `apps/`, `fixtures/`, `tools/xtask`, `deny.toml`, `rust-toolchain.toml`, pnpm workspace). CI fast lane. Port the spike's core into `crates/lamina-syntax` and `lamina-cos`, keeping its tests.
-- **Round B — Core model and the first package.** ADRs 0003, 0005–0007, 0016–0018. `lamina-model`, `lamina-ops`, `lamina-save`, `lamina-build`; the `lamina` façade crate; `lamina-wasm` + `@lamina/pdf` with generation; the `krilla-fit` spike. CI full lane with golden tests. First pre-release to npm and crates.io.
+- **Round B — Core model and the first package.** ADRs 0003, 0005–0007, 0016–0018. `lamina-model`, `lamina-ops`, `lamina-save`, `lamina-build`; the `lamina` façade crate; `lamina-wasm` + `@lamina/pdf` with generation; the `krilla-fit` spike. CI full lane with golden tests. The first `0.1.0-alpha` is versioned and tagged but **not published**: crates and npm packages stay local until the owner decides to publish (see [Publishing (later)](#publishing-later)).
 - **Round C — Web reader.** ADRs 0004, 0009–0011. `pdfium-wasm` and `hayro-parity` spikes; `@lamina/viewer`, `@lamina/ui`, `apps/web` on Workers static assets; Playwright tests; preview deploys per PR.
 - **Round D — Desktop reader.** `desktop-ipc` spike; ADRs 0008, 0014; `apps/desktop` (Tauri 2); `apps/updates` Worker + R2; signing and notarisation in CI.
 - **Later rounds.** Editing features by phase ([06 §9](../research/pdf/06-feature-inventory.md)), collaboration (ADR 0012), heavy jobs (ADR 0013). Each feature group gets its own plan and pull requests.
@@ -116,7 +116,7 @@ Product-level detail (features, milestones, acceptance criteria) lives in the pr
 - [x] Add `deny.toml` (licence allow-list without AGPL/GPL; advisories) and an npm licence check
 - [x] CI fast lane: fmt, clippy `-D warnings`, nextest, wasm32 build, TS typecheck/lint/test, cargo-deny (the wasm size budget moves to Round B, with the first `.wasm` artefact from `lamina-wasm`)
 - [x] Port the spike reader/writer into `crates/lamina-syntax` + `crates/lamina-cos`, with its fixtures moved to `fixtures/`
-- [ ] Reserve package names: `lamina*` on crates.io and the `@lamina` scope on npm
+- [ ] ~~Reserve package names~~ deferred: crates and npm packages stay local for now (decided 2026-10-28); see [Publishing (later)](#publishing-later)
 - [ ] Update `CLAUDE.md` (layout, commands, decided architecture)
 
 ### Round B — Core model and the first package
@@ -132,7 +132,7 @@ Product-level detail (features, milestones, acceptance criteria) lives in the pr
 - [ ] `lamina-text`: font embedding and subsetting for generation (see [03](../research/pdf/03-text-and-fonts.md))
 - [ ] `lamina-wasm` (wasm-bindgen + tsify) and `@lamina/pdf` (ESM-only, `init()`, export conditions; publint + attw)
 - [ ] Golden-file and corpus test harness in CI (full lane); fuzz targets under `fuzz/`
-- [ ] Changesets + Cargo version sync; OIDC trusted publishing; first `0.1.0-alpha` release
+- [ ] Changesets + Cargo version sync; tag `0.1.0-alpha` locally (no registry publish yet)
 
 ### Round C — Web reader
 - [ ] `pdfium-wasm` and `hayro-parity` spikes, with written results
@@ -149,6 +149,16 @@ Product-level detail (features, milestones, acceptance criteria) lives in the pr
 - [ ] `apps/updates`: Worker + R2 update manifests with channels and staged rollout
 - [ ] Signing: Apple notarisation, Windows Artifact Signing, Linux AppImage/deb; tauri-action release workflow
 - [ ] Write ADR 0014
+
+### Publishing (later)
+
+Decided 2026-10-28 by the project owner: crates and npm packages stay local (workspace and path dependencies, `pnpm pack` tarballs, git tags) until the owner decides to publish. When that happens:
+
+- [ ] Reserve names: `lamina` and `lamina-*` on crates.io, the `@lamina` scope on npm
+- [ ] Write ADR 0017's publishing part: OIDC trusted publishing on npm and crates.io (first crates.io publish is manual), provenance, GitHub artifact attestations for `.wasm`
+- [ ] Add the release workflow (Changesets version PR → publish job) and switch every crate to trusted-publishing-only
+- [ ] Publish the first pre-release; verify install and quick start from the registries in each runtime
+- [ ] Publish the stability policy and changelog; enable cargo-semver-checks against the published version
 
 ### Cross-cutting
 - [ ] Capability matrix: generate a test-backed table of the ~180 operations (unsupported / read / write / round-trip)
