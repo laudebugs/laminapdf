@@ -83,7 +83,7 @@ The research couldn't answer these. Each is a small, time-boxed spike under `spi
 
 Each round is one focused pull request, in its own worktree, reviewed before merge.
 
-- **Round A — Foundations.** ADRs 0001, 0002, 0015, 0019. Monorepo skeleton (`crates/`, `packages/`, `apps/`, `fixtures/`, `xtask/`, `justfile`, `deny.toml`, `rust-toolchain.toml`, pnpm workspace). CI fast lane. Port the spike's core into `crates/lamina-syntax` and `lamina-cos`, keeping its tests.
+- **Round A — Foundations.** ADRs 0001, 0002, 0015, 0019. Monorepo skeleton (`crates/`, `packages/`, `apps/`, `fixtures/`, `tools/xtask`, `justfile`, `deny.toml`, `rust-toolchain.toml`, pnpm workspace). CI fast lane. Port the spike's core into `crates/lamina-syntax` and `lamina-cos`, keeping its tests.
 - **Round B — Core model and the first package.** ADRs 0003, 0005–0007, 0016–0018. `lamina-model`, `lamina-ops`, `lamina-save`, `lamina-build`; `lamina-wasm` + `@lamina/pdf` with generation; the `krilla-fit` spike. CI full lane with golden tests. First pre-release to npm and crates.io.
 - **Round C — Web reader.** ADRs 0004, 0009–0011. `pdfium-wasm` and `hayro-parity` spikes; `@lamina/viewer`, `@lamina/ui`, `apps/web` on Workers static assets; Playwright tests; preview deploys per PR.
 - **Round D — Desktop reader.** `desktop-ipc` spike; ADRs 0008, 0014; `apps/desktop` (Tauri 2); `apps/updates` Worker + R2; signing and notarisation in CI.
