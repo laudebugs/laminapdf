@@ -1,0 +1,197 @@
+# Plan: desktop PDF reader (`apps/desktop`)
+
+- **Status:** Draft
+- **Date:** 2026-10-28
+- **Builds on:** [architecture plan](architecture.md) Round D (ADRs 0008, 0014; spike `desktop-ipc`) and the [architecture research report](../research/architecture/app-and-package-architecture.md) (Tauri and distribution sections, [desktop notes](../research/architecture/notes/desktop-shell.md))
+- **Depends on:** [web-app.md](web-app.md) Rounds C2–C4 (`lamina-render`, `@lamina/viewer`, `@lamina/ui`, `Platform` adapter)
+- **Roadmap:** [roadmap.md](roadmap.md)
+
+## 1. Goal
+
+A native **PDF reader for macOS, Windows and Linux** built with Tauri 2. It reuses the web reader's UI packages, links the Rust core natively (no WASM), opens very large files via memory mapping, and updates itself from a Cloudflare Worker backed by R2. It has feature parity with the [web reader](web-app.md) plus what only a desktop app can do well: file associations, multi-window and tabs, native menus, in-place file watching, native printing and giant files. It is the second shell of the [editor](full-editor.md).
+
+## 2. Scope and non-goals
+
+**In scope (Rounds D1–D7)**
+
+- Everything in the web reader's scope ([web-app §2](web-app.md#2-scope-and-non-goals)).
+- File associations for `.pdf`, "Open with", drag onto the dock/taskbar icon, single-instance forwarding of paths.
+- Recent files (OS recent documents plus an in-app list), reopen last session.
+- Multiple windows and tabs, tab drag between windows.
+- Native menus (macOS app menu, Windows/Linux menu bar) with the shared shortcut map.
+- Large files (1 GB+) via mmap; parsing and rendering in a sandboxed child process.
+- File watching: reload when the file changes on disk.
+- Printing through a native path (decided by a print spike).
+- Auto-update via the `apps/updates` Worker + R2 with stable/beta/nightly channels, staged rollout and kill switch.
+- Signing and notarisation; packages: dmg (macOS, universal or per-arch), MSI and NSIS (Windows), AppImage and deb (Linux), rpm if cheap.
+- Opt-in crash reporting.
+
+**Non-goals (for now)**
+
+- Mac App Store, Microsoft Store, Flathub, Snap (open question; MAS disables the self-updater).
+- Editing and save (arrives with [full-editor.md](full-editor.md) rounds).
+- Mobile (Tauri mobile vs UniFFI is an [architecture open question](architecture.md#8-open-questions-for-the-team)).
+- Electron. It is the documented fallback for Linux if WebKitGTK fails ([architecture §6](architecture.md#6-risks)), not a plan.
+
+## 3. Users and use cases
+
+| User | Use case |
+| --- | --- |
+| Everyday users | Default PDF app that opens instantly from Finder/Explorer/Files |
+| Power users | Many documents in tabs and windows, huge manuals, keyboard-driven |
+| Offline and air-gapped users | A reader that never needs the network (updates can be disabled) |
+| Organisations | Signed installers, MSI for managed deployment, update channels they can pin |
+
+## 4. Requirements
+
+### Functional
+
+1. **Open** from file association, argv, drag-drop, menu, recent files; `single-instance` forwards to the running app; macOS `RunEvent::Opened` handled.
+2. **Parity** with the web reader UI (shared `@lamina/ui`); differences go through `Platform` capability flags, never `if (isTauri)`.
+3. **Native core**: `src-tauri` links `crates/*` by path. Parse and render in a child process; a crash shows "document process restarted" and reloads the document.
+4. **Tiles** reach the webview over the transport chosen by the `desktop-ipc` spike (Channel with raw RGBA, `ipc::Response`, or `lamina://tile/...` custom scheme).
+5. **Windows and tabs**: new window, new tab, move tab to window, restore session.
+6. **Menus**: File (Open, Open Recent, Close, Print, Export copy), Edit (Copy, Find), View (zoom, sidebars, page layout), Window, Help; all with native accelerators.
+7. **Printing**: native print dialog with page range, scaling, and duplex where the OS provides it.
+8. **Updates**: check at start and every 24 h on the user's channel; download in background; install on quit or restart; signature verified; a setting disables updates; managed installs can pin a channel via config/registry/MDM.
+9. **Crash reporting**: off by default; asks once after the first crash; reports contain stack, OS, version, renderer backend, never document content, file names or paths.
+
+### Non-functional (targets are recommendations)
+
+| Metric | Target |
+| --- | --- |
+| Cold start to window, mid-range machine | ≤ 1 s (macOS, Windows); ≤ 1.5 s (Linux) |
+| First page of a 1 GB PDF | ≤ 1.5 s after open |
+| Idle memory with one 10-page document | ≤ 150 MB |
+| Installer size | ≤ 40 MB per platform (PDFium native included) |
+| Supported OS | macOS 13+, Windows 11 (versions in Microsoft servicing), Ubuntu 22.04+ and supported Fedora releases (x64 and arm64 where Tauri supports it). Windows 10 22H2 is best-effort only: not tested in CI, no fixes for Windows 10-only bugs (end of support 14 October 2025, [Microsoft lifecycle](https://learn.microsoft.com/en-us/lifecycle/products/windows-10-home-and-pro)) |
+| Update rollout | Configurable 1% → 10% → 50% → 100%, kill switch effective within 60 s |
+
+### Security
+
+- Webview CSP and Tauri capabilities restricted to the commands the UI needs; no `shell` or broad `fs` access from the webview.
+- Child process with minimal privileges; OS sandboxing where available (macOS App Sandbox for the helper, Windows job objects/AppContainer, Linux seccomp/landlock) — scope decided in ADR 0008.
+- Updater private key and signing identities held in a secret manager or HSM with a rotation runbook (ADR 0014).
+- PDF JavaScript is never executed in the reader.
+
+## 5. Design summary
+
+Architecture details are in [architecture.md](architecture.md) and the report; the desktop app adds:
+
+- **Layout**: `apps/desktop` is a pnpm package (frontend: `@lamina/ui` + desktop `Platform` adapter) with `src-tauri/` as a Cargo workspace member ([code organisation §1](../guidelines/code-organization.md#1-top-level-layout)).
+- **Process model** (ADR 0008): Tauri main process (windows, menus, updater, file I/O only: mmap and file watching) → one sandboxed engine process per window or per N documents that does all parsing and rendering of untrusted files with the core crates + `lamina-render` (native PDFium via `pdfium-render`). Tiles of 256–512 px.
+- **Platform adapter**: `canWriteInPlace: true`, `canWatchFiles: true`, `hasNativePrint: true`, `multiWindow: true`.
+- **Distribution** (ADR 0014): GitHub Actions + tauri-action matrix → R2 `releases/{version}/{target}-{arch}/` with `.sig` files → channel manifests in R2/KV → `apps/updates` Worker at `updates.<domain>/{channel}/{target}/{arch}/{current_version}` returning 204 or 200 JSON; downloads from `downloads.<domain>` (R2 custom domain). Rollout percentage from a hash of an anonymous install ID. The updater URL only substitutes `{{target}}`, `{{arch}}` and `{{current_version}}`, so the app sends the ID in a custom request header (`Lamina-Install-Id`) set with the updater plugin's `UpdaterBuilder::header` in Rust or `check({ headers })` in JS ([Tauri updater plugin](https://v2.tauri.app/plugin/updater/)). The ID is a random UUID created on first run, stored only in the app's config, resettable in settings and never linked to crash reports; the Worker hashes it with the release version to pick a bucket and does not log it. A request without the header is served only releases at 100% rollout. ADR 0014 and the privacy page describe this.
+- **Crash reports** (recommendation): an opt-in endpoint on the same Worker storing scrubbed minidumps/panic reports in R2 with 30-day retention, rather than a third-party SaaS. Alternative: self-hosted or SaaS Sentry. Decided in D7.
+
+## 6. Rounds
+
+Architecture Round D is delivered as PRs D1–D7. D1 can start as soon as C3 merges; D2 needs C4.
+
+### D1. IPC and print spikes
+
+**Deliverable:** `spikes/desktop-ipc/` measuring Channel vs `ipc::Response` vs `lamina://` scheme for 256/512 px tiles on macOS, Windows and Linux, and whether WKWebView/WebView2/WebKitGTK honour COOP/COEP; `spikes/desktop-print/` comparing `window.print()` with native print paths per OS.
+**Accepted when:** both READMEs report numbers per OS and recommend a tile transport and a print path.
+
+### D2. Shell and native core
+
+**Deliverable:** ADR 0008; `apps/desktop` with Tauri 2, desktop `Platform` adapter, engine child process, tile transport, single window opening one file.
+**Accepted when:** the reader end-to-end scenarios run against the desktop build with WebdriverIO and `@wdio/tauri-service` on Windows and Linux (`tauri-driver`) and on macOS (the service's embedded WebDriver server via `tauri-plugin-wdio-webdriver`, compiled into test builds only behind a Cargo feature) ([Tauri WebDriver docs](https://v2.tauri.app/develop/tests/webdriver/)); the C-round Playwright suite keeps running against the web build on all three OSes (Playwright drives browsers, not Tauri webviews); killing the engine process restarts it and the document reloads; a 1 GB fixture opens within target. If the macOS embedded driver proves unreliable, macOS falls back to the web-build Playwright run plus a recorded manual smoke checklist, and ADR 0008 records the gap.
+
+### D3. Files
+
+**Deliverable:** file associations, argv and `RunEvent::Opened`, single-instance forwarding, recent files (OS and in-app), file watching with reload, drag-drop onto window and icon.
+**Accepted when:** double-clicking a PDF opens it in the running instance on each OS; editing the file externally reloads it keeping the page position.
+
+### D4. Windows, tabs, menus and printing
+
+**Deliverable:** multi-window, tabs with drag between windows, session restore, native menus and accelerators, native printing per the D1 result.
+**Accepted when:** menu items and shortcuts match the shared map (test); a 50-page document prints with page ranges on each OS (manual check recorded).
+
+### D5. Update service
+
+**Deliverable:** ADR 0014; `apps/updates` Worker (channels, staged rollout, kill switch, 60 s cache) with tests; R2 layout and channel manifests; updater plugin wired in the app with settings.
+**Accepted when:** Worker unit tests cover 204/200, rollout bucketing from the `Lamina-Install-Id` header (present, absent, malformed) and kill switch; a test asserts the install ID never reaches logs; an app on `0.0.1-test` updates to `0.0.2-test` on each OS from a staging channel; a tampered bundle is rejected.
+
+### D6. Signing, packaging and release pipeline
+
+**Deliverable:** release workflow (tauri-action matrix) producing signed dmg (Developer ID + notarisation + stapling), MSI and NSIS (Azure Artifact Signing), AppImage and deb (rpm optional); uploads to R2 with attestations; manifests updated per channel.
+**Accepted when:** Gatekeeper, SmartScreen and `debsig`/AppImage signature checks pass on clean VMs; release artifacts carry GitHub attestations; a nightly channel build publishes automatically.
+
+### D7. Crash reporting and beta
+
+**Deliverable:** opt-in crash and panic reporting to the chosen backend; settings page (updates, channel, crash reports, renderer backend switch for Linux); download page on `<domain>/download`; `desktop v0.1` beta on the beta channel.
+**Accepted when:** a forced crash produces a scrubbed report only after consent (test asserts no paths or content); beta installs and auto-updates for at least one release cycle on all three OSes.
+
+## 7. Risks
+
+| Risk | Mitigation |
+| --- | --- |
+| Linux WebKitGTK blank windows, slow canvas, NVIDIA/Wayland issues | Canvas2D only, no GPU dependency; renderer switch; documented env workarounds; Electron-on-Linux fallback ([architecture §6](architecture.md#6-risks)) |
+| IPC throughput too low for smooth zoom | D1 spike before D2; compressed tiles via custom scheme as alternative |
+| Windows signing eligibility (Artifact Signing region rules) | Decide legal entity early ([architecture §8](architecture.md#8-open-questions-for-the-team)); OV certificate as fallback |
+| Losing the updater key strands users | HSM/secret-manager custody, offline backup, rotation runbook in ADR 0014 |
+| Faithful printing needs per-OS code | Dedicated spike; ship `window.print()` raster path first if native lags |
+| Sandbox restrictions block mmap or IPC | Prototype sandbox in D2 per OS; document what is enforced |
+
+## 8. Open questions
+
+1. Mac App Store, Microsoft Store, Flathub: in scope, and when?
+2. Crash backend: own Worker + R2, or Sentry (self-hosted or SaaS)?
+3. One engine process per window, or a shared pool with per-document isolation?
+4. Default channel for new installs: stable only, or beta during 0.x?
+5. Do we register as the default PDF handler on install (opt-in prompt) or leave it to the user?
+
+## 9. To-dos
+
+### D1. IPC and print spikes
+- [ ] Build `spikes/desktop-ipc` with three tile transports and a scroll benchmark
+- [ ] Measure throughput and latency for 256 and 512 px tiles on macOS, Windows, Linux (x64)
+- [ ] Check `crossOriginIsolated` under COOP/COEP in each webview
+- [ ] Build `spikes/desktop-print` comparing `window.print()` and native print paths per OS
+- [ ] Write both results with recommendations for ADR 0008
+
+### D2. Shell and native core
+- [ ] Write ADR 0008 (Tauri 2, process model, tile transport, Linux fallback)
+- [ ] Create `apps/desktop` and `src-tauri` as a workspace member depending on `crates/*` by path
+- [ ] Implement the desktop `Platform` adapter and capability flags
+- [ ] Implement the engine child process with restart on crash
+- [ ] Implement the chosen tile transport and mmap-backed `ByteSource`
+- [ ] Port the reader end-to-end scenarios to WebdriverIO (`@wdio/tauri-service`): `tauri-driver` on Windows and Linux, embedded WebDriver plugin (test builds only) on macOS; run in CI on three OSes
+- [ ] Record the per-OS test strategy and any macOS gap in ADR 0008
+
+### D3. Files
+- [ ] Register `.pdf` file associations in the bundle config for all three OSes
+- [ ] Handle argv, `RunEvent::Opened` and single-instance forwarding
+- [ ] Recent files: OS recent documents and an in-app list with "clear"
+- [ ] Watch open files and reload preserving position
+- [ ] Integration tests for open-from-OS on each platform
+
+### D4. Windows, tabs, menus and printing
+- [ ] Multi-window and tabs; drag a tab to a new window; session restore
+- [ ] Native menus and accelerators generated from the shared shortcut map
+- [ ] Implement printing per the D1 recommendation
+- [ ] Record a manual print check per OS in the PR
+
+### D5. Update service
+- [ ] Write ADR 0014 (channels, rollout, signing identities, key custody and rotation)
+- [ ] Create `apps/updates` Worker: `/{channel}/{target}/{arch}/{current_version}` → 204 or 200 JSON
+- [ ] Implement rollout bucketing by install-ID hash (from the `Lamina-Install-Id` request header), kill switch, 60 s cache
+- [ ] Define the R2 layout and channel manifest schema; tests for every branch
+- [ ] Wire the Tauri updater plugin with settings (channel, disable, check now, reset install ID); send the install ID header via `UpdaterBuilder::header`
+- [ ] End-to-end update test on a staging channel on three OSes; tampered bundle rejected
+
+### D6. Signing, packaging and release pipeline
+- [ ] Release workflow with tauri-action matrix (macOS arm64/x64, Windows x64/arm64, Linux x64/arm64)
+- [ ] Apple Developer ID signing, notarisation and stapling
+- [ ] Windows signing via Azure Artifact Signing `signCommand`; MSI and NSIS outputs
+- [ ] Linux AppImage (updater) and deb; rpm if the matrix allows
+- [ ] Upload to R2 with `.sig` files and GitHub attestations; update channel manifests
+- [ ] Verify installs on clean VMs (Gatekeeper, SmartScreen, Linux signature checks)
+
+### D7. Crash reporting and beta
+- [ ] Decide the crash backend (record in ADR 0014 or a short ADR)
+- [ ] Implement opt-in crash/panic capture with scrubbing; test that no paths or content leak
+- [ ] Settings page: updates, channel, crash reports, renderer backend switch
+- [ ] Download page on the web app with per-OS links from R2
+- [ ] Ship `desktop v0.1` on the beta channel and complete one auto-update cycle
