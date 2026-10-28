@@ -12,6 +12,8 @@ lamina is a platform for anything and everything PDF: creating PDFs from code, p
 .
 ├── CLAUDE.md            # this file
 ├── README.md            # project overview
+├── spikes/              # research spikes (throwaway code that informs decisions)
+│   └── pdf-basics/      # minimal PDF core in Rust + TypeScript, shared fixtures and spec
 └── docs/                # all documentation (see docs/README.md)
     ├── research/        # deep dives and research notes, one subfolder per topic
     ├── plans/           # roadmaps and feature design docs
@@ -31,4 +33,23 @@ lamina is a platform for anything and everything PDF: creating PDFs from code, p
 
 ## Commands
 
-None yet — add build, test and lint commands here once code exists.
+Only research spikes exist so far (`spikes/`). They are throwaway-quality APIs used to inform decisions, not the product.
+
+`spikes/pdf-basics/` — the same minimal PDF core in Rust and TypeScript (see its `SPEC.md`):
+
+```sh
+# Rust (needs rustup; targets wasm32-unknown-unknown, aarch64-apple-ios, aarch64-linux-android)
+cd spikes/pdf-basics/rust
+cargo test
+cargo clippy --all-targets --all-features --locked -- -D warnings
+scripts/check-targets.sh                               # everything: cross-target checks, wasm build, fmt, clippy, tests
+cargo build --release --target wasm32-unknown-unknown  # wasm loaded by the TS tests
+
+# TypeScript (Node ≥ 20, pnpm)
+cd spikes/pdf-basics/ts
+pnpm install
+pnpm typecheck && pnpm lint && pnpm test               # WASM interop tests run once the Rust wasm is built
+pnpm size                                              # min+gz bundle size
+```
+
+Rust code follows the `rust-best-practices` skill (no `unwrap`/`expect` in library code, clippy clean with `-D warnings`). Library code in both languages is bytes-in/bytes-out: no file system, network or Node-only APIs, so it runs on web, mobile and desktop.

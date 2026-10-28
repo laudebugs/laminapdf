@@ -1,0 +1,250 @@
+{
+  "enc.pdf": {
+    "size": 1289,
+    "header_version": "1.3",
+    "page_count": 1,
+    "encrypted": true,
+    "revisions": 1,
+    "has_xref_stream": false,
+    "first_page_mediabox": [
+      0.0,
+      0.0,
+      612.0,
+      792.0
+    ],
+    "root_keys": [
+      "/Pages",
+      "/Type"
+    ]
+  },
+  "fpdf2.pdf": {
+    "size": 1307,
+    "header_version": "1.3",
+    "page_count": 1,
+    "encrypted": false,
+    "revisions": 1,
+    "has_xref_stream": false,
+    "first_page_mediabox": [
+      0.0,
+      0.0,
+      612.0,
+      792.0
+    ],
+    "root_keys": [
+      "/OpenAction",
+      "/PageLayout",
+      "/Pages",
+      "/Type"
+    ]
+  },
+  "hello-broken.pdf": {
+    "size": 599,
+    "header_version": "1.7",
+    "page_count": 1,
+    "encrypted": false,
+    "revisions": 1,
+    "has_xref_stream": false,
+    "first_page_mediabox": [
+      0.0,
+      0.0,
+      612.0,
+      792.0
+    ],
+    "root_keys": [
+      "/Pages",
+      "/Type"
+    ]
+  },
+  "hello-incremental.pdf": {
+    "size": 810,
+    "header_version": "1.7",
+    "page_count": 1,
+    "encrypted": false,
+    "revisions": 2,
+    "has_xref_stream": false,
+    "first_page_mediabox": [
+      0.0,
+      0.0,
+      612.0,
+      792.0
+    ],
+    "root_keys": [
+      "/Pages",
+      "/Type"
+    ]
+  },
+  "hello-xrefstm.pdf": {
+    "size": 521,
+    "header_version": "1.5",
+    "page_count": 1,
+    "encrypted": false,
+    "revisions": 1,
+    "has_xref_stream": true,
+    "first_page_mediabox": [
+      0.0,
+      0.0,
+      612.0,
+      792.0
+    ],
+    "root_keys": [
+      "/Pages",
+      "/Type"
+    ]
+  },
+  "hello.pdf": {
+    "size": 599,
+    "header_version": "1.7",
+    "page_count": 1,
+    "encrypted": false,
+    "revisions": 1,
+    "has_xref_stream": false,
+    "first_page_mediabox": [
+      0.0,
+      0.0,
+      612.0,
+      792.0
+    ],
+    "root_keys": [
+      "/Pages",
+      "/Type"
+    ]
+  },
+  "imaging-demo.pdf": {
+    "size": 1467,
+    "header_version": "1.7",
+    "page_count": 1,
+    "encrypted": false,
+    "revisions": 1,
+    "has_xref_stream": false,
+    "first_page_mediabox": [
+      0.0,
+      0.0,
+      612.0,
+      792.0
+    ],
+    "root_keys": [
+      "/Pages",
+      "/Type"
+    ]
+  },
+  "pdflib.pdf": {
+    "size": 1129,
+    "header_version": "1.7",
+    "page_count": 1,
+    "encrypted": false,
+    "revisions": 1,
+    "has_xref_stream": true,
+    "first_page_mediabox": [
+      0.0,
+      0.0,
+      612.0,
+      792.0
+    ],
+    "root_keys": [
+      "/Pages",
+      "/Type"
+    ]
+  },
+  "raw.pdf": {
+    "size": 983,
+    "header_version": "1.7",
+    "page_count": 1,
+    "encrypted": false,
+    "revisions": 1,
+    "has_xref_stream": false,
+    "first_page_mediabox": [
+      0.0,
+      0.0,
+      612.0,
+      792.0
+    ],
+    "root_keys": [
+      "/Pages",
+      "/Type"
+    ]
+  },
+  "reportlab.pdf": {
+    "size": 1763,
+    "header_version": "1.4",
+    "page_count": 1,
+    "encrypted": false,
+    "revisions": 1,
+    "has_xref_stream": false,
+    "first_page_mediabox": [
+      0.0,
+      0.0,
+      612.0,
+      792.0
+    ],
+    "root_keys": [
+      "/PageMode",
+      "/Pages",
+      "/Type"
+    ]
+  },
+  "signed.pdf": {
+    "size": 7436,
+    "header_version": "1.3",
+    "page_count": 1,
+    "encrypted": false,
+    "revisions": 2,
+    "has_xref_stream": false,
+    "first_page_mediabox": [
+      0.0,
+      0.0,
+      612.0,
+      792.0
+    ],
+    "root_keys": [
+      "/AcroForm",
+      "/Extensions",
+      "/Pages",
+      "/Type",
+      "/Version"
+    ]
+  },
+  "tampered.pdf": {
+    "size": 7436,
+    "header_version": "1.3",
+    "page_count": 1,
+    "encrypted": false,
+    "revisions": 2,
+    "has_xref_stream": false,
+    "first_page_mediabox": [
+      0.0,
+      0.0,
+      612.0,
+      792.0
+    ],
+    "root_keys": [
+      "/AcroForm",
+      "/Extensions",
+      "/Pages",
+      "/Type",
+      "/Version"
+    ]
+  },
+  "text-example.pdf": {
+    "size": 9497,
+    "header_version": "1.7",
+    "page_count": 1,
+    "encrypted": false,
+    "revisions": 1,
+    "has_xref_stream": false,
+    "first_page_mediabox": [
+      0.0,
+      0.0,
+      612.0,
+      792.0
+    ],
+    "root_keys": [
+      "/Lang",
+      "/MarkInfo",
+      "/Metadata",
+      "/Pages",
+      "/StructTreeRoot",
+      "/Type",
+      "/ViewerPreferences"
+    ]
+  }
+}
