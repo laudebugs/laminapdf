@@ -238,11 +238,11 @@ Editing operations (merge, split, annotations, forms, signing…) are added to t
 ## 10. To-dos
 
 ### B1. Decisions and spike
-- [ ] Write ADR 0003: tolerance policy, warning codes, `Limits` defaults with numbers
-- [ ] Write ADR 0005: lazy COS overlay, typed views, `LaminaId` rules
-- [ ] Write ADR 0006: `Op` enum shape, transactions, undo scope, barrier ops
-- [ ] Write ADR 0007: `SavePlanner`, `SaveConstraint`, save ordering
-- [ ] Write ADR 0018: goldens, corpus, differential and fuzz tiers
+- [x] Write ADR 0003: tolerance policy, warning codes, `Limits` defaults with numbers
+- [x] Write ADR 0005: lazy COS overlay, typed views, `LaminaId` rules
+- [x] Write ADR 0006: `Op` enum shape, transactions, undo scope, barrier ops
+- [x] Write ADR 0007: `SavePlanner`, `SaveConstraint`, save ordering
+- [x] Write ADR 0018: goldens, corpus, differential and fuzz tiers
 - [ ] Run the `krilla-fit` spike: generate a 3-page document into a `lamina-cos` graph and measure size and time
 - [ ] Record the generation-strategy decision in the spike README and link it from ADR 0005
 
