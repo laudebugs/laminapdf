@@ -85,11 +85,13 @@ pub fn append_page_via_chunk(base: &[u8]) -> Result<(Vec<u8>, usize)> {
 
     let mut changes = parse_chunk(chunk.as_bytes())?;
     let objects = changes.len();
-    let mut kids = pages
-        .get("Kids")
-        .and_then(Object::as_array)
+    // /Kids may be an indirect array; never drop existing pages.
+    let kids_obj = pages.get("Kids").cloned().unwrap_or(Object::Null);
+    let mut kids = doc
+        .deref(&kids_obj)?
+        .as_array()
         .map(<[Object]>::to_vec)
-        .unwrap_or_default();
+        .ok_or_else(|| anyhow!("/Pages /Kids is not an array"))?;
     kids.push(Object::Ref(ObjRef::new(u32::try_from(page_id.get())?, 0)));
     pages.insert("Count", pages.get_int("Count").unwrap_or(0) + 1);
     pages.insert("Kids", kids);

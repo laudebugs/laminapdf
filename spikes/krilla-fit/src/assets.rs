@@ -86,23 +86,44 @@ pub fn write_photo_source(path: &Path) -> Result<()> {
     Ok(())
 }
 
-/// Width and height from the first SOFn marker.
+/// Width and height from the first SOFn marker (ITU-T T.81 §B.1.1.2–B.1.1.4).
+///
+/// Walks the marker segments: any number of 0xFF fill bytes may precede a marker code;
+/// standalone markers (SOI, EOI, TEM, RST0–7) have no length field. Scanning stops at SOS,
+/// since entropy-coded data follows (a SOF always comes before it).
 pub fn jpeg_dimensions(data: &[u8]) -> Result<(u32, u32)> {
-    let mut i = 2;
-    while i + 9 < data.len() {
-        if data[i] != 0xFF {
-            bail!("bad JPEG marker at {i}");
+    let byte = |i: usize| {
+        data.get(i)
+            .copied()
+            .ok_or_else(|| anyhow::anyhow!("truncated JPEG at {i}"))
+    };
+    let mut i = 0;
+    loop {
+        if byte(i)? != 0xFF {
+            bail!("expected a JPEG marker at {i}");
         }
-        let marker = data[i + 1];
-        let len = usize::from(u16::from_be_bytes([data[i + 2], data[i + 3]]));
+        while byte(i)? == 0xFF {
+            i += 1; // fill bytes
+        }
+        let marker = byte(i)?;
+        i += 1;
+        match marker {
+            0xD8 | 0xD9 | 0x01 | 0xD0..=0xD7 => continue, // SOI, EOI, TEM, RSTn: no length
+            0xDA => bail!("no SOF marker before SOS"),
+            _ => {}
+        }
+        let len = usize::from(u16::from_be_bytes([byte(i)?, byte(i + 1)?]));
         if matches!(marker, 0xC0..=0xC3 | 0xC5..=0xC7 | 0xC9..=0xCB | 0xCD..=0xCF) {
-            let h = u16::from_be_bytes([data[i + 5], data[i + 6]]);
-            let w = u16::from_be_bytes([data[i + 7], data[i + 8]]);
+            // Lf(2) P(1) Y(2) X(2)
+            let h = u16::from_be_bytes([byte(i + 3)?, byte(i + 4)?]);
+            let w = u16::from_be_bytes([byte(i + 5)?, byte(i + 6)?]);
             return Ok((u32::from(w), u32::from(h)));
         }
-        i += 2 + len;
+        if len < 2 {
+            bail!("bad JPEG segment length at {i}");
+        }
+        i += len;
     }
-    bail!("no SOF marker in JPEG")
 }
 
 /// The same text in every experiment: (page, lines).
@@ -136,3 +157,23 @@ pub const LINK_URI: &str = "https://example.com";
 pub const TITLE: &str = "krilla-fit sample";
 pub const PAGE_W: f32 = 595.0;
 pub const PAGE_H: f32 = 842.0;
+
+#[cfg(test)]
+mod tests {
+    use super::jpeg_dimensions;
+
+    #[test]
+    fn jpeg_dimensions_skips_fill_bytes_and_standalone_markers() {
+        // SOI, fill bytes, TEM, an APP0 with a 2-byte payload, then SOF0 (h = 3, w = 5).
+        let data = [
+            0xFF, 0xD8, 0xFF, 0xFF, 0xFF, 0x01, 0xFF, 0xE0, 0x00, 0x04, 0xAA, 0xBB, 0xFF, 0xFF, 0xC0, 0x00, 0x0B, 0x08,
+            0x00, 0x03, 0x00, 0x05, 0x01, 0x01, 0x11, 0x00,
+        ];
+        assert_eq!(jpeg_dimensions(&data).ok(), Some((5, 3)));
+    }
+
+    #[test]
+    fn jpeg_dimensions_rejects_truncated_input() {
+        assert!(jpeg_dimensions(&[0xFF, 0xD8, 0xFF]).is_err());
+    }
+}

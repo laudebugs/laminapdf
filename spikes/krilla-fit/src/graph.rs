@@ -14,10 +14,12 @@ pub struct ImportReport {
     /// Catalog-level entries of the source that were carried over (base had none).
     pub catalog_keys_imported: Vec<String>,
     /// Catalog-level entries of the source that were dropped because the base has its own and
-    /// merging them is not implemented (outline/structure-tree merge).
+    /// merging them is not implemented (outline merge, page-label offsetting).
     pub catalog_keys_conflicting: Vec<String>,
-    /// Page keys removed because they only make sense with the source's catalog.
-    pub page_keys_dropped: Vec<String>,
+    /// Source tagging that was dropped (`StructTreeRoot`, `MarkInfo` from the catalog, and the
+    /// `/StructParents` and `/StructParent` keys of copied objects): structure-tree merging is
+    /// not implemented, so imported pages are always untagged.
+    pub tagging_dropped: Vec<String>,
 }
 
 /// The next free object number of `doc` (max of `/Size` and the highest number + 1).
@@ -53,6 +55,7 @@ pub fn append_pages(base: &[u8], src: &[u8]) -> Result<(Vec<u8>, ImportReport)> 
         next: next_free(&base_doc),
         queue: VecDeque::new(),
         out: Vec::new(),
+        struct_keys_dropped: 0,
     };
 
     // Pre-assign page numbers so destinations and /P entries pointing at pages map onto the
@@ -63,45 +66,47 @@ pub fn append_pages(base: &[u8], src: &[u8]) -> Result<(Vec<u8>, ImportReport)> 
         let r = page.obj_ref.ok_or_else(|| anyhow!("direct page dictionary"))?;
         new_kids.push(cx.map_ref(r, false));
     }
-    let src_catalog = src_doc.catalog()?;
-    let tagged = src_catalog.contains_key("StructTreeRoot") && !catalog.contains_key("StructTreeRoot");
     for (page, &new_ref) in src_pages.iter().zip(&new_kids) {
         let mut dict = page.dict.clone();
-        // Materialise inherited attributes: the base tree's inheritance must not leak in.
+        // Materialise inherited attributes (§7.7.3.4): the base tree's inheritance must not
+        // leak in, and the source tree's must not get lost.
+        dict.remove("Parent");
+        let rect = |r: [f64; 4]| Object::Array(r.iter().map(|&v| Object::Real(v)).collect());
         if let Some(mb) = page.media_box {
-            dict.insert("MediaBox", Object::Array(mb.iter().map(|&v| Object::Real(v)).collect()));
+            dict.insert("MediaBox", rect(mb));
+        }
+        if let Some(cb) = page.crop_box {
+            dict.insert("CropBox", rect(cb));
+        }
+        if page.rotate != 0 {
+            dict.insert("Rotate", page.rotate);
         }
         if !dict.contains_key("Resources")
             && let Some(res) = &page.resources
         {
             dict.insert("Resources", (**res).clone());
         }
-        dict.insert("Parent", pages_ref);
-        if !tagged && dict.remove("StructParents").is_some() {
-            report.page_keys_dropped.push("StructParents".into());
-        }
-        let copied = cx.rewrite(&Object::Dict(dict));
-        cx.out.push((new_ref, copied));
+        let Object::Dict(mut copied) = cx.rewrite(&Object::Dict(dict)) else {
+            bail!("page rewrite");
+        };
+        // /Parent is a *base* reference: set it after the rewrite, which maps source numbers.
+        copied.insert("Parent", pages_ref);
+        cx.out.push((new_ref, Object::Dict(copied)));
     }
 
-    // Catalog-level features.
-    for key in [
-        "Outlines",
-        "StructTreeRoot",
-        "MarkInfo",
-        "Lang",
-        "PageLabels",
-        "Names",
-        "ViewerPreferences",
-    ] {
-        let Some(value) = src_catalog.get(key) else { continue };
-        if catalog.contains_key(key) {
-            report.catalog_keys_conflicting.push(key.into());
-            continue;
+    // Catalog-level features. Tagging is never imported: the merged document would mix the
+    // base's content with a source structure tree (or need a ParentTree merge).
+    let src_catalog = src_doc.catalog()?;
+    for key in ["StructTreeRoot", "MarkInfo"] {
+        if src_catalog.contains_key(key) {
+            report.tagging_dropped.push(key.into());
         }
-        if key == "PageLabels" {
-            // Page labels are indexed by page number: they would need offsetting by the base's
-            // page count. Not done in the spike.
+    }
+    for key in ["Outlines", "Lang", "PageLabels", "Names", "ViewerPreferences"] {
+        let Some(value) = src_catalog.get(key) else { continue };
+        if catalog.contains_key(key) || key == "PageLabels" {
+            // Conflicts are not merged; page labels would need offsetting by the base's page
+            // count. Neither is done in the spike.
             report.catalog_keys_conflicting.push(key.into());
             continue;
         }
@@ -110,13 +115,19 @@ pub fn append_pages(base: &[u8], src: &[u8]) -> Result<(Vec<u8>, ImportReport)> 
         report.catalog_keys_imported.push(key.into());
     }
     cx.drain()?;
+    if cx.struct_keys_dropped > 0 {
+        report
+            .tagging_dropped
+            .push(format!("{} /StructParent(s) keys", cx.struct_keys_dropped));
+    }
 
-    // Graft into the base page tree.
-    let mut kids = pages_root
-        .get("Kids")
-        .and_then(Object::as_array)
+    // Graft into the base page tree (/Kids may be an indirect array).
+    let kids_obj = pages_root.get("Kids").cloned().unwrap_or(Object::Null);
+    let mut kids = base_doc
+        .deref(&kids_obj)?
+        .as_array()
         .map(<[Object]>::to_vec)
-        .unwrap_or_default();
+        .ok_or_else(|| anyhow!("base /Pages /Kids is not an array"))?;
     kids.extend(new_kids.iter().map(|&r| Object::Ref(r)));
     let count = pages_root.get_int("Count").unwrap_or(0) + i64::try_from(new_kids.len())?;
     pages_root.insert("Kids", kids);
@@ -133,22 +144,23 @@ pub fn append_pages(base: &[u8], src: &[u8]) -> Result<(Vec<u8>, ImportReport)> 
 
 struct Copier<'d, 'a> {
     src: &'d Document<'a>,
-    /// Source object number → new reference in the base's numbering space.
-    map: BTreeMap<u32, ObjRef>,
+    /// Source (number, generation) → new reference in the base's numbering space.
+    map: BTreeMap<(u32, u16), ObjRef>,
     next: u32,
     /// Source objects discovered but not yet copied.
     queue: VecDeque<(ObjRef, ObjRef)>,
     out: Vec<(ObjRef, Object)>,
+    struct_keys_dropped: usize,
 }
 
 impl Copier<'_, '_> {
     fn map_ref(&mut self, r: ObjRef, enqueue: bool) -> ObjRef {
-        if let Some(&n) = self.map.get(&r.num) {
+        if let Some(&n) = self.map.get(&(r.num, r.gen_nr)) {
             return n;
         }
         let new = ObjRef::new(self.next, 0);
         self.next += 1;
-        self.map.insert(r.num, new);
+        self.map.insert((r.num, r.gen_nr), new);
         if enqueue {
             self.queue.push_back((r, new));
         }
@@ -172,6 +184,10 @@ impl Copier<'_, '_> {
     fn rewrite_dict(&mut self, d: &Dict) -> Dict {
         let mut out = Dict::new();
         for (k, v) in d.iter() {
+            if matches!(k.as_bytes(), b"StructParent" | b"StructParents") {
+                self.struct_keys_dropped += 1;
+                continue;
+            }
             out.insert(k.clone(), self.rewrite(v));
         }
         out
@@ -179,10 +195,9 @@ impl Copier<'_, '_> {
 
     fn drain(&mut self) -> Result<()> {
         while let Some((old, new)) = self.queue.pop_front() {
+            // A reference to a missing or free object is valid and means null (§7.3.10):
+            // the copy is a null object.
             let obj = self.src.resolve(old)?;
-            if matches!(*obj, Object::Null) {
-                bail!("dangling reference {old}");
-            }
             let copied = self.rewrite(&obj);
             self.out.push((new, copied));
         }

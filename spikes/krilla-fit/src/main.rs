@@ -76,6 +76,19 @@ fn font_program_bytes(bytes: &[u8]) -> Result<usize> {
     Ok(total)
 }
 
+/// Every page's /Parent is a /Type /Pages node (checks B1 doesn't point pages elsewhere).
+fn parents_ok(bytes: &[u8]) -> Result<bool> {
+    let doc = lamina_cos::open(bytes)?;
+    for p in doc.pages()? {
+        let parent = p.dict.get("Parent").cloned().unwrap_or(Object::Null);
+        let parent = doc.deref(&parent)?;
+        if parent.as_dict().and_then(|d| d.get_name("Type")) != Some(b"Pages") {
+            return Ok(false);
+        }
+    }
+    Ok(true)
+}
+
 /// Sets /Info /Title with an incremental update.
 fn retitle(bytes: &[u8], title: &str) -> Result<Vec<u8>> {
     let doc = lamina_cos::open(bytes)?;
@@ -185,7 +198,7 @@ fn main() -> Result<()> {
     let base_pages = open_and_walk(&hello)?;
     let (t, (b1, report)) = best(|| graph::append_pages(&hello, &a_tagged))?;
     row(
-        "B1 import krilla pages into hello.pdf (incremental)",
+        "B1 import krilla's 3 tagged pages into hello.pdf (incremental)",
         format!("{}, +{} B", ms(t), b1.len() - hello.len()),
     );
     row(
@@ -193,36 +206,38 @@ fn main() -> Result<()> {
         format!("{} / {}", report.objects_copied, report.pages),
     );
     row(
-        "B1 catalog keys imported",
-        format!("{:?}", report.catalog_keys_imported),
+        "B1 catalog keys imported / tagging dropped",
+        format!("{:?} / {:?}", report.catalog_keys_imported, report.tagging_dropped),
     );
     row(
-        "B1 page count after reopen",
-        format!("{} (base {base_pages})", open_and_walk(&b1)?),
+        "B1 page count after reopen; every page's /Parent is a /Pages node of the base",
+        format!("{} (base {base_pages}); {}", open_and_walk(&b1)?, parents_ok(&b1)?),
     );
     let (t, (b1c, report_c)) = best(|| graph::append_pages(&c.bytes, &a_tagged))?;
     row(
-        "B1 import krilla pages into the C document",
-        format!("{}, +{} B", ms(t), b1c.len() - c.bytes.len()),
-    );
-    row(
-        "B1 conflicts with an existing catalog",
+        "B1 the same into the C document (has an outline and /Lang)",
         format!(
-            "{:?}; page keys dropped {:?}",
-            report_c.catalog_keys_conflicting, report_c.page_keys_dropped
+            "{}, +{} B, {} objects; conflicts {:?}; {} pages; parents ok: {}",
+            ms(t),
+            b1c.len() - c.bytes.len(),
+            report_c.objects_copied,
+            report_c.catalog_keys_conflicting,
+            open_and_walk(&b1c)?,
+            parents_ok(&b1c)?
         ),
     );
-    row("B1 page count after reopen (C base)", open_and_walk(&b1c)?.to_string());
-    let (b1t, report_t) = graph::append_pages(&b1, &a_tagged)?;
+    let (b1t, report_t) = graph::append_pages(&a_tagged, &a_tagged)?;
     row(
-        "B1 tagged pages into an already tagged base",
+        "B1 tagged pages into an already tagged base (A tagged into itself)",
         format!(
-            "conflicts {:?}; page keys dropped {:?}; {} pages after reopen",
+            "conflicts {:?}; tagging dropped {:?}; {} pages; parents ok: {}",
             report_t.catalog_keys_conflicting,
-            report_t.page_keys_dropped,
-            open_and_walk(&b1t)?
+            report_t.tagging_dropped,
+            open_and_walk(&b1t)?,
+            parents_ok(&b1t)?
         ),
     );
+    save("b1-krilla-into-tagged.pdf", &b1t)?;
     let (t, (b2, objs)) = best(|| exp_b::append_page_via_chunk(&a))?;
     row(
         "B2 pdf-writer chunk numbered in lamina's space → incremental",

@@ -74,10 +74,10 @@ The `krilla-fit` spike ([`spikes/krilla-fit`](../../spikes/krilla-fit/README.md)
 
 **Decision: Option B.** Against the criteria, in order:
 
-1. **krilla can't emit into a caller-owned object-number space.** `Document::finish()` returns `Vec<u8>` only. Refs are allocated in a private `SerializeContext` from 1, and `ChunkContainer::finish` renumbers everything and writes its own catalog, XMP and trailer (all `pub(crate)` in krilla 0.8.2). Importing krilla's pages into an existing document works (0.13 ms for 3 pages), but outline, `Lang`, page labels and names need merge code, and tagging is lost when the target already has a structure tree.
+1. **krilla can't emit into a caller-owned object-number space.** `Document::finish()` returns `Vec<u8>` only. Refs are allocated in a private `SerializeContext` from 1, and `ChunkContainer::finish` renumbers everything and writes its own catalog, XMP and trailer (all `pub(crate)` in krilla 0.8.2). Importing krilla's pages into an existing document works (0.11 ms for 3 pages), but outline, `Lang`, page labels and names need merge code, and the imported pages lose their tagging unless a structure-tree (`ParentTree`) merge is written.
 2. **Determinism:** both are byte-identical across runs.
 3. **Time and size** are equivalent: 3.98 ms / 104 497 B (krilla) against 3.51 ms / 102 624 B (lamina builder), release, best of 30.
-4. **WASM (gzip, no wasm-opt):** 830 KB with krilla against 377 KB for the lamina builder (no shaper yet). The budget is 350 KB including shaping.
+4. **WASM (gzip, no wasm-opt):** 830 KB with krilla against 377 KB for the lamina builder. The budget is 350 KB *including* shaping, so **both are over it**, the lamina builder before a shaper is even added. Own crates can be split into a base module and a lazily loaded text module (skrifa, subsetter, HarfRust); krilla can't. B6 (ADR 0016) must decide the split, re-measure with wasm-opt, and revise the budget if needed.
 5. **PDF/UA and PDF/A:** krilla's validators check the file krilla writes; after an import into a lamina `Document`, conformance has to be checked by lamina anyway. B8 builds lamina-side profiles, with krilla's rule lists as the reference.
 6. **Licence:** both are clean under `deny.toml`. krilla is active but mostly has one maintainer, and it pins the font stack (`skrifa` 0.42 while 0.49 is current).
 
