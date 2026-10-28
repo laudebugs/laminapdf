@@ -2,16 +2,15 @@
 
 use crate::error::{Error, Result};
 use crate::lexer::{Lexer, Token, is_whitespace};
+use crate::limits::{Limit, Limits};
 use crate::object::{Dict, Name, ObjRef, Object, PdfString, Stream, StringFormat};
 
-/// Maximum array/dictionary nesting depth accepted by the parser.
-pub const MAX_DEPTH: usize = 256;
-
-/// Parses a single direct object from `input`. Trailing white-space and comments are
-/// allowed; anything else after the object is an error.
+/// Parses a single direct object from `input` with the default [`Limits`]. Trailing
+/// white-space and comments are allowed; anything else after the object is an error.
 ///
 /// # Errors
-/// Returns an error on malformed syntax, truncation, or nesting deeper than [`MAX_DEPTH`].
+/// Returns an error on malformed syntax, truncation, or a hard limit exceeded
+/// ([`Limits::max_nesting_depth`], [`Limits::max_string_length`]).
 ///
 /// # Examples
 /// ```
@@ -21,7 +20,26 @@ pub const MAX_DEPTH: usize = 256;
 /// # Ok::<(), lamina_syntax::Error>(())
 /// ```
 pub fn parse_object(input: &[u8]) -> Result<Object> {
-    let mut parser = Parser::new(input, 0);
+    parse_object_with(input, &Limits::default())
+}
+
+/// [`parse_object`] with explicit `limits`.
+///
+/// # Errors
+/// As [`parse_object`].
+///
+/// # Examples
+/// ```
+/// use lamina_syntax::{Error, Limit, Limits, parse_object_with};
+/// let shallow = Limits::default().with_max_nesting_depth(1);
+/// assert!(parse_object_with(b"[1]", &shallow).is_ok());
+/// assert!(matches!(
+///     parse_object_with(b"[[1]]", &shallow),
+///     Err(Error::LimitExceeded { limit: Limit::NestingDepth, .. })
+/// ));
+/// ```
+pub fn parse_object_with(input: &[u8], limits: &Limits) -> Result<Object> {
+    let mut parser = Parser::new(input, 0).with_limits(limits);
     let obj = parser.object()?;
     match parser.lex.next_token()? {
         Token::Eof => Ok(obj),
@@ -39,14 +57,37 @@ pub fn parse_object(input: &[u8]) -> Result<Object> {
 #[derive(Debug, Clone)]
 pub struct Parser<'a> {
     lex: Lexer<'a>,
+    max_nesting_depth: usize,
+}
+
+/// The result of [`Parser::indirect_object`].
+#[derive(Debug, Clone, PartialEq)]
+#[non_exhaustive]
+pub struct IndirectObject {
+    /// The object's number and generation, from its `num gen obj` header.
+    pub id: ObjRef,
+    /// The object's value (a [`Object::Stream`] for streams).
+    pub object: Object,
+    /// True when the object is a stream whose `/Length` was missing, wrong or unresolvable,
+    /// so its extent was recovered by scanning for `endstream`.
+    pub length_recovered: bool,
 }
 
 impl<'a> Parser<'a> {
-    /// A parser over `data`, starting at byte offset `pos`.
+    /// A parser over `data`, starting at byte offset `pos`, with the default [`Limits`].
     pub const fn new(data: &'a [u8], pos: usize) -> Self {
         Self {
             lex: Lexer::new(data, pos),
+            max_nesting_depth: Limits::new().max_nesting_depth(),
         }
+    }
+
+    /// Applies `limits` ([`Limits::max_nesting_depth`] and [`Limits::max_string_length`]).
+    #[must_use]
+    pub const fn with_limits(mut self, limits: &Limits) -> Self {
+        self.lex = self.lex.with_limits(limits);
+        self.max_nesting_depth = limits.max_nesting_depth();
+        self
     }
 
     /// The current byte offset.
@@ -57,7 +98,8 @@ impl<'a> Parser<'a> {
     /// Parses one direct object (references resolved lexically as `n g R`).
     ///
     /// # Errors
-    /// Malformed syntax, truncation, or nesting deeper than [`MAX_DEPTH`].
+    /// Malformed syntax, truncation, or a hard limit exceeded ([`Limits::max_nesting_depth`],
+    /// [`Limits::max_string_length`]).
     pub fn object(&mut self) -> Result<Object> {
         let tok = self.lex.next_token()?;
         self.object_from(tok, 0)
@@ -78,7 +120,7 @@ impl<'a> Parser<'a> {
                 format: StringFormat::Hex,
             })),
             Token::ArrayOpen => {
-                let depth = enter(depth, start)?;
+                let depth = self.enter(depth, start)?;
                 let mut items = Vec::new();
                 loop {
                     match self.lex.next_token()? {
@@ -89,7 +131,7 @@ impl<'a> Parser<'a> {
                 }
             }
             Token::DictOpen => {
-                let depth = enter(depth, start)?;
+                let depth = self.enter(depth, start)?;
                 let mut dict = Dict::new();
                 loop {
                     match self.lex.next_token()? {
@@ -169,19 +211,21 @@ impl<'a> Parser<'a> {
     ///
     /// # Errors
     /// A malformed header or object, or a stream without any `endstream`.
-    pub fn indirect_object(
-        &mut self,
-        resolve_length: &mut dyn FnMut(ObjRef) -> Option<i64>,
-    ) -> Result<(ObjRef, Object)> {
+    pub fn indirect_object(&mut self, resolve_length: &mut dyn FnMut(ObjRef) -> Option<i64>) -> Result<IndirectObject> {
         let id = self.object_header()?;
         let obj = self.object()?;
         let after_obj = self.lex.pos();
+        let plain = |object| IndirectObject {
+            id,
+            object,
+            length_recovered: false,
+        };
         let Object::Dict(dict) = obj else {
-            return Ok((id, obj));
+            return Ok(plain(obj));
         };
         if !matches!(self.lex.next_token(), Ok(Token::Keyword(b"stream"))) {
             self.lex.set_pos(after_obj);
-            return Ok((id, Object::Dict(dict)));
+            return Ok(plain(Object::Dict(dict)));
         }
         let data_start = skip_stream_eol(self.lex.data(), self.lex.pos());
         let declared = match dict.get("Length") {
@@ -190,27 +234,31 @@ impl<'a> Parser<'a> {
             _ => None,
         };
         let data = self.lex.data();
-        let end = declared
+        let declared_end = declared
             .and_then(|len| usize::try_from(len).ok())
             .and_then(|len| data_start.checked_add(len))
-            .filter(|&end| ends_with_endstream(data, end))
-            .map_or_else(|| scan_for_endstream(data, data_start), Ok)?;
+            .filter(|&end| ends_with_endstream(data, end));
+        let length_recovered = declared_end.is_none();
+        let end = declared_end.map_or_else(|| scan_for_endstream(data, data_start), Ok)?;
         let bytes = data.get(data_start..end).unwrap_or_default().to_vec();
         // Position after `endstream`, then consume an optional `endobj`.
         let after = find(data, b"endstream", end).map_or(data.len(), |p| p + b"endstream".len());
         self.lex.set_pos(after);
-        Ok((id, Object::Stream(Stream { dict, data: bytes })))
+        Ok(IndirectObject {
+            id,
+            object: Object::Stream(Stream { dict, data: bytes }),
+            length_recovered,
+        })
     }
-}
 
-const fn enter(depth: usize, offset: usize) -> Result<usize> {
-    if depth >= MAX_DEPTH {
-        return Err(Error::TooDeep {
-            limit: MAX_DEPTH,
-            offset,
-        });
+    /// One level deeper than `depth`, or [`Error::LimitExceeded`] past
+    /// [`Limits::max_nesting_depth`].
+    fn enter(&self, depth: usize, offset: usize) -> Result<usize> {
+        if depth >= self.max_nesting_depth {
+            return Err(Error::limit(Limit::NestingDepth, Some(offset)));
+        }
+        Ok(depth + 1)
     }
-    Ok(depth + 1)
 }
 
 /// After the `stream` keyword: skip spaces/tabs some writers emit, then CRLF, LF or a lone CR.
@@ -282,6 +330,8 @@ mod tests {
         );
     }
 
+    const MAX_DEPTH: usize = Limits::new().max_nesting_depth();
+
     #[test]
     fn parse_object_accepts_nesting_at_the_limit() {
         let input = [vec![b'['; MAX_DEPTH], vec![b']'; MAX_DEPTH]].concat();
@@ -291,7 +341,32 @@ mod tests {
     #[test]
     fn parse_object_rejects_nesting_past_the_limit() {
         let input = [vec![b'['; MAX_DEPTH + 1], vec![b']'; MAX_DEPTH + 1]].concat();
-        assert!(matches!(parse_object(&input), Err(Error::TooDeep { .. })));
+        assert!(matches!(
+            parse_object(&input),
+            Err(Error::LimitExceeded {
+                limit: Limit::NestingDepth,
+                ..
+            })
+        ));
+    }
+
+    #[test]
+    fn parse_object_with_reports_the_offset_of_the_container_past_the_limit() {
+        let limits = Limits::default().with_max_nesting_depth(2);
+        assert_eq!(
+            parse_object_with(b"[[ [1] ]]", &limits),
+            Err(Error::LimitExceeded {
+                limit: Limit::NestingDepth,
+                at: Some(4)
+            })
+        );
+    }
+
+    #[test]
+    fn indirect_stream_with_correct_length_is_not_recovered() {
+        let input = b"4 0 obj << /Length 3 >> stream\nabc\nendstream endobj";
+        let parsed = Parser::new(input, 0).indirect_object(&mut no_length).unwrap();
+        assert!(!parsed.length_recovered);
     }
 
     #[test]
@@ -302,10 +377,13 @@ mod tests {
     #[test]
     fn indirect_stream_with_wrong_length_recovers_by_scanning() {
         let input = b"4 0 obj << /Length 999 >> stream\r\nabc\r\nendstream endobj";
-        let (_, obj) = Parser::new(input, 0).indirect_object(&mut no_length).unwrap();
+        let parsed = Parser::new(input, 0).indirect_object(&mut no_length).unwrap();
         assert_eq!(
-            obj,
-            Object::Stream(Stream::new([("Length", 999)].into_iter().collect(), b"abc".to_vec()))
+            (parsed.object, parsed.length_recovered),
+            (
+                Object::Stream(Stream::new([("Length", 999)].into_iter().collect(), b"abc".to_vec())),
+                true
+            )
         );
     }
 
@@ -313,8 +391,8 @@ mod tests {
     fn indirect_stream_uses_resolved_indirect_length() {
         let input = b"4 0 obj << /Length 5 0 R >> stream\nab\nendstream\n x endstream endobj";
         let mut resolve = |_| Some(15);
-        let (_, obj) = Parser::new(input, 0).indirect_object(&mut resolve).unwrap();
-        assert_eq!(obj.as_ref_stream_data(), Some(&b"ab\nendstream\n x"[..]));
+        let parsed = Parser::new(input, 0).indirect_object(&mut resolve).unwrap();
+        assert_eq!(parsed.object.as_ref_stream_data(), Some(&b"ab\nendstream\n x"[..]));
     }
 
     impl Object {

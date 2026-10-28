@@ -16,7 +16,22 @@ pub mod samples;
 
 use std::path::{Path, PathBuf};
 
-use lamina_cos::Document;
+use lamina_cos::{Document, ObjRef, Object, OpenOptions, Result, XrefEol, incremental_update};
+
+/// Opens a copy of `bytes` with default options (tests keep their inputs).
+pub fn open(bytes: &[u8]) -> Result<Document> {
+    Document::open(bytes.to_vec(), OpenOptions::default())
+}
+
+/// Opens `bytes` with `options`.
+pub fn open_with(bytes: &[u8], options: OpenOptions) -> Result<Document> {
+    Document::open(bytes.to_vec(), options)
+}
+
+/// Opens `base` and appends an incremental update to it.
+pub fn update(base: &[u8], changes: &[(ObjRef, Object)], eol: XrefEol) -> Result<Vec<u8>> {
+    incremental_update(&open(base)?, changes, eol)
+}
 
 /// The repository's shared `fixtures/` directory (docs/guidelines/code-organization.md §6).
 pub fn fixtures_dir() -> PathBuf {
@@ -71,7 +86,7 @@ impl Rng {
 
 /// Drives every read path on an opened document; returns the number of errors seen.
 /// Errors are fine — the point is that nothing panics or hangs.
-pub fn exercise(doc: &Document<'_>) -> usize {
+pub fn exercise(doc: &Document) -> usize {
     let mut errors = 0;
     errors += usize::from(doc.catalog().is_err());
     match doc.pages() {
@@ -84,7 +99,34 @@ pub fn exercise(doc: &Document<'_>) -> usize {
     }
     let nums: Vec<u32> = doc.object_numbers().collect();
     for num in nums {
-        errors += usize::from(doc.resolve(lamina_cos::ObjRef::new(num, 0)).is_err());
+        errors += usize::from(doc.resolve(ObjRef::new(num, 0)).is_err());
     }
     errors
+}
+
+/// A classic file around object bodies numbered `1..`, with a correct xref table.
+pub fn classic(objects: &[&[u8]], trailer: &str) -> Vec<u8> {
+    let mut out = b"%PDF-1.7\n".to_vec();
+    let mut offsets = Vec::new();
+    for (i, body) in objects.iter().enumerate() {
+        offsets.push(out.len());
+        out.extend_from_slice(format!("{} 0 obj\n", i + 1).as_bytes());
+        out.extend_from_slice(body);
+        out.extend_from_slice(b"\nendobj\n");
+    }
+    let xref = out.len();
+    out.extend_from_slice(format!("xref\n0 {}\n0000000000 65535 f\r\n", objects.len() + 1).as_bytes());
+    for off in offsets {
+        out.extend_from_slice(format!("{off:010} 00000 n\r\n").as_bytes());
+    }
+    out.extend_from_slice(format!("trailer\n{trailer}\nstartxref\n{xref}\n%%EOF\n").as_bytes());
+    out
+}
+
+/// A stream object body: `dict` (without `/Length`) plus `data`, with a correct `/Length`.
+pub fn stream_body(dict: &str, data: &[u8]) -> Vec<u8> {
+    let mut out = format!("<< {dict} /Length {} >>\nstream\n", data.len()).into_bytes();
+    out.extend_from_slice(data);
+    out.extend_from_slice(b"\nendstream");
+    out
 }

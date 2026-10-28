@@ -78,7 +78,7 @@ disallowed-types = [
 - **MUST:** public error enums are `#[non_exhaustive]`. Variants carry structured context (byte offset, object number, limit), not formatted strings. Display messages are lowercase with no trailing period.
 - **MUST NOT:** library code uses `unwrap`, `expect`, `panic!`, `todo!`, `unimplemented!` or unchecked indexing/slicing (all denied by the lint table above). Use `?`, `let … else`, `.get()`, `ok_or(…)` and `checked_*` arithmetic. `unreachable!` is allowed only with a comment that proves the invariant. If it can be reached from input, it's a bug.
 - **MUST NOT:** library APIs return `anyhow::Error` or `Box<dyn Error>`. Use `anyhow` only in binaries, xtask and tests.
-- **SHOULD:** derive `Clone + PartialEq` on errors when the payload allows it, so tests can assert exact variants (`assert_eq!(err, Error::DecompressLimit { limit })`).
+- **SHOULD:** derive `Clone + PartialEq` on errors when the payload allows it, so tests can assert exact variants (`assert_eq!(err, Error::LimitExceeded { limit: Limit::StreamDecoded, at: None })`).
 - **SHOULD NOT** expose another crate's error type through `#[from]` in a public variant. That makes the dependency's semver part of ours. Map it to our own variant and keep the source with `#[source]` only if it's a stable, public dependency.
 - **MUST:** every count, length or offset read from a file is untrusted. Bound allocations by the bytes actually present, and give recursion a depth limit. Loops over input-supplied counts must not allocate based on the count alone. See [research ch. 07 §4](../research/pdf/07-spike-rust-and-typescript.md#4-what-we-learned).
 - Recoverable irregularities (a missing header, a repaired xref) are reported as **warnings** on the result, not as errors and not silently.
@@ -98,7 +98,7 @@ disallowed-types = [
 - **MUST:** test names read as behavior. Group them by the unit under test: `mod parse_object { #[test] fn rejects_nesting_deeper_than_max_depth() … }` or `open_should_repair_when_xref_offset_is_wrong`. No `test_` prefixes, no `happy_path`.
 - **SHOULD:** check one behavior per test. Use [`rstest`](https://docs.rs/rstest) cases for tables of inputs and [`insta`](https://insta.rs) for snapshotting large text or `Debug` output (never for byte-exact PDFs; those are golden files in `fixtures/golden/`, rewritten only by an explicit regenerate command, see [`code-organization.md` §6](code-organization.md#6-tests-and-fixtures)).
 - **MUST:** every public example in docs is a doc test that compiles and runs (`?` with a hidden `# Ok::<(), Error>(())`, C-QUESTION-MARK).
-- **MUST:** parsers have robustness tests (truncation, byte flips, token soup) with a time budget. Fuzz targets (`cargo fuzz`) live in the root `fuzz/` folder (OSS-Fuzz layout, one target per parser entry point), which is its own workspace and excluded from the root one ([ADR 0015](../decisions/0015-monorepo-layout-and-tooling.md)).
+- **MUST:** parsers have robustness tests (truncation, byte flips, token soup) with a time budget, enforced by the test runner's timeout (nextest `slow-timeout` in `.config/nextest.toml`), never by asserting elapsed time ([ADR 0018](../decisions/0018-test-strategy.md)). Fuzz targets (`cargo fuzz`) live in the root `fuzz/` folder (OSS-Fuzz layout, one target per parser entry point), which is its own workspace and excluded from the root one ([ADR 0015](../decisions/0015-monorepo-layout-and-tooling.md)).
 
 ## Documentation
 

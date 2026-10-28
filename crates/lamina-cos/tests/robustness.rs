@@ -1,7 +1,8 @@
 //! SPEC case 5: hostile input yields errors (or repaired documents) — never a panic or hang.
 //!
-//! All parser loops are bounded by the input length, so "no hang" is structural; these
-//! tests additionally assert a generous wall-clock budget per scenario.
+//! All parser loops are bounded by the input length, so "no hang" is structural. A hang is
+//! still caught by the runner, not by asserting elapsed time (ADR 0018): nextest terminates
+//! these tests after 30 s (`.config/nextest.toml`).
 #![allow(
     clippy::unwrap_used,
     clippy::panic,
@@ -11,13 +12,9 @@
 
 mod common;
 
-use std::time::{Duration, Instant};
-
-use common::{Rng, corpus, exercise};
-use lamina_cos::{Error, OpenOptions, open, open_with};
+use common::{Rng, corpus, exercise, open, open_with};
+use lamina_cos::{Error, Limit, Limits, OpenOptions};
 use lamina_syntax::{Error as SyntaxError, filters, parse_object};
-
-const BUDGET: Duration = Duration::from_secs(30);
 
 /// Opens `bytes` and drives every read path; returns whether open succeeded.
 fn survive(bytes: &[u8]) -> bool {
@@ -28,12 +25,6 @@ fn survive(bytes: &[u8]) -> bool {
         }
         Err(_) => false,
     }
-}
-
-fn within_budget(f: impl FnOnce()) {
-    let start = Instant::now();
-    f();
-    assert!(start.elapsed() < BUDGET, "took {:?}", start.elapsed());
 }
 
 /// A classic file around arbitrary object bodies, with a correct xref.
@@ -57,47 +48,39 @@ fn file_with(objects: &[&[u8]], trailer: &str) -> Vec<u8> {
 
 #[test]
 fn truncation_at_many_offsets_never_panics() {
-    within_budget(|| {
-        for (_, bytes) in corpus() {
-            let step = (bytes.len() / 400).max(1);
-            for cut in (0..bytes.len()).step_by(step) {
-                survive(&bytes[..cut]);
-            }
+    for (_, bytes) in corpus() {
+        let step = (bytes.len() / 400).max(1);
+        for cut in (0..bytes.len()).step_by(step) {
+            survive(&bytes[..cut]);
         }
-    });
+    }
 }
 
 #[test]
 fn random_byte_flips_never_panic() {
-    within_budget(|| {
-        let mut rng = Rng::new(0x1A_317A);
-        for (_, bytes) in corpus() {
-            for _ in 0..150 {
-                let mut mutated = bytes.clone();
-                for _ in 0..=rng.below(8) {
-                    let at = rng.below(mutated.len());
-                    mutated[at] ^= u8::try_from(rng.below(255) + 1).unwrap();
-                }
-                survive(&mutated);
+    let mut rng = Rng::new(0x1A_317A);
+    for (_, bytes) in corpus() {
+        for _ in 0..150 {
+            let mut mutated = bytes.clone();
+            for _ in 0..=rng.below(8) {
+                let at = rng.below(mutated.len());
+                mutated[at] ^= u8::try_from(rng.below(255) + 1).unwrap();
             }
+            survive(&mutated);
         }
-    });
+    }
 }
 
 #[test]
 fn random_garbage_never_panics() {
-    within_budget(|| {
-        let mut rng = Rng::new(7);
-        for _ in 0..300 {
-            let len = rng.below(2048);
-            let mut bytes = b"%PDF-1.4\n".to_vec();
-            bytes.extend(
-                (0..len).map(|_| b"0123456789 obj endobj R << >> [ ] ( ) / stream xref trailer\n"[rng.below(60)]),
-            );
-            survive(&bytes);
-            let _ = parse_object(&bytes);
-        }
-    });
+    let mut rng = Rng::new(7);
+    for _ in 0..300 {
+        let len = rng.below(2048);
+        let mut bytes = b"%PDF-1.4\n".to_vec();
+        bytes.extend((0..len).map(|_| b"0123456789 obj endobj R << >> [ ] ( ) / stream xref trailer\n"[rng.below(60)]));
+        survive(&bytes);
+        let _ = parse_object(&bytes);
+    }
 }
 
 #[test]
@@ -185,7 +168,13 @@ fn prev_chain_loop_falls_back_to_repair() {
 #[test]
 fn nesting_depth_ten_thousand_is_rejected_by_parser() {
     let deep = [vec![b'['; 10_000], vec![b']'; 10_000]].concat();
-    assert!(matches!(parse_object(&deep), Err(SyntaxError::TooDeep { .. })));
+    assert!(matches!(
+        parse_object(&deep),
+        Err(SyntaxError::LimitExceeded {
+            limit: Limit::NestingDepth,
+            ..
+        })
+    ));
 }
 
 #[test]
@@ -198,18 +187,27 @@ fn nesting_depth_ten_thousand_in_a_file_is_an_error_on_resolve() {
     let doc = open(&bytes).unwrap();
     assert!(matches!(
         doc.resolve(lamina_cos::ObjRef::new(2, 0)),
-        Err(Error::Syntax(SyntaxError::TooDeep { .. }))
+        Err(Error::LimitExceeded {
+            limit: Limit::NestingDepth,
+            ..
+        })
     ));
 }
 
 #[test]
 fn deeply_nested_dicts_are_rejected() {
     let deep = [b"<< /A ".repeat(10_000), b">>".repeat(10_000)].concat();
-    assert!(matches!(parse_object(&deep), Err(SyntaxError::TooDeep { .. })));
+    assert!(matches!(
+        parse_object(&deep),
+        Err(SyntaxError::LimitExceeded {
+            limit: Limit::NestingDepth,
+            ..
+        })
+    ));
 }
 
 fn bomb_file() -> Vec<u8> {
-    let payload = filters::flate_encode(&vec![0u8; filters::DEFAULT_MAX_DECODED + 1]);
+    let payload = filters::flate_encode(&vec![0u8; Limits::default().max_stream_decoded() + 1]);
     let mut stream = format!("<< /Length {} /Filter /FlateDecode >>\nstream\n", payload.len()).into_bytes();
     stream.extend_from_slice(&payload);
     stream.extend_from_slice(b"\nendstream");
@@ -231,9 +229,10 @@ fn flate_bomb_over_default_limit_is_refused() {
     let page = doc.pages().unwrap().remove(0);
     assert_eq!(
         doc.page_content(&page),
-        Err(Error::Syntax(SyntaxError::DecompressLimit {
-            limit: filters::DEFAULT_MAX_DECODED
-        }))
+        Err(Error::LimitExceeded {
+            limit: Limit::StreamDecoded,
+            at: None
+        })
     );
 }
 
@@ -252,11 +251,15 @@ fn decompression_limit_is_configurable() {
         ],
         "<< /Size 5 /Root 1 0 R >>",
     );
-    let doc = open_with(&bytes, OpenOptions::default().with_max_decoded_size(1000)).unwrap();
+    let limits = Limits::default().with_max_stream_decoded(1000);
+    let doc = open_with(&bytes, OpenOptions::default().with_limits(limits)).unwrap();
     let page = doc.pages().unwrap().remove(0);
     assert_eq!(
         doc.page_content(&page),
-        Err(Error::Syntax(SyntaxError::DecompressLimit { limit: 1000 }))
+        Err(Error::LimitExceeded {
+            limit: Limit::StreamDecoded,
+            at: None
+        })
     );
 }
 

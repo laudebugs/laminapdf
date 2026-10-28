@@ -17,9 +17,9 @@ lamina is a platform for anything and everything PDF: creating PDFs from code, p
 ├── package.json         # private pnpm root: dev tooling only; pnpm-workspace.yaml lists packages/*, apps/*
 ├── biome.json  tsconfig.base.json  deny.toml  clippy.toml  rustfmt.toml
 ├── crates/              # Rust crates, flat: crates/lamina-<name>
-│   ├── lamina-syntax/   #   core: object model + serialization, lexer, parser, filters (Flate, PNG predictors)
-│   └── lamina-cos/      #   core: reader (xref, object streams, repair, page tree) and writer (moves to lamina-save in Round B)
-├── fixtures/            # shared test inputs: golden/ (byte-exact), corpus/ + expected.json; README.md has provenance
+│   ├── lamina-syntax/   #   core: object model + serialization, lexer, parser, filters (Flate, PNG predictors), Limits
+│   └── lamina-cos/      #   core: Document over a ByteSource (xref, object streams, repair, page tree, warnings) and writer (moves to lamina-save in Round B)
+├── fixtures/            # shared test inputs: golden/ (byte-exact), corpus/ + expected.json, codes.json; README.md has provenance
 ├── tools/xtask/         # `cargo xtask …`: the single task entry point
 ├── .github/             # CI fast lane (workflows/ci.yml) and Dependabot
 ├── spikes/              # research spikes (throwaway code that informs decisions), outside both workspaces
@@ -77,7 +77,9 @@ cargo xtask doctor           # are rustc, node, pnpm, cargo-deny, cargo-nextest,
 cargo xtask doctor --install # install the pinned cargo tools
 ```
 
-A single crate: `cargo test -p lamina-cos` (integration tests read the shared `fixtures/`; golden files are never rewritten by a test).
+A single crate: `cargo test -p lamina-cos` (integration tests read the shared `fixtures/`; golden files are never rewritten by a test). Hangs are caught by nextest's per-test timeout in `.config/nextest.toml` (robustness tests: 30 s), not by wall-clock asserts (ADR 0018); plain `cargo test` runs the same tests without the timeout.
+
+Reading API (ADR 0003, 0005): `Document::open(source, OpenOptions)` takes an owned or shared `ByteSource` (`Vec<u8>`, `Arc<[u8]>`, `&'static [u8]`, `Arc<dyn ByteSource>`); `OpenOptions` holds `Limits` (hard limits fail with `Error::LimitExceeded`, soft ones drop with a warning), strict mode (`Error::Strict`) and the password (used from B2b). Warning and error codes are listed in `fixtures/codes.json`, which a test checks against the Rust enums.
 
 Every crate under `crates/` declares its layer in `Cargo.toml` (`[package.metadata.lamina] layer = "core" | "edge" | "app"`); xtask applies the bytes-in/bytes-out rules to core crates. External tool versions are pinned in `tools/xtask/src/doctor.rs` (CI installs the same ones): `cargo-deny` is required by `check`; `cargo-nextest` is optional (falls back to `cargo test`).
 

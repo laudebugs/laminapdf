@@ -10,7 +10,7 @@ use std::collections::BTreeMap;
 use lamina_syntax::{Dict, Name, ObjRef, Object, Stream};
 
 use crate::error::{Error, Result};
-use crate::reader::{self, XREF_STREAM_KEYS};
+use crate::reader::{Document, XREF_STREAM_KEYS};
 
 /// The 20-byte cross-reference entry ends with a two-byte EOL; both forms are legal (§7.5.4).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
@@ -43,7 +43,7 @@ enum Body {
 ///
 /// # Examples
 /// ```
-/// use lamina_cos::{Dict, Object, Writer, open};
+/// use lamina_cos::{Dict, Document, Object, OpenOptions, Writer};
 /// let mut w = Writer::new(1, 7);
 /// let pages = w.reserve();
 /// let page = w.add([("Type", Object::name("Page")), ("Parent", pages.into())].into_iter().collect::<Dict>());
@@ -51,7 +51,7 @@ enum Body {
 ///     .into_iter().collect::<Dict>());
 /// let root = w.add([("Type", Object::name("Catalog")), ("Pages", pages.into())].into_iter().collect::<Dict>());
 /// let bytes = w.finish(&[("Root", root)].into_iter().collect())?;
-/// assert_eq!(open(&bytes)?.page_count()?, 1);
+/// assert_eq!(Document::open(bytes, OpenOptions::default())?.page_count()?, 1);
 /// # Ok::<(), lamina_cos::Error>(())
 /// ```
 #[derive(Debug, Clone)]
@@ -303,8 +303,8 @@ fn write_trailer(trailer: &Dict, xref: usize, out: &mut Vec<u8>) {
     out.extend_from_slice(format!("\nstartxref\n{xref}\n%%EOF\n").as_bytes());
 }
 
-/// Appends an incremental update (§7.5.6) to `original`: the changed/new objects, then a new
-/// cross-reference section of the same kind as the newest one in `original`, so `/Prev` chains
+/// Appends an incremental update (§7.5.6) to `base`'s input bytes: the changed/new objects,
+/// then a new cross-reference section of the same kind as the newest one in `base`, so `/Prev` chains
 /// never mix kinds and objects in object streams stay visible to every reader:
 ///
 /// * after a classic table (including a hybrid file's): a classic section (a `0 1` free-list
@@ -317,13 +317,25 @@ fn write_trailer(trailer: &Dict, xref: usize, out: &mut Vec<u8>) {
 /// `/Size` never shrinks: it is the largest of the previous `/Size`, the highest object number
 /// in any section + 1, and the highest new number + 1. The original bytes are copied untouched.
 ///
+/// ```
+/// use lamina_cos::{Document, ObjRef, Object, OpenOptions, Writer, XrefEol, incremental_update};
+///
+/// let mut w = Writer::new(1, 7);
+/// let root = w.add([("Type", Object::name("Catalog"))].into_iter().collect::<lamina_cos::Dict>());
+/// let base = Document::open(w.finish(&[("Root", root)].into_iter().collect())?, OpenOptions::default())?;
+/// let updated = incremental_update(&base, &[(ObjRef::new(2, 0), Object::Integer(42))], XrefEol::CrLf)?;
+/// let doc = Document::open(updated, OpenOptions::default())?;
+/// assert_eq!((doc.revisions(), doc.object(2)?.as_int()), (2, Some(42)));
+/// # Ok::<(), lamina_cos::Error>(())
+/// ```
+///
 /// # Errors
-/// Any error opening `original`; [`Error::RepairedBase`] when its xref is broken (there is no
-/// valid section for `/Prev` to point at); [`Error::EncryptedBase`] when it is encrypted (the
-/// new objects would have to be encrypted too); [`Error::InvalidStructure`] when object
-/// numbers run out.
-pub fn incremental_update(original: &[u8], changes: &[(ObjRef, Object)], eol: XrefEol) -> Result<Vec<u8>> {
-    let doc = reader::open(original)?;
+/// [`Error::RepairedBase`] when `base`'s xref was repaired (there is no valid section for
+/// `/Prev` to point at); [`Error::EncryptedBase`] when it is encrypted (the new objects would
+/// have to be encrypted too); [`Error::InvalidStructure`] when object numbers run out.
+pub fn incremental_update(base: &Document, changes: &[(ObjRef, Object)], eol: XrefEol) -> Result<Vec<u8>> {
+    let doc = base;
+    let original = doc.data();
     let prev = doc.startxref().ok_or(Error::RepairedBase)?;
     if doc.is_encrypted() {
         return Err(Error::EncryptedBase);

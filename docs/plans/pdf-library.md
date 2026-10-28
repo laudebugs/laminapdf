@@ -270,7 +270,10 @@ Each round's todos (one per PR, with dependencies) are linked from [§7](#7-roun
 ### B2. Document model
 
 - [ ] Create `crates/lamina-model` with `Page`, `Outline`, `Info`, `NameTree` views
-- [x] Implement `Document::open(source, OpenOptions)` over an owned `ByteSource` ([ADR 0005](../decisions/0005-document-model.md)), with `OpenOptions` holding `Limits`, strict mode and an optional password ([ADR 0003](../decisions/0003-reader-tolerance-and-limits.md))
+- [x] Implement `Document::open(source, OpenOptions)` over an owned `ByteSource` ([ADR 0005](../decisions/0005-document-model.md)), with `OpenOptions` holding `Limits`, strict mode and an optional password ([ADR 0003](../decisions/0003-reader-tolerance-and-limits.md)) (B2a; the password is stored for decryption, which is the next to-do; windowed reading of non-slice sources is still to do)
+- [x] Stable warning codes and strict mode; `fixtures/codes.json` checked against the Rust enums ([ADR 0003](../decisions/0003-reader-tolerance-and-limits.md) §2, §4) (B2a)
+- [x] Move the robustness tests' 30 s wall-clock budget to a nextest timeout ([ADR 0018](../decisions/0018-test-strategy.md)) (B2a)
+- [ ] Windowed reading for sources without `as_slice` (64 KiB windows, chunked repair scan; [ADR 0005](../decisions/0005-document-model.md) §2); today they are read into memory once at open ([B2d](../todos/ready/B2d-windowed-reading.md))
 - [ ] Standard security handler decryption in `lamina-syntax`: R2–R4 (RC4, AES-128), R5/R6 (AES-256), crypt filters, `/EncryptMetadata`
 - [ ] Encrypted fixtures for every revision (user, owner and empty passwords); wrong-password error code
 - [ ] Assign `LaminaId`s to pages and outline items; test stability across reopen

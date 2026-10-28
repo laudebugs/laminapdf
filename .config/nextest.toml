@@ -1,0 +1,14 @@
+# cargo-nextest configuration (`cargo xtask test` uses nextest when it is installed).
+# ADR 0018: no wall-clock assertions in the PR lanes; hangs are caught here, by the runner's
+# timeout, and failures are never retried.
+
+[profile.default]
+retries = 0
+# Any test still running after 2 × 60 s is a hang: report it as slow at 60 s, kill it at 120 s.
+slow-timeout = { period = "60s", terminate-after = 2 }
+
+# The robustness tests (truncation, byte flips, token soup) had a 30 s budget asserted in the
+# test itself; it now lives here (ADR 0018). Plain `cargo test` runs them without a timeout.
+[[profile.default.overrides]]
+filter = "binary(robustness)"
+slow-timeout = { period = "30s", terminate-after = 1 }

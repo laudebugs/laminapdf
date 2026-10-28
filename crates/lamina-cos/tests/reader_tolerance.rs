@@ -12,7 +12,8 @@ mod common;
 
 use std::fmt::Write as _;
 
-use lamina_cos::{ObjRef, Object, PdfString, open};
+use common::open;
+use lamina_cos::{ObjRef, Object, PdfString};
 use lamina_syntax::filters;
 
 /// One indirect object: number, generation, body.

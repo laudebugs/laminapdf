@@ -9,8 +9,11 @@
 
 mod common;
 
-use lamina_cos::{Dict, Name, ObjRef, Object, PdfString, Stream, Writer, XrefEol, incremental_update, open};
-use lamina_syntax::{MAX_DEPTH, parse_object};
+use common::{open, update};
+use lamina_cos::{Dict, Name, ObjRef, Object, PdfString, Stream, Writer, XrefEol};
+use lamina_syntax::{Limits, parse_object};
+
+const MAX_DEPTH: usize = Limits::new().max_nesting_depth();
 
 fn dict<const N: usize>(entries: [(&str, Object); N]) -> Dict {
     entries.into_iter().collect()
@@ -168,15 +171,15 @@ fn compact_file_raises_header_to_1_5() {
 }
 
 fn value_of(bytes: &[u8], num: u32) -> Object {
-    std::rc::Rc::unwrap_or_clone(open(bytes).unwrap().resolve(ObjRef::new(num, 0)).unwrap())
+    std::sync::Arc::unwrap_or_clone(open(bytes).unwrap().resolve(ObjRef::new(num, 0)).unwrap())
 }
 
 fn two_and_three_revisions() -> (Vec<u8>, Vec<u8>, Vec<u8>) {
     let mut w = Writer::new(1, 7);
     let trailer = build(&mut w);
     let base = w.finish(&trailer).unwrap();
-    let rev2 = incremental_update(&base, &[(ObjRef::new(4, 0), Object::from(2))], XrefEol::CrLf).unwrap();
-    let rev3 = incremental_update(
+    let rev2 = update(&base, &[(ObjRef::new(4, 0), Object::from(2))], XrefEol::CrLf).unwrap();
+    let rev3 = update(
         &rev2,
         &[
             (ObjRef::new(4, 0), Object::from(3)),
@@ -246,7 +249,7 @@ fn incremental_update_on_compact_file_reads_back() {
     let mut w = Writer::new(1, 7);
     let trailer = build(&mut w);
     let base = w.finish_compact(&trailer).unwrap();
-    let updated = incremental_update(&base, &[(ObjRef::new(5, 0), Object::from(7))], XrefEol::CrLf).unwrap();
+    let updated = update(&base, &[(ObjRef::new(5, 0), Object::from(7))], XrefEol::CrLf).unwrap();
     let doc = open(&updated).unwrap();
     assert_eq!(
         (
@@ -261,6 +264,6 @@ fn incremental_update_on_compact_file_reads_back() {
 #[test]
 fn incremental_update_refuses_repaired_base() {
     let broken = common::fixture("corpus/hello-broken.pdf");
-    let result = incremental_update(&broken, &[(ObjRef::new(5, 0), Object::Null)], XrefEol::CrLf);
+    let result = update(&broken, &[(ObjRef::new(5, 0), Object::Null)], XrefEol::CrLf);
     assert_eq!(result, Err(lamina_cos::Error::RepairedBase));
 }

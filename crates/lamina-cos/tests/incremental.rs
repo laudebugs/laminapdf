@@ -10,7 +10,8 @@
 mod common;
 
 use common::fixture;
-use lamina_cos::{Dict, Error, ObjRef, Object, PdfString, Writer, XrefEol, incremental_update, open};
+use common::{open, update};
+use lamina_cos::{Dict, Error, ObjRef, Object, PdfString, Writer, XrefEol};
 
 /// A compact base (object stream + xref stream): catalog 1, pages 2, page 3, info 4.
 fn compact_base() -> Vec<u8> {
@@ -55,14 +56,14 @@ fn title_update() -> [(ObjRef, Object); 1] {
 #[test]
 fn incremental_update_refuses_encrypted_base() {
     let base = fixture("corpus/enc.pdf");
-    let result = incremental_update(&base, &title_update(), XrefEol::CrLf);
+    let result = update(&base, &title_update(), XrefEol::CrLf);
     assert_eq!(result, Err(Error::EncryptedBase));
 }
 
 #[test]
 fn incremental_update_of_xref_stream_base_appends_an_xref_stream() {
     let base = compact_base();
-    let updated = incremental_update(&base, &title_update(), XrefEol::CrLf).unwrap();
+    let updated = update(&base, &title_update(), XrefEol::CrLf).unwrap();
     let appended = String::from_utf8_lossy(&updated[base.len()..]).into_owned();
     assert!(
         appended.contains("/Type /XRef") && !appended.contains("\ntrailer"),
@@ -73,7 +74,7 @@ fn incremental_update_of_xref_stream_base_appends_an_xref_stream() {
 #[test]
 fn incremental_update_of_xref_stream_base_keeps_compressed_objects_and_applies_change() {
     let base = compact_base();
-    let updated = incremental_update(&base, &title_update(), XrefEol::CrLf).unwrap();
+    let updated = update(&base, &title_update(), XrefEol::CrLf).unwrap();
     let doc = open(&updated).unwrap();
     let title = doc
         .resolve(ObjRef::new(4, 0))
@@ -88,8 +89,8 @@ fn incremental_update_of_xref_stream_base_keeps_compressed_objects_and_applies_c
 
 #[test]
 fn incremental_update_twice_on_xref_stream_base_chains_three_revisions() {
-    let once = incremental_update(&compact_base(), &title_update(), XrefEol::CrLf).unwrap();
-    let twice = incremental_update(&once, &[(ObjRef::new(9, 0), Object::Null)], XrefEol::CrLf).unwrap();
+    let once = update(&compact_base(), &title_update(), XrefEol::CrLf).unwrap();
+    let twice = update(&once, &[(ObjRef::new(9, 0), Object::Null)], XrefEol::CrLf).unwrap();
     let doc = open(&twice).unwrap();
     assert_eq!(
         (doc.was_repaired(), doc.revisions(), doc.page_count()),
@@ -117,6 +118,6 @@ fn incremental_update_never_shrinks_size_when_base_trailer_lacks_size() {
         base.extend_from_slice(format!("{off:010} 00000 n\r\n").as_bytes());
     }
     base.extend_from_slice(format!("trailer\n<< /Root 1 0 R >>\nstartxref\n{xref}\n%%EOF\n").as_bytes());
-    let updated = incremental_update(&base, &[(ObjRef::new(3, 0), Object::Null)], XrefEol::CrLf).unwrap();
+    let updated = update(&base, &[(ObjRef::new(3, 0), Object::Null)], XrefEol::CrLf).unwrap();
     assert_eq!(open(&updated).unwrap().trailer().get_int("Size"), Some(6));
 }

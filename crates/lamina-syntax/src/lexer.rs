@@ -4,6 +4,7 @@
 //! loop consumes at least one byte, so lexing is linear in the input length.
 
 use crate::error::{Error, Result};
+use crate::limits::{Limit, Limits};
 
 /// One lexical token. Keywords borrow from the input; decoded values are owned.
 #[derive(Debug, Clone, PartialEq)]
@@ -61,12 +62,33 @@ const fn hex_value(b: u8) -> Option<u8> {
 pub struct Lexer<'a> {
     data: &'a [u8],
     pos: usize,
+    max_string_length: usize,
 }
 
 impl<'a> Lexer<'a> {
-    /// A lexer over `data`, starting at byte offset `pos`.
+    /// A lexer over `data`, starting at byte offset `pos`, with the default [`Limits`].
     pub const fn new(data: &'a [u8], pos: usize) -> Self {
-        Self { data, pos }
+        Self {
+            data,
+            pos,
+            max_string_length: Limits::new().max_string_length(),
+        }
+    }
+
+    /// Applies `limits` ([`Limits::max_string_length`] bounds every string and name token).
+    #[must_use]
+    pub const fn with_limits(mut self, limits: &Limits) -> Self {
+        self.max_string_length = limits.max_string_length();
+        self
+    }
+
+    /// Fails once a string or name token that started at `start` holds more than
+    /// [`Limits::max_string_length`] bytes.
+    fn check_length(&self, out: &[u8], start: usize) -> Result<()> {
+        if out.len() > self.max_string_length {
+            return Err(Error::limit(Limit::StringLength, Some(start)));
+        }
+        Ok(())
     }
 
     /// The current byte offset.
@@ -121,7 +143,8 @@ impl<'a> Lexer<'a> {
     ///
     /// # Errors
     /// [`Error::UnexpectedEof`] for an unterminated string, [`Error::Syntax`] for an unbalanced
-    /// `)` or `>` or an invalid hex digit.
+    /// `)` or `>` or an invalid hex digit, [`Error::LimitExceeded`] for a string or name longer
+    /// than [`Limits::max_string_length`].
     pub fn next_token(&mut self) -> Result<Token<'a>> {
         self.skip_whitespace();
         let Some(b) = self.peek() else {
@@ -146,7 +169,7 @@ impl<'a> Lexer<'a> {
             }
             b'<' => self.hex_string(),
             b'(' => self.literal_string(),
-            b'/' => Ok(self.name()),
+            b'/' => self.name(),
             b'{' | b'}' => {
                 let kw = self.data.get(self.pos..=self.pos).unwrap_or_default();
                 self.pos += 1;
@@ -166,7 +189,8 @@ impl<'a> Lexer<'a> {
         parse_number(run).unwrap_or(Token::Keyword(run))
     }
 
-    fn name(&mut self) -> Token<'a> {
+    fn name(&mut self) -> Result<Token<'a>> {
+        let start = self.pos;
         self.pos += 1; // the '/'
         let mut out = Vec::new();
         while let Some(b) = self.peek().filter(|&b| is_regular(b)) {
@@ -176,16 +200,19 @@ impl<'a> Lexer<'a> {
                 if let (Some(hi), Some(lo)) = (hi, lo) {
                     out.push((hi << 4) | lo);
                     self.pos += 3;
+                    self.check_length(&out, start)?;
                     continue;
                 }
             }
             out.push(b);
             self.pos += 1;
+            self.check_length(&out, start)?;
         }
-        Token::Name(out)
+        Ok(Token::Name(out))
     }
 
     fn hex_string(&mut self) -> Result<Token<'a>> {
+        let start = self.pos;
         self.pos += 1; // the '<'
         let mut out = Vec::new();
         let mut high: Option<u8> = None;
@@ -207,21 +234,27 @@ impl<'a> Lexer<'a> {
                 });
             };
             match high.take() {
-                Some(h) => out.push((h << 4) | v),
+                Some(h) => {
+                    out.push((h << 4) | v);
+                    self.check_length(&out, start)?;
+                }
                 None => high = Some(v),
             }
         }
         if let Some(h) = high {
             out.push(h << 4); // odd length: the missing final digit is 0 (§7.3.4.3)
+            self.check_length(&out, start)?;
         }
         Ok(Token::HexString(out))
     }
 
     fn literal_string(&mut self) -> Result<Token<'a>> {
+        let start = self.pos;
         self.pos += 1; // the '('
         let mut out = Vec::new();
         let mut depth = 0usize;
         loop {
+            self.check_length(&out, start)?;
             let Some(b) = self.peek() else {
                 return Err(Error::UnexpectedEof { offset: self.pos });
             };
@@ -397,6 +430,61 @@ mod tests {
     #[test]
     fn name_decodes_hash_escapes() {
         assert_eq!(tokens(b"/A#20B#2"), vec![Token::Name(b"A B#2".to_vec())]);
+    }
+
+    fn lex_with_max_string(input: &[u8], max: usize) -> Result<Token<'_>> {
+        Lexer::new(input, 0)
+            .with_limits(&Limits::default().with_max_string_length(max))
+            .next_token()
+    }
+
+    #[test]
+    fn literal_string_at_the_length_limit_is_accepted() {
+        assert_eq!(
+            lex_with_max_string(b"(abcd)", 4),
+            Ok(Token::LiteralString(b"abcd".to_vec()))
+        );
+    }
+
+    #[test]
+    fn literal_string_past_the_length_limit_is_rejected() {
+        assert_eq!(
+            lex_with_max_string(b"(abcde)", 4),
+            Err(Error::LimitExceeded {
+                limit: Limit::StringLength,
+                at: Some(0)
+            })
+        );
+    }
+
+    #[test]
+    fn hex_string_at_the_length_limit_is_accepted() {
+        assert_eq!(
+            lex_with_max_string(b"<41424344>", 4),
+            Ok(Token::HexString(b"ABCD".to_vec()))
+        );
+    }
+
+    #[test]
+    fn hex_string_past_the_length_limit_is_rejected() {
+        assert!(matches!(
+            lex_with_max_string(b"<4142434445>", 4),
+            Err(Error::LimitExceeded {
+                limit: Limit::StringLength,
+                ..
+            })
+        ));
+    }
+
+    #[test]
+    fn name_past_the_length_limit_is_rejected() {
+        assert!(matches!(
+            lex_with_max_string(b"/ABCDE", 4),
+            Err(Error::LimitExceeded {
+                limit: Limit::StringLength,
+                ..
+            })
+        ));
     }
 
     #[test]

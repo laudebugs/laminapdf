@@ -17,8 +17,8 @@ The policy already exists in code, ported from the spike and fixed in review of 
 | --- | --- | --- |
 | Reference to a missing or free object, or whose generation differs from the xref entry's | Resolves to `null` (§7.3.10). Not cached under the stale generation | `Document::load`, `XrefEntry::matches_gen` |
 | A `null` value | Same as absent (§7.3.7): an inheritable page attribute that is `null` keeps the inherited value; a `null` `/Contents` or array element contributes nothing | `Inherited::overlay`, `page_content` |
-| `%PDF-` header | Optional. Searched in the first 1,024 bytes; absent → warning, parsing continues | `open_with` |
-| Stored xref | Used only if `startxref` parses, the `/Prev` chain loads, the trailer has `/Root`, **every** in-file entry points at a matching `num gen obj` header, and `/Root` resolves to a dictionary. Anything else triggers repair | `open_with`, `entries_are_valid` |
+| `%PDF-` header | Optional. Searched in the first 1,024 bytes; absent → warning, parsing continues | `Document::open` (`OpenOptions`) |
+| Stored xref | Used only if `startxref` parses, the `/Prev` chain loads, the trailer has `/Root`, **every** in-file entry points at a matching `num gen obj` header, and `/Root` resolves to a dictionary. Anything else triggers repair | `Document::open`, `entries_are_valid` |
 | Repair | Scan all `num gen obj` headers. Per object number, the definition **last in the file** wins (an object-stream member counts at its container's offset, then its index); a parseable definition beats an unparsable one. All trailers and xref-stream dictionaries merge in file order; the newest `/Root` pointing at a dictionary wins, else the newest `/Type /Catalog`. `/Size` is recomputed | `reader/repair.rs` |
 | xref chain | Newest section wins; within one classic table, a later subsection wins. `/Prev` loops are a load failure (→ repair) | `xref::load`, `parse_table` |
 | Hybrid files (§7.5.8.4) | The classic table's in-use entries win; `/XRefStm` fills numbers the table omits or marks free; a broken `/XRefStm` is ignored | `xref::load` |
