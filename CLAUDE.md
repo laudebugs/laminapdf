@@ -12,7 +12,14 @@ lamina is a platform for anything and everything PDF: creating PDFs from code, p
 .
 ├── CLAUDE.md            # this file
 ├── README.md            # project overview
-├── spikes/              # research spikes (throwaway code that informs decisions)
+├── Cargo.toml           # Rust workspace (virtual manifest): shared package fields, deps, lints, profiles
+├── rust-toolchain.toml  # pinned Rust toolchain + targets (wasm32, iOS, Android)
+├── package.json         # private pnpm root: dev tooling only; pnpm-workspace.yaml lists packages/*, apps/*
+├── biome.json  tsconfig.base.json  deny.toml  clippy.toml  rustfmt.toml
+├── crates/              # Rust crates, flat: crates/lamina-<name> (lamina-syntax is a placeholder for now)
+├── tools/xtask/         # `cargo xtask …`: the single task entry point
+├── .github/             # CI fast lane (workflows/ci.yml) and Dependabot
+├── spikes/              # research spikes (throwaway code that informs decisions), outside both workspaces
 │   └── pdf-basics/      # minimal PDF core in Rust + TypeScript, shared fixtures and spec
 └── docs/                # all documentation (see docs/README.md)
     ├── research/        # deep dives and research notes, one subfolder per topic
@@ -44,7 +51,28 @@ Conventions that hold whatever the architecture ADRs decide (crate/package names
 
 ## Commands
 
-Only research spikes exist so far (`spikes/`). They are throwaway-quality APIs used to inform decisions, not the product.
+Every repo-wide task goes through `cargo xtask` (source: `tools/xtask`). It runs from any directory and is exactly what CI runs. Needs rustup (the toolchain in `rust-toolchain.toml` installs itself), Node ≥ 22 (`.nvmrc`: 24) and pnpm (version pinned in `package.json`).
+
+```sh
+pnpm install                 # once per worktree: Biome, TypeScript (needed by the TS checks)
+cargo xtask check            # everything a PR must pass: `check rust` + `check ts`
+cargo xtask check rust       # fmt --check, portability, clippy native + wasm32 (-D warnings), tests, rustdoc
+cargo xtask check ts         # biome ci, typecheck and tests of packages/* and apps/*
+cargo xtask fmt              # format Rust and TS/JSON (fmt --check only verifies)
+cargo xtask lint             # clippy (native all-targets + wasm32 core crates) and biome ci
+cargo xtask test             # cargo nextest (or cargo test) + doc tests, then TS tests
+cargo xtask portability      # core crates: no fs/net/process/thread/clocks, no edge deps, forbid(unsafe),
+                             #   cargo check for wasm32-unknown-unknown, aarch64-apple-ios, aarch64-linux-android
+cargo xtask wasm             # build the wasm32 crates with the size-optimised `wasm-release` profile
+cargo xtask deny             # cargo-deny (licences, advisories, bans, sources) + npm licence check
+cargo xtask npm-licenses     # npm licence check only
+cargo xtask ci               # the whole fast lane locally: check + wasm + deny
+cargo xtask doctor           # are cargo-deny, cargo-nextest, pnpm, node, wasm-opt … installed at the pinned versions?
+```
+
+Every crate under `crates/` declares its layer in `Cargo.toml` (`[package.metadata.lamina] layer = "core" | "edge" | "app"`); xtask applies the bytes-in/bytes-out rules to core crates. `cargo-deny` and `cargo-nextest` are optional locally (`cargo install cargo-deny cargo-nextest --locked`); CI always runs them.
+
+Research spikes (`spikes/`) are throwaway-quality APIs used to inform decisions, not the product. They are outside both workspaces; CI still runs the pdf-basics spike's checks in a separate job.
 
 `spikes/pdf-basics/` — the same minimal PDF core in Rust and TypeScript (see its `SPEC.md`):
 

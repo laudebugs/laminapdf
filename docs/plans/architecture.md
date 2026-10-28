@@ -110,11 +110,11 @@ Product-level detail (features, milestones, acceptance criteria) lives in the pr
 - [x] Write ADR 0002 (binding strategy)
 - [x] Write ADR 0015 (monorepo layout and tooling)
 - [x] Write ADR 0019 (supply-chain and licence hygiene)
-- [ ] Create the root Cargo workspace (`[workspace.lints]`, `rust-toolchain.toml`, edition 2024, MSRV policy)
-- [ ] Create the pnpm workspace (`pnpm-workspace.yaml`, shared `tsconfig.base.json`, Biome config)
-- [ ] Add `tools/xtask` with `cargo xtask check`, `test`, `wasm`, `fmt` (the single task entry point, per the code-organization guide)
-- [ ] Add `deny.toml` (licence allow-list without AGPL/GPL; advisories) and an npm licence check
-- [ ] CI fast lane: fmt, clippy `-D warnings`, nextest, wasm32 build with a size budget, TS typecheck/lint/test, cargo-deny
+- [x] Create the root Cargo workspace (`[workspace.lints]`, `rust-toolchain.toml`, edition 2024, MSRV policy)
+- [x] Create the pnpm workspace (`pnpm-workspace.yaml`, shared `tsconfig.base.json`, Biome config)
+- [x] Add `tools/xtask` with `cargo xtask check`, `test`, `wasm`, `fmt` (the single task entry point, per the code-organization guide)
+- [x] Add `deny.toml` (licence allow-list without AGPL/GPL; advisories) and an npm licence check
+- [x] CI fast lane: fmt, clippy `-D warnings`, nextest, wasm32 build, TS typecheck/lint/test, cargo-deny (the wasm size budget moves to Round B, with the first `.wasm` artefact from `lamina-wasm`)
 - [ ] Port the spike reader/writer into `crates/lamina-syntax` + `crates/lamina-cos`, with its fixtures moved to `fixtures/`
 - [ ] Reserve package names: `lamina*` on crates.io and the `@lamina` scope on npm
 - [ ] Update `CLAUDE.md` (layout, commands, decided architecture)

@@ -1,0 +1,24 @@
+{
+  "name": "lamina",
+  "private": true,
+  "description": "lamina monorepo root: dev tooling and scripts only, no runtime code.",
+  "license": "MIT OR Apache-2.0",
+  "type": "module",
+  "packageManager": "pnpm@11.20.0",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "check": "cargo xtask check",
+    "check:ts": "cargo xtask check ts",
+    "lint": "biome ci .",
+    "format": "biome format --write .",
+    "typecheck": "pnpm -r --if-present run typecheck",
+    "test": "pnpm -r --if-present run test",
+    "licenses": "cargo xtask npm-licenses"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "catalog:",
+    "typescript": "catalog:"
+  }
+}

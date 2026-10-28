@@ -1,0 +1,13 @@
+# Test code may unwrap/expect/panic/index: a panic there is a test failure. See docs/guidelines/rust.md.
+allow-unwrap-in-tests = true
+allow-expect-in-tests = true
+allow-panic-in-tests = true
+allow-indexing-slicing-in-tests = true
+allow-dbg-in-tests = true
+
+# Determinism: hash iteration order is random, so output (PDF bytes, warnings, op logs) could
+# differ between runs. Use ordered collections instead.
+disallowed-types = [
+    { path = "std::collections::HashMap", reason = "iteration order is random; use BTreeMap (or IndexMap for insertion order)" },
+    { path = "std::collections::HashSet", reason = "iteration order is random; use BTreeSet (or IndexSet for insertion order)" },
+]

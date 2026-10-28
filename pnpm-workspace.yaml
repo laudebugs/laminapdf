@@ -1,0 +1,13 @@
+# One pnpm workspace for the repo (docs/guidelines/code-organization.md §1).
+# spikes/ is deliberately not matched: spikes keep their own lockfiles and are never imported.
+packages:
+  - packages/*
+  - apps/*
+
+# Shared third-party versions; packages depend on them with "catalog:" (typescript.md).
+catalog:
+  "@biomejs/biome": 2.6.3
+  typescript: 7.0.2
+
+# Fail installs on the wrong Node version instead of warning.
+engineStrict: true
