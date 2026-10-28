@@ -10,7 +10,8 @@ mod common;
 
 use common::fixture;
 use common::samples;
-use lamina_cos::{Dict, ObjRef, Stream, XrefEol, incremental_update};
+use common::update;
+use lamina_cos::{Dict, ObjRef, Stream, XrefEol};
 
 #[test]
 fn hello_rebuild_is_byte_identical_to_golden_fixture() {
@@ -27,7 +28,7 @@ fn imaging_demo_rebuild_is_byte_identical_to_golden_fixture() {
 #[test]
 fn imaging_demo_content_matches_fixture_stream() {
     let golden = fixture("golden/imaging-demo.pdf");
-    let doc = lamina_cos::open(&golden).unwrap();
+    let doc = common::open(&golden).unwrap();
     let page = doc.pages().unwrap().remove(0);
     assert_eq!(doc.page_content(&page).unwrap(), samples::imaging_demo_content());
 }
@@ -36,7 +37,7 @@ fn imaging_demo_content_matches_fixture_stream() {
 fn incremental_update_of_hello_reproduces_corpus_fixture_byte_for_byte() {
     let content = b"BT\n/F1 24 Tf\n72 720 Td\n(Hello, Update) Tj\nET".to_vec();
     let changes = [(ObjRef::new(5, 0), Stream::new(Dict::new(), content).into())];
-    let updated = incremental_update(&fixture("golden/hello.pdf"), &changes, XrefEol::CrLf).unwrap();
+    let updated = update(&fixture("golden/hello.pdf"), &changes, XrefEol::CrLf).unwrap();
     assert_eq!(
         String::from_utf8_lossy(&updated),
         String::from_utf8_lossy(&fixture("corpus/hello-incremental.pdf"))

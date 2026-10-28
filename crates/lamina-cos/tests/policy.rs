@@ -10,7 +10,8 @@
 mod common;
 
 use common::fixture;
-use lamina_cos::{Dict, Error, ObjRef, Object, Warning, Writer, open};
+use common::open;
+use lamina_cos::{Dict, Error, ObjRef, Object, Warning, Writer};
 use lamina_syntax::parse_object;
 
 /// A classic file around arbitrary object bodies, with a correct xref.
@@ -126,7 +127,7 @@ fn file_without_header_records_a_warning() {
     let doc = open(&bytes).unwrap();
     assert_eq!(
         (doc.header_version(), doc.warnings()),
-        (None, &[Warning::MissingHeader][..])
+        (None, vec![Warning::MissingHeader])
     );
 }
 

@@ -2,10 +2,13 @@
 //! re-parsed or copied (review finding: `resolve` re-lexed every call, `pages` cloned
 //! inherited attributes per kid).
 
-use std::rc::Rc;
+use std::sync::Arc;
 use std::time::{Duration, Instant};
 
-use lamina_cos::{Dict, ObjRef, Object, Result, Writer, open};
+mod common;
+
+use common::open;
+use lamina_cos::{Dict, ObjRef, Object, Result, Writer};
 
 /// A classic file with `page_count` pages, all sharing one indirect `/Resources`.
 fn shared_resources_pdf(page_count: u32) -> Result<(Vec<u8>, ObjRef)> {
@@ -53,7 +56,7 @@ fn resolve_should_return_the_same_rc_when_called_twice() -> Result<()> {
     let (bytes, resources) = shared_resources_pdf(1)?;
     let doc = open(&bytes)?;
     let (first, second) = (doc.resolve(resources)?, doc.resolve(resources)?);
-    assert!(Rc::ptr_eq(&first, &second));
+    assert!(Arc::ptr_eq(&first, &second));
     Ok(())
 }
 
@@ -62,8 +65,8 @@ fn pages_should_share_one_resources_rc_across_pages() -> Result<()> {
     let (bytes, _) = shared_resources_pdf(3)?;
     let doc = open(&bytes)?;
     let pages = doc.pages()?;
-    let shared: Vec<&Rc<Object>> = pages.iter().filter_map(|p| p.resources.as_ref()).collect();
-    assert!(shared.len() == 3 && shared.windows(2).all(|w| matches!(w, [a, b] if Rc::ptr_eq(a, b))));
+    let shared: Vec<&Arc<Object>> = pages.iter().filter_map(|p| p.resources.as_ref()).collect();
+    assert!(shared.len() == 3 && shared.windows(2).all(|w| matches!(w, [a, b] if Arc::ptr_eq(a, b))));
     Ok(())
 }
 
@@ -88,10 +91,10 @@ fn pages_should_share_resources_across_a_thousand_pages() -> Result<()> {
     let (bytes, _) = shared_resources_pdf(1000)?;
     let doc = open(&bytes)?;
     let (count, pages) = (doc.page_count()?, doc.pages()?);
-    let shared: Vec<&Rc<Object>> = pages.iter().filter_map(|p| p.resources.as_ref()).collect();
+    let shared: Vec<&Arc<Object>> = pages.iter().filter_map(|p| p.resources.as_ref()).collect();
     // One shared, cached `/Resources` object across every page is what keeps the walk linear.
     assert!(
-        count == 1000 && shared.len() == 1000 && shared.windows(2).all(|w| matches!(w, [a, b] if Rc::ptr_eq(a, b)))
+        count == 1000 && shared.len() == 1000 && shared.windows(2).all(|w| matches!(w, [a, b] if Arc::ptr_eq(a, b)))
     );
     Ok(())
 }

@@ -3,8 +3,9 @@
 
 mod common;
 
+use common::update;
 use common::{fixture, samples};
-use lamina_cos::{Dict, ObjRef, Object, PdfString, Stream, Writer, XrefEol, incremental_update};
+use lamina_cos::{Dict, ObjRef, Object, PdfString, Stream, Writer, XrefEol};
 
 /// A small document using every object type, with forward references and a stream.
 fn build() -> (Writer, Dict) {
@@ -84,7 +85,7 @@ fn incremental_update_should_produce_identical_bytes_when_run_twice() {
             (ObjRef::new(6, 0), Object::from(PdfString::hex(b"new".to_vec()))),
             (ObjRef::new(4, 0), Object::name("Replaced")),
         ];
-        incremental_update(&base, &changes, XrefEol::SpaceLf).unwrap()
+        update(&base, &changes, XrefEol::SpaceLf).unwrap()
     };
     assert_eq!(run(), run());
 }
@@ -94,7 +95,7 @@ fn incremental_update_of_compact_file_should_produce_identical_bytes_when_run_tw
     let run = || {
         let (w, trailer) = build();
         let base = w.finish_compact(&trailer).unwrap();
-        incremental_update(&base, &[(ObjRef::new(3, 0), Object::Null)], XrefEol::CrLf).unwrap()
+        update(&base, &[(ObjRef::new(3, 0), Object::Null)], XrefEol::CrLf).unwrap()
     };
     assert_eq!(run(), run());
 }

@@ -11,7 +11,8 @@ mod common;
 
 use common::content::ContentBuilder;
 use common::fixture;
-use lamina_cos::{Dict, Document, ObjRef, Object, PdfString, Stream, Writer, XrefEol, open};
+use common::open;
+use lamina_cos::{Dict, Document, ObjRef, Object, PdfString, Stream, Writer, XrefEol};
 
 const TITLE: &str = "Hello from lamina";
 const PARA: [&str; 2] = [
@@ -101,8 +102,8 @@ fn build() -> Vec<u8> {
     w.finish(&dict([("Root", r(1)), ("Info", r(7))])).unwrap()
 }
 
-fn content_stream(doc: &Document<'_>) -> Stream {
-    match std::rc::Rc::unwrap_or_clone(doc.resolve(ObjRef::new(6, 0)).unwrap()) {
+fn content_stream(doc: &Document) -> Stream {
+    match std::sync::Arc::unwrap_or_clone(doc.resolve(ObjRef::new(6, 0)).unwrap()) {
         Object::Stream(s) => s,
         other => panic!("object 6 is not a stream: {other:?}"),
     }
@@ -159,8 +160,8 @@ fn decoded_content_streams_are_identical() {
 fn info_and_trailer_serialize_identically() {
     let (ours, theirs) = (build(), fixture("corpus/raw.pdf"));
     let (a, b) = (open(&ours).unwrap(), open(&theirs).unwrap());
-    let info = |d: &Document<'_>| d.resolve(ObjRef::new(7, 0)).unwrap().to_bytes();
-    let trailer = |d: &Document<'_>| Object::Dict(d.trailer().clone()).to_bytes();
+    let info = |d: &Document| d.resolve(ObjRef::new(7, 0)).unwrap().to_bytes();
+    let trailer = |d: &Document| Object::Dict(d.trailer().clone()).to_bytes();
     assert_eq!((info(&a), trailer(&a)), (info(&b), trailer(&b)));
 }
 
