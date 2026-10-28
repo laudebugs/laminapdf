@@ -9,11 +9,11 @@ These apply to all product Rust code in `crates/`, `apps/*/src-tauri` and `tools
 - **MUST:** use edition **2024** for every crate. Set it once in `[workspace.package]` and inherit it with `edition.workspace = true`.
 - **MUST:** pin the development toolchain and targets in `rust-toolchain.toml` (stable channel; components `rustfmt`, `clippy`; targets `wasm32-unknown-unknown`, `aarch64-apple-ios`, `aarch64-linux-android`, plus any others we ship). CI uses the same file.
 - **MUST:** declare `rust-version` (the MSRV) in `[workspace.package]`, and verify it in CI with a job on that exact toolchain. Clippy reads it, so it won't suggest newer APIs ([Cargo: rust-version](https://doc.rust-lang.org/cargo/reference/rust-version.html), [Clippy `msrv`](https://doc.rust-lang.org/clippy/lint_configuration.html)).
-- *Recommendation:* before the first public release, use an **N-2 policy**: MSRV is at most two stable releases behind the latest, and raising it is a minor-version change. While nothing is published, the MSRV may track the pinned toolchain. The Cargo book asks projects to publish their policy and keep `rust-version` in line with it.
+- *Recommendation:* before the first public release, adopt an **N-2 policy**: the MSRV is no newer than N-2, i.e. at least two stable releases behind the latest stable (with Rust 1.99 current, `rust-version` is at most 1.97). Raise it only when a newer Rust feature or a dependency's MSRV requires it, never past N-2, and treat the bump as a minor-version change noted in the changelog. While nothing is published, the MSRV may track the pinned toolchain. The Cargo book asks projects to publish their policy and keep `rust-version` in line with it.
 
 ## Lints
 
-Configure lints once, in the root `Cargo.toml`. Every member opts in with `[lints] workspace = true` (requires Rust ≥ 1.74). This is the spike's set, lifted to the workspace:
+Configure lints once, in the root `Cargo.toml`. Every member opts in with `[lints] workspace = true` (requires Rust ≥ 1.74). This is the spike's set, lifted to the workspace and tightened (for example `pedantic`, `indexing_slicing`, `todo`/`unimplemented`, `allow_attributes`); lint names checked against Clippy 0.1.99:
 
 ```toml
 [workspace.lints.rust]
@@ -25,7 +25,8 @@ unused_qualifications = "warn"
 
 [workspace.lints.clippy]
 all = { level = "deny", priority = -1 }
-pedantic = { level = "warn", priority = -1 }   # recommendation: with -D warnings this is effectively deny; opt out of noisy ones below with a comment
+pedantic = { level = "warn", priority = -1 }   # enforced: CI's -D warnings turns these into errors
+must_use_candidate = "allow"    # pedantic allow-list: each entry says why (here: #[must_use] on every getter is noise)
 unwrap_used = "deny"
 expect_used = "deny"
 panic = "deny"
@@ -33,7 +34,9 @@ indexing_slicing = "deny"       # spike had "warn"; product core denies
 redundant_clone = "deny"
 undocumented_unsafe_blocks = "deny"
 dbg_macro = "deny"
-todo = "warn"
+todo = "deny"                   # unfinished code never merges; keep todo!/unimplemented! on your branch
+unimplemented = "deny"
+allow_attributes = "deny"       # outer #[allow] is rejected: use #[expect] (inner #![allow] is not covered)
 allow_attributes_without_reason = "deny"   # every #[allow]/#[expect] states why
 ```
 
@@ -47,10 +50,12 @@ allow-indexing-slicing-in-tests = true
 allow-dbg-in-tests = true
 ```
 
-- **MUST:** `cargo clippy --workspace --all-targets --all-features --locked -- -D warnings` passes. Run it for the host and for `--target wasm32-unknown-unknown`, because cfg-gated code is only linted when it is compiled.
+- **MUST:** Clippy passes with `-D warnings`, so `pedantic` is enforced, not advisory. A pedantic lint that is noise for the whole workspace goes on the allow-list in `[workspace.lints.clippy]` with a comment (lint-specific entries at the default priority 0 override the `priority = -1` group). Two runs, because cfg-gated code is only linted when it is compiled:
+  - native: `cargo clippy --workspace --all-targets --all-features --locked -- -D warnings`
+  - wasm32: `cargo clippy --target wasm32-unknown-unknown --locked -p lamina-core -p lamina-syntax -p lamina-wasm --lib -- -D warnings` (the core and WASM crates only, with default features; the Tauri crate, xtask and native-only features don't build for wasm32).
 - **MUST:** `cargo fmt --check` passes. `rustfmt.toml` keeps `max_width = 120` and only stable options (`group_imports`/`imports_granularity` need nightly, so we don't require them).
-- **MUST:** silence a lint locally with `#[expect(lint, reason = "…")]`, not `#[allow]`. `expect` warns once the lint stops firing, so stale exceptions get cleaned up. Workspace-wide `allow`s need a comment and a PR discussion.
-- **Integration test crates:** Clippy's `allow-*-in-tests` only covers `#[test]` functions and `#[cfg(test)]` modules, not shared helpers in `tests/common`. Put a file-level `#![expect(clippy::unwrap_used, clippy::panic, reason = "test helpers: a panic is a test failure")]` at the top of each test file (use `allow` only when `expect` would be unfulfilled in some test crates, as the spike found).
+- **MUST:** silence a lint locally with `#[expect(lint, reason = "…")]`, not `#[allow]` (`allow_attributes` rejects outer `#[allow]`; `allow_attributes_without_reason` requires the `reason` on both). `expect` warns once the lint stops firing, so stale exceptions get cleaned up. Workspace-wide `allow`s need a comment and a PR discussion.
+- **Integration test crates:** Clippy's `allow-*-in-tests` only covers `#[test]` functions and `#[cfg(test)]` modules, not shared helpers in `tests/common`. Put a file-level `#![expect(clippy::unwrap_used, clippy::panic, reason = "test helpers: a panic is a test failure")]` at the top of each test file (use an inner `#![allow(…, reason = "…")]` only when `expect` would be unfulfilled in some test crates, as the spike found; `allow_attributes` doesn't cover inner attributes, so review these by hand).
 
 ## Unsafe
 
@@ -63,7 +68,7 @@ allow-dbg-in-tests = true
 
 - **MUST:** library crates return `Result<T, CrateError>` with an error type derived via [`thiserror`](https://docs.rs/thiserror). Errors are `Debug + Display + std::error::Error + Send + Sync + 'static` ([C-GOOD-ERR](https://rust-lang.github.io/api-guidelines/interoperability.html#c-good-err)).
 - **MUST:** public error enums are `#[non_exhaustive]`. Variants carry structured context (byte offset, object number, limit), not formatted strings. Display messages are lowercase with no trailing period.
-- **MUST NOT:** library code uses `unwrap`, `expect`, `panic!`, `todo!`, `unimplemented!` or unchecked indexing/slicing. Use `?`, `let … else`, `.get()`, `ok_or(…)` and `checked_*` arithmetic. `unreachable!` is allowed only with a comment that proves the invariant. If it can be reached from input, it's a bug.
+- **MUST NOT:** library code uses `unwrap`, `expect`, `panic!`, `todo!`, `unimplemented!` or unchecked indexing/slicing (all denied by the lint table above). Use `?`, `let … else`, `.get()`, `ok_or(…)` and `checked_*` arithmetic. `unreachable!` is allowed only with a comment that proves the invariant. If it can be reached from input, it's a bug.
 - **MUST NOT:** library APIs return `anyhow::Error` or `Box<dyn Error>`. Use `anyhow` only in binaries, xtask and tests.
 - **SHOULD:** derive `Clone + PartialEq` on errors when the payload allows it, so tests can assert exact variants (`assert_eq!(err, Error::DecompressLimit { limit })`).
 - **SHOULD NOT** expose another crate's error type through `#[from]` in a public variant. That makes the dependency's semver part of ours. Map it to our own variant and keep the source with `#[source]` only if it's a stable, public dependency.
@@ -83,7 +88,7 @@ allow-dbg-in-tests = true
 
 - **MUST:** unit tests sit in `#[cfg(test)] mod tests` at the bottom of the file. Integration tests in `tests/<topic>.rs` use the public API only. Shared helpers go in `tests/common/mod.rs`.
 - **MUST:** test names read as behavior. Group them by the unit under test: `mod parse_object { #[test] fn rejects_nesting_deeper_than_max_depth() … }` or `open_should_repair_when_xref_offset_is_wrong`. No `test_` prefixes, no `happy_path`.
-- **SHOULD:** check one behavior per test. Use [`rstest`](https://docs.rs/rstest) cases for tables of inputs and [`insta`](https://insta.rs) for snapshotting large structured output (never for byte-exact PDFs; those are golden files in `fixtures/golden/`).
+- **SHOULD:** check one behavior per test. Use [`rstest`](https://docs.rs/rstest) cases for tables of inputs and [`insta`](https://insta.rs) for snapshotting large text or `Debug` output (never for byte-exact PDFs; those are golden files in `fixtures/golden/`, rewritten only by an explicit regenerate command, see [`code-organization.md` §6](code-organization.md#6-tests-and-fixtures)).
 - **MUST:** every public example in docs is a doc test that compiles and runs (`?` with a hidden `# Ok::<(), Error>(())`, C-QUESTION-MARK).
 - **MUST:** parsers have robustness tests (truncation, byte flips, token soup) with a time budget. Fuzz targets (`cargo fuzz`) live in a `fuzz/` folder of the crate, outside the workspace.
 

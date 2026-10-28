@@ -25,7 +25,7 @@ lamina/
 │   ├── lamina-syntax/      #   e.g. lexer/parser (pure)
 │   ├── lamina-core/        #   e.g. document model, read/write (pure)
 │   ├── lamina-wasm/        #   e.g. wasm-bindgen binding (edge)
-│   └── lamina-cli/         #   e.g. command-line binary (edge)
+│   └── lamina-cli/         #   e.g. command-line binary (consumer, like an app)
 ├── packages/               # TypeScript packages published or shared as @lamina/*
 │   ├── pdf/                #   e.g. @lamina/pdf: idiomatic TS API over lamina-wasm
 │   └── viewer/             #   e.g. @lamina/viewer: UI components
@@ -61,16 +61,18 @@ lamina/
 ## 2. Boundaries and dependency direction
 
 ```
-apps/web ─┐                       apps/desktop (Tauri)
-          ▼                            │
-   packages/* (@lamina/…)              │
-          │ uses build output of       │ links
-          ▼                            ▼
-   crates/lamina-wasm …        crates/lamina-cli, lamina-ffi …   ← edges: platform code lives here
-          └──────────────┬─────────────┘
+apps/web ─┐               apps/desktop (Tauri)   crates/lamina-cli    ← consumers (apps, binaries): never depended on
+          ▼                       └──────────┬──────────┘
+   packages/* (@lamina/…)                    │ depend on library crates only
+          │ uses build output of             ▼
+          ▼                    crates/lamina (façade), lamina-ffi …  ← libraries; bindings (ffi, wasm) are edges
+   crates/lamina-wasm …                      │
+          └──────────────┬───────────────────┘
                          ▼
-          crates/lamina-core, lamina-syntax …                    ← pure core: bytes in, bytes out
+          crates/lamina-core, lamina-syntax …                        ← pure core: bytes in, bytes out
 ```
+
+Apps and binaries (`apps/*`, including the Tauri crate in `apps/desktop/src-tauri`, and bin crates such as `lamina-cli`) sit at the top: they depend on library crates (a façade such as `lamina`, core crates, or a binding they need) and nothing depends on them. A bin crate is never a dependency; `lamina-cli` is a sibling consumer of the same libraries.
 
 ### Rules
 
@@ -124,7 +126,7 @@ Everything public will be used by someone, so keep the surface small and deliber
 
 | Layer | Rust | TypeScript |
 | --- | --- | --- |
-| Core library | One `thiserror` enum per crate (or per major module), `#[non_exhaustive]`, with byte offsets where relevant. No panics: no `unwrap`/`expect`/`panic!`/unchecked indexing (clippy-enforced) | One error class per package (`class PdfError extends Error`) with a string-literal `code` union and an `isPdfError` guard. Throw only `Error` subclasses |
+| Core library | One `thiserror` enum per crate (or per major module), `#[non_exhaustive]`, with byte offsets where relevant. No panics: no `unwrap`/`expect`/`panic!`/`todo!`/`unimplemented!`/unchecked indexing (all denied in `[workspace.lints.clippy]`) | One error class per package (`class PdfError extends Error`) with a string-literal `code` union and an `isPdfError` guard. Throw only `Error` subclasses |
 | Binding | Map core errors 1:1 to the target's idiom (a JS `Error` with a `code`, a Swift `Error`) and never drop the code | Re-throw binding errors as the package's own error class |
 | App / CLI / xtask | `anyhow` with `.context(…)` is fine | Catch at the boundary, log, and show a user-facing message |
 
@@ -154,7 +156,7 @@ fixtures/
 - **MUST:** TS unit tests are colocated (`foo.test.ts` next to `foo.ts`). Integration tests live in `test/`. Vitest is the runner.
 - **MUST:** a test name says what behavior it checks, not which bug it fixes: `open_should_repair_when_xref_offset_is_wrong`, `it("repairs a file whose xref offset is wrong")`. Regression tests link the issue in a comment.
 - **MUST:** shared fixtures live in root `fixtures/` and are read by path relative to the repo root (resolved once in a helper). They are never copied into a package. Each file's provenance and licence are recorded in `fixtures/README.md`. PDF corpora often contain third-party content, so a file without a known licence isn't committed.
-- **MUST:** golden files are updated only by an explicit command (`UPDATE_GOLDEN=1 cargo test`, `cargo insta review`, `vitest -u`) and the diff is reviewed like code. A test never rewrites its own golden file silently.
+- **MUST:** golden files are updated only by an explicit command and the diff is reviewed like code. Byte-exact PDF goldens in `fixtures/golden/` are rewritten only by a regenerate command (for example `UPDATE_GOLDEN=1 cargo test` or a `cargo xtask golden` subcommand). Snapshot tools are for text and `Debug` snapshots only: `cargo insta review` (Rust) and `vitest -u` (TS), never for PDF bytes. A test never rewrites its own golden file silently.
 - **SHOULD:** behavior that both implementations or bindings expose is tested against the *same* fixture and expectation file, as in the spike (`corpus/expected.json`).
 - *Recommendation:* keep large external corpora (pdf.js, SafeDocs, veraPDF suites) **out of git**. Fetch them with an xtask into a gitignored folder, pinned by commit or hash. pdf.js does the same thing for its linked test PDFs (`test/pdfs/*.link`).
 
@@ -191,7 +193,7 @@ fixtures/
 Split when at least one of these holds:
 
 1. **Different dependencies.** A heavy or optional dependency (a renderer, a crypto stack) shouldn't be compiled by every user. Use a separate crate, or a feature flag if the code is small.
-2. **Different platform.** Edge code (`lamina-wasm`, the Tauri crate) is always separate from the pure core.
+2. **Different platform.** Edge code (bindings such as `lamina-wasm` or `lamina-ffi`) is always separate from the pure core. The Tauri crate is not an edge crate but an app: it lives under `apps/desktop/src-tauri`, and its platform code (Tauri commands) stays there, on top of the library crates.
 3. **Different stability or audience.** A crate you publish with semver guarantees is split from internal helpers (`publish = false`).
 4. **Build time.** A crate is the unit of parallel and incremental compilation. Split a big crate along a clean seam when profiling (`cargo build --timings`) shows it's the bottleneck.
 5. **A real, acyclic boundary.** The lower part makes sense on its own and has its own tests (for example syntax → model → operations).

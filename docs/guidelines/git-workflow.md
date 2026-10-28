@@ -38,7 +38,7 @@ cd <type>-<desc>
 ```
 
   For example: `git worktree add -b feat/xref-repair feat-xref-repair main`. Name the folder after the branch, with `/` replaced by `-`.
-- **MUST NOT:** use `git stash` to move work between worktrees. The stash (`refs/stash`) is shared by every worktree of the repository (all `refs/` are shared, only pseudo-refs such as `HEAD` are per worktree; [git-worktree](https://git-scm.com/docs/git-worktree#_refs)), so you'd pop someone else's changes, or they'd pop yours. Commit work-in-progress on your branch instead (`git commit -m "wip: …"`, squash later).
+- **MUST NOT:** use `git stash` to move work between worktrees. The stash (`refs/stash`) is shared by every worktree of the repository (refs under `refs/` are shared, except `refs/bisect/*`, `refs/worktree/*` and `refs/rewritten/*`; pseudo-refs such as `HEAD` are per worktree; [git-worktree](https://git-scm.com/docs/git-worktree#_refs)), so you'd pop someone else's changes, or they'd pop yours. Commit work-in-progress on your branch instead (`git commit -m "wip: …"`, squash later).
 - Git won't check out the same branch in two worktrees, and that's a feature. Don't override it with `--force`.
 - Dependencies and build output (`node_modules/`, `target/`) are per worktree. Run `pnpm install` / `cargo build` in a new worktree. *Recommendation:* set a shared `CARGO_TARGET_DIR` only if disk space hurts, and accept that builds then lock against each other.
 
@@ -68,18 +68,27 @@ cd <type>-<desc>
 
 ## 6. Review
 
-- **MUST:** at least one review before merge (a human, or a human-directed review agent while the project is solo). The author answers or resolves every comment. Fix findings with new commits during review so the reviewer can see what changed, then squash on merge.
+- **MUST:** an approving review before merge, following the [review and merge process](#7-review-and-merge-process) below. The author answers or resolves every comment. Fix findings with new commits during review so the reviewer can see what changed, then squash on merge.
 - **SHOULD:** reviewers check in this order: correctness and safety (panics, unbounded allocation, `unsafe`), API surface (what became public), boundaries (does core now depend on an edge?), tests (does a test fail without the change?), then docs and style. Anything a tool can enforce is left to the tool.
 - **SHOULD:** a regression test for a review finding should fail on the pre-fix code (the spike's `regressions.test.ts` practice).
-- Merge with **squash merge** by default. Use a rebase merge when every commit in the PR is meaningful on its own.
+- **MUST:** merge with **squash merge** by default (the PR title becomes the commit on `main`). Use a rebase merge when every commit in the PR is meaningful on its own. `main`'s branch protection requires linear history, so merge commits are rejected (PR #1 was merged with one before that rule), and it requires one approving review.
 
-## 7. After merge: clean up
+## 7. Review and merge process
+
+- **MUST:** after opening a PR, run `/code-review` on it and post the findings as PR comments: `/code-review high <PR#> --comment`. Non-trivial PRs use effort **high**.
+- **MUST:** push fixes as new commits. For each comment, reply naming the commit that fixes it and resolve the thread, or reply why it won't be fixed.
+- **MUST:** if the first review found **more than 6** issues, run a second, low-effort review after the fixes are pushed (`/code-review low <PR#> --comment`) and handle its findings the same way.
+- **MUST:** merge once the PR has an approving review, every thread is resolved and CI is green: after the first review's fixes if it found 6 issues or fewer, otherwise after the second review's fixes. Squash-merge (see §6) with `gh pr merge <PR#> --squash --delete-branch`. This deletes the remote branch; the local branch is still checked out in its worktree, so Git can't delete it yet, and §8 removes both.
+- Trivial PRs (a typo, a link, a one-line config change) need only a single `/code-review low <PR#> --comment`.
+
+## 8. After merge: clean up
 
 ```sh
 cd lamina.git
-git worktree remove <type>-<desc>        # refuses if the worktree has uncommitted changes
-git branch -d <type>/<desc>              # use -D if it was squash-merged (Git can't see the merge)
-git push origin --delete <type>/<desc>   # unless GitHub deleted it on merge
+gh pr view <type>/<desc> --json state -q .state   # must print MERGED before you delete anything
+git worktree remove <type>-<desc>        # first: a branch checked out in a worktree can't be deleted; refuses on uncommitted changes
+git branch -D <type>/<desc>              # -D: after a squash or rebase merge Git can't see the branch as merged, so -d refuses
+git push origin --delete <type>/<desc>   # only if --delete-branch didn't already delete it
 git worktree prune                       # clears entries for folders deleted by hand
 git -C main pull --ff-only origin main
 ```

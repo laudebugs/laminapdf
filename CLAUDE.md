@@ -26,6 +26,7 @@ lamina is a platform for anything and everything PDF: creating PDFs from code, p
 
 - **Always work in a git worktree.** Start every piece of work in a new worktree off main (see docs/guidelines/git-workflow.md). The repo is a bare clone; worktrees are folders inside it: `git worktree add -b <type>/<desc> <type>-<desc> main`. Never `git stash` across worktrees; remove the worktree after merge.
 - **Pull requests only.** `main` was initialized directly; every change since goes through a branch + PR. Branch names: `<type>/<short-description>` (e.g. `docs/pdf-research`).
+- **Review every PR with `/code-review`, then merge.** After opening a PR, run `/code-review high <PR#> --comment` (trivial PRs: `low`), push fixes, reply to each comment with the fixing commit and resolve it; if there were more than 6 findings, run `/code-review low <PR#> --comment` after the fixes. Squash-merge once approved, resolved and green. See [review and merge process](docs/guidelines/git-workflow.md#7-review-and-merge-process).
 - **Conventional Commits** for commit messages: `type(scope): summary`.
 - **Document as you go.** Plans go in `docs/plans/`, decisions in `docs/decisions/`, research in `docs/research/`. Update the folder's `README.md` index whenever you add a file.
 - **Cite sources.** PDF behavior claims should point to ISO 32000-2 (PDF 2.0) or another primary source. Clearly label recommendations and opinions.
