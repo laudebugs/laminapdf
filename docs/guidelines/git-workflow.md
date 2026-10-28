@@ -68,17 +68,17 @@ cd <type>-<desc>
 
 ## 6. Review
 
-- **MUST:** an approving review before merge, following the [review and merge process](#7-review-and-merge-process) below. The author answers or resolves every comment. Fix findings with new commits during review so the reviewer can see what changed, then squash on merge.
+- **MUST:** review every PR with `/code-review`, following the [review and merge process](#7-review-and-merge-process) below; that process is the review (branch protection requires no separate approval). The author answers or resolves every comment. Fix findings with new commits during review so the reviewer can see what changed, then squash on merge.
 - **SHOULD:** reviewers check in this order: correctness and safety (panics, unbounded allocation, `unsafe`), API surface (what became public), boundaries (does core now depend on an edge?), tests (does a test fail without the change?), then docs and style. Anything a tool can enforce is left to the tool.
 - **SHOULD:** a regression test for a review finding should fail on the pre-fix code (the spike's `regressions.test.ts` practice).
-- **MUST:** merge with **squash merge** by default (the PR title becomes the commit on `main`). Use a rebase merge when every commit in the PR is meaningful on its own. `main`'s branch protection requires linear history, so merge commits are rejected (PR #1 was merged with one before that rule), and it requires one approving review.
+- **MUST:** merge with **squash merge** by default (the PR title becomes the commit on `main`). Use a rebase merge when every commit in the PR is meaningful on its own. `main`'s branch protection requires linear history, so merge commits are rejected (PR #1 was merged with one before that rule).
 
 ## 7. Review and merge process
 
 - **MUST:** after opening a PR, run `/code-review` on it and post the findings as PR comments: `/code-review high <PR#> --comment`. Non-trivial PRs use effort **high**.
 - **MUST:** push fixes as new commits. For each comment, reply naming the commit that fixes it and resolve the thread, or reply why it won't be fixed.
 - **MUST:** if the first review found **more than 6** issues, run a second, low-effort review after the fixes are pushed (`/code-review low <PR#> --comment`) and handle its findings the same way.
-- **MUST:** merge once the PR has an approving review, every thread is resolved and CI is green: after the first review's fixes if it found 6 issues or fewer, otherwise after the second review's fixes. Squash-merge (see §6) with `gh pr merge <PR#> --squash --delete-branch`. This deletes the remote branch; the local branch is still checked out in its worktree, so Git can't delete it yet, and §8 removes both.
+- **MUST:** merge once every review thread is resolved and CI is green: after the first review's fixes if it found 6 issues or fewer, otherwise after the second review's fixes. Squash-merge (see §6) with `gh pr merge <PR#> --squash --delete-branch`. This deletes the remote branch; the local branch is still checked out in its worktree, so Git can't delete it yet, and §8 removes both.
 - Trivial PRs (a typo, a link, a one-line config change) need only a single `/code-review low <PR#> --comment`.
 
 ## 8. After merge: clean up
