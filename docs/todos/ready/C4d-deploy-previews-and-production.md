@@ -1,0 +1,86 @@
+# C4d — Deploy pipeline: preview URL per PR and production from `main`
+
+| Field | Value |
+| --- | --- |
+| ID | `C4d` |
+| Status | `ready` |
+| Plan | [web reader §6 C4. App shell on Cloudflare](../../plans/web-app.md#c4-app-shell-on-cloudflare) |
+| Round / milestone | Round C (web reader) — M2 Web reader v0.1 |
+| Depends on | [C4b](./C4b-web-app-shell.md) |
+| Blocks | [C7b](./C7b-offline-pwa.md), [C7c](./C7c-performance-gates-and-launch.md), [D2b](./D2b-engine-process.md), [D5a](./D5a-update-worker-and-adr-0014.md), [D7b](./D7b-settings-renderer-switch-and-download-page.md), [H1](./H1-auth-spike.md) |
+| ADRs | Implements 0011 (Wrangler pinned in CI, previews per PR, production on `main`); follows [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) (pinned actions, least-privilege tokens) |
+| Branch | `ci/c4d-web-deploys` |
+| PR title | `ci(web): deploy a preview per pull request and production from main` |
+| Size | M (200–600 lines of workflow, scripts and docs) |
+| PR | — |
+
+## Goal
+
+Every PR that touches the reader gets a working preview URL commented on the PR, and every merge to `main` deploys production, through a pinned Wrangler in GitHub Actions. After deploy, a smoke test checks the live headers and that a fixture renders. Reviewers can then try every reader PR from C5 onward in a real browser on real Cloudflare.
+
+## Context
+
+- ADR 0011 (from [C2a](./C2a-render-adrs.md)) — production at `<domain>`, previews per PR via Workers preview URLs, Wrangler pinned.
+- [cloudflare notes §1](../../research/architecture/notes/cloudflare.md) — Workers needs `preview_urls: true` and a `previews` block; previews at `<preview-name>.<your-domain>`; custom domain must be a Cloudflare zone; unverified whether Workers Builds creates PR previews automatically; `cf` CLI is beta (try later).
+- [Git workflow §5–7](../../guidelines/git-workflow.md#5-pull-requests) — PR process; CI must be green.
+- [ADR 0018 §2](../../decisions/0018-test-strategy.md#2-ci-lanes) — path-filtering inside jobs, never workflow-level `paths` on required checks.
+
+## Scope
+
+**In scope**
+
+- `.github/workflows/web-deploy.yml`: on `pull_request` (same-repo branches only; forks get no secrets → skip with a note) build `apps/web` and `wrangler versions upload` with a preview alias derived from the PR number (e.g. `pr-123`), then comment (create or update a single sticky comment) with the preview URL; on `push` to `main` build and `wrangler deploy` to production; concurrency groups per PR and for production.
+- `wrangler.jsonc`: `preview_urls: true`, environment/route config for the production custom domain (placeholder until the domain is chosen — [web-app §8 Q1](../../plans/web-app.md#8-open-questions)), `workers_dev` policy.
+- Secrets: `CLOUDFLARE_API_TOKEN` (scoped to Workers Scripts edit on the one account) and `CLOUDFLARE_ACCOUNT_ID`, documented; GitHub environment `production` with required reviewers optional.
+- Post-deploy smoke (`apps/web/e2e/smoke.spec.ts` with `BASE_URL`): headers match ADR 0011, SPA fallback works, `hello.pdf` (served from the test, opened via file input) renders page 1.
+- Preview cleanup policy (previews expire or are deleted when the PR closes, if the API allows; otherwise document retention).
+
+**Out of scope** (and which todo covers it)
+
+- The `web v0.1` tag and production launch checklist → [C7c](./C7c-performance-gates-and-launch.md).
+- Docs-site deploys (library B7).
+- Migration to the `cf` CLI (later, after GA).
+
+## Tasks
+
+- [ ] Fresh worktree; move this file to `ongoing/`.
+- [ ] Create the Cloudflare Worker `lamina-web` (owner action: account, API token with minimal scope; record the steps in `apps/web/DEPLOY.md`, no secrets in the repo).
+- [ ] Add `preview_urls`/`previews` config to `wrangler.jsonc`; verify `wrangler versions upload --preview-alias pr-<n>` (or the current equivalent for the pinned Wrangler version) yields a stable URL per PR.
+- [ ] Write `web-deploy.yml`: checkout, set up pnpm/Node (versions from `.nvmrc`/`package.json`), Rust toolchain + `cargo xtask wasm` (the app needs the WASM builds), `pnpm --filter apps/web build`, upload/deploy with the pinned Wrangler from the lockfile (`pnpm exec wrangler`), actions pinned by SHA.
+- [ ] Sticky PR comment via `gh`/`actions/github-script`: preview URL, commit SHA, build size summary (JS min+gz, WASM gz — used later by C7c).
+- [ ] Path filtering inside the job (only deploy when `apps/web`, `packages/`, `crates/` or `fixtures/` changed); the job reports success otherwise.
+- [ ] Production job on `main` with `environment: production` and the smoke test against the production URL; on smoke failure, roll back with `wrangler rollback` and fail the job.
+- [ ] Smoke spec parameterised by `BASE_URL`; run against the preview in PR runs.
+- [ ] `apps/web/DEPLOY.md`: setup, secrets, how previews and rollbacks work, how to deploy by hand in an emergency.
+
+## Acceptance criteria
+
+- [ ] This PR itself receives a preview URL comment, and the smoke test passes against it.
+- [ ] Pushing a second commit updates the same comment (not a new one).
+- [ ] Merging deploys production; the smoke test runs against production and passes; a forced failing smoke on a test branch demonstrates rollback (documented in the PR).
+- [ ] Fork PRs don't fail CI for lack of secrets (job skipped with an explanatory summary).
+- [ ] Wrangler version is pinned (lockfile) and actions are pinned by SHA.
+- [ ] Live headers on preview and production match ADR 0011 (smoke asserts them).
+
+## Tests
+
+`apps/web/e2e/smoke.spec.ts` (Chromium only for speed in deploy jobs; full browser matrix stays in the e2e lane). Workflow linting with `actionlint` if available in CI.
+
+## Docs to update
+
+`apps/web/DEPLOY.md`, `apps/web/README.md`, `CLAUDE.md` (deploy commands), [git workflow](../../guidelines/git-workflow.md) only if the review process mentions previews (add one line: "reader PRs: check the preview URL"); tick "Add CI deploy: preview URL per PR (comment on the PR), production on `main`" in [web-app.md §9](../../plans/web-app.md#9-to-dos).
+
+## Risks and open questions
+
+- **Domain not chosen** ([§8 Q1](../../plans/web-app.md#8-open-questions)): production can start on `lamina-web.<account>.workers.dev`; switch routes once the zone exists.
+- **Preview-URL mechanics** for Workers changed recently and are partly unverified in the notes; follow current Wrangler docs for the pinned version and record exact commands.
+- **Secrets on PRs**: only same-repo branches deploy; never use `pull_request_target` with checkout of PR code.
+- **Workers Logs** must not log full request URLs with sensitive data; v0.1 has no Worker code and fragments never reach the server, but confirm observability settings per ADR 0011.
+
+## Definition of done
+
+- [ ] PR opened from a fresh worktree; this file moved `ready/` → `ongoing/` in the PR's first commit (status field updated, PR link added)
+- [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
+- [ ] CI green
+- [ ] This file moved `ongoing/` → `done/` in the PR (status `done`), plan links updated, plan to-dos ticked
+- [ ] Squash-merged; dependants' "Depends on" now satisfied

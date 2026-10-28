@@ -42,6 +42,13 @@ cd <type>-<desc>
 - Git won't check out the same branch in two worktrees, and that's a feature. Don't override it with `--force`.
 - Dependencies and build output (`node_modules/`, `target/`) are per worktree. Run `pnpm install` / `cargo build` in a new worktree. *Recommendation:* set a shared `CARGO_TARGET_DIR` only if disk space hurts, and accept that builds then lock against each other.
 
+### Pick work from the todo board
+
+- **MUST:** every PR implements exactly one todo from [`docs/todos/`](../todos/README.md). Pick a todo from `ready/` whose **Depends on** todos are all in `done/`. If no todo fits, write one first (from [`TEMPLATE.md`](../todos/TEMPLATE.md)), or add it to the PR that needs it.
+- **MUST:** in the PR's first commit, `git mv` the todo from `ready/` to `ongoing/`, set its **Status** to `ongoing`, fill in **PR** once opened, and update every link to it (its plan, `docs/todos/README.md`, other todos' Depends on/Blocks).
+- **MUST:** before merge, `git mv` it from `ongoing/` to `done/`, set **Status** to `done`, tick its tasks and acceptance criteria, update the links again, and tick the matching to-dos in the plan.
+- **MUST:** if work stops without merging, move the todo back to `ready/` with a note on what's left.
+
 ## 3. Branches
 
 - **MUST:** name branches `<type>/<short-description>`, in kebab-case, where `<type>` is a Conventional Commit type: `feat/xref-repair`, `fix/flate-predictor-bounds`, `docs/code-organization`, `spike/uniffi-ios`.

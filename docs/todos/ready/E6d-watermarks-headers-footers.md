@@ -1,0 +1,85 @@
+# E6d — Watermarks, backgrounds, headers/footers, page numbers and Bates numbering
+
+| Field | Value |
+| --- | --- |
+| ID | `E6d` |
+| Status | `ready` |
+| Plan | [full-editor §E6](../../plans/full-editor.md#e6-adding-content-to-pages) |
+| Round / milestone | Editor phase 4 (E6–E7) — M7 Content editor |
+| Depends on | [E6c](./E6c-add-text.md) |
+| Blocks | [E14d](./E14d-batch-runner.md) |
+| ADRs | Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
+| Branch | `feat/e6d-watermarks-headers-footers` |
+| PR title | `feat(content): watermarks, backgrounds, headers, footers and Bates numbers` |
+| Size | L (600–1,500) |
+| PR | — |
+
+## Goal
+
+Stamp watermarks (append) and backgrounds (prepend) as Form XObjects, optionally in an OCG and marked `/Artifact`; headers/footers with page-number and date tokens; Bates numbering with prefix/suffix/start/digits across one or many documents; update/remove previously added ones.
+
+## Context
+
+- [05 §3.3 Stamping and watermarking](../../research/pdf/05-creating-pdfs-from-code.md#33-stamping-and-watermarking)
+- [03 §9](../../research/pdf/03-text-and-fonts.md#9-tagged-pdf--logical-structure-147149): artifacts in tagged PDF
+
+## Scope
+
+**In scope**
+
+- `AddWatermark`, `AddBackground`, `SetHeaderFooter { template, pages, tokens }`, `ApplyBates { spec }`, and their removal ops for lamina-added items
+- Dialogs with preview
+- Batch-ready: Bates across files uses the same op sequence (E14d)
+
+**Out of scope** (and which todo covers it)
+
+- None
+
+**Editor facts**
+
+- **Operations shipped** ([06 §3](../../research/pdf/06-feature-inventory.md#3-full-operation-inventory-with-mechanisms) IDs): `B.10` background images and watermarks; `C.14` labels, page numbers, headers/footers
+- **Crates and packages:** `lamina-content`, `lamina-build`, `lamina-ops`, `@lamina/ui`
+- **`Op` variants:** the ops above (class `Content`)
+- **`SaveConstraint`:** `Free` → incremental. Signed: class `Content` violates every DocMDP level and approval signatures' integrity → blocked unless the user confirms invalidating the named signatures
+- **Web vs desktop:** identical
+- **Server features:** none (this PR adds no server feature; all processing stays on the device)
+- **Capability-matrix rows to flip:** `B.10` → `round-trip` (core, pdf, web, desktop); `C.14` → `round-trip` (core, pdf, web, desktop)
+
+## Tasks
+
+- [ ] Ops and builders
+- [ ] Token expansion (page label, number, total, date from payload)
+- [ ] OCG and Artifact marking
+- [ ] Dialogs
+
+## Acceptance criteria
+
+- [ ] Library parity ([full-editor §5](../../plans/full-editor.md#5-requirements-that-hold-for-every-round) req. 7): every new `Op` is exposed in `lamina` and `@lamina/pdf` in this PR, with rustdoc/TSDoc, a runnable example, tsify-generated TS types, and serde samples frozen in `fixtures/ops/v1/` (unknown ops and fields rejected, ADR 0006 §1, §6)
+- [ ] Property tests: for every new op, apply then undo leaves the overlay empty and the next save is byte-identical to the previous one (ADR 0006 §3); redo re-applies the same bytes
+- [ ] Round-trip: open → op → save → reopen in lamina, pdf.js and PDFium preserves the change and everything else (page count, outline, annotations, fields, struct tree facts in `expected.json`); `qpdf --check` is clean
+- [ ] Headers/footers are Artifacts in tagged files (veraPDF passes)
+- [ ] Watermark OCG toggles in pdf.js layer panel
+
+## Tests
+
+- Render goldens
+- veraPDF
+- e2e
+
+## Docs to update
+
+- User help: watermarks and headers
+- [full-editor §E6](../../plans/full-editor.md#e6-adding-content-to-pages) and its §10 to-dos: tick what this PR completes and point the round's todo link at `done/`
+- `docs/capabilities/manifest.toml` statuses (regenerated `docs/capabilities/README.md` via `cargo xtask capabilities`)
+
+## Risks and open questions
+
+- None known beyond the round's risks in the plan
+
+## Definition of done
+
+- [ ] PR opened from a fresh worktree; this file moved `ready/` → `ongoing/` in the PR's first commit (status field updated, PR link added)
+- [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
+- [ ] CI green
+- [ ] This file moved `ongoing/` → `done/` in the PR (status `done`), plan links updated, plan to-dos ticked
+- [ ] Squash-merged; dependants' "Depends on" now satisfied

@@ -1,0 +1,96 @@
+# C3a — `@lamina/viewer` part 1: document worker and typed RPC
+
+| Field | Value |
+| --- | --- |
+| ID | `C3a` |
+| Status | `ready` |
+| Plan | [web reader §6 C3. Viewer core](../../plans/web-app.md#c3-viewer-core) |
+| Round / milestone | Round C (web reader) — M2 Web reader v0.1 |
+| Depends on | [B6b](./B6b-lamina-pdf-package.md), [C2a](./C2a-render-adrs.md), [C2c](./C2c-render-packages.md) |
+| Blocks | [C3b](./C3b-viewer-virtualiser-and-zoom.md) |
+| Dependency notes | [C2c](./C2c-render-packages.md) (web render adapters); [C2a](./C2a-render-adrs.md) (ADR 0009 RPC requirements); library **B6** (`@lamina/pdf` `Document` in the worker; [pdf-library B6](../../plans/pdf-library.md#b6-wasm-and-laminapdf)) |
+| ADRs | Implements 0009 (typed worker RPC) and 0004 (backend selection). Follows [0003](../../decisions/0003-reader-tolerance-and-limits.md) (`Limits`, warning codes surfaced to the UI), [0005](../../decisions/0005-document-model.md) (`ByteSource`) |
+| Branch | `feat/c3a-viewer-worker-rpc` |
+| PR title | `feat(viewer): add the document worker and typed rpc with priorities and cancellation` |
+| Size | L (600–1,500 lines incl. tests) |
+| PR | — |
+
+## Goal
+
+Create `packages/viewer` and its foundation: one **document worker** per open document that hosts `lamina-wasm` (via `@lamina/pdf`) and a `RenderBackend` adapter, and a **hand-written typed RPC** between the main thread and that worker, with request IDs, a method union, priority queues, transfer lists, `AbortSignal` cancellation and automatic restart after a crash. Everything later in the viewer (virtualiser, text layer, find, thumbnails, print) talks to the document only through this RPC, so its shape and cancellation semantics are the most important thing to get right in Round C.
+
+## Context
+
+- ADR 0009 (from [C2a](./C2a-render-adrs.md)) — RPC requirements, single-threaded baseline, no Comlink.
+- [Research: the web client](../../research/architecture/app-and-package-architecture.md#the-web-client-is-react-chrome-around-an-imperative-viewer-core) — "fast scrolling cancels stale render jobs"; shell owns threads.
+- [web-frontend notes](../../research/architecture/notes/web-frontend.md) §2 (render path (b): rasterise in WASM, `createImageBitmap`, transfer) and §5 (custom RPC, COOP/COEP) and §6 (stream `File.slice()`; avoid double copies; OPFS).
+- [C1b result](./C1b-pdfium-wasm-spike.md) — chosen input strategy and instantiate timings.
+- [web-app.md §4 functional 1–2, 10](../../plans/web-app.md#functional) and [privacy and security](../../plans/web-app.md#privacy-and-security) (hostile files crash the worker, not the page; password stays in worker memory).
+- [TypeScript guidelines](../../guidelines/typescript.md) — `@lamina/viewer` is a browser UI package (DOM globals allowed), still ESM-only, named exports, Vitest browser mode.
+
+## Scope
+
+**In scope**
+
+- `packages/viewer` scaffold (`@lamina/viewer`, `private: true`, ESM, Vitest browser mode + Playwright, nested `biome.json` that allows DOM globals with a reason).
+- `src/rpc/protocol.ts`: method union, request/response/event envelopes, error codes (shared with `fixtures/codes.json`), versioned protocol constant.
+- `src/rpc/client.ts` (main thread) and `src/worker/server.ts` (worker): request IDs, promises, `AbortSignal` → `cancel` message, transfer lists, events (progress, warnings), timeouts for unresponsive workers, restart with re-open on crash.
+- `src/worker/scheduler.ts`: priority queues (`visible` > `prefetch` > `thumbnail` > `background` (search, text)), coalescing of duplicate requests, cancellation before start and between render steps.
+- `src/worker/document.ts`: open from a `ByteSource` (`File`/`Blob` via `slice()`, `ArrayBuffer`, later HTTP range in C4c), password, `Limits`, warnings → events; page count and page sizes (all boxes and rotation) up front for layout.
+- `src/worker/render.ts`: render request → backend → `ImageData` → `createImageBitmap` → transfer; backend selected at open (`pdfium` default, `hayro` optional).
+- `ByteSource` abstraction in TS (`read(offset, length, signal)`, `size`) shared with C4c's HTTP range source.
+
+**Out of scope** (and which todo covers it)
+
+- Virtualiser, canvas pool, tiles, zoom → [C3b](./C3b-viewer-virtualiser-and-zoom.md).
+- Performance harness → [C3c](./C3c-viewer-perf-harness.md).
+- HTTP range `ByteSource` and password UI → [C4c](./C4c-remote-files-encryption-privacy.md).
+- Text runs, struct tree, search RPC methods → [C5a](./C5a-text-layer-and-selection.md), [C5b](./C5b-find-in-document.md) (the protocol leaves room for them).
+- Threaded (SharedArrayBuffer) variant (ADR 0009: later).
+
+## Tasks
+
+- [ ] Fresh worktree; move this file to `ongoing/`.
+- [ ] Scaffold `packages/viewer` (`package.json` with `exports`, `files`, `sideEffects: false`, `engines`; `tsconfig.json` extending the base with `lib: ["ES2022","DOM","WebWorker"]` split per entry; `vitest.config.ts` browser mode with Playwright providers chromium/firefox/webkit).
+- [ ] Define the protocol: `type Request = { id: number; method: "open" | "close" | "pageInfo" | "render" | "cancel" | …; params; priority }`, `Response = { id; ok: true; result } | { id; ok: false; error: { code; message } }`, `Event = { kind: "warning" | "progress" | "crashed"; … }`. Types derive params/results per method (a `Methods` map) so `client.call("render", params)` is fully typed.
+- [ ] Client: monotonically increasing IDs; `call(method, params, { priority, signal, transfer })`; on abort send `cancel {id}` and reject with `DOMException("AbortError")`; a response for a cancelled ID is dropped and any transferred `ImageBitmap` is `close()`d (**cancelled renders never paint**).
+- [ ] Worker server: message loop, dispatch, per-method handlers, catch-all error mapping to codes; never `postMessage` an `Error` object (structured clone loses fields) — send codes.
+- [ ] Scheduler: one active render at a time per worker (synchronous WASM), priority queue, coalesce identical `(page, scale, rect, flags)` requests, check cancellation before starting and after each backend step; expose queue depth for the perf harness.
+- [ ] Crash handling: `worker.onerror`/`messageerror` and a heartbeat timeout → reject all pending with `worker-crashed`, emit `crashed`, spawn a new worker, re-open the document from the same `ByteSource` (and cached password in the new worker via the client's re-open call — the password is passed once per worker lifetime and never persisted), resume.
+- [ ] Open: `@lamina/pdf` `Document.open` and backend open in parallel (both from the same `ByteSource`); surface ADR 0003 warnings (e.g. repaired xref) as events; return page count and sizes.
+- [ ] Backend loading: `init({ wasmUrl })` for each module, started as soon as the worker is created (before a file is chosen) so WASM downloads in parallel with file selection ([§4 target](../../plans/web-app.md#non-functional-targets-are-recommendations-measured-from-c3-onward)).
+- [ ] Minimal `examples/rpc-demo.html` (served by Vitest/Vite dev) that opens a file and draws page 1 to a canvas — enough for manual checks before C3b.
+- [ ] Wire into `cargo xtask check ts`.
+
+## Acceptance criteria
+
+- [ ] Typed: calling an unknown method or passing wrong params fails `tsc` (type tests with `expectTypeOf`).
+- [ ] Opening `fixtures/corpus/*.pdf` returns page count and sizes matching `fixtures/corpus/expected.json` in Chromium, Firefox and WebKit.
+- [ ] Cancellation: a test issues 100 render requests and aborts 90 before they finish; no aborted request resolves, every transferred bitmap for an aborted ID is closed, and the 10 kept ones resolve in priority order.
+- [ ] Priority: with a queue of `background` work, a new `visible` request starts next (asserted via scheduler events).
+- [ ] Crash: a test-only `__crash` method kills the worker; pending calls reject with `worker-crashed`, a new worker re-opens the document and the next render succeeds; the page (main thread) never throws.
+- [ ] A hostile fixture that exceeds `Limits` yields an error code, not a hang (runner timeout per ADR 0018, no wall-clock assertions).
+- [ ] The password never appears in any `postMessage` except the single `open` call to the worker (asserted by wrapping `postMessage` in tests).
+
+## Tests
+
+Vitest browser-mode tests in `packages/viewer/test/rpc/*.test.ts` (protocol types, client/server round-trip, cancellation, priorities, crash/restart, warnings), using `fixtures/corpus/` files fetched by the test server; unit tests for the scheduler in Node-free browser mode. Encrypted open uses `fixtures/corpus/enc.pdf` and B2's encrypted fixtures.
+
+## Docs to update
+
+`packages/viewer/README.md` (architecture diagram of client/worker/scheduler, protocol table); `CLAUDE.md` layout (`packages/viewer`); tick "Create `packages/viewer` with the typed RPC…" in [web-app.md §9](../../plans/web-app.md#9-to-dos).
+
+## Risks and open questions
+
+- **Synchronous WASM can't be interrupted mid-render**: cancellation granularity is per request (or per progressive step if PDFium's progressive API is exposed); keep tile sizes small (C3b) so latency stays bounded.
+- **Two engines opening the same `ByteSource`**: random reads from both double I/O on remote sources; C4c adds a block cache — design the `ByteSource` interface now so a cache can wrap it.
+- **Module workers + WASM in Firefox/Safari** with Vite 8/Rolldown (`new Worker(new URL(...), { type: "module" })`) is unverified ([web-frontend notes §8](../../research/architecture/notes/web-frontend.md)); test all three engines early.
+- One worker per document vs a shared worker pool: ADR 0009 decides; this PR implements per-document.
+
+## Definition of done
+
+- [ ] PR opened from a fresh worktree; this file moved `ready/` → `ongoing/` in the PR's first commit (status field updated, PR link added)
+- [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
+- [ ] CI green
+- [ ] This file moved `ongoing/` → `done/` in the PR (status `done`), plan links updated, plan to-dos ticked
+- [ ] Squash-merged; dependants' "Depends on" now satisfied

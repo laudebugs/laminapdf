@@ -27,7 +27,8 @@ lamina is a platform for anything and everything PDF: creating PDFs from code, p
 │   └── krilla-fit/      # Round B1: can krilla generate into lamina's object graph? (answer + measurements in its README)
 └── docs/                # all documentation (see docs/README.md)
     ├── research/        # deep dives and research notes, one subfolder per topic
-    ├── plans/           # roadmaps and feature design docs
+    ├── plans/           # roadmaps and feature design docs (each links to its todos)
+    ├── todos/           # one file per PR of work: ready/ → ongoing/ → done/ (README.md is the board)
     ├── decisions/       # Architecture Decision Records (NNNN-title.md)
     ├── guidelines/      # how we work (contributing, git workflow, code organization, Rust/TS)
     └── references/      # external specs, tools, corpora
@@ -36,6 +37,7 @@ lamina is a platform for anything and everything PDF: creating PDFs from code, p
 ## Working agreements
 
 - **Always work in a git worktree.** Start every piece of work in a new worktree off main (see docs/guidelines/git-workflow.md). The repo is a bare clone; worktrees are folders inside it: `git worktree add -b <type>/<desc> <type>-<desc> main`. Never `git stash` across worktrees; remove the worktree after merge.
+- **Work from the todo board.** Every PR implements one todo from [`docs/todos/`](docs/todos/README.md) (`ready/` → `ongoing/` → `done/`): pick one from `ready/` whose dependencies are all `done/`, move it to `ongoing/` in the PR's first commit and to `done/` before merge, updating the links to it. Plans link to their todos. See [git workflow §2](docs/guidelines/git-workflow.md#pick-work-from-the-todo-board).
 - **Pull requests only.** `main` was initialized directly; every change since goes through a branch + PR. Branch names: `<type>/<short-description>` (e.g. `docs/pdf-research`).
 - **Review every PR with `/code-review`, then merge.** After opening a PR, run `/code-review high <PR#> --comment` (trivial PRs: `low`), push fixes, reply to each comment with the fixing commit and resolve it; if there were more than 6 findings, run `/code-review low <PR#> --comment` after the fixes. Squash-merge once every thread is resolved and CI is green. See [review and merge process](docs/guidelines/git-workflow.md#7-review-and-merge-process).
 - **Conventional Commits** for commit messages: `type(scope): summary`.

@@ -79,14 +79,16 @@ The editing architecture (lazy COS overlay, typed model, op log, save planner, o
 | HTML → PDF | Browser Run, then lamina post-processing (tags, PDF/A) | 0013 | E13 |
 | Batch jobs (optimise, convert, stamp many files) | Workflows + Queues, Worker running `lamina-wasm` for small files, Containers for large | 0013 | E14, E16 |
 | Timestamp authority proxy (TSAs rarely allow CORS) | Worker, no document bytes (hash only) | 0020 | E10 |
-| Accounts and user login (hosted service, decided 2026-10-28) | Auth on D1 or a hosted vendor (`auth` spike) | 0011 | first round that needs it |
-| Cloud storage and sync of the user's documents (opt-in per document) | R2 for blobs, D1 index, per-user access | 0011 | first round that needs it |
+| Accounts and user login (hosted service, decided 2026-10-28) | Auth on D1 or a hosted vendor (`auth` spike) | 0011 | first round that needs it ([H1](../todos/ready/H1-auth-spike.md) spike, [H2](../todos/ready/H2-accounts-and-login.md)) |
+| Cloud storage and sync of the user's documents (opt-in per document) | R2 for blobs, D1 index, per-user access | 0011 | first round that needs it ([H3](../todos/ready/H3-cloud-document-storage.md), [H4](../todos/ready/H4-document-sync.md)) |
 
 ## 7. Phases and rounds
 
 Phase 1 (core viewer: open, render, zoom, search, text selection, thumbnails, download) is delivered by the reader rounds [C1–C7](web-app.md#6-rounds) and [D1–D7](desktop-app.md#6-rounds). Editor rounds start at E1.
 
 Editor rounds are larger than reader rounds. Each starts with a short **feature-plan PR** (scope, op list, tests, any ADR) and then lands as a stack of implementation PRs, each mergeable on its own ([git workflow §5](../guidelines/git-workflow.md#5-pull-requests); [architecture §5](architecture.md#5-rounds-one-pull-request-each): "each feature group gets its own plan and pull requests").
+
+**Todos.** Each feature-plan PR and implementation PR is one todo file on the [todo board](../todos/README.md) (`ready/` → `ongoing/` → `done/`), with explicit dependencies. Rounds that introduce an ADR (E7, E8, E10, E13, E18) start with an ADR todo (`a`), then the feature plan (`b`); the others start with the feature plan (`a`). The hosted-service foundation (accounts, cloud storage, sync) is todos H1–H4. Links below point at `ready/` and are updated as todos move.
 
 ### Phase 2: page organisation, navigation and metadata
 
@@ -96,6 +98,7 @@ Editor rounds are larger than reader rounds. Each starts with a short **feature-
 - **Crates:** `lamina-ops`, `lamina-save`, `lamina-model` (XMP packet parse and update for the Info-mapped properties, sharing the writer from library B5).
 - **Save:** `Free` → incremental by default. Signed files are `AppendOnly`; metadata edits are allowed only as incremental updates.
 - **Web vs desktop:** desktop saves in place and watches for external changes; web saves in place only where the File System Access API exists, otherwise downloads a copy.
+- **Todos:** [E1a](../todos/ready/E1a-editing-foundation-feature-plan.md) feature plan · [E1b](../todos/ready/E1b-xmp-packet-model.md) XMP packet parse and update for Info-mapped properties · [E1c](../todos/ready/E1c-metadata-ops.md) Metadata ops: Info and XMP in sync (J.01–J.03, J.10) · [E1d](../todos/ready/E1d-edit-session-undo-ui.md) Edit session, interaction modes, undo/redo UI and history panel · [E1e](../todos/ready/E1e-save-and-constraint-banner.md) Save, Save as, Download copy and the SaveConstraint banner · [E1f](../todos/ready/E1f-metadata-ui-capability-page.md) Metadata editor UI and in-app capability-matrix page.
 
 #### E2. Page organisation
 
@@ -103,6 +106,7 @@ Editor rounds are larger than reader rounds. Each starts with a short **feature-
 - **Crates:** `lamina-content` append API (introduced here, see §6): resizing that scales content wraps the existing streams in `q <scale cm> … Q` without parsing them; `lamina-ops` page ops (view-level mapping of `LaminaId`s, no re-parse); merge remaps outlines, named destinations, AcroForm fields and the structure tree ([05 §3.1](../research/pdf/05-creating-pdfs-from-code.md#31-merge-and-split)).
 - **Save:** `Free` → incremental. On signed files, page insertion/deletion is blocked by DocMDP P1/P2 and allowed with warning only when it invalidates signatures.
 - **Web vs desktop:** identical; desktop allows multi-file merge from Finder/Explorer selection.
+- **Todos:** [E2a](../todos/ready/E2a-page-organisation-feature-plan.md) feature plan · [E2b](../todos/ready/E2b-page-structure-ops.md) Page-structure ops: insert blank, delete, duplicate, reorder, rotate, reverse · [E2c](../todos/ready/E2c-cross-document-pages.md) Insert pages from other PDFs, replace pages, extract and export ranges · [E2d](../todos/ready/E2d-merge-and-split.md) Merge documents and split by count, ranges and bookmarks · [E2e](../todos/ready/E2e-content-append-api.md) `lamina-content` append API · [E2f](../todos/ready/E2f-page-geometry.md) Crop, resize, page boxes and orientation · [E2g](../todos/ready/E2g-page-labels.md) Page labels editor · [E2h](../todos/ready/E2h-page-organiser-ui.md) Page organiser UI: thumbnails drag-and-drop, multi-select and page dialogs · [E2i](../todos/ready/E2i-signed-gating-and-close.md) DocMDP gating tests on signed fixtures and E2 round close.
 
 #### E3. Navigation, attachments, inspection and extraction
 
@@ -110,6 +114,7 @@ Editor rounds are larger than reader rounds. Each starts with a short **feature-
 - **Crates:** `lamina-model` (outline, names, embedded files, XMP extension schemas), `lamina-build` (images → PDF), `lamina-render` (export), `lamina-text` (extraction from library B9).
 - **Save:** `Free`; adding attachments to signed files only as incremental updates where permitted.
 - **Web vs desktop:** object inspector ships on both; desktop exports many pages to a folder, web zips them.
+- **Todos:** [E3a](../todos/ready/E3a-navigation-attachments-inspection-feature-plan.md) feature plan · [E3b](../todos/ready/E3b-bookmarks-and-destinations.md) Bookmark editor, named destinations, TOC generator · [E3c](../todos/ready/E3c-links.md) Internal links, external hyperlinks and links on text · [E3d](../todos/ready/E3d-initial-view-and-threads.md) Initial view, page display mode and article threads (read) · [E3e](../todos/ready/E3e-xmp-editor.md) General XMP editor (custom and extension schemas) · [E3f](../todos/ready/E3f-attachments-and-associated-files.md) Attachments panel, associated files (`/AF`) and portfolios (read) · [E3g](../todos/ready/E3g-inspectors.md) Version, conformance, fonts, colour profiles and object inspector · [E3h](../todos/ready/E3h-images-to-pdf-and-page-export.md) Images → PDF and page export to PNG/JPEG/TIFF · [E3i](../todos/ready/E3i-extraction.md) Extract text, images, links and bookmarks.
 
 ### Phase 3: annotations
 
@@ -119,6 +124,7 @@ Editor rounds are larger than reader rounds. Each starts with a short **feature-
 - **Crates:** `lamina-model` annotations with `/NM` as `LaminaId`; appearance generator in `lamina-build`; overlay rendering from lamina's model until save.
 - **Save:** incremental. Signed files: annotations allowed only when DocMDP P3 or no certification signature; otherwise warn.
 - **Web vs desktop:** identical; pen/stylus pressure for ink where the platform reports it.
+- **Todos:** [E4a](../todos/ready/E4a-markup-and-drawing-annotations-feature-plan.md) feature plan · [E4b](../todos/ready/E4b-annotation-model-and-overlay.md) Annotation model with `/NM` IDs, annotation ops and overlay rendering · [E4c](../todos/ready/E4c-appearances-markup-notes-caret.md) Appearances and creation: text markup, notes and caret · [E4d](../todos/ready/E4d-appearances-ink-and-shapes.md) Appearances and creation: ink, shapes, lines and arrows · [E4e](../todos/ready/E4e-freetext-callouts.md) FreeText text boxes and callouts with `/DA` and rich text · [E4f](../todos/ready/E4f-annotation-tools-ui.md) Annotation tools and properties panel · [E4g](../todos/ready/E4g-appearance-parity-suite.md) Cross-viewer appearance parity suite and E4 round close.
 
 #### E5. Review, stamps and interchange
 
@@ -126,6 +132,7 @@ Editor rounds are larger than reader rounds. Each starts with a short **feature-
 - **Crates:** as E4, plus XFDF reader/writer; flattening needs E4 appearances and uses the `lamina-content` append API from E2 (each appearance becomes a Form XObject drawn with an appended `q <cm> /FmN Do Q` stream; the annotation is then removed).
 - **Save:** flattening is a content change → incremental on `Free`; on signed files it invalidates signatures and is gated.
 - **Web vs desktop:** identical. Shared review across users is E18.
+- **Todos:** [E5a](../todos/ready/E5a-review-stamps-interchange-feature-plan.md) feature plan · [E5b](../todos/ready/E5b-comment-threads-and-review.md) Comment panel: replies, review state, filter and search · [E5c](../todos/ready/E5c-stamps-and-attachments.md) Custom stamps, file-attachment annotations and audio annotations (read) · [E5d](../todos/ready/E5d-xfdf-fdf.md) XFDF and FDF import/export of annotations · [E5e](../todos/ready/E5e-flatten-and-summary.md) Flatten annotations into content and comment summary.
 
 ### Phase 4: content editing
 
@@ -136,6 +143,7 @@ Editor rounds are larger than reader rounds. Each starts with a short **feature-
 - **Save:** incremental on `Free`; on signed files these are content changes and invalidate signatures (gated).
 - **Rendering:** touched pages reload in PDFium after an incremental update (the "two parsers" path in [architecture §6](architecture.md#6-risks)); measure and budget reload time.
 - **Web vs desktop:** desktop can use system fonts (font discovery at the edge, passed into the core as bytes); web uses bundled or user-supplied fonts.
+- **Todos:** [E6a](../todos/ready/E6a-adding-content-feature-plan.md) feature plan · [E6b](../todos/ready/E6b-place-images-and-shapes.md) Place images, shapes, logos and stamps as page content · [E6c](../todos/ready/E6c-add-text.md) Add text and special characters as page content · [E6d](../todos/ready/E6d-watermarks-headers-footers.md) Watermarks, backgrounds, headers/footers, page numbers and Bates numbering · [E6e](../todos/ready/E6e-content-tools-ui.md) Content insert tools and object handles · [E6f](../todos/ready/E6f-reload-budget.md) Touched-page reload time: measure and budget.
 
 #### E7. Editing existing content
 
@@ -143,6 +151,7 @@ Editor rounds are larger than reader rounds. Each starts with a short **feature-
 - **Crates:** ADR 0022 (content-stream editing model) and the `lamina-content` IR with object identity and encoder, built on B9's interpreter; text-run detection via MCIDs where tagged, heuristics otherwise; re-layout with the original subset when it has the glyphs, a new subset otherwise ([03 §11.2 "Editing"](../research/pdf/03-text-and-fonts.md#112-concrete-requirements)). This is the hardest round ([06 §7](../research/pdf/06-feature-inventory.md#7-difficulty-map)); "edit in place" is best-effort and the UI says so.
 - **Save:** incremental on `Free`; structure tree and MCIDs updated so tagging survives; PDF/A/UA claims re-checked on save.
 - **Web vs desktop:** identical; desktop font substitution can use system fonts.
+- **Todos:** [E7a](../todos/ready/E7a-adr-0022-content-editing.md) ADR 0022: content-stream editing model for existing content · [E7b](../todos/ready/E7b-editing-existing-content-feature-plan.md) feature plan · [E7c](../todos/ready/E7c-content-ir.md) Content IR with object identity and encoder · [E7d](../todos/ready/E7d-select-transform-existing.md) Select, move, resize, rotate, delete and replace existing objects; stacking order · [E7e](../todos/ready/E7e-text-runs-and-inline-edit.md) Text-run detection and in-place text editing with the existing subset · [E7f](../todos/ready/E7f-font-handling-and-styling.md) Font handling: re-subset, substitution, font/size/colour/style, alignment and spacing · [E7g](../todos/ready/E7g-search-and-replace.md) Search and replace across the document · [E7h](../todos/ready/E7h-vector-clipping-masks.md) Vector path editing, fills, strokes, clipping paths and masks · [E7i](../todos/ready/E7i-structure-and-conformance-maintenance.md) Struct-tree and MCID maintenance; PDF/A and PDF/UA re-checks on save · [E7j](../todos/ready/E7j-edit-corpus.md) Edit-corpus tests and E7 round close.
 
 ### Phase 5: forms and signatures
 
@@ -152,6 +161,7 @@ Editor rounds are larger than reader rounds. Each starts with a short **feature-
 - **Crates:** `lamina-model` AcroForm field tree; appearance generation for field values ([04 §3.5](../research/pdf/04-interactive-security.md)); widgets as DOM overlays in `@lamina/viewer`.
 - **Save:** incremental. Signed files: field filling allowed when DocMDP P2/P3 permit, blocked for locked fields.
 - **Web vs desktop:** identical.
+- **Todos:** [E8a](../todos/ready/E8a-adr-0021-javascript-policy.md) ADR 0021: PDF JavaScript policy · [E8b](../todos/ready/E8b-form-filling-feature-plan.md) feature plan · [E8c](../todos/ready/E8c-acroform-field-model.md) AcroForm field model, value ops, flags and XFA detection · [E8d](../todos/ready/E8d-field-appearances.md) Value appearance generation for every field type · [E8e](../todos/ready/E8e-field-widgets-ui.md) Field widgets as DOM overlays, tab order, required/read-only, push buttons and submit · [E8f](../todos/ready/E8f-declarative-behaviour.md) Formatting, validation, calculation and conditional behaviour (declarative and per ADR 0021) · [E8g](../todos/ready/E8g-form-data-and-flatten.md) Form data import/export (FDF, XFDF, JSON), reset, programmatic fill and flatten.
 
 #### E9. Form authoring
 
@@ -159,6 +169,7 @@ Editor rounds are larger than reader rounds. Each starts with a short **feature-
 - **Crates:** as E8, plus form-design mode in `@lamina/ui`.
 - **Save:** incremental on `Free`; authoring on a signed file is blocked unless signatures are removed.
 - **Web vs desktop:** identical.
+- **Todos:** [E9a](../todos/ready/E9a-form-authoring-feature-plan.md) feature plan · [E9b](../todos/ready/E9b-field-creation-ops.md) Field creation and configuration ops, including signature fields · [E9c](../todos/ready/E9c-form-design-mode.md) Form-design mode: inspector, validation/format/calculation settings, tab-order editor, accessible labels · [E9d](../todos/ready/E9d-automatic-field-detection.md) Automatic field detection on flat forms (optional).
 
 #### E10. Signatures
 
@@ -166,6 +177,7 @@ Editor rounds are larger than reader rounds. Each starts with a short **feature-
 - **Crates:** ADR 0020; signature module over `lamina-save` (ByteRange placeholder, incremental append), RustCrypto + `cms`; validation diff between revisions.
 - **Save:** signing makes the document `AppendOnly`; signing always runs after any pending rewrite (redact → rewrite → sign).
 - **Web vs desktop:** web signs with WebCrypto keys or an imported PKCS#12 kept on the device; desktop adds OS keychains and PKCS#11 smart cards/tokens. Timestamping on web goes through the optional TSA proxy (sends a hash only).
+- **Todos:** [E10a](../todos/ready/E10a-adr-0020-signatures.md) ADR 0020: signatures, crypto backends and key storage per platform · [E10b](../todos/ready/E10b-signatures-feature-plan.md) feature plan · [E10c](../todos/ready/E10c-visual-signatures.md) Visual signatures: image, drawn and typed (non-cryptographic) · [E10d](../todos/ready/E10d-pades-signing-core.md) PAdES B-B signing core with two-phase external signing · [E10e](../todos/ready/E10e-timestamps-and-tsa-proxy.md) Trusted timestamps (B-T, document timestamps) and the optional TSA proxy Worker · [E10f](../todos/ready/E10f-certification-and-locking.md) Certification (DocMDP), field locking (FieldMDP) and allowed changes · [E10g](../todos/ready/E10g-signature-validation.md) Signature validation: integrity, chain, revocation, signer inspection · [E10h](../todos/ready/E10h-revision-diff-and-attacks.md) Revision diff analysis, modification warnings and attack-catalogue tests · [E10i](../todos/ready/E10i-platform-signers.md) Platform key storage: OS keychains and PKCS#11 (desktop), WebCrypto and PKCS#12 (web) · [E10j](../todos/ready/E10j-signature-ui.md) Signing flow and signature panel UI.
 
 ### Phase 6: advanced workflows
 
@@ -175,6 +187,7 @@ Editor rounds are larger than reader rounds. Each starts with a short **feature-
 - **Crates:** `lamina-save` encrypt on write (over the B2 crypt filters in `lamina-syntax`); public-key handler read; sanitiser as a set of ops with a report.
 - **Save:** `RequiresRewrite`. On signed files, warn that signatures will be invalidated.
 - **Web vs desktop:** identical; keys never leave the device.
+- **Todos:** [E11a](../todos/ready/E11a-security-and-sanitisation-feature-plan.md) feature plan · [E11b](../todos/ready/E11b-encrypt-on-write.md) AES-256 encryption on write, passwords and permissions; inspect encryption · [E11c](../todos/ready/E11c-remove-security.md) Remove security with authorisation and change passwords · [E11d](../todos/ready/E11d-sanitiser.md) Sanitiser ops with a report · [E11e](../todos/ready/E11e-public-key-security.md) Public-key (certificate) security: read, write behind a flag.
 
 #### E12. Redaction
 
@@ -182,6 +195,7 @@ Editor rounds are larger than reader rounds. Each starts with a short **feature-
 - **Crates:** `lamina-content` removes glyphs, image pixels and vector paths under redaction areas; removes matching text from annotations, form values, metadata, bookmarks and the structure tree.
 - **Save:** `RequiresRewrite`, no prior revisions kept. Tests prove that redacted text cannot be extracted with pdf.js, PDFium, pypdf and pdftotext, and that no previous revision survives.
 - **Web vs desktop:** identical.
+- **Todos:** [E12a](../todos/ready/E12a-redaction-feature-plan.md) feature plan · [E12b](../todos/ready/E12b-mark-and-review.md) Mark and review: Redact annotations and preview · [E12c](../todos/ready/E12c-apply-content-removal.md) Apply redactions: remove glyphs, paths and image pixels · [E12d](../todos/ready/E12d-scrub-and-rewrite.md) Scrub non-content layers, full rewrite and verification report · [E12e](../todos/ready/E12e-sensitive-search.md) Search sensitive content to redact · [E12f](../todos/ready/E12f-leak-tests.md) Redaction leak tests across pdf.js, PDFium, pypdf and pdftotext; round close.
 
 #### E13. OCR and conversion
 
@@ -189,6 +203,7 @@ Editor rounds are larger than reader rounds. Each starts with a short **feature-
 - **Crates:** OCR text layer emission in `lamina-build` (text render mode 3, from hOCR/ALTO); converters are external engines.
 - **Server:** ADR 0013. OCR and Office conversion in Containers via Workflows; HTML → PDF via Browser Run; lamina post-processes output (tags, PDF/A). Engine licences checked in the ADR (no AGPL in shipped artefacts).
 - **Web vs desktop:** web offers client-side OCR for small documents (WASM OCR engine, if its licence and size fit) and opt-in server OCR; desktop runs OCR locally with an optional engine download. Office conversion is server-only on web and optional local on desktop.
+- **Todos:** [E13a](../todos/ready/E13a-adr-0013-heavy-jobs.md) ADR 0013: heavy jobs on Workflows + Containers; OCR and conversion engines and licences · [E13b](../todos/ready/E13b-ocr-and-conversion-feature-plan.md) feature plan · [E13c](../todos/ready/E13c-ocr-text-layer.md) Invisible OCR text layer from hOCR/ALTO · [E13d](../todos/ready/E13d-local-ocr.md) Client-side OCR on web and local OCR on desktop · [E13e](../todos/ready/E13e-server-jobs-infrastructure.md) Opt-in server jobs: Workflows + Containers with R2 lifecycle (OCR and Office conversion) · [E13f](../todos/ready/E13f-office-and-html-to-pdf.md) Office → PDF and HTML → PDF (Browser Run) with lamina post-processing · [E13g](../todos/ready/E13g-pdf-to-word-excel.md) PDF → Word and PDF tables → Excel (server).
 
 #### E14. Compare, revisions and batch
 
@@ -196,6 +211,7 @@ Editor rounds are larger than reader rounds. Each starts with a short **feature-
 - **Crates:** `lamina-save` revision index, `lamina-render` for visual diff, `lamina-text` for text diff.
 - **Server:** optional batch via Workflows (ADR 0013).
 - **Web vs desktop:** desktop batches folders locally; web batches selected files locally and offers opt-in server batch.
+- **Todos:** [E14a](../todos/ready/E14a-compare-revisions-batch-feature-plan.md) feature plan · [E14b](../todos/ready/E14b-revision-browser.md) Revision index and revision browser · [E14c](../todos/ready/E14c-compare.md) Visual and structural compare · [E14d](../todos/ready/E14d-batch-runner.md) Batch runner over saved op sequences (local) · [E14e](../todos/ready/E14e-server-batch.md) Optional server batch via Workflows.
 
 #### E15. Accessibility
 
@@ -203,6 +219,7 @@ Editor rounds are larger than reader rounds. Each starts with a short **feature-
 - **Crates:** structure-tree editing in `lamina-model`; checks shared with the library's B8 profiles. veraPDF stays a CI tool, or runs as an external process in an optional Container (GPL, never linked).
 - **Save:** incremental on `Free`; tagging a signed file invalidates signatures unless done as allowed incremental changes.
 - **Web vs desktop:** identical; tag tree panel and reading-order overlay on both.
+- **Todos:** [E15a](../todos/ready/E15a-accessibility-feature-plan.md) feature plan · [E15b](../todos/ready/E15b-structure-tree-editing.md) Structure-tree editing model, tag tree panel and reading-order overlay · [E15c](../todos/ready/E15c-tagging-tools.md) Tagging tools: headings, lists, tables, artifacts, alt text, language, form and link labels · [E15d](../todos/ready/E15d-accessibility-checks.md) Matterhorn machine checks, missing fonts/Unicode checks and fix-ups · [E15e](../todos/ready/E15e-pdfua-output.md) PDF/UA output and veraPDF agreement in CI; round close.
 
 #### E16. Optimisation and print production
 
@@ -211,6 +228,7 @@ Editor rounds are larger than reader rounds. Each starts with a short **feature-
 - **Save:** `RequiresRewrite` for optimisation; signed files warned.
 - **Server:** optional batch optimisation (ADR 0013).
 - **Web vs desktop:** desktop recommended for large print files (memory); web enforces size limits from `Limits`.
+- **Todos:** [E16a](../todos/ready/E16a-optimisation-print-feature-plan.md) feature plan · [E16b](../todos/ready/E16b-structural-optimiser.md) Optimiser: unused objects, dedupe, object streams, linearisation · [E16c](../todos/ready/E16c-images-and-fonts.md) Downsample and recompress images; embed or subset fonts · [E16d](../todos/ready/E16d-colour.md) Colour conversion, ICC and output intents, spot colours and overprint preview, page boxes for print · [E16e](../todos/ready/E16e-preflight-and-conversion.md) Preflight rules as data; PDF/A and PDF/X conversion and validation; transparency flattening · [E16f](../todos/ready/E16f-imposition.md) Imposition, booklet and N-up · [E16g](../todos/ready/E16g-server-batch-optimise.md) Optional server batch optimisation.
 
 #### E17. Advanced interactions
 
@@ -218,12 +236,14 @@ Editor rounds are larger than reader rounds. Each starts with a short **feature-
 - **Crates:** `lamina-model` actions, OCGs, measurement dictionaries.
 - **Save:** incremental on `Free`.
 - **Web vs desktop:** media playback depends on codecs per platform; JavaScript never runs outside the ADR 0021 sandbox.
+- **Todos:** [E17a](../todos/ready/E17a-advanced-interactions-feature-plan.md) feature plan · [E17b](../todos/ready/E17b-action-editor.md) Action editor: JavaScript authoring, buttons, event-triggered and open actions · [E17c](../todos/ready/E17c-layers.md) Layers panel: show/hide and edit optional content groups · [E17d](../todos/ready/E17d-media.md) Media: Screen/Rendition, RichMedia and audio annotation playback · [E17e](../todos/ready/E17e-measurement.md) Measurement tools and scales; geospatial read · [E17f](../todos/ready/E17f-3d-detection.md) 3D detection with poster fallback; round close.
 
 #### E18. Collaboration (hosted service)
 
 - **Ships:** shared review of annotations, form values and page order; presence; comment notifications (optional email). Content edits and redactions take a lease or run as a server job that mints a new base revision.
 - **Server:** ADR 0012: one Durable Object per document (SQLite storage, WebSocket hibernation), LWW per (record, property), deletes win, fractional indices for page order; base PDFs immutable and content-addressed in R2; PDF bytes never cross the socket; accounts and sharing on D1 (`auth` spike).
 - **Web vs desktop:** identical; desktop works offline and syncs on reconnect.
+- **Todos:** [E18a](../todos/ready/E18a-adr-0012-collaboration.md) ADR 0012: collaboration — Durable Object per document, LWW records, leases · [E18b](../todos/ready/E18b-collaboration-feature-plan.md) feature plan · [E18c](../todos/ready/E18c-layer-document-schema.md) Layer-document schema and record ↔ op mapping · [E18d](../todos/ready/E18d-durable-object-server.md) Collaboration server: Durable Object per document, R2 base revisions, D1 index · [E18e](../todos/ready/E18e-client-sync-and-presence.md) Client sync, presence and offline sync on desktop · [E18f](../todos/ready/E18f-sharing-and-notifications.md) Sharing, roles and comment notifications · [E18g](../todos/ready/E18g-leases-and-base-revisions.md) Leases for content edits and redactions; server jobs minting new base revisions · [E18h](../todos/ready/E18h-load-test.md) Load test: 50 concurrent reviewers on one document; round close.
 
 ### Feature-group coverage
 
@@ -267,12 +287,14 @@ Editor rounds are larger than reader rounds. Each starts with a short **feature-
 ## 10. To-dos
 
 ### Cross-cutting
+Todos: [X2](../todos/ready/X2-capability-matrix.md) (capability matrix; E1a and E1f depend on it)
 - [ ] Assign stable IDs `<group>.<nn>` to all operations in 06 §3 and create `docs/capabilities/manifest.toml`
 - [ ] Implement test tagging and `cargo xtask capabilities`; generate `docs/capabilities/README.md`
 - [ ] CI gate: no status claimed without a passing tagged test
 - [ ] Show the capability matrix in the app (E1) and docs site
 
 ### E1. Editing foundation
+Todos: [E1a](../todos/ready/E1a-editing-foundation-feature-plan.md), [E1b](../todos/ready/E1b-xmp-packet-model.md), [E1c](../todos/ready/E1c-metadata-ops.md), [E1d](../todos/ready/E1d-edit-session-undo-ui.md), [E1e](../todos/ready/E1e-save-and-constraint-banner.md), [E1f](../todos/ready/E1f-metadata-ui-capability-page.md)
 - [ ] Feature-plan PR for E1
 - [ ] Interaction-mode state machine in `@lamina/ui`
 - [ ] Undo/redo commands, shortcuts and history panel
@@ -283,6 +305,7 @@ Editor rounds are larger than reader rounds. Each starts with a short **feature-
 - [ ] PDF/A-aware metadata edits: keep `pdfaid:`, warn before a save that breaks the claim; tests that veraPDF still passes on edited PDF/A fixtures
 
 ### E2. Page organisation
+Todos: [E2a](../todos/ready/E2a-page-organisation-feature-plan.md), [E2b](../todos/ready/E2b-page-structure-ops.md), [E2c](../todos/ready/E2c-cross-document-pages.md), [E2d](../todos/ready/E2d-merge-and-split.md), [E2e](../todos/ready/E2e-content-append-api.md), [E2f](../todos/ready/E2f-page-geometry.md), [E2g](../todos/ready/E2g-page-labels.md), [E2h](../todos/ready/E2h-page-organiser-ui.md), [E2i](../todos/ready/E2i-signed-gating-and-close.md)
 - [ ] Feature-plan PR for E2
 - [ ] Page ops (insert, delete, duplicate, reorder, rotate, reverse, replace) as view-level `LaminaId` mapping
 - [ ] Merge with outline, destination, AcroForm and struct-tree remapping
@@ -294,6 +317,7 @@ Editor rounds are larger than reader rounds. Each starts with a short **feature-
 - [ ] DocMDP gating tests on signed fixtures
 
 ### E3. Navigation, attachments, inspection and extraction
+Todos: [E3a](../todos/ready/E3a-navigation-attachments-inspection-feature-plan.md), [E3b](../todos/ready/E3b-bookmarks-and-destinations.md), [E3c](../todos/ready/E3c-links.md), [E3d](../todos/ready/E3d-initial-view-and-threads.md), [E3e](../todos/ready/E3e-xmp-editor.md), [E3f](../todos/ready/E3f-attachments-and-associated-files.md), [E3g](../todos/ready/E3g-inspectors.md), [E3h](../todos/ready/E3h-images-to-pdf-and-page-export.md), [E3i](../todos/ready/E3i-extraction.md)
 - [ ] Feature-plan PR for E3
 - [ ] Bookmark editor (nested, drag), links and named destinations, TOC generator
 - [ ] Initial view and page display settings
@@ -303,6 +327,7 @@ Editor rounds are larger than reader rounds. Each starts with a short **feature-
 - [ ] Images → PDF; page export to PNG/JPEG/TIFF; text, image, link and attachment extraction
 
 ### E4. Markup and drawing annotations
+Todos: [E4a](../todos/ready/E4a-markup-and-drawing-annotations-feature-plan.md), [E4b](../todos/ready/E4b-annotation-model-and-overlay.md), [E4c](../todos/ready/E4c-appearances-markup-notes-caret.md), [E4d](../todos/ready/E4d-appearances-ink-and-shapes.md), [E4e](../todos/ready/E4e-freetext-callouts.md), [E4f](../todos/ready/E4f-annotation-tools-ui.md), [E4g](../todos/ready/E4g-appearance-parity-suite.md)
 - [ ] Feature-plan PR for E4
 - [ ] Annotation model with `/NM` IDs and overlay rendering
 - [ ] Appearance-stream generator for every subtype shipped
@@ -311,6 +336,7 @@ Editor rounds are larger than reader rounds. Each starts with a short **feature-
 - [ ] Round-trip tests: appearance identical in pdf.js and PDFium
 
 ### E5. Review, stamps and interchange
+Todos: [E5a](../todos/ready/E5a-review-stamps-interchange-feature-plan.md), [E5b](../todos/ready/E5b-comment-threads-and-review.md), [E5c](../todos/ready/E5c-stamps-and-attachments.md), [E5d](../todos/ready/E5d-xfdf-fdf.md), [E5e](../todos/ready/E5e-flatten-and-summary.md)
 - [ ] Feature-plan PR for E5
 - [ ] Comment panel with replies, status, filter and search
 - [ ] Custom stamps (image, dynamic text) and file-attachment annotations
@@ -318,12 +344,14 @@ Editor rounds are larger than reader rounds. Each starts with a short **feature-
 - [ ] Flatten annotations via the E2 append API; comment summary export
 
 ### E6. Adding content to pages
+Todos: [E6a](../todos/ready/E6a-adding-content-feature-plan.md), [E6b](../todos/ready/E6b-place-images-and-shapes.md), [E6c](../todos/ready/E6c-add-text.md), [E6d](../todos/ready/E6d-watermarks-headers-footers.md), [E6e](../todos/ready/E6e-content-tools-ui.md), [E6f](../todos/ready/E6f-reload-budget.md)
 - [ ] Feature-plan PR for E6
 - [ ] Add text, images, shapes and stamps as page content via Form XObjects
 - [ ] Watermarks and backgrounds; headers, footers, page numbers, Bates numbering
 - [ ] Measure and budget touched-page reload time in web and desktop
 
 ### E7. Editing existing content
+Todos: [E7a](../todos/ready/E7a-adr-0022-content-editing.md), [E7b](../todos/ready/E7b-editing-existing-content-feature-plan.md), [E7c](../todos/ready/E7c-content-ir.md), [E7d](../todos/ready/E7d-select-transform-existing.md), [E7e](../todos/ready/E7e-text-runs-and-inline-edit.md), [E7f](../todos/ready/E7f-font-handling-and-styling.md), [E7g](../todos/ready/E7g-search-and-replace.md), [E7h](../todos/ready/E7h-vector-clipping-masks.md), [E7i](../todos/ready/E7i-structure-and-conformance-maintenance.md), [E7j](../todos/ready/E7j-edit-corpus.md)
 - [ ] Write ADR 0022 (content-stream editing model for existing content)
 - [ ] Feature-plan PR for E7
 - [ ] Content IR with object identity; select and transform existing objects
@@ -335,6 +363,7 @@ Editor rounds are larger than reader rounds. Each starts with a short **feature-
 - [ ] Edit-corpus tests: output renders identically except edited regions
 
 ### E8. Form filling and data
+Todos: [E8a](../todos/ready/E8a-adr-0021-javascript-policy.md), [E8b](../todos/ready/E8b-form-filling-feature-plan.md), [E8c](../todos/ready/E8c-acroform-field-model.md), [E8d](../todos/ready/E8d-field-appearances.md), [E8e](../todos/ready/E8e-field-widgets-ui.md), [E8f](../todos/ready/E8f-declarative-behaviour.md), [E8g](../todos/ready/E8g-form-data-and-flatten.md)
 - [ ] Write ADR 0021 (PDF JavaScript policy)
 - [ ] Feature-plan PR for E8
 - [ ] Field widgets as DOM overlays; tab order; required/read-only
@@ -344,12 +373,14 @@ Editor rounds are larger than reader rounds. Each starts with a short **feature-
 - [ ] XFA detection and user-facing report
 
 ### E9. Form authoring
+Todos: [E9a](../todos/ready/E9a-form-authoring-feature-plan.md), [E9b](../todos/ready/E9b-field-creation-ops.md), [E9c](../todos/ready/E9c-form-design-mode.md), [E9d](../todos/ready/E9d-automatic-field-detection.md)
 - [ ] Feature-plan PR for E9
 - [ ] Form-design mode: create, move, resize, configure every field type
 - [ ] Signature fields; accessible labels; tab-order editor
 - [ ] Optional automatic field detection on flat forms
 
 ### E10. Signatures
+Todos: [E10a](../todos/ready/E10a-adr-0020-signatures.md), [E10b](../todos/ready/E10b-signatures-feature-plan.md), [E10c](../todos/ready/E10c-visual-signatures.md), [E10d](../todos/ready/E10d-pades-signing-core.md), [E10e](../todos/ready/E10e-timestamps-and-tsa-proxy.md), [E10f](../todos/ready/E10f-certification-and-locking.md), [E10g](../todos/ready/E10g-signature-validation.md), [E10h](../todos/ready/E10h-revision-diff-and-attacks.md), [E10i](../todos/ready/E10i-platform-signers.md), [E10j](../todos/ready/E10j-signature-ui.md)
 - [ ] Write ADR 0020 (signatures and crypto backends, key storage per platform)
 - [ ] Feature-plan PR for E10
 - [ ] Visual signatures (image, drawn, typed) clearly labelled as non-cryptographic
@@ -361,6 +392,7 @@ Editor rounds are larger than reader rounds. Each starts with a short **feature-
 - [ ] Attack-catalogue tests (incremental saving, shadow attacks)
 
 ### E11. Security and sanitisation
+Todos: [E11a](../todos/ready/E11a-security-and-sanitisation-feature-plan.md), [E11b](../todos/ready/E11b-encrypt-on-write.md), [E11c](../todos/ready/E11c-remove-security.md), [E11d](../todos/ready/E11d-sanitiser.md), [E11e](../todos/ready/E11e-public-key-security.md)
 - [ ] Feature-plan PR for E11
 - [ ] AES-256 encryption on write (decryption exists since library B2); passwords and permissions UI
 - [ ] Remove security with authorisation
@@ -368,6 +400,7 @@ Editor rounds are larger than reader rounds. Each starts with a short **feature-
 - [ ] Public-key security: read; write behind a flag
 
 ### E12. Redaction
+Todos: [E12a](../todos/ready/E12a-redaction-feature-plan.md), [E12b](../todos/ready/E12b-mark-and-review.md), [E12c](../todos/ready/E12c-apply-content-removal.md), [E12d](../todos/ready/E12d-scrub-and-rewrite.md), [E12e](../todos/ready/E12e-sensitive-search.md), [E12f](../todos/ready/E12f-leak-tests.md)
 - [ ] Feature-plan PR for E12
 - [ ] Mark, review and apply Redact annotations
 - [ ] Remove text, image pixels and paths under areas; scrub annotations, fields, metadata, bookmarks, struct tree
@@ -375,6 +408,7 @@ Editor rounds are larger than reader rounds. Each starts with a short **feature-
 - [ ] Leak tests with pdf.js, PDFium, pypdf, pdftotext; revision-drop tests
 
 ### E13. OCR and conversion
+Todos: [E13a](../todos/ready/E13a-adr-0013-heavy-jobs.md), [E13b](../todos/ready/E13b-ocr-and-conversion-feature-plan.md), [E13c](../todos/ready/E13c-ocr-text-layer.md), [E13d](../todos/ready/E13d-local-ocr.md), [E13e](../todos/ready/E13e-server-jobs-infrastructure.md), [E13f](../todos/ready/E13f-office-and-html-to-pdf.md), [E13g](../todos/ready/E13g-pdf-to-word-excel.md)
 - [ ] Write ADR 0013 (Workflows + Containers, engines and licences)
 - [ ] Feature-plan PR for E13
 - [ ] Invisible OCR text layer from hOCR/ALTO in `lamina-build`
@@ -384,12 +418,14 @@ Editor rounds are larger than reader rounds. Each starts with a short **feature-
 - [ ] PDF → Word and tables → Excel (server), with quality fixtures
 
 ### E14. Compare, revisions and batch
+Todos: [E14a](../todos/ready/E14a-compare-revisions-batch-feature-plan.md), [E14b](../todos/ready/E14b-revision-browser.md), [E14c](../todos/ready/E14c-compare.md), [E14d](../todos/ready/E14d-batch-runner.md), [E14e](../todos/ready/E14e-server-batch.md)
 - [ ] Feature-plan PR for E14
 - [ ] Revision browser (open any prior revision read-only)
 - [ ] Visual diff and structural diff views
 - [ ] Batch runner over saved op sequences (desktop folders, web file sets, optional Workflows)
 
 ### E15. Accessibility
+Todos: [E15a](../todos/ready/E15a-accessibility-feature-plan.md), [E15b](../todos/ready/E15b-structure-tree-editing.md), [E15c](../todos/ready/E15c-tagging-tools.md), [E15d](../todos/ready/E15d-accessibility-checks.md), [E15e](../todos/ready/E15e-pdfua-output.md)
 - [ ] Feature-plan PR for E15
 - [ ] Tag tree panel and reading-order overlay
 - [ ] Tagging tools: headings, paragraphs, lists, tables, artifacts, alt text, language
@@ -397,6 +433,7 @@ Editor rounds are larger than reader rounds. Each starts with a short **feature-
 - [ ] PDF/UA export; veraPDF agreement tests in CI
 
 ### E16. Optimisation and print production
+Todos: [E16a](../todos/ready/E16a-optimisation-print-feature-plan.md), [E16b](../todos/ready/E16b-structural-optimiser.md), [E16c](../todos/ready/E16c-images-and-fonts.md), [E16d](../todos/ready/E16d-colour.md), [E16e](../todos/ready/E16e-preflight-and-conversion.md), [E16f](../todos/ready/E16f-imposition.md), [E16g](../todos/ready/E16g-server-batch-optimise.md)
 - [ ] Feature-plan PR for E16
 - [ ] Optimiser: images, fonts, unused objects, dedupe, object streams, linearisation
 - [ ] Colour conversion, output intents, overprint preview, spot colours
@@ -404,6 +441,7 @@ Editor rounds are larger than reader rounds. Each starts with a short **feature-
 - [ ] Imposition, booklet and N-up
 
 ### E17. Advanced interactions
+Todos: [E17a](../todos/ready/E17a-advanced-interactions-feature-plan.md), [E17b](../todos/ready/E17b-action-editor.md), [E17c](../todos/ready/E17c-layers.md), [E17d](../todos/ready/E17d-media.md), [E17e](../todos/ready/E17e-measurement.md), [E17f](../todos/ready/E17f-3d-detection.md)
 - [ ] Feature-plan PR for E17
 - [ ] Action editor (links, buttons, events, open actions; JavaScript per ADR 0021)
 - [ ] Layers panel (show/hide, edit OCGs)
@@ -412,10 +450,18 @@ Editor rounds are larger than reader rounds. Each starts with a short **feature-
 - [ ] 3D detection with poster fallback
 
 ### E18. Collaboration
+Todos: [E18a](../todos/ready/E18a-adr-0012-collaboration.md), [E18b](../todos/ready/E18b-collaboration-feature-plan.md), [E18c](../todos/ready/E18c-layer-document-schema.md), [E18d](../todos/ready/E18d-durable-object-server.md), [E18e](../todos/ready/E18e-client-sync-and-presence.md), [E18f](../todos/ready/E18f-sharing-and-notifications.md), [E18g](../todos/ready/E18g-leases-and-base-revisions.md), [E18h](../todos/ready/E18h-load-test.md)
 - [ ] Write ADR 0012 (Durable Object per document, LWW records, leases)
-- [ ] Run the `auth` spike and record the result in ADR 0011 (before the first round that needs accounts, which may be earlier than E18)
+- [ ] Run the `auth` spike ([H1](../todos/ready/H1-auth-spike.md)) and record the result in ADR 0011 (before the first round that needs accounts, which may be earlier than E18)
 - [ ] Feature-plan PR for E18
 - [ ] Layer-document schema for annotations, field values and page order
 - [ ] Durable Object with SQLite storage and WebSocket hibernation; R2 base revisions; D1 index
 - [ ] Presence, sharing links, offline sync on desktop
 - [ ] Load test: 50 concurrent reviewers on one document
+
+### Hosted service: accounts, cloud storage and sync
+Todos: [H1](../todos/ready/H1-auth-spike.md), [H2](../todos/ready/H2-accounts-and-login.md), [H3](../todos/ready/H3-cloud-document-storage.md), [H4](../todos/ready/H4-document-sync.md)
+- [ ] `auth` spike: login stack recorded in ADR 0011 ([H1](../todos/ready/H1-auth-spike.md))
+- [ ] Opt-in accounts and sign-in on web and desktop ([H2](../todos/ready/H2-accounts-and-login.md))
+- [ ] Opt-in cloud storage of documents: R2 blobs, D1 index, per-user access ([H3](../todos/ready/H3-cloud-document-storage.md))
+- [ ] Sync of cloud documents across devices ([H4](../todos/ready/H4-document-sync.md))

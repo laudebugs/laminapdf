@@ -91,40 +91,49 @@ Architecture details live in [architecture.md](architecture.md) and the research
 
 Architecture Round C is delivered as PRs C1–C7. C1 needs B6, because its PDFium spike loads `lamina-wasm` and measures reload after an incremental save; the `hayro-parity` half has no lamina dependency and can start earlier. C2–C4 follow C1; C5 also needs B9 (text extraction).
 
+Each round is split into one or more todos (one pull request each) on the [todo board](../todos/README.md); they move `ready/` → `ongoing/` → `done/`, so a link here may point into another folder once work starts. Their "Depends on" fields fix the order, including the cross-plan gates on library B6 and B9.
+
 ### C1. Rendering spikes
 
 **Deliverable:** `spikes/pdfium-wasm/` (PDFium-WASM next to `lamina-wasm` in one worker: size, memory, render time, reload after incremental save) and `spikes/hayro-parity/` (pass rate vs PDFium on the pdf.js and PDFBox corpora), each with a written result.
 **Accepted when:** both READMEs report numbers on the same machine and corpus, and recommend the defaults that ADR 0004 records.
+**Todos:** [C1a](../todos/ready/C1a-hayro-parity-spike.md), [C1b](../todos/ready/C1b-pdfium-wasm-spike.md)
 
 ### C2. Render backend and ADRs
 
 **Deliverable:** ADRs 0004, 0009, 0010, 0011; `crates/lamina-render` with the `RenderBackend` trait and PDFium and hayro adapters; `@lamina/render-pdfium`.
 **Accepted when:** golden render tests pass for both adapters on `fixtures/`; the hayro-vs-PDFium diff runs in the nightly lane.
+**Todos:** [C2a](../todos/ready/C2a-render-adrs.md), [C2b](../todos/ready/C2b-lamina-render-crate.md), [C2c](../todos/ready/C2c-render-packages.md)
 
 ### C3. Viewer core
 
 **Deliverable:** `@lamina/viewer`: worker RPC, page virtualiser, canvas pool, progressive rendering, zoom with anchoring; a minimal demo page; performance harness.
 **Accepted when:** a 1,000-page fixture scrolls end to end in Playwright (Chromium, Firefox, WebKit) within the memory and long-task budgets; cancelled renders never paint.
+**Todos:** [C3a](../todos/ready/C3a-viewer-worker-rpc.md), [C3b](../todos/ready/C3b-viewer-virtualiser-and-zoom.md), [C3c](../todos/ready/C3c-viewer-perf-harness.md)
 
 ### C4. App shell on Cloudflare
 
 **Deliverable:** `@lamina/ui` chrome (toolbar, page indicator, zoom, open dialogs, error and password prompts), `apps/web` Worker with static assets, `_headers`, CSP, per-PR preview deploys, production deploy from `main`.
 **Accepted when:** each PR gets a preview URL comment; local open, drag-drop and `#url=` (CORS-enabled) work; encrypted fixtures open after the password prompt; securityheaders-style checks pass; Playwright asserts that no request body carries document bytes and that no request to our origin (URL, request line or headers, including `Referer`) contains the remote document URL.
+**Todos:** [C4a](../todos/ready/C4a-ui-chrome-and-platform.md), [C4b](../todos/ready/C4b-web-app-shell.md), [C4c](../todos/ready/C4c-remote-files-encryption-privacy.md), [C4d](../todos/ready/C4d-deploy-previews-and-production.md)
 
 ### C5. Text, selection and search
 
 **Deliverable:** text layer from the extraction API of [library B9](pdf-library.md#b9-text-extraction) (`lamina-content` interpreter + `lamina-text`), selection and copy, find bar with streaming results and highlights.
 **Accepted when:** copy from fixtures in five scripts equals expected text, including encrypted fixtures; search results match pdf.js counts on the corpus; selection works with screen readers on tagged fixtures.
+**Todos:** [C5a](../todos/ready/C5a-text-layer-and-selection.md), [C5b](../todos/ready/C5b-find-in-document.md)
 
 ### C6. Navigation, print and properties
 
 **Deliverable:** thumbnails, outline, links (with external-link confirmation), page labels, history, print, download, document properties dialog.
 **Accepted when:** link and outline targets match `expected.json`; printing a 50-page document works in Chrome, Firefox and Safari; download is byte-identical to the input.
+**Todos:** [C6a](../todos/ready/C6a-thumbnails-outline-page-labels.md), [C6b](../todos/ready/C6b-links-and-history.md), [C6c](../todos/ready/C6c-print-download-properties.md)
 
 ### C7. Accessibility, offline and launch
 
 **Deliverable:** keyboard map and help dialog, focus management, ARIA landmarks, high contrast and dark mode; service worker and web app manifest (with `file_handlers`); performance budgets enforced in CI; ADR 0011 privacy page published; public release `web v0.1`.
 **Accepted when:** axe shows zero serious violations; a manual NVDA, VoiceOver and keyboard-only pass is recorded; the app works offline after first load; Lighthouse PWA installability passes; performance targets in §4 are met on the reference machine.
+**Todos:** [C7a](../todos/ready/C7a-accessibility-and-theming.md), [C7b](../todos/ready/C7b-offline-pwa.md), [C7c](../todos/ready/C7c-performance-gates-and-launch.md)
 
 ## 7. Risks
 
@@ -147,7 +156,10 @@ Architecture Round C is delivered as PRs C1–C7. C1 needs B6, because its PDFiu
 
 ## 9. To-dos
 
+Ticked by the PR that completes them; each group lists the todos that own its items (see the [todo board](../todos/README.md)).
+
 ### C1. Rendering spikes
+Todos: [C1a](../todos/ready/C1a-hayro-parity-spike.md), [C1b](../todos/ready/C1b-pdfium-wasm-spike.md)
 - [ ] Build `spikes/pdfium-wasm`: load PDFium-WASM and `lamina-wasm` in one worker
 - [ ] Measure bundle size, peak memory and render time per page on 3 reference files
 - [ ] Measure reload cost after an incremental save from `lamina-save`
@@ -155,6 +167,7 @@ Architecture Round C is delivered as PRs C1–C7. C1 needs B6, because its PDFiu
 - [ ] Write both results with a recommendation for ADR 0004
 
 ### C2. Render backend and ADRs
+Todos: [C2a](../todos/ready/C2a-render-adrs.md), [C2b](../todos/ready/C2b-lamina-render-crate.md), [C2c](../todos/ready/C2c-render-packages.md)
 - [ ] Write ADR 0004 (`RenderBackend`, PDFium default, hayro oracle, MuPDF prohibited)
 - [ ] Write ADR 0009 (React chrome + framework-free viewer, typed worker RPC)
 - [ ] Write ADR 0010 (Platform adapter and capability flags)
@@ -164,6 +177,7 @@ Architecture Round C is delivered as PRs C1–C7. C1 needs B6, because its PDFiu
 - [ ] Add golden render tests and the nightly hayro-vs-PDFium diff
 
 ### C3. Viewer core
+Todos: [C3a](../todos/ready/C3a-viewer-worker-rpc.md), [C3b](../todos/ready/C3b-viewer-virtualiser-and-zoom.md), [C3c](../todos/ready/C3c-viewer-perf-harness.md)
 - [ ] Create `packages/viewer` with the typed RPC (IDs, priorities, transfer lists, cancellation)
 - [ ] Implement the prefix-sum virtualiser and canvas pool
 - [ ] Implement low-res then tiled sharp rendering with `ImageBitmap` transfer
@@ -171,6 +185,7 @@ Architecture Round C is delivered as PRs C1–C7. C1 needs B6, because its PDFiu
 - [ ] Add a perf harness: long tasks, memory, time-to-first-page, run in CI on a 1,000-page fixture
 
 ### C4. App shell on Cloudflare
+Todos: [C4a](../todos/ready/C4a-ui-chrome-and-platform.md), [C4b](../todos/ready/C4b-web-app-shell.md), [C4c](../todos/ready/C4c-remote-files-encryption-privacy.md), [C4d](../todos/ready/C4d-deploy-previews-and-production.md)
 - [ ] Create `packages/ui` (React 19, React Compiler) with the `Platform` interface and web implementation
 - [ ] Create `apps/web` (Vite 8) with `wrangler.jsonc`, SPA fallback, `_headers`, CSP
 - [ ] Implement open via input, drag-drop, paste, `showOpenFilePicker` and `#url=` (fragment) with range requests
@@ -179,6 +194,7 @@ Architecture Round C is delivered as PRs C1–C7. C1 needs B6, because its PDFiu
 - [ ] Playwright test asserting no request body contains document bytes and no request to our origin contains the remote document URL
 
 ### C5. Text, selection and search
+Todos: [C5a](../todos/ready/C5a-text-layer-and-selection.md), [C5b](../todos/ready/C5b-find-in-document.md)
 - [ ] Expose glyph runs and quads from the B9 extraction API through the worker RPC
 - [ ] Build the DOM text layer aligned to rendered glyphs at every zoom
 - [ ] Link the struct tree via `aria-owns` for tagged files
@@ -186,6 +202,7 @@ Architecture Round C is delivered as PRs C1–C7. C1 needs B6, because its PDFiu
 - [ ] Copy/extraction tests in five scripts; search-count parity tests vs pdf.js
 
 ### C6. Navigation, print and properties
+Todos: [C6a](../todos/ready/C6a-thumbnails-outline-page-labels.md), [C6b](../todos/ready/C6b-links-and-history.md), [C6c](../todos/ready/C6c-print-download-properties.md)
 - [ ] Thumbnails sidebar (rendered at low priority, virtualised)
 - [ ] Outline sidebar with expand/collapse and current-section tracking
 - [ ] Link layer: internal destinations, URIs with confirmation, named destinations
@@ -195,6 +212,7 @@ Architecture Round C is delivered as PRs C1–C7. C1 needs B6, because its PDFiu
 - [ ] Document properties dialog (metadata, fonts, version, encryption, signatures present)
 
 ### C7. Accessibility, offline and launch
+Todos: [C7a](../todos/ready/C7a-accessibility-and-theming.md), [C7b](../todos/ready/C7b-offline-pwa.md), [C7c](../todos/ready/C7c-performance-gates-and-launch.md)
 - [ ] Keyboard shortcuts map shared with desktop; help dialog
 - [ ] Focus management, landmarks, live-region announcements for search and page changes
 - [ ] High contrast, dark mode, reduced motion

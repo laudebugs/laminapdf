@@ -1,0 +1,85 @@
+# H4 — Sync of cloud documents across devices
+
+| Field | Value |
+| --- | --- |
+| ID | `H4` |
+| Status | `ready` |
+| Plan | [full-editor: optional Cloudflare server features](../../plans/full-editor.md#optional-cloudflare-server-features) (cloud storage and sync) |
+| Round / milestone | Hosted service foundation (accounts, cloud storage, sync) — before the first round that needs accounts |
+| Depends on | [D3b](./D3b-recent-files-and-file-watching.md), [H3](./H3-cloud-document-storage.md) |
+| Blocks | None |
+| Dependency notes | [H3](H3-cloud-document-storage.md), `D3` ([desktop-app §D3](../../plans/desktop-app.md#d3-files): files and watching) |
+| ADRs | Implements ADR 0011; consistent with ADR 0012 (E18a) for base revisions |
+| Branch | `feat/h4-document-sync` |
+| PR title | `feat(hosted): sync cloud documents across devices` |
+| Size | L (600–1,500) |
+| PR | — |
+
+## Goal
+
+Keep a user's cloud documents in sync across their devices: new revisions pushed on save, devices notified or polling, background download on desktop, and conflicts (two devices saving from the same base revision) resolved by keeping both (conflict copy) — whole-file revisions, not collaborative merging (E18 covers live co-review).
+
+## Context
+
+- [full-editor: optional Cloudflare server features](../../plans/full-editor.md#optional-cloudflare-server-features)
+- [editing notes §3](../../research/architecture/notes/editing-architecture.md#3-collaboration-annotation-layer-sync-crdt-vs-server-authoritative-conflict-semantics)
+- [desktop D3](../../plans/desktop-app.md#d3-files): file watching
+- [ADR 0005](../../decisions/0005-document-model.md) §3: rebase after save
+
+## Scope
+
+**In scope**
+
+- Revision chain per file with `base_revision` on upload; server rejects stale bases → client creates a conflict copy
+- Change feed (poll endpoint, or a per-user DO channel if E18a's infra exists)
+- Desktop: local cache folder, background sync, offline queue
+- Web: sync on open/save; OPFS cache
+
+**Out of scope** (and which todo covers it)
+
+- Real-time multi-user review → [E18c](E18c-layer-document-schema.md)
+
+**Editor facts**
+
+- **Crates and packages:** `apps/web` Worker, `apps/desktop`, `@lamina/ui`
+- **`SaveConstraint`:** not applicable (no PDF writes)
+- **Web vs desktop:** desktop syncs in the background and offline; web syncs when the document is open
+- **Server features:** R2, D1, Workers (optionally a DO per user for notifications)
+- **Capability-matrix rows to flip:** none
+
+## Tasks
+
+- [ ] Revision protocol
+- [ ] Conflict copies
+- [ ] Change feed
+- [ ] Desktop background sync
+- [ ] Web cache
+- [ ] Tests
+
+## Acceptance criteria
+
+- [ ] Two-device test: edit on A, see on B; concurrent edits produce a conflict copy and no data loss
+- [ ] Offline desktop edits upload on reconnect
+
+## Tests
+
+- Worker tests
+- Multi-client integration test
+- WebdriverIO offline test
+
+## Docs to update
+
+- User help: sync
+- [full-editor: optional Cloudflare server features](../../plans/full-editor.md#optional-cloudflare-server-features) (cloud storage and sync): tick what this PR completes and point the todo link at `done/`
+
+## Risks and open questions
+
+- Open product question: is sync whole-file only, or should it reuse E18's layer sync for annotations/fields? (recommendation: whole-file here; E18 for live review)
+
+## Definition of done
+
+- [ ] PR opened from a fresh worktree; this file moved `ready/` → `ongoing/` in the PR's first commit (status field updated, PR link added)
+- [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
+- [ ] CI green
+- [ ] This file moved `ongoing/` → `done/` in the PR (status `done`), plan links updated, plan to-dos ticked
+- [ ] Squash-merged; dependants' "Depends on" now satisfied

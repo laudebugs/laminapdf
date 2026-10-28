@@ -1,0 +1,98 @@
+# D2d — Tile transport and the desktop engine client: open and read one document
+
+| Field | Value |
+| --- | --- |
+| ID | `D2d` |
+| Status | `ready` |
+| Plan | [Desktop app §6 D2](../../plans/desktop-app.md#d2-shell-and-native-core) |
+| Round / milestone | Round D (desktop) — M3 Desktop reader beta |
+| Depends on | [C3b](./C3b-viewer-virtualiser-and-zoom.md), [C4a](./C4a-ui-chrome-and-platform.md), [D2a](./D2a-adr-0008-and-desktop-scaffold.md), [D2b](./D2b-engine-process.md) |
+| Blocks | [D2e](./D2e-desktop-e2e-webdriverio.md) |
+| Dependency notes | [D2b](D2b-engine-process.md); web plan **C3** (`@lamina/viewer` and its engine RPC interface, [web-app §C3](../../plans/web-app.md#c3-viewer-core)) and **C4** (`@lamina/ui`), both already required by D2a. Can run in parallel with [D2c](D2c-engine-sandbox.md). |
+| ADRs | Implements ADR 0008 §tile transport. Follows ADR 0009 (typed viewer RPC, web C2) and ADR 0010 (Platform adapter) |
+| Branch | `feat/d2d-tile-transport` |
+| PR title | `feat(desktop): stream engine tiles to the viewer and open a document` |
+| Size | L (600–1,200 lines) |
+| PR | — |
+
+## Goal
+
+Make the desktop app a working single-window reader: File ▸ Open (via a button for now) picks a PDF, the engine parses it, and `@lamina/viewer` scrolls and zooms it with tiles delivered over the transport ADR 0008 chose from D1a. The web reader's viewer code runs unchanged; only the engine client differs (`DesktopEngineClient` instead of the Web Worker RPC client). This proves the "~90 % shared UI" claim ([report](../../research/architecture/app-and-package-architecture.md#tauri-2-and-a-framework-light-web-client-share-90-of-the-ui)) and meets the 1 GB first-page target.
+
+## Context
+
+- ADR 0008 §tile transport and D1a's README (`spikes/desktop-ipc/`): primary/fallback transport, tile size, compression, in-flight limit.
+- ADR 0009 / web C3: the viewer's engine interface (request IDs, priorities, `AbortSignal` cancellation, `ImageBitmap` painting). The desktop client must implement exactly that interface.
+- D2b: `EngineSupervisor`, `DocumentRegistry`, protocol `RenderTile`/`Cancel`/`Tile`.
+- [Desktop plan §4 non-functional](../../plans/desktop-app.md#non-functional-targets-are-recommendations): first page of a 1 GB PDF ≤ 1.5 s after open; idle memory ≤ 150 MB with one 10-page document.
+- [Desktop notes Q1](../../research/architecture/notes/desktop-shell.md#q1-shell-options-versions-size-memory-startup-webview-differences-licence-maturity-production-users): Canvas2D only on Linux; no WebGL dependency.
+- Tauri: `tauri::ipc::Channel`, `tauri::ipc::Response`, `InvokeResponseBody::Raw`, `register_asynchronous_uri_scheme_protocol` (per D1a's choice).
+
+## Scope
+
+**In scope**
+
+- Rust: the transport chosen in ADR 0008, e.g. (adapt to the decision):
+  - **Channel**: `#[tauri::command] async fn render_tiles(window: tauri::WebviewWindow, state: State<'_, EngineSupervisor>, doc: DocId, tiles: Vec<TileSpec>, on_tile: Channel<InvokeResponseBody>) -> Result<BatchId, DesktopError>`; tiles forwarded from the engine as `Raw(header ++ bytes)` without copying more than once; `cancel_tiles(batch | req ids)`.
+  - **Custom scheme**: `lamina://localhost/tile/{window}/{doc}/{page}/{scale}/{x}/{y}/{gen}` (Windows `http://lamina.localhost/...`), handler validates the requesting webview's label matches `{window}` (no cross-window document access), returns `200` with the tile or `404`/`409` for stale generations; `Cache-Control: no-store` (the viewer has its own cache); cancellation via `AbortController` on `fetch` maps to dropping the engine job when the responder is dropped.
+  - The fallback transport behind a runtime setting for diagnosis.
+- `apps/desktop/src/engine/desktop-engine-client.ts`: implements the `@lamina/viewer` engine interface on top of `invoke` + the transport; maps `AbortSignal` to `cancel_tiles`; converts tiles to `ImageBitmap` (`createImageBitmap(new ImageData(...))` for raw RGBA, `createImageBitmap(blob)` for compressed); priority hints (visible > prefetch) forwarded to the engine.
+- Desktop `Platform.openFile()` → `invoke('open_dialog')` → `DocId` + metadata; the viewer's document handle wraps the `DocId`.
+- Password prompt: `@lamina/ui`'s prompt (from C4) → `invoke('unlock_document', { doc, password })` (password zeroised in Rust after use, never logged).
+- Engine restart UX: listen to `engine://restarted`, show the shared toast "Document process restarted", re-request visible tiles; on `engine://failed` show the error state with "Reopen".
+- Error mapping: `DesktopError { kind }` → the UI's existing error notices (repair notice when `Opened.repaired`).
+- Performance check: time-to-first-page on the 1 GB fixture and the C3 1,000-page fixture, idle memory (main + engine + webview) with a 10-page document; numbers in the PR and ADR 0008.
+
+**Out of scope** (and which todo covers it)
+
+- e2e automation of these flows: [D2e](D2e-desktop-e2e-webdriverio.md) (this PR includes a manual checklist in the PR).
+- Text layer, search, thumbnails: arrive through shared web rounds C5/C6 and need engine messages for text extraction — a follow-up desktop todo once C5 lands (note in Risks).
+- Opening from argv/OS/drag-drop: [D3a](D3a-open-from-os.md). Multiple documents/tabs: [D4a](D4a-windows-tabs-and-session-restore.md).
+
+## Tasks
+
+- [ ] Fresh worktree; move this file to `ongoing/`. Load `tauri-v2` and `rust-best-practices`.
+- [ ] Implement the transport (Rust) and register commands in `generate_handler!`, the app manifest in `build.rs`, and `capabilities/main.json` (`allow-render-tiles`, `allow-cancel-tiles`, `allow-open-dialog`, `allow-unlock-document`, `allow-page-info`, `allow-close-document`).
+- [ ] If a custom scheme is used: update the CSP `img-src`/`connect-src` for both URL forms; add `Cross-Origin-Resource-Policy: same-origin` if COOP/COEP are on.
+- [ ] Implement `DesktopEngineClient` (TS) with strict types shared with Rust via `tsify`-free hand-written types or generated with `ts-rs`/`specta` (decide; record in the PR; licence check), plus Vitest tests using `mockIPC`.
+- [ ] Wire `@lamina/ui`'s open button and password prompt through the desktop `Platform`.
+- [ ] Engine restart and failure events in the UI.
+- [ ] Measure: time-to-first-page (1 GB), scroll smoothness on the 1,000-page fixture using C3's perf harness adapted to the desktop build (dev-only page), idle memory; record in ADR 0008 and the PR.
+- [ ] Manual checklist in the PR for macOS, Windows, Linux (X11 and Wayland): open, scroll, zoom 25–800 %, password file, repaired file, kill engine mid-scroll.
+
+## Acceptance criteria
+
+- [ ] On all three OSes, opening a fixture through the open button renders the first page; scrolling and zooming paint sharp tiles; cancelled tile requests never paint (stale-generation check, unit-tested).
+- [ ] The generated 1 GB fixture shows its first page within **1.5 s** after the open dialog closes on the reference machine (macOS and Windows; Linux recorded).
+- [ ] Idle memory with one 10-page document ≤ **150 MB** across main + engine (webview recorded separately; if over target, note it in ADR 0008 with a plan).
+- [ ] Encrypted fixtures open after the password prompt; a wrong password shows the retry prompt; the password never appears in logs (grep of log output in the test run).
+- [ ] Killing the engine mid-scroll shows "Document process restarted" and the same page re-renders without user action.
+- [ ] A webview cannot fetch tiles of a document opened by another window (custom-scheme label check or channel ownership check; unit test).
+
+## Tests
+
+- Vitest: `DesktopEngineClient` — cancellation maps to `cancel_tiles`; stale generation discarded; restart event triggers re-request; errors mapped to UI notices (mock IPC via `@tauri-apps/api/mocks`).
+- Rust unit tests: URL parsing/validation for the custom scheme (malformed, wrong window, out-of-range page), batch cancellation bookkeeping.
+- Rust integration test: supervisor + engine render a tile for each `fixtures/` sample; checksum equals the in-process render.
+- The e2e versions of the manual checklist are added in D2e.
+
+## Docs to update
+
+- ADR 0008: measurements (first page, memory) and the final transport details.
+- `docs/plans/desktop-app.md` §9 D2: tick "Implement the chosen tile transport and mmap-backed `ByteSource`".
+- `apps/desktop/README.md`: architecture diagram (webview ↔ main ↔ engine).
+
+## Risks and open questions
+
+- **WebKitGTK slow paths**: if Linux scrolling misses budgets, check the DMABUF renderer and `createImageBitmap` behaviour; the renderer switch arrives in D7b, but document env workarounds now.
+- **Main-thread blocking**: Tauri runs non-`async` commands on the main thread — every command here must be `async` or offload to a thread.
+- **Text layer parity** needs an engine-side text extraction message once web C5 lands; raise a follow-up todo (`D2f` or within the editor plan) when C5 is done — record in the PR.
+- **Type sharing** between Rust and TS (hand-written vs generated): generated types reduce drift but add a dependency; decide here.
+
+## Definition of done
+
+- [ ] PR opened from a fresh worktree; this file moved `ready/` → `ongoing/` in the PR's first commit (status field updated, PR link added)
+- [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
+- [ ] CI green
+- [ ] This file moved `ongoing/` → `done/` in the PR (status `done`), plan links updated, plan to-dos ticked
+- [ ] Squash-merged; dependants' "Depends on" now satisfied

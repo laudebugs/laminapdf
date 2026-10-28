@@ -1,0 +1,88 @@
+# E13e — Opt-in server jobs: Workflows + Containers with R2 lifecycle (OCR and Office conversion)
+
+| Field | Value |
+| --- | --- |
+| ID | `E13e` |
+| Status | `ready` |
+| Plan | [full-editor §E13](../../plans/full-editor.md#e13-ocr-and-conversion) |
+| Round / milestone | Editor phase 6 (E11–E17) — M9 Advanced |
+| Depends on | [C7c](./C7c-performance-gates-and-launch.md), [E13c](./E13c-ocr-text-layer.md) |
+| Blocks | [E13f](./E13f-office-and-html-to-pdf.md), [E13g](./E13g-pdf-to-word-excel.md), [E14e](./E14e-server-batch.md) |
+| Dependency notes | [E13c](E13c-ocr-text-layer.md), `C7` ([web-app §C7](../../plans/web-app.md#c7-accessibility-offline-and-launch): web reader v0.1) |
+| ADRs | Implements ADR 0013 and ADR 0011; Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
+| Branch | `feat/e13e-server-jobs-infrastructure` |
+| PR title | `feat(jobs): opt-in server OCR and conversion jobs on Cloudflare` |
+| Size | L (600–1,500) |
+| PR | — |
+
+## Goal
+
+Build the hosted job pipeline: an `apps/jobs` Worker accepting opt-in jobs (upload via presigned PUT to R2 with lifecycle expiry), a Workflow per job driving Containers (OCR engine image, LibreOffice image), status polling or events, result download, and deletion; lamina post-processes outputs in a Worker or container.
+
+## Context
+
+- ADR 0013
+- [cloudflare notes §3](../../research/architecture/notes/cloudflare.md#3-limits-for-server-side-pdf-work-in-a-worker-vs-containers) limits
+- [full-editor §5](../../plans/full-editor.md#5-requirements-that-hold-for-every-round) req. 6
+
+## Scope
+
+**In scope**
+
+- Job API (create, status, result, delete) with signed short-lived tokens
+- Container images built and pinned in CI (licences recorded, SBOM)
+- Workflow with retries and step results in R2
+- Retention: inputs and outputs expire (e.g. 24 h) and are deleted on completion download if the user chooses
+- Client opt-in dialog per document
+
+**Out of scope** (and which todo covers it)
+
+- None
+
+**Editor facts**
+
+- **Operations shipped** ([06 §3](../../research/pdf/06-feature-inventory.md#3-full-operation-inventory-with-mechanisms) IDs): `A.11` convert outlined or scanned text via OCR; `H.13` scanned → searchable PDF
+- **Crates and packages:** `apps/jobs` (Worker + Workflow), `containers/ocr`, `containers/office`
+- **`SaveConstraint`:** results open as new documents or apply `AddOcrLayer`
+- **Web vs desktop:** web and desktop both offer opt-in server OCR; desktop prefers local
+- **Server features:** Workflows, Containers, R2 (lifecycle), Queues
+- **Capability-matrix rows to flip:** server path for A.11/H.13 (no new column; documented in the matrix notes)
+
+## Tasks
+
+- [ ] Worker API
+- [ ] Workflow
+- [ ] Images
+- [ ] Retention tests
+- [ ] Opt-in UI
+
+## Acceptance criteria
+
+- [ ] e2e against a preview deployment: OCR a scan via the server, result downloaded, input deleted from R2 within the retention window
+- [ ] No job runs without explicit opt-in (test)
+- [ ] Container images contain no AGPL components (SBOM check)
+
+## Tests
+
+- Worker tests (Miniflare)
+- Preview e2e
+- SBOM licence scan
+
+## Docs to update
+
+- Privacy page update (ADR 0011)
+- Ops runbook for the job service
+- [full-editor §E13](../../plans/full-editor.md#e13-ocr-and-conversion) and its §10 to-dos: tick what this PR completes and point the round's todo link at `done/`
+
+## Risks and open questions
+
+- Open product question: account required for server jobs? (abuse and cost) — if yes, add H2 as a dependency before starting
+- Container cost and cold starts; set quotas
+
+## Definition of done
+
+- [ ] PR opened from a fresh worktree; this file moved `ready/` → `ongoing/` in the PR's first commit (status field updated, PR link added)
+- [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
+- [ ] CI green
+- [ ] This file moved `ongoing/` → `done/` in the PR (status `done`), plan links updated, plan to-dos ticked
+- [ ] Squash-merged; dependants' "Depends on" now satisfied

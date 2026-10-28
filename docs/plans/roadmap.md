@@ -31,7 +31,7 @@ All four share one Rust core, so every operation is built once ([architecture §
 
 - **A before everything.** Workspace, CI fast lane and `lamina-syntax`/`lamina-cos` ([architecture §5](architecture.md#5-rounds-one-pull-request-each)).
 - **Library first** (recommended in [architecture §8](architecture.md#8-open-questions-for-the-team), question 1): B1–B3 produce the model (with decryption, so readers can open password-protected files), ops and save path everyone needs.
-- **Web reader after B6:** C1's PDFium spike loads `lamina-wasm` next to PDFium-WASM, so it starts once B6 has merged (its `hayro-parity` half can start earlier). C5's text layer needs B9 (text extraction), which runs alongside C1–C4. B7, B8 and B9 run in parallel with the reader rounds.
+- **Web reader after B6:** C1's PDFium spike loads `lamina-wasm` next to PDFium-WASM, so it starts once B6 has merged (its `hayro-parity` half can start earlier). C5's text layer needs B9 (text extraction), which runs alongside C1–C4. B7, B8 and B9 run in parallel with the reader rounds. Technically B9a (the `lamina-content` interpreter) only needs B2c, so it may start before B6 if people are free; B9c (bindings) needs B6b.
 - **Desktop after the web packages:** D1 can start after C3; D2 needs `@lamina/ui` from C4.
 - **Editor after both readers** ship v0.1, so phase 1 (core viewer) is done once and E-rounds add features to both shells and the packages at the same time.
 - **B8 and later E-rounds** can overlap with reader work as people allow; they don't block each other except where listed.
@@ -54,7 +54,7 @@ All four share one Rust core, so every operation is built once ([architecture §
 
 ## All rounds and PRs
 
-One row per round. Reader and library rounds are one PR each; editor rounds are a feature-plan PR followed by a stack of implementation PRs ([full-editor §7](full-editor.md#7-phases-and-rounds)).
+One row per round. Each round is split into one or more todos, one PR each, on the [todo board](../todos/README.md); editor rounds start with a feature-plan (or ADR) todo followed by implementation todos ([full-editor §7](full-editor.md#7-phases-and-rounds)).
 
 | Round | Plan | Deliverable | Key ADRs and spikes |
 | --- | --- | --- | --- |
@@ -106,7 +106,8 @@ One row per round. Reader and library rounds are one PR each; editor rounds are 
 
 ## How we track progress
 
-- **Plans** hold the to-do checklists; tick them in the PR that completes them.
+- **The [todo board](../todos/README.md)** is the work queue: one file per PR in `ready/`, `ongoing/` or `done/`, each with explicit **Depends on** / **Blocks**. Every round below is split into todos there (for example B2 → B2a, B2b, B2c). Pick only todos whose dependencies are all done ([git workflow §2](../guidelines/git-workflow.md#pick-work-from-the-todo-board)).
+- **Plans** hold the to-do checklists and link each round to its todos; tick them in the PR that completes them.
 - **The capability matrix** ([full-editor §3](full-editor.md#3-tracking-the-capability-matrix)) is the source of truth for which of the ~180 operations work on which surface.
 - **ADRs** in `docs/decisions/` record each decision in the round listed above.
 - A plan's status moves Draft → In progress (first round merged) → Done (last round merged).

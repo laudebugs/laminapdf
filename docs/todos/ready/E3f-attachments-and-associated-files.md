@@ -1,0 +1,93 @@
+# E3f — Attachments panel, associated files (`/AF`) and portfolios (read)
+
+| Field | Value |
+| --- | --- |
+| ID | `E3f` |
+| Status | `ready` |
+| Plan | [full-editor §E3](../../plans/full-editor.md#e3-navigation-attachments-inspection-and-extraction) |
+| Round / milestone | Editor phase 2 (E1–E3) — M5 Organiser |
+| Depends on | [E3a](./E3a-navigation-attachments-inspection-feature-plan.md), [E3b](./E3b-bookmarks-and-destinations.md) |
+| Blocks | [E5c](./E5c-stamps-and-attachments.md), [E11d](./E11d-sanitiser.md) |
+| ADRs | Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
+| Branch | `feat/e3f-attachments-and-associated-files` |
+| PR title | `feat(ops): embedded files, associated files and portfolio reading` |
+| Size | L (600–1,500) |
+| PR | — |
+
+## Goal
+
+Attach, extract and delete embedded files (EmbeddedFiles name tree), attach associated files with `/AFRelationship` to the catalog, pages or annotations (PDF 2.0 / PDF/A-3, e.g. Factur-X), and read portfolios (`/Collection`) with a file list.
+
+## Context
+
+- [04 §6 Embedded files, associated files, portfolios](../../research/pdf/04-interactive-security.md#6-embedded-files-associated-files-portfolios)
+- ISO 32000-2 §7.11 (file specifications), §14.13 (associated files), §12.3.5 (collections)
+
+## Scope
+
+**In scope**
+
+- Ops: `AttachFile { name, blob, mime, description, af: Option<AfTarget>, relationship }`, `DeleteAttachment`, `UpdateAttachment`
+- `extract_attachment(id) -> bytes` and listing incl. FileAttachment annotations (read)
+- PDF/A-3 helper: MIME `/Subtype`, `/Params` (size, dates, checksum), `/AFRelationship`
+- Portfolio view (collection schema, files) read-only
+- Attachments panel: add (picker/drop), save out, delete, show relationship
+
+**Out of scope** (and which todo covers it)
+
+- FileAttachment annotations (create) → [E5c](E5c-stamps-and-attachments.md)
+- Removing all attachments as sanitisation → [E11d](E11d-sanitiser.md)
+
+**Editor facts**
+
+- **Operations shipped** ([06 §3](../../research/pdf/06-feature-inventory.md#3-full-operation-inventory-with-mechanisms) IDs): `J.05` attach / extract / delete embedded files; `J.06` portfolios / collections; `H.09` extract attachments; `M.09` associated files and structured metadata
+- **Crates and packages:** `lamina-model` (file specs, name tree from E3b), `lamina-ops`, `@lamina/ui`
+- **`Op` variants:** `AttachFile`, `UpdateAttachment`, `DeleteAttachment` (class `Document`)
+- **`SaveConstraint`:** `Free` → incremental; signed: adding attachments is class `Document` → only allowed where permitted (not under DocMDP P1–P3); gated. Deleting an attachment leaves it in earlier revisions: notice offers full rewrite
+- **Web vs desktop:** identical; desktop saves extracted files to disk via dialog, web downloads
+- **Server features:** none (attachments never leave the device)
+- **Capability-matrix rows to flip:** `J.05` → `round-trip` (core, pdf, web, desktop); `J.06` → `read` (core, pdf, web, desktop); `H.09` → `write` (core, pdf, web, desktop); `M.09` → `round-trip` (core, pdf, web, desktop)
+
+## Tasks
+
+- [ ] File spec writer with `/UF` and `/F`
+- [ ] Embedded file stream with `/Params` and checksum
+- [ ] AF arrays on targets
+- [ ] Collection reader
+- [ ] Panel
+- [ ] Factur-X example
+
+## Acceptance criteria
+
+- [ ] Library parity ([full-editor §5](../../plans/full-editor.md#5-requirements-that-hold-for-every-round) req. 7): every new `Op` is exposed in `lamina` and `@lamina/pdf` in this PR, with rustdoc/TSDoc, a runnable example, tsify-generated TS types, and serde samples frozen in `fixtures/ops/v1/` (unknown ops and fields rejected, ADR 0006 §1, §6)
+- [ ] Property tests: for every new op, apply then undo leaves the overlay empty and the next save is byte-identical to the previous one (ADR 0006 §3); redo re-applies the same bytes
+- [ ] Round-trip: open → op → save → reopen in lamina, pdf.js and PDFium preserves the change and everything else (page count, outline, annotations, fields, struct tree facts in `expected.json`); `qpdf --check` is clean
+- [ ] veraPDF passes PDF/A-3b on a fixture after attaching an XML with `/AFRelationship /Alternative`
+- [ ] Attachments extracted equal the originals byte-for-byte (SHA-256)
+- [ ] pdf.js lists attachments added by lamina
+
+## Tests
+
+- Unit and round-trip
+- veraPDF nightly
+- e2e on both shells
+
+## Docs to update
+
+- API docs: attachments
+- Guide: Factur-X/ZUGFeRD
+- [full-editor §E3](../../plans/full-editor.md#e3-navigation-attachments-inspection-and-extraction) and its §10 to-dos: tick what this PR completes and point the round's todo link at `done/`
+- `docs/capabilities/manifest.toml` statuses (regenerated `docs/capabilities/README.md` via `cargo xtask capabilities`)
+
+## Risks and open questions
+
+- Large attachments in WASM memory: stream from `ByteSource` and blob store; enforce `Limits`
+- Attached executables: show a warning on extract (never open them)
+
+## Definition of done
+
+- [ ] PR opened from a fresh worktree; this file moved `ready/` → `ongoing/` in the PR's first commit (status field updated, PR link added)
+- [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
+- [ ] CI green
+- [ ] This file moved `ongoing/` → `done/` in the PR (status `done`), plan links updated, plan to-dos ticked
+- [ ] Squash-merged; dependants' "Depends on" now satisfied

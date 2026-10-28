@@ -88,37 +88,53 @@ Architecture details are in [architecture.md](architecture.md) and the report; t
 
 Architecture Round D is delivered as PRs D1–D7. D1 can start as soon as C3 merges; D2 needs C4.
 
+**Todos.** Each round is split into one or more todo files, one per pull request, on the [todo board](../todos/README.md) (`ready/` → `ongoing/` → `done/`). Each round below links its todos, and each todo lists its dependencies, including the cross-plan ones on web rounds C2–C4, C6 and C7. The links point into `ready/`; update them when a todo moves.
+
 ### D1. IPC and print spikes
+
+**Todos:** [D1a](../todos/ready/D1a-desktop-ipc-spike.md), [D1b](../todos/ready/D1b-desktop-print-spike.md)
 
 **Deliverable:** `spikes/desktop-ipc/` measuring Channel vs `ipc::Response` vs `lamina://` scheme for 256/512 px tiles on macOS, Windows and Linux, and whether WKWebView/WebView2/WebKitGTK honour COOP/COEP; `spikes/desktop-print/` comparing `window.print()` with native print paths per OS.
 **Accepted when:** both READMEs report numbers per OS and recommend a tile transport and a print path.
 
 ### D2. Shell and native core
 
+**Todos:** [D2a](../todos/ready/D2a-adr-0008-and-desktop-scaffold.md), [D2b](../todos/ready/D2b-engine-process.md), [D2c](../todos/ready/D2c-engine-sandbox.md), [D2d](../todos/ready/D2d-tile-transport-and-first-document.md), [D2e](../todos/ready/D2e-desktop-e2e-webdriverio.md)
+
 **Deliverable:** ADR 0008; `apps/desktop` with Tauri 2, desktop `Platform` adapter, engine child process, tile transport, single window opening one file.
 **Accepted when:** the reader end-to-end scenarios run against the desktop build with WebdriverIO and `@wdio/tauri-service` on Windows and Linux (`tauri-driver`) and on macOS (the service's embedded WebDriver server via `tauri-plugin-wdio-webdriver`, compiled into test builds only behind a Cargo feature) ([Tauri WebDriver docs](https://v2.tauri.app/develop/tests/webdriver/)); the C-round Playwright suite keeps running against the web build on all three OSes (Playwright drives browsers, not Tauri webviews); killing the engine process restarts it and the document reloads; a 1 GB fixture opens within target. If the macOS embedded driver proves unreliable, macOS falls back to the web-build Playwright run plus a recorded manual smoke checklist, and ADR 0008 records the gap.
 
 ### D3. Files
+
+**Todos:** [D3a](../todos/ready/D3a-open-from-os.md), [D3b](../todos/ready/D3b-recent-files-and-file-watching.md)
 
 **Deliverable:** file associations, argv and `RunEvent::Opened`, single-instance forwarding, recent files (OS and in-app), file watching with reload, drag-drop onto window and icon.
 **Accepted when:** double-clicking a PDF opens it in the running instance on each OS; editing the file externally reloads it keeping the page position.
 
 ### D4. Windows, tabs, menus and printing
 
+**Todos:** [D4a](../todos/ready/D4a-windows-tabs-and-session-restore.md), [D4b](../todos/ready/D4b-native-menus.md), [D4c](../todos/ready/D4c-native-printing.md)
+
 **Deliverable:** multi-window, tabs with drag between windows, session restore, native menus and accelerators, native printing per the D1 result.
 **Accepted when:** menu items and shortcuts match the shared map (test); a 50-page document prints with page ranges on each OS (manual check recorded).
 
 ### D5. Update service
+
+**Todos:** [D5a](../todos/ready/D5a-update-worker-and-adr-0014.md), [D5b](../todos/ready/D5b-updater-in-app.md)
 
 **Deliverable:** ADR 0014; `apps/updates` Worker (channels, staged rollout, kill switch, 60 s cache) with tests; R2 layout and channel manifests; updater plugin wired in the app with settings.
 **Accepted when:** Worker unit tests cover 204/200, rollout bucketing from the `Lamina-Install-Id` header (present, absent, malformed) and kill switch; a test asserts the install ID never reaches logs; an app on `0.0.1-test` updates to `0.0.2-test` on each OS from a staging channel; a tampered bundle is rejected.
 
 ### D6. Signing, packaging and release pipeline
 
+**Todos:** [D6a](../todos/ready/D6a-signing-runbook-and-owner-setup.md), [D6b](../todos/ready/D6b-release-workflow-and-linux-packages.md), [D6c](../todos/ready/D6c-macos-signing-and-notarisation.md), [D6d](../todos/ready/D6d-windows-signing.md)
+
 **Deliverable:** release workflow (tauri-action matrix) producing artefacts signed with the owner's identities as publisher: dmg (Developer ID + notarisation + stapling), MSI and NSIS (Azure Artifact Signing if the owner is eligible as an individual, otherwise an OV certificate in a cloud HSM), AppImage and deb (rpm optional); uploads to R2 with attestations; manifests updated per channel.
 **Accepted when:** Gatekeeper and `debsig`/AppImage signature checks pass on clean VMs; on Windows the Authenticode signature is valid and the owner is shown as publisher. With Artifact Signing, the installer runs on a clean VM without a SmartScreen warning; with an OV certificate, a SmartScreen warning is acceptable for early releases (neither OV nor EV gets instant reputation since 2024), and the release notes document how reputation builds up; release artifacts carry GitHub attestations; a nightly channel build publishes automatically.
 
 ### D7. Crash reporting and beta
+
+**Todos:** [D7a](../todos/ready/D7a-crash-reporting.md), [D7b](../todos/ready/D7b-settings-renderer-switch-and-download-page.md), [D7c](../todos/ready/D7c-desktop-beta-release.md)
 
 **Deliverable:** opt-in crash and panic reporting to the chosen backend; settings page (updates, channel, crash reports, renderer backend switch for Linux); download page on `<domain>/download`; `desktop v0.1` beta on the beta channel.
 **Accepted when:** a forced crash produces a scrubbed report only after consent (test asserts no paths or content); beta installs and auto-updates for at least one release cycle on all three OSes.
@@ -144,7 +160,11 @@ Architecture Round D is delivered as PRs D1–D7. D1 can start as soon as C3 mer
 
 ## 9. To-dos
 
+Ticked by the PR that completes them; each group lists the todos that own its items (see the [todo board](../todos/README.md)).
+
 ### D1. IPC and print spikes
+Todos: [D1a](../todos/ready/D1a-desktop-ipc-spike.md), [D1b](../todos/ready/D1b-desktop-print-spike.md)
+
 - [ ] Build `spikes/desktop-ipc` with three tile transports and a scroll benchmark
 - [ ] Measure throughput and latency for 256 and 512 px tiles on macOS, Windows, Linux (x64)
 - [ ] Check `crossOriginIsolated` under COOP/COEP in each webview
@@ -152,6 +172,8 @@ Architecture Round D is delivered as PRs D1–D7. D1 can start as soon as C3 mer
 - [ ] Write both results with recommendations for ADR 0008
 
 ### D2. Shell and native core
+Todos: [D2a](../todos/ready/D2a-adr-0008-and-desktop-scaffold.md), [D2b](../todos/ready/D2b-engine-process.md), [D2c](../todos/ready/D2c-engine-sandbox.md), [D2d](../todos/ready/D2d-tile-transport-and-first-document.md), [D2e](../todos/ready/D2e-desktop-e2e-webdriverio.md)
+
 - [ ] Write ADR 0008 (Tauri 2, process model, tile transport, Linux fallback)
 - [ ] Create `apps/desktop` and `src-tauri` as a workspace member depending on `crates/*` by path
 - [ ] Implement the desktop `Platform` adapter and capability flags
@@ -161,6 +183,8 @@ Architecture Round D is delivered as PRs D1–D7. D1 can start as soon as C3 mer
 - [ ] Record the per-OS test strategy and any macOS gap in ADR 0008
 
 ### D3. Files
+Todos: [D3a](../todos/ready/D3a-open-from-os.md), [D3b](../todos/ready/D3b-recent-files-and-file-watching.md)
+
 - [ ] Register `.pdf` file associations in the bundle config for all three OSes
 - [ ] Handle argv, `RunEvent::Opened` and single-instance forwarding
 - [ ] Recent files: OS recent documents and an in-app list with "clear"
@@ -168,12 +192,16 @@ Architecture Round D is delivered as PRs D1–D7. D1 can start as soon as C3 mer
 - [ ] Integration tests for open-from-OS on each platform
 
 ### D4. Windows, tabs, menus and printing
+Todos: [D4a](../todos/ready/D4a-windows-tabs-and-session-restore.md), [D4b](../todos/ready/D4b-native-menus.md), [D4c](../todos/ready/D4c-native-printing.md)
+
 - [ ] Multi-window and tabs; drag a tab to a new window; session restore
 - [ ] Native menus and accelerators generated from the shared shortcut map
 - [ ] Implement printing per the D1 recommendation
 - [ ] Record a manual print check per OS in the PR
 
 ### D5. Update service
+Todos: [D5a](../todos/ready/D5a-update-worker-and-adr-0014.md), [D5b](../todos/ready/D5b-updater-in-app.md)
+
 - [ ] Write ADR 0014 (channels, rollout, signing identities with the owner as publisher, key custody and rotation)
 - [ ] Create `apps/updates` Worker: `/{channel}/{target}/{arch}/{current_version}` → 204 or 200 JSON
 - [ ] Implement rollout bucketing by install-ID hash (from the `Lamina-Install-Id` request header), kill switch, 60 s cache
@@ -182,6 +210,8 @@ Architecture Round D is delivered as PRs D1–D7. D1 can start as soon as C3 mer
 - [ ] End-to-end update test on a staging channel on three OSes; tampered bundle rejected
 
 ### D6. Signing, packaging and release pipeline
+Todos: [D6a](../todos/ready/D6a-signing-runbook-and-owner-setup.md), [D6b](../todos/ready/D6b-release-workflow-and-linux-packages.md), [D6c](../todos/ready/D6c-macos-signing-and-notarisation.md), [D6d](../todos/ready/D6d-windows-signing.md)
+
 - [ ] Release workflow with tauri-action matrix (macOS arm64/x64, Windows x64/arm64, Linux x64/arm64)
 - [ ] Apple Developer ID signing, notarisation and stapling
 - [ ] Owner confirms Windows Artifact Signing individual eligibility (US/Canada only); otherwise obtain an OV certificate in a cloud HSM
@@ -191,6 +221,8 @@ Architecture Round D is delivered as PRs D1–D7. D1 can start as soon as C3 mer
 - [ ] Verify installs on clean VMs (Gatekeeper, Windows signature and publisher, SmartScreen behaviour recorded, Linux signature checks)
 
 ### D7. Crash reporting and beta
+Todos: [D7a](../todos/ready/D7a-crash-reporting.md), [D7b](../todos/ready/D7b-settings-renderer-switch-and-download-page.md), [D7c](../todos/ready/D7c-desktop-beta-release.md)
+
 - [ ] Decide the crash backend (record in ADR 0014 or a short ADR)
 - [ ] Implement opt-in crash/panic capture with scrubbing; test that no paths or content leak
 - [ ] Settings page: updates, channel, crash reports, renderer backend switch

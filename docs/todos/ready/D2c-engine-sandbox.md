@@ -1,0 +1,94 @@
+# D2c — Sandbox the engine process on macOS, Windows and Linux
+
+| Field | Value |
+| --- | --- |
+| ID | `D2c` |
+| Status | `ready` |
+| Plan | [Desktop app §6 D2](../../plans/desktop-app.md#d2-shell-and-native-core) |
+| Round / milestone | Round D (desktop) — M3 Desktop reader beta |
+| Depends on | [D2b](./D2b-engine-process.md) |
+| Blocks | [D2e](./D2e-desktop-e2e-webdriverio.md) |
+| ADRs | Implements and amends ADR 0008 §sandboxing (records what is actually enforced per OS). Follows [Rust guidelines](../../guidelines/rust.md) (`unsafe` only with `// SAFETY:`), [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) |
+| Branch | `feat/d2c-engine-sandbox` |
+| PR title | `feat(desktop): sandbox the engine process per OS` |
+| Size | M–L (400–900 lines, mostly per-OS code and tests) |
+| PR | — |
+
+## Goal
+
+Reduce what a compromised engine process can do to (almost) nothing: no file system, no network, no spawning, no access to other processes, bounded memory and CPU. The engine only needs its stdin/stdout pipes, its already-loaded libraries (including PDFium) and memory. This is the plan's security requirement ("Child process with minimal privileges; OS sandboxing where available … scope decided in ADR 0008", [desktop plan §4 security](../../plans/desktop-app.md#security)) and its risk "Sandbox restrictions block mmap or IPC — prototype sandbox in D2 per OS; document what is enforced" ([§7](../../plans/desktop-app.md#7-risks)). Because D2b already keeps paths and file handles in the main process, the sandbox can be strict.
+
+## Context
+
+- ADR 0008 §sandboxing (intent, written in D2a) and D2b's protocol (the engine's only channel).
+- Chromium's sandbox designs (primary sources to cite in ADR 0008): [Mac sandbox](https://chromium.googlesource.com/chromium/src/+/main/sandbox/mac/README.md) (Seatbelt profiles via `sandbox_init`-style APIs), [Windows sandbox](https://chromium.googlesource.com/chromium/src/+/main/docs/design/sandbox.md) (restricted tokens, job objects, alternate desktop, integrity levels), [Linux sandboxing](https://chromium.googlesource.com/chromium/src/+/main/docs/linux/sandboxing.md) (seccomp-bpf + namespaces).
+- Apple: App Sandbox entitlements (`com.apple.security.app-sandbox`, `com.apple.security.inherit`) — a helper with its own `app-sandbox` entitlement runs sandboxed even inside a non-sandboxed app; hardened runtime is required for notarisation anyway (D6c).
+- Windows: `CreateRestrictedToken`, `SetTokenInformation(TokenIntegrityLevel = Low/Untrusted)`, Job Objects (`JOB_OBJECT_LIMIT_PROCESS_MEMORY`, `JOB_OBJECT_LIMIT_ACTIVE_PROCESS = 1`, `JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE`, UI restrictions), `PROCESS_MITIGATION_*` policies via `UpdateProcThreadAttribute` (no child processes, prohibit dynamic code if PDFium allows, image load restrictions), AppContainer (`CreateAppContainerProfile`) as the stronger option.
+- Linux: Landlock (kernel ≥ 5.13; `landlock` crate, MIT/Apache) for fs/net denial, seccomp-bpf (`seccompiler` from Firecracker, Apache-2.0) with an allow-list of syscalls, `PR_SET_NO_NEW_PRIVS`, `setrlimit(RLIMIT_AS/RLIMIT_NPROC)`; user namespaces may be disabled by distro policy (Ubuntu 24.04 AppArmor restricts unprivileged userns) — do not depend on them.
+
+## Scope
+
+**In scope**
+
+- `apps/desktop/src-tauri/src/engine/sandbox/{mod.rs,macos.rs,windows.rs,linux.rs}` (spawn-side policy) and `crates/lamina-desktop-engine/src/sandbox/` (self-restriction applied by the engine at startup **after** loading PDFium and before reading the first `OpenDocument`):
+  - **Lock-down order**: load PDFium + fonts the engine needs (PDFium's built-in base-14 fonts; system font access decided here — prefer passing font bytes from main on request over granting font directory reads) → apply sandbox → send `Ready { sandboxed: SandboxLevel }`.
+  - **macOS**: engine sidecar signed with an entitlements file `engine.entitlements` containing `com.apple.security.app-sandbox = true` (no file/network entitlements); verify the helper launches from a non-sandboxed parent and that stdio pipes work; fallback: Seatbelt profile via the private `sandbox_init_with_parameters` (Chromium does this) only if App Sandbox breaks pipes — record the choice.
+  - **Windows**: spawn with a restricted token at Low integrity, in a Job Object with memory limit (configurable, default e.g. 2 GiB per engine), active-process limit 1, kill-on-close, UI restrictions; child-process creation disabled via `PROCESS_CREATION_CHILD_PROCESS_RESTRICTED`; evaluate AppContainer with no capabilities (record if pipes/PDFium work).
+  - **Linux**: `prctl(PR_SET_NO_NEW_PRIVS)`, Landlock ruleset denying all fs access (best-effort ABI; report level achieved), seccomp-bpf allow-list (read/write on the inherited fds, `mmap`/`munmap`/`mprotect` without `PROT_EXEC` on new mappings if PDFium tolerates it, `futex`, `clock_gettime`, `exit_group`, `sched_yield`, `madvise`, `brk`, `rt_sigreturn`…; default action `SECCOMP_RET_KILL_PROCESS` in release, `SECCOMP_RET_TRAP`/log in a debug feature to discover missing syscalls), `RLIMIT_AS` and `RLIMIT_NPROC=0`.
+- `SandboxLevel` reported per engine to the main process and logged; a setting/env var `LAMINA_ENGINE_SANDBOX=off` only in debug builds.
+- Supervisor treats an engine killed by the sandbox (SIGSYS, job memory limit) like a crash (restart policy from D2b) and logs the reason category.
+- ADR 0008 amendment: a table "what is enforced per OS", known gaps, kernel/OS version requirements.
+
+**Out of scope** (and which todo covers it)
+
+- Signing the engine with entitlements in release builds: [D6c](D6c-macos-signing-and-notarisation.md) (this PR adds the entitlements file and ad-hoc signs in dev/CI).
+- Crash/minidump capture of sandboxed engines: [D7a](D7a-crash-reporting.md).
+- Sandboxing the webview processes (owned by the OS webview).
+- Mac App Store sandboxing of the whole app (non-goal).
+
+## Tasks
+
+- [ ] Fresh worktree; move this file to `ongoing/`. Load `tauri-v2` and `rust-best-practices`.
+- [ ] Add dependencies with licence comments: `landlock`, `seccompiler` (Linux, `cfg(target_os = "linux")`), `windows` crate features for security/job objects (`cfg(windows)`); no new deps on macOS if entitlements suffice.
+- [ ] Implement the per-OS modules behind a single `fn apply_engine_sandbox(cfg: &SandboxConfig) -> Result<SandboxLevel, SandboxError>` (engine side) and `fn spawn_sandboxed(cmd: Command, cfg: &SandboxConfig) -> Result<Child, SandboxError>` (main side); keep all `unsafe` FFI in these modules with `// SAFETY:` comments.
+- [ ] Font strategy: implement `FontRequest`/`FontData` protocol messages if PDFium needs system fonts for non-embedded fonts; main reads fonts from system directories; document in ADR 0008.
+- [ ] macOS: `apps/desktop/src-tauri/engine.entitlements`; ad-hoc sign the sidecar in the xtask `desktop-sidecar` step (`codesign -s - --entitlements … --options runtime`) so dev builds exercise the sandbox.
+- [ ] Probe binary/test mode: engine flag `--sandbox-selftest` that, after applying the sandbox, attempts forbidden actions (open `/etc/hosts` or `C:\Windows\win.ini`, TCP connect to 127.0.0.1, spawn a process, write to the user's home) and reports each as blocked/allowed — used by tests below.
+- [ ] Measure and record: render time with and without sandbox (should be equal), engine startup time increase.
+- [ ] Amend ADR 0008 with the enforcement table.
+
+## Acceptance criteria
+
+- [ ] On each OS, `--sandbox-selftest` reports **blocked** for: reading an arbitrary file, writing a file, opening a network socket, spawning a process. Any exception is listed in ADR 0008 with reason and OS version.
+- [ ] All D2b integration tests still pass with the sandbox on (rendering, restart).
+- [ ] On Linux without Landlock (older kernel) the engine still starts with seccomp + no-new-privs and reports the reduced `SandboxLevel`; the app shows nothing to the user but logs it.
+- [ ] Windows engine memory limit enforced: a test document that forces excessive allocation (or a test-only "allocate N GiB" command under `e2e`) gets the engine killed and restarted, not the app.
+- [ ] No regression in the 1 GB open time from D2b (≤ 5 % slower).
+
+## Tests
+
+- `crates/lamina-desktop-engine/tests/sandbox_selftest.rs`: spawn the engine with `--sandbox-selftest` and assert each probe is blocked, per OS (`#[cfg(target_os = …)]`); runs in the three-OS desktop CI job.
+- Supervisor test: engine killed by sandbox violation → restart path taken.
+- Linux-only test that seccomp default action kills on a forbidden syscall (use the selftest's `socket()` probe).
+
+## Docs to update
+
+- ADR 0008 (enforcement table, gaps, requirements).
+- `docs/plans/desktop-app.md` §7 risk "Sandbox restrictions block mmap or IPC": add "see ADR 0008" result note; §9 D2 has no dedicated sandbox to-do — note completion under "Implement the engine child process…".
+- `apps/desktop/README.md`: how to disable the sandbox in debug builds when diagnosing.
+
+## Risks and open questions
+
+- **PDFium needs `PROT_EXEC`/JIT?** It shouldn't (no V8 in our build — confirm the pinned PDFium build has V8/XFA disabled; PDF JavaScript must never run). If it does, the seccomp policy must allow it; record it.
+- **macOS App Sandbox on a helper** may create a container directory and require a matching bundle identifier; test on macOS 13 and the newest release.
+- **Ubuntu AppArmor userns restrictions** — we deliberately avoid namespaces; confirm the approach on Ubuntu 24.04 and Fedora.
+- **Windows Low integrity + pipes**: inherited anonymous pipe handles work across integrity levels; named pipes need an explicit DACL. Use inherited handles only.
+- **Font access** might push us toward granting read access to font directories; prefer the protocol approach.
+
+## Definition of done
+
+- [ ] PR opened from a fresh worktree; this file moved `ready/` → `ongoing/` in the PR's first commit (status field updated, PR link added)
+- [ ] `/code-review` process followed (findings posted, fixed, threads resolved; second review if > 6 findings)
+- [ ] CI green
+- [ ] This file moved `ongoing/` → `done/` in the PR (status `done`), plan links updated, plan to-dos ticked
+- [ ] Squash-merged; dependants' "Depends on" now satisfied
