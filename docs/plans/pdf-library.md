@@ -160,7 +160,7 @@ Node support follows the LTS lines current at each release. On 2026-10-28, Node 
 
 - **Docs site** (recommendation): Starlight (MIT) in `apps/docs`, deployed to Workers static assets at `docs.<domain>`, with TypeDoc output for `@lamina/pdf`; Rust API docs on docs.rs. Every public item documented (`missing_docs` denied).
 - **Examples**: `examples/` in the façade crate (`cargo run --example invoice`) and a TS examples folder run as tests. Minimum set: hello world, invoice, multilingual (Latin + Arabic + Devanagari + CJK), images and vectors, links and outlines, Worker endpoint, PDF/UA report, PDF/A archive, "generate then edit".
-- **Publishing**: names reserved in Round A; first manual crates.io publish, then trusted-only; npm via OIDC with provenance; GitHub artifact attestations for `.wasm`; `0.x` pre-releases with a written stability policy.
+- **Publishing (deferred, decided 2026-10-28)**: crates and npm packages stay local for now. Consumers use workspace/path dependencies, git dependencies or `pnpm pack` tarballs. When the owner decides to publish: reserve names, first manual crates.io publish then trusted-only, npm via OIDC with provenance, GitHub artifact attestations for `.wasm`, `0.x` pre-releases with a written stability policy ([architecture: Publishing (later)](architecture.md#publishing-later)).
 
 ## 7. Rounds
 
@@ -198,8 +198,8 @@ Architecture Round B is delivered as a stack of PRs B1–B9. B9 was added after 
 
 ### B7. Docs, examples and first release
 
-**Deliverable:** `apps/docs` site; examples; Changesets with Cargo version sync; OIDC publishing; ADR 0017; release `0.1.0-alpha.0` of `lamina*` crates and `@lamina/*` packages.
-**Accepted when:** docs deploy on a preview URL per PR; a fresh project installs from the registries and runs the quick start in each runtime; provenance is visible on npm.
+**Deliverable:** `apps/docs` site; examples; Changesets with Cargo version sync; ADR 0017 (versioning; publishing part deferred); `0.1.0-alpha.0` versioned and tagged, **not published**.
+**Accepted when:** docs deploy on a preview URL per PR; a fresh project outside the repo installs the packed tarballs (`pnpm pack`) and a git/path dependency on the `lamina` crate, and runs the quick start in each runtime.
 
 ### B8. Tagged PDF, PDF/UA and PDF/A
 
@@ -292,9 +292,9 @@ Editing operations (merge, split, annotations, forms, signing…) are added to t
 - [ ] Create `apps/docs` (Starlight) with quick start per runtime, guides and TypeDoc API
 - [ ] Deploy docs to Workers static assets with per-PR preview URLs
 - [ ] Add Changesets and the Cargo version-sync script; write ADR 0017
-- [ ] Configure OIDC trusted publishing on npm and crates.io; first manual crates.io publish
-- [ ] Publish `0.1.0-alpha.0`; verify install and quick start from a clean project in each runtime
-- [ ] Publish the stability policy and changelog
+- [ ] Tag `0.1.0-alpha.0` locally (not published); verify install from `pnpm pack` tarballs and a git/path crate dependency in a clean project in each runtime
+- [ ] Write the stability policy and changelog (published with the first registry release)
+- [ ] Later, when the owner decides: publish to npm and crates.io ([architecture: Publishing (later)](architecture.md#publishing-later))
 
 ### B8. Tagged PDF, PDF/UA and PDF/A
 - [ ] Add structure-tree building: `tag()`, artifacts, alt text, MCIDs, ParentTree, RoleMap
@@ -302,7 +302,7 @@ Editing operations (merge, split, annotations, forms, signing…) are added to t
 - [ ] Write XMP identification schemas and output intents with an embedded sRGB profile
 - [ ] Add veraPDF (Docker, nightly) over all generated examples; fail on any violation
 - [ ] Add PDF/UA and PDF/A examples and docs pages
-- [ ] Release `0.2.0-alpha`
+- [ ] Tag `0.2.0-alpha` (local, unpublished)
 
 ### B9. Text extraction
 - [ ] Write ADR 0023 (content-stream reading; `lamina-content` crate; limits on operators and XObject depth)
