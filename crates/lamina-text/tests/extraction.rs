@@ -65,7 +65,7 @@ fn pinned(text: &str, pin: &str) -> String {
     text.lines()
         .find_map(|l| l.trim().strip_prefix(pin))
         .map(|rest| rest.trim_matches(|c| c == '"' || c == ';' || c == ' ').to_owned())
-        .unwrap_or_else(|| panic!("no pin {pin}"))
+        .unwrap()
 }
 
 #[test]

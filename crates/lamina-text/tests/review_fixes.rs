@@ -257,7 +257,11 @@ fn no_subsetting_instance_is_rebuilt_whole_with_a_warning() {
     let parsed = skrifa::FontRef::new(&program).unwrap();
     assert_eq!(
         (
-            embedded[0].warnings.iter().map(|w| w.code()).collect::<Vec<_>>(),
+            embedded[0]
+                .warnings
+                .iter()
+                .map(lamina_text::Warning::code)
+                .collect::<Vec<_>>(),
             skrifa::raw::TableProvider::maxp(&parsed).unwrap().num_glyphs(),
         ),
         (vec!["whole-font-rebuilt"], count)

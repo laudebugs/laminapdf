@@ -55,6 +55,6 @@ mod usage;
 
 pub use embed::{EmbeddedFont, Encoded, FontKey, FontRegistry};
 pub use error::{Error, Result, Warning};
-pub use font::{Axis, Font, FontInfo, GlyphId, Tag};
+pub use font::{Axis, Font, FontInfo, GlyphId, MAX_NAME_LEN, Tag};
 pub use fstype::{EmbedPolicy, FsType};
 pub use usage::FontUse;
