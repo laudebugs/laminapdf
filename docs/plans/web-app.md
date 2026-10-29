@@ -98,7 +98,7 @@ Each round is split into one or more todos (one pull request each) on the [todo 
 
 **Deliverable:** `spikes/pdfium-wasm/` (PDFium-WASM next to `lamina-wasm` in one worker: size, memory, render time, reload after incremental save) and `spikes/hayro-parity/` (pass rate vs PDFium on the pdf.js and PDFBox corpora), each with a written result.
 **Accepted when:** both READMEs report numbers on the same machine and corpus, and recommend the defaults that ADR 0004 records.
-**Todos:** [C1a](../todos/ongoing/C1a-hayro-parity-spike.md), [C1b](../todos/ready/C1b-pdfium-wasm-spike.md)
+**Todos:** [C1a](../todos/done/C1a-hayro-parity-spike.md), [C1b](../todos/ready/C1b-pdfium-wasm-spike.md)
 
 ### C2. Render backend and ADRs
 
@@ -165,7 +165,7 @@ Ticked by the PR that completes them.
 - [ ] Build `spikes/pdfium-wasm`: load PDFium-WASM and `lamina-wasm` in one worker
 - [ ] Measure bundle size, peak memory and render time per page on 3 reference files
 - [ ] Measure reload cost after an incremental save from `lamina-save`
-- [ ] Build `spikes/hayro-parity`: render the pdf.js and PDFBox corpora with hayro and PDFium; compute pass rate at a perceptual threshold
+- [x] Build `spikes/hayro-parity`: render the pdf.js and PDFBox corpora with hayro and PDFium; compute pass rate at a perceptual threshold ([C1a](../todos/done/C1a-hayro-parity-spike.md), [result](../../spikes/hayro-parity/README.md): 81.8 % pass, 90.8 % pass+minor at 96 DPI)
 - [ ] Write both results with a recommendation for ADR 0004
 
 ### C2. Render backend and ADRs

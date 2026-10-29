@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `C1a` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [web reader §6 C1. Rendering spikes](../../plans/web-app.md#c1-rendering-spikes) |
 | Round / milestone | Round C (web reader) — M2 Web reader v0.1 |
 | Depends on | None |
@@ -47,29 +47,39 @@ Answer the [architecture §4](../../plans/architecture.md#4-spikes-to-close-open
 
 ## Tasks
 
-- [ ] Claim via a claim PR (see Definition of done); then create a fresh worktree off the updated `main`: `git worktree add -b spike/c1a-hayro-parity spike-c1a-hayro-parity main`.
-- [ ] Check licences before adding anything: `hayro` (MIT OR Apache-2.0), `pdfium-render` (confirm MIT OR Apache-2.0 on crates.io; the rendering notes flag it as unconfirmed), the PDFium binary source (e.g. `bblanchon/pdfium-binaries`, Apache-2.0/BSD) and the comparison crate. Record each in the README.
-- [ ] Create `spikes/hayro-parity/` with `Cargo.toml` (edition 2024, `publish = false`, empty `[workspace]` table so it is not pulled into the root workspace), `src/main.rs`, `scripts/fetch-corpora.sh`, `scripts/fetch-pdfium.sh`, `corpora.manifest.toml` (source URL, pinned commit, licence, SHA-256 per file), `.gitignore` (`corpora/`, `out/`, `pdfium/`).
-- [ ] `fetch-pdfium.sh`: download a pinned PDFium native build for the host OS and verify its SHA-256; `pdfium-render` binds it dynamically.
-- [ ] `fetch-corpora.sh`: shallow-fetch pdf.js `test/pdfs` (only the files that are present in the repo, not the `*.link` remote ones, unless they are fetched and hashed too) and the PDFBox test PDFs at pinned commits; write the manifest; skip and list files whose licence forbids redistribution (they are never committed anyway).
-- [ ] Renderer wrappers in `src/render.rs`: `render_hayro(bytes, page, dpi) -> Result<RgbaImage, Error>` and `render_pdfium(bytes, page, dpi) -> Result<RgbaImage, Error>`, both rendering the page's CropBox at 96 DPI and 150 DPI, white background, annotations on (PDFium `FPDF_ANNOT`), no anti-alias differences configured away silently (document the settings).
-- [ ] Per-page timeout and isolation: render each document in a child process (re-exec the binary with `--one <file>`) so a hayro or PDFium crash or hang (timeout 30 s per page) is recorded as `*-error`/`timeout` instead of killing the run.
-- [ ] Comparison in `src/compare.rs`: size mismatch → `fail`; otherwise compute SSIM (greyscale) and the share of pixels whose colour difference exceeds a threshold. Start with thresholds `pass`: SSIM ≥ 0.98 and ≤ 0.5 % differing pixels; `minor`: SSIM ≥ 0.95; else `fail`. Report the sensitivity (pass rate at 3 threshold settings) so ADR 0004 can choose.
-- [ ] Output: `out/results.csv` (file, page, class, ssim, diff %, hayro ms, pdfium ms, error), `out/summary.md` (totals, per-corpus pass rate, top failure classes), and for every `fail` a side-by-side PNG triplet (hayro, PDFium, diff) for manual triage of the first 50.
-- [ ] Manually triage at least 50 failing pages into buckets (fonts/Type3, shading, blend modes/transparency groups, JBIG2/JPX images, annotations, encryption, ICC/colour, broken files) and record counts.
-- [ ] Record the machine (CPU, RAM, OS, rustc version) and the exact versions/commits of hayro, `pdfium-render`, PDFium and both corpora. C1b must report on the same machine.
-- [ ] Write `spikes/hayro-parity/README.md`: question, method, how to reproduce (`scripts/fetch-pdfium.sh && scripts/fetch-corpora.sh && cargo run --release`), results table, failure buckets, speed comparison, limitations, and a **Recommendation for ADR 0004** (default renderer per surface, the parity threshold that would justify switching the default to hayro, which failure buckets must be zero first, the nightly metric X3b tracks).
-- [ ] Add the spike to the `CLAUDE.md` layout tree and the spikes notes (one line each, like `krilla-fit`), and to [architecture §4](../../plans/architecture.md#4-spikes-to-close-open-questions) as "Done" with a link to the result.
+- [x] Claim via a claim PR (see Definition of done); then create a fresh worktree off the updated `main`: `git worktree add -b spike/c1a-hayro-parity spike-c1a-hayro-parity main`.
+- [x] Check licences before adding anything: `hayro` (MIT OR Apache-2.0), `pdfium-render` (confirm MIT OR Apache-2.0 on crates.io; the rendering notes flag it as unconfirmed), the PDFium binary source (e.g. `bblanchon/pdfium-binaries`, Apache-2.0/BSD) and the comparison crate. Record each in the README.
+- [x] Create `spikes/hayro-parity/` with `Cargo.toml` (edition 2024, `publish = false`, empty `[workspace]` table so it is not pulled into the root workspace), `src/main.rs`, `scripts/fetch-corpora.sh`, `scripts/fetch-pdfium.sh`, `corpora.manifest.toml` (source URL, pinned commit, licence, SHA-256 per file), `.gitignore` (`corpora/`, `out/`, `pdfium/`).
+- [x] `fetch-pdfium.sh`: download a pinned PDFium native build for the host OS and verify its SHA-256; `pdfium-render` binds it dynamically.
+- [x] `fetch-corpora.sh`: shallow-fetch pdf.js `test/pdfs` (only the files that are present in the repo, not the `*.link` remote ones, unless they are fetched and hashed too) and the PDFBox test PDFs at pinned commits; write the manifest; skip and list files whose licence forbids redistribution (they are never committed anyway).
+- [x] Renderer wrappers in `src/render.rs`: `render_hayro(bytes, page, dpi) -> Result<RgbaImage, Error>` and `render_pdfium(bytes, page, dpi) -> Result<RgbaImage, Error>`, both rendering the page's CropBox at 96 DPI and 150 DPI, white background, annotations on (PDFium `FPDF_ANNOT`), no anti-alias differences configured away silently (document the settings).
+- [x] Per-page timeout and isolation: render each document in a child process (re-exec the binary with `--one <file>`) so a hayro or PDFium crash or hang (timeout 30 s per page) is recorded as `*-error`/`timeout` instead of killing the run.
+- [x] Comparison in `src/compare.rs`: size mismatch → `fail`; otherwise compute SSIM (greyscale) and the share of pixels whose colour difference exceeds a threshold. Start with thresholds `pass`: SSIM ≥ 0.98 and ≤ 0.5 % differing pixels; `minor`: SSIM ≥ 0.95; else `fail`. Report the sensitivity (pass rate at 3 threshold settings) so ADR 0004 can choose.
+- [x] Output: `out/results.csv` (file, page, class, ssim, diff %, hayro ms, pdfium ms, error), `out/summary.md` (totals, per-corpus pass rate, top failure classes), and for every `fail` a side-by-side PNG triplet (hayro, PDFium, diff) for manual triage of the first 50.
+- [x] Manually triage at least 50 failing pages into buckets (fonts/Type3, shading, blend modes/transparency groups, JBIG2/JPX images, annotations, encryption, ICC/colour, broken files) and record counts.
+- [x] Record the machine (CPU, RAM, OS, rustc version) and the exact versions/commits of hayro, `pdfium-render`, PDFium and both corpora. C1b must report on the same machine.
+- [x] Write `spikes/hayro-parity/README.md`: question, method, how to reproduce (`scripts/fetch-pdfium.sh && scripts/fetch-corpora.sh && cargo run --release`), results table, failure buckets, speed comparison, limitations, and a **Recommendation for ADR 0004** (default renderer per surface, the parity threshold that would justify switching the default to hayro, which failure buckets must be zero first, the nightly metric X3b tracks).
+- [x] Add the spike to the `CLAUDE.md` layout tree and the spikes notes (one line each, like `krilla-fit`), and to [architecture §4](../../plans/architecture.md#4-spikes-to-close-open-questions) as "Done" with a link to the result.
 
 ## Acceptance criteria
 
-- [ ] `cargo run --release` in `spikes/hayro-parity/` (after the two fetch scripts) renders every page of both pinned corpora with both renderers and writes `out/results.csv` and `out/summary.md` without aborting on any single bad file.
-- [ ] The README reports, for each corpus and in total: number of files and pages, pass/minor/fail/error/timeout counts and percentages, median and p95 render time per page for each renderer, and peak RSS.
-- [ ] At least 50 failing pages are triaged into named buckets with counts.
-- [ ] The README states the machine, all versions and commit SHAs, and the thresholds used, so the run is reproducible.
-- [ ] The README ends with a recommendation section that C2a can copy into ADR 0004 (default per surface, switch criteria, nightly metric).
-- [ ] No corpus file, PDFium binary or rendered PNG is committed (checked with `git ls-files spikes/hayro-parity`).
-- [ ] No new dependency in the root workspace or `pnpm-lock.yaml`; `cargo xtask check` is unaffected.
+- [x] `cargo run --release` in `spikes/hayro-parity/` (after the two fetch scripts) renders every page of both pinned corpora with both renderers and writes `out/results.csv` and `out/summary.md` without aborting on any single bad file.
+- [x] The README reports, for each corpus and in total: number of files and pages, pass/minor/fail/error/timeout counts and percentages, median and p95 render time per page for each renderer, and peak RSS.
+- [x] At least 50 failing pages are triaged into named buckets with counts.
+- [x] The README states the machine, all versions and commit SHAs, and the thresholds used, so the run is reproducible.
+- [x] The README ends with a recommendation section that C2a can copy into ADR 0004 (default per surface, switch criteria, nightly metric).
+- [x] No corpus file, PDFium binary or rendered PNG is committed (checked with `git ls-files spikes/hayro-parity`).
+- [x] No new dependency in the root workspace or `pnpm-lock.yaml`; `cargo xtask check` is unaffected.
+
+## Outcome
+
+Result in [`spikes/hayro-parity/README.md`](../../../spikes/hayro-parity/README.md). On 2,196 pages (1,188 documents, 96 DPI), hayro matches PDFium on 81.8 % of pages (pass+minor 90.8 %; 150 DPI: 78.2 % / 90.4 %). The failures are mostly in fonts, annotations without appearance streams, CalRGB/CalGray colour and transparency groups. Recommendation for ADR 0004: PDFium is the default everywhere, hayro is the CI oracle, and X3b tracks pass+minor at 96 DPI against the 90.8 % baseline. Deviations from this todo:
+
+- **Thresholds:** the starting point (SSIM ≥ 0.98) failed visually identical text pages, so the metric gained a 3×3 blur and a 3×3 anti-aliasing neighbourhood, and the thresholds were recalibrated by hand (pass ≤ 0.5 % differing pixels and SSIM ≥ 0.90; minor ≤ 2 % and SSIM ≥ 0.85). The README explains this and reports the sensitivity.
+- **pdf.js `*.link` files** (461) were not fetched; only in-repository PDFs are used.
+- **Triage** covers all 153 `fail` pages but one 3-page PDFBox form (150 pages in 122 documents).
+- **Results** live in `out/` (gitignored); the four run summaries and the triage table are committed in `spikes/hayro-parity/results/`.
+- **PR title:** `spike(c1a): hayro vs PDFium parity on the pdf.js and PDFBox corpora`.
 
 ## Post-merge checks
 
@@ -96,8 +106,8 @@ Spike code is throwaway, so no product tests. Add a smoke check in the README's 
 
 ## Definition of done
 
-- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
-- [ ] Work PR opened from a fresh worktree; **PR** field filled in
+- [x] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [x] Work PR opened from a fresh worktree; **PR** field filled in
 - [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated

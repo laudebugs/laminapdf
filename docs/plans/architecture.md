@@ -78,7 +78,7 @@ The research couldn't answer these. Each is a small, time-boxed spike under `spi
 | `desktop-ipc` | Throughput of Tauri Channel vs `ipc::Response` vs a `lamina://` scheme for page tiles on macOS, Windows and Linux; do WKWebView and WebKitGTK honour COOP/COEP? | ADR 0008 |
 | `pdfium-wasm` | Load PDFium-WASM in a worker next to the lamina core: bundle size, memory, render time; reload after an incremental save | ADR 0004 |
 | `krilla-fit` | Can krilla write into an existing object graph, or do we build our own builder over `lamina-cos`? | Library plan, Round B. **Done** ([result](../../spikes/krilla-fit/README.md)): no, krilla only emits finished bytes; recommends an own builder over `lamina-cos` reusing `pdf-writer`/`subsetter`/`skrifa`/HarfRust (ADR 0005 §6) |
-| `hayro-parity` | hayro vs PDFium pass rate on the pdf.js and PDFBox corpora: the baseline for switching the default | ADR 0004 |
+| `hayro-parity` | hayro vs PDFium pass rate on the pdf.js and PDFBox corpora: the baseline for switching the default | ADR 0004. **Done** ([result](../../spikes/hayro-parity/README.md)): 81.8 % of 2,196 pages pass and 90.8 % pass or differ slightly at 96 DPI; the failures are mostly fonts, annotations without appearance streams, CalRGB/CalGray and transparency groups. Recommends PDFium as the default everywhere and hayro as the CI oracle, with switch criteria for ADR 0004 |
 | `desktop-print` | How to print faithfully from Tauri on each OS (native print of rendered pages vs webview print), given the `hasNativePrint` capability | Round D |
 | `mobile-shell` | Tauri 2 mobile vs UniFFI with native UI (SwiftUI, Compose): native selection-menu conflicts, Apple Pencil latency, share sheet and Files integration, Vision / ML Kit OCR access ([U3b](../todos/ready/U3b-mobile-shell-spike.md)) | ADR 0025, §8 Q4 |
 | `auth` | Better Auth / Auth.js on D1 vs hosted vendors, for the hosted service's user login and accounts (in scope since 2026-10-28, §8 Q2); run before the first round that needs accounts | ADR 0011 |
@@ -149,7 +149,7 @@ Todos: [A1](../todos/done/A1-foundation-adrs.md) (ADRs), [A2](../todos/done/A2-m
 
 Todos: see the [web-app plan §6](web-app.md#6-rounds) (C1a–C7c).
 
-- [ ] `pdfium-wasm` and `hayro-parity` spikes, with written results
+- [ ] `pdfium-wasm` and `hayro-parity` spikes, with written results (`hayro-parity` done: [C1a](../todos/done/C1a-hayro-parity-spike.md), [result](../../spikes/hayro-parity/README.md); `pdfium-wasm`: [C1b](../todos/ready/C1b-pdfium-wasm-spike.md))
 - [ ] Write ADRs 0004, 0009, 0010, 0011
 - [ ] `lamina-render` with the `RenderBackend` trait and PDFium/hayro adapters
 - [ ] `@lamina/render-pdfium` (ships pdfium.wasm, used by the web reader) and `@lamina/render-hayro` (pure-Rust renderer as its own .wasm), both optional so `@lamina/pdf` stays small
