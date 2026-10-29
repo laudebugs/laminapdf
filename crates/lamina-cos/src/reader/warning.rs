@@ -69,6 +69,16 @@ pub enum Warning {
         /// The dropped object number.
         object: u32,
     },
+    /// `aes-padding-invalid`: an AES-encrypted string or stream was not `IV ‖ whole blocks`
+    /// (kept as stored) or had invalid PKCS#5 padding (decrypted, padding kept). A plaintext
+    /// string in an encrypted document (PDFex-style mixing) usually shows up this way.
+    AesPaddingInvalid {
+        /// The object holding the data.
+        object: u32,
+    },
+    /// `perms-mismatch`: an R5/R6 document's `/Perms` does not decrypt to its `/P` and
+    /// `/EncryptMetadata` (ISO 32000-2 Algorithm 13): `/P` may have been tampered with.
+    PermsMismatch,
     /// `warnings-truncated`: more than [`Limits::max_warnings`] warnings were raised; the rest
     /// were dropped.
     WarningsTruncated,
@@ -87,6 +97,8 @@ impl Warning {
         "flate-truncated",
         "objstm-index-mismatch",
         "object-number-out-of-range",
+        "aes-padding-invalid",
+        "perms-mismatch",
         "warnings-truncated",
     ];
 
@@ -104,6 +116,8 @@ impl Warning {
             Self::FlateTruncated { .. } => "flate-truncated",
             Self::ObjStmIndexMismatch { .. } => "objstm-index-mismatch",
             Self::ObjectNumberOutOfRange { .. } => "object-number-out-of-range",
+            Self::AesPaddingInvalid { .. } => "aes-padding-invalid",
+            Self::PermsMismatch => "perms-mismatch",
             Self::WarningsTruncated => "warnings-truncated",
         }
     }
@@ -115,11 +129,16 @@ impl Warning {
             Self::StreamLengthRecovered { object }
             | Self::StaleGeneration { object, .. }
             | Self::ObjStmIndexMismatch { object }
-            | Self::ObjectNumberOutOfRange { object } => Some(object),
+            | Self::ObjectNumberOutOfRange { object }
+            | Self::AesPaddingInvalid { object } => Some(object),
             Self::PageTreeNodeSkipped { object }
             | Self::PageCountMismatch { object, .. }
             | Self::FlateTruncated { object } => object,
-            Self::MissingHeader | Self::XrefRepaired | Self::XrefStmIgnored { .. } | Self::WarningsTruncated => None,
+            Self::MissingHeader
+            | Self::XrefRepaired
+            | Self::XrefStmIgnored { .. }
+            | Self::PermsMismatch
+            | Self::WarningsTruncated => None,
         }
     }
 
@@ -193,6 +212,8 @@ mod tests {
             Warning::FlateTruncated { object: None },
             Warning::ObjStmIndexMismatch { object: 1 },
             Warning::ObjectNumberOutOfRange { object: 1 },
+            Warning::AesPaddingInvalid { object: 1 },
+            Warning::PermsMismatch,
             Warning::WarningsTruncated,
         ];
         for w in &all {
@@ -207,6 +228,8 @@ mod tests {
                 | Warning::FlateTruncated { .. }
                 | Warning::ObjStmIndexMismatch { .. }
                 | Warning::ObjectNumberOutOfRange { .. }
+                | Warning::AesPaddingInvalid { .. }
+                | Warning::PermsMismatch
                 | Warning::WarningsTruncated => {}
             }
         }

@@ -17,5 +17,9 @@ layer = "core"
 workspace = true
 
 [dependencies]
+aes = { workspace = true }
+md-5 = { workspace = true }
+sha2 = { workspace = true }
+stringprep = { workspace = true }
 miniz_oxide = { workspace = true }
 thiserror = { workspace = true }

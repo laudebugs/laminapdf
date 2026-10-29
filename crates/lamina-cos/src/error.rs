@@ -75,10 +75,30 @@ pub enum Error {
     #[error("cannot append an incremental update to a document whose xref needed repair")]
     RepairedBase,
     /// An incremental update was requested for an encrypted document. Its new objects would
-    /// have to be encrypted too, which is not implemented yet (decryption is Round B2,
-    /// encryption on save is full-editor E11).
+    /// have to be encrypted too, which is not implemented yet (encryption on save is
+    /// full-editor E11; reading decrypts).
     #[error("cannot append an incremental update to an encrypted document")]
     EncryptedBase,
+    /// The document is encrypted with a non-empty user password and
+    /// [`OpenOptions::with_password`](crate::OpenOptions::with_password) gave none.
+    #[error("the document needs a password")]
+    PasswordRequired,
+    /// The given password is neither the document's user nor its owner password.
+    #[error("wrong password")]
+    WrongPassword,
+    /// The document is encrypted with a security handler lamina can't decrypt: not
+    /// `/Standard` (e.g. the public-key handler `/Adobe.PubSec`), an unknown `/V`/`/R`
+    /// combination, or an unknown crypt filter method (e.g. ISO/TS 32003 AES-GCM).
+    #[error("unsupported security handler /{filter} (V {version:?}, R {revision:?})")]
+    UnsupportedSecurityHandler {
+        /// `/Filter` of the encryption dictionary (or `Standard /CFM /…` for an unknown crypt
+        /// filter method).
+        filter: String,
+        /// `/V`, when present.
+        version: Option<i64>,
+        /// `/R`, when present.
+        revision: Option<i64>,
+    },
 }
 
 impl From<lamina_syntax::Error> for Error {
@@ -117,6 +137,9 @@ impl Error {
         "unset-object",
         "repaired-base",
         "encrypted-base",
+        "password-required",
+        "wrong-password",
+        "unsupported-security-handler",
         "unexpected-eof",
         "syntax",
         "unsupported-filter",
@@ -141,6 +164,9 @@ impl Error {
             Self::UnsetObject(_) => "unset-object",
             Self::RepairedBase => "repaired-base",
             Self::EncryptedBase => "encrypted-base",
+            Self::PasswordRequired => "password-required",
+            Self::WrongPassword => "wrong-password",
+            Self::UnsupportedSecurityHandler { .. } => "unsupported-security-handler",
         }
     }
 

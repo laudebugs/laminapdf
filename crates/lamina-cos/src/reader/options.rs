@@ -41,11 +41,13 @@ impl OpenOptions {
         self
     }
 
-    /// The password for an encrypted file (user or owner).
+    /// The password for an encrypted file: the user or the owner password, as bytes or text.
+    /// Without one, the empty user password is tried.
     ///
-    /// Stored for the standard security handler, which arrives in a later round (B2b).
-    /// Until then encrypted files open without decryption and
-    /// [`Document::is_encrypted`](crate::Document::is_encrypted) reports them.
+    /// R2–R4 passwords are PDFDocEncoding bytes (text with non-ASCII characters is also tried
+    /// as Latin-1); R5/R6 passwords are UTF-8, prepared with SASLprep. A wrong password makes
+    /// [`Document::open`](crate::Document::open) fail with
+    /// [`Error::WrongPassword`](crate::Error::WrongPassword); it is never printed by `Debug`.
     #[must_use]
     pub fn with_password(mut self, password: impl Into<Vec<u8>>) -> Self {
         self.password = Some(password.into());

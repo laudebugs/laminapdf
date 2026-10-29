@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [full-editor §E11](../../plans/full-editor.md#e11-security-and-sanitisation) |
 | Round / milestone | Editor phase 6 (E11–E17) — M9 Advanced |
-| Depends on | [B2b](../ongoing/B2b-standard-security-decryption.md), [E11a](./E11a-security-and-sanitisation-feature-plan.md) |
+| Depends on | [B2b](../done/B2b-standard-security-decryption.md), [E11a](./E11a-security-and-sanitisation-feature-plan.md) |
 | Blocks | [E11c](./E11c-remove-security.md), [E11e](./E11e-public-key-security.md) |
 | Dependency notes | [E11a](E11a-security-and-sanitisation-feature-plan.md), `B2` ([pdf-library §B2](../../plans/pdf-library.md#b2-document-model): document model and decryption) |
 | ADRs | Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |

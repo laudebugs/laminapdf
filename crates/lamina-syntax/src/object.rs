@@ -143,6 +143,11 @@ impl Dict {
         self.entries.iter().map(|(k, v)| (k, v))
     }
 
+    /// Entries in insertion order, with mutable values.
+    pub fn iter_mut(&mut self) -> impl Iterator<Item = (&Name, &mut Object)> {
+        self.entries.iter_mut().map(|(k, v)| (&*k, v))
+    }
+
     /// Number of entries.
     #[must_use]
     pub fn len(&self) -> usize {

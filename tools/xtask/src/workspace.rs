@@ -38,6 +38,14 @@ const EDGE_ONLY_DEPS: [&str; 13] = [
     "libc",
     "windows-sys",
 ];
+/// `(parent, edge-only crate)` edges that are allowed anyway, each with its reason. Nothing else
+/// reached through the parent, and no other path to the edge-only crate, is exempt.
+const ALLOWED_EDGE_ONLY_EDGES: [(&str, &str, &str); 1] = [(
+    "cpufeatures",
+    "libc",
+    "RustCrypto's CPU-feature detection (aes, sha2; B2b): reads hardware capabilities only \
+     (getauxval, sysctlbyname) on aarch64 Linux/Android/Apple; no file system, network, clocks or threads",
+)];
 
 /// A workspace crate under `crates/`.
 struct Crate {
@@ -265,6 +273,13 @@ fn edge_only_paths(graph: &BTreeMap<String, Node>, root: &str) -> Vec<String> {
             continue;
         }
         for dep in &node.normal_deps {
+            let dep_name = graph.get(dep).map_or(dep.as_str(), |d| d.name.as_str());
+            if ALLOWED_EDGE_ONLY_EDGES
+                .iter()
+                .any(|(from, to, _reason)| *from == node.name && *to == dep_name)
+            {
+                continue;
+            }
             if dep != root && !parent.contains_key(dep.as_str()) {
                 parent.insert(dep, id);
                 queue.push_back(dep);
@@ -409,6 +424,17 @@ mod tests {
             ("getrandom", false, &[]),
         ]);
         assert_eq!(edge_only_paths(&g, "core"), ["core → helper → getrandom"]);
+    }
+
+    #[test]
+    fn edge_only_rule_allows_libc_only_through_cpufeatures() {
+        let g = graph(&[
+            ("core", false, &["cpufeatures", "helper"]),
+            ("cpufeatures", false, &["libc"]),
+            ("helper", false, &["libc"]),
+            ("libc", false, &[]),
+        ]);
+        assert_eq!(edge_only_paths(&g, "core"), ["core → helper → libc"]);
     }
 
     #[test]

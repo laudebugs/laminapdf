@@ -11,3 +11,6 @@ disallowed-types = [
   { path = "std::collections::HashMap", reason = "random iteration order; use BTreeMap, IndexMap or a fixed hasher" },
   { path = "std::collections::HashSet", reason = "random iteration order; use BTreeSet, IndexSet or a fixed hasher" },
 ]
+
+# Spec and crate names that doc_markdown would otherwise want in backticks ("..": keep the defaults).
+doc-valid-idents = ["..", "PDFDocEncoding", "SASLprep", "RustCrypto"]
