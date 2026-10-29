@@ -69,6 +69,7 @@ pub fn render(rows: &[Row], procs: &[Proc], header: &str) -> String {
     );
     for (name, g) in &groups {
         let mut files: Vec<&str> = g.iter().map(|r| r.file.as_str()).collect();
+        files.sort_unstable();
         files.dedup();
         let cells: Vec<String> = CLASSES
             .iter()

@@ -46,7 +46,7 @@ fetch pdfbox "$PDFBOX_REPO" "$PDFBOX_COMMIT" '*.pdf'
 
 hash_list() { # dir
   # Only files actually checked out (the index also lists sparse-excluded paths).
-  (cd "$1" && find . -path ./.git -prune -o -type f -name '*.pdf' -print0 | xargs -0 shasum -a 256 \
+  (cd "$1" && find . -path ./.git -prune -o -type f -name '*.pdf' -print0 | xargs -0 -r shasum -a 256 \
     | sed 's#  \./#  #' | LC_ALL=C sort -k2)
 }
 

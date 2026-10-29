@@ -151,6 +151,7 @@ pub fn run(args: &ChildArgs) -> Result<()> {
     // loading) runs under `begin 0 <engine>`, so a crash or hang there is
     // blamed on that engine.
     let (mut hayro, mut hayro_load_err) = (None, String::new());
+    let mut hn = None;
     if args.hayro {
         begin(0, "hayro");
         warm_up_hayro(args.dpi);
@@ -158,6 +159,10 @@ pub fn run(args: &ChildArgs) -> Result<()> {
             Ok(d) => hayro = Some(d),
             Err(e) => hayro_load_err = clean(&e.to_string()),
         }
+        // Still under `begin 0 hayro`: counting pages walks hayro's page tree.
+        hn = hayro
+            .as_ref()
+            .map(|d: &HayroDoc| guarded(|| Ok(d.page_count())).unwrap_or(0));
     }
     let pdfium = if args.pdfium {
         begin(0, "pdfium");
@@ -174,7 +179,6 @@ pub fn run(args: &ChildArgs) -> Result<()> {
             Err(e) => pdfium_load_err = clean(&e.to_string()),
         }
     }
-    let hn = hayro.as_ref().map(|d| guarded(|| Ok(d.page_count())).unwrap_or(0));
     let pn = pdoc.as_ref().map(PdfiumDoc::page_count);
     let count = |n: Option<usize>| n.map_or("-1".to_owned(), |n| n.to_string());
     emit(&[

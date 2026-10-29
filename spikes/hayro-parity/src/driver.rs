@@ -358,7 +358,7 @@ pub fn write_csv(path: &Path, rows: &[Row]) -> Result<()> {
         "corpus,file,page,class,ssim,diff_pct,hayro_ms,pdfium_ms,hayro_size,pdfium_size,encrypted,hayro_error,pdfium_error,hayro_warnings,harness_error"
     )?;
     let f = |v: Option<f64>| v.map(|v| format!("{v}")).unwrap_or_default();
-    let q = |s: &str| format!("\"{}\"", s.replace('"', "\"\""));
+    let q = quote;
     for r in rows {
         writeln!(
             w,
@@ -383,6 +383,11 @@ pub fn write_csv(path: &Path, rows: &[Row]) -> Result<()> {
     Ok(())
 }
 
+/// A CSV field in double quotes, with embedded quotes doubled (RFC 4180).
+fn quote(s: &str) -> String {
+    format!("\"{}\"", s.replace('"', "\"\""))
+}
+
 pub fn write_rss_csv(path: &Path, procs: &[Proc]) -> Result<()> {
     use std::io::Write;
     let mut w = std::io::BufWriter::new(std::fs::File::create(path)?);
@@ -390,11 +395,11 @@ pub fn write_rss_csv(path: &Path, procs: &[Proc]) -> Result<()> {
     for p in procs {
         writeln!(
             w,
-            "{},\"{}\",{},\"{}\"",
+            "{},{},{},{}",
             p.corpus,
-            p.file,
+            quote(&p.file),
             p.max_rss,
-            p.teardown.as_deref().unwrap_or("")
+            quote(p.teardown.as_deref().unwrap_or(""))
         )?;
     }
     Ok(())
