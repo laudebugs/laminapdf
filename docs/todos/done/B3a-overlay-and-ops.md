@@ -40,7 +40,7 @@ Make the document editable through one audited path: an overlay in `lamina-cos` 
 
 **Out of scope** (and which todo covers it)
 
-- Writing bytes, rebasing after save, `SavePlanner`: [B3b](../done/B3b-lamina-save-writers.md), [B3c](../ready/B3c-save-planner-and-roundtrip.md).
+- Writing bytes, rebasing after save, `SavePlanner`: [B3b](../done/B3b-lamina-save-writers.md), [B3c](../ongoing/B3c-save-planner-and-roundtrip.md).
 - Barrier ops (`ApplyRedactions`, `Sign`, encryption): full-editor E10–E12.
 - Other ops (`MovePages`, annotations, …): full-editor E-rounds.
 - XMP sync with Info: full-editor E1.
