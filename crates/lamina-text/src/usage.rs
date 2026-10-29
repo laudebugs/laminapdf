@@ -62,7 +62,9 @@ impl FontUse {
     ///
     /// A glyph keeps the first non-empty text it is used with; a different text later is
     /// returned as a [`Warning::ToUnicodeConflict`] (the builder marks that occurrence with
-    /// `/ActualText`).
+    /// `/ActualText`). A glyph only ever used with empty text maps to the empty string in the
+    /// ToUnicode CMap (`<cid> <>`, B4b), so extractors read nothing for it rather than
+    /// guessing a character from the CID.
     ///
     /// # Errors
     /// [`Error::GlyphOutOfRange`] for a glyph past the font's glyph count.
@@ -81,11 +83,15 @@ impl FontUse {
                 gid.get()
             }
         };
-        if text.is_empty() || cid == 0 {
+        if cid == 0 {
             return Ok((cid, None));
         }
-        let warning = match self.text.get(&cid) {
-            None => {
+        if text.is_empty() {
+            self.text.entry(cid).or_default();
+            return Ok((cid, None));
+        }
+        let warning = match self.text.get(&cid).map(String::as_str) {
+            None | Some("") => {
                 self.text.insert(cid, text.to_owned());
                 None
             }
@@ -93,7 +99,7 @@ impl FontUse {
             Some(kept) => Some(Warning::ToUnicodeConflict {
                 font: self.font.clone(),
                 gid: gid.get(),
-                kept: kept.clone(),
+                kept: kept.to_owned(),
                 dropped: text.to_owned(),
             }),
         };

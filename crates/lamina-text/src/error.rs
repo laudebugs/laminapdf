@@ -95,6 +95,24 @@ pub enum Error {
         /// not part of this API).
         reason: &'static str,
     },
+    /// An OpenType feature setting that does not parse (B4b): see
+    /// [`Feature`](crate::Feature)'s syntax (`liga`, `-liga`, `liga=0`, `aalt=2`).
+    #[error("not an OpenType feature setting")]
+    InvalidFeature {
+        /// The setting as given (**untrusted**: caller text).
+        feature: String,
+    },
+    /// A byte range of a text that is out of bounds or does not fall on character boundaries
+    /// (B4b: [`Shaper::shape_range`](crate::Shaper::shape_range)).
+    #[error("text range {start}..{end} is not a character range of the {len}-byte text")]
+    InvalidTextRange {
+        /// The range's start (bytes).
+        start: usize,
+        /// The range's end (bytes).
+        end: usize,
+        /// The text's length (bytes).
+        len: usize,
+    },
     /// Writing the font objects into the document failed.
     #[error(transparent)]
     Cos(#[from] lamina_cos::Error),
@@ -114,6 +132,8 @@ impl Error {
         "subset-failed",
         "invalid-axis-value",
         "wrong-document",
+        "invalid-feature",
+        "invalid-text-range",
     ];
 
     /// A stable kebab-case code for this error.
@@ -130,6 +150,8 @@ impl Error {
             Self::GlyphOutOfRange { .. } => "glyph-out-of-range",
             Self::UnknownFont { .. } => "unknown-font",
             Self::Subset { .. } => "subset-failed",
+            Self::InvalidFeature { .. } => "invalid-feature",
+            Self::InvalidTextRange { .. } => "invalid-text-range",
             Self::Cos(e) => e.code(),
         }
     }

@@ -1,5 +1,6 @@
 {
   "pypdf_version": "6.21.3",
+  "pdfjs_version": "6.4.299",
   "qpdf_version": "12.4.2",
   "files": {
     "text-cff.pdf": {
@@ -8,7 +9,11 @@
         "CFF outlines: Ådne’s naïve café",
         "你好世界，这是中文字体子集测试。"
       ],
-      "qpdf_check": true
+      "qpdf_check": true,
+      "pdfjs": [
+        "CFF outlines: Ådne’s naïve café",
+        "你好世界，这是中文字体子集测试。"
+      ]
     },
     "text-latin.pdf": {
       "sha256": "f032eac0a6186d13965beb0be83da29781b3fc8735b47151baa4892b79ffbc5a",
@@ -18,7 +23,37 @@
         "The office staff fill the affine waffle flask first.",
         "Bold maths: 𝐀𝐁𝐂 = ABC"
       ],
-      "qpdf_check": true
+      "qpdf_check": true,
+      "pdfjs": [
+        "Hello, world!",
+        "Café crème brûlée, naïve façade: “curly” and ‘single’ quotes",
+        "The office staff fill the affine waffle flask first.",
+        "Bold maths: 𝐀𝐁𝐂 = ABC"
+      ]
+    },
+    "text-shaped.pdf": {
+      "sha256": "f5b4b6e976166be584524c27b0b71550debe49c229b8c2b1ec9014ceedc4bdc3",
+      "pypdf": [
+        "The office staff fill the affine waffle flask first. AVATAR",
+        "Wave: To Yo!",
+        "CFF outlines: office, AVATAR.",
+        "مرحبا بالعالم، السلام عليكم",
+        "שלום עולם, שָׁלוֹם עוֹלָם ",
+        "नमस्ते दुिनया। िहन्दी पाठ का परीक्षण कमर्",
+        "你好世界，这是中文字体子集测试。汉字排版与文本提取",
+        "The words שלום עולם and مرحبا بالعالم mean hello."
+      ],
+      "qpdf_check": true,
+      "pdfjs": [
+        "The office staff fill the affine waffle flask first. AVATAR",
+        "Wave: To Yo!",
+        "CFF outlines: office, AVATAR.",
+        "مرحب\u0011ا ب\u0011العالم، السلام علي\u0003كم",
+        "שלום עולם ,לוֹם עוֹלָםָׁש",
+        "नमस्ते दु िनया। िहन्दी पाठ का परीक्षण कमर्",
+        "你好世界，这是中文字体子集测试。汉字排版与文本提取",
+        "The words שלום עולם and مرحب\u0011ا ب\u0011العالم mean hello."
+      ]
     },
     "text-variable-collection.pdf": {
       "sha256": "309f91cd50271aa97ce2f579d3d8f02c9be9839e97d084ab67e68853dc888190",
@@ -27,7 +62,12 @@
         "Variable font, wght 700 instance",
         "Collection member 1: Noto Sans Bold"
       ],
-      "qpdf_check": true
+      "qpdf_check": true,
+      "pdfjs": [
+        "Variable font, default instance",
+        "Variable font, wght 700 instance",
+        "Collection member 1: Noto Sans Bold"
+      ]
     }
   }
 }

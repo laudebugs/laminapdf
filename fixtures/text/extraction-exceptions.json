@@ -1,0 +1,47 @@
+{
+  "comment": "Lines of fixtures/text/extracted.json where an extractor does not return the text lamina drew, each with the extractor's limitation behind it (todo B4b). crates/lamina-text/tests/extraction.rs requires every other line to equal the input and every entry here to still match the facts.",
+  "exceptions": [
+    {
+      "file": "text-shaped.pdf",
+      "extractor": "pdfjs",
+      "line": 3,
+      "extracted": "مرحب\u0011ا ب\u0011العالم، السلام علي\u0003كم",
+      "reason": "pdf.js treats an empty ToUnicode destination (<cid> <>, the dot glyphs Noto Sans Arabic draws separately from their base) as missing and falls back to the code, U+0011/U+0003"
+    },
+    {
+      "file": "text-shaped.pdf",
+      "extractor": "pdfjs",
+      "line": 4,
+      "extracted": "שלום עולם ,לוֹם עוֹלָםָׁש",
+      "reason": "pdf.js orders right-to-left text items by position and the Hebrew points' offsets split the line into items, so the pieces come out in visual order"
+    },
+    {
+      "file": "text-shaped.pdf",
+      "extractor": "pdfjs",
+      "line": 5,
+      "extracted": "नमस्ते दु िनया। िहन्दी पाठ का परीक्षण कमर्",
+      "reason": "pdf.js getTextContent ignores marked-content /ActualText: reordered Devanagari clusters read in drawing order, and the i-matra's negative offset starts a new item (a space)"
+    },
+    {
+      "file": "text-shaped.pdf",
+      "extractor": "pdfjs",
+      "line": 7,
+      "extracted": "The words שלום עולם and مرحب\u0011ا ب\u0011العالم mean hello.",
+      "reason": "as line 3: empty ToUnicode destinations of Noto Sans Arabic's dot glyphs"
+    },
+    {
+      "file": "text-shaped.pdf",
+      "extractor": "pypdf",
+      "line": 4,
+      "extracted": "שלום עולם, שָׁלוֹם עוֹלָם ",
+      "reason": "pypdf reverses right-to-left text piece by piece between TJ position adjustments; the Hebrew points' x offsets split the line, so the pieces come out in visual order (the unpointed Arabic and Hebrew lines extract correctly)"
+    },
+    {
+      "file": "text-shaped.pdf",
+      "extractor": "pypdf",
+      "line": 5,
+      "extracted": "नमस्ते दुिनया। िहन्दी पाठ का परीक्षण कमर्",
+      "reason": "pypdf ignores /ActualText: reordered Devanagari clusters (a pre-base i-matra drawn before its consonant, a reph drawn after it) read in drawing order, each glyph as its own character"
+    }
+  ]
+}

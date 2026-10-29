@@ -226,6 +226,18 @@
       "showText": 4
     }
   ],
+  "fixtures/golden/text-shaped.pdf": [
+    {
+      "beginMarkedContentProps": 4,
+      "beginText": 8,
+      "endMarkedContent": 4,
+      "endText": 8,
+      "setFont": 14,
+      "setTextMatrix": 14,
+      "setTextRise": 10,
+      "showText": 30
+    }
+  ],
   "fixtures/golden/text-variable-collection.pdf": [
     {
       "beginText": 3,

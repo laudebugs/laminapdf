@@ -1,7 +1,7 @@
 //! The documents behind the `fixtures/golden/text-*.pdf` goldens, with the text each line
 //! should extract to (checked against pypdf's output in `fixtures/text/extracted.json`).
 
-use lamina_text::{Font, GlyphId, Tag};
+use lamina_text::{Font, GlyphId, LayoutOptions, Tag};
 
 use super::{TestPdf, fixture, font};
 
@@ -29,9 +29,66 @@ pub const VARIABLE_COLLECTION: [&str; 3] = [
     "Collection member 1: Noto Sans Bold",
 ];
 
+/// The paragraphs of [`shaped`]: (fonts in order of preference, box width, size, text).
+pub const SHAPED_PARAGRAPHS: [(&[&str], f32, f32, &str); 7] = [
+    (
+        &["NotoSans-Regular.ttf"],
+        300.0,
+        12.0,
+        "The office staff fill the affine waffle flask first. AVATAR Wave: To Yo!",
+    ),
+    (&["NotoSans-Regular.otf"], 450.0, 12.0, "CFF outlines: office, AVATAR."),
+    (
+        &["NotoSansArabic-Regular.ttf", "NotoSans-Regular.ttf"],
+        450.0,
+        16.0,
+        "مرحبا بالعالم، السلام عليكم",
+    ),
+    (
+        &["NotoSansHebrew-Regular.ttf", "NotoSans-Regular.ttf"],
+        450.0,
+        16.0,
+        "שָׁלוֹם עוֹלָם, שלום עולם",
+    ),
+    (
+        &["NotoSansDevanagari-Regular.ttf"],
+        450.0,
+        16.0,
+        "नमस्ते दुनिया। हिन्दी पाठ का परीक्षण कर्म",
+    ),
+    (
+        &["NotoSansSC-Regular.otf"],
+        450.0,
+        14.0,
+        "你好世界，这是中文字体子集测试。汉字排版与文本提取",
+    ),
+    (
+        &[
+            "NotoSans-Regular.ttf",
+            "NotoSansHebrew-Regular.ttf",
+            "NotoSansArabic-Regular.ttf",
+        ],
+        450.0,
+        12.0,
+        "The words שלום עולם and مرحبا بالعالم mean hello.",
+    ),
+];
+
+/// The lines of [`shaped`], as `break_lines` cut [`SHAPED_PARAGRAPHS`].
+pub const SHAPED: [&str; 8] = [
+    "The office staff fill the affine waffle flask first. AVATAR",
+    "Wave: To Yo!",
+    "CFF outlines: office, AVATAR.",
+    "مرحبا بالعالم، السلام عليكم",
+    "שָׁלוֹם עוֹלָם, שלום עולם",
+    "नमस्ते दुनिया। हिन्दी पाठ का परीक्षण कर्म",
+    "你好世界，这是中文字体子集测试。汉字排版与文本提取",
+    "The words שלום עולם and مرحبا بالعالم mean hello.",
+];
+
 /// Every golden: its file name under `fixtures/golden/`, the code that builds it and the
 /// lines it draws.
-pub const GOLDENS: [(&str, Build, &[&str]); 3] = [
+pub const GOLDENS: [(&str, Build, &[&str]); 4] = [
     ("text-latin.pdf", latin, &LATIN),
     ("text-cff.pdf", cff, &CFF),
     (
@@ -39,6 +96,7 @@ pub const GOLDENS: [(&str, Build, &[&str]); 3] = [
         variable_and_collection,
         &VARIABLE_COLLECTION,
     ),
+    ("text-shaped.pdf", shaped, &SHAPED),
 ];
 
 /// `text` as glyphs of `font`, with the `ffi`, `ffl`, `fi` and `fl` sequences drawn as the
@@ -116,4 +174,29 @@ pub fn variable_and_collection() -> Sample {
     pdf.line(t, 14.0, lines[2]).unwrap();
     let (bytes, _, _) = pdf.finish().unwrap();
     Sample { bytes }
+}
+
+/// Shaped paragraphs in five scripts (todo B4b): HarfRust glyphs, bidi reordering, greedy line
+/// breaking, `TJ` kerning and offsets, rises and `/ActualText`.
+pub fn shaped() -> Sample {
+    shaped_with_lines().0
+}
+
+/// [`shaped`] and the text of every line it drew.
+pub fn shaped_with_lines() -> (Sample, Vec<String>) {
+    let mut pdf = TestPdf::new();
+    let mut keys = std::collections::BTreeMap::new();
+    let mut lines = Vec::new();
+    for (fonts, width, size, text) in SHAPED_PARAGRAPHS {
+        let paragraph_keys: Vec<_> = fonts
+            .iter()
+            .map(|&name| *keys.entry(name).or_insert_with(|| pdf.add_font(font(name)).unwrap()))
+            .collect();
+        lines.extend(
+            pdf.paragraph(&paragraph_keys, text, &LayoutOptions::new(width, size))
+                .unwrap(),
+        );
+    }
+    let (bytes, _, _) = pdf.finish().unwrap();
+    (Sample { bytes }, lines)
 }

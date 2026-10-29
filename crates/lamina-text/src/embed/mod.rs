@@ -171,6 +171,11 @@ impl FontRegistry {
         self.slot(key).ok().map(|s| &s.font)
     }
 
+    /// The font registered as `key`, or [`Error::UnknownFont`].
+    pub(crate) fn try_font(&self, key: FontKey) -> Result<&Font> {
+        self.slot(key).map(|s| &s.font)
+    }
+
     /// The glyph usage recorded for `key` so far.
     #[must_use]
     pub fn usage(&self, key: FontKey) -> Option<&FontUse> {

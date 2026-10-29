@@ -47,14 +47,26 @@
 //! [ADR 0005]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0005-document-model.md
 #![forbid(unsafe_code)]
 
+mod bidi;
 mod embed;
 mod error;
 mod font;
 mod fstype;
+mod itemize;
+mod layout;
+mod linebreak;
+mod pdfpos;
+mod shape;
 mod usage;
 
+pub use bidi::{BidiParagraph, BidiRun};
 pub use embed::{EmbeddedFont, Encoded, FontKey, FontRegistry};
 pub use error::{Error, Result, Warning};
 pub use font::{Axis, Font, FontInfo, GlyphId, MAX_NAME_LEN, Tag};
 pub use fstype::{EmbedPolicy, FsType};
+pub use itemize::{Item, itemize};
+pub use layout::{Alignment, LayoutOptions, Line, LineRun, break_lines};
+pub use linebreak::{BreakOpportunity, grapheme_boundaries, line_breaks};
+pub use pdfpos::{PdfPiece, PdfRun, PdfSegment, TjElement, pdf_run};
+pub use shape::{Direction, Feature, HarfRust, Script, ShapeOptions, ShapedGlyph, ShapedRun, Shaper};
 pub use usage::FontUse;

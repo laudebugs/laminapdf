@@ -18,6 +18,7 @@
 )]
 
 pub mod samples;
+pub mod shaped;
 
 use std::path::{Path, PathBuf};
 

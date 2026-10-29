@@ -91,7 +91,9 @@
     "unknown-font",
     "subset-failed",
     "invalid-axis-value",
-    "wrong-document"
+    "wrong-document",
+    "invalid-feature",
+    "invalid-text-range"
   ],
   "textWarnings": [
     "tounicode-conflict",
