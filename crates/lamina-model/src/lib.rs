@@ -3,7 +3,8 @@
 //!
 //! ```
 //! use lamina_model::{Document, OpenOptions, Rotation};
-//! use lamina_cos::{Dict, Object, Writer};
+//! use lamina_cos::{Dict, Object};
+//! use lamina_save::Writer;
 //!
 //! let mut w = Writer::new(1, 7);
 //! let pages = w.reserve();

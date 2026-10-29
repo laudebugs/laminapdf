@@ -8,7 +8,7 @@
 | Round / milestone | Round L2 (shareable libraries) |
 | Depends on | [B2d](../done/B2d-windowed-reading.md), [B6b](./B6b-lamina-pdf-package.md) |
 | Blocks | None |
-| ADRs | Implements the edge half of [0005](../../decisions/0005-document-model.md) §2 (`SourceError::Pending` → `Error::DataPending { ranges }`, edge `ByteSource`s); follows [0001](../../decisions/0001-core-language-and-licence.md) (bytes-in/bytes-out core), [0003](../../decisions/0003-reader-tolerance-and-limits.md) (`Limits` bound what is fetched), 0026 and 0028 (codes, cancellation; from [L1a](../ongoing/L1a-contract-adrs.md)), [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) (new crate dependencies) |
+| ADRs | Implements the edge half of [0005](../../decisions/0005-document-model.md) §2 (`SourceError::Pending` → `Error::DataPending { ranges }`, edge `ByteSource`s); follows [0001](../../decisions/0001-core-language-and-licence.md) (bytes-in/bytes-out core), [0003](../../decisions/0003-reader-tolerance-and-limits.md) (`Limits` bound what is fetched), 0026 and 0028 (codes, cancellation; from [L1a](../done/L1a-contract-adrs.md)), [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) (new crate dependencies) |
 | Branch | `feat/l2c-range-byte-source` |
 | PR title | `feat(core): range byte sources with DataPending at the edges (HTTP range, JS callback, mmap)` |
 | Size | L (≈ 500–800 lines of Rust, TS and tests) |
@@ -66,7 +66,7 @@ Open large and remote PDFs without downloading or loading them whole, while the 
 - Viewer block cache on OPFS, privacy fetch options and the remote-URL UI: [C4c](./C4c-remote-files-encryption-privacy.md) (it should wrap `httpRangeSource`).
 - The desktop engine's IPC-backed source: [D2b](./D2b-engine-process.md).
 - Linearization fast paths and prefetch hints: later, if the web perf harness ([C3c](./C3c-viewer-perf-harness.md)) asks for it.
-- Returning only the appended bytes of an incremental save: a follow-up on the save API ([B3c](./B3c-save-planner-and-roundtrip.md) area).
+- Returning only the appended bytes of an incremental save: a follow-up on the save API ([B3c](../ongoing/B3c-save-planner-and-roundtrip.md) area).
 - Streaming input (`ReadableStream`) with no `size`: later; it needs a growing source and tail-last handling.
 
 ## Tasks

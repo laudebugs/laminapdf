@@ -1,6 +1,6 @@
 # Fixtures
 
-Shared test inputs and golden outputs, read by every implementation by path from the repository root ([code organization §6](../docs/guidelines/code-organization.md#6-tests-and-fixtures)). Today the Rust tests in `crates/lamina-cos/tests/` use them; future TypeScript and binding tests read the same files.
+Shared test inputs and golden outputs, read by every implementation by path from the repository root ([code organization §6](../docs/guidelines/code-organization.md#6-tests-and-fixtures)). Today the Rust tests in `crates/*/tests/` use them; future TypeScript and binding tests read the same files.
 
 These files were moved here from the [`pdf-basics` spike](../spikes/pdf-basics/SPEC.md) in Round A. The spike keeps its own frozen copy in `spikes/pdf-basics/fixtures/`, so the two copies are identical today but only this one may change.
 
@@ -15,7 +15,7 @@ These files were moved here from the [`pdf-basics` spike](../spikes/pdf-basics/S
 - `regressions/<target>/` (created with the first one) holds minimised fuzz crashes as raw `<hash>` files, replayed through the target's entry point by `crates/lamina-model/tests/regressions.rs` (`content`: `crates/lamina-content/tests/regressions.rs`), each also with a named regression test ([`fuzz/README.md`](../fuzz/README.md)).
 - Goldens are regenerated only by `cargo xtask golden --update`, which rebuilds every file in `golden/` from its source and prints the list; `cargo xtask golden` checks that nothing would change.
 - `ops/v1/` holds frozen JSON samples of version 1 of the op format ([ADR 0006](../docs/decisions/0006-op-log-and-undo.md) §6). They are hand-written, never rewritten by a test, and stay loadable when a later version is added (a new version gets its own `ops/vN/`).
-- `codes.json` lists every warning code, error code and hard-limit name that lamina exposes ([ADR 0003](../docs/decisions/0003-reader-tolerance-and-limits.md) §4). Its `opErrors` list holds the codes `lamina-ops` adds. It is the single source of truth: `crates/lamina-cos/tests/codes.rs` and `crates/lamina-ops/tests/serde.rs` check the Rust enums against it, and the TypeScript package will too. Codes are never renamed or reused.
+- `codes.json` lists every warning code, error code and hard-limit name that lamina exposes ([ADR 0003](../docs/decisions/0003-reader-tolerance-and-limits.md) §4). Its `opErrors` list holds the codes `lamina-ops` adds and `saveErrors` those `lamina-save` adds. It is the single source of truth: `crates/lamina-cos/tests/codes.rs`, `crates/lamina-ops/tests/serde.rs` and `crates/lamina-save/tests/codes.rs` check the Rust enums against it, and the TypeScript package will too. Codes are never renamed or reused.
 - Fixtures are data: Biome skips this folder, so files stay byte-for-byte as generated.
 
 ## Licence
@@ -30,8 +30,10 @@ The scripts behind the research-chapter files live in [`docs/research/pdf/exampl
 
 | File | Origin | Exercises |
 | --- | --- | --- |
-| `hello.pdf` | `01-file-structure/hello.py` (no dependencies) | Byte-identical rebuild with the writer and content builder; `CrLf` xref entries; a hand-wrapped page dictionary (written as a raw body) |
+| `hello.pdf` | `01-file-structure/hello.py` (no dependencies) | Byte-identical rebuild with `lamina-save`'s `Writer` and the content builder; `CrLf` xref entries; a hand-wrapped page dictionary (written as a raw body) |
 | `imaging-demo.pdf` | `02-imaging-model/make_imaging_demo.py` (no dependencies) | Byte-identical rebuild; `SpaceLf` xref entries; per-operand number formatting in content streams |
+| `incremental-set-info.pdf` | `crates/lamina-save/tests/common/samples.rs` (`incremental_set_info`): `hello.pdf` + `SetInfo` (fixed `/ModDate`), incremental save | The overlay's incremental writer: a new Info object, a classic section with `/Prev`, a derived `/ID` |
+| `full-rewrite-hello.pdf` | `crates/lamina-save/tests/common/samples.rs` (`full_rewrite_hello`): `hello.pdf` + `RotatePage` 90°, full rewrite with the defaults | The full-rewrite writer: numbers kept, an object stream and an xref stream, a derived `/ID` |
 
 ### `corpus/`
 
@@ -46,7 +48,7 @@ The scripts behind the research-chapter files live in [`docs/research/pdf/exampl
 | `signed.pdf` | `04-signing-encryption/demo.py` (pypdf writes a blank page, pyHanko signs it) | PAdES-style signature added as an incremental update; 2 revisions. Signed with a throwaway self-signed test key that is not committed |
 | `tampered.pdf` | `04-signing-encryption/demo.py`: `signed.pdf` with one byte changed | A damaged newest catalog that must repair to the intact older one |
 | `enc.pdf` | `04-signing-encryption/` (pypdf, AES-256, `/V 5 /R 6`; listed with `demo.py` in [research ch. 04](../docs/research/pdf/04-interactive-security.md)) | `/Encrypt` detection and decryption with the empty user password (its Title decrypts to `Secret`) |
-| `raw.pdf` | `05-generation-approaches/raw_writer.py` (no dependencies) | Flate content, `/Length` before `/Filter`; reproduced by `tests/raw_writer.rs` |
+| `raw.pdf` | `05-generation-approaches/raw_writer.py` (no dependencies) | Flate content, `/Length` before `/Filter`; reproduced by `crates/lamina-save/tests/raw_writer.rs` |
 | `pdflib.pdf` | `05-generation-approaches/pdflib_demo.mjs`, written by pdf-lib (MIT) | Object streams and xref stream from a third-party writer |
 | `fpdf2.pdf` | `05-generation-approaches/fpdf2_demo.py`, written by fpdf2 (LGPL-3.0; only its output is committed, no fpdf2 code) | Classic file from a third-party writer |
 | `reportlab.pdf` | `05-generation-approaches/reportlab_demo.py`, written by ReportLab (BSD-3-Clause) | `ASCII85Decode` content (an unsupported filter: only content decoding fails) |

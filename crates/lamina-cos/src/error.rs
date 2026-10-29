@@ -84,13 +84,15 @@ pub enum Error {
     /// A writer object number was reserved but never given a value.
     #[error("object {0} was reserved but never set")]
     UnsetObject(u32),
-    /// An incremental update was requested for a document whose xref had to be repaired.
+    /// An incremental update was requested for a document whose xref had to be repaired
+    /// (there is no valid section for `/Prev` to point at; a full rewrite works).
     #[error("cannot append an incremental update to a document whose xref needed repair")]
     RepairedBase,
-    /// An incremental update was requested for an encrypted document. Its new objects would
-    /// have to be encrypted too, which is not implemented yet (encryption on save is
-    /// full-editor E11; reading decrypts).
-    #[error("cannot append an incremental update to an encrypted document")]
+    /// A save of an encrypted document was requested: an incremental update's new objects
+    /// would have to be encrypted too, and a full rewrite would have to re-encrypt or remove
+    /// encryption, neither of which exists yet (encryption on save is full-editor E11,
+    /// removal B3c; reading decrypts). `lamina-save`'s writers refuse it before writing.
+    #[error("cannot save an encrypted document yet")]
     EncryptedBase,
     /// The document is encrypted with a non-empty user password and
     /// [`OpenOptions::with_password`](crate::OpenOptions::with_password) gave none.

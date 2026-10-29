@@ -20,7 +20,7 @@ use encrypt::Security;
 pub use options::OpenOptions;
 pub use warning::Warning;
 use warning::WarningLog;
-pub(crate) use xref::XREF_STREAM_KEYS;
+pub use xref::XREF_STREAM_KEYS;
 use xref::{XrefEntry, XrefTable};
 
 use lamina_syntax::crypt::{PasswordKind, Permissions};
@@ -208,6 +208,8 @@ pub struct Document {
     /// The highest object number in any xref section, including entries dropped for
     /// exceeding [`Limits::max_object_number`] (the incremental writer never goes below it).
     max_object_number: Option<u32>,
+    /// Object 0's next-free number in the newest section listing it (0 when none does).
+    free_head: u32,
     trailer: Dict,
     revisions: usize,
     repaired: bool,
@@ -622,6 +624,7 @@ impl Document {
             newest_is_stream,
             ignored_xref_streams,
             dropped_objects,
+            free_head,
         } = table;
         let Base {
             source,
@@ -640,6 +643,7 @@ impl Document {
             source,
             entries,
             max_object_number,
+            free_head: free_head.unwrap_or(0),
             trailer,
             revisions: sections,
             repaired: false,
@@ -836,12 +840,13 @@ impl Document {
         self.source.in_memory()
     }
 
-    /// The whole input, read window by window for a source without an in-memory slice (the
-    /// incremental writer's output holds all of it anyway).
+    /// The whole input, borrowed when it is in memory, otherwise read window by window
+    /// (without filling the window cache). Only for callers whose output holds the whole
+    /// input anyway (`lamina-save`'s `incremental_update`).
     ///
     /// # Errors
     /// [`Error::DataPending`] with every missing window; [`Error::Source`].
-    pub(crate) fn whole_input(&self) -> Result<Cow<'_, [u8]>> {
+    pub fn whole_input(&self) -> Result<Cow<'_, [u8]>> {
         self.source.whole()
     }
 
@@ -853,7 +858,8 @@ impl Document {
 
     /// Whether the newest xref section is an xref stream (the incremental writer appends the
     /// same kind).
-    pub(crate) const fn newest_section_is_stream(&self) -> bool {
+    #[must_use]
+    pub const fn newest_section_is_stream(&self) -> bool {
         self.newest_is_stream
     }
 
@@ -1396,7 +1402,7 @@ impl Document {
     }
 }
 
-/// The overlay's view of the base (ADR 0005 §3), used by [`crate::overlay`].
+/// The overlay's view of the base (ADR 0005 §3), used by the overlay module and the writers.
 impl Document {
     pub(crate) const fn overlay_ref(&self) -> &Overlay {
         &self.overlay
@@ -1425,6 +1431,40 @@ impl Document {
             }
             InOverlay::NoEntry => self.load(num, gen_nr, &mut Vec::new()),
         }
+    }
+
+    /// The generation of base object `num` when the base's xref has it in use, ignoring the
+    /// overlay (objects in object streams have generation 0). The writers use it for
+    /// modified objects (same generation) and deleted ones (a free entry with the next
+    /// generation, §7.5.4).
+    #[must_use]
+    pub fn base_generation(&self, num: u32) -> Option<u16> {
+        self.entries
+            .get(&num)
+            .filter(|e| !matches!(e, XrefEntry::Free))
+            .map(|e| e.gen_nr())
+    }
+
+    /// The head of the base's free list (§7.5.4): the next-free number of object 0 in the
+    /// newest xref section that lists it, 0 when none does (or the xref was repaired). An
+    /// incremental update links its own free entries in front of it.
+    #[must_use]
+    pub const fn free_list_head(&self) -> u32 {
+        self.free_head
+    }
+
+    /// Puts `older`'s warnings before this document's own (a rebase keeps the diagnostics
+    /// raised so far).
+    pub(crate) fn carry_warnings(&self, older: &Self) {
+        let mut merged = WarningLog::default();
+        let old = older.warnings.borrow();
+        let own = self.warnings.borrow();
+        for warning in old.list().iter().chain(own.list()) {
+            // Not strict: these were raised (and accepted) already.
+            let _accepted = merged.raise(*warning, &self.limits, false);
+        }
+        drop((old, own));
+        *self.warnings.borrow_mut() = merged;
     }
 
     /// Whether the base has an in-use object `r` (number and generation).

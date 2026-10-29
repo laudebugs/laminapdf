@@ -319,8 +319,10 @@ impl Pending {
     }
 }
 
-/// Sorts `(offset, len)` ranges and merges those that overlap or touch.
-fn merge_ranges(mut ranges: Vec<(u64, u64)>) -> Vec<(u64, u64)> {
+/// Sorts `(offset, len)` ranges and merges those that overlap or touch (the form
+/// [`Error::DataPending`] reports them in).
+#[must_use]
+pub fn merge_ranges(mut ranges: Vec<(u64, u64)>) -> Vec<(u64, u64)> {
     ranges.sort_unstable();
     let mut merged: Vec<(u64, u64)> = Vec::with_capacity(ranges.len());
     for (offset, len) in ranges {
@@ -352,15 +354,16 @@ fn addressable(len: u64, max: usize) -> CosResult<usize> {
         })
 }
 
-/// Fills `buf` from `offset` with as many `read_at` calls as it takes.
+/// Fills `buf` from `offset` with as many `read_at` calls as it takes (a source that claims
+/// more bytes than `buf` has room for counts as having read only what fits).
 ///
 /// # Errors
 /// The source's errors ([`Error::DataPending`] for [`SourceError::Pending`]);
 /// [`SourceError::Failed`] when the source ends before `buf` is full.
-fn read_exact(source: &dyn ByteSource, offset: usize, buf: &mut [u8]) -> CosResult<()> {
+pub fn read_exact(source: &dyn ByteSource, offset: u64, buf: &mut [u8]) -> CosResult<()> {
     let mut done = 0;
     while let Some(rest) = buf.get_mut(done..).filter(|rest| !rest.is_empty()) {
-        let at = to_u64(offset + done);
+        let at = offset.saturating_add(to_u64(done));
         let n = source.read_at(at, rest)?.min(rest.len());
         if n == 0 {
             return Err(Error::Source(SourceError::Failed {
@@ -422,7 +425,7 @@ impl Source {
     fn read_window(&self, index: usize, total: usize) -> CosResult<Arc<[u8]>> {
         let start = index.saturating_mul(WINDOW);
         let mut buf = vec![0; total.saturating_sub(start).min(WINDOW)];
-        read_exact(self.0.source.as_ref(), start, &mut buf)?;
+        read_exact(self.0.source.as_ref(), to_u64(start), &mut buf)?;
         let bytes: Arc<[u8]> = buf.into();
         self.cache().insert(index, Arc::clone(&bytes));
         Ok(bytes)
@@ -473,7 +476,7 @@ impl Source {
                 None if keep => self.read_window(index, total).map(|b| Part::Window(window_start, b)),
                 None => {
                     let mut buf = vec![0; to - from];
-                    read_exact(self.0.source.as_ref(), from, &mut buf).map(|()| Part::Read(buf))
+                    read_exact(self.0.source.as_ref(), to_u64(from), &mut buf).map(|()| Part::Read(buf))
                 }
             };
             match part {

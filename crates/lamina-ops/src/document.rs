@@ -3,7 +3,7 @@
 use std::collections::BTreeSet;
 use std::ops;
 
-use lamina_cos::{OpenOptions, Source};
+use lamina_cos::{OpenOptions, Reserved, Source};
 
 use crate::error::{Error, Result};
 use crate::history::{Entry, History, Reverted, UndoOutcome};
@@ -41,6 +41,38 @@ pub struct Document {
     model: lamina_model::Document,
     history: History,
     open: Option<TxState>,
+    /// Set by a save whose output the document has not been rebased onto yet.
+    unrebased: Option<PendingRebase>,
+}
+
+/// What a save that wrote its bytes means for the rebase onto them
+/// ([`Document::saved_not_rebased`]).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[non_exhaustive]
+pub enum PendingRebase {
+    /// The output is the old base plus an appended revision that freed nothing: every object
+    /// the undo history names still exists under its number and generation, so the history
+    /// and the numbers reserved in the session are kept.
+    KeepHistory,
+    /// The output dropped or freed objects (a full rewrite, or an incremental save that
+    /// deleted objects): undo could restore references to objects that no longer exist, so
+    /// the history is cleared and reserved numbers are released.
+    ClearHistory,
+}
+
+/// Where a document stands relative to its last save ([ADR 0005] §3).
+///
+/// [ADR 0005]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0005-document-model.md
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[non_exhaustive]
+pub enum SaveState {
+    /// The overlay is empty: the base is the last opened or saved bytes.
+    Clean,
+    /// The overlay holds changes.
+    Dirty,
+    /// Saved to a sink the core can't read back and not rebased yet: reads work; ops,
+    /// undo, redo and saves are refused until [`Document::rebase`].
+    SavedNotRebased,
 }
 
 // ADR 0005 §7: a document can move between threads.
@@ -55,6 +87,7 @@ impl From<lamina_model::Document> for Document {
             model,
             history: History::default(),
             open: None,
+            unrebased: None,
         }
     }
 }
@@ -95,9 +128,82 @@ impl Document {
         self.history.is_modified()
     }
 
-    /// Records that the current state was saved (called by the save planner, B3b).
+    /// Records that the current state was saved (called by `lamina-save`).
     pub fn mark_saved(&mut self) {
         self.history.mark_saved();
+    }
+
+    /// Where the document stands relative to its last save.
+    #[must_use]
+    pub fn save_state(&self) -> SaveState {
+        if self.unrebased.is_some() {
+            SaveState::SavedNotRebased
+        } else if self.model.is_dirty() {
+            SaveState::Dirty
+        } else {
+            SaveState::Clean
+        }
+    }
+
+    /// Records that the current state was written by a save that the document has not been
+    /// rebased onto yet (called by `lamina-save` once the bytes are written): marks it saved
+    /// and enters [`SaveState::SavedNotRebased`]; `pending` says what [`Document::rebase`]
+    /// keeps.
+    ///
+    /// # Errors
+    /// [`Error::NestedTransaction`] while a transaction is open (its changes would be lost by
+    /// the rebase); [`Error::SavedNotRebased`] when a save is already waiting for its rebase.
+    pub fn saved_not_rebased(&mut self, pending: PendingRebase) -> Result<()> {
+        if self.open.is_some() {
+            return Err(Error::NestedTransaction);
+        }
+        self.writable()?;
+        self.mark_saved();
+        self.unrebased = Some(pending);
+        Ok(())
+    }
+
+    /// Makes `source`, the bytes the pending save wrote, the new base ([ADR 0005] §3): its
+    /// newest xref is loaded, the overlay and its journal are dropped, and the state becomes
+    /// [`SaveState::Clean`]. Object numbers, and so `LaminaId`s, are the output's. The undo
+    /// history and the reserved numbers are kept or dropped as the save said
+    /// ([`PendingRebase`]).
+    ///
+    /// The shell calls it after a full rewrite to a sink the core couldn't read back
+    /// ([`SaveState::SavedNotRebased`]); `lamina-save` calls it itself otherwise.
+    ///
+    /// # Errors
+    /// [`Error::NestedTransaction`] while a transaction is open; [`Error::NoPendingSave`]
+    /// unless a save is waiting for its rebase (any other bytes would not match the history,
+    /// and the overlay's changes would be lost); COS errors opening `source` (the document is
+    /// then unchanged and still waiting).
+    ///
+    /// [ADR 0005]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0005-document-model.md
+    pub fn rebase(&mut self, source: impl Into<Source>) -> Result<()> {
+        if self.open.is_some() {
+            return Err(Error::NestedTransaction);
+        }
+        let pending = self.unrebased.ok_or(Error::NoPendingSave)?;
+        let reserved = match pending {
+            PendingRebase::KeepHistory => Reserved::Keep,
+            PendingRebase::ClearHistory => Reserved::Release,
+        };
+        self.model.cos_mut().rebase(source, reserved)?;
+        self.unrebased = None;
+        if pending == PendingRebase::ClearHistory {
+            self.history = History::new(self.history.depth());
+            self.history.mark_saved();
+        }
+        Ok(())
+    }
+
+    /// Refuses ops, undo and redo while a save waits for its rebase.
+    const fn writable(&self) -> Result<()> {
+        if self.unrebased.is_some() {
+            Err(Error::SavedNotRebased)
+        } else {
+            Ok(())
+        }
     }
 
     /// Whether a transaction is open (handle form).
@@ -112,7 +218,8 @@ impl Document {
     ///
     /// ```
     /// use lamina_ops::{Document, InfoPatch, Origin, SetInfo};
-    /// # use lamina_cos::{Dict, Object, Writer};
+    /// # use lamina_cos::{Dict, Object};
+    /// # use lamina_save::Writer;
     /// # let mut w = Writer::new(1, 7);
     /// # let pages = w.add([("Type", Object::name("Pages")), ("Kids", Vec::new().into()), ("Count", 0.into())].into_iter().collect::<Dict>());
     /// # let root = w.add([("Type", Object::name("Catalog")), ("Pages", pages.into())].into_iter().collect::<Dict>());
@@ -131,7 +238,8 @@ impl Document {
     /// ```
     ///
     /// # Errors
-    /// [`Error::NestedTransaction`] when a transaction is already open; what `f` returns.
+    /// [`Error::NestedTransaction`] when a transaction is already open;
+    /// [`Error::SavedNotRebased`]; what `f` returns.
     ///
     /// [ADR 0006]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0006-op-log-and-undo.md
     pub fn transact<T>(&mut self, origin: Origin, f: impl FnOnce(&mut Tx<'_>) -> Result<T>) -> Result<(T, Applied)> {
@@ -187,7 +295,7 @@ impl Document {
     /// Opens a transaction from `origin` (handle form, ADR 0006 §2).
     ///
     /// # Errors
-    /// [`Error::NestedTransaction`] when one is already open.
+    /// [`Error::NestedTransaction`] when one is already open; [`Error::SavedNotRebased`].
     pub fn begin(&mut self, origin: Origin) -> Result<()> {
         self.begin_with(origin, None)
     }
@@ -196,6 +304,7 @@ impl Document {
         if self.open.is_some() {
             return Err(Error::NestedTransaction);
         }
+        self.writable()?;
         self.open = Some(TxState {
             origin,
             mark: self.model.journal_mark(),
@@ -266,14 +375,15 @@ impl Document {
     /// nothing to undo.
     ///
     /// # Errors
-    /// [`Error::NestedTransaction`] while a transaction is open; COS errors reading the
-    /// document (the entry stays on the stack).
+    /// [`Error::NestedTransaction`] while a transaction is open; [`Error::SavedNotRebased`];
+    /// COS errors reading the document (the entry stays on the stack).
     ///
     /// [ADR 0006]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0006-op-log-and-undo.md
     pub fn undo(&mut self) -> Result<Option<Reverted>> {
         if self.open.is_some() {
             return Err(Error::NestedTransaction);
         }
+        self.writable()?;
         let Some(entry) = self.history.undo.pop_back() else {
             return Ok(None);
         };
@@ -300,6 +410,7 @@ impl Document {
         if self.open.is_some() {
             return Err(Error::NestedTransaction);
         }
+        self.writable()?;
         let Some(entry) = self.history.redo.pop() else {
             return Ok(None);
         };

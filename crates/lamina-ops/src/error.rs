@@ -30,6 +30,15 @@ pub enum Error {
     /// An op log that does not parse: an unknown op or field, a bad value, or not JSON.
     #[error("invalid op log: {0}")]
     InvalidLog(String),
+    /// The document was saved to a sink the core can't read back and waits for
+    /// [`Document::rebase`](crate::Document::rebase): ops, undo, redo and saves are refused
+    /// until then (ADR 0005 §3).
+    #[error("the document was saved but not rebased yet")]
+    SavedNotRebased,
+    /// [`Document::rebase`](crate::Document::rebase) without a save waiting for it: other
+    /// bytes would not match the undo history, and unsaved changes would be lost.
+    #[error("no save is waiting to be rebased onto")]
+    NoPendingSave,
 }
 
 impl From<lamina_cos::Error> for Error {
@@ -48,6 +57,8 @@ impl Error {
         "direct-page",
         "unsupported-version",
         "invalid-op-log",
+        "saved-not-rebased",
+        "no-pending-save",
     ];
 
     /// A stable kebab-case code for this error; COS errors report [`lamina_cos::Error::code`].
@@ -61,6 +72,8 @@ impl Error {
             Self::DirectPage(_) => "direct-page",
             Self::UnsupportedVersion(_) => "unsupported-version",
             Self::InvalidLog(_) => "invalid-op-log",
+            Self::SavedNotRebased => "saved-not-rebased",
+            Self::NoPendingSave => "no-pending-save",
         }
     }
 }

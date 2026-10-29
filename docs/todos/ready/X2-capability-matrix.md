@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [architecture §7 Cross-cutting](../../plans/architecture.md#cross-cutting), [full-editor §3](../../plans/full-editor.md#3-tracking-the-capability-matrix) |
 | Round / milestone | Cross-cutting (before the editor rounds; useful from M1) |
-| Depends on | [B3c](./B3c-save-planner-and-roundtrip.md) |
+| Depends on | [B3c](../ongoing/B3c-save-planner-and-roundtrip.md) |
 | Blocks | [E1a](./E1a-editing-foundation-feature-plan.md), [E1f](./E1f-metadata-ui-capability-page.md) |
 | ADRs | Follows [0018](../../decisions/0018-test-strategy.md) (tests are the evidence), [0015](../../decisions/0015-monorepo-layout-and-tooling.md) (xtask) |
 | Branch | `build/x2-capability-matrix` |

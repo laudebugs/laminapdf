@@ -57,7 +57,7 @@ Ship an importable, permissively licensed library that **generates correct PDFs 
 6. **Conformance profiles** (B8): `PdfUa1`, `PdfA2b`, `PdfA2u`, `PdfA3b` (associated files). Missing alt text, missing `Lang` or title, content that is neither tagged nor marked as an artifact, a link without a `Link` structure element and `/Contents`, an unembedded font or an unmapped glyph is an error at `finish()`.
 7. **Read/edit path.** `Document::open(source, OpenOptions)` (`Limits`, strict mode and an optional password; [ADR 0003](../decisions/0003-reader-tolerance-and-limits.md)) (standard security handler, read only: RC4 and AES-128 for R2–R4, AES-256 for R5/R6, [04 §7.2](../research/pdf/04-interactive-security.md#72-standard-security-handler-revisions)), typed read views (pages, outline, metadata), `transact`, undo, `save({ mode: "auto" | "incremental" | "full" })` with `SaveConstraint` honoured (ADRs 0005–0007).
 8. **Text extraction** (B9): per page, glyph runs with Unicode text (ToUnicode first, then encoding and glyph-name fallbacks, [03 §4–5](../research/pdf/03-text-and-fonts.md#4-encodings-965-in-pdf-20--966-in-iso-32000-1-975-annex-d)), font size, writing direction and a quad per glyph in page space; `ActualText` and MCIDs where present.
-9. **Errors and warnings.** One error type per crate and one `PdfError` class with matching string codes in TS ([guidelines §5](../guidelines/code-organization.md#5-error-handling-by-layer)). Tolerant reads report warnings.
+9. **Errors and warnings.** One error type per crate and one `LaminaError` class with matching string codes in TS ([ADR 0026](../decisions/0026-error-and-diagnostic-contract.md)) ([guidelines §5](../guidelines/code-organization.md#5-error-handling-by-layer)). Tolerant reads report warnings.
 
 ### Non-functional
 
@@ -182,14 +182,14 @@ Architecture Round B is delivered as rounds B1–B9, each split into todos (one 
 
 ### B3. Ops and save
 
-**Todos:** [B3a](../todos/done/B3a-overlay-and-ops.md) (overlay, `lamina-ops`, undo; done in [#31](https://github.com/laudebugs/lamina/pull/31)), [B3b](../todos/ongoing/B3b-lamina-save-writers.md) (`lamina-save` writers, `WriteSink`, rebase), [B3c](../todos/ready/B3c-save-planner-and-roundtrip.md) (`SavePlanner`, `SaveConstraint`, round-trip).
+**Todos:** [B3a](../todos/done/B3a-overlay-and-ops.md) (overlay, `lamina-ops`, undo; done in [#31](https://github.com/laudebugs/lamina/pull/31)), [B3b](../todos/done/B3b-lamina-save-writers.md) (`lamina-save` writers, `WriteSink`, rebase; done in [#35](https://github.com/laudebugs/lamina/pull/35)), [B3c](../todos/ongoing/B3c-save-planner-and-roundtrip.md) (`SavePlanner`, `SaveConstraint`, round-trip).
 
 **Deliverable:** `lamina-ops` (`Op`, `transact`, inverses, undo/redo) and `lamina-save` (`SavePlanner`, `SaveConstraint`, incremental and full writers over `WriteSink`). Proving ops: `SetInfo`, `RotatePage`.
 **Accepted when:** open → op → save → reopen round-trips in lamina, pdf.js, PDFium and qpdf; signed fixtures report `AppendOnly` and refuse a full rewrite; undo restores byte-identical output.
 
 ### B4. Fonts and text
 
-**Todos:** [B4a](../todos/ready/B4a-font-loading-and-subsetting.md) (font loading, subsetting, Type 0 + ToUnicode), [B4b](../todos/ready/B4b-shaping-bidi-line-breaking.md) (HarfRust, ICU4X bidi and line breaking), [B4c](../todos/ready/B4c-standard-14-and-simple-fonts.md) (standard 14, encodings).
+**Todos:** [B4a](../todos/ongoing/B4a-font-loading-and-subsetting.md) (font loading, subsetting, Type 0 + ToUnicode), [B4b](../todos/ready/B4b-shaping-bidi-line-breaking.md) (HarfRust, ICU4X bidi and line breaking), [B4c](../todos/ready/B4c-standard-14-and-simple-fonts.md) (standard 14, encodings).
 
 **Deliverable:** `lamina-text`: font loading (skrifa), shaping (HarfRust), bidi and line breaking (ICU4X), subsetting (`subsetter`), ToUnicode/`/W` writers, standard 14 metrics, missing-glyph diagnostics.
 **Accepted when:** shaping goldens for Latin, Arabic, Devanagari, Hebrew and CJK match HarfBuzz output; extracted text from generated files (pdf.js, pypdf, pdftotext) equals the input string, including ligatures.
@@ -284,7 +284,7 @@ Each round's todos (one per PR, with dependencies) are linked from [§7](#7-roun
 ### B3. Ops and save
 
 - [x] Create `crates/lamina-ops`: `Op`, `transact`, inverse ops, undo/redo stack (B3a; inverses are computed at undo time from an undo record derived from the COS journal, plus savepoints, coalescing and the `OpLog` envelope)
-- [ ] Create `crates/lamina-save`: `SavePlanner`, incremental and full writers, `WriteSink`
+- [x] Create `crates/lamina-save`: `SavePlanner`, incremental and full writers, `WriteSink` (B3b: the crate, both writers over the overlay, `WriteSink`, `/ID` and rebase; `SavePlanner` is B3c)
 - [ ] Implement `SaveConstraint` detection (signatures → `AppendOnly`)
 - [ ] Implement proving ops `SetInfo` and `RotatePage` with undo tests (B3a: ops, undo and property tests done; byte-identical output after undo needs the writers, B3b/B3c)
 - [ ] Round-trip test: reopen saved output in lamina, pdf.js, PDFium and qpdf `--check`
@@ -311,7 +311,7 @@ Each round's todos (one per PR, with dependencies) are linked from [§7](#7-roun
 ### B6. WASM and `@lamina/pdf`
 
 - [ ] Create `crates/lamina-wasm` (wasm-bindgen + tsify) and the `cargo xtask wasm` build with `wasm-opt -Oz`
-- [ ] Create `packages/pdf` with `init()`, `Builder`, `Document`, `Font`, `PdfError` codes matching Rust
+- [ ] Create `packages/pdf` with `init()`, `Builder`, `Document`, `Font`, `LaminaError` codes matching Rust
 - [ ] Add export conditions and validate with publint and `attw --pack`
 - [ ] Write ADR 0016 with measured sizes; decide split WASM modules
 - [ ] Add size-budget checks to CI (WASM gz, JS min+gz)
