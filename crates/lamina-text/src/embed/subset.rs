@@ -123,7 +123,7 @@ pub(crate) fn build(font: &Font, usage: &FontUse, glyphs: &[(u16, GlyphId)]) -> 
     if upem == 0 {
         return Err(unreadable());
     }
-    let to_milli = |v: f32| round_i64(f64::from(v) * 1_000_000.0 / f64::from(upem));
+    let to_milli = |v: f32| milli(f64::from(v), upem);
     let metrics = parsed.glyph_metrics(Size::unscaled(), LocationRef::default());
     let widths = glyphs
         .iter()
@@ -243,6 +243,12 @@ pub(crate) fn subset_tag(font: &Font, glyphs: &[(u16, GlyphId)], salt: u32) -> S
         .take(6)
         .map(|b| char::from(b'A' + b % 26))
         .collect()
+}
+
+/// `units` font units in millionths of an em (thousandths of a `/W` unit), rounded: the one
+/// conversion `/W` and the shaped runs' `TJ` numbers (B4b) both use.
+pub(crate) fn milli(units: f64, upem: u16) -> i64 {
+    round_i64(units * 1_000_000.0 / f64::from(upem.max(1)))
 }
 
 pub(crate) fn round_i64(v: f64) -> i64 {

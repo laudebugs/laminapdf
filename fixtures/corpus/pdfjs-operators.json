@@ -228,14 +228,14 @@
   ],
   "fixtures/golden/text-shaped.pdf": [
     {
-      "beginMarkedContentProps": 4,
+      "beginMarkedContentProps": 9,
       "beginText": 8,
-      "endMarkedContent": 4,
+      "endMarkedContent": 9,
       "endText": 8,
       "setFont": 14,
       "setTextMatrix": 14,
       "setTextRise": 10,
-      "showText": 30
+      "showText": 35
     }
   ],
   "fixtures/golden/text-variable-collection.pdf": [

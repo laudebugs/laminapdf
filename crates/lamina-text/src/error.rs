@@ -115,6 +115,21 @@ pub enum Error {
         /// The text's length (bytes).
         len: usize,
     },
+    /// A layout option lamina does not implement yet (B4b: `LayoutOptions::justify`).
+    #[error("layout option {option} is not supported yet")]
+    UnsupportedLayoutOption {
+        /// The option's name (fixed text).
+        option: &'static str,
+    },
+    /// A shaped run given to [`pdf_run`](crate::pdf_run) was shaped with another font than the
+    /// one registered under the key.
+    #[error("the run was shaped with a different font than the registered one")]
+    FontMismatch {
+        /// The registered font's PostScript name.
+        font: String,
+        /// The PostScript name of the font the run was shaped with.
+        shaped_with: String,
+    },
     /// Writing the font objects into the document failed.
     #[error(transparent)]
     Cos(#[from] lamina_cos::Error),
@@ -136,6 +151,8 @@ impl Error {
         "wrong-document",
         "invalid-feature",
         "invalid-text-range",
+        "unsupported-layout-option",
+        "font-mismatch",
     ];
 
     /// A stable kebab-case code for this error.
@@ -154,6 +171,8 @@ impl Error {
             Self::Subset { .. } => "subset-failed",
             Self::InvalidFeature { .. } => "invalid-feature",
             Self::InvalidTextRange { .. } => "invalid-text-range",
+            Self::UnsupportedLayoutOption { .. } => "unsupported-layout-option",
+            Self::FontMismatch { .. } => "font-mismatch",
             Self::Cos(e) => e.code(),
         }
     }
@@ -176,8 +195,9 @@ impl Error {
             | Self::GlyphOutOfRange { .. }
             | Self::UnknownFont { .. }
             | Self::InvalidFeature { .. }
-            | Self::InvalidTextRange { .. } => ErrorKind::Usage,
-            Self::Subset { .. } => ErrorKind::Unsupported,
+            | Self::InvalidTextRange { .. }
+            | Self::FontMismatch { .. } => ErrorKind::Usage,
+            Self::Subset { .. } | Self::UnsupportedLayoutOption { .. } => ErrorKind::Unsupported,
         }
     }
 
@@ -198,7 +218,9 @@ impl Error {
             | Self::UnknownFont { .. }
             | Self::Subset { .. }
             | Self::InvalidFeature { .. }
-            | Self::InvalidTextRange { .. } => Location::NONE,
+            | Self::InvalidTextRange { .. }
+            | Self::UnsupportedLayoutOption { .. }
+            | Self::FontMismatch { .. } => Location::NONE,
         }
     }
 }
@@ -320,6 +342,11 @@ mod tests {
                 start: 0,
                 end: 1,
                 len: 0,
+            },
+            Error::UnsupportedLayoutOption { option: "justify" },
+            Error::FontMismatch {
+                font: String::new(),
+                shaped_with: String::new(),
             },
         ]
     }

@@ -62,12 +62,37 @@ fn golden(case: &Value) -> Value {
         )
 }
 
+/// `(script, name)` of the cases in `fixtures/shaping/exceptions.json`, each with its upstream
+/// issue.
+fn exceptions() -> Vec<(String, String)> {
+    load("shaping/exceptions.json")["exceptions"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|e| {
+            assert!(e["upstream"].as_str().unwrap().starts_with("https://"), "{e}");
+            (
+                e["script"].as_str().unwrap().to_owned(),
+                e["name"].as_str().unwrap().to_owned(),
+            )
+        })
+        .collect()
+}
+
 #[test]
 fn harfrust_matches_harfbuzz_for_every_case() {
+    let excused = exceptions();
     let mut failures = Vec::new();
     for case in cases() {
-        if harfrust(&case) != golden(&case) {
-            failures.push(format!("{}/{}", case["script"], case["name"]));
+        let key = (
+            case["script"].as_str().unwrap().to_owned(),
+            case["name"].as_str().unwrap().to_owned(),
+        );
+        let matches = harfrust(&case) == golden(&case);
+        match (matches, excused.contains(&key)) {
+            (false, false) => failures.push(format!("{}/{}", key.0, key.1)),
+            (true, true) => failures.push(format!("{}/{} matches now: remove its exception", key.0, key.1)),
+            _ => {}
         }
     }
     assert!(failures.is_empty(), "differs from hb-shape: {failures:?}");
@@ -81,6 +106,22 @@ fn goldens_cover_five_scripts() {
         .collect();
     scripts.dedup();
     assert_eq!(scripts, ["latin", "arabic", "hebrew", "devanagari", "cjk"]);
+}
+
+#[test]
+fn goldens_script_pins_the_doctor_version() {
+    let script = String::from_utf8(common::fixture("../tools/shaping-goldens/goldens.py")).unwrap();
+    let doctor = String::from_utf8(common::fixture("../tools/xtask/src/doctor.rs")).unwrap();
+    let pin = |text: &str, prefix: &str| {
+        text.lines()
+            .find_map(|l| l.trim().strip_prefix(prefix))
+            .map(|v| v.trim_matches(|c| c == '"' || c == ';' || c == ' ').to_owned())
+            .unwrap()
+    };
+    assert_eq!(
+        pin(&script, "HB_VERSION ="),
+        pin(&doctor, "pub(crate) const HB_SHAPE_VERSION: &str =")
+    );
 }
 
 #[test]

@@ -8,7 +8,7 @@
 use std::ops::Range;
 use std::str::FromStr;
 
-use harfrust::{ShaperData, ShaperInstance, UnicodeBuffer, Variation};
+use harfrust::{ShaperInstance, UnicodeBuffer, Variation};
 
 use super::{Direction, Script, ShapeOptions, ShapedGlyph, ShapedRun, Shaper, sub};
 use crate::error::{Error, Result};
@@ -46,7 +46,14 @@ impl Shaper for HarfRust {
 
         let mut buffer = UnicodeBuffer::new();
         buffer.set_pre_context(before);
-        buffer.push_str(run_text);
+        for (at, ch) in run_text.char_indices() {
+            let cluster = u32::try_from(at).map_err(|_| Error::InvalidTextRange {
+                start: range.start,
+                end: range.end,
+                len: text.len(),
+            })?;
+            buffer.add(stand_in(ch), cluster);
+        }
         buffer.set_post_context(after);
         if let Some(s) = harfrust::Script::from_iso15924_tag(harfrust::Tag::new(&script.to_bytes())) {
             buffer.set_script(s);
@@ -67,7 +74,7 @@ impl Shaper for HarfRust {
             .map(|f| harfrust::Feature::new(harfrust::Tag::new(&f.tag().to_bytes()), f.value(), ..))
             .collect();
 
-        let data = ShaperData::new(&font_ref);
+        let data = font.shaper_data()?;
         let instance = (!font.coordinates().is_empty()).then(|| {
             ShaperInstance::from_variations(
                 &font_ref,
@@ -103,6 +110,19 @@ impl Shaper for HarfRust {
             direction,
             script,
             units_per_em: font.info().units_per_em,
+            font: font.info().postscript_name.clone(),
         })
+    }
+}
+
+/// The character HarfRust shapes for `ch`. Fonts have no glyphs for control characters
+/// (`Cc`), so a tab is shaped as a space (no tab stops yet) and every other control (hard
+/// line breaks included, when a caller shapes them) as U+200B ZERO WIDTH SPACE, which the
+/// shaper hides as a default-ignorable. The cluster keeps pointing at the original character.
+fn stand_in(ch: char) -> char {
+    match ch {
+        '\t' => ' ',
+        c if c.is_control() => '\u{200B}',
+        c => c,
     }
 }

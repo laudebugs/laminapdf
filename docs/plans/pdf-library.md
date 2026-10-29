@@ -297,7 +297,8 @@ Each round's todos (one per PR, with dependencies) are linked from [§7](#7-roun
 - [x] Integrate `subsetter`; deterministic subset tags; `/W` and chunked ToUnicode ([B4a](../todos/done/B4a-font-loading-and-subsetting.md))
 - [ ] Bundle standard 14 AFM metrics; reject them under PDF/A and PDF/UA profiles
 - [x] Emit missing-glyph diagnostics with codes ([B4a](../todos/done/B4a-font-loading-and-subsetting.md): `missing-glyph`)
-- [x] Shaping goldens for five scripts; extraction tests with pdf.js, pypdf, pdftotext ([B4b](../todos/done/B4b-shaping-bidi-line-breaking.md): pdf.js and pypdf facts with a listed exception per known extractor limitation; pdftotext not yet)
+- [x] Shaping goldens for five scripts ([B4b](../todos/done/B4b-shaping-bidi-line-breaking.md))
+- [ ] Extraction tests with pdf.js, pypdf, pdftotext that return the input in every script ([B4b](../todos/done/B4b-shaping-bidi-line-breaking.md): pdf.js and pypdf facts, exact for Latin and CJK, with the Arabic/Hebrew/Devanagari limitations listed; [B4d](../todos/ready/B4d-tounicode-per-text-cids.md): one CID per glyph and text, pdftotext)
 
 ### B5. Builder and the `lamina` crate
 

@@ -551,6 +551,20 @@
       "summary": "a byte range was out of bounds or not on character boundaries of the text",
       "hint": "take ranges from lamina's results (line_breaks, itemize, break_lines) and pass the same text",
       "since": "0.1.0"
+    },
+    {
+      "code": "unsupported-layout-option",
+      "kind": "unsupported",
+      "summary": "a layout option that is not implemented yet was asked for",
+      "hint": "leave the option at its default; justification comes with a later release",
+      "since": "0.1.0"
+    },
+    {
+      "code": "font-mismatch",
+      "kind": "usage",
+      "summary": "a shaped run was given with a font key for a different font than it was shaped with",
+      "hint": "pass the key of the font the run was shaped with (the font index of each line run maps to your keys)",
+      "since": "0.1.0"
     }
   ],
   "textWarnings": [

@@ -13,7 +13,7 @@ use std::ops::Range;
 
 use icu_properties::CodePointMapData;
 use icu_properties::props::BidiClass;
-use unicode_bidi::{Level, ParagraphBidiInfo};
+use unicode_bidi::{BidiClass as Class, Level, ParagraphBidiInfo};
 
 use crate::error::{Error, Result};
 use crate::shape::Direction;
@@ -114,24 +114,20 @@ impl<'t> BidiParagraph<'t> {
     /// [`Error::InvalidTextRange`] when `line` is out of bounds or not on character
     /// boundaries.
     pub fn visual_runs(&self, line: Range<usize>) -> Result<Vec<BidiRun>> {
-        if line.start > line.end || self.info.text.get(line.clone()).is_none() {
-            return Err(Error::InvalidTextRange {
-                start: line.start,
-                end: line.end,
-                len: self.info.text.len(),
-            });
+        let levels = self.l1(line.clone())?;
+        let mut runs: Vec<BidiRun> = Vec::new();
+        for (i, &level) in levels.iter().enumerate() {
+            let at = line.start + i;
+            match runs.last_mut() {
+                Some(run) if run.level == level => run.range.end = at + 1,
+                _ => runs.push(BidiRun {
+                    range: at..at + 1,
+                    level,
+                }),
+            }
         }
-        if line.is_empty() {
-            return Ok(Vec::new());
-        }
-        let (levels, runs) = self.info.visual_runs(line);
-        Ok(runs
-            .into_iter()
-            .filter_map(|range| {
-                let level = levels.get(range.start)?.number();
-                Some(BidiRun { range, level })
-            })
-            .collect())
+        reorder(&mut runs);
+        Ok(runs)
     }
 
     /// The levels of `line`'s characters after rule L1, one per character in logical order.
@@ -139,16 +135,88 @@ impl<'t> BidiParagraph<'t> {
     /// # Errors
     /// As [`BidiParagraph::visual_runs`].
     pub fn line_levels(&self, line: Range<usize>) -> Result<Vec<u8>> {
-        let text = self.info.text.get(line.clone()).ok_or(Error::InvalidTextRange {
+        let levels = self.l1(line.clone())?;
+        let text = self.info.text.get(line).unwrap_or_default();
+        Ok(text
+            .char_indices()
+            .filter_map(|(i, _)| levels.get(i).copied())
+            .collect())
+    }
+
+    /// The levels of `line`'s bytes after rule L1: segment and paragraph separators, and any
+    /// whitespace or isolate controls before them or at the end of the line, take the
+    /// paragraph level (characters removed by X9 next to them too). Only the line's slice is
+    /// copied.
+    fn l1(&self, line: Range<usize>) -> Result<Vec<u8>> {
+        let invalid = || Error::InvalidTextRange {
             start: line.start,
             end: line.end,
             len: self.info.text.len(),
-        })?;
-        let levels = self.info.reordered_levels(line.clone());
-        Ok(text
-            .char_indices()
-            .filter_map(|(i, _)| levels.get(line.start + i).map(Level::number))
-            .collect())
+        };
+        let text = self.info.text.get(line.clone()).ok_or_else(invalid)?;
+        let levels = self.info.levels.get(line.clone()).ok_or_else(invalid)?;
+        let classes = self.info.original_classes.get(line.clone()).ok_or_else(invalid)?;
+        let mut out: Vec<u8> = levels.iter().map(Level::number).collect();
+        let paragraph = self.info.paragraph_level.number();
+        let mut trailing = true;
+        for (i, ch) in text.char_indices().rev() {
+            let reset = match classes.get(i).copied() {
+                Some(Class::B | Class::S) => {
+                    trailing = true;
+                    true
+                }
+                Some(
+                    Class::WS
+                    | Class::FSI
+                    | Class::LRI
+                    | Class::RLI
+                    | Class::PDI
+                    | Class::BN
+                    | Class::LRE
+                    | Class::RLE
+                    | Class::LRO
+                    | Class::RLO
+                    | Class::PDF,
+                ) => trailing,
+                _ => {
+                    trailing = false;
+                    false
+                }
+            };
+            if reset {
+                for level in out.iter_mut().skip(i).take(ch.len_utf8()) {
+                    *level = paragraph;
+                }
+            }
+        }
+        Ok(out)
+    }
+}
+
+/// Rule L2: from the highest level down to the lowest odd one, reverse every maximal
+/// sequence of runs at that level or higher.
+fn reorder(runs: &mut [BidiRun]) {
+    let Some(max) = runs.iter().map(|r| r.level).max() else {
+        return;
+    };
+    let Some(min_odd) = runs.iter().map(|r| r.level).filter(|l| !l.is_multiple_of(2)).min() else {
+        return;
+    };
+    for level in (min_odd..=max).rev() {
+        let mut i = 0;
+        while i < runs.len() {
+            if runs.get(i).is_some_and(|r| r.level >= level) {
+                let start = i;
+                while runs.get(i).is_some_and(|r| r.level >= level) {
+                    i += 1;
+                }
+                if let Some(seq) = runs.get_mut(start..i) {
+                    seq.reverse();
+                }
+            } else {
+                i += 1;
+            }
+        }
     }
 }
 

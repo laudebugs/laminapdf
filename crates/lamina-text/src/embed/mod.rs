@@ -5,6 +5,8 @@
 //! [ADR 0005]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0005-document-model.md
 
 mod subset;
+
+pub(crate) use subset::milli;
 mod tounicode;
 mod type0;
 
@@ -209,6 +211,12 @@ impl FontRegistry {
         let (cid, warning) = slot.usage.use_glyph(gid, text)?;
         self.warnings.extend(warning);
         Ok(cid)
+    }
+
+    /// The CID of glyph `gid` of `key`, recorded as used without claiming any text
+    /// ([`FontUse`]'s `glyph_cid`, B4b).
+    pub(crate) fn glyph_cid(&mut self, key: FontKey, gid: GlyphId) -> Result<u16> {
+        self.slot_mut(key)?.usage.glyph_cid(gid)
     }
 
     /// Encodes `text` one glyph per character through the font's `cmap` (no shaping: ligatures

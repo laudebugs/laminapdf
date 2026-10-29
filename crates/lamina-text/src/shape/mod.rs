@@ -308,6 +308,9 @@ pub struct ShapedRun {
     pub script: Script,
     /// The font's units per em, to scale the glyph lengths: `points = units × size / upem`.
     pub units_per_em: u16,
+    /// The PostScript name of the font (instance) it was shaped with:
+    /// [`crate::pdf_run`] refuses a key for another font.
+    pub font: String,
 }
 
 impl ShapedRun {

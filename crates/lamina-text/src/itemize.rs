@@ -38,8 +38,11 @@ pub struct Item {
 /// Splits `para`'s text into [`Item`]s in logical order, covering the whole text.
 ///
 /// `fonts` is the caller's list in order of preference; the first is the primary font.
-/// Characters no font needs a glyph for (default-ignorable code points such as ZWJ and the
-/// bidi controls, and hard line breaks) never decide the font.
+/// A cluster of a real script takes the first font in the list that covers it (a fallback
+/// never sticks); spaces, digits and punctuation stay with the run they are in when its font
+/// covers them. Characters no font needs a glyph for (default-ignorable code points such as
+/// ZWJ and the bidi controls, control characters such as a tab, hard line breaks) never decide
+/// the font, so text made only of them itemises even with no fonts (its items name font 0).
 ///
 /// # Errors
 /// [`Error::MissingGlyph`] for the first character of a cluster no font covers (naming the
@@ -51,8 +54,6 @@ pub fn itemize(para: &BidiParagraph<'_>, fonts: &[Font]) -> Result<Vec<Item>> {
         .iter()
         .map(|f| f.font_ref().map(|r| r.charmap()))
         .collect::<Result<Vec<_>>>()?;
-    let ignorable = CodePointSetData::new::<DefaultIgnorableCodePoint>();
-    let needs_glyph = |ch: char| !ignorable.contains(ch) && !is_hard_break(ch);
     let covers = |font: usize, cluster: &str| {
         charmaps.get(font).is_some_and(|map| {
             cluster
@@ -72,23 +73,19 @@ pub fn itemize(para: &BidiParagraph<'_>, fonts: &[Font]) -> Result<Vec<Item>> {
         let cluster = text.get(start..end).unwrap_or_default();
         let script = Script::dominant(cluster);
         let level = para.level_at(start).unwrap_or(0);
-        let current = items.last().filter(|item| item.level == level);
-        let font = match current {
-            Some(item) if covers(item.font, cluster) => item.font,
-            _ => (0..fonts.len()).find(|&f| covers(f, cluster)).ok_or_else(|| {
-                let ch = cluster
-                    .chars()
-                    .find(|&ch| needs_glyph(ch) && !covers(0, &ch.to_string()))
-                    .or_else(|| cluster.chars().next())
-                    .unwrap_or_default();
-                Error::MissingGlyph {
-                    ch,
-                    font: fonts
-                        .first()
-                        .map(|f| f.info().postscript_name.clone())
-                        .unwrap_or_default(),
-                }
-            })?,
+        let current = items.last().filter(|item| item.level == level).map(|item| item.font);
+        let font = if !cluster.chars().any(needs_glyph) {
+            // Nothing to draw (a hard break, a ZWJ): it decides nothing.
+            current.unwrap_or(0)
+        } else if let Some(f) = current.filter(|&f| script.is_none() && covers(f, cluster)) {
+            // Spaces, digits and punctuation stay in the run they are in.
+            f
+        } else {
+            // Every other cluster takes the first font that covers it, so a fallback font
+            // never sticks to text the primary font has.
+            (0..fonts.len())
+                .find(|&f| covers(f, cluster))
+                .ok_or_else(|| missing_glyph(fonts, cluster, &covers))?
         };
         let joins = items.last().is_some_and(|item| {
             item.level == level
@@ -117,6 +114,30 @@ pub fn itemize(para: &BidiParagraph<'_>, fonts: &[Font]) -> Result<Vec<Item>> {
         }
     }
     Ok(items)
+}
+
+/// Whether `ch` needs a glyph of its own: not a default-ignorable code point (ZWJ, the bidi
+/// controls, variation selectors), not a control character (a tab is drawn as a space, other
+/// controls as nothing; see the shaper) and not a hard line break.
+pub(crate) fn needs_glyph(ch: char) -> bool {
+    !ch.is_control() && !is_hard_break(ch) && !CodePointSetData::new::<DefaultIgnorableCodePoint>().contains(ch)
+}
+
+/// [`Error::MissingGlyph`] for the first character of `cluster` the primary font lacks.
+fn missing_glyph(fonts: &[Font], cluster: &str, covers: &impl Fn(usize, &str) -> bool) -> Error {
+    let mut buf = [0u8; 4];
+    let ch = cluster
+        .chars()
+        .find(|&ch| needs_glyph(ch) && !covers(0, ch.encode_utf8(&mut buf)))
+        .or_else(|| cluster.chars().next())
+        .unwrap_or_default();
+    Error::MissingGlyph {
+        ch,
+        font: fonts
+            .first()
+            .map(|f| f.info().postscript_name.clone())
+            .unwrap_or_default(),
+    }
 }
 
 #[cfg(test)]

@@ -65,6 +65,10 @@ fn messages_carry_no_font_names_or_text() {
         Error::InvalidFeature {
             feature: marker.to_owned(),
         },
+        Error::FontMismatch {
+            font: marker.to_owned(),
+            shaped_with: marker.to_owned(),
+        },
     ];
     let warning = Warning::ToUnicodeConflict {
         font: marker.to_owned(),

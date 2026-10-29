@@ -2,17 +2,21 @@
 //! itemisation, shaping, greedy line breaking at UAX #14 opportunities, per-line visual
 //! reordering (UAX #9 rule L2) and alignment.
 //!
-//! Lines are measured by shaping each candidate line as it would be drawn (the text around it
-//! as context), so ligatures, kerning and Arabic joining at a break are accounted for and no
-//! line is wider than the box, except a line holding a single grapheme cluster that is wider
-//! than the box on its own. A word wider than the box is broken between grapheme clusters
+//! Candidate lines are estimated from each paragraph shaped once, then the chosen line is
+//! shaped exactly as it is drawn (its visual runs, the text around it as context), so
+//! ligatures, kerning and Arabic joining at a break are accounted for and no line is wider
+//! than the box, except a line holding a single grapheme cluster that is wider than the box
+//! on its own. A word wider than the box is broken between grapheme clusters
 //! (CSS `overflow-wrap: anywhere`). No hyphenation and no justification yet (pdf-library §2
 //! non-goals; [`LayoutOptions::justify`] is reserved).
 
 use std::ops::Range;
 
+use icu_properties::CodePointMapData;
+use icu_properties::props::BidiClass;
+
 use crate::bidi::BidiParagraph;
-use crate::error::Result;
+use crate::error::{Error, Result};
 use crate::font::Font;
 use crate::itemize::{Item, itemize};
 use crate::linebreak::{grapheme_boundaries, is_hard_break, is_trailing_space, line_breaks};
@@ -51,7 +55,8 @@ pub struct LayoutOptions {
     pub language: Option<String>,
     /// OpenType features for every run.
     pub features: Vec<Feature>,
-    /// Reserved for justification (a later plan): must be `false`; ignored for now.
+    /// Reserved for justification (a later plan): `true` is
+    /// [`Error::UnsupportedLayoutOption`].
     pub justify: bool,
 }
 
@@ -129,8 +134,10 @@ pub struct Line {
     pub hard_break: bool,
 }
 
-/// Lays `text` out as one paragraph in a box `options.width` points wide with greedy (first
-/// fit) line breaking, `fonts` in order of preference ([`itemize`]).
+/// Lays `text` out in a box `options.width` points wide with greedy (first fit) line
+/// breaking, `fonts` in order of preference ([`itemize`]). Each paragraph (ended by a line
+/// feed, U+2029 or another UAX #9 paragraph separator) is resolved on its own: its
+/// direction, its alignment side and its isolates.
 ///
 /// ```
 /// # fn font_bytes() -> Vec<u8> { include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/../../fixtures/fonts/NotoSans-Regular.ttf")).to_vec() }
@@ -145,63 +152,76 @@ pub struct Line {
 /// ```
 ///
 /// # Errors
-/// As [`itemize`] (a character no font covers) and [`Shaper::shape_range`].
+/// As [`itemize`] (a character no font covers) and [`Shaper::shape_range`];
+/// [`Error::UnsupportedLayoutOption`] when [`LayoutOptions::justify`] is set.
 pub fn break_lines(shaper: &impl Shaper, fonts: &[Font], text: &str, options: &LayoutOptions) -> Result<Vec<Line>> {
-    let para = BidiParagraph::new(text, options.direction);
-    let items = itemize(&para, fonts)?;
-    let layout = Layouter {
-        shaper,
-        fonts,
-        text,
-        options,
-        para: &para,
-        items: &items,
-    };
-    let limit = f64::from(options.width);
+    if options.justify {
+        return Err(Error::UnsupportedLayoutOption { option: "justify" });
+    }
     let mut lines = Vec::new();
-    let mut start = 0;
-    let mut fit: Option<usize> = None; // the last opportunity that fits on the current line
-    let breaks = line_breaks(text);
-    let mut i = 0;
-    while let Some(b) = breaks.get(i) {
-        let fits = layout.width(start..b.offset)? <= limit;
-        if fits {
-            fit = Some(b.offset);
-            if b.mandatory {
-                lines.push(layout.line(start..b.offset)?);
-                start = b.offset;
-                fit = None;
-            }
-            i += 1;
-            continue;
+    for paragraph in paragraphs(text) {
+        let ptext = text.get(paragraph.clone()).unwrap_or_default();
+        let para = BidiParagraph::new(ptext, options.direction);
+        let items = itemize(&para, fonts)?;
+        let layout = Layouter {
+            shaper,
+            fonts,
+            text: ptext,
+            options,
+            para: &para,
+            items: &items,
+        };
+        for mut line in layout.lines()? {
+            line.shift(paragraph.start);
+            lines.push(line);
         }
-        if let Some(end) = fit.take() {
-            lines.push(layout.line(start..end)?);
-            start = end;
-            continue; // the same opportunity, measured from the new line start
-        }
-        // Nothing fits: break the overlong stretch between grapheme clusters.
-        // The remainder fits, or is one grapheme cluster wider than the box: either way it
-        // stays on the current line.
-        let (full, rest) = layout.split_overlong(start..b.offset, limit)?;
-        for range in full {
-            lines.push(layout.line(range)?);
-        }
-        start = rest;
-        fit = Some(b.offset);
-        if b.mandatory {
-            lines.push(layout.line(start..b.offset)?);
-            start = b.offset;
-            fit = None;
-        }
-        i += 1;
     }
     Ok(lines)
+}
+
+/// The paragraphs of `text` (UAX #9 P1): each ends after a paragraph separator (class `B`:
+/// a line feed, carriage return, CR LF, U+0085, U+2029, U+001C–001E) or at the end.
+fn paragraphs(text: &str) -> Vec<Range<usize>> {
+    let classes = CodePointMapData::<BidiClass>::new();
+    let mut out = Vec::new();
+    let mut start = 0;
+    let mut chars = text.char_indices().peekable();
+    while let Some((at, ch)) = chars.next() {
+        if classes.get(ch) != BidiClass::ParagraphSeparator {
+            continue;
+        }
+        let mut end = at + ch.len_utf8();
+        if ch == '\r' && chars.peek().is_some_and(|&(_, next)| next == '\n') {
+            chars.next();
+            end += 1;
+        }
+        out.push(start..end);
+        start = end;
+    }
+    if start < text.len() || out.is_empty() {
+        out.push(start..text.len());
+    }
+    out
+}
+
+impl Line {
+    /// Moves the line's byte offsets by `by` (from its paragraph's text to the whole text).
+    fn shift(&mut self, by: usize) {
+        self.range = self.range.start + by..self.range.end + by;
+        self.content = self.content.start + by..self.content.end + by;
+        for run in &mut self.runs {
+            run.run.text_range = run.run.text_range.start + by..run.run.text_range.end + by;
+            for glyph in &mut run.run.glyphs {
+                glyph.cluster += by;
+            }
+        }
+    }
 }
 
 struct Layouter<'a, S> {
     shaper: &'a S,
     fonts: &'a [Font],
+    /// The paragraph's text: every range here is relative to it.
     text: &'a str,
     options: &'a LayoutOptions,
     para: &'a BidiParagraph<'a>,
@@ -209,6 +229,95 @@ struct Layouter<'a, S> {
 }
 
 impl<S: Shaper> Layouter<'_, S> {
+    /// Greedy (first-fit) lines. Candidates are estimated from the paragraph shaped once
+    /// (the advances of each cluster), then the chosen line is shaped as it is drawn and
+    /// moved back or forward one opportunity at a time until it is the longest that fits.
+    fn lines(&self) -> Result<Vec<Line>> {
+        let limit = f64::from(self.options.width);
+        let estimate = self.estimates()?;
+        let estimated = |range: Range<usize>| {
+            let content = self.content(range);
+            estimate.get(content.end).copied().unwrap_or(0.0) - estimate.get(content.start).copied().unwrap_or(0.0)
+        };
+        let breaks = line_breaks(self.text);
+        let mut lines = Vec::new();
+        let mut start = 0;
+        let mut i = 0;
+        while let Some(first) = breaks.get(i) {
+            // The furthest opportunity the estimate fits, never past a mandatory break.
+            let mut j = i;
+            if !first.mandatory {
+                while let Some(next) = breaks.get(j + 1) {
+                    if estimated(start..next.offset) > limit {
+                        break;
+                    }
+                    j += 1;
+                    if next.mandatory {
+                        break;
+                    }
+                }
+            }
+            let end_at = |k: usize| breaks.get(k).map_or(self.text.len(), |b| b.offset);
+            let mut line = self.line(start..end_at(j))?;
+            while line.width > limit && j > i {
+                j -= 1;
+                line = self.line(start..end_at(j))?;
+            }
+            if line.width > limit {
+                // Nothing fits: break the overlong stretch between grapheme clusters.
+                let (full, rest) = self.split_overlong(start..end_at(i), limit)?;
+                for range in full {
+                    lines.push(self.line(range)?);
+                }
+                start = rest;
+                let remainder = self.line(start..end_at(i))?;
+                if remainder.width > limit || first.mandatory {
+                    // A single cluster wider than the box, or the paragraph's end.
+                    lines.push(remainder);
+                    start = end_at(i);
+                    i += 1;
+                }
+                continue;
+            }
+            while breaks.get(j).is_some_and(|b| !b.mandatory) && j + 1 < breaks.len() {
+                let longer = self.line(start..end_at(j + 1))?;
+                if longer.width > limit {
+                    break;
+                }
+                line = longer;
+                j += 1;
+            }
+            start = end_at(j);
+            lines.push(line);
+            i = j + 1;
+        }
+        Ok(lines)
+    }
+
+    /// Prefix sums of the paragraph's advances in points by byte offset: each item shaped
+    /// once at its own level, every glyph's advance counted at its cluster.
+    fn estimates(&self) -> Result<Vec<f64>> {
+        let mut at = vec![0.0; self.text.len() + 1];
+        for item in self.items {
+            let Some(run) = self.shape(item, item.range.clone(), item.level)? else {
+                continue;
+            };
+            for glyph in &run.glyphs {
+                if let Some(slot) = at.get_mut(glyph.cluster) {
+                    *slot += crate::shape::to_points(i64::from(glyph.x_advance), run.units_per_em, self.options.size);
+                }
+            }
+        }
+        let mut sum = 0.0;
+        let mut prefix = Vec::with_capacity(at.len());
+        prefix.push(0.0);
+        for v in at.iter().take(self.text.len()) {
+            sum += v;
+            prefix.push(sum);
+        }
+        Ok(prefix)
+    }
+
     /// `range` without trailing spaces and hard breaks.
     fn content(&self, range: Range<usize>) -> Range<usize> {
         let line = self.text.get(range.clone()).unwrap_or_default();
@@ -216,40 +325,35 @@ impl<S: Shaper> Layouter<'_, S> {
         range.start..range.start + kept.len()
     }
 
-    /// The width in points of `range` drawn as one line.
-    fn width(&self, range: Range<usize>) -> Result<f64> {
-        let content = self.content(range);
-        let mut width = 0.0;
-        for (item, part) in self.parts(content) {
-            width += self.shape(item, part, item.level)?.width(self.options.size);
-        }
-        Ok(width)
-    }
-
-    /// The items intersecting `range`, clipped to it, in logical order.
+    /// The items intersecting `range`, clipped to it, in logical order (items are sorted and
+    /// contiguous, so a binary search finds the first).
     fn parts(&self, range: Range<usize>) -> impl Iterator<Item = (&Item, Range<usize>)> + '_ {
-        self.items.iter().filter_map(move |item| {
-            let start = item.range.start.max(range.start);
-            let end = item.range.end.min(range.end);
-            (start < end).then_some((item, start..end))
-        })
+        let first = self.items.partition_point(|item| item.range.end <= range.start);
+        self.items
+            .get(first..)
+            .unwrap_or_default()
+            .iter()
+            .take_while(move |item| item.range.start < range.end)
+            .map(move |item| (item, item.range.start.max(range.start)..item.range.end.min(range.end)))
     }
 
-    fn shape(&self, item: &Item, range: Range<usize>, level: u8) -> Result<ShapedRun> {
-        let font = self
-            .fonts
-            .get(item.font)
-            .ok_or(crate::Error::UnknownFont { key: item.font })?;
+    /// `range` of `item` shaped at `level`; `None` when the item's font is not in the list,
+    /// which [`itemize`] only allows for text with nothing to draw.
+    fn shape(&self, item: &Item, range: Range<usize>, level: u8) -> Result<Option<ShapedRun>> {
+        let Some(font) = self.fonts.get(item.font) else {
+            return Ok(None);
+        };
         let options = ShapeOptions {
             script: Some(item.script),
             language: self.options.language.clone(),
             direction: Some(Direction::from_level(level)),
             features: self.options.features.clone(),
         };
-        self.shaper.shape_range(font, self.text, range, &options)
+        self.shaper.shape_range(font, self.text, range, &options).map(Some)
     }
 
-    /// The line `range`: shaped, reordered and aligned.
+    /// The line `range`: shaped as drawn (visual runs at their post-L1 levels), reordered
+    /// and aligned.
     fn line(&self, range: Range<usize>) -> Result<Line> {
         let content = self.content(range.clone());
         let mut runs = Vec::new();
@@ -260,7 +364,9 @@ impl<S: Shaper> Layouter<'_, S> {
                 parts.reverse();
             }
             for (item, part) in parts {
-                let run = self.shape(item, part, visual.level)?;
+                let Some(run) = self.shape(item, part, visual.level)? else {
+                    continue;
+                };
                 let width = run.width(self.options.size);
                 runs.push(LineRun {
                     run,
@@ -294,8 +400,9 @@ impl<S: Shaper> Layouter<'_, S> {
     }
 
     /// Splits `range`, too wide for one line, into lines that fit between grapheme clusters
-    /// (at least one cluster per line). Returns the full lines and where the remainder starts:
-    /// the remainder fits, or is a single cluster wider than the box.
+    /// (at least one cluster per line; spaces after a line's last cluster hang on it, so no
+    /// line holds only spaces). Returns the full lines and where the remainder starts: the
+    /// remainder fits, or is a single cluster wider than the box.
     fn split_overlong(&self, range: Range<usize>, limit: f64) -> Result<(Vec<Range<usize>>, usize)> {
         let segment = self.text.get(range.clone()).unwrap_or_default();
         let bounds: Vec<usize> = grapheme_boundaries(segment)
@@ -303,29 +410,37 @@ impl<S: Shaper> Layouter<'_, S> {
             .map(|b| range.start + b)
             .filter(|&b| b > range.start)
             .collect();
+        // A line ending at `end` takes the spaces right after it.
+        let hang = |end: usize| {
+            let rest = self.text.get(end..range.end).unwrap_or_default();
+            end + (rest.len() - rest.trim_start_matches(is_trailing_space).len())
+        };
         let mut lines = Vec::new();
         let mut start = range.start;
         let mut last_fit: Option<usize> = None;
         let mut i = 0;
         while let Some(&b) = bounds.get(i) {
-            if self.width(start..b)? <= limit {
+            if b <= start {
+                i += 1;
+                continue;
+            }
+            if self.line(start..b)?.width <= limit {
                 last_fit = Some(b);
                 i += 1;
                 continue;
             }
-            match last_fit.take() {
-                Some(end) => {
-                    lines.push(start..end);
-                    start = end;
-                }
-                None if i + 1 == bounds.len() => break,
-                None => {
-                    // One cluster wider than the box: it gets a line of its own.
-                    lines.push(start..b);
-                    start = b;
-                    i += 1;
-                }
+            let end = match last_fit.take() {
+                Some(end) => end,
+                None if bounds.get(i + 1).is_none() => break,
+                // One cluster wider than the box: it gets a line of its own.
+                None => b,
+            };
+            let end = hang(end);
+            if end >= range.end {
+                break;
             }
+            lines.push(start..end);
+            start = end;
         }
         Ok((lines, start))
     }

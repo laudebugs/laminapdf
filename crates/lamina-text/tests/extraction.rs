@@ -107,8 +107,10 @@ fn every_exception_names_a_golden_line() {
 
 #[test]
 fn shaped_extraction_exceptions_are_limited_to_complex_scripts() {
-    // Latin, CJK and the unpointed bidi text extract exactly with both tools.
-    for ((_, extractor, line), _) in exceptions() {
+    // Only text-shaped.pdf's Arabic (3), pointed Hebrew (4) and Devanagari (5) lines, and for
+    // pdf.js the mixed line's Arabic (7): Latin, CJK and the other goldens extract exactly.
+    for ((file, extractor, line), _) in exceptions() {
+        assert_eq!(file, "text-shaped.pdf");
         assert!(
             (3..=5).contains(&line) || (extractor == "pdfjs" && line == 7),
             "{extractor} line {line}"
@@ -150,6 +152,20 @@ fn facts_were_written_with_the_pinned_qpdf() {
         Some(pinned(&doctor, "pub(crate) const QPDF_VERSION: &str =").as_str()),
         "fixtures/text/extracted.json was written with another qpdf than tools/xtask/src/doctor.rs pins; rerun tools/fixtures/text_facts.py"
     );
+}
+
+#[test]
+fn pdfjs_scripts_pin_the_doctor_version() {
+    let doctor = String::from_utf8(common::fixture("../tools/xtask/src/doctor.rs")).unwrap();
+    let pinned_version = pinned(&doctor, "const PDFJS_DIST_VERSION: &str =");
+    for script in [
+        "../tools/fixtures/pdfjs_text.mjs",
+        "../tools/corpus-facts/pdfjs-operators.mjs",
+        "../tools/roundtrip/pdfjs.mjs",
+    ] {
+        let text = String::from_utf8(common::fixture(script)).unwrap();
+        assert_eq!(pinned(&text, "const PINNED ="), pinned_version, "{script}");
+    }
 }
 
 #[test]

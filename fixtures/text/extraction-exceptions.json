@@ -5,8 +5,8 @@
       "file": "text-shaped.pdf",
       "extractor": "pdfjs",
       "line": 3,
-      "extracted": "مرحب\u0011ا ب\u0011العالم، السلام علي\u0003كم",
-      "reason": "pdf.js treats an empty ToUnicode destination (<cid> <>, the dot glyphs Noto Sans Arabic draws separately from their base) as missing and falls back to the code, U+0011/U+0003"
+      "extracted": "كمي\u0003العالم، السلام علب\u0011 اب\u0011مرح",
+      "reason": "pdf.js ignores marked-content /ActualText, reads an empty ToUnicode destination (<cid> <>, the dot glyphs Noto Sans Arabic draws apart from their base) as the code (U+0011, U+0003), and the /Span sequences around those clusters split the line into text items it puts in visual order"
     },
     {
       "file": "text-shaped.pdf",
@@ -26,8 +26,8 @@
       "file": "text-shaped.pdf",
       "extractor": "pdfjs",
       "line": 7,
-      "extracted": "The words שלום עולם and مرحب\u0011ا ب\u0011العالم mean hello.",
-      "reason": "as line 3: empty ToUnicode destinations of Noto Sans Arabic's dot glyphs"
+      "extracted": "The words שלום עולם and العالمب\u0011 ا\u0011 بمرح mean hello.",
+      "reason": "pdf.js ignores marked-content /ActualText, reads an empty ToUnicode destination (<cid> <>, the dot glyphs Noto Sans Arabic draws apart from their base) as the code (U+0011, U+0003), and the /Span sequences around those clusters split the line into text items it puts in visual order"
     },
     {
       "file": "text-shaped.pdf",
