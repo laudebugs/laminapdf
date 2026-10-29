@@ -20,6 +20,7 @@ Detect 3D annotations (U3D/PRC), show the poster appearance and an "unsupported 
 
 ## Context
 
+- **Design (Paper):** [X12 Measurement and media](../../design/paper/convert-compare-produce.md#x12-measurement-and-media). Build to match these screens; record any deviation in the area document ([Paper design plan §5](../../plans/paper-design.md#5-how-the-designs-are-used)).
 - [full-editor §E17](../../plans/full-editor.md#e17-advanced-interactions)
 
 ## Scope

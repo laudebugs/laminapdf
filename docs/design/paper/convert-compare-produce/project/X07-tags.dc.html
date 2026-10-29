@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Tags and reading order</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&amp;family=Source+Sans+3:wght@400;500;600&amp;family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&amp;display=swap">
+<style>
+body{margin:0;background:#DCD6CB}
+a{color:#1F5C63}a:hover{color:#16454B}
+button,input,textarea,select{font:inherit;color:inherit}
+</style>
+</helmet>
+<div style="min-height: 100vh; display: flex; flex-direction: column; background: #DCD6CB; font-family: 'Source Sans 3', 'Segoe UI', system-ui, sans-serif; font-size: 14px; line-height: 1.4; color: #1F1D1A">
+<div style="position: relative; flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; background: #F7F4EE; border: 1px solid #C9C2B6; border-radius: 10px; overflow: hidden; box-sizing: border-box">
+
+  <div style="height: 30px; flex: 0 0 auto; display: flex; align-items: center; padding: 0 12px; background: #EFEBE3; border-bottom: 1px solid #E0D9CD; position: relative">
+    <div aria-hidden="true" style="display: flex; gap: 8px"><span style="width: 12px; height: 12px; border-radius: 50%; background: #EC6A5E; border: 0.5px solid #D2574C"></span><span style="width: 12px; height: 12px; border-radius: 50%; background: #F4BF4F; border: 0.5px solid #D9A63A"></span><span style="width: 12px; height: 12px; border-radius: 50%; background: #61C554; border: 0.5px solid #4CAA40"></span></div>
+    <div style="position: absolute; left: 0; right: 0; text-align: center; font-size: 13px; font-weight: 600; color: #3A3631; pointer-events: none">Q3-board-report.pdf</div>
+  </div>
+
+  <header style="min-height: 40px; flex: 0 0 auto; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 20px; padding: 0 16px; border-bottom: 1px solid #E4DED3">
+    <div style="display: flex; align-items: center; gap: 10px; flex: 1 1 220px; min-width: 0">
+      <button aria-label="Sidebar" aria-pressed="true" style="width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 4px; color: #4A453E"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="3.5" y="4.5" width="17" height="15" rx="1.5"></rect><path d="M9 4.5v15"></path></svg></button>
+      <span style="font-family: 'Newsreader', Georgia, serif; font-size: 16px; font-weight: 500; white-space: nowrap">Q3-board-report.pdf</span>
+      <span style="font-size: 12px; color: #6B645A; white-space: nowrap">3 unsaved changes</span>
+      <span aria-hidden="true" style="width: 1px; height: 18px; background: #E4DED3; flex: 0 0 auto"></span>
+      <div role="group" aria-label="History" style="display: flex; gap: 2px"><button aria-label="Undo move tag earlier" title="Undo move tag earlier" style="width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 4px; color: #4A453E"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M9 7L4.5 11.5 9 16"></path><path d="M4.5 11.5H15a4.5 4.5 0 0 1 0 9h-3"></path></svg></button><button aria-label="Redo" aria-disabled="true" style="width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 4px; color: #A39C91"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M15 7l4.5 4.5L15 16"></path><path d="M19.5 11.5H9a4.5 4.5 0 0 0 0 9h3"></path></svg></button></div>
+    </div>
+    <div role="group" aria-label="Mode" style="display: flex; align-items: stretch; gap: 22px; height: 40px">
+      <button aria-pressed="false" style="height: 40px; display: flex; align-items: center; border: 0; background: transparent; padding: 2px 0 0; color: #6B645A; border-bottom: 2px solid transparent">Read</button>
+      <button aria-pressed="false" style="height: 40px; display: flex; align-items: center; border: 0; background: transparent; padding: 2px 0 0; color: #6B645A; border-bottom: 2px solid transparent">Comment</button>
+      <button aria-pressed="false" style="height: 40px; display: flex; align-items: center; border: 0; background: transparent; padding: 2px 0 0; color: #6B645A; border-bottom: 2px solid transparent">Fill &amp; Sign</button>
+      <button aria-pressed="false" style="height: 40px; display: flex; align-items: center; border: 0; background: transparent; padding: 2px 0 0; color: #6B645A; border-bottom: 2px solid transparent">Organise</button>
+      <button aria-pressed="true" style="height: 40px; display: flex; align-items: center; border: 0; background: transparent; padding: 2px 0 0; color: #1F1D1A; font-weight: 600; border-bottom: 2px solid #1F5C63">Edit</button>
+    </div>
+    <div style="display: flex; align-items: center; justify-content: flex-end; gap: 14px; flex: 1 1 220px">
+      <div style="display: flex; align-items: center; gap: 6px; font-variant-numeric: tabular-nums">
+        <label for="pg" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Page</label>
+        <input id="pg" value="3" style="width: 30px; height: 24px; box-sizing: border-box; text-align: center; border: 1px solid #8A8174; border-radius: 4px; background: #FFFFFF; font-variant-numeric: tabular-nums">
+        <span style="color: #6B645A">/ 24</span>
+      </div>
+      <div role="group" aria-label="Zoom" style="display: flex; align-items: center; gap: 2px; font-variant-numeric: tabular-nums"><button aria-label="Zoom out" style="width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 4px; color: #4A453E"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M6 12h12"></path></svg></button><span style="min-width: 40px; text-align: center; font-size: 13px">100%</span><button aria-label="Zoom in" style="width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 4px; color: #4A453E"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M6 12h12M12 6v12"></path></svg></button></div>
+      <button aria-label="Find in document" style="width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 4px; color: #4A453E"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6"></circle><path d="M15 15l5 5"></path></svg></button>
+      <button aria-label="View settings" aria-haspopup="dialog" style="width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 4px; color: #4A453E"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="12" cy="12" r="7.5"></circle><path d="M12 4.5v15M12 8.5h5.5M12 12h7.5M12 15.5h5.5"></path></svg></button>
+      <button style="height: 26px; display: flex; align-items: center; gap: 8px; padding: 0 6px 0 10px; border: 1px solid #E4DED3; background: #FBF9F5; border-radius: 4px; color: #6B645A; font-size: 13px"><span>Commands</span><span style="font-size: 11px; padding: 1px 5px; border: 1px solid #D8D1C5; border-radius: 3px; color: #4A453E; background: #FFFFFF">⌘K</span></button>
+      <button style="height: 26px; padding: 0 12px; border: 1px solid #1F5C63; background: #1F5C63; color: #FFFFFF; border-radius: 4px; font-size: 13px; font-weight: 600">Save</button>
+      <button aria-label="More actions" style="width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 4px; color: #4A453E"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="5.5" cy="12" r="0.9"></circle><circle cx="12" cy="12" r="0.9"></circle><circle cx="18.5" cy="12" r="0.9"></circle></svg></button>
+    </div>
+  </header>
+
+  <div role="toolbar" aria-label="Accessibility tools" style="min-height: 40px; flex: 0 0 auto; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; padding: 0 16px; border-bottom: 1px solid #E4DED3; background: #FBF9F5; font-size: 13px">
+    <span style="display: flex; align-items: center; gap: 8px; margin-right: 10px; font-family: 'Newsreader', Georgia, serif; font-size: 15px; font-weight: 500"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#4A453E" stroke-width="1.5" aria-hidden="true"><circle cx="12" cy="5.5" r="1.5"></circle><path d="M5 9l7 1.5L19 9M12 10.5v4l-3 5.5M12 14.5l3 5.5"></path></svg>Accessibility</span>
+    <button aria-pressed="false" style="height: 28px; padding: 0 10px; border: 1px solid transparent; background: transparent; border-radius: 4px">Check</button>
+    <button aria-pressed="true" style="height: 28px; display: flex; align-items: center; gap: 6px; padding: 0 10px; border: 1px solid #1F5C63; background: #E1E6E3; color: #1F5C63; border-radius: 4px; font-weight: 600"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M4.5 4.5h7l8 8-7 7-8-8z"></path><circle cx="8.5" cy="8.5" r="1"></circle></svg>Tags</button>
+    <button aria-pressed="true" style="height: 28px; padding: 0 10px; border: 1px solid #1F5C63; background: #E1E6E3; color: #1F5C63; border-radius: 4px; font-weight: 600">Reading order</button>
+    <span aria-hidden="true" style="width: 1px; height: 18px; background: #E4DED3; margin: 0 8px"></span>
+    <label for="tagas" style="font-size: 12px; color: #6B645A">Tag selection as</label>
+    <div style="position: relative; display: flex; align-items: center">
+      <select id="tagas" style="appearance: none; height: 28px; padding: 0 28px 0 8px; border: 1px solid #8A8174; border-radius: 4px; background: #FFFFFF; font-size: 13px"><option>Paragraph</option><option>Heading 1</option><option>Heading 2</option><option>List</option><option>Table</option><option>Figure</option><option>Artifact (decorative)</option></select>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#4A453E" stroke-width="1.5" aria-hidden="true" style="position: absolute; right: 8px; pointer-events: none"><path d="M7 10l5 5 5-5"></path></svg>
+    </div>
+    <button aria-disabled="true" style="height: 28px; padding: 0 10px; border: 1px solid #E4DED3; background: transparent; color: #A39C91; border-radius: 4px">Tag</button>
+    <span style="flex: 1 1 auto"></span>
+    <span style="font-size: 12px; color: #6B645A; margin-right: 8px">Select text or an area on the page to tag it</span>
+    <button style="height: 28px; padding: 0 12px; border: 1px solid #8A8174; background: #FFFFFF; border-radius: 4px">Done</button>
+  </div>
+
+  <div style="flex: 1 1 auto; min-height: 0; display: flex; flex-wrap: wrap">
+    <aside aria-label="Tags" style="flex: 0 0 280px; box-sizing: border-box; border-right: 1px solid #E4DED3; display: flex; flex-direction: column; overflow: auto">
+      <div style="display: flex; align-items: baseline; justify-content: space-between; padding: 14px 18px 10px; border-bottom: 1px solid #E4DED3">
+        <h2 style="margin: 0; font-family: 'Newsreader', Georgia, serif; font-size: 18px; font-weight: 500">Tags</h2>
+        <span style="font-size: 12px; color: #6B645A">Page 3 · in reading order</span>
+      </div>
+      <ul role="tree" aria-label="Structure tree" style="list-style: none; margin: 0; padding: 10px; display: flex; flex-direction: column; gap: 1px; font-size: 13px">
+        <li role="treeitem" aria-level="1" aria-posinset="1" aria-setsize="1" aria-expanded="true" style="display: flex; align-items: center; gap: 6px; min-height: 28px; padding: 0 8px; border-radius: 4px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#4A453E" stroke-width="1.5" aria-hidden="true"><path d="M7 10l5 5 5-5"></path></svg><span style="font-weight: 600">Document</span><span style="color: #6B645A">· English (UK)</span></li>
+        <li role="treeitem" aria-level="2" aria-posinset="1" aria-setsize="2" aria-expanded="true" style="display: flex; align-items: center; gap: 6px; min-height: 28px; padding: 0 8px 0 24px; border-radius: 4px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#4A453E" stroke-width="1.5" aria-hidden="true"><path d="M7 10l5 5 5-5"></path></svg><span style="font-weight: 600">Section</span><span style="color: #6B645A; overflow: hidden; text-overflow: ellipsis; white-space: nowrap">2. Repairs backlog</span></li>
+        <li role="treeitem" aria-level="3" aria-posinset="1" aria-setsize="5" style="display: flex; align-items: center; gap: 8px; min-height: 28px; padding: 0 8px 0 46px; border-radius: 4px"><span style="min-width: 20px; height: 20px; display: inline-flex; align-items: center; justify-content: center; border-radius: 10px; background: #1F5C63; color: #FFFFFF; font-size: 12px; font-weight: 600">1</span><span style="font-weight: 600">H1</span><span style="color: #4A453E; overflow: hidden; text-overflow: ellipsis; white-space: nowrap">2. Repairs backlog</span></li>
+        <li role="treeitem" aria-level="3" aria-posinset="2" aria-setsize="5" style="display: flex; align-items: center; gap: 8px; min-height: 28px; padding: 0 8px 0 46px; border-radius: 4px"><span style="min-width: 20px; height: 20px; display: inline-flex; align-items: center; justify-content: center; border-radius: 10px; background: #1F5C63; color: #FFFFFF; font-size: 12px; font-weight: 600">2</span><span style="font-weight: 600">P</span><span style="color: #4A453E; overflow: hidden; text-overflow: ellipsis; white-space: nowrap">Open repair jobs stood at…</span></li>
+        <li role="treeitem" aria-level="3" aria-posinset="3" aria-setsize="5" style="display: flex; align-items: center; gap: 8px; min-height: 28px; padding: 0 8px 0 46px; border-radius: 4px"><span style="min-width: 20px; height: 20px; display: inline-flex; align-items: center; justify-content: center; border-radius: 10px; background: #1F5C63; color: #FFFFFF; font-size: 12px; font-weight: 600">3</span><span style="font-weight: 600">P</span><span style="color: #4A453E; overflow: hidden; text-overflow: ellipsis; white-space: nowrap">The backlog fell by 18%…</span></li>
+        <li role="treeitem" aria-level="3" aria-posinset="4" aria-setsize="5" style="display: flex; align-items: center; gap: 8px; min-height: 28px; padding: 0 8px 0 46px; border-radius: 4px"><span style="min-width: 20px; height: 20px; display: inline-flex; align-items: center; justify-content: center; border-radius: 10px; background: #1F5C63; color: #FFFFFF; font-size: 12px; font-weight: 600">4</span><span style="font-weight: 600">P</span><span style="color: #4A453E; overflow: hidden; text-overflow: ellipsis; white-space: nowrap">The board is asked to note…</span></li>
+        <li role="treeitem" aria-level="3" aria-posinset="5" aria-setsize="5" aria-expanded="true" aria-selected="true" style="display: flex; align-items: center; gap: 8px; min-height: 28px; padding: 0 8px 0 46px; border-radius: 4px; background: #E1E6E3; box-shadow: inset 0 0 0 1px #1F5C63; color: #1F5C63; outline: 2px solid #1F5C63; outline-offset: 2px"><span style="min-width: 20px; height: 20px; display: inline-flex; align-items: center; justify-content: center; border-radius: 10px; background: #1F5C63; color: #FFFFFF; font-size: 12px; font-weight: 600">5</span><span style="font-weight: 600">Figure</span><span style="color: #1F1D1A; overflow: hidden; text-overflow: ellipsis; white-space: nowrap">Open repairs by region</span></li>
+        <li role="treeitem" aria-level="4" aria-posinset="1" aria-setsize="1" style="display: flex; align-items: center; gap: 8px; min-height: 28px; padding: 0 8px 0 72px; border-radius: 4px"><span style="font-weight: 600">Caption</span><span style="color: #4A453E">Open repairs by region…</span></li>
+        <li role="treeitem" aria-level="2" aria-posinset="2" aria-setsize="2" aria-expanded="false" style="display: flex; align-items: center; gap: 6px; min-height: 28px; padding: 0 8px 0 24px; border-radius: 4px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#4A453E" stroke-width="1.5" aria-hidden="true"><path d="M10 7l5 5-5 5"></path></svg><span style="font-weight: 600">Section</span><span style="color: #6B645A">3. Rent collection</span></li>
+      </ul>
+      <div style="display: flex; flex-direction: column; gap: 6px; margin: 0 18px; padding: 12px 0 16px; border-top: 1px solid #E4DED3; font-size: 12px; color: #6B645A">
+        <span style="font-weight: 600; color: #4A453E">Not read aloud (artifacts)</span>
+        <span>Running header · page number</span>
+      </div>
+    </aside>
+
+    <main style="flex: 999 1 560px; min-width: 0; background: #ECE7DE; overflow: auto; display: flex; justify-content: center; padding: 28px 16px; box-sizing: border-box">
+      <article aria-label="Page 3 with reading order shown" style="width: 100%; max-width: 612px; min-height: 790px; box-sizing: border-box; background: #FFFFFF; box-shadow: 0 1px 2px rgba(60,48,30,0.08), 0 8px 28px rgba(60,48,30,0.10); padding: 56px 64px 36px; display: flex; flex-direction: column; gap: 18px; font-family: 'Source Serif 4', Georgia, serif; color: #262421; font-size: 14.5px; line-height: 1.6">
+        <div style="position: relative; display: flex; justify-content: space-between; font-family: 'Source Sans 3', system-ui, sans-serif; font-size: 10.5px; letter-spacing: 0.08em; text-transform: uppercase; color: #6E6A64; border-bottom: 1px solid #E6E3DE; padding-bottom: 10px; outline: 1px dashed #8A8174; outline-offset: 4px"><span>Northwind Housing Trust</span><span>Q3 Board Report</span><span style="position: absolute; right: 0; top: -28px; height: 20px; padding: 0 8px; display: inline-flex; align-items: center; border-radius: 3px; background: #FBF9F5; border: 1px solid #D8D1C5; color: #4A453E; font-size: 12px; letter-spacing: 0; text-transform: none">Artifact</span></div>
+        <h2 style="position: relative; margin: 10px 0 0; font-size: 24px; font-weight: 600; line-height: 1.25; color: #1C1B19; outline: 1.5px dashed #1F5C63; outline-offset: 4px"><span style="position: absolute; left: -40px; top: 2px; width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; border-radius: 11px; background: #1F5C63; color: #FFFFFF; font-family: 'Source Sans 3', system-ui, sans-serif; font-size: 12px; font-weight: 600">1</span>2. Repairs backlog</h2>
+        <p style="position: relative; margin: 0; outline: 1.5px dashed #1F5C63; outline-offset: 4px"><span style="position: absolute; left: -40px; top: 2px; width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; border-radius: 11px; background: #1F5C63; color: #FFFFFF; font-family: 'Source Sans 3', system-ui, sans-serif; font-size: 12px; font-weight: 600">2</span>Open repair jobs stood at 1,248 at the end of September across the four regions. Most of the work closed this quarter was routine plumbing and joinery, which the additional contractor teams appointed in July were able to schedule within the target window.</p>
+        <p style="position: relative; margin: 0; outline: 1.5px dashed #1F5C63; outline-offset: 4px"><span style="position: absolute; left: -40px; top: 2px; width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; border-radius: 11px; background: #1F5C63; color: #FFFFFF; font-family: 'Source Sans 3', system-ui, sans-serif; font-size: 12px; font-weight: 600">3</span>The backlog fell by 18% over the quarter, but the oldest 10% of jobs are now older than 90 days. These are mainly damp and mould cases that need a surveyor’s visit before work can be scheduled, and they sit in the older parts of our stock.</p>
+        <p style="position: relative; margin: 0; outline: 1.5px dashed #1F5C63; outline-offset: 4px"><span style="position: absolute; left: -40px; top: 2px; width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; border-radius: 11px; background: #1F5C63; color: #FFFFFF; font-family: 'Source Sans 3', system-ui, sans-serif; font-size: 12px; font-weight: 600">4</span>The board is asked to note the position and to consider the proposal in section 4, which would reserve surveyor time each week for the longest-waiting cases.</p>
+        <figure style="position: relative; margin: 8px 0 0; display: flex; flex-direction: column; gap: 10px; font-family: 'Source Sans 3', system-ui, sans-serif; outline: 2px solid #1F5C63; outline-offset: 6px">
+          <span style="position: absolute; left: -40px; top: -2px; width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; border-radius: 11px; background: #1F5C63; color: #FFFFFF; font-size: 12px; font-weight: 600">5</span>
+          <figcaption style="font-size: 12.5px; font-weight: 600; color: #1C1B19">Open repairs by region, end of September</figcaption>
+          <div style="display: grid; grid-template-columns: 56px minmax(0, 1fr) 40px; align-items: center; gap: 8px 12px; font-size: 12.5px; color: #3A3733; font-variant-numeric: tabular-nums">
+            <span>North</span><span style="height: 14px; width: 100%; background: #4E5A63"></span><span style="text-align: right">412</span>
+            <span>East</span><span style="height: 14px; width: 69.9%; background: #4E5A63"></span><span style="text-align: right">288</span>
+            <span>South</span><span style="height: 14px; width: 85.2%; background: #4E5A63"></span><span style="text-align: right">351</span>
+            <span>West</span><span style="height: 14px; width: 47.8%; background: #4E5A63"></span><span style="text-align: right">197</span>
+          </div>
+        </figure>
+        <div style="position: relative; margin-top: auto; padding-top: 12px; border-top: 1px solid #E6E3DE; display: flex; justify-content: center; font-family: 'Source Sans 3', system-ui, sans-serif; font-size: 11px; color: #6E6A64; outline: 1px dashed #8A8174; outline-offset: 4px">Page 3 of 24</div>
+      </article>
+    </main>
+
+    <aside aria-label="Inspector" style="flex: 0 0 288px; box-sizing: border-box; border-left: 1px solid #E4DED3; background: #FBF9F5; display: flex; flex-direction: column; gap: 22px; padding: 20px 20px 24px; overflow: auto">
+      <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 8px">
+        <div style="display: flex; flex-direction: column; gap: 2px">
+          <h2 style="margin: 0; font-family: 'Newsreader', Georgia, serif; font-size: 20px; font-weight: 500; line-height: 1.2">Figure</h2>
+          <span style="font-size: 12px; color: #6B645A">Page 3 · 5th in reading order</span>
+        </div>
+        <button aria-label="Close inspector" style="width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 4px; color: #4A453E"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg></button>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 8px">
+        <label for="tt" style="font-size: 12px; font-weight: 600; color: #4A453E">Tag</label>
+        <div style="position: relative; display: flex; align-items: center">
+          <select id="tt" style="appearance: none; width: 100%; height: 32px; padding: 0 30px 0 10px; border: 1px solid #8A8174; border-radius: 4px; background: #FFFFFF"><option>Figure</option><option>Table</option><option>Paragraph</option><option>Artifact (decorative)</option></select>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#4A453E" stroke-width="1.5" aria-hidden="true" style="position: absolute; right: 8px; pointer-events: none"><path d="M7 10l5 5 5-5"></path></svg>
+        </div>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 8px">
+        <label for="alt" style="font-size: 12px; font-weight: 600; color: #4A453E">Alt text</label>
+        <textarea id="alt" rows="4" style="resize: vertical; box-sizing: border-box; width: 100%; padding: 8px 10px; border: 1px solid #8A8174; border-radius: 4px; background: #FFFFFF; font-size: 14px; line-height: 1.45">Bar chart of open repairs by region at the end of September: North 412, South 351, East 288, West 197.</textarea>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 8px">
+        <label for="lng" style="font-size: 12px; font-weight: 600; color: #4A453E">Language</label>
+        <div style="position: relative; display: flex; align-items: center">
+          <select id="lng" style="appearance: none; width: 100%; height: 32px; padding: 0 30px 0 10px; border: 1px solid #8A8174; border-radius: 4px; background: #FFFFFF"><option>Same as document (English, UK)</option><option>Welsh</option></select>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#4A453E" stroke-width="1.5" aria-hidden="true" style="position: absolute; right: 8px; pointer-events: none"><path d="M7 10l5 5 5-5"></path></svg>
+        </div>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 8px">
+        <span style="font-size: 12px; font-weight: 600; color: #4A453E">Reading order</span>
+        <div style="display: flex; gap: 8px">
+          <button style="height: 30px; display: flex; align-items: center; gap: 6px; padding: 0 12px; border: 1px solid #8A8174; background: #FFFFFF; border-radius: 4px; font-size: 13px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M12 18.5V5.5M7 10.5l5-5 5 5"></path></svg>Move earlier</button>
+          <button aria-disabled="true" style="height: 30px; display: flex; align-items: center; gap: 6px; padding: 0 12px; border: 1px solid #E4DED3; background: transparent; color: #A39C91; border-radius: 4px; font-size: 13px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M12 5.5v13M7 13.5l5 5 5-5"></path></svg>Move later</button>
+        </div>
+        <span style="font-size: 12px; color: #6B645A">Or drag the row in the tag tree, or press ⌥↑ / ⌥↓.</span>
+      </div>
+      <div style="display: flex; gap: 8px; margin-top: auto">
+        <button style="height: 30px; padding: 0 12px; border: 0; background: transparent; border-radius: 4px; font-size: 13px; color: #9B2335">Remove tag, keep content</button>
+      </div>
+    </aside>
+  </div>
+
+  <footer style="min-height: 28px; flex: 0 0 auto; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px 16px; padding: 0 16px; border-top: 1px solid #E4DED3; font-size: 12px; color: #6B645A">
+    <button style="min-height: 24px; display: flex; align-items: center; gap: 7px; border: 0; background: transparent; padding: 0 4px; font-size: 12px; color: #6B645A"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#1F5C63" stroke-width="1.5" aria-hidden="true"><path d="M12 3.5l7 2.5v5.5c0 4.3-3 7.6-7 9-4-1.4-7-4.7-7-9V6z"></path><path d="M9 12l2.2 2.2L15.5 10"></path></svg><span style="color: #1F1D1A; font-variant-numeric: tabular-nums">0 network requests for this document</span><span>· Offline-safe: nothing uploaded</span></button>
+    <span style="display: flex; align-items: center; gap: 7px; font-size: 12px; color: #6B645A">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M4 19c2-1 3-4 5-4s1 3 3 3 2-2 4-2"></path><path d="M14 4.5l5 5-7 7h-2v-2z"></path></svg>
+      <span><span style="color: #1F1D1A">Signed file.</span> Saving adds your changes after the signature; the signature stays valid.</span>
+    </span>
+    <span style="font-variant-numeric: tabular-nums">Page 3 · Repairs backlog</span>
+  </footer>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

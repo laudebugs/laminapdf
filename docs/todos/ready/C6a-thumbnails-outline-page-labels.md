@@ -21,6 +21,7 @@ Give readers the two classic ways to move through a long document: a virtualised
 
 ## Context
 
+- **Design (Paper):** [R06 Rail tabs](../../design/paper/reader-a.md#r06-rail-tabs). Build to match these screens; record any deviation in the area document ([Paper design plan §5](../../plans/paper-design.md#5-how-the-designs-are-used)).
 - [UI/UX plan §5.1](../../plans/ui-ux.md#51-desktop-and-web-layout-r1-r2) — thumbnails and outline are tabs in [U1c](./U1c-inverted-l-shell-and-modes.md)'s left rail (and in U3a's bottom sheets on phones), not a sidebar of their own; this todo fills those slots.
 - [04 §1 navigation](../../research/pdf/04-interactive-security.md#1-navigation) — outlines (§12.3.3), destinations (§12.3.2), page labels (§12.4.2) as a number tree in `/PageLabels`.
 - [rendering notes §4](../../research/architecture/notes/rendering.md) — thumbnails at low DPI in a separate lower-priority queue.

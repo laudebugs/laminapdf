@@ -20,6 +20,7 @@ Non-mergeable changes (content edits, page structure if decided, applied redacti
 
 ## Context
 
+- **Design (Paper):** [H06 Shared review](../../design/paper/account-cloud-product.md#h06-shared-review). Build to match these screens; record any deviation in the area document ([Paper design plan §5](../../plans/paper-design.md#5-how-the-designs-are-used)).
 - ADR 0012
 - [editing notes §3](../../research/architecture/notes/editing-architecture.md#3-collaboration-annotation-layer-sync-crdt-vs-server-authoritative-conflict-semantics)
 - What runs under a lease or as a job: content-edit ops from [E7d](E7d-select-transform-existing.md), the `Sign` op from [E10d](E10d-pades-signing-core.md), `ApplyRedactions` from [E12d](E12d-scrub-and-rewrite.md); server jobs reuse the `apps/jobs` Workflow/Container pipeline from [E13e](E13e-server-jobs-infrastructure.md)

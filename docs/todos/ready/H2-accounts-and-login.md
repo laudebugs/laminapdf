@@ -21,6 +21,7 @@ Ship opt-in accounts: sign-up/sign-in/sign-out with the H1 stack on the `apps/we
 
 ## Context
 
+- **Design (Paper):** [H01 Sign in / create account](../../design/paper/account-cloud-product.md#h01-sign-in--create-account), [H02 Account and plan](../../design/paper/account-cloud-product.md#h02-account-and-plan). Build to match these screens; record any deviation in the area document ([Paper design plan §5](../../plans/paper-design.md#5-how-the-designs-are-used)).
 - [architecture §8 Q2](../../plans/architecture.md#8-open-questions-for-the-team)
 - [full-editor: optional Cloudflare server features](../../plans/full-editor.md#optional-cloudflare-server-features)
 - ADR 0011 (topology, privacy, retention) and the H1 result

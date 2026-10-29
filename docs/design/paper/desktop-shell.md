@@ -1,0 +1,381 @@
+# Paper: Desktop shell
+
+Screens S01–S10 of the [screen inventory](screens.md): what the Tauri desktop app adds around the shared reader — the start window, document tabs and session restore, native menus on macOS and Windows/Linux, a file that changes on disk, printing, updates, the settings window, recovery after a crash, the download page on the web, and the Windows window frame. Everything follows the [Paper design language](design-language.md); new parts are listed under [New components](#new-components).
+
+- **Canvas:** [lamina Paper — Desktop shell](https://claude.ai/artifact/RMvUvGA8RAG3AHmdCZYnfw) (private until the owner shares it).
+- **Plan:** [desktop app](../../plans/desktop-app.md), rounds [D3](../../plans/desktop-app.md#d3-files), [D4](../../plans/desktop-app.md#d4-windows-tabs-menus-and-printing), [D5](../../plans/desktop-app.md#d5-update-service) and [D7](../../plans/desktop-app.md#d7-crash-reporting-and-beta); layout rules from the [UI/UX plan](../../plans/ui-ux.md) §4–§5.
+- **Sample files:** `Q3-board-report.pdf` (the shared sample, 24 pages) plus fictional neighbours in the recent list and tabs: `Damp-survey-North.pdf`, `Tenancy-agreement-template.pdf`, `Contractor-framework-2026.pdf`, `Surveyor-rota-October.pdf`, `Rent-arrears-policy.pdf`, `Asset-register-Q3.pdf`, `Q2-board-report.pdf` (missing) and `Annual-accounts-2025.pdf` (missing). Versions: installed `0.1.2` on the Beta channel, update `0.2.0`.
+
+Conventions on this canvas:
+
+- **Frames.** macOS boards draw the window frame from design language §6.1 (title bar 30 px, three 12 px controls, radius 10). The Windows boards (S03 right, S10) draw a 32 px title bar with the File glyph (§5), the title left-aligned and three 46×32 caption buttons (minimise, maximise, close) drawn as plain 1 px strokes, radius 8. The Linux board (S07 Advanced) draws a 36 px title bar with a centred title and one round close button, radius 8 like Windows (§4 keeps 10 for the macOS window only). These are schematic, not copies of any OS’s assets.
+- **Top bar.** Every document window uses the design language's **Reader v0.1** top bar ([§7.1](design-language.md#71-top-bar)): Sidebar · file name · History (Back, Forward) · page n/N · zoom −/%/+ · Find · View · Reader · Commands · More, with no mode switcher and no save state, because the desktop beta ships the reader only ([desktop plan §2](../../plans/desktop-app.md)). The one exception is `S04-file-changed`, which shows a later editor build and uses the **Editor** variant. The start window and the crash dialog use the **No document** variant.
+- **Window title** is `<file name> — lamina` ([D4a](../../todos/ready/D4a-windows-tabs-and-session-restore.md)); with no document, `lamina`.
+- **Native menus and the system print dialog are drawn by the OS.** The boards draw them schematically in Paper tokens to show structure, labels, shortcuts and states; real colours, fonts and spacing come from the system.
+- **Command ids** use the registry’s `namespace.verb-object` form ([U1b](../../todos/ready/U1b-command-registry-and-palette.md), design language [Appendix: Command ids](design-language.md#appendix-command-ids)). Every command is in the palette and, per [D4b](../../todos/ready/D4b-native-menus.md), in a native menu; only those shown with a shortcut have one.
+- **Shortcuts.** macOS glyphs run together (`⇧⌘N`), Windows/Linux use words (`Ctrl Shift N`). The desktop app owns some keys the web app must avoid (design language [§8.8](design-language.md#88-keyboard-and-shortcuts) restricts `Mod W/T/N/Q` in the web app only): `⌘W`/`Ctrl W` close a tab, `⌘Q`/`Ctrl Q` quit, and `Ctrl Tab`/`Ctrl Shift Tab` move between tabs on Windows and Linux (`Mod Tab` is on the §8.8 collision list for the web), as D4b specifies, because no browser sits around the desktop window. The desktop app also binds `F1` to Keyboard shortcuts (`help.shortcuts`) next to the page-scope `?`. lamina never binds `⌘N`/`⌘T` (New window is `⇧⌘N`; there is no empty tab to create) or `Mod G`.
+
+## S01 Start window
+
+**Purpose.** What a window shows when no document is open: open a file, drop one, or go back to a recent file at the page you left.
+
+**Entry points.** Launching lamina with “Reopen last session” off or nothing to restore; closing the last tab on Windows/Linux keeps the window only if it was the last window (otherwise the window closes); on macOS, clicking the Dock icon with no windows (`RunEvent::Reopen`) or File › New window (`window.new`, `⇧⌘N` / `Ctrl Shift N`).
+
+**Layout.** Window frame; a slim top bar with “No document open” in place of the file name, Commands (`⌘K`) and More — no mode switcher, page or zoom (nothing to act on). No rail, no inspector. The canvas region uses `ground`, not `gutter` (there are no pages). Status bar: network indicator and the version and channel (“lamina 0.1.2 · Beta”).
+
+**Content and controls.**
+
+| Control | Does | Command id |
+| --- | --- | --- |
+| “Open a PDF” (Display 40) and one sentence | Says the two ways in | — |
+| Open file… (primary) + “or press ⌘O” hint | Opens the system file dialog (multiple selection); each file opens in a tab | `file.open` (`⌘O` / `Ctrl O`) |
+| Drop hint (dashed `control-border` box) | Decorative hint; the whole window is the drop target | — |
+| Recent files grid | One card per entry (max 20): thumbnail of the last page viewed, file name (Newsreader 15, ellipsis), folder name (not the full path), “Page 3 of 24 · Today, 09:40”. Clicking opens the file at that page and zoom | `file.open-recent` |
+| Missing entry | Dashed placeholder with the warning glyph, name in `muted`, “File not found”, **Remove** | `file.remove-recent` |
+| Clear list | Empties lamina’s list and lamina’s entries in the OS recent list (Jump List on Windows) | `file.clear-recent` |
+| Privacy line | “Recent files are kept on this computer only. Turn them off in Settings › General.” | `app.settings` |
+
+**States.**
+
+- **Recent files** (S01-start): six entries, one missing.
+- **First run** (S01-start-empty): empty state “No recent files yet / Files you open appear here, with the page you were reading.” and a quiet notice “lamina is not your default PDF app.” with **Not now** and **Open system settings…** (plan open question 5: lamina never makes itself the default silently). “Not now” hides the notice for good; Settings › General keeps the button.
+- **Remember recent files off:** the Recent section is replaced by one line: “lamina is not keeping recent files. Turn this on in Settings › General.”
+- **Dragging files over the window** (not drawn): a full-window overlay on `scrim` with a centred `surface` card, the drop icon and “Drop to open 2 PDFs”; non-PDF files say “Only PDF files open in lamina” and dropping them shows a toast with the file name only ([D3a](../../todos/ready/D3a-open-from-os.md)). The same overlay appears over a document window (drop opens new tabs).
+- **Unreadable file** from the list or a drop: toast “Couldn’t open Annual-accounts-2025.pdf. It may have been moved.” plus the missing state on its card.
+
+**Behaviour.** Opening routes through `route_open` like every OS open: a file already open focuses its tab instead (unless duplicates are allowed). Double-clicking a PDF in Finder/Explorer/Files while lamina runs opens it in the front window as a new tab; the start window becomes that tab. Nothing in this window changes a file.
+
+**Accessibility.** Focus order: top bar → Open file… → recent cards (each card is its own tab stop, in reading order; the list is a plain `<ul role="list">`, not a grid) → Remove buttons → Clear list → privacy link → status bar. Cards are buttons named by their text (“Q3-board-report.pdf, Board papers, Page 3 of 24, Today 09:40”); Remove has `aria-label="Remove Annual-accounts-2025.pdf from recent files"`. Drag and drop always has the Open file… alternative. Each card’s context menu (Shift+F10 or right-click): Open, Show in Finder / Show in folder, Remove from list.
+
+**Platform differences.** macOS: the app keeps running with no windows; the Dock menu and File › Open recent list the same files. Windows: the Jump List mirrors the list; closing the start window quits when it is the last window. Linux: the list is also written to `recently-used.xbel`. Web: the equivalent is R01 (home), which keeps recent files in OPFS and shares the card component, not the storage.
+
+**Artboards:** `S01-start.dc.html`, `S01-start-empty.dc.html`.
+
+**Todos:** [D3a](../../todos/ready/D3a-open-from-os.md), [D3b](../../todos/ready/D3b-recent-files-and-file-watching.md).
+
+## S02 Window with document tabs and session restore
+
+**Purpose.** Many documents per window: a tab strip under the title bar, an overflow menu when tabs don’t fit, and a notice after the last session comes back.
+
+**Entry points.** Opening a second file in a window (the strip appears from two tabs; with one tab it is hidden and the title bar carries the name); relaunching with “Reopen last session” on.
+
+**Layout.** Window frame → **tab strip** (34 px, on the title-bar colour) → top bar → restore notice (only after a restore) → rail · canvas · inspector → status bar. The active tab joins the top bar visually (it takes `ground` and drops its bottom rule).
+
+**Content and controls.**
+
+| Control | Does | Command id |
+| --- | --- | --- |
+| Tab | Activates the document. Label 13 px, ellipsis; active tab `text` 600, others `muted`, hovered tab `hover` fill | `tab.activate` |
+| Close (24×24, 14 px cross) | Shown on the active and hovered tab and on keyboard focus; closes the tab (asks first if there are unsaved changes, O03) | `tab.close` (`⌘W` / `Ctrl W`) |
+| “+3” overflow button | Appears when tabs don’t fit at 120 px; opens a menu of all tabs in this window with each tab’s page, the active one checked, missing files flagged “Not found”, and Move tab to new window | `tab.list` |
+| + (Open a file in a new tab) | File dialog; files open as tabs here | `file.open` |
+| Drag a tab | Reorders; dropping outside the window detaches it into a new window at the drop point; dropping on another window’s strip moves it there, keeping page and zoom | `tab.move-to-new-window`, `tab.move-to-window` |
+| Restore notice | `role="status"` strip on `surface`: “Restored your last session. 8 tabs, each at the page you were reading. 1 file was not found.” · **Show missing file** (activates it) · Dismiss | `session.show-missing` |
+| Next / previous tab | Keyboard and Window menu | `tab.next` (`⌃Tab`, `⇧⌘]` / `Ctrl Tab`), `tab.previous` (`⌃⇧Tab`, `⇧⌘[` / `Ctrl Shift Tab`) |
+
+**States.**
+
+- **Tabs + overflow menu open** (S02-tabs): five tabs visible, menu listing all eight.
+- **Restored tab whose file is missing** (S02-tab-missing): the tab shows the warning glyph; the canvas holds an empty state “Q2-board-report.pdf was not found / It was in ~/Documents/Board papers when you last had it open. It may have been moved, renamed or deleted. / When you locate it, lamina opens it at page 9, where you left it.” with **Close tab** and **Locate…** (primary). Rail toggle disabled, no mode switcher, page or zoom. On macOS a renamed file is usually found through its bookmark and never shows this state.
+- **Encrypted document moved to another window:** no state change — it stays unlocked ([D4a](../../todos/ready/D4a-windows-tabs-and-session-restore.md)).
+- **Remember recent files off:** no session is stored; relaunch shows S01.
+
+**Behaviour.** Session state is saved on quit and every 30 s. Restore reopens windows with their geometry, tabs in order, and each tab’s page, scroll offset and zoom. The notice disappears on Dismiss or after the first navigation; it never blocks reading. Locate… opens a file dialog filtered to PDFs; picking a file with a different size and date asks “This file looks different from the one you had open. Open it anyway?”.
+
+**Accessibility.** The strip is `role="tablist"` with roving tabindex: one Tab stop, arrow keys move, Home/End jump, Delete closes the focused tab. Close buttons are named “Close <file name>”. The overflow button is `aria-haspopup="menu"` with `aria-label="All tabs, 8 open"`; its menu is the design language's menu ([§7.26](design-language.md#726-menu-proposed)): 32 px `menuitemradio` items, the active item in the palette's active-row style (`accent-tint` with an inset `accent` ring). Dragging has menu alternatives (Move tab to new window, Move tab to window ›). The restore notice is announced once (`role="status"`).
+
+**Platform differences.** macOS: closing the last tab closes the window but the app stays running; the Window menu lists windows and tabs. Windows/Linux: closing the last tab of the last window shows S01 (closing the window then quits). Wayland may place detached windows where the compositor chooses. Web: no tabs (one document per browser tab).
+
+**Artboards:** `S02-tabs.dc.html`, `S02-tab-missing.dc.html`.
+
+**Todos:** [D4a](../../todos/ready/D4a-windows-tabs-and-session-restore.md).
+
+## S03 Native menus
+
+**Purpose.** Every command has a visible home in a native menu, generated from the command registry so menus, palette and shortcut help never disagree (UI/UX principles 3 and 4).
+
+**Entry points.** The macOS menu bar; on Windows/Linux the native in-window menu bar that D4b builds with `window.set_menu` (the OS handles Alt and F10; Alt + the underlined letter opens a menu).
+
+**Layout.** macOS (S03-menus-macos): system menu bar above the window with **lamina · File · Edit · View · Go · Tools · Window · Help**; File open with **Open recent ›** expanded. Windows/Linux (S03-menus-windows): a 28 px menu bar between the title bar and the top bar, access keys underlined; **View** open with **Page layout ›** expanded.
+
+**Content.** Labels follow the design language’s sentence case (the registry’s titles), not the Title Case of the macOS HIG; see open points.
+
+| Menu | Items (shortcut macOS / Windows-Linux) |
+| --- | --- |
+| lamina (macOS only) | About lamina · Check for updates… · Settings… (`⌘,`) · Services · Hide lamina (`⌘H`) · Hide others · Show all · Quit lamina (`⌘Q`) |
+| File | Open… (`⌘O` / `Ctrl O`) · Open recent › (files, Clear menu) · New window (`⇧⌘N` / `Ctrl Shift N`) · Close tab (`⌘W` / `Ctrl W`) · Close window (`⇧⌘W` / `Ctrl Shift W`) · Save a copy… (`file.save-copy`, no shortcut) · Save (`⌘S` / `Ctrl S`; edit sessions only, so always disabled in the reader) · Document properties… (`file.properties`) · Print… (`⌘P` / `Ctrl P`) · Quit (`Ctrl Q`, Windows/Linux only) |
+| Edit | Undo (`⌘Z` / `Ctrl Z`) · Redo (`⇧⌘Z` / `Ctrl Y`) (edit sessions only, named with the step: “Undo rotate page 16”; disabled in the reader) · Copy · Select all (predefined) · Find… (`⌘F` / `Ctrl F`) · Find next · Find previous (no shortcut: `Mod G` is avoided; Enter and Shift+Enter work in the find bar) · Settings… (`Ctrl ,`, Windows/Linux only) |
+| View | Zoom in (`⌘+` / `Ctrl +`) · Zoom out (`⌘−` / `Ctrl −`) · Actual size (`⌘0` / `Ctrl 0`) · Fit width · Fit page · Sidebar (check) · Focus mode (`⌘\` / `Ctrl \`, check) · Page layout › (Single page, Continuous, Two pages) · Page appearance › · Theme › · Full screen (macOS predefined `⌃⌘F`; no shortcut on Windows/Linux) |
+| Go | Next page · Previous page · First page · Last page · Go to page… · Back (`⌘[` / `Alt ←`) · Forward (`⌘]` / `Alt →`) |
+| Tools | Commands… (`⌘K` / `Ctrl K`) · Find in document · Network activity · Reader mode |
+| Window | Minimise (`⌘M`, macOS predefined) · Zoom (macOS) · Next tab · Previous tab · Move tab to new window · Move tab to window › · list of windows |
+| Help | lamina help · Keyboard shortcuts (`F1`) · What lamina can do (`help.capabilities`) · Report an issue · View licences · Check for updates… and About lamina (Windows/Linux only) |
+
+**States.** Items without a document are disabled (Print, Close tab, Save a copy, zoom, Go). In the reader `⌘S` / `Ctrl S` does nothing: Save stays disabled and the key never falls back to Save a copy (design language decision 18: one action, one id; `Mod S` is Save only). Zoom in/out disable at the zoom limits. Check items reflect the focused window (Sidebar, Focus mode, page layout). Open recent rebuilds when the recent list changes and is empty (“No recent files”, disabled) when the setting is off.
+
+**Behaviour.** Choosing an item emits the command id to the focused window, which runs it through the same registry as the keyboard and palette. When a menu accelerator exists, the web view does not also handle that key (no double zoom steps on Windows/Linux). Command ids: `file.open`, `file.open-recent`, `file.clear-recent`, `window.new`, `tab.close`, `window.close`, `file.save-copy`, `file.save`, `file.properties`, `file.print`, `edit.undo`, `edit.redo`, `app.quit`, `app.settings`, `app.check-for-updates`, `app.about`, `edit.copy`, `edit.select-all`, `find.open`, `find.next`, `find.previous`, `view.zoom-in`, `view.zoom-out`, `view.actual-size`, `view.fit-width`, `view.fit-page`, `view.toggle-sidebar`, `view.focus-mode`, `view.page-layout`, `view.page-appearance`, `view.theme`, `view.full-screen`, `nav.next-page`, `nav.previous-page`, `nav.first-page`, `nav.last-page`, `nav.go-to-page`, `nav.back`, `nav.forward`, `palette.open`, `privacy.network-activity`, `view.reader-mode`, `tab.next`, `tab.previous`, `tab.move-to-new-window`, `tab.move-to-window`, `help.open`, `help.shortcuts`, `help.capabilities`, `help.report-issue`, `help.licences`.
+
+**Accessibility.** Native menus are accessible through the OS. The schematic drawing uses `role="menubar"`, `menu`, `menuitem`, `menuitemcheckbox`, `menuitemradio` and `aria-keyshortcuts` only as mockup markup; the highlighted item (accent fill, white text) sketches the OS's own highlight and is not the lamina menu style (lamina-drawn menus use §7.26, as in S02). Windows/Linux access keys are unique per menu. The macOS menu-bar items are drawn 24 px high; the real bar is the OS's.
+
+**Platform differences.** macOS: one app-wide menu bar; app menu holds About, Settings, Quit; Check for updates sits in the app menu. Windows: menu bar per window; Settings at the end of Edit; About and Check for updates in Help. Linux: the GTK menu bar is visible by default in each window (same placement as Windows). Web: the More menu and the palette carry the same commands; browser-reserved keys are not used.
+
+**Artboards:** `S03-menus-macos.dc.html`, `S03-menus-windows.dc.html`.
+
+**Todos:** [D4b](../../todos/ready/D4b-native-menus.md).
+
+## S04 File changed on disk
+
+**Purpose.** Keep the window in step with the file when another app saves, replaces, moves or deletes it, and never lose the user’s unsaved work silently.
+
+**Scope by release.** Desktop v0.1 is the reader ([UI/UX plan §5.1](../../plans/ui-ux.md) ships Read only), so only the silent reload with a toast, the moved-or-deleted strip, the unreadable-retrying notice and the setting-off banner apply there. The conflict with unsaved changes (`S04-file-changed`, drawn in a Comment session with the Editor top bar) arrives with the editor: D3b leaves editor conflicts out of scope, and [E1e](../../todos/ready/E1e-save-and-constraint-banner.md) owns the external-change conflict.
+
+**Entry points.** The file watcher (no user action). The setting “Reload when the file changes on disk” (Settings › General, on by default).
+
+**Layout.** A strip under the top bar (and secondary toolbar, if any), like the signed-file banner in design language [§7.13](design-language.md#713-save-note-and-save-banner-signed-file): `warning-tint`, `hairline` bottom, warning glyph, lead sentence in `warning` 600, actions at the right. The page stays readable below.
+
+**Content and controls.**
+
+| Case | What shows | Controls and commands |
+| --- | --- | --- |
+| Changed, **no** unsaved changes (reader default) | Silent reload keeping page and zoom, then a toast “Reloaded: Q3-board-report.pdf changed on disk” (`role="status"`, 4 s). If the page count shrank below the current page, the last page shows | — (`file.reload-from-disk` runs automatically) |
+| Changed **with** unsaved changes (S04-file-changed) | “**Q3-board-report.pdf changed on disk.** Another app saved a new version at 10:12 while you had 1 unsaved change here.” Second line: “Reload shows the new version and discards your change. Keep mine leaves your view as it is; the next Save asks whether to save as a new file, reload or overwrite.” | **Compare** (`file.compare-with-disk`) · **Keep mine** (`file.keep-mine`) · **Reload from disk** (`file.reload-from-disk`) |
+| Moved or deleted (S04-file-missing) | “**File was moved or deleted.** lamina is still showing the version it opened. Locate the file to keep it linked, or close the tab.” | **Close tab** (`tab.close`) · **Locate…** (`file.locate`) |
+| Changed but unreadable (a build still writing) | Notice “File changed but could not be read; retrying.” in the same strip, no buttons; it clears on the next good reload | — |
+
+**States.** Conflict with unsaved changes (drawn, S04-file-changed) · moved or deleted (drawn, S04-file-missing) · silent reload with toast · unreadable, retrying · setting off (banner with **Reload** · **Ignore** for every change) — each described in the table above and under Behaviour.
+
+**Behaviour.**
+
+- **Compare** opens the on-disk version in a new read-only tab beside the current one (“Q3-board-report.pdf — on disk”), so the user can read both; the banner stays until Keep mine or Reload. A visual diff is out of scope here.
+- **Keep mine** dismisses the banner; the top bar keeps “1 unsaved change”. The next Save opens O02’s “This file changed on disk” dialog (Save as… · Reload · Overwrite). Overwrite writes the bytes kept at open plus the session as an incremental revision to a temporary file and renames it over the changed file (design language [§8.4](design-language.md#84-explicit-save)); signatures in the opened file stay valid.
+- **Reload from disk** discards the op log for this document after a confirm only if there are more than 20 changes; undo history starts fresh.
+- Moved/deleted: lamina keeps serving the open handle, so reading continues; Locate… relinks to the chosen path; nothing is written.
+- With the setting off, the banner appears for every change (even without unsaved changes) with **Reload** and **Ignore**.
+
+**Accessibility.** The conflict strip is `role="alert"` (it asks for a decision); focus is not moved into it, but F6 reaches it first after the top bar (and the Comment toolbar, when one is open). Buttons have plain labels; the second line is the description of the group.
+
+**Platform differences.** Same on every OS; the watcher handles atomic saves (rename over the file) as a change, not a delete. Web: files opened from disk can’t be watched; no S04 states.
+
+**Artboards:** `S04-file-changed.dc.html` (Editor top bar and the full Comment toolbar of §8.1, with its Colour swatches), `S04-file-missing.dc.html` (Reader v0.1 top bar).
+
+**Todos:** [D3b](../../todos/ready/D3b-recent-files-and-file-watching.md) (reload, missing, retrying); [E1e](../../todos/ready/E1e-save-and-constraint-banner.md) (the conflict with unsaved changes: Compare, Keep mine, Reload from disk).
+
+## S05 Print
+
+**Purpose.** Print faithfully through the system print dialog, with lamina only reporting progress and offering a fallback.
+
+**Entry points.** File › Print… (`file.print`, `⌘P` / `Ctrl P`), the palette, More › Print. Disabled with no document.
+
+**Layout.** S05-print: the system dialog (drawn schematically as a sheet under the macOS title bar over `scrim`): page preview with its own pager on the left; Printer, Copies, Two-sided, Pages (All 24 pages · Current page (3) · Pages [5–12], “8 pages”), Scale (Fit to paper · Actual size), and the line “Orientation follows each page. Prints the page as it looks in Original appearance, with comments.”; Cancel · Print. S05-print-progress: back in the window (Reader v0.1 top bar), the status bar’s middle shows the printer glyph, “Printing pages 5–12 · 3 of 8 sent”, a 140 px determinate bar and **Cancel printing**.
+
+**Content and controls.** `file.print` opens the system dialog with the current page and page count; `print.cancel` (**Cancel printing**, ghost text button in the status-bar item); `print.compatibility` (the toast action “Try compatibility printing” after a native failure); Settings › Advanced › Printing (`print.mode`: System printing / Compatibility printing, drawn in S07-settings-advanced). Both paths print raster pages rendered by the engine ([D4c](../../todos/ready/D4c-native-printing.md)); they differ only in who hands the pages to the printer: System printing uses the OS print dialog and renders each page at the printer's resolution, Compatibility printing goes through the built-in web view's print. The dialog’s own controls (printer, copies, pages, scale) belong to the OS; lamina only pre-fills them.
+
+**States.**
+
+- **System dialog open** (OS-owned; lamina passes the current page and the document’s page count).
+- **Spooling** (drawn): non-modal; reading and scrolling continue.
+- **Cancelled:** the item disappears; toast “Printing cancelled”.
+- **Done:** the item disappears; toast “Sent 8 pages to Office printer, first floor”.
+- **Native path failed:** notice in the status-bar slot replaced by a toast with action: “Couldn’t print with the system printer path. Try compatibility printing” → runs the web-view print path once; Settings › Advanced can make it the default.
+- **Page appearance not Original or Dark theme:** prints in Original; the dialog line says so (no separate warning, unlike the web R09 where the browser dialog can’t carry it).
+
+**Behaviour.** Pages render in the sandboxed engine at the printer’s resolution, one at a time; Cancel stops rendering within a second. No headers, footers or margins are added. Printing never changes the file.
+
+**Accessibility.** The progress bar is `role="progressbar"` labelled by its text; Cancel printing is a real button reachable with F6 → status bar. Completion is announced by the toast.
+
+**Platform differences.** The dialog differs per OS (macOS sheet, Windows print dialog, GTK print dialog on Linux) and offers what the printer supports (duplex, collation). Web: R09 uses the browser’s print with a lamina pre-print panel.
+
+**Artboards:** `S05-print.dc.html`, `S05-print-progress.dc.html`.
+
+**Todos:** [D4c](../../todos/ready/D4c-native-printing.md).
+
+## S06 Updates
+
+**Purpose.** Keep lamina up to date without interrupting reading, and let the user (or an administrator) control channel and checks.
+
+**Entry points.** Automatic (10 s after start, then daily); lamina › Check for updates… (macOS) or Help › Check for updates… (Windows/Linux) (`app.check-for-updates`); Settings › Updates.
+
+**Layout.**
+
+- **Document windows** (S06-update-ready): one status-bar item in the middle slot (where §6.1 puts notices and progress), “Update ready”, `accent` 600 on `accent-tint`, with the download glyph. It appears only once the update is downloaded and verified. Clicking opens a small non-modal popover above it: “lamina 0.2.0 is ready” (Title), “Beta channel · you have 0.1.2”, “It installs the next time you quit. Restart now to install it; your windows and tabs come back where you left them.”, **What’s new in 0.2.0** link, **Later** · **Restart to update**.
+- **Settings › Updates** (S06-update-settings): status card (“Downloading lamina 0.2.0”, 62% bar, “You have 0.1.2. The new version installs when you quit, or when you choose Restart to update.”), Automatic updates switch, Channel as a segmented radio group (**Beta** · **Stable (not released yet)**, the second disabled with its reason in the label), Last checked + **Check now** (`aria-disabled` while downloading), a nightly note with a link, and **What each check sends** with **Reset anonymous ID** (D5b puts it here; it is not part of usage counts).
+
+**Content and controls.** `app.restart-to-update`, `app.update-later` (closes the popover; the item stays), `app.check-for-updates`, `settings.update-enabled`, `settings.update-channel`, `help.whats-new`, Reset anonymous ID (D5b's `update_reset_install_id`; toast “New anonymous ID created”).
+
+**States.**
+
+| State | Settings card | Status bar |
+| --- | --- | --- |
+| Up to date | “lamina 0.1.2 is up to date” · Check now | nothing |
+| Checking | “Checking for updates…” indeterminate bar; Check now disabled | nothing |
+| Downloading (drawn) | determinate bar and % | nothing |
+| Ready | “lamina 0.2.0 is ready” · **Restart to update** (primary) | “Update ready” |
+| Error (only after Check now) | `danger-tint` notice “Couldn’t reach the update server. lamina will try again tomorrow.” | nothing (automatic failures are silent) |
+| Updates off | card says “Automatic updates are off”; Check now still works | nothing |
+| Managed by organisation | controls disabled; badge “Managed by your organisation” and the pinned channel | as policy allows |
+| Nightly build | Channel shows “Nightly” read-only with “Nightly builds are a separate install” | as usual |
+| Stable not released yet (drawn) | Stable is shown but disabled: “Stable (not released yet)”. Nobody can be on Stable before the first stable release, because no stable build exists to install; when it ships, the option turns on and Beta installs keep Beta until the user changes it | as usual |
+
+**Behaviour.** Downloads run in the background and are signature-checked before “ready”. Restart to update with unsaved changes first shows the close dialog (O03) for each document with changes. The update check counts in the network indicator: “1 network request · to the update server only”. Turning updates off stops every update request.
+
+**Accessibility.** The status-bar item is a button with `aria-haspopup="dialog"` and `aria-expanded`; the popover is a non-modal `role="dialog"` labelled by its title, its close button is “Close update details”, and Escape closes it and returns focus. In Settings the Updates link's dot is `aria-hidden`, with visually hidden “, downloading” text. Progress uses `role="progressbar"`; reaching “ready” is announced politely once.
+
+**Platform differences.** Same UI on every OS; installers differ (Windows passive installer; AppImage replaces itself; deb/rpm installs show “Updates come from your package manager” and hide the switch, as only the AppImage self-updates). Web: R15 shows “Update available” for the offline app.
+
+**Artboards:** `S06-update-ready.dc.html`, `S06-update-settings.dc.html`.
+
+**Todos:** [D5b](../../todos/ready/D5b-updater-in-app.md).
+
+## S07 Settings window
+
+**Purpose.** One place for every desktop setting the beta needs. Settings apply immediately (no Save button), so switches are used for on/off settings (design language §7.19).
+
+**Entry points.** lamina › Settings… (macOS) or Edit › Settings… (Windows/Linux), `⌘,` / `Ctrl ,` (`app.settings`); links from S01, S04, S06 and S08. A single window (label `settings`); opening it again focuses it.
+
+**Layout.** Its own window, 880 × ≥ 640 px, resizable. Left: a 200 px `ground` list of sections in a `<nav aria-label="Settings sections">` — General · Appearance · Updates · Privacy · Shortcuts · Licence · Account and plan · Notifications · Advanced · About, the one list shared with the web settings page ([Account and cloud H02](account-cloud-product.md#h02-account-and-plan)) (links with `aria-current="page"` on the open section, `accent-tint` fill); right: the section on `surface`, padding `28px 32px`, a Title (Newsreader 20) and groups with Heading (Newsreader 18). Rows: label (14) and help (12 `muted`) on the left, the control right; rows separated by `hairline`.
+
+**Sections and controls.**
+
+| Section | Controls (setting key) | Source |
+| --- | --- | --- |
+| General (drawn) | Open files in: A new tab in the front window / A new window (`open.target`) · Reopen last session (`session.reopen`) · Reload when the file changes on disk (`watch.reload`) · Allow the same file in two tabs (`tabs.allow-duplicates`) · Remember recent files (`recent.enabled`) · Clear recent files · Default PDF app: Open system settings… | D3b, D4a, D7b |
+| Appearance (drawn) | Theme chips: Match system, Light, Dark, High contrast · Page appearance chips (§7.25): Original, Sepia, Dark, High contrast · When a document opens: Zoom (Fit width, Fit page, Actual size, Last used for the file), Page layout (Continuous, Single page, Two pages), Show the sidebar | C7a, U2c |
+| Updates | See S06 (includes Reset anonymous ID) | D5b |
+| Privacy (drawn) | Send crash reports (off) + See a sample report · Share how often each command is used (`settings.usage-counts`, off) + “Exactly what would be sent” disclosure with the payload (a focusable `pre` in the `mono` stack, `aria-label="Usage counts payload"`) · Read the privacy policy. No identifier is collected for usage counts ([U5c](../../todos/ready/U5c-opt-in-usage-telemetry.md)); the update install ID and its reset live in Updates | D7a, U5c |
+| Shortcuts (drawn) | Single-key shortcuts (on) · Filter shortcuts · the platform’s shortcut table generated from the registry, grouped by menu (File, View and tabs, Help with Keyboard shortcuts `F1`); single-key shortcuts (`R`, `?`, `+`, `−`) in their own group | U1b, C7a |
+| Licence | Enter or remove a licence key; see [H02](account-cloud-product.md#h02-account-and-plan) | Account and cloud |
+| Account and plan | Signed-in account, plan, devices; see [H02](account-cloud-product.md#h02-account-and-plan) | Account and cloud |
+| Notifications | See [H07](account-cloud-product.md#h07-notifications) | Account and cloud |
+| Advanced (drawn, Linux frame) | Graphics (Linux only): Automatic / Compatibility / Safe mode, Restart lamina, `--safe-graphics` hint · Printing (`print.mode`): System printing (recommended) — “Uses your system’s print dialog; lamina renders each page at your printer’s resolution.” / Compatibility printing — “Prints through the built-in web view. Try it if a printer skips pages or prints them blank.” | D7b, D4c |
+| About | Version and channel (“lamina 0.1.2 · Beta”), build line (release or nightly), Copy version info, View licences, lamina help, the code licence line (MIT or Apache-2.0) | D7b |
+
+**States.**
+
+- **Dependent settings:** with Remember recent files off, Reopen last session is disabled with the help text “Needs Remember recent files”.
+- **Restart needed:** the row reads “Restart lamina after you change Graphics” with **Restart lamina** disabled (`aria-disabled`); changing Graphics enables it.
+- **Crash-loop fallback** (drawn): `warning-tint` notice “Graphics switched to Compatibility. lamina closed twice just after starting, so it turned off the faster renderer. Choose Automatic to try it again.”
+- **Managed by organisation:** affected controls disabled with the badge “Managed by your organisation”.
+- **Usage counts on:** the disclosure stays available; the network indicator lists the requests when they happen.
+
+**Behaviour.** Every change is written at once (atomic write) and broadcast to open windows. Turning off Remember recent files clears the list and deletes the stored session; Clear recent files asks nothing (it can’t lose work) and shows a toast with **Undo** for 4 s.
+
+**Accessibility.** Focus order: section list → section content top to bottom. Switches are `role="switch"` with `aria-checked`, labelled by the row label and described by its help text; check boxes and radios are native inputs visually hidden inside their labels with a drawn box (§7.19), grouped in a `fieldset` with a `legend`, so the checked radio is the group's tab stop and arrow keys select; the channel choice is a segmented radio group; chips are buttons with `aria-pressed`. The shortcut table has a caption, a `<thead>` with Command / Shortcut column headers, and one `<tbody>` per group whose header cell is `scope="rowgroup"`. Single-key shortcuts can be turned off (WCAG 2.1.4).
+
+**Platform differences.** macOS: frame with traffic lights, opened from the app menu. Windows: standard caption buttons; opened from Edit. Linux: Graphics group shown only here. The web app has no settings window; its View settings (R10) cover Appearance, and Privacy items live in the web app’s own settings panel.
+
+**Artboards:** `S07-settings-general.dc.html`, `S07-settings-appearance.dc.html`, `S07-settings-privacy.dc.html`, `S07-settings-shortcuts.dc.html`, `S07-settings-advanced.dc.html` (and `S06-update-settings.dc.html` for Updates).
+
+**Todos:** [D7b](../../todos/ready/D7b-settings-renderer-switch-and-download-page.md), [D7a](../../todos/ready/D7a-crash-reporting.md), [U5c](../../todos/ready/U5c-opt-in-usage-telemetry.md).
+
+## S08 Crash recovered
+
+**Purpose.** After lamina quits unexpectedly, bring the user’s work back safely and ask — once, without pressure — whether to send an anonymous report.
+
+**Entry points.** The next launch after a main-process crash; the dialog appears over the start window before any tab reopens.
+
+**Layout.** Dialog (§7.18) over `scrim`, 520 px: title “lamina quit unexpectedly”; “Choose which tabs to reopen. If one file seems to cause the problem, leave it closed.”; the session’s tabs as check boxes with their page; the tab that was open in the front when lamina quit is **unchecked** and badged “Open when lamina quit” (`warning` badge); below a hairline: **Send an anonymous crash report** (unchecked) with what it contains, **Always send reports after a crash** (enabled only once the first is checked), **View report**; actions **Start without tabs** · **Reopen 2 tabs** (primary; the count follows the check boxes). The report preview (S08-crash-report) replaces the dialog content at 600 px: the exact JSON in a scrollable, focusable block, green badges “No file names or paths”, “No document content”, “No anonymous update ID”, “Sent to lamina’s own server and deleted after 30 days.”, and under the JSON “The report ID is random and made for this report only; it is not stored anywhere else on this computer.”, **Copy report** · **Don’t send** · **Send report**.
+
+**Content and controls.** `session.reopen-selected`, `session.start-empty`, `crash.view-report`, `crash.send-report`, `crash.dont-send`, `crash.copy-report`, `settings.crash-reports-always`.
+
+**States.**
+
+- **Dialog** (drawn) — shown at most once per install for the report question; later crashes show only the tab choice while reporting is off.
+- **Report preview** (drawn).
+- **Reporting already on:** the report part reads “A crash report was sent.” with a link to Settings › Privacy.
+- **No session to restore** (session off or empty): the dialog shows only the report part, titled the same.
+- **Engine crash while running** (not a dialog): the document process restarts and the page reloads in place; toast “The document view restarted after a problem. You’re on page 3.”; the report question, if never asked, appears as a notice in the status bar, not a modal.
+- **Offline:** Send queues the report (up to 10, dropped after 30 days); the dialog closes normally.
+
+**Report preview details.** The preview opens from **View report** and replaces the dialog content; **Back to tabs** (top left) returns to the tab choice with its check boxes as they were. The JSON shows only D7a’s allow-listed fields (report ID, app version, channel, OS name and version, arch, process kind, renderer, sandbox level, uptime bucket, crashing-thread frames, module names, versions and debug IDs); the line under it states that the report ID is random, made for this report only and not stored anywhere else on the computer. It does not claim the report can't be linked to anyone: the server still sees the sender's IP address when it receives it. **Copy report** is a ghost button left of **Don’t send** · **Send report**. Send report also ticks “Send an anonymous crash report” on the tab choice.
+
+**Behaviour.** Reopening restores page and zoom per tab. Reports are built from an allow-list and scrubbed locally; nothing is sent unless Send or Always is chosen. Neither choice changes any document.
+
+**Accessibility.** `role="dialog"` with `aria-modal`, labelled by the title and described by the first sentence; initial focus on the primary button; Escape = Start without tabs is **not** used (Escape keeps the dialog: it asks a required question). The report block is focusable (`tabindex="0"`) so keyboard users can scroll it. The check boxes are native inputs inside their labels (§7.19); “Always send reports after a crash” is `aria-disabled` with the reason “Available after you choose to send this report”.
+
+**Platform differences.** Same on all OSes; report fields name the OS and process. Web: crash reporting is out of scope (ADR 0011).
+
+**Artboards:** `S08-crash-recovered.dc.html`, `S08-crash-report.dc.html`.
+
+**Todos:** [D7a](../../todos/ready/D7a-crash-reporting.md).
+
+## S09 Download page (web)
+
+**Purpose.** Get the right installer for the visitor’s computer, with everything needed to trust it.
+
+**Entry points.** `<domain>/download`; links from the web reader’s More menu (“Get the desktop app”) and the site header.
+
+**Layout.** Web page, no app shell: the docs-site header in its 56 px variant (§7.39; Newsreader 22 wordmark, the shared site nav Download · Docs · Pricing · Performance · Privacy with Download current, and **Open the web app**), matching Account and cloud H08/H09; a centred 960 px column: Display heading “lamina for your desktop” and one sentence (“Read PDFs on your own computer, in tabs and windows. Files stay on your machine; the app works offline.”; more once the editor ships); channel tabs **Beta** · **Stable · not released yet**; the recommended download card; **All downloads** table; four short sections (Check your download, System requirements, What the app sends, Opening it the first time); footer with the licence line and the nightly link.
+
+**Content and controls.**
+
+| Control | Does |
+| --- | --- |
+| Recommended card | “For your Mac with Apple silicon”, “lamina 0.1.2 beta · .dmg · [SIZE] MB · signed and notarised”, “Guessed from your browser. Not right? Every download is listed below.”, **Download for macOS** (primary link) and Copy SHA-256 |
+| All downloads table | System · File (link) · Processor · Size · Copy SHA-256 per file; macOS dmg (Apple silicon, Intel), Windows setup .exe (x64, Arm) and .msi (“for managed installs”), Linux AppImage (“updates itself”), .deb, .rpm; Linux Arm files under “more files”; links to SHA256SUMS, SHA256SUMS.asc and the signing key |
+| Check your download | `shasum -a 256 …` and `gh attestation verify … --repo [OWNER]/lamina` |
+| System requirements | macOS 13+, Windows 11 (Windows 10 22H2 untested), Ubuntu 22.04+ or supported Fedora; x64 and Arm |
+| What the app sends | Daily update check (can be turned off); crash reports and usage counts only if turned on; privacy policy link |
+
+Sizes, hashes and the publisher name are placeholders (`[SIZE]`, `[PUBLISHER NAME]`, `[OWNER]`) filled from `downloads/{channel}.json` at runtime.
+
+**States.** Detected OS (drawn: macOS arm64). Unknown OS or a phone: the card becomes “Choose your system below” with no primary download, and phones see “lamina for desktop runs on macOS, Windows and Linux. On this device, use the web reader.” Fetch of the release list failed: notice “Couldn’t load the download list. Try again, or get the files from the release page.” Stable not released: tab disabled with its reason in the label.
+
+**Behaviour.** Copy buttons copy the full hash and show a toast “SHA-256 copied”. Nothing is tracked; the page makes one request for the release list to the downloads host (the network indicator design applies only inside the app).
+
+**Accessibility.** Real links for downloads, buttons for copy with names that include the file (“Copy SHA-256 of lamina_0.1.2_aarch64.dmg”); the table has column headers and scrolls inside its own box below 640 px; channel tabs follow §7.5. Reflows to one column on a phone.
+
+**Platform differences.** Web only. On a phone (not drawn) the card stacks above the table and the table scrolls horizontally.
+
+**Artboards:** `S09-download.dc.html`.
+
+**Todos:** [D7b](../../todos/ready/D7b-settings-renderer-switch-and-download-page.md).
+
+## S10 Windows window frame
+
+**Purpose.** Show the reader as it looks on Windows: the same Paper shell, a Windows frame and the native in-window menu bar.
+
+**Entry points.** Any document window on Windows (and, with the differences below, Linux). The board shows the moment after the user pressed Alt.
+
+**Layout.** Title bar 32 px (document glyph, “Q3-board-report.pdf — lamina” left-aligned, Minimise · Maximise · Close at the right, 46×32 each) → native menu bar 28 px (File, Edit, View, Go, Tools, Window, Help; drawn just after pressing Alt, so access keys are underlined and File is highlighted; the OS draws the real bar and its focus) → tab strip (two tabs) → Reader v0.1 top bar with `Ctrl K` → Pages rail · page 3 → status bar. No secondary toolbar.
+
+**Content and controls.**
+
+| Part | Content | Commands |
+| --- | --- | --- |
+| Title bar | Document glyph (accent), “Q3-board-report.pdf — lamina”; caption buttons Minimise · Maximise · Close (46×32, 10 px stroke glyphs) | OS window commands; Close = `window.close` (asks about unsaved changes first, O03) |
+| Menu bar (native, OS-drawn) | File, Edit, View, Go, Tools, Window, Help with underlined access keys (Alt F, Alt E, Alt V, Alt G, Alt T, Alt W, Alt H); contents as S03 | the S03 menus |
+| Tab strip | Q3-board-report.pdf (active, close button) · Damp-survey-North.pdf · Open a file in a new tab (+) | `tab.activate`, `tab.close` (`Ctrl W`), `file.open` |
+| Top bar (Reader v0.1) | Sidebar toggle, file name, Back · Forward, page 3 / 24, zoom −/110%/+, Find, View, Reader, Commands `Ctrl K`, More | `view.toggle-sidebar`, `nav.back` (`Alt ←`), `nav.forward` (`Alt →`), `nav.go-to-page`, `view.zoom-out`, `view.zoom-in`, `find.open`, `view.reader-mode`, `palette.open` (`Ctrl K`) |
+| Body | Pages rail (page 3 current) and page 3 “2. Repairs backlog” | — |
+| Status bar | Network indicator “0 network requests for this document · Offline-safe: nothing uploaded”, “Page 3 · Repairs backlog” | `privacy.network-activity` |
+
+**States.** Menu bar focused after Alt (drawn: File highlighted, access keys underlined; the ring on the board is schematic) · at rest (access-key underlines hidden until Alt, per the OS setting) · a menu open (S03-menus-windows) · window maximised (radius 0, Maximise glyph becomes Restore: two offset squares) · inactive window (title text `muted`) · one tab (strip hidden, as on macOS).
+
+**Behaviour.** The menu bar is built natively by D4b (`window.set_menu`), outside the web view: the OS handles Alt and F10, arrows move between menus, and Escape returns focus to the web view. Caption buttons follow the OS (snap layouts on hover of Maximise are the OS’s). The title bar is the OS’s own (no custom-drawn chrome) so it behaves natively with accessibility tools.
+
+**Accessibility.** The menu bar's accessibility, look and focus come from the OS (Win32 or GTK), not from lamina; the `role="menubar"` and `aria-keyshortcuts` on the board are mockup markup, as in S03. The menu bar is **not** part of the F6 region cycle, because F6 inside the web view cannot reach it; the cycle is the same as on macOS (top bar → rail → canvas → status bar). Caption buttons have names (Minimise, Maximise, Close).
+
+**Platform differences.** Linux: frame drawn by the desktop (GNOME: centred title with a close button; KDE: its own controls), GTK menu bar below it, otherwise identical. macOS: no in-window menu bar (S03). Shortcut chips show `Ctrl` words.
+
+**Artboards:** `S10-windows-frame.dc.html`.
+
+**Todos:** [D4b](../../todos/ready/D4b-native-menus.md).
+
+## New components
+
+Merged into the [design language](design-language.md#decisions-on-area-proposals) on 2026-10-29; see its decisions table.
+
+### Open points for review
+
+- **Menu label case.** Sentence case follows design language §9 but differs from the macOS HIG (Title Case). Decide per platform when D4b lands; the registry can hold one title and the macOS menu builder can title-case it.
+- **Go and Tools menus** are in the screen inventory but not in D4b’s list; their contents here are a proposal.
+- **Close tab `⌘W` and Quit `⌘Q`** are desktop-only exceptions to the web collision list (see Conventions); the shortcut help must show them only in the desktop app.
+- **Crash dialog merges two questions** (which tabs to reopen, whether to report) that D7a describes as one consent dialog; D7a’s wording (“Send”, “Don’t send”, “Always send”) is kept in the report preview.
+- **Compare** (S04) opens a second read-only tab; a visual diff would need its own todo.
+- **Reset anonymous ID** is drawn in Settings › Updates, where [D5b](../../todos/ready/D5b-updater-in-app.md) puts it; Privacy no longer has it (U5c usage counts carry no identifier). D5b's owner builds it in Updates.
+- **Usage-counts wording** is S07's: “Share how often each command is used” (`settings.usage-counts`) with S07's help text; Account and cloud H02/H10 should use the same label, key and descriptions (the account fixer aligns them to S07, per the cross-area review).
+- **`F1` for Keyboard shortcuts** on the desktop is in the design language's shortcut table ([§8.8](design-language.md#88-keyboard-and-shortcuts)) as proposed.
+
+## Proposed design-language additions
+
+Merged into the [design language](design-language.md#decisions-on-area-proposals) on 2026-10-29; see its decisions table.

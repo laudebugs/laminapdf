@@ -20,6 +20,7 @@
 
 ## Context
 
+- **Design (Paper):** [G10 Apply redactions and verification report](../../design/paper/sign-protect-redact.md#g10-apply-redactions-and-verification-report). Build to match these screens; record any deviation in the area document ([Paper design plan §5](../../plans/paper-design.md#5-how-the-designs-are-used)).
 - [04 §10.1 Drawing a black box is not redaction](../../research/pdf/04-interactive-security.md#101-drawing-a-black-box-is-not-redaction) (Bland et al. glyph-position leaks)
 - [04 §10.2](../../research/pdf/04-interactive-security.md#102-what-true-redaction-must-do)
 - ADR 0022

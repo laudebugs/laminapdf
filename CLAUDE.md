@@ -52,6 +52,7 @@ lamina is a platform for anything and everything PDF: creating PDFs from code, p
     ├── plans/           # roadmaps and feature design docs (each links to its todos)
     ├── todos/           # one file per PR of work: ready/ → ongoing/ → done/ (README.md is the board)
     ├── decisions/       # Architecture Decision Records (NNNN-title.md)
+    ├── design/          # visual design: Paper design language, screen inventory, area docs, Design canvas sources
     ├── guidelines/      # how we work (contributing, git workflow, code organization, Rust/TS)
     └── references/      # external specs, tools, corpora
 ```

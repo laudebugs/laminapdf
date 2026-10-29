@@ -20,6 +20,7 @@ The plan's task-split assumption (viewing ≈ 70% of time) is unverified, and it
 
 ## Context
 
+- **Design (Paper):** [S07 Settings window](../../design/paper/desktop-shell.md#s07-settings-window), [H10 Telemetry opt-in and what we collect](../../design/paper/account-cloud-product.md#h10-telemetry-opt-in-and-what-we-collect). Build to match these screens; record any deviation in the area document ([Paper design plan §5](../../plans/paper-design.md#5-how-the-designs-are-used)).
 - [UI/UX plan §3 and §5.9](../../plans/ui-ux.md#3-users); [research: task split](../../research/product/pdf-app-product-and-ux.md#the-70--20--8--2-task-split-is-unverified-and-probably-wrong-for-the-web).
 - [web-app plan: privacy and security](../../plans/web-app.md#privacy-and-security) — v0.1 has no telemetry; cookieless aggregate counts and opt-in error reports only, decided in ADR 0011.
 - [U1b](./U1b-command-registry-and-palette.md) — command ids are the unit counted.

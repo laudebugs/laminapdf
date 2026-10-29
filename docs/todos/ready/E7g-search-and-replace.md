@@ -21,6 +21,7 @@ Find (B9/C5 search) and replace across pages using the E7e/E7f editing path, wit
 
 ## Context
 
+- **Design (Paper):** [A06 Search and replace across the document](../../design/paper/add-edit-content.md#a06-search-and-replace-across-the-document). Build to match these screens; record any deviation in the area document ([Paper design plan §5](../../plans/paper-design.md#5-how-the-designs-are-used)).
 - [web C5](../../plans/web-app.md#c5-text-selection-and-search)
 
 ## Scope

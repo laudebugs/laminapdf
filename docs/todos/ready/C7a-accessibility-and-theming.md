@@ -20,6 +20,7 @@ Make the reader meet WCAG 2.2 AA for its chrome and work fully without a mouse. 
 
 ## Context
 
+- **Design (Paper):** [F05](../../design/paper/screens.md#f-foundations-the-chosen-paper-boards), [R10 View settings](../../design/paper/reader-b.md#r10-view-settings), [R11 Dark UI theme](../../design/paper/reader-b.md#r11-dark-ui-theme), [R12 Keyboard shortcuts](../../design/paper/reader-b.md#r12-keyboard-shortcuts). Build to match these screens; record any deviation in the area document ([Paper design plan §5](../../plans/paper-design.md#5-how-the-designs-are-used)).
 - [UI/UX plan §5.2 and §5.5](../../plans/ui-ux.md#52-command-registry-and-palette-r3) — the shortcut map and help dialog are generated from [U1b](./U1b-command-registry-and-palette.md)'s command registry (no hand-written keymap); page appearance (Original/Sepia/Dark/High contrast) is [U2c](./U2c-page-appearance-modes.md)'s, so this todo does UI themes only and drops the "night reading" filter.
 - [web-app.md §2 scope](../../plans/web-app.md#2-scope-and-non-goals) and [§4 functional 8](../../plans/web-app.md#functional), [non-functional](../../plans/web-app.md#non-functional-targets-are-recommendations-measured-from-c3-onward) (WCAG 2.2 AA; zero serious/critical axe violations), [§7 risks](../../plans/web-app.md#7-risks) (untagged PDFs).
 - [web-frontend notes §7](../../research/architecture/notes/web-frontend.md) — a11y comes from DOM layers; only mounted pages have DOM (mitigate with outline/landmarks, `aria-setsize`/`aria-posinset`, keyboard page jump); theming via CSS custom properties; don't invert page rendering in dark mode except an explicit night filter.
@@ -54,7 +55,7 @@ Make the reader meet WCAG 2.2 AA for its chrome and work fully without a mouse. 
 - [ ] Focus utilities (`FocusScope`, region cycling, restore) and fixes across components; skip link.
 - [ ] Landmark and page-region semantics in `@lamina/viewer` page shells and `@lamina/ui` layout.
 - [ ] `Announcer` service (one polite + one assertive live region) used by viewer events and find.
-- [ ] Theme tokens for dark and high contrast; `forced-colors` media query styles; contrast check of all token pairs (script asserting ≥ 4.5:1 text and ≥ 3:1 UI components).
+- [ ] Themes are Paper light, Paper dark and high contrast from `@lamina/tokens` ([U6a](./U6a-paper-tokens.md), which also owns the token contrast test); here: the theme switch, `forced-colors` media query styles and the settings UI.
 - [ ] Reduced-motion handling in viewer (scroll behaviour) and UI (transitions).
 - [ ] Settings dialog — **C7a owns the app's single settings UI**: a dialog in `@lamina/ui` with a small section-registration API (`registerSettingsSection({ id, title, render })`) so later todos add sections instead of building their own (C7b adds "Storage and privacy"). C7a ships the "Appearance and accessibility" section (theme, reduced motion override, night filter), stored in `localStorage` (no network); the dialog is keyboard-operable and covered by the axe suite.
 - [ ] axe Playwright suite `apps/web/e2e/a11y.spec.ts` across states and themes; keyboard-only e2e that completes: open (via keyboard to file input), navigate pages, find, follow a link and go back, open properties, print dialog, all without the mouse.

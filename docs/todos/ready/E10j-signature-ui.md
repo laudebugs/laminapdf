@@ -20,6 +20,7 @@ Sign/certify flow (choose field or draw one, choose identity, appearance, reason
 
 ## Context
 
+- **Design (Paper):** [G01 Add a signature image](../../design/paper/sign-protect-redact.md#g01-add-a-signature-image), [G02 Sign with a certificate](../../design/paper/sign-protect-redact.md#g02-sign-with-a-certificate), [G11 Phone: sign a document](../../design/paper/sign-protect-redact.md#g11-phone-sign-a-document). Build to match these screens; record any deviation in the area document ([Paper design plan §5](../../plans/paper-design.md#5-how-the-designs-are-used)).
 - [UI/UX plan §5.7](../../plans/ui-ux.md#57-trust-surfaces-r9r13) and [product research: personas](../../research/product/pdf-app-product-and-ux.md#what-each-persona-needs) — users confuse e-signatures and certificate signatures (Adobe forum threads, university guides): offer two separately named actions, "Add a signature image" and "Sign with a certificate", each with one plain sentence on what it proves, and a validation badge on open.
 - [full-editor §E10](../../plans/full-editor.md#e10-signatures)
 

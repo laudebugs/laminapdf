@@ -21,6 +21,7 @@ Give lamina proper native menus on every OS — the macOS app menu and menu bar,
 
 ## Context
 
+- **Design (Paper):** [S03 Native menus](../../design/paper/desktop-shell.md#s03-native-menus), [S10 Windows window frame](../../design/paper/desktop-shell.md#s10-windows-window-frame). Build to match these screens; record any deviation in the area document ([Paper design plan §5](../../plans/paper-design.md#5-how-the-designs-are-used)).
 - [UI/UX plan §5.2](../../plans/ui-ux.md#52-command-registry-and-palette-r3) — native menus are generated from [U1b](./U1b-command-registry-and-palette.md)'s command registry (titles, shortcuts, enabled state), so menus, palette and toolbars never drift.
 - [Desktop plan §6 D4](../../plans/desktop-app.md#d4-windows-tabs-menus-and-printing) and §9 D4.
 - Web plan C7: shared keyboard map and help dialog.

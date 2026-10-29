@@ -21,6 +21,7 @@ Build the hosted job pipeline: an `apps/jobs` Worker accepting opt-in jobs (uplo
 
 ## Context
 
+- **Design (Paper):** [X02 Convert to and from PDF](../../design/paper/convert-compare-produce.md#x02-convert-to-and-from-pdf). Build to match these screens; record any deviation in the area document ([Paper design plan §5](../../plans/paper-design.md#5-how-the-designs-are-used)).
 - ADR 0013
 - [cloudflare notes §3](../../research/architecture/notes/cloudflare.md#3-limits-for-server-side-pdf-work-in-a-worker-vs-containers) limits
 - [full-editor §5](../../plans/full-editor.md#5-requirements-that-hold-for-every-round) req. 6

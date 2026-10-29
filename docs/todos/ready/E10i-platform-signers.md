@@ -21,6 +21,7 @@ Implement `Signer` adapters at the edges: macOS Keychain, Windows CNG/cert store
 
 ## Context
 
+- **Design (Paper):** [G02 Sign with a certificate](../../design/paper/sign-protect-redact.md#g02-sign-with-a-certificate). Build to match these screens; record any deviation in the area document ([Paper design plan §5](../../plans/paper-design.md#5-how-the-designs-are-used)).
 - ADR 0020
 - [full-editor §E10](../../plans/full-editor.md#e10-signatures) web vs desktop
 

@@ -20,6 +20,7 @@ Certify documents (DocMDP transform with P1/P2/P3 on the first signature), lock 
 
 ## Context
 
+- **Design (Paper):** [G03 Certify and lock](../../design/paper/sign-protect-redact.md#g03-certify-and-lock). Build to match these screens; record any deviation in the area document ([Paper design plan §5](../../plans/paper-design.md#5-how-the-designs-are-used)).
 - [04 §8.6 Certification vs approval; MDP](../../research/pdf/04-interactive-security.md#86-certification-vs-approval-signatures-mdp)
 - [ADR 0007](../../decisions/0007-save-planner.md) §2
 

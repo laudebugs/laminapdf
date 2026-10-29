@@ -21,6 +21,7 @@ Create a PDF from images (one page per image, JPEG passthrough, PNG → Flate + 
 
 ## Context
 
+- **Design (Paper):** [O07 Insert pages and merge documents](../../design/paper/edit-session-organise.md#o07-insert-pages-and-merge-documents), [O16 Export and extraction](../../design/paper/pages-navigation-extraction.md#o16-export-and-extraction). Build to match these screens; record any deviation in the area document ([Paper design plan §5](../../plans/paper-design.md#5-how-the-designs-are-used)).
 - [02 §7 Images](../../research/pdf/02-imaging-model.md#7-images)
 - [05 §3.9 rasterisation](../../research/pdf/05-creating-pdfs-from-code.md#39-pdf--image-rasterisation)
 - [web C2](../../plans/web-app.md#c2-render-backend-and-adrs): `RenderBackend`

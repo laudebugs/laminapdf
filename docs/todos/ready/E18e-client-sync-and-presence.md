@@ -20,6 +20,7 @@ Clients connect to the document's DO, apply remote patches as `Remote` transacti
 
 ## Context
 
+- **Design (Paper):** [H06 Shared review](../../design/paper/account-cloud-product.md#h06-shared-review). Build to match these screens; record any deviation in the area document ([Paper design plan §5](../../plans/paper-design.md#5-how-the-designs-are-used)).
 - ADR 0012
 - [ADR 0006](../../decisions/0006-op-log-and-undo.md) §4
 

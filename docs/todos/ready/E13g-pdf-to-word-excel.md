@@ -20,6 +20,7 @@ Opt-in server conversions using the engines chosen in ADR 0013 (layout analysis 
 
 ## Context
 
+- **Design (Paper):** [X02 Convert to and from PDF](../../design/paper/convert-compare-produce.md#x02-convert-to-and-from-pdf). Build to match these screens; record any deviation in the area document ([Paper design plan §5](../../plans/paper-design.md#5-how-the-designs-are-used)).
 - ADR 0013
 - [03 §8.4 Table extraction](../../research/pdf/03-text-and-fonts.md#84-table-extraction)
 - [03 §8.5 Layout analysis](../../research/pdf/03-text-and-fonts.md#85-layout-analysis-and-ml-document-understanding-state-of-the-art-2026)
