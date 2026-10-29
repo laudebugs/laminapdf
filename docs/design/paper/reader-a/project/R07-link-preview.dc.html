@@ -27,7 +27,7 @@ button,input,textarea{font:inherit;color:inherit}
     <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 8px 14px; flex: 1 1 220px">
       <div role="group" aria-label="History" style="display: flex; align-items: center; gap: 2px">
         <button aria-label="Back to page 2" title="Back to page 2 · Alt ←" style="width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 4px; color: #4A453E"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M15 5l-7 7 7 7"></path></svg></button>
-        <button aria-label="Forward" disabled style="width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 4px; color: #A39C91"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M9 5l7 7-7 7"></path></svg></button>
+        <button aria-label="Forward" aria-disabled="true" style="width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 4px; color: #A39C91"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M9 5l7 7-7 7"></path></svg></button>
       </div>
       <div style="display: flex; align-items: center; gap: 6px; font-variant-numeric: tabular-nums">
         <label for="pg" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Page</label>
@@ -54,9 +54,7 @@ button,input,textarea{font:inherit;color:inherit}
         <h2 style="margin: 10px 0 0; font-size: 24px; font-weight: 600; line-height: 1.25; color: #1C1B19">2. Repairs backlog</h2>
         <p style="margin: 0">Open repair jobs stood at 1,248 at the end of September across the four regions. Most of the work closed this quarter was routine plumbing and joinery, which the additional contractor teams appointed in July were able to schedule within the target window.</p>
         <p style="margin: 0">The backlog fell by 18% over the quarter, but the oldest 10% of jobs are now older than 90 days. These are mainly damp and mould cases that need a surveyor’s visit before work can be scheduled, and they sit in the older parts of our stock.</p>
-        <p style="margin: 0; position: relative">The board is asked to note the position and to consider the proposal in <a href="#url=…&amp;page=11" aria-describedby="lp" style="color: inherit; text-decoration: underline; outline: 2px solid #1F5C63; outline-offset: 1px; border-radius: 1px">section 4</a>, which would reserve surveyor time each week for the longest-waiting cases.</p>
-
-        <div id="lp" role="tooltip" style="position: absolute; left: 112px; top: 452px; width: 248px; display: flex; flex-direction: column; gap: 10px; padding: 12px; background: #FBF9F5; border: 1px solid #D8D1C5; border-radius: 6px; box-shadow: 0 4px 14px rgba(60,48,30,0.14); font-family: 'Source Sans 3', system-ui, sans-serif; font-size: 13px; line-height: 1.35; color: #1F1D1A; z-index: 30">
+        <p style="margin: 0">The board is asked to note the position and to consider the proposal in <span style="position: relative; display: inline-block; text-indent: 0"><a href="#page=11" aria-describedby="lp" style="color: inherit; text-decoration: underline; outline: 2px solid #1F5C63; outline-offset: 1px; border-radius: 1px">section 4</a><span id="lp" role="tooltip" style="position: absolute; left: 0; top: calc(100% + 6px); width: 248px; display: flex; flex-direction: column; gap: 10px; padding: 12px; background: #FBF9F5; border: 1px solid #D8D1C5; border-radius: 6px; box-shadow: 0 4px 14px rgba(60,48,30,0.14); font-family: 'Source Sans 3', system-ui, sans-serif; font-size: 13px; line-height: 1.35; color: #1F1D1A; z-index: 30">
           <span aria-hidden="true" style="display: flex; flex-direction: column; gap: 5px; height: 92px; box-sizing: border-box; padding: 10px 12px; background: #FFFFFF; box-shadow: 0 1px 3px rgba(60,48,30,0.12); overflow: hidden">
             <span style="height: 2px; width: 100%; background: #E6E3DE"></span>
             <span style="font-family: 'Source Serif 4', Georgia, serif; font-size: 11px; font-weight: 600; color: #1C1B19">4. Surveyor capacity</span>
@@ -69,7 +67,8 @@ button,input,textarea{font:inherit;color:inherit}
             <span style="font-family: 'Newsreader', Georgia, serif; font-size: 15px; font-weight: 500">4. Surveyor capacity</span>
             <span style="font-size: 12px; color: #6B645A; font-variant-numeric: tabular-nums">Link to page 11 · Enter to go</span>
           </span>
-        </div>
+        </span></span>, which would reserve surveyor time each week for the longest-waiting cases.</p>
+
 
         <figure style="margin: 8px 0 0; display: flex; flex-direction: column; gap: 10px; font-family: 'Source Sans 3', system-ui, sans-serif">
           <figcaption style="font-size: 12.5px; font-weight: 600; color: #1C1B19">Open repairs by region, end of September</figcaption>
