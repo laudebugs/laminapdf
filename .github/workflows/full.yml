@@ -11,12 +11,17 @@
 #
 #     if: ${{ !cancelled() && needs.changes.outputs.code == 'true' }}
 #
-# A suite missing from `gate.needs` doesn't block merges.
+# A suite missing from `gate.needs` doesn't block merges. `check-linux` is the one exception to
+# that condition: it also needs the repository variable LINUX_RUNNER to be 'true' (set it once
+# the Linux runner is up: `gh variable set LINUX_RUNNER --body true`). While it's unset the job
+# is skipped, so `gate` doesn't wait forever on a runner that doesn't exist, and `gate` accepts
+# that skip.
 #
-# Every job runs on the self-hosted macOS ARM64 runners, which share one machine: jobs isolate
-# the Rust install (isolate-rust-home), install pnpm into ${{ runner.temp }}, and don't use
-# rust-cache (see ci.yml). There are no self-hosted Linux or Windows runners, so the full lane
-# no longer runs `cargo xtask check` on those OSes; the fast lane covers macOS.
+# Every job runs on self-hosted runners on one Mac: the two macOS ARM64 runners, where jobs
+# isolate the Rust install (isolate-rust-home), install pnpm into ${{ runner.temp }} and don't
+# use rust-cache (see ci.yml), and one Linux ARM64 runner in a container on the same Mac
+# (tools/ci-runner/linux/README.md), which runs `check-linux` only. There is no Windows runner
+# (X6); the fast lane covers `cargo xtask check` on macOS.
 # Actions are pinned by full commit SHA with the release in a comment (ADR 0019).
 name: Full lane
 
@@ -155,13 +160,49 @@ jobs:
           path: fuzz/artifacts/
           if-no-files-found: ignore
 
+  # `cargo xtask check` (docs, Rust, TypeScript) on Linux ARM64, in the runner container on the
+  # Mac (todo X5, tools/ci-runner/linux/README.md). Each job gets a fresh container; Rust and
+  # cargo's registry live in named volumes at the default ~/.rustup and ~/.cargo, so there is no
+  # isolate-rust-home here (it would move them into the throwaway tool cache). The container is
+  # capped at 3 CPUs and 6 GB so the macOS runners keep their share of the machine.
+  check-linux:
+    name: Check (Linux ARM64)
+    needs: changes
+    if: ${{ !cancelled() && needs.changes.outputs.code == 'true' && vars.LINUX_RUNNER == 'true' }}
+    runs-on: [self-hosted, Linux, ARM64]
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      # No `toolchain` input: installs exactly what rust-toolchain.toml pins.
+      - uses: actions-rust-lang/setup-rust-toolchain@ecabd13d1c56bd1345c230e542e9144811ad706f # v2.0.0
+        with:
+          # The volumes keep CARGO_HOME between jobs; rust-cache would only add upload time.
+          cache: false
+      # Same versions as tools/xtask/src/doctor.rs; xtask fails if they drift.
+      - uses: taiki-e/install-action@86f7a0ffb25f40114606501a311ebcfaf882ea32 # v2.88.0
+        with:
+          tool: cargo-nextest@0.9.150,cargo-deny@0.20.2
+      # No `version` input: uses packageManager from package.json.
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+        with:
+          dest: ${{ runner.temp }}/setup-pnpm
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: cargo xtask check
+
   # The required check. Fails unless `changes` succeeded with `code` exactly "true" or "false";
   # then every suite must have succeeded (code) or been skipped (docs-only). Any failure,
-  # cancellation, or skip of a suite that should have run fails it.
+  # cancellation, or skip of a suite that should have run fails it. The one allowed skip on a
+  # code change is `check-linux` while the LINUX_RUNNER variable isn't 'true'.
   gate:
     name: gate
     if: always()
-    needs: [changes, differential, fuzz]
+    needs: [changes, differential, fuzz, check-linux]
     runs-on: [self-hosted, macOS, ARM64]
     timeout-minutes: 5
     steps:
@@ -169,6 +210,7 @@ jobs:
         env:
           NEEDS: ${{ toJSON(needs) }}
           CODE: ${{ needs.changes.outputs.code }}
+          LINUX_RUNNER: ${{ vars.LINUX_RUNNER }}
         run: |
           set -euo pipefail
           changes=$(jq -r '.changes.result' <<<"$NEEDS")
@@ -187,6 +229,10 @@ jobs:
           for job in $(jq -r 'del(.changes) | keys[]' <<<"$NEEDS"); do
             result=$(jq -r --arg job "$job" '.[$job].result' <<<"$NEEDS")
             echo "$job: $result"
+            if [ "$job" = check-linux ] && [ "$LINUX_RUNNER" != true ] && [ "$result" = skipped ]; then
+              echo "::notice::check-linux skipped: the LINUX_RUNNER variable is not 'true'"
+              continue
+            fi
             case "$CODE/$result" in
               true/success | false/skipped) ;;
               *)
