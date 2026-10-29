@@ -92,16 +92,15 @@ The design system is built once, in `@lamina/tokens` and `@lamina/ui`, before th
 4. Restricted printing: does the reader ask for confirmation (C6c) or only show the restriction (C4c)? (reader-a R09)
 5. Should the tablet reader in v0.1 use the reader top bar (R17)? (reader-b)
 6. "History" names both edit history (rail tab) and the revision browser (X03); rename one?
-7. Edit's Shape ▾ is a split button while Comment's Shapes ▾ is a menu; should they match?
-8. Where are app-level requests (update checks) counted, given the network indicator counts per document? (S06)
-9. Web `Ctrl F6` region keys wait on a browser collision test.
-10. ADR 0021 (JavaScript policy) is pending; the screens use one sentence: "This file contains JavaScript. lamina never runs it."
-11. Possible duplicate command ids to settle when U1b builds the registry (listed in the design language's appendix).
+7. Where are app-level requests (update checks) counted, given the network indicator counts per document? (S06)
+8. Web `Ctrl F6` region keys wait on a browser collision test.
+9. ADR 0021 (JavaScript policy) is pending; the screens use one sentence: "This file contains JavaScript. lamina never runs it."
+
 
 ## 9. To-dos
 
 - [x] Choose a direction (Paper, 2026-10-29)
-- [x] Design language, screen inventory and area documents; every screen drawn (193 artboards in 12 canvases)
+- [x] Design language, screen inventory and area documents; every screen drawn (205 artboards in 12 canvases)
 - [x] Every UI todo links its Paper screens
 - [x] Design review: one round per area across all 11 areas, with fixes, and a cross-area consistency pass (2026-10-29); a second round and a visual pass on the canvases are optional follow-ups
 - [ ] Republish the canvases from the committed files (the account's daily publish limit stopped the last publishes)

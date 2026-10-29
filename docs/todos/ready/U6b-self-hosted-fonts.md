@@ -7,7 +7,7 @@
 | Plan | [Paper design §6 U6](../../plans/paper-design.md#u6-design-system) |
 | Round / milestone | Round U (UI/UX) — U6 Paper design system |
 | Depends on | [U6a](./U6a-paper-tokens.md) |
-| Blocks | [U6f](./U6f-gallery-and-visual-tests.md) |
+| Blocks | [C4b](./C4b-web-app-shell.md), [D2a](./D2a-adr-0008-and-desktop-scaffold.md), [U6f](./U6f-gallery-and-visual-tests.md) |
 | ADRs | Follows [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md#fonts-icc-profiles-and-test-corpora) (bundled fonts OFL-1.1 or Apache-2.0 only, listed with their licence in the notices), 0024 (typography tokens; from [U1a](./U1a-adr-0024-app-shell-ux.md)) |
 | Branch | `feat/u6b-self-hosted-fonts` |
 | PR title | `feat(fonts): self-host subsetted newsreader and source sans 3 woff2 files` |
@@ -37,8 +37,9 @@ Ship Paper's two UI typefaces from lamina's own origin: Newsreader (titles, outl
 - Subsets: **Latin** and **Latin Extended** as two `unicode-range` files per face (the browser downloads Latin Extended only when the text needs it), including the punctuation the writing style uses (’ “ ” · … – — €, tabular figures and the `tnum` feature, which must survive subsetting). Other scripts (Greek, Cyrillic, CJK, Arabic, Hebrew, Indic …) fall back to the system font stack per glyph, as the CSS fallbacks already say; document this in the README and keep the fallbacks in the family tokens.
 - Glyphs outside the fonts that the UI uses: shortcut-chip symbols (⌘ ⌥ ⇧ ⌫ ↵ ↑ ↓) and arrows. Decide per glyph: in the subset if the font has it, otherwise the system font (test that each one renders with a non-zero width in three engines).
 - `font-display`: `swap` for Source Sans 3 (text must show at once), `swap` for Newsreader too unless the layout shift on titles is visible in the gallery; `size-adjust` / `ascent-override` fallback faces (`"Source Sans 3 Fallback"` over local `Segoe UI`/`Arial`) to limit layout shift.
-- Preload: `<link rel="preload" as="font" type="font/woff2" crossorigin href="…">` for Source Sans 3 Latin 400 only (the face on first paint); exported as a constant and documented for `apps/web` (C4b) and the desktop shell (D2a).
+- Preload: `<link rel="preload" as="font" type="font/woff2" crossorigin href="…">` for Source Sans 3 Latin 400 only (the face on first paint); exported as a constant; [C4b](./C4b-web-app-shell.md) (`apps/web`) and [D2a](./D2a-adr-0008-and-desktop-scaffold.md) (desktop) depend on this todo and load the fonts.
 - The subsetting script `tools/fonts/subset.sh` (or an xtask subcommand if it grows past ~50 lines) using fontTools `pyftsubset` with Brotli for WOFF2, pinned in `tools/fonts/requirements.txt` (fontTools is MIT, brotli is MIT); run by hand when fonts change, never by tests.
+- Caveat 500 (OFL) for the typed-signature style ([design language §3](../../design/paper/design-language.md#3-typography); G01): subset to Latin, shipped as a separate WOFF2 that loads only when the signature dialog opens, never preloaded.
 - A guard that no product file references a third-party font host.
 - A size budget, checked by a test.
 

@@ -82,7 +82,7 @@ The same warm family, inverted: chrome is warm charcoal, never pure black, and t
 | `gutter` | `#141311` | white page on it 18.57 |
 | `text` | `#ECE7DE` | ground 13.69 · surface 12.57 · raised 11.31 |
 | `text-2` / `text-3` | `#CFC8BC` | ground 10.15 · surface 9.32 · raised 8.39 |
-| `muted` | `#A39B8E` | ground 6.13 · surface 5.63 · raised 5.07 · on hover fill 4.52 |
+| `muted` | `#A39B8E` | ground 6.13 · surface 5.63 · raised 5.07 · on hover fill 5.01 |
 | `hairline` (decorative) | `#3A3732` | ⚠ ground 1.42 |
 | `chip-border` (decorative) | `#4A463F` | ⚠ raised 1.49 |
 | `control-border` | `#7E766A` | ground 3.76 · surface 3.45 · raised 3.11 |
@@ -149,7 +149,7 @@ Colours written into the file or drawn on the page. Like the highlight colours (
 | Annotation line colours | Black `#262421` (15.48 on white) · Red `#B3261E` (≈ 6.5) · Blue `#2D5DA8` (≈ 6.4) · Green `#2F6A45` (6.43) | Underline, strike, caret, ink, shapes, lines and annotation text. The Comment toolbar swaps between these and the highlight (fill) colours with the tool |
 | Page content colours | Ink `#262421` · Grey `#6E6A64` · Teal `#1F5C63` · Red `#9B2335` · Custom…; "No fill" is a white swatch with a red diagonal. An existing object's colour comes first, named "(original)" | Text, shapes and fills added or edited in Edit mode |
 | Outline colours (`/C`) | Default (`text`) · Grey (`muted`) · Red (`danger`) · Blue `#2D4A6B` · Green (`positive`) | Bookmark rows |
-| Signature ink | Black `#1F1D1A` · Dark blue `#1F2F5C` (15.98 on white) | Drawn and typed signatures |
+| Signature ink | Black `#1F1D1A` · Dark blue `#1F2F5C` (12.97 on white) | Drawn and typed signatures |
 | Presence | Violet `#5B4B8A` (white on it 7.45) · Blue `#1F5C8A` (7.10) · Plum `#8A3B5C` (7.34) · Teal-green `#3B6B5C` (6.10); the same ratios as an outline on a white page | Reviewer avatars and remote selections, assigned in joining order, stable per person per document; a fifth reviewer reuses violet. Names always show, so colour is never the only cue |
 | Diff marks | Removed: `danger-tint` + strikethrough · Added: `positive-tint` + underline · Overlay: orange `#B4540F` (4.98 on white) and blue `#2D4A6B`, with a legend | Compare views; the current change gets the 2 px `focus` outline |
 | Measurement | Selected shape: `accent` at 12% with a 2 px `accent` edge, value chip filled `accent`; other measurements in `warning` with a white chip | Measure tool |
@@ -225,9 +225,9 @@ Rules:
 | Pages, then page overlays (selection, highlights, handles) | 0, 1 |
 | Docked chrome (bars, rail, inspector) | 10 |
 | Selection mini toolbar, page pill | 20 |
-| Menus, popovers, tooltips | 30 |
-| Bottom sheet | 40 |
-| Scrim + palette / dialog | 50 |
+| Bottom sheet | 30 |
+| Scrim + palette / dialog | 40 |
+| Menus, popovers, tooltips (portalled above whatever opened them, so a menu in a sheet or dialog draws on top) | 50 |
 | Toasts | 60 |
 
 ## 5. Iconography

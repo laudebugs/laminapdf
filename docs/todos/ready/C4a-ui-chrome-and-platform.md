@@ -32,7 +32,7 @@ Build the reusable reader UI both shells share: `@lamina/ui`, a React 19 (React 
 
 **In scope**
 
-- `packages/ui` (`@lamina/ui`, private): React 19 + `babel-plugin-react-compiler` (or the Vite/Rolldown equivalent) in the consumer build; components are plain TSX, named exports.
+- The reader shell in `packages/ui` (`@lamina/ui`), which [U6d](./U6d-core-components.md) creates (package scaffold, React 19, tests, Biome config) and [U6e](./U6e-overlays-and-sheets.md) extends; C4a adds the shell and platform modules to it and does not re-scaffold the package.
 - Accessible primitives library chosen per ADR 0009 (recommendation: React Aria Components for i18n/RTL/keyboard) — licence checked (Apache-2.0).
 - Components: `ReaderShell` (layout: toolbar, optional sidebar slot, viewer slot, status region), `Toolbar` (open, page indicator with input, prev/next, zoom out/in, zoom menu with fit width / fit page / actual size / presets, rotate, download/print placeholders disabled by capability, overflow menu), `OpenDropZone` (empty state with "Open a file", drag-and-drop target, paste hint), `PasswordDialog`, `ErrorBanner` / `RepairNotice` (ADR 0003 warnings in plain words, list of unsupported features), `LoadingState`, `DebugMenu` slot (backend switch hayro/PDFium for diffing — hidden behind `?debug`).
 - `useViewer(viewer)` hooks over the store (`useSyncExternalStore`), `ReaderController` that owns the interaction state machine (`empty → opening → needs-password → open → error`).
@@ -49,7 +49,7 @@ Build the reusable reader UI both shells share: `@lamina/ui`, a React 19 (React 
 ## Tasks
 
 - [ ] Claim via a claim PR (see Definition of done); then a fresh worktree off the updated `main`.
-- [ ] Scaffold `packages/ui` (`package.json` with React 19 as peer dependency via `catalog:`, `exports`, `sideEffects: ["*.css"]`, Vitest browser mode + Testing Library, nested `biome.json` allowing DOM globals).
+- [ ] Add the shell and platform modules to `packages/ui` as created by U6d (no new scaffold; extend its `exports`).
 - [ ] Check licences of React, React Aria (or the chosen primitives) and icons (the Paper set in `@lamina/icons`, [U6c](./U6c-icon-set.md)); `cargo xtask npm-licenses` passes.
 - [ ] `src/platform/types.ts`: `Platform`, `Capabilities` exactly as ADR 0010; `src/platform/web.ts`: web implementation with feature detection (no UA sniffing); `src/platform/context.tsx`: `PlatformProvider`, `usePlatform()`, `useCapability(flag)`.
 - [ ] `src/state/reader-machine.ts`: a small typed state machine (hand-written or a tiny lib; justify) for the reader lifecycle and interaction mode (`select` only in v0.1); unit tests for every transition.
