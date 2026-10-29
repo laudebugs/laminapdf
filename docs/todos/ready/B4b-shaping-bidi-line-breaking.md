@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [pdf-library §7 B4](../../plans/pdf-library.md#b4-fonts-and-text), requirement [§4 F3](../../plans/pdf-library.md#functional) |
 | Round / milestone | Round B (library) — M1 |
-| Depends on | [B4a](../ongoing/B4a-font-loading-and-subsetting.md), [X4](../done/X4-full-lane-gate.md) |
+| Depends on | [B4a](../done/B4a-font-loading-and-subsetting.md), [X4](../done/X4-full-lane-gate.md) |
 | Blocks | [B5b](./B5b-builder-text-and-document-features.md), [E4e](./E4e-freetext-callouts.md), [E6c](./E6c-add-text.md), [E13c](./E13c-ocr-text-layer.md), [E16c](./E16c-images-and-fonts.md) |
 | ADRs | Follows [0005 §6](../../decisions/0005-document-model.md#6-generation-strategy--option-b-recommended-by-the-krilla-fit-spike-accepted-when-its-pr-merges) (HarfRust), [0001](../../decisions/0001-core-language-and-licence.md) (pure Rust, determinism), [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) (Unicode-3.0 data licences) |
 | Branch | `feat/b4b-shaping` |
@@ -22,7 +22,7 @@ Turn a Unicode string into positioned glyph runs that render correctly in every 
 
 - [Research 03 §7](../../research/pdf/03-text-and-fonts.md#7-text-layout--shaping--everything-pdf-does-not-do-for-you): [§7.2 shaping](../../research/pdf/03-text-and-fonts.md#72-shaping), [§7.3 bidi](../../research/pdf/03-text-and-fonts.md#73-bidirectional-text-uax-9), [§7.4 line breaking](../../research/pdf/03-text-and-fonts.md#74-line-breaking-uax-14), [§7.6 justification](../../research/pdf/03-text-and-fonts.md#76-justification), [§7.7 fallback](../../research/pdf/03-text-and-fonts.md#77-font-fallback); [§5.3 ligatures, reordering and ActualText](../../research/pdf/03-text-and-fonts.md#53-ligatures-reordering-and-actualtext); [§2.6–2.7 displacement and TJ kerning](../../research/pdf/03-text-and-fonts.md#26-matrices-and-glyph-displacement-math).
 - [pdf-library §8 risks](../../plans/pdf-library.md#8-risks): WASM size of shaping and ICU4X data (slice data).
-- `lamina-text` from [B4a](../ongoing/B4a-font-loading-and-subsetting.md) (`Font`, `FontUse`).
+- `lamina-text` from [B4a](../done/B4a-font-loading-and-subsetting.md) (`Font`, `FontUse`).
 
 ## Scope
 

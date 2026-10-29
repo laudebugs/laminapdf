@@ -62,3 +62,25 @@ One page per code in [`fixtures/codes.json`](../../fixtures/codes.json), as [ADR
 | [`direct-page`](direct-page.md) | `unsupported` |
 | [`unsupported-version`](unsupported-version.md) | `unsupported` |
 | [`invalid-op-log`](invalid-op-log.md) | `input` |
+
+## Text errors (`lamina-text`)
+
+| Code | Kind |
+| --- | --- |
+| [`invalid-font`](invalid-font.md) | `input` |
+| [`collection-index`](collection-index.md) | `usage` |
+| [`unknown-axis`](unknown-axis.md) | `usage` |
+| [`font-not-embeddable`](font-not-embeddable.md) | `usage` |
+| [`missing-glyph`](missing-glyph.md) | `input` |
+| [`glyph-out-of-range`](glyph-out-of-range.md) | `usage` |
+| [`unknown-font`](unknown-font.md) | `usage` |
+| [`subset-failed`](subset-failed.md) | `unsupported` |
+| [`invalid-axis-value`](invalid-axis-value.md) | `usage` |
+| [`wrong-document`](wrong-document.md) | `usage` |
+
+## Text warnings (`lamina-text`)
+
+| Code | Kind |
+| --- | --- |
+| [`tounicode-conflict`](tounicode-conflict.md) | `usage` |
+| [`whole-font-rebuilt`](whole-font-rebuilt.md) | `usage` |

@@ -208,6 +208,33 @@
       "showText": 1
     }
   ],
+  "fixtures/golden/text-cff.pdf": [
+    {
+      "beginText": 2,
+      "endText": 2,
+      "moveText": 2,
+      "setFont": 2,
+      "showText": 2
+    }
+  ],
+  "fixtures/golden/text-latin.pdf": [
+    {
+      "beginText": 4,
+      "endText": 4,
+      "moveText": 4,
+      "setFont": 4,
+      "showText": 4
+    }
+  ],
+  "fixtures/golden/text-variable-collection.pdf": [
+    {
+      "beginText": 3,
+      "endText": 3,
+      "moveText": 3,
+      "setFont": 3,
+      "showText": 3
+    }
+  ],
   "fixtures/content/operators.pdf": [
     {
       "beginGroup": 1,
