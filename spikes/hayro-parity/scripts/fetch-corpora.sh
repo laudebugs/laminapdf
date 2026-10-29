@@ -1,6 +1,11 @@
 #!/usr/bin/env bash
 # Fetch the pdf.js and PDFBox test PDFs at pinned commits into ./corpora (gitignored)
-# and write corpora.manifest.toml (source, commit, licence, SHA-256 per file).
+# and check them against the committed corpora.manifest.toml (source, commit,
+# licence, SHA-256 per file). Any difference fails the script.
+#
+#   scripts/fetch-corpora.sh                    # fetch and verify
+#   scripts/fetch-corpora.sh --update-manifest  # fetch and rewrite the manifest
+#                                               # (after changing a pinned commit)
 #
 # Only PDFs stored in the repositories are used: pdf.js `*.link` files (remote PDFs,
 # some gone) are listed in the manifest's `skipped_links` count but not fetched.
@@ -8,6 +13,13 @@
 # sparse (PDFs only, plus the repository LICENSE files).
 set -euo pipefail
 cd "$(dirname "$0")/.."
+
+UPDATE=false
+case "${1:-}" in
+  --update-manifest) UPDATE=true ;;
+  "") ;;
+  *) echo "usage: $0 [--update-manifest]" >&2; exit 2 ;;
+esac
 
 PDFJS_REPO=https://github.com/mozilla/pdf.js.git
 PDFJS_COMMIT=87b369cd9d4cfe415b587b26a8d81f486db02874
@@ -54,6 +66,17 @@ hash_list() { # dir
     hash_list "corpora/$c" | while read -r sha path; do echo "  { path = \"$path\", sha256 = \"$sha\" },"; done
     echo "]"
   done
-} > corpora.manifest.toml
+} > corpora.manifest.toml.new
 
-grep -c sha256 corpora.manifest.toml
+if $UPDATE; then
+  mv corpora.manifest.toml.new corpora.manifest.toml
+  echo "wrote corpora.manifest.toml ($(grep -c sha256 corpora.manifest.toml) files)"
+elif cmp -s corpora.manifest.toml.new corpora.manifest.toml; then
+  rm corpora.manifest.toml.new
+  echo "corpora match corpora.manifest.toml ($(grep -c sha256 corpora.manifest.toml) files)"
+else
+  diff -u corpora.manifest.toml corpora.manifest.toml.new | head -40 >&2 || true
+  rm corpora.manifest.toml.new
+  echo "corpora do not match the committed corpora.manifest.toml (see the diff above)" >&2
+  exit 1
+fi

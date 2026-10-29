@@ -169,6 +169,23 @@ pub fn render(rows: &[Row], procs: &[Proc], header: &str) -> String {
         }
     }
 
+    let teardown: Vec<&Proc> = procs.iter().filter(|p| p.teardown.is_some()).collect();
+    let harness = rows.iter().filter(|r| !r.harness_err.is_empty()).count();
+    let _ = writeln!(
+        s,
+        "\n## Harness\n\n- documents whose child crashed after reporting every page (teardown, not a page failure): {}\n- pages whose triptych could not be written: {harness}",
+        teardown.len()
+    );
+    for p in teardown.iter().take(10) {
+        let _ = writeln!(
+            s,
+            "  - {} `{}`: {}",
+            p.corpus,
+            p.file,
+            p.teardown.as_deref().unwrap_or("")
+        );
+    }
+
     for (title, pick) in [
         ("hayro errors", (|r: &Row| r.hayro_err.as_str()) as fn(&Row) -> &str),
         ("PDFium errors", |r: &Row| r.pdfium_err.as_str()),

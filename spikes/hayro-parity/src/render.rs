@@ -54,7 +54,7 @@ pub struct HayroDoc {
 }
 
 impl HayroDoc {
-    pub fn load(bytes: Vec<u8>) -> Result<Self> {
+    pub fn load(bytes: Arc<Vec<u8>>) -> Result<Self> {
         let pdf = Pdf::new(bytes).map_err(|e| anyhow!("{e:?}"))?;
         let warnings = Arc::new(Mutex::new(Vec::new()));
         let sink = Arc::clone(&warnings);

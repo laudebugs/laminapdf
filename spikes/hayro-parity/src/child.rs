@@ -3,15 +3,19 @@
 //! attribute a crash or a hang to the page and engine that caused it.
 //!
 //! Protocol (fields after the tag):
-//! - `pages  <hayro n|-1> <pdfium n|-1> <hayro load error> <pdfium load error>`
-//! - `begin  <page> <hayro|pdfium>` before each render (page 0 = loading)
+//! - `pages  <hayro n|-1> <pdfium n|-1> <hayro load error> <pdfium load error> <encrypted>`
+//! - `begin  <page> <hayro|pdfium>` before each render (page 0 = binding,
+//!   warm-up and loading of that engine)
 //! - `page   <page> <hayro ms> <pdfium ms> <hayro WxH> <pdfium WxH> <hayro error>
-//!   <pdfium error> <ssim> <diff %> <hayro warnings>` (empty field = n/a)
+//!   <pdfium error> <ssim> <diff %> <class> <hayro warnings> <harness error>`
+//!   (empty field = n/a; `class` is the default-threshold class of a compared
+//!   page, computed here on the unrounded values)
 //! - `done`
 
 use std::io::Write;
 use std::panic::{AssertUnwindSafe, catch_unwind};
 use std::path::PathBuf;
+use std::sync::Arc;
 use std::time::Instant;
 
 use anyhow::{Result, anyhow};
@@ -31,8 +35,23 @@ pub struct ChildArgs {
 }
 
 fn clean(s: &str) -> String {
-    let s: String = s.chars().map(|c| if c.is_control() { ' ' } else { c }).collect();
-    s.chars().take(200).collect()
+    s.chars()
+        .map(|c| if c.is_control() { ' ' } else { c })
+        .take(200)
+        .collect()
+}
+
+/// Joins warnings with `;`, truncating each one rather than the joined string.
+fn join_warnings(w: &[String]) -> String {
+    w.iter()
+        .map(|w| {
+            w.chars()
+                .filter(|c| !c.is_control() && *c != ';')
+                .take(80)
+                .collect::<String>()
+        })
+        .collect::<Vec<_>>()
+        .join(";")
 }
 
 fn emit(fields: &[String]) {
@@ -113,38 +132,44 @@ fn timed<T>(f: impl FnOnce() -> Result<T>) -> (f64, Result<T>) {
 /// document; hayro gets the same treatment (it parses its embedded fonts lazily).
 const WARM_UP: &[u8] = include_bytes!("../../../fixtures/corpus/hello.pdf");
 
-fn warm_up(args: &ChildArgs, pdfium: Option<&pdfium_render::prelude::Pdfium>) {
-    if args.hayro {
-        let _ = guarded(|| HayroDoc::load(WARM_UP.to_vec())?.render(0, args.dpi).map(|_| ()));
-    }
-    if let Some(p) = pdfium {
-        let _ = PdfiumDoc::load(p, WARM_UP).and_then(|d| d.render(0, args.dpi));
-    }
+fn warm_up_hayro(dpi: f32) {
+    let _ = guarded(|| HayroDoc::load(Arc::new(WARM_UP.to_vec()))?.render(0, dpi).map(|_| ()));
+}
+
+fn warm_up_pdfium(pdfium: &pdfium_render::prelude::Pdfium, dpi: f32) {
+    let _ = PdfiumDoc::load(pdfium, WARM_UP).and_then(|d| d.render(0, dpi));
 }
 
 pub fn run(args: &ChildArgs) -> Result<()> {
     // Quiet the default panic hook: panics are reported through the protocol.
     std::panic::set_hook(Box::new(|_| {}));
-    let bytes = std::fs::read(&args.file)?;
+    // Read once; hayro shares the buffer, PDFium borrows it.
+    let bytes = Arc::new(std::fs::read(&args.file)?);
+    let encrypted = bytes.windows(8).any(|w| w == b"/Encrypt");
 
+    // Everything an engine does before its first page (binding, warm-up,
+    // loading) runs under `begin 0 <engine>`, so a crash or hang there is
+    // blamed on that engine.
     let (mut hayro, mut hayro_load_err) = (None, String::new());
     if args.hayro {
         begin(0, "hayro");
-        match guarded(|| HayroDoc::load(bytes.clone())) {
+        warm_up_hayro(args.dpi);
+        match guarded(|| HayroDoc::load(Arc::clone(&bytes))) {
             Ok(d) => hayro = Some(d),
             Err(e) => hayro_load_err = clean(&e.to_string()),
         }
     }
     let pdfium = if args.pdfium {
-        Some(render::bind_pdfium(&args.pdfium_lib)?)
+        begin(0, "pdfium");
+        let p = render::bind_pdfium(&args.pdfium_lib)?;
+        warm_up_pdfium(&p, args.dpi);
+        Some(p)
     } else {
         None
     };
-    warm_up(args, pdfium.as_ref());
     let (mut pdoc, mut pdfium_load_err) = (None, String::new());
     if let Some(p) = &pdfium {
-        begin(0, "pdfium");
-        match PdfiumDoc::load(p, &bytes) {
+        match PdfiumDoc::load(p, bytes.as_slice()) {
             Ok(d) => pdoc = Some(d),
             Err(e) => pdfium_load_err = clean(&e.to_string()),
         }
@@ -158,6 +183,7 @@ pub fn run(args: &ChildArgs) -> Result<()> {
         count(pn),
         hayro_load_err.clone(),
         pdfium_load_err.clone(),
+        encrypted.to_string(),
     ]);
     if hn == Some(0) && hayro_load_err.is_empty() {
         hayro_load_err = "no pages".into();
@@ -192,29 +218,35 @@ pub fn run(args: &ChildArgs) -> Result<()> {
                 Side::done(ms, r, Vec::new())
             }
         };
-        report_page(args, page, &h, &p)?;
+        report_page(args, page, &h, &p);
     }
     emit(&["done".into()]);
     Ok(())
 }
 
-fn report_page(args: &ChildArgs, page: usize, h: &Side, p: &Side) -> Result<()> {
-    let mut ssim = String::new();
-    let mut diff = String::new();
+fn report_page(args: &ChildArgs, page: usize, h: &Side, p: &Side) {
+    let (mut ssim, mut diff, mut class, mut harness) = (String::new(), String::new(), String::new(), String::new());
     if let (Some(hi), Some(pi)) = (&h.img, &p.img) {
         let d = compare::compare(hi, pi);
+        class = d
+            .as_ref()
+            .map_or("fail", |d| compare::DEFAULT.classify(d.ssim, d.diff_pct))
+            .to_owned();
         if let Some(d) = &d {
-            ssim = format!("{:.5}", d.ssim);
-            diff = format!("{:.4}", d.diff_pct);
+            // Full precision: the driver's sensitivity table re-classifies these.
+            ssim = format!("{}", d.ssim);
+            diff = format!("{}", d.diff_pct);
         }
         // HAYRO_PARITY_DUMP_ALL=1 writes a triptych for every page (threshold calibration).
-        let failed = std::env::var_os("HAYRO_PARITY_DUMP_ALL").is_some()
-            || d.as_ref()
-                .is_none_or(|d| compare::DEFAULT.classify(d.ssim, d.diff_pct) == "fail");
-        if let (true, Some(dir)) = (failed, &args.fail_dir) {
-            std::fs::create_dir_all(dir)?;
+        let dump = std::env::var_os("HAYRO_PARITY_DUMP_ALL").is_some() || class == "fail";
+        if let (true, Some(dir)) = (dump, &args.fail_dir) {
             let img = compare::triptych(hi, pi, d.as_ref().map(|d| d.mask.as_slice()));
-            compare::write_png(&dir.join(format!("p{page:04}.png")), &img)?;
+            let written = std::fs::create_dir_all(dir)
+                .map_err(anyhow::Error::from)
+                .and_then(|()| compare::write_png(&dir.join(format!("p{page:04}.png")), &img));
+            if let Err(e) = written {
+                harness = clean(&format!("triptych not written: {e}"));
+            }
         }
     }
     let ms = |m: Option<f64>| m.map(|m| format!("{m:.2}")).unwrap_or_default();
@@ -229,7 +261,8 @@ fn report_page(args: &ChildArgs, page: usize, h: &Side, p: &Side) -> Result<()> 
         p.err.clone(),
         ssim,
         diff,
-        clean(&h.warnings.join(";")),
+        class,
+        join_warnings(&h.warnings),
+        harness,
     ]);
-    Ok(())
 }

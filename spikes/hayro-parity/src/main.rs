@@ -88,10 +88,7 @@ fn main() -> Result<()> {
     if engines != Engines::Hayro && !pdfium_lib.exists() {
         bail!("{} missing: run scripts/fetch-pdfium.sh first", pdfium_lib.display());
     }
-    if out.exists() {
-        std::fs::remove_dir_all(&out)?;
-    }
-    std::fs::create_dir_all(&out)?;
+    clear_out_dir(&out)?;
 
     let n = jobs.len();
     eprintln!("{n} documents, {jobs_n} parallel jobs, {dpi} DPI → {}", out.display());
@@ -119,6 +116,28 @@ fn main() -> Result<()> {
     let md = summary::render(&rows, &procs, &header);
     std::fs::write(out.join("summary.md"), &md)?;
     println!("{md}");
+    Ok(())
+}
+
+/// Marks a directory as written by this harness, so a later run may delete it.
+const OUT_MARKER: &str = ".hayro-parity-out";
+
+/// Empties `out` for a new run. Deletes it only when it carries the marker this
+/// harness writes (so `--out src` or `--out results` can't wipe tracked files);
+/// a non-empty directory without the marker is an error.
+fn clear_out_dir(out: &Path) -> Result<()> {
+    if out.exists() {
+        if out.join(OUT_MARKER).is_file() {
+            std::fs::remove_dir_all(out)?;
+        } else if std::fs::read_dir(out)?.next().is_some() {
+            bail!(
+                "{} exists and was not written by this harness (no {OUT_MARKER}); choose another --out",
+                out.display()
+            );
+        }
+    }
+    std::fs::create_dir_all(out)?;
+    std::fs::write(out.join(OUT_MARKER), b"")?;
     Ok(())
 }
 

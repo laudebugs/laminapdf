@@ -15,8 +15,23 @@ esac
 
 mkdir -p pdfium
 TGZ="pdfium/$ASSET"
+verify() { echo "$SHA  $1" | shasum -a 256 -c - >/dev/null 2>&1; }
+# A cached archive that doesn't match (e.g. a partial download) is discarded.
+if [ -f "$TGZ" ] && ! verify "$TGZ"; then
+  echo "discarding $TGZ: SHA-256 mismatch" >&2
+  rm -f "$TGZ"
+fi
 if [ ! -f "$TGZ" ]; then
-  curl -fsSL -o "$TGZ" "https://github.com/bblanchon/pdfium-binaries/releases/download/$TAG/$ASSET"
+  # Download to a temporary name and only keep it once the hash matches.
+  TMP="$TGZ.part"
+  rm -f "$TMP"
+  curl -fsSL -o "$TMP" "https://github.com/bblanchon/pdfium-binaries/releases/download/$TAG/$ASSET"
+  if ! verify "$TMP"; then
+    rm -f "$TMP"
+    echo "SHA-256 mismatch for $ASSET; expected $SHA" >&2
+    exit 1
+  fi
+  mv "$TMP" "$TGZ"
 fi
 echo "$SHA  $TGZ" | shasum -a 256 -c -
 # Extract only the library and the licence files; nothing from the archive is executed.

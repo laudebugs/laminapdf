@@ -6,11 +6,13 @@
 //!   pixel (computed with integral images), the usual constants K1 = 0.01,
 //!   K2 = 0.03, L = 255. The page score is the mean over all windows.
 //! - **Differing pixels**: the share of pixels whose CIE76 ΔE (sRGB → CIELAB,
-//!   D65) is above [`DELTA_E`] *and* that have no colour within [`DELTA_E`] in
-//!   the 3×3 neighbourhood of the other image (both directions). This is the
-//!   anti-aliasing tolerance: glyph edges rasterised a little differently (the
-//!   two engines use different rasterisers and stem darkening) don't count; a
-//!   missing glyph, a wrong colour or a line shifted by more than a pixel does.
+//!   D65) is above [`DELTA_E`] and that are not explained in *both*
+//!   directions: the pixel counts unless image A's colour occurs within
+//!   [`DELTA_E`] in B's 3×3 neighbourhood *and* B's colour occurs within
+//!   [`DELTA_E`] in A's 3×3 neighbourhood. This is the anti-aliasing tolerance:
+//!   glyph edges rasterised a little differently (the two engines use
+//!   different rasterisers and stem darkening) don't count; a missing glyph or
+//!   1-px line, a wrong colour or a shift of more than a pixel does.
 //!
 //! The classification thresholds live in [`Thresholds`]; the summary reports
 //! the pass rate at three settings so ADR 0004 can choose.
@@ -103,8 +105,12 @@ pub fn compare(a: &Rgb, b: &Rgb) -> Option<Diff> {
             if delta_e(p, q) <= DELTA_E {
                 continue;
             }
-            // Anti-aliasing tolerance: a pixel only counts if neither image has a
-            // close colour within one pixel of it in the other image.
+            // Anti-aliasing tolerance: a pixel is excused only if it is explained in
+            // both directions (a's colour occurs near (x, y) in b, and b's colour
+            // occurs near (x, y) in a). One unexplained direction makes it count:
+            // otherwise a 1-px line missing from one image would be excused,
+            // because the missing side's background colour sits right next to it
+            // in the other image.
             if !near(p, &lab_b, x, y) || !near(q, &lab_a, x, y) {
                 mask[i] = true;
                 differing += 1;
