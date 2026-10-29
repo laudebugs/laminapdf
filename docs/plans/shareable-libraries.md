@@ -44,7 +44,7 @@ The research found the opening is real: in October 2026 no permissively licensed
 
 ## 4. Principles (recommendations, recorded in ADRs 0024–0029)
 
-1. **Design the façade to UniFFI's rules now** ([report §2](../research/libraries/shareable-libraries.md#design-the-façade-to-the-stricter-binding-now)): `Send + Sync` handles behind `Arc` (the lock lives in the façade, so ADR 0005 §7's single-thread `Document` stays as it is; ADR 0026 decides), `&self` methods only, owned handles instead of borrowed returns, no generics across the boundary, a string-payload error enum, an explicit `CancelToken`, resumable `Job::step`. UniFFI forbids `&mut self`; fixing this after `@lamina/pdf` ships would break the TypeScript API.
+1. **Design the façade to UniFFI's rules now** ([report §2](../research/libraries/shareable-libraries.md#design-the-façade-to-the-stricter-binding-now)): handles that a binding can make `Send + Sync` (UniFFI needs this). The `lamina` façade is a core crate, and ADR 0005 §7 allows no `Mutex` in core, so ADR 0026 decides between a lock in the binding edge crate (`lamina-ffi` wraps the `Send` document in a `Mutex`; recommended, ADR 0005 unchanged) and a `Sync` core (an explicit amendment of ADR 0005 §7). Also: `&self`-friendly methods, owned handles instead of borrowed returns, no generics across the boundary, a string-payload error enum, an explicit `CancelToken`, resumable `Job::step`. UniFFI forbids `&mut self`; fixing this after `@lamina/pdf` ships would break the TypeScript API.
 2. **One error shape everywhere:** `{ code, kind, message, hint, location, docsUrl }`, kebab-case codes as today (ADR 0003 §2), generated from [`fixtures/codes.json`](../../fixtures/codes.json) into Rust, TypeScript and JSON Schema. Messages never quote document text (prompt-injection hygiene).
 3. **Explicit coordinates:** high-level and extraction APIs use **top-left origin, points**, with typed units (`Pt`, `Mm`) and an explicit `coordinates` block in every JSON output; low-level APIs keep raw PDF user space, named as such. Pages: 0-based `index` plus 1-based `number` in output.
 4. **The core stays synchronous.** Long work is a `Job` the caller steps with a budget counted in work units (core crates have no clock; time limits live at the edges); cancellation and progress are lamina API, not binding features (UniFFI has no built-in cancellation). Async lives at the edges: the TS worker client, Swift `async`, Kotlin `suspend`.
@@ -71,7 +71,7 @@ let out = loop {
 // @lamina/pdf/worker (L2a): the async twin of the sync API, in a Web Worker
 import { connect } from "@lamina/pdf/worker";
 const pdf = await connect({ signal });
-await using doc = await pdf.open(bytes);              // transferred, Symbol.asyncDispose
+await using doc = await pdf.open(bytes, { transfer: true }); // zero-copy; the default copies. Symbol.asyncDispose
 const md = await doc.extract({ format: "markdown", pages: "1-5" });
 ```
 
@@ -80,7 +80,7 @@ const md = await doc.extract({ format: "markdown", pages: "1-5" });
 cat invoice.pdf | lamina extract - --format md > invoice.md
 lamina info report.pdf --json | jq '.pages'
 lamina pages merge a.pdf b.pdf:1-z:odd -o out.pdf
-lamina mcp --root ./docs --read-only                   # stdio MCP server over the same commands
+lamina mcp --root ./docs                               # stdio MCP server over the same commands; read-only unless --allow-write
 ```
 
 ## 6. Decisions to record (ADRs)
@@ -112,7 +112,7 @@ Each round is split into todos (one PR each) on the [todo board](../todos/README
 **Todos:** [L2a](../todos/ready/L2a-worker-client.md) (`@lamina/pdf/worker`), [L2b](../todos/ready/L2b-disposal-and-memory.md) (disposal and memory bounds), [L2c](../todos/ready/L2c-range-byte-source.md) (range `ByteSource` over `Error::DataPending`).
 
 **Deliverable:** a worker client with the same method names as the sync API, version handshake, `AbortSignal` and transfer lists, which `@lamina/viewer` (C3a) consumes; `Symbol.dispose` on every handle, a capped wasm memory and an abort-and-reinstantiate wrapper; range reading for large and remote files.
-**Accepted when:** a 50 MB file opens in a worker with no long task over 50 ms on the main thread; disposing every handle returns memory to the pre-open baseline (± one page); opening a remote file fetches only the ranges it needs.
+**Accepted when:** a 50 MB file opens in a worker with no long task over 50 ms on the main thread; opening and disposing a document in a loop keeps wasm memory at its post-warm-up size (± one 64 KiB page; linear memory never shrinks, so the high-water mark is the baseline); opening a remote file fetches only the ranges it needs.
 
 ### L3. AI-ready extraction
 
@@ -125,7 +125,7 @@ Each round is split into todos (one PR each) on the [todo board](../todos/README
 
 **Todos:** [L4a](../todos/ready/L4a-lamina-cli.md) (ADR 0029, `lamina-cli` core commands), [L4b](../todos/ready/L4b-cli-batch-render-schema.md) (batch, render, extract, schema, completions), [L4c](../todos/ready/L4c-mcp-mode.md) (`lamina mcp`), [L4d](../todos/ready/L4d-cli-distribution.md) (distribution).
 
-**Deliverable:** the `lamina` binary (`crates/lamina-cli`, layer `app`): `info`, `check`, `pages`, `extract`, `render`, `schema`, `explain`; qpdf-style page ranges; stdin/stdout `-`; `--json` and NDJSON for batch; exit codes 0–5; `--jobs`; completions and man pages; an MCP stdio mode with `--root` and `--read-only`; release binaries, Homebrew and an npm wrapper.
+**Deliverable:** the `lamina` binary (`crates/lamina-cli`, layer `app`): `info`, `check`, `pages`, `extract`, `render`, `schema`, `explain`; qpdf-style page ranges; stdin/stdout `-`; `--json` and NDJSON for batch; exit codes 0–5; `--jobs`; completions and man pages; an MCP stdio mode with `--root`, read-only by default (`--allow-write` to opt in); release binaries, Homebrew and an npm wrapper.
 **Accepted when:** every command has `--json` output validated against its schema in tests; exit codes are tested per case; the MCP mode passes the MCP inspector's conformance checks and refuses paths outside `--root`.
 
 ### L5. Docs for agents
@@ -175,9 +175,9 @@ This plan adjusts these todos (edited in the same PR):
 
 ### L4. CLI and MCP
 
-- [ ] Write ADR 0029; create `crates/lamina-cli` with `info`, `check`, `pages`, `extract text`, `explain`
+- [ ] Write ADR 0029; create `crates/lamina-cli` with `info`, `check`, `pages`, `extract` (text), `explain`
 - [ ] Batch and NDJSON, `--jobs`, `render`, Markdown/JSON extraction, `schema`, completions, man pages
-- [ ] `lamina mcp` (rmcp, stdio), `--root`, `--read-only`, honest tool annotations
+- [ ] `lamina mcp` (rmcp, stdio), `--root`, read-only by default (`--allow-write`), honest tool annotations
 - [ ] Release binaries (cargo-dist), Homebrew tap, npm wrapper with per-platform packages
 
 ### L5. Docs for agents
@@ -196,7 +196,7 @@ This plan adjusts these todos (edited in the same PR):
 | Façade rules slow down B5c | Rules are written first (L1a) and are small; the L6a spike checks them early |
 | Extraction quality without models disappoints on tables and scans | Publish measured scores; plug-in traits (L3c) for models; say plainly what rules cannot do |
 | MCP spec churn (2025-11-25 → 2026-07-28 changed a lot) | MCP is a thin adapter over CLI commands; pin the rmcp version; CLI stays the primary agent interface |
-| Prompt injection through document text | Document text only in data fields, never in `message`/`hint`; hidden text flagged; MCP `--root` and `--read-only` by default |
+| Prompt injection through document text | Document text only in data fields, never in `message`/`hint`; hidden text flagged; MCP `--root` required and read-only by default |
 | UniFFI version churn and missing cancellation | Pin per ADR 0027; lamina's own `CancelToken` (ADR 0026) |
 | Mobile platform viewers improve (androidx.pdf) | Compete on fidelity, editing and signature-safe saves, not on viewing alone |
 

@@ -32,17 +32,17 @@ Let MCP clients use lamina without a second implementation. `lamina mcp` is a st
 
 - Cargo feature `mcp` on `lamina-cli` (off by default for library users of the crate, on in release binaries via L4d). `tokio` and `rmcp` are optional dependencies behind it; the rest of the CLI stays synchronous.
 - `lamina mcp --root DIR [--root DIR…] [--allow-write [--allow-in-place]] [--max-output-bytes N] [--timeout SECS]` over stdio, targeting MCP **2026-07-28** (stateless requests, `server/discover`) through a pinned rmcp 3.x, with 2025-11-25 compatibility as rmcp provides it. Logs go to stderr only.
-- Tools mapped 1:1 to commands: `lamina_info`, `lamina_check`, `lamina_extract_text`, `lamina_explain` (read-only), and `lamina_pages_rotate` (write). `inputSchema` and `outputSchema` are the `schemars` schemas of the command's args and report (the same ones `lamina schema` prints after L4b). Results carry `structuredContent` conforming to `outputSchema` and the same JSON as a text block.
-- `tools/list` is deterministic: a fixed order (alphabetical by tool name), and it does not vary per connection. With `--read-only` (the default), write tools are not listed at all; `--allow-write` lists them.
+- Tools mapped 1:1 to commands: `lamina_info`, `lamina_check`, `lamina_extract` (`format: "text"` until L4b adds the others), `lamina_explain` (read-only), and `lamina_pages_rotate` (write). `inputSchema` and `outputSchema` are the `schemars` schemas of the command's args and report (the same ones `lamina schema` prints after L4b). Results carry `structuredContent` conforming to `outputSchema` and the same JSON as a text block.
+- `tools/list` is deterministic: a fixed order (alphabetical by tool name), and it does not vary per connection. Read-only is the default (there is no `--read-only` flag): write tools are not listed at all unless `--allow-write` is given.
 - Honest annotations: read tools `readOnlyHint: true`, `openWorldHint: false`; `lamina_pages_rotate` `readOnlyHint: false`, `destructiveHint: false` when writing a new file. In-place writes are only possible with `--allow-in-place`, and then the tool's description and `destructiveHint: true` say so. Tool descriptions are static strings; they never include file names or document content.
 - Path policy: every path argument is resolved against the roots, canonicalised (`std::fs::canonicalize`, which resolves symlinks), and refused unless the result is inside a canonicalised root. Output paths: the parent directory is canonicalised and checked, the file must not exist (or `--allow-in-place` and it is the input), and the write is atomic. `..`, absolute paths outside the roots and symlinks pointing out are all refused. `--root` is required; starting without it is exit 2.
 - Prompt-injection hygiene: document text appears only in data fields (`text`, `title`, …) of `structuredContent`; error `message` and `hint` never contain it (ADR 0024). Responses over `--max-output-bytes` are truncated with `"truncated": true`.
 - Errors: argument validation failures, path refusals and lamina errors are tool results with `isError: true` and the `lamina.error/1` document (so the model can correct itself); only malformed JSON-RPC is a protocol error.
-- Every call runs with default `Limits` and a timeout; a timed-out call is a tool error.
+- Every call runs with default `Limits` and a timeout; a timed-out call is a tool error. The timeout **trips the job's `CancelToken`** (ADR 0026) so the work stops at its next `Job::step`; dropping the future alone would leave a blocking thread decoding. A small concurrency cap (e.g. the CPU count) bounds in-flight calls.
 
 **Out of scope** (and which todo covers it)
 
-- `lamina_render` and `lamina_extract` (Markdown/JSON) tools: added when [L4b](./L4b-cli-batch-render-schema.md) merges (one line each in the tool router; whichever of L4b and L4c merges second adds them).
+- The `lamina_render` tool and the Markdown/JSON formats of `lamina_extract`: added when [L4b](./L4b-cli-batch-render-schema.md) merges (one line each in the tool router; whichever of L4b and L4c merges second adds them).
 - HTTP transports, auth, resources and prompts: not planned; stdio only.
 - MCP tasks extension for long jobs: later, if render or extract calls need it.
 
@@ -50,7 +50,7 @@ Let MCP clients use lamina without a second implementation. `lamina mcp` is a st
 
 - [ ] Load `/rust-best-practices`; follow [docs/guidelines/rust.md](../../guidelines/rust.md).
 - [ ] Add `rmcp` (pinned 3.x, features for server + stdio + schemars) and `tokio` (minimal features: `rt`, `io-std`, `macros`) as optional dependencies behind `mcp`. Check licences: expected MIT and/or Apache-2.0; confirm with `cargo xtask deny` (ADR 0019).
-- [ ] Add `src/mcp/mod.rs`: a server struct holding the roots and flags; `#[tool_router]` with one `#[tool]` per command that calls `commands::*` inside `spawn_blocking` with the timeout.
+- [ ] Add `src/mcp/mod.rs`: a server struct holding the roots and flags; `#[tool_router]` with one `#[tool]` per command that runs `commands::*` as a stepped job inside `spawn_blocking`, holding its `CancelToken`; on timeout, cancel the token and wait for the step loop to return `cancelled` before replying. A semaphore caps concurrent calls.
 - [ ] Add `src/mcp/roots.rs`: root canonicalisation at start-up, input and output path checks, unit-tested on a temporary tree with symlinks (Unix) and junctions where possible (Windows).
 - [ ] Map `CliError` to tool errors with `isError: true` and the error document.
 - [ ] Wire `lamina mcp` into the clap front end under `#[cfg(feature = "mcp")]`; without the feature, `lamina mcp` says it was built without MCP and exits 2.
@@ -60,7 +60,7 @@ Let MCP clients use lamina without a second implementation. `lamina mcp` is a st
 ### Example
 
 ```console
-$ lamina mcp --root ./docs            # read-only: lamina_check, lamina_explain, lamina_extract_text, lamina_info
+$ lamina mcp --root ./docs            # read-only: lamina_check, lamina_explain, lamina_extract, lamina_info
 $ lamina mcp --root ./docs --allow-write   # adds lamina_pages_rotate (new files only)
 ```
 

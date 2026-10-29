@@ -1,4 +1,4 @@
-# L4a — ADR 0029 and `crates/lamina-cli`: `info`, `check`, `pages rotate`, `extract text`, `explain`
+# L4a — ADR 0029 and `crates/lamina-cli`: `info`, `check`, `pages rotate`, `extract`, `explain`
 
 | Field | Value |
 | --- | --- |
@@ -10,7 +10,7 @@
 | Blocks | [L4b](./L4b-cli-batch-render-schema.md), [L4c](./L4c-mcp-mode.md), [L4d](./L4d-cli-distribution.md) |
 | ADRs | Writes **0029** (CLI and MCP contract). Follows 0024 (error shape, from [L1a](./L1a-contract-adrs.md)), 0025 (coordinates and page indexing), [0003](../../decisions/0003-reader-tolerance-and-limits.md) (`Limits`, warnings, strict mode), [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) (new dependencies), [0015](../../decisions/0015-monorepo-layout-and-tooling.md) (crate layout, xtask) |
 | Branch | `feat/l4a-lamina-cli` |
-| PR title | `feat(cli): ADR 0029 and the lamina CLI with info, check, pages rotate, extract text and explain` |
+| PR title | `feat(cli): ADR 0029 and the lamina CLI with info, check, pages rotate, extract and explain` |
 | Size | L (≈ 600–900 lines: ADR, command layer, clap front end, tests; generated schemas and test fixtures don't count) |
 | PR | — |
 
@@ -36,7 +36,7 @@ Give shell users, CI pipelines and AI agents one binary, `lamina`, with a stable
 
 - **ADR 0029** (`docs/decisions/0029-cli-and-mcp-contract.md`), status Accepted on merge:
   - Grammar: verb-first, `lamina <command> [<subcommand>] <inputs…> [-o OUT | --in-place] [--json]`. Global flags: `--json`, `--quiet`, `--no-input`, `--force`, `--dry-run`, `--color auto|always|never`, `--password-file FILE`, `--strict`, limit flags.
-  - Page ranges: qpdf's grammar as the base (`1-5`, `z` last page, `r3` third from the end, `5-1` reverse, `x3` exclusion, `:odd`/`:even` on the resulting set) with `end` and `N` accepted as aliases of `z`. Ranges are 1-based page numbers, as users count; JSON output gives both `index` (0-based) and `number` (1-based), per ADR 0025.
+  - Page ranges: qpdf's grammar as the base (`1-5`, `z` last page, `r3` third from the end, `5-1` reverse, `x3` exclusion, `:odd`/`:even` on the resulting set) with `end` accepted as an alias of `z`. Uppercase `N` (mutool's last page) is **not** an alias, because uppercase letters are pdftk-style file handles (`A=a.pdf … A1-z`); a handle name is one or more uppercase letters and never collides with a range token. Ranges are 1-based page numbers, as users count; JSON output gives both `index` (0-based) and `number` (1-based), per ADR 0025.
   - File handles: pdftk style `A=fronts.pdf B=backs.pdf`, then `A1-5`, `Bz-1`; `file.pdf:1-z:odd` for an inline range. The grammar is fixed now, even though merge and shuffle land later.
   - Stdin and stdout: `-` as an input reads stdin (at most one `-` per command); `-o -` writes stdout. Binary output is never written to a stdout that is a TTY (usage error instead).
   - Exit codes: `0` ok; `1` failure; `2` usage error; `3` completed with warnings only (`--warnings-ok` maps it to 0); `4` refused a destructive action that needs `--force` (overwrite an existing file, `--in-place`); `5` password required or wrong. When several apply, the highest-priority wins: `2` > `5` > `4` > `1` > `3` > `0`. `lamina help exit-codes` prints the table.
@@ -56,7 +56,7 @@ Give shell users, CI pipelines and AI agents one binary, `lamina`, with a stable
   - `info <input> [--fields a,b] [--json]`: version, page count, page sizes (top-left points per ADR 0025), encryption, Info dictionary, tagged or not, counts of form fields and signatures if the façade exposes them, warnings. `--fields` keeps only the named top-level keys (gh-style, to save agent tokens).
   - `check <input> [--strict] [--json]`: open, resolve every object and page, decode every content stream within `Limits`; report warnings and errors; exit 3 on warnings only.
   - `pages rotate <input> <angle>[:<range>] [-o OUT | --in-place]`: `+90`, `-90`, `180`, absolute `90`; uses `RotatePage` and the B3c save planner (incremental save).
-  - `extract text <input> [--pages RANGE] [--json]`: plain text per page from the façade's `page.text()`; with `--json`, `lamina.text/1` with one entry per page (`index`, `number`, `text`).
+  - `extract <input> [--format text] [--pages RANGE] [--json]`: plain text per page from the façade's `page.text()`; with `--json`, `lamina.text/1` with one entry per page (`index`, `number`, `text`). `--format` is part of the grammar now so scripts never change: this PR accepts only `text` (the default); [L4b](./L4b-cli-batch-render-schema.md) adds `md`, `json` and `chunks`. There is no `extract text` subcommand, so a file named `text` is never ambiguous.
   - `explain <code> [--json]`: the L1b text for a warning or error code (`lamina::explain`, with the façade's `explain` feature on); unknown code is exit 2 with the list of close matches.
   - `help exit-codes` and `--version` (`--version --json` gives the CLI, core and schema versions).
 - Limit flags mapped onto `Limits` (`--max-stream-decoded`, `--max-decoded-total`, …, names from `fixtures/codes.json` `limits`), and `--strict` onto strict mode.
@@ -76,7 +76,7 @@ Give shell users, CI pipelines and AI agents one binary, `lamina`, with a stable
 - [ ] Write ADR 0029 from the Scope list above; add it to `docs/decisions/README.md`. Cite the report and the CLI spec note for each choice; mark recommendations.
 - [ ] Create `crates/lamina-cli` (`Cargo.toml` with workspace fields, lints, `layer = "app"`, `[[bin]] name = "lamina"`); add it to the workspace members.
 - [ ] Add dependencies through `[workspace.dependencies]`: `clap` 4 (derive), `anstream`, `serde`, `serde_json`, `schemars` 1; dev: `assert_cmd`, `predicates`, `jsonschema` (validate output against schemas), `tempfile`. Expected licences are MIT and/or Apache-2.0; confirm with `cargo xtask deny` (ADR 0019).
-- [ ] Implement `ranges.rs` with the qpdf grammar, `end`/`N` aliases, handles and inline `file:range`; property tests (proptest) for "parsed range is within 1..=n" and reverse/exclusion cases.
+- [ ] Implement `ranges.rs` with the qpdf grammar, the `end` alias, handles (uppercase only) and inline `file:range`; property tests (proptest) for "parsed range is within 1..=n" and reverse/exclusion cases.
 - [ ] Implement `io.rs` (stdin, stdout, atomic write, overwrite check, TTY check for binary stdout).
 - [ ] Implement `exit.rs` and `CliError`; map every `lamina::Error` code to an exit code (password codes → 5, `limit-exceeded` → 1, …) in one table with a test that every code in `fixtures/codes.json` is mapped.
 - [ ] Implement the commands in `commands/` and the clap front end in `main.rs`; human output kept under ~20 lines for `info`.
@@ -100,7 +100,7 @@ error[overwrite-refused]: refusing to modify scan.pdf in place without --force
   hint: pass --force, or write to a new file with -o
 $ echo $?
 4
-$ curl -sL https://example.org/a.pdf | lamina extract text - --pages 1-3 | rg -i invoice
+$ curl -sL https://example.org/a.pdf | lamina extract - --pages 1-3 | rg -i invoice
 $ lamina explain xref-repaired
 ```
 

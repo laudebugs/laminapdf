@@ -53,7 +53,7 @@ Write down the contract every lamina surface shares before the first public API 
 - `docs/decisions/0026-facade-rules-jobs-and-cancellation.md`:
   - UniFFI-compatible façade rules: `Send + Sync` handles behind `Arc`, `&self` methods only, owned handles (`PageRef { doc, index }`) instead of borrowed returns, no generics across the boundary, and a string-payload error enum.
   - Cursors (`next_batch(max)`) instead of iterators, and monomorphised constructors (`open_bytes`, `open_source`) instead of generic `ByteSource` parameters.
-  - Where the lock lives: recommendation is a `Mutex`/`RwLock` in the façade, keeping the core `Send + !Sync`. The alternative is amending ADR 0005 §7.
+  - Where the lock lives: recommendation is a `Mutex` in the binding edge crate (`lamina-ffi` wraps the `Send` document), keeping every core crate, the `lamina` façade included, `Send + !Sync` with no `Mutex` as ADR 0005 §7 requires. The alternative is amending ADR 0005 §7 to a `Sync` core.
   - `Job<T>` with `step(Budget) -> Result<Step<T>, Error>`, `Step::Progress { done, total, phase }`, and progress throttling.
   - `Budget` in **work units** (operators, objects, bytes), not milliseconds, because the core has no clock. Edges translate a time slice into units, or the step loop checks a host clock between steps.
   - `CancelToken` (`Arc<AtomicBool>`, polled in long loops) and the `cancelled` code.
@@ -122,7 +122,7 @@ None (documentation only). `cargo xtask docs-links` checks the links.
 
 - **`docsUrl` domain** is not chosen yet ([architecture §8](../../plans/architecture.md#8-open-questions-for-the-team)). Recommendation: fix the path (`/errors/<code>`) now and generate the host from one constant, so the URL changes in one place.
 - **Rotated pages:** output in the displayed frame matches viewers and extraction vendors, but content-stream editing needs the unrotated frame. The ADR must say which API sees which frame. The owner decides if the two cases conflict.
-- **Lock placement:** a façade `Mutex` serialises all calls on one document. That is fine for UniFFI's model, but it should be measured once B5c exists. Amending ADR 0005 §7 to a `Sync` core is the alternative.
+- **Lock placement:** an edge-crate `Mutex` serialises all calls on one document. That is fine for UniFFI's model, but it should be measured once B5c exists. Amending ADR 0005 §7 to a `Sync` core is the alternative.
 - **`Budget::millis`** in the report's sketch needs a clock that core crates may not use. Recommendation: units in core, time at the edges.
 - **Naming churn:** renaming `PdfError` to `LaminaError` touches [B6b](./B6b-lamina-pdf-package.md)'s scope. If B6b merges first, L1b does the rename.
 - Owner review: these are hard-to-reverse public contracts. Ask the owner to accept each ADR explicitly in the PR.

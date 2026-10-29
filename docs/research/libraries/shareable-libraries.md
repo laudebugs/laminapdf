@@ -372,7 +372,7 @@ for (const c of res.chunks({ maxTokens: 512, splitOn: "headings" }))
 ```
 
 ```console
-$ lamina extract markdown report.pdf --drop invisible,running-headers > report.md
+$ lamina extract report.pdf --format md --drop invisible,running-headers > report.md
 $ lamina extract json report.pdf --schema extract/1 > out.json
 $ lamina extract chunks report.pdf --max-tokens 512 --jsonl | my-embedder
 $ lamina explain W_TOUNICODE_GUESSED
@@ -381,7 +381,7 @@ $ lamina explain W_TOUNICODE_GUESSED
 ```json
 { "schema": "https://lamina.dev/schema/extract/1.json",
   "generator": { "name": "lamina", "version": "0.4.0", "mode": "rules", "models": [] },
-  "coord": { "unit": "pt", "origin": "top-left", "box": "CropBox", "rotationApplied": true },
+  "coordinates": { "origin": "top-left", "unit": "pt", "box": "CropBox", "rotate": 0, "userUnit": 1.0 },
   "source": { "sha256": "…", "tagged": true, "structSource": "tagged" },
   "blocks": [ { "id": "b12", "type": "heading", "level": 2, "text": "3.1 Reading order", "page": 0,
                 "bbox": [72.0, 96.4, 310.2, 112.0], "bboxNorm": [0.1176, 0.1217, 0.5069, 0.1414],
@@ -414,7 +414,7 @@ $ echo $?                                                    # 3: success with w
 $ lamina pages select report.pdf 1-5,z,r3 -o summary.pdf    # qpdf ranges; `end`/`N` accepted as aliases
 $ lamina pages shuffle A=fronts.pdf B=backs.pdf A Bz-1 -o duplex.pdf
 $ lamina pages split big.pdf --every 10 -o 'parts/{stem}-{n:03}.pdf'
-$ curl -sL https://example.org/a.pdf | lamina extract text - --pages 1-3 | rg -i invoice
+$ curl -sL https://example.org/a.pdf | lamina extract - --pages 1-3 | rg -i invoice
 $ lamina fill form.pdf --data - -o filled.pdf < answers.json
 $ lamina check docs/*.pdf --jobs 8 --json | jq -c 'select(.type=="result" and .status!="ok")'
 {"type":"result","schema":"lamina.check/1","index":1,"input":"b.pdf","status":"error","error":{"code":"E0201","kind":"password_required"}}

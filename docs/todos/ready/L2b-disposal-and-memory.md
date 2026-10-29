@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [shareable-libraries §7 L2](../../plans/shareable-libraries.md#l2-typescript-hardening) |
 | Round / milestone | Round L2 (shareable libraries) |
-| Depends on | [B6b](./B6b-lamina-pdf-package.md) |
+| Depends on | [B6b](./B6b-lamina-pdf-package.md), [L1b](./L1b-error-contract-codegen.md) |
 | Blocks | None |
 | ADRs | Follows [0002](../../decisions/0002-binding-strategy.md) (wasm-bindgen handles, `free()`/`using`), [0003](../../decisions/0003-reader-tolerance-and-limits.md) §3 (`Limits` as the first memory bound), 0016 (build profile, from [B6a](./B6a-lamina-wasm-and-adr-0016.md)), 0024 (codes, from [L1a](./L1a-contract-adrs.md), if merged), [0018](../../decisions/0018-test-strategy.md) §2 (no wall-clock assertions) |
 | Branch | `feat/l2b-disposal-and-memory` |
@@ -41,7 +41,7 @@ Keep `@lamina/pdf` from leaking or growing without bound in long-lived pages and
   - `free()`/`close()` stay as aliases. Disposing twice is a no-op.
   - Children (a `Page` of a disposed `Document`) become disposed too.
   - Lookup is `Symbol.dispose ?? Symbol.for("Symbol.dispose")`, so runtimes without the symbol still work; the library does not assign to globals (`sideEffects: false`).
-- **`disposed` code.** Any method on a disposed handle throws `LaminaError` with code `disposed`. Add the code to `fixtures/codes.json` (in [L1b](./L1b-error-contract-codegen.md)'s v2 format if merged).
+- **`disposed` code.** Any method on a disposed handle throws `LaminaError` with code `disposed`. [L1b](./L1b-error-contract-codegen.md) adds the code and the `LaminaError` class; this todo uses them.
 - **FinalizationRegistry backstop.** Keep wasm-bindgen's registry. Register TS wrapper handles too, so a forgotten handle is freed eventually. An opt-in debug hook (`onLeak`) reports handles collected without dispose.
 - **Capped wasm memory.** Add `-C link-arg=--max-memory=<bytes>` for `lamina-wasm` in the `cargo xtask wasm` build (value set in ADR 0016 or this PR; recommendation: 2 GiB, the safe cross-browser wasm32 ceiling, to verify). Document it in ADR 0016 if it has merged. Growth past the cap traps. The wrapper below turns the trap into a coded error (`out-of-memory`).
 - **`reset()`.** A module-level `reset()` drops the instance and re-runs `init()` from the cached `WebAssembly.Module`. Every live handle becomes disposed. Memory returns to the fresh-instance size.
@@ -70,7 +70,7 @@ Keep `@lamina/pdf` from leaking or growing without bound in long-lived pages and
   - [ ] The single guard around glue calls; poisoned state; reinstantiate from the cached `Module`
   - [ ] Error mapping to codes
   - [ ] `reset()`
-- [ ] Add codes `disposed`, `wasm-trap`, `out-of-memory` and `instance-reset` (as decided) to `fixtures/codes.json`; regenerate; Rust and TS codes tests pass
+- [ ] Add codes `wasm-trap`, `out-of-memory` and `instance-reset` (as decided) to `fixtures/codes.json` in L1b's format (`disposed` comes from L1b); regenerate; Rust and TS codes tests pass
 - [ ] `tools/xtask` `wasm`: the `--max-memory` link arg (one constant, documented) and the `test-hooks` build variant for tests; a check that the release build has no `__trap`/`__grow` exports
 - [ ] FinalizationRegistry registration and the `onLeak` debug hook
 - [ ] TSDoc on every handle: "use `using`; `free()` is an alias"; README section on memory (bounds, `reset()`, workers)
