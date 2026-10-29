@@ -1,11 +1,15 @@
 //! ADR 0018 tier 6 (pypdf only, B2c): lamina against pypdf over `fixtures/corpus` and its
 //! fixed-seed mutants (`common::mutants`), comparing the open/repair/fail outcome, the page
-//! count and the outline titles with the expectations pypdf produced, precomputed in
-//! `fixtures/differential/expected.json` by `cargo xtask differential --update`. No Python is
-//! needed here.
+//! count and the outline titles with the expectations pypdf produced, precomputed by
+//! `cargo xtask differential [--full] --update`. No Python is needed here.
 //!
-//! A disagreement is either a lamina bug (fix it) or a deliberate difference, listed in
-//! `fixtures/differential/exceptions.toml` with the ADR 0003 rule behind lamina's answer.
+//! Two sets: the fast set (the corpus and four mutants per file; `differential/expected.json`,
+//! `exceptions.toml`) and the full lane's set (`mutants::FULL_PER_FILE` mutants per file;
+//! `differential/full.json`, `full-exceptions.toml`), checked by the ignored test at the end,
+//! which `cargo xtask differential --full` runs (X4).
+//!
+//! A disagreement is either a lamina bug (fix it) or a deliberate difference, listed in the
+//! set's exceptions file with the ADR 0003 rule behind lamina's answer.
 #![allow(
     clippy::unwrap_used,
     clippy::panic,
@@ -16,9 +20,12 @@
 mod common;
 
 use std::collections::BTreeSet;
+use std::sync::OnceLock;
 
-use common::{corpus, fixture, json, mutants, open, outline_titles};
+use common::{fixture, json, mutants, open, outline_titles};
 use serde_json::{Value, json};
+
+const FACTS: [&str; 3] = ["outcome", "page_count", "outline_titles"];
 
 /// lamina's facts about `bytes`, in the shape `expected.json` stores pypdf's, extracted the
 /// same way as `tools/corpus-facts/facts.py` does: the outcome is about opening the file and
@@ -35,58 +42,161 @@ fn ours(bytes: &[u8]) -> Value {
     })
 }
 
-/// `(file, fact)` pairs excused by `exceptions.toml`.
-fn exceptions() -> BTreeSet<(String, String)> {
-    let text = String::from_utf8(fixture("differential/exceptions.toml")).unwrap();
-    let table: toml::Table = text.parse().unwrap();
-    table
-        .get("exception")
-        .and_then(toml::Value::as_array)
-        .map(Vec::as_slice)
-        .unwrap_or_default()
-        .iter()
-        .flat_map(|e| {
-            assert!(
-                e["rule"].as_str().unwrap().starts_with("ADR 0003"),
-                "every exception names its ADR 0003 rule: {e:?}"
-            );
-            assert!(!e["reason"].as_str().unwrap().is_empty(), "{e:?}");
-            let file = e["file"].as_str().unwrap().to_owned();
-            e["facts"]
-                .as_array()
-                .unwrap()
-                .iter()
-                .map(move |f| (file.clone(), f.as_str().unwrap().to_owned()))
-                .collect::<Vec<_>>()
-        })
-        .collect()
+/// The `(file, fact)` pairs an exceptions file excuses. Each entry names one input (`file`)
+/// or several that differ for the same reason (`files`), a non-empty `facts` list, its
+/// ADR 0003 rule and a reason. A pair listed twice is an error: it would hide a stale entry.
+fn parse_exceptions(text: &str) -> Result<BTreeSet<(String, String)>, String> {
+    let table: toml::Table = text.parse().map_err(|e| format!("not TOML: {e}"))?;
+    let entries = match table.get("exception") {
+        None => return Ok(BTreeSet::new()),
+        Some(entries) => entries.as_array().ok_or("`exception` must be an array of tables")?,
+    };
+    let strings = |value: Option<&toml::Value>, key: &str| -> Result<Vec<String>, String> {
+        let list = value
+            .and_then(toml::Value::as_array)
+            .ok_or_else(|| format!("`{key}` must be an array"))?;
+        if list.is_empty() {
+            return Err(format!("`{key}` is empty"));
+        }
+        list.iter()
+            .map(|v| {
+                v.as_str()
+                    .map(str::to_owned)
+                    .ok_or_else(|| format!("`{key}` holds a non-string"))
+            })
+            .collect()
+    };
+    let mut excused = BTreeSet::new();
+    for e in entries {
+        let rule = e.get("rule").and_then(toml::Value::as_str).unwrap_or_default();
+        if !rule.starts_with("ADR 0003") {
+            return Err(format!("every exception names its ADR 0003 rule: {e:?}"));
+        }
+        if e.get("reason")
+            .and_then(toml::Value::as_str)
+            .unwrap_or_default()
+            .is_empty()
+        {
+            return Err(format!("every exception gives a reason: {e:?}"));
+        }
+        let files = match (e.get("file"), e.get("files")) {
+            (Some(file), None) => vec![file.as_str().ok_or("`file` must be a string")?.to_owned()],
+            (None, Some(_)) => strings(e.get("files"), "files")?,
+            _ => return Err(format!("an exception has exactly one of `file` and `files`: {e:?}")),
+        };
+        let facts = strings(e.get("facts"), "facts")?;
+        if let Some(bad) = facts.iter().find(|f| !FACTS.contains(&f.as_str())) {
+            return Err(format!("unknown fact {bad:?}; facts are {FACTS:?}"));
+        }
+        for file in &files {
+            for fact in &facts {
+                if !excused.insert((file.clone(), fact.clone())) {
+                    return Err(format!("{file}: {fact} is excused twice"));
+                }
+            }
+        }
+    }
+    Ok(excused)
 }
 
-fn inputs() -> Vec<(String, Vec<u8>)> {
-    corpus().into_iter().chain(mutants::all()).collect()
+/// What comparing one input set with pypdf's facts found.
+#[derive(Debug, Default)]
+struct Report {
+    /// Inputs without facts, and facts for files that aren't inputs.
+    coverage: Vec<String>,
+    /// Facts on which lamina and pypdf disagree and no exception excuses.
+    failures: Vec<String>,
+    /// Exceptions lamina no longer needs, or for files that aren't inputs.
+    stale: Vec<String>,
+}
+
+/// Compares lamina with `fixtures/<expected>` over `inputs`, excusing what
+/// `fixtures/<exceptions>` lists. One pass: each input is opened once.
+fn compare(expected: &str, exceptions: &str, inputs: &[(String, Vec<u8>)]) -> Report {
+    let facts = json(expected);
+    let facts = facts.as_object().unwrap();
+    let excused = parse_exceptions(&String::from_utf8(fixture(exceptions)).unwrap())
+        .unwrap_or_else(|e| panic!("fixtures/{exceptions}: {e}"));
+    let names: BTreeSet<&String> = inputs.iter().map(|(n, _)| n).collect();
+    let mut report = Report::default();
+    report.coverage.extend(
+        facts
+            .keys()
+            .filter(|k| !names.contains(k))
+            .map(|k| format!("{k}: in fixtures/{expected} but not an input")),
+    );
+    report.stale.extend(
+        excused
+            .iter()
+            .filter(|(file, _)| !names.contains(file))
+            .map(|(file, fact)| format!("{file}: {fact} (not an input)")),
+    );
+    for (name, bytes) in inputs {
+        let Some(theirs) = facts.get(name) else {
+            report
+                .coverage
+                .push(format!("{name}: missing from fixtures/{expected}"));
+            continue;
+        };
+        let ours = ours(bytes);
+        for fact in FACTS {
+            let excuse = excused.contains(&(name.clone(), fact.to_owned()));
+            match (ours[fact] == theirs[fact], excuse) {
+                (false, false) => report.failures.push(format!(
+                    "{name}: {fact}: lamina {} vs pypdf {}",
+                    ours[fact], theirs[fact]
+                )),
+                (true, true) => report.stale.push(format!("{name}: {fact}")),
+                _ => {}
+            }
+        }
+    }
+    report
+}
+
+fn assert_clean(report: &Report, seed: u64, update: &str) {
+    assert!(
+        report.coverage.is_empty(),
+        "rerun `{update}`:\n{}",
+        report.coverage.join("\n")
+    );
+    assert!(
+        report.failures.is_empty(),
+        "mutant seed {seed:#x}; {} disagreements:\n{}",
+        report.failures.len(),
+        report.failures.join("\n")
+    );
+    assert!(
+        report.stale.is_empty(),
+        "exceptions lamina no longer needs: {:?}",
+        report.stale
+    );
+}
+
+/// The fast set's report, computed once for its three tests.
+fn fast() -> &'static Report {
+    static REPORT: OnceLock<Report> = OnceLock::new();
+    REPORT.get_or_init(|| {
+        compare(
+            "differential/expected.json",
+            "differential/exceptions.toml",
+            &mutants::fast_inputs(),
+        )
+    })
+}
+
+#[test]
+fn expectations_cover_exactly_the_inputs() {
+    assert!(
+        fast().coverage.is_empty(),
+        "rerun `cargo xtask differential --update`: {:?}",
+        fast().coverage
+    );
 }
 
 #[test]
 fn lamina_agrees_with_pypdf_except_for_listed_exceptions() {
-    let expected = json("differential/expected.json");
-    let excused = exceptions();
-    let mut failures = Vec::new();
-    for (name, bytes) in inputs() {
-        let theirs = &expected[&name];
-        assert!(
-            theirs.is_object(),
-            "{name} missing from fixtures/differential/expected.json"
-        );
-        let ours = ours(&bytes);
-        for fact in ["outcome", "page_count", "outline_titles"] {
-            if ours[fact] != theirs[fact] && !excused.contains(&(name.clone(), fact.to_owned())) {
-                failures.push(format!(
-                    "{name}: {fact}: lamina {} vs pypdf {}",
-                    ours[fact], theirs[fact]
-                ));
-            }
-        }
-    }
+    let failures = &fast().failures;
     assert!(
         failures.is_empty(),
         "mutant seed {:#x}; {} disagreements:\n{}",
@@ -98,28 +208,54 @@ fn lamina_agrees_with_pypdf_except_for_listed_exceptions() {
 
 #[test]
 fn every_exception_is_still_needed() {
-    let expected = json("differential/expected.json");
-    let excused = exceptions();
-    let mut stale = Vec::new();
-    for (name, bytes) in inputs() {
-        let ours = ours(&bytes);
-        for fact in ["outcome", "page_count", "outline_titles"] {
-            if ours[fact] == expected[&name][fact] && excused.contains(&(name.clone(), fact.to_owned())) {
-                stale.push(format!("{name}: {fact}"));
-            }
-        }
-    }
-    assert!(stale.is_empty(), "exceptions lamina no longer needs: {stale:?}");
+    assert!(
+        fast().stale.is_empty(),
+        "exceptions lamina no longer needs: {:?}",
+        fast().stale
+    );
+}
+
+/// The full lane's set in one test (ignored in the fast lane): coverage, agreement and stale
+/// exceptions, in one pass over its mutants.
+#[test]
+#[ignore = "full lane: run with `cargo xtask differential --full`"]
+fn full_set_agrees_with_pypdf() {
+    let report = compare(
+        "differential/full.json",
+        "differential/full-exceptions.toml",
+        &mutants::full(),
+    );
+    assert_clean(&report, mutants::FULL_SEED, "cargo xtask differential --full --update");
 }
 
 #[test]
-fn expectations_cover_exactly_the_inputs() {
-    let expected = json("differential/expected.json");
-    let listed: BTreeSet<&String> = expected.as_object().unwrap().keys().collect();
-    let names: Vec<String> = inputs().into_iter().map(|(n, _)| n).collect();
-    assert_eq!(
-        listed,
-        names.iter().collect(),
-        "rerun `cargo xtask differential --update`"
-    );
+fn exceptions_name_a_rule_and_a_reason() {
+    let text =
+        "[[exception]]\nfile = \"a.pdf\"\nfacts = [\"outcome\"]\nrule = \"ADR 0003 §1: Repair\"\nreason = \"why\"\n";
+    assert_eq!(parse_exceptions(text).unwrap().len(), 1);
+    assert!(parse_exceptions(&text.replace("ADR 0003", "ADR 0018")).is_err());
+    assert!(parse_exceptions(&text.replace("\"why\"", "\"\"")).is_err());
+}
+
+#[test]
+fn exceptions_reject_empty_lists() {
+    let base = "rule = \"ADR 0003 §1: Repair\"\nreason = \"why\"\n";
+    let no_files = format!("[[exception]]\nfiles = []\nfacts = [\"outcome\"]\n{base}");
+    let no_facts = format!("[[exception]]\nfile = \"a.pdf\"\nfacts = []\n{base}");
+    assert!(parse_exceptions(&no_files).is_err() && parse_exceptions(&no_facts).is_err());
+}
+
+#[test]
+fn exceptions_reject_a_pair_listed_twice() {
+    let entry = "[[exception]]\nfiles = [\"a.pdf\", \"b.pdf\"]\nfacts = [\"outcome\"]\nrule = \"ADR 0003 §1: Repair\"\nreason = \"why\"\n";
+    let twice = format!("{entry}{}", entry.replace("\"a.pdf\", ", ""));
+    assert!(parse_exceptions(&twice).is_err());
+}
+
+#[test]
+fn exceptions_reject_unknown_facts_and_both_file_keys() {
+    let base = "rule = \"ADR 0003 §1: Repair\"\nreason = \"why\"\n";
+    let unknown = format!("[[exception]]\nfile = \"a.pdf\"\nfacts = [\"colour\"]\n{base}");
+    let both = format!("[[exception]]\nfile = \"a.pdf\"\nfiles = [\"b.pdf\"]\nfacts = [\"outcome\"]\n{base}");
+    assert!(parse_exceptions(&unknown).is_err() && parse_exceptions(&both).is_err());
 }

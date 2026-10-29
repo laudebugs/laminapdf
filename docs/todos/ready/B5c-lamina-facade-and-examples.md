@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [pdf-library §7 B5](../../plans/pdf-library.md#b5-builder-and-the-lamina-crate), [§6 docs and examples](../../plans/pdf-library.md#6-docs-examples-and-publishing) |
 | Round / milestone | Round B (library) — M1 |
-| Depends on | [B5b](./B5b-builder-text-and-document-features.md), [X4](../ongoing/X4-full-lane-gate.md) |
+| Depends on | [B5b](./B5b-builder-text-and-document-features.md), [X4](../done/X4-full-lane-gate.md) |
 | Blocks | [B6a](./B6a-lamina-wasm-and-adr-0016.md), [B8a](./B8a-structure-tree.md), [B9b](./B9b-text-extraction-core.md), [L4a](./L4a-lamina-cli.md), [L6a](./L6a-lamina-ffi-spike.md), [E1a](./E1a-editing-foundation-feature-plan.md), [E1b](./E1b-xmp-packet-model.md), [E2e](./E2e-content-append-api.md), [E6b](./E6b-place-images-and-shapes.md) |
 | ADRs | Follows [0005 §1](../../decisions/0005-document-model.md#1-layers) (façade on top), [0018](../../decisions/0018-test-strategy.md) tiers 3 and 8, [0001](../../decisions/0001-core-language-and-licence.md); code-organisation [§4 public API](../../guidelines/code-organization.md#4-public-api-surface-and-stability) |
 | Branch | `feat/b5c-lamina-facade` |
@@ -51,7 +51,7 @@ Give Rust users one crate, `lamina`, whose docs open with the invoice example an
 - [ ] Write the six examples; keep each under ~80 lines
 - [ ] `tools/xtask`: `examples`, `render-golden [--update]`; hayro as an xtask dependency (licence check), pypdfium2 via `tools/render/requirements.txt`
 - [ ] Commit byte goldens and render goldens (PNG size budget: keep low DPI for the PR lane)
-- [ ] Add jobs to the full lane workflow from [X4](../ongoing/X4-full-lane-gate.md): examples + qpdf + render goldens
+- [ ] Add jobs to the full lane workflow from [X4](../done/X4-full-lane-gate.md): examples + qpdf + render goldens
 - [ ] `cargo doc` with `-D missing_docs` for `lamina`
 
 ## Acceptance criteria

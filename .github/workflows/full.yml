@@ -1,0 +1,232 @@
+# CI full lane (ADR 0018 §2, todo X4): every PR and every push to main, next to the fast lane
+# (ci.yml). It always runs, so its required check never waits as "Expected": `changes` decides
+# whether the change touches code (the docs allowlist is defined in tools/xtask/src/changes.rs),
+# the suites run only if it does (pushes to main always count as code), and `gate` — the one
+# check branch protection requires — passes when every suite passed or was not needed. Never add
+# a workflow-level `paths` filter here.
+#
+# Adding a suite (B3c round-trip, B5c render goldens and qpdf, B4b/B5b extraction, B6c
+# runtimes): give the job `needs: changes` (plus `select-runner` if it runs on the preferred
+# runner) and exactly this condition, then add it to `gate`'s `needs`:
+#
+#     if: ${{ !cancelled() && needs.changes.outputs.code == 'true' }}
+#
+# A suite missing from `gate.needs` doesn't block merges.
+#
+# Self-hosted runners (select-runner.yml) are macOS ARM64 machines shared by several runners:
+# jobs on them isolate the Rust install, install pnpm into ${{ runner.temp }}, and use
+# rust-cache only on GitHub-hosted runners (see ci.yml).
+# Actions are pinned by full commit SHA with the release in a comment (ADR 0019).
+name: Full lane
+
+on:
+  pull_request:
+    # `edited` too: retargeting a PR (a new base branch) changes what `changes` diffs against.
+    # A title or body edit also reruns the lane; the result is the same, only slower.
+    types: [opened, synchronize, reopened, edited]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: full-${{ github.event.pull_request.number || github.ref }}
+  # Cancel superseded runs on PRs only; every push to main keeps its own result.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  CARGO_TERM_COLOR: always
+  CARGO_INCREMENTAL: 0
+  # .config/nextest.toml: no retries in the PR lanes (ADR 0018 §4).
+  NEXTEST_PROFILE: ci
+
+jobs:
+  # `code` is exactly "true" or "false": a PR is docs-only when every path changed since the
+  # merge base with its base branch is on the docs allowlist; pushes to main are always code.
+  changes:
+    name: Changed paths
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      code: ${{ steps.pr.outputs.code || steps.push.outputs.code }}
+    steps:
+      - name: Pushes to main run every suite
+        id: push
+        if: github.event_name != 'pull_request'
+        run: echo "code=true" >> "$GITHUB_OUTPUT"
+      - if: github.event_name == 'pull_request'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          # Full history, so the merge base with the base branch is always present.
+          fetch-depth: 0
+      - if: github.event_name == 'pull_request'
+        uses: ./.github/actions/host-rust
+        with:
+          cache: true
+      - name: Classify the changed paths
+        if: github.event_name == 'pull_request'
+        id: pr
+        env:
+          BASE: origin/${{ github.base_ref }}
+        run: cargo xtask changes --base "$BASE"
+
+  # Runs alongside `changes`; on a docs-only PR its answer is simply unused.
+  select-runner:
+    name: Choose CI runner
+    permissions:
+      contents: read
+    uses: ./.github/workflows/select-runner.yml
+    secrets:
+      RUNNER_STATUS_TOKEN: ${{ secrets.RUNNER_STATUS_TOKEN }}
+
+  # The fast lane's `cargo xtask check` on Linux, macOS and Windows, all GitHub-hosted, so the
+  # full lane covers the three OSes whichever runner ci.yml picked.
+  check:
+    name: Fast lane on ${{ matrix.os }}
+    needs: changes
+    if: ${{ !cancelled() && needs.changes.outputs.code == 'true' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      # No `toolchain` input: installs exactly what rust-toolchain.toml pins.
+      - uses: actions-rust-lang/setup-rust-toolchain@ecabd13d1c56bd1345c230e542e9144811ad706f # v2.0.0
+      # Same versions as tools/xtask/src/doctor.rs; xtask fails if they drift.
+      - uses: taiki-e/install-action@86f7a0ffb25f40114606501a311ebcfaf882ea32 # v2.88.0
+        with:
+          tool: cargo-nextest@0.9.150,cargo-deny@0.20.2
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+        with:
+          dest: ${{ runner.temp }}/setup-pnpm
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: cargo xtask check
+
+  # ADR 0018 tier 6: lamina vs pypdf's precomputed facts over the full set, 36 fixed-seed
+  # mutants per corpus file (fixtures/differential/full.json). No Python: the facts are
+  # committed. Runs under nextest's ci profile, so a hang is killed.
+  differential:
+    name: Differential (full mutant set)
+    needs: [changes, select-runner]
+    # !cancelled(): still run if the runner check failed; an empty output falls back to Ubuntu.
+    if: ${{ !cancelled() && needs.changes.outputs.code == 'true' }}
+    runs-on: ${{ fromJSON(needs.select-runner.outputs.runner || '["ubuntu-latest"]') }}
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/isolate-rust-home
+      - uses: actions-rust-lang/setup-rust-toolchain@ecabd13d1c56bd1345c230e542e9144811ad706f # v2.0.0
+        with:
+          # rust-cache's post step on macOS runs `sudo /usr/sbin/purge`, which hangs forever on
+          # self-hosted runners without passwordless sudo.
+          cache: ${{ runner.environment == 'github-hosted' }}
+      # Same version as tools/xtask/src/doctor.rs; xtask fails if it drifts.
+      - uses: taiki-e/install-action@86f7a0ffb25f40114606501a311ebcfaf882ea32 # v2.88.0
+        with:
+          tool: cargo-nextest@0.9.150
+      - run: cargo xtask differential --full
+
+  # ADR 0018 tier 9: every fuzz target for 2 minutes under default Limits (the nightly lane
+  # runs 10). Every run starts from the corpus last saved on main; only pushes to main save
+  # it, minimised first (`cargo fuzz cmin`), so the cache stays one bounded entry per runner OS.
+  fuzz:
+    name: Fuzz smoke (2 min per target)
+    needs: [changes, select-runner]
+    # !cancelled(): still run if the runner check failed; an empty output falls back to Ubuntu.
+    if: ${{ !cancelled() && needs.changes.outputs.code == 'true' }}
+    runs-on: ${{ fromJSON(needs.select-runner.outputs.runner || '["ubuntu-latest"]') }}
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/isolate-rust-home
+      # The pinned stable toolchain (rust-toolchain.toml) builds xtask; fuzz/ needs nightly.
+      - uses: actions-rust-lang/setup-rust-toolchain@ecabd13d1c56bd1345c230e542e9144811ad706f # v2.0.0
+        with:
+          cache: ${{ runner.environment == 'github-hosted' }}
+      - name: Install nightly Rust
+        run: rustup toolchain install nightly --profile minimal
+      # Same version as tools/xtask/src/doctor.rs; xtask fails if it drifts.
+      - uses: taiki-e/install-action@86f7a0ffb25f40114606501a311ebcfaf882ea32 # v2.88.0
+        with:
+          tool: cargo-fuzz@0.13.2
+      - name: Restore the fuzz corpus saved on main
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: fuzz/corpus
+          key: fuzz-corpus-main-${{ runner.os }}-${{ runner.arch }}-${{ github.run_id }}
+          restore-keys: fuzz-corpus-main-${{ runner.os }}-${{ runner.arch }}-
+      # Adds the seeds from fixtures/ and fuzz/seeds/ to the corpus, then runs each target.
+      - run: cargo xtask fuzz --all --time 120
+      - name: Minimise the corpus before saving it
+        if: github.event_name == 'push'
+        run: cargo xtask fuzz cmin
+      - name: Save the fuzz corpus
+        if: github.event_name == 'push'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: fuzz/corpus
+          key: fuzz-corpus-main-${{ runner.os }}-${{ runner.arch }}-${{ github.run_id }}
+      - name: Upload crashes
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: fuzz-artifacts
+          path: fuzz/artifacts/
+          if-no-files-found: ignore
+
+  # The required check. Fails unless `changes` succeeded with `code` exactly "true" or "false";
+  # then every suite must have succeeded (code) or been skipped (docs-only). Any failure,
+  # cancellation, or skip of a suite that should have run fails it.
+  gate:
+    name: gate
+    if: always()
+    needs: [changes, check, differential, fuzz]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check every suite passed or was not needed
+        env:
+          NEEDS: ${{ toJSON(needs) }}
+          CODE: ${{ needs.changes.outputs.code }}
+        run: |
+          set -euo pipefail
+          changes=$(jq -r '.changes.result' <<<"$NEEDS")
+          if [ "$changes" != success ]; then
+            echo "::error::the changes job ended with '$changes'"
+            exit 1
+          fi
+          case "$CODE" in
+            true|false) echo "Suites needed: $CODE" ;;
+            *)
+              echo "::error::the changes job's code output is '$CODE', not true or false"
+              exit 1
+              ;;
+          esac
+          failed=0
+          for job in $(jq -r 'del(.changes) | keys[]' <<<"$NEEDS"); do
+            result=$(jq -r --arg job "$job" '.[$job].result' <<<"$NEEDS")
+            echo "$job: $result"
+            case "$CODE/$result" in
+              true/success | false/skipped) ;;
+              *)
+                echo "::error::$job ended with '$result' (suites needed: $CODE)"
+                failed=1
+                ;;
+            esac
+          done
+          exit "$failed"

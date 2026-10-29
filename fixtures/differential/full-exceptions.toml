@@ -1,0 +1,274 @@
+# Deliberate differences between lamina and pypdf in the full lane's differential set
+# (`cargo xtask differential --full`: 36 mutants per corpus file; ADR 0018 tier 6, ADR 0003 §4).
+# Same rules as exceptions.toml, but each entry lists every mutant (`<stem>-f<i>.pdf`) that
+# differs for the same reason, under `files`; a (file, fact) pair may appear only once.
+# crates/lamina-model/tests/differential.rs skips exactly these and fails on an entry that is
+# no longer needed or names a file that isn't in the set.
+#
+# Grouped by cause; regenerate the expectations (full.json) when the mutants change, then sort
+# the new disagreements into these groups (or fix lamina).
+
+[[exception]]
+files = [
+  "enc-f0.pdf",
+  "enc-f11.pdf",
+  "enc-f12.pdf",
+  "enc-f16.pdf",
+  "enc-f2.pdf",
+  "enc-f20.pdf",
+  "enc-f22.pdf",
+  "enc-f24.pdf",
+  "enc-f27.pdf",
+  "enc-f28.pdf",
+  "enc-f32.pdf",
+  "enc-f4.pdf",
+  "enc-f8.pdf",
+  "fpdf2-f0.pdf",
+  "fpdf2-f1.pdf",
+  "fpdf2-f10.pdf",
+  "fpdf2-f12.pdf",
+  "fpdf2-f13.pdf",
+  "fpdf2-f16.pdf",
+  "fpdf2-f20.pdf",
+  "fpdf2-f24.pdf",
+  "fpdf2-f27.pdf",
+  "fpdf2-f28.pdf",
+  "fpdf2-f30.pdf",
+  "fpdf2-f32.pdf",
+  "fpdf2-f4.pdf",
+  "fpdf2-f8.pdf",
+  "hello-broken-f0.pdf",
+  "hello-broken-f12.pdf",
+  "hello-broken-f16.pdf",
+  "hello-broken-f20.pdf",
+  "hello-broken-f24.pdf",
+  "hello-broken-f28.pdf",
+  "hello-broken-f31.pdf",
+  "hello-broken-f32.pdf",
+  "hello-broken-f34.pdf",
+  "hello-broken-f4.pdf",
+  "hello-broken-f8.pdf",
+  "hello-f0.pdf",
+  "hello-f10.pdf",
+  "hello-f12.pdf",
+  "hello-f16.pdf",
+  "hello-f18.pdf",
+  "hello-f20.pdf",
+  "hello-f22.pdf",
+  "hello-f23.pdf",
+  "hello-f26.pdf",
+  "hello-f27.pdf",
+  "hello-f28.pdf",
+  "hello-f32.pdf",
+  "hello-f4.pdf",
+  "hello-f8.pdf",
+  "hello-incremental-f0.pdf",
+  "hello-incremental-f12.pdf",
+  "hello-incremental-f15.pdf",
+  "hello-incremental-f23.pdf",
+  "hello-incremental-f26.pdf",
+  "hello-incremental-f28.pdf",
+  "hello-incremental-f32.pdf",
+  "hello-incremental-f7.pdf",
+  "hello-xrefstm-f13.pdf",
+  "hello-xrefstm-f2.pdf",
+  "hello-xrefstm-f22.pdf",
+  "hello-xrefstm-f24.pdf",
+  "hello-xrefstm-f28.pdf",
+  "hello-xrefstm-f29.pdf",
+  "hello-xrefstm-f3.pdf",
+  "hello-xrefstm-f35.pdf",
+  "hello-xrefstm-f8.pdf",
+  "hello-xrefstm-f9.pdf",
+  "imaging-demo-f0.pdf",
+  "imaging-demo-f12.pdf",
+  "imaging-demo-f16.pdf",
+  "imaging-demo-f19.pdf",
+  "imaging-demo-f20.pdf",
+  "imaging-demo-f24.pdf",
+  "imaging-demo-f28.pdf",
+  "imaging-demo-f31.pdf",
+  "imaging-demo-f32.pdf",
+  "imaging-demo-f33.pdf",
+  "imaging-demo-f4.pdf",
+  "imaging-demo-f7.pdf",
+  "imaging-demo-f8.pdf",
+  "outline-f0.pdf",
+  "outline-f11.pdf",
+  "outline-f12.pdf",
+  "outline-f16.pdf",
+  "outline-f20.pdf",
+  "outline-f23.pdf",
+  "outline-f24.pdf",
+  "outline-f28.pdf",
+  "outline-f32.pdf",
+  "outline-f34.pdf",
+  "outline-f4.pdf",
+  "outline-f8.pdf",
+  "pdflib-f20.pdf",
+  "pdflib-f22.pdf",
+  "pdflib-f23.pdf",
+  "pdflib-f24.pdf",
+  "pdflib-f28.pdf",
+  "pdflib-f3.pdf",
+  "pdflib-f35.pdf",
+  "raw-f0.pdf",
+  "raw-f11.pdf",
+  "raw-f12.pdf",
+  "raw-f16.pdf",
+  "raw-f20.pdf",
+  "raw-f24.pdf",
+  "raw-f28.pdf",
+  "raw-f32.pdf",
+  "raw-f4.pdf",
+  "raw-f8.pdf",
+  "reportlab-f0.pdf",
+  "reportlab-f12.pdf",
+  "reportlab-f13.pdf",
+  "reportlab-f16.pdf",
+  "reportlab-f20.pdf",
+  "reportlab-f21.pdf",
+  "reportlab-f24.pdf",
+  "reportlab-f28.pdf",
+  "reportlab-f32.pdf",
+  "reportlab-f34.pdf",
+  "reportlab-f4.pdf",
+  "reportlab-f5.pdf",
+  "reportlab-f7.pdf",
+  "reportlab-f8.pdf",
+  "text-example-f0.pdf",
+  "text-example-f12.pdf",
+  "text-example-f16.pdf",
+  "text-example-f20.pdf",
+  "text-example-f24.pdf",
+  "text-example-f28.pdf",
+  "text-example-f31.pdf",
+  "text-example-f32.pdf",
+  "text-example-f4.pdf",
+  "text-example-f8.pdf",
+]
+facts = ["outcome", "page_count", "outline_titles"]
+rule = "ADR 0003 §1: Repair"
+reason = "the mutation breaks the stored xref (a truncated file, a shifted or damaged table or trailer); lamina rebuilds it by scanning object headers and reads the document, pypdf gives up"
+
+[[exception]]
+files = [
+  "enc-f10.pdf",
+  "hello-f24.pdf",
+  "hello-incremental-f33.pdf",
+  "pdflib-f1.pdf",
+  "raw-f21.pdf",
+  "raw-f5.pdf",
+]
+facts = ["outcome", "page_count", "outline_titles"]
+rule = "ADR 0003 §1: Stored xref"
+reason = "lamina's stored-xref checks still pass (a missing %%EOF is not required, and xref rows shifted by a byte are read token by token) and any damaged page-tree node is skipped (page-tree-node-skipped), so it opens without repair; pypdf gives up"
+
+[[exception]]
+files = [
+  "enc-f1.pdf",
+  "enc-f13.pdf",
+  "enc-f17.pdf",
+  "fpdf2-f21.pdf",
+  "fpdf2-f25.pdf",
+  "fpdf2-f29.pdf",
+  "fpdf2-f31.pdf",
+  "fpdf2-f35.pdf",
+  "fpdf2-f9.pdf",
+  "hello-f1.pdf",
+  "hello-f17.pdf",
+  "hello-incremental-f27.pdf",
+  "hello-incremental-f31.pdf",
+  "imaging-demo-f13.pdf",
+  "outline-f19.pdf",
+  "raw-f17.pdf",
+  "raw-f25.pdf",
+  "reportlab-f1.pdf",
+  "reportlab-f25.pdf",
+  "reportlab-f9.pdf",
+  "tampered-f19.pdf",
+]
+facts = ["outcome"]
+rule = "ADR 0003 §1: Stored xref"
+reason = "an xref entry no longer points at its `num gen obj` header; lamina distrusts the whole table and repairs (xref-repaired), pypdf fixes up the entry without a cross-reference warning, so its outcome stays opened"
+
+[[exception]]
+files = [
+  "fpdf2-f17.pdf",
+  "fpdf2-f34.pdf",
+]
+facts = ["outcome"]
+rule = "ADR 0003 §1: Stored xref"
+reason = "lamina's checks pass: /Root resolves to a dictionary (its /Type is not required) and xref rows read token by token still point at their objects; pypdf warns about the trailer /Root or a fixed-width xref row and reports a repair"
+
+[[exception]]
+files = [
+  "fpdf2-f19.pdf",
+  "text-example-f33.pdf",
+]
+facts = ["outcome", "page_count", "outline_titles"]
+rule = "ADR 0003 §1: Rejected (no catalog even after repair)"
+reason = "the catalog no longer parses; lamina fails with missing-root, pypdf recovers a partial catalog"
+
+[[exception]]
+files = [
+  "enc-f19.pdf",
+  "enc-f5.pdf",
+]
+facts = ["outcome", "page_count", "outline_titles"]
+rule = "ADR 0003 §1: Rejected (a malformed object is an error for the call that resolves it)"
+reason = "the damage is inside the /Encrypt dictionary, which open must read to decrypt the file; lamina fails with a syntax error, pypdf recovers a partial dictionary"
+
+[[exception]]
+files = [
+  "enc-f17.pdf",
+  "enc-f30.pdf",
+  "fpdf2-f25.pdf",
+  "fpdf2-f33.pdf",
+  "hello-broken-f1.pdf",
+  "hello-broken-f11.pdf",
+  "hello-broken-f33.pdf",
+  "hello-broken-f5.pdf",
+  "hello-broken-f7.pdf",
+  "hello-broken-f9.pdf",
+  "hello-f1.pdf",
+  "hello-f19.pdf",
+  "hello-f21.pdf",
+  "hello-f29.pdf",
+  "hello-f33.pdf",
+  "hello-f5.pdf",
+  "hello-incremental-f10.pdf",
+  "hello-incremental-f14.pdf",
+  "hello-incremental-f17.pdf",
+  "hello-incremental-f25.pdf",
+  "hello-incremental-f5.pdf",
+  "imaging-demo-f1.pdf",
+  "imaging-demo-f14.pdf",
+  "imaging-demo-f2.pdf",
+  "imaging-demo-f35.pdf",
+  "outline-f1.pdf",
+  "raw-f15.pdf",
+  "raw-f19.pdf",
+  "raw-f26.pdf",
+  "raw-f3.pdf",
+  "raw-f9.pdf",
+  "reportlab-f2.pdf",
+  "reportlab-f31.pdf",
+  "reportlab-f35.pdf",
+]
+facts = ["page_count"]
+rule = "ADR 0003 §1: Page tree"
+reason = "the mutation leaves a page or tree node unparsable or not a dictionary; lamina's walk skips it (page-tree-node-skipped), pypdf still counts it"
+
+[[exception]]
+files = [
+  "outline-f22.pdf",
+  "outline-f29.pdf",
+  "outline-f30.pdf",
+  "outline-f33.pdf",
+  "outline-f6.pdf",
+  "outline-f9.pdf",
+]
+facts = ["outline_titles"]
+rule = "ADR 0003 §2: outline-item-skipped"
+reason = "the mutation damages an outline item or the link to it; lamina skips the item and its subtree (outline-item-skipped), pypdf still lists it (sometimes with an empty title)"
