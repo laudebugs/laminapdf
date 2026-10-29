@@ -21,6 +21,7 @@ RFC 3161 timestamp tokens as CMS unsigned attributes (PAdES B-T) and document ti
 
 ## Context
 
+- **Design (Paper):** [G02 Sign with a certificate](../../design/paper/sign-protect-redact.md#g02-sign-with-a-certificate). Build to match these screens; record any deviation in the area document ([Paper design plan §5](../../plans/paper-design.md#5-how-the-designs-are-used)).
 - ADR 0020
 - [04 §8.4 SubFilters](../../research/pdf/04-interactive-security.md#84-subfilters)
 - [04 §8.5 PAdES baseline levels](../../research/pdf/04-interactive-security.md#85-pades-baseline-levels-etsi-en-319-142-1-current-v121-2024-01): DSS and document timestamps are ignored for DocMDP at every `P`

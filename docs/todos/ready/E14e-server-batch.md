@@ -20,6 +20,7 @@ Run saved op sequences on the server for many files (Worker running `lamina-wasm
 
 ## Context
 
+- **Design (Paper):** [X05 Batch runner](../../design/paper/convert-compare-produce.md#x05-batch-runner). Build to match these screens; record any deviation in the area document ([Paper design plan §5](../../plans/paper-design.md#5-how-the-designs-are-used)).
 - ADR 0013
 - [full-editor: server features](../../plans/full-editor.md#optional-cloudflare-server-features)
 

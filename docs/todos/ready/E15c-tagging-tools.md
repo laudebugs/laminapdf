@@ -20,6 +20,7 @@ Tools that make tagging practical: select content and tag as H1–H6/P/L/LI/Tabl
 
 ## Context
 
+- **Design (Paper):** [X07 Tags and reading order](../../design/paper/convert-compare-produce.md#x07-tags-and-reading-order). Build to match these screens; record any deviation in the area document ([Paper design plan §5](../../plans/paper-design.md#5-how-the-designs-are-used)).
 - [03 §9.3 Language, alt text, reading order](../../research/pdf/03-text-and-fonts.md#93-language-alt-text-reading-order)
 
 ## Scope

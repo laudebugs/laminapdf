@@ -20,6 +20,7 @@ Merge whole documents with the hard parts done: outlines appended as subtrees, n
 
 ## Context
 
+- **Design (Paper):** [O07 Insert pages and merge documents](../../design/paper/edit-session-organise.md#o07-insert-pages-and-merge-documents), [O08 Split document](../../design/paper/edit-session-organise.md#o08-split-document). Build to match these screens; record any deviation in the area document ([Paper design plan §5](../../plans/paper-design.md#5-how-the-designs-are-used)).
 - [05 §3.1 Merge and split](../../research/pdf/05-creating-pdfs-from-code.md#31-merge-and-split)
 - [03 §9 Tagged PDF](../../research/pdf/03-text-and-fonts.md#9-tagged-pdf--logical-structure-147149): ParentTree and MCIDs
 - [04 §3 Forms](../../research/pdf/04-interactive-security.md#3-forms): field tree and fully qualified names

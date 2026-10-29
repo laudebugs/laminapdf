@@ -20,6 +20,7 @@ Edit existing paths (points, fill/stroke colour, width, dash), edit or remove cl
 
 ## Context
 
+- **Design (Paper):** [A05 Select and transform existing objects](../../design/paper/add-edit-content.md#a05-select-and-transform-existing-objects). Build to match these screens; record any deviation in the area document ([Paper design plan §5](../../plans/paper-design.md#5-how-the-designs-are-used)).
 - [02 §5 Paths](../../research/pdf/02-imaging-model.md#5-paths)
 - [02 §7.2 Masking](../../research/pdf/02-imaging-model.md#72-masking)
 

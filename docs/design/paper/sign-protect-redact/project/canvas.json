@@ -1,0 +1,277 @@
+{
+  "v": 3,
+  "createdOnFiles": {
+    "v": 1,
+    "at": "2026-10-29T16:20:00Z"
+  },
+  "title": "lamina Paper — Sign, protect and redact",
+  "launch": {
+    "view": "canvas"
+  },
+  "pages": [],
+  "boards": {
+    "G01-sign-choice.dc.html": {
+      "x": 0,
+      "y": 0,
+      "w": 1440,
+      "h": 900,
+      "title": "G01 · Web · Fill & Sign, signature field: two named actions",
+      "expand": "fill"
+    },
+    "G01-signature-image.dc.html": {
+      "x": 1520,
+      "y": 0,
+      "w": 1440,
+      "h": 900,
+      "title": "G01 · Web · Add a signature image: draw",
+      "expand": "fill"
+    },
+    "G01-signature-image-placed.dc.html": {
+      "x": 3040,
+      "y": 0,
+      "w": 1440,
+      "h": 900,
+      "title": "G01 · Web · Signature image placed, inspector",
+      "expand": "fill"
+    },
+    "G01-signature-image-phone.dc.html": {
+      "x": 4560,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "G01 · Phone · Add a signature image: type"
+    },
+    "G02-sign-certificate.dc.html": {
+      "x": 0,
+      "y": 1020,
+      "w": 1440,
+      "h": 940,
+      "title": "G02 · Desktop · Sign with a certificate",
+      "expand": "fill"
+    },
+    "G03-certify.dc.html": {
+      "x": 0,
+      "y": 2080,
+      "w": 1440,
+      "h": 940,
+      "title": "G03 · Desktop · Certify and lock",
+      "expand": "fill"
+    },
+    "G04-signatures-panel.dc.html": {
+      "x": 0,
+      "y": 3140,
+      "w": 1440,
+      "h": 900,
+      "title": "G04 · Web · Validation badge and Signatures panel",
+      "expand": "fill"
+    },
+    "G04-certificate-viewer.dc.html": {
+      "x": 1520,
+      "y": 3140,
+      "w": 1440,
+      "h": 900,
+      "title": "G04 · Web · Certificate details",
+      "expand": "fill"
+    },
+    "G05-revision-diff.dc.html": {
+      "x": 0,
+      "y": 4160,
+      "w": 1440,
+      "h": 940,
+      "title": "G05 · Desktop · Changes after signing, attack warning",
+      "expand": "fill"
+    },
+    "G06-protect.dc.html": {
+      "x": 0,
+      "y": 5220,
+      "w": 1440,
+      "h": 940,
+      "title": "G06 · Desktop · Protect with a password",
+      "expand": "fill"
+    },
+    "G06-remove-security.dc.html": {
+      "x": 1520,
+      "y": 5220,
+      "w": 1440,
+      "h": 940,
+      "title": "G06 · Desktop · Remove security",
+      "expand": "fill"
+    },
+    "G06-public-key.dc.html": {
+      "x": 3040,
+      "y": 5220,
+      "w": 1440,
+      "h": 940,
+      "title": "G06 · Desktop · Protect with certificates",
+      "expand": "fill"
+    },
+    "G07-sanitise.dc.html": {
+      "x": 0,
+      "y": 6280,
+      "w": 1440,
+      "h": 940,
+      "title": "G07 · Desktop · Sanitise: what will be removed",
+      "expand": "fill"
+    },
+    "G07-sanitise-report.dc.html": {
+      "x": 1520,
+      "y": 6280,
+      "w": 1440,
+      "h": 940,
+      "title": "G07 · Desktop · Sanitise report",
+      "expand": "fill"
+    },
+    "G08-redact-mode.dc.html": {
+      "x": 0,
+      "y": 7340,
+      "w": 1440,
+      "h": 940,
+      "title": "G08 · Desktop · Redact: mark and review",
+      "expand": "fill"
+    },
+    "G09-sensitive-search.dc.html": {
+      "x": 0,
+      "y": 8400,
+      "w": 1440,
+      "h": 940,
+      "title": "G09 · Desktop · Find sensitive content",
+      "expand": "fill"
+    },
+    "G10-apply-confirm.dc.html": {
+      "x": 0,
+      "y": 9460,
+      "w": 1440,
+      "h": 940,
+      "title": "G10 · Desktop · Apply redactions: confirm",
+      "expand": "fill"
+    },
+    "G10-verification-report.dc.html": {
+      "x": 1520,
+      "y": 9460,
+      "w": 1440,
+      "h": 940,
+      "title": "G10 · Desktop · Verification report, save blocked",
+      "expand": "fill"
+    },
+    "G11-phone-sign-sheet.dc.html": {
+      "x": 0,
+      "y": 10520,
+      "w": 390,
+      "h": 844,
+      "title": "G11 · Phone · Sign sheet"
+    },
+    "G11-phone-sign-place.dc.html": {
+      "x": 470,
+      "y": 10520,
+      "w": 390,
+      "h": 844,
+      "title": "G11 · Phone · Place and save"
+    },
+    "G02-timestamp-web.dc.html": {
+      "x": 1520,
+      "y": 1020,
+      "w": 640,
+      "h": 760,
+      "title": "G02 · Web · Trusted timestamp: proxy opt-in"
+    }
+  },
+  "order": [
+    "G01-sign-choice.dc.html",
+    "G01-signature-image.dc.html",
+    "G01-signature-image-placed.dc.html",
+    "G01-signature-image-phone.dc.html",
+    "G02-sign-certificate.dc.html",
+    "G02-timestamp-web.dc.html",
+    "G03-certify.dc.html",
+    "G04-signatures-panel.dc.html",
+    "G04-certificate-viewer.dc.html",
+    "G05-revision-diff.dc.html",
+    "G06-protect.dc.html",
+    "G06-remove-security.dc.html",
+    "G06-public-key.dc.html",
+    "G07-sanitise.dc.html",
+    "G07-sanitise-report.dc.html",
+    "G08-redact-mode.dc.html",
+    "G09-sensitive-search.dc.html",
+    "G10-apply-confirm.dc.html",
+    "G10-verification-report.dc.html",
+    "G11-phone-sign-sheet.dc.html",
+    "G11-phone-sign-place.dc.html"
+  ],
+  "notes": {
+    "area": {
+      "x": 0,
+      "y": -300,
+      "text": "lamina Paper — Sign, protect and redact",
+      "kind": "title1",
+      "maxW": 4950
+    },
+    "g01": {
+      "x": -440,
+      "y": 0,
+      "w": 360,
+      "text": "G01 Add a signature image\nPurpose: put a picture of a signature on the page (draw, type, upload), clearly separate from a certificate signature.\nStates: signature field menu with the two named actions · capture dialog (draw / type / upload, empty and filled) · placed and selected with inspector · phone capture sheet.\nTodos: E10c, E10j"
+    },
+    "g02": {
+      "x": -440,
+      "y": 1020,
+      "w": 360,
+      "text": "G02 Sign with a certificate\nPurpose: sign with a certificate from a file, the platform keychain or a smart card, with reason, appearance and a trusted timestamp.\nStates: identity chosen · no identity yet · token PIN · signing · signed and saved · web: timestamp proxy opt-in (second board).\nTodos: E10j, E10i, E10e"
+    },
+    "g03": {
+      "x": -440,
+      "y": 2080,
+      "w": 360,
+      "text": "G03 Certify and lock\nPurpose: certify as the first signature, choose which changes stay allowed (DocMDP) and lock fields (FieldMDP).\nStates: unsigned file (allowed) · already signed (certify unavailable, reason shown).\nTodos: E10f"
+    },
+    "g04": {
+      "x": -440,
+      "y": 3140,
+      "w": 360,
+      "text": "G04 Signature validation\nPurpose: show on open whether signatures are valid, and explain each one in the Signatures panel.\nStates: valid · signer not trusted · changed after signing (allowed) · checking · revocation not reachable · certificate details.\nTodos: E10g"
+    },
+    "g05": {
+      "x": -440,
+      "y": 4160,
+      "w": 360,
+      "text": "G05 Revision diff and attack warnings\nPurpose: show what changed after a signature, side by side, and warn when a change is not allowed or hides content.\nStates: allowed changes only · disallowed change (shadow attack) · overlay over content · cannot compare.\nTodos: E10h"
+    },
+    "g06": {
+      "x": -440,
+      "y": 5220,
+      "w": 360,
+      "text": "G06 Protect\nPurpose: encrypt with AES-256, set open and permissions passwords, remove security, or protect for certificate holders.\nStates: password protect (signed-file conflict shown) · remove security (wrong password) · certificates (experimental).\nTodos: E11b, E11c, E11e"
+    },
+    "g07": {
+      "x": -440,
+      "y": 6280,
+      "w": 360,
+      "text": "G07 Sanitise\nPurpose: remove hidden information by category, with counts before and a report after.\nStates: scanning · categories found · nothing to remove · report with each removed item.\nTodos: E11d"
+    },
+    "g08": {
+      "x": -440,
+      "y": 7340,
+      "w": 360,
+      "text": "G08 Redact mode: mark and review\nPurpose: mark text and areas for redaction, review each mark, preview the result; nothing is removed yet.\nStates: marks pending, accepted, rejected · preview on (tweak) · no marks.\nTodos: E12b"
+    },
+    "g09": {
+      "x": -440,
+      "y": 8400,
+      "w": 360,
+      "text": "G09 Find sensitive content\nPurpose: find emails, phone numbers, card numbers, IDs or a regex across every layer and mark them.\nStates: results (phone numbers left unticked, so they stay in this copy) · no matches · invalid regex · OCR text not available.\nTodos: E12e"
+    },
+    "g10": {
+      "x": -440,
+      "y": 9460,
+      "w": 360,
+      "text": "G10 Apply redactions\nPurpose: confirm what applying does, then prove it with a per-layer verification report; saving stays blocked while a leak remains.\nStates: confirm (accepted marks only; marks to review left as they are; signatures named) · checking · leak found, save blocked · all checks passed.\nTodos: E12c, E12d"
+    },
+    "g11": {
+      "x": -440,
+      "y": 10520,
+      "w": 360,
+      "text": "G11 Phone: sign a document\nPurpose: choose or make a signature image (or start a certificate signature), place it on the page and save.\nStates: sign sheet with saved signatures · placing with handles · saved.\nTodos: E10j"
+    }
+  },
+  "designSystems": []
+}

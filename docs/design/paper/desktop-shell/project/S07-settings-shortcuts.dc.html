@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>lamina desktop, settings, shortcuts section</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&amp;family=Source+Sans+3:wght@400;500;600&amp;family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&amp;display=swap">
+<style>
+body{margin:0;background:#DCD6CB}
+a{color:#1F5C63}a:hover{color:#16454B}
+button,input,textarea,select{font:inherit;color:inherit}
+</style>
+</helmet>
+<div style="min-height: 100vh; display: flex; justify-content: center; align-items: flex-start; box-sizing: border-box; padding: 32px 16px; background: #DCD6CB; font-family: 'Source Sans 3', 'Segoe UI', system-ui, sans-serif; font-size: 14px; line-height: 1.4; color: #1F1D1A">
+<div style="width: 100%; max-width: 880px; min-height: 640px; display: flex; flex-direction: column; background: #F7F4EE; border: 1px solid #C9C2B6; border-radius: 10px; overflow: hidden; box-sizing: border-box; box-shadow: 0 18px 48px rgba(31,29,26,0.22)">
+
+  <div style="height: 30px; flex: 0 0 auto; display: flex; align-items: center; padding: 0 12px; background: #EFEBE3; border-bottom: 1px solid #E0D9CD; position: relative">
+    <div aria-hidden="true" style="display: flex; gap: 8px">
+      <span style="width: 12px; height: 12px; border-radius: 50%; background: #EC6A5E; border: 0.5px solid #D2574C"></span>
+      <span style="width: 12px; height: 12px; border-radius: 50%; background: #F4BF4F; border: 0.5px solid #D9A63A"></span>
+      <span style="width: 12px; height: 12px; border-radius: 50%; background: #61C554; border: 0.5px solid #4CAA40"></span>
+    </div>
+    <div style="position: absolute; left: 0; right: 0; text-align: center; font-size: 13px; font-weight: 600; color: #3A3631; pointer-events: none">Settings</div>
+  </div>
+
+  <div style="flex: 1 1 auto; display: flex; flex-wrap: wrap">
+    <nav aria-label="Settings sections" style="flex: 0 0 200px; box-sizing: border-box; border-right: 1px solid #E4DED3; padding: 16px 10px; display: flex; flex-direction: column; gap: 2px">
+      <a href="#" style="height: 32px; display: flex; align-items: center; padding: 0 10px; border-radius: 4px; color: #1F1D1A; text-decoration: none">General</a>
+      <a href="#" style="height: 32px; display: flex; align-items: center; padding: 0 10px; border-radius: 4px; color: #1F1D1A; text-decoration: none">Appearance</a>
+      <a href="#" style="height: 32px; display: flex; align-items: center; padding: 0 10px; border-radius: 4px; color: #1F1D1A; text-decoration: none">Updates</a>
+      <a href="#" style="height: 32px; display: flex; align-items: center; padding: 0 10px; border-radius: 4px; color: #1F1D1A; text-decoration: none">Privacy</a>
+      <a href="#" aria-current="page" style="height: 32px; display: flex; align-items: center; padding: 0 10px; border-radius: 4px; color: #1F5C63; background: #E1E6E3; font-weight: 600; text-decoration: none">Shortcuts</a>
+      <a href="#" style="height: 32px; display: flex; align-items: center; padding: 0 10px; border-radius: 4px; color: #1F1D1A; text-decoration: none">Licence</a>
+      <a href="#" style="height: 32px; display: flex; align-items: center; padding: 0 10px; border-radius: 4px; color: #1F1D1A; text-decoration: none">Account and plan</a>
+      <a href="#" style="height: 32px; display: flex; align-items: center; padding: 0 10px; border-radius: 4px; color: #1F1D1A; text-decoration: none">Notifications</a>
+      <a href="#" style="height: 32px; display: flex; align-items: center; padding: 0 10px; border-radius: 4px; color: #1F1D1A; text-decoration: none">Advanced</a>
+      <a href="#" style="height: 32px; display: flex; align-items: center; padding: 0 10px; border-radius: 4px; color: #1F1D1A; text-decoration: none">About</a>
+    </nav>
+
+    <main style="flex: 999 1 480px; min-width: 0; box-sizing: border-box; background: #FBF9F5; padding: 28px 32px 32px; display: flex; flex-direction: column; gap: 22px">
+      <h1 style="margin: 0; font-family: 'Newsreader', Georgia, serif; font-size: 20px; line-height: 24px; font-weight: 500">Shortcuts</h1>
+
+      <div style="display: flex; justify-content: space-between; align-items: center; gap: 24px; padding-bottom: 14px; border-bottom: 1px solid #E4DED3">
+        <div style="display: flex; flex-direction: column; gap: 2px">
+          <span id="sw-single">Single-key shortcuts</span>
+          <span id="sw-single-d" style="font-size: 12px; color: #6B645A; max-width: 460px">Keys such as R for Reader mode work while the page has focus, never while you type. Turn them off if you use speech input or stray key presses trigger them.</span>
+        </div>
+        <button role="switch" aria-checked="true" aria-labelledby="sw-single" aria-describedby="sw-single-d" style="flex: 0 0 auto; width: 32px; height: 18px; padding: 0; border: 1px solid #1F5C63; border-radius: 9px; background: #1F5C63; position: relative"><span style="position: absolute; top: 2px; right: 2px; width: 12px; height: 12px; border-radius: 50%; background: #FFFFFF"></span></button>
+      </div>
+
+      <section aria-labelledby="s-list" style="display: flex; flex-direction: column; gap: 12px">
+        <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px">
+          <div style="display: flex; flex-direction: column; gap: 2px">
+            <h2 id="s-list" style="margin: 0; font-family: 'Newsreader', Georgia, serif; font-size: 18px; line-height: 24px; font-weight: 500">Keyboard shortcuts</h2>
+            <span style="font-size: 12px; color: #6B645A">The same keys work in the menus, the command palette and help.</span>
+          </div>
+          <div style="display: flex; align-items: center; gap: 8px; height: 32px; padding: 0 10px; box-sizing: border-box; width: 220px; border: 1px solid #8A8174; border-radius: 4px; background: #FFFFFF; outline: 2px solid #1F5C63; outline-offset: 1px">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6B645A" stroke-width="1.5" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6"></circle><path d="M15 15l5 5"></path></svg>
+            <label for="sc-q" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Filter shortcuts</label>
+            <input id="sc-q" placeholder="Filter shortcuts" style="flex: 1 1 auto; min-width: 0; border: 0; outline: 0; background: transparent; font-size: 14px">
+          </div>
+        </div>
+
+        <div style="max-height: 420px; overflow: auto; border-top: 1px solid #E4DED3">
+          <table style="width: 100%; border-collapse: collapse; font-size: 14px">
+            <caption style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Keyboard shortcuts on macOS</caption>
+            <thead>
+              <tr><th scope="col" style="text-align: left; padding: 8px 0 0; font-size: 12px; font-weight: 600; color: #4A453E">Command</th><th scope="col" style="text-align: right; padding: 8px 0 0; font-size: 12px; font-weight: 600; color: #4A453E">Shortcut</th></tr>
+            </thead>
+            <tbody>
+              <tr><th colspan="2" scope="rowgroup" style="text-align: left; padding: 12px 0 4px; font-size: 11px; font-weight: 400; letter-spacing: 0.06em; text-transform: uppercase; color: #6B645A">File</th></tr>
+              <tr style="border-top: 1px solid #E4DED3"><td style="padding: 6px 0">Open…</td><td style="text-align: right"><span style="font-size: 12px; padding: 1px 6px; border: 1px solid #D8D1C5; border-radius: 3px; background: #FFFFFF; color: #4A453E">⌘O</span></td></tr>
+              <tr style="border-top: 1px solid #E4DED3"><td style="padding: 6px 0">New window</td><td style="text-align: right"><span style="font-size: 12px; padding: 1px 6px; border: 1px solid #D8D1C5; border-radius: 3px; background: #FFFFFF; color: #4A453E">⇧⌘N</span></td></tr>
+              <tr style="border-top: 1px solid #E4DED3"><td style="padding: 6px 0">Close tab</td><td style="text-align: right"><span style="font-size: 12px; padding: 1px 6px; border: 1px solid #D8D1C5; border-radius: 3px; background: #FFFFFF; color: #4A453E">⌘W</span></td></tr>
+              <tr style="border-top: 1px solid #E4DED3"><td style="padding: 6px 0">Print…</td><td style="text-align: right"><span style="font-size: 12px; padding: 1px 6px; border: 1px solid #D8D1C5; border-radius: 3px; background: #FFFFFF; color: #4A453E">⌘P</span></td></tr>
+              <tr style="border-top: 1px solid #E4DED3"><td style="padding: 6px 0">Settings…</td><td style="text-align: right"><span style="font-size: 12px; padding: 1px 6px; border: 1px solid #D8D1C5; border-radius: 3px; background: #FFFFFF; color: #4A453E">⌘,</span></td></tr>
+            </tbody>
+            <tbody>
+              <tr><th colspan="2" scope="rowgroup" style="text-align: left; padding: 16px 0 4px; font-size: 11px; font-weight: 400; letter-spacing: 0.06em; text-transform: uppercase; color: #6B645A">View and tabs</th></tr>
+              <tr style="border-top: 1px solid #E4DED3"><td style="padding: 6px 0">Commands</td><td style="text-align: right"><span style="font-size: 12px; padding: 1px 6px; border: 1px solid #D8D1C5; border-radius: 3px; background: #FFFFFF; color: #4A453E">⌘K</span></td></tr>
+              <tr style="border-top: 1px solid #E4DED3"><td style="padding: 6px 0">Zoom in</td><td style="text-align: right"><span style="font-size: 12px; padding: 1px 6px; border: 1px solid #D8D1C5; border-radius: 3px; background: #FFFFFF; color: #4A453E">⌘+</span></td></tr>
+              <tr style="border-top: 1px solid #E4DED3"><td style="padding: 6px 0">Focus mode</td><td style="text-align: right"><span style="font-size: 12px; padding: 1px 6px; border: 1px solid #D8D1C5; border-radius: 3px; background: #FFFFFF; color: #4A453E">⌘\</span></td></tr>
+              <tr style="border-top: 1px solid #E4DED3"><td style="padding: 6px 0">Next tab</td><td style="text-align: right"><span style="font-size: 12px; padding: 1px 6px; border: 1px solid #D8D1C5; border-radius: 3px; background: #FFFFFF; color: #4A453E">⌃Tab</span> <span style="font-size: 12px; padding: 1px 6px; border: 1px solid #D8D1C5; border-radius: 3px; background: #FFFFFF; color: #4A453E">⇧⌘]</span></td></tr>
+            </tbody>
+            <tbody>
+              <tr><th colspan="2" scope="rowgroup" style="text-align: left; padding: 16px 0 4px; font-size: 11px; font-weight: 400; letter-spacing: 0.06em; text-transform: uppercase; color: #6B645A">Help</th></tr>
+              <tr style="border-top: 1px solid #E4DED3"><td style="padding: 6px 0">Keyboard shortcuts</td><td style="text-align: right"><span style="font-size: 12px; padding: 1px 6px; border: 1px solid #D8D1C5; border-radius: 3px; background: #FFFFFF; color: #4A453E">F1</span></td></tr>
+            </tbody>
+            <tbody>
+              <tr><th colspan="2" scope="rowgroup" style="text-align: left; padding: 16px 0 4px; font-size: 11px; font-weight: 400; letter-spacing: 0.06em; text-transform: uppercase; color: #6B645A">Single keys · page has focus</th></tr>
+              <tr style="border-top: 1px solid #E4DED3"><td style="padding: 6px 0">Reader mode (Read mode)</td><td style="text-align: right"><span style="font-size: 12px; padding: 1px 6px; border: 1px solid #D8D1C5; border-radius: 3px; background: #FFFFFF; color: #4A453E">R</span></td></tr>
+              <tr style="border-top: 1px solid #E4DED3"><td style="padding: 6px 0">Keyboard shortcuts</td><td style="text-align: right"><span style="font-size: 12px; padding: 1px 6px; border: 1px solid #D8D1C5; border-radius: 3px; background: #FFFFFF; color: #4A453E">?</span></td></tr>
+              <tr style="border-top: 1px solid #E4DED3"><td style="padding: 6px 0">Zoom in</td><td style="text-align: right"><span style="font-size: 12px; padding: 1px 6px; border: 1px solid #D8D1C5; border-radius: 3px; background: #FFFFFF; color: #4A453E">+</span></td></tr>
+              <tr style="border-top: 1px solid #E4DED3"><td style="padding: 6px 0">Zoom out</td><td style="text-align: right"><span style="font-size: 12px; padding: 1px 6px; border: 1px solid #D8D1C5; border-radius: 3px; background: #FFFFFF; color: #4A453E">−</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+  </div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

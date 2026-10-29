@@ -20,6 +20,7 @@ Prove, across all E2 ops, that signed documents are protected exactly as ADR 000
 
 ## Context
 
+- **Design (Paper):** [O03 Close with unsaved changes](../../design/paper/edit-session-organise.md#o03-close-with-unsaved-changes). Build to match these screens; record any deviation in the area document ([Paper design plan §5](../../plans/paper-design.md#5-how-the-designs-are-used)).
 - [ADR 0007](../../decisions/0007-save-planner.md) §2–§3
 - [04 §8.6 Certification vs approval; MDP](../../research/pdf/04-interactive-security.md#86-certification-vs-approval-signatures-mdp)
 - [full-editor §E2](../../plans/full-editor.md#e2-page-organisation) save rules

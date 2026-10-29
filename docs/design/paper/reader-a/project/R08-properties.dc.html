@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>lamina, document properties</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&amp;family=Source+Sans+3:wght@400;500;600&amp;family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&amp;display=swap">
+<style>
+body{margin:0;background:#F7F4EE}
+a{color:#1F5C63}a:hover{color:#16454B}
+button,input,textarea{font:inherit;color:inherit}
+</style>
+</helmet>
+<div style="position: relative; min-height: 100vh; display: flex; flex-direction: column; background: #F7F4EE; color: #1F1D1A; font-family: 'Source Sans 3', 'Segoe UI', system-ui, sans-serif; font-size: 14px; line-height: 1.4">
+
+  <div aria-hidden="true" style="flex: 1 1 auto; display: flex; flex-direction: column">
+    <header style="min-height: 40px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 20px; padding: 0 16px; border-bottom: 1px solid #E4DED3; background: #F7F4EE">
+    <div style="display: flex; align-items: center; gap: 10px; flex: 1 1 220px; min-width: 0">
+      <button aria-label="Sidebar" aria-pressed="false" style="width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 4px; color: #4A453E"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="3.5" y="4.5" width="17" height="15" rx="1.5"></rect><path d="M9 4.5v15"></path></svg></button>
+      <div style="display: flex; align-items: baseline; gap: 8px; min-width: 0">
+        <span style="font-family: 'Newsreader', Georgia, serif; font-size: 16px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">Q3-board-report.pdf</span>
+      </div>
+    </div>
+    <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 8px 14px; flex: 1 1 220px">
+      <div role="group" aria-label="History" style="display: flex; align-items: center; gap: 2px">
+        <button aria-label="Back" aria-disabled="true" style="width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 4px; color: #A39C91"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M15 5l-7 7 7 7"></path></svg></button>
+        <button aria-label="Forward" aria-disabled="true" style="width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 4px; color: #A39C91"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M9 5l7 7-7 7"></path></svg></button>
+      </div>
+      <div style="display: flex; align-items: center; gap: 6px; font-variant-numeric: tabular-nums">
+        <label for="pg" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Page</label>
+        <input id="pg" value="3" style="width: 30px; height: 24px; box-sizing: border-box; text-align: center; border: 1px solid #8A8174; border-radius: 4px; background: #FFFFFF; font-variant-numeric: tabular-nums">
+        <span style="color: #6B645A">/ 24</span>
+      </div>
+      <div style="display: flex; align-items: center; gap: 2px; font-variant-numeric: tabular-nums">
+        <button aria-label="Zoom out" style="width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 4px; color: #4A453E"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M6 12h12"></path></svg></button>
+        <span style="min-width: 40px; text-align: center">100%</span>
+        <button aria-label="Zoom in" style="width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 4px; color: #4A453E"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M6 12h12M12 6v12"></path></svg></button>
+      </div>
+      <button aria-label="Find in document" style="width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 4px; color: #4A453E"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6"></circle><path d="M15 15l5 5"></path></svg></button>
+      <button aria-label="View settings" aria-haspopup="dialog" aria-expanded="false" style="width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 4px; color: #4A453E"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="12" cy="12" r="7.5"></circle><path d="M12 4.5v15M12 8.5h5.5M12 12h7.5M12 15.5h5.5"></path></svg></button>
+      <button aria-pressed="false" style="height: 28px; display: flex; align-items: center; gap: 6px; padding: 0 10px; border: 1px solid transparent; background: transparent; color: #4A453E; border-radius: 4px; font-size: 13px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M12 6.5c-2-1.3-4.5-2-8-2v13c3.5 0 6 .7 8 2 2-1.3 4.5-2 8-2v-13c-3.5 0-6 .7-8 2z"></path><path d="M12 6.5v13"></path></svg>Reader</button>
+      <button style="height: 26px; display: flex; align-items: center; gap: 8px; padding: 0 6px 0 10px; border: 1px solid #E4DED3; background: #FBF9F5; border-radius: 4px; color: #6B645A; font-size: 13px"><span>Commands</span><span style="font-size: 11px; padding: 1px 5px; border: 1px solid #D8D1C5; border-radius: 3px; color: #4A453E; background: #FFFFFF">Ctrl K</span></button>
+      <button aria-label="More actions" aria-haspopup="menu" style="width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 4px; color: #4A453E"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="5.5" cy="12" r="0.9"></circle><circle cx="12" cy="12" r="0.9"></circle><circle cx="18.5" cy="12" r="0.9"></circle></svg></button>
+    </div>
+  </header>
+    <main style="flex: 1 1 auto; background: #ECE7DE; display: flex; justify-content: center; padding: 32px 16px; box-sizing: border-box; overflow: hidden">
+      <div style="width: 100%; max-width: 612px; min-height: 790px; box-sizing: border-box; background: #FFFFFF; box-shadow: 0 1px 2px rgba(60,48,30,0.08), 0 8px 28px rgba(60,48,30,0.10); padding: 56px 64px 36px; display: flex; flex-direction: column; gap: 18px; font-family: 'Source Serif 4', Georgia, serif; color: #262421; font-size: 14.5px; line-height: 1.6">
+        <div style="display: flex; justify-content: space-between; font-family: 'Source Sans 3', system-ui, sans-serif; font-size: 10.5px; letter-spacing: 0.08em; text-transform: uppercase; color: #6E6A64; border-bottom: 1px solid #E6E3DE; padding-bottom: 10px"><span>Northwind Housing Trust</span><span>Q3 Board Report</span></div>
+        <span style="margin-top: 10px; font-size: 24px; font-weight: 600; line-height: 1.25; color: #1C1B19">2. Repairs backlog</span>
+        <span>Open repair jobs stood at 1,248 at the end of September across the four regions. Most of the work closed this quarter was routine plumbing and joinery, which the additional contractor teams appointed in July were able to schedule within the target window.</span>
+        <span>The backlog fell by 18% over the quarter, but the oldest 10% of jobs are now older than 90 days.</span>
+      </div>
+    </main>
+    <footer style="min-height: 28px; display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 0 16px; border-top: 1px solid #E4DED3; background: #F7F4EE; font-size: 12px; color: #6B645A">
+      <span style="display: flex; align-items: center; gap: 7px"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#1F5C63" stroke-width="1.5" aria-hidden="true"><path d="M12 3.5l7 2.5v5.5c0 4.3-3 7.6-7 9-4-1.4-7-4.7-7-9V6z"></path><path d="M9 12l2.2 2.2L15.5 10"></path></svg><span style="color: #1F1D1A">0 network requests for this document</span><span>· Offline-safe: nothing uploaded</span></span>
+      <span>Page 3 · Repairs backlog</span>
+    </footer>
+  </div>
+
+  <div style="position: absolute; inset: 0; background: rgba(31,29,26,0.30); display: flex; justify-content: center; align-items: flex-start; padding: 56px 16px 0; box-sizing: border-box">
+    <div role="dialog" aria-modal="true" aria-labelledby="pr-t" style="width: 100%; max-width: 560px; box-sizing: border-box; display: flex; flex-direction: column; background: #FBF9F5; border: 1px solid #D8D1C5; border-radius: 6px; box-shadow: 0 18px 48px rgba(31,29,26,0.22); overflow: hidden">
+      <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; padding: 24px 24px 16px; border-bottom: 1px solid #E4DED3">
+        <div style="display: flex; flex-direction: column; gap: 2px; min-width: 0">
+          <h2 id="pr-t" style="margin: 0; font-family: 'Newsreader', Georgia, serif; font-size: 20px; font-weight: 500; line-height: 1.2">Document properties</h2>
+          <span style="font-size: 12px; color: #6B645A">Q3-board-report.pdf</span>
+        </div>
+        <button aria-label="Close" style="width: 28px; height: 28px; margin: -4px -6px 0 0; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 4px; color: #4A453E"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg></button>
+      </div>
+
+      <div style="max-height: calc(100vh - 220px); overflow: auto; padding: 8px 24px 20px; display: flex; flex-direction: column; gap: 22px">
+        <section aria-labelledby="pr-desc" style="display: flex; flex-direction: column; gap: 8px">
+          <h3 id="pr-desc" style="margin: 12px 0 0; font-family: 'Newsreader', Georgia, serif; font-size: 18px; line-height: 24px; font-weight: 500">Description</h3>
+          <dl style="margin: 0; display: grid; grid-template-columns: 148px minmax(0, 1fr); gap: 8px 16px">
+            <dt style="font-size: 12px; font-weight: 600; color: #4A453E; padding-top: 2px">Title</dt>
+            <dd style="margin: 0; display: flex; align-items: flex-start; justify-content: space-between; gap: 8px"><span>Q3 Board Report</span><button aria-label="Copy title" style="width: 24px; height: 24px; flex: 0 0 24px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 4px; color: #4A453E; outline: 2px solid #1F5C63; outline-offset: 1px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="8.5" y="8.5" width="11" height="11" rx="1.5"></rect><path d="M15.5 8.5V6a1.5 1.5 0 0 0-1.5-1.5H6A1.5 1.5 0 0 0 4.5 6v8A1.5 1.5 0 0 0 6 15.5h2.5"></path></svg></button></dd>
+            <dt style="font-size: 12px; font-weight: 600; color: #4A453E; padding-top: 2px">Author</dt>
+            <dd style="margin: 0">Northwind Housing Trust</dd>
+            <dt style="font-size: 12px; font-weight: 600; color: #4A453E; padding-top: 2px">Subject</dt>
+            <dd style="margin: 0">Quarterly report to the board, July to September 2026</dd>
+            <dt style="font-size: 12px; font-weight: 600; color: #4A453E; padding-top: 2px">Keywords</dt>
+            <dd style="margin: 0">repairs, rent, surveyors, risk</dd>
+            <dt style="font-size: 12px; font-weight: 600; color: #4A453E; padding-top: 2px">Created</dt>
+            <dd style="margin: 0; font-variant-numeric: tabular-nums">14 Oct 2026, 09:12</dd>
+            <dt style="font-size: 12px; font-weight: 600; color: #4A453E; padding-top: 2px">Modified</dt>
+            <dd style="margin: 0; font-variant-numeric: tabular-nums">28 Oct 2026, 16:04</dd>
+            <dt style="font-size: 12px; font-weight: 600; color: #4A453E; padding-top: 2px">Made with</dt>
+            <dd style="margin: 0">Northwind report template <span style="color: #6B645A">· saved by Northwind print service</span></dd>
+          </dl>
+        </section>
+
+        <section aria-labelledby="pr-doc" style="display: flex; flex-direction: column; gap: 8px">
+          <h3 id="pr-doc" style="margin: 0; font-family: 'Newsreader', Georgia, serif; font-size: 18px; line-height: 24px; font-weight: 500">Document</h3>
+          <dl style="margin: 0; display: grid; grid-template-columns: 148px minmax(0, 1fr); gap: 8px 16px; font-variant-numeric: tabular-nums">
+            <dt style="font-size: 12px; font-weight: 600; color: #4A453E; padding-top: 2px">PDF version</dt>
+            <dd style="margin: 0">1.7</dd>
+            <dt style="font-size: 12px; font-weight: 600; color: #4A453E; padding-top: 2px">Pages</dt>
+            <dd style="margin: 0">24 <span style="color: #6B645A">· labelled 1–21, A-1–A-3</span></dd>
+            <dt style="font-size: 12px; font-weight: 600; color: #4A453E; padding-top: 2px">Page size</dt>
+            <dd style="margin: 0">US Letter, 8.5 × 11 in <span style="color: #6B645A">· all pages</span></dd>
+            <dt style="font-size: 12px; font-weight: 600; color: #4A453E; padding-top: 2px">File size</dt>
+            <dd style="margin: 0">1.2 MB <span style="color: #6B645A">(1,262,480 bytes)</span></dd>
+            <dt style="font-size: 12px; font-weight: 600; color: #4A453E; padding-top: 2px">Tagged</dt>
+            <dd style="margin: 0">Yes <span style="color: #6B645A">· headings and reading order for screen readers</span></dd>
+            <dt style="font-size: 12px; font-weight: 600; color: #4A453E; padding-top: 2px">Fast web view</dt>
+            <dd style="margin: 0">No</dd>
+            <dt style="font-size: 12px; font-weight: 600; color: #4A453E; padding-top: 2px">Contains</dt>
+            <dd style="margin: 0">3 attachments · no forms · no JavaScript</dd>
+          </dl>
+        </section>
+
+        <section aria-labelledby="pr-fonts" style="display: flex; flex-direction: column; gap: 8px">
+          <h3 id="pr-fonts" style="margin: 0; font-family: 'Newsreader', Georgia, serif; font-size: 18px; line-height: 24px; font-weight: 500">Fonts</h3>
+          <table style="width: 100%; border-collapse: collapse; font-size: 13px">
+            <thead>
+              <tr style="text-align: left; color: #4A453E; font-size: 12px">
+                <th scope="col" style="font-weight: 600; padding: 4px 8px 6px 0; border-bottom: 1px solid #E4DED3">Name</th>
+                <th scope="col" style="font-weight: 600; padding: 4px 8px 6px; border-bottom: 1px solid #E4DED3">Type</th>
+                <th scope="col" style="font-weight: 600; padding: 4px 0 6px 8px; border-bottom: 1px solid #E4DED3">In the file</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td style="padding: 6px 8px 6px 0; border-bottom: 1px solid #E4DED3">Source Serif 4</td><td style="padding: 6px 8px; border-bottom: 1px solid #E4DED3">OpenType</td><td style="padding: 6px 0 6px 8px; border-bottom: 1px solid #E4DED3">Embedded, subset</td></tr>
+              <tr><td style="padding: 6px 8px 6px 0; border-bottom: 1px solid #E4DED3">Source Serif 4 Semibold</td><td style="padding: 6px 8px; border-bottom: 1px solid #E4DED3">OpenType</td><td style="padding: 6px 0 6px 8px; border-bottom: 1px solid #E4DED3">Embedded, subset</td></tr>
+              <tr><td style="padding: 6px 8px 6px 0; border-bottom: 1px solid #E4DED3">Source Sans 3</td><td style="padding: 6px 8px; border-bottom: 1px solid #E4DED3">OpenType</td><td style="padding: 6px 0 6px 8px; border-bottom: 1px solid #E4DED3">Embedded, subset</td></tr>
+              <tr><td style="padding: 6px 8px 6px 0; border-bottom: 1px solid #E4DED3">Helvetica</td><td style="padding: 6px 8px; border-bottom: 1px solid #E4DED3">Type 1</td><td style="padding: 6px 0 6px 8px; border-bottom: 1px solid #E4DED3">Not embedded <span style="color: #6B645A">· shown with a similar font</span></td></tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section aria-labelledby="pr-sec" style="display: flex; flex-direction: column; gap: 8px">
+          <h3 id="pr-sec" style="margin: 0; font-family: 'Newsreader', Georgia, serif; font-size: 18px; line-height: 24px; font-weight: 500">Security</h3>
+          <dl style="margin: 0; display: grid; grid-template-columns: 148px minmax(0, 1fr); gap: 8px 16px">
+            <dt style="font-size: 12px; font-weight: 600; color: #4A453E; padding-top: 2px">Encryption</dt>
+            <dd style="margin: 0">None</dd>
+            <dt style="font-size: 12px; font-weight: 600; color: #4A453E; padding-top: 2px">Permissions</dt>
+            <dd style="margin: 0">No restrictions</dd>
+            <dt style="font-size: 12px; font-weight: 600; color: #4A453E; padding-top: 2px">Signatures</dt>
+            <dd style="margin: 0">None</dd>
+          </dl>
+        </section>
+      </div>
+
+      <div style="display: flex; align-items: center; gap: 8px; padding: 12px 24px; border-top: 1px solid #E4DED3">
+        <button style="height: 32px; display: flex; align-items: center; gap: 6px; padding: 0 12px; margin-left: -12px; border: 0; background: transparent; border-radius: 4px; color: #1F5C63; font-weight: 600">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="8.5" y="8.5" width="11" height="11" rx="1.5"></rect><path d="M15.5 8.5V6a1.5 1.5 0 0 0-1.5-1.5H6A1.5 1.5 0 0 0 4.5 6v8A1.5 1.5 0 0 0 6 15.5h2.5"></path></svg>
+          Copy all
+        </button>
+        <span style="flex: 1 1 auto"></span>
+        <button style="height: 32px; padding: 0 16px; border: 1px solid #8A8174; background: #FFFFFF; border-radius: 4px">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1000}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

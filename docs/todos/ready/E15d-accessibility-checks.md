@@ -20,6 +20,7 @@ An in-app accessibility checker implementing the machine-checkable Matterhorn co
 
 ## Context
 
+- **Design (Paper):** [X06 Accessibility checker](../../design/paper/convert-compare-produce.md#x06-accessibility-checker). Build to match these screens; record any deviation in the area document ([Paper design plan §5](../../plans/paper-design.md#5-how-the-designs-are-used)).
 - [03 §9.4 PDF/UA, WTPDF, Matterhorn](../../research/pdf/03-text-and-fonts.md#94-pdfua-wtpdf-matterhorn)
 
 ## Scope

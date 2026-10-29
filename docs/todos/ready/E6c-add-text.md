@@ -21,6 +21,7 @@ Add text blocks anywhere: shaped and laid out by lamina-text, subset-embedded fo
 
 ## Context
 
+- **Design (Paper):** [A01 Edit mode: add text box](../../design/paper/add-edit-content.md#a01-edit-mode-add-text-box). Build to match these screens; record any deviation in the area document ([Paper design plan §5](../../plans/paper-design.md#5-how-the-designs-are-used)).
 - [03 §11 Implications](../../research/pdf/03-text-and-fonts.md#11-implications-for-laminas-design)
 - [library B4](../../plans/pdf-library.md#b4-fonts-and-text)
 - [library B8](../../plans/pdf-library.md#b8-tagged-pdf-pdfua-and-pdfa): tagging APIs

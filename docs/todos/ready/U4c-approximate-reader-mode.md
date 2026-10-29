@@ -20,6 +20,7 @@ Extend reader mode to the other half of PDFs, which carry no tags, with a pure-R
 
 ## Context
 
+- **Design (Paper):** [R14 Reader mode](../../design/paper/reader-b.md#r14-reader-mode). Build to match these screens; record any deviation in the area document ([Paper design plan §5](../../plans/paper-design.md#5-how-the-designs-are-used)).
 - [UI/UX plan §5.8](../../plans/ui-ux.md#58-reader-mode-reflow-and-local-intelligence-r15-r16); [differentiation notes](../../research/product/notes/differentiation-mvp.md) — layout models and their licences (DocLayout-YOLO AGPL-3.0; Marker weights OpenRAIL-M with commercial limits; Docling code MIT, weights unchecked).
 - [U4b](./U4b-reader-mode-from-structure-tree.md) — `Block` model and the reading view; [U2b](./U2b-reading-order-ground-truth.md) — scoring.
 - [B9b](./B9b-text-extraction-core.md) — text runs with fonts, sizes and positions.

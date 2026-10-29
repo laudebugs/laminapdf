@@ -20,6 +20,7 @@ Create Ink, Square, Circle, Line (with `/LE` line endings, leader lines), Polygo
 
 ## Context
 
+- **Design (Paper):** [C02 Ink and shapes](../../design/paper/comment-review.md#c02-ink-and-shapes). Build to match these screens; record any deviation in the area document ([Paper design plan §5](../../plans/paper-design.md#5-how-the-designs-are-used)).
 - [04 §2.2 The annotation zoo](../../research/pdf/04-interactive-security.md#22-the-annotation-zoo)
 - [04 §2.4 Why appearance streams matter](../../research/pdf/04-interactive-security.md#24-why-appearance-streams-matter): lamina always writes `/AP` for what it creates ([full-editor §5](../../plans/full-editor.md#5-requirements-that-hold-for-every-round) req. 3)
 - [02 §5 Paths](../../research/pdf/02-imaging-model.md#5-paths): Béziers for circles (κ ≈ 0.5523)

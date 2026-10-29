@@ -20,6 +20,7 @@ Stamp watermarks (append) and backgrounds (prepend) as Form XObjects, optionally
 
 ## Context
 
+- **Design (Paper):** [A03 Watermark, header and footer dialog](../../design/paper/add-edit-content.md#a03-watermark-header-and-footer-dialog). Build to match these screens; record any deviation in the area document ([Paper design plan §5](../../plans/paper-design.md#5-how-the-designs-are-used)).
 - [05 §3.3 Stamping and watermarking](../../research/pdf/05-creating-pdfs-from-code.md#33-stamping-and-watermarking)
 - [03 §9](../../research/pdf/03-text-and-fonts.md#9-tagged-pdf--logical-structure-147149): artifacts in tagged PDF
 

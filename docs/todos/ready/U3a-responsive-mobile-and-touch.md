@@ -20,6 +20,7 @@ Make the web reader good on phones and tablets, not just "works": a thumb-reacha
 
 ## Context
 
+- **Design (Paper):** [F03](../../design/paper/screens.md#f-foundations-the-chosen-paper-boards), [F04](../../design/paper/screens.md#f-foundations-the-chosen-paper-boards), [R17 Tablet reading](../../design/paper/reader-b.md#r17-tablet-reading), [R18 Phone: outline, find, more](../../design/paper/reader-b.md#r18-phone-outline-find-more), [C08 Phone annotate](../../design/paper/comment-review.md#c08-phone-annotate). Build to match these screens; record any deviation in the area document ([Paper design plan §5](../../plans/paper-design.md#5-how-the-designs-are-used)).
 - [UI/UX plan §5.4](../../plans/ui-ux.md#54-mobile-and-touch-r17) and ADR 0024.
 - [Research: mobile ergonomics](../../research/product/pdf-app-product-and-ux.md#mobile-ergonomics-bottom-bar-sheets-with-detents-and-the-viewer-owns-gestures) — Hoober's grip data, Apple sheets and detents, `viewport-fit=cover`, WCAG 2.5.7/2.5.8.
 - [Engines notes](../../research/product/notes/engines-sdks.md) — iOS Safari canvas caps (≈ 16.7 MP per canvas, 224–384 MB total) and pdf.js's 5 MP mobile cap.

@@ -20,6 +20,7 @@ Reply threads (`/IRT`), state-model replies (`/StateModel /Review` Accepted/Reje
 
 ## Context
 
+- **Design (Paper):** [C04 Comments panel](../../design/paper/comment-review.md#c04-comments-panel). Build to match these screens; record any deviation in the area document ([Paper design plan §5](../../plans/paper-design.md#5-how-the-designs-are-used)).
 - [04 §2.3](../../research/pdf/04-interactive-security.md#23-markup-annotations-replies-review-state-12562)
 - ISO 32000-2 §12.5.6.2 (markup annotations), Table 172 (state models)
 

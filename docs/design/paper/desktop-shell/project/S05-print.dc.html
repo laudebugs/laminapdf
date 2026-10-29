@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>lamina desktop, print handed to the system print dialog</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&amp;family=Source+Sans+3:wght@400;500;600&amp;family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&amp;display=swap">
+<style>
+body{margin:0;background:#DCD6CB}
+a{color:#1F5C63}a:hover{color:#16454B}
+button,input,textarea,select{font:inherit;color:inherit}
+</style>
+</helmet>
+<div style="min-height: 100vh; display: flex; flex-direction: column; box-sizing: border-box; background: #DCD6CB; font-family: 'Source Sans 3', 'Segoe UI', system-ui, sans-serif; font-size: 14px; line-height: 1.4; color: #1F1D1A">
+<div style="position: relative; flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; background: #F7F4EE; border: 1px solid #C9C2B6; border-radius: 10px; overflow: hidden; box-sizing: border-box">
+
+  <div style="height: 30px; flex: 0 0 auto; display: flex; align-items: center; padding: 0 12px; background: #EFEBE3; border-bottom: 1px solid #E0D9CD; position: relative">
+    <div aria-hidden="true" style="display: flex; gap: 8px">
+      <span style="width: 12px; height: 12px; border-radius: 50%; background: #EC6A5E; border: 0.5px solid #D2574C"></span>
+      <span style="width: 12px; height: 12px; border-radius: 50%; background: #F4BF4F; border: 0.5px solid #D9A63A"></span>
+      <span style="width: 12px; height: 12px; border-radius: 50%; background: #61C554; border: 0.5px solid #4CAA40"></span>
+    </div>
+    <div style="position: absolute; left: 0; right: 0; text-align: center; font-size: 13px; font-weight: 600; color: #3A3631; pointer-events: none">Q3-board-report.pdf — lamina</div>
+  </div>
+
+  <header style="min-height: 40px; flex: 0 0 auto; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 20px; padding: 0 16px; border-bottom: 1px solid #E4DED3">
+    <div style="display: flex; align-items: center; gap: 10px; flex: 1 1 220px; min-width: 0">
+      <span style="font-family: 'Newsreader', Georgia, serif; font-size: 16px; font-weight: 500; white-space: nowrap">Q3-board-report.pdf</span>
+    </div>
+    <div style="display: flex; align-items: center; justify-content: flex-end; gap: 14px; flex: 1 1 220px; color: #6B645A; font-variant-numeric: tabular-nums">
+      <span>3 / 24</span><span>110%</span>
+    </div>
+  </header>
+
+  <main style="flex: 1 1 auto; min-height: 0; background: #ECE7DE; overflow: hidden; display: flex; justify-content: center; padding: 28px 16px; box-sizing: border-box">
+    <article aria-label="Page 3" style="width: 100%; max-width: 612px; min-height: 790px; box-sizing: border-box; background: #FFFFFF; box-shadow: 0 1px 2px rgba(60,48,30,0.08), 0 8px 28px rgba(60,48,30,0.10); padding: 56px 64px 36px; display: flex; flex-direction: column; gap: 18px; font-family: 'Source Serif 4', Georgia, serif; color: #262421; font-size: 14.5px; line-height: 1.6">
+      <div style="display: flex; justify-content: space-between; font-family: 'Source Sans 3', system-ui, sans-serif; font-size: 10.5px; letter-spacing: 0.08em; text-transform: uppercase; color: #6E6A64; border-bottom: 1px solid #E6E3DE; padding-bottom: 10px"><span>Northwind Housing Trust</span><span>Q3 Board Report</span></div>
+      <h2 style="margin: 10px 0 0; font-size: 24px; font-weight: 600; line-height: 1.25; color: #1C1B19">2. Repairs backlog</h2>
+      <p style="margin: 0">Open repair jobs stood at 1,248 at the end of September across the four regions.</p>
+    </article>
+  </main>
+
+  <footer style="min-height: 28px; flex: 0 0 auto; display: flex; align-items: center; justify-content: space-between; padding: 0 16px; border-top: 1px solid #E4DED3; font-size: 12px; color: #6B645A">
+    <span><span style="color: #1F1D1A">0 network requests for this document</span> · Offline-safe: nothing uploaded</span>
+    <span>Page 3 · Repairs backlog</span>
+  </footer>
+
+  <div style="position: absolute; left: 0; right: 0; top: 30px; bottom: 0; background: rgba(31,29,26,0.30); display: flex; justify-content: center; align-items: flex-start; padding: 0 16px; box-sizing: border-box; z-index: 50">
+    <div role="dialog" aria-modal="true" aria-labelledby="pr-t" style="width: 100%; max-width: 720px; box-sizing: border-box; display: flex; flex-direction: column; background: #FBF9F5; border: 1px solid #D8D1C5; border-top: 0; border-radius: 0 0 6px 6px; box-shadow: 0 18px 48px rgba(31,29,26,0.22)">
+      <div style="display: flex; flex-wrap: wrap; gap: 24px; padding: 24px">
+        <div style="flex: 0 0 200px; display: flex; flex-direction: column; align-items: center; gap: 10px">
+          <div aria-label="Preview of page 5" role="img" style="width: 180px; height: 233px; background: #FFFFFF; box-shadow: 0 1px 3px rgba(60,48,30,0.12); outline: 1px solid #E4DED3; box-sizing: border-box; padding: 18px 16px; display: flex; flex-direction: column; gap: 6px">
+            <span style="height: 3px; width: 100%; background: #DDD7CD"></span>
+            <span style="height: 6px; width: 64%; background: #B9B2A7; margin-top: 6px"></span>
+            <span style="height: 3px; width: 100%; background: #DDD7CD"></span>
+            <span style="height: 3px; width: 96%; background: #DDD7CD"></span>
+            <span style="height: 3px; width: 90%; background: #DDD7CD"></span>
+            <span style="height: 3px; width: 100%; background: #DDD7CD"></span>
+            <span style="height: 7px; width: 82%; background: #C9CFD3; margin-top: 6px"></span>
+            <span style="height: 7px; width: 58%; background: #C9CFD3"></span>
+            <span style="height: 7px; width: 70%; background: #C9CFD3"></span>
+          </div>
+          <div style="display: flex; align-items: center; gap: 4px; font-size: 12px; color: #6B645A; font-variant-numeric: tabular-nums">
+            <button aria-label="Previous preview page" style="width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 4px; color: #4A453E"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M15 5l-7 7 7 7"></path></svg></button>
+            <span>1 of 8 · page 5</span>
+            <button aria-label="Next preview page" style="width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 4px; color: #4A453E"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M10 7l5 5-5 5"></path></svg></button>
+          </div>
+        </div>
+
+        <div style="flex: 1 1 360px; display: flex; flex-direction: column; gap: 16px">
+          <h2 id="pr-t" style="margin: 0; font-family: 'Newsreader', Georgia, serif; font-size: 20px; line-height: 24px; font-weight: 500">Print</h2>
+          <div style="display: grid; grid-template-columns: 96px minmax(0, 1fr); align-items: center; gap: 12px 16px">
+            <label for="pr-printer" style="font-size: 12px; font-weight: 600; color: #4A453E">Printer</label>
+            <div style="position: relative">
+              <select id="pr-printer" style="width: 100%; height: 32px; box-sizing: border-box; padding: 0 30px 0 10px; border: 1px solid #8A8174; border-radius: 4px; background: #FFFFFF; appearance: none"><option>Office printer, first floor</option></select>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#4A453E" stroke-width="1.5" aria-hidden="true" style="position: absolute; right: 8px; top: 8px; pointer-events: none"><path d="M7 10l5 5 5-5"></path></svg>
+            </div>
+            <label for="pr-copies" style="font-size: 12px; font-weight: 600; color: #4A453E">Copies</label>
+            <div style="display: flex; align-items: center; gap: 12px">
+              <input id="pr-copies" value="1" inputmode="numeric" style="width: 56px; height: 32px; box-sizing: border-box; padding: 0 10px; border: 1px solid #8A8174; border-radius: 4px; background: #FFFFFF; font-variant-numeric: tabular-nums">
+              <label style="display: flex; align-items: center; gap: 8px; min-height: 24px"><sc-if value="{{on}}" hint-placeholder-val="{{ true }}"><input type="checkbox" checked style="width: 16px; height: 16px; margin: 0; accent-color: #1F5C63"></sc-if> Two-sided</label>
+            </div>
+          </div>
+
+          <fieldset style="margin: 0; padding: 0; border: 0; display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: 8px 16px">
+            <legend style="float: left; width: 96px; padding: 0; font-size: 12px; font-weight: 600; color: #4A453E; padding-top: 3px">Pages</legend>
+            <div style="display: flex; flex-direction: column; gap: 6px">
+              <label style="display: flex; align-items: center; gap: 8px; min-height: 24px"><input type="radio" name="rng" style="width: 16px; height: 16px; margin: 0; accent-color: #1F5C63"> All 24 pages</label>
+              <label style="display: flex; align-items: center; gap: 8px; min-height: 24px"><input type="radio" name="rng" style="width: 16px; height: 16px; margin: 0; accent-color: #1F5C63"> Current page (3)</label>
+              <div style="display: flex; align-items: center; gap: 8px; min-height: 32px">
+                <sc-if value="{{on}}" hint-placeholder-val="{{ true }}"><input id="rng-r" type="radio" name="rng" checked style="width: 16px; height: 16px; margin: 0; accent-color: #1F5C63"></sc-if>
+                <label for="rng-r">Pages</label>
+                <label for="rng-v" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Page range</label>
+                <input id="rng-v" value="5–12" style="width: 96px; height: 32px; box-sizing: border-box; padding: 0 10px; border: 1px solid #8A8174; border-radius: 4px; background: #FFFFFF; font-variant-numeric: tabular-nums; outline: 2px solid #1F5C63; outline-offset: 1px">
+                <span style="font-size: 12px; color: #6B645A">8 pages</span>
+              </div>
+            </div>
+          </fieldset>
+
+          <fieldset style="margin: 0; padding: 0; border: 0; display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: 8px 16px">
+            <legend style="float: left; width: 96px; padding: 0; font-size: 12px; font-weight: 600; color: #4A453E; padding-top: 3px">Scale</legend>
+            <div style="display: flex; flex-wrap: wrap; gap: 6px 20px">
+              <label style="display: flex; align-items: center; gap: 8px; min-height: 24px"><sc-if value="{{on}}" hint-placeholder-val="{{ true }}"><input type="radio" name="scl" checked style="width: 16px; height: 16px; margin: 0; accent-color: #1F5C63"></sc-if> Fit to paper</label>
+              <label style="display: flex; align-items: center; gap: 8px; min-height: 24px"><input type="radio" name="scl" style="width: 16px; height: 16px; margin: 0; accent-color: #1F5C63"> Actual size</label>
+            </div>
+          </fieldset>
+          <p style="margin: 0; font-size: 12px; color: #6B645A">Orientation follows each page. Prints the page as it looks in Original appearance, with comments.</p>
+        </div>
+      </div>
+      <div style="display: flex; justify-content: flex-end; gap: 8px; padding: 12px 24px 16px; border-top: 1px solid #E4DED3">
+        <button style="height: 32px; padding: 0 16px; border: 1px solid #8A8174; background: #FFFFFF; border-radius: 4px">Cancel</button>
+        <button style="height: 32px; padding: 0 16px; border: 1px solid #1F5C63; background: #1F5C63; color: #FFFFFF; border-radius: 4px; font-weight: 600">Print</button>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return { on: true };
+  }
+}
+</script>
+</body>
+</html>

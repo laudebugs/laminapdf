@@ -21,6 +21,7 @@ Create and edit FreeText annotations (plain text box, typewriter, callout with `
 
 ## Context
 
+- **Design (Paper):** [C03 Free text and callouts](../../design/paper/comment-review.md#c03-free-text-and-callouts). Build to match these screens; record any deviation in the area document ([Paper design plan §5](../../plans/paper-design.md#5-how-the-designs-are-used)).
 - [04 §2.2](../../research/pdf/04-interactive-security.md#22-the-annotation-zoo) (FreeText is the hard subtype)
 - [library B4](../../plans/pdf-library.md#b4-fonts-and-text): shaping, line breaking, subsetting
 - [03 §7 layout and shaping](../../research/pdf/03-text-and-fonts.md#7-text-layout--shaping--everything-pdf-does-not-do-for-you)

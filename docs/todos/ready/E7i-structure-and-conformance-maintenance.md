@@ -21,6 +21,7 @@ Keep tagged documents valid across E6/E7 edits: update MCIDs, ParentTree, `/Actu
 
 ## Context
 
+- **Design (Paper):** [A07 Structure and conformance warning](../../design/paper/add-edit-content.md#a07-structure-and-conformance-warning). Build to match these screens; record any deviation in the area document ([Paper design plan §5](../../plans/paper-design.md#5-how-the-designs-are-used)).
 - [03 §9 Tagged PDF](../../research/pdf/03-text-and-fonts.md#9-tagged-pdf--logical-structure-147149)
 - [library B8](../../plans/pdf-library.md#b8-tagged-pdf-pdfua-and-pdfa) profiles
 

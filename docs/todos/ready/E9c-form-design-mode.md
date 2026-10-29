@@ -20,6 +20,7 @@
 
 ## Context
 
+- **Design (Paper):** [P05 Form design mode](../../design/paper/forms.md#p05-form-design-mode), [P06 Tab order and accessible labels](../../design/paper/forms.md#p06-tab-order-and-accessible-labels). Build to match these screens; record any deviation in the area document ([Paper design plan §5](../../plans/paper-design.md#5-how-the-designs-are-used)).
 - [full-editor §E9](../../plans/full-editor.md#e9-form-authoring)
 
 ## Scope

@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>lamina desktop, settings, updates section while downloading</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&amp;family=Source+Sans+3:wght@400;500;600&amp;family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&amp;display=swap">
+<style>
+body{margin:0;background:#DCD6CB}
+a{color:#1F5C63}a:hover{color:#16454B}
+button,input,textarea,select{font:inherit;color:inherit}
+</style>
+</helmet>
+<div style="min-height: 100vh; display: flex; justify-content: center; align-items: flex-start; box-sizing: border-box; padding: 56px 16px; background: #DCD6CB; font-family: 'Source Sans 3', 'Segoe UI', system-ui, sans-serif; font-size: 14px; line-height: 1.4; color: #1F1D1A">
+<div style="width: 100%; max-width: 880px; min-height: 640px; display: flex; flex-direction: column; background: #F7F4EE; border: 1px solid #C9C2B6; border-radius: 10px; overflow: hidden; box-sizing: border-box; box-shadow: 0 18px 48px rgba(31,29,26,0.22)">
+
+  <div style="height: 30px; flex: 0 0 auto; display: flex; align-items: center; padding: 0 12px; background: #EFEBE3; border-bottom: 1px solid #E0D9CD; position: relative">
+    <div aria-hidden="true" style="display: flex; gap: 8px">
+      <span style="width: 12px; height: 12px; border-radius: 50%; background: #EC6A5E; border: 0.5px solid #D2574C"></span>
+      <span style="width: 12px; height: 12px; border-radius: 50%; background: #F4BF4F; border: 0.5px solid #D9A63A"></span>
+      <span style="width: 12px; height: 12px; border-radius: 50%; background: #61C554; border: 0.5px solid #4CAA40"></span>
+    </div>
+    <div style="position: absolute; left: 0; right: 0; text-align: center; font-size: 13px; font-weight: 600; color: #3A3631; pointer-events: none">Settings</div>
+  </div>
+
+  <div style="flex: 1 1 auto; display: flex; flex-wrap: wrap">
+    <nav aria-label="Settings sections" style="flex: 0 0 200px; box-sizing: border-box; border-right: 1px solid #E4DED3; padding: 16px 10px; display: flex; flex-direction: column; gap: 2px">
+      <a href="#" style="height: 32px; display: flex; align-items: center; padding: 0 10px; border-radius: 4px; color: #1F1D1A; text-decoration: none">General</a>
+      <a href="#" style="height: 32px; display: flex; align-items: center; padding: 0 10px; border-radius: 4px; color: #1F1D1A; text-decoration: none">Appearance</a>
+      <a href="#" aria-current="page" style="height: 32px; display: flex; align-items: center; justify-content: space-between; padding: 0 10px; border-radius: 4px; color: #1F5C63; background: #E1E6E3; font-weight: 600; text-decoration: none"><span>Updates<span style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">, downloading</span></span><span aria-hidden="true" style="width: 8px; height: 8px; border-radius: 50%; background: #1F5C63"></span></a>
+      <a href="#" style="height: 32px; display: flex; align-items: center; padding: 0 10px; border-radius: 4px; color: #1F1D1A; text-decoration: none">Privacy</a>
+      <a href="#" style="height: 32px; display: flex; align-items: center; padding: 0 10px; border-radius: 4px; color: #1F1D1A; text-decoration: none">Shortcuts</a>
+      <a href="#" style="height: 32px; display: flex; align-items: center; padding: 0 10px; border-radius: 4px; color: #1F1D1A; text-decoration: none">Licence</a>
+      <a href="#" style="height: 32px; display: flex; align-items: center; padding: 0 10px; border-radius: 4px; color: #1F1D1A; text-decoration: none">Account and plan</a>
+      <a href="#" style="height: 32px; display: flex; align-items: center; padding: 0 10px; border-radius: 4px; color: #1F1D1A; text-decoration: none">Notifications</a>
+      <a href="#" style="height: 32px; display: flex; align-items: center; padding: 0 10px; border-radius: 4px; color: #1F1D1A; text-decoration: none">Advanced</a>
+      <a href="#" style="height: 32px; display: flex; align-items: center; padding: 0 10px; border-radius: 4px; color: #1F1D1A; text-decoration: none">About</a>
+    </nav>
+
+    <main style="flex: 999 1 480px; min-width: 0; box-sizing: border-box; background: #FBF9F5; padding: 28px 32px 32px; display: flex; flex-direction: column; gap: 24px">
+      <div style="display: flex; flex-direction: column; gap: 4px">
+        <h1 style="margin: 0; font-family: 'Newsreader', Georgia, serif; font-size: 20px; line-height: 24px; font-weight: 500">Updates</h1>
+        <p style="margin: 0; font-size: 13px; color: #6B645A">lamina updates itself from its own update server. Every update is signed and checked before it installs.</p>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 8px; padding: 16px; background: #FFFFFF; border: 1px solid #E4DED3; border-radius: 4px">
+        <div style="display: flex; justify-content: space-between; align-items: baseline; gap: 12px">
+          <span id="dl-l" style="font-weight: 600">Downloading lamina 0.2.0</span>
+          <span style="font-size: 12px; color: #6B645A; font-variant-numeric: tabular-nums">62%</span>
+        </div>
+        <span role="progressbar" aria-labelledby="dl-l" aria-valuemin="0" aria-valuemax="100" aria-valuenow="62" style="display: block; height: 4px; border-radius: 2px; background: #E4DED3; overflow: hidden"><span style="display: block; width: 62%; height: 4px; background: #1F5C63"></span></span>
+        <span style="font-size: 12px; color: #6B645A">You have 0.1.2. The new version installs when you quit, or when you choose Restart to update.</span>
+      </div>
+
+      <section aria-labelledby="g-auto" style="display: flex; flex-direction: column">
+        <h2 id="g-auto" style="margin: 0 0 4px; font-family: 'Newsreader', Georgia, serif; font-size: 18px; line-height: 24px; font-weight: 500">Automatic updates</h2>
+        <div style="display: flex; justify-content: space-between; align-items: center; gap: 24px; padding: 12px 0">
+          <div style="display: flex; flex-direction: column; gap: 2px">
+            <span id="sw-auto">Check for updates and download them</span>
+            <span id="sw-auto-d" style="font-size: 12px; color: #6B645A; max-width: 440px">Once a day, in the background. Turning this off stops every update request.</span>
+          </div>
+          <button role="switch" aria-checked="true" aria-labelledby="sw-auto" aria-describedby="sw-auto-d" style="flex: 0 0 auto; width: 32px; height: 18px; padding: 0; border: 1px solid #1F5C63; border-radius: 9px; background: #1F5C63; position: relative"><span style="position: absolute; top: 2px; right: 2px; width: 12px; height: 12px; border-radius: 50%; background: #FFFFFF"></span></button>
+        </div>
+        <div style="display: flex; justify-content: space-between; align-items: center; gap: 24px; padding: 12px 0; border-top: 1px solid #E4DED3">
+          <div style="display: flex; flex-direction: column; gap: 2px">
+            <span id="chan-l">Channel</span>
+            <span id="chan-d" style="font-size: 12px; color: #6B645A; max-width: 400px">Beta gets new versions first. Stable gets them once they have been on Beta for a while; there is no Stable release yet.</span>
+          </div>
+          <div role="radiogroup" aria-labelledby="chan-l" aria-describedby="chan-d" style="flex: 0 0 auto; display: grid; grid-template-columns: auto auto; gap: 4px">
+            <button role="radio" aria-checked="true" style="height: 28px; padding: 0 12px; border: 1px solid #1F5C63; background: #E1E6E3; color: #1F5C63; font-weight: 600; border-radius: 4px; outline: 2px solid #1F5C63; outline-offset: 1px">Beta</button>
+            <button role="radio" aria-checked="false" aria-disabled="true" tabindex="-1" style="height: 28px; padding: 0 12px; border: 1px solid #D8D1C5; background: #F7F4EE; color: #6B645A; border-radius: 4px">Stable (not released yet)</button>
+          </div>
+        </div>
+        <div style="display: flex; justify-content: space-between; align-items: center; gap: 24px; padding: 12px 0; border-top: 1px solid #E4DED3">
+          <div style="display: flex; flex-direction: column; gap: 2px">
+            <span>Last checked</span>
+            <span style="font-size: 12px; color: #6B645A; font-variant-numeric: tabular-nums">Today, 09:12 · found 0.2.0</span>
+          </div>
+          <button aria-disabled="true" aria-describedby="chk-why" style="flex: 0 0 auto; height: 32px; padding: 0 16px; border: 1px solid #D8D1C5; background: #F7F4EE; border-radius: 4px; color: #6B645A">Check now</button><span id="chk-why" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Not available while an update downloads</span>
+        </div>
+      </section>
+
+      <p style="margin: 0; font-size: 12px; color: #6B645A">Want the newest builds every night? Nightly builds are a separate install with their own updates. <a href="#">Get nightly builds</a></p>
+      <section aria-labelledby="g-id" style="display: flex; flex-direction: column">
+        <h2 id="g-id" style="margin: 0 0 4px; font-family: 'Newsreader', Georgia, serif; font-size: 18px; line-height: 24px; font-weight: 500">What each check sends</h2>
+        <div style="display: flex; justify-content: space-between; align-items: center; gap: 24px; padding: 12px 0">
+          <span id="id-d" style="font-size: 12px; color: #6B645A; max-width: 460px">Your lamina version, system, processor type and an anonymous install ID used only to stage releases. The ID is kept on this computer and is never sent with crash reports.</span>
+          <button aria-describedby="id-d" style="flex: 0 0 auto; height: 32px; padding: 0 16px; border: 1px solid #8A8174; background: #FFFFFF; border-radius: 4px">Reset anonymous ID</button>
+        </div>
+      </section>
+    </main>
+  </div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

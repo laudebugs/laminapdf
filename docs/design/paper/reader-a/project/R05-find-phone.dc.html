@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>lamina phone, find in document</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&amp;family=Source+Sans+3:wght@400;500;600&amp;family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#1F5C63}a:hover{color:#16454B}
+button,input,textarea{font:inherit;color:inherit}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; position: relative; overflow: hidden; background: #ECE7DE; font-family: 'Source Sans 3', system-ui, sans-serif; color: #1F1D1A; font-size: 14px; line-height: 1.4">
+
+  <header role="search" aria-label="Find in document" style="position: absolute; left: 0; right: 0; top: 0; height: 56px; display: flex; align-items: center; gap: 4px; padding: 0 4px 0 12px; background: #F7F4EE; border-bottom: 1px solid #E4DED3; box-sizing: border-box">
+    <div style="flex: 1 1 auto; min-width: 0; display: flex; align-items: center; gap: 8px; height: 44px; box-sizing: border-box; padding: 0 10px; border: 1px solid #8A8174; border-radius: 6px; background: #FFFFFF; outline: 2px solid #1F5C63; outline-offset: 1px">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6B645A" stroke-width="1.5" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6"></circle><path d="M15 15l5 5"></path></svg>
+      <label for="findq" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Find</label>
+      <input id="findq" type="search" value="backlog" aria-describedby="findcount" style="flex: 1 1 auto; min-width: 0; border: 0; outline: 0; background: transparent; font-size: 16px">
+      <span id="findcount" aria-live="polite" style="font-size: 13px; color: #6B645A; font-variant-numeric: tabular-nums; white-space: nowrap">3 of 9</span>
+    </div>
+    <button style="height: 44px; padding: 0 12px; border: 0; background: transparent; border-radius: 6px; color: #1F5C63; font-size: 16px; font-weight: 600">Done</button>
+  </header>
+
+  <article aria-label="Page 3" style="position: absolute; left: 16px; top: 72px; width: 358px; height: 470px; box-sizing: border-box; background: #FFFFFF; color: #262421; box-shadow: 0 1px 2px rgba(60,48,30,0.08), 0 6px 20px rgba(60,48,30,0.10); padding: 26px 26px 14px; display: flex; flex-direction: column; gap: 9px; font-family: 'Source Serif 4', Georgia, serif; font-size: 10.5px; line-height: 1.5">
+    <div style="display: flex; justify-content: space-between; font-family: 'Source Sans 3', system-ui, sans-serif; font-size: 7px; letter-spacing: 0.08em; text-transform: uppercase; opacity: 0.75; border-bottom: 1px solid rgba(0,0,0,0.1); padding-bottom: 6px"><span>Northwind Housing Trust</span><span>Q3 Board Report</span></div>
+    <h2 style="margin: 4px 0 0; font-size: 16px; font-weight: 600; line-height: 1.25">2. Repairs <mark style="background: #F6E3BC; color: inherit; border-bottom: 1px solid #8A5300">backlog</mark></h2>
+    <p style="margin: 0">Open repair jobs stood at 1,248 at the end of September across the four regions. Most of the work closed this quarter was routine plumbing and joinery, which the additional contractor teams appointed in July were able to schedule within the target window.</p>
+    <p style="margin: 0">The <mark aria-current="true" style="background: #EDBF6A; color: inherit; outline: 2px solid #1F5C63; outline-offset: 1px">backlog</mark> fell by 18% over the quarter, but the oldest 10% of jobs are now older than 90 days. These are mainly damp and mould cases that need a surveyor’s visit before work can be scheduled.</p>
+  </article>
+
+  <section aria-labelledby="res-t" style="position: absolute; left: 0; right: 0; top: 404px; bottom: 76px; background: #FBF9F5; border-top: 1px solid #E4DED3; border-radius: 12px 12px 0 0; box-shadow: 0 -8px 28px rgba(60,48,30,0.12); display: flex; flex-direction: column; overflow: hidden">
+    <div style="display: flex; justify-content: center">
+      <button aria-label="Resize sheet" style="width: 64px; height: 44px; display: flex; align-items: flex-start; justify-content: center; padding-top: 8px; box-sizing: border-box; border: 0; background: transparent"><span style="width: 36px; height: 5px; border-radius: 3px; background: #8A8174"></span></button>
+    </div>
+    <div style="display: flex; align-items: center; justify-content: space-between; margin-top: -18px; padding: 0 8px 4px 20px">
+      <div style="display: flex; align-items: baseline; gap: 10px">
+        <h2 id="res-t" style="margin: 0; font-family: 'Newsreader', Georgia, serif; font-size: 20px; font-weight: 500">Results</h2>
+        <span style="font-size: 13px; color: #6B645A; font-variant-numeric: tabular-nums">9 on 5 pages</span>
+      </div>
+      <button aria-label="Close results" style="width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 6px; color: #4A453E"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg></button>
+    </div>
+    <div style="display: flex; gap: 8px; padding: 0 16px 10px">
+      <button aria-pressed="false" style="height: 44px; padding: 0 14px; border: 1px solid #8A8174; background: #FFFFFF; border-radius: 6px; font-size: 15px">Match case</button>
+      <button aria-pressed="true" style="height: 44px; padding: 0 14px; border: 1px solid #1F5C63; background: #E1E6E3; color: #1F5C63; border-radius: 6px; font-size: 15px; font-weight: 600">Whole words</button>
+    </div>
+    <div style="display: flex; flex-direction: column; padding: 0 8px 8px; overflow: auto; min-height: 0">
+      <span style="padding: 8px 12px 2px; font-size: 12px; font-weight: 600; color: #4A453E">Page 1 · Chair’s summary</span>
+      <a href="#" style="min-height: 44px; display: block; box-sizing: border-box; padding: 11px 12px; line-height: 1.4; border-radius: 6px; color: #1F1D1A; text-decoration: none; font-size: 15px">…sets out the <strong style="font-weight: 600">backlog</strong> by region…</a>
+      <span style="padding: 8px 12px 2px; font-size: 12px; font-weight: 600; color: #4A453E">Page 3 · Repairs backlog</span>
+      <a href="#" style="min-height: 44px; display: block; box-sizing: border-box; padding: 11px 12px; line-height: 1.4; border-radius: 6px; color: #1F1D1A; text-decoration: none; font-size: 15px">2. Repairs <strong style="font-weight: 600">backlog</strong></a>
+      <a href="#" aria-current="true" style="min-height: 44px; display: block; box-sizing: border-box; padding: 11px 12px; line-height: 1.4; border-radius: 6px; color: #1F1D1A; background: #E1E6E3; box-shadow: inset 0 0 0 1px #1F5C63; text-decoration: none; font-size: 15px">The <strong style="font-weight: 600">backlog</strong> fell by 18% over the…</a>
+    </div>
+  </section>
+
+  <div role="toolbar" aria-label="Find" style="position: absolute; left: 0; right: 0; bottom: 0; height: 76px; box-sizing: border-box; padding: 4px 8px 18px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px; background: #F7F4EE; border-top: 1px solid #E4DED3">
+    <button style="height: 52px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; border: 0; background: transparent; border-radius: 6px; color: #3A3631; font-size: 11.5px"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M7 14l5-5 5 5"></path></svg>Previous</button>
+    <button aria-expanded="true" style="height: 52px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; border: 0; background: transparent; border-radius: 6px; color: #1F5C63; font-size: 11.5px; font-weight: 600"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M5 7h14M5 12h14M5 17h9"></path></svg>Results</button>
+    <button style="height: 52px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; border: 0; background: transparent; border-radius: 6px; color: #3A3631; font-size: 11.5px"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M7 10l5 5 5-5"></path></svg>Next</button>
+  </div>
+  <span aria-hidden="true" style="position: absolute; left: 50%; bottom: 8px; transform: translateX(-50%); width: 134px; height: 5px; border-radius: 3px; background: #1F1D1A; opacity: 0.85"></span>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

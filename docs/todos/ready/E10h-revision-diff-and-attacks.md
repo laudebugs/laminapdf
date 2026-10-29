@@ -20,6 +20,7 @@ Diff every revision after a signature at object level and classify changes (LTV,
 
 ## Context
 
+- **Design (Paper):** [G05 Revision diff and attack warnings](../../design/paper/sign-protect-redact.md#g05-revision-diff-and-attack-warnings). Build to match these screens; record any deviation in the area document ([Paper design plan §5](../../plans/paper-design.md#5-how-the-designs-are-used)).
 - [04 §8.7 Incremental updates after signing](../../research/pdf/04-interactive-security.md#87-incremental-updates-after-signing)
 - [04 §8.8](../../research/pdf/04-interactive-security.md#88-attacks-on-signatures-ruhr-universität-bochum-pdf-insecurity-research)
 - [full-editor §8](../../plans/full-editor.md#8-risks) (external review before release)

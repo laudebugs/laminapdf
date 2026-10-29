@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>lamina desktop, restored tab whose file was not found</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&amp;family=Source+Sans+3:wght@400;500;600&amp;family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&amp;display=swap">
+<style>
+body{margin:0;background:#DCD6CB}
+a{color:#1F5C63}a:hover{color:#16454B}
+button,input,textarea{font:inherit;color:inherit}
+</style>
+</helmet>
+<div style="min-height: 100vh; display: flex; flex-direction: column; box-sizing: border-box; background: #DCD6CB; font-family: 'Source Sans 3', 'Segoe UI', system-ui, sans-serif; font-size: 14px; line-height: 1.4; color: #1F1D1A">
+<div style="position: relative; flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; background: #F7F4EE; border: 1px solid #C9C2B6; border-radius: 10px; overflow: hidden; box-sizing: border-box">
+
+  <div style="height: 30px; flex: 0 0 auto; display: flex; align-items: center; padding: 0 12px; background: #EFEBE3; position: relative">
+    <div aria-hidden="true" style="display: flex; gap: 8px">
+      <span style="width: 12px; height: 12px; border-radius: 50%; background: #EC6A5E; border: 0.5px solid #D2574C"></span>
+      <span style="width: 12px; height: 12px; border-radius: 50%; background: #F4BF4F; border: 0.5px solid #D9A63A"></span>
+      <span style="width: 12px; height: 12px; border-radius: 50%; background: #61C554; border: 0.5px solid #4CAA40"></span>
+    </div>
+    <div style="position: absolute; left: 0; right: 0; text-align: center; font-size: 13px; font-weight: 600; color: #3A3631; pointer-events: none">Q2-board-report.pdf — lamina</div>
+  </div>
+
+  <div style="height: 34px; flex: 0 0 auto; display: flex; align-items: stretch; background: #EFEBE3; border-bottom: 1px solid #E0D9CD; padding: 0 8px">
+    <div role="tablist" aria-label="Open documents" style="flex: 1 1 auto; min-width: 0; display: flex; align-items: stretch; overflow: hidden">
+      <div style="flex: 0 1 220px; min-width: 120px; display: flex; align-items: center; padding: 0 4px 0 12px; border-left: 1px solid #E0D9CD; border-right: 1px solid #E0D9CD">
+        <button role="tab" aria-selected="false" tabindex="-1" style="flex: 1 1 auto; min-width: 0; height: 33px; border: 0; background: transparent; padding: 0; text-align: left; font-size: 13px; color: #6B645A; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">Q3-board-report.pdf</button>
+        <span style="flex: 0 0 auto; width: 24px"></span>
+      </div>
+      <div style="flex: 0 1 220px; min-width: 120px; display: flex; align-items: center; padding: 0 4px 0 12px; border-right: 1px solid #E0D9CD">
+        <button role="tab" aria-selected="false" tabindex="-1" style="flex: 1 1 auto; min-width: 0; height: 33px; border: 0; background: transparent; padding: 0; text-align: left; font-size: 13px; color: #6B645A; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">Damp-survey-North.pdf</button>
+        <span style="flex: 0 0 auto; width: 24px"></span>
+      </div>
+      <div style="flex: 0 1 220px; min-width: 120px; display: flex; align-items: center; padding: 0 4px 0 12px; border-right: 1px solid #E0D9CD">
+        <button role="tab" aria-selected="false" tabindex="-1" style="flex: 1 1 auto; min-width: 0; height: 33px; border: 0; background: transparent; padding: 0; text-align: left; font-size: 13px; color: #6B645A; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">Rent-arrears-policy.pdf</button>
+        <span style="flex: 0 0 auto; width: 24px"></span>
+      </div>
+      <div style="flex: 0 1 220px; min-width: 120px; display: flex; align-items: center; padding: 0 4px 0 12px; border-right: 1px solid #E0D9CD">
+        <button role="tab" aria-selected="false" tabindex="-1" style="flex: 1 1 auto; min-width: 0; height: 33px; border: 0; background: transparent; padding: 0; text-align: left; font-size: 13px; color: #6B645A; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">Asset-register-Q3.pdf</button>
+        <span style="flex: 0 0 auto; width: 24px"></span>
+      </div>
+      <div style="flex: 0 1 220px; min-width: 120px; display: flex; align-items: center; gap: 6px; padding: 0 4px 0 12px; background: #F7F4EE; border-right: 1px solid #E0D9CD; margin-bottom: -1px">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8A5300" stroke-width="1.5" aria-hidden="true"><path d="M12 4l9 16H3z"></path><path d="M12 10v4M12 17v.5"></path></svg>
+        <button role="tab" aria-selected="true" aria-describedby="miss-t" style="flex: 1 1 auto; min-width: 0; height: 33px; border: 0; background: transparent; padding: 0; text-align: left; font-size: 13px; font-weight: 600; color: #1F1D1A; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">Q2-board-report.pdf</button>
+        <button aria-label="Close Q2-board-report.pdf" style="flex: 0 0 auto; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 4px; color: #4A453E"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg></button>
+      </div>
+    </div>
+    <div style="flex: 0 0 auto; display: flex; align-items: center; gap: 4px; padding-left: 8px">
+      <button aria-haspopup="menu" aria-expanded="false" aria-label="All tabs, 8 open" style="height: 26px; display: flex; align-items: center; gap: 4px; padding: 0 6px 0 8px; border: 1px solid transparent; background: transparent; color: #4A453E; border-radius: 4px; font-size: 13px; font-variant-numeric: tabular-nums">+3<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M7 10l5 5 5-5"></path></svg></button>
+      <button aria-label="Open a file in a new tab" style="width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 4px; color: #4A453E"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M6 12h12M12 6v12"></path></svg></button>
+    </div>
+  </div>
+
+  <header style="min-height: 40px; flex: 0 0 auto; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 20px; padding: 0 16px; border-bottom: 1px solid #E4DED3">
+    <div style="display: flex; align-items: center; gap: 10px; flex: 1 1 220px; min-width: 0">
+      <button aria-label="Sidebar" aria-pressed="false" aria-disabled="true" style="width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 4px; color: #A39C91">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="3.5" y="4.5" width="17" height="15" rx="1.5"></rect><path d="M9 4.5v15"></path></svg>
+      </button>
+      <span style="font-family: 'Newsreader', Georgia, serif; font-size: 16px; font-weight: 500; white-space: nowrap; color: #3A3631">Q2-board-report.pdf</span>
+      <span style="font-size: 12px; color: #8A5300; white-space: nowrap">File not found</span>
+    </div>
+    <div style="display: flex; align-items: center; justify-content: flex-end; gap: 14px; flex: 1 1 220px">
+      <button style="height: 26px; display: flex; align-items: center; gap: 8px; padding: 0 6px 0 10px; border: 1px solid #E4DED3; background: #FBF9F5; border-radius: 4px; color: #6B645A; font-size: 13px"><span>Commands</span><span style="font-size: 11px; padding: 1px 5px; border: 1px solid #D8D1C5; border-radius: 3px; color: #4A453E; background: #FFFFFF">⌘K</span></button>
+      <button aria-label="More actions" style="width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 4px; color: #4A453E"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="5.5" cy="12" r="0.9"></circle><circle cx="12" cy="12" r="0.9"></circle><circle cx="18.5" cy="12" r="0.9"></circle></svg></button>
+    </div>
+  </header>
+
+  <main style="flex: 1 1 auto; min-height: 0; background: #ECE7DE; overflow: auto; display: flex; align-items: center; justify-content: center; padding: 48px 16px; box-sizing: border-box">
+    <section aria-labelledby="miss-t" style="max-width: 420px; display: flex; flex-direction: column; align-items: center; gap: 12px; text-align: center">
+      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#8A5300" stroke-width="1.5" aria-hidden="true"><path d="M12 4l9 16H3z"></path><path d="M12 10v4M12 17v.5"></path></svg>
+      <h1 id="miss-t" style="margin: 0; font-family: 'Newsreader', Georgia, serif; font-size: 20px; line-height: 24px; font-weight: 500">Q2-board-report.pdf was not found</h1>
+      <p style="margin: 0; color: #4A453E">It was in <span style="color: #1F1D1A">~/Documents/Board papers</span> when you last had it open. It may have been moved, renamed or deleted.</p>
+      <p style="margin: 0; font-size: 12px; color: #4A453E">When you locate it, lamina opens it at page 9, where you left it.</p>
+      <div style="display: flex; gap: 8px; margin-top: 8px">
+        <button style="height: 32px; padding: 0 12px; border: 0; background: transparent; border-radius: 4px; color: #1F5C63; font-weight: 600">Close tab</button>
+        <button style="height: 32px; padding: 0 16px; border: 1px solid #1F5C63; background: #1F5C63; color: #FFFFFF; border-radius: 4px; font-weight: 600; outline: 2px solid #1F5C63; outline-offset: 2px">Locate…</button>
+      </div>
+    </section>
+  </main>
+
+  <footer style="min-height: 28px; flex: 0 0 auto; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px 16px; padding: 0 16px; border-top: 1px solid #E4DED3; font-size: 12px; color: #6B645A">
+    <button style="min-height: 24px; display: flex; align-items: center; gap: 7px; border: 0; background: transparent; padding: 0 4px; font-size: 12px; color: #6B645A">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#1F5C63" stroke-width="1.5" aria-hidden="true"><path d="M12 3.5l7 2.5v5.5c0 4.3-3 7.6-7 9-4-1.4-7-4.7-7-9V6z"></path><path d="M9 12l2.2 2.2L15.5 10"></path></svg>
+      <span style="color: #1F1D1A; font-variant-numeric: tabular-nums">0 network requests</span><span>· Offline-safe: nothing uploaded</span>
+    </button>
+    <span>No document</span>
+  </footer>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>
