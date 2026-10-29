@@ -10,4 +10,5 @@ Roadmaps and design docs for upcoming work. Name files `kebab-case.md`; include 
 | [Web reader](web-app.md): PDF reader on Cloudflare (Rounds C1–C7) | Draft |
 | [Desktop reader](desktop-app.md): Tauri 2 reader for macOS, Windows, Linux (Rounds D1–D7) | Draft |
 | [Full editor](full-editor.md): all 13 feature groups on web and desktop (Rounds E1–E18) | Draft |
+| [Shareable libraries](shareable-libraries.md): contracts, worker client, AI extraction, CLI and MCP, agent docs, mobile (Rounds L1–L6) | Draft |
 | [UI/UX](ui-ux.md): interaction model for web, desktop and mobile; command palette, selection, mobile layout, reader mode, trust surfaces (Round U) | Draft |
