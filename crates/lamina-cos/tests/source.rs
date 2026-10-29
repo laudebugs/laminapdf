@@ -697,7 +697,10 @@ fn a_windowed_source_has_no_in_memory_data_but_updates_incrementally() {
     let change = [(ObjRef::new(999, 0), Object::Integer(1))];
     let eol = lamina_save::XrefEol::CrLf;
     assert_eq!(
-        (windowed.data(), lamina_save::incremental_update(&windowed, &change, eol)),
+        (
+            windowed.data(),
+            lamina_save::incremental_update(&windowed, &change, eol)
+        ),
         (None, lamina_save::incremental_update(&in_memory, &change, eol))
     );
 }

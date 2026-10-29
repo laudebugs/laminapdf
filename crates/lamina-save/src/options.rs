@@ -61,7 +61,7 @@ pub enum XrefKind {
 /// let options = SaveOptions::new().with_renumber(Renumber::Compact).with_xref(XrefKind::Classic);
 /// assert_eq!((options.renumber(), options.xref()), (Renumber::Compact, XrefKind::Classic));
 /// ```
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct SaveOptions {
     output: IncrementalOutput,
     renumber: Renumber,
@@ -69,11 +69,22 @@ pub struct SaveOptions {
     eol: XrefEol,
 }
 
+impl Default for SaveOptions {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl SaveOptions {
     /// The defaults: whole output, numbers kept, xref stream, `\r\n` entry EOLs.
     #[must_use]
-    pub fn new() -> Self {
-        Self::default()
+    pub const fn new() -> Self {
+        Self {
+            output: IncrementalOutput::Whole,
+            renumber: Renumber::Keep,
+            xref: XrefKind::Stream,
+            eol: XrefEol::CrLf,
+        }
     }
 
     /// What an incremental save writes.

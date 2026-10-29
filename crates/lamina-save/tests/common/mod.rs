@@ -14,6 +14,7 @@
 
 pub mod content;
 pub mod samples;
+pub mod save;
 
 use std::path::{Path, PathBuf};
 

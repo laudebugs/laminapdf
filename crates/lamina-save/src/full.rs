@@ -205,7 +205,12 @@ impl<'d> FullWriter<'d> {
 }
 
 /// The xref stream numbered `xref_num` (the last number) over `rows`, with `trailer`'s keys.
-fn write_xref_stream<S: WriteSink>(sink: &mut CountingSink<S>, mut rows: Rows, xref_num: u32, trailer: &Dict) -> Result<()> {
+fn write_xref_stream<S: WriteSink>(
+    sink: &mut CountingSink<S>,
+    mut rows: Rows,
+    xref_num: u32,
+    trailer: &Dict,
+) -> Result<()> {
     let size = xref_num.checked_add(1).ok_or_else(exhausted)?;
     let offset = sink.position();
     rows.insert(xref_num, Row::InFile { offset, generation: 0 });
@@ -319,7 +324,9 @@ impl Remap<'_> {
         let depth = depth.checked_sub(1).ok_or_else(too_deep)?;
         Ok(match object {
             Object::Ref(r) => (self.map)(*r).map_or(Object::Null, Object::Ref),
-            Object::Array(items) => Object::Array(items.iter().map(|item| self.at(item, depth)).collect::<Result<_>>()?),
+            Object::Array(items) => {
+                Object::Array(items.iter().map(|item| self.at(item, depth)).collect::<Result<_>>()?)
+            }
             Object::Dict(dict) => Object::Dict(self.dict_at(dict, depth)?),
             Object::Stream(stream) => Object::Stream(Stream {
                 dict: self.dict_at(&stream.dict, depth)?,
@@ -347,10 +354,7 @@ impl Remap<'_> {
 /// Free entries for every number below `size` without an object (the free list links them).
 fn fill_gaps(rows: &mut Rows, size: u32) {
     for num in 1..size {
-        rows.entry(num).or_insert(Row::Free {
-            next: 0,
-            generation: 0,
-        });
+        rows.entry(num).or_insert(Row::Free { next: 0, generation: 0 });
     }
     link_free_list(rows);
 }
@@ -362,7 +366,13 @@ fn object_stream(num: u32, members: &[(u32, &Object)], remap: &Remap<'_>) -> Res
     let mut body = Vec::new();
     let mut rows = Vec::with_capacity(members.len());
     for ((member, object), position) in members.iter().zip(0u16..) {
-        rows.push((*member, Row::InStream { stream: num, index: position }));
+        rows.push((
+            *member,
+            Row::InStream {
+                stream: num,
+                index: position,
+            },
+        ));
         if position > 0 {
             index.push(b' ');
         }

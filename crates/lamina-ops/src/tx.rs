@@ -164,8 +164,8 @@ impl Tx<'_> {
 #[cfg(test)]
 mod tests {
     use lamina_cos::{Dict, Object, OpenOptions};
-    use lamina_save::Writer;
     use lamina_model::Rotation;
+    use lamina_save::Writer;
 
     use super::*;
     use crate::{Error, RotatePage};

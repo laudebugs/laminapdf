@@ -42,7 +42,11 @@ pub(crate) fn permanent_id(doc: &Document, trailer: &Dict) -> Result<Option<PdfS
     };
     let resolved = match doc.deref(id) {
         Ok(resolved) => resolved,
-        Err(e @ (lamina_cos::Error::Strict { .. } | lamina_cos::Error::DataPending { .. } | lamina_cos::Error::Source(_))) => {
+        Err(
+            e @ (lamina_cos::Error::Strict { .. }
+            | lamina_cos::Error::DataPending { .. }
+            | lamina_cos::Error::Source(_)),
+        ) => {
             return Err(e.into());
         }
         Err(_) => return Ok(None),

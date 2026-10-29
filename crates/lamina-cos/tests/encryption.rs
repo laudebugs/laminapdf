@@ -11,9 +11,7 @@
 mod common;
 
 use common::{fixture, open, open_with};
-use lamina_cos::{
-    Cipher, Document, Error, ObjRef, Object, OpenOptions, PasswordKind, Permissions, Warning,
-};
+use lamina_cos::{Cipher, Document, Error, ObjRef, Object, OpenOptions, PasswordKind, Permissions, Warning};
 use lamina_save::{XrefEol, incremental_update};
 use serde_json::Value;
 use sha2::{Digest, Sha256};

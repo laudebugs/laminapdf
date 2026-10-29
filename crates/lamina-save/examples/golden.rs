@@ -22,9 +22,11 @@ use std::path::PathBuf;
 type Build = fn() -> lamina_cos::Result<Vec<u8>>;
 
 /// Every golden: its file name under `fixtures/golden/` and the code that builds it.
-const GOLDENS: [(&str, Build); 2] = [
+const GOLDENS: [(&str, Build); 4] = [
     ("hello.pdf", common::samples::hello),
     ("imaging-demo.pdf", common::samples::imaging_demo),
+    ("incremental-set-info.pdf", common::samples::incremental_set_info),
+    ("full-rewrite-hello.pdf", common::samples::full_rewrite_hello),
 ];
 
 fn main() {

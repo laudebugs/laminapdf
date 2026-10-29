@@ -92,6 +92,17 @@ Output is **byte-deterministic** ([ADR 0001](0001-core-language-and-licence.md))
 
 In B3 the current writer moves from `lamina-cos` into `lamina-save` with its golden, determinism and incremental tests unchanged (`tests/golden.rs`, `determinism.rs`, `incremental.rs`, `raw_writer.rs`); `lamina-cos` keeps reading and the overlay.
 
+### 8. Implementation notes (B3b)
+
+How [B3b](../todos/done/B3b-lamina-save-writers.md) realised §5–§7, where the sketch above left a choice (the planner, §1–§4, is [B3c](../todos/ready/B3c-save-planner-and-roundtrip.md)'s):
+
+- **Two layers.** `IncrementalWriter` and `FullWriter` work on a `lamina_cos::Document` and a `WriteSink`; the `Save` trait on `lamina_ops::Document` (`save_incremental`, `save_full`, `save_full_and_rebase`, temporary names until `Document::save`) adds the state machine and the rebase. `lamina-ops` owns the state (`SaveState`, `saved_not_rebased`, `rebase`), since it is what refuses ops in `SavedNotRebased`; `lamina_cos::Document::rebase` is the mechanism (reopen with the same limits, drop the overlay and journal, keep the number allocator so reserved numbers stay reserved).
+- **`/ID[1]`** is the first 16 bytes of SHA-256: for an incremental save over the base length and the appended objects (so `AppendedOnly` and whole output agree), for a full rewrite over everything before the xref section. `/ID[0]`, when missing, is the same value.
+- **`/Size`** is never below `Document::next_number()` either, so a number reserved in the session (a deleted or undone creation) is still free after the save and redo can recreate it.
+- **Before writing.** Both writers do everything that can fail on input first: the incremental one reads every base chunk of a windowed source (so `DataPending` lists all missing ranges and the sink stays empty), the full one loads every reachable object. Only sink errors (and a source failing between the check and the copy) can leave a partial output.
+- **Full rewrite details.** The walk starts at the trailer's document keys and skips a stream's `/Length` (written directly); dangling and stale references are written as `null` (§7.3.10); object streams hold up to 100 members in number order and never streams or objects with a generation above 0; `Renumber::Compact` clears the undo history on rebase (its records name the old numbers), `Keep` keeps it.
+- **Moved tests** kept their bodies; only imports changed. `lamina-cos`, `lamina-model` and `lamina-ops` reach `Writer` through a dev-dependency on `lamina-save`; `lamina-cos`'s unit tests build files by hand instead (through the dev-dependency they would see a second copy of the crate).
+
 ## Consequences
 
 - Signature-breaking and redaction-leaking saves are impossible by default; the only way is an explicit, reported override that names every signature it breaks.
