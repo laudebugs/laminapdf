@@ -4,11 +4,11 @@
 | --- | --- |
 | ID | `L3b` |
 | Status | `ready` |
-| Plan | [shareable-libraries §7 L3](../../plans/shareable-libraries.md#l3-ai-ready-extraction), principles [§4](../../plans/shareable-libraries.md#4-principles-recommendations-recorded-in-adrs-00240029) (5, 6) |
+| Plan | [shareable-libraries §7 L3](../../plans/shareable-libraries.md#l3-ai-ready-extraction), principles [§4](../../plans/shareable-libraries.md#4-principles-recommendations-recorded-in-adrs-00260031) (5, 6) |
 | Round / milestone | Round L3 (shareable libraries) — AI-ready extraction |
 | Depends on | [B9c](./B9c-text-extraction-bindings-and-differential.md), [L3a](./L3a-lamina-extract-reading-order.md) |
 | Blocks | [L3c](./L3c-model-plugins.md), [L4b](./L4b-cli-batch-render-schema.md) |
-| ADRs | Implements 0028 (from [L3a](./L3a-lamina-extract-reading-order.md)); follows 0024, 0025, 0026 (from [L1a](./L1a-contract-adrs.md)), 0016 (from [B6a](./B6a-lamina-wasm-and-adr-0016.md): separate extract module and its budget), [0002](../../decisions/0002-binding-strategy.md) (wasm-bindgen + tsify), [0001](../../decisions/0001-core-language-and-licence.md), [0018](../../decisions/0018-test-strategy.md), [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) |
+| ADRs | Implements 0030 (from [L3a](./L3a-lamina-extract-reading-order.md)); follows 0026, 0027, 0028 (from [L1a](./L1a-contract-adrs.md)), 0016 (from [B6a](./B6a-lamina-wasm-and-adr-0016.md): separate extract module and its budget), [0002](../../decisions/0002-binding-strategy.md) (wasm-bindgen + tsify), [0001](../../decisions/0001-core-language-and-licence.md), [0018](../../decisions/0018-test-strategy.md), [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) |
 | Branch | `feat/l3b-extract-tables-and-output` |
 | PR title | `feat(extract): lattice tables, Markdown/JSON/chunk output and doc.extract() in Rust, WASM and TS` |
 | Size | L (≈ 1,000–1,400 lines incl. bindings and bench tooling; split at the line in Risks if it grows) |
@@ -35,13 +35,13 @@ Finish the L3 deliverable. Detect tables from vector ruling lines (with a conser
 - **Stream fallback** (`TableMode::LatticeAndStream`, off by default): whitespace column inference inside a region only when at least 3 rows and 2 columns align within tolerance; `detector: "stream"` and lower `confidence`. Conservative by design: no tables beat wrong tables.
 - **Serialisers** (`lamina-extract::output`):
   - *Markdown*: `#`–`######` headings, paragraphs, nested lists, GFM pipe tables (escape `|`; tables with spans fall back to an HTML `<table>`), optional `<!-- page N -->` markers; hidden and dropped text never appears.
-  - *JSON* `lamina.extract/1`: every key from ADR 0028; `textRange` offsets into the Markdown (or plain-text) output; deterministic key order and number formatting (fixed decimals for coordinates).
+  - *JSON* `lamina.extract/1`: every key from ADR 0030; `textRange` offsets into the Markdown (or plain-text) output; deterministic key order and number formatting (fixed decimals for coordinates).
   - *Chunks*: `ChunkOptions { max_tokens, overlap, split_on: Headings | Blocks | Pages }`; token count approximated by a documented rule (no tokenizer dependency); each chunk carries `id`, `text`, `blockIds`, `headingPath`, `pages`, `regions` (page + bbox), `textRange`, `tokensApprox`; JSONL for streaming.
   - *Plain text*: reading-order text with blank lines between blocks.
-- **JSON Schema** 2020-12 for `lamina.extract/1` generated from the Rust types (schemars, licence-checked, behind a build-time feature or xtask, not a runtime dependency of core), committed under the schema location ADR 0028 chose; a check fails if the committed schema is stale.
+- **JSON Schema** 2020-12 for `lamina.extract/1` generated from the Rust types (schemars, licence-checked, behind a build-time feature or xtask, not a runtime dependency of core), committed under the schema location ADR 0030 chose; a check fails if the committed schema is stale.
 - **Façade** (`lamina` crate): `Document::extract(ExtractOptions) -> ExtractJob` and `Extraction::{to_markdown, to_json, to_text, chunks}`, behind a feature `extract` so structure-only builds stay small.
 - **WASM** (`lamina-wasm`): extract bindings in the separate extract module per ADR 0016; JSON output crosses as a string (one copy) and chunk iteration is lazy; size measured against the module budget.
-- **TypeScript** (`@lamina/pdf`): `doc.extract({ format: "markdown" | "json" | "text" | "chunks", pages?, readingOrder?, drop?, tables?, chunk? })` with discriminated return types (`string` for Markdown and text, typed `Extraction` for JSON, `Chunk[]` or an iterator for chunks); tsify types generated from Rust; unknown option keys rejected with a "did you mean" hint (ADR 0024); the subpath (e.g. `@lamina/pdf/extract`) follows B6a's module split.
+- **TypeScript** (`@lamina/pdf`): `doc.extract({ format: "markdown" | "json" | "text" | "chunks", pages?, readingOrder?, drop?, tables?, chunk? })` with discriminated return types (`string` for Markdown and text, typed `Extraction` for JSON, `Chunk[]` or an iterator for chunks); tsify types generated from Rust; unknown option keys rejected with a "did you mean" hint (ADR 0026); the subpath (e.g. `@lamina/pdf/extract`) follows B6a's module split.
 - **Benchmark**: `cargo xtask extract-bench` runs extraction on a pinned public benchmark subset fetched by URL and SHA-256 (never committed unless the licence allows redistribution), computes a reading-order score (normalised edit distance over block order, as OmniDocBench defines it, or the benchmark's own metric) and table TEDS, and writes a results table. Results recorded in the crate README with the tool version, subset IDs and date.
 
 **Out of scope** (and which todo covers it)
@@ -94,7 +94,7 @@ Finish the L3 deliverable. Detect tables from vector ruling lines (with a conser
 - [ ] [shareable-libraries §9 L3](../../plans/shareable-libraries.md#9-to-dos): tick "Lattice tables; Markdown, JSON and chunk serialisers; expose in Rust, WASM and TS"
 - [ ] `crates/lamina-extract/README.md` (tables, formats, benchmark results), `packages/pdf/README.md` (extract section), `lamina` crate docs
 - [ ] `fixtures/README.md` (table fixtures), `tools/` README for the bench manifest
-- [ ] ADR 0016 note if the extract budget changes; ADR 0028 if the schema gains keys during the work
+- [ ] ADR 0016 note if the extract budget changes; ADR 0030 if the schema gains keys during the work
 
 ## Risks and open questions
 

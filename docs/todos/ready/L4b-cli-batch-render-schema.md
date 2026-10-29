@@ -6,9 +6,9 @@
 | Status | `ready` |
 | Plan | [shareable libraries §7 L4](../../plans/shareable-libraries.md#l4-cli-and-mcp) |
 | Round / milestone | Round L4 (shareable libraries) |
-| Depends on | [C2b](./C2b-lamina-render-crate.md), [L3b](./L3b-extract-tables-and-serialisers.md), [L4a](./L4a-lamina-cli.md) |
+| Depends on | [L3b](./L3b-extract-tables-and-serialisers.md), [L4a](./L4a-lamina-cli.md), [C2b](./C2b-lamina-render-crate.md) |
 | Blocks | None |
-| ADRs | Implements 0029 (batch and NDJSON rules, from [L4a](./L4a-lamina-cli.md)). Follows 0024 (errors), 0025 (coordinates in output), 0028 (`lamina.extract/1`, from [L3a](./L3a-lamina-extract-reading-order.md)), [0003](../../decisions/0003-reader-tolerance-and-limits.md) (`Limits`), [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) (new dependencies) |
+| ADRs | Implements 0031 (batch and NDJSON rules, from [L4a](./L4a-lamina-cli.md)). Follows 0026 (errors), 0027 (coordinates in output), 0030 (`lamina.extract/1`, from [L3a](./L3a-lamina-extract-reading-order.md)), [0003](../../decisions/0003-reader-tolerance-and-limits.md) (`Limits`), [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) (new dependencies) |
 | Branch | `feat/l4b-cli-batch-render-schema` |
 | PR title | `feat(cli): batch mode with --jobs and NDJSON, render, extract md/json, schema, completions and man pages` |
 | Size | L (≈ 500–800 lines; generated schemas, completions, man pages and PNG goldens don't count) |
@@ -25,7 +25,7 @@ Make the CLI useful at scale and self-describing for agents. Commands accept man
 - [CLI spec note §3](../../research/libraries/notes/cli-spec.md#3-batch-and-parallel-processing): batch and parallel processing precedents.
 - [CLI spec note §4](../../research/libraries/notes/cli-spec.md#4-agent-readiness-schemas-mcp-security-what-agents-need): `schema` from `schemars`, reused as MCP `inputSchema`/`outputSchema`; token economy (`--fields`, `--max-chars`).
 - [CLI spec note §5](../../research/libraries/notes/cli-spec.md#5-rust-implementation-and-distribution): clap_complete, clap_mangen, indicatif, schemars versions.
-- ADR 0029 (from [L4a](./L4a-lamina-cli.md)): exit codes and JSON rules this PR must follow.
+- ADR 0031 (from [L4a](./L4a-lamina-cli.md)): exit codes and JSON rules this PR must follow.
 - [C2b](./C2b-lamina-render-crate.md): the `RenderBackend` trait and its backends. [L3b](./L3b-extract-tables-and-serialisers.md): Markdown, JSON and chunk serialisers.
 
 ## Scope
@@ -35,13 +35,13 @@ Make the CLI useful at scale and self-describing for agents. Commands accept man
 - **Batch over many inputs** for `info`, `check`, `extract` and `render`:
   - Inputs from argv, `--files-from FILE|-` (newline-separated, or NUL-separated with `-0`).
   - `--jobs N` (default: available parallelism, capped at 8; `--jobs 1` is sequential). Work runs in parallel, but output is printed in argument order (a reorder buffer keyed by index).
-  - With `--json` and more than one input, output is NDJSON: one `{"type":"result","schema":…,"index":…,"input":…,"status":"ok"|"warnings"|"error",…}` per input, then `{"type":"summary","ok":…,"warnings":…,"failed":…,"elapsed_ms":…}`. Per-input errors are `result` lines with an `error` object in the ADR 0024 shape (data, on stdout).
-  - Exit code for a batch: `0` all ok; `3` some warnings, no failures; `1` at least one input failed (partial failure); `5` only if every failure was a password failure; `2` usage errors before any work. Recorded in ADR 0029 by this PR (amendment section).
+  - With `--json` and more than one input, output is NDJSON: one `{"type":"result","schema":…,"index":…,"input":…,"status":"ok"|"warnings"|"error",…}` per input, then `{"type":"summary","ok":…,"warnings":…,"failed":…,"elapsed_ms":…}`. Per-input errors are `result` lines with an `error` object in the ADR 0026 shape (data, on stdout).
+  - Exit code for a batch: `0` all ok; `3` some warnings, no failures; `1` at least one input failed (partial failure); `5` only if every failure was a password failure; `2` usage errors before any work. Recorded in ADR 0031 by this PR (amendment section).
   - `--fail-fast`: stop scheduling new inputs after the first failure; the summary counts skipped inputs.
   - Outputs for many inputs use a template: `-o 'out/{stem}-{n:03}.png'` (`{stem}`, `{name}`, `{index}`, `{n}` for page number). Two inputs writing the same path is a usage error before any work starts.
   - Progress on stderr with indicatif only when stderr is a TTY and `--quiet` is not set.
 - **`render <inputs…> [--pages RANGE] [--dpi N | --scale F] [--backend NAME] -o TEMPLATE`**: PNG per page through `lamina-render`; `-o -` allowed only for a single page. `--json` reports `lamina.render/1` (pages, pixel sizes, output paths). Backend selection by name from what C2b provides.
-- **`extract <inputs…> --format text|md|json|chunks [--pages RANGE] [--max-chars N] [--visible-only]`**: `md` and `json`/`chunks` from `lamina-extract` (L3b) in `lamina.extract/1`, with bboxes in top-left points (ADR 0025) (L4a's `extract` already takes `--format text`; this PR adds the other values, same grammar). Hidden text is flagged in JSON and never written in Markdown (per L3).
+- **`extract <inputs…> --format text|md|json|chunks [--pages RANGE] [--max-chars N] [--visible-only]`**: `md` and `json`/`chunks` from `lamina-extract` (L3b) in `lamina.extract/1`, with bboxes in top-left points (ADR 0027) (L4a's `extract` already takes `--format text`; this PR adds the other values, same grammar). Hidden text is flagged in JSON and never written in Markdown (per L3).
 - **`schema [command]`**: prints a JSON Schema 2020-12 document for the command's input (flags as an object) and output (`--json` shape), plus `lamina.error/1` and the NDJSON `result`/`summary` lines. With no argument, an index of all schema ids. Generated at run time from the `schemars` derives in `commands`; the committed schemas from L4a become a check that `lamina schema` matches them.
 - **Completions** with `clap_complete` (`lamina completions bash|zsh|fish|powershell|elvish`) and **man pages** with `clap_mangen` generated by `cargo xtask cli-docs` into `target/cli-docs/` (packaged by [L4d](./L4d-cli-distribution.md), not committed).
 
@@ -63,7 +63,7 @@ Make the CLI useful at scale and self-describing for agents. Commands accept man
 - [ ] Add `schema` from the `schemars` derives; make the L4a schema test compare against `lamina schema` output.
 - [ ] Add `completions` (clap_complete) and `cargo xtask cli-docs` (clap_mangen); add `indicatif` for progress.
 - [ ] New dependencies: `clap_complete`, `clap_mangen`, `indicatif` (and `png` if needed). Expected MIT and/or Apache-2.0; confirm with `cargo xtask deny` (ADR 0019).
-- [ ] Amend ADR 0029 with the batch exit-code rule and the output template syntax.
+- [ ] Amend ADR 0031 with the batch exit-code rule and the output template syntax.
 
 ### Example sessions
 
@@ -102,7 +102,7 @@ None.
 ## Docs to update
 
 - [ ] [Shareable libraries plan §9 L4](../../plans/shareable-libraries.md#l4-cli-and-mcp-1): tick "Batch and NDJSON, `--jobs`, `render`, …"
-- [ ] ADR 0029 amendment (batch exit codes, templates)
+- [ ] ADR 0031 amendment (batch exit codes, templates)
 - [ ] `crates/lamina-cli/README.md` (batch, render, extract, schema, completions); `CLAUDE.md` (`cargo xtask cli-docs`)
 
 ## Risks and open questions

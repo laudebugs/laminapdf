@@ -8,7 +8,7 @@
 | Round / milestone | Round L4 (shareable libraries) |
 | Depends on | [L4a](./L4a-lamina-cli.md) |
 | Blocks | None |
-| ADRs | Implements 0029's MCP security defaults (from [L4a](./L4a-lamina-cli.md)). Follows 0024 (errors), [0003](../../decisions/0003-reader-tolerance-and-limits.md) (`Limits` on every call), [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) (rmcp and tokio) |
+| ADRs | Implements 0031's MCP security defaults (from [L4a](./L4a-lamina-cli.md)). Follows 0026 (errors), [0003](../../decisions/0003-reader-tolerance-and-limits.md) (`Limits` on every call), [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) (rmcp and tokio) |
 | Branch | `feat/l4c-mcp-mode` |
 | PR title | `feat(cli): lamina mcp stdio server with root allow-list, read-only default and honest annotations` |
 | Size | M (≈ 300–500 lines plus tests) |
@@ -23,7 +23,7 @@ Let MCP clients use lamina without a second implementation. `lamina mcp` is a st
 - [Report: MCP 2026-07-28 is stateless, and agents increasingly prefer CLIs](../../research/libraries/shareable-libraries.md#mcp-2026-07-28-is-stateless-and-agents-increasingly-prefer-clis): `server/discover`, no `initialize`, deterministic `tools/list`, validation errors as tool errors, `outputSchema`, untrusted annotations, the filesystem server's symlink CVEs, github-mcp-server's `--read-only`.
 - [CLI spec note §4](../../research/libraries/notes/cli-spec.md#4-agent-readiness-schemas-mcp-security-what-agents-need): spec details, annotation defaults (`destructiveHint` defaults to true), prompt-injection recommendations.
 - [CLI spec note §5](../../research/libraries/notes/cli-spec.md#5-rust-implementation-and-distribution): rmcp 3.x (implements 2026-07-28, compatible with 2025-11-25), `#[tool]` macros, `serve(stdio())`.
-- ADR 0029 (from [L4a](./L4a-lamina-cli.md)): the tool mapping and security defaults this PR implements.
+- ADR 0031 (from [L4a](./L4a-lamina-cli.md)): the tool mapping and security defaults this PR implements.
 - [Shareable libraries plan §10 risks](../../plans/shareable-libraries.md#10-risks): MCP spec churn and prompt injection.
 
 ## Scope
@@ -36,9 +36,9 @@ Let MCP clients use lamina without a second implementation. `lamina mcp` is a st
 - `tools/list` is deterministic: a fixed order (alphabetical by tool name), and it does not vary per connection. Read-only is the default (there is no `--read-only` flag): write tools are not listed at all unless `--allow-write` is given.
 - Honest annotations: read tools `readOnlyHint: true`, `openWorldHint: false`; `lamina_pages_rotate` `readOnlyHint: false`, `destructiveHint: false` when writing a new file. In-place writes are only possible with `--allow-in-place`, and then the tool's description and `destructiveHint: true` say so. Tool descriptions are static strings; they never include file names or document content.
 - Path policy: every path argument is resolved against the roots, canonicalised (`std::fs::canonicalize`, which resolves symlinks), and refused unless the result is inside a canonicalised root. Output paths: the parent directory is canonicalised and checked, the file must not exist (or `--allow-in-place` and it is the input), and the write is atomic. `..`, absolute paths outside the roots and symlinks pointing out are all refused. `--root` is required; starting without it is exit 2.
-- Prompt-injection hygiene: document text appears only in data fields (`text`, `title`, …) of `structuredContent`; error `message` and `hint` never contain it (ADR 0024). Responses over `--max-output-bytes` are truncated with `"truncated": true`.
+- Prompt-injection hygiene: document text appears only in data fields (`text`, `title`, …) of `structuredContent`; error `message` and `hint` never contain it (ADR 0026). Responses over `--max-output-bytes` are truncated with `"truncated": true`.
 - Errors: argument validation failures, path refusals and lamina errors are tool results with `isError: true` and the `lamina.error/1` document (so the model can correct itself); only malformed JSON-RPC is a protocol error.
-- Every call runs with default `Limits` and a timeout; a timed-out call is a tool error. The timeout **trips the job's `CancelToken`** (ADR 0026) so the work stops at its next `Job::step`; dropping the future alone would leave a blocking thread decoding. A small concurrency cap (e.g. the CPU count) bounds in-flight calls.
+- Every call runs with default `Limits` and a timeout; a timed-out call is a tool error. The timeout **trips the job's `CancelToken`** (ADR 0028) so the work stops at its next `Job::step`; dropping the future alone would leave a blocking thread decoding. A small concurrency cap (e.g. the CPU count) bounds in-flight calls.
 
 **Out of scope** (and which todo covers it)
 
@@ -92,7 +92,7 @@ None.
 ## Docs to update
 
 - [ ] [Shareable libraries plan §9 L4](../../plans/shareable-libraries.md#l4-cli-and-mcp-1): tick "`lamina mcp` (rmcp, stdio), `--root`, `--read-only`, honest tool annotations"
-- [ ] `crates/lamina-cli/README.md` (MCP section, client config, security model); ADR 0029 if any default changed during the work
+- [ ] `crates/lamina-cli/README.md` (MCP section, client config, security model); ADR 0031 if any default changed during the work
 - [ ] `CLAUDE.md` (the `mcp` feature)
 
 ## Risks and open questions

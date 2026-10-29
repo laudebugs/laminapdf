@@ -6,9 +6,9 @@
 | Status | `ready` |
 | Plan | [shareable-libraries §7 L6](../../plans/shareable-libraries.md#l6-mobile), [§2 non-goals](../../plans/shareable-libraries.md#2-scope-and-non-goals) (the SDK rounds come from this plan) |
 | Round / milestone | Round L6 (shareable libraries) — Mobile |
-| Depends on | [C2b](./C2b-lamina-render-crate.md), [L6a](./L6a-lamina-ffi-spike.md) |
+| Depends on | [L6a](./L6a-lamina-ffi-spike.md), [C2b](./C2b-lamina-render-crate.md), [U3b](./U3b-mobile-shell-spike.md) |
 | Blocks | None |
-| ADRs | Follows 0027 (from [L6a](./L6a-lamina-ffi-spike.md)), 0026 (jobs, cancellation), 0025 (coordinates), 0024 (errors) from [L1a](./L1a-contract-adrs.md), 0004 (render backend per surface, from [C2a](./C2a-render-adrs.md)), [0002](../../decisions/0002-binding-strategy.md), [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md); lists the ADRs the mobile rounds will need |
+| ADRs | Follows 0029 (from [L6a](./L6a-lamina-ffi-spike.md)), 0028 (jobs, cancellation), 0027 (coordinates), 0026 (errors) from [L1a](./L1a-contract-adrs.md), 0004 (render backend per surface, from [C2a](./C2a-render-adrs.md)), [0002](../../decisions/0002-binding-strategy.md), [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md); lists the ADRs the mobile rounds will need |
 | Branch | `docs/l6b-mobile-sdk-plan` |
 | PR title | `docs(plans): mobile SDK plan with SwiftUI and Compose viewers, rounds and todos` |
 | Size | S–M (docs only: one plan plus its todo files) |
@@ -20,10 +20,11 @@ Write `docs/plans/mobile-sdk.md`: how lamina becomes a drop-in PDF SDK for iOS a
 
 ## Context
 
+- [U3b](./U3b-mobile-shell-spike.md) and ADR 0025 (mobile shell): the SDK's views (`LaminaView`, `LaminaViewer`) and lamina's own mobile apps should share one view layer if ADR 0025 picks native UI; if it picks Tauri 2 mobile, the SDK views are a separate product. This plan states which.
 - [Report: mobile SDKs must beat free platform viewers](../../research/libraries/shareable-libraries.md#mobile-sdks-must-beat-free-platform-viewers-on-parity-fidelity-and-editing): [the baseline moved](../../research/libraries/shareable-libraries.md#the-baseline-moved-free-viewers-now-annotate-and-fill-forms), [tiles and caller-owned pixels](../../research/libraries/shareable-libraries.md#tiles-a-page-size-table-and-caller-owned-pixels), [memory](../../research/libraries/shareable-libraries.md#memory-size-caches-from-the-live-budget-and-shed-on-warnings), [stylus](../../research/libraries/shareable-libraries.md#stylus-accept-platform-strokes-write-ink-with-appearance-streams), [concurrency](../../research/libraries/shareable-libraries.md#concurrency-generated-bindings-need-a-hand-written-idiomatic-layer), [packaging](../../research/libraries/shareable-libraries.md#packaging-spm-only-aars-on-maven-central); the SwiftUI, Compose and Rust API sketches.
 - [Mobile SDK note](../../research/libraries/notes/mobile-sdk.md): [§1 platform and vendor APIs](../../research/libraries/notes/mobile-sdk.md#1-platform-and-vendor-api-surfaces-pdfkit-pdfrenderer-androidxpdf-nutrient-apryse-foxit-pdfium), [§2 tiles](../../research/libraries/notes/mobile-sdk.md#2-tile-based-virtualized-rendering), [§3 memory](../../research/libraries/notes/mobile-sdk.md#3-memory), [§4 stylus](../../research/libraries/notes/mobile-sdk.md#4-stylus-input-and-ink), [§7 accessibility, dark mode, RTL](../../research/libraries/notes/mobile-sdk.md#7-accessibility-dark-mode-rtl), [§8 complaints](../../research/libraries/notes/mobile-sdk.md#8-what-developers-complain-about-and-why-they-pay), [API sketch](../../research/libraries/notes/mobile-sdk.md#ideal-drop-in-api-sketch-recommendation-not-sourced).
 - [Report: rendering per surface](../../research/libraries/shareable-libraries.md#rendering-hayro-is-the-small-footprint-candidate-pdfium-wins-on-fidelity-at-about-2-mb): PDFium's native weight on mobile vs hayro; ADR 0004 decides per surface.
-- [L6a](./L6a-lamina-ffi-spike.md) results (spike README, sizes, cancellation findings) and ADR 0027.
+- [L6a](./L6a-lamina-ffi-spike.md) results (spike README, sizes, cancellation findings) and ADR 0029.
 - [C2b](./C2b-lamina-render-crate.md) (`RenderBackend`, tile requests, `max_tile_pixels`), [C3b](./C3b-viewer-virtualiser-and-zoom.md) (web virtualiser and zoom ideas to reuse), [E4d](./E4d-appearances-ink-and-shapes.md) (ink appearances), [full-editor E4](../../plans/full-editor.md#e4-markup-and-drawing-annotations) and [E8](../../plans/full-editor.md#e8-form-filling-and-data) (annotation and form models the SDK reuses), [E10i](./E10i-platform-signers.md) (Secure Enclave and Android Keystore signers).
 - [Research 03 §9.3](../../research/pdf/03-text-and-fonts.md#93-language-alt-text-reading-order) and [L3a](./L3a-lamina-extract-reading-order.md) (reading order for accessibility on untagged files).
 - ISO 32000-2 §12.5.6.13 (ink annotations, `/InkList`), §12.5.5 (appearance streams), §12.2 (`/ViewerPreferences /Direction`), §14.7–14.9 (structure, alt text).
@@ -40,8 +41,8 @@ Write `docs/plans/mobile-sdk.md`: how lamina becomes a drop-in PDF SDK for iOS a
   - **Stylus:** accept platform strokes (PencilKit over `PDFPageOverlayViewProvider`-style overlays on iOS, androidx.ink on Android); write `/InkList` plus an `/AP` appearance stream (pressure lives in the appearance); keep native stroke data under a private key for lossless re-editing; reuse E4d.
   - **Accessibility:** per-page accessibility elements from the structure tree, else from L3a reading order; VoiceOver and TalkBack; a reflow view because Dynamic Type cannot reflow fixed layouts; dark mode as a render-time colour filter; RTL from `/ViewerPreferences /Direction`.
   - **Forms:** filling through the E8 field model and appearances; platform autofill hooks; signature-safe saves (ADR 0007).
-  - **Concurrency:** Swift `async` and `AsyncThrowingStream`, truly `Sendable` handles; Kotlin `suspend` and `Flow`, `Dispatchers.Default` for rendering; cancellation through `CancelToken` (ADR 0026) per L6a's findings.
-  - **Packaging:** SPM only (binary XCFramework target + source wrapper target); Maven Central `lamina-core` and `lamina-compose` AARs; ABIs and 16 KB alignment per ADR 0027; size budgets per ABI; minimum OS versions; sample apps.
+  - **Concurrency:** Swift `async` and `AsyncThrowingStream`, truly `Sendable` handles; Kotlin `suspend` and `Flow`, `Dispatchers.Default` for rendering; cancellation through `CancelToken` (ADR 0028) per L6a's findings.
+  - **Packaging:** SPM only (binary XCFramework target + source wrapper target); Maven Central `lamina-core` and `lamina-compose` AARs; ABIs and 16 KB alignment per ADR 0029; size budgets per ABI; minimum OS versions; sample apps.
   - **Render backend on mobile:** PDFium vs hayro per ADR 0004's per-surface decision and C1a/C2b measurements.
   - **Competitive bar:** PDFKit, androidx.pdf, Nutrient; what lamina offers that they do not (identical behaviour on both platforms, tolerance, incremental save, undo, signing, redaction, generation, a non-experimental Compose API).
 - **Rounds and todos:** split the plan into rounds, then write one todo file per PR in `docs/todos/ready/` (template format, Depends on links, Status `ready`). Expected rounds (recommendation, adjust in the PR): product `crates/lamina-ffi` and CI; render primitives and tiles; viewer core on each platform; text, search and accessibility; annotations and ink; forms; packaging and release.
@@ -53,12 +54,12 @@ Write `docs/plans/mobile-sdk.md`: how lamina becomes a drop-in PDF SDK for iOS a
 **Out of scope** (and which todo covers it)
 
 - Any code, including the product `crates/lamina-ffi`: the first todo of the new plan.
-- React Native, Flutter and Kotlin Multiplatform bindings: listed as later options with the ubrn/UniFFI pin constraint from ADR 0027.
+- React Native, Flutter and Kotlin Multiplatform bindings: listed as later options with the ubrn/UniFFI pin constraint from ADR 0029.
 - Desktop and web viewers: web plan ([C3b](./C3b-viewer-virtualiser-and-zoom.md)) and desktop plan.
 
 ## Tasks
 
-- [ ] Read the Context links, the L6a spike README and ADR 0027; skim the [web plan](../../plans/web-app.md) and [full-editor plan](../../plans/full-editor.md) for the shape to follow
+- [ ] Read the Context links, the L6a spike README and ADR 0029; skim the [web plan](../../plans/web-app.md) and [full-editor plan](../../plans/full-editor.md) for the shape to follow
 - [ ] **Verify before writing** (report items "to verify"): androidx.pdf release state (1.0.0-beta01 on 26 August 2026 vs 1.0.0-alpha19) on the English release-notes page, and whether its Compose `PdfViewer` is still `@ExperimentalPdfApi`; current PencilKit/PDFKit overlay APIs; record the dates checked
 - [ ] Write `docs/plans/mobile-sdk.md` (Status Draft) with the sections above; label every recommendation; cite sources inline
 - [ ] Decide the todo ID scheme (see Scope) and write the todo files, each with Depends on links to existing todos (C2b, E4d, E8*, E10i, L3a, L6a as relevant)

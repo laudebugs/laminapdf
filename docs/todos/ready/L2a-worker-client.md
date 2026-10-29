@@ -8,7 +8,7 @@
 | Round / milestone | Round L2 (shareable libraries) — before C3a |
 | Depends on | [B6b](./B6b-lamina-pdf-package.md), [L1a](./L1a-contract-adrs.md), [L1b](./L1b-error-contract-codegen.md) |
 | Blocks | [C3a](./C3a-viewer-worker-rpc.md) |
-| ADRs | Follows 0026 (jobs, `CancelToken`, async only at the edges) and 0024 (errors cross as JSON, not `Error` objects), both from [L1a](./L1a-contract-adrs.md); [0002](../../decisions/0002-binding-strategy.md) §1 (sync core after `init()`); 0016 (export conditions, from [B6a](./B6a-lamina-wasm-and-adr-0016.md)); informs proposed 0009 (typed worker RPC, [C2a](./C2a-render-adrs.md)) |
+| ADRs | Follows 0028 (jobs, `CancelToken`, async only at the edges) and 0026 (errors cross as JSON, not `Error` objects), both from [L1a](./L1a-contract-adrs.md); [0002](../../decisions/0002-binding-strategy.md) §1 (sync core after `init()`); 0016 (export conditions, from [B6a](./B6a-lamina-wasm-and-adr-0016.md)); informs proposed 0009 (typed worker RPC, [C2a](./C2a-render-adrs.md)) |
 | Branch | `feat/l2a-worker-client` |
 | PR title | `feat(pdf): @lamina/pdf/worker async client with typed RPC, version handshake and AbortSignal` |
 | Size | L (≈ 600–900 lines of TS + tests) |
@@ -42,10 +42,10 @@ Let web apps keep lamina off the main thread without learning a second API. `@la
   - `Promisified<T>` / `Remote<T>` mapped types turn each sync method into `(...args) => Promise<R>` and each handle-returning method into a remote handle.
 - **Handles:** documents, pages and builders live in the worker and are referenced by ID. Remote handles implement `Symbol.asyncDispose` (and `close()`), which frees the worker-side object.
 - **Version handshake:** on connect the worker replies `{ protocol, version }`. A mismatch with the client's build rejects `connect()` with a `LaminaError` (new code, e.g. `worker-version-mismatch`, added via [L1b](./L1b-error-contract-codegen.md)'s process).
-- **Cancellation:** each call accepts `signal`. Abort sends `cancel { id }`. The worker trips the job's `CancelToken` (ADR 0026) and checks it between `step()` calls. A call that cannot be stepped is documented as not interruptible, with `client.terminate()` as the hard stop. The client rejects aborted calls promptly and drops late responses.
+- **Cancellation:** each call accepts `signal`. Abort sends `cancel { id }`. The worker trips the job's `CancelToken` (ADR 0028) and checks it between `step()` calls. A call that cannot be stepped is documented as not interruptible, with `client.terminate()` as the hard stop. The client rejects aborted calls promptly and drops late responses.
 - **Transfers:** outputs (`save()` bytes, rendered pixels) are always transferred. Inputs are transferred when the caller passes `{ transfer: true }`; otherwise they are copied (see Risks).
 - **Progress:** `onProgress` per call, sent as throttled event messages, never as a callback proxy.
-- **Errors:** the worker serialises errors to ADR 0024 JSON and the client rebuilds `LaminaError` (structured clone loses fields on `Error` objects). Warnings arrive as events and on results.
+- **Errors:** the worker serialises errors to ADR 0026 JSON and the client rebuilds `LaminaError` (structured clone loses fields on `Error` objects). Warnings arrive as events and on results.
 - **Crash detection:**
   - The worker's `error`/`messageerror` event, or a reported wasm trap, rejects all pending calls with `worker-crashed` and emits `crashed`.
   - `client.restart()` respawns the worker.
@@ -63,12 +63,12 @@ Let web apps keep lamina off the main thread without learning a second API. `@la
 
 ## Tasks
 
-- [ ] Read the report section, the TS note §3–§4, C3a, ADR 0026 and B6b's `src/` on `main`
+- [ ] Read the report section, the TS note §3–§4, C3a, ADR 0028 and B6b's `src/` on `main`
 - [ ] Write the public types first (`src/worker/index.ts`: `connect`, `WorkerClient`, `RemoteDocument`, `RemotePage`, `Promisified<T>`, `CallOptions { signal?, onProgress?, transfer? }`) and review them in the PR
 - [ ] `protocol.ts`:
   - [ ] Envelopes and a `PROTOCOL_VERSION` constant
   - [ ] `Methods` derived from the sync classes (no hand-maintained list where a mapped type can do it)
-  - [ ] Error and warning payloads in ADR 0024 shape
+  - [ ] Error and warning payloads in ADR 0026 shape
 - [ ] `client.ts`:
   - [ ] Monotonic IDs; a pending map; abort handling; late-response dropping
   - [ ] Transfer lists; progress dispatch
@@ -91,7 +91,7 @@ Let web apps keep lamina off the main thread without learning a second API. `@la
 - [ ] A client built from a different `version` or `PROTOCOL_VERSION` than the worker rejects `connect()` with the mismatch code. Nothing else is sent
 - [ ] Abort before start: the request never runs (asserted via a worker-side counter). Abort during a stepped job: the job stops at the next step, the promise rejects, and the handle stays usable
 - [ ] `save()` output arrives as a transferred buffer (the worker-side buffer is detached); with `{ transfer: true }` the caller's input buffer is detached; without it, the input is unchanged
-- [ ] Errors from the worker are `instanceof LaminaError` on the main thread, with all ADR 0024 fields intact
+- [ ] Errors from the worker are `instanceof LaminaError` on the main thread, with all ADR 0026 fields intact
 - [ ] A test-only `__crash` method makes pending calls reject with `worker-crashed` and emits `crashed`; `restart()` then serves new calls
 - [ ] Full lane (not PR lanes, per ADR 0018): opening a generated 50 MB file through the client in Chromium produces no main-thread long task over 50 ms (`PerformanceObserver` `longtask`), recorded in the job summary
 
@@ -114,7 +114,7 @@ Let web apps keep lamina off the main thread without learning a second API. `@la
 ## Risks and open questions
 
 - **Transfer by default?** Transferring the input detaches the caller's buffer, which surprises users who reuse it. Copying a 50 MB file costs memory and time. Recommendation: copy by default, `{ transfer: true }` opt-in, and say so in TSDoc. The owner decides before the API is published.
-- **Abort rejection value:** web convention rejects with `signal.reason` (an `AbortError` `DOMException`); ADR 0024 has a `cancelled` code. Recommendation: reject with a `LaminaError` of code `cancelled` whose `cause` is `signal.reason`. Record the choice in the README.
+- **Abort rejection value:** web convention rejects with `signal.reason` (an `AbortError` `DOMException`); ADR 0026 has a `cancelled` code. Recommendation: reject with a `LaminaError` of code `cancelled` whose `cause` is `signal.reason`. Record the choice in the README.
 - **Not every call is steppable** until B5c's `Job` covers it. A long `open()` cannot be cancelled mid-call; `terminate()` is the only hard stop. List per method which ones are steppable.
 - **Workers in Deno and Bun** support module workers, but the bundled `new URL()` path may differ. Unverified; test early.
 - **Node:** `worker_threads` is not a web `Worker`. Leaving Node out keeps `src/` free of Node APIs. An adapter can come later.

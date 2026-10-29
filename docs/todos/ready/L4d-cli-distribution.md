@@ -8,7 +8,7 @@
 | Round / milestone | Round L4 (shareable libraries) |
 | Depends on | [L4a](./L4a-lamina-cli.md), [P1](./P1-reserve-names-and-trusted-publishing.md) |
 | Blocks | None |
-| ADRs | Follows 0017 (versioning and publishing, completed in [P1](./P1-reserve-names-and-trusted-publishing.md)), [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) (SBOMs, notices, licences), 0029 (binary name, from [L4a](./L4a-lamina-cli.md)) |
+| ADRs | Follows 0017 (versioning and publishing, completed in [P1](./P1-reserve-names-and-trusted-publishing.md)), [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) (SBOMs, notices, licences), 0031 (binary name, from [L4a](./L4a-lamina-cli.md)) |
 | Branch | `build/l4d-cli-distribution` |
 | PR title | `build(cli): release binaries with cargo-dist, Homebrew formula and npm wrapper packages` |
 | Size | M (≈ 300–500 lines: dist config, workflow, npm packages, install tests) |
@@ -47,7 +47,7 @@ Make `lamina` installable without a Rust toolchain: prebuilt binaries for macOS,
 
 ## Tasks
 
-- [ ] Get the owner's decisions on the binary name (ADR 0029), the tap repository name and the npm package names (P1 reserves them).
+- [ ] Get the owner's decisions on the binary name (ADR 0031), the tap repository name and the npm package names (P1 reserves them).
 - [ ] Add the dist config (`dist-workspace.toml` or `[workspace.metadata.dist]`) scoped to `lamina-cli`; pin dist in `doctor.rs`.
 - [ ] Add notices and SBOM generation to the archive build.
 - [ ] Create `packages/cli` (ESM launcher, named exports only, Biome-clean per [docs/guidelines/typescript.md](../../guidelines/typescript.md)) and the platform-package generator script.

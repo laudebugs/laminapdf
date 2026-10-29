@@ -4,7 +4,7 @@
 - **Date:** 2026-10-29
 - **Research:** [shareable libraries report](../research/libraries/shareable-libraries.md) and its [six notes](../research/libraries/README.md)
 - **Builds on:** [PDF library plan](pdf-library.md) (Rounds B1–B9), [architecture plan](architecture.md), ADRs [0001](../decisions/0001-core-language-and-licence.md), [0002](../decisions/0002-binding-strategy.md), [0003](../decisions/0003-reader-tolerance-and-limits.md), [0005](../decisions/0005-document-model.md)–[0007](../decisions/0007-save-planner.md)
-- **Proposes:** ADRs 0024–0029 (§6)
+- **Proposes:** ADRs 0026–0031 (§6)
 - **Roadmap:** [roadmap.md](roadmap.md)
 
 ## 1. Goal
@@ -42,9 +42,9 @@ The research found the opening is real: in October 2026 no permissively licensed
 | LLM writing code | Guessable names, explicit units, errors with hints, current docs | L1 contract, L5 agent docs |
 | AI agent reading PDFs | Markdown/JSON with reading order, tables, bounding boxes, hidden-text flags | L3 extraction, L4 CLI, L4c MCP |
 
-## 4. Principles (recommendations, recorded in ADRs 0024–0029)
+## 4. Principles (recommendations, recorded in ADRs 0026–0031)
 
-1. **Design the façade to UniFFI's rules now** ([report §2](../research/libraries/shareable-libraries.md#design-the-façade-to-the-stricter-binding-now)): handles that a binding can make `Send + Sync` (UniFFI needs this). The `lamina` façade is a core crate, and ADR 0005 §7 allows no `Mutex` in core, so ADR 0026 decides between a lock in the binding edge crate (`lamina-ffi` wraps the `Send` document in a `Mutex`; recommended, ADR 0005 unchanged) and a `Sync` core (an explicit amendment of ADR 0005 §7). Also: `&self`-friendly methods, owned handles instead of borrowed returns, no generics across the boundary, a string-payload error enum, an explicit `CancelToken`, resumable `Job::step`. UniFFI forbids `&mut self`; fixing this after `@lamina/pdf` ships would break the TypeScript API.
+1. **Design the façade to UniFFI's rules now** ([report §2](../research/libraries/shareable-libraries.md#design-the-façade-to-the-stricter-binding-now)): handles that a binding can make `Send + Sync` (UniFFI needs this). The `lamina` façade is a core crate, and ADR 0005 §7 allows no `Mutex` in core, so ADR 0028 decides between a lock in the binding edge crate (`lamina-ffi` wraps the `Send` document in a `Mutex`; recommended, ADR 0005 unchanged) and a `Sync` core (an explicit amendment of ADR 0005 §7). Also: `&self`-friendly methods, owned handles instead of borrowed returns, no generics across the boundary, a string-payload error enum, an explicit `CancelToken`, resumable `Job::step`. UniFFI forbids `&mut self`; fixing this after `@lamina/pdf` ships would break the TypeScript API.
 2. **One error shape everywhere:** `{ code, kind, message, hint, location, docsUrl }`, kebab-case codes as today (ADR 0003 §2), generated from [`fixtures/codes.json`](../../fixtures/codes.json) into Rust, TypeScript and JSON Schema. Messages never quote document text (prompt-injection hygiene).
 3. **Explicit coordinates:** high-level and extraction APIs use **top-left origin, points**, with typed units (`Pt`, `Mm`) and an explicit `coordinates` block in every JSON output; low-level APIs keep raw PDF user space, named as such. Pages: 0-based `index` plus 1-based `number` in output.
 4. **The core stays synchronous.** Long work is a `Job` the caller steps with a budget counted in work units (core crates have no clock; time limits live at the edges); cancellation and progress are lamina API, not binding features (UniFFI has no built-in cancellation). Async lives at the edges: the TS worker client, Swift `async`, Kotlin `suspend`.
@@ -57,12 +57,12 @@ The research found the opening is real: in October 2026 no permissively licensed
 The [report](../research/libraries/shareable-libraries.md) has side-by-side Rust, TypeScript, CLI, Swift and Kotlin sketches for each area. All snippets are illustrative, not final.
 
 ```rust
-// lamina façade (B5c, shaped by ADR 0026): UniFFI-compatible, wrapped by lamina-wasm and lamina-ffi
+// lamina façade (B5c, shaped by ADR 0028): UniFFI-compatible, wrapped by lamina-wasm and lamina-ffi
 let doc = lamina::Document::open(bytes, OpenOptions::default())?;   // Send + Sync handle
 let job = doc.extract(ExtractOptions { format: Format::Markdown, ..Default::default() });
 let cancel = job.cancel_token();
 let out = loop {
-    // budget in work units: core crates have no clock (ADR 0026 decides the unit)
+    // budget in work units: core crates have no clock (ADR 0028 decides the unit)
     match job.step(Budget::units(10_000))? { Step::Done(out) => break out, Step::Progress(_) => {} }
 };
 ```
@@ -85,16 +85,16 @@ lamina mcp --root ./docs                               # stdio MCP server over t
 
 ## 6. Decisions to record (ADRs)
 
-Numbers 0020–0023 are already reserved by editor and library todos; this plan proposes 0024–0029.
+Numbers 0020–0023 are reserved by editor and library todos, and 0024–0025 by the [UI/UX plan](ui-ux.md) (app shell UX, mobile shell); this plan proposes 0026–0031.
 
 | # | ADR | Written in | Relationship |
 | --- | --- | --- | --- |
-| 0024 | Error and diagnostic contract: JSON shape, `hint`/`docsUrl` rules, no document text in messages, `explain` pages | [L1a](../todos/ready/L1a-contract-adrs.md) | Extends ADR 0003's codes |
-| 0025 | Coordinates, units and page indexing in public APIs | [L1a](../todos/ready/L1a-contract-adrs.md) | New; constrains B5 builder and B9 extraction |
-| 0026 | Façade rules, jobs, cancellation and progress across bindings | [L1a](../todos/ready/L1a-contract-adrs.md) | Fills in ADR 0002 §3; informs proposed ADR 0009 |
-| 0027 | Mobile bindings and packaging: UniFFI pin, idiomatic Swift/Kotlin layer, SPM only, AAR layout | [L6a](../todos/ready/L6a-lamina-ffi-spike.md) | Fills in ADR 0002 §5; does not change it |
-| 0028 | Extraction output (`lamina.extract/1`) and model plug-ins | [L3a](../todos/ready/L3a-lamina-extract-reading-order.md) | Follows ADR 0001 and proposed ADR 0023 |
-| 0029 | CLI and MCP contract: grammar, exit codes, JSON/NDJSON versioning, MCP security defaults | [L4a](../todos/ready/L4a-lamina-cli.md) | New; reuses ADR 0024 errors |
+| 0026 | Error and diagnostic contract: JSON shape, `hint`/`docsUrl` rules, no document text in messages, `explain` pages | [L1a](../todos/ready/L1a-contract-adrs.md) | Extends ADR 0003's codes |
+| 0027 | Coordinates, units and page indexing in public APIs | [L1a](../todos/ready/L1a-contract-adrs.md) | New; constrains B5 builder and B9 extraction |
+| 0028 | Façade rules, jobs, cancellation and progress across bindings | [L1a](../todos/ready/L1a-contract-adrs.md) | Fills in ADR 0002 §3; informs proposed ADR 0009 |
+| 0029 | Mobile bindings and packaging: UniFFI pin, idiomatic Swift/Kotlin layer, SPM only, AAR layout | [L6a](../todos/ready/L6a-lamina-ffi-spike.md) | Fills in ADR 0002 §5; does not change it |
+| 0030 | Extraction output (`lamina.extract/1`) and model plug-ins | [L3a](../todos/ready/L3a-lamina-extract-reading-order.md) | Follows ADR 0001 and proposed ADR 0023 |
+| 0031 | CLI and MCP contract: grammar, exit codes, JSON/NDJSON versioning, MCP security defaults | [L4a](../todos/ready/L4a-lamina-cli.md) | New; reuses ADR 0026 errors |
 
 ## 7. Rounds
 
@@ -102,10 +102,10 @@ Each round is split into todos (one PR each) on the [todo board](../todos/README
 
 ### L1. Contracts
 
-**Todos:** [L1a](../todos/ready/L1a-contract-adrs.md) (ADRs 0024, 0025, 0026), [L1b](../todos/ready/L1b-error-contract-codegen.md) (error codegen, `explain`).
+**Todos:** [L1a](../todos/ready/L1a-contract-adrs.md) (ADRs 0026, 0027, 0028), [L1b](../todos/ready/L1b-error-contract-codegen.md) (error codegen, `explain`).
 
 **Deliverable:** three ADRs; codes and error types generated from `fixtures/codes.json` into Rust, TypeScript and JSON Schema; `explain` text per code.
-**Accepted when:** B5a's builder uses ADR 0025's coordinates; B5c's façade meets ADR 0026's rules; a TS test narrows the error class's `code` exhaustively (ADR 0024 settles the class name: `LaminaError` recommended, `PdfError` in B6b today); a change to `codes.json` without regenerating fails CI.
+**Accepted when:** B5a's builder uses ADR 0027's coordinates; B5c's façade meets ADR 0028's rules; a TS test narrows the error class's `code` exhaustively (ADR 0026 settles the class name: `LaminaError` recommended, `PdfError` in B6b today); a change to `codes.json` without regenerating fails CI.
 
 ### L2. TypeScript hardening
 
@@ -116,14 +116,14 @@ Each round is split into todos (one PR each) on the [todo board](../todos/README
 
 ### L3. AI-ready extraction
 
-**Todos:** [L3a](../todos/ready/L3a-lamina-extract-reading-order.md) (ADR 0028, `lamina-extract` blocks and reading order), [L3b](../todos/ready/L3b-extract-tables-and-serialisers.md) (tables, Markdown/JSON/chunks, bindings), [L3c](../todos/ready/L3c-model-plugins.md) (model plug-in traits).
+**Todos:** [L3a](../todos/ready/L3a-lamina-extract-reading-order.md) (ADR 0030, `lamina-extract` blocks and reading order), [L3b](../todos/ready/L3b-extract-tables-and-serialisers.md) (tables, Markdown/JSON/chunks, bindings), [L3c](../todos/ready/L3c-model-plugins.md) (model plug-in traits).
 
 **Deliverable:** `lamina-extract` (core): reading order from the structure tree, else XY-Cut++; headings, lists, header/footer removal, de-hyphenation, hidden-text flags; lattice tables from ruling lines; Markdown, JSON and chunk output in the `lamina.extract/1` schema with page, bbox and structure path per block; `LayoutModel` and `OcrEngine` traits.
 **Accepted when:** reading-order and table scores are measured on a public benchmark subset and recorded; every block carries a bbox in top-left points; hidden text never appears in Markdown and is flagged in JSON.
 
 ### L4. CLI and MCP
 
-**Todos:** [L4a](../todos/ready/L4a-lamina-cli.md) (ADR 0029, `lamina-cli` core commands), [L4b](../todos/ready/L4b-cli-batch-render-schema.md) (batch, render, extract, schema, completions), [L4c](../todos/ready/L4c-mcp-mode.md) (`lamina mcp`), [L4d](../todos/ready/L4d-cli-distribution.md) (distribution).
+**Todos:** [L4a](../todos/ready/L4a-lamina-cli.md) (ADR 0031, `lamina-cli` core commands), [L4b](../todos/ready/L4b-cli-batch-render-schema.md) (batch, render, extract, schema, completions), [L4c](../todos/ready/L4c-mcp-mode.md) (`lamina mcp`), [L4d](../todos/ready/L4d-cli-distribution.md) (distribution).
 
 **Deliverable:** the `lamina` binary (`crates/lamina-cli`, layer `app`): `info`, `check`, `pages`, `extract`, `render`, `schema`, `explain`; qpdf-style page ranges; stdin/stdout `-`; `--json` and NDJSON for batch; exit codes 0–5; `--jobs`; completions and man pages; an MCP stdio mode with `--root`, read-only by default (`--allow-write` to opt in); release binaries, Homebrew and an npm wrapper.
 **Accepted when:** every command has `--json` output validated against its schema in tests; exit codes are tested per case; the MCP mode passes the MCP inspector's conformance checks and refuses paths outside `--root`.
@@ -137,7 +137,7 @@ Each round is split into todos (one PR each) on the [todo board](../todos/README
 
 ### L6. Mobile
 
-**Todos:** [L6a](../todos/ready/L6a-lamina-ffi-spike.md) (`lamina-ffi` spike, ADR 0027), [L6b](../todos/ready/L6b-mobile-sdk-plan.md) (mobile SDK plan).
+**Todos:** [L6a](../todos/ready/L6a-lamina-ffi-spike.md) (`lamina-ffi` spike, ADR 0029), [L6b](../todos/ready/L6b-mobile-sdk-plan.md) (mobile SDK plan).
 
 **Deliverable:** a spike that binds the B5c façade with UniFFI, builds an XCFramework and AARs, runs open/extract/save from Swift and Kotlin tests, and reports per-ABI sizes; then a mobile plan (`LaminaView` for SwiftUI, `LaminaViewer` for Compose; tiles, memory trimming, stylus to `/Ink`, accessibility, SPM and Maven Central) with its own rounds and todos.
 **Accepted when:** the spike README answers "does the façade bind without changes?" with measurements; the plan is reviewed and its todos are on the board.
@@ -146,19 +146,21 @@ Each round is split into todos (one PR each) on the [todo board](../todos/README
 
 This plan adjusts these todos (edited in the same PR):
 
-- [B5a](../todos/ready/B5a-lamina-build-core.md) depends on L1a: the builder's coordinates follow ADR 0025.
-- [B5c](../todos/ready/B5c-lamina-facade-and-examples.md): acceptance criteria add ADR 0026's façade rules.
+- [B5a](../todos/ready/B5a-lamina-build-core.md) depends on L1a: the builder's coordinates follow ADR 0027.
+- [B5c](../todos/ready/B5c-lamina-facade-and-examples.md): acceptance criteria add ADR 0028's façade rules.
 - [B6a](../todos/ready/B6a-lamina-wasm-and-adr-0016.md): ADR 0016 states per-module budgets (base, text, extract, render, sign) and adds twiggy diffs.
 - [B6b](../todos/ready/B6b-lamina-pdf-package.md): per-condition wasm loaders and the `init({ module })` escape hatch.
 - [C3a](../todos/ready/C3a-viewer-worker-rpc.md) depends on L2a: the viewer reuses `@lamina/pdf/worker` instead of a second protocol.
 - [C2a](../todos/ready/C2a-render-adrs.md): ADR 0004 picks the render backend per surface (desktop, web, edge, mobile) using hayro's measured wasm size.
+- [L3a](../todos/ready/L3a-lamina-extract-reading-order.md) depends on [U2b](../todos/ready/U2b-reading-order-ground-truth.md) (UI/UX plan): reading order is measured on its ground-truth corpus, and the reader's copy and reader mode reuse `lamina-extract`'s ordering.
+- [L6a](../todos/ready/L6a-lamina-ffi-spike.md) feeds [U3b](../todos/ready/U3b-mobile-shell-spike.md) (`mobile-shell` spike, ADR 0025); [L6b](../todos/ready/L6b-mobile-sdk-plan.md) waits for U3b. U3b decides lamina's own mobile apps; L6 is the SDK for other developers, which needs UniFFI either way.
 - [E10d](../todos/ready/E10d-pades-signing-core.md): the `Signer` is two-phase (`prepare` returns the digest, `finish` takes the signature) so WebCrypto, the Secure Enclave and HSMs fit a synchronous core.
 
 ## 9. To-dos
 
 ### L1. Contracts
 
-- [ ] Write ADRs 0024 (errors), 0025 (coordinates and units), 0026 (façade rules, jobs, cancellation)
+- [ ] Write ADRs 0026 (errors), 0027 (coordinates and units), 0028 (façade rules, jobs, cancellation)
 - [ ] Generate Rust, TS and JSON Schema error codes from `fixtures/codes.json`; add `explain` text
 
 ### L2. TypeScript hardening
@@ -169,13 +171,13 @@ This plan adjusts these todos (edited in the same PR):
 
 ### L3. AI-ready extraction
 
-- [ ] Write ADR 0028; create `lamina-extract` with blocks, reading order, headings, lists, header/footer removal
+- [ ] Write ADR 0030; create `lamina-extract` with blocks, reading order, headings, lists, header/footer removal
 - [ ] Lattice tables; Markdown, JSON and chunk serialisers; expose in Rust, WASM and TS
 - [ ] `LayoutModel` and `OcrEngine` traits; optional model edge crate
 
 ### L4. CLI and MCP
 
-- [ ] Write ADR 0029; create `crates/lamina-cli` with `info`, `check`, `pages`, `extract` (text), `explain`
+- [ ] Write ADR 0031; create `crates/lamina-cli` with `info`, `check`, `pages`, `extract` (text), `explain`
 - [ ] Batch and NDJSON, `--jobs`, `render`, Markdown/JSON extraction, `schema`, completions, man pages
 - [ ] `lamina mcp` (rmcp, stdio), `--root`, read-only by default (`--allow-write`), honest tool annotations
 - [ ] Release binaries (cargo-dist), Homebrew tap, npm wrapper with per-platform packages
@@ -186,7 +188,7 @@ This plan adjusts these todos (edited in the same PR):
 
 ### L6. Mobile
 
-- [ ] `lamina-ffi` spike with UniFFI, XCFramework and AARs, size report; ADR 0027
+- [ ] `lamina-ffi` spike with UniFFI, XCFramework and AARs, size report; ADR 0029
 - [ ] Mobile SDK plan with rounds and todos
 
 ## 10. Risks
@@ -197,7 +199,7 @@ This plan adjusts these todos (edited in the same PR):
 | Extraction quality without models disappoints on tables and scans | Publish measured scores; plug-in traits (L3c) for models; say plainly what rules cannot do |
 | MCP spec churn (2025-11-25 → 2026-07-28 changed a lot) | MCP is a thin adapter over CLI commands; pin the rmcp version; CLI stays the primary agent interface |
 | Prompt injection through document text | Document text only in data fields, never in `message`/`hint`; hidden text flagged; MCP `--root` required and read-only by default |
-| UniFFI version churn and missing cancellation | Pin per ADR 0027; lamina's own `CancelToken` (ADR 0026) |
+| UniFFI version churn and missing cancellation | Pin per ADR 0029; lamina's own `CancelToken` (ADR 0028) |
 | Mobile platform viewers improve (androidx.pdf) | Compete on fidelity, editing and signature-safe saves, not on viewing alone |
 
 ## 11. Open questions

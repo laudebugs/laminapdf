@@ -486,16 +486,16 @@ Each item names what it is, why it is needed, and which existing round or todo i
 
 ### Proposed ADRs
 
-Numbers 0020–0023 are already reserved in todos (signatures, JavaScript policy, content editing, `lamina-content`). The next free number appears to be **0024**; confirm it on the board before assigning.
+Numbers 0020–0023 are already reserved in todos (signatures, JavaScript policy, content editing, `lamina-content`). The UI/UX plan, merged after this research, took 0024 (app shell UX) and 0025 (mobile shell), so this report's ADRs are numbered 0026–0031.
 
 | ADR | Decision to record | Relationship to accepted ADRs |
 |---|---|---|
-| 0024 Error and diagnostic contract | Error JSON shape, `hint` and `docsUrl` rules, no document text in messages, `explain` pages | Extends ADR 0003's codes |
-| 0025 Coordinates, units and page indexing in public APIs | Top-left points for high-level and extraction; raw user space for low level; 0-based index plus 1-based number | New; constrains the B5 builder and B9 extraction |
-| 0026 Jobs, cancellation and progress across bindings | `CancelToken`, `Job::step(budget)`, progress throttling, no threads in core | Complements ADR 0002; informs proposed ADR 0009 |
-| 0027 Mobile bindings and packaging | UniFFI version pin (0.31 for ubrn, or 0.32 for zero-copy), façade rules, idiomatic Swift/Kotlin layer, SPM-only, AAR layout, native panic profile | Fills in ADR 0002 §5; does not change its decision |
-| 0028 Extraction output and model plug-ins | `lamina.extract/1` schema, rule-based core, plug-in traits, licence rules for weights | Follows ADR 0001 and proposed ADR 0023 |
-| 0029 CLI and MCP contract | Grammar, exit codes, JSON/NDJSON versioning, schema command, MCP security defaults | New; reuses ADR 0024 errors |
+| 0026 Error and diagnostic contract | Error JSON shape, `hint` and `docsUrl` rules, no document text in messages, `explain` pages | Extends ADR 0003's codes |
+| 0027 Coordinates, units and page indexing in public APIs | Top-left points for high-level and extraction; raw user space for low level; 0-based index plus 1-based number | New; constrains the B5 builder and B9 extraction |
+| 0028 Jobs, cancellation and progress across bindings | `CancelToken`, `Job::step(budget)`, progress throttling, no threads in core | Complements ADR 0002; informs proposed ADR 0009 |
+| 0029 Mobile bindings and packaging | UniFFI version pin (0.31 for ubrn, or 0.32 for zero-copy), façade rules, idiomatic Swift/Kotlin layer, SPM-only, AAR layout, native panic profile | Fills in ADR 0002 §5; does not change its decision |
+| 0030 Extraction output and model plug-ins | `lamina.extract/1` schema, rule-based core, plug-in traits, licence rules for weights | Follows ADR 0001 and proposed ADR 0023 |
+| 0031 CLI and MCP contract | Grammar, exit codes, JSON/NDJSON versioning, schema command, MCP security defaults | New; reuses ADR 0026 errors |
 
 ### Open questions where research presses on accepted decisions
 
@@ -513,6 +513,6 @@ The androidx.pdf release state (beta01 versus alpha19) heads the list. Others ar
 
 ## Conclusion
 
-The research shifts the question from "which bindings" to "which contract". ADR 0002 already settled the bindings. What remains open is whether lamina's names, units, errors, schemas and job model are consistent enough that one mental model works in a React component, a SwiftUI view, a shell pipeline and an agent's tool call. That consistency is cheap to get before B5c ships and expensive afterwards, which is why the most urgent items here are rules for code that does not exist yet (L1, L2, L15, ADRs 0024–0026), not new crates.
+The research shifts the question from "which bindings" to "which contract". ADR 0002 already settled the bindings. What remains open is whether lamina's names, units, errors, schemas and job model are consistent enough that one mental model works in a React component, a SwiftUI view, a shell pipeline and an agent's tool call. That consistency is cheap to get before B5c ships and expensive afterwards, which is why the most urgent items here are rules for code that does not exist yet (L1, L2, L15, ADRs 0026–0028), not new crates.
 
 The second shift is in where lamina competes. On Android, the free first-party viewer now annotates, fills forms and runs OCR. The CLI space has a permissive structural tool but no permissive text or render tool. AI extraction is led by models with tangled licences, while rules alone already get reading order mostly right. In each market the gap is the same: a permissive, tolerant engine that edits without breaking signatures, extracts with provenance, and behaves identically everywhere. lamina's accepted ADRs, from tolerance (0003) to the op log (0006) and the save planner (0007), already aim at that gap. The front ends only need to expose those properties without losing them on the way.

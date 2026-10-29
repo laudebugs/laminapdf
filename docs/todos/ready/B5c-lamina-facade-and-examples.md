@@ -7,7 +7,7 @@
 | Plan | [pdf-library §7 B5](../../plans/pdf-library.md#b5-builder-and-the-lamina-crate), [§6 docs and examples](../../plans/pdf-library.md#6-docs-examples-and-publishing) |
 | Round / milestone | Round B (library) — M1 |
 | Depends on | [B5b](./B5b-builder-text-and-document-features.md), [X4](./X4-full-lane-gate.md) |
-| Blocks | [B6a](./B6a-lamina-wasm-and-adr-0016.md), [B8a](./B8a-structure-tree.md), [B9b](./B9b-text-extraction-core.md), [E1a](./E1a-editing-foundation-feature-plan.md), [E1b](./E1b-xmp-packet-model.md), [E2e](./E2e-content-append-api.md), [E6b](./E6b-place-images-and-shapes.md), [L4a](./L4a-lamina-cli.md), [L6a](./L6a-lamina-ffi-spike.md) |
+| Blocks | [B6a](./B6a-lamina-wasm-and-adr-0016.md), [B8a](./B8a-structure-tree.md), [B9b](./B9b-text-extraction-core.md), [L4a](./L4a-lamina-cli.md), [L6a](./L6a-lamina-ffi-spike.md), [E1a](./E1a-editing-foundation-feature-plan.md), [E1b](./E1b-xmp-packet-model.md), [E2e](./E2e-content-append-api.md), [E6b](./E6b-place-images-and-shapes.md) |
 | ADRs | Follows [0005 §1](../../decisions/0005-document-model.md#1-layers) (façade on top), [0018](../../decisions/0018-test-strategy.md) tiers 3 and 8, [0001](../../decisions/0001-core-language-and-licence.md); code-organisation [§4 public API](../../guidelines/code-organization.md#4-public-api-surface-and-stability) |
 | Branch | `feat/b5c-lamina-facade` |
 | PR title | `feat(lamina): façade crate with examples, byte goldens and PDFium/hayro render goldens` |
@@ -56,7 +56,7 @@ Give Rust users one crate, `lamina`, whose docs open with the invoice example an
 
 ## Acceptance criteria
 
-- [ ] The façade meets the binding rules ADR 0026 sets (from [L1a](./L1a-contract-adrs.md)): owned handles instead of borrowed returns, no generics across the boundary, a string-payload error enum, `CancelToken` and resumable `Job::step` for long work, and the thread-safety outcome ADR 0026 picks (lock in the binding edge crate, or a `Sync` core amending ADR 0005 §7); a compile-time test asserts the auto traits that outcome requires ([shareable-libraries §8](../../plans/shareable-libraries.md#8-changes-to-existing-todos))
+- [ ] The façade meets the binding rules ADR 0028 sets (from [L1a](./L1a-contract-adrs.md)): owned handles instead of borrowed returns, no generics across the boundary, a string-payload error enum, `CancelToken` and resumable `Job::step` for long work, and the thread-safety outcome ADR 0028 picks (lock in the binding edge crate, or a `Sync` core amending ADR 0005 §7); a compile-time test asserts the auto traits that outcome requires ([shareable-libraries §8](../../plans/shareable-libraries.md#8-changes-to-existing-todos))
 - [ ] Every example produces a byte-identical golden (twice, and native vs wasm32 for the generation part where feasible)
 - [ ] `qpdf --check` is clean for every example output
 - [ ] Render goldens match within thresholds in PDFium and hayro; a deliberate one-pixel-wide change in an example makes the job fail with a diff image

@@ -8,7 +8,7 @@
 | Round / milestone | Round L5 (shareable libraries) — before the first registry prerelease |
 | Depends on | [B7a](./B7a-docs-site.md), [L1b](./L1b-error-contract-codegen.md) |
 | Blocks | None |
-| ADRs | Follows 0024 (error codes and `explain` pages, from [L1a](./L1a-contract-adrs.md)), [0015](../../decisions/0015-monorepo-layout-and-tooling.md) (xtask, pnpm workspace), [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) (new docs tooling licences), 0017 (lockstep versions, from [B7b](./B7b-versioning-and-0-1-0-alpha.md)), [0018](../../decisions/0018-test-strategy.md) (the eval is recorded, not gating) |
+| ADRs | Follows 0026 (error codes and `explain` pages, from [L1a](./L1a-contract-adrs.md)), [0015](../../decisions/0015-monorepo-layout-and-tooling.md) (xtask, pnpm workspace), [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) (new docs tooling licences), 0017 (lockstep versions, from [B7b](./B7b-versioning-and-0-1-0-alpha.md)), [0018](../../decisions/0018-test-strategy.md) (the eval is recorded, not gating) |
 | Branch | `docs/l5a-agent-docs` |
 | PR title | `docs(site): llms.txt, Markdown twins, docs in packages, rename log and agent-eval baseline` |
 | Size | M (≈ 400–700 lines of config, scripts and tests; generated docs and copied pages don't count) |
@@ -49,7 +49,7 @@ Users get an `AGENTS.md` snippet for their own repositories. A machine-readable 
 - **`AGENTS.md` snippet**: a docs page "Using lamina with coding agents" with a copy-paste block for users' `AGENTS.md` (or `CLAUDE.md`). It covers:
   - where the version-matched docs live (`node_modules/@lamina/pdf/docs/`);
   - `init()` before sync calls;
-  - top-left points and 0-based page index (ADR 0025);
+  - top-left points and 0-based page index (ADR 0027);
   - errors by `code`, with `explain` pages;
   - the `llms.txt` URL.
 
@@ -115,7 +115,7 @@ Users get an `AGENTS.md` snippet for their own repositories. A machine-readable 
 - **Evidence is thin:** no controlled study shows llms.txt improves agent correctness ([LLM note (A) gaps](../../research/libraries/notes/llm-api-and-ai-extraction.md#a-what-makes-llmsagents-write-correct-code-against-a-library-api-and-what-lamina-should-do)). The baseline eval is how lamina finds out for itself; keep the work small.
 - **Tarball size:** shipping docs grows the npm package. Recommendation: Markdown only (no images), with the size reported by `cargo xtask size` and a soft budget. The owner decides on a hard budget.
 - **Eval reproducibility:** agent output varies run to run. Recommendation: three runs per task and condition, with pass counts recorded. Pin the agent version, and record the cost.
-- **Docs site domain** is still open ([architecture §8](../../plans/architecture.md#8-open-questions-for-the-team)); `llms.txt` links must use the final host. Generate them from the same constant as ADR 0024's `docsUrl`.
+- **Docs site domain** is still open ([architecture §8](../../plans/architecture.md#8-open-questions-for-the-team)); `llms.txt` links must use the final host. Generate them from the same constant as ADR 0026's `docsUrl`.
 - **Crate `include` limits:** crates.io caps the package size (10 MB, to verify). Markdown docs should fit; check with `cargo package`.
 
 ## Definition of done

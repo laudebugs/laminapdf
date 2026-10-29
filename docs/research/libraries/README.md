@@ -4,7 +4,7 @@ How to architect and specify lamina's shareable libraries (a shared Rust core wi
 
 | Document | What it is |
 | --- | --- |
-| [shareable-libraries.md](shareable-libraries.md) | **The report.** Gap analysis, core and bridge architecture, TypeScript DX, mobile ergonomics, LLM-first API and AI extraction, CLI and MCP; ideal-API sketches in Rust, TypeScript, CLI, Swift and Kotlin; proposed work items and ADRs 0024–0029. |
+| [shareable-libraries.md](shareable-libraries.md) | **The report.** Gap analysis, core and bridge architecture, TypeScript DX, mobile ergonomics, LLM-first API and AI extraction, CLI and MCP; ideal-API sketches in Rust, TypeScript, CLI, Swift and Kotlin; proposed work items and ADRs 0026–0031. |
 | [notes/ecosystem-gap-analysis.md](notes/ecosystem-gap-analysis.md) | TypeScript, Rust, mobile and CLI PDF libraries in 2026: licences, maintenance, flaws, why developers leave them. |
 | [notes/rust-core-bridge.md](notes/rust-core-bridge.md) | UniFFI 0.32, one façade for wasm-bindgen and UniFFI, binary size, range loading, concurrency, rendering, signing, panic safety. |
 | [notes/typescript-web-dx.md](notes/typescript-web-dx.md) | Loading wasm per runtime and bundler, worker offloading, tree-shaking, disposal, strict types, how other libraries' APIs look. |

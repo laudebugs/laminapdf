@@ -8,7 +8,7 @@
 | Round / milestone | Round L2 (shareable libraries) |
 | Depends on | [B2d](./B2d-windowed-reading.md), [B6b](./B6b-lamina-pdf-package.md) |
 | Blocks | None |
-| ADRs | Implements the edge half of [0005](../../decisions/0005-document-model.md) §2 (`SourceError::Pending` → `Error::DataPending { ranges }`, edge `ByteSource`s); follows [0001](../../decisions/0001-core-language-and-licence.md) (bytes-in/bytes-out core), [0003](../../decisions/0003-reader-tolerance-and-limits.md) (`Limits` bound what is fetched), 0024 and 0026 (codes, cancellation; from [L1a](./L1a-contract-adrs.md)), [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) (new crate dependencies) |
+| ADRs | Implements the edge half of [0005](../../decisions/0005-document-model.md) §2 (`SourceError::Pending` → `Error::DataPending { ranges }`, edge `ByteSource`s); follows [0001](../../decisions/0001-core-language-and-licence.md) (bytes-in/bytes-out core), [0003](../../decisions/0003-reader-tolerance-and-limits.md) (`Limits` bound what is fetched), 0026 and 0028 (codes, cancellation; from [L1a](./L1a-contract-adrs.md)), [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) (new crate dependencies) |
 | Branch | `feat/l2c-range-byte-source` |
 | PR title | `feat(core): range byte sources with DataPending at the edges (HTTP range, JS callback, mmap)` |
 | Size | L (≈ 500–800 lines of Rust, TS and tests) |
@@ -79,7 +79,7 @@ Open large and remote PDFs without downloading or loading them whole, while the 
   - [ ] Stop when a retry asks for the same ranges again (no progress)
   - [ ] Cap the rounds via `Limits` or an option, failing with a coded error (`data-pending` with the last ranges)
 - [ ] `lamina-wasm`: `SparseSource` class; `DataPending` → `LaminaError { code: "data-pending", ranges }`
-- [ ] `packages/pdf/src/source/`: `RangeSource`, `httpRangeSource`, `callbackSource`, `Document.openRange`, `doc.ensure`. `AbortSignal` passes through to `fetch`. Never put document bytes or the URL in error messages (ADR 0024)
+- [ ] `packages/pdf/src/source/`: `RangeSource`, `httpRangeSource`, `callbackSource`, `Document.openRange`, `doc.ensure`. `AbortSignal` passes through to `fetch`. Never put document bytes or the URL in error messages (ADR 0026)
 - [ ] Add codes `source-changed` and `range-unsupported` (if a warning is wanted for the 200 fallback) to `fixtures/codes.json` and regenerate
 - [ ] `crates/lamina-source` (edge):
   - [ ] `Cargo.toml` with `[package.metadata.lamina] layer = "edge"`

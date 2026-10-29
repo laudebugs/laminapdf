@@ -1,4 +1,4 @@
-# L4a — ADR 0029 and `crates/lamina-cli`: `info`, `check`, `pages rotate`, `extract`, `explain`
+# L4a — ADR 0031 and `crates/lamina-cli`: `info`, `check`, `pages rotate`, `extract`, `explain`
 
 | Field | Value |
 | --- | --- |
@@ -8,24 +8,24 @@
 | Round / milestone | Round L4 (shareable libraries) |
 | Depends on | [B5c](./B5c-lamina-facade-and-examples.md), [B9c](./B9c-text-extraction-bindings-and-differential.md), [L1b](./L1b-error-contract-codegen.md) |
 | Blocks | [L4b](./L4b-cli-batch-render-schema.md), [L4c](./L4c-mcp-mode.md), [L4d](./L4d-cli-distribution.md) |
-| ADRs | Writes **0029** (CLI and MCP contract). Follows 0024 (error shape, from [L1a](./L1a-contract-adrs.md)), 0025 (coordinates and page indexing), [0003](../../decisions/0003-reader-tolerance-and-limits.md) (`Limits`, warnings, strict mode), [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) (new dependencies), [0015](../../decisions/0015-monorepo-layout-and-tooling.md) (crate layout, xtask) |
+| ADRs | Writes **0031** (CLI and MCP contract). Follows 0026 (error shape, from [L1a](./L1a-contract-adrs.md)), 0027 (coordinates and page indexing), [0003](../../decisions/0003-reader-tolerance-and-limits.md) (`Limits`, warnings, strict mode), [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) (new dependencies), [0015](../../decisions/0015-monorepo-layout-and-tooling.md) (crate layout, xtask) |
 | Branch | `feat/l4a-lamina-cli` |
-| PR title | `feat(cli): ADR 0029 and the lamina CLI with info, check, pages rotate, extract and explain` |
+| PR title | `feat(cli): ADR 0031 and the lamina CLI with info, check, pages rotate, extract and explain` |
 | Size | L (≈ 600–900 lines: ADR, command layer, clap front end, tests; generated schemas and test fixtures don't count) |
 | PR | — |
 
 ## Goal
 
-Give shell users, CI pipelines and AI agents one binary, `lamina`, with a stable machine contract. This PR writes ADR 0029, which fixes the grammar, page ranges, stdin/stdout handling, exit codes, JSON versioning and the MCP security defaults. It then ships the first commands on top of the `lamina` façade: `info`, `check`, `pages rotate`, `extract text` and `explain`. Each command has `--json` output with a schema id and errors in the ADR 0024 shape. The command logic lives in a library layer separate from the clap front end, so `lamina mcp` ([L4c](./L4c-mcp-mode.md)) can call the same functions. The research says the CLI, not MCP, is the primary agent interface, so its contract must be right before more commands pile on.
+Give shell users, CI pipelines and AI agents one binary, `lamina`, with a stable machine contract. This PR writes ADR 0031, which fixes the grammar, page ranges, stdin/stdout handling, exit codes, JSON versioning and the MCP security defaults. It then ships the first commands on top of the `lamina` façade: `info`, `check`, `pages rotate`, `extract text` and `explain`. Each command has `--json` output with a schema id and errors in the ADR 0026 shape. The command logic lives in a library layer separate from the clap front end, so `lamina mcp` ([L4c](./L4c-mcp-mode.md)) can call the same functions. The research says the CLI, not MCP, is the primary agent interface, so its contract must be right before more commands pile on.
 
 ## Context
 
-- [Shareable libraries plan §4](../../plans/shareable-libraries.md#4-principles-recommendations-recorded-in-adrs-00240029) (one error shape, explicit coordinates, versioned schemas) and [§7 L4](../../plans/shareable-libraries.md#l4-cli-and-mcp) (deliverable and acceptance).
+- [Shareable libraries plan §4](../../plans/shareable-libraries.md#4-principles-recommendations-recorded-in-adrs-00260031) (one error shape, explicit coordinates, versioned schemas) and [§7 L4](../../plans/shareable-libraries.md#l4-cli-and-mcp) (deliverable and acceptance).
 - [Report: the CLI is the primary agent interface](../../research/libraries/shareable-libraries.md#the-cli-is-the-primary-agent-interface-and-mcp-is-a-thin-adapter-over-it): exit-code recommendation, grammar, one command layer under clap and rmcp.
 - [CLI spec note §1](../../research/libraries/notes/cli-spec.md#1-command-grammars-of-existing-pdf-clis-qpdf-mutool-pdftk-cpdf-poppler-ghostscript): qpdf page ranges and exit codes, mutool verbs, pdftk handles, Ghostscript's interactive-by-default anti-pattern.
 - [CLI spec note §2](../../research/libraries/notes/cli-spec.md#2-modern-cli-conventions-cligdev-12-factor-posix-exit-codes-env-vars-json): stdout for data, stderr for the rest, `-`, TTY and `NO_COLOR`, no prompts without a TTY.
 - [CLI spec note §6](../../research/libraries/notes/cli-spec.md#6-proposed-command-set-with-example-sessions-recommendations): the proposed command set, example sessions and the error JSON.
-- ADR 0024 (from [L1a](./L1a-contract-adrs.md)) and the generated error types and `explain` text from [L1b](./L1b-error-contract-codegen.md): the CLI's errors are these, not a new shape.
+- ADR 0026 (from [L1a](./L1a-contract-adrs.md)) and the generated error types and `explain` text from [L1b](./L1b-error-contract-codegen.md): the CLI's errors are these, not a new shape.
 - [ADR 0003 §2](../../decisions/0003-reader-tolerance-and-limits.md#2-warnings-stable-enumerated-codes) and [§3](../../decisions/0003-reader-tolerance-and-limits.md#3-limits): warning codes drive exit code 3; `Limits` are CLI flags.
 - [B3a](./B3a-overlay-and-ops.md): today the only page op is `RotatePage`; that limits `pages` in this PR.
 - [Code organisation §2](../../guidelines/code-organization.md#2-boundaries-and-dependency-direction): `app` crates may use the file system and threads; core crates may not.
@@ -34,16 +34,16 @@ Give shell users, CI pipelines and AI agents one binary, `lamina`, with a stable
 
 **In scope**
 
-- **ADR 0029** (`docs/decisions/0029-cli-and-mcp-contract.md`), status Accepted on merge:
+- **ADR 0031** (`docs/decisions/0031-cli-and-mcp-contract.md`), status Accepted on merge:
   - Grammar: verb-first, `lamina <command> [<subcommand>] <inputs…> [-o OUT | --in-place] [--json]`. Global flags: `--json`, `--quiet`, `--no-input`, `--force`, `--dry-run`, `--color auto|always|never`, `--password-file FILE`, `--strict`, limit flags.
-  - Page ranges: qpdf's grammar as the base (`1-5`, `z` last page, `r3` third from the end, `5-1` reverse, `x3` exclusion, `:odd`/`:even` on the resulting set) with `end` accepted as an alias of `z`. Uppercase `N` (mutool's last page) is **not** an alias, because uppercase letters are pdftk-style file handles (`A=a.pdf … A1-z`); a handle name is one or more uppercase letters and never collides with a range token. Ranges are 1-based page numbers, as users count; JSON output gives both `index` (0-based) and `number` (1-based), per ADR 0025.
+  - Page ranges: qpdf's grammar as the base (`1-5`, `z` last page, `r3` third from the end, `5-1` reverse, `x3` exclusion, `:odd`/`:even` on the resulting set) with `end` accepted as an alias of `z`. Uppercase `N` (mutool's last page) is **not** an alias, because uppercase letters are pdftk-style file handles (`A=a.pdf … A1-z`); a handle name is one or more uppercase letters and never collides with a range token. Ranges are 1-based page numbers, as users count; JSON output gives both `index` (0-based) and `number` (1-based), per ADR 0027.
   - File handles: pdftk style `A=fronts.pdf B=backs.pdf`, then `A1-5`, `Bz-1`; `file.pdf:1-z:odd` for an inline range. The grammar is fixed now, even though merge and shuffle land later.
   - Stdin and stdout: `-` as an input reads stdin (at most one `-` per command); `-o -` writes stdout. Binary output is never written to a stdout that is a TTY (usage error instead).
   - Exit codes: `0` ok; `1` failure; `2` usage error; `3` completed with warnings only (`--warnings-ok` maps it to 0); `4` refused a destructive action that needs `--force` (overwrite an existing file, `--in-place`); `5` password required or wrong. When several apply, the highest-priority wins: `2` > `5` > `4` > `1` > `3` > `0`. `lamina help exit-codes` prints the table.
-  - JSON: every document has a `schema` id (`lamina.info/1`, `lamina.check/1`, `lamina.pages/1`, `lamina.text/1`, `lamina.explain/1`, `lamina.error/1`). New keys may appear within a version; consumers must ignore unknown keys; the number is bumped only on a breaking change (qpdf's rule). NDJSON (one document per line, `type` field) is the batch format, specified here and built in [L4b](./L4b-cli-batch-render-schema.md). Key casing follows ADR 0024.
+  - JSON: every document has a `schema` id (`lamina.info/1`, `lamina.check/1`, `lamina.pages/1`, `lamina.text/1`, `lamina.explain/1`, `lamina.error/1`). New keys may appear within a version; consumers must ignore unknown keys; the number is bumped only on a breaking change (qpdf's rule). NDJSON (one document per line, `type` field) is the batch format, specified here and built in [L4b](./L4b-cli-batch-render-schema.md). Key casing follows ADR 0026.
   - Streams: data on stdout; progress, warnings and human diagnostics on stderr. Colour only when the stream is a TTY and `NO_COLOR` is unset or empty (`--color` overrides). Progress only when stderr is a TTY.
   - No prompts when stdin is not a TTY or `--no-input` is set; anything that would prompt fails with exit 4 or 5 and a hint. Passwords come from `--password-file` or `LAMINA_PASSWORD`, never from argv.
-  - Errors: the ADR 0024 shape wrapped as `lamina.error/1`, plus CLI fields `exitCode` and `input`. Document text never appears in `message` or `hint`.
+  - Errors: the ADR 0026 shape wrapped as `lamina.error/1`, plus CLI fields `exitCode` and `input`. Document text never appears in `message` or `hint`.
   - MCP security defaults (implemented in [L4c](./L4c-mcp-mode.md)): stdio only; `--root DIR` required (repeatable), paths canonicalised and symlink escapes rejected; read-only by default (`--allow-write` to list write tools, `--allow-in-place` on top of that to overwrite inputs); tools mapped 1:1 to CLI commands with the same schemas; honest annotations; document text only in data fields; validation errors as tool errors.
 - **`crates/lamina-cli`**, layer `app` (`[package.metadata.lamina] layer = "app"`), binary name `lamina`:
   - `src/lib.rs` with `pub mod commands`: one function per command, `fn info(args: &InfoArgs, io: &mut dyn Io) -> Result<InfoReport, CliError>` style. Args and reports derive `serde` and `schemars::JsonSchema`; args also derive `clap::Args`. No clap types in reports, no printing in commands.
@@ -53,7 +53,7 @@ Give shell users, CI pipelines and AI agents one binary, `lamina`, with a stable
   - `src/exit.rs`: `ExitCode` enum and the priority rule; `CliError` wraps `lamina::Error` (from L1b) plus usage and I/O errors, all with a code and `kind`.
   - `src/render.rs`: human output (anstream, `NO_COLOR`), JSON and the `lamina.error/1` document.
 - Commands:
-  - `info <input> [--fields a,b] [--json]`: version, page count, page sizes (top-left points per ADR 0025), encryption, Info dictionary, tagged or not, counts of form fields and signatures if the façade exposes them, warnings. `--fields` keeps only the named top-level keys (gh-style, to save agent tokens).
+  - `info <input> [--fields a,b] [--json]`: version, page count, page sizes (top-left points per ADR 0027), encryption, Info dictionary, tagged or not, counts of form fields and signatures if the façade exposes them, warnings. `--fields` keeps only the named top-level keys (gh-style, to save agent tokens).
   - `check <input> [--strict] [--json]`: open, resolve every object and page, decode every content stream within `Limits`; report warnings and errors; exit 3 on warnings only.
   - `pages rotate <input> <angle>[:<range>] [-o OUT | --in-place]`: `+90`, `-90`, `180`, absolute `90`; uses `RotatePage` and the B3c save planner (incremental save).
   - `extract <input> [--format text] [--pages RANGE] [--json]`: plain text per page from the façade's `page.text()`; with `--json`, `lamina.text/1` with one entry per page (`index`, `number`, `text`). `--format` is part of the grammar now so scripts never change: this PR accepts only `text` (the default); [L4b](./L4b-cli-batch-render-schema.md) adds `md`, `json` and `chunks`. There is no `extract text` subcommand, so a file named `text` is never ambiguous.
@@ -73,7 +73,7 @@ Give shell users, CI pipelines and AI agents one binary, `lamina`, with a stable
 ## Tasks
 
 - [ ] Load `/rust-best-practices`; read [docs/guidelines/rust.md](../../guidelines/rust.md) and [code organisation §5](../../guidelines/code-organization.md#5-error-handling-by-layer). The `app` layer may use the file system, but errors still use `thiserror` and the `commands` library still avoids `unwrap`/`expect`/`panic`/indexing.
-- [ ] Write ADR 0029 from the Scope list above; add it to `docs/decisions/README.md`. Cite the report and the CLI spec note for each choice; mark recommendations.
+- [ ] Write ADR 0031 from the Scope list above; add it to `docs/decisions/README.md`. Cite the report and the CLI spec note for each choice; mark recommendations.
 - [ ] Create `crates/lamina-cli` (`Cargo.toml` with workspace fields, lints, `layer = "app"`, `[[bin]] name = "lamina"`); add it to the workspace members.
 - [ ] Add dependencies through `[workspace.dependencies]`: `clap` 4 (derive), `anstream`, `serde`, `serde_json`, `schemars` 1; dev: `assert_cmd`, `predicates`, `jsonschema` (validate output against schemas), `tempfile`. Expected licences are MIT and/or Apache-2.0; confirm with `cargo xtask deny` (ADR 0019).
 - [ ] Implement `ranges.rs` with the qpdf grammar, the `end` alias, handles (uppercase only) and inline `file:range`; property tests (proptest) for "parsed range is within 1..=n" and reverse/exclusion cases.
@@ -84,7 +84,7 @@ Give shell users, CI pipelines and AI agents one binary, `lamina`, with a stable
 - [ ] Generate and commit schemas; add the staleness test.
 - [ ] Update docs (below) and `CLAUDE.md` (layout and commands).
 
-### Example sessions (to copy into ADR 0029 and the crate README)
+### Example sessions (to copy into ADR 0031 and the crate README)
 
 ```console
 $ lamina info report.pdf
@@ -122,11 +122,11 @@ $ lamina explain xref-repaired
 }
 ```
 
-The code name is whatever B2b and L1b define for a missing password; field names follow ADR 0024 as merged.
+The code name is whatever B2b and L1b define for a missing password; field names follow ADR 0026 as merged.
 
 ## Acceptance criteria
 
-- [ ] ADR 0029 is Accepted and listed in `docs/decisions/README.md`.
+- [ ] ADR 0031 is Accepted and listed in `docs/decisions/README.md`.
 - [ ] `cargo run -p lamina-cli -- info fixtures/…` works for every command above; `lamina --help` lists only implemented commands.
 - [ ] Every command's `--json` output validates against its committed schema in tests, and each document carries its `schema` id.
 - [ ] Each exit code 0–5 is produced by at least one integration test (warnings only → 3, `--warnings-ok` → 0, bad range → 2, overwrite without `--force` → 4, encrypted fixture without password → 5, corrupt file → 1).
@@ -150,8 +150,8 @@ None.
 
 ## Docs to update
 
-- [ ] [Shareable libraries plan §9 L4](../../plans/shareable-libraries.md#l4-cli-and-mcp-1): tick "Write ADR 0029; create `crates/lamina-cli` …"
-- [ ] `docs/decisions/README.md` (ADR 0029)
+- [ ] [Shareable libraries plan §9 L4](../../plans/shareable-libraries.md#l4-cli-and-mcp-1): tick "Write ADR 0031; create `crates/lamina-cli` …"
+- [ ] `docs/decisions/README.md` (ADR 0031)
 - [ ] `CLAUDE.md`: layout (`crates/lamina-cli`), commands (`cargo run -p lamina-cli -- …`), ADR list
 - [ ] `crates/lamina-cli/README.md` with the example sessions; `fixtures/README.md` for new fixtures
 
