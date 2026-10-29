@@ -56,5 +56,13 @@
     "max_xobject_depth",
     "max_image_pixels",
     "max_read_window"
+  ],
+  "opErrors": [
+    "nested-transaction",
+    "no-transaction",
+    "unknown-page",
+    "direct-page",
+    "unsupported-version",
+    "invalid-op-log"
   ]
 }
