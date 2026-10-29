@@ -122,15 +122,17 @@ Everything public will be used by someone, so keep the surface small and deliber
 - **SHOULD:** a single root `src/index.ts` lists its exports *by name* (`export { open, PdfDocument } from "./document.js"`). Avoid `export *` (it leaks internals by accident) and avoid internal barrel files (`index.ts` in sub-folders). Barrels force bundlers and dev servers to load every re-exported module ([Vite: avoid barrel files](https://vite.dev/guide/performance#avoid-barrel-files)). For large packages, prefer subpath exports (`@lamina/pdf/forms`).
 - **MUST:** set `"sideEffects": false` unless the package really has import-time side effects.
 
-**Across languages.** If a TS package wraps a Rust crate, the TS API is designed for TS users and is not a transliteration of the Rust API. Error codes, warning codes and option names that both expose **MUST** match, because they are part of both APIs. The spike's `PdfErrorCode` union mirrors the Rust `Error` variants.
+**Across languages.** If a TS package wraps a Rust crate, the TS API is designed for TS users and is not a transliteration of the Rust API. Error codes, warning codes and option names that both expose **MUST** match, because they are part of both APIs. The spike's `PdfErrorCode` union mirrored the Rust `Error` variants; `@lamina/pdf` generates its `ErrorCode` union from `fixtures/codes.json` ([ADR 0026](../decisions/0026-error-and-diagnostic-contract.md)).
 
 ## 5. Error handling, by layer
 
 | Layer | Rust | TypeScript |
 | --- | --- | --- |
-| Core library | One `thiserror` enum per crate (or per major module), `#[non_exhaustive]`, with byte offsets where relevant. No panics: no `unwrap`/`expect`/`panic!`/`todo!`/`unimplemented!`/unchecked indexing (all denied in `[workspace.lints.clippy]`) | One error class per package (`class PdfError extends Error`) with a string-literal `code` union and an `isPdfError` guard. Throw only `Error` subclasses |
-| Binding | Map core errors 1:1 to the target's idiom (a JS `Error` with a `code`, a Swift `Error`) and never drop the code | Re-throw binding errors as the package's own error class |
+| Core library | One `thiserror` enum per crate (or per major module), `#[non_exhaustive]`, with byte offsets where relevant. No panics: no `unwrap`/`expect`/`panic!`/`todo!`/`unimplemented!`/unchecked indexing (all denied in `[workspace.lints.clippy]`) | One error class per package (`class LaminaError extends Error` in `@lamina/pdf`) with a string-literal `code` union, the [ADR 0026](../decisions/0026-error-and-diagnostic-contract.md) fields (`kind`, `hint`, `location`, `data`, `docsUrl`) and an `isLaminaError` guard. Throw only `Error` subclasses |
+| Binding | Map core errors 1:1 to the target's idiom (a JS `Error` with a `code`, a Swift `Error`) and never drop the code or any other ADR 0026 field | Re-throw binding errors as the package's own error class |
 | App / CLI / xtask | `anyhow` with `.context(…)` is fine | Catch at the boundary, log, and show a user-facing message |
+
+Every surface serialises errors and warnings to the one shape in [ADR 0026](../decisions/0026-error-and-diagnostic-contract.md) §1 (`code`, `kind`, `message`, `hint`, `didYouMean`, `location`, `data`, `docsUrl`), with codes from `fixtures/codes.json`. **MUST NOT:** put document text (strings, names or stream data from the input, caller paths) in `message` or `hint`; it goes only in `data` (ADR 0026 §4).
 
 Tolerant reading **MUST** be a written policy. Recoverable problems become *warnings* the caller can inspect (the spike's `Document::warnings()`), not silent fixes and not errors. See [`rust.md`](rust.md#errors) and [`typescript.md`](typescript.md#errors).
 

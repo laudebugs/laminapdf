@@ -68,9 +68,9 @@ ADRs go in `docs/decisions/`, one file per decision (`NNNN-title.md`). Each roun
 | 0025 | Mobile shell: Tauri 2 mobile vs UniFFI with native UI (after the `mobile-shell` spike) | Round U (U3b) | Defer |
 | 0012 | Collaboration: one Durable Object per document, last-writer-wins records | Later (with collaboration) | Defer |
 | 0013 | Heavy jobs: Workflows + Containers; OCR/conversion engines and licences | Later (with OCR) | Defer |
-| 0026 | Error and diagnostic contract | [Shareable libraries](shareable-libraries.md#6-decisions-to-record-adrs) L1 | Propose |
-| 0027 | Coordinates, units and page indexing in public APIs | Shareable libraries L1 | Propose |
-| 0028 | Façade binding rules, jobs, cancellation and progress | Shareable libraries L1 | Propose |
+| [0026](../decisions/0026-error-and-diagnostic-contract.md) | Error and diagnostic contract | [Shareable libraries](shareable-libraries.md#6-decisions-to-record-adrs) L1 | Accepted |
+| [0027](../decisions/0027-coordinates-units-and-page-indexing.md) | Coordinates, units and page indexing in public APIs | Shareable libraries L1 | Accepted |
+| [0028](../decisions/0028-facade-rules-jobs-and-cancellation.md) | Façade binding rules, jobs, cancellation and progress | Shareable libraries L1 | Accepted |
 | 0029 | Mobile bindings and packaging (UniFFI pin, SPM, AARs) | Shareable libraries L6 | Propose |
 | 0030 | Extraction output (`lamina.extract/1`) and model plug-ins | Shareable libraries L3 | Propose |
 | 0031 | CLI and MCP contract | Shareable libraries L4 | Propose |
@@ -141,12 +141,12 @@ Todos: [A1](../todos/done/A1-foundation-adrs.md) (ADRs), [A2](../todos/done/A2-m
 - [x] `krilla-fit` spike ([B1b](../todos/done/B1b-krilla-fit-spike.md), [result](../../spikes/krilla-fit/README.md)), then decide the generation strategy (Option B, recorded in [ADR 0005 §6](../decisions/0005-document-model.md))
 - [x] `lamina-model`: typed pages, annotations, fields, outline; stable IDs (pages, outline, Info, name trees and page labels with their IDs done; annotations and fields come later. [B2a](../todos/done/B2a-limits-owned-document.md) owned `Document` and `Limits`, [B2b](../todos/done/B2b-standard-security-decryption.md) decryption, [B2c](../todos/done/B2c-lamina-model-corpus-fuzz.md) views and IDs; annotations and fields in the editor rounds)
 - [x] `lamina-ops`: `Op` enum, `transact()`, inverses, undo/redo ([B3a](../todos/done/B3a-overlay-and-ops.md))
-- [ ] `lamina-save`: save planner, `SaveConstraint`, streaming `WriteSink` (B3b: the crate, writers and `WriteSink` done; planner and `SaveConstraint` are B3c) ([B3b](../todos/done/B3b-lamina-save-writers.md), [B3c](../todos/ready/B3c-save-planner-and-roundtrip.md))
+- [ ] `lamina-save`: save planner, `SaveConstraint`, streaming `WriteSink` (B3b: the crate, writers and `WriteSink` done; planner and `SaveConstraint` are B3c) ([B3b](../todos/done/B3b-lamina-save-writers.md), [B3c](../todos/ongoing/B3c-save-planner-and-roundtrip.md))
 - [x] Move the writer (`Writer`, `incremental_update`, `XrefEol`) from `lamina-cos` into `lamina-save`, keeping the determinism and golden tests ([B3b](../todos/done/B3b-lamina-save-writers.md))
 - [ ] `lamina-build`: builder API (`Document → page → surface → finish() → Document`) ([B5a](../todos/ready/B5a-lamina-build-core.md), [B5b](../todos/ready/B5b-builder-text-and-document-features.md))
 - [ ] Promote the spike's content builder and golden samples (`hello`, `imaging_demo`), now test support in `crates/lamina-cos/tests/common/`, into `lamina-build` (API and examples) ([B5a](../todos/ready/B5a-lamina-build-core.md))
 - [ ] `lamina` façade crate: re-exports the public API of the core crates; this is what goes to crates.io ([B5c](../todos/ready/B5c-lamina-facade-and-examples.md))
-- [ ] `lamina-text`: font embedding and subsetting for generation (see [03](../research/pdf/03-text-and-fonts.md)) ([B4a](../todos/ready/B4a-font-loading-and-subsetting.md), [B4b](../todos/ready/B4b-shaping-bidi-line-breaking.md), [B4c](../todos/ready/B4c-standard-14-and-simple-fonts.md))
+- [ ] `lamina-text`: font embedding and subsetting for generation (see [03](../research/pdf/03-text-and-fonts.md)) ([B4a](../todos/ongoing/B4a-font-loading-and-subsetting.md), [B4b](../todos/ready/B4b-shaping-bidi-line-breaking.md), [B4c](../todos/ready/B4c-standard-14-and-simple-fonts.md))
 - [ ] `lamina-wasm` (wasm-bindgen + tsify) and `@lamina/pdf` (ESM-only, `init()`, export conditions; publint + attw) ([B6a](../todos/ready/B6a-lamina-wasm-and-adr-0016.md), [B6b](../todos/ready/B6b-lamina-pdf-package.md), [B6c](../todos/ready/B6c-runtime-matrix.md))
 - [x] Fuzz targets under `fuzz/`, with a scheduled 10-minute run, and the golden, corpus-facts and differential harness in the fast lane ([B2c](../todos/done/B2c-lamina-model-corpus-fuzz.md))
 - [x] Golden-file and corpus test harness in CI (full lane) ([X4](../todos/done/X4-full-lane-gate.md) full lane)
