@@ -79,7 +79,7 @@ The workflow itself; unit tests for manifest parsing and the differential compar
 ## Risks and open questions
 
 - Corpus licences: only fetch, never commit; record each source's licence in the manifest.
-- Runner time: hours per night; use the self-hosted runner when online (PR #11's selector) and keep GitHub-hosted fallback within limits.
+- Runner time: hours per night on the self-hosted runners (the only CI runners since #41), shared with the PR lanes.
 
 ## Definition of done
 
@@ -96,4 +96,5 @@ The workflow itself; unit tests for manifest parsing and the differential compar
   - Eight value-matched `[[class]]` rules, each citing an ADR 0003 rule, explain all but 5, and those 5 are `[[known]]` entries. One nightly `[[exception]]` covers the other tools' side of a full-set mutant that `full-exceptions.toml` already excuses for pypdf.
   - Latest full local run (6,190 inputs: 2,172 external, 4,018 mutants including the full lane's set, merged from X4): 0 failures, 0 lamina errors, 611 splits, 2,003 excused, 5 known, 0 stale.
 - **Known disagreements**, tracked by [#37](https://github.com/laudebugs/lamina/issues/37): two `enc` mutants fail with `syntax` where every other reader opens them; undefined PDFDocEncoding bytes in two pdf.js files' outline titles become U+FFFD; and `pdfjs/test/pdfs/issue22011.pdf`, where lamina walks 56 pages and pdf.js 40. (PDFium, qpdf and pypdf count 57; lamina's one page fewer than them is the `lamina-skips` class, so pdf.js's 40 is the disagreement left.)
-- **Benchmarks** run on GitHub-hosted Ubuntu and keep `history.jsonl` on the `bench-data` branch, which the first run on `main` creates. The baseline is the median of the last five runs; noisy runners may still trip the 10% threshold.
+- **Runners.** Since #41 every nightly job runs on the self-hosted macOS ARM64 runners, like the PR lanes. qpdf comes from its pinned macOS ARM64 release (SHA-256-checked), Python runs in a venv, and the corpus lives in the runner's tool cache.
+- **Benchmarks** keep `history.jsonl` on the `bench-data` branch, which the first run on `main` creates, under the runner label `self-hosted-macos-arm64`. The baseline is the median of the last five runs. The runners are shared with other CI jobs, so load may still trip the 10% threshold.

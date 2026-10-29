@@ -47,10 +47,6 @@ on:
         description: Fail on purpose, to check that an issue is opened
         type: boolean
         default: false
-    secrets:
-      RUNNER_STATUS_TOKEN:
-        description: Optional token with repository Administration read access for runner status.
-        required: false
 
 permissions:
   contents: read
@@ -66,45 +62,40 @@ env:
   DIFFERENTIAL_SAMPLE: ${{ inputs.differential-sample || '' }}
 
 jobs:
-  # Prefer the self-hosted runners (macOS ARM64) when one is online (see select-runner.yml).
-  # The differential and benchmarks stay on GitHub-hosted Ubuntu: the differential installs
-  # pinned Linux binaries (qpdf), and benchmark history is only comparable on one machine class.
-  select-runner:
-    name: Choose runner
-    permissions:
-      contents: read
-    uses: ./.github/workflows/select-runner.yml
-    secrets:
-      RUNNER_STATUS_TOKEN: ${{ secrets.RUNNER_STATUS_TOKEN }}
-
+  # Every job runs on the self-hosted runners ([self-hosted, macOS, ARM64]), like the PR lanes
+  # (#41): isolate-rust-home first, rust-cache off (its macOS post step hangs there), pnpm into
+  # runner.temp, Python in a venv in runner.temp.
   differential:
     name: Differential (pdf.js, PDFium, qpdf, pypdf)
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, macOS, ARM64]
     timeout-minutes: 180
     env:
-      # Outside target/ so rust-cache's cleanup never touches it; cached by manifest hash.
-      LAMINA_CORPUS_DIR: ${{ github.workspace }}/../lamina-corpus
-      LAMINA_PYTHON: python3
       QPDF_VERSION: "12.4.2"
       # From https://github.com/qpdf/qpdf/releases/download/v12.4.2/qpdf-12.4.2.sha256
-      QPDF_SHA256: db367d897829f22c4198ce1094143c9d467bd6ee7dfabc44ba6f02056b24f8b1
+      QPDF_SHA256: 62e46987a30ea167cbc530ccb22690aec3d8c812ed09979a941bcee92e504b79
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+      - uses: ./.github/actions/isolate-rust-home
       # xtask and the lamina example only build for the host: no components or cross targets.
       - uses: ./.github/actions/host-rust
         with:
-          cache: true
-      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
-        with:
-          python-version: "3.12"
-          cache: pip
-          cache-dependency-path: tools/differential/requirements.txt
-      - name: Install pypdf and pypdfium2 (tools/differential/requirements.txt)
-        run: python3 -m pip install --disable-pip-version-check -r tools/differential/requirements.txt
+          cache: false
+      # The corpus lives in the runner's own persistent tool cache: the checkouts survive from
+      # night to night and `corpus fetch` reuses (or restores) them, so there is no Actions cache
+      # round-trip of 177 MB.
+      - name: Point xtask at the corpus folder and the venv
+        run: |
+          echo "LAMINA_CORPUS_DIR=$RUNNER_TOOL_CACHE/lamina-corpus" >> "$GITHUB_ENV"
+          echo "LAMINA_PYTHON=$RUNNER_TEMP/differential-venv/bin/python" >> "$GITHUB_ENV"
+      - name: Install pypdf and pypdfium2 in a venv (tools/differential/requirements.txt)
+        run: |
+          python3 -m venv "$RUNNER_TEMP/differential-venv"
+          "$LAMINA_PYTHON" -m pip install --disable-pip-version-check -q -r tools/differential/requirements.txt
       - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
         with:
+          # Per-job install dir: the default (~/setup-pnpm) is shared by every runner on the machine.
           dest: ${{ runner.temp }}/setup-pnpm
           package_json_file: tools/differential/package.json
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
@@ -114,19 +105,16 @@ jobs:
           cache-dependency-path: tools/differential/pnpm-lock.yaml
       - name: Install pdf.js (tools/differential)
         run: pnpm --dir tools/differential install --frozen-lockfile
-      # The release binaries, checked against the SHA-256 qpdf publishes; doctor.rs pins the version.
+      # qpdf's macOS ARM64 release binaries, checked against the SHA-256 qpdf publishes;
+      # doctor.rs pins the version (and `differential --live` checks it).
       - name: Install qpdf ${{ env.QPDF_VERSION }}
         run: |
-          zip="qpdf-$QPDF_VERSION-bin-linux-x86_64.zip"
+          zip="qpdf-$QPDF_VERSION-bin-macos-arm64.zip"
           curl -fsSL --retry 3 -o "$RUNNER_TEMP/$zip" "https://github.com/qpdf/qpdf/releases/download/v$QPDF_VERSION/$zip"
-          echo "$QPDF_SHA256  $RUNNER_TEMP/$zip" | sha256sum -c -
+          echo "$QPDF_SHA256  $RUNNER_TEMP/$zip" | shasum -a 256 -c -
+          rm -rf "$RUNNER_TEMP/qpdf"
           unzip -q "$RUNNER_TEMP/$zip" -d "$RUNNER_TEMP/qpdf"
           echo "$RUNNER_TEMP/qpdf/bin" >> "$GITHUB_PATH"
-      - name: Restore the external corpus
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: ${{ env.LAMINA_CORPUS_DIR }}
-          key: corpus-${{ hashFiles('fixtures/corpus-manifest.toml') }}
       # Checks out each source at its pinned commit (or reuses the cache) and verifies every
       # file's SHA-256 against fixtures/corpus-manifest.toml.
       - run: cargo xtask corpus fetch
@@ -153,10 +141,7 @@ jobs:
 
   fuzz:
     name: Fuzz ${{ matrix.target }}
-    needs: select-runner
-    # Still run if the runner check failed: an empty output falls back to GitHub-hosted Ubuntu.
-    if: ${{ !cancelled() }}
-    runs-on: ${{ fromJSON(needs.select-runner.outputs.runner || '["ubuntu-latest"]') }}
+    runs-on: [self-hosted, macOS, ARM64]
     timeout-minutes: 45
     strategy:
       fail-fast: false
@@ -169,11 +154,10 @@ jobs:
         with:
           persist-credentials: false
       - uses: ./.github/actions/isolate-rust-home
-      # The pinned stable toolchain (host only) builds xtask; fuzz/ needs nightly. rust-cache's
-      # post step on macOS hangs on self-hosted runners (see ci.yml): GitHub-hosted only.
+      # The pinned stable toolchain (host only) builds xtask; fuzz/ needs nightly.
       - uses: ./.github/actions/host-rust
         with:
-          cache: ${{ runner.environment == 'github-hosted' }}
+          cache: false
       - name: Install nightly Rust
         run: rustup toolchain install nightly --profile minimal
       # Same version as tools/xtask/src/doctor.rs; xtask fails if it drifts.
@@ -220,10 +204,7 @@ jobs:
 
   scaling:
     name: Scaling (release, ignored tests)
-    needs: select-runner
-    # Still run if the runner check failed: an empty output falls back to GitHub-hosted Ubuntu.
-    if: ${{ !cancelled() }}
-    runs-on: ${{ fromJSON(needs.select-runner.outputs.runner || '["ubuntu-latest"]') }}
+    runs-on: [self-hosted, macOS, ARM64]
     timeout-minutes: 60
     outputs:
       flaky: ${{ steps.scaling.outputs.flaky }}
@@ -232,10 +213,9 @@ jobs:
         with:
           persist-credentials: false
       - uses: ./.github/actions/isolate-rust-home
-      # See the fuzz job: rust-cache only on GitHub-hosted runners.
       - uses: ./.github/actions/host-rust
         with:
-          cache: ${{ runner.environment == 'github-hosted' }}
+          cache: false
       # cargo test --release -- --ignored; a failure is retried once and a pass on retry is
       # reported as flaky (flaky=true), never hidden (ADR 0018 §4).
       - id: scaling
@@ -243,7 +223,8 @@ jobs:
 
   bench:
     name: Benchmarks
-    runs-on: ubuntu-latest
+    # History compares within one runner label (`--runner`), recorded in every record.
+    runs-on: [self-hosted, macOS, ARM64]
     timeout-minutes: 60
     # Pushes the history to the bench-data branch (main only).
     permissions:
@@ -256,9 +237,10 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+      - uses: ./.github/actions/isolate-rust-home
       - uses: ./.github/actions/host-rust
         with:
-          cache: true
+          cache: false
       # history.jsonl on the orphan bench-data branch: one record per night (commit, runner,
       # ns/iter per benchmark). Created by the first run on main. The token is passed per
       # command (`git -c http.extraheader`, never stored in .git/config) and only to this step
@@ -269,7 +251,7 @@ jobs:
         run: |
           history="$RUNNER_TEMP/bench-data"
           remote="https://github.com/$GITHUB_REPOSITORY.git"
-          basic=$(printf 'x-access-token:%s' "$TOKEN" | base64 -w 0)
+          basic=$(printf 'x-access-token:%s' "$TOKEN" | base64 | tr -d '\n')
           echo "::add-mask::$basic"
           auth="AUTHORIZATION: basic $basic"
           # --exit-code: 0 found, 2 no such branch, anything else a real error.
@@ -291,14 +273,14 @@ jobs:
       # Compares with the median of the last 5 records on this runner; regression=true when a
       # benchmark is over 10% slower. Never fails the job for a regression.
       - id: bench
-        run: cargo xtask bench --history "$HISTORY" --runner ubuntu-latest ${{ env.RECORD == 'true' && '--record' || '' }}
+        run: cargo xtask bench --history "$HISTORY" --runner self-hosted-macos-arm64 ${{ env.RECORD == 'true' && '--record' || '' }}
       - name: Push the benchmark history
         if: ${{ env.RECORD == 'true' }}
         env:
           TOKEN: ${{ github.token }}
         run: |
           cd "$HISTORY"
-          basic=$(printf 'x-access-token:%s' "$TOKEN" | base64 -w 0)
+          basic=$(printf 'x-access-token:%s' "$TOKEN" | base64 | tr -d '\n')
           echo "::add-mask::$basic"
           git add history.jsonl
           git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
@@ -316,7 +298,7 @@ jobs:
   forced-failure:
     name: Forced failure (on request)
     if: ${{ inputs.force-failure }}
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, macOS, ARM64]
     timeout-minutes: 2
     steps:
       - run: |
@@ -333,7 +315,7 @@ jobs:
     if: >-
       ${{ always() && (contains(needs.*.result, 'failure') || needs.scaling.outputs.flaky == 'true'
       || needs.bench.outputs.regression == 'true') }}
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, macOS, ARM64]
     timeout-minutes: 10
     permissions:
       issues: write
@@ -395,7 +377,7 @@ jobs:
                   echo "- \`$(basename "$f")\` ($size bytes)"
                   if [ "$size" -le 4096 ]; then
                     fence='```'
-                    printf '\n  %s base64\n  %s\n  %s\n' "$fence" "$(base64 -w 0 "$f")" "$fence"
+                    printf '\n  %s base64\n  %s\n  %s\n' "$fence" "$(base64 < "$f" | tr -d '\n')" "$fence"
                   fi
                 done
               done

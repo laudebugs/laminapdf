@@ -12,13 +12,14 @@ New todos start from [`TEMPLATE.md`](TEMPLATE.md). The workflow is in [git workf
 
 IDs: `A`/`P`/`X` [architecture](../plans/architecture.md) (foundations, publishing, cross-cutting), `B` [library](../plans/pdf-library.md), `L` [shareable libraries](../plans/shareable-libraries.md) (contracts, worker, extraction, CLI, agent docs, mobile), `C` [web reader](../plans/web-app.md), `D` [desktop reader](../plans/desktop-app.md), `U` [UI/UX](../plans/ui-ux.md), `E` [editor](../plans/full-editor.md), `H` hosted service ([full-editor](../plans/full-editor.md)). A letter suffix (`B2a`, `B2b`) splits a round into PRs.
 
-**3 ongoing · 215 ready · 14 done** (232 total).
+**3 ongoing · 216 ready · 14 done** (233 total).
 
 ## Can start now
 
 Ready todos whose dependencies are all done:
 
 - [X3c](ready/X3c-nightly-link-check.md): Nightly external link check of the docs
+- [X5](ready/X5-linux-windows-ci.md): Linux and Windows CI coverage again
 
 ## Ongoing
 
@@ -307,4 +308,5 @@ Ready todos whose dependencies are all done:
 | X3b | [Nightly hayro-vs-PDFium render diffs](ready/X3b-render-diff-nightly.md) | ready | [C2b](ready/C2b-lamina-render-crate.md), [X3a](done/X3a-nightly-lane.md) |
 | X3c | [Nightly external link check of the docs](ready/X3c-nightly-link-check.md) | ready | [X3a](done/X3a-nightly-lane.md) |
 | X4 | [Full PR lane with an always-running gate job](done/X4-full-lane-gate.md) | done | [B2c](done/B2c-lamina-model-corpus-fuzz.md) |
+| X5 | [Linux and Windows CI coverage again](ready/X5-linux-windows-ci.md) | ready | [X4](done/X4-full-lane-gate.md) |
 
