@@ -12,3 +12,4 @@ Roadmaps and design docs for upcoming work. Name files `kebab-case.md`; include 
 | [Full editor](full-editor.md): all 13 feature groups on web and desktop (Rounds E1–E18) | Draft |
 | [Shareable libraries](shareable-libraries.md): contracts, worker client, AI extraction, CLI and MCP, agent docs, mobile (Rounds L1–L6) | Draft |
 | [UI/UX](ui-ux.md): interaction model for web, desktop and mobile; command palette, selection, mobile layout, reader mode, trust surfaces (Round U) | Draft |
+| [Paper design](paper-design.md): the chosen visual design, every screen designed and documented, Round U6 design system | Draft |

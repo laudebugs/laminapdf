@@ -8,6 +8,7 @@ Everything we know, plan and decide lives here, in Markdown, versioned with the 
 | [`plans/`](plans/) | Roadmaps, project plans and feature design docs before/while they are built. |
 | [`todos/`](todos/README.md) | The work board: one file per pull request, in `ready/`, `ongoing/` or `done/`, with dependencies. Plans link to their todos. |
 | [`decisions/`](decisions/) | Architecture Decision Records (ADRs) — one file per significant decision, numbered `NNNN-title.md`. |
+| [`design/`](design/README.md) | Visual design: the chosen Paper design language, the screen inventory, one document per feature area and the Design canvas source files. |
 | [`guidelines/`](guidelines/) | How we work: contributing, git workflow, code organization, Rust and TypeScript conventions. |
 | [`errors/`](errors/README.md) | One page per error and warning code (ADR 0026 §6); every `docsUrl` points here. |
 | [`references/`](references/) | Pointers to external specs, standards, tools and corpora we rely on. |

@@ -38,7 +38,7 @@ Record the interaction model every shell and editor round builds into, so `@lami
 
 - Implementation → [U1b](U1b-command-registry-and-palette.md), [U1c](U1c-inverted-l-shell-and-modes.md), [U2a](U2a-selection-surfaces-and-copy-modes.md), [U2c](U2c-page-appearance-modes.md), [U3a](U3a-responsive-mobile-and-touch.md).
 - Native mobile shell choice → ADR 0025 after [U3b](U3b-mobile-shell-spike.md).
-- Visual identity (typography, icon set, brand colours) → open question 3 in the plan.
+- Visual identity: decided (owner, 2026-10-29) as the **Paper** direction; the ADR's token layers take their values from the [Paper design language](../../design/paper/design-language.md), and [U6a](./U6a-paper-tokens.md) builds them ([Paper design plan](../../plans/paper-design.md)). The brand mark stays open.
 
 ## Tasks
 
