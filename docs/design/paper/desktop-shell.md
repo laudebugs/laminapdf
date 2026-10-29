@@ -139,6 +139,8 @@ Conventions on this canvas:
 | Moved or deleted (S04-file-missing) | “**File was moved or deleted.** lamina is still showing the version it opened. Locate the file to keep it linked, or close the tab.” | **Close tab** (`tab.close`) · **Locate…** (`file.locate`) |
 | Changed but unreadable (a build still writing) | Notice “File changed but could not be read; retrying.” in the same strip, no buttons; it clears on the next good reload | — |
 
+**States.** Conflict with unsaved changes (drawn, S04-file-changed) · moved or deleted (drawn, S04-file-missing) · silent reload with toast · unreadable, retrying · setting off (banner with **Reload** · **Ignore** for every change) — each described in the table above and under Behaviour.
+
 **Behaviour.**
 
 - **Compare** opens the on-disk version in a new read-only tab beside the current one (“Q3-board-report.pdf — on disk”), so the user can read both; the banner stays until Keep mine or Reload. A visual diff is out of scope here.
@@ -162,6 +164,8 @@ Conventions on this canvas:
 **Entry points.** File › Print… (`file.print`, `⌘P` / `Ctrl P`), the palette, More › Print. Disabled with no document.
 
 **Layout.** S05-print: the system dialog (drawn schematically as a sheet under the macOS title bar over `scrim`): page preview with its own pager on the left; Printer, Copies, Two-sided, Pages (All 24 pages · Current page (3) · Pages [5–12], “8 pages”), Scale (Fit to paper · Actual size), and the line “Orientation follows each page. Prints the page as it looks in Original appearance, with comments.”; Cancel · Print. S05-print-progress: back in the window, the status bar’s middle shows the printer glyph, “Printing pages 5–12 · 3 of 8 sent”, a 140 px determinate bar and **Cancel printing**.
+
+**Content and controls.** `file.print` opens the system dialog with the current page and page count; `print.cancel` (**Cancel printing**, ghost text button in the status-bar item); `print.compatibility` (the toast action “Try compatibility printing” after a native failure); Settings › Advanced › Printing (`print.mode`: System printing / Compatibility printing, drawn in S07-settings-advanced). The dialog’s own controls (printer, copies, pages, scale) belong to the OS; lamina only pre-fills them.
 
 **States.**
 
@@ -275,6 +279,8 @@ Conventions on this canvas:
 - **Engine crash while running** (not a dialog): the document process restarts and the page reloads in place; toast “The document view restarted after a problem. You’re on page 3.”; the report question, if never asked, appears as a notice in the status bar, not a modal.
 - **Offline:** Send queues the report (up to 10, dropped after 30 days); the dialog closes normally.
 
+**Report preview details.** The preview opens from **View report** and replaces the dialog content; **Back to tabs** (top left) returns to the tab choice with its check boxes as they were. The JSON shows only D7a’s allow-listed fields (report ID, app version, channel, OS name and version, arch, process kind, renderer, sandbox level, uptime bucket, crashing-thread frames, module names and versions); a line under it says the report ID is random and made for this report only. **Copy report** is a ghost button left of **Don’t send** · **Send report**. Send report also ticks “Send an anonymous crash report” on the tab choice.
+
 **Behaviour.** Reopening restores page and zoom per tab. Reports are built from an allow-list and scrubbed locally; nothing is sent unless Send or Always is chosen. Neither choice changes any document.
 
 **Accessibility.** `role="dialog"` with `aria-modal`, labelled by the title and described by the first sentence; initial focus on the primary button; Escape = Start without tabs is **not** used (Escape keeps the dialog: it asks a required question). The report block is focusable (`tabindex="0"`) so keyboard users can scroll it.
@@ -321,7 +327,22 @@ Sizes, hashes and the publisher name are placeholders (`[SIZE]`, `[PUBLISHER NAM
 
 **Purpose.** Show the reader as it looks on Windows: the same Paper shell, a Windows frame and an in-window menu bar.
 
+**Entry points.** Any document window on Windows (and, with the differences below, Linux). The board shows the moment after the user pressed Alt.
+
 **Layout.** Title bar 32 px (document glyph, “Q3-board-report.pdf — lamina” left-aligned, Minimise · Maximise · Close at the right, 46×32 each) → menu bar 28 px (File, Edit, View, Go, Tools, Window, Help; drawn just after pressing Alt, so access keys are underlined and File has the focus ring) → tab strip (two tabs) → top bar with `Ctrl K` → Pages rail · page 3 → status bar. Read mode, no secondary toolbar.
+
+**Content and controls.**
+
+| Part | Content | Commands |
+| --- | --- | --- |
+| Title bar | Document glyph (accent), “Q3-board-report.pdf — lamina”; caption buttons Minimise · Maximise · Close (46×32, 10 px stroke glyphs) | OS window commands; Close = `window.close` (asks about unsaved changes first, O03) |
+| Menu bar | File, Edit, View, Go, Tools, Window, Help with underlined access keys (Alt F, Alt E, Alt V, Alt G, Alt T, Alt W, Alt H); contents as S03 | the S03 menus |
+| Tab strip | Q3-board-report.pdf (active, close button) · Damp-survey-North.pdf · Open a file in a new tab (+) | `tab.activate`, `tab.close` (`Ctrl W`), `file.open` |
+| Top bar | Sidebar toggle, file name, “No unsaved changes”, mode tabs (Read selected), page 3 / 24, 110%, Commands `Ctrl K` | `view.toggle-sidebar`, `mode.read` … `mode.edit`, `nav.go-to-page`, `palette.open` (`Ctrl K`) |
+| Body | Pages rail (page 3 current) and page 3 “2. Repairs backlog” | — |
+| Status bar | Network indicator “0 network requests · Offline-safe: nothing uploaded”, “Page 3 · Repairs backlog” | `privacy.network-activity` |
+
+**States.** Menu bar focused after Alt (drawn: File has the focus ring, access keys underlined) · at rest (access-key underlines hidden until Alt, per the OS setting) · a menu open (S03-menus-windows) · window maximised (radius 0, Maximise glyph becomes Restore: two offset squares) · inactive window (title text `muted`) · one tab (strip hidden, as on macOS).
 
 **Behaviour.** Alt or F10 moves focus to the menu bar; arrows move between menus; Escape returns focus to the page. Caption buttons follow the OS (snap layouts on hover of Maximise are the OS’s). The title bar is the OS’s own (no custom-drawn chrome) so it behaves natively with accessibility tools.
 
@@ -353,3 +374,16 @@ Sizes, hashes and the publisher name are placeholders (`[SIZE]`, `[PUBLISHER NAM
 - **Close tab `⌘W` and Quit `⌘Q`** are desktop-only exceptions to the web collision list (see Conventions); the shortcut help must show them only in the desktop app.
 - **Crash dialog merges two questions** (which tabs to reopen, whether to report) that D7a describes as one consent dialog; D7a’s wording (“Send”, “Don’t send”, “Always send”) is kept in the report preview.
 - **Compare** (S04) opens a second read-only tab; a visual diff would need its own todo.
+
+## Proposed design-language additions
+
+Parts these boards use that design language does not yet define (none edits design-language.md; the owner decides):
+
+- **Drawn check box and radio** (S07 Advanced, S08). 16 px; check box radius 3, radio round; off: white with `control-border`; on: `accent` fill with a white Check icon (check box) or an 8 px `accent` dot (radio); disabled: `ground` fill, `chip-border` edge, label `muted`. Built as `role="checkbox"`/`role="radio"` buttons with `aria-checked`, label inside the button so the whole row (≥ 24 px) is the target.
+- **Option row with help** (S07 Advanced). Radio label 14 px, help 12 px `muted` indented 24 px under it, rows split by `hairline`; the group is a `role="radiogroup"` labelled by the section heading.
+- **Disabled secondary button** (S07 Advanced “Restart lamina”). `ground` fill, `chip-border` edge, `muted` label, `aria-disabled="true"` with the reason as its description.
+- **Status notice** in a settings section (S07 Advanced crash-loop fallback): the §7.21 notice in `warning-tint` with the Warning icon, title in `warning` 600.
+- **Positive badge list** (S08 report preview): §7.23 positive badges with a Check icon, as a labelled list of what a report leaves out.
+- **Linux window frame** (S07 Advanced, mockup only): 36 px title bar, centred 13/600 title, one 24 px round close button at the right on a 10% `text` fill.
+- **Web site header and footer** (S09): 56 px header with the Newsreader 22 wordmark and three nav links (current = `accent` 600 with a 2 px underline); footer 12 px `muted` with the licence line. No app shell.
+- **Large primary link** (S09 “Download for macOS”): 40 px high primary button styling on an `<a>`, with the Download icon.

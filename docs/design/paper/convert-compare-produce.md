@@ -273,7 +273,7 @@ Sample files: `Q3-board-report.pdf` (24 pages; this area adds a scanned *Appendi
 
 **Platform differences.** Web identical; large print files get the desktop suggestion when over `Limits`.
 
-**Artboards.** `X10-preflight.dc.html`, `X10-imposition.dc.html`.
+**Artboards.** `X10-preflight.dc.html` (`annual-review-2026.pdf` page 5 in Edit mode: Preflight and Separations pressed, overprint preview on; PDF/X-4 results "2 errors · 3 warnings · 24 rules passed"; the 180 ppi photo selected and marked on the page with an Error label and the total ink at the pointer; inspector with the fix (Replace image… / Accept for this file), five inks including the spot ink "Northwind Teal", total ink 318% over the 300% limit, output intent Coated FOGRA39; status bar shows the trim and bleed), `X10-imposition.dc.html` (wide dialog over the dimmed shell: Booklet chosen, A3 landscape, pages 1–16, binding left, creep 0.2 mm, crop marks; preview of sheet 1 front with pages 16 and 1, Front/Back toggle, previous/next sheet; Save as `annual-review-2026-booklet.pdf`; note that links and form fields aren't carried into the booklet).
 
 **Todos.** [E16d](../../todos/ready/E16d-colour.md), [E16e](../../todos/ready/E16e-preflight-and-conversion.md), [E16f](../../todos/ready/E16f-imposition.md).
 
@@ -295,7 +295,7 @@ Sample files: `Q3-board-report.pdf` (24 pages; this area adds a scanned *Appendi
 
 **Platform differences.** Web identical (layers panel is a reader feature on both shells).
 
-**Artboards.** `X11-layers.dc.html`, `X11-actions.dc.html`.
+**Artboards.** `X11-layers.dc.html` (`mill-lane-A102.pdf` in Edit mode with the Layers rail panel: Dimensions locked, Electrical hidden, Furniture selected with its eye button focused; inspector for Furniture with Name, Visible switch, Prints select, Lock checkbox, Move up/Move down, Delete layer…; status-bar item "4 layers · 1 hidden in your view"), `X11-actions.dc.html` (`annual-review-2026.pdf` page 2 with the Actions tool: rail grouped by place, the "Read the full accounts" button selected on the page; inspector with When = Clicked and two ordered steps, Open web address and Run JavaScript with the "Not run by lamina" badge and the JavaScript textarea focused; status-bar note about JavaScript).
 
 **Todos.** [E17c](../../todos/ready/E17c-layers.md), [E17b](../../todos/ready/E17b-action-editor.md).
 
@@ -305,7 +305,9 @@ Sample files: `Q3-board-report.pdf` (24 pages; this area adds a scanned *Appendi
 
 **Entry points.** Measure: Comment mode › Measure tool (Tools menu, palette `measure.distance`, `measure.area`); appears as a context note "This page has a scale (1:100) · Measure" on pages with a viewport `/Measure`. Media: on the page; selecting it opens the inspector.
 
-**Layout.** Measure: Comment mode with the **Measure tool toolbar** (Distance · Perimeter · Area; Scale "1:100 · from the drawing", Calibrate…, Units select, "Enter points…", Done). Canvas shows measurements with value labels; the selected one has square handles. Inspector: values, Label, Precision, "Edit points as numbers…", Copy value, Delete measurement. Status bar: pointer coordinates in drawing units (and latitude/longitude on geospatial PDFs). Media: Read mode; video poster with a centred play button and duration chip; 3D poster with an inline info note; inspector shows file, size, length, playback policy, captions, "Save video as…".
+**Layout.** Measure: Comment mode with the **Measure tool toolbar** in the secondary-toolbar slot; the page centred, with measurements drawn over it; inspector (300) for the selected measurement; no rail. Media: Read mode; the page with posters in place of the media; inspector (300) for the selected media item.
+
+**Content and controls.** Measure toolbar: Distance · Perimeter · Area (`measure.distance`, `measure.perimeter`, `measure.area`), Scale "1:100 · from the drawing", Calibrate…, Units select (m, cm, mm, ft and in), "Enter points…", hint "Click each corner, double-click to finish · Esc to cancel", Done. Canvas: measurements with value labels; the selected one has square handles. Inspector: Area, Perimeter, Sides, Scale (definition list), Label, Precision (0.1 · 0.01 · 1), "Edit points as numbers…", Copy value, Delete measurement. Status bar: pointer coordinates in drawing units (and latitude/longitude on geospatial PDFs). Media: video poster with a centred 64 px play button and a duration chip; 3D poster with an inline info note "3D model · shown as its saved picture. lamina can’t turn 3D models yet." and "Save model as…"; inspector: File, Size, Length, Format, Captions, Playback ("Only when you press play"), "Save video as…".
 
 **States.** No scale in the file: toolbar shows "Scale: not set · Calibrate…" and values are in page units (pt) until calibrated by drawing a known length. Calibrate: small dialog "This line is [ ] m long". Video playing: native controls inside the frame, Escape stops focus trap. Unsupported codec on web: poster stays with "Can’t play this format here · Save video as…". 3D: never interactive in this round.
 
@@ -315,7 +317,7 @@ Sample files: `Q3-board-report.pdf` (24 pages; this area adds a scanned *Appendi
 
 **Platform differences.** Web: media limited to browser codecs; measurement identical. Desktop plays more formats.
 
-**Artboards.** `X12-measure.dc.html`, `X12-media.dc.html`.
+**Artboards.** `X12-measure.dc.html` (`mill-lane-A102.pdf` in Comment mode with the Measure toolbar, Area pressed, scale 1:100 from the drawing; the living-room area 21.6 m² selected with square handles and a 4.40 m distance across the kitchen; inspector with area, perimeter, sides, Label focused, Precision; pointer coordinates in the status bar), `X12-media.dc.html` (`annual-review-2026.pdf` page 6 in Read mode: video poster with the focused play button and 2:14 chip, 3D model as its saved picture with the info note; inspector with file, size, length, format, captions, playback policy and Save video as…).
 
 **Todos.** [E17e](../../todos/ready/E17e-measurement.md), [E17d](../../todos/ready/E17d-media.md), [E17f](../../todos/ready/E17f-3d-detection.md).
 
@@ -387,3 +389,16 @@ Drawn on the §5 grid, stroke 1.5:
 | Action (bolt) | `<path d="M13 3.5L6 13h5l-1 7.5L17 11h-5z"></path>` |
 | Play | `<path d="M8 5.5v13l10-6.5z"></path>` |
 | 3D cube | `<path d="M12 3.5l7.5 4v9L12 20.5l-7.5-4v-9z"></path><path d="M4.5 7.5L12 11.5l7.5-4M12 11.5v9"></path>` |
+
+## Proposed design-language additions
+
+These are the components above that other areas could reuse; each is drawn in this area's artboards and should move into the [design language](design-language.md) when it is next revised:
+
+- **Tool toolbar** (§7.24 variant): X06, X10, X12. Name the slot rule in §8.1: one secondary toolbar at a time, the tool toolbar replaces the mode's own.
+- **Rail panel**: X03, X11. Proposed as the standard way to give the rail a fourth task without a fourth tab.
+- **Severity badge pair**: "Error" (`danger` on `danger-tint`) and "Warning" (`warning` `#8A5300` on `warning-tint` `#F0E8DC`), 18 px, 11/600, always a word and never colour alone (X06, X08, X10, X11's "Not run by lamina").
+- **Wide dialog with preview** (X10 imposition) as a size step of the dialog (§7.12): 560 default, 820 with preview.
+- **Media poster**: a poster block with a centred 64 px white play button (named with the title and length), a dark duration chip, and an inline info note for content lamina can't play (X12).
+- **Measurement marks**: `accent` fill at 12% with a 2 px `accent` edge for the selected shape, 8 px square white handles, value labels as filled `accent` chips; other measurements in `warning` brown with a white chip (X12).
+- **Monospace text** for code-as-text fields (JavaScript in X11): the system stack `ui-monospace, 'SF Mono', Menlo, Consolas, monospace` at 12/1.5; the design language has no monospace token yet.
+- **Icons** in [New icons](#new-icons), plus three tool icons drawn for X12 on the same grid: Distance `<path d="M4 12h16M4 9v6M20 9v6"></path>`, Perimeter `<path d="M5 6l12-1 2 12-13 2z"></path>`, Area (Perimeter + `<path d="M9 10l6 6M8 14l3 3M12 8l5 5"></path>`).
