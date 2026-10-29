@@ -42,4 +42,7 @@ pub use error::{Error, Result};
 pub use lexer::{Lexer, Token, is_delimiter, is_regular, is_whitespace};
 pub use limits::{DecodeBudget, Limit, Limits};
 pub use object::{Dict, Name, ObjRef, Object, PdfString, Stream, StringFormat, format_real};
-pub use parser::{IndirectObject, Parser, find, parse_object, parse_object_with};
+pub use parser::{
+    IndirectHead, IndirectObject, Parser, StreamHead, endstream_at, find, parse_object, parse_object_with,
+    stream_data_end,
+};
