@@ -99,6 +99,10 @@ One page per code in [`fixtures/codes.json`](../../fixtures/codes.json), as [ADR
 | [`subset-failed`](subset-failed.md) | `unsupported` |
 | [`invalid-axis-value`](invalid-axis-value.md) | `usage` |
 | [`wrong-document`](wrong-document.md) | `usage` |
+| [`invalid-feature`](invalid-feature.md) | `usage` |
+| [`invalid-text-range`](invalid-text-range.md) | `usage` |
+| [`unsupported-layout-option`](unsupported-layout-option.md) | `unsupported` |
+| [`font-mismatch`](font-mismatch.md) | `usage` |
 
 ## Text warnings (`lamina-text`)
 

@@ -38,7 +38,8 @@ struct Range {
     first: u16,
 }
 
-/// Writes the CMap for `map` (code → text). Empty texts are skipped.
+/// Writes the CMap for `map` (code → text). An empty text becomes `<code> <>`: the code stands
+/// for no text (the second glyph of a cluster whose first carries the text, B4b).
 pub(crate) fn to_unicode_cmap(map: &BTreeMap<u16, String>) -> Vec<u8> {
     let mut chars: Vec<(u16, Vec<u16>)> = Vec::new();
     let mut ranges: Vec<Range> = Vec::new();
@@ -61,9 +62,7 @@ pub(crate) fn to_unicode_cmap(map: &BTreeMap<u16, String>) -> Vec<u8> {
         let units = utf16_capped(text);
         let [unit] = *units.as_slice() else {
             close(run.take(), &mut chars, &mut ranges);
-            if !units.is_empty() {
-                chars.push((code, units));
-            }
+            chars.push((code, units));
             continue;
         };
         run = match run {
@@ -195,8 +194,8 @@ mod tests {
     }
 
     #[test]
-    fn empty_text_is_skipped() {
-        assert_eq!(body(&[(1, "")]), "");
+    fn empty_text_maps_to_an_empty_string() {
+        assert_eq!(body(&[(1, "")]), "1 beginbfchar\n<0001> <>\nendbfchar\n");
     }
 
     #[test]

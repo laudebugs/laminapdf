@@ -12,12 +12,13 @@ New todos start from [`TEMPLATE.md`](TEMPLATE.md). The workflow is in [git workf
 
 IDs: `A`/`P`/`X` [architecture](../plans/architecture.md) (foundations, publishing, cross-cutting), `B` [library](../plans/pdf-library.md), `L` [shareable libraries](../plans/shareable-libraries.md) (contracts, worker, extraction, CLI, agent docs, mobile), `C` [web reader](../plans/web-app.md), `D` [desktop reader](../plans/desktop-app.md), `U` [UI/UX](../plans/ui-ux.md), `E` [editor](../plans/full-editor.md), `H` hosted service ([full-editor](../plans/full-editor.md)). A letter suffix (`B2a`, `B2b`) splits a round into PRs.
 
-**2 ongoing · 218 ready · 21 done** (241 total).
+**1 ongoing · 219 ready · 22 done** (242 total).
 
 ## Can start now
 
 Ready todos whose dependencies are all done:
 
+- [B4d](ready/B4d-tounicode-per-text-cids.md): One CID per (glyph, text): exact extraction of shaped text in every script
 - [B5a](ready/B5a-lamina-build-core.md): `lamina-build` core: builder, pages, vectors, colour and images
 - [X2](ready/X2-capability-matrix.md): Capability matrix generator: ~180 operations, test-backed statuses
 - [X3c](ready/X3c-nightly-link-check.md): Nightly external link check of the docs
@@ -25,7 +26,6 @@ Ready todos whose dependencies are all done:
 
 ## Ongoing
 
-- [B4b](ongoing/B4b-shaping-bidi-line-breaking.md): Shaping (HarfRust), bidi and line breaking (ICU4X), with goldens in five scripts
 - [B4c](ongoing/B4c-standard-14-and-simple-fonts.md): Standard 14 fonts with AFM metrics and simple-font encoding
 
 ## Architecture — Round A
@@ -50,10 +50,11 @@ Ready todos whose dependencies are all done:
 | B3b | [`lamina-save`: move the writer, `WriteSink`, incremental and full writers over the overlay, rebase](done/B3b-lamina-save-writers.md) | done | [B3a](done/B3a-overlay-and-ops.md) |
 | B3c | [`SavePlanner`, `SaveConstraint` detection and round-trip in lamina, pdf.js, PDFium and qpdf](done/B3c-save-planner-and-roundtrip.md) | done | [B2b](done/B2b-standard-security-decryption.md), [B3b](done/B3b-lamina-save-writers.md), [X4](done/X4-full-lane-gate.md) |
 | B4a | [`lamina-text`: font loading, subsetting and Type 0 embedding with ToUnicode](done/B4a-font-loading-and-subsetting.md) | done | [B1b](done/B1b-krilla-fit-spike.md), [B3b](done/B3b-lamina-save-writers.md), [X4](done/X4-full-lane-gate.md) |
-| B4b | [Shaping (HarfRust), bidi and line breaking (ICU4X), with goldens in five scripts](ongoing/B4b-shaping-bidi-line-breaking.md) | ongoing | [B4a](done/B4a-font-loading-and-subsetting.md), [X4](done/X4-full-lane-gate.md) |
+| B4b | [Shaping (HarfRust), bidi and line breaking (ICU4X), with goldens in five scripts](done/B4b-shaping-bidi-line-breaking.md) | done | [B4a](done/B4a-font-loading-and-subsetting.md), [X4](done/X4-full-lane-gate.md) |
 | B4c | [Standard 14 fonts with AFM metrics and simple-font encoding](ongoing/B4c-standard-14-and-simple-fonts.md) | ongoing | [B4a](done/B4a-font-loading-and-subsetting.md) |
+| B4d | [One CID per (glyph, text): exact extraction of shaped text in every script](ready/B4d-tounicode-per-text-cids.md) | ready | [B4b](done/B4b-shaping-bidi-line-breaking.md) |
 | B5a | [`lamina-build` core: builder, pages, vectors, colour and images](ready/B5a-lamina-build-core.md) | ready | [B1b](done/B1b-krilla-fit-spike.md), [B3c](done/B3c-save-planner-and-roundtrip.md), [L1a](done/L1a-contract-adrs.md) |
-| B5b | [Builder text, links, destinations, outlines, page labels and metadata](ready/B5b-builder-text-and-document-features.md) | ready | [B4b](ongoing/B4b-shaping-bidi-line-breaking.md), [B4c](ongoing/B4c-standard-14-and-simple-fonts.md), [B5a](ready/B5a-lamina-build-core.md) |
+| B5b | [Builder text, links, destinations, outlines, page labels and metadata](ready/B5b-builder-text-and-document-features.md) | ready | [B4b](done/B4b-shaping-bidi-line-breaking.md), [B4c](ongoing/B4c-standard-14-and-simple-fonts.md), [B5a](ready/B5a-lamina-build-core.md) |
 | B5c | [The `lamina` façade crate, Rust examples, and byte and render goldens](ready/B5c-lamina-facade-and-examples.md) | ready | [B5b](ready/B5b-builder-text-and-document-features.md), [L1a](done/L1a-contract-adrs.md), [L1c](done/L1c-error-contract-core.md), [X4](done/X4-full-lane-gate.md) |
 | B6a | [`lamina-wasm`, `@lamina/wasm` build, ADR 0016 and size budgets](ready/B6a-lamina-wasm-and-adr-0016.md) | ready | [B5c](ready/B5c-lamina-facade-and-examples.md) |
 | B6b | [`@lamina/pdf`: the TypeScript API, `init()`, export conditions, publint and attw](ready/B6b-lamina-pdf-package.md) | ready | [B2b](done/B2b-standard-security-decryption.md), [B6a](ready/B6a-lamina-wasm-and-adr-0016.md) |
@@ -204,7 +205,7 @@ Ready todos whose dependencies are all done:
 | E4b | [Annotation model with `/NM` IDs, annotation ops and overlay rendering](ready/E4b-annotation-model-and-overlay.md) | ready | [E1d](ready/E1d-edit-session-undo-ui.md), [E3c](ready/E3c-links.md), [E4a](ready/E4a-markup-and-drawing-annotations-feature-plan.md) |
 | E4c | [Appearances and creation: text markup, notes and caret](ready/E4c-appearances-markup-notes-caret.md) | ready | [C5b](ready/C5b-find-in-document.md), [E4b](ready/E4b-annotation-model-and-overlay.md) |
 | E4d | [Appearances and creation: ink, shapes, lines and arrows](ready/E4d-appearances-ink-and-shapes.md) | ready | [E4b](ready/E4b-annotation-model-and-overlay.md) |
-| E4e | [FreeText text boxes and callouts with `/DA` and rich text](ready/E4e-freetext-callouts.md) | ready | [B4b](ongoing/B4b-shaping-bidi-line-breaking.md), [B4c](ongoing/B4c-standard-14-and-simple-fonts.md), [E4b](ready/E4b-annotation-model-and-overlay.md) |
+| E4e | [FreeText text boxes and callouts with `/DA` and rich text](ready/E4e-freetext-callouts.md) | ready | [B4b](done/B4b-shaping-bidi-line-breaking.md), [B4c](ongoing/B4c-standard-14-and-simple-fonts.md), [E4b](ready/E4b-annotation-model-and-overlay.md) |
 | E4f | [Annotation tools and properties panel](ready/E4f-annotation-tools-ui.md) | ready | [E1e](ready/E1e-save-and-constraint-banner.md), [E4c](ready/E4c-appearances-markup-notes-caret.md), [E4d](ready/E4d-appearances-ink-and-shapes.md), [E4e](ready/E4e-freetext-callouts.md) |
 | E4g | [Cross-viewer appearance parity suite and E4 round close](ready/E4g-appearance-parity-suite.md) | ready | [E4f](ready/E4f-annotation-tools-ui.md), [X3a](done/X3a-nightly-lane.md) |
 | E5a | [Review, stamps and interchange: feature plan](ready/E5a-review-stamps-interchange-feature-plan.md) | ready | [E4a](ready/E4a-markup-and-drawing-annotations-feature-plan.md) |
@@ -214,7 +215,7 @@ Ready todos whose dependencies are all done:
 | E5e | [Flatten annotations into content and comment summary](ready/E5e-flatten-and-summary.md) | ready | [E2e](ready/E2e-content-append-api.md), [E5b](ready/E5b-comment-threads-and-review.md) |
 | E6a | [Adding content to pages: feature plan](ready/E6a-adding-content-feature-plan.md) | ready | [E2e](ready/E2e-content-append-api.md), [E5a](ready/E5a-review-stamps-interchange-feature-plan.md) |
 | E6b | [Place images, shapes, logos and stamps as page content](ready/E6b-place-images-and-shapes.md) | ready | [B5c](ready/B5c-lamina-facade-and-examples.md), [E2e](ready/E2e-content-append-api.md), [E6a](ready/E6a-adding-content-feature-plan.md) |
-| E6c | [Add text and special characters as page content](ready/E6c-add-text.md) | ready | [B4b](ongoing/B4b-shaping-bidi-line-breaking.md), [B4c](ongoing/B4c-standard-14-and-simple-fonts.md), [B8a](ready/B8a-structure-tree.md), [B8b](ready/B8b-conformance-profiles-and-verapdf.md), [E6b](ready/E6b-place-images-and-shapes.md), [X3a](done/X3a-nightly-lane.md) |
+| E6c | [Add text and special characters as page content](ready/E6c-add-text.md) | ready | [B4b](done/B4b-shaping-bidi-line-breaking.md), [B4c](ongoing/B4c-standard-14-and-simple-fonts.md), [B8a](ready/B8a-structure-tree.md), [B8b](ready/B8b-conformance-profiles-and-verapdf.md), [E6b](ready/E6b-place-images-and-shapes.md), [X3a](done/X3a-nightly-lane.md) |
 | E6d | [Watermarks, backgrounds, headers/footers, page numbers and Bates numbering](ready/E6d-watermarks-headers-footers.md) | ready | [B8a](ready/B8a-structure-tree.md), [B8b](ready/B8b-conformance-profiles-and-verapdf.md), [E6c](ready/E6c-add-text.md) |
 | E6e | [Content insert tools and object handles](ready/E6e-content-tools-ui.md) | ready | [E6b](ready/E6b-place-images-and-shapes.md), [E6c](ready/E6c-add-text.md) |
 | E6f | [Touched-page reload time: measure and budget](ready/E6f-reload-budget.md) | ready | [E6b](ready/E6b-place-images-and-shapes.md) |
@@ -262,7 +263,7 @@ Ready todos whose dependencies are all done:
 | E12f | [Redaction leak tests across pdf.js, PDFium, pypdf and pdftotext; round close](ready/E12f-leak-tests.md) | ready | [E12d](ready/E12d-scrub-and-rewrite.md), [E12e](ready/E12e-sensitive-search.md), [X3a](done/X3a-nightly-lane.md) |
 | E13a | [ADR 0013: heavy jobs on Workflows + Containers; OCR and conversion engines and licences](ready/E13a-adr-0013-heavy-jobs.md) | ready | [C2b](ready/C2b-lamina-render-crate.md), [E12a](ready/E12a-redaction-feature-plan.md) |
 | E13b | [OCR and conversion: feature plan](ready/E13b-ocr-and-conversion-feature-plan.md) | ready | [E13a](ready/E13a-adr-0013-heavy-jobs.md) |
-| E13c | [Invisible OCR text layer from hOCR/ALTO](ready/E13c-ocr-text-layer.md) | ready | [B4b](ongoing/B4b-shaping-bidi-line-breaking.md), [B4c](ongoing/B4c-standard-14-and-simple-fonts.md), [E2e](ready/E2e-content-append-api.md), [E13b](ready/E13b-ocr-and-conversion-feature-plan.md) |
+| E13c | [Invisible OCR text layer from hOCR/ALTO](ready/E13c-ocr-text-layer.md) | ready | [B4b](done/B4b-shaping-bidi-line-breaking.md), [B4c](ongoing/B4c-standard-14-and-simple-fonts.md), [E2e](ready/E2e-content-append-api.md), [E13b](ready/E13b-ocr-and-conversion-feature-plan.md) |
 | E13d | [Client-side OCR on web and local OCR on desktop](ready/E13d-local-ocr.md) | ready | [E13c](ready/E13c-ocr-text-layer.md) |
 | E13e | [Opt-in server jobs: Workflows + Containers with R2 lifecycle (OCR and Office conversion)](ready/E13e-server-jobs-infrastructure.md) | ready | [C7c](ready/C7c-performance-gates-and-launch.md), [E13c](ready/E13c-ocr-text-layer.md) |
 | E13f | [Office → PDF and HTML → PDF (Browser Run) with lamina post-processing](ready/E13f-office-and-html-to-pdf.md) | ready | [E13e](ready/E13e-server-jobs-infrastructure.md) |
@@ -279,7 +280,7 @@ Ready todos whose dependencies are all done:
 | E15e | [PDF/UA output and veraPDF agreement in CI; round close](ready/E15e-pdfua-output.md) | ready | [E15c](ready/E15c-tagging-tools.md), [E15d](ready/E15d-accessibility-checks.md) |
 | E16a | [Optimisation and print production: feature plan](ready/E16a-optimisation-print-feature-plan.md) | ready | [E15a](ready/E15a-accessibility-feature-plan.md) |
 | E16b | [Optimiser: unused objects, dedupe, object streams, linearisation](ready/E16b-structural-optimiser.md) | ready | [E16a](ready/E16a-optimisation-print-feature-plan.md) |
-| E16c | [Downsample and recompress images; embed or subset fonts](ready/E16c-images-and-fonts.md) | ready | [B4b](ongoing/B4b-shaping-bidi-line-breaking.md), [B4c](ongoing/B4c-standard-14-and-simple-fonts.md), [E16b](ready/E16b-structural-optimiser.md) |
+| E16c | [Downsample and recompress images; embed or subset fonts](ready/E16c-images-and-fonts.md) | ready | [B4b](done/B4b-shaping-bidi-line-breaking.md), [B4c](ongoing/B4c-standard-14-and-simple-fonts.md), [E16b](ready/E16b-structural-optimiser.md) |
 | E16d | [Colour conversion, ICC and output intents, spot colours and overprint preview, page boxes for print](ready/E16d-colour.md) | ready | [E2f](ready/E2f-page-geometry.md), [E7c](ready/E7c-content-ir.md), [E16a](ready/E16a-optimisation-print-feature-plan.md) |
 | E16e | [Preflight rules as data; PDF/A and PDF/X conversion and validation; transparency flattening](ready/E16e-preflight-and-conversion.md) | ready | [E15e](ready/E15e-pdfua-output.md), [E16c](ready/E16c-images-and-fonts.md), [E16d](ready/E16d-colour.md) |
 | E16f | [Imposition, booklet and N-up](ready/E16f-imposition.md) | ready | [E2c](ready/E2c-cross-document-pages.md), [E16a](ready/E16a-optimisation-print-feature-plan.md) |

@@ -1,9 +1,12 @@
-//! Text extraction by independent tools (todo B4a): `fixtures/text/extracted.json` holds what
-//! pypdf extracts from each text golden and whether `qpdf --check` passes, written by
-//! `tools/fixtures/text_facts.py`. The facts must describe the goldens' current bytes, and
-//! pypdf's text must equal the text each sample drew.
+//! Text extraction by independent tools (todos B4a, B4b): `fixtures/text/extracted.json` holds
+//! what pypdf and pdf.js extract from each text golden and whether `qpdf --check` passes,
+//! written by `tools/fixtures/text_facts.py`. The facts must describe the goldens' current
+//! bytes, and each extractor's text must equal the text each sample drew, except the lines in
+//! `fixtures/text/extraction-exceptions.json` (an extractor's known limitation, each with its
+//! reason; an entry that no longer matches the facts fails too).
 #![allow(
     clippy::unwrap_used,
+    clippy::panic,
     clippy::indexing_slicing,
     reason = "tests: a panic is a test failure (serde_json `Value` indexing returns `Null` when absent)"
 )]
@@ -38,17 +41,80 @@ fn facts_describe_the_current_goldens() {
     }
 }
 
-#[test]
-fn pypdf_extracts_the_input_text() {
+/// `(file, extractor, line) → what the extractor returns instead`, from the exceptions file.
+fn exceptions() -> Vec<((String, String, usize), String)> {
+    let file: serde_json::Value = serde_json::from_slice(&common::fixture("text/extraction-exceptions.json")).unwrap();
+    file["exceptions"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|e| {
+            assert!(!e["reason"].as_str().unwrap().is_empty(), "{e}");
+            (
+                (
+                    e["file"].as_str().unwrap().to_owned(),
+                    e["extractor"].as_str().unwrap().to_owned(),
+                    usize::try_from(e["line"].as_u64().unwrap()).unwrap(),
+                ),
+                e["extracted"].as_str().unwrap().to_owned(),
+            )
+        })
+        .collect()
+}
+
+fn check_extractor(extractor: &str) {
     let facts = facts();
+    let excused = exceptions();
     for (name, _, lines) in common::samples::GOLDENS {
-        let extracted: Vec<String> = facts["files"][name]["pypdf"]
+        let extracted: Vec<String> = facts["files"][name][extractor]
             .as_array()
-            .unwrap()
+            .unwrap_or_else(|| panic!("{name}: no {extractor} facts; rerun tools/fixtures/text_facts.py"))
             .iter()
             .map(|l| l.as_str().unwrap().to_owned())
             .collect();
-        assert_eq!(extracted, lines, "{name}");
+        assert_eq!(extracted.len(), lines.len(), "{name}: {extractor} found {extracted:?}");
+        for (i, (got, want)) in extracted.iter().zip(lines.iter()).enumerate() {
+            let key = ((*name).to_owned(), extractor.to_owned(), i);
+            match excused.iter().find(|(k, _)| *k == key) {
+                Some((_, instead)) => assert_eq!(got, instead, "{name} line {i}: exception is stale for {extractor}"),
+                None => assert_eq!(got, want, "{name} line {i}: {extractor}"),
+            }
+        }
+    }
+}
+
+#[test]
+fn pypdf_extracts_the_input_text() {
+    check_extractor("pypdf");
+}
+
+#[test]
+fn pdfjs_extracts_the_input_text() {
+    check_extractor("pdfjs");
+}
+
+#[test]
+fn every_exception_names_a_golden_line() {
+    for ((file, extractor, line), _) in exceptions() {
+        let lines = common::samples::GOLDENS
+            .iter()
+            .find(|(name, _, _)| *name == file)
+            .map_or_else(|| panic!("{file} is not a text golden"), |(_, _, lines)| lines.len());
+        assert!(line < lines, "{file} has no line {line}");
+        assert!(["pypdf", "pdfjs"].contains(&extractor.as_str()), "{extractor}");
+    }
+}
+
+#[test]
+fn shaped_extraction_exceptions_are_limited_to_complex_scripts() {
+    // Only text-shaped.pdf's Arabic (3), pointed Hebrew (4) and Devanagari (5) lines, and for
+    // pdf.js the mixed line's Arabic (7): Latin, CJK and the other goldens extract exactly.
+    for ((file, extractor, line), _) in exceptions() {
+        assert_eq!(file, "text-shaped.pdf");
+        assert!(
+            (3..=5).contains(&line) || (extractor == "pdfjs" && line == 7),
+            "{extractor} line {line}"
+        );
     }
 }
 
@@ -85,5 +151,29 @@ fn facts_were_written_with_the_pinned_qpdf() {
         facts()["qpdf_version"].as_str(),
         Some(pinned(&doctor, "pub(crate) const QPDF_VERSION: &str =").as_str()),
         "fixtures/text/extracted.json was written with another qpdf than tools/xtask/src/doctor.rs pins; rerun tools/fixtures/text_facts.py"
+    );
+}
+
+#[test]
+fn pdfjs_scripts_pin_the_doctor_version() {
+    let doctor = String::from_utf8(common::fixture("../tools/xtask/src/doctor.rs")).unwrap();
+    let pinned_version = pinned(&doctor, "const PDFJS_DIST_VERSION: &str =");
+    for script in [
+        "../tools/fixtures/pdfjs_text.mjs",
+        "../tools/corpus-facts/pdfjs-operators.mjs",
+        "../tools/roundtrip/pdfjs.mjs",
+    ] {
+        let text = String::from_utf8(common::fixture(script)).unwrap();
+        assert_eq!(pinned(&text, "const PINNED ="), pinned_version, "{script}");
+    }
+}
+
+#[test]
+fn facts_were_written_with_the_pinned_pdfjs() {
+    let script = String::from_utf8(common::fixture("../tools/fixtures/pdfjs_text.mjs")).unwrap();
+    assert_eq!(
+        facts()["pdfjs_version"].as_str(),
+        Some(pinned(&script, "const PINNED =").as_str()),
+        "fixtures/text/extracted.json was written with another pdf.js than tools/fixtures/pdfjs_text.mjs pins"
     );
 }

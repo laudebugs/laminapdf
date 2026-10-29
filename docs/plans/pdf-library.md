@@ -189,7 +189,7 @@ Architecture Round B is delivered as rounds B1–B9, each split into todos (one 
 
 ### B4. Fonts and text
 
-**Todos:** [B4a](../todos/done/B4a-font-loading-and-subsetting.md) (font loading, subsetting, Type 0 + ToUnicode), [B4b](../todos/ongoing/B4b-shaping-bidi-line-breaking.md) (HarfRust, ICU4X bidi and line breaking), [B4c](../todos/ongoing/B4c-standard-14-and-simple-fonts.md) (standard 14, encodings).
+**Todos:** [B4a](../todos/done/B4a-font-loading-and-subsetting.md) (font loading, subsetting, Type 0 + ToUnicode), [B4b](../todos/done/B4b-shaping-bidi-line-breaking.md) (HarfRust, ICU4X bidi and line breaking), [B4c](../todos/ongoing/B4c-standard-14-and-simple-fonts.md) (standard 14, encodings).
 
 **Deliverable:** `lamina-text`: font loading (skrifa), shaping (HarfRust), bidi and line breaking (ICU4X), subsetting (`subsetter`), ToUnicode/`/W` writers, standard 14 metrics, missing-glyph diagnostics.
 **Accepted when:** shaping goldens for Latin, Arabic, Devanagari, Hebrew and CJK match HarfBuzz output; extracted text from generated files (pdf.js, pypdf, pdftotext) equals the input string, including ligatures.
@@ -292,12 +292,13 @@ Each round's todos (one per PR, with dependencies) are linked from [§7](#7-roun
 ### B4. Fonts and text
 
 - [x] Create `crates/lamina-text`: `Font::from_bytes`, TTC index, variable-font instancing ([B4a](../todos/done/B4a-font-loading-and-subsetting.md))
-- [ ] Integrate HarfRust shaping behind a `Shaper` trait; add per-run OpenType features
-- [ ] Add ICU4X bidi and line breaking; greedy breaking inside a box
+- [x] Integrate HarfRust shaping behind a `Shaper` trait; add per-run OpenType features ([B4b](../todos/done/B4b-shaping-bidi-line-breaking.md))
+- [x] Add ICU4X bidi and line breaking; greedy breaking inside a box ([B4b](../todos/done/B4b-shaping-bidi-line-breaking.md))
 - [x] Integrate `subsetter`; deterministic subset tags; `/W` and chunked ToUnicode ([B4a](../todos/done/B4a-font-loading-and-subsetting.md))
 - [ ] Bundle standard 14 AFM metrics; reject them under PDF/A and PDF/UA profiles
 - [x] Emit missing-glyph diagnostics with codes ([B4a](../todos/done/B4a-font-loading-and-subsetting.md): `missing-glyph`)
-- [ ] Shaping goldens for five scripts; extraction tests with pdf.js, pypdf, pdftotext
+- [x] Shaping goldens for five scripts ([B4b](../todos/done/B4b-shaping-bidi-line-breaking.md))
+- [ ] Extraction tests with pdf.js, pypdf, pdftotext that return the input in every script ([B4b](../todos/done/B4b-shaping-bidi-line-breaking.md): pdf.js and pypdf facts, exact for Latin and CJK, with the Arabic/Hebrew/Devanagari limitations listed; [B4d](../todos/ready/B4d-tounicode-per-text-cids.md): one CID per glyph and text, pdftotext)
 
 ### B5. Builder and the `lamina` crate
 

@@ -26,6 +26,15 @@ pub(crate) const QPDF_VERSION: &str = "12.4.2";
 /// Binaryen release for `wasm-opt`. Its output is part of the shipped .wasm, so bump it deliberately
 /// and review the wasm-opt feature list (ADR 0002) whenever this or `rust-toolchain.toml` changes.
 const BINARYEN_VERSION: &str = "133";
+/// HarfBuzz release behind the shaping goldens (`fixtures/shaping/`, written by
+/// `tools/shaping-goldens/goldens.py` with `hb-shape`); `golden --update` skips them on
+/// another version. `crates/lamina-text/tests/shaping_goldens.rs` checks the script's pin.
+pub(crate) const HB_SHAPE_VERSION: &str = "14.3.0";
+/// pdfjs-dist release behind the pdf.js facts (`tools/fixtures/pdfjs_text.mjs`,
+/// `tools/corpus-facts/pdfjs-operators.mjs`): an npm package installed in a scratch
+/// directory, so `doctor` can't probe it; `crates/lamina-text/tests/extraction.rs` checks the
+/// scripts' pins against this one.
+const PDFJS_DIST_VERSION: &str = "6.4.299";
 /// The oldest Node major we support (`engines` in package.json; `.nvmrc` pins the one we develop on).
 const MIN_NODE_MAJOR: u32 = 22;
 
@@ -185,6 +194,7 @@ fn all_tools(ws: &Workspace) -> Result<Vec<Tool>> {
         cargo_nextest(),
         cargo_fuzz(),
         qpdf(),
+        hb_shape(),
         Tool {
             name: "wasm-bindgen-cli",
             version_command: &["wasm-bindgen", "--version"],
@@ -205,6 +215,17 @@ fn all_tools(ws: &Workspace) -> Result<Vec<Tool>> {
             optional_for: Some("lamina-wasm size optimisation (Round B)"),
         },
     ])
+}
+
+/// HarfBuzz's `hb-shape` at [`HB_SHAPE_VERSION`] (optional: only `golden --update` uses it).
+pub(crate) fn hb_shape() -> Tool {
+    Tool {
+        name: "hb-shape",
+        version_command: &["hb-shape", "--version"],
+        pin: Pin::Exact(HB_SHAPE_VERSION.to_owned()),
+        fix: format!("brew install harfbuzz  # or a HarfBuzz {HB_SHAPE_VERSION} release"),
+        optional_for: Some("regenerating the shaping goldens (tools/shaping-goldens/goldens.py)"),
+    }
 }
 
 /// Fails unless `tool` is installed at its pinned version, naming the fix command.
@@ -267,6 +288,10 @@ pub(crate) fn run(ws: &Workspace, install: bool) -> Result<()> {
             }
         }
     }
+    println!(
+        "- {:<17} {PDFJS_DIST_VERSION} (npm; not probed: install it in a scratch directory for the pdf.js facts scripts)",
+        "pdfjs-dist"
+    );
     if failures.is_empty() {
         Ok(())
     } else {

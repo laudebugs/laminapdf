@@ -94,7 +94,8 @@ fn conflict_warning_has_its_code() {
 }
 
 #[test]
-fn glyph_first_used_without_text_takes_the_later_text() {
+fn glyph_first_used_without_text_keeps_it_and_reports_the_later_text() {
+    // B4b review B1: the empty text is a text; a later different one is a conflict.
     let sans = font("NotoSans-Regular.ttf");
     let a = sans.glyph_for('a').unwrap();
     let mut fonts = FontRegistry::new();
@@ -106,7 +107,7 @@ fn glyph_first_used_without_text_takes_the_later_text() {
             fonts.usage(key).unwrap().text().get(&cid).cloned(),
             fonts.warnings().len()
         ),
-        (Some("a".to_owned()), 0)
+        (Some(String::new()), 1)
     );
 }
 

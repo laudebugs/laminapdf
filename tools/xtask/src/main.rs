@@ -50,7 +50,8 @@ tasks:
   todos [--check]   regenerate the todo board (docs/todos/README.md) and each todo's Blocks
                     field from the Depends on links; --check only verifies
   golden [--update] regenerate every golden in fixtures/golden/ from its source and print the
-                    list (--update writes them; without it, fail if they would change)
+                    list (--update writes them, and the shaping goldens in fixtures/shaping/
+                    when hb-shape is installed; without it, fail if they would change)
   corpus facts      rewrite fixtures/corpus/expected.json with pypdf (needs Python: see
                     tools/corpus-facts/requirements.txt; $LAMINA_PYTHON or python3)
   corpus fetch [--source <name>]… [--update-manifest]
