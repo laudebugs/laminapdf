@@ -155,6 +155,13 @@ fn regressions(history: &[Value], runner: &str, current: &BTreeMap<String, u64>)
 pub(crate) fn bench(ws: &Workspace, args: &BenchArgs) -> Result<()> {
     let out_dir = ws.root.join("target/nightly/bench");
     fs::create_dir_all(&out_dir)?;
+    // History lives in history.jsonl, not criterion's own baselines. A partial target/criterion
+    // restored by the CI cache made criterion fail ("Failed to access … base/sample.json") on
+    // the second branch run, so every run starts without one.
+    let criterion_dir = ws.root.join("target/criterion");
+    if criterion_dir.exists() {
+        fs::remove_dir_all(&criterion_dir).with_context(|| format!("removing {}", criterion_dir.display()))?;
+    }
     let mut cargo_args = vec![
         "bench",
         "--locked",
