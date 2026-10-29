@@ -151,7 +151,8 @@ Todos: [A1](../todos/done/A1-foundation-adrs.md) (ADRs), [A2](../todos/done/A2-m
 - [ ] `lamina-wasm` (wasm-bindgen + tsify) and `@lamina/pdf` (ESM-only, `init()`, export conditions; publint + attw) ([B6a](../todos/ready/B6a-lamina-wasm-and-adr-0016.md), [B6b](../todos/ready/B6b-lamina-pdf-package.md), [B6c](../todos/ready/B6c-runtime-matrix.md))
 - [x] Fuzz targets under `fuzz/`, with a scheduled 10-minute run, and the golden, corpus-facts and differential harness in the fast lane ([B2c](../todos/done/B2c-lamina-model-corpus-fuzz.md))
 - [x] Golden-file and corpus test harness in CI (full lane) ([X4](../todos/done/X4-full-lane-gate.md) full lane)
-- [ ] Linux and Windows CI coverage again after the move to self-hosted macOS runners ([X5](../todos/ready/X5-linux-windows-ci.md))
+- [ ] Linux CI on a self-hosted runner in a container on the Mac ([X5](../todos/ongoing/X5-linux-ci-container.md))
+- [ ] Windows CI coverage, parked ([X6](../todos/ready/X6-windows-ci.md))
 - [ ] Changesets + Cargo version sync; tag `0.1.0-alpha` locally (no registry publish yet) ([B7b](../todos/ready/B7b-versioning-and-0-1-0-alpha.md); docs site [B7a](../todos/ready/B7a-docs-site.md))
 
 ### Round C — Web reader
