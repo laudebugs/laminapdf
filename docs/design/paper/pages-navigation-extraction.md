@@ -4,45 +4,49 @@ Screens O09–O17 of the [screen inventory](screens.md#o-edit-session-organise-n
 
 - **Canvas:** [lamina Paper — Pages, navigation and extraction](https://claude.ai/artifact/XxRzeJ46jd6mBFhp7HevYf) (private until shared). One row per screen, ordered by ID, with a sticky note per row.
 - **Shells:** desktop screens are drawn in the macOS window frame from the `Desktop` foundation board; the web export state uses the web shell from `Main`; phone screens use the `Mobile-read`/`Mobile-select` shell.
-- **Scope note:** Organise mode's page grid, insert, merge and split (O06–O08) belong to part A. This area adds geometry, labels and navigation tools to that mode and draws the grid only as a backdrop.
+- **Scope note:** Organise mode's page grid, insert, merge and split (O06–O08) belong to the Edit session and organise area ([edit-session-organise.md](edit-session-organise.md)). This area adds geometry, labels and navigation tools to that mode and draws the grid only as a backdrop.
 
 Rules that hold for every screen here:
 
-- **Explicit save.** Every edit below is an op in the op log (ADR 0006): it adds one "unsaved change", one undo step, and nothing reaches the file until Save. Read-only views (O13 threads, O15, O16) never mark the file changed.
-- **Signed files.** Geometry, labels, bookmarks, named destinations, initial view and attachments are class `PageStructure` or `Document`, so under a certification signature they are blocked before they apply, with the E1e constraint banner naming the signature (design language §7.13); with approval signatures only they save as an incremental update and the status-bar note says so. Links are class `Annotation` and are allowed under DocMDP P3. The control that would apply a blocked op stays enabled; pressing it shows the banner and does nothing else.
-- **Rail tabs.** In this area the rail shows Pages and Outline, plus Attachments when the file has attachments (or in any editing mode) and Threads when the file has article threads. The foundation boards label the third tab Bookmarks; see [Open questions](#open-questions).
+- **Top bar.** Every board uses the full foundation top bar: file name and save state, mode switcher, page input `n / 24`, zoom −/%/+, find, Commands, Save (only with changes) and More. Boards in an editing mode (Organise, Edit) add a divider, Undo and Redo after the save state, as O01 draws them; Undo names the last step ("Undo add bookmark") and is disabled with no changes.
+- **Organise toolbar (canonical, shared with O06).** Insert ▾ · Rotate left · Rotate right · Delete · Extract │ Move to page… │ Page setup ▾ (Crop, Resize…, Page boxes…, Page labels…, Make landscape, Make portrait) · Bookmark ▾ (Add bookmark, Create a contents page…, Named destinations…) · More page actions (⋯) · context note. While the Crop tool is on, Page setup shows the selected style (`accent` border on `accent-tint`). It wraps into `⋯` when narrow.
+- **Edit toolbar (canonical, from A01).** Select · Edit text · Add text · Image · Shape ▾ · Link │ Page marks ▾ · Replace… │ Tools ▾ (Redact, Protect, Form design, Actions, Accessibility, Print production).
+- **Rail tabs.** Always Pages · Outline; Outline is the file's bookmarks. The sample file has 3 attachments, so every board of it adds Attachments. Threads is added only when a file has article threads (O13); with four or more tabs the rail is 280 px, the first three tabs show and the rest sit in a "More" menu button. When a tab from that menu is chosen, it takes the third slot and the displaced tab moves into the menu.
+- **Explicit save.** Every edit below is an op in the op log (ADR 0006): it adds one unsaved change and one undo step, and nothing reaches the file until Save. Read-only views (O13 threads, O15, O16) never mark the file changed.
+- **Read mode is read-only.** Panels in Read show facts and offer "Edit in Organise" (bookmarks, attachments) or "Edit in Edit" (links); nothing in Read changes the file.
+- **Signed files (ADR 0007).** With approval signatures only, edits save as an incremental update (`AppendOnly`) and the signatures stay valid: no banner, and the status bar shows "Signed file. Saving adds your changes after the signature; the signature stays valid." On a `Conflict` (a certification that doesn't allow the change, a FieldMDP/`/Lock`ed field, or an op on a page holding a signed signature field) the op is checked with `would_violate` before it applies, nothing changes, and the constraint banner appears under the toolbar naming each signature, with Save a copy, Apply anyway… and Details. Apply anyway… opens an alert dialog that lists each affected signature by signer; confirming applies the op with `invalidate_signatures`. Geometry, labels, bookmarks, named destinations, the initial view and attachments are class `PageStructure` or `Document` (a conflict under every certification level); links are class `Annotation` (allowed under DocMDP P3). Files certified "no changes" (P1) show the banner on entering any editing mode. Drawn in `O09-page-geometry-signed.dc.html`.
 
 ## O09 Page geometry
 
 **Purpose.** Crop, resize, set page boxes and orientation for one or many pages, and say plainly that cropping hides content without removing it.
 
-**Entry points.** Organise mode › secondary toolbar Crop (toggle) and Resize…; page context menu › Crop…, Resize…, Page boxes…; palette "Crop pages", "Resize pages", "Set page boxes", "Make landscape" / "Make portrait". No shortcuts.
+**Entry points.** Organise toolbar › Page setup ▾ › Crop, Resize…, Page boxes…, Make landscape, Make portrait; the page context menu has the same items; palette "Crop pages" (`organise.crop`), "Resize pages" (`organise.resize`), "Set page boxes" (`organise.page-boxes`), "Make landscape" (`organise.make-landscape`), "Make portrait" (`organise.make-portrait`). No shortcuts.
 
-**Layout.** Desktop shell, Organise mode. Secondary toolbar: Insert · Rotate left · Rotate right · Crop · Resize… · Extract · Delete │ Move to page… · context note. Rail: Pages. Canvas: the selected page at true size with the crop overlay. Inspector "Page geometry" with tabs Crop · Size · Page boxes. Resize opens a dialog over the dimmed page grid.
+**Layout.** Desktop shell, Organise mode, the canonical Organise toolbar with Page setup shown as active and the note "Cropping page 3 · drag the edges or type the margins". Rail (220 px): Pages · Outline · Attachments. Canvas: the selected page at true size with the crop overlay (the Crop tool swaps the page grid for the single page until it is turned off). Inspector "Page geometry" with tabs Crop · Size · Page boxes. Resize opens a dialog over the dimmed page grid.
 
 **Content and controls.**
 
-- Crop overlay on the page: the area being cut is dimmed with the scrim colour; the kept area has a 2 px `accent` frame and eight 10 px white handles (`accent` border). Dragging a handle or an edge changes the matching margin.
-- Inspector › Crop: "Remove from each edge" with Top, Bottom, Left, Right number inputs (mm; the unit follows the locale: mm or in), a live "Visible area 188 × 226 mm (page 216 × 279 mm)" line; "Apply to": This page / All 24 pages / Pages [range]. Warning notice (`warning-tint`): "**Cropped content stays in the file.** Cropping only hides the edges: the running header and page number can still be copied, searched and extracted. To remove them, use Redact." Actions: Crop page (primary, `organise.crop`), Reset (ghost).
+- Crop overlay on the page: the area being cut is dimmed with `rgba(31,29,26,0.38)`; the kept area has a 2 px `accent` frame and eight 10 px white handles with an `accent` border. Dragging a handle or an edge changes the matching margin.
+- Inspector › Crop: "Remove from each edge" with Top, Bottom, Left, Right number inputs (mm or in by locale), a live "Visible area 188 × 226 mm (page 216 × 279 mm)" line; "Apply to": This page / All 24 pages / Pages [range]. Warning notice (`warning-tint`): "**Cropped content stays in the file.** Cropping only hides the edges: the running header and page number can still be copied, searched and extracted. To remove them, use Redact." Actions: Crop page (primary), Reset (ghost).
 - Inspector › Size: the same fields as the resize dialog for the selected pages; orientation as two radios.
-- Inspector › Page boxes (advanced): Media, Crop, Bleed, Trim and Art boxes as four numbers each (left, bottom, right, top in pt), each with a "Same as crop box" checkbox for the last three; `organise.page-boxes`.
-- Resize dialog "Resize pages" (`organise.resize`): subtitle "24 pages · now US Letter, 216 × 279 mm"; New size select (A4, US Letter, US Legal, A5, Custom: Custom shows width and height inputs); Orientation radios; Content radios "Scale to fit the new size" (default, `Scale`) and "Keep the content size" (`Extend`/`Anchor`); a preview with the current page dashed and the new size solid; a 3 × 3 Anchor radio grid, disabled until "Keep the content size" is chosen; the sentence "Bookmarks, links and the opening view are moved with the content, so they still land on the same place. You can undo this in one step."; Cancel, Resize 24 pages.
+- Inspector › Page boxes (advanced): Media, Crop, Bleed, Trim and Art boxes as four numbers each (left, bottom, right, top in pt), each of the last three with a "Same as crop box" checkbox.
+- Resize dialog "Resize pages": subtitle "24 pages · now US Letter, 216 × 279 mm"; New size select (A4, US Letter, US Legal, A5, Custom: Custom shows width and height inputs); Orientation radios; Content radios "Scale to fit the new size" (default, `Scale`) and "Keep the content size" (`Extend`/`Anchor`); a preview with the current page dashed (84 × 109) and A4 solid (82 × 116) at the same scale; a 3 × 3 Anchor radio grid, disabled until "Keep the content size" is chosen; the sentence "Bookmarks, links and the opening view are moved with the content, so they still land on the same place. You can undo this in one step."; Cancel, Resize 24 pages. Close button "Close Resize pages".
 
 **States.**
 
 - Default: overlay hidden until Crop is on; the inspector opens on the Crop tab.
 - Margins larger than the page: the field turns `danger` with "Leaves no visible area"; Crop page disabled.
 - Mixed sizes in the selection: the visible-area line reads "Sizes differ: margins are removed from each page"; the resize dialog's subtitle reads "24 pages · 3 sizes".
-- A page that carries a signed signature field: Crop page and Resize show the constraint banner ("Saving would invalidate the signature on page 12") and do not apply.
+- Certified file (third artboard): Crop page on all 24 pages is a conflict, so nothing is cropped; the banner reads "**Cropping would invalidate the certification.** Northwind Housing Trust certified this file for form filling and signing only, so nothing has been cropped." with Save a copy · Apply anyway… · Details. Apply anyway… opens the alert dialog "Crop and invalidate 1 signature?" listing "Northwind Housing Trust · Certification · form filling and signing allowed · 24 Oct 2026, 09:30 · Valid", with Cancel (focused) and "Crop and invalidate signature" (danger, filled). The status bar's middle slot shows the certified-file note.
 - Done: toast "Page 3 cropped · Undo"; the top bar shows "1 unsaved change".
 
-**Behaviour.** Crop writes `/CropBox` (`CropPages`); the op report's `CroppedContentRemains` is why the notice is always shown, not only after applying. Resize runs `ResizePages` with the chosen mode; annotations, links, bookmarks, named destinations and the open action are transformed with the page (E2f). Each apply is one undo step. Rotate left/right uses `/Rotate`; "Make landscape" asks nothing extra when the content can be rotated, and offers the resize dialog when the page must change shape.
+**Behaviour.** Crop writes `/CropBox` (`CropPages`); the op report's `CroppedContentRemains` is why the notice is always shown, not only after applying. Resize runs `ResizePages` with the chosen mode; annotations, links, bookmarks, named destinations and the open action are transformed with the page (E2f). Each apply is one undo step. Rotate uses `/Rotate`; "Make landscape" asks nothing extra when the content can be rotated, and opens the resize dialog when the page must change shape.
 
-**Accessibility.** The numeric fields are the non-drag alternative to the handles (WCAG 2.5.7); the handles are `aria-hidden`. Focus order: tabs → margins → Apply to → Crop page. Arrow keys on a focused margin field change it by 1 mm (Shift: 10 mm). The warning notice is `role="status"`. The anchor grid is a `radiogroup` of labelled buttons (Top left … Bottom right) and is `aria-disabled` while unused.
+**Accessibility.** The numeric fields are the non-drag alternative to the handles (WCAG 2.5.7); the handles are `aria-hidden`. Focus order: tabs → margins → Apply to → Crop page. Arrow keys on a focused margin field change it by 1 mm (Shift: 10 mm). The warning notice is `role="status"`. The anchor grid is a `radiogroup` of labelled buttons (Top left … Bottom right) and is `aria-disabled` while unused. The page grid behind the dialog is a `listbox` with `aria-multiselectable`. The alert dialog uses `role="alertdialog"` and starts on Cancel.
 
-**Platform differences.** Web and desktop identical. Phone: crop and resize are in the page's More sheet in O17 as full-screen sheets with the same fields (no handles). Tablet: handles grow to 24 px hit areas.
+**Platform differences.** Web and desktop identical. Phone: crop and resize are in O17's More menu as full-height sheets with the same fields (no handles). Tablet: handles grow to 24 px hit areas.
 
-**Artboards.** `O09-page-geometry.dc.html` (crop with warning), `O09-page-geometry-resize.dc.html` (resize dialog).
+**Artboards.** `O09-page-geometry.dc.html` (crop with warning), `O09-page-geometry-resize.dc.html` (resize dialog), `O09-page-geometry-signed.dc.html` (certified file: banner and Apply anyway confirm).
 
 **Todos.** [E2f](../../todos/ready/E2f-page-geometry.md), [E2h](../../todos/ready/E2h-page-organiser-ui.md).
 
@@ -50,21 +54,21 @@ Rules that hold for every screen here:
 
 **Purpose.** Define the page names readers show (roman front matter, arabic body, a prefixed appendix) without touching the printed page.
 
-**Entry points.** Organise mode › secondary toolbar "Page labels…"; page context menu › Page labels…; More › Document › Page labels…; palette "Edit page labels" (`organise.page-labels`).
+**Entry points.** Organise toolbar › Page setup ▾ › Page labels…; page context menu › Page labels…; palette "Edit page labels" (`organise.page-labels`).
 
-**Layout.** Dialog (max 560) over the dimmed Organise grid.
+**Layout.** Dialog (max 560) over the dimmed Organise shell (full top bar, canonical toolbar with the note "24 pages", page grid backdrop marked `aria-hidden`).
 
 **Content and controls.**
 
 - Intro: "The names pages show in lamina and other PDF readers. They don’t change what is printed on the page."
 - Ranges table (`<table>` with column headers From page · Style · Prefix · Start at · remove): one row per range. The first row always starts at page 1 (its From field is disabled and it can't be removed). Style select: 1, 2, 3 · i, ii, iii · I, II, III · a, b, c · A, B, C · No number (prefix only).
-- "Add range" (ghost with plus) adds a row starting after the last range's first page.
-- Preview: a compact grid of "page → label" pairs for the first pages, the pages around each range start and the last pages; labels in a changed range are shown in `accent` 600. A caption names the elided run ("Pages 4–20 continue 2–18").
-- Actions: Cancel, Apply labels (`SetPageLabels`).
+- "Add range" (ghost with plus) adds a row after the last one.
+- Preview: a compact grid of "page → label" pairs for the first pages, the pages around each range start and the last pages; labels in the range being edited are shown in `accent` 600. A caption names the elided run ("Pages 6–19 continue 4–17").
+- Actions: Cancel, Apply labels (`SetPageLabels`). Close button "Close Page labels".
 
-**States.** Two rows starting on the same page: both From fields turn `danger`, "Two ranges can’t start on page 22", Apply disabled. A file with no labels opens with one row "1 · 1, 2, 3 · (no prefix) · 1". Duplicate labels (for example two "1"s) are allowed and noted in `muted` ("Pages 1 and 3 are both labelled 1"), since the spec allows them. After apply: thumbnails, the page input and the status bar show labels ("Page iii (5 of 24)").
+**States.** Two rows starting on the same page: both From fields turn `danger`, "Two ranges can’t start on page 22", Apply disabled. A file with no labels opens with one row "1 · 1, 2, 3 · (no prefix) · 1". Duplicate labels are allowed (the spec allows them) and noted in `muted` ("Pages 1 and 3 are both labelled 1"). After apply: thumbnails, the page input and the status bar show labels; with the drawn ranges page 5 reads "Page 3 (5 of 24)".
 
-**Behaviour.** One op and one undo step for the whole table. Later page moves keep labels through `PageLabels::remap` (E2b); the dialog always reflects the current tree. Signed: as the area rules.
+**Behaviour.** One op and one undo step for the whole table. Later page moves keep labels through `PageLabels::remap` (E2b); the dialog always reflects the current tree. Signed files: as the area rules.
 
 **Accessibility.** Each input has an `aria-label` naming its row and column ("Range 3, prefix"). Remove buttons are labelled "Remove range 3". The preview list is an `<ol aria-label="Labels by page">`. Focus starts on the first editable field; after "Add range", focus moves to the new row's From field.
 
@@ -76,30 +80,31 @@ Rules that hold for every screen here:
 
 ## O11 Bookmarks editor
 
-**Purpose.** Create, rename, nest, reorder and retarget the file's bookmarks (the PDF outline), and generate a contents page from them.
+**Purpose.** Create, rename, nest, reorder, style and retarget the file's bookmarks (the PDF outline), manage named destinations, and generate a contents page.
 
-**Entry points.** Rail › Outline tab (editable in Organise and Edit modes; read-only in Read with an "Edit bookmarks" ghost button that switches to Organise); secondary toolbar "Add bookmark"; the selection mini toolbar's More › "Add bookmark here"; palette "Add bookmark" (`bookmark.add`), "Create a contents page" (`bookmark.generate-contents`). Rail header More menu: Expand all, Collapse all, Create a contents page…, Sort by page, Bookmarks from headings… (tagged files only; see open questions).
+**Entry points.** Rail › Outline tab, editable in Organise (in Read and other modes it is read-only with an "Edit in Organise" link at its foot); Organise toolbar › Bookmark ▾ › Add bookmark, Create a contents page…, Named destinations…; the selection mini toolbar's More › "Add bookmark here"; palette "Add bookmark" (`organise.add-bookmark`), "Create a contents page" (`organise.create-contents-page`), "Named destinations" (`organise.named-destinations`). The rail header's More menu repeats these and adds Expand all, Collapse all and Sort by page.
 
-**Layout.** Desktop shell, Organise mode; rail widened to 272 px (resizable) with the Outline tab; canvas shows the destination; inspector "Bookmark". The contents-page generator is a dialog.
+**Layout.** Desktop shell, Organise mode, canonical toolbar with the note "7 bookmarks". Rail (272 px, resizable from 220) with Pages · Outline · Attachments. Canvas shows the destination; inspector "Bookmark". The contents-page generator and named destinations are dialogs over the same shell.
 
 **Content and controls.**
 
 - Rail header: "Bookmarks in this file", Add (icon, "Add bookmark"), More (icon, `aria-haspopup="menu"`).
 - Tree (`role="tree"`, rows `treeitem` with `aria-level`, `aria-expanded`): Newsreader rows like the outline row (§7.7), page number right. Selected row: `accent-tint` with a drag grip. Inline rename: the row turns into a text input (Newsreader 14) with the focus ring; Enter commits, Escape cancels.
-- Footer hint: "Drag to reorder or nest. With the keyboard: ⇧⌘↑ ⇧⌘↓ move, ⇧⌘← ⇧⌘→ change level." (Windows/Linux: Ctrl Shift + arrows, matching E2h's page moves.)
-- Destination marker on the page: a dashed 2 px `accent` line at the target's top with a small `accent` tag carrying the bookmark title (page overlay, `aria-hidden`).
-- Inspector: "Goes to" (page and position in words: "Page 3 · second paragraph"); "Use current view" (`bookmark.set-destination`) with a one-line hint; "Zoom when opened" select (Keep the reader’s zoom · Fit page · Fit width · 100%; maps to `/XYZ` with null zoom, `/Fit`, `/FitH`, `/XYZ … 1`); Style toggles Bold and Italic (`/F` flags); "Show nested bookmarks when opened" checkbox (`/Count` sign; disabled when the bookmark has no children); actions Go to (secondary) and Delete bookmark (danger ghost, `bookmark.delete`).
-- Contents page dialog: Insert (Before page 1 · After page 1 · At the end), Levels (Top level only · Two levels), Page title (default "Contents"), "Add a “Contents” bookmark" checkbox, a preview of the generated page with dot leaders and the page labels it will show, the consequence sentence ("Adds 1 page, so every later page moves up by one. Bookmarks, links and page labels follow their pages."), Cancel, Create contents page (`GenerateToc`).
+- Footer hint: "Drag to reorder or nest. With the keyboard: ⇧⌘↑ ⇧⌘↓ move, ⇧⌘← ⇧⌘→ change level." (Windows/Linux: Ctrl Shift + arrows, matching E2h's page moves.) They work only while the tree has focus.
+- Destination marker on the page: a dashed 2 px `accent` line at the target's top with a 16 px `accent` tag carrying the bookmark title, drawn in the gap between paragraphs so it never covers text (page overlay, `aria-hidden`).
+- Inspector: "Goes to" (page and position in words: "Page 3 · second paragraph"); "Use current view" (`organise.set-bookmark-destination`) with a one-line hint; "Zoom when opened" select (Keep the reader’s zoom · Fit page · Fit width · 100%; maps to `/XYZ` with null zoom, `/Fit`, `/FitH`, `/XYZ … 1`); Style toggles Bold and Italic (`/F` flags); Colour swatches Default, Grey, Red, Blue, Green (`/C`; Default removes the key) with "Some readers ignore bookmark colours."; "Show nested bookmarks when opened" checkbox (`/Count` sign; disabled when the bookmark has no children); actions Go to (secondary) and Delete bookmark (danger ghost, `organise.delete-bookmark`).
+- Contents page dialog: Insert (Before page 1 · After page 1 · At the end), Levels (Top level only · Two levels), Page title (default "Contents"), "Add a “Contents” bookmark" checkbox, a preview of the generated page with dot leaders and the page numbers readers will see after the insert (page labels when the file has them; this file has none, so every later page moves up by one), the consequence sentence, Cancel, Create contents page (`GenerateToc`). Close button "Close Create a contents page". The shell behind shows "1 unsaved change" from the bookmark added before.
+- Named destinations dialog: intro "Places in this file that links and bookmarks can point to by name. Other files may link to these names too."; a table Name (mono) · Goes to (link) · Used by ("2 links · 1 bookmark", "Not used in this file") · Rename and Delete icon buttons; inline rename with the hint "Enter to rename, Esc to cancel. Links in this file follow the new name; links from other files to the old name will stop working."; "Add for the current view"; Done. Each rename, add or delete is one op (`SetNamedDestination`, `DeleteNamedDestination`).
 
-**States.** Empty: empty state "No bookmarks yet" / "Add one for the page you’re on, or create them from a contents page." with Add bookmark. A broken outline repaired on open: a notice at the top of the tree "Some bookmarks were damaged; lamina rebuilt the list" (warning tint). Dragging: a 2 px `accent` insertion line with an indent that shows the target level; dropping onto a row's middle third nests. A bookmark whose target page was deleted shows "Page removed" in `danger` text in place of its number and in the inspector, with "Use current view" to fix it.
+**States.** Empty: empty state "No bookmarks yet" / "Add one for the page you’re on, or create them from a contents page." with Add bookmark. A broken outline repaired on open: a notice at the top of the tree "Some bookmarks were damaged; lamina rebuilt the list" (warning tint). Dragging: a 2 px `accent` insertion line indented to the target level; dropping onto a row's middle third nests. A bookmark whose target page was deleted shows "Page removed" in `danger` in place of its number and in the inspector, with "Use current view" to fix it. Deleting a named destination that is used asks first ("2 links and 1 bookmark use repairs-backlog. They will stop working." · Cancel · Delete name).
 
-**Behaviour.** Each add, rename, move, nest, retarget or delete is one undo step (`AddOutlineItem`, `UpdateOutlineItem`, `MoveOutlineItem`, `DeleteOutlineItem`). Clicking a row in Organise/Edit selects it and navigates; double-click or F2 renames. "Use current view" stores the current page, scroll position and (if not "Keep") zoom. The contents page is one composite op and one undo step.
+**Behaviour.** Each add, rename, move, nest, restyle, retarget or delete is one undo step (`AddOutlineItem`, `UpdateOutlineItem`, `MoveOutlineItem`, `DeleteOutlineItem`). Clicking a row selects it and navigates; double-click or F2 renames. "Use current view" stores the current page, scroll position and (if not "Keep") zoom. The contents page is one composite op and one undo step.
 
-**Accessibility.** Tree keyboard model from the APG tree pattern: ↑/↓ move, →/← expand/collapse, Enter goes to the destination, F2 renames, Delete removes (with toast Undo). Move and level shortcuts are the non-drag alternative. Position changes are announced politely ("Moved under 2. Repairs backlog, position 2 of 2"). The destination marker is decorative; its information is in the inspector.
+**Accessibility.** Tree keyboard model from the APG tree pattern: ↑/↓ move, →/← expand/collapse, Enter goes to the destination, F2 renames, Delete removes (with toast Undo). Move and level shortcuts are the non-drag alternative. Position changes are announced politely ("Moved under 2. Repairs backlog, position 2 of 2"). Colour swatches have names and `aria-pressed`. The destination marker is decorative; its information is in the inspector.
 
-**Platform differences.** Identical on web and desktop (desktop menu bar adds Bookmarks › …). Phone: the Outline sheet gets an Edit button; edit mode shows reorder via "Move…" sheets and a rename field, no drag.
+**Platform differences.** Identical on web and desktop (desktop menu bar adds Bookmarks › …). Phone: the Outline sheet gets an Edit button; edit mode reorders via "Move…" sheets and a rename field, no drag.
 
-**Artboards.** `O11-bookmarks.dc.html` (editor with inline rename and inspector), `O11-bookmarks-toc.dc.html` (create a contents page).
+**Artboards.** `O11-bookmarks.dc.html` (editor with inline rename and inspector), `O11-bookmarks-toc.dc.html` (create a contents page), `O11-named-destinations.dc.html` (named destinations with an inline rename).
 
 **Todos.** [E3b](../../todos/ready/E3b-bookmarks-and-destinations.md).
 
@@ -107,31 +112,31 @@ Rules that hold for every screen here:
 
 **Purpose.** Make a link from selected text or a drawn area and point it at a page, a named destination, a web address or an email address.
 
-**Entry points.** Edit mode › Link tool (draw a box); selection mini toolbar › More › "Make link" (`link.make-from-selection`); selecting an existing link in Edit mode; palette "Add link", "Make link from selection". No shortcuts.
+**Entry points.** Edit toolbar › Link (draw a box, `tool.link`); selection mini toolbar › More › "Make link" (`edit.make-link`); selecting an existing link in Edit mode; palette "Add link" (`edit.add-link`, places a default box at the caret or page centre), "Make link from selection" (`edit.make-link`). No shortcuts.
 
-**Layout.** Desktop shell, Edit mode. Secondary toolbar: Text · Image · Link │ Redact · Protect · context note "Draw a box, or select text and press Make link · 2 links on this page". Rail closed in the drawing (any tab can be open). Inspector "Link".
+**Layout.** Desktop shell, Edit mode, with Undo/Redo in the top bar. The canonical Edit toolbar with Link selected and the note "Draw a box, or select text and press Make link · 2 links on this page". Rail closed in the drawing (any tab can be open). Inspector "Link".
 
 **Content and controls.**
 
-- On the page, while the Link tool is on: every existing link shows a 1 px dashed `muted` outline; the selected link has the 2 px `accent` outline (text links follow the glyph quads; drawn links show four corner handles).
+- On the page, while the Link tool is on: every existing link shows a 1 px dashed `muted` outline; the selected link has the 2 px `accent` outline and an `accent` 8% tint (text links follow the glyph quads; drawn links show four corner handles).
 - Inspector: the linked text as a quote (text links only) or "drawn area over the chart" in the context line. "Goes to" radios: A page in this file · A named destination · A web address · An email address.
   - Page: number input with the page's outline title beside it, and "Pick a place on the page…" (click a spot on any page to set an `/XYZ` position).
-  - Named destination: a searchable select of the file's names plus "New name…".
-  - Web address: text input; only `https:`, `http:` (and `mailto:` under Email) are accepted.
+  - Named destination: a searchable select of the file's names plus "New name…" (opens O11's named destinations dialog with a new row).
+  - Web address: text input; only `https:` and `http:` are accepted (and `mailto:` under Email).
   - Email: address and optional subject.
 - "Zoom when followed" select (page and named destinations).
 - Description textarea (`/Contents`), help "Read aloud by screen readers."
-- Actions: Follow link (secondary, `link.follow`), Delete link (danger ghost, `link.delete`).
+- Actions: Follow link (secondary, `nav.follow-link`), Delete link (danger ghost, `edit.delete-link`).
 
-**States.** Rejected address (artboard 2): `javascript:` and other schemes show the field in `danger` with "This address would run a script, so it can’t be used. Use an address that starts with https:// or http://."; the link keeps its last valid target and Follow link is disabled. Empty target on a new link: Follow link disabled, and leaving the inspector with no target removes the new link (toast "Link removed: it had no target · Undo"). A note under web targets: "Readers of this file are asked before a web link opens." (the C6 external-link confirmation).
+**States.** Rejected address (second artboard): `javascript:` and other schemes show the field in `danger` with "This address would run a script, so it can’t be used. Use an address that starts with https:// or http://."; the link keeps its last valid target and Follow link is disabled. Empty target on a new link: Follow link disabled, and leaving the inspector with no target removes the new link (toast "Link removed: it had no target · Undo"). A note under web targets: "Readers of this file are asked before a web link opens." (the C6 external-link confirmation).
 
-**Behaviour.** Drawing or making a link creates it (`AddLink`) and selects it; every inspector change is `UpdateLink`, committed on blur or Enter, one undo step each. Delete removes it. Links on signed files follow the area rules (allowed under P3).
+**Behaviour.** Drawing or making a link creates it (`AddLink`) and selects it; every inspector change is `UpdateLink`, committed on blur or Enter, one undo step each. Delete removes it. Signed files follow the area rules (allowed under P3; a conflict under P1/P2).
 
-**Accessibility.** "Make link" works entirely from a keyboard text selection; drawn areas can be created and resized with arrow keys after "Add link" places a default box at the caret or page centre (Shift+arrows resize). The error text is linked with `aria-describedby` and `aria-invalid`. The Description field is called out because it is what assistive tech reads for the link.
+**Accessibility.** "Make link" works entirely from a keyboard text selection; drawn areas can be created with "Add link" and moved or resized with arrow keys (Shift+arrows resize). The error text is linked with `aria-describedby` and `aria-invalid`. The Description field is called out because it is what assistive tech reads for the link.
 
-**Platform differences.** Identical. Phone: links are edited from the selection action bar's More › Make link and a sheet with the same fields; no drawing.
+**Platform differences.** Identical on web and desktop. Phone: links are edited from the selection action bar's More › Make link and a sheet with the same fields; no drawing.
 
-**Artboards.** `O12-link-editor.dc.html` (text link to a page), `O12-link-editor-web.dc.html` (drawn area, rejected web address).
+**Artboards.** `O12-link-editor.dc.html` (text link to a page), `O12-link-editor-error.dc.html` (drawn area, rejected web address).
 
 **Todos.** [E3c](../../todos/ready/E3c-links.md).
 
@@ -139,23 +144,23 @@ Rules that hold for every screen here:
 
 **Purpose.** Choose how the file opens in any reader, and list and follow the file's article threads.
 
-**Entry points.** Initial view: More › Document › Initial view… and Document properties (R08) › "Initial view…"; palette "Set initial view" (`document.initial-view`). Threads: rail › Threads tab (shown only when the file has threads); palette "Next thread part" / "Previous thread part" (`thread.next-part`, `thread.previous-part`).
+**Entry points.** Initial view: in Organise, More page actions (⋯) › Initial view…, and More › Document › Initial view…; palette "Set initial view" (`organise.initial-view`). In Read, Document properties (R08) shows the current initial view read-only with "Edit in Organise". Threads: rail › Threads tab (shown only when the file has threads); palette "Next thread part" / "Previous thread part" (`nav.next-thread-part`, `nav.previous-thread-part`).
 
-**Layout.** Initial view: dialog over the dimmed Read shell. Threads: desktop shell in Read mode, rail 248 px with the Threads tab, page overlay on the current part.
+**Layout.** Initial view: dialog over the dimmed Organise shell (Undo/Redo, canonical toolbar, rail Pages · Outline · Attachments, page 3). Threads: desktop shell in Read mode, rail 280 px with Pages · Outline · Threads and a "More" menu button holding Attachments; page overlay on the current part.
 
 **Content and controls.**
 
-- Initial view dialog: intro "How this file opens for anyone, in lamina and in other PDF readers."; Open at page (number + outline title); Zoom (Fit width · The reader’s default · Fit page · 100%…); Page layout radios (One page at a time · Continuous scroll · Two pages side by side · Side by side, scrolling → `/PageLayout`); "Show when opened" select (Bookmarks panel · Just the page · Page thumbnails · Attachments panel · Full screen → `/PageMode`); "Reader window" checkboxes (show the document title, fit the window to the first page, hide the reader's toolbar and menus → `/ViewerPreferences`) with "These are requests: some readers, and lamina’s own settings, may override them."; "Use the current view" (ghost, fills page, zoom and layout from the current view), Cancel, Apply (`SetInitialView`).
+- Initial view dialog: intro "How this file opens for anyone, in lamina and in other PDF readers."; Open at page (number + outline title); Zoom (Fit width · The reader’s default · Fit page · 100%…); Page layout radios: One page at a time · Continuous scroll · Two pages side by side · Side by side, scrolling · Side by side, cover page alone · Side by side scrolling, cover alone (`/SinglePage`, `/OneColumn`, `/TwoPageLeft`, `/TwoColumnLeft`, `/TwoPageRight`, `/TwoColumnRight`); "Show when opened" select: Bookmarks panel · Just the page · Page thumbnails · Attachments panel · Layers panel · Full screen (`/UseOutlines`, `/UseNone`, `/UseThumbs`, `/UseAttachments`, `/UseOC`, `/FullScreen`); "Reader window" checkboxes (show the document title, fit the window to the first page, hide the reader's toolbar and menus → `/ViewerPreferences`) with "These are requests: some readers, and lamina’s own settings, may override them."; "Use the current view" (ghost), Cancel, Apply (`SetInitialView`). Close button "Close Initial view".
 - Threads panel: one expandable entry per thread (title from the thread's info, or "Untitled thread", and "3 parts · pages 3, 5, 6"); its parts as links "Part 1 · page 3"; Previous part / Next part buttons; the note "Threads join the parts of an article across pages. lamina follows them; editing threads comes later."
-- On the page: the current part (bead) has a 2 px `accent` outline and a tag "Part 1 of 3 · continues on page 5"; the status bar reads "Page 3 · Repairs backlog in depth, part 1 of 3".
+- On the page: the current part (bead) has a 2 px `accent` outline and a tag "Part 1 of 3 · continues on page 5"; the status bar's page slot reads "Page 3 · Repairs backlog in depth, part 1 of 3".
 
 **States.** Initial view with nothing set: every control shows the reader default and Apply is disabled until something changes. Threads: tab hidden when there are none; a bead pointing to a missing page is listed as "Part 4 · page missing" in `muted` and skipped by Next part.
 
 **Behaviour.** Apply is one undo step; lamina honours the saved settings the next time the file opens, unless the user turned off "Use the file’s initial view" in View settings (R10). Following a thread scrolls to the bead and keeps the column at the top; it adds history entries so Back returns (C6b).
 
-**Accessibility.** The bead outline is decorative; the panel's `aria-current="location"` and the status bar (`aria-live="polite"`) carry the position. Next/Previous part are real buttons with disabled states.
+**Accessibility.** The bead outline is decorative; the panel's `aria-current="location"` and the status bar (`aria-live="polite"`) carry the position. Next/Previous part are real buttons with disabled states. The "More" tab button has `aria-haspopup="menu"`.
 
-**Platform differences.** Identical on web and desktop; "Resize the window to fit the first page" has no effect in lamina's web app (stated in the help text on web). Phone: threads in the Outline sheet as a second segment; initial view in More › Document.
+**Platform differences.** Identical on web and desktop; "Resize the window to fit the first page" has no effect in lamina's web app (the help text says so on web). Phone: threads in the Outline sheet as a second segment; initial view in More › Document.
 
 **Artboards.** `O13-initial-view.dc.html`, `O13-article-threads.dc.html`.
 
@@ -163,28 +168,30 @@ Rules that hold for every screen here:
 
 ## O14 Attachments panel
 
-**Purpose.** See, add, describe, save out and delete files embedded in the PDF, including associated files tied to a page (PDF/A-3, Factur-X).
+**Purpose.** See and save out files embedded in the PDF, including associated files tied to a page (PDF/A-3, Factur-X); in Organise, add, describe and delete them.
 
-**Entry points.** Rail › Attachments tab; More › Attachments; status-bar item "3 attachments" when the file has any (proposed); drag files onto the panel; palette "Attach file…" (`attachment.add`), "Save attachment…" (`attachment.save`).
+**Entry points.** Rail › Attachments tab (any mode); More › Attachments; palette "Save attachment…" (`file.save-attachment`); in Organise, "Attach file…" (`organise.attach-file`), drag files onto the panel, and "Delete attachment" (`organise.delete-attachment`).
 
-**Layout.** Desktop shell (any mode); rail 272 px with the Attachments tab; inspector for the selected attachment.
+**Layout.** The board shows Read mode: desktop shell, rail 272 px with Pages · Outline · Attachments, inspector for the selected attachment, everything read-only.
 
-**Content and controls.**
+**Content and controls (Read, drawn).**
 
-- Rail header: count and total size ("3 files · 1.3 MB"), "Add file…" (ghost with plus; opens the OS picker on desktop, the file input on web).
-- List (`role="listbox"`): file icon, name (ellipsis), "86 KB · Spreadsheet", and for associated files a neutral badge naming the relationship and target ("Source of page 3", "Data for page 11"). Selected: `accent-tint` with an `accent` inset ring. Portfolios (`/Collection`) show their schema columns as extra metadata lines, read-only.
-- Drop zone at the bottom: dashed `control-border`, paperclip icon, "Drop files here to attach" / "They stay inside this PDF, on this device."
-- Inspector: file name as title, "Attachment · associated with page 3"; Description textarea; "Belongs to" select (The whole document · Page n · an annotation when it came from one); Relationship select (Source · Data · Alternative · Supplement · Not specified) with a one-line meaning; facts (Type, Size with exact bytes, Modified, Checksum badge "Matches" or warning "Doesn’t match"); actions "Save to disk…" (desktop) / "Download" (web) and Delete attachment.
+- Rail header: count and total size ("3 files · 1.3 MB") and the "Edit in Organise" link.
+- List (`role="listbox"`): file icon, name (ellipsis), "86 KB · Spreadsheet", and for associated files a neutral badge naming the relationship and target ("Source of page 3", "Data for page 11"). Selected: `accent-tint` with an `accent` inset ring. Portfolios (`/Collection`) show their schema columns as extra metadata lines.
+- Foot note: "Attachments stay inside this PDF, on this device. To add, describe or delete them, switch to Organise."
+- Inspector: file name as title, "Attachment · associated with page 3"; Description, Belongs to (a link to the page), Relationship ("Source" with "The file this page was made from."), facts (Type, Size with exact bytes, Modified, Checksum badge "Matches" or warning "Doesn’t match"); actions "Save to disk…" (desktop) / "Download" (web) and "Edit in Organise".
 
-**States.** Empty: empty state "No attachments" / "Add a file to keep it inside this PDF." with Add file…. Executable or script attachment (`.exe`, `.js`, `.bat`, `.app`…): a warning badge "Program" in the list and, on save, an alert dialog "This file is a program. Programs from documents can harm your computer. lamina never opens it; save it only if you trust the sender." with Cancel / Save anyway. Checksum mismatch: warning badge in the inspector. Too large for the device budget (web): "This file is larger than lamina can hold in memory here (limit 512 MB). Use the desktop app to save it." Deleting: toast "Attachment deleted · Undo", and after save a notice in the panel: "Earlier versions of this file still contain it. Save a full copy to remove it for good." with "Save a full copy…".
+**Organise (described, same layout).** The rail header shows "Add file…" (ghost with plus) in place of the link, and a drop zone sits at the foot (dashed `control-border`, paperclip, "Drop files here to attach" / "They stay inside this PDF, on this device."). The inspector's Description becomes a textarea, Belongs to a select (The whole document · Page n · the annotation it came from), Relationship a select (Source · Data · Alternative · Supplement · Not specified) with its one-line meaning, and the second action becomes "Delete attachment" (danger ghost).
 
-**Behaviour.** Add, edit and delete are ops (`AttachFile`, `UpdateAttachment`, `DeleteAttachment`), one undo step each. Saving out writes the bytes exactly (SHA-256 equal to the original). Attachments are never opened by lamina.
+**States.** Empty: empty state "No attachments" / "Add a file to keep it inside this PDF." with Add file… (Organise) or nothing to do (Read; the tab is hidden then). Executable or script attachment (`.exe`, `.js`, `.bat`, `.app`…): a warning badge "Program" in the list and, on save, an alert dialog "This file is a program. Programs from documents can harm your computer. lamina never opens it; save it only if you trust the sender." with Cancel / Save anyway. Checksum mismatch: warning badge in the inspector. Too large for the device budget (web): "This file is larger than lamina can hold in memory here (limit 512 MB). Use the desktop app to save it." Deleting (Organise): toast "Attachment deleted · Undo"; after save the history note in the status bar applies (design language §8, cross-area rule 13), and the panel offers "Save a full copy…" to remove it from earlier versions.
 
-**Accessibility.** The drop zone duplicates the Add file button; it is not the only way in. List rows are options with full names in their accessible name ("repairs-by-region.xlsx, 86 KB, spreadsheet, source of page 3"). Focus ring shown on "Add file…".
+**Behaviour.** Add, edit and delete are ops (`AttachFile`, `UpdateAttachment`, `DeleteAttachment`), one undo step each, only in Organise. Saving out writes the bytes exactly (SHA-256 equal to the original) and never changes the PDF. Attachments are never opened by lamina.
 
-**Platform differences.** Desktop: "Save to disk…" opens the save dialog; drag a row out of the panel to Finder/Explorer to save it (proposed). Web: "Download" uses the browser download; no drag-out. Phone: Attachments in the More sheet as a list sheet; tapping a file opens a detail sheet with Share and Delete.
+**Accessibility.** The drop zone (Organise) duplicates the Add file button; it is never the only way in. List rows are options with full names in their accessible name ("repairs-by-region.xlsx, 86 KB, spreadsheet, source of page 3"). Focus ring shown on "Edit in Organise".
 
-**Artboards.** `O14-attachments.dc.html`.
+**Platform differences.** Desktop: "Save to disk…" opens the save dialog; drag a row out of the panel to Finder/Explorer to save it (proposed). Web: "Download" uses the browser download; no drag-out. Phone: Attachments in the More sheet as a list sheet; tapping a file opens a detail sheet with Share (and Delete in Organise).
+
+**Artboards.** `O14-attachments.dc.html` (Read, read-only).
 
 **Todos.** [E3f](../../todos/ready/E3f-attachments-and-associated-files.md).
 
@@ -192,21 +199,21 @@ Rules that hold for every screen here:
 
 **Purpose.** Read-only inspection for power users and developers: the object tree from the trailer, any object's dictionary, streams decoded or raw, references, revisions, fonts, colour profiles and conformance claims.
 
-**Entry points.** More › Developer › Inspect objects; Document properties (R08) › "Inspect…"; palette "Inspect objects" (`inspect.objects`), "Go to object…" (`inspect.go-to-object`, takes a number: "go to object 14"). It is off the main path on purpose: no toolbar button.
+**Entry points.** More › Developer › Inspect objects; Document properties (R08) › "Inspect…"; palette "Inspect objects" (`file.inspect-objects`), "Go to object…" (`file.go-to-object`, takes a number: "go to object 14"). It is off the main path on purpose: no toolbar button.
 
-**Layout.** A view that replaces the canvas until "Back to pages". The secondary toolbar becomes the view's bar: Back to pages · tabs Objects · Revisions · Fonts · Colour · Conformance · "Read only" badge · "PDF 1.7 · 412 objects · 2 revisions". Rail 300 px: "Go to object" input and the object tree. Main: the object detail on `surface`.
+**Layout.** A full-canvas view in Read mode that replaces the pages until "Back to pages". It has no mode toolbar; a **view bar** takes the secondary toolbar's place: Back to pages · tabs Objects · Revisions · Fonts · Colour · Conformance · "Read only" badge · "PDF 1.7 · 412 objects · 2 revisions". Rail 300 px: "Go to object" input and the object tree. Main: the object detail on `surface`.
 
 **Content and controls.**
 
-- Tree (`role="tree"`, monospace 12.5): keys and indices with their reference and a plain description ("12 0 R · Page 3"). Selected row: `accent-tint`.
-- Detail: breadcrumb path; title "Object 12 · Page dictionary"; context line (page, revision where it last changed, object stream); Show page and Copy as text buttons; a key / value / type table (references are links); "Referenced by" list with plain descriptions; for streams, a "Content stream · object 14" section with filters and sizes, a Decoded · Raw · Hex toggle group, and a monospace block that shows the first lines with "Show more".
+- Tree (`role="tree"`, `mono`): keys and indices with their reference and a plain description ("12 0 R · Page 3"). Selected row: `accent-tint`.
+- Detail: breadcrumb path; title "Object 12 · Page dictionary"; context line (page, revision where it last changed, object stream); Show page and Copy as text buttons; a key / value / type table (references are links); "Referenced by" list with plain descriptions; for streams, a "Content stream · object 14" section with filters and sizes, a Decoded · Raw · Hex toggle group, and a `mono` block with the first lines and "Show more".
 - Revisions tab: one row per revision (xref section, objects changed, signed or not); Fonts tab: name, type, embedded/subset, encoding, ToUnicode coverage; Colour tab: output intents and ICC profiles; Conformance tab: claims (PDF/A, PDF/UA, PDF/X) as badges with "Claimed, not verified" wording.
 
 **States.** Stream over the size cap or `Limits`: the block shows "This stream decodes to more than 16 MB. lamina shows the first 1 MB." with "Save raw stream…"; a stream that fails to decode shows the error text and switches to Raw. Broken reference: value in `danger` "14 0 R · missing". Large files: the tree is virtualised and loads children on expand.
 
 **Behaviour.** Nothing here changes the file. "Show page" returns to the canvas with that page and outlines the object (page, annotation or XObject) for 2 s. Copy as text copies the object in PDF syntax.
 
-**Accessibility.** Tree keyboard as the APG tree; the detail table has a caption and column headers; the stream block is a focusable `pre` with `aria-label`. One focus ring is drawn on the selected tree item.
+**Accessibility.** Tree keyboard as the APG tree; the detail table has a caption and column headers; the stream block is a focusable `pre`. One focus ring is drawn on the selected tree item.
 
 **Platform differences.** Identical on web and desktop (E3g). Not offered on phones (the command is hidden below 600 px).
 
@@ -218,9 +225,9 @@ Rules that hold for every screen here:
 
 **Purpose.** Make new files from the PDF: pages as images, text (plain, Markdown, JSON with positions), the original pictures, and links and bookmarks (JSON, CSV).
 
-**Entry points.** More › Export…; Organise mode › Extract › "As images…" for selected pages; palette "Export…" (`export.open`), "Export pages as images" (`export.pages-as-images`), "Export text" (`export.text`), "Export pictures" (`export.images`), "Export links and bookmarks" (`export.links-and-bookmarks`), each taking a page range ("export text 3-6"). No shortcut: ⌥⌘E belongs to Export highlights.
+**Entry points.** More › Export…; Organise toolbar › Extract › "As images…" for selected pages; palette "Export…" (`file.export`), "Export pages as images" (`file.export-page-images`), "Export text" (`file.export-text`), "Export pictures" (`file.export-images`), "Export links and bookmarks" (`file.export-links-and-bookmarks`), each taking a page range ("export text 3-6"). No shortcut: ⌥⌘E belongs to Export highlights.
 
-**Layout.** Dialog (max 560) over the dimmed shell; on web, the same dialog turns into a progress dialog while the zip is built.
+**Layout.** Dialog (max 560) over the dimmed Read shell (page 3 behind); on web, the same dialog turns into a progress dialog while the zip is built (web shell with rail Pages · Outline · Attachments).
 
 **Content and controls.**
 
@@ -228,11 +235,11 @@ Rules that hold for every screen here:
 - Pages: All 24 · This page (3) · Pages [range].
 - Options per kind: images → Format (PNG · JPEG · TIFF), Resolution (72 / 150 / 300 dpi with pixel sizes), "Include comments and filled-in fields"; text → Format (Plain text · Markdown · JSON with positions), "Keep reading order from tags when available"; pictures → "Keep originals where possible (JPEG, JPEG 2000 unchanged)", minimum size; links and bookmarks → JSON · CSV.
 - Save to (desktop): folder path and "Choose folder…", and the resulting file names ("4 files: Q3-board-report-p03.png to Q3-board-report-p06.png").
-- Actions: Cancel, primary that names the result ("Export 4 pages", "Export text", "Export 12 pictures").
+- Actions: Cancel, a primary that names the result ("Export 4 pages", "Export text", "Export 12 pictures"). Close button "Close Export".
 
 **States.** In progress (web artboard): title "Exporting 24 pages as PNG", determinate bar with "15 of 24 pages · 62%", the sentence "Pages are drawn on this device and packed into Q3-board-report-pages.zip, which your browser downloads when it’s ready. Nothing is uploaded.", Cancel export. Desktop progress shows in the same place, then a toast "4 pages exported · Show in folder". Nothing to export (no pictures, no links): the card is disabled with "None in this file". Error mid-way: the dialog lists the failed pages ("Page 17 couldn’t be drawn") and offers "Export the rest". Untagged file + Markdown: a notice "Approximate structure: this file has no tags, so headings and lists are guessed."
 
-**Behaviour.** Read-only for the PDF. Desktop writes files into the chosen folder (native rendering, in parallel). Web streams into a zip within the memory budget (`Limits`). A single file (one page, or text) downloads directly instead of zipped.
+**Behaviour.** Read-only for the PDF. Desktop writes files into the chosen folder (native rendering, in parallel). Web streams into a zip within the memory budget (`Limits`). A single file (one page, or text) downloads directly instead of zipped. Plain text and JSON with positions come from E3i; Markdown output comes from the `lamina-extract` serialisers in [L3b](../../todos/ready/L3b-extract-tables-and-serialisers.md), so the Markdown option ships when L3b does.
 
 **Accessibility.** Radio cards are real radios inside labels; the progress bar is a `progressbar` with live text; Cancel keeps focus during progress. Focus ring drawn on "Choose folder…" (desktop) and "Cancel export" (web).
 
@@ -240,77 +247,82 @@ Rules that hold for every screen here:
 
 **Artboards.** `O16-export.dc.html` (desktop dialog), `O16-export-web.dc.html` (web, zipping in progress).
 
-**Todos.** [E3h](../../todos/ready/E3h-images-to-pdf-and-page-export.md), [E3i](../../todos/ready/E3i-extraction.md).
+**Todos.** [E3h](../../todos/ready/E3h-images-to-pdf-and-page-export.md), [E3i](../../todos/ready/E3i-extraction.md), [L3b](../../todos/ready/L3b-extract-tables-and-serialisers.md) (Markdown).
 
 ## O17 Phone: organise pages
 
-**Purpose.** Organise pages on a phone without drag: select in a grid, then act from the bottom action bar; reorder with "Move to…".
+**Purpose.** Organise pages on a phone without drag: select in a grid, then act from the bottom action bar; reorder with "Move to page…".
 
 **Entry points.** Pages sheet › "Select" or long-press a thumbnail; More › Organise pages.
 
-**Layout.** Phone shell. Top bar: Done organising (close icon, 44 px), title "Organise pages" over "2 of 24 selected" (`aria-live`), "Select all" text button. A 3-column page grid (100 × 129 thumbnails, 13 px numbers or labels). Bottom action bar (`role="toolbar"`, "Page actions"): Move to… · Rotate · Duplicate · Delete (in `danger`) · More (Insert blank page, Insert from file…, Extract…, Crop…, Resize…, Page labels…).
+**Layout.** Phone shell. Top bar: Done organising (close icon, 44 px), title "Organise pages" over "2 of 24 selected" (`aria-live`), "Select all" text button (`organise.select-all`). A scrolling 3-column page grid (100 × 129 thumbnails, 13 px numbers or labels). Bottom action bar (`role="toolbar"`, "Page actions"): Move to… (`organise.move-to-page`) · Rotate (`organise.rotate-right`) · Duplicate (`organise.duplicate`) · Delete (`organise.delete`, in `danger`) · More (Insert blank page, Insert from file…, Extract…, Crop…, Resize…, Page labels…). "Move to…" is the phone's deliberate short form of "Move to page…": the full label doesn't fit a fifth of 390 px at 11.5 px, and its accessible name stays "Move to page…".
 
 **Content and controls.**
 
 - Thumbnails show a 24 px selection circle top right: empty with a `control-border` ring, or `accent` with a white check; selected thumbnails also get the 2 px `accent` outline.
-- Move sheet (dialog as a sheet at the large detent over a scrim): title "Move 2 pages" with "pages 4 and 5"; Where to radios (To the start · After a page · To the end, 48 px rows, 16 px text); After page: a 44 px number field with − and + buttons and the outline title of that page; a Result strip showing 11 │ 4 5 │ 12 with `accent` insertion bars; "Bookmarks and links still point to the same pages. You can undo this in one step."; full-width Move pages (primary) and Cancel (48 px).
+- Move sheet (dialog as a sheet at the large detent over a scrim): title "Move 2 pages" with "pages 4 and 5"; Where to radios (To the start · After a page · To the end, 48 px rows, 16 px text); After page: a 44 px number field with − and + buttons and the outline title of that page; a Result strip showing 11 │ 4 5 │ 12 with `accent` insertion bars; "Bookmarks and links still point to the same pages. You can undo this in one step."; full-width Move pages (primary) and Cancel (48 px). Close button "Close Move pages".
 
-**States.** Nothing selected: the action bar shows only Select all and More (Insert), other buttons disabled. One page selected: Move to… reads "Move to…" and the sheet's title "Move page 4". After Move/Rotate/Duplicate/Delete: toast above the action bar "2 pages moved after page 11 · Undo"; Delete asks first in an alert sheet ("Delete 2 pages?" · Delete 2 pages (danger) · Cancel). Signed file: the action bar buttons stay, and pressing one shows the constraint banner under the top bar.
+**States.** Nothing selected: Move to…, Rotate, Duplicate and Delete are disabled; More keeps Insert blank page and Insert from file…; Select all stays in the top bar. One page selected: the sheet's title is "Move page 4". After Move/Rotate/Duplicate/Delete: toast above the action bar "2 pages moved after page 11 · Undo"; Delete asks first in an alert sheet ("Delete 2 pages?" · Delete 2 pages (danger) · Cancel). Signed files: as the area rules (on a conflict, the banner appears under the top bar and the action doesn't apply).
 
 **Behaviour.** Tap toggles selection; long-press on a thumbnail outside selection mode enters it with that page selected. Each action is one op and one undo step for the batch (ADR 0006). No live reordering while selecting.
 
-**Accessibility.** Grid is `role="grid"` with `aria-multiselectable`; each thumbnail is a 44 px+ button with `aria-selected` and a name "Page 4, selected". Move to… is the single-pointer alternative to drag (WCAG 2.5.7). Focus ring drawn inset on the Move to… button. Text inputs are 16 px (no iOS zoom).
+**Accessibility.** The grid is a `listbox` with `aria-multiselectable`; each thumbnail is a 44 px+ `option` button with `aria-selected` and a name "Page 4, selected". Move to… is the single-pointer alternative to drag (WCAG 2.5.7). Focus ring drawn inset on the Move to… button. Text inputs are 16 px (no iOS zoom).
 
-**Platform differences.** Tablet: the same grid with 5–6 columns and the bottom action bar; drag to reorder is added for pen and mouse, but Move to… stays.
+**Platform differences.** Tablet: the same grid with 5–6 columns and the bottom action bar; drag to reorder is added for pen and mouse, but Move to page… stays.
 
 **Artboards.** `O17-phone-organise.dc.html` (2 selected), `O17-phone-organise-move.dc.html` (Move sheet).
 
 **Todos.** [E2h](../../todos/ready/E2h-page-organiser-ui.md).
 
-## New components
+## Proposed design-language additions
 
-Designed for this area in the Paper spirit; add them to the design language when the boards are reviewed.
+Designed for this area in the Paper spirit; to be merged into the design language centrally.
+
+**Toolbars and bars**
+
+| Item | Spec |
+| --- | --- |
+| Organise toolbar contents | Insert ▾ · Rotate left · Rotate right · Delete · Extract │ Move to page… │ Page setup ▾ (Crop, Resize…, Page boxes…, Page labels…, Make landscape, Make portrait) · Bookmark ▾ (Add bookmark, Create a contents page…, Named destinations…) · ⋯ · context note. Menu buttons use the §7.24 toggle with a 14 px chevron; an active tool inside a menu shows the menu button selected |
+| View bar | For full-canvas views in Read mode (object inspector): the secondary toolbar's box (`surface`, 40 px, `hairline` bottom) holding Back to pages (ghost with back icon), a divider, a 40 px-high tab row (§7.5 style, 13 px), a neutral "Read only" badge and a `muted` facts line. Not a mode toolbar: no tools |
+| Rail "More" tab button | With 4+ rail tabs (rail 280 px): after the third tab, a 24 px ghost button "More" with a 14 px chevron, `aria-label="More tabs"`, `aria-haspopup="menu"`; a tab chosen from it takes the third slot |
+| Constraint banner actions | Save a copy · Apply anyway… (both secondary, 26 px) · Details (ghost); the Apply anyway alert dialog lists each signature as a white card (signer 600, kind · scope · date in 12 `muted`, status badge) and confirms with a danger-filled button naming the result ("Crop and invalidate signature") |
+
+**Components**
 
 | Component | Spec |
 | --- | --- |
 | Crop overlay | Kept area: 2 px `accent` frame; cut area: `rgba(31,29,26,0.38)` over the page; eight 10 × 10 white handles with a 1 px `accent` border, 6 px outside the frame. Page overlay (z 1), `aria-hidden`; numeric fields are the accessible control |
-| Destination / bead marker | 2 px `accent` line (dashed for a bookmark destination) or outline (thread bead), with an 18 px `accent` tag, white 11/600 Source Sans 3, radius 3. Decorative; the panel or inspector carries the information |
+| Destination / bead marker | 2 px `accent` line (dashed for a bookmark destination) or outline (thread bead), with a 16–18 px `accent` tag, white 11/600 Source Sans 3, radius 3, placed in white space (between paragraphs or outside the column), never over text. Decorative; the panel or inspector carries the information |
 | Editable tree row | Outline row (§7.7) plus: drag grip (six 1.4 px dots, `accent` when selected), inline rename input (Newsreader 14, 26 high, `control-border`, focus ring), `role="tree"`/`treeitem` with `aria-level` and `aria-expanded`, chevrons 16 px |
+| Bookmark colour swatches | 28 px circles as §7.12 with names Default (`text`), Grey (`muted`), Red (`danger`), Blue (`#2D4A6B`), Green (`positive`); these are the outline's `/C` colours, not annotation colours |
 | Anchor grid | 3 × 3 `radiogroup` of 28 × 28 buttons, gap 4, radius 4, `control-border`; checked = `accent-tint` fill with an 8 px `accent` dot; disabled = `hairline` border and `disabled` dot |
 | Radio card | A label containing a radio, title (14) and one line (12 `muted`); padding `10px 12px`, radius 4, `control-border`, white; selected = `accent` border, `accent-tint` fill, title `accent` 600 |
 | Ranges table | `<table>` with 12/600 `text-3` headers, rows separated by `hairline`, 32 px controls, a trailing 28 px icon button to remove; each control `aria-label`led with row and column |
-| Drop zone | 1 px dashed `control-border`, radius 4, padding `18px 12px`, 22 px `muted` icon, 13 px line + 12 px `muted` line; always paired with a button that does the same |
-| Object tree and code block | Monospace system stack `ui-monospace, 'SF Mono', Menlo, Consolas, monospace` at 12.5/1.6 (new token `mono`, no web font); code block white, `hairline` border, radius 4, padding `12px 14px`, horizontal scroll |
+| Drop zone | 1 px dashed `control-border`, radius 4, padding `18px 12px`, 22 px `muted` icon, 13 px line + 12 px `muted` line; always paired with a button that does the same; only in editing modes |
+| Object tree and code block | `mono` token (cross-area decision 6: `ui-monospace, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace`, 12.5/1.6); code block white, `hairline` border, radius 4, padding `12px 14px`, horizontal scroll |
 | Phone selection circle | 24 px circle on thumbnails in selection mode: off = white with 1.5 px `control-border`; on = `accent` with a white 2.5-stroke check |
 | Number stepper (touch) | 44 × 44 − and + buttons (radius 6, `control-border`) around a 72 × 44 input (16 px, tabular) |
 
-New icons (24 grid, stroke 1.5, same rules as §5):
+**Icons** (24 grid, stroke 1.5, same rules as §5). Insert, Rotate left/right, Delete and Extract reuse O06's icons; the Edit toolbar's icons are A01's.
 
 | Name | Markup |
 | --- | --- |
-| Insert page | `<rect x="5.5" y="3.5" width="13" height="17" rx="1"></rect><path d="M12 9v6M9 12h6"></path>` |
-| Rotate left | `<path d="M8 4.5L4.5 8 8 11.5"></path><path d="M4.5 8H14a5.5 5.5 0 0 1 0 11H9"></path>` |
-| Rotate right | `<path d="M16 4.5L19.5 8 16 11.5"></path><path d="M19.5 8H10a5.5 5.5 0 0 0 0 11h5"></path>` |
 | Crop | `<path d="M7 3.5V17h13.5"></path><path d="M3.5 7H17v13.5"></path>` |
 | Resize | `<path d="M4.5 9.5v-5h5M19.5 14.5v5h-5"></path><path d="M4.5 4.5l6 6M19.5 19.5l-6-6"></path>` |
-| Extract | `<path d="M13.5 3.5h-7a1 1 0 0 0-1 1v15a1 1 0 0 0 1 1h11a1 1 0 0 0 1-1v-11z"></path><path d="M12 10.5v6M9.5 14L12 16.5 14.5 14"></path>` |
-| Delete | `<path d="M4.5 6.5h15M9.5 6.5v-2h5v2M6.5 6.5l1 13h9l1-13"></path>` |
 | Bookmark | `<path d="M7 4.5h10v15l-5-4-5 4z"></path>` |
+| Move to page | `<path d="M4.5 12h11M12 8l4 4-4 4"></path><path d="M19.5 5v14"></path>` |
 | Plus | `<path d="M12 5v14M5 12h14"></path>` |
 | Chevron right | `<path d="M10 7l5 5-5 5"></path>` |
-| Link | `<path d="M10 14l4-4"></path><path d="M8.5 11.5l-2 2a3 3 0 0 0 4 4l2-2"></path><path d="M15.5 12.5l2-2a3 3 0 0 0-4-4l-2 2"></path>` |
-| Text | `<path d="M5 6.5v-2h14v2M12 4.5v15M9 19.5h6"></path>` |
-| Image | `<rect x="3.5" y="5.5" width="17" height="13" rx="1"></rect><circle cx="9" cy="10" r="1.5"></circle><path d="M20.5 15.5l-5-5-8 8"></path>` |
-| Redact | `<rect x="4" y="9" width="16" height="6"></rect><path d="M4 5.5h9M4 18.5h12"></path>` |
-| Protect | `<rect x="5.5" y="10.5" width="13" height="9.5" rx="1"></rect><path d="M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5"></path>` |
+| Rename (pencil) | `<path d="M14.5 4.5l5 5L9 20H4v-5z"></path>` |
 | Attachment (paperclip) | `<path d="M16.5 7.5l-7 7a2 2 0 0 0 3 3l7.5-7.5a3.5 3.5 0 0 0-5-5L7.5 12.5a5 5 0 0 0 7 7l5-5"></path>` |
 | File | `<path d="M13.5 3.5h-7a1 1 0 0 0-1 1v15a1 1 0 0 0 1 1h11a1 1 0 0 0 1-1v-11z"></path><path d="M13.5 3.5v5h5"></path>` |
 | Folder | `<path d="M3.5 6.5h6l2 2h9v10h-17z"></path>` |
-| Move to | `<path d="M4.5 12h11M12 8l4 4-4 4"></path><path d="M19.5 5v14"></path>` |
+| Tools (Edit toolbar menu) | the Repaired (wrench) icon from §5 |
 | Drag grip (filled dots, the one exception to "no fills") | six `<circle r="1.4">` at x 9/15, y 6/12/18, `fill="currentColor"` |
+
+**Command ids used in this area** (cross-area decisions 10 and 17): `organise.crop`, `organise.resize`, `organise.page-boxes`, `organise.make-landscape`, `organise.make-portrait`, `organise.page-labels`, `organise.add-bookmark`, `organise.set-bookmark-destination`, `organise.delete-bookmark`, `organise.create-contents-page`, `organise.named-destinations`, `organise.initial-view`, `organise.attach-file`, `organise.delete-attachment`, `organise.move-to-page`, `organise.rotate-left`, `organise.rotate-right`, `organise.duplicate`, `organise.delete`, `organise.select-all`, `tool.link`, `edit.add-link`, `edit.make-link`, `edit.delete-link`, `nav.follow-link`, `nav.next-thread-part`, `nav.previous-thread-part`, `file.save-attachment`, `file.inspect-objects`, `file.go-to-object`, `file.export`, `file.export-page-images`, `file.export-text`, `file.export-images`, `file.export-links-and-bookmarks`.
 
 ## Open questions
 
-- **Bookmarks vs Outline tab.** In PDF terms the bookmarks are the outline, but the foundation boards and R06 show both an Outline and a Bookmarks tab. This area edits the file's outline in the Outline tab and uses "bookmark" in commands. R06 should decide whether the Bookmarks tab means personal reading bookmarks (not stored in the file) or is dropped, and whether Attachments and Threads join the tab row or move into an overflow.
-- **Bookmarks from headings.** The inventory lists "from headings" for O11, but E3b leaves headings-based generation to [E15b](../../todos/ready/E15b-structure-tree-editing.md). The menu item is shown only for tagged files once E15b lands.
+- **Bookmarks from headings.** The inventory lists "from headings" for O11, but E3b leaves headings-based generation to [E15b](../../todos/ready/E15b-structure-tree-editing.md). The Bookmark menu gains "Bookmarks from headings…" for tagged files once E15b lands.
 - **Units.** Geometry fields show mm or inches by locale; points are used only in Page boxes. A setting to force a unit is not designed.
