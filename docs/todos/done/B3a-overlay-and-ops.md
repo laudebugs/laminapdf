@@ -12,7 +12,7 @@
 | Branch | `feat/b3a-overlay-and-ops` |
 | PR title | `feat(ops): COS overlay, typed Op enum, transactions with savepoints, undo and redo` |
 | Size | L (≈ 1,000–1,400 lines) |
-| PR | — |
+| PR | [#31](https://github.com/laudebugs/lamina/pull/31) |
 
 ## Goal
 
