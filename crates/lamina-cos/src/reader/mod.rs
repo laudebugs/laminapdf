@@ -28,6 +28,7 @@ use lamina_syntax::filters;
 use lamina_syntax::{DecodeBudget, Dict, Limit, Limits, ObjRef, Object, Parser, Stream, find};
 
 use crate::error::{Error, Result};
+use crate::overlay::{InOverlay, Overlay, OverlayEntry};
 use crate::source::{ByteSource, Fetch, Pending, Source, WINDOW};
 use window::{Reach, parse_at, read_indirect, within_read_window};
 
@@ -227,6 +228,8 @@ pub struct Document {
     /// The authenticated standard security handler of an encrypted document: objects are
     /// decrypted as they are loaded.
     security: Option<Security>,
+    /// What this session changed (ADR 0005 §3); resolution reads it before the base.
+    overlay: Overlay,
 }
 
 // ADR 0005 §7: `Document` (and what it hands out) can move between threads.
@@ -652,6 +655,7 @@ impl Document {
             budget: Cell::new(DecodeBudget::new(&limits)),
             objstm_cache: RefCell::new(BTreeMap::new()),
             object_cache: RefCell::new(BTreeMap::new()),
+            overlay: Overlay::default(),
             security: None,
         })
     }
@@ -720,9 +724,17 @@ impl Document {
         self.warn(warning)
     }
 
-    /// The newest trailer dictionary (for xref-stream files, the stream dictionary).
+    /// The trailer as it is now: the overlay's when this session changed it
+    /// ([`CosMut::set_trailer`](crate::CosMut::set_trailer)), else the newest trailer
+    /// dictionary of the file (for xref-stream files, the stream dictionary).
     #[must_use]
-    pub const fn trailer(&self) -> &Dict {
+    pub fn trailer(&self) -> &Dict {
+        self.overlay.trailer().unwrap_or(&self.trailer)
+    }
+
+    /// The newest trailer dictionary of the file, ignoring the overlay.
+    #[must_use]
+    pub const fn base_trailer(&self) -> &Dict {
         &self.trailer
     }
 
@@ -847,17 +859,29 @@ impl Document {
     }
 
     /// The highest object number in any xref section, free entries and entries dropped for
-    /// exceeding [`Limits::max_object_number`] included.
+    /// exceeding [`Limits::max_object_number`] included. This describes the base (the
+    /// file's xref), not objects created in this session ([`Document::object_numbers`] lists
+    /// those too).
     pub const fn max_object_number(&self) -> Option<u32> {
         self.max_object_number
     }
 
-    /// Numbers of all objects that are not free, ascending.
+    /// Numbers of all objects that exist now, ascending: the base's in-use objects not
+    /// deleted in this session, then the ones created in it (always numbered above the base's).
     pub fn object_numbers(&self) -> impl Iterator<Item = u32> + '_ {
-        self.entries
+        let base = self
+            .entries
             .iter()
-            .filter(|(_, e)| !matches!(e, XrefEntry::Free))
-            .map(|(&n, _)| n)
+            .filter(|(n, e)| {
+                !matches!(e, XrefEntry::Free) && !matches!(self.overlay.get(**n), Some(OverlayEntry::Deleted))
+            })
+            .map(|(&n, _)| n);
+        let new = self
+            .overlay
+            .iter()
+            .filter(|(_, e)| matches!(e, OverlayEntry::New(_)))
+            .map(|(n, _)| n);
+        base.chain(new)
     }
 
     /// Resolves an indirect reference, following reference-to-reference chains.
@@ -884,7 +908,7 @@ impl Document {
                 return Err(Error::limit_at_object(Limit::ResolveDepth, current.num));
             }
             chain.push(current.num);
-            let obj = self.load(current.num, Some(current.gen_nr), &mut Vec::new())?;
+            let obj = self.load_current(current.num, Some(current.gen_nr))?;
             match *obj {
                 Object::Ref(next) => current = next,
                 _ => return Ok(obj),
@@ -901,7 +925,7 @@ impl Document {
     /// streams; [`Error::LimitExceeded`]; [`Error::Strict`] in strict mode.
     pub fn object(&self, num: u32) -> Result<Arc<Object>> {
         let _call = self.call();
-        self.load(num, None, &mut Vec::new())
+        self.load_current(num, None)
     }
 
     /// Returns `obj` itself, or the object it refers to.
@@ -1138,7 +1162,7 @@ impl Document {
     /// [`Error::Type`] when `/Root` is not a dictionary; errors from [`Document::resolve`].
     pub fn catalog(&self) -> Result<Dict> {
         let _call = self.call();
-        let root = self.trailer.get("Root").ok_or(Error::MissingRoot)?;
+        let root = self.trailer().get("Root").ok_or(Error::MissingRoot)?;
         match &*self.deref(root)? {
             Object::Dict(d) => Ok(d.clone()),
             _ => Err(Error::Type {
@@ -1170,7 +1194,7 @@ impl Document {
         let root = catalog.get("Pages").cloned().unwrap_or(Object::Null);
         // A direct `/Pages` sits in the catalog: its path starts there (ADR 0005 §5).
         let root_path = (!matches!(root, Object::Ref(_))).then(|| {
-            let catalog_ref = self.trailer.get("Root").and_then(Object::as_ref);
+            let catalog_ref = self.trailer().get("Root").and_then(Object::as_ref);
             let segments = match catalog_ref {
                 Some(_) => vec![PathSegment::Key("Pages")],
                 None => vec![PathSegment::Key("Root"), PathSegment::Key("Pages")],
@@ -1370,5 +1394,55 @@ impl Document {
             out.extend_from_slice(&self.decode_stream_of(s, object)?);
         }
         Ok(out)
+    }
+}
+
+/// The overlay's view of the base (ADR 0005 §3), used by [`crate::overlay`].
+impl Document {
+    pub(crate) const fn overlay_ref(&self) -> &Overlay {
+        &self.overlay
+    }
+
+    pub(crate) const fn overlay_mut(&mut self) -> &mut Overlay {
+        &mut self.overlay
+    }
+
+    /// Object `num` as it is now: the overlay's entry, else the base's (`null` when deleted
+    /// or, with `gen_nr`, when the generation does not match, which raises
+    /// `stale-generation` as it does for base objects).
+    fn load_current(&self, num: u32, gen_nr: Option<u16>) -> Result<Arc<Object>> {
+        match self.overlay_value(num, gen_nr) {
+            InOverlay::Value(o) => Ok(Arc::clone(o)),
+            InOverlay::Absent => {
+                if let Some(generation) = gen_nr
+                    && !self.overlay_generation_matches(num, generation)
+                {
+                    self.warn(Warning::StaleGeneration {
+                        object: num,
+                        generation,
+                    })?;
+                }
+                Ok(Arc::new(Object::Null))
+            }
+            InOverlay::NoEntry => self.load(num, gen_nr, &mut Vec::new()),
+        }
+    }
+
+    /// Whether the base has an in-use object `r` (number and generation).
+    pub(crate) fn base_has(&self, r: ObjRef) -> bool {
+        self.entries
+            .get(&r.num)
+            .is_some_and(|e| !matches!(e, XrefEntry::Free) && e.matches_gen(r.gen_nr))
+    }
+
+    /// Base object `num`, ignoring the overlay. One that cannot be loaded is `null` to the
+    /// overlay; strict-mode refusals and unavailable input are errors.
+    pub(crate) fn base_value(&self, num: u32) -> Result<Arc<Object>> {
+        let _call = self.call();
+        match self.load(num, None, &mut Vec::new()) {
+            Ok(base) => Ok(base),
+            Err(e) if must_propagate(&e) => Err(e),
+            Err(_) => Ok(Arc::new(Object::Null)),
+        }
     }
 }

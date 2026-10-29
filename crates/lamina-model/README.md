@@ -2,7 +2,7 @@
 
 Typed, tolerant views over a PDF's COS graph and the stable `LaminaId`s that ops, undo and sync address ([ADR 0005](../../docs/decisions/0005-document-model.md) §4–§5). Part of lamina's pure core: bytes in, bytes out.
 
-- `Document`: a `lamina_cos::Document` (it dereferences to one) plus the document-level `IdAllocator`.
+- `Document`: a `lamina_cos::Document` (it dereferences to one) plus the document-level `IdAllocator`, a view of the COS overlay's number allocator (new objects' IDs come from the numbers it reserves). Views read through the overlay, so they see edits made by [`lamina-ops`](../lamina-ops/README.md); `cos_mut()` is the write access `lamina-ops` keeps private.
 - `Pages` / `Page`: boundary boxes as normalised `Rect`s (crop, bleed, trim and art boxes clipped and defaulted as §14.11.2 says), `Rotation`, user unit, resources, contents and annotation references, page labels.
 - `Outline` / `OutlineItem`: titles (PDFDocEncoding, UTF-16BE, UTF-8), nesting, open state, destinations resolved to `PageId` + view (explicit, `/Dests`, `/Names /Dests`, `GoTo` actions), action kinds.
 - `Info` with dates as `PdfDate` (raw string kept when invalid); `NameTree`, `NumberTree`; `PageLabels`.
