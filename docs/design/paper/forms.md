@@ -34,7 +34,7 @@ Command ids follow the registry’s `area.verb-object` form ([U1b](../../todos/r
 | Next required field | Palette only: jump to the next empty required field | `form.focus-next-required-field` |
 | Highlight fields | Toggles the field tint; on by default for files with fields | `form.toggle-field-highlight` |
 | Text · Check · Date | Place a free-text, tick or date annotation on a page without fields (a flat form) | `form.add-text`, `form.add-check`, `form.add-date` |
-| Add a signature image · Sign with a certificate | Open the signing flows (Sign area, G01–G02) | `sign.add-signature-image`, `sign.with-certificate` (the Sign area’s ids) |
+| Add a signature image · Sign with a certificate | Open the signing flows (Sign area, G01–G02) | `sign.add-image`, `sign.with-certificate` |
 | Form data ▾ | Opens the P03 menu | `form.open-data-menu` |
 | `…` | Overflow: the toolbar’s commands that don’t fit, plus “Next required field” | `form.open-overflow` |
 | Fields tab | One row per field in tab order: tab-stop number, label (accessible label, else field name), state (✓ filled, “Required”, error). Grouped by page; other pages collapse to “Show page 2 fields · 2 required”. Clicking a row focuses the field | `view.show-fields-tab` |
@@ -296,7 +296,7 @@ To be merged centrally into the design language.
 | **Choice sheet (phone)** | Modal bottom sheet (§7.16) at the medium detent: title + “Required · field 7 of 27”, a radiogroup of 48 px rows (selected: `accent-tint`, `accent` 600, check icon), a footer with Previous (secondary) and Next (primary), 44 high |
 | **Design-mode field** | 1 px dashed `accent` edge, `field-tint` fill, field name in `mono` 11 px `accent`. Selected: solid `accent` edge + 2 px `accent` outline, offset 2, and 8 handles (7 px white squares, 1 px `accent`). Size chip: `text` background, white 11 px tabular, radius 3, under the field |
 | **Tab-stop badge** | 20 px pill, `accent` fill, white 11/600 tabular number, at the field’s top-left (−11, −11). `aria-hidden` |
-| **Suggestion outline** | Pending: 2 px dashed `accent` outline, offset 2, with a type tag (18 high, `accent` fill, white 11/600) inside the outline at its right end (right 2, bottom 3), so it never covers the line above; current: solid outline; accepted: becomes a design-mode field with a `positive-tint` / `positive` “Accepted · Text” tag |
+| **Suggestion outline** | Pending: 2 px dashed `accent` outline, offset 2, with a type tag (20 high, `accent` fill, white 11/600) above it; current: solid outline; accepted: becomes a design-mode field with a `positive-tint` / `positive` “Accepted · Text” tag |
 | **Option list editor** | Inspector list in a `control-border` box, rows 30 high with `hairline` separators, Move up and Remove 24 px icon buttons per row, “Add option” ghost below |
 | **Tool toolbar title** | Newsreader 15/500 label at the left of a tool toolbar, Done (secondary) at the right end |
 
@@ -309,8 +309,7 @@ Same grid and stroke as design language §5.
 | Forward (chevron right) | `<path d="M9 5l7 7-7 7"></path>` |
 | Chevron up | `<path d="M7 14l5-5 5 5"></path>` |
 | Text tool (T) | `<path d="M6 6.5h12M12 6.5v12"></path>` |
-| Certificate (as the Sign area) | `<rect x="4" y="4.5" width="16" height="11" rx="1"></rect><path d="M7.5 8.5h9M7.5 11.5h4"></path><circle cx="16" cy="16" r="2.8"></circle><path d="M14.6 18.5l-.8 3 2.2-1 2.2 1-.8-3"></path>` |
-| Signature image (as the Sign area) | `<path d="M4 17c3-6 5-9 7-9s1 6 3 6 3-4 6-6"></path>` |
+| Certificate | `<circle cx="12" cy="9.5" r="5"></circle><path d="M9 14l-1.5 6 4.5-2 4.5 2-1.5-6"></path>` |
 | Text field | `<rect x="3.5" y="7" width="17" height="10" rx="1"></rect><path d="M7 10v4"></path>` |
 | Check box | `<rect x="4.5" y="4.5" width="15" height="15" rx="1.5"></rect><path d="M8 12.5l3 3 5-6"></path>` |
 | Radio group | `<circle cx="12" cy="12" r="7.5"></circle><circle cx="12" cy="12" r="3"></circle>` |
