@@ -1,0 +1,6 @@
+# cargo-fuzz working directories: build output, the generated seed corpus (from fixtures/
+# and seeds/, by `cargo xtask fuzz`), crash artefacts and coverage.
+target/
+corpus/
+artifacts/
+coverage/

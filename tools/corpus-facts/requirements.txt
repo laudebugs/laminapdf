@@ -1,0 +1,5 @@
+# Independent facts for fixtures/corpus/expected.json and fixtures/differential/expected.json
+# (ADR 0018 tiers 4 and 6). pypdf: BSD-3-Clause; cryptography (AES for encrypted fixtures):
+# Apache-2.0 OR BSD-3-Clause. Tools only: nothing here ships or links into lamina.
+pypdf==6.21.3
+cryptography==50.0.2

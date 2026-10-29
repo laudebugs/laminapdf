@@ -76,6 +76,6 @@ mod writer;
 pub use error::{Error, Result};
 pub use lamina_syntax::crypt::{Cipher, PasswordKind, Permissions};
 pub use lamina_syntax::{Dict, Limit, Limits, Name, ObjRef, Object, PdfString, Stream, StringFormat};
-pub use reader::{Document, Encryption, OpenOptions, Page, Resolved, Warning};
+pub use reader::{DirectPath, Document, Encryption, Inherited, OpenOptions, Page, PathSegment, Resolved, Warning};
 pub use source::{ByteSource, Source, SourceError};
 pub use writer::{Writer, XrefEol, incremental_update};

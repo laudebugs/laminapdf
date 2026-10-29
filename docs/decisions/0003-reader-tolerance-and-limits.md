@@ -52,6 +52,14 @@ Every repair or substitution the caller might care about is a `Warning`, never s
 | `aes-padding-invalid` | AES data was not `IV ‖ whole blocks` (kept as stored) or had invalid PKCS#5 padding (kept unstripped) | exists |
 | `perms-mismatch` | An R5/R6 `/Perms` does not decrypt to the document's `/P` and `/EncryptMetadata` | exists |
 | `warnings-truncated` | More than `Limits::max_warnings` were raised; the rest were dropped | exists |
+| `invalid-box` | A page boundary box is not four numbers; the view reads it as absent | exists (B2c) |
+| `invalid-rotate` | `/Rotate` is not a multiple of 90; the view reads 0 | exists (B2c) |
+| `name-tree-node-skipped` | A name- or number-tree node, kid or key was malformed, reached twice or deeper than `max_tree_depth` | exists (B2c) |
+| `outline-cycle` | An outline item was reached twice; that branch stops | exists (B2c) |
+| `outline-item-skipped` | An outline item was missing, not a dictionary or deeper than `max_tree_depth`; it and its subtree are skipped | exists (B2c) |
+| `invalid-date` | An Info date is not a valid PDF date; the raw string is kept | exists (B2c) |
+| `invalid-page-label` | A `/PageLabels` entry (or part of one) is malformed; that part is dropped, a non-dictionary range falls back to decimal numbering | exists (B2c) |
+| `invalid-entry` | An entry a view reads (`/Info`, `/Names`, `/Outlines`, `/Dests`, `/UserUnit`) is unreadable or of the wrong type; it reads as absent or its default | exists (B2c) |
 
 Encryption adds three error codes (B2b), listed in `fixtures/codes.json` with the others: `password-required` (a non-empty user password and none given), `wrong-password` (neither the user nor the owner password) and `unsupported-security-handler` (not `/Standard`, an unknown `/V`/`/R`, or an unknown crypt filter method). All three have status "exists".
 
