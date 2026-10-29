@@ -3,7 +3,7 @@
 use crate::error::{Error, Result};
 use crate::lexer::{Lexer, Token, is_whitespace};
 use crate::limits::{Limit, Limits};
-use crate::object::{Dict, Name, ObjRef, Object, PdfString, Stream, StringFormat};
+use crate::object::{Dict, Name, ObjRef, Object, Stream};
 
 /// Parses a single direct object from `input` with the default [`Limits`]. Trailing
 /// white-space and comments are allowed; anything else after the object is an error.
@@ -168,16 +168,6 @@ impl<'a> Parser<'a> {
         let start = self.lex.pos();
         match tok {
             Token::Integer(i) => Ok(self.maybe_reference(i)),
-            Token::Real(r) => Ok(Object::Real(r)),
-            Token::Name(n) => Ok(Object::Name(Name(n))),
-            Token::LiteralString(s) => Ok(Object::String(PdfString {
-                bytes: s,
-                format: StringFormat::Literal,
-            })),
-            Token::HexString(s) => Ok(Object::String(PdfString {
-                bytes: s,
-                format: StringFormat::Hex,
-            })),
             Token::ArrayOpen => {
                 let depth = self.enter(depth, start)?;
                 let mut items = Vec::new();
@@ -215,11 +205,8 @@ impl<'a> Parser<'a> {
                     }
                 }
             }
-            Token::Keyword(b"true") => Ok(Object::Bool(true)),
-            Token::Keyword(b"false") => Ok(Object::Bool(false)),
-            Token::Keyword(b"null") => Ok(Object::Null),
             Token::Eof => Err(Error::UnexpectedEof { offset: start }),
-            Token::Keyword(_) | Token::ArrayClose | Token::DictClose => Err(Error::Syntax {
+            scalar => scalar.into_scalar().ok_or(Error::Syntax {
                 offset: start,
                 message: "unexpected token",
             }),

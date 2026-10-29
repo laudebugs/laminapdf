@@ -29,7 +29,7 @@ pub enum Error {
         limit: Limit,
         /// Where it was hit, when known: a byte offset in the parsed buffer for syntax limits
         /// (nesting, string length), an object number for the reader's limits (reference
-        /// chains); `None` for decoding budgets.
+        /// chains, Form XObject depth); `None` for budgets (decoded bytes, content operators).
         at: Option<u64>,
     },
     /// An object had a different type than the structure requires.
