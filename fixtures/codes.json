@@ -452,5 +452,93 @@
       "hint": "pass an empty sink: output offsets count from the sink's first byte",
       "since": "0.1.0"
     }
+  ],
+  "textErrors": [
+    {
+      "code": "invalid-font",
+      "kind": "input",
+      "summary": "font bytes could not be read as a font",
+      "hint": "pass the complete bytes of a .ttf, .otf, .ttc or .otc file",
+      "since": "0.1.0"
+    },
+    {
+      "code": "collection-index",
+      "kind": "usage",
+      "summary": "a font collection member past the end of the collection was asked for",
+      "hint": "use an index below Font::collection_len",
+      "since": "0.1.0"
+    },
+    {
+      "code": "unknown-axis",
+      "kind": "usage",
+      "summary": "an instance was asked for on a variation axis the font does not have",
+      "hint": "check the font's axes before choosing coordinates, or use a variable font",
+      "since": "0.1.0"
+    },
+    {
+      "code": "font-not-embeddable",
+      "kind": "usage",
+      "summary": "the font's OS/2 fsType forbids embedding",
+      "hint": "use another font, or register it with EmbedPolicy::Override if your licence allows embedding",
+      "since": "0.1.0"
+    },
+    {
+      "code": "missing-glyph",
+      "kind": "input",
+      "summary": "the font has no glyph for a character of the text",
+      "hint": "use a font that covers the character, or split the text across fonts",
+      "since": "0.1.0"
+    },
+    {
+      "code": "glyph-out-of-range",
+      "kind": "usage",
+      "summary": "a glyph ID at or past the font's glyph count was used",
+      "hint": "pass glyph IDs from the font you registered",
+      "since": "0.1.0"
+    },
+    {
+      "code": "unknown-font",
+      "kind": "usage",
+      "summary": "a FontKey was used with a registry that did not hand it out",
+      "hint": "use the key returned by this registry's add",
+      "since": "0.1.0"
+    },
+    {
+      "code": "subset-failed",
+      "kind": "unsupported",
+      "summary": "subsetting a font failed",
+      "hint": "try another version or format of the font, and report the font if it is a common one",
+      "since": "0.1.0"
+    },
+    {
+      "code": "invalid-axis-value",
+      "kind": "usage",
+      "summary": "a variation axis value was NaN or infinite",
+      "hint": "pass finite axis values; values outside the axis range are clamped",
+      "since": "0.1.0"
+    },
+    {
+      "code": "wrong-document",
+      "kind": "usage",
+      "summary": "finish_fonts was given a document the registry did not reserve its fonts in",
+      "hint": "use one FontRegistry per document and finish it with that document",
+      "since": "0.1.0"
+    }
+  ],
+  "textWarnings": [
+    {
+      "code": "tounicode-conflict",
+      "kind": "usage",
+      "summary": "one glyph was used for two different texts; ToUnicode keeps the first",
+      "hint": "mark the second occurrence with /ActualText so extraction gets its text",
+      "since": "0.1.0"
+    },
+    {
+      "code": "whole-font-rebuilt",
+      "kind": "usage",
+      "summary": "a font that forbids subsetting was rebuilt with every glyph kept",
+      "hint": "check that the font's licence allows this, or use a static TrueType or CFF version",
+      "since": "0.1.0"
+    }
   ]
 }

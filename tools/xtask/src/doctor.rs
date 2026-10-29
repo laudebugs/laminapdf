@@ -21,6 +21,9 @@ const CARGO_FUZZ_VERSION: &str = "0.13.2";
 /// Binaryen release for `wasm-opt`. Its output is part of the shipped .wasm, so bump it deliberately
 /// and review the wasm-opt feature list (ADR 0002) whenever this or `rust-toolchain.toml` changes.
 const BINARYEN_VERSION: &str = "133";
+/// qpdf release behind the committed `qpdf --check` facts (`tools/fixtures/text_facts.py`,
+/// `fixtures/encrypted/`); tests read the facts, so only regenerating them needs it.
+pub(crate) const QPDF_VERSION: &str = "12.4.2";
 /// The oldest Node major we support (`engines` in package.json; `.nvmrc` pins the one we develop on).
 const MIN_NODE_MAJOR: u32 = 22;
 
@@ -166,6 +169,15 @@ fn all_tools(ws: &Workspace) -> Result<Vec<Tool>> {
         cargo_deny(),
         cargo_nextest(),
         cargo_fuzz(),
+        Tool {
+            name: "qpdf",
+            version_command: &["qpdf", "--version"],
+            pin: Pin::Exact(QPDF_VERSION.to_owned()),
+            fix: format!(
+                "brew install qpdf  # or a qpdf {QPDF_VERSION} release from https://github.com/qpdf/qpdf/releases"
+            ),
+            optional_for: Some("regenerating fixture facts (tools/fixtures/text_facts.py, fixtures/encrypted/)"),
+        },
         Tool {
             name: "wasm-bindgen-cli",
             version_command: &["wasm-bindgen", "--version"],

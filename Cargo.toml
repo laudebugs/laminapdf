@@ -27,6 +27,7 @@ lamina-model = { path = "crates/lamina-model" }
 lamina-ops = { path = "crates/lamina-ops" }
 lamina-save = { path = "crates/lamina-save" }
 lamina-content = { path = "crates/lamina-content" }
+lamina-text = { path = "crates/lamina-text" }
 
 # Flate (zlib) codec, pure Rust; `with-alloc` is the default feature, named so it stays on.
 # MIT OR Zlib OR Apache-2.0 (dependency adler2: 0BSD OR MIT OR Apache-2.0)
@@ -44,6 +45,16 @@ md-5 = { version = "0.11.0", default-features = false }
 sha2 = { version = "0.11.1", default-features = false }
 # SASLprep (RFC 4013) for R6 passwords. MIT OR Apache-2.0
 stringprep = { version = "0.1.5", default-features = false }
+
+# Fonts (lamina-text, B4a; ADR 0005 §6). skrifa: font loading, cmap and metrics over read-fonts
+# (re-exported as `skrifa::raw`); pinned to the version subsetter's `variable-fonts` feature uses,
+# so the graph has one copy. MIT OR Apache-2.0 (read-fonts, font-types, bytemuck: likewise)
+skrifa = { version = "=0.42.0", default-features = false, features = ["std"] }
+# Subsetting TrueType/CFF/CFF2 into PDF-ready font programs, with variable-font instancing
+# (`variable-fonts`, its default feature: write-fonts, kurbo). MIT OR Apache-2.0
+subsetter = { version = "=0.2.6" }
+# Content-stream operators in lamina-text's tests and goldens (dev-dependency). MIT OR Apache-2.0
+pdf-writer = { version = "=0.15.0", default-features = false }
 
 # Library errors. MIT OR Apache-2.0
 thiserror = { version = "2.0.21", default-features = false }

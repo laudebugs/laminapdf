@@ -47,6 +47,9 @@ fn files_in(dir: &Path) -> Result<Vec<PathBuf>> {
     Ok(files)
 }
 
+/// The crates whose `golden` example writes goldens into `fixtures/golden/`.
+const GOLDEN_CRATES: [&str; 2] = ["lamina-save", "lamina-text"];
+
 /// `cargo xtask golden [--update]`: regenerates every golden in `fixtures/golden/` from its
 /// source (`--update` writes them in place and prints the list); without `--update`, checks
 /// that regenerating them changes nothing.
@@ -58,17 +61,20 @@ pub(crate) fn golden(ws: &Workspace, update: bool) -> Result<()> {
         scratch(ws, "golden")?
     };
     let out_arg = out.to_string_lossy().into_owned();
-    ws.cargo(&[
-        "run",
-        "--locked",
-        "-q",
-        "-p",
-        "lamina-save",
-        "--example",
-        "golden",
-        "--",
-        &out_arg,
-    ])?;
+    // Every crate with goldens has a `golden` example that writes its files into a directory.
+    for krate in GOLDEN_CRATES {
+        ws.cargo(&[
+            "run",
+            "--locked",
+            "-q",
+            "-p",
+            krate,
+            "--example",
+            "golden",
+            "--",
+            &out_arg,
+        ])?;
+    }
     if update {
         step("Goldens regenerated; review the diff (`git diff fixtures/golden`) like code");
         return Ok(());
