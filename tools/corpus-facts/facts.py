@@ -94,7 +94,7 @@ def corpus_facts_of(reader, data):
         "encrypted": reader.is_encrypted,
         "revisions": data.count(b"%%EOF"),
         "has_xref_stream": re.search(rb"/Type\s*/XRef\b", data) is not None,
-        "first_page_mediabox": [float(v) for v in reader.pages[0].mediabox],
+        "first_page_mediabox": [float(v) for v in reader.pages[0].mediabox] if len(reader.pages) else None,
         "root_keys": sorted(root.keys()),
         "outline_titles": outline_titles(reader),
     }

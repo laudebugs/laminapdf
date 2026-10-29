@@ -2,7 +2,7 @@
 //! annotations and fields, and the document-level [`IdAllocator`].
 
 use std::cell::Cell;
-use std::fmt;
+use std::fmt::{self, Write as _};
 use std::str::FromStr;
 
 use lamina_cos::{DirectPath, Error, ObjRef, PathSegment};
@@ -143,7 +143,7 @@ impl fmt::Display for LaminaId {
         }
         for segment in &self.path {
             match segment {
-                Segment::Key(k) => write!(f, "/{k}")?,
+                Segment::Key(k) => write!(f, "/{}", escape_key(k))?,
                 Segment::Index(i) => write!(f, "/{i}")?,
             }
         }
@@ -174,6 +174,53 @@ fn canonical_number<T: FromStr>(s: &str) -> Option<T> {
     canonical.then(|| s.parse().ok()).flatten()
 }
 
+/// Writes a dictionary key so it reads back as the same key and never as an index: every
+/// byte outside `[A-Za-z0-9]` and a leading digit become `#XX` (as in PDF names), and the
+/// empty key is a lone `#`.
+fn escape_key(key: &str) -> String {
+    if key.is_empty() {
+        return "#".to_owned();
+    }
+    let mut out = String::with_capacity(key.len());
+    for (i, b) in key.bytes().enumerate() {
+        if b.is_ascii_alphabetic() || (b.is_ascii_digit() && i > 0) {
+            out.push(char::from(b));
+        } else {
+            // Writing to a `String` cannot fail.
+            let _ = write!(out, "#{b:02X}");
+        }
+    }
+    out
+}
+
+/// The inverse of [`escape_key`]; `None` for anything [`escape_key`] can't have written.
+fn unescape_key(part: &str) -> Option<String> {
+    if part == "#" {
+        return Some(String::new());
+    }
+    let bytes = part.as_bytes();
+    let mut out = Vec::with_capacity(bytes.len());
+    let mut i = 0;
+    while let Some(&b) = bytes.get(i) {
+        if b == b'#' {
+            let hex = part.get(i + 1..i + 3)?;
+            if !hex.bytes().all(|h| h.is_ascii_digit() || (b'A'..=b'F').contains(&h)) {
+                return None;
+            }
+            out.push(u8::from_str_radix(hex, 16).ok()?);
+            i += 3;
+        } else if b.is_ascii_alphanumeric() && !(i == 0 && b.is_ascii_digit()) {
+            out.push(b);
+            i += 1;
+        } else {
+            return None;
+        }
+    }
+    let key = String::from_utf8(out).ok()?;
+    // Only the canonical spelling parses, so a string form maps to exactly one ID.
+    (escape_key(&key) == part).then_some(key)
+}
+
 impl FromStr for LaminaId {
     type Err = ParseIdError;
 
@@ -196,9 +243,7 @@ impl FromStr for LaminaId {
                 if let Some(i) = canonical_number(part) {
                     Some(Segment::Index(i))
                 } else {
-                    let is_key = part.starts_with(|c: char| c.is_ascii_alphabetic())
-                        && part.bytes().all(|b| b.is_ascii_alphanumeric());
-                    is_key.then(|| Segment::Key(part.into()))
+                    unescape_key(part).map(|k| Segment::Key(k.into()))
                 }
             })
             .collect::<Option<Box<[Segment]>>>()
@@ -356,6 +401,24 @@ impl IdAllocator {
 
 #[cfg(test)]
 mod tests {
+    use super::{escape_key, unescape_key};
+
+    #[test]
+    fn keys_with_any_characters_round_trip_and_never_read_as_indexes() {
+        for key in ["Kids", "My-Key", "A_B", "3D", "0", "", "Ünï", "a/b#c"] {
+            let escaped = escape_key(key);
+            assert_eq!(unescape_key(&escaped).as_deref(), Some(key), "{key:?} -> {escaped:?}");
+            assert!(escaped.parse::<usize>().is_err(), "{key:?} must not look like an index");
+        }
+    }
+
+    #[test]
+    fn non_canonical_key_spellings_are_rejected() {
+        for part in ["#4B", "my-key", "#zz", "#4"] {
+            assert_eq!(unescape_key(part), None, "{part:?}");
+        }
+    }
+
     use super::*;
 
     fn round_trip(s: &str) -> String {

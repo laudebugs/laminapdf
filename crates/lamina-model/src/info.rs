@@ -43,10 +43,7 @@ impl<'d> Info<'d> {
             // A missing object is `null` (§7.3.10): no Info, nothing to report.
             Some(dict) if matches!(*dict, Object::Null) => Ok(None),
             _ => {
-                doc.warn(Warning::InvalidEntry {
-                    object: None,
-                    key: "Info",
-                })?;
+                doc.warn(Warning::InvalidEntry { object, key: "Info" })?;
                 Ok(None)
             }
         }
