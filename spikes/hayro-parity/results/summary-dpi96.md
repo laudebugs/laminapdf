@@ -1,6 +1,6 @@
 # hayro-parity summary
 
-1188 documents, 2196 rows, 96 DPI, engines: both, 6 parallel jobs, per-page timeout 30 s, wall time 535 s.
+1188 documents, 2196 rows, 96 DPI, engines: both, 6 parallel jobs, per-page timeout 30 s, wall time 410 s.
 
 ## Classes (default thresholds)
 
@@ -32,9 +32,9 @@ Per-page render time over pages the engine rendered without error. Peak RSS is p
 
 | corpus | hayro median | hayro p95 | hayro total | PDFium median | PDFium p95 | PDFium total | pages hayro faster | peak RSS median | peak RSS p95 | peak RSS max |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| pdfbox | 9.6 ms | 226.8 ms | 13.5 s | 14.4 ms | 314.1 ms | 21.1 s | 63.8 % | 50.3 MiB | 59.5 MiB | 91.9 MiB |
-| pdfjs | 5.9 ms | 336.4 ms | 172.8 s | 6.0 ms | 310.2 ms | 135.6 s | 57.1 % | 41.1 MiB | 80.3 MiB | 966.6 MiB |
-| total | 6.6 ms | 319.7 ms | 186.3 s | 7.0 ms | 310.2 ms | 156.7 s | 58.1 % | 46.8 MiB | 77.4 MiB | 966.6 MiB |
+| pdfbox | 5.6 ms | 162.8 ms | 9.3 s | 6.3 ms | 149.2 ms | 8.7 s | 60.6 % | 58.0 MiB | 66.8 MiB | 107.8 MiB |
+| pdfjs | 5.5 ms | 288.4 ms | 147.4 s | 5.3 ms | 252.9 ms | 118.4 s | 57.4 % | 37.7 MiB | 72.5 MiB | 957.8 MiB |
+| total | 5.5 ms | 263.9 ms | 156.7 s | 5.5 ms | 240.9 ms | 127.1 s | 57.8 % | 48.2 MiB | 70.7 MiB | 957.8 MiB |
 
 ## Encrypted documents
 
@@ -44,6 +44,11 @@ Per-page render time over pages the engine rendered without error. Peak RSS is p
 - hayro-error: 2
 - pdfium-error: 4
 - both-error: 18
+
+## Harness
+
+- documents whose child crashed after reporting every page (teardown, not a page failure): 0
+- pages whose triptych could not be written: 0
 
 ## Top hayro errors (pages)
 

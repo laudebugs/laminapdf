@@ -55,7 +55,7 @@ Answer the [architecture §4](../../plans/architecture.md#4-spikes-to-close-open
 - [x] Renderer wrappers in `src/render.rs`: `render_hayro(bytes, page, dpi) -> Result<RgbaImage, Error>` and `render_pdfium(bytes, page, dpi) -> Result<RgbaImage, Error>`, both rendering the page's CropBox at 96 DPI and 150 DPI, white background, annotations on (PDFium `FPDF_ANNOT`), no anti-alias differences configured away silently (document the settings).
 - [x] Per-page timeout and isolation: render each document in a child process (re-exec the binary with `--one <file>`) so a hayro or PDFium crash or hang (timeout 30 s per page) is recorded as `*-error`/`timeout` instead of killing the run.
 - [x] Comparison in `src/compare.rs`: size mismatch → `fail`; otherwise compute SSIM (greyscale) and the share of pixels whose colour difference exceeds a threshold. Start with thresholds `pass`: SSIM ≥ 0.98 and ≤ 0.5 % differing pixels; `minor`: SSIM ≥ 0.95; else `fail`. Report the sensitivity (pass rate at 3 threshold settings) so ADR 0004 can choose.
-- [x] Output: `out/results.csv` (file, page, class, ssim, diff %, hayro ms, pdfium ms, error), `out/summary.md` (totals, per-corpus pass rate, top failure classes), and for every `fail` a side-by-side PNG triplet (hayro, PDFium, diff) for manual triage of the first 50.
+- [x] Output: `out/dpi96/results.csv` (file, page, class, ssim, diff %, hayro ms, pdfium ms, error), `out/dpi96/summary.md` (totals, per-corpus pass rate, top failure classes), and for every `fail` a side-by-side PNG triplet (hayro, PDFium, diff) for manual triage of the first 50.
 - [x] Manually triage at least 50 failing pages into buckets (fonts/Type3, shading, blend modes/transparency groups, JBIG2/JPX images, annotations, encryption, ICC/colour, broken files) and record counts.
 - [x] Record the machine (CPU, RAM, OS, rustc version) and the exact versions/commits of hayro, `pdfium-render`, PDFium and both corpora. C1b must report on the same machine.
 - [x] Write `spikes/hayro-parity/README.md`: question, method, how to reproduce (`scripts/fetch-pdfium.sh && scripts/fetch-corpora.sh && cargo run --release`), results table, failure buckets, speed comparison, limitations, and a **Recommendation for ADR 0004** (default renderer per surface, the parity threshold that would justify switching the default to hayro, which failure buckets must be zero first, the nightly metric X3b tracks).
@@ -63,7 +63,7 @@ Answer the [architecture §4](../../plans/architecture.md#4-spikes-to-close-open
 
 ## Acceptance criteria
 
-- [x] `cargo run --release` in `spikes/hayro-parity/` (after the two fetch scripts) renders every page of both pinned corpora with both renderers and writes `out/results.csv` and `out/summary.md` without aborting on any single bad file.
+- [x] `cargo run --release` in `spikes/hayro-parity/` (after the two fetch scripts) renders every page of both pinned corpora with both renderers and writes `out/dpi96/results.csv` and `out/dpi96/summary.md` (one folder per run: `out/dpi<N>[-<engine>-only]/`) without aborting on any single bad file.
 - [x] The README reports, for each corpus and in total: number of files and pages, pass/minor/fail/error/timeout counts and percentages, median and p95 render time per page for each renderer, and peak RSS.
 - [x] At least 50 failing pages are triaged into named buckets with counts.
 - [x] The README states the machine, all versions and commit SHAs, and the thresholds used, so the run is reproducible.
@@ -73,11 +73,12 @@ Answer the [architecture §4](../../plans/architecture.md#4-spikes-to-close-open
 
 ## Outcome
 
-Result in [`spikes/hayro-parity/README.md`](../../../spikes/hayro-parity/README.md). On 2,196 pages (1,188 documents, 96 DPI), hayro matches PDFium on 81.8 % of pages (pass+minor 90.8 %; 150 DPI: 78.2 % / 90.4 %). The failures are mostly in fonts, annotations without appearance streams, CalRGB/CalGray colour and transparency groups. Recommendation for ADR 0004: PDFium is the default everywhere, hayro is the CI oracle, and X3b tracks pass+minor at 96 DPI against the 90.8 % baseline. Deviations from this todo:
+Result in [`spikes/hayro-parity/README.md`](../../../spikes/hayro-parity/README.md). On 2,196 pages (1,188 documents, 96 DPI), hayro matches PDFium on 81.8 % of pages (pass+minor 90.8 %; 150 DPI: 78.3 % / 90.4 %). Where hayro is clearly wrong, it is mostly fonts, annotations without appearance streams and transparency groups; CalRGB/CalGray colour differs a lot but needs a reference rendering to judge. Recommendation for ADR 0004: PDFium is the default everywhere and hayro is the CI oracle. X3b tracks pass+minor at 96 DPI and sets its own baseline on the CI runner (the macOS 90.8 % is only indicative). Deviations from this todo:
 
 - **Thresholds:** the starting point (SSIM ≥ 0.98) failed visually identical text pages, so the metric gained a 3×3 blur and a 3×3 anti-aliasing neighbourhood, and the thresholds were recalibrated by hand (pass ≤ 0.5 % differing pixels and SSIM ≥ 0.90; minor ≤ 2 % and SSIM ≥ 0.85). The README explains this and reports the sensitivity.
 - **pdf.js `*.link` files** (461) were not fetched; only in-repository PDFs are used.
 - **Triage** covers all 153 `fail` pages but one 3-page PDFBox form (150 pages in 122 documents).
+- **Output paths:** each run writes to its own folder, `out/dpi<N>/` (or `out/dpi<N>-<engine>-only/`), instead of `out/results.csv` and `out/summary.md`, so the 96 DPI, 150 DPI and single-engine runs don't overwrite each other.
 - **Results** live in `out/` (gitignored); the four run summaries and the triage table are committed in `spikes/hayro-parity/results/`.
 - **PR title:** `spike(c1a): hayro vs PDFium parity on the pdf.js and PDFBox corpora`.
 

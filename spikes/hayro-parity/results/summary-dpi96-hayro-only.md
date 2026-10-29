@@ -1,14 +1,14 @@
 # hayro-parity summary
 
-1188 documents, 2194 rows, 96 DPI, engines: hayro, 6 parallel jobs, per-page timeout 30 s, wall time 33 s.
+1188 documents, 2194 rows, 96 DPI, engines: hayro, 6 parallel jobs, per-page timeout 30 s, wall time 65 s.
 
 ## Classes (default thresholds)
 
 | corpus | files | pages | pass | minor | fail | hayro-error | pdfium-error | both-error | timeout | rendered |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
 | pdfbox | 175 | 317 | 0 (0.0 %) | 0 (0.0 %) | 0 (0.0 %) | 9 (2.8 %) | 0 (0.0 %) | 0 (0.0 %) | 0 (0.0 %) | 308 (97.2 %) |
-| pdfjs | 1013 | 1877 | 0 (0.0 %) | 0 (0.0 %) | 0 (0.0 %) | 20 (1.1 %) | 0 (0.0 %) | 0 (0.0 %) | 1 (0.1 %) | 1856 (98.9 %) |
-| total | 1188 | 2194 | 0 (0.0 %) | 0 (0.0 %) | 0 (0.0 %) | 29 (1.3 %) | 0 (0.0 %) | 0 (0.0 %) | 1 (0.0 %) | 2164 (98.6 %) |
+| pdfjs | 1013 | 1877 | 0 (0.0 %) | 0 (0.0 %) | 0 (0.0 %) | 20 (1.1 %) | 0 (0.0 %) | 0 (0.0 %) | 2 (0.1 %) | 1855 (98.8 %) |
+| total | 1188 | 2194 | 0 (0.0 %) | 0 (0.0 %) | 0 (0.0 %) | 29 (1.3 %) | 0 (0.0 %) | 0 (0.0 %) | 2 (0.1 %) | 2163 (98.6 %) |
 
 ## Threshold sensitivity
 
@@ -32,9 +32,9 @@ Per-page render time over pages the engine rendered without error. Peak RSS is p
 
 | corpus | hayro median | hayro p95 | hayro total | PDFium median | PDFium p95 | PDFium total | pages hayro faster | peak RSS median | peak RSS p95 | peak RSS max |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| pdfbox | 4.9 ms | 45.2 ms | 3.5 s | – | – | -0.0 s | – | 16.0 MiB | 22.3 MiB | 27.6 MiB |
-| pdfjs | 4.9 ms | 148.2 ms | 101.4 s | – | – | -0.0 s | – | 15.5 MiB | 28.9 MiB | 1570.8 MiB |
-| total | 4.9 ms | 131.3 ms | 104.9 s | – | – | -0.0 s | – | 15.8 MiB | 27.5 MiB | 1570.8 MiB |
+| pdfbox | 9.2 ms | 259.0 ms | 16.9 s | – | – | -0.0 s | – | 16.1 MiB | 22.1 MiB | 27.7 MiB |
+| pdfjs | 7.4 ms | 404.9 ms | 234.1 s | – | – | -0.0 s | – | 15.5 MiB | 27.7 MiB | 929.6 MiB |
+| total | 7.9 ms | 385.1 ms | 251.1 s | – | – | -0.0 s | – | 15.7 MiB | 26.7 MiB | 929.6 MiB |
 
 ## Encrypted documents
 
@@ -42,14 +42,19 @@ Per-page render time over pages the engine rendered without error. Peak RSS is p
 - hayro-error: 20
 - rendered: 20
 
+## Harness
+
+- documents whose child crashed after reporting every page (teardown, not a page failure): 0
+- pages whose triptych could not be written: 0
+
 ## Top hayro errors (pages)
 
 - 13 × `Decryption(PasswordProtected)`
 - 10 × `Invalid`
 - 4 × `Decryption(UnsupportedAlgorithm)`
+- 2 × `timeout (## s)`
 - 1 × `no pages`
 - 1 × `panic: called `Option::unwrap()` on a `None` value`
-- 1 × `timeout (## s)`
 
 ## Top PDFium errors (pages)
 

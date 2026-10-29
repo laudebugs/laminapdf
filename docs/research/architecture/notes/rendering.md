@@ -33,6 +33,7 @@ pdf.js (Apache-2.0) is the most actively released permissive web engine, at 6.4.
 - The README claims you can "basically expect almost any PDF that renders in Chrome (PDFium) or Firefox (pdf.js) to render correctly". The visual regression suite has 1,600+ PDFs, largely drawn from the pdf.js and PDFBox corpora. No pass/fail table is published. Knockout groups, CMYK blending, and 3D content are noted as unsupported, as they are in most non-Acrobat viewers. Document manipulation is out of scope. The demo has no text selection, search, annotations, or forms. — [hayro GitHub](https://github.com/LaurenzV/hayro); [docs.rs hayro 0.7.1](https://docs.rs/crate/hayro/0.7.1)
 - Performance: it "can already render many PDFs faster than other PDF viewers", but glyph caching is missing. A browser demo exists at laurenzv.github.io/hayro and is described as "vibe-coded, not an actual viewer". — [hayro GitHub](https://github.com/LaurenzV/hayro)
 - Older notes said encrypted PDFs and blend modes/knockout were unsupported. Current README wording suggests that blend modes have since landed, but this is unverified. — [rust-digger hayro](https://rust-digger.code-maven.com/crates/hayro)
+  - *Update (2026-10-28, [`hayro-parity` spike](../../../../spikes/hayro-parity/README.md)):* hayro 0.8.0 opens encrypted files that have an empty user password; its remaining encryption failures (password-protected files, PDFBox's AES samples) are shared with PDFium. Knockout groups and non-isolated groups with soft masks still differ from PDFium (5 failing pages on the pdf.js corpus).
 - Typst uses it for PDF-as-image, and a third-party crate, `zenpdf`, builds on it. — [docs.rs zenpdf](https://docs.rs/zenpdf); [users.rust-lang.org](https://users.rust-lang.org/t/converting-pdf-to-tif/137663)
 
 **MuPDF.js (Artifex)**
@@ -53,6 +54,7 @@ pdf.js (Apache-2.0) is the most actively released permissive web engine, at 6.4.
 - No published, current neutral fidelity benchmark comparing pdf.js, PDFium, hayro, and MuPDF on the same corpus. A 2026 dev.to post notes the same gap ([dev.to feed](https://dev.to/feed/9haroon)). The PDF Association's 2021 survey ([pdfa.org](https://pdfa.org/wp-content/uploads/2021/06/Survey-of-OpenSource-Solutions.pdf)) could not be parsed into rankings.
 - Not found or verified: hayro WASM bundle size, memory profile, ICC/colour-management support, encryption support status in 0.8.0.
 - pdfium-render's latest version date and exact licence string were not confirmed in this session. It is believed to be MIT OR Apache-2.0, so check crates.io.
+  - *Update (2026-10-28):* confirmed on crates.io: `pdfium-render` 0.9.4 (2026-09-06) is `MIT OR Apache-2.0`. See the [`hayro-parity` spike](../../../../spikes/hayro-parity/README.md#licences), which also measures hayro against PDFium on the pdf.js and PDFBox corpora (the "no published pass/fail table" gap above).
 - Apple PDFKit and Core Graphics details (fidelity, API changes in macOS 26/27) were not researched with sources.
 - No measured memory-use numbers were found for any engine.
 
