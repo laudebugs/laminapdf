@@ -259,7 +259,7 @@ Rules that hold for every screen here:
 
 **Behaviour.** Tap toggles selection; long-press on a thumbnail outside selection mode enters it with that page selected. Each action is one op and one undo step for the batch (ADR 0006). No live reordering while selecting.
 
-**Accessibility.** Grid is `role="grid"` with `aria-multiselectable`; each thumbnail is a 44 px+ button with `aria-selected` and a name "Page 4, selected". Move to… is the single-pointer alternative to drag (WCAG 2.5.7). Focus ring drawn inset on the Move to… button. Text inputs are 16 px (no iOS zoom).
+**Accessibility.** Grid is a multi-select `role="listbox"` (`aria-multiselectable`; a flowing grid has no fixed rows, as in O06); each thumbnail is a 44 px+ `option` with `aria-selected` and a name "Page 4, selected". Move to… is the single-pointer alternative to drag (WCAG 2.5.7). Focus ring drawn inset on the Move to… button. Text inputs are 16 px (no iOS zoom).
 
 **Platform differences.** Tablet: the same grid with 5–6 columns and the bottom action bar; drag to reorder is added for pen and mouse, but Move to… stays.
 

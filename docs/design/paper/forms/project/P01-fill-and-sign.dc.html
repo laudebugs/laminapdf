@@ -70,6 +70,15 @@ label:has(input[type="radio"]:focus-visible) > span:first-child, label:has(input
     <span style="font-size: 12px; color: #6B645A; font-variant-numeric: tabular-nums">4 of 9 required fields filled</span>
   </div>
 
+  <sc-if value="{{certifiedNoChanges}}" hint-placeholder-val="{{ false }}">
+  <div role="status" style="min-height: 36px; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; padding: 4px 16px; background: #F0E8DC; border-bottom: 1px solid #E4DED3; font-size: 13px">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8A5300" stroke-width="1.5" aria-hidden="true"><rect x="5.5" y="10.5" width="13" height="9" rx="1.5"></rect><path d="M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5"></path></svg>
+    <span style="flex: 1 1 320px"><strong style="font-weight: 600; color: #8A5300">This form can’t be filled in.</strong> Northwind Housing Trust certified it to allow no changes, so every field is read-only. Fill in a copy instead: the copy isn’t certified.</span>
+    <button style="height: 26px; padding: 0 12px; border: 1px solid #8A8174; background: #FFFFFF; border-radius: 4px; font-size: 13px">Fill in a copy</button>
+    <button style="height: 26px; padding: 0 10px; border: 0; background: transparent; border-radius: 4px; color: {{accent}}; font-size: 13px; font-weight: 600">Details</button>
+  </div>
+  </sc-if>
+
   <div style="flex: 1 1 auto; min-height: 0; display: flex; flex-wrap: wrap">
     <aside aria-label="Fields" style="flex: 0 0 220px; min-width: 0; box-sizing: border-box; border-right: 1px solid #E4DED3; background: #F7F4EE; display: flex; flex-direction: column; overflow: hidden">
       <div role="tablist" aria-label="Sidebar" style="display: flex; gap: 16px; padding: 14px 18px 0; border-bottom: 1px solid #E4DED3">
@@ -109,23 +118,23 @@ label:has(input[type="radio"]:focus-visible) > span:first-child, label:has(input
         <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 16px; font-family: 'Source Sans 3', system-ui, sans-serif">
           <div style="display: flex; flex-direction: column; gap: 4px">
             <label for="f-name" style="font-size: 11.5px; color: #3A3733">Full name <span aria-hidden="true" style="color: #9B2335">*</span></label>
-            <input id="f-name" aria-required="true" value="Amara Okafor" style="{{field}}">
+            <input id="f-name" aria-readonly="{{ro}}" aria-required="true" value="Amara Okafor" style="{{field}}">
           </div>
           <div style="display: flex; flex-direction: column; gap: 4px">
             <label for="f-ten" style="font-size: 11.5px; color: #3A3733">Tenancy reference <span aria-hidden="true" style="color: #9B2335">*</span></label>
-            <input id="f-ten" aria-required="true" value="NHT-104233" style="{{field}}">
+            <input id="f-ten" aria-readonly="{{ro}}" aria-required="true" value="NHT-104233" style="{{field}}">
           </div>
           <div style="grid-column: 1 / -1; display: flex; flex-direction: column; gap: 4px">
             <label for="f-addr" style="font-size: 11.5px; color: #3A3733">Address <span aria-hidden="true" style="color: #9B2335">*</span></label>
-            <input id="f-addr" aria-required="true" value="Flat 4, 12 Mill Lane, Easton" style="{{field}}">
+            <input id="f-addr" aria-readonly="{{ro}}" aria-required="true" value="Flat 4, 12 Mill Lane, Easton" style="{{field}}">
           </div>
           <div style="display: flex; flex-direction: column; gap: 4px">
             <label for="f-tel" style="font-size: 11.5px; color: #3A3733">Phone</label>
-            <input id="f-tel" value="07700 900123" style="{{field}}">
+            <input id="f-tel" aria-readonly="{{ro}}" value="07700 900123" style="{{field}}">
           </div>
           <div style="display: flex; flex-direction: column; gap: 4px">
             <label for="f-mail" style="font-size: 11.5px; color: #3A3733">Email</label>
-            <input id="f-mail" value="" style="{{field}}">
+            <input id="f-mail" aria-readonly="{{ro}}" value="" style="{{field}}">
           </div>
           <fieldset style="grid-column: 1 / -1; margin: 0; padding: 0; border: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 18px">
             <legend style="padding: 0; margin-bottom: 4px; font-size: 11.5px; color: #3A3733">How should we contact you? <span aria-hidden="true" style="color: #9B2335">*</span></legend>
@@ -151,16 +160,16 @@ label:has(input[type="radio"]:focus-visible) > span:first-child, label:has(input
           </div>
           <div style="display: flex; flex-direction: column; gap: 4px">
             <label for="f-room" style="font-size: 11.5px; color: #3A3733">Room</label>
-            <input id="f-room" value="" style="{{field}}">
+            <input id="f-room" aria-readonly="{{ro}}" value="" style="{{field}}">
           </div>
           <div style="display: flex; flex-direction: column; gap: 4px">
             <label for="f-date" style="font-size: 11.5px; color: #3A3733">Date you first noticed it <span aria-hidden="true" style="color: #9B2335">*</span></label>
-            <input id="f-date" aria-required="true" placeholder="dd/mm/yyyy" value="" style="{{field}}">
+            <input id="f-date" aria-readonly="{{ro}}" aria-required="true" placeholder="dd/mm/yyyy" value="" style="{{field}}">
           </div>
           <div></div>
           <div style="grid-column: 1 / -1; display: flex; flex-direction: column; gap: 4px">
             <label for="f-desc" style="font-size: 11.5px; color: #3A3733">Describe the problem <span aria-hidden="true" style="color: #9B2335">*</span></label>
-            <textarea id="f-desc" aria-required="true" rows="4" style="{{fieldArea}}"></textarea>
+            <textarea id="f-desc" aria-readonly="{{ro}}" aria-required="true" rows="4" style="{{fieldArea}}"></textarea>
           </div>
           <label style="grid-column: 1 / -1; display: flex; align-items: flex-start; gap: 8px; min-height: 24px; font-size: 12.5px"><span style="{{checkOn}}"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#262421" stroke-width="2.5" aria-hidden="true"><path d="M6 12.5l4 4 8-9"></path></svg></span><input type="checkbox" checked style="position: absolute; opacity: 0; width: 1px; height: 1px">Someone in the home is vulnerable or has a health condition that the repair affects</label>
           <label style="grid-column: 1 / -1; display: flex; align-items: flex-start; gap: 8px; min-height: 24px; font-size: 12.5px"><span style="{{checkOff}}"></span><input type="checkbox" style="position: absolute; opacity: 0; width: 1px; height: 1px">You may enter with a key if I’m not at home</label>
@@ -183,11 +192,12 @@ label:has(input[type="radio"]:focus-visible) > span:first-child, label:has(input
   </footer>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#1F5C63","options":["#1F5C63","#2D4A6B","#3E4A3C"]},"highlightFields":{"editor":"boolean","default":true},"$preview":{"width":1440,"height":1000}}'>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#1F5C63","options":["#1F5C63","#2D4A6B","#3E4A3C"]},"highlightFields":{"editor":"boolean","default":true},"certifiedNoChanges":{"editor":"boolean","default":false},"$preview":{"width":1440,"height":1000}}'>
 class Component extends DCLogic {
   renderVals() {
     var accent = this.props.accent ?? '#1F5C63';
     var hl = this.props.highlightFields ?? true;
+    var p1 = this.props.certifiedNoChanges ?? false;
     function mix(hex, base, t) {
       var p = function (h, i) { return parseInt(h.replace('#', '').substr(i, 2), 16); };
       var out = '#';
@@ -199,7 +209,7 @@ class Component extends DCLogic {
     }
     var accentTint = mix(accent, '#FBF9F5', 0.12);
     var tint = hl ? mix(accent, '#FFFFFF', 0.08) : '#FFFFFF';
-    var base = 'box-sizing: border-box; border: 1px solid #8A8174; border-radius: 0; background: ' + tint + '; font-family: \'Source Sans 3\', system-ui, sans-serif; font-size: 13px; color: #262421;';
+    var base = 'box-sizing: border-box; border: 1px ' + (p1 ? 'dashed' : 'solid') + ' #8A8174; border-radius: 0; background: ' + (p1 ? '#FFFFFF' : tint) + '; font-family: \'Source Sans 3\', system-ui, sans-serif; font-size: 13px; color: #262421;';
     var list = [
       ['Full name', 'done'], ['Tenancy reference', 'done'], ['Address', 'done'], ['Phone', 'done'], ['Email', ''],
       ['How should we contact you?', 'done'], ['Type of repair', 'cur'], ['Room', ''], ['Date you first noticed it', 'req'],
@@ -220,6 +230,8 @@ class Component extends DCLogic {
       accent: accent,
       accentTint: accentTint,
       fields: fields,
+      certifiedNoChanges: p1,
+      ro: p1 ? 'true' : 'false',
       highlightPressed: hl ? 'true' : 'false',
       highlightBtn: 'height: 28px; display: flex; align-items: center; gap: 6px; padding: 0 10px; border-radius: 4px; ' + (hl ? 'border: 1px solid ' + accent + '; background: ' + accentTint + '; color: ' + accent + '; font-weight: 600;' : 'border: 1px solid transparent; background: transparent;'),
       field: base + ' height: 26px; padding: 0 8px;',
