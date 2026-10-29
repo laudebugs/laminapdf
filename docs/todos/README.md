@@ -12,7 +12,7 @@ New todos start from [`TEMPLATE.md`](TEMPLATE.md). The workflow is in [git workf
 
 IDs: `A`/`P`/`X` [architecture](../plans/architecture.md) (foundations, publishing, cross-cutting), `B` [library](../plans/pdf-library.md), `C` [web reader](../plans/web-app.md), `D` [desktop reader](../plans/desktop-app.md), `E` [editor](../plans/full-editor.md), `H` hosted service ([full-editor](../plans/full-editor.md)). A letter suffix (`B2a`, `B2b`) splits a round into PRs.
 
-**0 ongoing · 196 ready · 6 done** (202 total).
+**1 ongoing · 195 ready · 6 done** (202 total).
 
 ## Can start now
 
@@ -22,12 +22,10 @@ Ready todos whose dependencies are all done:
 - [B2c](ready/B2c-lamina-model-corpus-fuzz.md): `lamina-model` views and IDs, corpus facts, pypdf differential and fuzz targets
 - [B2d](ready/B2d-windowed-reading.md): Windowed reading for sources without `as_slice`
 - [C1a](ready/C1a-hayro-parity-spike.md): `hayro-parity` spike: hayro vs PDFium pass rate on the pdf.js and PDFBox corpora
-- [X1](ready/X1-docs-link-checker.md): Docs link checker and todo-board check in `cargo xtask`, run in CI
 
 ## Ongoing
 
-Nothing claimed right now.
-
+- [X1](ongoing/X1-docs-link-checker.md): Docs link checker and todo-board check in `cargo xtask`, run in CI
 
 ## Architecture — Round A
 
@@ -73,7 +71,7 @@ Nothing claimed right now.
 | --- | --- | --- | --- |
 | C1a | [`hayro-parity` spike: hayro vs PDFium pass rate on the pdf.js and PDFBox corpora](ready/C1a-hayro-parity-spike.md) | ready | — |
 | C1b | [`pdfium-wasm` spike: PDFium-WASM next to `lamina-wasm` in one worker](ready/C1b-pdfium-wasm-spike.md) | ready | [B3c](ready/B3c-save-planner-and-roundtrip.md), [B6b](ready/B6b-lamina-pdf-package.md), [C1a](ready/C1a-hayro-parity-spike.md) |
-| C2a | [ADRs 0004, 0009, 0010, 0011: render backend, web client, platform adapter, Cloudflare and privacy](ready/C2a-render-adrs.md) | ready | [C1a](ready/C1a-hayro-parity-spike.md), [C1b](ready/C1b-pdfium-wasm-spike.md), [X1](ready/X1-docs-link-checker.md) |
+| C2a | [ADRs 0004, 0009, 0010, 0011: render backend, web client, platform adapter, Cloudflare and privacy](ready/C2a-render-adrs.md) | ready | [C1a](ready/C1a-hayro-parity-spike.md), [C1b](ready/C1b-pdfium-wasm-spike.md), [X1](ongoing/X1-docs-link-checker.md) |
 | C2b | [`crates/lamina-render`: the `RenderBackend` trait, PDFium and hayro adapters, render goldens](ready/C2b-lamina-render-crate.md) | ready | [B2c](ready/B2c-lamina-model-corpus-fuzz.md), [C2a](ready/C2a-render-adrs.md) |
 | C2c | [`@lamina/render-pdfium` and `@lamina/render-hayro`: the web render adapters](ready/C2c-render-packages.md) | ready | [B6b](ready/B6b-lamina-pdf-package.md), [C2b](ready/C2b-lamina-render-crate.md) |
 | C3a | [`@lamina/viewer` part 1: document worker and typed RPC](ready/C3a-viewer-worker-rpc.md) | ready | [B6b](ready/B6b-lamina-pdf-package.md), [C2a](ready/C2a-render-adrs.md), [C2c](ready/C2c-render-packages.md) |
@@ -265,7 +263,7 @@ Nothing claimed right now.
 
 | ID | Todo | State | Depends on |
 | --- | --- | --- | --- |
-| X1 | [Docs link checker and todo-board check in `cargo xtask`, run in CI](ready/X1-docs-link-checker.md) | ready | — |
+| X1 | [Docs link checker and todo-board check in `cargo xtask`, run in CI](ongoing/X1-docs-link-checker.md) | ongoing | — |
 | X2 | [Capability matrix generator: ~180 operations, test-backed statuses](ready/X2-capability-matrix.md) | ready | [B3c](ready/B3c-save-planner-and-roundtrip.md) |
 | X3a | [Nightly CI lane: external-corpus differential, extended fuzzing, scaling tests and benchmarks](ready/X3a-nightly-lane.md) | ready | [B2c](ready/B2c-lamina-model-corpus-fuzz.md) |
 | X3b | [Nightly hayro-vs-PDFium render diffs](ready/X3b-render-diff-nightly.md) | ready | [C2b](ready/C2b-lamina-render-crate.md), [X3a](ready/X3a-nightly-lane.md) |

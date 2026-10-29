@@ -3,11 +3,11 @@
 | Field | Value |
 | --- | --- |
 | ID | `X1` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [architecture §7 Cross-cutting](../../plans/architecture.md#cross-cutting) |
 | Round / milestone | Cross-cutting (any time; recommended first) |
 | Depends on | None |
-| Blocks | [C2a](./C2a-render-adrs.md) |
+| Blocks | [C2a](../ready/C2a-render-adrs.md) |
 | ADRs | Follows [0015](../../decisions/0015-monorepo-layout-and-tooling.md) (xtask is the single entry point; CI runs what xtask runs) |
 | Branch | `build/x1-docs-link-checker` |
 | PR title | `build(xtask): check relative links and anchors in every Markdown file` |
@@ -35,8 +35,8 @@ Catch broken documentation links before merge. The todo board makes link rot lik
 
 **Out of scope**
 
-- External URL checking (network; flaky): maybe a nightly job later ([X3a](./X3a-nightly-lane.md) can add `lychee` if wanted).
-- The docs site's own checker: [B7a](./B7a-docs-site.md).
+- External URL checking (network; flaky): maybe a nightly job later ([X3a](../ready/X3a-nightly-lane.md) can add `lychee` if wanted).
+- The docs site's own checker: [B7a](../ready/B7a-docs-site.md).
 
 ## Tasks
 
