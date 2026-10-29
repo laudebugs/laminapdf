@@ -32,7 +32,7 @@ Prove the package works where the plan says it does. The same TS example suite r
 - Deno and Bun smoke runners (`deno test` / `bun test`) over a shared `examples` entry using the `deno`/`default` conditions.
 - Workflow jobs: Node matrix (22, 24, 26) + Chromium in the fast lane; Firefox, WebKit, Deno, Bun, workerd in the full lane ([X4](../done/X4-full-lane-gate.md)) and the release lane.
 - A Worker example (`packages/pdf/examples/worker/`) that generates a PDF per request — also used by docs ([B7a](./B7a-docs-site.md)).
-- Performance smoke (not asserted in PR lanes; recorded): hello and 100-page report timings per runtime written to the job summary; nightly trend via [X3a](../ongoing/X3a-nightly-lane.md).
+- Performance smoke (not asserted in PR lanes; recorded): hello and 100-page report timings per runtime written to the job summary; the nightly trend is a job in `.github/workflows/nightly.yml` added here, recording the timings in the benchmark history (`history.jsonl` on `bench-data`, the record format of `cargo xtask bench` from [X3a](../done/X3a-nightly-lane.md)).
 
 **Out of scope** (and which todo covers it)
 

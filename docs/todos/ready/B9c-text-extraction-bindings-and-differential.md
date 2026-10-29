@@ -33,13 +33,13 @@ Expose text extraction everywhere the readers need it and prove it against indep
 - TS: `page.text(options?) → PageText { runs: TextRun[], text(): string }` with lazy decoding of quads; worker-friendly (transferable buffers).
 - Differential: `cargo xtask differential --text` comparing per-page text with pdf.js (`getTextContent`, normalised) and pdftotext (`-layout` off) on `fixtures/corpus` + `fixtures/text`; precomputed expectations in `fixtures/differential/text.json` for the PR lane, live tools in the full/nightly lanes; exceptions file with reasons.
 - Quad test: PDFium (`pypdfium2` `get_charbox`) vs lamina quads per glyph, tolerance in points (e.g. ≤ 1 pt or ≤ 10% of font size, documented), on fixtures where both map glyphs 1:1.
-- Fuzz target `extract_text` (open + extract all pages) run 10 min in the scheduled fuzz workflow.
+- Fuzz target `extract_text` (open + extract all pages), added to the nightly workflow's fuzz matrix (`.github/workflows/nightly.yml`, 10 min) and to `FUZZ_TARGETS`.
+- Nightly external-corpus text differential: a `--text` option (or a `text` fact) for `cargo xtask differential --live`, with pdf.js and pdftotext runners in `tools/differential/` and its classes in `exceptions.toml`, run by the nightly workflow's differential job ([X3a](../done/X3a-nightly-lane.md) built the lane; this todo adds the text part).
 - Size: measure the extraction code's WASM cost and record it against the ADR 0016 budgets.
 
 **Out of scope** (and which todo covers it)
 
 - Text layer DOM, selection, search UI: web C5.
-- Nightly external-corpus text differential: [X3a](../ongoing/X3a-nightly-lane.md) picks up `--text`.
 
 ## Tasks
 

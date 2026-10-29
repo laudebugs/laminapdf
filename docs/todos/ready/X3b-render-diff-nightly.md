@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [architecture §7 Cross-cutting](../../plans/architecture.md#cross-cutting), web plan [C2](../../plans/web-app.md#c2-render-backend-and-adrs) ("the hayro-vs-PDFium diff runs in the nightly lane") |
 | Round / milestone | Cross-cutting (with Round C) |
-| Depends on | [C2b](./C2b-lamina-render-crate.md), [X3a](../ongoing/X3a-nightly-lane.md) |
+| Depends on | [C2b](./C2b-lamina-render-crate.md), [X3a](../done/X3a-nightly-lane.md) |
 | Blocks | None |
 | ADRs | Follows [0018](../../decisions/0018-test-strategy.md) §2 (nightly: hayro vs PDFium render diffs), ADR 0004 (written in C2) |
 | Branch | `ci/x3b-render-diffs` |

@@ -36,6 +36,7 @@ Make unsafe saves impossible by default. `SavePlanner` inspects the base and the
 - **Encrypted base** ([ADR 0007 §2](../../decisions/0007-save-planner.md#2-saveconstraint-all-the-conditions-not-one-of-them): "an encrypted base while encryption on write is missing (full-editor E11; today's `EncryptedBase`), which can only be saved by removing encryption"). The planner reports `RewriteReason::EncryptedBase` (kind `RequiresRewrite`, or `Conflict` if also signed), but a save never drops or corrupts encryption silently: with `remove_encryption` unset (the default), `Auto`, `FullRewrite` and `Incremental` all fail with `SaveError::EncryptedBase` (code `encrypted-base`, in `fixtures/codes.json`), before anything is written. With `SaveOptions::remove_encryption(true)` (explicit opt-in; needs a document decrypted by [B2b](../done/B2b-standard-security-decryption.md)) `Auto`/`FullRewrite` write a full rewrite with every string and stream decrypted and no `/Encrypt` in the trailer, and `SaveReport` records `encryption_removed`. Keeping encryption (`keep_encryption`: re-encrypt on rewrite, encrypted incremental saves) is encryption on write, full-editor [E11b](../ready/E11b-encrypt-on-write.md); until then there is no way to keep it and the default refuses. The owner-password authorisation policy for removal is E11a/[E11c](../ready/E11c-remove-security.md)'s (its `RemoveEncryption` op goes through this path).
 - Signed fixtures: approval-signed, certified with DocMDP P1/P2/P3, DocTimeStamp, generated reproducibly (pyHanko, MIT) with a script; provenance in `fixtures/README.md`.
 - Round-trip harness: `cargo xtask roundtrip` — for each corpus file × proving op × mode: lamina save → reopen in lamina (facts), `qpdf --check`, pdf.js (`pdfjs-dist` Node script: page count, rotation, Info) and PDFium (`pypdfium2`: page count, rotation); a manifest of tool versions; runs in the full lane added by [X4](../done/X4-full-lane-gate.md).
+- Nightly round-trip over the external corpus: `cargo xtask roundtrip --corpus external` (the `corpus fetch` inputs, sampled if needed) as a job in `.github/workflows/nightly.yml` ([X3a](../done/X3a-nightly-lane.md) built the lane; this todo adds the job).
 - Fuzz targets `ops_json` (deserialize + apply arbitrary op logs on a fixture) and `save_roundtrip` (open → random ops → save → reopen, no panic, reopen succeeds).
 
 **Out of scope** (and which todo covers it)
@@ -43,7 +44,6 @@ Make unsafe saves impossible by default. `SavePlanner` inspects the base and the
 - Executing signatures (two-phase signing), validating signature cryptography: full-editor E10 (ADR 0020).
 - Redaction and other rewrite-requiring ops: E12.
 - Capability-matrix rows: [X2](../ready/X2-capability-matrix.md).
-- Nightly round-trip over the external corpus: [X3a](../ongoing/X3a-nightly-lane.md).
 
 ## Tasks
 

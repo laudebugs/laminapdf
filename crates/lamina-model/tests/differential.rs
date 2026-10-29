@@ -22,29 +22,16 @@ mod common;
 use std::collections::BTreeSet;
 use std::sync::OnceLock;
 
-use common::{fixture, json, mutants, open, outline_titles};
-use serde_json::{Value, json};
-
-const FACTS: [&str; 3] = ["outcome", "page_count", "outline_titles"];
-
-/// lamina's facts about `bytes`, in the shape `expected.json` stores pypdf's, extracted the
-/// same way as `tools/corpus-facts/facts.py` does: the outcome is about opening the file and
-/// walking its pages; an unreadable outline is its own fact (`null`) and leaves the outcome.
-fn ours(bytes: &[u8]) -> Value {
-    let failed = json!({"outcome": "failed", "page_count": null, "outline_titles": null});
-    let Ok(doc) = open(bytes) else { return failed };
-    let Ok(pages) = doc.pages() else { return failed };
-    let outcome = if doc.was_repaired() { "repaired" } else { "opened" };
-    json!({
-        "outcome": outcome,
-        "page_count": pages.len(),
-        "outline_titles": outline_titles(&doc).ok(),
-    })
-}
+use common::differential::{FACTS, facts as ours};
+use common::{fixture, json, mutants};
+/// The tools of the nightly lane's live differential (`tools/xtask/src/live.rs`).
+const TOOLS: [&str; 4] = ["pdfjs", "pdfium", "qpdf", "pypdf"];
 
 /// The `(file, fact)` pairs an exceptions file excuses. Each entry names one input (`file`)
 /// or several that differ for the same reason (`files`), a non-empty `facts` list, its
 /// ADR 0003 rule and a reason. A pair listed twice is an error: it would hide a stale entry.
+/// An entry with `tools` (the nightly lane's live differential) applies here only when it lists
+/// `pypdf`, this lane's only tool; an unknown tool name is an error.
 fn parse_exceptions(text: &str) -> Result<BTreeSet<(String, String)>, String> {
     let table: toml::Table = text.parse().map_err(|e| format!("not TOML: {e}"))?;
     let entries = match table.get("exception") {
@@ -84,6 +71,15 @@ fn parse_exceptions(text: &str) -> Result<BTreeSet<(String, String)>, String> {
             (None, Some(_)) => strings(e.get("files"), "files")?,
             _ => return Err(format!("an exception has exactly one of `file` and `files`: {e:?}")),
         };
+        if e.get("tools").is_some() {
+            let tools = strings(e.get("tools"), "tools")?;
+            if let Some(bad) = tools.iter().find(|t| !TOOLS.contains(&t.as_str())) {
+                return Err(format!("unknown tool {bad:?}; tools are {TOOLS:?}"));
+            }
+            if !tools.iter().any(|t| t == "pypdf") {
+                continue;
+            }
+        }
         let facts = strings(e.get("facts"), "facts")?;
         if let Some(bad) = facts.iter().find(|f| !FACTS.contains(&f.as_str())) {
             return Err(format!("unknown fact {bad:?}; facts are {FACTS:?}"));
@@ -258,4 +254,24 @@ fn exceptions_reject_unknown_facts_and_both_file_keys() {
     let unknown = format!("[[exception]]\nfile = \"a.pdf\"\nfacts = [\"colour\"]\n{base}");
     let both = format!("[[exception]]\nfile = \"a.pdf\"\nfiles = [\"b.pdf\"]\nfacts = [\"outcome\"]\n{base}");
     assert!(parse_exceptions(&unknown).is_err() && parse_exceptions(&both).is_err());
+}
+
+#[test]
+fn exceptions_for_other_tools_should_not_excuse_pypdf() {
+    let base = "file = \"a.pdf\"\nfacts = [\"outcome\"]\nrule = \"ADR 0003 §1: Repair\"\nreason = \"why\"\n";
+    let qpdf_only = format!("[[exception]]\ntools = [\"qpdf\"]\n{base}");
+    let with_pypdf = format!("[[exception]]\ntools = [\"qpdf\", \"pypdf\"]\n{base}");
+    assert_eq!(
+        (
+            parse_exceptions(&qpdf_only).unwrap().len(),
+            parse_exceptions(&with_pypdf).unwrap().len()
+        ),
+        (0, 1)
+    );
+}
+
+#[test]
+fn exceptions_reject_unknown_tools() {
+    let text = "[[exception]]\ntools = [\"mupdf\"]\nfile = \"a.pdf\"\nfacts = [\"outcome\"]\nrule = \"ADR 0003 §1: Repair\"\nreason = \"why\"\n";
+    assert!(parse_exceptions(text).is_err());
 }

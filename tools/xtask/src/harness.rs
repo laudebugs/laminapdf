@@ -265,14 +265,17 @@ const FUZZ_USAGE: &str =
     "usage: cargo xtask fuzz <target>|--all [--time <seconds>] | fuzz seeds [<target>] | fuzz cmin [<target>]";
 
 /// Parses `fuzz <target>|--all [--time N]`, `fuzz seeds [<target>]` and `fuzz cmin [<target>]`.
+/// `target` if it is one of [`FUZZ_TARGETS`], else an error listing them.
+pub(crate) fn known_fuzz_target(target: &str) -> Result<&str> {
+    if FUZZ_TARGETS.contains(&target) {
+        Ok(target)
+    } else {
+        bail!("unknown fuzz target {target:?}; targets: {}", FUZZ_TARGETS.join(", "))
+    }
+}
+
 pub(crate) fn parse_fuzz_args(args: &[String]) -> Result<FuzzTask<'_>> {
-    let known = |t: &str| {
-        if FUZZ_TARGETS.contains(&t) {
-            Ok(())
-        } else {
-            bail!("unknown fuzz target {t:?}; targets: {}", FUZZ_TARGETS.join(", "))
-        }
-    };
+    let known = |t: &str| known_fuzz_target(t).map(drop);
     let seconds = |s: &str| -> Result<u64> { s.parse().with_context(|| format!("--time {s:?}: not a number")) };
     match args {
         [all] if all == "--all" => Ok(FuzzTask::RunAll {
@@ -424,7 +427,7 @@ fn cmin(ws: &Workspace, host: &str, target: &str) -> Result<()> {
 }
 
 /// The host triple of the nightly toolchain (`rustc +nightly -vV`).
-fn nightly_host() -> Result<String> {
+pub(crate) fn nightly_host() -> Result<String> {
     let output = Command::new("rustc")
         .args(["+nightly", "-vV"])
         .output()
@@ -726,6 +729,11 @@ mod tests {
             !message.contains("crashed") && message.contains("could not compile"),
             "{message}"
         );
+    }
+
+    #[test]
+    fn known_fuzz_target_should_reject_subcommand_names() {
+        assert!(known_fuzz_target("seeds").is_err() && known_fuzz_target("open").is_ok());
     }
 
     #[test]

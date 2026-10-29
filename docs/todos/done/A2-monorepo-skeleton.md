@@ -37,7 +37,7 @@ Create the empty but fully checked monorepo that every later PR lands in: one Ca
 
 **Out of scope**
 
-- Real crates: [A3](./A3-port-spike-core.md). Full and nightly lanes: [X4](./X4-full-lane-gate.md), [X3a](../ongoing/X3a-nightly-lane.md). WASM size budget: [B6a](../ready/B6a-lamina-wasm-and-adr-0016.md).
+- Real crates: [A3](./A3-port-spike-core.md). Full and nightly lanes: [X4](./X4-full-lane-gate.md), [X3a](../done/X3a-nightly-lane.md). WASM size budget: [B6a](../ready/B6a-lamina-wasm-and-adr-0016.md).
 
 ## Tasks
 
