@@ -20,8 +20,9 @@ use std::sync::{Arc, Mutex, OnceLock};
 use common::{corpus, fixture, fixtures_dir};
 use lamina_cos::{
     ByteSource, Dict, Document, Error, Limit, Limits, ObjRef, Object, OpenOptions, PdfString, Source, SourceError,
-    Stream, Writer,
+    Stream,
 };
+use lamina_save::Writer;
 
 /// A source that is not in memory (no `as_slice`): `read_at` only, serving at most `max`
 /// bytes per call, and counting its calls.
@@ -694,9 +695,12 @@ fn a_windowed_source_has_no_in_memory_data_but_updates_incrementally() {
     let windowed = Document::open(windowed(bytes.clone()), OpenOptions::default()).unwrap();
     let in_memory = Document::open(bytes, OpenOptions::default()).unwrap();
     let change = [(ObjRef::new(999, 0), Object::Integer(1))];
-    let eol = lamina_cos::XrefEol::CrLf;
+    let eol = lamina_save::XrefEol::CrLf;
     assert_eq!(
-        (windowed.data(), lamina_cos::incremental_update(&windowed, &change, eol)),
-        (None, lamina_cos::incremental_update(&in_memory, &change, eol))
+        (
+            windowed.data(),
+            lamina_save::incremental_update(&windowed, &change, eol)
+        ),
+        (None, lamina_save::incremental_update(&in_memory, &change, eol))
     );
 }

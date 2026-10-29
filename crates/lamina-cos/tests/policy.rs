@@ -11,7 +11,8 @@ mod common;
 
 use common::fixture;
 use common::open;
-use lamina_cos::{Dict, Error, ObjRef, Object, Warning, Writer};
+use lamina_cos::{Dict, Error, ObjRef, Object, Warning};
+use lamina_save::Writer;
 use lamina_syntax::parse_object;
 
 /// A classic file around arbitrary object bodies, with a correct xref.

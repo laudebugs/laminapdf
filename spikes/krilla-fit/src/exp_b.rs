@@ -8,7 +8,8 @@
 //! `ChunkContainer::finish` renumbers everything into a fresh `Pdf` (all `pub(crate)`).
 
 use anyhow::{Result, anyhow};
-use lamina_cos::{ObjRef, Object, XrefEol, incremental_update};
+use lamina_cos::{ObjRef, Object};
+use lamina_save::{XrefEol, incremental_update};
 use lamina_syntax::{Parser, find};
 use pdf_writer::{Chunk, Content, Finish, Name, Rect, Ref, Str};
 
@@ -25,8 +26,8 @@ pub fn parse_chunk(bytes: &[u8]) -> Result<Vec<(ObjRef, Object)>> {
             break;
         };
         p = Parser::new(bytes, p.pos() + skip);
-        let (r, obj) = p.indirect_object(&mut |_| None)?;
-        out.push((r, obj));
+        let parsed = p.indirect_object(&mut |_| None)?;
+        out.push((parsed.id, parsed.object));
         let end = find(bytes, b"endobj", p.pos()).ok_or_else(|| anyhow!("missing endobj"))?;
         p = Parser::new(bytes, end + b"endobj".len());
     }
@@ -36,7 +37,7 @@ pub fn parse_chunk(bytes: &[u8]) -> Result<Vec<(ObjRef, Object)>> {
 /// Writes one extra page with pdf-writer, numbered directly in `base`'s space, and appends it
 /// to `base` as an incremental update. Returns the new file and the number of objects.
 pub fn append_page_via_chunk(base: &[u8]) -> Result<(Vec<u8>, usize)> {
-    let doc = lamina_cos::open(base)?;
+    let doc = lamina_cos::Document::open(base.to_vec(), lamina_cos::OpenOptions::default())?;
     let catalog = doc.catalog()?;
     let pages_ref = catalog
         .get("Pages")
@@ -96,5 +97,5 @@ pub fn append_page_via_chunk(base: &[u8]) -> Result<(Vec<u8>, usize)> {
     pages.insert("Count", pages.get_int("Count").unwrap_or(0) + 1);
     pages.insert("Kids", kids);
     changes.push((pages_ref, Object::Dict(pages)));
-    Ok((incremental_update(base, &changes, XrefEol::default())?, objects))
+    Ok((incremental_update(&lamina_cos::Document::open(base.to_vec(), lamina_cos::OpenOptions::default())?, &changes, XrefEol::default())?, objects))
 }

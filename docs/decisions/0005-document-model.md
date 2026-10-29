@@ -102,6 +102,7 @@ How it fits this ADR: the builder allocates objects in the overlay (§3) as `New
 - Cached objects move from `Rc<Object>` to `Arc<Object>`; caches stay in `RefCell`. So **`Document` is `Send` but `!Sync`**: it can move between threads (a Tauri command pool, a `spawn_blocking`), but one thread uses it at a time. The atomic refcount costs little next to parsing, and compiles to plain operations on single-threaded wasm32.
 - Parallelism is the shells' job ([ADR 0001](0001-core-language-and-licence.md)): open one `Document` per thread or worker over the same `Arc<dyn ByteSource>`. Opening is cheap because everything is lazy. Edits stay on one `Document`.
 - No `Mutex` or atomics-based caches in the core until a measured case (for example parallel text extraction sharing one overlay) needs a `Sync` document; that would amend this ADR.
+- Bindings that need `Send + Sync` handles (UniFFI) wrap the document in a lock in their edge crate, and the core stays as above ([ADR 0028](0028-facade-rules-jobs-and-cancellation.md) §2).
 
 ## Consequences
 

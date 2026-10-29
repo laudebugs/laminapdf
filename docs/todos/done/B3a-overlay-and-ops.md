@@ -7,7 +7,7 @@
 | Plan | [pdf-library §7 B3](../../plans/pdf-library.md#b3-ops-and-save), [architecture §7 Round B](../../plans/architecture.md#round-b--core-model-and-the-first-package) |
 | Round / milestone | Round B (library) — M1 |
 | Depends on | [B2c](./B2c-lamina-model-corpus-fuzz.md) |
-| Blocks | [B3b](../ongoing/B3b-lamina-save-writers.md) |
+| Blocks | [B3b](./B3b-lamina-save-writers.md) |
 | ADRs | Implements [0005](../../decisions/0005-document-model.md) §3 (overlay, journal, number allocation) and [0006](../../decisions/0006-op-log-and-undo.md) §1–§4, §6–§7; follows [0018](../../decisions/0018-test-strategy.md) tier 5 (property tests) |
 | Branch | `feat/b3a-overlay-and-ops` |
 | PR title | `feat(ops): COS overlay, typed Op enum, transactions with savepoints, undo and redo` |
@@ -16,7 +16,7 @@
 
 ## Goal
 
-Make the document editable through one audited path: an overlay in `lamina-cos` that is the only way to mutate objects (so dirty tracking is automatic and PDFBox's lost-changes bug is unrepresentable), and `lamina-ops` with the typed, serialisable `Op` enum, atomic transactions, savepoints and undo/redo computed from the current state. The two proving ops, `SetInfo` and `RotatePage`, exercise every part of the mechanism. Saving the result is [B3b](../ongoing/B3b-lamina-save-writers.md).
+Make the document editable through one audited path: an overlay in `lamina-cos` that is the only way to mutate objects (so dirty tracking is automatic and PDFBox's lost-changes bug is unrepresentable), and `lamina-ops` with the typed, serialisable `Op` enum, atomic transactions, savepoints and undo/redo computed from the current state. The two proving ops, `SetInfo` and `RotatePage`, exercise every part of the mechanism. Saving the result is [B3b](../done/B3b-lamina-save-writers.md).
 
 ## Context
 
@@ -40,7 +40,7 @@ Make the document editable through one audited path: an overlay in `lamina-cos` 
 
 **Out of scope** (and which todo covers it)
 
-- Writing bytes, rebasing after save, `SavePlanner`: [B3b](../ongoing/B3b-lamina-save-writers.md), [B3c](../ready/B3c-save-planner-and-roundtrip.md).
+- Writing bytes, rebasing after save, `SavePlanner`: [B3b](../done/B3b-lamina-save-writers.md), [B3c](../ongoing/B3c-save-planner-and-roundtrip.md).
 - Barrier ops (`ApplyRedactions`, `Sign`, encryption): full-editor E10–E12.
 - Other ops (`MovePages`, annotations, …): full-editor E-rounds.
 - XMP sync with Info: full-editor E1.
