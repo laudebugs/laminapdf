@@ -39,22 +39,35 @@
 //! Subset tags are six letters derived from a SHA-256 of the font bytes and the glyphs in
 //! CID order, so the same text in the same font gives byte-identical output.
 //!
-//! Shaping (B4b), simple fonts and the standard 14 (B4c) and the `surface.text()` API (B5b)
-//! build on this crate. It is part of lamina's pure core: bytes in, bytes out, no file
+//! * [`Font::standard`] / [`Standard14`] (B4c): the standard 14 fonts by name, with Adobe's
+//!   AFM metrics bundled ([`AfmMetrics`]), written as non-embedded simple fonts with one-byte
+//!   codes in `WinAnsiEncoding` (plus `/Differences`) or their built-in encoding, `/Widths`
+//!   and a font descriptor; [`Font::requires_embedding`] is `false` for them.
+//! * [`Encoding`] (`StandardEncoding`, `WinAnsiEncoding`, `MacRomanEncoding`,
+//!   `PDFDocEncoding`, Symbol, `ZapfDingbats`: code ↔ glyph name) and [`agl`] (glyph name →
+//!   Unicode), shared with text extraction.
+//!
+//! Shaping (B4b) and the `surface.text()` API (B5b) build on this crate. It is part of lamina's pure core: bytes in, bytes out, no file
 //! system, network, clocks or threads; font bytes are parsed by `skrifa`/`read-fonts` and
 //! `subsetter`, which bounds-check every read.
 //!
 //! [ADR 0005]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0005-document-model.md
 #![forbid(unsafe_code)]
 
+pub mod agl;
 mod embed;
+mod encoding;
 mod error;
 mod font;
 mod fstype;
+mod simple;
+mod std14;
 mod usage;
 
 pub use embed::{EmbeddedFont, Encoded, FontKey, FontRegistry};
+pub use encoding::Encoding;
 pub use error::{Error, Result, Warning};
 pub use font::{Axis, Font, FontInfo, GlyphId, MAX_NAME_LEN, Tag};
 pub use fstype::{EmbedPolicy, FsType};
+pub use std14::{AfmMetrics, Standard14};
 pub use usage::FontUse;

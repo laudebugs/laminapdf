@@ -95,6 +95,16 @@ pub enum Error {
         /// not part of this API).
         reason: &'static str,
     },
+    /// A standard 14 font ran out of codes: each Latin glyph outside `WinAnsiEncoding` that
+    /// the document uses takes one of the codes `WinAnsiEncoding` leaves undefined, through
+    /// `/Differences`, and there are only 37 of them (`limit`).
+    #[error("the simple font has no free code for another glyph ({limit} are in use)")]
+    EncodingFull {
+        /// The font's PostScript name.
+        font: String,
+        /// How many codes `/Differences` can assign.
+        limit: usize,
+    },
     /// Writing the font objects into the document failed.
     #[error(transparent)]
     Cos(#[from] lamina_cos::Error),
@@ -114,6 +124,7 @@ impl Error {
         "subset-failed",
         "invalid-axis-value",
         "wrong-document",
+        "encoding-full",
     ];
 
     /// A stable kebab-case code for this error.
@@ -130,6 +141,7 @@ impl Error {
             Self::GlyphOutOfRange { .. } => "glyph-out-of-range",
             Self::UnknownFont { .. } => "unknown-font",
             Self::Subset { .. } => "subset-failed",
+            Self::EncodingFull { .. } => "encoding-full",
             Self::Cos(e) => e.code(),
         }
     }

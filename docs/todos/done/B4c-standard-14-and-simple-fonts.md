@@ -3,10 +3,10 @@
 | Field | Value |
 | --- | --- |
 | ID | `B4c` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [pdf-library §7 B4](../../plans/pdf-library.md#b4-fonts-and-text), requirement [§4 F2](../../plans/pdf-library.md#functional) |
 | Round / milestone | Round B (library) — M1 |
-| Depends on | [B4a](../done/B4a-font-loading-and-subsetting.md) |
+| Depends on | [B4a](./B4a-font-loading-and-subsetting.md) |
 | Blocks | [B5b](../ready/B5b-builder-text-and-document-features.md), [B8b](../ready/B8b-conformance-profiles-and-verapdf.md), [B9b](../ready/B9b-text-extraction-core.md), [E4e](../ready/E4e-freetext-callouts.md), [E6c](../ready/E6c-add-text.md), [E13c](../ready/E13c-ocr-text-layer.md), [E16c](../ready/E16c-images-and-fonts.md) |
 | ADRs | Follows [0001](../../decisions/0001-core-language-and-licence.md) (licences of bundled metrics, determinism), [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) |
 | Branch | `feat/b4c-standard-14` |
@@ -41,20 +41,20 @@ Let callers write text without supplying font bytes, using the 14 standard Type 
 
 ## Tasks
 
-- [ ] Load `/rust-best-practices`; read 03 §3.1, §4.1, Annex D
-- [ ] Fetch the AFM files and AGL into `tools/std14-gen/data/` with SHA-256 and licence notes; write the generator (`cargo run -p std14-gen` or an xtask subcommand `cargo xtask gen std14`)
-- [ ] Commit generated tables; add a test that regenerating produces no diff (like goldens)
-- [ ] `std14/mod.rs` (`Standard14`, metrics lookup), `encoding/{standard,winansi,macroman,symbol,zapf}.rs`, `agl.rs`; `encoding/pdfdoc.rs` only adapts the PDFDocEncoding table in `lamina_syntax::text` (added by [B2c](../done/B2c-lamina-model-corpus-fuzz.md)) to code → glyph name via the AGL, so the workspace keeps one PDFDocEncoding table
-- [ ] Simple-font dictionary writer and text encoding
-- [ ] Tests below
+- [x] Load `/rust-best-practices`; read 03 §3.1, §4.1, Annex D
+- [x] Fetch the AFM files and AGL into `tools/std14-gen/data/` with SHA-256 and licence notes; write the generator (`cargo run -p std14-gen`, a workspace tool crate; `-- --check` verifies)
+- [x] Commit generated tables; add a test that regenerating produces no diff (like goldens): `committed_tables_are_current` in `tools/std14-gen` (compares, never writes)
+- [x] `std14/mod.rs` (`Standard14`, metrics lookup), `encoding/mod.rs`, `agl.rs`; `encoding/pdfdoc.rs` only adapts the PDFDocEncoding table in `lamina_syntax::text` (added by [B2c](../done/B2c-lamina-model-corpus-fuzz.md)) to code → glyph name via the AGL, so the workspace keeps one PDFDocEncoding table. *Deviation:* one `Encoding` enum over generated tables (`std14/generated/encodings.rs`) instead of a file per encoding
+- [x] Simple-font dictionary writer and text encoding (`simple/mod.rs`), plus `/Differences` for Latin glyphs outside WinAnsi (see Outcome)
+- [x] Tests below
 
 ## Acceptance criteria
 
-- [ ] Widths for every glyph of every standard 14 font match the AFM source (generated test)
-- [ ] A generated page using each standard 14 font passes `qpdf --check` and extracts the input text with pypdf and pdftotext (WinAnsi-representable strings)
-- [ ] Unencodable characters (e.g. "é" U+00E9 in Symbol, whose built-in encoding has no `eacute`; CJK in Helvetica) report `missing-glyph`; "€" encodes in Helvetica (WinAnsi 0x80) and in Symbol (`Euro`, code 160 in Symbol.afm)
-- [ ] `Font::standard(..).requires_embedding()` is `false`; for `Font::from_bytes` it is `true`
-- [ ] Regenerating the tables is byte-identical
+- [x] Widths for every glyph of every standard 14 font match the AFM source (`tests/std14.rs` parses the committed AFM files)
+- [x] A generated page using each standard 14 font passes `qpdf --check` and extracts the input text with pypdf (WinAnsi-representable strings, plus Symbol, ZapfDingbats and a `/Differences` line). *Deviation:* not pdftotext: Poppler isn't installed on the dev machine or pinned in `doctor.rs`; the facts stay pypdf + qpdf like B4a's
+- [x] Unencodable characters (e.g. "é" U+00E9 in Symbol, whose built-in encoding has no `eacute`; CJK in Helvetica) report `missing-glyph`; "€" encodes in Helvetica (WinAnsi 0x80) and in Symbol (`Euro`, code 160 in Symbol.afm)
+- [x] `Font::standard(..).requires_embedding()` is `false`; for `Font::from_bytes` it is `true`
+- [x] Regenerating the tables is byte-identical
 
 ## Post-merge checks
 
@@ -63,12 +63,12 @@ None.
 ## Tests
 
 - Unit tests for encodings, per encoding (WinAnsi, Standard, Symbol built-in, ZapfDingbats built-in): every **defined** code maps to a glyph name and the name maps back to that code (for names with one code) or to the canonical one; duplicate codes map to the same glyph (WinAnsi 040/240 → `space`, 055/255 → `hyphen`; the canonical code for encoding is the lower one); every undefined code has no glyph name and nothing encodes to it; name ↔ Unicode via the AGL for every defined name.
-- `crates/lamina-text/tests/std14.rs`; golden `fixtures/golden/std14.pdf`.
+- `crates/lamina-text/tests/std14.rs`; golden `fixtures/golden/text-std14.pdf` (named `text-*` so `text_facts.py` and the extraction tests cover it).
 
 ## Docs to update
 
-- [ ] [pdf-library §10 B4](../../plans/pdf-library.md#10-to-dos): tick "Bundle standard 14 AFM metrics" (rejection under profiles stays for B8b)
-- [ ] `fixtures/README.md` / crate README (data provenance and licences)
+- [x] [pdf-library §10 B4](../../plans/pdf-library.md#10-to-dos): tick "Bundle standard 14 AFM metrics" (rejection under profiles stays for B8b)
+- [x] `fixtures/README.md` / crate README (data provenance and licences); [`tools/std14-gen/data/README.md`](../../../tools/std14-gen/data/README.md) holds the sources, SHA-256 and licence terms
 
 ## Risks and open questions
 
@@ -77,8 +77,15 @@ None.
 
 ## Definition of done
 
-- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
-- [ ] Work PR opened from a fresh worktree; **PR** field filled in
+- [x] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [x] Work PR opened from a fresh worktree; **PR** field filled in
 - [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+
+## Outcome
+
+- **Data** (`tools/std14-gen/data/`, provenance in its README): Adobe's `Core14_AFMs.zip` (the 14 AFM files + `MustRead.html`, unmodified, CRLF kept), fetched from the Internet Archive's copy of Adobe's former URL; its terms allow use, copying and distribution with or without modification provided the copyright notices are kept, the AFMs travel with `MustRead.html` and modifications are noted, which the generated `metrics.rs` does. The Adobe Glyph List and ITC Zapf Dingbats Glyph List (BSD-3-Clause) at a pinned commit. `latin-encodings.txt`: Annex D Table D.2's STD/MAC/WIN columns, written for lamina.
+- **Generated** (`crates/lamina-text/src/std14/generated/`, about 200 KB of source, most of it the 4,281-entry AGL): metrics (one sorted glyph-name table for the 12 Latin fonts, which share the 315-glyph set, widths per font), five encoding tables, Unicode → glyph tables, the two glyph lists. Kerning pairs are not bundled (optional in the scope).
+- **Beyond the scope**: Latin glyphs outside WinAnsi (`Ł`, `ş`, `−`, `ﬁ`) are reachable through `/Differences` on the 37 codes WinAnsi leaves undefined, assigned in order of first use; past that, the new error `encoding-full` (`limit`). `<name>greek` aliases let `Δ Ω μ` reach Symbol's `Delta`/`Omega`/`mu` (the AGL maps those to U+2206, U+2126, U+00B5); U+00A0 and U+00AD map to `space` and `hyphen`.
+- **Findings**: pypdf 6.21 extracts code 32 of Symbol and ZapfDingbats as U+00A0, so the golden's symbolic lines have no spaces; no ToUnicode is written for simple fonts (glyph names suffice for pypdf, including `/Differences`).

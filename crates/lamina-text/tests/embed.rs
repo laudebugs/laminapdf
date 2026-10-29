@@ -11,8 +11,14 @@ use lamina_text::{Error, Font, FontRegistry, GlyphId};
 use skrifa::MetadataProvider as _;
 use skrifa::instance::{LocationRef, Size};
 
+/// The goldens with embedded (Type 0) fonts: `text-std14.pdf` has simple fonts only
+/// (`tests/std14.rs`).
 fn all_samples() -> Vec<Sample> {
-    samples::GOLDENS.iter().map(|(_, build, _)| build()).collect()
+    samples::GOLDENS
+        .iter()
+        .filter(|(name, _, _)| *name != "text-std14.pdf")
+        .map(|(_, build, _)| build())
+        .collect()
 }
 
 fn is_subset_name(name: &str) -> bool {

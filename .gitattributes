@@ -6,3 +6,4 @@ pnpm-lock.yaml linguist-generated=true
 *.ttf binary
 *.otf binary
 *.ttc binary
+tools/std14-gen/data/afm/** -text

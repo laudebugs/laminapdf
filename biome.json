@@ -8,6 +8,7 @@
       "!!docs",
       "!!**/spikes",
       "!!fixtures",
+      "!!tools/std14-gen/data",
       "!!**/target",
       "!!**/dist",
       "!!**/pnpm-lock.yaml"

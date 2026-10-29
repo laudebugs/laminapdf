@@ -193,7 +193,7 @@ fn width_object(w: Milli) -> Object {
 }
 
 /// A real rounded to two decimals (an integer when whole).
-fn real(v: f64) -> Object {
+pub(crate) fn real(v: f64) -> Object {
     let hundredths = round_i64(v * 100.0);
     if hundredths % 100 == 0 {
         Object::Integer(hundredths / 100)

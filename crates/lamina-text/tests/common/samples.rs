@@ -1,7 +1,7 @@
 //! The documents behind the `fixtures/golden/text-*.pdf` goldens, with the text each line
 //! should extract to (checked against pypdf's output in `fixtures/text/extracted.json`).
 
-use lamina_text::{Font, GlyphId, Tag};
+use lamina_text::{Font, GlyphId, Standard14, Tag};
 
 use super::{TestPdf, fixture, font};
 
@@ -29,9 +29,30 @@ pub const VARIABLE_COLLECTION: [&str; 3] = [
     "Collection member 1: Noto Sans Bold",
 ];
 
+/// The lines of [`std14`]: one per standard 14 font, in [`Standard14::ALL`] order, then a
+/// Helvetica line outside `WinAnsiEncoding` (written through `/Differences`). The Symbol and
+/// `ZapfDingbats` lines have no spaces: pypdf 6.21 extracts their code 32 (`space`) as U+00A0.
+pub const STD14: [&str; 15] = [
+    "Courier: Hello, world! 0123456789",
+    "Courier-Bold: {braces} [brackets] <angles>",
+    "Courier-Oblique: café, naïve, façade",
+    "Courier-BoldOblique: 50% off ~ $9.99",
+    "Helvetica: “Curly” ‘quotes’ — and dashes – too",
+    "Helvetica-Bold: Euro € pound £ yen ¥",
+    "Helvetica-Oblique: Ærøskøbing, Þórshöfn, Œuvre",
+    "Helvetica-BoldOblique: ½ ¼ ¾ © ® ™ § ¶",
+    "Times-Roman: The quick brown fox jumps over the lazy dog.",
+    "Times-Bold: Grüße aus Köln • München",
+    "Times-Italic: ¿Qué tal? ¡Muy bien!",
+    "Times-BoldItalic: Ça va… très «bien» ‰",
+    "αβγπ∑≤∞€",
+    "✔✈❤☎",
+    "Łódź, Kraków − Şişli",
+];
+
 /// Every golden: its file name under `fixtures/golden/`, the code that builds it and the
 /// lines it draws.
-pub const GOLDENS: [(&str, Build, &[&str]); 3] = [
+pub const GOLDENS: [(&str, Build, &[&str]); 4] = [
     ("text-latin.pdf", latin, &LATIN),
     ("text-cff.pdf", cff, &CFF),
     (
@@ -39,6 +60,7 @@ pub const GOLDENS: [(&str, Build, &[&str]); 3] = [
         variable_and_collection,
         &VARIABLE_COLLECTION,
     ),
+    ("text-std14.pdf", std14, &STD14),
 ];
 
 /// `text` as glyphs of `font`, with the `ffi`, `ffl`, `fi` and `fl` sequences drawn as the
@@ -114,6 +136,22 @@ pub fn variable_and_collection() -> Sample {
     pdf.line(v, 14.0, lines[0]).unwrap();
     pdf.line(b, 14.0, lines[1]).unwrap();
     pdf.line(t, 14.0, lines[2]).unwrap();
+    let (bytes, _, _) = pdf.finish().unwrap();
+    Sample { bytes }
+}
+
+/// Each standard 14 font by name (not embedded), and Helvetica again for glyphs outside
+/// `WinAnsiEncoding`.
+pub fn std14() -> Sample {
+    let mut pdf = TestPdf::new();
+    let keys: Vec<_> = Standard14::ALL
+        .into_iter()
+        .map(|f| pdf.add_font(Font::standard(f)).unwrap())
+        .collect();
+    for (key, line) in keys.iter().zip(STD14) {
+        pdf.line(*key, 12.0, line).unwrap();
+    }
+    pdf.line(keys[4], 12.0, STD14[14]).unwrap();
     let (bytes, _, _) = pdf.finish().unwrap();
     Sample { bytes }
 }

@@ -189,7 +189,7 @@ Architecture Round B is delivered as rounds B1–B9, each split into todos (one 
 
 ### B4. Fonts and text
 
-**Todos:** [B4a](../todos/done/B4a-font-loading-and-subsetting.md) (font loading, subsetting, Type 0 + ToUnicode), [B4b](../todos/ongoing/B4b-shaping-bidi-line-breaking.md) (HarfRust, ICU4X bidi and line breaking), [B4c](../todos/ongoing/B4c-standard-14-and-simple-fonts.md) (standard 14, encodings).
+**Todos:** [B4a](../todos/done/B4a-font-loading-and-subsetting.md) (font loading, subsetting, Type 0 + ToUnicode), [B4b](../todos/ongoing/B4b-shaping-bidi-line-breaking.md) (HarfRust, ICU4X bidi and line breaking), [B4c](../todos/done/B4c-standard-14-and-simple-fonts.md) (standard 14, encodings).
 
 **Deliverable:** `lamina-text`: font loading (skrifa), shaping (HarfRust), bidi and line breaking (ICU4X), subsetting (`subsetter`), ToUnicode/`/W` writers, standard 14 metrics, missing-glyph diagnostics.
 **Accepted when:** shaping goldens for Latin, Arabic, Devanagari, Hebrew and CJK match HarfBuzz output; extracted text from generated files (pdf.js, pypdf, pdftotext) equals the input string, including ligatures.
@@ -295,7 +295,7 @@ Each round's todos (one per PR, with dependencies) are linked from [§7](#7-roun
 - [ ] Integrate HarfRust shaping behind a `Shaper` trait; add per-run OpenType features
 - [ ] Add ICU4X bidi and line breaking; greedy breaking inside a box
 - [x] Integrate `subsetter`; deterministic subset tags; `/W` and chunked ToUnicode ([B4a](../todos/done/B4a-font-loading-and-subsetting.md))
-- [ ] Bundle standard 14 AFM metrics; reject them under PDF/A and PDF/UA profiles
+- [x] Bundle standard 14 AFM metrics ([B4c](../todos/done/B4c-standard-14-and-simple-fonts.md)); reject them under PDF/A and PDF/UA profiles ([B8b](../todos/ready/B8b-conformance-profiles-and-verapdf.md))
 - [x] Emit missing-glyph diagnostics with codes ([B4a](../todos/done/B4a-font-loading-and-subsetting.md): `missing-glyph`)
 - [ ] Shaping goldens for five scripts; extraction tests with pdf.js, pypdf, pdftotext
 

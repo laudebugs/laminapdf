@@ -20,6 +20,27 @@
       ],
       "qpdf_check": true
     },
+    "text-std14.pdf": {
+      "sha256": "f30db72d97e5198fabd50df40c74a51d620987c52582741228226f35eda21eb0",
+      "pypdf": [
+        "Courier: Hello, world! 0123456789",
+        "Courier-Bold: {braces} [brackets] <angles>",
+        "Courier-Oblique: café, naïve, façade",
+        "Courier-BoldOblique: 50% off ~ $9.99",
+        "Helvetica: “Curly” ‘quotes’ — and dashes – too",
+        "Helvetica-Bold: Euro € pound £ yen ¥",
+        "Helvetica-Oblique: Ærøskøbing, Þórshöfn, Œuvre",
+        "Helvetica-BoldOblique: ½ ¼ ¾ © ® ™ § ¶",
+        "Times-Roman: The quick brown fox jumps over the lazy dog.",
+        "Times-Bold: Grüße aus Köln • München",
+        "Times-Italic: ¿Qué tal? ¡Muy bien!",
+        "Times-BoldItalic: Ça va… très «bien» ‰",
+        "αβγπ∑≤∞€",
+        "✔✈❤☎",
+        "Łódź, Kraków − Şişli"
+      ],
+      "qpdf_check": true
+    },
     "text-variable-collection.pdf": {
       "sha256": "309f91cd50271aa97ce2f579d3d8f02c9be9839e97d084ab67e68853dc888190",
       "pypdf": [
