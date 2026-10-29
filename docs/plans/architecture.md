@@ -129,7 +129,7 @@ Todos: [A1](../todos/done/A1-foundation-adrs.md) (ADRs), [A2](../todos/done/A2-m
 - [x] Write ADRs 0003, 0005, 0006, 0007, 0018 ([B1a](../todos/done/B1a-round-b-adrs.md); 0005 §6, the generation strategy, settled by `krilla-fit`)
 - [ ] Write ADRs 0016 ([B6a](../todos/ready/B6a-lamina-wasm-and-adr-0016.md)), 0017 ([B7b](../todos/ready/B7b-versioning-and-0-1-0-alpha.md))
 - [x] `krilla-fit` spike ([B1b](../todos/done/B1b-krilla-fit-spike.md), [result](../../spikes/krilla-fit/README.md)), then decide the generation strategy (Option B, recorded in [ADR 0005 §6](../decisions/0005-document-model.md))
-- [ ] `lamina-model`: typed pages, annotations, fields, outline; stable IDs ([B2a](../todos/done/B2a-limits-owned-document.md) owned `Document` and `Limits`, [B2b](../todos/ongoing/B2b-standard-security-decryption.md) decryption, [B2c](../todos/ongoing/B2c-lamina-model-corpus-fuzz.md) views and IDs; annotations and fields in the editor rounds)
+- [x] `lamina-model`: typed pages, annotations, fields, outline; stable IDs (pages, outline, Info, name trees and page labels with their IDs done; annotations and fields come later. [B2a](../todos/done/B2a-limits-owned-document.md) owned `Document` and `Limits`, [B2b](../todos/ongoing/B2b-standard-security-decryption.md) decryption, [B2c](../todos/done/B2c-lamina-model-corpus-fuzz.md) views and IDs; annotations and fields in the editor rounds)
 - [ ] `lamina-ops`: `Op` enum, `transact()`, inverses, undo/redo ([B3a](../todos/ready/B3a-overlay-and-ops.md))
 - [ ] `lamina-save`: save planner, `SaveConstraint`, streaming `WriteSink` ([B3b](../todos/ready/B3b-lamina-save-writers.md), [B3c](../todos/ready/B3c-save-planner-and-roundtrip.md))
 - [ ] Move the writer (`Writer`, `incremental_update`, `XrefEol`) from `lamina-cos` into `lamina-save`, keeping the determinism and golden tests ([B3b](../todos/ready/B3b-lamina-save-writers.md))
@@ -138,7 +138,8 @@ Todos: [A1](../todos/done/A1-foundation-adrs.md) (ADRs), [A2](../todos/done/A2-m
 - [ ] `lamina` façade crate: re-exports the public API of the core crates; this is what goes to crates.io ([B5c](../todos/ready/B5c-lamina-facade-and-examples.md))
 - [ ] `lamina-text`: font embedding and subsetting for generation (see [03](../research/pdf/03-text-and-fonts.md)) ([B4a](../todos/ready/B4a-font-loading-and-subsetting.md), [B4b](../todos/ready/B4b-shaping-bidi-line-breaking.md), [B4c](../todos/ready/B4c-standard-14-and-simple-fonts.md))
 - [ ] `lamina-wasm` (wasm-bindgen + tsify) and `@lamina/pdf` (ESM-only, `init()`, export conditions; publint + attw) ([B6a](../todos/ready/B6a-lamina-wasm-and-adr-0016.md), [B6b](../todos/ready/B6b-lamina-pdf-package.md), [B6c](../todos/ready/B6c-runtime-matrix.md))
-- [ ] Golden-file and corpus test harness in CI (full lane); fuzz targets under `fuzz/` ([B2c](../todos/ongoing/B2c-lamina-model-corpus-fuzz.md) harness and fuzz targets, [X4](../todos/ready/X4-full-lane-gate.md) full lane)
+- [x] Fuzz targets under `fuzz/`, with a scheduled 10-minute run, and the golden, corpus-facts and differential harness in the fast lane ([B2c](../todos/done/B2c-lamina-model-corpus-fuzz.md))
+- [ ] Golden-file and corpus test harness in CI (full lane) ([X4](../todos/ready/X4-full-lane-gate.md) full lane)
 - [ ] Changesets + Cargo version sync; tag `0.1.0-alpha` locally (no registry publish yet) ([B7b](../todos/ready/B7b-versioning-and-0-1-0-alpha.md); docs site [B7a](../todos/ready/B7a-docs-site.md))
 
 ### Round C — Web reader

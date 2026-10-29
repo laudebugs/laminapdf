@@ -12,18 +12,20 @@ New todos start from [`TEMPLATE.md`](TEMPLATE.md). The workflow is in [git workf
 
 IDs: `A`/`P`/`X` [architecture](../plans/architecture.md) (foundations, publishing, cross-cutting), `B` [library](../plans/pdf-library.md), `C` [web reader](../plans/web-app.md), `D` [desktop reader](../plans/desktop-app.md), `E` [editor](../plans/full-editor.md), `H` hosted service ([full-editor](../plans/full-editor.md)). A letter suffix (`B2a`, `B2b`) splits a round into PRs.
 
-**3 ongoing · 192 ready · 7 done** (202 total).
+**2 ongoing · 192 ready · 8 done** (202 total).
 
 ## Can start now
 
 Ready todos whose dependencies are all done:
 
 - [B2d](ready/B2d-windowed-reading.md): Windowed reading for sources without `as_slice`
+- [B3a](ready/B3a-overlay-and-ops.md): COS overlay and `lamina-ops`: `Op`, `transact`, savepoints, undo/redo
+- [X3a](ready/X3a-nightly-lane.md): Nightly CI lane: external-corpus differential, extended fuzzing, scaling tests and benchmarks
+- [X4](ready/X4-full-lane-gate.md): Full PR lane with an always-running gate job
 
 ## Ongoing
 
 - [B2b](ongoing/B2b-standard-security-decryption.md): Standard security handler decryption (read only)
-- [B2c](ongoing/B2c-lamina-model-corpus-fuzz.md): `lamina-model` views and IDs, corpus facts, pypdf differential and fuzz targets
 - [C1a](ongoing/C1a-hayro-parity-spike.md): `hayro-parity` spike: hayro vs PDFium pass rate on the pdf.js and PDFBox corpora
 
 ## Architecture — Round A
@@ -42,9 +44,9 @@ Ready todos whose dependencies are all done:
 | B1b | [`krilla-fit` spike: can krilla generate into lamina's object graph?](done/B1b-krilla-fit-spike.md) | done | [A3](done/A3-port-spike-core.md) |
 | B2a | [`Limits`, warning codes, strict mode and the owned `Document`](done/B2a-limits-owned-document.md) | done | [B1a](done/B1a-round-b-adrs.md) |
 | B2b | [Standard security handler decryption (read only)](ongoing/B2b-standard-security-decryption.md) | ongoing | [B2a](done/B2a-limits-owned-document.md) |
-| B2c | [`lamina-model` views and IDs, corpus facts, pypdf differential and fuzz targets](ongoing/B2c-lamina-model-corpus-fuzz.md) | ongoing | [B2a](done/B2a-limits-owned-document.md) |
+| B2c | [`lamina-model` views and IDs, corpus facts, pypdf differential and fuzz targets](done/B2c-lamina-model-corpus-fuzz.md) | done | [B2a](done/B2a-limits-owned-document.md) |
 | B2d | [Windowed reading for sources without `as_slice`](ready/B2d-windowed-reading.md) | ready | [B2a](done/B2a-limits-owned-document.md) |
-| B3a | [COS overlay and `lamina-ops`: `Op`, `transact`, savepoints, undo/redo](ready/B3a-overlay-and-ops.md) | ready | [B2c](ongoing/B2c-lamina-model-corpus-fuzz.md) |
+| B3a | [COS overlay and `lamina-ops`: `Op`, `transact`, savepoints, undo/redo](ready/B3a-overlay-and-ops.md) | ready | [B2c](done/B2c-lamina-model-corpus-fuzz.md) |
 | B3b | [`lamina-save`: move the writer, `WriteSink`, incremental and full writers over the overlay, rebase](ready/B3b-lamina-save-writers.md) | ready | [B3a](ready/B3a-overlay-and-ops.md) |
 | B3c | [`SavePlanner`, `SaveConstraint` detection and round-trip in lamina, pdf.js, PDFium and qpdf](ready/B3c-save-planner-and-roundtrip.md) | ready | [B2b](ongoing/B2b-standard-security-decryption.md), [B3b](ready/B3b-lamina-save-writers.md), [X4](ready/X4-full-lane-gate.md) |
 | B4a | [`lamina-text`: font loading, subsetting and Type 0 embedding with ToUnicode](ready/B4a-font-loading-and-subsetting.md) | ready | [B1b](done/B1b-krilla-fit-spike.md), [B3b](ready/B3b-lamina-save-writers.md), [X4](ready/X4-full-lane-gate.md) |
@@ -60,7 +62,7 @@ Ready todos whose dependencies are all done:
 | B7b | [Changesets, Cargo version sync, ADR 0017 (versioning) and the local `0.1.0-alpha.0` tag](ready/B7b-versioning-and-0-1-0-alpha.md) | ready | [B6c](ready/B6c-runtime-matrix.md), [B7a](ready/B7a-docs-site.md), [X3a](ready/X3a-nightly-lane.md) |
 | B8a | [Tagged PDF: structure tree builder, artifacts, alt text, MCIDs and ParentTree](ready/B8a-structure-tree.md) | ready | [B5c](ready/B5c-lamina-facade-and-examples.md), [B6b](ready/B6b-lamina-pdf-package.md) |
 | B8b | [Conformance profiles (PDF/UA-1, PDF/A-2b/2u/3b), output intents, veraPDF nightly and `0.2.0-alpha`](ready/B8b-conformance-profiles-and-verapdf.md) | ready | [B4c](ready/B4c-standard-14-and-simple-fonts.md), [B7b](ready/B7b-versioning-and-0-1-0-alpha.md), [B8a](ready/B8a-structure-tree.md), [X3a](ready/X3a-nightly-lane.md) |
-| B9a | [ADR 0023 and `lamina-content`: read-only content-stream interpreter](ready/B9a-lamina-content-and-adr-0023.md) | ready | [B2c](ongoing/B2c-lamina-model-corpus-fuzz.md), [X4](ready/X4-full-lane-gate.md) |
+| B9a | [ADR 0023 and `lamina-content`: read-only content-stream interpreter](ready/B9a-lamina-content-and-adr-0023.md) | ready | [B2c](done/B2c-lamina-model-corpus-fuzz.md), [X4](ready/X4-full-lane-gate.md) |
 | B9b | [Text extraction in `lamina-text`: fonts from files, encodings, ToUnicode, glyph runs and quads](ready/B9b-text-extraction-core.md) | ready | [B2b](ongoing/B2b-standard-security-decryption.md), [B4a](ready/B4a-font-loading-and-subsetting.md), [B4c](ready/B4c-standard-14-and-simple-fonts.md), [B5c](ready/B5c-lamina-facade-and-examples.md), [B9a](ready/B9a-lamina-content-and-adr-0023.md) |
 | B9c | [`page.text()` in WASM and TypeScript; differential and quad tests; extraction fuzzing](ready/B9c-text-extraction-bindings-and-differential.md) | ready | [B6b](ready/B6b-lamina-pdf-package.md), [B6c](ready/B6c-runtime-matrix.md), [B9b](ready/B9b-text-extraction-core.md) |
 
@@ -71,7 +73,7 @@ Ready todos whose dependencies are all done:
 | C1a | [`hayro-parity` spike: hayro vs PDFium pass rate on the pdf.js and PDFBox corpora](ongoing/C1a-hayro-parity-spike.md) | ongoing | — |
 | C1b | [`pdfium-wasm` spike: PDFium-WASM next to `lamina-wasm` in one worker](ready/C1b-pdfium-wasm-spike.md) | ready | [B3c](ready/B3c-save-planner-and-roundtrip.md), [B6b](ready/B6b-lamina-pdf-package.md), [C1a](ongoing/C1a-hayro-parity-spike.md) |
 | C2a | [ADRs 0004, 0009, 0010, 0011: render backend, web client, platform adapter, Cloudflare and privacy](ready/C2a-render-adrs.md) | ready | [C1a](ongoing/C1a-hayro-parity-spike.md), [C1b](ready/C1b-pdfium-wasm-spike.md), [X1](done/X1-docs-link-checker.md) |
-| C2b | [`crates/lamina-render`: the `RenderBackend` trait, PDFium and hayro adapters, render goldens](ready/C2b-lamina-render-crate.md) | ready | [B2c](ongoing/B2c-lamina-model-corpus-fuzz.md), [C2a](ready/C2a-render-adrs.md) |
+| C2b | [`crates/lamina-render`: the `RenderBackend` trait, PDFium and hayro adapters, render goldens](ready/C2b-lamina-render-crate.md) | ready | [B2c](done/B2c-lamina-model-corpus-fuzz.md), [C2a](ready/C2a-render-adrs.md) |
 | C2c | [`@lamina/render-pdfium` and `@lamina/render-hayro`: the web render adapters](ready/C2c-render-packages.md) | ready | [B6b](ready/B6b-lamina-pdf-package.md), [C2b](ready/C2b-lamina-render-crate.md) |
 | C3a | [`@lamina/viewer` part 1: document worker and typed RPC](ready/C3a-viewer-worker-rpc.md) | ready | [B6b](ready/B6b-lamina-pdf-package.md), [C2a](ready/C2a-render-adrs.md), [C2c](ready/C2c-render-packages.md) |
 | C3b | [`@lamina/viewer` part 2: virtualiser, canvas pool, progressive tiles and anchored zoom](ready/C3b-viewer-virtualiser-and-zoom.md) | ready | [C3a](ready/C3a-viewer-worker-rpc.md) |
@@ -82,7 +84,7 @@ Ready todos whose dependencies are all done:
 | C4d | [Deploy pipeline: preview URL per PR, staging from `main`, production from release tags](ready/C4d-deploy-previews-and-production.md) | ready | [C4b](ready/C4b-web-app-shell.md) |
 | C5a | [Text layer, selection and copy (from lamina's extraction), with struct-tree linking](ready/C5a-text-layer-and-selection.md) | ready | [B9c](ready/B9c-text-extraction-bindings-and-differential.md), [C3c](ready/C3c-viewer-perf-harness.md), [C4c](ready/C4c-remote-files-encryption-privacy.md) |
 | C5b | [Find in document: streaming search, highlights, options and pdf.js count parity](ready/C5b-find-in-document.md) | ready | [B9c](ready/B9c-text-extraction-bindings-and-differential.md), [C3c](ready/C3c-viewer-perf-harness.md), [C5a](ready/C5a-text-layer-and-selection.md) |
-| C6a | [Thumbnails sidebar, outline sidebar, page labels and go-to-page](ready/C6a-thumbnails-outline-page-labels.md) | ready | [B2c](ongoing/B2c-lamina-model-corpus-fuzz.md), [B6b](ready/B6b-lamina-pdf-package.md), [C3c](ready/C3c-viewer-perf-harness.md), [C4c](ready/C4c-remote-files-encryption-privacy.md) |
+| C6a | [Thumbnails sidebar, outline sidebar, page labels and go-to-page](ready/C6a-thumbnails-outline-page-labels.md) | ready | [B2c](done/B2c-lamina-model-corpus-fuzz.md), [B6b](ready/B6b-lamina-pdf-package.md), [C3c](ready/C3c-viewer-perf-harness.md), [C4c](ready/C4c-remote-files-encryption-privacy.md) |
 | C6b | [Link layer (internal, named and external links) and back/forward history](ready/C6b-links-and-history.md) | ready | [C5a](ready/C5a-text-layer-and-selection.md), [C6a](ready/C6a-thumbnails-outline-page-labels.md) |
 | C6c | [Print, download of original bytes, and the document properties dialog](ready/C6c-print-download-properties.md) | ready | [B9c](ready/B9c-text-extraction-bindings-and-differential.md), [C3c](ready/C3c-viewer-perf-harness.md), [C4c](ready/C4c-remote-files-encryption-privacy.md), [C5a](ready/C5a-text-layer-and-selection.md) |
 | C7a | [Accessibility: keyboard map and help, focus, landmarks, announcements, themes and axe in CI](ready/C7a-accessibility-and-theming.md) | ready | [C5b](ready/C5b-find-in-document.md), [C6a](ready/C6a-thumbnails-outline-page-labels.md), [C6b](ready/C6b-links-and-history.md), [C6c](ready/C6c-print-download-properties.md) |
@@ -264,7 +266,7 @@ Ready todos whose dependencies are all done:
 | --- | --- | --- | --- |
 | X1 | [Docs link checker and todo-board check in `cargo xtask`, run in CI](done/X1-docs-link-checker.md) | done | — |
 | X2 | [Capability matrix generator: ~180 operations, test-backed statuses](ready/X2-capability-matrix.md) | ready | [B3c](ready/B3c-save-planner-and-roundtrip.md) |
-| X3a | [Nightly CI lane: external-corpus differential, extended fuzzing, scaling tests and benchmarks](ready/X3a-nightly-lane.md) | ready | [B2c](ongoing/B2c-lamina-model-corpus-fuzz.md) |
+| X3a | [Nightly CI lane: external-corpus differential, extended fuzzing, scaling tests and benchmarks](ready/X3a-nightly-lane.md) | ready | [B2c](done/B2c-lamina-model-corpus-fuzz.md) |
 | X3b | [Nightly hayro-vs-PDFium render diffs](ready/X3b-render-diff-nightly.md) | ready | [C2b](ready/C2b-lamina-render-crate.md), [X3a](ready/X3a-nightly-lane.md) |
-| X4 | [Full PR lane with an always-running gate job](ready/X4-full-lane-gate.md) | ready | [B2c](ongoing/B2c-lamina-model-corpus-fuzz.md) |
+| X4 | [Full PR lane with an always-running gate job](ready/X4-full-lane-gate.md) | ready | [B2c](done/B2c-lamina-model-corpus-fuzz.md) |
 

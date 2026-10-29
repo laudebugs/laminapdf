@@ -50,6 +50,13 @@ Every repair or substitution the caller might care about is a `Warning`, never s
 | `objstm-index-mismatch` | An object-stream index was stale and a search found the object | B2 |
 | `object-number-out-of-range` | An entry above `Limits::max_object_number` was dropped | B2 |
 | `warnings-truncated` | More than `Limits::max_warnings` were raised; the rest were dropped | B2 |
+| `invalid-box` | A page boundary box is not four numbers; the view reads it as absent | exists (B2c) |
+| `invalid-rotate` | `/Rotate` is not a multiple of 90; the view reads 0 | exists (B2c) |
+| `name-tree-node-skipped` | A name- or number-tree node, kid or key was malformed, reached twice or deeper than `max_tree_depth` | exists (B2c) |
+| `outline-cycle` | An outline item was reached twice; that branch stops | exists (B2c) |
+| `outline-item-skipped` | An outline item was missing, not a dictionary or deeper than `max_tree_depth`; it and its subtree are skipped | exists (B2c) |
+| `invalid-date` | An Info date is not a valid PDF date; the raw string is kept | exists (B2c) |
+| `invalid-page-label` | A `/PageLabels` entry is malformed; the range falls back to decimal numbering | exists (B2c) |
 
 Warnings raised lazily (on resolve or decode) are recorded on the `Document` and deduplicated by (code, object). `Document::warnings()` returns what has been seen so far. Missing references (`null`) and integer-to-real promotion are documented behaviour, not warnings: they are common in valid files and too frequent to report.
 
