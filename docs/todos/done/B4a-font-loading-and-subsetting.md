@@ -12,7 +12,7 @@
 | Branch | `feat/b4a-font-embedding` |
 | PR title | `feat(text): font loading, subsetting and Type 0 embedding with /W and ToUnicode` |
 | Size | L (≈ 900–1,300 lines) |
-| PR | — |
+| PR | [#48](https://github.com/laudebugs/lamina/pull/48) |
 
 ## Goal
 
