@@ -4,7 +4,7 @@ Screens R01–R09 of the [screen inventory](screens.md): opening a file (home, U
 
 - **Canvas:** [lamina Paper — Reader A](https://claude.ai/artifact/MWpEwMqZSWUBYSMuCi1Fz2) (private until the owner shares it).
 - **Plans:** [web reader §4 functional](../../plans/web-app.md#functional) and [privacy and security](../../plans/web-app.md#privacy-and-security); layout rules from the [UI/UX plan](../../plans/ui-ux.md) §4–§5.
-- **Sample file:** `Q3-board-report.pdf`, Northwind Housing Trust, 24 pages, page labels `1`–`21` then `A-1`–`A-3` for Appendix A (pages 22–24), 3 attached files (1.3 MB, the same set as [O14](pages-navigation-extraction.md#o14-attachments-panel)). Other files (`Tenant-survey-2026.pdf`, `Northwind-asset-survey-2026.pdf`, `Asset-register-summary.pdf` in R01’s recent list, `Minutes-september.pdf` on `R04-unrecoverable`) and hosts (`files.example.org`, `www.northwind-housing.example`) are fictional and use reserved example domains. R03, R04-repaired and R09-print-restricted show variants of the sample file (encrypted, damaged, print-restricted); R08 shows the plain file.
+- **Sample file:** `Q3-board-report.pdf`, Northwind Housing Trust, 24 pages, page labels `1`–`21` then `A-1`–`A-3` for Appendix A (pages 22–24), 3 attached files (1.3 MB, the same set as [O14](pages-navigation-extraction.md#o14-attachments-panel)). Other files (`Tenant-survey-2026.pdf` and `Asset-register-summary.pdf` in R01’s recent list, `Northwind-asset-survey-2026.pdf` on `R02-loading-download`, `Minutes-september.pdf` on `R04-unrecoverable`) and hosts (`files.example.org`, `www.northwind-housing.example`) are fictional and use reserved example domains. R03, R04-repaired and R09-print-restricted show variants of the sample file (encrypted, damaged, print-restricted); R08 shows the plain file.
 
 Conventions on every board in this area:
 
@@ -57,7 +57,7 @@ Conventions on every board in this area:
 
 **Entry points.** Any open (R01, a `#url=` link, a recent file); scrolling or zooming into pages not yet drawn.
 
-**Layout.** The read-only reader shell with the rail on Pages. The file name is followed by “Loading pages…” until the visible pages are sharp. The drawn board uses 60% zoom to show three pages at once.
+**Layout.** The read-only reader shell with the rail on Pages. The file name is followed by “Loading pages…” until the visible pages are sharp. The drawn board uses 60% zoom, scrolled so the end of page 1, page 2 (current) and the top of page 3 show at once.
 
 **Content and controls.** No new controls; everything stays usable while pages load (scroll, page input, zoom, find, which searches pages as their text arrives).
 
@@ -134,7 +134,7 @@ Conventions on every board in this area:
 
 Codes come from `fixtures/codes.json`; each code has one plain sentence in the UI string table. More than five kinds collapse to the first five and “Show all 9”.
 
-**Unrecoverable** (drawn): error page in the canvas, `danger` warning icon, “This file can’t be opened”, “lamina couldn’t find the document’s list of pages, even after trying to repair it. It may be incomplete: ask the sender for a new copy, or download it again.”, the code and bytes read in `muted` (“missing-root · 1.8 MB read”), **Try another file** (primary, back to R01) and **Copy error details**. The status bar reads “0 network requests for this document · nothing uploaded” (a local file). Other fatal codes use the same page with their own sentence (`not-pdf`: “This file isn’t a PDF.”; `limit-exceeded`: “This file is larger or more complex than lamina can open safely.”).
+**Unrecoverable** (drawn): error page in the canvas, `danger` warning icon, “This file can’t be opened”, “lamina couldn’t find the document’s list of pages, even after trying to repair it. It may be incomplete: ask the sender for a new copy, or download it again.”, the code and bytes read in `muted` (“missing-root · 1.8 MB read”), **Try another file** (primary, back to R01) and **Copy error details**. The status bar reads “0 network requests for this document · Offline-safe: nothing uploaded” (a local file). Other fatal codes use the same page with their own sentence (`not-pdf`: “This file isn’t a PDF.”; `limit-exceeded`: “This file is larger or more complex than lamina can open safely.”).
 
 **Behaviour.** Repairs live in memory only; Download a copy (R09) still returns the original bytes. The panel closes with Escape or its close button and returns focus to the notice. The repaired notice uses the status bar’s middle slot, below a signed-file note in priority.
 
@@ -214,7 +214,7 @@ Match colours on the page are the `find-match` and `find-current` tokens, define
 
 **Entry points.** Hovering or focusing a link on a page; Back/Forward in the top bar; `Alt ←` / `Alt →` (Windows/Linux) and `⌘[` / `⌘]` (macOS); the browser’s own Back button.
 
-**Layout.** The **history buttons** (Back, Forward; 26 px icon buttons in a `role="group"` named “History”) sit before the page input on every reader board. Link preview: a short-lived popover under the link (z 30). External links: a dialog (§7.18, 480 px).
+**Layout.** The **history buttons** (Back, Forward; 26 px icon buttons in a `role="group"` named “History”) sit before the page input on every reader board. Link preview: a short-lived popover under the link (z 30). External links: a dialog (§7.18, 440 px).
 
 **Content and controls.**
 
@@ -243,7 +243,7 @@ Match colours on the page are the `find-match` and `find-current` tokens, define
 
 **Entry points.** More › Document properties (`file.properties`); the palette. No shortcut (`Mod D` is reserved by browsers, §8.8).
 
-**Layout.** Dialog (§7.18 at form width, 560 px) over the dimmed reader shell, with a fixed header (title “Document properties” over the file name, close “Close”) and footer, and a body that scrolls (`max-height: calc(100vh - 220px)`) with four sections with Heading 18 titles: **Description**, **Document**, **Fonts**, **Security**. Values are a two-column definition list (labels 12/600 `text-3`, 148 px).
+**Layout.** Dialog (§7.18 at form width, 560 px) over the dimmed reader shell, with a fixed header (title “Document properties” over the file name, close “Close”) and footer, and a body that scrolls (`max-height: calc(100vh - 232px)`) with four sections with Heading 18 titles: **Description**, **Document**, **Fonts**, **Security**. Values are a two-column definition list (labels 12/600 `text-3`, 148 px).
 
 **Content and controls.**
 
@@ -274,7 +274,7 @@ Each value has a copy button on hover or focus (drawn focused on Title, “Copy 
 
 **Entry points.** More › Print… and `Ctrl P` / `⌘P` when a document is open (`file.print`; lamina’s print replaces the browser’s); More › Download a copy (`file.save-copy`, no shortcut). The More menu is drawn open on `R09-download`.
 
-**Layout.** Print: a dialog (520 px) over the dimmed reader shell, then a progress dialog. Download: a menu item, then the browser’s save, then a toast.
+**Layout.** Print: a dialog (§7.18 form width, 560 px) over the dimmed reader shell, then a progress dialog. Download: a menu item, then the browser’s save, then a toast.
 
 **Content and controls (print).**
 
@@ -287,7 +287,7 @@ Each value has a copy button on hover or focus (drawn focused on Title, “Copy 
 | Page appearance notice | Shown when the page appearance isn’t Original (drawn: Sepia): “**You’re reading in Sepia.** Pages print in their original colours, as the author made them.” with the checkbox “Print in Sepia instead” |
 | Footer | “Your browser’s print window opens next, to choose the printer.” · Cancel · **Print…** (primary); close “Close”. Pages, Scale, Quality, the checkboxes, Cancel and Close are dialog-local |
 
-The radios, checkboxes and selects are native elements styled to §7.19 (16 px, `accent-color` for the checked state, a 32 px select with the chevron); the mockup uses the browser’s rendering with `accent-color`.
+The radios and checkboxes are native inputs, visually hidden inside their labels, with drawn 16 px boxes and circles (§7.19, decision 8); the selects are native `select`s styled to §7.19 (32 px, with the chevron).
 
 **States.**
 
