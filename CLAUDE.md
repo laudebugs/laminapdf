@@ -37,7 +37,7 @@ lamina is a platform for anything and everything PDF: creating PDFs from code, p
 ## Working agreements
 
 - **Always work in a git worktree.** Start every piece of work in a new worktree off main (see docs/guidelines/git-workflow.md). The repo is a bare clone; worktrees are folders inside it: `git worktree add -b <type>/<desc> <type>-<desc> main`. Never `git stash` across worktrees; remove the worktree after merge.
-- **Work from the todo board.** Every PR implements one todo from [`docs/todos/`](docs/todos/README.md) (`ready/` → `ongoing/` → `done/`), except bot, CI-maintenance, typo and board-only PRs. Pick one from `ready/` whose dependencies are all `done/`; claim it with a small claim PR that moves it to `ongoing/` on `main`; move it to `done/` in the work PR before merge, updating links and regenerating the board. Plans link to their todos. See [git workflow §2](docs/guidelines/git-workflow.md#pick-work-from-the-todo-board).
+- **Work from the todo board.** Every PR implements one todo from [`docs/todos/`](docs/todos/README.md) (`ready/` → `ongoing/` → `done/`), except bot, CI-maintenance, typo and board-only PRs. Pick one from `ready/` whose dependencies are all `done/`; claim it with a small claim PR that moves it to `ongoing/` on `main`; move it to `done/` in the work PR before merge, updating links and regenerating the board (`cargo xtask todos`). Plans link to their todos. See [git workflow §2](docs/guidelines/git-workflow.md#pick-work-from-the-todo-board).
 - **Pull requests only.** `main` was initialized directly; every change since goes through a branch + PR. Branch names: `<type>/<short-description>` (e.g. `docs/pdf-research`).
 - **Review every PR with `/code-review`, then merge.** After opening a PR, run `/code-review high <PR#>` (trivial and claim PRs: `low`) without `--comment`: don't post review comments. Fix the findings in new commits whose messages list each finding and its fix. If there were more than 6 findings, run `/code-review low <PR#>` after the fixes and record those the same way. Run `cargo xtask ci` locally, then squash-merge once CI is green. See [review and merge process](docs/guidelines/git-workflow.md#7-review-and-merge-process).
 - **Conventional Commits** for commit messages: `type(scope): summary`.
@@ -61,7 +61,8 @@ Every repo-wide task goes through `cargo xtask` (source: `tools/xtask`). It runs
 
 ```sh
 pnpm install                 # once per worktree: Biome, TypeScript (needed by the TS checks)
-cargo xtask check            # everything a PR must pass: `check rust` + `check ts`
+cargo xtask check            # everything a PR must pass: `check docs` + `check rust` + `check ts`
+cargo xtask check docs       # docs-links + todos --check (fast; no network)
 cargo xtask check rust       # fmt --check, portability, clippy native + wasm32 (-D warnings), tests, rustdoc, cargo-deny
 cargo xtask check ts         # biome ci, typecheck and tests of packages/* and apps/*, npm licences
 cargo xtask fmt              # format Rust and TS/JSON (fmt --check only verifies)
@@ -72,6 +73,9 @@ cargo xtask portability      # core crates: no fs/net/process/thread/clocks, no 
 cargo xtask wasm             # build the wasm32 crates with the size-optimised `wasm-release` profile
 cargo xtask deny             # cargo-deny (licences, advisories, bans, sources) + npm licence check
 cargo xtask npm-licenses     # npm licence check only
+cargo xtask docs-links       # every relative link and #anchor in tracked *.md resolves (GitHub slugs); --json for tooling
+cargo xtask todos            # regenerate docs/todos/README.md and each todo's Blocks from its Depends on links
+cargo xtask todos --check    # fail if the board or a Blocks field is stale, or the todo graph is inconsistent
 cargo xtask ci               # the whole fast lane locally: check + wasm
 cargo xtask doctor           # are rustc, node, pnpm, cargo-deny, cargo-nextest, wasm-opt … at the pinned versions?
 cargo xtask doctor --install # install the pinned cargo tools
