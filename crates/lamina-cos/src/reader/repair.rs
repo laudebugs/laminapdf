@@ -12,6 +12,7 @@
 
 use std::collections::{BTreeMap, BTreeSet};
 
+use super::encrypt::{self, Security};
 use super::objstm;
 use super::xref::{XREF_STREAM_KEYS, XrefEntry, XrefTable};
 use lamina_syntax::{
@@ -146,24 +147,35 @@ fn offer(winners: &mut BTreeMap<u32, Candidate>, num: u32, candidate: Candidate)
 }
 
 /// Decodes the object stream at `offset` and returns its members as candidates. A stream that
-/// can't be decoded (including one over a decode limit) contributes nothing.
+/// can't be decoded (including one over a decode limit) contributes nothing. With `security`,
+/// the container is decrypted first; `malformed` gets its number when its AES data was
+/// malformed (raised as `aes-padding-invalid` by the caller).
 fn object_stream_members(
     data: &[u8],
-    offset: usize,
-    stream: u32,
+    (offset, stream, gen_nr): (usize, u32, u16),
     limits: &Limits,
     budget: &mut DecodeBudget,
+    (security, malformed): (Option<&Security>, &mut Vec<u32>),
 ) -> Vec<(u32, Candidate)> {
-    let Ok(parsed) = Parser::new(data, offset)
+    let Ok(mut parsed) = Parser::new(data, offset)
         .with_limits(limits)
         .indirect_object(&mut |_| None)
     else {
         return Vec::new();
     };
+    if let Some(security) = security
+        && !encrypt::decrypt_for_repair(security, &mut parsed.object, stream, gen_nr)
+    {
+        malformed.push(stream);
+    }
     let Object::Stream(s) = parsed.object else {
         return Vec::new();
     };
-    let Ok(decoded) = filters::decode(&s.dict, &s.data, limits, budget) else {
+    let mut params = s.dict.clone();
+    if security.is_some() {
+        encrypt::strip_crypt_filter(&mut params);
+    }
+    let Ok(decoded) = filters::decode(&params, &s.data, limits, budget) else {
         return Vec::new();
     };
     let Ok(objs) = objstm::parse(&s.dict, &decoded.data, limits) else {
@@ -183,27 +195,38 @@ fn object_stream_members(
         .collect()
 }
 
-/// Rebuilds the cross-reference table by scanning the whole file. Definitions above
-/// [`Limits::max_object_number`] are dropped and listed in [`XrefTable::dropped_objects`].
-pub(crate) fn rebuild(data: &[u8], limits: &Limits, budget: &mut DecodeBudget) -> Result<XrefTable> {
+/// The first phase of repair: every in-file definition, every trailer and xref-stream
+/// dictionary, and the object streams among the winners, whose members are read in the second
+/// phase ([`Scan::finish`]). Between the two the reader can read `/Encrypt` (never stored in an
+/// object stream, ISO 32000-1 §7.5.7) and authenticate, so an encrypted file's object streams
+/// are decrypted, and the whole file is scanned only once.
+pub(crate) struct Scan {
+    winners: BTreeMap<u32, Candidate>,
+    dropped_objects: BTreeSet<u32>,
+    /// Trailers and xref-stream dictionaries with their offsets, in no particular order.
+    trailers: Vec<(usize, Dict)>,
+    /// Winning object streams: `(offset, number, generation)`.
+    object_streams: Vec<(usize, u32, u16)>,
+}
+
+/// Scans the whole file (phase 1 of repair). Definitions above [`Limits::max_object_number`]
+/// are dropped and listed in [`XrefTable::dropped_objects`].
+///
+/// # Errors
+/// [`Error::NotPdf`] when there is no `num gen obj` header at all.
+pub(crate) fn scan(data: &[u8], limits: &Limits) -> Result<Scan> {
     let headers = scan_object_headers(data);
     if headers.is_empty() {
         return Err(Error::NotPdf("no objects found"));
     }
     let mut dropped_objects = BTreeSet::new();
-    let mut in_range = |num: u32| {
-        let ok = num <= limits.max_object_number();
-        if !ok {
-            dropped_objects.insert(num);
-        }
-        ok
-    };
     // In-file definitions first: the trailers and object streams found among the winners
     // decide which compressed members exist.
     let mut winners: BTreeMap<u32, Candidate> = BTreeMap::new();
-    let mut heads: Vec<(u32, usize, Option<Head>)> = Vec::new();
+    let mut heads: Vec<(u32, u16, usize, Option<Head>)> = Vec::new();
     for &(num, gen_nr, offset) in &headers {
-        if !in_range(num) {
+        if num > limits.max_object_number() {
+            dropped_objects.insert(num);
             continue;
         }
         let head = parse_head(data, offset, limits);
@@ -220,12 +243,11 @@ pub(crate) fn rebuild(data: &[u8], limits: &Limits, budget: &mut DecodeBudget) -
                 Some(b"XRef" | b"ObjStm")
             )
         });
-        heads.push((num, offset, head));
+        heads.push((num, gen_nr, offset, head));
     }
-
     let mut trailers = trailer_dicts(data, limits);
-    let mut members = Vec::new();
-    for (num, offset, head) in heads {
+    let mut object_streams = Vec::new();
+    for (num, gen_nr, offset, head) in heads {
         let Some((Object::Dict(dict), is_stream)) = head else {
             continue;
         };
@@ -235,63 +257,127 @@ pub(crate) fn rebuild(data: &[u8], limits: &Limits, budget: &mut DecodeBudget) -
         }
         match dict.get_name("Type") {
             Some(b"XRef") => trailers.push((offset, dict)),
-            Some(b"ObjStm") if is_stream => {
-                members.extend(object_stream_members(data, offset, num, limits, budget));
-            }
+            Some(b"ObjStm") if is_stream => object_streams.push((offset, num, gen_nr)),
             _ => {}
         }
     }
-    for (member, candidate) in members {
-        if in_range(member) {
-            offer(&mut winners, member, candidate);
+    trailers.sort_by_key(|(offset, _)| *offset);
+    Ok(Scan {
+        winners,
+        dropped_objects,
+        trailers,
+        object_streams,
+    })
+}
+
+impl Scan {
+    /// Every trailer and xref-stream dictionary merged in file order, without the stale xref
+    /// keys (`/Size` is recomputed by [`Scan::finish`]).
+    fn merged_trailer(&self) -> Dict {
+        let mut trailer = Dict::new();
+        for (_, dict) in &self.trailers {
+            for (k, v) in dict.iter() {
+                trailer.insert(k.clone(), v.clone());
+            }
+        }
+        for key in XREF_STREAM_KEYS.iter().filter(|k| **k != "Size") {
+            trailer.remove(key);
+        }
+        trailer
+    }
+
+    /// The in-file objects and the merged trailer: enough to read `/Encrypt` and the `/ID`
+    /// before object-stream members are known. Not a usable document table (`/Root` may be
+    /// missing).
+    pub(crate) fn in_file_table(&self) -> XrefTable {
+        XrefTable {
+            entries: self.winners.iter().map(|(num, c)| (*num, c.entry)).collect(),
+            trailer: self.merged_trailer(),
+            sections: self.trailers.len().max(1),
+            has_xref_stream: false,
+            newest_is_stream: false,
+            ignored_xref_streams: Vec::new(),
+            dropped_objects: BTreeSet::new(),
         }
     }
 
-    let has_xref_stream = trailers.iter().any(|(_, d)| d.get_name("Type") == Some(b"XRef"));
-    trailers.sort_by_key(|(offset, _)| *offset);
-    let sections = trailers.len().max(1);
-    let mut trailer = Dict::new();
-    for (_, dict) in &trailers {
-        for (k, v) in dict.iter() {
-            trailer.insert(k.clone(), v.clone());
+    /// Phase 2: reads the object streams' members (decrypting them with `security`), picks
+    /// `/Root` and builds the table. The returned list names object streams whose AES data was
+    /// malformed.
+    ///
+    /// # Errors
+    /// [`Error::MissingRoot`] when neither a trailer `/Root` nor a `/Type /Catalog` is found.
+    pub(crate) fn finish(
+        mut self,
+        data: &[u8],
+        limits: &Limits,
+        budget: &mut DecodeBudget,
+        security: Option<&Security>,
+    ) -> Result<(XrefTable, Vec<u32>)> {
+        let mut malformed = Vec::new();
+        let mut members = Vec::new();
+        for &stream in &self.object_streams {
+            members.extend(object_stream_members(
+                data,
+                stream,
+                limits,
+                budget,
+                (security, &mut malformed),
+            ));
         }
+        for (member, candidate) in members {
+            if member > limits.max_object_number() {
+                self.dropped_objects.insert(member);
+            } else {
+                offer(&mut self.winners, member, candidate);
+            }
+        }
+        let mut trailer = self.merged_trailer();
+        let has_xref_stream = self.trailers.iter().any(|(_, d)| d.get_name("Type") == Some(b"XRef"));
+        let sections = self.trailers.len().max(1);
+        let winners = self.winners;
+        // Newest trailer/xref-stream `/Root` that points at a dictionary we actually found wins;
+        // otherwise adopt the newest `/Type /Catalog` object.
+        let is_root_candidate = |r: ObjRef| {
+            winners
+                .get(&r.num)
+                .is_some_and(|c| c.entry.matches_gen(r.gen_nr) && c.summary.is_some_and(|s| s.root_candidate))
+        };
+        let newest_catalog = winners
+            .iter()
+            .filter(|(_, c)| c.summary.is_some_and(|s| s.catalog))
+            .max_by_key(|(_, c)| c.position)
+            .map(|(&num, c)| ObjRef::new(num, c.entry.gen_nr()));
+        let root = self
+            .trailers
+            .iter()
+            .rev()
+            .filter_map(|(_, d)| d.get("Root").and_then(Object::as_ref))
+            .find(|r| is_root_candidate(*r))
+            .or(newest_catalog)
+            .ok_or(Error::MissingRoot)?;
+        trailer.insert("Root", root);
+        let entries: BTreeMap<u32, XrefEntry> = winners.into_iter().map(|(num, c)| (num, c.entry)).collect();
+        let max = entries.keys().next_back().copied().unwrap_or(0);
+        trailer.insert("Size", i64::from(max) + 1);
+        let table = XrefTable {
+            entries,
+            trailer,
+            sections,
+            has_xref_stream,
+            newest_is_stream: false,
+            ignored_xref_streams: Vec::new(),
+            dropped_objects: self.dropped_objects,
+        };
+        Ok((table, malformed))
     }
-    let trailers_newest_first: Vec<Dict> = trailers.into_iter().rev().map(|(_, d)| d).collect();
-    // `/Size` keeps its position and is recomputed below; the other xref keys are stale.
-    for key in XREF_STREAM_KEYS.iter().filter(|k| **k != "Size") {
-        trailer.remove(key);
-    }
-    // Newest trailer/xref-stream `/Root` that points at a dictionary we actually found wins;
-    // otherwise adopt the newest `/Type /Catalog` object.
-    let is_root_candidate = |r: ObjRef| {
-        winners
-            .get(&r.num)
-            .is_some_and(|c| c.entry.matches_gen(r.gen_nr) && c.summary.is_some_and(|s| s.root_candidate))
-    };
-    let newest_catalog = winners
-        .iter()
-        .filter(|(_, c)| c.summary.is_some_and(|s| s.catalog))
-        .max_by_key(|(_, c)| c.position)
-        .map(|(&num, c)| ObjRef::new(num, c.entry.gen_nr()));
-    let root = trailers_newest_first
-        .iter()
-        .filter_map(|d| d.get("Root").and_then(Object::as_ref))
-        .find(|r| is_root_candidate(*r))
-        .or(newest_catalog)
-        .ok_or(Error::MissingRoot)?;
-    trailer.insert("Root", root);
-    let entries: BTreeMap<u32, XrefEntry> = winners.into_iter().map(|(num, c)| (num, c.entry)).collect();
-    let max = entries.keys().next_back().copied().unwrap_or(0);
-    trailer.insert("Size", i64::from(max) + 1);
-    Ok(XrefTable {
-        entries,
-        trailer,
-        sections,
-        has_xref_stream,
-        newest_is_stream: false,
-        ignored_xref_streams: Vec::new(),
-        dropped_objects,
-    })
+}
+
+/// Rebuilds the cross-reference table of an unencrypted file by scanning ([`scan`], then
+/// [`Scan::finish`] without decryption).
+#[cfg(test)]
+fn rebuild(data: &[u8], limits: &Limits, budget: &mut DecodeBudget) -> Result<XrefTable> {
+    Ok(scan(data, limits)?.finish(data, limits, budget, None)?.0)
 }
 
 #[cfg(test)]
