@@ -57,6 +57,7 @@ Give TypeScript users the same library as Rust: `init()`, then a synchronous, ty
 
 ## Acceptance criteria
 
+- [ ] Each export condition has its own wasm loader (workerd: static `.wasm` import; Node: read the file next to the module; browser: `compileStreaming` on a `new URL(…, import.meta.url)`), with `init({ module })` as the escape hatch, tested in Vite with the package excluded from dependency pre-bundling ([shareable-libraries §8](../../plans/shareable-libraries.md#8-changes-to-existing-todos), [report: one `.wasm` file per export condition](../../research/libraries/shareable-libraries.md#one-wasm-file-resolved-per-export-condition-with-an-escape-hatch))
 - [ ] All TS examples produce bytes identical to the Rust goldens (Node, in the fast lane)
 - [ ] `PdfError.code` values equal `fixtures/codes.json`; a wrong password surfaces as `wrong-password`
 - [ ] `fixtures/ops/v1` samples apply through `doc.apply` and unknown ops/fields are rejected

@@ -56,6 +56,7 @@ Give Rust users one crate, `lamina`, whose docs open with the invoice example an
 
 ## Acceptance criteria
 
+- [ ] The façade meets ADR 0026's binding rules (from [L1a](./L1a-contract-adrs.md)): `Send + Sync` handles, `&self` methods only, owned handles instead of borrowed returns, no generics across the boundary, a string-payload error enum, `CancelToken` and resumable `Job::step` for long work; a compile-time test asserts `Send + Sync` on every public handle ([shareable-libraries §8](../../plans/shareable-libraries.md#8-changes-to-existing-todos))
 - [ ] Every example produces a byte-identical golden (twice, and native vs wasm32 for the generation part where feasible)
 - [ ] `qpdf --check` is clean for every example output
 - [ ] Render goldens match within thresholds in PDFium and hayro; a deliberate one-pixel-wide change in an example makes the job fail with a diff image

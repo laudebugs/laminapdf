@@ -66,6 +66,12 @@ ADRs go in `docs/decisions/`, one file per decision (`NNNN-title.md`). Each roun
 | 0014 | Desktop distribution: update Worker + R2, channels, signing (the owner as publisher), key custody | Round D | Propose |
 | 0012 | Collaboration: one Durable Object per document, last-writer-wins records | Later (with collaboration) | Defer |
 | 0013 | Heavy jobs: Workflows + Containers; OCR/conversion engines and licences | Later (with OCR) | Defer |
+| 0024 | Error and diagnostic contract | [Shareable libraries](shareable-libraries.md#6-decisions-to-record-adrs) L1 | Propose |
+| 0025 | Coordinates, units and page indexing in public APIs | Shareable libraries L1 | Propose |
+| 0026 | Façade binding rules, jobs, cancellation and progress | Shareable libraries L1 | Propose |
+| 0027 | Mobile bindings and packaging (UniFFI pin, SPM, AARs) | Shareable libraries L6 | Propose |
+| 0028 | Extraction output (`lamina.extract/1`) and model plug-ins | Shareable libraries L3 | Propose |
+| 0029 | CLI and MCP contract | Shareable libraries L4 | Propose |
 
 ## 4. Spikes to close open questions
 
@@ -186,5 +192,5 @@ Todos: [P1](../todos/ready/P1-reserve-names-and-trusted-publishing.md) and [P2](
 1. Which ships first, `@lamina/pdf` or the web reader? The research recommends packages first.
 2. ~~Is a hosted lamina service a goal, or just a reference deployment for forks?~~ **Answered 2026-10-28 (project owner):** lamina **will** be a hosted service with user login and cloud features (accounts, cloud storage and sync), not just a reference deployment. Privacy-first local processing stays the default: the apps work without an account, and nothing is uploaded unless the user opts in. ADR 0011 records the topology; the `auth` spike (§4) picks the login stack.
 3. Names: package scope, crate names, domain.
-4. Are the Mac App Store, Flathub and mobile (Tauri mobile vs UniFFI with native UIs) in scope, and when?
+4. Are the Mac App Store, Flathub and mobile (Tauri mobile vs UniFFI with native UIs) in scope, and when? The [shareable libraries plan](shareable-libraries.md#l6-mobile) proposes UniFFI with native UIs, starting with a `lamina-ffi` spike (L6a) and a mobile SDK plan (L6b); store scope stays open.
 5. ~~Who is the legal entity for code signing?~~ **Answered 2026-10-28 (project owner):** the owner, personally, as the publisher, code-signs the desktop app for Windows, macOS and Linux. To check: Windows Artifact Signing accepts public-trust individuals only in the US and Canada; if the owner is elsewhere, Windows needs an OV certificate in a cloud HSM (§6). ADR 0014 records the identities and key custody.

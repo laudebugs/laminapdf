@@ -63,6 +63,7 @@ Record the four Round C decisions before any product code depends on them, so C2
 
 ## Acceptance criteria
 
+- [ ] ADR 0004 picks the default backend **per surface** (desktop, web, edge runtimes, later mobile) using the measured wasm sizes (PDFium about 2.15 MB gz; hayro measured in C1a or here) as well as fidelity ([shareable-libraries §8](../../plans/shareable-libraries.md#8-changes-to-existing-todos), [report: rendering](../../research/libraries/shareable-libraries.md#rendering-hayro-is-the-small-footprint-candidate-pdfium-wins-on-fidelity-at-about-2-mb))
 - [ ] Four ADR files exist with the template headings and status `Accepted`, each citing the research sections and, for 0004/0009, concrete numbers from the C1a/C1b READMEs.
 - [ ] 0004 states the trait surface precisely enough that C2b can implement it without further decisions, the pinned PDFium source and hash policy, and measurable hayro switch criteria.
 - [ ] 0009 lists the RPC requirements C3a must implement (IDs, priorities, transfer, cancellation, restart) and the threaded-variant policy.

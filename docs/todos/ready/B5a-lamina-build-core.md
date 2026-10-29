@@ -6,9 +6,9 @@
 | Status | `ready` |
 | Plan | [pdf-library §7 B5](../../plans/pdf-library.md#b5-builder-and-the-lamina-crate), requirements [§4 F1, F4, F5](../../plans/pdf-library.md#functional) |
 | Round / milestone | Round B (library) — M1 |
-| Depends on | [B1b](../done/B1b-krilla-fit-spike.md), [B3c](./B3c-save-planner-and-roundtrip.md) |
+| Depends on | [B1b](../done/B1b-krilla-fit-spike.md), [B3c](./B3c-save-planner-and-roundtrip.md), [L1a](./L1a-contract-adrs.md) |
 | Blocks | [B5b](./B5b-builder-text-and-document-features.md) |
-| ADRs | Implements [0005 §6](../../decisions/0005-document-model.md#6-generation-strategy--option-b-recommended-by-the-krilla-fit-spike-accepted-when-its-pr-merges) (builder writes `New` overlay entries; reserve-then-fill; `pdf_writer::Content`); follows [0001](../../decisions/0001-core-language-and-licence.md) (determinism), [0018](../../decisions/0018-test-strategy.md) tier 3 |
+| ADRs | Follows 0025 (coordinates and units, from [L1a](./L1a-contract-adrs.md)); implements [0005 §6](../../decisions/0005-document-model.md#6-generation-strategy--option-b-recommended-by-the-krilla-fit-spike-accepted-when-its-pr-merges) (builder writes `New` overlay entries; reserve-then-fill; `pdf_writer::Content`); follows [0001](../../decisions/0001-core-language-and-licence.md) (determinism), [0018](../../decisions/0018-test-strategy.md) tier 3 |
 | Branch | `feat/b5a-lamina-build` |
 | PR title | `feat(build): lamina-build with pages, paths, colour, opacity and images` |
 | Size | L (≈ 1,000–1,400 lines; the moved content builder counts once) |
@@ -58,6 +58,7 @@ Create the generation API everything else hangs off: `Builder → page → surfa
 
 ## Acceptance criteria
 
+- [ ] Public builder coordinates and units follow ADR 0025 (from [L1a](./L1a-contract-adrs.md)): typed units, the origin named in the API, raw user space only in low-level calls ([shareable-libraries §8](../../plans/shareable-libraries.md#8-changes-to-existing-todos))
 - [ ] `hello` and `imaging-demo` goldens are produced by `lamina-build` (byte-identical to today, or a reviewed diff with the reason in the PR)
 - [ ] Every new golden is byte-identical across two runs and across native and wasm32 (CI)
 - [ ] All generated files pass `qpdf --check`, open in pdf.js and PDFium (full lane, page count and no errors)

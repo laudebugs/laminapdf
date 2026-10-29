@@ -2,7 +2,7 @@
 
 - **Status:** Draft
 - **Date:** 2026-10-28
-- **Plans:** [architecture](architecture.md) · [PDF library](pdf-library.md) · [web reader](web-app.md) · [desktop reader](desktop-app.md) · [full editor](full-editor.md)
+- **Plans:** [architecture](architecture.md) · [PDF library](pdf-library.md) · [shareable libraries](shareable-libraries.md) · [web reader](web-app.md) · [desktop reader](desktop-app.md) · [full editor](full-editor.md)
 - **Prior PRs (all merged):** #1 (PDF research and spike), #2 ([guidelines](../guidelines/README.md)), #3 ([architecture](architecture.md) and its [research](../research/architecture/app-and-package-architecture.md)). This roadmap and the product plans build on all three.
 
 ## What we are building
@@ -34,6 +34,7 @@ All four share one Rust core, so every operation is built once ([architecture §
 - **Web reader after B6:** C1's PDFium spike loads `lamina-wasm` next to PDFium-WASM, so it starts once B6 has merged (its `hayro-parity` half can start earlier). C5's text layer needs B9 (text extraction), which runs alongside C1–C4. B7, B8 and B9 run in parallel with the reader rounds. Technically B9a (the `lamina-content` interpreter) only needs B2c, so it may start before B6 if people are free; B9c (bindings) needs B6b.
 - **Desktop after the web packages:** D1 can start after C3; D2 needs `@lamina/ui` from C4.
 - **Editor after both readers** ship v0.1, so phase 1 (core viewer) is done once and E-rounds add features to both shells and the packages at the same time.
+- **Shareable libraries (L1–L6)** run alongside B and C: L1 (contracts) lands before the B5 builder so the first public API follows it; L2 follows B6; L3 (AI-ready extraction) follows B9; L4 (CLI and MCP) follows B5c and B9c; L6 (mobile spike, then a mobile plan) follows B5c and C2b ([shareable libraries §7](shareable-libraries.md#7-rounds)).
 - **B8 and later E-rounds** can overlap with reader work as people allow; they don't block each other except where listed.
 
 ## Milestones
@@ -71,6 +72,11 @@ One row per round. Each round is split into one or more todos, one PR each, on t
 | B7 | [library](pdf-library.md#b7-docs-examples-and-first-release) | Docs site, examples, `0.1.0-alpha` (local) | 0017 |
 | B8 | [library](pdf-library.md#b8-tagged-pdf-pdfua-and-pdfa) | Tagged PDF, PDF/UA, PDF/A, `0.2.0-alpha` (local) | — |
 | B9 | [library](pdf-library.md#b9-text-extraction) | `lamina-content` read-only interpreter, text extraction (after B6, before C5) | 0023 (proposed) |
+| L1–L2 | [shareable libraries](shareable-libraries.md#l1-contracts) | Error, coordinate and façade contracts; worker client, disposal, range loading | 0024, 0025, 0026 |
+| L3 | [shareable libraries](shareable-libraries.md#l3-ai-ready-extraction) | `lamina-extract`: reading order, tables, Markdown/JSON with bounding boxes | 0028 |
+| L4 | [shareable libraries](shareable-libraries.md#l4-cli-and-mcp) | `lamina` CLI, MCP mode, distribution | 0029 |
+| L5 | [shareable libraries](shareable-libraries.md#l5-docs-for-agents) | `llms.txt`, docs in packages, agent eval | — |
+| L6 | [shareable libraries](shareable-libraries.md#l6-mobile) | `lamina-ffi` spike, mobile SDK plan | 0027 |
 | C1 | [web](web-app.md#c1-rendering-spikes) | Rendering spikes | `pdfium-wasm`, `hayro-parity` |
 | C2 | [web](web-app.md#c2-render-backend-and-adrs) | `lamina-render`, render packages | 0004, 0009, 0010, 0011 |
 | C3 | [web](web-app.md#c3-viewer-core) | `@lamina/viewer` | — |
