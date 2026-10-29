@@ -36,7 +36,8 @@ use std::sync::Arc;
 use lamina_syntax::{Dict, ObjRef, Object};
 
 use crate::error::{Error, Result};
-use crate::reader::Document;
+use crate::reader::{Document, OpenOptions};
+use crate::source::Source;
 
 /// An overlay entry for one object number.
 #[derive(Debug, Clone, PartialEq)]
@@ -298,10 +299,62 @@ impl Document {
     }
 
     /// The lowest `/Size` an update may write: the base trailer's `/Size`, and above every
-    /// xref entry (the incremental writer and the number allocator share this rule).
-    pub(crate) fn size_floor(&self) -> i64 {
+    /// xref entry (the writers in `lamina-save` and the number allocator share this rule).
+    #[must_use]
+    pub fn size_floor(&self) -> i64 {
         let above_entries = self.max_object_number().map_or(0, |n| i64::from(n) + 1);
         self.base_trailer().get_int("Size").unwrap_or(0).max(above_entries)
+    }
+
+    /// The number [`Document::reserve_number`] would hand out next, without reserving it: at
+    /// least [`Document::size_floor`], and above every number reserved in this session (up to
+    /// `u32::MAX + 1` once every number is taken). A writer's `/Size` is never below it, so a
+    /// reserved number never names another object after a save.
+    #[must_use]
+    pub fn next_number(&self) -> u64 {
+        self.overlay_ref()
+            .next_number
+            .get()
+            .unwrap_or_else(|| self.first_new_number())
+    }
+
+    /// Makes `source` the new base, after a save wrote it ([ADR 0005] §3, steps 1–3): opens it
+    /// with this document's [`Limits`](crate::Limits) and strict mode, loads its newest xref,
+    /// and drops the overlay and its journal. The number allocator carries over, so numbers
+    /// reserved in this session stay reserved and none is handed out twice.
+    ///
+    /// This is the mechanism under `lamina-save`'s writers and `lamina_ops::Document::rebase`;
+    /// the overlay's changes are discarded, so call it only with bytes that contain them. A
+    /// password is not carried over (the writers refuse encrypted bases).
+    ///
+    /// # Errors
+    /// As [`Document::open`]; on error the document is unchanged.
+    ///
+    /// [ADR 0005]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0005-document-model.md
+    pub fn rebase(&mut self, source: impl Into<Source>) -> Result<()> {
+        let options = OpenOptions::default()
+            .with_limits(*self.limits())
+            .with_strict(self.is_strict());
+        let next = Self::open(source, options)?;
+        let old = self.overlay_ref();
+        let fresh = next.overlay_ref();
+        // Numbers reserved but never written (a creation that was deleted or undone) stay
+        // reserved, so redo can recreate them; the range starts where the old one did.
+        // New numbers still start above the new base.
+        if let Some(&first) = old.first_new.get() {
+            let floor = next.first_new_number_fresh();
+            fresh.first_new.get_or_init(|| first.min(floor));
+            fresh
+                .next_number
+                .set(Some(old.next_number.get().unwrap_or(first).max(floor)));
+        }
+        *self = next;
+        Ok(())
+    }
+
+    /// [`Document::first_new_number`] as the base alone gives it (no carried-over state).
+    fn first_new_number_fresh(&self) -> u64 {
+        u64::try_from(self.size_floor().max(1)).unwrap_or(1)
     }
 
     /// The first number a new object may get: [`Document::size_floor`], at least 1.
@@ -309,7 +362,7 @@ impl Document {
         *self
             .overlay_ref()
             .first_new
-            .get_or_init(|| u64::try_from(self.size_floor().max(1)).unwrap_or(1))
+            .get_or_init(|| self.first_new_number_fresh())
     }
 
     /// Object `num` as the overlay has it (the one lookup [`CosMut::get`] and resolution
@@ -492,46 +545,37 @@ const fn unknown_object() -> Error {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{OpenOptions, Writer};
+    use crate::OpenOptions;
+
+    /// A classic file around object bodies numbered `1..` (the writer lives in
+    /// `lamina-save`, which these unit tests can't use: it links its own `lamina-cos`).
+    fn classic(objects: &[&str], trailer: &str) -> Vec<u8> {
+        let mut out = b"%PDF-1.7\n".to_vec();
+        let mut offsets = Vec::new();
+        for (i, body) in objects.iter().enumerate() {
+            offsets.push(out.len());
+            out.extend_from_slice(format!("{} 0 obj\n{body}\nendobj\n", i + 1).as_bytes());
+        }
+        let xref = out.len();
+        out.extend_from_slice(format!("xref\n0 {}\n0000000000 65535 f\r\n", objects.len() + 1).as_bytes());
+        for off in offsets {
+            out.extend_from_slice(format!("{off:010} 00000 n\r\n").as_bytes());
+        }
+        out.extend_from_slice(format!("trailer\n{trailer}\nstartxref\n{xref}\n%%EOF\n").as_bytes());
+        out
+    }
 
     /// Catalog 1, pages 2, one page 3 (`/Rotate 90`), Info 4; `/Size 5`.
     fn doc_with(limits: Option<crate::Limits>) -> Document {
-        let mut w = Writer::new(1, 7);
-        let root = w.reserve();
-        let pages = w.reserve();
-        let page = w.add(
-            [
-                ("Type", Object::name("Page")),
-                ("Parent", pages.into()),
-                ("Rotate", 90.into()),
-            ]
-            .into_iter()
-            .collect::<Dict>(),
+        let bytes = classic(
+            &[
+                "<< /Type /Catalog /Pages 2 0 R >>",
+                "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+                "<< /Type /Page /Parent 2 0 R /Rotate 90 >>",
+                "<< /Title (Old) >>",
+            ],
+            "<< /Size 5 /Root 1 0 R /Info 4 0 R >>",
         );
-        w.set(
-            pages,
-            [
-                ("Type", Object::name("Pages")),
-                ("Kids", vec![page.into()].into()),
-                ("Count", 1.into()),
-            ]
-            .into_iter()
-            .collect::<Dict>(),
-        );
-        w.set(
-            root,
-            [("Type", Object::name("Catalog")), ("Pages", pages.into())]
-                .into_iter()
-                .collect::<Dict>(),
-        );
-        let info = w.add(
-            [("Title", Object::String(lamina_syntax::PdfString::literal("Old")))]
-                .into_iter()
-                .collect::<Dict>(),
-        );
-        let bytes = w
-            .finish(&[("Root", root), ("Info", info)].into_iter().collect())
-            .unwrap();
         let options = limits.map_or_else(OpenOptions::default, |l| OpenOptions::default().with_limits(l));
         Document::open(bytes, options).unwrap()
     }

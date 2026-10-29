@@ -63,6 +63,11 @@
     "unknown-page",
     "direct-page",
     "unsupported-version",
-    "invalid-op-log"
+    "invalid-op-log",
+    "saved-not-rebased",
+    "unsaved-changes"
+  ],
+  "saveErrors": [
+    "sink"
   ]
 }

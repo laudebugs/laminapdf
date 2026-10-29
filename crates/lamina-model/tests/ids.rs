@@ -11,7 +11,8 @@
 mod common;
 
 use common::{classic, corpus, fixture, open};
-use lamina_cos::{ObjRef, Object, XrefEol, incremental_update};
+use lamina_cos::{ObjRef, Object};
+use lamina_save::{XrefEol, incremental_update};
 use lamina_model::{Document, Kind, LaminaId};
 
 /// Every page and outline-item ID of `doc`, in document order.

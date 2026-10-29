@@ -1,5 +1,5 @@
-//! Shared helpers for the integration tests: fixture loading, a seeded PRNG, and the
-//! generation code behind the golden fixtures (`content`, `samples`).
+//! Shared helpers for the integration tests: fixture loading, a seeded PRNG, hand-built files
+//! and the content builder (`content`). The writer is `lamina-save`'s (a dev-dependency).
 #![allow(
     dead_code,
     unreachable_pub,
@@ -12,11 +12,11 @@
 )]
 
 pub mod content;
-pub mod samples;
 
 use std::path::{Path, PathBuf};
 
-use lamina_cos::{Document, ObjRef, Object, OpenOptions, Result, XrefEol, incremental_update};
+use lamina_cos::{Document, ObjRef, Object, OpenOptions, Result};
+use lamina_save::{XrefEol, incremental_update};
 
 /// Opens a copy of `bytes` with default options (tests keep their inputs).
 pub fn open(bytes: &[u8]) -> Result<Document> {

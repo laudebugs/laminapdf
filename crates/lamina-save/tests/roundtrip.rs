@@ -10,7 +10,8 @@
 mod common;
 
 use common::{open, update};
-use lamina_cos::{Dict, Name, ObjRef, Object, PdfString, Stream, Writer, XrefEol};
+use lamina_cos::{Dict, Name, ObjRef, Object, PdfString, Stream};
+use lamina_save::{Writer, XrefEol};
 use lamina_syntax::{Limits, parse_object};
 
 const MAX_DEPTH: usize = Limits::new().max_nesting_depth();

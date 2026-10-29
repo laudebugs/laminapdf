@@ -11,7 +11,8 @@ mod common;
 use common::fixture;
 use common::samples;
 use common::update;
-use lamina_cos::{Dict, ObjRef, Stream, XrefEol};
+use lamina_cos::{Dict, ObjRef, Stream};
+use lamina_save::XrefEol;
 
 #[test]
 fn hello_rebuild_is_byte_identical_to_golden_fixture() {

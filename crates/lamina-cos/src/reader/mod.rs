@@ -20,7 +20,7 @@ use encrypt::Security;
 pub use options::OpenOptions;
 pub use warning::Warning;
 use warning::WarningLog;
-pub(crate) use xref::XREF_STREAM_KEYS;
+pub use xref::XREF_STREAM_KEYS;
 use xref::{XrefEntry, XrefTable};
 
 use lamina_syntax::crypt::{PasswordKind, Permissions};
@@ -837,12 +837,13 @@ impl Document {
         self.source.in_memory()
     }
 
-    /// The whole input, read window by window for a source without an in-memory slice (the
-    /// incremental writer's output holds all of it anyway).
+    /// The whole input, borrowed when it is in memory, otherwise read window by window
+    /// (without filling the window cache). Only for callers whose output holds the whole
+    /// input anyway (`lamina-save`'s `incremental_update`).
     ///
     /// # Errors
     /// [`Error::DataPending`] with every missing window; [`Error::Source`].
-    pub(crate) fn whole_input(&self) -> Result<Cow<'_, [u8]>> {
+    pub fn whole_input(&self) -> Result<Cow<'_, [u8]>> {
         self.source.whole()
     }
 
@@ -854,7 +855,8 @@ impl Document {
 
     /// Whether the newest xref section is an xref stream (the incremental writer appends the
     /// same kind).
-    pub(crate) const fn newest_section_is_stream(&self) -> bool {
+    #[must_use]
+    pub const fn newest_section_is_stream(&self) -> bool {
         self.newest_is_stream
     }
 
@@ -1426,6 +1428,18 @@ impl Document {
             }
             InOverlay::NoEntry => self.load(num, gen_nr, &mut Vec::new()),
         }
+    }
+
+    /// The generation of base object `num` when the base's xref has it in use, ignoring the
+    /// overlay (objects in object streams have generation 0). The writers use it for
+    /// modified objects (same generation) and deleted ones (a free entry with the next
+    /// generation, §7.5.4).
+    #[must_use]
+    pub fn base_generation(&self, num: u32) -> Option<u16> {
+        self.entries
+            .get(&num)
+            .filter(|e| !matches!(e, XrefEntry::Free))
+            .map(|e| e.gen_nr())
     }
 
     /// Whether the base has an in-use object `r` (number and generation).

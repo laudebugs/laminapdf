@@ -1,6 +1,7 @@
 //! Regressions from the review of PR #13: every fallback in the reader either degrades with
 //! the right warning or passes the error on (ADR 0003 §1–3); object-stream members obey the
-//! same limits as in-file objects; sources are read safely and shared; `/Size` never shrinks.
+//! same limits as in-file objects; sources are read safely and shared. (The writer cases, `/Size`
+//! never shrinking, moved to `lamina-save`'s `tests/review_fixes.rs` in B3b.)
 #![allow(
     clippy::unwrap_used,
     clippy::panic,
@@ -14,8 +15,7 @@ use std::sync::Arc;
 
 use common::{classic, open, open_with, stream_body};
 use lamina_cos::{
-    ByteSource, Document, Error, Limit, Limits, ObjRef, OpenOptions, Source, SourceError, Warning, XrefEol,
-    incremental_update,
+    ByteSource, Document, Error, Limit, Limits, ObjRef, OpenOptions, Source, SourceError, Warning,
 };
 
 fn strict() -> OpenOptions {
@@ -285,45 +285,5 @@ mod sources {
             Document::open(source.clone(), OpenOptions::default()).unwrap();
         }
         assert_eq!(counted.reads.load(std::sync::atomic::Ordering::Relaxed), 1);
-    }
-}
-
-mod incremental_size {
-    use super::*;
-
-    /// Objects 1–3 plus object 9 (unreferenced) in a classic table with two subsections and
-    /// an understated `/Size 4`.
-    fn high_numbered_object() -> Vec<u8> {
-        let mut out = b"%PDF-1.7\n".to_vec();
-        let mut offsets = Vec::new();
-        for (num, body) in [
-            (1, "<< /Type /Catalog /Pages 2 0 R >>"),
-            (2, "<< /Type /Pages /Kids [3 0 R] /Count 1 >>"),
-            (3, "<< /Type /Page /Parent 2 0 R >>"),
-            (9, "42"),
-        ] {
-            offsets.push(out.len());
-            out.extend_from_slice(format!("{num} 0 obj\n{body}\nendobj\n").as_bytes());
-        }
-        let xref = out.len();
-        out.extend_from_slice(b"xref\n0 4\n0000000000 65535 f\r\n");
-        for off in &offsets[..3] {
-            out.extend_from_slice(format!("{off:010} 00000 n\r\n").as_bytes());
-        }
-        out.extend_from_slice(format!("9 1\n{:010} 00000 n\r\n", offsets[3]).as_bytes());
-        out.extend_from_slice(format!("trailer\n<< /Size 4 /Root 1 0 R >>\nstartxref\n{xref}\n%%EOF\n").as_bytes());
-        out
-    }
-
-    #[test]
-    fn size_covers_objects_dropped_by_max_object_number() {
-        let base = open_with(
-            &high_numbered_object(),
-            with(Limits::default().with_max_object_number(8)),
-        )
-        .unwrap();
-        let updated =
-            incremental_update(&base, &[(ObjRef::new(3, 0), lamina_cos::Object::Null)], XrefEol::CrLf).unwrap();
-        assert_eq!(open(&updated).unwrap().trailer().get_int("Size"), Some(10));
     }
 }

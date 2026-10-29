@@ -3,7 +3,8 @@
 //! Ported from the `pdf-basics` spike as test support; generation code (and these samples as
 //! examples) belongs in `lamina-build` (Round B).
 
-use lamina_cos::{Dict, ObjRef, Object, Result, Stream, Writer, XrefEol};
+use lamina_cos::{Dict, ObjRef, Object, Result, Stream};
+use lamina_save::{Writer, XrefEol};
 
 use super::content::{ContentBuilder, fixed};
 

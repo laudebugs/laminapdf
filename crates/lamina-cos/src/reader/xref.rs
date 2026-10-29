@@ -13,7 +13,7 @@ use crate::source::Source;
 /// Trailer keys that only describe an xref *section* (classic table or xref stream), never the
 /// document: they are not carried over into a rebuilt or appended trailer (`/Size` is
 /// recomputed by whoever writes the new one).
-pub(crate) const XREF_STREAM_KEYS: &[&str] = &[
+pub const XREF_STREAM_KEYS: &[&str] = &[
     "Size",
     "Prev",
     "Type",

@@ -28,6 +28,9 @@ tsify = { workspace = true, optional = true }
 wasm-bindgen = { workspace = true, optional = true }
 
 [dev-dependencies]
+# Builds test inputs with the writer. A dev-dependency cycle Cargo accepts; unit tests in `src/`
+# see a second copy of this crate through it, so they use only its writer (lamina-cos types).
+lamina-save = { workspace = true }
 proptest = { workspace = true }
 
 [lints]

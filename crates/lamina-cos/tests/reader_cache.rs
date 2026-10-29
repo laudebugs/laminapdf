@@ -8,7 +8,8 @@ use std::time::{Duration, Instant};
 mod common;
 
 use common::open;
-use lamina_cos::{Dict, ObjRef, Object, Result, Writer};
+use lamina_cos::{Dict, ObjRef, Object, Result};
+use lamina_save::Writer;
 
 /// A classic file with `page_count` pages, all sharing one indirect `/Resources`.
 fn shared_resources_pdf(page_count: u32) -> Result<(Vec<u8>, ObjRef)> {
