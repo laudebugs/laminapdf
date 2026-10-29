@@ -344,7 +344,7 @@ pub fn incremental_update(base: &Document, changes: &[(ObjRef, Object)], eol: Xr
     let original = doc.whole_input()?;
     let by_num: BTreeMap<u32, (u16, &Object)> = changes.iter().map(|(r, o)| (r.num, (r.gen_nr, o))).collect();
 
-    let mut out = original.to_vec();
+    let mut out = original.into_owned();
     if !matches!(out.last(), Some(b'\n' | b'\r')) {
         out.push(b'\n');
     }

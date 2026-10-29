@@ -3,11 +3,11 @@
 
 use std::collections::{BTreeMap, BTreeSet};
 
-use lamina_syntax::{DecodeBudget, Dict, Lexer, Limits, Object, Parser, Stream, Token, filters};
+use lamina_syntax::{DecodeBudget, Dict, Limits, Object, Parser, Token, filters};
 
-use super::window::{Reach, View, parse_at, rebase, rfind_input};
+use super::must_propagate;
+use super::window::{Reach, parse_syntax_at, read_indirect, rfind_input};
 use crate::error::{Error, Result};
-use crate::scan::is_boundary;
 use crate::source::Source;
 
 /// Trailer keys that only describe an xref *section* (classic table or xref stream), never the
@@ -78,18 +78,13 @@ fn invalid(message: &'static str) -> Error {
 ///
 /// # Errors
 /// [`Error::InvalidStructure`] when there is no usable `startxref`; the source's errors.
-pub(crate) fn find_startxref(source: &Source) -> Result<usize> {
+pub(crate) fn find_startxref(source: &Source, limits: &Limits) -> Result<usize> {
     let pos = rfind_input(source, b"startxref")?.ok_or_else(|| invalid("no startxref"))?;
-    let token = parse_at(source, pos + b"startxref".len(), Reach::Object, |v| {
-        let mut lex = Lexer::new(v.data, v.pos);
-        let token = lex
-            .next_token()
-            .map(|t| match t {
-                Token::Integer(off) => Some(off),
-                _ => None,
-            })
-            .map_err(|e| rebase(e.into(), v.base));
-        (token, lex.reached_end())
+    let token = parse_syntax_at(source, pos + b"startxref".len(), Reach::Object, limits, |p, _| {
+        Ok(match p.lexer().next_token()? {
+            Token::Integer(off) => Some(off),
+            _ => None,
+        })
     })??;
     match token {
         Some(off) => usize::try_from(off).map_err(|_| invalid("negative startxref")),
@@ -133,7 +128,7 @@ pub(crate) fn load(source: &Source, start: usize, limits: &Limits, budget: &mut 
                         }
                     }
                 }
-                Err(e) if matches!(e, Error::DataPending { .. } | Error::Source(_)) => return Err(e),
+                Err(e) if must_propagate(&e) => return Err(e),
                 Err(_) => table.ignored_xref_streams.push(u64::try_from(stm).unwrap_or(u64::MAX)),
             }
         }
@@ -156,22 +151,26 @@ pub(crate) fn load(source: &Source, start: usize, limits: &Limits, budget: &mut 
 
 type Section = (BTreeMap<u32, XrefEntry>, Dict, bool);
 
-/// A section as read from the file, before an xref stream is decoded.
-enum RawSection {
-    Table(BTreeMap<u32, XrefEntry>, Dict),
-    Stream(Stream),
-}
-
+/// Reads the classic table or the xref stream at `offset`.
 fn parse_section(source: &Source, offset: usize, limits: &Limits, budget: &mut DecodeBudget) -> Result<Section> {
-    // Decoding happens outside the (possibly repeated) windowed parse, so the budget is
-    // charged once.
-    let raw = parse_at(source, offset, Reach::Object, |v| {
-        let (raw, reached_end) = parse_raw_section(v, limits);
-        (raw.map_err(|e| rebase(e, v.base)), reached_end)
+    let table = parse_syntax_at(source, offset, Reach::Object, limits, |p, _| {
+        let lex = p.lexer();
+        lex.skip_whitespace();
+        let pos = lex.pos();
+        if let Ok(Token::Keyword(b"xref")) = lex.next_token() {
+            return parse_table(p).map(Some);
+        }
+        p.lexer().set_pos(pos);
+        Ok(None)
     })??;
-    let stream = match raw {
-        RawSection::Table(entries, trailer) => return Ok((entries, trailer, false)),
-        RawSection::Stream(stream) => stream,
+    if let Some((entries, trailer)) = table {
+        return Ok((entries, trailer, false));
+    }
+    // Decoding happens after the (possibly repeated) windowed parse, so the budget is
+    // charged once.
+    let parsed = read_indirect(source, offset, limits, &mut |_| None)??;
+    let Object::Stream(stream) = parsed.object else {
+        return Err(invalid("startxref does not point at an xref"));
     };
     if stream.dict.get_name("Type") != Some(b"XRef") {
         return Err(invalid("stream at startxref is not /Type /XRef"));
@@ -181,46 +180,10 @@ fn parse_section(source: &Source, offset: usize, limits: &Limits, budget: &mut D
     Ok((entries, stream.dict, true))
 }
 
-/// Reads the classic table or the xref stream object at `v.pos`; also says whether that looked
-/// past the end of `v.data`.
-fn parse_raw_section(v: View<'_>, limits: &Limits) -> (Result<RawSection>, bool) {
-    let data = v.data;
-    let mut lex = Lexer::new(data, v.pos).with_limits(limits);
-    lex.skip_whitespace();
-    let pos = lex.pos();
-    // `xref` and the byte after it decide which kind this is.
-    let short = data.len() <= pos + 4;
-    if data.get(pos..).is_some_and(|d| d.starts_with(b"xref")) && is_boundary(data, pos + 4) {
-        lex.set_pos(pos + 4);
-        let mut trailer_end = false;
-        let table = parse_table(&mut lex, limits, &mut trailer_end);
-        let reached_end = short || lex.reached_end() || trailer_end;
-        return (
-            table.map(|(entries, trailer)| RawSection::Table(entries, trailer)),
-            reached_end,
-        );
-    }
-    let mut parser = Parser::new(data, pos).with_limits(limits);
-    let parsed = parser.indirect_object(&mut |_| None);
-    let reached_end = short || lex.reached_end() || parser.reached_end();
-    let raw = match parsed {
-        Ok(parsed) => match parsed.object {
-            Object::Stream(stream) => Ok(RawSection::Stream(stream)),
-            _ => Err(invalid("startxref does not point at an xref")),
-        },
-        Err(e) => Err(e.into()),
-    };
-    (raw, reached_end)
-}
-
-/// Reads the subsections and the trailer after `xref`; `reached_end` is set when reading the
-/// trailer looked past the end of the data (the lexer tracks its own reads).
-fn parse_table(
-    lex: &mut Lexer<'_>,
-    limits: &Limits,
-    reached_end: &mut bool,
-) -> Result<(BTreeMap<u32, XrefEntry>, Dict)> {
+/// Reads the subsections and the trailer after `xref`, with `parser`'s lexer just past it.
+fn parse_table(parser: &mut Parser<'_>) -> Result<(BTreeMap<u32, XrefEntry>, Dict)> {
     let mut entries = BTreeMap::new();
+    let lex = parser.lexer();
     loop {
         match lex.next_token()? {
             Token::Keyword(b"trailer") => break,
@@ -254,10 +217,7 @@ fn parse_table(
             _ => return Err(invalid("expected subsection or trailer")),
         }
     }
-    let mut parser = Parser::new(lex.data(), lex.pos()).with_limits(limits);
-    let trailer = parser.object();
-    *reached_end = parser.reached_end();
-    match trailer? {
+    match parser.object()? {
         Object::Dict(d) => Ok((entries, d)),
         _ => Err(invalid("trailer is not a dictionary")),
     }
@@ -405,7 +365,7 @@ mod tests {
     #[test]
     fn find_startxref_reads_last_offset() {
         let source = Source::from(b"startxref\n1\n%%EOF\nstartxref\n42\n%%EOF".to_vec());
-        assert_eq!(find_startxref(&source), Ok(42));
+        assert_eq!(find_startxref(&source, &Limits::default()), Ok(42));
     }
 
     #[test]

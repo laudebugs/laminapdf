@@ -76,6 +76,51 @@ pub struct IndirectObject {
     pub length_recovered: bool,
 }
 
+/// What [`Parser::indirect_head`] read.
+#[derive(Debug, Clone, PartialEq)]
+pub enum IndirectHead {
+    /// An object that is not a stream: complete.
+    Object(IndirectObject),
+    /// A stream whose extent is still to be found.
+    Stream(StreamHead),
+}
+
+/// A stream's header and dictionary, before its data is read ([`Parser::indirect_head`]).
+#[derive(Debug, Clone, PartialEq)]
+#[non_exhaustive]
+pub struct StreamHead {
+    /// The object's number and generation.
+    pub id: ObjRef,
+    /// The stream dictionary.
+    pub dict: Dict,
+    /// Offset of the first data byte (after `stream` and its EOL).
+    pub data_start: usize,
+    /// `/Length` as declared (resolved when indirect); `None` when missing or unresolvable.
+    pub declared_length: Option<i64>,
+}
+
+impl StreamHead {
+    /// Where the data ends if `/Length` is right (`None` when it is missing, negative or
+    /// overflows).
+    #[must_use]
+    pub fn declared_end(&self) -> Option<usize> {
+        self.declared_length
+            .and_then(|len| usize::try_from(len).ok())
+            .and_then(|len| self.data_start.checked_add(len))
+    }
+
+    /// The finished object: this stream with `data`; `length_recovered` when the extent was
+    /// found by scanning for `endstream` rather than from `/Length`.
+    #[must_use]
+    pub fn into_object(self, data: Vec<u8>, length_recovered: bool) -> IndirectObject {
+        IndirectObject {
+            id: self.id,
+            object: Object::Stream(Stream { dict: self.dict, data }),
+            length_recovered,
+        }
+    }
+}
+
 impl<'a> Parser<'a> {
     /// A parser over `data`, starting at byte offset `pos`, with the default [`Limits`].
     pub const fn new(data: &'a [u8], pos: usize) -> Self {
@@ -181,10 +226,13 @@ impl<'a> Parser<'a> {
         }
     }
 
-    /// After an integer, looks ahead for `gen R`; rewinds if it is not a reference.
+    /// After an integer, looks ahead for `gen R`; rewinds if it is not a reference. An
+    /// integer that can't be an object number is not followed by a look ahead at all, so its
+    /// result never depends on the bytes after it ([`Parser::reached_end`]).
     fn maybe_reference(&mut self, num: i64) -> Object {
         let save = self.lex.pos();
-        if let (Ok(num_u32), Ok(Token::Integer(g))) = (u32::try_from(num), self.lex.next_token())
+        if let Ok(num_u32) = u32::try_from(num)
+            && let Ok(Token::Integer(g)) = self.lex.next_token()
             && let Ok(gen_nr) = u16::try_from(g)
             && let Ok(Token::Keyword(b"R")) = self.lex.next_token()
         {
@@ -226,13 +274,52 @@ impl<'a> Parser<'a> {
     /// # Errors
     /// A malformed header or object, or a stream without any `endstream`.
     pub fn indirect_object(&mut self, resolve_length: &mut dyn FnMut(ObjRef) -> Option<i64>) -> Result<IndirectObject> {
+        let head = match self.indirect_head(resolve_length)? {
+            IndirectHead::Object(object) => return Ok(object),
+            IndirectHead::Stream(head) => head,
+        };
+        let data = self.lex.data();
+        let end_flag = &mut self.reached_end;
+        let declared_end = head.declared_end().filter(|&end| endstream_at(data, end, end_flag));
+        let length_recovered = declared_end.is_none();
+        let end = if let Some(end) = declared_end {
+            end
+        } else {
+            let Some(endstream) = find(data, b"endstream", head.data_start) else {
+                *end_flag = true;
+                return Err(Error::UnexpectedEof { offset: data.len() });
+            };
+            stream_data_end(data, head.data_start, endstream)
+        };
+        let bytes = data.get(head.data_start..end).unwrap_or_default().to_vec();
+        // Position after `endstream` (there is one at or after `end`), then consume an
+        // optional `endobj`.
+        let after = find(data, b"endstream", end).map_or(data.len(), |p| p + b"endstream".len());
+        self.lex.set_pos(after);
+        Ok(head.into_object(bytes, length_recovered))
+    }
+
+    /// The first part of [`Parser::indirect_object`]: the header and the value, and for a
+    /// stream, its dictionary, where its data starts and its declared `/Length` (resolved
+    /// with `resolve_length` when indirect), without looking for its end.
+    ///
+    /// For callers that find a stream's extent themselves (`lamina-cos` reading a source in
+    /// windows checks a `/Length` with a small read at the declared end instead of reading
+    /// up to it). [`endstream_at`] and [`stream_data_end`] are the checks
+    /// [`Parser::indirect_object`] makes, so both give the same result.
+    ///
+    /// # Errors
+    /// A malformed header or object.
+    pub fn indirect_head(&mut self, resolve_length: &mut dyn FnMut(ObjRef) -> Option<i64>) -> Result<IndirectHead> {
         let id = self.object_header()?;
         let obj = self.object()?;
         let after_obj = self.lex.pos();
-        let plain = |object| IndirectObject {
-            id,
-            object,
-            length_recovered: false,
+        let plain = |object| {
+            IndirectHead::Object(IndirectObject {
+                id,
+                object,
+                length_recovered: false,
+            })
         };
         let Object::Dict(dict) = obj else {
             return Ok(plain(obj));
@@ -241,38 +328,25 @@ impl<'a> Parser<'a> {
             self.lex.set_pos(after_obj);
             return Ok(plain(Object::Dict(dict)));
         }
-        let end_flag = &mut self.reached_end;
-        let data_start = skip_stream_eol(self.lex.data(), self.lex.pos(), end_flag);
-        let declared = match dict.get("Length") {
+        let data_start = skip_stream_eol(self.lex.data(), self.lex.pos(), &mut self.reached_end);
+        let declared_length = match dict.get("Length") {
             Some(Object::Integer(n)) => Some(*n),
             Some(Object::Ref(r)) => resolve_length(*r),
             _ => None,
         };
-        let data = self.lex.data();
-        let declared_end = declared
-            .and_then(|len| usize::try_from(len).ok())
-            .and_then(|len| data_start.checked_add(len))
-            .filter(|&end| ends_with_endstream(data, end, end_flag));
-        let length_recovered = declared_end.is_none();
-        let end = match declared_end {
-            Some(end) => end,
-            None => scan_for_endstream(data, data_start, end_flag)?,
-        };
-        let bytes = data.get(data_start..end).unwrap_or_default().to_vec();
-        // Position after `endstream`, then consume an optional `endobj`.
-        let after = find(data, b"endstream", end).map_or_else(
-            || {
-                *end_flag = true;
-                data.len()
-            },
-            |p| p + b"endstream".len(),
-        );
-        self.lex.set_pos(after);
-        Ok(IndirectObject {
+        Ok(IndirectHead::Stream(StreamHead {
             id,
-            object: Object::Stream(Stream { dict, data: bytes }),
-            length_recovered,
-        })
+            dict,
+            data_start,
+            declared_length,
+        }))
+    }
+
+    /// The lexer this parser reads tokens from, for callers that mix tokens and objects (an
+    /// xref table followed by its trailer). Reads through it count for
+    /// [`Parser::reached_end`].
+    pub const fn lexer(&mut self) -> &mut Lexer<'a> {
+        &mut self.lex
     }
 
     /// One level deeper than `depth`, or [`Error::LimitExceeded`] past
@@ -302,9 +376,10 @@ fn skip_stream_eol(data: &[u8], mut pos: usize, reached_end: &mut bool) -> usize
     }
 }
 
-/// Whether `endstream` follows `end` after optional white-space. Sets `reached_end` when the
-/// answer depends on bytes past the end of `data`.
-fn ends_with_endstream(data: &[u8], end: usize, reached_end: &mut bool) -> bool {
+/// Whether `endstream` follows `end` after optional white-space: the check that a stream's
+/// declared `/Length` is right. Sets `reached_end` when the answer depends on bytes past the
+/// end of `data`.
+pub fn endstream_at(data: &[u8], end: usize, reached_end: &mut bool) -> bool {
     let mut pos = end;
     while data.get(pos).copied().is_some_and(is_whitespace) {
         pos += 1;
@@ -316,13 +391,9 @@ fn ends_with_endstream(data: &[u8], end: usize, reached_end: &mut bool) -> bool 
     rest.starts_with(b"endstream")
 }
 
-/// The end of stream data that starts at `from`, found by scanning for `endstream`. Sets
-/// `reached_end` when there is none before the end of `data`.
-fn scan_for_endstream(data: &[u8], from: usize, reached_end: &mut bool) -> Result<usize> {
-    let Some(idx) = find(data, b"endstream", from) else {
-        *reached_end = true;
-        return Err(Error::UnexpectedEof { offset: data.len() });
-    };
+/// The end of stream data that starts at `from` when its `endstream` keyword is at `idx`: the
+/// EOL before the keyword (CRLF, LF or CR) is not data. Reads only `data[idx - 2..idx]`.
+pub fn stream_data_end(data: &[u8], from: usize, idx: usize) -> usize {
     let mut end = idx;
     if end > from && data.get(end - 1) == Some(&b'\n') {
         end -= 1;
@@ -330,7 +401,7 @@ fn scan_for_endstream(data: &[u8], from: usize, reached_end: &mut bool) -> Resul
     if end > from && data.get(end - 1) == Some(&b'\r') {
         end -= 1;
     }
-    Ok(end)
+    end
 }
 
 /// Finds the first occurrence of `needle` in `hay` at or after byte offset `from`, returning
@@ -476,5 +547,37 @@ mod tests {
         // A wrong `/Length` makes the parser scan for `endstream`; a short window might hold
         // only an `endstream` that sits inside the real data.
         assert!(reached_end(b"1 0 obj << /Length 1 >> stream\nabc"));
+    }
+
+    fn object_reached_end(input: &[u8]) -> bool {
+        let mut parser = Parser::new(input, 0);
+        let _ = parser.object();
+        parser.reached_end()
+    }
+
+    #[test]
+    fn a_negative_integer_at_the_end_does_not_look_ahead_for_a_reference() {
+        // `-5` can't be an object number, so nothing after it can change the result.
+        assert!(!object_reached_end(b"-5 "));
+    }
+
+    #[test]
+    fn an_integer_pair_at_the_end_reaches_it_as_it_may_be_a_reference() {
+        // `5 0` might continue as `5 0 R`: the result depends on what follows.
+        assert!(object_reached_end(b"5 0"));
+    }
+
+    #[test]
+    fn indirect_head_stops_at_the_stream_data() {
+        let mut parser = Parser::new(b"1 0 obj << /Length 3 >> stream\nabc\nendstream", 0);
+        let Ok(IndirectHead::Stream(head)) = parser.indirect_head(&mut no_length) else {
+            panic!("not a stream head");
+        };
+        assert_eq!((head.data_start, head.declared_end()), (31, Some(34)));
+    }
+
+    #[test]
+    fn stream_data_end_drops_the_eol_before_endstream() {
+        assert_eq!(stream_data_end(b"abc\r\nendstream", 0, 5), 3);
     }
 }

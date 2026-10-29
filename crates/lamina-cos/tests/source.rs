@@ -15,7 +15,7 @@ mod common;
 
 use std::fmt::Debug;
 use std::sync::atomic::{AtomicU64, Ordering};
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex, OnceLock};
 
 use common::{corpus, fixture, fixtures_dir};
 use lamina_cos::{
@@ -23,18 +23,42 @@ use lamina_cos::{
     Stream, Writer,
 };
 
-/// A source that is not in memory (no `as_slice`), served in small reads.
-struct Chunked(Vec<u8>);
+/// A source that is not in memory (no `as_slice`): `read_at` only, serving at most `max`
+/// bytes per call, and counting its calls.
+struct Chunked {
+    data: Vec<u8>,
+    max: usize,
+    calls: AtomicU64,
+    bytes: AtomicU64,
+}
+
+impl Chunked {
+    fn new(data: Vec<u8>, max: usize) -> Self {
+        Self {
+            data,
+            max,
+            calls: AtomicU64::new(0),
+            bytes: AtomicU64::new(0),
+        }
+    }
+}
+
+/// A [`Chunked`] source serving reads of at most 4 KiB: what the windowed tests use.
+fn windowed(data: Vec<u8>) -> Chunked {
+    Chunked::new(data, 4096)
+}
 
 impl ByteSource for Chunked {
     fn len(&self) -> u64 {
-        u64::try_from(self.0.len()).unwrap()
+        u64::try_from(self.data.len()).unwrap()
     }
 
     fn read_at(&self, offset: u64, buf: &mut [u8]) -> Result<usize, SourceError> {
-        let tail = self.0.get(usize::try_from(offset).unwrap()..).unwrap_or_default();
-        let n = tail.len().min(buf.len()).min(7);
+        self.calls.fetch_add(1, Ordering::Relaxed);
+        let tail = self.data.get(usize::try_from(offset).unwrap()..).unwrap_or_default();
+        let n = tail.len().min(buf.len()).min(self.max);
         buf[..n].copy_from_slice(&tail[..n]);
+        self.bytes.fetch_add(u64::try_from(n).unwrap(), Ordering::Relaxed);
         Ok(n)
     }
 }
@@ -82,7 +106,7 @@ fn opens_a_static_slice() {
 
 #[test]
 fn opens_a_source_without_an_in_memory_slice() {
-    let doc = Document::open(Chunked(hello()), OpenOptions::default()).unwrap();
+    let doc = Document::open(Chunked::new(hello(), 7), OpenOptions::default()).unwrap();
     assert_eq!((doc.page_count(), doc.data()), (Ok(1), None));
 }
 
@@ -133,22 +157,6 @@ fn one_document_per_thread_over_a_shared_source() {
 // Windowed reading (B2d)
 // ---------------------------------------------------------------------------------------------
 
-/// A source that only implements `read_at` (no `as_slice`), served in reads of at most 4 KiB.
-struct Windowed(Vec<u8>);
-
-impl ByteSource for Windowed {
-    fn len(&self) -> u64 {
-        u64::try_from(self.0.len()).unwrap()
-    }
-
-    fn read_at(&self, offset: u64, buf: &mut [u8]) -> Result<usize, SourceError> {
-        let tail = self.0.get(usize::try_from(offset).unwrap()..).unwrap_or_default();
-        let n = tail.len().min(buf.len()).min(4096);
-        buf[..n].copy_from_slice(&tail[..n]);
-        Ok(n)
-    }
-}
-
 /// A source that answers `Pending` for any range it has not "fetched", like an HTTP range
 /// cache; [`Fetching::fetch`] fetches ranges and counts the bytes.
 struct Fetching {
@@ -170,7 +178,11 @@ impl Fetching {
         })
     }
 
-    /// Fetches `ranges`; panics if none of it is new (the reader would loop forever).
+    /// Fetches `ranges`. Panics when a range is entirely fetched already: the reader asked
+    /// again for bytes it was given (and would loop forever if nothing else were new). A range
+    /// may still overlap fetched bytes: a window the reader needs whole can hold a few bytes an
+    /// earlier probe fetched, and this source answers `Pending` for the whole of any read
+    /// that is not complete.
     fn fetch(&self, ranges: &[(u64, u64)]) {
         self.rounds.lock().unwrap().push(ranges.to_vec());
         let mut fetched = self.fetched.lock().unwrap();
@@ -178,12 +190,17 @@ impl Fetching {
         for &(offset, len) in ranges {
             let start = usize::try_from(offset).unwrap();
             let end = start + usize::try_from(len).unwrap();
+            let mut new_here = 0;
             for byte in &mut fetched[start..end.min(self.data.len())] {
-                new += u64::from(!*byte);
+                new_here += u64::from(!*byte);
                 *byte = true;
             }
+            assert!(
+                new_here > 0,
+                "DataPending for a range already fetched: ({offset}, {len}) in {ranges:?}"
+            );
+            new += new_here;
         }
-        assert!(new > 0, "DataPending for bytes already fetched: {ranges:?}");
         self.bytes_fetched.fetch_add(new, Ordering::Relaxed);
     }
 
@@ -306,7 +323,12 @@ fn without_startxref(bytes: &[u8]) -> Vec<u8> {
 /// `(name, bytes, options)` for every corpus file and every encrypted fixture (opened with its
 /// user password), each encrypted one also with its xref broken (repaired, decrypting its
 /// object streams on the way).
-fn inputs() -> Vec<(String, Vec<u8>, OpenOptions)> {
+fn inputs() -> &'static [(String, Vec<u8>, OpenOptions)] {
+    static INPUTS: OnceLock<Vec<(String, Vec<u8>, OpenOptions)>> = OnceLock::new();
+    INPUTS.get_or_init(build_inputs)
+}
+
+fn build_inputs() -> Vec<(String, Vec<u8>, OpenOptions)> {
     let passwords: serde_json::Value = serde_json::from_slice(&fixture("encrypted/passwords.json")).unwrap();
     let mut out: Vec<_> = corpus()
         .into_iter()
@@ -346,8 +368,16 @@ fn inputs() -> Vec<(String, Vec<u8>, OpenOptions)> {
 /// 64 KiB window boundary.
 fn large_inputs() -> Vec<(String, Vec<u8>, OpenOptions)> {
     vec![
-        ("generated/classic".into(), multi_page(false), OpenOptions::default()),
-        ("generated/compact".into(), multi_page(true), OpenOptions::default()),
+        (
+            "generated/classic".into(),
+            multi_page(false).to_vec(),
+            OpenOptions::default(),
+        ),
+        (
+            "generated/compact".into(),
+            multi_page(true).to_vec(),
+            OpenOptions::default(),
+        ),
         ("generated/repaired".into(), straddling_header(), OpenOptions::default()),
     ]
 }
@@ -356,7 +386,12 @@ const PAGES: usize = 32;
 
 /// `PAGES` pages, each with a 40 KiB content stream; the content streams come first, so the
 /// page tree, the catalog and the xref sit together at the end, as many writers lay them out.
-fn multi_page(compact: bool) -> Vec<u8> {
+fn multi_page(compact: bool) -> &'static [u8] {
+    static FILES: OnceLock<[Vec<u8>; 2]> = OnceLock::new();
+    &FILES.get_or_init(|| [build_multi_page(false), build_multi_page(true)])[usize::from(compact)]
+}
+
+fn build_multi_page(compact: bool) -> Vec<u8> {
     let mut w = Writer::new(1, 7);
     let contents: Vec<ObjRef> = (0..PAGES)
         .map(|i| {
@@ -433,8 +468,9 @@ fn in_memory_facts(bytes: &[u8], options: &OpenOptions) -> Vec<String> {
 fn a_source_without_as_slice_reads_like_an_in_memory_one_for_every_input() {
     let mut failures = Vec::new();
     for (name, bytes, options) in inputs() {
+        let (bytes, options) = (bytes.clone(), options.clone());
         let expected = in_memory_facts(&bytes, &options);
-        let ours = match Document::open(Windowed(bytes.clone()), options) {
+        let ours = match Document::open(windowed(bytes.clone()), options) {
             Ok(doc) => facts(&doc, None),
             Err(e) => vec![show(&e)],
         };
@@ -454,6 +490,7 @@ fn open_fetching(source: &Arc<Fetching>, options: &OpenOptions) -> lamina_cos::R
 fn a_pending_source_driven_by_a_retry_loop_reads_like_an_in_memory_one_for_every_input() {
     let mut failures = Vec::new();
     for (name, bytes, options) in inputs() {
+        let (bytes, options) = (bytes.clone(), options.clone());
         let expected = in_memory_facts(&bytes, &options);
         let source = Fetching::new(bytes.clone());
         let ours = match open_fetching(&source, &options) {
@@ -468,7 +505,7 @@ fn a_pending_source_driven_by_a_retry_loop_reads_like_an_in_memory_one_for_every
 #[test]
 fn opening_an_intact_large_file_and_walking_its_pages_fetches_less_than_the_file() {
     for compact in [false, true] {
-        let bytes = multi_page(compact);
+        let bytes = multi_page(compact).to_vec();
         assert!(bytes.len() > 1024 * 1024);
         let source = Fetching::new(bytes.clone());
         let doc = open_fetching(&source, &OpenOptions::default()).unwrap();
@@ -485,7 +522,7 @@ fn opening_an_intact_large_file_and_walking_its_pages_fetches_less_than_the_file
 #[test]
 fn data_pending_never_asks_for_the_whole_of_an_intact_large_file() {
     for compact in [false, true] {
-        let bytes = multi_page(compact);
+        let bytes = multi_page(compact).to_vec();
         let len = u64::try_from(bytes.len()).unwrap();
         let source = Fetching::new(bytes);
         let doc = open_fetching(&source, &OpenOptions::default()).unwrap();
@@ -500,7 +537,7 @@ fn data_pending_never_asks_for_the_whole_of_an_intact_large_file() {
 
 #[test]
 fn the_first_data_pending_asks_for_the_head_and_the_tail_window_together() {
-    let bytes = multi_page(false);
+    let bytes = multi_page(false).to_vec();
     let len = u64::try_from(bytes.len()).unwrap();
     let tail = (len - 1) / (64 * 1024) * (64 * 1024);
     let err = Document::open(Fetching::new(bytes) as Arc<dyn ByteSource>, OpenOptions::default()).err();
@@ -514,7 +551,7 @@ fn the_first_data_pending_asks_for_the_head_and_the_tail_window_together() {
 
 #[test]
 fn a_lazy_call_that_hits_missing_data_reports_it_and_succeeds_on_retry() {
-    let bytes = multi_page(false);
+    let bytes = multi_page(false).to_vec();
     let source = Fetching::new(bytes.clone());
     let doc = open_fetching(&source, &OpenOptions::default()).unwrap();
     let pages = retry(Some(&source), || doc.pages()).unwrap();
@@ -541,7 +578,7 @@ fn repair_on_a_windowed_source_finds_a_header_across_the_window_boundary() {
     let bytes = straddling_header();
     let header = bytes.windows(7).position(|w| w == b"3 0 obj").unwrap();
     assert!(header < 64 * 1024 && header + 7 > 64 * 1024);
-    let doc = Document::open(Windowed(bytes), OpenOptions::default()).unwrap();
+    let doc = Document::open(windowed(bytes), OpenOptions::default()).unwrap();
     let page = doc.resolve(ObjRef::new(3, 0)).unwrap();
     assert_eq!(
         (doc.was_repaired(), page.as_dict().and_then(|d| d.get_name("Type"))),
@@ -550,25 +587,31 @@ fn repair_on_a_windowed_source_finds_a_header_across_the_window_boundary() {
 }
 
 #[test]
-fn repair_reports_every_missing_window_at_once() {
+fn repair_reports_every_missing_window_at_once_after_the_startxref_search() {
     let bytes = straddling_header();
     let len = u64::try_from(bytes.len()).unwrap();
     let source = Fetching::new(bytes);
     let doc = open_fetching(&source, &OpenOptions::default()).unwrap();
     let window = 64 * 1024;
     let tail = (len - 1) / window * window;
-    // Head and tail first; then the search for `startxref` and the scan ask for every window
-    // in between in one round.
+    // Head and tail first; then the backward search for `startxref` asks for as many more
+    // windows as it has read (one); then repair's scan asks for every window still missing in
+    // one round.
     assert_eq!(
         (doc.page_count(), source.rounds()),
         (
             Ok(1),
-            vec![vec![(0, window), (tail, len - tail)], vec![(window, tail - window)]]
+            vec![
+                vec![(0, window), (tail, len - tail)],
+                vec![(tail - window, window)],
+                vec![(window, tail - 2 * window)],
+            ]
         )
     );
 }
 
-/// One page whose content stream holds a `len`-byte literal string, past the first window.
+/// One page whose `/Big` entry refers to an indirect `len`-byte literal string (object 2),
+/// which runs past the first window.
 fn long_string_file(len: usize) -> Vec<u8> {
     let mut w = Writer::new(1, 7);
     let pages = w.reserve();
@@ -598,7 +641,7 @@ fn long_string_file(len: usize) -> Vec<u8> {
 
 fn resolve_both(bytes: &[u8], limits: Limits, r: ObjRef) -> (String, String) {
     let options = OpenOptions::default().with_limits(limits);
-    let windowed = Document::open(Windowed(bytes.to_vec()), options.clone()).unwrap();
+    let windowed = Document::open(windowed(bytes.to_vec()), options.clone()).unwrap();
     let in_memory = Document::open(bytes.to_vec(), options).unwrap();
     (show(&windowed.resolve(r)), show(&in_memory.resolve(r)))
 }
@@ -611,7 +654,7 @@ fn a_window_grows_past_64_kib_for_an_object_within_the_limits() {
     assert!(
         windowed == in_memory && windowed.starts_with("Ok"),
         "{}",
-        &windowed[..100]
+        windowed.chars().take(100).collect::<String>()
     );
 }
 
@@ -629,16 +672,26 @@ fn an_object_over_a_limit_fails_at_the_same_offset_as_in_memory() {
 
 #[test]
 fn documents_over_one_windowed_source_share_its_cache() {
-    let shared = Source::from(Windowed(multi_page(false)));
+    let source = Arc::new(Chunked::new(multi_page(false).to_vec(), usize::MAX));
+    let shared = Source::from(Arc::clone(&source) as Arc<dyn ByteSource>);
     let a = Document::open(shared.clone(), OpenOptions::default()).unwrap();
+    assert_eq!(a.page_count(), Ok(PAGES));
+    let after_one = source.bytes.load(Ordering::Relaxed);
     let b = Document::open(shared, OpenOptions::default()).unwrap();
-    assert_eq!((a.page_count(), b.page_count()), (Ok(PAGES), Ok(PAGES)));
+    assert_eq!(b.page_count(), Ok(PAGES));
+    // The second document reads no window again, only the small xref entry probes (which are
+    // never cached): far less than one window.
+    let again = source.bytes.load(Ordering::Relaxed) - after_one;
+    assert!(
+        again < 64 * 1024 / 4,
+        "the second document read {again} bytes (first: {after_one})"
+    );
 }
 
 #[test]
 fn a_windowed_source_has_no_in_memory_data_but_updates_incrementally() {
-    let bytes = multi_page(false);
-    let windowed = Document::open(Windowed(bytes.clone()), OpenOptions::default()).unwrap();
+    let bytes = multi_page(false).to_vec();
+    let windowed = Document::open(windowed(bytes.clone()), OpenOptions::default()).unwrap();
     let in_memory = Document::open(bytes, OpenOptions::default()).unwrap();
     let change = [(ObjRef::new(999, 0), Object::Integer(1))];
     let eol = lamina_cos::XrefEol::CrLf;

@@ -54,6 +54,7 @@
     "max_string_length",
     "max_content_operators",
     "max_xobject_depth",
-    "max_image_pixels"
+    "max_image_pixels",
+    "max_read_window"
   ]
 }

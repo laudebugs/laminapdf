@@ -14,38 +14,49 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use super::encrypt::{self, Security};
 use super::objstm;
-use super::window::{Reach, View, find_input, for_each_chunk, parse_at};
+use super::window::{Reach, View, for_each_chunk, parse_syntax_at, read_indirect, rfind_input, within_read_window};
 use super::xref::{XREF_STREAM_KEYS, XrefEntry, XrefTable};
-use lamina_syntax::{
-    DecodeBudget, Dict, Lexer, Limits, ObjRef, Object, Parser, Token, filters, find, is_regular, is_whitespace,
-};
+use lamina_syntax::{DecodeBudget, Dict, Limits, ObjRef, Object, Token, filters, find, is_regular, is_whitespace};
 
 use crate::error::{Error, Result};
 use crate::scan::is_boundary;
-use crate::source::Source;
+use crate::source::{Fetch, Source};
 
 /// A `num gen obj` header found by scanning: `(num, gen, offset of num)`.
 type Header = (u32, u16, usize);
 
-/// Bytes a chunk of the scan needs past its own end: an `obj` that starts in the chunk, and
-/// the byte after it (a keyword boundary).
-const OBJ_AHEAD: usize = b"obj".len() + 1;
+/// Bytes a chunk of the scan needs around its own part: the byte before `trailer` (a keyword
+/// boundary), and after an `obj` or `trailer` that starts in the chunk, the keyword and the
+/// byte after it.
+const CHUNK_AROUND: (usize, usize) = (1, b"trailer".len() + 1);
 
-/// Bytes the backward walk over `num gen` asks for first when it runs into the start of a
-/// chunk; doubled until the walk ends inside them.
+/// Bytes the backward walk over `num gen` reads first when it runs into the start of a chunk;
+/// doubled (reading only the new part) until the walk ends inside them, up to
+/// [`Limits::max_read_window`].
 const HEADER_BACK: usize = 64;
 
-/// Finds every `num gen obj` header, in file order. Linear: each byte is walked back over at
-/// most once per following `obj` keyword, and runs are delimited by that keyword. A source
-/// without an in-memory slice is scanned in overlapping chunks ([`for_each_chunk`]): an `obj`
-/// belongs to the chunk it starts in, and a header whose `num gen` begins in an earlier chunk
-/// is read back from the input.
+/// What one pass over the input found: every `num gen obj` header and the head of the object
+/// after it, and every `trailer` dictionary, in file order.
+struct Found {
+    objects: Vec<(Header, Option<ScannedHead>)>,
+    trailers: Vec<(usize, Dict)>,
+}
+
+/// Walks the input once ([`for_each_chunk`]: in overlapping chunks for a source without an
+/// in-memory slice) and collects every object header with its head and every trailer
+/// dictionary. Linear: each byte is walked back over at most once per following `obj`
+/// keyword, and runs are delimited by that keyword. An `obj` or `trailer` belongs to the
+/// chunk it starts in; a header whose `num gen` begins in an earlier chunk is read back from
+/// the input.
 ///
 /// # Errors
-/// [`Error::DataPending`] with every window still missing; [`Error::Source`].
-pub(crate) fn scan_object_headers(source: &Source) -> Result<Vec<Header>> {
-    let mut found = Vec::new();
-    for_each_chunk(source, (0, OBJ_AHEAD), |view, own| {
+/// [`Error::DataPending`] with the windows still missing (one round's worth); [`Error::Source`].
+fn scan_input(source: &Source, limits: &Limits) -> Result<Found> {
+    let mut found = Found {
+        objects: Vec::new(),
+        trailers: Vec::new(),
+    };
+    for_each_chunk(source, CHUNK_AROUND, |view, own| {
         let data = view.data;
         let mut from = own.start;
         while let Some(p) = find(data, b"obj", from) {
@@ -56,8 +67,31 @@ pub(crate) fn scan_object_headers(source: &Source) -> Result<Vec<Header>> {
             if !is_boundary(data, p + 3) {
                 continue;
             }
-            if let Some(header) = header_ending_at(source, view, p)? {
-                found.push(header);
+            if let Some(header) = header_ending_at(source, view, p, limits)? {
+                let head = if header.0 > limits.max_object_number() {
+                    None
+                } else {
+                    parse_head(source, header.2, limits)?
+                };
+                found.objects.push((header, head));
+            }
+        }
+        let mut from = own.start;
+        while let Some(p) = find(data, b"trailer", from) {
+            if p >= own.end {
+                break;
+            }
+            from = p + b"trailer".len();
+            // `p` is never 0 here unless it is the first byte of the input: chunks after the
+            // first start one byte before their own part.
+            if !is_boundary(data, from) || p.checked_sub(1).is_some_and(|q| !is_boundary(data, q)) {
+                continue;
+            }
+            let dict = parse_syntax_at(source, view.base + from, Reach::Object, limits, |parser, _| {
+                Ok(parser.object()?)
+            });
+            if let Some(Ok(Object::Dict(d))) = within_read_window(dict)? {
+                found.trailers.push((view.base + p, d));
             }
         }
         Ok(())
@@ -65,22 +99,38 @@ pub(crate) fn scan_object_headers(source: &Source) -> Result<Vec<Header>> {
     Ok(found)
 }
 
+/// Every `num gen obj` header, in file order (see [`scan_input`]).
+#[cfg(test)]
+fn scan_object_headers(source: &Source) -> Result<Vec<Header>> {
+    let found = scan_input(source, &Limits::default())?;
+    Ok(found.objects.into_iter().map(|(header, _)| header).collect())
+}
+
 /// The header whose `obj` keyword is at `view.data[obj_kw]`, with its absolute offset; reads
-/// further back from the input while the walk over `num gen` reaches the start of the view.
-fn header_ending_at(source: &Source, view: View<'_>, obj_kw: usize) -> Result<Option<Header>> {
+/// further back from the input while the walk over `num gen` reaches the start of what it
+/// has. A walk longer than [`Limits::max_read_window`] finds no header.
+fn header_ending_at(source: &Source, view: View<'_>, obj_kw: usize, limits: &Limits) -> Result<Option<Header>> {
     let absolute = |(num, gen_nr, offset): Header, base: usize| (num, gen_nr, offset + base);
     if let HeaderScan::Done(header) = header_before(view.data, obj_kw, view.base == 0) {
         return Ok(header.map(|h| absolute(h, view.base)));
     }
     let kw = view.base + obj_kw;
+    let end = kw + b"obj".len();
+    let mut have = source.read(view.base, end - view.base, Fetch::Exact)?;
     let mut back = HEADER_BACK;
     loop {
         let start = kw.saturating_sub(back);
-        let window = source.exact(start, kw + b"obj".len() - start)?;
-        if let HeaderScan::Done(header) = header_before(window.bytes(), kw - window.start(), window.start() == 0) {
-            return Ok(header.map(|h| absolute(h, window.start())));
+        if start < have.start() {
+            let before = source.read(start, have.start() - start, Fetch::Exact)?;
+            have = have.prepend(before);
         }
-        back = back.saturating_mul(2);
+        if let HeaderScan::Done(header) = header_before(have.bytes(), kw - have.start(), have.start() == 0) {
+            return Ok(header.map(|h| absolute(h, have.start())));
+        }
+        if back >= limits.max_read_window() {
+            return Ok(None);
+        }
+        back = back.saturating_mul(2).min(limits.max_read_window());
     }
 }
 
@@ -95,7 +145,6 @@ enum HeaderScan {
 /// Walks back from the `obj` keyword at `obj_kw` over `num gen`. `at_input_start` says whether
 /// `data[0]` is the first byte of the input (otherwise the bytes before it are unknown).
 fn header_before(data: &[u8], obj_kw: usize, at_input_start: bool) -> HeaderScan {
-    let found = |header| HeaderScan::Done(header);
     let back_while = |mut j: usize, pred: fn(u8) -> bool| {
         while j > 0 && data.get(j - 1).copied().is_some_and(pred) {
             j -= 1;
@@ -114,7 +163,7 @@ fn header_before(data: &[u8], obj_kw: usize, at_input_start: bool) -> HeaderScan
     let well_formed = gen_end < obj_kw && gen_start < gen_end && num_end < gen_start && num_start < num_end;
     let starts_token = num_start == 0 || data.get(num_start - 1).is_some_and(|&b| !is_regular(b));
     if !well_formed || !starts_token {
-        return found(None);
+        return HeaderScan::Done(None);
     }
     let parse = |s: usize, e: usize| std::str::from_utf8(data.get(s..e)?).ok()?.parse::<u64>().ok();
     let header = || {
@@ -122,47 +171,7 @@ fn header_before(data: &[u8], obj_kw: usize, at_input_start: bool) -> HeaderScan
         let gen_nr = u16::try_from(parse(gen_start, gen_end)?).ok()?;
         Some((num, gen_nr, num_start))
     };
-    found(header())
-}
-
-/// Bytes a chunk of the trailer scan needs around its own part: the byte before `trailer`
-/// and the keyword plus the byte after it (keyword boundaries).
-const TRAILER_AROUND: (usize, usize) = (1, b"trailer".len() + 1);
-
-/// Every `trailer` keyword followed by a dictionary, with the keyword's offset, in file order.
-///
-/// # Errors
-/// As [`scan_object_headers`].
-fn trailer_dicts(source: &Source, limits: &Limits) -> Result<Vec<(usize, Dict)>> {
-    let mut out = Vec::new();
-    for_each_chunk(source, TRAILER_AROUND, |view, own| {
-        let data = view.data;
-        let mut from = own.start;
-        while let Some(p) = find(data, b"trailer", from) {
-            if p >= own.end {
-                break;
-            }
-            from = p + b"trailer".len();
-            // `p` is never 0 here unless it is the first byte of the input: chunks after the
-            // first start one byte before their own part.
-            if !is_boundary(data, from) || p.checked_sub(1).is_some_and(|q| !is_boundary(data, q)) {
-                continue;
-            }
-            let dict = parse_at(source, view.base + from, Reach::Object, |v| {
-                let mut parser = Parser::new(v.data, v.pos).with_limits(limits);
-                let dict = match parser.object() {
-                    Ok(Object::Dict(d)) => Some(d),
-                    _ => None,
-                };
-                (dict, parser.reached_end())
-            })?;
-            if let Some(d) = dict {
-                out.push((view.base + p, d));
-            }
-        }
-        Ok(())
-    })?;
-    Ok(out)
+    HeaderScan::Done(header())
 }
 
 /// What repair needs to know about one definition, without keeping the object itself.
@@ -197,43 +206,66 @@ impl Candidate {
     }
 }
 
-/// An object's value (without stream data) and whether it is a complete stream.
-type Head = (Object, bool);
+/// What repair keeps of an object's head (its value without stream data).
+#[derive(Debug)]
+struct ScannedHead {
+    /// The value is a reference.
+    is_ref: bool,
+    /// The value is a dictionary (and maybe a stream's).
+    is_dict: bool,
+    /// `/Type /Catalog`.
+    catalog: bool,
+    /// For a dictionary followed by `stream`: where the data starts. The object is a complete
+    /// stream when an `endstream` follows somewhere.
+    stream_data: Option<usize>,
+    /// The dictionary of an xref or object stream, which repair needs later.
+    kept: Option<Dict>,
+}
+
+impl ScannedHead {
+    /// Whether the object is a complete stream, given the offset of the last `endstream` in
+    /// the input: one follows its data.
+    fn is_stream(&self, last_endstream: Option<usize>) -> bool {
+        self.stream_data
+            .is_some_and(|from| last_endstream.is_some_and(|last| last >= from))
+    }
+
+    fn summary(&self, last_endstream: Option<usize>) -> Summary {
+        Summary {
+            root_candidate: self.is_ref || (self.is_dict && !self.is_stream(last_endstream)),
+            catalog: self.catalog,
+        }
+    }
+}
 
 /// Parses the head of the indirect object at `offset`: its header and value, but not stream
-/// data. Returns the value and whether it is a complete stream (a dictionary followed by
-/// `stream` and, somewhere later, `endstream`). A stream whose `endstream` is missing still
-/// yields its dictionary, so trailers and catalogs inside broken xref streams are recovered.
+/// data. A stream whose `endstream` is missing still yields its dictionary, so trailers and
+/// catalogs inside broken xref streams are recovered. `None` when it does not parse (or would
+/// pass [`Limits::max_read_window`]).
 ///
 /// # Errors
 /// The source's errors.
-fn parse_head(source: &Source, offset: usize, limits: &Limits) -> Result<Option<Head>> {
-    // The value, and for a dictionary followed by `stream`, the offset after that keyword.
-    let head = parse_at(source, offset, Reach::Object, |v| {
-        let mut parser = Parser::new(v.data, v.pos).with_limits(limits);
-        let head = parser.object_header().and_then(|_| parser.object());
-        let mut reached_end = parser.reached_end();
-        let head = head.ok().map(|head| {
-            let mut stream_data = None;
-            if matches!(head, Object::Dict(_)) {
-                let mut lex = Lexer::new(v.data, parser.pos());
-                if matches!(lex.next_token(), Ok(Token::Keyword(b"stream"))) {
-                    stream_data = Some(v.base + lex.pos());
-                }
-                reached_end |= lex.reached_end();
-            }
-            (head, stream_data)
-        });
-        (head, reached_end)
-    })?;
-    let Some((head, stream_data)) = head else {
-        return Ok(None);
-    };
-    let is_stream = match stream_data {
-        Some(from) => find_input(source, b"endstream", from)?.is_some(),
-        None => false,
-    };
-    Ok(Some((head, is_stream)))
+fn parse_head(source: &Source, offset: usize, limits: &Limits) -> Result<Option<ScannedHead>> {
+    let head = parse_syntax_at(source, offset, Reach::Object, limits, |parser, base| {
+        parser.object_header()?;
+        let value = parser.object()?;
+        let mut stream_data = None;
+        if matches!(value, Object::Dict(_))
+            && let Ok(Token::Keyword(b"stream")) = parser.lexer().next_token()
+        {
+            stream_data = Some(base + parser.pos());
+        }
+        let dict = value.as_dict();
+        let kind = dict.and_then(|d| d.get_name("Type"));
+        Ok(ScannedHead {
+            is_ref: matches!(value, Object::Ref(_)),
+            is_dict: dict.is_some(),
+            catalog: kind == Some(b"Catalog"),
+            stream_data,
+            kept: dict.filter(|_| matches!(kind, Some(b"XRef" | b"ObjStm"))).cloned(),
+        })
+    });
+    Ok(within_read_window(head)?.and_then(Result::ok))
 }
 
 fn summarize(obj: &Object, is_stream: bool) -> Summary {
@@ -267,12 +299,8 @@ fn object_stream_members(
     budget: &mut DecodeBudget,
     (security, malformed): (Option<&Security>, &mut Vec<u32>),
 ) -> Result<Vec<(u32, Candidate)>> {
-    let parsed = parse_at(source, offset, Reach::Object, |v| {
-        let mut parser = Parser::new(v.data, v.pos).with_limits(limits);
-        let parsed = parser.indirect_object(&mut |_| None);
-        (parsed, parser.reached_end())
-    })?;
-    let Ok(mut parsed) = parsed else {
+    let parsed = within_read_window(read_indirect(source, offset, limits, &mut |_| None))?;
+    let Some(Ok(mut parsed)) = parsed else {
         return Ok(Vec::new());
     };
     if let Some(security) = security
@@ -328,46 +356,50 @@ pub(crate) struct Scan {
 /// [`Error::NotPdf`] when there is no `num gen obj` header at all; the source's errors
 /// (repair needs every window of the input).
 pub(crate) fn scan(source: &Source, limits: &Limits) -> Result<Scan> {
-    let headers = scan_object_headers(source)?;
-    if headers.is_empty() {
+    let Found { objects, mut trailers } = scan_input(source, limits)?;
+    if objects.is_empty() {
         return Err(Error::NotPdf("no objects found"));
     }
+    // One search answers "is an `endstream` after this stream's data?" for every head (the
+    // scan above has read the whole input, so this does not ask for more).
+    let last_endstream = if objects
+        .iter()
+        .any(|(_, head)| head.as_ref().is_some_and(|h| h.stream_data.is_some()))
+    {
+        rfind_input(source, b"endstream")?
+    } else {
+        None
+    };
     let mut dropped_objects = BTreeSet::new();
     // In-file definitions first: the trailers and object streams found among the winners
     // decide which compressed members exist.
     let mut winners: BTreeMap<u32, Candidate> = BTreeMap::new();
-    let mut heads: Vec<(u32, u16, usize, Option<Head>)> = Vec::new();
-    for &(num, gen_nr, offset) in &headers {
+    let mut heads = Vec::new();
+    for ((num, gen_nr, offset), head) in objects {
         if num > limits.max_object_number() {
             dropped_objects.insert(num);
             continue;
         }
-        let head = parse_head(source, offset, limits)?;
         let candidate = Candidate {
             entry: XrefEntry::InFile { offset, gen_nr },
             position: (offset, 0),
-            summary: head.as_ref().map(|(obj, is_stream)| summarize(obj, *is_stream)),
+            summary: head.as_ref().map(|h| h.summary(last_endstream)),
         };
         offer(&mut winners, num, candidate);
-        // Only dictionaries of xref and object streams are needed later; drop the rest now.
-        let head = head.filter(|(obj, _)| {
-            matches!(
-                obj.as_dict().and_then(|d| d.get_name("Type")),
-                Some(b"XRef" | b"ObjStm")
-            )
-        });
-        heads.push((num, gen_nr, offset, head));
+        // Only dictionaries of xref and object streams are needed later.
+        if let Some(head) = head
+            && head.kept.is_some()
+        {
+            heads.push((num, gen_nr, offset, head));
+        }
     }
-    let mut trailers = trailer_dicts(source, limits)?;
     let mut object_streams = Vec::new();
     for (num, gen_nr, offset, head) in heads {
-        let Some((Object::Dict(dict), is_stream)) = head else {
+        let is_winner = matches!(winners.get(&num), Some(c) if c.position == (offset, 0));
+        let is_stream = head.is_stream(last_endstream);
+        let Some(dict) = head.kept.filter(|_| is_winner) else {
             continue;
         };
-        let is_winner = matches!(winners.get(&num), Some(c) if c.position == (offset, 0));
-        if !is_winner {
-            continue;
-        }
         match dict.get_name("Type") {
             Some(b"XRef") => trailers.push((offset, dict)),
             Some(b"ObjStm") if is_stream => object_streams.push((offset, num, gen_nr)),
@@ -630,14 +662,31 @@ mod chunk_tests {
     #[test]
     fn a_trailer_keyword_straddling_a_chunk_boundary_is_found() {
         let data = placed(2 * WINDOW, WINDOW - 4, b"trailer << /Root 1 0 R >>");
-        let found = trailer_dicts(&NoSlice::source(data).0, &Limits::default()).unwrap();
+        let found = scan_input(&NoSlice::source(data).0, &Limits::default())
+            .unwrap()
+            .trailers;
         assert_eq!(found.iter().map(|(at, _)| *at).collect::<Vec<_>>(), [WINDOW - 4]);
     }
 
     #[test]
     fn a_trailer_keyword_glued_to_the_byte_before_a_chunk_boundary_is_not_one() {
         let data = placed(2 * WINDOW, WINDOW - 1, b"xtrailer << /Root 1 0 R >>");
-        let found = trailer_dicts(&NoSlice::source(data).0, &Limits::default()).unwrap();
+        let found = scan_input(&NoSlice::source(data).0, &Limits::default())
+            .unwrap()
+            .trailers;
         assert_eq!(found.len(), 0);
+    }
+
+    #[test]
+    fn the_walk_back_over_a_header_stops_at_max_read_window() {
+        // `5 0`, 300 spaces, then `obj` at the start of the second window.
+        let mut text = b"5 0".to_vec();
+        text.extend(vec![b' '; 300]);
+        text.extend_from_slice(b"obj");
+        let at = WINDOW - text.len() + 3;
+        let data = placed(2 * WINDOW, at, &text);
+        let limits = Limits::default().with_max_read_window(128);
+        let found = scan_input(&NoSlice::source(data).0, &limits).unwrap();
+        assert_eq!(found.objects.len(), 0);
     }
 }

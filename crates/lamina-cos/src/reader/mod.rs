@@ -28,8 +28,8 @@ use lamina_syntax::filters;
 use lamina_syntax::{DecodeBudget, Dict, Limit, Limits, ObjRef, Object, Parser, Stream, find};
 
 use crate::error::{Error, Result};
-use crate::source::{ByteSource, Pending, Source, WINDOW};
-use window::{Reach, parse_at, rebase};
+use crate::source::{ByteSource, Fetch, Pending, Source, WINDOW};
+use window::{Reach, parse_at, read_indirect, within_read_window};
 
 /// How deep [`Document::decode_stream`] resolves references nested in `/Filter` and
 /// `/DecodeParms` (array → parameter dictionary → value). An internal constant: it bounds a
@@ -39,12 +39,21 @@ const MAX_FILTER_PARAM_DEPTH: usize = 3;
 /// Where the `%PDF-` header is looked for: the first 1 KiB, like Acrobat.
 const HEADER_SEARCH: usize = 1024;
 
-/// Bytes the header check may read: the search area, `%PDF-` and up to 8 version bytes.
-const HEADER_SPAN: usize = HEADER_SEARCH + b"%PDF-".len() + 8;
+// The header check reads the search area, `%PDF-` and up to 8 version bytes: the first window
+// holds all of them (or the whole input), so it never needs a second one.
+const _: () = assert!(WINDOW >= HEADER_SEARCH + b"%PDF-".len() + 8);
 
-/// Bytes read first when checking that an xref entry points at its `n g obj` header (on a
-/// source without an in-memory slice); doubled when the header runs past them.
+/// Bytes at the end of the input read with the first window: `startxref`, its offset and
+/// `%%EOF` are normally all there, even when they cross into the last window.
+const TAIL: usize = 1024;
+
+/// Bytes read for each xref entry's `n g obj` header check (on a source without an in-memory
+/// slice); a header that runs past them is read again with a growing probe.
 const HEADER_PROBE: usize = 32;
+
+/// Header probes this close together are read as one range (fewer `read_at` calls and fewer,
+/// larger `DataPending` ranges for the many small objects of a typical file).
+const PROBE_GAP: usize = 256;
 
 /// A page with its inheritable attributes resolved (§7.7.3.4).
 #[derive(Debug, Clone, PartialEq)]
@@ -302,28 +311,85 @@ fn read_header_version(data: &[u8], header_pos: usize) -> Option<String> {
 /// True when every in-file xref entry points at its own `num gen obj` header (number and
 /// generation).
 ///
-/// On a source without an in-memory slice each header is read with a small probe, not a
-/// whole window, so checking a table does not read the whole file; the probes the source is
-/// missing are all reported in one [`Error::DataPending`].
+/// On a source without an in-memory slice the headers are read with small probes, not whole
+/// windows, so checking a table does not read the whole file: probes within [`PROBE_GAP`] of
+/// each other are read as one range, cached windows are used, and the ranges the source is
+/// missing are all reported in one [`Error::DataPending`]. A header that can't be read within
+/// [`Limits::max_read_window`] counts as wrong (repair).
 ///
 /// # Errors
 /// The source's errors.
 fn entries_are_valid(source: &Source, table: &XrefTable, limits: &Limits) -> Result<bool> {
+    let matches = |data: &[u8], pos: usize, num: u32, gen_nr: u16| {
+        let mut parser = Parser::new(data, pos).with_limits(limits);
+        let ok = parser
+            .object_header()
+            .is_ok_and(|id| id.num == num && id.gen_nr == gen_nr);
+        (ok, parser.reached_end())
+    };
+    let mut probes: Vec<(usize, u32, u16)> = table
+        .entries
+        .iter()
+        .filter_map(|(&num, entry)| match *entry {
+            XrefEntry::InFile { offset, gen_nr } => Some((offset, num, gen_nr)),
+            XrefEntry::Free | XrefEntry::InStream { .. } => None,
+        })
+        .collect();
+    if let Some(data) = source.in_memory() {
+        return Ok(probes
+            .into_iter()
+            .all(|(offset, num, gen_nr)| matches(data, offset, num, gen_nr).0));
+    }
+    probes.sort_unstable();
+    let total = source.len()?;
+    let mut spans: Vec<ops::Range<usize>> = Vec::new();
+    for &(offset, ..) in &probes {
+        let probe = offset.min(total)..offset.saturating_add(HEADER_PROBE).min(total);
+        match spans.last_mut() {
+            Some(span) if probe.start <= span.end.saturating_add(PROBE_GAP) => span.end = span.end.max(probe.end),
+            _ => spans.push(probe),
+        }
+    }
     let mut pending = Pending::default();
-    for (&num, entry) in &table.entries {
-        let XrefEntry::InFile { offset, gen_nr } = *entry else {
+    let mut windows = Vec::new();
+    for span in spans {
+        match source.read(span.start, span.len(), Fetch::Exact) {
+            Ok(window) => windows.push(window),
+            Err(e) => {
+                pending.absorb(e)?;
+                if pending.is_full() {
+                    break;
+                }
+            }
+        }
+    }
+    // Check what arrived first: one bad entry means repair, whatever the missing ones say.
+    let mut next = 0;
+    for (offset, num, gen_nr) in probes {
+        while windows
+            .get(next)
+            .is_some_and(|w| w.end() <= offset.min(total) && w.start() < w.end())
+        {
+            next += 1;
+        }
+        let Some(window) = windows.get(next).filter(|w| w.start() <= offset.min(total)) else {
             continue;
         };
-        let header = parse_at(source, offset, Reach::Probe(HEADER_PROBE), |v| {
-            let mut parser = Parser::new(v.data, v.pos).with_limits(limits);
-            let id = parser.object_header();
-            (id.ok(), parser.reached_end())
-        });
-        match header {
-            // One bad entry means repair, whatever the missing ones say.
-            Ok(id) if !id.is_some_and(|id| id.num == num && id.gen_nr == gen_nr) => return Ok(false),
-            Ok(_) => {}
-            Err(e) => pending.absorb(e)?,
+        let (mut ok, reached_end) = matches(window.bytes(), offset - window.start(), num, gen_nr);
+        if reached_end && !window.at_end() {
+            let probe = parse_at(source, offset, Reach::Probe(2 * HEADER_PROBE), limits, |v| {
+                matches(v.data, v.pos, num, gen_nr)
+            });
+            match within_read_window(probe) {
+                Ok(again) => ok = again.unwrap_or(false),
+                Err(e) => {
+                    pending.absorb(e)?;
+                    continue;
+                }
+            }
+        }
+        if !ok {
+            return Ok(false);
         }
     }
     pending.finish()?;
@@ -458,22 +524,22 @@ impl Document {
     )]
     pub fn open(source: impl Into<Source>, options: OpenOptions) -> Result<Self> {
         let source = source.into();
-        let len = source.len();
+        let len = source.len()?;
         if len == 0 {
             return Err(Error::NotPdf("empty input"));
         }
         // The header and `startxref` come first: a source still missing them hears about
-        // both windows at once.
-        source.prefetch(&[(0, WINDOW), (len - 1, 1)])?;
+        // the first window and the last kilobyte (one or two windows) at once.
+        source.prefetch(&[(0, WINDOW), (len.saturating_sub(TAIL), TAIL)])?;
         let limits = *options.limits();
         let strict = options.strict();
         let mut log = WarningLog::default();
         // Like Acrobat, accept the header anywhere in the first 1 KiB, and still try without it.
-        let header_version = parse_at(&source, 0, Reach::Object, |v| {
+        let header_version = parse_at(&source, 0, Reach::Object, &limits, |v| {
             let data = v.data;
             let head = data.get(..data.len().min(HEADER_SEARCH)).unwrap_or_default();
             let version = find(head, b"%PDF-", 0).and_then(|pos| read_header_version(data, pos));
-            (version, data.len() < HEADER_SPAN)
+            (version, false)
         })?;
         if header_version.is_none() {
             log.raise(Warning::MissingHeader, &limits, strict)?;
@@ -486,7 +552,7 @@ impl Document {
         };
 
         let mut budget = DecodeBudget::new(&limits);
-        let startxref = or_repair(xref::find_startxref(&source))?;
+        let startxref = or_repair(xref::find_startxref(&source, &limits))?;
         let loaded = match startxref {
             Some(start) => or_repair(xref::load(&source, start, &limits, &mut budget))?,
             None => None,
@@ -911,11 +977,7 @@ impl Document {
                     None
                 }
             };
-            parse_at(&self.source, offset, Reach::Object, |v| {
-                let mut parser = Parser::new(v.data, v.pos).with_limits(&self.limits);
-                let parsed = parser.indirect_object(&mut resolve_length);
-                (parsed.map_err(|e| rebase(e.into(), v.base)), parser.reached_end())
-            })
+            read_indirect(&self.source, offset, &self.limits, &mut resolve_length)
         };
         match (fatal, parsed) {
             // The `/Length` object and a longer window are both missing: ask for both at once.

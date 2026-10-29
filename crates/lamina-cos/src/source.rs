@@ -111,17 +111,29 @@ pub(crate) const WINDOW: usize = 64 * 1024;
 /// whole input.
 const CACHE_WINDOWS: usize = 64;
 
+/// Reads that span at most this many windows go through the cache (an object across a window
+/// boundary, a scan chunk with its overlap). Longer ones (a large stream, a window grown for
+/// one object) are read past it, so they don't evict the windows everything else uses.
+const CACHED_SPAN: usize = 4;
+
+/// Missing ranges one call collects before it stops reading and reports them (1 024 windows,
+/// 64 MiB): a source whose `len()` claims far more than it has costs a bounded number of
+/// `read_at` calls per round, not one per window it claims.
+const MAX_PENDING: usize = 1024;
+
 /// A shared [`ByteSource`]: what [`Document::open`](crate::Document::open) takes.
 ///
 /// Every [`ByteSource`] converts into one (`Vec<u8>`, `Arc<[u8]>`, `&'static [u8]`, or your
 /// own type), and so does an `Arc<dyn ByteSource>`. Cloning a `Source` is cheap and shares
 /// everything, including the window cache of a source that has no
-/// [`as_slice`](ByteSource::as_slice): open one document per thread (ADR 0005 §7) from clones
-/// of one `Source`, and each window of the input is read once while it stays cached.
+/// [`as_slice`](ByteSource::as_slice): documents opened on several threads (ADR 0005 §7) from
+/// clones of one `Source` reuse the windows each other read while they stay cached (two
+/// threads missing the same window at once may both read it).
 ///
 /// A source without `as_slice` is never read whole: the reader asks for 64 KiB windows
-/// around the offsets it needs (doubled while an object runs past the window's end), keeps
-/// the 64 most recently used, and reports the ranges a source answers
+/// around the offsets it needs (grown while an object runs past the window's end, up to
+/// [`Limits::max_read_window`](crate::Limits::max_read_window)), keeps the 64 most recently
+/// used, checks xref entries with small reads, and reports the ranges a source answers
 /// [`SourceError::Pending`] for as [`Error::DataPending`](crate::Error::DataPending).
 ///
 /// ```
@@ -150,11 +162,15 @@ struct Cache {
 }
 
 impl Cache {
-    fn get(&mut self, index: usize) -> Option<Arc<[u8]>> {
+    /// Window `index`; `touch` marks it as just used (one-off reads don't, so they can't keep
+    /// a window alive that nothing else needs).
+    fn get(&mut self, index: usize, touch: bool) -> Option<Arc<[u8]>> {
         self.tick += 1;
         let tick = self.tick;
         self.windows.get_mut(&index).map(|(bytes, used)| {
-            *used = tick;
+            if touch {
+                *used = tick;
+            }
             Arc::clone(bytes)
         })
     }
@@ -170,6 +186,17 @@ impl Cache {
             };
         }
     }
+}
+
+/// How [`Source::read`] treats the cache.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum Fetch {
+    /// Read missing windows whole and keep them (for reads of at most [`CACHED_SPAN`]
+    /// windows; longer ones behave like [`Fetch::Exact`]).
+    Cached,
+    /// Use cached windows, read only the bytes asked for, keep nothing: for one-off looks
+    /// (probes) and long spans.
+    Exact,
 }
 
 /// A run of input bytes and where it starts.
@@ -203,9 +230,47 @@ impl Window<'_> {
         self.start
     }
 
+    /// The input offset after the last byte.
+    pub(crate) fn end(&self) -> usize {
+        self.start + self.bytes().len()
+    }
+
     /// Whether the window runs to the end of the input.
     pub(crate) const fn at_end(&self) -> bool {
         self.at_end
+    }
+
+    /// The bytes, owned (no copy when they already are).
+    pub(crate) fn into_vec(self) -> Vec<u8> {
+        match self.bytes {
+            Bytes::Owned(v) => v,
+            Bytes::Borrowed(b) => b.to_vec(),
+            Bytes::Shared(b) => b.to_vec(),
+        }
+    }
+
+    /// This window followed by (a copy of) `next`, which must start where this one ends.
+    pub(crate) fn append(self, next: &Self) -> Self {
+        let (start, at_end) = (self.start, next.at_end);
+        let mut bytes = self.into_vec();
+        bytes.extend_from_slice(next.bytes());
+        Window {
+            start,
+            bytes: Bytes::Owned(bytes),
+            at_end,
+        }
+    }
+
+    /// `before` followed by this window; `before` must end where this one starts.
+    pub(crate) fn prepend(self, before: Self) -> Self {
+        let (start, at_end) = (before.start, self.at_end);
+        let mut bytes = before.into_vec();
+        bytes.extend_from_slice(self.bytes());
+        Window {
+            start,
+            bytes: Bytes::Owned(bytes),
+            at_end,
+        }
     }
 }
 
@@ -229,6 +294,12 @@ impl Pending {
     /// Whether nothing is pending.
     pub(crate) const fn is_empty(&self) -> bool {
         self.0.is_empty()
+    }
+
+    /// Whether enough is pending for one round ([`MAX_PENDING`] ranges): callers stop
+    /// reading.
+    pub(crate) const fn is_full(&self) -> bool {
+        self.0.len() >= MAX_PENDING
     }
 
     /// `Ok` when nothing is pending, else [`Error::DataPending`] with the ranges sorted and
@@ -268,6 +339,19 @@ fn to_u64(n: usize) -> u64 {
     u64::try_from(n).unwrap_or(u64::MAX)
 }
 
+/// A source length as an offset on this target, or an error when the target can't address
+/// all of it (a file over 4 GiB on wasm32): reading a prefix as if it were the whole file
+/// would give wrong results.
+fn addressable(len: u64, max: usize) -> CosResult<usize> {
+    usize::try_from(len)
+        .ok()
+        .filter(|&len| len <= max)
+        .ok_or(Error::InvalidStructure {
+            kind: "source",
+            message: "the input is larger than this target can address",
+        })
+}
+
 /// Fills `buf` from `offset` with as many `read_at` calls as it takes.
 ///
 /// # Errors
@@ -289,6 +373,14 @@ fn read_exact(source: &dyn ByteSource, offset: usize, buf: &mut [u8]) -> CosResu
     Ok(())
 }
 
+/// One window's share of a [`Source::read`].
+enum Part {
+    /// A whole cached window.
+    Window(usize, Arc<[u8]>),
+    /// Bytes read just for this call.
+    Read(Vec<u8>),
+}
+
 impl Source {
     fn new(source: Arc<dyn ByteSource>) -> Self {
         Self(Arc::new(Shared {
@@ -308,11 +400,14 @@ impl Source {
         self.0.source.as_slice()
     }
 
-    /// The input length (addressable part of it, on targets with 32-bit offsets).
-    pub(crate) fn len(&self) -> usize {
+    /// The input length.
+    ///
+    /// # Errors
+    /// [`Error::InvalidStructure`] when the input is larger than this target can address.
+    pub(crate) fn len(&self) -> CosResult<usize> {
         match self.in_memory() {
-            Some(slice) => slice.len(),
-            None => usize::try_from(self.0.source.len()).unwrap_or(usize::MAX),
+            Some(slice) => Ok(slice.len()),
+            None => addressable(self.0.source.len(), usize::MAX),
         }
     }
 
@@ -322,28 +417,29 @@ impl Source {
         self.0.cache.lock().unwrap_or_else(PoisonError::into_inner)
     }
 
-    /// Window `index` (`[index * WINDOW, …)`, shorter at the end of the input), from the cache
-    /// or read and cached.
-    fn window_at(&self, index: usize) -> CosResult<Arc<[u8]>> {
-        if let Some(bytes) = self.cache().get(index) {
-            return Ok(bytes);
-        }
+    /// Window `index` read whole and cached. The lock is not held while reading, so two
+    /// threads missing the same window may both read it.
+    fn read_window(&self, index: usize, total: usize) -> CosResult<Arc<[u8]>> {
         let start = index.saturating_mul(WINDOW);
-        let len = self.len().saturating_sub(start).min(WINDOW);
-        let mut buf = vec![0; len];
+        let mut buf = vec![0; total.saturating_sub(start).min(WINDOW)];
         read_exact(self.0.source.as_ref(), start, &mut buf)?;
         let bytes: Arc<[u8]> = buf.into();
         self.cache().insert(index, Arc::clone(&bytes));
         Ok(bytes)
     }
 
-    /// Input bytes `start..start + len` (cut at the end of the input), read in cached
-    /// [`WINDOW`]s. An in-memory input returns all of itself instead, without copying.
+    /// Input bytes `start..start + len`, cut at the end of the input. An in-memory input
+    /// returns all of itself instead, without copying. An empty range reads nothing.
+    ///
+    /// Cached windows are always used. Missing ones are read and kept with [`Fetch::Cached`]
+    /// when the range spans at most [`CACHED_SPAN`] windows; otherwise only the bytes asked
+    /// for are read, and nothing is kept.
     ///
     /// # Errors
-    /// [`Error::DataPending`] with every window range the source does not have yet;
-    /// [`Error::Source`] when it fails.
-    pub(crate) fn window(&self, start: usize, len: usize) -> CosResult<Window<'_>> {
+    /// [`Error::DataPending`] with the ranges the source does not have yet (up to
+    /// [`MAX_PENDING`] of them); [`Error::Source`] when it fails; [`Error::InvalidStructure`]
+    /// as [`Source::len`].
+    pub(crate) fn read(&self, start: usize, len: usize, fetch: Fetch) -> CosResult<Window<'_>> {
         if let Some(slice) = self.in_memory() {
             return Ok(Window {
                 start: 0,
@@ -351,60 +447,51 @@ impl Source {
                 at_end: true,
             });
         }
-        let total = self.len();
+        let total = self.len()?;
         let start = start.min(total);
         let end = start.saturating_add(len).min(total);
-        let mut pending = Pending::default();
+        let at_end = end == total;
+        if start == end {
+            return Ok(Window {
+                start,
+                bytes: Bytes::Owned(Vec::new()),
+                at_end,
+            });
+        }
+        let windows = start / WINDOW..end.div_ceil(WINDOW);
+        let keep = fetch == Fetch::Cached && windows.len() <= CACHED_SPAN;
         let mut parts = Vec::new();
-        for index in start / WINDOW..end.div_ceil(WINDOW) {
-            match self.window_at(index) {
-                Ok(bytes) if pending.is_empty() => parts.push((index * WINDOW, bytes)),
+        let mut pending = Pending::default();
+        for index in windows {
+            let window_start = index * WINDOW;
+            let (from, to) = (start.max(window_start), end.min(window_start + WINDOW));
+            // Bound first: a guard in the `match` scrutinee would be held through the arms,
+            // and `read_window` takes the lock again.
+            let cached = self.cache().get(index, keep);
+            let part = match cached {
+                Some(bytes) => Ok(Part::Window(window_start, bytes)),
+                None if keep => self.read_window(index, total).map(|b| Part::Window(window_start, b)),
+                None => {
+                    let mut buf = vec![0; to - from];
+                    read_exact(self.0.source.as_ref(), from, &mut buf).map(|()| Part::Read(buf))
+                }
+            };
+            match part {
+                Ok(part) if pending.is_empty() => parts.push(part),
                 Ok(_) => {}
-                Err(e) => pending.absorb(e)?,
+                Err(e) => {
+                    pending.absorb(e)?;
+                    if pending.is_full() {
+                        break;
+                    }
+                }
             }
         }
         pending.finish()?;
         Ok(Window {
             start,
-            bytes: assemble(&parts, start, end),
-            at_end: end == total,
-        })
-    }
-
-    /// Input bytes `start..start + len` (cut at the end of the input) for a one-off look:
-    /// from cached windows when they hold them, otherwise read as exactly that range and not
-    /// cached. An in-memory input returns all of itself.
-    ///
-    /// # Errors
-    /// As [`Source::window`].
-    pub(crate) fn exact(&self, start: usize, len: usize) -> CosResult<Window<'_>> {
-        if let Some(slice) = self.in_memory() {
-            return Ok(Window {
-                start: 0,
-                bytes: Bytes::Borrowed(slice),
-                at_end: true,
-            });
-        }
-        let total = self.len();
-        let start = start.min(total);
-        let end = start.saturating_add(len).min(total);
-        let cached: Option<Vec<_>> = {
-            let mut cache = self.cache();
-            (start / WINDOW..end.div_ceil(WINDOW))
-                .map(|index| cache.get(index).map(|bytes| (index * WINDOW, bytes)))
-                .collect()
-        };
-        let bytes = if let Some(parts) = cached {
-            assemble(&parts, start, end)
-        } else {
-            let mut buf = vec![0; end - start];
-            read_exact(self.0.source.as_ref(), start, &mut buf)?;
-            Bytes::Owned(buf)
-        };
-        Ok(Window {
-            start,
-            bytes,
-            at_end: end == total,
+            bytes: assemble(parts, start, end),
+            at_end,
         })
     }
 
@@ -412,58 +499,61 @@ impl Source {
     /// a source is still missing is reported in one [`Error::DataPending`].
     ///
     /// # Errors
-    /// As [`Source::window`].
+    /// As [`Source::read`].
     pub(crate) fn prefetch(&self, ranges: &[(usize, usize)]) -> CosResult<()> {
         if self.in_memory().is_some() {
             return Ok(());
         }
         let mut pending = Pending::default();
         for &(start, len) in ranges {
-            if let Err(e) = self.window(start, len) {
+            if let Err(e) = self.read(start, len, Fetch::Cached) {
                 pending.absorb(e)?;
             }
         }
         pending.finish()
     }
 
-    /// The whole input: borrowed when it is in memory, otherwise read window by window into
-    /// one buffer (which grows only as bytes arrive, so a `len()` that lies costs nothing).
-    /// Only for callers whose output holds the whole input anyway (the incremental writer).
+    /// The whole input: borrowed when it is in memory, otherwise copied from cached windows
+    /// and read directly for the rest, without filling the cache. The buffer grows only as
+    /// bytes arrive, and a source missing much of its input is asked for the first
+    /// [`MAX_PENDING`] missing windows per round. Only for callers whose output holds the
+    /// whole input anyway (the incremental writer).
     ///
     /// # Errors
-    /// As [`Source::window`]; every missing window is reported at once.
+    /// As [`Source::read`].
     pub(crate) fn whole(&self) -> CosResult<Cow<'_, [u8]>> {
         if let Some(slice) = self.in_memory() {
             return Ok(Cow::Borrowed(slice));
         }
-        let mut out = Vec::new();
-        let mut pending = Pending::default();
-        for index in 0..self.len().div_ceil(WINDOW) {
-            match self.window_at(index) {
-                Ok(bytes) if pending.is_empty() => out.extend_from_slice(&bytes),
-                Ok(_) => {}
-                Err(e) => pending.absorb(e)?,
-            }
-        }
-        pending.finish()?;
-        Ok(Cow::Owned(out))
+        let total = self.len()?;
+        Ok(Cow::Owned(self.read(0, total, Fetch::Exact)?.into_vec()))
     }
 }
 
-/// The bytes `start..end` out of consecutive windows `(offset, bytes)`: the window itself when
-/// it is exactly that range, otherwise a copy.
-fn assemble(parts: &[(usize, Arc<[u8]>)], start: usize, end: usize) -> Bytes<'static> {
-    if let [(offset, bytes)] = parts
+/// The bytes `start..end` out of consecutive parts: a cached window itself when it is exactly
+/// that range, the bytes read when they are the only part, otherwise a copy.
+fn assemble(mut parts: Vec<Part>, start: usize, end: usize) -> Bytes<'static> {
+    if let [Part::Window(offset, bytes)] = parts.as_slice()
         && *offset == start
         && offset + <[u8]>::len(bytes) == end
     {
         return Bytes::Shared(Arc::clone(bytes));
     }
-    let mut out = Vec::with_capacity(end - start);
-    for (offset, bytes) in parts {
-        let from = start.saturating_sub(*offset);
-        let to = end.saturating_sub(*offset).min(<[u8]>::len(bytes));
-        out.extend_from_slice(bytes.get(from..to).unwrap_or_default());
+    if let [Part::Read(_)] = parts.as_slice()
+        && let Some(Part::Read(bytes)) = parts.pop()
+    {
+        return Bytes::Owned(bytes);
+    }
+    let mut out = Vec::new();
+    for part in &parts {
+        match part {
+            Part::Window(offset, bytes) => {
+                let from = start.saturating_sub(*offset);
+                let to = end.saturating_sub(*offset).min(<[u8]>::len(bytes));
+                out.extend_from_slice(bytes.get(from..to).unwrap_or_default());
+            }
+            Part::Read(bytes) => out.extend_from_slice(bytes),
+        }
     }
     Bytes::Owned(out)
 }
@@ -536,7 +626,7 @@ pub(crate) mod tests {
     fn window_reads_whole_aligned_windows_and_cuts_the_requested_range() {
         let data = numbered(3 * WINDOW);
         let (source, inner) = NoSlice::source(data.clone());
-        let window = source.window(WINDOW - 10, 20).unwrap();
+        let window = source.read(WINDOW - 10, 20, Fetch::Cached).unwrap();
         assert_eq!(
             (window.start(), window.bytes(), window.at_end(), inner.reads()),
             (WINDOW - 10, &data[WINDOW - 10..WINDOW + 10], false, 2)
@@ -546,30 +636,32 @@ pub(crate) mod tests {
     #[test]
     fn a_window_that_is_exactly_one_cached_window_is_shared_not_copied() {
         let (source, _) = NoSlice::source(numbered(2 * WINDOW));
-        let first = source.window(WINDOW, WINDOW).unwrap();
-        let second = source.window(WINDOW, WINDOW).unwrap();
+        let first = source.read(WINDOW, WINDOW, Fetch::Cached).unwrap();
+        let second = source.read(WINDOW, WINDOW, Fetch::Cached).unwrap();
         assert!(std::ptr::eq(first.bytes(), second.bytes()));
     }
 
     #[test]
     fn a_window_past_the_end_is_cut_and_marked_at_end() {
         let (source, _) = NoSlice::source(numbered(WINDOW + 5));
-        let window = source.window(WINDOW, 4 * WINDOW).unwrap();
+        let window = source.read(WINDOW, 4 * WINDOW, Fetch::Cached).unwrap();
         assert_eq!((window.bytes().len(), window.at_end()), (5, true));
     }
 
     #[test]
     fn cached_windows_are_not_read_again() {
         let (source, inner) = NoSlice::source(numbered(2 * WINDOW));
-        source.window(0, 2 * WINDOW).unwrap();
-        source.window(10, 2 * WINDOW).unwrap();
+        source.read(0, 2 * WINDOW, Fetch::Cached).unwrap();
+        source.read(10, 2 * WINDOW, Fetch::Cached).unwrap();
         assert_eq!(inner.reads(), 2);
     }
 
     #[test]
     fn the_cache_keeps_a_bounded_number_of_windows() {
         let (source, _) = NoSlice::source(numbered((CACHE_WINDOWS + 3) * WINDOW));
-        source.whole().unwrap();
+        for index in 0..CACHE_WINDOWS + 3 {
+            source.read(index * WINDOW, WINDOW, Fetch::Cached).unwrap();
+        }
         assert_eq!(source.cache().windows.len(), CACHE_WINDOWS);
     }
 
@@ -577,14 +669,14 @@ pub(crate) mod tests {
     fn the_least_recently_used_window_is_evicted_first() {
         let (source, inner) = NoSlice::source(numbered((CACHE_WINDOWS + 1) * WINDOW));
         for index in 0..CACHE_WINDOWS {
-            source.window(index * WINDOW, 1).unwrap();
+            source.read(index * WINDOW, 1, Fetch::Cached).unwrap();
         }
-        source.window(0, 1).unwrap(); // window 0 is now the most recently used
-        source.window(CACHE_WINDOWS * WINDOW, 1).unwrap(); // evicts window 1
+        source.read(0, 1, Fetch::Cached).unwrap(); // window 0 is now the most recently used
+        source.read(CACHE_WINDOWS * WINDOW, 1, Fetch::Cached).unwrap(); // evicts window 1
         let before = inner.reads();
-        source.window(0, 1).unwrap();
+        source.read(0, 1, Fetch::Cached).unwrap();
         let after_0 = inner.reads();
-        source.window(WINDOW, 1).unwrap();
+        source.read(WINDOW, 1, Fetch::Cached).unwrap();
         assert_eq!((after_0 - before, inner.reads() - after_0), (0, 1));
     }
 
@@ -592,15 +684,15 @@ pub(crate) mod tests {
     fn exact_reads_only_the_range_and_does_not_cache_it() {
         let data = numbered(2 * WINDOW);
         let (source, _) = NoSlice::source(data.clone());
-        let probe = source.exact(100, 32).unwrap();
+        let probe = source.read(100, 32, Fetch::Exact).unwrap();
         assert_eq!((probe.bytes(), source.cache().windows.len()), (&data[100..132], 0));
     }
 
     #[test]
     fn exact_uses_cached_windows_when_they_hold_the_range() {
         let (source, inner) = NoSlice::source(numbered(WINDOW));
-        source.window(0, WINDOW).unwrap();
-        source.exact(100, 32).unwrap();
+        source.read(0, WINDOW, Fetch::Cached).unwrap();
+        source.read(100, 32, Fetch::Exact).unwrap();
         assert_eq!(inner.reads(), 1);
     }
 
@@ -608,7 +700,7 @@ pub(crate) mod tests {
     fn an_in_memory_source_returns_all_of_itself_without_copying() {
         let data: Arc<[u8]> = numbered(100).into();
         let source = Source::from(Arc::clone(&data));
-        let window = source.window(40, 10).unwrap();
+        let window = source.read(40, 10, Fetch::Cached).unwrap();
         assert!(window.start() == 0 && std::ptr::eq(window.bytes(), data.as_ref()));
     }
 
@@ -637,7 +729,7 @@ pub(crate) mod tests {
         let source = Source::from(Holes(numbered(5 * WINDOW)));
         let w = to_u64(WINDOW);
         assert_eq!(
-            source.window(0, 5 * WINDOW).err(),
+            source.read(0, 5 * WINDOW, Fetch::Cached).err(),
             Some(Error::DataPending {
                 ranges: vec![(w, w), (3 * w, w)]
             })
@@ -722,5 +814,91 @@ pub(crate) mod tests {
     fn len_counts_bytes() {
         let source: Arc<[u8]> = Arc::from(&b"abcdef"[..]);
         assert_eq!(ByteSource::len(&source), 6);
+    }
+
+    #[test]
+    fn an_empty_range_reads_nothing() {
+        let (source, inner) = NoSlice::source(numbered(2 * WINDOW));
+        let window = source.read(WINDOW + 7, 0, Fetch::Cached).unwrap();
+        assert_eq!((window.bytes().len(), inner.reads()), (0, 0));
+    }
+
+    #[test]
+    fn a_long_read_does_not_evict_the_cached_windows() {
+        let (source, inner) = NoSlice::source(numbered((CACHE_WINDOWS + 10) * WINDOW));
+        source.read(0, WINDOW, Fetch::Cached).unwrap();
+        source
+            .read(WINDOW, (CACHE_WINDOWS + 5) * WINDOW, Fetch::Cached)
+            .unwrap();
+        let before = inner.reads();
+        source.read(0, WINDOW, Fetch::Cached).unwrap();
+        assert_eq!((inner.reads() - before, source.cache().windows.len()), (0, 1));
+    }
+
+    #[test]
+    fn an_exact_read_uses_the_cached_part_and_reads_only_the_rest() {
+        let data = numbered(2 * WINDOW);
+        let (source, inner) = NoSlice::source(data.clone());
+        source.read(0, WINDOW, Fetch::Cached).unwrap();
+        let before = inner.reads();
+        let window = source.read(WINDOW - 10, 20, Fetch::Exact).unwrap();
+        assert_eq!(
+            (window.bytes(), inner.reads() - before),
+            (&data[WINDOW - 10..WINDOW + 10], 1)
+        );
+    }
+
+    #[test]
+    fn whole_copies_cached_windows_and_reads_the_rest_without_caching() {
+        let data = numbered(3 * WINDOW + 5);
+        let (source, inner) = NoSlice::source(data.clone());
+        source.read(WINDOW, WINDOW, Fetch::Cached).unwrap();
+        let whole = source.whole().unwrap().into_owned();
+        assert_eq!(
+            (whole == data, inner.reads(), source.cache().windows.len()),
+            (true, 4, 1)
+        );
+    }
+
+    /// Claims a terabyte and answers `Pending` for all of it.
+    struct PendingTerabyte(AtomicUsize);
+
+    impl ByteSource for PendingTerabyte {
+        fn len(&self) -> u64 {
+            1 << 40
+        }
+
+        fn read_at(&self, offset: u64, buf: &mut [u8]) -> Result<usize, SourceError> {
+            self.0.fetch_add(1, Ordering::Relaxed);
+            Err(SourceError::Pending {
+                offset,
+                len: u64::try_from(buf.len()).unwrap(),
+            })
+        }
+    }
+
+    #[test]
+    fn whole_on_a_source_that_overstates_its_length_stops_after_one_round_of_ranges() {
+        let inner = Arc::new(PendingTerabyte(AtomicUsize::new(0)));
+        let source = Source::from(Arc::clone(&inner) as Arc<dyn ByteSource>);
+        let Err(Error::DataPending { ranges }) = source.whole() else {
+            panic!("expected DataPending");
+        };
+        assert_eq!(
+            (inner.0.load(Ordering::Relaxed), ranges,),
+            (MAX_PENDING, vec![(0, to_u64(MAX_PENDING * WINDOW))])
+        );
+    }
+
+    #[test]
+    fn a_length_over_what_the_target_addresses_is_an_error_not_a_prefix() {
+        let wasm32_max = usize::try_from(u32::MAX).unwrap();
+        assert_eq!(
+            (
+                addressable(5 << 30, wasm32_max).is_err(),
+                addressable(5 << 20, wasm32_max)
+            ),
+            (true, Ok(5 << 20))
+        );
     }
 }
