@@ -2,7 +2,8 @@
 # and every push to main. Jobs call the same `cargo xtask …` entry points developers run locally.
 # The full lane (full.yml) runs alongside it; its `gate` job is the required check.
 # Every job runs on the self-hosted macOS ARM64 runners (labels [self-hosted, macOS, ARM64]):
-# GitHub-hosted minutes are not used. The runners share one machine, so jobs that install Rust
+# GitHub-hosted minutes are not used. (The Linux runner container, tools/ci-runner/linux, only
+# serves full.yml's check-linux.) The runners share one machine, so jobs that install Rust
 # run isolate-rust-home first, pnpm installs into the runner's temp dir, and rust-cache is off.
 # The repository is private, so fork PRs (which must never run on self-hosted runners) can't occur.
 # Actions are pinned by full commit SHA with the release in a comment (ADR 0019); Dependabot bumps them.
