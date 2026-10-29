@@ -5,7 +5,7 @@ use std::fmt;
 use std::ops;
 use std::sync::Arc;
 
-use lamina_cos::{Error, ObjRef, Object, OpenOptions, Result, Source, Warning};
+use lamina_cos::{ObjRef, Object, OpenOptions, Result, Source, Warning};
 
 use crate::id::IdAllocator;
 use crate::info::Info;
@@ -21,7 +21,7 @@ use crate::tree::{NameTree, NumberTree};
 /// `warnings`, …) is available directly. Views borrow it (`Page<'d>` holds `&'d Document`),
 /// read their fields lazily, and never cache copies of the graph. Per-field tolerance
 /// follows ADR 0003: a malformed field reads as absent (or its default) with a [`Warning`]
-/// recorded on the document, and strict mode turns that warning into [`Error::Strict`].
+/// recorded on the document, and strict mode turns that warning into [`Error::Strict`](lamina_cos::Error::Strict).
 ///
 /// Like the COS document it is `Send` but `!Sync`.
 ///
@@ -104,8 +104,8 @@ impl Document {
     /// The document outline (bookmarks); empty when the catalog has no `/Outlines`.
     ///
     /// # Errors
-    /// [`Error::Strict`] in strict mode when an item is skipped; [`Error::DataPending`] /
-    /// [`Error::Source`] when the input cannot be read; errors from
+    /// [`Error::Strict`](lamina_cos::Error::Strict) in strict mode when an item is skipped; [`Error::DataPending`](lamina_cos::Error::DataPending) /
+    /// [`Error::Source`](lamina_cos::Error::Source) when the input cannot be read; errors from
     /// [`lamina_cos::Document::catalog`].
     pub fn outline(&self) -> Result<Outline<'_>> {
         Outline::new(self)
@@ -163,26 +163,13 @@ impl Document {
     }
 
     /// Resolves `obj` tolerantly: `Ok(None)` when it cannot be read (malformed, a cycle,
-    /// over a limit), the error only for [`must_propagate`] ones.
+    /// over a limit), the error only for those that [must propagate](lamina_cos::Error::must_propagate).
     pub(crate) fn read(&self, obj: &Object) -> Result<Option<Arc<Object>>> {
         Ok(tolerant(self.cos.deref(obj))?.map(lamina_cos::Resolved::into_arc))
     }
 }
 
-/// Errors no view may swallow: strict-mode refusals (the caller asked for them) and input
-/// that is not available (the call has to be retried or fail).
-pub(crate) const fn must_propagate(e: &Error) -> bool {
-    matches!(e, Error::Strict { .. } | Error::DataPending { .. } | Error::Source(_))
-}
-
-/// `Ok(Some(v))`, `Ok(None)` for an unreadable value, or a [`must_propagate`] error.
-pub(crate) fn tolerant<T>(result: Result<T>) -> Result<Option<T>> {
-    match result {
-        Ok(v) => Ok(Some(v)),
-        Err(e) if must_propagate(&e) => Err(e),
-        Err(_) => Ok(None),
-    }
-}
+pub(crate) use lamina_cos::tolerant;
 
 /// The object number of a reference, for warnings.
 pub(crate) fn object_number(obj: &Object) -> Option<u32> {

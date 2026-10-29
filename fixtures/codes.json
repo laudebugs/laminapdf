@@ -29,7 +29,8 @@
     "content-syntax",
     "content-resource-missing",
     "inline-image-unterminated",
-    "xobject-cycle"
+    "xobject-cycle",
+    "content-path-unpainted"
   ],
   "errors": [
     "not-pdf",

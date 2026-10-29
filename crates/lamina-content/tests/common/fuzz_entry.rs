@@ -8,7 +8,8 @@ use lamina_model::{Document, OpenOptions};
 
 /// Interprets `data`: a whole file (starting `%PDF`) page by page, anything else as the
 /// content of the page of [`fixture_file`], whose resources cover every resource category.
-/// Invariants: no panic, no hang, and balanced visitor events.
+/// Invariants: no panic, no hang, and balanced visitor events, also when the interpretation
+/// fails.
 pub fn content(data: &[u8]) {
     let bytes = if data.starts_with(b"%PDF") {
         data.to_vec()
@@ -22,11 +23,11 @@ pub fn content(data: &[u8]) {
         return;
     };
     for page in pages.iter() {
+        // Balanced whether the interpretation succeeded or stopped with an error.
         let mut check = Balance::default();
-        if interpret_page(&doc, &page, &mut check).is_ok() {
-            assert_eq!(check.marked, 0, "every begin_marked is ended");
-            assert_eq!(check.forms, 0, "every enter_xobject is left");
-        }
+        let _ = interpret_page(&doc, &page, &mut check);
+        assert_eq!(check.marked, 0, "every begin_marked is ended");
+        assert_eq!(check.forms, 0, "every enter_xobject is left");
     }
 }
 

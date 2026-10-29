@@ -245,7 +245,8 @@ impl Limits {
     }
 
     limit_accessors! {
-        /// Hard: array/dictionary nesting depth accepted by the parser (default 256).
+        /// Hard: array/dictionary nesting depth accepted by the parser, and the graphics states
+        /// one content stream may save with `q` in `lamina-content` (default 256; ADR 0023 §4).
         max_nesting_depth, with_max_nesting_depth: usize;
         /// Hard: bytes one stream may decode to, per filter stage (default 64 MiB).
         max_stream_decoded, with_max_stream_decoded: usize;

@@ -130,6 +130,12 @@ pub fn run_content(content: &[u8]) -> (Result<Summary>, Recorder) {
     (result, rec)
 }
 
+/// Interprets the first page of `doc` with `visitor`.
+pub fn run_with<V: Visitor>(doc: &Document, visitor: &mut V) -> Result<Summary> {
+    let pages = doc.pages().unwrap();
+    interpret_page(doc, &pages.get(0).unwrap(), visitor)
+}
+
 /// A recorded `paint_path`.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct PaintPathEvent {
@@ -216,7 +222,7 @@ impl Visitor for Recorder {
         TextAdvance { tx, ty: 0.0 }
     }
 
-    fn path_segment(&mut self, segment: &PathSegment) {
+    fn path_segment(&mut self, segment: &PathSegment, _: &Matrix) {
         self.events.push(Event::Segment(*segment));
     }
 

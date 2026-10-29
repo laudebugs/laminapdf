@@ -142,7 +142,8 @@ pub enum Warning {
     /// `content-unknown-operator`: a content stream used an operator ISO 32000-2 Annex A does
     /// not define, outside a `BX`/`EX` compatibility section; it was skipped (ADR 0023).
     ContentUnknownOperator {
-        /// The content's object: the page for page content, the Form XObject for a form.
+        /// The content's object: the page for page content, the Form XObject for a form;
+        /// `None` for content interpreted on its own (`interpret_content`) or a direct page.
         object: Option<u32>,
         /// Byte offset of the operator in the decoded content.
         offset: u64,
@@ -209,6 +210,14 @@ pub enum Warning {
         /// Byte offset of the `BI` in the decoded content.
         offset: u64,
     },
+    /// `content-path-unpainted`: a content stream ended with a path that no painting operator
+    /// ended; it was dropped (ADR 0023).
+    ContentPathUnpainted {
+        /// The content's object (as for `content-unknown-operator`).
+        object: Option<u32>,
+        /// Byte offset of the path's first segment in the decoded content.
+        offset: u64,
+    },
     /// `xobject-cycle`: a Form XObject draws itself, directly or through other forms; the
     /// inner `Do` was skipped (ADR 0023).
     XObjectCycle {
@@ -250,6 +259,7 @@ impl Warning {
         "content-resource-missing",
         "inline-image-unterminated",
         "xobject-cycle",
+        "content-path-unpainted",
     ];
 
     /// The stable kebab-case code, e.g. `"xref-repaired"`.
@@ -286,6 +296,7 @@ impl Warning {
             Self::ContentResourceMissing { .. } => "content-resource-missing",
             Self::InlineImageUnterminated { .. } => "inline-image-unterminated",
             Self::XObjectCycle { .. } => "xobject-cycle",
+            Self::ContentPathUnpainted { .. } => "content-path-unpainted",
         }
     }
 
@@ -316,7 +327,8 @@ impl Warning {
             | Self::ContentUnbalancedMarked { object, .. }
             | Self::ContentSyntax { object, .. }
             | Self::ContentResourceMissing { object, .. }
-            | Self::InlineImageUnterminated { object, .. } => object,
+            | Self::InlineImageUnterminated { object, .. }
+            | Self::ContentPathUnpainted { object, .. } => object,
             Self::MissingHeader
             | Self::XrefRepaired
             | Self::XrefStmIgnored { .. }
@@ -340,7 +352,8 @@ impl Warning {
             | Self::ContentUnbalancedMarked { offset, .. }
             | Self::ContentSyntax { offset, .. }
             | Self::ContentResourceMissing { offset, .. }
-            | Self::InlineImageUnterminated { offset, .. } => Some(offset as i128),
+            | Self::InlineImageUnterminated { offset, .. }
+            | Self::ContentPathUnpainted { offset, .. } => Some(offset as i128),
             _ => None,
         };
         let detail = match *self {
@@ -468,6 +481,10 @@ mod tests {
                 offset: 0,
             },
             Warning::XObjectCycle { object: 1 },
+            Warning::ContentPathUnpainted {
+                object: None,
+                offset: 0,
+            },
         ];
         for w in &all {
             match w {
@@ -500,7 +517,8 @@ mod tests {
                 | Warning::ContentSyntax { .. }
                 | Warning::ContentResourceMissing { .. }
                 | Warning::InlineImageUnterminated { .. }
-                | Warning::XObjectCycle { .. } => {}
+                | Warning::XObjectCycle { .. }
+                | Warning::ContentPathUnpainted { .. } => {}
             }
         }
         all

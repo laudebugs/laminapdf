@@ -57,8 +57,8 @@ pub use lexer::{ContentIter, InlineImage, Issue, IssueKind, Lexed, MAX_OPERANDS,
 pub use operator::{Checked, Operand, Operator, Signature};
 pub use state::{Color, ColorSpace, Dash, FontRef, GraphicsState, Matrix, TextAdvance, TextState};
 pub use visitor::{
-    FillRule, FormXObject, ImageDraw, ImageSource, MarkedContent, Paint, PathPaint, PathSegment, ShadingPaint,
-    TextItem, TextShow, Visitor,
+    FillRule, FormXObject, GraphicsStateParams, ImageDraw, ImageSource, MarkedContent, Paint, PathPaint, PathSegment,
+    ShadingPaint, TextItem, TextShow, Visitor,
 };
 
 // The layers below, in façade order: what callers need without naming `lamina-cos`.

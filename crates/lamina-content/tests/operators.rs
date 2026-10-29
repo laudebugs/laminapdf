@@ -214,3 +214,67 @@ fn path_operators_report_segments_then_the_paint() {
         ["segment", "segment", "segment", "segment", "segment", "segment", "clip"]
     );
 }
+
+// Review round 1.
+
+/// Records each segment with the CTM it came with, and each paint.
+#[derive(Default)]
+struct Segments(Vec<(lamina_content::PathSegment, f64)>, Vec<lamina_content::Paint>);
+
+impl Visitor for Segments {
+    fn path_segment(&mut self, segment: &lamina_content::PathSegment, ctm: &lamina_content::Matrix) {
+        self.0.push((*segment, ctm.a));
+    }
+
+    fn paint_path(&mut self, paint: &PathPaint<'_>) {
+        self.1.push(paint.paint);
+    }
+}
+
+fn segments(content: &[u8]) -> Segments {
+    let doc = text_doc(b"");
+    let mut segments = Segments::default();
+    lamina_content::interpret_content(&doc, content, None, &mut segments).unwrap();
+    segments
+}
+
+#[test]
+fn v_and_y_are_expanded_to_full_curves() {
+    use lamina_content::PathSegment::CurveTo;
+    let curves: Vec<_> = segments(b"1 2 m 3 4 5 6 v 7 8 9 10 y S")
+        .0
+        .into_iter()
+        .filter_map(|(s, _)| match s {
+            CurveTo { c1, c2, end } => Some((c1, c2, end)),
+            _ => None,
+        })
+        .collect();
+    assert_eq!(
+        curves,
+        [
+            ((1.0, 2.0), (3.0, 4.0), (5.0, 6.0)),
+            ((7.0, 8.0), (9.0, 10.0), (9.0, 10.0))
+        ]
+    );
+}
+
+#[test]
+fn each_segment_carries_the_ctm_it_was_built_under() {
+    let ctms: Vec<_> = segments(b"0 0 m 2 0 0 2 0 0 cm 1 1 l S")
+        .0
+        .iter()
+        .map(|(_, a)| *a)
+        .collect();
+    assert_eq!(ctms, [1.0, 2.0]);
+}
+
+#[test]
+fn an_unpainted_path_is_discarded_at_the_end_of_the_stream() {
+    assert_eq!(segments(b"0 0 m 1 1 l").1, [lamina_content::Paint::Discarded]);
+}
+
+#[test]
+fn an_unpainted_path_warns() {
+    let (_, rec) = run_content(b"0 0 m 1 1 l");
+    assert_eq!(rec.codes(), ["content-path-unpainted"]);
+}

@@ -265,10 +265,9 @@ impl Drop for Call<'_> {
     }
 }
 
-/// Errors no tolerant path may swallow: strict-mode refusals (the caller asked for them) and
-/// input that is missing or unreadable (the call has to be retried or fail).
+/// Errors no tolerant path may swallow ([`Error::must_propagate`]).
 const fn must_propagate(e: &Error) -> bool {
-    matches!(e, Error::Strict { .. } | Error::DataPending { .. } | Error::Source(_))
+    e.must_propagate()
 }
 
 /// Encryption errors that no repair can get around: the password is wrong or missing, or the

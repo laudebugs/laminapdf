@@ -12,6 +12,14 @@
 //! * `MP`, `DP`, `BX` and `EX` emit nothing.
 //! * `'` is `nextLine` + `showText`; `"` is `setWordSpacing` + `setCharSpacing` + `nextLine` +
 //!   `showText`; `TJ` is `showText`.
+//! * `gs` is `setGState` only when the dictionary has a parameter pdf.js renders (`LW LC LJ ML
+//!   D RI FL CA ca Font BM SMask TR TR2`).
+//! * Images: an image mask (`/ImageMask`, `/IM`) is `paintImageMaskXObject`; an inline image
+//!   is `paintInlineImageXObject` only when `W + H < 200` and it has no `/SMask` or `/Mask`,
+//!   else `paintImageXObject`; an image XObject with `/SMask` is wrapped in `save`,
+//!   `setGState`, `restore`.
+//! * A form with `/OC` is wrapped in `beginMarkedContentProps`/`endMarkedContent`, one with
+//!   `/Group` in `beginGroup`/`endGroup` (inside the former).
 //! * `dependency` operators (fonts and images loaded) are not content operators: the
 //!   generator leaves them out. Annotations are excluded on both sides.
 #![allow(
@@ -26,7 +34,8 @@ mod common;
 use std::collections::BTreeMap;
 
 use common::fixtures_dir;
-use lamina_content::{FormXObject, ImageDraw, ImageSource, Op, Operator, Visitor, interpret_page};
+use lamina_content::{FormXObject, GraphicsStateParams, ImageDraw, ImageSource, Op, Operator, Visitor, interpret_page};
+use lamina_cos::Object;
 use lamina_model::{Document, OpenOptions};
 use serde_json::Value;
 
@@ -51,7 +60,6 @@ fn pdfjs_names(op: Operator<'_>) -> &'static [&'static str] {
         O::Dash => &["setDash"],
         O::RenderingIntent => &["setRenderingIntent"],
         O::Flatness => &["setFlatness"],
-        O::ExtGState => &["setGState"],
         O::Save => &["save"],
         O::Restore => &["restore"],
         O::Transform => &["transform"],
@@ -99,7 +107,7 @@ fn pdfjs_names(op: Operator<'_>) -> &'static [&'static str] {
 
 impl Visitor for PdfJsNames {
     fn operator(&mut self, op: &Op<'_>, _: usize) {
-        let pattern = matches!(op.operands.last(), Some(lamina_cos::Object::Name(_)));
+        let pattern = matches!(op.operands.last(), Some(Object::Name(_)));
         match op.operator {
             Operator::StrokeColorN if pattern => return self.add("setStrokeColorN"),
             Operator::FillColorN if pattern => return self.add("setFillColorN"),
@@ -110,19 +118,64 @@ impl Visitor for PdfJsNames {
         }
     }
 
-    fn image(&mut self, image: &ImageDraw<'_>) {
-        self.add(match image.source {
-            ImageSource::Inline(_) => "paintInlineImageXObject",
-            _ => "paintImageXObject",
-        });
+    fn set_graphics_state(&mut self, params: &GraphicsStateParams<'_>) {
+        // pdf.js keeps an ExtGState only for the parameters it renders.
+        const RENDERED: [&str; 14] = [
+            "LW", "LC", "LJ", "ML", "D", "RI", "FL", "CA", "ca", "Font", "BM", "SMask", "TR", "TR2",
+        ];
+        if RENDERED.iter().any(|key| params.dict.contains_key(key)) {
+            self.add("setGState");
+        }
     }
 
-    fn enter_xobject(&mut self, _: &FormXObject<'_>) {
+    fn image(&mut self, image: &ImageDraw<'_>) {
+        match image.source {
+            ImageSource::Inline(inline) => {
+                let get = |short: &str, long: &str| inline.dict.get(short).or_else(|| inline.dict.get(long));
+                let dimension = |short, long| get(short, long).and_then(Object::as_int).unwrap_or(0);
+                let masked = get("SMask", "SMask").is_some() || get("Mask", "Mask").is_some();
+                if matches!(get("IM", "ImageMask"), Some(Object::Bool(true))) {
+                    self.add("paintImageMaskXObject");
+                } else if !masked && dimension("W", "Width") + dimension("H", "Height") < 200 {
+                    self.add("paintInlineImageXObject");
+                } else {
+                    self.add("paintImageXObject");
+                }
+            }
+            ImageSource::XObject { stream, .. } => {
+                let dict = stream.as_dict().unwrap();
+                if matches!(dict.get("ImageMask"), Some(Object::Bool(true))) {
+                    self.add("paintImageMaskXObject");
+                } else if dict.contains_key("SMask") {
+                    for name in ["save", "setGState", "paintImageXObject", "restore"] {
+                        self.add(name);
+                    }
+                } else {
+                    self.add("paintImageXObject");
+                }
+            }
+            _ => {}
+        }
+    }
+
+    fn enter_xobject(&mut self, form: &FormXObject<'_>) {
+        if form.dict.contains_key("OC") {
+            self.add("beginMarkedContentProps");
+        }
+        if form.dict.contains_key("Group") {
+            self.add("beginGroup");
+        }
         self.add("paintFormXObjectBegin");
     }
 
-    fn leave_xobject(&mut self, _: &FormXObject<'_>) {
+    fn leave_xobject(&mut self, form: &FormXObject<'_>) {
         self.add("paintFormXObjectEnd");
+        if form.dict.contains_key("Group") {
+            self.add("endGroup");
+        }
+        if form.dict.contains_key("OC") {
+            self.add("endMarkedContent");
+        }
     }
 }
 
@@ -164,10 +217,14 @@ fn every_fixture_is_listed_in_the_pdfjs_facts() {
 }
 
 #[test]
-fn every_page_interprets_or_fails_with_a_coded_error() {
+fn every_page_interprets_or_fails_with_an_excused_error() {
+    let excused = exceptions();
     for file in expected().keys() {
         if let Err(code) = ours(file) {
-            assert!(!code.is_empty(), "{file}");
+            assert!(
+                excused.contains(&(file.clone(), code.to_owned())),
+                "{file}: {code} is not in pdfjs-exceptions.toml"
+            );
         }
     }
 }
@@ -219,5 +276,5 @@ fn the_operators_fixture_interprets_without_a_warning() {
     let doc = Document::open(bytes, OpenOptions::default().with_strict(true)).unwrap();
     let pages = doc.pages().unwrap();
     let summary = interpret_page(&doc, &pages.get(0).unwrap(), &mut PdfJsNames::default()).unwrap();
-    assert_eq!(summary.forms, 2);
+    assert_eq!(summary.forms, 4);
 }

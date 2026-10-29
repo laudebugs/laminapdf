@@ -4,15 +4,16 @@
 use std::collections::BTreeMap;
 use std::sync::Arc;
 
-use lamina_cos::{Dict, Document, Error, Limit, Limits, Name, ObjRef, Object, Result, Warning};
+use lamina_cos::{Document, Error, Limit, Limits, Name, ObjRef, Object, Result, Stream, Warning, tolerant};
+use lamina_model::Rect;
 
 use crate::lexer::{ContentIter, IssueKind, Lexed, Op};
 use crate::operator::Operator;
 use crate::resources::{self, Found};
 use crate::state::{Color, ColorSpace, Dash, FontRef, GraphicsState, Matrix};
 use crate::visitor::{
-    FillRule, FormXObject, ImageDraw, ImageSource, MarkedContent, Paint, PathPaint, PathSegment, ShadingPaint,
-    TextShow, Visitor,
+    FillRule, FormXObject, GraphicsStateParams, ImageDraw, ImageSource, MarkedContent, Paint, PathPaint, PathSegment,
+    ShadingPaint, TextShow, Visitor,
 };
 
 /// What an interpretation did.
@@ -91,19 +92,18 @@ pub fn interpret_page<V: Visitor + ?Sized>(
     Interpreter::new(doc, visitor).run_top(&content, resources, object)
 }
 
-/// Interprets decoded content bytes with `resources` (a resource dictionary), reporting to
-/// `visitor`: for content that is not a page's, such as an appearance stream, or a test.
-/// Warnings carry no object.
+/// Interprets decoded content bytes with `resources` (a resource dictionary, shared rather
+/// than copied), reporting to `visitor`: for content that is not a page's, such as an
+/// appearance stream, or a test. Warnings about this content carry no object.
 ///
 /// # Errors
 /// As [`interpret_page`], without the page decoding errors.
 pub fn interpret_content<V: Visitor + ?Sized>(
     doc: &Document,
     content: &[u8],
-    resources: Option<&Dict>,
+    resources: Option<Arc<Object>>,
     visitor: &mut V,
 ) -> Result<Summary> {
-    let resources = resources.map(|d| Arc::new(Object::Dict(d.clone())));
     Interpreter::new(doc, visitor).run_top(content, resources, None)
 }
 
@@ -125,6 +125,11 @@ struct Frame {
     compat: u64,
     /// `W`/`W*` waiting for the next painting operator.
     clip: Option<FillRule>,
+    /// Offset of the first segment of a path not painted yet.
+    path: Option<usize>,
+    /// The current point and the start of the current subpath (§8.5.2.1).
+    current: Option<(f64, f64)>,
+    subpath_start: Option<(f64, f64)>,
 }
 
 impl Frame {
@@ -140,6 +145,9 @@ impl Frame {
             marked: 0,
             compat: 0,
             clip: None,
+            path: None,
+            current: None,
+            subpath_start: None,
         }
     }
 }
@@ -151,9 +159,8 @@ struct Interpreter<'d, 'v, V: ?Sized> {
     summary: Summary,
     /// Bytes interpreted so far (forms each time they are drawn).
     bytes: u64,
-    /// Forms being drawn, outermost first (cycle detection by object identity; `None` for a
-    /// direct form, which can't be part of a cycle but counts as nesting).
-    forms: Vec<Option<ObjRef>>,
+    /// Forms being drawn, outermost first (cycle detection by object identity).
+    forms: Vec<ObjRef>,
     /// Decoded content of indirect forms, so a form drawn many times is decoded once.
     decoded: BTreeMap<ObjRef, Arc<[u8]>>,
 }
@@ -211,8 +218,7 @@ impl<'d, 'v, V: Visitor + ?Sized> Interpreter<'d, 'v, V> {
     }
 
     fn run_top(mut self, content: &[u8], resources: Option<Arc<Object>>, object: Option<u32>) -> Result<Summary> {
-        let mut frame = Frame::new(object, resources, GraphicsState::default());
-        self.run(&mut frame, content)?;
+        self.run(Frame::new(object, resources, GraphicsState::default()), content)?;
         Ok(self.summary)
     }
 
@@ -226,8 +232,21 @@ impl<'d, 'v, V: Visitor + ?Sized> Interpreter<'d, 'v, V> {
         self.forms.len()
     }
 
-    /// Interprets one content stream in `frame`.
-    fn run(&mut self, frame: &mut Frame, content: &[u8]) -> Result<()> {
+    /// Interprets one content stream in `frame`. Whatever the outcome, every marked-content
+    /// sequence it began is ended for the visitor.
+    fn run(&mut self, mut frame: Frame, content: &[u8]) -> Result<()> {
+        match self.run_ops(&mut frame, content) {
+            Ok(()) => self.finish(frame, offset_u64(content.len())),
+            Err(e) => {
+                for _ in 0..frame.marked {
+                    self.visitor.end_marked();
+                }
+                Err(e)
+            }
+        }
+    }
+
+    fn run_ops(&mut self, frame: &mut Frame, content: &[u8]) -> Result<()> {
         self.bytes = self.bytes.saturating_add(offset_u64(content.len()));
         if self.bytes > offset_u64(self.limits.max_decoded_total()) {
             return Err(Error::LimitExceeded {
@@ -258,18 +277,20 @@ impl<'d, 'v, V: Visitor + ?Sized> Interpreter<'d, 'v, V> {
                 }
             }
         }
-        self.finish(frame, offset_u64(content.len()))
+        Ok(())
     }
 
     /// Closes what a content stream left open (ADR 0023: each stream balances on its own).
-    fn finish(&mut self, frame: &mut Frame, end: u64) -> Result<()> {
+    /// Saved states need no restoring: the frame ends here.
+    fn finish(&mut self, mut frame: Frame, end: u64) -> Result<()> {
         let object = frame.object;
+        if let Some(offset) = frame.path {
+            self.discard_path(&mut frame, offset)?;
+        }
         if frame.in_text {
-            frame.in_text = false;
             self.warn(Warning::ContentUnbalancedBt { object, offset: end })?;
         }
-        if let Some(first) = frame.saved.drain(..).next() {
-            frame.gs = first;
+        if !frame.saved.is_empty() {
             self.warn(Warning::ContentUnbalancedQ { object, offset: end })?;
         }
         if frame.marked > 0 {
@@ -280,6 +301,30 @@ impl<'d, 'v, V: Visitor + ?Sized> Interpreter<'d, 'v, V> {
             self.warn(Warning::ContentUnbalancedMarked { object, offset: end })?;
         }
         Ok(())
+    }
+
+    /// Drops the unpainted path whose first segment is at `offset`.
+    fn discard_path(&mut self, frame: &mut Frame, offset: usize) -> Result<()> {
+        self.paint(frame, Paint::Discarded);
+        self.warn(Warning::ContentPathUnpainted {
+            object: frame.object,
+            offset: offset_u64(offset),
+        })
+    }
+
+    /// Reports a path segment and moves the current point.
+    fn segment(&mut self, frame: &mut Frame, op: &Op<'_>, segment: PathSegment) {
+        frame.path.get_or_insert(op.offset);
+        match segment {
+            PathSegment::MoveTo { x, y } | PathSegment::Rect { x, y, .. } => {
+                frame.current = Some((x, y));
+                frame.subpath_start = Some((x, y));
+            }
+            PathSegment::LineTo { x, y } => frame.current = Some((x, y)),
+            PathSegment::CurveTo { end, .. } => frame.current = Some(end),
+            PathSegment::ClosePath => frame.current = frame.subpath_start,
+        }
+        self.visitor.path_segment(&segment, &frame.gs.ctm);
     }
 
     fn bad_operands(&mut self, frame: &Frame, op: &Op<'_>) -> Result<()> {
@@ -375,40 +420,45 @@ impl<'d, 'v, V: Visitor + ?Sized> Interpreter<'d, 'v, V> {
             // Path construction (§8.5.2).
             Operator::MoveTo => {
                 let [x, y] = numbers::<2>(args);
-                self.visitor.path_segment(&PathSegment::MoveTo { x, y });
+                self.segment(frame, op, PathSegment::MoveTo { x, y });
             }
             Operator::LineTo => {
                 let [x, y] = numbers::<2>(args);
-                self.visitor.path_segment(&PathSegment::LineTo { x, y });
+                self.segment(frame, op, PathSegment::LineTo { x, y });
             }
             Operator::CurveTo => {
                 let [x1, y1, x2, y2, x3, y3] = numbers::<6>(args);
-                self.visitor.path_segment(&PathSegment::CurveTo {
-                    c1: Some((x1, y1)),
-                    c2: Some((x2, y2)),
+                let curve = PathSegment::CurveTo {
+                    c1: (x1, y1),
+                    c2: (x2, y2),
                     end: (x3, y3),
-                });
+                };
+                self.segment(frame, op, curve);
             }
             Operator::CurveToV => {
+                // §8.5.2.2: the first control point is the current point.
                 let [x2, y2, x3, y3] = numbers::<4>(args);
-                self.visitor.path_segment(&PathSegment::CurveTo {
-                    c1: None,
-                    c2: Some((x2, y2)),
+                let curve = PathSegment::CurveTo {
+                    c1: frame.current.unwrap_or((x2, y2)),
+                    c2: (x2, y2),
                     end: (x3, y3),
-                });
+                };
+                self.segment(frame, op, curve);
             }
             Operator::CurveToY => {
+                // §8.5.2.2: the second control point is the end point.
                 let [x1, y1, x3, y3] = numbers::<4>(args);
-                self.visitor.path_segment(&PathSegment::CurveTo {
-                    c1: Some((x1, y1)),
-                    c2: None,
+                let curve = PathSegment::CurveTo {
+                    c1: (x1, y1),
+                    c2: (x3, y3),
                     end: (x3, y3),
-                });
+                };
+                self.segment(frame, op, curve);
             }
-            Operator::ClosePath => self.visitor.path_segment(&PathSegment::ClosePath),
+            Operator::ClosePath => self.segment(frame, op, PathSegment::ClosePath),
             Operator::Rectangle => {
                 let [x, y, width, height] = numbers::<4>(args);
-                self.visitor.path_segment(&PathSegment::Rect { x, y, width, height });
+                self.segment(frame, op, PathSegment::Rect { x, y, width, height });
             }
             // Path painting (§8.5.3) and clipping (§8.5.4).
             Operator::Stroke => self.paint(frame, Paint::Stroke { close: false }),
@@ -533,8 +583,7 @@ impl<'d, 'v, V: Visitor + ?Sized> Interpreter<'d, 'v, V> {
             // Colour (§8.6.8).
             Operator::StrokeColorSpace | Operator::FillColorSpace => {
                 if let Some(n) = args.first().and_then(name) {
-                    let space = self.color_space(frame, op, n)?;
-                    let color = Color::initial(space);
+                    let color = self.color_space(frame, op, n)?;
                     if op.operator == Operator::StrokeColorSpace {
                         frame.gs.stroke = color;
                     } else {
@@ -547,10 +596,11 @@ impl<'d, 'v, V: Visitor + ?Sized> Interpreter<'d, 'v, V> {
                     Some((Object::Name(n), rest)) => (Some(n), rest),
                     _ => (None, args),
                 };
-                if let Some(n) = pattern
-                    && self.lookup(frame, "Pattern", n)?.is_none()
-                {
-                    self.missing(frame, op, "Pattern")?;
+                if let Some(n) = pattern {
+                    let found = self.lookup(frame, "Pattern", n)?;
+                    if found.is_none_or(|f| f.value.as_dict().is_none()) {
+                        self.missing(frame, op, "Pattern")?;
+                    }
                 }
                 let stroke = matches!(op.operator, Operator::StrokeColor | Operator::StrokeColorN);
                 let color = if stroke {
@@ -630,6 +680,9 @@ impl<'d, 'v, V: Visitor + ?Sized> Interpreter<'d, 'v, V> {
     }
 
     fn paint(&mut self, frame: &mut Frame, paint: Paint) {
+        frame.path = None;
+        frame.current = None;
+        frame.subpath_start = None;
         let clip = frame.clip.take();
         self.visitor.paint_path(&PathPaint {
             paint,
@@ -667,31 +720,44 @@ impl<'d, 'v, V: Visitor + ?Sized> Interpreter<'d, 'v, V> {
         Ok(())
     }
 
-    fn color_space(&mut self, frame: &Frame, op: &Op<'_>, n: &Name) -> Result<ColorSpace> {
-        Ok(match n.as_bytes() {
+    /// The colour `CS`/`cs` sets: the space and its initial colour (§8.6.8). A named space
+    /// that is missing or not a colour space keeps its name, with no components.
+    fn color_space(&mut self, frame: &Frame, op: &Op<'_>, n: &Name) -> Result<Color> {
+        let space = match n.as_bytes() {
             b"DeviceGray" => ColorSpace::DeviceGray,
             b"DeviceRGB" => ColorSpace::DeviceRgb,
             b"DeviceCMYK" => ColorSpace::DeviceCmyk,
             b"Pattern" => ColorSpace::Pattern,
             _ => {
-                if self.lookup(frame, "ColorSpace", n)?.is_none() {
-                    self.missing(frame, op, "ColorSpace")?;
+                let found = self.lookup(frame, "ColorSpace", n)?;
+                let components = match found {
+                    Some(found) => resources::initial_components(self.doc, &found.value)?,
+                    None => None,
+                };
+                let mut color = Color::initial(ColorSpace::Named(n.clone()));
+                match components {
+                    Some(components) => color.components = components,
+                    None => self.missing(frame, op, "ColorSpace")?,
                 }
-                ColorSpace::Named(n.clone())
+                return Ok(color);
             }
-        })
+        };
+        Ok(Color::initial(space))
     }
 
     /// `gs`: the `ExtGState` subset of ADR 0023 (line style, rendering intent, flatness,
-    /// opacity, font).
+    /// opacity, font); entries may be indirect.
     fn ext_gstate(&mut self, frame: &mut Frame, op: &Op<'_>, n: &Name) -> Result<()> {
         let found = self.lookup(frame, "ExtGState", n)?;
-        let Some(dict) = found.as_ref().and_then(|f| f.value.as_dict()) else {
+        let Some((object, dict)) = found.as_ref().and_then(|f| Some((f.object, f.value.as_dict()?))) else {
             return self.missing(frame, op, "ExtGState");
         };
-        let gs = &mut frame.gs;
         for (key, value) in dict.iter() {
-            match (key.as_bytes(), value) {
+            let Some(value) = resources::resolve(self.doc, value)? else {
+                continue;
+            };
+            let gs = &mut frame.gs;
+            match (key.as_bytes(), &*value) {
                 (b"LW", v) if v.as_f64().is_some() => gs.line_width = number(v),
                 (b"LC", v) if v.as_f64().is_some() => gs.line_cap = integer(v),
                 (b"LJ", v) if v.as_f64().is_some() => gs.line_join = integer(v),
@@ -707,18 +773,28 @@ impl<'d, 'v, V: Visitor + ?Sized> Interpreter<'d, 'v, V> {
                 }
                 (b"Font", Object::Array(font)) => {
                     if let [font, size] = font.as_slice() {
+                        let size = resources::number(self.doc, size)?.unwrap_or_default();
                         let dict = resources::resolve(self.doc, font)?.filter(|f| f.as_dict().is_some());
-                        gs.text.font = Some(FontRef {
+                        if dict.is_none() {
+                            self.missing(frame, op, "Font")?;
+                        }
+                        frame.gs.text.font = Some(FontRef {
                             name: None,
                             object: font.as_ref(),
                             dict,
                         });
-                        gs.text.font_size = number(size);
+                        frame.gs.text.font_size = size;
                     }
                 }
                 _ => {}
             }
         }
+        self.visitor.set_graphics_state(&GraphicsStateParams {
+            name: n,
+            object,
+            dict,
+            state: &frame.gs,
+        });
         Ok(())
     }
 
@@ -756,28 +832,29 @@ impl<'d, 'v, V: Visitor + ?Sized> Interpreter<'d, 'v, V> {
         Ok(())
     }
 
-    /// `Do` (§8.8): an image is reported, a form is run, a PostScript XObject is ignored.
+    /// `Do` (§8.8): an image is reported, a form is run, a PostScript XObject is ignored. An
+    /// XObject must be an indirect stream (§7.3.8); anything else is a missing resource.
     fn xobject(&mut self, frame: &mut Frame, op: &Op<'_>, n: &Name) -> Result<()> {
         let found = self.lookup(frame, "XObject", n)?;
-        let Some(found) = found.filter(|f| matches!(*f.value, Object::Stream(_))) else {
+        let Some((object, found)) = found.and_then(|f| Some((f.object?, f))) else {
             return self.missing(frame, op, "XObject");
         };
-        let Some(dict) = found.value.as_dict() else {
-            return Ok(());
+        let Object::Stream(stream) = &*found.value else {
+            return self.missing(frame, op, "XObject");
         };
-        match dict.get_name("Subtype") {
+        match stream.dict.get_name("Subtype") {
             Some(b"Image") => {
                 self.visitor.image(&ImageDraw {
                     source: ImageSource::XObject {
                         name: n,
-                        object: found.object,
+                        object: Some(object),
                         stream: &found.value,
                     },
                     state: &frame.gs,
                 });
                 Ok(())
             }
-            Some(b"Form") => self.form(frame, op, n, &found),
+            Some(b"Form") => self.form(frame, op, n, object, stream),
             // PostScript XObjects (§8.8.2) are ignored when rendering, and so here.
             Some(b"PS") => Ok(()),
             _ => self.missing(frame, op, "XObject"),
@@ -786,52 +863,71 @@ impl<'d, 'v, V: Visitor + ?Sized> Interpreter<'d, 'v, V> {
 
     /// Runs a Form XObject (§8.10.1): `q`, its `/Matrix` concatenated to the CTM, its content
     /// against its own resources (the parent's when it has none), `Q`.
-    fn form(&mut self, frame: &Frame, op: &Op<'_>, n: &Name, found: &Found) -> Result<()> {
-        let Object::Stream(stream) = &*found.value else {
-            return Ok(());
-        };
-        if let Some(r) = found.object
-            && self.forms.contains(&Some(r))
-        {
-            return self.warn(Warning::XObjectCycle { object: r.num });
+    fn form(&mut self, frame: &Frame, op: &Op<'_>, n: &Name, object: ObjRef, stream: &Stream) -> Result<()> {
+        if self.forms.contains(&object) {
+            return self.warn(Warning::XObjectCycle { object: object.num });
         }
         if self.forms.len() >= self.limits.max_xobject_depth() {
             return Err(Error::LimitExceeded {
                 limit: Limit::XObjectDepth,
-                at: found.object.map(|r| u64::from(r.num)),
+                at: Some(u64::from(object.num)),
             });
         }
-        let content = match found.object.and_then(|r| self.decoded.get(&r)) {
-            Some(content) => Arc::clone(content),
-            None => match resources::tolerant(self.doc.decode_stream(stream))? {
-                Some(content) => {
-                    let content: Arc<[u8]> = content.into();
-                    if let Some(r) = found.object {
-                        self.decoded.insert(r, Arc::clone(&content));
-                    }
-                    content
-                }
-                None => return self.missing(frame, op, "XObject"),
-            },
+        let content = if let Some(content) = self.decoded.get(&object) {
+            Arc::clone(content)
+        } else {
+            let Some(content) = tolerant(self.doc.decode_stream(stream))? else {
+                return self.missing(frame, op, "XObject");
+            };
+            let content: Arc<[u8]> = content.into();
+            self.decoded.insert(object, Arc::clone(&content));
+            content
         };
         let dict = &stream.dict;
-        let matrix = dict.get("Matrix").and_then(Matrix::from_object).unwrap_or_default();
-        let bbox = dict.get("BBox").and_then(|b| {
-            let values: Option<Vec<f64>> = b.as_array()?.iter().map(Object::as_f64).collect();
-            <[f64; 4]>::try_from(values?).ok()
+        let invalid = |key| Warning::InvalidEntry {
+            object: Some(object.num),
+            key,
+        };
+        let matrix = match dict.get("Matrix") {
+            None => Matrix::IDENTITY,
+            Some(m) => {
+                if let Some(values) = resources::numbers(self.doc, m, 6)? {
+                    Matrix::from_slice(&values).unwrap_or_default()
+                } else {
+                    self.warn(invalid("Matrix"))?;
+                    Matrix::IDENTITY
+                }
+            }
+        };
+        let bbox = match dict.get("BBox") {
+            Some(b) => resources::numbers(self.doc, b, 4)?,
+            None => None,
+        }
+        .and_then(|b| match *b.as_slice() {
+            [x0, y0, x1, y1] => Some(Rect::from_corners(x0, y0, x1, y1)),
+            _ => None,
         });
+        if bbox.is_none() {
+            // `/BBox` is required (§8.10.2, Table 93).
+            self.warn(invalid("BBox"))?;
+        }
         let own = match dict.get("Resources") {
-            Some(r) => resources::resolve(self.doc, r)?.filter(|r| r.as_dict().is_some()),
+            Some(r) => {
+                let own = resources::resolve(self.doc, r)?.filter(|r| r.as_dict().is_some());
+                if own.is_none() {
+                    self.warn(invalid("Resources"))?;
+                }
+                own
+            }
             None => None,
         };
         let resources = own.or_else(|| frame.resources.clone());
         let mut gs = frame.gs.clone();
         gs.ctm = matrix.multiply(&gs.ctm);
         let entry = gs.clone();
-        let object = found.object.map(|r| r.num);
         let enter = FormXObject {
             name: n,
-            object: found.object,
+            object: Some(object),
             dict,
             matrix,
             bbox,
@@ -839,10 +935,9 @@ impl<'d, 'v, V: Visitor + ?Sized> Interpreter<'d, 'v, V> {
             state: &entry,
         };
         self.visitor.enter_xobject(&enter);
-        let mut child = Frame::new(object.or(frame.object), resources, gs);
-        self.forms.push(found.object);
+        self.forms.push(object);
         self.summary.forms += 1;
-        let result = self.run(&mut child, &content);
+        let result = self.run(Frame::new(Some(object.num), resources, gs), &content);
         self.forms.pop();
         self.visitor.leave_xobject(&enter);
         result

@@ -2,7 +2,9 @@
 //! operator, over the tokens of `lamina-syntax`'s [`Lexer`].
 
 use lamina_cos::{Error, Result};
-use lamina_syntax::{Dict, Lexer, Limits, Name, Object, Parser, PdfString, StringFormat, Token, is_whitespace};
+use std::collections::VecDeque;
+
+use lamina_syntax::{Dict, Lexer, Limits, Name, Object, Parser, Token, is_whitespace};
 
 use crate::operator::Operator;
 
@@ -11,8 +13,9 @@ use crate::operator::Operator;
 /// oldest are dropped, so a run of numbers without an operator can't grow memory (ADR 0023).
 pub const MAX_OPERANDS: usize = 64;
 
-/// How many bytes after a candidate `EI` the inline-image heuristic looks at (ADR 0023).
-const EI_LOOKAHEAD: usize = 64;
+/// How many bytes after a candidate `EI` must be printable ASCII or white-space for the
+/// inline-image heuristic to accept it (pdf.js looks at 10; ADR 0023 §3).
+const EI_LOOKAHEAD: usize = 10;
 
 /// One operator and the operands read before it.
 #[derive(Debug, Clone, PartialEq)]
@@ -96,7 +99,12 @@ pub enum Lexed<'a> {
 pub struct ContentIter<'a> {
     lexer: Lexer<'a>,
     limits: Limits,
-    operands: Vec<Object>,
+    /// Operands since the previous operator: at most [`MAX_OPERANDS`], the newest.
+    operands: VecDeque<Object>,
+    /// Offset of the oldest operand in `operands`.
+    first_operand: Option<usize>,
+    /// Items read ahead (issues inside an inline-image dictionary, then the image).
+    queue: VecDeque<Lexed<'a>>,
     done: bool,
 }
 
@@ -115,7 +123,9 @@ impl<'a> ContentIter<'a> {
         Self {
             lexer: Lexer::new(content, 0),
             limits: Limits::default(),
-            operands: Vec::new(),
+            operands: VecDeque::new(),
+            first_operand: None,
+            queue: VecDeque::new(),
             done: false,
         }
     }
@@ -145,7 +155,7 @@ impl<'a> ContentIter<'a> {
     /// A skipped token: drops the operands read so far and resumes at `resume` (at least one
     /// byte past `start`).
     fn skip(&mut self, start: usize, at: usize, resume: usize) -> Step<'a> {
-        self.operands.clear();
+        self.clear_operands();
         self.lexer.set_pos(resume.max(start + 1));
         Step::Item(Self::issue(IssueKind::Syntax, at))
     }
@@ -157,27 +167,26 @@ impl<'a> ContentIter<'a> {
         let token = match self.lexer.next_token() {
             Ok(token) => token,
             Err(e @ lamina_syntax::Error::LimitExceeded { .. }) => return Err(Error::from(e)),
-            Err(lamina_syntax::Error::Syntax { offset, .. }) => return Ok(self.skip(start, offset, offset + 1)),
+            Err(lamina_syntax::Error::Syntax { offset, .. }) => {
+                // A bad hex digit: the rest of that string up to its `>` goes too, so nothing
+                // inside it is read as an operator.
+                let data = self.data();
+                let resume = if data.get(start) == Some(&b'<') && offset > start {
+                    find_byte(data, offset, b'>').map_or(data.len(), |close| close + 1)
+                } else {
+                    offset + 1
+                };
+                return Ok(self.skip(start, offset, resume));
+            }
             // An unterminated string runs to the end of the content.
             Err(_) => {
-                self.operands.clear();
+                self.clear_operands();
                 self.lexer.set_pos(self.data().len());
                 return Ok(Step::Item(Self::issue(IssueKind::Syntax, start)));
             }
         };
         Ok(match token {
             Token::Eof => Step::End,
-            Token::Integer(i) => Step::Operand(Object::Integer(i)),
-            Token::Real(r) => Step::Operand(Object::Real(r)),
-            Token::Name(n) => Step::Operand(Object::Name(Name(n))),
-            Token::LiteralString(bytes) => Step::Operand(Object::String(PdfString {
-                bytes,
-                format: StringFormat::Literal,
-            })),
-            Token::HexString(bytes) => Step::Operand(Object::String(PdfString {
-                bytes,
-                format: StringFormat::Hex,
-            })),
             Token::ArrayOpen | Token::DictOpen => {
                 let mut parser = Parser::new(self.data(), start).with_limits(&self.limits);
                 match parser.object() {
@@ -190,18 +199,31 @@ impl<'a> ContentIter<'a> {
                 }
             }
             Token::ArrayClose | Token::DictClose => self.skip(start, start, start + 1),
-            Token::Keyword(b"true") => Step::Operand(Object::Bool(true)),
-            Token::Keyword(b"false") => Step::Operand(Object::Bool(false)),
-            Token::Keyword(b"null") => Step::Operand(Object::Null),
+            Token::Keyword(keyword @ (b"true" | b"false" | b"null")) => {
+                Step::Operand(Token::Keyword(keyword).into_scalar().unwrap_or_default())
+            }
             Token::Keyword(keyword) => Step::Keyword(keyword),
+            scalar => Step::Operand(scalar.into_scalar().unwrap_or_default()),
         })
     }
 
-    fn push(&mut self, operand: Object) {
+    /// Keeps `operand`, which starts at `offset`; past [`MAX_OPERANDS`] the oldest goes.
+    fn push(&mut self, operand: Object, offset: usize) {
         if self.operands.len() >= MAX_OPERANDS {
-            self.operands.remove(0);
+            self.operands.pop_front();
         }
-        self.operands.push(operand);
+        self.operands.push_back(operand);
+        self.first_operand.get_or_insert(offset);
+    }
+
+    fn clear_operands(&mut self) {
+        self.operands.clear();
+        self.first_operand = None;
+    }
+
+    fn take_operands(&mut self) -> Vec<Object> {
+        self.first_operand = None;
+        std::mem::take(&mut self.operands).into()
     }
 
     /// Reads `<dict pairs> ID <data> EI` after the `BI` at `bi`.
@@ -221,14 +243,18 @@ impl<'a> ContentIter<'a> {
                         dict.insert(key, value);
                     }
                 }
-                // Keywords other than `ID` and skipped tokens inside the dictionary are ignored.
-                Step::Keyword(_) | Step::Item(_) => {}
+                // Skipped tokens inside the dictionary are reported before the image.
+                Step::Item(item) => self.queue.push_back(item),
+                // Keywords other than `ID` (and their place as a value) are ignored.
+                Step::Keyword(_) => key = None,
             }
         }
         let data = self.data();
-        // One white-space byte separates `ID` from the data (§8.9.7).
+        // One white-space byte separates `ID` from the data (§8.9.7); CR LF counts as one.
         let mut data_start = self.lexer.pos();
-        if data.get(data_start).copied().is_some_and(is_whitespace) {
+        if data.get(data_start..data_start + 2) == Some(b"\r\n") {
+            data_start += 2;
+        } else if data.get(data_start).copied().is_some_and(is_whitespace) {
             data_start += 1;
         }
         let Some((data_end, resume)) = image_end(data, data_start, &dict) else {
@@ -237,7 +263,7 @@ impl<'a> ContentIter<'a> {
             return Ok(Self::issue(IssueKind::InlineImageUnterminated, bi));
         };
         self.lexer.set_pos(resume);
-        Ok(Lexed::Op(Op {
+        self.queue.push_back(Lexed::Op(Op {
             operator: Operator::BeginInlineImage,
             operands,
             offset: bi,
@@ -246,7 +272,11 @@ impl<'a> ContentIter<'a> {
                 data: data.get(data_start..data_end).unwrap_or_default(),
                 data_offset: data_start,
             }),
-        }))
+        }));
+        Ok(self.queue.pop_front().unwrap_or(Lexed::Issue(Issue {
+            kind: IssueKind::Syntax,
+            offset: bi,
+        })))
     }
 }
 
@@ -254,10 +284,14 @@ impl<'a> Iterator for ContentIter<'a> {
     type Item = Result<Lexed<'a>>;
 
     fn next(&mut self) -> Option<Self::Item> {
+        if let Some(item) = self.queue.pop_front() {
+            return Some(Ok(item));
+        }
         if self.done {
             return None;
         }
         loop {
+            self.lexer.skip_whitespace();
             let start = self.lexer.pos();
             let step = match self.step() {
                 Ok(step) => step,
@@ -267,22 +301,24 @@ impl<'a> Iterator for ContentIter<'a> {
                 }
             };
             match step {
-                Step::Operand(operand) => self.push(operand),
+                Step::Operand(operand) => self.push(operand, start),
                 Step::Item(item) => return Some(Ok(item)),
                 Step::End => {
                     self.done = true;
-                    if self.operands.is_empty() {
-                        return None;
-                    }
-                    self.operands.clear();
-                    return Some(Ok(Self::issue(IssueKind::Syntax, start)));
+                    let first = self.first_operand?;
+                    self.clear_operands();
+                    return Some(Ok(Self::issue(IssueKind::Syntax, first)));
                 }
                 Step::Keyword(keyword) => {
                     let offset = self.lexer.pos() - keyword.len();
                     let operator = Operator::from_keyword(keyword);
-                    let operands = std::mem::take(&mut self.operands);
+                    let operands = self.take_operands();
                     if operator == Operator::BeginInlineImage {
-                        return Some(self.inline_image(offset, operands));
+                        let image = self.inline_image(offset, operands);
+                        if image.is_err() {
+                            self.done = true;
+                        }
+                        return Some(image);
                     }
                     return Some(Ok(Lexed::Op(Op {
                         operator,
@@ -327,26 +363,50 @@ fn is_ei(data: &[u8], at: usize) -> bool {
     data.get(at..at + 2) == Some(b"EI") && data.get(at + 2).is_none_or(|&b| !lamina_syntax::is_regular(b))
 }
 
-/// The pdf.js-style heuristic: the first `EI` preceded by white-space whose next
-/// [`EI_LOOKAHEAD`] bytes are all printable ASCII or white-space (content, not image data).
+/// The pdf.js-style heuristic (ADR 0023 §3): the first `EI` preceded by white-space whose
+/// next [`EI_LOOKAHEAD`] bytes are printable ASCII or white-space and whose next token can
+/// follow an inline image (the end, an operand, or an Annex A operator). The data ends before
+/// the end-of-line marker in front of `EI` (CR LF, or one white-space byte).
 fn heuristic_end(data: &[u8], start: usize) -> Option<(usize, usize)> {
     let mut at = start;
     while let Some(found) = data.get(at..)?.windows(2).position(|w| w == b"EI") {
         let ei = at + found;
         let preceded = ei > start && data.get(ei - 1).copied().is_some_and(is_whitespace);
-        if preceded && is_ei(data, ei) {
-            let after = data.get(ei + 2..).unwrap_or_default();
-            let plausible = after
-                .iter()
-                .take(EI_LOOKAHEAD)
-                .all(|&b| is_whitespace(b) || (0x20..0x7f).contains(&b));
-            if plausible {
-                return Some((ei - 1, ei + 2));
-            }
+        if preceded && is_ei(data, ei) && plausible_after(data.get(ei + 2..).unwrap_or_default()) {
+            let crlf = ei >= start + 2 && data.get(ei - 2..ei) == Some(b"\r\n");
+            return Some((if crlf { ei - 2 } else { ei - 1 }, ei + 2));
         }
         at = ei + 1;
     }
     None
+}
+
+/// Whether `after` (the bytes after a candidate `EI`) looks like content.
+fn plausible_after(after: &[u8]) -> bool {
+    let printable = after
+        .iter()
+        .take(EI_LOOKAHEAD)
+        .all(|&b| is_whitespace(b) || (0x20..0x7f).contains(&b));
+    if !printable {
+        return false;
+    }
+    let skip = after.iter().take_while(|&&b| is_whitespace(b)).count();
+    let rest = after.get(skip..).unwrap_or_default();
+    match rest.first() {
+        None => true,
+        Some(&b) if !lamina_syntax::is_regular(b) || b.is_ascii_digit() || matches!(b, b'+' | b'-' | b'.') => true,
+        Some(_) => {
+            let run = rest.iter().take_while(|&&b| lamina_syntax::is_regular(b)).count();
+            let keyword = rest.get(..run).unwrap_or_default();
+            matches!(keyword, b"true" | b"false" | b"null")
+                || !matches!(Operator::from_keyword(keyword), Operator::Unknown(_))
+        }
+    }
+}
+
+/// The first `byte` at or after `from`.
+fn find_byte(data: &[u8], from: usize, byte: u8) -> Option<usize> {
+    data.get(from..)?.iter().position(|&b| b == byte).map(|i| from + i)
 }
 
 /// The data length of an unfiltered inline image from `/W`, `/H`, `/BPC` and `/CS` (or
@@ -503,5 +563,89 @@ mod tests {
             })
             .collect();
         assert_eq!(operands, [1, 2]);
+    }
+
+    // Review round 1 (A1–A7).
+
+    #[test]
+    fn heuristic_accepts_an_ei_followed_by_another_inline_image_s_binary() {
+        let image = first_image(b"BI /F /DCT ID \xff\xd8 EI BI /F /DCT ID \x00\x01 EI Q");
+        assert_eq!(image.map(|i| i.data), Some(&b"\xff\xd8"[..]));
+    }
+
+    #[test]
+    fn heuristic_rejects_an_ei_followed_by_an_unknown_keyword() {
+        let image = first_image(b"BI /F /DCT ID \xff EI xyz EI Q");
+        assert_eq!(image.map(|i| i.data), Some(&b"\xff EI xyz"[..]));
+    }
+
+    #[test]
+    fn a_hard_limit_inside_an_inline_image_dictionary_ends_the_iteration() {
+        let limits = Limits::default().with_max_string_length(2);
+        let after_error = ContentIter::new(b"BI /W (abcd) ID x EI 0 0 m")
+            .with_limits(&limits)
+            .skip_while(Result::is_ok)
+            .count();
+        assert_eq!(after_error, 1);
+    }
+
+    #[test]
+    fn a_bad_hex_digit_skips_the_rest_of_the_hex_string() {
+        let ops: Vec<_> = items(b"<4G Q> 1 w")
+            .into_iter()
+            .map(|item| match item {
+                Lexed::Op(op) => op.operator.keyword().to_vec(),
+                Lexed::Issue(_) => b"issue".to_vec(),
+            })
+            .collect();
+        assert_eq!(ops, [b"issue".to_vec(), b"w".to_vec()]);
+    }
+
+    #[test]
+    fn a_syntax_issue_inside_an_inline_image_dictionary_is_reported() {
+        let issues = items(b"BI /W 1 ) /H 1 /F /DCT ID \xff EI")
+            .iter()
+            .filter(|item| {
+                matches!(
+                    item,
+                    Lexed::Issue(Issue {
+                        kind: IssueKind::Syntax,
+                        ..
+                    })
+                )
+            })
+            .count();
+        assert_eq!(issues, 1);
+    }
+
+    #[test]
+    fn crlf_after_id_is_one_separator() {
+        let image = first_image(b"BI /W 2 /H 1 /BPC 8 /CS /G ID\r\nab EI");
+        assert_eq!(image.map(|i| i.data), Some(&b"ab"[..]));
+    }
+
+    #[test]
+    fn heuristic_end_drops_a_crlf_before_ei() {
+        let image = first_image(b"BI /F /DCT ID \xff\r\nEI");
+        assert_eq!(image.map(|i| i.data), Some(&b"\xff"[..]));
+    }
+
+    #[test]
+    fn dangling_operands_are_reported_at_the_first_one() {
+        assert_eq!(
+            items(b"q 1 2"),
+            [
+                Lexed::Op(Op {
+                    operator: Operator::Save,
+                    operands: vec![],
+                    offset: 0,
+                    inline_image: None
+                }),
+                Lexed::Issue(Issue {
+                    kind: IssueKind::Syntax,
+                    offset: 2
+                })
+            ]
+        );
     }
 }

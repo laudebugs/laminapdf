@@ -69,6 +69,7 @@ Every repair or substitution the caller might care about is a `Warning`, never s
 | `content-resource-missing` | A named resource is missing, of the wrong type or unreadable, or a Form XObject's content can't be decoded | exists (B9a) |
 | `inline-image-unterminated` | No `EI` ends an inline image; the rest of the stream was skipped | exists (B9a) |
 | `xobject-cycle` | A Form XObject draws itself, directly or through others; the inner `Do` was skipped | exists (B9a) |
+| `content-path-unpainted` | A content stream ended with a path no painting operator ended; it was dropped | exists (B9a) |
 
 Encryption adds three error codes (B2b), listed in `fixtures/codes.json` with the others: `password-required` (a non-empty user password and none given), `wrong-password` (neither the user nor the owner password) and `unsupported-security-handler` (not `/Standard`, an unknown `/V`/`/R`, or an unknown crypt filter method). All three have status "exists".
 
@@ -87,7 +88,7 @@ Limits are of two kinds:
 
 | Field | Kind | Default | On exceeding | Today |
 | --- | --- | --- | --- | --- |
-| `max_nesting_depth` (arrays/dictionaries) | hard | 256 | `LimitExceeded` | `lamina_syntax::MAX_DEPTH`, `TooDeep` |
+| `max_nesting_depth` (arrays/dictionaries; saved graphics states per content stream, [ADR 0023](0023-content-stream-reading.md) §4) | hard | 256 | `LimitExceeded` | `lamina_syntax::MAX_DEPTH`, `TooDeep` |
 | `max_stream_decoded` (bytes, one stream) | hard | 64 MiB | `LimitExceeded` | `DEFAULT_MAX_DECODED`, `DecompressLimit` |
 | `max_decoded_total` (bytes decoded by one top-level call: `open`, one page's content, one save) | hard | 1 GiB | `LimitExceeded` | new |
 | `max_filter_chain` (filters per stream) | hard | 8 | `LimitExceeded` | new (qpdf caps at 25) |

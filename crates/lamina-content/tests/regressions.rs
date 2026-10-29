@@ -28,9 +28,21 @@ fn the_fixture_file_opens_with_one_page() {
     assert_eq!(doc.pages().unwrap().len(), 1);
 }
 
+const EVERY_RESOURCE: &[u8] =
+    b"/F1 9 Tf /Im1 Do /Fm1 Do /Fm2 Do /GS1 gs /Sh1 sh /Pattern cs /P1 scn /CS1 cs /P /MC1 BDC EMC";
+
 #[test]
 fn the_entry_runs_every_resource_of_the_fixture() {
-    content(b"/F1 9 Tf /Im1 Do /Fm1 Do /Fm2 Do /GS1 gs /Sh1 sh /Pattern cs /P1 scn /CS1 cs /P /MC1 BDC EMC");
+    content(EVERY_RESOURCE);
+}
+
+#[test]
+fn every_resource_of_the_fixture_is_found() {
+    let doc = lamina_model::Document::open(fixture_file(EVERY_RESOURCE), lamina_model::OpenOptions::default()).unwrap();
+    let mut rec = common::Recorder::default();
+    common::run_with(&doc, &mut rec).unwrap();
+    // Fm2 draws itself: the one warning the fixture is built to raise.
+    assert_eq!(rec.codes(), ["xobject-cycle"]);
 }
 
 #[test]

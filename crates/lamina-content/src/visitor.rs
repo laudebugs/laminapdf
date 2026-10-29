@@ -1,6 +1,7 @@
 //! The [`Visitor`] trait and the events the interpreter reports to it.
 
 use lamina_cos::Warning;
+use lamina_model::Rect;
 use lamina_syntax::{Dict, Name, ObjRef, Object};
 
 use crate::lexer::{InlineImage, Op};
@@ -26,16 +27,25 @@ pub trait Visitor {
         TextAdvance::default()
     }
 
-    /// A path construction operator (`m`, `l`, `c`, `v`, `y`, `h`, `re`), in user space (the
-    /// CTM of the following [`PathPaint`] maps it to the page).
-    fn path_segment(&mut self, segment: &PathSegment) {
-        let _ = segment;
+    /// A path construction operator (`m`, `l`, `c`, `v`, `y`, `h`, `re`), in user space, with
+    /// the CTM in effect when it ran (which maps it to the page; a `cm` in the middle of a path,
+    /// which the spec forbids but files contain, changes it for the later segments only).
+    fn path_segment(&mut self, segment: &PathSegment, ctm: &Matrix) {
+        let _ = (segment, ctm);
     }
 
     /// A path-painting operator (`S`, `s`, `f`, `F`, `f*`, `B`, `B*`, `b`, `b*`, `n`) ending
-    /// the path built by the preceding segments.
+    /// the path built by the preceding segments, or [`Paint::Discarded`] for a path its content
+    /// stream left unpainted.
     fn paint_path(&mut self, paint: &PathPaint<'_>) {
         let _ = paint;
+    }
+
+    /// `gs`: a graphics state parameter dictionary was applied (after the parameters the
+    /// [`GraphicsState`] tracks were set from it; soft masks, blend modes, overprint and the
+    /// rest are read from the dictionary).
+    fn set_graphics_state(&mut self, params: &GraphicsStateParams<'_>) {
+        let _ = params;
     }
 
     /// `sh`: a shading painted over the clip.
@@ -96,13 +106,13 @@ pub enum PathSegment {
         /// y.
         y: f64,
     },
-    /// `x1 y1 x2 y2 x3 y3 c` (`v` and `y` are expanded: their missing control point is the
-    /// current point or the end point, which the visitor knows from the previous segment).
+    /// `x1 y1 x2 y2 x3 y3 c`; `v` and `y` are expanded to it (§8.5.2.2: `v`'s first control
+    /// point is the current point, `y`'s second is the end point).
     CurveTo {
-        /// First control point (`None` for `v`: the current point).
-        c1: Option<(f64, f64)>,
-        /// Second control point (`None` for `y`: the end point).
-        c2: Option<(f64, f64)>,
+        /// First control point.
+        c1: (f64, f64),
+        /// Second control point.
+        c2: (f64, f64),
         /// End point.
         end: (f64, f64),
     },
@@ -149,6 +159,9 @@ pub enum Paint {
     },
     /// `n`: no painting (usually after `W` to set a clip).
     None,
+    /// The content stream ended (or a form was drawn) with the path unpainted: it is dropped
+    /// (`content-path-unpainted`, ADR 0023 §3).
+    Discarded,
 }
 
 /// A path-painting operator.
@@ -171,6 +184,20 @@ pub enum TextItem<'o> {
     Text(&'o [u8]),
     /// A `TJ` number: move by `−n/1000` text space units times `Tfs` (and `Th` horizontally).
     Adjust(f64),
+}
+
+/// A graphics state parameter dictionary applied by `gs` (§8.4.5).
+#[derive(Debug, Clone, Copy)]
+#[non_exhaustive]
+pub struct GraphicsStateParams<'s> {
+    /// The `/ExtGState` resource name.
+    pub name: &'s Name,
+    /// The dictionary's object, when indirect.
+    pub object: Option<ObjRef>,
+    /// The dictionary.
+    pub dict: &'s Dict,
+    /// The graphics state after the dictionary was applied.
+    pub state: &'s GraphicsState,
 }
 
 /// A text-showing operator (§9.4.3).
@@ -292,9 +319,10 @@ pub struct FormXObject<'s> {
     pub dict: &'s Dict,
     /// `/Matrix` (identity when absent or malformed).
     pub matrix: Matrix,
-    /// `/BBox` as `[llx lly urx ury]` in form space: the clip the form's content is drawn in
-    /// (noted, not applied: the interpreter does not track clipping).
-    pub bbox: Option<[f64; 4]>,
+    /// `/BBox` in form space, normalised (§7.9.5): the clip the form's content is drawn in
+    /// (noted, not applied: the interpreter does not track clipping). `None` when missing or
+    /// malformed (`invalid-entry`).
+    pub bbox: Option<Rect>,
     /// The nesting depth of this form (1 for a form drawn by the page's own content).
     pub depth: usize,
     /// The graphics state the form starts with (its matrix applied to the CTM).

@@ -51,10 +51,20 @@ BX 1 2 unknownop EX
 q 20 0 0 20 300 300 cm BI /W 2 /H 2 /BPC 8 /CS /G ID \x00\x80\x80\xff EI Q
 q 30 0 0 30 350 300 cm /Im1 Do Q
 q /Fm1 Do Q
+/GS2 gs
+q 150 0 0 60 0 0 cm BI /W 150 /H 60 /BPC 1 /CS /G ID BIGDATA EI Q
+q 8 0 0 2 0 0 cm BI /IM true /W 8 /H 2 ID \x0f\xf0 EI Q
+q 8 0 0 2 0 0 cm /Mask8 Do /Mask1 Do /Soft Do Q
+q /Grouped Do /Optional Do Q
 """
 
 INNER = b"0 0 1 1 re f BT /F1 8 Tf (inner) Tj ET"
 FORM = b"q 5 0 0 5 0 0 cm /Fm2 Do Q /Im1 Do /P <</MCID 1>> BDC BT /F1 9 Tf (form) Tj ET EMC"
+
+
+# 150 x 60 at 1 bit per pixel: 19 bytes per row (§8.9.7: inline images over 4 KB are not
+# allowed, so this one stays at 1,140 bytes); w + h >= 200, which pdf.js does not inline.
+PAGE = PAGE.replace(b"BIGDATA", b"\x55" * (19 * 60))
 
 
 def stream(entries, data):
@@ -66,11 +76,12 @@ OBJECTS = {
     2: b"<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
     3: b"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R /Resources 5 0 R >>",
     4: stream(b"", PAGE),
-    5: b"""<< /Font << /F1 6 0 R >> /XObject << /Im1 7 0 R /Fm1 8 0 R >>
-   /ExtGState << /GS1 << /Type /ExtGState /CA 0.5 /ca 0.5 /LW 1 >> >>
+    5: b"""<< /Font << /F1 6 0 R >> /XObject << /Im1 7 0 R /Fm1 8 0 R /Mask8 14 0 R /Mask1 15 0 R /Soft 16 0 R
+     /Grouped 17 0 R /Optional 18 0 R >>
+   /ExtGState << /GS1 << /Type /ExtGState /CA 0.5 /ca 0.5 /LW 1 >> /GS2 << /Type /ExtGState /OP true >> >>
    /ColorSpace << /CS1 [/Indexed /DeviceRGB 1 <000000FFFFFF>] >>
    /Pattern << /P1 10 0 R >> /Shading << /Sh1 11 0 R >>
-   /Properties << /MC1 << /Type /OCG /Name (Layer) >> >> >>""",
+   /Properties << /MC1 13 0 R >> >>""",
     6: b"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
     7: stream(b"/Type /XObject /Subtype /Image /Width 2 /Height 2 /ColorSpace /DeviceGray /BitsPerComponent 8",
               b"\x00\x80\x80\xff"),
@@ -80,6 +91,14 @@ OBJECTS = {
     10: b"<< /PatternType 2 /Shading 11 0 R >>",
     11: b"<< /ShadingType 2 /ColorSpace /DeviceRGB /Coords [0 0 100 0] /Function 12 0 R >>",
     12: b"<< /FunctionType 2 /Domain [0 1] /C0 [1 0 0] /C1 [0 0 1] /N 1 >>",
+    13: b"<< /Type /OCG /Name (Layer) >>",
+    14: stream(b"/Type /XObject /Subtype /Image /Width 8 /Height 2 /ImageMask true", b"\x0f\xf0"),
+    15: stream(b"/Type /XObject /Subtype /Image /Width 1 /Height 1 /ImageMask true", b"\x80"),
+    16: stream(b"/Type /XObject /Subtype /Image /Width 2 /Height 2 /ColorSpace /DeviceGray /BitsPerComponent 8"
+               b" /SMask 7 0 R", b"\x00\x80\x80\xff"),
+    17: stream(b"/Type /XObject /Subtype /Form /BBox [0 0 10 10]"
+               b" /Group << /Type /Group /S /Transparency >>", b"0 0 5 5 re f"),
+    18: stream(b"/Type /XObject /Subtype /Form /BBox [0 0 10 10] /OC 13 0 R", b"0 0 5 5 re f"),
 }
 
 

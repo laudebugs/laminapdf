@@ -65,7 +65,7 @@ Read what is drawn on a page. A tolerant tokenizer and a read-only interpreter w
 - [x] Fuzz target `content` runs 10 min locally (`cargo xtask fuzz content --time 600`) without a panic; summary in the PR (2026-10-29, macOS arm64: 187,564 runs in 601 s from 20 seeds, coverage 3,942 → 6,094 edges, corpus 2,780 inputs, peak RSS 468 MB, no crash, no timeout)
 - [x] ADR 0023 Accepted
 
-Other deviations: three warning codes beyond the six listed (`content-unbalanced-marked`, `content-syntax`, `content-resource-missing`), all `lamina_cos::Warning` variants so they reach the document's list and strict mode (ADR 0023 §5). `max_decoded_total` also bounds the bytes interpreted (forms counted each time they are drawn), next to the operator fuel (ADR 0023 §4). `clippy.toml` gained the spec names `XObject`, `ExtGState`, `DeviceGray`/`RGB`/`CMYK`/`N` and `ICCBased` as doc idents.
+Other deviations: four warning codes beyond the six listed (`content-unbalanced-marked`, `content-syntax`, `content-resource-missing`, `content-path-unpainted`, the last from review round 1), all `lamina_cos::Warning` variants so they reach the document's list and strict mode (ADR 0023 §5). `max_decoded_total` also bounds the bytes interpreted (forms counted each time they are drawn), next to the operator fuel (ADR 0023 §4). `clippy.toml` gained the spec names `XObject`, `ExtGState`, `DeviceGray`/`RGB`/`CMYK`/`N` and `ICCBased` as doc idents.
 
 ## Post-merge checks
 

@@ -292,3 +292,172 @@ fn a_named_colour_space_needs_its_resource() {
     let (_, rec) = run_content(b"/CS9 cs 0.5 sc");
     assert_eq!(rec.codes(), ["content-resource-missing"]);
 }
+
+// Review round 1.
+
+fn fill_after(
+    build: impl FnOnce(&mut lamina_cos::Writer) -> lamina_cos::Dict,
+    content: &[u8],
+) -> (Vec<f64>, Vec<&'static str>) {
+    let doc = common::page_doc(|w| (content.to_vec(), build(w)));
+    let pages = doc.pages().unwrap();
+    let mut paints = Paints::default();
+    let mut rec = Recorder::default();
+    interpret_page(&doc, &pages.get(0).unwrap(), &mut paints).unwrap();
+    interpret_page(&doc, &pages.get(0).unwrap(), &mut rec).unwrap();
+    (paints.0.first().unwrap().fill.components.clone(), rec.codes())
+}
+
+fn color_spaces(space: lamina_cos::Object) -> lamina_cos::Dict {
+    common::dict([("ColorSpace", common::dict([("CS1", space)]).into())])
+}
+
+#[test]
+fn an_indexed_space_starts_at_index_0() {
+    use lamina_cos::Object;
+    let space = vec![
+        Object::name("Indexed"),
+        Object::name("DeviceRGB"),
+        0.into(),
+        Object::String(lamina_cos::PdfString::hex(vec![0, 0, 0])),
+    ];
+    let (components, _) = fill_after(|_| color_spaces(space.into()), b"/CS1 cs n");
+    assert_eq!(components, [0.0]);
+}
+
+#[test]
+fn a_separation_space_starts_at_tint_1() {
+    use lamina_cos::Object;
+    let space = vec![
+        Object::name("Separation"),
+        Object::name("Spot"),
+        Object::name("DeviceCMYK"),
+        Object::Null,
+    ];
+    let (components, _) = fill_after(|_| color_spaces(space.into()), b"/CS1 cs n");
+    assert_eq!(components, [1.0]);
+}
+
+#[test]
+fn a_devicen_space_starts_at_tint_1_per_colourant() {
+    use lamina_cos::Object;
+    let names = vec![Object::name("A"), Object::name("B"), Object::name("C")];
+    let space = vec![
+        Object::name("DeviceN"),
+        names.into(),
+        Object::name("DeviceCMYK"),
+        Object::Null,
+    ];
+    let (components, _) = fill_after(|_| color_spaces(space.into()), b"/CS1 cs n");
+    assert_eq!(components, [1.0, 1.0, 1.0]);
+}
+
+#[test]
+fn an_icc_space_starts_at_zero_per_component() {
+    use lamina_cos::{Object, Stream};
+    let (components, _) = fill_after(
+        |w| {
+            let profile = w.add(Stream::new(common::dict([("N", 4.into())]), vec![0]));
+            color_spaces(vec![Object::name("ICCBased"), profile.into()].into())
+        },
+        b"/CS1 cs n",
+    );
+    assert_eq!(components, [0.0; 4]);
+}
+
+#[test]
+fn a_named_space_that_is_not_a_space_warns() {
+    let (_, codes) = fill_after(|_| color_spaces(7.into()), b"/CS1 cs n");
+    assert_eq!(codes, ["content-resource-missing"]);
+}
+
+#[test]
+fn a_pattern_resource_that_is_not_a_pattern_warns() {
+    let (_, codes) = fill_after(
+        |_| common::dict([("Pattern", common::dict([("P1", 7.into())]).into())]),
+        b"/Pattern cs /P1 scn n",
+    );
+    assert_eq!(codes, ["content-resource-missing"]);
+}
+
+#[test]
+fn ext_gstate_entries_may_be_indirect() {
+    let states = paint_states(|w| {
+        let width = w.add(lamina_cos::Object::Integer(5));
+        let gs = common::dict([("LW", width.into())]);
+        (
+            b"/GS1 gs S".to_vec(),
+            common::dict([("ExtGState", common::dict([("GS1", gs.into())]).into())]),
+        )
+    });
+    assert_eq!(states.first().map(|s| s.line_width), Some(5.0));
+}
+
+#[test]
+fn an_ext_gstate_font_that_is_missing_warns() {
+    let doc = common::page_doc(|w| {
+        let missing = w.reserve();
+        let gs = common::dict([("Font", vec![missing.into(), 12.into()].into())]);
+        w.set(missing, lamina_cos::Object::Null);
+        (
+            b"/GS1 gs".to_vec(),
+            common::dict([("ExtGState", common::dict([("GS1", gs.into())]).into())]),
+        )
+    });
+    let (_, rec) = common::run(&doc);
+    assert_eq!(rec.codes(), ["content-resource-missing"]);
+}
+
+#[test]
+fn a_missing_font_keeps_its_name() {
+    let doc = text_doc(b"BT /F9 9 Tf (a) Tj ET");
+    let (_, rec) = common::run(&doc);
+    let Some(Event::Show { font, .. }) = rec.shows().first().copied() else {
+        panic!("one show")
+    };
+    assert_eq!(font.as_deref(), Some(&b"F9"[..]));
+}
+
+#[test]
+fn text_shown_outside_bt_is_still_reported() {
+    let (_, rec) = run_content(b"(a) Tj");
+    assert_eq!(rec.shows().len(), 1);
+}
+
+#[test]
+fn a_stray_et_warns() {
+    let (_, rec) = run_content(b"ET");
+    assert_eq!(rec.codes(), ["content-unbalanced-bt"]);
+}
+
+#[test]
+fn q_and_cm_inside_bt_run_without_a_warning() {
+    let (_, rec) = run_content(b"BT q 2 0 0 2 0 0 cm (a) Tj Q (b) Tj ET");
+    let ctms: Vec<_> = rec
+        .shows()
+        .iter()
+        .filter_map(|e| match e {
+            Event::Show { ctm, .. } => Some(ctm.a),
+            _ => None,
+        })
+        .collect();
+    assert_eq!((ctms, rec.codes()), (vec![2.0, 1.0], vec![]));
+}
+
+#[test]
+fn a_missing_ext_gstate_is_skipped_with_a_warning() {
+    let (_, rec) = run_content(b"/GS9 gs");
+    assert_eq!(rec.codes(), ["content-resource-missing"]);
+}
+
+#[test]
+fn a_missing_shading_is_skipped_with_a_warning() {
+    let (_, rec) = run_content(b"/Sh9 sh");
+    assert_eq!((rec.events.len(), rec.codes()), (0, vec!["content-resource-missing"]));
+}
+
+#[test]
+fn a_stray_id_is_content_syntax() {
+    let (_, rec) = run_content(b"ID");
+    assert_eq!(rec.codes(), ["content-syntax"]);
+}

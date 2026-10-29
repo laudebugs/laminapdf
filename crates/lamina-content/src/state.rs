@@ -81,10 +81,14 @@ impl Matrix {
         }
     }
 
-    /// The matrix in a PDF array of six numbers (a `/Matrix` entry), if it is one.
+    /// The matrix in a direct PDF array of six finite numbers, if it is one.
     #[must_use]
     pub fn from_object(object: &Object) -> Option<Self> {
-        let values: Option<Vec<f64>> = object.as_array()?.iter().map(Object::as_f64).collect();
+        let values: Option<Vec<f64>> = object
+            .as_array()?
+            .iter()
+            .map(|v| v.as_f64().filter(|v| v.is_finite()))
+            .collect();
         Self::from_slice(&values?)
     }
 }

@@ -75,7 +75,7 @@ fn saved_states_past_the_nesting_limit_fail() {
 
 #[test]
 fn bytes_interpreted_at_the_limit_succeed() {
-    // The page content (5 bytes) plus a 6-byte form drawn twice: 17 bytes interpreted.
+    // The page content (11 bytes) plus a 6-byte form drawn twice: 23 bytes interpreted.
     let content = b"/X Do /X Do";
     let doc = page_doc_with(
         with(Limits::default().with_max_decoded_total(content.len() + 12)),
@@ -117,7 +117,7 @@ fn a_string_operand_past_the_length_limit_fails() {
 
 #[test]
 fn an_unbalanced_restore_is_ignored_with_a_warning() {
-    let doc = page_doc_with(OpenOptions::default(), |_| (b"Q 0 0 m".to_vec(), Dict::new()));
+    let doc = page_doc_with(OpenOptions::default(), |_| (b"Q 0 0 m n".to_vec(), Dict::new()));
     let (result, rec) = run(&doc);
     assert_eq!((result.is_ok(), rec.codes()), (true, vec!["content-unbalanced-q"]));
 }
@@ -158,4 +158,10 @@ fn a_nested_bt_warns() {
     let doc = page_doc_with(OpenOptions::default(), |_| (b"BT BT ET".to_vec(), Dict::new()));
     let (_, rec) = run(&doc);
     assert_eq!(rec.codes(), ["content-unbalanced-bt"]);
+}
+
+#[test]
+fn a_string_operand_at_the_length_limit_succeeds() {
+    let limits = Limits::default().with_max_string_length(12);
+    assert!(run_with(limits, b"BT (abcdefghijkl) Tj ET").is_ok());
 }
