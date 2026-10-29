@@ -232,8 +232,6 @@ Four rules hold across the area:
 - *Inspector*: quoted text; **Text shown in the box** (overlay text, optional); **Box colour** (Black, White); **Also found** (where the same text appears in other layers, removed on apply); note "Marked, not removed."; **Reject**, **Delete mark** (danger ghost).
 - *Preview result* (tweak `preview` on the artboard): marks render as solid boxes and the text under them is hidden, exactly as Apply would draw them; the page is read-only while previewing.
 
-*Drawn sample* (G08-redact-mode): 11 marks. Page 2: "R. Osei, case lead" (accepted). Page 23: the card number (selected, with the inspector), four tenant emails, the NI number and an area over the bathroom-ceiling photo (accepted); the tenant names Joan Whitfield and Samir Haddad (to review, dashed); "East region" (rejected: dashed `muted` outline on the page, struck through in the list). The selected list row uses `accent-tint` with an inset `accent` edge; the board's focus ring is on **Next to review**.
-
 **States.** No marks: the Review tab shows the empty state "Nothing marked yet" with "Select text and choose Mark text, or use Find sensitive"; Apply is disabled ("Mark something first"). Area marks over images show the pixel area that will be blanked. A mark that touches a signature appearance shows a warning row.
 
 **Behaviour.** Mark text works on the current selection or as a drag tool; Mark area draws a rectangle (keyboard alternative: "Mark area…" asks for the region with arrow keys from a starting box). Each mark is one `MarkRedaction` op (class Annotation, saves incrementally; a violation on certified P1/P2 files, which raises the constraint banner). Accept/Reject is review state stored with the mark; Reject keeps it visible but excluded from Apply; Delete mark removes it.
@@ -255,8 +253,6 @@ Four rules hold across the area:
 **Layout.** Desktop window. Redact toolbar with Find sensitive… pressed; the rail (320 px) holds the search; canvas page 23 with every match tinted (`selection-tint` with an `accent` underline), the current match ringed; status bar "Match 1 of 7".
 
 **Content and controls.** **Words or pattern** input + **Regular expression** checkbox; **Patterns (UK)** checklist with counts (locale follows Settings); **Look in** checklist ("Text recognised in scans" disabled with "This file has no recognised text. Run Recognise text first."); **7 matches** with **Select all**, rows of match text + where it was found, each with a checkbox; the hint "Patterns don’t find names. Type a name above, or use Mark text."; footer "7 of 7 selected" + **Mark 7 selected** (primary).
-
-*Drawn sample* (G09-sensitive-search): the four tenant emails are already marked (shown as accepted marks on the page), so **Email addresses** is unticked with "4 already marked". The 7 matches are the four phone numbers in the table (the first is current, ringed, and its row has `accent-tint`), the card number, the NI number and a postcode in R. Osei's comment on page 23 (listed with its location, not visible on the page). Bank accounts and IBANs: 0. Look in: Page text, Comments, Form fields, Document information, Bookmarks (all ticked).
 
 **States.** No matches: "No matches for these patterns" in the results area. Invalid regex: error under the input ("This pattern isn’t valid: missing closing bracket"). Searching a large file: indeterminate progress under Look in, results stream in. After marking: toast "7 marks added · Undo" and the Review tab shows them as "to review".
 
@@ -283,8 +279,6 @@ Four rules hold across the area:
 - *Report* (G10-verification-report): what was checked in one sentence ("searched the rewritten file for each redacted text in every layer, rendered each changed page and compared it with the marks"); one row per check with a badge: Page text · Text positions · How the pages look · Images and drawings · Comments and form fields · Document information · Bookmarks, links and page labels · Accessibility tags and alt text · Earlier versions · Attachments; a failing row expands with the cause and the fix (**Remove attachment**, **Show it**); **Check again**, **Export report…**.
 - *Save blocked*: Save in the top bar is disabled with `aria-describedby` pointing at the banner text "Saving is blocked: 1 leak found. The attachment case-notes.xlsx still contains “j.whitfield@example.org”." with **Remove attachment**.
 
-*Drawn sample*: the confirm dialog lists 10 marks on pages 2 and 23 (the rejected "East region" left as it is) with a `warning` "Not reviewed" badge and "Review them first"; other places the text is removed (2 comments, accessibility tags, document information); the rewrite dropping 3 earlier versions; with `signed` on, a `warning-tint` notice "Removes 1 signature. Amara Okafor (Chair), signed with a certificate on 27 Oct 2026…". The report shows 9 rows "Passed" (each with how it was checked, e.g. "Rendered pages 2 and 23 and compared each box with its mark.") and the Attachments row expanded with "Leak found": "case-notes.xlsx (48 KB) still contains “j.whitfield@example.org”…" and the fix. The page shows solid `#1F1D1A` boxes where the marks were. Focus ring on the Attachments row's disclosure button. Top bar: "Redactions applied · not saved", Save `aria-disabled` (kept focusable so its reason can be read).
-
 **States.** Applying/checking: the panel shows each check with a neutral "Checking…" badge and an overall progress bar. All passed: positive notice "All 10 checks passed. Nothing you redacted can be found in the file." and Save enabled; saving writes one revision (then signing, if pending, adds a second, ADR 0007 §4). Leak found: drawn. An image that can’t be decoded: the check fails with "lamina can’t edit this image; remove it or mark the whole image".
 
 **Behaviour.** `ApplyRedactions` is a barrier op requiring a rewrite; one undo step restores the marks until saving. Fix actions (Remove attachment) add their own op and re-run the checks automatically. The report is kept with the session and exportable as JSON; it is not written into the PDF.
@@ -304,10 +298,6 @@ Four rules hold across the area:
 **Entry points.** Tapping an empty signature field; More → **Sign** (`sign.open-sheet`); the bottom bar's Annotate entry when the file has signature fields.
 
 **Layout.** Phone shell (390×844). *Sign sheet* (G11-phone-sign-sheet) at the medium detent over page 24, the target field outlined above it: header "Sign · Chair field" + close; **Add a signature image** with its sentence, two saved signatures as 64 px tiles, **New signature: draw, type or photo** (opens G01 phone); divider; **Sign with a certificate** with its sentence and **Choose a certificate…** ("1 on this device", opens G02 as a large-detent sheet). *Placing* (G11-phone-sign-place): the image fitted to the field with the selection outline and two `accent` handle dots; the top bar subtitle "1 unsaved change" and a **Save** text button replace the overflow; a hint "Drag to move, pinch to resize, or use the buttons below. This is a picture of your signature, not a digital signature."; a bottom action bar **Move…** · **Smaller** · **Larger** · **Delete** · **Done**.
-
-**Content and controls.**
-- *Sign sheet*: grabber (**Resize sheet**), title "Sign · Chair field", **Close**. Section **Add a signature image** (icon, title, "Puts a picture of your signature on the page; it doesn’t prove who signed."), two saved-signature tiles ("Use saved signature: drawn", "Use saved signature: typed"), **New signature: draw, type or photo** (`sign.add-signature-image`, opens G01 phone). Divider. Section **Sign with a certificate** ("Proves who signed and shows any change made after signing."), **Choose a certificate…** with "1 on this device" (`sign.with-certificate`, opens G02 as a sheet). The page behind keeps the Chair field outlined (target, not focus). Focus ring on Choose a certificate….
-- *Placing*: top bar subtitle "1 unsaved change", **Save** text button (44 px) in place of More; the placed image with a 1.5 px `accent` selection outline and two 12 px `accent` handle dots (top-left, bottom-right); the hint note under the page; action bar (`role="toolbar"`, "Signature image"): **Move…** · **Smaller** · **Larger** · **Delete** (`danger`) · **Done** (`accent`, focus ring). Tweak `saved` on the artboard: subtitle back to "Page 24 · Board approval", More returns, the reader bottom bar returns and a "Saved" toast shows above it.
 
 **States.** No saved signatures: the tiles are replaced by **New signature** as the first, larger button. Saved: toast "Saved" above the bottom bar, the bottom bar returns. Certificate signing finished: badge in the header subtitle ("Signed · Signature valid").
 
@@ -358,27 +348,3 @@ Components this area adds to the design language (proposed; add them to [design-
 | File | `<path d="M6.5 3.5h7l4 4v13h-11z"></path><path d="M13.5 3.5v4h4"></path>` |
 | Delete (bin) | `<path d="M5 7h14M10 7V5h4v2M7 7l1 12.5h8L17 7"></path>` |
 | Move | `<path d="M12 4v16M4 12h16M12 4l-2.5 2.5M12 4l2.5 2.5M12 20l-2.5-2.5M12 20l2.5-2.5M4 12l2.5-2.5M4 12l2.5 2.5M20 12l-2.5-2.5M20 12l-2.5 2.5"></path>` |
-
-## Proposed design-language additions
-
-To be merged centrally into the design language. The components above are proposed too; this section lists the shell and token changes they rely on.
-
-### §8.1 toolbars
-
-- **Redact** (a tool of Edit, replacing Edit's toolbar, like Protect): "Redact" title with the Redact icon · **Mark text** · **Mark area** · **Find sensitive…** │ **Preview result** (toggle) · flexible space · state text ("11 marks · nothing removed yet", after applying "10 redactions applied · undo with ⌘Z until you save") · **Apply redactions…** (secondary, hidden after applying) · **Done**. Every tool button has a 16 px icon and label.
-- **Rail in Redact:** tabs Pages · **Review** · **Find sensitive** (the two contextual tabs take the second and third slots while Redact is open).
-- **Inspector width for reports:** the docked report panels are 340 px (sanitise) and 360 px (verification report), wider than the 288 px inspector, because each row carries a sentence on how it was checked.
-
-### Commands
-
-`redact.open`, `redact.mark-selection`, `redact.find-sensitive`, `redact.apply`, `security.sanitise`, `sign.add-signature-image`, `sign.with-certificate`, `sign.open-sheet`. None has a shortcut: redaction, sanitising and signing are deliberate, and the design language reserves single keys for reading and commenting.
-
-### Patterns
-
-- **Marked is not removed** (§8 pattern): any state that keeps the original content in the file says so in words where the user acts (toolbar state text, inspector note, status bar), and the word "redacted" appears only after Apply and a passing report.
-- **Blocked save** (extends §7.13): when a report finds a problem the user must fix before saving, Save stays visible but `aria-disabled="true"` with `aria-describedby` on the danger banner's text; the banner carries the fix button. Save re-enables as soon as a re-run passes.
-- **Destructive confirm lists consequences** (extends the dialog pattern): an `alertdialog` with initial focus on Cancel and a list of consequences, each with an 18 px icon; the signatures it will remove are named in a `warning-tint` notice; the danger-filled button repeats the count ("Apply 10 redactions").
-
-### Tokens
-
-None new. The area uses the proposed `warning`, `warning-tint`, `danger-tint` and `positive-tint`, and `#1F1D1A` (`text`) for redaction boxes, already listed in the design language.
