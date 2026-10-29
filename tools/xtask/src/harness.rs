@@ -8,6 +8,7 @@
 use std::ffi::OsStr;
 use std::fs;
 use std::path::{Path, PathBuf};
+use std::process::Command;
 
 use anyhow::{Context, Result, bail};
 
@@ -188,6 +189,9 @@ pub(crate) fn fuzz(ws: &Workspace, task: &FuzzTask<'_>) -> Result<()> {
             let corpus = seeds(ws, target)?;
             let corpus = corpus.to_string_lossy().into_owned();
             let max_time = format!("-max_total_time={seconds}");
+            // cargo-fuzz defaults to the triple it was built for, which for prebuilt binaries
+            // is musl (no sanitizer support): name the nightly toolchain's host explicitly.
+            let host = nightly_host()?;
             // fuzz/ is its own nightly workspace (ADR 0018); `+nightly` overrides the root pin.
             run(
                 &ws.root,
@@ -196,6 +200,8 @@ pub(crate) fn fuzz(ws: &Workspace, task: &FuzzTask<'_>) -> Result<()> {
                     "+nightly",
                     "fuzz",
                     "run",
+                    "--target",
+                    &host,
                     target,
                     &corpus,
                     "--",
@@ -206,6 +212,25 @@ pub(crate) fn fuzz(ws: &Workspace, task: &FuzzTask<'_>) -> Result<()> {
             )
         }
     }
+}
+
+/// The host triple of the nightly toolchain (`rustc +nightly -vV`).
+fn nightly_host() -> Result<String> {
+    let output = Command::new("rustc")
+        .args(["+nightly", "-vV"])
+        .output()
+        .context("running `rustc +nightly -vV`; is the nightly toolchain installed?")?;
+    if !output.status.success() {
+        bail!("`rustc +nightly -vV` failed: run `rustup toolchain install nightly --profile minimal`");
+    }
+    host_triple(&String::from_utf8_lossy(&output.stdout)).context("no `host:` line in `rustc +nightly -vV`")
+}
+
+fn host_triple(version: &str) -> Option<String> {
+    version
+        .lines()
+        .find_map(|line| line.strip_prefix("host: "))
+        .map(|h| h.trim().to_owned())
 }
 
 /// Builds `fuzz/corpus/<target>/` (gitignored) from the shared fixtures, the target's
@@ -360,6 +385,12 @@ mod tests {
     fn fuzz_seeds_take_an_optional_target() {
         let a = args(&["seeds", "page_tree"]);
         assert_eq!(parse_fuzz_args(&a).unwrap(), FuzzTask::Seeds(Some("page_tree")));
+    }
+
+    #[test]
+    fn host_triple_reads_the_host_line() {
+        let out = "rustc 1.99.0-nightly\nbinary: rustc\nhost: x86_64-unknown-linux-gnu\nrelease: 1.99.0\n";
+        assert_eq!(host_triple(out).as_deref(), Some("x86_64-unknown-linux-gnu"));
     }
 
     #[test]
