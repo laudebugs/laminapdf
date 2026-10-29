@@ -138,13 +138,13 @@ impl fmt::Display for Limit {
 /// | [`max_xref_sections`](Self::max_xref_sections) | soft | 4,096 |
 /// | [`max_object_number`](Self::max_object_number) | soft | 8,388,607 |
 /// | [`max_warnings`](Self::max_warnings) | soft | 1,000 |
-/// | [`max_content_operators`](Self::max_content_operators) | hard (reserved) | 10,000,000 |
-/// | [`max_xobject_depth`](Self::max_xobject_depth) | hard (reserved) | 32 |
+/// | [`max_content_operators`](Self::max_content_operators) | hard | 10,000,000 |
+/// | [`max_xobject_depth`](Self::max_xobject_depth) | hard | 32 |
 /// | [`max_image_pixels`](Self::max_image_pixels) | hard (reserved) | 2^28 |
 /// | [`max_read_window`](Self::max_read_window) | hard | 256 MiB |
 ///
 /// Reserved limits are part of the API now so they can be configured once, but nothing
-/// enforces them until the feature they bound lands (content interpretation, image decoding).
+/// enforces them until the feature they bound lands (image decoding).
 ///
 /// [ADR 0003]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0003-reader-tolerance-and-limits.md
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -245,7 +245,8 @@ impl Limits {
     }
 
     limit_accessors! {
-        /// Hard: array/dictionary nesting depth accepted by the parser (default 256).
+        /// Hard: array/dictionary nesting depth accepted by the parser, and the graphics states
+        /// one content stream may save with `q` in `lamina-content` (default 256; ADR 0023 §4).
         max_nesting_depth, with_max_nesting_depth: usize;
         /// Hard: bytes one stream may decode to, per filter stage (default 64 MiB).
         max_stream_decoded, with_max_stream_decoded: usize;
@@ -274,9 +275,11 @@ impl Limits {
         /// Soft: warnings kept per document; later ones are dropped after one
         /// `warnings-truncated` warning (default 1,000).
         max_warnings, with_max_warnings: usize;
-        /// Hard, reserved: operators per content stream (default 10,000,000; ADR 0023).
+        /// Hard: operators read by one content-stream interpretation (`lamina-content`), the
+        /// page's and every Form XObject's each time it is drawn (default 10,000,000; ADR 0023).
         max_content_operators, with_max_content_operators: u64;
-        /// Hard, reserved: nesting of Form `XObject`s, patterns and Type 3 glyphs (default 32; ADR 0023).
+        /// Hard: Form `XObject`s drawn at once by `lamina-content`; patterns and Type 3 glyphs
+        /// too once they are interpreted (default 32; ADR 0023).
         max_xobject_depth, with_max_xobject_depth: usize;
         /// Hard, reserved: pixels in one decoded image (default 2^28).
         max_image_pixels, with_max_image_pixels: u64;

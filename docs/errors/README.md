@@ -1,6 +1,6 @@
 # Error and warning codes
 
-One page per code in [`fixtures/codes.json`](../../fixtures/codes.json), as [ADR 0026](../decisions/0026-error-and-diagnostic-contract.md) §6 requires. Every `docsUrl` points here. A PR that adds a code adds its page. [L1b](../todos/ready/L1b-error-contract-codegen.md) expands the pages and checks the list against `codes.json`.
+One page per code in [`fixtures/codes.json`](../../fixtures/codes.json), as [ADR 0026](../decisions/0026-error-and-diagnostic-contract.md) §6 requires. Every `docsUrl` points here. A PR that adds a code adds its entry to `codes.json` (its `kind`, `summary` and `hint`), the arm in its type's `kind()` (an exhaustive match, checked against `codes.json` by that crate's tests), and its page here, with the headings *What happened*, *Why*, *How to fix*, *Example* and *Data fields* and a `- Kind:` line matching `codes.json`. `crates/lamina-cos/tests/codes.rs` checks the entries and pages, and that every page here is for a listed code. [L1b](../todos/ready/L1b-error-contract-codegen.md) expands the pages and generates the tables.
 
 ## Warnings
 
@@ -27,6 +27,16 @@ One page per code in [`fixtures/codes.json`](../../fixtures/codes.json), as [ADR
 | [`invalid-date`](invalid-date.md) | `input` |
 | [`invalid-page-label`](invalid-page-label.md) | `input` |
 | [`invalid-entry`](invalid-entry.md) | `input` |
+| [`content-unknown-operator`](content-unknown-operator.md) | `input` |
+| [`content-bad-operands`](content-bad-operands.md) | `input` |
+| [`content-unbalanced-q`](content-unbalanced-q.md) | `input` |
+| [`content-unbalanced-bt`](content-unbalanced-bt.md) | `input` |
+| [`content-unbalanced-marked`](content-unbalanced-marked.md) | `input` |
+| [`content-syntax`](content-syntax.md) | `input` |
+| [`content-resource-missing`](content-resource-missing.md) | `input` |
+| [`inline-image-unterminated`](inline-image-unterminated.md) | `input` |
+| [`xobject-cycle`](xobject-cycle.md) | `input` |
+| [`content-path-unpainted`](content-path-unpainted.md) | `input` |
 
 ## Errors
 
@@ -62,3 +72,37 @@ One page per code in [`fixtures/codes.json`](../../fixtures/codes.json), as [ADR
 | [`direct-page`](direct-page.md) | `unsupported` |
 | [`unsupported-version`](unsupported-version.md) | `unsupported` |
 | [`invalid-op-log`](invalid-op-log.md) | `input` |
+| [`saved-not-rebased`](saved-not-rebased.md) | `state` |
+| [`no-pending-save`](no-pending-save.md) | `state` |
+
+## Save errors
+
+| Code | Kind |
+| --- | --- |
+| [`sink`](sink.md) | `io` |
+| [`not-rebased`](not-rebased.md) | `state` |
+| [`sink-not-empty`](sink-not-empty.md) | `usage` |
+| [`would-invalidate-signatures`](would-invalidate-signatures.md) | `security` |
+| [`requires-rewrite`](requires-rewrite.md) | `state` |
+
+## Text errors (`lamina-text`)
+
+| Code | Kind |
+| --- | --- |
+| [`invalid-font`](invalid-font.md) | `input` |
+| [`collection-index`](collection-index.md) | `usage` |
+| [`unknown-axis`](unknown-axis.md) | `usage` |
+| [`font-not-embeddable`](font-not-embeddable.md) | `usage` |
+| [`missing-glyph`](missing-glyph.md) | `input` |
+| [`glyph-out-of-range`](glyph-out-of-range.md) | `usage` |
+| [`unknown-font`](unknown-font.md) | `usage` |
+| [`subset-failed`](subset-failed.md) | `unsupported` |
+| [`invalid-axis-value`](invalid-axis-value.md) | `usage` |
+| [`wrong-document`](wrong-document.md) | `usage` |
+
+## Text warnings (`lamina-text`)
+
+| Code | Kind |
+| --- | --- |
+| [`tounicode-conflict`](tounicode-conflict.md) | `usage` |
+| [`whole-font-rebuilt`](whole-font-rebuilt.md) | `usage` |

@@ -5,7 +5,7 @@
 # check branch protection requires — passes when every suite passed or was not needed. Never add
 # a workflow-level `paths` filter here.
 #
-# Adding a suite (B3c round-trip, B5c render goldens and qpdf, B4b/B5b extraction, B6c
+# Adding a suite (B5c render goldens and qpdf, B4b/B5b extraction, B6c
 # runtimes): give the job `needs: changes`, `runs-on: [self-hosted, macOS, ARM64]` and exactly
 # this condition, then add it to `gate`'s `needs`:
 #
@@ -223,6 +223,43 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: cargo xtask check
 
+  # ADR 0018 tier 7 (todo B3c): lamina saves every fixture x proving op x mode, reopens each
+  # output, and qpdf --check, pdf.js and PDFium check them (`cargo xtask roundtrip`). Needs
+  # qpdf on the runner (Homebrew), Node (pdfjs-dist from tools/roundtrip/package.json) and a
+  # per-job Python venv with tools/roundtrip/requirements.txt.
+  roundtrip:
+    name: Round trip (lamina, qpdf, pdf.js, PDFium)
+    needs: changes
+    if: ${{ !cancelled() && needs.changes.outputs.code == 'true' }}
+    runs-on: [self-hosted, macOS, ARM64]
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/isolate-rust-home
+      - uses: actions-rust-lang/setup-rust-toolchain@ecabd13d1c56bd1345c230e542e9144811ad706f # v2.0.0
+        with:
+          cache: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+      - name: qpdf and a Python venv with pypdfium2
+        run: |
+          qpdf --version
+          python3 -m venv "$RUNNER_TEMP/roundtrip-venv"
+          "$RUNNER_TEMP/roundtrip-venv/bin/pip" install -r tools/roundtrip/requirements.txt
+      - run: cargo xtask roundtrip
+        env:
+          LAMINA_PYTHON: ${{ runner.temp }}/roundtrip-venv/bin/python
+      - name: Upload the outputs
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: roundtrip-outputs
+          path: target/xtask/roundtrip/
+          if-no-files-found: ignore
+
   # The required check. Fails unless `changes` succeeded with `code` exactly "true" or "false";
   # then every suite must have succeeded (code) or been skipped (docs-only). Any failure,
   # cancellation, or skip of a suite that should have run fails it. The one allowed skip on a
@@ -230,7 +267,7 @@ jobs:
   gate:
     name: gate
     if: always()
-    needs: [changes, differential, fuzz, check-linux]
+    needs: [changes, differential, fuzz, check-linux, roundtrip]
     runs-on: [self-hosted, macOS, ARM64]
     timeout-minutes: 5
     steps:

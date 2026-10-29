@@ -1,0 +1,284 @@
+{
+  "fixtures/corpus/enc.pdf": [
+    {}
+  ],
+  "fixtures/corpus/fpdf2.pdf": [
+    {
+      "beginText": 5,
+      "constructPath": 1,
+      "endText": 5,
+      "moveText": 3,
+      "restore": 1,
+      "save": 1,
+      "setFont": 2,
+      "setLineCap": 1,
+      "setLineWidth": 2,
+      "setStrokeRGBColor": 1,
+      "setWordSpacing": 1,
+      "showText": 3
+    }
+  ],
+  "fixtures/corpus/hello-broken.pdf": [
+    {
+      "beginText": 1,
+      "endText": 1,
+      "moveText": 1,
+      "setFont": 1,
+      "showText": 1
+    }
+  ],
+  "fixtures/corpus/hello-incremental.pdf": [
+    {
+      "beginText": 1,
+      "endText": 1,
+      "moveText": 1,
+      "setFont": 1,
+      "showText": 1
+    }
+  ],
+  "fixtures/corpus/hello-xrefstm.pdf": [
+    {
+      "beginText": 1,
+      "endText": 1,
+      "moveText": 1,
+      "setFont": 1,
+      "showText": 1
+    }
+  ],
+  "fixtures/corpus/hello.pdf": [
+    {
+      "beginText": 1,
+      "endText": 1,
+      "moveText": 1,
+      "setFont": 1,
+      "showText": 1
+    }
+  ],
+  "fixtures/corpus/imaging-demo.pdf": [
+    {
+      "clip": 1,
+      "constructPath": 4,
+      "restore": 4,
+      "save": 4,
+      "setDash": 1,
+      "setFillRGBColor": 2,
+      "setGState": 1,
+      "setLineJoin": 1,
+      "setLineWidth": 2,
+      "setStrokeRGBColor": 2,
+      "shadingFill": 1,
+      "transform": 2
+    }
+  ],
+  "fixtures/corpus/outline.pdf": [
+    {
+      "beginText": 1,
+      "endText": 1,
+      "moveText": 1,
+      "setFont": 1,
+      "showText": 1
+    },
+    {
+      "beginText": 1,
+      "endText": 1,
+      "moveText": 1,
+      "setFont": 1,
+      "showText": 1
+    },
+    {
+      "beginText": 1,
+      "endText": 1,
+      "moveText": 1,
+      "setFont": 1,
+      "showText": 1
+    }
+  ],
+  "fixtures/corpus/pdflib.pdf": [
+    {
+      "beginText": 2,
+      "constructPath": 1,
+      "endText": 2,
+      "nextLine": 3,
+      "restore": 3,
+      "save": 3,
+      "setDash": 1,
+      "setFillRGBColor": 2,
+      "setFont": 2,
+      "setLeading": 2,
+      "setLineWidth": 1,
+      "setStrokeRGBColor": 1,
+      "setTextMatrix": 2,
+      "showText": 3,
+      "transform": 3
+    }
+  ],
+  "fixtures/corpus/raw.pdf": [
+    {
+      "beginText": 2,
+      "constructPath": 1,
+      "endText": 2,
+      "moveText": 2,
+      "nextLine": 2,
+      "setFont": 2,
+      "setLeading": 1,
+      "setLineWidth": 1,
+      "setStrokeRGBColor": 1,
+      "showText": 3
+    }
+  ],
+  "fixtures/corpus/reportlab.pdf": [
+    {
+      "beginText": 3,
+      "constructPath": 2,
+      "endText": 3,
+      "moveText": 2,
+      "nextLine": 3,
+      "restore": 6,
+      "save": 6,
+      "setFillRGBColor": 2,
+      "setFont": 3,
+      "setLeading": 3,
+      "setLineWidth": 1,
+      "setStrokeRGBColor": 1,
+      "setTextMatrix": 2,
+      "showText": 3,
+      "transform": 5
+    }
+  ],
+  "fixtures/corpus/signed.pdf": [
+    {}
+  ],
+  "fixtures/corpus/tampered.pdf": [
+    {}
+  ],
+  "fixtures/corpus/text-example.pdf": [
+    {
+      "beginMarkedContent": 1,
+      "beginMarkedContentProps": 2,
+      "beginText": 3,
+      "endMarkedContent": 3,
+      "endText": 3,
+      "moveText": 3,
+      "setFont": 3,
+      "setTextMatrix": 1,
+      "setTextRenderingMode": 1,
+      "showText": 4
+    }
+  ],
+  "fixtures/golden/full-rewrite-hello.pdf": [
+    {
+      "beginText": 1,
+      "endText": 1,
+      "moveText": 1,
+      "setFont": 1,
+      "showText": 1
+    }
+  ],
+  "fixtures/golden/hello.pdf": [
+    {
+      "beginText": 1,
+      "endText": 1,
+      "moveText": 1,
+      "setFont": 1,
+      "showText": 1
+    }
+  ],
+  "fixtures/golden/imaging-demo.pdf": [
+    {
+      "clip": 1,
+      "constructPath": 4,
+      "restore": 4,
+      "save": 4,
+      "setDash": 1,
+      "setFillRGBColor": 2,
+      "setGState": 1,
+      "setLineJoin": 1,
+      "setLineWidth": 2,
+      "setStrokeRGBColor": 2,
+      "shadingFill": 1,
+      "transform": 2
+    }
+  ],
+  "fixtures/golden/incremental-set-info.pdf": [
+    {
+      "beginText": 1,
+      "endText": 1,
+      "moveText": 1,
+      "setFont": 1,
+      "showText": 1
+    }
+  ],
+  "fixtures/golden/text-cff.pdf": [
+    {
+      "beginText": 2,
+      "endText": 2,
+      "moveText": 2,
+      "setFont": 2,
+      "showText": 2
+    }
+  ],
+  "fixtures/golden/text-latin.pdf": [
+    {
+      "beginText": 4,
+      "endText": 4,
+      "moveText": 4,
+      "setFont": 4,
+      "showText": 4
+    }
+  ],
+  "fixtures/golden/text-variable-collection.pdf": [
+    {
+      "beginText": 3,
+      "endText": 3,
+      "moveText": 3,
+      "setFont": 3,
+      "showText": 3
+    }
+  ],
+  "fixtures/content/operators.pdf": [
+    {
+      "beginGroup": 1,
+      "beginMarkedContent": 1,
+      "beginMarkedContentProps": 4,
+      "beginText": 4,
+      "clip": 2,
+      "constructPath": 18,
+      "endGroup": 1,
+      "endMarkedContent": 5,
+      "endText": 4,
+      "eoClip": 1,
+      "moveText": 2,
+      "nextLine": 3,
+      "paintFormXObjectBegin": 4,
+      "paintFormXObjectEnd": 4,
+      "paintImageMaskXObject": 3,
+      "paintImageXObject": 4,
+      "paintInlineImageXObject": 1,
+      "restore": 14,
+      "save": 14,
+      "setCharSpacing": 2,
+      "setDash": 1,
+      "setFillColorN": 1,
+      "setFillRGBColor": 4,
+      "setFlatness": 1,
+      "setFont": 4,
+      "setGState": 2,
+      "setHScale": 1,
+      "setLeading": 1,
+      "setLeadingMoveText": 1,
+      "setLineCap": 1,
+      "setLineJoin": 1,
+      "setLineWidth": 1,
+      "setMiterLimit": 1,
+      "setRenderingIntent": 1,
+      "setStrokeRGBColor": 5,
+      "setTextMatrix": 1,
+      "setTextRenderingMode": 1,
+      "setTextRise": 1,
+      "setWordSpacing": 2,
+      "shadingFill": 1,
+      "showText": 8,
+      "transform": 7
+    }
+  ]
+}

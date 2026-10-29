@@ -1,9 +1,10 @@
 //! Object parser: turns tokens into [`Object`]s, including indirect objects and streams.
 
+use crate::diagnostic::Position;
 use crate::error::{Error, Result};
 use crate::lexer::{Lexer, Token, is_whitespace};
 use crate::limits::{Limit, Limits};
-use crate::object::{Dict, Name, ObjRef, Object, PdfString, Stream, StringFormat};
+use crate::object::{Dict, Name, ObjRef, Object, Stream};
 
 /// Parses a single direct object from `input` with the default [`Limits`]. Trailing
 /// white-space and comments are allowed; anything else after the object is an error.
@@ -44,7 +45,7 @@ pub fn parse_object_with(input: &[u8], limits: &Limits) -> Result<Object> {
     match parser.lex.next_token()? {
         Token::Eof => Ok(obj),
         _ => Err(Error::Syntax {
-            offset: parser.lex.pos(),
+            at: Position::offset(parser.lex.pos()),
             message: "trailing data after object",
         }),
     }
@@ -168,23 +169,17 @@ impl<'a> Parser<'a> {
         let start = self.lex.pos();
         match tok {
             Token::Integer(i) => Ok(self.maybe_reference(i)),
-            Token::Real(r) => Ok(Object::Real(r)),
-            Token::Name(n) => Ok(Object::Name(Name(n))),
-            Token::LiteralString(s) => Ok(Object::String(PdfString {
-                bytes: s,
-                format: StringFormat::Literal,
-            })),
-            Token::HexString(s) => Ok(Object::String(PdfString {
-                bytes: s,
-                format: StringFormat::Hex,
-            })),
             Token::ArrayOpen => {
                 let depth = self.enter(depth, start)?;
                 let mut items = Vec::new();
                 loop {
                     match self.lex.next_token()? {
                         Token::ArrayClose => return Ok(Object::Array(items)),
-                        Token::Eof => return Err(Error::UnexpectedEof { offset: self.lex.pos() }),
+                        Token::Eof => {
+                            return Err(Error::UnexpectedEof {
+                                at: Position::offset(self.lex.pos()),
+                            });
+                        }
                         t => items.push(self.object_from(t, depth)?),
                     }
                 }
@@ -205,22 +200,25 @@ impl<'a> Parser<'a> {
                             let value = self.object_from(value_tok, depth)?;
                             dict.insert(Name(key), value);
                         }
-                        Token::Eof => return Err(Error::UnexpectedEof { offset: self.lex.pos() }),
+                        Token::Eof => {
+                            return Err(Error::UnexpectedEof {
+                                at: Position::offset(self.lex.pos()),
+                            });
+                        }
                         _ => {
                             return Err(Error::Syntax {
-                                offset: start,
+                                at: Position::offset(start),
                                 message: "dictionary key must be a name",
                             });
                         }
                     }
                 }
             }
-            Token::Keyword(b"true") => Ok(Object::Bool(true)),
-            Token::Keyword(b"false") => Ok(Object::Bool(false)),
-            Token::Keyword(b"null") => Ok(Object::Null),
-            Token::Eof => Err(Error::UnexpectedEof { offset: start }),
-            Token::Keyword(_) | Token::ArrayClose | Token::DictClose => Err(Error::Syntax {
-                offset: start,
+            Token::Eof => Err(Error::UnexpectedEof {
+                at: Position::offset(start),
+            }),
+            scalar => scalar.into_scalar().ok_or(Error::Syntax {
+                at: Position::offset(start),
                 message: "unexpected token",
             }),
         }
@@ -249,7 +247,7 @@ impl<'a> Parser<'a> {
     pub fn object_header(&mut self) -> Result<ObjRef> {
         let offset = self.lex.pos();
         let bad = || Error::Syntax {
-            offset,
+            at: Position::offset(offset),
             message: "expected `n g obj`",
         };
         let Token::Integer(num) = self.lex.next_token()? else {
@@ -287,7 +285,9 @@ impl<'a> Parser<'a> {
         } else {
             let Some(endstream) = find(data, b"endstream", head.data_start) else {
                 *end_flag = true;
-                return Err(Error::UnexpectedEof { offset: data.len() });
+                return Err(Error::UnexpectedEof {
+                    at: Position::offset(data.len()),
+                });
             };
             stream_data_end(data, head.data_start, endstream)
         };
@@ -468,7 +468,7 @@ mod tests {
             parse_object_with(b"[[ [1] ]]", &limits),
             Err(Error::LimitExceeded {
                 limit: Limit::NestingDepth,
-                at: Some(4)
+                at: Some(Position::FileOffset(4))
             })
         );
     }

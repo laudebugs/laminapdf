@@ -1,0 +1,6 @@
+# Generates fixtures/signed/ (make.py). pyHanko: MIT; pypdf: BSD-3-Clause; cryptography:
+# Apache-2.0 OR BSD-3-Clause. Tools only: nothing here ships or links into lamina.
+pyHanko==0.38.0
+pyhanko-certvalidator==0.33.0
+pypdf==6.21.3
+cryptography==50.0.2

@@ -12,6 +12,7 @@ mod licenses;
 mod live;
 mod nightly;
 mod portable_paths;
+mod roundtrip;
 mod runner;
 mod todos;
 mod tracked;
@@ -63,8 +64,13 @@ tasks:
   differential --live [--corpus external|mutants|all] [--source <name>]… [--tools a,b] [--sample N]
                     nightly: lamina vs live pdf.js, PDFium, qpdf and pypdf over the external corpus
                     and 250 mutants per corpus file; report in target/nightly/differential/
+  roundtrip [--tools qpdf,pdfjs,pdfium]
+                    lamina saves every fixture x proving op x mode, reopens each output and
+                    checks it with qpdf --check, pdf.js and PDFium (needs qpdf, Node and
+                    Python with tools/roundtrip/requirements.txt; outputs in target/xtask/roundtrip)
   fuzz <target> [--time <seconds>]
-                    run a fuzz target (lex, parse_object, flate_decode, open, page_tree) with
+                    run a fuzz target (lex, parse_object, flate_decode, open, page_tree, content,
+                    ops_json, save_roundtrip) with
                     cargo +nightly fuzz (default 60 s); seeds come from fixtures/ and fuzz/seeds/
   fuzz --all [--time <seconds>]
                     run every fuzz target in turn (the full lane: --time 120)
@@ -157,6 +163,7 @@ fn main() -> Result<()> {
         ("scaling", []) => nightly::scaling(&ws),
         ("bench", args) => nightly::bench(&ws, &nightly::parse_bench_args(args)?),
         ("nightly", args) => nightly::nightly(&ws, nightly::parse_nightly_args(args)?),
+        ("roundtrip", args) => roundtrip::run_suite(&ws, &roundtrip::parse_args(args)?),
         ("ci", []) => {
             check_docs(&ws)?;
             check_rust(&ws)?;

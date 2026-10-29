@@ -5,6 +5,7 @@
 
 use lamina_cos::{ByteSource, Dict, Document, Name, Object, OverlayEntry, merge_ranges, read_exact};
 
+use crate::detect::Patches;
 use crate::error::{Result, SaveError};
 use crate::id::{ContentHash, id_array, permanent_id};
 use crate::legacy::{document_keys, document_keys_and_size};
@@ -46,6 +47,7 @@ const CHUNK: usize = 64 * 1024;
 pub struct IncrementalWriter<'d> {
     doc: &'d Document,
     options: SaveOptions,
+    patches: Option<&'d Patches>,
 }
 
 /// What [`IncrementalWriter::write`] produced: the report and the appended revision, which
@@ -87,14 +89,24 @@ impl<'d> IncrementalWriter<'d> {
     /// A writer for `doc`'s overlay; of the options, `output` and `eol` apply.
     #[must_use]
     pub const fn new(doc: &'d Document, options: SaveOptions) -> Self {
-        Self { doc, options }
+        Self {
+            doc,
+            options,
+            patches: None,
+        }
+    }
+
+    /// With the override's changes written over the document's values (in the revision).
+    pub(crate) const fn with_patches(mut self, patches: &'d Patches) -> Self {
+        self.patches = Some(patches);
+        self
     }
 
     /// Writes to `sink`, which must be empty (or, for `AppendedOnly`, hold exactly the base).
     ///
     /// # Errors
     /// Before anything is written: [`SinkError::NotEmpty`](crate::SinkError::NotEmpty);
-    /// [`lamina_cos::Error::RepairedBase`] and [`lamina_cos::Error::EncryptedBase`] when there
+    /// [`lamina_cos::Error::RepairedBase`] and [`SaveError::EncryptedBase`] when there
     /// is something to append; [`lamina_cos::Error::DataPending`] /
     /// [`lamina_cos::Error::Source`] for base bytes or objects that can't be read;
     /// [`lamina_cos::Error::InvalidStructure`] when object numbers run out. While writing:
@@ -105,10 +117,11 @@ impl<'d> IncrementalWriter<'d> {
         let base_len = source.len();
         let whole = self.options.output() == IncrementalOutput::Whole;
         require_empty(sink, (!whole).then_some(base_len))?;
-        let (appended, freed, append_offset) = if doc.is_dirty() {
+        let patched = self.patches.is_some_and(|p| !p.is_empty());
+        let (appended, freed, append_offset) = if doc.is_dirty() || patched {
             let prev = doc.startxref().ok_or(lamina_cos::Error::RepairedBase)?;
             if doc.is_encrypted() {
-                return Err(lamina_cos::Error::EncryptedBase.into());
+                return Err(SaveError::EncryptedBase);
             }
             let mut hash = ContentHash::default();
             check_and_hash(source, Some(&mut hash))?;
@@ -131,10 +144,37 @@ impl<'d> IncrementalWriter<'d> {
                 mode: SaveMode::Incremental,
                 renumbered: None,
                 append_offset,
+                invalidated: Vec::new(),
+                encryption_removed: false,
             },
             appended,
             freed,
         })
+    }
+
+    /// What the revision holds, by number: the value to write (the override's replacement
+    /// first, else the overlay's new or modified object), or `None` for a free entry.
+    fn entries(&self) -> Vec<(u32, Option<&'d Object>)> {
+        let doc = self.doc;
+        let patches = self.patches.map(|p| &p.objects);
+        let numbers: std::collections::BTreeSet<u32> = doc
+            .overlay()
+            .iter()
+            .map(|(num, _)| num)
+            .chain(patches.into_iter().flat_map(|p| p.keys().copied()))
+            .collect();
+        numbers
+            .into_iter()
+            .map(|num| {
+                let written = patches
+                    .and_then(|p| p.get(&num))
+                    .or_else(|| match doc.overlay().get(num) {
+                        Some(OverlayEntry::New(object) | OverlayEntry::Modified(object)) => Some(&**object),
+                        _ => None,
+                    });
+                (num, written)
+            })
+            .collect()
     }
 
     /// The appended revision for a base of `base_len` bytes whose newest section is at
@@ -149,34 +189,31 @@ impl<'d> IncrementalWriter<'d> {
         let mut rows = Rows::new();
         let mut highest = 0u32;
         let mut freed = false;
-        for (num, entry) in doc.overlay().iter() {
+        for (num, written) in self.entries() {
             highest = highest.max(num);
             let generation = doc.base_generation(num).unwrap_or(0);
-            match entry {
-                OverlayEntry::New(object) | OverlayEntry::Modified(object) => {
-                    rows.insert(
-                        num,
-                        Row::InFile {
-                            offset: offset_of(&out),
-                            generation,
-                        },
-                    );
-                    out.extend_from_slice(format!("{num} {generation} obj\n").as_bytes());
-                    object.write_to(&mut out);
-                    out.extend_from_slice(b"\nendobj\n");
-                }
+            if let Some(object) = written {
+                rows.insert(
+                    num,
+                    Row::InFile {
+                        offset: offset_of(&out),
+                        generation,
+                    },
+                );
+                out.extend_from_slice(format!("{num} {generation} obj\n").as_bytes());
+                object.write_to(&mut out);
+                out.extend_from_slice(b"\nendobj\n");
+            } else {
                 // Deleted (and any later kind): a free entry, so the reused number gets a
                 // new generation (§7.5.4).
-                _ => {
-                    freed = true;
-                    rows.insert(
-                        num,
-                        Row::Free {
-                            next: 0,
-                            generation: generation.saturating_add(1),
-                        },
-                    );
-                }
+                freed = true;
+                rows.insert(
+                    num,
+                    Row::Free {
+                        next: 0,
+                        generation: generation.saturating_add(1),
+                    },
+                );
             }
         }
         hash.update(&out);
@@ -185,7 +222,10 @@ impl<'d> IncrementalWriter<'d> {
             .unwrap_or(0)
             .max(doc.next_number())
             .max(u64::from(highest) + 1);
-        let current = doc.trailer();
+        let current = self
+            .patches
+            .and_then(|p| p.trailer.as_ref())
+            .unwrap_or_else(|| doc.trailer());
         let permanent = permanent_id(doc, current)?;
         let head = doc.free_list_head();
         let prev = i64::try_from(prev).unwrap_or(i64::MAX);

@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [pdf-library §7 B5](../../plans/pdf-library.md#b5-builder-and-the-lamina-crate), requirements [§4 F2–F5](../../plans/pdf-library.md#functional) |
 | Round / milestone | Round B (library) — M1 |
-| Depends on | [B4b](./B4b-shaping-bidi-line-breaking.md), [B4c](./B4c-standard-14-and-simple-fonts.md), [B5a](./B5a-lamina-build-core.md) |
+| Depends on | [B4b](../ongoing/B4b-shaping-bidi-line-breaking.md), [B4c](../ongoing/B4c-standard-14-and-simple-fonts.md), [B5a](./B5a-lamina-build-core.md) |
 | Blocks | [B5c](./B5c-lamina-facade-and-examples.md) |
 | ADRs | Follows [0005](../../decisions/0005-document-model.md) §5–§6 (IDs for created pages/outline items; overlay), [0001](../../decisions/0001-core-language-and-licence.md) (determinism: dates and IDs from options) |
 | Branch | `feat/b5b-builder-text-and-navigation` |
@@ -23,7 +23,7 @@ Complete the builder's feature list for M1: shaped text runs and single-box para
 - [pdf-library §5 API sketch](../../plans/pdf-library.md#api-sketch-illustrative-not-final): `s.text(...)`, `s.textBox(...)`, `link: { uri, contents }`, `b.outline([...])`.
 - [Research 03 §2](../../research/pdf/03-text-and-fonts.md#2-text-objects-and-operators-iso-32000-2-9294) (text operators, `Tr` modes incl. invisible), [§5.3 ActualText](../../research/pdf/03-text-and-fonts.md#53-ligatures-reordering-and-actualtext), [§11.2](../../research/pdf/03-text-and-fonts.md#112-concrete-requirements) (real space glyphs).
 - [Research 04 §1](../../research/pdf/04-interactive-security.md#1-navigation) (destinations, outline, actions, link annotations, page labels, viewer preferences), [§5.1–5.3](../../research/pdf/04-interactive-security.md#5-metadata) (Info, XMP, IDs).
-- `lamina-text` from [B4a](../ongoing/B4a-font-loading-and-subsetting.md)/[B4b](./B4b-shaping-bidi-line-breaking.md)/[B4c](./B4c-standard-14-and-simple-fonts.md).
+- `lamina-text` from [B4a](../done/B4a-font-loading-and-subsetting.md)/[B4b](../ongoing/B4b-shaping-bidi-line-breaking.md)/[B4c](../ongoing/B4c-standard-14-and-simple-fonts.md).
 
 ## Scope
 

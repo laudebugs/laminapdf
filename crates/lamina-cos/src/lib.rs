@@ -109,12 +109,19 @@ mod source;
 #[cfg(test)]
 #[path = "../tests/common/classic.rs"]
 mod test_files;
+// What `fixtures/codes.json` lists, for the kind tests.
+#[cfg(test)]
+#[path = "../tests/common/codes.rs"]
+mod test_codes;
 
-pub use error::{Error, Result};
+pub use error::{Error, Result, tolerant};
 pub use lamina_syntax::crypt::{Cipher, PasswordKind, Permissions};
-pub use lamina_syntax::{Dict, Limit, Limits, Name, ObjRef, Object, PdfString, Stream, StringFormat};
+pub use lamina_syntax::{
+    Dict, ErrorKind, Limit, Limits, Location, Name, ObjRef, Object, PdfString, Position, Stream, StringFormat,
+};
 pub use overlay::{CosChange, CosMut, JournalMark, Overlay, OverlayEntry, Reserved};
 pub use reader::{
     DirectPath, Document, Encryption, Inherited, OpenOptions, Page, PathSegment, Resolved, Warning, XREF_STREAM_KEYS,
+    strip_crypt_filter,
 };
 pub use source::{ByteSource, Source, SourceError, merge_ranges, read_exact};

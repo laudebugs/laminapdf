@@ -9,9 +9,11 @@
 
 mod common;
 
+use common::save::ModeSaves as _;
+
 use common::save::{FailingSink, editable, facts, set_title, two_pages};
 use lamina_ops::SaveState;
-use lamina_save::{FullWriter, IoWrite, ReadableSink, Save, SaveError, SaveOptions, SinkError, WriteSink};
+use lamina_save::{FullWriter, IoWrite, ReadableSink, SaveError, SaveOptions, SinkError, WriteSink};
 
 fn dirty() -> lamina_ops::Document {
     let mut doc = editable(&two_pages());

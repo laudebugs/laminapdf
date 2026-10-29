@@ -18,9 +18,11 @@ const CARGO_DENY_VERSION: &str = "0.20.2";
 const CARGO_NEXTEST_VERSION: &str = "0.9.150";
 /// cargo-fuzz release (`cargo xtask fuzz`, `.github/workflows/nightly.yml`); it runs on nightly.
 const CARGO_FUZZ_VERSION: &str = "0.13.2";
-/// qpdf release for the nightly differential (`cargo xtask differential --live`); the nightly
-/// workflow downloads this release's binaries, checked by SHA-256.
-const QPDF_VERSION: &str = "12.4.2";
+/// qpdf release for the nightly differential (`cargo xtask differential --live`; the nightly
+/// workflow downloads this release's binaries, checked by SHA-256), the round-trip suite
+/// (`cargo xtask roundtrip`) and the committed `qpdf --check` facts (`tools/fixtures/text_facts.py`,
+/// `fixtures/encrypted/`; tests read the facts, so only regenerating them needs it).
+pub(crate) const QPDF_VERSION: &str = "12.4.2";
 /// Binaryen release for `wasm-opt`. Its output is part of the shipped .wasm, so bump it deliberately
 /// and review the wasm-opt feature list (ADR 0002) whenever this or `rust-toolchain.toml` changes.
 const BINARYEN_VERSION: &str = "133";
@@ -145,7 +147,10 @@ pub(crate) fn qpdf() -> Tool {
         version_command: &["qpdf", "--version"],
         pin: Pin::Exact(QPDF_VERSION.to_owned()),
         fix: format!("install qpdf {QPDF_VERSION} from https://github.com/qpdf/qpdf/releases (or brew install qpdf)"),
-        optional_for: Some("cargo xtask differential --live (the nightly lane)"),
+        optional_for: Some(
+            "cargo xtask differential --live (the nightly lane), cargo xtask roundtrip and regenerating fixture facts \
+             (tools/fixtures/text_facts.py, fixtures/encrypted/)",
+        ),
     }
 }
 
