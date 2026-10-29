@@ -56,6 +56,7 @@ pub struct UserSpaceRect  { pub x0: f64, pub y0: f64, pub x1: f64, pub y1: f64 }
 - **Reference box: the effective CropBox**, exactly as `Page::crop_box()` computes it (`/CropBox` ∩ `/MediaBox`, else the MediaBox). It is what viewers show, so a bbox from extraction lands on what the user sees.
 - **Rotation: output in the displayed (rotated) frame.** Page `width`/`height` are the displayed ones (swapped for 90 and 270). This matches viewers, renderers and every extraction vendor.
 - **`/UserUnit` is applied:** page-space values are physical points, so a page with `/UserUnit 10` reports ten times its user-space size.
+- **No usable box: US Letter.** If the effective CropBox is absent (no usable `/MediaBox` and no `/CropBox`) or has zero width or height, the frame uses the MediaBox if that has an area, else `[0 0 612 792]`. That is what pdf.js (`LETTER_SIZE_MEDIABOX`, [`src/core/document.js`](https://github.com/mozilla/pdf.js/blob/master/src/core/document.js)) and PDFium (`CPDF_Page::UpdateDimensions`, [`cpdf_page.cpp`](https://pdfium.googlesource.com/pdfium/+/refs/heads/main/core/fpdfapi/page/cpdf_page.cpp)) do. `/MediaBox` is required (Table 31), so the fallback raises `invalid-box` (key `MediaBox`) once per page. Strict mode makes it an error, as for any warning. `PageFrame` is therefore infallible, apart from the strict and `DataPending`/`Source` errors every page read has. In JSON, `coordinates.box` is `"default"` instead of `"CropBox"` when the Letter fallback was used.
 - **Coordinates outside the box** are allowed (negative, or beyond `width`/`height`): content can sit outside the visible region. Extraction flags it (`offPage`, L3a). A rect is never clipped silently.
 
 With CropBox `[llx lly urx ury]` and `u` = `/UserUnit`, a user-space point (x, y) maps to page space (X, Y) as follows:
@@ -88,7 +89,7 @@ Every JSON output that carries positions (extraction, `lamina info --json`, rend
   "coordinates": { "origin": "top-left", "unit": "pt", "box": "CropBox", "rotate": 90, "userUnit": 1 } }
 ```
 
-`origin`, `unit` and `box` have one value each today. They are written out anyway so a reader never has to know this ADR. `rotate` and `userUnit` are the values applied. An item may also carry **`bboxNorm`**: its bbox divided by the page's `width`/`height`, in [0, 1], for highlighting independent of the renderer's scale (`bbox_norm` in Rust). For an item partly outside the box, `bboxNorm` is the visible part, clamped to [0, 1]. An item entirely outside has none.
+`origin` and `unit` have one value each today. `box` is `"CropBox"`, or `"default"` when §3's Letter fallback was used. All three are written out anyway so a reader never has to know this ADR. `rotate` and `userUnit` are the values applied. An item may also carry **`bboxNorm`**: its bbox divided by the page's `width`/`height`, in [0, 1], for highlighting independent of the renderer's scale (`bbox_norm` in Rust). For an item partly outside the box, `bboxNorm` is the visible part, clamped to [0, 1]. An item entirely outside has none.
 
 ### 5. Text placement
 
@@ -106,9 +107,9 @@ Every JSON output that carries positions (extraction, `lamina info --json`, rend
 
 - An agent or user can place, find and highlight content without knowing PDF's coordinate model, and every JSON output states its frame.
 - `Pt` makes unit mistakes type errors in Rust and TS. JSON stays plain numbers.
-- Every position API does one frame transform per page. That is cheap, but it means page boxes, `/Rotate` and `/UserUnit` are read for every page that is drawn on or extracted (they are already read once per page and cached by `Pages`).
+- Every position API does one frame transform per page. Today `Pages` caches only the media and crop boxes. `Page::rotate()` and `Page::user_unit()` re-read the dictionary on every call, and every invalid value goes through the warning log again (deduplicated there by code and object, but read, checked and, in strict mode, failed again each time). So the `PageFrame` (box, rotation, unit, fallback) is computed **once per page and cached next to the boxes**, and its warnings are raised once. [B5a](../todos/ready/B5a-lamina-build-core.md) owns this.
 - Code working on content streams must convert explicitly. That is the point, but content-editing ops (E-rounds) will carry user-space geometry and need `PageFrame` to show it in the UI.
-- A malformed CropBox, `/Rotate` or `/UserUnit` falls back to the model's defaults with their warnings (`invalid-box`, `invalid-rotate`, `invalid-entry`), so the frame is always defined.
+- A malformed or missing box, `/Rotate` or `/UserUnit` falls back to a default with a warning (`invalid-box`, `invalid-rotate`, `invalid-entry`; §3 for the boxes), so the frame is always defined.
 - B5a renames `lamina_model::Rect` to `UserSpaceRect`. Nothing is published, so nothing breaks for users.
 
 ## Alternatives considered

@@ -55,7 +55,7 @@ The edge wrappers are mechanical. B5c or L6a may generate them with a `macro_rul
 
 Compile-time tests (B5c, L6a) assert `lamina::Document: Send`, `lamina::Document: !Sync` and `FfiDocument: Send + Sync`.
 
-A poisoned `Mutex` (a panic while locked, caught under unwind) means the document is in an unknown state. `lamina-ffi` reports it as an `internal` error (code added by L6a through L1b's process), and the caller reopens. An edge lock serialises all calls on one document. That is UniFFI's model anyway, and parallelism comes from one document per thread over a shared `Arc<dyn ByteSource>` (ADR 0005 §7). B5c and L6a measure it once real workloads exist. If a measured case needs concurrent reads of one document, the remedy is an amendment of ADR 0005 §7 to a `Sync` core, not a lock added quietly.
+A poisoned `Mutex` (a panic while locked, caught under unwind) means the document is in an unknown state. `lamina-ffi` reports it as an `internal` error (code added by L6a in `codes.json`), and the caller reopens. An edge lock serialises all calls on one document. That is UniFFI's model anyway, and parallelism comes from one document per thread over a shared `Arc<dyn ByteSource>` (ADR 0005 §7). B5c and L6a measure it once real workloads exist. If a measured case needs concurrent reads of one document, the remedy is an amendment of ADR 0005 §7 to a `Sync` core, not a lock added quietly.
 
 ### 3. Jobs
 
@@ -64,16 +64,16 @@ Long operations (save, render, extract, search, signing, validation) are resumab
 ```rust
 // Illustrative; B5c defines the façade forms, core crates (lamina-extract, L3a) the same shape.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub struct Budget { units: u64 }
+pub struct Budget { units: u32 }
 impl Budget {
-    pub const fn units(units: u64) -> Self;
+    pub const fn units(units: u32) -> Self;   // u32 per F5: a plain number in JS, not BigInt
     pub const UNLIMITED: Self;
 }
 
 #[derive(Clone, Debug, PartialEq)]
 #[non_exhaustive]
 pub enum Step<T> {
-    Progress { done: u64, total: Option<u64>, phase: Phase },  // `total` None when unknown
+    Progress { done: u32, total: Option<u32>, phase: Phase },  // pages, objects …; `total` None when unknown
     Done(T),
 }
 
@@ -98,7 +98,7 @@ impl Document {
 ```
 
 - **One concrete job type per operation** (`SaveJob`, `RenderJob`, `ExtractJob`), each a binding class. `Step<T>` is Rust-only (F3). Edges expose a concrete step record per job.
-- **Identity and staleness.** A job records the document instance and its **revision**, a counter that B5c adds and that every committed transaction, undo, redo, save and rebase bumps. Stepping a job with another document is `usage`. Stepping a read job after the document changed fails with `document-changed` (kind `state`). Stepping a finished, failed or cancelled job fails with `job-finished` (state). A write job is the only writer while it runs: the edge refuses ops on that document until the job ends, with `state`.
+- **Identity and staleness, for every job.** B5c adds a document **revision**: a counter that every committed transaction, undo, redo, save and rebase bumps, together with an instance identifier. Every job, reading or writing, records both when it is created. **Every `step` checks them in the core**, before any work. A different instance or revision fails with `document-changed` (kind `state`), and the job is finished. So no interleaving can make a save write mixed state, whatever the edge does: an op committed between two `SaveJob` steps fails the save, and the caller starts a new one. A write job doesn't bump the revision while it runs. Its own final effect (a save's rebase) bumps it once, as the last thing the job does. Stepping a finished, failed or cancelled job fails with `job-finished` (state).
 - **Errors end the job.** A cancelled or failed save leaves the document as before (`Dirty`, overlay untouched, [ADR 0005 §3](0005-document-model.md#3-base-overlay-and-the-save-cycle)), and partial output is discarded. A cancelled read job returns no partial result.
 
 ### 4. `Budget` is counted in work units, not time
@@ -136,7 +136,7 @@ The core is synchronous and single-threaded. How each surface drives a job:
 
 | Surface | How it drives a job |
 | --- | --- |
-| TS sync (`@lamina/pdf`) | `doc.extract(opts)` runs to completion. `doc.extractJob(opts)` returns a `Job` with `step(units)` for callers who slice work themselves |
+| TS sync (`@lamina/pdf`) | `doc.extract(opts)` runs to completion. `doc.extractJob(opts)` returns an `ExtractJob` with `step(units: number)` returning `{ done: false, progress: { done, total?, phase } }` or `{ done: true, value }`, for callers who slice work themselves. All numbers are plain JS numbers (F5) |
 | TS worker client (L2a) | Steps in the worker with a time-sliced budget and yields to the event loop between steps. `AbortSignal` → `cancel { id }` → `token.cancel()`. Rejects with `LaminaError` `cancelled` (`cause` = `signal.reason`). Progress arrives as events |
 | Swift (L6a, ADR 0029) | A hand-written `async throws` layer steps the job off the main actor. `withTaskCancellationHandler` trips the token; progress is an `AsyncStream` |
 | Kotlin (L6a, ADR 0029) | A `suspend` function on `Dispatchers.Default` steps the job. `ensureActive()` between steps and `invokeOnCancellation` trip the token; progress is a `Flow` |
@@ -152,7 +152,7 @@ UniFFI async exports are not used. lamina's work is CPU-bound, so there is nothi
 - The façade is a little less ergonomic for Rust callers: jobs take the document per step, and sub-objects are addressed by ID. Rust callers who want borrowed views can still use `lamina-model` directly.
 - Each long operation costs a state machine instead of a straight loop. That is the main cost of this ADR, and B5c, L3a and C-round renderers pay it.
 - ADR 0005 §7 holds unchanged. The lock's cost is visible and measurable at one place per edge, and a `Sync` core stays an explicit, later choice.
-- B5c adds a document revision counter, F2's edge `PageRef`, the compile-time auto-trait tests and the `job-finished`/`document-changed` codes. L1b adds `cancelled`. This ADR informs proposed ADR 0009 (worker RPC, C2a): the RPC carries job steps, cancel and progress messages, not proxies.
+- B5c adds the document revision counter and its check in every job, the compile-time auto-trait tests, and the codes `cancelled`, `job-finished` and `document-changed`, with their kinds and `explain` pages. The edge crates add F2's `PageRef`. This ADR informs proposed ADR 0009 (worker RPC, C2a): the RPC carries job steps, cancel and progress messages, not proxies.
 
 ## Alternatives considered
 

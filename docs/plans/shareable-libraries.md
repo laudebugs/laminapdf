@@ -57,14 +57,19 @@ The research found the opening is real: in October 2026 no permissively licensed
 The [report](../research/libraries/shareable-libraries.md) has side-by-side Rust, TypeScript, CLI, Swift and Kotlin sketches for each area. All snippets are illustrative, not final.
 
 ```rust
-// lamina façade (B5c, shaped by ADR 0028): UniFFI-compatible, wrapped by lamina-wasm and lamina-ffi
-let doc = lamina::Document::open(bytes, OpenOptions::default())?;   // Send + Sync handle
-let job = doc.extract(ExtractOptions { format: Format::Markdown, ..Default::default() });
-let cancel = job.cancel_token();
+// lamina façade (B5c, ADR 0028): Send + !Sync; lamina-ffi wraps it in a Mutex, lamina-wasm in Rc<RefCell<…>>
+let doc = lamina::Document::open_bytes(bytes, OpenOptions::default())?;
+let mut job = doc.extract_job(&ExtractOptions { format: Format::Markdown, ..Default::default() })?;
+let cancel = job.cancel_token();                       // clone it to another thread or the UI to cancel
 let out = loop {
-    // budget in work units: core crates have no clock (ADR 0028 §4)
-    match job.step(Budget::units(10_000))? { Step::Done(out) => break out, Step::Progress(_) => {} }
+    // the document is passed to every step; budget in work units, since core crates have no clock (ADR 0028 §3–§4)
+    match job.step(&doc, Budget::units(10_000))? {
+        Step::Done(out) => break out,
+        Step::Progress { done, total, phase } => report(done, total, phase),
+        _ => {}                                         // Step is #[non_exhaustive]
+    }
 };
+// or run to completion: doc.extract(&options, &cancel)?
 ```
 
 ```ts
@@ -102,7 +107,7 @@ Each round is split into todos (one PR each) on the [todo board](../todos/README
 
 ### L1. Contracts
 
-**Todos:** [L1a](../todos/done/L1a-contract-adrs.md) (ADRs 0026, 0027, 0028), [L1b](../todos/ready/L1b-error-contract-codegen.md) (error codegen, `explain`).
+**Todos:** [L1a](../todos/done/L1a-contract-adrs.md) (ADRs 0026, 0027, 0028), [L1c](../todos/ready/L1c-error-contract-core.md) (kinds, hints and tagged locations in the Rust core, before B5c), [L1b](../todos/ready/L1b-error-contract-codegen.md) (error codegen, `explain`).
 
 **Deliverable:** three ADRs; codes and error types generated from `fixtures/codes.json` into Rust, TypeScript and JSON Schema; `explain` text per code.
 **Accepted when:** B5a's builder uses ADR 0027's coordinates; B5c's façade meets ADR 0028's rules; a TS test narrows the error class's `code` exhaustively (the class is `LaminaError`, [ADR 0026](../decisions/0026-error-and-diagnostic-contract.md) §7); a change to `codes.json` without regenerating fails CI.
@@ -161,6 +166,7 @@ This plan adjusts these todos (edited in the same PR):
 ### L1. Contracts
 
 - [x] Write ADRs 0026 (errors), 0027 (coordinates and units), 0028 (façade rules, jobs, cancellation)
+- [ ] Kinds, hints and tagged locations for every code in the Rust core (`codes.json` v2), before B5c
 - [ ] Generate Rust, TS and JSON Schema error codes from `fixtures/codes.json`; add `explain` text
 
 ### L2. TypeScript hardening
