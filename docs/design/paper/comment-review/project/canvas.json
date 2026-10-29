@@ -1,6 +1,6 @@
 {"v":3,"createdOnFiles":{"v":1,"at":"2026-10-29T16:20:00Z"},"title":"lamina Paper — Comment and review","launch":{"view":"canvas"},"pages":[],"boards":{
 "C01-comment-tools.dc.html":{"x":0,"y":0,"w":1440,"h":900,"title":"C01 · Comment tools, Shapes menu open","expand":"fill"},
-"C01-comment-tools-certified.dc.html":{"x":1520,"y":0,"w":1440,"h":900,"title":"C01 · Certified file: comments can’t be saved","expand":"fill"},
+"C01-comment-tools-certified.dc.html":{"x":1520,"y":0,"w":1440,"h":900,"title":"C01 · Certified file: signature banner from mode entry","expand":"fill"},
 "C02-shape-selected.dc.html":{"x":0,"y":1020,"w":1440,"h":900,"title":"C02 · Selected shape with handles + inspector","expand":"fill"},
 "C02-ink-drawing.dc.html":{"x":1520,"y":1020,"w":1440,"h":900,"title":"C02 · Ink stroke in progress","expand":"fill"},
 "C03-callout.dc.html":{"x":0,"y":2040,"w":1440,"h":900,"title":"C03 · Callout edited in place","expand":"fill"},
@@ -12,19 +12,20 @@
 "C06-import.dc.html":{"x":1520,"y":5100,"w":1440,"h":900,"title":"C06 · Import comments from XFDF","expand":"fill"},
 "C07-flatten.dc.html":{"x":0,"y":6120,"w":1440,"h":900,"title":"C07 · Flatten comments","expand":"fill"},
 "C07-summary.dc.html":{"x":1520,"y":6120,"w":1440,"h":900,"title":"C07 · Comment summary","expand":"fill"},
+"C07-flatten-history.dc.html":{"x":3040,"y":6120,"w":1440,"h":900,"title":"C07 · Flatten and rewrite: signature override","expand":"fill"},
 "C08-annotate-phone.dc.html":{"x":0,"y":7140,"w":390,"h":844,"title":"C08 · Phone annotate mode"},
 "C08-comment-sheet-phone.dc.html":{"x":470,"y":7140,"w":390,"h":844,"title":"C08 · Phone comment sheet"},
 "C09-stylus-tablet.dc.html":{"x":0,"y":8104,"w":1024,"h":1366,"title":"C09 · Tablet stylus ink + tool shelf"}
-},"order":["C01-comment-tools.dc.html","C01-comment-tools-certified.dc.html","C02-shape-selected.dc.html","C02-ink-drawing.dc.html","C03-callout.dc.html","C04-comments-panel.dc.html","C04-comments-filter.dc.html","C05-stamps.dc.html","C05-attachment.dc.html","C06-export.dc.html","C06-import.dc.html","C07-flatten.dc.html","C07-summary.dc.html","C08-annotate-phone.dc.html","C08-comment-sheet-phone.dc.html","C09-stylus-tablet.dc.html"],
+},"order":["C01-comment-tools.dc.html","C01-comment-tools-certified.dc.html","C02-shape-selected.dc.html","C02-ink-drawing.dc.html","C03-callout.dc.html","C04-comments-panel.dc.html","C04-comments-filter.dc.html","C05-stamps.dc.html","C05-attachment.dc.html","C06-export.dc.html","C06-import.dc.html","C07-flatten.dc.html","C07-summary.dc.html","C07-flatten-history.dc.html","C08-annotate-phone.dc.html","C08-comment-sheet-phone.dc.html","C09-stylus-tablet.dc.html"],
 "notes":{
-"area":{"x":-440,"y":-320,"text":"Comment and review (C01–C09)","kind":"title1","maxW":3400},
-"nC01":{"x":-440,"y":0,"w":360,"text":"C01 Comment tools\nPick a markup or drawing tool from Comment mode’s one toolbar; colour and width apply to the next mark.\nStates: Shapes menu open (keyboard focus on Arrow); certified file where comments can’t be saved (banner, Save a copy).\nTodos: E4f"},
+"area":{"x":0,"y":-300,"text":"Comment and review (C01–C09)","kind":"title1","maxW":4480},
+"nC01":{"x":-440,"y":0,"w":360,"text":"C01 Comment tools\nPick a markup or drawing tool from Comment mode’s one toolbar; colour and width apply to the next mark.\nStates: Shapes menu open (keyboard focus on Arrow); file certified for form filling only: “Saving will invalidate the signature” banner from mode entry, Save a copy… and Details.\nTodos: E4f"},
 "nC02":{"x":-440,"y":1020,"w":360,"text":"C02 Ink and shapes\nDraw freehand ink and shapes; a selected shape shows 8 handles and its properties in the inspector.\nStates: cloudy rectangle selected (stroke, fill, opacity, width, style); ink stroke in progress (Esc cancels, release ends).\nTodos: E4d"},
 "nC03":{"x":-440,"y":2040,"w":360,"text":"C03 Free text and callouts\nType straight onto the page in a text box or a callout with a leader line; the inspector sets font, size, alignment, fill and border.\nStates: callout being edited (caret in box, knee and arrow handles); empty box shows a placeholder until typed.\nTodos: E4e"},
 "nC04":{"x":-440,"y":3060,"w":360,"text":"C04 Comments panel\nEvery comment in the file as threads: reply, set status (Accepted, Rejected, Cancelled, Done), filter, search, jump to.\nStates: thread open with reply box; filter menu open with 3 threads checked for bulk actions. Empty and no-match states in the doc.\nTodos: E5b"},
 "nC05":{"x":-440,"y":4080,"w":360,"text":"C05 Stamps and attachments\nStamp a page from a standard, dynamic (name and date filled in now) or custom image stamp; attach a file to a spot on the page.\nStates: stamp picker open on Dynamic; attachment selected with Save and Replace.\nTodos: E5c"},
 "nC06":{"x":-440,"y":5100,"w":360,"text":"C06 Import and export comments\nMove comments in and out as XFDF or FDF, and export highlights and notes as Markdown.\nStates: export dialog with Markdown preview; import dialog with match report and one unsupported comment.\nTodos: E5d"},
-"nC07":{"x":-440,"y":6120,"w":360,"text":"C07 Flatten and summary\nBurn comments into the page content, or make a new PDF that lists every comment beside its page.\nStates: flatten on an approval-signed file (signature stays valid, history note, full-rewrite option); summary options with preview.\nTodos: E5e"},
+"nC07":{"x":-440,"y":6120,"w":360,"text":"C07 Flatten and summary\nBurn comments into the page content, or make a new PDF that lists every comment beside its page.\nStates: flatten on an approval-signed file (signature stays valid); with “Also remove the comments from the file’s history” ticked (danger notice, override checkbox, Flatten and rewrite…); summary options with preview.\nTodos: E5e"},
 "nC08":{"x":-440,"y":7140,"w":360,"text":"C08 Phone annotate\nAnnotate replaces the bottom bar with Pen, Highlighter, Eraser, Note and Done; comments open in a sheet.\nStates: pen stroke on page with colour row; comment sheet at medium detent with reply field.\nTodos: E4f, U3a"},
-"nC09":{"x":-440,"y":8104,"w":360,"text":"C09 Tablet stylus\nThe pen draws and the finger scrolls (palm rejection); a docked tool shelf holds pens, widths and colours at 44 px.\nStates: pressure-varying ink while the palm rests on the screen; Draw with finger off.\nTodos: E4f"}
+"nC09":{"x":-440,"y":8104,"w":360,"text":"C09 Tablet stylus\nThe pen draws and the finger scrolls (palm rejection); a docked tool shelf holds pens, widths and colours at 44 px.\nStates: pressure-varying ink while the palm rests on the screen; Draw with finger off. Without a pen the tablet uses the Comment toolbar at touch size.\nTodos: E4f"}
 },"designSystems":[]}
