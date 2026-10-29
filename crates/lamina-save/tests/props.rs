@@ -9,10 +9,12 @@
 
 mod common;
 
+use common::save::ModeSaves as _;
+
 use common::save::{Facts, corpus_doc, editable, facts, page_ids, reopen, two_pages};
 use lamina_model::Rotation;
 use lamina_ops::{Document, InfoPatch, Op, Origin, RotatePage, SetInfo};
-use lamina_save::{Renumber, Save, SaveOptions, XrefKind};
+use lamina_save::{Renumber, SaveOptions, XrefKind};
 use proptest::prelude::*;
 use proptest::test_runner::{Config, RngSeed, TestRunner};
 

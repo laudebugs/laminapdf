@@ -3,11 +3,12 @@
 use std::collections::BTreeSet;
 use std::ops;
 
-use lamina_cos::{OpenOptions, Reserved, Source};
+use lamina_cos::{CosMut, JournalMark, OpenOptions, Reserved, Source};
 
 use crate::error::{Error, Result};
 use crate::history::{Entry, History, Reverted, UndoOutcome};
 use crate::op::Op;
+use crate::pending::PendingChanges;
 use crate::record::{UndoRecord, revert};
 use crate::tx::{Applied, Origin, Tx, TxState};
 
@@ -43,6 +44,8 @@ pub struct Document {
     open: Option<TxState>,
     /// Set by a save whose output the document has not been rebased onto yet.
     unrebased: Option<PendingRebase>,
+    /// The op classes of the changes since the last rebase (for the save planner).
+    pending: PendingChanges,
 }
 
 /// What a save that wrote its bytes means for the rebase onto them
@@ -88,6 +91,7 @@ impl From<lamina_model::Document> for Document {
             history: History::default(),
             open: None,
             unrebased: None,
+            pending: PendingChanges::default(),
         }
     }
 }
@@ -131,6 +135,54 @@ impl Document {
     /// Records that the current state was saved (called by `lamina-save`).
     pub fn mark_saved(&mut self) {
         self.history.mark_saved();
+    }
+
+    /// The kinds of change not yet saved (ADR 0007 §2): what the save planner checks against
+    /// the document's signatures. Empty when the overlay is.
+    #[must_use]
+    pub const fn pending_changes(&self) -> &PendingChanges {
+        &self.pending
+    }
+
+    /// Changes the COS overlay outside any transaction and outside the undo history, for
+    /// `lamina-save`'s save planner: the explicit signature override removes the values of
+    /// the signatures a save invalidates (ADR 0007 §3) right before it writes. It is not an
+    /// editing path: callers edit through ops. The changes join no undo entry and no pending
+    /// class; [`Document::rollback_outside_history`] with the returned mark undoes them when
+    /// the save fails, and the rebase after a save makes them part of the base.
+    ///
+    /// # Errors
+    /// [`Error::NestedTransaction`] while a transaction is open; [`Error::SavedNotRebased`];
+    /// what `f` returns (its changes are rolled back first).
+    pub fn edit_outside_history(
+        &mut self,
+        f: impl FnOnce(&mut CosMut<'_>) -> lamina_cos::Result<()>,
+    ) -> Result<JournalMark> {
+        if self.open.is_some() {
+            return Err(Error::NestedTransaction);
+        }
+        self.writable()?;
+        let cos = self.model.cos_mut();
+        let mark = cos.journal_mark();
+        if let Err(e) = f(&mut cos.edit()) {
+            cos.rollback_to(mark)?;
+            return Err(e.into());
+        }
+        Ok(mark)
+    }
+
+    /// Undoes the changes made since `mark` by [`Document::edit_outside_history`].
+    ///
+    /// # Errors
+    /// [`Error::NestedTransaction`] while a transaction is open; [`Error::SavedNotRebased`];
+    /// a COS error when `mark` is not one this document's journal still holds.
+    pub fn rollback_outside_history(&mut self, mark: JournalMark) -> Result<()> {
+        if self.open.is_some() {
+            return Err(Error::NestedTransaction);
+        }
+        self.writable()?;
+        self.model.cos_mut().rollback_to(mark)?;
+        Ok(())
     }
 
     /// Where the document stands relative to its last save.
@@ -190,11 +242,19 @@ impl Document {
         };
         self.model.cos_mut().rebase(source, reserved)?;
         self.unrebased = None;
+        self.pending.clear();
         if pending == PendingRebase::ClearHistory {
             self.history = History::new(self.history.depth());
             self.history.mark_saved();
         }
         Ok(())
+    }
+
+    /// An empty overlay has nothing left to save: no pending class applies any more.
+    fn forget_pending_when_clean(&mut self) {
+        if !self.model.is_dirty() {
+            self.pending.clear();
+        }
     }
 
     /// Refuses ops, undo and redo while a save waits for its rebase.
@@ -309,6 +369,7 @@ impl Document {
             origin,
             mark: self.model.journal_mark(),
             touched: BTreeSet::new(),
+            pending: PendingChanges::default(),
             coalesce,
         });
         Ok(())
@@ -343,14 +404,17 @@ impl Document {
         let state = self.open.take().ok_or(Error::NoTransaction)?;
         let undo = UndoRecord::from_changes(&changes);
         if !undo.is_empty() {
+            self.pending.merge(&state.pending);
             if state.origin == Origin::Local {
-                self.history.push(undo.clone(), state.touched.clone(), state.coalesce);
+                self.history
+                    .push(undo.clone(), state.touched.clone(), state.pending, state.coalesce);
             } else {
                 // A remote or system change ends coalescing: merging across it would let
                 // undo overwrite it (ADR 0006 §4).
                 self.history.break_chain();
             }
         }
+        self.forget_pending_when_clean();
         Ok(Applied {
             undo,
             touched_pages: state.touched,
@@ -446,6 +510,10 @@ impl Document {
         let record = UndoRecord::from_changes(&cos.take_changes(mark)?);
         // Even an undo or redo that restored nothing ends coalescing.
         self.history.break_chain();
+        if !record.is_empty() {
+            self.pending.merge(&entry.pending);
+        }
+        self.forget_pending_when_clean();
         let outcome = match (restored, skipped.is_empty()) {
             (_, true) => UndoOutcome::Applied,
             (0, false) => UndoOutcome::Skipped { skipped },
@@ -456,6 +524,7 @@ impl Document {
             touched: entry.touched.clone(),
             key: None,
             serial: entry.serial,
+            pending: entry.pending.clone(),
         });
         Ok((
             inverse,

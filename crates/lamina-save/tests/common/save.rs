@@ -7,13 +7,58 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use lamina_cos::{ByteSource, Object, OpenOptions, PdfString, SourceError};
 use lamina_model::{PageId, Rotation};
 use lamina_ops::{Document, InfoPatch, Origin, RotatePage, SetInfo};
-use lamina_save::{SinkError, WriteSink};
+use lamina_save::{ReadableSink, Result as SaveResult, Save, SaveMode, SaveOptions, SaveReport, SinkError, WriteSink};
 
 use super::fixture;
+
+/// B3b's save names over [`Save`] with an explicit mode, so the writer tests keep naming the
+/// writer they exercise.
+#[expect(clippy::trivially_copy_pass_by_ref, reason = "the signatures of `Save`, which they wrap")]
+pub trait ModeSaves {
+    /// [`Save::save`] in [`SaveMode::Incremental`].
+    fn save_incremental<S: WriteSink + ?Sized>(
+        &mut self,
+        sink: &mut S,
+        options: &SaveOptions,
+    ) -> SaveResult<SaveReport>;
+    /// [`Save::save`] in [`SaveMode::FullRewrite`].
+    fn save_full<S: WriteSink + ?Sized>(&mut self, sink: &mut S, options: &SaveOptions) -> SaveResult<SaveReport>;
+    /// [`Save::save_and_rebase`] in [`SaveMode::FullRewrite`].
+    fn save_full_and_rebase<S: ReadableSink>(&mut self, sink: S, options: &SaveOptions) -> SaveResult<SaveReport>;
+}
+
+impl ModeSaves for Document {
+    fn save_incremental<S: WriteSink + ?Sized>(
+        &mut self,
+        sink: &mut S,
+        options: &SaveOptions,
+    ) -> SaveResult<SaveReport> {
+        self.save(sink, &options.with_mode(SaveMode::Incremental))
+    }
+
+    fn save_full<S: WriteSink + ?Sized>(&mut self, sink: &mut S, options: &SaveOptions) -> SaveResult<SaveReport> {
+        self.save(sink, &options.with_mode(SaveMode::FullRewrite))
+    }
+
+    fn save_full_and_rebase<S: ReadableSink>(&mut self, sink: S, options: &SaveOptions) -> SaveResult<SaveReport> {
+        self.save_and_rebase(sink, &options.with_mode(SaveMode::FullRewrite))
+    }
+}
 
 /// An editable document over a copy of `bytes`.
 pub fn editable(bytes: &[u8]) -> Document {
     Document::open(bytes.to_vec(), OpenOptions::default()).unwrap()
+}
+
+/// `corpus/tampered.pdf` (a signed file with one signed byte changed, which opens without
+/// repair) with its newest catalog damaged as well, so it repairs to the older, unsigned one:
+/// a signed file that is also a repaired base (`policy.rs` in `lamina-cos` checks the repair).
+pub fn tampered_and_repaired() -> Vec<u8> {
+    let mut bytes = fixture("corpus/tampered.pdf");
+    if let Some(b) = bytes.get_mut(590) {
+        *b = 73;
+    }
+    bytes
 }
 
 /// An editable corpus file.

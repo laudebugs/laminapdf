@@ -69,6 +69,8 @@
   ],
   "saveErrors": [
     "sink",
-    "not-rebased"
+    "not-rebased",
+    "would-invalidate-signatures",
+    "requires-rewrite"
   ]
 }

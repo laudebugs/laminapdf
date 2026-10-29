@@ -73,7 +73,9 @@ struct Plan {
 
 impl<'d> FullWriter<'d> {
     /// A writer for `doc` as it is now (overlay over base); of the options, `renumber`,
-    /// `xref` and `eol` apply.
+    /// `xref`, `eol` and `remove_encryption` apply. With `remove_encryption`, an encrypted
+    /// document is written as plaintext: the objects as the reader decrypted them, streams
+    /// without a leading `/Crypt` filter, and no `/Encrypt` in the trailer (`/ID[0]` kept).
     #[must_use]
     pub const fn new(doc: &'d Document, options: SaveOptions) -> Self {
         Self { doc, options }
@@ -83,7 +85,7 @@ impl<'d> FullWriter<'d> {
     ///
     /// # Errors
     /// Before anything is written: [`SinkError::NotEmpty`](crate::SinkError::NotEmpty);
-    /// [`lamina_cos::Error::EncryptedBase`]; any error loading a reachable object or `/ID`
+    /// [`SaveError::EncryptedBase`] unless the options remove the encryption; any error loading a reachable object or `/ID`
     /// (unavailable input, strict mode, limits, unparsable objects);
     /// [`lamina_cos::Error::LimitExceeded`] for an object nested deeper than
     /// [`Limits::max_nesting_depth`](lamina_cos::Limits::max_nesting_depth);
@@ -93,35 +95,29 @@ impl<'d> FullWriter<'d> {
     pub fn write<S: WriteSink + ?Sized>(&self, sink: &mut S) -> Result<SaveReport> {
         let doc = self.doc;
         require_empty(sink, None)?;
-        if doc.is_encrypted() {
-            return Err(lamina_cos::Error::EncryptedBase.into());
+        let decrypt = doc.is_encrypted();
+        if decrypt && !self.options.remove_encryption() {
+            return Err(SaveError::EncryptedBase);
         }
         let trailer = doc.trailer();
         let depth = doc.limits().max_nesting_depth();
         let reached = self.reach(trailer, depth)?;
         let compact = self.options.xref() == XrefKind::Stream;
-        let packable = |o: &Reached| self.packed_generation(o) == 0 && !matches!(*o.value, Object::Stream(_));
-        let groups = if compact {
-            reached
-                .values()
-                .filter(|o| packable(o))
-                .count()
-                .div_ceil(OBJSTM_CAPACITY)
-        } else {
-            0
-        };
-        let plan = self.plan(&reached, groups)?;
+        let plan = self.plan(&reached, self.object_streams(&reached))?;
         let map = |r: ObjRef| -> Option<ObjRef> {
             reached.get(&r.num).filter(|o| o.generation == r.gen_nr)?;
             let &(num, generation) = plan.numbers.get(&r.num)?;
             Some(ObjRef::new(num, generation))
         };
-        let remapper = Remap { map: &map, depth };
+        let remapper = Remap {
+            map: &map,
+            depth,
+            decrypted: decrypt,
+        };
         let permanent = permanent_id(doc, trailer)?;
-        let mut trailer_out = Dict::new();
-        for (k, v) in document_keys(trailer).filter(|(k, _)| k.as_bytes() != b"ID") {
-            trailer_out.insert(k.clone(), remapper.object(v)?);
-        }
+        let trailer_out = written_keys(trailer)
+            .map(|(k, v)| Ok((k.clone(), remapper.object(v)?)))
+            .collect::<Result<Dict>>()?;
         // New number order (the same as the old order: numbering keeps it).
         let objects: Vec<(u32, u16, &Object)> = reached
             .iter()
@@ -167,7 +163,12 @@ impl<'d> FullWriter<'d> {
                     generation: 0,
                 },
             );
-            out.indirect(stream_num, 0, &Object::Stream(stream), &Remap { map: &Some, depth })?;
+            let identity = Remap {
+                map: &Some,
+                depth,
+                decrypted: false,
+            };
+            out.indirect(stream_num, 0, &Object::Stream(stream), &identity)?;
         }
 
         let Output { mut sink, hash } = out;
@@ -184,7 +185,22 @@ impl<'d> FullWriter<'d> {
             mode: SaveMode::FullRewrite,
             renumbered,
             append_offset: None,
+            invalidated: Vec::new(),
+            encryption_removed: decrypt,
         })
+    }
+
+    /// How many object streams the packable objects of `reached` fill (none for a classic
+    /// layout).
+    fn object_streams(&self, reached: &BTreeMap<u32, Reached>) -> usize {
+        if self.options.xref() != XrefKind::Stream {
+            return 0;
+        }
+        reached
+            .values()
+            .filter(|o| self.packed_generation(o) == 0 && !matches!(*o.value, Object::Stream(_)))
+            .count()
+            .div_ceil(OBJSTM_CAPACITY)
     }
 
     /// The generation an object is written with.
@@ -257,7 +273,7 @@ impl<'d> FullWriter<'d> {
         let doc = self.doc;
         let mut reached = BTreeMap::new();
         let mut pending = Vec::new();
-        for (_, value) in document_keys(trailer).filter(|(k, _)| k.as_bytes() != b"ID") {
+        for (_, value) in written_keys(trailer) {
             references(value, depth, &mut pending)?;
         }
         while let Some(r) = pending.pop() {
@@ -388,10 +404,19 @@ const fn too_deep() -> SaveError {
     })
 }
 
+/// The trailer's document keys a full rewrite writes: not `/ID` (rewritten) and not
+/// `/Encrypt` (a rewrite either refuses an encrypted document or removes the encryption).
+fn written_keys(trailer: &Dict) -> impl Iterator<Item = (&lamina_cos::Name, &Object)> {
+    document_keys(trailer).filter(|(k, _)| !matches!(k.as_bytes(), b"ID" | b"Encrypt"))
+}
+
 /// Rewrites references: through `map`, `None` becoming `null`.
 struct Remap<'m> {
     map: &'m dyn Fn(ObjRef) -> Option<ObjRef>,
     depth: usize,
+    /// The objects were decrypted as they were read and are written as plaintext: streams lose
+    /// a leading `/Crypt` filter (§7.4.10), which the reader already applied.
+    decrypted: bool,
 }
 
 impl Remap<'_> {
@@ -407,6 +432,9 @@ impl Remap<'_> {
         let mut out = self.dict_at(dict, self.depth)?;
         if dict.get("Length").is_some_and(|v| matches!(v, Object::Ref(_))) {
             out.insert("Length", 0);
+        }
+        if self.decrypted {
+            strip_crypt_filter(&mut out);
         }
         Ok(out)
     }
@@ -525,5 +553,35 @@ impl<S: WriteSink> Output<S> {
                 self.write(&head)
             }
         }
+    }
+}
+
+/// Removes a leading `/Crypt` filter and its `/DecodeParms` entry from a stream dictionary
+/// (§7.4.10: `/Crypt` comes first in the chain). The reader decrypted the data already.
+fn strip_crypt_filter(dict: &mut Dict) {
+    let is_crypt = |o: &Object| matches!(o, Object::Name(n) if n.as_bytes() == b"Crypt");
+    match dict.get_mut("Filter") {
+        Some(Object::Array(filters)) if filters.first().is_some_and(is_crypt) => {
+            filters.remove(0);
+            let empty = filters.is_empty();
+            match dict.get_mut("DecodeParms") {
+                Some(Object::Array(parms)) if !parms.is_empty() => {
+                    parms.remove(0);
+                }
+                Some(Object::Dict(_)) => {
+                    dict.remove("DecodeParms");
+                }
+                _ => {}
+            }
+            if empty {
+                dict.remove("Filter");
+                dict.remove("DecodeParms");
+            }
+        }
+        Some(filter) if is_crypt(filter) => {
+            dict.remove("Filter");
+            dict.remove("DecodeParms");
+        }
+        _ => {}
     }
 }

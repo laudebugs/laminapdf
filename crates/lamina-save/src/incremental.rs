@@ -94,7 +94,7 @@ impl<'d> IncrementalWriter<'d> {
     ///
     /// # Errors
     /// Before anything is written: [`SinkError::NotEmpty`](crate::SinkError::NotEmpty);
-    /// [`lamina_cos::Error::RepairedBase`] and [`lamina_cos::Error::EncryptedBase`] when there
+    /// [`lamina_cos::Error::RepairedBase`] and [`SaveError::EncryptedBase`] when there
     /// is something to append; [`lamina_cos::Error::DataPending`] /
     /// [`lamina_cos::Error::Source`] for base bytes or objects that can't be read;
     /// [`lamina_cos::Error::InvalidStructure`] when object numbers run out. While writing:
@@ -108,7 +108,7 @@ impl<'d> IncrementalWriter<'d> {
         let (appended, freed, append_offset) = if doc.is_dirty() {
             let prev = doc.startxref().ok_or(lamina_cos::Error::RepairedBase)?;
             if doc.is_encrypted() {
-                return Err(lamina_cos::Error::EncryptedBase.into());
+                return Err(SaveError::EncryptedBase);
             }
             let mut hash = ContentHash::default();
             check_and_hash(source, Some(&mut hash))?;
@@ -131,6 +131,8 @@ impl<'d> IncrementalWriter<'d> {
                 mode: SaveMode::Incremental,
                 renumbered: None,
                 append_offset,
+                invalidated: Vec::new(),
+                encryption_removed: false,
             },
             appended,
             freed,

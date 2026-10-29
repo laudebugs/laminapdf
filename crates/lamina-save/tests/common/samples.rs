@@ -170,8 +170,11 @@ pub fn incremental_set_info() -> Result<Vec<u8>> {
     )
     .unwrap();
     let mut out = Vec::new();
-    doc.save_incremental(&mut out, &lamina_save::SaveOptions::new())
-        .unwrap();
+    doc.save(
+        &mut out,
+        &lamina_save::SaveOptions::new().with_mode(lamina_save::SaveMode::Incremental),
+    )
+    .unwrap();
     Ok(out)
 }
 
@@ -190,6 +193,10 @@ pub fn full_rewrite_hello() -> Result<Vec<u8>> {
     )
     .unwrap();
     let mut out = Vec::new();
-    doc.save_full(&mut out, &lamina_save::SaveOptions::new()).unwrap();
+    doc.save(
+        &mut out,
+        &lamina_save::SaveOptions::new().with_mode(lamina_save::SaveMode::FullRewrite),
+    )
+    .unwrap();
     Ok(out)
 }
