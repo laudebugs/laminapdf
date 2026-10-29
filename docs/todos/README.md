@@ -82,7 +82,7 @@ Ready todos whose dependencies are all done:
 | L4c | [`lamina mcp`: a stdio MCP server over the CLI commands, with `--root` and read-only defaults](ready/L4c-mcp-mode.md) | ready | [L4a](ready/L4a-lamina-cli.md) |
 | L4d | [CLI distribution: release binaries with cargo-dist, Homebrew tap and an npm wrapper](ready/L4d-cli-distribution.md) | ready | [L4a](ready/L4a-lamina-cli.md), [P1](ready/P1-reserve-names-and-trusted-publishing.md) |
 | L5a | [Docs for agents: `llms.txt`, Markdown twins, docs shipped in the packages, `AGENTS.md` snippet, rename log and an agent-eval baseline](ready/L5a-agent-docs.md) | ready | [B7a](ready/B7a-docs-site.md), [L1b](ready/L1b-error-contract-codegen.md) |
-| L6a | [`lamina-ffi` spike: UniFFI over the façade, XCFramework and AARs, size report, ADR 0029](ready/L6a-lamina-ffi-spike.md) | ready | [B5c](ready/B5c-lamina-facade-and-examples.md), [L1a](ready/L1a-contract-adrs.md) |
+| L6a | [`lamina-ffi` spike (start right after B5c): UniFFI over the façade, XCFramework and AARs, size report, ADR 0029](ready/L6a-lamina-ffi-spike.md) | ready | [B5c](ready/B5c-lamina-facade-and-examples.md), [L1a](ready/L1a-contract-adrs.md) |
 | L6b | [Mobile SDK plan: `LaminaView` (SwiftUI) and `LaminaViewer` (Compose), rounds and todos](ready/L6b-mobile-sdk-plan.md) | ready | [L6a](ready/L6a-lamina-ffi-spike.md), [C2b](ready/C2b-lamina-render-crate.md), [U3b](ready/U3b-mobile-shell-spike.md) |
 
 ## Web reader — Round C
