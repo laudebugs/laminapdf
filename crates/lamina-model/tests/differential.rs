@@ -20,7 +20,9 @@ use std::collections::BTreeSet;
 use common::{corpus, fixture, json, mutants, open, outline_titles};
 use serde_json::{Value, json};
 
-/// lamina's facts about `bytes`, in the shape `expected.json` stores pypdf's.
+/// lamina's facts about `bytes`, in the shape `expected.json` stores pypdf's, extracted the
+/// same way as `tools/corpus-facts/facts.py` does: the outcome is about opening the file and
+/// walking its pages; an unreadable outline is its own fact (`null`) and leaves the outcome.
 fn ours(bytes: &[u8]) -> Value {
     let failed = json!({"outcome": "failed", "page_count": null, "outline_titles": null});
     let Ok(doc) = open(bytes) else { return failed };
@@ -97,18 +99,16 @@ fn lamina_agrees_with_pypdf_except_for_listed_exceptions() {
 #[test]
 fn every_exception_is_still_needed() {
     let expected = json("differential/expected.json");
-    let stale: Vec<_> = inputs()
-        .into_iter()
-        .flat_map(|(name, bytes)| {
-            let ours = ours(&bytes);
-            let theirs = expected[&name].clone();
-            ["outcome", "page_count", "outline_titles"]
-                .into_iter()
-                .filter(move |fact| ours[fact] == theirs[fact])
-                .map(move |fact| (name.clone(), fact.to_owned()))
-        })
-        .filter(|pair| exceptions().contains(pair))
-        .collect();
+    let excused = exceptions();
+    let mut stale = Vec::new();
+    for (name, bytes) in inputs() {
+        let ours = ours(&bytes);
+        for fact in ["outcome", "page_count", "outline_titles"] {
+            if ours[fact] == expected[&name][fact] && excused.contains(&(name.clone(), fact.to_owned())) {
+                stale.push(format!("{name}: {fact}"));
+            }
+        }
+    }
     assert!(stale.is_empty(), "exceptions lamina no longer needs: {stale:?}");
 }
 

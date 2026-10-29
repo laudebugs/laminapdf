@@ -42,8 +42,9 @@ impl TreeKind for Nums {
     }
 }
 
-/// Walks the tree at `root` in tree order, collecting the entries whose key is `target` (or
-/// every entry when `target` is `None`).
+/// Walks the tree at `root` in tree order, collecting every entry, or (with `target`)
+/// stopping at the first entry with that key. A lookup skips a node whose well-formed
+/// `/Limits` excludes the key once it reaches that node, so kids are never read ahead.
 fn walk<K: TreeKind>(doc: &Document, root: &Object, target: Option<&K::Key>) -> Result<Vec<(K::Key, Object)>> {
     let max_depth = doc.limits().max_tree_depth();
     let mut visited = BTreeSet::new();
@@ -73,6 +74,11 @@ fn walk<K: TreeKind>(doc: &Document, root: &Object, target: Option<&K::Key>) -> 
             skip()?;
             continue;
         };
+        if let Some(target) = target
+            && !within_limits::<K>(doc, node, target)?
+        {
+            continue;
+        }
         if let Some(entries) = node.get(K::ENTRIES) {
             let entries = doc.read(entries)?;
             match entries.as_deref().and_then(Object::as_array) {
@@ -81,7 +87,8 @@ fn walk<K: TreeKind>(doc: &Document, root: &Object, target: Option<&K::Key>) -> 
                     for [key, value] in pairs {
                         let key = doc.read(key)?.and_then(|k| K::key(&k));
                         match key {
-                            Some(key) if target.is_none_or(|t| *t == key) => out.push((key, value.clone())),
+                            Some(key) if target == Some(&key) => return Ok(vec![(key, value.clone())]),
+                            Some(key) if target.is_none() => out.push((key, value.clone())),
                             Some(_) => {}
                             None => skip()?,
                         }
@@ -99,25 +106,15 @@ fn walk<K: TreeKind>(doc: &Document, root: &Object, target: Option<&K::Key>) -> 
                 skip()?;
                 continue;
             };
-            for kid in kids.iter().rev() {
-                if let Some(target) = target
-                    && !may_contain::<K>(doc, kid, target)?
-                {
-                    continue;
-                }
-                stack.push((kid.clone(), depth + 1));
-            }
+            stack.extend(kids.iter().rev().map(|kid| (kid.clone(), depth + 1)));
         }
     }
     Ok(out)
 }
 
-/// False only when `kid` has a well-formed `/Limits` that excludes `target`.
-fn may_contain<K: TreeKind>(doc: &Document, kid: &Object, target: &K::Key) -> Result<bool> {
-    let Some(kid) = doc.read(kid)? else {
-        return Ok(true);
-    };
-    let Some(limits) = kid.as_dict().and_then(|d| d.get("Limits")) else {
+/// False only when `node` has a well-formed `/Limits` that excludes `target`.
+fn within_limits<K: TreeKind>(doc: &Document, node: &lamina_cos::Dict, target: &K::Key) -> Result<bool> {
+    let Some(limits) = node.get("Limits") else {
         return Ok(true);
     };
     let Some(limits) = doc.read(limits)? else {

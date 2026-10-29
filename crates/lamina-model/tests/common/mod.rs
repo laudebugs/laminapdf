@@ -11,11 +11,12 @@
     reason = "test helpers outside #[test] fns: a panic here is a test failure"
 )]
 
+pub mod exercise;
+pub mod fuzz_entry;
 pub mod mutants;
 
 use std::path::{Path, PathBuf};
 
-use lamina_cos::ObjRef;
 use lamina_model::{Document, OpenOptions, Result};
 
 /// Opens a copy of `bytes` with default options.
@@ -80,58 +81,6 @@ pub fn classic(objects: &[&str], trailer: &str) -> Vec<u8> {
         .as_bytes(),
     );
     out
-}
-
-/// Drives every COS read path and every model view; returns the number of errors seen.
-/// Errors are fine; the point is that nothing panics or hangs.
-pub fn exercise(doc: &Document) -> usize {
-    let mut errors = 0;
-    let mut count = |r: Result<()>| errors += usize::from(r.is_err());
-    count(doc.catalog().map(drop));
-    count(views(doc));
-    let nums: Vec<u32> = doc.object_numbers().collect();
-    for num in nums {
-        count(doc.resolve(ObjRef::new(num, 0)).map(drop));
-    }
-    errors
-}
-
-fn views(doc: &Document) -> Result<()> {
-    let pages = doc.pages()?;
-    for page in pages.iter() {
-        let _ = doc.page_content(page.cos());
-        page.media_box()?;
-        page.crop_box()?;
-        page.bleed_box()?;
-        page.trim_box()?;
-        page.art_box()?;
-        page.rotate()?;
-        page.user_unit()?;
-        page.contents()?;
-        page.annots()?;
-        page.label()?;
-    }
-    let outline = doc.outline()?;
-    for item in outline.iter() {
-        item.title()?;
-        item.count()?;
-        item.action()?;
-        item.target()?;
-        let _ = item.children().count();
-    }
-    if let Some(info) = doc.info()? {
-        for key in ["Title", "Author", "Subject", "Keywords", "Creator", "Producer"] {
-            info.text(key)?;
-        }
-        info.creation_date()?;
-        info.mod_date()?;
-    }
-    if let Some(dests) = doc.name_tree("Dests")? {
-        dests.entries()?;
-        dests.get(b"x")?;
-    }
-    doc.page_labels()?;
-    Ok(())
 }
 
 /// xorshift64*: deterministic, so failures are reproducible.

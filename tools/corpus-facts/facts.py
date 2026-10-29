@@ -11,6 +11,7 @@ Never computed by lamina: lamina's tests compare their results against these.
 fixtures/encrypted/, owned by B2b). Requires the pinned versions in requirements.txt.
 """
 
+import contextlib
 import io
 import json
 import logging
@@ -51,25 +52,39 @@ def outline_titles(reader):
     return out
 
 
-def read(data):
-    """(reader, warnings) for `data`; the reader is None when pypdf cannot open it."""
+@contextlib.contextmanager
+def captured_warnings():
+    """Collects pypdf's warnings for the whole block: pypdf parses pages and the outline
+    lazily, so the handler stays attached until every fact has been read."""
     handler = Collect()
     logger = logging.getLogger("pypdf")
+    saved = (logger.level, logger.propagate)
     logger.setLevel(logging.WARNING)
     logger.propagate = False
     logger.addHandler(handler)
     try:
-        reader = pypdf.PdfReader(io.BytesIO(data), strict=False)
-        if reader.is_encrypted:
-            reader.decrypt("")
-        return reader, handler.messages
+        yield handler.messages
     finally:
         logger.removeHandler(handler)
+        logger.setLevel(saved[0])
+        logger.propagate = saved[1]
+
+
+def open_reader(data):
+    """A pypdf reader for `data`, decrypted with the empty password when encrypted."""
+    reader = pypdf.PdfReader(io.BytesIO(data), strict=False)
+    if reader.is_encrypted:
+        reader.decrypt("")
+    return reader
 
 
 def corpus_facts(data):
     """The facts fixtures/corpus/expected.json holds for one file."""
-    reader, _ = read(data)
+    with captured_warnings():
+        return corpus_facts_of(open_reader(data), data)
+
+
+def corpus_facts_of(reader, data):
     header = re.match(rb"%PDF-(\d\.\d)", data)
     root = reader.trailer["/Root"]
     return {
@@ -89,13 +104,21 @@ REPAIR_HINTS = ("xref", "startxref", "trailer", "eof")
 
 
 def outcome_facts(data):
-    """Open/repair/fail outcome, page count and outline titles (the differential's facts)."""
-    try:
-        reader, warnings = read(data)
-        pages = len(reader.pages)
-        titles = outline_titles(reader)
-    except Exception:  # noqa: BLE001 - any failure to read is the "failed" outcome
-        return {"outcome": "failed", "page_count": None, "outline_titles": None}
+    """Open/repair/fail outcome, page count and outline titles (the differential's facts).
+
+    The outcome is about opening the file and counting its pages, as lamina's side of the
+    comparison is (crates/lamina-model/tests/differential.rs): a file that opens but whose
+    outline cannot be read keeps its outcome and page count, with `outline_titles` null."""
+    with captured_warnings() as warnings:
+        try:
+            reader = open_reader(data)
+            pages = len(reader.pages)
+        except Exception:  # noqa: BLE001 - any failure to open is the "failed" outcome
+            return {"outcome": "failed", "page_count": None, "outline_titles": None}
+        try:
+            titles = outline_titles(reader)
+        except Exception:  # noqa: BLE001 - an unreadable outline is its own fact
+            titles = None
     repaired = any(hint in w.lower() for w in warnings for hint in REPAIR_HINTS)
     return {
         "outcome": "repaired" if repaired else "opened",

@@ -10,7 +10,8 @@
 
 mod common;
 
-use common::{corpus, exercise, fixture, json, open, outline_titles};
+use common::exercise::exercise;
+use common::{corpus, fixture, json, open, outline_titles};
 use lamina_model::Error;
 use serde_json::Value;
 

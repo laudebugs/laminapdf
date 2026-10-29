@@ -37,10 +37,19 @@ impl<'d> Info<'d> {
             return Ok(None);
         };
         let object = object_number(info);
-        Ok(doc
-            .read(info)?
-            .filter(|d| matches!(**d, Object::Dict(_)))
-            .map(|dict| Self { doc, dict, object }))
+        let dict = doc.read(info)?;
+        match dict {
+            Some(dict) if matches!(*dict, Object::Dict(_)) => Ok(Some(Self { doc, dict, object })),
+            // A missing object is `null` (§7.3.10): no Info, nothing to report.
+            Some(dict) if matches!(*dict, Object::Null) => Ok(None),
+            _ => {
+                doc.warn(Warning::InvalidEntry {
+                    object: None,
+                    key: "Info",
+                })?;
+                Ok(None)
+            }
+        }
     }
 
     /// The text string at `key`, decoded (§7.9.2.2); `None` when absent or not a string.
@@ -132,7 +141,17 @@ impl<'d> Info<'d> {
         };
         let parsed = raw.parse::<PdfDate>().ok();
         if parsed.is_none() {
-            self.doc.warn(Warning::InvalidDate { object: self.object })?;
+            // Warnings are deduplicated by entry too, so a bad /CreationDate does not hide a
+            // bad /ModDate.
+            let key = match key {
+                "CreationDate" => "CreationDate",
+                "ModDate" => "ModDate",
+                _ => "other",
+            };
+            self.doc.warn(Warning::InvalidDate {
+                object: self.object,
+                key,
+            })?;
         }
         Ok(Some(InfoDate { raw, parsed }))
     }

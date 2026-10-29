@@ -85,8 +85,10 @@ fn roman(mut value: u64) -> String {
 
 /// §12.4.2: A to Z for 1–26, AA to ZZ for 27–52, AAA to ZZZ for 53–78, and so on.
 fn letters(value: u64, base: u8) -> String {
-    let index = (value - 1) % 26;
-    let repeat = (value - 1) / 26 + 1;
+    // Values start at 1; 0 (never produced: `/St` is at least 1) reads as 1.
+    let zero_based = value.saturating_sub(1);
+    let index = zero_based % 26;
+    let repeat = zero_based / 26 + 1;
     let letter = char::from(base + u8::try_from(index).unwrap_or(0));
     std::iter::repeat_n(letter, usize::try_from(repeat).unwrap_or(0)).collect()
 }
@@ -109,7 +111,7 @@ impl LabelRange {
     fn label(&self, index: u64) -> String {
         let mut out = self.prefix.clone();
         if let Some(style) = self.style {
-            let value = self.first.saturating_add(index - self.start);
+            let value = self.first.saturating_add(index.saturating_sub(self.start));
             out.push_str(&style.format(value));
         }
         out
@@ -137,13 +139,11 @@ impl PageLabels {
         };
         let mut ranges: Vec<LabelRange> = Vec::new();
         for (start, value) in NumberTree::new(doc, root.clone()).entries()? {
-            let Ok(start) = u64::try_from(start) else {
-                doc.warn(Warning::InvalidPageLabel {
-                    start: start.unsigned_abs(),
-                })?;
+            let Ok(index) = u64::try_from(start) else {
+                doc.warn(Warning::InvalidPageLabel { start })?;
                 continue;
             };
-            ranges.push(range(doc, start, &value)?);
+            ranges.push(range(doc, start, index, &value)?);
         }
         // Tree order should already be sorted; keep the first range for a repeated start.
         ranges.sort_by_key(|r| r.start);
@@ -174,11 +174,13 @@ impl PageLabels {
     }
 }
 
-/// The range starting at `start` from its label dictionary; a malformed one falls back to
-/// decimal numbering from 1 with [`Warning::InvalidPageLabel`].
-fn range(doc: &Document, start: u64, value: &Object) -> Result<LabelRange> {
+/// The range starting at page `index` (stored as `start`) from its label dictionary. A value
+/// that is not a dictionary falls back to decimal numbering from 1; a malformed entry is
+/// dropped on its own (`/S`: no numeric part, `/P`: no prefix, `/St`: from 1), keeping the
+/// others. Each raises [`Warning::InvalidPageLabel`].
+fn range(doc: &Document, start: i64, index: u64, value: &Object) -> Result<LabelRange> {
     let fallback = LabelRange {
-        start,
+        start: index,
         style: Some(LabelStyle::Decimal),
         prefix: String::new(),
         first: 1,
@@ -201,7 +203,6 @@ fn range(doc: &Document, start: u64, value: &Object) -> Result<LabelRange> {
             };
             if style.is_none() {
                 invalid()?;
-                return Ok(fallback);
             }
             style
         }
@@ -232,7 +233,7 @@ fn range(doc: &Document, start: u64, value: &Object) -> Result<LabelRange> {
         None => 1,
     };
     Ok(LabelRange {
-        start,
+        start: index,
         style,
         prefix,
         first,
@@ -253,6 +254,22 @@ mod tests {
     fn letters_repeat_after_z() {
         let got: Vec<String> = [1, 26, 27, 52, 53].map(|v| letters(v, b'A')).to_vec();
         assert_eq!(got, ["A", "Z", "AA", "ZZ", "AAA"]);
+    }
+
+    #[test]
+    fn letters_of_zero_do_not_underflow() {
+        assert_eq!(letters(0, b'a'), "a");
+    }
+
+    #[test]
+    fn a_page_before_its_range_start_does_not_underflow() {
+        let range = LabelRange {
+            start: 5,
+            style: Some(LabelStyle::Decimal),
+            prefix: String::new(),
+            first: 1,
+        };
+        assert_eq!(range.label(2), "1");
     }
 
     #[test]

@@ -9,6 +9,7 @@ use lamina_cos::{Dict, DirectPath, ObjRef, Object, PathSegment, Result, Warning}
 use crate::document::Document;
 use crate::id::PageId;
 use crate::labels::PageLabels;
+use crate::outline::Outline;
 
 /// A rectangle with its corners normalised (§7.9.5): `x0 <= x1` and `y0 <= y1`.
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -114,36 +115,42 @@ pub struct Pages<'d> {
     ids: Vec<PageId>,
     /// Page index by ID (IDs are unique: one object, or one path, per page).
     by_id: BTreeMap<PageId, usize>,
+    /// Each page's media and crop boxes, read once (every other box is clipped to them).
+    boxes: Vec<OnceCell<Boxes>>,
     labels: OnceCell<PageLabels>,
+}
+
+/// A page's effective media and crop boxes.
+#[derive(Debug, Clone, Copy)]
+struct Boxes {
+    media: Option<Rect>,
+    crop: Option<Rect>,
 }
 
 impl<'d> Pages<'d> {
     pub(crate) fn new(doc: &'d Document) -> Result<Self> {
-        let pages = doc.cos().pages()?;
-        let ids = pages
+        let walked = doc.cos().pages()?;
+        let ids: Vec<PageId> = walked
             .iter()
-            .map(|p| {
-                let id = match (&p.obj_ref, &p.direct_path) {
-                    (Some(r), _) => PageId::object(*r),
-                    (None, Some(path)) => PageId::path(path),
-                    // Unreachable: the walk sets one of the two for every page. Should that
-                    // change, the page is still named by where the tree starts.
-                    (None, None) => PageId::path(&DirectPath::new(
-                        None,
-                        vec![PathSegment::Key("Root"), PathSegment::Key("Pages")],
-                    )),
-                };
-                doc.ids().see(id.as_lamina_id().clone());
-                id
+            .map(|p| match (&p.obj_ref, &p.direct_path) {
+                (Some(r), _) => PageId::object(*r),
+                (None, Some(path)) => PageId::path(path),
+                // Unreachable: the walk sets one of the two for every page. Should that
+                // change, the page is still named by where the tree starts.
+                (None, None) => PageId::path(&DirectPath::new(
+                    None,
+                    vec![PathSegment::Key("Root"), PathSegment::Key("Pages")],
+                )),
             })
             .collect();
-        let ids: Vec<PageId> = ids;
         let by_id = ids.iter().enumerate().map(|(i, id)| (id.clone(), i)).collect();
+        let boxes = walked.iter().map(|_| OnceCell::new()).collect();
         Ok(Self {
             doc,
-            walked: pages,
+            walked,
             ids,
             by_id,
+            boxes,
             labels: OnceCell::new(),
         })
     }
@@ -193,6 +200,15 @@ impl<'d> Pages<'d> {
     /// The pages in order.
     pub fn iter(&self) -> impl Iterator<Item = Page<'_>> + '_ {
         (0..self.len()).filter_map(|i| self.get(i))
+    }
+
+    /// The document outline, resolving destinations against these pages instead of walking
+    /// the page tree again.
+    ///
+    /// # Errors
+    /// As [`Document::outline`].
+    pub fn outline(&self) -> Result<Outline<'_>> {
+        Outline::with_pages(self.doc, self)
     }
 
     /// The page labels, read once per [`Pages`].
@@ -253,17 +269,41 @@ impl<'p> Page<'p> {
         self.cos.obj_ref.map(|r| r.num)
     }
 
-    /// A box from its stored value: `None` when absent, `None` plus [`Warning::InvalidBox`]
-    /// when it is not four numbers.
-    fn read_box(&self, value: Option<&Object>) -> Result<Option<Rect>> {
+    fn page_number(&self) -> u64 {
+        u64::try_from(self.index).unwrap_or(u64::MAX)
+    }
+
+    /// The box `key` from its stored value: `None` when absent, `None` plus
+    /// [`Warning::InvalidBox`] (naming the page and the box) when it is not four numbers.
+    fn read_box(&self, key: &'static str, value: Option<&Object>) -> Result<Option<Rect>> {
         let Some(value) = value else {
             return Ok(None);
         };
         let rect = read_rect(self.doc(), value)?;
         if rect.is_none() {
-            self.doc().warn(Warning::InvalidBox { object: self.object() })?;
+            self.doc().warn(Warning::InvalidBox {
+                object: self.object(),
+                page: self.page_number(),
+                key,
+            })?;
         }
         Ok(rect)
+    }
+
+    /// The media and crop boxes, read once per page.
+    fn boxes(&self) -> Result<Boxes> {
+        let cell = self.pages.boxes.get(self.index);
+        if let Some(boxes) = cell.and_then(OnceCell::get) {
+            return Ok(*boxes);
+        }
+        let media = self.read_box("MediaBox", self.cos.inherited.media_box.as_deref())?;
+        let crop = self.read_box("CropBox", self.cos.inherited.crop_box.as_deref())?;
+        let crop = match (crop, media) {
+            (Some(crop), Some(media)) => Some(crop.intersect(&media).unwrap_or(media)),
+            (crop, media) => crop.or(media),
+        };
+        let boxes = Boxes { media, crop };
+        Ok(cell.map_or(boxes, |c| *c.get_or_init(|| boxes)))
     }
 
     /// `/MediaBox`, own or inherited (§14.11.2); `None` when absent or malformed (the latter
@@ -273,7 +313,7 @@ impl<'p> Page<'p> {
     /// [`lamina_cos::Error::Strict`] in strict mode for a malformed box;
     /// [`lamina_cos::Error::DataPending`] / [`lamina_cos::Error::Source`].
     pub fn media_box(&self) -> Result<Option<Rect>> {
-        self.read_box(self.cos.inherited.media_box.as_deref())
+        Ok(self.boxes()?.media)
     }
 
     /// The crop box: `/CropBox` (own or inherited) intersected with the media box, or the
@@ -282,18 +322,14 @@ impl<'p> Page<'p> {
     /// # Errors
     /// As [`Page::media_box`].
     pub fn crop_box(&self) -> Result<Option<Rect>> {
-        let media = self.media_box()?;
-        let crop = self.read_box(self.cos.inherited.crop_box.as_deref())?;
-        Ok(match (crop, media) {
-            (Some(crop), Some(media)) => Some(crop.intersect(&media).unwrap_or(media)),
-            (crop, media) => crop.or(media),
-        })
+        Ok(self.boxes()?.crop)
     }
 
     /// A box that defaults to the crop box (bleed, trim and art boxes are not inheritable).
-    fn clipped_box(&self, key: &str) -> Result<Option<Rect>> {
+    /// The box itself is read first, so in strict mode its own problem is the one reported.
+    fn clipped_box(&self, key: &'static str) -> Result<Option<Rect>> {
+        let own = self.read_box(key, self.cos.dict.get(key))?;
         let crop = self.crop_box()?;
-        let own = self.read_box(self.cos.dict.get(key))?;
         Ok(match (own, crop) {
             (Some(own), Some(crop)) => Some(own.intersect(&crop).unwrap_or(crop)),
             (own, crop) => own.or(crop),
@@ -346,26 +382,38 @@ impl<'p> Page<'p> {
         if let Some(rotation) = degrees.and_then(Rotation::from_degrees) {
             Ok(rotation)
         } else {
-            self.doc().warn(Warning::InvalidRotate { object: self.object() })?;
+            self.doc().warn(Warning::InvalidRotate {
+                object: self.object(),
+                page: self.page_number(),
+            })?;
             Ok(Rotation::None)
         }
     }
 
     /// `/UserUnit` (§14.11.2.1): the size of a default user-space unit in 1/72 inch; 1 when
-    /// absent or not a positive number.
+    /// absent, and 1 with [`Warning::InvalidEntry`] when not a positive number.
     ///
     /// # Errors
+    /// [`lamina_cos::Error::Strict`] in strict mode for an invalid value;
     /// [`lamina_cos::Error::DataPending`] / [`lamina_cos::Error::Source`].
     pub fn user_unit(&self) -> Result<f64> {
         let Some(value) = self.cos.dict.get("UserUnit") else {
             return Ok(1.0);
         };
-        Ok(self
+        let unit = self
             .doc()
             .read(value)?
             .and_then(|v| v.as_f64())
-            .filter(|u| u.is_finite() && *u > 0.0)
-            .unwrap_or(1.0))
+            .filter(|u| u.is_finite() && *u > 0.0);
+        if let Some(unit) = unit {
+            Ok(unit)
+        } else {
+            self.doc().warn(Warning::InvalidEntry {
+                object: self.object(),
+                key: "UserUnit",
+            })?;
+            Ok(1.0)
+        }
     }
 
     /// `/Resources`, own or inherited, resolved.

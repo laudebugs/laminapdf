@@ -17,7 +17,8 @@
     "outline-cycle",
     "outline-item-skipped",
     "invalid-date",
-    "invalid-page-label"
+    "invalid-page-label",
+    "invalid-entry"
   ],
   "errors": [
     "not-pdf",

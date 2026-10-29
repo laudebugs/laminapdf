@@ -56,7 +56,8 @@ Every repair or substitution the caller might care about is a `Warning`, never s
 | `outline-cycle` | An outline item was reached twice; that branch stops | exists (B2c) |
 | `outline-item-skipped` | An outline item was missing, not a dictionary or deeper than `max_tree_depth`; it and its subtree are skipped | exists (B2c) |
 | `invalid-date` | An Info date is not a valid PDF date; the raw string is kept | exists (B2c) |
-| `invalid-page-label` | A `/PageLabels` entry is malformed; the range falls back to decimal numbering | exists (B2c) |
+| `invalid-page-label` | A `/PageLabels` entry (or part of one) is malformed; that part is dropped, a non-dictionary range falls back to decimal numbering | exists (B2c) |
+| `invalid-entry` | An entry a view reads (`/Info`, `/Names`, `/Outlines`, `/Dests`, `/UserUnit`) is unreadable or of the wrong type; it reads as absent or its default | exists (B2c) |
 
 Warnings raised lazily (on resolve or decode) are recorded on the `Document` and deduplicated by (code, object). `Document::warnings()` returns what has been seen so far. Missing references (`null`) and integer-to-real promotion are documented behaviour, not warnings: they are common in valid files and too frequent to report.
 

@@ -77,11 +77,17 @@ pub enum Warning {
     InvalidBox {
         /// The page's object number (`None` for a direct page dictionary).
         object: Option<u32>,
+        /// The page's index (tells direct pages apart).
+        page: u64,
+        /// Which box, e.g. `"MediaBox"`.
+        key: &'static str,
     },
     /// `invalid-rotate`: a page's `/Rotate` is not an integer multiple of 90; the view reads 0.
     InvalidRotate {
         /// The page's object number (`None` for a direct page dictionary).
         object: Option<u32>,
+        /// The page's index (tells direct pages apart).
+        page: u64,
     },
     /// `name-tree-node-skipped`: a name- or number-tree node, kid or entry was missing,
     /// malformed, reached twice, or deeper than [`Limits::max_tree_depth`]; it was skipped.
@@ -104,12 +110,24 @@ pub enum Warning {
     InvalidDate {
         /// The Info dictionary's object number (`None` for a direct one).
         object: Option<u32>,
+        /// Which entry, e.g. `"ModDate"` (`"other"` for a key outside the standard ones).
+        key: &'static str,
     },
-    /// `invalid-page-label`: a `/PageLabels` entry is malformed (not a dictionary, an unknown
-    /// `/S` style, or `/St` below 1); the range falls back to a plain decimal label.
+    /// `invalid-page-label`: a `/PageLabels` entry is malformed: not a dictionary, a negative
+    /// start, an unknown `/S` style (no numeric part), a `/P` that is not a string (no prefix)
+    /// or `/St` below 1 (numbering from 1). The rest of the entry is kept.
     InvalidPageLabel {
-        /// The page index the range starts at.
-        start: u64,
+        /// The page index the range starts at, as stored (it may be negative).
+        start: i64,
+    },
+    /// `invalid-entry`: an entry a view reads (`/Info`, `/Names`, `/Outlines`, `/Dests`,
+    /// `/UserUnit`, …) is unreadable or of the wrong type; the view reads it as absent (or its
+    /// default).
+    InvalidEntry {
+        /// The object holding the entry (`None` for a direct object or the trailer).
+        object: Option<u32>,
+        /// The entry's key, e.g. `"Info"`.
+        key: &'static str,
     },
 }
 
@@ -134,6 +152,7 @@ impl Warning {
         "outline-item-skipped",
         "invalid-date",
         "invalid-page-label",
+        "invalid-entry",
     ];
 
     /// The stable kebab-case code, e.g. `"xref-repaired"`.
@@ -158,6 +177,7 @@ impl Warning {
             Self::OutlineItemSkipped { .. } => "outline-item-skipped",
             Self::InvalidDate { .. } => "invalid-date",
             Self::InvalidPageLabel { .. } => "invalid-page-label",
+            Self::InvalidEntry { .. } => "invalid-entry",
         }
     }
 
@@ -173,11 +193,12 @@ impl Warning {
             Self::PageTreeNodeSkipped { object }
             | Self::PageCountMismatch { object, .. }
             | Self::FlateTruncated { object }
-            | Self::InvalidBox { object }
-            | Self::InvalidRotate { object }
+            | Self::InvalidBox { object, .. }
+            | Self::InvalidRotate { object, .. }
             | Self::NameTreeNodeSkipped { object }
             | Self::OutlineItemSkipped { object }
-            | Self::InvalidDate { object } => object,
+            | Self::InvalidDate { object, .. }
+            | Self::InvalidEntry { object, .. } => object,
             Self::MissingHeader
             | Self::XrefRepaired
             | Self::XrefStmIgnored { .. }
@@ -186,18 +207,24 @@ impl Warning {
         }
     }
 
-    /// Deduplication key: (code, object, offset or page index).
+    /// Deduplication key: (code, object, a position — byte offset, page index or label
+    /// start — and an entry key), so two different problems on one object are both kept.
     const fn key(&self) -> WarningKey {
-        let offset = match *self {
-            Self::XrefStmIgnored { offset } => Some(offset),
-            Self::InvalidPageLabel { start } => Some(start),
+        let position = match *self {
+            Self::XrefStmIgnored { offset } => Some(offset as i128),
+            Self::InvalidPageLabel { start } => Some(start as i128),
+            Self::InvalidBox { page, .. } | Self::InvalidRotate { page, .. } => Some(page as i128),
             _ => None,
         };
-        (self.code(), self.object(), offset)
+        let detail = match *self {
+            Self::InvalidBox { key, .. } | Self::InvalidDate { key, .. } | Self::InvalidEntry { key, .. } => Some(key),
+            _ => None,
+        };
+        (self.code(), self.object(), position, detail)
     }
 }
 
-type WarningKey = (&'static str, Option<u32>, Option<u64>);
+type WarningKey = (&'static str, Option<u32>, Option<i128>, Option<&'static str>);
 
 /// The warnings a document has raised so far: deduplicated by (code, object) and capped at
 /// [`Limits::max_warnings`] (soft limit). Raising is O(log n): resolving a stale reference
@@ -258,13 +285,24 @@ mod tests {
             Warning::ObjStmIndexMismatch { object: 1 },
             Warning::ObjectNumberOutOfRange { object: 1 },
             Warning::WarningsTruncated,
-            Warning::InvalidBox { object: None },
-            Warning::InvalidRotate { object: None },
+            Warning::InvalidBox {
+                object: None,
+                page: 0,
+                key: "MediaBox",
+            },
+            Warning::InvalidRotate { object: None, page: 0 },
             Warning::NameTreeNodeSkipped { object: None },
             Warning::OutlineCycle { object: 1 },
             Warning::OutlineItemSkipped { object: None },
-            Warning::InvalidDate { object: None },
+            Warning::InvalidDate {
+                object: None,
+                key: "ModDate",
+            },
             Warning::InvalidPageLabel { start: 0 },
+            Warning::InvalidEntry {
+                object: None,
+                key: "Info",
+            },
         ];
         for w in &all {
             match w {
@@ -285,7 +323,8 @@ mod tests {
                 | Warning::OutlineCycle { .. }
                 | Warning::OutlineItemSkipped { .. }
                 | Warning::InvalidDate { .. }
-                | Warning::InvalidPageLabel { .. } => {}
+                | Warning::InvalidPageLabel { .. }
+                | Warning::InvalidEntry { .. } => {}
             }
         }
         all
@@ -306,6 +345,21 @@ mod tests {
                 .unwrap();
         }
         assert_eq!(log.list(), [Warning::StreamLengthRecovered { object: 4 }]);
+    }
+
+    #[test]
+    fn raise_keeps_two_problems_on_one_object_apart() {
+        let mut log = WarningLog::default();
+        let limits = Limits::default();
+        for key in ["MediaBox", "CropBox"] {
+            let warning = Warning::InvalidBox {
+                object: Some(3),
+                page: 0,
+                key,
+            };
+            log.raise(warning, &limits, false).unwrap();
+        }
+        assert_eq!(log.list().len(), 2);
     }
 
     #[test]

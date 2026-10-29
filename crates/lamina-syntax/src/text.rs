@@ -146,20 +146,41 @@ fn decode_utf16be(bytes: &[u8]) -> String {
     let (pairs, rest) = bytes.as_chunks::<2>();
     let odd = !rest.is_empty();
     let units = pairs.iter().map(|&pair| u16::from_be_bytes(pair));
-    let mut out = String::with_capacity(bytes.len() / 2);
-    let mut in_escape = false;
-    for c in char::decode_utf16(units) {
-        let c = c.unwrap_or(REPLACEMENT);
-        if c == '\u{1B}' {
-            in_escape = !in_escape;
-        } else if !in_escape {
+    let chars: Vec<char> = char::decode_utf16(units).map(|c| c.unwrap_or(REPLACEMENT)).collect();
+    let mut out = String::with_capacity(chars.len());
+    let mut i = 0;
+    while let Some(&c) = chars.get(i) {
+        if c == ESCAPE {
+            if let Some(len) = language_escape(chars.get(i..).unwrap_or_default()) {
+                i += len;
+                continue;
+            }
+            // A stray or unterminated escape is not a language marker: keep the text.
+            out.push(REPLACEMENT);
+        } else {
             out.push(c);
         }
+        i += 1;
     }
     if odd {
         out.push(REPLACEMENT);
     }
     out
+}
+
+/// The escape character that brackets a language code in a UTF-16 text string.
+const ESCAPE: char = '\u{1B}';
+
+/// The length of the language escape sequence `chars` starts with (§7.9.2.2.1): ESC, a
+/// two-letter ISO 639 language code, an optional two-letter ISO 3166 country code, ESC.
+/// `None` when `chars` does not start with one.
+fn language_escape(chars: &[char]) -> Option<usize> {
+    let rest = chars.strip_prefix(&[ESCAPE])?;
+    [2, 4].into_iter().find_map(|code_len| {
+        let code = rest.get(..code_len)?;
+        let closed = rest.get(code_len) == Some(&ESCAPE);
+        (closed && code.iter().all(char::is_ascii_alphabetic)).then_some(code_len + 2)
+    })
 }
 
 #[cfg(test)]
@@ -283,6 +304,27 @@ mod tests {
         assert_eq!(
             decode_text_string(b"\xFE\xFF\x00\x1B\x00e\x00n\x00\x1B\x00H\x00i"),
             "Hi"
+        );
+    }
+
+    #[test]
+    fn decode_text_string_drops_language_and_country_escapes() {
+        assert_eq!(
+            decode_text_string(b"\xFE\xFF\x00\x1B\x00e\x00n\x00U\x00S\x00\x1B\x00H\x00i"),
+            "Hi"
+        );
+    }
+
+    #[test]
+    fn decode_text_string_keeps_text_after_a_stray_escape() {
+        assert_eq!(decode_text_string(b"\xFE\xFF\x00\x1B\x00H\x00i"), "\u{FFFD}Hi");
+    }
+
+    #[test]
+    fn decode_text_string_keeps_text_after_an_overlong_escape() {
+        assert_eq!(
+            decode_text_string(b"\xFE\xFF\x00\x1B\x00a\x00b\x00c\x00d\x00e\x00\x1B\x00!"),
+            "\u{FFFD}abcde\u{FFFD}!"
         );
     }
 

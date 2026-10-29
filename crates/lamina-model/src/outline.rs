@@ -141,8 +141,17 @@ pub struct Outline<'d> {
     doc: &'d Document,
     items: Vec<Item>,
     roots: Vec<usize>,
-    pages: OnceCell<Option<Pages<'d>>>,
+    /// Item index by ID.
+    by_id: BTreeMap<OutlineItemId, usize>,
+    pages: PageSource<'d>,
     names: OnceCell<BTreeMap<Vec<u8>, Object>>,
+}
+
+/// The pages destinations resolve against: borrowed from [`Pages::outline`], or walked once
+/// on first need for [`Document::outline`].
+enum PageSource<'d> {
+    Borrowed(&'d Pages<'d>),
+    Lazy(OnceCell<Option<Pages<'d>>>),
 }
 
 impl std::fmt::Debug for Outline<'_> {
@@ -164,31 +173,54 @@ struct Pending {
 
 impl<'d> Outline<'d> {
     pub(crate) fn new(doc: &'d Document) -> Result<Self> {
+        Self::build(doc, PageSource::Lazy(OnceCell::new()))
+    }
+
+    pub(crate) fn with_pages(doc: &'d Document, pages: &'d Pages<'d>) -> Result<Self> {
+        Self::build(doc, PageSource::Borrowed(pages))
+    }
+
+    fn build(doc: &'d Document, pages: PageSource<'d>) -> Result<Self> {
         let mut outline = Self {
             doc,
             items: Vec::new(),
             roots: Vec::new(),
-            pages: OnceCell::new(),
+            by_id: BTreeMap::new(),
+            pages,
             names: OnceCell::new(),
         };
         let catalog = doc.catalog()?;
         let Some(root_obj) = catalog.get("Outlines") else {
             return Ok(outline);
         };
-        let Some(root) = doc.read(root_obj)? else {
+        let catalog_ref = doc.trailer().get("Root").and_then(Object::as_ref);
+        let root = doc.read(root_obj)?;
+        let Some(root) = root.as_deref().and_then(Object::as_dict) else {
+            if !matches!(root.as_deref(), Some(Object::Null)) {
+                doc.warn(Warning::InvalidEntry {
+                    object: catalog_ref.map(|r| r.num),
+                    key: "Outlines",
+                })?;
+            }
             return Ok(outline);
         };
-        let Some(first) = root.as_dict().and_then(|d| d.get("First")) else {
+        let Some(first) = root.get("First") else {
             return Ok(outline);
         };
-        let root_path = match root_obj.as_ref() {
-            Some(r) => DirectPath::new(Some(r), Vec::new()),
-            None => DirectPath::new(
-                doc.trailer().get("Root").and_then(Object::as_ref),
-                vec![PathSegment::Key("Outlines")],
-            ),
+        // A direct `/Outlines` sits in the catalog (or, when `/Root` is direct too, in the
+        // trailer): its items' paths start there, as the page tree's do.
+        let root_path = match (root_obj.as_ref(), catalog_ref) {
+            (Some(r), _) => DirectPath::new(Some(r), Vec::new()),
+            (None, Some(catalog)) => DirectPath::new(Some(catalog), vec![PathSegment::Key("Outlines")]),
+            (None, None) => DirectPath::new(None, vec![PathSegment::Key("Root"), PathSegment::Key("Outlines")]),
         };
         outline.walk(first.clone(), &root_path, root_obj.as_ref())?;
+        outline.by_id = outline
+            .items
+            .iter()
+            .enumerate()
+            .map(|(i, item)| (item.id.clone(), i))
+            .collect();
         Ok(outline)
     }
 
@@ -241,7 +273,6 @@ impl<'d> Outline<'d> {
                 Some(r) => OutlineItemId::object(r),
                 None => OutlineItemId::path(&path),
             };
-            doc.ids().see(id.as_lamina_id().clone());
             let index = self.items.len();
             if let Some(next) = dict.get("Next") {
                 stack.push(Pending {
@@ -299,18 +330,19 @@ impl<'d> Outline<'d> {
     /// The item with ID `id`.
     #[must_use]
     pub fn by_id(&self, id: &OutlineItemId) -> Option<OutlineItem<'_, 'd>> {
-        self.items
-            .iter()
-            .position(|item| item.id == *id)
-            .map(|index| OutlineItem { outline: self, index })
+        self.by_id.get(id).map(|&index| OutlineItem { outline: self, index })
     }
 
     fn pages(&self) -> Result<Option<&Pages<'d>>> {
-        if let Some(pages) = self.pages.get() {
+        let cell = match &self.pages {
+            PageSource::Borrowed(pages) => return Ok(Some(pages)),
+            PageSource::Lazy(cell) => cell,
+        };
+        if let Some(pages) = cell.get() {
             return Ok(pages.as_ref());
         }
         let pages = crate::document::tolerant(self.doc.pages())?;
-        Ok(self.pages.get_or_init(|| pages).as_ref())
+        Ok(cell.get_or_init(|| pages).as_ref())
     }
 
     /// Named destinations: the `/Names /Dests` tree first, then the catalog's `/Dests`
@@ -326,12 +358,17 @@ impl<'d> Outline<'d> {
             }
         }
         let catalog = self.doc.catalog()?;
-        if let Some(dests) = catalog.get("Dests")
-            && let Some(dests) = self.doc.read(dests)?
-            && let Some(dests) = dests.as_dict()
-        {
-            for (key, value) in dests.iter() {
-                names.entry(key.as_bytes().to_vec()).or_insert_with(|| value.clone());
+        if let Some(dests) = catalog.get("Dests") {
+            let resolved = self.doc.read(dests)?;
+            if let Some(dests) = resolved.as_deref().and_then(Object::as_dict) {
+                for (key, value) in dests.iter() {
+                    names.entry(key.as_bytes().to_vec()).or_insert_with(|| value.clone());
+                }
+            } else if !matches!(resolved.as_deref(), Some(Object::Null)) {
+                self.doc.warn(Warning::InvalidEntry {
+                    object: self.doc.trailer().get("Root").and_then(Object::as_ref).map(|r| r.num),
+                    key: "Dests",
+                })?;
             }
         }
         Ok(self.names.get_or_init(|| names))
@@ -347,27 +384,31 @@ impl<'d> Outline<'d> {
             Object::String(s) => (Some(s.bytes.clone()), self.named()?.get(&s.bytes).cloned()),
             other => (None, Some(other.clone())),
         };
-        let Some(explicit) = explicit else {
-            return Ok(name.map(|name| Destination {
+        // An unresolvable target keeps what is known: the name, and the value as stored.
+        let unresolved = |raw: Object| {
+            name.clone().map(|name| Destination {
                 page: None,
                 page_index: None,
                 view: View::Unknown,
                 name: Some(name),
-                raw: Object::Null,
-            }));
+                raw,
+            })
+        };
+        let Some(explicit) = explicit else {
+            return Ok(unresolved(Object::Null));
         };
         // A named destination's value is an array or a dictionary with `/D` (§12.3.2.4).
         let Some(mut array) = self.doc.read(&explicit)? else {
-            return Ok(None);
+            return Ok(unresolved(explicit));
         };
         if let Some(d) = array.as_dict().and_then(|d| d.get("D")).cloned() {
             match self.doc.read(&d)? {
                 Some(inner) => array = inner,
-                None => return Ok(None),
+                None => return Ok(unresolved(explicit)),
             }
         }
         let Some(items) = array.as_array() else {
-            return Ok(None);
+            return Ok(unresolved(explicit));
         };
         let (page, page_index) = self.target_page(items.first())?;
         Ok(Some(Destination {
@@ -530,20 +571,10 @@ impl<'o, 'd> OutlineItem<'o, 'd> {
     /// # Errors
     /// As [`OutlineItem::title`].
     pub fn action(&self) -> Result<Option<ActionKind>> {
-        let Some(action) = self.get("A") else {
-            return Ok(None);
-        };
-        let doc = self.outline.doc;
-        let Some(action) = doc.read(action)? else {
-            return Ok(None);
-        };
-        let Some(s) = action.as_dict().and_then(|d| d.get("S")) else {
-            return Ok(None);
-        };
-        Ok(match doc.read(s)?.as_deref() {
-            Some(Object::Name(n)) => Some(ActionKind::from_name(n.as_bytes())),
-            _ => None,
-        })
+        match self.action_dict()?.as_deref().and_then(Object::as_dict) {
+            Some(action) => self.action_kind(action),
+            None => Ok(None),
+        }
     }
 
     /// Where the item points: `/Dest`, or a `GoTo` action's `/D`. Resolved to a page of
@@ -554,22 +585,43 @@ impl<'o, 'd> OutlineItem<'o, 'd> {
     /// [`lamina_cos::Error::Strict`] in strict mode when reading named destinations or the
     /// page tree raises a warning; as [`OutlineItem::title`].
     pub fn target(&self) -> Result<Option<Destination>> {
-        if let Some(dest) = self.get("Dest") {
-            return self.outline.destination(dest);
+        // §12.3.3: `/Dest` and `/A` are exclusive; a `/Dest` that is null or unreadable
+        // counts as absent, so a `GoTo` action is still followed.
+        if let Some(dest) = self.get("Dest")
+            && let Some(dest) = self.outline.destination(dest)?
+        {
+            return Ok(Some(dest));
         }
-        if self.action()? != Some(ActionKind::GoTo) {
-            return Ok(None);
-        }
-        let doc = self.outline.doc;
-        let Some(action) = self.get("A") else {
+        let Some(action) = self.action_dict()? else {
             return Ok(None);
         };
-        let Some(action) = doc.read(action)? else {
+        let Some(action) = action.as_dict() else {
             return Ok(None);
         };
-        match action.as_dict().and_then(|d| d.get("D")) {
+        if self.action_kind(action)? != Some(ActionKind::GoTo) {
+            return Ok(None);
+        }
+        match action.get("D") {
             Some(d) => self.outline.destination(d),
             None => Ok(None),
         }
+    }
+
+    /// `/A`, resolved.
+    fn action_dict(&self) -> Result<Option<Arc<Object>>> {
+        match self.get("A") {
+            Some(action) => self.outline.doc.read(action),
+            None => Ok(None),
+        }
+    }
+
+    fn action_kind(&self, action: &lamina_cos::Dict) -> Result<Option<ActionKind>> {
+        let Some(s) = action.get("S") else {
+            return Ok(None);
+        };
+        Ok(match self.outline.doc.read(s)?.as_deref() {
+            Some(Object::Name(n)) => Some(ActionKind::from_name(n.as_bytes())),
+            _ => None,
+        })
     }
 }

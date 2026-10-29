@@ -47,10 +47,18 @@ impl fmt::Debug for Document {
 
 impl From<lamina_cos::Document> for Document {
     fn from(cos: lamina_cos::Document) -> Self {
-        let first_new = cos.max_object_number().map_or(1, |n| n.saturating_add(1));
+        // Like the incremental writer: above every xref entry and the trailer's /Size, so a
+        // dangling reference below /Size never resolves to a new object.
+        let above_entries = cos.max_object_number().map_or(1, |n| n.saturating_add(1));
+        let size = cos
+            .trailer()
+            .get_int("Size")
+            .and_then(|n| u32::try_from(n).ok())
+            .unwrap_or(0);
+        let max = cos.limits().max_object_number();
         Self {
+            ids: IdAllocator::new(above_entries.max(size), max),
             cos,
-            ids: IdAllocator::new(first_new),
         }
     }
 }
@@ -134,13 +142,18 @@ impl Document {
         let Some(names) = catalog.get("Names") else {
             return Ok(None);
         };
-        let Some(names) = tolerant(self.cos.deref(names))? else {
-            return Ok(None);
-        };
-        Ok(names
-            .as_dict()
-            .and_then(|d| d.get(key))
-            .map(|root| NameTree::new(self, root.clone())))
+        let resolved = tolerant(self.cos.deref(names))?;
+        match resolved.as_deref() {
+            Some(Object::Dict(names)) => Ok(names.get(key).map(|root| NameTree::new(self, root.clone()))),
+            Some(Object::Null) => Ok(None),
+            _ => {
+                self.warn(Warning::InvalidEntry {
+                    object: self.trailer().get("Root").and_then(Object::as_ref).map(|r| r.num),
+                    key: "Names",
+                })?;
+                Ok(None)
+            }
+        }
     }
 
     /// A number tree rooted at `root` (a dictionary or a reference to one).

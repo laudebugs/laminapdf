@@ -146,16 +146,75 @@ fn page_and_outline_ids_are_unique_document_wide() {
 }
 
 #[test]
-fn seen_ids_are_known_to_the_allocator() {
-    let doc = open(&fixture("corpus/outline.pdf")).unwrap();
-    let pages = doc.pages().unwrap();
-    assert!(doc.ids().is_known(pages.get(0).unwrap().id().as_lamina_id()));
-}
-
-#[test]
 fn allocated_ids_never_collide_with_existing_objects() {
     let doc = open(&fixture("corpus/outline.pdf")).unwrap();
     let existing: Vec<u32> = doc.object_numbers().collect();
     let (r, _) = doc.ids().allocate(Kind::Annot).unwrap();
+    assert!(doc.ids().is_allocated(&LaminaId::object(Kind::Annot, r)));
     assert!(existing.iter().all(|&n| n < r.num));
+}
+
+#[test]
+fn existing_ids_are_not_allocated_however_often_they_are_read() {
+    let doc = open(&fixture("corpus/outline.pdf")).unwrap();
+    for _ in 0..3 {
+        let pages = doc.pages().unwrap();
+        assert!(!doc.ids().is_allocated(pages.get(0).unwrap().id().as_lamina_id()));
+    }
+}
+
+#[test]
+fn new_numbers_start_above_the_trailer_size() {
+    let bytes = String::from_utf8(classic(
+        &["<< /Type /Catalog /Pages 2 0 R >>", "<< /Type /Pages /Kids [] >>"],
+        "",
+    ))
+    .unwrap()
+    .replace("/Size 3", "/Size 50");
+    let doc = open(bytes.as_bytes()).unwrap();
+    assert_eq!(doc.ids().allocate(Kind::Annot).unwrap().0.num, 50);
+}
+
+#[test]
+fn allocation_stops_at_the_documents_max_object_number() {
+    let bytes = classic(
+        &["<< /Type /Catalog /Pages 2 0 R >>", "<< /Type /Pages /Kids [] >>"],
+        "",
+    );
+    let limits = lamina_model::Limits::default().with_max_object_number(3);
+    let doc = Document::open(bytes, lamina_model::OpenOptions::default().with_limits(limits)).unwrap();
+    assert!(doc.ids().allocate(Kind::Annot).is_ok() && doc.ids().allocate(Kind::Annot).is_err());
+}
+
+#[test]
+fn a_direct_kid_of_an_indirect_kids_array_is_anchored_at_the_array() {
+    let doc = open(&classic(
+        &[
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "<< /Type /Pages /Kids 3 0 R /Count 1 >>",
+            "[<< /Type /Page >>]",
+        ],
+        "",
+    ))
+    .unwrap();
+    let ids: Vec<String> = doc.pages().unwrap().iter().map(|p| p.id().to_string()).collect();
+    assert_eq!(ids, ["p3.0/0"]);
+}
+
+#[test]
+fn outline_items_under_a_direct_root_are_anchored_at_the_trailer() {
+    let bytes = String::from_utf8(classic(&["<< /Type /Pages /Kids [] /Count 0 >>"], ""))
+        .unwrap()
+        .replace(
+            "/Root 1 0 R",
+            "/Root << /Type /Catalog /Pages 1 0 R /Outlines << /First << /Title (a) >> >> >>",
+        );
+    let doc = open(bytes.as_bytes()).unwrap();
+    let ids: Vec<String> = doc
+        .outline()
+        .unwrap()
+        .iter()
+        .map(|i| i.id().unwrap().to_string())
+        .collect();
+    assert_eq!(ids, ["ot/Root/Outlines/First"]);
 }

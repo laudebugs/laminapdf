@@ -233,48 +233,67 @@ fn host_triple(version: &str) -> Option<String> {
         .map(|h| h.trim().to_owned())
 }
 
-/// Builds `fuzz/corpus/<target>/` (gitignored) from the shared fixtures, the target's
-/// regressions in `fixtures/regressions/`, and everything under `fuzz/seeds/<target>/`.
-/// Returns the corpus directory.
+/// The parameter bytes appended to every Flate stream seed: the `flate_decode` target reads
+/// its predictor parameters from the input's last four bytes (predictor 1: none).
+/// Must match `FLATE_SEED_PARAMS` in `crates/lamina-model/tests/common/fuzz_entry.rs`.
+const FLATE_SEED_PARAMS: [u8; 4] = [1, 1, 8, 1];
+
+/// Builds `fuzz/corpus/<target>/` (gitignored) from the shared fixture PDFs, the target's
+/// saved crash inputs in `fixtures/regressions/<target>/` and everything under
+/// `fuzz/seeds/<target>/`. Fixture PDFs are split into their streams for `flate_decode`;
+/// crash inputs and hand-written seeds are copied verbatim (they already are what the target
+/// reads). Seed names carry their source path, so files from different folders never
+/// collide. Returns the corpus directory.
 fn seeds(ws: &Workspace, target: &str) -> Result<PathBuf> {
     let corpus = ws.root.join("fuzz/corpus").join(target);
     fs::create_dir_all(&corpus).with_context(|| format!("creating {}", corpus.display()))?;
-    let mut sources: Vec<PathBuf> = Vec::new();
+    let mut fixtures: Vec<PathBuf> = Vec::new();
     for dir in ["fixtures/corpus", "fixtures/golden"] {
-        sources.extend(files_in(&ws.root.join(dir))?.into_iter().filter(|p| is_pdf(p)));
+        fixtures.extend(files_in(&ws.root.join(dir))?.into_iter().filter(|p| is_pdf(p)));
     }
-    let regressions = ws.root.join("fixtures/regressions");
-    if regressions.is_dir() {
-        let prefix = format!("{target}-");
-        sources.extend(
-            files_in(&regressions)?
-                .into_iter()
-                .filter(|p| p.file_name().is_some_and(|n| n.to_string_lossy().starts_with(&prefix))),
-        );
-    }
-    let own = ws.root.join("fuzz/seeds").join(target);
-    if own.is_dir() {
-        collect_tree(&own, &mut sources)?;
+    let mut verbatim: Vec<PathBuf> = Vec::new();
+    for dir in [
+        ws.root.join("fixtures/regressions").join(target),
+        ws.root.join("fuzz/seeds").join(target),
+    ] {
+        if dir.is_dir() {
+            collect_tree(&dir, &mut verbatim)?;
+        }
     }
     let mut written = 0usize;
-    for source in &sources {
+    let mut write = |source: &Path, i: usize, seed: &[u8]| -> Result<()> {
+        fs::write(corpus.join(seed_name(&ws.root, source, i)), seed)?;
+        written += 1;
+        Ok(())
+    };
+    for source in &fixtures {
         let bytes = fs::read(source).with_context(|| format!("reading {}", source.display()))?;
-        let seeds = if target == "flate_decode" {
-            stream_bodies(&bytes)
+        if target == "flate_decode" {
+            for (i, mut stream) in stream_bodies(&bytes).into_iter().enumerate() {
+                stream.extend(FLATE_SEED_PARAMS);
+                write(source, i, &stream)?;
+            }
         } else {
-            vec![bytes]
-        };
-        for (i, seed) in seeds.into_iter().enumerate() {
-            let stem = source
-                .file_name()
-                .map(|n| n.to_string_lossy().into_owned())
-                .unwrap_or_default();
-            fs::write(corpus.join(format!("seed-{stem}-{i}")), seed)?;
-            written += 1;
+            write(source, 0, &bytes)?;
         }
+    }
+    for source in &verbatim {
+        let bytes = fs::read(source).with_context(|| format!("reading {}", source.display()))?;
+        write(source, 0, &bytes)?;
     }
     step(&format!("{target}: {written} seeds in {}", corpus.display()));
     Ok(corpus)
+}
+
+/// `seed-<path from the repository root, / as _>-<i>`.
+fn seed_name(root: &Path, source: &Path, i: usize) -> String {
+    let relative = source.strip_prefix(root).unwrap_or(source);
+    let flat: String = relative
+        .to_string_lossy()
+        .chars()
+        .map(|c| if c == '/' || c == '\\' { '_' } else { c })
+        .collect();
+    format!("seed-{flat}-{i}")
 }
 
 fn is_pdf(path: &Path) -> bool {
@@ -391,6 +410,17 @@ mod tests {
     fn host_triple_reads_the_host_line() {
         let out = "rustc 1.99.0-nightly\nbinary: rustc\nhost: x86_64-unknown-linux-gnu\nrelease: 1.99.0\n";
         assert_eq!(host_triple(out).as_deref(), Some("x86_64-unknown-linux-gnu"));
+    }
+
+    #[test]
+    fn seed_names_keep_their_source_folder() {
+        let root = Path::new("/r");
+        let a = seed_name(root, Path::new("/r/fixtures/corpus/x.pdf"), 0);
+        let b = seed_name(root, Path::new("/r/fuzz/seeds/open/x.pdf"), 0);
+        assert_eq!(
+            (a.as_str(), b.as_str()),
+            ("seed-fixtures_corpus_x.pdf-0", "seed-fuzz_seeds_open_x.pdf-0")
+        );
     }
 
     #[test]

@@ -14,6 +14,10 @@ use std::str::FromStr;
 /// apostrophe is accepted, and `Z` may be followed by `00'00'`. Out-of-range fields (month
 /// 13, February 30, hour 24, …) are rejected.
 ///
+/// Dates order by the instant they denote (local time minus the UTC offset); a date without
+/// an offset is compared as if it were UTC. Two dates naming the same instant with different
+/// offsets order by offset (unknown first), so the order agrees with `==`.
+///
 /// ```
 /// use lamina_model::PdfDate;
 ///
@@ -23,7 +27,7 @@ use std::str::FromStr;
 /// assert_eq!(date.to_string(), "D:20261028143000+01'00'");
 /// # Ok::<(), lamina_model::InvalidDate>(())
 /// ```
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct PdfDate {
     year: u16,
     month: u8,
@@ -81,6 +85,38 @@ impl PdfDate {
     #[must_use]
     pub const fn utc_offset_minutes(&self) -> Option<i16> {
         self.offset
+    }
+}
+
+impl PdfDate {
+    /// Seconds since 0000-03-01 UTC (proleptic Gregorian), treating an unknown offset as
+    /// UTC. The instant and the offset together determine every field.
+    fn instant(&self) -> i64 {
+        // Howard Hinnant's days-from-civil, with the year starting in March.
+        let (y, m) = if self.month <= 2 {
+            (i64::from(self.year) - 1, i64::from(self.month) + 9)
+        } else {
+            (i64::from(self.year), i64::from(self.month) - 3)
+        };
+        let era = y.div_euclid(400);
+        let year_of_era = y.rem_euclid(400);
+        let day_of_year = (153 * m + 2) / 5 + i64::from(self.day) - 1;
+        let day_of_era = year_of_era * 365 + year_of_era / 4 - year_of_era / 100 + day_of_year;
+        let days = era * 146_097 + day_of_era;
+        let local = days * 86_400 + i64::from(self.hour) * 3_600 + i64::from(self.minute) * 60 + i64::from(self.second);
+        local - i64::from(self.offset.unwrap_or(0)) * 60
+    }
+}
+
+impl Ord for PdfDate {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        (self.instant(), self.offset).cmp(&(other.instant(), other.offset))
+    }
+}
+
+impl PartialOrd for PdfDate {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
     }
 }
 
@@ -292,6 +328,26 @@ mod tests {
         ] {
             assert_eq!(parse(s), None, "{s}");
         }
+    }
+
+    #[test]
+    fn dates_order_by_instant_not_by_local_fields() {
+        // 12:00+02:00 is 10:00 UTC, before 11:00 UTC.
+        assert!(parse("D:20261028120000+02'00'").unwrap() < parse("D:20261028110000Z").unwrap());
+    }
+
+    #[test]
+    fn the_same_instant_in_two_offsets_orders_by_offset_and_is_not_equal() {
+        let utc = parse("D:20261028100000Z").unwrap();
+        let cet = parse("D:20261028110000+01'00'").unwrap();
+        assert_eq!((utc.cmp(&cet), utc == cet), (std::cmp::Ordering::Less, false));
+    }
+
+    #[test]
+    fn instants_count_days_across_months_and_leap_years() {
+        let a = parse("D:20240228Z").unwrap();
+        let b = parse("D:20240301Z").unwrap();
+        assert_eq!(b.instant() - a.instant(), 2 * 86_400);
     }
 
     #[test]

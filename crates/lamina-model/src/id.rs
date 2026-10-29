@@ -1,12 +1,11 @@
 //! [`LaminaId`]s (ADR 0005 §5): opaque, typed identifiers for pages, outline items,
 //! annotations and fields, and the document-level [`IdAllocator`].
 
-use std::cell::{Cell, RefCell};
-use std::collections::BTreeSet;
+use std::cell::Cell;
 use std::fmt;
 use std::str::FromStr;
 
-use lamina_cos::{DirectPath, ObjRef, PathSegment};
+use lamina_cos::{DirectPath, Error, ObjRef, PathSegment};
 
 /// What a [`LaminaId`] identifies. Its letter starts the string form.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -204,9 +203,6 @@ impl FromStr for LaminaId {
             })
             .collect::<Option<Box<[Segment]>>>()
             .ok_or_else(err)?;
-        if anchor == Anchor::Trailer && path.is_empty() {
-            return Err(err());
-        }
         Ok(Self { kind, anchor, path })
     }
 }
@@ -302,48 +298,59 @@ typed_id!(
 /// The document-level ID allocator (ADR 0005 §5), kept on the [`Document`](crate::Document)
 /// as interior state.
 ///
-/// Existing items get their ID on first sight, derived from their object (or path), so the
-/// same bytes always give the same IDs. New objects get theirs when a number is allocated
-/// for them: numbers start above the highest object number in any xref section and are
-/// never reused in a session, so neither are IDs. (The overlay that creates objects arrives
-/// with ops, B3a; it allocates through here.)
-#[derive(Debug, Default)]
+/// Existing items need no allocation: their ID is derived from their object (or path) when
+/// a view first sees them, so the same bytes always give the same IDs and nothing is
+/// recorded per walk. New objects get theirs when a number is allocated for them: numbers
+/// start above both the trailer's `/Size` and the highest object number in any xref section
+/// (as the incremental writer does, so a dangling reference below `/Size` never resolves to
+/// a new object), stay within [`Limits::max_object_number`](lamina_cos::Limits::max_object_number),
+/// and are never reused in a session, so neither are IDs. (The overlay that creates objects
+/// arrives with ops, B3a; it allocates through here.)
+#[derive(Debug)]
 pub struct IdAllocator {
-    next_number: Cell<u32>,
-    seen: RefCell<BTreeSet<LaminaId>>,
+    first_new: u32,
+    /// The next number to hand out; `u64` so that `u32::MAX` itself can be allocated.
+    next_number: Cell<u64>,
+    max_number: u32,
 }
 
 impl IdAllocator {
-    /// An allocator whose new objects are numbered from `first_new`.
+    /// An allocator whose new objects are numbered from `first_new` up to `max_number`.
     #[must_use]
-    pub fn new(first_new: u32) -> Self {
+    pub fn new(first_new: u32, max_number: u32) -> Self {
+        let first_new = first_new.max(1);
         Self {
-            next_number: Cell::new(first_new.max(1)),
-            seen: RefCell::new(BTreeSet::new()),
+            first_new,
+            next_number: Cell::new(u64::from(first_new)),
+            max_number,
         }
     }
 
-    /// Records `id` as seen and returns it.
-    pub(crate) fn see(&self, id: LaminaId) -> LaminaId {
-        self.seen.borrow_mut().insert(id.clone());
-        id
-    }
-
-    /// Whether `id` has been handed out by this allocator (seen on an existing item, or
-    /// allocated).
+    /// Whether this allocator handed out `id` (existing items' IDs are derived, not
+    /// allocated, so this never depends on which views were read).
     #[must_use]
-    pub fn is_known(&self, id: &LaminaId) -> bool {
-        self.seen.borrow().contains(id)
+    pub fn is_allocated(&self, id: &LaminaId) -> bool {
+        id.obj_ref()
+            .is_some_and(|r| r.gen_nr == 0 && r.num >= self.first_new && u64::from(r.num) < self.next_number.get())
     }
 
     /// Allocates a fresh object number (generation 0) and its ID as an item of `kind`.
-    /// `None` once object numbers are exhausted.
-    pub fn allocate(&self, kind: Kind) -> Option<(ObjRef, LaminaId)> {
-        let num = self.next_number.get();
-        let next = num.checked_add(1)?;
-        self.next_number.set(next);
+    ///
+    /// # Errors
+    /// [`Error::InvalidStructure`] once the next number would exceed the document's
+    /// [`Limits::max_object_number`](lamina_cos::Limits::max_object_number).
+    pub fn allocate(&self, kind: Kind) -> Result<(ObjRef, LaminaId), Error> {
+        let next = self.next_number.get();
+        let num = u32::try_from(next)
+            .ok()
+            .filter(|n| *n <= self.max_number)
+            .ok_or(Error::InvalidStructure {
+                kind: "object number",
+                message: "no object number left within Limits::max_object_number",
+            })?;
+        self.next_number.set(next + 1);
         let r = ObjRef::new(num, 0);
-        Some((r, self.see(LaminaId::object(kind, r))))
+        Ok((r, LaminaId::object(kind, r)))
     }
 }
 
@@ -390,7 +397,6 @@ mod tests {
             "p1.0//Kids",
             "p1.0/Ki ds",
             "p1.0/3x",
-            "pt",
             "p4294967296.0",
             "p1.65536",
             "p1.0/07",
@@ -440,21 +446,34 @@ mod tests {
 
     #[test]
     fn allocate_never_reuses_a_number() {
-        let ids = IdAllocator::new(10);
-        let allocated: BTreeSet<_> = (0..100).map(|_| ids.allocate(Kind::Annot).unwrap().0.num).collect();
+        let ids = IdAllocator::new(10, u32::MAX);
+        let allocated: std::collections::BTreeSet<_> =
+            (0..100).map(|_| ids.allocate(Kind::Annot).unwrap().0.num).collect();
         assert_eq!(allocated, (10..110).collect());
     }
 
     #[test]
-    fn allocated_ids_are_known() {
-        let ids = IdAllocator::new(1);
+    fn allocated_ids_are_allocated() {
+        let ids = IdAllocator::new(1, u32::MAX);
         let (_, id) = ids.allocate(Kind::Page).unwrap();
-        assert!(ids.is_known(&id));
+        assert!(ids.is_allocated(&id));
+    }
+
+    #[test]
+    fn allocate_stops_at_the_maximum_object_number() {
+        let ids = IdAllocator::new(5, 5);
+        assert!(ids.allocate(Kind::Page).is_ok() && ids.allocate(Kind::Page).is_err());
     }
 
     #[test]
     fn allocate_stops_when_numbers_run_out() {
-        let ids = IdAllocator::new(u32::MAX);
-        assert_eq!(ids.allocate(Kind::Page), None);
+        let ids = IdAllocator::new(u32::MAX, u32::MAX);
+        assert!(ids.allocate(Kind::Page).is_ok() && ids.allocate(Kind::Page).is_err());
+    }
+
+    #[test]
+    fn a_trailer_rooted_empty_path_round_trips() {
+        let id = LaminaId::path(Kind::Page, &DirectPath::new(None, Vec::new()));
+        assert_eq!(id.to_string().parse::<LaminaId>().unwrap(), id);
     }
 }

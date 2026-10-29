@@ -102,7 +102,11 @@ mod pages {
         assert_eq!(
             err,
             Error::Strict {
-                warning: Warning::InvalidBox { object: Some(3) }
+                warning: Warning::InvalidBox {
+                    object: Some(3),
+                    page: 0,
+                    key: "MediaBox"
+                }
             }
         );
     }
@@ -167,9 +171,59 @@ mod pages {
     }
 
     #[test]
-    fn user_unit_defaults_to_one() {
+    fn an_invalid_user_unit_is_one_with_a_warning() {
         let doc = one_page("/UserUnit -3");
-        assert!((doc.pages().unwrap().get(0).unwrap().user_unit().unwrap() - 1.0).abs() < f64::EPSILON);
+        let unit = doc.pages().unwrap().get(0).unwrap().user_unit().unwrap();
+        assert_eq!(
+            (unit.to_bits(), codes(&doc)),
+            (1.0_f64.to_bits(), vec!["invalid-entry"])
+        );
+    }
+
+    #[test]
+    fn two_malformed_boxes_on_one_page_are_both_reported() {
+        let doc = one_page("/MediaBox [0 0] /CropBox (x)");
+        doc.pages().unwrap().get(0).unwrap().crop_box().unwrap();
+        assert_eq!(codes(&doc), ["invalid-box", "invalid-box"]);
+    }
+
+    #[test]
+    fn malformed_boxes_on_two_direct_pages_are_both_reported() {
+        let doc = open(&classic(
+            &[
+                "<< /Type /Catalog /Pages 2 0 R >>",
+                "<< /Type /Pages /Kids [<< /Type /Page /MediaBox [1] >> << /Type /Page /MediaBox [2] >>] /Count 2 >>",
+            ],
+            "",
+        ))
+        .unwrap();
+        for page in doc.pages().unwrap().iter() {
+            page.media_box().unwrap();
+        }
+        assert_eq!(codes(&doc), ["invalid-box", "invalid-box"]);
+    }
+
+    #[test]
+    fn strict_trim_box_reports_the_trim_box_itself() {
+        let bytes = classic(
+            &[
+                "<< /Type /Catalog /Pages 2 0 R >>",
+                "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+                "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 1] /TrimBox (x) >>",
+            ],
+            "",
+        );
+        let doc = Document::open(bytes, OpenOptions::default().with_strict(true)).unwrap();
+        let err = doc.pages().unwrap().get(0).unwrap().trim_box().unwrap_err();
+        assert!(
+            matches!(
+                err,
+                Error::Strict {
+                    warning: Warning::InvalidBox { key: "TrimBox", .. }
+                }
+            ),
+            "{err:?}"
+        );
     }
 
     #[test]
@@ -238,22 +292,46 @@ mod labels {
         assert_eq!(one_page("").pages().unwrap().get(0).unwrap().label().unwrap(), None);
     }
 
-    #[test]
-    fn an_unknown_style_falls_back_to_decimal_with_a_warning() {
-        let doc = open(&classic(
+    fn labelled(nums: &str) -> Document {
+        open(&classic(
             &[
-                "<< /Type /Catalog /Pages 2 0 R /PageLabels << /Nums [0 << /S /Q /St 5 >>] >> >>",
+                &format!("<< /Type /Catalog /Pages 2 0 R /PageLabels << /Nums [{nums}] >> >>"),
                 "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
                 "<< /Type /Page /Parent 2 0 R >>",
             ],
             "",
         ))
-        .unwrap();
+        .unwrap()
+    }
+
+    #[test]
+    fn a_label_that_is_not_a_dictionary_falls_back_to_decimal_with_a_warning() {
+        let doc = labelled("0 (junk)");
         assert_eq!(
             doc.pages().unwrap().get(0).unwrap().label().unwrap().as_deref(),
             Some("1")
         );
         assert_eq!(codes(&doc), ["invalid-page-label"]);
+    }
+
+    #[test]
+    fn an_unknown_style_keeps_the_prefix_and_start() {
+        let doc = labelled("0 << /S /Q /P (x-) /St 3 >>");
+        assert_eq!(
+            doc.pages().unwrap().get(0).unwrap().label().unwrap().as_deref(),
+            Some("x-")
+        );
+        assert_eq!(codes(&doc), ["invalid-page-label"]);
+    }
+
+    #[test]
+    fn a_negative_start_is_reported_as_stored() {
+        let doc = labelled("-1 << /S /D >> 0 << /S /r >>");
+        assert_eq!(
+            doc.pages().unwrap().get(0).unwrap().label().unwrap().as_deref(),
+            Some("i")
+        );
+        assert_eq!(doc.warnings(), [Warning::InvalidPageLabel { start: -1 }]);
     }
 
     #[test]
@@ -434,6 +512,74 @@ mod outline {
         assert_eq!((dest.page, dest.raw.as_array().map(<[_]>::len)), (None, Some(2)));
     }
 
+    fn with_outline(item: &str, catalog_extra: &str) -> Document {
+        open(&classic(
+            &[
+                &format!("<< /Type /Catalog /Pages 2 0 R /Outlines 4 0 R {catalog_extra} >>"),
+                "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+                "<< /Type /Page /Parent 2 0 R >>",
+                "<< /First 5 0 R >>",
+                item,
+            ],
+            "",
+        ))
+        .unwrap()
+    }
+
+    #[test]
+    fn a_named_destination_with_a_malformed_value_keeps_its_name() {
+        let doc = with_outline("<< /Title (x) /Dest /bad >>", "/Dests << /bad (junk) >>");
+        let outline = doc.outline().unwrap();
+        let dest = outline.iter().next().unwrap().target().unwrap().unwrap();
+        assert_eq!(
+            (dest.name.as_deref(), dest.page, dest.raw.clone()),
+            (
+                Some(&b"bad"[..]),
+                None,
+                lamina_cos::Object::String(lamina_cos::PdfString::literal("junk"))
+            )
+        );
+    }
+
+    #[test]
+    fn a_null_dest_falls_back_to_the_goto_action() {
+        let doc = with_outline("<< /Title (x) /Dest null /A << /S /GoTo /D [3 0 R /Fit] >> >>", "");
+        let outline = doc.outline().unwrap();
+        let dest = outline.iter().next().unwrap().target().unwrap().unwrap();
+        assert_eq!(dest.page_index, Some(0));
+    }
+
+    #[test]
+    fn a_malformed_outlines_entry_is_reported() {
+        let doc = open(&classic(
+            &[
+                "<< /Type /Catalog /Pages 2 0 R /Outlines (junk) >>",
+                "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+                "<< /Type /Page /Parent 2 0 R >>",
+            ],
+            "",
+        ))
+        .unwrap();
+        assert_eq!((doc.outline().unwrap().len(), codes(&doc)), (0, vec!["invalid-entry"]));
+    }
+
+    #[test]
+    fn outline_from_pages_resolves_like_the_document_outline() {
+        let doc = outline_pdf();
+        let pages = doc.pages().unwrap();
+        let shared: Vec<_> = pages.outline().unwrap().iter().map(|i| i.target().unwrap()).collect();
+        let own: Vec<_> = doc.outline().unwrap().iter().map(|i| i.target().unwrap()).collect();
+        assert_eq!(shared, own);
+    }
+
+    #[test]
+    fn by_id_finds_an_item() {
+        let doc = outline_pdf();
+        let outline = doc.outline().unwrap();
+        let item = outline.by_id(&"o14.0".parse().unwrap()).unwrap();
+        assert_eq!(item.title().unwrap(), "Section 2.1");
+    }
+
     #[test]
     fn a_cycle_stops_each_looping_branch_with_a_warning() {
         let doc = open(&classic(
@@ -532,6 +678,40 @@ mod info {
     }
 
     #[test]
+    fn two_invalid_dates_are_both_reported() {
+        let doc = open(&classic(
+            &[
+                "<< /Type /Catalog /Pages 2 0 R >>",
+                "<< /Type /Pages /Kids [] /Count 0 >>",
+                "<< /CreationDate (soon) /ModDate (later) >>",
+            ],
+            "/Info 3 0 R",
+        ))
+        .unwrap();
+        let info = doc.info().unwrap().unwrap();
+        info.creation_date().unwrap();
+        info.mod_date().unwrap();
+        assert_eq!(codes(&doc), ["invalid-date", "invalid-date"]);
+    }
+
+    #[test]
+    fn an_info_that_is_not_a_dictionary_is_none_with_a_warning() {
+        let doc = open(&classic(
+            &[
+                "<< /Type /Catalog /Pages 2 0 R >>",
+                "<< /Type /Pages /Kids [] /Count 0 >>",
+                "(junk)",
+            ],
+            "/Info 3 0 R",
+        ))
+        .unwrap();
+        assert_eq!(
+            (doc.info().unwrap().is_none(), codes(&doc)),
+            (true, vec!["invalid-entry"])
+        );
+    }
+
+    #[test]
     fn no_info_is_none() {
         assert!(one_page("").info().unwrap().is_none());
     }
@@ -610,6 +790,30 @@ mod trees {
         let doc = names_doc("<< /Kids [4 0 R] /Names [(a) 1] >>");
         let entries = doc.name_tree("Dests").unwrap().unwrap().entries().unwrap();
         assert_eq!((entries.len(), codes(&doc)), (1, vec!["name-tree-node-skipped"]));
+    }
+
+    #[test]
+    fn get_stops_at_the_first_match() {
+        let doc = names_doc("<< /Kids [<< /Names [(a) 1] >> (junk)] >>");
+        let found = doc.name_tree("Dests").unwrap().unwrap().get(b"a").unwrap();
+        assert_eq!((found.and_then(|v| v.as_int()), codes(&doc)), (Some(1), vec![]));
+    }
+
+    #[test]
+    fn a_malformed_names_dictionary_is_reported() {
+        let doc = open(&classic(
+            &[
+                "<< /Type /Catalog /Pages 2 0 R /Names (junk) >>",
+                "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+                "<< /Type /Page /Parent 2 0 R >>",
+            ],
+            "",
+        ))
+        .unwrap();
+        assert_eq!(
+            (doc.name_tree("Dests").unwrap().is_none(), codes(&doc)),
+            (true, vec!["invalid-entry"])
+        );
     }
 
     #[test]

@@ -82,10 +82,10 @@ impl DirectPath {
         Self { anchor, segments }
     }
 
-    fn child(&self, steps: [PathSegment; 2]) -> Self {
-        let mut segments = Vec::with_capacity(self.segments.len() + 2);
+    fn child(&self, step: PathSegment) -> Self {
+        let mut segments = Vec::with_capacity(self.segments.len() + 1);
         segments.extend_from_slice(&self.segments);
-        segments.extend(steps);
+        segments.push(step);
         Self {
             anchor: self.anchor,
             segments,
@@ -875,14 +875,14 @@ impl Document {
         let catalog = self.catalog()?;
         let root = catalog.get("Pages").cloned().unwrap_or(Object::Null);
         // A direct `/Pages` sits in the catalog: its path starts there (ADR 0005 §5).
-        let root_path = DirectPath {
-            anchor: self.trailer.get("Root").and_then(Object::as_ref),
-            segments: if self.trailer.get("Root").and_then(Object::as_ref).is_some() {
-                vec![PathSegment::Key("Pages")]
-            } else {
-                vec![PathSegment::Key("Root"), PathSegment::Key("Pages")]
-            },
-        };
+        let root_path = (!matches!(root, Object::Ref(_))).then(|| {
+            let catalog_ref = self.trailer.get("Root").and_then(Object::as_ref);
+            let segments = match catalog_ref {
+                Some(_) => vec![PathSegment::Key("Pages")],
+                None => vec![PathSegment::Key("Root"), PathSegment::Key("Pages")],
+            };
+            DirectPath::new(catalog_ref, segments)
+        });
         let mut visited = BTreeSet::new();
         let mut stack = vec![(root.clone(), Arc::new(Inherited::default()), 0usize, root_path)];
         let mut pages = Vec::new();
@@ -927,7 +927,8 @@ impl Document {
             let is_tree_node = node.get_name("Type") == Some(b"Pages")
                 || (node.get_name("Type") != Some(b"Page") && node.contains_key("Kids"));
             if is_tree_node {
-                let kids = match self.deref(node.get("Kids").unwrap_or(&Object::Null)) {
+                let kids_obj = node.get("Kids").unwrap_or(&Object::Null);
+                let kids = match self.deref(kids_obj) {
                     Ok(obj) => obj,
                     Err(e) if ends_page_walk(&e) => return Err(e),
                     Err(_) => {
@@ -936,24 +937,27 @@ impl Document {
                     }
                 };
                 if let Object::Array(kids) = &*kids {
-                    // Kids of an indirect node are anchored at it; kids of a direct one extend
-                    // its own path.
-                    let base = match obj_ref {
-                        Some(r) => DirectPath {
-                            anchor: Some(r),
-                            segments: Vec::new(),
-                        },
-                        None => path,
+                    // A direct kid is named from its nearest indirect ancestor: the `/Kids`
+                    // array when that is an indirect object, else the node, else the node's
+                    // own path. Indirect kids need no path.
+                    let base = match (kids_obj.as_ref(), obj_ref) {
+                        (Some(array), _) => DirectPath::new(Some(array), Vec::new()),
+                        (None, Some(r)) => DirectPath::new(Some(r), vec![PathSegment::Key("Kids")]),
+                        (None, None) => {
+                            let mut base = path.unwrap_or_else(|| DirectPath::new(None, Vec::new()));
+                            base.segments.push(PathSegment::Key("Kids"));
+                            base
+                        }
                     };
                     stack.extend(kids.iter().enumerate().rev().map(|(i, kid)| {
-                        let kid_path = base.child([PathSegment::Key("Kids"), PathSegment::Index(i)]);
+                        let kid_path = (!matches!(kid, Object::Ref(_))).then(|| base.child(PathSegment::Index(i)));
                         (kid.clone(), Arc::clone(&attrs), depth + 1, kid_path)
                     }));
                 } else {
                     skip()?;
                 }
             } else {
-                let direct_path = obj_ref.is_none().then_some(path);
+                let direct_path = if obj_ref.is_none() { path } else { None };
                 pages.push(self.make_page(obj_ref, node.clone(), attrs, direct_path)?);
             }
         }
