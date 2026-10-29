@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [architecture §7 Cross-cutting](../../plans/architecture.md#cross-cutting) |
 | Round / milestone | Cross-cutting (after the first fuzz targets) |
-| Depends on | [B2c](./B2c-lamina-model-corpus-fuzz.md) |
+| Depends on | [B2c](../ongoing/B2c-lamina-model-corpus-fuzz.md) |
 | Blocks | [B7b](./B7b-versioning-and-0-1-0-alpha.md), [B8b](./B8b-conformance-profiles-and-verapdf.md), [E1b](./E1b-xmp-packet-model.md), [E1c](./E1c-metadata-ops.md), [E3e](./E3e-xmp-editor.md), [E3f](./E3f-attachments-and-associated-files.md), [E4g](./E4g-appearance-parity-suite.md), [E6c](./E6c-add-text.md), [E12f](./E12f-leak-tests.md), [E15b](./E15b-structure-tree-editing.md), [X3b](./X3b-render-diff-nightly.md) |
 | ADRs | Implements [0018](../../decisions/0018-test-strategy.md) §2 nightly lane, §3 corpora (`cargo xtask corpus fetch`, pinned manifest), §4 (nightly may retry once only to report flakiness), tier 11 (performance and scaling); [0003](../../decisions/0003-reader-tolerance-and-limits.md) §4 (differential triage, exceptions file) |
 | Branch | `ci/x3a-nightly-lane` |
@@ -22,7 +22,7 @@ Run the expensive, environment-sensitive checks every night on `main`, where a f
 
 - [ADR 0018 §2](../../decisions/0018-test-strategy.md#2-ci-lanes) nightly lane; [§3](../../decisions/0018-test-strategy.md#3-corpora-licensing-and-provenance) corpora (pdf.js, PDFium, qpdf suites, SafeDocs, veraPDF and Arlington test files) fetched by `cargo xtask corpus fetch`, pinned by SHA-256 with licences; tier 11 scaling (ratios, never absolute times; regressions > 10% open an issue).
 - Ignored scaling test: [`crates/lamina-cos/tests/reader_cache.rs`](../../../crates/lamina-cos/tests/reader_cache.rs) `pages_should_scale_linearly_with_shared_resources` ("run with --release in the nightly lane").
-- Scheduled fuzz workflow from [B2c](./B2c-lamina-model-corpus-fuzz.md) (folded in here).
+- Scheduled fuzz workflow from [B2c](../ongoing/B2c-lamina-model-corpus-fuzz.md) (folded in here).
 
 ## Scope
 

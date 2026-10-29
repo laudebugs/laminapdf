@@ -97,7 +97,7 @@ Each round is split into one or more todos (one pull request each) on the [todo 
 
 **Deliverable:** `spikes/pdfium-wasm/` (PDFium-WASM next to `lamina-wasm` in one worker: size, memory, render time, reload after incremental save) and `spikes/hayro-parity/` (pass rate vs PDFium on the pdf.js and PDFBox corpora), each with a written result.
 **Accepted when:** both READMEs report numbers on the same machine and corpus, and recommend the defaults that ADR 0004 records.
-**Todos:** [C1a](../todos/ready/C1a-hayro-parity-spike.md), [C1b](../todos/ready/C1b-pdfium-wasm-spike.md)
+**Todos:** [C1a](../todos/ongoing/C1a-hayro-parity-spike.md), [C1b](../todos/ready/C1b-pdfium-wasm-spike.md)
 
 ### C2. Render backend and ADRs
 

@@ -3,11 +3,11 @@
 | Field | Value |
 | --- | --- |
 | ID | `B2b` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [pdf-library §7 B2](../../plans/pdf-library.md#b2-document-model), requirement [§4 F7](../../plans/pdf-library.md#functional) |
 | Round / milestone | Round B (library) — M1 |
 | Depends on | [B2a](../done/B2a-limits-owned-document.md) |
-| Blocks | [B3c](./B3c-save-planner-and-roundtrip.md), [B6b](./B6b-lamina-pdf-package.md), [B7a](./B7a-docs-site.md), [B9b](./B9b-text-extraction-core.md), [C4c](./C4c-remote-files-encryption-privacy.md), [E11b](./E11b-encrypt-on-write.md) |
+| Blocks | [B3c](../ready/B3c-save-planner-and-roundtrip.md), [B6b](../ready/B6b-lamina-pdf-package.md), [B7a](../ready/B7a-docs-site.md), [B9b](../ready/B9b-text-extraction-core.md), [C4c](../ready/C4c-remote-files-encryption-privacy.md), [E11b](../ready/E11b-encrypt-on-write.md) |
 | ADRs | Follows [0003](../../decisions/0003-reader-tolerance-and-limits.md) (encrypted files open; password in `OpenOptions`), [0001](../../decisions/0001-core-language-and-licence.md) (no C crypto, permissive licences), [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) (new crypto crates through cargo-deny) |
 | Branch | `feat/b2b-decryption` |
 | PR title | `feat(core): standard security handler decryption (R2–R6, crypt filters)` |
@@ -36,14 +36,14 @@ Let `Document::open` read files encrypted with the standard security handler whe
 - Decryption of strings and streams on resolve, per-object keys for R2–R4, the file key for R5/R6; `/Identity` filter; per-stream `/Crypt` filter with `/Name`; `/EncryptMetadata false` leaves the XMP metadata stream plaintext; exempt objects (the `/Encrypt` dict, xref streams, trailer `/ID`, signature `/Contents` of `/Type /Sig` dicts) are never decrypted; strings inside object streams are not decrypted twice.
 - `OpenOptions::with_password(bytes or &str)`; `Document::permissions()` (typed `Permissions` from `/P`, masked per §7.4), `Document::encryption()` summary (V, R, cipher, key bits, `encrypt_metadata`), `Document::is_authenticated()` and which password matched (`User`/`Owner`).
 - Errors: `Error::PasswordRequired` (non-empty user password and none given), `Error::WrongPassword`, `Error::UnsupportedSecurityHandler { filter }` (public-key handler, unknown `/V`/`/R`), with codes in `fixtures/codes.json`.
-- Encrypted fixtures for every revision with a reproducible generator, in `fixtures/encrypted/` with their own facts file `fixtures/encrypted/expected.json` (the single source of truth for them). [B2c](./B2c-lamina-model-corpus-fuzz.md)'s corpus regeneration only touches `fixtures/corpus/`, so the two todos stay parallel and neither overwrites the other.
+- Encrypted fixtures for every revision with a reproducible generator, in `fixtures/encrypted/` with their own facts file `fixtures/encrypted/expected.json` (the single source of truth for them). [B2c](../ongoing/B2c-lamina-model-corpus-fuzz.md)'s corpus regeneration only touches `fixtures/corpus/`, so the two todos stay parallel and neither overwrites the other.
 
 **Out of scope** (and which todo covers it)
 
 - Writing encrypted files, changing or removing encryption, permission enforcement on write: full-editor E11.
 - Public-key security handler (§7.6.5), ISO/TS 32003 AES-GCM and 32004 integrity: later (reported as `UnsupportedSecurityHandler`).
 - Password UI: web C4, desktop D-rounds.
-- Exposing passwords through WASM/TS: [B6b](./B6b-lamina-pdf-package.md).
+- Exposing passwords through WASM/TS: [B6b](../ready/B6b-lamina-pdf-package.md).
 
 ## Tasks
 
@@ -65,7 +65,7 @@ Let `Document::open` read files encrypted with the standard security handler whe
   - one file with an `/Identity` stream filter (`/StmF /Identity`), written with pypdf or patched from the R4 AES-128 output, since qpdf has no flag for it
   - the generator checks each output's `/V` and `/R` with `qpdf --show-encryption` and fails if a case comes out at the wrong revision; record the commands and tool versions in `fixtures/README.md`
 - [ ] `fixtures/encrypted/expected.json` for the encrypted set, written by a password-aware facts script next to the generator (`fixtures/encrypted/facts.py`, pinned pypdf; passwords per file, page count, outline titles, Info strings, `qpdf --show-encryption` permissions) — facts from pypdf/qpdf, never lamina; nothing is written to `fixtures/corpus/expected.json`
-- [ ] Fuzz seeds (this todo owns them, whichever of B2b and [B2c](./B2c-lamina-model-corpus-fuzz.md) merges first): the generator also writes the encrypted fixtures to `fuzz/seeds/open/encrypted/` and their passwords, one per line, to `fuzz/seeds/open/passwords.txt`, creating `fuzz/seeds/open/` if it doesn't exist yet. B2c's `open` target seeds from everything under `fuzz/seeds/open/` and tries the empty password and each line of `passwords.txt`, so it picks these up whether it merges before or after this PR. If B2c has already created an empty `passwords.txt`, fill it in rather than replacing it
+- [ ] Fuzz seeds (this todo owns them, whichever of B2b and [B2c](../ongoing/B2c-lamina-model-corpus-fuzz.md) merges first): the generator also writes the encrypted fixtures to `fuzz/seeds/open/encrypted/` and their passwords, one per line, to `fuzz/seeds/open/passwords.txt`, creating `fuzz/seeds/open/` if it doesn't exist yet. B2c's `open` target seeds from everything under `fuzz/seeds/open/` and tries the empty password and each line of `passwords.txt`, so it picks these up whether it merges before or after this PR. If B2c has already created an empty `passwords.txt`, fill it in rather than replacing it
 - [ ] New codes: add the warnings `aes-padding-invalid` and `perms-mismatch` and the errors `password-required`, `wrong-password` and `unsupported-security-handler` to `fixtures/codes.json` and to ADR 0003 §2's code table (status "exists"), so `crates/lamina-cos/tests/codes.rs` keeps the enums and the list in step
 - [ ] Remove "Decryption arrives in Round B2" from ADR 0003's tolerance table (amend the row: encrypted file opens and decrypts given a password)
 
@@ -90,7 +90,7 @@ None.
 - Unit: `lamina-syntax` crypt known-answer tests (RC4, AES-CBC, MD5 rounds, 2.B loop termination).
 - Integration: `crates/lamina-cos/tests/encryption.rs` over `fixtures/encrypted/` vs plaintext originals; wrong/missing password; `/Identity` and `/Crypt` per-stream; mixed plaintext objects (PDFex shape) behave per spec (plaintext strings in an encrypted doc are decrypted as garbage → documented, no panic).
 - Facts: `fixtures/encrypted/expected.json` (page count, outline titles and Info from pypdf with the password); `crates/lamina-cos/tests/encryption.rs` reads it.
-- Fuzz: this todo writes the encrypted seeds and `passwords.txt` to `fuzz/seeds/open/` (creating the directory if [B2c](./B2c-lamina-model-corpus-fuzz.md) hasn't merged yet); B2c's `open` target reads that directory (see Tasks).
+- Fuzz: this todo writes the encrypted seeds and `passwords.txt` to `fuzz/seeds/open/` (creating the directory if [B2c](../ongoing/B2c-lamina-model-corpus-fuzz.md) hasn't merged yet); B2c's `open` target reads that directory (see Tasks).
 
 ## Docs to update
 
@@ -104,7 +104,7 @@ None.
 - R5 was never standardised; support read-only, document it.
 - SASLprep crate choice (licence, size in WASM); if too heavy, implement the RFC 4013 subset needed and test against pypdf.
 - AES padding errors in real files: tolerate (keep data, warn) rather than fail, consistent with ADR 0003; confirm with the corpus.
-- WASM size: crypto adds to the base module; measure in [B6a](./B6a-lamina-wasm-and-adr-0016.md).
+- WASM size: crypto adds to the base module; measure in [B6a](../ready/B6a-lamina-wasm-and-adr-0016.md).
 
 ## Definition of done
 
