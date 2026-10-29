@@ -1,11 +1,14 @@
 //! GitHub's heading anchors, as computed by `github-slugger` (which github.com uses).
 //!
 //! A slug is the heading's text, lowercased, with every character that is not a letter, a
-//! number, a mark, `_`, `-` or a space removed, and each space replaced by `-`. Runs of spaces
+//! number, a mark (Unicode general categories L, N, M), a connector punctuation such as `_`
+//! (Pc), `-` or a space removed, and each space replaced by `-`. Runs of spaces
 //! are not collapsed: `Round A — Foundations` becomes `round-a--foundations`. Repeated headings
 //! get `-1`, `-2`, … in document order.
 
 use std::collections::BTreeMap;
+
+use unicode_properties::{GeneralCategory, GeneralCategoryGroup, UnicodeGeneralCategory};
 
 /// The slug of one heading's plain text (no duplicate suffix).
 pub(crate) fn slug(text: &str) -> String {
@@ -13,11 +16,19 @@ pub(crate) fn slug(text: &str) -> String {
         .flat_map(char::to_lowercase)
         .filter_map(|c| match c {
             ' ' => Some('-'),
-            '-' | '_' => Some(c),
-            c if c.is_alphanumeric() => Some(c),
+            '-' => Some(c),
+            c if is_kept(c) => Some(c),
             _ => None,
         })
         .collect()
+}
+
+/// Letters, marks, numbers and connector punctuation: what github-slugger keeps.
+fn is_kept(c: char) -> bool {
+    matches!(
+        c.general_category_group(),
+        GeneralCategoryGroup::Letter | GeneralCategoryGroup::Mark | GeneralCategoryGroup::Number
+    ) || c.general_category() == GeneralCategory::ConnectorPunctuation
 }
 
 /// Hands out unique slugs for the headings of one document, like `github-slugger`'s `Slugger`.
@@ -69,6 +80,16 @@ mod tests {
     #[test]
     fn unicode_letters_are_kept_and_lowercased() {
         assert_eq!(slug("Ünïcode Straße"), "ünïcode-straße");
+    }
+
+    #[test]
+    fn decomposed_combining_marks_are_kept() {
+        assert_eq!(slug("Cafe\u{301} menu"), "cafe\u{301}-menu");
+    }
+
+    #[test]
+    fn devanagari_vowel_signs_and_virama_are_kept() {
+        assert_eq!(slug("हिन्दी पाठ"), "हिन्दी-पाठ");
     }
 
     #[test]

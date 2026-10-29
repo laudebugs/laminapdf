@@ -7,6 +7,7 @@ mod docs_links;
 mod doctor;
 mod licenses;
 mod todos;
+mod tracked;
 mod workspace;
 
 use std::env;

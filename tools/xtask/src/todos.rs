@@ -14,6 +14,8 @@ use std::path::Path;
 
 use anyhow::{Context, Result, bail};
 
+use crate::tracked::Tracked;
+
 /// A todo's state, which is also the folder it lives in.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub(crate) enum State {
@@ -23,9 +25,9 @@ pub(crate) enum State {
 }
 
 impl State {
-    const ALL: [Self; 3] = [Self::Ready, Self::Ongoing, Self::Done];
+    pub(crate) const ALL: [Self; 3] = [Self::Ready, Self::Ongoing, Self::Done];
 
-    fn name(self) -> &'static str {
+    pub(crate) fn name(self) -> &'static str {
         match self {
             Self::Ready => "ready",
             Self::Ongoing => "ongoing",
@@ -97,7 +99,7 @@ pub(crate) struct Generated {
 /// Regenerates (or with `check`, verifies) the board and the Blocks fields under `root`.
 pub(crate) fn run(root: &Path, check: bool) -> Result<()> {
     let dir = root.join("docs/todos");
-    let files = load(&dir)?;
+    let files = load(root, &Tracked::from_git(root)?)?;
     let generated = match generate(&files) {
         Ok(generated) => generated,
         Err(problems) => {
@@ -137,29 +139,25 @@ pub(crate) fn run(root: &Path, check: bool) -> Result<()> {
     Ok(())
 }
 
-/// Every `*.md` in the state folders, by state then file name.
-fn load(dir: &Path) -> Result<Vec<TodoFile>> {
+/// Every tracked `*.md` in the state folders, by state then file name. Untracked drafts are
+/// left out, as GitHub never shows them: `git add` a new todo before running `cargo xtask todos`.
+fn load(root: &Path, tracked: &Tracked) -> Result<Vec<TodoFile>> {
     let mut files = Vec::new();
     for state in State::ALL {
-        let folder = dir.join(state.name());
-        let mut names = Vec::new();
-        for entry in fs::read_dir(&folder).with_context(|| format!("reading {}", folder.display()))? {
-            let name = entry?.file_name().into_string().map_err(|name| {
-                anyhow::anyhow!(
-                    "non-UTF-8 file name in {}: {}",
-                    folder.display(),
-                    name.to_string_lossy()
-                )
-            })?;
-            if Path::new(&name).extension().is_some_and(|ext| ext == "md") {
-                names.push(name);
+        let folder = Path::new("docs/todos").join(state.name());
+        for path in tracked.files().filter(|path| path.parent() == Some(folder.as_path())) {
+            let Some(file) = path.file_name().and_then(|name| name.to_str()) else {
+                continue;
+            };
+            if Path::new(file).extension().is_none_or(|ext| ext != "md") {
+                continue;
             }
-        }
-        names.sort();
-        for file in names {
-            let path = folder.join(&file);
-            let text = fs::read_to_string(&path).with_context(|| format!("reading {}", path.display()))?;
-            files.push(TodoFile { state, file, text });
+            let text = fs::read_to_string(root.join(path)).with_context(|| format!("reading {}", path.display()))?;
+            files.push(TodoFile {
+                state,
+                file: file.to_owned(),
+                text,
+            });
         }
     }
     Ok(files)
@@ -287,7 +285,10 @@ fn parse(file: &TodoFile, problems: &mut Vec<String>) -> Option<Todo> {
         Some((prefix, rest)) if !prefix.is_empty() && !prefix.contains(char::is_whitespace) => rest,
         _ => heading,
     };
-    let raw = field(&file.text, "Depends on").unwrap_or_default().trim();
+    let Some(raw) = field(&file.text, "Depends on").map(str::trim) else {
+        problems.push(format!("{path}: no `| Depends on | … |` row"));
+        return None;
+    };
     let deps = if raw == "None" {
         Vec::new()
     } else if let Some(links) = parse_links(raw) {
@@ -520,7 +521,8 @@ fn board(todos: &[Todo], by_id: &BTreeMap<&str, &Todo>) -> (String, String) {
 
 #[cfg(test)]
 mod tests {
-    use super::{Generated, State, TodoFile, generate, order_key, parse_links, stale_files};
+    use super::{Generated, State, TodoFile, generate, load, order_key, parse_links, stale_files};
+    use crate::tracked::{TempTree, Tracked};
 
     /// A minimal todo file. `deps` and `blocks` are the raw field values.
     fn todo(state: State, id: &str, deps: &str, blocks: &str) -> TodoFile {
@@ -698,6 +700,28 @@ mod tests {
         let mut files = consistent();
         files.push(todo(State::Ready, "X1", "None", "None"));
         assert_eq!(problems(&files), ["duplicate ID X1 (X1-x.md)"]);
+    }
+
+    #[test]
+    fn missing_depends_on_row_is_reported_as_missing() {
+        let mut files = consistent();
+        files[1].text = files[1].text.replace("| Depends on | None |\n", "");
+        assert_eq!(problems(&files), ["ready/X1-x.md: no `| Depends on | … |` row"]);
+    }
+
+    #[test]
+    fn untracked_drafts_are_not_loaded() {
+        let todo_text = todo(State::Ready, "X1", "None", "None").text;
+        let tree = TempTree::new(
+            "todos-untracked",
+            &[
+                ("docs/todos/ready/X1-x.md", &todo_text),
+                ("docs/todos/ready/X2-draft.md", "# X2 — Draft\n"),
+            ],
+        );
+        let tracked = Tracked::from_paths(["docs/todos/ready/X1-x.md"]);
+        let names: Vec<_> = load(&tree.0, &tracked).unwrap().into_iter().map(|f| f.file).collect();
+        assert_eq!(names, ["X1-x.md"]);
     }
 
     #[test]

@@ -2,25 +2,25 @@
 //!
 //! Links are read with `pulldown-cmark` (inline, reference and image links; code spans, code
 //! blocks and autolinks are not links). External URLs are not checked. A link's path is resolved
-//! against the linking file (or the repository root for `/…`); a `#fragment` on a Markdown target
-//! (or on the same file) must name a heading, using GitHub's slugs, or an HTML `id`/`name`.
+//! against the linking file (or the repository root for `/…`) and must be a tracked file or a
+//! directory holding one, compared case-sensitively as GitHub does. A `#fragment` on a Markdown
+//! target (or on the same file) must name a heading, using GitHub's slugs, or an HTML `id`/`name`.
 
+mod html;
 mod slug;
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::fmt;
 use std::fs;
 use std::path::{Component, Path, PathBuf};
-use std::process::Command;
 
 use anyhow::{Context, Result, bail};
-use pulldown_cmark::{Event, LinkType, Options, Parser, Tag, TagEnd};
+use pulldown_cmark::{CowStr, Event, LinkType, Options, Parser, Tag, TagEnd};
 use serde_json::json;
 
 use self::slug::Slugger;
-
-/// The todo board's state folders, used to suggest where a moved todo now lives.
-const TODO_STATES: [&str; 3] = ["ready", "ongoing", "done"];
+use crate::todos::State;
+use crate::tracked::Tracked;
 
 /// Why a link is broken.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -47,7 +47,7 @@ pub(crate) struct BrokenLink {
     pub(crate) line: usize,
     pub(crate) target: String,
     pub(crate) reason: Reason,
-    /// A suggested replacement path (for a todo that moved to another state folder).
+    /// A suggested replacement link (for a todo that moved to another state folder).
     pub(crate) hint: Option<String>,
 }
 
@@ -67,8 +67,9 @@ impl fmt::Display for BrokenLink {
 
 /// Runs the check on every tracked Markdown file under `root`; fails if any link is broken.
 pub(crate) fn run(root: &Path, json_output: bool) -> Result<()> {
-    let files = tracked_markdown(root)?;
-    let broken = check_files(root, &files)?;
+    let tracked = Tracked::from_git(root)?;
+    let files = markdown_files(&tracked);
+    let broken = check(root, &tracked, &files)?;
     if json_output {
         let items: Vec<_> = broken
             .iter()
@@ -97,47 +98,42 @@ pub(crate) fn run(root: &Path, json_output: bool) -> Result<()> {
     Ok(())
 }
 
-/// Tracked `*.md` files, relative to `root`, without build output or installed packages.
-fn tracked_markdown(root: &Path) -> Result<Vec<PathBuf>> {
-    let output = Command::new("git")
-        .args(["ls-files", "-z", "--", "*.md"])
-        .current_dir(root)
-        .output()
-        .context("failed to run `git ls-files`; is git installed?")?;
-    if !output.status.success() {
-        bail!(
-            "`git ls-files` failed: {}",
-            String::from_utf8_lossy(&output.stderr).trim()
-        );
-    }
-    let listing = String::from_utf8(output.stdout).context("`git ls-files` printed non-UTF-8 paths")?;
-    Ok(listing
-        .split('\0')
-        .filter(|path| !path.is_empty() && !is_excluded(path))
-        .map(PathBuf::from)
-        .collect())
+/// Tracked `*.md` files, without build output or installed packages.
+fn markdown_files(tracked: &Tracked) -> Vec<PathBuf> {
+    tracked
+        .files()
+        .filter(|path| is_markdown(path) && !is_excluded(path))
+        .map(Path::to_path_buf)
+        .collect()
+}
+
+fn is_markdown(path: &Path) -> bool {
+    path.extension().is_some_and(|ext| ext.eq_ignore_ascii_case("md"))
 }
 
 /// Build output and installed packages are not documentation, even if something tracks them.
-fn is_excluded(path: &str) -> bool {
-    let parts: Vec<&str> = path.split('/').collect();
-    parts.contains(&"node_modules") || (parts.first() == Some(&"spikes") && parts.contains(&"target"))
+fn is_excluded(path: &Path) -> bool {
+    let parts: Vec<_> = path.iter().collect();
+    parts.contains(&"node_modules".as_ref())
+        || (parts.first() == Some(&"spikes".as_ref()) && parts.contains(&"target".as_ref()))
 }
 
-/// Checks the links in `files` (paths relative to `root`); returns every broken one.
-pub(crate) fn check_files(root: &Path, files: &[PathBuf]) -> Result<Vec<BrokenLink>> {
-    let mut anchors = AnchorCache::default();
-    let mut broken = Vec::new();
+/// Checks the links in `files` (paths relative to `root`) against `tracked`; returns every
+/// broken one. Each file is read and parsed once.
+pub(crate) fn check(root: &Path, tracked: &Tracked, files: &[PathBuf]) -> Result<Vec<BrokenLink>> {
+    let mut scans = BTreeMap::new();
     for file in files {
         let text = fs::read_to_string(root.join(file)).with_context(|| format!("reading {}", file.display()))?;
-        let doc = scan(&text);
-        anchors.insert(file.clone(), doc.anchors);
-        for link in doc.links {
-            if let Some((reason, hint)) = check_link(root, file, &link.target, &mut anchors)? {
+        scans.insert(file.as_path(), scan(&text));
+    }
+    let mut broken = Vec::new();
+    for (file, doc) in &scans {
+        for link in &doc.links {
+            if let Some((reason, hint)) = check_link(tracked, &scans, file, &link.target) {
                 broken.push(BrokenLink {
                     file: display(file),
                     line: link.line,
-                    target: link.target,
+                    target: link.target.clone(),
                     reason,
                     hint,
                 });
@@ -147,35 +143,15 @@ pub(crate) fn check_files(root: &Path, files: &[PathBuf]) -> Result<Vec<BrokenLi
     Ok(broken)
 }
 
-/// Anchors of each Markdown file seen so far, keyed by normalised path relative to the root.
-#[derive(Default)]
-struct AnchorCache(BTreeMap<PathBuf, BTreeSet<String>>);
-
-impl AnchorCache {
-    fn insert(&mut self, file: PathBuf, anchors: BTreeSet<String>) {
-        self.0.insert(file, anchors);
-    }
-
-    fn get(&mut self, root: &Path, file: &Path) -> Result<&BTreeSet<String>> {
-        if !self.0.contains_key(file) {
-            let text = fs::read_to_string(root.join(file)).with_context(|| format!("reading {}", file.display()))?;
-            self.0.insert(file.to_path_buf(), scan(&text).anchors);
-        }
-        self.0
-            .get(file)
-            .with_context(|| format!("anchors of {} were not cached", file.display()))
-    }
-}
-
-/// `None` when the link resolves, else why not (and a suggested path, if any).
+/// `None` when the link resolves, else why not (and a suggested link, if any).
 fn check_link(
-    root: &Path,
+    tracked: &Tracked,
+    scans: &BTreeMap<&Path, Scan>,
     from: &Path,
     target: &str,
-    anchors: &mut AnchorCache,
-) -> Result<Option<(Reason, Option<String>)>> {
+) -> Option<(Reason, Option<String>)> {
     if is_external(target) {
-        return Ok(None);
+        return None;
     }
     let (path_part, fragment) = match target.split_once('#') {
         Some((path, fragment)) => (path, Some(fragment)),
@@ -187,20 +163,19 @@ fn check_link(
     } else {
         resolve(from, &percent_decode(path_part))
     };
-    let Some(resolved) = resolved.filter(|path| root.join(path).exists()) else {
-        return Ok(Some((Reason::MissingFile, moved_todo_hint(root, from, path_part))));
+    let Some(resolved) = resolved.filter(|path| tracked.exists(path)) else {
+        let hint = resolve(from, &percent_decode(path_part))
+            .and_then(|missing| moved_todo_hint(tracked, from, &missing, path_part, fragment));
+        return Some((Reason::MissingFile, hint));
     };
-    let Some(fragment) = fragment.filter(|f| !f.is_empty()) else {
-        return Ok(None);
-    };
-    let is_markdown = resolved.extension().is_some_and(|ext| ext.eq_ignore_ascii_case("md"));
-    if !is_markdown || !root.join(&resolved).is_file() {
+    let fragment = fragment.filter(|f| !f.is_empty())?;
+    if !is_markdown(&resolved) || !tracked.is_file(&resolved) {
         // Fragments on source files (`#L10`) and directories are GitHub UI features, not headings.
-        return Ok(None);
+        return None;
     }
-    let fragment = percent_decode(fragment);
-    let found = anchors.get(root, &resolved)?.contains(&fragment);
-    Ok((!found).then_some((Reason::MissingAnchor, None)))
+    // A Markdown target outside the checked set (build output) has no known anchors to check.
+    let anchors = &scans.get(resolved.as_path())?.anchors;
+    (!anchors.contains(&percent_decode(fragment))).then_some((Reason::MissingAnchor, None))
 }
 
 /// URLs with a scheme (`https:`, `mailto:`) or protocol-relative ones (`//host`).
@@ -239,21 +214,51 @@ fn resolve(from: &Path, target: &str) -> Option<PathBuf> {
     Some(normal)
 }
 
-/// For a missing `…/docs/todos/<state>/<file>.md`, the same link pointing at the state folder
-/// where that file is now.
-fn moved_todo_hint(root: &Path, from: &Path, path_part: &str) -> Option<String> {
-    let resolved = resolve(from, path_part)?;
-    let mut parts = resolved.iter().map(|p| p.to_str());
+/// For a missing `docs/todos/<state>/<file>`, a link from `from` to the state folder where that
+/// file is tracked now, written the way the original was (`./`, `/`) and keeping its fragment.
+fn moved_todo_hint(
+    tracked: &Tracked,
+    from: &Path,
+    missing: &Path,
+    written: &str,
+    fragment: Option<&str>,
+) -> Option<String> {
+    let mut parts = missing.iter().map(|p| p.to_str());
     let (Some(Some("docs")), Some(Some("todos")), Some(Some(state)), Some(Some(file)), None) =
         (parts.next(), parts.next(), parts.next(), parts.next(), parts.next())
     else {
         return None;
     };
-    TODO_STATES
+    let moved = State::ALL
         .iter()
-        .filter(|&&other| other != state)
-        .find(|other| root.join("docs/todos").join(other).join(file).is_file())
-        .map(|other| path_part.replacen(&format!("{state}/{file}"), &format!("{other}/{file}"), 1))
+        .filter(|other| other.name() != state)
+        .map(|other| Path::new("docs/todos").join(other.name()).join(file))
+        .find(|candidate| tracked.is_file(candidate))?;
+    let mut hint = if written.starts_with('/') {
+        format!("/{}", display(&moved))
+    } else {
+        let relative = relative_path(from.parent().unwrap_or_else(|| Path::new("")), &moved);
+        if written.starts_with("./") && !relative.starts_with("../") {
+            format!("./{relative}")
+        } else {
+            relative
+        }
+    };
+    if let Some(fragment) = fragment {
+        hint.push('#');
+        hint.push_str(fragment);
+    }
+    Some(hint)
+}
+
+/// The `/`-separated path from directory `from_dir` to `to` (both relative to the root).
+fn relative_path(from_dir: &Path, to: &Path) -> String {
+    let from: Vec<_> = from_dir.iter().collect();
+    let to_parts: Vec<_> = to.iter().collect();
+    let common = from.iter().zip(&to_parts).take_while(|(a, b)| a == b).count();
+    let ups = std::iter::repeat_n("..".to_owned(), from.len().saturating_sub(common));
+    let downs = to_parts.iter().skip(common).map(|p| p.to_string_lossy().into_owned());
+    ups.chain(downs).collect::<Vec<_>>().join("/")
 }
 
 /// Decodes `%XX` escapes (GitHub links spaces as `%20`); invalid escapes are kept as written.
@@ -316,73 +321,68 @@ fn scan(text: &str) -> Scan {
     let mut scan = Scan::default();
     let mut slugger = Slugger::default();
     let mut heading: Option<String> = None;
+    // GitHub leaves image alt text out of heading anchors.
+    let mut image_depth = 0usize;
+    let mut html_block: Option<String> = None;
+    let push_link = |scan: &mut Scan, link_type: LinkType, dest: CowStr<'_>, offset: usize| {
+        if !matches!(link_type, LinkType::Autolink | LinkType::Email) {
+            scan.links.push(Link {
+                line: line_of(offset),
+                target: dest.into_string(),
+            });
+        }
+    };
     for (event, range) in Parser::new_ext(text, options()).into_offset_iter() {
         match event {
-            Event::Start(
-                Tag::Link {
-                    link_type, dest_url, ..
-                }
-                | Tag::Image {
-                    link_type, dest_url, ..
-                },
-            ) if !matches!(link_type, LinkType::Autolink | LinkType::Email) => {
-                scan.links.push(Link {
-                    line: line_of(range.start),
-                    target: dest_url.into_string(),
-                });
+            Event::Start(Tag::Link {
+                link_type, dest_url, ..
+            }) => {
+                push_link(&mut scan, link_type, dest_url, range.start);
             }
+            Event::Start(Tag::Image {
+                link_type, dest_url, ..
+            }) => {
+                image_depth += 1;
+                push_link(&mut scan, link_type, dest_url, range.start);
+            }
+            Event::End(TagEnd::Image) => image_depth = image_depth.saturating_sub(1),
             Event::Start(Tag::Heading { .. }) => heading = Some(String::new()),
             Event::End(TagEnd::Heading(_)) => {
                 if let Some(text) = heading.take() {
-                    scan.anchors.insert(slugger.next(text.trim()));
+                    scan.anchors.insert(slugger.next(&text));
                 }
             }
             Event::Text(t) | Event::Code(t) => {
-                if let Some(h) = heading.as_mut() {
+                if let Some(h) = heading.as_mut().filter(|_| image_depth == 0) {
                     h.push_str(&t);
                 }
             }
-            Event::Html(html) | Event::InlineHtml(html) => scan.anchors.extend(html_anchors(&html)),
+            Event::Start(Tag::HtmlBlock) => html_block = Some(String::new()),
+            Event::End(TagEnd::HtmlBlock) => {
+                if let Some(block) = html_block.take() {
+                    scan.anchors.extend(html::anchors(&block));
+                }
+            }
+            Event::Html(part) => match html_block.as_mut() {
+                Some(block) => block.push_str(&part),
+                None => scan.anchors.extend(html::anchors(&part)),
+            },
+            Event::InlineHtml(part) => scan.anchors.extend(html::anchors(&part)),
             _ => {}
         }
     }
     scan
 }
 
-/// The values of `id="…"` and `name="…"` attributes in a fragment of HTML.
-fn html_anchors(html: &str) -> Vec<String> {
-    let mut found = Vec::new();
-    for attribute in ["id=", "name="] {
-        let mut rest = html;
-        while let Some(at) = rest.find(attribute) {
-            let preceded_by_space = rest
-                .get(..at)
-                .and_then(|before| before.chars().next_back())
-                .is_some_and(char::is_whitespace);
-            rest = rest.get(at + attribute.len()..).unwrap_or_default();
-            let Some(quote) = rest.chars().next().filter(|c| matches!(c, '"' | '\'')) else {
-                continue;
-            };
-            let value = rest.get(1..).unwrap_or_default();
-            if let (true, Some(end)) = (preceded_by_space, value.find(quote)) {
-                found.push(value.get(..end).unwrap_or_default().to_owned());
-            }
-        }
-    }
-    found
-}
-
 #[cfg(test)]
 mod tests {
-    use std::fs;
     use std::path::{Path, PathBuf};
 
-    use super::{BrokenLink, Reason, check_files, is_excluded, is_external, percent_decode, resolve, scan};
+    use super::{BrokenLink, Reason, check, is_excluded, is_external, percent_decode, relative_path, resolve, scan};
+    use crate::tracked::{TempTree, Tracked};
 
     fn anchors(text: &str) -> Vec<String> {
-        let mut anchors: Vec<_> = scan(text).anchors.into_iter().collect();
-        anchors.sort();
-        anchors
+        scan(text).anchors.into_iter().collect()
     }
 
     fn targets(text: &str) -> Vec<String> {
@@ -425,6 +425,11 @@ mod tests {
     }
 
     #[test]
+    fn heading_slugs_leave_out_image_alt_text() {
+        assert_eq!(anchors("## ![ci](badge.svg) Status\n"), ["-status"]);
+    }
+
+    #[test]
     fn duplicate_headings_get_suffixes() {
         assert_eq!(
             anchors("# Tests\n\n## Tests\n\nTests\n---\n"),
@@ -441,8 +446,13 @@ mod tests {
     }
 
     #[test]
-    fn data_id_attributes_are_not_anchors() {
-        assert_eq!(anchors("<div data-id=\"x\"></div>\n"), Vec::<String>::new());
+    fn ids_in_multi_line_html_comments_are_not_anchors() {
+        assert_eq!(anchors("<!--\n<a id=\"hidden\"></a>\n-->\n\n# Shown\n"), ["shown"]);
+    }
+
+    #[test]
+    fn ids_in_multi_line_html_blocks_are_anchors() {
+        assert_eq!(anchors("<div\n  ID = top>\n</div>\n"), ["top"]);
     }
 
     #[test]
@@ -481,6 +491,14 @@ mod tests {
     }
 
     #[test]
+    fn relative_path_climbs_to_the_common_ancestor() {
+        assert_eq!(
+            relative_path(Path::new("docs/plans"), Path::new("docs/todos/done/X1.md")),
+            "../todos/done/X1.md"
+        );
+    }
+
+    #[test]
     fn percent_escapes_are_decoded() {
         assert_eq!(percent_decode("my%20file.md"), "my file.md");
     }
@@ -492,39 +510,27 @@ mod tests {
 
     #[test]
     fn build_output_is_excluded() {
-        assert!(is_excluded("spikes/pdf-basics/rust/target/doc/x.md") && is_excluded("a/node_modules/b/README.md"));
+        assert!(
+            is_excluded(Path::new("spikes/pdf-basics/rust/target/doc/x.md"))
+                && is_excluded(Path::new("a/node_modules/b/README.md"))
+        );
     }
 
     #[test]
     fn docs_are_not_excluded() {
-        assert!(!is_excluded("docs/targets.md"));
+        assert!(!is_excluded(Path::new("docs/targets.md")));
     }
 
-    /// A scratch directory of Markdown files, removed on drop.
-    struct Tree(PathBuf);
-
-    impl Tree {
-        fn new(name: &str, files: &[(&str, &str)]) -> Self {
-            let root = std::env::temp_dir().join(format!("lamina-xtask-{name}-{}", std::process::id()));
-            let _ = fs::remove_dir_all(&root);
-            for (path, text) in files {
-                let path = root.join(path);
-                fs::create_dir_all(path.parent().unwrap()).unwrap();
-                fs::write(path, text).unwrap();
-            }
-            Self(root)
-        }
-
-        fn check(&self, files: &[&str]) -> Vec<BrokenLink> {
-            let files: Vec<PathBuf> = files.iter().map(PathBuf::from).collect();
-            check_files(&self.0, &files).unwrap()
-        }
-    }
-
-    impl Drop for Tree {
-        fn drop(&mut self) {
-            let _ = fs::remove_dir_all(&self.0);
-        }
+    /// Writes `files` to a temp tree; the first `tracked` of them are tracked, the rest are not.
+    fn check_tree(name: &str, files: &[(&str, &str)], tracked: usize) -> Vec<BrokenLink> {
+        let tree = TempTree::new(name, files);
+        let tracked_paths: Vec<&str> = files.iter().take(tracked).map(|(path, _)| *path).collect();
+        let markdown: Vec<PathBuf> = tracked_paths
+            .iter()
+            .filter(|path| super::is_markdown(Path::new(path)))
+            .map(PathBuf::from)
+            .collect();
+        check(&tree.0, &Tracked::from_paths(tracked_paths), &markdown).unwrap()
     }
 
     fn broken(file: &str, line: usize, target: &str, reason: Reason, hint: Option<&str>) -> BrokenLink {
@@ -539,69 +545,96 @@ mod tests {
 
     #[test]
     fn valid_links_pass() {
-        let tree = Tree::new(
-            "valid",
-            &[
-                (
-                    "README.md",
-                    "# Top\n\n[guide](docs/guide.md#2-setup) [dir](docs) [self](#top)\n",
-                ),
-                (
-                    "docs/guide.md",
-                    "# Guide\n\n## 2. Setup\n\n[back](../README.md) [web](https://x.org)\n",
-                ),
-            ],
-        );
-        assert_eq!(tree.check(&["README.md", "docs/guide.md"]), []);
+        let files = [
+            (
+                "README.md",
+                "# Top\n\n[guide](docs/guide.md#2-setup) [dir](docs) [self](#top)\n",
+            ),
+            (
+                "docs/guide.md",
+                "# Guide\n\n## 2. Setup\n\n[back](../README.md) [web](https://x.org)\n",
+            ),
+        ];
+        assert_eq!(check_tree("valid", &files, 2), []);
     }
 
     #[test]
     fn missing_file_is_reported_with_its_line() {
-        let tree = Tree::new("missing-file", &[("a.md", "# A\n\nSee [b](b.md).\n")]);
+        let files = [("a.md", "# A\n\nSee [b](b.md).\n")];
         assert_eq!(
-            tree.check(&["a.md"]),
+            check_tree("missing-file", &files, 1),
             [broken("a.md", 3, "b.md", Reason::MissingFile, None)]
         );
     }
 
     #[test]
-    fn missing_anchor_is_reported() {
-        let tree = Tree::new(
-            "missing-anchor",
-            &[("a.md", "# A\n\n[b](b.md#nope)\n"), ("b.md", "# B\n")],
-        );
+    fn wrong_case_link_is_reported() {
+        let files = [("a.md", "[b](B.md)\n"), ("b.md", "# B\n")];
         assert_eq!(
-            tree.check(&["a.md"]),
+            check_tree("wrong-case", &files, 2),
+            [broken("a.md", 1, "B.md", Reason::MissingFile, None)]
+        );
+    }
+
+    #[test]
+    fn link_to_an_untracked_file_is_reported() {
+        let files = [("a.md", "[draft](draft.md)\n"), ("draft.md", "# Draft\n")];
+        assert_eq!(
+            check_tree("untracked", &files, 1),
+            [broken("a.md", 1, "draft.md", Reason::MissingFile, None)]
+        );
+    }
+
+    #[test]
+    fn missing_anchor_is_reported() {
+        let files = [("a.md", "# A\n\n[b](b.md#nope)\n"), ("b.md", "# B\n")];
+        assert_eq!(
+            check_tree("missing-anchor", &files, 2),
             [broken("a.md", 3, "b.md#nope", Reason::MissingAnchor, None)]
         );
     }
 
     #[test]
     fn missing_same_file_anchor_is_reported() {
-        let tree = Tree::new("same-file-anchor", &[("a.md", "# A\n\n[x](#b)\n")]);
+        let files = [("a.md", "# A\n\n[x](#b)\n")];
         assert_eq!(
-            tree.check(&["a.md"]),
+            check_tree("same-file-anchor", &files, 1),
             [broken("a.md", 3, "#b", Reason::MissingAnchor, None)]
         );
     }
 
     #[test]
-    fn moved_todo_gets_a_hint() {
-        let tree = Tree::new(
-            "moved-todo",
-            &[
-                ("docs/plans/p.md", "[X1](../todos/ongoing/X1-a.md)\n"),
-                ("docs/todos/done/X1-a.md", "# X1\n"),
-            ],
-        );
+    fn moved_todo_hint_keeps_the_fragment() {
+        let files = [
+            ("docs/plans/p.md", "[X1](../todos/ongoing/X1-a.md#goal)\n"),
+            ("docs/todos/done/X1-a.md", "# X1\n\n## Goal\n"),
+        ];
         assert_eq!(
-            tree.check(&["docs/plans/p.md"]),
+            check_tree("moved-todo", &files, 2),
             [broken(
                 "docs/plans/p.md",
                 1,
-                "../todos/ongoing/X1-a.md",
+                "../todos/ongoing/X1-a.md#goal",
                 Reason::MissingFile,
-                Some("../todos/done/X1-a.md")
+                Some("../todos/done/X1-a.md#goal")
+            )]
+        );
+    }
+
+    #[test]
+    fn moved_todo_hint_from_the_same_folder_points_across_folders() {
+        let files = [
+            ("docs/todos/ready/B1-b.md", "[A1](./A1-a.md)\n"),
+            ("docs/todos/done/A1-a.md", "# A1\n"),
+        ];
+        assert_eq!(
+            check_tree("moved-todo-same-folder", &files, 2),
+            [broken(
+                "docs/todos/ready/B1-b.md",
+                1,
+                "./A1-a.md",
+                Reason::MissingFile,
+                Some("../done/A1-a.md")
             )]
         );
     }
