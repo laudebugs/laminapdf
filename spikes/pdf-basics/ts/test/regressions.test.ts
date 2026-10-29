@@ -184,7 +184,9 @@ describe("writer", () => {
     expect(again.trailer().entries.get("Filter")).toEqual(name("FlateDecode"));
   });
 
-  test("compact mode with many objects is not quadratic", () => {
+  // A wall-clock ratio: ADR 0018 keeps those out of the PR lanes, and the shared self-hosted
+  // runners made it flaky there (9.78 vs 9 under load). It still runs locally.
+  test.skipIf(Boolean(process.env.CI))("compact mode with many objects is not quadratic", () => {
     // Compare scaling rather than wall-clock time so the test is machine-independent:
     // 4x the objects should cost ~4x (linear), not ~16x (quadratic).
     const build = (n: number): { out: Uint8Array; ms: number } => {
