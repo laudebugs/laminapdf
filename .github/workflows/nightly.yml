@@ -17,9 +17,6 @@
 name: Nightly
 
 on:
-  # TEMPORARY (X3a branch run): removed before merge.
-  push:
-    branches: [ci/x3a-nightly-lane]
   schedule:
     - cron: "17 3 * * *"
   workflow_dispatch:
@@ -45,8 +42,8 @@ concurrency:
 env:
   CARGO_TERM_COLOR: always
   CARGO_INCREMENTAL: 0
-  FUZZ_SECONDS: ${{ inputs.fuzz-seconds || (github.event_name == 'push' && '60') || '600' }}
-  DIFFERENTIAL_SAMPLE: ${{ inputs.differential-sample || (github.event_name == 'push' && '600') || '' }}
+  FUZZ_SECONDS: ${{ inputs.fuzz-seconds || '600' }}
+  DIFFERENTIAL_SAMPLE: ${{ inputs.differential-sample || '' }}
 
 jobs:
   # Prefer the self-hosted runners (macOS ARM64) when one is online (see select-runner.yml).
@@ -262,7 +259,7 @@ jobs:
   # workflow_dispatch with force-failure: checks the issue-on-failure path end to end.
   forced-failure:
     name: Forced failure (on request)
-    if: ${{ inputs.force-failure || github.event_name == 'push' }}
+    if: ${{ inputs.force-failure }}
     runs-on: ubuntu-latest
     timeout-minutes: 2
     steps:
@@ -318,8 +315,14 @@ jobs:
               [ "$FLAKY" = "true" ] && echo "The scaling tests failed once and passed on retry: **flaky** (ADR 0018 §4)."
               report=artefacts/differential-report/report.json
               if [ -f "$report" ]; then
+                failures=$(jq '[.disagreements[] | select(.kind == "failure")] | length' "$report")
+                panics=$(jq '.panics | length' "$report")
                 echo
-                echo "Differential: $(jq '[.disagreements[] | select(.kind == "failure")] | length' "$report") failures, $(jq '.panics | length' "$report") panics (full report in the run's artefacts). First 30:"
+                echo "Differential: $failures failures, $panics panics (full report in the run's artefacts)."
+              fi
+              if [ -f "$report" ] && [ $((failures + panics)) -gt 0 ]; then
+                echo
+                echo "The first 30 of each:"
                 echo
                 jq -r '([.disagreements[] | select(.kind == "failure")][:30][] | "- \u0060\(.file)\u0060 \(.fact): lamina \(.lamina | tojson | .[:60])"), (.panics[:30][] | "- \u0060\(.)\u0060: lamina panicked")' "$report"
               fi

@@ -53,11 +53,11 @@ Run the expensive, environment-sensitive checks every night on `main`, where a f
 
 ## Acceptance criteria
 
-- [ ] `nightly.yml` passes `actionlint`; its jobs run on the branch through a temporary `pull_request`/`push` trigger (or `act`) with a short budget (`--time 60` per fuzz target, a manifest subset) and that trigger is removed before merge; run linked in the PR
-- [ ] The issue-on-failure step is exercised on the branch run with a forced failure (input or env flag) and opens/updates a `nightly` issue (closed afterwards)
+- [x] `nightly.yml` passes `actionlint`; its jobs run on the branch through a temporary `pull_request`/`push` trigger (or `act`) with a short budget (`--time 60` per fuzz target, a manifest subset) and that trigger is removed before merge; run linked in the PR. Runs: [1](https://github.com/laudebugs/lamina/actions/runs/40829874450) (found the case-sensitivity bug in the qpdf patterns), [2](https://github.com/laudebugs/lamina/actions/runs/40830476951) (found a criterion cache bug in `bench`), [3](https://github.com/laudebugs/lamina/actions/runs/40831485187) (every job green except the forced failure). Budgets: 60 s per fuzz target, a 600-input differential sample
+- [x] The issue-on-failure step is exercised on the branch run with a forced failure (input or env flag) and opens/updates a `nightly` issue (closed afterwards). Run 1 opened [#33](https://github.com/laudebugs/lamina/issues/33) and runs 2 and 3 commented on it. **Deviation:** #33 is still open; closing it needs the owner (this session wasn't permitted to write to issues)
 - [x] `cargo xtask corpus fetch` downloads and verifies the manifest (SHA-256) locally; a tampered hash fails
 - [x] The `reader_cache` scaling test passes locally with `cargo test --release -- --ignored` (`cargo xtask scaling`)
-- [ ] The differential report (branch run) lists per-tool agreement rates and every disagreement is in the exceptions file or reported as a new issue
+- [x] The differential report (branch run) lists per-tool agreement rates and every disagreement is in the exceptions file or reported as a new issue. Run 3: 0 failures, 57 splits, 178 excused, 1 known. **Deviation:** only disagreements where every tool disagrees with lamina must be excused; splits are listed in the report (see Notes)
 
 ## Post-merge checks
 
