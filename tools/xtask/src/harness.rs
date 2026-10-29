@@ -16,12 +16,13 @@ use crate::workspace::Workspace;
 use crate::{run, step};
 
 /// The fuzz targets in `fuzz/fuzz_targets/` (ADR 0018 tier 9).
-pub(crate) const FUZZ_TARGETS: [&str; 7] = [
+pub(crate) const FUZZ_TARGETS: [&str; 8] = [
     "lex",
     "parse_object",
     "flate_decode",
     "open",
     "page_tree",
+    "content",
     "ops_json",
     "save_roundtrip",
 ];
@@ -55,6 +56,9 @@ fn files_in(dir: &Path) -> Result<Vec<PathBuf>> {
     Ok(files)
 }
 
+/// The crates whose `golden` example writes goldens into `fixtures/golden/`.
+const GOLDEN_CRATES: [&str; 2] = ["lamina-save", "lamina-text"];
+
 /// `cargo xtask golden [--update]`: regenerates every golden in `fixtures/golden/` from its
 /// source (`--update` writes them in place and prints the list); without `--update`, checks
 /// that regenerating them changes nothing.
@@ -66,17 +70,20 @@ pub(crate) fn golden(ws: &Workspace, update: bool) -> Result<()> {
         scratch(ws, "golden")?
     };
     let out_arg = out.to_string_lossy().into_owned();
-    ws.cargo(&[
-        "run",
-        "--locked",
-        "-q",
-        "-p",
-        "lamina-save",
-        "--example",
-        "golden",
-        "--",
-        &out_arg,
-    ])?;
+    // Every crate with goldens has a `golden` example that writes its files into a directory.
+    for krate in GOLDEN_CRATES {
+        ws.cargo(&[
+            "run",
+            "--locked",
+            "-q",
+            "-p",
+            krate,
+            "--example",
+            "golden",
+            "--",
+            &out_arg,
+        ])?;
+    }
     if update {
         step("Goldens regenerated; review the diff (`git diff fixtures/golden`) like code");
         return Ok(());
@@ -418,7 +425,8 @@ const FLATE_SEED_PARAMS: [u8; 4] = [1, 1, 8, 1];
 /// Must match `SAVE_SEED_CONTROL` in `crates/lamina-save/tests/common/fuzz_entry.rs`.
 const SAVE_SEED_CONTROL: [u8; 8] = [0, 0x14, 0x41, 0x02, 0x03, 0x24, 0x34, 0x04];
 
-/// Builds `fuzz/corpus/<target>/` (gitignored) from the shared fixture PDFs, the target's
+/// Builds `fuzz/corpus/<target>/` (gitignored) from the shared fixture PDFs (`corpus/`,
+/// `golden/` and `content/`), the target's
 /// saved crash inputs in `fixtures/regressions/<target>/` and everything under
 /// `fuzz/seeds/<target>/`. Fixture PDFs are split into their streams for `flate_decode`,
 /// follow [`SAVE_SEED_CONTROL`] for `save_roundtrip` (which also gets `fixtures/signed/`), and
@@ -434,7 +442,7 @@ fn seeds(ws: &Workspace, target: &str) -> Result<PathBuf> {
         // Op logs, not PDFs: the frozen samples of the op format.
         fixtures.extend(files_in(&ws.root.join("fixtures/ops/v1"))?);
     } else {
-        for dir in ["fixtures/corpus", "fixtures/golden"] {
+        for dir in ["fixtures/corpus", "fixtures/golden", "fixtures/content"] {
             fixtures.extend(files_in(&ws.root.join(dir))?.into_iter().filter(|p| is_pdf(p)));
         }
     }

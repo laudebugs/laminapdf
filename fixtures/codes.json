@@ -1,47 +1,362 @@
 {
+  "version": 2,
+  "docsUrl": {
+    "base": "https://github.com/laudebugs/lamina/blob/main/docs/errors/",
+    "suffix": ".md"
+  },
   "warnings": [
-    "missing-header",
-    "xref-repaired",
-    "xrefstm-ignored",
-    "stream-length-recovered",
-    "stale-generation",
-    "page-tree-node-skipped",
-    "page-count-mismatch",
-    "flate-truncated",
-    "objstm-index-mismatch",
-    "object-number-out-of-range",
-    "aes-padding-invalid",
-    "perms-mismatch",
-    "warnings-truncated",
-    "invalid-box",
-    "invalid-rotate",
-    "name-tree-node-skipped",
-    "outline-cycle",
-    "outline-item-skipped",
-    "invalid-date",
-    "invalid-page-label",
-    "invalid-entry"
+    {
+      "code": "missing-header",
+      "kind": "input",
+      "summary": "no %PDF-x.y header in the first 1,024 bytes; parsing went ahead",
+      "hint": "nothing to do if the document reads correctly; open in strict mode to refuse such files",
+      "since": "0.1.0"
+    },
+    {
+      "code": "xref-repaired",
+      "kind": "input",
+      "summary": "the stored cross-reference data was unusable and was rebuilt by scanning",
+      "hint": "check the result; save with a full rewrite, since an incremental update refuses a repaired base",
+      "since": "0.1.0"
+    },
+    {
+      "code": "xrefstm-ignored",
+      "kind": "input",
+      "summary": "a hybrid file's /XRefStm could not be read and was ignored",
+      "hint": "nothing to do; the classic xref table is used instead",
+      "since": "0.1.0"
+    },
+    {
+      "code": "stream-length-recovered",
+      "kind": "input",
+      "summary": "a stream's /Length was wrong, so its end was found by scanning for endstream",
+      "hint": "nothing to do; a full rewrite writes the correct length",
+      "since": "0.1.0"
+    },
+    {
+      "code": "stale-generation",
+      "kind": "input",
+      "summary": "a reference's generation did not match its xref entry, so it resolved to null",
+      "hint": "nothing to do; the reference is treated as missing",
+      "since": "0.1.0"
+    },
+    {
+      "code": "page-tree-node-skipped",
+      "kind": "input",
+      "summary": "a page-tree node was missing, malformed or too deep, and was skipped",
+      "hint": "check the page count: pages under the skipped node are missing",
+      "since": "0.1.0"
+    },
+    {
+      "code": "page-count-mismatch",
+      "kind": "input",
+      "summary": "the page tree's /Count differs from the number of pages walked",
+      "hint": "nothing to do; lamina uses the walked page count",
+      "since": "0.1.0"
+    },
+    {
+      "code": "flate-truncated",
+      "kind": "input",
+      "summary": "Flate data was truncated or had a bad checksum; the partial output was kept",
+      "hint": "check the affected content: the end of the stream may be missing",
+      "since": "0.1.0"
+    },
+    {
+      "code": "objstm-index-mismatch",
+      "kind": "input",
+      "summary": "an object stream's index was stale and the object was found by searching",
+      "hint": "nothing to do; a full rewrite writes a correct index",
+      "since": "0.1.0"
+    },
+    {
+      "code": "object-number-out-of-range",
+      "kind": "limit",
+      "summary": "an xref entry above max_object_number was dropped",
+      "hint": "raise max_object_number in Limits only if you trust the input",
+      "since": "0.1.0"
+    },
+    {
+      "code": "aes-padding-invalid",
+      "kind": "security",
+      "summary": "AES-encrypted data had a bad length or padding and was kept as stored",
+      "hint": "treat the affected strings and streams as suspect: they may have been tampered with",
+      "since": "0.1.0"
+    },
+    {
+      "code": "perms-mismatch",
+      "kind": "security",
+      "summary": "an R5/R6 document's /Perms does not match its /P and /EncryptMetadata",
+      "hint": "treat the document's permissions as untrusted",
+      "since": "0.1.0"
+    },
+    {
+      "code": "warnings-truncated",
+      "kind": "limit",
+      "summary": "more than max_warnings warnings were raised and the rest were dropped",
+      "hint": "raise max_warnings in Limits if you need the full list",
+      "since": "0.1.0"
+    },
+    {
+      "code": "invalid-box",
+      "kind": "input",
+      "summary": "a page boundary box is not four numbers and reads as absent",
+      "hint": "nothing to do; the page uses the next box in the fallback chain",
+      "since": "0.1.0"
+    },
+    {
+      "code": "invalid-rotate",
+      "kind": "input",
+      "summary": "a page's /Rotate is not a multiple of 90 and reads as 0",
+      "hint": "set the page rotation explicitly if 0 is wrong",
+      "since": "0.1.0"
+    },
+    {
+      "code": "name-tree-node-skipped",
+      "kind": "input",
+      "summary": "a name- or number-tree node was malformed, repeated or too deep, and was skipped",
+      "hint": "check the tree's entries: those under the skipped node are missing",
+      "since": "0.1.0"
+    },
+    {
+      "code": "outline-cycle",
+      "kind": "input",
+      "summary": "an outline item was reached twice; that branch of the walk stopped",
+      "hint": "nothing to do; the outline is read without the loop",
+      "since": "0.1.0"
+    },
+    {
+      "code": "outline-item-skipped",
+      "kind": "input",
+      "summary": "an outline item was missing, not a dictionary or too deep, and was skipped with its subtree",
+      "hint": "check the outline: the skipped item and its children are missing",
+      "since": "0.1.0"
+    },
+    {
+      "code": "invalid-date",
+      "kind": "input",
+      "summary": "an Info date is not a valid PDF date; the raw string is kept",
+      "hint": "read the raw value from the Info view if you need it",
+      "since": "0.1.0"
+    },
+    {
+      "code": "invalid-page-label",
+      "kind": "input",
+      "summary": "a /PageLabels entry is malformed; the malformed part is dropped",
+      "hint": "nothing to do; affected pages fall back to decimal labels",
+      "since": "0.1.0"
+    },
+    {
+      "code": "invalid-entry",
+      "kind": "input",
+      "summary": "an entry a view reads is unreadable or of the wrong type and reads as absent",
+      "hint": "nothing to do; the view uses the entry's default",
+      "since": "0.1.0"
+    },
+    {
+      "code": "content-unknown-operator",
+      "kind": "input",
+      "summary": "an operator the spec does not define was skipped outside a BX/EX section",
+      "hint": "nothing to do; check the page's rendering if the operator mattered",
+      "since": "0.1.0"
+    },
+    {
+      "code": "content-bad-operands",
+      "kind": "input",
+      "summary": "an operator had too few operands or operands of the wrong type, or extra ones",
+      "hint": "nothing to do; the operator was skipped or used its last operands",
+      "since": "0.1.0"
+    },
+    {
+      "code": "content-unbalanced-q",
+      "kind": "input",
+      "summary": "a Q without a matching q was ignored, or saved graphics states were left open",
+      "hint": "nothing to do; the graphics state was restored as the spec intends",
+      "since": "0.1.0"
+    },
+    {
+      "code": "content-unbalanced-bt",
+      "kind": "input",
+      "summary": "a text object was opened twice, closed outside one, or left open",
+      "hint": "nothing to do; text operators outside a text object were handled tolerantly",
+      "since": "0.1.0"
+    },
+    {
+      "code": "content-unbalanced-marked",
+      "kind": "input",
+      "summary": "an EMC without a matching BMC or BDC was ignored, or marked content was left open",
+      "hint": "check tagged-content results: marked-content sequences were closed for you",
+      "since": "0.1.0"
+    },
+    {
+      "code": "content-syntax",
+      "kind": "input",
+      "summary": "content-stream bytes that are not a token were skipped",
+      "hint": "check the page's content: the bytes around the reported offset were skipped",
+      "since": "0.1.0"
+    },
+    {
+      "code": "content-resource-missing",
+      "kind": "input",
+      "summary": "an operator named a resource that is missing, of the wrong type or unreadable",
+      "hint": "check the page's resources: the operator ran without the resource or was skipped",
+      "since": "0.1.0"
+    },
+    {
+      "code": "inline-image-unterminated",
+      "kind": "input",
+      "summary": "no EI ends an inline image; the rest of the content was skipped",
+      "hint": "check the page's content: everything after the inline image is missing",
+      "since": "0.1.0"
+    },
+    {
+      "code": "xobject-cycle",
+      "kind": "input",
+      "summary": "a Form XObject draws itself, directly or through other forms",
+      "hint": "nothing to do; the inner Do was skipped",
+      "since": "0.1.0"
+    },
+    {
+      "code": "content-path-unpainted",
+      "kind": "input",
+      "summary": "a content stream ended with a path no painting operator ended",
+      "hint": "nothing to do; the unpainted path was dropped as the spec intends",
+      "since": "0.1.0"
+    }
   ],
   "errors": [
-    "not-pdf",
-    "missing-root",
-    "reference-cycle",
-    "limit-exceeded",
-    "strict",
-    "data-pending",
-    "source",
-    "type",
-    "invalid-structure",
-    "unset-object",
-    "repaired-base",
-    "encrypted-base",
-    "password-required",
-    "wrong-password",
-    "unsupported-security-handler",
-    "unexpected-eof",
-    "syntax",
-    "unsupported-filter",
-    "decompress"
+    {
+      "code": "not-pdf",
+      "kind": "input",
+      "summary": "the input does not look like a PDF at all",
+      "hint": "check that the bytes passed to open are a PDF file",
+      "since": "0.1.0"
+    },
+    {
+      "code": "missing-root",
+      "kind": "input",
+      "summary": "no document catalog (/Root) was found, even after repair",
+      "hint": "use another copy of the file: this one has no usable catalog",
+      "since": "0.1.0"
+    },
+    {
+      "code": "reference-cycle",
+      "kind": "input",
+      "summary": "a reference chain or the page tree loops back on itself",
+      "hint": "use another copy of the file, or repair it with another tool",
+      "since": "0.1.0"
+    },
+    {
+      "code": "limit-exceeded",
+      "kind": "limit",
+      "summary": "a hard Limits value was exceeded",
+      "hint": "the input exceeds a safety limit; raise {limit} in Limits only if you trust the input",
+      "since": "0.1.0"
+    },
+    {
+      "code": "strict",
+      "kind": "input",
+      "summary": "strict mode refused something the tolerant reader would have repaired",
+      "hint": "open without strict mode to read the file with repairs, or fix the file",
+      "since": "0.1.0"
+    },
+    {
+      "code": "data-pending",
+      "kind": "state",
+      "summary": "the ByteSource has not fetched the byte ranges the call needs yet",
+      "hint": "fetch the listed ranges into the source and retry the call",
+      "since": "0.1.0"
+    },
+    {
+      "code": "source",
+      "kind": "io",
+      "summary": "the ByteSource failed to read",
+      "hint": "retry the call, or check the source; the document stays usable",
+      "since": "0.1.0"
+    },
+    {
+      "code": "type",
+      "kind": "input",
+      "summary": "an object had a different type than the structure requires",
+      "hint": "use another copy of the file, or repair it with another tool",
+      "since": "0.1.0"
+    },
+    {
+      "code": "invalid-structure",
+      "kind": "input",
+      "summary": "an object stream, xref section or filter parameter was malformed",
+      "hint": "use another copy of the file, or repair it with another tool",
+      "since": "0.1.0"
+    },
+    {
+      "code": "unset-object",
+      "kind": "internal",
+      "summary": "a writer object number was reserved but never given a value",
+      "hint": "this is a lamina bug: report it with the steps that led to it",
+      "since": "0.1.0"
+    },
+    {
+      "code": "repaired-base",
+      "kind": "state",
+      "summary": "an incremental update was requested for a document whose xref needed repair",
+      "hint": "save with a full rewrite instead of an incremental update",
+      "since": "0.1.0"
+    },
+    {
+      "code": "encrypted-base",
+      "kind": "unsupported",
+      "summary": "a save of an encrypted document was requested",
+      "hint": "saving encrypted documents is not supported yet; use another tool to decrypt or re-encrypt",
+      "since": "0.1.0"
+    },
+    {
+      "code": "password-required",
+      "kind": "security",
+      "summary": "the document is encrypted with a user password and none was given",
+      "hint": "pass the document's password in OpenOptions",
+      "since": "0.1.0"
+    },
+    {
+      "code": "wrong-password",
+      "kind": "security",
+      "summary": "the given password is neither the user nor the owner password",
+      "hint": "ask for the password again and retry with the correct one",
+      "since": "0.1.0"
+    },
+    {
+      "code": "unsupported-security-handler",
+      "kind": "unsupported",
+      "summary": "the document uses a security handler lamina cannot decrypt",
+      "hint": "use a tool that supports this encryption to decrypt the file first",
+      "since": "0.1.0"
+    },
+    {
+      "code": "unexpected-eof",
+      "kind": "input",
+      "summary": "the input ended before a complete token or object was read",
+      "hint": "use a complete copy of the file: this one looks truncated",
+      "since": "0.1.0"
+    },
+    {
+      "code": "syntax",
+      "kind": "input",
+      "summary": "a token or structure did not match the PDF grammar",
+      "hint": "use another copy of the file, or repair it with another tool",
+      "since": "0.1.0"
+    },
+    {
+      "code": "unsupported-filter",
+      "kind": "unsupported",
+      "summary": "a stream uses a filter lamina does not implement",
+      "hint": "use a tool that supports the filter to read this stream",
+      "since": "0.1.0"
+    },
+    {
+      "code": "decompress",
+      "kind": "input",
+      "summary": "compressed stream data was corrupt",
+      "hint": "use another copy of the file: this stream's data is damaged",
+      "since": "0.1.0"
+    }
   ],
   "limits": [
     "max_nesting_depth",
@@ -58,19 +373,186 @@
     "max_read_window"
   ],
   "opErrors": [
-    "nested-transaction",
-    "no-transaction",
-    "unknown-page",
-    "direct-page",
-    "unsupported-version",
-    "invalid-op-log",
-    "saved-not-rebased",
-    "no-pending-save"
+    {
+      "code": "nested-transaction",
+      "kind": "state",
+      "summary": "a transaction was started, or undo or redo called, while one is open",
+      "hint": "commit or roll back the open transaction first, or use a savepoint inside it",
+      "since": "0.1.0"
+    },
+    {
+      "code": "no-transaction",
+      "kind": "state",
+      "summary": "apply, commit or rollback was called without an open transaction",
+      "hint": "call begin first, or use transact",
+      "since": "0.1.0"
+    },
+    {
+      "code": "unknown-page",
+      "kind": "usage",
+      "summary": "an op names a page the document does not have",
+      "hint": "use a PageId from this document's pages()",
+      "since": "0.1.0"
+    },
+    {
+      "code": "direct-page",
+      "kind": "unsupported",
+      "summary": "the page is a direct dictionary, which ops cannot edit yet",
+      "hint": "rewrite the file so that every page is an indirect object, or wait for page-structure ops",
+      "since": "0.1.0"
+    },
+    {
+      "code": "unsupported-version",
+      "kind": "unsupported",
+      "summary": "an op log has a schema version this reader does not know",
+      "hint": "upgrade lamina to a version that reads this op log version",
+      "since": "0.1.0"
+    },
+    {
+      "code": "invalid-op-log",
+      "kind": "input",
+      "summary": "an op log does not parse: an unknown op or field, a bad value, or not JSON",
+      "hint": "validate the op log against the op schema; the samples in fixtures/ops show the format",
+      "since": "0.1.0"
+    },
+    {
+      "code": "saved-not-rebased",
+      "kind": "state",
+      "summary": "the document was saved to a sink lamina cannot read back and waits for rebase",
+      "hint": "call rebase with the saved bytes before applying ops or saving again",
+      "since": "0.1.0"
+    },
+    {
+      "code": "no-pending-save",
+      "kind": "state",
+      "summary": "rebase was called without a save waiting for it",
+      "hint": "call rebase only after a save that returned SavedNotRebased",
+      "since": "0.1.0"
+    }
   ],
   "saveErrors": [
-    "sink",
-    "not-rebased",
-    "would-invalidate-signatures",
-    "requires-rewrite"
+    {
+      "code": "sink",
+      "kind": "io",
+      "summary": "the sink failed to take the bytes or could not give them back",
+      "hint": "check the destination and retry the save; the document is unchanged",
+      "since": "0.1.0"
+    },
+    {
+      "code": "not-rebased",
+      "kind": "state",
+      "summary": "the output was written, but rebasing the document onto it failed",
+      "hint": "retry rebase with the saved output carried by the error",
+      "since": "0.1.0"
+    },
+    {
+      "code": "sink-not-empty",
+      "kind": "usage",
+      "summary": "the sink already held bytes before the save started",
+      "hint": "pass an empty sink: output offsets count from the sink's first byte",
+      "since": "0.1.0"
+    },
+    {
+      "code": "would-invalidate-signatures",
+      "kind": "security",
+      "summary": "the save would break one or more signatures",
+      "hint": "save with SaveMode::Auto, or ask the user and retry with SaveOptions::with_invalidate_signatures",
+      "since": "0.1.0"
+    },
+    {
+      "code": "requires-rewrite",
+      "kind": "state",
+      "summary": "an incremental save was requested but only a full rewrite is safe",
+      "hint": "save with SaveMode::Auto or SaveMode::FullRewrite",
+      "since": "0.1.0"
+    }
+  ],
+  "textErrors": [
+    {
+      "code": "invalid-font",
+      "kind": "input",
+      "summary": "font bytes could not be read as a font",
+      "hint": "pass the complete bytes of a .ttf, .otf, .ttc or .otc file",
+      "since": "0.1.0"
+    },
+    {
+      "code": "collection-index",
+      "kind": "usage",
+      "summary": "a font collection member past the end of the collection was asked for",
+      "hint": "use an index below Font::collection_len",
+      "since": "0.1.0"
+    },
+    {
+      "code": "unknown-axis",
+      "kind": "usage",
+      "summary": "an instance was asked for on a variation axis the font does not have",
+      "hint": "check the font's axes before choosing coordinates, or use a variable font",
+      "since": "0.1.0"
+    },
+    {
+      "code": "font-not-embeddable",
+      "kind": "usage",
+      "summary": "the font's OS/2 fsType forbids embedding",
+      "hint": "use another font, or register it with EmbedPolicy::Override if your licence allows embedding",
+      "since": "0.1.0"
+    },
+    {
+      "code": "missing-glyph",
+      "kind": "input",
+      "summary": "the font has no glyph for a character of the text",
+      "hint": "use a font that covers the character, or split the text across fonts",
+      "since": "0.1.0"
+    },
+    {
+      "code": "glyph-out-of-range",
+      "kind": "usage",
+      "summary": "a glyph ID at or past the font's glyph count was used",
+      "hint": "pass glyph IDs from the font you registered",
+      "since": "0.1.0"
+    },
+    {
+      "code": "unknown-font",
+      "kind": "usage",
+      "summary": "a FontKey was used with a registry that did not hand it out",
+      "hint": "use the key returned by this registry's add",
+      "since": "0.1.0"
+    },
+    {
+      "code": "subset-failed",
+      "kind": "unsupported",
+      "summary": "subsetting a font failed",
+      "hint": "try another version or format of the font, and report the font if it is a common one",
+      "since": "0.1.0"
+    },
+    {
+      "code": "invalid-axis-value",
+      "kind": "usage",
+      "summary": "a variation axis value was NaN or infinite",
+      "hint": "pass finite axis values; values outside the axis range are clamped",
+      "since": "0.1.0"
+    },
+    {
+      "code": "wrong-document",
+      "kind": "usage",
+      "summary": "finish_fonts was given a document the registry did not reserve its fonts in",
+      "hint": "use one FontRegistry per document and finish it with that document",
+      "since": "0.1.0"
+    }
+  ],
+  "textWarnings": [
+    {
+      "code": "tounicode-conflict",
+      "kind": "usage",
+      "summary": "one glyph was used for two different texts; ToUnicode keeps the first",
+      "hint": "mark the second occurrence with /ActualText so extraction gets its text",
+      "since": "0.1.0"
+    },
+    {
+      "code": "whole-font-rebuilt",
+      "kind": "usage",
+      "summary": "a font that forbids subsetting was rebuilt with every glyph kept",
+      "hint": "check that the font's licence allows this, or use a static TrueType or CFF version",
+      "since": "0.1.0"
+    }
   ]
 }

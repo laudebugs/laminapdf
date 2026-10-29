@@ -32,7 +32,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        target: [lex, parse_object, flate_decode, open, page_tree, ops_json, save_roundtrip]
+        target: [lex, parse_object, flate_decode, open, page_tree, content, ops_json, save_roundtrip]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:

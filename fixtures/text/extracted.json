@@ -1,0 +1,33 @@
+{
+  "pypdf_version": "6.21.3",
+  "qpdf_version": "12.4.2",
+  "files": {
+    "text-cff.pdf": {
+      "sha256": "5a86c6148c539f2d6fa57d35396449feee7db718f121909f5bf8b1a1e5fd0a29",
+      "pypdf": [
+        "CFF outlines: Ådne’s naïve café",
+        "你好世界，这是中文字体子集测试。"
+      ],
+      "qpdf_check": true
+    },
+    "text-latin.pdf": {
+      "sha256": "f032eac0a6186d13965beb0be83da29781b3fc8735b47151baa4892b79ffbc5a",
+      "pypdf": [
+        "Hello, world!",
+        "Café crème brûlée, naïve façade: “curly” and ‘single’ quotes",
+        "The office staff fill the affine waffle flask first.",
+        "Bold maths: 𝐀𝐁𝐂 = ABC"
+      ],
+      "qpdf_check": true
+    },
+    "text-variable-collection.pdf": {
+      "sha256": "309f91cd50271aa97ce2f579d3d8f02c9be9839e97d084ab67e68853dc888190",
+      "pypdf": [
+        "Variable font, default instance",
+        "Variable font, wght 700 instance",
+        "Collection member 1: Noto Sans Bold"
+      ],
+      "qpdf_check": true
+    }
+  }
+}

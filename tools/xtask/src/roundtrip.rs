@@ -18,6 +18,7 @@ use std::process::Command;
 use anyhow::{Context, Result, bail};
 use serde_json::{Value, json};
 
+use crate::doctor::QPDF_VERSION;
 use crate::workspace::Workspace;
 use crate::{run, step};
 
@@ -100,11 +101,6 @@ pub(crate) fn run_suite(ws: &Workspace, tools: &[&str]) -> Result<()> {
     ));
     Ok(())
 }
-
-/// The qpdf release the round trip is checked with. The same as `QPDF_VERSION` in
-/// `doctor.rs` once that pins qpdf (B4a); a different version fails the check, so a result
-/// is always reproducible.
-const QPDF_VERSION: &str = "12.4.2";
 
 /// What one tool's check found: its version (`null` when it couldn't be read) and whether
 /// every output passed.

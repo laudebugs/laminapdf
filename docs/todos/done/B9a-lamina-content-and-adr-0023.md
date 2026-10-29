@@ -3,16 +3,16 @@
 | Field | Value |
 | --- | --- |
 | ID | `B9a` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [pdf-library §7 B9](../../plans/pdf-library.md#b9-text-extraction), requirement [§4 F8](../../plans/pdf-library.md#functional) |
 | Round / milestone | Round B (library) — M2 Web reader v0.1 (prerequisite) |
-| Depends on | [B2c](../done/B2c-lamina-model-corpus-fuzz.md), [X4](../done/X4-full-lane-gate.md) |
+| Depends on | [B2c](./B2c-lamina-model-corpus-fuzz.md), [X4](./X4-full-lane-gate.md) |
 | Blocks | [B9b](../ready/B9b-text-extraction-core.md) |
 | ADRs | Writes **0023** (content-stream reading: `lamina-content` crate, operator and XObject-depth limits); uses [0003](../../decisions/0003-reader-tolerance-and-limits.md) reserved limits `max_content_operators` and `max_xobject_depth`; [0018](../../decisions/0018-test-strategy.md) fuzz target `content` |
 | Branch | `feat/b9a-lamina-content` |
-| PR title | `feat(content): ADR 0023 and a read-only content-stream interpreter` |
+| PR title | `feat(content): ADR 0023 and a read-only content-stream interpreter (B9a)` |
 | Size | L (≈ 900–1,300 lines incl. ADR) |
-| PR | — |
+| PR | [#39](https://github.com/laudebugs/lamina/pull/39) |
 
 ## Goal
 
@@ -48,22 +48,24 @@ Read what is drawn on a page. A tolerant tokenizer and a read-only interpreter w
 
 ## Tasks
 
-- [ ] Load `/rust-best-practices`; read 03 §2 and 02; ISO 32000-2 Annex A
-- [ ] Write `docs/decisions/0023-content-stream-reading.md`; index; add to architecture §3 table (row for 0023); move ADR 0003's reserved limits to "used"
-- [ ] Create `crates/lamina-content` (core) with `lexer.rs`, `operator.rs`, `state.rs`, `interp.rs`, `visitor.rs`, `resources.rs`
-- [ ] `Page::content_iter()` / `interpret(&Page, &mut impl Visitor)` entry on top of `lamina-model`
-- [ ] Limits wiring (`max_content_operators`, `max_xobject_depth`, `max_nesting_depth` for the q-stack) with paired tests
-- [ ] `fuzz/fuzz_targets/content.rs` + seeds from corpus pages
-- [ ] Tests below
+- [x] Load `/rust-best-practices`; read 03 §2 and 02; ISO 32000-2 Annex A
+- [x] Write `docs/decisions/0023-content-stream-reading.md`; index; add to architecture §3 table (row for 0023); move ADR 0003's reserved limits to "used"
+- [x] Create `crates/lamina-content` (core) with `lexer.rs`, `operator.rs`, `state.rs`, `interp.rs`, `visitor.rs`, `resources.rs`
+- [x] `Page::content_iter()` / `interpret(&Page, &mut impl Visitor)` entry on top of `lamina-model` (deviation: free functions `interpret_page(&doc, &page, &mut visitor)` and `interpret_content(&doc, &bytes, resources, &mut visitor)`, plus `ContentIter::new(&doc.page_content(page.cos())?)`; a method on `lamina_model::Page` would make `lamina-model` depend on this crate)
+- [x] Limits wiring (`max_content_operators`, `max_xobject_depth`, `max_nesting_depth` for the q-stack) with paired tests
+- [x] `fuzz/fuzz_targets/content.rs` + seeds from corpus pages
+- [x] Tests below
 
 ## Acceptance criteria
 
-- [ ] Every operator in Annex A parses with correct operand arity; unknown/bad ones warn and continue
-- [ ] Interpreting every page of `fixtures/corpus` succeeds or fails with a coded error; operator counts per page match a pdf.js `getOperatorList` count within documented differences (job added to the full lane from [X4](../done/X4-full-lane-gate.md), green on this PR)
-- [ ] Nested Form XObjects at depth 32 succeed; depth 33 fails with `LimitExceeded { max_xobject_depth }`; a self-referencing XObject reports `xobject-cycle`
-- [ ] CTM and text matrix after each operator match hand-computed values in unit tests (03 §2.6 formulas)
-- [ ] Fuzz target `content` runs 10 min locally (`cargo xtask fuzz content --time 600`) without a panic; summary in the PR
-- [ ] ADR 0023 Accepted
+- [x] Every operator in Annex A parses with correct operand arity; unknown/bad ones warn and continue
+- [x] Interpreting every page of `fixtures/corpus` succeeds or fails with a coded error; operator counts per page match a pdf.js `getOperatorList` count within documented differences (job added to the full lane from [X4](./X4-full-lane-gate.md), green on this PR). Deviation: no separate full-lane job (X3a owns `.github/workflows/full.yml` right now). pdf.js runs offline (`tools/corpus-facts/pdfjs-operators.mjs`, pinned pdfjs-dist 6.4.299) into `fixtures/corpus/pdfjs-operators.json`, and `crates/lamina-content/tests/corpus.rs` compares every page of `corpus/`, `golden/` and the new `fixtures/content/operators.pdf` exactly, after the mapping in ADR 0023 §6; it is part of `cargo xtask check`, which every lane runs. `reportlab.pdf` (ASCII85) is excused in `fixtures/corpus/pdfjs-exceptions.toml`
+- [x] Nested Form XObjects at depth 32 succeed; depth 33 fails with `LimitExceeded { max_xobject_depth }`; a self-referencing XObject reports `xobject-cycle`
+- [x] CTM and text matrix after each operator match hand-computed values in unit tests (03 §2.6 formulas)
+- [x] Fuzz target `content` runs 10 min locally (`cargo xtask fuzz content --time 600`) without a panic; summary in the PR (2026-10-29, macOS arm64: 187,564 runs in 601 s from 20 seeds, coverage 3,942 → 6,094 edges, corpus 2,780 inputs, peak RSS 468 MB, no crash, no timeout)
+- [x] ADR 0023 Accepted
+
+Other deviations: four warning codes beyond the six listed (`content-unbalanced-marked`, `content-syntax`, `content-resource-missing`, `content-path-unpainted`, the last from review round 1), all `lamina_cos::Warning` variants so they reach the document's list and strict mode (ADR 0023 §5). `max_decoded_total` also bounds the bytes interpreted (forms counted each time they are drawn), next to the operator fuel (ADR 0023 §4). `clippy.toml` gained the spec names `XObject`, `ExtGState`, `DeviceGray`/`RGB`/`CMYK`/`N` and `ICCBased` as doc idents.
 
 ## Post-merge checks
 
@@ -76,8 +78,8 @@ Read what is drawn on a page. A tolerant tokenizer and a read-only interpreter w
 
 ## Docs to update
 
-- [ ] [pdf-library §10 B9](../../plans/pdf-library.md#10-to-dos): tick ADR 0023 and "Create `crates/lamina-content`"
-- [ ] `docs/decisions/README.md`, [architecture §3](../../plans/architecture.md#3-decisions-to-record-adrs) (0023 row), ADR 0003 §3 (reserved → used), `CLAUDE.md` layout
+- [x] [pdf-library §10 B9](../../plans/pdf-library.md#10-to-dos): tick ADR 0023 and "Create `crates/lamina-content`"
+- [x] `docs/decisions/README.md`, [architecture §3](../../plans/architecture.md#3-decisions-to-record-adrs) (0023 row), ADR 0003 §3 (reserved → used), `CLAUDE.md` layout
 
 ## Risks and open questions
 
@@ -86,8 +88,8 @@ Read what is drawn on a page. A tolerant tokenizer and a read-only interpreter w
 
 ## Definition of done
 
-- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
-- [ ] Work PR opened from a fresh worktree; **PR** field filled in
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
-- [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [x] Work PR opened from a fresh worktree; **PR** field filled in
+- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings): run by the maintainer after the PR opened
+- [x] CI green
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated

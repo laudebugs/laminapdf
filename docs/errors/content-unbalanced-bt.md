@@ -1,0 +1,26 @@
+# `content-unbalanced-bt`
+
+- Type: warning
+- Kind: `input` (the input is malformed beyond what tolerance repairs)
+
+## What happened
+
+A `BT` inside a text object, an `ET` outside one, a text operator outside one, or a content stream that ended inside one (ADR 0023).
+
+## Why
+
+A producer bug, or damaged content.
+
+## How to fix
+
+Nothing to do; text operators were handled tolerantly.
+
+## Example
+
+To be added ([L1b](../todos/ready/L1b-error-contract-codegen.md)).
+
+## Data fields
+
+- `offset`: the operator's byte offset, or the end of the content.
+
+The `location` is `object` (the page for page content, the Form XObject for a form) with `streamOffset` in its decoded content; none for content interpreted on its own or a direct page.

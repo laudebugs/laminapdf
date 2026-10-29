@@ -7,7 +7,7 @@
 | Plan | [pdf-library §7 B1](../../plans/pdf-library.md#b1-decisions-and-spike), [architecture §4](../../plans/architecture.md#4-spikes-to-close-open-questions) |
 | Round / milestone | Round B (library) — M1 |
 | Depends on | [A3](./A3-port-spike-core.md) |
-| Blocks | [B4a](../ongoing/B4a-font-loading-and-subsetting.md), [B5a](../ready/B5a-lamina-build-core.md) |
+| Blocks | [B4a](./B4a-font-loading-and-subsetting.md), [B5a](../ready/B5a-lamina-build-core.md) |
 | ADRs | Settles [0005 §6](../../decisions/0005-document-model.md#6-generation-strategy--option-b-recommended-by-the-krilla-fit-spike-accepted-when-its-pr-merges) (Option B) |
 | Branch | `spike/krilla-fit` |
 | PR title | `spike(krilla-fit): can krilla generate into lamina's object graph? (Round B1)` |
@@ -32,7 +32,7 @@ Decide the generation strategy with measurements: depend on krilla, or build `la
 
 **Out of scope**
 
-- Product code: [B4a](../ongoing/B4a-font-loading-and-subsetting.md)–[B5c](../ready/B5c-lamina-facade-and-examples.md).
+- Product code: [B4a](../done/B4a-font-loading-and-subsetting.md)–[B5c](../ready/B5c-lamina-facade-and-examples.md).
 
 ## Tasks
 
