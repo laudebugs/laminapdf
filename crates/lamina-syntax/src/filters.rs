@@ -79,8 +79,9 @@ pub fn flate_decode(data: &[u8], limits: &Limits, budget: &mut DecodeBudget) -> 
 /// without a filter is returned as is and costs no budget.
 ///
 /// # Errors
-/// [`Error::UnsupportedFilter`] for anything but Flate (and `/Crypt`, a no-op here: the
-/// reader decrypts when it loads the stream), [`Error::LimitExceeded`] for a chain longer than
+/// [`Error::UnsupportedFilter`] for anything but Flate (including `/Crypt`: decryption needs
+/// the file key, so the reader decrypts the stream when it loads it and removes `/Crypt` from
+/// the chain before calling this), [`Error::LimitExceeded`] for a chain longer than
 /// [`Limits::max_filter_chain`] or output over a decode limit, plus any decode error.
 pub fn decode(dict: &Dict, data: &[u8], limits: &Limits, budget: &mut DecodeBudget) -> Result<Decoded> {
     let filters: Vec<&[u8]> = match dict.get("Filter") {
@@ -122,10 +123,6 @@ pub fn decode(dict: &Dict, data: &[u8], limits: &Limits, budget: &mut DecodeBudg
                 flate_truncated |= raw.flate_truncated;
                 apply_predictor(raw.data, parms)?
             }
-            // ISO 32000-2 §7.4.10: `/Crypt` selects a crypt filter for the stream. Decryption
-            // is the reader's job (it needs the file key and the object number) and happens
-            // when the stream is loaded, so by the time the chain runs this stage is a no-op.
-            b"Crypt" => input.to_vec(),
             other => return Err(Error::UnsupportedFilter(String::from_utf8_lossy(other).into_owned())),
         };
         current = Some(decoded);
@@ -446,6 +443,17 @@ mod tests {
         assert_eq!(
             decode_with(&dict, b"", 10),
             Err(Error::UnsupportedFilter("DCTDecode".into()))
+        );
+    }
+
+    #[test]
+    fn decode_does_not_pass_crypt_through() {
+        // Undecrypted data must never be treated as plaintext: the reader strips `/Crypt`
+        // only after decrypting.
+        let dict: Dict = [("Filter", Object::name("Crypt"))].into_iter().collect();
+        assert_eq!(
+            decode_with(&dict, b"x", 10),
+            Err(Error::UnsupportedFilter("Crypt".into()))
         );
     }
 }

@@ -8,13 +8,12 @@ use super::{StandardSecurity, aes, rc4};
 /// (decryption) instead of 0 → 19.
 fn rc4_passes(key: &[u8], data: &[u8], rev: bool) -> Vec<u8> {
     let mut out = data.to_vec();
-    let rounds: Vec<u8> = if rev {
-        (0..=19).rev().collect()
-    } else {
-        (0..=19).collect()
-    };
-    for i in rounds {
-        let k: Vec<u8> = key.iter().map(|b| b ^ i).collect();
+    let mut k = key.to_vec();
+    for step in 0..=19u8 {
+        let i = if rev { 19 - step } else { step };
+        for (dst, src) in k.iter_mut().zip(key) {
+            *dst = src ^ i;
+        }
         out = rc4::apply(&k, &out);
     }
     out

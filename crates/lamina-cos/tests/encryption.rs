@@ -148,6 +148,12 @@ fn check_all(password: impl Fn(&Value) -> Option<String>, matched: PasswordKind)
                         .into_iter()
                         .map(|m| format!("{name}: {m}")),
                 );
+                // A password that is both is the owner's (ISO 32000-2 Algorithm 2.A).
+                let matched = if facts["user_password"] == facts["owner_password"] {
+                    PasswordKind::Owner
+                } else {
+                    matched
+                };
                 if doc.matched_password() != Some(matched) {
                     failures.push(format!("{name}: matched {:?}", doc.matched_password()));
                 }
@@ -261,7 +267,7 @@ mod opening {
             OpenOptions::default().with_password(b"user-pw".to_vec()),
         )
         .unwrap();
-        assert!(doc.is_authenticated());
+        assert!(doc.is_encrypted());
     }
 
     #[test]
@@ -274,7 +280,7 @@ mod opening {
     fn unencrypted_document_reports_no_encryption() {
         let doc = open(&fixture("encrypted/source.pdf")).unwrap();
         assert_eq!(
-            (doc.is_authenticated(), doc.encryption(), doc.permissions()),
+            (doc.is_encrypted(), doc.encryption(), doc.permissions()),
             (false, None, None)
         );
     }
@@ -324,6 +330,33 @@ mod summary {
     }
 
     #[test]
+    fn v4_key_length_comes_from_the_crypt_filter_length() {
+        let aes = open_with(&encrypted("v4-aes-128-cf-length.pdf"), with_password("user-pw")).unwrap();
+        let rc4 = open_with(&encrypted("v4-rc4-40-cf-length.pdf"), with_password("user-pw")).unwrap();
+        let bits = |d: &Document| d.encryption().map(|e| (e.key_bits, e.stream_cipher));
+        assert_eq!(
+            (bits(&aes), bits(&rc4)),
+            (Some((128, Cipher::Aes128)), Some((40, Cipher::Rc4)))
+        );
+    }
+
+    #[test]
+    fn r6_password_that_is_both_is_the_owner_password() {
+        let doc = open_with(&encrypted("r6-aes-256-same.pdf"), with_password("same-pw")).unwrap();
+        assert_eq!(doc.matched_password(), Some(PasswordKind::Owner));
+    }
+
+    #[test]
+    fn crypt_filter_is_not_passed_through_in_an_unencrypted_document() {
+        let bytes = b"%PDF-1.7\n1 0 obj << /Type /Catalog >> endobj\n2 0 obj << /Length 1 /Filter /Crypt >>\nstream\nx\nendstream\nendobj\ntrailer << /Root 1 0 R >>\n";
+        let doc = open(bytes).unwrap();
+        let Object::Stream(s) = &*doc.object(2).unwrap() else {
+            panic!("not a stream")
+        };
+        assert_eq!(doc.decode_stream(s).err().map(|e| e.code()), Some("unsupported-filter"));
+    }
+
+    #[test]
     fn identity_stmf_file_uses_identity_streams_and_aes_strings() {
         let doc = open_with(&encrypted("identity-stmf.pdf"), with_password("user-pw")).unwrap();
         let enc = doc.encryption().unwrap();
@@ -357,12 +390,14 @@ mod summary {
             .unwrap();
             let p = doc.permissions().unwrap();
             let raw = i64::from(p.raw().cast_signed());
-            if raw != facts["P"].as_i64().unwrap() || permission_map(p) != facts["permissions"] {
-                failures.push(format!(
-                    "{name}: ours P {raw} {} vs {}",
-                    permission_map(p),
-                    facts["permissions"]
-                ));
+            // qpdf's "modify forms" is bit 9 alone from R3; ISO 32000-1 Table 22 also lets bit 6
+            // fill fields ("bit 9 … even if bit 6 is clear"), which qpdf reports as "modify
+            // annotations".
+            let mut expected = facts["permissions"].clone();
+            let fill = expected["fill_forms"].as_bool().unwrap() || expected["annotate"].as_bool().unwrap();
+            expected["fill_forms"] = Value::Bool(fill);
+            if raw != facts["P"].as_i64().unwrap() || permission_map(p) != expected {
+                failures.push(format!("{name}: ours P {raw} {} vs {expected}", permission_map(p)));
             }
         }
         assert!(failures.is_empty(), "{}", failures.join("\n"));
@@ -529,9 +564,95 @@ mod tampering {
     }
 
     #[test]
+    fn encrypt_null_counts_as_absent() {
+        let bytes = b"%PDF-1.7\n1 0 obj << /Type /Catalog >> endobj\ntrailer << /Root 1 0 R /Encrypt null >>\n";
+        let doc = open(bytes).unwrap();
+        assert_eq!((doc.is_encrypted(), doc.encryption()), (false, None));
+    }
+
+    #[test]
+    fn encrypt_referring_to_a_missing_object_counts_as_absent() {
+        let bytes = b"%PDF-1.7\n1 0 obj << /Type /Catalog >> endobj\ntrailer << /Root 1 0 R /Encrypt 9 0 R >>\n";
+        let doc = open(bytes).unwrap();
+        assert!(!doc.is_encrypted());
+    }
+
+    #[test]
     fn encrypt_that_is_not_a_dictionary_is_invalid_structure() {
         let bytes = b"%PDF-1.7\n1 0 obj << /Type /Catalog >> endobj\ntrailer << /Root 1 0 R /Encrypt 42 >>\n";
         assert_eq!(open(bytes).err().map(|e| e.code()), Some("invalid-structure"));
+    }
+
+    /// `bytes` with `startxref` pointing nowhere, so the xref has to be rebuilt by scanning.
+    fn break_startxref(bytes: &[u8]) -> Vec<u8> {
+        let at = bytes.windows(9).rposition(|w| w == b"startxref").unwrap();
+        let mut broken = bytes[..at].to_vec();
+        broken.extend_from_slice(b"startxref\n999999\n%%EOF\n");
+        broken
+    }
+
+    #[test]
+    fn repair_finds_a_catalog_inside_an_encrypted_object_stream() {
+        let bytes = break_startxref(&encrypted("objstm-catalog-aes-128.pdf"));
+        let doc = open_with(&bytes, with_password("user-pw")).unwrap();
+        assert_eq!(
+            (
+                doc.was_repaired(),
+                doc.page_count().unwrap(),
+                info(&doc)["Title"].clone()
+            ),
+            (true, 2, "Secret document".into())
+        );
+    }
+
+    #[test]
+    fn repair_reports_malformed_aes_in_an_object_stream() {
+        let bytes = break_startxref(&encrypted("objstm-bad-padding-aes-128.pdf"));
+        let doc = open_with(&bytes, with_password("user-pw")).unwrap();
+        assert_eq!(
+            doc.warnings(),
+            [Warning::XrefRepaired, Warning::AesPaddingInvalid { object: 16 }]
+        );
+    }
+
+    #[test]
+    fn malformed_aes_in_an_object_stream_is_reported_when_loaded() {
+        let doc = open_with(&encrypted("objstm-bad-padding-aes-128.pdf"), with_password("user-pw")).unwrap();
+        assert_eq!(doc.warnings(), [Warning::AesPaddingInvalid { object: 16 }]);
+    }
+
+    #[test]
+    fn damaged_encrypt_dictionary_on_the_stored_xref_falls_back_to_repair() {
+        // The stored xref points at an /Encrypt object that is an array (same length, so every
+        // entry stays valid); a later, intact copy of it is what repair finds.
+        let bytes = encrypted("r3-rc4-128-empty.pdf");
+        let doc = open(&bytes).unwrap();
+        let num = doc.trailer().get("Encrypt").unwrap().as_ref().unwrap().num;
+        let header = format!("\n{num} 0 obj\n");
+        let start = bytes
+            .windows(header.len())
+            .position(|w| w == header.as_bytes())
+            .unwrap()
+            + 1;
+        let end = start + bytes[start..].windows(6).position(|w| w == b"endobj").unwrap() + 6;
+        let original = bytes[start..end].to_vec();
+        let mut damaged = bytes;
+        let body = &mut damaged[start..end];
+        let open_at = body.windows(2).position(|w| w == b"<<").unwrap();
+        body[open_at..open_at + 2].copy_from_slice(b"[ ");
+        let close_at = body.windows(2).rposition(|w| w == b">>").unwrap();
+        body[close_at..close_at + 2].copy_from_slice(b" ]");
+        let at = damaged.windows(9).rposition(|w| w == b"startxref").unwrap();
+        let mut appended = damaged[..at].to_vec();
+        appended.extend_from_slice(b"\n");
+        appended.extend_from_slice(&original);
+        appended.extend_from_slice(b"\n");
+        appended.extend_from_slice(&damaged[at..]);
+        let doc = open(&appended).unwrap();
+        assert_eq!(
+            (doc.was_repaired(), info(&doc)["Title"].clone()),
+            (true, "Secret document".into())
+        );
     }
 
     #[test]

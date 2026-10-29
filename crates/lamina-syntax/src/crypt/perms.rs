@@ -15,7 +15,7 @@ use super::aes;
 /// use lamina_syntax::crypt::Permissions;
 ///
 /// let p = Permissions::new(-3116, 4); // print, copy, form filling, accessibility; reserved bits set
-/// assert!(p.print_low_res() && p.extract() && p.fill_forms());
+/// assert!(p.print_low_res() && p.extract() && p.fill_forms() && p.accessibility());
 /// assert!(!p.modify() && !p.print_high_res());
 /// ```
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -107,10 +107,12 @@ impl Permissions {
         self.has(Self::ANNOTATE)
     }
 
-    /// Bit 9: filling existing form fields is allowed. Under R2, bit 6.
+    /// Bit 6 or (R3+) bit 9: filling existing form fields is allowed. Table 22: bit 6 allows
+    /// filling fields, and bit 9 allows it "even if bit 6 is clear". (qpdf's "modify forms"
+    /// reports bit 9 alone for R3+.)
     #[must_use]
     pub const fn fill_forms(&self) -> bool {
-        self.has(if self.r2() { Self::ANNOTATE } else { Self::FILL_FORMS })
+        self.has(Self::ANNOTATE) || (!self.r2() && self.has(Self::FILL_FORMS))
     }
 
     /// Bit 10: extraction for accessibility is allowed. Under R2, bit 5. (PDF 2.0 deprecates
@@ -120,7 +122,8 @@ impl Permissions {
         self.has(if self.r2() { Self::EXTRACT } else { Self::ACCESSIBILITY })
     }
 
-    /// Bit 11: assembling the document is allowed. Under R2, bit 4.
+    /// Bit 11 (R3+): assembling the document is allowed, "even if bit 4 is clear" (Table 22); bit
+    /// 4 itself excludes assembly from R3 on. Under R2 assembly falls under bit 4.
     #[must_use]
     pub const fn assemble(&self) -> bool {
         self.has(if self.r2() { Self::MODIFY } else { Self::ASSEMBLE })
@@ -162,6 +165,23 @@ mod tests {
     #[test]
     fn fill_forms_under_r2_follows_bit_6() {
         assert!(Permissions::new(32, 2).fill_forms());
+    }
+
+    #[test]
+    fn fill_forms_from_r3_follows_bit_6_or_bit_9() {
+        assert_eq!(
+            (
+                Permissions::new(32, 3).fill_forms(),
+                Permissions::new(256, 3).fill_forms(),
+                Permissions::new(0, 3).fill_forms()
+            ),
+            (true, true, false)
+        );
+    }
+
+    #[test]
+    fn assemble_from_r3_ignores_bit_4() {
+        assert!(!Permissions::new(8, 3).assemble());
     }
 
     #[test]

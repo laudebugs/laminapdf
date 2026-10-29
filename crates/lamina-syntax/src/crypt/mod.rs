@@ -166,8 +166,8 @@ fn candidates(password: &[u8], revision: u8) -> Vec<Vec<u8>> {
         let prepared = text
             .and_then(|t| stringprep::saslprep(t).ok())
             .map_or_else(|| password.to_vec(), |p| p.as_bytes().to_vec());
-        let mut out = vec![key_prefix(&prepared, 127)];
-        let raw = key_prefix(password, 127);
+        let mut out = vec![key::prefix(&prepared, 127).to_vec()];
+        let raw = key::prefix(password, 127).to_vec();
         if !out.contains(&raw) {
             out.push(raw);
         }
@@ -186,11 +186,8 @@ fn candidates(password: &[u8], revision: u8) -> Vec<Vec<u8>> {
     out
 }
 
-fn key_prefix(bytes: &[u8], n: usize) -> Vec<u8> {
-    bytes.get(..n).unwrap_or(bytes).to_vec()
-}
-
-/// Authenticates `password` as the user password, then as the owner password (ISO 32000-1
+/// Authenticates `password` as the user then the owner password for R2–R4, owner first for R5/R6
+/// (ISO 32000-1
 /// Algorithms 6–7 for R2–R4; ISO 32000-2 Algorithms 11–12 with 2.A/2.B for R6; the single
 /// SHA-256 of Adobe Extension Level 3 for R5, which was never standardised and is read only).
 ///
@@ -218,14 +215,23 @@ pub fn authenticate(sec: &StandardSecurity<'_>, password: &[u8]) -> Option<Authe
         }
     };
     let candidates = candidates(password, sec.revision);
-    let found = candidates
-        .iter()
-        .find_map(|pw| user(pw).map(|k| (k, PasswordKind::User)))
-        .or_else(|| {
-            candidates
-                .iter()
-                .find_map(|pw| owner(pw).map(|k| (k, PasswordKind::Owner)))
-        });
+    let as_user = || {
+        candidates
+            .iter()
+            .find_map(|pw| user(pw).map(|k| (k, PasswordKind::User)))
+    };
+    let as_owner = || {
+        candidates
+            .iter()
+            .find_map(|pw| owner(pw).map(|k| (k, PasswordKind::Owner)))
+    };
+    // ISO 32000-2 Algorithm 2.A checks the owner password first, so a password that is both is
+    // reported as the owner's; R2–R4 keep the user-first order of ISO 32000-1 §7.6.3.4.
+    let found = if modern {
+        as_owner().or_else(as_user)
+    } else {
+        as_user().or_else(as_owner)
+    };
     let (key, matched) = found?;
     let perms_valid = (sec.revision >= 5)
         .then_some(sec.perms)

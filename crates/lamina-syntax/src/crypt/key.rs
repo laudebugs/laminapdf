@@ -42,7 +42,7 @@ pub(crate) fn pad_password(password: &[u8]) -> [u8; 32] {
 }
 
 /// The first `n` bytes of `bytes` (all of them if shorter).
-fn prefix(bytes: &[u8], n: usize) -> &[u8] {
+pub(crate) fn prefix(bytes: &[u8], n: usize) -> &[u8] {
     bytes.get(..n).unwrap_or(bytes)
 }
 
@@ -77,12 +77,17 @@ pub(crate) fn owner_key_r2_r4(sec: &StandardSecurity<'_>, owner_password: &[u8])
 }
 
 /// Algorithm 1: the key for object `num gen` from the R2–R4 file key (`aes` adds `sAlT`).
+///
+/// RC4 uses the first `min(n + 5, 16)` bytes of the hash. AES-128 always uses all 16: it has no
+/// shorter key, so a file key under 11 bytes (an AESV2 filter with a short `/Length`) would
+/// otherwise make every object undecryptable; pdf.js and qpdf use the full hash too.
 pub(crate) fn object_key(file_key: &[u8], num: u32, gen_nr: u16, aes: bool) -> Vec<u8> {
     let num = num.to_le_bytes();
     let gen_nr = gen_nr.to_le_bytes();
     let salt: &[u8] = if aes { b"sAlT" } else { &[] };
     let h = md5(&[file_key, prefix(&num, 3), &gen_nr, salt]);
-    prefix(&h, (file_key.len() + 5).min(16)).to_vec()
+    let len = if aes { 16 } else { (file_key.len() + 5).min(16) };
+    prefix(&h, len).to_vec()
 }
 
 /// The R5 password hash (Adobe Extension Level 3): one SHA-256.
@@ -95,38 +100,51 @@ pub(crate) fn hash_r5(password: &[u8], salt: &[u8], udata: &[u8]) -> [u8; 32] {
 ///
 /// Terminates: from round 287 on, `round - 32 ≥ 255` holds for every last byte.
 pub(crate) fn hash_r6(password: &[u8], salt: &[u8], udata: &[u8]) -> [u8; 32] {
-    let mut k: Vec<u8> = sha256(&[password, salt, udata]).to_vec();
+    // `k` holds the last hash (32, 48 or 64 bytes); `buf` is K1, then E in place. Both are
+    // reused across rounds.
+    let mut k = [0u8; 64];
+    let mut k_len = 32;
+    k[..32].copy_from_slice(&sha256(&[password, salt, udata]));
+    let mut buf: Vec<u8> = Vec::with_capacity(64 * (password.len() + 64 + udata.len()));
     let mut round: usize = 0;
     loop {
         round += 1;
-        let unit: Vec<u8> = [password, &k, udata].concat();
-        let k1 = unit.repeat(64);
-        let (Some(key), Some(iv)) = (k.get(..16), k.get(16..32)) else {
-            // `k` is always at least 32 bytes (SHA-256/384/512 output).
+        let current = prefix(&k, k_len);
+        buf.clear();
+        for _ in 0..64 {
+            buf.extend_from_slice(password);
+            buf.extend_from_slice(current);
+            buf.extend_from_slice(udata);
+        }
+        let (key, iv) = k.split_at(16);
+        let iv: [u8; 16] = prefix(iv, 16).try_into().unwrap_or_default();
+        // 64 repetitions make `buf` a whole number of blocks, and `key` is 16 bytes.
+        if aes::cbc_encrypt_in_place(key, &iv, &mut buf).is_none() {
             break;
-        };
-        let iv: [u8; 16] = iv.try_into().unwrap_or_default();
-        // 64 repetitions make `k1` a whole number of blocks, and `key` is 16 bytes.
-        let Some(e) = aes::cbc_encrypt_raw(key, &iv, &k1) else {
-            break;
-        };
+        }
         // The first 16 bytes as a big-endian number mod 3 equals their byte sum mod 3 (256 ≡ 1).
-        let selector = e.iter().take(16).map(|b| u32::from(*b)).sum::<u32>() % 3;
-        k = match selector {
-            0 => Sha256::digest(&e).to_vec(),
-            1 => Sha384::digest(&e).to_vec(),
-            _ => Sha512::digest(&e).to_vec(),
+        let selector = buf.iter().take(16).map(|b| u32::from(*b)).sum::<u32>() % 3;
+        k_len = match selector {
+            0 => copy_into(&mut k, &Sha256::digest(&buf)),
+            1 => copy_into(&mut k, &Sha384::digest(&buf)),
+            _ => copy_into(&mut k, &Sha512::digest(&buf)),
         };
-        let last = usize::from(e.last().copied().unwrap_or_default());
+        let last = usize::from(buf.last().copied().unwrap_or_default());
         if round >= 64 && last + 32 <= round {
             break;
         }
     }
     let mut out = [0u8; 32];
-    for (dst, src) in out.iter_mut().zip(&k) {
-        *dst = *src;
-    }
+    out.copy_from_slice(prefix(&k, 32));
     out
+}
+
+/// Copies `src` to the front of `dst` and returns its length.
+fn copy_into(dst: &mut [u8; 64], src: &[u8]) -> usize {
+    for (d, s) in dst.iter_mut().zip(src) {
+        *d = *s;
+    }
+    src.len().min(64)
 }
 
 #[cfg(test)]

@@ -71,7 +71,12 @@ python3 -m venv .venv && .venv/bin/pip install pypdf==6.21.3 cryptography==50.0.
 | `r6-aes-256-{empty,user}.pdf` | `qpdf --encrypt … --bits=256 -- --object-streams=generate` | V5/R6 Algorithm 2.B, `/Perms`, a UTF-8 user password (`Pässwört-6`, SASLprep), object streams |
 | `identity-stmf.pdf` | `make.py` (AES-128 via pypdf's Algorithms 2/3/5 and `cryptography`) | `/StmF /Identity` with AESV2 strings; one stream selecting `/StdCF` through `/Filter [/Crypt …]` |
 | `crypt-filter-identity.pdf` | `make.py`, as above | `/StmF /StdCF`; one stream left plaintext with `/Crypt` `/Name /Identity` |
+| `r6-aes-256-same.pdf` | `qpdf --encrypt --user-password=same-pw --owner-password=same-pw --bits=256 --` | A password that is both user and owner is reported as the owner's (ISO 32000-2 Algorithm 2.A) |
+| `v4-aes-128-cf-length.pdf` | `make.py` | V4 AESV2 with top-level `/Length 40` and `/CF/StdCF/Length 16`: the key length comes from the crypt filter (qpdf 12 reads the top-level one and can't open it) |
+| `v4-rc4-40-cf-length.pdf` | `make.py` | V4 `/V2` with no top-level `/Length` and `/CF/StdCF/Length 5` (bytes): a 40-bit key |
+| `objstm-catalog-aes-128.pdf` | `make.py` | The catalog inside an encrypted object stream, with an xref stream: repair has to decrypt the object stream to find `/Root` |
+| `objstm-bad-padding-aes-128.pdf` | `make.py` | Damaged on purpose: the object stream's AES padding is invalid (`aes-padding-invalid`); listed under `damaged` in `passwords.json`, not in `expected.json` |
 | `passwords.json` | `make.py` | Each file's user and owner password (read by `facts.py`) |
-| `expected.json` | `facts.py`: pypdf 6.21.3 (page count, outline titles, Info) and qpdf (`--show-encryption` permissions, `/P`, `/R`; content and XMP hashes over a `qpdf --decrypt` copy, since pypdf can't decode a named `/Crypt` filter) | Facts checked by `tests/encryption.rs` |
+| `expected.json` | `facts.py`: pypdf 6.21.3 (page count, outline titles, Info, `/V`, key length from `/Length` or `/CF`) and qpdf (`--show-encryption` permissions, `/P`, `/R`; content and XMP hashes over a `qpdf --decrypt` copy, since pypdf can't decode a named `/Crypt` filter). For the two `/CF`-length files qpdf can't open, pypdf alone, with `/P` read by qpdf's permission rules | Facts checked by `tests/encryption.rs` |
 
 `-empty` files have an empty user password and owner password `owner-pw`; `-user` files have user password `user-pw` (R5/R6: `Pässwört-6`), owner password `owner-pw` and some permissions cleared.

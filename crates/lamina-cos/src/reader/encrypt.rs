@@ -47,7 +47,7 @@ pub(crate) struct Security {
     encrypt_object: Option<u32>,
 }
 
-fn invalid(message: &'static str) -> Error {
+pub(crate) fn invalid(message: &'static str) -> Error {
     Error::InvalidStructure {
         kind: "encryption dictionary",
         message,
@@ -131,6 +131,44 @@ fn crypt_filters(encrypt: &Dict, version: i64) -> Result<(NamedFilters, Cipher, 
     Ok((filters, string, stream, embedded))
 }
 
+/// A key length in bytes from a `/Length` value: bits (40–128, a multiple of 8; Table 20), or
+/// bytes for the few writers (and the standard handler's crypt filters, Table 25 in practice)
+/// that store bytes.
+fn length_in_bytes(length: i64) -> Option<usize> {
+    match length {
+        bits @ 40..=128 if bits % 8 == 0 => usize::try_from(bits / 8).ok(),
+        bytes @ 5..=16 => usize::try_from(bytes).ok(),
+        _ => None,
+    }
+}
+
+/// The R2–R4 file key length in bytes. V1: 40 bits. V2/V3: `/Length`, default 40 bits
+/// (Table 20). V4: `/Length` of the crypt filter streams use (else strings use) in `/CF`,
+/// default 128 bits, as pdf.js and pypdf read it (Table 25; qpdf 12 reads the top-level
+/// `/Length` instead, which Table 20 defines for V2/V3 only, and is used here as a fallback).
+fn key_length(encrypt: &Dict, version: i64) -> usize {
+    let length = if version >= 4 {
+        let cf = match encrypt.get("CF") {
+            Some(Object::Dict(cf)) => Some(cf),
+            _ => None,
+        };
+        ["StmF", "StrF"]
+            .iter()
+            .filter_map(|key| encrypt.get_name(key))
+            .find(|name| *name != b"Identity")
+            .and_then(|name| cf?.iter().find(|(k, _)| k.as_bytes() == name))
+            .and_then(|(_, filter)| filter.as_dict()?.get_int("Length"))
+            .or_else(|| encrypt.get_int("Length"))
+    } else if version >= 2 {
+        encrypt.get_int("Length")
+    } else {
+        None
+    };
+    length
+        .and_then(length_in_bytes)
+        .unwrap_or(if version >= 4 { 16 } else { 5 })
+}
+
 impl Security {
     /// Parses `encrypt` (references already resolved) and authenticates `password`, or the
     /// empty password when none is given (ISO 32000-2 §7.6.4.4).
@@ -150,17 +188,7 @@ impl Security {
         let (version, r) = handler_revision(encrypt)?;
         let modern = r >= 5;
 
-        let key_length = if modern {
-            32
-        } else {
-            match encrypt.get_int("Length") {
-                // In bits (Table 20); a few writers store bytes.
-                Some(bits @ 40..=128) if bits % 8 == 0 => usize::try_from(bits / 8).unwrap_or(16),
-                Some(bytes @ 5..=16) => usize::try_from(bytes).unwrap_or(16),
-                _ if version >= 4 => 16,
-                _ => 5,
-            }
-        };
+        let key_length = if modern { 32 } else { key_length(encrypt, version) };
         let need = if modern { 48 } else { 32 };
         let owner = string(encrypt, "O")
             .filter(|o| o.len() >= need)
@@ -358,9 +386,35 @@ fn is_signature(dict: &Dict) -> bool {
 }
 
 /// Decrypts the stream object `num gen` for repair, before the key's document exists: direct
-/// `/Crypt` parameters only.
-pub(crate) fn decrypt_for_repair(security: &Security, stream: &mut Object, num: u32, gen_nr: u16) {
-    security.decrypt_object(stream, num, gen_nr, &mut |_| None);
+/// `/Crypt` parameters only. Returns false when some AES data was malformed.
+pub(crate) fn decrypt_for_repair(security: &Security, stream: &mut Object, num: u32, gen_nr: u16) -> bool {
+    security.decrypt_object(stream, num, gen_nr, &mut |_| None)
+}
+
+/// Removes a leading `/Crypt` filter (and its `/DecodeParms` entry) from `params`, which holds a
+/// stream's resolved `/Filter` and `/DecodeParms`. Only for streams of an encrypted document,
+/// which the reader decrypted when it loaded them (ISO 32000-2 §7.4.10: `/Crypt` comes first).
+pub(crate) fn strip_crypt_filter(params: &mut Dict) {
+    let is_crypt = |o: &Object| matches!(o, Object::Name(n) if n.as_bytes() == b"Crypt");
+    match params.get_mut("Filter") {
+        Some(Object::Array(filters)) if filters.first().is_some_and(is_crypt) => {
+            filters.remove(0);
+            match params.get_mut("DecodeParms") {
+                Some(Object::Array(decode_parms)) if !decode_parms.is_empty() => {
+                    decode_parms.remove(0);
+                }
+                Some(Object::Dict(_)) => {
+                    params.remove("DecodeParms");
+                }
+                _ => {}
+            }
+        }
+        Some(filter) if is_crypt(filter) => {
+            params.remove("Filter");
+            params.remove("DecodeParms");
+        }
+        _ => {}
+    }
 }
 
 #[cfg(test)]
@@ -412,6 +466,55 @@ mod tests {
         assert_eq!(
             Security::unlock(&encrypt, None, b"", None).err().map(|e| e.code()),
             Some("invalid-structure")
+        );
+    }
+
+    #[test]
+    fn v4_key_length_comes_from_the_crypt_filter() {
+        let cf: Dict = [(
+            "StdCF",
+            Object::Dict(
+                [("CFM", Object::name("AESV2")), ("Length", 16.into())]
+                    .into_iter()
+                    .collect(),
+            ),
+        )]
+        .into_iter()
+        .collect();
+        let encrypt = dict(vec![
+            ("Length", 40.into()),
+            ("CF", cf.into()),
+            ("StmF", Object::name("StdCF")),
+        ]);
+        assert_eq!(key_length(&encrypt, 4), 16);
+    }
+
+    #[test]
+    fn v4_key_length_defaults_to_128_bits() {
+        assert_eq!(key_length(&Dict::new(), 4), 16);
+    }
+
+    #[test]
+    fn v2_key_length_defaults_to_40_bits() {
+        assert_eq!(key_length(&Dict::new(), 2), 5);
+    }
+
+    #[test]
+    fn strip_crypt_filter_removes_the_leading_crypt_stage() {
+        let mut params = dict(vec![
+            (
+                "Filter",
+                vec![Object::name("Crypt"), Object::name("FlateDecode")].into(),
+            ),
+            ("DecodeParms", vec![Object::Dict(Dict::new()), Object::Null].into()),
+        ]);
+        strip_crypt_filter(&mut params);
+        assert_eq!(
+            params,
+            dict(vec![
+                ("Filter", vec![Object::name("FlateDecode")].into()),
+                ("DecodeParms", vec![Object::Null].into()),
+            ])
         );
     }
 

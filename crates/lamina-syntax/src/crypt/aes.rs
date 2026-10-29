@@ -76,24 +76,30 @@ pub(crate) fn cbc_decrypt_raw(key: &[u8], iv: &[u8; BLOCK], data: &[u8]) -> Opti
     Some(out)
 }
 
-/// CBC-encrypts whole blocks (no padding); Algorithm 2.B only. `None` for a bad key length or
-/// data that is not a whole number of blocks.
-pub(crate) fn cbc_encrypt_raw(key: &[u8], iv: &[u8; BLOCK], data: &[u8]) -> Option<Vec<u8>> {
+/// CBC-encrypts `data` in place (no padding); Algorithm 2.B only. `None` (data untouched) for a
+/// bad key length or data that is not a whole number of blocks.
+pub(crate) fn cbc_encrypt_in_place(key: &[u8], iv: &[u8; BLOCK], data: &mut [u8]) -> Option<()> {
     let key = Key::new(key)?;
-    if !data.len().is_multiple_of(BLOCK) {
+    let (blocks, rest) = data.as_chunks_mut::<BLOCK>();
+    if !rest.is_empty() {
         return None;
     }
-    let mut out = Vec::with_capacity(data.len());
     let mut prev = *iv;
-    let (blocks, _) = data.as_chunks::<BLOCK>();
     for chunk in blocks {
-        let mut plain = *chunk;
-        xor_into(&mut plain, &prev);
-        let mut block = Block::from(plain);
+        xor_into(chunk, &prev);
+        let mut block = Block::from(*chunk);
         key.encrypt(&mut block);
         prev = block.into();
-        out.extend_from_slice(&prev);
+        *chunk = prev;
     }
+    Some(())
+}
+
+/// [`cbc_encrypt_in_place`] into a new buffer (tests build inputs with it).
+#[cfg(test)]
+pub(crate) fn cbc_encrypt_raw(key: &[u8], iv: &[u8; BLOCK], data: &[u8]) -> Option<Vec<u8>> {
+    let mut out = data.to_vec();
+    cbc_encrypt_in_place(key, iv, &mut out)?;
     Some(out)
 }
 
@@ -111,34 +117,38 @@ pub(crate) fn ecb_decrypt_block(key: &[u8], data: &[u8]) -> Option<[u8; BLOCK]> 
 /// The result of [`decrypt`]: the plaintext and whether the input was well-formed.
 pub(crate) struct Plain {
     pub(crate) data: Vec<u8>,
-    /// False when the data was not `IV ‖ whole blocks` (kept as it was) or its PKCS#5 padding
-    /// was invalid (decrypted, kept unstripped).
+    /// False when the data was shorter than an IV (kept as it was), ended in a partial block
+    /// (dropped), or had invalid PKCS#5 padding (decrypted, kept unstripped).
     pub(crate) valid: bool,
 }
 
-/// Decrypts `IV ‖ ciphertext`, stripping PKCS#5 padding. Tolerant (ADR 0003): empty input is
-/// empty plaintext; input that is not an IV plus at least one whole block is kept as it is, and
-/// a decrypted block with invalid padding is kept unstripped, both with `valid: false`.
+/// Decrypts `IV ‖ ciphertext`, stripping PKCS#5 padding. Tolerant (ADR 0003), like pdf.js:
+///
+/// * empty input, and input that is only the 16-byte IV, are empty plaintext;
+/// * input shorter than an IV is kept as it is (`valid: false`);
+/// * a trailing partial block is dropped and the whole blocks are decrypted (`valid: false`);
+/// * invalid padding is kept unstripped (`valid: false`).
 pub(crate) fn decrypt(key: &[u8], data: &[u8]) -> Plain {
-    if data.is_empty() {
+    let (Some(iv), Some(body)) = (data.get(..BLOCK), data.get(BLOCK..)) else {
+        return Plain {
+            data: data.to_vec(),
+            valid: data.is_empty(),
+        };
+    };
+    if body.is_empty() {
         return Plain {
             data: Vec::new(),
             valid: true,
         };
     }
-    let invalid = || Plain {
-        data: data.to_vec(),
-        valid: false,
-    };
-    let (Some(iv), Some(body)) = (data.get(..BLOCK), data.get(BLOCK..)) else {
-        return invalid();
-    };
-    if body.is_empty() {
-        return invalid();
-    }
+    let whole = body.len() - body.len() % BLOCK;
+    let partial = whole != body.len();
     let iv: [u8; BLOCK] = block_of(iv).into();
-    let Some(mut plain) = cbc_decrypt_raw(key, &iv, body) else {
-        return invalid();
+    let Some(mut plain) = body.get(..whole).and_then(|body| cbc_decrypt_raw(key, &iv, body)) else {
+        return Plain {
+            data: data.to_vec(),
+            valid: false,
+        };
     };
     let pad = plain.last().copied().map_or(0, usize::from);
     let padding_ok = (1..=BLOCK).contains(&pad)
@@ -152,7 +162,7 @@ pub(crate) fn decrypt(key: &[u8], data: &[u8]) -> Plain {
     }
     Plain {
         data: plain,
-        valid: padding_ok,
+        valid: padding_ok && !partial,
     }
 }
 
@@ -228,9 +238,24 @@ mod tests {
     }
 
     #[test]
-    fn decrypt_keeps_data_that_is_not_whole_blocks() {
-        let plain = decrypt(&[7u8; 16], b"plaintext (PDFex)");
-        assert_eq!((plain.data.as_slice(), plain.valid), (&b"plaintext (PDFex)"[..], false));
+    fn decrypt_keeps_data_shorter_than_an_iv() {
+        let plain = decrypt(&[7u8; 16], b"plaintext");
+        assert_eq!((plain.data.as_slice(), plain.valid), (&b"plaintext"[..], false));
+    }
+
+    #[test]
+    fn decrypt_drops_a_trailing_partial_block() {
+        let key = [7u8; 16];
+        let mut data = encrypt(&key, [3; BLOCK], b"whole block text");
+        data.extend_from_slice(b"tail");
+        let plain = decrypt(&key, &data);
+        assert_eq!((plain.data.as_slice(), plain.valid), (&b"whole block text"[..], false));
+    }
+
+    #[test]
+    fn decrypt_of_only_an_iv_is_empty() {
+        let plain = decrypt(&[7u8; 16], &[5u8; 16]);
+        assert_eq!((plain.data.len(), plain.valid), (0, true));
     }
 
     #[test]

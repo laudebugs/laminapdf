@@ -201,6 +201,15 @@ const fn must_propagate(e: &Error) -> bool {
     matches!(e, Error::Strict { .. } | Error::DataPending { .. } | Error::Source(_))
 }
 
+/// Encryption errors that no repair can get around: the password is wrong or missing, or the
+/// handler is one lamina can't decrypt.
+const fn is_security_refusal(e: &Error) -> bool {
+    matches!(
+        e,
+        Error::PasswordRequired | Error::WrongPassword | Error::UnsupportedSecurityHandler { .. }
+    )
+}
+
 /// Errors that end the page-tree walk instead of skipping a node: cycles (ADR 0003 §1) and
 /// [`must_propagate`] ones. Hard limits are not among them: the walk is one of ADR 0003's
 /// tolerant paths, so it skips the node with `page-tree-node-skipped` (§3).
@@ -383,36 +392,45 @@ impl Document {
             .filter(|table| table.trailer.contains_key("Root") && entries_are_valid(data, table, &limits));
         if let Some(table) = loaded {
             let mut doc = Self::new(base(), table, startxref, log.clone())?;
-            // A password problem or an unsupported handler is never repaired around.
-            if let Some(security) = doc.read_security(options.password())? {
-                doc.install_security(security)?;
-            }
+            // A password problem or an unsupported handler is never repaired around; an
+            // `/Encrypt` that is merely damaged is, like a broken catalog.
+            let unlocked = match doc.read_security(options.password()) {
+                Ok(security) => security.map_or(Ok(()), |s| doc.install_security(s)),
+                Err(e) => Err(e),
+            };
             // Entries that look valid can still yield an unusable catalog (damaged object
             // stream, syntax error inside the catalog, …): treat that like a broken xref.
-            let checked = {
+            let checked = unlocked.and_then(|()| {
                 let _call = doc.call();
                 doc.budget.set(budget);
                 let checked = doc.catalog();
                 budget = doc.budget.get();
                 checked
-            };
+            });
             match checked {
                 Ok(_) => return Ok(doc),
                 // A cycle is a broken catalog like any other: repair may still find one.
                 // Strict refusals, missing data and source failures are never repaired around.
-                Err(e) if must_propagate(&e) => return Err(e),
+                Err(e) if must_propagate(&e) || is_security_refusal(&e) => return Err(e),
                 Err(_) => {}
             }
         }
         log.raise(Warning::XrefRepaired, &limits, strict)?;
-        let table = repair::rebuild(data, &limits, &mut budget, None)?;
-        let mut doc = Self::new(base(), table, None, log.clone())?;
-        if let Some(security) = doc.read_security(options.password())? {
-            // Object-stream members could not be read while the key was unknown: scan again,
-            // decrypting object streams this time.
-            let table = repair::rebuild(data, &limits, &mut budget, Some(&security))?;
-            doc = Self::new(base(), table, None, log)?;
+        // Repair in two phases around authentication: in-file objects and trailers first, then
+        // `/Encrypt` (never in an object stream), then the object streams, decrypted. The file
+        // is scanned once and the password checked once.
+        let scan = repair::scan(data, &limits)?;
+        let security = {
+            let in_file = Self::new(base(), scan.in_file_table(), None, WarningLog::default())?;
+            in_file.read_security(options.password())?
+        };
+        let (table, malformed) = scan.finish(data, &limits, &mut budget, security.as_ref())?;
+        let mut doc = Self::new(base(), table, None, log)?;
+        if let Some(security) = security {
             doc.install_security(security)?;
+        }
+        for object in malformed {
+            doc.warn(Warning::AesPaddingInvalid { object })?;
         }
         doc.repaired = true;
         Ok(doc)
@@ -465,7 +483,8 @@ impl Document {
         })
     }
 
-    /// Reads `/Encrypt` and authenticates `password` (`None` for an unencrypted document).
+    /// Reads `/Encrypt` and authenticates `password` (`None` for an unencrypted document: no
+    /// `/Encrypt`, or one that is `null` or resolves to `null`, which counts as absent, §7.3.10).
     /// Objects resolved on the way (an indirect `/Encrypt`, its `/CF`, the `/ID`) are read
     /// without decryption, which is what the spec asks for them.
     fn read_security(&self, password: Option<&[u8]>) -> Result<Option<Security>> {
@@ -473,11 +492,10 @@ impl Document {
             return Ok(None);
         };
         let _call = self.call();
-        let Object::Dict(dict) = self.resolve_nested(encrypt, 4)? else {
-            return Err(Error::InvalidStructure {
-                kind: "encryption dictionary",
-                message: "/Encrypt is not a dictionary",
-            });
+        let dict = match self.resolve_nested(encrypt, 4)? {
+            Object::Dict(dict) => dict,
+            Object::Null => return Ok(None),
+            _ => return Err(encrypt::invalid("/Encrypt is not a dictionary")),
         };
         let id = match self.trailer.get("ID") {
             Some(id) => self.resolve_nested(id, 2)?,
@@ -532,11 +550,13 @@ impl Document {
         self.revisions
     }
 
-    /// True when the trailer has `/Encrypt`. Such a document opened only because a password
-    /// (possibly the empty user password) authenticated it, and it is decrypted as it is read.
+    /// True when the document is encrypted: its trailer has an `/Encrypt` dictionary (one that
+    /// is `null` counts as absent). [`Document::open`] only returns such a document once a
+    /// password (possibly the empty user password) authenticated it; it is decrypted as it is
+    /// read, and [`Document::matched_password`] says which password worked.
     #[must_use]
-    pub fn is_encrypted(&self) -> bool {
-        self.trailer.contains_key("Encrypt")
+    pub const fn is_encrypted(&self) -> bool {
+        self.security.is_some()
     }
 
     /// The encryption of an encrypted document: `/V`, `/R`, ciphers, key length and
@@ -569,13 +589,6 @@ impl Document {
     #[must_use]
     pub fn matched_password(&self) -> Option<PasswordKind> {
         self.security.as_ref().map(Security::matched)
-    }
-
-    /// True for an encrypted document, which [`Document::open`] only returns once a password
-    /// authenticated it (shorthand for `matched_password().is_some()`).
-    #[must_use]
-    pub fn is_authenticated(&self) -> bool {
-        self.security.is_some()
     }
 
     /// True when the xref was rebuilt by scanning because the stored one was unusable.
@@ -871,6 +884,11 @@ impl Document {
             if let Some(v) = stream.dict.get(key) {
                 params.insert(key, self.resolve_nested(v, MAX_FILTER_PARAM_DEPTH)?);
             }
+        }
+        if self.security.is_some() {
+            // Streams of an encrypted document were decrypted when they were loaded, which
+            // applied the `/Crypt` filter (§7.4.10); the rest of the chain decodes as usual.
+            encrypt::strip_crypt_filter(&mut params);
         }
         let mut budget = self.budget.get();
         let decoded = filters::decode(&params, &stream.data, &self.limits, &mut budget);

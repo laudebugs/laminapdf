@@ -226,6 +226,22 @@ mod algorithm_2a {
         assert_eq!(auth.perms_valid, Some(false));
     }
 
+    // User and owner password both `same`.
+    const R6_SAME: Modern = Modern {
+        revision: 6,
+        u: "6fed7b068af229f4fdc4b5dbb24f615826c0fd9761cab984a9febf2e793da8951ed2256d27aabc40e1c42feb252f51a8",
+        ue: "c5f92c9f1b28aa062c90daabcc40031ac2c48dc6a8536c994c94fa9ffd53e383",
+        o: "c7c1cf48ab51830530d949285f6795793a20f1405e9b6f5fbcce81fda9d78a780122ed7f1f67edf1bf7e7c7bca0d25e9",
+        oe: "fa3990336728b86da0cb1c856daedfefd223e9843b473e7074a0219af2344260",
+        perms: "69fa0e95b8687e449da003362de7aa92",
+    };
+
+    #[test]
+    fn r6_password_that_is_both_is_reported_as_owner() {
+        let auth = run(&R6_SAME, b"same", 0xFFFF_F0C4).unwrap();
+        assert_eq!((auth.key, auth.matched), (file_key(), PasswordKind::Owner));
+    }
+
     #[test]
     fn r5_user_password_unwraps_the_file_key() {
         let auth = run(&R5, b"user", 0xFFFF_F0C4).unwrap();
@@ -289,6 +305,17 @@ mod decrypt {
         padded.extend([6u8; 6]);
         data.extend(aes::cbc_encrypt_raw(&object_key, &iv, &padded).unwrap());
         assert_eq!(decrypt(Cipher::Aes128, &key, 3, 0, &data).data, b"0123456789");
+    }
+
+    #[test]
+    fn aes_128_with_a_40_bit_file_key_still_uses_a_16_byte_object_key() {
+        let key = FileKey(vec![1, 2, 3, 4, 5]);
+        let object_key = key::object_key(&key.0, 3, 0, true);
+        let iv = [9u8; 16];
+        let mut data = iv.to_vec();
+        data.extend(aes::cbc_encrypt_raw(&object_key, &iv, &[16u8; 16]).unwrap());
+        let out = decrypt(Cipher::Aes128, &key, 3, 0, &data);
+        assert_eq!((out.data.len(), out.well_formed), (0, true));
     }
 
     #[test]
