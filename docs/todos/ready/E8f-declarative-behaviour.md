@@ -20,6 +20,7 @@ Make interactive forms behave without arbitrary JavaScript: Hide actions and `/C
 
 ## Context
 
+- **Design (Paper):** [P02 Validation, formatting and calculated fields](../../design/paper/forms.md#p02-validation-formatting-and-calculated-fields). Build to match these screens; record any deviation in the area document ([Paper design plan §5](../../plans/paper-design.md#5-how-the-designs-are-used)).
 - ADR 0021 (E8a)
 - [04 §3.3](../../research/pdf/04-interactive-security.md#33-calculation-order-and-scripts)
 - [04 §4](../../research/pdf/04-interactive-security.md#4-javascript-in-pdf)

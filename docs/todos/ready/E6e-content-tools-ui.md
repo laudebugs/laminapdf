@@ -20,6 +20,7 @@
 
 ## Context
 
+- **Design (Paper):** [A01 Edit mode: add text box](../../design/paper/add-edit-content.md#a01-edit-mode-add-text-box). Build to match these screens; record any deviation in the area document ([Paper design plan §5](../../plans/paper-design.md#5-how-the-designs-are-used)).
 - [full-editor §6](../../plans/full-editor.md#6-design-summary) interaction modes
 
 ## Scope

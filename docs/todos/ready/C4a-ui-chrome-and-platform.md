@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [web reader §6 C4. App shell on Cloudflare](../../plans/web-app.md#c4-app-shell-on-cloudflare) |
 | Round / milestone | Round C (web reader) — M2 Web reader v0.1 |
-| Depends on | [C2a](./C2a-render-adrs.md), [C3b](./C3b-viewer-virtualiser-and-zoom.md), [U1a](./U1a-adr-0024-app-shell-ux.md) |
+| Depends on | [C2a](./C2a-render-adrs.md), [C3b](./C3b-viewer-virtualiser-and-zoom.md), [U1a](./U1a-adr-0024-app-shell-ux.md), [U6e](./U6e-overlays-and-sheets.md) |
 | Blocks | [C4b](./C4b-web-app-shell.md), [D2a](./D2a-adr-0008-and-desktop-scaffold.md), [D2d](./D2d-tile-transport-and-first-document.md), [U1b](./U1b-command-registry-and-palette.md), [U1c](./U1c-inverted-l-shell-and-modes.md), [E1d](./E1d-edit-session-undo-ui.md), [E10e](./E10e-timestamps-and-tsa-proxy.md) |
 | ADRs | Implements 0009 (React chrome around the framework-free viewer) and 0010 (`Platform` interface, capability flags, web implementation) |
 | Branch | `feat/c4a-ui-chrome` |
@@ -20,6 +20,7 @@ Build the reusable reader UI both shells share: `@lamina/ui`, a React 19 (React 
 
 ## Context
 
+- **Design (Paper):** [F01](../../design/paper/screens.md#f-foundations-the-chosen-paper-boards). Build to match these screens; record any deviation in the area document ([Paper design plan §5](../../plans/paper-design.md#5-how-the-designs-are-used)).
 - [UI/UX plan §5.1–§5.2](../../plans/ui-ux.md#51-desktop-and-web-layout-r1-r2) — `ReaderShell` must expose the left-rail, inspector, secondary-toolbar and status slots that [U1c](./U1c-inverted-l-shell-and-modes.md) fills; ADR 0024 ([U1a](./U1a-adr-0024-app-shell-ux.md)) fixes the layout first, so this todo depends on it; toolbar buttons become command ids in [U1b](./U1b-command-registry-and-palette.md), so keep handlers in `ReaderController`, not in components.
 - ADR 0009 and ADR 0010 (from [C2a](./C2a-render-adrs.md)).
 - [Research: the web client](../../research/architecture/app-and-package-architecture.md#the-web-client-is-react-chrome-around-an-imperative-viewer-core) — React 19 + Compiler; interaction modes in a state machine; view state in an external store; `Platform` flags (`canWriteInPlace`, `canWatchFiles`, `hasNativePrint`, `multiWindow`).
@@ -49,7 +50,7 @@ Build the reusable reader UI both shells share: `@lamina/ui`, a React 19 (React 
 
 - [ ] Claim via a claim PR (see Definition of done); then a fresh worktree off the updated `main`.
 - [ ] Scaffold `packages/ui` (`package.json` with React 19 as peer dependency via `catalog:`, `exports`, `sideEffects: ["*.css"]`, Vitest browser mode + Testing Library, nested `biome.json` allowing DOM globals).
-- [ ] Check licences of React, React Aria (or the chosen primitives) and icons (e.g. Lucide ISC); `cargo xtask npm-licenses` passes.
+- [ ] Check licences of React, React Aria (or the chosen primitives) and icons (the Paper set in `@lamina/icons`, [U6c](./U6c-icon-set.md)); `cargo xtask npm-licenses` passes.
 - [ ] `src/platform/types.ts`: `Platform`, `Capabilities` exactly as ADR 0010; `src/platform/web.ts`: web implementation with feature detection (no UA sniffing); `src/platform/context.tsx`: `PlatformProvider`, `usePlatform()`, `useCapability(flag)`.
 - [ ] `src/state/reader-machine.ts`: a small typed state machine (hand-written or a tiny lib; justify) for the reader lifecycle and interaction mode (`select` only in v0.1); unit tests for every transition.
 - [ ] `src/hooks/use-viewer.ts`: `useViewerState(selector)` with `useSyncExternalStore`; no re-render on every scroll frame (selectors return stable primitives).
@@ -58,7 +59,7 @@ Build the reusable reader UI both shells share: `@lamina/ui`, a React 19 (React 
 - [ ] Zoom control: percentage input + menu; keyboard operable; reflects viewer state.
 - [ ] Password dialog: masked input, show/hide toggle, wrong-password error message, cancel → back to empty state; never stores or logs the password; `autocomplete="off"`.
 - [ ] Error/repair UI: maps ADR 0003 warning and error codes (`fixtures/codes.json`) to messages; "repaired" notice is dismissible; unsupported-feature list expandable.
-- [ ] Theme tokens file `src/styles/tokens.css` and base styles; respects `prefers-color-scheme` and `prefers-reduced-motion` hooks (full themes in C7a).
+- [ ] Use `@lamina/tokens` ([U6a](./U6a-paper-tokens.md)) for all styles and compose the shell from `@lamina/ui`'s Paper components and overlays ([U6d](./U6d-core-components.md), [U6e](./U6e-overlays-and-sheets.md)); the password prompt uses U6e's dialog. Respect `prefers-color-scheme` and `prefers-reduced-motion` (full themes in C7a).
 - [ ] README with the component map and how desktop supplies its own `Platform`.
 
 ## Acceptance criteria

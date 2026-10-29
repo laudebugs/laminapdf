@@ -20,6 +20,7 @@ Record an op sequence (ADR 0006 JSON with `v` envelope), parameterise it, and ap
 
 ## Context
 
+- **Design (Paper):** [X05 Batch runner](../../design/paper/convert-compare-produce.md#x05-batch-runner). Build to match these screens; record any deviation in the area document ([Paper design plan §5](../../plans/paper-design.md#5-how-the-designs-are-used)).
 - [ADR 0006](../../decisions/0006-op-log-and-undo.md) consequences (batch processing)
 - [06 §9](../../research/pdf/06-feature-inventory.md#9-suggested-phasing) phase 6
 

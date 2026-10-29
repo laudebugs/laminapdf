@@ -20,6 +20,7 @@ Page geometry ops: crop (sets `/CropBox`, with a user-visible warning that cropp
 
 ## Context
 
+- **Design (Paper):** [O09 Page geometry](../../design/paper/pages-navigation-extraction.md#o09-page-geometry). Build to match these screens; record any deviation in the area document ([Paper design plan §5](../../plans/paper-design.md#5-how-the-designs-are-used)).
 - [full-editor §E2](../../plans/full-editor.md#e2-page-organisation)
 - [06 §10](../../research/pdf/06-feature-inventory.md#10-implications-for-lamina): "crop that only hides content" is a correctness trap that must be tested
 - ISO 32000-2 §14.11.2 (page boundaries)

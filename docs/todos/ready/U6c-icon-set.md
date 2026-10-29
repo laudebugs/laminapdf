@@ -7,7 +7,7 @@
 | Plan | [Paper design §6 U6](../../plans/paper-design.md#u6-design-system) |
 | Round / milestone | Round U (UI/UX) — U6 Paper design system |
 | Depends on | [U6a](./U6a-paper-tokens.md) |
-| Blocks | — |
+| Blocks | [U6d](./U6d-core-components.md) |
 | ADRs | Follows 0024 (component rules; from [U1a](./U1a-adr-0024-app-shell-ux.md)), 0009 (React chrome around a framework-free viewer; from [C2a](./C2a-render-adrs.md)), [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) (licence of any dev dependency) |
 | Branch | `feat/u6c-icon-set` |
 | PR title | `feat(icons): add @lamina/icons with the paper stroke icon set and grid lint` |

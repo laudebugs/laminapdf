@@ -20,6 +20,7 @@ Place source pages as Form XObjects on new sheets: N-up grids, saddle-stitch boo
 
 ## Context
 
+- **Design (Paper):** [X10 Print production](../../design/paper/convert-compare-produce.md#x10-print-production). Build to match these screens; record any deviation in the area document ([Paper design plan §5](../../plans/paper-design.md#5-how-the-designs-are-used)).
 - [05 §3.2 Page imposition and n-up](../../research/pdf/05-creating-pdfs-from-code.md#32-page-imposition-and-n-up)
 
 ## Scope

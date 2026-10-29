@@ -21,6 +21,7 @@ Let users save edits safely on both shells: Save (incremental by default), Save 
 
 ## Context
 
+- **Design (Paper):** [O02 Save, Save as and Download a copy](../../design/paper/edit-session-organise.md#o02-save-save-as-and-download-a-copy). Build to match these screens; record any deviation in the area document ([Paper design plan §5](../../plans/paper-design.md#5-how-the-designs-are-used)).
 - [ADR 0007](../../decisions/0007-save-planner.md): planning vs writing, `SaveConstraint.kind()`, override, sinks and rebase
 - [ADR 0005](../../decisions/0005-document-model.md) §3: rebase after save and `SavedNotRebased`
 - [full-editor §E1](../../plans/full-editor.md#e1-editing-foundation) "Web vs desktop"; [full-editor §5](../../plans/full-editor.md#5-requirements-that-hold-for-every-round) req. 2

@@ -21,6 +21,7 @@ Add new content objects to existing pages through the append API: images (JPEG p
 
 ## Context
 
+- **Design (Paper):** [A02 Place image and shapes](../../design/paper/add-edit-content.md#a02-place-image-and-shapes). Build to match these screens; record any deviation in the area document ([Paper design plan §5](../../plans/paper-design.md#5-how-the-designs-are-used)).
 - [full-editor §6](../../plans/full-editor.md#6-design-summary) append API
 - [ADR 0005](../../decisions/0005-document-model.md) §6: one builder path for new and existing documents
 - [02 §7 Images](../../research/pdf/02-imaging-model.md#7-images), [02 §4.2 ExtGState](../../research/pdf/02-imaging-model.md#42-extgstate-dictionaries)

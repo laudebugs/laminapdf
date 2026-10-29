@@ -20,6 +20,7 @@ When the original subset lacks glyphs, add a new subset of the same font (if the
 
 ## Context
 
+- **Design (Paper):** [A04 Edit existing text inline](../../design/paper/add-edit-content.md#a04-edit-existing-text-inline). Build to match these screens; record any deviation in the area document ([Paper design plan §5](../../plans/paper-design.md#5-how-the-designs-are-used)).
 - [03 §6 Font embedding and subsetting](../../research/pdf/03-text-and-fonts.md#6-font-embedding--subsetting-from-code)
 - [03 §7 Layout](../../research/pdf/03-text-and-fonts.md#7-text-layout--shaping--everything-pdf-does-not-do-for-you)
 

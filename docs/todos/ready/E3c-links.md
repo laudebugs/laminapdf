@@ -21,6 +21,7 @@ Create, edit and delete Link annotations: internal (GoTo/destination), external 
 
 ## Context
 
+- **Design (Paper):** [O12 Link editor](../../design/paper/pages-navigation-extraction.md#o12-link-editor). Build to match these screens; record any deviation in the area document ([Paper design plan §5](../../plans/paper-design.md#5-how-the-designs-are-used)).
 - [04 §1.4 Link annotations](../../research/pdf/04-interactive-security.md#14-link-annotations-12565)
 - [04 §1.3 Actions](../../research/pdf/04-interactive-security.md#13-actions-126)
 - [web C5](../../plans/web-app.md#c5-text-selection-and-search): glyph quads for text selection

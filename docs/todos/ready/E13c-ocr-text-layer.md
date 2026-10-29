@@ -21,6 +21,7 @@ Turn OCR output (hOCR or ALTO: words, boxes, baselines, confidence) into an invi
 
 ## Context
 
+- **Design (Paper):** [X01 Make searchable (OCR)](../../design/paper/convert-compare-produce.md#x01-make-searchable-ocr). Build to match these screens; record any deviation in the area document ([Paper design plan §5](../../plans/paper-design.md#5-how-the-designs-are-used)).
 - [03 §8.3 Scanned PDFs and OCR](../../research/pdf/03-text-and-fonts.md#83-scanned-pdfs-and-ocr)
 - OCRmyPDF's text-layer approach (reference for the technique only; ocrmypdf is not used because it needs Ghostscript, AGPL; see ADR 0013)
 

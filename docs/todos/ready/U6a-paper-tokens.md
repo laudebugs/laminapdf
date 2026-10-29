@@ -7,7 +7,7 @@
 | Plan | [Paper design §6 U6](../../plans/paper-design.md#u6-design-system) |
 | Round / milestone | Round U (UI/UX) — U6 Paper design system |
 | Depends on | [U1a](./U1a-adr-0024-app-shell-ux.md) |
-| Blocks | — |
+| Blocks | [U6b](./U6b-self-hosted-fonts.md), [U6c](./U6c-icon-set.md), [U6d](./U6d-core-components.md) |
 | ADRs | Follows 0024 (token layers: primitive → semantic → component; page appearance separate from UI theme; from [U1a](./U1a-adr-0024-app-shell-ux.md)), [0015](../../decisions/0015-monorepo-layout-and-tooling.md) (pnpm workspace, `catalog:`), [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) (licence check for any new dev dependency) |
 | Branch | `feat/u6a-paper-tokens` |
 | PR title | `feat(tokens): add @lamina/tokens with paper light, dark and high-contrast themes` |

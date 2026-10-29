@@ -21,6 +21,7 @@ Finish the reader's output features. **Print** rasterises pages at print DPI in 
 
 ## Context
 
+- **Design (Paper):** [R08 Document properties](../../design/paper/reader-a.md#r08-document-properties), [R09 Print and Download a copy](../../design/paper/reader-a.md#r09-print-and-download-a-copy). Build to match these screens; record any deviation in the area document ([Paper design plan §5](../../plans/paper-design.md#5-how-the-designs-are-used)).
 - [web-app.md §4 functional 7](../../plans/web-app.md#functional) — print via rasterised pages in a hidden iframe, native PDF printing where supported; download returns original bytes.
 - [web-app.md §2](../../plans/web-app.md#2-scope-and-non-goals) — properties scope (metadata, fonts, version, encryption, signatures present).
 - [04 §7 encryption](../../research/pdf/04-interactive-security.md#7-encryption-76) (handler, revision, permissions), [04 §8 signatures](../../research/pdf/04-interactive-security.md) (signature fields presence), [03](../../research/pdf/03-text-and-fonts.md) (font types, embedding, subset tags).

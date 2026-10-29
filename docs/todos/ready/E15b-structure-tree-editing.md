@@ -20,6 +20,7 @@ Edit the structure tree: create/retag/move/delete struct elements, attach conten
 
 ## Context
 
+- **Design (Paper):** [X07 Tags and reading order](../../design/paper/convert-compare-produce.md#x07-tags-and-reading-order). Build to match these screens; record any deviation in the area document ([Paper design plan §5](../../plans/paper-design.md#5-how-the-designs-are-used)).
 - [03 §9.1 The model](../../research/pdf/03-text-and-fonts.md#91-the-model)
 - [03 §9.2 Standard structure types](../../research/pdf/03-text-and-fonts.md#92-standard-structure-types)
 - ISO 32000-2 §14.7–14.8

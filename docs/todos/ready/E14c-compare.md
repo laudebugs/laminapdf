@@ -21,6 +21,7 @@ Compare two documents or revisions: page alignment, pixel diff via `lamina-rende
 
 ## Context
 
+- **Design (Paper):** [X04 Compare two versions](../../design/paper/convert-compare-produce.md#x04-compare-two-versions). Build to match these screens; record any deviation in the area document ([Paper design plan §5](../../plans/paper-design.md#5-how-the-designs-are-used)).
 - [05 §3.10 Diff and compare](../../research/pdf/05-creating-pdfs-from-code.md#310-diff-and-compare)
 
 ## Scope

@@ -20,6 +20,7 @@ Copy pages between documents: deep-copy a page and everything reachable from it 
 
 ## Context
 
+- **Design (Paper):** [O07 Insert pages and merge documents](../../design/paper/edit-session-organise.md#o07-insert-pages-and-merge-documents). Build to match these screens; record any deviation in the area document ([Paper design plan §5](../../plans/paper-design.md#5-how-the-designs-are-used)).
 - [05 §3.1 Merge and split](../../research/pdf/05-creating-pdfs-from-code.md#31-merge-and-split)
 - [ADR 0005](../../decisions/0005-document-model.md) §3, §5: fresh numbers, new IDs for imported pages
 - [06 §3 group C](../../research/pdf/06-feature-inventory.md#3-full-operation-inventory-with-mechanisms): "drop/merge annotations' `/P`, struct-tree links"

@@ -20,6 +20,7 @@ Edit existing objects: select (hit-test), move/resize/rotate (`cm` changes), del
 
 ## Context
 
+- **Design (Paper):** [A05 Select and transform existing objects](../../design/paper/add-edit-content.md#a05-select-and-transform-existing-objects). Build to match these screens; record any deviation in the area document ([Paper design plan §5](../../plans/paper-design.md#5-how-the-designs-are-used)).
 - ADR 0022
 - [02 §3 Coordinate systems](../../research/pdf/02-imaging-model.md#3-coordinate-systems-and-transformations)
 - [06 §3 group B](../../research/pdf/06-feature-inventory.md#3-full-operation-inventory-with-mechanisms)

@@ -7,7 +7,7 @@
 | Plan | [UI/UX §6 U1. Shell foundations](../../plans/ui-ux.md#u1-shell-foundations) |
 | Round / milestone | Round U (UI/UX) — M2 Web reader v0.1 |
 | Depends on | [C2a](./C2a-render-adrs.md) |
-| Blocks | [C4a](./C4a-ui-chrome-and-platform.md), [U1b](./U1b-command-registry-and-palette.md), [U1c](./U1c-inverted-l-shell-and-modes.md) |
+| Blocks | [C4a](./C4a-ui-chrome-and-platform.md), [U1b](./U1b-command-registry-and-palette.md), [U1c](./U1c-inverted-l-shell-and-modes.md), [U6a](./U6a-paper-tokens.md) |
 | ADRs | Writes 0024; follows 0009 (React chrome + framework-free viewer) and 0010 (`Platform` capability flags) |
 | Branch | `docs/u1a-adr-0024-app-shell-ux` |
 | PR title | `docs(adr): 0024 app shell ux: layout, modes, command registry and page appearance` |
@@ -20,6 +20,7 @@ Record the interaction model every shell and editor round builds into, so `@lami
 
 ## Context
 
+- **Design (Paper):** [F05](../../design/paper/screens.md#f-foundations-the-chosen-paper-boards). Build to match these screens; record any deviation in the area document ([Paper design plan §5](../../plans/paper-design.md#5-how-the-designs-are-used)).
 - [UI/UX plan §4–§5](../../plans/ui-ux.md#4-principles) — the principles and design this ADR makes binding.
 - [Research report, UX section](../../research/product/pdf-app-product-and-ux.md#docked-chrome-modes-and-a-palette-beat-floating-toolbars) — evidence (Figma UI3, Acrobat quick tools, Linear, Office ribbon) and recommendations R1–R8.
 - [UI/UX patterns notes](../../research/product/notes/ui-ux-patterns.md) — sources; several (w3.org APG, web.dev, NN/g) were read only through search snippets and must be re-checked here.
