@@ -26,9 +26,11 @@ pub enum Error {
     LimitExceeded {
         /// Which limit.
         limit: Limit,
-        /// Where it was hit, when known: a file offset (or an offset in an object stream's
-        /// decoded data) for syntax limits (nesting, string length) and the read window, an
-        /// object for reference chains; `None` for decoding budgets.
+        /// Where it was hit, when known: a file offset (or an offset in an object stream's or
+        /// a content stream's decoded data, `lamina-content`'s saved-state nesting included)
+        /// for syntax limits (nesting, string length) and the read window; an object for
+        /// reference chains and Form XObject depth (the form that went too deep); `None` for
+        /// budgets (decoded bytes, content operators).
         at: Option<Position>,
     },
     /// Strict mode ([`OpenOptions::with_strict`](crate::OpenOptions::with_strict)) refused
@@ -236,6 +238,15 @@ impl Error {
         }
     }
 
+    /// Whether no tolerant path may swallow this error (ADR 0003): a strict-mode refusal (the
+    /// caller asked for it) or input that is missing or unreadable ([`Error::DataPending`],
+    /// [`Error::Source`]: the call has to be retried or fail). Every other error makes a
+    /// tolerant reader treat the item as unreadable.
+    #[must_use]
+    pub const fn must_propagate(&self) -> bool {
+        matches!(self, Self::Strict { .. } | Self::DataPending { .. } | Self::Source(_))
+    }
+
     /// An [`Error::LimitExceeded`] for `limit` at object `num`.
     pub(crate) const fn limit_at_object(limit: Limit, num: u32) -> Self {
         Self::LimitExceeded {
@@ -247,6 +258,19 @@ impl Error {
 
 /// Shorthand for `Result<T, lamina_cos::Error>`.
 pub type Result<T> = core::result::Result<T, Error>;
+
+/// `result` read tolerantly (ADR 0003): `Ok(Some(v))`, `Ok(None)` when the item is
+/// unreadable, or the error when it [must propagate](Error::must_propagate).
+///
+/// # Errors
+/// The errors of `result` for which [`Error::must_propagate`] is true.
+pub fn tolerant<T>(result: Result<T>) -> Result<Option<T>> {
+    match result {
+        Ok(v) => Ok(Some(v)),
+        Err(e) if e.must_propagate() => Err(e),
+        Err(_) => Ok(None),
+    }
+}
 
 #[cfg(test)]
 mod tests {
@@ -271,7 +295,6 @@ mod tests {
                 kind: "k",
                 message: "m",
             },
-            lamina_syntax::Error::UnexpectedEof { at },
         ];
         let mut all = vec![
             Error::NotPdf("m"),

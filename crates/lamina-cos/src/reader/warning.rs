@@ -139,6 +139,91 @@ pub enum Warning {
         /// The entry's key, e.g. `"Info"`.
         key: &'static str,
     },
+    /// `content-unknown-operator`: a content stream used an operator ISO 32000-2 Annex A does
+    /// not define, outside a `BX`/`EX` compatibility section; it was skipped (ADR 0023).
+    ContentUnknownOperator {
+        /// The content's object: the page for page content, the Form XObject for a form;
+        /// `None` for content interpreted on its own (`interpret_content`) or a direct page.
+        object: Option<u32>,
+        /// Byte offset of the operator in the decoded content.
+        offset: u64,
+    },
+    /// `content-bad-operands`: a content-stream operator had too few operands or operands of
+    /// the wrong type (it was skipped), or extra operands (the last ones were used) (ADR 0023).
+    ContentBadOperands {
+        /// The content's object (as for `content-unknown-operator`).
+        object: Option<u32>,
+        /// Byte offset of the operator in the decoded content.
+        offset: u64,
+    },
+    /// `content-unbalanced-q`: a `Q` without a matching `q` (ignored), or a content stream
+    /// that ended with saved graphics states still open (restored) (ADR 0023).
+    ContentUnbalancedQ {
+        /// The content's object (as for `content-unknown-operator`).
+        object: Option<u32>,
+        /// Byte offset of the `Q`, or the end of the content.
+        offset: u64,
+    },
+    /// `content-unbalanced-bt`: a `BT` inside a text object, an `ET` outside one, a text
+    /// operator outside one, or a content stream that ended inside one (ADR 0023).
+    ContentUnbalancedBt {
+        /// The content's object (as for `content-unknown-operator`).
+        object: Option<u32>,
+        /// Byte offset of the operator, or the end of the content.
+        offset: u64,
+    },
+    /// `content-unbalanced-marked`: an `EMC` without a matching `BMC`/`BDC` (ignored), or a
+    /// content stream that ended with marked-content sequences open (closed) (ADR 0023).
+    ContentUnbalancedMarked {
+        /// The content's object (as for `content-unknown-operator`).
+        object: Option<u32>,
+        /// Byte offset of the `EMC`, or the end of the content.
+        offset: u64,
+    },
+    /// `content-syntax`: a content stream held bytes that are not a token (an unbalanced `)`
+    /// or `>`, a bad hex digit, an unterminated string or array) or a stray `ID`/`EI`; they
+    /// were skipped with the operands read so far (ADR 0023).
+    ContentSyntax {
+        /// The content's object (as for `content-unknown-operator`).
+        object: Option<u32>,
+        /// Byte offset of the problem in the decoded content.
+        offset: u64,
+    },
+    /// `content-resource-missing`: an operator named a resource (font, XObject, graphics
+    /// state, colour space, shading, property list) that is missing, of the wrong type or
+    /// unreadable, or a Form XObject's content could not be decoded; the operator was
+    /// skipped, or ran without the resource (ADR 0023).
+    ContentResourceMissing {
+        /// The content's object (as for `content-unknown-operator`).
+        object: Option<u32>,
+        /// Byte offset of the operator in the decoded content.
+        offset: u64,
+        /// The resource category, e.g. `"Font"`.
+        category: &'static str,
+    },
+    /// `inline-image-unterminated`: no `EI` ends an inline image (neither at its declared or
+    /// computed length nor by the heuristic of ADR 0023); the rest of the content was
+    /// skipped.
+    InlineImageUnterminated {
+        /// The content's object (as for `content-unknown-operator`).
+        object: Option<u32>,
+        /// Byte offset of the `BI` in the decoded content.
+        offset: u64,
+    },
+    /// `content-path-unpainted`: a content stream ended with a path that no painting operator
+    /// ended; it was dropped (ADR 0023).
+    ContentPathUnpainted {
+        /// The content's object (as for `content-unknown-operator`).
+        object: Option<u32>,
+        /// Byte offset of the path's first segment in the decoded content.
+        offset: u64,
+    },
+    /// `xobject-cycle`: a Form XObject draws itself, directly or through other forms; the
+    /// inner `Do` was skipped (ADR 0023).
+    XObjectCycle {
+        /// The form reached again.
+        object: u32,
+    },
 }
 
 impl Warning {
@@ -165,6 +250,16 @@ impl Warning {
         "invalid-date",
         "invalid-page-label",
         "invalid-entry",
+        "content-unknown-operator",
+        "content-bad-operands",
+        "content-unbalanced-q",
+        "content-unbalanced-bt",
+        "content-unbalanced-marked",
+        "content-syntax",
+        "content-resource-missing",
+        "inline-image-unterminated",
+        "xobject-cycle",
+        "content-path-unpainted",
     ];
 
     /// The stable kebab-case code, e.g. `"xref-repaired"`.
@@ -192,6 +287,16 @@ impl Warning {
             Self::InvalidDate { .. } => "invalid-date",
             Self::InvalidPageLabel { .. } => "invalid-page-label",
             Self::InvalidEntry { .. } => "invalid-entry",
+            Self::ContentUnknownOperator { .. } => "content-unknown-operator",
+            Self::ContentBadOperands { .. } => "content-bad-operands",
+            Self::ContentUnbalancedQ { .. } => "content-unbalanced-q",
+            Self::ContentUnbalancedBt { .. } => "content-unbalanced-bt",
+            Self::ContentUnbalancedMarked { .. } => "content-unbalanced-marked",
+            Self::ContentSyntax { .. } => "content-syntax",
+            Self::ContentResourceMissing { .. } => "content-resource-missing",
+            Self::InlineImageUnterminated { .. } => "inline-image-unterminated",
+            Self::XObjectCycle { .. } => "xobject-cycle",
+            Self::ContentPathUnpainted { .. } => "content-path-unpainted",
         }
     }
 
@@ -204,7 +309,8 @@ impl Warning {
             | Self::ObjStmIndexMismatch { object }
             | Self::ObjectNumberOutOfRange { object }
             | Self::OutlineCycle { object }
-            | Self::AesPaddingInvalid { object } => Some(object),
+            | Self::AesPaddingInvalid { object }
+            | Self::XObjectCycle { object } => Some(object),
             Self::PageTreeNodeSkipped { object }
             | Self::PageCountMismatch { object, .. }
             | Self::FlateTruncated { object }
@@ -213,7 +319,16 @@ impl Warning {
             | Self::NameTreeNodeSkipped { object }
             | Self::OutlineItemSkipped { object }
             | Self::InvalidDate { object, .. }
-            | Self::InvalidEntry { object, .. } => object,
+            | Self::InvalidEntry { object, .. }
+            | Self::ContentUnknownOperator { object, .. }
+            | Self::ContentBadOperands { object, .. }
+            | Self::ContentUnbalancedQ { object, .. }
+            | Self::ContentUnbalancedBt { object, .. }
+            | Self::ContentUnbalancedMarked { object, .. }
+            | Self::ContentSyntax { object, .. }
+            | Self::ContentResourceMissing { object, .. }
+            | Self::InlineImageUnterminated { object, .. }
+            | Self::ContentPathUnpainted { object, .. } => object,
             Self::MissingHeader
             | Self::XrefRepaired
             | Self::XrefStmIgnored { .. }
@@ -246,17 +361,42 @@ impl Warning {
             | Self::OutlineItemSkipped { .. }
             | Self::InvalidDate { .. }
             | Self::InvalidPageLabel { .. }
-            | Self::InvalidEntry { .. } => ErrorKind::Input,
+            | Self::InvalidEntry { .. }
+            | Self::ContentUnknownOperator { .. }
+            | Self::ContentBadOperands { .. }
+            | Self::ContentUnbalancedQ { .. }
+            | Self::ContentUnbalancedBt { .. }
+            | Self::ContentUnbalancedMarked { .. }
+            | Self::ContentSyntax { .. }
+            | Self::ContentResourceMissing { .. }
+            | Self::InlineImageUnterminated { .. }
+            | Self::XObjectCycle { .. }
+            | Self::ContentPathUnpainted { .. } => ErrorKind::Input,
             Self::ObjectNumberOutOfRange { .. } | Self::WarningsTruncated => ErrorKind::Limit,
             Self::AesPaddingInvalid { .. } | Self::PermsMismatch => ErrorKind::Security,
         }
     }
 
-    /// Where the problem is (ADR 0026 §1.1): the object, a file offset, or a page index.
+    /// Where the problem is (ADR 0026 §1.1): the object, a file offset, a page index, or for
+    /// content warnings the content's object and the offset in its decoded data (no offset
+    /// when the content has no object: content interpreted on its own or a direct page).
     #[must_use]
     pub fn location(&self) -> Location {
         let page_index = match *self {
             Self::XrefStmIgnored { offset } => return Location::from(Position::FileOffset(offset)),
+            Self::ContentUnknownOperator { object, offset }
+            | Self::ContentBadOperands { object, offset }
+            | Self::ContentUnbalancedQ { object, offset }
+            | Self::ContentUnbalancedBt { object, offset }
+            | Self::ContentUnbalancedMarked { object, offset }
+            | Self::ContentSyntax { object, offset }
+            | Self::ContentResourceMissing { object, offset, .. }
+            | Self::InlineImageUnterminated { object, offset }
+            | Self::ContentPathUnpainted { object, offset } => {
+                return object.map_or(Location::NONE, |object| {
+                    Location::from(Position::InStream { object, offset })
+                });
+            }
             Self::InvalidBox { page, .. } | Self::InvalidRotate { page, .. } => Some(page),
             Self::InvalidPageLabel { start } => u64::try_from(start).ok(),
             _ => None,
@@ -271,13 +411,23 @@ impl Warning {
     /// start — and an entry key), so two different problems on one object are both kept.
     const fn key(&self) -> WarningKey {
         let position = match *self {
-            Self::XrefStmIgnored { offset } => Some(offset as i128),
             Self::InvalidPageLabel { start } => Some(start as i128),
             Self::InvalidBox { page, .. } | Self::InvalidRotate { page, .. } => Some(page as i128),
+            Self::XrefStmIgnored { offset }
+            | Self::ContentUnknownOperator { offset, .. }
+            | Self::ContentBadOperands { offset, .. }
+            | Self::ContentUnbalancedQ { offset, .. }
+            | Self::ContentUnbalancedBt { offset, .. }
+            | Self::ContentUnbalancedMarked { offset, .. }
+            | Self::ContentSyntax { offset, .. }
+            | Self::ContentResourceMissing { offset, .. }
+            | Self::InlineImageUnterminated { offset, .. }
+            | Self::ContentPathUnpainted { offset, .. } => Some(offset as i128),
             _ => None,
         };
         let detail = match *self {
             Self::InvalidBox { key, .. } | Self::InvalidDate { key, .. } | Self::InvalidEntry { key, .. } => Some(key),
+            Self::ContentResourceMissing { category, .. } => Some(category),
             _ => None,
         };
         (self.code(), self.object(), position, detail)
@@ -325,6 +475,7 @@ mod tests {
 
     /// One value of every variant. The exhaustive match makes a new variant a compile error
     /// here until it is added to the samples (and to [`Warning::CODES`]).
+    #[expect(clippy::too_many_lines, reason = "one sample per variant, then the exhaustive match")]
     fn samples() -> Vec<Warning> {
         let all = vec![
             Warning::MissingHeader,
@@ -365,6 +516,44 @@ mod tests {
                 object: None,
                 key: "Info",
             },
+            Warning::ContentUnknownOperator {
+                object: None,
+                offset: 0,
+            },
+            Warning::ContentBadOperands {
+                object: None,
+                offset: 0,
+            },
+            Warning::ContentUnbalancedQ {
+                object: None,
+                offset: 0,
+            },
+            Warning::ContentUnbalancedBt {
+                object: None,
+                offset: 0,
+            },
+            Warning::ContentUnbalancedMarked {
+                object: None,
+                offset: 0,
+            },
+            Warning::ContentSyntax {
+                object: None,
+                offset: 0,
+            },
+            Warning::ContentResourceMissing {
+                object: None,
+                offset: 0,
+                category: "Font",
+            },
+            Warning::InlineImageUnterminated {
+                object: None,
+                offset: 0,
+            },
+            Warning::XObjectCycle { object: 1 },
+            Warning::ContentPathUnpainted {
+                object: None,
+                offset: 0,
+            },
         ];
         for w in &all {
             match w {
@@ -388,7 +577,17 @@ mod tests {
                 | Warning::OutlineItemSkipped { .. }
                 | Warning::InvalidDate { .. }
                 | Warning::InvalidPageLabel { .. }
-                | Warning::InvalidEntry { .. } => {}
+                | Warning::InvalidEntry { .. }
+                | Warning::ContentUnknownOperator { .. }
+                | Warning::ContentBadOperands { .. }
+                | Warning::ContentUnbalancedQ { .. }
+                | Warning::ContentUnbalancedBt { .. }
+                | Warning::ContentUnbalancedMarked { .. }
+                | Warning::ContentSyntax { .. }
+                | Warning::ContentResourceMissing { .. }
+                | Warning::InlineImageUnterminated { .. }
+                | Warning::XObjectCycle { .. }
+                | Warning::ContentPathUnpainted { .. } => {}
             }
         }
         all
@@ -419,6 +618,31 @@ mod tests {
                 ..Location::NONE
             }
         );
+    }
+
+    #[test]
+    fn location_of_a_content_warning_is_its_object_and_stream_offset() {
+        let warning = Warning::ContentPathUnpainted {
+            object: Some(5),
+            offset: 40,
+        };
+        assert_eq!(
+            warning.location(),
+            Location {
+                object: Some(5),
+                stream_offset: Some(40),
+                ..Location::NONE
+            }
+        );
+    }
+
+    #[test]
+    fn location_of_a_content_warning_without_an_object_is_empty() {
+        let warning = Warning::ContentSyntax {
+            object: None,
+            offset: 40,
+        };
+        assert_eq!(warning.location(), Location::NONE);
     }
 
     #[test]

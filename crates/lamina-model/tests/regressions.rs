@@ -33,8 +33,9 @@ fn every_regressions_folder_is_a_fuzz_target() {
     };
     for dir in dirs {
         let name = dir.unwrap().file_name().to_string_lossy().into_owned();
+        // `content` is replayed by lamina-content's own `tests/regressions.rs`.
         assert!(
-            TARGETS.iter().any(|(t, _)| *t == name),
+            TARGETS.iter().any(|(t, _)| *t == name) || name == "content",
             "fixtures/regressions/{name} is no fuzz target"
         );
     }

@@ -146,17 +146,9 @@ impl Error {
 pub type Result<T> = core::result::Result<T, Error>;
 
 /// `Ok(Some(v))`, or `Ok(None)` for a COS error an op may treat as "unreadable": every one
-/// except strict-mode refusals and unavailable input, which end the op.
+/// except those that [must propagate](lamina_cos::Error::must_propagate), which end the op.
 pub(crate) fn tolerant<T>(result: lamina_cos::Result<T>) -> Result<Option<T>> {
-    match result {
-        Ok(v) => Ok(Some(v)),
-        Err(
-            e @ (lamina_cos::Error::Strict { .. }
-            | lamina_cos::Error::DataPending { .. }
-            | lamina_cos::Error::Source(_)),
-        ) => Err(Error::Cos(e)),
-        Err(_) => Ok(None),
-    }
+    lamina_cos::tolerant(result).map_err(Error::Cos)
 }
 
 #[cfg(test)]

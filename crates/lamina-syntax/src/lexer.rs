@@ -6,6 +6,7 @@
 use crate::diagnostic::Position;
 use crate::error::{Error, Result};
 use crate::limits::{Limit, Limits};
+use crate::object::{Name, Object, PdfString, StringFormat};
 
 /// One lexical token. Keywords borrow from the input; decoded values are owned.
 #[derive(Debug, Clone, PartialEq)]
@@ -32,6 +33,34 @@ pub enum Token<'a> {
     Keyword(&'a [u8]),
     /// The end of the input.
     Eof,
+}
+
+impl Token<'_> {
+    /// The object this token is by itself: a number, name, string, `true`, `false` or `null`
+    /// (`None` for delimiters, other keywords and the end). An integer stays an integer: only
+    /// the parser looks ahead for `gen R`.
+    #[must_use]
+    pub fn into_scalar(self) -> Option<Object> {
+        Some(match self {
+            Self::Integer(i) => Object::Integer(i),
+            Self::Real(r) => Object::Real(r),
+            Self::Name(n) => Object::Name(Name(n)),
+            Self::LiteralString(bytes) => Object::String(PdfString {
+                bytes,
+                format: StringFormat::Literal,
+            }),
+            Self::HexString(bytes) => Object::String(PdfString {
+                bytes,
+                format: StringFormat::Hex,
+            }),
+            Self::Keyword(b"true") => Object::Bool(true),
+            Self::Keyword(b"false") => Object::Bool(false),
+            Self::Keyword(b"null") => Object::Null,
+            Self::Keyword(_) | Self::ArrayOpen | Self::ArrayClose | Self::DictOpen | Self::DictClose | Self::Eof => {
+                return None;
+            }
+        })
+    }
 }
 
 /// PDF white-space characters (Table 1).

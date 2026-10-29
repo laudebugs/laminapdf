@@ -114,7 +114,7 @@ mod test_files;
 #[path = "../tests/common/codes.rs"]
 mod test_codes;
 
-pub use error::{Error, Result};
+pub use error::{Error, Result, tolerant};
 pub use lamina_syntax::crypt::{Cipher, PasswordKind, Permissions};
 pub use lamina_syntax::{
     Dict, ErrorKind, Limit, Limits, Location, Name, ObjRef, Object, PdfString, Position, Stream, StringFormat,

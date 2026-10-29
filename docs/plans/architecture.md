@@ -58,6 +58,7 @@ ADRs go in `docs/decisions/`, one file per decision (`NNNN-title.md`). Each roun
 | 0016 | Package design: ESM-only, export conditions, split WASM modules, size budgets | Round B | Propose |
 | 0017 | Versioning and release: lockstep core, OIDC trusted publishing, attestations | Round B | Propose |
 | [0018](../decisions/0018-test-strategy.md) | Test strategy: goldens, differential corpus, fuzzing, veraPDF | Round B | Accepted |
+| [0023](../decisions/0023-content-stream-reading.md) | Content-stream reading: `lamina-content` (tokenizer, visitor), tolerance rules, operator and XObject-depth limits | Round B (B9a) | Accepted |
 | 0004 | `RenderBackend`; PDFium default; hayro oracle; MuPDF prohibited | Round C | Propose |
 | 0009 | Web client: React chrome + framework-free viewer core; typed worker RPC | Round C | Propose |
 | 0010 | Platform adapter and capability flags | Round C | Propose |
@@ -150,7 +151,7 @@ Todos: [A1](../todos/done/A1-foundation-adrs.md) (ADRs), [A2](../todos/done/A2-m
 - [ ] `lamina-wasm` (wasm-bindgen + tsify) and `@lamina/pdf` (ESM-only, `init()`, export conditions; publint + attw) ([B6a](../todos/ready/B6a-lamina-wasm-and-adr-0016.md), [B6b](../todos/ready/B6b-lamina-pdf-package.md), [B6c](../todos/ready/B6c-runtime-matrix.md))
 - [x] Fuzz targets under `fuzz/`, with a scheduled 10-minute run, and the golden, corpus-facts and differential harness in the fast lane ([B2c](../todos/done/B2c-lamina-model-corpus-fuzz.md))
 - [x] Golden-file and corpus test harness in CI (full lane) ([X4](../todos/done/X4-full-lane-gate.md) full lane)
-- [ ] Linux CI on a self-hosted runner in a container on the Mac ([X5](../todos/ongoing/X5-linux-ci-container.md))
+- [x] Linux CI on a self-hosted runner in a container on the Mac ([X5](../todos/done/X5-linux-ci-container.md))
 - [ ] Windows CI coverage, parked ([X6](../todos/ready/X6-windows-ci.md))
 - [ ] Changesets + Cargo version sync; tag `0.1.0-alpha` locally (no registry publish yet) ([B7b](../todos/ready/B7b-versioning-and-0-1-0-alpha.md); docs site [B7a](../todos/ready/B7a-docs-site.md))
 

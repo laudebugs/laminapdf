@@ -53,7 +53,7 @@ tasks:
                     --full: the full lane's 36 mutants per corpus file instead (full.json),
                     run through cargo-nextest
   fuzz <target> [--time <seconds>]
-                    run a fuzz target (lex, parse_object, flate_decode, open, page_tree) with
+                    run a fuzz target (lex, parse_object, flate_decode, open, page_tree, content) with
                     cargo +nightly fuzz (default 60 s); seeds come from fixtures/ and fuzz/seeds/
   fuzz --all [--time <seconds>]
                     run every fuzz target in turn (the full lane: --time 120)

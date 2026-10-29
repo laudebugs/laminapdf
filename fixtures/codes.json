@@ -151,6 +151,76 @@
       "summary": "an entry a view reads is unreadable or of the wrong type and reads as absent",
       "hint": "nothing to do; the view uses the entry's default",
       "since": "0.1.0"
+    },
+    {
+      "code": "content-unknown-operator",
+      "kind": "input",
+      "summary": "an operator the spec does not define was skipped outside a BX/EX section",
+      "hint": "nothing to do; check the page's rendering if the operator mattered",
+      "since": "0.1.0"
+    },
+    {
+      "code": "content-bad-operands",
+      "kind": "input",
+      "summary": "an operator had too few operands or operands of the wrong type, or extra ones",
+      "hint": "nothing to do; the operator was skipped or used its last operands",
+      "since": "0.1.0"
+    },
+    {
+      "code": "content-unbalanced-q",
+      "kind": "input",
+      "summary": "a Q without a matching q was ignored, or saved graphics states were left open",
+      "hint": "nothing to do; the graphics state was restored as the spec intends",
+      "since": "0.1.0"
+    },
+    {
+      "code": "content-unbalanced-bt",
+      "kind": "input",
+      "summary": "a text object was opened twice, closed outside one, or left open",
+      "hint": "nothing to do; text operators outside a text object were handled tolerantly",
+      "since": "0.1.0"
+    },
+    {
+      "code": "content-unbalanced-marked",
+      "kind": "input",
+      "summary": "an EMC without a matching BMC or BDC was ignored, or marked content was left open",
+      "hint": "check tagged-content results: marked-content sequences were closed for you",
+      "since": "0.1.0"
+    },
+    {
+      "code": "content-syntax",
+      "kind": "input",
+      "summary": "content-stream bytes that are not a token were skipped",
+      "hint": "check the page's content: the bytes around the reported offset were skipped",
+      "since": "0.1.0"
+    },
+    {
+      "code": "content-resource-missing",
+      "kind": "input",
+      "summary": "an operator named a resource that is missing, of the wrong type or unreadable",
+      "hint": "check the page's resources: the operator ran without the resource or was skipped",
+      "since": "0.1.0"
+    },
+    {
+      "code": "inline-image-unterminated",
+      "kind": "input",
+      "summary": "no EI ends an inline image; the rest of the content was skipped",
+      "hint": "check the page's content: everything after the inline image is missing",
+      "since": "0.1.0"
+    },
+    {
+      "code": "xobject-cycle",
+      "kind": "input",
+      "summary": "a Form XObject draws itself, directly or through other forms",
+      "hint": "nothing to do; the inner Do was skipped",
+      "since": "0.1.0"
+    },
+    {
+      "code": "content-path-unpainted",
+      "kind": "input",
+      "summary": "a content stream ended with a path no painting operator ended",
+      "hint": "nothing to do; the unpainted path was dropped as the spec intends",
+      "since": "0.1.0"
     }
   ],
   "errors": [

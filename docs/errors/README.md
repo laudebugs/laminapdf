@@ -27,6 +27,16 @@ One page per code in [`fixtures/codes.json`](../../fixtures/codes.json), as [ADR
 | [`invalid-date`](invalid-date.md) | `input` |
 | [`invalid-page-label`](invalid-page-label.md) | `input` |
 | [`invalid-entry`](invalid-entry.md) | `input` |
+| [`content-unknown-operator`](content-unknown-operator.md) | `input` |
+| [`content-bad-operands`](content-bad-operands.md) | `input` |
+| [`content-unbalanced-q`](content-unbalanced-q.md) | `input` |
+| [`content-unbalanced-bt`](content-unbalanced-bt.md) | `input` |
+| [`content-unbalanced-marked`](content-unbalanced-marked.md) | `input` |
+| [`content-syntax`](content-syntax.md) | `input` |
+| [`content-resource-missing`](content-resource-missing.md) | `input` |
+| [`inline-image-unterminated`](inline-image-unterminated.md) | `input` |
+| [`xobject-cycle`](xobject-cycle.md) | `input` |
+| [`content-path-unpainted`](content-path-unpainted.md) | `input` |
 
 ## Errors
 
