@@ -40,7 +40,7 @@ Run the expensive, environment-sensitive checks every night on `main`, where a f
 
 - hayro-vs-PDFium render diffs: [X3b](../ready/X3b-render-diff-nightly.md) (needs web C2's `lamina-render`).
 - veraPDF: [B8b](../ready/B8b-conformance-profiles-and-verapdf.md) adds its job to this workflow.
-- PR-lane suites: [X4](../ongoing/X4-full-lane-gate.md).
+- PR-lane suites: [X4](../done/X4-full-lane-gate.md).
 - The release-lane guard (refuse a release when the latest nightly failed) and running the nightly suites on a release commit: [B7b](../ready/B7b-versioning-and-0-1-0-alpha.md), which owns the release lane.
 
 ## Tasks

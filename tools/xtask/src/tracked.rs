@@ -17,18 +17,7 @@ pub(crate) struct Tracked {
 impl Tracked {
     /// `git ls-files` at `root`.
     pub(crate) fn from_git(root: &Path) -> Result<Self> {
-        let output = Command::new("git")
-            .args(["ls-files", "-z"])
-            .current_dir(root)
-            .output()
-            .context("failed to run `git ls-files`; is git installed?")?;
-        if !output.status.success() {
-            bail!(
-                "`git ls-files` failed: {}",
-                String::from_utf8_lossy(&output.stderr).trim()
-            );
-        }
-        let listing = String::from_utf8(output.stdout).context("`git ls-files` printed non-UTF-8 paths")?;
+        let listing = git(root, &["ls-files", "-z"])?;
         Ok(Self::from_paths(listing.split('\0').filter(|path| !path.is_empty())))
     }
 
@@ -61,6 +50,23 @@ impl Tracked {
     pub(crate) fn exists(&self, path: &Path) -> bool {
         path.as_os_str().is_empty() || self.files.contains(path) || self.dirs.contains(path)
     }
+}
+
+/// Runs `git args…` in `root` and returns its standard output; fails with git's message.
+pub(crate) fn git(root: &Path, args: &[&str]) -> Result<String> {
+    let output = Command::new("git")
+        .args(args)
+        .current_dir(root)
+        .output()
+        .context("failed to run git; is it installed?")?;
+    if !output.status.success() {
+        bail!(
+            "`git {}` failed: {}",
+            args.join(" "),
+            String::from_utf8_lossy(&output.stderr).trim()
+        );
+    }
+    String::from_utf8(output.stdout).with_context(|| format!("`git {}` printed non-UTF-8 output", args.join(" ")))
 }
 
 /// A scratch directory for tests, removed on drop.

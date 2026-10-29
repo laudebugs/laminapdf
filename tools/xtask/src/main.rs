@@ -3,16 +3,18 @@
 //! This is the single entry point for repo-wide tasks; CI runs the same commands developers run
 //! (docs/guidelines/code-organization.md §10). Run `cargo xtask help` for the task list.
 
+mod changes;
 mod docs_links;
 mod doctor;
 mod harness;
 mod licenses;
+mod portable_paths;
 mod todos;
 mod tracked;
 mod workspace;
 
 use std::env;
-use std::ffi::OsStr;
+use std::ffi::{OsStr, OsString};
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
@@ -26,7 +28,7 @@ usage: cargo xtask <task> [args]
 tasks:
   check [rust|ts|docs]
                     everything a PR must pass (default: docs, rust and ts)
-                    docs: docs-links and todos --check
+                    docs: docs-links, todos --check and portable paths
                     rust: fmt --check, portability, clippy (native + wasm32), tests, rustdoc, cargo-deny
                     ts:   biome ci, typecheck and tests of the pnpm workspace, npm licences
   fmt [--check]     format Rust (cargo fmt) and TS/JSON (biome); --check only verifies
@@ -45,14 +47,24 @@ tasks:
                     list (--update writes them; without it, fail if they would change)
   corpus facts      rewrite fixtures/corpus/expected.json with pypdf (needs Python: see
                     tools/corpus-facts/requirements.txt; $LAMINA_PYTHON or python3)
-  differential [--update]
+  differential [--full] [--update]
                     lamina vs pypdf over the corpus and fixed-seed mutants, from the precomputed
-                    fixtures/differential/expected.json; --update regenerates it with pypdf
+                    fixtures/differential/expected.json; --update regenerates it with pypdf.
+                    --full: the full lane's 36 mutants per corpus file instead (full.json),
+                    run through cargo-nextest
   fuzz <target> [--time <seconds>]
                     run a fuzz target (lex, parse_object, flate_decode, open, page_tree) with
                     cargo +nightly fuzz (default 60 s); seeds come from fixtures/ and fuzz/seeds/
+  fuzz --all [--time <seconds>]
+                    run every fuzz target in turn (the full lane: --time 120)
   fuzz seeds [<target>]
                     only build the seed corpora in fuzz/corpus/
+  fuzz cmin [<target>]
+                    minimise the corpora in fuzz/corpus/ (cargo fuzz cmin)
+  changes [--base <rev>]
+                    list the paths changed since the merge base with <rev> (default origin/main)
+                    and say whether any is code (not docs); sets `code` in $GITHUB_OUTPUT
+                    (default base: origin/main, or main when there is no origin/main)
   ci                check + wasm: the whole fast lane, locally
   doctor [--install]
                     check that external tools are installed at their pinned versions;
@@ -71,6 +83,17 @@ fn main() -> Result<()> {
     if matches!(task, "help" | "-h" | "--help") {
         println!("{USAGE}");
         return Ok(());
+    }
+    // `changes` runs first in the full lane and needs only git: skip `cargo metadata`.
+    if task == "changes" {
+        return match rest {
+            [] => {
+                let root = repo_root()?;
+                changes::run(&root, changes::default_base(&root))
+            }
+            [flag, base] if flag == "--base" => changes::run(&repo_root()?, base),
+            _ => bail!("usage: cargo xtask changes [--base <rev>]"),
+        };
     }
     let ws = Workspace::load(repo_root()?)?;
 
@@ -109,8 +132,7 @@ fn main() -> Result<()> {
         ("golden", []) => harness::golden(&ws, false),
         ("golden", [flag]) if flag == "--update" => harness::golden(&ws, true),
         ("corpus", [what]) if what == "facts" => harness::corpus_facts(&ws),
-        ("differential", []) => harness::differential(&ws, false),
-        ("differential", [flag]) if flag == "--update" => harness::differential(&ws, true),
+        ("differential", args) => harness::differential(&ws, &harness::parse_differential_args(args)?),
         ("fuzz", args) => harness::fuzz(&ws, &harness::parse_fuzz_args(args)?),
         ("ci", []) => {
             check_docs(&ws)?;
@@ -137,6 +159,8 @@ fn check_docs(ws: &Workspace) -> Result<()> {
     docs_links::run(&ws.root, false)?;
     step("todos --check: the todo board and Blocks fields are up to date");
     todos::run(&ws.root, true)?;
+    step("portable paths: every tracked path checks out on Windows, macOS and Linux");
+    portable_paths::check(&ws.root)?;
     step("Docs checks passed");
     Ok(())
 }
@@ -300,10 +324,17 @@ fn step(message: &str) {
 
 /// Runs `program args…` in `dir`, echoing the command, and fails if it exits unsuccessfully.
 fn run<S: AsRef<OsStr>>(dir: &Path, program: &str, args: &[S]) -> Result<()> {
+    run_env(dir, program, args, &[])
+}
+
+/// [`run`] with extra environment variables.
+fn run_env<S: AsRef<OsStr>>(dir: &Path, program: &str, args: &[S], envs: &[(&str, &str)]) -> Result<()> {
     let shown: Vec<_> = args.iter().map(|a| a.as_ref().to_string_lossy()).collect();
-    step(&format!("{program} {}", shown.join(" ")));
-    let status = Command::new(program)
+    let shown_envs: Vec<String> = envs.iter().map(|(k, v)| format!("{k}={v} ")).collect();
+    step(&format!("{}{program} {}", shown_envs.concat(), shown.join(" ")));
+    let status = Command::new(program_path(program))
         .args(args)
+        .envs(envs.iter().copied())
         .current_dir(dir)
         .status()
         .with_context(|| format!("failed to start `{program}`; is it installed and on PATH?"))?;
@@ -311,6 +342,26 @@ fn run<S: AsRef<OsStr>>(dir: &Path, program: &str, args: &[S]) -> Result<()> {
         bail!("`{program} {}` failed with {status}", shown.join(" "));
     }
     Ok(())
+}
+
+/// The program to start for `name`. On Windows, `Command` only finds `name.exe` on `PATH`,
+/// but pnpm installed with npm or corepack is a `pnpm.cmd` shim: use the first of `name.exe`
+/// and `name.cmd` found on `PATH`. Elsewhere, `name` itself.
+pub(crate) fn program_path(name: &str) -> OsString {
+    if cfg!(windows) {
+        let found = env::var_os("PATH").and_then(|path| {
+            env::split_paths(&path).find_map(|dir| {
+                ["exe", "cmd"]
+                    .into_iter()
+                    .map(|ext| dir.join(format!("{name}.{ext}")))
+                    .find(|candidate| candidate.is_file())
+            })
+        });
+        if let Some(found) = found {
+            return found.into_os_string();
+        }
+    }
+    OsString::from(name)
 }
 
 #[cfg(test)]

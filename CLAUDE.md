@@ -29,7 +29,8 @@ lamina is a platform for anything and everything PDF: creating PDFs from code, p
 ├── tools/xtask/         # `cargo xtask …`: the single task entry point
 ├── tools/corpus-facts/  # pypdf facts for fixtures (Python, pinned in requirements.txt); never run by tests
 ├── tools/fixtures/      # generators for fixtures written for lamina's tests (no dependencies)
-├── .github/             # CI fast lane (workflows/ci.yml), scheduled fuzzing (workflows/fuzz.yml), Dependabot
+├── .github/             # CI fast lane (workflows/ci.yml), full lane + required `gate` (workflows/full.yml),
+│                        #   scheduled fuzzing (workflows/fuzz.yml), Dependabot
 ├── spikes/              # research spikes (throwaway code that informs decisions), outside both workspaces
 │   ├── pdf-basics/      # minimal PDF core in Rust + TypeScript, its own frozen fixtures and spec (ported to crates/)
 │   ├── krilla-fit/      # Round B1: can krilla generate into lamina's object graph? (answer + measurements in its README)
@@ -71,7 +72,7 @@ Every repo-wide task goes through `cargo xtask` (source: `tools/xtask`). It runs
 ```sh
 pnpm install                 # once per worktree: Biome, TypeScript (needed by the TS checks)
 cargo xtask check            # everything a PR must pass: `check docs` + `check rust` + `check ts`
-cargo xtask check docs       # docs-links + todos --check (fast; no network)
+cargo xtask check docs       # docs-links + todos --check + portable paths (fast; no network)
 cargo xtask check rust       # fmt --check, portability, clippy native + wasm32 (-D warnings), tests, rustdoc, cargo-deny
 cargo xtask check ts         # biome ci, typecheck and tests of packages/* and apps/*, npm licences
 cargo xtask fmt              # format Rust and TS/JSON (fmt --check only verifies)
@@ -89,13 +90,20 @@ cargo xtask golden --update  # regenerate every golden in fixtures/golden/ from 
 cargo xtask corpus facts     # rewrite fixtures/corpus/expected.json with pypdf ($LAMINA_PYTHON or python3)
 cargo xtask differential     # lamina vs pypdf's precomputed facts (corpus + fixed-seed mutants; part of `test`)
 cargo xtask differential --update  # regenerate fixtures/differential/expected.json with pypdf
+cargo xtask differential --full [--update]  # the full lane's set: 36 mutants per corpus file (full.json; needs cargo-nextest)
 cargo xtask fuzz <target> [--time N]  # cargo +nightly fuzz: lex, parse_object, flate_decode, open, page_tree
+cargo xtask fuzz --all --time 120     # every fuzz target in turn (the full lane)
+cargo xtask fuzz cmin [<target>]      # minimise fuzz/corpus/ (the full lane does this before caching it on main)
+cargo xtask changes [--base <rev>]    # paths changed since the merge base with <rev> (default origin/main, else main);
+                                      #   code=true unless all are on the docs allowlist
 cargo xtask ci               # the whole fast lane locally: check + wasm
 cargo xtask doctor           # are rustc, node, pnpm, cargo-deny, cargo-nextest, wasm-opt … at the pinned versions?
 cargo xtask doctor --install # install the pinned cargo tools
 ```
 
 A single crate: `cargo test -p lamina-cos` or `cargo test -p lamina-save` (integration tests read the shared `fixtures/`; golden files are never rewritten by a test). Hangs are caught by nextest's per-test timeout in `.config/nextest.toml` (robustness tests: 30 s), not by wall-clock asserts (ADR 0018); plain `cargo test` runs the same tests without the timeout.
+
+CI has two PR lanes ([ADR 0018 §2](docs/decisions/0018-test-strategy.md#2-ci-lanes) and its implementation note). The fast lane (`.github/workflows/ci.yml`) runs on every PR. The full lane (`.github/workflows/full.yml`) runs on every PR too: its `changes` job (`cargo xtask changes`) classifies the PR against the docs allowlist (defined once, in `is_docs` in `tools/xtask/src/changes.rs`); for code PRs and every push to `main` it runs `cargo xtask check` on Linux, macOS and Windows, the full differential set and 2 minutes per fuzz target. Its `gate` job is the required check. A new full-lane job uses exactly `if: ${{ !cancelled() && needs.changes.outputs.code == 'true' }}` and joins `gate`'s `needs` (see the comment at the top of `full.yml`). Both lanes use nextest's `ci` profile (no retries).
 
 Fuzzing (`fuzz/`, see its README) needs nightly Rust and cargo-fuzz (pinned in `doctor.rs`); `.github/workflows/fuzz.yml` runs every target for 10 minutes nightly. Python (pypdf, pinned in `tools/corpus-facts/requirements.txt`) is only needed to regenerate facts; tests read the committed JSON.
 
@@ -105,7 +113,7 @@ Editing API (ADR 0005 §3, 0006): the base bytes never change; every write goes 
 
 Saving API (ADR 0007 §5–§7, ADR 0005 §3; `lamina-save`): `IncrementalWriter` / `FullWriter` over a `lamina_cos::Document` stream to a `WriteSink` (`Vec<u8>`, `IoWrite<W>`; append only); the `Save` trait on `lamina_ops::Document` adds `save_incremental`, `save_full` (write-only sink → `SaveState::SavedNotRebased` until `doc.rebase(bytes)`) and `save_full_and_rebase` (a `ReadableSink`), B3b's names until B3c's `Document::save` and planner. A failed save leaves the document `Dirty`; a failed rebase after a complete write returns `SaveError::NotRebased` with the output; undo history survives only an incremental save that freed nothing. `SaveOptions` (`IncrementalOutput`, `Renumber::{Keep, Compact}`, `XrefKind::{Stream, Classic}`, `XrefEol`), `SaveReport`. `/ID[0]` is kept, `/ID[1]` is a content hash; output is byte-deterministic. Encrypted bases are refused by both writers, repaired ones by the incremental one (a save with nothing to append writes the base unchanged). The spike-era `Writer` / `incremental_update` (now in `lamina-save`) build test files from scratch; `lamina-cos`, `lamina-model` and `lamina-ops` reach it through a dev-dependency.
 
-Every crate under `crates/` declares its layer in `Cargo.toml` (`[package.metadata.lamina] layer = "core" | "edge" | "app"`); xtask applies the bytes-in/bytes-out rules to core crates. External tool versions are pinned in `tools/xtask/src/doctor.rs` (CI installs the same ones): `cargo-deny` is required by `check`; `cargo-nextest` is optional (falls back to `cargo test`).
+Every crate under `crates/` declares its layer in `Cargo.toml` (`[package.metadata.lamina] layer = "core" | "edge" | "app"`); xtask applies the bytes-in/bytes-out rules to core crates. External tool versions are pinned in `tools/xtask/src/doctor.rs` (CI installs the same ones): `cargo-deny` is required by `check`; `cargo-nextest` is optional (falls back to `cargo test`), except for `differential --full`, which needs it.
 
 Research spikes (`spikes/`) are throwaway-quality APIs used to inform decisions, not the product. They are outside both workspaces; CI still runs the pdf-basics spike's checks in a separate job.
 
