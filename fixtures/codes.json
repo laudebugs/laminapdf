@@ -10,7 +10,14 @@
     "flate-truncated",
     "objstm-index-mismatch",
     "object-number-out-of-range",
-    "warnings-truncated"
+    "warnings-truncated",
+    "invalid-box",
+    "invalid-rotate",
+    "name-tree-node-skipped",
+    "outline-cycle",
+    "outline-item-skipped",
+    "invalid-date",
+    "invalid-page-label"
   ],
   "errors": [
     "not-pdf",

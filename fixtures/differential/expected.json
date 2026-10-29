@@ -1,0 +1,380 @@
+{
+  "enc-m0.pdf": {
+    "outcome": "failed",
+    "page_count": null,
+    "outline_titles": null
+  },
+  "enc-m1.pdf": {
+    "outcome": "opened",
+    "page_count": 1,
+    "outline_titles": []
+  },
+  "enc-m2.pdf": {
+    "outcome": "repaired",
+    "page_count": 1,
+    "outline_titles": []
+  },
+  "enc-m3.pdf": {
+    "outcome": "repaired",
+    "page_count": 1,
+    "outline_titles": []
+  },
+  "enc.pdf": {
+    "outcome": "opened",
+    "page_count": 1,
+    "outline_titles": []
+  },
+  "fpdf2-m0.pdf": {
+    "outcome": "failed",
+    "page_count": null,
+    "outline_titles": null
+  },
+  "fpdf2-m1.pdf": {
+    "outcome": "repaired",
+    "page_count": 1,
+    "outline_titles": []
+  },
+  "fpdf2-m2.pdf": {
+    "outcome": "failed",
+    "page_count": null,
+    "outline_titles": null
+  },
+  "fpdf2-m3.pdf": {
+    "outcome": "repaired",
+    "page_count": 1,
+    "outline_titles": []
+  },
+  "fpdf2.pdf": {
+    "outcome": "opened",
+    "page_count": 1,
+    "outline_titles": []
+  },
+  "hello-broken-m0.pdf": {
+    "outcome": "failed",
+    "page_count": null,
+    "outline_titles": null
+  },
+  "hello-broken-m1.pdf": {
+    "outcome": "repaired",
+    "page_count": 1,
+    "outline_titles": []
+  },
+  "hello-broken-m2.pdf": {
+    "outcome": "repaired",
+    "page_count": 1,
+    "outline_titles": []
+  },
+  "hello-broken-m3.pdf": {
+    "outcome": "repaired",
+    "page_count": 1,
+    "outline_titles": []
+  },
+  "hello-broken.pdf": {
+    "outcome": "repaired",
+    "page_count": 1,
+    "outline_titles": []
+  },
+  "hello-incremental-m0.pdf": {
+    "outcome": "opened",
+    "page_count": 1,
+    "outline_titles": []
+  },
+  "hello-incremental-m1.pdf": {
+    "outcome": "opened",
+    "page_count": 1,
+    "outline_titles": []
+  },
+  "hello-incremental-m2.pdf": {
+    "outcome": "repaired",
+    "page_count": 1,
+    "outline_titles": []
+  },
+  "hello-incremental-m3.pdf": {
+    "outcome": "repaired",
+    "page_count": 1,
+    "outline_titles": []
+  },
+  "hello-incremental.pdf": {
+    "outcome": "opened",
+    "page_count": 1,
+    "outline_titles": []
+  },
+  "hello-m0.pdf": {
+    "outcome": "failed",
+    "page_count": null,
+    "outline_titles": null
+  },
+  "hello-m1.pdf": {
+    "outcome": "opened",
+    "page_count": 1,
+    "outline_titles": []
+  },
+  "hello-m2.pdf": {
+    "outcome": "repaired",
+    "page_count": 0,
+    "outline_titles": []
+  },
+  "hello-m3.pdf": {
+    "outcome": "repaired",
+    "page_count": 1,
+    "outline_titles": []
+  },
+  "hello-xrefstm-m0.pdf": {
+    "outcome": "failed",
+    "page_count": null,
+    "outline_titles": null
+  },
+  "hello-xrefstm-m1.pdf": {
+    "outcome": "failed",
+    "page_count": null,
+    "outline_titles": null
+  },
+  "hello-xrefstm-m2.pdf": {
+    "outcome": "failed",
+    "page_count": null,
+    "outline_titles": null
+  },
+  "hello-xrefstm-m3.pdf": {
+    "outcome": "failed",
+    "page_count": null,
+    "outline_titles": null
+  },
+  "hello-xrefstm.pdf": {
+    "outcome": "opened",
+    "page_count": 1,
+    "outline_titles": []
+  },
+  "hello.pdf": {
+    "outcome": "opened",
+    "page_count": 1,
+    "outline_titles": []
+  },
+  "imaging-demo-m0.pdf": {
+    "outcome": "failed",
+    "page_count": null,
+    "outline_titles": null
+  },
+  "imaging-demo-m1.pdf": {
+    "outcome": "repaired",
+    "page_count": 1,
+    "outline_titles": []
+  },
+  "imaging-demo-m2.pdf": {
+    "outcome": "repaired",
+    "page_count": 1,
+    "outline_titles": []
+  },
+  "imaging-demo-m3.pdf": {
+    "outcome": "repaired",
+    "page_count": 1,
+    "outline_titles": []
+  },
+  "imaging-demo.pdf": {
+    "outcome": "opened",
+    "page_count": 1,
+    "outline_titles": []
+  },
+  "outline-m0.pdf": {
+    "outcome": "failed",
+    "page_count": null,
+    "outline_titles": null
+  },
+  "outline-m1.pdf": {
+    "outcome": "opened",
+    "page_count": 3,
+    "outline_titles": [
+      "Introduction",
+      "Chapter Ł1 — Café",
+      "Section 2.1",
+      "Sec†ion 2.2",
+      "Appendix 𝄞 Ω",
+      "Notes"
+    ]
+  },
+  "outline-m2.pdf": {
+    "outcome": "repaired",
+    "page_count": 3,
+    "outline_titles": [
+      "Introduction",
+      "Chapter Ł1 — Café",
+      "Section 2.1",
+      "Section 2.2",
+      "Appendix 𝄞 Ω",
+      "Notes"
+    ]
+  },
+  "outline-m3.pdf": {
+    "outcome": "repaired",
+    "page_count": 0,
+    "outline_titles": [
+      "Introduction",
+      "Chapter Ł1 — Café",
+      "Section 2.1",
+      "Section 2.2",
+      "Appendix 𝄞 Ω",
+      "Notes"
+    ]
+  },
+  "outline.pdf": {
+    "outcome": "opened",
+    "page_count": 3,
+    "outline_titles": [
+      "Introduction",
+      "Chapter Ł1 — Café",
+      "Section 2.1",
+      "Section 2.2",
+      "Appendix 𝄞 Ω",
+      "Notes"
+    ]
+  },
+  "pdflib-m0.pdf": {
+    "outcome": "failed",
+    "page_count": null,
+    "outline_titles": null
+  },
+  "pdflib-m1.pdf": {
+    "outcome": "failed",
+    "page_count": null,
+    "outline_titles": null
+  },
+  "pdflib-m2.pdf": {
+    "outcome": "failed",
+    "page_count": null,
+    "outline_titles": null
+  },
+  "pdflib-m3.pdf": {
+    "outcome": "repaired",
+    "page_count": 0,
+    "outline_titles": []
+  },
+  "pdflib.pdf": {
+    "outcome": "opened",
+    "page_count": 1,
+    "outline_titles": []
+  },
+  "raw-m0.pdf": {
+    "outcome": "failed",
+    "page_count": null,
+    "outline_titles": null
+  },
+  "raw-m1.pdf": {
+    "outcome": "opened",
+    "page_count": 1,
+    "outline_titles": []
+  },
+  "raw-m2.pdf": {
+    "outcome": "repaired",
+    "page_count": 1,
+    "outline_titles": []
+  },
+  "raw-m3.pdf": {
+    "outcome": "repaired",
+    "page_count": 1,
+    "outline_titles": []
+  },
+  "raw.pdf": {
+    "outcome": "opened",
+    "page_count": 1,
+    "outline_titles": []
+  },
+  "reportlab-m0.pdf": {
+    "outcome": "failed",
+    "page_count": null,
+    "outline_titles": null
+  },
+  "reportlab-m1.pdf": {
+    "outcome": "opened",
+    "page_count": 1,
+    "outline_titles": []
+  },
+  "reportlab-m2.pdf": {
+    "outcome": "repaired",
+    "page_count": 1,
+    "outline_titles": []
+  },
+  "reportlab-m3.pdf": {
+    "outcome": "repaired",
+    "page_count": 1,
+    "outline_titles": []
+  },
+  "reportlab.pdf": {
+    "outcome": "opened",
+    "page_count": 1,
+    "outline_titles": []
+  },
+  "signed-m0.pdf": {
+    "outcome": "opened",
+    "page_count": 1,
+    "outline_titles": []
+  },
+  "signed-m1.pdf": {
+    "outcome": "opened",
+    "page_count": 1,
+    "outline_titles": []
+  },
+  "signed-m2.pdf": {
+    "outcome": "repaired",
+    "page_count": 1,
+    "outline_titles": []
+  },
+  "signed-m3.pdf": {
+    "outcome": "repaired",
+    "page_count": 1,
+    "outline_titles": []
+  },
+  "signed.pdf": {
+    "outcome": "opened",
+    "page_count": 1,
+    "outline_titles": []
+  },
+  "tampered-m0.pdf": {
+    "outcome": "opened",
+    "page_count": 1,
+    "outline_titles": []
+  },
+  "tampered-m1.pdf": {
+    "outcome": "opened",
+    "page_count": 1,
+    "outline_titles": []
+  },
+  "tampered-m2.pdf": {
+    "outcome": "repaired",
+    "page_count": 1,
+    "outline_titles": []
+  },
+  "tampered-m3.pdf": {
+    "outcome": "repaired",
+    "page_count": 1,
+    "outline_titles": []
+  },
+  "tampered.pdf": {
+    "outcome": "opened",
+    "page_count": 1,
+    "outline_titles": []
+  },
+  "text-example-m0.pdf": {
+    "outcome": "failed",
+    "page_count": null,
+    "outline_titles": null
+  },
+  "text-example-m1.pdf": {
+    "outcome": "opened",
+    "page_count": 1,
+    "outline_titles": []
+  },
+  "text-example-m2.pdf": {
+    "outcome": "repaired",
+    "page_count": 1,
+    "outline_titles": []
+  },
+  "text-example-m3.pdf": {
+    "outcome": "repaired",
+    "page_count": 1,
+    "outline_titles": []
+  },
+  "text-example.pdf": {
+    "outcome": "opened",
+    "page_count": 1,
+    "outline_titles": []
+  }
+}

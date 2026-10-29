@@ -72,6 +72,45 @@ pub enum Warning {
     /// `warnings-truncated`: more than [`Limits::max_warnings`] warnings were raised; the rest
     /// were dropped.
     WarningsTruncated,
+    /// `invalid-box`: a page boundary box (`/MediaBox`, `/CropBox`, `/BleedBox`, `/TrimBox`,
+    /// `/ArtBox`) is not an array of four numbers; the view reads it as absent.
+    InvalidBox {
+        /// The page's object number (`None` for a direct page dictionary).
+        object: Option<u32>,
+    },
+    /// `invalid-rotate`: a page's `/Rotate` is not an integer multiple of 90; the view reads 0.
+    InvalidRotate {
+        /// The page's object number (`None` for a direct page dictionary).
+        object: Option<u32>,
+    },
+    /// `name-tree-node-skipped`: a name- or number-tree node, kid or entry was missing,
+    /// malformed, reached twice, or deeper than [`Limits::max_tree_depth`]; it was skipped.
+    NameTreeNodeSkipped {
+        /// The skipped node's object number (`None` for a direct object).
+        object: Option<u32>,
+    },
+    /// `outline-cycle`: an outline item was reached twice; the walk stopped that branch.
+    OutlineCycle {
+        /// The item reached again.
+        object: u32,
+    },
+    /// `outline-item-skipped`: an outline item was missing, not a dictionary, or deeper than
+    /// [`Limits::max_tree_depth`]; it and its subtree were skipped.
+    OutlineItemSkipped {
+        /// The skipped item's object number (`None` for a direct object).
+        object: Option<u32>,
+    },
+    /// `invalid-date`: an Info date is not a valid PDF date (§7.9.4); the raw string is kept.
+    InvalidDate {
+        /// The Info dictionary's object number (`None` for a direct one).
+        object: Option<u32>,
+    },
+    /// `invalid-page-label`: a `/PageLabels` entry is malformed (not a dictionary, an unknown
+    /// `/S` style, or `/St` below 1); the range falls back to a plain decimal label.
+    InvalidPageLabel {
+        /// The page index the range starts at.
+        start: u64,
+    },
 }
 
 impl Warning {
@@ -88,6 +127,13 @@ impl Warning {
         "objstm-index-mismatch",
         "object-number-out-of-range",
         "warnings-truncated",
+        "invalid-box",
+        "invalid-rotate",
+        "name-tree-node-skipped",
+        "outline-cycle",
+        "outline-item-skipped",
+        "invalid-date",
+        "invalid-page-label",
     ];
 
     /// The stable kebab-case code, e.g. `"xref-repaired"`.
@@ -105,6 +151,13 @@ impl Warning {
             Self::ObjStmIndexMismatch { .. } => "objstm-index-mismatch",
             Self::ObjectNumberOutOfRange { .. } => "object-number-out-of-range",
             Self::WarningsTruncated => "warnings-truncated",
+            Self::InvalidBox { .. } => "invalid-box",
+            Self::InvalidRotate { .. } => "invalid-rotate",
+            Self::NameTreeNodeSkipped { .. } => "name-tree-node-skipped",
+            Self::OutlineCycle { .. } => "outline-cycle",
+            Self::OutlineItemSkipped { .. } => "outline-item-skipped",
+            Self::InvalidDate { .. } => "invalid-date",
+            Self::InvalidPageLabel { .. } => "invalid-page-label",
         }
     }
 
@@ -115,18 +168,29 @@ impl Warning {
             Self::StreamLengthRecovered { object }
             | Self::StaleGeneration { object, .. }
             | Self::ObjStmIndexMismatch { object }
-            | Self::ObjectNumberOutOfRange { object } => Some(object),
+            | Self::ObjectNumberOutOfRange { object }
+            | Self::OutlineCycle { object } => Some(object),
             Self::PageTreeNodeSkipped { object }
             | Self::PageCountMismatch { object, .. }
-            | Self::FlateTruncated { object } => object,
-            Self::MissingHeader | Self::XrefRepaired | Self::XrefStmIgnored { .. } | Self::WarningsTruncated => None,
+            | Self::FlateTruncated { object }
+            | Self::InvalidBox { object }
+            | Self::InvalidRotate { object }
+            | Self::NameTreeNodeSkipped { object }
+            | Self::OutlineItemSkipped { object }
+            | Self::InvalidDate { object } => object,
+            Self::MissingHeader
+            | Self::XrefRepaired
+            | Self::XrefStmIgnored { .. }
+            | Self::WarningsTruncated
+            | Self::InvalidPageLabel { .. } => None,
         }
     }
 
-    /// Deduplication key: (code, object, offset).
+    /// Deduplication key: (code, object, offset or page index).
     const fn key(&self) -> WarningKey {
         let offset = match *self {
             Self::XrefStmIgnored { offset } => Some(offset),
+            Self::InvalidPageLabel { start } => Some(start),
             _ => None,
         };
         (self.code(), self.object(), offset)
@@ -194,6 +258,13 @@ mod tests {
             Warning::ObjStmIndexMismatch { object: 1 },
             Warning::ObjectNumberOutOfRange { object: 1 },
             Warning::WarningsTruncated,
+            Warning::InvalidBox { object: None },
+            Warning::InvalidRotate { object: None },
+            Warning::NameTreeNodeSkipped { object: None },
+            Warning::OutlineCycle { object: 1 },
+            Warning::OutlineItemSkipped { object: None },
+            Warning::InvalidDate { object: None },
+            Warning::InvalidPageLabel { start: 0 },
         ];
         for w in &all {
             match w {
@@ -207,7 +278,14 @@ mod tests {
                 | Warning::FlateTruncated { .. }
                 | Warning::ObjStmIndexMismatch { .. }
                 | Warning::ObjectNumberOutOfRange { .. }
-                | Warning::WarningsTruncated => {}
+                | Warning::WarningsTruncated
+                | Warning::InvalidBox { .. }
+                | Warning::InvalidRotate { .. }
+                | Warning::NameTreeNodeSkipped { .. }
+                | Warning::OutlineCycle { .. }
+                | Warning::OutlineItemSkipped { .. }
+                | Warning::InvalidDate { .. }
+                | Warning::InvalidPageLabel { .. } => {}
             }
         }
         all

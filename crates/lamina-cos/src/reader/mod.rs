@@ -46,6 +46,51 @@ pub struct Page {
     /// `/Resources`, own or inherited, resolved. Always an [`Object::Dict`]; shared (not
     /// copied) between pages that inherit the same resources. See [`Page::resources_dict`].
     pub resources: Option<Arc<Object>>,
+    /// The inheritable attributes as stored (unresolved, own or inherited), for views that
+    /// need to tell an absent attribute from a malformed one.
+    pub inherited: Arc<Inherited>,
+    /// Where a direct page dictionary sits (`None` when the page is an indirect object).
+    pub direct_path: Option<DirectPath>,
+}
+
+/// The location of a direct (inline) object: its nearest indirect ancestor and the keys and
+/// array indices that lead from there to it, e.g. `5 0 R` → `/Kids` → `3` (ADR 0005 §5).
+/// The same bytes always give the same path.
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[non_exhaustive]
+pub struct DirectPath {
+    /// The nearest indirect ancestor (`None` when the chain starts at the trailer, i.e. the
+    /// trailer's `/Root` is itself a direct dictionary).
+    pub anchor: Option<ObjRef>,
+    /// The steps from the anchor (from the trailer when `anchor` is `None`).
+    pub segments: Vec<PathSegment>,
+}
+
+/// One step of a [`DirectPath`].
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub enum PathSegment {
+    /// A dictionary key, e.g. `Kids`.
+    Key(&'static str),
+    /// An array index.
+    Index(usize),
+}
+
+impl DirectPath {
+    /// The path `segments` from `anchor` (`None`: from the trailer).
+    #[must_use]
+    pub const fn new(anchor: Option<ObjRef>, segments: Vec<PathSegment>) -> Self {
+        Self { anchor, segments }
+    }
+
+    fn child(&self, steps: [PathSegment; 2]) -> Self {
+        let mut segments = Vec::with_capacity(self.segments.len() + 2);
+        segments.extend_from_slice(&self.segments);
+        segments.extend(steps);
+        Self {
+            anchor: self.anchor,
+            segments,
+        }
+    }
 }
 
 impl Page {
@@ -254,14 +299,20 @@ fn as_rect(doc: &Document, obj: &Object) -> Result<Option<[f64; 4]>> {
     Ok(Some(out))
 }
 
-/// Inheritable page attributes carried down the page tree. Values are shared via [`Arc`],
-/// so passing them to every kid (and every page) never copies a dictionary.
-#[derive(Debug, Clone, Default)]
-struct Inherited {
-    media_box: Option<Arc<Object>>,
-    crop_box: Option<Arc<Object>>,
-    rotate: Option<Arc<Object>>,
-    resources: Option<Arc<Object>>,
+/// Inheritable page attributes (§7.7.3.4) as stored, own or inherited and unresolved (a
+/// value may be a reference). Carried down the page tree and shared via [`Arc`], so passing
+/// them to every kid (and every page) never copies a dictionary.
+#[derive(Debug, Clone, Default, PartialEq)]
+#[non_exhaustive]
+pub struct Inherited {
+    /// `/MediaBox`.
+    pub media_box: Option<Arc<Object>>,
+    /// `/CropBox`.
+    pub crop_box: Option<Arc<Object>>,
+    /// `/Rotate`.
+    pub rotate: Option<Arc<Object>>,
+    /// `/Resources`.
+    pub resources: Option<Arc<Object>>,
 }
 
 const INHERITABLE: [&str; 4] = ["MediaBox", "CropBox", "Rotate", "Resources"];
@@ -453,6 +504,16 @@ impl Document {
         self.warnings.borrow_mut().raise(warning, &self.limits, self.strict)
     }
 
+    /// Records a warning raised by a layer above this one (the typed views of
+    /// `lamina-model`), so every warning about a document lives in one list
+    /// ([`Document::warnings`]), deduplicated and capped like the reader's own.
+    ///
+    /// # Errors
+    /// [`Error::Strict`] in strict mode.
+    pub fn report(&self, warning: Warning) -> Result<()> {
+        self.warn(warning)
+    }
+
     /// The newest trailer dictionary (for xref-stream files, the stream dictionary).
     #[must_use]
     pub const fn trailer(&self) -> &Dict {
@@ -536,7 +597,7 @@ impl Document {
 
     /// The highest object number in any xref section, free entries and entries dropped for
     /// exceeding [`Limits::max_object_number`] included.
-    pub(crate) const fn max_object_number(&self) -> Option<u32> {
+    pub const fn max_object_number(&self) -> Option<u32> {
         self.max_object_number
     }
 
@@ -813,10 +874,19 @@ impl Document {
         let _call = self.call();
         let catalog = self.catalog()?;
         let root = catalog.get("Pages").cloned().unwrap_or(Object::Null);
+        // A direct `/Pages` sits in the catalog: its path starts there (ADR 0005 §5).
+        let root_path = DirectPath {
+            anchor: self.trailer.get("Root").and_then(Object::as_ref),
+            segments: if self.trailer.get("Root").and_then(Object::as_ref).is_some() {
+                vec![PathSegment::Key("Pages")]
+            } else {
+                vec![PathSegment::Key("Root"), PathSegment::Key("Pages")]
+            },
+        };
         let mut visited = BTreeSet::new();
-        let mut stack = vec![(root.clone(), Arc::new(Inherited::default()), 0usize)];
+        let mut stack = vec![(root.clone(), Arc::new(Inherited::default()), 0usize, root_path)];
         let mut pages = Vec::new();
-        while let Some((node_obj, inherited, depth)) = stack.pop() {
+        while let Some((node_obj, inherited, depth, path)) = stack.pop() {
             let obj_ref = node_obj.as_ref();
             let skip = || {
                 self.warn(Warning::PageTreeNodeSkipped {
@@ -866,16 +936,25 @@ impl Document {
                     }
                 };
                 if let Object::Array(kids) = &*kids {
-                    stack.extend(
-                        kids.iter()
-                            .rev()
-                            .map(|kid| (kid.clone(), Arc::clone(&attrs), depth + 1)),
-                    );
+                    // Kids of an indirect node are anchored at it; kids of a direct one extend
+                    // its own path.
+                    let base = match obj_ref {
+                        Some(r) => DirectPath {
+                            anchor: Some(r),
+                            segments: Vec::new(),
+                        },
+                        None => path,
+                    };
+                    stack.extend(kids.iter().enumerate().rev().map(|(i, kid)| {
+                        let kid_path = base.child([PathSegment::Key("Kids"), PathSegment::Index(i)]);
+                        (kid.clone(), Arc::clone(&attrs), depth + 1, kid_path)
+                    }));
                 } else {
                     skip()?;
                 }
             } else {
-                pages.push(self.make_page(obj_ref, node.clone(), &attrs)?);
+                let direct_path = obj_ref.is_none().then_some(path);
+                pages.push(self.make_page(obj_ref, node.clone(), attrs, direct_path)?);
             }
         }
         self.check_page_count(&root, pages.len())?;
@@ -904,7 +983,13 @@ impl Document {
 
     /// A page from its dictionary and inherited attributes. A malformed attribute is `None`
     /// (`/Rotate`: 0); cycles, hard limits and strict-mode refusals fail the call.
-    fn make_page(&self, obj_ref: Option<ObjRef>, dict: Dict, attrs: &Inherited) -> Result<Page> {
+    fn make_page(
+        &self,
+        obj_ref: Option<ObjRef>,
+        dict: Dict,
+        attrs: Arc<Inherited>,
+        direct_path: Option<DirectPath>,
+    ) -> Result<Page> {
         let rect = |o: &Option<Arc<Object>>| match o.as_deref() {
             Some(o) => as_rect(self, o),
             None => Ok(None),
@@ -930,6 +1015,8 @@ impl Document {
             rotate: rotate.unwrap_or(0),
             resources,
             dict,
+            inherited: attrs,
+            direct_path,
         })
     }
 
