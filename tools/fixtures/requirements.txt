@@ -1,0 +1,3 @@
+# Font fixture generator (tools/fixtures/fonts.py). fontTools: MIT. Tools only: nothing here
+# ships or links into lamina.
+fonttools==4.68.0

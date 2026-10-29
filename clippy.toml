@@ -13,4 +13,4 @@ disallowed-types = [
 ]
 
 # Spec and crate names that doc_markdown would otherwise want in backticks ("..": keep the defaults).
-doc-valid-idents = ["..", "PDFDocEncoding", "SASLprep", "RustCrypto"]
+doc-valid-idents = ["..", "PDFDocEncoding", "SASLprep", "RustCrypto", "ToUnicode", "CMap", "CMaps", "CIDFont", "CIDFonts", "TrueType", "OpenType", "PostScript"]

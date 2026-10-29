@@ -70,5 +70,18 @@
   "saveErrors": [
     "sink",
     "not-rebased"
+  ],
+  "textErrors": [
+    "invalid-font",
+    "collection-index",
+    "unknown-axis",
+    "font-not-embeddable",
+    "missing-glyph",
+    "glyph-out-of-range",
+    "unknown-font",
+    "subset-failed"
+  ],
+  "textWarnings": [
+    "tounicode-conflict"
   ]
 }

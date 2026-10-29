@@ -1,0 +1,459 @@
+//! Fonts loaded from caller-supplied bytes: single fonts and collection members (`.ttc`,
+//! `.otc`), TrueType or CFF outlines, static or variable (research 03 §3.6, §6.1).
+
+use std::fmt;
+use std::sync::Arc;
+
+use sha2::{Digest, Sha256};
+use skrifa::instance::{LocationRef, NormalizedCoord, Size};
+use skrifa::raw::{FileRef, TableProvider};
+use skrifa::string::StringId;
+use skrifa::{FontRef, MetadataProvider};
+
+use crate::error::{Error, Result};
+use crate::fstype::FsType;
+
+/// A four-byte OpenType tag, such as the variation axis `wght`.
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct Tag([u8; 4]);
+
+impl Tag {
+    /// The weight axis, `wght`.
+    pub const WEIGHT: Self = Self(*b"wght");
+    /// The width axis, `wdth`.
+    pub const WIDTH: Self = Self(*b"wdth");
+
+    /// A tag from its four bytes.
+    #[must_use]
+    pub const fn new(bytes: &[u8; 4]) -> Self {
+        Self(*bytes)
+    }
+
+    /// The tag's four bytes.
+    #[must_use]
+    pub const fn to_bytes(self) -> [u8; 4] {
+        self.0
+    }
+
+    pub(crate) fn to_skrifa(self) -> skrifa::Tag {
+        skrifa::Tag::new(&self.0)
+    }
+}
+
+impl fmt::Display for Tag {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&String::from_utf8_lossy(&self.0))
+    }
+}
+
+impl fmt::Debug for Tag {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "Tag({self})")
+    }
+}
+
+/// A glyph ID in a font's own numbering (an index into `glyf`/`loca` or the CFF
+/// `CharStrings` INDEX).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
+pub struct GlyphId(u16);
+
+impl GlyphId {
+    /// `.notdef`, glyph 0.
+    pub const NOTDEF: Self = Self(0);
+
+    /// A glyph ID.
+    #[must_use]
+    pub const fn new(id: u16) -> Self {
+        Self(id)
+    }
+
+    /// The numeric ID.
+    #[must_use]
+    pub const fn get(self) -> u16 {
+        self.0
+    }
+}
+
+/// A variation axis of a variable font (`fvar`), in user units.
+#[derive(Debug, Clone, Copy, PartialEq)]
+#[non_exhaustive]
+pub struct Axis {
+    /// The axis tag, such as `wght`.
+    pub tag: Tag,
+    /// The smallest value.
+    pub min: f32,
+    /// The default value.
+    pub default: f32,
+    /// The largest value.
+    pub max: f32,
+}
+
+/// What a font says about itself, at its instance's location for a variable font. Lengths are
+/// in font units (see [`FontInfo::units_per_em`]); y grows upwards.
+#[derive(Debug, Clone, PartialEq)]
+#[non_exhaustive]
+pub struct FontInfo {
+    /// The family name (typographic family, `name` ID 16, else ID 1).
+    pub family: String,
+    /// The PostScript name (`name` ID 6), restricted to the characters a PDF name may hold
+    /// unescaped. For a variable-font instance the axis values are appended
+    /// (`NotoSans-Regular_wght700`), so instances of one family have distinct names
+    /// (research 03 §7.9).
+    pub postscript_name: String,
+    /// Font units per em (`head.unitsPerEm`).
+    pub units_per_em: u16,
+    /// The number of glyphs (`maxp.numGlyphs`).
+    pub glyph_count: u16,
+    /// Typographic ascender.
+    pub ascent: f32,
+    /// Typographic descender (negative below the baseline).
+    pub descent: f32,
+    /// Capital height, when the font records it (`OS/2` version 2 and later).
+    pub cap_height: Option<f32>,
+    /// x-height, when the font records it.
+    pub x_height: Option<f32>,
+    /// Italic angle in degrees, counter-clockwise from vertical (`post.italicAngle`).
+    pub italic_angle: f32,
+    /// Weight class, 1–1000 (`OS/2.usWeightClass`, or the `wght` coordinate of an instance).
+    pub weight: u16,
+    /// The font bounding box `[x_min, y_min, x_max, y_max]` (`head`).
+    pub bbox: [f32; 4],
+    /// The font descriptor flags (ISO 32000-2 §9.8.2): `FixedPitch` (bit
+    /// 1), `Symbolic` (bit 3: always set, as a CIDFont's glyphs are addressed by CID, not by the
+    /// standard Latin encoding) and `Italic` (bit 7).
+    pub flags: u32,
+    /// CFF (or CFF2) outlines, as opposed to TrueType `glyf` outlines.
+    pub is_cff: bool,
+    /// The font has variation axes (`fvar`).
+    pub is_variable: bool,
+    /// The variation axes, in `fvar` order (empty for a static font).
+    pub axes: Vec<Axis>,
+    /// The embedding permissions (`OS/2.fsType`).
+    pub fs_type: FsType,
+}
+
+/// The bytes a font was loaded from, shared by every instance of it.
+struct Source {
+    bytes: Arc<[u8]>,
+    index: u32,
+    /// SHA-256 of `bytes`: part of the subset tag.
+    digest: [u8; 32],
+}
+
+/// A font loaded from caller-supplied bytes; for a variable font, one instance of it. Cheap to
+/// clone (the bytes are shared). `Send + Sync`.
+///
+/// ```
+/// # fn font_bytes() -> Vec<u8> { include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/../../fixtures/fonts/NotoSans-Regular.ttf")).to_vec() }
+/// use lamina_text::Font;
+///
+/// let font = Font::from_bytes(font_bytes())?;
+/// assert_eq!(font.info().postscript_name, "NotoSans-Regular");
+/// assert!(font.glyph_for('A').is_some());
+/// # Ok::<(), lamina_text::Error>(())
+/// ```
+#[derive(Clone)]
+pub struct Font {
+    source: Arc<Source>,
+    /// The instance's user coordinates, sorted by tag (empty: the default instance).
+    coords: Arc<[(Tag, f32)]>,
+    /// The same, normalised, in `fvar` axis order (empty: the default instance).
+    location: Arc<[NormalizedCoord]>,
+    info: Arc<FontInfo>,
+}
+
+impl fmt::Debug for Font {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("Font")
+            .field("postscript_name", &self.info.postscript_name)
+            .field("index", &self.source.index)
+            .field("coords", &self.coords)
+            .finish_non_exhaustive()
+    }
+}
+
+impl Font {
+    /// Loads a font (`.ttf`, `.otf`); for a collection, its first member.
+    ///
+    /// # Errors
+    /// [`Error::InvalidFont`] when the bytes are not a readable font.
+    pub fn from_bytes(bytes: impl Into<Arc<[u8]>>) -> Result<Self> {
+        Self::from_collection(bytes, 0)
+    }
+
+    /// Loads member `index` of a font collection (`.ttc`, `.otc`); index 0 of a single font
+    /// is the font itself.
+    ///
+    /// # Errors
+    /// [`Error::InvalidFont`] when the bytes are not a readable font or collection;
+    /// [`Error::CollectionIndex`] when `index` is past its last member.
+    pub fn from_collection(bytes: impl Into<Arc<[u8]>>, index: u32) -> Result<Self> {
+        let bytes: Arc<[u8]> = bytes.into();
+        let count = Self::collection_len(&bytes)?;
+        if index >= count {
+            return Err(Error::CollectionIndex { index, count });
+        }
+        let digest: [u8; 32] = Sha256::digest(&bytes).into();
+        let source = Arc::new(Source { bytes, index, digest });
+        let font = FontRef::from_index(&source.bytes, index).map_err(|_| Error::InvalidFont { index })?;
+        let info = font_info(&font, &[], LocationRef::default()).ok_or(Error::InvalidFont { index })?;
+        Ok(Self {
+            source: Arc::clone(&source),
+            coords: Arc::from([]),
+            location: Arc::from([]),
+            info: Arc::new(info),
+        })
+    }
+
+    /// The number of fonts in `bytes`: the member count of a collection, 1 for a single font.
+    ///
+    /// # Errors
+    /// [`Error::InvalidFont`] when the bytes are neither.
+    pub fn collection_len(bytes: &[u8]) -> Result<u32> {
+        match FileRef::new(bytes) {
+            Ok(FileRef::Font(_)) => Ok(1),
+            Ok(FileRef::Collection(c)) => Ok(c.len()),
+            Err(_) => Err(Error::InvalidFont { index: 0 }),
+        }
+    }
+
+    /// The instance of this variable font at `settings` (user units, such as `wght` 700),
+    /// starting from this font's own coordinates. Values outside an axis's range are clamped
+    /// to it; when a tag is given twice the last value wins. The instance is subset at that
+    /// location when embedded (`subsetter`'s instancing), so its metrics, `/W` widths and
+    /// outlines agree.
+    ///
+    /// # Errors
+    /// [`Error::UnknownAxis`] for a tag the font has no axis for (a static font has none).
+    pub fn instance(&self, settings: &[(Tag, f32)]) -> Result<Self> {
+        let font = self.font_ref()?;
+        let axes = font.axes();
+        let mut coords: Vec<(Tag, f32)> = self.coords.to_vec();
+        for &(tag, value) in settings {
+            let found = axes.get_by_tag(tag.to_skrifa()).ok_or_else(|| Error::UnknownAxis {
+                font: self.info.postscript_name.clone(),
+                tag,
+            })?;
+            let value = value.clamp(found.min_value(), found.max_value());
+            coords.retain(|(t, _)| *t != tag);
+            coords.push((tag, value));
+        }
+        coords.sort_by_key(|&(tag, _)| tag);
+        let location = axes.location(coords.iter().map(|&(tag, value)| (tag.to_skrifa(), value)));
+        let normalized: Arc<[NormalizedCoord]> = Arc::from(location.coords());
+        let index = self.source.index;
+        let info = font_info(&font, &coords, LocationRef::new(&normalized)).ok_or(Error::InvalidFont { index })?;
+        Ok(Self {
+            source: Arc::clone(&self.source),
+            coords: Arc::from(coords),
+            location: normalized,
+            info: Arc::new(info),
+        })
+    }
+
+    /// What the font says about itself.
+    #[must_use]
+    pub fn info(&self) -> &FontInfo {
+        &self.info
+    }
+
+    /// The instance's variation coordinates (user units, sorted by tag); empty for a static
+    /// font or the default instance.
+    #[must_use]
+    pub fn coordinates(&self) -> &[(Tag, f32)] {
+        &self.coords
+    }
+
+    /// The collection member this font was loaded from (0 for a single font).
+    #[must_use]
+    pub fn index(&self) -> u32 {
+        self.source.index
+    }
+
+    /// The glyph the font's `cmap` maps `ch` to; `None` when it has none (the font would draw
+    /// `.notdef`). This is the unshaped, one-glyph-per-character mapping; shaping (B4b) picks
+    /// glyphs from the same font.
+    #[must_use]
+    pub fn glyph_for(&self, ch: char) -> Option<GlyphId> {
+        let gid = self.font_ref().ok()?.charmap().map(ch)?;
+        u16::try_from(gid.to_u32()).ok().filter(|&g| g != 0).map(GlyphId)
+    }
+
+    /// The horizontal advance of `gid` in font units at this instance's location, rounded to
+    /// a whole unit as `hmtx` stores it (so it matches the embedded instance's widths); `None`
+    /// for a glyph past the font's glyph count.
+    #[must_use]
+    pub fn advance(&self, gid: GlyphId) -> Option<f32> {
+        if gid.get() >= self.info.glyph_count {
+            return None;
+        }
+        let font = self.font_ref().ok()?;
+        font.glyph_metrics(Size::unscaled(), self.location_ref())
+            .advance_width(skrifa::GlyphId::from(gid.get()))
+            .map(f32::round)
+    }
+
+    /// The bytes the font was loaded from (the whole collection for a member).
+    #[must_use]
+    pub fn bytes(&self) -> &[u8] {
+        &self.source.bytes
+    }
+
+    pub(crate) fn digest(&self) -> &[u8; 32] {
+        &self.source.digest
+    }
+
+    pub(crate) fn location_ref(&self) -> LocationRef<'_> {
+        LocationRef::new(&self.location)
+    }
+
+    pub(crate) fn font_ref(&self) -> Result<FontRef<'_>> {
+        let index = self.source.index;
+        FontRef::from_index(&self.source.bytes, index).map_err(|_| Error::InvalidFont { index })
+    }
+}
+
+/// Reads [`FontInfo`] at `location`; `None` when a required table is missing or malformed.
+fn font_info(font: &FontRef<'_>, coords: &[(Tag, f32)], location: LocationRef<'_>) -> Option<FontInfo> {
+    let head = font.head().ok()?;
+    font.hhea().ok()?;
+    font.hmtx().ok()?;
+    let maxp = font.maxp().ok()?;
+    let units_per_em = head.units_per_em();
+    if units_per_em == 0 {
+        return None;
+    }
+    let metrics = font.metrics(Size::unscaled(), location);
+    let os2 = font.os2().ok();
+    let name = |id: StringId| {
+        font.localized_strings(id)
+            .english_or_first()
+            .map(|s| s.to_string())
+            .filter(|s| !s.is_empty())
+    };
+    let family = name(StringId::TYPOGRAPHIC_FAMILY_NAME)
+        .or_else(|| name(StringId::FAMILY_NAME))
+        .unwrap_or_default();
+    let base = name(StringId::POSTSCRIPT_NAME)
+        .map(|s| pdf_name_chars(&s))
+        .filter(|s| !s.is_empty())
+        .or_else(|| Some(pdf_name_chars(&family)).filter(|s| !s.is_empty()))
+        .unwrap_or_else(|| "Font".to_owned());
+    let postscript_name = instance_name(&base, coords);
+    let italic = metrics.italic_angle != 0.0
+        || os2.as_ref().is_some_and(|o| {
+            o.fs_selection()
+                .contains(skrifa::raw::tables::os2::SelectionFlags::ITALIC)
+        });
+    // ISO 32000-2 §9.8.2: bit 1 FixedPitch, bit 3 Symbolic, bit 7 Italic.
+    let flags = u32::from(metrics.is_monospace) | 4 | if italic { 64 } else { 0 };
+    let weight = coords
+        .iter()
+        .find(|(tag, _)| *tag == Tag::WEIGHT)
+        .map(|&(_, w)| clamp_weight(w))
+        .or_else(|| os2.as_ref().map(skrifa::raw::tables::os2::Os2::us_weight_class))
+        .unwrap_or(400);
+    let axes = font
+        .axes()
+        .iter()
+        .map(|a| Axis {
+            tag: Tag(a.tag().to_be_bytes()),
+            min: a.min_value(),
+            default: a.default_value(),
+            max: a.max_value(),
+        })
+        .collect::<Vec<_>>();
+    let bbox = metrics
+        .bounds
+        .map_or([0.0; 4], |b| [b.x_min, b.y_min, b.x_max, b.y_max]);
+    let has = |tag: &[u8; 4]| font.table_data(skrifa::Tag::new(tag)).is_some();
+    Some(FontInfo {
+        family,
+        postscript_name,
+        units_per_em,
+        glyph_count: maxp.num_glyphs(),
+        ascent: metrics.ascent,
+        descent: metrics.descent,
+        cap_height: metrics.cap_height,
+        x_height: metrics.x_height,
+        italic_angle: metrics.italic_angle,
+        weight,
+        bbox,
+        flags,
+        is_cff: !has(b"glyf") && (has(b"CFF ") || has(b"CFF2")),
+        is_variable: !axes.is_empty(),
+        axes,
+        fs_type: FsType::new(os2.as_ref().map_or(0, skrifa::raw::tables::os2::Os2::fs_type)),
+    })
+}
+
+/// `w` as a weight class (1–1000, rounded).
+fn clamp_weight(w: f32) -> u16 {
+    // The clamp keeps the value in u16 range, so the cast is exact.
+    #[expect(
+        clippy::cast_possible_truncation,
+        clippy::cast_sign_loss,
+        reason = "clamped to 1..=1000"
+    )]
+    let weight = w.clamp(1.0, 1000.0).round() as u16;
+    weight
+}
+
+/// `base` with the instance's coordinates appended (`_wght700_wdth87.5`), so instances of one
+/// family get distinct `/BaseFont` names.
+fn instance_name(base: &str, coords: &[(Tag, f32)]) -> String {
+    let mut name = base.to_owned();
+    for (tag, value) in coords {
+        let tag = pdf_name_chars(&tag.to_string());
+        let value = lamina_cos::Object::Real(f64::from(*value));
+        let mut formatted = Vec::new();
+        value.write_to(&mut formatted);
+        name.push('_');
+        name.push_str(&tag);
+        name.push_str(&String::from_utf8_lossy(&formatted));
+    }
+    name
+}
+
+/// Keeps the characters a PostScript font name may use (printable ASCII except the PDF
+/// delimiters, `%` and `#`), so `/BaseFont` needs no escapes.
+fn pdf_name_chars(s: &str) -> String {
+    s.chars()
+        .filter(|c| c.is_ascii_graphic() && !"()<>[]{}/%#".contains(*c))
+        .collect()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn pdf_name_chars_drops_spaces_and_delimiters() {
+        assert_eq!(pdf_name_chars("Noto Sans (Bold)/x#1"), "NotoSansBoldx1");
+    }
+
+    #[test]
+    fn instance_name_appends_sorted_coordinates() {
+        let coords = [(Tag::WEIGHT, 700.0), (Tag::WIDTH, 87.5)];
+        assert_eq!(instance_name("Noto", &coords), "Noto_wght700_wdth87.5");
+    }
+
+    #[test]
+    fn invalid_bytes_are_not_a_font() {
+        assert_eq!(
+            Font::from_bytes(b"not a font".to_vec()).unwrap_err(),
+            Error::InvalidFont { index: 0 }
+        );
+    }
+
+    #[test]
+    fn font_is_send_and_sync() {
+        fn assert_send_sync<T: Send + Sync>() {}
+        assert_send_sync::<Font>();
+    }
+
+    #[test]
+    fn tag_displays_its_ascii() {
+        assert_eq!(Tag::WEIGHT.to_string(), "wght");
+    }
+}
