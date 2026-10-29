@@ -9,22 +9,22 @@ This area covers screens A01–A07 of the [screen inventory](screens.md#a-add-an
 The work it designs is planned in [full-editor §E6](../../plans/full-editor.md#e6-adding-content-to-pages) and [§E7](../../plans/full-editor.md#e7-editing-existing-content).
 
 - **Canvas:** [lamina Paper — Add and edit content](https://claude.ai/artifact/5CecE9xXiw2RXoVde7xEsL) has one row per screen and a sticky note per row. The canvas is republished from the files after review; until then the files are the source of truth.
-- **Look:** the [Paper design language](design-language.md). Every board copies the foundation Desktop board's window frame, top bar, rail, inspector and status bar. Dialogs sit over the full shell, dimmed and inert.
+- **Look:** the [Paper design language](design-language.md). Every board copies the foundation Desktop board's window frame, top bar, rail, inspector and status bar. Dialogs sit over the full shell (top bar, toolbar, rail, page and status bar), dimmed by the scrim, `aria-hidden` and taken out of the tab order.
 - **Platform:** all seven screens are **D** (desktop first). The web app uses the same layout without the window frame; the differences are listed per screen.
 
 ## Shared decisions for the area
 
-**Top bar.** Every board uses the full top bar:
+**Top bar.** Every board uses the Editor top bar ([design language §7.1](design-language.md#71-top-bar)):
 
-- file name, then the save state, then a divider and Undo and Redo;
+- the sidebar toggle, the file name, then the save state, then a divider and Undo and Redo (28 px icon buttons in a `History` group);
 - the mode switcher, with Edit pressed;
-- the page input, zoom −/%/+, Find and Commands (⌘K);
+- the page input, zoom −/%/+, Find, View (view settings, `aria-haspopup="dialog"`) and Commands (⌘K);
 - Save, shown only when there are changes;
 - More (`⋯`).
 
-Undo and Redo name the step they undo ("Undo move image") and are disabled with no history. The save count goes up when an op is recorded, not while you type in a text box. So A01 and A04 show "No unsaved changes" mid-typing; their Undo inside the box is the text field's own undo.
+Undo and Redo name the step they undo ("Undo move image") and are disabled (`aria-disabled`, `disabled` colour) with no history. The save count goes up when an op is recorded, not while you type in a text box. So A01 and A04 show "No unsaved changes" mid-typing; their Undo inside the box is the text field's own undo.
 
-**Edit mode toolbar.** One toolbar, identical on every Edit board:
+**Edit mode toolbar.** One toolbar, identical on every Edit board (the [§8.1](design-language.md#81-modes-and-their-secondary-toolbars) Edit toolbar). Only the pressed tool and the context note change from board to board. While find and replace is open (A06) the find bar takes its place, so there is still one secondary toolbar:
 
 ```
 Select · Edit text · Add text · Image · Shape ▾ · Link │ Page marks ▾ · Replace… │ Redact · Protect · Tools ▾
@@ -33,7 +33,7 @@ Select · Edit text · Add text · Image · Shape ▾ · Link │ Page marks ▾
 | Control | What it is | Command ids |
 | --- | --- | --- |
 | Select, Edit text, Add text, Image, Link | Tool toggles: a 16 px icon and a label, `aria-pressed` | `tool.select`, `tool.edit-text`, `tool.add-text`, `tool.image`, `tool.link` |
-| Shape ▾ | Split button. The main part is a toggle for the last-used shape. The 20 px chevron part ("Choose shape", `aria-haspopup="menu"`) opens Line, Rectangle, Ellipse, Polygon | `tool.shape` (with a `kind` argument) |
+| Shape ▾ | Split tool button ([§7.24](design-language.md#724-secondary-toolbar-tool-toggle)). The main part is a toggle (`aria-pressed`) for the last-used shape, labelled "Shape" with that shape's icon. The 20 × 28 chevron part ("Choose shape", `aria-haspopup="menu"`) opens Line, Rectangle, Ellipse, Polygon | `tool.shape` (with a `kind` argument) |
 | Page marks ▾ | Menu button: Watermark…, Header & footer…, Bates numbers…, Manage page marks… | `edit.add-watermark`, `edit.add-header-footer`, `edit.add-bates`, `edit.manage-page-marks` |
 | Replace… | Opens the find bar with the Replace row; pressed style while open | `find.open-replace` |
 | Redact · Protect | Tool buttons that stay visible on the toolbar (principle 3: every action has a visible home). Each replaces this toolbar with its own tool toolbar that ends in "Done" | `redact.open`, `security.protect` |
@@ -41,7 +41,7 @@ Select · Edit text · Add text · Image · Shape ▾ · Link │ Page marks ▾
 
 A context note at the right end gives the active tool's hint, for example "Click to place a text box, or drag to set its width · Esc to finish". After placing an object the tool returns to Select, with the new object selected (as in [§8.2](design-language.md#82-selection--inspector)).
 
-**Rail.** Edit mode shows `Pages · Outline · Attachments`, with Attachments always shown in Edit mode. Once an edit session exists, History joins in a "More tabs" menu button after the third tab, and the rail is 280 px. While find is open, `Results` takes the third visible place and Attachments moves into More tabs.
+**Rail** ([§8.10](design-language.md#810-rail-tab-set-proposed)). Edit mode shows `Pages · Outline · Attachments`, with Attachments always shown in Edit mode, in a 220 px rail. Once the session has a step in its history, History joins in a "More tabs" menu button after the third tab, and the rail is 280 px. While find is open, `Results` takes the third visible place and Attachments moves into More tabs. On the boards: A01, A03 watermark, A04 and A05 text block have no history yet (220 px); the others show More tabs (280 px).
 
 **Status bar.**
 
@@ -109,9 +109,9 @@ Everything else in the area is identical on web and desktop.
 
 **Layout.** The full shell, with:
 
-- the top bar showing "No unsaved changes" while the first box is being typed;
+- the top bar showing "No unsaved changes" while the first box is being typed, with Undo and Redo disabled and no Save;
 - the Edit toolbar with Add text pressed and its context note;
-- the rail (Outline);
+- the rail (`Pages · Outline · Attachments`, Outline selected, 220 px);
 - the canvas with page 3;
 - the inspector "Text box";
 - the status bar with no middle note.
@@ -125,7 +125,7 @@ Everything else in the area is identical on web and desktop.
   - **Style** (toggle group): Bold, Italic, Underline, Superscript, Subscript. `edit.toggle-bold`, `edit.toggle-italic`, `edit.toggle-underline`, `edit.toggle-superscript`, `edit.toggle-subscript`
   - **Alignment** (toggle group): left, centre, right. `edit.align-text`
   - **Colour:** Ink, Grey, Teal, Red, then "Custom…" (content colours, not annotation colours).
-  - **Read by screen readers as** (tagged files only): Paragraph; Heading 3 (under “2. Repairs backlog”), the default heading level, one below the section's heading; Heading 1–6; Decoration (not read). Help says where the text joins the reading order. `edit.set-structure-role`
+  - **Read by screen readers as** (tagged files only): Paragraph; Heading 3 (under “2. Repairs backlog”), the default heading level, one below the section's heading; Heading 1–6; Decoration (not read). Help says where the text joins the reading order ("…joins the reading order after “The board is asked to note…”"). `edit.set-structure-role`
   - **Actions:** "Insert symbol…" (`edit.insert-symbol`) and "Delete text box" (danger ghost; `edit.delete`).
 
 **States.**
@@ -166,27 +166,28 @@ Everything else in the area is identical on web and desktop.
 
 **Layout.** The full shell with Select pressed (the tool returns to Select after placing).
 
-- **Left artboard:** the placed logo selected below the running header, with a snap guide labelled in the top margin, and the inspector "Image".
-- **Right artboard:** the rectangle drawn around the West bar selected, with the inspector "Rectangle".
+- **Left artboard:** the placed logo selected below the running header, with a snap guide on the right margin labelled in the top margin, and the inspector "Image". Top bar: "3 unsaved changes", Undo "Undo place image".
+- **Right artboard:** the rectangle drawn around the West bar selected (eight handles and a rotation handle), with the inspector "Rectangle". Top bar: "4 unsaved changes", Undo "Undo resize rectangle".
+- Both: Select pressed, rail at 280 px with More tabs (History), no status-bar middle note (added content is not a delete, replace or recolour of original content).
 
 **Content and controls.**
 
 - **On the page:**
-  - The image has eight handles and a rotation handle.
+  - The image has eight handles and a rotation handle. Handles are an overlay drawn above the page, so the rotation handle of an object placed just under the running header may cross the header rule (as on the left board); that is expected.
   - A dashed `accent` snap guide appears while dragging near the margins, the page centre and other objects' edges. Its label sits in the margin, never over text.
   - Shapes: a **click places a 72 × 72 pt shape** (a 72 pt line) at the click point, ready to edit in W and H; a drag draws it, and Shift keeps squares, circles and 45° lines.
   - Polygon: one point per click; Enter or a click on the first point closes it. Without a pointer, the inspector's Edit points (A05) adds points.
 - **Inspector "Image"** (`Page 3 · Added by you`):
   - File line ("northwind-logo.png · 640 × 196 px · PNG with transparency") and **Replace…** (`edit.replace-image`).
   - **Position and size (pt):** X, Y, W, H; **Keep proportions** (pressed by default); **Rotate**. `edit.transform-object`
-  - **Opacity:** slider plus value. `edit.set-opacity`
+  - **Opacity:** slider plus value (focus ring drawn). `edit.set-opacity`
   - **Crop, inset from each edge (pt):** Left, Top, Right, Bottom, plus "Crop with handles", which swaps the resize handles for crop handles until Enter or Escape. `edit.crop-image`
-  - **Arrange:** Bring to front, Bring forward, Send backward, Send to back. `edit.bring-to-front`, `edit.bring-forward`, `edit.send-backward`, `edit.send-to-back`
+  - **Arrange:** Bring to front, Bring forward, Send backward, Send to back, as a 2 × 2 group of secondary buttons. `edit.bring-to-front`, `edit.bring-forward`, `edit.send-backward`, `edit.send-to-back`
   - **Alternative text** and "Decoration, screen readers skip it" (tagged files).
   - **Actions:** Duplicate (`edit.duplicate`), Delete image (`edit.delete`).
 - **Inspector "Rectangle"** (shape; same pattern for line, ellipse and polygon):
   - Position and size and Rotate.
-  - **Fill:** No fill and the content colours.
+  - **Fill:** No fill (chosen on the board) and the content colours.
   - **Stroke:** colour swatches with Custom…, Line (Solid, Dashed, Dotted, None) and Width (pt). The focus ring is drawn on Width.
   - Corner radius (rectangles only), Opacity, the four Arrange buttons, Duplicate, Delete shape.
   - Commands: `edit.set-fill`, `edit.set-stroke`.
@@ -227,7 +228,7 @@ Everything else in the area is identical on web and desktop.
 - Palette: "Add watermark", "Add page numbers".
 - "Manage page marks…" (`edit.manage-page-marks`) lists the marks lamina added, to edit or remove them.
 
-**Layout.** One **Page marks** dialog (the wide form dialog) over the full Edit-mode shell, dimmed and inert. The dialog has:
+**Layout.** One **Page marks** dialog, the 820 px wide dialog of [§7.18](design-language.md#718-dialog-proposed), over the full Edit-mode shell (Page marks ▾ shown open in the toolbar), dimmed and inert. The dialog has:
 
 - a title, a subtitle ("Stamped onto the pages as content, not as comments") and "Close page marks";
 - tabs: Watermark · Header & footer · Bates numbers;
@@ -237,7 +238,7 @@ Everything else in the area is identical on web and desktop.
 **Content and controls.**
 
 - **Watermark tab** (left artboard):
-  - **Use:** Text or Image….
+  - **Use:** Text or Image… (radios built as in [§7.19](design-language.md#719-form-controls-proposed-consistent-with-the-page-input-and-note-field)).
   - **Text** (focus ring drawn).
   - **Font** and **Size**.
   - **Colour**: Grey, Red, Teal, Ink.
@@ -251,7 +252,7 @@ Everything else in the area is identical on web and desktop.
   - A 2 × 3 grid of slot inputs, each labelled by its row and column.
   - **Insert into the slot:** Page, Pages, Page label, Date, File name. Tokens are written in square brackets ("[Page] of [Pages]").
   - Size, Top and Bottom margin, Date format, and Pages from/to.
-  - **Overlap notice** (warning): lamina looks for text already in the header and footer bands. Here: "These pages already show a page number (“Page 3 of 24”). Yours would add a second one. Clear the Right slot or remove the existing footer from the page first."
+  - **Overlap notice** (warning): lamina looks for text already in the header and footer bands. Here: "**These pages already show a page number (“Page 3 of 24”).** Yours would add a second one. Clear the Right slot or remove the existing footer from the page first." The Right footer slot (focus ring drawn) is described by the notice.
   - **Preview:** new marks are drawn in the colour they will print, each inside a 1 px dashed `control-border` box. Text already on the page is drawn plainly. The note explains this, so "new" never depends on colour.
   - Footer: "Adds a header and footer to pages 2–24 (23 pages)." · Cancel · **Add header and footer**.
 - **Bates numbers tab** (not drawn; same layout): Prefix, Start number, Digits (zero-padded), Suffix, Slot and Pages, with a preview of the first and last number ("NHT-000001 … NHT-000024"). In a batch (E14d) the count continues across files.
@@ -296,7 +297,7 @@ Everything else in the area is identical on web and desktop.
 - The full shell with Edit text pressed, the context note "Click a paragraph to edit it · Dashed outlines show editable text", and the inspector "Paragraph".
 - Every detected run has a 1 px dashed `control-border` outline (3.65:1 on white).
 - The paragraph being edited has the 2 px `accent` focus outline.
-- The top bar shows "No unsaved changes" until editing ends.
+- The top bar shows "No unsaved changes" until editing ends (Undo and Redo disabled, no Save); the rail is the 220 px `Pages · Outline · Attachments`; the status bar has no middle note.
 
 **Content and controls.**
 
@@ -305,7 +306,7 @@ Everything else in the area is identical on web and desktop.
   - **Substitution notice** (warning, only when needed): "1 character uses another font. The font in this file has no “č”, and its full version isn’t available. lamina draws it in Source Serif 4, the closest bundled match, and marks it with a dotted underline here."
     - Choices: **Substitute only missing characters** (default) or **Set the paragraph in Source Serif 4**; plus **Choose another font…**.
     - `edit.substitute-missing-glyphs`, `edit.set-paragraph-font`
-  - **Font in the file:** its name and coverage.
+  - **Font in the file:** its name and coverage ("NorthwindSerif Regular · Embedded subset. Has every character in this paragraph except “č”.").
   - Size, Line spacing, Style, Alignment and Colour. The current colour is named "Ink (original)". If the font has no bold or italic face, Bold and Italic are drawn synthetically, and the Style help says so.
   - **Actions:** Done (`edit.finish-text`), Revert paragraph (`edit.revert-text`).
 
@@ -320,7 +321,7 @@ Everything else in the area is identical on web and desktop.
 
 - **Original font is enough:** no notice.
 - **Substitution:** drawn, left.
-- **Can't edit in place** (right artboard): the inspector "Chart labels" says "This text can’t be edited in place. Its letters are drawn as shapes with no record of which characters they are, so lamina can’t retype them in the same font." It offers:
+- **Can't edit in place** (right artboard): the chart labels are outlined with the 1 px `accent` selection outline (the only focus ring is on the first action), and the inspector "Chart labels" says "This text can’t be edited in place. Its letters are drawn as shapes with no record of which characters they are, so lamina can’t retype them in the same font." It offers:
   - **Select to move or delete**: switches to Select with the text object selected. Moving, resizing, rotating or deleting the whole object is allowed (E7d A.07); its letters can't be changed.
   - **Delete and add new text**: one step; opens an A01 box in its place.
   - **Redact…**
@@ -338,7 +339,7 @@ Everything else in the area is identical on web and desktop.
 
 **Accessibility.**
 
-- The editor is a multi-line `textbox` described by the substitution notice, so the warning is announced when it appears.
+- The editor is a multi-line `textbox` described by the substitution notice's sentence, so the warning is announced when it appears. Only that sentence is the `role="status"` live region; the choices below it are not inside it, so changing them doesn't re-announce the notice.
 - With the Edit text tool, Tab cycles editable runs in reading order, Enter starts editing and Escape ends it.
 - The inspector states everything that the dashed outlines and the dotted underline show.
 
@@ -361,34 +362,35 @@ Everything else in the area is identical on web and desktop.
 
 **Layout.** The full shell with Select pressed, in three artboards:
 
-- **Left:** the chart's four bars selected as one group, with eight handles and a rotation handle. The context menu is open above the selection, clear of it.
-- **Middle:** a paragraph selected as a **text block**.
-- **Right:** **edit points** of one bar.
+- **Left:** the chart's four bars selected as one group, with eight handles and a rotation handle. The context menu is open above the selection, clear of it and of the rotation handle. Top bar "2 unsaved changes", Undo "Undo recolour 4 shapes"; rail 280 px with More tabs (History).
+- **Middle:** a paragraph selected as a **text block**, with nothing changed yet ("No unsaved changes", 220 px rail, no middle note).
+- **Right:** **edit points** of the West bar, after a point was moved ("3 unsaved changes", Undo "Undo move point").
 
 **Content and controls.**
 
-- **Context menu** (left): Cut ⌘X · Copy ⌘C · Duplicate │ Bring to front · Bring forward · Send backward · Send to back │ Edit points ↵ · Release clipping · Release mask (disabled: these paths have no mask) · Replace image… (disabled for paths) │ Delete shapes ⌫.
+- **Context menu** (left), the [§7.26](design-language.md#726-menu-proposed) menu: 32 px items, 14 px labels indented to the icon column, shortcut chips, the palette's active-row style on Bring forward (focus ring drawn), disabled items in the `disabled` colour with the reason as a tooltip, Delete last in `danger`. Items: Cut ⌘X · Copy ⌘C · Duplicate │ Bring to front · Bring forward · Send backward · Send to back │ Edit points ↵ · Release clipping · Release mask (disabled: these paths have no mask) · Replace image… (disabled for paths) │ Delete shapes ⌫.
   - It opens next to the pointer, flips to stay inside the canvas, and never covers the selection when there is room.
   - Commands: `edit.cut`, `edit.copy`, `edit.duplicate`, `edit.bring-to-front`, `edit.bring-forward`, `edit.send-backward`, `edit.send-to-back`, `edit.edit-points`, `edit.release-clip`, `edit.release-mask`, `edit.replace-image`, `edit.delete`.
 - **Inspector "4 shapes":**
   - Position and size (X, Y, W, H) and Rotate.
   - **Fill** swatches: the original colour first, named "Slate (original)", with Teal chosen.
-  - **Stroke** and **Width** (Width is disabled while Stroke is None).
+  - **Stroke** and **Width** (Width is disabled while Stroke is None, with the help "Set a stroke first.").
   - **Shape and clipping:** Edit points and Release clipping, with "Clipped to the chart area by the original file."
   - Actions: Revert to original (`edit.revert-object`), Delete shapes.
 - **Inspector "Text block"** (middle):
-  - A single click with Select selects a text block as a whole object (E7d A.07). The inspector shows a quote of its text, then X, Y, W, H and Rotate (focus ring on X).
+  - A single click with Select selects a text block as a whole object (E7d A.07): a 1 px `accent` outline, eight handles and a rotation handle. The inspector shows a quote of its text, then X, Y, W, H and Rotate (focus ring on X).
   - Help: "A side handle re-flows the lines in the same font; a corner handle scales the text."
-  - Arrange (four buttons), **Edit text** (or double-click), Revert to original, Delete text block.
+  - Arrange (four buttons), **Edit text** (or double-click), Revert to original (disabled until something changed), Delete text block.
   - Text whose letters can't be edited (A04, right) is still a text block here: moving and deleting it as a whole is allowed; editing inside its glyphs is not.
 - **Inspector "Edit points"** (right):
-  - On the page, anchor points are 8 px squares; the selected one is filled `accent`. Smooth points also show two 6 px round control handles.
-  - The inspector shows the selected point's X and Y, Point type (Corner or Smooth), Add point after, Previous point, Next point, Done and Delete point.
+  - On the page, the path being edited has a 1 px dashed `accent` outline and its anchor points are 8 px squares; the selected one (top right of the West bar) is filled `accent`. Smooth points also show two 6 px round control handles (not drawn: the bar has only corners).
+  - The inspector "Edit points" (`West bar · point 2 of 4 · part of the original page`) shows the selected point's X (focus ring) and Y, Point type (Corner or Smooth, a segmented radio group), Previous point, Next point, Add point after, Done and Delete point.
+  - The toolbar's context note says "Editing points · Tab moves between points · Enter or Esc to finish".
   - Tab and Shift-Tab move between points, and arrow keys move the selected one. These make every point edit possible without dragging.
 - **Images**, inspector as A02, plus:
   - **Apply to:** This page only or All 24 pages that use it. Copy-on-write is the default ("This page only").
   - For an image with a soft mask or mask, a **Mask** row: "Uses a transparency mask" with **Release mask** (`edit.release-mask`) and **Invert mask** (`edit.invert-mask`).
-- **Status bar:** the history note, because a recolour of original content is pending.
+- **Status bar:** the history note on the left and right boards, because a recolour or path edit of original content is pending.
 
 **States.**
 
@@ -423,11 +425,11 @@ Everything else in the area is identical on web and desktop.
 
 **Layout.**
 
-- The Edit toolbar stays, with Replace… shown pressed.
-- Under it is the **find bar from R05** (Reader A): a 300 px field with the count inside it, previous/next, Match case and Whole words, "Searched all 24 pages" and Close.
-- A **Replace** disclosure in the bar (`aria-expanded`) shows a second row: the Replace with field (300 px), Replace, Skip, **Replace 5 checked** (primary) and "One undo step for all of them".
-- The rail is 280 px with `Pages · Outline · Results` and More tabs.
-- There is no inspector.
+- The **find bar from [R05](reader-a.md#r05-find-in-document)** replaces the Edit toolbar while it is open, so there is still one secondary toolbar ([§8.1](design-language.md#81-modes-and-their-secondary-toolbars)). Close brings the Edit toolbar back. The top bar's Find button shows pressed (`aria-expanded="true"`).
+- First row, as R05: a 300 px field with the search icon and the count inside it ("1 of 6"), Previous and Next, a divider, Match case and Whole words, the **Replace** disclosure (`aria-expanded="true"`, `aria-controls` the second row), "Searched all 24 pages" and Close.
+- Second row ([§7.30](design-language.md#730-find-bar-and-results-proposed)): the Replace with field (300 px, Replace icon inside, focus ring drawn), Replace, Skip, **Replace 5 checked** (primary) and "One undo step for all of them".
+- The rail is 280 px with `Pages · Outline · Results` and More tabs (Attachments; History too once the session has a step).
+- There is no inspector, and no status-bar middle note until something is replaced.
 
 **Content and controls.**
 
@@ -435,20 +437,20 @@ Everything else in the area is identical on web and desktop.
   - Commands: `find.next`, `find.previous`, `find.match-case`, `find.whole-words`, `find.open-replace`, `edit.replace-one`, `edit.skip-match`, `edit.replace-checked`, `find.close`.
   - Focus ring on Replace with.
 - **Results tab:**
-  - A "Replace all matches" tri-state checkbox (drawn mixed, with a dash) and "5 of 6 checked", then "6 matches on 5 pages".
-  - Matches are grouped by "Page 3 · Repairs backlog" headings (12/600, as R05). Each match is a checkbox row whose context shows the old words struck through and the new words in `accent`.
+  - A "Replace all matches" tri-state checkbox (drawn mixed: `accent` box with an 8 × 2 white dash) and "5 of 6 checked", then "6 matches on 5 pages".
+  - Matches are grouped by page headings, 12/600 `text-3` as R05: "Page 3 · Repairs backlog", "Page 7 · Rent collection" (2), "Page 9 · Rent collection", "Page 11 · Surveyor capacity", "Page 16 · Risk register". Each match is a checkbox row whose context shows the old words struck through in `muted` and the new words 600 in `accent`.
   - Unchecked rows say "Skipped: stays as it is".
   - The current match has the selected-row style.
-- **On the page:** matches use the R05 colours: other matches `#F6E3BC` with a 1 px `warning` bottom border, and the current match `#EDBF6A` with a 2 px `accent` outline.
+- **On the page:** matches use the `find-match` and `find-current` tokens ([§2.6](design-language.md#26-find-marks-proposed)): other matches `#F6E3BC` with a 1 px `#8A5300` bottom edge, and the current match `#EDBF6A` with a 2 px `accent` outline (drawn on page 3).
 
 **States.**
 
-- **No matches:** the count says "No results" and the Replace buttons are disabled.
+- **No matches:** the count says "No matches" and the Replace buttons are disabled.
 - **Report after replacing** (right artboard):
-  - The count reads "2 left" and the Replace buttons are disabled.
+  - The count reads "2 left"; Replace, Skip and the primary (now "Replace checked") are disabled, and the row's note says "Nothing left to replace".
   - A warning notice says "4 of 5 replaced. 1 match couldn’t be replaced."
-  - Outcomes, each with a badge: **Not replaced** (with its reason and "Go to page 9"), **Skipped by you** ("Go to page 11"), and **Replaced · 4** ("Pages 3, 7 (2), 16", with the new wording). Each link has a 24 px target.
-  - A toast "4 matches replaced · Undo", and the history note in the status bar.
+  - Outcomes, each with a badge: **Not replaced** (with its reason and "Go to page 9", focus ring drawn), **Skipped by you** ("Go to page 11"), and **Replaced · 4** ("Pages 3, 7 (2), 16", with the new wording). Each link is `inline-flex` with a 24 px minimum height.
+  - A toast "4 matches replaced · Undo" (Undo with a 24 px target), the top bar at "1 unsaved change" with Undo "Undo replace 4 matches", and the history note in the status bar.
 - **Reasons a match can't be replaced:**
   - hidden OCR text over a scanned image;
   - text that can't be edited in place (the A04 reasons);
@@ -464,7 +466,7 @@ Everything else in the area is identical on web and desktop.
 **Accessibility.**
 
 - The bar is a `search` landmark and the count is a live region.
-- Results are real checkboxes; the tri-state one is a `role="checkbox"` button with `aria-checked="mixed"`.
+- Results are real checkboxes, built as in [§7.19](design-language.md#719-form-controls-proposed-consistent-with-the-page-input-and-note-field): a native input visually hidden inside its label, with a drawn box. The tri-state one is the same native checkbox with its `indeterminate` property set (the mixed state can't be written in markup, so the board draws the dash), described by "5 of 6 checked".
 - The report notice is `role="status"`.
 - Enter in Find goes to the next match; Enter in Replace with replaces this one.
 
@@ -482,12 +484,14 @@ Everything else in the area is identical on web and desktop.
 
 **Layout (left artboard).** The Edit-mode shell with:
 
-- **A warning banner** under the toolbar, using the constraint-banner pattern with the structure icon: "**This file would no longer meet PDF/UA-1.** The image you added on page 3 has no alternative text. The tags are otherwise up to date." · Add alternative text · Details.
+- **A warning strip** ([§7.29](design-language.md#729-strip-proposed), `warning-tint`) under the toolbar, with the Structure icon: "**This file would no longer meet PDF/UA-1.** The image you added on page 3 has no alternative text. The tags are otherwise up to date." · Details (ghost) · Add alternative text (secondary).
+- The rail as everywhere in Edit mode: `Pages · Outline · Attachments` with More tabs (History). Reading order and tags are not a rail tab; they live in the Accessibility tool (Tools ▾ → Accessibility, X06/X07).
+- The added image selected on the page (handles, no badge on the page: the strip and the inspector say what is wrong).
 - **The inspector "Image"** (`Tagged as Figure`):
   - **Alternative text** in the error state: `danger` border, `aria-invalid`, the error "Needed to keep the PDF/UA claim.", and the focus ring.
   - The Decoration checkbox.
   - **This file’s claims**: PDF/A-2b "Still holds", PDF/UA-1 "1 issue".
-- **The status bar:** the claim badges (one button) beside the page label.
+- **The status bar:** the claim badges (one button, named "PDF/A-2b, PDF/UA-1 · 1 issue: open the conformance check", so its name starts with its visible text) beside the page label.
 
 **Save check dialog (right artboard).** "Check before saving" lists each claim with a badge and one line:
 
@@ -499,7 +503,9 @@ Its explanation: "If you save now, lamina removes the PDF/UA-1 claim from the fi
 
 - **Save without the claim** (secondary, focus ring drawn);
 - **Fix it first** (primary): closes the dialog, selects the image and focuses Alternative text;
-- "Close check before saving": keep editing without saving.
+- "Close check before saving" (the close button's name): keep editing without saving.
+
+The dialog is 560 px wide (the form width of [§7.18](design-language.md#718-dialog-proposed)) over the A07 shell, dimmed and inert.
 
 The same dialog serves the PDF/A case from the Edit session area (E1c, "Save without the PDF/A claim?").
 
@@ -517,7 +523,7 @@ The same dialog serves the PDF/A case from the Edit session area (E1c, "Save wit
 - Quick checks run after each op; the full profile check runs on Save.
 - **Proposed:** removing a broken claim (`pdfuaid:` or `pdfaid:` in XMP) happens only through this dialog, as part of the save, never silently. It is consistent with the XMP editor (O04), where `pdfaid:` is read-only, "Kept by lamina". E7i itself only says "re-check and warn", so this is a decision for E7b/E7i (see Open questions).
 
-**Accessibility.** The banner is `role="status"`. The dialog is a labelled modal described by its first paragraph. Badges pair colour with words and icons.
+**Accessibility.** The strip is `role="status"`. The dialog is a labelled modal described by its first paragraph. Badges pair colour with words and icons.
 
 **Platform differences.** Identical on web and desktop.
 
@@ -529,6 +535,7 @@ The same dialog serves the PDF/A case from the Edit session area (E1c, "Save wit
 
 1. **Broken conformance claims at save** (for [E7b](../../todos/ready/E7b-editing-existing-content-feature-plan.md) and [E7i](../../todos/ready/E7i-structure-and-conformance-maintenance.md)). The proposal is that lamina never saves a claim it has just found false; the only choices are to fix the issue first or to save without the claim. Should an expert option "save and keep the claim" exist? Should a removed claim come back automatically once a later save passes the check?
 2. **Synthetic bold and italic** (E7f): should Paper show a badge on the page when a synthetic style is used, or is the inspector help enough?
+3. **Replace row buttons** (for the [R05](reader-a.md#r05-find-in-document) owner). This doc and [design language §7.30](design-language.md#730-find-bar-and-results-proposed) give the Replace row as Replace · Skip · Replace n checked, because each match can be unchecked in the Results tab. reader-a.md's R05 table still says "Replace, Replace all"; it should follow §7.30.
 
 ## Proposed design-language additions
 
