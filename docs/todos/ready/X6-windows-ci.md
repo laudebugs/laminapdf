@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [architecture §7 cross-cutting](../../plans/architecture.md#7-to-dos) |
 | Round / milestone | Cross-cutting — before the first Windows desktop release (Round D) |
-| Depends on | [X5](./X5-linux-ci-container.md) |
+| Depends on | [X5](../ongoing/X5-linux-ci-container.md) |
 | Blocks | None |
 | ADRs | Follows [0018](../../decisions/0018-test-strategy.md) §2 (CI lanes) |
 | Branch | `ci/x6-windows-ci` |
@@ -20,7 +20,7 @@ Run `cargo xtask check` on Windows again (X4 had it on GitHub-hosted `windows-la
 
 ## Context
 
-- [ADR 0018 §2 and its X4 implementation note](../../decisions/0018-test-strategy.md#2-ci-lanes); [X5](./X5-linux-ci-container.md) (the Linux runner pattern to mirror).
+- [ADR 0018 §2 and its X4 implementation note](../../decisions/0018-test-strategy.md#2-ci-lanes); [X5](../ongoing/X5-linux-ci-container.md) (the Linux runner pattern to mirror).
 - Known Windows-specific code: `pnpm.cmd` lookup in xtask, path portability checks (`cargo xtask check docs`).
 
 ## Scope
