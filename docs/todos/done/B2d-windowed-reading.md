@@ -12,7 +12,7 @@
 | Branch | `feat/b2d-windowed-reading` |
 | PR title | `feat(core): windowed reading and chunked repair for sources without as_slice` |
 | Size | M (≈ 400–700 lines incl. tests) |
-| PR | — |
+| PR | [#29](https://github.com/laudebugs/lamina/pull/29) |
 
 ## Goal
 
