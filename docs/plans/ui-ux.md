@@ -38,7 +38,7 @@ The research's three personas, with accessibility as a property of all three rat
 | Casual mobile | Open from the share sheet, reflowed reading, quick search, finger signature, scan later | Sign-up walls, uploads, paywalls on basic tasks |
 | Everyone using assistive technology | Struct-tree reading, keyboard-only operation, reflow with font and spacing controls, high contrast | 75% of screen-reader users expect PDFs to be a problem (WebAIM 2019) |
 
-**Task frequency (estimate, not data).** No public dataset splits PDF use by task. Treat "viewing ≈ 70% of time in app" as a prior for the reader; on the web, organise/convert tasks may be 20–40% of first-visit intents ([report §2](../research/product/pdf-app-product-and-ux.md#the-70--20--8--2-task-split-is-unverified-and-probably-wrong-for-the-web)). [U5c](../todos/ready/U5c-opt-in-usage-telemetry.md) tests both with opt-in, content-free counts, if ADR 0011 allows it.
+**Task frequency (estimate, not data).** No public dataset splits PDF use by task. Treat "viewing ≈ 70% of time in app" as a prior for the reader; on the web, organise/convert tasks may be 20–40% of first-visit intents ([report §2](../research/product/pdf-app-product-and-ux.md#the-70--20--8--2-task-split-is-unverified-and-probably-wrong-for-the-web)). [U5c](../todos/ready/U5c-opt-in-usage-telemetry.md) tests both with opt-in, content-free counts (telemetry is optional, owner decision 2026-10-29).
 
 ## 4. Principles
 
@@ -144,7 +144,7 @@ The pipeline for every page view ([C3b](../todos/ready/C3b-viewer-virtualiser-an
 | Metric | Release gate | Stretch goal (research) |
 | --- | --- | --- |
 | Web: first page, 10-page 1 MB PDF, warm cache | ≤ 700 ms ([web-app §4](web-app.md#non-functional-targets-are-recommendations-measured-from-c3-onward)) | ≤ 500 ms for a 10 MB PDF |
-| Desktop: cold start to interactive window | < 300 ms, macOS, Windows and Linux ([desktop-app §4](desktop-app.md#non-functional-targets-are-recommendations); was ≤ 1 s) | — |
+| Desktop: cold start to interactive window | < 300 ms, macOS, Windows and Linux ([desktop-app §4](desktop-app.md#non-functional-targets-and-release-gates); was ≤ 1 s) | — |
 | Desktop installer | < 15 MB per platform, PDFium included (was ≤ 40 MB) | — |
 | Interaction responsiveness | No main-thread task > 50 ms while scrolling ([web-app §4](web-app.md#non-functional-targets-are-recommendations-measured-from-c3-onward)) | INP ≤ 200 ms (p75); every command answers in ≤ 100 ms |
 | Crash-free sessions (opt-in reports) | — | ≥ 99.95% (vendor median) |
@@ -222,7 +222,7 @@ The research and the owner's decisions on it change todos in other plans (each n
 | [C7a](../todos/ready/C7a-accessibility-and-theming.md) | Depends on U1b and U1c; the keymap and help dialog come from the command registry; the "night reading" filter is replaced by U2c's page modes |
 | [C2a](../todos/ready/C2a-render-adrs.md) (ADR 0011) | Telemetry optional, opt-in and off by default (owner decision 2026-10-29) |
 | [C7c](../todos/ready/C7c-performance-gates-and-launch.md) | Also depends on U2a, U2c, U3a and U4a; web gates unchanged (stretch goals are U5a's); launch copy states v0.1's pricing status |
-| [D2d](../todos/ready/D2d-tile-transport-and-first-document.md), [D2e](../todos/ready/D2e-desktop-e2e-webdriverio.md), [D6b](../todos/ready/D6b-release-workflow-and-linux-packages.md), [D7c](../todos/ready/D7c-desktop-beta-release.md) | Desktop gates (owner decision 2026-10-29): cold start < 300 ms measured in D2d and logged by every D2e run, installer < 15 MB in D6b's budget step; a miss blocks D7c |
+| [D2d](../todos/ready/D2d-tile-transport-and-first-document.md), [D2e](../todos/ready/D2e-desktop-e2e-webdriverio.md), [D6b](../todos/ready/D6b-release-workflow-and-linux-packages.md), [D7c](../todos/ready/D7c-desktop-beta-release.md) | Desktop gates (owner decision 2026-10-29): cold start < 300 ms measured in D2d and asserted by D2e on the reference runner, installer < 15 MB in D6b's budget step; a miss blocks D7c |
 | [D7a](../todos/ready/D7a-crash-reporting.md), [H1](../todos/ready/H1-auth-spike.md), [H2](../todos/ready/H2-accounts-and-login.md) | Usage analytics via U5c only; pricing questions decided once, in U5a |
 | [D4b](../todos/ready/D4b-native-menus.md) | Depends on U1b; native menus are generated from the command registry |
 | [E2h](../todos/ready/E2h-page-organiser-ui.md) | Insertion bar, "Move to page…" dialog, one undo step per batch |
@@ -245,7 +245,7 @@ The research and the owner's decisions on it change todos in other plans (each n
 
 ## 8. Open questions
 
-1. ~~Does the owner adopt the free-core pledge?~~ **Answered 2026-10-29:** no, lamina will be priced. Still open: the pricing model (one-time, subscription, or both), what each tier includes, and how licences are checked (licence keys, store purchases or accounts from H2); U5a needs these.
+1. ~~Does the owner adopt the free-core pledge?~~ **Answered 2026-10-29:** no, lamina will be priced. Still open: the pricing model (one-time, subscription, or both), what each tier includes, and how licences are checked. On-device features must keep working without an account and offline (architecture principle 6, the hosted-service decision, ADR 0011), so local features need offline licence keys or store purchases; account-based checks fit only hosted services, unless the owner changes that rule. U5a needs these.
 2. Tablet stylus annotation (Apple Pencil, S Pen) in the web reader, or only in native apps after ADR 0025?
 3. When does a visual design pass (typography, iconography, brand) happen, and who does it?
 4. Should citation previews (Semantic Reader style) and Zotero integration get their own plan for the academic persona?

@@ -83,7 +83,7 @@ Ship opt-in accounts: sign-up/sign-in/sign-out with the H1 stack on the `apps/we
 
 ## Risks and open questions
 
-- Open product questions: pricing/plans (lamina will be priced, owner decision 2026-10-29; the model, tiers and whether accounts check licences are decided once, in [U5a](./U5a-pricing-and-promises-page.md)), age requirements, terms of service, data residency — decide before launch
+- Open product questions: pricing/plans (lamina will be priced, owner decision 2026-10-29; the model and tiers are decided in [U5a](./U5a-pricing-and-promises-page.md), which may come after this todo, so keep the account model pricing-neutral: an entitlements field can be added later, and nothing here may make on-device features need an account), age requirements, terms of service, data residency — decide before launch
 - Desktop deep links differ per OS; test each
 
 ## Definition of done

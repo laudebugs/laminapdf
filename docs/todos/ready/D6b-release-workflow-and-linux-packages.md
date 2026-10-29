@@ -25,7 +25,7 @@ One workflow turns a `desktop-v*` tag (and, nightly, `main`) into published desk
 - [Report: repository section](../../research/architecture/app-and-package-architecture.md#the-repository-is-cargo-pnpm-and-a-task-runner-released-through-oidc-and-gated-by-a-pdf-corpus): Release lane runs tauri-action; desktop binaries get GitHub attestations alongside Tauri's updater signature.
 - [ADR 0019](../../decisions/0019-supply-chain-and-licence-hygiene.md): actions pinned by SHA; CycloneDX SBOMs per artefact; generated third-party notices shipped inside the app.
 - Tauri: [GitHub pipeline guide](https://v2.tauri.app/distribute/pipelines/github/) (`tauri-apps/tauri-action`, `args: --target …`, `projectPath`, `tauriScript`), [Linux distribution](https://v2.tauri.app/distribute/) (AppImage, deb, rpm; `bundle.linux.deb.depends`, `bundle.linux.rpm.depends`, `bundle.linux.appimage.bundleMediaFramework`), [Linux signing](https://v2.tauri.app/distribute/sign/linux/) (AppImage GPG signing via `SIGN=1`, `SIGN_KEY`, `APPIMAGETOOL_SIGN_PASSPHRASE`; check the rpm signing env vars in the current docs).
-- [Desktop plan §4 non-functional](../../plans/desktop-app.md#non-functional-targets-are-recommendations): installer < 15 MB per platform (owner decision 2026-10-29; was ≤ 40 MB); supported OS list (Ubuntu 22.04+ → build Linux on 22.04 for glibc).
+- [Desktop plan §4 non-functional](../../plans/desktop-app.md#non-functional-targets-and-release-gates): installer < 15 MB per platform (owner decision 2026-10-29; was ≤ 40 MB); supported OS list (Ubuntu 22.04+ → build Linux on 22.04 for glibc).
 
 ## Scope
 

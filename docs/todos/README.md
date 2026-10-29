@@ -153,7 +153,7 @@ Ready todos whose dependencies are all done:
 | U4c | [Approximate reader mode for untagged PDFs](ready/U4c-approximate-reader-mode.md) | ready | [U4b](ready/U4b-reader-mode-from-structure-tree.md) |
 | U5a | [Pricing, promises and performance targets pages](ready/U5a-pricing-and-promises-page.md) | ready | [B7a](ready/B7a-docs-site.md), [C7c](ready/C7c-performance-gates-and-launch.md), [D7c](ready/D7c-desktop-beta-release.md) |
 | U5b | [Reader benchmark: lamina vs other PDF readers](ready/U5b-reader-benchmark.md) | ready | [C7c](ready/C7c-performance-gates-and-launch.md), [D7c](ready/D7c-desktop-beta-release.md) |
-| U5c | [Opt-in, content-free usage telemetry](ready/U5c-opt-in-usage-telemetry.md) | ready | [C7c](ready/C7c-performance-gates-and-launch.md) |
+| U5c | [Opt-in, content-free usage telemetry](ready/U5c-opt-in-usage-telemetry.md) | ready | [C7c](ready/C7c-performance-gates-and-launch.md), [D7a](ready/D7a-crash-reporting.md) |
 
 ## Hosted service
 

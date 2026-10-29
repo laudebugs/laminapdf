@@ -57,9 +57,9 @@ A native **PDF reader for macOS, Windows and Linux** built with Tauri 2. It reus
 8. **Updates**: check at start and every 24 h on the user's channel; download in background; install on quit or restart; signature verified; a setting disables updates; managed installs can pin a channel via config/registry/MDM.
 9. **Crash reporting**: off by default; asks once after the first crash; reports contain stack, OS, version, renderer backend, never document content, file names or paths.
 
-### Non-functional (targets are recommendations)
+### Non-functional targets and release gates
 
-Two rows are release gates the owner decided on 2026-10-29, not recommendations: cold start and installer size. A miss blocks the beta ([D7c](../todos/ready/D7c-desktop-beta-release.md)); the other rows stay recommendations.
+**Release gates** (owner decision, 2026-10-29): cold start and installer size. A miss blocks the beta ([D7c](../todos/ready/D7c-desktop-beta-release.md)); the other rows are recommended targets.
 
 | Metric | Target |
 | --- | --- |

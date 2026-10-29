@@ -47,6 +47,7 @@ Ship **web v0.1**. Turn the §4 performance targets into CI gates (app-shell siz
 ## Tasks
 
 - [ ] Claim via a claim PR (see Definition of done); then a fresh worktree off the updated `main`.
+- [ ] Get the owner's statement of v0.1's pricing status (for example a free preview, or the free tier) and put it in the launch copy with the note that lamina will be a paid product.
 - [ ] Size-budget script (`tools/` or `cargo xtask size web`) reading Vite's build manifest; min+gz each JS chunk loaded on startup (exclude lazy chunks only if they're truly lazy); CI step in the fast lane for PRs touching the same paths as C4d's deploy filter (`apps/web/`, `packages/`, `crates/`, lockfiles `pnpm-lock.yaml`/`Cargo.lock`, root manifests, and the workflow files) — reuse C4d's single filter list, so dependency bumps are size-checked.
 - [ ] Promote C3c scenarios to gates in the release workflow (on the reference runner or a dedicated self-hosted/large runner) and add them to the `needs:` of C4d's tag-triggered production job; nightly keeps reporting and opening issues. If the reference run is manual (see Risks), the production job uses the `production` environment's required reviewer as the gate, and the reviewer approves only with the attached passing run.
 - [ ] Lighthouse CI config (`lighthouserc.json`) with thresholds (accessibility ≥ 95, best practices ≥ 95, performance ≥ 90 on desktop profile; pinned `@lhci/cli` version, no `pwa` category) run against the PR preview (non-required) and release (required); add C7b's `installability.spec.ts` to the same preview job and to the release lane as a required step.
@@ -59,6 +60,7 @@ Ship **web v0.1**. Turn the §4 performance targets into CI gates (app-shell siz
 
 ## Acceptance criteria
 
+- [ ] The launch copy states v0.1's pricing status as approved by the owner, and that lamina will be a paid product (UI/UX principle 10).
 - [ ] PR lane fails when the app shell exceeds 200 KB min+gz (demonstrated by a temporary test commit in the PR, then reverted).
 - [ ] **Performance targets in §4 are met on the reference machine** (release-lane run attached to the PR) or each miss has an approved waiver issue.
 - [ ] Lighthouse thresholds pass on this PR's preview deployment; C7b's installability spec passes against it.

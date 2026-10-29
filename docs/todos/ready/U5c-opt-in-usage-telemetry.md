@@ -6,11 +6,11 @@
 | Status | `ready` |
 | Plan | [UI/UX §6 U5. Product promises](../../plans/ui-ux.md#u5-product-promises) |
 | Round / milestone | Round U (UI/UX) — after M2 |
-| Depends on | [C7c](./C7c-performance-gates-and-launch.md) |
+| Depends on | [C7c](./C7c-performance-gates-and-launch.md), [D7a](./D7a-crash-reporting.md) |
 | Blocks | None |
 | ADRs | Follows ADR 0011 (owner decision 2026-10-29: telemetry is optional, opt-in and off by default; none in v0.1) |
 | Branch | `feat/u5c-opt-in-telemetry` |
-| PR title | `feat(web): add opt-in content-free usage counts` |
+| PR title | `feat(ui): add opt-in content-free usage counts on web and desktop` |
 | Size | M (200–400 lines incl. tests) |
 | PR | — |
 
@@ -28,20 +28,22 @@ The plan's task-split assumption (viewing ≈ 70% of time) is unverified, and it
 
 **In scope**
 
-- Off by default; a clear opt-in in settings with the exact payload shown.
+- Both shells: the counter lives in `@lamina/ui` on the command registry; each shell sends through its `Platform` adapter (web: our origin; desktop: the same endpoint from the main process, next to D7a's crash-report consent).
+- Off by default; a clear opt-in in settings with the exact payload shown (one setting per install, separate from crash reports).
 - Payload: daily aggregate counts per command id and mode, app version, platform family; no document data, no user or device identifiers, no IP retention (state and verify the Worker's handling).
 - Batching and a single endpoint on our origin (CSP unchanged); the U4a indicator shows these requests.
 - A dashboard query documented for the team.
 
 **Out of scope** (and which todo covers it)
 
-- Crash reporting → D7a (desktop) and ADR 0011 for web.
+- Crash reporting → [D7a](./D7a-crash-reporting.md) (desktop) and ADR 0011 for web.
 
 ## Tasks
 
 - [ ] Claim via a claim PR (see Definition of done); then a fresh worktree off the updated `main`.
 - [ ] Check that ADR 0011 records the allowed payload and retention; amend it in a separate PR if it doesn't.
 - [ ] Implement the counter on the command registry's run hook; batching and send.
+- [ ] Desktop: send path in the main process and the settings toggle next to D7a's consent; WebdriverIO check that nothing is sent when opted out.
 - [ ] Tests that the payload contains only allowed keys, and that nothing is sent when opted out.
 - [ ] Privacy page update.
 
