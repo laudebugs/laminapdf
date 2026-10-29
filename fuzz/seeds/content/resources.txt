@@ -1,0 +1,4 @@
+q /GS1 gs /CS1 cs 0.5 sc /Pattern CS /P1 SCN /Sh1 sh Q
+/Fm1 Do /Fm2 Do 2 0 0 2 0 0 cm /Im1 Do
+BT /F1 12 Tf 72 700 Td [(a) -50 (b)] TJ (c) ' 1 2 (d) " ET
+/P /MC1 BDC /Span <</MCID 4>> BDC EMC EMC /X MP /Y /MC1 DP

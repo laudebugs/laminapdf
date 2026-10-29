@@ -16,7 +16,7 @@ use crate::workspace::Workspace;
 use crate::{run, step};
 
 /// The fuzz targets in `fuzz/fuzz_targets/` (ADR 0018 tier 9).
-pub(crate) const FUZZ_TARGETS: [&str; 5] = ["lex", "parse_object", "flate_decode", "open", "page_tree"];
+pub(crate) const FUZZ_TARGETS: [&str; 6] = ["lex", "parse_object", "flate_decode", "open", "page_tree", "content"];
 
 /// Default `cargo xtask fuzz` run time in seconds (the scheduled workflow uses 600).
 const DEFAULT_FUZZ_SECONDS: u64 = 60;

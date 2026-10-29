@@ -1,0 +1,15 @@
+# lamina-content
+
+Read-only content-stream interpretation ([ADR 0023](../../docs/decisions/0023-content-stream-reading.md)): what a page draws, operator by operator, with the graphics and text state in effect. Below `lamina-text` (B9b, text extraction), which is its first consumer; the editor's append (E2) and editing (E7, ADR 0022) rounds extend it. Part of lamina's pure core: bytes in, bytes out.
+
+- `ContentIter`: a tolerant tokenizer over decoded content bytes (ISO 32000-2 §7.8.2), over `lamina-syntax`'s lexer and parser. Yields `Lexed::Op(Op)` (an `Operator`, one variant per Annex A operator plus `Unknown`, with the operands read since the previous one and its byte offset; `BI … ID … EI` is read whole as one `Op` with its `InlineImage`) and `Lexed::Issue` for skipped bytes. `Operator::signature()` and `Signature::check` give each operator's operands.
+- `interpret_page(doc, page, visitor)` / `interpret_content(doc, bytes, resources, visitor)`: runs content against a `GraphicsState` (CTM, line style, colours, an `ExtGState` subset) and its `TextState`, the text matrices, the `q`/`Q` stack, resources (a form without `/Resources` uses its parent's), Form XObjects (recursively, bounded, cycle-checked by object identity) and marked content, and reports to a `Visitor`: `operator`, `show_text` (returns the `TextAdvance` the glyphs moved; glyph widths are `lamina-text`'s), `path_segment`, `paint_path`, `paint_shading`, `image`, `begin_marked` / `end_marked` / `marked_point`, `enter_xobject` / `leave_xobject`, `warning`. Returns a `Summary`.
+- Tolerance (ADR 0023 §3): unknown operators skipped (silently inside `BX`/`EX`), bad operands skipped and extra ones ignored, unbalanced `q`/`Q`, `BT`/`ET` and `BMC`/`EMC` repaired per stream, missing resources skip their operator, inline-image ends found by `/L`, computed size or the pdf.js heuristic. Each repair is a `Warning` (`content-unknown-operator`, `content-bad-operands`, `content-unbalanced-q`, `content-unbalanced-bt`, `content-unbalanced-marked`, `content-syntax`, `content-resource-missing`, `inline-image-unterminated`, `xobject-cycle`) reported to the visitor and recorded on the document; strict mode makes it `Error::Strict`.
+- Limits (ADR 0023 §4, all hard): `max_content_operators` (every operator of one call, forms counted each time they are drawn), `max_xobject_depth`, `max_nesting_depth` (saved states per stream), `max_decoded_total` (bytes interpreted).
+
+Tests: unit tests in `src/{operator,lexer,state}.rs`; `tests/operators.rs` (every Annex A operator and its operands, malformed and unknown operators, inline images), `state.rs` (CTM, text matrices and text state against hand-computed §8.3.4/§9.4 values), `xobjects.rs` (forms, depth 32/33, cycles, images), `marked.rs`, `limits.rs` (each limit at and past its value, strict mode), `corpus.rs` (every fixture page against pdf.js's operator list in `fixtures/corpus/pdfjs-operators.json`) and `regressions.rs` (the `content` fuzz target's saved crashes). The `content` fuzz target's entry point is `tests/common/fuzz_entry.rs`.
+
+```sh
+cargo test -p lamina-content
+cargo xtask fuzz content --time 600
+```

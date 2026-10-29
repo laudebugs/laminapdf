@@ -60,6 +60,15 @@ Every repair or substitution the caller might care about is a `Warning`, never s
 | `invalid-date` | An Info date is not a valid PDF date; the raw string is kept | exists (B2c) |
 | `invalid-page-label` | A `/PageLabels` entry (or part of one) is malformed; that part is dropped, a non-dictionary range falls back to decimal numbering | exists (B2c) |
 | `invalid-entry` | An entry a view reads (`/Info`, `/Names`, `/Outlines`, `/Dests`, `/UserUnit`) is unreadable or of the wrong type; it reads as absent or its default | exists (B2c) |
+| `content-unknown-operator` | A content stream used an operator Annex A does not define, outside `BX`/`EX`; it was skipped ([ADR 0023](0023-content-stream-reading.md) §3) | exists (B9a) |
+| `content-bad-operands` | A content operator had too few or mistyped operands (skipped) or extra ones (the last were used) | exists (B9a) |
+| `content-unbalanced-q` | A `Q` without a `q` (ignored), or a content stream ended with saved states (restored) | exists (B9a) |
+| `content-unbalanced-bt` | `BT` inside a text object, `ET` or a text operator outside one, or a stream ended inside one | exists (B9a) |
+| `content-unbalanced-marked` | An `EMC` without a sequence (ignored), or a stream ended with sequences open (closed) | exists (B9a) |
+| `content-syntax` | Bytes in a content stream that are not a token, or a stray `ID`/`EI`; skipped with the pending operands | exists (B9a) |
+| `content-resource-missing` | A named resource is missing, of the wrong type or unreadable, or a Form XObject's content can't be decoded | exists (B9a) |
+| `inline-image-unterminated` | No `EI` ends an inline image; the rest of the stream was skipped | exists (B9a) |
+| `xobject-cycle` | A Form XObject draws itself, directly or through others; the inner `Do` was skipped | exists (B9a) |
 
 Encryption adds three error codes (B2b), listed in `fixtures/codes.json` with the others: `password-required` (a non-empty user password and none given), `wrong-password` (neither the user nor the owner password) and `unsupported-security-handler` (not `/Standard`, an unknown `/V`/`/R`, or an unknown crypt filter method). All three have status "exists".
 
@@ -89,8 +98,8 @@ Limits are of two kinds:
 | `max_xref_sections` (`/Prev` hops) | soft | 4,096 | stored xref abandoned → repair, `xref-repaired` | `MAX_SECTIONS` (load failure → repair) |
 | `max_object_number` | soft | 8,388,607 (ISO 32000-1 Annex C) | entry dropped, `object-number-out-of-range` | new |
 | `max_warnings` | soft | 1,000 | later warnings dropped, `warnings-truncated` | new |
-| `max_content_operators` (per content stream, with ADR 0023) | hard | 10,000,000 | `LimitExceeded` | reserved |
-| `max_xobject_depth` (Form XObjects, patterns, Type 3, with ADR 0023) | hard | 32 | `LimitExceeded` | reserved |
+| `max_content_operators` (operators read by one content interpretation, every stream and each drawing of a Form XObject together; [ADR 0023](0023-content-stream-reading.md) §4) | hard | 10,000,000 | `LimitExceeded` | used by `lamina-content` (B9a) |
+| `max_xobject_depth` (Form XObjects drawn at once; patterns and Type 3 glyphs when they are interpreted; ADR 0023 §4) | hard | 32 | `LimitExceeded` | used by `lamina-content` (B9a) |
 | `max_image_pixels` (when lamina decodes images) | hard | 2^28 | `LimitExceeded` | reserved |
 | `max_read_window` (bytes one parse may read from a source without `as_slice`: an object's head, a stream's data, the search for a missing `endstream`, the walk back over a repaired header; ADR 0005 §2) | hard | 256 MiB | `LimitExceeded`; tolerant paths (repair, `/Length` recovery, the xref entry check) treat the item as unreadable | new in B2d (amendment); in-memory input is not limited by it |
 
@@ -117,5 +126,5 @@ Limits are of two kinds:
 - **Strict by default** (pypdf `strict=True`). Rejects files users expect to open.
 - **Report every `null` reference as a warning.** Accurate but noisy; valid files have them.
 - **A per-document decompression budget.** Simpler, but a long session viewing many pages would exhaust it.
-- **A fuel counter for all parsing.** Unnecessary while every loop is bounded by input bytes; it may come back with content-stream interpretation (ADR 0023).
+- **A fuel counter for all parsing.** Unnecessary while every loop is bounded by input bytes. Content-stream interpretation, where Form XObjects can be drawn repeatedly, has one: `max_content_operators` counts every operator of one interpretation ([ADR 0023](0023-content-stream-reading.md) §4).
 - **Limits as global statics** (qpdf's global API). Not per document, and awkward in a shared WASM instance.

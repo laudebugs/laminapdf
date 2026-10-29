@@ -36,3 +36,4 @@ Numbers follow the [architecture plan §3](../plans/architecture.md#3-decisions-
 | [0015](0015-monorepo-layout-and-tooling.md) | Monorepo layout and tooling (Cargo + pnpm + xtask) | Accepted |
 | [0018](0018-test-strategy.md) | Test strategy: tiers, CI lanes, corpora, fuzzing, flaky tests | Accepted |
 | [0019](0019-supply-chain-and-licence-hygiene.md) | Supply-chain and licence hygiene (cargo-deny, npm licence check, Dependabot, SBOM, fixture provenance) | Accepted |
+| [0023](0023-content-stream-reading.md) | Content-stream reading: the `lamina-content` crate (tokenizer, visitor), tolerance rules, operator and XObject-depth limits | Accepted |

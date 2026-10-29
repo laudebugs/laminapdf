@@ -142,6 +142,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "lamina-content"
+version = "0.0.0"
+dependencies = [
+ "lamina-cos",
+ "lamina-model",
+ "lamina-syntax",
+]
+
+[[package]]
 name = "lamina-cos"
 version = "0.0.0"
 dependencies = [
@@ -153,6 +162,7 @@ dependencies = [
 name = "lamina-fuzz"
 version = "0.0.0"
 dependencies = [
+ "lamina-content",
  "lamina-cos",
  "lamina-model",
  "lamina-syntax",

@@ -1,0 +1,8 @@
+# Pages whose content lamina can't interpret yet although pdf.js can, checked by
+# crates/lamina-content/tests/corpus.rs: each names the file, the error code lamina reports
+# instead of the operator counts, and why (the ADR 0003 rule behind it).
+
+[[exception]]
+file = "fixtures/corpus/reportlab.pdf"
+code = "unsupported-filter"
+rule = "ADR 0003 §1 unsupported filter: the page content is /ASCII85Decode then /FlateDecode, and lamina-syntax decodes Flate only so far"
