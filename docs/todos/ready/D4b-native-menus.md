@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [Desktop app §6 D4](../../plans/desktop-app.md#d4-windows-tabs-menus-and-printing) |
 | Round / milestone | Round D (desktop) — M3 Desktop reader beta |
-| Depends on | [C7a](./C7a-accessibility-and-theming.md), [D4a](./D4a-windows-tabs-and-session-restore.md) |
+| Depends on | [C7a](./C7a-accessibility-and-theming.md), [D4a](./D4a-windows-tabs-and-session-restore.md), [U1b](./U1b-command-registry-and-palette.md) |
 | Blocks | [D4c](./D4c-native-printing.md), [D5b](./D5b-updater-in-app.md), [E1d](./E1d-edit-session-undo-ui.md) |
 | Dependency notes | [D4a](D4a-windows-tabs-and-session-restore.md). Cross-plan: the shared shortcut map is a web **C7** to-do ("Keyboard shortcuts map shared with desktop", [web-app §C7](../../plans/web-app.md#c7-accessibility-offline-and-launch)). If C7 has not merged, this PR creates the map in `@lamina/ui` and C7 extends it — the parent board must pick one owner (see Risks). |
 | ADRs | Follows ADR 0010 (Platform adapter), ADR 0008 |
@@ -21,6 +21,7 @@ Give lamina proper native menus on every OS — the macOS app menu and menu bar,
 
 ## Context
 
+- [UI/UX plan §5.2](../../plans/ui-ux.md#52-command-registry-and-palette-r3) — native menus are generated from [U1b](./U1b-command-registry-and-palette.md)'s command registry (titles, shortcuts, enabled state), so menus, palette and toolbars never drift.
 - [Desktop plan §6 D4](../../plans/desktop-app.md#d4-windows-tabs-menus-and-printing) and §9 D4.
 - Web plan C7: shared keyboard map and help dialog.
 - Tauri menus: `tauri::menu::{MenuBuilder, SubmenuBuilder, MenuItemBuilder, CheckMenuItemBuilder, PredefinedMenuItem, AboutMetadata}`, `app.set_menu(menu)` (app-wide; macOS) vs `window.set_menu(menu)` (per window; Windows/Linux), `app.on_menu_event(|app, event| …)` with `event.id()`, accelerator strings (`"CmdOrCtrl+O"`, `"CmdOrCtrl+Shift+T"`), `MenuItem::set_enabled`, `set_text`, `CheckMenuItem::set_checked`.

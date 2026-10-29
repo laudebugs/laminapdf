@@ -20,6 +20,7 @@ Expose every E2 op in the apps: a page-organiser mode with multi-select thumbnai
 
 ## Context
 
+- [UI/UX plan §5.7](../../plans/ui-ux.md#57-trust-surfaces-r9r13) — a multi-select grid with an insertion bar (no live swapping), a "Move to page…" dialog as the single-pointer alternative to dragging (WCAG 2.2 SC 2.5.7), and one undo step per batch move (ADR 0006); the Organise mode registers through [U1c](./U1c-inverted-l-shell-and-modes.md).
 - [full-editor §E2](../../plans/full-editor.md#e2-page-organisation) web vs desktop
 - [web C6](../../plans/web-app.md#c6-navigation-print-and-properties): the thumbnail sidebar this grows from
 - [desktop D3](../../plans/desktop-app.md#d3-files): drag-drop onto window and icon

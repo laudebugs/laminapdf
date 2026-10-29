@@ -6,8 +6,8 @@
 | Status | `ready` |
 | Plan | [web reader §6 C7. Accessibility, offline and launch](../../plans/web-app.md#c7-accessibility-offline-and-launch) |
 | Round / milestone | Round C (web reader) — M2 Web reader v0.1 |
-| Depends on | [C5b](./C5b-find-in-document.md), [C6a](./C6a-thumbnails-outline-page-labels.md), [C6b](./C6b-links-and-history.md), [C6c](./C6c-print-download-properties.md) |
-| Blocks | [C7b](./C7b-offline-pwa.md), [C7c](./C7c-performance-gates-and-launch.md), [D4b](./D4b-native-menus.md) |
+| Depends on | [C5b](./C5b-find-in-document.md), [C6a](./C6a-thumbnails-outline-page-labels.md), [C6b](./C6b-links-and-history.md), [C6c](./C6c-print-download-properties.md), [U1b](./U1b-command-registry-and-palette.md), [U1c](./U1c-inverted-l-shell-and-modes.md) |
+| Blocks | [C7b](./C7b-offline-pwa.md), [C7c](./C7c-performance-gates-and-launch.md), [D4b](./D4b-native-menus.md), [U2c](./U2c-page-appearance-modes.md) |
 | ADRs | Follows 0009 (a11y primitives), 0010 (shortcuts consistent across shells; platform modifiers) |
 | Branch | `feat/c7a-accessibility` |
 | PR title | `feat(ui): add the keyboard map, help dialog, focus management, themes and axe checks` |
@@ -20,6 +20,7 @@ Make the reader meet WCAG 2.2 AA for its chrome and work fully without a mouse. 
 
 ## Context
 
+- [UI/UX plan §5.2 and §5.5](../../plans/ui-ux.md#52-command-registry-and-palette-r3) — the shortcut map and help dialog are generated from [U1b](./U1b-command-registry-and-palette.md)'s command registry (no hand-written keymap); page appearance (Original/Sepia/Dark/High contrast) is [U2c](./U2c-page-appearance-modes.md)'s, so this todo does UI themes only and drops the "night reading" filter.
 - [web-app.md §2 scope](../../plans/web-app.md#2-scope-and-non-goals) and [§4 functional 8](../../plans/web-app.md#functional), [non-functional](../../plans/web-app.md#non-functional-targets-are-recommendations-measured-from-c3-onward) (WCAG 2.2 AA; zero serious/critical axe violations), [§7 risks](../../plans/web-app.md#7-risks) (untagged PDFs).
 - [web-frontend notes §7](../../research/architecture/notes/web-frontend.md) — a11y comes from DOM layers; only mounted pages have DOM (mitigate with outline/landmarks, `aria-setsize`/`aria-posinset`, keyboard page jump); theming via CSS custom properties; don't invert page rendering in dark mode except an explicit night filter.
 - [C5a](./C5a-text-layer-and-selection.md) (text and struct-tree layers), [C4a](./C4a-ui-chrome-and-platform.md) (tokens, message catalogue).
@@ -35,7 +36,7 @@ Make the reader meet WCAG 2.2 AA for its chrome and work fully without a mouse. 
 - Focus management: skip link to the document; F6 cycles regions (toolbar → sidebar → document → find bar); dialogs trap focus and restore on close; after navigation (link, outline, go-to-page) focus moves to the target page region; visible focus indicators everywhere (not obscured by sticky toolbar).
 - Landmarks and semantics: `header` (toolbar, `role="toolbar"` with roving tabindex), `nav` (sidebar), `main` (document), `region` per page (`aria-label="Page iv, 4 of 120"`, `aria-roledescription="page"`, `aria-setsize`/`aria-posinset`), status bar live region.
 - Live announcements (polite, throttled): page changes on settle, zoom level, search counts (from C5b), document opened (title, page count, tagged/untagged), errors (assertive).
-- Themes: light, dark, high contrast (respecting `prefers-contrast` and `forced-colors` — system colours in Windows High Contrast), user override in settings (stored locally), reduced motion (`prefers-reduced-motion`: no smooth scroll, no animated transitions); page rendering not inverted; optional "night reading" filter toggle.
+- Themes: light, dark, high contrast (respecting `prefers-contrast` and `forced-colors` — system colours in Windows High Contrast), user override in settings (stored locally), reduced motion (`prefers-reduced-motion`: no smooth scroll, no animated transitions); page rendering not inverted (page appearance modes, including a dark page mode, are [U2c](./U2c-page-appearance-modes.md)).
 - axe-core in Playwright for every main state (empty, open document, sidebars open, find open, each dialog) in three engines; Lighthouse accessibility score recorded.
 - Manual AT pass: NVDA + Firefox/Chrome on Windows, VoiceOver + Safari on macOS, keyboard-only; results recorded in `docs/` (e.g. `apps/web/ACCESSIBILITY.md`) with issues filed for anything not fixed.
 

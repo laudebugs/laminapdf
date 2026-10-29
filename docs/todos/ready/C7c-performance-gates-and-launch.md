@@ -6,8 +6,8 @@
 | Status | `ready` |
 | Plan | [web reader §6 C7. Accessibility, offline and launch](../../plans/web-app.md#c7-accessibility-offline-and-launch) |
 | Round / milestone | Round C (web reader) — **M2 Web reader v0.1** (milestone closes with this PR) |
-| Depends on | [C3c](./C3c-viewer-perf-harness.md), [C4d](./C4d-deploy-previews-and-production.md), [C6c](./C6c-print-download-properties.md), [C7a](./C7a-accessibility-and-theming.md), [C7b](./C7b-offline-pwa.md) |
-| Blocks | [E1a](./E1a-editing-foundation-feature-plan.md), [E13e](./E13e-server-jobs-infrastructure.md), [H2](./H2-accounts-and-login.md) |
+| Depends on | [C3c](./C3c-viewer-perf-harness.md), [C4d](./C4d-deploy-previews-and-production.md), [C6c](./C6c-print-download-properties.md), [C7a](./C7a-accessibility-and-theming.md), [C7b](./C7b-offline-pwa.md), [U2a](./U2a-selection-surfaces-and-copy-modes.md), [U2c](./U2c-page-appearance-modes.md), [U3a](./U3a-responsive-mobile-and-touch.md), [U4a](./U4a-network-indicator-and-privacy-proof.md) |
+| Blocks | [U5b](./U5b-reader-benchmark.md), [U5c](./U5c-opt-in-usage-telemetry.md), [E1a](./E1a-editing-foundation-feature-plan.md), [E13e](./E13e-server-jobs-infrastructure.md), [H2](./H2-accounts-and-login.md) |
 | ADRs | Follows 0011 (publishes its privacy rules as a user-facing page), [0018](../../decisions/0018-test-strategy.md) §2 (which gates run in which lane) |
 | Branch | `feat/c7c-web-v0-1-launch` |
 | PR title | `feat(web): enforce performance budgets and launch the web reader v0.1` |
@@ -20,6 +20,7 @@ Ship **web v0.1**. Turn the §4 performance targets into CI gates (app-shell siz
 
 ## Context
 
+- [UI/UX plan §6](../../plans/ui-ux.md#6-rounds) — the launch also waits for the v0.1 parts of Round U: selection surfaces ([U2a](./U2a-selection-surfaces-and-copy-modes.md)), page modes ([U2c](./U2c-page-appearance-modes.md)), the phone layout ([U3a](./U3a-responsive-mobile-and-touch.md)) and the network indicator ([U4a](./U4a-network-indicator-and-privacy-proof.md)). The plan's numbers stay the gates; the research's stretch goals are published separately ([U5a](./U5a-product-pledge-and-targets.md)).
 - [web-app.md §4 non-functional targets](../../plans/web-app.md#non-functional-targets-are-recommendations-measured-from-c3-onward) and [privacy and security](../../plans/web-app.md#privacy-and-security).
 - [C3c](./C3c-viewer-perf-harness.md) — harness and history; open perf issues it filed.
 - [ADR 0018 §1 tier 11 and §2](../../decisions/0018-test-strategy.md#2-ci-lanes) — no wall-clock assertions in PR lanes; perf in nightly; regressions open issues. The size budget (bytes) is deterministic and **can** gate PRs; time budgets gate only the nightly/release lanes on a controlled runner.
