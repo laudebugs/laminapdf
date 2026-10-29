@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [pdf-library §7 B3](../../plans/pdf-library.md#b3-ops-and-save), [architecture §7 Round B](../../plans/architecture.md#round-b--core-model-and-the-first-package) |
 | Round / milestone | Round B (library) — M1 |
-| Depends on | [B2c](../ongoing/B2c-lamina-model-corpus-fuzz.md) |
+| Depends on | [B2c](../done/B2c-lamina-model-corpus-fuzz.md) |
 | Blocks | [B3b](./B3b-lamina-save-writers.md) |
 | ADRs | Implements [0005](../../decisions/0005-document-model.md) §3 (overlay, journal, number allocation) and [0006](../../decisions/0006-op-log-and-undo.md) §1–§4, §6–§7; follows [0018](../../decisions/0018-test-strategy.md) tier 5 (property tests) |
 | Branch | `feat/b3a-overlay-and-ops` |
@@ -24,7 +24,7 @@ Make the document editable through one audited path: an overlay in `lamina-cos` 
 - [ADR 0006](../../decisions/0006-op-log-and-undo.md): §1 `Op` (adjacently tagged `op`/`args`, `deny_unknown_fields`, no ambient inputs, `ModificationClass`, `requires_rewrite`), §2 `transact`, `NestedTransaction`, `savepoint`, `Origin`, §3 `CosMut` + `CosChange` + `Applied` (undo record, touched pages), §4 undo at undo time with `UndoOutcome::{Applied, Partial, Skipped}`, depth 500, coalescing, §6 envelope `{ "v": 1, "ops": [...] }` and `fixtures/ops/v1/`, §7 two dirty levels.
 - [Editing notes §2](../../research/architecture/notes/editing-architecture.md#2-command-pattern--operation-log-undoredo-transactions-dirty-tracking).
 - [Research 04 §5.1 Info](../../research/pdf/04-interactive-security.md#51-the-info-dictionary-1433); ISO 32000-2 §14.3.3 (Info), §7.7.3.3 (`/Rotate`, multiple of 90, inheritable).
-- Code: `lamina-model` from [B2c](../ongoing/B2c-lamina-model-corpus-fuzz.md) (`PageId`, `Page::rotate`), [`lamina-syntax/src/object.rs`](../../../crates/lamina-syntax/src/object.rs) (`Dict` keeps key order).
+- Code: `lamina-model` from [B2c](../done/B2c-lamina-model-corpus-fuzz.md) (`PageId`, `Page::rotate`), [`lamina-syntax/src/object.rs`](../../../crates/lamina-syntax/src/object.rs) (`Dict` keeps key order).
 
 ## Scope
 
@@ -50,7 +50,7 @@ Make the document editable through one audited path: an overlay in `lamina-cos` 
 
 - [ ] Load `/rust-best-practices`; read ADR 0005 §3 and ADR 0006 in full
 - [ ] `crates/lamina-cos/src/overlay.rs` + integrate in `Document` resolution; unit tests for create/set/delete/rollback/equal-to-base drop and number allocation (never reused, reserved after undo)
-- [ ] Create `crates/lamina-ops` (core layer); `op.rs`, `info.rs` (`InfoPatch`), `rotate.rs`, `class.rs`. PDF text-string encoding (PDFDocEncoding when representable, else UTF-16BE with BOM) goes in `lamina_syntax::text` as `encode_text_string`, next to the table and decoder that [B2c](../ongoing/B2c-lamina-model-corpus-fuzz.md) added; reuse that table rather than writing another
+- [ ] Create `crates/lamina-ops` (core layer); `op.rs`, `info.rs` (`InfoPatch`), `rotate.rs`, `class.rs`. PDF text-string encoding (PDFDocEncoding when representable, else UTF-16BE with BOM) goes in `lamina_syntax::text` as `encode_text_string`, next to the table and decoder that [B2c](../done/B2c-lamina-model-corpus-fuzz.md) added; reuse that table rather than writing another
 - [ ] `tx.rs`: `Tx`, journal marks, savepoints, error unwinding; `Document::transact` lives in `lamina-ops` as an extension trait or wrapper type (decide; ADR 0005 §1 layering)
 - [ ] `history.rs`: undo record capture (`target`, `before`, `after` per property), inverse computed at undo time, outcome reporting, coalescing
 - [ ] serde: adjacently tagged enum, `deny_unknown_fields`, envelope with version check; `fixtures/ops/v1/set-info.json`, `rotate-page.json`, `envelope.json`

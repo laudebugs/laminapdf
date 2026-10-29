@@ -1,0 +1,6 @@
+/target
+# Fetched by scripts/fetch-corpora.sh and scripts/fetch-pdfium.sh (never committed, ADR 0018 §3).
+/corpora/
+/pdfium/
+# Rendered output of `cargo run --release`.
+/out/

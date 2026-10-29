@@ -147,6 +147,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "lamina-model"
+version = "0.0.0"
+dependencies = [
+ "lamina-cos",
+ "lamina-syntax",
+ "serde_json",
+ "thiserror",
+ "toml",
+]
+
+[[package]]
 name = "lamina-syntax"
 version = "0.0.0"
 dependencies = [

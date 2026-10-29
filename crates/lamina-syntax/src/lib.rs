@@ -23,6 +23,7 @@
 //! * [`crypt`]: standard security handler decryption (read only): password authentication
 //!   for R2–R6 and RC4 / AES-128 / AES-256 string and stream decryption.
 //! * [`Limits`]: the resource limits of ADR 0003, shared by every layer that reads input.
+//! * [`text`]: text strings (`PDFDocEncoding`, UTF-16BE, UTF-8) and the `PDFDocEncoding` table.
 //!
 //! The file structure (cross-reference tables, object streams, repair, the page tree) and the
 //! writer live one layer up, in `lamina-cos`.
@@ -35,6 +36,7 @@ mod lexer;
 mod limits;
 mod object;
 mod parser;
+pub mod text;
 
 pub use error::{Error, Result};
 pub use lexer::{Lexer, Token, is_delimiter, is_regular, is_whitespace};

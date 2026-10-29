@@ -84,7 +84,7 @@ The research couldn't answer these. Each is a small, time-boxed spike under `spi
 | `desktop-ipc` | Throughput of Tauri Channel vs `ipc::Response` vs a `lamina://` scheme for page tiles on macOS, Windows and Linux; do WKWebView and WebKitGTK honour COOP/COEP? | ADR 0008 |
 | `pdfium-wasm` | Load PDFium-WASM in a worker next to the lamina core: bundle size, memory, render time; reload after an incremental save | ADR 0004 |
 | `krilla-fit` | Can krilla write into an existing object graph, or do we build our own builder over `lamina-cos`? | Library plan, Round B. **Done** ([result](../../spikes/krilla-fit/README.md)): no, krilla only emits finished bytes; recommends an own builder over `lamina-cos` reusing `pdf-writer`/`subsetter`/`skrifa`/HarfRust (ADR 0005 §6) |
-| `hayro-parity` | hayro vs PDFium pass rate on the pdf.js and PDFBox corpora: the baseline for switching the default | ADR 0004 |
+| `hayro-parity` | hayro vs PDFium pass rate on the pdf.js and PDFBox corpora: the baseline for switching the default | ADR 0004. **Done** ([result](../../spikes/hayro-parity/README.md)): 81.8 % of 2,196 pages pass and 90.8 % pass or differ slightly at 96 DPI; where hayro is clearly wrong, it is mostly fonts, annotations without appearance streams and transparency groups (CalRGB/CalGray differences still need a reference rendering to judge). Recommends PDFium as the default everywhere and hayro as the CI oracle, with switch criteria for ADR 0004 |
 | `desktop-print` | How to print faithfully from Tauri on each OS (native print of rendered pages vs webview print), given the `hasNativePrint` capability | Round D |
 | `mobile-shell` | Tauri 2 mobile vs UniFFI with native UI (SwiftUI, Compose): native selection-menu conflicts, Apple Pencil latency, share sheet and Files integration, Vision / ML Kit OCR access ([U3b](../todos/ready/U3b-mobile-shell-spike.md)) | ADR 0025, §8 Q4 |
 | `auth` | Better Auth / Auth.js on D1 vs hosted vendors, for the hosted service's user login and accounts (in scope since 2026-10-28, §8 Q2); run before the first round that needs accounts | ADR 0011 |
@@ -139,7 +139,7 @@ Todos: [A1](../todos/done/A1-foundation-adrs.md) (ADRs), [A2](../todos/done/A2-m
 - [x] Write ADRs 0003, 0005, 0006, 0007, 0018 ([B1a](../todos/done/B1a-round-b-adrs.md); 0005 §6, the generation strategy, settled by `krilla-fit`)
 - [ ] Write ADRs 0016 ([B6a](../todos/ready/B6a-lamina-wasm-and-adr-0016.md)), 0017 ([B7b](../todos/ready/B7b-versioning-and-0-1-0-alpha.md))
 - [x] `krilla-fit` spike ([B1b](../todos/done/B1b-krilla-fit-spike.md), [result](../../spikes/krilla-fit/README.md)), then decide the generation strategy (Option B, recorded in [ADR 0005 §6](../decisions/0005-document-model.md))
-- [ ] `lamina-model`: typed pages, annotations, fields, outline; stable IDs ([B2a](../todos/done/B2a-limits-owned-document.md) owned `Document` and `Limits`, [B2b](../todos/done/B2b-standard-security-decryption.md) decryption, [B2c](../todos/ongoing/B2c-lamina-model-corpus-fuzz.md) views and IDs; annotations and fields in the editor rounds)
+- [x] `lamina-model`: typed pages, annotations, fields, outline; stable IDs (pages, outline, Info, name trees and page labels with their IDs done; annotations and fields come later. [B2a](../todos/done/B2a-limits-owned-document.md) owned `Document` and `Limits`, [B2b](../todos/done/B2b-standard-security-decryption.md) decryption, [B2c](../todos/done/B2c-lamina-model-corpus-fuzz.md) views and IDs; annotations and fields in the editor rounds)
 - [ ] `lamina-ops`: `Op` enum, `transact()`, inverses, undo/redo ([B3a](../todos/ready/B3a-overlay-and-ops.md))
 - [ ] `lamina-save`: save planner, `SaveConstraint`, streaming `WriteSink` ([B3b](../todos/ready/B3b-lamina-save-writers.md), [B3c](../todos/ready/B3c-save-planner-and-roundtrip.md))
 - [ ] Move the writer (`Writer`, `incremental_update`, `XrefEol`) from `lamina-cos` into `lamina-save`, keeping the determinism and golden tests ([B3b](../todos/ready/B3b-lamina-save-writers.md))
@@ -148,14 +148,15 @@ Todos: [A1](../todos/done/A1-foundation-adrs.md) (ADRs), [A2](../todos/done/A2-m
 - [ ] `lamina` façade crate: re-exports the public API of the core crates; this is what goes to crates.io ([B5c](../todos/ready/B5c-lamina-facade-and-examples.md))
 - [ ] `lamina-text`: font embedding and subsetting for generation (see [03](../research/pdf/03-text-and-fonts.md)) ([B4a](../todos/ready/B4a-font-loading-and-subsetting.md), [B4b](../todos/ready/B4b-shaping-bidi-line-breaking.md), [B4c](../todos/ready/B4c-standard-14-and-simple-fonts.md))
 - [ ] `lamina-wasm` (wasm-bindgen + tsify) and `@lamina/pdf` (ESM-only, `init()`, export conditions; publint + attw) ([B6a](../todos/ready/B6a-lamina-wasm-and-adr-0016.md), [B6b](../todos/ready/B6b-lamina-pdf-package.md), [B6c](../todos/ready/B6c-runtime-matrix.md))
-- [ ] Golden-file and corpus test harness in CI (full lane); fuzz targets under `fuzz/` ([B2c](../todos/ongoing/B2c-lamina-model-corpus-fuzz.md) harness and fuzz targets, [X4](../todos/ready/X4-full-lane-gate.md) full lane)
+- [x] Fuzz targets under `fuzz/`, with a scheduled 10-minute run, and the golden, corpus-facts and differential harness in the fast lane ([B2c](../todos/done/B2c-lamina-model-corpus-fuzz.md))
+- [ ] Golden-file and corpus test harness in CI (full lane) ([X4](../todos/ready/X4-full-lane-gate.md) full lane)
 - [ ] Changesets + Cargo version sync; tag `0.1.0-alpha` locally (no registry publish yet) ([B7b](../todos/ready/B7b-versioning-and-0-1-0-alpha.md); docs site [B7a](../todos/ready/B7a-docs-site.md))
 
 ### Round C — Web reader
 
 Todos: see the [web-app plan §6](web-app.md#6-rounds) (C1a–C7c).
 
-- [ ] `pdfium-wasm` and `hayro-parity` spikes, with written results
+- [ ] `pdfium-wasm` and `hayro-parity` spikes, with written results (`hayro-parity` done: [C1a](../todos/done/C1a-hayro-parity-spike.md), [result](../../spikes/hayro-parity/README.md); `pdfium-wasm`: [C1b](../todos/ready/C1b-pdfium-wasm-spike.md))
 - [ ] Write ADRs 0004, 0009, 0010, 0011
 - [ ] `lamina-render` with the `RenderBackend` trait and PDFium/hayro adapters
 - [ ] `@lamina/render-pdfium` (ships pdfium.wasm, used by the web reader) and `@lamina/render-hayro` (pure-Rust renderer as its own .wasm), both optional so `@lamina/pdf` stays small

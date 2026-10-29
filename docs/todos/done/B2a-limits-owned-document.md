@@ -7,7 +7,7 @@
 | Plan | [pdf-library §7 B2](../../plans/pdf-library.md#b2-document-model), [architecture §7 Round B](../../plans/architecture.md#round-b--core-model-and-the-first-package) |
 | Round / milestone | Round B (library) — M1 |
 | Depends on | [B1a](./B1a-round-b-adrs.md) |
-| Blocks | [B2b](./B2b-standard-security-decryption.md), [B2c](../ongoing/B2c-lamina-model-corpus-fuzz.md), [B2d](./B2d-windowed-reading.md) |
+| Blocks | [B2b](./B2b-standard-security-decryption.md), [B2c](./B2c-lamina-model-corpus-fuzz.md), [B2d](./B2d-windowed-reading.md) |
 | ADRs | Implements [0003](../../decisions/0003-reader-tolerance-and-limits.md) §2–§4 and [0005](../../decisions/0005-document-model.md) §2 and §7; follows [0018](../../decisions/0018-test-strategy.md) (no wall-clock assertions in PR lanes) |
 | Branch | `feat/b2a-limits-owned-document` |
 | PR title | `feat(core): Limits, warning codes, strict mode and an owned Document over ByteSource` |
@@ -44,7 +44,7 @@ Make the reader's safety policy explicit and configurable, and make `Document` s
 **Out of scope** (and which todo covers it)
 
 - Decryption and the password: [B2b](./B2b-standard-security-decryption.md).
-- Typed views, `LaminaId`s, corpus facts, fuzzing, `cargo xtask golden`: [B2c](../ongoing/B2c-lamina-model-corpus-fuzz.md).
+- Typed views, `LaminaId`s, corpus facts, fuzzing, `cargo xtask golden`: [B2c](./B2c-lamina-model-corpus-fuzz.md).
 - Overlay and mutation (`CosMut`): [B3a](../ready/B3a-overlay-and-ops.md).
 - Windowed reading of non-slice sources, chunked repair scan, `DataPending` per window (moved out after #13 shipped read-all-at-open): [B2d](./B2d-windowed-reading.md).
 - Edge `ByteSource`s (mmap, `Blob`, HTTP range + OPFS): desktop D2 and web C3 todos.

@@ -6,9 +6,9 @@
 | Status | `ready` |
 | Plan | [web reader §6 C1. Rendering spikes](../../plans/web-app.md#c1-rendering-spikes) |
 | Round / milestone | Round C (web reader) — M2 Web reader v0.1 |
-| Depends on | [B3c](./B3c-save-planner-and-roundtrip.md), [B6b](./B6b-lamina-pdf-package.md), [C1a](../ongoing/C1a-hayro-parity-spike.md) |
+| Depends on | [B3c](./B3c-save-planner-and-roundtrip.md), [B6b](./B6b-lamina-pdf-package.md), [C1a](../done/C1a-hayro-parity-spike.md) |
 | Blocks | [C2a](./C2a-render-adrs.md) |
-| Dependency notes | Library **B6** (`lamina-wasm` + `@lamina/pdf`; [pdf-library §7 B6](../../plans/pdf-library.md#b6-wasm-and-laminapdf)) — and through it B3 (`lamina-save` incremental save); [C1a](../ongoing/C1a-hayro-parity-spike.md) (same machine and corpus; the joint recommendation builds on its numbers) |
+| Dependency notes | Library **B6** (`lamina-wasm` + `@lamina/pdf`; [pdf-library §7 B6](../../plans/pdf-library.md#b6-wasm-and-laminapdf)) — and through it B3 (`lamina-save` incremental save); [C1a](../done/C1a-hayro-parity-spike.md) (same machine and corpus; the joint recommendation builds on its numbers) |
 | ADRs | Informs ADR 0004 (render backend) and ADR 0009 (worker topology, single- vs multi-threaded WASM). Must follow [0001](../../decisions/0001-core-language-and-licence.md), [0002](../../decisions/0002-binding-strategy.md), [0005](../../decisions/0005-document-model.md) §2–3 (`ByteSource`, overlay, incremental save), [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) |
 | Branch | `spike/c1b-pdfium-wasm` |
 | PR title | `spike(pdfium-wasm): measure pdfium-wasm beside lamina-wasm in one web worker` |
@@ -17,7 +17,7 @@
 
 ## Goal
 
-Prove, in a real browser worker, that PDFium-WASM and `lamina-wasm` can share one Web Worker, and measure what that costs: download size (raw/gzip/brotli), instantiate time, peak memory, render time per page, and — the [two-parsers](../../research/architecture/app-and-package-architecture.md#pdfium-ships-now-hayro-is-the-destination-and-a-trait-decides) question — how long PDFium takes to reload a document after `lamina-save` appends an incremental update. Together with [C1a](../ongoing/C1a-hayro-parity-spike.md) the README recommends the defaults ADR 0004 records (which PDFium build, how it's loaded, single- vs multi-threaded, reload strategy) and gives ADR 0009 its worker-topology facts.
+Prove, in a real browser worker, that PDFium-WASM and `lamina-wasm` can share one Web Worker, and measure what that costs: download size (raw/gzip/brotli), instantiate time, peak memory, render time per page, and — the [two-parsers](../../research/architecture/app-and-package-architecture.md#pdfium-ships-now-hayro-is-the-destination-and-a-trait-decides) question — how long PDFium takes to reload a document after `lamina-save` appends an incremental update. Together with [C1a](../done/C1a-hayro-parity-spike.md) the README recommends the defaults ADR 0004 records (which PDFium build, how it's loaded, single- vs multi-threaded, reload strategy) and gives ADR 0009 its worker-topology facts.
 
 ## Context
 
@@ -28,7 +28,7 @@ Prove, in a real browser worker, that PDFium-WASM and `lamina-wasm` can share on
 - [Rendering notes](../../research/architecture/notes/rendering.md) §1 (EmbedPDF `@embedpdf/pdfium` 2.15.1, MIT wrapper over Apache-2.0 PDFium) and §4 (no published memory numbers for 1,000+ pages).
 - [ADR 0005 §2–3](../../decisions/0005-document-model.md#2-bytesource-and-ownership-of-the-input) — `ByteSource`, base revision + overlay, incremental save through `WriteSink`.
 - [pdf-library B6](../../plans/pdf-library.md#b6-wasm-and-laminapdf) — the `@lamina/pdf` API (`init()`, `Document`) this spike calls.
-- [C1a result](../ongoing/C1a-hayro-parity-spike.md) — machine and corpus to reuse.
+- [C1a result](../done/C1a-hayro-parity-spike.md) — machine and corpus to reuse.
 
 ## Scope
 
@@ -43,7 +43,7 @@ Prove, in a real browser worker, that PDFium-WASM and `lamina-wasm` can share on
 
 **Out of scope** (and which todo covers it)
 
-- hayro fidelity → [C1a](../ongoing/C1a-hayro-parity-spike.md).
+- hayro fidelity → [C1a](../done/C1a-hayro-parity-spike.md).
 - Product RPC, virtualiser, canvas pool → [C3a](./C3a-viewer-worker-rpc.md), [C3b](./C3b-viewer-virtualiser-and-zoom.md).
 - Writing ADRs 0004/0009 → [C2a](./C2a-render-adrs.md).
 - The threaded (SharedArrayBuffer) build in production; only noted as an option here.

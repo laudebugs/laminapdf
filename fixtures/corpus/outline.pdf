@@ -1,0 +1,98 @@
+%PDF-1.7
+%‚„œ”
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R /Outlines 10 0 R /PageMode /UseOutlines /Names << /Dests 20 0 R >> /Dests << /chapter2 [5 0 R /Fit] >> /PageLabels << /Nums [0 << /S /r >> 1 << /S /D /P (A-) >>] >> >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [4 0 R 5 0 R 6 0 R] /Count 3 /MediaBox [0 0 612 792] >>
+endobj
+3 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+4 0 obj
+<< /Type /Page /Parent 2 0 R /Contents 7 0 R /Resources << /Font << /F1 3 0 R >> >> >>
+endobj
+5 0 obj
+<< /Type /Page /Parent 2 0 R /Contents 8 0 R /Resources << /Font << /F1 3 0 R >> >> >>
+endobj
+6 0 obj
+<< /Type /Page /Parent 2 0 R /Contents 9 0 R /Resources << /Font << /F1 3 0 R >> >> >>
+endobj
+7 0 obj
+<< /Length 37 >>
+stream
+BT /F1 24 Tf 72 720 Td (Page 1) Tj ET
+endstream
+endobj
+8 0 obj
+<< /Length 37 >>
+stream
+BT /F1 24 Tf 72 720 Td (Page 2) Tj ET
+endstream
+endobj
+9 0 obj
+<< /Length 37 >>
+stream
+BT /F1 24 Tf 72 720 Td (Page 3) Tj ET
+endstream
+endobj
+10 0 obj
+<< /Type /Outlines /First 11 0 R /Last 13 0 R /Count 5 >>
+endobj
+11 0 obj
+<< /Title (Introduction) /Parent 10 0 R /Next 12 0 R /Dest [4 0 R /XYZ 0 792 0] >>
+endobj
+12 0 obj
+<< /Title (Chapter \2251 \204 Caf\351) /Parent 10 0 R /Prev 11 0 R /Next 13 0 R /First 14 0 R /Last 15 0 R /Count 2 /Dest /chapter2 >>
+endobj
+13 0 obj
+<< /Title <FEFF0041007000700065006E0064006900780020D834DD1E002003A9> /Parent 10 0 R /Prev 12 0 R /First 16 0 R /Last 16 0 R /Count -1 /A << /S /GoTo /D (appendix) >> >>
+endobj
+14 0 obj
+<< /Title (Section 2.1) /Parent 12 0 R /Next 15 0 R /Dest [5 0 R /FitH 700] >>
+endobj
+15 0 obj
+<< /Title (Section 2.2) /Parent 12 0 R /Prev 14 0 R /A << /S /URI /URI (https://example.org/) >> >>
+endobj
+16 0 obj
+<< /Title (Notes) /Parent 13 0 R /Dest [6 0 R /Fit] >>
+endobj
+20 0 obj
+<< /Kids [21 0 R] >>
+endobj
+21 0 obj
+<< /Limits [(appendix) (appendix)] /Names [(appendix) << /D [6 0 R /XYZ null null null] >>] >>
+endobj
+22 0 obj
+<< /Title (Outline fixture) /Author (lamina) /CreationDate (D:20261028120000Z) /ModDate (yesterday) /Producer (tools/fixtures/outline.py) >>
+endobj
+xref
+0 23
+0000000000 65535 f
+0000000015 00000 n
+0000000229 00000 n
+0000000322 00000 n
+0000000392 00000 n
+0000000494 00000 n
+0000000596 00000 n
+0000000698 00000 n
+0000000785 00000 n
+0000000872 00000 n
+0000000959 00000 n
+0000001033 00000 n
+0000001132 00000 n
+0000001283 00000 n
+0000001468 00000 n
+0000001563 00000 n
+0000001679 00000 n
+0000000000 65535 f
+0000000000 65535 f
+0000000000 65535 f
+0000001750 00000 n
+0000001787 00000 n
+0000001898 00000 n
+trailer
+<< /Size 23 /Root 1 0 R /Info 22 0 R >>
+startxref
+2055
+%%EOF

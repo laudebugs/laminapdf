@@ -5,6 +5,7 @@
 
 mod docs_links;
 mod doctor;
+mod harness;
 mod licenses;
 mod todos;
 mod tracked;
@@ -40,6 +41,18 @@ tasks:
                     check every relative link and #anchor in the tracked Markdown files
   todos [--check]   regenerate the todo board (docs/todos/README.md) and each todo's Blocks
                     field from the Depends on links; --check only verifies
+  golden [--update] regenerate every golden in fixtures/golden/ from its source and print the
+                    list (--update writes them; without it, fail if they would change)
+  corpus facts      rewrite fixtures/corpus/expected.json with pypdf (needs Python: see
+                    tools/corpus-facts/requirements.txt; $LAMINA_PYTHON or python3)
+  differential [--update]
+                    lamina vs pypdf over the corpus and fixed-seed mutants, from the precomputed
+                    fixtures/differential/expected.json; --update regenerates it with pypdf
+  fuzz <target> [--time <seconds>]
+                    run a fuzz target (lex, parse_object, flate_decode, open, page_tree) with
+                    cargo +nightly fuzz (default 60 s); seeds come from fixtures/ and fuzz/seeds/
+  fuzz seeds [<target>]
+                    only build the seed corpora in fuzz/corpus/
   ci                check + wasm: the whole fast lane, locally
   doctor [--install]
                     check that external tools are installed at their pinned versions;
@@ -93,6 +106,12 @@ fn main() -> Result<()> {
         ("docs-links", [flag]) if flag == "--json" => docs_links::run(&ws.root, true),
         ("todos", []) => todos::run(&ws.root, false),
         ("todos", [flag]) if flag == "--check" => todos::run(&ws.root, true),
+        ("golden", []) => harness::golden(&ws, false),
+        ("golden", [flag]) if flag == "--update" => harness::golden(&ws, true),
+        ("corpus", [what]) if what == "facts" => harness::corpus_facts(&ws),
+        ("differential", []) => harness::differential(&ws, false),
+        ("differential", [flag]) if flag == "--update" => harness::differential(&ws, true),
+        ("fuzz", args) => harness::fuzz(&ws, &harness::parse_fuzz_args(args)?),
         ("ci", []) => {
             check_docs(&ws)?;
             check_rust(&ws)?;
@@ -234,6 +253,7 @@ fn docs(ws: &Workspace) -> Result<()> {
 fn portability(ws: &Workspace) -> Result<()> {
     step("portability: forbidden APIs, dependencies and unsafe in core crates");
     ws.check_core_sources()?;
+    harness::check_fuzz_excluded(ws)?;
     for target in PORTABLE_TARGETS {
         let mut args = vec!["check", "--locked", "--lib", "--target", target];
         args.extend(package_args(ws.core_crates(), "core")?);

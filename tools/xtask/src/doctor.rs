@@ -16,6 +16,8 @@ use crate::workspace::Workspace;
 const CARGO_DENY_VERSION: &str = "0.20.2";
 /// cargo-nextest release (`cargo xtask test`; plain `cargo test` is the fallback).
 const CARGO_NEXTEST_VERSION: &str = "0.9.150";
+/// cargo-fuzz release (`cargo xtask fuzz`, `.github/workflows/fuzz.yml`); it runs on nightly.
+const CARGO_FUZZ_VERSION: &str = "0.13.2";
 /// Binaryen release for `wasm-opt`. Its output is part of the shipped .wasm, so bump it deliberately
 /// and review the wasm-opt feature list (ADR 0002) whenever this or `rust-toolchain.toml` changes.
 const BINARYEN_VERSION: &str = "133";
@@ -121,6 +123,16 @@ pub(crate) fn cargo_nextest() -> Tool {
     }
 }
 
+pub(crate) fn cargo_fuzz() -> Tool {
+    Tool {
+        name: "cargo-fuzz",
+        version_command: &["cargo", "fuzz", "--version"],
+        pin: Pin::Exact(CARGO_FUZZ_VERSION.to_owned()),
+        fix: format!("cargo install cargo-fuzz --locked --version {CARGO_FUZZ_VERSION}"),
+        optional_for: Some("cargo xtask fuzz (also needs `rustup toolchain install nightly`)"),
+    }
+}
+
 /// Every tool, with pins read from the repository where they live (toolchain file, package.json, Cargo.lock).
 fn all_tools(ws: &Workspace) -> Result<Vec<Tool>> {
     let channel = toolchain_channel(ws)?;
@@ -150,6 +162,7 @@ fn all_tools(ws: &Workspace) -> Result<Vec<Tool>> {
         },
         cargo_deny(),
         cargo_nextest(),
+        cargo_fuzz(),
         Tool {
             name: "wasm-bindgen-cli",
             version_command: &["wasm-bindgen", "--version"],

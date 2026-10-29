@@ -1,0 +1,17 @@
+[package]
+name = "lamina-hayro-parity"
+version = "0.0.0"
+edition = "2024"
+description = "Research spike: how close is hayro to PDFium today? (Round C1a)"
+license = "MIT OR Apache-2.0"
+publish = false
+
+# Standalone: spikes are outside the root workspace (docs/guidelines/code-organization.md §1).
+[workspace]
+
+[dependencies]
+hayro = "=0.8.0"
+pdfium-render = { version = "=0.9.4", default-features = false, features = ["pdfium_7881", "thread_safe"] }
+png = "0.18"
+libc = "0.2"
+anyhow = "1"

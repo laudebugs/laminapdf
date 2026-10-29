@@ -15,7 +15,8 @@
     "root_keys": [
       "/Pages",
       "/Type"
-    ]
+    ],
+    "outline_titles": []
   },
   "fpdf2.pdf": {
     "size": 1307,
@@ -35,7 +36,8 @@
       "/PageLayout",
       "/Pages",
       "/Type"
-    ]
+    ],
+    "outline_titles": []
   },
   "hello-broken.pdf": {
     "size": 599,
@@ -53,7 +55,8 @@
     "root_keys": [
       "/Pages",
       "/Type"
-    ]
+    ],
+    "outline_titles": []
   },
   "hello-incremental.pdf": {
     "size": 810,
@@ -71,7 +74,8 @@
     "root_keys": [
       "/Pages",
       "/Type"
-    ]
+    ],
+    "outline_titles": []
   },
   "hello-xrefstm.pdf": {
     "size": 521,
@@ -89,7 +93,8 @@
     "root_keys": [
       "/Pages",
       "/Type"
-    ]
+    ],
+    "outline_titles": []
   },
   "hello.pdf": {
     "size": 599,
@@ -107,7 +112,8 @@
     "root_keys": [
       "/Pages",
       "/Type"
-    ]
+    ],
+    "outline_titles": []
   },
   "imaging-demo.pdf": {
     "size": 1467,
@@ -125,6 +131,38 @@
     "root_keys": [
       "/Pages",
       "/Type"
+    ],
+    "outline_titles": []
+  },
+  "outline.pdf": {
+    "size": 2594,
+    "header_version": "1.7",
+    "page_count": 3,
+    "encrypted": false,
+    "revisions": 1,
+    "has_xref_stream": false,
+    "first_page_mediabox": [
+      0.0,
+      0.0,
+      612.0,
+      792.0
+    ],
+    "root_keys": [
+      "/Dests",
+      "/Names",
+      "/Outlines",
+      "/PageLabels",
+      "/PageMode",
+      "/Pages",
+      "/Type"
+    ],
+    "outline_titles": [
+      "Introduction",
+      "Chapter Ł1 — Café",
+      "Section 2.1",
+      "Section 2.2",
+      "Appendix 𝄞 Ω",
+      "Notes"
     ]
   },
   "pdflib.pdf": {
@@ -143,7 +181,8 @@
     "root_keys": [
       "/Pages",
       "/Type"
-    ]
+    ],
+    "outline_titles": []
   },
   "raw.pdf": {
     "size": 983,
@@ -161,7 +200,8 @@
     "root_keys": [
       "/Pages",
       "/Type"
-    ]
+    ],
+    "outline_titles": []
   },
   "reportlab.pdf": {
     "size": 1763,
@@ -180,7 +220,8 @@
       "/PageMode",
       "/Pages",
       "/Type"
-    ]
+    ],
+    "outline_titles": []
   },
   "signed.pdf": {
     "size": 7436,
@@ -201,7 +242,8 @@
       "/Pages",
       "/Type",
       "/Version"
-    ]
+    ],
+    "outline_titles": []
   },
   "tampered.pdf": {
     "size": 7436,
@@ -222,7 +264,8 @@
       "/Pages",
       "/Type",
       "/Version"
-    ]
+    ],
+    "outline_titles": []
   },
   "text-example.pdf": {
     "size": 9497,
@@ -245,6 +288,7 @@
       "/StructTreeRoot",
       "/Type",
       "/ViewerPreferences"
-    ]
+    ],
+    "outline_titles": []
   }
 }
