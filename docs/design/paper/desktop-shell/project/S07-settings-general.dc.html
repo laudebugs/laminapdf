@@ -29,7 +29,7 @@ button,input,textarea,select{font:inherit;color:inherit}
 
   <div style="flex: 1 1 auto; display: flex; flex-wrap: wrap">
     <nav aria-label="Settings sections" style="flex: 0 0 200px; box-sizing: border-box; border-right: 1px solid #E4DED3; padding: 16px 10px; display: flex; flex-direction: column; gap: 2px">
-      <a href="#" aria-current="page" style="height: 32px; display: flex; align-items: center; padding: 0 10px; border-radius: 4px; color: #1F5C63; background: #E1E6E3; font-weight: 600; text-decoration: none">General</a>
+      <a href="#" aria-current="page" style="height: 32px; display: flex; align-items: center; padding: 0 10px; border-radius: 4px; color: {{accent}}; background: {{accentTint}}; font-weight: 600; text-decoration: none">General</a>
       <a href="#" style="height: 32px; display: flex; align-items: center; padding: 0 10px; border-radius: 4px; color: #1F1D1A; text-decoration: none">Appearance</a>
       <a href="#" style="height: 32px; display: flex; align-items: center; padding: 0 10px; border-radius: 4px; color: #1F1D1A; text-decoration: none">Updates</a>
       <a href="#" style="height: 32px; display: flex; align-items: center; padding: 0 10px; border-radius: 4px; color: #1F1D1A; text-decoration: none">Privacy</a>
@@ -42,14 +42,14 @@ button,input,textarea,select{font:inherit;color:inherit}
     </nav>
 
     <main style="flex: 999 1 480px; min-width: 0; box-sizing: border-box; background: #FBF9F5; padding: 28px 32px 32px; display: flex; flex-direction: column; gap: 24px">
-      <h1 style="margin: 0; font-family: 'Newsreader', Georgia, serif; font-size: 20px; line-height: 24px; font-weight: 500">General</h1>
+      <h1 style="margin: 0; font-family: 'Newsreader', Georgia, serif; font-size: 28px; line-height: 34px; font-weight: 500">General</h1>
 
       <section aria-labelledby="g-open" style="display: flex; flex-direction: column">
         <h2 id="g-open" style="margin: 0 0 4px; font-family: 'Newsreader', Georgia, serif; font-size: 18px; line-height: 24px; font-weight: 500">Opening files</h2>
         <fieldset style="margin: 0; padding: 12px 0; border: 0; display: flex; justify-content: space-between; align-items: flex-start; gap: 24px">
           <legend style="float: left; padding: 0">Open files in</legend>
           <div style="display: flex; flex-direction: column; gap: 4px">
-            <label style="position: relative; display: flex; align-items: center; gap: 8px; min-height: 24px"><sc-if value="{{on}}" hint-placeholder-val="{{ true }}"><input type="radio" name="open" checked style="position: absolute; width: 1px; height: 1px; opacity: 0; margin: 0"></sc-if><span aria-hidden="true" style="width: 16px; height: 16px; flex: 0 0 auto; box-sizing: border-box; border-radius: 50%; border: 2px solid #1F5C63; background: #FFFFFF; display: flex; align-items: center; justify-content: center"><span style="width: 8px; height: 8px; border-radius: 50%; background: #1F5C63"></span></span>A new tab in the front window</label>
+            <label style="position: relative; display: flex; align-items: center; gap: 8px; min-height: 24px"><input type="radio" name="open" checked style="position: absolute; width: 1px; height: 1px; opacity: 0; margin: 0"><span aria-hidden="true" style="width: 16px; height: 16px; flex: 0 0 auto; box-sizing: border-box; border-radius: 50%; border: 2px solid {{accent}}; background: #FFFFFF; display: flex; align-items: center; justify-content: center"><span style="width: 8px; height: 8px; border-radius: 50%; background: {{accent}}"></span></span>A new tab in the front window</label>
             <label style="position: relative; display: flex; align-items: center; gap: 8px; min-height: 24px"><input type="radio" name="open" style="position: absolute; width: 1px; height: 1px; opacity: 0; margin: 0"><span aria-hidden="true" style="width: 16px; height: 16px; flex: 0 0 auto; box-sizing: border-box; border-radius: 50%; border: 1px solid #8A8174; background: #FFFFFF"></span>A new window</label>
           </div>
         </fieldset>
@@ -58,14 +58,14 @@ button,input,textarea,select{font:inherit;color:inherit}
             <span id="sw-sess">Reopen last session</span>
             <span id="sw-sess-d" style="font-size: 12px; color: #6B645A; max-width: 440px">Your windows and tabs come back at the page and zoom you left them.</span>
           </div>
-          <button role="switch" aria-checked="true" aria-labelledby="sw-sess" aria-describedby="sw-sess-d" style="flex: 0 0 auto; width: 32px; height: 18px; padding: 0; border: 1px solid #1F5C63; border-radius: 9px; background: #1F5C63; position: relative; outline: 2px solid #1F5C63; outline-offset: 2px"><span style="position: absolute; top: 2px; right: 2px; width: 12px; height: 12px; border-radius: 50%; background: #FFFFFF"></span></button>
+          <button role="switch" aria-checked="true" aria-labelledby="sw-sess" aria-describedby="sw-sess-d" style="flex: 0 0 auto; width: 32px; height: 18px; padding: 0; border: 1px solid {{accent}}; border-radius: 9px; background: {{accent}}; position: relative; outline: 2px solid {{accent}}; outline-offset: 2px"><span style="position: absolute; top: 2px; right: 2px; width: 12px; height: 12px; border-radius: 50%; background: #FFFFFF"></span></button>
         </div>
         <div style="display: flex; justify-content: space-between; align-items: center; gap: 24px; padding: 12px 0; border-top: 1px solid #E4DED3">
           <div style="display: flex; flex-direction: column; gap: 2px">
             <span id="sw-rel">Reload when the file changes on disk</span>
             <span id="sw-rel-d" style="font-size: 12px; color: #6B645A; max-width: 440px">Keeps your page. If you have unsaved changes, lamina asks first.</span>
           </div>
-          <button role="switch" aria-checked="true" aria-labelledby="sw-rel" aria-describedby="sw-rel-d" style="flex: 0 0 auto; width: 32px; height: 18px; padding: 0; border: 1px solid #1F5C63; border-radius: 9px; background: #1F5C63; position: relative"><span style="position: absolute; top: 2px; right: 2px; width: 12px; height: 12px; border-radius: 50%; background: #FFFFFF"></span></button>
+          <button role="switch" aria-checked="true" aria-labelledby="sw-rel" aria-describedby="sw-rel-d" style="flex: 0 0 auto; width: 32px; height: 18px; padding: 0; border: 1px solid {{accent}}; border-radius: 9px; background: {{accent}}; position: relative"><span style="position: absolute; top: 2px; right: 2px; width: 12px; height: 12px; border-radius: 50%; background: #FFFFFF"></span></button>
         </div>
         <div style="display: flex; justify-content: space-between; align-items: center; gap: 24px; padding: 12px 0; border-top: 1px solid #E4DED3">
           <div style="display: flex; flex-direction: column; gap: 2px">
@@ -83,7 +83,7 @@ button,input,textarea,select{font:inherit;color:inherit}
             <span id="sw-recent">Remember recent files</span>
             <span id="sw-recent-d" style="font-size: 12px; color: #6B645A; max-width: 440px">Up to 20 files, on this computer only, in lamina and in your system’s recent list. Turning this off clears the list and also stops reopening your last session.</span>
           </div>
-          <button role="switch" aria-checked="true" aria-labelledby="sw-recent" aria-describedby="sw-recent-d" style="flex: 0 0 auto; width: 32px; height: 18px; padding: 0; border: 1px solid #1F5C63; border-radius: 9px; background: #1F5C63; position: relative"><span style="position: absolute; top: 2px; right: 2px; width: 12px; height: 12px; border-radius: 50%; background: #FFFFFF"></span></button>
+          <button role="switch" aria-checked="true" aria-labelledby="sw-recent" aria-describedby="sw-recent-d" style="flex: 0 0 auto; width: 32px; height: 18px; padding: 0; border: 1px solid {{accent}}; border-radius: 9px; background: {{accent}}; position: relative"><span style="position: absolute; top: 2px; right: 2px; width: 12px; height: 12px; border-radius: 50%; background: #FFFFFF"></span></button>
         </div>
         <div style="display: flex; justify-content: space-between; align-items: center; gap: 24px; padding: 12px 0; border-top: 1px solid #E4DED3">
           <span style="font-size: 13px; color: #4A453E; font-variant-numeric: tabular-nums">6 files in the list</span>
@@ -106,9 +106,25 @@ button,input,textarea,select{font:inherit;color:inherit}
 </div>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#1F5C63","options":["#1F5C63","#2D4A6B","#5B3B6B","#495533"]},"$preview":{"width":1440,"height":900}}'>
 class Component extends DCLogic {
   renderVals() {
+    return Object.assign(this.theme(), this.vals());
+  }
+  theme() {
+    var accent = this.props.accent ?? '#1F5C63';
+    function mix(hex, base, t) {
+      var p = function (h, i) { return parseInt(h.replace('#', '').substr(i, 2), 16); };
+      var out = '#';
+      for (var i = 0; i < 6; i += 2) {
+        var v = Math.round(p(hex, i) * t + p(base, i) * (1 - t));
+        out += (v < 16 ? '0' : '') + v.toString(16);
+      }
+      return out;
+    }
+    return { accent: accent, accentTint: mix(accent, '#FBF9F5', 0.12), accentStrong: ({'#1F5C63':'#16454B','#2D4A6B':'#1A3757','#5B3B6B':'#472856','#495533':'#35401F'})[accent] || mix(accent, '#000000', 0.72), selTint: mix(accent, '#FFFFFF', 0.22), fieldTint: mix(accent, '#FFFFFF', 0.08) };
+  }
+  vals() {
     return { on: true };
   }
 }

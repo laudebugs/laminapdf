@@ -15,7 +15,7 @@ a{color:#1F5C63}a:hover{color:#16454B}
 button,input,textarea{font:inherit;color:inherit}
 </style>
 </helmet>
-<div style="min-height: 100vh; display: flex; flex-direction: column; box-sizing: border-box; background: #DCD6CB; font-family: 'Source Sans 3', 'Segoe UI', system-ui, sans-serif; font-size: 14px; line-height: 1.4; color: #1F1D1A">
+<div style="height: 100vh; display: flex; flex-direction: column; box-sizing: border-box; background: #DCD6CB; font-family: 'Source Sans 3', 'Segoe UI', system-ui, sans-serif; font-size: 14px; line-height: 1.4; color: #1F1D1A">
 <div style="position: relative; flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; background: #F7F4EE; border: 1px solid #C9C2B6; border-radius: 10px; overflow: hidden; box-sizing: border-box">
 
   <div style="height: 30px; flex: 0 0 auto; display: flex; align-items: center; padding: 0 12px; background: #EFEBE3; border-bottom: 1px solid #E0D9CD; position: relative">
@@ -32,7 +32,7 @@ button,input,textarea{font:inherit;color:inherit}
       <span style="font-family: 'Newsreader', Georgia, serif; font-size: 16px; font-weight: 500; white-space: nowrap">No document open</span>
     </div>
     <div style="display: flex; align-items: center; justify-content: flex-end; gap: 14px; flex: 1 1 220px">
-      <span style="height: 26px; display: flex; align-items: center; gap: 8px; padding: 0 6px 0 10px; border: 1px solid #E4DED3; background: #FBF9F5; border-radius: 4px; color: #6B645A; font-size: 13px"><span>Commands</span><span style="font-size: 11px; padding: 1px 5px; border: 1px solid #D8D1C5; border-radius: 3px; color: #4A453E; background: #FFFFFF">⌘K</span></span>
+      <span style="height: 26px; display: flex; align-items: center; gap: 8px; padding: 0 6px 0 10px; border: 1px solid #E4DED3; background: #FBF9F5; border-radius: 4px; color: #6B645A; font-size: 13px"><span>Commands</span><span style="font-size: 11px; padding: 1px 5px; border: 1px solid #D8D1C5; border-radius: 3px; color: #4A453E; background: #FFFFFF; white-space: nowrap; flex-shrink: 0">⌘K</span></span>
     </div>
   </header>
 
@@ -64,25 +64,28 @@ button,input,textarea{font:inherit;color:inherit}
 
       <fieldset style="margin: 0; padding: 0; border: 0; display: flex; flex-direction: column">
         <legend style="padding: 0 0 6px; font-size: 12px; font-weight: 600; color: #4A453E">Tabs from your last session</legend>
-        <sc-for list="{{tabs}}" as="tab" hint-placeholder-count="3">
+        <div style="display: flex; align-items: center; gap: 10px; min-height: 40px; border-top: 1px solid #E4DED3">
+            <label style="position: relative; display: flex; align-items: center; gap: 10px; flex: 1 1 auto; min-width: 0; min-height: 32px">
+              <input type="checkbox" checked style="position: absolute; width: 1px; height: 1px; opacity: 0; margin: 0"><span aria-hidden="true" style="flex: 0 0 auto; width: 16px; height: 16px; box-sizing: border-box; border-radius: 3px; background: {{accent}}; border: 1px solid {{accent}}; display: flex; align-items: center; justify-content: center"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2" aria-hidden="true"><path d="M6 12.5l4 4 8-9"></path></svg></span>
+              <span style="flex: 1 1 auto; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">Q3-board-report.pdf</span>
+              <span style="flex: 0 0 auto; white-space: nowrap; font-size: 12px; color: #6B645A; font-variant-numeric: tabular-nums">Page 3 of 24</span>
+            </label>
+          </div>
           <div style="display: flex; align-items: center; gap: 10px; min-height: 40px; border-top: 1px solid #E4DED3">
             <label style="position: relative; display: flex; align-items: center; gap: 10px; flex: 1 1 auto; min-width: 0; min-height: 32px">
-              <sc-if value="{{tab.on}}" hint-placeholder-val="{{ true }}">
-                <input type="checkbox" checked style="position: absolute; width: 1px; height: 1px; opacity: 0; margin: 0">
-                <span aria-hidden="true" style="flex: 0 0 auto; width: 16px; height: 16px; box-sizing: border-box; border-radius: 3px; background: #1F5C63; border: 1px solid #1F5C63; display: flex; align-items: center; justify-content: center"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2" aria-hidden="true"><path d="M6 12.5l4 4 8-9"></path></svg></span>
-              </sc-if>
-              <sc-if value="{{tab.off}}" hint-placeholder-val="{{ false }}">
-                <input type="checkbox" aria-describedby="{{tab.badgeId}}" style="position: absolute; width: 1px; height: 1px; opacity: 0; margin: 0">
-                <span aria-hidden="true" style="flex: 0 0 auto; width: 16px; height: 16px; box-sizing: border-box; border-radius: 3px; background: #FFFFFF; border: 1px solid #8A8174"></span>
-              </sc-if>
-              <span style="flex: 1 1 auto; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{tab.name}}</span>
-              <span style="flex: 0 0 auto; font-size: 12px; color: #6B645A; font-variant-numeric: tabular-nums">{{tab.page}}</span>
+              <input type="checkbox" checked style="position: absolute; width: 1px; height: 1px; opacity: 0; margin: 0"><span aria-hidden="true" style="flex: 0 0 auto; width: 16px; height: 16px; box-sizing: border-box; border-radius: 3px; background: {{accent}}; border: 1px solid {{accent}}; display: flex; align-items: center; justify-content: center"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2" aria-hidden="true"><path d="M6 12.5l4 4 8-9"></path></svg></span>
+              <span style="flex: 1 1 auto; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">Contractor-framework-2026.pdf</span>
+              <span style="flex: 0 0 auto; white-space: nowrap; font-size: 12px; color: #6B645A; font-variant-numeric: tabular-nums">Page 31 of 88</span>
             </label>
-            <sc-if value="{{tab.crashed}}" hint-placeholder-val="{{ false }}">
-              <span id="{{tab.badgeId}}" style="flex: 0 0 auto; height: 20px; display: flex; align-items: center; gap: 4px; padding: 0 8px; border-radius: 3px; background: #F0E8DC; color: #8A5300; font-size: 12px; font-weight: 600"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 4l9 16H3z"></path><path d="M12 10v4M12 17v.5"></path></svg>Open when lamina quit</span>
-            </sc-if>
           </div>
-        </sc-for>
+          <div style="display: flex; align-items: center; gap: 10px; min-height: 40px; border-top: 1px solid #E4DED3">
+            <label style="position: relative; display: flex; align-items: center; gap: 10px; flex: 1 1 auto; min-width: 0; min-height: 32px">
+              <input type="checkbox" aria-describedby="cr-b3" style="position: absolute; width: 1px; height: 1px; opacity: 0; margin: 0"><span aria-hidden="true" style="flex: 0 0 auto; width: 16px; height: 16px; box-sizing: border-box; border-radius: 3px; background: #FFFFFF; border: 1px solid #8A8174"></span>
+              <span style="flex: 1 1 auto; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">Damp-survey-North.pdf</span>
+              <span style="flex: 0 0 auto; white-space: nowrap; font-size: 12px; color: #6B645A; font-variant-numeric: tabular-nums">Page 1 of 9</span>
+            </label>
+            <span id="cr-b3" style="flex: 0 0 auto; height: 20px; white-space: nowrap; display: flex; align-items: center; gap: 4px; padding: 0 8px; border-radius: 3px; background: #F0E8DC; color: #8A5300; font-size: 12px; font-weight: 600"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 4l9 16H3z"></path><path d="M12 10v4M12 17v.5"></path></svg>Open when lamina quit</span>
+          </div>
       </fieldset>
 
       <div style="display: flex; flex-direction: column; gap: 10px; padding-top: 14px; border-top: 1px solid #E4DED3">
@@ -91,28 +94,38 @@ button,input,textarea{font:inherit;color:inherit}
           <span id="cr-send-d" style="padding-left: 26px; font-size: 12px; color: #6B645A">The error, lamina’s version, your system and the renderer. Never file names, paths or document content.</span>
         </div>
 <label style="position: relative; align-self: flex-start; display: flex; align-items: center; gap: 10px; min-height: 24px; color: #6B645A"><input type="checkbox" aria-disabled="true" aria-describedby="cr-always-d" style="position: absolute; width: 1px; height: 1px; opacity: 0; margin: 0"><span aria-hidden="true" style="flex: 0 0 auto; width: 16px; height: 16px; box-sizing: border-box; border-radius: 3px; background: #F7F4EE; border: 1px solid #D8D1C5"></span>Always send reports after a crash<span id="cr-always-d" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Available after you choose to send this report</span></label>
-        <button style="align-self: flex-start; min-height: 24px; padding: 0; border: 0; background: transparent; color: #1F5C63; font-weight: 600; font-size: 13px">View report</button>
+        <button style="align-self: flex-start; min-height: 24px; padding: 0; border: 0; background: transparent; color: {{accent}}; font-weight: 600; font-size: 13px">View report</button>
       </div>
 
       <div style="display: flex; justify-content: flex-end; gap: 8px; flex-wrap: wrap">
         <button style="height: 32px; padding: 0 16px; border: 1px solid #8A8174; background: #FFFFFF; border-radius: 4px">Start without tabs</button>
-        <button style="height: 32px; padding: 0 16px; border: 1px solid #1F5C63; background: #1F5C63; color: #FFFFFF; border-radius: 4px; font-weight: 600; outline: 2px solid #1F5C63; outline-offset: 2px">Reopen 2 tabs</button>
+        <button style="height: 32px; padding: 0 16px; border: 1px solid {{accent}}; background: {{accent}}; color: #FFFFFF; border-radius: 4px; font-weight: 600; outline: 2px solid {{accent}}; outline-offset: 2px">Reopen 2 tabs</button>
       </div>
     </div>
   </div>
 </div>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#1F5C63","options":["#1F5C63","#2D4A6B","#5B3B6B","#495533"]},"$preview":{"width":1440,"height":900}}'>
 class Component extends DCLogic {
   renderVals() {
-    return {
-      tabs: [
-        { name: "Q3-board-report.pdf", page: "Page 3 of 24", on: true, off: false, crashed: false, badgeId: "cr-b1" },
-        { name: "Contractor-framework-2026.pdf", page: "Page 31 of 88", on: true, off: false, crashed: false, badgeId: "cr-b2" },
-        { name: "Damp-survey-North.pdf", page: "Page 1 of 9", on: false, off: true, crashed: true, badgeId: "cr-b3" }
-      ]
-    };
+    return Object.assign(this.theme(), this.vals());
+  }
+  theme() {
+    var accent = this.props.accent ?? '#1F5C63';
+    function mix(hex, base, t) {
+      var p = function (h, i) { return parseInt(h.replace('#', '').substr(i, 2), 16); };
+      var out = '#';
+      for (var i = 0; i < 6; i += 2) {
+        var v = Math.round(p(hex, i) * t + p(base, i) * (1 - t));
+        out += (v < 16 ? '0' : '') + v.toString(16);
+      }
+      return out;
+    }
+    return { accent: accent, accentTint: mix(accent, '#FBF9F5', 0.12), accentStrong: ({'#1F5C63':'#16454B','#2D4A6B':'#1A3757','#5B3B6B':'#472856','#495533':'#35401F'})[accent] || mix(accent, '#000000', 0.72), selTint: mix(accent, '#FFFFFF', 0.22), fieldTint: mix(accent, '#FFFFFF', 0.08) };
+  }
+  vals() {
+    return {};
   }
 }
 </script>

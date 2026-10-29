@@ -45,7 +45,7 @@
       "x": 0,
       "y": 1020,
       "w": 1440,
-      "h": 940,
+      "h": 900,
       "title": "G02 · Desktop · Sign with a certificate",
       "expand": "fill"
     },
@@ -53,7 +53,7 @@
       "x": 0,
       "y": 2080,
       "w": 1440,
-      "h": 940,
+      "h": 900,
       "title": "G03 · Desktop · Certify and lock",
       "expand": "fill"
     },
@@ -77,7 +77,7 @@
       "x": 0,
       "y": 4160,
       "w": 1440,
-      "h": 940,
+      "h": 900,
       "title": "G05 · Desktop · Changes after signing, attack warning",
       "expand": "fill"
     },
@@ -85,7 +85,7 @@
       "x": 0,
       "y": 5220,
       "w": 1440,
-      "h": 940,
+      "h": 900,
       "title": "G06 · Desktop · Protect with a password",
       "expand": "fill"
     },
@@ -93,7 +93,7 @@
       "x": 1520,
       "y": 5220,
       "w": 1440,
-      "h": 940,
+      "h": 900,
       "title": "G06 · Desktop · Remove security",
       "expand": "fill"
     },
@@ -101,7 +101,7 @@
       "x": 3040,
       "y": 5220,
       "w": 1440,
-      "h": 940,
+      "h": 900,
       "title": "G06 · Desktop · Protect with certificates",
       "expand": "fill"
     },
@@ -109,7 +109,7 @@
       "x": 0,
       "y": 6280,
       "w": 1440,
-      "h": 940,
+      "h": 900,
       "title": "G07 · Desktop · Sanitise: what will be removed",
       "expand": "fill"
     },
@@ -117,7 +117,7 @@
       "x": 1520,
       "y": 6280,
       "w": 1440,
-      "h": 940,
+      "h": 900,
       "title": "G07 · Desktop · Sanitise report",
       "expand": "fill"
     },
@@ -125,7 +125,7 @@
       "x": 0,
       "y": 7340,
       "w": 1440,
-      "h": 940,
+      "h": 900,
       "title": "G08 · Desktop · Redact: mark and review",
       "expand": "fill"
     },
@@ -133,7 +133,7 @@
       "x": 0,
       "y": 8400,
       "w": 1440,
-      "h": 940,
+      "h": 900,
       "title": "G09 · Desktop · Find sensitive content",
       "expand": "fill"
     },
@@ -141,7 +141,7 @@
       "x": 0,
       "y": 9460,
       "w": 1440,
-      "h": 940,
+      "h": 900,
       "title": "G10 · Desktop · Apply redactions: confirm",
       "expand": "fill"
     },
@@ -149,7 +149,7 @@
       "x": 1520,
       "y": 9460,
       "w": 1440,
-      "h": 940,
+      "h": 900,
       "title": "G10 · Desktop · Verification report, save blocked",
       "expand": "fill"
     },

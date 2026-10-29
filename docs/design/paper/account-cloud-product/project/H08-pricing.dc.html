@@ -64,7 +64,7 @@ button,input,textarea{font:inherit;color:inherit}
           <a href="#buy-2" style="margin-top: auto; align-self: flex-start; display: inline-flex; align-items: center; height: 40px; padding: 0 20px; border: 1px solid #8A8174; background: #FFFFFF; border-radius: 4px; color: #1F1D1A; text-decoration: none">Buy [PLAN NAME]</a>
         </article>
       </div>
-      <p style="margin: 0; font-size: 14px; color: #6B645A">Prices in [CURRENCY], [TAX TERMS]. Trial: [TRIAL TERMS, IF ANY]. Last changed [DATE]; every change is listed in the <a href="#changelog">pricing history</a>.</p>
+      <p style="margin: 0; font-size: 14px; color: #6B645A">Prices in [CURRENCY], [TAX TERMS]. Trial: [TRIAL TERMS, IF ANY]. Last changed [DATE]; every change is listed in the <a href="#changelog" style="color: {{accent}}">pricing history</a>.</p>
     </section>
 
     <section aria-labelledby="prom-h" style="background: #FBF9F5; border-top: 1px solid #E4DED3; border-bottom: 1px solid #E4DED3">
@@ -97,19 +97,34 @@ button,input,textarea{font:inherit;color:inherit}
           </tbody>
         </table>
       </div>
-      <p style="margin: 0; font-size: 14px; color: #6B645A">Speed is published too: see <a href="#performance">Performance</a> for our release gates and the reader benchmark.</p>
+      <p style="margin: 0; font-size: 14px; color: #6B645A">Speed is published too: see <a href="#performance" style="color: {{accent}}">Performance</a> for our release gates and the reader benchmark.</p>
     </section>
   </main>
 
   <footer style="border-top: 1px solid #E4DED3; font-size: 12px; color: #6B645A">
-    <div style="max-width: 1120px; margin: 0 auto; box-sizing: border-box; padding: 24px; display: flex; flex-wrap: wrap; gap: 8px 24px"><span>lamina · code licensed MIT OR Apache-2.0</span><a href="#privacy">Privacy</a><a href="#terms">Terms</a><a href="#source">Source code</a></div>
+    <div style="max-width: 1120px; margin: 0 auto; box-sizing: border-box; padding: 24px; display: flex; flex-wrap: wrap; gap: 8px 24px"><span>lamina · code licensed MIT OR Apache-2.0</span><a href="#privacy" style="color: {{accent}}">Privacy</a><a href="#terms" style="color: {{accent}}">Terms</a><a href="#source" style="color: {{accent}}">Source code</a></div>
   </footer>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#1F5C63","options":["#1F5C63","#2D4A6B","#3E4A3C"]},"$preview":{"width":1440,"height":1900}}'>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#1F5C63","options":["#1F5C63","#2D4A6B","#5B3B6B","#495533"]},"$preview":{"width":1440,"height":1900}}'>
 class Component extends DCLogic {
   renderVals() {
-    return { accent: this.props.accent ?? '#1F5C63' };
+    var accent = this.props.accent ?? '#1F5C63';
+    function mix(hex, base, t) {
+      var p = function (h, i) { return parseInt(h.replace('#', '').substr(i, 2), 16); };
+      var out = '#';
+      for (var i = 0; i < 6; i += 2) {
+        var v = Math.round(p(hex, i) * t + p(base, i) * (1 - t));
+        out += (v < 16 ? '0' : '') + v.toString(16);
+      }
+      return out.toUpperCase();
+    }
+    var strong = { '#1F5C63': '#16454B', '#2D4A6B': '#1A3757', '#5B3B6B': '#472856', '#495533': '#35401F' };
+    var rgb = [0, 2, 4].map(function (i) { return parseInt(accent.replace('#', '').substr(i, 2), 16); }).join(',');
+    return {
+      accent: accent, accentStrong: strong[accent] || accent, accentTint: mix(accent, '#FBF9F5', 0.12),
+      selTint: mix(accent, '#FFFFFF', 0.22), fieldTint: mix(accent, '#FFFFFF', 0.08), accentRgb: rgb
+    };
   }
 }
 </script>

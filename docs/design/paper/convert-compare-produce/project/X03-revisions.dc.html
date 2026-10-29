@@ -15,7 +15,7 @@ a{color:#1F5C63}a:hover{color:#16454B}
 button,input,textarea,select{font:inherit;color:inherit}
 </style>
 </helmet>
-<div style="min-height: 100vh; display: flex; flex-direction: column; background: #DCD6CB; font-family: 'Source Sans 3', 'Segoe UI', system-ui, sans-serif; font-size: 14px; line-height: 1.4; color: #1F1D1A">
+<div style="height: 100vh; overflow: hidden; display: flex; flex-direction: column; background: #DCD6CB; font-family: 'Source Sans 3', 'Segoe UI', system-ui, sans-serif; font-size: 14px; line-height: 1.4; color: #1F1D1A">
 <div style="position: relative; flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; background: #F7F4EE; border: 1px solid #C9C2B6; border-radius: 10px; overflow: hidden; box-sizing: border-box">
 
   <div style="height: 30px; flex: 0 0 auto; display: flex; align-items: center; padding: 0 12px; background: #EFEBE3; border-bottom: 1px solid #E0D9CD; position: relative">
@@ -32,7 +32,7 @@ button,input,textarea,select{font:inherit;color:inherit}
       <div role="group" aria-label="History" style="display: flex; gap: 2px"><button aria-label="Undo" aria-disabled="true" style="width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 4px; color: #A39C91"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M9 7L4.5 11.5 9 16"></path><path d="M4.5 11.5H15a4.5 4.5 0 0 1 0 9h-3"></path></svg></button><button aria-label="Redo" aria-disabled="true" style="width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 4px; color: #A39C91"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M15 7l4.5 4.5L15 16"></path><path d="M19.5 11.5H9a4.5 4.5 0 0 0 0 9h3"></path></svg></button></div>
     </div>
     <div role="group" aria-label="Mode" style="display: flex; align-items: stretch; gap: 22px; height: 40px">
-      <button aria-pressed="true" style="height: 40px; display: flex; align-items: center; border: 0; background: transparent; padding: 2px 0 0; color: #1F1D1A; font-weight: 600; border-bottom: 2px solid #1F5C63">Read</button>
+      <button aria-pressed="true" style="height: 40px; display: flex; align-items: center; border: 0; background: transparent; padding: 2px 0 0; color: #1F1D1A; font-weight: 600; border-bottom: 2px solid {{accent}}">Read</button>
       <button aria-pressed="false" aria-disabled="true" style="height: 40px; display: flex; align-items: center; border: 0; background: transparent; padding: 2px 0 0; color: #A39C91; border-bottom: 2px solid transparent">Comment</button>
       <button aria-pressed="false" aria-disabled="true" style="height: 40px; display: flex; align-items: center; border: 0; background: transparent; padding: 2px 0 0; color: #A39C91; border-bottom: 2px solid transparent">Fill &amp; Sign</button>
       <button aria-pressed="false" aria-disabled="true" style="height: 40px; display: flex; align-items: center; border: 0; background: transparent; padding: 2px 0 0; color: #A39C91; border-bottom: 2px solid transparent">Organise</button>
@@ -42,27 +42,27 @@ button,input,textarea,select{font:inherit;color:inherit}
       <div style="display: flex; align-items: center; gap: 6px; font-variant-numeric: tabular-nums">
         <label for="pg" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Page</label>
         <input id="pg" value="3" style="width: 30px; height: 24px; box-sizing: border-box; text-align: center; border: 1px solid #8A8174; border-radius: 4px; background: #FFFFFF; font-variant-numeric: tabular-nums">
-        <span style="color: #6B645A">/ 24</span>
+        <span style="color: #6B645A; white-space: nowrap; flex-shrink: 0">/ 24</span>
       </div>
       <div role="group" aria-label="Zoom" style="display: flex; align-items: center; gap: 2px; font-variant-numeric: tabular-nums"><button aria-label="Zoom out" style="width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 4px; color: #4A453E"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M6 12h12"></path></svg></button><span style="min-width: 40px; text-align: center; font-size: 13px">100%</span><button aria-label="Zoom in" style="width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 4px; color: #4A453E"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M6 12h12M12 6v12"></path></svg></button></div>
       <button aria-label="Find in document" style="width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 4px; color: #4A453E"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6"></circle><path d="M15 15l5 5"></path></svg></button>
       <button aria-label="View settings" aria-haspopup="dialog" style="width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 4px; color: #4A453E"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="12" cy="12" r="7.5"></circle><path d="M12 4.5v15M12 8.5h5.5M12 12h7.5M12 15.5h5.5"></path></svg></button>
-      <button style="height: 26px; display: flex; align-items: center; gap: 8px; padding: 0 6px 0 10px; border: 1px solid #E4DED3; background: #FBF9F5; border-radius: 4px; color: #6B645A; font-size: 13px"><span>Commands</span><span style="font-size: 11px; padding: 1px 5px; border: 1px solid #D8D1C5; border-radius: 3px; color: #4A453E; background: #FFFFFF">⌘K</span></button>
+      <button style="height: 26px; display: flex; align-items: center; gap: 8px; padding: 0 6px 0 10px; border: 1px solid #E4DED3; background: #FBF9F5; border-radius: 4px; color: #6B645A; font-size: 13px; white-space: nowrap; flex-shrink: 0"><span>Commands</span><span style="font-size: 11px; padding: 1px 5px; border: 1px solid #D8D1C5; border-radius: 3px; color: #4A453E; background: #FFFFFF">⌘K</span></button>
       <button aria-label="More actions" style="width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 4px; color: #4A453E"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="5.5" cy="12" r="0.9"></circle><circle cx="12" cy="12" r="0.9"></circle><circle cx="18.5" cy="12" r="0.9"></circle></svg></button>
     </div>
   </header>
 
-  <div role="region" aria-label="Revision notice" style="min-height: 36px; flex: 0 0 auto; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; padding: 6px 16px; box-sizing: border-box; background: #E1E6E3; border-bottom: 1px solid #E4DED3; font-size: 13px">
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1F5C63" stroke-width="1.5" aria-hidden="true"><circle cx="12" cy="12" r="7.5"></circle><path d="M12 8v4l3 2"></path></svg>
-    <span><strong style="font-weight: 600; color: #1F5C63">You are viewing revision 2,</strong> saved 20 Oct 2026, 17:30. It is read only; the file on disk is unchanged.</span>
+  <div role="region" aria-label="Revision notice" style="min-height: 36px; flex: 0 0 auto; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; padding: 6px 16px; box-sizing: border-box; background: {{accentTint}}; border-bottom: 1px solid #E4DED3; font-size: 13px">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="{{accent}}" stroke-width="1.5" aria-hidden="true"><circle cx="12" cy="12" r="7.5"></circle><path d="M12 8v4l3 2"></path></svg>
+    <span><strong style="font-weight: 600; color: {{accent}}">You are viewing revision 2,</strong> saved 20 Oct 2026, 17:30. It is read only; the file on disk is unchanged.</span>
     <span style="flex: 1 1 auto"></span>
-    <button style="height: 28px; padding: 0 12px; border: 0; background: transparent; border-radius: 4px; color: #1F5C63; font-weight: 600">Save this revision as…</button>
+    <button style="height: 28px; padding: 0 12px; border: 0; background: transparent; border-radius: 4px; color: {{accent}}; font-weight: 600">Save this revision as…</button>
     <button style="height: 28px; padding: 0 12px; border: 1px solid #8A8174; background: #FFFFFF; border-radius: 4px">Compare with current</button>
-    <button style="height: 28px; padding: 0 12px; border: 1px solid #1F5C63; background: #1F5C63; color: #FFFFFF; border-radius: 4px; font-weight: 600">Back to current</button>
+    <button style="height: 28px; padding: 0 12px; border: 1px solid {{accent}}; background: {{accent}}; color: #FFFFFF; border-radius: 4px; font-weight: 600">Back to current</button>
   </div>
 
-  <div style="flex: 1 1 auto; min-height: 0; display: flex; flex-wrap: wrap">
-    <aside aria-label="Revisions" style="flex: 0 0 260px; box-sizing: border-box; border-right: 1px solid #E4DED3; display: flex; flex-direction: column; overflow: auto">
+  <div style="flex: 1 1 auto; min-height: 0; display: flex">
+    <aside aria-label="Revisions" style="min-height: 0; flex: 0 0 260px; box-sizing: border-box; border-right: 1px solid #E4DED3; display: flex; flex-direction: column; overflow: auto">
       <div style="display: flex; align-items: center; gap: 4px; padding: 10px 10px 10px 8px; border-bottom: 1px solid #E4DED3">
         <button aria-label="Back to sidebar tabs" style="width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 4px; color: #4A453E"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M15 5l-7 7 7 7"></path></svg></button>
         <h2 style="margin: 0; flex: 1 1 auto; font-family: 'Newsreader', Georgia, serif; font-size: 18px; font-weight: 500">Revisions</h2>
@@ -87,9 +87,9 @@ button,input,textarea,select{font:inherit;color:inherit}
           </button>
         </li>
         <li style="display: flex; gap: 10px">
-          <span aria-hidden="true" style="display: flex; flex-direction: column; align-items: center; width: 14px; padding-top: 12px"><span style="width: 9px; height: 9px; border-radius: 50%; background: #1F5C63; border: 1.5px solid #1F5C63"></span><span style="flex: 1 1 auto; width: 1px; background: #D8D1C5"></span></span>
-          <button aria-current="true" style="flex: 1 1 auto; display: flex; flex-direction: column; gap: 2px; text-align: left; padding: 8px; border: 1px solid #1F5C63; background: #E1E6E3; border-radius: 4px; outline: 2px solid #1F5C63; outline-offset: 2px">
-            <span style="font-weight: 600; color: #1F5C63">Revision 2 · Open</span>
+          <span aria-hidden="true" style="display: flex; flex-direction: column; align-items: center; width: 14px; padding-top: 12px"><span style="width: 9px; height: 9px; border-radius: 50%; background: {{accent}}; border: 1.5px solid {{accent}}"></span><span style="flex: 1 1 auto; width: 1px; background: #D8D1C5"></span></span>
+          <button aria-current="true" style="flex: 1 1 auto; display: flex; flex-direction: column; gap: 2px; text-align: left; padding: 8px; border: 1px solid {{accent}}; background: {{accentTint}}; border-radius: 4px; outline: 2px solid {{accent}}; outline-offset: 2px">
+            <span style="font-weight: 600; color: {{accent}}">Revision 2 · Open</span>
             <span style="font-size: 12px; color: #4A453E; font-variant-numeric: tabular-nums">20 Oct 2026, 17:30</span>
             <span style="font-size: 13px; color: #1F1D1A">Page 3 text and chart changed</span>
           </button>
@@ -109,9 +109,9 @@ button,input,textarea,select{font:inherit;color:inherit}
       <article aria-label="Page 3, revision 2" style="width: 100%; max-width: 612px; min-height: 790px; box-sizing: border-box; background: #FFFFFF; box-shadow: 0 1px 2px rgba(60,48,30,0.08), 0 8px 28px rgba(60,48,30,0.10); padding: 56px 64px 36px; display: flex; flex-direction: column; gap: 18px; font-family: 'Source Serif 4', Georgia, serif; color: #262421; font-size: 14.5px; line-height: 1.6">
         <div style="display: flex; justify-content: space-between; font-family: 'Source Sans 3', system-ui, sans-serif; font-size: 10.5px; letter-spacing: 0.08em; text-transform: uppercase; color: #6E6A64; border-bottom: 1px solid #E6E3DE; padding-bottom: 10px"><span>Northwind Housing Trust</span><span>Q3 Board Report · Draft</span></div>
         <h2 style="margin: 10px 0 0; font-size: 24px; font-weight: 600; line-height: 1.25; color: #1C1B19">2. Repairs backlog</h2>
-        <p style="margin: 0"><span style="outline: 2px dashed #1F5C63; outline-offset: 3px">Open repair jobs stood at 1,301 at the end of September across the four regions.</span> Most of the work closed this quarter was routine plumbing and joinery, which the additional contractor teams appointed in July were able to schedule within the target window.</p>
+        <p style="margin: 0"><span style="outline: 2px dashed {{accent}}; outline-offset: 3px">Open repair jobs stood at 1,301 at the end of September across the four regions.</span> Most of the work closed this quarter was routine plumbing and joinery, which the additional contractor teams appointed in July were able to schedule within the target window.</p>
         <p style="margin: 0">The backlog fell over the quarter, but the oldest 10% of jobs are now older than 90 days. These are mainly damp and mould cases that need a surveyor’s visit before work can be scheduled.</p>
-        <figure style="margin: 8px 0 0; display: flex; flex-direction: column; gap: 10px; font-family: 'Source Sans 3', system-ui, sans-serif; outline: 2px dashed #1F5C63; outline-offset: 6px">
+        <figure style="margin: 8px 0 0; display: flex; flex-direction: column; gap: 10px; font-family: 'Source Sans 3', system-ui, sans-serif; outline: 2px dashed {{accent}}; outline-offset: 6px">
           <figcaption style="font-size: 12.5px; font-weight: 600; color: #1C1B19">Open repairs by region, end of September</figcaption>
           <div style="display: grid; grid-template-columns: 56px minmax(0, 1fr) 40px; align-items: center; gap: 8px 12px; font-size: 12.5px; color: #3A3733; font-variant-numeric: tabular-nums">
             <span>North</span><span style="height: 14px; width: 100%; background: #4E5A63"></span><span style="text-align: right">440</span>
@@ -124,7 +124,7 @@ button,input,textarea,select{font:inherit;color:inherit}
       </article>
     </main>
 
-    <aside aria-label="Revision details" style="flex: 0 0 288px; box-sizing: border-box; border-left: 1px solid #E4DED3; background: #FBF9F5; display: flex; flex-direction: column; gap: 22px; padding: 20px 20px 24px; overflow: auto">
+    <aside aria-label="Revision details" style="min-height: 0; flex: 0 0 288px; box-sizing: border-box; border-left: 1px solid #E4DED3; background: #FBF9F5; display: flex; flex-direction: column; gap: 22px; padding: 20px 20px 24px; overflow: auto">
       <div style="display: flex; flex-direction: column; gap: 2px">
         <h2 style="margin: 0; font-family: 'Newsreader', Georgia, serif; font-size: 20px; font-weight: 500; line-height: 1.2">Revision 2</h2>
         <span style="font-size: 12px; color: #6B645A">Saved 20 Oct 2026, 17:30</span>
@@ -144,27 +144,42 @@ button,input,textarea,select{font:inherit;color:inherit}
           <li><a href="#" style="display: flex; justify-content: space-between; gap: 8px; padding: 6px 8px; border-radius: 4px; text-decoration: none; color: #1F1D1A"><span>Chart on page 3</span><span style="font-size: 12px; color: #6B645A">p. 3</span></a></li>
           <li><a href="#" style="display: flex; justify-content: space-between; gap: 8px; padding: 6px 8px; border-radius: 4px; text-decoration: none; color: #1F1D1A"><span>Document info (modified date)</span><span style="font-size: 12px; color: #6B645A">—</span></a></li>
         </ul>
-        <span style="font-size: 12px; color: #6B645A; font-variant-numeric: tabular-nums">14 objects changed · <a href="#">Show in object inspector</a></span>
+        <span style="font-size: 12px; color: #6B645A; font-variant-numeric: tabular-nums">14 objects changed · <a href="#" style="color: {{accent}}">Show in object inspector</a></span>
       </div>
       <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 24px">
         <span id="sw-areas">Outline changed areas</span>
-        <button role="switch" aria-checked="true" aria-labelledby="sw-areas" style="width: 32px; height: 18px; flex: 0 0 auto; padding: 0; border: 1px solid #1F5C63; border-radius: 9px; background: #1F5C63; position: relative"><span style="position: absolute; top: 2px; right: 2px; width: 12px; height: 12px; border-radius: 50%; background: #FFFFFF"></span></button>
+        <button role="switch" aria-checked="true" aria-labelledby="sw-areas" style="width: 32px; height: 18px; flex: 0 0 auto; padding: 0; border: 1px solid {{accent}}; border-radius: 9px; background: {{accent}}; position: relative"><span style="position: absolute; top: 2px; right: 2px; width: 12px; height: 12px; border-radius: 50%; background: #FFFFFF"></span></button>
       </div>
     </aside>
   </div>
 
   <footer style="min-height: 28px; flex: 0 0 auto; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px 16px; padding: 0 16px; border-top: 1px solid #E4DED3; font-size: 12px; color: #6B645A">
-    <button style="min-height: 24px; display: flex; align-items: center; gap: 7px; border: 0; background: transparent; padding: 0 4px; font-size: 12px; color: #6B645A"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#1F5C63" stroke-width="1.5" aria-hidden="true"><path d="M12 3.5l7 2.5v5.5c0 4.3-3 7.6-7 9-4-1.4-7-4.7-7-9V6z"></path><path d="M9 12l2.2 2.2L15.5 10"></path></svg><span style="color: #1F1D1A; font-variant-numeric: tabular-nums">0 network requests for this document</span><span>· Offline-safe: nothing uploaded</span></button>
+    <button style="min-height: 24px; display: flex; align-items: center; gap: 7px; border: 0; background: transparent; padding: 0 4px; font-size: 12px; color: #6B645A"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="{{accent}}" stroke-width="1.5" aria-hidden="true"><path d="M12 3.5l7 2.5v5.5c0 4.3-3 7.6-7 9-4-1.4-7-4.7-7-9V6z"></path><path d="M9 12l2.2 2.2L15.5 10"></path></svg><span style="color: #1F1D1A; font-variant-numeric: tabular-nums">0 network requests for this document</span><span>· Offline-safe: nothing uploaded</span></button>
     <span>Revision 2 of 4 · read only</span>
     <span style="font-variant-numeric: tabular-nums">Page 3 · Repairs backlog</span>
   </footer>
 </div>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#1F5C63","options":["#1F5C63","#2D4A6B","#5B3B6B","#495533"]},"$preview":{"width":1440,"height":900}}'>
 class Component extends DCLogic {
   renderVals() {
-    return {};
+    var accent = this.props.accent ?? '#1F5C63';
+    function mix(hex, base, t) {
+      var p = function (h, i) { return parseInt(h.replace('#', '').substr(i, 2), 16); };
+      var out = '#';
+      for (var i = 0; i < 6; i += 2) {
+        var v = Math.round(p(hex, i) * t + p(base, i) * (1 - t));
+        out += (v < 16 ? '0' : '') + v.toString(16);
+      }
+      return out.toUpperCase();
+    }
+    var strong = { '#1F5C63': '#16454B', '#2D4A6B': '#1A3757', '#5B3B6B': '#472856', '#495533': '#35401F' };
+    var rgb = [0, 2, 4].map(function (i) { return parseInt(accent.replace('#', '').substr(i, 2), 16); }).join(',');
+    return {
+      accent: accent, accentStrong: strong[accent] || accent, accentTint: mix(accent, '#FBF9F5', 0.12),
+      selTint: mix(accent, '#FFFFFF', 0.22), fieldTint: mix(accent, '#FFFFFF', 0.08), accentRgb: rgb
+    };
   }
 }
 </script>

@@ -38,8 +38,8 @@ button,input,textarea,select{font:inherit;color:inherit}
     <div style="flex: 0 0 auto; display: flex; align-items: center; justify-content: flex-end; gap: 2px">
       <div style="display: flex; align-items: center; gap: 6px; margin-right: 4px; font-variant-numeric: tabular-nums">
         <label for="tpg" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Page</label>
-        <input id="tpg" value="3" style="width: 40px; height: 36px; box-sizing: border-box; text-align: center; border: 1px solid #8A8174; border-radius: 6px; background: #FFFFFF; font-size: 15px; font-variant-numeric: tabular-nums">
-        <span style="color: #6B645A">/ 24</span>
+        <input id="tpg" value="3" style="width: 44px; height: 44px; box-sizing: border-box; text-align: center; border: 1px solid #8A8174; border-radius: 6px; background: #FFFFFF; font-size: 16px; font-variant-numeric: tabular-nums">
+        <span style="color: #6B645A; white-space: nowrap; flex-shrink: 0">/ 24</span>
       </div>
       <button aria-label="Find in document" style="width: 44px; height: 44px; flex: 0 0 auto; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 6px; color: #4A453E"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6"></circle><path d="M15 15l5 5"></path></svg></button>
       <button aria-label="View settings" aria-haspopup="dialog" aria-expanded="false" style="width: 44px; height: 44px; flex: 0 0 auto; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 6px; color: #4A453E"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="12" cy="12" r="7.5"></circle><path d="M12 4.5v15M12 8.5h5.5M12 12h7.5M12 15.5h5.5"></path></svg></button>
@@ -115,7 +115,7 @@ button,input,textarea,select{font:inherit;color:inherit}
   </footer>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#1F5C63","options":["#1F5C63","#2D4A6B","#3E4A3C"]},"$preview":{"width":1024,"height":1366}}'>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#1F5C63","options":["#1F5C63","#2D4A6B","#5B3B6B","#495533"]},"$preview":{"width":1024,"height":1366}}'>
 class Component extends DCLogic {
   renderVals() {
     var accent = this.props.accent ?? '#1F5C63';
@@ -128,7 +128,9 @@ class Component extends DCLogic {
       }
       return out;
     }
-    return { accent: accent, accentTint: mix(accent, '#FBF9F5', 0.12), selTint: mix(accent, '#FFFFFF', 0.22), on: true };
+    var accentTint = mix(accent, '#FBF9F5', 0.12), selTint = mix(accent, '#FFFFFF', 0.22), fieldTint = mix(accent, '#FFFFFF', 0.08);
+    var accentStrong = ({ '#1F5C63': '#16454B', '#2D4A6B': '#1A3757', '#5B3B6B': '#472856', '#495533': '#35401F' })[accent] || accent;
+    return { accent: accent, accentTint: accentTint };
   }
 }
 </script>

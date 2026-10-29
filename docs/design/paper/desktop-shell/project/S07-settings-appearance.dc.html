@@ -15,7 +15,7 @@ a{color:#1F5C63}a:hover{color:#16454B}
 button,input,textarea,select{font:inherit;color:inherit}
 </style>
 </helmet>
-<div style="min-height: 100vh; display: flex; justify-content: center; align-items: flex-start; box-sizing: border-box; padding: 40px 16px; background: #DCD6CB; font-family: 'Source Sans 3', 'Segoe UI', system-ui, sans-serif; font-size: 14px; line-height: 1.4; color: #1F1D1A">
+<div style="min-height: 100vh; display: flex; justify-content: center; align-items: flex-start; box-sizing: border-box; padding: 24px 16px; background: #DCD6CB; font-family: 'Source Sans 3', 'Segoe UI', system-ui, sans-serif; font-size: 14px; line-height: 1.4; color: #1F1D1A">
 <div style="width: 100%; max-width: 880px; min-height: 640px; display: flex; flex-direction: column; background: #F7F4EE; border: 1px solid #C9C2B6; border-radius: 10px; overflow: hidden; box-sizing: border-box; box-shadow: 0 18px 48px rgba(31,29,26,0.22)">
 
   <div style="height: 30px; flex: 0 0 auto; display: flex; align-items: center; padding: 0 12px; background: #EFEBE3; border-bottom: 1px solid #E0D9CD; position: relative">
@@ -30,7 +30,7 @@ button,input,textarea,select{font:inherit;color:inherit}
   <div style="flex: 1 1 auto; display: flex; flex-wrap: wrap">
     <nav aria-label="Settings sections" style="flex: 0 0 200px; box-sizing: border-box; border-right: 1px solid #E4DED3; padding: 16px 10px; display: flex; flex-direction: column; gap: 2px">
       <a href="#" style="height: 32px; display: flex; align-items: center; padding: 0 10px; border-radius: 4px; color: #1F1D1A; text-decoration: none">General</a>
-      <a href="#" aria-current="page" style="height: 32px; display: flex; align-items: center; padding: 0 10px; border-radius: 4px; color: #1F5C63; background: #E1E6E3; font-weight: 600; text-decoration: none">Appearance</a>
+      <a href="#" aria-current="page" style="height: 32px; display: flex; align-items: center; padding: 0 10px; border-radius: 4px; color: {{accent}}; background: {{accentTint}}; font-weight: 600; text-decoration: none">Appearance</a>
       <a href="#" style="height: 32px; display: flex; align-items: center; padding: 0 10px; border-radius: 4px; color: #1F1D1A; text-decoration: none">Updates</a>
       <a href="#" style="height: 32px; display: flex; align-items: center; padding: 0 10px; border-radius: 4px; color: #1F1D1A; text-decoration: none">Privacy</a>
       <a href="#" style="height: 32px; display: flex; align-items: center; padding: 0 10px; border-radius: 4px; color: #1F1D1A; text-decoration: none">Shortcuts</a>
@@ -41,33 +41,90 @@ button,input,textarea,select{font:inherit;color:inherit}
       <a href="#" style="height: 32px; display: flex; align-items: center; padding: 0 10px; border-radius: 4px; color: #1F1D1A; text-decoration: none">About</a>
     </nav>
 
-    <main style="flex: 999 1 480px; min-width: 0; box-sizing: border-box; background: #FBF9F5; padding: 28px 32px 32px; display: flex; flex-direction: column; gap: 24px">
-      <h1 style="margin: 0; font-family: 'Newsreader', Georgia, serif; font-size: 20px; line-height: 24px; font-weight: 500">Appearance</h1>
+    <main style="flex: 999 1 480px; min-width: 0; box-sizing: border-box; background: #FBF9F5; padding: 28px 32px 32px; display: flex; flex-direction: column; gap: 20px">
+      <h1 style="margin: 0; font-family: 'Newsreader', Georgia, serif; font-size: 28px; line-height: 34px; font-weight: 500">Appearance</h1>
 
-      <section aria-labelledby="a-theme" style="display: flex; flex-direction: column; gap: 10px">
-        <div style="display: flex; flex-direction: column; gap: 2px">
-          <h2 id="a-theme" style="margin: 0; font-family: 'Newsreader', Georgia, serif; font-size: 18px; line-height: 24px; font-weight: 500">Theme</h2>
-          <span style="font-size: 12px; color: #6B645A">Colours of lamina’s own windows and panels.</span>
-        </div>
-        <div role="group" aria-labelledby="a-theme" style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px">
-          <button aria-pressed="true" style="display: flex; flex-direction: column; gap: 8px; padding: 8px; border: 2px solid #1F5C63; border-radius: 6px; background: #FFFFFF; text-align: left; font-size: 13px; font-weight: 600; outline: 2px solid #1F5C63; outline-offset: 2px">
-            <span aria-hidden="true" style="display: flex; height: 52px; border-radius: 3px; overflow: hidden; border: 1px solid #D8D1C5"><span style="flex: 1 1 50%; background: #F7F4EE; display: flex; align-items: flex-end; justify-content: center"><span style="width: 26px; height: 34px; background: #FFFFFF; box-shadow: 0 1px 3px rgba(60,48,30,0.12)"></span></span><span style="flex: 1 1 50%; background: #1E1D1A; display: flex; align-items: flex-end; justify-content: center"><span style="width: 26px; height: 34px; background: #FFFFFF"></span></span></span>
-            Match system
-          </button>
-          <button aria-pressed="false" style="display: flex; flex-direction: column; gap: 8px; padding: 8px; border: 1px solid #D8D1C5; border-radius: 6px; background: #FBF9F5; text-align: left; font-size: 13px">
+      <fieldset aria-describedby="a-theme-d" style="margin: 0; padding: 0; border: 0; min-width: 0; display: flex; flex-direction: column; gap: 10px">
+        <legend style="padding: 0; margin: 0 0 2px; font-family: 'Newsreader', Georgia, serif; font-size: 18px; line-height: 24px; font-weight: 500">Theme</legend>
+        <span id="a-theme-d" style="font-size: 12px; color: #6B645A; margin-top: -8px">Colours of lamina’s own windows and panels. Match system follows your computer: light right now.</span>
+        <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px">
+          <label style="position: relative; display: flex; flex-direction: column; gap: 8px; padding: 8px; border: 1px solid #D8D1C5; background: #FBF9F5; border-radius: 6px; font-size: 13px">
+            <input type="radio" name="theme" value="light" style="position: absolute; width: 1px; height: 1px; opacity: 0; margin: 0">
             <span aria-hidden="true" style="display: flex; align-items: flex-end; justify-content: center; height: 52px; border-radius: 3px; background: #F7F4EE; border: 1px solid #D8D1C5"><span style="width: 26px; height: 34px; background: #FFFFFF; box-shadow: 0 1px 3px rgba(60,48,30,0.12)"></span></span>
-            Light
-          </button>
-          <button aria-pressed="false" style="display: flex; flex-direction: column; gap: 8px; padding: 8px; border: 1px solid #D8D1C5; border-radius: 6px; background: #FBF9F5; text-align: left; font-size: 13px">
+            <span style="display: flex; align-items: center; gap: 8px"><span aria-hidden="true" style="flex: 0 0 auto; width: 16px; height: 16px; box-sizing: border-box; border-radius: 50%; border: 1px solid #8A8174; background: #FFFFFF"></span>Light</span>
+          </label>
+          <label style="position: relative; display: flex; flex-direction: column; gap: 8px; padding: 8px; border: 1px solid #D8D1C5; background: #FBF9F5; border-radius: 6px; font-size: 13px">
+            <input type="radio" name="theme" value="dark" style="position: absolute; width: 1px; height: 1px; opacity: 0; margin: 0">
             <span aria-hidden="true" style="display: flex; align-items: flex-end; justify-content: center; height: 52px; border-radius: 3px; background: #1E1D1A; border: 1px solid #D8D1C5"><span style="width: 26px; height: 34px; background: #FFFFFF"></span></span>
-            Dark
-          </button>
-          <button aria-pressed="false" style="display: flex; flex-direction: column; gap: 8px; padding: 8px; border: 1px solid #D8D1C5; border-radius: 6px; background: #FBF9F5; text-align: left; font-size: 13px">
-            <span aria-hidden="true" style="display: flex; align-items: flex-end; justify-content: center; height: 52px; border-radius: 3px; background: #000000; border: 1px solid #D8D1C5"><span style="width: 26px; height: 34px; background: #000000; border: 1px solid #FFFFFF; box-sizing: border-box"></span></span>
-            High contrast
-          </button>
+            <span style="display: flex; align-items: center; gap: 8px"><span aria-hidden="true" style="flex: 0 0 auto; width: 16px; height: 16px; box-sizing: border-box; border-radius: 50%; border: 1px solid #8A8174; background: #FFFFFF"></span>Dark</span>
+          </label>
+          <label style="position: relative; display: flex; flex-direction: column; gap: 8px; padding: 8px; border: 1px solid #D8D1C5; background: #FBF9F5; border-radius: 6px; font-size: 13px">
+            <input type="radio" name="theme" value="high-contrast" style="position: absolute; width: 1px; height: 1px; opacity: 0; margin: 0">
+            <span aria-hidden="true" style="display: flex; align-items: flex-end; justify-content: center; height: 52px; border-radius: 3px; background: #000000; border: 1px solid #D8D1C5"><span style="width: 26px; height: 34px; background: #FFFFFF; outline: 1px solid #FFFFFF"></span></span>
+            <span style="display: flex; align-items: center; gap: 8px"><span aria-hidden="true" style="flex: 0 0 auto; width: 16px; height: 16px; box-sizing: border-box; border-radius: 50%; border: 1px solid #8A8174; background: #FFFFFF"></span>High contrast</span>
+          </label>
+          <label style="position: relative; display: flex; flex-direction: column; gap: 8px; padding: 8px; border: 2px solid {{accent}}; background: #FFFFFF; font-weight: 600; outline: 2px solid {{accent}}; outline-offset: 2px; border-radius: 6px; font-size: 13px">
+            <input type="radio" name="theme" value="match-system" checked style="position: absolute; width: 1px; height: 1px; opacity: 0; margin: 0">
+            <span aria-hidden="true" style="display: flex; height: 52px; border-radius: 3px; overflow: hidden; border: 1px solid #D8D1C5"><span style="flex: 1 1 50%; background: #F7F4EE; display: flex; align-items: flex-end; justify-content: center"><span style="width: 26px; height: 34px; background: #FFFFFF; box-shadow: 0 1px 3px rgba(60,48,30,0.12)"></span></span><span style="flex: 1 1 50%; background: #1E1D1A; display: flex; align-items: flex-end; justify-content: center"><span style="width: 26px; height: 34px; background: #FFFFFF"></span></span></span>
+            <span style="display: flex; align-items: center; gap: 8px"><span aria-hidden="true" style="flex: 0 0 auto; width: 16px; height: 16px; box-sizing: border-box; border-radius: 50%; border: 2px solid {{accent}}; background: #FFFFFF; display: flex; align-items: center; justify-content: center"><span style="width: 8px; height: 8px; border-radius: 50%; background: {{accent}}"></span></span>Match system</span>
+          </label>
         </div>
-      </section>
+      </fieldset>
+
+      <fieldset aria-describedby="a-acc-d" style="margin: 0; padding: 0; border: 0; min-width: 0; display: flex; flex-direction: column; gap: 10px">
+        <legend style="padding: 0; margin: 0 0 2px; font-family: 'Newsreader', Georgia, serif; font-size: 18px; line-height: 24px; font-weight: 500">Accent</legend>
+        <span id="a-acc-d" style="font-size: 12px; color: #6B645A; margin-top: -8px">Colour of buttons, links and selections. Saved to your account when you’re signed in, so your other devices match.</span>
+        <div style="display: flex; flex-wrap: wrap; gap: 8px 20px">
+          <sc-if value="{{acc.teal}}" hint-placeholder-val="{{ true }}">
+            <label style="position: relative; display: flex; flex-direction: column; align-items: center; gap: 6px; min-width: 56px; font-size: 13px; font-weight: 600">
+              <input type="radio" name="accent" value="teal" checked style="position: absolute; width: 1px; height: 1px; opacity: 0; margin: 0">
+              <span aria-hidden="true" style="width: 32px; height: 32px; box-sizing: border-box; border-radius: 50%; background: #1F5C63; border: 1px solid #8A8174; outline: 2px solid #1F1D1A; outline-offset: 2px"></span>Teal
+            </label>
+          </sc-if>
+          <sc-if value="{{!acc.teal}}" hint-placeholder-val="{{ false }}">
+            <label style="position: relative; display: flex; flex-direction: column; align-items: center; gap: 6px; min-width: 56px; font-size: 13px">
+              <input type="radio" name="accent" value="teal" style="position: absolute; width: 1px; height: 1px; opacity: 0; margin: 0">
+              <span aria-hidden="true" style="width: 32px; height: 32px; box-sizing: border-box; border-radius: 50%; background: #1F5C63; border: 1px solid #8A8174"></span>Teal
+            </label>
+          </sc-if>
+          <sc-if value="{{acc.blue}}" hint-placeholder-val="{{ false }}">
+            <label style="position: relative; display: flex; flex-direction: column; align-items: center; gap: 6px; min-width: 56px; font-size: 13px; font-weight: 600">
+              <input type="radio" name="accent" value="blue" checked style="position: absolute; width: 1px; height: 1px; opacity: 0; margin: 0">
+              <span aria-hidden="true" style="width: 32px; height: 32px; box-sizing: border-box; border-radius: 50%; background: #2D4A6B; border: 1px solid #8A8174; outline: 2px solid #1F1D1A; outline-offset: 2px"></span>Blue
+            </label>
+          </sc-if>
+          <sc-if value="{{!acc.blue}}" hint-placeholder-val="{{ true }}">
+            <label style="position: relative; display: flex; flex-direction: column; align-items: center; gap: 6px; min-width: 56px; font-size: 13px">
+              <input type="radio" name="accent" value="blue" style="position: absolute; width: 1px; height: 1px; opacity: 0; margin: 0">
+              <span aria-hidden="true" style="width: 32px; height: 32px; box-sizing: border-box; border-radius: 50%; background: #2D4A6B; border: 1px solid #8A8174"></span>Blue
+            </label>
+          </sc-if>
+          <sc-if value="{{acc.plum}}" hint-placeholder-val="{{ false }}">
+            <label style="position: relative; display: flex; flex-direction: column; align-items: center; gap: 6px; min-width: 56px; font-size: 13px; font-weight: 600">
+              <input type="radio" name="accent" value="plum" checked style="position: absolute; width: 1px; height: 1px; opacity: 0; margin: 0">
+              <span aria-hidden="true" style="width: 32px; height: 32px; box-sizing: border-box; border-radius: 50%; background: #5B3B6B; border: 1px solid #8A8174; outline: 2px solid #1F1D1A; outline-offset: 2px"></span>Plum
+            </label>
+          </sc-if>
+          <sc-if value="{{!acc.plum}}" hint-placeholder-val="{{ true }}">
+            <label style="position: relative; display: flex; flex-direction: column; align-items: center; gap: 6px; min-width: 56px; font-size: 13px">
+              <input type="radio" name="accent" value="plum" style="position: absolute; width: 1px; height: 1px; opacity: 0; margin: 0">
+              <span aria-hidden="true" style="width: 32px; height: 32px; box-sizing: border-box; border-radius: 50%; background: #5B3B6B; border: 1px solid #8A8174"></span>Plum
+            </label>
+          </sc-if>
+          <sc-if value="{{acc.green}}" hint-placeholder-val="{{ false }}">
+            <label style="position: relative; display: flex; flex-direction: column; align-items: center; gap: 6px; min-width: 56px; font-size: 13px; font-weight: 600">
+              <input type="radio" name="accent" value="green" checked style="position: absolute; width: 1px; height: 1px; opacity: 0; margin: 0">
+              <span aria-hidden="true" style="width: 32px; height: 32px; box-sizing: border-box; border-radius: 50%; background: #495533; border: 1px solid #8A8174; outline: 2px solid #1F1D1A; outline-offset: 2px"></span>Green
+            </label>
+          </sc-if>
+          <sc-if value="{{!acc.green}}" hint-placeholder-val="{{ true }}">
+            <label style="position: relative; display: flex; flex-direction: column; align-items: center; gap: 6px; min-width: 56px; font-size: 13px">
+              <input type="radio" name="accent" value="green" style="position: absolute; width: 1px; height: 1px; opacity: 0; margin: 0">
+              <span aria-hidden="true" style="width: 32px; height: 32px; box-sizing: border-box; border-radius: 50%; background: #495533; border: 1px solid #8A8174"></span>Green
+            </label>
+          </sc-if>
+        </div>
+      </fieldset>
 
       <section aria-labelledby="a-page" style="display: flex; flex-direction: column; gap: 10px">
         <div style="display: flex; flex-direction: column; gap: 2px">
@@ -75,7 +132,7 @@ button,input,textarea,select{font:inherit;color:inherit}
           <span style="font-size: 12px; color: #6B645A">How pages look on screen. The file is not changed; photos and comment colours stay as they are.</span>
         </div>
         <div role="group" aria-labelledby="a-page" style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px">
-          <button aria-pressed="true" style="display: flex; flex-direction: column; gap: 8px; padding: 8px; border: 2px solid #1F5C63; border-radius: 6px; background: #FFFFFF; text-align: left; font-size: 13px; font-weight: 600">
+          <button aria-pressed="true" style="display: flex; flex-direction: column; gap: 8px; padding: 8px; border: 2px solid {{accent}}; border-radius: 6px; background: #FFFFFF; text-align: left; font-size: 13px; font-weight: 600">
             <span aria-hidden="true" style="display: flex; align-items: center; justify-content: center; height: 52px; border-radius: 3px; background: #FFFFFF; border: 1px solid #D8D1C5; color: #262421; font-family: 'Source Serif 4', Georgia, serif; font-size: 20px; font-weight: 400">Aa</span>
             Original
           </button>
@@ -96,23 +153,27 @@ button,input,textarea,select{font:inherit;color:inherit}
 
       <section aria-labelledby="a-open" style="display: flex; flex-direction: column">
         <h2 id="a-open" style="margin: 0 0 4px; font-family: 'Newsreader', Georgia, serif; font-size: 18px; line-height: 24px; font-weight: 500">When a document opens</h2>
-        <div style="display: flex; justify-content: space-between; align-items: center; gap: 24px; padding: 12px 0">
+        <div style="display: flex; justify-content: space-between; align-items: center; gap: 24px; padding: 10px 0">
           <label for="zoom">Zoom</label>
           <div style="position: relative; flex: 0 0 auto">
             <select id="zoom" style="width: 180px; height: 32px; box-sizing: border-box; padding: 0 30px 0 10px; border: 1px solid #8A8174; border-radius: 4px; background: #FFFFFF; appearance: none"><option>Fit width</option><option>Fit page</option><option>Actual size</option><option>Last used for the file</option></select>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#4A453E" stroke-width="1.5" aria-hidden="true" style="position: absolute; right: 8px; top: 8px; pointer-events: none"><path d="M7 10l5 5 5-5"></path></svg>
           </div>
         </div>
-        <div style="display: flex; justify-content: space-between; align-items: center; gap: 24px; padding: 12px 0; border-top: 1px solid #E4DED3">
-          <label for="layout">Page layout</label>
-          <div style="position: relative; flex: 0 0 auto">
-            <select id="layout" style="width: 180px; height: 32px; box-sizing: border-box; padding: 0 30px 0 10px; border: 1px solid #8A8174; border-radius: 4px; background: #FFFFFF; appearance: none"><option>Continuous</option><option>Single page</option><option>Two pages</option></select>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#4A453E" stroke-width="1.5" aria-hidden="true" style="position: absolute; right: 8px; top: 8px; pointer-events: none"><path d="M7 10l5 5 5-5"></path></svg>
+        <fieldset style="margin: 0; padding: 10px 0; border: 0; border-top: 1px solid #E4DED3; min-width: 0; display: flex; justify-content: space-between; align-items: center; gap: 24px">
+          <legend style="float: left; padding: 0">Page layout</legend>
+          <div style="display: grid; grid-template-columns: auto auto; gap: 4px">
+            <label style="position: relative; height: 28px; padding: 0 12px; box-sizing: border-box; display: flex; align-items: center; border: 1px solid {{accent}}; background: {{accentTint}}; color: {{accent}}; font-weight: 600; border-radius: 4px"><input type="radio" name="layout" value="single" checked style="position: absolute; width: 1px; height: 1px; opacity: 0; margin: 0">Single page</label>
+            <label style="position: relative; height: 28px; padding: 0 12px; box-sizing: border-box; display: flex; align-items: center; border: 1px solid #8A8174; background: #FFFFFF; border-radius: 4px"><input type="radio" name="layout" value="two-up" style="position: absolute; width: 1px; height: 1px; opacity: 0; margin: 0">Two pages</label>
           </div>
+        </fieldset>
+        <div style="display: flex; justify-content: space-between; align-items: center; gap: 24px; padding: 10px 0; border-top: 1px solid #E4DED3">
+          <span id="sw-cont">Continuous scrolling</span>
+          <button role="switch" aria-checked="true" aria-labelledby="sw-cont" style="flex: 0 0 auto; width: 32px; height: 18px; padding: 0; border: 1px solid {{accent}}; border-radius: 9px; background: {{accent}}; position: relative"><span style="position: absolute; top: 2px; right: 2px; width: 12px; height: 12px; border-radius: 50%; background: #FFFFFF"></span></button>
         </div>
-        <div style="display: flex; justify-content: space-between; align-items: center; gap: 24px; padding: 12px 0; border-top: 1px solid #E4DED3">
+        <div style="display: flex; justify-content: space-between; align-items: center; gap: 24px; padding: 10px 0; border-top: 1px solid #E4DED3">
           <span id="sw-rail">Show the sidebar</span>
-          <button role="switch" aria-checked="true" aria-labelledby="sw-rail" style="flex: 0 0 auto; width: 32px; height: 18px; padding: 0; border: 1px solid #1F5C63; border-radius: 9px; background: #1F5C63; position: relative"><span style="position: absolute; top: 2px; right: 2px; width: 12px; height: 12px; border-radius: 50%; background: #FFFFFF"></span></button>
+          <button role="switch" aria-checked="true" aria-labelledby="sw-rail" style="flex: 0 0 auto; width: 32px; height: 18px; padding: 0; border: 1px solid {{accent}}; border-radius: 9px; background: {{accent}}; position: relative"><span style="position: absolute; top: 2px; right: 2px; width: 12px; height: 12px; border-radius: 50%; background: #FFFFFF"></span></button>
         </div>
       </section>
     </main>
@@ -120,10 +181,27 @@ button,input,textarea,select{font:inherit;color:inherit}
 </div>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#1F5C63","options":["#1F5C63","#2D4A6B","#5B3B6B","#495533"]},"$preview":{"width":1440,"height":900}}'>
 class Component extends DCLogic {
   renderVals() {
-    return {};
+    return Object.assign(this.theme(), this.vals());
+  }
+  theme() {
+    var accent = this.props.accent ?? '#1F5C63';
+    function mix(hex, base, t) {
+      var p = function (h, i) { return parseInt(h.replace('#', '').substr(i, 2), 16); };
+      var out = '#';
+      for (var i = 0; i < 6; i += 2) {
+        var v = Math.round(p(hex, i) * t + p(base, i) * (1 - t));
+        out += (v < 16 ? '0' : '') + v.toString(16);
+      }
+      return out;
+    }
+    return { accent: accent, accentTint: mix(accent, '#FBF9F5', 0.12), accentStrong: ({'#1F5C63':'#16454B','#2D4A6B':'#1A3757','#5B3B6B':'#472856','#495533':'#35401F'})[accent] || mix(accent, '#000000', 0.72), selTint: mix(accent, '#FFFFFF', 0.22), fieldTint: mix(accent, '#FFFFFF', 0.08) };
+  }
+  vals() {
+    var a = this.props.accent ?? '#1F5C63';
+    return { acc: { teal: a === '#1F5C63', blue: a === '#2D4A6B', plum: a === '#5B3B6B', green: a === '#495533' } };
   }
 }
 </script>

@@ -15,7 +15,7 @@ a{color:#1F5C63}a:hover{color:#16454B}
 button,input,textarea,select{font:inherit;color:inherit}
 </style>
 </helmet>
-<div style="min-height: 100vh; display: flex; flex-direction: column; background: #DCD6CB; font-family: 'Source Sans 3', 'Segoe UI', system-ui, sans-serif; font-size: 14px; line-height: 1.4; color: #1F1D1A">
+<div style="height: 100vh; display: flex; flex-direction: column; background: #DCD6CB; font-family: 'Source Sans 3', 'Segoe UI', system-ui, sans-serif; font-size: 14px; line-height: 1.4; color: #1F1D1A">
 <div style="position: relative; flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; background: #F7F4EE; border: 1px solid #C9C2B6; border-radius: 10px; overflow: hidden; box-sizing: border-box">
 
   <div style="height: 30px; flex: 0 0 auto; display: flex; align-items: center; padding: 0 12px; background: #EFEBE3; border-bottom: 1px solid #E0D9CD; position: relative">
@@ -47,7 +47,7 @@ button,input,textarea,select{font:inherit;color:inherit}
       <div style="display: flex; align-items: center; gap: 6px; font-variant-numeric: tabular-nums">
         <label for="dpg" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Page</label>
         <input id="dpg" value="1" style="width: 30px; height: 24px; box-sizing: border-box; text-align: center; border: 1px solid #8A8174; border-radius: 4px; background: #FFFFFF; font-variant-numeric: tabular-nums; color: #1F1D1A">
-        <span style="color: #6B645A">/ 2</span>
+        <span style="color: #6B645A; white-space: nowrap">/ 2</span>
       </div>
       <div style="display: flex; align-items: center; gap: 2px; font-variant-numeric: tabular-nums">
         <button aria-label="Zoom out" style="width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 4px; color: #4A453E"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M6 12h12"></path></svg></button>
@@ -56,7 +56,7 @@ button,input,textarea,select{font:inherit;color:inherit}
       </div>
       <button aria-label="Find in document" style="width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 4px; color: #4A453E"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6"></circle><path d="M15 15l5 5"></path></svg></button>
       <button aria-label="View settings" aria-haspopup="dialog" aria-expanded="false" style="width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 4px; color: #4A453E"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="12" cy="12" r="7.5"></circle><path d="M12 4.5v15M12 8.5h5.5M12 12h7.5M12 15.5h5.5"></path></svg></button>
-      <button style="height: 26px; display: flex; align-items: center; gap: 8px; padding: 0 6px 0 10px; border: 1px solid #E4DED3; background: #FBF9F5; border-radius: 4px; color: #6B645A; font-size: 13px"><span>Commands</span><span style="font-size: 11px; padding: 1px 5px; border: 1px solid #D8D1C5; border-radius: 3px; color: #4A453E; background: #FFFFFF">⌘K</span></button>
+      <button style="height: 26px; flex-shrink: 0; white-space: nowrap; display: flex; align-items: center; gap: 8px; padding: 0 6px 0 10px; border: 1px solid #E4DED3; background: #FBF9F5; border-radius: 4px; color: #6B645A; font-size: 13px"><span>Commands</span><span style="font-size: 11px; padding: 1px 5px; border: 1px solid #D8D1C5; border-radius: 3px; color: #4A453E; background: #FFFFFF">⌘K</span></button>
       <button style="height: 26px; padding: 0 12px; border: 1px solid {{accent}}; background: {{accent}}; color: #FFFFFF; border-radius: 4px; font-size: 13px; font-weight: 600">Save</button>
       <button aria-label="More actions" style="width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 4px; color: #4A453E"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="5.5" cy="12" r="0.9"></circle><circle cx="12" cy="12" r="0.9"></circle><circle cx="18.5" cy="12" r="0.9"></circle></svg></button>
     </div>
@@ -82,7 +82,7 @@ button,input,textarea,select{font:inherit;color:inherit}
     <span><strong style="font-weight: 600">Suggested fields for this flat form.</strong> lamina looked for lines, boxes and labels on this device. Nothing is added until you accept a suggestion.</span>
   </div>
 
-  <div style="flex: 1 1 auto; min-height: 0; display: flex; flex-wrap: wrap">
+  <div style="flex: 1 1 auto; min-height: 0; display: flex; overflow: hidden">
     <aside aria-label="Sidebar" style="flex: 0 0 220px; box-sizing: border-box; border-right: 1px solid #E4DED3; display: flex; flex-direction: column; overflow: hidden">
       <div style="display: flex; align-items: flex-end; gap: 0; padding: 14px 18px 0; border-bottom: 1px solid #E4DED3">
         <div role="tablist" aria-label="Sidebar" style="flex: 1 1 auto; display: flex; gap: 16px">
@@ -164,13 +164,13 @@ button,input,textarea,select{font:inherit;color:inherit}
       <div style="display: flex; flex-direction: column; gap: 8px">
         <label for="s-type" style="font-size: 12px; font-weight: 600; color: #4A453E">Field type</label>
         <div style="position: relative; display: flex">
-          <select id="s-type" style="flex: 1 1 auto; height: 32px; box-sizing: border-box; padding: 0 30px 0 10px; border: 1px solid #8A8174; border-radius: 4px; background: #FFFFFF; appearance: none; -webkit-appearance: none"><option>Text</option><sc-if value="{{nativeOn}}" hint-placeholder-val="{{ true }}"><option selected>Date</option></sc-if><option>Check box</option><option>Radio group</option><option>Dropdown</option><option>Signature</option></select>
+          <select id="s-type" style="flex: 1 1 auto; height: 32px; box-sizing: border-box; padding: 0 30px 0 10px; border: 1px solid #8A8174; border-radius: 4px; background: #FFFFFF; appearance: none; -webkit-appearance: none"><option>Text</option><option selected>Date</option><option>Check box</option><option>Radio group</option><option>Dropdown</option><option>Signature</option></select>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#4A453E" stroke-width="1.5" aria-hidden="true" style="position: absolute; right: 8px; top: 8px; pointer-events: none"><path d="M7 10l5 5 5-5"></path></svg>
         </div>
       </div>
       <div style="display: flex; flex-direction: column; gap: 8px">
         <label for="s-name" style="font-size: 12px; font-weight: 600; color: #4A453E">Field name</label>
-        <input id="s-name" value="date_first_noticed" style="height: 32px; box-sizing: border-box; padding: 0 10px; border: 1px solid #8A8174; border-radius: 4px; background: #FFFFFF; font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace; font-size: 13px">
+        <input id="s-name" value="date_first_noticed" style="height: 32px; box-sizing: border-box; padding: 0 10px; border: 1px solid #8A8174; border-radius: 4px; background: #FFFFFF; font-family: ui-monospace, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace; font-size: 13px">
       </div>
       <div style="display: flex; flex-direction: column; gap: 8px">
         <label for="s-label" style="font-size: 12px; font-weight: 600; color: #4A453E">Accessible label</label>
@@ -204,7 +204,7 @@ button,input,textarea,select{font:inherit;color:inherit}
 </div>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#1F5C63","options":["#1F5C63","#2D4A6B","#3E4A3C"]},"$preview":{"width":1440,"height":1000}}'>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#1F5C63","options":["#1F5C63","#2D4A6B","#5B3B6B","#495533"]},"$preview":{"width":1440,"height":900}}'>
 class Component extends DCLogic {
   renderVals() {
     var accent = this.props.accent ?? '#1F5C63';
@@ -244,12 +244,12 @@ class Component extends DCLogic {
       var st = l[1];
       var box = 'position: relative; flex: 1 1 auto; height: 24px; box-sizing: border-box; border-bottom: 1px solid #262421;';
       var tag = tagBase;
-      if (st === 'acc') { box += ' border: 1px solid ' + accent + '; background: ' + fieldTint + ';'; tag += ' background: #E7EBE3; color: #2F6A45;'; }
+      if (st === 'acc') { box += ' border: 1px dashed ' + accent + '; background: ' + fieldTint + ';'; tag += ' background: #E7EBE3; color: #2F6A45;'; }
       if (st === 'pend') { box += ' outline: 2px dashed ' + accent + '; outline-offset: 2px;'; tag += ' background: ' + accent + '; color: #FFFFFF;'; }
       if (st === 'cur') { box += ' outline: 2px solid ' + accent + '; outline-offset: 2px; background: ' + fieldTint + ';'; tag += ' background: ' + accent + '; color: #FFFFFF;'; }
       return { label: l[0] + ':', box: box, tag: tag, tagText: st === 'acc' ? 'Accepted · ' + l[2] : l[2] };
     });
-    return { nativeOn: true,
+    return {
       accent: accent, accentTint: tint, sugg: sugg, lines: lines,
       tagIn: 'position: absolute; right: 2px; bottom: 3px; height: 18px; padding: 0 6px; display: flex; align-items: center; background: ' + accent + '; color: #FFFFFF; font-family: \'Source Sans 3\', system-ui, sans-serif; font-size: 11px; font-weight: 600; white-space: nowrap;'
     };

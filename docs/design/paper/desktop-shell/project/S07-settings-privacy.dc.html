@@ -32,7 +32,7 @@ button,input,textarea,select{font:inherit;color:inherit}
       <a href="#" style="height: 32px; display: flex; align-items: center; padding: 0 10px; border-radius: 4px; color: #1F1D1A; text-decoration: none">General</a>
       <a href="#" style="height: 32px; display: flex; align-items: center; padding: 0 10px; border-radius: 4px; color: #1F1D1A; text-decoration: none">Appearance</a>
       <a href="#" style="height: 32px; display: flex; align-items: center; padding: 0 10px; border-radius: 4px; color: #1F1D1A; text-decoration: none">Updates</a>
-      <a href="#" aria-current="page" style="height: 32px; display: flex; align-items: center; padding: 0 10px; border-radius: 4px; color: #1F5C63; background: #E1E6E3; font-weight: 600; text-decoration: none">Privacy</a>
+      <a href="#" aria-current="page" style="height: 32px; display: flex; align-items: center; padding: 0 10px; border-radius: 4px; color: {{accent}}; background: {{accentTint}}; font-weight: 600; text-decoration: none">Privacy</a>
       <a href="#" style="height: 32px; display: flex; align-items: center; padding: 0 10px; border-radius: 4px; color: #1F1D1A; text-decoration: none">Shortcuts</a>
       <a href="#" style="height: 32px; display: flex; align-items: center; padding: 0 10px; border-radius: 4px; color: #1F1D1A; text-decoration: none">Licence</a>
       <a href="#" style="height: 32px; display: flex; align-items: center; padding: 0 10px; border-radius: 4px; color: #1F1D1A; text-decoration: none">Account and plan</a>
@@ -43,7 +43,7 @@ button,input,textarea,select{font:inherit;color:inherit}
 
     <main style="flex: 999 1 480px; min-width: 0; box-sizing: border-box; background: #FBF9F5; padding: 28px 32px 32px; display: flex; flex-direction: column; gap: 22px">
       <div style="display: flex; flex-direction: column; gap: 4px">
-        <h1 style="margin: 0; font-family: 'Newsreader', Georgia, serif; font-size: 20px; line-height: 24px; font-weight: 500">Privacy</h1>
+        <h1 style="margin: 0; font-family: 'Newsreader', Georgia, serif; font-size: 28px; line-height: 34px; font-weight: 500">Privacy</h1>
         <p style="margin: 0; font-size: 13px; color: #4A453E">lamina reads your files on this computer and never uploads them. Apart from the daily update check, nothing is sent unless you turn it on here.</p>
       </div>
 
@@ -54,9 +54,9 @@ button,input,textarea,select{font:inherit;color:inherit}
             <span id="sw-crash">Send crash reports</span>
             <span id="sw-crash-d" style="font-size: 12px; color: #6B645A; max-width: 460px">The error, lamina’s version, your system and the renderer. Never file names, paths or document content. Kept for 30 days. While this is off, lamina asks once after a crash.</span>
           </div>
-          <button role="switch" aria-checked="false" aria-labelledby="sw-crash" aria-describedby="sw-crash-d" style="flex: 0 0 auto; width: 32px; height: 18px; padding: 0; border: 1px solid #8A8174; border-radius: 9px; background: #FFFFFF; position: relative; outline: 2px solid #1F5C63; outline-offset: 2px"><span style="position: absolute; top: 2px; left: 2px; width: 12px; height: 12px; border-radius: 50%; background: #8A8174"></span></button>
+          <button role="switch" aria-checked="false" aria-labelledby="sw-crash" aria-describedby="sw-crash-d" style="flex: 0 0 auto; width: 32px; height: 18px; padding: 0; border: 1px solid #8A8174; border-radius: 9px; background: #FFFFFF; position: relative; outline: 2px solid {{accent}}; outline-offset: 2px"><span style="position: absolute; top: 2px; left: 2px; width: 12px; height: 12px; border-radius: 50%; background: #8A8174"></span></button>
         </div>
-        <a href="#" style="font-size: 13px; font-weight: 600; text-decoration: none; align-self: flex-start; min-height: 24px; display: flex; align-items: center">See a sample report</a>
+        <a href="#" style="color: {{accent}}; font-size: 13px; font-weight: 600; text-decoration: none; align-self: flex-start; min-height: 24px; display: flex; align-items: center">See a sample report</a>
       </section>
 
       <section aria-labelledby="p-usage" style="display: flex; flex-direction: column; gap: 8px">
@@ -69,22 +69,38 @@ button,input,textarea,select{font:inherit;color:inherit}
           <button role="switch" aria-checked="false" aria-labelledby="sw-use" aria-describedby="sw-use-d" style="flex: 0 0 auto; width: 32px; height: 18px; padding: 0; border: 1px solid #8A8174; border-radius: 9px; background: #FFFFFF; position: relative"><span style="position: absolute; top: 2px; left: 2px; width: 12px; height: 12px; border-radius: 50%; background: #8A8174"></span></button>
         </div>
         <sc-if value="{{on}}" hint-placeholder-val="{{ true }}"><details open style="font-size: 13px">
-          <summary style="min-height: 24px; color: #1F5C63; font-weight: 600; cursor: pointer">Exactly what would be sent</summary>
+          <summary style="min-height: 24px; color: {{accent}}; font-weight: 600; cursor: pointer">Exactly what would be sent</summary>
           <pre tabindex="0" aria-label="Usage counts payload" style="margin: 8px 0 0; padding: 10px 12px; background: #FFFFFF; border: 1px solid #E4DED3; border-radius: 4px; font-family: ui-monospace, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace; font-size: 12.5px; line-height: 1.6; color: #1F1D1A; white-space: pre-wrap">{ "day": "2026-10-28", "version": "0.1.2", "platform": "macos",
   "modes": { "read": 41, "comment": 6 },
   "commands": { "view.zoom-in": 14, "nav.next-page": 120, "comment.highlight": 3 } }</pre>
         </details></sc-if>
       </section>
 
-      <a href="#" style="font-size: 13px; font-weight: 600; text-decoration: none; align-self: flex-start; min-height: 24px; display: flex; align-items: center">Read the privacy policy</a>
+      <a href="#" style="color: {{accent}}; font-size: 13px; font-weight: 600; text-decoration: none; align-self: flex-start; min-height: 24px; display: flex; align-items: center">Read the privacy policy</a>
     </main>
   </div>
 </div>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#1F5C63","options":["#1F5C63","#2D4A6B","#5B3B6B","#495533"]},"$preview":{"width":1440,"height":900}}'>
 class Component extends DCLogic {
   renderVals() {
+    return Object.assign(this.theme(), this.vals());
+  }
+  theme() {
+    var accent = this.props.accent ?? '#1F5C63';
+    function mix(hex, base, t) {
+      var p = function (h, i) { return parseInt(h.replace('#', '').substr(i, 2), 16); };
+      var out = '#';
+      for (var i = 0; i < 6; i += 2) {
+        var v = Math.round(p(hex, i) * t + p(base, i) * (1 - t));
+        out += (v < 16 ? '0' : '') + v.toString(16);
+      }
+      return out;
+    }
+    return { accent: accent, accentTint: mix(accent, '#FBF9F5', 0.12), accentStrong: ({'#1F5C63':'#16454B','#2D4A6B':'#1A3757','#5B3B6B':'#472856','#495533':'#35401F'})[accent] || mix(accent, '#000000', 0.72), selTint: mix(accent, '#FFFFFF', 0.22), fieldTint: mix(accent, '#FFFFFF', 0.08) };
+  }
+  vals() {
     return { on: true };
   }
 }

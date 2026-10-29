@@ -15,12 +15,12 @@ a{color:#1F5C63}a:hover{color:#16454B}
 button,input,textarea{font:inherit;color:inherit}
 </style>
 </helmet>
-<div style="position: relative; min-height: 100vh; display: flex; flex-direction: column; background: #F7F4EE; color: #1F1D1A; font-family: 'Source Sans 3', 'Segoe UI', system-ui, sans-serif; font-size: 14px; line-height: 1.4">
+<div style="position: relative; height: 100vh; overflow: hidden; display: flex; flex-direction: column; background: #F7F4EE; color: #1F1D1A; font-family: 'Source Sans 3', 'Segoe UI', system-ui, sans-serif; font-size: 14px; line-height: 1.4">
 
   <header style="min-height: 40px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 20px; padding: 0 16px; border-bottom: 1px solid #E4DED3; background: #F7F4EE">
     <div style="display: flex; align-items: center; gap: 10px; flex: 1 1 220px; min-width: 0"><span style="font-family: 'Newsreader', Georgia, serif; font-size: 18px; font-weight: 500; letter-spacing: 0.01em">lamina</span></div>
     <div style="display: flex; align-items: center; justify-content: flex-end; gap: 14px; flex: 1 1 220px">
-      <button style="height: 26px; display: flex; align-items: center; gap: 8px; padding: 0 6px 0 10px; border: 1px solid #E4DED3; background: #FBF9F5; border-radius: 4px; color: #6B645A; font-size: 13px"><span>Commands</span><span style="font-size: 11px; padding: 1px 5px; border: 1px solid #D8D1C5; border-radius: 3px; color: #4A453E; background: #FFFFFF">Ctrl K</span></button>
+      <button style="height: 26px; display: flex; align-items: center; gap: 8px; padding: 0 6px 0 10px; border: 1px solid #E4DED3; background: #FBF9F5; border-radius: 4px; color: #6B645A; font-size: 13px; white-space: nowrap; flex-shrink: 0"><span>Commands</span><span style="font-size: 11px; padding: 1px 5px; border: 1px solid #D8D1C5; border-radius: 3px; color: #4A453E; background: #FFFFFF">Ctrl K</span></button>
       <button style="height: 26px; padding: 0 12px; border: 0; background: transparent; border-radius: 4px; font-size: 13px; color: {{accent}}; font-weight: 600">Sign in</button>
     </div>
   </header>
@@ -41,10 +41,10 @@ button,input,textarea{font:inherit;color:inherit}
     <span>On this device</span>
   </footer>
 
-  <div style="position: absolute; inset: 0; background: rgba(31,29,26,0.30); display: flex; justify-content: center; align-items: flex-start; padding: 72px 16px 0; box-sizing: border-box">
-    <div role="dialog" aria-modal="true" aria-labelledby="tm-t" aria-describedby="tm-d" style="width: 100%; max-width: 560px; box-sizing: border-box; padding: 24px; display: flex; flex-direction: column; gap: 16px; background: #FBF9F5; border: 1px solid #D8D1C5; border-radius: 6px; box-shadow: 0 18px 48px rgba(31,29,26,0.22)">
+  <div style="position: absolute; inset: 0; background: rgba(31,29,26,0.30); display: flex; flex-direction: column; align-items: center; justify-content: flex-start; padding: 72px 16px 24px; box-sizing: border-box">
+    <div role="dialog" aria-modal="true" aria-labelledby="tm-t" aria-describedby="tm-d" style="flex: 0 1 auto; min-height: 0; width: 100%; max-width: 560px; box-sizing: border-box; padding: 24px; display: flex; flex-direction: column; gap: 16px; background: #FBF9F5; border: 1px solid #D8D1C5; border-radius: 6px; box-shadow: 0 18px 48px rgba(31,29,26,0.22)">
       <h2 id="tm-t" style="margin: 0; font-family: 'Newsreader', Georgia, serif; font-size: 20px; font-weight: 500; line-height: 1.2">Help decide what lamina builds next?</h2>
-      <p id="tm-d" style="margin: 0">If you turn this on, lamina sends a daily count of the commands and modes you used. Never document content, file names, web addresses, or anything that identifies you or this device. It stays off unless you turn it on.</p>
+      <div style="flex: 1 1 auto; min-height: 0; overflow: auto; display: flex; flex-direction: column; gap: 16px; padding: 4px; margin: -4px"><p id="tm-d" style="margin: 0">If you turn this on, lamina sends a daily count of the commands and modes you used. Never document content, file names, web addresses, or anything that identifies you or this device. It stays off unless you turn it on.</p>
       <details open style="display: flex; flex-direction: column; gap: 8px">
         <summary style="min-height: 24px; font-weight: 600; color: {{accent}}; cursor: pointer">Exactly what is sent</summary>
         <pre tabindex="0" aria-label="Exactly what is sent, scrollable" style="margin: 8px 0 0; padding: 12px 14px; background: #FFFFFF; border: 1px solid #8A8174; border-radius: 4px; font-family: ui-monospace, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace; font-size: 12.5px; line-height: 1.6; color: #1F1D1A; white-space: pre; overflow-x: auto">{
@@ -59,9 +59,9 @@ button,input,textarea{font:inherit;color:inherit}
   }
 }</pre>
       </details>
-      <p style="margin: 0; font-size: 13px; color: #3A3631">Sent once a day to lamina’s server, and counted by the network indicator like any other request. We don’t keep IP addresses; counts are kept for [RETENTION]. You can change this at any time in Settings › Privacy.</p>
+      <p style="margin: 0; font-size: 13px; color: #3A3631">Sent once a day to lamina’s server, and counted by the network indicator like any other request. We don’t keep IP addresses; counts are kept for [RETENTION]. You can change this at any time in Settings › Privacy.</p></div>
       <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px">
-        <a href="#privacy" style="font-size: 13px">Privacy page</a>
+        <a href="#privacy" style="font-size: 13px; color: {{accent}}">Privacy page</a>
         <div style="display: flex; gap: 8px">
           <button style="height: 32px; padding: 0 16px; border: 1px solid #8A8174; background: #FFFFFF; border-radius: 4px; outline: 2px solid {{accent}}; outline-offset: 2px">Don’t send</button>
           <button style="height: 32px; padding: 0 16px; border: 1px solid #8A8174; background: #FFFFFF; border-radius: 4px">Send usage counts</button>
@@ -71,10 +71,25 @@ button,input,textarea{font:inherit;color:inherit}
   </div>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#1F5C63","options":["#1F5C63","#2D4A6B","#3E4A3C"]},"$preview":{"width":1440,"height":900}}'>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#1F5C63","options":["#1F5C63","#2D4A6B","#5B3B6B","#495533"]},"$preview":{"width":1440,"height":900}}'>
 class Component extends DCLogic {
   renderVals() {
-    return { accent: this.props.accent ?? '#1F5C63' };
+    var accent = this.props.accent ?? '#1F5C63';
+    function mix(hex, base, t) {
+      var p = function (h, i) { return parseInt(h.replace('#', '').substr(i, 2), 16); };
+      var out = '#';
+      for (var i = 0; i < 6; i += 2) {
+        var v = Math.round(p(hex, i) * t + p(base, i) * (1 - t));
+        out += (v < 16 ? '0' : '') + v.toString(16);
+      }
+      return out.toUpperCase();
+    }
+    var strong = { '#1F5C63': '#16454B', '#2D4A6B': '#1A3757', '#5B3B6B': '#472856', '#495533': '#35401F' };
+    var rgb = [0, 2, 4].map(function (i) { return parseInt(accent.replace('#', '').substr(i, 2), 16); }).join(',');
+    return {
+      accent: accent, accentStrong: strong[accent] || accent, accentTint: mix(accent, '#FBF9F5', 0.12),
+      selTint: mix(accent, '#FFFFFF', 0.22), fieldTint: mix(accent, '#FFFFFF', 0.08), accentRgb: rgb
+    };
   }
 }
 </script>

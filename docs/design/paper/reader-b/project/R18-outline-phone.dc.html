@@ -66,8 +66,8 @@ button,input,textarea{font:inherit;color:inherit}
     </sc-if>
     <sc-if value="{{noOutline}}" hint-placeholder-val="{{ false }}">
     <div style="flex: 1 1 auto; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; padding: 24px; text-align: center">
-      <p style="margin: 0; font-family: 'Newsreader', Georgia, serif; font-size: 18px">This document has no outline</p>
-      <p style="margin: 0; font-size: 14px; color: #6B645A">Use Pages to move around.</p>
+      <p style="margin: 0; font-family: 'Newsreader', Georgia, serif; font-size: 20px; font-weight: 500">This file has no outline</p>
+      <p style="margin: 0; font-size: 14px; color: #6B645A">Use Pages to move through it.</p>
     </div>
     </sc-if>
   </section>
@@ -82,7 +82,7 @@ button,input,textarea{font:inherit;color:inherit}
   <span aria-hidden="true" style="position: absolute; left: 50%; bottom: 8px; transform: translateX(-50%); width: 134px; height: 5px; border-radius: 3px; background: #1F1D1A; opacity: 0.85"></span>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#1F5C63","options":["#1F5C63","#2D4A6B","#3E4A3C"]},"emptyOutline":{"editor":"boolean","default":false},"$preview":{"width":390,"height":844}}'>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#1F5C63","options":["#1F5C63","#2D4A6B","#5B3B6B","#495533"]},"emptyOutline":{"editor":"boolean","default":false},"$preview":{"width":390,"height":844}}'>
 class Component extends DCLogic {
   renderVals() {
     var accent = this.props.accent ?? '#1F5C63';

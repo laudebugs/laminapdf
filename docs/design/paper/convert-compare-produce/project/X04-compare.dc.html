@@ -15,7 +15,7 @@ a{color:#1F5C63}a:hover{color:#16454B}
 button,input,textarea,select{font:inherit;color:inherit}
 </style>
 </helmet>
-<div style="min-height: 100vh; display: flex; flex-direction: column; background: #DCD6CB; font-family: 'Source Sans 3', 'Segoe UI', system-ui, sans-serif; font-size: 14px; line-height: 1.4; color: #1F1D1A">
+<div style="height: 100vh; overflow: hidden; display: flex; flex-direction: column; background: #DCD6CB; font-family: 'Source Sans 3', 'Segoe UI', system-ui, sans-serif; font-size: 14px; line-height: 1.4; color: #1F1D1A">
 <div style="position: relative; flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; background: #F7F4EE; border: 1px solid #C9C2B6; border-radius: 10px; overflow: hidden; box-sizing: border-box">
 
   <div style="height: 30px; flex: 0 0 auto; display: flex; align-items: center; padding: 0 12px; background: #EFEBE3; border-bottom: 1px solid #E0D9CD; position: relative">
@@ -31,7 +31,7 @@ button,input,textarea,select{font:inherit;color:inherit}
       <button aria-label="Newer version: Q3-board-report.pdf, current. Change" style="height: 26px; display: flex; align-items: center; gap: 6px; padding: 0 8px; border: 1px solid #8A8174; background: #FFFFFF; border-radius: 4px; font-size: 13px"><span style="color: #6B645A">Newer</span><span>Q3-board-report.pdf · current</span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#4A453E" stroke-width="1.5" aria-hidden="true"><path d="M7 10l5 5 5-5"></path></svg></button>
     </div>
     <div role="group" aria-label="View" style="display: flex; align-items: stretch; gap: 22px; height: 40px">
-      <button aria-pressed="true" style="height: 40px; display: flex; align-items: center; border: 0; background: transparent; padding: 2px 0 0; color: #1F1D1A; font-weight: 600; border-bottom: 2px solid #1F5C63">Side by side</button>
+      <button aria-pressed="true" style="height: 40px; display: flex; align-items: center; border: 0; background: transparent; padding: 2px 0 0; color: #1F1D1A; font-weight: 600; border-bottom: 2px solid {{accent}}">Side by side</button>
       <button aria-pressed="false" style="height: 40px; display: flex; align-items: center; border: 0; background: transparent; padding: 2px 0 0; color: #6B645A; border-bottom: 2px solid transparent">Overlay</button>
     </div>
     <div style="display: flex; align-items: center; justify-content: flex-end; gap: 10px; flex: 1 1 260px">
@@ -48,26 +48,26 @@ button,input,textarea,select{font:inherit;color:inherit}
 
   <div role="toolbar" aria-label="Show changes" style="min-height: 40px; flex: 0 0 auto; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; padding: 0 16px; border-bottom: 1px solid #E4DED3; background: #FBF9F5; font-size: 13px">
     <span style="font-size: 12px; color: #6B645A; margin-right: 4px">Show</span>
-    <button aria-pressed="true" style="height: 28px; display: flex; align-items: center; gap: 6px; padding: 0 10px; border: 1px solid #1F5C63; background: #E1E6E3; color: #1F5C63; border-radius: 4px; font-weight: 600">Text <span style="font-variant-numeric: tabular-nums">5</span></button>
-    <button aria-pressed="true" style="height: 28px; display: flex; align-items: center; gap: 6px; padding: 0 10px; border: 1px solid #1F5C63; background: #E1E6E3; color: #1F5C63; border-radius: 4px; font-weight: 600">Images and drawings <span style="font-variant-numeric: tabular-nums">1</span></button>
-    <button aria-pressed="true" style="height: 28px; display: flex; align-items: center; gap: 6px; padding: 0 10px; border: 1px solid #1F5C63; background: #E1E6E3; color: #1F5C63; border-radius: 4px; font-weight: 600">Comments <span style="font-variant-numeric: tabular-nums">2</span></button>
-    <button aria-pressed="true" style="height: 28px; display: flex; align-items: center; gap: 6px; padding: 0 10px; border: 1px solid #1F5C63; background: #E1E6E3; color: #1F5C63; border-radius: 4px; font-weight: 600">Pages <span style="font-variant-numeric: tabular-nums">1</span></button>
+    <button aria-pressed="true" style="height: 28px; display: flex; align-items: center; gap: 6px; padding: 0 10px; border: 1px solid {{accent}}; background: {{accentTint}}; color: {{accent}}; border-radius: 4px; font-weight: 600">Text <span style="font-variant-numeric: tabular-nums">5</span></button>
+    <button aria-pressed="true" style="height: 28px; display: flex; align-items: center; gap: 6px; padding: 0 10px; border: 1px solid {{accent}}; background: {{accentTint}}; color: {{accent}}; border-radius: 4px; font-weight: 600">Images and drawings <span style="font-variant-numeric: tabular-nums">1</span></button>
+    <button aria-pressed="true" style="height: 28px; display: flex; align-items: center; gap: 6px; padding: 0 10px; border: 1px solid {{accent}}; background: {{accentTint}}; color: {{accent}}; border-radius: 4px; font-weight: 600">Comments <span style="font-variant-numeric: tabular-nums">2</span></button>
+    <button aria-pressed="true" style="height: 28px; display: flex; align-items: center; gap: 6px; padding: 0 10px; border: 1px solid {{accent}}; background: {{accentTint}}; color: {{accent}}; border-radius: 4px; font-weight: 600">Pages <span style="font-variant-numeric: tabular-nums">1</span></button>
     <span aria-hidden="true" style="width: 1px; height: 18px; background: #E4DED3; margin: 0 8px"></span>
-    <label style="display: flex; align-items: center; gap: 8px; min-height: 24px"><sc-if value="{{on}}" hint-placeholder-val="{{ true }}"><input type="checkbox" checked style="width: 16px; height: 16px; margin: 0; accent-color: #1F5C63"></sc-if> Scroll together</label>
+    <label style="display: flex; align-items: center; gap: 8px; min-height: 24px"><input type="checkbox" checked style="position: absolute; width: 1px; height: 1px; opacity: 0; margin: 0"><span aria-hidden="true" style="flex: 0 0 auto; width: 16px; height: 16px; box-sizing: border-box; margin: 0; display: flex; align-items: center; justify-content: center; border-radius: 3px; border: 1px solid {{accent}}; background: {{accent}}; color: #FFFFFF"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 12.5l4 4 8-9"></path></svg></span> Scroll together</label>
     <span style="flex: 1 1 auto"></span>
     <span style="font-size: 12px; color: #6B645A">Pages matched by content · page 12 was replaced</span>
   </div>
 
-  <div style="flex: 1 1 auto; min-height: 0; display: flex; flex-wrap: wrap">
-    <aside aria-label="Changes" style="flex: 0 0 260px; box-sizing: border-box; border-right: 1px solid #E4DED3; display: flex; flex-direction: column; overflow: auto">
+  <div style="flex: 1 1 auto; min-height: 0; display: flex">
+    <aside aria-label="Changes" style="min-height: 0; flex: 0 0 260px; box-sizing: border-box; border-right: 1px solid #E4DED3; display: flex; flex-direction: column; overflow: auto">
       <div style="display: flex; align-items: baseline; justify-content: space-between; padding: 14px 18px 10px; border-bottom: 1px solid #E4DED3">
         <h2 style="margin: 0; font-family: 'Newsreader', Georgia, serif; font-size: 18px; font-weight: 500">Changes</h2>
         <span style="font-size: 12px; color: #6B645A; font-variant-numeric: tabular-nums">9 on 4 pages</span>
       </div>
       <nav aria-label="Changes by page" style="display: flex; flex-direction: column; gap: 2px; padding: 10px">
         <span style="padding: 8px 8px 4px; font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; color: #6B645A">Page 3</span>
-        <a href="#" aria-current="true" style="display: flex; flex-direction: column; gap: 2px; padding: 6px 8px; border-radius: 4px; background: #E1E6E3; box-shadow: inset 0 0 0 1px #1F5C63; text-decoration: none; color: #1F1D1A; outline: 2px solid #1F5C63; outline-offset: 2px">
-          <span style="font-size: 12px; font-weight: 600; color: #1F5C63">1 · Text changed</span>
+        <a href="#" aria-current="true" style="display: flex; flex-direction: column; gap: 2px; padding: 6px 8px; border-radius: 4px; background: {{accentTint}}; box-shadow: inset 0 0 0 1px {{accent}}; text-decoration: none; color: #1F1D1A; outline: 2px solid {{accent}}; outline-offset: 2px">
+          <span style="font-size: 12px; font-weight: 600; color: {{accent}}">1 · Text changed</span>
           <span style="font-size: 13px"><span style="text-decoration: line-through">1,301</span> → <span style="text-decoration: underline">1,248</span></span>
         </a>
         <a href="#" style="display: flex; flex-direction: column; gap: 2px; padding: 6px 8px; border-radius: 4px; text-decoration: none; color: #1F1D1A">
@@ -99,7 +99,7 @@ button,input,textarea,select{font:inherit;color:inherit}
         <article style="min-height: 600px; box-sizing: border-box; background: #FFFFFF; box-shadow: 0 1px 2px rgba(60,48,30,0.08), 0 8px 28px rgba(60,48,30,0.10); padding: 40px 44px 28px; display: flex; flex-direction: column; gap: 13px; font-family: 'Source Serif 4', Georgia, serif; color: #262421; font-size: 11.5px; line-height: 1.6">
           <div style="display: flex; justify-content: space-between; font-family: 'Source Sans 3', system-ui, sans-serif; font-size: 8.5px; letter-spacing: 0.08em; text-transform: uppercase; color: #6E6A64; border-bottom: 1px solid #E6E3DE; padding-bottom: 8px"><span>Northwind Housing Trust</span><span>Q3 Board Report · Draft</span></div>
           <h3 style="margin: 6px 0 0; font-size: 18px; font-weight: 600; color: #1C1B19">2. Repairs backlog</h3>
-          <p style="margin: 0">Open repair jobs stood at <span style="background: #F1E4E2; text-decoration: line-through; outline: 2px solid #1F5C63; outline-offset: 1px">1,301</span> at the end of September across the four regions. Most of the work closed this quarter was routine plumbing and joinery.</p>
+          <p style="margin: 0">Open repair jobs stood at <span style="background: #F1E4E2; text-decoration: line-through; outline: 2px solid {{accent}}; outline-offset: 2px">1,301</span><span aria-hidden="true" style="display: inline-flex; align-items: center; height: 18px; padding: 0 6px; margin-left: 6px; border-radius: 3px; background: {{accent}}; color: #FFFFFF; font-family: 'Source Sans 3', system-ui, sans-serif; font-size: 11px; font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; vertical-align: 1px">1 of 9</span> at the end of September across the four regions. Most of the work closed this quarter was routine plumbing and joinery.</p>
           <p style="margin: 0">The backlog fell over the quarter, but the oldest 10% of jobs are now older than 90 days. These are mainly damp and mould cases that need a surveyor’s visit.</p>
           <figure style="margin: 4px 0 0; display: flex; flex-direction: column; gap: 8px; font-family: 'Source Sans 3', system-ui, sans-serif; outline: 1.5px dashed #9B2335; outline-offset: 4px">
             <figcaption style="font-size: 10.5px; font-weight: 600">Open repairs by region, end of September</figcaption>
@@ -117,7 +117,7 @@ button,input,textarea,select{font:inherit;color:inherit}
         <article style="min-height: 600px; box-sizing: border-box; background: #FFFFFF; box-shadow: 0 1px 2px rgba(60,48,30,0.08), 0 8px 28px rgba(60,48,30,0.10); padding: 40px 44px 28px; display: flex; flex-direction: column; gap: 13px; font-family: 'Source Serif 4', Georgia, serif; color: #262421; font-size: 11.5px; line-height: 1.6">
           <div style="display: flex; justify-content: space-between; font-family: 'Source Sans 3', system-ui, sans-serif; font-size: 8.5px; letter-spacing: 0.08em; text-transform: uppercase; color: #6E6A64; border-bottom: 1px solid #E6E3DE; padding-bottom: 8px"><span>Northwind Housing Trust</span><span>Q3 Board Report</span></div>
           <h3 style="margin: 6px 0 0; font-size: 18px; font-weight: 600; color: #1C1B19">2. Repairs backlog</h3>
-          <p style="margin: 0">Open repair jobs stood at <span style="background: #E7EBE3; text-decoration: underline; outline: 2px solid #1F5C63; outline-offset: 1px">1,248</span> at the end of September across the four regions. Most of the work closed this quarter was routine plumbing and joinery.</p>
+          <p style="margin: 0">Open repair jobs stood at <span style="background: #E7EBE3; text-decoration: underline; outline: 2px solid {{accent}}; outline-offset: 2px">1,248</span><span aria-hidden="true" style="display: inline-flex; align-items: center; height: 18px; padding: 0 6px; margin-left: 6px; border-radius: 3px; background: {{accent}}; color: #FFFFFF; font-family: 'Source Sans 3', system-ui, sans-serif; font-size: 11px; font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; vertical-align: 1px">1 of 9</span> at the end of September across the four regions. Most of the work closed this quarter was routine plumbing and joinery.</p>
           <p style="margin: 0"><span style="background: #F2D675">The backlog fell <span style="background: #E7EBE3; text-decoration: underline">by 18%</span> over the quarter, but the oldest 10% of jobs are now older than 90 days.</span> These are mainly damp and mould cases that need a surveyor’s visit.</p>
           <figure style="margin: 4px 0 0; display: flex; flex-direction: column; gap: 8px; font-family: 'Source Sans 3', system-ui, sans-serif; outline: 1.5px dashed #2F6A45; outline-offset: 4px">
             <figcaption style="font-size: 10.5px; font-weight: 600">Open repairs by region, end of September</figcaption>
@@ -134,17 +134,32 @@ button,input,textarea,select{font:inherit;color:inherit}
   </div>
 
   <footer style="min-height: 28px; flex: 0 0 auto; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px 16px; padding: 0 16px; border-top: 1px solid #E4DED3; font-size: 12px; color: #6B645A">
-    <button style="min-height: 24px; display: flex; align-items: center; gap: 7px; border: 0; background: transparent; padding: 0 4px; font-size: 12px; color: #6B645A"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#1F5C63" stroke-width="1.5" aria-hidden="true"><path d="M12 3.5l7 2.5v5.5c0 4.3-3 7.6-7 9-4-1.4-7-4.7-7-9V6z"></path><path d="M9 12l2.2 2.2L15.5 10"></path></svg><span style="color: #1F1D1A; font-variant-numeric: tabular-nums">0 network requests for this document</span><span>· Offline-safe: nothing uploaded</span></button>
+    <button style="min-height: 24px; display: flex; align-items: center; gap: 7px; border: 0; background: transparent; padding: 0 4px; font-size: 12px; color: #6B645A"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="{{accent}}" stroke-width="1.5" aria-hidden="true"><path d="M12 3.5l7 2.5v5.5c0 4.3-3 7.6-7 9-4-1.4-7-4.7-7-9V6z"></path><path d="M9 12l2.2 2.2L15.5 10"></path></svg><span style="color: #1F1D1A; font-variant-numeric: tabular-nums">0 network requests for this document</span><span>· Offline-safe: nothing uploaded</span></button>
     <span>Removed: struck through · Added: underlined</span>
     <span style="font-variant-numeric: tabular-nums">Page 3 of 24 · Page 3 of 24</span>
   </footer>
 </div>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#1F5C63","options":["#1F5C63","#2D4A6B","#5B3B6B","#495533"]},"$preview":{"width":1440,"height":900}}'>
 class Component extends DCLogic {
   renderVals() {
-    return { on: true };
+    var accent = this.props.accent ?? '#1F5C63';
+    function mix(hex, base, t) {
+      var p = function (h, i) { return parseInt(h.replace('#', '').substr(i, 2), 16); };
+      var out = '#';
+      for (var i = 0; i < 6; i += 2) {
+        var v = Math.round(p(hex, i) * t + p(base, i) * (1 - t));
+        out += (v < 16 ? '0' : '') + v.toString(16);
+      }
+      return out.toUpperCase();
+    }
+    var strong = { '#1F5C63': '#16454B', '#2D4A6B': '#1A3757', '#5B3B6B': '#472856', '#495533': '#35401F' };
+    var rgb = [0, 2, 4].map(function (i) { return parseInt(accent.replace('#', '').substr(i, 2), 16); }).join(',');
+    return {
+      accent: accent, accentStrong: strong[accent] || accent, accentTint: mix(accent, '#FBF9F5', 0.12),
+      selTint: mix(accent, '#FFFFFF', 0.22), fieldTint: mix(accent, '#FFFFFF', 0.08), accentRgb: rgb
+    };
   }
 }
 </script>

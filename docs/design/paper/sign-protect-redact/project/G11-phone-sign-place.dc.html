@@ -15,7 +15,7 @@ a{color:#1F5C63}a:hover{color:#16454B}
 button{font:inherit;color:inherit}
 </style>
 </helmet>
-<div style="width: 390px; height: 844px; position: relative; overflow: hidden; background: #ECE7DE; font-family: 'Source Sans 3', system-ui, sans-serif; color: #1F1D1A">
+<div style="--accent: {{accent}}; --accent-strong: {{accentStrong}}; width: 390px; height: 844px; position: relative; overflow: hidden; background: #ECE7DE; font-family: 'Source Sans 3', system-ui, sans-serif; color: #1F1D1A">
 
   <header style="position: absolute; left: 0; right: 0; top: 0; height: 56px; display: flex; align-items: center; gap: 4px; padding: 0 6px; background: #F7F4EE; border-bottom: 1px solid #E4DED3; box-sizing: border-box">
     <button aria-label="Back to files" style="width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 6px; color: #1F1D1A"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M15 5l-7 7 7 7"></path></svg></button>
@@ -90,20 +90,28 @@ button{font:inherit;color:inherit}
   <span aria-hidden="true" style="position: absolute; left: 50%; bottom: 8px; transform: translateX(-50%); width: 134px; height: 5px; border-radius: 3px; background: #1F1D1A; opacity: 0.85"></span>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#1F5C63","options":["#1F5C63","#2D4A6B","#3E4A3C"]},"saved":{"editor":"boolean","default":false},"$preview":{"width":390,"height":844}}'>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#1F5C63","options":["#1F5C63","#2D4A6B","#5B3B6B","#495533"]},"saved":{"editor":"boolean","default":false},"$preview":{"width":390,"height":844}}'>
 class Component extends DCLogic {
   renderVals() {
     var accent = this.props.accent ?? '#1F5C63';
+    var accentStrong = ({ '#1F5C63': '#16454B', '#2D4A6B': '#1A3757', '#5B3B6B': '#472856', '#495533': '#35401F' })[accent] || accent;
+    function mix(hex, base, t) {
+      var p = function (h, i) { return parseInt(h.replace('#', '').substr(i, 2), 16); };
+      var out = '#';
+      for (var i = 0; i < 6; i += 2) {
+        var v = Math.round(p(hex, i) * t + p(base, i) * (1 - t));
+        out += (v < 16 ? '0' : '') + v.toString(16);
+      }
+      return out;
+    }
     var saved = this.props.saved ?? false;
     var imgBase = 'position: absolute; left: 4px; right: 4px; top: 3px; bottom: 3px; border: 0; padding: 0; background: transparent';
-    return {
-      accent: accent,
+    return { accentTint: mix(accent, '#FBF9F5', 0.12), selTint: mix(accent, '#FFFFFF', 0.22), fieldTint: mix(accent, '#FFFFFF', 0.08), accentStrong: accentStrong, accent: accent,
       saved: saved,
       dirty: !saved,
       subtitle: saved ? 'Page 24 · Board approval' : '1 unsaved change',
       selectedPressed: saved ? 'false' : 'true',
-      imgStyle: saved ? imgBase : imgBase + '; outline: 1.5px solid ' + accent + '; outline-offset: 2px'
-    };
+      imgStyle: saved ? imgBase : imgBase + '; outline: 1.5px solid ' + accent + '; outline-offset: 2px' };
   }
 }
 </script>

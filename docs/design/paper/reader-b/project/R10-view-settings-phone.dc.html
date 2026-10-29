@@ -44,7 +44,7 @@ button,input,textarea{font:inherit;color:inherit}
     <div style="flex: 1 1 auto; min-height: 0; overflow: auto; display: flex; flex-direction: column; gap: 18px; padding: 4px 20px 20px">
       <div style="display: flex; flex-direction: column; gap: 8px">
         <span id="pa-l" style="font-size: 12px; font-weight: 600; color: #4A453E">Page appearance</span>
-        <div role="group" aria-labelledby="pa-l" style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px">
+        <div role="group" aria-labelledby="pa-l" style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px">
           <sc-for list="{{chips}}" as="c" hint-placeholder-count="4">
             <button aria-pressed="{{c.pressed}}" style="{{c.style}}">
               <span style="{{c.preview}}">Aa</span>
@@ -62,6 +62,16 @@ button,input,textarea{font:inherit;color:inherit}
           <button role="radio" aria-checked="false" style="height: 44px; padding: 0 8px; border: 1px solid #8A8174; background: #FFFFFF; border-radius: 6px; font-size: 14px">High contrast</button>
           <button role="radio" aria-checked="true" style="height: 44px; padding: 0 8px; border: 1px solid {{accent}}; background: {{accentTint}}; color: {{accent}}; font-weight: 600; border-radius: 6px; font-size: 14px">Match system</button>
         </div>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 8px">
+        <span id="ac-l" style="font-size: 12px; font-weight: 600; color: #4A453E">Accent</span>
+        <div role="radiogroup" aria-labelledby="ac-l" aria-describedby="ac-h" style="display: flex; align-items: center; gap: 4px; margin-left: -6px">
+          <sc-for list="{{accents}}" as="a" hint-placeholder-count="4">
+            <button role="radio" aria-checked="{{a.checked}}" aria-label="{{a.name}}" style="width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; padding: 0; border: 0; background: transparent"><span style="{{a.swatch}}"></span></button>
+          </sc-for>
+          <span style="margin-left: 6px; font-size: 15px; white-space: nowrap">{{accentName}}</span>
+        </div>
+        <span id="ac-h" style="font-size: 12px; color: #6B645A">Signed in, Theme and Accent follow your account to every device.</span>
       </div>
       <div style="display: flex; flex-direction: column; gap: 8px">
         <span id="zm-l" style="font-size: 12px; font-weight: 600; color: #4A453E">Zoom</span>
@@ -87,7 +97,7 @@ button,input,textarea{font:inherit;color:inherit}
   <span aria-hidden="true" style="position: absolute; left: 50%; bottom: 8px; transform: translateX(-50%); width: 134px; height: 5px; border-radius: 3px; background: #1F1D1A; opacity: 0.85"></span>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#1F5C63","options":["#1F5C63","#2D4A6B","#3E4A3C"]},"pageAppearance":{"editor":"enum","options":["Original","Sepia","Dark"],"default":"Sepia"},"$preview":{"width":390,"height":844}}'>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#1F5C63","options":["#1F5C63","#2D4A6B","#5B3B6B","#495533"]},"pageAppearance":{"editor":"enum","options":["Original","Sepia","Dark"],"default":"Sepia"},"$preview":{"width":390,"height":844}}'>
 class Component extends DCLogic {
   renderVals() {
     var accent = this.props.accent ?? '#1F5C63';
@@ -112,14 +122,20 @@ class Component extends DCLogic {
       var on = d.name === mode;
       if (on) { paper = d.bg; ink = d.fg; }
       return {
-        name: d.name === 'High contrast' ? 'Contrast' : d.name,
+        name: d.name,
         pressed: on ? 'true' : 'false',
-        style: 'min-height: 44px; display: flex; flex-direction: column; gap: 6px; padding: 6px; border-radius: 6px; text-align: left; ' + (on ? 'border: 2px solid ' + accent + '; background: #FFFFFF; outline: 2px solid ' + accent + '; outline-offset: 2px;' : 'border: 1px solid #D8D1C5; background: #FBF9F5;'),
-        preview: 'height: 40px; display: flex; align-items: center; justify-content: center; background: ' + d.bg + '; color: ' + d.fg + '; border-radius: 3px; font-family: \'Source Serif 4\', Georgia, serif; font-size: 18px; font-weight: ' + d.w + ';' + (d.name === 'Original' ? ' border: 1px solid #E4DED3;' : ''),
-        label: 'font-size: 12px; line-height: 16px; ' + (on ? 'font-weight: 600;' : '')
+        style: 'min-height: 44px; display: flex; align-items: center; gap: 10px; padding: 6px; border-radius: 6px; text-align: left; ' + (on ? 'border: 2px solid ' + accent + '; background: #FFFFFF; outline: 2px solid ' + accent + '; outline-offset: 2px;' : 'border: 1px solid #D8D1C5; background: #FBF9F5;'),
+        preview: 'flex: 0 0 auto; width: 40px; height: 32px; display: flex; align-items: center; justify-content: center; background: ' + d.bg + '; color: ' + d.fg + '; border-radius: 3px; font-family: \'Source Serif 4\', Georgia, serif; font-size: 18px; font-weight: ' + d.w + ';' + (d.name === 'Original' ? ' border: 1px solid #E4DED3;' : ''),
+        label: 'font-size: 14px; line-height: 18px; white-space: nowrap; ' + (on ? 'font-weight: 600;' : '')
       };
     });
-    return { accent: accent, accentTint: mix(accent, '#FBF9F5', 0.12), chips: chips, paper: paper, ink: ink };
+    var accentName = 'Teal';
+    var accents = [['Teal', '#1F5C63'], ['Blue', '#2D4A6B'], ['Plum', '#5B3B6B'], ['Green', '#495533']].map(function (a) {
+      var on = a[1].toLowerCase() === accent.toLowerCase();
+      if (on) { accentName = a[0]; }
+      return { name: a[0], checked: on ? 'true' : 'false', swatch: 'width: 32px; height: 32px; box-sizing: border-box; border-radius: 50%; border: 1px solid #8A8174; background: ' + a[1] + ';' + (on ? ' box-shadow: 0 0 0 2px #FBF9F5, 0 0 0 4px #1F1D1A;' : '') };
+    });
+    return { accent: accent, accentTint: mix(accent, '#FBF9F5', 0.12), chips: chips, paper: paper, ink: ink, accents: accents, accentName: accentName };
   }
 }
 </script>

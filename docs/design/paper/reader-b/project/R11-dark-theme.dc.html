@@ -15,12 +15,12 @@ a{color:#7DBDC2}a:hover{color:#9BCFD3}
 button,input,textarea{font:inherit;color:inherit}
 </style>
 </helmet>
-<div style="min-height: 100vh; display: flex; flex-direction: column; background: #1E1D1A; color: #ECE7DE; font-family: 'Source Sans 3', 'Segoe UI', system-ui, sans-serif; font-size: 14px; line-height: 1.4; color-scheme: dark">
+<div style="height: 100vh; display: flex; flex-direction: column; background: #1E1D1A; color: #ECE7DE; font-family: 'Source Sans 3', 'Segoe UI', system-ui, sans-serif; font-size: 14px; line-height: 1.4; color-scheme: dark">
 
   <header style="min-height: 40px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 20px; padding: 0 16px; border-bottom: 1px solid #3A3732; background: #1E1D1A">
     <div style="display: flex; align-items: center; gap: 10px; flex: 1 1 220px; min-width: 0">
       <button aria-label="Sidebar" aria-pressed="true" style="width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 4px; color: #CFC8BC"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="3.5" y="4.5" width="17" height="15" rx="1.5"></rect><path d="M9 4.5v15"></path></svg></button>
-      <span style="font-family: 'Newsreader', Georgia, serif; font-size: 16px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">Q3-board-report.pdf</span>
+      <span style="font-family: 'Newsreader', Georgia, serif; font-size: 16px; font-weight: 500; min-width: 80px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">Q3-board-report.pdf</span>
     </div>
     <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 8px 14px; flex: 1 1 220px">
       <div role="group" aria-label="History" style="display: flex; align-items: center; gap: 2px">
@@ -40,15 +40,15 @@ button,input,textarea{font:inherit;color:inherit}
       <button aria-label="Find in document" style="width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 4px; color: #CFC8BC"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6"></circle><path d="M15 15l5 5"></path></svg></button>
       <button aria-label="View settings" aria-haspopup="dialog" aria-expanded="false" style="width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 4px; color: #CFC8BC"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="12" cy="12" r="7.5"></circle><path d="M12 4.5v15M12 8.5h5.5M12 12h7.5M12 15.5h5.5"></path></svg></button>
       <button aria-pressed="false" style="height: 28px; display: flex; align-items: center; gap: 6px; padding: 0 10px; border: 1px solid transparent; background: transparent; color: #CFC8BC; border-radius: 4px; font-size: 13px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M12 6.5c-2-1.3-4.5-2-8-2v13c3.5 0 6 .7 8 2 2-1.3 4.5-2 8-2v-13c-3.5 0-6 .7-8 2z"></path><path d="M12 6.5v13"></path></svg>Reader</button>
-      <button style="height: 26px; display: flex; align-items: center; gap: 8px; padding: 0 6px 0 10px; border: 1px solid #3A3732; background: #262421; border-radius: 4px; color: #A39B8E; font-size: 13px"><span>Commands</span><span style="font-size: 11px; padding: 1px 5px; border: 1px solid #4A463F; border-radius: 3px; color: #CFC8BC; background: #1E1D1A">Ctrl K</span></button>
+      <button style="height: 26px; flex-shrink: 0; white-space: nowrap; display: flex; align-items: center; gap: 8px; padding: 0 6px 0 10px; border: 1px solid #3A3732; background: #262421; border-radius: 4px; color: #A39B8E; font-size: 13px"><span>Commands</span><span style="font-size: 11px; padding: 1px 5px; border: 1px solid #4A463F; border-radius: 3px; color: #CFC8BC; background: #1E1D1A">Ctrl K</span></button>
       <button aria-label="More actions" aria-haspopup="menu" style="width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 4px; color: #CFC8BC"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="5.5" cy="12" r="0.9"></circle><circle cx="12" cy="12" r="0.9"></circle><circle cx="18.5" cy="12" r="0.9"></circle></svg></button>
     </div>
   </header>
 
-  <div style="flex: 1 1 auto; min-height: 0; display: flex; flex-wrap: wrap">
+  <div style="flex: 1 1 auto; min-height: 0; display: flex; overflow: hidden">
     <aside aria-label="Pages" style="flex: 0 0 220px; min-width: 0; box-sizing: border-box; border-right: 1px solid #3A3732; background: #1E1D1A; display: flex; flex-direction: column; overflow: hidden">
       <div role="tablist" aria-label="Sidebar" style="display: flex; gap: 16px; padding: 14px 18px 0; border-bottom: 1px solid #3A3732">
-        <button role="tab" aria-selected="true" style="border: 0; background: transparent; padding: 0 0 8px; font-size: 13px; font-weight: 600; color: #ECE7DE; border-bottom: 2px solid #7DBDC2">Pages</button>
+        <button role="tab" aria-selected="true" style="border: 0; background: transparent; padding: 0 0 8px; font-size: 13px; font-weight: 600; color: #ECE7DE; border-bottom: 2px solid {{dAccent}}">Pages</button>
         <button role="tab" aria-selected="false" style="border: 0; background: transparent; padding: 0 0 8px; font-size: 13px; color: #A39B8E; border-bottom: 2px solid transparent">Outline</button>
         <button role="tab" aria-selected="false" style="border: 0; background: transparent; padding: 0 0 8px; font-size: 13px; color: #A39B8E; border-bottom: 2px solid transparent">Attachments</button>
       </div>
@@ -89,7 +89,7 @@ button,input,textarea{font:inherit;color:inherit}
         <p style="margin: 0; text-wrap: pretty"><span style="background: {{selTint}}; box-decoration-break: clone; -webkit-box-decoration-break: clone">The backlog fell by 18% over the quarter, but the oldest 10% of jobs are now older than 90 days.</span> These are mainly damp and mould cases that need a surveyor’s visit before work can be scheduled, and they sit in the older parts of our stock.</p>
         <div role="toolbar" aria-label="Selection" style="position: absolute; left: 58px; top: 218px; display: flex; align-items: center; gap: 2px; padding: 4px; background: #2E2C28; border: 1px solid #4A463F; border-radius: 6px; box-shadow: 0 4px 14px rgba(0,0,0,0.45); font-family: 'Source Sans 3', system-ui, sans-serif; font-size: 13px; line-height: 1; color: #ECE7DE; white-space: nowrap">
           <button style="height: 30px; display: flex; align-items: center; gap: 6px; padding: 0 10px; border: 0; background: transparent; border-radius: 4px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="8.5" y="8.5" width="11" height="11" rx="1.5"></rect><path d="M15.5 8.5V6a1.5 1.5 0 0 0-1.5-1.5H6A1.5 1.5 0 0 0 4.5 6v8A1.5 1.5 0 0 0 6 15.5h2.5"></path></svg>Copy</button>
-          <button style="height: 30px; display: flex; align-items: center; gap: 6px; padding: 0 10px; border: 0; background: rgba(236,231,222,0.08); border-radius: 4px; outline: 2px solid #7DBDC2; outline-offset: 1px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M14.5 4.5l5 5L11 18H6v-5z"></path><path d="M4 20.5h9"></path></svg>Highlight</button>
+          <button style="height: 30px; display: flex; align-items: center; gap: 6px; padding: 0 10px; border: 0; background: rgba(236,231,222,0.08); border-radius: 4px; outline: 2px solid {{dAccent}}; outline-offset: 1px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M14.5 4.5l5 5L11 18H6v-5z"></path><path d="M4 20.5h9"></path></svg>Highlight</button>
           <button style="height: 30px; display: flex; align-items: center; gap: 6px; padding: 0 10px; border: 0; background: transparent; border-radius: 4px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M5 5.5h14v10H10l-4 3.5v-3.5H5z"></path></svg>Comment</button>
           <span aria-hidden="true" style="width: 1px; height: 18px; background: #3A3732"></span>
           <button aria-label="More selection actions" style="width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 4px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="5.5" cy="12" r="0.9"></circle><circle cx="12" cy="12" r="0.9"></circle><circle cx="18.5" cy="12" r="0.9"></circle></svg></button>
@@ -111,7 +111,7 @@ button,input,textarea{font:inherit;color:inherit}
 
   <footer style="min-height: 28px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px 16px; padding: 0 16px; border-top: 1px solid #3A3732; background: #1E1D1A; font-size: 12px; color: #A39B8E">
     <button style="min-height: 24px; display: flex; align-items: center; gap: 7px; border: 0; background: transparent; padding: 0 4px; font-size: 12px; color: #A39B8E">
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#7DBDC2" stroke-width="1.5" aria-hidden="true"><path d="M12 3.5l7 2.5v5.5c0 4.3-3 7.6-7 9-4-1.4-7-4.7-7-9V6z"></path><path d="M9 12l2.2 2.2L15.5 10"></path></svg>
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="{{dAccent}}" stroke-width="1.5" aria-hidden="true"><path d="M12 3.5l7 2.5v5.5c0 4.3-3 7.6-7 9-4-1.4-7-4.7-7-9V6z"></path><path d="M9 12l2.2 2.2L15.5 10"></path></svg>
       <span style="color: #ECE7DE; font-variant-numeric: tabular-nums">0 network requests for this document</span><span>· Offline-safe: nothing uploaded</span>
     </button>
     <button style="min-height: 24px; display: flex; align-items: center; gap: 6px; border: 0; background: transparent; padding: 0 4px; font-size: 12px; color: #A39B8E">
@@ -122,23 +122,42 @@ button,input,textarea{font:inherit;color:inherit}
   </footer>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"pageAppearance":{"editor":"enum","options":["Original","Dark"],"default":"Original"},"$preview":{"width":1440,"height":900}}'>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#1F5C63","options":["#1F5C63","#2D4A6B","#5B3B6B","#495533"]},"pageAppearance":{"editor":"enum","options":["Original","Dark"],"default":"Original"},"$preview":{"width":1440,"height":900}}'>
 class Component extends DCLogic {
   renderVals() {
+    var accent = this.props.accent ?? '#1F5C63';
+    // Dark-theme values per accent, from design language §2.8 (keyed by the light accent).
+    var DARK = {
+      '#1F5C63': { accent: '#7DBDC2', strong: '#9BCFD3', tint: '#343C3B', pageSel: '#425858' },
+      '#2D4A6B': { accent: '#91B3DC', strong: '#AAC7E9', tint: '#373B3F', pageSel: '#495461' },
+      '#5B3B6B': { accent: '#C59FD9', strong: '#D6B6E7', tint: '#3F383E', pageSel: '#5B4D60' },
+      '#495533': { accent: '#A8B78F', strong: '#BDCAA8', tint: '#3B3C33', pageSel: '#515646' }
+    };
+    var d = DARK[accent.toUpperCase()] || DARK['#1F5C63'];
+    function mix(hex, base, t) {
+      var p = function (h, i) { return parseInt(h.replace('#', '').substr(i, 2), 16); };
+      var out = '#';
+      for (var i = 0; i < 6; i += 2) {
+        var v = Math.round(p(hex, i) * t + p(base, i) * (1 - t));
+        out += (v < 16 ? '0' : '') + v.toString(16);
+      }
+      return out;
+    }
     var dark = (this.props.pageAppearance ?? 'Original') === 'Dark';
     var paper = dark ? '#22211F' : '#FFFFFF';
     var thumbs = [1, 2, 3, 4, 5].map(function (n) {
       var cur = n === 3;
       return {
         n: n, label: 'Page ' + n, current: cur ? 'page' : 'false', chart: n === 3 || n === 5,
-        frame: 'display: block; width: 116px; height: 150px; background: ' + paper + '; box-shadow: 0 1px 3px rgba(0,0,0,0.5); overflow: hidden; ' + (cur ? 'outline: 2px solid #7DBDC2; outline-offset: 3px;' : 'outline: 1px solid #3A3732;'),
+        frame: 'display: block; width: 116px; height: 150px; background: ' + paper + '; box-shadow: 0 1px 3px rgba(0,0,0,0.5); overflow: hidden; ' + (cur ? 'outline: 2px solid ' + d.accent + '; outline-offset: 3px;' : 'outline: 1px solid #3A3732;'),
         num: 'font-size: 12px; font-variant-numeric: tabular-nums; ' + (cur ? 'color: #ECE7DE; font-weight: 600;' : 'color: #A39B8E;')
       };
     });
     return {
       thumbs: thumbs, paper: paper, heading: dark ? '#F2EEE7' : '#1C1B19', chartLabel: dark ? '#C9C2B6' : '#3A3733',
       ink: dark ? '#E6E1D8' : '#262421', inkMuted: dark ? '#ADA597' : '#6E6A64', rule: dark ? '#3A3833' : '#E6E3DE',
-      bar: dark ? '#A9B4BC' : '#4E5A63', selTint: dark ? '#425858' : '#CEDBDD',
+      bar: dark ? '#A9B4BC' : '#4E5A63', selTint: dark ? d.pageSel : mix(accent, '#FFFFFF', 0.22),
+      dAccent: d.accent,
       thHead: dark ? '#8D877D' : '#B9B2A7', thLine: dark ? '#55514A' : '#DDD7CD', thChart: dark ? '#6E777D' : '#C9CFD3'
     };
   }

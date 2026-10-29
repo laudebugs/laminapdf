@@ -7,7 +7,7 @@
 "O03-close-unsaved.dc.html":{"x":0,"y":2040,"w":1440,"h":900,"title":"O03 · Close with unsaved changes (desktop)","expand":"fill"},
 "O04-document-info.dc.html":{"x":0,"y":3060,"w":1440,"h":900,"title":"O04 · Document properties: Description (desktop)","expand":"fill"},
 "O04-xmp-editor.dc.html":{"x":1520,"y":3060,"w":1440,"h":900,"title":"O04 · Document properties: XMP editor (desktop)","expand":"fill"},
-"O05-capabilities.dc.html":{"x":0,"y":4080,"w":1440,"h":1000,"title":"O05 · Capability page (web)","expand":"fill"},
+"O05-capabilities.dc.html":{"x":0,"y":4080,"w":1440,"h":900,"title":"O05 · Capability page (web)","expand":"fill"},
 "O06-organise.dc.html":{"x":0,"y":5200,"w":1440,"h":900,"title":"O06 · Organise mode: grid, 2 selected, insertion bar (desktop)","expand":"fill"},
 "O06-organise-menu.dc.html":{"x":1520,"y":5200,"w":1440,"h":900,"title":"O06 · Page context menu (desktop)","expand":"fill"},
 "O06-move-dialog.dc.html":{"x":3040,"y":5200,"w":1440,"h":900,"title":"O06 · Move to page… dialog (desktop)","expand":"fill"},

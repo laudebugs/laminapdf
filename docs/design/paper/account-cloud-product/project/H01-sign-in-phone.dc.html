@@ -55,8 +55,8 @@ button,input,textarea{font:inherit;color:inherit}
         <button style="height: 44px; border: 1px solid #8A8174; background: #FFFFFF; border-radius: 4px; font-size: 15px">Not now</button>
       </div>
       <div style="display: flex; flex-direction: column; gap: 4px; padding-top: 16px; border-top: 1px solid #E4DED3; font-size: 14px">
-        <a href="#create" style="min-height: 44px; display: flex; align-items: center; font-weight: 600">Create an account</a>
-        <a href="#privacy" style="min-height: 44px; display: flex; align-items: center">What an account stores</a>
+        <a href="#create" style="min-height: 44px; display: flex; align-items: center; font-weight: 600; color: {{accent}}">Create an account</a>
+        <a href="#privacy" style="min-height: 44px; display: flex; align-items: center; color: {{accent}}">What an account stores</a>
       </div>
     </div>
   </section>
@@ -64,10 +64,25 @@ button,input,textarea{font:inherit;color:inherit}
   <span aria-hidden="true" style="position: absolute; left: 50%; bottom: 8px; transform: translateX(-50%); width: 134px; height: 5px; border-radius: 3px; background: #1F1D1A; opacity: 0.85"></span>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#1F5C63","options":["#1F5C63","#2D4A6B","#3E4A3C"]},"$preview":{"width":390,"height":844}}'>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#1F5C63","options":["#1F5C63","#2D4A6B","#5B3B6B","#495533"]},"$preview":{"width":390,"height":844}}'>
 class Component extends DCLogic {
   renderVals() {
-    return { accent: this.props.accent ?? '#1F5C63' };
+    var accent = this.props.accent ?? '#1F5C63';
+    function mix(hex, base, t) {
+      var p = function (h, i) { return parseInt(h.replace('#', '').substr(i, 2), 16); };
+      var out = '#';
+      for (var i = 0; i < 6; i += 2) {
+        var v = Math.round(p(hex, i) * t + p(base, i) * (1 - t));
+        out += (v < 16 ? '0' : '') + v.toString(16);
+      }
+      return out.toUpperCase();
+    }
+    var strong = { '#1F5C63': '#16454B', '#2D4A6B': '#1A3757', '#5B3B6B': '#472856', '#495533': '#35401F' };
+    var rgb = [0, 2, 4].map(function (i) { return parseInt(accent.replace('#', '').substr(i, 2), 16); }).join(',');
+    return {
+      accent: accent, accentStrong: strong[accent] || accent, accentTint: mix(accent, '#FBF9F5', 0.12),
+      selTint: mix(accent, '#FFFFFF', 0.22), fieldTint: mix(accent, '#FFFFFF', 0.08), accentRgb: rgb
+    };
   }
 }
 </script>

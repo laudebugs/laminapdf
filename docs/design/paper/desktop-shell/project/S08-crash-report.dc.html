@@ -15,7 +15,7 @@ a{color:#1F5C63}a:hover{color:#16454B}
 button,input,textarea{font:inherit;color:inherit}
 </style>
 </helmet>
-<div style="min-height: 100vh; display: flex; flex-direction: column; box-sizing: border-box; background: #DCD6CB; font-family: 'Source Sans 3', 'Segoe UI', system-ui, sans-serif; font-size: 14px; line-height: 1.4; color: #1F1D1A">
+<div style="height: 100vh; display: flex; flex-direction: column; box-sizing: border-box; background: #DCD6CB; font-family: 'Source Sans 3', 'Segoe UI', system-ui, sans-serif; font-size: 14px; line-height: 1.4; color: #1F1D1A">
 <div style="position: relative; flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; background: #F7F4EE; border: 1px solid #C9C2B6; border-radius: 10px; overflow: hidden; box-sizing: border-box">
 
   <div style="height: 30px; flex: 0 0 auto; display: flex; align-items: center; padding: 0 12px; background: #EFEBE3; border-bottom: 1px solid #E0D9CD; position: relative">
@@ -40,7 +40,7 @@ button,input,textarea{font:inherit;color:inherit}
 
   <div style="position: absolute; left: 0; right: 0; top: 30px; bottom: 0; background: rgba(31,29,26,0.30); display: flex; justify-content: center; align-items: flex-start; padding: 48px 16px 24px; box-sizing: border-box; z-index: 50; overflow: auto">
     <div role="dialog" aria-modal="true" aria-labelledby="rp-t" aria-describedby="rp-d" style="width: 100%; max-width: 600px; box-sizing: border-box; display: flex; flex-direction: column; gap: 14px; padding: 24px; background: #FBF9F5; border: 1px solid #D8D1C5; border-radius: 6px; box-shadow: 0 18px 48px rgba(31,29,26,0.22)">
-      <button style="align-self: flex-start; min-height: 24px; display: flex; align-items: center; gap: 4px; padding: 0 6px 0 0; border: 0; background: transparent; border-radius: 4px; color: #1F5C63; font-size: 13px; font-weight: 600"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M15 5l-7 7 7 7"></path></svg>Back to tabs</button>
+      <button style="align-self: flex-start; min-height: 24px; display: flex; align-items: center; gap: 4px; padding: 0 6px 0 0; border: 0; background: transparent; border-radius: 4px; color: {{accent}}; font-size: 13px; font-weight: 600"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M15 5l-7 7 7 7"></path></svg>Back to tabs</button>
       <h2 id="rp-t" style="margin: 0; font-family: 'Newsreader', Georgia, serif; font-size: 20px; line-height: 24px; font-weight: 500">The crash report, exactly as it would be sent</h2>
       <p id="rp-d" style="margin: 0">Nothing is sent unless you choose Send report. Sent to lamina’s own server and deleted after 30 days.</p>
 
@@ -76,10 +76,10 @@ button,input,textarea{font:inherit;color:inherit}
       <p style="margin: 0; font-size: 12px; color: #6B645A">The report ID is random and made for this report only; it is not stored anywhere else on this computer.</p>
 
       <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap">
-        <button style="height: 32px; padding: 0 12px; border: 0; background: transparent; border-radius: 4px; color: #1F5C63; font-weight: 600">Copy report</button>
+        <button style="height: 32px; padding: 0 12px; border: 0; background: transparent; border-radius: 4px; color: {{accent}}; font-weight: 600">Copy report</button>
         <div style="display: flex; gap: 8px">
           <button style="height: 32px; padding: 0 16px; border: 1px solid #8A8174; background: #FFFFFF; border-radius: 4px">Don’t send</button>
-          <button style="height: 32px; padding: 0 16px; border: 1px solid #1F5C63; background: #1F5C63; color: #FFFFFF; border-radius: 4px; font-weight: 600; outline: 2px solid #1F5C63; outline-offset: 2px">Send report</button>
+          <button style="height: 32px; padding: 0 16px; border: 1px solid {{accent}}; background: {{accent}}; color: #FFFFFF; border-radius: 4px; font-weight: 600; outline: 2px solid {{accent}}; outline-offset: 2px">Send report</button>
         </div>
       </div>
     </div>
@@ -87,9 +87,25 @@ button,input,textarea{font:inherit;color:inherit}
 </div>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#1F5C63","options":["#1F5C63","#2D4A6B","#5B3B6B","#495533"]},"$preview":{"width":1440,"height":900}}'>
 class Component extends DCLogic {
   renderVals() {
+    return Object.assign(this.theme(), this.vals());
+  }
+  theme() {
+    var accent = this.props.accent ?? '#1F5C63';
+    function mix(hex, base, t) {
+      var p = function (h, i) { return parseInt(h.replace('#', '').substr(i, 2), 16); };
+      var out = '#';
+      for (var i = 0; i < 6; i += 2) {
+        var v = Math.round(p(hex, i) * t + p(base, i) * (1 - t));
+        out += (v < 16 ? '0' : '') + v.toString(16);
+      }
+      return out;
+    }
+    return { accent: accent, accentTint: mix(accent, '#FBF9F5', 0.12), accentStrong: ({'#1F5C63':'#16454B','#2D4A6B':'#1A3757','#5B3B6B':'#472856','#495533':'#35401F'})[accent] || mix(accent, '#000000', 0.72), selTint: mix(accent, '#FFFFFF', 0.22), fieldTint: mix(accent, '#FFFFFF', 0.08) };
+  }
+  vals() {
     return {};
   }
 }

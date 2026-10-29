@@ -15,7 +15,7 @@ a{color:#1F5C63}a:hover{color:#16454B}
 button,input,textarea,select{font:inherit;color:inherit}
 </style>
 </helmet>
-<div style="min-height: 100vh; display: flex; flex-direction: column; background: #DCD6CB; font-family: 'Source Sans 3', 'Segoe UI', system-ui, sans-serif; font-size: 14px; line-height: 1.4; color: #1F1D1A">
+<div style="--accent: {{accent}}; --accent-strong: {{accentStrong}}; height: 100vh; overflow: hidden; display: flex; flex-direction: column; background: #DCD6CB; font-family: 'Source Sans 3', 'Segoe UI', system-ui, sans-serif; font-size: 14px; line-height: 1.4; color: #1F1D1A">
 <div style="position: relative; flex: 1 1 auto; display: flex; flex-direction: column; background: #F7F4EE; border: 1px solid #C9C2B6; border-radius: 10px; overflow: hidden">
 
   <div style="height: 30px; flex: 0 0 auto; display: flex; align-items: center; padding: 0 12px; background: #EFEBE3; border-bottom: 1px solid #E0D9CD; position: relative">
@@ -27,7 +27,7 @@ button,input,textarea,select{font:inherit;color:inherit}
     <div style="display: flex; align-items: center; gap: 10px; flex: 1 1 220px; min-width: 0">
       <button aria-label="Sidebar" aria-pressed="false" style="width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 4px; color: #4A453E"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="3.5" y="4.5" width="17" height="15" rx="1.5"></rect><path d="M9 4.5v15"></path></svg></button>
       <div style="display: flex; align-items: baseline; gap: 8px; min-width: 0">
-        <span style="font-family: 'Newsreader', Georgia, serif; font-size: 16px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">Q3-board-report.pdf</span>
+        <span style="font-family: 'Newsreader', Georgia, serif; font-size: 16px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 80px">Q3-board-report.pdf</span>
         <span style="font-size: 12px; color: #6B645A; white-space: nowrap">Redactions applied · not saved</span>
       </div>
       <span aria-hidden="true" style="width: 1px; height: 18px; background: #E4DED3"></span>
@@ -45,7 +45,7 @@ button,input,textarea,select{font:inherit;color:inherit}
       <div style="display: flex; align-items: center; gap: 6px; font-variant-numeric: tabular-nums">
         <label for="pg" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Page</label>
         <input id="pg" value="23" style="width: 30px; height: 24px; box-sizing: border-box; text-align: center; border: 1px solid #8A8174; border-radius: 4px; background: #FFFFFF; font-variant-numeric: tabular-nums; color: #1F1D1A">
-        <span style="color: #6B645A">/ 24</span>
+        <span style="color: #6B645A; white-space: nowrap">/ 24</span>
       </div>
       <div style="display: flex; align-items: center; gap: 2px; font-variant-numeric: tabular-nums">
         <button aria-label="Zoom out" style="width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 4px; color: #4A453E"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M6 12h12"></path></svg></button>
@@ -54,45 +54,45 @@ button,input,textarea,select{font:inherit;color:inherit}
       </div>
       <button aria-label="Find in document" style="width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 4px; color: #4A453E"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6"></circle><path d="M15 15l5 5"></path></svg></button>
       <button aria-label="View settings" aria-haspopup="dialog" style="width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 4px; color: #4A453E"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="12" cy="12" r="7.5"></circle><path d="M12 4.5v15M12 8.5h5.5M12 12h7.5M12 15.5h5.5"></path></svg></button>
-      <button style="height: 26px; display: flex; align-items: center; gap: 8px; padding: 0 6px 0 10px; border: 1px solid #E4DED3; background: #FBF9F5; border-radius: 4px; color: #6B645A; font-size: 13px"><span>Commands</span><span style="font-size: 11px; padding: 1px 5px; border: 1px solid #D8D1C5; border-radius: 3px; color: #4A453E; background: #FFFFFF">⌘K</span></button>
-      <button aria-disabled="true" aria-describedby="blocked" style="height: 26px; padding: 0 12px; border: 1px solid #E4DED3; background: #E4DED3; color: #4A453E; border-radius: 4px; font-size: 13px; font-weight: 600; cursor: not-allowed">Save</button>
+      <button style="height: 26px; flex-shrink: 0; white-space: nowrap; display: flex; align-items: center; gap: 8px; padding: 0 6px 0 10px; border: 1px solid #E4DED3; background: #FBF9F5; border-radius: 4px; color: #6B645A; font-size: 13px"><span>Commands</span><span style="font-size: 11px; padding: 1px 5px; border: 1px solid #D8D1C5; border-radius: 3px; color: #4A453E; background: #FFFFFF">⌘K</span></button>
+      <button aria-disabled="true" aria-describedby="blocked" style="white-space: nowrap; height: 26px; padding: 0 12px; border: 1px solid #E4DED3; background: #E4DED3; color: #4A453E; border-radius: 4px; font-size: 13px; font-weight: 600; cursor: not-allowed">Save</button>
       <button aria-label="More actions" style="width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 4px; color: #4A453E"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="5.5" cy="12" r="0.9"></circle><circle cx="12" cy="12" r="0.9"></circle><circle cx="18.5" cy="12" r="0.9"></circle></svg></button>
     </div>
   </header>
   <div role="alert" style="min-height: 36px; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; padding: 6px 16px; background: #F1E4E2; border-bottom: 1px solid #E4DED3; font-size: 13px">
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9B2335" stroke-width="1.5" aria-hidden="true"><path d="M12 4l9 16H3z"></path><path d="M12 10v4M12 17v.5"></path></svg>
     <span id="blocked" style="flex: 1 1 400px"><strong style="font-weight: 600; color: #9B2335">Saving is blocked: 1 leak found.</strong> The attachment case-notes.xlsx still contains “j.whitfield@example.org”.</span>
-    <button style="height: 26px; padding: 0 12px; border: 1px solid #8A8174; background: #FFFFFF; border-radius: 4px; font-size: 13px">Remove attachment</button>
+    <button style="white-space: nowrap; height: 26px; padding: 0 12px; border: 1px solid #8A8174; background: #FFFFFF; border-radius: 4px; font-size: 13px">Remove attachment</button>
   </div>
 
   <div role="toolbar" aria-label="Redact tools" style="min-height: 40px; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; padding: 0 16px; border-bottom: 1px solid #E4DED3; background: #FBF9F5; font-size: 13px">
     <span style="display: flex; align-items: center; gap: 6px; font-weight: 600; margin-right: 6px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="4" y="9" width="16" height="6"></rect><path d="M4 5.5h10M4 18.5h7"></path></svg>Redact</span>
-    <button aria-pressed="false" style="height: 28px; display: flex; align-items: center; gap: 6px; padding: 0 10px; border: 1px solid transparent; background: transparent; border-radius: 4px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M6 5h12M12 5v11"></path><path d="M5 20h14"></path></svg>Mark text</button>
-    <button aria-pressed="false" style="height: 28px; display: flex; align-items: center; gap: 6px; padding: 0 10px; border: 1px solid transparent; background: transparent; border-radius: 4px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="4.5" y="5.5" width="12" height="10" stroke-dasharray="2 2"></rect><rect x="15" y="14" width="4.5" height="4.5"></rect></svg>Mark area</button>
-    <button style="height: 28px; display: flex; align-items: center; gap: 6px; padding: 0 10px; border: 1px solid transparent; background: transparent; border-radius: 4px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6"></circle><path d="M15 15l5 5"></path></svg>Find sensitive…</button>
+    <button aria-pressed="false" style="white-space: nowrap; height: 28px; display: flex; align-items: center; gap: 6px; padding: 0 10px; border: 1px solid transparent; background: transparent; border-radius: 4px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M6 5h12M12 5v11"></path><path d="M5 20h14"></path></svg>Mark text</button>
+    <button aria-pressed="false" style="white-space: nowrap; height: 28px; display: flex; align-items: center; gap: 6px; padding: 0 10px; border: 1px solid transparent; background: transparent; border-radius: 4px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="4.5" y="5.5" width="12" height="10" stroke-dasharray="2 2"></rect><rect x="15" y="14" width="4.5" height="4.5"></rect></svg>Mark area</button>
+    <button style="white-space: nowrap; height: 28px; display: flex; align-items: center; gap: 6px; padding: 0 10px; border: 1px solid transparent; background: transparent; border-radius: 4px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6"></circle><path d="M15 15l5 5"></path></svg>Find sensitive…</button>
     <span aria-hidden="true" style="width: 1px; height: 18px; background: #E4DED3; margin: 0 8px"></span>
-    <button aria-pressed="false" style="height: 28px; display: flex; align-items: center; gap: 6px; padding: 0 10px; border: 1px solid transparent; background: transparent; border-radius: 4px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M3 12c2.5-4 5.5-6 9-6s6.5 2 9 6c-2.5 4-5.5 6-9 6s-6.5-2-9-6z"></path><circle cx="12" cy="12" r="2.5"></circle></svg>Preview result</button>
+    <button aria-pressed="false" style="white-space: nowrap; height: 28px; display: flex; align-items: center; gap: 6px; padding: 0 10px; border: 1px solid transparent; background: transparent; border-radius: 4px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M3 12c2.5-4 5.5-6 9-6s6.5 2 9 6c-2.5 4-5.5 6-9 6s-6.5-2-9-6z"></path><circle cx="12" cy="12" r="2.5"></circle></svg>Preview result</button>
     <span style="flex: 1 1 auto"></span>
     <span style="font-size: 12px; color: #6B645A; font-variant-numeric: tabular-nums">9 redactions applied · undo with ⌘Z until you save</span>
-    <button style="height: 28px; padding: 0 12px; border: 1px solid transparent; background: transparent; border-radius: 4px; color: {{accent}}; font-weight: 600">Done</button>
+    <button style="white-space: nowrap; height: 28px; padding: 0 12px; border: 1px solid transparent; background: transparent; border-radius: 4px; color: {{accent}}; font-weight: 600">Done</button>
   </div>
 
-  <div style="flex: 1 1 auto; min-height: 0; display: flex; flex-wrap: wrap">
+  <div style="flex: 1 1 auto; min-height: 0; display: flex; overflow: hidden">
     <main style="flex: 999 1 560px; min-width: 0; background: #ECE7DE; overflow: auto; display: flex; justify-content: center; padding: 28px 16px 32px; box-sizing: border-box">
       <article aria-label="Page 23, redacted" style="width: 100%; max-width: 612px; min-height: 790px; box-sizing: border-box; background: #FFFFFF; box-shadow: 0 1px 2px rgba(60,48,30,0.08), 0 8px 28px rgba(60,48,30,0.10); padding: 56px 56px 36px; display: flex; flex-direction: column; gap: 16px; font-family: 'Source Serif 4', Georgia, serif; color: #262421; font-size: 14px; line-height: 1.6">
         <div style="display: flex; justify-content: space-between; font-family: 'Source Sans 3', system-ui, sans-serif; font-size: 10.5px; letter-spacing: 0.08em; text-transform: uppercase; color: #6E6A64; border-bottom: 1px solid #E6E3DE; padding-bottom: 10px"><span>Northwind Housing Trust</span><span>Q3 Board Report</span></div>
         <h2 style="margin: 10px 0 0; font-size: 22px; font-weight: 600; line-height: 1.25; color: #1C1B19">Appendix B. Damp and mould cases over 90 days</h2>
         <p style="margin: 0; text-wrap: pretty">Cases open for more than 90 days at 30 September in the East region, with the tenant’s contact details for the surveyor visits.</p>
-        <table style="width: 100%; border-collapse: collapse; font-family: 'Source Sans 3', system-ui, sans-serif; font-size: 11.5px; color: #3A3733; font-variant-numeric: tabular-nums">
-          <thead>
-            <tr style="text-align: left; border-bottom: 1px solid #C9C2B6"><th scope="col" style="padding: 6px 6px 6px 0; font-weight: 600">Case</th><th scope="col" style="padding: 6px; font-weight: 600">Tenant</th><th scope="col" style="padding: 6px; font-weight: 600">Email</th><th scope="col" style="padding: 6px; font-weight: 600">Phone</th><th scope="col" style="padding: 6px 0 6px 6px; font-weight: 600; text-align: right">Days</th></tr>
-          </thead>
-          <tbody>
+        <div role="table" aria-label="Damp and mould cases over 90 days" style="display: table; width: 100%; border-collapse: collapse; font-family: 'Source Sans 3', system-ui, sans-serif; font-size: 11.5px; color: #3A3733; font-variant-numeric: tabular-nums">
+          <div role="rowgroup" style="display: table-header-group">
+            <div role="row" style="display: table-row; text-align: left; border-bottom: 1px solid #C9C2B6"><div role="columnheader" style="display: table-cell; padding: 6px 6px 6px 0; font-weight: 600">Case</div><div role="columnheader" style="display: table-cell; padding: 6px; font-weight: 600">Tenant</div><div role="columnheader" style="display: table-cell; padding: 6px; font-weight: 600">Email</div><div role="columnheader" style="display: table-cell; padding: 6px; font-weight: 600">Phone</div><div role="columnheader" style="display: table-cell; padding: 6px 0 6px 6px; font-weight: 600; text-align: right">Days</div></div>
+          </div>
+          <div role="rowgroup" style="display: table-row-group">
             <sc-for list="{{rows}}" as="t" hint-placeholder-count="4">
-              <tr style="border-bottom: 1px solid #E6E3DE"><td style="padding: 7px 6px 7px 0">{{t.case}}</td><td style="padding: 7px 6px"><span role="img" aria-label="Redacted" style="{{t.nameBox}}"></span><sc-if value="{{t.showName}}" hint-placeholder-val="{{ false }}">{{t.name}}</sc-if></td><td style="padding: 7px 6px"><span role="img" aria-label="Redacted" style="display: inline-block; vertical-align: middle; width: 128px; height: 13px; background: #1F1D1A"></span></td><td style="padding: 7px 6px">{{t.phone}}</td><td style="padding: 7px 0 7px 6px; text-align: right">{{t.days}}</td></tr>
+              <div role="row" style="display: table-row; border-bottom: 1px solid #E6E3DE"><div role="cell" style="display: table-cell; padding: 7px 6px 7px 0">{{t.case}}</div><div role="cell" style="display: table-cell; padding: 7px 6px"><span role="img" aria-label="Redacted" style="{{t.nameBox}}"></span><sc-if value="{{t.showName}}" hint-placeholder-val="{{ false }}">{{t.name}}</sc-if></div><div role="cell" style="display: table-cell; padding: 7px 6px"><span role="img" aria-label="Redacted" style="display: inline-block; vertical-align: middle; width: 128px; height: 13px; background: #1F1D1A"></span></div><div role="cell" style="display: table-cell; padding: 7px 6px">{{t.phone}}</div><div role="cell" style="display: table-cell; padding: 7px 0 7px 6px; text-align: right">{{t.days}}</div></div>
             </sc-for>
-          </tbody>
-        </table>
+          </div>
+        </div>
         <p style="margin: 0; font-size: 13px; text-wrap: pretty">NW-2291: compensation of £250 refunded to card <span role="img" aria-label="Redacted" style="display: inline-block; vertical-align: middle; width: 132px; height: 14px; background: #1F1D1A"></span> on 14 October. NW-2304: National Insurance number <span role="img" aria-label="Redacted" style="display: inline-block; vertical-align: middle; width: 92px; height: 14px; background: #1F1D1A"></span> supplied for the benefits referral.</p>
         <figure style="margin: 4px 0 0; display: flex; flex-direction: column; gap: 6px; font-family: 'Source Sans 3', system-ui, sans-serif">
           <div role="img" aria-label="Redacted" style="height: 120px; background: #1F1D1A"></div>
@@ -114,49 +114,61 @@ button,input,textarea,select{font:inherit;color:inherit}
       <ul style="list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; border-top: 1px solid #E4DED3">
         <sc-for list="{{checks}}" as="c" hint-placeholder-count="9">
           <li style="display: flex; flex-direction: column; gap: 2px; padding: 9px 0; border-bottom: 1px solid #E4DED3">
-            <span style="display: flex; align-items: center; justify-content: space-between; gap: 8px"><span style="font-size: 13px; font-weight: 600">{{c.name}}</span><span style="display: inline-flex; align-items: center; gap: 4px; height: 20px; padding: 0 8px; border-radius: 3px; background: #E7EBE3; color: #2F6A45; font-size: 12px; font-weight: 600"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 12.5l4 4 8-9"></path></svg>Passed</span></span>
+            <span style="display: flex; align-items: center; justify-content: space-between; gap: 8px"><span style="font-size: 13px; font-weight: 600">{{c.name}}</span><span style="display: inline-flex; align-items: center; gap: 4px; height: 20px; padding: 0 8px; border-radius: 3px; white-space: nowrap; flex-shrink: 0; background: #E7EBE3; color: #2F6A45; font-size: 12px; font-weight: 600"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 12.5l4 4 8-9"></path></svg>Passed</span></span>
             <span style="font-size: 12px; color: #4A453E">{{c.how}}</span>
           </li>
         </sc-for>
         <li style="display: flex; flex-direction: column; gap: 6px; padding: 9px 0; border-bottom: 1px solid #E4DED3">
-          <button aria-expanded="true" aria-controls="att-d" style="display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 24px; padding: 0; border: 0; background: transparent; text-align: left; outline: 2px solid {{accent}}; outline-offset: 2px; border-radius: 2px"><span style="font-size: 13px; font-weight: 600">Attachments</span><span style="display: inline-flex; align-items: center; gap: 4px; height: 20px; padding: 0 8px; border-radius: 3px; background: #F1E4E2; color: #9B2335; font-size: 12px; font-weight: 600"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M12 4l9 16H3z"></path><path d="M12 10v4M12 17v.5"></path></svg>Leak found</span></button>
+          <button aria-expanded="true" aria-controls="att-d" style="display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 24px; padding: 0; border: 0; background: transparent; text-align: left; outline: 2px solid {{accent}}; outline-offset: 2px; border-radius: 2px"><span style="font-size: 13px; font-weight: 600">Attachments</span><span style="display: inline-flex; align-items: center; gap: 4px; height: 20px; padding: 0 8px; border-radius: 3px; white-space: nowrap; flex-shrink: 0; background: #F1E4E2; color: #9B2335; font-size: 12px; font-weight: 600"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M12 4l9 16H3z"></path><path d="M12 10v4M12 17v.5"></path></svg>Leak found</span></button>
           <span style="font-size: 12px; color: #4A453E">Searched the bytes of each attached file for the redacted text.</span>
           <div id="att-d" style="display: flex; flex-direction: column; gap: 10px; padding: 10px 12px; background: #F1E4E2; border-radius: 4px; font-size: 13px">
             <span><strong style="font-weight: 600">case-notes.xlsx</strong> (48 KB) still contains “j.whitfield@example.org”. Attachments aren’t changed by redaction marks, so the address can still be read by anyone who opens the attachment.</span>
             <span>Fix: remove the attachment, or open it and remove the address, then attach it again.</span>
             <div style="display: flex; gap: 8px">
-              <button style="height: 28px; padding: 0 12px; border: 1px solid #8A8174; background: #FFFFFF; border-radius: 4px; font-size: 13px">Remove attachment</button>
-              <button style="height: 28px; padding: 0 10px; border: 0; background: transparent; border-radius: 4px; font-size: 13px; color: {{accent}}; font-weight: 600">Show it</button>
+              <button style="white-space: nowrap; height: 28px; padding: 0 12px; border: 1px solid #8A8174; background: #FFFFFF; border-radius: 4px; font-size: 13px">Remove attachment</button>
+              <button style="white-space: nowrap; height: 28px; padding: 0 10px; border: 0; background: transparent; border-radius: 4px; font-size: 13px; color: {{accent}}; font-weight: 600">Show it</button>
             </div>
           </div>
         </li>
       </ul>
       <p style="margin: 0; font-size: 12px; color: #6B645A">The report stays with this session and is not written into the PDF.</p>
       <div style="display: flex; gap: 8px; margin-top: auto; padding-top: 8px">
-        <button style="height: 30px; padding: 0 14px; border: 1px solid #8A8174; background: #FFFFFF; border-radius: 4px; font-size: 13px">Check again</button>
-        <button style="height: 30px; padding: 0 12px; border: 0; background: transparent; border-radius: 4px; font-size: 13px; color: {{accent}}; font-weight: 600">Export report…</button>
+        <button style="white-space: nowrap; height: 30px; padding: 0 14px; border: 1px solid #8A8174; background: #FFFFFF; border-radius: 4px; font-size: 13px">Check again</button>
+        <button style="white-space: nowrap; height: 30px; padding: 0 12px; border: 0; background: transparent; border-radius: 4px; font-size: 13px; color: {{accent}}; font-weight: 600">Export report…</button>
       </div>
     </aside>
   </div>
 
-  <footer style="min-height: 28px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px 16px; padding: 0 16px; border-top: 1px solid #E4DED3; font-size: 12px; color: #6B645A">
-    <button style="min-height: 24px; display: flex; align-items: center; gap: 7px; border: 0; background: transparent; padding: 0 4px; font-size: 12px; color: #6B645A">
+  <footer style="min-height: 28px; flex: 0 0 auto; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px 16px; padding: 0 16px; border-top: 1px solid #E4DED3; font-size: 12px; color: #6B645A">
+    <button style="min-height: 24px; display: flex; align-items: center; gap: 7px; border: 0; background: transparent; padding: 0 4px; font-size: 12px; color: #6B645A; white-space: nowrap">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="{{accent}}" stroke-width="1.5" aria-hidden="true"><path d="M12 3.5l7 2.5v5.5c0 4.3-3 7.6-7 9-4-1.4-7-4.7-7-9V6z"></path><path d="M9 12l2.2 2.2L15.5 10"></path></svg>
       <span style="color: #1F1D1A; font-variant-numeric: tabular-nums">0 network requests for this document</span><span>· Offline-safe: nothing uploaded</span>
     </button>
-    <button style="min-height: 24px; display: flex; align-items: center; gap: 8px; border: 0; background: transparent; padding: 0 4px; font-size: 12px; color: #6B645A">
-      <span style="display: inline-flex; align-items: center; gap: 4px; height: 20px; padding: 0 8px; border-radius: 3px; background: #F1E4E2; color: #9B2335; font-size: 12px; font-weight: 600"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M12 4l9 16H3z"></path><path d="M12 10v4M12 17v.5"></path></svg>Leak found</span>
-      <span>Verification report · <span style="text-decoration: underline">Details</span></span>
-    </button>
-    <span style="font-variant-numeric: tabular-nums">Page 23 · Appendix B</span>
+    <div style="display: flex; align-items: center; gap: 12px; flex-shrink: 0">
+      <span style="font-variant-numeric: tabular-nums; white-space: nowrap">Page 23 · Appendix B</span>
+      <button aria-label="Leak found, verification report, show details" style="min-height: 24px; display: flex; align-items: center; gap: 8px; border: 0; background: transparent; padding: 0 4px; font-size: 12px; color: #6B645A; white-space: nowrap">
+        <span style="display: inline-flex; align-items: center; gap: 4px; height: 20px; padding: 0 8px; border-radius: 3px; white-space: nowrap; flex-shrink: 0; background: #F1E4E2; color: #9B2335; font-size: 12px; font-weight: 600"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M12 4l9 16H3z"></path><path d="M12 10v4M12 17v.5"></path></svg>Leak found</span>
+        <span style="font-variant-numeric: tabular-nums">Verification report · <span style="text-decoration: underline">Details</span></span>
+      </button>
+    </div>
   </footer>
 </div>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#1F5C63","options":["#1F5C63","#2D4A6B","#3E4A3C"]},"$preview":{"width":1440,"height":940}}'>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#1F5C63","options":["#1F5C63","#2D4A6B","#5B3B6B","#495533"]},"$preview":{"width":1440,"height":900}}'>
 class Component extends DCLogic {
   renderVals() {
     var accent = this.props.accent ?? '#1F5C63';
+    var accentStrong = ({ '#1F5C63': '#16454B', '#2D4A6B': '#1A3757', '#5B3B6B': '#472856', '#495533': '#35401F' })[accent] || accent;
+    function mix(hex, base, t) {
+      var p = function (h, i) { return parseInt(h.replace('#', '').substr(i, 2), 16); };
+      var out = '#';
+      for (var i = 0; i < 6; i += 2) {
+        var v = Math.round(p(hex, i) * t + p(base, i) * (1 - t));
+        out += (v < 16 ? '0' : '') + v.toString(16);
+      }
+      return out;
+    }
     var box = 'display: inline-block; vertical-align: middle; width: 84px; height: 13px; background: #1F1D1A';
     var rows = [
       { case: 'NW-2291', name: 'Joan Whitfield', nameBox: 'display: none', showName: true, phone: '07700 900123', days: '142' },
@@ -175,7 +187,7 @@ class Component extends DCLogic {
       { name: 'Accessibility tags and alt text', how: 'Searched tag text, alt text and actual-text entries.' },
       { name: 'Earlier versions', how: 'The rewritten file has one version; the 3 earlier ones are not written.' }
     ];
-    return { accent: accent, rows: rows, checks: checks };
+    return { accentTint: mix(accent, '#FBF9F5', 0.12), selTint: mix(accent, '#FFFFFF', 0.22), fieldTint: mix(accent, '#FFFFFF', 0.08), accentStrong: accentStrong, accent: accent, rows: rows, checks: checks };
   }
 }
 </script>

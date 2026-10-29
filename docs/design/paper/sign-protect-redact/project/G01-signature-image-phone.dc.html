@@ -14,10 +14,10 @@
 body{margin:0}
 a{color:#1F5C63}a:hover{color:#16454B}
 button,input,textarea{font:inherit;color:inherit}
-label:has(input:focus-visible) [data-box]{outline:2px solid #1F5C63;outline-offset:2px}
+label:has(input:focus-visible) [data-box]{outline:2px solid var(--accent,#1F5C63);outline-offset:2px}
 </style>
 </helmet>
-<div style="width: 390px; height: 844px; position: relative; overflow: hidden; background: #ECE7DE; font-family: 'Source Sans 3', system-ui, sans-serif; color: #1F1D1A">
+<div style="--accent: {{accent}}; --accent-strong: {{accentStrong}}; width: 390px; height: 844px; position: relative; overflow: hidden; background: #ECE7DE; font-family: 'Source Sans 3', system-ui, sans-serif; color: #1F1D1A">
 
   <header style="position: absolute; left: 0; right: 0; top: 0; height: 56px; display: flex; align-items: center; gap: 4px; padding: 0 6px; background: #F7F4EE; border-bottom: 1px solid #E4DED3; box-sizing: border-box">
     <button aria-label="Back to files" style="width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 6px"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M15 5l-7 7 7 7"></path></svg></button>
@@ -40,10 +40,10 @@ label:has(input:focus-visible) [data-box]{outline:2px solid #1F5C63;outline-offs
     <p style="margin: 0; padding: 0 20px 12px; font-size: 14px; color: #4A453E">Puts a picture of your signature on the page; it doesn’t prove who signed.</p>
 
     <div role="tablist" aria-label="How to make the signature" style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); padding: 0 12px; border-bottom: 1px solid #E4DED3">
-      <button role="tab" aria-selected="false" style="height: 44px; border: 0; background: transparent; font-size: 14px; color: #6B645A; border-bottom: 2px solid transparent">Draw</button>
-      <button role="tab" aria-selected="true" style="height: 44px; border: 0; background: transparent; font-size: 14px; font-weight: 600; color: #1F1D1A; border-bottom: 2px solid {{accent}}">Type</button>
-      <button role="tab" aria-selected="false" style="height: 44px; border: 0; background: transparent; font-size: 14px; color: #6B645A; border-bottom: 2px solid transparent">Photo</button>
-      <button role="tab" aria-selected="false" style="height: 44px; border: 0; background: transparent; font-size: 14px; color: #6B645A; border-bottom: 2px solid transparent">Saved</button>
+      <button role="tab" aria-selected="false" style="white-space: nowrap; height: 44px; border: 0; background: transparent; font-size: 14px; color: #6B645A; border-bottom: 2px solid transparent">Draw</button>
+      <button role="tab" aria-selected="true" style="white-space: nowrap; height: 44px; border: 0; background: transparent; font-size: 14px; font-weight: 600; color: #1F1D1A; border-bottom: 2px solid {{accent}}">Type</button>
+      <button role="tab" aria-selected="false" style="white-space: nowrap; height: 44px; border: 0; background: transparent; font-size: 14px; color: #6B645A; border-bottom: 2px solid transparent">Photo</button>
+      <button role="tab" aria-selected="false" style="white-space: nowrap; height: 44px; border: 0; background: transparent; font-size: 14px; color: #6B645A; border-bottom: 2px solid transparent">Saved</button>
     </div>
 
     <div role="tabpanel" aria-label="Type" style="flex: 1 1 auto; display: flex; flex-direction: column; gap: 16px; padding: 16px 20px; overflow: auto">
@@ -65,7 +65,7 @@ label:has(input:focus-visible) [data-box]{outline:2px solid #1F5C63;outline-offs
         </button>
       </div>
       <label style="display: flex; align-items: center; gap: 12px; min-height: 44px; font-size: 15px">
-        <sc-if value="{{on}}" hint-placeholder-val="{{ true }}"><input type="checkbox" checked style="position: absolute; width: 1px; height: 1px; opacity: 0; margin: 0"></sc-if><span data-box="1" aria-hidden="true" style="flex: 0 0 auto; width: 20px; height: 20px; margin: 0; box-sizing: border-box; display: flex; align-items: center; justify-content: center; border-radius: 3px; border: 1px solid {{accent}}; background: {{accent}}; color: #FFFFFF"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 12.5l4 4 8-9"></path></svg></span>Keep in my signatures on this device
+        <input type="checkbox" checked style="position: absolute; width: 1px; height: 1px; opacity: 0; margin: 0"><span data-box="1" aria-hidden="true" style="flex: 0 0 auto; width: 20px; height: 20px; margin: 0; box-sizing: border-box; display: flex; align-items: center; justify-content: center; border-radius: 3px; border: 1px solid {{accent}}; background: {{accent}}; color: #FFFFFF"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 12.5l4 4 8-9"></path></svg></span>Keep in my signatures on this device
       </label>
       <div role="note" style="display: flex; gap: 10px; padding: 10px 12px; background: #FFFFFF; border: 1px solid #E4DED3; border-radius: 4px; font-size: 13px">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#4A453E" stroke-width="1.5" aria-hidden="true" style="flex: 0 0 auto; margin-top: 2px"><path d="M4 17c3-6 5-9 7-9s1 6 3 6 3-4 6-6"></path></svg>
@@ -74,16 +74,17 @@ label:has(input:focus-visible) [data-box]{outline:2px solid #1F5C63;outline-offs
     </div>
 
     <div style="padding: 12px 20px 34px; border-top: 1px solid #E4DED3; display: flex; flex-direction: column; gap: 8px">
-      <button style="height: 48px; border: 1px solid {{accent}}; background: {{accent}}; color: #FFFFFF; border-radius: 6px; font-size: 16px; font-weight: 600">Use this signature</button>
+      <button style="white-space: nowrap; height: 48px; border: 1px solid {{accent}}; background: {{accent}}; color: #FFFFFF; border-radius: 6px; font-size: 16px; font-weight: 600">Use this signature</button>
     </div>
   </section>
   <span aria-hidden="true" style="position: absolute; left: 50%; bottom: 8px; transform: translateX(-50%); width: 134px; height: 5px; border-radius: 3px; background: #1F1D1A; opacity: 0.85"></span>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#1F5C63","options":["#1F5C63","#2D4A6B","#3E4A3C"]},"$preview":{"width":390,"height":844}}'>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#1F5C63","options":["#1F5C63","#2D4A6B","#5B3B6B","#495533"]},"$preview":{"width":390,"height":844}}'>
 class Component extends DCLogic {
   renderVals() {
     var accent = this.props.accent ?? '#1F5C63';
+    var accentStrong = ({ '#1F5C63': '#16454B', '#2D4A6B': '#1A3757', '#5B3B6B': '#472856', '#495533': '#35401F' })[accent] || accent;
     function mix(hex, base, t) {
       var p = function (h, i) { return parseInt(h.replace('#', '').substr(i, 2), 16); };
       var out = '#';
@@ -93,7 +94,7 @@ class Component extends DCLogic {
       }
       return out;
     }
-    return { on: true, accent: accent, accentTint: mix(accent, '#FBF9F5', 0.12) };
+    return { accentTint: mix(accent, '#FBF9F5', 0.12), selTint: mix(accent, '#FFFFFF', 0.22), fieldTint: mix(accent, '#FFFFFF', 0.08), accentStrong: accentStrong, on: true, accent: accent };
   }
 }
 </script>
