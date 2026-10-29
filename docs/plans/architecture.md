@@ -94,10 +94,10 @@ The research couldn't answer these. Each is a small, time-boxed spike under `spi
 Each round is split into todos, one pull request each, every one in its own worktree and reviewed before merge (see [Todos](#todos) below).
 
 - **Round A — Foundations** (done: [A1](../todos/done/A1-foundation-adrs.md), [A2](../todos/done/A2-monorepo-skeleton.md), [A3](../todos/done/A3-port-spike-core.md)). ADRs 0001, 0002, 0015, 0019. Monorepo skeleton (`crates/`, `packages/`, `apps/`, `fixtures/`, `tools/xtask`, `deny.toml`, `rust-toolchain.toml`, pnpm workspace). CI fast lane. Port the spike's core into `crates/lamina-syntax` and `lamina-cos`, keeping its tests.
-- **Round B — Core model and the first package** (todos B1a–B9c, listed in the [library plan §7](pdf-library.md#7-rounds)). ADRs 0003, 0005–0007, 0016–0018. `lamina-model`, `lamina-ops`, `lamina-save`, `lamina-build`; the `lamina` façade crate; `lamina-wasm` + `@lamina/pdf` with generation; the `krilla-fit` spike. CI full lane with golden tests ([X4](../todos/ready/X4-full-lane-gate.md)). The first `0.1.0-alpha` is versioned and tagged but **not published**: crates and npm packages stay local until the owner decides to publish (see [Publishing (later)](#publishing-later)).
+- **Round B — Core model and the first package** (todos B1a–B9c, listed in the [library plan §7](pdf-library.md#7-rounds)). ADRs 0003, 0005–0007, 0016–0018. `lamina-model`, `lamina-ops`, `lamina-save`, `lamina-build`; the `lamina` façade crate; `lamina-wasm` + `@lamina/pdf` with generation; the `krilla-fit` spike. CI full lane with golden tests ([X4](../todos/ongoing/X4-full-lane-gate.md)). The first `0.1.0-alpha` is versioned and tagged but **not published**: crates and npm packages stay local until the owner decides to publish (see [Publishing (later)](#publishing-later)).
 - **Round C — Web reader** (todos C1a–C7c, listed in the [web-app plan §6](web-app.md#6-rounds)). ADRs 0004, 0009–0011. `pdfium-wasm` and `hayro-parity` spikes; `@lamina/viewer`, `@lamina/ui`, `apps/web` on Workers static assets; Playwright tests; preview deploys per PR.
 - **Round D — Desktop reader** (todos D1a–D7c, listed in the [desktop-app plan §6](desktop-app.md#6-rounds)). `desktop-ipc` spike; ADRs 0008, 0014; `apps/desktop` (Tauri 2); `apps/updates` Worker + R2; signing and notarisation in CI.
-- **Round U — UI/UX** (todos U1a–U5c, listed in the [UI/UX plan §6](ui-ux.md#6-rounds)). ADR 0024; `mobile-shell` spike (ADR 0025). Runs alongside C, D and E: command registry and palette, inverted-L shell and modes, selection surfaces and copy modes, reading-order corpus, page appearance modes, phone layout, network indicator, reader mode, pledge, benchmark. Its v0.1 parts gate C7a and C7c.
+- **Round U — UI/UX** (todos U1a–U5c, listed in the [UI/UX plan §6](ui-ux.md#6-rounds)). ADR 0024; `mobile-shell` spike (ADR 0025). Runs alongside C, D and E: command registry and palette, inverted-L shell and modes, selection surfaces and copy modes, reading-order corpus, page appearance modes, phone layout, network indicator, reader mode, pricing and promises page, benchmark, opt-in telemetry. Its v0.1 parts gate C7a and C7c.
 - **Later rounds** (todos E1a–E18h and H1–H4, listed in the [full-editor plan §7](full-editor.md#7-phases-and-rounds)). Editing features by phase ([06 §9](../research/pdf/06-feature-inventory.md)), collaboration (ADR 0012), heavy jobs (ADR 0013). Each feature group gets its own plan and pull requests.
 
 Product-level detail (features, milestones, acceptance criteria) lives in the product plans ([library](pdf-library.md), [web app](web-app.md), [desktop app](desktop-app.md), [full-featured editor](full-editor.md)).
@@ -140,7 +140,7 @@ Todos: [A1](../todos/done/A1-foundation-adrs.md) (ADRs), [A2](../todos/done/A2-m
 - [ ] Write ADRs 0016 ([B6a](../todos/ready/B6a-lamina-wasm-and-adr-0016.md)), 0017 ([B7b](../todos/ready/B7b-versioning-and-0-1-0-alpha.md))
 - [x] `krilla-fit` spike ([B1b](../todos/done/B1b-krilla-fit-spike.md), [result](../../spikes/krilla-fit/README.md)), then decide the generation strategy (Option B, recorded in [ADR 0005 §6](../decisions/0005-document-model.md))
 - [x] `lamina-model`: typed pages, annotations, fields, outline; stable IDs (pages, outline, Info, name trees and page labels with their IDs done; annotations and fields come later. [B2a](../todos/done/B2a-limits-owned-document.md) owned `Document` and `Limits`, [B2b](../todos/done/B2b-standard-security-decryption.md) decryption, [B2c](../todos/done/B2c-lamina-model-corpus-fuzz.md) views and IDs; annotations and fields in the editor rounds)
-- [ ] `lamina-ops`: `Op` enum, `transact()`, inverses, undo/redo ([B3a](../todos/ready/B3a-overlay-and-ops.md))
+- [ ] `lamina-ops`: `Op` enum, `transact()`, inverses, undo/redo ([B3a](../todos/ongoing/B3a-overlay-and-ops.md))
 - [ ] `lamina-save`: save planner, `SaveConstraint`, streaming `WriteSink` ([B3b](../todos/ready/B3b-lamina-save-writers.md), [B3c](../todos/ready/B3c-save-planner-and-roundtrip.md))
 - [ ] Move the writer (`Writer`, `incremental_update`, `XrefEol`) from `lamina-cos` into `lamina-save`, keeping the determinism and golden tests ([B3b](../todos/ready/B3b-lamina-save-writers.md))
 - [ ] `lamina-build`: builder API (`Document → page → surface → finish() → Document`) ([B5a](../todos/ready/B5a-lamina-build-core.md), [B5b](../todos/ready/B5b-builder-text-and-document-features.md))
@@ -149,7 +149,7 @@ Todos: [A1](../todos/done/A1-foundation-adrs.md) (ADRs), [A2](../todos/done/A2-m
 - [ ] `lamina-text`: font embedding and subsetting for generation (see [03](../research/pdf/03-text-and-fonts.md)) ([B4a](../todos/ready/B4a-font-loading-and-subsetting.md), [B4b](../todos/ready/B4b-shaping-bidi-line-breaking.md), [B4c](../todos/ready/B4c-standard-14-and-simple-fonts.md))
 - [ ] `lamina-wasm` (wasm-bindgen + tsify) and `@lamina/pdf` (ESM-only, `init()`, export conditions; publint + attw) ([B6a](../todos/ready/B6a-lamina-wasm-and-adr-0016.md), [B6b](../todos/ready/B6b-lamina-pdf-package.md), [B6c](../todos/ready/B6c-runtime-matrix.md))
 - [x] Fuzz targets under `fuzz/`, with a scheduled 10-minute run, and the golden, corpus-facts and differential harness in the fast lane ([B2c](../todos/done/B2c-lamina-model-corpus-fuzz.md))
-- [ ] Golden-file and corpus test harness in CI (full lane) ([X4](../todos/ready/X4-full-lane-gate.md) full lane)
+- [ ] Golden-file and corpus test harness in CI (full lane) ([X4](../todos/ongoing/X4-full-lane-gate.md) full lane)
 - [ ] Changesets + Cargo version sync; tag `0.1.0-alpha` locally (no registry publish yet) ([B7b](../todos/ready/B7b-versioning-and-0-1-0-alpha.md); docs site [B7a](../todos/ready/B7a-docs-site.md))
 
 ### Round C — Web reader
@@ -188,7 +188,7 @@ Todos: [P1](../todos/ready/P1-reserve-names-and-trusted-publishing.md) and [P2](
 
 ### Cross-cutting
 - [ ] Capability matrix: generate a test-backed table of the ~180 operations (unsupported / read / write / round-trip) ([X2](../todos/ready/X2-capability-matrix.md))
-- [ ] Nightly lane: differential tests vs pdf.js, PDFium, qpdf, pypdf; hayro-vs-PDFium render diffs; veraPDF; benchmarks ([X3a](../todos/ready/X3a-nightly-lane.md); render diffs [X3b](../todos/ready/X3b-render-diff-nightly.md); veraPDF added by [B8b](../todos/ready/B8b-conformance-profiles-and-verapdf.md))
+- [ ] Nightly lane: differential tests vs pdf.js, PDFium, qpdf, pypdf; hayro-vs-PDFium render diffs; veraPDF; benchmarks ([X3a](../todos/ongoing/X3a-nightly-lane.md); render diffs [X3b](../todos/ready/X3b-render-diff-nightly.md); veraPDF added by [B8b](../todos/ready/B8b-conformance-profiles-and-verapdf.md))
 - [x] Docs link checker in `cargo xtask`, run in CI, so links to todos survive their moves between folders ([X1](../todos/done/X1-docs-link-checker.md))
 - [ ] Decide product questions (§8; Q2 and Q5 answered 2026-10-28)
 

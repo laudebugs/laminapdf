@@ -188,7 +188,7 @@ This plan adjusts these todos (edited in the same PR):
 
 ### L6. Mobile
 
-- [ ] `lamina-ffi` spike with UniFFI, XCFramework and AARs, size report; ADR 0029
+- [ ] `lamina-ffi` spike right after B5c with UniFFI `=0.32.x`, XCFramework and AARs, size report; ADR 0029
 - [ ] Mobile SDK plan with rounds and todos
 
 ## 10. Risks
@@ -204,8 +204,13 @@ This plan adjusts these todos (edited in the same PR):
 
 ## 11. Open questions
 
-1. **UniFFI timing** (ADR 0002 §5): this plan brings forward the façade rules and a spike, not the SDK. Should the spike run before or after B6? (Recommendation: right after B5c.)
-2. **UniFFI pin:** 0.31 (works with `uniffi-bindgen-react-native`) or 0.32 (zero-copy byte arguments)? Decided in L6a.
-3. **350 KB budget:** restate per module in ADR 0016 (B6a)? (Recommendation: yes.)
-4. **Render default per surface** (proposed ADR 0004): PDFium (~2.15 MB gz in wasm) for desktop; hayro may suit edge and mobile if C1a's fidelity holds.
-5. **Facts to verify before the dependent todos start:** androidx.pdf release state (1.0.0-beta01 vs alpha19), Safari `Symbol.dispose`, whether Workers can compile wasm from bytes, Marker's and Docling's licences, Kotlin cancellation in UniFFI 0.32 ([report: items to verify](../research/libraries/shareable-libraries.md#items-to-verify-before-planning)).
+Decided (project owner, 2026-10-29), recorded in the [roadmap](roadmap.md#decisions-made):
+
+- **UniFFI timing:** the L6a spike starts right after B5c, in parallel with B6 (ADR 0002 §5's "UniFFI later" still holds for the SDK itself).
+- **UniFFI pin:** `=0.32.x` (zero-copy byte arguments, foreign traits); React Native via ubrn (0.31 only today) is revisited when scheduled. ADR 0029 (L6a) records it.
+- **Size budget:** ADR 0016 (B6a) sets a budget per wasm module (base, text, extract, render, sign); 350 KB gz applies to the base module.
+
+Still open:
+
+1. **Render default per surface** (proposed ADR 0004): PDFium (~2.15 MB gz in wasm) for desktop; hayro may suit edge and mobile if C1a's fidelity holds.
+2. **Facts to verify before the dependent todos start:** androidx.pdf release state (1.0.0-beta01 vs alpha19), Safari `Symbol.dispose`, whether Workers can compile wasm from bytes, Marker's and Docling's licences, Kotlin cancellation in UniFFI 0.32 ([report: items to verify](../research/libraries/shareable-libraries.md#items-to-verify-before-planning)).

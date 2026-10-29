@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [pdf-library §7 B4](../../plans/pdf-library.md#b4-fonts-and-text), requirement [§4 F3](../../plans/pdf-library.md#functional) |
 | Round / milestone | Round B (library) — M1 |
-| Depends on | [B4a](./B4a-font-loading-and-subsetting.md), [X4](./X4-full-lane-gate.md) |
+| Depends on | [B4a](./B4a-font-loading-and-subsetting.md), [X4](../ongoing/X4-full-lane-gate.md) |
 | Blocks | [B5b](./B5b-builder-text-and-document-features.md), [E4e](./E4e-freetext-callouts.md), [E6c](./E6c-add-text.md), [E13c](./E13c-ocr-text-layer.md), [E16c](./E16c-images-and-fonts.md) |
 | ADRs | Follows [0005 §6](../../decisions/0005-document-model.md#6-generation-strategy--option-b-recommended-by-the-krilla-fit-spike-accepted-when-its-pr-merges) (HarfRust), [0001](../../decisions/0001-core-language-and-licence.md) (pure Rust, determinism), [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) (Unicode-3.0 data licences) |
 | Branch | `feat/b4b-shaping` |
@@ -70,7 +70,7 @@ None.
 
 - Unit tests per module; UAX conformance subsets under `fixtures/unicode/` (Unicode licence noted in `fixtures/README.md`).
 - `crates/lamina-text/tests/{shaping_goldens,bidi,linebreak,extraction}.rs`; goldens in `fixtures/shaping/`.
-- External extraction checks in the full lane ([X4](./X4-full-lane-gate.md)).
+- External extraction checks in the full lane ([X4](../ongoing/X4-full-lane-gate.md)).
 
 ## Docs to update
 

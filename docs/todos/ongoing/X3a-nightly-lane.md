@@ -3,11 +3,11 @@
 | Field | Value |
 | --- | --- |
 | ID | `X3a` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [architecture §7 Cross-cutting](../../plans/architecture.md#cross-cutting) |
 | Round / milestone | Cross-cutting (after the first fuzz targets) |
 | Depends on | [B2c](../done/B2c-lamina-model-corpus-fuzz.md) |
-| Blocks | [B7b](./B7b-versioning-and-0-1-0-alpha.md), [B8b](./B8b-conformance-profiles-and-verapdf.md), [E1b](./E1b-xmp-packet-model.md), [E1c](./E1c-metadata-ops.md), [E3e](./E3e-xmp-editor.md), [E3f](./E3f-attachments-and-associated-files.md), [E4g](./E4g-appearance-parity-suite.md), [E6c](./E6c-add-text.md), [E12f](./E12f-leak-tests.md), [E15b](./E15b-structure-tree-editing.md), [X3b](./X3b-render-diff-nightly.md) |
+| Blocks | [B7b](../ready/B7b-versioning-and-0-1-0-alpha.md), [B8b](../ready/B8b-conformance-profiles-and-verapdf.md), [E1b](../ready/E1b-xmp-packet-model.md), [E1c](../ready/E1c-metadata-ops.md), [E3e](../ready/E3e-xmp-editor.md), [E3f](../ready/E3f-attachments-and-associated-files.md), [E4g](../ready/E4g-appearance-parity-suite.md), [E6c](../ready/E6c-add-text.md), [E12f](../ready/E12f-leak-tests.md), [E15b](../ready/E15b-structure-tree-editing.md), [X3b](../ready/X3b-render-diff-nightly.md) |
 | ADRs | Implements [0018](../../decisions/0018-test-strategy.md) §2 nightly lane, §3 corpora (`cargo xtask corpus fetch`, pinned manifest), §4 (nightly may retry once only to report flakiness), tier 11 (performance and scaling); [0003](../../decisions/0003-reader-tolerance-and-limits.md) §4 (differential triage, exceptions file) |
 | Branch | `ci/x3a-nightly-lane` |
 | PR title | `ci: nightly lane with external-corpus differential, 10-minute fuzzing, scaling tests and benchmarks` |
@@ -28,9 +28,9 @@ Run the expensive, environment-sensitive checks every night on `main`, where a f
 
 **In scope**
 
-- `.github/workflows/nightly.yml` (cron + `workflow_dispatch`) on `main`; on failure, open or update an issue labelled `nightly` (via `gh`). The workflow's latest run status on `main` is what [B7b](./B7b-versioning-and-0-1-0-alpha.md)'s release lane checks (B7b depends on this todo and owns the guard).
+- `.github/workflows/nightly.yml` (cron + `workflow_dispatch`) on `main`; on failure, open or update an issue labelled `nightly` (via `gh`). The workflow's latest run status on `main` is what [B7b](../ready/B7b-versioning-and-0-1-0-alpha.md)'s release lane checks (B7b depends on this todo and owns the guard).
 - `cargo xtask corpus fetch [--source …]` with `fixtures/corpus-manifest.toml` (URL, SHA-256, licence, size); downloads into gitignored `target/corpus/`; CI cache keyed on the manifest hash; optional R2 mirror URL as a fallback.
-- `cargo xtask differential --live --corpus external`: open/repair/fail outcome, page count and outline vs pdf.js (`pdfjs-dist` Node script), PDFium (`pypdfium2`), qpdf (`--json`) and pypdf, with `fixtures/differential/exceptions.toml` (rule from ADR 0003 per entry); all mutants of `fixtures/corpus` (not just the 500 PR-lane set); text differential added when [B9c](./B9c-text-extraction-bindings-and-differential.md) lands (`--text`); round-trip over the external corpus when [B3c](./B3c-save-planner-and-roundtrip.md) lands.
+- `cargo xtask differential --live --corpus external`: open/repair/fail outcome, page count and outline vs pdf.js (`pdfjs-dist` Node script), PDFium (`pypdfium2`), qpdf (`--json`) and pypdf, with `fixtures/differential/exceptions.toml` (rule from ADR 0003 per entry); all mutants of `fixtures/corpus` (not just the 500 PR-lane set); text differential added when [B9c](../ready/B9c-text-extraction-bindings-and-differential.md) lands (`--text`); round-trip over the external corpus when [B3c](../ready/B3c-save-planner-and-roundtrip.md) lands.
 - Fuzzing: every target in `fuzz/` for 10 min (`-max_total_time=600 -timeout=10 -rss_limit_mb=2048`), corpus persisted in the Actions cache, crashes uploaded and an issue opened with the minimised input.
 - Scaling: `cargo test --release -- --ignored` for scaling tests (incl. `reader_cache`), retry once only to report flakiness.
 - Benchmarks: `benches/` (criterion or divan) for open+walk, decode, save; history stored (e.g. `github-action-benchmark` to a `gh-pages`/data branch); > 10% regression opens an issue, never fails the build.
@@ -38,10 +38,10 @@ Run the expensive, environment-sensitive checks every night on `main`, where a f
 
 **Out of scope** (and which todo covers it)
 
-- hayro-vs-PDFium render diffs: [X3b](./X3b-render-diff-nightly.md) (needs web C2's `lamina-render`).
-- veraPDF: [B8b](./B8b-conformance-profiles-and-verapdf.md) adds its job to this workflow.
-- PR-lane suites: [X4](./X4-full-lane-gate.md).
-- The release-lane guard (refuse a release when the latest nightly failed) and running the nightly suites on a release commit: [B7b](./B7b-versioning-and-0-1-0-alpha.md), which owns the release lane.
+- hayro-vs-PDFium render diffs: [X3b](../ready/X3b-render-diff-nightly.md) (needs web C2's `lamina-render`).
+- veraPDF: [B8b](../ready/B8b-conformance-profiles-and-verapdf.md) adds its job to this workflow.
+- PR-lane suites: [X4](../ongoing/X4-full-lane-gate.md).
+- The release-lane guard (refuse a release when the latest nightly failed) and running the nightly suites on a release commit: [B7b](../ready/B7b-versioning-and-0-1-0-alpha.md), which owns the release lane.
 
 ## Tasks
 

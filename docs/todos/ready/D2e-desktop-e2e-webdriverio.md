@@ -32,7 +32,7 @@ Close Round D2's acceptance bar: the reader's end-to-end scenarios run against t
 **In scope**
 
 - `apps/desktop/e2e/` (TypeScript, ESM): `wdio.conf.ts` with the `tauri` service; capabilities per OS; page objects for the shell (toolbar, page indicator, zoom, password prompt, toasts); scenarios:
-  1. App starts and shows the empty state within the cold-start budget (≤ 1 s macOS/Windows, ≤ 1.5 s Linux, logged as a metric; asserted with headroom on CI runners, e.g. ≤ 5 s).
+  1. App starts and shows the empty state within the cold-start budget (< 300 ms to an interactive window on every OS, owner decision 2026-10-29; logged as a metric; asserted as the median of 5 cold starts < 300 ms on the self-hosted reference runner (macOS ARM64) whenever CI selects it, so regressions fail the PR; on hosted runners (the fallback) only a ≤ 5 s hang guard; Windows and Linux reference numbers are recorded in D7c).
   2. Open fixture (test-only command `e2e_open_path` behind the `e2e` feature, because native dialogs can't be automated) → first page painted (pixel probe: canvas not blank).
   3. Scroll to the last page of the 1,000-page fixture; page indicator correct.
   4. Zoom in/out with anchor preserved (page indicator and scroll offset stable).

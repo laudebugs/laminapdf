@@ -3,11 +3,11 @@
 | Field | Value |
 | --- | --- |
 | ID | `X4` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [architecture §7 Round B](../../plans/architecture.md#round-b--core-model-and-the-first-package) ("Golden-file and corpus test harness in CI (full lane)"), [§7 Cross-cutting](../../plans/architecture.md#cross-cutting) |
 | Round / milestone | Cross-cutting (Round B infrastructure) |
 | Depends on | [B2c](../done/B2c-lamina-model-corpus-fuzz.md) |
-| Blocks | [B3c](./B3c-save-planner-and-roundtrip.md), [B4a](./B4a-font-loading-and-subsetting.md), [B4b](./B4b-shaping-bidi-line-breaking.md), [B5c](./B5c-lamina-facade-and-examples.md), [B9a](./B9a-lamina-content-and-adr-0023.md) |
+| Blocks | [B3c](../ready/B3c-save-planner-and-roundtrip.md), [B4a](../ready/B4a-font-loading-and-subsetting.md), [B4b](../ready/B4b-shaping-bidi-line-breaking.md), [B5c](../ready/B5c-lamina-facade-and-examples.md), [B9a](../ready/B9a-lamina-content-and-adr-0023.md) |
 | ADRs | Implements [0018](../../decisions/0018-test-strategy.md) §2 (full lane: required check, never skipped by a workflow `paths` filter, changed-paths job + gate job), §4 (no retries in PR lanes) |
 | Branch | `ci/x4-full-lane` |
 | PR title | `ci: full PR lane on three OSes with mutant differential, fuzz smoke and a required gate job` |
@@ -36,7 +36,7 @@ Add the second PR lane ADR 0018 defines, without blocking docs-only PRs. The ful
 
 **Out of scope** (and which todo covers it)
 
-- Nightly lane: [X3a](./X3a-nightly-lane.md). Release lane: [B7b](./B7b-versioning-and-0-1-0-alpha.md).
+- Nightly lane: [X3a](../ongoing/X3a-nightly-lane.md). Release lane: [B7b](../ready/B7b-versioning-and-0-1-0-alpha.md).
 
 ## Tasks
 

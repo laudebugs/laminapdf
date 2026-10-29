@@ -7,7 +7,7 @@
 | Plan | [Desktop app §6 D7](../../plans/desktop-app.md#d7-crash-reporting-and-beta) |
 | Round / milestone | Round D (desktop) — **M3 Desktop reader beta** (milestone exit) |
 | Depends on | [D4c](./D4c-native-printing.md), [D6c](./D6c-macos-signing-and-notarisation.md), [D6d](./D6d-windows-signing.md), [D7a](./D7a-crash-reporting.md), [D7b](./D7b-settings-renderer-switch-and-download-page.md) |
-| Blocks | [U5b](./U5b-reader-benchmark.md), [E1a](./E1a-editing-foundation-feature-plan.md) |
+| Blocks | [U5a](./U5a-pricing-and-promises-page.md), [U5b](./U5b-reader-benchmark.md), [E1a](./E1a-editing-foundation-feature-plan.md) |
 | ADRs | Follows ADR 0014 (channels, rollout, promotion), ADR 0008, ADR 0011 (privacy page), [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) (SBOM/notices at first public release) |
 | Branch | `chore/d7c-desktop-beta` |
 | PR title | `chore(desktop): release desktop v0.1.0 beta` |
@@ -21,7 +21,7 @@ Put the desktop reader in users' hands: tag and publish `desktop v0.1.0` to the 
 ## Context
 
 - [Desktop plan §6 D7 accepted-when](../../plans/desktop-app.md#d7-crash-reporting-and-beta): "beta installs and auto-updates for at least one release cycle on all three OSes".
-- [Desktop plan §4](../../plans/desktop-app.md#4-requirements): functional requirements and non-functional targets the beta should meet (cold start, 1 GB first page, idle memory, installer size).
+- [Desktop plan §4](../../plans/desktop-app.md#4-requirements): functional requirements, the release gates the beta must meet (cold start < 300 ms, installer < 15 MB; a miss blocks it) and the other non-functional targets it should meet (1 GB first page, idle memory).
 - `docs/guidelines/desktop-release.md` (D6a/D6b): "Cutting a release", verification commands, SmartScreen notes, rollout/pause procedures.
 - ADR 0014: rollout percentages, kill switch, bridges; default channel decision (plan open question 4).
 - [ADR 0019](../../decisions/0019-supply-chain-and-licence-hygiene.md): SBOMs and third-party notices required before the first public desktop release.
@@ -33,7 +33,9 @@ Put the desktop reader in users' hands: tag and publish `desktop v0.1.0` to the 
 
 - **Pre-release checklist** (in the PR, every item ticked with evidence):
   - [ ] All D1–D7b todos are in `done/`.
-  - [ ] Non-functional targets measured on reference machines and recorded (cold start, 1 GB first page, idle memory, installer sizes) — misses listed as known issues with follow-up todos.
+  - [ ] Release gates met on the reference machines, with numbers recorded: cold start < 300 ms to an interactive window on macOS, Windows and Linux, and every installer < 15 MB (owner decision 2026-10-29); a miss blocks the beta.
+  - [ ] Pricing status stated: lamina will be priced (owner decision 2026-10-29) and the pricing page (U5a) comes after this beta, so the owner states what the beta is (for example a free preview) and the release notes and download page say lamina will be a paid product.
+  - [ ] Other non-functional targets measured on reference machines and recorded (1 GB first page, idle memory) — misses listed as known issues with follow-up todos.
   - [ ] Supported-OS smoke on clean VMs: macOS 13 + latest, Windows 11 (+ Windows 10 22H2 best-effort), Ubuntu 22.04/24.04, Fedora current — install, open via double-click, tabs, print one page, settings, uninstall.
   - [ ] Security review pass: capabilities (no forbidden permissions), CSP, engine sandbox selftest on each OS, no e2e features in release binaries, PDF JavaScript never executed.
   - [ ] Privacy page updated (update endpoint data, install ID and reset, crash reports opt-in and 30-day retention, local recent files).

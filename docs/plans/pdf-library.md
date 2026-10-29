@@ -63,7 +63,7 @@ Ship an importable, permissively licensed library that **generates correct PDFs 
 
 | Requirement | Target (recommendation, confirmed in ADR 0016) |
 | --- | --- |
-| `@lamina/pdf` WASM, gzipped | ≤ 350 KB including shaping and subsetting (spike core: 74 KB) |
+| `@lamina/pdf` WASM, gzipped | Per module (decided 2026-10-29): ≤ 350 KB for the base module; the text (shaping, subsetting), extract, render and sign modules get their own budgets in ADR 0016 (spike core: 74 KB; krilla-fit builder stack: 377 KB) |
 | JS glue + TS API, min+gz | ≤ 20 KB |
 | Rust `lamina` default features | No C dependencies; builds for `wasm32-unknown-unknown`, iOS and Android targets |
 | Hello-world generation | ≤ 5 ms after `init()` on a 2023 laptop; a 100-page text report ≤ 500 ms |
@@ -182,7 +182,7 @@ Architecture Round B is delivered as rounds B1–B9, each split into todos (one 
 
 ### B3. Ops and save
 
-**Todos:** [B3a](../todos/ready/B3a-overlay-and-ops.md) (overlay, `lamina-ops`, undo), [B3b](../todos/ready/B3b-lamina-save-writers.md) (`lamina-save` writers, `WriteSink`, rebase), [B3c](../todos/ready/B3c-save-planner-and-roundtrip.md) (`SavePlanner`, `SaveConstraint`, round-trip).
+**Todos:** [B3a](../todos/ongoing/B3a-overlay-and-ops.md) (overlay, `lamina-ops`, undo), [B3b](../todos/ready/B3b-lamina-save-writers.md) (`lamina-save` writers, `WriteSink`, rebase), [B3c](../todos/ready/B3c-save-planner-and-roundtrip.md) (`SavePlanner`, `SaveConstraint`, round-trip).
 
 **Deliverable:** `lamina-ops` (`Op`, `transact`, inverses, undo/redo) and `lamina-save` (`SavePlanner`, `SaveConstraint`, incremental and full writers over `WriteSink`). Proving ops: `SetInfo`, `RotatePage`.
 **Accepted when:** open → op → save → reopen round-trips in lamina, pdf.js, PDFium and qpdf; signed fixtures report `AppendOnly` and refuse a full rewrite; undo restores byte-identical output.
