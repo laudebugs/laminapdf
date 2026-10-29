@@ -27,7 +27,7 @@ env:
 jobs:
   fuzz:
     name: Fuzz ${{ matrix.target }}
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, macOS, ARM64]
     timeout-minutes: 30
     strategy:
       fail-fast: false
@@ -37,8 +37,13 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+      - uses: ./.github/actions/isolate-rust-home
       # The pinned stable toolchain (rust-toolchain.toml) builds xtask; fuzz/ needs nightly.
       - uses: actions-rust-lang/setup-rust-toolchain@ecabd13d1c56bd1345c230e542e9144811ad706f # v2.0.0
+        with:
+          # rust-cache's post step on macOS runs `sudo /usr/sbin/purge`, which hangs on the
+          # self-hosted runners.
+          cache: false
       - name: Install nightly Rust
         run: rustup toolchain install nightly --profile minimal
       # Same version as tools/xtask/src/doctor.rs; xtask fails if it drifts.

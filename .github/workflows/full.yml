@@ -6,16 +6,17 @@
 # a workflow-level `paths` filter here.
 #
 # Adding a suite (B3c round-trip, B5c render goldens and qpdf, B4b/B5b extraction, B6c
-# runtimes): give the job `needs: changes` (plus `select-runner` if it runs on the preferred
-# runner) and exactly this condition, then add it to `gate`'s `needs`:
+# runtimes): give the job `needs: changes`, `runs-on: [self-hosted, macOS, ARM64]` and exactly
+# this condition, then add it to `gate`'s `needs`:
 #
 #     if: ${{ !cancelled() && needs.changes.outputs.code == 'true' }}
 #
 # A suite missing from `gate.needs` doesn't block merges.
 #
-# Self-hosted runners (select-runner.yml) are macOS ARM64 machines shared by several runners:
-# jobs on them isolate the Rust install, install pnpm into ${{ runner.temp }}, and use
-# rust-cache only on GitHub-hosted runners (see ci.yml).
+# Every job runs on the self-hosted macOS ARM64 runners, which share one machine: jobs isolate
+# the Rust install (isolate-rust-home), install pnpm into ${{ runner.temp }}, and don't use
+# rust-cache (see ci.yml). There are no self-hosted Linux or Windows runners, so the full lane
+# no longer runs `cargo xtask check` on those OSes; the fast lane covers macOS.
 # Actions are pinned by full commit SHA with the release in a comment (ADR 0019).
 name: Full lane
 
@@ -46,7 +47,7 @@ jobs:
   # merge base with its base branch is on the docs allowlist; pushes to main are always code.
   changes:
     name: Changed paths
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, macOS, ARM64]
     timeout-minutes: 10
     outputs:
       code: ${{ steps.pr.outputs.code || steps.push.outputs.code }}
@@ -62,9 +63,11 @@ jobs:
           # Full history, so the merge base with the base branch is always present.
           fetch-depth: 0
       - if: github.event_name == 'pull_request'
+        uses: ./.github/actions/isolate-rust-home
+      - if: github.event_name == 'pull_request'
         uses: ./.github/actions/host-rust
         with:
-          cache: true
+          cache: false
       - name: Classify the changed paths
         if: github.event_name == 'pull_request'
         id: pr
@@ -72,56 +75,14 @@ jobs:
           BASE: origin/${{ github.base_ref }}
         run: cargo xtask changes --base "$BASE"
 
-  # Runs alongside `changes`; on a docs-only PR its answer is simply unused.
-  select-runner:
-    name: Choose CI runner
-    permissions:
-      contents: read
-    uses: ./.github/workflows/select-runner.yml
-    secrets:
-      RUNNER_STATUS_TOKEN: ${{ secrets.RUNNER_STATUS_TOKEN }}
-
-  # The fast lane's `cargo xtask check` on Linux, macOS and Windows, all GitHub-hosted, so the
-  # full lane covers the three OSes whichever runner ci.yml picked.
-  check:
-    name: Fast lane on ${{ matrix.os }}
-    needs: changes
-    if: ${{ !cancelled() && needs.changes.outputs.code == 'true' }}
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
-    runs-on: ${{ matrix.os }}
-    timeout-minutes: 45
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-      # No `toolchain` input: installs exactly what rust-toolchain.toml pins.
-      - uses: actions-rust-lang/setup-rust-toolchain@ecabd13d1c56bd1345c230e542e9144811ad706f # v2.0.0
-      # Same versions as tools/xtask/src/doctor.rs; xtask fails if they drift.
-      - uses: taiki-e/install-action@86f7a0ffb25f40114606501a311ebcfaf882ea32 # v2.88.0
-        with:
-          tool: cargo-nextest@0.9.150,cargo-deny@0.20.2
-      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
-        with:
-          dest: ${{ runner.temp }}/setup-pnpm
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-        with:
-          node-version-file: .nvmrc
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
-      - run: cargo xtask check
-
   # ADR 0018 tier 6: lamina vs pypdf's precomputed facts over the full set, 36 fixed-seed
   # mutants per corpus file (fixtures/differential/full.json). No Python: the facts are
   # committed. Runs under nextest's ci profile, so a hang is killed.
   differential:
     name: Differential (full mutant set)
-    needs: [changes, select-runner]
-    # !cancelled(): still run if the runner check failed; an empty output falls back to Ubuntu.
+    needs: changes
     if: ${{ !cancelled() && needs.changes.outputs.code == 'true' }}
-    runs-on: ${{ fromJSON(needs.select-runner.outputs.runner || '["ubuntu-latest"]') }}
+    runs-on: [self-hosted, macOS, ARM64]
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -132,7 +93,7 @@ jobs:
         with:
           # rust-cache's post step on macOS runs `sudo /usr/sbin/purge`, which hangs forever on
           # self-hosted runners without passwordless sudo.
-          cache: ${{ runner.environment == 'github-hosted' }}
+          cache: false
       # Same version as tools/xtask/src/doctor.rs; xtask fails if it drifts.
       - uses: taiki-e/install-action@86f7a0ffb25f40114606501a311ebcfaf882ea32 # v2.88.0
         with:
@@ -144,10 +105,9 @@ jobs:
   # it, minimised first (`cargo fuzz cmin`), so the cache stays one bounded entry per runner OS.
   fuzz:
     name: Fuzz smoke (2 min per target)
-    needs: [changes, select-runner]
-    # !cancelled(): still run if the runner check failed; an empty output falls back to Ubuntu.
+    needs: changes
     if: ${{ !cancelled() && needs.changes.outputs.code == 'true' }}
-    runs-on: ${{ fromJSON(needs.select-runner.outputs.runner || '["ubuntu-latest"]') }}
+    runs-on: [self-hosted, macOS, ARM64]
     timeout-minutes: 40
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -157,7 +117,7 @@ jobs:
       # The pinned stable toolchain (rust-toolchain.toml) builds xtask; fuzz/ needs nightly.
       - uses: actions-rust-lang/setup-rust-toolchain@ecabd13d1c56bd1345c230e542e9144811ad706f # v2.0.0
         with:
-          cache: ${{ runner.environment == 'github-hosted' }}
+          cache: false
       - name: Install nightly Rust
         run: rustup toolchain install nightly --profile minimal
       # Same version as tools/xtask/src/doctor.rs; xtask fails if it drifts.
@@ -195,8 +155,8 @@ jobs:
   gate:
     name: gate
     if: always()
-    needs: [changes, check, differential, fuzz]
-    runs-on: ubuntu-latest
+    needs: [changes, differential, fuzz]
+    runs-on: [self-hosted, macOS, ARM64]
     timeout-minutes: 5
     steps:
       - name: Check every suite passed or was not needed

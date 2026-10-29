@@ -7,7 +7,7 @@
 | Plan | [architecture §7 Round B](../../plans/architecture.md#round-b--core-model-and-the-first-package) ("Golden-file and corpus test harness in CI (full lane)"), [§7 Cross-cutting](../../plans/architecture.md#cross-cutting) |
 | Round / milestone | Cross-cutting (Round B infrastructure) |
 | Depends on | [B2c](./B2c-lamina-model-corpus-fuzz.md) |
-| Blocks | [B3c](../ready/B3c-save-planner-and-roundtrip.md), [B4a](../ready/B4a-font-loading-and-subsetting.md), [B4b](../ready/B4b-shaping-bidi-line-breaking.md), [B5c](../ready/B5c-lamina-facade-and-examples.md), [B9a](./B9a-lamina-content-and-adr-0023.md) |
+| Blocks | [B3c](../ready/B3c-save-planner-and-roundtrip.md), [B4a](../ready/B4a-font-loading-and-subsetting.md), [B4b](../ready/B4b-shaping-bidi-line-breaking.md), [B5c](../ready/B5c-lamina-facade-and-examples.md), [B9a](./B9a-lamina-content-and-adr-0023.md), [X5](../ready/X5-linux-windows-ci.md) |
 | ADRs | Implements [0018](../../decisions/0018-test-strategy.md) §2 (full lane: required check, never skipped by a workflow `paths` filter, changed-paths job + gate job), §4 (no retries in PR lanes) |
 | Branch | `ci/x4-full-lane-gate` |
 | PR title | `ci: full PR lane with an always-running gate job (X4)` |
@@ -21,7 +21,7 @@ Add the second PR lane ADR 0018 defines, without blocking docs-only PRs. The ful
 ## Context
 
 - [ADR 0018 §2](../../decisions/0018-test-strategy.md#2-ci-lanes): lane table, the "Expected — waiting" problem with path filters, the gate design, pushes to `main` run everything.
-- Existing workflows: [`.github/workflows/ci.yml`](../../../.github/workflows/ci.yml), [`select-runner.yml`](../../../.github/workflows/select-runner.yml) (self-hosted preference from PR #11).
+- Existing workflows: [`.github/workflows/ci.yml`](../../../.github/workflows/ci.yml), `select-runner.yml` (self-hosted preference from PR #11; removed when every job moved to the self-hosted runners).
 - Mutant generation with a fixed seed: `tests/common` `Rng` and B2c's `cargo xtask differential`.
 
 ## Scope
