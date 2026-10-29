@@ -1,5 +1,6 @@
 {
   "pypdf_version": "6.21.3",
+  "pdfjs_version": "6.4.299",
   "qpdf_version": "12.4.2",
   "files": {
     "text-cff.pdf": {
@@ -8,7 +9,11 @@
         "CFF outlines: Ådne’s naïve café",
         "你好世界，这是中文字体子集测试。"
       ],
-      "qpdf_check": true
+      "qpdf_check": true,
+      "pdfjs": [
+        "CFF outlines: Ådne’s naïve café",
+        "你好世界，这是中文字体子集测试。"
+      ]
     },
     "text-latin.pdf": {
       "sha256": "f032eac0a6186d13965beb0be83da29781b3fc8735b47151baa4892b79ffbc5a",
@@ -18,7 +23,37 @@
         "The office staff fill the affine waffle flask first.",
         "Bold maths: 𝐀𝐁𝐂 = ABC"
       ],
-      "qpdf_check": true
+      "qpdf_check": true,
+      "pdfjs": [
+        "Hello, world!",
+        "Café crème brûlée, naïve façade: “curly” and ‘single’ quotes",
+        "The office staff fill the affine waffle flask first.",
+        "Bold maths: 𝐀𝐁𝐂 = ABC"
+      ]
+    },
+    "text-shaped.pdf": {
+      "sha256": "3dca26d40d69e1aa29ed1cd085532ad0407076eb821dbe90d240aa33b7a95e2b",
+      "pypdf": [
+        "The office staff fill the affine waffle flask first. AVATAR",
+        "Wave: To Yo!",
+        "CFF outlines: office, AVATAR.",
+        "مرحبا بالعالم، السلام عليكم",
+        "שלום עולם, שָׁלוֹם עוֹלָם ",
+        "नमस्ते दुिनया। िहन्दी पाठ का परीक्षण कमर्",
+        "你好世界，这是中文字体子集测试。汉字排版与文本提取",
+        "The words שלום עולם and مرحبا بالعالم mean hello."
+      ],
+      "qpdf_check": true,
+      "pdfjs": [
+        "The office staff fill the affine waffle flask first. AVATAR",
+        "Wave: To Yo!",
+        "CFF outlines: office, AVATAR.",
+        "كمي\u0003العالم، السلام علب\u0011 اب\u0011مرح",
+        "שלום עולם ,לוֹם עוֹלָםָׁש",
+        "नमस्ते दु िनया। िहन्दी पाठ का परीक्षण कमर्",
+        "你好世界，这是中文字体子集测试。汉字排版与文本提取",
+        "The words שלום עולם and العالمب\u0011 ا\u0011 بمرح mean hello."
+      ]
     },
     "text-std14.pdf": {
       "sha256": "2c690120e09bf0d2c0e139efab093eed5e786d4ea34fbf5d86a307070f92006d",
@@ -40,7 +75,25 @@
         "Łódź, Kraków − Şişli",
         "Țară, Ğğ İı őű"
       ],
-      "qpdf_check": true
+      "qpdf_check": true,
+      "pdfjs": [
+        "Courier: Hello, world! 0123456789",
+        "Courier-Bold: {braces} [brackets] <angles>",
+        "Courier-Oblique: café, naïve, façade",
+        "Courier-BoldOblique: 50% off ~ $9.99",
+        "Helvetica: “Curly” ‘quotes’ — and dashes – too",
+        "Helvetica-Bold: Euro € pound £ yen ¥",
+        "Helvetica-Oblique: Ærøskøbing, Þórshöfn, Œuvre",
+        "Helvetica-BoldOblique: ½ ¼ ¾ © ® ™ § ¶",
+        "Times-Roman: The quick brown fox jumps over the lazy dog.",
+        "Times-Bold: Grüße aus Köln • München",
+        "Times-Italic: ¿Qué tal? ¡Muy bien!",
+        "Times-BoldItalic: Ça va… très «bien» ‰",
+        "αβγ π ∑ ≤ ∞ €",
+        "✔ ✈ ❤ ☎",
+        "Łódź, Kraków − Şişli",
+        "Țară, Ğğ İı őű"
+      ]
     },
     "text-variable-collection.pdf": {
       "sha256": "309f91cd50271aa97ce2f579d3d8f02c9be9839e97d084ab67e68853dc888190",
@@ -49,7 +102,12 @@
         "Variable font, wght 700 instance",
         "Collection member 1: Noto Sans Bold"
       ],
-      "qpdf_check": true
+      "qpdf_check": true,
+      "pdfjs": [
+        "Variable font, default instance",
+        "Variable font, wght 700 instance",
+        "Collection member 1: Noto Sans Bold"
+      ]
     }
   }
 }

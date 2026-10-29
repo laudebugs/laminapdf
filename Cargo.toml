@@ -56,6 +56,25 @@ subsetter = { version = "=0.2.6" }
 # Content-stream operators in lamina-text's tests and goldens (dev-dependency). MIT OR Apache-2.0
 pdf-writer = { version = "=0.15.0", default-features = false }
 
+# Shaping, bidi and line breaking (lamina-text, B4b; ADR 0005 §6). HarfRust: HarfBuzz's shaping
+# algorithm in Rust. Pinned to 0.8.0, the last release on read-fonts 0.39 (skrifa 0.42's, see
+# above), so the graph keeps one read-fonts; move it with skrifa/subsetter. Its own Unicode
+# tables (no `icu` feature). MIT (bitflags, bytemuck, smallvec: MIT OR Apache-2.0 / Zlib)
+harfrust = { version = "=0.8.0", default-features = false, features = ["std"] }
+# UAX #14 line breaking and UAX #29 grapheme clusters with compiled (baked) data; no `auto`/`lstm`
+# (dictionary and LSTM models for Thai, Lao, Khmer, Burmese: out of scope, and most of the size).
+# `unstable` for `LineSegmenter::new_17_for_non_complex_scripts`, the Unicode 17 rules (the stable
+# constructor's data predates LB20a, LB28a, LB30b's unassigned pictographs and drops CLDR's LB25
+# tailoring only there): it passes all of LineBreakTest-17.0.0 but the dictionary scripts.
+# `unstable` APIs are semver-exempt, hence the exact pin. Unicode-3.0 (ICU4X; allowed in deny.toml)
+icu_segmenter = { version = "=2.4.0", default-features = false, features = ["compiled_data", "unstable"] }
+# Unicode properties with compiled data: Script (itemisation, UAX #24) and Bidi_Class, fed to
+# unicode-bidi through its `unicode_bidi` adapter so bidi uses ICU4X's data. Unicode-3.0
+icu_properties = { version = "=2.4.0", default-features = false, features = ["compiled_data", "unicode_bidi"] }
+# The UAX #9 algorithm (ICU4X has the data, not the algorithm). Without `hardcoded-data`: the
+# Bidi_Class data comes from icu_properties above. MIT OR Apache-2.0
+unicode-bidi = { version = "0.3.18", default-features = false, features = ["std"] }
+
 # Library errors. MIT OR Apache-2.0
 thiserror = { version = "2.0.21", default-features = false }
 # Binaries, xtask and tests only (never in library APIs). MIT OR Apache-2.0

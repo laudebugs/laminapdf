@@ -4,7 +4,9 @@
 //!
 //! [ADR 0005]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0005-document-model.md
 
-mod subset;
+pub(crate) mod subset;
+
+pub(crate) use subset::milli;
 mod tounicode;
 mod type0;
 
@@ -253,6 +255,11 @@ impl FontRegistry {
         self.slot(key).ok().map(|s| &s.font)
     }
 
+    /// The font registered as `key`, or [`Error::UnknownFont`].
+    pub(crate) fn try_font(&self, key: FontKey) -> Result<&Font> {
+        self.slot(key).map(|s| &s.font)
+    }
+
     /// The glyph or code usage recorded for `key` so far.
     ///
     /// # Errors
@@ -310,6 +317,22 @@ impl FontRegistry {
         };
         warnings.extend(warning);
         Ok(code)
+    }
+
+    /// The CID of glyph `gid` of `key`, recorded as used without claiming any text
+    /// ([`FontUse`]'s `glyph_cid`, B4b).
+    ///
+    /// # Errors
+    /// [`Error::UnknownFont`]; [`Error::GlyphOutOfRange`]; [`Error::FontNotShapable`] for a
+    /// standard 14 font, which has no CIDs (shaped runs never come from one).
+    pub(crate) fn glyph_cid(&mut self, key: FontKey, gid: GlyphId) -> Result<u16> {
+        let slot = self.slot_mut(key)?;
+        match &mut slot.usage {
+            Usage::Embedded(usage) => usage.glyph_cid(gid),
+            Usage::Simple(_) => Err(Error::FontNotShapable {
+                font: slot.font.info().postscript_name.clone(),
+            }),
+        }
     }
 
     /// Encodes `text` one glyph per character through the font's `cmap` (no shaping: ligatures

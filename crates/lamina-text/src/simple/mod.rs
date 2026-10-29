@@ -36,7 +36,7 @@ pub struct SimpleUse {
     font: Standard14,
     /// The encoding codes are looked up in first.
     base: Encoding,
-    /// Code → the text it stands for, for every code drawn (empty when drawn with no text).
+    /// Code → the text it stands for, for every code drawn (the first text, empty included).
     text: BTreeMap<u8, String>,
     /// `/Differences`: code → glyph, in order of code.
     differences: BTreeMap<u8, GlyphId>,
@@ -62,7 +62,7 @@ impl SimpleUse {
     }
 
     /// Code → the text it stands for, for every code drawn, in code order: what the ToUnicode
-    /// CMap maps (a code drawn with no text maps to its glyph's Unicode value instead).
+    /// CMap maps. An empty text maps the code to nothing (`<code> <>`), as for Type 0 fonts.
     #[must_use]
     pub fn text(&self) -> &BTreeMap<u8, String> {
         &self.text
@@ -121,15 +121,15 @@ impl SimpleUse {
         Ok(glyphs.iter().filter_map(|&g| self.code_of(g)).collect())
     }
 
-    /// Records `text` for `code`; a different text than the one recorded is kept as a
-    /// warning, as for Type 0 fonts (the builder covers it with `/ActualText`).
+    /// Records `text` for `code`. As for Type 0 fonts (B4b), the first text is kept, the empty
+    /// text included, and a different later text (empty or not) is returned as a warning (the
+    /// builder covers that occurrence with `/ActualText`).
     fn record(&mut self, code: u8, gid: GlyphId, text: &str) -> Option<Warning> {
-        let kept = self.text.entry(code).or_default();
-        if kept.is_empty() {
-            text.clone_into(kept);
+        let Some(kept) = self.text.get(&code) else {
+            self.text.insert(code, text.to_owned());
             return None;
-        }
-        (!text.is_empty() && kept != text).then(|| Warning::ToUnicodeConflict {
+        };
+        (kept != text).then(|| Warning::ToUnicodeConflict {
             font: self.font.base_font().to_owned(),
             gid: gid.get(),
             kept: kept.clone(),
@@ -174,18 +174,6 @@ impl SimpleUse {
             .or_else(|| self.font.glyph_id(self.base.glyph_name(code)?))
     }
 
-    /// The text the ToUnicode CMap maps `code` to: the recorded text, else the glyph's
-    /// Unicode value.
-    fn unicode_of(&self, code: u8) -> Option<String> {
-        match self.text.get(&code) {
-            Some(text) if !text.is_empty() => Some(text.clone()),
-            _ => self
-                .font
-                .builtin_encoding()
-                .glyph_to_unicode(self.font.glyph_name(self.glyph_at(code)?)?),
-        }
-    }
-
     /// Writes the font descriptor and the ToUnicode CMap as new objects and the font
     /// dictionary into the reserved `object`.
     pub(crate) fn write(&self, cos: &mut CosMut<'_>, font: &Font, object: ObjRef) -> Result<()> {
@@ -213,12 +201,7 @@ impl SimpleUse {
         descriptor.insert("StemH", i64::from(metrics.std_hw));
         let descriptor = cos.create(Object::Dict(descriptor))?;
 
-        let map: BTreeMap<u8, String> = self
-            .text
-            .keys()
-            .filter_map(|&code| Some((code, self.unicode_of(code)?)))
-            .collect();
-        let cmap = tounicode::one_byte_cmap(&map);
+        let cmap = tounicode::one_byte_cmap(&self.text);
         let to_unicode = cos.create(Object::Stream(Stream::flate(Dict::new(), &cmap)))?;
 
         // A font no text was drawn with still needs a valid range: the space.
@@ -366,10 +349,16 @@ mod tests {
     }
 
     #[test]
-    fn a_glyph_drawn_with_no_text_maps_to_its_unicode() {
+    fn empty_then_real_text_conflicts() {
+        // B4b's rule for Type 0 fonts: the empty text is a text.
         let mut usage = SimpleUse::new(Standard14::Symbol);
-        let (code, _) = usage.use_glyph(glyph(Standard14::Symbol, "Omega"), "").unwrap();
-        assert_eq!(usage.unicode_of(code).as_deref(), Some("Ω"));
+        let omega = glyph(Standard14::Symbol, "Omega");
+        let (code, _) = usage.use_glyph(omega, "").unwrap();
+        let (_, warning) = usage.use_glyph(omega, "Ω").unwrap();
+        assert_eq!(
+            (warning.map(|w| w.code()), usage.text().get(&code).map(String::as_str)),
+            (Some("tounicode-conflict"), Some(""))
+        );
     }
 
     #[test]

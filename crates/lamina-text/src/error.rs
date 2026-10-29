@@ -97,6 +97,48 @@ pub enum Error {
         /// not part of this API).
         reason: &'static str,
     },
+    /// An OpenType feature setting that does not parse (B4b): see
+    /// [`Feature`](crate::Feature)'s syntax (`liga`, `-liga`, `liga=0`, `aalt=2`).
+    #[error("not an OpenType feature setting")]
+    InvalidFeature {
+        /// The setting as given (**untrusted**: caller text).
+        feature: String,
+    },
+    /// A byte range of a text that is out of bounds or does not fall on character boundaries
+    /// (B4b: [`Shaper::shape_range`](crate::Shaper::shape_range)).
+    #[error("text range {start}..{end} is not a character range of the {len}-byte text")]
+    InvalidTextRange {
+        /// The range's start (bytes).
+        start: usize,
+        /// The range's end (bytes).
+        end: usize,
+        /// The text's length (bytes).
+        len: usize,
+    },
+    /// A layout option lamina does not implement yet (B4b: `LayoutOptions::justify`).
+    #[error("layout option {option} is not supported yet")]
+    UnsupportedLayoutOption {
+        /// The option's name (fixed text).
+        option: &'static str,
+    },
+    /// A shaped run given to [`pdf_run`](crate::pdf_run) was shaped with another font than the
+    /// one registered under the key.
+    #[error("the run was shaped with a different font than the registered one")]
+    FontMismatch {
+        /// The registered font's PostScript name.
+        font: String,
+        /// The PostScript name of the font the run was shaped with.
+        shaped_with: String,
+    },
+    /// A standard 14 font was given to the shaper, itemizer, line breaker or
+    /// [`pdf_run`](crate::pdf_run): it has no font program to shape with and no CIDs. Draw
+    /// it with [`FontRegistry::encode`](crate::FontRegistry::encode) (one byte per
+    /// character), or shape with an embedded font.
+    #[error("a standard 14 font has no font program to shape with")]
+    FontNotShapable {
+        /// The font's PostScript name (one of the fourteen).
+        font: String,
+    },
     /// A standard 14 font ran out of codes: each Latin glyph outside `WinAnsiEncoding` that
     /// the document uses takes one of the codes `WinAnsiEncoding` leaves undefined, through
     /// `/Differences`, and there are only 37 of them (`limit`). The text needed more new codes
@@ -130,7 +172,12 @@ impl Error {
         "subset-failed",
         "invalid-axis-value",
         "wrong-document",
+        "invalid-feature",
+        "invalid-text-range",
+        "unsupported-layout-option",
+        "font-mismatch",
         "encoding-full",
+        "font-not-shapable",
     ];
 
     /// A stable kebab-case code for this error.
@@ -147,7 +194,12 @@ impl Error {
             Self::GlyphOutOfRange { .. } => "glyph-out-of-range",
             Self::UnknownFont { .. } => "unknown-font",
             Self::Subset { .. } => "subset-failed",
+            Self::InvalidFeature { .. } => "invalid-feature",
+            Self::InvalidTextRange { .. } => "invalid-text-range",
+            Self::UnsupportedLayoutOption { .. } => "unsupported-layout-option",
+            Self::FontMismatch { .. } => "font-mismatch",
             Self::EncodingFull { .. } => "encoding-full",
+            Self::FontNotShapable { .. } => "font-not-shapable",
             Self::Cos(e) => e.code(),
         }
     }
@@ -168,8 +220,13 @@ impl Error {
             | Self::WrongDocument { .. }
             | Self::FontNotEmbeddable { .. }
             | Self::GlyphOutOfRange { .. }
-            | Self::UnknownFont { .. } => ErrorKind::Usage,
-            Self::Subset { .. } => ErrorKind::Unsupported,
+            | Self::UnknownFont { .. }
+            | Self::InvalidFeature { .. }
+            | Self::InvalidTextRange { .. }
+            | Self::FontMismatch { .. } => ErrorKind::Usage,
+            Self::Subset { .. } | Self::UnsupportedLayoutOption { .. } | Self::FontNotShapable { .. } => {
+                ErrorKind::Unsupported
+            }
             Self::EncodingFull { .. } => ErrorKind::Limit,
         }
     }
@@ -190,7 +247,12 @@ impl Error {
             | Self::GlyphOutOfRange { .. }
             | Self::UnknownFont { .. }
             | Self::Subset { .. }
-            | Self::EncodingFull { .. } => Location::NONE,
+            | Self::InvalidFeature { .. }
+            | Self::InvalidTextRange { .. }
+            | Self::UnsupportedLayoutOption { .. }
+            | Self::FontMismatch { .. }
+            | Self::EncodingFull { .. }
+            | Self::FontNotShapable { .. } => Location::NONE,
         }
     }
 }
@@ -307,11 +369,23 @@ mod tests {
             Error::Subset { font, reason: "r" },
             Error::InvalidAxisValue { tag },
             Error::WrongDocument { object: 1 },
+            Error::InvalidFeature { feature: String::new() },
+            Error::InvalidTextRange {
+                start: 0,
+                end: 1,
+                len: 0,
+            },
+            Error::UnsupportedLayoutOption { option: "justify" },
+            Error::FontMismatch {
+                font: String::new(),
+                shaped_with: String::new(),
+            },
             Error::EncodingFull {
                 font: String::new(),
                 limit: 37,
                 free: 0,
             },
+            Error::FontNotShapable { font: String::new() },
         ]
     }
 

@@ -667,3 +667,29 @@ mod written {
         assert!(fonts(&bytes)["Helvetica"].to_unicode.contains("<41> <0391>"));
     }
 }
+
+mod shaping {
+    use lamina_text::{HarfRust, LayoutOptions, ShapeOptions, Shaper as _, break_lines};
+
+    use super::*;
+
+    #[test]
+    fn shaping_a_standard_font_is_font_not_shapable() {
+        let err = HarfRust
+            .shape(&Font::standard(Standard14::Helvetica), "Hi", &ShapeOptions::new())
+            .unwrap_err();
+        assert_eq!(
+            err,
+            Error::FontNotShapable {
+                font: "Helvetica".to_owned()
+            }
+        );
+    }
+
+    #[test]
+    fn laying_out_with_a_standard_font_is_font_not_shapable() {
+        let fonts = [Font::standard(Standard14::TimesRoman)];
+        let err = break_lines(&HarfRust, &fonts, "Hi there", &LayoutOptions::new(100.0, 12.0)).unwrap_err();
+        assert_eq!(err.code(), "font-not-shapable");
+    }
+}

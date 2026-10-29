@@ -151,6 +151,8 @@ struct Source {
     index: u32,
     /// SHA-256 of `bytes`, computed when a subset tag first needs it.
     digest: OnceLock<[u8; 32]>,
+    /// HarfRust's tables for the face (B4b), built when it is first shaped.
+    shaping: OnceLock<harfrust::ShaperData>,
 }
 
 /// A font loaded from caller-supplied bytes (for a variable font, one instance of it), or one
@@ -213,6 +215,7 @@ impl Font {
             bytes,
             index,
             digest: OnceLock::new(),
+            shaping: OnceLock::new(),
         });
         let font = FontRef::from_index(&source.bytes, index).map_err(|_| Error::InvalidFont { index })?;
         let info = font_info(&font, &[], LocationRef::default()).ok_or(Error::InvalidFont { index })?;
@@ -276,6 +279,7 @@ impl Font {
                 bytes: Arc::from([]),
                 index: 0,
                 digest: OnceLock::new(),
+                shaping: OnceLock::new(),
             }),
             coords: Arc::from([]),
             location: Arc::from([]),
@@ -491,7 +495,27 @@ impl Font {
         LocationRef::new(&self.location)
     }
 
+    /// HarfRust's shaping data for the face, built once and shared by every instance and clone.
+    pub(crate) fn shaper_data(&self) -> Result<&harfrust::ShaperData> {
+        if let Some(data) = self.source.shaping.get() {
+            return Ok(data);
+        }
+        let font = self.font_ref()?;
+        Ok(self.source.shaping.get_or_init(|| harfrust::ShaperData::new(&font)))
+    }
+
+    /// The font program for shaping and subsetting.
+    ///
+    /// # Errors
+    /// [`Error::FontNotShapable`] for a standard 14 font, which has no program (so shaping,
+    /// itemizing, line breaking and [`crate::pdf_run`] fail clearly for one);
+    /// [`Error::InvalidFont`].
     pub(crate) fn font_ref(&self) -> Result<FontRef<'_>> {
+        if self.standard.is_some() {
+            return Err(Error::FontNotShapable {
+                font: self.info.postscript_name.clone(),
+            });
+        }
         let index = self.source.index;
         FontRef::from_index(&self.source.bytes, index).map_err(|_| Error::InvalidFont { index })
     }

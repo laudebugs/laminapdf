@@ -1,6 +1,7 @@
 //! The ToUnicode CMap of a simple font (ISO 32000-2 §9.10.3; Adobe TN #5411): one-byte codes
 //! (`<00> <FF>` codespace), `bfchar` entries only (at most 256 codes), at most 100 per block,
-//! destinations in UTF-16BE.
+//! destinations in UTF-16BE; an empty text is `<code> <>` (the code stands for nothing), as
+//! in the Type 0 CMap.
 
 use std::collections::BTreeMap;
 use std::fmt::Write as _;
@@ -26,13 +27,9 @@ CMapName currentdict /CMap defineresource pop\n\
 end\n\
 end\n";
 
-/// The CMap for `map` (code → text). Empty texts are skipped.
+/// The CMap for `map` (code → text).
 pub(super) fn one_byte_cmap(map: &BTreeMap<u8, String>) -> Vec<u8> {
-    let entries: Vec<(u8, &String)> = map
-        .iter()
-        .filter(|(_, t)| !t.is_empty())
-        .map(|(&c, t)| (c, t))
-        .collect();
+    let entries: Vec<(u8, &String)> = map.iter().map(|(&c, t)| (c, t)).collect();
     let mut out = String::from(HEADER);
     for block in entries.chunks(MAX_BLOCK) {
         let _ = writeln!(out, "{} beginbfchar", block.len());
@@ -64,6 +61,12 @@ mod tests {
             cmap.contains("2 beginbfchar\n<41> <0041>\n<81> <D83DDE00>\nendbfchar\n"),
             "{cmap}"
         );
+    }
+
+    #[test]
+    fn empty_text_maps_to_nothing() {
+        let cmap = String::from_utf8(one_byte_cmap(&BTreeMap::from([(0x41, String::new())]))).unwrap();
+        assert!(cmap.contains("<41> <>\n"), "{cmap}");
     }
 
     #[test]

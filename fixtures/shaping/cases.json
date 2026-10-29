@@ -1,0 +1,19 @@
+{
+  "comment": "Shaping golden inputs (todo B4b): tools/shaping-goldens/goldens.py runs hb-shape on each case and writes fixtures/shaping/<script>.json; crates/lamina-text/tests/shaping_goldens.rs shapes the same cases with HarfRust and compares. Fonts are fixtures/fonts/ files; direction is ltr or rtl; features use HarfBuzz syntax.",
+  "cases": [
+    { "script": "latin", "name": "kerning", "font": "NotoSans-Regular.ttf", "iso15924": "Latn", "direction": "ltr", "language": "en", "features": [], "text": "AVATAR Wave, To Yo! LT" },
+    { "script": "latin", "name": "ligatures", "font": "NotoSans-Regular.ttf", "iso15924": "Latn", "direction": "ltr", "language": "en", "features": [], "text": "The office staff fill the affine waffle flask first." },
+    { "script": "latin", "name": "ligatures-off", "font": "NotoSans-Regular.ttf", "iso15924": "Latn", "direction": "ltr", "language": "en", "features": ["liga=0"], "text": "The office staff fill the affine waffle flask first." },
+    { "script": "latin", "name": "combining-marks", "font": "NotoSans-Regular.ttf", "iso15924": "Latn", "direction": "ltr", "language": "en", "features": [], "text": "Café ñ ä" },
+    { "script": "latin", "name": "cff-outlines", "font": "NotoSans-Regular.otf", "iso15924": "Latn", "direction": "ltr", "language": "en", "features": [], "text": "AVATAR office fit" },
+    { "script": "arabic", "name": "joining", "font": "NotoSansArabic-Regular.ttf", "iso15924": "Arab", "direction": "rtl", "language": "ar", "features": [], "text": "مرحبا بالعالم" },
+    { "script": "arabic", "name": "lam-alef", "font": "NotoSansArabic-Regular.ttf", "iso15924": "Arab", "direction": "rtl", "language": "ar", "features": [], "text": "السلام عليكم لا" },
+    { "script": "arabic", "name": "marks", "font": "NotoSansArabic-Regular.ttf", "iso15924": "Arab", "direction": "rtl", "language": "ar", "features": [], "text": "كِتَابٌ" },
+    { "script": "hebrew", "name": "plain", "font": "NotoSansHebrew-Regular.ttf", "iso15924": "Hebr", "direction": "rtl", "language": "he", "features": [], "text": "שלום עולם" },
+    { "script": "hebrew", "name": "points", "font": "NotoSansHebrew-Regular.ttf", "iso15924": "Hebr", "direction": "rtl", "language": "he", "features": [], "text": "שָׁלוֹם עוֹלָם" },
+    { "script": "devanagari", "name": "conjuncts", "font": "NotoSansDevanagari-Regular.ttf", "iso15924": "Deva", "direction": "ltr", "language": "hi", "features": [], "text": "नमस्ते दुनिया। हिन्दी पाठ का परीक्षण" },
+    { "script": "devanagari", "name": "reph", "font": "NotoSansDevanagari-Regular.ttf", "iso15924": "Deva", "direction": "ltr", "language": "hi", "features": [], "text": "कर्म पर्दा" },
+    { "script": "cjk", "name": "horizontal", "font": "NotoSansSC-Regular.otf", "iso15924": "Hani", "direction": "ltr", "language": "zh", "features": [], "text": "你好世界，这是中文字体子集测试。" },
+    { "script": "cjk", "name": "mixed-punctuation", "font": "NotoSansSC-Regular.otf", "iso15924": "Hani", "direction": "ltr", "language": "zh", "features": [], "text": "汉字排版与文本提取（测试）" }
+  ]
+}

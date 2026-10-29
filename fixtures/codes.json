@@ -539,10 +539,45 @@
       "since": "0.1.0"
     },
     {
+      "code": "invalid-feature",
+      "kind": "usage",
+      "summary": "an OpenType feature setting did not parse",
+      "hint": "write it as liga=0, -liga, smcp or aalt=2 (HarfBuzz syntax without ranges)",
+      "since": "0.1.0"
+    },
+    {
+      "code": "invalid-text-range",
+      "kind": "usage",
+      "summary": "a byte range was out of bounds or not on character boundaries of the text",
+      "hint": "take ranges from lamina's results (line_breaks, itemize, break_lines) and pass the same text",
+      "since": "0.1.0"
+    },
+    {
+      "code": "unsupported-layout-option",
+      "kind": "unsupported",
+      "summary": "a layout option that is not implemented yet was asked for",
+      "hint": "leave the option at its default; justification comes with a later release",
+      "since": "0.1.0"
+    },
+    {
+      "code": "font-mismatch",
+      "kind": "usage",
+      "summary": "a shaped run was given with a font key for a different font than it was shaped with",
+      "hint": "pass the key of the font the run was shaped with (the font index of each line run maps to your keys)",
+      "since": "0.1.0"
+    },
+    {
       "code": "encoding-full",
       "kind": "limit",
       "summary": "a standard 14 font has no free one-byte code left for another glyph",
       "hint": "embed a font with Font::from_bytes, or split the text across two registrations of the standard font",
+      "since": "0.1.0"
+    },
+    {
+      "code": "font-not-shapable",
+      "kind": "unsupported",
+      "summary": "a standard 14 font was given to shaping or layout, which need a font program",
+      "hint": "draw standard 14 fonts with FontRegistry::encode, or shape with an embedded font",
       "since": "0.1.0"
     }
   ],
