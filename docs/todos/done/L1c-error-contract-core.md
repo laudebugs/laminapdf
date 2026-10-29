@@ -12,7 +12,7 @@
 | Branch | `feat/l1c-error-contract-core` |
 | PR title | `feat(codes): kinds, hints and tagged locations for every error and warning code` |
 | Size | M (≈ 300–400 changed lines; `codes.json` and docs pages don't count) |
-| PR | — |
+| PR | [#49](https://github.com/laudebugs/lamina/pull/49) |
 
 ## Goal
 
