@@ -25,7 +25,7 @@ One workflow turns a `desktop-v*` tag (and, nightly, `main`) into published desk
 - [Report: repository section](../../research/architecture/app-and-package-architecture.md#the-repository-is-cargo-pnpm-and-a-task-runner-released-through-oidc-and-gated-by-a-pdf-corpus): Release lane runs tauri-action; desktop binaries get GitHub attestations alongside Tauri's updater signature.
 - [ADR 0019](../../decisions/0019-supply-chain-and-licence-hygiene.md): actions pinned by SHA; CycloneDX SBOMs per artefact; generated third-party notices shipped inside the app.
 - Tauri: [GitHub pipeline guide](https://v2.tauri.app/distribute/pipelines/github/) (`tauri-apps/tauri-action`, `args: --target …`, `projectPath`, `tauriScript`), [Linux distribution](https://v2.tauri.app/distribute/) (AppImage, deb, rpm; `bundle.linux.deb.depends`, `bundle.linux.rpm.depends`, `bundle.linux.appimage.bundleMediaFramework`), [Linux signing](https://v2.tauri.app/distribute/sign/linux/) (AppImage GPG signing via `SIGN=1`, `SIGN_KEY`, `APPIMAGETOOL_SIGN_PASSPHRASE`; check the rpm signing env vars in the current docs).
-- [Desktop plan §4 non-functional](../../plans/desktop-app.md#non-functional-targets-are-recommendations): installer ≤ 40 MB per platform; supported OS list (Ubuntu 22.04+ → build Linux on 22.04 for glibc).
+- [Desktop plan §4 non-functional](../../plans/desktop-app.md#non-functional-targets-are-recommendations): installer < 15 MB per platform (owner decision 2026-10-29; was ≤ 40 MB); supported OS list (Ubuntu 22.04+ → build Linux on 22.04 for glibc).
 
 ## Scope
 
@@ -45,7 +45,7 @@ One workflow turns a `desktop-v*` tag (and, nightly, `main`) into published desk
   - Job `sbom-and-notices`: CycloneDX SBOMs — Rust via `cargo-cyclonedx` (or `cargo-about`), npm via `pnpm` + syft over the installers; third-party notices generated with `cargo-about` (Rust, MIT/Apache) + `license-checker`-style output for npm, bundled into the app as a resource (`bundle.resources` in `tauri.bundle.conf.json`, as one array together with PDFium — JSON merge patch replaces arrays) and shown under Help ▸ View Licences (D4b). Notices generation runs **before** the build (it's packaged), SBOMs after.
   - Job `attest`: `actions/attest-build-provenance@<sha>` for every artefact (subject paths), plus SBOM attestations (`actions/attest-sbom`).
   - Job `publish` (same environment as `build`, needs all): upload to R2 `releases/{version}/{target}-{arch}/` — bucket `lamina-releases` for tagged releases, `lamina-staging` for `workflow_dispatch` staging runs, `lamina-nightly` for nightlies (ADR 0014; each token can write only its own bucket) — with `wrangler r2 object put` (or `aws s3 cp --endpoint-url` with R2 S3 credentials), set `Content-Type` and `Cache-Control: public, max-age=31536000, immutable` for versioned files; then update `channels/{channel}.json` via D5a's tooling with `rollout_percent` from input (nightly: 100; beta/stable: starts at the input value, default 1 per ADR 0014 for stable); verify the manifest by calling the Worker for each platform with a synthetic install ID; post a summary (versions, sizes, links) to the job summary.
-  - Size budget step: fail if any installer exceeds 40 MB (warn at 36 MB).
+  - Size budget step: fail if any installer reaches 15 MB (warn at 13.5 MB).
 - `xtask` helpers if useful: `cargo xtask desktop-version` (sync version from tag into `apps/desktop/package.json`/`tauri.conf.json` at build time without committing).
 - `docs/guidelines/desktop-release.md` gains a "Cutting a release" section (tag, watch, verify, promote, roll out, pause).
 - Clean-VM verification for Linux (Ubuntu 22.04, Ubuntu 24.04, Fedora current): install the deb/rpm, run the AppImage, verify signatures with the runbook commands; recorded in this file after the first `release`-environment run (Post-merge checks).
@@ -79,7 +79,7 @@ The workflow is new, so `schedule` and `workflow_dispatch` can't run it until it
 - [ ] `plan` selects the `nightly` environment for `schedule` and `release` for tags/`workflow_dispatch` (unit test of the selection script); the CI grep proves no `nightly`-environment job references `APPLE_*`, `AZURE_*` or `LINUX_SIGNING_*`.
 - [ ] Every dry-run artefact has a CycloneDX SBOM; the attestation step is wired (it runs for real only with `id-token: write` on non-dry runs).
 - [ ] The app bundles a third-party notices file and Help ▸ View Licences shows it.
-- [ ] Installer sizes ≤ 40 MB (budget step green; sizes in the job summary).
+- [ ] Installer sizes < 15 MB (budget step green; sizes in the job summary).
 - [ ] Non-nightly channels cannot be published while macOS/Windows signing is missing (workflow guard tested in the dry run).
 
 ## Post-merge checks
@@ -104,7 +104,7 @@ The workflow is new, so `schedule` and `workflow_dispatch` can't run it until it
 ## Risks and open questions
 
 - **arm64 runners** (Windows arm64, Linux arm64) availability/cost on GitHub; cross-compiling Tauri for Windows arm64 from x64 works with MSVC; Linux arm64 needs native or cross WebKitGTK — fall back to native arm64 runners or drop arm64 Linux for beta (record).
-- **macOS universal vs per-arch**: universal doubles the sidecar/PDFium size; may break the 40 MB budget — measure.
+- **macOS universal vs per-arch**: universal doubles the sidecar/PDFium size and very likely breaks the 15 MB budget — measure, and ship per-arch dmgs if it does.
 - **rpm signing support** in Tauri's bundler may require a post-processing step; verify current docs.
 - **Nightly noise**: avoid publishing identical nightlies (skip if no desktop-relevant changes).
 - **Secret exposure in PR workflows**: the release workflow must never run on `pull_request` from forks; the `release` environment's reviewer gate protects production secrets; the `nightly` environment is limited to `main` and holds nothing that can sign as the owner or reach beta/stable installs.

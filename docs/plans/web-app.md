@@ -74,7 +74,7 @@ A fast, accessible, privacy-first **PDF reader in the browser**, served from Clo
 ### Privacy and security
 
 - **No upload by default.** The default build has no `/api` routes, and remote-document URLs travel in the fragment (`#url=`), never in a request ([report, Cloudflare section](../research/architecture/app-and-package-architecture.md)). Any later server feature is opt-in per document and says what leaves the device (ADR 0011).
-- **No cookies, no third-party scripts, no fingerprinting.** Telemetry recommendation: none in v0.1. If added later, only cookieless aggregate page views (for example Cloudflare Web Analytics) and opt-in error reports that never include document content, names or URLs. The decision goes in ADR 0011.
+- **No cookies, no third-party scripts, no fingerprinting.** Telemetry (owner decision, 2026-10-29): optional and opt-in, off by default, and none in v0.1. When it arrives ([U5c](../todos/ready/U5c-opt-in-usage-telemetry.md)) it is aggregate, content-free counts and opt-in error reports that never include document content, names or URLs. ADR 0011 records the payload and retention rules.
 - **Strict CSP** (`script-src 'self' 'wasm-unsafe-eval'`, no inline scripts), `Referrer-Policy: no-referrer`, `Permissions-Policy` minimal; COOP/COEP set via `_headers` for the threaded WASM variant only (ADR 0009 decides).
 - Parsing and rendering happen in a worker with `Limits`; hostile files can crash the worker but not the page, and the worker restarts.
 
@@ -151,7 +151,7 @@ Each round is split into one or more todos (one pull request each) on the [todo 
 
 1. Domain and product name for the hosted reader?
 2. Do we offer an opt-in CORS proxy for remote URLs, given it sees the bytes?
-3. Any telemetry at all in v0.1, or none until there is a privacy review?
+3. ~~Any telemetry at all in v0.1, or none until there is a privacy review?~~ **Answered 2026-10-29:** none in v0.1; afterwards optional and opt-in ([U5c](../todos/ready/U5c-opt-in-usage-telemetry.md)).
 4. Should `@lamina/viewer` be published for embedding in v0.1, or after the API settles?
 5. Is iPad/tablet touch UX in scope for v0.1 beyond "works"?
 

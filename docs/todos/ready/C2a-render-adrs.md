@@ -87,7 +87,7 @@ Docs only. Run `cargo xtask docs-links` ([X1](../done/X1-docs-link-checker.md)) 
 ## Risks and open questions
 
 - **Domain and product name** ([web-app §8](../../plans/web-app.md#8-open-questions) Q1) are still open: write 0011 with `<domain>` placeholders and a note on how to fill them.
-- **Telemetry** (Q3): the default recorded here is "none in v0.1"; the owner may overrule during review.
+- **Telemetry** (Q3): decided by the owner 2026-10-29: none in v0.1, then optional and opt-in ([U5c](./U5c-opt-in-usage-telemetry.md)); ADR 0011 records the allowed payload (aggregate, content-free) and retention.
 - **Embedding/publishing `@lamina/viewer`** (Q4) affects how public the RPC types are; record "internal until the API settles" unless the owner decides otherwise.
 - If C1b showed PDFium-WASM cannot meet the first-page budget, 0004 must say what changes (e.g. hayro for first paint) rather than paper over it.
 

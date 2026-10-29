@@ -8,7 +8,7 @@
 | Round / milestone | Round U (UI/UX) — after M2 |
 | Depends on | [C7c](./C7c-performance-gates-and-launch.md) |
 | Blocks | None |
-| ADRs | Requires ADR 0011 to allow it (amend 0011 first if it says "none") |
+| ADRs | Follows ADR 0011 (owner decision 2026-10-29: telemetry is optional, opt-in and off by default; none in v0.1) |
 | Branch | `feat/u5c-opt-in-telemetry` |
 | PR title | `feat(web): add opt-in content-free usage counts` |
 | Size | M (200–400 lines incl. tests) |
@@ -16,7 +16,7 @@
 
 ## Goal
 
-The plan's task-split assumption (viewing ≈ 70% of time) is unverified, and it decides which editor modes ship first. If ADR 0011 allows it, add opt-in, aggregate counts of commands run and modes used — never document content, names, URLs or identifiers — so the roadmap follows real use.
+The plan's task-split assumption (viewing ≈ 70% of time) is unverified, and it decides which editor modes ship first. The owner decided telemetry is optional (2026-10-29), so add opt-in, aggregate counts of commands run and modes used — never document content, names, URLs or identifiers — so the roadmap follows real use.
 
 ## Context
 
@@ -40,7 +40,7 @@ The plan's task-split assumption (viewing ≈ 70% of time) is unverified, and it
 ## Tasks
 
 - [ ] Claim via a claim PR (see Definition of done); then a fresh worktree off the updated `main`.
-- [ ] Confirm or amend ADR 0011 (separate PR if it needs changing; owner decides).
+- [ ] Check that ADR 0011 records the allowed payload and retention; amend it in a separate PR if it doesn't.
 - [ ] Implement the counter on the command registry's run hook; batching and send.
 - [ ] Tests that the payload contains only allowed keys, and that nothing is sent when opted out.
 - [ ] Privacy page update.
@@ -61,11 +61,11 @@ Unit tests for the payload builder; Playwright opt-out and opt-in flows.
 
 ## Docs to update
 
-Privacy page; ADR 0011 (if amended); answer open question 5 in [UI/UX §8](../../plans/ui-ux.md#8-open-questions); tick the telemetry item in §9.
+Privacy page; ADR 0011 (if amended); tick the telemetry item in §9.
 
 ## Risks and open questions
 
-- Any telemetry can be read as betraying the privacy promise: skip this todo entirely if the owner prefers none.
+- Any telemetry can be read as betraying the privacy promise: keep it off by default, show the exact payload at opt-in, and count its requests in the network indicator (U4a).
 
 ## Definition of done
 

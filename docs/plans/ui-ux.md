@@ -18,13 +18,13 @@ Make lamina feel like **the fastest, calmest PDF app on every platform**, and ma
 - Reading quality: selection surfaces, column-aware copy, page appearance modes, a reading-order ground-truth corpus.
 - The responsive mobile and touch layout of the web reader, and a spike that decides how native mobile apps would be built.
 - Trust surfaces: a network-activity indicator, reader mode (reflow) without a cloud service, and the UI rules the editor rounds follow (explicit save, two named signing paths, redaction mark → review → apply).
-- Product promises: a published no-hostile-monetisation pledge, published speed targets with a benchmark against other readers, and (opt-in, content-free) usage telemetry to test the task-split assumption.
+- Product promises: a published pricing page with fair-pricing rules (lamina will be priced: owner decision 2026-10-29), published speed targets with a benchmark against other readers, and optional (opt-in, content-free) usage telemetry to test the task-split assumption.
 
 **Non-goals**
 
 - Native mobile apps themselves (after the [U3b](../todos/ready/U3b-mobile-shell-spike.md) spike and ADR 0025; [architecture §8](architecture.md#8-open-questions-for-the-team) Q4).
 - Editing features (they stay in the [editor plan](full-editor.md); this plan only sets their UI rules in §5.7).
-- AI chat over documents. Local semantic search and OCR come later and are free and off by default (§5.8); no AI feature is a paid add-on.
+- AI chat over documents. Local semantic search and OCR come later, off by default (§5.8); which tier includes them is a pricing decision (§5.9).
 - A brand identity or visual design language beyond tokens and layout (a later design pass; open question 3).
 
 ## 3. Users
@@ -53,7 +53,7 @@ Recommendations from the research, adopted as the plan's rules (ADR 0024 records
 7. **Prove, don't claim.** Privacy is shown by a network indicator and a strict CSP; redaction by a verification report; speed by published benchmarks.
 8. **Perceived speed is designed.** Placeholder → stretched low-res → sharp tiles; aim for interactions that answer within 100 ms and INP ≤ 200 ms (p75), published as stretch goals until a gate measures them.
 9. **Accessible by construction.** WCAG 2.2 AA: 24 px minimum targets (44 px on touch), a single-pointer alternative to every drag, focus never hidden by sticky chrome.
-10. **No hostile monetisation.** Every on-device feature is free with no account, watermark or page cap; only services that cost money to run can be paid (§5.9).
+10. **Priced, never hostile.** lamina is a paid product (owner decision, 2026-10-29), but the price is visible before any work starts: no paywall discovered after filling a form or editing a file, no watermark added to output without warning, and no changed deal for people who already paid (§5.9). The code stays MIT OR Apache-2.0.
 
 ## 5. Design
 
@@ -139,13 +139,13 @@ The pipeline for every page view ([C3b](../todos/ready/C3b-viewer-virtualiser-an
 
 `RenderBackend` takes `(page, scale, clip rect)` and returns a bounded bitmap; no backend allocates a full-page canvas (ADR 0004, [C2a](../todos/ready/C2a-render-adrs.md)). PDFium stays read-only, in a growable-heap WASM build ([C1b](../todos/ready/C1b-pdfium-wasm-spike.md)). Sidebars may show skeletons; the canvas never shows a blank page.
 
-**Targets.** The plans' numbers stay the release gates; the research's tighter numbers are published stretch goals ([U5a](../todos/ready/U5a-product-pledge-and-targets.md)) and measured against other readers ([U5b](../todos/ready/U5b-reader-benchmark.md)).
+**Targets.** The owner adopted the research's desktop cold-start and installer-size numbers as release gates (2026-10-29); the other research numbers stay published stretch goals ([U5a](../todos/ready/U5a-pricing-and-promises-page.md)). All are measured against other readers in [U5b](../todos/ready/U5b-reader-benchmark.md).
 
-| Metric | Release gate (plans) | Stretch goal (research) |
+| Metric | Release gate | Stretch goal (research) |
 | --- | --- | --- |
 | Web: first page, 10-page 1 MB PDF, warm cache | ≤ 700 ms ([web-app §4](web-app.md#non-functional-targets-are-recommendations-measured-from-c3-onward)) | ≤ 500 ms for a 10 MB PDF |
-| Desktop: cold start to window | ≤ 1 s ([desktop-app §4](desktop-app.md#non-functional-targets-are-recommendations)) | < 300 ms to interactive |
-| Desktop installer | ≤ 40 MB | < 15 MB |
+| Desktop: cold start to interactive window | < 300 ms, macOS, Windows and Linux ([desktop-app §4](desktop-app.md#non-functional-targets-are-recommendations); was ≤ 1 s) | — |
+| Desktop installer | < 15 MB per platform, PDFium included (was ≤ 40 MB) | — |
 | Interaction responsiveness | No main-thread task > 50 ms while scrolling ([web-app §4](web-app.md#non-functional-targets-are-recommendations-measured-from-c3-onward)) | INP ≤ 200 ms (p75); every command answers in ≤ 100 ms |
 | Crash-free sessions (opt-in reports) | — | ≥ 99.95% (vendor median) |
 
@@ -167,9 +167,9 @@ The pipeline for every page view ([C3b](../todos/ready/C3b-viewer-virtualiser-an
 
 ### 5.9 Product promises (R18, R19)
 
-- **Pledge** ([U5a](../todos/ready/U5a-product-pledge-and-targets.md)): every on-device feature free forever, no account, no watermark, no page or task cap, no ads; paid tiers only for services that cost money to run (sync, hosted API, support, enterprise deployment), following Obsidian's model. Needs the owner's approval before publishing.
+- **Pricing and promises** ([U5a](../todos/ready/U5a-pricing-and-promises-page.md)): lamina is priced (owner decision, 2026-10-29); the owner sets the model and prices. The page publishes them with the fair-pricing rules from principle 10 (recommended by the research: the grievances were surprise paywalls, changed deals and watermarks, not prices as such): what each tier includes, shown before work starts; existing purchases honoured when the model changes; no ads; no document data used for anything but the user's own work. The research's free-core model (Obsidian) is recorded as the alternative that was not chosen.
 - **Benchmark** ([U5b](../todos/ready/U5b-reader-benchmark.md)): reproducible cold start, first page, scroll and memory numbers for lamina against pdf.js, the Chrome viewer, Preview, SumatraPDF and Acrobat Reader on the same reference files.
-- **Telemetry** ([U5c](../todos/ready/U5c-opt-in-usage-telemetry.md)): opt-in, aggregate command counts only (never document content, names or URLs), to test the task-split assumption and guide which modes ship first; only if ADR 0011 allows it.
+- **Telemetry** ([U5c](../todos/ready/U5c-opt-in-usage-telemetry.md)): optional (owner decision, 2026-10-29): opt-in, off by default, aggregate command counts only (never document content, names or URLs), to test the task-split assumption and guide which modes ship first. None in v0.1; ADR 0011 records the payload and retention rules.
 
 ## 6. Rounds
 
@@ -203,9 +203,9 @@ Each round is split into todos (one pull request each) on the [todo board](../to
 
 ### U5. Product promises
 
-**Deliverable:** the pledge and targets page on the docs site; the reader benchmark; opt-in usage telemetry if ADR 0011 allows it.
-**Accepted when:** the owner has approved the pledge text; the benchmark is reproducible from a script with published raw numbers; telemetry is off by default and its payload is documented and tested to carry no document data.
-**Todos:** [U5a](../todos/ready/U5a-product-pledge-and-targets.md), [U5b](../todos/ready/U5b-reader-benchmark.md), [U5c](../todos/ready/U5c-opt-in-usage-telemetry.md)
+**Deliverable:** the pricing, promises and targets pages on the docs site; the reader benchmark; optional, opt-in usage telemetry.
+**Accepted when:** the owner has approved the pricing page; the benchmark is reproducible from a script with published raw numbers; telemetry is off by default and its payload is documented and tested to carry no document data.
+**Todos:** [U5a](../todos/ready/U5a-pricing-and-promises-page.md), [U5b](../todos/ready/U5b-reader-benchmark.md), [U5c](../todos/ready/U5c-opt-in-usage-telemetry.md)
 
 ### Changes to existing todos
 
@@ -236,15 +236,17 @@ The research also changes todos in other plans (each notes this plan in its Cont
 | Reflow quality on badly tagged files (fewer than 1% claim PDF/UA) | Fall back to tier 2 when the tag tree fails sanity checks; label the result; keep "back to page" one tap away |
 | Gesture handling in the viewer breaks browser accessibility zoom | Keep browser zoom working for the chrome; test with iOS and Android zoom and screen readers |
 | Page-mode recolouring differs between PDFium and hayro | Render-diff the modes in the nightly lane; Original stays the default |
-| Telemetry erodes the privacy promise | Off by default, aggregate counts only, documented payload, a test that it carries no document data; skip entirely if ADR 0011 says so |
+| Telemetry erodes the privacy promise | Off by default, aggregate counts only, documented payload, a test that it carries no document data, visible in the network indicator |
+| Pricing reads as the paywalls users complained about | Price and tier shown before work starts; no feature locked after the user has invested work; honour existing purchases (principle 10) |
+| < 300 ms cold start and < 15 MB installer are hard with a sandboxed engine process and PDFium (macOS universal builds double PDFium) | Measure from D2a/D2d onward; per-arch macOS builds if universal breaks 15 MB; show the window before the engine process is ready; Linux (WebKitGTK) is the likeliest miss, so measure it first |
 
 ## 8. Open questions
 
-1. Does the owner adopt the pledge in §5.9 as written (U5a)?
+1. ~~Does the owner adopt the free-core pledge?~~ **Answered 2026-10-29:** no, lamina will be priced. Still open: the pricing model (one-time, subscription, or both), what each tier includes, and how licences are checked (licence keys, store purchases or accounts from H2); U5a needs these.
 2. Tablet stylus annotation (Apple Pencil, S Pen) in the web reader, or only in native apps after ADR 0025?
 3. When does a visual design pass (typography, iconography, brand) happen, and who does it?
 4. Should citation previews (Semantic Reader style) and Zotero integration get their own plan for the academic persona?
-5. Telemetry: none at all (ADR 0011's current recommendation), or U5c's opt-in counts?
+5. ~~Telemetry: none at all, or U5c's opt-in counts?~~ **Answered 2026-10-29:** telemetry is optional (opt-in, off by default); U5c goes ahead after v0.1.
 
 ## 9. To-dos
 
@@ -275,6 +277,6 @@ Ticked by the PR that completes them.
 - [ ] Approximate reader mode for untagged files
 
 ### U5. Product promises
-- [ ] Pledge and targets page (after the owner approves)
+- [ ] Pricing, promises and targets pages (after the owner sets the pricing model)
 - [ ] Reader benchmark against other readers
-- [ ] Opt-in, content-free usage telemetry (if ADR 0011 allows)
+- [ ] Optional (opt-in), content-free usage telemetry

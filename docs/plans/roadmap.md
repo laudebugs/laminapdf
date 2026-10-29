@@ -100,7 +100,7 @@ One row per round. Each round is split into one or more todos, one PR each, on t
 | U2 | [UI/UX](ui-ux.md#u2-reading-quality) | Selection surfaces and copy modes, reading-order corpus, page appearance modes | — |
 | U3 | [UI/UX](ui-ux.md#u3-mobile-and-touch) | Phone and tablet layout; `mobile-shell` spike | 0025 (proposed); `mobile-shell` |
 | U4 | [UI/UX](ui-ux.md#u4-trust-and-reflow) | Network indicator, reader mode (tagged, then approximate) | — |
-| U5 | [UI/UX](ui-ux.md#u5-product-promises) | Pledge and targets, reader benchmark, opt-in telemetry | — |
+| U5 | [UI/UX](ui-ux.md#u5-product-promises) | Pricing and promises page, reader benchmark, opt-in telemetry | — |
 | E1 | [editor](full-editor.md#e1-editing-foundation) | Save, undo, metadata edits (Info + XMP in sync) | — |
 | E2 | [editor](full-editor.md#e2-page-organisation) | Page organisation, content append API | — |
 | E3 | [editor](full-editor.md#e3-navigation-attachments-inspection-and-extraction) | Navigation, attachments, extraction | — |
@@ -132,6 +132,10 @@ One row per round. Each round is split into one or more todos, one PR each, on t
 
 - **Hosted service** (2026-10-28, project owner): lamina will be a hosted service with user login and cloud features (accounts, cloud storage and sync), not just a reference deployment. Local, on-device processing stays the default and needs no account; the reader v0.1 (M2) still uploads nothing. Accounts arrive with the first round that needs them, after the `auth` spike ([architecture §8](architecture.md#8-open-questions-for-the-team), Q2; ADR 0011).
 - **Code signing** (2026-10-28, project owner): the owner, as the publisher, signs the desktop app for Windows, macOS and Linux (M3). Windows Artifact Signing's individual eligibility is US/Canada only, so the owner must confirm eligibility or use an OV certificate ([architecture §8](architecture.md#8-open-questions-for-the-team), Q5; ADR 0014).
+
+- **Pricing** (2026-10-29, project owner): lamina will be priced; the code stays MIT OR Apache-2.0. The model and prices are still to be set; the UI/UX plan's fair-pricing rules apply ([UI/UX §5.9](ui-ux.md#59-product-promises-r18-r19), [U5a](../todos/ready/U5a-pricing-and-promises-page.md)).
+- **Telemetry** (2026-10-29, project owner): optional, opt-in and off by default; none in web v0.1 ([U5c](../todos/ready/U5c-opt-in-usage-telemetry.md), ADR 0011).
+- **Desktop speed and size gates** (2026-10-29, project owner): the research's numbers are the release gates: cold start < 300 ms to an interactive window and installer < 15 MB per platform ([desktop-app §4](desktop-app.md#non-functional-targets-are-recommendations)).
 
 - **Publishing later** (2026-10-28, project owner): crates and npm packages stay local for now; registry names and publishing are a later to-do ([architecture: Publishing (later)](architecture.md#publishing-later)).
 

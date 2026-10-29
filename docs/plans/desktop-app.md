@@ -61,10 +61,10 @@ A native **PDF reader for macOS, Windows and Linux** built with Tauri 2. It reus
 
 | Metric | Target |
 | --- | --- |
-| Cold start to window, mid-range machine | ≤ 1 s (macOS, Windows); ≤ 1.5 s (Linux) |
+| Cold start to interactive window, mid-range machine | < 300 ms (macOS, Windows, Linux; owner decision 2026-10-29, from the [product research](../research/product/pdf-app-product-and-ux.md#a-phased-roadmap-that-fits-the-existing-rounds); was ≤ 1 s, ≤ 1.5 s on Linux) |
 | First page of a 1 GB PDF | ≤ 1.5 s after open |
 | Idle memory with one 10-page document | ≤ 150 MB |
-| Installer size | ≤ 40 MB per platform (PDFium native included) |
+| Installer size | < 15 MB per platform, PDFium native included (owner decision 2026-10-29; was ≤ 40 MB) |
 | Supported OS | macOS 13+, Windows 11 (versions in Microsoft servicing), Ubuntu 22.04+ and supported Fedora releases (x64 and arm64 where Tauri supports it). Windows 10 22H2 is best-effort only: not tested in CI, no fixes for Windows 10-only bugs (end of support 14 October 2025, [Microsoft lifecycle](https://learn.microsoft.com/en-us/lifecycle/products/windows-10-home-and-pro)) |
 | Update rollout | Configurable 1% → 10% → 50% → 100%, kill switch effective within 60 s |
 

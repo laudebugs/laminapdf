@@ -151,7 +151,7 @@ Ready todos whose dependencies are all done:
 | U4a | [Network indicator and CSP-backed privacy proof](ready/U4a-network-indicator-and-privacy-proof.md) | ready | [C4c](ready/C4c-remote-files-encryption-privacy.md), [U1c](ready/U1c-inverted-l-shell-and-modes.md) |
 | U4b | [Reader mode (reflow) from the structure tree](ready/U4b-reader-mode-from-structure-tree.md) | ready | [B8a](ready/B8a-structure-tree.md), [C5a](ready/C5a-text-layer-and-selection.md), [U1c](ready/U1c-inverted-l-shell-and-modes.md), [U2b](ready/U2b-reading-order-ground-truth.md) |
 | U4c | [Approximate reader mode for untagged PDFs](ready/U4c-approximate-reader-mode.md) | ready | [U4b](ready/U4b-reader-mode-from-structure-tree.md) |
-| U5a | [Product pledge and performance targets page](ready/U5a-product-pledge-and-targets.md) | ready | [B7a](ready/B7a-docs-site.md), [C7c](ready/C7c-performance-gates-and-launch.md) |
+| U5a | [Pricing, promises and performance targets pages](ready/U5a-pricing-and-promises-page.md) | ready | [B7a](ready/B7a-docs-site.md), [C7c](ready/C7c-performance-gates-and-launch.md) |
 | U5b | [Reader benchmark: lamina vs other PDF readers](ready/U5b-reader-benchmark.md) | ready | [C7c](ready/C7c-performance-gates-and-launch.md), [D7c](ready/D7c-desktop-beta-release.md) |
 | U5c | [Opt-in, content-free usage telemetry](ready/U5c-opt-in-usage-telemetry.md) | ready | [C7c](ready/C7c-performance-gates-and-launch.md) |
 
