@@ -28,8 +28,41 @@ env:
   NEXTEST_PROFILE: ci
 
 jobs:
+  # Same classification as the full lane (cargo xtask changes): on a docs-only PR the jobs
+  # below are skipped, and the full lane's `changes` job runs the docs checks under `gate`.
+  changes:
+    name: Changed paths
+    runs-on: [self-hosted, macOS, ARM64]
+    timeout-minutes: 10
+    outputs:
+      code: ${{ steps.pr.outputs.code || steps.push.outputs.code }}
+    steps:
+      - name: Pushes to main run every job
+        id: push
+        if: github.event_name != 'pull_request'
+        run: echo "code=true" >> "$GITHUB_OUTPUT"
+      - if: github.event_name == 'pull_request'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - if: github.event_name == 'pull_request'
+        uses: ./.github/actions/isolate-rust-home
+      - if: github.event_name == 'pull_request'
+        uses: ./.github/actions/host-rust
+        with:
+          cache: false
+      - name: Classify the changed paths
+        if: github.event_name == 'pull_request'
+        id: pr
+        env:
+          BASE: origin/${{ github.base_ref }}
+        run: cargo xtask changes --base "$BASE"
+
   rust:
     name: Rust (docs links and todo board, fmt, portability, clippy, tests, docs, cargo-deny, wasm)
+    needs: changes
+    if: ${{ !cancelled() && needs.changes.outputs.code == 'true' }}
     runs-on: [self-hosted, macOS, ARM64]
     timeout-minutes: 30
     steps:
@@ -54,6 +87,8 @@ jobs:
 
   msrv:
     name: MSRV (rust-version)
+    needs: changes
+    if: ${{ !cancelled() && needs.changes.outputs.code == 'true' }}
     runs-on: [self-hosted, macOS, ARM64]
     timeout-minutes: 20
     steps:
@@ -92,6 +127,8 @@ jobs:
 
   typescript:
     name: TypeScript (biome, typecheck, tests, npm licences)
+    needs: changes
+    if: ${{ !cancelled() && needs.changes.outputs.code == 'true' }}
     runs-on: [self-hosted, macOS, ARM64]
     timeout-minutes: 20
     steps:
@@ -124,6 +161,8 @@ jobs:
   # crates/lamina-cos (Round A3); this job keeps the frozen record (incl. the TS twin) green.
   spikes:
     name: Spike pdf-basics (Rust + TS)
+    needs: changes
+    if: ${{ !cancelled() && needs.changes.outputs.code == 'true' }}
     runs-on: [self-hosted, macOS, ARM64]
     timeout-minutes: 30
     steps:

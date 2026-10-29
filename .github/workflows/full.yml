@@ -43,6 +43,7 @@ env:
   NEXTEST_PROFILE: ci
 
 jobs:
+  # Also runs `cargo xtask check docs` on every PR (gate fails if it fails).
   # `code` is exactly "true" or "false": a PR is docs-only when every path changed since the
   # merge base with its base branch is on the docs allowlist; pushes to main are always code.
   changes:
@@ -74,6 +75,11 @@ jobs:
         env:
           BASE: origin/${{ github.base_ref }}
         run: cargo xtask changes --base "$BASE"
+      # Docs-only PRs skip both lanes' suites, so the docs checks run here, under `gate`:
+      # every relative link, the todo board and path portability (no network).
+      - name: Docs checks (links, todo board, portable paths)
+        if: github.event_name == 'pull_request'
+        run: cargo xtask check docs
 
   # ADR 0018 tier 6: lamina vs pypdf's precomputed facts over the full set, 36 fixed-seed
   # mutants per corpus file (fixtures/differential/full.json). No Python: the facts are
