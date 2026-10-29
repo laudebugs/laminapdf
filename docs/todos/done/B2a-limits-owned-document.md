@@ -45,7 +45,7 @@ Make the reader's safety policy explicit and configurable, and make `Document` s
 
 - Decryption and the password: [B2b](./B2b-standard-security-decryption.md).
 - Typed views, `LaminaId`s, corpus facts, fuzzing, `cargo xtask golden`: [B2c](./B2c-lamina-model-corpus-fuzz.md).
-- Overlay and mutation (`CosMut`): [B3a](../ready/B3a-overlay-and-ops.md).
+- Overlay and mutation (`CosMut`): [B3a](../ongoing/B3a-overlay-and-ops.md).
 - Windowed reading of non-slice sources, chunked repair scan, `DataPending` per window (moved out after #13 shipped read-all-at-open): [B2d](../ongoing/B2d-windowed-reading.md).
 - Edge `ByteSource`s (mmap, `Blob`, HTTP range + OPFS): desktop D2 and web C3 todos.
 - The TS half of the codes test: [B6b](../ready/B6b-lamina-pdf-package.md).

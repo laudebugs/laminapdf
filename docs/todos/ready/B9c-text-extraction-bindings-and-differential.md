@@ -39,7 +39,7 @@ Expose text extraction everywhere the readers need it and prove it against indep
 **Out of scope** (and which todo covers it)
 
 - Text layer DOM, selection, search UI: web C5.
-- Nightly external-corpus text differential: [X3a](./X3a-nightly-lane.md) picks up `--text`.
+- Nightly external-corpus text differential: [X3a](../ongoing/X3a-nightly-lane.md) picks up `--text`.
 
 ## Tasks
 

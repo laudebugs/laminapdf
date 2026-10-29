@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [pdf-library §7 B9](../../plans/pdf-library.md#b9-text-extraction), requirement [§4 F8](../../plans/pdf-library.md#functional) |
 | Round / milestone | Round B (library) — M2 Web reader v0.1 (prerequisite) |
-| Depends on | [B2c](../done/B2c-lamina-model-corpus-fuzz.md), [X4](./X4-full-lane-gate.md) |
+| Depends on | [B2c](../done/B2c-lamina-model-corpus-fuzz.md), [X4](../ongoing/X4-full-lane-gate.md) |
 | Blocks | [B9b](./B9b-text-extraction-core.md) |
 | ADRs | Writes **0023** (content-stream reading: `lamina-content` crate, operator and XObject-depth limits); uses [0003](../../decisions/0003-reader-tolerance-and-limits.md) reserved limits `max_content_operators` and `max_xobject_depth`; [0018](../../decisions/0018-test-strategy.md) fuzz target `content` |
 | Branch | `feat/b9a-lamina-content` |
@@ -59,7 +59,7 @@ Read what is drawn on a page. A tolerant tokenizer and a read-only interpreter w
 ## Acceptance criteria
 
 - [ ] Every operator in Annex A parses with correct operand arity; unknown/bad ones warn and continue
-- [ ] Interpreting every page of `fixtures/corpus` succeeds or fails with a coded error; operator counts per page match a pdf.js `getOperatorList` count within documented differences (job added to the full lane from [X4](./X4-full-lane-gate.md), green on this PR)
+- [ ] Interpreting every page of `fixtures/corpus` succeeds or fails with a coded error; operator counts per page match a pdf.js `getOperatorList` count within documented differences (job added to the full lane from [X4](../ongoing/X4-full-lane-gate.md), green on this PR)
 - [ ] Nested Form XObjects at depth 32 succeed; depth 33 fails with `LimitExceeded { max_xobject_depth }`; a self-referencing XObject reports `xobject-cycle`
 - [ ] CTM and text matrix after each operator match hand-computed values in unit tests (03 §2.6 formulas)
 - [ ] Fuzz target `content` runs 10 min locally (`cargo xtask fuzz content --time 600`) without a panic; summary in the PR

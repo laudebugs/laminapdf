@@ -71,7 +71,7 @@ None.
 ## Tests
 
 - Unit tests per module; `crates/lamina-build/tests/{text,textbox,links,outline,labels,metadata}.rs`.
-- Goldens under `fixtures/golden/`; external checks in the full lane ([X4](./X4-full-lane-gate.md)).
+- Goldens under `fixtures/golden/`; external checks in the full lane ([X4](../ongoing/X4-full-lane-gate.md)).
 
 ## Docs to update
 
