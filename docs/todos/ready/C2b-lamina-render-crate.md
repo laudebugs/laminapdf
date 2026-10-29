@@ -22,7 +22,7 @@ Create the single Rust abstraction every lamina surface renders through. `crates
 ## Context
 
 - ADR 0004 (written in [C2a](./C2a-render-adrs.md)) — trait surface, adapters, two-parsers rule, switch criteria.
-- [C1a result](../ongoing/C1a-hayro-parity-spike.md) (`spikes/hayro-parity/README.md`) — thresholds and comparison metric to reuse; the nightly metric to track.
+- [C1a result](../done/C1a-hayro-parity-spike.md) (`spikes/hayro-parity/README.md`) — thresholds and comparison metric to reuse; the nightly metric to track.
 - [ADR 0018 §1 tier 8 and §2](../../decisions/0018-test-strategy.md#1-tiers) — render goldens are PNGs per page compared with perceptual thresholds, updated only by `cargo xtask render-golden --update`; full lane runs them on PRs; nightly runs hayro vs PDFium.
 - [Rust guidelines](../../guidelines/rust.md) and [code organization §2](../../guidelines/code-organization.md#2-boundaries-and-dependency-direction) — `lamina-render` is an **edge** crate when it links PDFium (FFI/dynamic loading); the trait itself stays pure. Load `/rust-best-practices` before writing code.
 - [Rendering notes](../../research/architecture/notes/rendering.md) §3 (`FPDF_ANNOT` separates annotation rendering).
