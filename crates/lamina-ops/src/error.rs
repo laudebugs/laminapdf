@@ -1,8 +1,15 @@
 //! The error type of the ops layer.
 
+use core::fmt;
+
+use lamina_cos::{ErrorKind, Location};
 use lamina_model::PageId;
 
 /// Everything that can go wrong while applying ops, running transactions or reading op logs.
+///
+/// `Display` formats only fixed text, numbers and object IDs (`p12.0`), never text from the
+/// input or the op log (ADR 0026 §4). A path ID (`p5.0/Kids/3`) carries dictionary keys, so
+/// it stays in the variant's field and is not printed.
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 #[non_exhaustive]
 pub enum Error {
@@ -18,17 +25,19 @@ pub enum Error {
     #[error("no transaction is open")]
     NoTransaction,
     /// The op names a page the document does not have.
-    #[error("no page {0}")]
+    #[error("no page {}", Shown(.0))]
     UnknownPage(PageId),
     /// The page is a direct dictionary inside its parent; promoting it to an indirect object
     /// (ADR 0005 §5) arrives with the page-structure ops.
-    #[error("page {0} is a direct dictionary, which ops cannot edit yet")]
+    #[error("page {} is a direct dictionary, which ops cannot edit yet", Shown(.0))]
     DirectPage(PageId),
     /// An op log with a schema version this reader does not know (ADR 0006 §6).
     #[error("unsupported op log version {0}")]
     UnsupportedVersion(u64),
-    /// An op log that does not parse: an unknown op or field, a bad value, or not JSON.
-    #[error("invalid op log: {0}")]
+    /// An op log that does not parse: an unknown op or field, a bad value, or not JSON. The
+    /// parser's message can quote the log, so it is kept here but never formatted
+    /// (ADR 0026 §4).
+    #[error("invalid op log")]
     InvalidLog(String),
     /// The document was saved to a sink the core can't read back and waits for
     /// [`Document::rebase`](crate::Document::rebase): ops, undo, redo and saves are refused
@@ -39,6 +48,19 @@ pub enum Error {
     /// bytes would not match the undo history, and unsaved changes would be lost.
     #[error("no save is waiting to be rebased onto")]
     NoPendingSave,
+}
+
+/// A page ID as a message may show it: an object ID in full (lamina-made: a kind and two
+/// numbers), a path ID without its keys.
+struct Shown<'a>(&'a PageId);
+
+impl fmt::Display for Shown<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self.0.as_lamina_id().obj_ref() {
+            Some(_) => self.0.fmt(f),
+            None => f.write_str("(a path ID)"),
+        }
+    }
 }
 
 impl From<lamina_cos::Error> for Error {
@@ -76,6 +98,48 @@ impl Error {
             Self::NoPendingSave => "no-pending-save",
         }
     }
+
+    /// The kind of this error ([ADR 0026] §2), as `fixtures/codes.json` lists it for
+    /// [`Error::code`] (a test checks every variant). COS errors report
+    /// [`lamina_cos::Error::kind`].
+    ///
+    /// [ADR 0026]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0026-error-and-diagnostic-contract.md
+    #[must_use]
+    pub const fn kind(&self) -> ErrorKind {
+        match self {
+            Self::Cos(e) => e.kind(),
+            Self::NestedTransaction | Self::NoTransaction | Self::SavedNotRebased | Self::NoPendingSave => {
+                ErrorKind::State
+            }
+            Self::UnknownPage(_) => ErrorKind::Usage,
+            Self::DirectPage(_) | Self::UnsupportedVersion(_) => ErrorKind::Unsupported,
+            Self::InvalidLog(_) => ErrorKind::Input,
+        }
+    }
+
+    /// Where the error was found (ADR 0026 §1.1): a COS error's position, or the page's
+    /// object and ID when it is an object ID (a path ID's keys are not lamina-made, so a path
+    /// ID gives no location).
+    #[must_use]
+    pub fn location(&self) -> Location {
+        match self {
+            Self::Cos(e) => e.location(),
+            Self::UnknownPage(page) | Self::DirectPage(page) => match page.as_lamina_id().obj_ref() {
+                Some(r) => Location {
+                    object: Some(r.num),
+                    id: Some(page.to_string()),
+                    ..Location::NONE
+                },
+                None => Location::NONE,
+            },
+            Self::NestedTransaction
+            | Self::NoTransaction
+            | Self::UnsupportedVersion(_)
+            | Self::InvalidLog(_)
+            | Self::SavedNotRebased
+            | Self::NoPendingSave => Location::NONE,
+        }
+    }
 }
 
 /// Shorthand for `Result<T, lamina_ops::Error>`.
@@ -85,4 +149,41 @@ pub type Result<T> = core::result::Result<T, Error>;
 /// except those that [must propagate](lamina_cos::Error::must_propagate), which end the op.
 pub(crate) fn tolerant<T>(result: lamina_cos::Result<T>) -> Result<Option<T>> {
     lamina_cos::tolerant(result).map_err(Error::Cos)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::test_codes as codes;
+
+    /// One value of every variant: the match in [`Error::kind`] has no wildcard, so a new
+    /// variant is a compile error there, and this list is what the tests compare.
+    fn samples() -> Vec<Error> {
+        let page: PageId = "p3.0".parse().unwrap();
+        vec![
+            Error::NestedTransaction,
+            Error::NoTransaction,
+            Error::UnknownPage(page.clone()),
+            Error::DirectPage(page),
+            Error::UnsupportedVersion(9),
+            Error::InvalidLog(String::new()),
+            Error::SavedNotRebased,
+            Error::NoPendingSave,
+        ]
+    }
+
+    #[test]
+    fn codes_lists_the_code_of_every_variant_in_order() {
+        assert_eq!(codes::distinct(samples().iter().map(Error::code)), Error::CODES);
+    }
+
+    #[test]
+    fn every_variant_has_the_kind_codes_json_lists() {
+        codes::assert_kinds_match(samples().iter().map(|e| (e.code(), e.kind().as_str())));
+    }
+
+    #[test]
+    fn a_cos_error_keeps_its_kind() {
+        assert_eq!(Error::Cos(lamina_cos::Error::WrongPassword).kind(), ErrorKind::Security);
+    }
 }

@@ -14,7 +14,9 @@ mod common;
 use std::sync::Arc;
 
 use common::{classic, open, open_with, stream_body};
-use lamina_cos::{ByteSource, Document, Error, Limit, Limits, ObjRef, OpenOptions, Source, SourceError, Warning};
+use lamina_cos::{
+    ByteSource, Document, Error, Limit, Limits, ObjRef, OpenOptions, Position, Source, SourceError, Warning,
+};
 
 fn strict() -> OpenOptions {
     OpenOptions::default().with_strict(true)
@@ -74,7 +76,7 @@ mod object_stream_members {
             doc.resolve(ObjRef::new(3, 0)),
             Err(Error::LimitExceeded {
                 limit: Limit::StringLength,
-                at: Some(4)
+                at: Some(Position::InStream { object: 4, offset: 4 })
             })
         );
     }

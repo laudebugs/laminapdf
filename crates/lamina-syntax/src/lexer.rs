@@ -3,6 +3,7 @@
 //! The lexer never panics: every slice access is bounds-checked through `get`, and every
 //! loop consumes at least one byte, so lexing is linear in the input length.
 
+use crate::diagnostic::Position;
 use crate::error::{Error, Result};
 use crate::limits::{Limit, Limits};
 use crate::object::{Name, Object, PdfString, StringFormat};
@@ -181,7 +182,7 @@ impl<'a> Lexer<'a> {
 
     fn syntax(&self, message: &'static str) -> Error {
         Error::Syntax {
-            offset: self.pos,
+            at: Position::offset(self.pos),
             message,
         }
     }
@@ -265,7 +266,9 @@ impl<'a> Lexer<'a> {
         let mut high: Option<u8> = None;
         loop {
             let Some(b) = self.peek() else {
-                return Err(Error::UnexpectedEof { offset: self.pos });
+                return Err(Error::UnexpectedEof {
+                    at: Position::offset(self.pos),
+                });
             };
             self.pos += 1;
             if b == b'>' {
@@ -276,7 +279,7 @@ impl<'a> Lexer<'a> {
             }
             let Some(v) = hex_value(b) else {
                 return Err(Error::Syntax {
-                    offset: self.pos - 1,
+                    at: Position::offset(self.pos - 1),
                     message: "invalid hex digit",
                 });
             };
@@ -303,7 +306,9 @@ impl<'a> Lexer<'a> {
         loop {
             self.check_length(&out, start)?;
             let Some(b) = self.peek() else {
-                return Err(Error::UnexpectedEof { offset: self.pos });
+                return Err(Error::UnexpectedEof {
+                    at: Position::offset(self.pos),
+                });
             };
             self.pos += 1;
             match b {
@@ -332,7 +337,9 @@ impl<'a> Lexer<'a> {
 
     fn string_escape(&mut self, out: &mut Vec<u8>) -> Result<()> {
         let Some(e) = self.peek() else {
-            return Err(Error::UnexpectedEof { offset: self.pos });
+            return Err(Error::UnexpectedEof {
+                at: Position::offset(self.pos),
+            });
         };
         self.pos += 1;
         match e {
@@ -499,7 +506,7 @@ mod tests {
             lex_with_max_string(b"(abcde)", 4),
             Err(Error::LimitExceeded {
                 limit: Limit::StringLength,
-                at: Some(0)
+                at: Some(Position::FileOffset(0))
             })
         );
     }

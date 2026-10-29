@@ -12,7 +12,7 @@ fn save_error_codes_match_the_fixture() {
         .as_array()
         .unwrap()
         .iter()
-        .map(|c| c.as_str().unwrap())
+        .map(|c| c["code"].as_str().unwrap())
         .collect();
     assert_eq!(listed, SaveError::CODES);
 }
@@ -24,4 +24,25 @@ fn refusals_keep_the_cos_codes() {
         .map(|e| SaveError::from(e).code())
         .collect();
     assert_eq!(codes, ["repaired-base", "encrypted-base"]);
+}
+
+#[test]
+fn sink_errors_do_not_print_the_host_text() {
+    // ADR 0026 §4: a sink's message can name a caller path; it stays in the field.
+    let marker = "/Users/someone/IgnorePreviousInstructions.pdf";
+    let errors = [
+        SaveError::from(lamina_save::SinkError::Failed(marker.to_owned())),
+        SaveError::from(lamina_save::SinkError::Io {
+            kind: std::io::ErrorKind::PermissionDenied,
+            message: marker.to_owned(),
+        }),
+    ];
+    let messages: Vec<String> = errors.iter().map(ToString::to_string).collect();
+    assert!(messages.iter().all(|m| !m.contains(marker)), "{messages:?}");
+}
+
+#[test]
+fn a_sink_that_holds_bytes_already_is_a_usage_error_with_its_own_code() {
+    let e = SaveError::from(lamina_save::SinkError::NotEmpty { held: 1 });
+    assert_eq!((e.code(), e.kind()), ("sink-not-empty", lamina_cos::ErrorKind::Usage));
 }

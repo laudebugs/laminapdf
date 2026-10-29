@@ -3,7 +3,7 @@
 use std::fmt;
 use std::sync::Arc;
 
-use lamina_cos::{ByteSource, Source};
+use lamina_cos::{ByteSource, ErrorKind, Location, Source};
 
 use crate::sink::SinkError;
 
@@ -12,7 +12,7 @@ use crate::sink::SinkError;
 /// When it happened decides what was written and where the document stands:
 ///
 /// * **Before writing** ([`SaveError::Cos`], [`SaveError::Ops`], and
-///   [`SinkError::NotEmpty`]): nothing reached the sink; the document is unchanged.
+///   [`SinkError::NotEmpty`], code `sink-not-empty`): nothing reached the sink; the document is unchanged.
 ///   Refusals (a repaired or encrypted base: [`lamina_cos::Error::RepairedBase`],
 ///   [`lamina_cos::Error::EncryptedBase`]), input that isn't available yet
 ///   ([`lamina_cos::Error::DataPending`]: fetch and retry), limits and exhausted object numbers
@@ -51,7 +51,7 @@ pub enum SaveError {
 impl SaveError {
     /// Every code [`SaveError::code`] can return besides those of [`lamina_cos::Error`] and
     /// [`lamina_ops::Error`] (listed in `fixtures/codes.json` under `saveErrors`).
-    pub const CODES: &'static [&'static str] = &["sink", "not-rebased"];
+    pub const CODES: &'static [&'static str] = &["sink", "not-rebased", "sink-not-empty"];
 
     /// A stable kebab-case code for this error.
     #[must_use]
@@ -59,8 +59,37 @@ impl SaveError {
         match self {
             Self::Cos(e) => e.code(),
             Self::Ops(e) => e.code(),
-            Self::Sink(_) => "sink",
+            Self::Sink(SinkError::NotEmpty { .. }) => "sink-not-empty",
+            Self::Sink(SinkError::Io { .. } | SinkError::Failed(_)) => "sink",
             Self::NotRebased { .. } => "not-rebased",
+        }
+    }
+
+    /// The kind of this error ([ADR 0026] §2), as `fixtures/codes.json` lists it for
+    /// [`SaveError::code`] (a test checks every variant). Wrapped errors report their own.
+    ///
+    /// [ADR 0026]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0026-error-and-diagnostic-contract.md
+    #[must_use]
+    pub const fn kind(&self) -> ErrorKind {
+        match self {
+            Self::Cos(e) => e.kind(),
+            Self::Ops(e) => e.kind(),
+            Self::Sink(SinkError::NotEmpty { .. }) => ErrorKind::Usage,
+            Self::Sink(SinkError::Io { .. } | SinkError::Failed(_)) => ErrorKind::Io,
+            Self::NotRebased { .. } => ErrorKind::State,
+        }
+    }
+
+    /// Where the error was found in the document's input (ADR 0026 §1.1): the wrapped
+    /// error's location; empty for sink failures and for [`SaveError::NotRebased`], whose
+    /// `error` is about the newly written output, not the input (its own `location()` gives
+    /// positions in that output).
+    #[must_use]
+    pub fn location(&self) -> Location {
+        match self {
+            Self::Cos(e) => e.location(),
+            Self::Ops(e) => e.location(),
+            Self::Sink(_) | Self::NotRebased { .. } => Location::NONE,
         }
     }
 }
@@ -125,3 +154,48 @@ impl fmt::Debug for SavedOutput {
 
 /// Shorthand for `Result<T, lamina_save::SaveError>`.
 pub type Result<T> = core::result::Result<T, SaveError>;
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::test_codes as codes;
+
+    fn saved() -> SavedOutput {
+        SavedOutput::new(Source::from(Vec::new()))
+    }
+
+    /// One value of every variant this crate adds (each sink failure): the matches in
+    /// [`SaveError::code`] and [`SaveError::kind`] have no wildcard, so a new variant is a
+    /// compile error there, and this list is what the tests compare.
+    fn samples() -> Vec<SaveError> {
+        vec![
+            SaveError::Sink(SinkError::Io {
+                kind: std::io::ErrorKind::Other,
+                message: String::new(),
+            }),
+            SaveError::Sink(SinkError::Failed(String::new())),
+            SaveError::NotRebased {
+                saved: saved(),
+                error: lamina_ops::Error::NoPendingSave,
+            },
+            SaveError::Sink(SinkError::NotEmpty { held: 1 }),
+        ]
+    }
+
+    #[test]
+    fn codes_lists_the_code_of_every_variant_in_order() {
+        assert_eq!(codes::distinct(samples().iter().map(SaveError::code)), SaveError::CODES);
+    }
+
+    #[test]
+    fn every_variant_has_the_kind_codes_json_lists() {
+        codes::assert_kinds_match(samples().iter().map(|e| (e.code(), e.kind().as_str())));
+    }
+
+    #[test]
+    fn not_rebased_reports_no_input_location_for_a_position_in_the_output() {
+        let error = lamina_ops::Error::Cos(lamina_cos::Error::ReferenceCycle(7));
+        let e = SaveError::NotRebased { saved: saved(), error };
+        assert_eq!(e.location(), Location::NONE);
+    }
+}

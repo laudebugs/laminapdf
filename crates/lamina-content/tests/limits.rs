@@ -166,3 +166,47 @@ fn a_string_operand_at_the_length_limit_succeeds() {
     let limits = Limits::default().with_max_string_length(12);
     assert!(run_with(limits, b"BT (abcdefghijkl) Tj ET").is_ok());
 }
+
+/// ADR 0026 §1.1: a limit hit in content is located in the decoded content of its object.
+mod positions {
+    use super::*;
+    use lamina_content::Position;
+
+    fn at(result: &lamina_content::Result<lamina_content::Summary>) -> Option<Position> {
+        match result {
+            Err(Error::LimitExceeded { at, .. }) => *at,
+            _ => None,
+        }
+    }
+
+    #[test]
+    fn a_nesting_limit_is_at_the_offset_of_the_q_in_the_content() {
+        let limits = Limits::default().with_max_nesting_depth(3);
+        assert!(
+            matches!(
+                at(&run_with(limits, b"q q q q")),
+                Some(Position::InStream { offset: 6, .. })
+            ),
+            "{:?}",
+            run_with(limits, b"q q q q")
+        );
+    }
+
+    #[test]
+    fn a_string_limit_is_at_an_offset_in_the_content() {
+        let limits = Limits::default().with_max_string_length(12);
+        let result = run_with(limits, b"BT (abcdefghijklm) Tj ET");
+        assert!(
+            matches!(at(&result), Some(Position::InStream { offset: 3, .. })),
+            "{result:?}"
+        );
+    }
+
+    #[test]
+    fn a_form_depth_limit_is_at_the_form_object() {
+        let limits = Limits::default().with_max_xobject_depth(2);
+        let doc = page_doc_with(with(limits), |w| (b"/X Do".to_vec(), doubling(w, 4)));
+        let result = run(&doc).0;
+        assert!(matches!(at(&result), Some(Position::Object(_))), "{result:?}");
+    }
+}
