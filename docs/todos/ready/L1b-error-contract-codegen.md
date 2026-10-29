@@ -6,8 +6,8 @@
 | Status | `ready` |
 | Plan | [shareable-libraries §7 L1](../../plans/shareable-libraries.md#l1-contracts), [§4 principle 2](../../plans/shareable-libraries.md#4-principles-recommendations-recorded-in-adrs-00240029) |
 | Round / milestone | Round L1 (shareable libraries) |
-| Depends on | [L1a](./L1a-contract-adrs.md), [B6b](./B6b-lamina-pdf-package.md) |
-| Blocks | — |
+| Depends on | [B6b](./B6b-lamina-pdf-package.md), [L1a](./L1a-contract-adrs.md) |
+| Blocks | [L4a](./L4a-lamina-cli.md), [L5a](./L5a-agent-docs.md) |
 | ADRs | Implements 0024 (from [L1a](./L1a-contract-adrs.md)); follows [0003](../../decisions/0003-reader-tolerance-and-limits.md) §2 and §4 (codes listed once, Rust and TS tests), [0002](../../decisions/0002-binding-strategy.md) §1 (errors map 1:1 to a JS `Error` with `code`), [0018](../../decisions/0018-test-strategy.md) §5 (shared expectations), [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) (new dev dependencies) |
 | Branch | `feat/l1b-error-contract` |
 | PR title | `feat(codes): generate the error contract into Rust, TypeScript and JSON Schema with explain text` |

@@ -7,7 +7,7 @@
 | Plan | [shareable-libraries §7 L2](../../plans/shareable-libraries.md#l2-typescript-hardening) |
 | Round / milestone | Round L2 (shareable libraries) |
 | Depends on | [B6b](./B6b-lamina-pdf-package.md) |
-| Blocks | — |
+| Blocks | None |
 | ADRs | Follows [0002](../../decisions/0002-binding-strategy.md) (wasm-bindgen handles, `free()`/`using`), [0003](../../decisions/0003-reader-tolerance-and-limits.md) §3 (`Limits` as the first memory bound), 0016 (build profile, from [B6a](./B6a-lamina-wasm-and-adr-0016.md)), 0024 (codes, from [L1a](./L1a-contract-adrs.md), if merged), [0018](../../decisions/0018-test-strategy.md) §2 (no wall-clock assertions) |
 | Branch | `feat/l2b-disposal-and-memory` |
 | PR title | `feat(pdf): Symbol.dispose on every handle, capped wasm memory and instance recovery` |

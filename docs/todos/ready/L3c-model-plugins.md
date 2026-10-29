@@ -7,7 +7,7 @@
 | Plan | [shareable-libraries §7 L3](../../plans/shareable-libraries.md#l3-ai-ready-extraction), principle [§4](../../plans/shareable-libraries.md#4-principles-recommendations-recorded-in-adrs-00240029) 7 (rules in core, models as plug-ins) |
 | Round / milestone | Round L3 (shareable libraries) — AI-ready extraction |
 | Depends on | [L3b](./L3b-extract-tables-and-serialisers.md) |
-| Blocks | — |
+| Blocks | None |
 | ADRs | Implements 0028's plug-in policy (from [L3a](./L3a-lamina-extract-reading-order.md)); follows 0026 (jobs; from [L1a](./L1a-contract-adrs.md)), [0001](../../decisions/0001-core-language-and-licence.md) (no AGPL/GPL, bytes in / bytes out), [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) (licence checks), [0002](../../decisions/0002-binding-strategy.md) (bindings); relates to ADR 0013 (heavy jobs, from [E13a](./E13a-adr-0013-heavy-jobs.md)) |
 | Branch | `feat/l3c-model-plugins` |
 | PR title | `feat(extract): LayoutModel and OcrEngine plug-in traits and an optional ONNX layout crate` |

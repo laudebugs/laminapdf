@@ -7,7 +7,7 @@
 | Plan | [shareable-libraries §7 L1](../../plans/shareable-libraries.md#l1-contracts), [§4 principles](../../plans/shareable-libraries.md#4-principles-recommendations-recorded-in-adrs-00240029), [§6 ADRs](../../plans/shareable-libraries.md#6-decisions-to-record-adrs) |
 | Round / milestone | Round L1 (shareable libraries) — before B5a/B5c |
 | Depends on | None |
-| Blocks | — |
+| Blocks | [B5a](./B5a-lamina-build-core.md), [L1b](./L1b-error-contract-codegen.md), [L2a](./L2a-worker-client.md), [L3a](./L3a-lamina-extract-reading-order.md), [L6a](./L6a-lamina-ffi-spike.md) |
 | ADRs | Writes **0024** (error and diagnostic contract), **0025** (coordinates, units and page indexing), **0026** (façade rules, jobs, cancellation and progress); extends [0003](../../decisions/0003-reader-tolerance-and-limits.md) §2 (codes), fills in [0002](../../decisions/0002-binding-strategy.md) §3 (façade), touches [0005](../../decisions/0005-document-model.md) §7 (threads); informs proposed 0009 (worker RPC, [C2a](./C2a-render-adrs.md)) and 0029 (CLI, [L4a](./L4a-lamina-cli.md)) |
 | Branch | `docs/l1a-contract-adrs` |
 | PR title | `docs(decisions): ADRs 0024 (errors), 0025 (coordinates and units), 0026 (façade rules, jobs, cancellation)` |

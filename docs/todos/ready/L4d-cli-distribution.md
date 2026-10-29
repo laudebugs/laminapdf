@@ -7,7 +7,7 @@
 | Plan | [shareable libraries §7 L4](../../plans/shareable-libraries.md#l4-cli-and-mcp) |
 | Round / milestone | Round L4 (shareable libraries) |
 | Depends on | [L4a](./L4a-lamina-cli.md), [P1](./P1-reserve-names-and-trusted-publishing.md) |
-| Blocks | — |
+| Blocks | None |
 | ADRs | Follows 0017 (versioning and publishing, completed in [P1](./P1-reserve-names-and-trusted-publishing.md)), [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) (SBOMs, notices, licences), 0029 (binary name, from [L4a](./L4a-lamina-cli.md)) |
 | Branch | `build/l4d-cli-distribution` |
 | PR title | `build(cli): release binaries with cargo-dist, Homebrew formula and npm wrapper packages` |

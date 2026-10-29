@@ -6,8 +6,8 @@
 | Status | `ready` |
 | Plan | [shareable libraries §7 L4](../../plans/shareable-libraries.md#l4-cli-and-mcp) |
 | Round / milestone | Round L4 (shareable libraries) |
-| Depends on | [L4a](./L4a-lamina-cli.md), [C2b](./C2b-lamina-render-crate.md), [L3b](./L3b-extract-tables-and-serialisers.md) |
-| Blocks | — |
+| Depends on | [C2b](./C2b-lamina-render-crate.md), [L3b](./L3b-extract-tables-and-serialisers.md), [L4a](./L4a-lamina-cli.md) |
+| Blocks | None |
 | ADRs | Implements 0029 (batch and NDJSON rules, from [L4a](./L4a-lamina-cli.md)). Follows 0024 (errors), 0025 (coordinates in output), 0028 (`lamina.extract/1`, from [L3a](./L3a-lamina-extract-reading-order.md)), [0003](../../decisions/0003-reader-tolerance-and-limits.md) (`Limits`), [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) (new dependencies) |
 | Branch | `feat/l4b-cli-batch-render-schema` |
 | PR title | `feat(cli): batch mode with --jobs and NDJSON, render, extract md/json, schema, completions and man pages` |

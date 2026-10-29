@@ -44,10 +44,10 @@ The research found the opening is real: in October 2026 no permissively licensed
 
 ## 4. Principles (recommendations, recorded in ADRs 0024–0029)
 
-1. **Design the façade to UniFFI's rules now** ([report §2](../research/libraries/shareable-libraries.md#design-the-façade-to-the-stricter-binding-now)): `Send + Sync` handles behind `Arc`, `&self` methods only, owned handles instead of borrowed returns, no generics across the boundary, a string-payload error enum, an explicit `CancelToken`, resumable `Job::step`. UniFFI forbids `&mut self`; fixing this after `@lamina/pdf` ships would break the TypeScript API.
-2. **One error shape everywhere:** `{ code, kind, message, hint, location, docsUrl }`, codes generated from [`fixtures/codes.json`](../../fixtures/codes.json) into Rust, TypeScript and JSON Schema. Messages never quote document text (prompt-injection hygiene).
+1. **Design the façade to UniFFI's rules now** ([report §2](../research/libraries/shareable-libraries.md#design-the-façade-to-the-stricter-binding-now)): `Send + Sync` handles behind `Arc` (the lock lives in the façade, so ADR 0005 §7's single-thread `Document` stays as it is; ADR 0026 decides), `&self` methods only, owned handles instead of borrowed returns, no generics across the boundary, a string-payload error enum, an explicit `CancelToken`, resumable `Job::step`. UniFFI forbids `&mut self`; fixing this after `@lamina/pdf` ships would break the TypeScript API.
+2. **One error shape everywhere:** `{ code, kind, message, hint, location, docsUrl }`, kebab-case codes as today (ADR 0003 §2), generated from [`fixtures/codes.json`](../../fixtures/codes.json) into Rust, TypeScript and JSON Schema. Messages never quote document text (prompt-injection hygiene).
 3. **Explicit coordinates:** high-level and extraction APIs use **top-left origin, points**, with typed units (`Pt`, `Mm`) and an explicit `coordinates` block in every JSON output; low-level APIs keep raw PDF user space, named as such. Pages: 0-based `index` plus 1-based `number` in output.
-4. **The core stays synchronous.** Long work is a `Job` the caller steps with a budget; cancellation and progress are lamina API, not binding features (UniFFI has no built-in cancellation). Async lives at the edges: the TS worker client, Swift `async`, Kotlin `suspend`.
+4. **The core stays synchronous.** Long work is a `Job` the caller steps with a budget counted in work units (core crates have no clock; time limits live at the edges); cancellation and progress are lamina API, not binding features (UniFFI has no built-in cancellation). Async lives at the edges: the TS worker client, Swift `async`, Kotlin `suspend`.
 5. **Versioned schemas and deterministic output:** every JSON output carries a schema id (`lamina.extract/1`, `lamina.info/1`); new keys may appear within a version, consumers ignore unknown keys (qpdf's contract).
 6. **Separate binaries for heavy features:** wasm code cannot be tree-shaken, so render, extract and sign are separate `.wasm` modules with their own budgets; the 350 KB gz budget covers the base module only.
 7. **Rules in core, models as plug-ins:** extraction is rule-based and dependency-light; layout and OCR models implement traits in optional edge crates with licence-clean weights.
@@ -62,7 +62,8 @@ let doc = lamina::Document::open(bytes, OpenOptions::default())?;   // Send + Sy
 let job = doc.extract(ExtractOptions { format: Format::Markdown, ..Default::default() });
 let cancel = job.cancel_token();
 let out = loop {
-    match job.step(Budget::millis(16))? { Step::Done(out) => break out, Step::Progress(_) => {} }
+    // budget in work units: core crates have no clock (ADR 0026 decides the unit)
+    match job.step(Budget::units(10_000))? { Step::Done(out) => break out, Step::Progress(_) => {} }
 };
 ```
 
@@ -104,11 +105,11 @@ Each round is split into todos (one PR each) on the [todo board](../todos/README
 **Todos:** [L1a](../todos/ready/L1a-contract-adrs.md) (ADRs 0024, 0025, 0026), [L1b](../todos/ready/L1b-error-contract-codegen.md) (error codegen, `explain`).
 
 **Deliverable:** three ADRs; codes and error types generated from `fixtures/codes.json` into Rust, TypeScript and JSON Schema; `explain` text per code.
-**Accepted when:** B5a's builder uses ADR 0025's coordinates; B5c's façade meets ADR 0026's rules; a TS test narrows `LaminaError.code` exhaustively; a change to `codes.json` without regenerating fails CI.
+**Accepted when:** B5a's builder uses ADR 0025's coordinates; B5c's façade meets ADR 0026's rules; a TS test narrows the error class's `code` exhaustively (ADR 0024 settles the class name: `LaminaError` recommended, `PdfError` in B6b today); a change to `codes.json` without regenerating fails CI.
 
 ### L2. TypeScript hardening
 
-**Todos:** [L2a](../todos/ready/L2a-worker-client.md) (`@lamina/pdf/worker`), [L2b](../todos/ready/L2b-disposal-and-memory.md) (disposal and memory bounds), [L2c](../todos/ready/L2c-range-byte-source.md) (range `ByteSource` with `NeedData`).
+**Todos:** [L2a](../todos/ready/L2a-worker-client.md) (`@lamina/pdf/worker`), [L2b](../todos/ready/L2b-disposal-and-memory.md) (disposal and memory bounds), [L2c](../todos/ready/L2c-range-byte-source.md) (range `ByteSource` over `Error::DataPending`).
 
 **Deliverable:** a worker client with the same method names as the sync API, version handshake, `AbortSignal` and transfer lists, which `@lamina/viewer` (C3a) consumes; `Symbol.dispose` on every handle, a capped wasm memory and an abort-and-reinstantiate wrapper; range reading for large and remote files.
 **Accepted when:** a 50 MB file opens in a worker with no long task over 50 ms on the main thread; disposing every handle returns memory to the pre-open baseline (± one page); opening a remote file fetches only the ranges it needs.
@@ -164,7 +165,7 @@ This plan adjusts these todos (edited in the same PR):
 
 - [ ] `@lamina/pdf/worker`: typed RPC, version handshake, `AbortSignal`, transfer lists
 - [ ] `Symbol.dispose` on every handle, capped wasm memory, abort-and-reinstantiate wrapper
-- [ ] Range `ByteSource` with `NeedData` at the edges (HTTP range, JS callback, native mmap)
+- [ ] Range `ByteSource` reporting missing ranges through `Error::DataPending` (ADR 0005 §2), with edge adapters (HTTP range, JS callback, native positioned reads)
 
 ### L3. AI-ready extraction
 

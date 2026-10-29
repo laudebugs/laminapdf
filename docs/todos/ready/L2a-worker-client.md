@@ -7,7 +7,7 @@
 | Plan | [shareable-libraries §7 L2](../../plans/shareable-libraries.md#l2-typescript-hardening), [§5 design summary](../../plans/shareable-libraries.md#5-design-summary) |
 | Round / milestone | Round L2 (shareable libraries) — before C3a |
 | Depends on | [B6b](./B6b-lamina-pdf-package.md), [L1a](./L1a-contract-adrs.md) |
-| Blocks | — |
+| Blocks | [C3a](./C3a-viewer-worker-rpc.md) |
 | ADRs | Follows 0026 (jobs, `CancelToken`, async only at the edges) and 0024 (errors cross as JSON, not `Error` objects), both from [L1a](./L1a-contract-adrs.md); [0002](../../decisions/0002-binding-strategy.md) §1 (sync core after `init()`); 0016 (export conditions, from [B6a](./B6a-lamina-wasm-and-adr-0016.md)); informs proposed 0009 (typed worker RPC, [C2a](./C2a-render-adrs.md)) |
 | Branch | `feat/l2a-worker-client` |
 | PR title | `feat(pdf): @lamina/pdf/worker async client with typed RPC, version handshake and AbortSignal` |

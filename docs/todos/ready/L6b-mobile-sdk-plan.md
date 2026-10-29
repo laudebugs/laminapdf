@@ -6,8 +6,8 @@
 | Status | `ready` |
 | Plan | [shareable-libraries §7 L6](../../plans/shareable-libraries.md#l6-mobile), [§2 non-goals](../../plans/shareable-libraries.md#2-scope-and-non-goals) (the SDK rounds come from this plan) |
 | Round / milestone | Round L6 (shareable libraries) — Mobile |
-| Depends on | [L6a](./L6a-lamina-ffi-spike.md), [C2b](./C2b-lamina-render-crate.md) |
-| Blocks | — |
+| Depends on | [C2b](./C2b-lamina-render-crate.md), [L6a](./L6a-lamina-ffi-spike.md) |
+| Blocks | None |
 | ADRs | Follows 0027 (from [L6a](./L6a-lamina-ffi-spike.md)), 0026 (jobs, cancellation), 0025 (coordinates), 0024 (errors) from [L1a](./L1a-contract-adrs.md), 0004 (render backend per surface, from [C2a](./C2a-render-adrs.md)), [0002](../../decisions/0002-binding-strategy.md), [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md); lists the ADRs the mobile rounds will need |
 | Branch | `docs/l6b-mobile-sdk-plan` |
 | PR title | `docs(plans): mobile SDK plan with SwiftUI and Compose viewers, rounds and todos` |
