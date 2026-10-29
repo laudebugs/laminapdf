@@ -10,7 +10,8 @@
 use std::sync::Mutex;
 use std::sync::atomic::{AtomicU64, Ordering};
 
-use lamina_cos::{ByteSource, Dict, Document, Error, ObjRef, Object, OpenOptions, SourceError, Stream, Writer};
+use lamina_cos::{ByteSource, Dict, Document, Error, ObjRef, Object, OpenOptions, SourceError, Stream};
+use lamina_save::Writer;
 
 const WINDOW: usize = 64 * 1024;
 

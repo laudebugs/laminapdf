@@ -1,16 +1,27 @@
-//! The PDF file structure (COS layer, ISO 32000-2 §7.5–7.7): a tolerant reader and a strict
-//! writer, over the object model of [`lamina_syntax`].
+//! The PDF file structure (COS layer, ISO 32000-2 §7.5–7.7): a tolerant reader and the
+//! overlay that records changes, over the object model of [`lamina_syntax`]. Writing lives in
+//! `lamina-save`.
 //!
 //! ```
-//! use lamina_cos::{Dict, Document, Object, OpenOptions, Writer};
+//! use lamina_cos::{Document, OpenOptions};
 //!
-//! let mut w = Writer::new(1, 7);
-//! let pages = w.reserve();
-//! let page = w.add([("Type", Object::name("Page")), ("Parent", pages.into())].into_iter().collect::<Dict>());
-//! w.set(pages, [("Type", Object::name("Pages")), ("Kids", vec![page.into()].into()), ("Count", 1.into())]
-//!     .into_iter().collect::<Dict>());
-//! let root = w.add([("Type", Object::name("Catalog")), ("Pages", pages.into())].into_iter().collect::<Dict>());
-//! let bytes = w.finish(&[("Root", root)].into_iter().collect())?;
+//! let mut bytes = b"%PDF-1.7\n".to_vec();
+//! let objects = [
+//!     "<< /Type /Catalog /Pages 2 0 R >>",
+//!     "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+//!     "<< /Type /Page /Parent 2 0 R >>",
+//! ];
+//! let mut offsets = Vec::new();
+//! for (i, body) in objects.iter().enumerate() {
+//!     offsets.push(bytes.len());
+//!     bytes.extend_from_slice(format!("{} 0 obj\n{body}\nendobj\n", i + 1).as_bytes());
+//! }
+//! let xref = bytes.len();
+//! bytes.extend_from_slice(b"xref\n0 4\n0000000000 65535 f\r\n");
+//! for offset in offsets {
+//!     bytes.extend_from_slice(format!("{offset:010} 00000 n\r\n").as_bytes());
+//! }
+//! bytes.extend_from_slice(format!("trailer\n<< /Size 4 /Root 1 0 R >>\nstartxref\n{xref}\n%%EOF\n").as_bytes());
 //!
 //! let doc = Document::open(bytes, OpenOptions::default())?;
 //! assert_eq!(doc.page_count()?, 1);
@@ -48,8 +59,9 @@
 //!   AES-256, crypt filters, `/EncryptMetadata`) open with [`OpenOptions::with_password`] or the
 //!   empty user password and are decrypted as objects load ([`Document::encryption`],
 //!   [`Document::permissions`], [`Document::matched_password`]). Read only.
-//! * [`Writer`] / [`incremental_update`]: classic, compact (object stream + xref stream) and
-//!   incremental output.
+//! * The overlay ([`Document::edit`] → [`CosMut`]): every change lands there, never in the
+//!   base; [`Document::rebase`] makes saved bytes the new base. The writers that turn it into
+//!   bytes are in `lamina-save`.
 //! * [`Warning`]: what the tolerant reader repaired, with stable codes (ADR 0003 §2).
 //!
 //! The object model types ([`Object`], [`Dict`], …) are re-exported from `lamina-syntax`.
@@ -75,9 +87,10 @@
 //!   container's offset), and falls back to the newest `/Type /Catalog`. In hybrid files the
 //!   classic table's in-use entries win over `/XRefStm`, which still fills in entries the
 //!   table marks free.
-//! * Writing is strict: an incremental update appends a section of the same kind as the
-//!   newest one (classic table or xref stream), never shrinks `/Size`, and refuses repaired
-//!   ([`Error::RepairedBase`]) and encrypted ([`Error::EncryptedBase`]) bases.
+//! * Writing (in `lamina-save`) is strict: an incremental update appends a section of the
+//!   same kind as the newest one (classic table or xref stream), never shrinks `/Size`
+//!   ([`Document::size_floor`]), and refuses repaired ([`Error::RepairedBase`]) and encrypted
+//!   ([`Error::EncryptedBase`]) bases.
 //! * Limits ([`Limits`], ADR 0003 §3): hard limits (nesting, string length, decoded bytes
 //!   per stream and per call, filter chains, reference chains, page-tree depth) fail the call
 //!   with [`Error::LimitExceeded`], or make a tolerant path skip the item with its usual
@@ -91,12 +104,17 @@ mod overlay;
 mod reader;
 mod scan;
 mod source;
-mod writer;
+// Hand-built files, shared with the integration tests (unit tests can't use `lamina-save`'s
+// writer: through the dev-dependency they would see a second copy of this crate).
+#[cfg(test)]
+#[path = "../tests/common/classic.rs"]
+mod test_files;
 
 pub use error::{Error, Result};
 pub use lamina_syntax::crypt::{Cipher, PasswordKind, Permissions};
 pub use lamina_syntax::{Dict, Limit, Limits, Name, ObjRef, Object, PdfString, Stream, StringFormat};
-pub use overlay::{CosChange, CosMut, JournalMark, Overlay, OverlayEntry};
-pub use reader::{DirectPath, Document, Encryption, Inherited, OpenOptions, Page, PathSegment, Resolved, Warning};
-pub use source::{ByteSource, Source, SourceError};
-pub use writer::{Writer, XrefEol, incremental_update};
+pub use overlay::{CosChange, CosMut, JournalMark, Overlay, OverlayEntry, Reserved};
+pub use reader::{
+    DirectPath, Document, Encryption, Inherited, OpenOptions, Page, PathSegment, Resolved, Warning, XREF_STREAM_KEYS,
+};
+pub use source::{ByteSource, Source, SourceError, merge_ranges, read_exact};

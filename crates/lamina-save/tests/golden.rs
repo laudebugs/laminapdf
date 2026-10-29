@@ -1,4 +1,5 @@
-//! SPEC case 1: golden, byte-identical rebuilds (plus the incremental-update fixture).
+//! SPEC case 1: golden, byte-identical rebuilds (plus the incremental-update fixture), and the
+//! overlay writers' goldens (B3b).
 #![allow(
     clippy::unwrap_used,
     clippy::panic,
@@ -11,7 +12,8 @@ mod common;
 use common::fixture;
 use common::samples;
 use common::update;
-use lamina_cos::{Dict, ObjRef, Stream, XrefEol};
+use lamina_cos::{Dict, ObjRef, Stream};
+use lamina_save::XrefEol;
 
 #[test]
 fn hello_rebuild_is_byte_identical_to_golden_fixture() {
@@ -41,5 +43,22 @@ fn incremental_update_of_hello_reproduces_corpus_fixture_byte_for_byte() {
     assert_eq!(
         String::from_utf8_lossy(&updated),
         String::from_utf8_lossy(&fixture("corpus/hello-incremental.pdf"))
+    );
+}
+
+#[test]
+fn incremental_set_info_is_byte_identical_to_golden_fixture() {
+    let ours = samples::incremental_set_info().unwrap();
+    assert_eq!(
+        String::from_utf8_lossy(&ours),
+        String::from_utf8_lossy(&fixture("golden/incremental-set-info.pdf"))
+    );
+}
+
+#[test]
+fn full_rewrite_hello_is_byte_identical_to_golden_fixture() {
+    assert_eq!(
+        samples::full_rewrite_hello().unwrap(),
+        fixture("golden/full-rewrite-hello.pdf")
     );
 }

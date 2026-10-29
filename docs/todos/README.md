@@ -12,17 +12,18 @@ New todos start from [`TEMPLATE.md`](TEMPLATE.md). The workflow is in [git workf
 
 IDs: `A`/`P`/`X` [architecture](../plans/architecture.md) (foundations, publishing, cross-cutting), `B` [library](../plans/pdf-library.md), `L` [shareable libraries](../plans/shareable-libraries.md) (contracts, worker, extraction, CLI, agent docs, mobile), `C` [web reader](../plans/web-app.md), `D` [desktop reader](../plans/desktop-app.md), `U` [UI/UX](../plans/ui-ux.md), `E` [editor](../plans/full-editor.md), `H` hosted service ([full-editor](../plans/full-editor.md)). A letter suffix (`B2a`, `B2b`) splits a round into PRs.
 
-**4 ongoing · 216 ready · 14 done** (234 total).
+**3 ongoing · 216 ready · 15 done** (234 total).
 
 ## Can start now
 
 Ready todos whose dependencies are all done:
 
+- [B3c](ready/B3c-save-planner-and-roundtrip.md): `SavePlanner`, `SaveConstraint` detection and round-trip in lamina, pdf.js, PDFium and qpdf
+- [B4a](ready/B4a-font-loading-and-subsetting.md): `lamina-text`: font loading, subsetting and Type 0 embedding with ToUnicode
 - [L1c](ready/L1c-error-contract-core.md): Error contract in the Rust core: `codes.json` v2 with kinds and hints, tagged locations, no document text in messages
 
 ## Ongoing
 
-- [B3b](ongoing/B3b-lamina-save-writers.md): `lamina-save`: move the writer, `WriteSink`, incremental and full writers over the overlay, rebase
 - [B9a](ongoing/B9a-lamina-content-and-adr-0023.md): ADR 0023 and `lamina-content`: read-only content-stream interpreter
 - [X3a](ongoing/X3a-nightly-lane.md): Nightly CI lane: external-corpus differential, extended fuzzing, scaling tests and benchmarks
 - [X5](ongoing/X5-linux-ci-container.md): Linux CI on a self-hosted runner in a container on the Mac
@@ -46,9 +47,9 @@ Ready todos whose dependencies are all done:
 | B2c | [`lamina-model` views and IDs, corpus facts, pypdf differential and fuzz targets](done/B2c-lamina-model-corpus-fuzz.md) | done | [B2a](done/B2a-limits-owned-document.md) |
 | B2d | [Windowed reading for sources without `as_slice`](done/B2d-windowed-reading.md) | done | [B2a](done/B2a-limits-owned-document.md) |
 | B3a | [COS overlay and `lamina-ops`: `Op`, `transact`, savepoints, undo/redo](done/B3a-overlay-and-ops.md) | done | [B2c](done/B2c-lamina-model-corpus-fuzz.md) |
-| B3b | [`lamina-save`: move the writer, `WriteSink`, incremental and full writers over the overlay, rebase](ongoing/B3b-lamina-save-writers.md) | ongoing | [B3a](done/B3a-overlay-and-ops.md) |
-| B3c | [`SavePlanner`, `SaveConstraint` detection and round-trip in lamina, pdf.js, PDFium and qpdf](ready/B3c-save-planner-and-roundtrip.md) | ready | [B2b](done/B2b-standard-security-decryption.md), [B3b](ongoing/B3b-lamina-save-writers.md), [X4](done/X4-full-lane-gate.md) |
-| B4a | [`lamina-text`: font loading, subsetting and Type 0 embedding with ToUnicode](ready/B4a-font-loading-and-subsetting.md) | ready | [B1b](done/B1b-krilla-fit-spike.md), [B3b](ongoing/B3b-lamina-save-writers.md), [X4](done/X4-full-lane-gate.md) |
+| B3b | [`lamina-save`: move the writer, `WriteSink`, incremental and full writers over the overlay, rebase](done/B3b-lamina-save-writers.md) | done | [B3a](done/B3a-overlay-and-ops.md) |
+| B3c | [`SavePlanner`, `SaveConstraint` detection and round-trip in lamina, pdf.js, PDFium and qpdf](ready/B3c-save-planner-and-roundtrip.md) | ready | [B2b](done/B2b-standard-security-decryption.md), [B3b](done/B3b-lamina-save-writers.md), [X4](done/X4-full-lane-gate.md) |
+| B4a | [`lamina-text`: font loading, subsetting and Type 0 embedding with ToUnicode](ready/B4a-font-loading-and-subsetting.md) | ready | [B1b](done/B1b-krilla-fit-spike.md), [B3b](done/B3b-lamina-save-writers.md), [X4](done/X4-full-lane-gate.md) |
 | B4b | [Shaping (HarfRust), bidi and line breaking (ICU4X), with goldens in five scripts](ready/B4b-shaping-bidi-line-breaking.md) | ready | [B4a](ready/B4a-font-loading-and-subsetting.md), [X4](done/X4-full-lane-gate.md) |
 | B4c | [Standard 14 fonts with AFM metrics and simple-font encoding](ready/B4c-standard-14-and-simple-fonts.md) | ready | [B4a](ready/B4a-font-loading-and-subsetting.md) |
 | B5a | [`lamina-build` core: builder, pages, vectors, colour and images](ready/B5a-lamina-build-core.md) | ready | [B1b](done/B1b-krilla-fit-spike.md), [B3c](ready/B3c-save-planner-and-roundtrip.md), [L1a](done/L1a-contract-adrs.md) |
