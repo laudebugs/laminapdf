@@ -191,7 +191,7 @@ fn cff_widths_equal_the_original_advances() {
     let mut pdf = TestPdf::new();
     let key = pdf.add_font(source.clone()).unwrap();
     pdf.line(key, 12.0, "CFF widths: Ådne’s naïve café").unwrap();
-    let glyphs = pdf.registry().usage(key).unwrap().glyphs();
+    let glyphs = pdf.registry().usage(key).unwrap().embedded().unwrap().glyphs();
     let widths = widths_of(&read_fonts(&pdf.finish().unwrap().0)[0]);
     let upem = f64::from(source.info().units_per_em);
     for (cid, gid) in glyphs {
@@ -206,7 +206,7 @@ fn equal_cjk_widths_fold_into_dw() {
     let mut pdf = TestPdf::new();
     let key = pdf.add_font(source.clone()).unwrap();
     pdf.line(key, 12.0, samples::CFF[1]).unwrap();
-    let glyphs = pdf.registry().usage(key).unwrap().glyphs();
+    let glyphs = pdf.registry().usage(key).unwrap().embedded().unwrap().glyphs();
     let f = &read_fonts(&pdf.finish().unwrap().0)[0];
     let listed = f
         .cid_font

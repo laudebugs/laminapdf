@@ -93,7 +93,10 @@ const INPUTS: [(&str, &str); 18] = [
         "agl/zapfdingbats.txt",
         "f6394e3cb8a447e84a1dad75d4baaf2aa7f45dc104faf369f4720e1a774ef2dc",
     ),
-    ("latin-encodings.txt", "-"),
+    (
+        "latin-encodings.txt",
+        "c91fb386c1d8d31a56d94db73e9345d43943c78763c2651b53e1b55a26dc31dc",
+    ),
 ];
 
 /// The fonts, in the order of `lamina_text::Standard14` (the generated `FONTS` array).
@@ -133,6 +136,9 @@ fn main() -> Result<()> {
     let root = workspace_root();
     let files = generate(&root.join("tools/std14-gen/data"))?;
     let out = root.join(OUT);
+    if !check {
+        std::fs::create_dir_all(&out).with_context(|| format!("creating {}", out.display()))?;
+    }
     let mut stale = Vec::new();
     for (name, text) in &files {
         let path = out.join(name);
@@ -300,9 +306,11 @@ fn encoding_table(codes: &BTreeMap<u8, &str>, names: &[String]) -> Result<Vec<u1
     Ok(table)
 }
 
-/// Unicode → glyph index for `names` (sorted). `encoded` ranks glyphs when two stand for the
-/// same character (an encoded one wins, then the first name); `aliases` add characters a
-/// glyph also stands for (`Deltagreek` U+0394 → `Delta`) unless a glyph has them directly.
+/// Unicode → glyph index for the glyphs of `names` (sorted) that `keep` accepts, by `unicode`
+/// (the glyph list). `encoded` ranks glyphs when two stand for the same character (an encoded
+/// one wins, then the first name). A glyph `X` also stands for the letter the AGL gives
+/// `Xgreek` (`Deltagreek` U+0394 → `Delta`), and `extra` adds (character, glyph) pairs; both
+/// only where no glyph has the character directly.
 fn char_table(
     names: &[String],
     unicode: &dyn Fn(&str) -> Option<String>,
@@ -369,10 +377,8 @@ fn generate(data: &Path) -> Result<Vec<(String, String)>> {
     let mut texts = BTreeMap::new();
     for (path, digest) in INPUTS {
         let bytes = std::fs::read(data.join(path)).with_context(|| format!("reading data/{path}"))?;
-        if digest != "-" {
-            let actual = hex(&Sha256::digest(&bytes));
-            ensure!(actual == digest, "data/{path}: SHA-256 {actual}, expected {digest}");
-        }
+        let actual = hex(&Sha256::digest(&bytes));
+        ensure!(actual == digest, "data/{path}: SHA-256 {actual}, expected {digest}");
         texts.insert(
             path,
             String::from_utf8(bytes).with_context(|| format!("data/{path} is not UTF-8"))?,
@@ -422,21 +428,23 @@ fn generate(data: &Path) -> Result<Vec<(String, String)>> {
             afm.font_name
         );
     }
-    let column = |i: usize| -> BTreeMap<u8, &str> {
+    let column = |i: usize| -> Result<BTreeMap<u8, &str>> {
         let mut out = BTreeMap::new();
         for (name, codes) in &latin_enc {
             for &code in codes.get(i).into_iter().flatten() {
-                out.insert(code, name.as_str());
+                if let Some(other) = out.insert(code, name.as_str()) {
+                    bail!("latin-encodings.txt gives code {code:o} to both {other} and {name}");
+                }
             }
         }
-        out
+        Ok(out)
     };
     ensure!(
-        column(0) == standard,
+        column(0)? == standard,
         "latin-encodings.txt's STD column differs from the AFM files' codes"
     );
-    let mac = column(1);
-    let win = column(2);
+    let mac = column(1)?;
+    let win = column(2)?;
     let symbol_codes = builtin(symbol_afm);
     let zapf_codes = builtin(zapf_afm);
 
@@ -449,18 +457,31 @@ fn generate(data: &Path) -> Result<Vec<(String, String)>> {
                 "STANDARD",
                 "`StandardEncoding` (the Latin fonts' built-in encoding)",
                 encoding_table(&standard, &latin)?,
+                latin.len(),
             ),
-            ("WIN_ANSI", "`WinAnsiEncoding`", encoding_table(&win, &latin)?),
-            ("MAC_ROMAN", "`MacRomanEncoding`", encoding_table(&mac, &latin)?),
+            (
+                "WIN_ANSI",
+                "`WinAnsiEncoding`",
+                encoding_table(&win, &latin)?,
+                latin.len(),
+            ),
+            (
+                "MAC_ROMAN",
+                "`MacRomanEncoding`",
+                encoding_table(&mac, &latin)?,
+                latin.len(),
+            ),
             (
                 "SYMBOL",
                 "Symbol's built-in encoding",
                 encoding_table(&symbol_codes, &symbol)?,
+                symbol.len(),
             ),
             (
                 "ZAPF_DINGBATS",
                 "`ZapfDingbats`' built-in encoding",
                 encoding_table(&zapf_codes, &zapf)?,
+                zapf.len(),
             ),
         ]),
     ));
@@ -482,7 +503,13 @@ fn generate(data: &Path) -> Result<Vec<(String, String)>> {
                     &|_| true,
                     // Code points `WinAnsiEncoding` (Windows-1252) gives the glyphs at 240 and
                     // 255 (Annex D: `space` and `hyphen`), which the AGL names otherwise.
-                    &[('\u{A0}', "space"), ('\u{AD}', "hyphen")],
+                    // Romanian Ț ț: the AGL gives `Tcommaaccent` the cedilla form's U+0162.
+                    &[
+                        ('\u{A0}', "space"),
+                        ('\u{AD}', "hyphen"),
+                        ('\u{21A}', "Tcommaaccent"),
+                        ('\u{21B}', "tcommaaccent"),
+                    ],
                     &agl,
                 )?,
             ),
@@ -669,7 +696,10 @@ fn metrics_rs(afms: &[Afm], latin: &[String], symbol: &[String], zapf: &[String]
     Ok(s)
 }
 
-fn encodings_rs(tables: &[(&str, &str, Vec<u16>)]) -> String {
+/// (static name, what it is, code → glyph index, glyph count).
+type EncodingTable<'a> = (&'a str, &'a str, Vec<u16>, usize);
+
+fn encodings_rs(tables: &[EncodingTable<'_>]) -> String {
     let mut s = String::from(GENERATED);
     s.push_str(
         "//\n// Code → glyph (an index into the font's sorted glyph names in metrics.rs; `NONE` where the\n\
@@ -677,7 +707,7 @@ fn encodings_rs(tables: &[(&str, &str, Vec<u16>)]) -> String {
          // AFM files (see metrics.rs for their notice); WinAnsiEncoding and MacRomanEncoding: ISO\n\
          // 32000-2 Annex D, Table D.2 (tools/std14-gen/data/latin-encodings.txt).\n\nuse super::NONE;\n",
     );
-    for (name, doc, table) in tables {
+    for (name, doc, table, glyphs) in tables {
         let items: Vec<String> = table
             .iter()
             .map(|&i| {
@@ -688,10 +718,20 @@ fn encodings_rs(tables: &[(&str, &str, Vec<u16>)]) -> String {
                 }
             })
             .collect();
+        // Glyph → its lowest code (code 0 is undefined in every one of these encodings, so 0
+        // means "no code").
+        let mut codes = vec![0u8; *glyphs];
+        for (code, &glyph) in (0u8..=u8::MAX).zip(table).rev() {
+            if let Some(slot) = codes.get_mut(usize::from(glyph)) {
+                *slot = code;
+            }
+        }
+        let codes: Vec<String> = codes.iter().map(ToString::to_string).collect();
         let _ = write!(
             s,
-            "\n/// {doc}.\npub(crate) static {name}: [u16; 256] = [\n{}];\n",
-            packed(&items)
+            "\n/// {doc}.\npub(crate) static {name}: [u16; 256] = [\n{}];\n\n/// {doc}: glyph → its lowest code (0: none).\npub(crate) static {name}_CODES: [u8; {glyphs}] = [\n{}];\n",
+            packed(&items),
+            packed(&codes)
         );
     }
     s

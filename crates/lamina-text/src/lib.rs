@@ -32,24 +32,26 @@
 //!   embedded whole.
 //! * [`FontUse`]: per font, glyph → CID (dense, in order of first use) and CID → text.
 //!   One glyph used for two texts keeps the first and reports [`Warning::ToUnicodeConflict`].
-//! * [`FontRegistry`]: per document; [`FontRegistry::reference`] reserves the Type 0 object in
-//!   the overlay at first use, [`FontRegistry::finish_fonts`] subsets with `subsetter` and
-//!   fills it through a [`lamina_cos::CosMut`].
+//! * [`FontRegistry`]: per document; [`FontRegistry::reference`] reserves the font object in
+//!   the overlay at first use, [`FontRegistry::encode`] / [`FontRegistry::use_glyph`] return
+//!   the bytes to show ([`GlyphCode`]: a two-byte CID or a one-byte code),
+//!   [`FontRegistry::usage`] reports what was drawn ([`FontUsage`]), and
+//!   [`FontRegistry::finish_fonts`] writes every font through a [`lamina_cos::CosMut`].
+//! * [`Font::standard`] / [`Standard14`] (B4c): the standard 14 fonts by name, with Adobe's
+//!   AFM metrics bundled ([`AfmMetrics`]); [`Font::requires_embedding`] is `false` for them.
+//!   They are written as non-embedded `/Type1` simple fonts: one-byte codes in
+//!   `WinAnsiEncoding` (other Latin glyphs through `/Differences`, [`SimpleUse`]) or the
+//!   built-in encoding, `/Widths`, a font descriptor and a ToUnicode CMap.
+//! * [`Encoding`] (code ↔ glyph name for `StandardEncoding`, `WinAnsiEncoding`,
+//!   `MacRomanEncoding`, `PDFDocEncoding`, Symbol and `ZapfDingbats`) and [`agl`] (glyph
+//!   name → Unicode), shared with text extraction.
 //!
 //! Subset tags are six letters derived from a SHA-256 of the font bytes and the glyphs in
 //! CID order, so the same text in the same font gives byte-identical output.
 //!
-//! * [`Font::standard`] / [`Standard14`] (B4c): the standard 14 fonts by name, with Adobe's
-//!   AFM metrics bundled ([`AfmMetrics`]), written as non-embedded simple fonts with one-byte
-//!   codes in `WinAnsiEncoding` (plus `/Differences`) or their built-in encoding, `/Widths`
-//!   and a font descriptor; [`Font::requires_embedding`] is `false` for them.
-//! * [`Encoding`] (`StandardEncoding`, `WinAnsiEncoding`, `MacRomanEncoding`,
-//!   `PDFDocEncoding`, Symbol, `ZapfDingbats`: code ↔ glyph name) and [`agl`] (glyph name →
-//!   Unicode), shared with text extraction.
-//!
-//! Shaping (B4b) and the `surface.text()` API (B5b) build on this crate. It is part of lamina's pure core: bytes in, bytes out, no file
-//! system, network, clocks or threads; font bytes are parsed by `skrifa`/`read-fonts` and
-//! `subsetter`, which bounds-check every read.
+//! Shaping (B4b) and the `surface.text()` API (B5b) build on this crate. It is part of
+//! lamina's pure core: bytes in, bytes out, no file system, network, clocks or threads; font
+//! bytes are parsed by `skrifa`/`read-fonts` and `subsetter`, which bounds-check every read.
 //!
 //! [ADR 0005]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0005-document-model.md
 #![forbid(unsafe_code)]
@@ -68,10 +70,11 @@ mod usage;
 #[path = "../../lamina-cos/tests/common/codes.rs"]
 mod test_codes;
 
-pub use embed::{EmbeddedFont, Encoded, FontKey, FontRegistry};
-pub use encoding::Encoding;
+pub use embed::{EmbeddedFont, Encoded, FontKey, FontRegistry, FontUsage, GlyphCode};
+pub use encoding::{Encoding, UnsupportedEncoding};
 pub use error::{Error, Result, Warning};
 pub use font::{Axis, Font, FontInfo, GlyphId, MAX_NAME_LEN, Tag};
 pub use fstype::{EmbedPolicy, FsType};
+pub use simple::SimpleUse;
 pub use std14::{AfmMetrics, Standard14};
 pub use usage::FontUse;

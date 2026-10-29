@@ -99,13 +99,17 @@ pub enum Error {
     },
     /// A standard 14 font ran out of codes: each Latin glyph outside `WinAnsiEncoding` that
     /// the document uses takes one of the codes `WinAnsiEncoding` leaves undefined, through
-    /// `/Differences`, and there are only 37 of them (`limit`).
-    #[error("the simple font has no free code for another glyph ({limit} are in use)")]
+    /// `/Differences`, and there are only 37 of them (`limit`). The text needed more new codes
+    /// than were `free`; none were assigned (all or nothing, like
+    /// [`FontRegistry::encode`](crate::FontRegistry::encode)).
+    #[error("the simple font has {free} of its {limit} /Differences codes left, fewer than the text needs")]
     EncodingFull {
         /// The font's PostScript name.
         font: String,
-        /// How many codes `/Differences` can assign.
+        /// How many codes `/Differences` can assign in this font.
         limit: usize,
+        /// How many of them were still free.
+        free: usize,
     },
     /// Writing the font objects into the document failed.
     #[error(transparent)]
@@ -306,6 +310,7 @@ mod tests {
             Error::EncodingFull {
                 font: String::new(),
                 limit: 37,
+                free: 0,
             },
         ]
     }

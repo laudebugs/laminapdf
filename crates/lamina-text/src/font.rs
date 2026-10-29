@@ -237,7 +237,7 @@ impl Font {
     ///
     /// let font = Font::standard(Standard14::Helvetica);
     /// assert_eq!(font.info().postscript_name, "Helvetica");
-    /// assert!(font.is_standard14() && !font.requires_embedding());
+    /// assert!(font.standard14().is_some() && !font.requires_embedding());
     /// assert!(font.glyph_for('é').is_some());
     /// assert!(font.glyph_for('中').is_none());
     /// ```
@@ -256,8 +256,8 @@ impl Font {
             family: m.family_name.to_owned(),
             postscript_name: m.font_name.to_owned(),
             units_per_em: 1000,
-            // At most 315 glyphs.
-            glyph_count: u16::try_from(m.names.len()).unwrap_or(u16::MAX),
+            // `.notdef` and one glyph per name.
+            glyph_count: font.glyph_count(),
             ascent: m.ascender.map_or(y_max, f32::from),
             descent: m.descender.map_or(y_min, f32::from),
             cap_height: m.cap_height.map(f32::from),
@@ -284,16 +284,11 @@ impl Font {
         }
     }
 
-    /// The standard 14 font this is, if it is one.
+    /// Which standard 14 font this is, if it is one ([`Font::standard`]); `None` for a font
+    /// loaded from bytes.
     #[must_use]
     pub fn standard14(&self) -> Option<Standard14> {
         self.standard
-    }
-
-    /// Whether this is one of the standard 14 fonts ([`Font::standard`]).
-    #[must_use]
-    pub fn is_standard14(&self) -> bool {
-        self.standard.is_some()
     }
 
     /// Whether a document using this font has to embed it to be self-contained: `false` only
@@ -399,11 +394,12 @@ impl Font {
     /// The glyph the font's `cmap` maps `ch` to; `None` when it has none (the font would draw
     /// `.notdef`). This is the unshaped, one-glyph-per-character mapping; shaping (B4b) picks
     /// glyphs from the same font. For a standard 14 font the glyph is found by name through
-    /// the Adobe Glyph List, and its ID is its index in [`Standard14::glyph_names`].
+    /// the Adobe Glyph List; its ID is its index in [`Standard14::glyph_names`] plus one, as
+    /// glyph 0 is `.notdef`.
     #[must_use]
     pub fn glyph_for(&self, ch: char) -> Option<GlyphId> {
         if let Some(standard) = self.standard {
-            return standard.glyph_for_char(ch).map(GlyphId);
+            return standard.glyph_for_char(ch);
         }
         let gid = self.font_ref().ok()?.charmap().map(ch)?;
         u16::try_from(gid.to_u32()).ok().filter(|&g| g != 0).map(GlyphId)
@@ -418,7 +414,7 @@ impl Font {
             return None;
         }
         if let Some(standard) = self.standard {
-            return standard.width_of(gid.get()).map(f32::from);
+            return standard.glyph_width(gid).map(f32::from);
         }
         let font = self.font_ref().ok()?;
         font.glyph_metrics(Size::unscaled(), self.location_ref())
@@ -429,7 +425,7 @@ impl Font {
     /// The glyph name of `gid` in a standard 14 font (`None` for other fonts).
     #[must_use]
     pub fn glyph_name(&self, gid: GlyphId) -> Option<&'static str> {
-        self.standard?.name_of(gid.get())
+        self.standard?.glyph_name(gid)
     }
 
     /// The bytes the font was loaded from (the whole collection for a member); empty for a
@@ -460,7 +456,7 @@ impl Font {
                         ch,
                         font: self.info.postscript_name.clone(),
                     })?;
-                    Ok((GlyphId(gid), ch, standard.width_of(gid).map_or(0.0, f32::from)))
+                    Ok((gid, ch, standard.glyph_width(gid).map_or(0.0, f32::from)))
                 })
                 .collect();
         }

@@ -3,6 +3,7 @@
 #![allow(
     clippy::unwrap_used,
     clippy::indexing_slicing,
+    clippy::panic,
     reason = "tests: a panic is a test failure"
 )]
 
@@ -67,12 +68,17 @@ mod metrics {
     }
 
     #[test]
-    fn symbolic_built_in_encodings_are_the_afm_codes() {
-        for (font, encoding) in [
-            (Standard14::Symbol, Encoding::Symbol),
-            (Standard14::ZapfDingbats, Encoding::ZapfDingbats),
-            (Standard14::Helvetica, Encoding::Standard),
-        ] {
+    fn built_in_encodings_are_the_afm_codes() {
+        // The 12 Latin fonts' built-in encoding is StandardEncoding.
+        let fonts = Standard14::ALL.into_iter().map(|f| {
+            let encoding = match f {
+                Standard14::Symbol => Encoding::Symbol,
+                Standard14::ZapfDingbats => Encoding::ZapfDingbats,
+                _ => Encoding::Standard,
+            };
+            (f, encoding)
+        });
+        for (font, encoding) in fonts {
             for (code, name, _) in afm(font).into_iter().filter(|(c, _, _)| *c >= 0) {
                 let code = u8::try_from(code).unwrap();
                 assert_eq!(encoding.glyph_name(code), Some(name.as_str()), "{encoding:?} {code}");
@@ -197,13 +203,68 @@ mod encodings {
 
     #[test]
     fn win_ansi_matches_windows_1252_text() {
-        // Every defined WinAnsiEncoding code above 0x9F is its Latin-1 character (Annex D.2;
-        // 240 and 255 aside, whose glyphs are `space` and `hyphen`).
-        let mismatched: Vec<u8> = (0xA1..=0xFF)
-            .filter(|&c| c != 0xAD)
-            .filter(|&c| Encoding::WinAnsi.to_unicode(c) != Some(char::from(c).to_string()))
+        // Every defined WinAnsiEncoding code from 0x80 is its Windows-1252 character (Annex
+        // D.2; 240 and 255 aside, whose glyphs are `space` and `hyphen`). 0x80–0x9F is where
+        // Windows-1252 differs from Latin-1; `None` marks its five undefined codes.
+        const HIGH: [Option<char>; 32] = [
+            Some('€'),
+            None,
+            Some('‚'),
+            Some('ƒ'),
+            Some('„'),
+            Some('…'),
+            Some('†'),
+            Some('‡'),
+            Some('ˆ'),
+            Some('‰'),
+            Some('Š'),
+            Some('‹'),
+            Some('Œ'),
+            None,
+            Some('Ž'),
+            None,
+            None,
+            Some('‘'),
+            Some('’'),
+            Some('“'),
+            Some('”'),
+            Some('•'),
+            Some('–'),
+            Some('—'),
+            Some('˜'),
+            Some('™'),
+            Some('š'),
+            Some('›'),
+            Some('œ'),
+            None,
+            Some('ž'),
+            Some('Ÿ'),
+        ];
+        let expected = |c: u8| match c {
+            0x80..=0x9F => HIGH[usize::from(c - 0x80)].map(String::from),
+            _ => Some(char::from(c).to_string()),
+        };
+        let mismatched: Vec<u8> = (0x80..=0xFF)
+            .filter(|&c| c != 0xA0 && c != 0xAD)
+            .filter(|&c| Encoding::WinAnsi.to_unicode(c) != expected(c))
             .collect();
         assert!(mismatched.is_empty(), "{mismatched:x?}");
+    }
+
+    #[test]
+    fn symbol_greek_round_trips() {
+        let text = "ΑΩΔμπ";
+        let codes = encode::encode(Standard14::Symbol, text).unwrap();
+        let back: String = codes.iter().filter_map(|&c| Encoding::Symbol.to_unicode(c)).collect();
+        assert_eq!(back, text);
+    }
+
+    #[test]
+    fn mac_expert_is_unsupported_not_unknown() {
+        assert_eq!(
+            Encoding::from_pdf_name(b"MacExpertEncoding"),
+            Err(lamina_text::UnsupportedEncoding::MacExpert)
+        );
     }
 
     #[test]
@@ -223,7 +284,7 @@ mod encodings {
 mod encode {
     use super::*;
 
-    fn encode(font: Standard14, text: &str) -> lamina_text::Result<Vec<u8>> {
+    pub(super) fn encode(font: Standard14, text: &str) -> lamina_text::Result<Vec<u8>> {
         let mut fonts = FontRegistry::new();
         let key = fonts.add(Font::standard(font), lamina_text::EmbedPolicy::Respect)?;
         Ok(fonts.encode(key, text)?.bytes)
@@ -292,7 +353,65 @@ mod encode {
         let font = Font::standard(Standard14::Helvetica);
         let gid = font.glyph_for('é').unwrap();
         let key = fonts.add(font, lamina_text::EmbedPolicy::Respect).unwrap();
-        assert_eq!(fonts.use_glyph(key, gid, "é").unwrap(), 0xE9);
+        let mut bytes = Vec::new();
+        fonts.use_glyph(key, gid, "é").unwrap().push_to(&mut bytes);
+        assert_eq!(bytes, [0xE9]);
+    }
+
+    #[test]
+    fn the_first_glyph_name_is_not_notdef() {
+        // `A` sorts first among the glyph names; glyph 0 stays `.notdef`.
+        let font = Font::standard(Standard14::Helvetica);
+        let a = font.glyph_for('A').unwrap();
+        assert_eq!((a == GlyphId::NOTDEF, font.glyph_name(a)), (false, Some("A")));
+    }
+
+    #[test]
+    fn notdef_cannot_be_drawn() {
+        let mut fonts = FontRegistry::new();
+        let key = fonts
+            .add(Font::standard(Standard14::Helvetica), lamina_text::EmbedPolicy::Respect)
+            .unwrap();
+        assert_eq!(
+            fonts.use_glyph(key, GlyphId::NOTDEF, "").unwrap_err().code(),
+            "glyph-out-of-range"
+        );
+    }
+
+    #[test]
+    fn romanian_comma_below_letters_encode() {
+        assert_eq!(encode(Standard14::TimesRoman, "ȚțȘș").unwrap().len(), 4);
+    }
+
+    #[test]
+    fn usage_reports_simple_fonts() {
+        let mut fonts = FontRegistry::new();
+        let key = fonts
+            .add(Font::standard(Standard14::Helvetica), lamina_text::EmbedPolicy::Respect)
+            .unwrap();
+        fonts.encode(key, "Ł").unwrap();
+        let usage = fonts.usage(key).unwrap().simple().unwrap();
+        assert_eq!(usage.differences().collect::<Vec<_>>(), [(0x81, "Lslash")]);
+    }
+
+    #[test]
+    fn usage_of_another_registry_key_is_unknown_font() {
+        let mut other = FontRegistry::new();
+        let key = other
+            .add(Font::standard(Standard14::Helvetica), lamina_text::EmbedPolicy::Respect)
+            .unwrap();
+        assert_eq!(FontRegistry::new().usage(key).unwrap_err().code(), "unknown-font");
+    }
+
+    #[test]
+    fn use_glyph_text_conflicts_warn() {
+        let mut fonts = FontRegistry::new();
+        let font = Font::standard(Standard14::Helvetica);
+        let a = font.glyph_for('A').unwrap();
+        let key = fonts.add(font, lamina_text::EmbedPolicy::Respect).unwrap();
+        fonts.use_glyph(key, a, "A").unwrap();
+        fonts.use_glyph(key, a, "Α").unwrap();
+        assert_eq!(fonts.warnings()[0].code(), "tounicode-conflict");
     }
 
     #[test]
@@ -347,15 +466,22 @@ mod encode {
 mod written {
     use super::*;
 
-    /// The font dictionaries of the first page of `pdf`, by `/BaseFont`.
-    fn fonts(pdf: &[u8]) -> BTreeMap<String, (lamina_cos::Dict, lamina_cos::Dict)> {
+    /// A simple font read back: its dictionary, descriptor and decoded ToUnicode CMap.
+    struct ReadFont {
+        dict: lamina_cos::Dict,
+        descriptor: lamina_cos::Dict,
+        to_unicode: String,
+    }
+
+    /// The font dictionaries of the first page of `pdf`, by `/BaseFont`; each `/BaseFont`
+    /// appears once among the resources.
+    fn fonts(pdf: &[u8]) -> BTreeMap<String, ReadFont> {
         let doc = Document::open(pdf.to_vec(), OpenOptions::default()).unwrap();
         let page = doc.pages().unwrap().remove(0);
         let resources = page.resources_dict().unwrap().clone();
         let fonts = doc.deref(resources.get("Font").unwrap()).unwrap();
-        fonts
-            .as_dict()
-            .unwrap()
+        let resources = fonts.as_dict().unwrap();
+        let read: BTreeMap<String, ReadFont> = resources
             .iter()
             .map(|(_, r)| {
                 let dict = doc.deref(r).unwrap().as_dict().unwrap().clone();
@@ -365,12 +491,45 @@ mod written {
                     .as_dict()
                     .unwrap()
                     .clone();
-                (common::name_of(&dict, "BaseFont"), (dict, descriptor))
+                let to_unicode = match &*doc.deref(dict.get("ToUnicode").unwrap()).unwrap() {
+                    Object::Stream(s) => String::from_utf8(doc.decode_stream(s).unwrap()).unwrap(),
+                    other => panic!("ToUnicode is not a stream: {other:?}"),
+                };
+                (
+                    common::name_of(&dict, "BaseFont"),
+                    ReadFont {
+                        dict,
+                        descriptor,
+                        to_unicode,
+                    },
+                )
             })
-            .collect()
+            .collect();
+        assert_eq!(read.len(), resources.len(), "a /BaseFont appears twice");
+        read
     }
 
-    fn golden() -> BTreeMap<String, (lamina_cos::Dict, lamina_cos::Dict)> {
+    /// Code → glyph name from a `/Differences` array.
+    fn differences(dict: &lamina_cos::Dict) -> BTreeMap<u8, String> {
+        let mut out = BTreeMap::new();
+        let Some(Object::Dict(encoding)) = dict.get("Encoding") else {
+            return out;
+        };
+        let mut code = 0u8;
+        for item in encoding.get("Differences").unwrap().as_array().unwrap() {
+            match item {
+                Object::Integer(c) => code = u8::try_from(*c).unwrap(),
+                Object::Name(n) => {
+                    out.insert(code, String::from_utf8_lossy(n.as_bytes()).into_owned());
+                    code = code.wrapping_add(1);
+                }
+                other => panic!("unexpected {other:?}"),
+            }
+        }
+        out
+    }
+
+    fn golden() -> BTreeMap<String, ReadFont> {
         fonts(&common::fixture("golden/text-std14.pdf"))
     }
 
@@ -378,7 +537,7 @@ mod written {
     fn every_font_is_a_non_embedded_type1() {
         let fonts = golden();
         assert_eq!(fonts.len(), 14);
-        for (name, (dict, descriptor)) in &fonts {
+        for (name, ReadFont { dict, descriptor, .. }) in &fonts {
             assert_eq!(common::name_of(dict, "Subtype"), "Type1", "{name}");
             assert!(
                 ["FontFile", "FontFile2", "FontFile3"]
@@ -391,17 +550,21 @@ mod written {
 
     #[test]
     fn widths_are_the_afm_widths_of_each_code() {
-        for (name, (dict, _)) in golden() {
+        for (name, ReadFont { dict, .. }) in golden() {
             let font = Standard14::from_base_font(&name).unwrap();
-            let first = u8::try_from(dict.get("FirstChar").unwrap().as_int().unwrap()).unwrap();
+            let first = dict.get("FirstChar").unwrap().as_int().unwrap();
+            let last = dict.get("LastChar").unwrap().as_int().unwrap();
             let widths = dict.get("Widths").unwrap().as_array().unwrap();
+            assert_eq!(i64::try_from(widths.len()).unwrap(), last - first + 1, "{name}");
+            let differences = differences(&dict);
             let encoding = font.text_encoding();
-            for (code, width) in (first..).zip(widths) {
-                // Codes /Differences assigns are checked by `differences_name_the_extra_glyphs`.
-                let expected = encoding.glyph_name(code).and_then(|n| font.width(n));
-                if let Some(expected) = expected {
-                    assert_eq!(width.as_int(), Some(i64::from(expected)), "{name} {code}");
-                }
+            for (code, width) in (u8::try_from(first).unwrap()..).zip(widths) {
+                let glyph = differences
+                    .get(&code)
+                    .map(String::as_str)
+                    .or_else(|| encoding.glyph_name(code));
+                let expected = glyph.and_then(|n| font.width(n)).unwrap_or(0);
+                assert_eq!(width.as_int(), Some(i64::from(expected)), "{name} {code}");
             }
         }
     }
@@ -409,7 +572,7 @@ mod written {
     #[test]
     fn latin_fonts_use_win_ansi_and_symbolic_ones_their_own() {
         let fonts = golden();
-        let encoding = |name: &str| fonts[name].0.get("Encoding").cloned();
+        let encoding = |name: &str| fonts[name].dict.get("Encoding").cloned();
         assert_eq!(
             (encoding("Courier"), encoding("Symbol"), encoding("ZapfDingbats")),
             (Some(Object::name("WinAnsiEncoding")), None, None)
@@ -417,19 +580,42 @@ mod written {
     }
 
     #[test]
-    fn differences_name_the_extra_glyphs() {
+    fn differences_reach_the_control_codes() {
+        // More glyphs outside WinAnsiEncoding than its five undefined high codes: the rest take
+        // codes from 1 up, which the ToUnicode CMap maps like any other.
         let fonts = golden();
-        let (dict, _) = &fonts["Helvetica"];
-        let encoding = dict.get("Encoding").unwrap().as_dict().unwrap();
-        let differences = encoding.get("Differences").unwrap().as_array().unwrap();
-        let text = String::from_utf8(Object::Array(differences.to_vec()).to_bytes()).unwrap();
-        assert_eq!(text, "[129 /Lslash 141 /zacute 143 /minus /Scedilla 157 /scedilla]");
+        let helvetica = &fonts["Helvetica"];
+        let differences = differences(&helvetica.dict);
+        assert_eq!(
+            (
+                differences.get(&0x81).map(String::as_str),
+                differences.get(&0x01).map(String::as_str),
+                helvetica.to_unicode.contains("<01> <")
+            ),
+            (Some("Lslash"), Some("Tcommaaccent"), true)
+        );
+    }
+
+    #[test]
+    fn every_font_has_a_tounicode_cmap() {
+        let fonts = golden();
+        assert!(fonts.values().all(|f| f.to_unicode.contains("<00> <FF>")));
+    }
+
+    #[test]
+    fn symbol_tounicode_keeps_the_greek_letters() {
+        let fonts = golden();
+        assert!(
+            fonts["Symbol"].to_unicode.contains("<70> <03C0>"),
+            "{}",
+            fonts["Symbol"].to_unicode
+        );
     }
 
     #[test]
     fn descriptors_carry_the_afm_flags() {
         let fonts = golden();
-        let flags = |name: &str| fonts[name].1.get("Flags").unwrap().as_int().unwrap();
+        let flags = |name: &str| fonts[name].descriptor.get("Flags").unwrap().as_int().unwrap();
         // FixedPitch 1, Serif 2, Symbolic 4, Nonsymbolic 32, Italic 64.
         assert_eq!(
             [
@@ -448,10 +634,36 @@ mod written {
         let key = pdf.add_font(Font::standard(Standard14::Courier)).unwrap();
         pdf.line(key, 12.0, "").unwrap();
         let (bytes, embedded, _) = pdf.finish().unwrap();
-        let (dict, _) = &fonts(&bytes)["Courier"];
+        let dict = &fonts(&bytes)["Courier"].dict;
         assert_eq!(
-            (dict.get("FirstChar"), dict.get("LastChar"), embedded[0].program_len),
-            (Some(&Object::Integer(32)), Some(&Object::Integer(32)), 0)
+            (dict.get("FirstChar"), dict.get("LastChar"), embedded[0].embedded),
+            (Some(&Object::Integer(32)), Some(&Object::Integer(32)), false)
         );
+    }
+
+    #[test]
+    fn shaped_glyphs_are_written_as_one_byte_each() {
+        // `use_glyph` (the shaper's path) and `encode` write the same string.
+        let font = Font::standard(Standard14::Helvetica);
+        let e = font.glyph_for('é').unwrap();
+        let mut by_glyph = TestPdf::new();
+        let key = by_glyph.add_font(font.clone()).unwrap();
+        by_glyph.glyphs(key, 12.0, &[(e, "é")]).unwrap();
+        let mut by_text = TestPdf::new();
+        let key = by_text.add_font(font).unwrap();
+        by_text.line(key, 12.0, "é").unwrap();
+        let (by_glyph, by_text) = (by_glyph.finish().unwrap().0, by_text.finish().unwrap().0);
+        assert!(by_glyph == by_text, "the two strings differ");
+    }
+
+    #[test]
+    fn use_glyph_text_goes_into_tounicode() {
+        let font = Font::standard(Standard14::Helvetica);
+        let a = font.glyph_for('A').unwrap();
+        let mut pdf = TestPdf::new();
+        let key = pdf.add_font(font).unwrap();
+        pdf.glyphs(key, 12.0, &[(a, "Α")]).unwrap();
+        let (bytes, _, _) = pdf.finish().unwrap();
+        assert!(fonts(&bytes)["Helvetica"].to_unicode.contains("<41> <0391>"));
     }
 }

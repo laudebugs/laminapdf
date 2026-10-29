@@ -29,10 +29,9 @@ pub const VARIABLE_COLLECTION: [&str; 3] = [
     "Collection member 1: Noto Sans Bold",
 ];
 
-/// The lines of [`std14`]: one per standard 14 font, in [`Standard14::ALL`] order, then a
-/// Helvetica line outside `WinAnsiEncoding` (written through `/Differences`). The Symbol and
-/// `ZapfDingbats` lines have no spaces: pypdf 6.21 extracts their code 32 (`space`) as U+00A0.
-pub const STD14: [&str; 15] = [
+/// The lines of [`std14`]: one per standard 14 font, in [`Standard14::ALL`] order, then
+/// [`STD14_DIFFERENCES`].
+pub const STD14: [&str; 16] = [
     "Courier: Hello, world! 0123456789",
     "Courier-Bold: {braces} [brackets] <angles>",
     "Courier-Oblique: café, naïve, façade",
@@ -45,10 +44,16 @@ pub const STD14: [&str; 15] = [
     "Times-Bold: Grüße aus Köln • München",
     "Times-Italic: ¿Qué tal? ¡Muy bien!",
     "Times-BoldItalic: Ça va… très «bien» ‰",
-    "αβγπ∑≤∞€",
-    "✔✈❤☎",
+    "αβγ π ∑ ≤ ∞ €",
+    "✔ ✈ ❤ ☎",
     "Łódź, Kraków − Şişli",
+    "Țară, Ğğ İı őű",
 ];
+
+/// How many of [`STD14`]'s lines are Helvetica lines outside `WinAnsiEncoding` (written through
+/// `/Differences`), after the one line per font: together more such glyphs than
+/// `WinAnsiEncoding`'s five undefined high codes, so control codes are assigned too.
+pub const STD14_DIFFERENCES: usize = 2;
 
 /// Every golden: its file name under `fixtures/golden/`, the code that builds it and the
 /// lines it draws.
@@ -144,14 +149,19 @@ pub fn variable_and_collection() -> Sample {
 /// `WinAnsiEncoding`.
 pub fn std14() -> Sample {
     let mut pdf = TestPdf::new();
-    let keys: Vec<_> = Standard14::ALL
+    let keys: Vec<(Standard14, _)> = Standard14::ALL
         .into_iter()
-        .map(|f| pdf.add_font(Font::standard(f)).unwrap())
+        .map(|f| (f, pdf.add_font(Font::standard(f)).unwrap()))
         .collect();
-    for (key, line) in keys.iter().zip(STD14) {
+    let (per_font, differences) = STD14.split_at(STD14.len() - STD14_DIFFERENCES);
+    assert_eq!(per_font.len(), keys.len());
+    for ((_, key), line) in keys.iter().zip(per_font) {
         pdf.line(*key, 12.0, line).unwrap();
     }
-    pdf.line(keys[4], 12.0, STD14[14]).unwrap();
+    let (_, helvetica) = keys.iter().find(|(f, _)| *f == Standard14::Helvetica).unwrap();
+    for line in differences {
+        pdf.line(*helvetica, 12.0, line).unwrap();
+    }
     let (bytes, _, _) = pdf.finish().unwrap();
     Sample { bytes }
 }

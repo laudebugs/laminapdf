@@ -21,7 +21,7 @@
       "qpdf_check": true
     },
     "text-std14.pdf": {
-      "sha256": "f30db72d97e5198fabd50df40c74a51d620987c52582741228226f35eda21eb0",
+      "sha256": "2c690120e09bf0d2c0e139efab093eed5e786d4ea34fbf5d86a307070f92006d",
       "pypdf": [
         "Courier: Hello, world! 0123456789",
         "Courier-Bold: {braces} [brackets] <angles>",
@@ -35,9 +35,10 @@
         "Times-Bold: Grüße aus Köln • München",
         "Times-Italic: ¿Qué tal? ¡Muy bien!",
         "Times-BoldItalic: Ça va… très «bien» ‰",
-        "αβγπ∑≤∞€",
-        "✔✈❤☎",
-        "Łódź, Kraków − Şişli"
+        "αβγ π ∑ ≤ ∞ €",
+        "✔ ✈ ❤ ☎",
+        "Łódź, Kraków − Şişli",
+        "Țară, Ğğ İı őű"
       ],
       "qpdf_check": true
     },

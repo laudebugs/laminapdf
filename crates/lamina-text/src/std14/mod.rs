@@ -8,6 +8,7 @@ pub(crate) mod generated;
 pub use generated::AfmMetrics;
 
 use crate::encoding::Encoding;
+use crate::font::GlyphId;
 use generated::chars::{LATIN_CHARS, SYMBOL_CHARS, ZAPF_DINGBATS_CHARS};
 use generated::metrics::FONTS;
 
@@ -162,46 +163,58 @@ impl Standard14 {
     /// The advance width of glyph `name` in thousandths of an em, as in the AFM file.
     #[must_use]
     pub fn width(self, name: &str) -> Option<u16> {
-        let index = self.glyph_index(name)?;
-        self.metrics().widths.get(usize::from(index)).copied()
+        self.glyph_width(self.glyph_id(name)?)
     }
 
-    /// The index of glyph `name` in [`Standard14::glyph_names`].
-    pub(crate) fn glyph_index(self, name: &str) -> Option<u16> {
-        let names = self.glyph_names();
-        names.binary_search(&name).ok().and_then(|i| u16::try_from(i).ok())
+    /// The number of glyph IDs: `.notdef` (0) and one per glyph name.
+    pub(crate) fn glyph_count(self) -> u16 {
+        // At most 315 names.
+        u16::try_from(self.glyph_names().len() + 1).unwrap_or(u16::MAX)
     }
 
-    /// The glyph that draws `ch`, as an index into [`Standard14::glyph_names`]: through the
-    /// Adobe Glyph List, so `é` is `eacute`. For Symbol and `ZapfDingbats` only glyphs their
-    /// built-in encoding reaches are found.
-    pub(crate) fn glyph_for_char(self, ch: char) -> Option<u16> {
+    /// The glyph ID of glyph `name`: its index in [`Standard14::glyph_names`] plus one, as
+    /// glyph 0 is `.notdef` in every font.
+    pub(crate) fn glyph_id(self, name: &str) -> Option<GlyphId> {
+        let index = self.glyph_names().binary_search(&name).ok()?;
+        u16::try_from(index + 1).ok().map(GlyphId::new)
+    }
+
+    /// The index of `gid` in [`Standard14::glyph_names`]; `None` for `.notdef` and IDs past
+    /// the last glyph.
+    pub(crate) fn name_index(self, gid: GlyphId) -> Option<usize> {
+        let index = usize::from(gid.get().checked_sub(1)?);
+        (index < self.glyph_names().len()).then_some(index)
+    }
+
+    /// The glyph that draws `ch`, through the Adobe Glyph List (`é` is `eacute`). For Symbol
+    /// and `ZapfDingbats` only glyphs their built-in encoding reaches are found.
+    pub(crate) fn glyph_for_char(self, ch: char) -> Option<GlyphId> {
         let table: &[(char, u16)] = match self {
             Self::Symbol => &SYMBOL_CHARS,
             Self::ZapfDingbats => &ZAPF_DINGBATS_CHARS,
             _ => &LATIN_CHARS,
         };
         let i = table.binary_search_by_key(&ch, |&(c, _)| c).ok()?;
-        table.get(i).map(|&(_, glyph)| glyph)
+        let &(_, index) = table.get(i)?;
+        index.checked_add(1).map(GlyphId::new)
     }
 
-    /// The advance width of glyph `index` (into [`Standard14::glyph_names`]).
-    pub(crate) fn width_of(self, index: u16) -> Option<u16> {
-        self.metrics().widths.get(usize::from(index)).copied()
+    /// The advance width of `gid`; `None` for `.notdef` and IDs past the last glyph.
+    pub(crate) fn glyph_width(self, gid: GlyphId) -> Option<u16> {
+        self.metrics().widths.get(self.name_index(gid)?).copied()
     }
 
-    /// The name of glyph `index` (into [`Standard14::glyph_names`]).
-    pub(crate) fn name_of(self, index: u16) -> Option<&'static str> {
-        self.glyph_names().get(usize::from(index)).copied()
+    /// The name of `gid`; `None` for `.notdef` and IDs past the last glyph.
+    pub(crate) fn glyph_name(self, gid: GlyphId) -> Option<&'static str> {
+        self.glyph_names().get(self.name_index(gid)?).copied()
     }
 }
 
 /// The glyph `ch` maps to in the standard Latin character set (the glyphs every Latin standard
 /// 14 font has), through the Adobe Glyph List.
 pub(crate) fn latin_glyph_for_char(ch: char) -> Option<&'static str> {
-    Standard14::Helvetica
-        .glyph_for_char(ch)
-        .and_then(|i| Standard14::Helvetica.name_of(i))
+    let font = Standard14::Helvetica;
+    font.glyph_name(font.glyph_for_char(ch)?)
 }
 
 #[cfg(test)]
@@ -240,8 +253,23 @@ mod tests {
     fn symbol_finds_greek_capital_omega() {
         let omega = Standard14::Symbol
             .glyph_for_char('Ω')
-            .and_then(|i| Standard14::Symbol.name_of(i));
+            .and_then(|g| Standard14::Symbol.glyph_name(g));
         assert_eq!(omega, Some("Omega"));
+    }
+
+    #[test]
+    fn glyph_zero_is_notdef_not_the_first_name() {
+        let a = Standard14::Helvetica.glyph_for_char('A').unwrap();
+        assert_ne!(a, GlyphId::NOTDEF);
+    }
+
+    #[test]
+    fn notdef_has_no_name_or_width() {
+        let font = Standard14::Helvetica;
+        assert_eq!(
+            (font.glyph_name(GlyphId::NOTDEF), font.glyph_width(GlyphId::NOTDEF)),
+            (None, None)
+        );
     }
 
     #[test]

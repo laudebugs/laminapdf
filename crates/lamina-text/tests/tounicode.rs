@@ -100,10 +100,10 @@ fn glyph_first_used_without_text_takes_the_later_text() {
     let mut fonts = FontRegistry::new();
     let key = fonts.add(sans, EmbedPolicy::Respect).unwrap();
     fonts.use_glyph(key, a, "").unwrap();
-    let cid = fonts.use_glyph(key, a, "a").unwrap();
+    let cid = fonts.use_glyph(key, a, "a").unwrap().cid().unwrap();
     assert_eq!(
         (
-            fonts.usage(key).unwrap().text().get(&cid).cloned(),
+            fonts.usage(key).unwrap().embedded().unwrap().text().get(&cid).cloned(),
             fonts.warnings().len()
         ),
         (Some("a".to_owned()), 0)

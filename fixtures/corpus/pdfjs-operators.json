@@ -228,11 +228,11 @@
   ],
   "fixtures/golden/text-std14.pdf": [
     {
-      "beginText": 15,
-      "endText": 15,
-      "moveText": 15,
-      "setFont": 15,
-      "showText": 15
+      "beginText": 16,
+      "endText": 16,
+      "moveText": 16,
+      "setFont": 16,
+      "showText": 16
     }
   ],
   "fixtures/golden/text-variable-collection.pdf": [

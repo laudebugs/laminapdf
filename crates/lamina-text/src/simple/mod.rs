@@ -1,5 +1,6 @@
 //! Simple fonts: the standard 14 written as non-embedded `/Type1` fonts with one-byte codes,
-//! an encoding and `/Widths` (ISO 32000-2 §9.6.2, §9.6.5; research 03 §3.1, §3.8, §4.1).
+//! an encoding, `/Widths` and a ToUnicode CMap (ISO 32000-2 §9.6.2, §9.6.5, §9.10.3;
+//! research 03 §3.1, §3.8, §4.1).
 //!
 //! A Latin font's text is encoded in `WinAnsiEncoding`. Glyphs of the standard Latin character
 //! set it lacks (`Lslash`, `Scedilla`, `minus`, `fi`, …) get the codes `WinAnsiEncoding`
@@ -7,13 +8,15 @@
 //! "Łódź" works in Helvetica. Symbol and `ZapfDingbats` use their built-in encodings, which
 //! reach every glyph lamina maps text to.
 
-use std::collections::{BTreeMap, BTreeSet};
+mod tounicode;
 
-use lamina_cos::{CosMut, Dict, Name, ObjRef, Object};
+use std::collections::BTreeMap;
+
+use lamina_cos::{CosMut, Dict, Name, ObjRef, Object, Stream};
 
 use crate::embed::Encoded;
 use crate::encoding::Encoding;
-use crate::error::{Error, Result};
+use crate::error::{Error, Result, Warning};
 use crate::font::{Font, GlyphId};
 use crate::std14::Standard14;
 
@@ -25,16 +28,20 @@ fn free_codes(base: Encoding) -> impl Iterator<Item = u8> {
         .filter(move |&code| base.glyph_name(code).is_none())
 }
 
-/// The codes one standard 14 font uses in a document, and the `/Differences` it needs.
+/// The codes one standard 14 font uses in a document: the `/Differences` it needs and the
+/// text each code stands for (the ToUnicode CMap). Read it with
+/// [`FontRegistry::usage`](crate::FontRegistry::usage).
 #[derive(Debug, Clone)]
-pub(crate) struct SimpleUse {
+pub struct SimpleUse {
     font: Standard14,
     /// The encoding codes are looked up in first.
     base: Encoding,
-    /// Codes drawn so far.
-    used: BTreeSet<u8>,
-    /// `/Differences`: code → glyph (index into the font's glyph names), in order of code.
-    differences: BTreeMap<u8, u16>,
+    /// Code → the text it stands for, for every code drawn (empty when drawn with no text).
+    text: BTreeMap<u8, String>,
+    /// `/Differences`: code → glyph, in order of code.
+    differences: BTreeMap<u8, GlyphId>,
+    /// The same, glyph → code.
+    by_glyph: BTreeMap<GlyphId, u8>,
 }
 
 impl SimpleUse {
@@ -42,92 +49,145 @@ impl SimpleUse {
         Self {
             font,
             base: font.text_encoding(),
-            used: BTreeSet::new(),
+            text: BTreeMap::new(),
             differences: BTreeMap::new(),
+            by_glyph: BTreeMap::new(),
         }
     }
 
-    /// The code `glyph` already has: in the base encoding, else in `/Differences`.
-    fn code_of(&self, glyph: u16) -> Option<u8> {
-        let name = self.font.name_of(glyph)?;
-        self.base.code(name).or_else(|| {
-            self.differences
-                .iter()
-                .find_map(|(&code, &g)| (g == glyph).then_some(code))
-        })
+    /// The standard 14 font.
+    #[must_use]
+    pub fn font(&self) -> Standard14 {
+        self.font
     }
 
-    /// The codes for `glyphs`, assigning `/Differences` codes to glyphs that have none. Checks
-    /// everything before recording anything.
-    fn codes_for(&mut self, glyphs: &[u16]) -> Result<Vec<u8>> {
-        let names = self.font.glyph_names();
-        let count = u16::try_from(names.len()).unwrap_or(u16::MAX);
-        if let Some(&gid) = glyphs.iter().find(|&&g| g >= count) {
+    /// Code → the text it stands for, for every code drawn, in code order: what the ToUnicode
+    /// CMap maps (a code drawn with no text maps to its glyph's Unicode value instead).
+    #[must_use]
+    pub fn text(&self) -> &BTreeMap<u8, String> {
+        &self.text
+    }
+
+    /// The `/Differences` entries: (code, glyph name), in code order.
+    pub fn differences(&self) -> impl Iterator<Item = (u8, &'static str)> + '_ {
+        self.differences
+            .iter()
+            .filter_map(|(&code, &gid)| Some((code, self.font.glyph_name(gid)?)))
+    }
+
+    /// The code `gid` already has: in the base encoding, else in `/Differences`.
+    fn code_of(&self, gid: GlyphId) -> Option<u8> {
+        let index = self.font.name_index(gid)?;
+        self.base
+            .code_for_index(index)
+            .or_else(|| self.by_glyph.get(&gid).copied())
+    }
+
+    /// The codes for `glyphs`, assigning `/Differences` codes to glyphs that have none, in
+    /// order of first use. All or nothing: when the glyphs need more new codes than are free,
+    /// nothing is assigned or recorded.
+    fn codes_for(&mut self, glyphs: &[GlyphId]) -> Result<Vec<u8>> {
+        let count = self.font.glyph_count();
+        // `.notdef` (0) is never drawn: lamina has no name to map it to.
+        if let Some(&gid) = glyphs.iter().find(|&&g| self.font.name_index(g).is_none()) {
             return Err(Error::GlyphOutOfRange {
-                gid,
+                gid: gid.get(),
                 count,
                 font: self.font.base_font().to_owned(),
             });
         }
-        let new: BTreeSet<u16> = glyphs.iter().copied().filter(|&g| self.code_of(g).is_none()).collect();
+        let mut new: Vec<GlyphId> = Vec::new();
+        for &gid in glyphs {
+            if self.code_of(gid).is_none() && !new.contains(&gid) {
+                new.push(gid);
+            }
+        }
+        let limit = free_codes(self.base).count();
         let free: Vec<u8> = free_codes(self.base)
             .filter(|c| !self.differences.contains_key(c))
-            .take(new.len())
             .collect();
         if free.len() < new.len() {
             return Err(Error::EncodingFull {
                 font: self.font.base_font().to_owned(),
-                limit: free_codes(self.base).count(),
+                limit,
+                free: free.len(),
             });
         }
-        // New glyphs take codes in order of first use, so the same text gives the same codes.
-        let mut free = free.into_iter();
-        for &glyph in glyphs {
-            if self.code_of(glyph).is_none()
-                && let Some(code) = free.next()
-            {
-                self.differences.insert(code, glyph);
-            }
+        for (gid, code) in new.into_iter().zip(free) {
+            self.differences.insert(code, gid);
+            self.by_glyph.insert(gid, code);
         }
-        let codes: Vec<u8> = glyphs.iter().filter_map(|&g| self.code_of(g)).collect();
-        self.used.extend(codes.iter().copied());
-        Ok(codes)
+        // Every glyph has a code now; `filter_map` cannot drop one.
+        Ok(glyphs.iter().filter_map(|&g| self.code_of(g)).collect())
     }
 
-    /// Records that `gid` is drawn and returns its one-byte code.
-    pub(crate) fn use_glyph(&mut self, gid: GlyphId) -> Result<u8> {
-        let codes = self.codes_for(&[gid.get()])?;
-        codes.first().copied().ok_or(Error::GlyphOutOfRange {
-            gid: gid.get(),
-            count: u16::try_from(self.font.glyph_names().len()).unwrap_or(u16::MAX),
+    /// Records `text` for `code`; a different text than the one recorded is kept as a
+    /// warning, as for Type 0 fonts (the builder covers it with `/ActualText`).
+    fn record(&mut self, code: u8, gid: GlyphId, text: &str) -> Option<Warning> {
+        let kept = self.text.entry(code).or_default();
+        if kept.is_empty() {
+            text.clone_into(kept);
+            return None;
+        }
+        (!text.is_empty() && kept != text).then(|| Warning::ToUnicodeConflict {
             font: self.font.base_font().to_owned(),
+            gid: gid.get(),
+            kept: kept.clone(),
+            dropped: text.to_owned(),
         })
     }
 
-    /// `text` as one byte per character.
-    pub(crate) fn encode(&mut self, font: &Font, text: &str) -> Result<Encoded> {
+    /// Records that `gid` is drawn standing for `text` and returns its one-byte code.
+    pub(crate) fn use_glyph(&mut self, gid: GlyphId, text: &str) -> Result<(u8, Option<Warning>)> {
+        let code = match self.codes_for(&[gid])?.as_slice() {
+            [code] => *code,
+            // `codes_for` returns one code per glyph.
+            _ => unreachable!("one glyph, one code"),
+        };
+        Ok((code, self.record(code, gid, text)))
+    }
+
+    /// `text` as one byte per character, each standing for its character.
+    pub(crate) fn encode(&mut self, font: &Font, text: &str) -> Result<(Encoded, Vec<Warning>)> {
         let glyphs = font.map_text(text)?;
-        let gids: Vec<u16> = glyphs.iter().map(|(g, _, _)| g.get()).collect();
+        let gids: Vec<GlyphId> = glyphs.iter().map(|&(g, _, _)| g).collect();
         let bytes = self.codes_for(&gids)?;
+        let mut warnings = Vec::new();
+        let mut buf = [0u8; 4];
+        for (&code, &(gid, ch, _)) in bytes.iter().zip(&glyphs) {
+            warnings.extend(self.record(code, gid, ch.encode_utf8(&mut buf)));
+        }
         let advance = glyphs.iter().map(|&(_, _, w)| f64::from(w)).sum();
-        Ok(Encoded { bytes, advance })
+        Ok((Encoded { bytes, advance }, warnings))
     }
 
     /// How many distinct codes were drawn.
     pub(crate) fn code_count(&self) -> usize {
-        self.used.len()
+        self.text.len()
     }
 
     /// The glyph `code` draws: `/Differences` first, then the base encoding.
-    fn glyph_at(&self, code: u8) -> Option<u16> {
+    fn glyph_at(&self, code: u8) -> Option<GlyphId> {
         self.differences
             .get(&code)
             .copied()
-            .or_else(|| self.base.glyph_name(code).and_then(|n| self.font.glyph_index(n)))
+            .or_else(|| self.font.glyph_id(self.base.glyph_name(code)?))
     }
 
-    /// Writes the font descriptor as a new object and the font dictionary into the reserved
-    /// `object`.
+    /// The text the ToUnicode CMap maps `code` to: the recorded text, else the glyph's
+    /// Unicode value.
+    fn unicode_of(&self, code: u8) -> Option<String> {
+        match self.text.get(&code) {
+            Some(text) if !text.is_empty() => Some(text.clone()),
+            _ => self
+                .font
+                .builtin_encoding()
+                .glyph_to_unicode(self.font.glyph_name(self.glyph_at(code)?)?),
+        }
+    }
+
+    /// Writes the font descriptor and the ToUnicode CMap as new objects and the font
+    /// dictionary into the reserved `object`.
     pub(crate) fn write(&self, cos: &mut CosMut<'_>, font: &Font, object: ObjRef) -> Result<()> {
         let info = font.info();
         let base_font = Name::from(self.font.base_font());
@@ -153,12 +213,20 @@ impl SimpleUse {
         descriptor.insert("StemH", i64::from(metrics.std_hw));
         let descriptor = cos.create(Object::Dict(descriptor))?;
 
+        let map: BTreeMap<u8, String> = self
+            .text
+            .keys()
+            .filter_map(|&code| Some((code, self.unicode_of(code)?)))
+            .collect();
+        let cmap = tounicode::one_byte_cmap(&map);
+        let to_unicode = cos.create(Object::Stream(Stream::flate(Dict::new(), &cmap)))?;
+
         // A font no text was drawn with still needs a valid range: the space.
-        let first = self.used.first().copied().unwrap_or(0x20);
-        let last = self.used.last().copied().unwrap_or(0x20);
+        let first = self.text.keys().next().copied().unwrap_or(0x20);
+        let last = self.text.keys().next_back().copied().unwrap_or(0x20);
         let widths: Vec<Object> = (first..=last)
             .map(|code| {
-                let width = self.glyph_at(code).and_then(|g| self.font.width_of(g)).unwrap_or(0);
+                let width = self.glyph_at(code).and_then(|g| self.font.glyph_width(g)).unwrap_or(0);
                 Object::Integer(i64::from(width))
             })
             .collect();
@@ -174,6 +242,7 @@ impl SimpleUse {
         dict.insert("LastChar", i64::from(last));
         dict.insert("Widths", Object::Array(widths));
         dict.insert("FontDescriptor", descriptor);
+        dict.insert("ToUnicode", to_unicode);
         cos.set(object, Object::Dict(dict))?;
         Ok(())
     }
@@ -187,11 +256,11 @@ impl SimpleUse {
         }
         let mut differences = Vec::new();
         let mut next = None;
-        for (&code, &glyph) in &self.differences {
+        for (code, name) in self.differences() {
             if next != Some(code) {
                 differences.push(Object::Integer(i64::from(code)));
             }
-            differences.push(Name::from(self.font.name_of(glyph).unwrap_or(".notdef")).into());
+            differences.push(Name::from(name).into());
             next = code.checked_add(1);
         }
         let mut dict = Dict::new();
@@ -208,8 +277,8 @@ impl SimpleUse {
 mod tests {
     use super::*;
 
-    fn glyph(font: Standard14, name: &str) -> u16 {
-        font.glyph_index(name).unwrap()
+    fn glyph(font: Standard14, name: &str) -> GlyphId {
+        font.glyph_id(name).unwrap()
     }
 
     #[test]
@@ -220,8 +289,27 @@ mod tests {
     #[test]
     fn win_ansi_glyphs_keep_their_codes() {
         let mut usage = SimpleUse::new(Standard14::Helvetica);
-        let code = usage.use_glyph(GlyphId::new(glyph(Standard14::Helvetica, "Euro")));
-        assert_eq!(code, Ok(0x80));
+        let code = usage.use_glyph(glyph(Standard14::Helvetica, "Euro"), "€");
+        assert_eq!(code, Ok((0x80, None)));
+    }
+
+    #[test]
+    fn first_glyph_name_is_drawable() {
+        // `A` sorts first; its ID is 1, not `.notdef`'s 0.
+        let mut usage = SimpleUse::new(Standard14::Helvetica);
+        assert_eq!(
+            usage.use_glyph(glyph(Standard14::Helvetica, "A"), "A"),
+            Ok((0x41, None))
+        );
+    }
+
+    #[test]
+    fn notdef_is_out_of_range() {
+        let mut usage = SimpleUse::new(Standard14::Helvetica);
+        assert_eq!(
+            usage.use_glyph(GlyphId::NOTDEF, "").unwrap_err().code(),
+            "glyph-out-of-range"
+        );
     }
 
     #[test]
@@ -239,9 +327,49 @@ mod tests {
     #[test]
     fn running_out_of_codes_records_nothing() {
         let mut usage = SimpleUse::new(Standard14::Helvetica);
-        let all: Vec<u16> = (0..315).collect();
+        let all: Vec<GlyphId> = (1..=315).map(GlyphId::new).collect();
         let err = usage.codes_for(&all).unwrap_err();
-        assert_eq!((err.code(), usage.code_count()), ("encoding-full", 0));
+        assert_eq!((err.code(), usage.differences().count()), ("encoding-full", 0));
+    }
+
+    #[test]
+    fn encoding_full_reports_the_codes_left() {
+        let font = Standard14::Helvetica;
+        let mut usage = SimpleUse::new(font);
+        let extra: Vec<GlyphId> = font
+            .glyph_names()
+            .iter()
+            .filter(|n| Encoding::WinAnsi.code(n).is_none())
+            .map(|n| glyph(font, n))
+            .collect();
+        usage.codes_for(&extra[..30]).unwrap();
+        assert_eq!(
+            usage.codes_for(&extra[30..40]).unwrap_err(),
+            Error::EncodingFull {
+                font: "Helvetica".to_owned(),
+                limit: 37,
+                free: 7
+            }
+        );
+    }
+
+    #[test]
+    fn a_glyph_drawn_for_two_texts_keeps_the_first() {
+        let mut usage = SimpleUse::new(Standard14::Helvetica);
+        let a = glyph(Standard14::Helvetica, "A");
+        usage.use_glyph(a, "A").unwrap();
+        let (_, warning) = usage.use_glyph(a, "Α").unwrap();
+        assert_eq!(
+            (warning.map(|w| w.code()), usage.text().get(&0x41).map(String::as_str)),
+            (Some("tounicode-conflict"), Some("A"))
+        );
+    }
+
+    #[test]
+    fn a_glyph_drawn_with_no_text_maps_to_its_unicode() {
+        let mut usage = SimpleUse::new(Standard14::Symbol);
+        let (code, _) = usage.use_glyph(glyph(Standard14::Symbol, "Omega"), "").unwrap();
+        assert_eq!(usage.unicode_of(code).as_deref(), Some("Ω"));
     }
 
     #[test]

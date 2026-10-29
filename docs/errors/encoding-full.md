@@ -9,7 +9,7 @@ A standard 14 font had no free one-byte code left for another glyph in this docu
 
 ## Why
 
-A standard 14 font is a simple font: text is written one byte per character, so one font resource addresses at most 256 glyphs (ISO 32000-2 §9.6.5). lamina writes the Latin fonts in `WinAnsiEncoding`, and gives each glyph of the standard Latin character set outside it (`Lslash`, `Scedilla`, `minus`, …) one of the 37 codes `WinAnsiEncoding` leaves undefined, through `/Differences`. A document that draws more such glyphs with one font than there are free codes runs out.
+A standard 14 font is a simple font: text is written one byte per character, so one font resource addresses at most 256 glyphs (ISO 32000-2 §9.6.5). lamina writes the Latin fonts in `WinAnsiEncoding`, and gives each glyph of the standard Latin character set outside it (`Lslash`, `Scedilla`, `minus`, …) one of the 37 codes `WinAnsiEncoding` leaves undefined, through `/Differences`. A document that draws more such glyphs with one font than there are free codes runs out. Assignment is all or nothing: when one `encode` call needs more new codes than are free, none are assigned and nothing of the text is recorded.
 
 ## How to fix
 
@@ -23,3 +23,4 @@ To be added ([L1b](../todos/ready/L1b-error-contract-codegen.md)).
 
 - `font`: the standard font's PostScript name (fixed text: one of the fourteen).
 - `limit`: how many codes `/Differences` can assign for this font.
+- `free`: how many of them were still free; the text needed more, so none were assigned.
