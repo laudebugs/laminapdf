@@ -30,7 +30,7 @@ Make the reader meet WCAG 2.2 AA for its chrome and work fully without a mouse. 
 
 **In scope**
 
-- `packages/ui/src/keyboard/keymap.ts`: declarative map `{ action, keys: { mac, other }, scope: "global" | "document" | "dialog", description }` for open, find, find next/prev, print, download, properties, zoom in/out/reset/fit width/fit page, rotate, next/prev page, first/last page, go to page, back/forward, toggle sidebar, focus document, help (`?`/`F1`); exported for desktop menus (D4 builds native menu accelerators from it).
+- Keyboard scopes and help text on [U1b](./U1b-command-registry-and-palette.md)'s command registry (no separate keymap): each command gains `scope: "global" | "document" | "dialog"` and a help `description`; the reader's commands cover open, find, find next/prev, print, download, properties, zoom in/out/reset/fit width/fit page, rotate, next/prev page, first/last page, go to page, back/forward, toggle sidebar, focus document, help (`?`/`F1`); D4b builds native menu accelerators from the same registry.
 - Shortcut dispatcher with scope handling (no shortcuts while typing in inputs except Esc), conflict tests, platform modifier mapping (`cmd` on macOS via `navigator.platform`-free detection: `Platform` capability or `userAgentData` where available).
 - Help dialog listing shortcuts from the map (single source of truth), searchable.
 - Focus management: skip link to the document; F6 cycles regions (toolbar → sidebar → document → find bar); dialogs trap focus and restore on close; after navigation (link, outline, go-to-page) focus moves to the target page region; visible focus indicators everywhere (not obscured by sticky toolbar).
@@ -50,7 +50,7 @@ Make the reader meet WCAG 2.2 AA for its chrome and work fully without a mouse. 
 - [ ] Claim via a claim PR (see Definition of done); then a fresh worktree off the updated `main`.
 - [ ] Keymap module + dispatcher + unit tests (no duplicate bindings per scope; every action has a binding or is listed as menu-only; macOS/other variants).
 - [ ] Wire all existing actions (C4a–C6c) through the dispatcher; remove ad-hoc key handlers.
-- [ ] Help dialog component generated from the keymap.
+- [ ] Help dialog component generated from the command registry.
 - [ ] Focus utilities (`FocusScope`, region cycling, restore) and fixes across components; skip link.
 - [ ] Landmark and page-region semantics in `@lamina/viewer` page shells and `@lamina/ui` layout.
 - [ ] `Announcer` service (one polite + one assertive live region) used by viewer events and find.
@@ -64,7 +64,7 @@ Make the reader meet WCAG 2.2 AA for its chrome and work fully without a mouse. 
 
 - [ ] **axe shows zero serious or critical violations** in every tested state, theme and engine (CI-enforced).
 - [ ] The keyboard-only Playwright journey passes in Chromium, Firefox and WebKit.
-- [ ] Every action in the keymap appears in the help dialog; a test fails if an action lacks help text.
+- [ ] Every command with a shortcut appears in the help dialog; a test fails if one lacks help text.
 - [ ] All theme token pairs meet WCAG 2.2 AA contrast (script in CI); `forced-colors` mode screenshot shows visible focus and controls.
 - [ ] With `prefers-reduced-motion: reduce`, no smooth scrolling or animations occur (asserted via computed styles / scroll behaviour).
 - [ ] **A manual NVDA, VoiceOver and keyboard-only pass is recorded** in `apps/web/ACCESSIBILITY.md` with date, versions, findings and linked issues; no open finding is severity "blocker".
@@ -76,11 +76,11 @@ None.
 
 ## Tests
 
-Unit tests (keymap, dispatcher, announcer throttling, contrast script); Playwright `a11y.spec.ts` (axe), `keyboard-journey.spec.ts`, theme screenshots; manual AT checklist.
+Unit tests (command scopes, dispatcher, announcer throttling, contrast script); Playwright `a11y.spec.ts` (axe), `keyboard-journey.spec.ts`, theme screenshots; manual AT checklist.
 
 ## Docs to update
 
-`apps/web/ACCESSIBILITY.md` (new: conformance notes, AT pass results, known issues), `packages/ui/README.md` (keymap API for desktop); tick "Keyboard shortcuts map shared with desktop; help dialog", "Focus management, landmarks, live-region announcements…", "High contrast, dark mode, reduced motion" and the axe/manual-pass item in [web-app.md §9](../../plans/web-app.md#9-to-dos).
+`apps/web/ACCESSIBILITY.md` (new: conformance notes, AT pass results, known issues), `packages/ui/README.md` (command scopes and help text); tick "Keyboard shortcuts map shared with desktop; help dialog", "Focus management, landmarks, live-region announcements…", "High contrast, dark mode, reduced motion" and the axe/manual-pass item in [web-app.md §9](../../plans/web-app.md#9-to-dos).
 
 ## Risks and open questions
 

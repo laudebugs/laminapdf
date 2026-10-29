@@ -16,7 +16,7 @@
 
 ## Goal
 
-"No upload" is now a common claim; lamina should prove it. Show a status-bar indicator of every network request since the document opened (0 for local files), tighten the CSP so the page cannot talk to other origins, and test both independently.
+"No upload" is now a common claim; lamina should prove it. Show a status-bar indicator of every network request since the document opened (0 for local files), counted from every context that can make one (page, document worker, service worker), and test it against an independent request log. The CSP stays the production policy from C4b/C4c (`connect-src 'self' https:`, needed for `#url=` files): it blocks plain-HTTP and non-web schemes, and the indicator, not the CSP, is the proof for HTTPS traffic.
 
 ## Context
 
@@ -28,9 +28,9 @@
 
 **In scope**
 
-- A request counter fed by `PerformanceObserver` (`resource` entries) in the page and a message from the service worker for requests it serves or forwards; grouped by origin and kind (app shell, WASM, document range requests).
+- A request counter with three feeds, grouped by origin and kind (app shell, WASM, document range requests): `PerformanceObserver` (`resource` entries) in the page; the document worker, which reports every fetch it makes (the `#url=` range requests from C4c) over the worker RPC, since the page's resource timeline doesn't see worker fetches; and the service worker, which reports requests it serves or forwards once one is registered (C7b; until then the feed is absent and the panel says so).
 - Status-bar item: "0 requests" or "3 requests to example.org" with a panel listing origin, count, bytes and purpose; the app's own cached assets after load are listed separately and counted as zero document traffic.
-- CSP `connect-src 'self'` plus, for `#url=` documents, the single document origin (added at runtime through a worker-scoped fetch, or documented if CSP can't be widened at runtime).
+- CSP unchanged from C4b/C4c (`connect-src 'self' https:` in production). Investigate narrowing for local-only sessions (a `<meta>` policy can only add restrictions, and workers take the CSP of their own script response) and record the result; don't widen anything at runtime.
 - A privacy page section that explains the indicator and how to verify it with browser devtools.
 
 **Out of scope** (and which todo covers it)
@@ -41,15 +41,15 @@
 ## Tasks
 
 - [ ] Claim via a claim PR (see Definition of done); then a fresh worktree off the updated `main`.
-- [ ] Implement the counter and verify it catches fetch, XHR, images, fonts, beacons and WebSocket attempts (CSP violations reported via `securitypolicyviolation`).
+- [ ] Implement the three feeds and verify they catch fetch, XHR, images, fonts, beacons and WebSocket attempts from the page and the document worker (CSP violations reported via `securitypolicyviolation`).
 - [ ] Build the status item and panel in `@lamina/ui`; message strings in the catalogue.
-- [ ] Playwright: open local fixtures and assert that the indicator shows 0 and that Playwright's own request log for the page after load agrees; open a `#url=` fixture and assert only that origin appears.
-- [ ] Attempt a request to a third origin from the page in a test and assert the CSP blocks it and the indicator shows the violation.
+- [ ] Playwright: open local fixtures and assert that the indicator shows 0 and that Playwright's browser-context request log (which includes worker requests) agrees; open a `#url=` fixture and assert the worker's range requests are counted and only that origin appears.
+- [ ] In a test, attempt a plain-HTTP request (CSP blocks it; the panel shows the violation) and an HTTPS request to a third origin from the page and from the worker (CSP allows it; the indicator must count it).
 
 ## Acceptance criteria
 
-- [ ] Indicator and Playwright's independent request log agree on every e2e flow (test).
-- [ ] A forced request to another origin is blocked by CSP and surfaced in the panel (test).
+- [ ] Indicator and Playwright's browser-context request log agree on every e2e flow, including `#url=` documents whose bytes the worker fetches (test).
+- [ ] A forced plain-HTTP request is blocked by CSP and shown as a violation; a forced HTTPS request to a third origin, from the page or the worker, is counted (tests).
 - [ ] The indicator is keyboard reachable and announced by screen readers (axe; manual VoiceOver check).
 
 ## Post-merge checks
@@ -67,7 +67,8 @@ Privacy page; `apps/web/README.md`; tick the indicator item in [UI/UX §9](../..
 ## Risks and open questions
 
 - Browser extensions make their own requests that the page can't see: the panel says what it measures.
-- Service-worker-served requests are invisible to `PerformanceObserver` in some browsers: the worker reports them explicitly.
+- Service-worker-served requests are invisible to `PerformanceObserver` in some browsers: the service worker reports them explicitly once C7b registers it.
+- A future code path that fetches from a worker without reporting would make the indicator under-count: the Playwright comparison on every flow is the guard, and new fetch sites go through one reporting `fetch` wrapper.
 
 ## Definition of done
 

@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [UI/UX §6 U5. Product promises](../../plans/ui-ux.md#u5-product-promises) |
 | Round / milestone | Round U (UI/UX) — after M2 |
-| Depends on | [C7c](./C7c-performance-gates-and-launch.md), [D2d](./D2d-tile-transport-and-first-document.md) |
+| Depends on | [C7c](./C7c-performance-gates-and-launch.md), [D7c](./D7c-desktop-beta-release.md) |
 | Blocks | None |
 | ADRs | Follows 0018 (test strategy) for reproducibility |
 | Branch | `test/u5b-reader-benchmark` |
@@ -22,7 +22,7 @@ Users quote SumatraPDF-class speed as the bar and complain about Acrobat's cold 
 
 - [UI/UX plan §5.6](../../plans/ui-ux.md#56-perceived-performance-r6-r7) — targets; [research gaps](../../research/product/pdf-app-product-and-ux.md#several-primary-sources-were-unreachable-and-the-gaps-matter) — no competitor benchmarks found.
 - [Competitive teardown](../../research/product/notes/competitive-teardown.md) — Acrobat footprint and iPad drawing reports; Sumatra praise.
-- [C3c](./C3c-viewer-perf-harness.md) — lamina's own harness; [D2d](./D2d-tile-transport-and-first-document.md) — the desktop first-document path.
+- [C3c](./C3c-viewer-perf-harness.md) — lamina's own harness; [D7c](./D7c-desktop-beta-release.md) — the signed, packaged desktop beta, so cold start and installer size are measured on a release build, not a dev build.
 
 ## Scope
 

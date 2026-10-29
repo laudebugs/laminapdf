@@ -31,7 +31,7 @@ Give `ReaderShell` the layout the research recommends — a collapsible left rai
 - `LeftRail` (resizable, collapsible, keyboard-resizable with arrow keys, width and state kept locally), with tab slots that C6a fills (thumbnails, outline) and later E3 (bookmarks, attachments).
 - `Inspector` (docked right, opens on selection events from the viewer or editor, closes on Escape or deselect, never overlays the canvas; the canvas reflows its width).
 - `ModeSwitcher` and a `SecondaryToolbar` slot: modes are registered (`id`, label, icon, toolbar component, allowed commands); v0.1 registers Read only, so the switcher is hidden until a second mode exists.
-- Focus mode: a command (from U1b) that hides rail, secondary toolbar and status bar; the inspector reappears temporarily on selection.
+- Focus mode: a command (from U1b) that hides the rail and the secondary toolbar; the status bar stays, because it carries the network indicator and the repaired-file notice (plan §5.1, §5.7); the inspector reappears temporarily on selection.
 - Narrow-window behaviour: below a breakpoint the rail becomes an overlay drawer (phone layout itself is U3a).
 - Landmarks: `banner`, `navigation` (rail), `main` (canvas), `complementary` (inspector), `contentinfo` (status).
 

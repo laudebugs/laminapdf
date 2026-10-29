@@ -51,7 +51,7 @@ Recommendations from the research, adopted as the plan's rules (ADR 0024 records
 5. **The platform owns touch selection.** On phones and tablets lamina never draws over the OS selection menu; it uses a bottom action bar.
 6. **Never change the file without asking.** No auto-save, explicit save, incremental by default; the UI says what a save will do to signatures (ADR 0007).
 7. **Prove, don't claim.** Privacy is shown by a network indicator and a strict CSP; redaction by a verification report; speed by published benchmarks.
-8. **Perceived speed is designed.** Placeholder → stretched low-res → sharp tiles; interactions answer within 100 ms and INP stays ≤ 200 ms (p75).
+8. **Perceived speed is designed.** Placeholder → stretched low-res → sharp tiles; aim for interactions that answer within 100 ms and INP ≤ 200 ms (p75), published as stretch goals until a gate measures them.
 9. **Accessible by construction.** WCAG 2.2 AA: 24 px minimum targets (44 px on touch), a single-pointer alternative to every drag, focus never hidden by sticky chrome.
 10. **No hostile monetisation.** Every on-device feature is free with no account, watermark or page cap; only services that cost money to run can be paid (§5.9).
 
@@ -146,12 +146,12 @@ The pipeline for every page view ([C3b](../todos/ready/C3b-viewer-virtualiser-an
 | Web: first page, 10-page 1 MB PDF, warm cache | ≤ 700 ms ([web-app §4](web-app.md#non-functional-targets-are-recommendations-measured-from-c3-onward)) | ≤ 500 ms for a 10 MB PDF |
 | Desktop: cold start to window | ≤ 1 s ([desktop-app §4](desktop-app.md#non-functional-targets-are-recommendations)) | < 300 ms to interactive |
 | Desktop installer | ≤ 40 MB | < 15 MB |
-| Interaction responsiveness | INP ≤ 200 ms (p75) | Every command answers in ≤ 100 ms |
+| Interaction responsiveness | No main-thread task > 50 ms while scrolling ([web-app §4](web-app.md#non-functional-targets-are-recommendations-measured-from-c3-onward)) | INP ≤ 200 ms (p75); every command answers in ≤ 100 ms |
 | Crash-free sessions (opt-in reports) | — | ≥ 99.95% (vendor median) |
 
 ### 5.7 Trust surfaces (R9–R13)
 
-- **Network indicator** ([U4a](../todos/ready/U4a-network-indicator-and-privacy-proof.md)): a status-bar item that counts requests made since the document opened (expected: 0 for local files, range requests to the file's own host for `#url=`), with a panel listing each origin; backed by the CSP `connect-src` and a Playwright test.
+- **Network indicator** ([U4a](../todos/ready/U4a-network-indicator-and-privacy-proof.md)): a status-bar item that counts requests made since the document opened, from the page, the document worker and the service worker (expected: 0 for local files, range requests to the file's own host for `#url=`), with a panel listing each origin; checked against an independent Playwright request log. The production CSP (`connect-src 'self' https:`, C4b) blocks plain HTTP; for HTTPS the indicator is the proof.
 - **Saving** (editor, [E1e](../todos/ready/E1e-save-and-constraint-banner.md)): explicit save only, incremental by default; the constraint banner says in plain words what saving will do to signatures before it happens.
 - **Annotations and form values** (E4, E8): written into the file with appearance streams, readable by Acrobat, pdf.js, Zotero and Readwise; export of highlights as Markdown.
 - **Signing** (E10, [E10j](../todos/ready/E10j-signature-ui.md)): two separately named actions, "Add a signature image" and "Sign with a certificate", each with one sentence on what it proves; a validation badge on open.
@@ -216,7 +216,7 @@ The research also changes todos in other plans (each notes this plan in its Cont
 | [C1b](../todos/ready/C1b-pdfium-wasm-spike.md) | Choose a growable-heap PDFium WASM build; one PDFium instance per worker; record upstream licence notices |
 | [C2a](../todos/ready/C2a-render-adrs.md) | ADR 0004's `RenderBackend` renders tiles `(page, scale, clip)` into bounded bitmaps; PDFium never writes documents |
 | [C3b](../todos/ready/C3b-viewer-virtualiser-and-zoom.md) | The four-step render pipeline in §5.6 and the mobile bitmap caps |
-| [C4a](../todos/ready/C4a-ui-chrome-and-platform.md) | `ReaderShell` exposes the rail, inspector and secondary-toolbar slots that U1c fills; buttons reference command ids once U1b lands |
+| [C4a](../todos/ready/C4a-ui-chrome-and-platform.md) | Depends on U1a (ADR 0024 fixes the layout first); `ReaderShell` exposes the rail, inspector and secondary-toolbar slots that U1c fills; buttons reference command ids once U1b lands |
 | [C5a](../todos/ready/C5a-text-layer-and-selection.md) | The viewer emits selection events with rects and runs for U2a |
 | [C7a](../todos/ready/C7a-accessibility-and-theming.md) | Depends on U1b and U1c; the keymap and help dialog come from the command registry; the "night reading" filter is replaced by U2c's page modes |
 | [C7c](../todos/ready/C7c-performance-gates-and-launch.md) | Also depends on U2a, U2c, U3a and U4a; the plan's targets stay the gates (stretch goals are U5a's) |

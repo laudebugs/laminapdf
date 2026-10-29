@@ -7,7 +7,7 @@
 | Plan | [Desktop app §6 D2](../../plans/desktop-app.md#d2-shell-and-native-core) |
 | Round / milestone | Round D (desktop) — M3 Desktop reader beta |
 | Depends on | [C3b](./C3b-viewer-virtualiser-and-zoom.md), [C4a](./C4a-ui-chrome-and-platform.md), [D2a](./D2a-adr-0008-and-desktop-scaffold.md), [D2b](./D2b-engine-process.md) |
-| Blocks | [D2e](./D2e-desktop-e2e-webdriverio.md), [U5b](./U5b-reader-benchmark.md) |
+| Blocks | [D2e](./D2e-desktop-e2e-webdriverio.md) |
 | Dependency notes | [D2b](D2b-engine-process.md); web plan **C3** (`@lamina/viewer` and its engine RPC interface, [web-app §C3](../../plans/web-app.md#c3-viewer-core)) and **C4** (`@lamina/ui`), both already required by D2a. Can run in parallel with [D2c](D2c-engine-sandbox.md). |
 | ADRs | Implements ADR 0008 §tile transport. Follows ADR 0009 (typed viewer RPC, web C2) and ADR 0010 (Platform adapter) |
 | Branch | `feat/d2d-tile-transport` |

@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [UI/UX §6 U5. Product promises](../../plans/ui-ux.md#u5-product-promises) |
 | Round / milestone | Round U (UI/UX) — after M2 |
-| Depends on | [B7a](./B7a-docs-site.md) |
+| Depends on | [B7a](./B7a-docs-site.md), [C7c](./C7c-performance-gates-and-launch.md) |
 | Blocks | None |
 | ADRs | Follows 0011 (hosted service and privacy) — the pledge must agree with it |
 | Branch | `docs/u5a-pledge-and-targets` |
@@ -22,7 +22,7 @@ Turn the research's strongest switching reason — users were burned by changed 
 
 - [UI/UX plan §5.9](../../plans/ui-ux.md#59-product-promises-r18-r19); [research: monetisation](../../research/product/pdf-app-product-and-ux.md#monetisation-the-obsidian-template) — Obsidian's model (Feb 2025), Stirling-PDF's paid tiers, GoodNotes/LiquidText/PDF Expert backlash.
 - [UI/UX plan §5.6](../../plans/ui-ux.md#56-perceived-performance-r6-r7) — the targets table.
-- [B7a](./B7a-docs-site.md) — the docs site this page lives on.
+- [B7a](./B7a-docs-site.md) — the docs site this page lives on; [C7c](./C7c-performance-gates-and-launch.md) — the launch it follows (roadmap: product promises come after web v0.1).
 - [Architecture §8 Q2](../../plans/architecture.md#8-open-questions-for-the-team) — the hosted service (accounts, storage, sync) as opt-in.
 
 ## Scope

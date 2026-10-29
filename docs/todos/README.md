@@ -76,7 +76,7 @@ Ready todos whose dependencies are all done:
 | C3a | [`@lamina/viewer` part 1: document worker and typed RPC](ready/C3a-viewer-worker-rpc.md) | ready | [B6b](ready/B6b-lamina-pdf-package.md), [C2a](ready/C2a-render-adrs.md), [C2c](ready/C2c-render-packages.md) |
 | C3b | [`@lamina/viewer` part 2: virtualiser, canvas pool, progressive tiles and anchored zoom](ready/C3b-viewer-virtualiser-and-zoom.md) | ready | [C3a](ready/C3a-viewer-worker-rpc.md) |
 | C3c | [Viewer performance harness: long tasks, memory and time-to-first-page in CI](ready/C3c-viewer-perf-harness.md) | ready | [C3b](ready/C3b-viewer-virtualiser-and-zoom.md) |
-| C4a | [`@lamina/ui`: React 19 reader chrome and the `Platform` adapter](ready/C4a-ui-chrome-and-platform.md) | ready | [C2a](ready/C2a-render-adrs.md), [C3b](ready/C3b-viewer-virtualiser-and-zoom.md) |
+| C4a | [`@lamina/ui`: React 19 reader chrome and the `Platform` adapter](ready/C4a-ui-chrome-and-platform.md) | ready | [C2a](ready/C2a-render-adrs.md), [C3b](ready/C3b-viewer-virtualiser-and-zoom.md), [U1a](ready/U1a-adr-0024-app-shell-ux.md) |
 | C4b | [`apps/web`: the reader on Cloudflare Workers static assets, with local file opening](ready/C4b-web-app-shell.md) | ready | [C2a](ready/C2a-render-adrs.md), [C4a](ready/C4a-ui-chrome-and-platform.md) |
 | C4c | [Remote files via `#url=`, encrypted files, and the privacy test suite](ready/C4c-remote-files-encryption-privacy.md) | ready | [B2b](ongoing/B2b-standard-security-decryption.md), [B6b](ready/B6b-lamina-pdf-package.md), [C4b](ready/C4b-web-app-shell.md) |
 | C4d | [Deploy pipeline: preview URL per PR, staging from `main`, production from release tags](ready/C4d-deploy-previews-and-production.md) | ready | [C4b](ready/C4b-web-app-shell.md) |
@@ -130,8 +130,8 @@ Ready todos whose dependencies are all done:
 | U4a | [Network indicator and CSP-backed privacy proof](ready/U4a-network-indicator-and-privacy-proof.md) | ready | [C4c](ready/C4c-remote-files-encryption-privacy.md), [U1c](ready/U1c-inverted-l-shell-and-modes.md) |
 | U4b | [Reader mode (reflow) from the structure tree](ready/U4b-reader-mode-from-structure-tree.md) | ready | [B8a](ready/B8a-structure-tree.md), [C5a](ready/C5a-text-layer-and-selection.md), [U1c](ready/U1c-inverted-l-shell-and-modes.md), [U2b](ready/U2b-reading-order-ground-truth.md) |
 | U4c | [Approximate reader mode for untagged PDFs](ready/U4c-approximate-reader-mode.md) | ready | [U4b](ready/U4b-reader-mode-from-structure-tree.md) |
-| U5a | [Product pledge and performance targets page](ready/U5a-product-pledge-and-targets.md) | ready | [B7a](ready/B7a-docs-site.md) |
-| U5b | [Reader benchmark: lamina vs other PDF readers](ready/U5b-reader-benchmark.md) | ready | [C7c](ready/C7c-performance-gates-and-launch.md), [D2d](ready/D2d-tile-transport-and-first-document.md) |
+| U5a | [Product pledge and performance targets page](ready/U5a-product-pledge-and-targets.md) | ready | [B7a](ready/B7a-docs-site.md), [C7c](ready/C7c-performance-gates-and-launch.md) |
+| U5b | [Reader benchmark: lamina vs other PDF readers](ready/U5b-reader-benchmark.md) | ready | [C7c](ready/C7c-performance-gates-and-launch.md), [D7c](ready/D7c-desktop-beta-release.md) |
 | U5c | [Opt-in, content-free usage telemetry](ready/U5c-opt-in-usage-telemetry.md) | ready | [C7c](ready/C7c-performance-gates-and-launch.md) |
 
 ## Hosted service

@@ -31,7 +31,7 @@ Make every reader action a registered command and give power users a Cmd/Ctrl+K 
 
 - `packages/ui/src/commands/`: `Command`, `CommandContext`, `CommandRegistry` (register, unregister, lookup, `enabled` evaluation, run with typed args), argument parsers (page range `4-8`, `4,6,9-12`, page label, zoom `150%`, `fit width`).
 - Shortcuts: one declaration per command with `Mod` mapping to Cmd/Ctrl, per-platform overrides, a keydown dispatcher that ignores events from text inputs, and a collision table against reserved browser/OS shortcuts.
-- `CommandPalette` on cmdk: Cmd/Ctrl+K and `/` from the canvas; fuzzy ranking over title and keywords, recents first (kept locally, try/catch around storage); inline argument parsing (`go to 12`, `zoom 150`, `extract 4-8` once the editor registers it); a pushed page for commands that need arguments; shortcut chips on every row; disabled commands shown with the reason.
+- `CommandPalette` on cmdk: Cmd/Ctrl+K (with `preventDefault`, as Chrome and Firefox otherwise focus their search box); fuzzy ranking over title and keywords, recents first (kept locally, try/catch around storage); inline argument parsing (`go to 12`, `zoom 150`, `extract 4-8` once the editor registers it); a pushed page for commands that need arguments; shortcut chips on every row; disabled commands shown with the reason.
 - Register the reader v0.1 command set from ADR 0024's appendix; C4a's toolbar buttons call commands by id.
 - `useCommand(id)` and `useShortcutMap()` hooks for menus and the help dialog (C7a) and for desktop menus (D4b).
 
@@ -46,7 +46,7 @@ Make every reader action a registered command and give power users a Cmd/Ctrl+K 
 - [ ] Claim via a claim PR (see Definition of done); then a fresh worktree off the updated `main`.
 - [ ] Check cmdk's licence and that of its Radix dependencies; `cargo xtask npm-licenses` passes.
 - [ ] Implement the registry and argument parsers with unit tests for every parser (valid, invalid, out of range, page labels).
-- [ ] Implement the dispatcher and the collision test; document reserved shortcuts (browser Ctrl+F/P/S, macOS Cmd+Q/W/H, Windows Alt+F4).
+- [ ] Implement the dispatcher and the collision test; document reserved shortcuts (browser Ctrl+F/P/S, Ctrl+W/T/N, Firefox Quick Find `/` and `'`, macOS Cmd+Q/W/H, Windows Alt+F4); the collision test covers every entry.
 - [ ] Build the palette with APG combobox semantics (focus stays in the input, `aria-activedescendant`, `aria-expanded`, live count of results).
 - [ ] Port C4a's toolbar actions to commands; delete duplicated handlers.
 - [ ] Add a palette demo to `examples/ui-demo.tsx` with a fake viewer.

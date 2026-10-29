@@ -30,7 +30,7 @@ Give phone readers and people who need larger text a one-tap reader mode that tu
 **In scope**
 
 - Core (bytes-in/bytes-out): `reflow::from_structure(doc) -> Vec<Block>` where `Block` is heading (level), paragraph, list (items), quote, caption, figure (page + bbox + `/Alt`), table (page + bbox, plus cells when the table is well-formed), formula (page + bbox + `/Alt`), note, and link spans; each block carries its source page and bbox for "back to page".
-- Sanity checks that reject a broken tag tree (empty, all `Span`, order far from the U2b metric's expectation) and fall back to U4c when it exists, else show "Reader mode isn't available for this document".
+- Sanity checks that need no ground truth, so they run on any user's file: the tree is empty or mostly `Span`/`NonStruct`; marked content covers too little of the page's text; structure order disagrees strongly with the order lamina's extraction infers from layout (a rank-correlation score). Thresholds are calibrated on U2b's tagged fixtures (good and deliberately broken), not computed from U2b's ground truth at runtime. A failing file falls back to U4c when it exists, else shows "Reader mode isn't available for this document".
 - UI: a Reader toggle (command, bottom bar on phones, top bar on desktop), a reading view with font size, line spacing, measure and page mode (Original/Sepia/Dark via CSS), position sync both ways, and figure/table crops rendered through `RenderBackend` clip rects.
 - Accessibility: semantic HTML (headings, lists, `figure`/`figcaption`, `table` when cells are known), language from `/Lang`.
 
@@ -44,7 +44,7 @@ Give phone readers and people who need larger text a one-tap reader mode that tu
 - [ ] Claim via a claim PR (see Definition of done); then a fresh worktree off the updated `main`.
 - [ ] Read the spec sections and the PDF Association document; write the role-mapping table (standard structure types, role map) in the module docs.
 - [ ] Implement `from_structure` with unit tests over generated tagged fixtures (from B8 builders) and real tagged files.
-- [ ] Implement the sanity checks with tests on deliberately broken trees.
+- [ ] Implement the sanity checks with tests on deliberately broken trees; calibrate thresholds on U2b's corpus and record them.
 - [ ] Bind through `lamina-wasm` and the worker RPC; build the reading view in `@lamina/ui`.
 - [ ] Position sync: map scroll position to block and block to page bbox; Playwright test for round-trips.
 - [ ] Score reader-mode block order against U2b's tagged fixtures.
