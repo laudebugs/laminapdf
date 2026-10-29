@@ -9,7 +9,7 @@ The Comment and review area (screens C01–C09 in the [screen inventory](screens
 Rules that hold for every screen here:
 
 - **Comment mode has one secondary toolbar** (design language §8.1), now in full: Select │ Highlight · Underline · Strike · Caret · Note · Text box ▾ · Ink · Shapes ▾ · Stamp ▾ · Attach file │ Colour · Width │ … · "n comments on this page" · Comments. The colour and width controls appear only for tools that use them. At narrow widths the toolbar wraps (shell rule); below 600 px the phone shell (C08) takes over.
-- **Two colour sets** (proposed, see [New components](#new-components)): fill colours (the four highlight colours) for highlight, fills and note icons; line colours (Black, Red, Blue, Green) for underline, strike, caret, ink, shapes, lines and text. The toolbar swaps the set with the tool.
+- **Two colour sets** (proposed, see [design language §2.7](design-language.md#27-fixed-content-palettes-proposed)): fill colours (the four highlight colours) for highlight, fills and note icons; line colours (Black, Red, Blue, Green) for underline, strike, caret, ink, shapes, lines and text. The toolbar swaps the set with the tool.
 - **Creating an annotation selects it** and opens the docked inspector (§8.2). Escape returns to the Select tool, then deselects.
 - **Every change is one undo step** (ADR 0006) and nothing is written until Save (§8.4). All annotation ops are class `Annotation` and save incrementally; flattening is class `Content`. On signed files the status-bar note or the banner says what Save will do (§7.13).
 - **Single-key tool shortcuts** (proposed) work only while the page has focus and can be turned off in Settings (WCAG 2.1.4): V Select, H Highlight (from the files), U Underline, N Note, T Text box, P Ink, R Rectangle, A Arrow, ⌫ Delete selected (from the files). Strike, Caret, the other shapes, Stamp and Attach file have no shortcut; they are in the palette and menus.
@@ -34,13 +34,13 @@ Rules that hold for every screen here:
 | Toggle | Note | Click to place a sticky-note icon; focus goes to its note field | `comment.note` |
 | Split toggle | Text box ▾ | Menu: Text box, Callout, Typewriter text; the button shows the last used | `comment.text-box`, `comment.callout`, `comment.typewriter` |
 | Toggle | Ink | Freehand drawing | `comment.ink` |
-| Menu button | Shapes ▾ | Menu (radio items): Rectangle `R`, Ellipse, Line, Arrow `A`, Polygon, Polyline; footer hint "Hold Shift for squares, circles and 45° lines" | `comment.shape.rectangle` … `comment.shape.polyline` |
+| Menu button | Shapes ▾ | Menu (radio items): Rectangle `R`, Ellipse, Line, Arrow `A`, Polygon, Polyline; footer hint "Hold Shift for squares, circles and 45° lines" | `comment.shape` (`kind`: rectangle … polyline) |
 | Menu button | Stamp ▾ | Opens the stamp picker (C05) | `comment.stamp` |
 | Toggle | Attach file | Click a spot, then pick a file (C05) | `comment.attach-file` |
-| Swatches | Colour | Four fill or four line colours, 24 px, named | `comment.colour.<name>` |
+| Swatches | Colour | Four fill or four line colours, 24 px, named | `comment.set-colour` (colour name) |
 | Select | Width | 0.5–8 pt, for line tools | `comment.width` |
 | Text | n comments on this page | Count on the current page | — |
-| Toggle | Comments | Opens the Comments panel (C04) | `comment.panel.toggle` |
+| Toggle | Comments | Opens the Comments panel (C04) | `comments.toggle-panel` |
 
 **States.**
 
@@ -93,7 +93,7 @@ Rules that hold for every screen here:
 
 **Layout.** The callout is edited in place on the page: the text area (a `contenteditable` `role="textbox"`) with a caret, corner handles, and two round handles on the leader line (knee and arrow end). The inspector shows text properties; the toolbar's split button reads "Callout".
 
-**Content and controls (inspector "Callout").** Font (Helvetica, Times, Courier and the document's embeddable fonts; the standard 14 by default) · Size (pt) · Bold, Italic (the rich-text subset kept in `/RC`) · Alignment left, centre, right (`/Q`) · Text and line colour · Fill (White, four fill colours, No fill) · Border width · Line end · a note "Bold and italic are kept as rich text; other viewers that ignore it show plain text." · Done editing · Delete callout. Command ids: `annot.text.bold`, `annot.text.italic`, `annot.text.align`, `annot.text.font`, `annot.text.size`, `annot.done-editing`.
+**Content and controls (inspector "Callout").** Font (Helvetica, Times, Courier and the document's embeddable fonts; the standard 14 by default) · Size (pt) · Bold, Italic (the rich-text subset kept in `/RC`) · Alignment left, centre, right (`/Q`) · Text and line colour · Fill (White, four fill colours, No fill) · Border width · Line end · a note "Bold and italic are kept as rich text; other viewers that ignore it show plain text." · Done editing · Delete callout. Command ids: `annot.toggle-bold`, `annot.toggle-italic`, `annot.set-alignment`, `annot.set-font`, `annot.set-font-size`, `annot.done-editing`.
 
 **States.** *Editing* (drawn); *selected, not editing* (handles, no caret); *empty new box* shows the placeholder "Type here" until typed and is removed if left empty; *missing glyphs*: characters the chosen font lacks are drawn with a fallback font and a warning notice in the inspector "Some characters use a fallback font" (proposed); *Acrobat-made box*: editing keeps its `/RC` and regenerates the appearance (E4e).
 
@@ -153,7 +153,7 @@ Rules that hold for every screen here:
 - **Standard:** Approved, Not approved, Reviewed, Draft, Final, Confidential, For comment, Void (text appearances, line colours).
 - **Dynamic:** Approved, Reviewed, Received, Not approved, each with "by R. Osei · 29 Oct 2026, 10:14". Footnote: "The name and time are written into the stamp when you place it and don’t change later. Name from Settings › Your name." (resolved at creation, never by JavaScript; E5c.)
 - **Custom:** "Add image…" (PNG, JPEG; a signature-like image here is just a picture, see Fill & Sign for signing), the user's saved stamps with Rename and Remove. Stored on this device only (desktop app data, web IndexedDB).
-- **Attachment inspector** ("Attached file"): file card (name, size, type, date added) · Save file as… · Replace… · the line "lamina doesn’t open attached files. Save it, then open it with an app you trust." · Description · Icon (Paperclip, Push pin, Graph, Tag) and colour · Author · Reply · Delete attachment. Command ids: `comment.stamp.place`, `stamps.add-custom`, `attachment.save`, `attachment.replace`, `annot.delete`.
+- **Attachment inspector** ("Attached file"): file card (name, size, type, date added) · Save file as… · Replace… · the line "lamina doesn’t open attached files. Save it, then open it with an app you trust." · Description · Icon (Paperclip, Push pin, Graph, Tag) and colour · Author · Reply · Delete attachment. Command ids: `comment.place-stamp`, `stamps.add-custom`, `attachment.save`, `attachment.replace`, `annot.delete`.
 - **Sound comments** (read only): listed in C04 with a Play button on desktop ("Play sound comment, 0:12"); web lists them with "Playing sound comments needs the desktop app".
 
 **States.** Picker on Dynamic with keyboard focus on Approved (drawn); Custom empty: "No custom stamps yet" / Add image…; attachment too large (over the soft limit in `Limits`): notice "This file is 48 MB; the PDF will grow by about that much" with Attach anyway (proposed).
@@ -202,7 +202,7 @@ Rules that hold for every screen here:
 
 **Content and controls — Flatten** (artboard `C07-flatten`). Title "Flatten comments into the pages?" · body: what flattening means, and "Form fields and signature fields are never flattened." · **Which comments**: All comments (14), On this page (3), Shown in the Comments panel (14 here, since the panel shows all), Selected (n) when there is a selection; "2 hidden comments stay as they are." (`include_hidden: false`) · a signature note (approval signatures only): "**Signed file.** The signature by A. Mensah stays valid, but its details will show that page content changed after signing." · checkbox **Also remove the comments from the file’s history** with "Saving normally adds to the file, so earlier versions inside it still hold the comments. This writes a whole new file instead, and the signature can’t be kept." · "You can undo this until you save." · Cancel · **Flatten 14 comments** (danger-filled). Command id: `comments.flatten`.
 
-**Content and controls — Summary** (artboard `C07-summary`). Layout: Page beside its comments / Comments only, as a list · Comments: All comments / Shown in the Comments panel · Include: Replies, Status, Pages without comments · Paper size: Same as the document / A4 / Letter · Preview with numbered markers on the page thumbnail matching numbered comments, "Summary page 2 of 7" · "Opens as a new, unsaved document. Q3-board-report.pdf doesn’t change." · Cancel · Print… · Create summary. Command ids: `comments.summary`, `comments.summary.print`.
+**Content and controls — Summary** (artboard `C07-summary`). Layout: Page beside its comments / Comments only, as a list · Comments: All comments / Shown in the Comments panel · Include: Replies, Status, Pages without comments · Paper size: Same as the document / A4 / Letter · Preview with numbered markers on the page thumbnail matching numbered comments, "Summary page 2 of 7" · "Opens as a new, unsaved document. Q3-board-report.pdf doesn’t change." · Cancel · Print… · Create summary. Command ids: `comments.summary`, `comments.print-summary`.
 
 **States.** Flatten on a **certified** file (any DocMDP level, since flattening is class `Content`): the note becomes a danger notice "**Flattening will invalidate the signature.** This file is certified by Northwind Housing Trust. Save a copy instead to keep the original signed." and the confirm button reads "Flatten in a copy…"; continuing in place needs the explicit override checkbox "I understand the signature will no longer be valid" (ADR 0007 §3). Comments without appearance streams get one generated first; if one can't be generated the dialog lists it and leaves it unflattened ("1 comment can’t be flattened: a sound comment"). Summary: no comments → Create disabled with the reason; building a long summary shows a determinate progress bar in the dialog.
 
@@ -248,7 +248,7 @@ Rules that hold for every screen here:
 
 **Layout** (artboard `C09-stylus-tablet`, 1024 × 1366 portrait). The desktop shell with touch rules (§6.2): a 56 px top bar, a docked **tool shelf** as the secondary toolbar (60 px, wraps when narrow), the page at full width (860 px wide, rail collapsed), and a 36 px status bar. The shelf is the only thing between the top bar and the page; nothing floats over the page while drawing.
 
-**Content and controls.** Top bar: Sidebar, file name with "1 unsaved change", the mode switcher (Comment active), Undo, Save, More, all 44 px. Tool shelf (`role="toolbar"`, "Pen tools"): Pen (pressed, drawn with the focus ring), Highlighter, Eraser, Lasso, Shapes, Text, Note as 48 px icon-over-label buttons │ four line colours in 44 px buttons (Blue selected) │ Thin / Medium (selected) / Thick │ "Draw with finger" switch (off). Status bar: privacy note left, "Pen draws, finger scrolls. A resting hand is ignored." in the middle (`aria-live="polite"`), "Page 3 of 24" right. Command ids: `comment.pen`, `comment.highlighter`, `comment.eraser`, `comment.lasso` (proposed), `comment.shapes`, `comment.text-box`, `comment.note`, `comment.draw-with-finger` (proposed). The board shows a pressure-varying blue loop round the highlighted sentence with an arrow into the margin, the pen at the end of the stroke, and a dashed palm shape (mock-up only) marking the ignored contact.
+**Content and controls.** Top bar: Sidebar, file name with "1 unsaved change", the mode switcher (Comment active), Undo, Save, More, all 44 px. Tool shelf (`role="toolbar"`, "Pen tools"): Pen (pressed, drawn with the focus ring), Highlighter, Eraser, Lasso, Shapes, Text, Note as 48 px icon-over-label buttons │ four line colours in 44 px buttons (Blue selected) │ Thin / Medium (selected) / Thick │ "Draw with finger" switch (off). Status bar: privacy note left, "Pen draws, finger scrolls. A resting hand is ignored." in the middle (`aria-live="polite"`), "Page 3 of 24" right. Command ids: `comment.pen`, `comment.highlighter`, `comment.eraser`, `comment.lasso` (proposed), `comment.shape`, `comment.text-box`, `comment.note`, `comment.draw-with-finger` (proposed). The board shows a pressure-varying blue loop round the highlighted sentence with an arrow into the margin, the pen at the end of the stroke, and a dashed palm shape (mock-up only) marking the ignored contact.
 
 **Behaviour.** Palm rejection by pointer type: while "Draw with finger" is off, only `pointerType: "pen"` draws; touches pan and pinch, and large-contact touches during a pen stroke are ignored. Pressure varies the stroke width (stored per E4a). Hovering pens (Apple Pencil hover, S Pen) show a preview ring of colour and width. Lasso selects strokes to move, recolour or delete. The barrel button or double-tap on the pen toggles Pen/Eraser where the platform reports it (proposed).
 
@@ -264,33 +264,8 @@ Rules that hold for every screen here:
 
 ## New components
 
-All proposed; built from the design-language tokens.
-
-- **Line colours** for strokes and text on the page: Black `#262421` (15.48 on white), Red `#B3261E` (≈ 6.5), Blue `#2D5DA8` (≈ 6.4), Green `#2F6A45` (6.43). Swatches as §7.12. Like the highlight colours, they never change with theme or page appearance.
-- **Split and menu tool buttons** (Text box ▾, Shapes ▾, Stamp ▾): the §7.24 toggle plus a 14 px chevron, `aria-haspopup`; the label shows the last used item.
-- **Menu** (Shapes, Filter): `surface`, `chip-border` edge, radius 6, padding 4–6, floating shadow, rows 30–32 px with 16 px icon or checkbox, optional shortcut chip, overline group headers, hairline separators, a 12 px muted footer hint.
-- **Selection handles:** 9 px white squares with a 1.5 px accent border at corners and edge midpoints, hit area 24 px; round 10 px handles for line points (callout knee and end). The object also gets the 2 px accent outline.
-- **Comments panel and thread row** (C04): 360 px right dock; thread rows with type mark, author, status badge, quote, note; the open thread uses the palette's active-row style (accent tint, inset accent ring), not a left stripe.
-- **Filter chips:** 24 px, white, `control-border`, radius 3, 12 px, a 12 px close glyph; the whole chip is a button "Remove filter: Open".
-- **Bulk action footer:** a `ground` strip with a hairline top at the bottom of a panel: count in 600, actions right.
-- **Radio cards** (export format): a label with a real radio, title 600 and a 12 px description; selected uses accent border and tint.
-- **Popover dialog** (stamp picker): a non-modal `role="dialog"` anchored to its button, menu styling, with a tablist inside.
-- **Phone annotate bar and options strip** (C08), and the **tablet tool shelf** (C09): the bottom-bar grid reused for tools; a 60 px `surface` strip for colour and width; shelf buttons 48 px tall with 22 px icons over labels.
-- **Status-bar tool hint:** the middle status slot shows a one-line hint with the keyboard alternative while a creation tool is active.
-- **New icons** (24 grid, stroke 1.5): Select `<path d="M6 4l12 7-5.5 1.5L10 18z"></path>` · Strike `<path d="M5 12h14"></path><path d="M16 7.5c-.6-1.8-2.2-3-4.2-3-2.4 0-4.1 1.3-4.1 3.2 0 1.4.9 2.4 2.6 3"></path><path d="M8 16.5c.6 1.8 2.2 3 4.3 3 2.5 0 4.2-1.3 4.2-3.3 0-.9-.4-1.7-1.1-2.3"></path>` · Caret `<path d="M6 17l6-10 6 10"></path><path d="M4 20.5h16"></path>` · Text box `<rect x="3.5" y="5.5" width="17" height="13" rx="1"></rect><path d="M8 9.5h8M12 9.5v6"></path>` · Callout `<path d="M4.5 4.5h15v10h-9l-4 5v-5h-2z"></path><path d="M8 8.5h8M8 11.5h5"></path>` · Stamp `<path d="M9.5 4.5h5l-1 6h-3z"></path><path d="M5 14a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v2.5H5z"></path><path d="M6 20h12"></path>` · Paperclip `<path d="M16.5 8.5l-6.8 6.8a2 2 0 0 1-2.8-2.8l7.4-7.4a3.5 3.5 0 0 1 5 5l-7.6 7.6a5 5 0 0 1-7.1-7.1L11 4.2"></path>` · Rectangle `<rect x="4.5" y="6.5" width="15" height="11" rx="1"></rect>` · Ellipse `<ellipse cx="12" cy="12" rx="8" ry="6"></ellipse>` · Line `<path d="M5 19L19 5"></path>` · Arrow `<path d="M5 19L19 5"></path><path d="M11 5h8v8"></path>` · Polygon `<path d="M12 4l8 6-3 9H7l-3-9z"></path>` · Polyline `<path d="M4 18l5-8 5 5 6-10"></path>` · Pen `<path d="M15 4.5l4.5 4.5L9 19.5H4.5V15z"></path><path d="M13 6.5l4.5 4.5"></path>` · Eraser `<path d="M14 4.5l6 6-9 9H6l-2.5-2.5z"></path><path d="M9 9.5l6 6"></path><path d="M11 19.5h9"></path>` · Lasso `<ellipse cx="12" cy="10" rx="8" ry="5.5"></ellipse><path d="M8 14.5c-1 1.5-1 3.5 1 4.5"></path>` · Filter `<path d="M4 6h16M7 12h10M10 18h4"></path>` · List (Comments) `<path d="M9 7h11M9 12h11M9 17h11"></path><path d="M4.5 7h1M4.5 12h1M4.5 17h1"></path>` · File `<path d="M6.5 3.5h7l4 4v13h-11z"></path><path d="M13.5 3.5v4h4"></path>` · Undo `<path d="M9 6.5L5 10.5l4 4"></path><path d="M5 10.5h9.5a4.5 4.5 0 0 1 0 9H12"></path>` · Align left/centre/right `<path d="M4 6h16M4 10h10M4 14h16M4 18h10"></path>` (centre: `M7 10h10 … M7 18h10`; right: `M10 10h10 … M10 18h10`).
+Merged into the [design language](design-language.md#decisions-on-area-proposals) on 2026-10-29; see its decisions table.
 
 ## Proposed design-language additions
 
-Candidates for [design-language.md](design-language.md), all first drawn in this area (details under [New components](#new-components)):
-
-- **Line colours** (Black, Red, Blue, Green) as a second fixed annotation palette beside the highlight colours, with the rule that the toolbar swaps the set with the tool.
-- **Split and menu tool buttons** for the Comment toolbar (Text box ▾, Shapes ▾, Stamp ▾).
-- **Menu** as a general component (rows, group headers, shortcut chips, footer hint), so Filter, Shapes and the panel's More menu share one spec.
-- **Selection handles** for page objects (square corner and edge handles, round line-point handles, 24 px hit areas).
-- **Radio cards** for choices that need a one-line description (export format; reusable for any format picker).
-- **Popover dialog** anchored to a toolbar button (stamp picker).
-- **Destructive-dialog focus rule:** focus starts on Cancel in an `alertdialog` whose confirm button is danger-filled (C07 Flatten).
-- **Touch tool bars:** the phone annotate bar with its 60 px options strip (C08) and the tablet tool shelf with 48 px icon-over-label buttons (C09), as the touch forms of a mode's secondary toolbar.
-- **Status-bar tool hint** in the middle status slot while a creation tool is active.
-- **Single-key tool shortcuts** (V, U, N, T, P, R, A) active only while the page has focus and switchable off in Settings, added to the §8.8 shortcut table.
-- **New icons** listed under New components (Select, Strike, Caret, Text box, Callout, Stamp, Paperclip, shapes, Pen, Eraser, Lasso, Filter, List, File, Undo, alignment).
+Merged into the [design language](design-language.md#decisions-on-area-proposals) on 2026-10-29; see its decisions table.

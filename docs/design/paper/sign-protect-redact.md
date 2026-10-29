@@ -25,7 +25,7 @@ Four rules hold across the area:
 - Clicking or pressing Enter on an empty signature field opens the **signature-field menu** with the two named actions (G01-sign-choice).
 - Command palette: "Add a signature image". No shortcut.
 
-**Layout.** Web app shell (drawn first; inventory W, D, M). Top bar with Fill & Sign active and Save; Fill & Sign secondary toolbar (Previous field · Next field │ Text · Check · Date │ Add a signature image · Sign with a certificate · … · "2 of 4 required fields filled"); rail on Pages (with a Fields tab); canvas on page 24; status bar with the network indicator, "Not signed yet · 2 signature fields" and the page label. The capture step is a dialog (max 560 px) over the dimmed shell; after placing, the inspector opens for the placed image.
+**Layout.** Web app shell (drawn first; inventory W, D, M). Top bar with Fill & Sign active and Save; Fill & Sign secondary toolbar (Previous field · Next field · Highlight fields │ Text · Check · Date │ Add a signature image · Sign with a certificate · Form data ▾ · … · "2 of 4 required fields filled"; every button a 16 px icon plus label, the signing actions with the Signature image and Certificate icons); rail on Pages (with a Fields tab); canvas on page 24; status bar with the network indicator, "Not signed yet · 2 signature fields" and the page label. The capture step is a dialog (max 560 px) over the dimmed shell; after placing, the inspector opens for the placed image.
 
 **Content and controls.**
 - *Signature-field menu* (`role="menu"`, anchored under the field; G01-sign-choice): two menu items, each icon + title + the one-sentence proof; a divider; "What’s the difference?" (opens help on visual vs digital signatures).
@@ -323,62 +323,8 @@ Four rules hold across the area:
 
 ## New components
 
-Components this area adds to the design language (proposed; add them to [design-language.md §7](design-language.md#7-components) when reviewed).
-
-- **Action menu with descriptions.** A `role="menu"` popover (`surface`, `chip-border`, radius 6, menu shadow, padding 6, 360 px) whose items are an 18 px icon, a 14/600 title and a 13 px sentence (`text-3`, or `muted` when not active). Used where two choices must be told apart by what they do (the signature-field menu). The active item uses `accent-tint` with an inset `accent` ring.
-- **Signature field on the page (mockup).** `#EEF2F3` fill with a 1 px `control-border` bottom rule and a 12 px "Sign here" label in `#4E5A63`; 72 px high on the desktop page. Selected or targeted: the 2 px `accent` outline, offset 2.
-- **Signature pad.** White, 1 px `control-border`, radius 4, 180 px high (phone: full width), a `chip-border` baseline 34 px from the bottom and a 12 px hint under it. Ink colours: Black `#1F1D1A`, Dark blue `#1F2F5C` (15.98 on white).
-- **Signature appearance.** Signature image (or none) beside three lines of 9.5–11.5 px details ("Digitally signed by …", time, reason).
-- **Typed signature styles.** Caveat 500 (OFL; loaded with a second font link on the boards that use it, self-hosted in the product), Newsreader italic, Newsreader with letter spacing.
-- **Danger banner.** The §7.13 save banner in `danger-tint` with a `danger` icon and lead text, `role="alert"`; used for disallowed changes after signing (G05) and for blocked saving (G10).
-- **Status-bar security item.** Lock icon + "Protected" (`text`) + "· AES-256 · …" (`muted`); a button that opens the protection summary.
-- **Status-bar signature item.** A §7.23 badge with the overall result followed by "N signatures · Details".
-- **Review row with accept/reject.** A list row (text + kind) with two 28 px toggle icon buttons: Accept (`accent` border and tint when pressed) and Reject (`danger` border and tint when pressed); rejected text is struck through in `muted`.
-- **Redaction mark (page overlay).** `danger-tint` fill with a 1.5 px `danger` outline (accepted) or dashed outline (to review); preview and applied state: solid `text`-colour box (`#1F1D1A`), optional overlay text, `role="img"` named "Redacted".
-- **Sensitive-search hit.** `selection-tint` fill with a 2 px `accent` underline; the current hit adds the 2 px `accent` ring.
-- **Check row (reports).** Name (13/600) + badge on one line, how it was checked (12 `text-3`) below; a failing row expands into a `danger-tint` box with the cause and fix buttons. Used by the redaction and (in list form) sanitise reports.
-- **Compare view.** A secondary toolbar (version selects, Side by side / Overlay, Previous / Next change, "Change n of N", Close compare) and two 400 px page renders captioned with version and time; changed regions outlined in `danger`.
-- **Chain-of-trust tree.** `role="tree"` inside a white bordered box; rows 28 px with a certificate icon, name and a 12 px note; selected row `accent-tint`/`accent`.
-- **Recipient list.** Rows of avatar initials (28 px), name + source line, an access select and a remove icon button, in a white bordered list.
-- **Icons** (24 grid, stroke 1.5, no fills):
-
-| Name | Markup |
-| --- | --- |
-| Certificate | `<rect x="4" y="4.5" width="16" height="11" rx="1"></rect><path d="M7.5 8.5h9M7.5 11.5h4"></path><circle cx="16" cy="16" r="2.8"></circle><path d="M14.6 18.5l-.8 3 2.2-1 2.2 1-.8-3"></path>` |
-| Lock | `<rect x="5.5" y="10.5" width="13" height="9" rx="1"></rect><path d="M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5"></path>` |
-| Shield cross (not trusted) | `<path d="M12 3.5l7 2.5v5.5c0 4.3-3 7.6-7 9-4-1.4-7-4.7-7-9V6z"></path><path d="M9.5 9.5l5 5M14.5 9.5l-5 5"></path>` |
-| Redact | `<rect x="4" y="9" width="16" height="6"></rect><path d="M4 5.5h10M4 18.5h7"></path>` |
-| Mark text | `<path d="M6 5h12M12 5v11"></path><path d="M5 20h14"></path>` |
-| Mark area | `<path d="M4 8V4h4M16 4h4v4M20 16v4h-4M8 20H4v-4"></path>` |
-| Preview (eye) | `<path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"></path><circle cx="12" cy="12" r="3"></circle>` |
-| Upload | `<path d="M12 15V4.5M8 8l4-3.5L16 8"></path><path d="M4.5 15v4.5h15V15"></path>` |
-| Keyboard (type) | `<rect x="3" y="6.5" width="18" height="11" rx="1.5"></rect><path d="M7 10.5h1M11 10.5h1M15 10.5h1M8 14h8"></path>` |
-| Key (keychain) | `<circle cx="8" cy="12" r="3.5"></circle><path d="M11.5 12H20M17 12v3M20 12v2"></path>` |
-| Smart card | `<rect x="3.5" y="6" width="17" height="12" rx="1.5"></rect><rect x="6.5" y="9.5" width="4" height="3.5" rx="0.5"></rect>` |
-| File | `<path d="M6.5 3.5h7l4 4v13h-11z"></path><path d="M13.5 3.5v4h4"></path>` |
-| Delete (bin) | `<path d="M5 7h14M10 7V5h4v2M7 7l1 12.5h8L17 7"></path>` |
-| Move | `<path d="M12 4v16M4 12h16M12 4l-2.5 2.5M12 4l2.5 2.5M12 20l-2.5-2.5M12 20l2.5-2.5M4 12l2.5-2.5M4 12l2.5 2.5M20 12l-2.5-2.5M20 12l-2.5 2.5"></path>` |
+Merged into the [design language](design-language.md#decisions-on-area-proposals) on 2026-10-29; see its decisions table.
 
 ## Proposed design-language additions
 
-To be merged centrally into the design language. The components above are proposed too; this section lists the shell and token changes they rely on.
-
-### §8.1 toolbars
-
-- **Redact** (a tool of Edit, replacing Edit's toolbar, like Protect): "Redact" title with the Redact icon · **Mark text** · **Mark area** · **Find sensitive…** │ **Preview result** (toggle) · flexible space · state text ("11 marks · nothing removed yet", after applying "10 redactions applied · undo with ⌘Z until you save") · **Apply redactions…** (secondary, hidden after applying) · **Done**. Every tool button has a 16 px icon and label.
-- **Rail in Redact:** tabs Pages · **Review** · **Find sensitive** (the two contextual tabs take the second and third slots while Redact is open).
-- **Inspector width for reports:** the docked report panels are 340 px (sanitise) and 360 px (verification report), wider than the 288 px inspector, because each row carries a sentence on how it was checked.
-
-### Commands
-
-`redact.open`, `redact.mark-selection`, `redact.find-sensitive`, `redact.apply`, `security.sanitise`, `sign.add-signature-image`, `sign.with-certificate`, `sign.open-sheet`. None has a shortcut: redaction, sanitising and signing are deliberate, and the design language reserves single keys for reading and commenting.
-
-### Patterns
-
-- **Marked is not removed** (§8 pattern): any state that keeps the original content in the file says so in words where the user acts (toolbar state text, inspector note, status bar), and the word "redacted" appears only after Apply and a passing report.
-- **Blocked save** (extends §7.13): when a report finds a problem the user must fix before saving, Save stays visible but `aria-disabled="true"` with `aria-describedby` on the danger banner's text; the banner carries the fix button. Save re-enables as soon as a re-run passes.
-- **Destructive confirm lists consequences** (extends the dialog pattern): an `alertdialog` with initial focus on Cancel and a list of consequences, each with an 18 px icon; the signatures it will remove are named in a `warning-tint` notice; the danger-filled button repeats the count ("Apply 10 redactions").
-
-### Tokens
-
-None new. The area uses the proposed `warning`, `warning-tint`, `danger-tint` and `positive-tint`, and `#1F1D1A` (`text`) for redaction boxes, already listed in the design language.
+Merged into the [design language](design-language.md#decisions-on-area-proposals) on 2026-10-29; see its decisions table.

@@ -129,7 +129,7 @@ Conventions on every board in this area:
 | Header | “Repaired on open” over the file name; Close (“Close repair details”) |
 | Notice (`warning-tint`, wrench) | “**This file is damaged.** lamina repaired it in memory so you can read it. The file on your device hasn’t changed, and other readers may show it differently.” |
 | What lamina did | One row per warning kind, a plain sentence over the code in `muted` 12: “Rebuilt the table that locates each object in the file” `xref-repaired`; “Measured 3 page streams whose stated length was wrong” `stream-length-recovered · pages 3, 4, 9`; “Left out 1 outline entry that pointed to no page” `outline-item-skipped` |
-| Not run | Unsupported features found in the file, e.g. “This file contains JavaScript. lamina never runs scripts in PDFs.” |
+| Not run | Unsupported features found in the file, e.g. “This file contains JavaScript. lamina never runs it.” |
 | Actions | **Copy details** (secondary, `file.copy-repair-details`; copies codes, counts and the lamina version as text) · “About repairs” (link) |
 
 Codes come from `fixtures/codes.json`; each code has one plain sentence in the UI string table. More than five kinds collapse to the first five and “Show all 9”.
@@ -164,7 +164,7 @@ Codes come from `fixtures/codes.json`; each code has one plain sentence in the U
 | Context note | “Searching… page 14 of 24”, then “Searched all 24 pages” | — |
 | Close find | Clears highlights, removes the Results tab, returns focus to where it was | `find.close` (`Esc`) |
 | Results tab | Matches grouped under “Page 3 · Repairs backlog” (page label + outline section), each a link with a snippet and the match in 600; the current one has `accent-tint` and an `accent` inset ring, `aria-current="true"` | — |
-| Replace (editor only) | Find and replace (A06) is this bar plus a **Replace** disclosure that opens a second row (replacement field, Replace, Replace all). The reader v0.1 has no Replace disclosure | `find.replace` |
+| Replace (editor only) | Find and replace (A06) is this bar plus a **Replace** disclosure that opens a second row (replacement field, Replace, Replace all). The reader v0.1 has no Replace disclosure | `find.open-replace` |
 
 Match colours on the page are the `find-match` and `find-current` tokens, defined per page appearance (see [Proposed design-language additions](#proposed-design-language-additions)). On Original: other matches `#F6E3BC` with a 1 px `warning` bottom border (so they differ from a yellow highlight), the current match `#EDBF6A` with a 2 px `accent` outline.
 
@@ -311,47 +311,8 @@ The More menu on the web holds Download a copy · Print… · Document propertie
 
 ## New components
 
-All proposed; built from the design language’s tokens.
-
-- **Drop zone.** `surface`, 1 px dashed `control-border`, radius 6, padding `40px 24px`, centred 32 px File icon, title Newsreader 20/500, hint 14 `muted`, buttons gap 8. Drag-over: full-window `accent-tint` overlay with a 2 px dashed `accent` inset and one line of text.
-- **File list row** (recent files). Full-width button, min-height 56 (64 on touch), padding 8, gap 14: 20 px icon, Newsreader 15/500 name over a 12 `muted` meta line, date right; rows separated by `hairline`.
-- **Error page.** The empty state (§7.21) with a 32 px `danger` warning icon, the code in 12 `muted` below the sentence, `role="alert"`; one primary and one ghost action; focus moves to the primary action.
-- **Details panel.** The inspector’s shell (§7.11) used for a document-level explanation that isn’t a selection (repairs; also suits R13’s network panel). Opened from a status-bar item, which shows a pressed state (`accent-tint` fill, 1 px `accent` border, `aria-expanded="true"`) while it is open.
-- **Find bar.** Secondary-toolbar slot, `role="search"`: a 28 px field (300 px, search icon, count inside in `muted` tabular), Previous/Next 28 px icon buttons, a divider, toggle buttons (§7.24 without icons), a context note and Close; in editor modes a Replace disclosure adds a second row.
-- **Results list.** Page group label 12/600 `text-3` (“Page 3 · Repairs backlog”), result links 13/1.45 with the match in 600, padding `6px 8px`, radius 4; current result `accent-tint` + inset `accent` ring.
-- **More tabs button.** At the end of a rail tab row with four or more tabs (rail 280 px; tab row gap 12, padding `14px 10px 0 14px`): a 28 px icon button with the More icon, `aria-haspopup="menu"`, `aria-expanded`, name “More tabs”, opening a menu (below) of the overflowed tabs. The selected tab always stays in the row. Markup:
-
-  ```html
-  <button aria-label="More tabs" aria-haspopup="menu" aria-expanded="false" style="width: 28px; height: 28px; margin-bottom: 4px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 4px; color: #4A453E"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="5.5" cy="12" r="0.9"></circle><circle cx="12" cy="12" r="0.9"></circle><circle cx="18.5" cy="12" r="0.9"></circle></svg></button>
-  ```
-
-- **Outline tree.** §7.7’s rows as a WAI-ARIA tree (`ul role="tree"`, `li role="treeitem"` with `aria-level`, `aria-expanded`); the chevron is decoration inside the row, toggled by click or ← →, so there is no nested button.
-- **Thumbnail focus.** Distinct from the current page: a rounded (radius 6) 2 px `focus` ring around the whole thumbnail and its label, with the `hover` fill and 8×10 px padding; the current page keeps the thumbnail outline and a 600 label.
-- **Page input with label.** Widens to fit the label (44 px for “A-1”); the physical position follows in `muted`: `(22 / 24)`.
-- **History buttons.** Back and Forward 26 px icon buttons in a `role="group"` before the page input, on every reader top bar; names say the destination (“Back to page 2”); disabled uses the `disabled` token.
-- **Link preview.** Popover (z 30) 248 px, `surface`, `chip-border`, radius 6, floating shadow, padding 12, gap 10: a 92 px crop of the target page’s top (thumbnail shadow) over the target title (Newsreader 15/500) and a 12 `muted` line. `role="tooltip"`, hoverable, Escape dismisses.
-- **Address box.** For URLs shown before acting on them: `field` white, `hairline` edge, radius 4, padding `10px 12px`, wraps anywhere, host in 600 `text`, the rest `text-3`.
-- **Password field.** The text input (§7.19) with an inline “Show” text toggle (13/600 `accent`, `aria-pressed`) inside the right edge.
-- **Properties list.** Definition list in a two-column grid (148 px labels 12/600 `text-3`, values 14 `text`, extra facts in `muted`), gap `8px 16px`; per-value copy icon buttons 24 px; sections headed with Heading 18.
-- **Menu.** `role="menu"` popover (z 30) under its button: `surface`, `chip-border`, radius 6, floating shadow, padding 4, width 260; items 32 high, padding `0 10px`, gap 10, 16 px icon (items without an icon indent to 36), label, shortcut chip right; separators 1 px `hairline` with 6 px side margins; the active item uses the palette’s active-row style (`accent-tint`, inset `accent` ring). The opening button shows the `pressed` fill.
-- **Phone find header and find toolbar.** The top bar becomes a 44 px search field (16 px text, count inside) with **Done**; the bottom bar becomes a three-column toolbar (Previous · Results · Next) with the action-bar sizes (§7.15).
+Merged into the [design language](design-language.md#decisions-on-area-proposals) on 2026-10-29; see its decisions table.
 
 ## Proposed design-language additions
 
-- **Reader v0.1 top bar** (§7.1), per cross-area decision 25: sidebar toggle · file name · History (Back · Forward) · page n/N · zoom −/%/+ · Find · View · Reader · Commands · `⋯`; no mode switcher and no save state (the editor adds them). Decision 20 should be amended to name the sidebar toggle and the History group, which the rail and C6b need.
-- **Rail tabs** (§7.5): `Pages · Outline` plus contextual tabs; 220 px for up to three tabs, 280 px with four or more and a More tabs button (above). No user Bookmarks tab.
-- **Find colour tokens**, per page appearance (§2.4). Ratios are for the page ink on the fill, and for the border or outline against the paper:
-
-  | Appearance | `find-match` | Match edge | `find-current` | Current outline |
-  | --- | --- | --- | --- | --- |
-  | Original (paper `#FFFFFF`, ink `#262421`) | `#F6E3BC` (ink 12.26) | 1 px bottom `#8A5300` (6.33 on paper, 5.01 on fill) | `#EDBF6A` (ink 9.04) | 2 px `#1F5C63` (7.58 on paper) |
-  | Sepia (paper `#F4ECD8`, ink `#3B2F20`) | `#E9CF95` (ink 8.57) | 1 px bottom `#8A5300` (5.38 on paper, 4.17 on fill) | `#D9A851` (ink 5.99) | 2 px `#1F5C63` (6.44 on paper) |
-  | Dark (paper `#22211F`, ink `#E6E1D8`) | `#5A4520` (ink 6.99) | 1 px bottom `#E0AE5A` (7.95 on paper, 4.50 on fill) | `#7A5818` (ink 4.98) | 2 px `#7DBDC2` (7.61 on paper) |
-  | High contrast | system `Mark` / `MarkText` | 1 px bottom `CanvasText` | system `Highlight` / `HighlightText` | 2 px `CanvasText` |
-
-  The bottom edge separates other matches from a yellow highlight (`#F2D675`), which has no edge; the current match is never shown by fill alone.
-- **Floating layers** (§1, §8.2): add **tooltips and link previews** to the short list of things allowed to float over the page (with the selection toolbar, palette, dialogs and menus). They are short-lived, hoverable and dismiss with Escape.
-- **Page-mockup link colour:** none; links in drawn page content use the page ink with an underline, as the PDF draws them.
-- **Pressed status-bar item** (§7.8): `accent-tint` fill plus 1 px `accent` border, `aria-expanded="true"`, while its panel is open.
-- **Icons** (§5; 24 grid, stroke 1.5): File `<path d="M6.5 3.5h7l4 4v13h-11z"></path><path d="M13.5 3.5v4h4"></path>` · Link `<path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"></path><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"></path>` · External link `<path d="M13.5 4.5h6v6"></path><path d="M19.5 4.5L11 13"></path><path d="M17 13.5v6H4.5V7h6"></path>` · Lock `<rect x="5.5" y="10.5" width="13" height="9" rx="1.5"></rect><path d="M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5"></path>` · Paperclip `<path d="M16.5 7.5l-7 7a2 2 0 0 0 2.8 2.8l7.2-7.2a4 4 0 0 0-5.7-5.7l-7.2 7.2a6 6 0 0 0 8.5 8.5l5.4-5.4"></path>` · Download `<path d="M12 4.5V15M8 11l4 4 4-4"></path><path d="M5 19.5h14"></path>` · Printer `<path d="M7 9.5V4.5h10v5"></path><rect x="4.5" y="9.5" width="15" height="7" rx="1"></rect><path d="M7 14.5h10v5H7z"></path>` · Info `<circle cx="12" cy="12" r="8"></circle><path d="M12 11v5M12 8v.5"></path>` · Forward `<path d="M9 5l7 7-7 7"></path>` · Chevron up `<path d="M7 14l5-5 5 5"></path>` · Chevron right `<path d="M10 7l5 5-5 5"></path>` · List `<path d="M5 7h14M5 12h14M5 17h9"></path>`.
-- **Command ids** used here: `file.open`, `file.open-url`, `file.open-recent`, `file.clear-recent`, `file.unlock`, `file.show-repairs`, `file.copy-repair-details`, `file.save-attachment`, `file.properties`, `file.print`, `file.save-copy`; `view.toggle-sidebar`, `view.show-pages`, `view.show-outline`, `view.show-attachments`, `view.expand-outline`, `view.collapse-outline`; `nav.go-to-page`, `nav.go-to-outline-item`, `nav.back`, `nav.forward`, `nav.follow-link`, `nav.open-external-link`, `nav.copy-link`; `view.settings`, `view.reader-mode`; `find.open`, `find.next`, `find.previous`, `find.match-case`, `find.whole-words`, `find.close`, `find.replace`.
+Merged into the [design language](design-language.md#decisions-on-area-proposals) on 2026-10-29; see its decisions table.

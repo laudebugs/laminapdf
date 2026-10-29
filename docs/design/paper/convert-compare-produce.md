@@ -10,7 +10,7 @@ These are power features, so the rule from principle 1 matters most here: none o
 
 Three rules hold across the area:
 
-1. **Nothing leaves the device without an explicit, per-job yes.** Every server job (OCR on the server, Office ↔ PDF, PDF → Word/Excel, server batch) shows the [server consent block](#server-consent-block) first: what file, how big, to which host, for how long, for what. The upload button stays disabled until the person ticks the box naming the file. The network indicator then names the host and counts the approved uploads (principle 7).
+1. **Nothing leaves the device without an explicit, per-job yes.** Every server job (OCR on the server, Office ↔ PDF, PDF → Word/Excel, server batch) shows the [server consent block](design-language.md#718-dialog-proposed) first: what file, how big, to which host, for how long, for what. The upload button stays disabled until the person ticks the box naming the file. The network indicator then names the host and counts the approved uploads (principle 7).
 2. **Copies, not surprises.** Jobs that rewrite the file (optimise, PDF/A, PDF/UA, imposition, conversions) save a **new file** and say so; jobs that add to the file (OCR text layer, tags, alt text, layers, actions, measurements) become ordinary unsaved changes with undo, saved incrementally. Where the result would lose or break a signature, the dialog says it before the person commits (§8.4 explicit save).
 3. **Machine checks are not the whole truth.** Accessibility and conformance results always separate what lamina checked from what a person must still check.
 
@@ -30,7 +30,7 @@ Sample files: `Q3-board-report.pdf` (24 pages; this area adds a scanned *Appendi
 
 - *Pages* radio group: "Pages without text · 23–24 (2 pages)" (default), "All pages · 24 (pages with text keep it)", "Pages" + range input.
 - *Languages on these pages*: select + "Add a language" ghost; help "each extra one makes recognition slower".
-- *Where to read the text*: two radio cards. "On this computer" (default on desktop; names the installed engine and its install date) and "On lamina’s server" (says a copy is uploaded and that the person will confirm what is sent first). Choosing the server card swaps the primary button to "Continue…", which opens the [server consent block](#server-consent-block) before any upload.
+- *Where to read the text*: two radio cards. "On this computer" (default on desktop; names the installed engine and its install date) and "On lamina’s server" (says a copy is uploaded and that the person will confirm what is sent first). Choosing the server card swaps the primary button to "Continue…", which opens the [server consent block](design-language.md#718-dialog-proposed) before any upload.
 - "Tag the recognised text for screen readers" checkbox (on when the file is tagged).
 - Info note: one unsaved change; saving appends the layer.
 - Buttons: Cancel · **Make searchable** (`ocr.run`).
@@ -68,7 +68,7 @@ Sample files: `Q3-board-report.pdf` (24 pages; this area adds a scanned *Appendi
 
 - Tabs: "From this PDF" · "To PDF (Word, Excel, PowerPoint, web page)". The To-PDF tab has a file picker and a URL field (HTML → PDF via the browser service).
 - *Convert to* radio: "Word document (.docx)" / "Excel workbook (.xlsx)" with one-line descriptions.
-- The [server consent block](#server-consent-block) (always shown on web; on desktop only when no local engine applies).
+- The [server consent block](design-language.md#718-dialog-proposed) (always shown on web; on desktop only when no local engine applies).
 - A local alternative line: "Want nothing to leave this device? Export text as Markdown runs in your browser." (links to O16 extraction).
 - Footer hint "Tick the box to upload", Cancel, **Upload and convert** (disabled until the consent box is ticked).
 - Server jobs panel, per job: title "file → format", status badge (Uploading, Converting, Ready, Failed, Deleted), a step list (Uploaded · size · time; Converted · pages, tables; retention "On the server until 30 Oct 2026, 11:42 or until downloaded"), **Download .docx** (primary), "Delete from server now" (danger ghost), checkbox "Delete from the server as soon as it is downloaded" (on by default); a running job shows an indeterminate bar, the current step ("Converting with LibreOffice", "lamina adds title, language and tags") and "Cancel and delete".
@@ -215,7 +215,7 @@ Sample files: `Q3-board-report.pdf` (24 pages; this area adds a scanned *Appendi
 
 **Purpose.** Save a copy that conforms to PDF/UA-1, PDF/A-2u/2b, or both, refusing (with a report and fixes) when checks fail.
 
-**Entry points.** File › Save a copy to a standard…; Accessibility toolbar "Save as PDF/UA…"; palette `save.as-pdfua`, `save.as-pdfa`.
+**Entry points.** File › Save a copy to a standard…; Accessibility toolbar "Save as PDF/UA…"; palette `file.save-as-pdfua`, `file.save-as-pdfa`.
 
 **Layout.** Dialog (560) over the dimmed shell.
 
@@ -237,7 +237,7 @@ Sample files: `Q3-board-report.pdf` (24 pages; this area adds a scanned *Appendi
 
 **Purpose.** Save a smaller or faster-to-open copy, with an estimate of the result before saving.
 
-**Entry points.** File › Save an optimised copy…; palette `save.optimised`; Document properties size line "Reduce size…".
+**Entry points.** File › Save an optimised copy…; palette `file.save-optimised`; Document properties size line "Reduce size…".
 
 **Layout.** Dialog (560).
 
@@ -281,15 +281,15 @@ Sample files: `Q3-board-report.pdf` (24 pages; this area adds a scanned *Appendi
 
 **Purpose.** Show, hide and edit optional-content layers; inspect and author actions (go to, open web address, show/hide, reset, JavaScript as text) on buttons, links, fields, pages and file open.
 
-**Entry points.** Layers: status-bar item "4 layers · 1 hidden in your view" (only on files with layers); View › Layers; palette `layers.show`. Actions: Edit mode › Actions tool; selecting a link, button or field in Edit mode (inspector Actions section); palette `actions.list`.
+**Entry points.** Layers: status-bar item "4 layers · 1 hidden in your view" (only on files with layers); View › Layers; palette `layers.show`. Actions: Edit mode › Actions tool; selecting a link, button or field in Edit mode (inspector Actions section); palette `actions.open`.
 
 **Layout.** Layers: **Layers rail panel** (back to tabs) with eye toggles and a lock glyph; inspector for the selected layer in Edit mode. Actions: Edit toolbar with "Actions" pressed; rail lists every action in the document grouped by place (When the file opens, Buttons, Links, With JavaScript); the selected button outlined on the page; inspector (320) with the action list.
 
 **Content and controls.** Layers rail: explanation "The eye shows or hides a layer for you only. It doesn’t change the file.", rows (eye button `aria-pressed`, name, "· hidden", locked icon with label), "Show all", "Reset to file’s view". Layer inspector: Name, *When someone opens the file*: Visible switch, Prints select, Lock checkbox; Order (Move up/Move down); New layer; Delete layer… (confirm dialog). Actions inspector: When select (Clicked, Pointer enters, Pointer leaves, Gets focus), ordered steps with More menu each, the JavaScript step with badge "Not run by lamina", a monospace textarea, and "Saved as text. lamina never runs it; other readers may, if their settings allow."; "Add an action…" with the list of supported kinds; "Remove all actions".
 
-**States.** File without layers: no status item and no panel. Locked layer: eye disabled with "Locked by the author" tooltip text. File with JavaScript: status-bar note "This file contains JavaScript · lamina doesn’t run it".
+**States.** File without layers: no status item and no panel. Locked layer: eye disabled with "Locked by the author" tooltip text. File with JavaScript: status-bar note "This file contains JavaScript. lamina never runs it.".
 
-**Behaviour.** Eye toggles are view state (not undoable, not saved); inspector edits are `UpdateOcg`/`SetOcgDefaults`/`SetActions` ops, undoable and incremental. JavaScript is never executed (ADR 0021).
+**Behaviour.** Eye toggles are view state (not undoable, not saved); inspector edits are `UpdateOcg`/`SetOcgDefaults`/`SetActions` ops, undoable and incremental. JavaScript is never executed (the working assumption until ADR 0021, the PDF JavaScript policy, is decided; it is still pending).
 
 **Accessibility.** Eye buttons are named "Hide <layer>"/"Show <layer>" with `aria-pressed`; step lists are ordered lists; reorder uses buttons.
 
@@ -323,82 +323,8 @@ Sample files: `Q3-board-report.pdf` (24 pages; this area adds a scanned *Appendi
 
 ## New components
 
-### Server consent block
-
-The required step before any upload (X01 server option, X02, X05 web server batch). A white section with a `control-border` edge inside a dialog, never a separate pop-up:
-
-- Share icon in `accent` + heading "This conversion runs on lamina’s server" + one sentence on why the device can't do it alone and that nothing is sent until the person agrees.
-- A definition list with four fixed rows: **What is sent** (file name, "the whole file" or page range, size), **Where to** (host name, region placeholder, "over HTTPS"), **How long it stays** (deleted on download or after 24 hours, whichever comes first; "You can delete it sooner"), **What it is used for** ("This conversion only").
-- A checkbox whose label repeats the file name ("Upload Q3-board-report.pdf for this conversion"), unchecked by default, never remembered.
-- The dialog's primary ("Upload and convert") stays disabled with a visible reason until it is ticked.
-
-Afterwards the network indicator names the host ("7 network requests · to jobs.lamina.example only · 2 uploads you approved") and the Server jobs panel lists each upload with delete controls.
-
-### Tool toolbar
-
-A secondary toolbar for a tool that works on the open document inside a mode (Accessibility and Print production in Edit, Measure in Comment). Same metrics as §7.24; starts with the tool's 16 px icon and name in Newsreader 15/500, ends with a context note and a **Done** secondary button that returns to the mode's own toolbar. Only one toolbar is ever shown (§8.1).
-
-### Rail panel
-
-A rail view that replaces the tabs for one task (Revisions, Layers): header with a 28 px back button ("Back to sidebar tabs"), Newsreader 18 title, a 12 px `muted` count; may be 260–280 wide. Used where a fourth rail tab would not fit 220 px.
-
-### Revision notice strip
-
-A 40 px strip under the top bar in `accent-tint` (`#E1E6E3`) with a clock icon, a bold lead in `accent`, the read-only fact, and actions right. Used only while a past revision is open; the save banner (§7.13) uses the warning tint, so the two never look alike.
-
-### Job panel (inspector slot)
-
-A docked panel for long-running work on this document (OCR, server jobs): title + context line, progress (§7.22), a per-item list, review fields, actions pinned to the bottom. It never covers the page and can be closed while work continues (the status bar keeps a "Making searchable · 1 of 2 pages" or "2 server jobs" item that reopens it).
-
-### Timeline
-
-Ordered list with a 9 px dot and a 1 px `chip-border` connector per row; the open item has a filled `accent` dot and the selected-row treatment (`accent` border, `accent-tint`).
-
-### Diff marks
-
-Removed: `danger-tint` background + strikethrough; added: `positive-tint` + underline; overlay colours orange `#B4540F` (6.9:1 on white) and blue `#2D4A6B` with a legend; the current change gets the 2 px `focus` outline.
-
-### Reading-order badge
-
-22 px `accent` circle with white 12/600 number, placed in the page margin beside each tagged block, matching the number in the tag tree; artifacts get a neutral "Artifact" tag instead.
-
-### Wide dialog with preview
-
-Dialog up to 820 wide when a live preview is the point (imposition): options column (min 260) and a `gutter`-coloured preview column (min 400) that stack below 700 px.
-
-### New icons
-
-Drawn on the §5 grid, stroke 1.5:
-
-| Name | Markup |
-| --- | --- |
-| Clock / revision | `<circle cx="12" cy="12" r="7.5"></circle><path d="M12 8v4l3 2"></path>` |
-| Swap | `<path d="M5 9h13l-3-3M19 15H6l3 3"></path>` |
-| Arrow up / down | `<path d="M12 19V5M7 10l5-5 5 5"></path>` / `<path d="M12 5v14M7 14l5 5 5-5"></path>` |
-| Chevron right / left | `<path d="M10 7l5 5-5 5"></path>` / `<path d="M15 5l-7 7 7 7"></path>` (= Back) |
-| Accessibility | `<circle cx="12" cy="5.5" r="1.5"></circle><path d="M5 9l7 1.5L19 9M12 10.5v4l-3 5.5M12 14.5l3 5.5"></path>` |
-| Tag | `<path d="M4.5 4.5h7l8 8-7 7-8-8z"></path><circle cx="8.5" cy="8.5" r="1"></circle>` |
-| Layers | `<path d="M12 4.5l8 4-8 4-8-4z"></path><path d="M4 12.5l8 4 8-4M4 16.5l8 4 8-4"></path>` |
-| Eye / eye off | `<path d="M3 12c2.5-4 5.5-6 9-6s6.5 2 9 6c-2.5 4-5.5 6-9 6s-6.5-2-9-6z"></path><circle cx="12" cy="12" r="2.5"></circle>` (+ `<path d="M4 4l16 16"></path>`) |
-| Lock | `<rect x="5.5" y="10.5" width="13" height="9" rx="1"></rect><path d="M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5"></path>` |
-| Ruler (measure) | `<path d="M3.5 15.5l12-12 5 5-12 12z"></path><path d="M7 12l2 2M10 9l2 2M13 6l2 2"></path>` |
-| Printer | `<path d="M7 9V4.5h10V9"></path><rect x="4.5" y="9" width="15" height="7" rx="1"></rect><path d="M7 14h10v5.5H7z"></path>` |
-| Server | `<rect x="4.5" y="5" width="15" height="6" rx="1"></rect><rect x="4.5" y="13" width="15" height="6" rx="1"></rect><path d="M8 8h.5M8 16h.5"></path>` |
-| Download | `<path d="M12 4.5V15M8 11l4 4 4-4"></path><path d="M5 19.5h14"></path>` |
-| Info | `<circle cx="12" cy="12" r="8"></circle><path d="M12 11v5M12 8v.5"></path>` |
-| Action (bolt) | `<path d="M13 3.5L6 13h5l-1 7.5L17 11h-5z"></path>` |
-| Play | `<path d="M8 5.5v13l10-6.5z"></path>` |
-| 3D cube | `<path d="M12 3.5l7.5 4v9L12 20.5l-7.5-4v-9z"></path><path d="M4.5 7.5L12 11.5l7.5-4M12 11.5v9"></path>` |
+Merged into the [design language](design-language.md#decisions-on-area-proposals) on 2026-10-29; see its decisions table.
 
 ## Proposed design-language additions
 
-These are the components above that other areas could reuse; each is drawn in this area's artboards and should move into the [design language](design-language.md) when it is next revised:
-
-- **Tool toolbar** (§7.24 variant): X06, X10, X12. Name the slot rule in §8.1: one secondary toolbar at a time, the tool toolbar replaces the mode's own.
-- **Rail panel**: X03, X11. Proposed as the standard way to give the rail a fourth task without a fourth tab.
-- **Severity badge pair**: "Error" (`danger` on `danger-tint`) and "Warning" (`warning` `#8A5300` on `warning-tint` `#F0E8DC`), 18 px, 11/600, always a word and never colour alone (X06, X08, X10, X11's "Not run by lamina").
-- **Wide dialog with preview** (X10 imposition) as a size step of the dialog (§7.12): 560 default, 820 with preview.
-- **Media poster**: a poster block with a centred 64 px white play button (named with the title and length), a dark duration chip, and an inline info note for content lamina can't play (X12).
-- **Measurement marks**: `accent` fill at 12% with a 2 px `accent` edge for the selected shape, 8 px square white handles, value labels as filled `accent` chips; other measurements in `warning` brown with a white chip (X12).
-- **Monospace text** for code-as-text fields (JavaScript in X11): the system stack `ui-monospace, 'SF Mono', Menlo, Consolas, monospace` at 12/1.5; the design language has no monospace token yet.
-- **Icons** in [New icons](#new-icons), plus three tool icons drawn for X12 on the same grid: Distance `<path d="M4 12h16M4 9v6M20 9v6"></path>`, Perimeter `<path d="M5 6l12-1 2 12-13 2z"></path>`, Area (Perimeter + `<path d="M9 10l6 6M8 14l3 3M12 8l5 5"></path>`).
+Merged into the [design language](design-language.md#decisions-on-area-proposals) on 2026-10-29; see its decisions table.

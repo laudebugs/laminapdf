@@ -21,7 +21,7 @@ Command ids follow the registry’s `area.verb-object` form ([U1b](../../todos/r
 
 **Purpose.** Fill an existing interactive (AcroForm) form in place, field by field, with every field type: text (single and multi-line), check box, radio group, dropdown and list box, date and formatted text, push button and signature field.
 
-**Entry points.** The Fill & Sign mode button; the palette “Fill & Sign mode” (`form.switch-to-fill-sign`); the status-bar item “Interactive form · 27 fields”, which switches to the mode. Clicking a field in Read mode does not fill it (Read never edits): it shows the hint “Fill in this form in Fill & Sign” with a button that switches mode and focuses the field.
+**Entry points.** The Fill & Sign mode button; the palette “Fill & Sign mode” (`mode.fill-sign`); the status-bar item “Interactive form · 27 fields”, which switches to the mode. Clicking a field in Read mode does not fill it (Read never edits): it shows the hint “Fill in this form in Fill & Sign” with a button that switches mode and focuses the field.
 
 **Layout.** Web shell (inverted L). Top bar with Fill & Sign selected, “5 unsaved changes” and Undo set Phone / Redo. The Fill & Sign toolbar. Rail (280 px) with the **Fields** tab. Canvas: the page with fields drawn as DOM overlays. No inspector while filling: the field itself is the control. Status bar: network indicator · “Interactive form · 27 fields · Tab follows the form’s row order” · page label.
 
@@ -89,7 +89,7 @@ Failures (tweak `sendError`) appear inside the dialog as a `danger` notice with 
 - **Validation error** (drawn on “Earliest visit date”, typed “31/09/2026”, focused): 2 px `danger` border plus the focus ring, and a **field message** under the field: warning glyph and “September has 30 days. Enter a real date, like 03/11/2026.” The Fields-tab row shows “Check date” in `danger` 600.
 - **Calculated field** (“Total”, £98.40 = hours × rate + materials): dashed `control-border` edge, white fill, a Σ glyph, value 600 right-aligned, and the 12 px caption “Calculated: hours × rate + materials”. An `<output>` linked to its inputs; recalculated in `/CO` order whenever an input changes, inside the same undo step as the change.
 - **Read-only field** (“Job number”, “Hourly rate”): dashed edge, white fill, lock glyph, `aria-readonly="true"`. Tab still stops on it so screen-reader users can read it.
-- **Script report notice:** “**This form has scripts.** lamina runs the 3 it recognises (a total and two date formats) without running code, and skipped 1. Check the ‘Visit reference’ field by hand.” · Details · Dismiss notice. Details opens a panel listing each script, its field and Handled / Skipped. What happens to unrecognised scripts is ADR 0021’s decision ([E8a](../../todos/ready/E8a-adr-0021-javascript-policy.md)); the screen only reports it.
+- **Script report notice:** “**This form has scripts.** lamina never runs JavaScript; it handled the 3 scripts it recognises (a total and two date formats) natively and skipped 1. Check the ‘Visit reference’ field by hand.” · Details · Dismiss notice. Details opens a panel listing each script, its field and Handled / Skipped. What happens to unrecognised scripts is ADR 0021’s decision ([E8a](../../todos/ready/E8a-adr-0021-javascript-policy.md)); the screen only reports it.
 
 **States.** No scripts: no notice. All handled: no notice; the status bar says “Scripts: 3 handled”. Several errors: the note counts them (“3 fields need attention”) and the palette “Next field that needs attention” (`form.focus-next-invalid-field`) walks them. Hide actions: hidden fields disappear from the page and the Fields tab until their condition changes.
 
@@ -176,7 +176,7 @@ Other states: import with no matching names shows a notice in the Fields tab (�
 
 **Purpose.** Create, place, resize and configure fields of every type (text, check box, radio group, dropdown, list box, push button, signature, and text fields with a date format), with names, accessible labels, options, flags, format, validation and calculation.
 
-**Entry points.** Edit toolbar › Tools ▾ › Form design; palette “Form design” (`form-design.open-tool`); the Fields-tab empty state on a file without fields. No shortcut.
+**Entry points.** Edit toolbar › Tools ▾ › Form design; palette “Form design” (`form-design.open`); the Fields-tab empty state on a file without fields. No shortcut.
 
 **Layout.** Desktop window (drawn), full top bar with Edit selected and Undo resize repair_type / Redo. Tool toolbar: “Form design” · Select · Text field · Check box · Radio group · Dropdown · List box · Button · Signature · Date │ Tab order · Detect fields · … · Snap to grid (toggle) · “27 fields” · Done. Rail (280 px) Fields tab: field names in `mono` with their type; selection syncs with the page. Canvas: every field in **design style** (dashed `accent` edge, field tint, name in `mono`). Inspector: the selected field. Status bar: “Arrow keys move the field 1 pt · ⇧ adds 10 · ⌥ resizes” (Windows/Linux: Shift, Alt).
 
@@ -197,7 +197,7 @@ Other states: import with no matching names shows a notice in the Fields tab (�
 | Duplicate · Delete field | Copy with a new unique name; delete (undoable) | `form-design.duplicate-field`, `form-design.delete-field` |
 | Signature field (when selected) | “Lock these fields when signed” (FieldMDP `/Lock`) and seed values | — |
 | Calculation order… | Palette and `…`: a dialog listing calculated fields with Move up / Move down (the `/CO` order) | `form-design.edit-calculation-order` |
-| Done | Back to Edit’s toolbar (Select · Edit text · Add text · Image · Shape ▾ · Link │ Page marks ▾ · Replace… │ Tools ▾) | `form-design.close-tool` |
+| Done | Back to Edit’s toolbar (Select · Edit text · Add text · Image · Shape ▾ · Link │ Page marks ▾ · Replace… │ Redact · Protect · Tools ▾) | `form-design.close-tool` |
 
 **States.** No fields yet: the Fields tab empty state offers Detect fields (P07). Several selected: the inspector shows shared properties and “3 fields”. **Signed files** (ADR 0007 §3, cross-area rule): entering Form design changes nothing, so no banner. On a certified file every field definition change is a conflict: the **first field change** opens the conflict alertdialog (signer, “the certification will no longer be valid”, Apply anyway / Cancel); if applied, the constraint banner stays, naming the signature, until save or undo. Certified P1 files show the banner on entering, as in P01. With approval signatures only, saving is append-only and there is no banner; changing a locked field or a signature field is a conflict and goes through the same dialog. This follows [E9c](../../todos/ready/E9c-form-design-mode.md) and [E9b](../../todos/ready/E9b-field-creation-ops.md) (save after the override); note that [full-editor §E9](../../plans/full-editor.md#e9-form-authoring) still says authoring on a signed file “is blocked unless signatures are removed”, which the todos have superseded and the plan should be updated to match.
 
@@ -266,71 +266,4 @@ Other states: import with no matching names shows a notice in the Fields tab (�
 
 ## Proposed design-language additions
 
-To be merged centrally into the design language.
-
-### Tokens
-
-- `field-tint` **(proposed)** = `accent` 8% over white, `#EDF2F3`: the fill of fillable fields while Highlight fields is on. Decoration only; the boundary is the 1 px `control-border` edge (3.40 on `field-tint`, 3.84 on white). Page ink `#262421` on it 13.71.
-- Monospace for field names uses the cross-area `mono` token (`ui-monospace, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace`).
-
-### §8.1 toolbars
-
-- **Fill & Sign:** Previous field · Next field · **Highlight fields** (toggle) │ Text · Check · Date │ Add a signature image · Sign with a certificate · **Form data ▾** · `…` · context note. Every button has a 16 px icon plus label.
-- **Form design** (a tool of Edit, replacing Edit’s toolbar): “Form design” title · Select · Text field · Check box · Radio group · Dropdown · List box · Button · Signature · Date │ Tab order · Detect fields · … · Snap to grid · field count · Done. While Tab order or Detect fields is on, the field tools are replaced by a muted “Field tools are paused…” note.
-- **Rail:** in Fill & Sign and Form design, the Fields tab is promoted to the third slot; other contextual tabs go into More tabs.
-
-### Components
-
-| Component | Spec |
-| --- | --- |
-| **Field overlay (fill)** | Native control over the widget, square corners (it belongs to the page), 1 px `control-border`, `field-tint` fill, page ink in Source Sans 3 at the widget’s size (13 px at 110%). Focused: white fill + 2 px `accent` ring, offset 1. Required: `danger` asterisk after the printed label, `aria-required`. Check box 14 px square, radio 14 px circle with an 8 px ink dot, both visually hidden native inputs inside their `<label>`; focus ring on the label via `label:has(input:focus-visible)` |
-| **Read-only field** | 1 px dashed `control-border`, white fill, 14 px lock glyph `text-3`, text `text-2`, `aria-readonly` |
-| **Calculated field** | As read-only plus a Σ glyph, value 600 right-aligned, a 12 px caption naming the formula; an `<output>` |
-| **Field error** | 2 px `danger` border; a field message under the field |
-| **Field message** | Page overlay (layer 1, like highlights) under the field: `danger-tint`, 1 px `danger` edge, radius 4, padding `6px 8px`, 14 px warning glyph, 12 px text. `role="alert"`, referenced by `aria-describedby` |
-| **Fields tab** | Rail tab: overline per page (“Page 1 · 12 fields”), rows 28 high (number 12 `muted` tabular · label 13 · state: ✓ `positive`, “Required” `danger`, “Read-only”/“Calculated” `muted`, “Script skipped” `warning`). Current: `accent-tint` + `accent` 600, `aria-current`. Summary variant: label/value rows. Tab-order and suggestions views as P06 and P07 |
-| **More tabs button** | 26 px icon button (chevron down) at the right end of the rail tab row, outside the `tablist`, `aria-haspopup="menu"` |
-| **Menu** | From a toolbar button: `surface`, `chip-border` edge, radius 6, padding 4, floating shadow, z 30. Items 32 high, padding `0 10px`, 16 px icon `text-3` + 14 px label; separators 1 px `hairline`; an optional 12 `muted` note below the items, outside `role="menu"` and linked with `aria-describedby`. Active item `accent-tint` |
-| **Listbox popup** | A dropdown field’s open list: as Menu, items 28 high, active `accent-tint` + inset 1 px `accent` ring, `role="listbox"` |
-| **Form bar (phone)** | `surface`, `hairline` top, sheet shadow, padding `8px 8px 8px 16px`: label 15/600 + position 13 `muted` tabular; hint 13 `text-3` (error: `danger`); 44 px Previous/Next (secondary, radius 6), ghost “Next required”, primary Done. Rides on the keyboard (`visualViewport`), replaces the bottom bar |
-| **Choice sheet (phone)** | Modal bottom sheet (§7.16) at the medium detent: title + “Required · field 7 of 27”, a radiogroup of 48 px rows (selected: `accent-tint`, `accent` 600, check icon), a footer with Previous (secondary) and Next (primary), 44 high |
-| **Design-mode field** | 1 px dashed `accent` edge, `field-tint` fill, field name in `mono` 11 px `accent`. Selected: solid `accent` edge + 2 px `accent` outline, offset 2, and 8 handles (7 px white squares, 1 px `accent`). Size chip: `text` background, white 11 px tabular, radius 3, under the field |
-| **Tab-stop badge** | 20 px pill, `accent` fill, white 11/600 tabular number, at the field’s top-left (−11, −11). `aria-hidden` |
-| **Suggestion outline** | Pending: 2 px dashed `accent` outline, offset 2, with a type tag (18 high, `accent` fill, white 11/600) inside the outline at its right end (right 2, bottom 3), so it never covers the line above; current: solid outline; accepted: becomes a design-mode field with a `positive-tint` / `positive` “Accepted · Text” tag |
-| **Option list editor** | Inspector list in a `control-border` box, rows 30 high with `hairline` separators, Move up and Remove 24 px icon buttons per row, “Add option” ghost below |
-| **Tool toolbar title** | Newsreader 15/500 label at the left of a tool toolbar, Done (secondary) at the right end |
-
-### Icons
-
-Same grid and stroke as design language §5.
-
-| Name | Markup |
-| --- | --- |
-| Forward (chevron right) | `<path d="M9 5l7 7-7 7"></path>` |
-| Chevron up | `<path d="M7 14l5-5 5 5"></path>` |
-| Text tool (T) | `<path d="M6 6.5h12M12 6.5v12"></path>` |
-| Certificate (as the Sign area) | `<rect x="4" y="4.5" width="16" height="11" rx="1"></rect><path d="M7.5 8.5h9M7.5 11.5h4"></path><circle cx="16" cy="16" r="2.8"></circle><path d="M14.6 18.5l-.8 3 2.2-1 2.2 1-.8-3"></path>` |
-| Signature image (as the Sign area) | `<path d="M4 17c3-6 5-9 7-9s1 6 3 6 3-4 6-6"></path>` |
-| Text field | `<rect x="3.5" y="7" width="17" height="10" rx="1"></rect><path d="M7 10v4"></path>` |
-| Check box | `<rect x="4.5" y="4.5" width="15" height="15" rx="1.5"></rect><path d="M8 12.5l3 3 5-6"></path>` |
-| Radio group | `<circle cx="12" cy="12" r="7.5"></circle><circle cx="12" cy="12" r="3"></circle>` |
-| Dropdown | `<rect x="3.5" y="7" width="17" height="10" rx="1"></rect><path d="M13 11l2 2 2-2"></path>` |
-| List box | `<rect x="4.5" y="4.5" width="15" height="15" rx="1"></rect><path d="M8 9h8M8 12h8M8 15h5"></path>` |
-| Push button | `<path d="M8 7.5h8a4.5 4.5 0 0 1 0 9H8a4.5 4.5 0 0 1 0-9z"></path>` |
-| Date | `<rect x="4.5" y="5.5" width="15" height="14" rx="1.5"></rect><path d="M4.5 9.5h15M8.5 3.5v4M15.5 3.5v4"></path>` |
-| Select (pointer) | `<path d="M6 4l12 7-5.5 1.5L10 18z"></path>` |
-| Lock | `<rect x="5.5" y="10.5" width="13" height="9" rx="1.5"></rect><path d="M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5"></path>` |
-| Calculated (Σ) | `<path d="M17 5.5H7l5 6.5-5 6.5h10"></path>` |
-| Import | `<path d="M12 4.5V15M8 11l4 4 4-4"></path><path d="M5.5 19.5h13"></path>` |
-| Reset | `<path d="M5 8.5A7.5 7.5 0 1 1 4.5 13"></path><path d="M5 4v4.5h4.5"></path>` |
-| Flatten (layers) | `<path d="M12 4.5l8 4-8 4-8-4z"></path><path d="M4 15.5l8 4 8-4"></path>` |
-| Tab order | `<path d="M10 7h10M10 12h10M10 17h10M5 5.5v3M4 17h2"></path>` |
-| Detect fields | `<path d="M4.5 9V4.5H9M15 4.5h4.5V9M19.5 15v4.5H15M9 19.5H4.5V15"></path><path d="M8 12h8"></path>` |
-| Drag handle | six `<circle r="0.9">` at (9,7) (15,7) (9,12) (15,12) (9,17) (15,17) |
-
-Export reuses Share; signature fields reuse Signed file.
-
-### Shortcuts
-
-Undo ⌘Z / Ctrl Z and Redo ⇧⌘Z / Ctrl Shift Z as everywhere. 
-No new letter shortcuts. Native form keys (Tab, Shift Tab, Space, arrows, Alt ↓ / ⌥↓ to open a dropdown); ⌥↑ / ⌥↓ (Alt ↑ / Alt ↓) to move a tab stop while the tab-order list has focus; Enter and Delete on a focused suggestion (single-key rules apply); web region cycling Ctrl F6 / Ctrl Shift F6 **(proposed)** because the browser owns F6. Form design, detection, import, export, reset and flatten are palette and menu only.
+Merged into the [design language](design-language.md#decisions-on-area-proposals) on 2026-10-29; see its decisions table.

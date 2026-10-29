@@ -10,7 +10,7 @@ View settings and page appearance, the dark UI theme, keyboard shortcut help, th
 
 **Purpose.** Set how the document looks in one place: the UI theme, the page appearance, the page layout and the zoom.
 
-**Entry points.** On web, the *View settings* icon button in the top bar, between zoom and find. On the phone, More › View settings. Palette commands: `view.settings`, `view.theme.light` / `.dark` / `.high-contrast` / `.system`, `view.page-appearance.original` / `.sepia` / `.dark` / `.high-contrast`, `view.layout.single` / `.two-up`, `view.continuous`, `view.zoom.fit-width` / `.fit-page` / `.actual-size`. None of these has a shortcut; zoom keys are listed in R12.
+**Entry points.** On web, the *View settings* icon button in the top bar, between zoom and find. On the phone, More › View settings. Palette commands: `view.settings`, `view.theme` (`light`, `dark`, `high-contrast`, `system`), `view.page-appearance` (`original`, `sepia`, `dark`, `high-contrast`), `view.page-layout` (`single`, `two-up`), `view.continuous`, `view.fit-width`, `view.fit-page`, `view.actual-size`. None of these has a shortcut; zoom keys are listed in R12.
 
 **Layout (web).** A popover under the button, 360 px wide: `surface`, `chip-border` edge, radius 6, menu shadow, z 30. It is a non-modal `role="dialog"` titled “View” (Newsreader 18). It sits over the top-right of the canvas and never covers the top bar. Sections, top to bottom:
 
@@ -38,7 +38,7 @@ View settings and page appearance, the dark UI theme, keyboard shortcut help, th
 
 **Purpose.** The F01 reader in dark chrome, built from the [proposed dark tokens](design-language.md#23-dark-ui-theme-proposed). The page stays Original (white) unless the user picks a page appearance.
 
-**Entry points.** View settings › Theme › Dark, or System when the OS is dark (`prefers-color-scheme`). Command `view.theme.dark`.
+**Entry points.** View settings › Theme › Dark, or System when the OS is dark (`prefers-color-scheme`). Command `view.theme` (`dark`).
 
 **Layout.** The shell is the same as F01. The chrome is `ground #1E1D1A`, the Commands button and fields use `surface #262421` / `field #1E1D1A`, and the gutter is `#141311`. Dividers are `hairline #3A3732`, and the page input border is `control-border #7E766A`. Text uses `#ECE7DE`, icons `#CFC8BC`, muted text `#A39B8E`. Accent, focus and the network shield are `#7DBDC2`. The page shadow is the proposed dark one. The selection mini toolbar is `raised #2E2C28` with a `chip-border #4A463F` edge and a black shadow. The selection on the white page keeps the Original tint `#CEDBDD`, because the selection tint follows the page appearance, not the UI theme.
 
@@ -74,7 +74,7 @@ Shortcuts shown (Windows/Linux; macOS swaps `Ctrl` for `⌘`):
 | `palette.open` | Command palette | Ctrl K |
 | `help.shortcuts` | Keyboard shortcuts | ? |
 | `file.open` | Open a file | Ctrl O |
-| `file.download-copy` | Download a copy | Ctrl S |
+| `file.save-copy` | Download a copy | None (Ctrl S is Save, in edit sessions only) |
 | `file.print` | Print | Ctrl P |
 | `view.focus-mode` | Focus mode | Ctrl \ |
 | `layer.close` | Close the open panel or dialog | Esc |
@@ -83,11 +83,11 @@ Shortcuts shown (Windows/Linux; macOS swaps `Ctrl` for `⌘`):
 | `nav.back` / `nav.forward` | Back after following a link / Forward | Alt ← / Alt → (on the web these are the browser’s own Back and Forward: link jumps are pushed to history, C6b) |
 | `find.open` | Find in document | Ctrl F |
 | `find.next` / `find.previous` | Next / previous match | Enter / Shift Enter (in the find field) |
-| `view.zoom-in` / `view.zoom-out` / `view.zoom.actual-size` | Zoom in / out / actual size | + / − / 0 (single keys, page focus; Ctrl + and Ctrl − stay the browser’s) |
-| `view.reader-mode` | Reader mode | R (single key) |
+| `view.zoom-in` / `view.zoom-out` / `view.actual-size` | Zoom in / out / actual size | + / − / 0 (single keys, page focus; Ctrl + and Ctrl − stay the browser’s) |
+| `view.reader-mode` | Reader mode | R (single key, Read mode only) |
 | `edit.copy` | Copy | Ctrl C |
 | `selection.actions` | Show selection actions | Shift F10 |
-| `comment.highlight` / `comment.delete` | Highlight / delete highlight (Comment mode) | H / Backspace (⌫ on macOS) |
+| `comment.highlight` / `annot.delete` | Highlight / delete highlight (Comment mode) | H / Backspace (⌫ on macOS) |
 
 **States.** The full list is drawn, with the search field focused. *Filtered:* typing matches names and keywords, empty groups hide, and the match is set in 600. *No match:* “No shortcut matches ‘…’. Try the command palette.” plus a ghost “Open command palette” button. With single-key shortcuts off, their rows stay listed but are labelled “Off”, and the chips are drawn in the disabled colour.
 
@@ -204,7 +204,7 @@ Reader settings are global and stored locally.
 
 **Layout.** Top bar and status bar stay, because the status bar carries the network indicator and notices. The rail and the secondary toolbar (here Comment’s) are hidden. The mode switcher stays, so the active mode is still visible. The status bar gains a **Focus mode** item (focus icon, “Focus mode · leave with `Ctrl \`”) that leaves focus mode when pressed.
 
-**Content and controls.** Top bar as in F01 Comment mode (sidebar toggle unpressed, “1 unsaved change”, mode switcher, page 3 / 24, zoom 125%, View settings, Find, Commands `Ctrl K`, Save, More). Canvas with page 3 at the wider fit the hidden rail frees. Docked inspector: Highlight, the quote, colour swatches, author R. Osei, note “Ask for the 90-day list by region.”, created time, Reply and Delete highlight (`comment.reply`, `comment.delete`). Status bar: network indicator (`privacy.network-activity`), the **Focus mode** item (`view.focus-mode`, chip `Ctrl \`), page label. A visually hidden polite live region carries the on/off announcement.
+**Content and controls.** Top bar as in F01 Comment mode (sidebar toggle unpressed, “1 unsaved change”, mode switcher, page 3 / 24, zoom 125%, View settings, Find, Commands `Ctrl K`, Save, More). Canvas with page 3 at the wider fit the hidden rail frees. Docked inspector: Highlight, the quote, colour swatches, author R. Osei, note “Ask for the 90-day list by region.”, created time, Reply and Delete highlight (`comment.reply`, `annot.delete`). Status bar: network indicator (`privacy.network-activity`), the **Focus mode** item (`view.focus-mode`, chip `Ctrl \`), page label. A visually hidden polite live region carries the on/off announcement.
 
 **States.** Drawn: Comment mode with a highlight selected. The inspector is docked as usual (colour, author, note, created, Reply / Delete highlight), the highlight has its 2 px focus outline, and the top bar shows “1 unsaved change” and Save. *Nothing selected* (not drawn): the canvas spans the full width between the top and status bars.
 
@@ -294,48 +294,8 @@ Reader settings are global and stored locally.
 
 ## New components
 
-| Component | Spec | Used in |
-| --- | --- | --- |
-| **View settings popover** | Non-modal `role="dialog"`, 360 px, `surface`, `chip-border`, radius 6, menu shadow, padding `16px 16px 14px`, gap 18. Sections use label 12/600 `text-3` over the control and help text 12 `muted`. Footer over a hairline | R10 |
-| **Segmented radio group** | `role="radiogroup"` grid of equal buttons, 28 px (desktop) or 44 px (touch), gap 4, radius 4 (6 on touch). Off: white + `control-border`. On: `accent` border, `accent-tint`, `accent` 600 | R10, R14 |
-| **Stepper** | Two 32 px (44–56 px touch) secondary buttons, “Smaller/Larger text” (glyph `A` at two sizes), around an `<output aria-live>` value | R14 |
-| **Docked utility panel** | Inspector anatomy (§7.11) used for a panel that isn’t a selection: 288–320 px, opened by a toggle with `aria-expanded`. It replaces the inspector while open | R13, R14 |
-| **Data table in a panel** | 13 px tabular, header row 12 `muted` over a hairline, rows 6 px padding over hairlines, visually hidden `<caption>` | R13 |
-| **Status strip** | Full-width notice under the top bar: 36 px min, `surface` (or a status tint), hairline bottom, 16 px icon, bold lead word, dismiss button. Use it for lasting app states (offline); signature risk uses the §7.13 banner | R15 |
-| **Persistent toast** | §7.20 toast with two text actions that stays until acted on. Only for something that waits on the user’s consent (update ready) | R15 |
-| **Status-bar mode item** | Status item that shows an active view state and leaves it on press, with an inline shortcut chip | R16 |
-| **Pen hover preview** | 2 px `accent` caret plus a 14 px ring (2 px `accent` over 60% white). `aria-hidden`, shown only for a hovering pen | R17 |
-| **Find match marks** | All matches: `selection-tint` fill + 1 px `accent` underline. Current match: `accent` fill, white text, 2 px outline, `aria-current`. If R05 (Reader A) defines match marks differently, R05 wins | R18 |
-| **Find bar (phone)** | Replaces the top bar: 60 px row with a 44 px field (count inside, clear button) and a “Done” text button, plus an options row of 44 px toggles. The bottom bar becomes a results toolbar with a count, “All results” and 44 px Previous/Next | R18 |
-| **Menu sheet (phone)** | Sheet holding a `role="menu"` list of 52–56 px rows: 22 px icon, 16 px label, optional 13 px `muted` subline or value on the right | R18 |
-
-New icons (24 grid, stroke 1.5), proposed for design-language §5:
-
-| Name | Markup |
-| --- | --- |
-| View settings | `<circle cx="12" cy="12" r="7.5"></circle><path d="M12 4.5v15M12 8.5h5.5M12 12h7.5M12 15.5h5.5"></path>` |
-| Single page | `<rect x="7" y="4.5" width="10" height="15" rx="1"></rect>` |
-| Two pages | `<rect x="3.5" y="5.5" width="8" height="13" rx="1"></rect><rect x="12.5" y="5.5" width="8" height="13" rx="1"></rect>` |
-| Page (view on page) | `<path d="M6.5 3.5h7l4 4v13h-11z"></path><path d="M13.5 3.5v4h4"></path>` |
-| Offline | `<path d="M7 17.5h10a3.5 3.5 0 0 0 .5-7 5.5 5.5 0 0 0-10.6-1A4 4 0 0 0 7 17.5z"></path><path d="M4 4l16 16"></path>` |
-| Reload / update | `<path d="M19 12a7 7 0 1 1-2.05-4.95"></path><path d="M19 4.5v4h-4"></path>` |
-| Focus mode | `<path d="M4.5 9V4.5H9M15 4.5h4.5V9M19.5 15v4.5H15M9 19.5H4.5V15"></path>` |
-| Download | `<path d="M12 4.5V15M8 11l4 4 4-4"></path><path d="M5 19.5h14"></path>` |
-| Print | `<path d="M7 9V4.5h10V9"></path><rect x="4.5" y="9" width="15" height="7.5" rx="1"></rect><path d="M7 14h10v5.5H7z"></path>` |
-| Properties (info) | `<circle cx="12" cy="12" r="8"></circle><path d="M12 11v5M12 8v.5"></path>` |
-| Chevron up | `<path d="M7 14l5-5 5 5"></path>` |
-| Add to home screen | `<rect x="7" y="3.5" width="10" height="17" rx="2"></rect><path d="M12 7.5v6M9.5 11l2.5 2.5 2.5-2.5"></path>` |
-| Help (question) | `<circle cx="12" cy="12" r="8"></circle><path d="M9.8 9.5a2.3 2.3 0 1 1 3.2 2.1c-.6.3-1 .8-1 1.4v.5M12 16.5v.5"></path>` |
-| Chevron right | `<path d="M10 7l5 5-5 5"></path>` |
+Merged into the [design language](design-language.md#decisions-on-area-proposals) on 2026-10-29; see its decisions table.
 
 ## Proposed design-language additions
 
-Parts these boards use that the design language does not yet define (none edits design-language.md; the owner decides):
-
-- **Everything in [New components](#new-components)** above, and its icon table, is proposed for §7 and §5.
-- **Touch shell sizes for tablet** (§6.2 “Tablet”, R17): top bar 56 px with 44 × 44 icon buttons and 56 px mode buttons (padding `2px 10px 0`), secondary toolbar 56 px with 44 px tool toggles (padding `0 14px`, radius 6, 20 px icons, 14 px labels), status bar 44 px with 13 px items, page fitted to 880 px with 72 px gutters. Zoom controls and the Commands button leave the top bar on touch.
-- **Swatch inside a touch target** (R17): the 26 px swatch sits centred in a 44 × 44 button; the selected ring is a `box-shadow` (2 px `surface` gap, 2 px `text`) so it doesn’t change the layout.
-- **Outline row with toggle, touch** (R17, R18): extends §7.7 to 48 px rows: a 44 px chevron button (`aria-expanded`, label “Expand/Collapse <section>”) or a 44 px spacer, then the link (Newsreader 17, level 2 at 16 with 20–28 px indent), page number 13 `muted`. The current row’s tint covers the whole row, button included.
-- **Contents sheet** (R17, R18): §7.16 sheet whose header is followed by full-width 44 px tabs (15 px; selected 600 with a 2 px `accent` underline) over a hairline. On tablet it spans the width and stops at the status bar.
-- **Results toolbar** (R18): replaces the bottom bar while find is open; count 15/600 tabular over a 12 px `muted` location line in a polite live region, text link “All results”, 44 px secondary Previous / Next.
-- **Status-bar mode item focus** (R16): status items keep the 2 px `focus` outline with a 1 px offset and radius 4.
+Merged into the [design language](design-language.md#decisions-on-area-proposals) on 2026-10-29; see its decisions table.

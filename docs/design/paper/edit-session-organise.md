@@ -9,7 +9,7 @@ Screens O01–O08 of the [screen inventory](screens.md): the edit session and it
 Where this area lives in the shell:
 
 - **Edit session** state is always in the top bar: save state next to the file name, Undo and Redo after it, and the Save split button (primary) at the right only while there are changes. History is a tab in the left rail.
-- **Organise** is a mode in the mode switcher. It hides the rail (the canvas *is* the page grid), swaps in the Organise toolbar proposed in design language §8.1 and opens the inspector for selected pages.
+- **Organise** is a mode in the mode switcher. Its rail shows Outline · History and no Pages tab (the canvas *is* the page grid), swaps in the Organise toolbar proposed in design language §8.1 and opens the inspector for selected pages.
 - **Document info** is a dialog (File › Document info… on desktop, More › Document info… on the web). The read-only R08 properties dialog becomes this dialog once E1f ships; its read-only facts move to the **File** tab.
 
 Command ids use the registry’s `area.verb-object` form ([U1b](../../todos/ready/U1b-command-registry-and-palette.md)). Every command is in the palette; only those listed with a shortcut have one. Shortcuts are shown as macOS / Windows and Linux.
@@ -69,9 +69,9 @@ Command ids use the registry’s `area.verb-object` form ([U1b](../../todos/read
 | Save a copy… (desktop) / Download a copy (web) | Writes a copy with the changes and keeps working on the current file | `file.save-copy` |
 | Save as optimised… | Full rewrite: drops earlier revisions and unreferenced objects. Disabled with a reason on `AppendOnly` files (“Not available for this file: a full rewrite would invalidate M. Adeyemi’s signature.”) | `file.save-optimised` |
 | How saving works | Two-sentence explanation inside the menu: incremental vs full rewrite | — |
-| Constraint banner | Appears with the first edit that makes the save a `Conflict`. “**Saving will invalidate the signature.** This file is certified for form filling only, and deleting a page is a change it doesn’t allow. Save a copy instead to keep the original signed.” Buttons “Save a copy…” and “Details” | `file.save-copy`, `save.constraint-details` |
+| Constraint banner | Appears with the first edit that makes the save a `Conflict`. “**Saving will invalidate the signature.** This file is certified for form filling only, and deleting a page is a change it doesn’t allow. Save a copy instead to keep the original signed.” Buttons “Save a copy…” and “Details” | `file.save-copy`, `file.show-constraint-details` |
 | Remove-signature confirm | `alertdialog` “Remove the certification and save?” naming every signature that the save removes (signer, kind badge, field, date, current validity), what happens to the field, and the alternative. Buttons Cancel (default focus), Save a copy…, “Remove signature and save” (danger, filled) | `file.save-invalidating-signatures` |
-| File changed on disk | `alertdialog` “This file changed on disk” with three explained choices: Save as… (primary), Reload (discards changes), Overwrite (danger ghost) | `file.save-as`, `file.reload-from-disk`, `file.overwrite` |
+| File changed on disk | `alertdialog` “This file changed on disk” with three explained choices: Save as… (primary), Reload (discards changes), Overwrite (danger ghost; a full rewrite, since appending is impossible on a changed file) | `file.save-as`, `file.reload-from-disk`, `file.overwrite` |
 | Web Download | Without the File System Access API, the primary button is “Download” with a download icon; the menu offers Download (`Ctrl S`) and Download optimised and explains why | `file.download`, `file.download-optimised` |
 
 **States, one per `SaveConstraint.kind()`.**
@@ -127,7 +127,7 @@ Command ids use the registry’s `area.verb-object` form ([U1b](../../todos/read
 
 **Purpose.** Edit title, author, subject, keywords, dates, producer and creator (Info and XMP kept in sync), remove selected metadata, and edit any XMP property including custom and PDF/A extension schemas.
 
-**Entry points.** File › Document info… (desktop), More › Document info… (web), palette “Document info” (`document.info`); clicking the file name subtitle in the top bar. No shortcut (`⌥⌘I` and `Ctrl Shift I` open developer tools).
+**Entry points.** File › Document info… (desktop), More › Document info… (web), palette “Document info” (`file.properties`); clicking the file name subtitle in the top bar. No shortcut (`⌥⌘I` and `Ctrl Shift I` open developer tools).
 
 **Layout.** Dialog over the dimmed shell. Description tab: 560 px. XMP tab: the dialog widens to 880 px (the wide dialog, see New components). Header: title “Document info” over “Q3-board-report.pdf · PDF 1.7 · PDF/A-2b”, close icon. Tabs: Description · XMP · File (the read-only facts from R08: version, page size, fonts, security, tagged). Footer: left “Remove metadata…” (danger ghost), right Cancel and Apply.
 
@@ -202,7 +202,7 @@ The statuses drawn illustrate the state after rounds E1–E2; they are not a rel
 
 **Entry points.** Organise in the mode switcher; palette “Organise mode” (`mode.organise`); dropping a PDF or image on a desktop window in any mode switches here with an insertion bar at the drop point.
 
-**Layout.** Desktop window. Top bar with Organise selected; the page-number input is replaced by a thumbnail size control (− 100% +). Organise toolbar: Insert ▾ · Rotate left · Rotate right · Extract · Delete │ Move to page… · More page actions (⋯) · context note (“2 pages selected”, “24 pages”). No rail. Canvas: the page grid on `gutter`, tiles 132 × 171 (landscape pages 171 × 132), page number under each. Inspector for the selection. Status bar: network · signed-file note when relevant · “Pages 5–6 of 24”.
+**Layout.** Desktop window. Top bar with Organise selected; the page-number input is replaced by a thumbnail size control (− 100% +). Organise toolbar: Insert ▾ · Rotate left · Rotate right · Extract · Delete │ Move to page… │ Page setup ▾ · Bookmark ▾ · More page actions (⋯) · context note (“2 pages selected”, “24 pages”). Rail with Outline · History (no Pages tab: the grid is the pages). Canvas: the page grid on `gutter`, tiles 132 × 171 (landscape pages 171 × 132), page number under each. Inspector for the selection. Status bar: network · signed-file note when relevant · “Pages 5–6 of 24”.
 
 **Content and controls.**
 
@@ -216,7 +216,7 @@ The statuses drawn illustrate the state after rounds E1–E2; they are not a rel
 | Extract | Extracts the selection as a new file (desktop: save dialog; web: download) | `pages.extract` |
 | Delete | Deletes the selection; “Delete 2 pages” in the inspector | `pages.delete` (`⌫` / `Delete`) |
 | Move to page… | Dialog: Position radios (After page n · Before page… · At the start · At the end), page number input with section hint, “New order” preview, Cancel / Move | `pages.move-to` |
-| More page actions | Duplicate · Replace with pages from a file… · Reverse order · Export as images… · Merge documents… · Split document… · Page size and crop… (O09) · Page labels… (O10) | `pages.duplicate`, `pages.replace`, `pages.reverse`, `pages.export-images`, `document.merge`, `document.split` |
+| More page actions | Duplicate · Replace with pages from a file… · Reverse order · Export as images… · Merge documents… · Split document… (page size, crop and labels are in Page setup ▾, O09–O10) | `pages.duplicate`, `pages.replace`, `pages.reverse`, `pages.export-images`, `document.merge`, `document.split` |
 | Context menu | Same commands for the right-clicked page or selection, with shortcut chips and Delete last in `danger` | — |
 | Inspector | Title “Pages 5–6”, section context, Rotation (two 30 px buttons and the angle), Size, Page labels, Linked from (“1 bookmark · 2 links”), actions Duplicate · Extract… · Delete 2 pages | — |
 | Thumbnail size | 75%–200%, remembered per viewer | `view.thumbnail-size` |
@@ -292,21 +292,4 @@ The statuses drawn illustrate the state after rounds E1–E2; they are not a rel
 
 ## New components
 
-Designed in the Paper spirit for this area; candidates for the design language.
-
-- **Undo and Redo buttons** in the top bar after the save state, separated by a 1×18 hairline divider: 28 px icon buttons with names that include the step. New icons (24 grid, stroke 1.5): Undo `<path d="M9 7L4.5 11.5 9 16"></path><path d="M4.5 11.5H15a4.5 4.5 0 0 1 0 9h-3"></path>`, Redo `<path d="M15 7l4.5 4.5L15 16"></path><path d="M19.5 11.5H9a4.5 4.5 0 0 0 0 9h3"></path>`.
-- **Tooltip:** `surface`, `chip-border` edge, radius 6, floating shadow, 12 px text plus a shortcut chip, 6 px below the control, `role="tooltip"`; shown on hover after 500 ms and on keyboard focus.
-- **History list:** rail tab rows (padding 6 8, radius 4) with a 14 px label over a 12 px `muted` meta line; current row `accent-tint` with an inset `accent` ring; undone rows struck through with “Undone” in the meta.
-- **Split button:** primary “Save” (radius 4 0 0 4) plus a 24 px chevron button (radius 0 4 4 0) with a 45% white divider; open state `accent-strong`.
-- **Menu with descriptions:** `surface`, `chip-border`, radius 6, floating shadow, padding 6; items padding 8 10, title 14 over a 12 px description; active item `accent-tint` with inset ring; disabled item keeps its description readable; separators `hairline`; an optional explanation box (`ground` fill, overline title). Plain context menus use 30 px items with chips at the right and the destructive item last in `danger`.
-- **Constraint banner:** built as proposed in design language §7.13 (36 px min, `warning-tint`, signature glyph and lead in `warning`, secondary “Save a copy…” and ghost “Details”), as a labelled `region`.
-- **Signature row:** white card with the signature glyph, signer name (600), kind badge (Certification in accent, Valid in positive) and a 12 px `muted` line with field name and date. Used wherever a dialog must name signatures.
-- **Keyword chips input:** a 32 px min field holding 22 px chips (`ground` fill, `chip-border`, radius 3) with 20 px remove buttons, and a borderless input that fills the rest.
-- **Pending removal:** struck-through `muted` value, danger badge “Will be removed”, and a “Keep” ghost link.
-- **Wide dialog:** the dialog at 880 px for two-pane editors (tree + detail), header and footer separated by hairlines.
-- **XMP tree:** ARIA tree rows 28 px, groups 13/600 with a chevron, properties indented 30 px with a right-aligned 12 px value; selected like the history row.
-- **Capability badges and table:** Round-trip (positive with check), Write (accent), Read (neutral), Unsupported (dashed `control-border` outline, neutral); table rows separated by hairlines, row-group headers in Newsreader 18 on `ground`.
-- **Organise tile:** 8 px padded tile, page 132 × 171 with thumbnail shadow and hairline outline; selected: `accent-tint` tile, 2 px `accent` outline offset 3, 20 px `accent` check badge at the top right with a 2 px gutter ring; keyboard focus adds a 2 px `accent` ring around the tile. Insertion bar: 2 px `accent` line with 8 px end dots, centred in the gap. Drag ghost: two offset 62 × 80 pages with the floating shadow and a count pill.
-- **Ordered file list:** white list in a hairline box, 52 px rows: drag handle (six stroked dots), position, name over meta, and 28 px move up / move down / remove icon buttons (disabled where the move isn’t possible).
-- **Other new icons:** Rotate left `<path d="M4.5 12a7.5 7.5 0 1 0 2.2-5.3"></path><path d="M4.5 4.5v3h3"></path>`; Rotate right `<path d="M19.5 12a7.5 7.5 0 1 1-2.2-5.3"></path><path d="M19.5 4.5v3h-3"></path>`; Insert page `<path d="M6.5 3.5h7l4 4v13h-11z"></path><path d="M12 10.5v6M9 13.5h6"></path>`; Extract `<path d="M6.5 3.5h7l4 4v4"></path><path d="M6.5 3.5v17h6"></path><path d="M15 17.5h6M18 14.5l3 3-3 3"></path>`; Delete `<path d="M4.5 6.5h15"></path><path d="M9.5 6.5V4.5h5v2"></path><path d="M6.5 6.5l1 13h9l1-13"></path>`; Download `<path d="M12 4.5V15M8 11l4 4 4-4"></path><path d="M5 19.5h14"></path>`; File `<path d="M6.5 3.5h7l4 4v13h-11z"></path><path d="M13.5 3.5v4h4"></path>`; Folder `<path d="M3.5 6.5h6l2 2h9v10h-17z"></path>`; Info `<circle cx="12" cy="12" r="8"></circle><path d="M12 11v5M12 8v.5"></path>`; Arrow up `<path d="M12 18.5V5.5M7 10.5l5-5 5 5"></path>`; Arrow down `<path d="M12 5.5v13M7 13.5l5 5 5-5"></path>`.
-- **New shortcuts:** `R` / `⇧R` (rotate, grid focus only, single-key), `⇧⌘←/→/↑/↓` and `Ctrl Shift` arrows (move pages, grid focus only), `⇧⌘S` / `Ctrl Shift S` (Save as, desktop only). None collide with the list in design language §8.8.
+Merged into the [design language](design-language.md#decisions-on-area-proposals) on 2026-10-29; see its decisions table.

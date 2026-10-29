@@ -27,16 +27,17 @@ Undo and Redo name the step they undo ("Undo move image") and are disabled with 
 **Edit mode toolbar.** One toolbar, identical on every Edit board:
 
 ```
-Select · Edit text · Add text · Image · Shape ▾ · Link │ Page marks ▾ · Replace… │ Tools ▾
+Select · Edit text · Add text · Image · Shape ▾ · Link │ Page marks ▾ · Replace… │ Redact · Protect · Tools ▾
 ```
 
 | Control | What it is | Command ids |
 | --- | --- | --- |
-| Select, Edit text, Add text, Image, Link | Tool toggles: a 16 px icon and a label, `aria-pressed` | `tool.select`, `tool.edit-text`, `tool.add-text`, `tool.image`, `edit.link` |
+| Select, Edit text, Add text, Image, Link | Tool toggles: a 16 px icon and a label, `aria-pressed` | `tool.select`, `tool.edit-text`, `tool.add-text`, `tool.image`, `tool.link` |
 | Shape ▾ | Split button. The main part is a toggle for the last-used shape. The 20 px chevron part ("Choose shape", `aria-haspopup="menu"`) opens Line, Rectangle, Ellipse, Polygon | `tool.shape` (with a `kind` argument) |
 | Page marks ▾ | Menu button: Watermark…, Header & footer…, Bates numbers…, Manage page marks… | `edit.add-watermark`, `edit.add-header-footer`, `edit.add-bates`, `edit.manage-page-marks` |
 | Replace… | Opens the find bar with the Replace row; pressed style while open | `find.open-replace` |
-| Tools ▾ | Menu: Redact, Protect, Form design, Actions, Accessibility, Print production. Each replaces this toolbar with its own tool toolbar that ends in "Done" | `redact.open`, `protect.open`, `form-design.open`, `edit.open-actions`, `a11y.open`, `produce.open` |
+| Redact · Protect | Tool buttons that stay visible on the toolbar (principle 3: every action has a visible home). Each replaces this toolbar with its own tool toolbar that ends in "Done" | `redact.open`, `security.protect` |
+| Tools ▾ | Menu: Form design, Actions, Accessibility, Print production. Each replaces this toolbar with its own tool toolbar that ends in "Done" | `form-design.open`, `actions.open`, `a11y.check`, `print.open` |
 
 A context note at the right end gives the active tool's hint, for example "Click to place a text box, or drag to set its width · Esc to finish". After placing an object the tool returns to Select, with the new object selected (as in [§8.2](design-language.md#82-selection--inspector)).
 
@@ -79,7 +80,7 @@ Boards in this area use the history note on A05, A05-edit-points and A06-report.
 
 Image, Shape, Link, Page marks, Duplicate and the arrange commands have no shortcut; they are in the palette and menus only. `Mod D` would collide with bookmarking in the web app, and `⌘[` / `⌘]` with browser back and forward.
 
-**Selection handles** (see Proposed design-language additions):
+**Selection handles** (see [design language §7.32](design-language.md#732-page-overlays-proposed)):
 
 - 8 px white squares with a 1.5 px `accent` border, at the corners and edge midpoints;
 - a 10 px circular rotation handle 24 px above the top edge, on a 1 px stem;
@@ -431,7 +432,7 @@ Everything else in the area is identical on web and desktop.
 **Content and controls.**
 
 - **Bar:**
-  - Commands: `find.next`, `find.previous`, `find.toggle-case`, `find.toggle-whole-words`, `find.toggle-replace`, `edit.replace-one`, `edit.skip-match`, `edit.replace-checked`, `find.close`.
+  - Commands: `find.next`, `find.previous`, `find.match-case`, `find.whole-words`, `find.open-replace`, `edit.replace-one`, `edit.skip-match`, `edit.replace-checked`, `find.close`.
   - Focus ring on Replace with.
 - **Results tab:**
   - A "Replace all matches" tri-state checkbox (drawn mixed, with a dash) and "5 of 6 checked", then "6 matches on 5 pages".
@@ -531,48 +532,4 @@ The same dialog serves the PDF/A case from the Edit session area (E1c, "Save wit
 
 ## Proposed design-language additions
 
-These are built only from existing tokens.
-
-**Edit-mode toolbar** (for §8.1): `Select · Edit text · Add text · Image · Shape ▾ · Link │ Page marks ▾ · Replace… │ Tools ▾`, as in Shared decisions.
-
-**Components:**
-
-| Component | Spec | Used in |
-| --- | --- | --- |
-| **Split tool button** | A toggle part (as §7.24, right radius 0) plus a 20 × 28 chevron part with left radius 0, `aria-label="Choose <thing>"`, `aria-haspopup="menu"`. Pressed state on the toggle part only | Edit toolbar (Shape) |
-| **Selection handles** | 8 × 8 white squares, 1.5 px `accent` border (7.58:1 on white), at corners and edge midpoints, 4 px outside a 1 px `accent` outline; 24 × 24 hit area. Rotation handle: a 10 px white circle on a 1 px stem, 24–30 px above the top edge. Text boxes show only the side handles. `aria-hidden` | A01, A02, A05, A07 |
-| **Point handles** | Anchor: 8 px square; the selected one is filled `accent`. Control: a 6 px circle on a 1 px line. `aria-hidden`; the inspector's point fields are the alternative | A05 |
-| **Snap guide** | 1 px dashed `accent` line with a label chip (11 px white on `accent`, radius 3), placed in the page margin. Only during a drag | A02 |
-| **Editable-run outline** | 1 px dashed `control-border`, offset 3 px, on every editable run while the Edit text tool is active | A04 |
-| **Substituted-glyph mark** | 2 px dotted `warning` underline, offset 3 px, in the editor only | A04, A06 |
-| **Toggle group** | Joined 30 × 28 buttons in one `control-border` box (radius 4) with `hairline` dividers; pressed = `accent-tint` and `accent`. `role="group"` with a visible label; each button `aria-pressed` | A01, A04, A05 |
-| **Content colour swatches** | The §7.12 circles for page content: Ink `#262421`, Grey `#6E6A64`, Teal `#1F5C63`, Red `#9B2335`, then "Custom…"; "No fill" is a white swatch with a red diagonal. An existing object's colour comes first, named "(original)". Separate from the annotation colours | A01–A05 |
-| **Inset fields** | Four number inputs (Left, Top, Right, Bottom) in a 2 × 2 grid under a fieldset legend; used for crop | A02 |
-| **Wide form dialog** | §7.18 at `max-width: 760px`: header (title, 12 px subtitle, named close), tablist, form column (`flex: 1 1 320px`) and preview column (`flex: 0 1 280px`), footer row (summary left, actions right) over a `hairline` | A03 |
-| **Live preview** | A 232 × 300 page in thumbnail style on a `gutter` well (radius 4, padding 16). New marks in their output colour inside 1 px dashed `control-border` boxes. Page stepper with a live region; `role="img"` with a describing note | A03 |
-| **Context menu** | `surface`, `chip-border` edge, radius 6, padding 4, menu shadow, 13 px. Items 30 high, shortcut 11 px `muted` at the right; `hairline` separators; active = palette active row; disabled = `disabled` text and `aria-disabled`; destructive item in `danger`. Flips on collision and prefers not to cover the selection | A05 |
-| **Replace row** | A second row of the R05 find bar behind a "Replace" disclosure: a 300 px field, Replace, Skip, a primary "Replace n checked" and a note | A06 |
-| **Result row with change preview** | A checkbox row whose label shows the context with the old words struck through in `muted` and the new words 600 in `accent`, under R05's "Page n · Section" headings | A06 |
-| **Tri-state checkbox** | A 16 px box: checked = `accent` fill with a white check; mixed = `accent` fill with an 8 × 2 white dash. `role="checkbox"`, `aria-checked="mixed"` | A06 |
-| **Outcome badges** | §7.23 badges as report states: "Replaced · n" (positive, check icon), "Not replaced" (warning, warning icon), "Skipped by you" (neutral) | A06 |
-| **Claim badges** | §7.23 badges naming a standard ("PDF/A-2b", "PDF/UA-1 · 1 issue"), as one status-bar button that opens the check panel | A07 |
-
-**Icons** (24 grid, 1.5 stroke):
-
-| Name | Markup |
-| --- | --- |
-| Select (pointer) | `<path d="M6.5 4.5l11 6.5-5 1.5-2.5 5z"></path>` |
-| Edit text | `<path d="M4 7.5V5.5h10v2M9 5.5V18.5M7 18.5h4"></path><path d="M18 8.5v11M16.5 8.5h3M16.5 19.5h3"></path>` |
-| Add text | `<path d="M5 7V5h14v2M12 5v14M9.5 19h5"></path>` |
-| Image | `<rect x="4" y="5" width="16" height="14" rx="1.5"></rect><circle cx="9" cy="10" r="1.5"></circle><path d="M4.5 17l5-5 4 4 2.5-2.5 3.5 3.5"></path>` |
-| Link (also "Keep proportions") | `<path d="M10 14a4 4 0 0 0 5.7 0l2.8-2.8a4 4 0 0 0-5.7-5.7l-1.3 1.3"></path><path d="M14 10a4 4 0 0 0-5.7 0l-2.8 2.8a4 4 0 0 0 5.7 5.7l1.3-1.3"></path>` |
-| Page marks | `<path d="M6 3.5h8.5L18 7v13.5H6z"></path><path d="M9 16.5l6-6"></path>` |
-| Replace | `<path d="M5 9h12l-3-3M19 15H7l3 3"></path>` |
-| Tools | `<rect x="4.5" y="4.5" width="6" height="6" rx="1"></rect><rect x="13.5" y="4.5" width="6" height="6" rx="1"></rect><rect x="4.5" y="13.5" width="6" height="6" rx="1"></rect><path d="M16.5 13.5v6M13.5 16.5h6"></path>` |
-| Redact (inside the Tools menu) | `<rect x="4" y="9.5" width="16" height="5"></rect><path d="M4 5.5h9M4 18.5h12"></path>` |
-| Protect / lock (one version for all areas; the most-used one) | `<rect x="5.5" y="10.5" width="13" height="9" rx="1.5"></rect><path d="M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5"></path>` |
-| Undo / Redo (from O01) | `<path d="M9 7L4.5 11.5 9 16"></path><path d="M4.5 11.5H15a4.5 4.5 0 0 1 0 9h-3"></path>` / `<path d="M15 7l4.5 4.5L15 16"></path><path d="M19.5 11.5H9a4.5 4.5 0 0 0 0 9h3"></path>` |
-| Align left / centre / right | `<path d="M5 6h14M5 10h9M5 14h14M5 18h9"></path>` / `<path d="M5 6h14M7.5 10h9M5 14h14M7.5 18h9"></path>` / `<path d="M5 6h14M10 10h9M5 14h14M10 18h9"></path>` |
-| Text not editable | The Edit text T plus `<path d="M15 14l5 5M20 14l-5 5"></path>` |
-| Structure (tags) | `<path d="M5 5h6v4H5zM13 15h6v4h-6zM5 15h6v4H5z"></path><path d="M8 9v6M8 12h8v3"></path>` |
-| Chevron up / right | `<path d="M7 14l5-5 5 5"></path>` / `<path d="M9 5l7 7-7 7"></path>` |
+Merged into the [design language](design-language.md#decisions-on-area-proposals) on 2026-10-29; see its decisions table.

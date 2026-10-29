@@ -20,7 +20,7 @@ Rules that hold for every screen here:
 
 **Purpose.** Crop, resize, set page boxes and orientation for one or many pages, and say plainly that cropping hides content without removing it.
 
-**Entry points.** Organise toolbar › Page setup ▾ › Crop, Resize…, Page boxes…, Make landscape, Make portrait; the page context menu has the same items; palette "Crop pages" (`organise.crop`), "Resize pages" (`organise.resize`), "Set page boxes" (`organise.page-boxes`), "Make landscape" (`organise.make-landscape`), "Make portrait" (`organise.make-portrait`). No shortcuts.
+**Entry points.** Organise toolbar › Page setup ▾ › Crop, Resize…, Page boxes…, Make landscape, Make portrait; the page context menu has the same items; palette "Crop pages" (`pages.crop`), "Resize pages" (`pages.resize`), "Set page boxes" (`pages.edit-boxes`), "Make landscape" (`pages.make-landscape`), "Make portrait" (`pages.make-portrait`). No shortcuts.
 
 **Layout.** Desktop shell, Organise mode, the canonical Organise toolbar with Page setup shown as active and the note "Cropping page 3 · drag the edges or type the margins". Rail (220 px): Pages · Outline · Attachments. Canvas: the selected page at true size with the crop overlay (the Crop tool swaps the page grid for the single page until it is turned off). Inspector "Page geometry" with tabs Crop · Size · Page boxes. Resize opens a dialog over the dimmed page grid.
 
@@ -54,7 +54,7 @@ Rules that hold for every screen here:
 
 **Purpose.** Define the page names readers show (roman front matter, arabic body, a prefixed appendix) without touching the printed page.
 
-**Entry points.** Organise toolbar › Page setup ▾ › Page labels…; page context menu › Page labels…; palette "Edit page labels" (`organise.page-labels`).
+**Entry points.** Organise toolbar › Page setup ▾ › Page labels…; page context menu › Page labels…; palette "Edit page labels" (`pages.edit-labels`).
 
 **Layout.** Dialog (max 560) over the dimmed Organise shell (full top bar, canonical toolbar with the note "24 pages", page grid backdrop marked `aria-hidden`).
 
@@ -225,7 +225,7 @@ Rules that hold for every screen here:
 
 **Purpose.** Make new files from the PDF: pages as images, text (plain, Markdown, JSON with positions), the original pictures, and links and bookmarks (JSON, CSV).
 
-**Entry points.** More › Export…; Organise toolbar › Extract › "As images…" for selected pages; palette "Export…" (`file.export`), "Export pages as images" (`file.export-page-images`), "Export text" (`file.export-text`), "Export pictures" (`file.export-images`), "Export links and bookmarks" (`file.export-links-and-bookmarks`), each taking a page range ("export text 3-6"). No shortcut: ⌥⌘E belongs to Export highlights.
+**Entry points.** More › Export…; Organise toolbar › Extract › "As images…" for selected pages; palette "Export…" (`file.export`), "Export pages as images" (`pages.export-images`), "Export text" (`file.export-text`), "Export pictures" (`file.export-pictures`), "Export links and bookmarks" (`file.export-links-and-bookmarks`), each taking a page range ("export text 3-6"). No shortcut: ⌥⌘E belongs to Export highlights.
 
 **Layout.** Dialog (max 560) over the dimmed Read shell (page 3 behind); on web, the same dialog turns into a progress dialog while the zip is built (web shell with rail Pages · Outline · Attachments).
 
@@ -255,7 +255,7 @@ Rules that hold for every screen here:
 
 **Entry points.** Pages sheet › "Select" or long-press a thumbnail; More › Organise pages.
 
-**Layout.** Phone shell. Top bar: Done organising (close icon, 44 px), title "Organise pages" over "2 of 24 selected" (`aria-live`), "Select all" text button (`organise.select-all`). A scrolling 3-column page grid (100 × 129 thumbnails, 13 px numbers or labels). Bottom action bar (`role="toolbar"`, "Page actions"): Move to… (`organise.move-to-page`) · Rotate (`organise.rotate-right`) · Duplicate (`organise.duplicate`) · Delete (`organise.delete`, in `danger`) · More (Insert blank page, Insert from file…, Extract…, Crop…, Resize…, Page labels…). "Move to…" is the phone's deliberate short form of "Move to page…": the full label doesn't fit a fifth of 390 px at 11.5 px, and its accessible name stays "Move to page…".
+**Layout.** Phone shell. Top bar: Done organising (close icon, 44 px), title "Organise pages" over "2 of 24 selected" (`aria-live`), "Select all" text button (`pages.select-all`). A scrolling 3-column page grid (100 × 129 thumbnails, 13 px numbers or labels). Bottom action bar (`role="toolbar"`, "Page actions"): Move to… (`pages.move-to`) · Rotate (`pages.rotate-right`) · Duplicate (`pages.duplicate`) · Delete (`pages.delete`, in `danger`) · More (Insert blank page, Insert from file…, Extract…, Crop…, Resize…, Page labels…). "Move to…" is the phone's deliberate short form of "Move to page…": the full label doesn't fit a fifth of 390 px at 11.5 px, and its accessible name stays "Move to page…".
 
 **Content and controls.**
 
@@ -276,51 +276,7 @@ Rules that hold for every screen here:
 
 ## Proposed design-language additions
 
-Designed for this area in the Paper spirit; to be merged into the design language centrally.
-
-**Toolbars and bars**
-
-| Item | Spec |
-| --- | --- |
-| Organise toolbar contents | Insert ▾ · Rotate left · Rotate right · Delete · Extract │ Move to page… │ Page setup ▾ (Crop, Resize…, Page boxes…, Page labels…, Make landscape, Make portrait) · Bookmark ▾ (Add bookmark, Create a contents page…, Named destinations…) · ⋯ · context note. Menu buttons use the §7.24 toggle with a 14 px chevron; an active tool inside a menu shows the menu button selected |
-| View bar | For full-canvas views in Read mode (object inspector): the secondary toolbar's box (`surface`, 40 px, `hairline` bottom) holding Back to pages (ghost with back icon), a divider, a 40 px-high tab row (§7.5 style, 13 px), a neutral "Read only" badge and a `muted` facts line. Not a mode toolbar: no tools |
-| Rail "More" tab button | With 4+ rail tabs (rail 280 px): after the third tab, a 24 px ghost button "More" with a 14 px chevron, `aria-label="More tabs"`, `aria-haspopup="menu"`; a tab chosen from it takes the third slot |
-| Constraint banner actions | Save a copy · Apply anyway… (both secondary, 26 px) · Details (ghost); the Apply anyway alert dialog lists each signature as a white card (signer 600, kind · scope · date in 12 `muted`, status badge) and confirms with a danger-filled button naming the result ("Crop and invalidate signature") |
-
-**Components**
-
-| Component | Spec |
-| --- | --- |
-| Crop overlay | Kept area: 2 px `accent` frame; cut area: `rgba(31,29,26,0.38)` over the page; eight 10 × 10 white handles with a 1 px `accent` border, 6 px outside the frame. Page overlay (z 1), `aria-hidden`; numeric fields are the accessible control |
-| Destination / bead marker | 2 px `accent` line (dashed for a bookmark destination) or outline (thread bead), with a 16–18 px `accent` tag, white 11/600 Source Sans 3, radius 3, placed in white space (between paragraphs or outside the column), never over text. Decorative; the panel or inspector carries the information |
-| Editable tree row | Outline row (§7.7) plus: drag grip (six 1.4 px dots, `accent` when selected), inline rename input (Newsreader 14, 26 high, `control-border`, focus ring), `role="tree"`/`treeitem` with `aria-level` and `aria-expanded`, chevrons 16 px |
-| Bookmark colour swatches | 28 px circles as §7.12 with names Default (`text`), Grey (`muted`), Red (`danger`), Blue (`#2D4A6B`), Green (`positive`); these are the outline's `/C` colours, not annotation colours |
-| Anchor grid | 3 × 3 `radiogroup` of 28 × 28 buttons, gap 4, radius 4, `control-border`; checked = `accent-tint` fill with an 8 px `accent` dot; disabled = `hairline` border and `disabled` dot |
-| Radio card | A label containing a radio, title (14) and one line (12 `muted`); padding `10px 12px`, radius 4, `control-border`, white; selected = `accent` border, `accent-tint` fill, title `accent` 600 |
-| Ranges table | `<table>` with 12/600 `text-3` headers, rows separated by `hairline`, 32 px controls, a trailing 28 px icon button to remove; each control `aria-label`led with row and column |
-| Drop zone | 1 px dashed `control-border`, radius 4, padding `18px 12px`, 22 px `muted` icon, 13 px line + 12 px `muted` line; always paired with a button that does the same; only in editing modes |
-| Object tree and code block | `mono` token (cross-area decision 6: `ui-monospace, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace`, 12.5/1.6); code block white, `hairline` border, radius 4, padding `12px 14px`, horizontal scroll |
-| Phone selection circle | 24 px circle on thumbnails in selection mode: off = white with 1.5 px `control-border`; on = `accent` with a white 2.5-stroke check |
-| Number stepper (touch) | 44 × 44 − and + buttons (radius 6, `control-border`) around a 72 × 44 input (16 px, tabular) |
-
-**Icons** (24 grid, stroke 1.5, same rules as §5). Insert, Rotate left/right, Delete and Extract reuse O06's icons; the Edit toolbar's icons are A01's.
-
-| Name | Markup |
-| --- | --- |
-| Crop | `<path d="M7 3.5V17h13.5"></path><path d="M3.5 7H17v13.5"></path>` |
-| Resize | `<path d="M4.5 9.5v-5h5M19.5 14.5v5h-5"></path><path d="M4.5 4.5l6 6M19.5 19.5l-6-6"></path>` |
-| Bookmark | `<path d="M7 4.5h10v15l-5-4-5 4z"></path>` |
-| Move to page | `<path d="M4.5 12h11M12 8l4 4-4 4"></path><path d="M19.5 5v14"></path>` |
-| Plus | `<path d="M12 5v14M5 12h14"></path>` |
-| Chevron right | `<path d="M10 7l5 5-5 5"></path>` |
-| Rename (pencil) | `<path d="M14.5 4.5l5 5L9 20H4v-5z"></path>` |
-| Attachment (paperclip) | `<path d="M16.5 7.5l-7 7a2 2 0 0 0 3 3l7.5-7.5a3.5 3.5 0 0 0-5-5L7.5 12.5a5 5 0 0 0 7 7l5-5"></path>` |
-| File | `<path d="M13.5 3.5h-7a1 1 0 0 0-1 1v15a1 1 0 0 0 1 1h11a1 1 0 0 0 1-1v-11z"></path><path d="M13.5 3.5v5h5"></path>` |
-| Folder | `<path d="M3.5 6.5h6l2 2h9v10h-17z"></path>` |
-| Tools (Edit toolbar menu) | the Repaired (wrench) icon from §5 |
-| Drag grip (filled dots, the one exception to "no fills") | six `<circle r="1.4">` at x 9/15, y 6/12/18, `fill="currentColor"` |
-
-**Command ids used in this area** (cross-area decisions 10 and 17): `organise.crop`, `organise.resize`, `organise.page-boxes`, `organise.make-landscape`, `organise.make-portrait`, `organise.page-labels`, `organise.add-bookmark`, `organise.set-bookmark-destination`, `organise.delete-bookmark`, `organise.create-contents-page`, `organise.named-destinations`, `organise.initial-view`, `organise.attach-file`, `organise.delete-attachment`, `organise.move-to-page`, `organise.rotate-left`, `organise.rotate-right`, `organise.duplicate`, `organise.delete`, `organise.select-all`, `tool.link`, `edit.add-link`, `edit.make-link`, `edit.delete-link`, `nav.follow-link`, `nav.next-thread-part`, `nav.previous-thread-part`, `file.save-attachment`, `file.inspect-objects`, `file.go-to-object`, `file.export`, `file.export-page-images`, `file.export-text`, `file.export-images`, `file.export-links-and-bookmarks`.
+Merged into the [design language](design-language.md#decisions-on-area-proposals) on 2026-10-29; see its decisions table.
 
 ## Open questions
 

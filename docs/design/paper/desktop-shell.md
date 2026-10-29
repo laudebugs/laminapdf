@@ -112,7 +112,7 @@ Conventions on this canvas:
 
 **States.** Items without a document are disabled (Print, Close tab, Export a copy, zoom, Go). Zoom in/out disable at the zoom limits. Check items reflect the focused window (Sidebar, Focus mode, page layout). Open recent rebuilds when the recent list changes and is empty (“No recent files”, disabled) when the setting is off.
 
-**Behaviour.** Choosing an item emits the command id to the focused window, which runs it through the same registry as the keyboard and palette. When a menu accelerator exists, the web view does not also handle that key (no double zoom steps on Windows/Linux). Command ids: `file.open`, `file.open-recent`, `file.clear-recent`, `window.new`, `tab.close`, `window.close`, `file.export-copy`, `file.save`, `file.print`, `app.quit`, `app.settings`, `app.check-for-updates`, `app.about`, `edit.copy`, `edit.select-all`, `find.open`, `find.next`, `find.previous`, `view.zoom-in`, `view.zoom-out`, `view.actual-size`, `view.fit-width`, `view.fit-page`, `view.toggle-sidebar`, `view.focus-mode`, `view.page-layout`, `view.page-appearance`, `view.theme`, `view.full-screen`, `nav.next-page`, `nav.previous-page`, `nav.first-page`, `nav.last-page`, `nav.go-to-page`, `nav.back`, `nav.forward`, `palette.open`, `doc.properties`, `network.show`, `reader.open`, `tab.next`, `tab.previous`, `tab.move-to-new-window`, `tab.move-to-window`, `help.open`, `help.shortcuts`, `help.report-issue`, `help.licences`.
+**Behaviour.** Choosing an item emits the command id to the focused window, which runs it through the same registry as the keyboard and palette. When a menu accelerator exists, the web view does not also handle that key (no double zoom steps on Windows/Linux). Command ids: `file.open`, `file.open-recent`, `file.clear-recent`, `window.new`, `tab.close`, `window.close`, `file.save-copy`, `file.save`, `file.print`, `app.quit`, `app.settings`, `app.check-for-updates`, `app.about`, `edit.copy`, `edit.select-all`, `find.open`, `find.next`, `find.previous`, `view.zoom-in`, `view.zoom-out`, `view.actual-size`, `view.fit-width`, `view.fit-page`, `view.toggle-sidebar`, `view.focus-mode`, `view.page-layout`, `view.page-appearance`, `view.theme`, `view.full-screen`, `nav.next-page`, `nav.previous-page`, `nav.first-page`, `nav.last-page`, `nav.go-to-page`, `nav.back`, `nav.forward`, `palette.open`, `file.properties`, `privacy.network-activity`, `view.reader-mode`, `tab.next`, `tab.previous`, `tab.move-to-new-window`, `tab.move-to-window`, `help.open`, `help.shortcuts`, `help.report-issue`, `help.licences`.
 
 **Accessibility.** Native menus are accessible through the OS. The schematic drawing uses `role="menubar"`, `menu`, `menuitem`, `menuitemcheckbox`, `menuitemradio` and `aria-keyshortcuts`; the highlighted item (accent fill, white text) is the keyboard focus. Windows/Linux access keys are unique per menu.
 
@@ -144,7 +144,7 @@ Conventions on this canvas:
 **Behaviour.**
 
 - **Compare** opens the on-disk version in a new read-only tab beside the current one (“Q3-board-report.pdf — on disk”), so the user can read both; the banner stays until Keep mine or Reload. A visual diff is out of scope here.
-- **Keep mine** dismisses the banner; the top bar keeps “1 unsaved change”. The next Save writes a full save (not incremental, since the base changed) and the save note says so: “The file changed on disk. Saving replaces that version.” (O02 owns the wording.)
+- **Keep mine** dismisses the banner; the top bar keeps “1 unsaved change”. The next Save opens O02’s “This file changed on disk” dialog (Save as… · Reload · Overwrite, where Overwrite is a full rewrite because appending is impossible on a changed file).
 - **Reload from disk** discards the op log for this document after a confirm only if there are more than 20 changes; undo history starts fresh.
 - Moved/deleted: lamina keeps serving the open handle, so reading continues; Locate… relinks to the chosen path; nothing is written.
 - With the setting off, the banner appears for every change (even without unsaved changes) with **Reload** and **Ignore**.
@@ -356,16 +356,7 @@ Sizes, hashes and the publisher name are placeholders (`[SIZE]`, `[PUBLISHER NAM
 
 ## New components
 
-- **Document tab strip** (S02, S10). 34 px row on the title-bar colour `#EFEBE3`, `#E0D9CD` rule below. Tabs `flex: 0 1 220px`, min 120, padding `0 4px 0 12px`, 1 px `#E0D9CD` dividers; label 13 px (active `text` 600, others `muted`); active tab on `ground` with `margin-bottom: -1px` so it joins the top bar; hover `hover` fill. Close button 24×24 with a 14 px cross, shown on active, hovered and focused tabs. Overflow button “+N” with chevron (26 px, pressed = toggle-selected style) opening a tab menu; an add button (26 px, plus icon). `role="tablist"` with roving tabindex. Hidden with one tab.
-- **Menu** (S02 overflow, S03 schematic native menus). `surface`, 1 px `chip-border`, radius 6, padding 4, menu shadow, z 30. Items 26–30 px, padding `0 10px` (34 px left indent when a check column exists), 14 px; shortcut as plain `muted` text right-aligned (not chips, matching native menus); highlighted item `accent` fill with white text; check items use the Check icon; separators 1 px `hairline` with 4 px/6 px inset; overline header optional. Submenu chevron: `<path d="M10 7l5 5-5 5"></path>` **(new icon: Chevron right)**.
-- **Full-width conflict strip** (S04). The §7.13 banner pattern generalised: `warning-tint`, lead sentence in `warning` 600, optional second line 12 px `text-3`, actions right (ghost · secondary · secondary). `role="alert"` when it asks for a decision, `role="status"` when it informs (restore notice on `surface`).
-- **Status-bar progress item** (S05) and **status-bar action item** (S06). Progress: glyph, label in `text`, 140×4 bar (§7.22), ghost text button. Action: `accent-tint` pill-free button (radius 4) with `accent` 600 label and icon, opening a non-modal popover (`surface`, `chip-border`, radius 6, menu shadow, padding 20, 340 px) anchored above the status bar.
-- **Settings window layout** (S06, S07). 200 px section list on `ground` (32 px link rows, current = `accent-tint` + `accent` 600), content on `surface` with padding `28px 32px`; setting rows (label + 12 px help left, control right, 12 px vertical padding, `hairline` between).
-- **Theme chips** (S07 Appearance). Same anatomy as §7.25 page-appearance chips, with a 52 px preview of the chrome ground and a small white page (Match system splits light and dark).
-- **Crash report block** (S08) and **code sample** (S07 Privacy, S09). White, 1 px `hairline` (or `control-border` when focusable), radius 4, padding `10–12px`, system monospace stack `ui-monospace, 'SF Mono', Menlo, Consolas, monospace` at 12 px (no webfont), `pre` scrolls.
-- **Drop hint** (S01). 1 px dashed `control-border` box on `surface`, radius 6, with the new **Download / drop** icon `<path d="M12 4.5V15M8 11l4 4 4-4"></path><path d="M5 15.5v4h14v-4"></path>` (also used for Update ready and the download button).
-- **New icons:** Printer `<path d="M7 9V4.5h10V9"></path><rect x="4.5" y="9" width="15" height="7" rx="1"></rect><path d="M7 13.5h10v6H7z"></path>`; Document (Windows title bar) `<path d="M6 3.5h8l4 4v13H6z"></path><path d="M14 3.5v4h4"></path>`; Chevron right and Download as above. Window caption glyphs (minimise, maximise, close) are drawn on a 10×10 grid with 1 px strokes and are mockup-only.
-- **Window frames for Windows and Linux** (mockups only): see Conventions above.
+Merged into the [design language](design-language.md#decisions-on-area-proposals) on 2026-10-29; see its decisions table.
 
 ### Open points for review
 
@@ -377,13 +368,4 @@ Sizes, hashes and the publisher name are placeholders (`[SIZE]`, `[PUBLISHER NAM
 
 ## Proposed design-language additions
 
-Parts these boards use that design language does not yet define (none edits design-language.md; the owner decides):
-
-- **Drawn check box and radio** (S07 Advanced, S08). 16 px; check box radius 3, radio round; off: white with `control-border`; on: `accent` fill with a white Check icon (check box) or an 8 px `accent` dot (radio); disabled: `ground` fill, `chip-border` edge, label `muted`. Built as `role="checkbox"`/`role="radio"` buttons with `aria-checked`, label inside the button so the whole row (≥ 24 px) is the target.
-- **Option row with help** (S07 Advanced). Radio label 14 px, help 12 px `muted` indented 24 px under it, rows split by `hairline`; the group is a `role="radiogroup"` labelled by the section heading.
-- **Disabled secondary button** (S07 Advanced “Restart lamina”). `ground` fill, `chip-border` edge, `muted` label, `aria-disabled="true"` with the reason as its description.
-- **Status notice** in a settings section (S07 Advanced crash-loop fallback): the §7.21 notice in `warning-tint` with the Warning icon, title in `warning` 600.
-- **Positive badge list** (S08 report preview): §7.23 positive badges with a Check icon, as a labelled list of what a report leaves out.
-- **Linux window frame** (S07 Advanced, mockup only): 36 px title bar, centred 13/600 title, one 24 px round close button at the right on a 10% `text` fill.
-- **Web site header and footer** (S09): 56 px header with the Newsreader 22 wordmark and three nav links (current = `accent` 600 with a 2 px underline); footer 12 px `muted` with the licence line. No app shell.
-- **Large primary link** (S09 “Download for macOS”): 40 px high primary button styling on an `<a>`, with the Download icon.
+Merged into the [design language](design-language.md#decisions-on-area-proposals) on 2026-10-29; see its decisions table.

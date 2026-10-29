@@ -3,6 +3,7 @@
 - **Status:** Draft
 - **Date:** 2026-10-29
 - **Decision:** the project owner chose the **Paper** direction on 2026-10-29, from five reviewed directions (§2).
+- **Review status:** the screens are drawn and documented; per-area design reviews are deferred (owner, 2026-10-29) and tracked in §9.
 - **Builds on:** [UI/UX plan](ui-ux.md) (principles, layout, modes, trust surfaces; Round U), [web reader](web-app.md), [desktop reader](desktop-app.md), [full editor](full-editor.md), [hosted service](full-editor.md#e18-collaboration-hosted-service)
 - **Design files:** [Paper design language](../design/paper/design-language.md), [screen inventory](../design/paper/screens.md), one document per feature area (§4), the Design canvases, and their source files committed under [`docs/design/paper/`](../design/paper/)
 
@@ -92,6 +93,9 @@ The design system is built once, in `@lamina/tokens` and `@lamina/ui`, before th
 ## 9. To-dos
 
 - [x] Choose a direction (Paper, 2026-10-29)
-- [x] Design language, screen inventory and area documents; canvases reviewed twice
+- [x] Design language, screen inventory and area documents; every screen drawn (193 artboards in 12 canvases)
+- [x] Every UI todo links its Paper screens
+- [ ] Design reviews: two rounds per area (done so far: the five directions, Reader A twice, Forms and Account once); deferred by the owner on 2026-10-29
+- [ ] Republish the canvases from the committed files (the account's daily publish limit stopped the last publishes)
 - [ ] U6a tokens, U6b fonts, U6c icons, U6d core components, U6e overlays, U6f gallery and visual tests
 - [ ] Owner sign-off on proposed values (U6a)
