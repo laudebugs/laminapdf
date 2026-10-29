@@ -1,7 +1,7 @@
 # Dependency updates (ADR 0019). Weekly, minor/patch grouped per ecosystem, with a cooldown so
 # brand-new releases (the usual window for a compromised publish) are not picked up immediately.
 # Only the root workspaces are covered: spikes/ is frozen research code. The docker entry bumps
-# the Linux CI runner's base image (tools/ci-runner/linux); after it merges, rerun up.sh.
+# the Linux CI runner's base image (tools/ci-runner/linux); the runner's agent rebuilds from main.
 version: 2
 updates:
   - package-ecosystem: cargo
