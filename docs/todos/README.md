@@ -12,7 +12,7 @@ New todos start from [`TEMPLATE.md`](TEMPLATE.md). The workflow is in [git workf
 
 IDs: `A`/`P`/`X` [architecture](../plans/architecture.md) (foundations, publishing, cross-cutting), `B` [library](../plans/pdf-library.md), `L` [shareable libraries](../plans/shareable-libraries.md) (contracts, worker, extraction, CLI, agent docs, mobile), `C` [web reader](../plans/web-app.md), `D` [desktop reader](../plans/desktop-app.md), `U` [UI/UX](../plans/ui-ux.md), `E` [editor](../plans/full-editor.md), `H` hosted service ([full-editor](../plans/full-editor.md)). A letter suffix (`B2a`, `B2b`) splits a round into PRs.
 
-**4 ongoing · 214 ready · 16 done** (234 total).
+**5 ongoing · 213 ready · 16 done** (234 total).
 
 ## Can start now
 
@@ -20,12 +20,12 @@ Ready todos whose dependencies are all done:
 
 - [B4b](ready/B4b-shaping-bidi-line-breaking.md): Shaping (HarfRust), bidi and line breaking (ICU4X), with goldens in five scripts
 - [B4c](ready/B4c-standard-14-and-simple-fonts.md): Standard 14 fonts with AFM metrics and simple-font encoding
-- [L1c](ready/L1c-error-contract-core.md): Error contract in the Rust core: `codes.json` v2 with kinds and hints, tagged locations, no document text in messages
 
 ## Ongoing
 
 - [B3c](ongoing/B3c-save-planner-and-roundtrip.md): `SavePlanner`, `SaveConstraint` detection and round-trip in lamina, pdf.js, PDFium and qpdf
 - [B9a](ongoing/B9a-lamina-content-and-adr-0023.md): ADR 0023 and `lamina-content`: read-only content-stream interpreter
+- [L1c](ongoing/L1c-error-contract-core.md): Error contract in the Rust core: `codes.json` v2 with kinds and hints, tagged locations, no document text in messages
 - [X3a](ongoing/X3a-nightly-lane.md): Nightly CI lane: external-corpus differential, extended fuzzing, scaling tests and benchmarks
 - [X5](ongoing/X5-linux-ci-container.md): Linux CI on a self-hosted runner in a container on the Mac
 
@@ -55,7 +55,7 @@ Ready todos whose dependencies are all done:
 | B4c | [Standard 14 fonts with AFM metrics and simple-font encoding](ready/B4c-standard-14-and-simple-fonts.md) | ready | [B4a](done/B4a-font-loading-and-subsetting.md) |
 | B5a | [`lamina-build` core: builder, pages, vectors, colour and images](ready/B5a-lamina-build-core.md) | ready | [B1b](done/B1b-krilla-fit-spike.md), [B3c](ongoing/B3c-save-planner-and-roundtrip.md), [L1a](done/L1a-contract-adrs.md) |
 | B5b | [Builder text, links, destinations, outlines, page labels and metadata](ready/B5b-builder-text-and-document-features.md) | ready | [B4b](ready/B4b-shaping-bidi-line-breaking.md), [B4c](ready/B4c-standard-14-and-simple-fonts.md), [B5a](ready/B5a-lamina-build-core.md) |
-| B5c | [The `lamina` façade crate, Rust examples, and byte and render goldens](ready/B5c-lamina-facade-and-examples.md) | ready | [B5b](ready/B5b-builder-text-and-document-features.md), [L1a](done/L1a-contract-adrs.md), [L1c](ready/L1c-error-contract-core.md), [X4](done/X4-full-lane-gate.md) |
+| B5c | [The `lamina` façade crate, Rust examples, and byte and render goldens](ready/B5c-lamina-facade-and-examples.md) | ready | [B5b](ready/B5b-builder-text-and-document-features.md), [L1a](done/L1a-contract-adrs.md), [L1c](ongoing/L1c-error-contract-core.md), [X4](done/X4-full-lane-gate.md) |
 | B6a | [`lamina-wasm`, `@lamina/wasm` build, ADR 0016 and size budgets](ready/B6a-lamina-wasm-and-adr-0016.md) | ready | [B5c](ready/B5c-lamina-facade-and-examples.md) |
 | B6b | [`@lamina/pdf`: the TypeScript API, `init()`, export conditions, publint and attw](ready/B6b-lamina-pdf-package.md) | ready | [B2b](done/B2b-standard-security-decryption.md), [B6a](ready/B6a-lamina-wasm-and-adr-0016.md) |
 | B6c | [Runtime matrix in CI: browsers, Node 22/24/26, Deno, Bun and workerd](ready/B6c-runtime-matrix.md) | ready | [B6b](ready/B6b-lamina-pdf-package.md) |
@@ -72,8 +72,8 @@ Ready todos whose dependencies are all done:
 | ID | Todo | State | Depends on |
 | --- | --- | --- | --- |
 | L1a | [Contract ADRs 0026 (errors), 0027 (coordinates and units), 0028 (façade rules, jobs, cancellation)](done/L1a-contract-adrs.md) | done | — |
-| L1b | [Error and diagnostic contract: codegen from `fixtures/codes.json` into Rust, TypeScript and JSON Schema, with `explain` text](ready/L1b-error-contract-codegen.md) | ready | [B6b](ready/B6b-lamina-pdf-package.md), [L1a](done/L1a-contract-adrs.md), [L1c](ready/L1c-error-contract-core.md) |
-| L1c | [Error contract in the Rust core: `codes.json` v2 with kinds and hints, tagged locations, no document text in messages](ready/L1c-error-contract-core.md) | ready | [L1a](done/L1a-contract-adrs.md) |
+| L1b | [Error and diagnostic contract: codegen from `fixtures/codes.json` into Rust, TypeScript and JSON Schema, with `explain` text](ready/L1b-error-contract-codegen.md) | ready | [B6b](ready/B6b-lamina-pdf-package.md), [L1a](done/L1a-contract-adrs.md), [L1c](ongoing/L1c-error-contract-core.md) |
+| L1c | [Error contract in the Rust core: `codes.json` v2 with kinds and hints, tagged locations, no document text in messages](ongoing/L1c-error-contract-core.md) | ongoing | [L1a](done/L1a-contract-adrs.md) |
 | L2a | [`@lamina/pdf/worker`: the async twin of the sync API, with typed RPC, version handshake, `AbortSignal`, transfer lists and progress](ready/L2a-worker-client.md) | ready | [B6b](ready/B6b-lamina-pdf-package.md), [L1a](done/L1a-contract-adrs.md), [L1b](ready/L1b-error-contract-codegen.md) |
 | L2b | [Disposal and memory bounds: `Symbol.dispose` on every handle, `disposed` code, capped wasm memory, `reset()` and trap recovery](ready/L2b-disposal-and-memory.md) | ready | [B6b](ready/B6b-lamina-pdf-package.md), [L1b](ready/L1b-error-contract-codegen.md) |
 | L2c | [Range `ByteSource`: `DataPending` ranges at the edges (HTTP Range, JS callback, native file and mmap), core stays synchronous](ready/L2c-range-byte-source.md) | ready | [B2d](done/B2d-windowed-reading.md), [B6b](ready/B6b-lamina-pdf-package.md) |
