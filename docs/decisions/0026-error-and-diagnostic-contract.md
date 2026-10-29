@@ -1,6 +1,6 @@
 # 0026 — Error and diagnostic contract
 
-- Status: Accepted
+- Status: Accepted (owner, 2026-10-29)
 - Date: 2026-10-29
 
 ## Context

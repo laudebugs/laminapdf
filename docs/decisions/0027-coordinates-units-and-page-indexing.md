@@ -1,6 +1,6 @@
 # 0027 — Coordinates, units and page indexing
 
-- Status: Accepted
+- Status: Accepted (owner, 2026-10-29)
 - Date: 2026-10-29
 
 ## Context

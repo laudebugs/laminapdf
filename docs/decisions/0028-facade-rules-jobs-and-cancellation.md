@@ -1,6 +1,6 @@
 # 0028 — Façade rules, jobs, cancellation and progress
 
-- Status: Accepted
+- Status: Accepted (owner, 2026-10-29)
 - Date: 2026-10-29
 
 ## Context

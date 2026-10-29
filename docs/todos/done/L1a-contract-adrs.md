@@ -105,7 +105,7 @@ Write down the contract every lamina surface shares before the first public API 
 
 ## Outcome and deviations
 
-- All three ADRs are **Accepted**, dated 2026-10-29, in template order. The owner is asked in the PR to accept each one explicitly; if one is not accepted, its Status goes back to `Proposed` with the reason.
+- **Accepted by the owner on 2026-10-29:** ADRs 0026, 0027 and 0028 as written; the ninth kind `io`; the L1c re-sequencing (L1c before B5c, and B5c and L1b depend on L1c); and the placeholder `docs/errors/` pages as `docsUrl` targets until L1b expands them. Each ADR's Status reads "Accepted (owner, 2026-10-29)".
 - **0026:** the class is `LaminaError`, and `PdfError` is not used. `explain` pages live in `docs/errors/<code>.md`. Every current code has an initial `kind` (§2). Deviations from the scope's shape: `location.page` became `location.pageIndex` (ADR 0027 §6 bans a bare `page` number), `location.id` (a `LaminaId`) was added, and a **`data`** object was added as the only place document-derived strings may appear. `docsUrl` uses the GitHub-rendered page as its base until the domain is chosen. Three existing variants put document text in their messages; L1b fixes them (recorded in [L1b](../ready/L1b-error-contract-codegen.md)).
 - **0027:** page space is the effective CropBox as displayed, top-left, y down, with `/UserUnit` applied; user space is used only in `UserSpace…` types; drawing `y` is the baseline; APIs take an `index`, output carries `index` + `number`. Deviation: concrete `RectPt`/`UserSpaceRect` instead of a generic `Rect<Space>`, because of 0028 F3.
 - **0028:** rules F1–F12; the lock lives in the binding edge (`Mutex` in `lamina-ffi`, `Rc<RefCell>` in `lamina-wasm`), and ADR 0005 §7 is unchanged (a cross-reference was added). Deviations: `PageRef` holds a `PageId` rather than an index and is built in the edge crates; jobs take the document on each `step` and check a document revision counter (new codes `job-finished`, `document-changed`). B5c is updated accordingly.
@@ -135,7 +135,7 @@ None (documentation only). `cargo xtask docs-links` checks the links.
 - **Lock placement:** an edge-crate `Mutex` serialises all calls on one document. That is fine for UniFFI's model, but it should be measured once B5c exists. Amending ADR 0005 §7 to a `Sync` core is the alternative.
 - **`Budget::millis`** in the report's sketch needs a clock that core crates may not use. Recommendation: units in core, time at the edges.
 - **Naming churn:** renaming `PdfError` to `LaminaError` touches [B6b](../ready/B6b-lamina-pdf-package.md)'s scope. If B6b merges first, L1b does the rename.
-- Owner review: these are hard-to-reverse public contracts. Ask the owner to accept each ADR explicitly in the PR.
+- Owner review: these are hard-to-reverse public contracts. The owner accepted each ADR explicitly on 2026-10-29 (see Outcome).
 
 ## Definition of done
 
