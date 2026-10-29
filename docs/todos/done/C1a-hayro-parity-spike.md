@@ -13,7 +13,7 @@
 | Branch | `spike/c1a-hayro-parity` |
 | PR title | `spike(hayro-parity): measure hayro vs pdfium render parity on the pdf.js and pdfbox corpora` |
 | Size | M (200–600 lines of spike code + README; corpora are fetched, not committed) |
-| PR | — |
+| PR | [#24](https://github.com/laudebugs/lamina/pull/24) |
 
 ## Goal
 
