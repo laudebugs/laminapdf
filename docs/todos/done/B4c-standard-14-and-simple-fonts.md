@@ -12,7 +12,7 @@
 | Branch | `feat/b4c-standard-14` |
 | PR title | `feat(text): standard 14 fonts with bundled AFM metrics and simple-font encodings` |
 | Size | M (≈ 400–600 lines of code + generated metric tables) |
-| PR | — |
+| PR | [#54](https://github.com/laudebugs/lamina/pull/54) |
 
 ## Goal
 
