@@ -58,6 +58,9 @@ pub fn parse_object_with(input: &[u8], limits: &Limits) -> Result<Object> {
 pub struct Parser<'a> {
     lex: Lexer<'a>,
     max_nesting_depth: usize,
+    /// Whether a stream-extent check looked past the end of the input (the lexer tracks its
+    /// own reads; see [`Parser::reached_end`]).
+    reached_end: bool,
 }
 
 /// The result of [`Parser::indirect_object`].
@@ -79,6 +82,7 @@ impl<'a> Parser<'a> {
         Self {
             lex: Lexer::new(data, pos),
             max_nesting_depth: Limits::new().max_nesting_depth(),
+            reached_end: false,
         }
     }
 
@@ -93,6 +97,16 @@ impl<'a> Parser<'a> {
     /// The current byte offset.
     pub const fn pos(&self) -> usize {
         self.lex.pos()
+    }
+
+    /// Whether parsing so far has looked for a byte past the end of the input: to finish a
+    /// token ([`Lexer::reached_end`]), or to find a stream's `endstream`.
+    ///
+    /// When it has not, the result (value or error) depends only on bytes before the end, so
+    /// parsing a window of a larger input gave the same result as parsing the whole input.
+    /// `lamina-cos` relies on this to read sources without an in-memory slice in windows.
+    pub const fn reached_end(&self) -> bool {
+        self.reached_end || self.lex.reached_end()
     }
 
     /// Parses one direct object (references resolved lexically as `n g R`).
@@ -227,7 +241,8 @@ impl<'a> Parser<'a> {
             self.lex.set_pos(after_obj);
             return Ok(plain(Object::Dict(dict)));
         }
-        let data_start = skip_stream_eol(self.lex.data(), self.lex.pos());
+        let end_flag = &mut self.reached_end;
+        let data_start = skip_stream_eol(self.lex.data(), self.lex.pos(), end_flag);
         let declared = match dict.get("Length") {
             Some(Object::Integer(n)) => Some(*n),
             Some(Object::Ref(r)) => resolve_length(*r),
@@ -237,12 +252,21 @@ impl<'a> Parser<'a> {
         let declared_end = declared
             .and_then(|len| usize::try_from(len).ok())
             .and_then(|len| data_start.checked_add(len))
-            .filter(|&end| ends_with_endstream(data, end));
+            .filter(|&end| ends_with_endstream(data, end, end_flag));
         let length_recovered = declared_end.is_none();
-        let end = declared_end.map_or_else(|| scan_for_endstream(data, data_start), Ok)?;
+        let end = match declared_end {
+            Some(end) => end,
+            None => scan_for_endstream(data, data_start, end_flag)?,
+        };
         let bytes = data.get(data_start..end).unwrap_or_default().to_vec();
         // Position after `endstream`, then consume an optional `endobj`.
-        let after = find(data, b"endstream", end).map_or(data.len(), |p| p + b"endstream".len());
+        let after = find(data, b"endstream", end).map_or_else(
+            || {
+                *end_flag = true;
+                data.len()
+            },
+            |p| p + b"endstream".len(),
+        );
         self.lex.set_pos(after);
         Ok(IndirectObject {
             id,
@@ -262,27 +286,43 @@ impl<'a> Parser<'a> {
 }
 
 /// After the `stream` keyword: skip spaces/tabs some writers emit, then CRLF, LF or a lone CR.
-fn skip_stream_eol(data: &[u8], mut pos: usize) -> usize {
+/// Sets `reached_end` when it had to look past the end of `data`.
+fn skip_stream_eol(data: &[u8], mut pos: usize, reached_end: &mut bool) -> usize {
     while matches!(data.get(pos), Some(b' ' | b'\t')) {
         pos += 1;
     }
-    match (data.get(pos), data.get(pos + 1)) {
+    let (first, second) = (data.get(pos), data.get(pos + 1));
+    if first.is_none() || (first == Some(&b'\r') && second.is_none()) {
+        *reached_end = true;
+    }
+    match (first, second) {
         (Some(b'\r'), Some(b'\n')) => pos + 2,
         (Some(b'\r' | b'\n'), _) => pos + 1,
         _ => pos,
     }
 }
 
-fn ends_with_endstream(data: &[u8], end: usize) -> bool {
+/// Whether `endstream` follows `end` after optional white-space. Sets `reached_end` when the
+/// answer depends on bytes past the end of `data`.
+fn ends_with_endstream(data: &[u8], end: usize, reached_end: &mut bool) -> bool {
     let mut pos = end;
     while data.get(pos).copied().is_some_and(is_whitespace) {
         pos += 1;
     }
-    data.get(pos..).is_some_and(|rest| rest.starts_with(b"endstream"))
+    let rest = data.get(pos..).unwrap_or_default();
+    if rest.len() < b"endstream".len() {
+        *reached_end = true;
+    }
+    rest.starts_with(b"endstream")
 }
 
-fn scan_for_endstream(data: &[u8], from: usize) -> Result<usize> {
-    let idx = find(data, b"endstream", from).ok_or(Error::UnexpectedEof { offset: data.len() })?;
+/// The end of stream data that starts at `from`, found by scanning for `endstream`. Sets
+/// `reached_end` when there is none before the end of `data`.
+fn scan_for_endstream(data: &[u8], from: usize, reached_end: &mut bool) -> Result<usize> {
+    let Some(idx) = find(data, b"endstream", from) else {
+        *reached_end = true;
+        return Err(Error::UnexpectedEof { offset: data.len() });
+    };
     let mut end = idx;
     if end > from && data.get(end - 1) == Some(&b'\n') {
         end -= 1;
@@ -402,5 +442,39 @@ mod tests {
                 _ => None,
             }
         }
+    }
+
+    fn reached_end(input: &[u8]) -> bool {
+        let mut parser = Parser::new(input, 0);
+        let _ = parser.indirect_object(&mut no_length);
+        parser.reached_end()
+    }
+
+    #[test]
+    fn a_complete_object_followed_by_more_input_does_not_reach_the_end() {
+        assert!(!reached_end(b"1 0 obj << /A 1 >> endobj\n2 0 obj"));
+    }
+
+    #[test]
+    fn a_dictionary_at_the_end_reaches_it_looking_for_stream() {
+        assert!(reached_end(b"1 0 obj << /A 1 >>"));
+    }
+
+    #[test]
+    fn a_stream_whose_length_runs_past_the_end_reaches_it() {
+        // The declared extent can't be checked, and the `endstream` scan finds none.
+        assert!(reached_end(b"1 0 obj << /Length 100 >> stream\nabc"));
+    }
+
+    #[test]
+    fn a_stream_with_a_valid_length_does_not_reach_the_end() {
+        assert!(!reached_end(b"1 0 obj << /Length 3 >> stream\nabc\nendstream endobj "));
+    }
+
+    #[test]
+    fn a_stream_without_endstream_after_its_length_reaches_the_end() {
+        // A wrong `/Length` makes the parser scan for `endstream`; a short window might hold
+        // only an `endstream` that sits inside the real data.
+        assert!(reached_end(b"1 0 obj << /Length 1 >> stream\nabc"));
     }
 }

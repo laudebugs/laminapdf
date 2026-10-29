@@ -35,6 +35,14 @@ pub enum Error {
     },
     /// The [`ByteSource`](crate::ByteSource) has not fetched these `(offset, length)` ranges
     /// yet: fetch them and retry the call (ADR 0005 §2).
+    ///
+    /// The ranges are those the source answered [`SourceError::Pending`] for, sorted and with
+    /// overlapping or adjacent ones merged: the windows the reader needs, never the whole file
+    /// unless the call has to read all of it (repair). Any call that reads input can return
+    /// this, not only [`Document::open`](crate::Document::open): `resolve`, `pages`,
+    /// `decode_stream`, `page_content` and the incremental writer too. A failed call caches
+    /// nothing, so the document stays usable and the retry gives the result an in-memory
+    /// source would have.
     #[error("input bytes not available yet: {ranges:?}")]
     DataPending {
         /// The missing `(offset, length)` ranges.

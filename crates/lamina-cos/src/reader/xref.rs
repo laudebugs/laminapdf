@@ -3,10 +3,12 @@
 
 use std::collections::{BTreeMap, BTreeSet};
 
-use lamina_syntax::{DecodeBudget, Dict, Lexer, Limits, Object, Parser, Token, filters};
+use lamina_syntax::{DecodeBudget, Dict, Lexer, Limits, Object, Parser, Stream, Token, filters};
 
+use super::window::{Reach, View, parse_at, rebase, rfind_input};
 use crate::error::{Error, Result};
-use crate::scan::{is_boundary, rfind};
+use crate::scan::is_boundary;
+use crate::source::Source;
 
 /// Trailer keys that only describe an xref *section* (classic table or xref stream), never the
 /// document: they are not carried over into a rebuilt or appended trailer (`/Size` is
@@ -73,11 +75,25 @@ fn invalid(message: &'static str) -> Error {
 }
 
 /// Reads the offset after the last `startxref` keyword.
-pub(crate) fn find_startxref(data: &[u8]) -> Result<usize> {
-    let pos = rfind(data, b"startxref").ok_or_else(|| invalid("no startxref"))?;
-    match Lexer::new(data, pos + b"startxref".len()).next_token()? {
-        Token::Integer(off) => usize::try_from(off).map_err(|_| invalid("negative startxref")),
-        _ => Err(invalid("startxref is not followed by an offset")),
+///
+/// # Errors
+/// [`Error::InvalidStructure`] when there is no usable `startxref`; the source's errors.
+pub(crate) fn find_startxref(source: &Source) -> Result<usize> {
+    let pos = rfind_input(source, b"startxref")?.ok_or_else(|| invalid("no startxref"))?;
+    let token = parse_at(source, pos + b"startxref".len(), Reach::Object, |v| {
+        let mut lex = Lexer::new(v.data, v.pos);
+        let token = lex
+            .next_token()
+            .map(|t| match t {
+                Token::Integer(off) => Some(off),
+                _ => None,
+            })
+            .map_err(|e| rebase(e.into(), v.base));
+        (token, lex.reached_end())
+    })??;
+    match token {
+        Some(off) => usize::try_from(off).map_err(|_| invalid("negative startxref")),
+        None => Err(invalid("startxref is not followed by an offset")),
     }
 }
 
@@ -86,7 +102,12 @@ pub(crate) fn find_startxref(data: &[u8]) -> Result<usize> {
 /// A chain longer than [`Limits::max_xref_sections`] (soft limit) fails like a loop, so the
 /// caller falls back to repair. Entries above [`Limits::max_object_number`] are dropped and
 /// listed in [`XrefTable::dropped_objects`].
-pub(crate) fn load(data: &[u8], start: usize, limits: &Limits, budget: &mut DecodeBudget) -> Result<XrefTable> {
+///
+/// # Errors
+/// [`Error::InvalidStructure`] (or a syntax error) for a section that can't be read; the
+/// source's errors ([`Error::DataPending`], [`Error::Source`]), which callers must not
+/// repair around.
+pub(crate) fn load(source: &Source, start: usize, limits: &Limits, budget: &mut DecodeBudget) -> Result<XrefTable> {
     let mut table = XrefTable::default();
     let mut seen = BTreeSet::new();
     let mut next = Some(start);
@@ -97,13 +118,13 @@ pub(crate) fn load(data: &[u8], start: usize, limits: &Limits, budget: &mut Deco
         if table.sections >= limits.max_xref_sections() {
             return Err(invalid("more /Prev sections than Limits::max_xref_sections"));
         }
-        let (mut entries, trailer, is_stream) = parse_section(data, offset, limits, budget)?;
+        let (mut entries, trailer, is_stream) = parse_section(source, offset, limits, budget)?;
         table.has_xref_stream |= is_stream;
         if let Some(stm) = trailer.get_int("XRefStm").and_then(|o| usize::try_from(o).ok()) {
             // Hybrid file: the classic table's in-use entries win; the stream only fills in
             // numbers the table omits or marks free (compressed objects are typically
             // hidden from pre-1.5 readers that way). A broken XRefStm is ignored.
-            match parse_section(data, stm, limits, budget) {
+            match parse_section(source, stm, limits, budget) {
                 Ok((stream_entries, _, _)) => {
                     table.has_xref_stream = true;
                     for (num, entry) in stream_entries {
@@ -112,6 +133,7 @@ pub(crate) fn load(data: &[u8], start: usize, limits: &Limits, budget: &mut Deco
                         }
                     }
                 }
+                Err(e) if matches!(e, Error::DataPending { .. } | Error::Source(_)) => return Err(e),
                 Err(_) => table.ignored_xref_streams.push(u64::try_from(stm).unwrap_or(u64::MAX)),
             }
         }
@@ -134,20 +156,22 @@ pub(crate) fn load(data: &[u8], start: usize, limits: &Limits, budget: &mut Deco
 
 type Section = (BTreeMap<u32, XrefEntry>, Dict, bool);
 
-fn parse_section(data: &[u8], offset: usize, limits: &Limits, budget: &mut DecodeBudget) -> Result<Section> {
-    let mut lex = Lexer::new(data, offset).with_limits(limits);
-    lex.skip_whitespace();
-    let pos = lex.pos();
-    if data.get(pos..).is_some_and(|d| d.starts_with(b"xref")) && is_boundary(data, pos + 4) {
-        lex.set_pos(pos + 4);
-        let (entries, trailer) = parse_table(&mut lex, limits)?;
-        return Ok((entries, trailer, false));
-    }
-    let parsed = Parser::new(data, pos)
-        .with_limits(limits)
-        .indirect_object(&mut |_| None)?;
-    let Object::Stream(stream) = parsed.object else {
-        return Err(invalid("startxref does not point at an xref"));
+/// A section as read from the file, before an xref stream is decoded.
+enum RawSection {
+    Table(BTreeMap<u32, XrefEntry>, Dict),
+    Stream(Stream),
+}
+
+fn parse_section(source: &Source, offset: usize, limits: &Limits, budget: &mut DecodeBudget) -> Result<Section> {
+    // Decoding happens outside the (possibly repeated) windowed parse, so the budget is
+    // charged once.
+    let raw = parse_at(source, offset, Reach::Object, |v| {
+        let (raw, reached_end) = parse_raw_section(v, limits);
+        (raw.map_err(|e| rebase(e, v.base)), reached_end)
+    })??;
+    let stream = match raw {
+        RawSection::Table(entries, trailer) => return Ok((entries, trailer, false)),
+        RawSection::Stream(stream) => stream,
     };
     if stream.dict.get_name("Type") != Some(b"XRef") {
         return Err(invalid("stream at startxref is not /Type /XRef"));
@@ -157,7 +181,45 @@ fn parse_section(data: &[u8], offset: usize, limits: &Limits, budget: &mut Decod
     Ok((entries, stream.dict, true))
 }
 
-fn parse_table(lex: &mut Lexer<'_>, limits: &Limits) -> Result<(BTreeMap<u32, XrefEntry>, Dict)> {
+/// Reads the classic table or the xref stream object at `v.pos`; also says whether that looked
+/// past the end of `v.data`.
+fn parse_raw_section(v: View<'_>, limits: &Limits) -> (Result<RawSection>, bool) {
+    let data = v.data;
+    let mut lex = Lexer::new(data, v.pos).with_limits(limits);
+    lex.skip_whitespace();
+    let pos = lex.pos();
+    // `xref` and the byte after it decide which kind this is.
+    let short = data.len() <= pos + 4;
+    if data.get(pos..).is_some_and(|d| d.starts_with(b"xref")) && is_boundary(data, pos + 4) {
+        lex.set_pos(pos + 4);
+        let mut trailer_end = false;
+        let table = parse_table(&mut lex, limits, &mut trailer_end);
+        let reached_end = short || lex.reached_end() || trailer_end;
+        return (
+            table.map(|(entries, trailer)| RawSection::Table(entries, trailer)),
+            reached_end,
+        );
+    }
+    let mut parser = Parser::new(data, pos).with_limits(limits);
+    let parsed = parser.indirect_object(&mut |_| None);
+    let reached_end = short || lex.reached_end() || parser.reached_end();
+    let raw = match parsed {
+        Ok(parsed) => match parsed.object {
+            Object::Stream(stream) => Ok(RawSection::Stream(stream)),
+            _ => Err(invalid("startxref does not point at an xref")),
+        },
+        Err(e) => Err(e.into()),
+    };
+    (raw, reached_end)
+}
+
+/// Reads the subsections and the trailer after `xref`; `reached_end` is set when reading the
+/// trailer looked past the end of the data (the lexer tracks its own reads).
+fn parse_table(
+    lex: &mut Lexer<'_>,
+    limits: &Limits,
+    reached_end: &mut bool,
+) -> Result<(BTreeMap<u32, XrefEntry>, Dict)> {
     let mut entries = BTreeMap::new();
     loop {
         match lex.next_token()? {
@@ -192,7 +254,10 @@ fn parse_table(lex: &mut Lexer<'_>, limits: &Limits) -> Result<(BTreeMap<u32, Xr
             _ => return Err(invalid("expected subsection or trailer")),
         }
     }
-    match Parser::new(lex.data(), lex.pos()).with_limits(limits).object()? {
+    let mut parser = Parser::new(lex.data(), lex.pos()).with_limits(limits);
+    let trailer = parser.object();
+    *reached_end = parser.reached_end();
+    match trailer? {
         Object::Dict(d) => Ok((entries, d)),
         _ => Err(invalid("trailer is not a dictionary")),
     }
@@ -268,12 +333,22 @@ mod tests {
 
     fn load_default(data: &[u8], start: usize) -> Result<XrefTable> {
         let limits = Limits::default();
-        load(data, start, &limits, &mut DecodeBudget::new(&limits))
+        load(
+            &Source::from(data.to_vec()),
+            start,
+            &limits,
+            &mut DecodeBudget::new(&limits),
+        )
     }
 
     fn section(data: &[u8]) -> Result<Section> {
         let limits = Limits::default();
-        parse_section(data, 0, &limits, &mut DecodeBudget::new(&limits))
+        parse_section(
+            &Source::from(data.to_vec()),
+            0,
+            &limits,
+            &mut DecodeBudget::new(&limits),
+        )
     }
 
     /// A hybrid section: table says obj 1 in use at 100 and obj 2 free; the `/XRefStm`
@@ -317,7 +392,7 @@ mod tests {
     fn load_drops_entries_above_max_object_number() {
         let (d, table) = hybrid();
         let limits = Limits::default().with_max_object_number(1);
-        let loaded = load(&d, table, &limits, &mut DecodeBudget::new(&limits)).unwrap();
+        let loaded = load(&Source::from(d), table, &limits, &mut DecodeBudget::new(&limits)).unwrap();
         assert_eq!(
             (
                 loaded.entries.keys().copied().collect::<Vec<_>>(),
@@ -329,7 +404,8 @@ mod tests {
 
     #[test]
     fn find_startxref_reads_last_offset() {
-        assert_eq!(find_startxref(b"startxref\n1\n%%EOF\nstartxref\n42\n%%EOF"), Ok(42));
+        let source = Source::from(b"startxref\n1\n%%EOF\nstartxref\n42\n%%EOF".to_vec());
+        assert_eq!(find_startxref(&source), Ok(42));
     }
 
     #[test]

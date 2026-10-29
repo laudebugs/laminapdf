@@ -5,8 +5,10 @@ mod objstm;
 mod options;
 mod repair;
 mod warning;
+mod window;
 mod xref;
 
+use std::borrow::Cow;
 use std::cell::{Cell, RefCell};
 use std::collections::{BTreeMap, BTreeSet};
 use std::fmt;
@@ -26,12 +28,23 @@ use lamina_syntax::filters;
 use lamina_syntax::{DecodeBudget, Dict, Limit, Limits, ObjRef, Object, Parser, Stream, find};
 
 use crate::error::{Error, Result};
-use crate::source::{ByteSource, Source};
+use crate::source::{ByteSource, Pending, Source, WINDOW};
+use window::{Reach, parse_at, rebase};
 
 /// How deep [`Document::decode_stream`] resolves references nested in `/Filter` and
 /// `/DecodeParms` (array → parameter dictionary → value). An internal constant: it bounds a
 /// fixed structure, not input size (ADR 0003 §3).
 const MAX_FILTER_PARAM_DEPTH: usize = 3;
+
+/// Where the `%PDF-` header is looked for: the first 1 KiB, like Acrobat.
+const HEADER_SEARCH: usize = 1024;
+
+/// Bytes the header check may read: the search area, `%PDF-` and up to 8 version bytes.
+const HEADER_SPAN: usize = HEADER_SEARCH + b"%PDF-".len() + 8;
+
+/// Bytes read first when checking that an xref entry points at its `n g obj` header (on a
+/// source without an in-memory slice); doubled when the header runs past them.
+const HEADER_PROBE: usize = 32;
 
 /// A page with its inheritable attributes resolved (§7.7.3.4).
 #[derive(Debug, Clone, PartialEq)]
@@ -133,7 +146,7 @@ type ObjStmMembers = Arc<Vec<(u32, lamina_syntax::Result<Arc<Object>>)>>;
     reason = "independent facts about the opened file, not states of one machine"
 )]
 pub struct Document {
-    /// The input; a source without an in-memory slice is read once and the copy is shared
+    /// The input; a source without an in-memory slice is read in windows, cached and shared
     /// by every document opened from clones of the same [`Source`].
     source: Source,
     entries: BTreeMap<u32, XrefEntry>,
@@ -243,14 +256,43 @@ fn read_header_version(data: &[u8], header_pos: usize) -> Option<String> {
 
 /// True when every in-file xref entry points at its own `num gen obj` header (number and
 /// generation).
-fn entries_are_valid(data: &[u8], table: &XrefTable, limits: &Limits) -> bool {
-    table.entries.iter().all(|(&num, entry)| match *entry {
-        XrefEntry::InFile { offset, gen_nr } => Parser::new(data, offset)
-            .with_limits(limits)
-            .object_header()
-            .is_ok_and(|id| id.num == num && id.gen_nr == gen_nr),
-        XrefEntry::Free | XrefEntry::InStream { .. } => true,
-    })
+///
+/// On a source without an in-memory slice each header is read with a small probe, not a
+/// whole window, so checking a table does not read the whole file; the probes the source is
+/// missing are all reported in one [`Error::DataPending`].
+///
+/// # Errors
+/// The source's errors.
+fn entries_are_valid(source: &Source, table: &XrefTable, limits: &Limits) -> Result<bool> {
+    let mut pending = Pending::default();
+    for (&num, entry) in &table.entries {
+        let XrefEntry::InFile { offset, gen_nr } = *entry else {
+            continue;
+        };
+        let header = parse_at(source, offset, Reach::Probe(HEADER_PROBE), |v| {
+            let mut parser = Parser::new(v.data, v.pos).with_limits(limits);
+            let id = parser.object_header();
+            (id.ok(), parser.reached_end())
+        });
+        match header {
+            // One bad entry means repair, whatever the missing ones say.
+            Ok(id) if !id.is_some_and(|id| id.num == num && id.gen_nr == gen_nr) => return Ok(false),
+            Ok(_) => {}
+            Err(e) => pending.absorb(e)?,
+        }
+    }
+    pending.finish()?;
+    Ok(true)
+}
+
+/// `Some` result of a step whose failure means "repair", `None` for that failure; errors that
+/// must not be repaired around ([`must_propagate`]) are returned.
+fn or_repair<T>(result: Result<T>) -> Result<Option<T>> {
+    match result {
+        Ok(value) => Ok(Some(value)),
+        Err(e) if must_propagate(&e) => Err(e),
+        Err(_) => Ok(None),
+    }
 }
 
 /// `obj` as a rectangle; `None` when it is absent, malformed or not four numbers.
@@ -365,16 +407,23 @@ impl Document {
     )]
     pub fn open(source: impl Into<Source>, options: OpenOptions) -> Result<Self> {
         let source = source.into();
-        let data = source.bytes()?;
-        if data.is_empty() {
+        let len = source.len();
+        if len == 0 {
             return Err(Error::NotPdf("empty input"));
         }
+        // The header and `startxref` come first: a source still missing them hears about
+        // both windows at once.
+        source.prefetch(&[(0, WINDOW), (len - 1, 1)])?;
         let limits = *options.limits();
         let strict = options.strict();
         let mut log = WarningLog::default();
-        let head = data.get(..data.len().min(1024)).unwrap_or_default();
         // Like Acrobat, accept the header anywhere in the first 1 KiB, and still try without it.
-        let header_version = find(head, b"%PDF-", 0).and_then(|pos| read_header_version(data, pos));
+        let header_version = parse_at(&source, 0, Reach::Object, |v| {
+            let data = v.data;
+            let head = data.get(..data.len().min(HEADER_SEARCH)).unwrap_or_default();
+            let version = find(head, b"%PDF-", 0).and_then(|pos| read_header_version(data, pos));
+            (version, data.len() < HEADER_SPAN)
+        })?;
         if header_version.is_none() {
             log.raise(Warning::MissingHeader, &limits, strict)?;
         }
@@ -386,10 +435,17 @@ impl Document {
         };
 
         let mut budget = DecodeBudget::new(&limits);
-        let startxref = xref::find_startxref(data).ok();
-        let loaded = startxref
-            .and_then(|start| xref::load(data, start, &limits, &mut budget).ok())
-            .filter(|table| table.trailer.contains_key("Root") && entries_are_valid(data, table, &limits));
+        let startxref = or_repair(xref::find_startxref(&source))?;
+        let loaded = match startxref {
+            Some(start) => or_repair(xref::load(&source, start, &limits, &mut budget))?,
+            None => None,
+        };
+        let loaded = match loaded {
+            Some(table) if table.trailer.contains_key("Root") && entries_are_valid(&source, &table, &limits)? => {
+                Some(table)
+            }
+            _ => None,
+        };
         if let Some(table) = loaded {
             let mut doc = Self::new(base(), table, startxref, log.clone())?;
             // A password problem or an unsupported handler is never repaired around; an
@@ -419,12 +475,12 @@ impl Document {
         // Repair in two phases around authentication: in-file objects and trailers first, then
         // `/Encrypt` (never in an object stream), then the object streams, decrypted. The file
         // is scanned once and the password checked once.
-        let scan = repair::scan(data, &limits)?;
+        let scan = repair::scan(&source, &limits)?;
         let security = {
             let in_file = Self::new(base(), scan.in_file_table(), None, WarningLog::default())?;
             in_file.read_security(options.password())?
         };
-        let (table, malformed) = scan.finish(data, &limits, &mut budget, security.as_ref())?;
+        let (table, malformed) = scan.finish(&source, &limits, &mut budget, security.as_ref())?;
         let mut doc = Self::new(base(), table, None, log)?;
         if let Some(security) = security {
             doc.install_security(security)?;
@@ -635,10 +691,20 @@ impl Document {
         self.startxref
     }
 
-    /// The input bytes.
+    /// The input bytes, when the source holds them in memory ([`ByteSource::as_slice`]);
+    /// `None` for a source read in windows, which is never read whole.
     #[must_use]
-    pub fn data(&self) -> &[u8] {
-        self.source.loaded()
+    pub fn data(&self) -> Option<&[u8]> {
+        self.source.in_memory()
+    }
+
+    /// The whole input, read window by window for a source without an in-memory slice (the
+    /// incremental writer's output holds all of it anyway).
+    ///
+    /// # Errors
+    /// [`Error::DataPending`] with every missing window; [`Error::Source`].
+    pub(crate) fn whole_input(&self) -> Result<Cow<'_, [u8]>> {
+        self.source.whole()
     }
 
     /// The input source, shareable with other documents (one per thread).
@@ -784,14 +850,34 @@ impl Document {
                     None
                 }
             };
-            Parser::new(self.data(), offset)
-                .with_limits(&self.limits)
-                .indirect_object(&mut resolve_length)
+            parse_at(&self.source, offset, Reach::Object, |v| {
+                let mut parser = Parser::new(v.data, v.pos).with_limits(&self.limits);
+                let parsed = parser.indirect_object(&mut resolve_length);
+                (parsed.map_err(|e| rebase(e.into(), v.base)), parser.reached_end())
+            })
         };
-        if let Some(e) = fatal {
-            return Err(e);
+        match (fatal, parsed) {
+            // The `/Length` object and a longer window are both missing: ask for both at once.
+            (Some(e @ Error::DataPending { .. }), Err(more @ Error::DataPending { .. })) => {
+                let mut pending = Pending::default();
+                pending.absorb(e)?;
+                pending.absorb(more)?;
+                Err(pending.into_error())
+            }
+            (Some(e), _) => Err(e),
+            (None, parsed) => self.finish_in_file(num, gen_nr, parsed??, in_flight),
         }
-        let mut parsed = parsed?;
+    }
+
+    /// The rest of [`Document::load_in_file`] once `parsed` is read: the length warning and
+    /// decryption.
+    fn finish_in_file(
+        &self,
+        num: u32,
+        gen_nr: u16,
+        mut parsed: lamina_syntax::IndirectObject,
+        in_flight: &mut Vec<u32>,
+    ) -> Result<Arc<Object>> {
         if parsed.length_recovered {
             self.warn(Warning::StreamLengthRecovered { object: num })?;
         }

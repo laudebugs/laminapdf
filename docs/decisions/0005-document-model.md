@@ -33,6 +33,14 @@ pub trait ByteSource: Send + Sync {
 - **Edge implementations:** mmap (desktop engine process), `FileReaderSync` over a `Blob`, and an HTTP-range cache over OPFS (`lamina-wasm`/web worker). None of these live in core crates.
 - For sources without `as_slice`, the COS layer reads a window around an offset (64 KiB, doubled up to the object's extent within `Limits`) and the parser works on that `&[u8]`. Repair scans in overlapping chunks.
 
+**Implementation note (B2d, as built in `lamina-cos`):**
+
+- Windows are 64 KiB and aligned; a parse starts on the window holding its offset and runs again on a window twice as long while the parser says it looked past the window's end (`Lexer::reached_end` / `Parser::reached_end` in `lamina-syntax`, which also cover the `endstream` checks). A parse that never looked past the end saw only bytes that are the same as in the whole input, so it gives the in-memory result exactly; byte offsets in its errors are moved back to input offsets. Growth stops at the object's extent or the end of the input. No `Limit` bounds a raw object's size (an in-memory parse copies a stream of any size too); the limits that bound parsing (`max_string_length`, `max_nesting_depth`, …) fail at the same offset as in memory, and memory grows only with bytes actually read, never from `len()`.
+- Each `Source` keeps the 64 most recently used windows (4 MiB), shared by its clones, so documents opened on several threads over one source read a window once. The cache is behind a `Mutex` because `Source` clones cross threads (as B2a's read-once buffer did); `Document` itself stays `Send + !Sync` as §7 says.
+- Checking every xref entry's `n g obj` header at open reads a 32-byte probe per entry (doubled if a header runs past it), not a whole window, so opening an intact file does not read the whole file; the probes a source is missing are reported together.
+- `DataPending { ranges }` carries the ranges the source answered `Pending` for, sorted, with overlapping and adjacent ones merged. Open asks for the head and tail windows together; a scan (repair, a `startxref` search that runs past the tail) asks for every window it still needs in one round. Lazy calls (`resolve`, `pages`, `decode_stream`, `page_content`) can return `DataPending` too and leave the `Document` usable for a retry.
+- `Document::data()` is `Option<&[u8]>`: `None` for a source read in windows. `incremental_update` copies the original bytes, so on such a source it reads every window (its output holds them all anyway).
+
 ### 3. Base, overlay and the save cycle
 
 - The **base** is the current revision's bytes, and it is immutable. Every mutation lands in an **overlay** keyed by object number: `New(Object) | Modified(Object) | Deleted`, plus a journal per transaction for rollback ([ADR 0006](0006-op-log-and-undo.md)). Resolution checks the overlay first, then the base.
