@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [web reader §6 C6. Navigation, print and properties](../../plans/web-app.md#c6-navigation-print-and-properties) |
 | Round / milestone | Round C (web reader) — M2 Web reader v0.1 |
-| Depends on | [B2c](../done/B2c-lamina-model-corpus-fuzz.md), [B6b](./B6b-lamina-pdf-package.md), [C3c](./C3c-viewer-perf-harness.md), [C4c](./C4c-remote-files-encryption-privacy.md) |
+| Depends on | [B2c](../done/B2c-lamina-model-corpus-fuzz.md), [B6b](./B6b-lamina-pdf-package.md), [C3c](./C3c-viewer-perf-harness.md), [C4c](./C4c-remote-files-encryption-privacy.md), [U1c](./U1c-inverted-l-shell-and-modes.md) |
 | Blocks | [C6b](./C6b-links-and-history.md), [C7a](./C7a-accessibility-and-theming.md) |
 | Dependency notes | [C4c](./C4c-remote-files-encryption-privacy.md) (app opens every file type); library B2 (`Outline` and `NameTree` views, `LaminaId`s; [pdf-library B2](../../plans/pdf-library.md#b2-document-model)) exposed through **B6**; [C3c](./C3c-viewer-perf-harness.md) (thumbnails keep the harness's long-task budget) |
 | ADRs | Follows 0004 (thumbnails rendered through `RenderBackend` at low priority), 0009, [0005](../../decisions/0005-document-model.md) §4–5 (typed views, stable IDs) |
@@ -21,6 +21,7 @@ Give readers the two classic ways to move through a long document: a virtualised
 
 ## Context
 
+- [UI/UX plan §5.1](../../plans/ui-ux.md#51-desktop-and-web-layout-r1-r2) — thumbnails and outline are tabs in [U1c](./U1c-inverted-l-shell-and-modes.md)'s left rail (and in U3a's bottom sheets on phones), not a sidebar of their own; this todo fills those slots.
 - [04 §1 navigation](../../research/pdf/04-interactive-security.md#1-navigation) — outlines (§12.3.3), destinations (§12.3.2), page labels (§12.4.2) as a number tree in `/PageLabels`.
 - [rendering notes §4](../../research/architecture/notes/rendering.md) — thumbnails at low DPI in a separate lower-priority queue.
 - [web-app.md §4 functional 6](../../plans/web-app.md#functional).
