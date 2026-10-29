@@ -335,11 +335,7 @@ impl<S: Shaper> Layouter<'_, S> {
 mod tests {
     use super::*;
     use crate::shape::HarfRust;
-
-    fn font(name: &str) -> Font {
-        let path = format!("{}/../../fixtures/fonts/{name}", env!("CARGO_MANIFEST_DIR"));
-        Font::from_bytes(std::fs::read(path).unwrap()).unwrap()
-    }
+    use crate::test_fonts::font;
 
     fn texts<'t>(text: &'t str, lines: &[Line]) -> Vec<&'t str> {
         lines.iter().map(|l| &text[l.content.clone()]).collect()

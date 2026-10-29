@@ -2,6 +2,7 @@
 //! fonts' `hmtx` widths and HarfBuzz's positions (`hb-shape` output in the comments).
 #![allow(
     clippy::unwrap_used,
+    clippy::panic,
     clippy::indexing_slicing,
     reason = "tests: a panic is a test failure"
 )]

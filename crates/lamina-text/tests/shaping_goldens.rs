@@ -4,6 +4,7 @@
 //! `fixtures/shaping/<script>.json` by `tools/shaping-goldens/goldens.py`.
 #![allow(
     clippy::unwrap_used,
+    clippy::panic,
     clippy::indexing_slicing,
     reason = "tests: a panic is a test failure (serde_json `Value` indexing returns `Null` when absent)"
 )]
@@ -55,8 +56,10 @@ fn golden(case: &Value) -> Value {
         .unwrap()
         .iter()
         .find(|c| c["name"] == case["name"])
-        .map(|c| c["glyphs"].clone())
-        .unwrap_or_else(|| panic!("no golden for {}; run tools/shaping-goldens/goldens.py", case["name"]))
+        .map_or_else(
+            || panic!("no golden for {}; run tools/shaping-goldens/goldens.py", case["name"]),
+            |c| c["glyphs"].clone(),
+        )
 }
 
 #[test]

@@ -123,11 +123,7 @@ pub fn itemize(para: &BidiParagraph<'_>, fonts: &[Font]) -> Result<Vec<Item>> {
 mod tests {
     use super::*;
     use crate::shape::Direction;
-
-    fn font(name: &str) -> Font {
-        let path = format!("{}/../../fixtures/fonts/{name}", env!("CARGO_MANIFEST_DIR"));
-        Font::from_bytes(std::fs::read(path).unwrap()).unwrap()
-    }
+    use crate::test_fonts::font;
 
     fn summary<'t>(text: &'t str, items: &[Item]) -> Vec<(&'t str, Script, u8, usize)> {
         items

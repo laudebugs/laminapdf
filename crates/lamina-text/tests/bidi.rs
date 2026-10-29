@@ -4,6 +4,7 @@
 //! reference, and a mixed English/Arabic/Hebrew paragraph is reordered as UAX #9 says.
 #![allow(
     clippy::unwrap_used,
+    clippy::panic,
     clippy::indexing_slicing,
     reason = "tests: a panic is a test failure"
 )]

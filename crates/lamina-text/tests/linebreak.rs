@@ -4,6 +4,7 @@
 //! lines no wider than the box.
 #![allow(
     clippy::unwrap_used,
+    clippy::panic,
     clippy::indexing_slicing,
     reason = "tests: a panic is a test failure"
 )]

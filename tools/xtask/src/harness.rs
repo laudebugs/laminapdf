@@ -85,6 +85,7 @@ pub(crate) fn golden(ws: &Workspace, update: bool) -> Result<()> {
         ])?;
     }
     if update {
+        shaping_goldens(ws)?;
         step("Goldens regenerated; review the diff (`git diff fixtures/golden`) like code");
         return Ok(());
     }
@@ -111,6 +112,23 @@ pub(crate) fn golden(ws: &Workspace, update: bool) -> Result<()> {
     }
     step("Goldens match their sources");
     Ok(())
+}
+
+/// Rewrites the shaping goldens `fixtures/shaping/<script>.json` with HarfBuzz's `hb-shape`
+/// (`tools/shaping-goldens/goldens.py`, todo B4b) when `hb-shape` is installed; otherwise says
+/// so and leaves them (they are HarfBuzz's output, not lamina's, so `golden` without
+/// `--update` never needs them: `crates/lamina-text/tests/shaping_goldens.rs` compares).
+fn shaping_goldens(ws: &Workspace) -> Result<()> {
+    let has_hb_shape = Command::new("hb-shape")
+        .arg("--version")
+        .output()
+        .is_ok_and(|o| o.status.success());
+    if !has_hb_shape {
+        step("hb-shape not found: fixtures/shaping/ left as they are (install HarfBuzz to rewrite them)");
+        return Ok(());
+    }
+    let script = ws.root.join("tools/shaping-goldens/goldens.py");
+    run(&ws.root, &python(), &[script.as_os_str()])
 }
 
 /// `cargo xtask corpus facts`: rewrites `fixtures/corpus/expected.json` with pypdf.

@@ -6,6 +6,7 @@
 //! reason; an entry that no longer matches the facts fails too).
 #![allow(
     clippy::unwrap_used,
+    clippy::panic,
     clippy::indexing_slicing,
     reason = "tests: a panic is a test failure (serde_json `Value` indexing returns `Null` when absent)"
 )]
@@ -98,8 +99,7 @@ fn every_exception_names_a_golden_line() {
         let lines = common::samples::GOLDENS
             .iter()
             .find(|(name, _, _)| *name == file)
-            .map(|(_, _, lines)| lines.len())
-            .unwrap_or_else(|| panic!("{file} is not a text golden"));
+            .map_or_else(|| panic!("{file} is not a text golden"), |(_, _, lines)| lines.len());
         assert!(line < lines, "{file} has no line {line}");
         assert!(["pypdf", "pdfjs"].contains(&extractor.as_str()), "{extractor}");
     }
