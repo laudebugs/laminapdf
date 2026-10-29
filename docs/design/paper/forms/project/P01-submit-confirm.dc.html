@@ -24,6 +24,8 @@ button,input,textarea{font:inherit;color:inherit}
         <span style="font-family: 'Newsreader', Georgia, serif; font-size: 16px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">repair-request-form.pdf</span>
         <span style="font-size: 12px; color: #6B645A; white-space: nowrap">19 unsaved changes</span>
       </div>
+      <button aria-label="Undo set Declaration" style="width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 4px; color: #4A453E"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M9 14L4.5 9.5 9 5"></path><path d="M4.5 9.5H14a5.5 5.5 0 0 1 0 11h-3"></path></svg></button>
+      <button aria-label="Redo" disabled style="width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 4px; color: #A39C91"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M15 14l4.5-4.5L15 5"></path><path d="M19.5 9.5H10a5.5 5.5 0 0 0 0 11h3"></path></svg></button>
     </div>
     <div role="group" aria-label="Mode" style="display: flex; align-items: stretch; gap: 22px; height: 40px">
       <button aria-pressed="false" style="height: 40px; display: flex; align-items: center; border: 0; background: transparent; padding: 2px 0 0; color: #6B645A; border-bottom: 2px solid transparent">Read</button>
@@ -68,11 +70,14 @@ button,input,textarea{font:inherit;color:inherit}
   </div>
 
   <div style="flex: 1 1 auto; min-height: 0; display: flex; flex-wrap: wrap">
-    <aside aria-label="Fields" style="flex: 0 0 220px; min-width: 0; box-sizing: border-box; border-right: 1px solid #E4DED3; background: #F7F4EE; display: flex; flex-direction: column; overflow: hidden">
-      <div role="tablist" aria-label="Sidebar" style="display: flex; gap: 16px; padding: 14px 18px 0; border-bottom: 1px solid #E4DED3">
-        <button role="tab" aria-selected="false" style="border: 0; background: transparent; padding: 0 0 8px; font-size: 13px; color: #6B645A; border-bottom: 2px solid transparent">Pages</button>
-        <button role="tab" aria-selected="false" style="border: 0; background: transparent; padding: 0 0 8px; font-size: 13px; color: #6B645A; border-bottom: 2px solid transparent">Outline</button>
-        <button role="tab" aria-selected="true" style="border: 0; background: transparent; padding: 0 0 8px; font-size: 13px; font-weight: 600; color: #1F1D1A; border-bottom: 2px solid {{accent}}">Fields</button>
+    <aside aria-label="Sidebar" style="flex: 0 0 280px; min-width: 0; box-sizing: border-box; border-right: 1px solid #E4DED3; background: #F7F4EE; display: flex; flex-direction: column; overflow: hidden">
+      <div style="display: flex; align-items: flex-end; gap: 4px; padding: 14px 8px 0 18px; border-bottom: 1px solid #E4DED3">
+        <div role="tablist" aria-label="Sidebar" style="flex: 1 1 auto; display: flex; gap: 16px">
+          <button role="tab" aria-selected="false" style="border: 0; background: transparent; padding: 0 0 8px; font-size: 13px; color: #6B645A; border-bottom: 2px solid transparent">Pages</button>
+          <button role="tab" aria-selected="false" style="border: 0; background: transparent; padding: 0 0 8px; font-size: 13px; color: #6B645A; border-bottom: 2px solid transparent">Outline</button>
+          <button role="tab" aria-selected="true" style="border: 0; background: transparent; padding: 0 0 8px; font-size: 13px; font-weight: 600; color: #1F1D1A; border-bottom: 2px solid {{accent}}">Fields</button>
+        </div>
+        <button aria-label="More tabs" aria-haspopup="menu" aria-expanded="false" style="width: 26px; height: 26px; margin-bottom: 5px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 4px; color: #4A453E"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M7 10l5 5 5-5"></path></svg></button>
       </div>
       <nav aria-label="Form fields in tab order" style="display: flex; flex-direction: column; gap: 2px; padding: 12px 10px; font-size: 13px">
         <a href="#" style="display: flex; align-items: center; gap: 8px; min-height: 28px; padding: 0 8px; border-radius: 4px; color: #1F1D1A; text-decoration: none"><span style="flex: 1 1 auto">Show page 1 fields</span><span style="font-size: 12px; color: #2F6A45">All filled</span></a>
@@ -103,12 +108,12 @@ button,input,textarea{font:inherit;color:inherit}
     <div role="dialog" aria-modal="true" aria-labelledby="sub-t" aria-describedby="sub-d" style="width: 100%; max-width: 560px; box-sizing: border-box; padding: 24px; display: flex; flex-direction: column; gap: 16px; background: #FBF9F5; border: 1px solid #D8D1C5; border-radius: 6px; box-shadow: 0 18px 48px rgba(31,29,26,0.22)">
       <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 12px">
         <h2 id="sub-t" style="margin: 0; font-family: 'Newsreader', Georgia, serif; font-size: 20px; font-weight: 500; line-height: 1.2">Send this form to another computer?</h2>
-        <button aria-label="Close" style="width: 28px; height: 28px; flex: 0 0 auto; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 4px; color: #4A453E"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg></button>
+        <button aria-label="Close Send this form" style="width: 28px; height: 28px; flex: 0 0 auto; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 4px; color: #4A453E"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg></button>
       </div>
       <p id="sub-d" style="margin: 0">The form’s “Send request to Northwind” button wants to send your answers over the internet. lamina sends nothing unless you choose Send.</p>
       <dl style="margin: 0; display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: 10px 16px; padding: 14px 16px; background: #FFFFFF; border: 1px solid #E4DED3; border-radius: 4px">
         <dt style="font-size: 12px; font-weight: 600; color: #4A453E">To</dt>
-        <dd style="margin: 0; overflow-wrap: anywhere"><span style="font-weight: 600">repairs.northwind-housing.example</span><span style="color: #6B645A">/submit</span></dd>
+        <dd style="margin: 0; overflow-wrap: anywhere"><span style="color: #6B645A">https://</span><span style="font-weight: 600">repairs.northwind-housing.example</span><span style="color: #6B645A">/submit</span></dd>
         <dt style="font-size: 12px; font-weight: 600; color: #4A453E">Format</dt>
         <dd style="margin: 0">Web form data (HTML)</dd>
         <dt style="font-size: 12px; font-weight: 600; color: #4A453E">Fields sent</dt>
@@ -124,21 +129,28 @@ button,input,textarea{font:inherit;color:inherit}
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="{{accent}}" stroke-width="1.5" aria-hidden="true" style="flex: 0 0 auto; margin-top: 1px"><path d="M12 3.5l7 2.5v5.5c0 4.3-3 7.6-7 9-4-1.4-7-4.7-7-9V6z"></path><path d="M9 12l2.2 2.2L15.5 10"></path></svg>
         <span>Sending makes <strong style="font-weight: 600">1 network request</strong>. The status bar will list it, and lamina asks again for every send.</span>
       </div>
-      <sc-if value="{{sendFailed}}" hint-placeholder-val="{{ false }}">
+      <sc-if value="{{errHttp}}" hint-placeholder-val="{{ false }}">
       <div role="alert" style="display: flex; gap: 10px; padding: 10px 12px; background: #F6E6E8; border: 1px solid #9B2335; border-radius: 4px; font-size: 13px">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9B2335" stroke-width="1.5" aria-hidden="true" style="flex: 0 0 auto; margin-top: 1px"><path d="M12 4l9 16H3z"></path><path d="M12 10v4M12 17v.5"></path></svg>
-        <span><strong style="font-weight: 600; color: #9B2335">The server didn’t accept a send from a web page.</strong> Nothing was sent. Export the answers instead (Form data › Export form data…) and send the file another way, or open the form in the lamina desktop app.</span>
+        <span><strong style="font-weight: 600; color: #9B2335">lamina can’t send to an http:// address.</strong> It isn’t encrypted, so anyone on the network could read the answers. Ask Northwind for an https:// address, or export the form data and send the file yourself.</span>
+      </div>
+      </sc-if>
+      <sc-if value="{{errBlocked}}" hint-placeholder-val="{{ false }}">
+      <div role="alert" style="display: flex; gap: 10px; padding: 10px 12px; background: #F6E6E8; border: 1px solid #9B2335; border-radius: 4px; font-size: 13px">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9B2335" stroke-width="1.5" aria-hidden="true" style="flex: 0 0 auto; margin-top: 1px"><path d="M12 4l9 16H3z"></path><path d="M12 10v4M12 17v.5"></path></svg>
+        <span><strong style="font-weight: 600; color: #9B2335">Not sent.</strong> The server at repairs.northwind-housing.example didn’t accept a send from a web page. Use the lamina desktop app, or export the form data and send the file yourself. Nothing was uploaded.</span>
       </div>
       </sc-if>
       <div style="display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px">
         <button style="height: 32px; padding: 0 16px; border: 1px solid #8A8174; background: #FFFFFF; border-radius: 4px; outline: 2px solid {{accent}}; outline-offset: 2px">Don’t send</button>
-        <button style="height: 32px; padding: 0 16px; border: 1px solid {{accent}}; background: {{accent}}; color: #FFFFFF; border-radius: 4px; font-weight: 600">Send</button>
+        <sc-if value="{{anyError}}" hint-placeholder-val="{{ false }}"><button style="height: 32px; padding: 0 16px; border: 1px solid #8A8174; background: #FFFFFF; border-radius: 4px">Export form data…</button></sc-if>
+        <sc-if value="{{canSend}}" hint-placeholder-val="{{ true }}"><button style="height: 32px; padding: 0 16px; border: 1px solid {{accent}}; background: {{accent}}; color: #FFFFFF; border-radius: 4px; font-weight: 600">Send</button></sc-if>
       </div>
     </div>
   </div>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#1F5C63","options":["#1F5C63","#2D4A6B","#3E4A3C"]},"sendFailed":{"editor":"boolean","default":false},"$preview":{"width":1440,"height":1000}}'>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#1F5C63","options":["#1F5C63","#2D4A6B","#3E4A3C"]},"sendError":{"editor":"enum","options":["none","http","blocked"],"default":"none"},"$preview":{"width":1440,"height":1000}}'>
 class Component extends DCLogic {
   renderVals() {
     var accent = this.props.accent ?? '#1F5C63';
@@ -151,7 +163,7 @@ class Component extends DCLogic {
       }
       return out;
     }
-    return { accent: accent, accentTint: mix(accent, '#FBF9F5', 0.12), sendFailed: this.props.sendFailed ?? false };
+    return { accent: accent, accentTint: mix(accent, '#FBF9F5', 0.12), errHttp: (this.props.sendError ?? 'none') === 'http', errBlocked: (this.props.sendError ?? 'none') === 'blocked', canSend: (this.props.sendError ?? 'none') !== 'http', anyError: (this.props.sendError ?? 'none') !== 'none' };
   }
 }
 </script>
