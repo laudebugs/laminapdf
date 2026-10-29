@@ -13,7 +13,7 @@
 body{margin:0;background:#F7F4EE}
 a{color:#1F5C63}a:hover{color:#16454B}
 button,input,textarea{font:inherit;color:inherit}
-label:has(input[type="radio"]:focus-visible) > span:first-child, label:has(input[type="checkbox"]:focus-visible) > span:first-child{outline:2px solid #1F5C63;outline-offset:2px}
+label:has(input[type="radio"]:focus-visible), label:has(input[type="checkbox"]:focus-visible){outline:2px solid #1F5C63;outline-offset:2px}
 </style>
 </helmet>
 <div style="min-height: 100vh; display: flex; flex-direction: column; background: #F7F4EE; color: #1F1D1A; font-family: 'Source Sans 3', 'Segoe UI', system-ui, sans-serif; font-size: 14px; line-height: 1.4">
@@ -25,8 +25,9 @@ label:has(input[type="radio"]:focus-visible) > span:first-child, label:has(input
         <span style="font-family: 'Newsreader', Georgia, serif; font-size: 16px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">repair-request-form.pdf</span>
         <span style="font-size: 12px; color: #6B645A; white-space: nowrap">14 unsaved changes</span>
       </div>
-      <button aria-label="Undo set Materials" style="width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 4px; color: #4A453E"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M9 14L4.5 9.5 9 5"></path><path d="M4.5 9.5H14a5.5 5.5 0 0 1 0 11h-3"></path></svg></button>
-      <button aria-label="Redo" disabled style="width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 4px; color: #A39C91"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M15 14l4.5-4.5L15 5"></path><path d="M19.5 9.5H10a5.5 5.5 0 0 0 0 11h3"></path></svg></button>
+      <span aria-hidden="true" style="width: 1px; height: 18px; background: #E4DED3; margin: 0 2px"></span>
+      <button aria-label="Undo set Materials" style="width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 4px; color: #4A453E"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M9 7L4.5 11.5 9 16"></path><path d="M4.5 11.5H15a4.5 4.5 0 0 1 0 9h-3"></path></svg></button>
+      <button aria-label="Redo" disabled style="width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 4px; color: #A39C91"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M15 7l4.5 4.5L15 16"></path><path d="M19.5 11.5H9a4.5 4.5 0 0 0 0 9h3"></path></svg></button>
     </div>
     <div role="group" aria-label="Mode" style="display: flex; align-items: stretch; gap: 22px; height: 40px">
       <button aria-pressed="false" style="height: 40px; display: flex; align-items: center; border: 0; background: transparent; padding: 2px 0 0; color: #6B645A; border-bottom: 2px solid transparent">Read</button>
@@ -47,6 +48,7 @@ label:has(input[type="radio"]:focus-visible) > span:first-child, label:has(input
         <button aria-label="Zoom in" style="width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 4px; color: #4A453E"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M6 12h12M12 6v12"></path></svg></button>
       </div>
       <button aria-label="Find in document" style="width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 4px; color: #4A453E"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6"></circle><path d="M15 15l5 5"></path></svg></button>
+      <button aria-label="View settings" aria-haspopup="dialog" aria-expanded="false" style="width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 4px; color: #4A453E"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="12" cy="12" r="7.5"></circle><path d="M12 4.5v15M12 8.5h5.5M12 12h7.5M12 15.5h5.5"></path></svg></button>
       <button style="height: 26px; display: flex; align-items: center; gap: 8px; padding: 0 6px 0 10px; border: 1px solid #E4DED3; background: #FBF9F5; border-radius: 4px; color: #6B645A; font-size: 13px"><span>Commands</span><span style="font-size: 11px; padding: 1px 5px; border: 1px solid #D8D1C5; border-radius: 3px; color: #4A453E; background: #FFFFFF">Ctrl K</span></button>
       <button style="height: 26px; padding: 0 12px; border: 1px solid {{accent}}; background: {{accent}}; color: #FFFFFF; border-radius: 4px; font-size: 13px; font-weight: 600">Save</button>
       <button aria-label="More actions" style="width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 4px; color: #4A453E"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="5.5" cy="12" r="0.9"></circle><circle cx="12" cy="12" r="0.9"></circle><circle cx="18.5" cy="12" r="0.9"></circle></svg></button>
@@ -58,7 +60,7 @@ label:has(input[type="radio"]:focus-visible) > span:first-child, label:has(input
     <button style="height: 28px; display: flex; align-items: center; gap: 6px; padding: 0 10px; border: 1px solid transparent; background: transparent; border-radius: 4px">Next field<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M9 5l7 7-7 7"></path></svg></button>
     <button aria-pressed="true" style="height: 28px; display: flex; align-items: center; gap: 6px; padding: 0 10px; border: 1px solid {{accent}}; background: {{accentTint}}; color: {{accent}}; border-radius: 4px; font-weight: 600"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="3.5" y="7" width="17" height="10" rx="1"></rect><path d="M7 10v4"></path></svg>Highlight fields</button>
     <span aria-hidden="true" style="width: 1px; height: 18px; background: #E4DED3; margin: 0 8px"></span>
-    <button aria-pressed="false" style="height: 28px; display: flex; align-items: center; gap: 6px; padding: 0 10px; border: 1px solid transparent; background: transparent; border-radius: 4px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M6 6.5h12M12 6.5v12"></path></svg>Text</button>
+    <button aria-pressed="false" style="height: 28px; display: flex; align-items: center; gap: 6px; padding: 0 10px; border: 1px solid transparent; background: transparent; border-radius: 4px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M5 7V5h14v2M12 5v14M9.5 19h5"></path></svg>Text</button>
     <button aria-pressed="false" style="height: 28px; display: flex; align-items: center; gap: 6px; padding: 0 10px; border: 1px solid transparent; background: transparent; border-radius: 4px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M6 12.5l4 4 8-9"></path></svg>Check</button>
     <button aria-pressed="false" style="height: 28px; display: flex; align-items: center; gap: 6px; padding: 0 10px; border: 1px solid transparent; background: transparent; border-radius: 4px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="4.5" y="5.5" width="15" height="14" rx="1.5"></rect><path d="M4.5 9.5h15M8.5 3.5v4M15.5 3.5v4"></path></svg>Date</button>
     <span aria-hidden="true" style="width: 1px; height: 18px; background: #E4DED3; margin: 0 8px"></span>
@@ -81,13 +83,13 @@ label:has(input[type="radio"]:focus-visible) > span:first-child, label:has(input
 
   <div style="flex: 1 1 auto; min-height: 0; display: flex; flex-wrap: wrap">
     <aside aria-label="Sidebar" style="flex: 0 0 280px; min-width: 0; box-sizing: border-box; border-right: 1px solid #E4DED3; background: #F7F4EE; display: flex; flex-direction: column; overflow: hidden">
-      <div style="display: flex; align-items: flex-end; gap: 4px; padding: 14px 8px 0 18px; border-bottom: 1px solid #E4DED3">
-        <div role="tablist" aria-label="Sidebar" style="flex: 1 1 auto; display: flex; gap: 16px">
+      <div style="display: flex; align-items: flex-end; gap: 0; padding: 14px 10px 0 14px; border-bottom: 1px solid #E4DED3">
+        <div role="tablist" aria-label="Sidebar" style="flex: 1 1 auto; display: flex; gap: 12px">
           <button role="tab" aria-selected="false" style="border: 0; background: transparent; padding: 0 0 8px; font-size: 13px; color: #6B645A; border-bottom: 2px solid transparent">Pages</button>
           <button role="tab" aria-selected="false" style="border: 0; background: transparent; padding: 0 0 8px; font-size: 13px; color: #6B645A; border-bottom: 2px solid transparent">Outline</button>
           <button role="tab" aria-selected="true" style="border: 0; background: transparent; padding: 0 0 8px; font-size: 13px; font-weight: 600; color: #1F1D1A; border-bottom: 2px solid {{accent}}">Fields</button>
         </div>
-        <button aria-label="More tabs" aria-haspopup="menu" aria-expanded="false" style="width: 26px; height: 26px; margin-bottom: 5px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 4px; color: #4A453E"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M7 10l5 5 5-5"></path></svg></button>
+        <button aria-label="More tabs" aria-haspopup="menu" aria-expanded="false" style="width: 28px; height: 28px; margin-bottom: 4px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 4px; color: #4A453E"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="5.5" cy="12" r="0.9"></circle><circle cx="12" cy="12" r="0.9"></circle><circle cx="18.5" cy="12" r="0.9"></circle></svg></button>
       </div>
       <nav aria-label="Form fields in tab order" style="display: flex; flex-direction: column; gap: 2px; padding: 12px 10px">
         <a href="#" style="display: flex; align-items: center; gap: 8px; min-height: 28px; padding: 0 8px; border-radius: 4px; color: #1F1D1A; text-decoration: none; font-size: 13px"><span style="flex: 1 1 auto">Show page 1 fields</span><span style="font-size: 12px; color: #2F6A45">All filled</span></a>
@@ -136,7 +138,7 @@ label:has(input[type="radio"]:focus-visible) > span:first-child, label:has(input
               <input id="f-job" readonly aria-readonly="true" aria-describedby="ro-hint" value="J-2026-08812" style="{{fieldRO}}">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#4A453E" stroke-width="1.5" aria-hidden="true" style="position: absolute; right: 8px; top: 6px"><rect x="5.5" y="10.5" width="13" height="9" rx="1.5"></rect><path d="M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5"></path></svg>
             </div>
-            <span id="ro-hint" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Read-only</span>
+            <span id="ro-hint" style="font-size: 12px; color: #6B645A">Read-only</span>
           </div>
           <div style="display: flex; flex-direction: column; gap: 4px">
             <label for="f-hours" style="font-size: 11.5px; color: #3A3733">Labour hours</label>
@@ -145,9 +147,10 @@ label:has(input[type="radio"]:focus-visible) > span:first-child, label:has(input
           <div style="display: flex; flex-direction: column; gap: 4px">
             <label for="f-rate" style="font-size: 11.5px; color: #3A3733">Hourly rate</label>
             <div style="position: relative; display: flex">
-              <input id="f-rate" readonly aria-readonly="true" value="£32.00" style="{{fieldRONum}}">
+              <input id="f-rate" readonly aria-readonly="true" aria-describedby="ro-hint-rate" value="£32.00" style="{{fieldRONum}}">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#4A453E" stroke-width="1.5" aria-hidden="true" style="position: absolute; left: 8px; top: 6px"><rect x="5.5" y="10.5" width="13" height="9" rx="1.5"></rect><path d="M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5"></path></svg>
             </div>
+            <span id="ro-hint-rate" style="font-size: 12px; color: #6B645A">Read-only</span>
           </div>
           <div style="display: flex; flex-direction: column; gap: 4px">
             <label for="f-mat" style="font-size: 11.5px; color: #3A3733">Materials</label>
