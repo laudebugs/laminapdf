@@ -3,12 +3,12 @@
 | Field | Value |
 | --- | --- |
 | ID | `L1a` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [shareable-libraries §7 L1](../../plans/shareable-libraries.md#l1-contracts), [§4 principles](../../plans/shareable-libraries.md#4-principles-recommendations-recorded-in-adrs-00260031), [§6 ADRs](../../plans/shareable-libraries.md#6-decisions-to-record-adrs) |
 | Round / milestone | Round L1 (shareable libraries) — before B5a/B5c |
 | Depends on | None |
-| Blocks | [B5a](./B5a-lamina-build-core.md), [L1b](./L1b-error-contract-codegen.md), [L2a](./L2a-worker-client.md), [L3a](./L3a-lamina-extract-reading-order.md), [L6a](./L6a-lamina-ffi-spike.md) |
-| ADRs | Writes **0026** (error and diagnostic contract), **0027** (coordinates, units and page indexing), **0028** (façade rules, jobs, cancellation and progress); extends [0003](../../decisions/0003-reader-tolerance-and-limits.md) §2 (codes), fills in [0002](../../decisions/0002-binding-strategy.md) §3 (façade), touches [0005](../../decisions/0005-document-model.md) §7 (threads); informs proposed 0009 (worker RPC, [C2a](./C2a-render-adrs.md)) and 0031 (CLI, [L4a](./L4a-lamina-cli.md)) |
+| Blocks | [B5a](../ready/B5a-lamina-build-core.md), [L1b](../ready/L1b-error-contract-codegen.md), [L2a](../ready/L2a-worker-client.md), [L3a](../ready/L3a-lamina-extract-reading-order.md), [L6a](../ready/L6a-lamina-ffi-spike.md) |
+| ADRs | Writes **0026** (error and diagnostic contract), **0027** (coordinates, units and page indexing), **0028** (façade rules, jobs, cancellation and progress); extends [0003](../../decisions/0003-reader-tolerance-and-limits.md) §2 (codes), fills in [0002](../../decisions/0002-binding-strategy.md) §3 (façade), touches [0005](../../decisions/0005-document-model.md) §7 (threads); informs proposed 0009 (worker RPC, [C2a](../ready/C2a-render-adrs.md)) and 0031 (CLI, [L4a](../ready/L4a-lamina-cli.md)) |
 | Branch | `docs/l1a-contract-adrs` |
 | PR title | `docs(decisions): ADRs 0026 (errors), 0027 (coordinates and units), 0028 (façade rules, jobs, cancellation)` |
 | Size | M (≈ 350–500 lines of docs) |
@@ -40,7 +40,7 @@ Write down the contract every lamina surface shares before the first public API 
   - **No document text in `message` or `hint`** (prompt-injection hygiene): only codes, numbers, offsets, object references, limit names and option names. Document text appears only in data fields.
   - `hint` rules: one actionable sentence per code, fixed text with only non-document parameters.
   - `docsUrl` rules: stable `…/errors/<code>` URLs; the domain is open (see Risks).
-  - `explain` pages: one per code, covering what happened, why, how to fix and an example. Their source location is decided here and implemented by [L1b](./L1b-error-contract-codegen.md).
+  - `explain` pages: one per code, covering what happened, why, how to fix and an example. Their source location is decided here and implemented by [L1b](../ready/L1b-error-contract-codegen.md).
   - Per-surface mapping: Rust `code()`/`kind()`/`hint()`/`docs_url()` plus `Serialize`; the TS class name (decide `LaminaError` vs `PdfError`; recommendation: `LaminaError`, with the guidelines updated); Swift/Kotlin error enums; CLI `--json` on stderr.
 - `docs/decisions/0027-coordinates-units-and-page-indexing.md`:
   - High-level drawing and all extraction output use **points, top-left origin of the page's visible box, y down**.
@@ -63,9 +63,9 @@ Write down the contract every lamina surface shares before the first public API 
 
 **Out of scope** (and which todo covers it)
 
-- Generating codes, the TS union, the JSON Schema and `explain` text: [L1b](./L1b-error-contract-codegen.md).
-- Applying the rules in code: [B5a](./B5a-lamina-build-core.md) (coordinates), [B5c](./B5c-lamina-facade-and-examples.md) (façade), [L2a](./L2a-worker-client.md) (async edge).
-- Extraction schema `lamina.extract/1`: ADR 0030 in [L3a](./L3a-lamina-extract-reading-order.md). CLI exit codes: ADR 0031 in [L4a](./L4a-lamina-cli.md). UniFFI pin: ADR 0029 in [L6a](./L6a-lamina-ffi-spike.md).
+- Generating codes, the TS union, the JSON Schema and `explain` text: [L1b](../ready/L1b-error-contract-codegen.md).
+- Applying the rules in code: [B5a](../ready/B5a-lamina-build-core.md) (coordinates), [B5c](../ready/B5c-lamina-facade-and-examples.md) (façade), [L2a](../ready/L2a-worker-client.md) (async edge).
+- Extraction schema `lamina.extract/1`: ADR 0030 in [L3a](../ready/L3a-lamina-extract-reading-order.md). CLI exit codes: ADR 0031 in [L4a](../ready/L4a-lamina-cli.md). UniFFI pin: ADR 0029 in [L6a](../ready/L6a-lamina-ffi-spike.md).
 
 ## Tasks
 
@@ -99,7 +99,7 @@ Write down the contract every lamina surface shares before the first public API 
 - [ ] Three ADR files exist with Status `Accepted` (or `Proposed` with the owner's reason recorded), dated, in template order
 - [ ] ADR 0026 defines every field of the error shape, the `kind` list, the code rules and the no-document-text rule. It names the TS class and where `explain` text lives
 - [ ] ADR 0027 gives an unambiguous answer for: origin, unit, reference box, rotation, `/UserUnit`, text baseline, and page index vs number
-- [ ] ADR 0028 lists the façade rules B5c's acceptance criteria refer to ([B5c](./B5c-lamina-facade-and-examples.md)), defines `Budget` without a clock in core, and states how it relates to ADR 0005 §7
+- [ ] ADR 0028 lists the façade rules B5c's acceptance criteria refer to ([B5c](../ready/B5c-lamina-facade-and-examples.md)), defines `Budget` without a clock in core, and states how it relates to ADR 0005 §7
 - [ ] The guidelines no longer contradict ADR 0026 on the error class name or shape
 - [ ] `cargo xtask check docs` passes (links and board)
 
@@ -124,7 +124,7 @@ None (documentation only). `cargo xtask docs-links` checks the links.
 - **Rotated pages:** output in the displayed frame matches viewers and extraction vendors, but content-stream editing needs the unrotated frame. The ADR must say which API sees which frame. The owner decides if the two cases conflict.
 - **Lock placement:** an edge-crate `Mutex` serialises all calls on one document. That is fine for UniFFI's model, but it should be measured once B5c exists. Amending ADR 0005 §7 to a `Sync` core is the alternative.
 - **`Budget::millis`** in the report's sketch needs a clock that core crates may not use. Recommendation: units in core, time at the edges.
-- **Naming churn:** renaming `PdfError` to `LaminaError` touches [B6b](./B6b-lamina-pdf-package.md)'s scope. If B6b merges first, L1b does the rename.
+- **Naming churn:** renaming `PdfError` to `LaminaError` touches [B6b](../ready/B6b-lamina-pdf-package.md)'s scope. If B6b merges first, L1b does the rename.
 - Owner review: these are hard-to-reverse public contracts. Ask the owner to accept each ADR explicitly in the PR.
 
 ## Definition of done

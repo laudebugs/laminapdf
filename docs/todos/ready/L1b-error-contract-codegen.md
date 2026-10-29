@@ -6,9 +6,9 @@
 | Status | `ready` |
 | Plan | [shareable-libraries §7 L1](../../plans/shareable-libraries.md#l1-contracts), [§4 principle 2](../../plans/shareable-libraries.md#4-principles-recommendations-recorded-in-adrs-00260031) |
 | Round / milestone | Round L1 (shareable libraries) |
-| Depends on | [B6b](./B6b-lamina-pdf-package.md), [L1a](./L1a-contract-adrs.md) |
+| Depends on | [B6b](./B6b-lamina-pdf-package.md), [L1a](../ongoing/L1a-contract-adrs.md) |
 | Blocks | [L2a](./L2a-worker-client.md), [L2b](./L2b-disposal-and-memory.md), [L4a](./L4a-lamina-cli.md), [L5a](./L5a-agent-docs.md) |
-| ADRs | Implements 0026 (from [L1a](./L1a-contract-adrs.md)); follows [0003](../../decisions/0003-reader-tolerance-and-limits.md) §2 and §4 (codes listed once, Rust and TS tests), [0002](../../decisions/0002-binding-strategy.md) §1 (errors map 1:1 to a JS `Error` with `code`), [0018](../../decisions/0018-test-strategy.md) §5 (shared expectations), [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) (new dev dependencies) |
+| ADRs | Implements 0026 (from [L1a](../ongoing/L1a-contract-adrs.md)); follows [0003](../../decisions/0003-reader-tolerance-and-limits.md) §2 and §4 (codes listed once, Rust and TS tests), [0002](../../decisions/0002-binding-strategy.md) §1 (errors map 1:1 to a JS `Error` with `code`), [0018](../../decisions/0018-test-strategy.md) §5 (shared expectations), [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) (new dev dependencies) |
 | Branch | `feat/l1b-error-contract` |
 | PR title | `feat(codes): generate the error contract into Rust, TypeScript and JSON Schema with explain text` |
 | Size | L (≈ 500–800 lines of generator, tests and explain text; generated files don't count) |
@@ -20,7 +20,7 @@ Make ADR 0026's error shape real on every surface, from one file. `fixtures/code
 
 ## Context
 
-- ADR 0026 from [L1a](./L1a-contract-adrs.md): fields, `kind` list, code and hint rules, no document text in messages, `docsUrl`, where `explain` text lives, TS class name.
+- ADR 0026 from [L1a](../ongoing/L1a-contract-adrs.md): fields, `kind` list, code and hint rules, no document text in messages, `docsUrl`, where `explain` text lives, TS class name.
 - [ADR 0003 §2](../../decisions/0003-reader-tolerance-and-limits.md#2-warnings-stable-enumerated-codes) and [§4](../../decisions/0003-reader-tolerance-and-limits.md#4-enforcement): codes in `fixtures/codes.json`, checked by `crates/lamina-cos/tests/codes.rs` and (from B6b) a TS test.
 - [B6b](./B6b-lamina-pdf-package.md): introduces `cargo xtask gen codes` → `packages/pdf/src/codes.generated.ts` and `PdfError`; this todo extends both.
 - [Report: strict types](../../research/libraries/shareable-libraries.md#strict-types-branded-units-discriminated-options-codes-generated-from-one-file) and the [TypeScript note §6](../../research/libraries/notes/typescript-web-dx.md#6-strict-typescript-types-errors-tooling): `LaminaError<C>`, `isLaminaError(e, code)`.
