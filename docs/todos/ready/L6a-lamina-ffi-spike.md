@@ -1,4 +1,4 @@
-# L6a — `lamina-ffi` spike: UniFFI over the façade, XCFramework and AARs, size report, ADR 0029
+# L6a — `lamina-ffi` spike (start right after B5c): UniFFI over the façade, XCFramework and AARs, size report, ADR 0029
 
 | Field | Value |
 | --- | --- |
@@ -15,6 +15,8 @@
 | PR | — |
 
 ## Goal
+
+**Timing (decided (project owner, 2026-10-29)):** start as soon as [B5c](./B5c-lamina-facade-and-examples.md) merges, in parallel with B6, so façade problems surface before `@lamina/pdf` fixes the TypeScript API.
 
 Answer one question with measurements before any mobile SDK work: **does the B5c façade bind to Swift and Kotlin through UniFFI without changes?** Bind open, page count and sizes, extraction and save; build an XCFramework (via cargo-swift) and AARs (via cargo-ndk); run the same scenario from Swift and Kotlin tests; prototype cancellation on top of ADR 0028's `CancelToken`; report sizes per ABI. Record the binding and packaging decisions in ADR 0029 (UniFFI pin, idiomatic Swift/Kotlin layer, SPM only, Maven Central AARs, 16 KB page alignment, panic profile).
 
@@ -39,7 +41,7 @@ Answer one question with measurements before any mobile SDK work: **does the B5c
   - `FfiDocument` (`#[derive(uniffi::Object)]` around `lamina::Document`): `open(bytes, options) -> Arc<FfiDocument>`, `page_count()`, `page_sizes() -> Vec<PageSize>` (top-left points per ADR 0027), `info()`, `text(page)` when B9b is merged (else metadata only, noted in the README), `set_info(key, value)` through the op log, `save(options) -> SaveResult` (full bytes, and the appended section only for incremental saves).
   - Records and enums for options, sizes, warnings; one `FfiError` (`#[derive(uniffi::Error)]`) mapping `lamina::Error` with ADR 0026's `code`, `kind`, `message`, `hint`.
   - A job prototype: `FfiJob` with `step(budget_ms) -> FfiStep` and `cancel()` over ADR 0028's job if B5c has one, else a toy job over all pages.
-- **Two UniFFI pins measured:** build the spike against 0.31.x and 0.32.x (Cargo feature or branch); compare what compiles unchanged, zero-copy `&[u8]` input (0.32), foreign traits (`#[uniffi::export(foreign)]`, 0.32; needed if Swift/Kotlin implement [L3c](./L3c-model-plugins.md)'s `OcrEngine`), Kotlin `ForeignBytes` changes, and ubrn compatibility (0.31 only).
+- **UniFFI pin: 0.32** (decided (project owner, 2026-10-29); [roadmap: decisions made](../../plans/roadmap.md#decisions-made)). Pin an exact `=0.32.x`. Exercise what 0.32 adds: zero-copy `&[u8]` input, foreign traits (`#[uniffi::export(foreign)]`, needed if Swift/Kotlin implement [L3c](./L3c-model-plugins.md)'s `OcrEngine` or a platform signer) and async constructors. 0.31 is not built; React Native (ubrn, which supports only `=0.31` today) is revisited when it is scheduled.
 - **iOS:** `cargo swift package` (cargo-swift, pinned) producing `Lamina.xcframework` (ios-arm64, ios-arm64-simulator; macOS slice optional for host tests) inside a Swift package with a binary target plus a small hand-written source target (`LaminaDocument` with `async` methods; `withTaskCancellationHandler` calling `job.cancel()`); XCTest tests for open → page count → text → `set_info` → save → reopen.
 - **Android:** `cargo ndk` (pinned) for arm64-v8a and x86_64 (armeabi-v7a measured, recommendation to drop), linked with `-Wl,-z,max-page-size=16384`; Kotlin bindings plus a small hand-written layer (`suspend` functions, `suspendCancellableCoroutine` with `invokeOnCancellation { job.cancel() }`); JVM host tests with the host `.so` (UniFFI Kotlin over JNA runs on desktop JVM), and one instrumented emulator test if practical; an AAR assembled by a minimal Gradle project.
 - **Panic profile:** `[profile.mobile-release]` (inherits `release`, `panic = "unwind"`, `lto`, `codegen-units = 1`, `opt-level` measured `s` vs `z`, `strip`); a test-only export that panics proves the panic surfaces as a Swift error and a Kotlin exception instead of aborting.
@@ -62,7 +64,7 @@ Answer one question with measurements before any mobile SDK work: **does the B5c
 - [ ] Create `spikes/lamina-ffi/{Cargo.toml,src/lib.rs,uniffi.toml,README.md,scripts/}`; pin `uniffi`, cargo-swift and cargo-ndk versions; licence-check new dependencies (`cargo deny` in the spike)
 - [ ] `scripts/build-ios.sh`, `scripts/build-android.sh`, `scripts/size-report.sh` (writes a Markdown table into the README), `scripts/check-alignment.sh`
 - [ ] Swift package `spikes/lamina-ffi/swift/` with XCTest; Kotlin/Gradle project `spikes/lamina-ffi/kotlin/` with JVM tests
-- [ ] Build and test with UniFFI 0.31.x and 0.32.x; record what changed between them
+- [ ] Build and test with UniFFI `=0.32.x`; confirm zero-copy `&[u8]` input reaches Rust without a copy in the generated Swift and Kotlin code
 - [ ] Cancellation prototype on both platforms; **verify Kotlin cancellation semantics in UniFFI 0.32** (does cancelling the coroutine drop the Rust future, and does our `Drop` set the flag?) with a test that observes the flag
 - [ ] Panic test on both platforms under `mobile-release`
 - [ ] List every façade change UniFFI forced (expected: none if ADR 0028 holds); file each as a follow-up against B5c if any
@@ -75,9 +77,9 @@ Answer one question with measurements before any mobile SDK work: **does the B5c
 - [ ] Swift XCTest and Kotlin JVM tests pass for open → page count → page sizes → text (or info) → `set_info` → save → reopen, and the saved bytes are identical between Swift, Kotlin and Rust for the same input
 - [ ] Cancelling a running job from Swift (`Task.cancel()`) and Kotlin (`job.cancel()`) stops it within one step and surfaces `Cancelled`; the Kotlin drop behaviour under the chosen pin is recorded
 - [ ] A deliberate panic in a test export becomes a Swift error and a Kotlin exception under `mobile-release` (not a process abort)
-- [ ] Size table per ABI and slice for both pins, with and without `text`, is in the README
+- [ ] Size table per ABI and slice, with and without `text`, is in the README
 - [ ] Every Android `.so` is 16 KB page-aligned (script output in the README)
-- [ ] ADR 0029 is merged (status Accepted or Proposed with named open items) and states the UniFFI pin with its reasons
+- [ ] ADR 0029 is merged (status Accepted or Proposed with named open items) and records the 0.32 pin, its reasons and the upgrade policy
 - [ ] The spike is outside both workspaces: `cargo xtask check` is unaffected
 
 ## Post-merge checks
@@ -99,7 +101,7 @@ None.
 
 ## Risks and open questions
 
-- **UniFFI pin (decide here):** 0.31 keeps the React Native path (ubrn `=0.31`) open; 0.32 gives zero-copy `&[u8]` input (a 50 MB PDF need not be copied into a `Vec<u8>`) and foreign traits. **Recommendation (confirm with the measurements):** 0.32, because input copies and foreign `OcrEngine` implementations matter more than React Native now; re-check ubrn's 0.32 support before deciding.
+- **UniFFI pin (decided (project owner, 2026-10-29)): 0.32.** Zero-copy `&[u8]` input (a 50 MB PDF need not be copied into a `Vec<u8>`) and foreign traits matter more than React Native, which ADR 0002 defers. If the spike finds a blocker in 0.32, raise it with the owner rather than switching pins silently.
 - **Kotlin cancellation in UniFFI 0.32 (to verify):** the research could not confirm whether abandoning a Kotlin `suspend` call drops the Rust future; the spike must observe it.
 - **`panic=unwind` catching (to verify):** that UniFFI scaffolding catches panics only under `panic=unwind` is unverified; the panic test settles it.
 - **Toolchain and runners.** Swift tests need macOS; Android needs the NDK. If the sandbox or CI lacks them, run on a maintainer's machine and record the environment; do not add runners in this PR.

@@ -134,6 +134,7 @@ One row per round. Each round is split into one or more todos, one PR each, on t
 - **Code signing** (2026-10-28, project owner): the owner, as the publisher, signs the desktop app for Windows, macOS and Linux (M3). Windows Artifact Signing's individual eligibility is US/Canada only, so the owner must confirm eligibility or use an OV certificate ([architecture §8](architecture.md#8-open-questions-for-the-team), Q5; ADR 0014).
 
 - **Publishing later** (2026-10-28, project owner): crates and npm packages stay local for now; registry names and publishing are a later to-do ([architecture: Publishing (later)](architecture.md#publishing-later)).
+- **Shareable libraries** (2026-10-29, project owner): the `lamina-ffi` UniFFI spike ([L6a](../todos/ready/L6a-lamina-ffi-spike.md)) runs right after B5c, in parallel with B6; UniFFI is pinned to `=0.32.x`; ADR 0016 ([B6a](../todos/ready/B6a-lamina-wasm-and-adr-0016.md)) sets a size budget per wasm module, with 350 KB gz for the base module ([shareable libraries §11](shareable-libraries.md#11-open-questions)).
 
 ## Decisions this roadmap assumes (recommendations, not yet decided)
 
