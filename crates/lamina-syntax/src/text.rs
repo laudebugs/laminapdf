@@ -142,6 +142,34 @@ pub fn decode_text_string(bytes: &[u8]) -> String {
     }
 }
 
+/// Encodes `text` as a PDF text string (§7.9.2.2), the inverse of [`decode_text_string`]:
+/// `PDFDocEncoding` when every character has a code, else UTF-16BE with a `FE FF` byte
+/// order mark. PDFDocEncoding output that would start with a byte order mark (`þÿ`, `ï»¿`)
+/// is written as UTF-16BE too, so it never decodes as something else.
+///
+/// ```
+/// use lamina_syntax::text::{decode_text_string, encode_text_string};
+///
+/// assert_eq!(encode_text_string("Café €"), b"Caf\xE9 \xA0");
+/// assert_eq!(encode_text_string("中"), b"\xFE\xFF\x4E\x2D");
+/// assert_eq!(decode_text_string(&encode_text_string("Grüße, 世界")), "Grüße, 世界");
+/// ```
+#[must_use]
+pub fn encode_text_string(text: &str) -> Vec<u8> {
+    let pdf_doc: Option<Vec<u8>> = text.chars().map(pdf_doc_encode).collect();
+    match pdf_doc {
+        Some(bytes) if !bytes.starts_with(b"\xFE\xFF") && !bytes.starts_with(b"\xEF\xBB\xBF") => bytes,
+        _ => {
+            let mut out = Vec::with_capacity(2 + text.len() * 2);
+            out.extend_from_slice(b"\xFE\xFF");
+            for unit in text.encode_utf16() {
+                out.extend_from_slice(&unit.to_be_bytes());
+            }
+            out
+        }
+    }
+}
+
 fn decode_utf16be(bytes: &[u8]) -> String {
     let (pairs, rest) = bytes.as_chunks::<2>();
     let odd = !rest.is_empty();
@@ -341,6 +369,28 @@ mod tests {
     #[test]
     fn decode_text_string_of_an_empty_string_is_empty() {
         assert_eq!(decode_text_string(b""), "");
+    }
+
+    #[test]
+    fn encode_text_string_round_trips_through_decode() {
+        for text in [
+            "",
+            "Title",
+            "Café €",
+            "• – —",
+            "中文",
+            "emoji 😀",
+            "þÿ",
+            "ï»¿x",
+            "\u{7F}",
+        ] {
+            assert_eq!(decode_text_string(&encode_text_string(text)), text, "{text:?}");
+        }
+    }
+
+    #[test]
+    fn encode_text_string_prefers_pdfdoc() {
+        assert_eq!(encode_text_string("A€"), b"A\xA0");
     }
 
     #[test]

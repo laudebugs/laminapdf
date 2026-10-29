@@ -1,4 +1,4 @@
-//! [`Document`]: a COS document plus the model's interior state (the [`IdAllocator`]), and
+//! [`Document`]: a COS document with typed views and the [`IdAllocator`], and
 //! the tolerant read helpers every view shares.
 
 use std::fmt;
@@ -15,7 +15,7 @@ use crate::page::Pages;
 use crate::tree::{NameTree, NumberTree};
 
 /// An opened PDF with typed views ([ADR 0005] §4): [`lamina_cos::Document`] plus the
-/// document-level [`IdAllocator`].
+/// document-level [`IdAllocator`] (a view of the COS overlay's number allocator).
 ///
 /// It dereferences to the COS document, so every COS read (`resolve`, `catalog`,
 /// `warnings`, …) is available directly. Views borrow it (`Page<'d>` holds `&'d Document`),
@@ -28,7 +28,6 @@ use crate::tree::{NameTree, NumberTree};
 /// [ADR 0005]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0005-document-model.md
 pub struct Document {
     cos: lamina_cos::Document,
-    ids: IdAllocator,
 }
 
 // ADR 0005 §7: a document can move between threads.
@@ -47,19 +46,7 @@ impl fmt::Debug for Document {
 
 impl From<lamina_cos::Document> for Document {
     fn from(cos: lamina_cos::Document) -> Self {
-        // Like the incremental writer: above every xref entry and the trailer's /Size, so a
-        // dangling reference below /Size never resolves to a new object.
-        let above_entries = cos.max_object_number().map_or(1, |n| n.saturating_add(1));
-        let size = cos
-            .trailer()
-            .get_int("Size")
-            .and_then(|n| u32::try_from(n).ok())
-            .unwrap_or(0);
-        let max = cos.limits().max_object_number();
-        Self {
-            ids: IdAllocator::new(above_entries.max(size), max),
-            cos,
-        }
+        Self { cos }
     }
 }
 
@@ -86,6 +73,13 @@ impl Document {
         &self.cos
     }
 
+    /// The COS document for writing through its overlay ([`lamina_cos::Document::edit`]).
+    /// `lamina-ops` holds the model document privately and hands out write access only
+    /// inside a transaction.
+    pub const fn cos_mut(&mut self) -> &mut lamina_cos::Document {
+        &mut self.cos
+    }
+
     /// The COS document, giving up the model state.
     #[must_use]
     pub fn into_cos(self) -> lamina_cos::Document {
@@ -94,8 +88,8 @@ impl Document {
 
     /// The document-level ID allocator.
     #[must_use]
-    pub const fn ids(&self) -> &IdAllocator {
-        &self.ids
+    pub const fn ids(&self) -> IdAllocator<'_> {
+        IdAllocator::new(&self.cos)
     }
 
     /// The pages, in page-tree order.

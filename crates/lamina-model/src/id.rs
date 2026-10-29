@@ -1,7 +1,6 @@
 //! [`LaminaId`]s (ADR 0005 §5): opaque, typed identifiers for pages, outline items,
 //! annotations and fields, and the document-level [`IdAllocator`].
 
-use std::cell::Cell;
 use std::fmt::{self, Write as _};
 use std::str::FromStr;
 
@@ -340,61 +339,46 @@ typed_id!(
     Kind::Field
 );
 
-/// The document-level ID allocator (ADR 0005 §5), kept on the [`Document`](crate::Document)
-/// as interior state.
+/// The document-level ID allocator (ADR 0005 §5), a view of the document's
+/// [`Document`](crate::Document).
 ///
 /// Existing items need no allocation: their ID is derived from their object (or path) when
 /// a view first sees them, so the same bytes always give the same IDs and nothing is
-/// recorded per walk. New objects get theirs when a number is allocated for them: numbers
-/// start above both the trailer's `/Size` and the highest object number in any xref section
-/// (as the incremental writer does, so a dangling reference below `/Size` never resolves to
-/// a new object), stay within [`Limits::max_object_number`](lamina_cos::Limits::max_object_number),
-/// and are never reused in a session, so neither are IDs. (The overlay that creates objects
-/// arrives with ops, B3a; it allocates through here.)
-#[derive(Debug)]
-pub struct IdAllocator {
-    first_new: u32,
-    /// The next number to hand out; `u64` so that `u32::MAX` itself can be allocated.
-    next_number: Cell<u64>,
-    max_number: u32,
+/// recorded per walk. New objects get theirs when the overlay allocates a number for them
+/// ([`lamina_cos::Document::reserve_number`], also used by [`lamina_cos::CosMut::create`]):
+/// numbers start above both the trailer's `/Size` and the highest object number in any
+/// xref section (as the incremental writer does, so a dangling reference below `/Size`
+/// never resolves to a new object), stay within
+/// [`Limits::max_object_number`](lamina_cos::Limits::max_object_number), and are never
+/// reused in a session, so neither are IDs.
+#[derive(Debug, Clone, Copy)]
+pub struct IdAllocator<'d> {
+    cos: &'d lamina_cos::Document,
 }
 
-impl IdAllocator {
-    /// An allocator whose new objects are numbered from `first_new` up to `max_number`.
+impl<'d> IdAllocator<'d> {
+    /// The allocator of `cos`.
     #[must_use]
-    pub fn new(first_new: u32, max_number: u32) -> Self {
-        let first_new = first_new.max(1);
-        Self {
-            first_new,
-            next_number: Cell::new(u64::from(first_new)),
-            max_number,
-        }
+    pub const fn new(cos: &'d lamina_cos::Document) -> Self {
+        Self { cos }
     }
 
-    /// Whether this allocator handed out `id` (existing items' IDs are derived, not
-    /// allocated, so this never depends on which views were read).
+    /// Whether this document handed out `id`'s object number (existing items' IDs are
+    /// derived, not allocated, so this never depends on which views were read).
     #[must_use]
     pub fn is_allocated(&self, id: &LaminaId) -> bool {
         id.obj_ref()
-            .is_some_and(|r| r.gen_nr == 0 && r.num >= self.first_new && u64::from(r.num) < self.next_number.get())
+            .is_some_and(|r| r.gen_nr == 0 && self.cos.is_reserved_number(r.num))
     }
 
-    /// Allocates a fresh object number (generation 0) and its ID as an item of `kind`.
+    /// Allocates a fresh object number (generation 0) and its ID as an item of `kind`. The
+    /// object itself is created by a later [`lamina_cos::CosMut::set`].
     ///
     /// # Errors
     /// [`Error::InvalidStructure`] once the next number would exceed the document's
     /// [`Limits::max_object_number`](lamina_cos::Limits::max_object_number).
     pub fn allocate(&self, kind: Kind) -> Result<(ObjRef, LaminaId), Error> {
-        let next = self.next_number.get();
-        let num = u32::try_from(next)
-            .ok()
-            .filter(|n| *n <= self.max_number)
-            .ok_or(Error::InvalidStructure {
-                kind: "object number",
-                message: "no object number left within Limits::max_object_number",
-            })?;
-        self.next_number.set(next + 1);
-        let r = ObjRef::new(num, 0);
+        let r = self.cos.reserve_number()?;
         Ok((r, LaminaId::object(kind, r)))
     }
 }
@@ -505,33 +489,6 @@ mod tests {
     fn ids_of_different_kinds_for_one_object_differ() {
         let r = ObjRef::new(7, 0);
         assert_ne!(LaminaId::object(Kind::Page, r), LaminaId::object(Kind::Annot, r));
-    }
-
-    #[test]
-    fn allocate_never_reuses_a_number() {
-        let ids = IdAllocator::new(10, u32::MAX);
-        let allocated: std::collections::BTreeSet<_> =
-            (0..100).map(|_| ids.allocate(Kind::Annot).unwrap().0.num).collect();
-        assert_eq!(allocated, (10..110).collect());
-    }
-
-    #[test]
-    fn allocated_ids_are_allocated() {
-        let ids = IdAllocator::new(1, u32::MAX);
-        let (_, id) = ids.allocate(Kind::Page).unwrap();
-        assert!(ids.is_allocated(&id));
-    }
-
-    #[test]
-    fn allocate_stops_at_the_maximum_object_number() {
-        let ids = IdAllocator::new(5, 5);
-        assert!(ids.allocate(Kind::Page).is_ok() && ids.allocate(Kind::Page).is_err());
-    }
-
-    #[test]
-    fn allocate_stops_when_numbers_run_out() {
-        let ids = IdAllocator::new(u32::MAX, u32::MAX);
-        assert!(ids.allocate(Kind::Page).is_ok() && ids.allocate(Kind::Page).is_err());
     }
 
     #[test]

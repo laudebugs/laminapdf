@@ -12,18 +12,18 @@ New todos start from [`TEMPLATE.md`](TEMPLATE.md). The workflow is in [git workf
 
 IDs: `A`/`P`/`X` [architecture](../plans/architecture.md) (foundations, publishing, cross-cutting), `B` [library](../plans/pdf-library.md), `L` [shareable libraries](../plans/shareable-libraries.md) (contracts, worker, extraction, CLI, agent docs, mobile), `C` [web reader](../plans/web-app.md), `D` [desktop reader](../plans/desktop-app.md), `U` [UI/UX](../plans/ui-ux.md), `E` [editor](../plans/full-editor.md), `H` hosted service ([full-editor](../plans/full-editor.md)). A letter suffix (`B2a`, `B2b`) splits a round into PRs.
 
-**4 ongoing · 217 ready · 10 done** (231 total).
+**3 ongoing · 217 ready · 11 done** (231 total).
 
 ## Can start now
 
 Ready todos whose dependencies are all done:
 
+- [B3b](ready/B3b-lamina-save-writers.md): `lamina-save`: move the writer, `WriteSink`, incremental and full writers over the overlay, rebase
 - [L1a](ready/L1a-contract-adrs.md): Contract ADRs 0026 (errors), 0027 (coordinates and units), 0028 (façade rules, jobs, cancellation)
 
 ## Ongoing
 
 - [B2d](ongoing/B2d-windowed-reading.md): Windowed reading for sources without `as_slice`
-- [B3a](ongoing/B3a-overlay-and-ops.md): COS overlay and `lamina-ops`: `Op`, `transact`, savepoints, undo/redo
 - [X3a](ongoing/X3a-nightly-lane.md): Nightly CI lane: external-corpus differential, extended fuzzing, scaling tests and benchmarks
 - [X4](ongoing/X4-full-lane-gate.md): Full PR lane with an always-running gate job
 
@@ -45,8 +45,8 @@ Ready todos whose dependencies are all done:
 | B2b | [Standard security handler decryption (read only)](done/B2b-standard-security-decryption.md) | done | [B2a](done/B2a-limits-owned-document.md) |
 | B2c | [`lamina-model` views and IDs, corpus facts, pypdf differential and fuzz targets](done/B2c-lamina-model-corpus-fuzz.md) | done | [B2a](done/B2a-limits-owned-document.md) |
 | B2d | [Windowed reading for sources without `as_slice`](ongoing/B2d-windowed-reading.md) | ongoing | [B2a](done/B2a-limits-owned-document.md) |
-| B3a | [COS overlay and `lamina-ops`: `Op`, `transact`, savepoints, undo/redo](ongoing/B3a-overlay-and-ops.md) | ongoing | [B2c](done/B2c-lamina-model-corpus-fuzz.md) |
-| B3b | [`lamina-save`: move the writer, `WriteSink`, incremental and full writers over the overlay, rebase](ready/B3b-lamina-save-writers.md) | ready | [B3a](ongoing/B3a-overlay-and-ops.md) |
+| B3a | [COS overlay and `lamina-ops`: `Op`, `transact`, savepoints, undo/redo](done/B3a-overlay-and-ops.md) | done | [B2c](done/B2c-lamina-model-corpus-fuzz.md) |
+| B3b | [`lamina-save`: move the writer, `WriteSink`, incremental and full writers over the overlay, rebase](ready/B3b-lamina-save-writers.md) | ready | [B3a](done/B3a-overlay-and-ops.md) |
 | B3c | [`SavePlanner`, `SaveConstraint` detection and round-trip in lamina, pdf.js, PDFium and qpdf](ready/B3c-save-planner-and-roundtrip.md) | ready | [B2b](done/B2b-standard-security-decryption.md), [B3b](ready/B3b-lamina-save-writers.md), [X4](ongoing/X4-full-lane-gate.md) |
 | B4a | [`lamina-text`: font loading, subsetting and Type 0 embedding with ToUnicode](ready/B4a-font-loading-and-subsetting.md) | ready | [B1b](done/B1b-krilla-fit-spike.md), [B3b](ready/B3b-lamina-save-writers.md), [X4](ongoing/X4-full-lane-gate.md) |
 | B4b | [Shaping (HarfRust), bidi and line breaking (ICU4X), with goldens in five scripts](ready/B4b-shaping-bidi-line-breaking.md) | ready | [B4a](ready/B4a-font-loading-and-subsetting.md), [X4](ongoing/X4-full-lane-gate.md) |

@@ -68,6 +68,7 @@
 #![forbid(unsafe_code)]
 
 mod error;
+mod overlay;
 mod reader;
 mod scan;
 mod source;
@@ -76,6 +77,7 @@ mod writer;
 pub use error::{Error, Result};
 pub use lamina_syntax::crypt::{Cipher, PasswordKind, Permissions};
 pub use lamina_syntax::{Dict, Limit, Limits, Name, ObjRef, Object, PdfString, Stream, StringFormat};
+pub use overlay::{CosChange, CosMut, JournalMark, Overlay, OverlayEntry};
 pub use reader::{DirectPath, Document, Encryption, Inherited, OpenOptions, Page, PathSegment, Resolved, Warning};
 pub use source::{ByteSource, Source, SourceError};
 pub use writer::{Writer, XrefEol, incremental_update};

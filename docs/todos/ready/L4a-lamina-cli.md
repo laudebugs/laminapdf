@@ -27,7 +27,7 @@ Give shell users, CI pipelines and AI agents one binary, `lamina`, with a stable
 - [CLI spec note §6](../../research/libraries/notes/cli-spec.md#6-proposed-command-set-with-example-sessions-recommendations): the proposed command set, example sessions and the error JSON.
 - ADR 0026 (from [L1a](./L1a-contract-adrs.md)) and the generated error types and `explain` text from [L1b](./L1b-error-contract-codegen.md): the CLI's errors are these, not a new shape.
 - [ADR 0003 §2](../../decisions/0003-reader-tolerance-and-limits.md#2-warnings-stable-enumerated-codes) and [§3](../../decisions/0003-reader-tolerance-and-limits.md#3-limits): warning codes drive exit code 3; `Limits` are CLI flags.
-- [B3a](../ongoing/B3a-overlay-and-ops.md): today the only page op is `RotatePage`; that limits `pages` in this PR.
+- [B3a](../done/B3a-overlay-and-ops.md): today the only page op is `RotatePage`; that limits `pages` in this PR.
 - [Code organisation §2](../../guidelines/code-organization.md#2-boundaries-and-dependency-direction): `app` crates may use the file system and threads; core crates may not.
 
 ## Scope
