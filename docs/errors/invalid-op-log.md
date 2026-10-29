@@ -21,4 +21,4 @@ To be added ([L1b](../todos/ready/L1b-error-contract-codegen.md)).
 
 ## Data fields
 
-`detail` (**untrusted**: may quote the log).
+`detail` (**untrusted**: may quote the log; the message never includes it).

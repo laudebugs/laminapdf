@@ -21,4 +21,4 @@ To be added ([L1b](../todos/ready/L1b-error-contract-codegen.md)).
 
 ## Data fields
 
-`filter` (**untrusted**: read from the file), `version`, `revision`.
+`filter` (**untrusted**: read from the file; the message never includes it), `version`, `revision`.

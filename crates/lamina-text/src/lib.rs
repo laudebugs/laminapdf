@@ -58,6 +58,10 @@ mod linebreak;
 mod pdfpos;
 mod shape;
 mod usage;
+// What `fixtures/codes.json` lists, for the kind tests (shared with the other crates' tests).
+#[cfg(test)]
+#[path = "../../lamina-cos/tests/common/codes.rs"]
+mod test_codes;
 
 pub use bidi::{BidiParagraph, BidiRun};
 pub use embed::{EmbeddedFont, Encoded, FontKey, FontRegistry};

@@ -1,0 +1,26 @@
+# `content-unbalanced-q`
+
+- Type: warning
+- Kind: `input` (the input is malformed beyond what tolerance repairs)
+
+## What happened
+
+A `Q` had no matching `q` (it was ignored), or a content stream ended with saved graphics states still open (they were restored) (ADR 0023).
+
+## Why
+
+Producers that split `q`/`Q` pairs across streams, or damaged content.
+
+## How to fix
+
+Nothing to do; each stream balances on its own.
+
+## Example
+
+To be added ([L1b](../todos/ready/L1b-error-contract-codegen.md)).
+
+## Data fields
+
+- `offset`: the `Q`'s byte offset, or the end of the content.
+
+The `location` is `object` (the page for page content, the Form XObject for a form) with `streamOffset` in its decoded content; none for content interpreted on its own or a direct page.

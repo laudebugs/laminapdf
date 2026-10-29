@@ -171,9 +171,11 @@ dependencies = [
  "lamina-content",
  "lamina-cos",
  "lamina-model",
+ "lamina-ops",
  "lamina-save",
  "lamina-syntax",
  "libfuzzer-sys",
+ "serde_json",
 ]
 
 [[package]]

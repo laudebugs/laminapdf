@@ -4,7 +4,7 @@
 use lamina_cos::{Error, Result};
 use std::collections::VecDeque;
 
-use lamina_syntax::{Dict, Lexer, Limits, Name, Object, Parser, Token, is_whitespace};
+use lamina_syntax::{Dict, Lexer, Limits, Name, Object, Parser, Position, Token, is_whitespace};
 
 use crate::operator::Operator;
 
@@ -167,7 +167,12 @@ impl<'a> ContentIter<'a> {
         let token = match self.lexer.next_token() {
             Ok(token) => token,
             Err(e @ lamina_syntax::Error::LimitExceeded { .. }) => return Err(Error::from(e)),
-            Err(lamina_syntax::Error::Syntax { offset, .. }) => {
+            Err(lamina_syntax::Error::Syntax { at, .. }) => {
+                // The lexer runs over this content, so its positions are offsets in it.
+                let offset = match at {
+                    Position::FileOffset(offset) => usize::try_from(offset).unwrap_or(start),
+                    _ => start,
+                };
                 // A bad hex digit: the rest of that string up to its `>` goes too, so nothing
                 // inside it is read as an operator.
                 let data = self.data();

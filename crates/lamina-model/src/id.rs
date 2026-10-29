@@ -154,8 +154,9 @@ impl fmt::Display for LaminaId {
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 #[non_exhaustive]
 pub enum ParseIdError {
-    /// The string does not have the ID syntax.
-    #[error("not a lamina ID: {0:?}")]
+    /// The string does not have the ID syntax. The string is kept but not formatted: it comes
+    /// from the caller or an op log (ADR 0026 §4).
+    #[error("not a lamina ID")]
     Syntax(String),
     /// The ID is valid but of another kind than the typed ID asked for.
     #[error("expected a {expected:?} ID, found a {found:?} ID")]

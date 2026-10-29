@@ -1,6 +1,6 @@
 //! The error type of the file-structure layer.
 
-use lamina_syntax::Limit;
+use lamina_syntax::{ErrorKind, Limit, Location, Position};
 
 use crate::reader::Warning;
 use crate::source::SourceError;
@@ -10,7 +10,11 @@ use crate::source::SourceError;
 /// Every fallible public function returns [`Result`]; no input is allowed to panic. Errors from
 /// the syntax layer (lexing, parsing, decoding streams) arrive as [`Error::Syntax`], except
 /// [`lamina_syntax::Error::LimitExceeded`], which becomes [`Error::LimitExceeded`] so that every
-/// limit is matched in one place.
+/// limit is matched in one place. Their positions are file offsets, object numbers or offsets
+/// in an object stream's decoded data, tagged by the reader ([`Position`]).
+///
+/// `Display` formats only fixed text and numbers, never names or bytes read from the input
+/// (ADR 0026 §4): those stay in the variant's fields.
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 #[non_exhaustive]
 pub enum Error {
@@ -22,12 +26,12 @@ pub enum Error {
     LimitExceeded {
         /// Which limit.
         limit: Limit,
-        /// Where it was hit, when known: a byte offset in the buffer being parsed for syntax
-        /// limits (nesting, string length; for content streams and the saved-state nesting of
-        /// `lamina-content`, an offset in the decoded content), an object number for reference
-        /// chains and Form XObject depth (the form that went too deep); `None` for budgets
-        /// (decoded bytes, content operators). ADR 0026 will tag which one it is.
-        at: Option<u64>,
+        /// Where it was hit, when known: a file offset (or an offset in an object stream's or
+        /// a content stream's decoded data, `lamina-content`'s saved-state nesting included)
+        /// for syntax limits (nesting, string length) and the read window; an object for
+        /// reference chains and Form XObject depth (the form that went too deep); `None` for
+        /// budgets (decoded bytes, content operators).
+        at: Option<Position>,
     },
     /// Strict mode ([`OpenOptions::with_strict`](crate::OpenOptions::with_strict)) refused
     /// something the tolerant reader would have repaired with this warning.
@@ -103,8 +107,9 @@ pub enum Error {
     WrongPassword,
     /// The document is encrypted with a security handler lamina can't decrypt: not
     /// `/Standard` (e.g. the public-key handler `/Adobe.PubSec`), an unknown `/V`/`/R`
-    /// combination, or an unknown crypt filter method (e.g. ISO/TS 32003 AES-GCM).
-    #[error("unsupported security handler /{filter} (V {version:?}, R {revision:?})")]
+    /// combination, or an unknown crypt filter method (e.g. ISO/TS 32003 AES-GCM). `filter`
+    /// is read from the file, so it is not formatted (ADR 0026 §4).
+    #[error("unsupported security handler (V {version:?}, R {revision:?})")]
     UnsupportedSecurityHandler {
         /// `/Filter` of the encryption dictionary (or `Standard /CFM /…` for an unknown crypt
         /// filter method).
@@ -185,6 +190,54 @@ impl Error {
         }
     }
 
+    /// The kind of this error ([ADR 0026] §2), as `fixtures/codes.json` lists it for
+    /// [`Error::code`] (a test checks every variant). Syntax-layer errors report
+    /// [`lamina_syntax::Error::kind`].
+    ///
+    /// [ADR 0026]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0026-error-and-diagnostic-contract.md
+    #[must_use]
+    pub const fn kind(&self) -> ErrorKind {
+        match self {
+            Self::Syntax(e) => e.kind(),
+            Self::Strict { .. }
+            | Self::NotPdf(_)
+            | Self::MissingRoot
+            | Self::ReferenceCycle(_)
+            | Self::Type { .. }
+            | Self::InvalidStructure { .. } => ErrorKind::Input,
+            Self::LimitExceeded { .. } => ErrorKind::Limit,
+            Self::DataPending { .. } | Self::RepairedBase => ErrorKind::State,
+            Self::Source(_) => ErrorKind::Io,
+            Self::UnsetObject(_) => ErrorKind::Internal,
+            Self::EncryptedBase | Self::UnsupportedSecurityHandler { .. } => ErrorKind::Unsupported,
+            Self::PasswordRequired | Self::WrongPassword => ErrorKind::Security,
+        }
+    }
+
+    /// Where the error was found (ADR 0026 §1.1); empty when there is no position.
+    #[must_use]
+    pub fn location(&self) -> Location {
+        match self {
+            Self::Syntax(e) => e.location(),
+            Self::LimitExceeded { at, .. } => Location::from(*at),
+            Self::Strict { warning } => warning.location(),
+            Self::Source(SourceError::Failed { offset, .. }) => Location::from(Position::FileOffset(*offset)),
+            Self::ReferenceCycle(object) | Self::UnsetObject(object) => Location::object(Some(*object)),
+            _ => Location::NONE,
+        }
+    }
+
+    /// This error with its position passed through `f` (see
+    /// [`lamina_syntax::Error::map_position`]).
+    #[must_use]
+    pub(crate) fn map_position(self, f: impl FnOnce(Position) -> Position) -> Self {
+        match self {
+            Self::Syntax(e) => Self::Syntax(e.map_position(f)),
+            Self::LimitExceeded { limit, at } => Self::LimitExceeded { limit, at: at.map(f) },
+            other => other,
+        }
+    }
+
     /// Whether no tolerant path may swallow this error (ADR 0003): a strict-mode refusal (the
     /// caller asked for it) or input that is missing or unreadable ([`Error::DataPending`],
     /// [`Error::Source`]: the call has to be retried or fail). Every other error makes a
@@ -195,10 +248,10 @@ impl Error {
     }
 
     /// An [`Error::LimitExceeded`] for `limit` at object `num`.
-    pub(crate) fn limit_at_object(limit: Limit, num: u32) -> Self {
+    pub(crate) const fn limit_at_object(limit: Limit, num: u32) -> Self {
         Self::LimitExceeded {
             limit,
-            at: Some(u64::from(num)),
+            at: Some(Position::Object(num)),
         }
     }
 }
@@ -216,5 +269,76 @@ pub fn tolerant<T>(result: Result<T>) -> Result<Option<T>> {
         Ok(v) => Ok(Some(v)),
         Err(e) if e.must_propagate() => Err(e),
         Err(_) => Ok(None),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::test_codes as codes;
+
+    /// One value of every variant (each syntax-layer one wrapped): the match in
+    /// [`Error::kind`] has no wildcard, so a new variant is a compile error there, and this
+    /// list is what the tests compare.
+    fn samples() -> Vec<Error> {
+        let at = Position::FileOffset(0);
+        let syntax = [
+            lamina_syntax::Error::UnexpectedEof { at },
+            lamina_syntax::Error::Syntax { at, message: "m" },
+            lamina_syntax::Error::Type {
+                expected: "name",
+                context: "/Filter",
+            },
+            lamina_syntax::Error::UnsupportedFilter(String::new()),
+            lamina_syntax::Error::Decompress("m"),
+            lamina_syntax::Error::InvalidStructure {
+                kind: "k",
+                message: "m",
+            },
+        ];
+        let mut all = vec![
+            Error::NotPdf("m"),
+            Error::MissingRoot,
+            Error::ReferenceCycle(1),
+            Error::LimitExceeded {
+                limit: Limit::ResolveDepth,
+                at: None,
+            },
+            Error::Strict {
+                warning: Warning::XrefRepaired,
+            },
+            Error::DataPending { ranges: Vec::new() },
+            Error::Source(SourceError::Failed { offset: 0, len: 1 }),
+            Error::Type {
+                expected: "dictionary",
+                context: "/Kids",
+            },
+            Error::InvalidStructure {
+                kind: "k",
+                message: "m",
+            },
+            Error::UnsetObject(1),
+            Error::RepairedBase,
+            Error::EncryptedBase,
+            Error::PasswordRequired,
+            Error::WrongPassword,
+            Error::UnsupportedSecurityHandler {
+                filter: String::new(),
+                version: None,
+                revision: None,
+            },
+        ];
+        all.extend(syntax.into_iter().map(Error::Syntax));
+        all
+    }
+
+    #[test]
+    fn codes_lists_the_code_of_every_variant_in_order() {
+        assert_eq!(codes::distinct(samples().iter().map(Error::code)), Error::CODES);
+    }
+
+    #[test]
+    fn every_variant_has_the_kind_codes_json_lists() {
+        codes::assert_kinds_match(samples().iter().map(|e| (e.code(), e.kind().as_str())));
     }
 }
