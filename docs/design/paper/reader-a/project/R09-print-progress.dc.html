@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>lamina reader, preparing pages for print</title>
+<title>lamina, preparing pages for print</title>
 <script src="./support.js"></script>
 </head>
 <body>
@@ -12,59 +12,64 @@
 <style>
 body{margin:0;background:#F7F4EE}
 a{color:#1F5C63}a:hover{color:#16454B}
-button,input,textarea,select{font:inherit;color:inherit}
+button,input,textarea{font:inherit;color:inherit}
 </style>
 </helmet>
 <div style="position: relative; min-height: 100vh; display: flex; flex-direction: column; background: #F7F4EE; color: #1F1D1A; font-family: 'Source Sans 3', 'Segoe UI', system-ui, sans-serif; font-size: 14px; line-height: 1.4">
 
-  <div aria-hidden="true" style="flex: 1 1 auto; display: flex; flex-direction: column">
+  <div aria-hidden="true" inert style="flex: 1 1 auto; display: flex; flex-direction: column">
     <header style="min-height: 40px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 20px; padding: 0 16px; border-bottom: 1px solid #E4DED3; background: #F7F4EE">
-      <div style="display: flex; align-items: center; gap: 10px; flex: 1 1 220px; min-width: 0">
-        <span style="width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; color: #4A453E"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="3.5" y="4.5" width="17" height="15" rx="1.5"></rect><path d="M9 4.5v15"></path></svg></span>
-        <span style="font-family: 'Newsreader', Georgia, serif; font-size: 16px; font-weight: 500">Q3-board-report.pdf</span>
-        <span style="font-size: 12px; color: #6B645A">No unsaved changes</span>
+    <div style="display: flex; align-items: center; gap: 10px; flex: 1 1 220px; min-width: 0">
+      <button aria-label="Sidebar" aria-pressed="false" style="width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 4px; color: #4A453E"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="3.5" y="4.5" width="17" height="15" rx="1.5"></rect><path d="M9 4.5v15"></path></svg></button>
+      <div style="display: flex; align-items: baseline; gap: 8px; min-width: 0">
+        <span style="font-family: 'Newsreader', Georgia, serif; font-size: 16px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">Q3-board-report.pdf</span>
       </div>
-      <div style="display: flex; align-items: center; gap: 22px; height: 40px; color: #6B645A">
-        <span style="height: 38px; display: flex; align-items: center; color: #1F1D1A; font-weight: 600; border-bottom: 2px solid #1F5C63">Read</span><span>Comment</span><span>Fill &amp; Sign</span><span>Organise</span><span>Edit</span>
+    </div>
+    <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 8px 14px; flex: 1 1 220px">
+      <div role="group" aria-label="History" style="display: flex; align-items: center; gap: 2px">
+        <button aria-label="Back" disabled style="width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 4px; color: #A39C91"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M15 5l-7 7 7 7"></path></svg></button>
+        <button aria-label="Forward" disabled style="width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 4px; color: #A39C91"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M9 5l7 7-7 7"></path></svg></button>
       </div>
-      <div style="display: flex; align-items: center; justify-content: flex-end; gap: 14px; flex: 1 1 220px; color: #6B645A; font-variant-numeric: tabular-nums">
-        <span>3 / 24</span><span>100%</span>
-        <span style="height: 24px; display: flex; align-items: center; padding: 0 10px; border: 1px solid #E4DED3; background: #FBF9F5; border-radius: 4px; font-size: 13px">Commands</span>
+      <div style="display: flex; align-items: center; gap: 6px; font-variant-numeric: tabular-nums">
+        <label for="pg" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Page</label>
+        <input id="pg" value="3" style="width: 30px; height: 24px; box-sizing: border-box; text-align: center; border: 1px solid #8A8174; border-radius: 4px; background: #FFFFFF; font-variant-numeric: tabular-nums">
+        <span style="color: #6B645A">/ 24</span>
       </div>
-    </header>
+      <div style="display: flex; align-items: center; gap: 2px; font-variant-numeric: tabular-nums">
+        <button aria-label="Zoom out" style="width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 4px; color: #4A453E"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M6 12h12"></path></svg></button>
+        <span style="min-width: 40px; text-align: center">100%</span>
+        <button aria-label="Zoom in" style="width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 4px; color: #4A453E"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M6 12h12M12 6v12"></path></svg></button>
+      </div>
+      <button aria-label="Find in document" style="width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 4px; color: #4A453E"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6"></circle><path d="M15 15l5 5"></path></svg></button>
+      <button aria-label="View settings" aria-haspopup="dialog" aria-expanded="false" style="width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 4px; color: #4A453E"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="12" cy="12" r="7.5"></circle><path d="M12 4.5v15M12 8.5h5.5M12 12h7.5M12 15.5h5.5"></path></svg></button>
+      <button aria-pressed="false" style="height: 28px; display: flex; align-items: center; gap: 6px; padding: 0 10px; border: 1px solid transparent; background: transparent; color: #4A453E; border-radius: 4px; font-size: 13px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M12 6.5c-2-1.3-4.5-2-8-2v13c3.5 0 6 .7 8 2 2-1.3 4.5-2 8-2v-13c-3.5 0-6 .7-8 2z"></path><path d="M12 6.5v13"></path></svg>Reader</button>
+      <button style="height: 26px; display: flex; align-items: center; gap: 8px; padding: 0 6px 0 10px; border: 1px solid #E4DED3; background: #FBF9F5; border-radius: 4px; color: #6B645A; font-size: 13px"><span>Commands</span><span style="font-size: 11px; padding: 1px 5px; border: 1px solid #D8D1C5; border-radius: 3px; color: #4A453E; background: #FFFFFF">Ctrl K</span></button>
+      <button aria-label="More actions" aria-haspopup="menu" style="width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 4px; color: #4A453E"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="5.5" cy="12" r="0.9"></circle><circle cx="12" cy="12" r="0.9"></circle><circle cx="18.5" cy="12" r="0.9"></circle></svg></button>
+    </div>
+  </header>
     <main style="flex: 1 1 auto; background: #ECE7DE; display: flex; justify-content: center; padding: 32px 16px; box-sizing: border-box; overflow: hidden">
-      <div style="width: 100%; max-width: 612px; min-height: 790px; box-sizing: border-box; background: #F4ECD8; box-shadow: 0 1px 2px rgba(60,48,30,0.08), 0 8px 28px rgba(60,48,30,0.10); padding: 56px 64px 36px; display: flex; flex-direction: column; gap: 18px; font-family: 'Source Serif 4', Georgia, serif; color: #3B2F20; font-size: 14.5px; line-height: 1.6">
-        <div style="display: flex; justify-content: space-between; font-family: 'Source Sans 3', system-ui, sans-serif; font-size: 10.5px; letter-spacing: 0.08em; text-transform: uppercase; color: #6B5A42; border-bottom: 1px solid #E2D6BC; padding-bottom: 10px"><span>Northwind Housing Trust</span><span>Q3 Board Report</span></div>
-        <span style="margin-top: 10px; font-size: 24px; font-weight: 600; line-height: 1.25; color: #3B2F20">2. Repairs backlog</span>
+      <div style="width: 100%; max-width: 612px; min-height: 790px; box-sizing: border-box; background: #F4ECD8; color: #3B2F20; box-shadow: 0 1px 2px rgba(60,48,30,0.08), 0 8px 28px rgba(60,48,30,0.10); padding: 56px 64px 36px; display: flex; flex-direction: column; gap: 18px; font-family: 'Source Serif 4', Georgia, serif; font-size: 14.5px; line-height: 1.6">
+        <div style="display: flex; justify-content: space-between; font-family: 'Source Sans 3', system-ui, sans-serif; font-size: 10.5px; letter-spacing: 0.08em; text-transform: uppercase; opacity: 0.75; border-bottom: 1px solid rgba(0,0,0,0.1); padding-bottom: 10px"><span>Northwind Housing Trust</span><span>Q3 Board Report</span></div>
+        <span style="margin-top: 10px; font-size: 24px; font-weight: 600; line-height: 1.25">2. Repairs backlog</span>
         <span>Open repair jobs stood at 1,248 at the end of September across the four regions. Most of the work closed this quarter was routine plumbing and joinery, which the additional contractor teams appointed in July were able to schedule within the target window.</span>
-        <span>The backlog fell by 18% over the quarter, but the oldest 10% of jobs are now older than 90 days. These are mainly damp and mould cases that need a surveyor’s visit before work can be scheduled, and they sit in the older parts of our stock.</span>
-        <span>The board is asked to note the position and to consider the proposal in section 4, which would reserve surveyor time each week for the longest-waiting cases.</span>
-        <div style="margin-top: 8px; display: flex; flex-direction: column; gap: 10px; font-family: 'Source Sans 3', system-ui, sans-serif">
-          <span style="font-size: 12.5px; font-weight: 600; color: #3B2F20">Open repairs by region, end of September</span>
-          <div style="display: grid; grid-template-columns: 56px minmax(0, 1fr) 40px; align-items: center; gap: 8px 12px; font-size: 12.5px; font-variant-numeric: tabular-nums">
-            <span>North</span><span style="height: 14px; width: 100%; background: #5A4A36"></span><span style="text-align: right">412</span>
-            <span>East</span><span style="height: 14px; width: 69.9%; background: #5A4A36"></span><span style="text-align: right">288</span>
-            <span>South</span><span style="height: 14px; width: 85.2%; background: #5A4A36"></span><span style="text-align: right">351</span>
-            <span>West</span><span style="height: 14px; width: 47.8%; background: #5A4A36"></span><span style="text-align: right">197</span>
-          </div>
-        </div>
-        <div style="margin-top: auto; padding-top: 12px; border-top: 1px solid #E2D6BC; display: flex; justify-content: center; font-family: 'Source Sans 3', system-ui, sans-serif; font-size: 11px; color: #6B5A42">Page 3 of 24</div>
       </div>
     </main>
     <footer style="min-height: 28px; display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 0 16px; border-top: 1px solid #E4DED3; background: #F7F4EE; font-size: 12px; color: #6B645A">
-      <span style="display: flex; align-items: center; gap: 7px"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#1F5C63" stroke-width="1.5" aria-hidden="true"><path d="M12 3.5l7 2.5v5.5c0 4.3-3 7.6-7 9-4-1.4-7-4.7-7-9V6z"></path><path d="M9 12l2.2 2.2L15.5 10"></path></svg><span style="color: #1F1D1A">0 network requests</span><span>· Offline-safe: nothing uploaded</span></span>
+      <span style="display: flex; align-items: center; gap: 7px"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#1F5C63" stroke-width="1.5" aria-hidden="true"><path d="M12 3.5l7 2.5v5.5c0 4.3-3 7.6-7 9-4-1.4-7-4.7-7-9V6z"></path><path d="M9 12l2.2 2.2L15.5 10"></path></svg><span style="color: #1F1D1A">0 network requests for this document</span></span>
       <span>Page 3 · Repairs backlog</span>
     </footer>
   </div>
 
-  <div style="position: absolute; inset: 0; background: rgba(31,29,26,0.30); display: flex; justify-content: center; align-items: flex-start; padding: 180px 16px 32px; box-sizing: border-box">
+  <div style="position: absolute; inset: 0; background: rgba(31,29,26,0.30); display: flex; justify-content: center; align-items: flex-start; padding: 160px 16px 0; box-sizing: border-box">
     <div role="dialog" aria-modal="true" aria-labelledby="pp-t" aria-describedby="pp-d" style="width: 100%; max-width: 440px; box-sizing: border-box; padding: 24px; display: flex; flex-direction: column; gap: 16px; background: #FBF9F5; border: 1px solid #D8D1C5; border-radius: 6px; box-shadow: 0 18px 48px rgba(31,29,26,0.22)">
       <h2 id="pp-t" style="margin: 0; font-family: 'Newsreader', Georgia, serif; font-size: 20px; font-weight: 500; line-height: 1.2">Preparing pages for print</h2>
       <p id="pp-d" style="margin: 0">lamina draws each page at print quality on this device. Your browser’s print window opens when all 24 pages are ready.</p>
       <div style="display: flex; flex-direction: column; gap: 6px">
-        <span id="pp-l" style="font-size: 12px; color: #6B645A; font-variant-numeric: tabular-nums">Page 9 of 24 · 38%</span>
-        <div role="progressbar" aria-labelledby="pp-l" aria-valuemin="0" aria-valuemax="100" aria-valuenow="38" aria-valuetext="Page 9 of 24, 38%" style="height: 4px; border-radius: 2px; background: #E4DED3; overflow: hidden">
-          <div style="width: 38%; height: 4px; background: #1F5C63"></div>
+        <div style="display: flex; justify-content: space-between; gap: 12px; font-size: 12px; color: #6B645A; font-variant-numeric: tabular-nums">
+          <span id="pp-l">Page 9 of 24</span><span>38%</span>
+        </div>
+        <div role="progressbar" aria-labelledby="pp-l" aria-valuemin="0" aria-valuemax="24" aria-valuenow="9" aria-valuetext="Page 9 of 24" style="height: 4px; border-radius: 2px; background: #E4DED3; overflow: hidden">
+          <span style="display: block; width: 37.5%; height: 4px; background: #1F5C63"></span>
         </div>
       </div>
       <div style="display: flex; justify-content: flex-end; gap: 8px">
