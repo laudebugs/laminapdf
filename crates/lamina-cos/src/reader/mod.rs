@@ -5,8 +5,10 @@ mod objstm;
 mod options;
 mod repair;
 mod warning;
+mod window;
 mod xref;
 
+use std::borrow::Cow;
 use std::cell::{Cell, RefCell};
 use std::collections::{BTreeMap, BTreeSet};
 use std::fmt;
@@ -26,12 +28,33 @@ use lamina_syntax::filters;
 use lamina_syntax::{DecodeBudget, Dict, Limit, Limits, ObjRef, Object, Parser, Stream, find};
 
 use crate::error::{Error, Result};
-use crate::source::{ByteSource, Source};
+use crate::overlay::{InOverlay, Overlay, OverlayEntry};
+use crate::source::{ByteSource, Fetch, Pending, Source, WINDOW};
+use window::{Reach, parse_at, read_indirect, within_read_window};
 
 /// How deep [`Document::decode_stream`] resolves references nested in `/Filter` and
 /// `/DecodeParms` (array → parameter dictionary → value). An internal constant: it bounds a
 /// fixed structure, not input size (ADR 0003 §3).
 const MAX_FILTER_PARAM_DEPTH: usize = 3;
+
+/// Where the `%PDF-` header is looked for: the first 1 KiB, like Acrobat.
+const HEADER_SEARCH: usize = 1024;
+
+// The header check reads the search area, `%PDF-` and up to 8 version bytes: the first window
+// holds all of them (or the whole input), so it never needs a second one.
+const _: () = assert!(WINDOW >= HEADER_SEARCH + b"%PDF-".len() + 8);
+
+/// Bytes at the end of the input read with the first window: `startxref`, its offset and
+/// `%%EOF` are normally all there, even when they cross into the last window.
+const TAIL: usize = 1024;
+
+/// Bytes read for each xref entry's `n g obj` header check (on a source without an in-memory
+/// slice); a header that runs past them is read again with a growing probe.
+const HEADER_PROBE: usize = 32;
+
+/// Header probes this close together are read as one range (fewer `read_at` calls and fewer,
+/// larger `DataPending` ranges for the many small objects of a typical file).
+const PROBE_GAP: usize = 256;
 
 /// A page with its inheritable attributes resolved (§7.7.3.4).
 #[derive(Debug, Clone, PartialEq)]
@@ -178,7 +201,7 @@ type ObjStmMembers = Arc<Vec<(u32, lamina_syntax::Result<Arc<Object>>)>>;
     reason = "independent facts about the opened file, not states of one machine"
 )]
 pub struct Document {
-    /// The input; a source without an in-memory slice is read once and the copy is shared
+    /// The input; a source without an in-memory slice is read in windows, cached and shared
     /// by every document opened from clones of the same [`Source`].
     source: Source,
     entries: BTreeMap<u32, XrefEntry>,
@@ -205,6 +228,8 @@ pub struct Document {
     /// The authenticated standard security handler of an encrypted document: objects are
     /// decrypted as they are loaded.
     security: Option<Security>,
+    /// What this session changed (ADR 0005 §3); resolution reads it before the base.
+    overlay: Overlay,
 }
 
 // ADR 0005 §7: `Document` (and what it hands out) can move between threads.
@@ -288,14 +313,100 @@ fn read_header_version(data: &[u8], header_pos: usize) -> Option<String> {
 
 /// True when every in-file xref entry points at its own `num gen obj` header (number and
 /// generation).
-fn entries_are_valid(data: &[u8], table: &XrefTable, limits: &Limits) -> bool {
-    table.entries.iter().all(|(&num, entry)| match *entry {
-        XrefEntry::InFile { offset, gen_nr } => Parser::new(data, offset)
-            .with_limits(limits)
+///
+/// On a source without an in-memory slice the headers are read with small probes, not whole
+/// windows, so checking a table does not read the whole file: probes within [`PROBE_GAP`] of
+/// each other are read as one range, cached windows are used, and the ranges the source is
+/// missing are all reported in one [`Error::DataPending`]. A header that can't be read within
+/// [`Limits::max_read_window`] counts as wrong (repair).
+///
+/// # Errors
+/// The source's errors.
+fn entries_are_valid(source: &Source, table: &XrefTable, limits: &Limits) -> Result<bool> {
+    let matches = |data: &[u8], pos: usize, num: u32, gen_nr: u16| {
+        let mut parser = Parser::new(data, pos).with_limits(limits);
+        let ok = parser
             .object_header()
-            .is_ok_and(|id| id.num == num && id.gen_nr == gen_nr),
-        XrefEntry::Free | XrefEntry::InStream { .. } => true,
-    })
+            .is_ok_and(|id| id.num == num && id.gen_nr == gen_nr);
+        (ok, parser.reached_end())
+    };
+    let mut probes: Vec<(usize, u32, u16)> = table
+        .entries
+        .iter()
+        .filter_map(|(&num, entry)| match *entry {
+            XrefEntry::InFile { offset, gen_nr } => Some((offset, num, gen_nr)),
+            XrefEntry::Free | XrefEntry::InStream { .. } => None,
+        })
+        .collect();
+    if let Some(data) = source.in_memory() {
+        return Ok(probes
+            .into_iter()
+            .all(|(offset, num, gen_nr)| matches(data, offset, num, gen_nr).0));
+    }
+    probes.sort_unstable();
+    let total = source.len()?;
+    let mut spans: Vec<ops::Range<usize>> = Vec::new();
+    for &(offset, ..) in &probes {
+        let probe = offset.min(total)..offset.saturating_add(HEADER_PROBE).min(total);
+        match spans.last_mut() {
+            Some(span) if probe.start <= span.end.saturating_add(PROBE_GAP) => span.end = span.end.max(probe.end),
+            _ => spans.push(probe),
+        }
+    }
+    let mut pending = Pending::default();
+    let mut windows = Vec::new();
+    for span in spans {
+        match source.read(span.start, span.len(), Fetch::Exact) {
+            Ok(window) => windows.push(window),
+            Err(e) => {
+                pending.absorb(e)?;
+                if pending.is_full() {
+                    break;
+                }
+            }
+        }
+    }
+    // Check what arrived first: one bad entry means repair, whatever the missing ones say.
+    let mut next = 0;
+    for (offset, num, gen_nr) in probes {
+        while windows
+            .get(next)
+            .is_some_and(|w| w.end() <= offset.min(total) && w.start() < w.end())
+        {
+            next += 1;
+        }
+        let Some(window) = windows.get(next).filter(|w| w.start() <= offset.min(total)) else {
+            continue;
+        };
+        let (mut ok, reached_end) = matches(window.bytes(), offset - window.start(), num, gen_nr);
+        if reached_end && !window.at_end() {
+            let probe = parse_at(source, offset, Reach::Probe(2 * HEADER_PROBE), limits, |v| {
+                matches(v.data, v.pos, num, gen_nr)
+            });
+            match within_read_window(probe) {
+                Ok(again) => ok = again.unwrap_or(false),
+                Err(e) => {
+                    pending.absorb(e)?;
+                    continue;
+                }
+            }
+        }
+        if !ok {
+            return Ok(false);
+        }
+    }
+    pending.finish()?;
+    Ok(true)
+}
+
+/// `Some` result of a step whose failure means "repair", `None` for that failure; errors that
+/// must not be repaired around ([`must_propagate`]) are returned.
+fn or_repair<T>(result: Result<T>) -> Result<Option<T>> {
+    match result {
+        Ok(value) => Ok(Some(value)),
+        Err(e) if must_propagate(&e) => Err(e),
+        Err(_) => Ok(None),
+    }
 }
 
 /// `obj` as a rectangle; `None` when it is absent, malformed or not four numbers.
@@ -416,16 +527,23 @@ impl Document {
     )]
     pub fn open(source: impl Into<Source>, options: OpenOptions) -> Result<Self> {
         let source = source.into();
-        let data = source.bytes()?;
-        if data.is_empty() {
+        let len = source.len()?;
+        if len == 0 {
             return Err(Error::NotPdf("empty input"));
         }
+        // The header and `startxref` come first: a source still missing them hears about
+        // the first window and the last kilobyte (one or two windows) at once.
+        source.prefetch(&[(0, WINDOW), (len.saturating_sub(TAIL), TAIL)])?;
         let limits = *options.limits();
         let strict = options.strict();
         let mut log = WarningLog::default();
-        let head = data.get(..data.len().min(1024)).unwrap_or_default();
         // Like Acrobat, accept the header anywhere in the first 1 KiB, and still try without it.
-        let header_version = find(head, b"%PDF-", 0).and_then(|pos| read_header_version(data, pos));
+        let header_version = parse_at(&source, 0, Reach::Object, &limits, |v| {
+            let data = v.data;
+            let head = data.get(..data.len().min(HEADER_SEARCH)).unwrap_or_default();
+            let version = find(head, b"%PDF-", 0).and_then(|pos| read_header_version(data, pos));
+            (version, false)
+        })?;
         if header_version.is_none() {
             log.raise(Warning::MissingHeader, &limits, strict)?;
         }
@@ -437,10 +555,17 @@ impl Document {
         };
 
         let mut budget = DecodeBudget::new(&limits);
-        let startxref = xref::find_startxref(data).ok();
-        let loaded = startxref
-            .and_then(|start| xref::load(data, start, &limits, &mut budget).ok())
-            .filter(|table| table.trailer.contains_key("Root") && entries_are_valid(data, table, &limits));
+        let startxref = or_repair(xref::find_startxref(&source, &limits))?;
+        let loaded = match startxref {
+            Some(start) => or_repair(xref::load(&source, start, &limits, &mut budget))?,
+            None => None,
+        };
+        let loaded = match loaded {
+            Some(table) if table.trailer.contains_key("Root") && entries_are_valid(&source, &table, &limits)? => {
+                Some(table)
+            }
+            _ => None,
+        };
         if let Some(table) = loaded {
             let mut doc = Self::new(base(), table, startxref, log.clone())?;
             // A password problem or an unsupported handler is never repaired around; an
@@ -470,12 +595,12 @@ impl Document {
         // Repair in two phases around authentication: in-file objects and trailers first, then
         // `/Encrypt` (never in an object stream), then the object streams, decrypted. The file
         // is scanned once and the password checked once.
-        let scan = repair::scan(data, &limits)?;
+        let scan = repair::scan(&source, &limits)?;
         let security = {
             let in_file = Self::new(base(), scan.in_file_table(), None, WarningLog::default())?;
             in_file.read_security(options.password())?
         };
-        let (table, malformed) = scan.finish(data, &limits, &mut budget, security.as_ref())?;
+        let (table, malformed) = scan.finish(&source, &limits, &mut budget, security.as_ref())?;
         let mut doc = Self::new(base(), table, None, log)?;
         if let Some(security) = security {
             doc.install_security(security)?;
@@ -530,6 +655,7 @@ impl Document {
             budget: Cell::new(DecodeBudget::new(&limits)),
             objstm_cache: RefCell::new(BTreeMap::new()),
             object_cache: RefCell::new(BTreeMap::new()),
+            overlay: Overlay::default(),
             security: None,
         })
     }
@@ -598,9 +724,17 @@ impl Document {
         self.warn(warning)
     }
 
-    /// The newest trailer dictionary (for xref-stream files, the stream dictionary).
+    /// The trailer as it is now: the overlay's when this session changed it
+    /// ([`CosMut::set_trailer`](crate::CosMut::set_trailer)), else the newest trailer
+    /// dictionary of the file (for xref-stream files, the stream dictionary).
     #[must_use]
-    pub const fn trailer(&self) -> &Dict {
+    pub fn trailer(&self) -> &Dict {
+        self.overlay.trailer().unwrap_or(&self.trailer)
+    }
+
+    /// The newest trailer dictionary of the file, ignoring the overlay.
+    #[must_use]
+    pub const fn base_trailer(&self) -> &Dict {
         &self.trailer
     }
 
@@ -696,10 +830,20 @@ impl Document {
         self.startxref
     }
 
-    /// The input bytes.
+    /// The input bytes, when the source holds them in memory ([`ByteSource::as_slice`]);
+    /// `None` for a source read in windows, which is never read whole.
     #[must_use]
-    pub fn data(&self) -> &[u8] {
-        self.source.loaded()
+    pub fn data(&self) -> Option<&[u8]> {
+        self.source.in_memory()
+    }
+
+    /// The whole input, read window by window for a source without an in-memory slice (the
+    /// incremental writer's output holds all of it anyway).
+    ///
+    /// # Errors
+    /// [`Error::DataPending`] with every missing window; [`Error::Source`].
+    pub(crate) fn whole_input(&self) -> Result<Cow<'_, [u8]>> {
+        self.source.whole()
     }
 
     /// The input source, shareable with other documents (one per thread).
@@ -715,17 +859,29 @@ impl Document {
     }
 
     /// The highest object number in any xref section, free entries and entries dropped for
-    /// exceeding [`Limits::max_object_number`] included.
+    /// exceeding [`Limits::max_object_number`] included. This describes the base (the
+    /// file's xref), not objects created in this session ([`Document::object_numbers`] lists
+    /// those too).
     pub const fn max_object_number(&self) -> Option<u32> {
         self.max_object_number
     }
 
-    /// Numbers of all objects that are not free, ascending.
+    /// Numbers of all objects that exist now, ascending: the base's in-use objects not
+    /// deleted in this session, then the ones created in it (always numbered above the base's).
     pub fn object_numbers(&self) -> impl Iterator<Item = u32> + '_ {
-        self.entries
+        let base = self
+            .entries
             .iter()
-            .filter(|(_, e)| !matches!(e, XrefEntry::Free))
-            .map(|(&n, _)| n)
+            .filter(|(n, e)| {
+                !matches!(e, XrefEntry::Free) && !matches!(self.overlay.get(**n), Some(OverlayEntry::Deleted))
+            })
+            .map(|(&n, _)| n);
+        let new = self
+            .overlay
+            .iter()
+            .filter(|(_, e)| matches!(e, OverlayEntry::New(_)))
+            .map(|(n, _)| n);
+        base.chain(new)
     }
 
     /// Resolves an indirect reference, following reference-to-reference chains.
@@ -752,7 +908,7 @@ impl Document {
                 return Err(Error::limit_at_object(Limit::ResolveDepth, current.num));
             }
             chain.push(current.num);
-            let obj = self.load(current.num, Some(current.gen_nr), &mut Vec::new())?;
+            let obj = self.load_current(current.num, Some(current.gen_nr))?;
             match *obj {
                 Object::Ref(next) => current = next,
                 _ => return Ok(obj),
@@ -769,7 +925,7 @@ impl Document {
     /// streams; [`Error::LimitExceeded`]; [`Error::Strict`] in strict mode.
     pub fn object(&self, num: u32) -> Result<Arc<Object>> {
         let _call = self.call();
-        self.load(num, None, &mut Vec::new())
+        self.load_current(num, None)
     }
 
     /// Returns `obj` itself, or the object it refers to.
@@ -845,14 +1001,30 @@ impl Document {
                     None
                 }
             };
-            Parser::new(self.data(), offset)
-                .with_limits(&self.limits)
-                .indirect_object(&mut resolve_length)
+            read_indirect(&self.source, offset, &self.limits, &mut resolve_length)
         };
-        if let Some(e) = fatal {
-            return Err(e);
+        match (fatal, parsed) {
+            // The `/Length` object and a longer window are both missing: ask for both at once.
+            (Some(e @ Error::DataPending { .. }), Err(more @ Error::DataPending { .. })) => {
+                let mut pending = Pending::default();
+                pending.absorb(e)?;
+                pending.absorb(more)?;
+                Err(pending.into_error())
+            }
+            (Some(e), _) => Err(e),
+            (None, parsed) => self.finish_in_file(num, gen_nr, parsed??, in_flight),
         }
-        let mut parsed = parsed?;
+    }
+
+    /// The rest of [`Document::load_in_file`] once `parsed` is read: the length warning and
+    /// decryption.
+    fn finish_in_file(
+        &self,
+        num: u32,
+        gen_nr: u16,
+        mut parsed: lamina_syntax::IndirectObject,
+        in_flight: &mut Vec<u32>,
+    ) -> Result<Arc<Object>> {
         if parsed.length_recovered {
             self.warn(Warning::StreamLengthRecovered { object: num })?;
         }
@@ -990,7 +1162,7 @@ impl Document {
     /// [`Error::Type`] when `/Root` is not a dictionary; errors from [`Document::resolve`].
     pub fn catalog(&self) -> Result<Dict> {
         let _call = self.call();
-        let root = self.trailer.get("Root").ok_or(Error::MissingRoot)?;
+        let root = self.trailer().get("Root").ok_or(Error::MissingRoot)?;
         match &*self.deref(root)? {
             Object::Dict(d) => Ok(d.clone()),
             _ => Err(Error::Type {
@@ -1022,7 +1194,7 @@ impl Document {
         let root = catalog.get("Pages").cloned().unwrap_or(Object::Null);
         // A direct `/Pages` sits in the catalog: its path starts there (ADR 0005 §5).
         let root_path = (!matches!(root, Object::Ref(_))).then(|| {
-            let catalog_ref = self.trailer.get("Root").and_then(Object::as_ref);
+            let catalog_ref = self.trailer().get("Root").and_then(Object::as_ref);
             let segments = match catalog_ref {
                 Some(_) => vec![PathSegment::Key("Pages")],
                 None => vec![PathSegment::Key("Root"), PathSegment::Key("Pages")],
@@ -1222,5 +1394,55 @@ impl Document {
             out.extend_from_slice(&self.decode_stream_of(s, object)?);
         }
         Ok(out)
+    }
+}
+
+/// The overlay's view of the base (ADR 0005 §3), used by [`crate::overlay`].
+impl Document {
+    pub(crate) const fn overlay_ref(&self) -> &Overlay {
+        &self.overlay
+    }
+
+    pub(crate) const fn overlay_mut(&mut self) -> &mut Overlay {
+        &mut self.overlay
+    }
+
+    /// Object `num` as it is now: the overlay's entry, else the base's (`null` when deleted
+    /// or, with `gen_nr`, when the generation does not match, which raises
+    /// `stale-generation` as it does for base objects).
+    fn load_current(&self, num: u32, gen_nr: Option<u16>) -> Result<Arc<Object>> {
+        match self.overlay_value(num, gen_nr) {
+            InOverlay::Value(o) => Ok(Arc::clone(o)),
+            InOverlay::Absent => {
+                if let Some(generation) = gen_nr
+                    && !self.overlay_generation_matches(num, generation)
+                {
+                    self.warn(Warning::StaleGeneration {
+                        object: num,
+                        generation,
+                    })?;
+                }
+                Ok(Arc::new(Object::Null))
+            }
+            InOverlay::NoEntry => self.load(num, gen_nr, &mut Vec::new()),
+        }
+    }
+
+    /// Whether the base has an in-use object `r` (number and generation).
+    pub(crate) fn base_has(&self, r: ObjRef) -> bool {
+        self.entries
+            .get(&r.num)
+            .is_some_and(|e| !matches!(e, XrefEntry::Free) && e.matches_gen(r.gen_nr))
+    }
+
+    /// Base object `num`, ignoring the overlay. One that cannot be loaded is `null` to the
+    /// overlay; strict-mode refusals and unavailable input are errors.
+    pub(crate) fn base_value(&self, num: u32) -> Result<Arc<Object>> {
+        let _call = self.call();
+        match self.load(num, None, &mut Vec::new()) {
+            Ok(base) => Ok(base),
+            Err(e) if must_propagate(&e) => Err(e),
+            Err(_) => Ok(Arc::new(Object::Null)),
+        }
     }
 }

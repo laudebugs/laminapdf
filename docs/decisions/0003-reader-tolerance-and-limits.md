@@ -92,6 +92,7 @@ Limits are of two kinds:
 | `max_content_operators` (per content stream, with ADR 0023) | hard | 10,000,000 | `LimitExceeded` | reserved |
 | `max_xobject_depth` (Form XObjects, patterns, Type 3, with ADR 0023) | hard | 32 | `LimitExceeded` | reserved |
 | `max_image_pixels` (when lamina decodes images) | hard | 2^28 | `LimitExceeded` | reserved |
+| `max_read_window` (bytes one parse may read from a source without `as_slice`: an object's head, a stream's data, the search for a missing `endstream`, the walk back over a repaired header; ADR 0005 §2) | hard | 256 MiB | `LimitExceeded`; tolerant paths (repair, `/Length` recovery, the xref entry check) treat the item as unreadable | new in B2d (amendment); in-memory input is not limited by it |
 
 `max_decoded_total` is per call, not per document lifetime, so a long editing session doesn't run out of budget, while a bomb that multiplies through many small streams or a filter chain still stops. Loops over counts read from the file stay bounded by the bytes actually present, which is why no fuel counter is needed for the COS layer. `Limits::unlimited()` exists for trusted input (lamina's own output in tests). `MAX_FILTER_PARAM_DEPTH` (3) stays an internal constant: it bounds a fixed structure, not input size.
 

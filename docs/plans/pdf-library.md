@@ -175,14 +175,14 @@ Architecture Round B is delivered as rounds B1–B9, each split into todos (one 
 
 ### B2. Document model
 
-**Todos:** [B2a](../todos/done/B2a-limits-owned-document.md) (`Limits`, warning codes, strict mode, owned `Document`; done in [#13](https://github.com/laudebugs/lamina/pull/13)), [B2b](../todos/done/B2b-standard-security-decryption.md) (decryption; done in [#22](https://github.com/laudebugs/lamina/pull/22)), [B2d](../todos/ongoing/B2d-windowed-reading.md) (windowed reading), [B2c](../todos/done/B2c-lamina-model-corpus-fuzz.md) (`lamina-model`, IDs, corpus facts, pypdf differential, fuzz targets); B2b and B2c both follow B2a and can run in parallel.
+**Todos:** [B2a](../todos/done/B2a-limits-owned-document.md) (`Limits`, warning codes, strict mode, owned `Document`; done in [#13](https://github.com/laudebugs/lamina/pull/13)), [B2b](../todos/done/B2b-standard-security-decryption.md) (decryption; done in [#22](https://github.com/laudebugs/lamina/pull/22)), [B2d](../todos/done/B2d-windowed-reading.md) (windowed reading; done in [#29](https://github.com/laudebugs/lamina/pull/29)), [B2c](../todos/done/B2c-lamina-model-corpus-fuzz.md) (`lamina-model`, IDs, corpus facts, pypdf differential, fuzz targets); B2b and B2c both follow B2a and can run in parallel.
 
 **Deliverable:** `lamina-model` (typed `Page`, `Outline`, `Info`, `NameTree` views over lazy COS; `LaminaId`s); `Document::open(source, OpenOptions)` with `Limits`, strict mode and an optional password; standard security handler decryption in `lamina-syntax` (read only: R2–R4 with RC4 and AES-128 crypt filters, R5/R6 AES-256, `/Identity` and per-stream crypt filters, `/EncryptMetadata`; [04 §7](../research/pdf/04-interactive-security.md#7-encryption-76)); the golden and corpus harness and the first `fuzz/` targets. Writing encrypted files is [full-editor E11](full-editor.md#e11-security-and-sanitisation).
 **Accepted when:** every file in `fixtures/corpus` opens or fails with a coded error; encrypted fixtures for every standard revision (R2, R3, R4 RC4, R4 AES-128, R5, R6; user and owner passwords; empty user password) open and match the unencrypted original's page count, outline and strings; a wrong password fails with a coded error; fuzz targets run 10 min in CI without a panic; page count and outline match pypdf's on the corpus.
 
 ### B3. Ops and save
 
-**Todos:** [B3a](../todos/ongoing/B3a-overlay-and-ops.md) (overlay, `lamina-ops`, undo), [B3b](../todos/ready/B3b-lamina-save-writers.md) (`lamina-save` writers, `WriteSink`, rebase), [B3c](../todos/ready/B3c-save-planner-and-roundtrip.md) (`SavePlanner`, `SaveConstraint`, round-trip).
+**Todos:** [B3a](../todos/done/B3a-overlay-and-ops.md) (overlay, `lamina-ops`, undo; done in [#31](https://github.com/laudebugs/lamina/pull/31)), [B3b](../todos/ready/B3b-lamina-save-writers.md) (`lamina-save` writers, `WriteSink`, rebase), [B3c](../todos/ready/B3c-save-planner-and-roundtrip.md) (`SavePlanner`, `SaveConstraint`, round-trip).
 
 **Deliverable:** `lamina-ops` (`Op`, `transact`, inverses, undo/redo) and `lamina-save` (`SavePlanner`, `SaveConstraint`, incremental and full writers over `WriteSink`). Proving ops: `SetInfo`, `RotatePage`.
 **Accepted when:** open → op → save → reopen round-trips in lamina, pdf.js, PDFium and qpdf; signed fixtures report `AppendOnly` and refuse a full rewrite; undo restores byte-identical output.
@@ -270,10 +270,10 @@ Each round's todos (one per PR, with dependencies) are linked from [§7](#7-roun
 ### B2. Document model
 
 - [x] Create `crates/lamina-model` with `Page`, `Outline`, `Info`, `NameTree` views (B2c; also `NumberTree`, `PageLabels`)
-- [x] Implement `Document::open(source, OpenOptions)` over an owned `ByteSource` ([ADR 0005](../decisions/0005-document-model.md)), with `OpenOptions` holding `Limits`, strict mode and an optional password ([ADR 0003](../decisions/0003-reader-tolerance-and-limits.md)) (B2a; the password is used for decryption since B2b; windowed reading of non-slice sources is still to do)
+- [x] Implement `Document::open(source, OpenOptions)` over an owned `ByteSource` ([ADR 0005](../decisions/0005-document-model.md)), with `OpenOptions` holding `Limits`, strict mode and an optional password ([ADR 0003](../decisions/0003-reader-tolerance-and-limits.md)) (B2a; the password is used for decryption since B2b; windowed reading of non-slice sources since B2d)
 - [x] Stable warning codes and strict mode; `fixtures/codes.json` checked against the Rust enums ([ADR 0003](../decisions/0003-reader-tolerance-and-limits.md) §2, §4) (B2a)
 - [x] Move the robustness tests' 30 s wall-clock budget to a nextest timeout ([ADR 0018](../decisions/0018-test-strategy.md)) (B2a)
-- [ ] Windowed reading for sources without `as_slice` (64 KiB windows, chunked repair scan; [ADR 0005](../decisions/0005-document-model.md) §2); today they are read into memory once at open ([B2d](../todos/ongoing/B2d-windowed-reading.md))
+- [x] Windowed reading for sources without `as_slice` (64 KiB windows, chunked repair scan, `DataPending` with only the needed windows; [ADR 0005](../decisions/0005-document-model.md) §2) ([B2d](../todos/done/B2d-windowed-reading.md))
 - [x] Standard security handler decryption in `lamina-syntax`: R2–R4 (RC4, AES-128), R5/R6 (AES-256), crypt filters, `/EncryptMetadata` (B2b, [#22](https://github.com/laudebugs/lamina/pull/22))
 - [x] Encrypted fixtures for every revision (user, owner and empty passwords); wrong-password error code (B2b, [#22](https://github.com/laudebugs/lamina/pull/22))
 - [x] Assign `LaminaId`s to pages and outline items; test stability across reopen (B2c; also across an incremental save, and path IDs for direct pages)
@@ -283,10 +283,10 @@ Each round's todos (one per PR, with dependencies) are linked from [§7](#7-roun
 
 ### B3. Ops and save
 
-- [ ] Create `crates/lamina-ops`: `Op`, `transact`, inverse ops, undo/redo stack
+- [x] Create `crates/lamina-ops`: `Op`, `transact`, inverse ops, undo/redo stack (B3a; inverses are computed at undo time from an undo record derived from the COS journal, plus savepoints, coalescing and the `OpLog` envelope)
 - [ ] Create `crates/lamina-save`: `SavePlanner`, incremental and full writers, `WriteSink`
 - [ ] Implement `SaveConstraint` detection (signatures → `AppendOnly`)
-- [ ] Implement proving ops `SetInfo` and `RotatePage` with undo tests
+- [ ] Implement proving ops `SetInfo` and `RotatePage` with undo tests (B3a: ops, undo and property tests done; byte-identical output after undo needs the writers, B3b/B3c)
 - [ ] Round-trip test: reopen saved output in lamina, pdf.js, PDFium and qpdf `--check`
 
 ### B4. Fonts and text

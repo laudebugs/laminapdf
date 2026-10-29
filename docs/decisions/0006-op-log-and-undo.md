@@ -81,6 +81,18 @@ doc.transact(|tx| {
 
 Two levels: **semantic** (local transactions since the last save; the UI's "unsaved" dot) and **COS** (the overlay is non-empty; the authority the save planner uses).
 
+### 8. Implementation notes (B3a)
+
+How [B3a](../todos/done/B3a-overlay-and-ops.md) realised §1–§4 and §6–§7, where the sketch above left a choice:
+
+- **`transact` lives on a wrapper.** `lamina_ops::Document` wraps `lamina_model::Document` (and dereferences to it for reading) and owns the history and the open transaction; it hands out no `&mut` to the layers below. `lamina_cos::Document` provides the mechanism instead: `edit()` → `CosMut`, journal marks, `rollback_to` and `take_changes`. `transact` takes the origin: `doc.transact(Origin::Local, |tx| …)`. The handle form is `begin` / `apply` / `commit` / `rollback` on the same type, and `apply_all(origin, ops)` runs a list as one transaction.
+- **Undo records come from the journal.** An op only writes through `CosMut`; the transaction derives its `UndoRecord` from the journal (per changed object, or the trailer: the value before and after; per dictionary key for `properties()`). No op writes an inverse by hand. Undo restores a whole object when it still equals the transaction's `after` (which keeps key order, so undoing to the base empties the overlay), and otherwise key by key, putting a restored key back in its old position. `UndoOutcome::Skipped` carries the skipped properties, like `Partial`. A property is a `Field`: a dictionary key, a stream's data, or the whole value; a stream's data and its encoding keys are restored together, and a value whose kind (dictionary or stream) differs between before, after and now is skipped whole rather than mixed.
+- **`Tx::apply` is its own savepoint**: a failing op's changes are rolled back before the error returns, so a caught op error leaves the transaction usable and nothing half-applied.
+- **`OpLog::from_json`** reads `v` before any op (an unknown version is `UnsupportedVersion` even when its ops would not parse); the serde `Deserialize` impl also rejects an unknown `v`, in field order.
+- **Coalescing** (§4) merges only into the entry the previous local commit made: any undo or redo (even one that restored nothing) and any remote or system transaction that changed something ends the chain, so a merged entry never spans someone else's change.
+- **Semantic dirty state** (§7) is a position in the undo stack: `has_unsaved_changes()` compares the top entry with the one at the last `mark_saved()`, so undoing back to the saved state is clean again; once the depth limit drops the entries leading back to the saved state, no position counts as saved.
+- Ops on a page that is a direct dictionary return `Error::DirectPage` until promotion to an indirect object (ADR 0005 §5) arrives with the page-structure ops.
+
 ## Consequences
 
 - One mechanism serves the API, the editor's undo, history panels, batch processing (a saved op list applied to many files, full-editor E14) and sync.

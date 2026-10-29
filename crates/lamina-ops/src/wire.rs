@@ -1,0 +1,98 @@
+//! serde helpers for the domain types of `lamina-model`, which has no serde dependency: IDs
+//! and dates as their string forms, rotations as degrees (ADR 0006 §1).
+
+use std::fmt::Display;
+use std::str::FromStr;
+
+use serde::de::{self, Deserialize, Deserializer};
+use serde::ser::Serializer;
+
+/// A value from its string form ([`FromStr`]).
+pub(crate) fn parse<'de, T, D>(d: D) -> Result<T, D::Error>
+where
+    T: FromStr,
+    T::Err: Display,
+    D: Deserializer<'de>,
+{
+    let s = String::deserialize(d)?;
+    s.parse().map_err(de::Error::custom)
+}
+
+/// A [`PageId`](lamina_model::PageId) as its string form (`"p12.0"`).
+pub(crate) mod page_id {
+    use lamina_model::PageId;
+
+    use super::{Deserializer, Serializer};
+
+    pub(crate) fn serialize<S: Serializer>(id: &PageId, s: S) -> Result<S::Ok, S::Error> {
+        s.collect_str(id)
+    }
+
+    pub(crate) fn deserialize<'de, D: Deserializer<'de>>(d: D) -> Result<PageId, D::Error> {
+        super::parse(d)
+    }
+}
+
+/// An optional [`PdfDate`](lamina_model::PdfDate) as its PDF string form
+/// (`"D:20261029120000Z"`).
+pub(crate) mod opt_date {
+    use lamina_model::PdfDate;
+
+    use super::{Deserialize, Deserializer, Serializer, de};
+
+    #[expect(clippy::ref_option, reason = "serde's `with` passes the field by reference")]
+    pub(crate) fn serialize<S: Serializer>(date: &Option<PdfDate>, s: S) -> Result<S::Ok, S::Error> {
+        match date {
+            Some(date) => s.collect_str(date),
+            None => s.serialize_none(),
+        }
+    }
+
+    pub(crate) fn deserialize<'de, D: Deserializer<'de>>(d: D) -> Result<Option<PdfDate>, D::Error> {
+        Option::<String>::deserialize(d)?
+            .map(|s| s.parse().map_err(de::Error::custom))
+            .transpose()
+    }
+}
+
+/// A [`Rotation`](lamina_model::Rotation) as degrees: exactly 0, 90, 180 or 270.
+pub(crate) mod rotation {
+    use lamina_model::Rotation;
+
+    use super::{Deserialize, Deserializer, Serializer, de};
+
+    #[expect(
+        clippy::trivially_copy_pass_by_ref,
+        reason = "serde's `with` passes the field by reference"
+    )]
+    pub(crate) fn serialize<S: Serializer>(rotation: &Rotation, s: S) -> Result<S::Ok, S::Error> {
+        s.serialize_u16(rotation.degrees())
+    }
+
+    pub(crate) fn deserialize<'de, D: Deserializer<'de>>(d: D) -> Result<Rotation, D::Error> {
+        let degrees = u16::deserialize(d)?;
+        match degrees {
+            0 | 90 | 180 | 270 => Rotation::from_degrees(i64::from(degrees)),
+            _ => None,
+        }
+        .ok_or_else(|| de::Error::invalid_value(de::Unexpected::Unsigned(u64::from(degrees)), &"0, 90, 180 or 270"))
+    }
+}
+
+/// `Option<Option<T>>` that tells an absent field (`None`: leave it) from `null`
+/// (`Some(None)`: clear it). Used with `#[serde(default)]`.
+pub(crate) mod double_option {
+    use super::{Deserialize, Deserializer};
+
+    #[expect(
+        clippy::option_option,
+        reason = "the point: absent, null and a value are three cases"
+    )]
+    pub(crate) fn deserialize<'de, T, D>(d: D) -> Result<Option<Option<T>>, D::Error>
+    where
+        T: Deserialize<'de>,
+        D: Deserializer<'de>,
+    {
+        Option::<T>::deserialize(d).map(Some)
+    }
+}

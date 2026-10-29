@@ -24,6 +24,7 @@ publish = false
 lamina-syntax = { path = "crates/lamina-syntax" }
 lamina-cos = { path = "crates/lamina-cos" }
 lamina-model = { path = "crates/lamina-model" }
+lamina-ops = { path = "crates/lamina-ops" }
 
 # Flate (zlib) codec, pure Rust; `with-alloc` is the default feature, named so it stays on.
 # MIT OR Zlib OR Apache-2.0 (dependency adler2: 0BSD OR MIT OR Apache-2.0)
@@ -46,8 +47,22 @@ stringprep = { version = "0.1.5", default-features = false }
 thiserror = { version = "2.0.21", default-features = false }
 # Binaries, xtask and tests only (never in library APIs). MIT OR Apache-2.0
 anyhow = "1.0.104"
+# Serialisable ops (ADR 0006 §1, §6): derive only. MIT OR Apache-2.0
+serde = { version = "1.0.229", default-features = false, features = ["std", "derive"] }
 # MIT OR Apache-2.0
 serde_json = "1.0.154"
+# TypeScript declarations for serde types (ADR 0002), only behind lamina-ops' optional `tsify`
+# feature (off by default, so core builds never see it; lamina-wasm enables it in B6a). tsify
+# needs `js` or `json`; `js` (serde-wasm-bindgen) is the one ADR 0002 picks for the boundary.
+# MIT OR Apache-2.0
+tsify = { version = "0.5.8", default-features = false, features = ["js"] }
+# The Tsify derive expands to wasm-bindgen glue, so the crate deriving it names wasm-bindgen too.
+# Edge-only (xtask portability): reachable from a core crate only through that optional feature.
+# MIT OR Apache-2.0
+wasm-bindgen = { version = "0.2.129", default-features = false }
+# Property tests (ADR 0018 tier 5), dev-dependency only; `std` without the fork/timeout runner
+# (which needs processes and temp files). MIT OR Apache-2.0
+proptest = { version = "1.12.0", default-features = false, features = ["std"] }
 # Reading deny.toml and rust-toolchain.toml in xtask. MIT OR Apache-2.0
 toml = { version = "1.1.8", default-features = false, features = ["std", "parse", "serde"] }
 # Benchmarks only (`benches/`, run nightly by `cargo xtask bench`; ADR 0018 tier 11), never a

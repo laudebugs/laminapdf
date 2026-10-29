@@ -43,11 +43,13 @@ pub enum Limit {
     XObjectDepth,
     /// [`Limits::max_image_pixels`].
     ImagePixels,
+    /// [`Limits::max_read_window`].
+    ReadWindow,
 }
 
 impl Limit {
     /// Every hard limit, in declaration order.
-    pub const ALL: [Self; 11] = [
+    pub const ALL: [Self; 12] = [
         Self::NestingDepth,
         Self::StreamDecoded,
         Self::DecodedTotal,
@@ -59,6 +61,7 @@ impl Limit {
         Self::ContentOperators,
         Self::XObjectDepth,
         Self::ImagePixels,
+        Self::ReadWindow,
     ];
 
     /// The name of the [`Limits`] field, e.g. `"max_nesting_depth"`. Stable: part of the
@@ -77,6 +80,7 @@ impl Limit {
             Self::ContentOperators => "max_content_operators",
             Self::XObjectDepth => "max_xobject_depth",
             Self::ImagePixels => "max_image_pixels",
+            Self::ReadWindow => "max_read_window",
         }
     }
 
@@ -96,6 +100,7 @@ impl Limit {
             Self::ContentOperators => limits.max_content_operators,
             Self::XObjectDepth => limits.max_xobject_depth as u64,
             Self::ImagePixels => limits.max_image_pixels,
+            Self::ReadWindow => limits.max_read_window as u64,
         }
     }
 }
@@ -136,6 +141,7 @@ impl fmt::Display for Limit {
 /// | [`max_content_operators`](Self::max_content_operators) | hard (reserved) | 10,000,000 |
 /// | [`max_xobject_depth`](Self::max_xobject_depth) | hard (reserved) | 32 |
 /// | [`max_image_pixels`](Self::max_image_pixels) | hard (reserved) | 2^28 |
+/// | [`max_read_window`](Self::max_read_window) | hard | 256 MiB |
 ///
 /// Reserved limits are part of the API now so they can be configured once, but nothing
 /// enforces them until the feature they bound lands (content interpretation, image decoding).
@@ -161,6 +167,7 @@ pub struct Limits {
     max_content_operators: u64,
     max_xobject_depth: usize,
     max_image_pixels: u64,
+    max_read_window: usize,
 }
 
 impl Default for Limits {
@@ -208,6 +215,7 @@ impl Limits {
             max_content_operators: 10_000_000,
             max_xobject_depth: 32,
             max_image_pixels: 1 << 28,
+            max_read_window: 256 * 1024 * 1024,
         }
     }
 
@@ -232,6 +240,7 @@ impl Limits {
             max_content_operators: u64::MAX,
             max_xobject_depth: usize::MAX,
             max_image_pixels: u64::MAX,
+            max_read_window: usize::MAX,
         }
     }
 
@@ -271,6 +280,14 @@ impl Limits {
         max_xobject_depth, with_max_xobject_depth: usize;
         /// Hard, reserved: pixels in one decoded image (default 2^28).
         max_image_pixels, with_max_image_pixels: u64;
+        /// Hard: bytes one parse may read from a source without an in-memory slice
+        /// (`lamina-cos` reads such sources in windows; default 256 MiB). It bounds how far a
+        /// window grows for one object (its head, a stream's data, the search for a missing
+        /// `endstream`) and the backward walk over an object header found by repair. Past
+        /// it, the object fails with `LimitExceeded` where an in-memory parse would have read
+        /// on; a tolerant path (repair, `/Length` recovery, the xref entry check) treats the
+        /// item as unreadable instead. In-memory input is never limited by it.
+        max_read_window, with_max_read_window: usize;
     }
 }
 
@@ -325,8 +342,22 @@ mod tests {
                 l.max_xref_sections(),
                 l.max_warnings(),
                 l.max_xobject_depth(),
+                l.max_read_window(),
             ],
-            [256, 64 << 20, 1 << 30, 8, 32, 256, 64, 16 << 20, 4096, 1000, 32]
+            [
+                256,
+                64 << 20,
+                1 << 30,
+                8,
+                32,
+                256,
+                64,
+                16 << 20,
+                4096,
+                1000,
+                32,
+                256 << 20
+            ]
         );
     }
 

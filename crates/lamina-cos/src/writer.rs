@@ -332,17 +332,19 @@ fn write_trailer(trailer: &Dict, xref: usize, out: &mut Vec<u8>) {
 /// # Errors
 /// [`Error::RepairedBase`] when `base`'s xref was repaired (there is no valid section for
 /// `/Prev` to point at); [`Error::EncryptedBase`] when it is encrypted (the new objects would
-/// have to be encrypted too); [`Error::InvalidStructure`] when object numbers run out.
+/// have to be encrypted too); [`Error::InvalidStructure`] when object numbers run out;
+/// [`Error::DataPending`] / [`Error::Source`] when `base` was opened from a source without an
+/// in-memory slice and its bytes can't all be read (the original bytes are copied whole).
 pub fn incremental_update(base: &Document, changes: &[(ObjRef, Object)], eol: XrefEol) -> Result<Vec<u8>> {
     let doc = base;
-    let original = doc.data();
     let prev = doc.startxref().ok_or(Error::RepairedBase)?;
     if doc.is_encrypted() {
         return Err(Error::EncryptedBase);
     }
+    let original = doc.whole_input()?;
     let by_num: BTreeMap<u32, (u16, &Object)> = changes.iter().map(|(r, o)| (r.num, (r.gen_nr, o))).collect();
 
-    let mut out = original.to_vec();
+    let mut out = original.into_owned();
     if !matches!(out.last(), Some(b'\n' | b'\r')) {
         out.push(b'\n');
     }
@@ -354,13 +356,11 @@ pub fn incremental_update(base: &Document, changes: &[(ObjRef, Object)], eol: Xr
         out.extend_from_slice(b"\nendobj\n");
     }
 
-    let old = doc.trailer();
-    let next_free = |max: Option<u32>| max.map_or(0, |n| i64::from(n) + 1);
-    let size = old
-        .get_int("Size")
-        .unwrap_or(0)
-        .max(next_free(doc.max_object_number()))
-        .max(next_free(by_num.keys().next_back().copied()));
+    // The base's trailer: an overlay trailer may name objects this update does not write.
+    let old = doc.base_trailer();
+    let size = doc
+        .size_floor()
+        .max(by_num.keys().next_back().map_or(0, |&n| i64::from(n) + 1));
     let prev = i64::try_from(prev).unwrap_or(i64::MAX);
     if doc.newest_section_is_stream() {
         append_xref_stream(&mut out, old, &offsets, size, prev)?;
