@@ -57,7 +57,7 @@ Ship an importable, permissively licensed library that **generates correct PDFs 
 6. **Conformance profiles** (B8): `PdfUa1`, `PdfA2b`, `PdfA2u`, `PdfA3b` (associated files). Missing alt text, missing `Lang` or title, content that is neither tagged nor marked as an artifact, a link without a `Link` structure element and `/Contents`, an unembedded font or an unmapped glyph is an error at `finish()`.
 7. **Read/edit path.** `Document::open(source, OpenOptions)` (`Limits`, strict mode and an optional password; [ADR 0003](../decisions/0003-reader-tolerance-and-limits.md)) (standard security handler, read only: RC4 and AES-128 for R2–R4, AES-256 for R5/R6, [04 §7.2](../research/pdf/04-interactive-security.md#72-standard-security-handler-revisions)), typed read views (pages, outline, metadata), `transact`, undo, `save({ mode: "auto" | "incremental" | "full" })` with `SaveConstraint` honoured (ADRs 0005–0007).
 8. **Text extraction** (B9): per page, glyph runs with Unicode text (ToUnicode first, then encoding and glyph-name fallbacks, [03 §4–5](../research/pdf/03-text-and-fonts.md#4-encodings-965-in-pdf-20--966-in-iso-32000-1-975-annex-d)), font size, writing direction and a quad per glyph in page space; `ActualText` and MCIDs where present.
-9. **Errors and warnings.** One error type per crate and one `PdfError` class with matching string codes in TS ([guidelines §5](../guidelines/code-organization.md#5-error-handling-by-layer)). Tolerant reads report warnings.
+9. **Errors and warnings.** One error type per crate and one `LaminaError` class with matching string codes in TS ([ADR 0026](../decisions/0026-error-and-diagnostic-contract.md)) ([guidelines §5](../guidelines/code-organization.md#5-error-handling-by-layer)). Tolerant reads report warnings.
 
 ### Non-functional
 
@@ -311,7 +311,7 @@ Each round's todos (one per PR, with dependencies) are linked from [§7](#7-roun
 ### B6. WASM and `@lamina/pdf`
 
 - [ ] Create `crates/lamina-wasm` (wasm-bindgen + tsify) and the `cargo xtask wasm` build with `wasm-opt -Oz`
-- [ ] Create `packages/pdf` with `init()`, `Builder`, `Document`, `Font`, `PdfError` codes matching Rust
+- [ ] Create `packages/pdf` with `init()`, `Builder`, `Document`, `Font`, `LaminaError` codes matching Rust
 - [ ] Add export conditions and validate with publint and `attw --pack`
 - [ ] Write ADR 0016 with measured sizes; decide split WASM modules
 - [ ] Add size-budget checks to CI (WASM gz, JS min+gz)
