@@ -7,7 +7,7 @@
 | Plan | [pdf-library §7 B2](../../plans/pdf-library.md#b2-document-model), [architecture §7 Round B](../../plans/architecture.md#round-b--core-model-and-the-first-package) |
 | Round / milestone | Round B (library) — M1 |
 | Depends on | [B1a](./B1a-round-b-adrs.md) |
-| Blocks | [B2b](../ongoing/B2b-standard-security-decryption.md), [B2c](../ongoing/B2c-lamina-model-corpus-fuzz.md), [B2d](../ready/B2d-windowed-reading.md) |
+| Blocks | [B2b](./B2b-standard-security-decryption.md), [B2c](../ongoing/B2c-lamina-model-corpus-fuzz.md), [B2d](../ready/B2d-windowed-reading.md) |
 | ADRs | Implements [0003](../../decisions/0003-reader-tolerance-and-limits.md) §2–§4 and [0005](../../decisions/0005-document-model.md) §2 and §7; follows [0018](../../decisions/0018-test-strategy.md) (no wall-clock assertions in PR lanes) |
 | Branch | `feat/b2a-limits-owned-document` |
 | PR title | `feat(core): Limits, warning codes, strict mode and an owned Document over ByteSource` |
@@ -35,7 +35,7 @@ Make the reader's safety policy explicit and configurable, and make `Document` s
 - Soft limits drop the item and warn (`max_xref_sections`, `max_object_number`, `max_warnings`).
 - `Warning` as a `#[non_exhaustive]` enum with every ADR 0003 §2 code (`missing-header`, `xref-repaired`, `xrefstm-ignored`, `stream-length-recovered`, `stale-generation`, `page-tree-node-skipped`, `page-count-mismatch`, `flate-truncated`, `objstm-index-mismatch`, `object-number-out-of-range`, `warnings-truncated`), a `code() -> &'static str`, byte offset or object number where one exists; lazy warnings recorded on the `Document`, deduplicated by (code, object); `Document::warnings()` live.
 - Error codes: a `code()` on `lamina_cos::Error` and `lamina_syntax::Error` too; all codes listed once in `fixtures/codes.json` with a Rust test that the enums expose exactly those.
-- `OpenOptions` with private fields: `limits`, `strict` (and a reserved slot for the password, filled by [B2b](../ongoing/B2b-standard-security-decryption.md)); strict mode turns any warning into `Error::Strict { code }`.
+- `OpenOptions` with private fields: `limits`, `strict` (and a reserved slot for the password, filled by [B2b](./B2b-standard-security-decryption.md)); strict mode turns any warning into `Error::Strict { code }`.
 - `ByteSource` trait (`len`, `read_at`, `as_slice`), `SourceError` (incl. `Pending { offset, len }`), core impls for `Vec<u8>`, `Arc<[u8]>`, `&'static [u8]`; `Document` owns `Arc<dyn ByteSource>`, no lifetime; `Document::open(source: impl Into<Arc<dyn ByteSource>>, OpenOptions)`; `Error::DataPending { ranges }`. **As shipped in #13:** a source without `as_slice` is read into memory once at open (`read_all`, 64 KiB `read_at` calls), so `DataPending` reports the whole file. Windowed reading (64 KiB windows, doubling within `Limits`), the chunked repair scan and per-window `DataPending` ranges moved out of scope to [B2d](../ready/B2d-windowed-reading.md).
 - Caches move to `Arc<Object>`; a compile-time assertion that `Document: Send` (and a doc note that it is `!Sync`).
 - nextest config replaces the wall-clock `BUDGET` in `crates/lamina-cos/tests/robustness.rs`. `.config/nextest.toml`: `retries = 0`; default `slow-timeout = { period = "60s", terminate-after = 2 }` (any test killed at 120 s); an override for `binary(robustness)` with `slow-timeout = { period = "30s", terminate-after = 1 }`, so the robustness tests keep exactly the old 30 s limit (killed at 30 s, not 60 s).
@@ -43,7 +43,7 @@ Make the reader's safety policy explicit and configurable, and make `Document` s
 
 **Out of scope** (and which todo covers it)
 
-- Decryption and the password: [B2b](../ongoing/B2b-standard-security-decryption.md).
+- Decryption and the password: [B2b](./B2b-standard-security-decryption.md).
 - Typed views, `LaminaId`s, corpus facts, fuzzing, `cargo xtask golden`: [B2c](../ongoing/B2c-lamina-model-corpus-fuzz.md).
 - Overlay and mutation (`CosMut`): [B3a](../ready/B3a-overlay-and-ops.md).
 - Windowed reading of non-slice sources, chunked repair scan, `DataPending` per window (moved out after #13 shipped read-all-at-open): [B2d](../ready/B2d-windowed-reading.md).
@@ -90,7 +90,7 @@ Make the reader's safety policy explicit and configurable, and make `Document` s
 
 ## Docs to update
 
-- [ ] ADR 0003: mark the B2 codes as "exists" in §2's status column (not done in #13; [B2b](../ongoing/B2b-standard-security-decryption.md) does it while editing that table)
+- [x] ADR 0003: mark the B2 codes as "exists" in §2's status column (not done in #13; done by [B2b](./B2b-standard-security-decryption.md) while editing that table)
 - [x] [pdf-library §10 B2](../../plans/pdf-library.md#10-to-dos): tick the `Document::open(source, OpenOptions)` to-do (windowed reading left as its own open to-do, now [B2d](../ready/B2d-windowed-reading.md))
 - [x] `crates/lamina-cos/README.md`, `CLAUDE.md` (nextest config, `fixtures/codes.json`)
 - [x] `fixtures/README.md` (codes.json)

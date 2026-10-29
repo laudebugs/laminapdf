@@ -10,6 +10,8 @@
     "flate-truncated",
     "objstm-index-mismatch",
     "object-number-out-of-range",
+    "aes-padding-invalid",
+    "perms-mismatch",
     "warnings-truncated"
   ],
   "errors": [
@@ -25,6 +27,9 @@
     "unset-object",
     "repaired-base",
     "encrypted-base",
+    "password-required",
+    "wrong-password",
+    "unsupported-security-handler",
     "unexpected-eof",
     "syntax",
     "unsupported-filter",

@@ -1,5 +1,6 @@
 //! Tolerant reader: xref/xref-stream loading with repair, object resolution, page tree.
 
+mod encrypt;
 mod objstm;
 mod options;
 mod repair;
@@ -12,12 +13,15 @@ use std::fmt;
 use std::ops;
 use std::sync::Arc;
 
+pub use encrypt::Encryption;
+use encrypt::Security;
 pub use options::OpenOptions;
 pub use warning::Warning;
 use warning::WarningLog;
 pub(crate) use xref::XREF_STREAM_KEYS;
 use xref::{XrefEntry, XrefTable};
 
+use lamina_syntax::crypt::{PasswordKind, Permissions};
 use lamina_syntax::filters;
 use lamina_syntax::{DecodeBudget, Dict, Limit, Limits, ObjRef, Object, Parser, Stream, find};
 
@@ -153,6 +157,9 @@ pub struct Document {
     objstm_cache: RefCell<BTreeMap<u32, ObjStmMembers>>,
     /// Successfully loaded objects by number (errors are not cached).
     object_cache: RefCell<BTreeMap<u32, Arc<Object>>>,
+    /// The authenticated standard security handler of an encrypted document: objects are
+    /// decrypted as they are loaded.
+    security: Option<Security>,
 }
 
 // ADR 0005 §7: `Document` (and what it hands out) can move between threads.
@@ -172,6 +179,7 @@ impl fmt::Debug for Document {
             .field("repaired", &self.repaired)
             .field("header_version", &self.header_version)
             .field("strict", &self.strict)
+            .field("encryption", &self.encryption())
             .finish_non_exhaustive()
     }
 }
@@ -330,14 +338,21 @@ impl Document {
     /// # Ok::<(), lamina_cos::Error>(())
     /// ```
     ///
+    /// An encrypted file (standard security handler, R2–R6) is authenticated here with
+    /// [`OpenOptions::with_password`], or with the empty user password when none is given, and
+    /// its strings and streams are then decrypted as objects are loaded (see
+    /// [`Document::encryption`]).
+    ///
     /// # Errors
     /// [`Error::NotPdf`] for empty input or input without any `n g obj`;
     /// [`Error::MissingRoot`] when no catalog can be found; [`Error::Strict`] in strict mode
     /// when the file needs a repair; [`Error::DataPending`] / [`Error::Source`] when the
-    /// source cannot deliver its bytes.
+    /// source cannot deliver its bytes. For encrypted files: [`Error::PasswordRequired`],
+    /// [`Error::WrongPassword`], [`Error::UnsupportedSecurityHandler`], or
+    /// [`Error::InvalidStructure`] for a malformed `/Encrypt` dictionary.
     #[expect(
         clippy::needless_pass_by_value,
-        reason = "ADR 0005's signature: the options are moved in so decryption (B2b) can keep the password"
+        reason = "ADR 0005's signature: the options are moved in (they may carry a password)"
     )]
     pub fn open(source: impl Into<Source>, options: OpenOptions) -> Result<Self> {
         let source = source.into();
@@ -367,7 +382,11 @@ impl Document {
             .and_then(|start| xref::load(data, start, &limits, &mut budget).ok())
             .filter(|table| table.trailer.contains_key("Root") && entries_are_valid(data, table, &limits));
         if let Some(table) = loaded {
-            let doc = Self::new(base(), table, startxref, log.clone())?;
+            let mut doc = Self::new(base(), table, startxref, log.clone())?;
+            // A password problem or an unsupported handler is never repaired around.
+            if let Some(security) = doc.read_security(options.password())? {
+                doc.install_security(security)?;
+            }
             // Entries that look valid can still yield an unusable catalog (damaged object
             // stream, syntax error inside the catalog, …): treat that like a broken xref.
             let checked = {
@@ -386,8 +405,15 @@ impl Document {
             }
         }
         log.raise(Warning::XrefRepaired, &limits, strict)?;
-        let table = repair::rebuild(data, &limits, &mut budget)?;
-        let mut doc = Self::new(base(), table, None, log)?;
+        let table = repair::rebuild(data, &limits, &mut budget, None)?;
+        let mut doc = Self::new(base(), table, None, log.clone())?;
+        if let Some(security) = doc.read_security(options.password())? {
+            // Object-stream members could not be read while the key was unknown: scan again,
+            // decrypting object streams this time.
+            let table = repair::rebuild(data, &limits, &mut budget, Some(&security))?;
+            doc = Self::new(base(), table, None, log)?;
+            doc.install_security(security)?;
+        }
         doc.repaired = true;
         Ok(doc)
     }
@@ -435,7 +461,47 @@ impl Document {
             budget: Cell::new(DecodeBudget::new(&limits)),
             objstm_cache: RefCell::new(BTreeMap::new()),
             object_cache: RefCell::new(BTreeMap::new()),
+            security: None,
         })
+    }
+
+    /// Reads `/Encrypt` and authenticates `password` (`None` for an unencrypted document).
+    /// Objects resolved on the way (an indirect `/Encrypt`, its `/CF`, the `/ID`) are read
+    /// without decryption, which is what the spec asks for them.
+    fn read_security(&self, password: Option<&[u8]>) -> Result<Option<Security>> {
+        let Some(encrypt) = self.trailer.get("Encrypt") else {
+            return Ok(None);
+        };
+        let _call = self.call();
+        let Object::Dict(dict) = self.resolve_nested(encrypt, 4)? else {
+            return Err(Error::InvalidStructure {
+                kind: "encryption dictionary",
+                message: "/Encrypt is not a dictionary",
+            });
+        };
+        let id = match self.trailer.get("ID") {
+            Some(id) => self.resolve_nested(id, 2)?,
+            None => Object::Null,
+        };
+        let id0 = match id.as_array().and_then(<[Object]>::first) {
+            Some(Object::String(s)) => s.bytes.as_slice(),
+            _ => &[],
+        };
+        Security::unlock(&dict, encrypt.as_ref().map(|r| r.num), id0, password).map(Some)
+    }
+
+    /// Makes `security` decrypt every object loaded from now on. Anything cached while
+    /// reading `/Encrypt` is dropped, so it is loaded again (and decrypted, unless exempt).
+    fn install_security(&mut self, security: Security) -> Result<()> {
+        let perms_valid = security.perms_valid();
+        self.security = Some(security);
+        self.object_cache.get_mut().clear();
+        self.objstm_cache.get_mut().clear();
+        if perms_valid {
+            Ok(())
+        } else {
+            self.warn(Warning::PermsMismatch)
+        }
     }
 
     /// Enters a public call; the outermost call starts a fresh decode budget.
@@ -466,10 +532,50 @@ impl Document {
         self.revisions
     }
 
-    /// True when the trailer has `/Encrypt`. Nothing is decrypted yet (decryption lands in Round B2).
+    /// True when the trailer has `/Encrypt`. Such a document opened only because a password
+    /// (possibly the empty user password) authenticated it, and it is decrypted as it is read.
     #[must_use]
     pub fn is_encrypted(&self) -> bool {
         self.trailer.contains_key("Encrypt")
+    }
+
+    /// The encryption of an encrypted document: `/V`, `/R`, ciphers, key length and
+    /// `/EncryptMetadata`. `None` for an unencrypted one.
+    ///
+    /// ```
+    /// use lamina_cos::{Document, OpenOptions};
+    ///
+    /// let bytes = b"%PDF-1.7\n1 0 obj << /Type /Catalog >> endobj\ntrailer << /Root 1 0 R >>\n";
+    /// let doc = Document::open(bytes.to_vec(), OpenOptions::default())?;
+    /// assert_eq!((doc.encryption(), doc.permissions(), doc.matched_password()), (None, None, None));
+    /// # Ok::<(), lamina_cos::Error>(())
+    /// ```
+    #[must_use]
+    pub fn encryption(&self) -> Option<&Encryption> {
+        self.security.as_ref().map(Security::info)
+    }
+
+    /// The user access permissions (`/P`) of an encrypted document; `None` for an unencrypted
+    /// one. They are what the file asks for, not access control (research ch. 04 §7.5):
+    /// whether to honour them, and whether opening with the owner password lifts them, is the
+    /// caller's decision.
+    #[must_use]
+    pub fn permissions(&self) -> Option<Permissions> {
+        self.security.as_ref().map(Security::permissions)
+    }
+
+    /// Which password opened an encrypted document (the empty user password counts as
+    /// [`PasswordKind::User`]); `None` for an unencrypted one.
+    #[must_use]
+    pub fn matched_password(&self) -> Option<PasswordKind> {
+        self.security.as_ref().map(Security::matched)
+    }
+
+    /// True for an encrypted document, which [`Document::open`] only returns once a password
+    /// authenticated it (shorthand for `matched_password().is_some()`).
+    #[must_use]
+    pub fn is_authenticated(&self) -> bool {
+        self.security.is_some()
     }
 
     /// True when the xref was rebuilt by scanning because the stored one was unusable.
@@ -640,7 +746,7 @@ impl Document {
         in_flight.push(num);
         let result = match entry {
             XrefEntry::Free => Ok(Arc::new(Object::Null)),
-            XrefEntry::InFile { offset, .. } => self.load_in_file(num, offset, in_flight),
+            XrefEntry::InFile { offset, gen_nr } => self.load_in_file(num, gen_nr, offset, in_flight),
             XrefEntry::InStream { stream, index } => self.load_compressed(num, stream, index, in_flight),
         };
         in_flight.pop();
@@ -650,7 +756,7 @@ impl Document {
         result
     }
 
-    fn load_in_file(&self, num: u32, offset: usize, in_flight: &mut Vec<u32>) -> Result<Arc<Object>> {
+    fn load_in_file(&self, num: u32, gen_nr: u16, offset: usize, in_flight: &mut Vec<u32>) -> Result<Arc<Object>> {
         // An unresolvable indirect `/Length` (missing, malformed, a cycle, over a hard limit)
         // is one of ADR 0003's tolerant paths: the extent is recovered by scanning, with
         // `stream-length-recovered`. Strict-mode refusals and missing input end the call.
@@ -672,9 +778,31 @@ impl Document {
         if let Some(e) = fatal {
             return Err(e);
         }
-        let parsed = parsed?;
+        let mut parsed = parsed?;
         if parsed.length_recovered {
             self.warn(Warning::StreamLengthRecovered { object: num })?;
+        }
+        if let Some(security) = &self.security {
+            let mut fatal = None;
+            let mut resolve = |o: &Object| match o {
+                Object::Ref(r) => match self.load(r.num, Some(r.gen_nr), in_flight) {
+                    Ok(obj) => Some((*obj).clone()),
+                    Err(e) => {
+                        if must_propagate(&e) {
+                            fatal.get_or_insert(e);
+                        }
+                        None
+                    }
+                },
+                other => Some(other.clone()),
+            };
+            let well_formed = security.decrypt_object(&mut parsed.object, num, gen_nr, &mut resolve);
+            if let Some(e) = fatal {
+                return Err(e);
+            }
+            if !well_formed {
+                self.warn(Warning::AesPaddingInvalid { object: num })?;
+            }
         }
         Ok(Arc::new(parsed.object))
     }

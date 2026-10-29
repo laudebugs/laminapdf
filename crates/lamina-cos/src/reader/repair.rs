@@ -12,6 +12,7 @@
 
 use std::collections::{BTreeMap, BTreeSet};
 
+use super::encrypt::{self, Security};
 use super::objstm;
 use super::xref::{XREF_STREAM_KEYS, XrefEntry, XrefTable};
 use lamina_syntax::{
@@ -149,17 +150,20 @@ fn offer(winners: &mut BTreeMap<u32, Candidate>, num: u32, candidate: Candidate)
 /// can't be decoded (including one over a decode limit) contributes nothing.
 fn object_stream_members(
     data: &[u8],
-    offset: usize,
-    stream: u32,
+    (offset, stream, gen_nr): (usize, u32, u16),
     limits: &Limits,
     budget: &mut DecodeBudget,
+    security: Option<&Security>,
 ) -> Vec<(u32, Candidate)> {
-    let Ok(parsed) = Parser::new(data, offset)
+    let Ok(mut parsed) = Parser::new(data, offset)
         .with_limits(limits)
         .indirect_object(&mut |_| None)
     else {
         return Vec::new();
     };
+    if let Some(security) = security {
+        encrypt::decrypt_for_repair(security, &mut parsed.object, stream, gen_nr);
+    }
     let Object::Stream(s) = parsed.object else {
         return Vec::new();
     };
@@ -185,7 +189,14 @@ fn object_stream_members(
 
 /// Rebuilds the cross-reference table by scanning the whole file. Definitions above
 /// [`Limits::max_object_number`] are dropped and listed in [`XrefTable::dropped_objects`].
-pub(crate) fn rebuild(data: &[u8], limits: &Limits, budget: &mut DecodeBudget) -> Result<XrefTable> {
+/// With `security`, object streams are decrypted before they are decoded (an encrypted file's
+/// members are unreadable otherwise).
+pub(crate) fn rebuild(
+    data: &[u8],
+    limits: &Limits,
+    budget: &mut DecodeBudget,
+    security: Option<&Security>,
+) -> Result<XrefTable> {
     let headers = scan_object_headers(data);
     if headers.is_empty() {
         return Err(Error::NotPdf("no objects found"));
@@ -201,7 +212,7 @@ pub(crate) fn rebuild(data: &[u8], limits: &Limits, budget: &mut DecodeBudget) -
     // In-file definitions first: the trailers and object streams found among the winners
     // decide which compressed members exist.
     let mut winners: BTreeMap<u32, Candidate> = BTreeMap::new();
-    let mut heads: Vec<(u32, usize, Option<Head>)> = Vec::new();
+    let mut heads: Vec<(u32, u16, usize, Option<Head>)> = Vec::new();
     for &(num, gen_nr, offset) in &headers {
         if !in_range(num) {
             continue;
@@ -220,12 +231,12 @@ pub(crate) fn rebuild(data: &[u8], limits: &Limits, budget: &mut DecodeBudget) -
                 Some(b"XRef" | b"ObjStm")
             )
         });
-        heads.push((num, offset, head));
+        heads.push((num, gen_nr, offset, head));
     }
 
     let mut trailers = trailer_dicts(data, limits);
     let mut members = Vec::new();
-    for (num, offset, head) in heads {
+    for (num, gen_nr, offset, head) in heads {
         let Some((Object::Dict(dict), is_stream)) = head else {
             continue;
         };
@@ -236,7 +247,8 @@ pub(crate) fn rebuild(data: &[u8], limits: &Limits, budget: &mut DecodeBudget) -
         match dict.get_name("Type") {
             Some(b"XRef") => trailers.push((offset, dict)),
             Some(b"ObjStm") if is_stream => {
-                members.extend(object_stream_members(data, offset, num, limits, budget));
+                let stream = (offset, num, gen_nr);
+                members.extend(object_stream_members(data, stream, limits, budget, security));
             }
             _ => {}
         }
@@ -300,7 +312,7 @@ mod tests {
 
     fn rebuild_default(data: &[u8]) -> Result<XrefTable> {
         let limits = Limits::default();
-        rebuild(data, &limits, &mut DecodeBudget::new(&limits))
+        rebuild(data, &limits, &mut DecodeBudget::new(&limits), None)
     }
 
     #[test]
@@ -350,7 +362,7 @@ mod limit_tests {
     fn rebuild_drops_definitions_above_max_object_number() {
         let data = b"%PDF-1.4\n1 0 obj << /Type /Catalog >> endobj\n9 0 obj 42 endobj\n";
         let limits = Limits::default().with_max_object_number(8);
-        let table = rebuild(data, &limits, &mut DecodeBudget::new(&limits)).unwrap();
+        let table = rebuild(data, &limits, &mut DecodeBudget::new(&limits), None).unwrap();
         assert_eq!(
             (table.entries.keys().copied().collect::<Vec<_>>(), table.dropped_objects),
             (vec![1], BTreeSet::from([9]))

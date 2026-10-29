@@ -20,12 +20,15 @@
 //!   streams, with an `endstream` scan when `/Length` is wrong).
 //! * [`Lexer`] / [`Token`]: the tokenizer the parser and the cross-reference reader share.
 //! * [`filters`]: Flate encode/decode within [`Limits`], and PNG predictors.
+//! * [`crypt`]: standard security handler decryption (read only): password authentication
+//!   for R2–R6 and RC4 / AES-128 / AES-256 string and stream decryption.
 //! * [`Limits`]: the resource limits of ADR 0003, shared by every layer that reads input.
 //!
 //! The file structure (cross-reference tables, object streams, repair, the page tree) and the
 //! writer live one layer up, in `lamina-cos`.
 #![forbid(unsafe_code)]
 
+pub mod crypt;
 mod error;
 pub mod filters;
 mod lexer;

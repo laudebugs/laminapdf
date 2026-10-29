@@ -1,0 +1,617 @@
+{
+  "generated_by": "fixtures/encrypted/facts.py (pypdf 6.21.3, qpdf 12.4.2)",
+  "source": {
+    "file": "source.pdf",
+    "page_count": 2,
+    "outline_titles": [
+      "Chapter 1",
+      "Section 1.1 (nested)",
+      "Chapitre 2 — Café"
+    ],
+    "info": {
+      "Author": "lamina",
+      "Producer": "fixtures/encrypted/make.py",
+      "Subject": "B2b fixtures — Café",
+      "Title": "Secret document"
+    },
+    "content_sha256": [
+      "6a559a606e9b053899b2f6ed3ce190331ca84e2a66089ed76a7b6d58756c479e",
+      "cf2aff707d9ce2134924476f5582853cfecebb2e91df30f794b4be5afd5e9219"
+    ],
+    "xmp_sha256": "8325a0a5e8271eeb0a086fe2e29e0e6c0b91cf3946270634993dc6ac0cb5d9cb"
+  },
+  "files": {
+    "r2-rc4-40-empty.pdf": {
+      "user_password": "",
+      "owner_password": "owner-pw",
+      "V": 1,
+      "R": 2,
+      "key_bits": 40,
+      "encrypt_metadata": true,
+      "P": -4,
+      "permissions": {
+        "accessibility": true,
+        "extract": true,
+        "print_low_res": true,
+        "print_high_res": true,
+        "assemble": true,
+        "fill_forms": true,
+        "annotate": true,
+        "modify": true
+      },
+      "xmp_plaintext": false,
+      "page_count": 2,
+      "outline_titles": [
+        "Chapter 1",
+        "Section 1.1 (nested)",
+        "Chapitre 2 — Café"
+      ],
+      "info": {
+        "Author": "lamina",
+        "Producer": "fixtures/encrypted/make.py",
+        "Subject": "B2b fixtures — Café",
+        "Title": "Secret document"
+      },
+      "content_sha256": [
+        "6a559a606e9b053899b2f6ed3ce190331ca84e2a66089ed76a7b6d58756c479e",
+        "cf2aff707d9ce2134924476f5582853cfecebb2e91df30f794b4be5afd5e9219"
+      ],
+      "xmp_sha256": "8325a0a5e8271eeb0a086fe2e29e0e6c0b91cf3946270634993dc6ac0cb5d9cb"
+    },
+    "r2-rc4-40-user.pdf": {
+      "user_password": "user-pw",
+      "owner_password": "owner-pw",
+      "V": 1,
+      "R": 2,
+      "key_bits": 40,
+      "encrypt_metadata": true,
+      "P": -24,
+      "permissions": {
+        "accessibility": false,
+        "extract": false,
+        "print_low_res": false,
+        "print_high_res": false,
+        "assemble": true,
+        "fill_forms": true,
+        "annotate": true,
+        "modify": true
+      },
+      "xmp_plaintext": false,
+      "page_count": 2,
+      "outline_titles": [
+        "Chapter 1",
+        "Section 1.1 (nested)",
+        "Chapitre 2 — Café"
+      ],
+      "info": {
+        "Author": "lamina",
+        "Producer": "fixtures/encrypted/make.py",
+        "Subject": "B2b fixtures — Café",
+        "Title": "Secret document"
+      },
+      "content_sha256": [
+        "6a559a606e9b053899b2f6ed3ce190331ca84e2a66089ed76a7b6d58756c479e",
+        "cf2aff707d9ce2134924476f5582853cfecebb2e91df30f794b4be5afd5e9219"
+      ],
+      "xmp_sha256": "8325a0a5e8271eeb0a086fe2e29e0e6c0b91cf3946270634993dc6ac0cb5d9cb"
+    },
+    "r3-rc4-128-empty.pdf": {
+      "user_password": "",
+      "owner_password": "owner-pw",
+      "V": 2,
+      "R": 3,
+      "key_bits": 128,
+      "encrypt_metadata": true,
+      "P": -4,
+      "permissions": {
+        "accessibility": true,
+        "extract": true,
+        "print_low_res": true,
+        "print_high_res": true,
+        "assemble": true,
+        "fill_forms": true,
+        "annotate": true,
+        "modify": true
+      },
+      "xmp_plaintext": false,
+      "page_count": 2,
+      "outline_titles": [
+        "Chapter 1",
+        "Section 1.1 (nested)",
+        "Chapitre 2 — Café"
+      ],
+      "info": {
+        "Author": "lamina",
+        "Producer": "fixtures/encrypted/make.py",
+        "Subject": "B2b fixtures — Café",
+        "Title": "Secret document"
+      },
+      "content_sha256": [
+        "6a559a606e9b053899b2f6ed3ce190331ca84e2a66089ed76a7b6d58756c479e",
+        "cf2aff707d9ce2134924476f5582853cfecebb2e91df30f794b4be5afd5e9219"
+      ],
+      "xmp_sha256": "8325a0a5e8271eeb0a086fe2e29e0e6c0b91cf3946270634993dc6ac0cb5d9cb"
+    },
+    "r3-rc4-128-user.pdf": {
+      "user_password": "user-pw",
+      "owner_password": "owner-pw",
+      "V": 2,
+      "R": 3,
+      "key_bits": 128,
+      "encrypt_metadata": true,
+      "P": -2108,
+      "permissions": {
+        "accessibility": true,
+        "extract": false,
+        "print_low_res": true,
+        "print_high_res": false,
+        "assemble": true,
+        "fill_forms": true,
+        "annotate": false,
+        "modify": false
+      },
+      "xmp_plaintext": false,
+      "page_count": 2,
+      "outline_titles": [
+        "Chapter 1",
+        "Section 1.1 (nested)",
+        "Chapitre 2 — Café"
+      ],
+      "info": {
+        "Author": "lamina",
+        "Producer": "fixtures/encrypted/make.py",
+        "Subject": "B2b fixtures — Café",
+        "Title": "Secret document"
+      },
+      "content_sha256": [
+        "6a559a606e9b053899b2f6ed3ce190331ca84e2a66089ed76a7b6d58756c479e",
+        "cf2aff707d9ce2134924476f5582853cfecebb2e91df30f794b4be5afd5e9219"
+      ],
+      "xmp_sha256": "8325a0a5e8271eeb0a086fe2e29e0e6c0b91cf3946270634993dc6ac0cb5d9cb"
+    },
+    "r4-rc4-128-empty.pdf": {
+      "user_password": "",
+      "owner_password": "owner-pw",
+      "V": 4,
+      "R": 4,
+      "key_bits": 128,
+      "encrypt_metadata": true,
+      "P": -4,
+      "permissions": {
+        "accessibility": true,
+        "extract": true,
+        "print_low_res": true,
+        "print_high_res": true,
+        "assemble": true,
+        "fill_forms": true,
+        "annotate": true,
+        "modify": true
+      },
+      "xmp_plaintext": false,
+      "page_count": 2,
+      "outline_titles": [
+        "Chapter 1",
+        "Section 1.1 (nested)",
+        "Chapitre 2 — Café"
+      ],
+      "info": {
+        "Author": "lamina",
+        "Producer": "fixtures/encrypted/make.py",
+        "Subject": "B2b fixtures — Café",
+        "Title": "Secret document"
+      },
+      "content_sha256": [
+        "6a559a606e9b053899b2f6ed3ce190331ca84e2a66089ed76a7b6d58756c479e",
+        "cf2aff707d9ce2134924476f5582853cfecebb2e91df30f794b4be5afd5e9219"
+      ],
+      "xmp_sha256": "8325a0a5e8271eeb0a086fe2e29e0e6c0b91cf3946270634993dc6ac0cb5d9cb"
+    },
+    "r4-rc4-128-user.pdf": {
+      "user_password": "user-pw",
+      "owner_password": "owner-pw",
+      "V": 4,
+      "R": 4,
+      "key_bits": 128,
+      "encrypt_metadata": true,
+      "P": -3076,
+      "permissions": {
+        "accessibility": true,
+        "extract": true,
+        "print_low_res": true,
+        "print_high_res": false,
+        "assemble": false,
+        "fill_forms": true,
+        "annotate": true,
+        "modify": true
+      },
+      "xmp_plaintext": false,
+      "page_count": 2,
+      "outline_titles": [
+        "Chapter 1",
+        "Section 1.1 (nested)",
+        "Chapitre 2 — Café"
+      ],
+      "info": {
+        "Author": "lamina",
+        "Producer": "fixtures/encrypted/make.py",
+        "Subject": "B2b fixtures — Café",
+        "Title": "Secret document"
+      },
+      "content_sha256": [
+        "6a559a606e9b053899b2f6ed3ce190331ca84e2a66089ed76a7b6d58756c479e",
+        "cf2aff707d9ce2134924476f5582853cfecebb2e91df30f794b4be5afd5e9219"
+      ],
+      "xmp_sha256": "8325a0a5e8271eeb0a086fe2e29e0e6c0b91cf3946270634993dc6ac0cb5d9cb"
+    },
+    "r4-aes-128-empty.pdf": {
+      "user_password": "",
+      "owner_password": "owner-pw",
+      "V": 4,
+      "R": 4,
+      "key_bits": 128,
+      "encrypt_metadata": true,
+      "P": -4,
+      "permissions": {
+        "accessibility": true,
+        "extract": true,
+        "print_low_res": true,
+        "print_high_res": true,
+        "assemble": true,
+        "fill_forms": true,
+        "annotate": true,
+        "modify": true
+      },
+      "xmp_plaintext": false,
+      "page_count": 2,
+      "outline_titles": [
+        "Chapter 1",
+        "Section 1.1 (nested)",
+        "Chapitre 2 — Café"
+      ],
+      "info": {
+        "Author": "lamina",
+        "Producer": "fixtures/encrypted/make.py",
+        "Subject": "B2b fixtures — Café",
+        "Title": "Secret document"
+      },
+      "content_sha256": [
+        "6a559a606e9b053899b2f6ed3ce190331ca84e2a66089ed76a7b6d58756c479e",
+        "cf2aff707d9ce2134924476f5582853cfecebb2e91df30f794b4be5afd5e9219"
+      ],
+      "xmp_sha256": "8325a0a5e8271eeb0a086fe2e29e0e6c0b91cf3946270634993dc6ac0cb5d9cb"
+    },
+    "r4-aes-128-user.pdf": {
+      "user_password": "user-pw",
+      "owner_password": "owner-pw",
+      "V": 4,
+      "R": 4,
+      "key_bits": 128,
+      "encrypt_metadata": true,
+      "P": -52,
+      "permissions": {
+        "accessibility": true,
+        "extract": false,
+        "print_low_res": true,
+        "print_high_res": true,
+        "assemble": true,
+        "fill_forms": true,
+        "annotate": false,
+        "modify": true
+      },
+      "xmp_plaintext": false,
+      "page_count": 2,
+      "outline_titles": [
+        "Chapter 1",
+        "Section 1.1 (nested)",
+        "Chapitre 2 — Café"
+      ],
+      "info": {
+        "Author": "lamina",
+        "Producer": "fixtures/encrypted/make.py",
+        "Subject": "B2b fixtures — Café",
+        "Title": "Secret document"
+      },
+      "content_sha256": [
+        "6a559a606e9b053899b2f6ed3ce190331ca84e2a66089ed76a7b6d58756c479e",
+        "cf2aff707d9ce2134924476f5582853cfecebb2e91df30f794b4be5afd5e9219"
+      ],
+      "xmp_sha256": "8325a0a5e8271eeb0a086fe2e29e0e6c0b91cf3946270634993dc6ac0cb5d9cb"
+    },
+    "r4-aes-128-cleartext-metadata-empty.pdf": {
+      "user_password": "",
+      "owner_password": "owner-pw",
+      "V": 4,
+      "R": 4,
+      "key_bits": 128,
+      "encrypt_metadata": false,
+      "P": -4,
+      "permissions": {
+        "accessibility": true,
+        "extract": true,
+        "print_low_res": true,
+        "print_high_res": true,
+        "assemble": true,
+        "fill_forms": true,
+        "annotate": true,
+        "modify": true
+      },
+      "xmp_plaintext": true,
+      "page_count": 2,
+      "outline_titles": [
+        "Chapter 1",
+        "Section 1.1 (nested)",
+        "Chapitre 2 — Café"
+      ],
+      "info": {
+        "Author": "lamina",
+        "Producer": "fixtures/encrypted/make.py",
+        "Subject": "B2b fixtures — Café",
+        "Title": "Secret document"
+      },
+      "content_sha256": [
+        "6a559a606e9b053899b2f6ed3ce190331ca84e2a66089ed76a7b6d58756c479e",
+        "cf2aff707d9ce2134924476f5582853cfecebb2e91df30f794b4be5afd5e9219"
+      ],
+      "xmp_sha256": "8325a0a5e8271eeb0a086fe2e29e0e6c0b91cf3946270634993dc6ac0cb5d9cb"
+    },
+    "r4-aes-128-cleartext-metadata-user.pdf": {
+      "user_password": "user-pw",
+      "owner_password": "owner-pw",
+      "V": 4,
+      "R": 4,
+      "key_bits": 128,
+      "encrypt_metadata": false,
+      "P": -1324,
+      "permissions": {
+        "accessibility": true,
+        "extract": true,
+        "print_low_res": true,
+        "print_high_res": true,
+        "assemble": false,
+        "fill_forms": false,
+        "annotate": false,
+        "modify": false
+      },
+      "xmp_plaintext": true,
+      "page_count": 2,
+      "outline_titles": [
+        "Chapter 1",
+        "Section 1.1 (nested)",
+        "Chapitre 2 — Café"
+      ],
+      "info": {
+        "Author": "lamina",
+        "Producer": "fixtures/encrypted/make.py",
+        "Subject": "B2b fixtures — Café",
+        "Title": "Secret document"
+      },
+      "content_sha256": [
+        "6a559a606e9b053899b2f6ed3ce190331ca84e2a66089ed76a7b6d58756c479e",
+        "cf2aff707d9ce2134924476f5582853cfecebb2e91df30f794b4be5afd5e9219"
+      ],
+      "xmp_sha256": "8325a0a5e8271eeb0a086fe2e29e0e6c0b91cf3946270634993dc6ac0cb5d9cb"
+    },
+    "r5-aes-256-empty.pdf": {
+      "user_password": "",
+      "owner_password": "owner-pw",
+      "V": 5,
+      "R": 5,
+      "key_bits": 256,
+      "encrypt_metadata": true,
+      "P": -4,
+      "permissions": {
+        "accessibility": true,
+        "extract": true,
+        "print_low_res": true,
+        "print_high_res": true,
+        "assemble": true,
+        "fill_forms": true,
+        "annotate": true,
+        "modify": true
+      },
+      "xmp_plaintext": false,
+      "page_count": 2,
+      "outline_titles": [
+        "Chapter 1",
+        "Section 1.1 (nested)",
+        "Chapitre 2 — Café"
+      ],
+      "info": {
+        "Author": "lamina",
+        "Producer": "fixtures/encrypted/make.py",
+        "Subject": "B2b fixtures — Café",
+        "Title": "Secret document"
+      },
+      "content_sha256": [
+        "6a559a606e9b053899b2f6ed3ce190331ca84e2a66089ed76a7b6d58756c479e",
+        "cf2aff707d9ce2134924476f5582853cfecebb2e91df30f794b4be5afd5e9219"
+      ],
+      "xmp_sha256": "8325a0a5e8271eeb0a086fe2e29e0e6c0b91cf3946270634993dc6ac0cb5d9cb"
+    },
+    "r5-aes-256-user.pdf": {
+      "user_password": "Pässwört-6",
+      "owner_password": "owner-pw",
+      "V": 5,
+      "R": 5,
+      "key_bits": 256,
+      "encrypt_metadata": true,
+      "P": -2056,
+      "permissions": {
+        "accessibility": true,
+        "extract": true,
+        "print_low_res": false,
+        "print_high_res": false,
+        "assemble": true,
+        "fill_forms": true,
+        "annotate": true,
+        "modify": true
+      },
+      "xmp_plaintext": false,
+      "page_count": 2,
+      "outline_titles": [
+        "Chapter 1",
+        "Section 1.1 (nested)",
+        "Chapitre 2 — Café"
+      ],
+      "info": {
+        "Author": "lamina",
+        "Producer": "fixtures/encrypted/make.py",
+        "Subject": "B2b fixtures — Café",
+        "Title": "Secret document"
+      },
+      "content_sha256": [
+        "6a559a606e9b053899b2f6ed3ce190331ca84e2a66089ed76a7b6d58756c479e",
+        "cf2aff707d9ce2134924476f5582853cfecebb2e91df30f794b4be5afd5e9219"
+      ],
+      "xmp_sha256": "8325a0a5e8271eeb0a086fe2e29e0e6c0b91cf3946270634993dc6ac0cb5d9cb"
+    },
+    "r6-aes-256-empty.pdf": {
+      "user_password": "",
+      "owner_password": "owner-pw",
+      "V": 5,
+      "R": 6,
+      "key_bits": 256,
+      "encrypt_metadata": true,
+      "P": -4,
+      "permissions": {
+        "accessibility": true,
+        "extract": true,
+        "print_low_res": true,
+        "print_high_res": true,
+        "assemble": true,
+        "fill_forms": true,
+        "annotate": true,
+        "modify": true
+      },
+      "xmp_plaintext": false,
+      "page_count": 2,
+      "outline_titles": [
+        "Chapter 1",
+        "Section 1.1 (nested)",
+        "Chapitre 2 — Café"
+      ],
+      "info": {
+        "Author": "lamina",
+        "Producer": "fixtures/encrypted/make.py",
+        "Subject": "B2b fixtures — Café",
+        "Title": "Secret document"
+      },
+      "content_sha256": [
+        "6a559a606e9b053899b2f6ed3ce190331ca84e2a66089ed76a7b6d58756c479e",
+        "cf2aff707d9ce2134924476f5582853cfecebb2e91df30f794b4be5afd5e9219"
+      ],
+      "xmp_sha256": "8325a0a5e8271eeb0a086fe2e29e0e6c0b91cf3946270634993dc6ac0cb5d9cb"
+    },
+    "r6-aes-256-user.pdf": {
+      "user_password": "Pässwört-6",
+      "owner_password": "owner-pw",
+      "V": 5,
+      "R": 6,
+      "key_bits": 256,
+      "encrypt_metadata": true,
+      "P": -2324,
+      "permissions": {
+        "accessibility": true,
+        "extract": false,
+        "print_low_res": true,
+        "print_high_res": false,
+        "assemble": true,
+        "fill_forms": false,
+        "annotate": true,
+        "modify": true
+      },
+      "xmp_plaintext": false,
+      "page_count": 2,
+      "outline_titles": [
+        "Chapter 1",
+        "Section 1.1 (nested)",
+        "Chapitre 2 — Café"
+      ],
+      "info": {
+        "Author": "lamina",
+        "Producer": "fixtures/encrypted/make.py",
+        "Subject": "B2b fixtures — Café",
+        "Title": "Secret document"
+      },
+      "content_sha256": [
+        "6a559a606e9b053899b2f6ed3ce190331ca84e2a66089ed76a7b6d58756c479e",
+        "cf2aff707d9ce2134924476f5582853cfecebb2e91df30f794b4be5afd5e9219"
+      ],
+      "xmp_sha256": "8325a0a5e8271eeb0a086fe2e29e0e6c0b91cf3946270634993dc6ac0cb5d9cb"
+    },
+    "identity-stmf.pdf": {
+      "user_password": "user-pw",
+      "owner_password": "owner-pw",
+      "V": 4,
+      "R": 4,
+      "key_bits": 128,
+      "encrypt_metadata": true,
+      "P": -3904,
+      "permissions": {
+        "accessibility": false,
+        "extract": false,
+        "print_low_res": false,
+        "print_high_res": false,
+        "assemble": false,
+        "fill_forms": false,
+        "annotate": false,
+        "modify": false
+      },
+      "xmp_plaintext": true,
+      "page_count": 2,
+      "outline_titles": [
+        "Chapter 1",
+        "Section 1.1 (nested)",
+        "Chapitre 2 — Café"
+      ],
+      "info": {
+        "Author": "lamina",
+        "Producer": "fixtures/encrypted/make.py",
+        "Subject": "B2b fixtures — Café",
+        "Title": "Secret document"
+      },
+      "content_sha256": [
+        "6a559a606e9b053899b2f6ed3ce190331ca84e2a66089ed76a7b6d58756c479e",
+        "cf2aff707d9ce2134924476f5582853cfecebb2e91df30f794b4be5afd5e9219"
+      ],
+      "xmp_sha256": "8325a0a5e8271eeb0a086fe2e29e0e6c0b91cf3946270634993dc6ac0cb5d9cb"
+    },
+    "crypt-filter-identity.pdf": {
+      "user_password": "user-pw",
+      "owner_password": "owner-pw",
+      "V": 4,
+      "R": 4,
+      "key_bits": 128,
+      "encrypt_metadata": true,
+      "P": -3904,
+      "permissions": {
+        "accessibility": false,
+        "extract": false,
+        "print_low_res": false,
+        "print_high_res": false,
+        "assemble": false,
+        "fill_forms": false,
+        "annotate": false,
+        "modify": false
+      },
+      "xmp_plaintext": false,
+      "page_count": 2,
+      "outline_titles": [
+        "Chapter 1",
+        "Section 1.1 (nested)",
+        "Chapitre 2 — Café"
+      ],
+      "info": {
+        "Author": "lamina",
+        "Producer": "fixtures/encrypted/make.py",
+        "Subject": "B2b fixtures — Café",
+        "Title": "Secret document"
+      },
+      "content_sha256": [
+        "6a559a606e9b053899b2f6ed3ce190331ca84e2a66089ed76a7b6d58756c479e",
+        "cf2aff707d9ce2134924476f5582853cfecebb2e91df30f794b4be5afd5e9219"
+      ],
+      "xmp_sha256": "8325a0a5e8271eeb0a086fe2e29e0e6c0b91cf3946270634993dc6ac0cb5d9cb"
+    }
+  }
+}
