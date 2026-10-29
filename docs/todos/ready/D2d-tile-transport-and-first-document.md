@@ -24,7 +24,7 @@ Make the desktop app a working single-window reader: File ▸ Open (via a button
 - ADR 0008 §tile transport and D1a's README (`spikes/desktop-ipc/`): primary/fallback transport, tile size, compression, in-flight limit.
 - ADR 0009 / web C3: the viewer's engine interface (request IDs, priorities, `AbortSignal` cancellation, `ImageBitmap` painting). The desktop client must implement exactly that interface.
 - D2b: `EngineSupervisor`, `DocumentRegistry`, `SessionPassword`, and the protocol (crate `lamina-desktop-protocol`): `RenderTile`/`Cancel`/`Tile`, `UnlockDocument`/`Unlocked`/`NeedsPassword`.
-- [Desktop plan §4 non-functional](../../plans/desktop-app.md#non-functional-targets-are-recommendations): first page of a 1 GB PDF ≤ 1.5 s after open; idle memory ≤ 150 MB with one 10-page document.
+- [Desktop plan §4 non-functional](../../plans/desktop-app.md#non-functional-targets-and-release-gates): first page of a 1 GB PDF ≤ 1.5 s after open; idle memory ≤ 150 MB with one 10-page document.
 - [Desktop notes Q1](../../research/architecture/notes/desktop-shell.md#q1-shell-options-versions-size-memory-startup-webview-differences-licence-maturity-production-users): Canvas2D only on Linux; no WebGL dependency.
 - Tauri: `tauri::ipc::Channel`, `tauri::ipc::Response`, `InvokeResponseBody::Raw`, `register_asynchronous_uri_scheme_protocol` (per D1a's choice).
 
@@ -63,6 +63,7 @@ Make the desktop app a working single-window reader: File ▸ Open (via a button
 ## Acceptance criteria
 
 - [ ] On all three OSes, opening a fixture through the open button renders the first page; scrolling and zooming paint sharp tiles; cancelled tile requests never paint (stale-generation check, unit-tested).
+- [ ] Cold start to an interactive window (empty state accepts input; the engine process may still be starting) is measured on the reference machine on all three OSes and recorded against the **< 300 ms** release gate ([desktop-app §4](../../plans/desktop-app.md#non-functional-targets-and-release-gates)); a miss opens a follow-up todo; from D2e on, the reference-runner assertion fails PRs that regress it.
 - [ ] The generated 1 GB fixture shows its first page within **1.5 s** after the open dialog closes on the reference machine (macOS and Windows; Linux recorded).
 - [ ] Idle memory with one 10-page document ≤ **150 MB** across main + engine (webview recorded separately; if over target, note it in ADR 0008 with a plan).
 - [ ] Encrypted fixtures open after the password prompt; a wrong password shows the retry prompt; the password never appears in logs (grep of log output in the test run).

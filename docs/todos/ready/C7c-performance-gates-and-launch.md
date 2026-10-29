@@ -7,7 +7,7 @@
 | Plan | [web reader §6 C7. Accessibility, offline and launch](../../plans/web-app.md#c7-accessibility-offline-and-launch) |
 | Round / milestone | Round C (web reader) — **M2 Web reader v0.1** (milestone closes with this PR) |
 | Depends on | [C3c](./C3c-viewer-perf-harness.md), [C4d](./C4d-deploy-previews-and-production.md), [C6c](./C6c-print-download-properties.md), [C7a](./C7a-accessibility-and-theming.md), [C7b](./C7b-offline-pwa.md), [U2a](./U2a-selection-surfaces-and-copy-modes.md), [U2c](./U2c-page-appearance-modes.md), [U3a](./U3a-responsive-mobile-and-touch.md), [U4a](./U4a-network-indicator-and-privacy-proof.md) |
-| Blocks | [U5a](./U5a-product-pledge-and-targets.md), [U5b](./U5b-reader-benchmark.md), [U5c](./U5c-opt-in-usage-telemetry.md), [E1a](./E1a-editing-foundation-feature-plan.md), [E13e](./E13e-server-jobs-infrastructure.md), [H2](./H2-accounts-and-login.md) |
+| Blocks | [U5a](./U5a-pricing-and-promises-page.md), [U5b](./U5b-reader-benchmark.md), [U5c](./U5c-opt-in-usage-telemetry.md), [E1a](./E1a-editing-foundation-feature-plan.md), [E13e](./E13e-server-jobs-infrastructure.md), [H2](./H2-accounts-and-login.md) |
 | ADRs | Follows 0011 (publishes its privacy rules as a user-facing page), [0018](../../decisions/0018-test-strategy.md) §2 (which gates run in which lane) |
 | Branch | `feat/c7c-web-v0-1-launch` |
 | PR title | `feat(web): enforce performance budgets and launch the web reader v0.1` |
@@ -20,11 +20,11 @@ Ship **web v0.1**. Turn the §4 performance targets into CI gates (app-shell siz
 
 ## Context
 
-- [UI/UX plan §6](../../plans/ui-ux.md#6-rounds) — the launch also waits for the v0.1 parts of Round U: selection surfaces ([U2a](./U2a-selection-surfaces-and-copy-modes.md)), page modes ([U2c](./U2c-page-appearance-modes.md)), the phone layout ([U3a](./U3a-responsive-mobile-and-touch.md)) and the network indicator ([U4a](./U4a-network-indicator-and-privacy-proof.md)). The plan's numbers stay the gates; the research's stretch goals are published separately ([U5a](./U5a-product-pledge-and-targets.md)).
+- [UI/UX plan §6](../../plans/ui-ux.md#6-rounds) — the launch also waits for the v0.1 parts of Round U: selection surfaces ([U2a](./U2a-selection-surfaces-and-copy-modes.md)), page modes ([U2c](./U2c-page-appearance-modes.md)), the phone layout ([U3a](./U3a-responsive-mobile-and-touch.md)) and the network indicator ([U4a](./U4a-network-indicator-and-privacy-proof.md)). The plan's numbers stay the gates; the research's stretch goals are published separately ([U5a](./U5a-pricing-and-promises-page.md)).
 - [web-app.md §4 non-functional targets](../../plans/web-app.md#non-functional-targets-are-recommendations-measured-from-c3-onward) and [privacy and security](../../plans/web-app.md#privacy-and-security).
 - [C3c](./C3c-viewer-perf-harness.md) — harness and history; open perf issues it filed.
 - [ADR 0018 §1 tier 11 and §2](../../decisions/0018-test-strategy.md#2-ci-lanes) — no wall-clock assertions in PR lanes; perf in nightly; regressions open issues. The size budget (bytes) is deterministic and **can** gate PRs; time budgets gate only the nightly/release lanes on a controlled runner.
-- ADR 0011 — privacy and telemetry decisions (no telemetry in v0.1 unless the owner decided otherwise).
+- ADR 0011 — privacy and telemetry decisions (no telemetry in v0.1; optional opt-in telemetry later, owner decision 2026-10-29).
 - [Roadmap milestones](../../plans/roadmap.md#milestones) — M2 Web reader v0.1.
 
 ## Scope
@@ -47,6 +47,7 @@ Ship **web v0.1**. Turn the §4 performance targets into CI gates (app-shell siz
 ## Tasks
 
 - [ ] Claim via a claim PR (see Definition of done); then a fresh worktree off the updated `main`.
+- [ ] Get the owner's statement of v0.1's pricing status (for example a free preview, or the free tier) and put it in the launch copy with the note that lamina will be a paid product.
 - [ ] Size-budget script (`tools/` or `cargo xtask size web`) reading Vite's build manifest; min+gz each JS chunk loaded on startup (exclude lazy chunks only if they're truly lazy); CI step in the fast lane for PRs touching the same paths as C4d's deploy filter (`apps/web/`, `packages/`, `crates/`, lockfiles `pnpm-lock.yaml`/`Cargo.lock`, root manifests, and the workflow files) — reuse C4d's single filter list, so dependency bumps are size-checked.
 - [ ] Promote C3c scenarios to gates in the release workflow (on the reference runner or a dedicated self-hosted/large runner) and add them to the `needs:` of C4d's tag-triggered production job; nightly keeps reporting and opening issues. If the reference run is manual (see Risks), the production job uses the `production` environment's required reviewer as the gate, and the reviewer approves only with the attached passing run.
 - [ ] Lighthouse CI config (`lighthouserc.json`) with thresholds (accessibility ≥ 95, best practices ≥ 95, performance ≥ 90 on desktop profile; pinned `@lhci/cli` version, no `pwa` category) run against the PR preview (non-required) and release (required); add C7b's `installability.spec.ts` to the same preview job and to the release lane as a required step.
@@ -59,6 +60,7 @@ Ship **web v0.1**. Turn the §4 performance targets into CI gates (app-shell siz
 
 ## Acceptance criteria
 
+- [ ] The launch copy states v0.1's pricing status as approved by the owner, and that lamina will be a paid product (UI/UX principle 10).
 - [ ] PR lane fails when the app shell exceeds 200 KB min+gz (demonstrated by a temporary test commit in the PR, then reverted).
 - [ ] **Performance targets in §4 are met on the reference machine** (release-lane run attached to the PR) or each miss has an approved waiver issue.
 - [ ] Lighthouse thresholds pass on this PR's preview deployment; C7b's installability spec passes against it.
@@ -85,7 +87,8 @@ Size-budget script unit tests; release-lane perf gates (C3c harness); Lighthouse
 ## Risks and open questions
 
 - **Reference machine for runtime gates**: GitHub-hosted runners are noisy; a self-hosted runner or a fixed large runner is needed for gating; until then, gates run manually on the maintainer's reference machine and results are attached (decide with the owner).
-- **Telemetry and domain** questions ([§8](../../plans/web-app.md#8-open-questions) Q1, Q3) must be settled before launch copy is final.
+- **Domain** question ([§8](../../plans/web-app.md#8-open-questions) Q1) must be settled before launch copy is final; telemetry (Q3) is settled: none in v0.1.
+- **Pricing status at launch**: lamina will be priced (owner decision 2026-10-29), but the pricing page ([U5a](./U5a-pricing-and-promises-page.md)) follows the launch. So that later tiers aren't a changed deal ([UI/UX principle 10](../../plans/ui-ux.md#4-principles)), the owner states before launch what v0.1 is (for example a free preview, or the free tier) and the launch copy says that lamina will be a paid product.
 - **Safari/iPadOS** issues found late may force waivers; budget a stabilisation week before tagging.
 
 ## Definition of done
