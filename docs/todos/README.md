@@ -12,18 +12,18 @@ New todos start from [`TEMPLATE.md`](TEMPLATE.md). The workflow is in [git workf
 
 IDs: `A`/`P`/`X` [architecture](../plans/architecture.md) (foundations, publishing, cross-cutting), `B` [library](../plans/pdf-library.md), `L` [shareable libraries](../plans/shareable-libraries.md) (contracts, worker, extraction, CLI, agent docs, mobile), `C` [web reader](../plans/web-app.md), `D` [desktop reader](../plans/desktop-app.md), `U` [UI/UX](../plans/ui-ux.md), `E` [editor](../plans/full-editor.md), `H` hosted service ([full-editor](../plans/full-editor.md)). A letter suffix (`B2a`, `B2b`) splits a round into PRs.
 
-**2 ongoing · 216 ready · 13 done** (231 total).
+**3 ongoing · 215 ready · 13 done** (231 total).
 
 ## Can start now
 
 Ready todos whose dependencies are all done:
 
-- [B9a](ready/B9a-lamina-content-and-adr-0023.md): ADR 0023 and `lamina-content`: read-only content-stream interpreter
 - [L1a](ready/L1a-contract-adrs.md): Contract ADRs 0026 (errors), 0027 (coordinates and units), 0028 (façade rules, jobs, cancellation)
 
 ## Ongoing
 
 - [B3b](ongoing/B3b-lamina-save-writers.md): `lamina-save`: move the writer, `WriteSink`, incremental and full writers over the overlay, rebase
+- [B9a](ongoing/B9a-lamina-content-and-adr-0023.md): ADR 0023 and `lamina-content`: read-only content-stream interpreter
 - [X3a](ongoing/X3a-nightly-lane.md): Nightly CI lane: external-corpus differential, extended fuzzing, scaling tests and benchmarks
 
 ## Architecture — Round A
@@ -60,8 +60,8 @@ Ready todos whose dependencies are all done:
 | B7b | [Changesets, Cargo version sync, ADR 0017 (versioning) and the local `0.1.0-alpha.0` tag](ready/B7b-versioning-and-0-1-0-alpha.md) | ready | [B6c](ready/B6c-runtime-matrix.md), [B7a](ready/B7a-docs-site.md), [X3a](ongoing/X3a-nightly-lane.md) |
 | B8a | [Tagged PDF: structure tree builder, artifacts, alt text, MCIDs and ParentTree](ready/B8a-structure-tree.md) | ready | [B5c](ready/B5c-lamina-facade-and-examples.md), [B6b](ready/B6b-lamina-pdf-package.md) |
 | B8b | [Conformance profiles (PDF/UA-1, PDF/A-2b/2u/3b), output intents, veraPDF nightly and `0.2.0-alpha`](ready/B8b-conformance-profiles-and-verapdf.md) | ready | [B4c](ready/B4c-standard-14-and-simple-fonts.md), [B7b](ready/B7b-versioning-and-0-1-0-alpha.md), [B8a](ready/B8a-structure-tree.md), [X3a](ongoing/X3a-nightly-lane.md) |
-| B9a | [ADR 0023 and `lamina-content`: read-only content-stream interpreter](ready/B9a-lamina-content-and-adr-0023.md) | ready | [B2c](done/B2c-lamina-model-corpus-fuzz.md), [X4](done/X4-full-lane-gate.md) |
-| B9b | [Text extraction in `lamina-text`: fonts from files, encodings, ToUnicode, glyph runs and quads](ready/B9b-text-extraction-core.md) | ready | [B2b](done/B2b-standard-security-decryption.md), [B4a](ready/B4a-font-loading-and-subsetting.md), [B4c](ready/B4c-standard-14-and-simple-fonts.md), [B5c](ready/B5c-lamina-facade-and-examples.md), [B9a](ready/B9a-lamina-content-and-adr-0023.md) |
+| B9a | [ADR 0023 and `lamina-content`: read-only content-stream interpreter](ongoing/B9a-lamina-content-and-adr-0023.md) | ongoing | [B2c](done/B2c-lamina-model-corpus-fuzz.md), [X4](done/X4-full-lane-gate.md) |
+| B9b | [Text extraction in `lamina-text`: fonts from files, encodings, ToUnicode, glyph runs and quads](ready/B9b-text-extraction-core.md) | ready | [B2b](done/B2b-standard-security-decryption.md), [B4a](ready/B4a-font-loading-and-subsetting.md), [B4c](ready/B4c-standard-14-and-simple-fonts.md), [B5c](ready/B5c-lamina-facade-and-examples.md), [B9a](ongoing/B9a-lamina-content-and-adr-0023.md) |
 | B9c | [`page.text()` in WASM and TypeScript; differential and quad tests; extraction fuzzing](ready/B9c-text-extraction-bindings-and-differential.md) | ready | [B6b](ready/B6b-lamina-pdf-package.md), [B6c](ready/B6c-runtime-matrix.md), [B9b](ready/B9b-text-extraction-core.md) |
 
 ## Shareable libraries — Rounds L1–L6
