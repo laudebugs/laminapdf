@@ -209,7 +209,7 @@ Ticked by the PR that completes them.
 - [ ] Document properties dialog (metadata, fonts, version, encryption, signatures present)
 
 ### C7. Accessibility, offline and launch
-- [ ] Keyboard shortcuts map shared with desktop; help dialog
+- [ ] Keyboard shortcuts (from the command registry, [UI/UX U1b](../todos/ready/U1b-command-registry-and-palette.md)) shared with desktop; help dialog
 - [ ] Focus management, landmarks, live-region announcements for search and page changes
 - [ ] High contrast, dark mode, reduced motion
 - [ ] Service worker caching shell + WASM; web app manifest with `file_handlers`

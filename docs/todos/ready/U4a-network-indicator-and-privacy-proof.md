@@ -28,8 +28,8 @@
 
 **In scope**
 
-- A request counter with three feeds, grouped by origin and kind (app shell, WASM, document range requests): `PerformanceObserver` (`resource` entries) in the page; the document worker, which reports every fetch it makes (the `#url=` range requests from C4c) over the worker RPC, since the page's resource timeline doesn't see worker fetches; and the service worker, which reports requests it serves or forwards once one is registered (C7b; until then the feed is absent and the panel says so).
-- Status-bar item: "0 requests" or "3 requests to example.org" with a panel listing origin, count, bytes and purpose; the app's own cached assets after load are listed separately and counted as zero document traffic.
+- A request counter with three feeds, grouped by origin and kind (app shell, WASM, document range requests): `PerformanceObserver` (`resource` entries) in the page; the document worker, which at start-up wraps its global `fetch`, `XMLHttpRequest` and `WebSocket` (so no code path in it can bypass reporting) and forwards every request (the `#url=` range requests from C4c among them) and its own `securitypolicyviolation` events over the worker RPC, since the page sees neither; and the service worker, which reports requests it serves or forwards once one is registered (C7b; until then the feed is absent and the panel says so).
+- Status-bar item showing **document traffic** ("0 requests" or "3 requests to example.org") with a panel listing origin, count, bytes and purpose. **App assets** (same-origin requests for `/assets/*` hashed files and the WASM modules, including the lazy PDFium load during file selection) are a separate, labelled group that doesn't count as document traffic; the classifier is one exported function used by both the indicator and the tests.
 - CSP unchanged from C4b/C4c (`connect-src 'self' https:` in production). Investigate narrowing for local-only sessions (a `<meta>` policy can only add restrictions, and workers take the CSP of their own script response) and record the result; don't widen anything at runtime.
 - A privacy page section that explains the indicator and how to verify it with browser devtools.
 
@@ -41,14 +41,14 @@
 ## Tasks
 
 - [ ] Claim via a claim PR (see Definition of done); then a fresh worktree off the updated `main`.
-- [ ] Implement the three feeds and verify they catch fetch, XHR, images, fonts, beacons and WebSocket attempts from the page and the document worker (CSP violations reported via `securitypolicyviolation`).
+- [ ] Implement the three feeds; in the page, wrap `WebSocket` and `navigator.sendBeacon` too (WebSockets produce no Resource Timing entries); verify fetch, XHR, images, fonts, beacons and WebSocket attempts are caught from the page and the document worker, and that worker CSP violations reach the panel.
 - [ ] Build the status item and panel in `@lamina/ui`; message strings in the catalogue.
 - [ ] Playwright: open local fixtures and assert that the indicator shows 0 and that Playwright's browser-context request log (which includes worker requests) agrees; open a `#url=` fixture and assert the worker's range requests are counted and only that origin appears.
-- [ ] In a test, attempt a plain-HTTP request (CSP blocks it; the panel shows the violation) and an HTTPS request to a third origin from the page and from the worker (CSP allows it; the indicator must count it).
+- [ ] In a test, attempt from the worker a raw `fetch` that doesn't use any lamina helper (it must still be counted), then a plain-HTTP request (CSP blocks it; the panel shows the violation) and an HTTPS request to a third origin from the page and from the worker (CSP allows it; the indicator must count it).
 
 ## Acceptance criteria
 
-- [ ] Indicator and Playwright's browser-context request log agree on every e2e flow, including `#url=` documents whose bytes the worker fetches (test).
+- [ ] On every e2e flow, the indicator's total equals Playwright's browser-context request log count, and its document-traffic count equals the log filtered by the same classifier (same-origin app assets removed), including `#url=` documents whose bytes the worker fetches and cold-cache runs where PDFium loads after open (test).
 - [ ] A forced plain-HTTP request is blocked by CSP and shown as a violation; a forced HTTPS request to a third origin, from the page or the worker, is counted (tests).
 - [ ] The indicator is keyboard reachable and announced by screen readers (axe; manual VoiceOver check).
 

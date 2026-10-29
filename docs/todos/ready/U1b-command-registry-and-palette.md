@@ -7,7 +7,7 @@
 | Plan | [UI/UX §6 U1. Shell foundations](../../plans/ui-ux.md#u1-shell-foundations) |
 | Round / milestone | Round U (UI/UX) — M2 Web reader v0.1 |
 | Depends on | [C4a](./C4a-ui-chrome-and-platform.md), [U1a](./U1a-adr-0024-app-shell-ux.md) |
-| Blocks | [C7a](./C7a-accessibility-and-theming.md), [D4b](./D4b-native-menus.md), [U2a](./U2a-selection-surfaces-and-copy-modes.md) |
+| Blocks | [C7a](./C7a-accessibility-and-theming.md), [D4b](./D4b-native-menus.md), [U1c](./U1c-inverted-l-shell-and-modes.md), [U2a](./U2a-selection-surfaces-and-copy-modes.md), [U3a](./U3a-responsive-mobile-and-touch.md) |
 | ADRs | Implements 0024 (command registry); follows 0009, 0010 |
 | Branch | `feat/u1b-command-registry-and-palette` |
 | PR title | `feat(ui): add the command registry and the command palette` |
@@ -46,7 +46,7 @@ Make every reader action a registered command and give power users a Cmd/Ctrl+K 
 - [ ] Claim via a claim PR (see Definition of done); then a fresh worktree off the updated `main`.
 - [ ] Check cmdk's licence and that of its Radix dependencies; `cargo xtask npm-licenses` passes.
 - [ ] Implement the registry and argument parsers with unit tests for every parser (valid, invalid, out of range, page labels).
-- [ ] Implement the dispatcher and the collision test; document reserved shortcuts (browser Ctrl+F/P/S, Ctrl+W/T/N, Firefox Quick Find `/` and `'`, macOS Cmd+Q/W/H, Windows Alt+F4); the collision test covers every entry.
+- [ ] Implement the dispatcher and the collision test; keep two lists per shell: **never bind** (shortcuts a page can't or mustn't take: browser Ctrl+W/T/N, Firefox Quick Find `/` and `'`, macOS Cmd+Q/H, Windows Alt+F4; on desktop only the OS-level ones) and **deliberate overrides** (bound on purpose with `preventDefault`, each with a reason: Mod+K palette, Mod+F find, Mod+P print, Mod+S save later; on desktop Cmd+W closes the tab). The collision test fails on any binding in the never list, on any override not in the allowlist, and on two commands sharing a shortcut.
 - [ ] Build the palette with APG combobox semantics (focus stays in the input, `aria-activedescendant`, `aria-expanded`, live count of results).
 - [ ] Port C4a's toolbar actions to commands; delete duplicated handlers.
 - [ ] Add a palette demo to `examples/ui-demo.tsx` with a fake viewer.
@@ -55,7 +55,7 @@ Make every reader action a registered command and give power users a Cmd/Ctrl+K 
 
 - [ ] Every action reachable from the toolbar is a registered command, and the palette runs each one (test enumerates the registry).
 - [ ] `go to 12`, `zoom 150` and a page-label jump work from the palette in one step; invalid arguments show a message and run nothing.
-- [ ] No two commands share a shortcut on any platform, and none collides with the reserved list (test).
+- [ ] No two commands share a shortcut on any platform, none uses a never-bind shortcut, and every browser/OS shortcut a command takes is in that shell's override allowlist with a reason (test).
 - [ ] Keyboard-only and screen-reader checks: axe reports zero serious/critical violations with the palette open; VoiceOver announces result counts.
 - [ ] Opening the palette and filtering 30 commands stays under 16 ms per keystroke on the perf harness machine.
 

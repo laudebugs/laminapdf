@@ -26,7 +26,9 @@ All four share one Rust core, so every operation is built once ([architecture §
                                                                                         │     │
                                                                                         └► D1 └► D2 ─► D3 ─► D4 ─► D5 ─► D6 ─► D7 (desktop beta)
 
- C4 ─► U1 ─► C7a;  C5 + U1 ─► U2 ─► C7c;  C4 + U1 ─► U3a, U4a ─► C7c;  B8a + U2 ─► U4 reader mode;  C7 ─► U5
+ C2a ─► U1a ─► C4a ─► U1b ─► U1c ─► C6a, C7a, U3a, U4a        (Round U: UI/UX; see the todo board for exact edges)
+ B9b ─► U2b;  C5a + U2b + U3a ─► U2a;  C2b + C7a ─► U2c;  U2a + U2c + U3a + U4a ─► C7c
+ B8a + C5a + U2b ─► U4b ─► U4c;  U3a ─► U3b;  C7c ─► U5a, U5c;  C7c + D7c ─► U5b
 
  C7 + D7 ─► E1 ─► E2 ─► E3 ─► E4 ─► E5 ─► E6 ─► E7 ─► E8 ─► E9 ─► E10 ─► E11 … E18 (editor phases 2–6)
 ```
@@ -35,7 +37,7 @@ All four share one Rust core, so every operation is built once ([architecture §
 - **Library first** (recommended in [architecture §8](architecture.md#8-open-questions-for-the-team), question 1): B1–B3 produce the model (with decryption, so readers can open password-protected files), ops and save path everyone needs.
 - **Web reader after B6:** C1's PDFium spike loads `lamina-wasm` next to PDFium-WASM, so it starts once B6 has merged (its `hayro-parity` half can start earlier). C5's text layer needs B9 (text extraction), which runs alongside C1–C4. B7, B8 and B9 run in parallel with the reader rounds. Technically B9a (the `lamina-content` interpreter) only needs B2c, so it may start before B6 if people are free; B9c (bindings) needs B6b.
 - **Desktop after the web packages:** D1 can start after C3; D2 needs `@lamina/ui` from C4.
-- **UI/UX alongside the readers** ([UI/UX plan](ui-ux.md)): Round U sets the shell (U1) right after `@lamina/ui` exists (C4a) and adds selection, page modes, the phone layout and the network indicator before the web launch (C7a, C7c wait for them). Reader mode, the mobile spike and the product promises (pledge, benchmark, opt-in telemetry) follow the launch.
+- **UI/UX alongside the readers** ([UI/UX plan](ui-ux.md)): ADR 0024 (U1a) comes before `@lamina/ui` (C4a), the command registry and shell (U1b, U1c) right after it, and Round U adds selection, page modes, the phone layout and the network indicator before the web launch (C7a, C7c wait for them). Reader mode, the mobile spike and the product promises (pledge, benchmark, opt-in telemetry) follow the launch; the benchmark also waits for the desktop beta (D7c).
 - **Editor after both readers** ship v0.1, so phase 1 (core viewer) is done once and E-rounds add features to both shells and the packages at the same time.
 - **B8 and later E-rounds** can overlap with reader work as people allow; they don't block each other except where listed.
 

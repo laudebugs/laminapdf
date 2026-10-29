@@ -80,7 +80,7 @@ Unit tests (command scopes, dispatcher, announcer throttling, contrast script); 
 
 ## Docs to update
 
-`apps/web/ACCESSIBILITY.md` (new: conformance notes, AT pass results, known issues), `packages/ui/README.md` (command scopes and help text); tick "Keyboard shortcuts map shared with desktop; help dialog", "Focus management, landmarks, live-region announcements…", "High contrast, dark mode, reduced motion" and the axe/manual-pass item in [web-app.md §9](../../plans/web-app.md#9-to-dos).
+`apps/web/ACCESSIBILITY.md` (new: conformance notes, AT pass results, known issues), `packages/ui/README.md` (command scopes and help text); tick "Keyboard shortcuts (from the command registry …) shared with desktop; help dialog", "Focus management, landmarks, live-region announcements…", "High contrast, dark mode, reduced motion" and the axe/manual-pass item in [web-app.md §9](../../plans/web-app.md#9-to-dos).
 
 ## Risks and open questions
 

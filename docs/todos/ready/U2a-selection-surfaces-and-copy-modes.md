@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [UI/UX §6 U2. Reading quality](../../plans/ui-ux.md#u2-reading-quality) |
 | Round / milestone | Round U (UI/UX) — M2 Web reader v0.1 |
-| Depends on | [C5a](./C5a-text-layer-and-selection.md), [U1b](./U1b-command-registry-and-palette.md), [U2b](./U2b-reading-order-ground-truth.md) |
+| Depends on | [C5a](./C5a-text-layer-and-selection.md), [U1b](./U1b-command-registry-and-palette.md), [U2b](./U2b-reading-order-ground-truth.md), [U3a](./U3a-responsive-mobile-and-touch.md) |
 | Blocks | [C7c](./C7c-performance-gates-and-launch.md) |
 | ADRs | Implements 0024 (selection surfaces); follows 0009 |
 | Branch | `feat/u2a-selection-surfaces` |
@@ -31,7 +31,7 @@ Fix the friction users report most after speed: copying from multi-column PDFs g
 **In scope**
 
 - `SelectionToolbar` (fine pointer): above the first selected line, flips below on collision, appears on `pointerup`, `role="toolbar"`, Shift+F10 to focus, Escape to dismiss; actions Copy, Copy exact, Search for, and editor actions when their modes exist; can be turned off in settings.
-- `SelectionActionBar` (coarse pointer): replaces the bottom bar while a selection exists (Copy, Share, Search for, More); never positioned over the native menu.
+- `SelectionActionBar` (coarse pointer): replaces U3a's phone bottom bar while a selection exists (Copy, Share, Search for, More); never positioned over the native menu.
 - Copy modes in the clipboard path: paragraph (reading order from lamina's extraction, joined lines, de-hyphenated, paragraph breaks kept) and exact (layout line breaks); both also write `text/html` with paragraphs.
 - Rectangular selection with Alt/Option-drag (desktop) that selects within a column box.
 - Commands registered in U1b: `copy`, `copy-exact`, `select-column-mode`.
@@ -55,7 +55,7 @@ Fix the friction users report most after speed: copying from multi-column PDFs g
 - [ ] On U2b's multi-column fixtures, copy-as-paragraph meets the U2b threshold; copy exact reproduces line breaks.
 - [ ] Pasting a copied paragraph into a plain textarea gives no line breaks inside paragraphs (test).
 - [ ] The toolbar never covers selected text (geometry test over 20 selection positions, including page edges).
-- [ ] Playwright mobile profiles: native selection menu visible with the action bar (screenshot check on WebKit and Chromium mobile).
+- [ ] Playwright mobile profiles: the action bar appears on a touch selection and never overlaps the selected text's rects (emulation doesn't render the OS selection menu); on a real iPhone (Safari) and Android phone (Chrome), the native menu stays visible and uncovered — a recorded manual check in the PR.
 - [ ] Keyboard: Shift+F10 focuses the toolbar; every toolbar action is also in the context menu and palette.
 
 ## Post-merge checks

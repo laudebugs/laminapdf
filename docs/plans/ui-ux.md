@@ -186,7 +186,7 @@ Each round is split into todos (one pull request each) on the [todo board](../to
 ### U2. Reading quality
 
 **Deliverable:** selection toolbar and bottom action bar, copy as paragraph / copy exact / column selection; a reading-order ground-truth corpus with a metric in CI; page appearance modes in both render backends.
-**Accepted when:** copy-as-paragraph meets the U2b reading-order threshold on the corpus; Sepia and Dark modes leave raster images byte-identical in the rendered output.
+**Accepted when:** copy-as-paragraph meets the U2b reading-order threshold on the corpus; Sepia and Dark modes leave opaque raster images pixel-identical to Original, and never recolour any image's samples.
 **Todos:** [U2a](../todos/ready/U2a-selection-surfaces-and-copy-modes.md), [U2b](../todos/ready/U2b-reading-order-ground-truth.md), [U2c](../todos/ready/U2c-page-appearance-modes.md)
 
 ### U3. Mobile and touch
@@ -218,6 +218,7 @@ The research also changes todos in other plans (each notes this plan in its Cont
 | [C3b](../todos/ready/C3b-viewer-virtualiser-and-zoom.md) | The four-step render pipeline in §5.6 and the mobile bitmap caps |
 | [C4a](../todos/ready/C4a-ui-chrome-and-platform.md) | Depends on U1a (ADR 0024 fixes the layout first); `ReaderShell` exposes the rail, inspector and secondary-toolbar slots that U1c fills; buttons reference command ids once U1b lands |
 | [C5a](../todos/ready/C5a-text-layer-and-selection.md) | The viewer emits selection events with rects and runs for U2a |
+| [C6a](../todos/ready/C6a-thumbnails-outline-page-labels.md) | Depends on U1c; thumbnails and outline fill the left rail's tabs instead of a sidebar of their own |
 | [C7a](../todos/ready/C7a-accessibility-and-theming.md) | Depends on U1b and U1c; the keymap and help dialog come from the command registry; the "night reading" filter is replaced by U2c's page modes |
 | [C7c](../todos/ready/C7c-performance-gates-and-launch.md) | Also depends on U2a, U2c, U3a and U4a; the plan's targets stay the gates (stretch goals are U5a's) |
 | [D4b](../todos/ready/D4b-native-menus.md) | Depends on U1b; native menus are generated from the command registry |

@@ -49,7 +49,7 @@ Let people read comfortably at night and in sepia without the broken photo negat
 
 ## Acceptance criteria
 
-- [ ] In Sepia and Dark, raster image pixels are unchanged versus Original (golden diff over image regions).
+- [ ] In Sepia and Dark, opaque images without an `/SMask` and with the Normal blend mode are pixel-identical to Original over their regions (golden diff); for images with transparency, soft masks or other blend modes, a renderer-level test checks their decoded samples bypass recolouring (their composited pixels may differ because the paper behind them changed).
 - [ ] Annotation colours are unchanged in every mode (golden diff over annotation regions).
 - [ ] Dark text/background contrast ≥ 7:1 for body text on the fixtures; High contrast uses the system colours under emulated `forced-colors`.
 - [ ] Switching mode re-renders visible tiles only and keeps the scroll position (Playwright).
