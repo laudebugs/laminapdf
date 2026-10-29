@@ -12,7 +12,7 @@
 | Branch | `feat/x1-docs-link-checker` |
 | PR title | `feat(xtask): docs link checker and todo-board check (X1)` |
 | Size | M (≈ 250–450 lines incl. tests) |
-| PR | — |
+| PR | [#17](https://github.com/laudebugs/lamina/pull/17) |
 
 ## Goal
 
