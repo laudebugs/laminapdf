@@ -505,9 +505,18 @@ impl Source {
             return Ok(());
         }
         let mut pending = Pending::default();
+        // `read` caches only spans of at most `CACHED_SPAN` windows, so a longer range is
+        // read in chunks of that size; otherwise its bytes would be fetched and dropped.
+        let chunk = WINDOW * CACHED_SPAN;
         for &(start, len) in ranges {
-            if let Err(e) = self.read(start, len, Fetch::Cached) {
-                pending.absorb(e)?;
+            let end = start.saturating_add(len);
+            let mut at = start;
+            while at < end {
+                let next = (at - at % WINDOW).saturating_add(chunk).min(end);
+                if let Err(e) = self.read(at, next - at, Fetch::Cached) {
+                    pending.absorb(e)?;
+                }
+                at = next;
             }
         }
         pending.finish()
@@ -639,6 +648,18 @@ pub(crate) mod tests {
         let first = source.read(WINDOW, WINDOW, Fetch::Cached).unwrap();
         let second = source.read(WINDOW, WINDOW, Fetch::Cached).unwrap();
         assert!(std::ptr::eq(first.bytes(), second.bytes()));
+    }
+
+    #[test]
+    fn a_prefetch_longer_than_the_cached_span_is_kept_for_later_reads() {
+        let windows = 2 * CACHED_SPAN + 1;
+        let (source, inner) = NoSlice::source(numbered(windows * WINDOW));
+        source.prefetch(&[(0, windows * WINDOW)]).unwrap();
+        let after_prefetch = inner.reads();
+        for w in 0..windows {
+            source.read(w * WINDOW, WINDOW, Fetch::Cached).unwrap();
+        }
+        assert_eq!(inner.reads(), after_prefetch);
     }
 
     #[test]
