@@ -174,7 +174,7 @@ Green is a moss green, `#495533` (OKLCH chroma 0.055, hue 124°). It replaces th
 | Plum | `#5B3B6B` | `#472856` | `#3D1E4C` | `#E8E2E4` | `#DBD4DE` | `#D2C5C0` | `#C59FD9` | `#D6B6E7` | `#3F383E` | `#5B4D60` |
 | Green | `#495533` | `#35401F` | `#2C3615` | `#E6E5DE` | `#D7DAD2` | `#CECBB4` | `#A8B78F` | `#BDCAA8` | `#3B3C33` | `#515646` |
 
-`on-accent` stays `#FFFFFF` in light and `#1E1D1A` in dark for every accent. Contrast, recomputed (WCAG 2.x):
+`field-tint` (fillable fields, §2.1) is the accent at 8% over white in light; in dark it is the dark accent at 12% over dark `field`, with `control-border` on it ≥ 3.01 and text ≥ 10.9: Teal `#EDF2F3` / `#29302E`, Blue `#EEF1F3` / `#2C2F31`, Plum `#F2EFF3` / `#322D31`, Green `#F0F1EF` / `#2F2F28`. `on-accent` stays `#FFFFFF` in light and `#1E1D1A` in dark for every accent. Contrast, recomputed (WCAG 2.x):
 
 | Accent | Light: on ground · on surface · white on it · white on pressed · on its tint · text on tint · page ink on selection · Sepia ink on selection | Dark: on ground · on surface · on raised · `on-accent` on it · on its tint · text on tint · page ink on selection |
 | --- | --- | --- |
@@ -199,7 +199,7 @@ Green is a moss green, `#495533` (OKLCH chroma 0.055, hue 124°). It replaces th
 **Collisions and how they are resolved:**
 
 - **Blue** is the hex of the outline `/C` Blue and of Compare's overlay blue (§2.7). A selected bookmark row is marked by `accent-tint` and weight, not by its text colour. The current change in Compare carries its number chip as well as the outline.
-- The **presence** blue and plum sit near the Blue and Plum accents. Remote selections are dashed and named (§2.7), so they never look like your own.
+- **Presence** blue `#1F5C8A` sits near the Blue accent and presence violet `#5B4B8A` (20° of hue) near the Plum accent; presence plum `#8A3B5C` is 42° away. Remote selections in every presence colour are dashed and named (§2.7), so they never look like your own.
 - **Green** stays 30° of hue away from `positive`. A selected state is never drawn as green text alone; it always has the tint or the underline.
 
 **Setting.** View settings (R10) and Settings › Appearance (S07) show an **Accent** row under Theme.
@@ -207,11 +207,11 @@ Green is a moss green, `#495533` (OKLCH chroma 0.055, hue 124°). It replaces th
 - **Control:** a radio group of four 32 px swatches named Teal, Blue, Plum, Green, with the selected ring from §7.12.
 - **High contrast:** in that theme the row is disabled with the help line "High contrast uses your system colours".
 - **Command:** `view.accent` (`teal`, `blue`, `plum`, `green`).
-- **Applying it:** switching swaps CSS custom properties under `[data-accent]` beside `[data-theme]`, with no re-render and no transition under reduced motion.
+- **Applying it:** switching swaps CSS custom properties under `[data-accent]`, with no re-render and no transition under reduced motion. Each accent's dark values must apply wherever the dark theme does: under `[data-theme="dark"][data-accent=…]` **and** under `@media (prefers-color-scheme: dark)` for `:root:not([data-theme])[data-accent=…]` (Match system), so a light accent never lands on dark chrome.
 - **Storage and sync:**
-  - The accent is applied before first paint, so there is no flash of teal.
-  - Signed out, it is stored on the device.
-  - Signed in, it is saved to the account with Theme, so every device that signs in gets the same look (H02). The device's own choice wins until the first sign-in, and the account's afterwards.
+  - Every device always caches the last applied Theme and Accent locally (`localStorage` on the web, the settings file on desktop), signed in or not, and applies that cache before first paint, so there is no flash of teal.
+  - Signed in, Theme and Accent are also saved to the account, so every device that signs in gets the same look (H02 shows it; there is no switch). After load, if the account's value differs from the cache, the app applies it without animation and updates the cache.
+  - **First sign-in on a device:** if the account already has an appearance, the account's wins and replaces the device's choice; if it has none, the device's choice is uploaded and becomes the account's. After that, the latest change on any signed-in device wins.
 
 ## 3. Typography
 
@@ -1745,11 +1745,11 @@ Every command id used in the area documents on 2026-10-29 (regenerated after the
 | `tool.link` | Link tool | Pages and navigation O12; Add and edit | — |  |
 | `tool.select` | Select (Edit) | Add and edit A05; Forms P05 | V (page, Edit) — shared key, scoped |  |
 | `tool.shape` | Shape tool | Add and edit A02 | — |  |
+| `view.accent` | Accent colour | Reader B R10; Desktop shell S03, S07 | — | `teal`, `blue`, `plum`, `green`; synced with the account (§2.8) |
 | `view.actual-size` | Actual size | Reader B R10, R12; Desktop shell S03 | ⌘0 · Ctrl 0 (desktop); 0 (page) |  |
 | `view.collapse-outline` | Collapse outline | Reader A R06; Reader B R17, R18 | — |  |
 | `view.continuous` | Continuous scrolling | Reader B R10; Desktop shell S03 | — |  |
 | `view.expand-outline` | Expand outline | Reader A R06; Reader B R17, R18 | — |  |
-| `view.accent` | Accent colour | Reader B R10; Desktop shell S03, S07 | — | `teal`, `blue`, `plum`, `green`; synced with the account (§2.8) |
 | `view.fit-page` | Fit page | Reader B R10; Desktop shell S03 | — |  |
 | `view.fit-width` | Fit width | Reader B R10; Desktop shell S03 | — |  |
 | `view.focus-mode` | Focus mode | Reader B R12, R16; Desktop shell S03 | ⌘\ · Ctrl \ |  |

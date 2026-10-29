@@ -125,7 +125,7 @@ button,input,textarea{font:inherit;color:inherit}
 <script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#1F5C63","options":["#1F5C63","#2D4A6B","#5B3B6B","#495533"]},"pageAppearance":{"editor":"enum","options":["Original","Dark"],"default":"Original"},"$preview":{"width":1440,"height":900}}'>
 class Component extends DCLogic {
   renderVals() {
-    var accent = this.props.accent ?? '#1F5C63';
+    var accent = String(this.props.accent ?? '#1F5C63').toUpperCase();
     // Dark-theme values per accent, from design language §2.8 (keyed by the light accent).
     var DARK = {
       '#1F5C63': { accent: '#7DBDC2', strong: '#9BCFD3', tint: '#343C3B', pageSel: '#425858' },

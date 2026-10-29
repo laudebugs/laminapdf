@@ -66,7 +66,7 @@ View settings and page appearance, the dark UI theme, keyboard shortcut help, th
 
 **Entry points.** `?` (page focus), palette command `help.shortcuts`, More › Keyboard shortcuts. The desktop app adds F1 and Help › Keyboard shortcuts. F1 is not bound on the web, where browsers use it for their own help.
 
-**Layout.** A dialog over the dimmed shell (`scrim`), `max-width: 760px`. It uses the 820 px wide dialog width (§7.18) because the shortcuts sit in two columns. Its parts:
+**Layout.** A dialog over the dimmed shell (`scrim`), 820 px wide (§7.18) because the shortcuts sit in two columns. Its parts:
 
 - **Header:** title “Keyboard shortcuts”, a subline naming the platform and the single-key rule, and a close button.
 - **Search field:** focused on open.

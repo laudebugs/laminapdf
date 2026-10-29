@@ -83,7 +83,7 @@ button{font:inherit;color:inherit}
 <script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#1F5C63","options":["#1F5C63","#2D4A6B","#5B3B6B","#495533"]},"pageAppearance":{"editor":"enum","options":["Original","Sepia"],"default":"Original"},"theme":{"editor":"enum","options":["Light","Dark"],"default":"Light"},"$preview":{"width":390,"height":844}}'>
 class Component extends DCLogic {
   renderVals() {
-    var accent = this.props.accent ?? '#1F5C63';
+    var accent = String(this.props.accent ?? '#1F5C63').toUpperCase();
     var dark = (this.props.theme ?? 'Light') === 'Dark';
     function mix(hex, base, t) {
       var p = function (h, i) { return parseInt(h.replace('#', '').substr(i, 2), 16); };

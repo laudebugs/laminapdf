@@ -36,7 +36,7 @@ Ship opt-in accounts: sign-up/sign-in/sign-out with the H1 stack on the `apps/we
 - Sign-in UI in `@lamina/ui` (hidden behind "Sign in" — never required)
 - Desktop: deep-link callback, token stored in the OS keychain
 - Account deletion (hard delete within N days) and data export
-- Appearance sync: Theme and Accent colour ([design §2.8](../../design/paper/design-language.md#28-accent-colours-proposed)) are saved to the account and applied on every signed-in device; the device's own choice is kept until the first sign-in, and the account's wins after that
+- Appearance sync: Theme and Accent colour ([design §2.8](../../design/paper/design-language.md#28-accent-colours-proposed)) are saved to the account and applied on every signed-in device (no switch). At a device's first sign-in the account's value wins if it has one, else the device's choice is uploaded; after that the latest change wins. Each device keeps a local cache applied before first paint
 - Security headers/CSRF; rate limits; audit log minimal
 
 **Out of scope** (and which todo covers it)

@@ -114,10 +114,9 @@ button,input,textarea{font:inherit;color:inherit}
             <span style="font-size: 12px; color: #6B645A">Signing a device out stops its sync. Files saved on it stay there.</span>
             <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-top: 8px; padding-top: 14px; border-top: 1px solid #E4DED3">
               <div style="display: flex; flex-direction: column; gap: 2px; min-width: 0">
-                <span id="sync-ap">Sync appearance (theme and accent colour) across your devices</span>
-                <span id="sync-ap-d" style="font-size: 12px; color: #6B645A">Now: Light · {{accentName}}. A device keeps its own choice until it first signs in; after that, the account’s choice applies.</span>
+                <span id="sync-ap">Appearance</span>
+                <span style="font-size: 12px; color: #6B645A">Light · {{accentName}}. Saved to your account, so every device you sign in on matches. Change it in View settings.</span>
               </div>
-              <button role="switch" aria-checked="true" aria-labelledby="sync-ap" aria-describedby="sync-ap-d" style="flex: 0 0 auto; width: 32px; height: 18px; margin-top: 2px; padding: 0; border: 1px solid {{accent}}; border-radius: 9px; background: {{accent}}; position: relative"><span style="position: absolute; top: 2px; right: 2px; width: 12px; height: 12px; border-radius: 50%; background: #FFFFFF"></span></button>
             </div>
           </section>
 
@@ -148,7 +147,7 @@ button,input,textarea{font:inherit;color:inherit}
 <script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#1F5C63","options":["#1F5C63","#2D4A6B","#5B3B6B","#495533"]},"$preview":{"width":1440,"height":900}}'>
 class Component extends DCLogic {
   renderVals() {
-    var accent = this.props.accent ?? '#1F5C63';
+    var accent = String(this.props.accent ?? '#1F5C63').toUpperCase();
     function mix(hex, base, t) {
       var p = function (h, i) { return parseInt(h.replace('#', '').substr(i, 2), 16); };
       var out = '#';

@@ -187,7 +187,7 @@ class Component extends DCLogic {
     return Object.assign(this.theme(), this.vals());
   }
   theme() {
-    var accent = this.props.accent ?? '#1F5C63';
+    var accent = String(this.props.accent ?? '#1F5C63').toUpperCase();
     function mix(hex, base, t) {
       var p = function (h, i) { return parseInt(h.replace('#', '').substr(i, 2), 16); };
       var out = '#';
@@ -200,7 +200,7 @@ class Component extends DCLogic {
     return { accent: accent, accentTint: mix(accent, '#FBF9F5', 0.12), accentStrong: ({'#1F5C63':'#16454B','#2D4A6B':'#1A3757','#5B3B6B':'#472856','#495533':'#35401F'})[accent] || mix(accent, '#000000', 0.72), selTint: mix(accent, '#FFFFFF', 0.22), fieldTint: mix(accent, '#FFFFFF', 0.08) };
   }
   vals() {
-    var a = this.props.accent ?? '#1F5C63';
+    var a = String(this.props.accent ?? '#1F5C63').toUpperCase();
     return { acc: { teal: a === '#1F5C63', blue: a === '#2D4A6B', plum: a === '#5B3B6B', green: a === '#495533' } };
   }
 }
