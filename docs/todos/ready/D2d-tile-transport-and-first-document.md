@@ -63,6 +63,7 @@ Make the desktop app a working single-window reader: File ▸ Open (via a button
 ## Acceptance criteria
 
 - [ ] On all three OSes, opening a fixture through the open button renders the first page; scrolling and zooming paint sharp tiles; cancelled tile requests never paint (stale-generation check, unit-tested).
+- [ ] Cold start to an interactive window (empty state accepts input; the engine process may still be starting) is measured on the reference machine on all three OSes and recorded against the **< 300 ms** release gate ([desktop-app §4](../../plans/desktop-app.md#non-functional-targets-are-recommendations)); a miss opens a follow-up todo before D7c.
 - [ ] The generated 1 GB fixture shows its first page within **1.5 s** after the open dialog closes on the reference machine (macOS and Windows; Linux recorded).
 - [ ] Idle memory with one 10-page document ≤ **150 MB** across main + engine (webview recorded separately; if over target, note it in ADR 0008 with a plan).
 - [ ] Encrypted fixtures open after the password prompt; a wrong password shows the retry prompt; the password never appears in logs (grep of log output in the test run).

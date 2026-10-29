@@ -59,6 +59,8 @@ A native **PDF reader for macOS, Windows and Linux** built with Tauri 2. It reus
 
 ### Non-functional (targets are recommendations)
 
+Two rows are release gates the owner decided on 2026-10-29, not recommendations: cold start and installer size. A miss blocks the beta ([D7c](../todos/ready/D7c-desktop-beta-release.md)); the other rows stay recommendations.
+
 | Metric | Target |
 | --- | --- |
 | Cold start to interactive window, mid-range machine | < 300 ms (macOS, Windows, Linux; owner decision 2026-10-29, from the [product research](../research/product/pdf-app-product-and-ux.md#a-phased-roadmap-that-fits-the-existing-rounds); was ≤ 1 s, ≤ 1.5 s on Linux) |
