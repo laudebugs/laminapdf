@@ -3,14 +3,14 @@
 | Field | Value |
 | --- | --- |
 | ID | `X4` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [architecture §7 Round B](../../plans/architecture.md#round-b--core-model-and-the-first-package) ("Golden-file and corpus test harness in CI (full lane)"), [§7 Cross-cutting](../../plans/architecture.md#cross-cutting) |
 | Round / milestone | Cross-cutting (Round B infrastructure) |
-| Depends on | [B2c](../done/B2c-lamina-model-corpus-fuzz.md) |
+| Depends on | [B2c](./B2c-lamina-model-corpus-fuzz.md) |
 | Blocks | [B3c](../ready/B3c-save-planner-and-roundtrip.md), [B4a](../ready/B4a-font-loading-and-subsetting.md), [B4b](../ready/B4b-shaping-bidi-line-breaking.md), [B5c](../ready/B5c-lamina-facade-and-examples.md), [B9a](../ready/B9a-lamina-content-and-adr-0023.md) |
 | ADRs | Implements [0018](../../decisions/0018-test-strategy.md) §2 (full lane: required check, never skipped by a workflow `paths` filter, changed-paths job + gate job), §4 (no retries in PR lanes) |
-| Branch | `ci/x4-full-lane` |
-| PR title | `ci: full PR lane on three OSes with mutant differential, fuzz smoke and a required gate job` |
+| Branch | `ci/x4-full-lane-gate` |
+| PR title | `ci: full PR lane with an always-running gate job (X4)` |
 | Size | M (≈ 300–600 lines of workflow, xtask and docs) |
 | PR | — |
 
@@ -40,12 +40,12 @@ Add the second PR lane ADR 0018 defines, without blocking docs-only PRs. The ful
 
 ## Tasks
 
-- [ ] Write `full.yml` with `changes`, suites and `gate`; reuse `select-runner.yml` for Linux, GitHub-hosted for macOS/Windows
-- [ ] `cargo xtask differential --mutants 500` (generate with fixed seed; expectations from B2c `--update`)
-- [ ] `cargo xtask fuzz --all --time 120` for CI
+- [x] Write `full.yml` with `changes`, suites and `gate`; reuse `select-runner.yml` for Linux, GitHub-hosted for macOS/Windows
+- [x] `cargo xtask differential --mutants 500` (generate with fixed seed; expectations from B2c `--update`)
+- [x] `cargo xtask fuzz --all --time 120` for CI
 - [ ] Test on a docs-only PR (gate passes in seconds) and a code PR (suites run)
 - [ ] Owner: set `gate` as required in branch protection
-- [ ] Document
+- [x] Document
 
 ## Acceptance criteria
 
@@ -66,8 +66,8 @@ The workflow on two test PRs (docs-only and code), linked in the PR description.
 
 ## Docs to update
 
-- [ ] [architecture §7 Round B](../../plans/architecture.md#round-b--core-model-and-the-first-package): tick "Golden-file and corpus test harness in CI (full lane)" (fuzz half may already be ticked by B2c)
-- [ ] ADR 0018 (implementation note), `CLAUDE.md`, [git workflow §5](../../guidelines/git-workflow.md#5-pull-requests) if CI expectations change
+- [x] [architecture §7 Round B](../../plans/architecture.md#round-b--core-model-and-the-first-package): tick "Golden-file and corpus test harness in CI (full lane)" (fuzz half may already be ticked by B2c)
+- [x] ADR 0018 (implementation note), `CLAUDE.md`, [git workflow §5](../../guidelines/git-workflow.md#5-pull-requests) if CI expectations change
 
 ## Risks and open questions
 
@@ -76,8 +76,19 @@ The workflow on two test PRs (docs-only and code), linked in the PR description.
 
 ## Definition of done
 
-- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [x] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
 - [ ] Work PR opened from a fresh worktree; **PR** field filled in
 - [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+
+## Notes and deviations
+
+- **Classification lives in xtask.** `cargo xtask changes [--base <rev>]` (`tools/xtask/src/changes.rs`) lists the paths changed since the merge base (`--no-renames`, so a rename out of code counts both paths) and writes `code=true|false` to `$GITHUB_OUTPUT`. Its unit tests cover every allowlist pattern, the root config files listed above, `.github/workflows/full.yml`, `.config/nextest.toml`, lockfiles and an unknown root file. `LICENSE*` matches at the root only. The `changes` job builds xtask with the bare pinned toolchain (no cross targets), as ci.yml's TypeScript job does. It diffs against the PR's own base branch (`origin/${{ github.base_ref }}`), not always `main`.
+- **Three OSes without duplicating the fast lane.** The fast lane already runs on a self-hosted macOS runner when one is online (else Ubuntu), so the full lane runs `cargo xtask check` on Windows plus whichever of Linux and macOS the fast lane didn't use (`check-unix`, decided from `select-runner.yml`'s answer). Differential and fuzz run on the `select-runner` choice.
+- **The 500-mutant set is separate from the fast set.** It has its own seed (`FULL_SEED`) and is spread evenly over the 14 corpus files (`<stem>-f<i>.pdf`). Its facts are in `fixtures/differential/mutants-500.json` (pypdf 6.21.3), and the ignored test `full_mutant_set_agrees_with_pypdf` checks them; `cargo xtask differential --mutants 500` runs it. 205 of the 500 mutants differ from pypdf on at least one fact. Every difference was sorted by lamina's own warnings and errors into eight ADR 0003 causes, listed as grouped entries (`files = [...]`) in `fixtures/differential/mutants-500-exceptions.toml`: repair where pypdf gives up (136), lamina repairing where pypdf silently fixes an xref entry (21), lamina opening without repair where pypdf fails (6) or warns (2), no catalog (2), a malformed `/Encrypt` (2), skipped page-tree kids (33 page counts) and skipped outline items (6). No lamina bug turned up. The test also fails on an exception whose file isn't in the set.
+- **Fuzz** runs the five targets one after another in one job. `--all` runs every target before failing, so a crash in one target doesn't hide another. The corpus is cached per OS and architecture (`fuzz-corpus-pr-…`).
+- **nextest `ci` profile.** `retries = 0`, the default slow-timeout and `fail-fast = false`. Both PR lanes set `NEXTEST_PROFILE=ci`. The robustness override in the default profile still applies.
+- **Windows.** xtask now finds `pnpm.cmd` on Windows (`program_path`), because `Command` only finds `.exe` files on `PATH` there.
+- **Minutes.** The repository is private, so the macOS and Windows jobs bill at higher rates. ADR 0018 says every code PR, so they run on every code PR; moving them to `main` pushes only is the owner's call (see Risks).
+- **Branch protection** is an owner action, documented in the PR description: require the `gate` check. Today no status check is required.

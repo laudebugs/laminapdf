@@ -61,7 +61,7 @@ fn allow_list(deny_toml: &str) -> Result<Vec<String>> {
 /// Lists one dependency group (`--prod` or `--dev`) and returns `name (group): licence` for each
 /// package whose licence expression `allowed` rejects.
 fn disallowed(ws: &Workspace, group: &str, allowed: &impl Fn(&str) -> bool) -> Result<Vec<String>> {
-    let output = Command::new("pnpm")
+    let output = Command::new(crate::program_path("pnpm"))
         .args(["licenses", "list", "--recursive", "--json", group])
         .current_dir(&ws.root)
         .output()

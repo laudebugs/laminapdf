@@ -1,5 +1,6 @@
-# CI fast lane (docs/research/architecture/notes/repo-and-packaging.md §6): every PR and every push
-# to main. Jobs call the same `cargo xtask …` entry points developers run locally.
+# CI fast lane (docs/research/architecture/notes/repo-and-packaging.md §6, ADR 0018 §2): every PR
+# and every push to main. Jobs call the same `cargo xtask …` entry points developers run locally.
+# The full lane (full.yml) runs alongside it; its `gate` job is the required check.
 # Actions are pinned by full commit SHA with the release in a comment (ADR 0019); Dependabot bumps them.
 name: CI
 
@@ -19,6 +20,8 @@ concurrency:
 env:
   CARGO_TERM_COLOR: always
   CARGO_INCREMENTAL: 0
+  # .config/nextest.toml: no retries in the PR lanes (ADR 0018 §4).
+  NEXTEST_PROFILE: ci
 
 jobs:
   # Prefer the self-hosted runners (macOS ARM64) when one is online; fall back to GitHub-hosted

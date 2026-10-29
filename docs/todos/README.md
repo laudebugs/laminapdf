@@ -12,12 +12,13 @@ New todos start from [`TEMPLATE.md`](TEMPLATE.md). The workflow is in [git workf
 
 IDs: `A`/`P`/`X` [architecture](../plans/architecture.md) (foundations, publishing, cross-cutting), `B` [library](../plans/pdf-library.md), `L` [shareable libraries](../plans/shareable-libraries.md) (contracts, worker, extraction, CLI, agent docs, mobile), `C` [web reader](../plans/web-app.md), `D` [desktop reader](../plans/desktop-app.md), `U` [UI/UX](../plans/ui-ux.md), `E` [editor](../plans/full-editor.md), `H` hosted service ([full-editor](../plans/full-editor.md)). A letter suffix (`B2a`, `B2b`) splits a round into PRs.
 
-**4 ongoing · 217 ready · 10 done** (231 total).
+**3 ongoing · 217 ready · 11 done** (231 total).
 
 ## Can start now
 
 Ready todos whose dependencies are all done:
 
+- [B9a](ready/B9a-lamina-content-and-adr-0023.md): ADR 0023 and `lamina-content`: read-only content-stream interpreter
 - [L1a](ready/L1a-contract-adrs.md): Contract ADRs 0026 (errors), 0027 (coordinates and units), 0028 (façade rules, jobs, cancellation)
 
 ## Ongoing
@@ -25,7 +26,6 @@ Ready todos whose dependencies are all done:
 - [B2d](ongoing/B2d-windowed-reading.md): Windowed reading for sources without `as_slice`
 - [B3a](ongoing/B3a-overlay-and-ops.md): COS overlay and `lamina-ops`: `Op`, `transact`, savepoints, undo/redo
 - [X3a](ongoing/X3a-nightly-lane.md): Nightly CI lane: external-corpus differential, extended fuzzing, scaling tests and benchmarks
-- [X4](ongoing/X4-full-lane-gate.md): Full PR lane with an always-running gate job
 
 ## Architecture — Round A
 
@@ -47,13 +47,13 @@ Ready todos whose dependencies are all done:
 | B2d | [Windowed reading for sources without `as_slice`](ongoing/B2d-windowed-reading.md) | ongoing | [B2a](done/B2a-limits-owned-document.md) |
 | B3a | [COS overlay and `lamina-ops`: `Op`, `transact`, savepoints, undo/redo](ongoing/B3a-overlay-and-ops.md) | ongoing | [B2c](done/B2c-lamina-model-corpus-fuzz.md) |
 | B3b | [`lamina-save`: move the writer, `WriteSink`, incremental and full writers over the overlay, rebase](ready/B3b-lamina-save-writers.md) | ready | [B3a](ongoing/B3a-overlay-and-ops.md) |
-| B3c | [`SavePlanner`, `SaveConstraint` detection and round-trip in lamina, pdf.js, PDFium and qpdf](ready/B3c-save-planner-and-roundtrip.md) | ready | [B2b](done/B2b-standard-security-decryption.md), [B3b](ready/B3b-lamina-save-writers.md), [X4](ongoing/X4-full-lane-gate.md) |
-| B4a | [`lamina-text`: font loading, subsetting and Type 0 embedding with ToUnicode](ready/B4a-font-loading-and-subsetting.md) | ready | [B1b](done/B1b-krilla-fit-spike.md), [B3b](ready/B3b-lamina-save-writers.md), [X4](ongoing/X4-full-lane-gate.md) |
-| B4b | [Shaping (HarfRust), bidi and line breaking (ICU4X), with goldens in five scripts](ready/B4b-shaping-bidi-line-breaking.md) | ready | [B4a](ready/B4a-font-loading-and-subsetting.md), [X4](ongoing/X4-full-lane-gate.md) |
+| B3c | [`SavePlanner`, `SaveConstraint` detection and round-trip in lamina, pdf.js, PDFium and qpdf](ready/B3c-save-planner-and-roundtrip.md) | ready | [B2b](done/B2b-standard-security-decryption.md), [B3b](ready/B3b-lamina-save-writers.md), [X4](done/X4-full-lane-gate.md) |
+| B4a | [`lamina-text`: font loading, subsetting and Type 0 embedding with ToUnicode](ready/B4a-font-loading-and-subsetting.md) | ready | [B1b](done/B1b-krilla-fit-spike.md), [B3b](ready/B3b-lamina-save-writers.md), [X4](done/X4-full-lane-gate.md) |
+| B4b | [Shaping (HarfRust), bidi and line breaking (ICU4X), with goldens in five scripts](ready/B4b-shaping-bidi-line-breaking.md) | ready | [B4a](ready/B4a-font-loading-and-subsetting.md), [X4](done/X4-full-lane-gate.md) |
 | B4c | [Standard 14 fonts with AFM metrics and simple-font encoding](ready/B4c-standard-14-and-simple-fonts.md) | ready | [B4a](ready/B4a-font-loading-and-subsetting.md) |
 | B5a | [`lamina-build` core: builder, pages, vectors, colour and images](ready/B5a-lamina-build-core.md) | ready | [B1b](done/B1b-krilla-fit-spike.md), [B3c](ready/B3c-save-planner-and-roundtrip.md), [L1a](ready/L1a-contract-adrs.md) |
 | B5b | [Builder text, links, destinations, outlines, page labels and metadata](ready/B5b-builder-text-and-document-features.md) | ready | [B4b](ready/B4b-shaping-bidi-line-breaking.md), [B4c](ready/B4c-standard-14-and-simple-fonts.md), [B5a](ready/B5a-lamina-build-core.md) |
-| B5c | [The `lamina` façade crate, Rust examples, and byte and render goldens](ready/B5c-lamina-facade-and-examples.md) | ready | [B5b](ready/B5b-builder-text-and-document-features.md), [X4](ongoing/X4-full-lane-gate.md) |
+| B5c | [The `lamina` façade crate, Rust examples, and byte and render goldens](ready/B5c-lamina-facade-and-examples.md) | ready | [B5b](ready/B5b-builder-text-and-document-features.md), [X4](done/X4-full-lane-gate.md) |
 | B6a | [`lamina-wasm`, `@lamina/wasm` build, ADR 0016 and size budgets](ready/B6a-lamina-wasm-and-adr-0016.md) | ready | [B5c](ready/B5c-lamina-facade-and-examples.md) |
 | B6b | [`@lamina/pdf`: the TypeScript API, `init()`, export conditions, publint and attw](ready/B6b-lamina-pdf-package.md) | ready | [B2b](done/B2b-standard-security-decryption.md), [B6a](ready/B6a-lamina-wasm-and-adr-0016.md) |
 | B6c | [Runtime matrix in CI: browsers, Node 22/24/26, Deno, Bun and workerd](ready/B6c-runtime-matrix.md) | ready | [B6b](ready/B6b-lamina-pdf-package.md) |
@@ -61,7 +61,7 @@ Ready todos whose dependencies are all done:
 | B7b | [Changesets, Cargo version sync, ADR 0017 (versioning) and the local `0.1.0-alpha.0` tag](ready/B7b-versioning-and-0-1-0-alpha.md) | ready | [B6c](ready/B6c-runtime-matrix.md), [B7a](ready/B7a-docs-site.md), [X3a](ongoing/X3a-nightly-lane.md) |
 | B8a | [Tagged PDF: structure tree builder, artifacts, alt text, MCIDs and ParentTree](ready/B8a-structure-tree.md) | ready | [B5c](ready/B5c-lamina-facade-and-examples.md), [B6b](ready/B6b-lamina-pdf-package.md) |
 | B8b | [Conformance profiles (PDF/UA-1, PDF/A-2b/2u/3b), output intents, veraPDF nightly and `0.2.0-alpha`](ready/B8b-conformance-profiles-and-verapdf.md) | ready | [B4c](ready/B4c-standard-14-and-simple-fonts.md), [B7b](ready/B7b-versioning-and-0-1-0-alpha.md), [B8a](ready/B8a-structure-tree.md), [X3a](ongoing/X3a-nightly-lane.md) |
-| B9a | [ADR 0023 and `lamina-content`: read-only content-stream interpreter](ready/B9a-lamina-content-and-adr-0023.md) | ready | [B2c](done/B2c-lamina-model-corpus-fuzz.md), [X4](ongoing/X4-full-lane-gate.md) |
+| B9a | [ADR 0023 and `lamina-content`: read-only content-stream interpreter](ready/B9a-lamina-content-and-adr-0023.md) | ready | [B2c](done/B2c-lamina-model-corpus-fuzz.md), [X4](done/X4-full-lane-gate.md) |
 | B9b | [Text extraction in `lamina-text`: fonts from files, encodings, ToUnicode, glyph runs and quads](ready/B9b-text-extraction-core.md) | ready | [B2b](done/B2b-standard-security-decryption.md), [B4a](ready/B4a-font-loading-and-subsetting.md), [B4c](ready/B4c-standard-14-and-simple-fonts.md), [B5c](ready/B5c-lamina-facade-and-examples.md), [B9a](ready/B9a-lamina-content-and-adr-0023.md) |
 | B9c | [`page.text()` in WASM and TypeScript; differential and quad tests; extraction fuzzing](ready/B9c-text-extraction-bindings-and-differential.md) | ready | [B6b](ready/B6b-lamina-pdf-package.md), [B6c](ready/B6c-runtime-matrix.md), [B9b](ready/B9b-text-extraction-core.md) |
 
@@ -306,5 +306,5 @@ Ready todos whose dependencies are all done:
 | X2 | [Capability matrix generator: ~180 operations, test-backed statuses](ready/X2-capability-matrix.md) | ready | [B3c](ready/B3c-save-planner-and-roundtrip.md) |
 | X3a | [Nightly CI lane: external-corpus differential, extended fuzzing, scaling tests and benchmarks](ongoing/X3a-nightly-lane.md) | ongoing | [B2c](done/B2c-lamina-model-corpus-fuzz.md) |
 | X3b | [Nightly hayro-vs-PDFium render diffs](ready/X3b-render-diff-nightly.md) | ready | [C2b](ready/C2b-lamina-render-crate.md), [X3a](ongoing/X3a-nightly-lane.md) |
-| X4 | [Full PR lane with an always-running gate job](ongoing/X4-full-lane-gate.md) | ongoing | [B2c](done/B2c-lamina-model-corpus-fuzz.md) |
+| X4 | [Full PR lane with an always-running gate job](done/X4-full-lane-gate.md) | done | [B2c](done/B2c-lamina-model-corpus-fuzz.md) |
 

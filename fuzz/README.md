@@ -18,10 +18,11 @@ Each target is one line calling a function in [`crates/lamina-model/tests/common
 rustup toolchain install nightly --profile minimal
 cargo install cargo-fuzz --locked --version 0.13.2    # or: cargo xtask doctor --install
 cargo xtask fuzz <target> --time 600                  # default 60 s
+cargo xtask fuzz --all --time 120                     # every target in turn (the full PR lane)
 cargo xtask fuzz seeds [<target>]                     # only build fuzz/corpus/<target>/
 ```
 
-`cargo xtask fuzz` first builds the seed corpus `fuzz/corpus/<target>/` (gitignored) from the PDFs in `fixtures/corpus/` and `fixtures/golden/`, plus `fixtures/regressions/<target>/` and everything under `fuzz/seeds/<target>/` (except `passwords.txt`) copied verbatim; seed names carry their source path, then runs `cargo +nightly fuzz run <target> fuzz/corpus/<target> -- -max_total_time=<N> -timeout=10 -rss_limit_mb=2048`. The scheduled workflow [`.github/workflows/fuzz.yml`](../.github/workflows/fuzz.yml) runs every target for 10 minutes each night (and on demand) and uploads crashes as artefacts.
+`cargo xtask fuzz` first builds the seed corpus `fuzz/corpus/<target>/` (gitignored) from the PDFs in `fixtures/corpus/` and `fixtures/golden/`, plus `fixtures/regressions/<target>/` and everything under `fuzz/seeds/<target>/` (except `passwords.txt`) copied verbatim; seed names carry their source path, then runs `cargo +nightly fuzz run <target> fuzz/corpus/<target> -- -max_total_time=<N> -timeout=10 -rss_limit_mb=2048`. The scheduled workflow [`.github/workflows/fuzz.yml`](../.github/workflows/fuzz.yml) runs every target for 10 minutes each night (and on demand) and uploads crashes as artefacts; the full PR lane ([`.github/workflows/full.yml`](../.github/workflows/full.yml)) runs each for 2 minutes on every code PR, with the corpus cached between runs.
 
 Encrypted seeds are maintained with decryption ([B2b](../docs/todos/done/B2b-standard-security-decryption.md)): the files go in `seeds/open/encrypted/` and their passwords, one per line, in `seeds/open/passwords.txt` (lines starting with `#` are ignored).
 

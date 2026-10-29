@@ -26,7 +26,8 @@ lamina is a platform for anything and everything PDF: creating PDFs from code, p
 ├── tools/xtask/         # `cargo xtask …`: the single task entry point
 ├── tools/corpus-facts/  # pypdf facts for fixtures (Python, pinned in requirements.txt); never run by tests
 ├── tools/fixtures/      # generators for fixtures written for lamina's tests (no dependencies)
-├── .github/             # CI fast lane (workflows/ci.yml), scheduled fuzzing (workflows/fuzz.yml), Dependabot
+├── .github/             # CI fast lane (workflows/ci.yml), full lane + required `gate` (workflows/full.yml),
+│                        #   scheduled fuzzing (workflows/fuzz.yml), Dependabot
 ├── spikes/              # research spikes (throwaway code that informs decisions), outside both workspaces
 │   ├── pdf-basics/      # minimal PDF core in Rust + TypeScript, its own frozen fixtures and spec (ported to crates/)
 │   ├── krilla-fit/      # Round B1: can krilla generate into lamina's object graph? (answer + measurements in its README)
@@ -86,13 +87,18 @@ cargo xtask golden --update  # regenerate every golden in fixtures/golden/ from 
 cargo xtask corpus facts     # rewrite fixtures/corpus/expected.json with pypdf ($LAMINA_PYTHON or python3)
 cargo xtask differential     # lamina vs pypdf's precomputed facts (corpus + fixed-seed mutants; part of `test`)
 cargo xtask differential --update  # regenerate fixtures/differential/expected.json with pypdf
+cargo xtask differential --mutants 500 [--update]  # the full lane's 500-mutant set (mutants-500.json)
 cargo xtask fuzz <target> [--time N]  # cargo +nightly fuzz: lex, parse_object, flate_decode, open, page_tree
+cargo xtask fuzz --all --time 120     # every fuzz target in turn (the full lane)
+cargo xtask changes [--base <rev>]    # paths changed since the merge base; code=true unless all are docs
 cargo xtask ci               # the whole fast lane locally: check + wasm
 cargo xtask doctor           # are rustc, node, pnpm, cargo-deny, cargo-nextest, wasm-opt … at the pinned versions?
 cargo xtask doctor --install # install the pinned cargo tools
 ```
 
 A single crate: `cargo test -p lamina-cos` (integration tests read the shared `fixtures/`; golden files are never rewritten by a test). Hangs are caught by nextest's per-test timeout in `.config/nextest.toml` (robustness tests: 30 s), not by wall-clock asserts (ADR 0018); plain `cargo test` runs the same tests without the timeout.
+
+CI has two PR lanes (ADR 0018 §2). The fast lane (`.github/workflows/ci.yml`) runs on every PR. The full lane (`.github/workflows/full.yml`) runs on every PR too: its `changes` job (`cargo xtask changes`) calls a PR docs-only when every changed path is `docs/**`, `*.md`, a root `LICENSE*` or a GitHub issue/PR template; otherwise (and on every push to `main`) it runs `cargo xtask check` on Windows and on whichever of Linux/macOS the fast lane didn't use, the 500-mutant differential and 2 minutes per fuzz target. Its `gate` job is the required check: it passes when every suite passed or wasn't needed. A new full-lane job copies a suite's `if:` and joins `gate`'s `needs`. Both lanes use nextest's `ci` profile (no retries).
 
 Fuzzing (`fuzz/`, see its README) needs nightly Rust and cargo-fuzz (pinned in `doctor.rs`); `.github/workflows/fuzz.yml` runs every target for 10 minutes nightly. Python (pypdf, pinned in `tools/corpus-facts/requirements.txt`) is only needed to regenerate facts; tests read the committed JSON.
 

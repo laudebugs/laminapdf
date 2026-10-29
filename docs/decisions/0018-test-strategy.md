@@ -42,6 +42,15 @@ The Full lane is never skipped by a workflow-level `paths` filter: GitHub keeps 
 
 A nightly failure opens an issue automatically and blocks the next release, not unrelated PRs.
 
+**Implementation note (X4, full lane).** [`.github/workflows/full.yml`](../../.github/workflows/full.yml) implements the Full row as follows:
+
+- **The filter is inverted.** Instead of listing the code paths above, `cargo xtask changes` (run by the `changes` job against the merge base with the PR's base branch, renames counted as both paths) calls a PR **docs-only** when every changed path is on a short allowlist: `docs/**`, `*.md` anywhere, `LICENSE*` at the root, `.github/ISSUE_TEMPLATE/**` and `.github/PULL_REQUEST_TEMPLATE.md`. Everything else is code, so root config nobody listed (`.cargo/config.toml`, `.gitattributes`, `rust-toolchain.toml`, `.github/actions/**`, workflows, lockfiles, a new root file) always runs the suites. The allowlist and its unit tests are in `tools/xtask/src/changes.rs`.
+- **The gate.** Suites run when `changes` says code or the event is a push to `main`. The `gate` job (`if: always()`) fails when `changes` didn't succeed, when any suite failed or was cancelled, or when a suite that should have run was skipped; it is the only check branch protection needs from this workflow. A new suite copies an existing suite's `if:` and joins `gate`'s `needs`.
+- **Fast lane on three OSes.** The fast lane (`ci.yml`) runs on a self-hosted macOS runner when one is online and on GitHub-hosted Ubuntu otherwise, so the full lane runs `cargo xtask check` on Windows and on whichever of Linux and macOS the fast lane didn't use (both workflows ask `select-runner.yml`).
+- **Differential.** `cargo xtask differential --mutants 500` checks 500 mutants from their own seed (`FULL_SEED` in `crates/lamina-model/tests/common/mutants.rs`, spread evenly over the corpus) against `fixtures/differential/mutants-500.json`. Their exceptions are in `mutants-500-exceptions.toml`, grouped by cause (`files` lists), each still naming its ADR 0003 rule. The fast set (four mutants per file) is unchanged.
+- **Fuzz.** `cargo xtask fuzz --all --time 120` runs the targets in turn; the corpus is cached between runs.
+- **No retries.** Both PR lanes set `NEXTEST_PROFILE=ci`: `retries = 0` and the same slow-timeouts as the default profile (§4).
+
 ### 3. Corpora: licensing and provenance
 
 - `fixtures/` holds small files we may redistribute, each listed in `fixtures/README.md` with origin, licence and what it exercises ([ADR 0019](0019-supply-chain-and-licence-hygiene.md)). Generated and mutated files are ours (`MIT OR Apache-2.0`). Nothing with personal data.
