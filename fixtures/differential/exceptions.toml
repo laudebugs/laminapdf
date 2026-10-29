@@ -192,29 +192,29 @@ reason = "the page tree is gone or unreadable; lamina opens the document with no
 [[known]]
 file = "enc-m95.pdf"
 facts = ["outcome"]
-issue = "https://github.com/laudebugs/lamina/pulls?q=X3a"
+issue = "https://github.com/laudebugs/lamina/pull/32"
 reason = "lamina fails with `syntax` where pdf.js and PDFium open the file and qpdf and pypdf repair it"
 
 [[known]]
 file = "enc-m163.pdf"
 facts = ["outcome"]
-issue = "https://github.com/laudebugs/lamina/pulls?q=X3a"
+issue = "https://github.com/laudebugs/lamina/pull/32"
 reason = "lamina fails with `syntax` where pdf.js and PDFium open the file and qpdf and pypdf repair it"
 
 [[known]]
 file = "pdfjs/test/pdfs/issue14267.pdf"
 facts = ["outline_titles"]
-issue = "https://github.com/laudebugs/lamina/pulls?q=X3a"
+issue = "https://github.com/laudebugs/lamina/pull/32"
 reason = "an undefined PDFDocEncoding byte (0x11) becomes U+FFFD in lamina; pdf.js, qpdf and pypdf keep U+0011, PDFium a space"
 
 [[known]]
 file = "pdfjs/test/pdfs/xfa_filled_imm1344e.pdf"
 facts = ["outline_titles"]
-issue = "https://github.com/laudebugs/lamina/pulls?q=X3a"
+issue = "https://github.com/laudebugs/lamina/pull/32"
 reason = "an undefined PDFDocEncoding byte (0x00) at the end of each title becomes U+FFFD in lamina; pdf.js, qpdf and pypdf keep U+0000, PDFium a space"
 
 [[known]]
 file = "pdfjs/test/pdfs/issue22011.pdf"
 facts = ["page_count"]
-issue = "https://github.com/laudebugs/lamina/pulls?q=X3a"
+issue = "https://github.com/laudebugs/lamina/pull/32"
 reason = "lamina walks 56 pages, PDFium, qpdf and pypdf 57 (a skipped kid, excused by the lamina-skips class) and pdf.js 40"

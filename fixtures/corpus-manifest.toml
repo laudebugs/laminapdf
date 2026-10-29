@@ -8,6 +8,9 @@
 # copied into fixtures/, even minimised (ADR 0018 §3): a regression found here is re-created
 # synthetically.
 #
+# `include` patterns are git sparse-checkout patterns, case-sensitive on Linux but not on macOS:
+# name every spelling a source uses (qpdf has `*.Pdf` files).
+#
 # `mirror` (or $LAMINA_CORPUS_MIRROR) is an optional base URL serving <mirror>/<name>/<commit>/<path>,
 # used only when git fails; the hashes here stay the source of truth.
 mirror = ""
@@ -1584,7 +1587,7 @@ repo = "https://github.com/qpdf/qpdf.git"
 commit = "4eba95899886e851cc41d76886483b347612f2a8"
 licence = "Apache-2.0 (repository); qtest PDFs carry no separate statement"
 licence_file = "/LICENSE.txt"
-include = ["/qpdf/qtest/qpdf/*.pdf"]
+include = ["/qpdf/qtest/qpdf/*.pdf", "/qpdf/qtest/qpdf/*.Pdf"]
 # 639 files, 38168283 bytes
 files = [
   { path = "qpdf/qtest/qpdf/11-pages-with-labels.pdf", size = 4215, sha256 = "3eae6c878c9ad7fdbab6b9748ff208f0ca47508aa7f578b44a7909b2431ec77b" },

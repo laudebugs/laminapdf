@@ -41,6 +41,9 @@ const HEADER: &str = "\
 # copied into fixtures/, even minimised (ADR 0018 §3): a regression found here is re-created
 # synthetically.
 #
+# `include` patterns are git sparse-checkout patterns, case-sensitive on Linux but not on macOS:
+# name every spelling a source uses (qpdf has `*.Pdf` files).
+#
 # `mirror` (or $LAMINA_CORPUS_MIRROR) is an optional base URL serving <mirror>/<name>/<commit>/<path>,
 # used only when git fails; the hashes here stay the source of truth.
 ";

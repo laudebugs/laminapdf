@@ -12,7 +12,7 @@
 | Branch | `ci/x3a-nightly-lane` |
 | PR title | `ci: nightly lane with external-corpus differential, 10-minute fuzzing, scaling tests and benchmarks` |
 | Size | L (≈ 600–1,000 lines: workflow, xtask corpus manifest/fetch, differential runners, bench harness) |
-| PR | — |
+| PR | [#32](https://github.com/laudebugs/lamina/pull/32) |
 
 ## Goal
 
@@ -92,5 +92,5 @@ The workflow itself; unit tests for manifest parsing and the differential compar
 ## Notes
 
 - **What fails the differential.** A fact fails only when every tool that compared it disagrees with lamina and `exceptions.toml` doesn't excuse it, or when lamina panics; disagreements where some tool agrees with lamina are reported as splits (ADR 0018 implementation notes). The first full local run (5,686 inputs) had 436 such failures before triage. Seven value-matched `[[class]]` rules, each citing an ADR 0003 rule, explain all but 5; those are `[[known]]` entries. Final run: 0 failures, 567 splits, 1,755 excused, 5 known.
-- **Known disagreements.** Two `enc` mutants fail with `syntax` where every other reader opens them; undefined PDFDocEncoding bytes in outline titles become U+FFFD; `issue22011.pdf` has one page fewer. They need a tracking issue; until one exists the `[[known]]` entries point at this todo's PR.
+- **Known disagreements.** Two `enc` mutants fail with `syntax` where every other reader opens them; undefined PDFDocEncoding bytes in outline titles become U+FFFD; `issue22011.pdf` has one page fewer. They need a tracking issue; until one exists the `[[known]]` entries point at [#32](https://github.com/laudebugs/lamina/pull/32).
 - **Benchmarks** run on GitHub-hosted Ubuntu and keep `history.jsonl` on the `bench-data` branch, which the first run on `main` creates. The baseline is the median of the last five runs; noisy runners may still trip the 10% threshold.
