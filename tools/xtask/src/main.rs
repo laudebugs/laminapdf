@@ -8,6 +8,7 @@ mod docs_links;
 mod doctor;
 mod harness;
 mod licenses;
+mod portable_paths;
 mod todos;
 mod tracked;
 mod workspace;
@@ -27,7 +28,7 @@ usage: cargo xtask <task> [args]
 tasks:
   check [rust|ts|docs]
                     everything a PR must pass (default: docs, rust and ts)
-                    docs: docs-links and todos --check
+                    docs: docs-links, todos --check and portable paths
                     rust: fmt --check, portability, clippy (native + wasm32), tests, rustdoc, cargo-deny
                     ts:   biome ci, typecheck and tests of the pnpm workspace, npm licences
   fmt [--check]     format Rust (cargo fmt) and TS/JSON (biome); --check only verifies
@@ -46,10 +47,11 @@ tasks:
                     list (--update writes them; without it, fail if they would change)
   corpus facts      rewrite fixtures/corpus/expected.json with pypdf (needs Python: see
                     tools/corpus-facts/requirements.txt; $LAMINA_PYTHON or python3)
-  differential [--mutants <n>] [--update]
+  differential [--full] [--update]
                     lamina vs pypdf over the corpus and fixed-seed mutants, from the precomputed
                     fixtures/differential/expected.json; --update regenerates it with pypdf.
-                    --mutants <n>: the full lane's n-mutant set instead (mutants-<n>.json; CI: 500)
+                    --full: the full lane's 36 mutants per corpus file instead (full.json),
+                    run through cargo-nextest
   fuzz <target> [--time <seconds>]
                     run a fuzz target (lex, parse_object, flate_decode, open, page_tree) with
                     cargo +nightly fuzz (default 60 s); seeds come from fixtures/ and fuzz/seeds/
@@ -57,9 +59,12 @@ tasks:
                     run every fuzz target in turn (the full lane: --time 120)
   fuzz seeds [<target>]
                     only build the seed corpora in fuzz/corpus/
+  fuzz cmin [<target>]
+                    minimise the corpora in fuzz/corpus/ (cargo fuzz cmin)
   changes [--base <rev>]
                     list the paths changed since the merge base with <rev> (default origin/main)
                     and say whether any is code (not docs); sets `code` in $GITHUB_OUTPUT
+                    (default base: origin/main, or main when there is no origin/main)
   ci                check + wasm: the whole fast lane, locally
   doctor [--install]
                     check that external tools are installed at their pinned versions;
@@ -82,7 +87,10 @@ fn main() -> Result<()> {
     // `changes` runs first in the full lane and needs only git: skip `cargo metadata`.
     if task == "changes" {
         return match rest {
-            [] => changes::run(&repo_root()?, "origin/main"),
+            [] => {
+                let root = repo_root()?;
+                changes::run(&root, changes::default_base(&root))
+            }
             [flag, base] if flag == "--base" => changes::run(&repo_root()?, base),
             _ => bail!("usage: cargo xtask changes [--base <rev>]"),
         };
@@ -151,6 +159,8 @@ fn check_docs(ws: &Workspace) -> Result<()> {
     docs_links::run(&ws.root, false)?;
     step("todos --check: the todo board and Blocks fields are up to date");
     todos::run(&ws.root, true)?;
+    step("portable paths: every tracked path checks out on Windows, macOS and Linux");
+    portable_paths::check(&ws.root)?;
     step("Docs checks passed");
     Ok(())
 }

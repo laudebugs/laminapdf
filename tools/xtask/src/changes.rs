@@ -1,17 +1,18 @@
 //! `cargo xtask changes`: does a branch touch code, or only docs? The full lane's first job
 //! (`.github/workflows/full.yml`, ADR 0018 §2) runs it, and its suites run only for code.
 //!
-//! The filter is an allowlist of documentation paths ([`is_docs`]); every other path counts as
-//! code. Inverting it this way means a root config file nobody thought to list
+//! The filter is an allowlist of documentation paths ([`is_docs`], where it is defined); every
+//! other path counts as code. Inverting it this way means a root config file nobody thought to list
 //! (`.cargo/config.toml`, `.gitattributes`, `rust-toolchain.toml`, a new workflow) always runs
 //! the suites instead of slipping through.
 
 use std::fs::OpenOptions;
 use std::io::Write as _;
 use std::path::Path;
-use std::process::Command;
 
-use anyhow::{Context, Result, bail};
+use anyhow::{Context, Result};
+
+use crate::tracked::git;
 
 /// `cargo xtask changes [--base <rev>]`: lists the paths changed since the merge base of
 /// `base` and `HEAD`, prints whether any of them is code, and appends `code=true|false` to
@@ -45,47 +46,48 @@ pub(crate) fn touches_code(paths: &[&str]) -> bool {
     paths.iter().any(|p| !is_docs(p))
 }
 
-/// The docs allowlist: `docs/**`, Markdown anywhere (READMEs, `CLAUDE.md`, `CHANGELOG.md`),
-/// `LICENSE*` at the root and the GitHub issue and pull request templates.
+/// The docs allowlist, the one place it is defined (ADR 0018 §2 implementation note):
+///
+/// - anything under `docs/`;
+/// - Markdown files at the repository root (`README.md`, `CLAUDE.md`, `CHANGELOG.md`);
+/// - `LICENSE*` files at the root;
+/// - the GitHub issue templates (`.github/ISSUE_TEMPLATE/`) and the pull request template
+///   (`.github/PULL_REQUEST_TEMPLATE.md`).
+///
+/// Markdown anywhere else is code: a crate README can be its rustdoc and doc tests
+/// (`#![doc = include_str!("../README.md")]`), and a docs site's pages are its build input.
 pub(crate) fn is_docs(path: &str) -> bool {
+    let at_root = !path.contains('/');
     let is_markdown = Path::new(path)
         .extension()
         .is_some_and(|x| x.eq_ignore_ascii_case("md"));
     path.starts_with("docs/")
-        || is_markdown
-        || (path.starts_with("LICENSE") && !path.contains('/'))
+        || (at_root && (is_markdown || path.starts_with("LICENSE")))
         || path.starts_with(".github/ISSUE_TEMPLATE/")
         || path == ".github/PULL_REQUEST_TEMPLATE.md"
 }
 
-fn git(root: &Path, args: &[&str]) -> Result<String> {
-    let output = Command::new("git")
-        .args(args)
-        .current_dir(root)
-        .output()
-        .context("failed to run git")?;
-    if !output.status.success() {
-        bail!(
-            "`git {}` failed: {}",
-            args.join(" "),
-            String::from_utf8_lossy(&output.stderr).trim()
-        );
-    }
-    String::from_utf8(output.stdout).context("git printed a path that is not UTF-8")
+/// The default base when `--base` isn't given: `origin/main` when that ref exists (a normal
+/// clone, CI), else `main` (this repository's bare clone with worktrees has no `origin/*`).
+pub(crate) fn default_base(root: &Path) -> &'static str {
+    pick_base(git(root, &["rev-parse", "--verify", "--quiet", "origin/main"]).is_ok())
+}
+
+fn pick_base(has_origin_main: bool) -> &'static str {
+    if has_origin_main { "origin/main" } else { "main" }
 }
 
 #[cfg(test)]
 mod tests {
-    use super::{is_docs, touches_code};
+    use super::{is_docs, pick_base, touches_code};
 
     /// One example per allowlist pattern.
-    const DOCS: [&str; 10] = [
+    const DOCS: [&str; 9] = [
         "docs/todos/README.md",
         "docs/research/notes/figure.svg",
         "README.md",
         "CLAUDE.md",
         "CHANGELOG.md",
-        "crates/lamina-cos/README.md",
         "LICENSE-MIT",
         "LICENSE-APACHE",
         ".github/ISSUE_TEMPLATE/bug.yml",
@@ -117,6 +119,24 @@ mod tests {
         "brand-new-root-file",
     ];
 
+    /// Markdown that can be a build input (`#![doc = include_str!("../README.md")]`, doc
+    /// tests, a docs site's content) or sits outside the allowlisted folders.
+    const CODE_MARKDOWN: [&str; 7] = [
+        "crates/lamina-cos/README.md",
+        "packages/pdf/README.md",
+        "apps/docs/src/content/docs/index.md",
+        "tools/corpus-facts/README.md",
+        "fuzz/README.md",
+        "fixtures/README.md",
+        ".github/SECURITY.md",
+    ];
+
+    #[test]
+    fn markdown_outside_the_docs_folders_is_code() {
+        let docs: Vec<&str> = CODE_MARKDOWN.into_iter().filter(|p| is_docs(p)).collect();
+        assert!(docs.is_empty(), "classified as docs: {docs:?}");
+    }
+
     #[test]
     fn every_allowlist_pattern_is_docs() {
         let code: Vec<&str> = DOCS.into_iter().filter(|p| !is_docs(p)).collect();
@@ -142,6 +162,11 @@ mod tests {
     #[test]
     fn one_code_path_makes_a_change_code() {
         assert!(touches_code(&["docs/a.md", ".nvmrc"]));
+    }
+
+    #[test]
+    fn the_default_base_falls_back_to_main_without_origin() {
+        assert_eq!((pick_base(true), pick_base(false)), ("origin/main", "main"));
     }
 
     #[test]

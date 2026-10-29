@@ -1,11 +1,12 @@
-# Deliberate differences between lamina and pypdf in the full lane's 500-mutant differential
-# set (`cargo xtask differential --mutants 500`; ADR 0018 tier 6, ADR 0003 §4). Same rules as
-# exceptions.toml, but each entry lists every mutant (`<stem>-f<i>.pdf`) that differs for the
-# same reason, under `files`. crates/lamina-model/tests/differential.rs skips exactly these and
-# fails on an entry that is no longer needed.
+# Deliberate differences between lamina and pypdf in the full lane's differential set
+# (`cargo xtask differential --full`: 36 mutants per corpus file; ADR 0018 tier 6, ADR 0003 §4).
+# Same rules as exceptions.toml, but each entry lists every mutant (`<stem>-f<i>.pdf`) that
+# differs for the same reason, under `files`; a (file, fact) pair may appear only once.
+# crates/lamina-model/tests/differential.rs skips exactly these and fails on an entry that is
+# no longer needed or names a file that isn't in the set.
 #
-# Grouped by cause; regenerate the expectations (mutants-500.json) when the mutants change,
-# then sort the new disagreements into these groups (or fix lamina).
+# Grouped by cause; regenerate the expectations (full.json) when the mutants change, then sort
+# the new disagreements into these groups (or fix lamina).
 
 [[exception]]
 files = [
@@ -253,6 +254,7 @@ files = [
   "raw-f9.pdf",
   "reportlab-f2.pdf",
   "reportlab-f31.pdf",
+  "reportlab-f35.pdf",
 ]
 facts = ["page_count"]
 rule = "ADR 0003 §1: Page tree"

@@ -127,26 +127,12 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       # xtask is the entry point for the TS checks too, but it only needs to build for the host.
-      # Passing `toolchain` makes the action skip rust-toolchain.toml's components and cross
-      # targets, and RUSTUP_TOOLCHAIN makes cargo use that bare toolchain instead of installing
-      # them. The version is still read from rust-toolchain.toml. RUSTUP_TOOLCHAIN replaces the
-      # action's `rustup override set`, which would outlive the job on a self-hosted runner.
-      - name: Read the pinned Rust version
-        id: rust
-        run: |
-          channel=$(sed -n 's/^channel = "\(.*\)".*/\1/p' rust-toolchain.toml)
-          echo "channel=$channel" >> "$GITHUB_OUTPUT"
-          echo "RUSTUP_TOOLCHAIN=$channel" >> "$GITHUB_ENV"
-      - uses: actions-rust-lang/setup-rust-toolchain@ecabd13d1c56bd1345c230e542e9144811ad706f # v2.0.0
+      - uses: ./.github/actions/host-rust
         with:
           # rust-cache's post step on macOS runs `sudo /usr/sbin/purge`, which hangs forever on
           # self-hosted runners without passwordless sudo. Self-hosted runners keep their own
           # CARGO_HOME between jobs, so caching is only for GitHub-hosted runners.
           cache: ${{ runner.environment == 'github-hosted' }}
-          toolchain: ${{ steps.rust.outputs.channel }}
-          components: ""
-          target: ""
-          override: false
       - run: cargo xtask check ts
 
   # The pdf-basics spike is frozen research code outside both workspaces, but its tests are the

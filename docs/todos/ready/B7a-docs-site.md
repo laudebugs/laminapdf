@@ -46,7 +46,7 @@ Publish usable documentation for `lamina` and `@lamina/pdf` before the first tag
 - [ ] Content pages and generated code table (`cargo xtask gen codes --md`)
 - [ ] TypeDoc integration; rustdoc artefact link
 - [ ] `wrangler.toml`, deploy workflow with preview comments (secrets: `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID` — owner provides)
-- [ ] Fast-lane TS checks for `apps/docs` (the full lane ([X4](../done/X4-full-lane-gate.md)) already treats every path outside its docs allowlist, `apps/` included, as code)
+- [ ] Fast-lane TS checks for `apps/docs`. Nothing to add to the full lane ([X4](../done/X4-full-lane-gate.md)): every path under `apps/`, its Markdown content included, is already code there
 
 ## Acceptance criteria
 

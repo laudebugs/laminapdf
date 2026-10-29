@@ -107,43 +107,62 @@ pub(crate) fn corpus_facts(ws: &Workspace) -> Result<()> {
 /// What `cargo xtask differential` was asked to do.
 #[derive(Debug, PartialEq, Eq)]
 pub(crate) struct Differential {
-    /// `Some(n)`: the full lane's `n`-mutant set (`--mutants n`); `None`: the fast set.
-    pub(crate) mutants: Option<usize>,
+    /// The full lane's set (`--full`) instead of the fast one.
+    pub(crate) full: bool,
     /// Regenerate the expectations with pypdf first.
     pub(crate) update: bool,
 }
 
-/// Parses `differential [--mutants <n>] [--update]` (flags in any order).
+/// Parses `differential [--full] [--update]` (flags in any order, each at most once).
 pub(crate) fn parse_differential_args(args: &[String]) -> Result<Differential> {
     let mut task = Differential {
-        mutants: None,
+        full: false,
         update: false,
     };
-    let mut rest = args.iter();
-    while let Some(arg) = rest.next() {
+    for arg in args {
         match arg.as_str() {
             "--update" if !task.update => task.update = true,
-            "--mutants" if task.mutants.is_none() => {
-                let n = rest.next().context("--mutants needs a count")?;
-                let n: usize = n.parse().with_context(|| format!("--mutants {n:?}: not a number"))?;
-                if n == 0 {
-                    bail!("--mutants must be at least 1");
-                }
-                task.mutants = Some(n);
-            }
-            _ => bail!("usage: cargo xtask differential [--mutants <n>] [--update]"),
+            "--full" if !task.full => task.full = true,
+            _ => bail!("usage: cargo xtask differential [--full] [--update]"),
         }
     }
     Ok(task)
 }
 
-/// `cargo xtask differential [--mutants <n>] [--update]`: compares lamina with pypdf's
-/// precomputed facts (no Python); `--update` regenerates them with pypdf first. Without
-/// `--mutants`, the fast set (`fixtures/differential/expected.json`); with it, the full lane's
-/// `n` mutants (`mutants-<n>.json`, exceptions in `mutants-<n>-exceptions.toml`), checked by
-/// the test that the fast lane ignores.
+/// The test that checks the full set, by its exact name.
+const FULL_SET_TEST: &str = "full_set_agrees_with_pypdf";
+
+/// `cargo nextest` arguments for the full set: its ignored test only, under the `ci` profile
+/// (no retries, the per-test hang timeout), failing when the filter matches no test (a
+/// renamed test must not pass silently).
+fn full_set_test_args() -> Vec<String> {
+    [
+        "nextest",
+        "run",
+        "--locked",
+        "--profile",
+        "ci",
+        "-p",
+        "lamina-model",
+        "--test",
+        "differential",
+        "--run-ignored",
+        "only",
+        "--no-tests",
+        "fail",
+        "-E",
+    ]
+    .into_iter()
+    .map(str::to_owned)
+    .chain([format!("test(={FULL_SET_TEST})")])
+    .collect()
+}
+
+/// `cargo xtask differential [--full] [--update]`: compares lamina with pypdf's precomputed
+/// facts (no Python); `--update` regenerates them with pypdf first. Without `--full`, the fast
+/// set (`fixtures/differential/expected.json`, run with the other tests); with it, the full
+/// lane's set (`full.json`, exceptions in `full-exceptions.toml`), run through nextest.
 pub(crate) fn differential(ws: &Workspace, task: &Differential) -> Result<()> {
-    let count = task.mutants.map(|n| n.to_string());
     if task.update {
         let inputs = scratch(ws, "differential")?;
         let inputs_arg = inputs.to_string_lossy().into_owned();
@@ -158,15 +177,15 @@ pub(crate) fn differential(ws: &Workspace, task: &Differential) -> Result<()> {
             "--",
             &inputs_arg,
         ];
-        if let Some(n) = &count {
-            args.extend(["--mutants", n]);
+        if task.full {
+            args.push("--full");
         }
         ws.cargo(&args)?;
         let script = ws.root.join("tools/corpus-facts/facts.py");
-        let expected = ws.root.join("fixtures/differential").join(match &count {
-            None => "expected.json".to_owned(),
-            Some(n) => format!("mutants-{n}.json"),
-        });
+        let expected =
+            ws.root
+                .join("fixtures/differential")
+                .join(if task.full { "full.json" } else { "expected.json" });
         run(
             &ws.root,
             &python(),
@@ -178,14 +197,13 @@ pub(crate) fn differential(ws: &Workspace, task: &Differential) -> Result<()> {
             ],
         )?;
     }
-    let test = ["test", "--locked", "-q", "-p", "lamina-model", "--test", "differential"];
-    match &count {
-        None => ws.cargo(&test),
-        Some(n) => {
-            let mut args = test.to_vec();
-            args.extend(["--", "--ignored", "--exact", "full_mutant_set_agrees_with_pypdf"]);
-            crate::run_env(&ws.root, "cargo", &args, &[("LAMINA_DIFFERENTIAL_MUTANTS", n)])
-        }
+    if task.full {
+        crate::doctor::require(ws, &crate::doctor::cargo_nextest())?;
+        let args = full_set_test_args();
+        let args: Vec<&str> = args.iter().map(String::as_str).collect();
+        ws.cargo(&args)
+    } else {
+        ws.cargo(&["test", "--locked", "-q", "-p", "lamina-model", "--test", "differential"])
     }
 }
 
@@ -198,9 +216,14 @@ pub(crate) enum FuzzTask<'a> {
     RunAll { seconds: u64 },
     /// Only build the seed corpora (all targets, or one).
     Seeds(Option<&'a str>),
+    /// Minimise the corpora in place (`cargo fuzz cmin`; all targets, or one).
+    Cmin(Option<&'a str>),
 }
 
-/// Parses `fuzz <target> [--time N]`, `fuzz --all [--time N]` and `fuzz seeds [<target>]`.
+const FUZZ_USAGE: &str =
+    "usage: cargo xtask fuzz <target>|--all [--time <seconds>] | fuzz seeds [<target>] | fuzz cmin [<target>]";
+
+/// Parses `fuzz <target>|--all [--time N]`, `fuzz seeds [<target>]` and `fuzz cmin [<target>]`.
 pub(crate) fn parse_fuzz_args(args: &[String]) -> Result<FuzzTask<'_>> {
     let known = |t: &str| {
         if FUZZ_TARGETS.contains(&t) {
@@ -222,6 +245,11 @@ pub(crate) fn parse_fuzz_args(args: &[String]) -> Result<FuzzTask<'_>> {
             known(target)?;
             Ok(FuzzTask::Seeds(Some(target)))
         }
+        [cmd] if cmd == "cmin" => Ok(FuzzTask::Cmin(None)),
+        [cmd, target] if cmd == "cmin" => {
+            known(target)?;
+            Ok(FuzzTask::Cmin(Some(target)))
+        }
         [target] => {
             known(target)?;
             Ok(FuzzTask::Run {
@@ -236,35 +264,32 @@ pub(crate) fn parse_fuzz_args(args: &[String]) -> Result<FuzzTask<'_>> {
                 seconds: seconds(time)?,
             })
         }
-        _ => bail!("usage: cargo xtask fuzz <target>|--all [--time <seconds>] | fuzz seeds [<target>]"),
+        _ => bail!("{FUZZ_USAGE}"),
     }
 }
 
 /// `cargo xtask fuzz …`.
 pub(crate) fn fuzz(ws: &Workspace, task: &FuzzTask<'_>) -> Result<()> {
     match *task {
-        FuzzTask::Seeds(Some(target)) => seeds(ws, target).map(drop),
-        FuzzTask::Seeds(None) => FUZZ_TARGETS.iter().try_for_each(|t| seeds(ws, t).map(drop)),
+        FuzzTask::Seeds(target) => targets(target).into_iter().try_for_each(|t| seeds(ws, t).map(drop)),
+        FuzzTask::Cmin(target) => {
+            let host = fuzz_setup(ws)?;
+            targets(target).into_iter().try_for_each(|t| cmin(ws, &host, t))
+        }
         FuzzTask::Run { target, seconds } => {
-            crate::doctor::require(ws, &crate::doctor::cargo_fuzz())?;
-            fuzz_one(ws, target, seconds)
+            let host = fuzz_setup(ws)?;
+            fuzz_one(ws, &host, target, seconds)
         }
         FuzzTask::RunAll { seconds } => {
-            crate::doctor::require(ws, &crate::doctor::cargo_fuzz())?;
+            let host = fuzz_setup(ws)?;
             // Every target runs even after one fails, so one run reports every crash.
-            let failed: Vec<&str> = FUZZ_TARGETS
+            let failed: Vec<String> = FUZZ_TARGETS
                 .into_iter()
-                .filter(|target| {
-                    fuzz_one(ws, target, seconds)
-                        .inspect_err(|e| eprintln!("error: fuzz target {target}: {e:#}"))
-                        .is_err()
-                })
+                .filter_map(|target| fuzz_one(ws, &host, target, seconds).err())
+                .map(|e| format!("{e:#}"))
                 .collect();
             if !failed.is_empty() {
-                bail!(
-                    "fuzz targets failed: {}; crash inputs are in fuzz/artifacts/<target>/",
-                    failed.join(", ")
-                );
+                bail!("{} fuzz target(s) failed:\n  {}", failed.len(), failed.join("\n  "));
             }
             step(&format!(
                 "All {} fuzz targets ran {seconds} s without a crash",
@@ -275,16 +300,29 @@ pub(crate) fn fuzz(ws: &Workspace, task: &FuzzTask<'_>) -> Result<()> {
     }
 }
 
-/// Builds `target`'s seed corpus and fuzzes it for `seconds`.
-fn fuzz_one(ws: &Workspace, target: &str, seconds: u64) -> Result<()> {
+/// `[target]`, or every target when none was named.
+fn targets(target: Option<&str>) -> Vec<&str> {
+    target.map_or_else(|| FUZZ_TARGETS.to_vec(), |t| vec![t])
+}
+
+/// Checks cargo-fuzz once and returns the nightly toolchain's host triple. cargo-fuzz
+/// defaults to the triple it was built for, which for prebuilt binaries is musl (no
+/// sanitizer support), so every run names the host explicitly.
+fn fuzz_setup(ws: &Workspace) -> Result<String> {
+    crate::doctor::require(ws, &crate::doctor::cargo_fuzz())?;
+    nightly_host()
+}
+
+/// Builds `target`'s seed corpus and fuzzes it for `seconds`. A failure that left new files
+/// in `fuzz/artifacts/<target>/` is a crash; any other is a build or setup failure.
+fn fuzz_one(ws: &Workspace, host: &str, target: &str, seconds: u64) -> Result<()> {
     let corpus = seeds(ws, target)?;
     let corpus = corpus.to_string_lossy().into_owned();
+    let artifacts = ws.root.join("fuzz/artifacts").join(target);
+    let before = artifact_names(&artifacts);
     let max_time = format!("-max_total_time={seconds}");
-    // cargo-fuzz defaults to the triple it was built for, which for prebuilt binaries
-    // is musl (no sanitizer support): name the nightly toolchain's host explicitly.
-    let host = nightly_host()?;
     // fuzz/ is its own nightly workspace (ADR 0018); `+nightly` overrides the root pin.
-    run(
+    let result = run(
         &ws.root,
         "cargo",
         &[
@@ -292,7 +330,7 @@ fn fuzz_one(ws: &Workspace, target: &str, seconds: u64) -> Result<()> {
             "fuzz",
             "run",
             "--target",
-            &host,
+            host,
             target,
             &corpus,
             "--",
@@ -300,6 +338,47 @@ fn fuzz_one(ws: &Workspace, target: &str, seconds: u64) -> Result<()> {
             "-timeout=10",
             "-rss_limit_mb=2048",
         ],
+    );
+    result.map_err(|e| {
+        let new: Vec<String> = artifact_names(&artifacts).difference(&before).cloned().collect();
+        anyhow::anyhow!(describe_failure(target, &new, &format!("{e:#}")))
+    })
+}
+
+/// How a failed fuzz run is reported: a crash with its saved inputs, or a run that failed
+/// without saving any (the build, the toolchain or the corpus is the problem, not the code).
+fn describe_failure(target: &str, new_artifacts: &[String], error: &str) -> String {
+    if new_artifacts.is_empty() {
+        format!("{target}: failed without a crash input (build or setup problem): {error}")
+    } else {
+        format!(
+            "{target}: crashed; inputs saved in fuzz/artifacts/{target}/: {}",
+            new_artifacts.join(", ")
+        )
+    }
+}
+
+/// The file names in `dir` (empty when it doesn't exist).
+fn artifact_names(dir: &Path) -> std::collections::BTreeSet<String> {
+    fs::read_dir(dir)
+        .map(|entries| {
+            entries
+                .filter_map(Result::ok)
+                .map(|e| e.file_name().to_string_lossy().into_owned())
+                .collect()
+        })
+        .unwrap_or_default()
+}
+
+/// `cargo fuzz cmin`: shrinks `fuzz/corpus/<target>/` (seeds included) to the inputs that
+/// keep its coverage, so a cached corpus stays bounded.
+fn cmin(ws: &Workspace, host: &str, target: &str) -> Result<()> {
+    let corpus = seeds(ws, target)?;
+    let corpus = corpus.to_string_lossy().into_owned();
+    run(
+        &ws.root,
+        "cargo",
+        &["+nightly", "fuzz", "cmin", "--target", host, target, &corpus],
     )
 }
 
@@ -495,7 +574,7 @@ mod tests {
         assert_eq!(
             parse_differential_args(&[]).unwrap(),
             Differential {
-                mutants: None,
+                full: false,
                 update: false
             }
         );
@@ -503,24 +582,68 @@ mod tests {
 
     #[test]
     fn differential_args_take_flags_in_any_order() {
-        let a = args(&["--update", "--mutants", "500"]);
+        let a = args(&["--update", "--full"]);
         assert_eq!(
             parse_differential_args(&a).unwrap(),
             Differential {
-                mutants: Some(500),
+                full: true,
                 update: true
             }
         );
     }
 
     #[test]
-    fn differential_args_reject_a_missing_count() {
-        assert!(parse_differential_args(&args(&["--mutants"])).is_err());
+    fn differential_args_reject_a_count() {
+        assert!(parse_differential_args(&args(&["--mutants", "500"])).is_err());
+    }
+
+    #[test]
+    fn the_full_set_runs_under_nextest_and_fails_when_no_test_matches() {
+        let a = full_set_test_args();
+        let has = |pair: [&str; 2]| a.windows(2).any(|w| w == pair);
+        assert!(
+            a.first().map(String::as_str) == Some("nextest")
+                && has(["--no-tests", "fail"])
+                && has(["--profile", "ci"])
+                && has(["--run-ignored", "only"]),
+            "{a:?}"
+        );
+    }
+
+    #[test]
+    fn the_full_set_filter_names_the_test_exactly() {
+        assert_eq!(
+            full_set_test_args().last().map(String::as_str),
+            Some("test(=full_set_agrees_with_pypdf)")
+        );
     }
 
     #[test]
     fn differential_args_reject_repeated_flags() {
         assert!(parse_differential_args(&args(&["--update", "--update"])).is_err());
+    }
+
+    #[test]
+    fn fuzz_cmin_takes_an_optional_target() {
+        assert_eq!(parse_fuzz_args(&args(&["cmin"])).unwrap(), FuzzTask::Cmin(None));
+    }
+
+    #[test]
+    fn a_failure_with_new_artifacts_is_a_crash() {
+        let message = describe_failure("lex", &["crash-1a2b".to_owned()], "exit 77");
+        assert!(
+            message.contains("crashed") && message.contains("crash-1a2b"),
+            "{message}"
+        );
+    }
+
+    #[test]
+    fn a_failure_without_artifacts_is_not_called_a_crash() {
+        let message = describe_failure("lex", &[], "could not compile");
+        assert!(
+            !message.contains("crashed") && message.contains("could not compile"),
+            "{message}"
+        );
     }
 
     #[test]

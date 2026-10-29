@@ -1,11 +1,11 @@
 //! Writes the differential suite's inputs to a directory, for `cargo xtask differential
-//! --update`, which runs pypdf over them: every `fixtures/corpus` file and its fast-set
-//! mutants, or with `--mutants <n>` only the full lane's `n` mutants. The mutants come from
+//! [--full] --update`, which runs pypdf over them: the fast set (every `fixtures/corpus` file
+//! and its four mutants), or with `--full` the full lane's mutants. The inputs come from
 //! `tests/common/mutants.rs`, the same code the differential test uses, so pypdf's facts and
 //! lamina's answers are about the same bytes.
 //!
 //! ```sh
-//! cargo run -p lamina-model --example differential-inputs -- <out-dir> [--mutants <n>]
+//! cargo run -p lamina-model --example differential-inputs -- <out-dir> [--full]
 //! ```
 #![allow(
     clippy::unwrap_used,
@@ -19,23 +19,21 @@ mod common;
 
 use std::path::PathBuf;
 
-const USAGE: &str = "usage: differential-inputs <out-dir> [--mutants <n>]";
+const USAGE: &str = "usage: differential-inputs <out-dir> [--full]";
 
 fn main() {
     let args: Vec<String> = std::env::args().skip(1).collect();
     let (out, full) = match args.as_slice() {
-        [out] => (out, None),
-        [out, flag, n] if flag == "--mutants" => (out, Some(n.parse::<usize>().expect(USAGE))),
+        [out] => (out, false),
+        [out, flag] if flag == "--full" => (out, true),
         _ => panic!("{USAGE}"),
     };
     let out = PathBuf::from(out);
     std::fs::create_dir_all(&out).unwrap();
-    let (inputs, seed) = match full {
-        None => (
-            common::corpus().into_iter().chain(common::mutants::all()).collect(),
-            common::mutants::SEED,
-        ),
-        Some(n) => (common::mutants::full(n), common::mutants::FULL_SEED),
+    let (inputs, seed) = if full {
+        (common::mutants::full(), common::mutants::FULL_SEED)
+    } else {
+        (common::mutants::fast_inputs(), common::mutants::SEED)
     };
     let mut written = 0;
     for (name, bytes) in inputs {

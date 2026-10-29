@@ -2091,6 +2091,11 @@
     "page_count": null,
     "outline_titles": null
   },
+  "reportlab-f35.pdf": {
+    "outcome": "repaired",
+    "page_count": 1,
+    "outline_titles": []
+  },
   "reportlab-f4.pdf": {
     "outcome": "failed",
     "page_count": null,
@@ -2262,6 +2267,11 @@
     "outline_titles": []
   },
   "signed-f34.pdf": {
+    "outcome": "repaired",
+    "page_count": 1,
+    "outline_titles": []
+  },
+  "signed-f35.pdf": {
     "outcome": "repaired",
     "page_count": 1,
     "outline_titles": []
@@ -2441,6 +2451,11 @@
     "page_count": 1,
     "outline_titles": []
   },
+  "tampered-f35.pdf": {
+    "outcome": "repaired",
+    "page_count": 1,
+    "outline_titles": []
+  },
   "tampered-f4.pdf": {
     "outcome": "opened",
     "page_count": 1,
@@ -2613,6 +2628,11 @@
   },
   "text-example-f34.pdf": {
     "outcome": "repaired",
+    "page_count": 1,
+    "outline_titles": []
+  },
+  "text-example-f35.pdf": {
+    "outcome": "opened",
     "page_count": 1,
     "outline_titles": []
   },

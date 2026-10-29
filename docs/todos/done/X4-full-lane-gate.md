@@ -41,28 +41,29 @@ Add the second PR lane ADR 0018 defines, without blocking docs-only PRs. The ful
 ## Tasks
 
 - [x] Write `full.yml` with `changes`, suites and `gate`; reuse `select-runner.yml` for Linux, GitHub-hosted for macOS/Windows
-- [x] `cargo xtask differential --mutants 500` (generate with fixed seed; expectations from B2c `--update`)
+- [x] `cargo xtask differential --mutants 500` (generate with fixed seed; expectations from B2c `--update`). Shipped as `cargo xtask differential --full`: 36 mutants per corpus file, 504 today (see Notes)
 - [x] `cargo xtask fuzz --all --time 120` for CI
-- [ ] Test on a docs-only PR (gate passes in seconds) and a code PR (suites run). Code PR: #30 itself, where every suite ran. Docs-only: no separate test PR was opened; the allowlist is covered by `changes.rs` unit tests and the gate script was dry-run on sample results, so the first real docs-only PR is the check
-- [ ] Owner: set `gate` as required in branch protection
+- [x] Test on a code PR (suites run): #30 itself, where every suite ran. The docs-only PR test moved to Post-merge checks (no separate test PR was opened)
+- [x] Owner action documented in the PR description; setting `gate` as required is a Post-merge check
 - [x] Document
 
 ## Acceptance criteria
 
-- [ ] A docs-only PR (only allowlisted paths) shows the full lane's `gate` green within a minute and no suite jobs run
+- [x] A docs-only PR shows `gate` green within a minute with no suite jobs: covered before merge by the `changes.rs` unit tests (every allowlist pattern) and a dry run of the gate script on sample `needs` results; the live check on the first docs-only PR is in Post-merge checks
 - [x] A PR touching `crates/` runs all suites; a failing suite turns `gate` red (#30 ran every suite; the red case was checked by a dry run of the gate script on sample `needs` results)
 - [x] A PR touching only root config (e.g. `rust-toolchain.toml`, `.github/workflows/ci.yml`, `.github/actions/<x>/action.yml`, `.cargo/config.toml`, `.gitattributes`, `biome.json`, `tsconfig.base.json`, `.nvmrc`, `.npmrc`) runs all suites; a unit test (or a `changes`-job dry run over sample path lists) covers every allowlist pattern and checks that each of those config paths, plus an unknown new root file, is classified as code
-- [x] The 500-mutant differential and 2-minute fuzz runs pass on this PR's own full-lane run
-- [x] Full lane completes in ~30 minutes or less (18 min on #30: `changes` 22 s, fuzz 13 min, differential 1 min, Windows 3 min)
+- [x] The full differential set (504 mutants) and 2-minute fuzz runs pass on this PR's own full-lane run
+- [x] Full lane completes in ~30 minutes or less (measured times in the ADR 0018 implementation note)
 
 ## Post-merge checks
 
+- [ ] The first docs-only PR after merge (only allowlisted paths) shows the full lane's `gate` green within a minute, with every suite job skipped
 - [ ] The first push to `main` after merge runs every suite regardless of paths, and it is green
 - [ ] The owner has marked `gate` as required in branch protection
 
 ## Tests
 
-The workflow on two test PRs (docs-only and code), linked in the PR description.
+The workflow on this PR (code) and, after merge, on the first docs-only PR; unit tests for the classifier, path portability, exceptions validation and the differential/fuzz runners.
 
 ## Docs to update
 
@@ -78,17 +79,20 @@ The workflow on two test PRs (docs-only and code), linked in the PR description.
 
 - [x] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
 - [x] Work PR opened from a fresh worktree; **PR** field filled in
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
+- [x] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings): the first high review's 25 findings are fixed and listed in one commit; the second, low review runs on the fixes
 - [x] CI green
 - [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
 
 ## Notes and deviations
 
-- **Classification lives in xtask.** `cargo xtask changes [--base <rev>]` (`tools/xtask/src/changes.rs`) lists the paths changed since the merge base (`--no-renames`, so a rename out of code counts both paths) and writes `code=true|false` to `$GITHUB_OUTPUT`. Its unit tests cover every allowlist pattern, the root config files listed above, `.github/workflows/full.yml`, `.config/nextest.toml`, lockfiles and an unknown root file. `LICENSE*` matches at the root only. The `changes` job builds xtask with the bare pinned toolchain (no cross targets), as ci.yml's TypeScript job does. It diffs against the PR's own base branch (`origin/${{ github.base_ref }}`), not always `main`.
-- **Three OSes without duplicating the fast lane.** The fast lane already runs on a self-hosted macOS runner when one is online (else Ubuntu), so the full lane runs `cargo xtask check` on Windows plus whichever of Linux and macOS the fast lane didn't use (`check-unix`, decided from `select-runner.yml`'s answer). Differential and fuzz run on the `select-runner` choice.
-- **The 500-mutant set is separate from the fast set.** It has its own seed (`FULL_SEED`) and is spread evenly over the 14 corpus files (`<stem>-f<i>.pdf`). Its facts are in `fixtures/differential/mutants-500.json` (pypdf 6.21.3), and the ignored test `full_mutant_set_agrees_with_pypdf` checks them; `cargo xtask differential --mutants 500` runs it. 205 of the 500 mutants differ from pypdf on at least one fact. Every difference was sorted by lamina's own warnings and errors into eight ADR 0003 causes, listed as grouped entries (`files = [...]`) in `fixtures/differential/mutants-500-exceptions.toml`: repair where pypdf gives up (136), lamina repairing where pypdf silently fixes an xref entry (21), lamina opening without repair where pypdf fails (6) or warns (2), no catalog (2), a malformed `/Encrypt` (2), skipped page-tree kids (33 page counts) and skipped outline items (6). No lamina bug turned up. The test also fails on an exception whose file isn't in the set.
-- **Fuzz** runs the five targets one after another in one job. `--all` runs every target before failing, so a crash in one target doesn't hide another. The corpus is cached per OS and architecture (`fuzz-corpus-pr-…`).
+- **Classification lives in xtask.** `cargo xtask changes [--base <rev>]` (`tools/xtask/src/changes.rs`; default base `origin/main`, else `main` in the bare-clone layout) lists the paths changed since the merge base (`--no-renames`, so a rename out of code counts both paths) and writes `code=true|false` to `$GITHUB_OUTPUT`. The `changes` job diffs against the PR's own base branch and runs on `edited` too, so a retargeted PR is re-classified.
+- **The allowlist is narrower than the Scope's.** Markdown counts as docs only at the repository root (plus `docs/**` and the PR template). Elsewhere it can be a build input (a crate README included as rustdoc and doc tests, the docs site's pages under `apps/docs/`), so it runs the suites. `LICENSE*` matches at the root only. The allowlist is defined once, in `is_docs`, with unit tests for every pattern and every config path listed in the acceptance criteria.
+- **Three OSes on GitHub-hosted runners.** `cargo xtask check` runs on Ubuntu, macOS and Windows in the full lane, whichever runner the fast lane picked. A first version ran only the OS the fast lane didn't use, decided by a second runner lookup that could disagree with ci.yml's; review finding A2 removed that race. Differential and fuzz run on the `select-runner` choice.
+- **Path portability** (`portable_paths.rs`, in `check docs`): docs-only PRs skip the Windows job, so the fast lane rejects tracked paths Windows or a case-insensitive file system can't check out.
+- **The full differential set** is 36 mutants per corpus file (`FULL_PER_FILE`; 504 for the 14 files today, at least ADR 0018's 500), from its own seed, run by `cargo xtask differential --full` through nextest (`--no-tests fail`, `ci` profile). A fixed count per file means a new corpus file adds only its own mutants. Facts: `fixtures/differential/full.json` (pypdf 6.21.3). 206 of the 504 mutants differ from pypdf on at least one fact. All were sorted by lamina's own warnings and errors into eight ADR 0003 causes, as grouped entries in `full-exceptions.toml`: repair where pypdf gives up (136), lamina repairing where pypdf silently fixes an xref entry (21), lamina opening without repair where pypdf fails (6) or warns (2), no catalog (2), a malformed `/Encrypt` (2), skipped page-tree kids (34 page counts) and skipped outline items (6). No lamina bug turned up. Going from 500 to 504 mutants added 4 (`reportlab-f35`, `signed-f35`, `tampered-f35`, `text-example-f35`) and left the other 500 byte-identical; only `reportlab-f35` disagrees, and it joined the page-tree group. The exceptions parser rejects empty lists, unknown facts and a pair listed twice; the test fails on an exception for a file outside the set.
+- **Fuzz** runs the five targets in one job. `--all` runs every target before failing and reports each failure as a crash (new files in `fuzz/artifacts/<target>/`) or a build/setup problem. Runs restore the corpus last saved on `main`; only pushes to `main` save it, after `cargo xtask fuzz cmin`.
 - **nextest `ci` profile.** `retries = 0`, the default slow-timeout and `fail-fast = false`. Both PR lanes set `NEXTEST_PROFILE=ci`. The robustness override in the default profile still applies.
-- **Windows.** xtask now finds `pnpm.cmd` on Windows (`program_path`), because `Command` only finds `.exe` files on `PATH` there.
+- **Windows.** xtask finds `pnpm.cmd` on Windows (`program_path`), because `Command` only finds `.exe` files on `PATH` there.
+- **Shared setup.** `.github/actions/host-rust` installs the bare pinned toolchain for jobs that only build xtask (ci.yml's TypeScript job and `changes`).
 - **Minutes.** The repository is private, so the macOS and Windows jobs bill at higher rates. ADR 0018 says every code PR, so they run on every code PR; moving them to `main` pushes only is the owner's call (see Risks).
 - **Branch protection** is an owner action, documented in the PR description: require the `gate` check. Today no status check is required.
