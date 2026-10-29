@@ -36,6 +36,9 @@ anyhow = "1.0.104"
 serde_json = "1.0.154"
 # Reading deny.toml and rust-toolchain.toml in xtask. MIT OR Apache-2.0
 toml = { version = "1.1.8", default-features = false, features = ["std", "parse", "serde"] }
+# Markdown links and headings for `cargo xtask docs-links`; no default features (they add HTML
+# output and a CLI). MIT (dependencies bitflags, memchr, unicase: MIT OR Apache-2.0)
+pulldown-cmark = { version = "0.13.5", default-features = false }
 
 [workspace.lints.rust]
 unsafe_code = "deny"            # core crates additionally #![forbid(unsafe_code)]

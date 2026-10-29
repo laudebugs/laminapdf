@@ -3,8 +3,10 @@
 //! This is the single entry point for repo-wide tasks; CI runs the same commands developers run
 //! (docs/guidelines/code-organization.md §10). Run `cargo xtask help` for the task list.
 
+mod docs_links;
 mod doctor;
 mod licenses;
+mod todos;
 mod workspace;
 
 use std::env;
@@ -20,7 +22,9 @@ const USAGE: &str = "\
 usage: cargo xtask <task> [args]
 
 tasks:
-  check [rust|ts]   everything a PR must pass (default: rust and ts)
+  check [rust|ts|docs]
+                    everything a PR must pass (default: docs, rust and ts)
+                    docs: docs-links and todos --check
                     rust: fmt --check, portability, clippy (native + wasm32), tests, rustdoc, cargo-deny
                     ts:   biome ci, typecheck and tests of the pnpm workspace, npm licences
   fmt [--check]     format Rust (cargo fmt) and TS/JSON (biome); --check only verifies
@@ -31,6 +35,10 @@ tasks:
   wasm              build the wasm32 crates with the size-optimised `wasm-release` profile
   deny              cargo-deny (licences, advisories, bans, sources) + npm licence check
   npm-licenses      npm licence check only (pnpm licenses list)
+  docs-links [--json]
+                    check every relative link and #anchor in the tracked Markdown files
+  todos [--check]   regenerate the todo board (docs/todos/README.md) and each todo's Blocks
+                    field from the Depends on links; --check only verifies
   ci                check + wasm: the whole fast lane, locally
   doctor [--install]
                     check that external tools are installed at their pinned versions;
@@ -54,9 +62,11 @@ fn main() -> Result<()> {
 
     match (task, rest) {
         ("check", []) => {
+            check_docs(&ws)?;
             check_rust(&ws)?;
             check_ts(&ws)
         }
+        ("check", [scope]) if scope == "docs" => check_docs(&ws),
         ("check", [scope]) if scope == "rust" => check_rust(&ws),
         ("check", [scope]) if scope == "ts" => check_ts(&ws),
         ("fmt", []) => fmt(&ws, false),
@@ -78,7 +88,12 @@ fn main() -> Result<()> {
         ("npm-licenses", []) => licenses::check_npm(&ws),
         ("doctor", []) => doctor::run(&ws, false),
         ("doctor", [flag]) if flag == "--install" => doctor::run(&ws, true),
+        ("docs-links", []) => docs_links::run(&ws.root, false),
+        ("docs-links", [flag]) if flag == "--json" => docs_links::run(&ws.root, true),
+        ("todos", []) => todos::run(&ws.root, false),
+        ("todos", [flag]) if flag == "--check" => todos::run(&ws.root, true),
         ("ci", []) => {
+            check_docs(&ws)?;
             check_rust(&ws)?;
             check_ts(&ws)?;
             wasm(&ws)
@@ -94,6 +109,16 @@ fn repo_root() -> Result<PathBuf> {
         .nth(2)
         .map(Path::to_path_buf)
         .context("xtask must live at <root>/tools/xtask")
+}
+
+/// The documentation checks: fast and network-free, so they run first.
+fn check_docs(ws: &Workspace) -> Result<()> {
+    step("docs-links: relative links and anchors in tracked Markdown");
+    docs_links::run(&ws.root, false)?;
+    step("todos --check: the todo board and Blocks fields are up to date");
+    todos::run(&ws.root, true)?;
+    step("Docs checks passed");
+    Ok(())
 }
 
 fn check_rust(ws: &Workspace) -> Result<()> {

@@ -33,7 +33,7 @@ jobs:
       RUNNER_STATUS_TOKEN: ${{ secrets.RUNNER_STATUS_TOKEN }}
 
   rust:
-    name: Rust (fmt, portability, clippy, tests, docs, cargo-deny, wasm)
+    name: Rust (docs links and todo board, fmt, portability, clippy, tests, docs, cargo-deny, wasm)
     needs: select-runner
     # Still run if the runner check failed: an empty output falls back to GitHub-hosted Ubuntu.
     if: ${{ !cancelled() }}
@@ -55,6 +55,7 @@ jobs:
       - uses: taiki-e/install-action@86f7a0ffb25f40114606501a311ebcfaf882ea32 # v2.88.0
         with:
           tool: cargo-nextest@0.9.150,cargo-deny@0.20.2
+      - run: cargo xtask check docs
       - run: cargo xtask check rust
       - run: cargo xtask wasm
 
