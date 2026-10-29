@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [full-editor §E1](../../plans/full-editor.md#e1-editing-foundation) |
 | Round / milestone | Editor phase 2 (E1–E3) — M5 Organiser |
-| Depends on | [B3c](./B3c-save-planner-and-roundtrip.md), [B6b](./B6b-lamina-pdf-package.md), [B8b](./B8b-conformance-profiles-and-verapdf.md), [E1b](./E1b-xmp-packet-model.md), [X3a](../ongoing/X3a-nightly-lane.md) |
+| Depends on | [B3c](../ongoing/B3c-save-planner-and-roundtrip.md), [B6b](./B6b-lamina-pdf-package.md), [B8b](./B8b-conformance-profiles-and-verapdf.md), [E1b](./E1b-xmp-packet-model.md), [X3a](../ongoing/X3a-nightly-lane.md) |
 | Blocks | [E1e](./E1e-save-and-constraint-banner.md), [E1f](./E1f-metadata-ui-capability-page.md), [E2b](./E2b-page-structure-ops.md), [E3e](./E3e-xmp-editor.md) |
 | Dependency notes | [E1b](E1b-xmp-packet-model.md), `B3` ([pdf-library §B3](../../plans/pdf-library.md#b3-ops-and-save): ops and save planner), `B6` ([pdf-library §B6](../../plans/pdf-library.md#b6-wasm-and-laminapdf): `lamina-wasm` and `@lamina/pdf`) |
 | ADRs | Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
