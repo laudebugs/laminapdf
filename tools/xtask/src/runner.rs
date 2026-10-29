@@ -259,11 +259,13 @@ if grep -q '^crash.pdf' "$1"; then exit 1; fi
 } > "$2"
 "#;
 
+    /// Short enough to keep the tests quick, long enough that a loaded CI machine starts `sh`
+    /// and writes a report well within them (500 ms flaked on a busy runner).
     fn quick() -> Limits {
         Limits {
             chunk: 10,
-            chunk_timeout: Duration::from_secs(2),
-            file_timeout: Duration::from_millis(500),
+            chunk_timeout: Duration::from_secs(3),
+            file_timeout: Duration::from_secs(3),
         }
     }
 
