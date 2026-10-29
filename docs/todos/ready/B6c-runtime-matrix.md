@@ -30,9 +30,9 @@ Prove the package works where the plan says it does. The same TS example suite r
 
 - Vitest workspace configs in `packages/pdf/`: `vitest.node.config.ts`, `vitest.browser.config.ts` (Playwright provider: chromium, firefox, webkit), `vitest.workers.config.ts` (`@cloudflare/vitest-pool-workers`, `wrangler.toml` test fixture importing the `.wasm` as a module).
 - Deno and Bun smoke runners (`deno test` / `bun test`) over a shared `examples` entry using the `deno`/`default` conditions.
-- Workflow jobs: Node matrix (22, 24, 26) + Chromium in the fast lane; Firefox, WebKit, Deno, Bun, workerd in the full lane ([X4](./X4-full-lane-gate.md)) and the release lane.
+- Workflow jobs: Node matrix (22, 24, 26) + Chromium in the fast lane; Firefox, WebKit, Deno, Bun, workerd in the full lane ([X4](../ongoing/X4-full-lane-gate.md)) and the release lane.
 - A Worker example (`packages/pdf/examples/worker/`) that generates a PDF per request — also used by docs ([B7a](./B7a-docs-site.md)).
-- Performance smoke (not asserted in PR lanes; recorded): hello and 100-page report timings per runtime written to the job summary; nightly trend via [X3a](./X3a-nightly-lane.md).
+- Performance smoke (not asserted in PR lanes; recorded): hello and 100-page report timings per runtime written to the job summary; nightly trend via [X3a](../ongoing/X3a-nightly-lane.md).
 
 **Out of scope** (and which todo covers it)
 

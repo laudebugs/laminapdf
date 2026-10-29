@@ -42,7 +42,7 @@ Create the single Rust abstraction every lamina surface renders through. `crates
 - The PDFium-**WASM** TS adapter and the hayro `.wasm` package → [C2c](./C2c-render-packages.md).
 - Worker RPC and tiles in the browser → [C3a](./C3a-viewer-worker-rpc.md), [C3b](./C3b-viewer-virtualiser-and-zoom.md).
 - Desktop engine process wiring → desktop D2.
-- Nightly hayro-vs-PDFium diffs over the external corpus (`cargo xtask render-diff`, reporting the C1a metric) → [X3b](./X3b-render-diff-nightly.md); `cargo xtask corpus fetch` and the pinned corpus manifest (including the pdf.js/PDFBox corpora C1a used) → [X3a](./X3a-nightly-lane.md). This PR does not add or extend `corpus fetch`.
+- Nightly hayro-vs-PDFium diffs over the external corpus (`cargo xtask render-diff`, reporting the C1a metric) → [X3b](./X3b-render-diff-nightly.md); `cargo xtask corpus fetch` and the pinned corpus manifest (including the pdf.js/PDFBox corpora C1a used) → [X3a](../ongoing/X3a-nightly-lane.md). This PR does not add or extend `corpus fetch`.
 
 ## Tasks
 
@@ -57,7 +57,7 @@ Create the single Rust abstraction every lamina surface renders through. `crates
 - [ ] **Feature gating so the fast lane never runs goldens.** `cargo xtask check`/`test` use `--workspace --all-features`, which turns on `pdfium` and `hayro`. So: (a) the PDFium adapter loads the library **dynamically at runtime** (no build-time link), so `--all-features` builds and clippy pass on every OS without a fetched library; (b) every golden test and every test that needs the PDFium library is `#[ignore = "render golden: run via cargo xtask render-golden --check (full lane, Linux)"]`; (c) `cargo xtask render-golden --check` runs `cargo test -p lamina-render --features pdfium,hayro -- --ignored` after `fetch-pdfium`, and is the only thing that runs them. The fast lane and dev machines therefore run only the pure tests (request validation, hayro error mapping), never the PDFium/hayro goldens. (`cargo test -- --include-ignored` locally runs them if you have fetched PDFium.)
 - [ ] `tests/errors.rs`: wrong password, damaged file (`hello-broken.pdf`), oversize request, out-of-range page → typed errors.
 - [ ] `tests/determinism.rs`: rendering the same page twice gives identical bytes for each backend.
-- [ ] CI: add `cargo xtask render-golden --check` to the full lane (Linux; PDFium fetched and cached) — see [X4](./X4-full-lane-gate.md). The nightly external-corpus diff is [X3b](./X3b-render-diff-nightly.md)'s.
+- [ ] CI: add `cargo xtask render-golden --check` to the full lane (Linux; PDFium fetched and cached) — see [X4](../ongoing/X4-full-lane-gate.md). The nightly external-corpus diff is [X3b](./X3b-render-diff-nightly.md)'s.
 - [ ] `deny.toml`: allow the licences `pdfium-render`, `hayro` and their deps bring (all permissive); `cargo xtask deny` passes.
 - [ ] `README.md` for the crate: what the trait is, feature flags, how to fetch PDFium, how to update goldens.
 - [ ] Update `CLAUDE.md` layout (new crate) and commands (`cargo xtask fetch-pdfium`, `cargo xtask render-golden`).
