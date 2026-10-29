@@ -94,7 +94,7 @@ In B3 the current writer moves from `lamina-cos` into `lamina-save` with its gol
 
 ### 8. Implementation notes (B3b)
 
-How [B3b](../todos/done/B3b-lamina-save-writers.md) realised §5–§7, where the sketch above left a choice (the planner, §1–§4, is [B3c](../todos/ready/B3c-save-planner-and-roundtrip.md)'s):
+How [B3b](../todos/done/B3b-lamina-save-writers.md) realised §5–§7, where the sketch above left a choice (the planner, §1–§4, is [B3c](../todos/ongoing/B3c-save-planner-and-roundtrip.md)'s):
 
 - **Two layers.** `IncrementalWriter` and `FullWriter` work on a `lamina_cos::Document` and a `WriteSink`; the `Save` trait on `lamina_ops::Document` (`save_incremental`, `save_full`, `save_full_and_rebase`, temporary names until `Document::save`) adds the state machine and the rebase. `lamina-ops` owns the state (`SaveState`, `saved_not_rebased(PendingRebase)`, `rebase`), since it is what refuses ops in `SavedNotRebased`; `rebase` needs a pending save. `lamina_cos::Document::rebase(source, Reserved)` is the mechanism (reopen with the same limits, drop the overlay and journal, keep the warnings and the journal's sequence numbers, keep or release the reserved numbers).
 - **Undo across a save.** The history survives only an incremental save that freed nothing: every object it names still exists under its number and generation. A full rewrite drops unreachable objects and an incremental delete bumps generations, so undo could restore references to objects that are gone; those saves clear the history and release reserved numbers.
