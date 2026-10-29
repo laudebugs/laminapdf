@@ -7,7 +7,7 @@
 | Plan | [web reader §6 C5. Text, selection and search](../../plans/web-app.md#c5-text-selection-and-search) |
 | Round / milestone | Round C (web reader) — M2 Web reader v0.1 |
 | Depends on | [B9c](./B9c-text-extraction-bindings-and-differential.md), [C3c](./C3c-viewer-perf-harness.md), [C4c](./C4c-remote-files-encryption-privacy.md) |
-| Blocks | [C5b](./C5b-find-in-document.md), [C6b](./C6b-links-and-history.md), [C6c](./C6c-print-download-properties.md) |
+| Blocks | [C5b](./C5b-find-in-document.md), [C6b](./C6b-links-and-history.md), [C6c](./C6c-print-download-properties.md), [U2a](./U2a-selection-surfaces-and-copy-modes.md), [U4b](./U4b-reader-mode-from-structure-tree.md) |
 | Dependency notes | Library **B9** (text extraction: `lamina-content`, `lamina-text`, `page.text()` in `@lamina/pdf`; [pdf-library B9](../../plans/pdf-library.md#b9-text-extraction)); [C4c](./C4c-remote-files-encryption-privacy.md) (app opens local, remote and encrypted files); [C3c](./C3c-viewer-perf-harness.md) (perf harness scenario and long-task budget) |
 | ADRs | Follows 0004's two-parsers rule (text geometry from lamina, never from the renderer), 0009 (framework-free layer in `@lamina/viewer`), ADR 0023 (content-stream reading, from B9) |
 | Branch | `feat/c5a-text-layer` |
@@ -21,6 +21,7 @@ Make text in every rendered page selectable, copyable and readable by screen rea
 
 ## Context
 
+- [UI/UX plan §5.3](../../plans/ui-ux.md#53-selection-and-copy-r4-r5) — the viewer only **emits** selection events (client rects, selected runs, pointer type); menus, copy modes and the touch action bar are [U2a](./U2a-selection-surfaces-and-copy-modes.md)'s, so nothing here draws over the OS selection menu.
 - [pdf-library B9](../../plans/pdf-library.md#b9-text-extraction) — glyph runs with Unicode, quads, direction, `ActualText`, MCIDs; accepted when five-script fixtures match and quads lie within tolerance of PDFium's char boxes.
 - [03 text and fonts §8 extraction](../../research/pdf/03-text-and-fonts.md) — extraction model, reading order, ToUnicode.
 - [Research: web client](../../research/architecture/app-and-package-architecture.md#the-web-client-is-react-chrome-around-an-imperative-viewer-core) — layering: raster canvas, transparent DOM text layer, struct-tree layer via `aria-owns` (pdf.js pattern), core must expose `StructTreeRoot`/`MarkInfo`.
