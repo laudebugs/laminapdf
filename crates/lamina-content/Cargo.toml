@@ -19,6 +19,7 @@ lamina-model = { workspace = true }
 lamina-syntax = { workspace = true }
 
 [dev-dependencies]
+lamina-save = { workspace = true }
 serde_json = { workspace = true }
 toml = { workspace = true }
 

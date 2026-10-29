@@ -3,8 +3,9 @@
 //! replays every saved crash input (`fixtures/regressions/content/`) through it.
 
 use lamina_content::{FormXObject, MarkedContent, Visitor, interpret_page};
-use lamina_cos::{Dict, Object, Stream, Writer};
+use lamina_cos::{Dict, Object, Stream};
 use lamina_model::{Document, OpenOptions};
+use lamina_save::Writer;
 
 /// Interprets `data`: a whole file (starting `%PDF`) page by page, anything else as the
 /// content of the page of [`fixture_file`], whose resources cover every resource category.

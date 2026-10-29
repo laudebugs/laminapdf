@@ -12,8 +12,9 @@ mod common;
 
 use common::{dict, form, page_doc_with, run};
 use lamina_content::{Error, Limit, Limits, Warning};
-use lamina_cos::{Dict, Object, Writer};
+use lamina_cos::{Dict, Object};
 use lamina_model::OpenOptions;
+use lamina_save::Writer;
 
 fn with(limits: Limits) -> OpenOptions {
     OpenOptions::default().with_limits(limits)

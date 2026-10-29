@@ -19,6 +19,7 @@ lamina-syntax = { path = "../crates/lamina-syntax" }
 lamina-cos = { path = "../crates/lamina-cos" }
 lamina-model = { path = "../crates/lamina-model" }
 lamina-content = { path = "../crates/lamina-content" }
+lamina-save = { path = "../crates/lamina-save" }
 
 [workspace]
 members = ["."]

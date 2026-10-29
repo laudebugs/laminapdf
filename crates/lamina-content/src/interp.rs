@@ -44,7 +44,8 @@ pub struct Summary {
 /// # Examples
 /// ```
 /// use lamina_content::{TextShow, TextAdvance, Visitor, interpret_page};
-/// use lamina_cos::{Dict, Object, Stream, Writer};
+/// use lamina_cos::{Dict, Object, Stream};
+/// use lamina_save::Writer;
 /// use lamina_model::{Document, OpenOptions};
 ///
 /// // A one-page document showing "Hi".

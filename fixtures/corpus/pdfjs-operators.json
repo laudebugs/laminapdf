@@ -165,6 +165,15 @@
       "showText": 4
     }
   ],
+  "fixtures/golden/full-rewrite-hello.pdf": [
+    {
+      "beginText": 1,
+      "endText": 1,
+      "moveText": 1,
+      "setFont": 1,
+      "showText": 1
+    }
+  ],
   "fixtures/golden/hello.pdf": [
     {
       "beginText": 1,
@@ -188,6 +197,15 @@
       "setStrokeRGBColor": 2,
       "shadingFill": 1,
       "transform": 2
+    }
+  ],
+  "fixtures/golden/incremental-set-info.pdf": [
+    {
+      "beginText": 1,
+      "endText": 1,
+      "moveText": 1,
+      "setFont": 1,
+      "showText": 1
     }
   ],
   "fixtures/content/operators.pdf": [

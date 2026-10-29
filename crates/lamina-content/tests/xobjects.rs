@@ -14,8 +14,9 @@ use common::{Event, dict, font_resources, form, page_doc, page_doc_with, run};
 use lamina_content::{Error, Limit, Limits, Matrix};
 use std::sync::Arc;
 
-use lamina_cos::{Dict, Object, Stream, Writer};
+use lamina_cos::{Dict, Object, Stream};
 use lamina_model::OpenOptions;
+use lamina_save::Writer;
 
 /// Resources with one XObject `/X` = `obj`.
 fn xobject(obj: Object) -> Dict {

@@ -20,8 +20,9 @@ use lamina_content::{
     FillRule, FormXObject, ImageDraw, ImageSource, Matrix, Op, Paint, PathSegment, TextAdvance, TextItem, TextShow,
     Visitor, Warning, interpret_content, interpret_page,
 };
-use lamina_cos::{Dict, ObjRef, Object, Stream, Writer};
+use lamina_cos::{Dict, ObjRef, Object, Stream};
 use lamina_model::{Document, OpenOptions, Result};
+use lamina_save::Writer;
 
 pub use lamina_content::Summary;
 
