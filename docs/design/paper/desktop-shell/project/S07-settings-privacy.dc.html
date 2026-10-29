@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>lamina desktop, settings, privacy section</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&amp;family=Source+Sans+3:wght@400;500;600&amp;family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&amp;display=swap">
+<style>
+body{margin:0;background:#DCD6CB}
+a{color:#1F5C63}a:hover{color:#16454B}
+button,input,textarea,select{font:inherit;color:inherit}
+</style>
+</helmet>
+<div style="min-height: 100vh; display: flex; justify-content: center; align-items: flex-start; box-sizing: border-box; padding: 32px 16px; background: #DCD6CB; font-family: 'Source Sans 3', 'Segoe UI', system-ui, sans-serif; font-size: 14px; line-height: 1.4; color: #1F1D1A">
+<div style="width: 100%; max-width: 880px; min-height: 640px; display: flex; flex-direction: column; background: #F7F4EE; border: 1px solid #C9C2B6; border-radius: 10px; overflow: hidden; box-sizing: border-box; box-shadow: 0 18px 48px rgba(31,29,26,0.22)">
+
+  <div style="height: 30px; flex: 0 0 auto; display: flex; align-items: center; padding: 0 12px; background: #EFEBE3; border-bottom: 1px solid #E0D9CD; position: relative">
+    <div aria-hidden="true" style="display: flex; gap: 8px">
+      <span style="width: 12px; height: 12px; border-radius: 50%; background: #EC6A5E; border: 0.5px solid #D2574C"></span>
+      <span style="width: 12px; height: 12px; border-radius: 50%; background: #F4BF4F; border: 0.5px solid #D9A63A"></span>
+      <span style="width: 12px; height: 12px; border-radius: 50%; background: #61C554; border: 0.5px solid #4CAA40"></span>
+    </div>
+    <div style="position: absolute; left: 0; right: 0; text-align: center; font-size: 13px; font-weight: 600; color: #3A3631; pointer-events: none">Settings</div>
+  </div>
+
+  <div style="flex: 1 1 auto; display: flex; flex-wrap: wrap">
+    <nav aria-label="Settings sections" style="flex: 0 0 200px; box-sizing: border-box; border-right: 1px solid #E4DED3; padding: 16px 10px; display: flex; flex-direction: column; gap: 2px">
+      <a href="#" style="height: 32px; display: flex; align-items: center; padding: 0 10px; border-radius: 4px; color: #1F1D1A; text-decoration: none">General</a>
+      <a href="#" style="height: 32px; display: flex; align-items: center; padding: 0 10px; border-radius: 4px; color: #1F1D1A; text-decoration: none">Appearance</a>
+      <a href="#" style="height: 32px; display: flex; align-items: center; padding: 0 10px; border-radius: 4px; color: #1F1D1A; text-decoration: none">Updates</a>
+      <a href="#" aria-current="page" style="height: 32px; display: flex; align-items: center; padding: 0 10px; border-radius: 4px; color: #1F5C63; background: #E1E6E3; font-weight: 600; text-decoration: none">Privacy</a>
+      <a href="#" style="height: 32px; display: flex; align-items: center; padding: 0 10px; border-radius: 4px; color: #1F1D1A; text-decoration: none">Shortcuts</a>
+      <a href="#" style="height: 32px; display: flex; align-items: center; padding: 0 10px; border-radius: 4px; color: #1F1D1A; text-decoration: none">Advanced</a>
+      <a href="#" style="height: 32px; display: flex; align-items: center; padding: 0 10px; border-radius: 4px; color: #1F1D1A; text-decoration: none">About</a>
+    </nav>
+
+    <main style="flex: 999 1 480px; min-width: 0; box-sizing: border-box; background: #FBF9F5; padding: 28px 32px 32px; display: flex; flex-direction: column; gap: 22px">
+      <div style="display: flex; flex-direction: column; gap: 4px">
+        <h1 style="margin: 0; font-family: 'Newsreader', Georgia, serif; font-size: 20px; line-height: 24px; font-weight: 500">Privacy</h1>
+        <p style="margin: 0; font-size: 13px; color: #4A453E">lamina reads your files on this computer and never uploads them. Apart from the daily update check, nothing is sent unless you turn it on here.</p>
+      </div>
+
+      <section aria-labelledby="p-crash" style="display: flex; flex-direction: column">
+        <h2 id="p-crash" style="margin: 0 0 4px; font-family: 'Newsreader', Georgia, serif; font-size: 18px; line-height: 24px; font-weight: 500">Crash reports</h2>
+        <div style="display: flex; justify-content: space-between; align-items: center; gap: 24px; padding: 10px 0">
+          <div style="display: flex; flex-direction: column; gap: 2px">
+            <span id="sw-crash">Send crash reports</span>
+            <span id="sw-crash-d" style="font-size: 12px; color: #6B645A; max-width: 460px">The error, lamina’s version, your system and the renderer. Never file names, paths or document content. Kept for 30 days. While this is off, lamina asks once after a crash.</span>
+          </div>
+          <button role="switch" aria-checked="false" aria-labelledby="sw-crash" aria-describedby="sw-crash-d" style="flex: 0 0 auto; width: 32px; height: 18px; padding: 0; border: 1px solid #8A8174; border-radius: 9px; background: #FFFFFF; position: relative; outline: 2px solid #1F5C63; outline-offset: 2px"><span style="position: absolute; top: 2px; left: 2px; width: 12px; height: 12px; border-radius: 50%; background: #8A8174"></span></button>
+        </div>
+        <a href="#" style="font-size: 13px; font-weight: 600; text-decoration: none; align-self: flex-start; min-height: 24px; display: flex; align-items: center">See a sample report</a>
+      </section>
+
+      <section aria-labelledby="p-usage" style="display: flex; flex-direction: column; gap: 8px">
+        <h2 id="p-usage" style="margin: 0; font-family: 'Newsreader', Georgia, serif; font-size: 18px; line-height: 24px; font-weight: 500">Usage counts</h2>
+        <div style="display: flex; justify-content: space-between; align-items: center; gap: 24px; padding: 2px 0">
+          <div style="display: flex; flex-direction: column; gap: 2px">
+            <span id="sw-use">Share how often each command is used</span>
+            <span id="sw-use-d" style="font-size: 12px; color: #6B645A; max-width: 460px">Once a day, totals per command and mode, so we build what people use. No documents, names, addresses or identifiers.</span>
+          </div>
+          <button role="switch" aria-checked="false" aria-labelledby="sw-use" aria-describedby="sw-use-d" style="flex: 0 0 auto; width: 32px; height: 18px; padding: 0; border: 1px solid #8A8174; border-radius: 9px; background: #FFFFFF; position: relative"><span style="position: absolute; top: 2px; left: 2px; width: 12px; height: 12px; border-radius: 50%; background: #8A8174"></span></button>
+        </div>
+        <details open style="font-size: 13px">
+          <summary style="min-height: 24px; color: #1F5C63; font-weight: 600; cursor: pointer">Exactly what would be sent</summary>
+          <pre style="margin: 8px 0 0; padding: 10px 12px; background: #FFFFFF; border: 1px solid #E4DED3; border-radius: 4px; font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace; font-size: 12px; line-height: 1.5; color: #1F1D1A; white-space: pre-wrap">{ "day": "2026-10-28", "version": "0.1.2", "platform": "macos",
+  "modes": { "read": 41, "comment": 6 },
+  "commands": { "view.zoom-in": 14, "nav.next-page": 120, "comment.highlight": 3 } }</pre>
+        </details>
+      </section>
+
+      <section aria-labelledby="p-id" style="display: flex; flex-direction: column">
+        <h2 id="p-id" style="margin: 0 0 4px; font-family: 'Newsreader', Georgia, serif; font-size: 18px; line-height: 24px; font-weight: 500">Anonymous update ID</h2>
+        <div style="display: flex; justify-content: space-between; align-items: center; gap: 24px; padding: 10px 0">
+          <span style="font-size: 12px; color: #6B645A; max-width: 460px">A random ID sent with update checks so new versions reach a few copies first. It is not linked to crash reports or usage counts.</span>
+          <button style="flex: 0 0 auto; height: 32px; padding: 0 16px; border: 1px solid #8A8174; background: #FFFFFF; border-radius: 4px">Reset anonymous ID</button>
+        </div>
+      </section>
+
+      <a href="#" style="font-size: 13px; font-weight: 600; text-decoration: none; align-self: flex-start; min-height: 24px; display: flex; align-items: center">Read the privacy policy</a>
+    </main>
+  </div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

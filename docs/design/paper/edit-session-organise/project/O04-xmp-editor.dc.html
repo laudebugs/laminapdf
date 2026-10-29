@@ -1,0 +1,199 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>lamina desktop, XMP editor</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&amp;family=Source+Sans+3:wght@400;500;600&amp;family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&amp;display=swap">
+<style>
+body{margin:0;background:#DCD6CB}
+a{color:#1F5C63}a:hover{color:#16454B}
+button,input,textarea,select{font:inherit;color:inherit}
+</style>
+</helmet>
+<div style="min-height: 100vh; display: flex; flex-direction: column; box-sizing: border-box; background: #DCD6CB; font-family: 'Source Sans 3', 'Segoe UI', system-ui, sans-serif; font-size: 14px; line-height: 1.4; color: #1F1D1A">
+<div style="position: relative; flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; background: #F7F4EE; border: 1px solid #C9C2B6; border-radius: 10px; overflow: hidden; box-sizing: border-box">
+
+  <div style="height: 30px; flex: 0 0 auto; display: flex; align-items: center; padding: 0 12px; background: #EFEBE3; border-bottom: 1px solid #E0D9CD; position: relative">
+    <div aria-hidden="true" style="display: flex; gap: 8px">
+      <span style="width: 12px; height: 12px; border-radius: 50%; background: #EC6A5E; border: 0.5px solid #D2574C"></span>
+      <span style="width: 12px; height: 12px; border-radius: 50%; background: #F4BF4F; border: 0.5px solid #D9A63A"></span>
+      <span style="width: 12px; height: 12px; border-radius: 50%; background: #61C554; border: 0.5px solid #4CAA40"></span>
+    </div>
+    <div style="position: absolute; left: 0; right: 0; text-align: center; font-size: 13px; font-weight: 600; color: #3A3631; pointer-events: none">Q3-board-report.pdf</div>
+  </div>
+
+  <header style="min-height: 40px; flex: 0 0 auto; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 20px; padding: 0 16px; border-bottom: 1px solid #E4DED3">
+    <div style="display: flex; align-items: center; gap: 10px; flex: 1 1 220px; min-width: 0">
+      <button aria-label="Sidebar" aria-pressed="false" style="width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 4px; color: #4A453E"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="3.5" y="4.5" width="17" height="15" rx="1.5"></rect><path d="M9 4.5v15"></path></svg></button>
+      <span style="font-family: 'Newsreader', Georgia, serif; font-size: 16px; font-weight: 500; white-space: nowrap">Q3-board-report.pdf</span>
+      <span style="font-size: 12px; color: #6B645A; white-space: nowrap">No unsaved changes</span>
+    </div>
+    <div role="group" aria-label="Mode" style="display: flex; align-items: stretch; gap: 22px; height: 40px">
+      <button aria-pressed="true" style="height: 40px; display: flex; align-items: center; border: 0; background: transparent; padding: 2px 0 0; color: #1F1D1A; font-weight: 600; border-bottom: 2px solid {{accent}}">Read</button>
+      <button aria-pressed="false" style="height: 40px; display: flex; align-items: center; border: 0; background: transparent; padding: 2px 0 0; color: #6B645A; border-bottom: 2px solid transparent">Comment</button>
+      <button aria-pressed="false" style="height: 40px; display: flex; align-items: center; border: 0; background: transparent; padding: 2px 0 0; color: #6B645A; border-bottom: 2px solid transparent">Fill &amp; Sign</button>
+      <button aria-pressed="false" style="height: 40px; display: flex; align-items: center; border: 0; background: transparent; padding: 2px 0 0; color: #6B645A; border-bottom: 2px solid transparent">Organise</button>
+      <button aria-pressed="false" style="height: 40px; display: flex; align-items: center; border: 0; background: transparent; padding: 2px 0 0; color: #6B645A; border-bottom: 2px solid transparent">Edit</button>
+    </div>
+    <div style="display: flex; align-items: center; justify-content: flex-end; gap: 14px; flex: 1 1 220px">
+      <button style="height: 26px; display: flex; align-items: center; gap: 8px; padding: 0 6px 0 10px; border: 1px solid #E4DED3; background: #FBF9F5; border-radius: 4px; color: #6B645A; font-size: 13px"><span>Commands</span><span style="font-size: 11px; padding: 1px 5px; border: 1px solid #D8D1C5; border-radius: 3px; color: #4A453E; background: #FFFFFF">⌘K</span></button>
+    </div>
+  </header>
+
+  <div style="flex: 1 1 auto; min-height: 0; display: flex">
+    <main style="flex: 1 1 auto; min-width: 0; background: #ECE7DE; display: flex; justify-content: center; padding: 28px 16px; box-sizing: border-box">
+      <article aria-label="Page 1" style="width: 100%; max-width: 612px; min-height: 790px; box-sizing: border-box; background: #FFFFFF; box-shadow: 0 1px 2px rgba(60,48,30,0.08), 0 8px 28px rgba(60,48,30,0.10)"></article>
+    </main>
+  </div>
+
+  <footer style="min-height: 28px; flex: 0 0 auto; display: flex; align-items: center; justify-content: space-between; padding: 0 16px; border-top: 1px solid #E4DED3; font-size: 12px; color: #6B645A">
+    <span style="color: #1F1D1A">0 network requests</span>
+    <span style="font-variant-numeric: tabular-nums">Page 1 of 24</span>
+  </footer>
+
+  <div style="position: absolute; left: 0; right: 0; top: 30px; bottom: 0; z-index: 50; background: rgba(31,29,26,0.30); display: flex; justify-content: center; align-items: flex-start; padding: 36px 16px; box-sizing: border-box; overflow: auto">
+    <div role="dialog" aria-modal="true" aria-labelledby="o4x-t" style="width: 100%; max-width: 880px; box-sizing: border-box; display: flex; flex-direction: column; background: #FBF9F5; border: 1px solid #D8D1C5; border-radius: 6px; box-shadow: 0 18px 48px rgba(31,29,26,0.22)">
+      <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; padding: 20px 20px 0 24px">
+        <div style="display: flex; flex-direction: column; gap: 2px">
+          <h2 id="o4x-t" style="margin: 0; font-family: 'Newsreader', Georgia, serif; font-size: 20px; font-weight: 500; line-height: 1.2">Document info</h2>
+          <span style="font-size: 12px; color: #6B645A">Q3-board-report.pdf · PDF 1.7 · PDF/A-2b</span>
+        </div>
+        <button aria-label="Close document info" style="width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 4px; color: #4A453E"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg></button>
+      </div>
+      <div role="tablist" aria-label="Document info" style="display: flex; gap: 16px; padding: 14px 24px 0; border-bottom: 1px solid #E4DED3">
+        <button role="tab" aria-selected="false" style="border: 0; background: transparent; padding: 0 0 8px; font-size: 13px; color: #6B645A; border-bottom: 2px solid transparent">Description</button>
+        <button role="tab" aria-selected="true" style="border: 0; background: transparent; padding: 0 0 8px; font-size: 13px; font-weight: 600; color: #1F1D1A; border-bottom: 2px solid {{accent}}">XMP</button>
+        <button role="tab" aria-selected="false" style="border: 0; background: transparent; padding: 0 0 8px; font-size: 13px; color: #6B645A; border-bottom: 2px solid transparent">File</button>
+      </div>
+
+      <div role="tabpanel" aria-label="XMP" style="display: flex; flex-direction: column">
+        <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; padding: 12px 24px; border-bottom: 1px solid #E4DED3">
+          <div role="group" aria-label="View" style="display: flex; gap: 4px">
+            <button aria-pressed="true" style="height: 28px; padding: 0 10px; border: 1px solid {{accent}}; background: {{accentTint}}; color: {{accent}}; border-radius: 4px; font-size: 13px; font-weight: 600">Properties</button>
+            <button aria-pressed="false" style="height: 28px; padding: 0 10px; border: 1px solid transparent; background: transparent; border-radius: 4px; font-size: 13px">Raw XML</button>
+          </div>
+          <span style="flex: 1 1 auto"></span>
+          <label for="o4x-q" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Filter properties</label>
+          <div style="display: flex; align-items: center; gap: 8px; height: 28px; padding: 0 10px; box-sizing: border-box; border: 1px solid #8A8174; border-radius: 4px; background: #FFFFFF; width: 220px">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6B645A" stroke-width="1.5" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6"></circle><path d="M15 15l5 5"></path></svg>
+            <input id="o4x-q" placeholder="Filter properties" style="flex: 1 1 auto; min-width: 0; border: 0; outline: 0; background: transparent; font-size: 13px">
+          </div>
+          <button style="height: 28px; display: flex; align-items: center; gap: 6px; padding: 0 12px; border: 1px solid #8A8174; background: #FFFFFF; border-radius: 4px; font-size: 13px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M6 12h12M12 6v12"></path></svg>Add property…</button>
+        </div>
+
+        <div style="display: flex; flex-wrap: wrap; min-height: 470px">
+          <ul role="tree" aria-label="XMP properties" style="flex: 1 1 300px; list-style: none; margin: 0; padding: 10px 10px 14px; box-sizing: border-box; border-right: 1px solid #E4DED3; display: flex; flex-direction: column; gap: 1px; max-height: 520px; overflow: auto">
+            <sc-for list="{{tree}}" as="t" hint-placeholder-count="18">
+              <li role="treeitem" aria-level="{{t.level}}" aria-expanded="{{t.expanded}}" aria-selected="{{t.selected}}" tabindex="{{t.tab}}" style="{{t.style}}">
+                <sc-if value="{{t.isGroup}}" hint-placeholder-val="{{ false }}">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true" style="flex: 0 0 auto; color: #4A453E"><path d="M7 10l5 5 5-5"></path></svg>
+                </sc-if>
+                <span style="flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap">{{t.label}}</span>
+                <span style="font-size: 12px; color: {{t.metaColor}}; white-space: nowrap">{{t.meta}}</span>
+              </li>
+            </sc-for>
+          </ul>
+
+          <section aria-labelledby="o4x-p" style="flex: 999 1 420px; min-width: 0; box-sizing: border-box; padding: 20px 24px; display: flex; flex-direction: column; gap: 16px">
+            <div style="display: flex; flex-direction: column; gap: 4px">
+              <h3 id="o4x-p" style="margin: 0; font-family: 'Newsreader', Georgia, serif; font-size: 18px; font-weight: 500; line-height: 24px">nwt:ReportPeriod</h3>
+              <span style="font-size: 12px; color: #6B645A; overflow-wrap: anywhere">Northwind reporting · http://ns.example.org/northwind/report/1.0/</span>
+            </div>
+            <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px">
+              <div style="display: flex; flex-direction: column; gap: 8px">
+                <label for="o4x-v" style="font-size: 12px; font-weight: 600; color: #4A453E">Value</label>
+                <input id="o4x-v" value="2026-Q3" style="height: 32px; box-sizing: border-box; padding: 0 10px; border: 1px solid #8A8174; border-radius: 4px; background: #FFFFFF; outline: 2px solid {{accent}}; outline-offset: 1px">
+              </div>
+              <div style="display: flex; flex-direction: column; gap: 8px">
+                <label for="o4x-type" style="font-size: 12px; font-weight: 600; color: #4A453E">Type</label>
+                <div style="position: relative; display: flex">
+                  <select id="o4x-type" style="appearance: none; -webkit-appearance: none; width: 100%; height: 32px; box-sizing: border-box; padding: 0 30px 0 10px; border: 1px solid #8A8174; border-radius: 4px; background: #FFFFFF"><option>Text</option><option>Date</option><option>Integer</option><option>Boolean</option><option>URI</option><option>Ordered list (Seq)</option><option>Unordered list (Bag)</option><option>Language alternatives (Alt)</option></select>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#4A453E" stroke-width="1.5" aria-hidden="true" style="position: absolute; right: 8px; top: 8px; pointer-events: none"><path d="M7 10l5 5 5-5"></path></svg>
+                </div>
+              </div>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 8px">
+              <label for="o4x-d" style="font-size: 12px; font-weight: 600; color: #4A453E">Description in the extension schema</label>
+              <textarea id="o4x-d" rows="2" aria-describedby="o4x-dh" style="resize: vertical; box-sizing: border-box; width: 100%; padding: 8px 10px; border: 1px solid #8A8174; border-radius: 4px; background: #FFFFFF; font-size: 14px; line-height: 1.45">The reporting quarter this document covers.</textarea>
+              <span id="o4x-dh" style="font-size: 12px; color: #6B645A">PDF/A requires every custom property to be declared. This text goes into that declaration.</span>
+            </div>
+            <div role="note" style="display: flex; gap: 10px; padding: 10px 12px; background: #F7F4EE; border: 1px solid #E4DED3; border-radius: 4px; font-size: 13px">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#4A453E" stroke-width="1.5" aria-hidden="true" style="flex: 0 0 auto; margin-top: 1px"><circle cx="12" cy="12" r="8"></circle><path d="M12 11v5M12 8v.5"></path></svg>
+              <span><strong style="font-weight: 600">Custom property in a PDF/A file.</strong> lamina adds a PDF/A extension schema that declares nwt:ReportPeriod, so the file stays valid PDF/A-2b.</span>
+            </div>
+            <div style="display: flex; gap: 8px; margin-top: auto">
+              <button style="height: 30px; padding: 0 12px; border: 0; background: transparent; border-radius: 4px; font-size: 13px; color: #9B2335">Remove property</button>
+            </div>
+          </section>
+        </div>
+      </div>
+
+      <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 14px 24px 20px; border-top: 1px solid #E4DED3">
+        <span style="font-size: 12px; color: #6B645A; font-variant-numeric: tabular-nums">1 property added</span>
+        <span style="flex: 1 1 auto"></span>
+        <button style="height: 32px; padding: 0 16px; border: 1px solid #8A8174; background: #FFFFFF; border-radius: 4px">Cancel</button>
+        <button style="height: 32px; padding: 0 16px; border: 1px solid {{accent}}; background: {{accent}}; color: #FFFFFF; border-radius: 4px; font-weight: 600">Apply</button>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#1F5C63","options":["#1F5C63","#2D4A6B","#3E4A3C"]},"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    var accent = this.props.accent ?? '#1F5C63';
+    function mix(hex, base, t) {
+      var p = function (h, i) { return parseInt(h.replace('#', '').substr(i, 2), 16); };
+      var out = '#';
+      for (var i = 0; i < 6; i += 2) {
+        var v = Math.round(p(hex, i) * t + p(base, i) * (1 - t));
+        out += (v < 16 ? '0' : '') + v.toString(16);
+      }
+      return out;
+    }
+    var tint = mix(accent, '#FBF9F5', 0.12);
+    var rows = [
+      ['g', 'Dublin Core (dc)', '4'],
+      ['p', 'dc:title', 'Description tab'],
+      ['p', 'dc:creator', 'Description tab'],
+      ['p', 'dc:description', 'Description tab'],
+      ['p', 'dc:subject', 'Description tab'],
+      ['g', 'PDF (pdf)', '2'],
+      ['p', 'pdf:Keywords', 'Description tab'],
+      ['p', 'pdf:Producer', 'Description tab'],
+      ['g', 'XMP basic (xmp)', '4'],
+      ['p', 'xmp:CreateDate', '2026-10-14T10:20'],
+      ['p', 'xmp:ModifyDate', '2026-10-21T17:48'],
+      ['g', 'Media management (xmpMM)', '2'],
+      ['g', 'PDF/A identification (pdfaid)', 'Kept by lamina'],
+      ['g', 'Northwind reporting (nwt)', '3'],
+      ['p', 'nwt:ReportPeriod', '2026-Q3', 'sel'],
+      ['p', 'nwt:BoardMeeting', '2026-11-12'],
+      ['p', 'nwt:Classification', 'Board only']
+    ];
+    var tree = rows.map(function (r) {
+      var g = r[0] === 'g';
+      var sel = r[3] === 'sel';
+      var collapsed = g && (r[1].indexOf('xmpMM') > -1 || r[1].indexOf('pdfaid') > -1);
+      return {
+        label: r[1], meta: r[2], isGroup: g && !collapsed,
+        level: g ? '1' : '2',
+        expanded: g ? (collapsed ? 'false' : 'true') : null,
+        selected: sel ? 'true' : 'false',
+        tab: sel ? '0' : '-1',
+        metaColor: sel ? '#4A453E' : '#6B645A',
+        style: 'display: flex; align-items: center; gap: 6px; min-height: 28px; padding: 0 8px 0 ' + (g ? (collapsed ? '28px' : '8px') : '30px') + '; border-radius: 4px; font-size: ' + (g ? '13px; font-weight: 600;' : '13px;') + (sel ? ' background: ' + tint + '; box-shadow: inset 0 0 0 1px ' + accent + '; color: ' + accent + '; font-weight: 600;' : ' color: #1F1D1A;')
+      };
+    });
+    return { accent: accent, accentTint: tint, tree: tree };
+  }
+}
+</script>
+</body>
+</html>

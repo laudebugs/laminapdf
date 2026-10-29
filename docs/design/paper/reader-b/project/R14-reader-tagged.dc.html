@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>lamina web reader, Reader mode from tags</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&amp;family=Source+Sans+3:wght@400;500;600&amp;family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&amp;display=swap">
+<style>
+body{margin:0;background:#F7F4EE}
+a{color:#1F5C63}a:hover{color:#16454B}
+button,input,textarea{font:inherit;color:inherit}
+</style>
+</helmet>
+<div style="min-height: 100vh; display: flex; flex-direction: column; background: #F7F4EE; color: #1F1D1A; font-family: 'Source Sans 3', 'Segoe UI', system-ui, sans-serif; font-size: 14px; line-height: 1.4">
+
+  <header style="min-height: 40px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 20px; padding: 0 16px; border-bottom: 1px solid #E4DED3; background: #F7F4EE">
+    <div style="display: flex; align-items: center; gap: 10px; flex: 1 1 220px; min-width: 0">
+      <button aria-label="Sidebar" aria-pressed="false" style="width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 4px; color: #4A453E"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="3.5" y="4.5" width="17" height="15" rx="1.5"></rect><path d="M9 4.5v15"></path></svg></button>
+      <div style="display: flex; align-items: baseline; gap: 8px; min-width: 0">
+        <span style="font-family: 'Newsreader', Georgia, serif; font-size: 16px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">Q3-board-report.pdf</span>
+        <span style="font-size: 12px; color: #6B645A; white-space: nowrap">No unsaved changes</span>
+      </div>
+    </div>
+    <div role="group" aria-label="Mode" style="display: flex; align-items: stretch; gap: 22px; height: 40px">
+      <button aria-pressed="true" style="height: 40px; display: flex; align-items: center; border: 0; background: transparent; padding: 2px 0 0; color: #1F1D1A; font-weight: 600; border-bottom: 2px solid {{accent}}">Read</button>
+      <button aria-pressed="false" style="height: 40px; display: flex; align-items: center; border: 0; background: transparent; padding: 2px 0 0; color: #6B645A; border-bottom: 2px solid transparent">Comment</button>
+      <button aria-pressed="false" style="height: 40px; display: flex; align-items: center; border: 0; background: transparent; padding: 2px 0 0; color: #6B645A; border-bottom: 2px solid transparent">Fill &amp; Sign</button>
+      <button aria-pressed="false" style="height: 40px; display: flex; align-items: center; border: 0; background: transparent; padding: 2px 0 0; color: #6B645A; border-bottom: 2px solid transparent">Organise</button>
+      <button aria-pressed="false" style="height: 40px; display: flex; align-items: center; border: 0; background: transparent; padding: 2px 0 0; color: #6B645A; border-bottom: 2px solid transparent">Edit</button>
+    </div>
+    <div style="display: flex; align-items: center; justify-content: flex-end; gap: 14px; flex: 1 1 220px">
+      <div style="display: flex; align-items: center; gap: 6px; font-variant-numeric: tabular-nums">
+        <label for="pg" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Page</label>
+        <input id="pg" value="3" style="width: 30px; height: 24px; box-sizing: border-box; text-align: center; border: 1px solid #8A8174; border-radius: 4px; background: #FFFFFF; font: inherit; font-variant-numeric: tabular-nums; color: #1F1D1A">
+        <span style="color: #6B645A">/ 24</span>
+      </div>
+      <button aria-pressed="true" style="height: 28px; display: flex; align-items: center; gap: 6px; padding: 0 10px; border: 1px solid {{accent}}; background: {{accentTint}}; color: {{accent}}; border-radius: 4px; font-size: 13px; font-weight: 600"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M12 6.5c-2-1.3-4.5-2-8-2v13c3.5 0 6 .7 8 2 2-1.3 4.5-2 8-2v-13c-3.5 0-6 .7-8 2z"></path><path d="M12 6.5v13"></path></svg>Reader</button>
+      <button aria-label="Find in document" style="width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 4px; color: #4A453E"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6"></circle><path d="M15 15l5 5"></path></svg></button>
+      <button style="height: 26px; display: flex; align-items: center; gap: 8px; padding: 0 6px 0 10px; border: 1px solid #E4DED3; background: #FBF9F5; border-radius: 4px; color: #6B645A; font-size: 13px"><span>Commands</span><span style="font-size: 11px; padding: 1px 5px; border: 1px solid #D8D1C5; border-radius: 3px; color: #4A453E; background: #FFFFFF">Ctrl K</span></button>
+      <button aria-label="More actions" style="width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 4px; color: #4A453E"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="5.5" cy="12" r="0.9"></circle><circle cx="12" cy="12" r="0.9"></circle><circle cx="18.5" cy="12" r="0.9"></circle></svg></button>
+    </div>
+  </header>
+
+  <div style="flex: 1 1 auto; min-height: 0; display: flex; flex-wrap: wrap">
+    <main aria-label="Reader view" style="flex: 999 1 560px; min-width: 0; background: {{paper}}; color: {{ink}}; overflow: auto; display: flex; justify-content: center; padding: 28px 24px 48px; box-sizing: border-box">
+      <div lang="en-GB" style="width: 100%; max-width: 660px; display: flex; flex-direction: column; gap: 20px; font-family: 'Source Serif 4', Georgia, serif; font-size: 19px; line-height: 1.65">
+        <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; font-family: 'Source Sans 3', system-ui, sans-serif; font-size: 14px; line-height: 1.4; padding-bottom: 12px; border-bottom: 1px solid #E4DED3">
+          <button style="height: 32px; display: flex; align-items: center; gap: 6px; padding: 0 14px 0 10px; border: 1px solid #8A8174; background: #FFFFFF; color: #1F1D1A; border-radius: 4px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M15 5l-7 7 7 7"></path></svg>Back to page 3</button>
+          <span style="display: inline-flex; align-items: center; gap: 4px; height: 20px; padding: 0 8px; border-radius: 3px; background: {{accentTint}}; color: {{accent}}; font-size: 12px; font-weight: 600"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M6 12.5l4 4 8-9"></path></svg>From the document’s tags</span>
+        </div>
+        <h2 style="margin: 8px 0 0; font-size: 30px; line-height: 1.25; font-weight: 600">2. Repairs backlog</h2>
+        <p style="margin: 0; text-wrap: pretty">Open repair jobs stood at 1,248 at the end of September across the four regions. Most of the work closed this quarter was routine plumbing and joinery, which the additional contractor teams appointed in July were able to schedule within the target window.</p>
+        <p style="margin: 0; text-wrap: pretty">The backlog fell by 18% over the quarter, but the oldest 10% of jobs are now older than 90 days. These are mainly damp and mould cases that need a surveyor’s visit before work can be scheduled, and they sit in the older parts of our stock.</p>
+        <p style="margin: 0; text-wrap: pretty">The board is asked to note the position and to consider the proposal in section 4, which would reserve surveyor time each week for the longest-waiting cases.</p>
+        <figure style="margin: 4px 0; display: flex; flex-direction: column; gap: 10px">
+          <div role="img" aria-label="Bar chart of open repairs by region: North 412, East 288, South 351, West 197." style="background: #FFFFFF; border: 1px solid #E4DED3; padding: 18px 20px; display: grid; grid-template-columns: 52px minmax(0, 1fr) 36px; align-items: center; gap: 8px 12px; font-family: 'Source Sans 3', system-ui, sans-serif; font-size: 12.5px; line-height: 1.3; color: #3A3733; font-variant-numeric: tabular-nums">
+            <span>North</span><span style="height: 14px; width: 100%; background: #4E5A63"></span><span style="text-align: right">412</span>
+            <span>East</span><span style="height: 14px; width: 69.9%; background: #4E5A63"></span><span style="text-align: right">288</span>
+            <span>South</span><span style="height: 14px; width: 85.2%; background: #4E5A63"></span><span style="text-align: right">351</span>
+            <span>West</span><span style="height: 14px; width: 47.8%; background: #4E5A63"></span><span style="text-align: right">197</span>
+          </div>
+          <figcaption style="display: flex; flex-direction: column; gap: 4px; font-family: 'Source Sans 3', system-ui, sans-serif; font-size: 14px; line-height: 1.45">
+            <span style="font-weight: 600">Open repairs by region, end of September</span>
+            <span style="color: #6B645A">Image from page 3. Description in the file: “Bar chart of open repairs by region: North 412, East 288, South 351, West 197.”</span>
+          </figcaption>
+        </figure>
+        <h2 style="margin: 16px 0 0; font-size: 30px; line-height: 1.25; font-weight: 600">3. Rent collection</h2>
+        <p style="margin: 0; text-wrap: pretty">Rent collected in the quarter came to 98.1% of the rent due, against a target of 98.5%. Arrears rose most in the West region, where two estates moved to the new payment system in August.</p>
+      </div>
+    </main>
+
+    <aside aria-label="Reader settings" style="flex: 0 0 288px; box-sizing: border-box; border-left: 1px solid #E4DED3; background: #FBF9F5; display: flex; flex-direction: column; gap: 22px; padding: 20px 20px 24px">
+      <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 8px">
+        <div style="display: flex; flex-direction: column; gap: 2px">
+          <h2 style="margin: 0; font-family: 'Newsreader', Georgia, serif; font-size: 20px; font-weight: 500; line-height: 1.2">Reader settings</h2>
+          <span style="font-size: 12px; color: #6B645A">For every document</span>
+        </div>
+        <button aria-label="Close reader settings" style="width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 4px; color: #4A453E"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg></button>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 8px">
+        <span id="ts-l" style="font-size: 12px; font-weight: 600; color: #4A453E">Text size</span>
+        <div role="group" aria-labelledby="ts-l" style="display: flex; align-items: center; gap: 8px">
+          <button aria-label="Smaller text" style="width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border: 1px solid #8A8174; background: #FFFFFF; border-radius: 4px; font-family: 'Source Serif 4', Georgia, serif; font-size: 13px">A</button>
+          <output aria-live="polite" style="flex: 1 1 auto; text-align: center; font-variant-numeric: tabular-nums">19 px</output>
+          <button aria-label="Larger text" style="width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border: 1px solid #8A8174; background: #FFFFFF; border-radius: 4px; font-family: 'Source Serif 4', Georgia, serif; font-size: 19px; outline: 2px solid {{accent}}; outline-offset: 2px">A</button>
+        </div>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 8px">
+        <span id="ls-l" style="font-size: 12px; font-weight: 600; color: #4A453E">Line spacing</span>
+        <div role="radiogroup" aria-labelledby="ls-l" style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px">
+          <button role="radio" aria-checked="false" style="height: 28px; border: 1px solid #8A8174; background: #FFFFFF; border-radius: 4px; font-size: 13px">Tight</button>
+          <button role="radio" aria-checked="true" style="height: 28px; border: 1px solid {{accent}}; background: {{accentTint}}; color: {{accent}}; font-weight: 600; border-radius: 4px; font-size: 13px">Normal</button>
+          <button role="radio" aria-checked="false" style="height: 28px; border: 1px solid #8A8174; background: #FFFFFF; border-radius: 4px; font-size: 13px">Loose</button>
+        </div>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 8px">
+        <span id="lw-l" style="font-size: 12px; font-weight: 600; color: #4A453E">Line length</span>
+        <div role="radiogroup" aria-labelledby="lw-l" style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px">
+          <button role="radio" aria-checked="false" style="height: 28px; border: 1px solid #8A8174; background: #FFFFFF; border-radius: 4px; font-size: 13px">Narrow</button>
+          <button role="radio" aria-checked="true" style="height: 28px; border: 1px solid {{accent}}; background: {{accentTint}}; color: {{accent}}; font-weight: 600; border-radius: 4px; font-size: 13px">Medium</button>
+          <button role="radio" aria-checked="false" style="height: 28px; border: 1px solid #8A8174; background: #FFFFFF; border-radius: 4px; font-size: 13px">Wide</button>
+        </div>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 8px">
+        <span id="pa-l" style="font-size: 12px; font-weight: 600; color: #4A453E">Appearance</span>
+        <div role="group" aria-labelledby="pa-l" style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px">
+          <sc-for list="{{chips}}" as="c" hint-placeholder-count="3">
+            <button aria-pressed="{{c.pressed}}" style="{{c.style}}">
+              <span style="{{c.preview}}">Aa</span>
+              <span style="{{c.label}}">{{c.name}}</span>
+            </button>
+          </sc-for>
+        </div>
+      </div>
+
+      <p style="margin: 0; font-size: 13px; color: #3A3631; line-height: 1.5">Tables, figures and formulas appear as images from the page, with the description the file gives them.</p>
+
+      <div style="display: flex; gap: 8px; margin-top: auto">
+        <button style="height: 30px; padding: 0 12px; border: 0; background: transparent; border-radius: 4px; font-size: 13px; color: {{accent}}; font-weight: 600">Reset to defaults</button>
+      </div>
+    </aside>
+  </div>
+
+  <footer style="min-height: 28px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px 16px; padding: 0 16px; border-top: 1px solid #E4DED3; background: #F7F4EE; font-size: 12px; color: #6B645A">
+    <button style="min-height: 24px; display: flex; align-items: center; gap: 7px; border: 0; background: transparent; padding: 0 4px; font-size: 12px; color: #6B645A">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="{{accent}}" stroke-width="1.5" aria-hidden="true"><path d="M12 3.5l7 2.5v5.5c0 4.3-3 7.6-7 9-4-1.4-7-4.7-7-9V6z"></path><path d="M9 12l2.2 2.2L15.5 10"></path></svg>
+      <span style="color: #1F1D1A; font-variant-numeric: tabular-nums">0 network requests</span><span>· Offline-safe: nothing uploaded</span>
+    </button>
+    <span>Reader mode · from tags</span>
+    <span style="font-variant-numeric: tabular-nums">Page 3 · Repairs backlog</span>
+  </footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#1F5C63","options":["#1F5C63","#2D4A6B","#3E4A3C"]},"appearance":{"editor":"enum","options":["Original","Sepia"],"default":"Original"},"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    var accent = this.props.accent ?? '#1F5C63';
+    var mode = this.props.appearance ?? 'Original';
+    function mix(hex, base, t) {
+      var p = function (h, i) { return parseInt(h.replace('#', '').substr(i, 2), 16); };
+      var out = '#';
+      for (var i = 0; i < 6; i += 2) {
+        var v = Math.round(p(hex, i) * t + p(base, i) * (1 - t));
+        out += (v < 16 ? '0' : '') + v.toString(16);
+      }
+      return out;
+    }
+    var defs = [
+      { name: 'Original', bg: '#FFFFFF', fg: '#262421' },
+      { name: 'Sepia', bg: '#F4ECD8', fg: '#3B2F20' },
+      { name: 'Dark', bg: '#22211F', fg: '#E6E1D8' }
+    ];
+    var paper = '#FFFFFF', ink = '#262421';
+    var chips = defs.map(function (d) {
+      var on = d.name === mode;
+      if (on) { paper = d.bg; ink = d.fg; }
+      return {
+        name: d.name, pressed: on ? 'true' : 'false',
+        style: 'display: flex; flex-direction: column; gap: 6px; padding: 6px; border-radius: 6px; text-align: left; ' + (on ? 'border: 2px solid ' + accent + '; background: #FFFFFF;' : 'border: 1px solid #D8D1C5; background: #FBF9F5;'),
+        preview: 'height: 36px; display: flex; align-items: center; justify-content: center; background: ' + d.bg + '; color: ' + d.fg + '; border-radius: 3px; font-family: \'Source Serif 4\', Georgia, serif; font-size: 18px;' + (d.name === 'Original' ? ' border: 1px solid #E4DED3;' : ''),
+        label: 'font-size: 12px; line-height: 16px; ' + (on ? 'font-weight: 600;' : '')
+      };
+    });
+    return { accent: accent, accentTint: mix(accent, '#FBF9F5', 0.12), chips: chips, paper: paper, ink: ink };
+  }
+}
+</script>
+</body>
+</html>

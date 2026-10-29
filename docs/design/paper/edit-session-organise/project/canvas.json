@@ -1,0 +1,29 @@
+{"v":3,"createdOnFiles":{"v":1,"at":"2026-10-29T12:00:00Z"},"title":"lamina Paper — Edit session and organise","launch":{"view":"canvas"},"pages":[],"boards":{
+"O01-edit-session.dc.html":{"x":0,"y":0,"w":1440,"h":900,"title":"O01 · Edit session, undo and history (desktop)","expand":"fill"},
+"O02-save.dc.html":{"x":0,"y":1020,"w":1440,"h":900,"title":"O02 · Save menu, signed file, incremental vs full (desktop)","expand":"fill"},
+"O02-save-conflict.dc.html":{"x":1520,"y":1020,"w":1440,"h":900,"title":"O02 · Constraint banner + remove-signature confirm (desktop)","expand":"fill"},
+"O02-save-external-change.dc.html":{"x":3040,"y":1020,"w":1440,"h":900,"title":"O02 · File changed on disk while dirty (desktop)","expand":"fill"},
+"O02-save-web.dc.html":{"x":4560,"y":1020,"w":1440,"h":900,"title":"O02 · Web without File System Access: Download (web)","expand":"fill"},
+"O03-close-unsaved.dc.html":{"x":0,"y":2040,"w":1440,"h":900,"title":"O03 · Close with unsaved changes (desktop)","expand":"fill"},
+"O04-document-info.dc.html":{"x":0,"y":3060,"w":1440,"h":900,"title":"O04 · Document info: Description (desktop)","expand":"fill"},
+"O04-xmp-editor.dc.html":{"x":1520,"y":3060,"w":1440,"h":900,"title":"O04 · Document info: XMP editor (desktop)","expand":"fill"},
+"O05-capabilities.dc.html":{"x":0,"y":4080,"w":1440,"h":1000,"title":"O05 · Capability page (web)","expand":"fill"},
+"O06-organise.dc.html":{"x":0,"y":5200,"w":1440,"h":900,"title":"O06 · Organise mode: grid, 2 selected, insertion bar (desktop)","expand":"fill"},
+"O06-organise-menu.dc.html":{"x":1520,"y":5200,"w":1440,"h":900,"title":"O06 · Page context menu (desktop)","expand":"fill"},
+"O06-move-dialog.dc.html":{"x":3040,"y":5200,"w":1440,"h":900,"title":"O06 · Move to page… dialog (desktop)","expand":"fill"},
+"O06-delete-signed.dc.html":{"x":4560,"y":5200,"w":1440,"h":900,"title":"O06 · Delete on a signed page: refused before applying (desktop)","expand":"fill"},
+"O07-insert-pages.dc.html":{"x":0,"y":6220,"w":1440,"h":900,"title":"O07 · Insert pages from a PDF (desktop)","expand":"fill"},
+"O07-merge.dc.html":{"x":1520,"y":6220,"w":1440,"h":900,"title":"O07 · Merge documents (desktop)","expand":"fill"},
+"O08-split.dc.html":{"x":0,"y":7240,"w":1440,"h":900,"title":"O08 · Split document by bookmarks (desktop)","expand":"fill"}
+},"order":["O01-edit-session.dc.html","O02-save.dc.html","O02-save-conflict.dc.html","O02-save-external-change.dc.html","O02-save-web.dc.html","O03-close-unsaved.dc.html","O04-document-info.dc.html","O04-xmp-editor.dc.html","O05-capabilities.dc.html","O06-organise.dc.html","O06-organise-menu.dc.html","O06-move-dialog.dc.html","O06-delete-signed.dc.html","O07-insert-pages.dc.html","O07-merge.dc.html","O08-split.dc.html"],
+"notes":{
+"title":{"x":-440,"y":-300,"text":"lamina Paper — Edit session and organise (O01–O08)","kind":"title1","maxW":6440},
+"o01":{"x":-440,"y":0,"w":360,"fill":"teal","text":"O01 Edit session and history\nPurpose: show that the document has unsaved changes and let people step back through them.\nStates: dirty (\"4 unsaved changes\", macOS title \"Edited\"), undo/redo enabled or disabled, History tab with current point and undone steps, undo toast, Partial/Skipped outcome toasts.\nTodos: E1d"},
+"o02":{"x":-440,"y":1020,"w":360,"fill":"teal","text":"O02 Save, Save as, Download a copy\nPurpose: save explicitly and say what a save does to signatures before it happens.\nStates: Save menu on an approval-signed file (incremental, optimised blocked); certified file with the constraint banner and the remove-signature confirm; file changed on disk while dirty; web without File System Access (Download).\nTodos: E1e"},
+"o03":{"x":-440,"y":2040,"w":360,"fill":"teal","text":"O03 Close with unsaved changes\nPurpose: never lose edits silently when a window or tab closes.\nStates: one document (Save / Don't save / Cancel), signed-file line, quit with several dirty documents (in the doc).\nTodos: E2i"},
+"o04":{"x":-440,"y":3060,"w":360,"fill":"teal","text":"O04 Document info and XMP editor\nPurpose: edit title, author, subject, keywords, dates, producer and creator, and any XMP property.\nStates: Description tab with PDF/A note and a pending removal; XMP tab with tree, custom PDF/A extension property; raw XML with a validation error (in the doc).\nTodos: E1f, E3e"},
+"o05":{"x":-440,"y":4080,"w":360,"fill":"teal","text":"O05 Capability page\nPurpose: show, per operation, what lamina reads, writes and round-trips in core, library, web and desktop.\nStates: filtered by group and surface, search, no matches (in the doc). Statuses shown are an illustration, not a release claim.\nTodos: E1f"},
+"o06":{"x":-440,"y":5200,"w":360,"fill":"teal","text":"O06 Organise mode\nPurpose: reorder, rotate, insert, duplicate, extract and delete pages in a grid, with keyboard and non-drag alternatives.\nStates: 2 pages selected with insertion bar (drag), page context menu, Move to page… dialog, delete refused on a page holding a signed signature.\nTodos: E2h, E2b"},
+"o07":{"x":-440,"y":6220,"w":360,"fill":"teal","text":"O07 Insert pages and merge\nPurpose: bring pages in from another PDF or images, and combine whole documents.\nStates: Insert from a PDF with page picker and position; Merge with ordered list and options; images tab, merge report (in the doc).\nTodos: E2c, E2d, E3h"},
+"o08":{"x":-440,"y":7240,"w":360,"fill":"teal","text":"O08 Split document\nPurpose: split into several files by page count, ranges or top-level bookmarks.\nStates: By bookmarks with a preview of the output files; by count and ranges, invalid range, done (in the doc).\nTodos: E2d"}
+},"designSystems":[]}
