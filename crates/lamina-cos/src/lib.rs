@@ -25,6 +25,10 @@
 //! * [`Document::open`] with [`OpenOptions`] ([`Limits`], strict mode): classic xref tables
 //!   and xref streams, `/Prev` chains, hybrid `/XRefStm` sections, object streams, repair by scanning when the stored
 //!   xref is unusable, an object cache, and the page tree with inherited attributes.
+//! * Encryption: files encrypted with the standard security handler (R2–R6, RC4 / AES-128 /
+//!   AES-256, crypt filters, `/EncryptMetadata`) open with [`OpenOptions::with_password`] or the
+//!   empty user password and are decrypted as objects load ([`Document::encryption`],
+//!   [`Document::permissions`], [`Document::matched_password`]). Read only.
 //! * [`Writer`] / [`incremental_update`]: classic, compact (object stream + xref stream) and
 //!   incremental output.
 //! * [`Warning`]: what the tolerant reader repaired, with stable codes (ADR 0003 §2).
@@ -70,7 +74,8 @@ mod source;
 mod writer;
 
 pub use error::{Error, Result};
+pub use lamina_syntax::crypt::{Cipher, PasswordKind, Permissions};
 pub use lamina_syntax::{Dict, Limit, Limits, Name, ObjRef, Object, PdfString, Stream, StringFormat};
-pub use reader::{DirectPath, Document, Inherited, OpenOptions, Page, PathSegment, Resolved, Warning};
+pub use reader::{DirectPath, Document, Encryption, Inherited, OpenOptions, Page, PathSegment, Resolved, Warning};
 pub use source::{ByteSource, Source, SourceError};
 pub use writer::{Writer, XrefEol, incremental_update};

@@ -79,9 +79,10 @@ pub fn flate_decode(data: &[u8], limits: &Limits, budget: &mut DecodeBudget) -> 
 /// without a filter is returned as is and costs no budget.
 ///
 /// # Errors
-/// [`Error::UnsupportedFilter`] for anything but Flate, [`Error::LimitExceeded`] for a chain
-/// longer than [`Limits::max_filter_chain`] or output over a decode limit, plus any decode
-/// error.
+/// [`Error::UnsupportedFilter`] for anything but Flate (including `/Crypt`: decryption needs
+/// the file key, so the reader decrypts the stream when it loads it and removes `/Crypt` from
+/// the chain before calling this), [`Error::LimitExceeded`] for a chain longer than
+/// [`Limits::max_filter_chain`] or output over a decode limit, plus any decode error.
 pub fn decode(dict: &Dict, data: &[u8], limits: &Limits, budget: &mut DecodeBudget) -> Result<Decoded> {
     let filters: Vec<&[u8]> = match dict.get("Filter") {
         None | Some(Object::Null) => Vec::new(),
@@ -442,6 +443,17 @@ mod tests {
         assert_eq!(
             decode_with(&dict, b"", 10),
             Err(Error::UnsupportedFilter("DCTDecode".into()))
+        );
+    }
+
+    #[test]
+    fn decode_does_not_pass_crypt_through() {
+        // Undecrypted data must never be treated as plaintext: the reader strips `/Crypt`
+        // only after decrypting.
+        let dict: Dict = [("Filter", Object::name("Crypt"))].into_iter().collect();
+        assert_eq!(
+            decode_with(&dict, b"x", 10),
+            Err(Error::UnsupportedFilter("Crypt".into()))
         );
     }
 }

@@ -6,8 +6,8 @@
 | Status | `ready` |
 | Plan | [pdf-library §7 B6](../../plans/pdf-library.md#b6-wasm-and-laminapdf), [§5 TS sketch](../../plans/pdf-library.md#api-sketch-illustrative-not-final) |
 | Round / milestone | Round B (library) — M1 |
-| Depends on | [B2b](../ongoing/B2b-standard-security-decryption.md), [B6a](./B6a-lamina-wasm-and-adr-0016.md) |
-| Blocks | [B6c](./B6c-runtime-matrix.md), [B7a](./B7a-docs-site.md), [B8a](./B8a-structure-tree.md), [B9c](./B9c-text-extraction-bindings-and-differential.md), [C1b](./C1b-pdfium-wasm-spike.md), [C2c](./C2c-render-packages.md), [C3a](./C3a-viewer-worker-rpc.md), [C4c](./C4c-remote-files-encryption-privacy.md), [C6a](./C6a-thumbnails-outline-page-labels.md), [E1c](./E1c-metadata-ops.md), [E1d](./E1d-edit-session-undo-ui.md) |
+| Depends on | [B2b](../done/B2b-standard-security-decryption.md), [B6a](./B6a-lamina-wasm-and-adr-0016.md) |
+| Blocks | [B6c](./B6c-runtime-matrix.md), [B7a](./B7a-docs-site.md), [B8a](./B8a-structure-tree.md), [B9c](./B9c-text-extraction-bindings-and-differential.md), [L1b](./L1b-error-contract-codegen.md), [L2a](./L2a-worker-client.md), [L2b](./L2b-disposal-and-memory.md), [L2c](./L2c-range-byte-source.md), [C1b](./C1b-pdfium-wasm-spike.md), [C2c](./C2c-render-packages.md), [C3a](./C3a-viewer-worker-rpc.md), [C4c](./C4c-remote-files-encryption-privacy.md), [C6a](./C6a-thumbnails-outline-page-labels.md), [E1c](./E1c-metadata-ops.md), [E1d](./E1d-edit-session-undo-ui.md) |
 | ADRs | Implements 0016 (from [B6a](./B6a-lamina-wasm-and-adr-0016.md)), [0002](../../decisions/0002-binding-strategy.md), [0006](../../decisions/0006-op-log-and-undo.md) §2 (TS transaction handle), [0003](../../decisions/0003-reader-tolerance-and-limits.md) §4 (codes test in TS), [0018](../../decisions/0018-test-strategy.md) §5 (shared expectations) |
 | Branch | `feat/b6b-lamina-pdf` |
 | PR title | `feat(pdf): @lamina/pdf TypeScript API over @lamina/wasm with init() and export conditions` |
@@ -57,6 +57,7 @@ Give TypeScript users the same library as Rust: `init()`, then a synchronous, ty
 
 ## Acceptance criteria
 
+- [ ] Each export condition has its own wasm loader (workerd: static `.wasm` import; Node: read the file next to the module; browser: `compileStreaming` on a `new URL(…, import.meta.url)`), with `init({ module })` as the escape hatch, tested in Vite with the package excluded from dependency pre-bundling ([shareable-libraries §8](../../plans/shareable-libraries.md#8-changes-to-existing-todos), [report: one `.wasm` file per export condition](../../research/libraries/shareable-libraries.md#one-wasm-file-resolved-per-export-condition-with-an-escape-hatch))
 - [ ] All TS examples produce bytes identical to the Rust goldens (Node, in the fast lane)
 - [ ] `PdfError.code` values equal `fixtures/codes.json`; a wrong password surfaces as `wrong-password`
 - [ ] `fixtures/ops/v1` samples apply through `doc.apply` and unknown ops/fields are rejected

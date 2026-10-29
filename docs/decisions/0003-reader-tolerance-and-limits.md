@@ -29,9 +29,9 @@ The policy already exists in code, ported from the spike and fixed in review of 
 | Integer too large for `i64` | Becomes a `Real` (§7.3.3); integers up to `i64::MAX` stay exact | `lexer::parse_number` |
 | Truncated Flate data or bad Adler-32 | Partial output is kept if non-empty; no output → `Error::Decompress` | `filters::flate_decode` |
 | Unsupported filter | The document opens; only decoding that stream fails (`Error::UnsupportedFilter`) | `filters::decode` |
-| Encrypted file | Opens; `is_encrypted()` reports it. Decryption arrives in Round B2 | `Document::is_encrypted` |
+| Encrypted file (standard security handler, R2–R6) | Opens and decrypts given its user or owner password (the empty user password is tried when none is given); strings and streams are decrypted as objects load. Exempt: the `/Encrypt` dictionary, xref streams, the trailer `/ID`, a signature's `/Contents`, object-stream members (their container is decrypted once), and the XMP metadata stream when `/EncryptMetadata` is false. AES data that isn't `IV ‖ whole blocks` is kept as stored and bad padding is kept unstripped (`aes-padding-invalid`); a plaintext object spliced into an encrypted file (PDFex) is decrypted like any other, i.e. to garbage. An R5/R6 `/Perms` that disagrees with `/P` → `perms-mismatch`. No password or a wrong one → `PasswordRequired` / `WrongPassword`; another handler (public key) or an unknown `/V`/`/R`/`/CFM` → `UnsupportedSecurityHandler` | `reader/encrypt.rs`, `Document::load_in_file`, `lamina_syntax::crypt` |
 
-**Rejected** (errors, never repaired): empty input or no `n g obj` anywhere (`NotPdf`); no catalog even after repair (`MissingRoot`); reference and page-tree cycles (`ReferenceCycle`); exceeding a **hard** limit (§3) outside a tolerant path. Soft limits, and hard limits hit inside a tolerant path, degrade with a warning instead (§3). A malformed object is an error *for the call that resolves it*, not for `open`; errors are not cached. **Writing is strict:** an incremental update refuses a repaired base (`RepairedBase`) or an encrypted one (`EncryptedBase`, until full-editor E11), never shrinks `/Size`, and appends a section of the same kind as the newest.
+**Rejected** (errors, never repaired): empty input or no `n g obj` anywhere (`NotPdf`); no catalog even after repair (`MissingRoot`); an encrypted file without the right password (`PasswordRequired`, `WrongPassword`) or with a handler lamina can't decrypt (`UnsupportedSecurityHandler`); reference and page-tree cycles (`ReferenceCycle`); exceeding a **hard** limit (§3) outside a tolerant path. Soft limits, and hard limits hit inside a tolerant path, degrade with a warning instead (§3). A malformed object is an error *for the call that resolves it*, not for `open`; errors are not cached. **Writing is strict:** an incremental update refuses a repaired base (`RepairedBase`) or an encrypted one (`EncryptedBase`, until full-editor E11), never shrinks `/Size`, and appends a section of the same kind as the newest.
 
 ### 2. Warnings: stable, enumerated codes
 
@@ -41,15 +41,17 @@ Every repair or substitution the caller might care about is a `Warning`, never s
 | --- | --- | --- |
 | `missing-header` | No `%PDF-x.y` in the first 1,024 bytes | exists |
 | `xref-repaired` | The stored xref was rebuilt by scanning | exists |
-| `xrefstm-ignored` | A hybrid file's `/XRefStm` could not be read | B2 |
-| `stream-length-recovered` | `/Length` was wrong or unresolvable; `endstream` was scanned for | B2 |
-| `stale-generation` | A reference's generation did not match its entry (→ `null`) | B2 |
-| `page-tree-node-skipped` | A kid or `/Kids` was missing, unparsable or the wrong type | B2 |
-| `page-count-mismatch` | A `/Count` differs from the walked page count | B2 |
-| `flate-truncated` | Flate output was kept despite truncation or a bad checksum | B2 |
-| `objstm-index-mismatch` | An object-stream index was stale and a search found the object | B2 |
-| `object-number-out-of-range` | An entry above `Limits::max_object_number` was dropped | B2 |
-| `warnings-truncated` | More than `Limits::max_warnings` were raised; the rest were dropped | B2 |
+| `xrefstm-ignored` | A hybrid file's `/XRefStm` could not be read | exists |
+| `stream-length-recovered` | `/Length` was wrong or unresolvable; `endstream` was scanned for | exists |
+| `stale-generation` | A reference's generation did not match its entry (→ `null`) | exists |
+| `page-tree-node-skipped` | A kid or `/Kids` was missing, unparsable or the wrong type | exists |
+| `page-count-mismatch` | A `/Count` differs from the walked page count | exists |
+| `flate-truncated` | Flate output was kept despite truncation or a bad checksum | exists |
+| `objstm-index-mismatch` | An object-stream index was stale and a search found the object | exists |
+| `object-number-out-of-range` | An entry above `Limits::max_object_number` was dropped | exists |
+| `aes-padding-invalid` | AES data was not `IV ‖ whole blocks` (kept as stored) or had invalid PKCS#5 padding (kept unstripped) | exists |
+| `perms-mismatch` | An R5/R6 `/Perms` does not decrypt to the document's `/P` and `/EncryptMetadata` | exists |
+| `warnings-truncated` | More than `Limits::max_warnings` were raised; the rest were dropped | exists |
 | `invalid-box` | A page boundary box is not four numbers; the view reads it as absent | exists (B2c) |
 | `invalid-rotate` | `/Rotate` is not a multiple of 90; the view reads 0 | exists (B2c) |
 | `name-tree-node-skipped` | A name- or number-tree node, kid or key was malformed, reached twice or deeper than `max_tree_depth` | exists (B2c) |
@@ -58,6 +60,8 @@ Every repair or substitution the caller might care about is a `Warning`, never s
 | `invalid-date` | An Info date is not a valid PDF date; the raw string is kept | exists (B2c) |
 | `invalid-page-label` | A `/PageLabels` entry (or part of one) is malformed; that part is dropped, a non-dictionary range falls back to decimal numbering | exists (B2c) |
 | `invalid-entry` | An entry a view reads (`/Info`, `/Names`, `/Outlines`, `/Dests`, `/UserUnit`) is unreadable or of the wrong type; it reads as absent or its default | exists (B2c) |
+
+Encryption adds three error codes (B2b), listed in `fixtures/codes.json` with the others: `password-required` (a non-empty user password and none given), `wrong-password` (neither the user nor the owner password) and `unsupported-security-handler` (not `/Standard`, an unknown `/V`/`/R`, or an unknown crypt filter method). All three have status "exists".
 
 Warnings raised lazily (on resolve or decode) are recorded on the `Document` and deduplicated by (code, object). `Document::warnings()` returns what has been seen so far. Missing references (`null`) and integer-to-real promotion are documented behaviour, not warnings: they are common in valid files and too frequent to report.
 

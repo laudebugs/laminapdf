@@ -29,6 +29,19 @@ lamina-model = { path = "crates/lamina-model" }
 # MIT OR Zlib OR Apache-2.0 (dependency adler2: 0BSD OR MIT OR Apache-2.0)
 miniz_oxide = { version = "0.9.1", default-features = false, features = ["with-alloc"] }
 
+# Standard security handler decryption (B2b): RustCrypto, pure Rust, no default features. RC4 is
+# our own (crypt/rc4.rs), so no API anywhere offers the broken primitives for writing.
+# AES block cipher (AESV2/AESV3 crypt filters, Algorithm 2.B); the CBC chaining is ours, a few
+# lines in lamina-syntax's crypt/aes.rs. MIT OR Apache-2.0 (cpufeatures → libc on aarch64 only
+# reads CPU capabilities; allowed by `cargo xtask portability`)
+aes = { version = "0.9.3", default-features = false }
+# MD5 (Algorithms 2-7, per-object keys; read-only, never offered for writing). MIT OR Apache-2.0
+md-5 = { version = "0.11.0", default-features = false }
+# SHA-256/384/512 (R5, R6 Algorithm 2.B). MIT OR Apache-2.0
+sha2 = { version = "0.11.1", default-features = false }
+# SASLprep (RFC 4013) for R6 passwords. MIT OR Apache-2.0
+stringprep = { version = "0.1.5", default-features = false }
+
 # Library errors. MIT OR Apache-2.0
 thiserror = { version = "2.0.21", default-features = false }
 # Binaries, xtask and tests only (never in library APIs). MIT OR Apache-2.0
