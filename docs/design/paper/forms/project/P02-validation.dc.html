@@ -13,6 +13,7 @@
 body{margin:0;background:#F7F4EE}
 a{color:#1F5C63}a:hover{color:#16454B}
 button,input,textarea{font:inherit;color:inherit}
+label:has(input[type="radio"]:focus-visible) > span:first-child, label:has(input[type="checkbox"]:focus-visible) > span:first-child{outline:2px solid #1F5C63;outline-offset:2px}
 </style>
 </helmet>
 <div style="min-height: 100vh; display: flex; flex-direction: column; background: #F7F4EE; color: #1F1D1A; font-family: 'Source Sans 3', 'Segoe UI', system-ui, sans-serif; font-size: 14px; line-height: 1.4">
@@ -55,9 +56,14 @@ button,input,textarea{font:inherit;color:inherit}
     <button style="height: 28px; display: flex; align-items: center; gap: 6px; padding: 0 10px; border: 1px solid transparent; background: transparent; border-radius: 4px">Next field<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M9 5l7 7-7 7"></path></svg></button>
     <button aria-pressed="true" style="height: 28px; display: flex; align-items: center; gap: 6px; padding: 0 10px; border: 1px solid {{accent}}; background: {{accentTint}}; color: {{accent}}; border-radius: 4px; font-weight: 600"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="3.5" y="7" width="17" height="10" rx="1"></rect><path d="M7 10v4"></path></svg>Highlight fields</button>
     <span aria-hidden="true" style="width: 1px; height: 18px; background: #E4DED3; margin: 0 8px"></span>
-    <button style="height: 28px; display: flex; align-items: center; gap: 6px; padding: 0 10px; border: 1px solid transparent; background: transparent; border-radius: 4px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M4 19c2-1 3-4 5-4s1 3 3 3 2-2 4-2"></path><path d="M14 4.5l5 5-7 7h-2v-2z"></path></svg>Add a signature image</button>
-    <button style="height: 28px; display: flex; align-items: center; gap: 6px; padding: 0 10px; border: 1px solid transparent; background: transparent; border-radius: 4px">Sign with a certificate</button>
-    <button style="height: 28px; display: flex; align-items: center; gap: 6px; padding: 0 10px; border: 1px solid transparent; background: transparent; border-radius: 4px">Form data<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M7 10l5 5 5-5"></path></svg></button>
+    <button aria-pressed="false" style="height: 28px; display: flex; align-items: center; gap: 6px; padding: 0 10px; border: 1px solid transparent; background: transparent; border-radius: 4px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M6 6.5h12M12 6.5v12"></path></svg>Text</button>
+    <button aria-pressed="false" style="height: 28px; display: flex; align-items: center; gap: 6px; padding: 0 10px; border: 1px solid transparent; background: transparent; border-radius: 4px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M6 12.5l4 4 8-9"></path></svg>Check</button>
+    <button aria-pressed="false" style="height: 28px; display: flex; align-items: center; gap: 6px; padding: 0 10px; border: 1px solid transparent; background: transparent; border-radius: 4px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="4.5" y="5.5" width="15" height="14" rx="1.5"></rect><path d="M4.5 9.5h15M8.5 3.5v4M15.5 3.5v4"></path></svg>Date</button>
+    <span aria-hidden="true" style="width: 1px; height: 18px; background: #E4DED3; margin: 0 8px"></span>
+    <button aria-pressed="false" style="height: 28px; display: flex; align-items: center; gap: 6px; padding: 0 10px; border: 1px solid transparent; background: transparent; border-radius: 4px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M4 17c3-6 5-9 7-9s1 6 3 6 3-4 6-6"></path></svg>Add a signature image</button>
+    <button aria-pressed="false" style="height: 28px; display: flex; align-items: center; gap: 6px; padding: 0 10px; border: 1px solid transparent; background: transparent; border-radius: 4px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="4" y="4.5" width="16" height="11" rx="1"></rect><path d="M7.5 8.5h9M7.5 11.5h4"></path><circle cx="16" cy="16" r="2.8"></circle><path d="M14.6 18.5l-.8 3 2.2-1 2.2 1-.8-3"></path></svg>Sign with a certificate</button>
+    <button aria-haspopup="menu" aria-expanded="false" style="height: 28px; display: flex; align-items: center; gap: 6px; padding: 0 10px; border: 1px solid transparent; background: transparent; border-radius: 4px">Form data<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M7 10l5 5 5-5"></path></svg></button>
+    <button aria-label="More fill and sign tools" style="width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 4px; color: #4A453E"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="5.5" cy="12" r="0.9"></circle><circle cx="12" cy="12" r="0.9"></circle><circle cx="18.5" cy="12" r="0.9"></circle></svg></button>
     <span style="flex: 1 1 auto"></span>
     <span style="font-size: 12px; color: #6B645A; font-variant-numeric: tabular-nums">8 of 9 required fields filled · <span style="color: #9B2335">1 field needs attention</span></span>
   </div>
@@ -100,7 +106,7 @@ button,input,textarea{font:inherit;color:inherit}
           <fieldset style="grid-column: 1 / -1; margin: 0; padding: 0; border: 0; display: flex; flex-wrap: wrap; gap: 6px 16px">
             <legend style="padding: 0; margin-bottom: 4px; font-size: 11.5px; color: #3A3733">Which weekdays can we visit?</legend>
             <sc-for list="{{days}}" as="d" hint-placeholder-count="5">
-              <label style="display: flex; align-items: center; gap: 6px; min-height: 24px; font-size: 12.5px"><span style="{{d.box}}"><sc-if value="{{d.on}}" hint-placeholder-val="{{ true }}"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#262421" stroke-width="2.5" aria-hidden="true"><path d="M6 12.5l4 4 8-9"></path></svg></sc-if></span><input type="checkbox" checked="{{d.on}}" style="position: absolute; opacity: 0; width: 1px; height: 1px">{{d.name}}</label>
+              <label style="display: flex; align-items: center; gap: 6px; min-height: 24px; font-size: 12.5px"><span style="{{d.box}}"><sc-if value="{{d.on}}" hint-placeholder-val="{{ true }}"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#262421" stroke-width="2.5" aria-hidden="true"><path d="M6 12.5l4 4 8-9"></path></svg></sc-if></span><sc-if value="{{d.on}}" hint-placeholder-val="{{ true }}"><input type="checkbox" checked style="position: absolute; opacity: 0; width: 1px; height: 1px"></sc-if><sc-if value="{{d.off}}" hint-placeholder-val="{{ false }}"><input type="checkbox" style="position: absolute; opacity: 0; width: 1px; height: 1px"></sc-if>{{d.name}}</label>
             </sc-for>
           </fieldset>
           <div style="position: relative; display: flex; flex-direction: column; gap: 4px">
@@ -148,7 +154,7 @@ button,input,textarea{font:inherit;color:inherit}
               <output id="f-total" for="f-hours f-rate f-mat" aria-describedby="calc-hint" style="{{fieldCalc}}">£98.40</output>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#4A453E" stroke-width="1.5" aria-hidden="true" style="position: absolute; left: 8px; top: 6px"><path d="M17 5.5H7l5 6.5-5 6.5h10"></path></svg>
             </div>
-            <span id="calc-hint" style="font-size: 11px; color: #6E6A64">Calculated: hours × rate + materials</span>
+            <span id="calc-hint" style="font-size: 12px; color: #6E6A64">Calculated: hours × rate + materials</span>
           </div>
         </div>
 
@@ -213,7 +219,7 @@ class Component extends DCLogic {
       };
     });
     var days = [['Mon', true], ['Tue', false], ['Wed', true], ['Thu', false], ['Fri', false]].map(function (d) {
-      return { name: d[0], on: d[1], box: 'width: 14px; height: 14px; box-sizing: border-box; border: 1px solid #8A8174; background: ' + tint + '; display: flex; align-items: center; justify-content: center;' };
+      return { name: d[0], on: d[1], off: !d[1], box: 'width: 14px; height: 14px; box-sizing: border-box; border: 1px solid #8A8174; background: ' + tint + '; display: flex; align-items: center; justify-content: center;' };
     });
     return {
       accent: accent,

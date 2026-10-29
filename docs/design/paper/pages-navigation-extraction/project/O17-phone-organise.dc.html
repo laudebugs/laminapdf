@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>lamina phone, organise pages with 2 selected</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&amp;family=Source+Sans+3:wght@400;500;600&amp;family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#1F5C63}a:hover{color:#16454B}
+button,input{font:inherit;color:inherit}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; position: relative; overflow: hidden; background: #ECE7DE; font-family: 'Source Sans 3', system-ui, sans-serif; color: #1F1D1A">
+
+  <header style="position: absolute; left: 0; right: 0; top: 0; height: 56px; display: flex; align-items: center; gap: 4px; padding: 0 6px; background: #F7F4EE; border-bottom: 1px solid #E4DED3; box-sizing: border-box; z-index: 2">
+    <button aria-label="Done organising" style="width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 6px; color: #1F1D1A"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg></button>
+    <div style="flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; align-items: center; line-height: 1.2">
+      <h1 style="margin: 0; font-family: 'Newsreader', Georgia, serif; font-size: 17px; font-weight: 500; white-space: nowrap">Organise pages</h1>
+      <span aria-live="polite" style="font-size: 12px; color: #6B645A; font-variant-numeric: tabular-nums">2 of 24 selected</span>
+    </div>
+    <button style="height: 44px; padding: 0 10px; border: 0; background: transparent; border-radius: 6px; color: {{accent}}; font-size: 15px; font-weight: 600">Select all</button>
+  </header>
+
+  <main style="position: absolute; left: 0; right: 0; top: 56px; bottom: 76px; overflow: auto">
+    <div role="listbox" aria-label="Pages" aria-multiselectable="true" aria-orientation="horizontal" style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px 6px; padding: 16px 10px 24px">
+      <sc-for list="{{pages}}" as="p" hint-placeholder-count="12">
+          <button role="option" aria-selected="{{p.selected}}" aria-label="{{p.aria}}" style="position: relative; min-width: 112px; justify-self: center; display: flex; flex-direction: column; align-items: center; gap: 8px; border: 0; background: transparent; padding: 6px 0 2px; border-radius: 6px">
+            <span aria-hidden="true" style="{{p.frame}}">
+              <sc-for list="{{p.lines}}" as="l" hint-placeholder-count="6"><span style="{{l.s}}"></span></sc-for>
+            </span>
+            <sc-if value="{{p.isSel}}" hint-placeholder-val="{{ false }}">
+              <span aria-hidden="true" style="position: absolute; top: 0; right: 0; width: 24px; height: 24px; border-radius: 50%; background: {{accent}}; color: #FFFFFF; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 0 2px #ECE7DE"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M6 12.5l4 4 8-9"></path></svg></span>
+            </sc-if>
+            <sc-if value="{{p.isOff}}" hint-placeholder-val="{{ true }}">
+              <span aria-hidden="true" style="position: absolute; top: 0; right: 0; width: 24px; height: 24px; box-sizing: border-box; border-radius: 50%; background: #FFFFFF; border: 1.5px solid #8A8174"></span>
+            </sc-if>
+            <span style="{{p.num}}">{{p.n}}</span>
+          </button>
+      </sc-for>
+    </div>
+  </main>
+
+  <div role="toolbar" aria-label="Page actions" style="position: absolute; left: 0; right: 0; bottom: 0; height: 76px; box-sizing: border-box; padding: 4px 8px 18px; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 4px; background: #F7F4EE; border-top: 1px solid #E4DED3">
+    <button aria-haspopup="dialog" style="height: 52px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; border: 0; background: transparent; border-radius: 6px; color: #3A3631; font-size: 11.5px; background: {{accentTint}}; color: {{accent}}; font-weight: 600; outline: 2px solid {{accent}}; outline-offset: -2px"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M4.5 12h11M12 8l4 4-4 4"></path><path d="M19.5 5v14"></path></svg>Move to…</button>
+    <button style="height: 52px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; border: 0; background: transparent; border-radius: 6px; color: #3A3631; font-size: 11.5px"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M16 4.5L19.5 8 16 11.5"></path><path d="M19.5 8H10a5.5 5.5 0 0 0 0 11h5"></path></svg>Rotate</button>
+    <button style="height: 52px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; border: 0; background: transparent; border-radius: 6px; color: #3A3631; font-size: 11.5px"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="8.5" y="8.5" width="11" height="11" rx="1.5"></rect><path d="M15.5 8.5V6a1.5 1.5 0 0 0-1.5-1.5H6A1.5 1.5 0 0 0 4.5 6v8A1.5 1.5 0 0 0 6 15.5h2.5"></path></svg>Duplicate</button>
+    <button style="height: 52px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; border: 0; background: transparent; border-radius: 6px; color: #3A3631; font-size: 11.5px; color: #9B2335"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M4.5 6.5h15M9.5 6.5v-2h5v2M6.5 6.5l1 13h9l1-13"></path></svg>Delete</button>
+    <button aria-haspopup="menu" style="height: 52px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; border: 0; background: transparent; border-radius: 6px; color: #3A3631; font-size: 11.5px"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="5.5" cy="12" r="0.9"></circle><circle cx="12" cy="12" r="0.9"></circle><circle cx="18.5" cy="12" r="0.9"></circle></svg>More</button>
+  </div>
+
+  <span aria-hidden="true" style="position: absolute; left: 50%; bottom: 6px; z-index: 60; transform: translateX(-50%); width: 134px; height: 5px; border-radius: 3px; background: #1F1D1A; opacity: 0.85"></span>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#1F5C63","options":["#1F5C63","#2D4A6B","#3E4A3C"]},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    var accent = this.props.accent ?? '#1F5C63';
+    function mix(hex, base, t) {
+      var p = function (h, i) { return parseInt(h.replace('#', '').substr(i, 2), 16); };
+      var out = '#';
+      for (var i = 0; i < 6; i += 2) {
+        var v = Math.round(p(hex, i) * t + p(base, i) * (1 - t));
+        out += (v < 16 ? '0' : '') + v.toString(16);
+      }
+      return out;
+    }
+    function ln(h, w, c, extra) { return { s: 'display: block; height: ' + h + 'px; width: ' + w + '%; background: ' + c + ';' + (extra || '') }; }
+    var H = '#B9B2A7', T = '#DDD7CD', C = '#C9CFD3', R = '#E3DED6';
+    var kinds = {
+      cover: [ln(6, 70, H, ' margin-top: 22px;'), ln(3, 46, T), ln(3, 100, T, ' margin-top: 12px;'), ln(3, 92, T), ln(3, 58, T)],
+      text: [ln(4, 58, H), ln(3, 100, T), ln(3, 94, T), ln(3, 98, T), ln(3, 64, T, ' margin-bottom: 4px;'), ln(3, 100, T), ln(3, 88, T)],
+      chart: [ln(4, 55, H), ln(3, 100, T), ln(3, 70, T, ' margin-bottom: 4px;'), ln(5, 100, C), ln(5, 70, C), ln(5, 85, C), ln(5, 48, C)],
+      table: [ln(4, 50, H), ln(4, 100, C), ln(3, 100, R), ln(3, 100, R), ln(3, 100, R), ln(3, 100, R), ln(3, 100, R)],
+      heading: [ln(5, 66, H, ' margin-top: 6px;'), ln(3, 100, T, ' margin-top: 4px;'), ln(3, 96, T), ln(3, 90, T), ln(3, 54, T)]
+    };
+    var order = ['cover','text','chart','table','text','chart','heading','table','text','chart','heading','text','table','text','chart'];
+    var pages = order.map(function (k, i) {
+      var n = i + 1;
+      var sel = n === 4 || n === 5;
+      return {
+        n: String(n),
+        aria: 'Page ' + n + (sel ? ', selected' : ''),
+        selected: sel ? 'true' : 'false',
+        isSel: sel,
+        isOff: !sel,
+        lines: kinds[k],
+        frame: 'display: flex; flex-direction: column; gap: 4px; width: 100px; height: 129px; box-sizing: border-box; padding: 11px 10px; background: #FFFFFF; box-shadow: 0 1px 3px rgba(60,48,30,0.12); overflow: hidden; ' + (sel ? 'outline: 2px solid ' + accent + '; outline-offset: 3px;' : 'outline: 1px solid #E4DED3;'),
+        num: 'font-size: 13px; font-variant-numeric: tabular-nums; ' + (sel ? 'color: #1F1D1A; font-weight: 600;' : 'color: #6B645A;')
+      };
+    });
+    return { accent: accent, accentTint: mix(accent, '#FBF9F5', 0.12), pages: pages, on: true };
+  }
+}
+</script>
+</body>
+</html>
