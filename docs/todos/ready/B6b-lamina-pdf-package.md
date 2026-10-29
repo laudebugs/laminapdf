@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [pdf-library §7 B6](../../plans/pdf-library.md#b6-wasm-and-laminapdf), [§5 TS sketch](../../plans/pdf-library.md#api-sketch-illustrative-not-final) |
 | Round / milestone | Round B (library) — M1 |
-| Depends on | [B2b](./B2b-standard-security-decryption.md), [B6a](./B6a-lamina-wasm-and-adr-0016.md) |
+| Depends on | [B2b](../ongoing/B2b-standard-security-decryption.md), [B6a](./B6a-lamina-wasm-and-adr-0016.md) |
 | Blocks | [B6c](./B6c-runtime-matrix.md), [B7a](./B7a-docs-site.md), [B8a](./B8a-structure-tree.md), [B9c](./B9c-text-extraction-bindings-and-differential.md), [C1b](./C1b-pdfium-wasm-spike.md), [C2c](./C2c-render-packages.md), [C3a](./C3a-viewer-worker-rpc.md), [C4c](./C4c-remote-files-encryption-privacy.md), [C6a](./C6a-thumbnails-outline-page-labels.md), [E1c](./E1c-metadata-ops.md), [E1d](./E1d-edit-session-undo-ui.md) |
 | ADRs | Implements 0016 (from [B6a](./B6a-lamina-wasm-and-adr-0016.md)), [0002](../../decisions/0002-binding-strategy.md), [0006](../../decisions/0006-op-log-and-undo.md) §2 (TS transaction handle), [0003](../../decisions/0003-reader-tolerance-and-limits.md) §4 (codes test in TS), [0018](../../decisions/0018-test-strategy.md) §5 (shared expectations) |
 | Branch | `feat/b6b-lamina-pdf` |
