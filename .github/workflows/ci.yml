@@ -1,6 +1,10 @@
 # CI fast lane (docs/research/architecture/notes/repo-and-packaging.md §6, ADR 0018 §2): every PR
 # and every push to main. Jobs call the same `cargo xtask …` entry points developers run locally.
 # The full lane (full.yml) runs alongside it; its `gate` job is the required check.
+# Every job runs on the self-hosted macOS ARM64 runners (labels [self-hosted, macOS, ARM64]):
+# GitHub-hosted minutes are not used. The runners share one machine, so jobs that install Rust
+# run isolate-rust-home first, pnpm installs into the runner's temp dir, and rust-cache is off.
+# The repository is private, so fork PRs (which must never run on self-hosted runners) can't occur.
 # Actions are pinned by full commit SHA with the release in a comment (ADR 0019); Dependabot bumps them.
 name: CI
 
@@ -24,23 +28,9 @@ env:
   NEXTEST_PROFILE: ci
 
 jobs:
-  # Prefer the self-hosted runners (macOS ARM64) when one is online; fall back to GitHub-hosted
-  # Ubuntu otherwise, and for fork PRs. See select-runner.yml. Jobs that install Rust first run
-  # the isolate-rust-home action so they don't touch the runner user's own ~/.cargo and ~/.rustup.
-  select-runner:
-    name: Choose CI runner
-    permissions:
-      contents: read
-    uses: ./.github/workflows/select-runner.yml
-    secrets:
-      RUNNER_STATUS_TOKEN: ${{ secrets.RUNNER_STATUS_TOKEN }}
-
   rust:
     name: Rust (docs links and todo board, fmt, portability, clippy, tests, docs, cargo-deny, wasm)
-    needs: select-runner
-    # Still run if the runner check failed: an empty output falls back to GitHub-hosted Ubuntu.
-    if: ${{ !cancelled() }}
-    runs-on: ${{ fromJSON(needs.select-runner.outputs.runner || '["ubuntu-latest"]') }}
+    runs-on: [self-hosted, macOS, ARM64]
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -53,7 +43,7 @@ jobs:
           # rust-cache's post step on macOS runs `sudo /usr/sbin/purge`, which hangs forever on
           # self-hosted runners without passwordless sudo. Self-hosted runners keep their own
           # CARGO_HOME between jobs, so caching is only for GitHub-hosted runners.
-          cache: ${{ runner.environment == 'github-hosted' }}
+          cache: false
       # Same versions as tools/xtask/src/doctor.rs; xtask fails if they drift.
       - uses: taiki-e/install-action@86f7a0ffb25f40114606501a311ebcfaf882ea32 # v2.88.0
         with:
@@ -64,10 +54,7 @@ jobs:
 
   msrv:
     name: MSRV (rust-version)
-    needs: select-runner
-    # Still run if the runner check failed: an empty output falls back to GitHub-hosted Ubuntu.
-    if: ${{ !cancelled() }}
-    runs-on: ${{ fromJSON(needs.select-runner.outputs.runner || '["ubuntu-latest"]') }}
+    runs-on: [self-hosted, macOS, ARM64]
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -93,7 +80,7 @@ jobs:
           # rust-cache's post step on macOS runs `sudo /usr/sbin/purge`, which hangs forever on
           # self-hosted runners without passwordless sudo. Self-hosted runners keep their own
           # CARGO_HOME between jobs, so caching is only for GitHub-hosted runners.
-          cache: ${{ runner.environment == 'github-hosted' }}
+          cache: false
           toolchain: ${{ steps.msrv.outputs.version }}
           components: ""
           target: ""
@@ -105,10 +92,7 @@ jobs:
 
   typescript:
     name: TypeScript (biome, typecheck, tests, npm licences)
-    needs: select-runner
-    # Still run if the runner check failed: an empty output falls back to GitHub-hosted Ubuntu.
-    if: ${{ !cancelled() }}
-    runs-on: ${{ fromJSON(needs.select-runner.outputs.runner || '["ubuntu-latest"]') }}
+    runs-on: [self-hosted, macOS, ARM64]
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -132,7 +116,7 @@ jobs:
           # rust-cache's post step on macOS runs `sudo /usr/sbin/purge`, which hangs forever on
           # self-hosted runners without passwordless sudo. Self-hosted runners keep their own
           # CARGO_HOME between jobs, so caching is only for GitHub-hosted runners.
-          cache: ${{ runner.environment == 'github-hosted' }}
+          cache: false
       - run: cargo xtask check ts
 
   # The pdf-basics spike is frozen research code outside both workspaces, but its tests are the
@@ -140,10 +124,7 @@ jobs:
   # crates/lamina-cos (Round A3); this job keeps the frozen record (incl. the TS twin) green.
   spikes:
     name: Spike pdf-basics (Rust + TS)
-    needs: select-runner
-    # Still run if the runner check failed: an empty output falls back to GitHub-hosted Ubuntu.
-    if: ${{ !cancelled() }}
-    runs-on: ${{ fromJSON(needs.select-runner.outputs.runner || '["ubuntu-latest"]') }}
+    runs-on: [self-hosted, macOS, ARM64]
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -155,7 +136,7 @@ jobs:
           # rust-cache's post step on macOS runs `sudo /usr/sbin/purge`, which hangs forever on
           # self-hosted runners without passwordless sudo. Self-hosted runners keep their own
           # CARGO_HOME between jobs, so caching is only for GitHub-hosted runners.
-          cache: ${{ runner.environment == 'github-hosted' }}
+          cache: false
           cache-workspaces: spikes/pdf-basics/rust
       - run: spikes/pdf-basics/rust/scripts/check-targets.sh
       - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
