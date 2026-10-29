@@ -250,24 +250,28 @@ mod sources {
 
     #[test]
     fn a_source_that_overstates_its_length_is_an_error_not_an_allocation() {
+        // Windowed reading (B2d): the first 64 KiB window ends after 9 bytes.
         assert_eq!(
             Document::open(Liar, OpenOptions::default()).err(),
             Some(Error::Source(SourceError::Failed {
                 offset: 9,
-                len: (1 << 40) - 9
+                len: 64 * 1024 - 9
             }))
         );
     }
 
     #[test]
-    fn documents_opened_from_one_source_share_its_buffered_copy() {
-        let source = Source::from(Counted {
+    fn documents_opened_from_one_source_share_its_window_cache() {
+        let counted = Arc::new(Counted {
             data: common::fixture("corpus/hello.pdf"),
             reads: 0.into(),
         });
+        let source = Source::from(Arc::clone(&counted) as Arc<dyn ByteSource>);
         let a = Document::open(source.clone(), OpenOptions::default()).unwrap();
         let b = Document::open(source, OpenOptions::default()).unwrap();
-        assert!(std::ptr::eq(a.data(), b.data()));
+        a.pages().unwrap();
+        b.pages().unwrap();
+        assert_eq!(counted.reads.load(std::sync::atomic::Ordering::Relaxed), 1);
     }
 
     #[test]

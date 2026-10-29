@@ -23,7 +23,6 @@ Ready todos whose dependencies are all done:
 
 ## Ongoing
 
-- [B2d](ongoing/B2d-windowed-reading.md): Windowed reading for sources without `as_slice`
 - [B3a](ongoing/B3a-overlay-and-ops.md): COS overlay and `lamina-ops`: `Op`, `transact`, savepoints, undo/redo
 - [X3a](ongoing/X3a-nightly-lane.md): Nightly CI lane: external-corpus differential, extended fuzzing, scaling tests and benchmarks
 
@@ -44,7 +43,7 @@ Ready todos whose dependencies are all done:
 | B2a | [`Limits`, warning codes, strict mode and the owned `Document`](done/B2a-limits-owned-document.md) | done | [B1a](done/B1a-round-b-adrs.md) |
 | B2b | [Standard security handler decryption (read only)](done/B2b-standard-security-decryption.md) | done | [B2a](done/B2a-limits-owned-document.md) |
 | B2c | [`lamina-model` views and IDs, corpus facts, pypdf differential and fuzz targets](done/B2c-lamina-model-corpus-fuzz.md) | done | [B2a](done/B2a-limits-owned-document.md) |
-| B2d | [Windowed reading for sources without `as_slice`](ongoing/B2d-windowed-reading.md) | ongoing | [B2a](done/B2a-limits-owned-document.md) |
+| B2d | [Windowed reading for sources without `as_slice`](done/B2d-windowed-reading.md) | done | [B2a](done/B2a-limits-owned-document.md) |
 | B3a | [COS overlay and `lamina-ops`: `Op`, `transact`, savepoints, undo/redo](ongoing/B3a-overlay-and-ops.md) | ongoing | [B2c](done/B2c-lamina-model-corpus-fuzz.md) |
 | B3b | [`lamina-save`: move the writer, `WriteSink`, incremental and full writers over the overlay, rebase](ready/B3b-lamina-save-writers.md) | ready | [B3a](ongoing/B3a-overlay-and-ops.md) |
 | B3c | [`SavePlanner`, `SaveConstraint` detection and round-trip in lamina, pdf.js, PDFium and qpdf](ready/B3c-save-planner-and-roundtrip.md) | ready | [B2b](done/B2b-standard-security-decryption.md), [B3b](ready/B3b-lamina-save-writers.md), [X4](done/X4-full-lane-gate.md) |
@@ -73,7 +72,7 @@ Ready todos whose dependencies are all done:
 | L1b | [Error and diagnostic contract: codegen from `fixtures/codes.json` into Rust, TypeScript and JSON Schema, with `explain` text](ready/L1b-error-contract-codegen.md) | ready | [B6b](ready/B6b-lamina-pdf-package.md), [L1a](ready/L1a-contract-adrs.md) |
 | L2a | [`@lamina/pdf/worker`: the async twin of the sync API, with typed RPC, version handshake, `AbortSignal`, transfer lists and progress](ready/L2a-worker-client.md) | ready | [B6b](ready/B6b-lamina-pdf-package.md), [L1a](ready/L1a-contract-adrs.md), [L1b](ready/L1b-error-contract-codegen.md) |
 | L2b | [Disposal and memory bounds: `Symbol.dispose` on every handle, `disposed` code, capped wasm memory, `reset()` and trap recovery](ready/L2b-disposal-and-memory.md) | ready | [B6b](ready/B6b-lamina-pdf-package.md), [L1b](ready/L1b-error-contract-codegen.md) |
-| L2c | [Range `ByteSource`: `DataPending` ranges at the edges (HTTP Range, JS callback, native file and mmap), core stays synchronous](ready/L2c-range-byte-source.md) | ready | [B2d](ongoing/B2d-windowed-reading.md), [B6b](ready/B6b-lamina-pdf-package.md) |
+| L2c | [Range `ByteSource`: `DataPending` ranges at the edges (HTTP Range, JS callback, native file and mmap), core stays synchronous](ready/L2c-range-byte-source.md) | ready | [B2d](done/B2d-windowed-reading.md), [B6b](ready/B6b-lamina-pdf-package.md) |
 | L3a | [ADR 0030 and `lamina-extract`: blocks, reading order, headings, lists, header/footer removal, hidden-text flags](ready/L3a-lamina-extract-reading-order.md) | ready | [B8a](ready/B8a-structure-tree.md), [B9b](ready/B9b-text-extraction-core.md), [L1a](ready/L1a-contract-adrs.md), [U2b](ready/U2b-reading-order-ground-truth.md) |
 | L3b | [Lattice tables, Markdown/JSON/chunk serialisers, extraction in the façade, WASM and `@lamina/pdf`](ready/L3b-extract-tables-and-serialisers.md) | ready | [B9c](ready/B9c-text-extraction-bindings-and-differential.md), [L3a](ready/L3a-lamina-extract-reading-order.md) |
 | L3c | [Model plug-ins: `LayoutModel` and `OcrEngine` traits in core, an optional ONNX layout edge crate](ready/L3c-model-plugins.md) | ready | [L3b](ready/L3b-extract-tables-and-serialisers.md) |
