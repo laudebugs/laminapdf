@@ -89,9 +89,9 @@ Numbers 0020–0023 are reserved by editor and library todos, and 0024–0025 by
 
 | # | ADR | Written in | Relationship |
 | --- | --- | --- | --- |
-| 0026 | Error and diagnostic contract: JSON shape, `hint`/`docsUrl` rules, no document text in messages, `explain` pages | [L1a](../todos/ready/L1a-contract-adrs.md) | Extends ADR 0003's codes |
-| 0027 | Coordinates, units and page indexing in public APIs | [L1a](../todos/ready/L1a-contract-adrs.md) | New; constrains B5 builder and B9 extraction |
-| 0028 | Façade rules, jobs, cancellation and progress across bindings | [L1a](../todos/ready/L1a-contract-adrs.md) | Fills in ADR 0002 §3; informs proposed ADR 0009 |
+| 0026 | Error and diagnostic contract: JSON shape, `hint`/`docsUrl` rules, no document text in messages, `explain` pages | [L1a](../todos/ongoing/L1a-contract-adrs.md) | Extends ADR 0003's codes |
+| 0027 | Coordinates, units and page indexing in public APIs | [L1a](../todos/ongoing/L1a-contract-adrs.md) | New; constrains B5 builder and B9 extraction |
+| 0028 | Façade rules, jobs, cancellation and progress across bindings | [L1a](../todos/ongoing/L1a-contract-adrs.md) | Fills in ADR 0002 §3; informs proposed ADR 0009 |
 | 0029 | Mobile bindings and packaging: UniFFI pin, idiomatic Swift/Kotlin layer, SPM only, AAR layout | [L6a](../todos/ready/L6a-lamina-ffi-spike.md) | Fills in ADR 0002 §5; does not change it |
 | 0030 | Extraction output (`lamina.extract/1`) and model plug-ins | [L3a](../todos/ready/L3a-lamina-extract-reading-order.md) | Follows ADR 0001 and proposed ADR 0023 |
 | 0031 | CLI and MCP contract: grammar, exit codes, JSON/NDJSON versioning, MCP security defaults | [L4a](../todos/ready/L4a-lamina-cli.md) | New; reuses ADR 0026 errors |
@@ -102,7 +102,7 @@ Each round is split into todos (one PR each) on the [todo board](../todos/README
 
 ### L1. Contracts
 
-**Todos:** [L1a](../todos/ready/L1a-contract-adrs.md) (ADRs 0026, 0027, 0028), [L1b](../todos/ready/L1b-error-contract-codegen.md) (error codegen, `explain`).
+**Todos:** [L1a](../todos/ongoing/L1a-contract-adrs.md) (ADRs 0026, 0027, 0028), [L1b](../todos/ready/L1b-error-contract-codegen.md) (error codegen, `explain`).
 
 **Deliverable:** three ADRs; codes and error types generated from `fixtures/codes.json` into Rust, TypeScript and JSON Schema; `explain` text per code.
 **Accepted when:** B5a's builder uses ADR 0027's coordinates; B5c's façade meets ADR 0028's rules; a TS test narrows the error class's `code` exhaustively (ADR 0026 settles the class name: `LaminaError` recommended, `PdfError` in B6b today); a change to `codes.json` without regenerating fails CI.

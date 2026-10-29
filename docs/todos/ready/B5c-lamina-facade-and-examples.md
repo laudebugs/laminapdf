@@ -56,7 +56,7 @@ Give Rust users one crate, `lamina`, whose docs open with the invoice example an
 
 ## Acceptance criteria
 
-- [ ] The façade meets the binding rules ADR 0028 sets (from [L1a](./L1a-contract-adrs.md)): owned handles instead of borrowed returns, no generics across the boundary, a string-payload error enum, `CancelToken` and resumable `Job::step` for long work, and the thread-safety outcome ADR 0028 picks (lock in the binding edge crate, or a `Sync` core amending ADR 0005 §7); a compile-time test asserts the auto traits that outcome requires ([shareable-libraries §8](../../plans/shareable-libraries.md#8-changes-to-existing-todos))
+- [ ] The façade meets the binding rules ADR 0028 sets (from [L1a](../ongoing/L1a-contract-adrs.md)): owned handles instead of borrowed returns, no generics across the boundary, a string-payload error enum, `CancelToken` and resumable `Job::step` for long work, and the thread-safety outcome ADR 0028 picks (lock in the binding edge crate, or a `Sync` core amending ADR 0005 §7); a compile-time test asserts the auto traits that outcome requires ([shareable-libraries §8](../../plans/shareable-libraries.md#8-changes-to-existing-todos))
 - [ ] Every example produces a byte-identical golden (twice, and native vs wasm32 for the generation part where feasible)
 - [ ] `qpdf --check` is clean for every example output
 - [ ] Render goldens match within thresholds in PDFium and hayro; a deliberate one-pixel-wide change in an example makes the job fail with a diff image
