@@ -12,6 +12,8 @@ Rules every screen here follows:
 - **Local use never needs an account.** Sign-in is offered, never required; nothing in the reader, editor or save path checks an account ([roadmap: hosted service](../../plans/roadmap.md#decisions-made), H2 acceptance criteria).
 - **Nothing leaves the device without a visible, per-action choice.** Every request our server receives is counted by the network indicator, which names the destination ("to lamina’s storage only").
 - **Priced, never hostile** ([principle 10](../../plans/ui-ux.md#4-principles)): the plan and price show before work starts; no watermarks; no changed deals. Pricing is not decided, so every price is `[PLAN NAME]`, `[PRICE]`, `[BILLING TERMS]`, `[QUOTA]`; the owner fills them in [U5a](../../todos/ready/U5a-pricing-and-promises-page.md).
+- **Copy that makes a commitment is a draft.** Promise text on H02 and H08 is marked `[PROMISE TEXT — OWNER TO APPROVE]`; the owner words and approves each promise in [U5a](../../todos/ready/U5a-pricing-and-promises-page.md) (and its intro sentence). The tier mapping (which tasks are in which plan, whether there is a free tier) is also the owner’s: drawn as `[PLAN NAME or FREE]`.
+- Command ids use the shared namespaces (`file.*`, `account.*`, `licence.*`, `settings.*`, `comment.*`, `edit.*`); the cloud, sync and sharing commands live under `file.*` because they act on the open or listed file.
 - Other undecided values are bracketed too: `[REGION]` (data residency), `[N]` (days to delete an account), `[RETENTION]` (usage counts), `[LAMINA DOMAIN]`, `[VERSION]`, `[SPEC]`, and every benchmark number (`[n ms]`, `[n MB]`).
 
 Artboards live on the canvas; web screens are 1440-wide PAGE boards, phone boards are 390 × 844.
@@ -22,7 +24,7 @@ Artboards live on the canvas; web screens are 1440-wide PAGE boards, phone board
 
 **Entry points.** More menu › "Sign in…" (`account.sign-in`); the "Sign in" text button on the Files home top bar (signed out); palette "Sign in"; the H05 share dialog and the H03 Cloud tab when signed out ("Sign in to use the cloud"). No shortcut.
 
-**Layout.** Web: a dialog (design language [§7.18](design-language.md#718-dialog-proposed)) over the dimmed reader; the reader keeps its top bar, page and status bar. Phone: the same content in a bottom sheet at the large detent over the Files screen, actions full width.
+**Layout.** Web: a dialog (design language [§7.18](design-language.md#718-dialog-proposed)) over the dimmed reader; the reader keeps its top bar, page and status bar. Phone: the same content in a bottom sheet at the large detent over the Files screen (the root screen, so no Back button), with the grabber button ("Resize sheet") and actions full width.
 
 **Content and controls.**
 
@@ -53,19 +55,23 @@ Artboards live on the canvas; web screens are 1440-wide PAGE boards, phone board
 
 ## H02 Account and plan
 
-**Purpose.** One place for the account: who is signed in, the plan and its price, the licence key that lets on-device features work offline, signed-in devices, data export and deletion.
+**Purpose.** One place for the account: who is signed in, the plan and its price, the licence key bought with the account, signed-in devices, data export and deletion. A second page, Settings › Licence, takes a key bought elsewhere and works signed out and offline, so the "no account needed" plan can be activated without one.
 
-**Entry points.** Account avatar › "Account and plan" (`account.open`); Settings › Account and plan; palette "Account and plan". No shortcut.
+**Entry points.** Account avatar › "Account and plan" (`account.open`); Settings › Account and plan; palette "Account and plan". Licence: Settings › Licence, About › "Enter a licence key…", palette "Enter a licence key" (`licence.enter`), and the H11 prompt for someone who already bought a key. No shortcuts.
+
+**Dependency.** Licence checks are out of U5a’s scope and wait for the entitlement todo U5a will add; UI/UX [open question 1](../../plans/ui-ux.md#8-open-questions) allows offline keys or store purchases. If the owner picks store purchases, the Licence page becomes "Restore purchases" and the key block on the account page goes away; the layout is otherwise unchanged.
 
 **Layout.** Settings page: top bar with Back ("Back to Q3-board-report.pdf") and "Settings"; a 220 px settings nav on the left (General, View and themes, Shortcuts, Privacy, Account and plan, Notifications; current item `accent-tint`, `aria-current="page"`); content up to 960 px wide in a two-column grid that becomes one column below ~900 px; the status bar keeps the network indicator.
 
 **Content and controls.**
 
+- Settings nav gains "Licence" after Privacy (both settings boards).
 - Header: avatar, name (page heading), email and "signed in since"; "Edit name or email" (secondary), "Sign out" (ghost, `account.sign-out`).
-- **Plan:** `[PLAN NAME]` with an "Active" badge, `[PRICE] · [BILLING TERMS] · bought <date>`, what it includes, and the promise "If our plans change, what you paid for keeps working on the terms you bought it on." Actions: "Change plan" (`plan.change`), "Receipts" (`plan.receipts`), "Pricing and promises" (H08).
-- **Licence key for offline use:** read-only masked key field, "Show" (toggles the mask), "Copy key" (`account.copy-licence-key`), "Download licence file" (`account.download-licence`). Copy: "Features that run on your device check this key on the device, offline. They never need you to sign in or reach our server."
-- **Signed-in devices:** one row per device (icon, name, app, last active); the current one has a "This device" badge; others have "Sign out" (`account.sign-out-device`). Note: "Signing a device out stops its sync. Files saved on it stay there."
-- **Your data:** cloud storage used (progress bar, `38.2 MB of [QUOTA]`), "Export my data" (`account.export-data`), "Delete account…" (`account.delete`, danger ghost).
+- **Plan:** `[PLAN NAME]` with an "Active" badge, `[PRICE] · [BILLING TERMS] · bought <date>`, what it includes, and a promise line drawn as `[PROMISE TEXT — OWNER TO APPROVE]` (what happens to this purchase if plans change). Actions: "Change plan" (`account.change-plan`), "Receipts" (`account.view-receipts`), "Pricing and promises" (H08).
+- **Licence key for offline use:** mirrors only a key bought while signed in. Read-only masked key field in the `mono` token, "Show" (`aria-pressed`, label "Show licence key"), "Copy key" (`licence.copy-key`), "Download licence file" (`licence.download-file`). Copy says it is checked on the device, offline, and that a key bought elsewhere goes in Settings › Licence.
+- **Settings › Licence (signed out, `H02-licence-key`):** "No licence on this device yet" intro; "Enter a licence key" block with the key field (mono), "Activate" (primary, `licence.enter`) and "Open licence file…" (`licence.open-file`); "What happens": checked on this device, stored on this device only, nothing sent (the network indicator stays at 0), `[DEVICE TERMS, IF ANY]`; links to pricing and to Account and plan.
+- **Signed-in devices:** one row per device (icon, name, app, last active); the current one has a "This device" badge; others have "Sign out" (`account.sign-out-device`), each named for its device ("Sign out MacBook Air"). Note: "Signing a device out stops its sync. Files saved on it stay there."
+- **Your data:** cloud storage used ("5 documents · 18.3 MB of [QUOTA]", matching H03; the bar uses `aria-valuetext` because the quota is unknown), "Export my data" (`account.export-data`), "Delete account…" (`account.delete`, danger ghost).
 
 **States.**
 
@@ -74,6 +80,7 @@ Artboards live on the canvas; web screens are 1440-wide PAGE boards, phone board
 - Key copied: toast "Licence key copied".
 - Delete account: an `alertdialog` that names what is deleted (account, cloud documents, shares) and what is not (files on devices), with a typed confirmation and the danger-filled "Delete account".
 - Export: progress in place, then a download.
+- Licence page: entering (drawn); valid: the block becomes "[PLAN NAME] · active on this device" with "Remove licence from this device"; invalid: field error "This key isn’t valid. Check for missing characters." (`danger`, `aria-invalid`); device limit reached (only if the terms have one, checked when next online and never blocking offline use): `warning` notice naming the devices and "Manage devices".
 
 **Behaviour.** Nothing here changes a document. Signing out a device revokes its session; its next sync attempt asks it to sign in again. Plan changes go to the payment flow (outside lamina’s UI; to be designed with the payment todo U5a will add).
 
@@ -81,7 +88,7 @@ Artboards live on the canvas; web screens are 1440-wide PAGE boards, phone board
 
 **Platform differences.** Web: as drawn. Desktop: the same pane inside the Settings window; "Download licence file" becomes "Save licence file…" (system save dialog), and a desktop that is signed out can still "Enter a licence key…". Phone: the settings nav becomes a list screen; each block is its own screen.
 
-**Artboards.** `H02-account.dc.html`.
+**Artboards.** `H02-account.dc.html`, `H02-licence-key.dc.html`.
 
 **Todos.** [H2](../../todos/ready/H2-accounts-and-login.md), [U5a](../../todos/ready/U5a-pricing-and-promises-page.md).
 
@@ -89,13 +96,14 @@ Artboards live on the canvas; web screens are 1440-wide PAGE boards, phone board
 
 **Purpose.** Show the documents a signed-in user chose to upload, with each one’s sync status, and make every upload an explicit, informed choice.
 
-**Entry points.** Files home › Cloud tab (`cloud.open-list`); "Upload a file…" on that tab (`cloud.upload`); More › "Save to cloud…" in the reader (`cloud.upload-current`); the share dialog for a local file ("Upload to share"). No shortcuts.
+**Entry points.** Files home › Cloud tab (`file.open-cloud-list`); "Upload a file…" on that tab (`file.upload-to-cloud`); More › "Save to cloud…" in the reader (`file.upload-to-cloud`); the share dialog for a local file ("Upload to share"). No shortcuts.
 
-**Layout.** Web: Files home with a top bar (title "Files", Commands, account avatar), segmented tabs "On this device · Cloud · Shared with me", a header row (page heading, one-line explanation, storage meter, primary "Upload a file…") and a table. Upload consent: a dialog over the reader. Phone: the same tabs (44 px), storage line, a list of 72 px rows and a docked "Upload a file…" button above the home indicator.
+**Layout.** Web: Files home with a top bar (title "Files", Commands, account avatar), segmented tabs "On this device · Cloud · Shared with me", a header row (page heading, one-line explanation, storage meter, primary "Upload a file…") and a table. Upload consent: a dialog over the reader. Phone: the same three tabs (44 px), "On this phone · Cloud · Shared with me" ("this phone" replaces "this device" on touch), storage line, a list of 72 px rows and a docked "Upload a file…" button above the home indicator.
 
 **Content and controls.**
 
-- Table columns: Name (opens the document, `cloud.open`), Sync, Size, Last saved (time · device), and a More button per row (Open, Download, Rename, Share…, Remove from cloud: `cloud.download`, `cloud.rename`, `share.open`, `cloud.delete`).
+- Files and sizes match H02 (5 documents, 18.3 MB) and H04: the conflict copy listed is the one H04 creates.
+- Table columns: Name (opens the document, `file.open`), Sync, Size, Last saved (time · device), and a More button per row (Open, Download, Rename, Share…, Remove from cloud: `file.download-cloud-copy`, `file.rename`, `file.share-for-review`, `file.remove-from-cloud`).
 - Sync statuses, each a badge with an icon and a word (never colour alone): **Synced** (positive), **Uploading… 62%** (progress bar, "Cancel upload"), **Newer on MacBook Air** (neutral, sync icon: another device saved a newer revision; opening downloads it), **Conflict copy** (warning, see H04), **Waiting to upload** (neutral, offline), **Shared with 3** (accent, added beside the sync badge).
 - Footnote: "The web app syncs a document when you open or save it. The desktop app also syncs in the background."
 - Upload consent dialog: title "Upload Q3-board-report.pdf to your cloud?", "Nothing has been uploaded yet.", and a definition list: **What is sent** (the saved file, size and pages, with its comments and form values), **Where it goes** (`[REGION]`, only you until you share), **After this** (each save uploads a new version; the local copy stays), **What we do with it** (stored for your own use only; delete any time). Actions: "Keep on this device" (secondary), "Upload" (primary). "Privacy page" link.
@@ -110,7 +118,7 @@ Artboards live on the canvas; web screens are 1440-wide PAGE boards, phone board
 
 **Behaviour.** Nothing uploads without the consent dialog the first time a document goes to the cloud; afterwards each save of that document uploads a new revision (H3: incremental saves dedupe by hash). "Remove from cloud" deletes the cloud copy and its revisions after an `alertdialog`; the local file is not touched. The network indicator counts uploads and names our storage as the only destination.
 
-**Accessibility.** A real `<table>` with column headers; per-row More buttons are labelled with the file name; progress bars have `role="progressbar"` and values; tabs use `role="tablist"`. The consent dialog’s initial focus is on "Keep on this device" in production (the drawing rings "Upload" to show the ring on the primary).
+**Accessibility.** A real `<table>` with column headers; per-row More buttons are labelled with the file name; progress bars have `role="progressbar"` and values; tabs use `role="tablist"`. The consent dialog’s initial focus is on "Keep on this device" (ring drawn there), so Enter never uploads by accident.
 
 **Platform differences.** Web: syncs on open and save (OPFS cache). Desktop: the Cloud tab adds "Sync now" and shows background progress; the consent dialog adds "Keep the file on this computer as the original" (on by default; H3: local files stay the source of truth unless the user opens the cloud copy). Phone: drawn; row actions open a bottom sheet. Tablet: the web table with 44 px rows.
 
@@ -122,13 +130,13 @@ Artboards live on the canvas; web screens are 1440-wide PAGE boards, phone board
 
 **Purpose.** When two devices save from the same revision, keep both and say so plainly; when offline, keep saving locally and show what will upload later. Whole-file revisions only; live co-review is H06 (H4 scope).
 
-**Entry points.** The conflict dialog appears after a save is rejected because its base revision is stale. The status-bar item "Conflict copy · Details" and the H03 "Conflict copy" badge reopen it (`sync.show-conflict`). The offline item "2 saves waiting to upload" opens the queue popover (`sync.show-queue`).
+**Entry points.** The conflict dialog appears after a save is rejected because its base revision is stale. The status-bar item "Conflict copy · Details" and the H03 "Conflict copy" badge reopen it (`file.show-sync-conflict`). The offline item "2 saves waiting to upload" opens the queue popover (`file.show-upload-queue`).
 
-**Layout.** Conflict: dialog (560 px) over the reader, which now shows the conflict copy as the open file. Offline: a `surface` notice strip under the secondary toolbar ("You’re offline. …") and a popover anchored to the status-bar item.
+**Layout.** Both boards are in Comment mode with the full Comment toolbar (C01’s) and the editor top bar (Undo/Redo after the save state). The sync item sits in the status bar’s left group next to the network indicator, never in the middle slot. Conflict: dialog (560 px) over the reader, which now shows the conflict copy as the open file. Offline: a `surface` notice strip under the secondary toolbar ("You’re offline. …") and a popover anchored to the status-bar item.
 
 **Content and controls.**
 
-- Conflict dialog: title "Q3-board-report.pdf changed on another device"; one sentence that both versions were kept; two side-by-side blocks, "Your version · this browser" (new name `Q3-board-report (conflict, this browser, 29 Oct 2026).pdf`, saved time, a summary of changes, "Open now" badge) and "MacBook Air’s version" (keeps the original name, saved time, changes); a hint on how to end up with one file. Actions: "Compare the two" (`compare.open`, from the compare round), "Open MacBook Air’s version" (`sync.open-other`), "Keep working on my copy" (primary, closes).
+- Conflict dialog: title "Q3-board-report.pdf changed on another device"; one sentence that both versions were kept; two side-by-side blocks, "Your version · this browser" (new name `Q3-board-report (conflict, this browser, 29 Oct 2026).pdf`, saved time, a summary of changes, "Open now" badge) and "MacBook Air’s version" (keeps the original name, saved time, changes); a hint on how to end up with one file. Actions: "Compare the two" (`file.compare`, from the compare round), "Open MacBook Air’s version" (`file.open-other-version`), "Keep working on my copy" (primary, closes).
 - Offline notice: cloud-off icon, "**You’re offline.** Saves stay on this device and upload when you’re back online. Reading, commenting and saving all keep working."
 - Status bar: network indicator "0 network requests · offline"; sync item "2 saves waiting to upload".
 - Queue popover: "Waiting to upload", one row per queued save (time, change summary), the rule that a later conflict keeps both, "Download a copy" (secondary) and "Upload now" (disabled while offline, reason under it).
@@ -153,18 +161,18 @@ Artboards live on the canvas; web screens are 1440-wide PAGE boards, phone board
 
 **Purpose.** Invite people to review a cloud document, or turn on a review link, with a role each, and take access away.
 
-**Entry points.** "Share" button in the top bar (shown when signed in), More › "Share for review…" (`share.open`), H03 row More › "Share…". No shortcut.
+**Entry points.** "Share" button in the top bar (shown when signed in), More › "Share for review…" (`file.share-for-review`), H03 row More › "Share…". No shortcut.
 
-**Layout.** Dialog (560 px) over the reader in Comment mode.
+**Layout.** Dialog (560 px) over the reader in Comment mode (full Comment toolbar, Undo/Redo, full top bar). People’s avatars use the presence colours, so a reviewer has the same colour here and in H06.
 
 **Content and controls.**
 
 - Title "Share for review"; intro: who can open what, and that comments stay beside the PDF until saved into it (base PDFs are immutable; ADR 0012 via [E18f](../../todos/ready/E18f-sharing-and-notifications.md)).
-- "Add people by email" field, a role select (Can comment by default; Can view; Can edit), "Invite" (primary, `share.invite`).
-- People list: owner (no controls), each member with a role select (`share.change-role`) and a remove button ("Remove A. Patel", `share.remove-person`); pending invites say "Invited 28 Oct · not opened yet".
+- "Add people by email" field, a role select (Can comment by default; Can view; Can edit), "Invite" (primary, `file.invite-reviewer`).
+- People list: owner (no controls), each member with a role select (`file.change-reviewer-role`) and a remove button ("Remove A. Patel", `file.remove-reviewer`); pending invites say "Invited 28 Oct · not opened yet".
 - Role help: "Can view: read and see comments. Can comment: also add comments and replies. Can edit: also change form values, page order and text, one person at a time for text."
-- Review link: switch (`share.toggle-link`), read-only link field, link role select, "Copy link" (`share.copy-link`), and "Turning the link off, or removing a person, ends their access at once, even if they have the document open."
-- "Email me about new comments and replies" checkbox (off by default; `notifications.toggle-email`), "Done".
+- Review link: switch (`file.toggle-review-link`), read-only link field, link role select, "Copy link" (`file.copy-review-link`), and "Turning the link off, or removing a person, ends their access at once, even if they have the document open."
+- "Email me about new comments and replies" checkbox (off by default; `settings.comment-emails`), "Done".
 
 **States.**
 
@@ -189,20 +197,20 @@ Artboards live on the canvas; web screens are 1440-wide PAGE boards, phone board
 
 **Purpose.** Review a shared document together: see who is here and what they have selected, get comments and replies live, and keep content edits from colliding (leases).
 
-**Entry points.** Opening a shared cloud document (from H03, H07 or a review link). The presence button lists who is here (`review.show-people`).
+**Entry points.** Opening a shared cloud document (from H03, H07 or a review link). The presence button lists who is here (`comment.show-reviewers`).
 
-**Layout.** The normal shell. Top bar: save-state text "Shared · comments sync live", a presence stack (other people’s initials in their presence colour, "+ you") and "Share". Secondary toolbar for the current mode. Lease notice strip under it when needed. Inspector with the selected thread. Status bar: network indicator naming the review server, a sync item ("Live · comments synced 10:32"), page label.
+**Layout.** The normal shell in Edit mode, with the canonical Edit toolbar (Select · Edit text · Add text · Image · Shape ▾ · Link │ Page marks ▾ · Replace… │ Tools ▾). Top bar: save-state text "Shared · comments sync live", Undo/Redo, a presence stack (other people’s initials in their presence colour, "+ you") and "Share". Secondary toolbar for the current mode. Lease notice strip under it when needed. Inspector with the selected thread. Status bar: network indicator naming the review server and, beside it in the left group, the sync item ("Live · comments synced 10:32"); page label on the right.
 
 **Content and controls.**
 
-- **Presence:** each reviewer gets a colour from a fixed set with white text ≥ 4.5:1 (drawn: `positive` #2F6A45 for A. Patel, `warning` #8A5300 for J. Mensah). Their current selection is outlined on the page in that colour with a name tag ("J. Mensah"). Your own selection keeps the `accent` focus outline.
+- **Presence:** each reviewer gets a colour from the presence palette (never a status colour; see Proposed design-language additions): A. Patel violet `#5B4B8A`, J. Mensah blue `#1F5C8A`. Their current selection is outlined on the page in that colour with a name tag ("J. Mensah"). Your own selection keeps the `accent` focus outline.
 - **Live thread:** the inspector shows the quoted text, messages with author and time, and a live "J. Mensah is replying…" row (`aria-live="polite"`); reply field, "Reply" (primary, `comment.reply`) and "Resolve" (`comment.resolve`).
-- **Lease** ([E18g](../../todos/ready/E18g-leases-and-base-revisions.md)): drawn in Edit mode while A. Patel holds the text lease. Text, Image and Redact tools are `aria-disabled` with the context note "Text, image and redaction tools wait for A. Patel"; the notice reads "**A. Patel is editing text on page 7** (since 10:20). Text edits take turns so nobody’s work is overwritten. Comments, links and form values still sync live." with "Tell me when it’s free" (`review.notify-lease-free`).
+- **Lease** ([E18g](../../todos/ready/E18g-leases-and-base-revisions.md)): drawn in Edit mode while A. Patel holds the text lease. Edit text, Add text, Image, Shape, Page marks and Replace are `aria-disabled` and point with `aria-describedby` to the context note "Text, image, page-mark, redaction and signing tools wait for A. Patel" (Select and Link stay on; Tools ▾ opens, with Redact and Protect disabled inside it and signing disabled in Fill & Sign); the notice reads "**A. Patel is editing text on page 7** (since 10:20). Text, page-mark, redaction and signing changes take turns so nobody’s work is overwritten. Comments, links and form values still sync live." with "Tell me when it’s free" (`edit.notify-when-free`).
 
 **States.**
 
 - Live (drawn); reconnecting: the sync item reads "Reconnecting…" and new comments queue locally; offline (desktop): "Offline · 3 comments waiting", sent on reconnect (E18e).
-- You hold the lease: notice "You’re editing text. Others can comment meanwhile." with "Finish editing" (`review.release-lease`); saving mints a new base revision and other clients rebase.
+- You hold the lease: notice "You’re editing text. Others can comment meanwhile." with "Finish editing" (`edit.finish-editing`); saving mints a new base revision and other clients rebase.
 - Lease freed: toast "A. Patel finished editing. Text tools are available."
 - Redaction applied in a shared document: notice that earlier versions were purged from lamina’s storage and caches, and that copies saved outside lamina are out of reach (E18g).
 - Access removed: a dialog "Your access was removed" with "Download your comments" (if allowed) and "Close"; unsent changes are discarded and the dialog says how many.
@@ -219,18 +227,18 @@ Artboards live on the canvas; web screens are 1440-wide PAGE boards, phone board
 
 ## H07 Notifications
 
-**Purpose.** Tell people about replies, mentions, shares and removed access, in the app and, if they opt in, by email.
+**Purpose.** Tell people about replies, shares and removed access, in the app and, if they opt in, by email.
 
-**Entry points.** The bell icon button in the top bar, shown when signed in ("Notifications, 2 unread"; `notifications.open`); Settings › Notifications. No shortcut.
+**Entry points.** The bell icon button in the top bar, shown when signed in ("Notifications, 2 unread"; `account.open-notifications`); Settings › Notifications. No shortcut.
 
-**Layout.** In-app: a popover (menu shadow, `surface`, 400 px) under the bell. Email: a plain one-column message, 560 px content width.
+**Layout.** In-app: a popover (menu shadow, `surface`, 400 px) under the bell. Email: a plain one-column message, 560 px content width; its artboard is a fixed 720 × 900 preview on purpose (an email is not an app page).
 
 **Content and controls.**
 
-- Popover: title "Notifications", "Mark all as read" (`notifications.mark-all-read`); "Today" / "Earlier" overlines; rows as links (avatar, "**J. Mensah** replied on Q3-board-report.pdf", the comment text, "Page 3 · 10:34", and a "New" marker with a dot for unread). Selecting a row opens the document at the thread and marks it read. Footer: "Email notifications are off" + "Notification settings".
-- Email: subject "J. Mensah replied on Q3-board-report.pdf"; heading, context sentence, the reply text, "Open the comment" button-link, a line that the email has the reply text and the document’s name but never the document or its pages, and "Turn off emails for this document" · "Notification settings".
+- Popover: title "Notifications", "Mark all as read" (`account.mark-notifications-read`); "Today" / "Earlier" overlines; rows for replies, shares and removed access (E18f; @mentions are not in its scope and are a proposed follow-up), as links (avatar in the reviewer’s presence colour, "**J. Mensah** replied on Q3-board-report.pdf", the comment text, "Page 3 · 10:34", and a "New" marker with a dot for unread). Selecting a row opens the document at the thread and marks it read. Footer: "Email notifications are off" + "Notification settings".
+- Email: subject "J. Mensah replied on Q3-board-report.pdf"; heading, context sentence, the reply text, "Open the comment" button-link, the reason it was sent ("because you turned on comment emails for this document"), a line that the email has the reply text and the document’s name but never the document or its pages, and "Turn off emails for this document" · "Notification settings".
 
-**States.** Unread (drawn); all read (no "New" markers, bell count hidden); empty ("No notifications" / "Replies, mentions and shares appear here."); emails off (default) or on per user and per document. Access-removed rows are not links.
+**States.** Unread (drawn: both unread rows on `accent-tint` with "New"; the bell count pill is 16 px high with 11 px text); all read (no "New" markers, bell count hidden); empty ("No notifications" / "Replies, mentions and shares appear here."); emails off (default) or on per user and per document. Access-removed rows are not links.
 
 **Behaviour.** Opt-in emails per user (E18f); the bell count updates live while a shared document is open, otherwise on focus. Notifications never include document pages.
 
@@ -252,10 +260,10 @@ Artboards live on the canvas; web screens are 1440-wide PAGE boards, phone board
 
 **Content and controls.**
 
-- Plan cards: `[PLAN NAME]`, `[PRICE]`, `[BILLING TERMS]`, one sentence on who it is for, an includes list (decided facts plus placeholders), "Buy [PLAN NAME]". Card one is on-device ("No account needed"; "Works offline; checked by a licence key on your device"); card two adds the hosted service (cloud storage `[QUOTA]`, sync, shared review). The number of plans and what each includes are placeholders for the owner.
+- Plan cards: `[PLAN NAME]`, `[PRICE]`, `[BILLING TERMS]`, one sentence on who it is for, an includes list (decided facts plus placeholders), "Buy [PLAN NAME]". Card one is on-device ("No account needed"; "Works offline; [HOW THE LICENCE IS CHECKED: KEY OR STORE PURCHASE]"); card two is "[WHAT THIS PLAN ADDS]" plus the hosted features (cloud storage `[QUOTA]`, sync, shared review). The number of plans, what each includes and whether they nest are the owner’s decisions.
 - Terms line: currency, tax, trial terms, last-changed date and a link to the pricing history (supports "no changed deals").
-- Promises (from U5a, worded narrowly; the owner approves the final text): the price shows before you start; no watermarks; what you bought stays bought; local work needs no account; your documents are for your work, no ads; the code stays MIT OR Apache-2.0.
-- "What needs an account" table: four rows of tasks with Account yes/no and the plan that includes them.
+- Promises (from U5a and principle 10, each followed by `[PROMISE TEXT — OWNER TO APPROVE]`; the intro is `[PROMISES INTRO — OWNER TO APPROVE]`): the price shows before you start; no surprise watermarks (nothing added to output without telling you first); what you bought stays bought; local work needs no account; your documents are for your work, no ads; the code stays MIT OR Apache-2.0.
+- "What needs an account" table: four rows of tasks with Account yes/no and the plan that includes them; the reading row is `[PLAN NAME or FREE]` because a free tier is not decided.
 
 **States.** One static page. Until U5a is merged, every bracketed value stays a placeholder; nothing on the page claims a price, quota or trial.
 
@@ -281,7 +289,7 @@ Artboards live on the canvas; web screens are 1440-wide PAGE boards, phone board
 
 - Release gates (from [UI/UX §5.6](../../plans/ui-ux.md#56-perceived-performance-r6-r7)): web first page ≤ 700 ms (stretch ≤ 500 ms for 10 MB), desktop cold start < 300 ms, installer < 15 MB, longest main-thread task while scrolling ≤ 50 ms (stretch INP ≤ 200 ms p75, commands ≤ 100 ms); lamina’s results are `[n ms]` / `[n MB]`.
 - Benchmark: run date, median of 3, versions; tabs for the five reference files (10-page text, 1,000-page textbook, architectural drawing, 500 MB scan, tagged two-column paper); machine select (Windows laptop, Apple-silicon Mac, `[SPEC]`); table columns cold start to first page, warm open, scroll 100 pages (long tasks), peak memory, app size, and a "Raw data" link per row. lamina’s row is tinted. A reader whose licence forbids publishing gets "Not published: its licence terms don’t allow it" with "Licence notes"; a reader not available on the chosen machine says so.
-- Method bullets; "How to rerun the benchmark" (primary link to `bench/readers/README.md`), "Download results (JSON)".
+- Method bullets; "How to rerun the benchmark" (primary link to `bench/readers/README.md`), "Download results (JSON)". Rerun policy beyond "each run is dated" is `[RERUN POLICY]` (U5b only says results age quickly).
 
 **States.** Placeholders until U5b measures; stale run (older than the current release): a `warning` notice above the table, "These results are from lamina [VERSION]. A new run is due."
 
@@ -306,7 +314,7 @@ Artboards live on the canvas; web screens are 1440-wide PAGE boards, phone board
 **Content and controls.**
 
 - Question: "Help decide what lamina builds next?", what is and is never sent, an open `details` "Exactly what is sent" with the JSON payload (day, app version, platform family, counts per mode and per command id), when it is sent, that the network indicator counts it, no IP retention, `[RETENTION]`, where to change it. Two equal secondary buttons, "Don’t send" and "Send usage counts" (no primary, so neither is nudged); "Privacy page" link.
-- Privacy pane: "Send crash reports" switch (D7a, off) with its description; "Send usage counts" switch (`telemetry.toggle`) with description, last sent / next / kept for, "What was last sent" (the actual last payload), "Copy report", "How usage counts work", and that reports carry no identifier.
+- Privacy pane: "Send crash reports" switch (D7a, off) with "You can view each report; nothing is sent unless you turn this on."; "Send usage counts" switch (`settings.usage-counts`) with description, last sent / next / kept for, "What was last sent" (the actual last payload), "Copy report", "How usage counts work", and that reports carry no identifier.
 
 **States.** Off (default); on (drawn on desktop); question answered (never asked again; the setting stays); offline (counts wait and are sent once, never backfilled per day beyond [RETENTION]).
 
@@ -331,7 +339,7 @@ Artboards live on the canvas; web screens are 1440-wide PAGE boards, phone board
 **Content and controls.**
 
 - Palette row: command, group, and a badge "In [PLAN NAME]" in place of a shortcut chip; the palette footer explains the label. Commands in the user’s plan show no badge. No lock icons on anything the user already uses.
-- Prompt: title "Convert to Word is part of [PLAN NAME]"; "Your current plan doesn’t include it. Nothing has started: your file is unchanged and nothing has been uploaded."; a plan block (`[PLAN NAME]`, `[PRICE] [BILLING TERMS]`, what it includes, and for server features "You’ll be asked before the file is uploaded"); "Everything you can do today keeps working whether you upgrade or not."; "Compare plans" link, "Not now" (secondary, initial focus), "Get [PLAN NAME]" (primary, `plan.upgrade`).
+- Prompt: title "Convert to Word is part of [PLAN NAME]"; "Your current plan doesn’t include it. Nothing has started: your file is unchanged and nothing has been uploaded."; a plan block (`[PLAN NAME]`, `[PRICE] [BILLING TERMS]`, what it includes, and for server features "You’ll be asked before the file is uploaded"); "Everything you can do today keeps working whether you upgrade or not."; "Compare plans" link, "Not now" (secondary, initial focus), "Get [PLAN NAME]" (primary, `account.upgrade-plan`).
 
 **States.** Prompt (drawn); label in the palette (drawn); already on the plan (no badge, no prompt, the command runs); offline (the prompt still shows the price from the last known price list, and "Get [PLAN NAME]" says it needs a connection); after buying, the original command starts from the beginning, with its own consent step if it uploads.
 
@@ -345,25 +353,40 @@ Artboards live on the canvas; web screens are 1440-wide PAGE boards, phone board
 
 **Todos.** [U5a](../../todos/ready/U5a-pricing-and-promises-page.md).
 
-## New components
+## Proposed design-language additions
 
-Built from the design language tokens; values are **proposed** until a reviewed board replaces them.
+For central merging into the design language. Built from its tokens; values are **proposed** until a reviewed board replaces them. The cross-area decisions are applied as given (presence palette, `mono`, top bar with Undo/Redo, C01 Comment and A01 Edit toolbars, command-id namespaces).
+
+**Presence palette** (cross-area decision 6), ratios recomputed here (WCAG relative luminance):
+
+| Colour | Hex | White initials on it | As an outline on a white page |
+| --- | --- | --- | --- |
+| Violet | `#5B4B8A` | 7.45 | 7.45 |
+| Blue | `#1F5C8A` | 7.10 | 7.10 |
+| Plum | `#8A3B5C` | 7.34 | 7.34 |
+| Teal-green | `#3B6B5C` | 6.10 | 6.10 |
+
+Assigned in order of joining, stable per person per document; the same colour is used for the avatar in H05, H06 and H07. A fifth reviewer reuses violet with a name tag (names always show, so colour is never the only cue).
+
+**`mono`** is used for the licence key field and the usage-count payload (12.5/1.6).
+
+**Status bar:** the sync item is a left-group item beside the network indicator, not a middle-slot note, so it never competes with the signed/repaired/history notes (decision 13).
 
 | Component | Spec | Used in |
 | --- | --- | --- |
 | Page heading | Newsreader 28/34/500 (`h1` of settings and list pages); docs-site pages use 48/1.1/400 and section headings 30–34/400 | H02, H03, H08, H09, H10 |
-| Settings nav | 220 px column, `hairline` right, padding `16px 10px`, links 32 px high, radius 4; current `accent` 600 on `accent-tint`, `aria-current="page"` | H02, H10 |
-| Avatar and presence stack | 24–48 px circle, initials 11–16/600; own avatar `accent-tint` + `accent`; reviewers get a presence colour with white initials (≥ 4.5:1: #2F6A45, #8A5300, then `accent`, #9B2335); stack overlaps by 6 px with a 2 px `ground` ring | H02, H05, H06, H07 |
+| Settings nav | Items General · View and themes · Shortcuts · Privacy · Licence · Account and plan · Notifications; 220 px column, `hairline` right, padding `16px 10px`, links 32 px high, radius 4; current `accent` 600 on `accent-tint`, `aria-current="page"` | H02, H10 |
+| Avatar and presence stack | 24–48 px circle, initials 11–16/600; own avatar `accent-tint` + `accent`; reviewers get a presence colour (table above) with white initials; pending invitees `surface` + `chip-border` + `text-3`; stack overlaps by 6 px with a 2 px `ground` ring | H02, H05, H06, H07 |
 | Remote selection tag | 2 px outline in the reviewer’s colour, offset 2, with a 20 px name tag (white 12/600 on the colour, radius 3) at the top right | H06 |
-| Sync status item | Status-bar button (min-height 24, 12 px) with sync, cloud-off or warning icon and text: "Live · comments synced 10:32", "2 saves waiting to upload", "Conflict copy · Details"; opens its popover or dialog | H04, H06 |
+| Sync status item | Status-bar button in the left group (min-height 24, 12 px) with sync, cloud-off or warning icon and text: "Live · comments synced 10:32", "2 saves waiting to upload", "Conflict copy · Details"; opens its popover or dialog | H04, H06 |
 | Status popover | Non-modal `role="dialog"` anchored to a bar item: `surface`, `chip-border` edge, radius 6, menu shadow, padding 16, gap 12, title Heading 18 | H04, H07 |
 | Lease and offline notices | The §7.20 notice as a full-width strip under the toolbars (min-height 36, padding `6px 16px`, `hairline` bottom): `accent-tint` for a lease, `surface` for offline; action buttons 28 high on the right | H04, H06 |
 | File table with sync badges | Real `table`; name in Newsreader 16; badges §7.23 with an icon each; inline progress (4 px bar, 160 px) for uploads | H03 |
 | Consent definition list | `dl` in a 112 px / 1fr grid between `hairline` rules; terms 12/600 `text-3` | H03 |
-| Licence key field | Read-only input in a monospace stack (`ui-monospace, 'SF Mono', Menlo, Consolas`), masked except the last group, with Show / Copy key | H02 |
-| Payload block | `pre` on white, `control-border`, radius 4, padding `12px 14px`, 13/1.5 monospace, scrolls horizontally | H10 |
+| Licence key field | Input in the `mono` token; read-only and masked except the last group on the account page (Show / Copy key), editable on Settings › Licence (Activate / Open licence file…) | H02 |
+| Payload block | `pre` on white, `control-border`, radius 4, padding `12px 14px`, `mono` 12.5/1.6, scrolls horizontally | H10 |
 | Notification row | Link row, padding 10, radius 4: avatar, sentence with the actor in 600, excerpt 13 `text-2`, context 12; unread = 8 px `accent` dot + "New" 12/600; unread rows on `accent-tint` | H07 |
-| Bell with count | 28 px icon button; count pill 14 px high, `accent` with white 10/600 tabular; the count is also in the `aria-label` | H07 |
+| Bell with count | 28 px icon button; count pill 16 px high, `accent` with white 11/600 tabular; the count is also in the `aria-label` | H07 |
 | Plan block and card | Plan block (in dialogs): white, `hairline` edge, radius 4, padding 16: plan name Newsreader 18, price 600 + terms `muted`, check-list 13. Plan card (docs site): `surface`, padding 28, name 26, price 40 Newsreader | H02, H08, H11 |
 | Plan label | Badge "In [PLAN NAME]" (§7.23 neutral; on the active palette row: white with `accent` border and text) in place of a shortcut chip | H11 |
 | People row | 48 px row: avatar, name over email, role select (28 high), remove icon button | H05 |
@@ -382,4 +405,4 @@ New icons (same grid and stroke as §5; add them to the design language table wh
 | Laptop | `<rect x="5" y="5.5" width="14" height="10" rx="1"></rect><path d="M3 18.5h18"></path>` |
 | Phone | `<rect x="7.5" y="3.5" width="9" height="17" rx="1.5"></rect><path d="M11 17.5h2"></path>` |
 
-Upload uses the existing Share glyph.
+Upload uses the existing Share glyph. Undo/Redo and the Edit toolbar icons are copied from O01 and A01. The "Tools ▾" button in the Edit toolbar is drawn here with a sliders glyph (`<path d="M4 7h16M4 12h16M4 17h16"></path><circle cx="9" cy="7" r="1.8"></circle><circle cx="15" cy="12" r="1.8"></circle><circle cx="8" cy="17" r="1.8"></circle>`) until the Add and edit content area defines one.
