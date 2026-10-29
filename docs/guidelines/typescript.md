@@ -72,7 +72,7 @@ Shared packages run in browsers, Cloudflare Workers, Deno, Bun, Node, React Nati
 | Functions, variables, methods | `camelCase` (`open`, `pageCount`) |
 | Module-level constants | `UPPER_SNAKE_CASE` for true constants (`MAX_DEPTH`) |
 | String-literal unions | `PascalCase` or `kebab-case` members, consistent per type |
-| Acronyms | Treat as words: `PdfError`, `XrefEntry`, `parseHtml` |
+| Acronyms | Treat as words: `PdfDocument`, `XrefEntry`, `parseHtml` |
 
 - **MUST:** named exports only. No `export default`. Named exports keep names consistent at every import site and work well with tree-shaking and refactors.
 - **MUST NOT:** use `enum`, `namespace` or parameter properties (`erasableSyntaxOnly`). Use string-literal unions and `as const` objects.
@@ -80,10 +80,11 @@ Shared packages run in browsers, Cloudflare Workers, Deno, Bun, Node, React Nati
 
 ## Errors
 
-- **MUST:** each package defines one error class, extending `Error`, with `name` set, a `readonly code` typed as a string-literal union, and structured fields (`offset`). It also exports an `isXError(e: unknown): e is XError` guard. This is the spike's `PdfError` pattern. Codes shared with the Rust core **MUST** match its error variants.
+- **MUST:** each package defines one error class, extending `Error`, with `name` set, a `readonly code` typed as a string-literal union, and structured fields. It also exports an `isXError(e: unknown): e is XError` guard. In `@lamina/pdf` this is **`LaminaError<C extends ErrorCode>`** with `isLaminaError(e, code?)` and `toJSON()`, carrying the [ADR 0026](../decisions/0026-error-and-diagnostic-contract.md) fields (`code`, `kind`, `hint`, `didYouMean`, `location`, `data`, `docsUrl`). Codes shared with the Rust core **MUST** match `fixtures/codes.json` (generated, never hand-written).
+- **MUST NOT:** put document text in `message` or `hint`; it goes only in `data` (ADR 0026 §4).
 - **MUST:** throw only instances of that class (or other `Error` subclasses). Never throw strings or plain objects. When wrapping, pass `{ cause }`.
 - **MUST NOT:** swallow errors silently. Recoverable irregularities in input are returned as `warnings` on the result, as in Rust.
-- **SHOULD:** document thrown errors with `@throws {@link PdfError}` and the codes they can carry.
+- **SHOULD:** document thrown errors with `@throws {@link LaminaError}` and the codes they can carry.
 
 ## API design (types first)
 

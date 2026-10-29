@@ -4,7 +4,7 @@
 - **Date:** 2026-10-29
 - **Research:** [shareable libraries report](../research/libraries/shareable-libraries.md) and its [six notes](../research/libraries/README.md)
 - **Builds on:** [PDF library plan](pdf-library.md) (Rounds B1–B9), [architecture plan](architecture.md), ADRs [0001](../decisions/0001-core-language-and-licence.md), [0002](../decisions/0002-binding-strategy.md), [0003](../decisions/0003-reader-tolerance-and-limits.md), [0005](../decisions/0005-document-model.md)–[0007](../decisions/0007-save-planner.md)
-- **Proposes:** ADRs 0026–0031 (§6)
+- **Proposes:** ADRs 0026–0031 (§6); 0026–0028 accepted
 - **Roadmap:** [roadmap.md](roadmap.md)
 
 ## 1. Goal
@@ -44,7 +44,7 @@ The research found the opening is real: in October 2026 no permissively licensed
 
 ## 4. Principles (recommendations, recorded in ADRs 0026–0031)
 
-1. **Design the façade to UniFFI's rules now** ([report §2](../research/libraries/shareable-libraries.md#design-the-façade-to-the-stricter-binding-now)): handles that a binding can make `Send + Sync` (UniFFI needs this). The `lamina` façade is a core crate, and ADR 0005 §7 allows no `Mutex` in core, so ADR 0028 decides between a lock in the binding edge crate (`lamina-ffi` wraps the `Send` document in a `Mutex`; recommended, ADR 0005 unchanged) and a `Sync` core (an explicit amendment of ADR 0005 §7). Also: `&self`-friendly methods, owned handles instead of borrowed returns, no generics across the boundary, a string-payload error enum, an explicit `CancelToken`, resumable `Job::step`. UniFFI forbids `&mut self`; fixing this after `@lamina/pdf` ships would break the TypeScript API.
+1. **Design the façade to UniFFI's rules now** ([report §2](../research/libraries/shareable-libraries.md#design-the-façade-to-the-stricter-binding-now)): handles that a binding can make `Send + Sync` (UniFFI needs this). The `lamina` façade is a core crate, and ADR 0005 §7 allows no `Mutex` in core, so [ADR 0028](../decisions/0028-facade-rules-jobs-and-cancellation.md) §2 puts the lock in the binding edge crate (`lamina-ffi` wraps the `Send` document in a `Mutex`; ADR 0005 unchanged) rather than making the core `Sync`. Also: `&self`-friendly methods, owned handles instead of borrowed returns, no generics across the boundary, a string-payload error enum, an explicit `CancelToken`, resumable `Job::step`. UniFFI forbids `&mut self`; fixing this after `@lamina/pdf` ships would break the TypeScript API.
 2. **One error shape everywhere:** `{ code, kind, message, hint, location, docsUrl }`, kebab-case codes as today (ADR 0003 §2), generated from [`fixtures/codes.json`](../../fixtures/codes.json) into Rust, TypeScript and JSON Schema. Messages never quote document text (prompt-injection hygiene).
 3. **Explicit coordinates:** high-level and extraction APIs use **top-left origin, points**, with typed units (`Pt`, `Mm`) and an explicit `coordinates` block in every JSON output; low-level APIs keep raw PDF user space, named as such. Pages: 0-based `index` plus 1-based `number` in output.
 4. **The core stays synchronous.** Long work is a `Job` the caller steps with a budget counted in work units (core crates have no clock; time limits live at the edges); cancellation and progress are lamina API, not binding features (UniFFI has no built-in cancellation). Async lives at the edges: the TS worker client, Swift `async`, Kotlin `suspend`.
@@ -62,7 +62,7 @@ let doc = lamina::Document::open(bytes, OpenOptions::default())?;   // Send + Sy
 let job = doc.extract(ExtractOptions { format: Format::Markdown, ..Default::default() });
 let cancel = job.cancel_token();
 let out = loop {
-    // budget in work units: core crates have no clock (ADR 0028 decides the unit)
+    // budget in work units: core crates have no clock (ADR 0028 §4)
     match job.step(Budget::units(10_000))? { Step::Done(out) => break out, Step::Progress(_) => {} }
 };
 ```
@@ -89,9 +89,9 @@ Numbers 0020–0023 are reserved by editor and library todos, and 0024–0025 by
 
 | # | ADR | Written in | Relationship |
 | --- | --- | --- | --- |
-| 0026 | Error and diagnostic contract: JSON shape, `hint`/`docsUrl` rules, no document text in messages, `explain` pages | [L1a](../todos/ongoing/L1a-contract-adrs.md) | Extends ADR 0003's codes |
-| 0027 | Coordinates, units and page indexing in public APIs | [L1a](../todos/ongoing/L1a-contract-adrs.md) | New; constrains B5 builder and B9 extraction |
-| 0028 | Façade rules, jobs, cancellation and progress across bindings | [L1a](../todos/ongoing/L1a-contract-adrs.md) | Fills in ADR 0002 §3; informs proposed ADR 0009 |
+| [0026](../decisions/0026-error-and-diagnostic-contract.md) (Accepted) | Error and diagnostic contract: JSON shape, `hint`/`docsUrl` rules, no document text in messages, `explain` pages | [L1a](../todos/done/L1a-contract-adrs.md) | Extends ADR 0003's codes |
+| [0027](../decisions/0027-coordinates-units-and-page-indexing.md) (Accepted) | Coordinates, units and page indexing in public APIs | [L1a](../todos/done/L1a-contract-adrs.md) | New; constrains B5 builder and B9 extraction |
+| [0028](../decisions/0028-facade-rules-jobs-and-cancellation.md) (Accepted) | Façade rules, jobs, cancellation and progress across bindings | [L1a](../todos/done/L1a-contract-adrs.md) | Fills in ADR 0002 §3; informs proposed ADR 0009 |
 | 0029 | Mobile bindings and packaging: UniFFI pin, idiomatic Swift/Kotlin layer, SPM only, AAR layout | [L6a](../todos/ready/L6a-lamina-ffi-spike.md) | Fills in ADR 0002 §5; does not change it |
 | 0030 | Extraction output (`lamina.extract/1`) and model plug-ins | [L3a](../todos/ready/L3a-lamina-extract-reading-order.md) | Follows ADR 0001 and proposed ADR 0023 |
 | 0031 | CLI and MCP contract: grammar, exit codes, JSON/NDJSON versioning, MCP security defaults | [L4a](../todos/ready/L4a-lamina-cli.md) | New; reuses ADR 0026 errors |
@@ -102,10 +102,10 @@ Each round is split into todos (one PR each) on the [todo board](../todos/README
 
 ### L1. Contracts
 
-**Todos:** [L1a](../todos/ongoing/L1a-contract-adrs.md) (ADRs 0026, 0027, 0028), [L1b](../todos/ready/L1b-error-contract-codegen.md) (error codegen, `explain`).
+**Todos:** [L1a](../todos/done/L1a-contract-adrs.md) (ADRs 0026, 0027, 0028), [L1b](../todos/ready/L1b-error-contract-codegen.md) (error codegen, `explain`).
 
 **Deliverable:** three ADRs; codes and error types generated from `fixtures/codes.json` into Rust, TypeScript and JSON Schema; `explain` text per code.
-**Accepted when:** B5a's builder uses ADR 0027's coordinates; B5c's façade meets ADR 0028's rules; a TS test narrows the error class's `code` exhaustively (ADR 0026 settles the class name: `LaminaError` recommended, `PdfError` in B6b today); a change to `codes.json` without regenerating fails CI.
+**Accepted when:** B5a's builder uses ADR 0027's coordinates; B5c's façade meets ADR 0028's rules; a TS test narrows the error class's `code` exhaustively (the class is `LaminaError`, [ADR 0026](../decisions/0026-error-and-diagnostic-contract.md) §7); a change to `codes.json` without regenerating fails CI.
 
 ### L2. TypeScript hardening
 
@@ -160,7 +160,7 @@ This plan adjusts these todos (edited in the same PR):
 
 ### L1. Contracts
 
-- [ ] Write ADRs 0026 (errors), 0027 (coordinates and units), 0028 (façade rules, jobs, cancellation)
+- [x] Write ADRs 0026 (errors), 0027 (coordinates and units), 0028 (façade rules, jobs, cancellation)
 - [ ] Generate Rust, TS and JSON Schema error codes from `fixtures/codes.json`; add `explain` text
 
 ### L2. TypeScript hardening
