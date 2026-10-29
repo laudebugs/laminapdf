@@ -68,6 +68,12 @@ ADRs go in `docs/decisions/`, one file per decision (`NNNN-title.md`). Each roun
 | 0025 | Mobile shell: Tauri 2 mobile vs UniFFI with native UI (after the `mobile-shell` spike) | Round U (U3b) | Defer |
 | 0012 | Collaboration: one Durable Object per document, last-writer-wins records | Later (with collaboration) | Defer |
 | 0013 | Heavy jobs: Workflows + Containers; OCR/conversion engines and licences | Later (with OCR) | Defer |
+| 0026 | Error and diagnostic contract | [Shareable libraries](shareable-libraries.md#6-decisions-to-record-adrs) L1 | Propose |
+| 0027 | Coordinates, units and page indexing in public APIs | Shareable libraries L1 | Propose |
+| 0028 | Façade binding rules, jobs, cancellation and progress | Shareable libraries L1 | Propose |
+| 0029 | Mobile bindings and packaging (UniFFI pin, SPM, AARs) | Shareable libraries L6 | Propose |
+| 0030 | Extraction output (`lamina.extract/1`) and model plug-ins | Shareable libraries L3 | Propose |
+| 0031 | CLI and MCP contract | Shareable libraries L4 | Propose |
 
 ## 4. Spikes to close open questions
 
@@ -190,5 +196,5 @@ Todos: [P1](../todos/ready/P1-reserve-names-and-trusted-publishing.md) and [P2](
 1. Which ships first, `@lamina/pdf` or the web reader? The research recommends packages first.
 2. ~~Is a hosted lamina service a goal, or just a reference deployment for forks?~~ **Answered 2026-10-28 (project owner):** lamina **will** be a hosted service with user login and cloud features (accounts, cloud storage and sync), not just a reference deployment. Privacy-first local processing stays the default: the apps work without an account, and nothing is uploaded unless the user opts in. ADR 0011 records the topology; the `auth` spike (§4) picks the login stack.
 3. Names: package scope, crate names, domain.
-4. Are the Mac App Store, Flathub and mobile (Tauri mobile vs UniFFI with native UIs) in scope, and when? For mobile, the [UI/UX plan](ui-ux.md#54-mobile-and-touch-r17) recommends the responsive web reader first ([U3a](../todos/ready/U3a-responsive-mobile-and-touch.md)), then the `mobile-shell` spike ([U3b](../todos/ready/U3b-mobile-shell-spike.md)) and ADR 0025 before any native app work.
+4. Are the Mac App Store, Flathub and mobile (Tauri mobile vs UniFFI with native UIs) in scope, and when? For mobile, the [UI/UX plan](ui-ux.md#54-mobile-and-touch-r17) recommends the responsive web reader first ([U3a](../todos/ready/U3a-responsive-mobile-and-touch.md)), then the `mobile-shell` spike ([U3b](../todos/ready/U3b-mobile-shell-spike.md)) and ADR 0025 before any native app work. For a mobile SDK for other developers, the [shareable libraries plan](shareable-libraries.md#l6-mobile) adds a `lamina-ffi` UniFFI spike (L6a, whose measurements feed U3b) and a mobile SDK plan after ADR 0025 (L6b).
 5. ~~Who is the legal entity for code signing?~~ **Answered 2026-10-28 (project owner):** the owner, personally, as the publisher, code-signs the desktop app for Windows, macOS and Linux. To check: Windows Artifact Signing accepts public-trust individuals only in the US and Canada; if the owner is elsewhere, Windows needs an OV certificate in a cloud HSM (§6). ADR 0014 records the identities and key custody.

@@ -32,7 +32,7 @@ Ship an importable, permissively licensed library that **generates correct PDFs 
 - A flowing layout engine (paragraph boxes across pages, tables, floats). The builder positions text runs and offers single-box line breaking. Layout is a later plan; "Typst as layout backend" is one option ([05 §8.3](../research/pdf/05-creating-pdfs-from-code.md#83-build-versus-wrap-which-existing-work-to-stand-on)).
 - HTML/CSS → PDF. Out of scope for the library; see [full-editor §E13](full-editor.md#e13-ocr-and-conversion).
 - Rendering in the base package. Rendering ships as the optional `@lamina/render-pdfium` package in Round C ([web-app.md](web-app.md)).
-- Python, Swift/Kotlin and napi bindings. UniFFI is "later" per ADR 0002.
+- Python, Swift/Kotlin and napi bindings. UniFFI is "later" per ADR 0002; the [shareable libraries plan](shareable-libraries.md) brings forward the façade rules and a `lamina-ffi` spike, and adds the CLI, AI-ready extraction and agent docs.
 - Editing operations beyond the proving ops in B3. They arrive with the [editor rounds](full-editor.md) and are exposed in the library at the same time.
 
 ## 3. Users and use cases
