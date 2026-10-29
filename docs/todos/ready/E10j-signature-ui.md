@@ -20,6 +20,7 @@ Sign/certify flow (choose field or draw one, choose identity, appearance, reason
 
 ## Context
 
+- [UI/UX plan §5.7](../../plans/ui-ux.md#57-trust-surfaces-r9r13) and [product research: personas](../../research/product/pdf-app-product-and-ux.md#what-each-persona-needs) — users confuse e-signatures and certificate signatures (Adobe forum threads, university guides): offer two separately named actions, "Add a signature image" and "Sign with a certificate", each with one plain sentence on what it proves, and a validation badge on open.
 - [full-editor §E10](../../plans/full-editor.md#e10-signatures)
 
 ## Scope

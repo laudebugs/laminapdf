@@ -1,0 +1,76 @@
+# U5c — Opt-in, content-free usage telemetry
+
+| Field | Value |
+| --- | --- |
+| ID | `U5c` |
+| Status | `ready` |
+| Plan | [UI/UX §6 U5. Product promises](../../plans/ui-ux.md#u5-product-promises) |
+| Round / milestone | Round U (UI/UX) — after M2 |
+| Depends on | [C7c](./C7c-performance-gates-and-launch.md) |
+| Blocks | None |
+| ADRs | Requires ADR 0011 to allow it (amend 0011 first if it says "none") |
+| Branch | `feat/u5c-opt-in-telemetry` |
+| PR title | `feat(web): add opt-in content-free usage counts` |
+| Size | M (200–400 lines incl. tests) |
+| PR | — |
+
+## Goal
+
+The plan's task-split assumption (viewing ≈ 70% of time) is unverified, and it decides which editor modes ship first. If ADR 0011 allows it, add opt-in, aggregate counts of commands run and modes used — never document content, names, URLs or identifiers — so the roadmap follows real use.
+
+## Context
+
+- [UI/UX plan §3 and §5.9](../../plans/ui-ux.md#3-users); [research: task split](../../research/product/pdf-app-product-and-ux.md#the-70--20--8--2-task-split-is-unverified-and-probably-wrong-for-the-web).
+- [web-app plan: privacy and security](../../plans/web-app.md#privacy-and-security) — v0.1 has no telemetry; cookieless aggregate counts and opt-in error reports only, decided in ADR 0011.
+- [U1b](./U1b-command-registry-and-palette.md) — command ids are the unit counted.
+
+## Scope
+
+**In scope**
+
+- Off by default; a clear opt-in in settings with the exact payload shown.
+- Payload: daily aggregate counts per command id and mode, app version, platform family; no document data, no user or device identifiers, no IP retention (state and verify the Worker's handling).
+- Batching and a single endpoint on our origin (CSP unchanged); the U4a indicator shows these requests.
+- A dashboard query documented for the team.
+
+**Out of scope** (and which todo covers it)
+
+- Crash reporting → D7a (desktop) and ADR 0011 for web.
+
+## Tasks
+
+- [ ] Claim via a claim PR (see Definition of done); then a fresh worktree off the updated `main`.
+- [ ] Confirm or amend ADR 0011 (separate PR if it needs changing; owner decides).
+- [ ] Implement the counter on the command registry's run hook; batching and send.
+- [ ] Tests that the payload contains only allowed keys, and that nothing is sent when opted out.
+- [ ] Privacy page update.
+
+## Acceptance criteria
+
+- [ ] With telemetry off, Playwright sees no telemetry request on any flow.
+- [ ] With it on, the payload validates against a schema that has no free-text fields (test).
+- [ ] The privacy page lists the payload and retention.
+
+## Post-merge checks
+
+None.
+
+## Tests
+
+Unit tests for the payload builder; Playwright opt-out and opt-in flows.
+
+## Docs to update
+
+Privacy page; ADR 0011 (if amended); answer open question 5 in [UI/UX §8](../../plans/ui-ux.md#8-open-questions); tick the telemetry item in §9.
+
+## Risks and open questions
+
+- Any telemetry can be read as betraying the privacy promise: skip this todo entirely if the owner prefers none.
+
+## Definition of done
+
+- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [ ] Work PR opened from a fresh worktree; **PR** field filled in
+- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
+- [ ] CI green
+- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated

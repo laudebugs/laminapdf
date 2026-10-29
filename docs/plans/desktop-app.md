@@ -4,6 +4,7 @@
 - **Date:** 2026-10-28
 - **Builds on:** [architecture plan](architecture.md) Round D (ADRs 0008, 0014; spike `desktop-ipc`) and the [architecture research report](../research/architecture/app-and-package-architecture.md) (Tauri and distribution sections, [desktop notes](../research/architecture/notes/desktop-shell.md))
 - **Depends on:** [web-app.md](web-app.md) Rounds C2–C4 (`lamina-render`, `@lamina/viewer`, `@lamina/ui`, `Platform` adapter)
+- **UI/UX:** [ui-ux.md](ui-ux.md) (layout, modes, command registry; native menus in D4b are generated from it)
 - **Roadmap:** [roadmap.md](roadmap.md)
 
 ## 1. Goal

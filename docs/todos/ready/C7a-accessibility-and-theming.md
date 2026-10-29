@@ -6,8 +6,8 @@
 | Status | `ready` |
 | Plan | [web reader §6 C7. Accessibility, offline and launch](../../plans/web-app.md#c7-accessibility-offline-and-launch) |
 | Round / milestone | Round C (web reader) — M2 Web reader v0.1 |
-| Depends on | [C5b](./C5b-find-in-document.md), [C6a](./C6a-thumbnails-outline-page-labels.md), [C6b](./C6b-links-and-history.md), [C6c](./C6c-print-download-properties.md) |
-| Blocks | [C7b](./C7b-offline-pwa.md), [C7c](./C7c-performance-gates-and-launch.md), [D4b](./D4b-native-menus.md) |
+| Depends on | [C5b](./C5b-find-in-document.md), [C6a](./C6a-thumbnails-outline-page-labels.md), [C6b](./C6b-links-and-history.md), [C6c](./C6c-print-download-properties.md), [U1b](./U1b-command-registry-and-palette.md), [U1c](./U1c-inverted-l-shell-and-modes.md) |
+| Blocks | [C7b](./C7b-offline-pwa.md), [C7c](./C7c-performance-gates-and-launch.md), [D4b](./D4b-native-menus.md), [U2c](./U2c-page-appearance-modes.md) |
 | ADRs | Follows 0009 (a11y primitives), 0010 (shortcuts consistent across shells; platform modifiers) |
 | Branch | `feat/c7a-accessibility` |
 | PR title | `feat(ui): add the keyboard map, help dialog, focus management, themes and axe checks` |
@@ -20,6 +20,7 @@ Make the reader meet WCAG 2.2 AA for its chrome and work fully without a mouse. 
 
 ## Context
 
+- [UI/UX plan §5.2 and §5.5](../../plans/ui-ux.md#52-command-registry-and-palette-r3) — the shortcut map and help dialog are generated from [U1b](./U1b-command-registry-and-palette.md)'s command registry (no hand-written keymap); page appearance (Original/Sepia/Dark/High contrast) is [U2c](./U2c-page-appearance-modes.md)'s, so this todo does UI themes only and drops the "night reading" filter.
 - [web-app.md §2 scope](../../plans/web-app.md#2-scope-and-non-goals) and [§4 functional 8](../../plans/web-app.md#functional), [non-functional](../../plans/web-app.md#non-functional-targets-are-recommendations-measured-from-c3-onward) (WCAG 2.2 AA; zero serious/critical axe violations), [§7 risks](../../plans/web-app.md#7-risks) (untagged PDFs).
 - [web-frontend notes §7](../../research/architecture/notes/web-frontend.md) — a11y comes from DOM layers; only mounted pages have DOM (mitigate with outline/landmarks, `aria-setsize`/`aria-posinset`, keyboard page jump); theming via CSS custom properties; don't invert page rendering in dark mode except an explicit night filter.
 - [C5a](./C5a-text-layer-and-selection.md) (text and struct-tree layers), [C4a](./C4a-ui-chrome-and-platform.md) (tokens, message catalogue).
@@ -29,13 +30,13 @@ Make the reader meet WCAG 2.2 AA for its chrome and work fully without a mouse. 
 
 **In scope**
 
-- `packages/ui/src/keyboard/keymap.ts`: declarative map `{ action, keys: { mac, other }, scope: "global" | "document" | "dialog", description }` for open, find, find next/prev, print, download, properties, zoom in/out/reset/fit width/fit page, rotate, next/prev page, first/last page, go to page, back/forward, toggle sidebar, focus document, help (`?`/`F1`); exported for desktop menus (D4 builds native menu accelerators from it).
+- Keyboard scopes and help text on [U1b](./U1b-command-registry-and-palette.md)'s command registry (no separate keymap): each command gains `scope: "global" | "document" | "dialog"` and a help `description`; the reader's commands cover open, find, find next/prev, print, download, properties, zoom in/out/reset/fit width/fit page, rotate, next/prev page, first/last page, go to page, back/forward, toggle sidebar, focus document, help (`?`/`F1`); D4b builds native menu accelerators from the same registry.
 - Shortcut dispatcher with scope handling (no shortcuts while typing in inputs except Esc), conflict tests, platform modifier mapping (`cmd` on macOS via `navigator.platform`-free detection: `Platform` capability or `userAgentData` where available).
 - Help dialog listing shortcuts from the map (single source of truth), searchable.
 - Focus management: skip link to the document; F6 cycles regions (toolbar → sidebar → document → find bar); dialogs trap focus and restore on close; after navigation (link, outline, go-to-page) focus moves to the target page region; visible focus indicators everywhere (not obscured by sticky toolbar).
 - Landmarks and semantics: `header` (toolbar, `role="toolbar"` with roving tabindex), `nav` (sidebar), `main` (document), `region` per page (`aria-label="Page iv, 4 of 120"`, `aria-roledescription="page"`, `aria-setsize`/`aria-posinset`), status bar live region.
 - Live announcements (polite, throttled): page changes on settle, zoom level, search counts (from C5b), document opened (title, page count, tagged/untagged), errors (assertive).
-- Themes: light, dark, high contrast (respecting `prefers-contrast` and `forced-colors` — system colours in Windows High Contrast), user override in settings (stored locally), reduced motion (`prefers-reduced-motion`: no smooth scroll, no animated transitions); page rendering not inverted; optional "night reading" filter toggle.
+- Themes: light, dark, high contrast (respecting `prefers-contrast` and `forced-colors` — system colours in Windows High Contrast), user override in settings (stored locally), reduced motion (`prefers-reduced-motion`: no smooth scroll, no animated transitions); page rendering not inverted (page appearance modes, including a dark page mode, are [U2c](./U2c-page-appearance-modes.md)).
 - axe-core in Playwright for every main state (empty, open document, sidebars open, find open, each dialog) in three engines; Lighthouse accessibility score recorded.
 - Manual AT pass: NVDA + Firefox/Chrome on Windows, VoiceOver + Safari on macOS, keyboard-only; results recorded in `docs/` (e.g. `apps/web/ACCESSIBILITY.md`) with issues filed for anything not fixed.
 
@@ -49,7 +50,7 @@ Make the reader meet WCAG 2.2 AA for its chrome and work fully without a mouse. 
 - [ ] Claim via a claim PR (see Definition of done); then a fresh worktree off the updated `main`.
 - [ ] Keymap module + dispatcher + unit tests (no duplicate bindings per scope; every action has a binding or is listed as menu-only; macOS/other variants).
 - [ ] Wire all existing actions (C4a–C6c) through the dispatcher; remove ad-hoc key handlers.
-- [ ] Help dialog component generated from the keymap.
+- [ ] Help dialog component generated from the command registry.
 - [ ] Focus utilities (`FocusScope`, region cycling, restore) and fixes across components; skip link.
 - [ ] Landmark and page-region semantics in `@lamina/viewer` page shells and `@lamina/ui` layout.
 - [ ] `Announcer` service (one polite + one assertive live region) used by viewer events and find.
@@ -63,7 +64,7 @@ Make the reader meet WCAG 2.2 AA for its chrome and work fully without a mouse. 
 
 - [ ] **axe shows zero serious or critical violations** in every tested state, theme and engine (CI-enforced).
 - [ ] The keyboard-only Playwright journey passes in Chromium, Firefox and WebKit.
-- [ ] Every action in the keymap appears in the help dialog; a test fails if an action lacks help text.
+- [ ] Every command with a shortcut appears in the help dialog; a test fails if one lacks help text.
 - [ ] All theme token pairs meet WCAG 2.2 AA contrast (script in CI); `forced-colors` mode screenshot shows visible focus and controls.
 - [ ] With `prefers-reduced-motion: reduce`, no smooth scrolling or animations occur (asserted via computed styles / scroll behaviour).
 - [ ] **A manual NVDA, VoiceOver and keyboard-only pass is recorded** in `apps/web/ACCESSIBILITY.md` with date, versions, findings and linked issues; no open finding is severity "blocker".
@@ -75,11 +76,11 @@ None.
 
 ## Tests
 
-Unit tests (keymap, dispatcher, announcer throttling, contrast script); Playwright `a11y.spec.ts` (axe), `keyboard-journey.spec.ts`, theme screenshots; manual AT checklist.
+Unit tests (command scopes, dispatcher, announcer throttling, contrast script); Playwright `a11y.spec.ts` (axe), `keyboard-journey.spec.ts`, theme screenshots; manual AT checklist.
 
 ## Docs to update
 
-`apps/web/ACCESSIBILITY.md` (new: conformance notes, AT pass results, known issues), `packages/ui/README.md` (keymap API for desktop); tick "Keyboard shortcuts map shared with desktop; help dialog", "Focus management, landmarks, live-region announcements…", "High contrast, dark mode, reduced motion" and the axe/manual-pass item in [web-app.md §9](../../plans/web-app.md#9-to-dos).
+`apps/web/ACCESSIBILITY.md` (new: conformance notes, AT pass results, known issues), `packages/ui/README.md` (command scopes and help text); tick "Keyboard shortcuts (from the command registry …) shared with desktop; help dialog", "Focus management, landmarks, live-region announcements…", "High contrast, dark mode, reduced motion" and the axe/manual-pass item in [web-app.md §9](../../plans/web-app.md#9-to-dos).
 
 ## Risks and open questions
 

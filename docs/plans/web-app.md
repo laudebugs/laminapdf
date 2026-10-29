@@ -5,6 +5,7 @@
 - **Builds on:** [architecture plan](architecture.md) Round C (ADRs 0004, 0009, 0010, 0011; spikes `pdfium-wasm`, `hayro-parity`) and the [architecture research report](../research/architecture/app-and-package-architecture.md) (web client and Cloudflare sections)
 - **Depends on:** [pdf-library.md](pdf-library.md) Rounds B2–B3 (`Document::open` with decryption, typed model), B6 (`lamina-wasm`; gates C1) and B9 (text extraction; gates C5)
 - **Research:** [06 §9 phase 1](../research/pdf/06-feature-inventory.md#9-suggested-phasing), [04 §1 navigation](../research/pdf/04-interactive-security.md#1-navigation), [04 §7 encryption](../research/pdf/04-interactive-security.md#7-encryption-76), [03 §8 extraction](../research/pdf/03-text-and-fonts.md)
+- **UI/UX:** [ui-ux.md](ui-ux.md) sets the layout, command registry, selection surfaces and phone layout; U1b and U1c gate C7a, and U2a, U2c, U3a and U4a gate C7c
 - **Roadmap:** [roadmap.md](roadmap.md)
 
 ## 1. Goal
@@ -208,7 +209,7 @@ Ticked by the PR that completes them.
 - [ ] Document properties dialog (metadata, fonts, version, encryption, signatures present)
 
 ### C7. Accessibility, offline and launch
-- [ ] Keyboard shortcuts map shared with desktop; help dialog
+- [ ] Keyboard shortcuts (from the command registry, [UI/UX U1b](../todos/ready/U1b-command-registry-and-palette.md)) shared with desktop; help dialog
 - [ ] Focus management, landmarks, live-region announcements for search and page changes
 - [ ] High contrast, dark mode, reduced motion
 - [ ] Service worker caching shell + WASM; web app manifest with `file_handlers`

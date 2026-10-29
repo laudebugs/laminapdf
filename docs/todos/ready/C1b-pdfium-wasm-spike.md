@@ -21,6 +21,7 @@ Prove, in a real browser worker, that PDFium-WASM and `lamina-wasm` can share on
 
 ## Context
 
+- [UI/UX plan §5.6](../../plans/ui-ux.md#56-perceived-performance-r6-r7) and [product research: engines](../../research/product/pdf-app-product-and-ux.md#five-conclusions-from-the-comparison) — some PDFium WASM builds have a fixed-size heap and hit an unrecoverable OOM on long documents (pdfium-render's warning): pick or build a **growable-heap** build, run one PDFium instance per worker (PDFium isn't thread-safe), and record upstream PDFium's licence and third-party notices.
 - [web-app.md §4 non-functional targets](../../plans/web-app.md#non-functional-targets-are-recommendations-measured-from-c3-onward) — the budgets this spike checks feasibility against: app shell ≤ 200 KB, first page ≤ 700 ms warm / ≤ 3 s cold Fast 4G, ≤ 600 MB for 1,000 pages.
 - [Research report: rendering](../../research/architecture/app-and-package-architecture.md#pdfium-ships-now-hayro-is-the-destination-and-a-trait-decides) — `pdfium.wasm` 4,632,999 bytes raw, ~2.7 MB gz; reload via `ByteSource` must be "measured early".
 - [Research report: web client](../../research/architecture/app-and-package-architecture.md#the-web-client-is-react-chrome-around-an-imperative-viewer-core) and [web-frontend notes](../../research/architecture/notes/web-frontend.md) §2 (rasterise in WASM memory, transfer `ImageBitmap`), §5 (typed RPC, COOP/COEP, threaded variant optional), §6 (OPFS, avoid double copies).

@@ -5,6 +5,7 @@
 - **Builds on:** [architecture plan](architecture.md) ("Later rounds", ADRs 0012 and 0013, principles 2–3 on ops and the save planner) and the [architecture research report](../research/architecture/app-and-package-architecture.md) (editing and Cloudflare sections)
 - **Depends on:** the readers ([web-app.md](web-app.md) C1–C7, [desktop-app.md](desktop-app.md) D1–D7) and the library's model, decryption, ops, save and extraction crates ([pdf-library.md](pdf-library.md) B2–B5 and B9)
 - **Research:** [06 Feature inventory](../research/pdf/06-feature-inventory.md) (§2 groups, §3 operations, §7 difficulty, §9 phasing, §10 traps), [04 Interactive and security](../research/pdf/04-interactive-security.md), [03 Text and fonts](../research/pdf/03-text-and-fonts.md), [05 §3 processing](../research/pdf/05-creating-pdfs-from-code.md#3-processing-operations-under-the-hood)
+- **UI/UX:** [ui-ux.md §5.7](ui-ux.md#57-trust-surfaces-r9r13) sets the editor's UI rules (modes, explicit save, two named signing actions, redaction mark → review → apply, organiser grid); each E round registers its mode and commands
 - **Roadmap:** [roadmap.md](roadmap.md)
 
 ## 1. Goal
