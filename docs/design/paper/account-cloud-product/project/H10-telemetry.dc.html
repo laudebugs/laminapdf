@@ -18,7 +18,7 @@ button,input,textarea{font:inherit;color:inherit}
 <div style="position: relative; min-height: 100vh; display: flex; flex-direction: column; background: #F7F4EE; color: #1F1D1A; font-family: 'Source Sans 3', 'Segoe UI', system-ui, sans-serif; font-size: 14px; line-height: 1.4">
 
   <header style="min-height: 40px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 20px; padding: 0 16px; border-bottom: 1px solid #E4DED3; background: #F7F4EE">
-    <div style="display: flex; align-items: center; gap: 10px; flex: 1 1 220px; min-width: 0"><span style="font-family: 'Newsreader', Georgia, serif; font-size: 16px; font-weight: 500">Files</span></div>
+    <div style="display: flex; align-items: center; gap: 10px; flex: 1 1 220px; min-width: 0"><span style="font-family: 'Newsreader', Georgia, serif; font-size: 18px; font-weight: 500; letter-spacing: 0.01em">lamina</span></div>
     <div style="display: flex; align-items: center; justify-content: flex-end; gap: 14px; flex: 1 1 220px">
       <button style="height: 26px; display: flex; align-items: center; gap: 8px; padding: 0 6px 0 10px; border: 1px solid #E4DED3; background: #FBF9F5; border-radius: 4px; color: #6B645A; font-size: 13px"><span>Commands</span><span style="font-size: 11px; padding: 1px 5px; border: 1px solid #D8D1C5; border-radius: 3px; color: #4A453E; background: #FFFFFF">Ctrl K</span></button>
       <button style="height: 26px; padding: 0 12px; border: 0; background: transparent; border-radius: 4px; font-size: 13px; color: {{accent}}; font-weight: 600">Sign in</button>
@@ -47,7 +47,7 @@ button,input,textarea{font:inherit;color:inherit}
       <p id="tm-d" style="margin: 0">If you turn this on, lamina sends a daily count of the commands and modes you used. Never document content, file names, web addresses, or anything that identifies you or this device. It stays off unless you turn it on.</p>
       <details open style="display: flex; flex-direction: column; gap: 8px">
         <summary style="min-height: 24px; font-weight: 600; color: {{accent}}; cursor: pointer">Exactly what is sent</summary>
-        <pre style="margin: 8px 0 0; padding: 12px 14px; background: #FFFFFF; border: 1px solid #8A8174; border-radius: 4px; font-family: ui-monospace, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace; font-size: 12.5px; line-height: 1.6; color: #1F1D1A; white-space: pre; overflow-x: auto">{
+        <pre tabindex="0" aria-label="Exactly what is sent, scrollable" style="margin: 8px 0 0; padding: 12px 14px; background: #FFFFFF; border: 1px solid #8A8174; border-radius: 4px; font-family: ui-monospace, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace; font-size: 12.5px; line-height: 1.6; color: #1F1D1A; white-space: pre; overflow-x: auto">{
   "day": "2026-10-29",
   "app": "web [VERSION]",
   "platform": "windows",

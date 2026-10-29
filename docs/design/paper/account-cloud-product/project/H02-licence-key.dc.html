@@ -19,7 +19,7 @@ button,input,textarea{font:inherit;color:inherit}
 
   <header style="min-height: 40px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 20px; padding: 0 16px; border-bottom: 1px solid #E4DED3; background: #F7F4EE">
     <div style="display: flex; align-items: center; gap: 10px; flex: 1 1 220px; min-width: 0">
-      <button aria-label="Back to Files" style="width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 4px; color: #4A453E"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M15 5l-7 7 7 7"></path></svg></button>
+      <button aria-label="Back to home" style="width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 4px; color: #4A453E"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M15 5l-7 7 7 7"></path></svg></button>
       <span style="font-family: 'Newsreader', Georgia, serif; font-size: 16px; font-weight: 500">Settings</span>
     </div>
     <div style="display: flex; align-items: center; justify-content: flex-end; gap: 14px; flex: 1 1 220px">
@@ -29,21 +29,22 @@ button,input,textarea{font:inherit;color:inherit}
   </header>
 
   <div style="flex: 1 1 auto; min-height: 0; display: flex; flex-wrap: wrap">
-    <nav aria-label="Settings" style="flex: 0 0 220px; box-sizing: border-box; border-right: 1px solid #E4DED3; padding: 16px 10px; display: flex; flex-direction: column; gap: 2px">
-      <a href="#general" style="display: flex; align-items: center; min-height: 32px; padding: 0 10px; border-radius: 4px; color: #1F1D1A; text-decoration: none">General</a>
-      <a href="#view" style="display: flex; align-items: center; min-height: 32px; padding: 0 10px; border-radius: 4px; color: #1F1D1A; text-decoration: none">View and themes</a>
-      <a href="#shortcuts" style="display: flex; align-items: center; min-height: 32px; padding: 0 10px; border-radius: 4px; color: #1F1D1A; text-decoration: none">Shortcuts</a>
-      <a href="#privacy" style="display: flex; align-items: center; min-height: 32px; padding: 0 10px; border-radius: 4px; color: #1F1D1A; text-decoration: none">Privacy</a>
-      <a href="#licence" aria-current="page" style="display: flex; align-items: center; min-height: 32px; padding: 0 10px; border-radius: 4px; color: {{accent}}; background: {{accentTint}}; font-weight: 600; text-decoration: none">Licence</a>
-      <a href="#account" style="display: flex; align-items: center; min-height: 32px; padding: 0 10px; border-radius: 4px; color: #1F1D1A; text-decoration: none">Account and plan</a>
-      <a href="#notifications" style="display: flex; align-items: center; min-height: 32px; padding: 0 10px; border-radius: 4px; color: #1F1D1A; text-decoration: none">Notifications</a>
+    <nav aria-label="Settings sections" style="flex: 0 0 200px; box-sizing: border-box; border-right: 1px solid #E4DED3; padding: 16px 10px; display: flex; flex-direction: column; gap: 2px">
+      <a href="#general" style="height: 32px; display: flex; align-items: center; padding: 0 10px; border-radius: 4px; color: #1F1D1A; text-decoration: none">General</a>
+      <a href="#appearance" style="height: 32px; display: flex; align-items: center; padding: 0 10px; border-radius: 4px; color: #1F1D1A; text-decoration: none">Appearance</a>
+      <a href="#privacy" style="height: 32px; display: flex; align-items: center; padding: 0 10px; border-radius: 4px; color: #1F1D1A; text-decoration: none">Privacy</a>
+      <a href="#shortcuts" style="height: 32px; display: flex; align-items: center; padding: 0 10px; border-radius: 4px; color: #1F1D1A; text-decoration: none">Shortcuts</a>
+      <a href="#licence" aria-current="page" style="height: 32px; display: flex; align-items: center; padding: 0 10px; border-radius: 4px; color: {{accent}}; background: {{accentTint}}; font-weight: 600; text-decoration: none">Licence</a>
+      <a href="#account" style="height: 32px; display: flex; align-items: center; padding: 0 10px; border-radius: 4px; color: #1F1D1A; text-decoration: none">Account and plan</a>
+      <a href="#notifications" style="height: 32px; display: flex; align-items: center; padding: 0 10px; border-radius: 4px; color: #1F1D1A; text-decoration: none">Notifications</a>
+      <a href="#about" style="height: 32px; display: flex; align-items: center; padding: 0 10px; border-radius: 4px; color: #1F1D1A; text-decoration: none">About</a>
     </nav>
 
     <main style="flex: 999 1 560px; min-width: 0; box-sizing: border-box; padding: 32px 32px 48px; display: flex; justify-content: center">
       <div style="width: 100%; max-width: 640px; display: flex; flex-direction: column; gap: 24px">
         <div style="display: flex; flex-direction: column; gap: 6px">
           <h1 style="margin: 0; font-family: 'Newsreader', Georgia, serif; font-size: 28px; font-weight: 500; line-height: 1.2">Licence</h1>
-          <p style="margin: 0; color: #3A3631">No licence on this device yet. Paste the key you received with your purchase. You don’t need an account, and the key is checked here, without a connection.</p>
+          <p style="margin: 0; color: #3A3631">No licence on this device yet. Paste the key you received with your purchase. You don’t need an account. [HOW THE LICENCE IS CHECKED: OFFLINE KEY OR STORE PURCHASE]</p>
         </div>
 
         <section aria-labelledby="ent-h" style="display: flex; flex-direction: column; gap: 14px; padding: 20px; background: #FBF9F5; border: 1px solid #E4DED3; border-radius: 4px">

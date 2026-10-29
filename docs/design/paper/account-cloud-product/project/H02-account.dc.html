@@ -28,14 +28,15 @@ button,input,textarea{font:inherit;color:inherit}
   </header>
 
   <div style="flex: 1 1 auto; min-height: 0; display: flex; flex-wrap: wrap">
-    <nav aria-label="Settings" style="flex: 0 0 220px; box-sizing: border-box; border-right: 1px solid #E4DED3; padding: 16px 10px; display: flex; flex-direction: column; gap: 2px">
-      <a href="#general" style="display: flex; align-items: center; min-height: 32px; padding: 0 10px; border-radius: 4px; color: #1F1D1A; text-decoration: none">General</a>
-      <a href="#view" style="display: flex; align-items: center; min-height: 32px; padding: 0 10px; border-radius: 4px; color: #1F1D1A; text-decoration: none">View and themes</a>
-      <a href="#shortcuts" style="display: flex; align-items: center; min-height: 32px; padding: 0 10px; border-radius: 4px; color: #1F1D1A; text-decoration: none">Shortcuts</a>
-      <a href="#privacy" style="display: flex; align-items: center; min-height: 32px; padding: 0 10px; border-radius: 4px; color: #1F1D1A; text-decoration: none">Privacy</a>
-      <a href="#licence" style="display: flex; align-items: center; min-height: 32px; padding: 0 10px; border-radius: 4px; color: #1F1D1A; text-decoration: none">Licence</a>
-      <a href="#account" aria-current="page" style="display: flex; align-items: center; min-height: 32px; padding: 0 10px; border-radius: 4px; color: {{accent}}; background: {{accentTint}}; font-weight: 600; text-decoration: none">Account and plan</a>
-      <a href="#notifications" style="display: flex; align-items: center; min-height: 32px; padding: 0 10px; border-radius: 4px; color: #1F1D1A; text-decoration: none">Notifications</a>
+    <nav aria-label="Settings sections" style="flex: 0 0 200px; box-sizing: border-box; border-right: 1px solid #E4DED3; padding: 16px 10px; display: flex; flex-direction: column; gap: 2px">
+      <a href="#general" style="height: 32px; display: flex; align-items: center; padding: 0 10px; border-radius: 4px; color: #1F1D1A; text-decoration: none">General</a>
+      <a href="#appearance" style="height: 32px; display: flex; align-items: center; padding: 0 10px; border-radius: 4px; color: #1F1D1A; text-decoration: none">Appearance</a>
+      <a href="#privacy" style="height: 32px; display: flex; align-items: center; padding: 0 10px; border-radius: 4px; color: #1F1D1A; text-decoration: none">Privacy</a>
+      <a href="#shortcuts" style="height: 32px; display: flex; align-items: center; padding: 0 10px; border-radius: 4px; color: #1F1D1A; text-decoration: none">Shortcuts</a>
+      <a href="#licence" style="height: 32px; display: flex; align-items: center; padding: 0 10px; border-radius: 4px; color: #1F1D1A; text-decoration: none">Licence</a>
+      <a href="#account" aria-current="page" style="height: 32px; display: flex; align-items: center; padding: 0 10px; border-radius: 4px; color: {{accent}}; background: {{accentTint}}; font-weight: 600; text-decoration: none">Account and plan</a>
+      <a href="#notifications" style="height: 32px; display: flex; align-items: center; padding: 0 10px; border-radius: 4px; color: #1F1D1A; text-decoration: none">Notifications</a>
+      <a href="#about" style="height: 32px; display: flex; align-items: center; padding: 0 10px; border-radius: 4px; color: #1F1D1A; text-decoration: none">About</a>
     </nav>
 
     <main style="flex: 999 1 560px; min-width: 0; box-sizing: border-box; padding: 32px 32px 48px; display: flex; justify-content: center">
@@ -75,7 +76,7 @@ button,input,textarea{font:inherit;color:inherit}
 
           <section aria-labelledby="key-h" style="display: flex; flex-direction: column; gap: 14px">
             <h2 id="key-h" style="margin: 0; font-family: 'Newsreader', Georgia, serif; font-size: 18px; font-weight: 500">Licence key for offline use</h2>
-            <p style="margin: 0; font-size: 13px">The key for [PLAN NAME], bought with this account. Features that run on your device check it on the device, offline; they never need you to sign in. A key bought elsewhere goes in Settings › Licence, which works without an account.</p>
+            <p style="margin: 0; font-size: 13px">The key for [PLAN NAME], bought with this account. Features that run on your device never need you to sign in; [HOW THE LICENCE IS CHECKED: OFFLINE KEY OR STORE PURCHASE]. A key bought elsewhere goes in Settings › Licence, which works without an account.</p>
             <div style="display: flex; flex-direction: column; gap: 8px">
               <label for="lk" style="font-size: 12px; font-weight: 600; color: #4A453E">Licence key</label>
               <div style="display: flex; flex-wrap: wrap; gap: 8px">
