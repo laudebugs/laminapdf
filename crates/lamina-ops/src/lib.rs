@@ -81,7 +81,7 @@ mod wire;
 
 pub use blob::{BlobId, ParseBlobIdError};
 pub use class::ModificationClass;
-pub use document::{Document, SaveState};
+pub use document::{Document, PendingRebase, SaveState};
 pub use error::{Error, Result};
 pub use history::{History, Reverted, UndoOutcome};
 pub use info::{InfoPatch, SetInfo};

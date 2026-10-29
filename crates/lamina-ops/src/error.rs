@@ -35,10 +35,10 @@ pub enum Error {
     /// until then (ADR 0005 §3).
     #[error("the document was saved but not rebased yet")]
     SavedNotRebased,
-    /// [`Document::rebase`](crate::Document::rebase) on a document whose changes no save
-    /// wrote: rebasing would lose them.
-    #[error("the document has changes no save wrote")]
-    UnsavedChanges,
+    /// [`Document::rebase`](crate::Document::rebase) without a save waiting for it: other
+    /// bytes would not match the undo history, and unsaved changes would be lost.
+    #[error("no save is waiting to be rebased onto")]
+    NoPendingSave,
 }
 
 impl From<lamina_cos::Error> for Error {
@@ -58,7 +58,7 @@ impl Error {
         "unsupported-version",
         "invalid-op-log",
         "saved-not-rebased",
-        "unsaved-changes",
+        "no-pending-save",
     ];
 
     /// A stable kebab-case code for this error; COS errors report [`lamina_cos::Error::code`].
@@ -73,7 +73,7 @@ impl Error {
             Self::UnsupportedVersion(_) => "unsupported-version",
             Self::InvalidLog(_) => "invalid-op-log",
             Self::SavedNotRebased => "saved-not-rebased",
-            Self::UnsavedChanges => "unsaved-changes",
+            Self::NoPendingSave => "no-pending-save",
         }
     }
 }

@@ -65,9 +65,10 @@
     "unsupported-version",
     "invalid-op-log",
     "saved-not-rebased",
-    "unsaved-changes"
+    "no-pending-save"
   ],
   "saveErrors": [
-    "sink"
+    "sink",
+    "not-rebased"
   ]
 }

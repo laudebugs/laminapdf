@@ -27,6 +27,14 @@ pub enum SinkError {
     /// Any other sink failure (a full spool, a closed upload, a refused read-back).
     #[error("sink failed: {0}")]
     Failed(String),
+    /// The sink already held `held` bytes. Offsets in the output count from its first byte,
+    /// so a writer refuses before writing (an `AppendedOnly` incremental save also accepts a
+    /// sink holding exactly the base).
+    #[error("the sink already holds {held} bytes")]
+    NotEmpty {
+        /// Bytes the sink held.
+        held: u64,
+    },
 }
 
 impl From<std::io::Error> for SinkError {
@@ -46,6 +54,13 @@ pub trait WriteSink {
     /// Whatever the destination reports; the save then fails with
     /// [`SaveError::Sink`](crate::SaveError::Sink).
     fn write_all(&mut self, bytes: &[u8]) -> Result<(), SinkError>;
+
+    /// How many bytes the sink already holds, when it knows (`Vec<u8>`: its length); `None`
+    /// (the default) when it can't tell. Writers refuse a sink that holds bytes
+    /// ([`SinkError::NotEmpty`]), because their offsets count from the output's first byte.
+    fn held(&self) -> Option<u64> {
+        None
+    }
 }
 
 /// A sink that can give back what was written as a [`ByteSource`], so a full rewrite can
@@ -63,6 +78,10 @@ impl WriteSink for Vec<u8> {
         self.extend_from_slice(bytes);
         Ok(())
     }
+
+    fn held(&self) -> Option<u64> {
+        u64::try_from(self.len()).ok()
+    }
 }
 
 impl ReadableSink for Vec<u8> {
@@ -74,6 +93,10 @@ impl ReadableSink for Vec<u8> {
 impl<S: WriteSink + ?Sized> WriteSink for &mut S {
     fn write_all(&mut self, bytes: &[u8]) -> Result<(), SinkError> {
         (**self).write_all(bytes)
+    }
+
+    fn held(&self) -> Option<u64> {
+        (**self).held()
     }
 }
 
@@ -151,5 +174,18 @@ impl<S: WriteSink> WriteSink for CountingSink<S> {
             .position
             .saturating_add(u64::try_from(bytes.len()).unwrap_or(u64::MAX));
         Ok(())
+    }
+
+    fn held(&self) -> Option<u64> {
+        self.inner.held()
+    }
+}
+
+/// Refuses a sink that holds bytes, unless it holds exactly `allowed` (an appended-only save
+/// into a sink that already holds the base).
+pub(crate) fn require_empty<S: WriteSink + ?Sized>(sink: &S, allowed: Option<u64>) -> Result<(), SinkError> {
+    match sink.held() {
+        Some(held) if held != 0 && Some(held) != allowed => Err(SinkError::NotEmpty { held }),
+        _ => Ok(()),
     }
 }

@@ -32,27 +32,23 @@ impl ContentHash {
 }
 
 /// The document's `/ID[0]`, when its trailer (`trailer`, as it is now) has an `/ID` array
-/// (direct or indirect) whose first element is a string.
+/// whose first element is a non-empty string; the array and its elements may be indirect.
+/// A malformed `/ID` (not an array, not a string) gives `None`: the writer derives a new one.
 ///
 /// # Errors
-/// Strict-mode refusals and unavailable input while resolving an indirect `/ID`.
+/// Any error resolving an indirect `/ID` or element (unavailable input, strict mode, a
+/// limit, an unparsable object): an `/ID[0]` that exists but can't be read is not silently
+/// replaced.
 pub(crate) fn permanent_id(doc: &Document, trailer: &Dict) -> Result<Option<PdfString>> {
     let Some(id) = trailer.get("ID") else {
         return Ok(None);
     };
-    let resolved = match doc.deref(id) {
-        Ok(resolved) => resolved,
-        Err(
-            e @ (lamina_cos::Error::Strict { .. }
-            | lamina_cos::Error::DataPending { .. }
-            | lamina_cos::Error::Source(_)),
-        ) => {
-            return Err(e.into());
-        }
-        Err(_) => return Ok(None),
+    let array = doc.deref(id)?;
+    let Some(first) = array.as_array().and_then(<[Object]>::first) else {
+        return Ok(None);
     };
-    Ok(match resolved.as_array().and_then(<[Object]>::first) {
-        Some(Object::String(s)) if !s.bytes.is_empty() => Some(s.clone()),
+    Ok(match &*doc.deref(first)? {
+        Object::String(s) if !s.bytes.is_empty() => Some(s.clone()),
         _ => None,
     })
 }

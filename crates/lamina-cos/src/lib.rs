@@ -104,12 +104,17 @@ mod overlay;
 mod reader;
 mod scan;
 mod source;
+// Hand-built files, shared with the integration tests (unit tests can't use `lamina-save`'s
+// writer: through the dev-dependency they would see a second copy of this crate).
+#[cfg(test)]
+#[path = "../tests/common/classic.rs"]
+mod test_files;
 
 pub use error::{Error, Result};
 pub use lamina_syntax::crypt::{Cipher, PasswordKind, Permissions};
 pub use lamina_syntax::{Dict, Limit, Limits, Name, ObjRef, Object, PdfString, Stream, StringFormat};
-pub use overlay::{CosChange, CosMut, JournalMark, Overlay, OverlayEntry};
+pub use overlay::{CosChange, CosMut, JournalMark, Overlay, OverlayEntry, Reserved};
 pub use reader::{
     DirectPath, Document, Encryption, Inherited, OpenOptions, Page, PathSegment, Resolved, Warning, XREF_STREAM_KEYS,
 };
-pub use source::{ByteSource, Source, SourceError};
+pub use source::{ByteSource, Source, SourceError, merge_ranges, read_exact};

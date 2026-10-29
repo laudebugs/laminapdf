@@ -7,12 +7,12 @@
 use std::sync::Arc;
 
 use lamina_cos::{ByteSource, Source, SourceError};
-use lamina_ops::{Document, SaveState};
+use lamina_ops::{Document, PendingRebase, SaveState};
 
-use crate::error::{Result, SaveError};
+use crate::error::{Result, SaveError, SavedOutput};
 use crate::full::FullWriter;
 use crate::incremental::IncrementalWriter;
-use crate::options::{Renumber, SaveOptions, SaveReport};
+use crate::options::{SaveOptions, SaveReport};
 use crate::sink::{ReadableSink, WriteSink};
 
 /// Saves for [`lamina_ops::Document`]. These are B3b's names; B3c replaces them with
@@ -20,11 +20,18 @@ use crate::sink::{ReadableSink, WriteSink};
 ///
 /// Every save is refused while a transaction is open
 /// ([`NestedTransaction`](lamina_ops::Error::NestedTransaction)) or the document is
-/// [`SaveState::SavedNotRebased`]. A save that fails leaves the document as it was (`Dirty`,
-/// overlay untouched). A successful one marks it saved
-/// ([`has_unsaved_changes`](lamina_ops::Document::has_unsaved_changes) turns false) and
+/// [`SaveState::SavedNotRebased`]. What a failure leaves behind depends on when it happened
+/// ([`SaveError`]): before or while writing, the document is unchanged (`Dirty`, overlay
+/// untouched); after writing ([`SaveError::NotRebased`]), it is `SavedNotRebased` and the
+/// error carries the output to retry the rebase with. A successful save marks the document
+/// saved ([`has_unsaved_changes`](lamina_ops::Document::has_unsaved_changes) turns false) and
 /// rebases it onto the output, or leaves it `SavedNotRebased` when the output can't be read
 /// back.
+///
+/// The undo history survives a save only when every object it names still exists under its
+/// number and generation: an incremental save that freed nothing
+/// ([`PendingRebase::KeepHistory`]). A full rewrite, or an incremental save that deleted
+/// objects, clears it ([`PendingRebase::ClearHistory`]).
 ///
 /// ```
 /// use lamina_ops::{Document, InfoPatch, Origin, SaveState, SetInfo};
@@ -50,7 +57,8 @@ pub trait Save {
     /// old base ‖ appended revision, built in memory (no read-back needed).
     ///
     /// # Errors
-    /// As [`IncrementalWriter::write`], plus the refusals above.
+    /// As [`IncrementalWriter::write`], plus the refusals above and
+    /// [`SaveError::NotRebased`].
     fn save_incremental<S: WriteSink + ?Sized>(&mut self, sink: &mut S, options: &SaveOptions) -> Result<SaveReport>;
 
     /// Writes a full rewrite ([`FullWriter`]) to a sink that can't be read back: the
@@ -66,8 +74,9 @@ pub trait Save {
     /// ([`lamina_cos::Document::source`], [`lamina_cos::Document::data`]).
     ///
     /// # Errors
-    /// As [`Save::save_full`]. When the bytes were written but can't be read back or opened,
-    /// the document is left `SavedNotRebased` and the error says why.
+    /// As [`Save::save_full`]. When the sink can't give the bytes back
+    /// ([`SaveError::Sink`]) the document is unchanged; when the rebase onto them fails, it is
+    /// `SavedNotRebased` and [`SaveError::NotRebased`] carries the output.
     fn save_full_and_rebase<S: ReadableSink>(&mut self, sink: S, options: &SaveOptions) -> Result<SaveReport>;
 }
 
@@ -82,10 +91,25 @@ fn ready(doc: &Document) -> Result<()> {
     Ok(())
 }
 
+/// Records the written save and rebases onto `source`; a failed rebase hands the output back.
+fn settle(doc: &mut Document, source: Source, pending: PendingRebase) -> Result<()> {
+    doc.saved_not_rebased(pending)?;
+    doc.rebase(source.clone()).map_err(|error| SaveError::NotRebased {
+        saved: SavedOutput::new(source),
+        error,
+    })
+}
+
 impl Save for Document {
     fn save_incremental<S: WriteSink + ?Sized>(&mut self, sink: &mut S, options: &SaveOptions) -> Result<SaveReport> {
         ready(self)?;
-        let (report, appended) = IncrementalWriter::new(self.cos(), *options).write(sink)?.into_parts();
+        let saved = IncrementalWriter::new(self.cos(), *options).write(sink)?;
+        let pending = if saved.freed_objects() {
+            PendingRebase::ClearHistory
+        } else {
+            PendingRebase::KeepHistory
+        };
+        let (report, appended) = saved.into_parts();
         if appended.is_empty() {
             self.mark_saved();
             return Ok(report);
@@ -104,24 +128,22 @@ impl Save for Document {
             }
             .into(),
         };
-        self.saved_not_rebased(false);
-        self.rebase(rebuilt)?;
+        settle(self, rebuilt, pending)?;
         Ok(report)
     }
 
     fn save_full<S: WriteSink + ?Sized>(&mut self, sink: &mut S, options: &SaveOptions) -> Result<SaveReport> {
         ready(self)?;
         let report = FullWriter::new(self.cos(), *options).write(sink)?;
-        self.saved_not_rebased(options.renumber() == Renumber::Compact);
+        self.saved_not_rebased(PendingRebase::ClearHistory)?;
         Ok(report)
     }
 
     fn save_full_and_rebase<S: ReadableSink>(&mut self, mut sink: S, options: &SaveOptions) -> Result<SaveReport> {
         ready(self)?;
         let report = FullWriter::new(self.cos(), *options).write(&mut sink)?;
-        self.saved_not_rebased(options.renumber() == Renumber::Compact);
-        let source = sink.into_source()?;
-        self.rebase(source)?;
+        let source = Source::from(sink.into_source()?);
+        settle(self, source, PendingRebase::ClearHistory)?;
         Ok(report)
     }
 }

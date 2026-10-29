@@ -376,12 +376,12 @@ pub fn incremental_update(base: &Document, changes: &[(ObjRef, Object)], eol: Xr
 }
 
 /// The previous trailer's document keys (no xref-section keys), in their order.
-fn document_keys(old: &Dict) -> impl Iterator<Item = (&Name, &Object)> {
+pub(crate) fn document_keys(old: &Dict) -> impl Iterator<Item = (&Name, &Object)> {
     old.iter().filter(|(k, _)| !is_xref_key(k))
 }
 
 /// Like [`document_keys`], but keeps `/Size` so a classic trailer can hold it in its old position.
-fn document_keys_and_size(old: &Dict) -> impl Iterator<Item = (&Name, &Object)> {
+pub(crate) fn document_keys_and_size(old: &Dict) -> impl Iterator<Item = (&Name, &Object)> {
     old.iter().filter(|(k, _)| !is_xref_key(k) || k.as_bytes() == b"Size")
 }
 

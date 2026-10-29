@@ -16,7 +16,8 @@ use std::path::PathBuf;
 use std::time::{Duration, Instant};
 
 use anyhow::{Context, Result, anyhow, ensure};
-use lamina_cos::{Object, PdfString, XrefEol, incremental_update};
+use lamina_cos::{Object, PdfString};
+use lamina_save::{XrefEol, incremental_update};
 
 const RUNS: usize = 30;
 
@@ -43,7 +44,7 @@ fn kib(n: usize) -> String {
 
 /// Open + walk every page and every object (what "open" costs for a caller that touches all).
 fn open_and_walk(bytes: &[u8]) -> Result<usize> {
-    let doc = lamina_cos::open(bytes)?;
+    let doc = lamina_cos::Document::open(bytes.to_vec(), lamina_cos::OpenOptions::default())?;
     ensure!(!doc.was_repaired(), "lamina-cos had to repair the file");
     let pages = doc.pages()?;
     for p in &pages {
@@ -57,7 +58,7 @@ fn open_and_walk(bytes: &[u8]) -> Result<usize> {
 
 /// Total stored bytes of embedded font programs (streams with /Length1, /Length2 or /Subtype).
 fn font_program_bytes(bytes: &[u8]) -> Result<usize> {
-    let doc = lamina_cos::open(bytes)?;
+    let doc = lamina_cos::Document::open(bytes.to_vec(), lamina_cos::OpenOptions::default())?;
     let mut total = 0;
     for n in doc.object_numbers().collect::<Vec<_>>() {
         let obj = doc.object(n)?;
@@ -78,7 +79,7 @@ fn font_program_bytes(bytes: &[u8]) -> Result<usize> {
 
 /// Every page's /Parent is a /Type /Pages node (checks B1 doesn't point pages elsewhere).
 fn parents_ok(bytes: &[u8]) -> Result<bool> {
-    let doc = lamina_cos::open(bytes)?;
+    let doc = lamina_cos::Document::open(bytes.to_vec(), lamina_cos::OpenOptions::default())?;
     for p in doc.pages()? {
         let parent = p.dict.get("Parent").cloned().unwrap_or(Object::Null);
         let parent = doc.deref(&parent)?;
@@ -91,7 +92,7 @@ fn parents_ok(bytes: &[u8]) -> Result<bool> {
 
 /// Sets /Info /Title with an incremental update.
 fn retitle(bytes: &[u8], title: &str) -> Result<Vec<u8>> {
-    let doc = lamina_cos::open(bytes)?;
+    let doc = lamina_cos::Document::open(bytes.to_vec(), lamina_cos::OpenOptions::default())?;
     let info_ref = doc
         .trailer()
         .get("Info")
@@ -100,14 +101,14 @@ fn retitle(bytes: &[u8], title: &str) -> Result<Vec<u8>> {
     let mut info = doc.resolve(info_ref)?.as_dict().cloned().context("/Info not a dict")?;
     info.insert("Title", Object::String(PdfString::literal(title)));
     Ok(incremental_update(
-        bytes,
+        &doc,
         &[(info_ref, Object::Dict(info))],
         XrefEol::default(),
     )?)
 }
 
 fn title_of(bytes: &[u8]) -> Result<String> {
-    let doc = lamina_cos::open(bytes)?;
+    let doc = lamina_cos::Document::open(bytes.to_vec(), lamina_cos::OpenOptions::default())?;
     let info = doc.trailer().get("Info").cloned().context("no /Info")?;
     let info = doc.deref(&info)?;
     match info.as_dict().and_then(|d| d.get("Title")) {
@@ -245,7 +246,7 @@ fn main() -> Result<()> {
     );
     row("B2 page count after reopen", open_and_walk(&b2)?.to_string());
     let (t, parsed) = best(|| {
-        let doc = lamina_cos::open(&a)?;
+        let doc = lamina_cos::Document::open(a.clone(), lamina_cos::OpenOptions::default())?;
         let mut chunk_bytes = 0;
         for n in doc.object_numbers().collect::<Vec<_>>() {
             chunk_bytes += doc.object(n)?.to_bytes().len();

@@ -1,43 +1,57 @@
 //! The error type of the save layer.
 
+use std::fmt;
+use std::sync::Arc;
+
+use lamina_cos::{ByteSource, Source};
+
 use crate::sink::SinkError;
 
 /// Everything that can go wrong while saving.
 ///
-/// A save that fails before writing (every refusal, and input that isn't available) writes
-/// nothing to the sink; one that fails while writing ([`SaveError::Sink`]) may have written a
-/// prefix. Either way the document keeps its overlay and stays `Dirty`.
+/// When it happened decides what was written and where the document stands:
+///
+/// * **Before writing** ([`SaveError::Cos`], [`SaveError::Ops`], and
+///   [`SinkError::NotEmpty`]): nothing reached the sink; the document is unchanged.
+///   Refusals (a repaired or encrypted base: [`lamina_cos::Error::RepairedBase`],
+///   [`lamina_cos::Error::EncryptedBase`]), input that isn't available yet
+///   ([`lamina_cos::Error::DataPending`]: fetch and retry), limits and exhausted object numbers
+///   all happen here.
+/// * **While writing** ([`SaveError::Sink`]): the sink may hold a prefix of the output; the
+///   document is unchanged (`Dirty`, overlay untouched), so the save can be retried
+///   elsewhere. A source that loses bytes between the incremental writer's check and its copy
+///   also fails here, as [`SaveError::Cos`] with a partial output.
+/// * **After writing** ([`SaveError::NotRebased`]): the output is complete, but the document
+///   could not be rebased onto it. It is `SavedNotRebased`, and the error carries the output
+///   as a source, so the caller can retry [`lamina_ops::Document::rebase`].
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 #[non_exhaustive]
 pub enum SaveError {
-    /// Reading the document failed: input not available yet
-    /// ([`lamina_cos::Error::DataPending`]: fetch and retry), a source failure, a strict-mode
-    /// refusal, a hard limit, or object numbers running out.
+    /// Reading the document failed or a writer refused it (see the type's documentation).
     #[error(transparent)]
     Cos(lamina_cos::Error),
     /// The ops layer refused: a transaction is open, or the document is waiting for
     /// [`rebase`](lamina_ops::Document::rebase) after a save it could not read back.
     #[error(transparent)]
     Ops(lamina_ops::Error),
-    /// The sink failed to take the bytes (or to give them back for rebasing).
+    /// The sink failed to take the bytes, held bytes already, or could not give them back.
     #[error(transparent)]
     Sink(SinkError),
-    /// An incremental save of a document whose xref had to be repaired: there is no valid
-    /// section for `/Prev` to point at. A full rewrite works.
-    #[error("cannot append an incremental update to a document whose xref needed repair")]
-    RepairedBase,
-    /// A save of an encrypted document. Encryption on write is full-editor E11 and removing
-    /// encryption is B3c's explicit option, so both writers refuse before writing anything
-    /// (ADR 0007 §2).
-    #[error("cannot save an encrypted document yet")]
-    EncryptedBase,
+    /// The output was written, but rebasing onto it failed with `error`; retry with
+    /// `doc.rebase(saved.source())`.
+    #[error("saved, but the rebase onto the output failed: {error}")]
+    NotRebased {
+        /// The complete output.
+        saved: SavedOutput,
+        /// Why the rebase failed.
+        error: lamina_ops::Error,
+    },
 }
 
 impl SaveError {
     /// Every code [`SaveError::code`] can return besides those of [`lamina_cos::Error`] and
-    /// [`lamina_ops::Error`] (listed in `fixtures/codes.json` under `saveErrors`;
-    /// `repaired-base` and `encrypted-base` are COS codes, with the same meaning).
-    pub const CODES: &'static [&'static str] = &["sink"];
+    /// [`lamina_ops::Error`] (listed in `fixtures/codes.json` under `saveErrors`).
+    pub const CODES: &'static [&'static str] = &["sink", "not-rebased"];
 
     /// A stable kebab-case code for this error.
     #[must_use]
@@ -46,8 +60,7 @@ impl SaveError {
             Self::Cos(e) => e.code(),
             Self::Ops(e) => e.code(),
             Self::Sink(_) => "sink",
-            Self::RepairedBase => "repaired-base",
-            Self::EncryptedBase => "encrypted-base",
+            Self::NotRebased { .. } => "not-rebased",
         }
     }
 }
@@ -70,6 +83,43 @@ impl From<lamina_ops::Error> for SaveError {
 impl From<SinkError> for SaveError {
     fn from(e: SinkError) -> Self {
         Self::Sink(e)
+    }
+}
+
+/// A save's complete output, handed back when the rebase onto it failed
+/// ([`SaveError::NotRebased`]). Two are equal when they share the same source.
+#[derive(Clone)]
+pub struct SavedOutput(Source);
+
+impl SavedOutput {
+    pub(crate) const fn new(source: Source) -> Self {
+        Self(source)
+    }
+
+    /// The output, to pass to [`lamina_ops::Document::rebase`].
+    #[must_use]
+    pub fn source(&self) -> Source {
+        self.0.clone()
+    }
+
+    /// The underlying byte source.
+    #[must_use]
+    pub fn bytes(&self) -> &Arc<dyn ByteSource> {
+        self.0.get()
+    }
+}
+
+impl PartialEq for SavedOutput {
+    fn eq(&self, other: &Self) -> bool {
+        std::ptr::addr_eq(Arc::as_ptr(self.0.get()), Arc::as_ptr(other.0.get()))
+    }
+}
+
+impl Eq for SavedOutput {}
+
+impl fmt::Debug for SavedOutput {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_tuple("SavedOutput").field(&self.0.get().len()).finish()
     }
 }
 

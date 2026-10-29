@@ -22,9 +22,10 @@ pub(crate) enum Row {
 pub(crate) type Rows = BTreeMap<u32, Row>;
 
 /// Links the free entries into the free list §7.5.4 describes: object 0 points at the
-/// lowest free number, each free entry at the next, the last back at 0. Object 0 is added
-/// (generation 65 535) when absent.
-pub(crate) fn link_free_list(rows: &mut Rows) {
+/// lowest free number, each free entry at the next, the last at `tail` (0 to end the list;
+/// an incremental update passes the base's head, so the base's free list stays reachable).
+/// Object 0 is added (generation 65 535) when absent.
+pub(crate) fn link_free_list(rows: &mut Rows, tail: u32) {
     rows.entry(0).or_insert(Row::Free {
         next: 0,
         generation: u16::MAX,
@@ -34,7 +35,8 @@ pub(crate) fn link_free_list(rows: &mut Rows) {
         .filter(|(_, row)| matches!(row, Row::Free { .. }))
         .map(|(&n, _)| n)
         .collect();
-    let next_of = free.iter().skip(1).copied().chain(std::iter::once(0));
+    // Object 0 is the head: it links to the first free entry after it, the last one to `tail`.
+    let next_of = free.iter().skip(1).copied().chain(std::iter::once(tail));
     for (&num, next) in free.iter().zip(next_of) {
         if let Some(Row::Free { next: link, .. }) = rows.get_mut(&num) {
             *link = next;

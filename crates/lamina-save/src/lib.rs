@@ -39,8 +39,9 @@
 //! * [`Writer`] / [`incremental_update`]: the spike-era writer, moved here from `lamina-cos`
 //!   with its golden tests, for building files from scratch.
 //!
-//! Both writers refuse an encrypted base ([`SaveError::EncryptedBase`]) and the incremental
-//! one a repaired base ([`SaveError::RepairedBase`]), before writing anything. Output is
+//! Both writers refuse an encrypted base ([`lamina_cos::Error::EncryptedBase`]) and the
+//! incremental one a repaired base ([`lamina_cos::Error::RepairedBase`]), before writing
+//! anything, unless there is nothing to write. Output is
 //! byte-deterministic (ADR 0001): no clocks, no hash maps, `/ID` from a hash.
 //!
 //! This crate is part of lamina's pure core: bytes in, bytes out, no file system, network,
@@ -61,10 +62,10 @@ mod sink;
 mod xref;
 
 pub use document::Save;
-pub use error::{Result, SaveError};
+pub use error::{Result, SaveError, SavedOutput};
 pub use full::FullWriter;
 pub use incremental::{IncrementalSave, IncrementalWriter};
-pub use lamina_ops::SaveState;
+pub use lamina_ops::{PendingRebase, SaveState};
 pub use legacy::{Writer, XrefEol, incremental_update};
 pub use options::{IncrementalOutput, Renumber, SaveMode, SaveOptions, SaveReport, XrefKind};
 pub use sink::{CountingSink, IoWrite, ReadableSink, SinkError, WriteSink};

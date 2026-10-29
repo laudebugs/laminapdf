@@ -18,8 +18,10 @@ fn save_error_codes_match_the_fixture() {
 }
 
 #[test]
-fn the_cos_codes_it_reuses_are_cos_codes() {
-    for code in [SaveError::RepairedBase.code(), SaveError::EncryptedBase.code()] {
-        assert!(lamina_cos::Error::CODES.contains(&code), "{code}");
-    }
+fn refusals_keep_the_cos_codes() {
+    let codes: Vec<_> = [lamina_cos::Error::RepairedBase, lamina_cos::Error::EncryptedBase]
+        .into_iter()
+        .map(|e| SaveError::from(e).code())
+        .collect();
+    assert_eq!(codes, ["repaired-base", "encrypted-base"]);
 }

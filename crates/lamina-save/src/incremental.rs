@@ -3,37 +3,45 @@
 //!
 //! [ADR 0007]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0007-save-planner.md
 
-use lamina_cos::{ByteSource, Dict, Document, Name, Object, OverlayEntry, SourceError};
+use lamina_cos::{ByteSource, Dict, Document, Name, Object, OverlayEntry, merge_ranges, read_exact};
 
 use crate::error::{Result, SaveError};
 use crate::id::{ContentHash, id_array, permanent_id};
-use crate::legacy::is_xref_key;
+use crate::legacy::{document_keys, document_keys_and_size};
 use crate::options::{IncrementalOutput, SaveMode, SaveOptions, SaveReport};
-use crate::sink::{CountingSink, WriteSink};
+use crate::sink::{CountingSink, WriteSink, require_empty};
 use crate::xref::{Row, Rows, classic_table, link_free_list, stream_object, stream_table};
 
-/// Bytes copied from the base per read.
+/// Bytes read from the base at a time.
 const CHUNK: usize = 64 * 1024;
 
 /// Writes a document's overlay as an incremental update of its base.
 ///
-/// * The base bytes are copied from the [`ByteSource`] in 64 KiB chunks, unchanged
-///   ([`IncrementalOutput::AppendedOnly`] skips them). Before anything is written every chunk
-///   is checked, so a source still missing bytes fails with
-///   [`DataPending`](lamina_cos::Error::DataPending) listing all of them and the sink stays
-///   empty.
-/// * The overlay follows in object-number order: new objects (generation 0) and modified ones
-///   (their base generation), each `n g obj … endobj`; deleted objects become free entries with
-///   the generation incremented.
-/// * Then an xref section of the same kind as the base's newest (a classic table, or an xref
-///   stream numbered with the next free number), with `/Prev`, `/Size` never below the
-///   base's ([`Document::size_floor`]) nor any number reserved in the session
-///   ([`Document::next_number`]), the trailer's document keys as they are now (xref-section
-///   keys dropped, ch. 07 §4) and `/ID` (§14.4): `/ID[0]` kept (derived like `/ID[1]` when missing),
-///   `/ID[1]` the hash of the base length and the appended objects.
-/// * An empty overlay writes the base unchanged (nothing at all with `AppendedOnly`).
+/// * **Base.** Copied from the [`ByteSource`] in 64 KiB chunks, unchanged
+///   ([`IncrementalOutput::AppendedOnly`] skips the copy). A source without an in-memory slice
+///   is read twice: once, before anything is written, to check that every chunk is available
+///   (a source still missing bytes fails with [`DataPending`](lamina_cos::Error::DataPending)
+///   listing all of them, and the sink stays empty) and to hash it for `/ID`; then to copy it.
+///   A source that loses bytes between the two passes fails the save with the sink holding a
+///   partial output (see [`SaveError`]).
+/// * **Revision.** The overlay in object-number order: new objects (generation 0) and modified
+///   ones (their base generation), each `n g obj … endobj`; deleted objects become free entries
+///   with the generation incremented, linked into the free list in front of the base's
+///   ([`Document::free_list_head`]).
+/// * **Xref.** A section of the same kind as the base's newest (a classic table, or an xref
+///   stream numbered with the next free number, within
+///   [`Limits::max_object_number`](lamina_cos::Limits::max_object_number)), with `/Prev`,
+///   `/Size` never below the base's ([`Document::size_floor`]) nor any number reserved in the
+///   session ([`Document::next_number`]), the trailer's document keys as they are now
+///   (xref-section and xref-stream keys dropped, ch. 07 §4), and `/ID` (§14.4): `/ID[0]` kept
+///   (derived like `/ID[1]` when missing), `/ID[1]` the first 16 bytes of the SHA-256 of the
+///   base and of the revision up to its trailer.
+/// * **Nothing to append.** With an empty overlay the base is written unchanged (nothing at
+///   all with `AppendedOnly`), even for a repaired or encrypted base, and the report has no
+///   append offset.
 ///
-/// The output is byte-deterministic (ADR 0001).
+/// Everything that can fail on input happens before the first byte is written. The output is
+/// byte-deterministic (ADR 0001).
 #[derive(Debug, Clone, Copy)]
 pub struct IncrementalWriter<'d> {
     doc: &'d Document,
@@ -46,6 +54,7 @@ pub struct IncrementalWriter<'d> {
 pub struct IncrementalSave {
     report: SaveReport,
     appended: Vec<u8>,
+    freed: bool,
 }
 
 impl IncrementalSave {
@@ -59,6 +68,12 @@ impl IncrementalSave {
     #[must_use]
     pub fn appended(&self) -> &[u8] {
         &self.appended
+    }
+
+    /// Whether the revision freed objects (deleted base objects).
+    #[must_use]
+    pub const fn freed_objects(&self) -> bool {
+        self.freed
     }
 
     /// The report and the appended revision.
@@ -75,34 +90,39 @@ impl<'d> IncrementalWriter<'d> {
         Self { doc, options }
     }
 
-    /// Writes to `sink`.
+    /// Writes to `sink`, which must be empty (or, for `AppendedOnly`, hold exactly the base).
     ///
     /// # Errors
-    /// Before anything is written: [`SaveError::RepairedBase`], [`SaveError::EncryptedBase`],
-    /// [`lamina_cos::Error::DataPending`] / [`lamina_cos::Error::Source`] for base bytes or
-    /// objects that can't be read, [`lamina_cos::Error::InvalidStructure`] when object numbers
-    /// run out. While writing: [`SaveError::Sink`] (and a source that fails between the check
-    /// and the copy).
+    /// Before anything is written: [`SinkError::NotEmpty`](crate::SinkError::NotEmpty);
+    /// [`lamina_cos::Error::RepairedBase`] and [`lamina_cos::Error::EncryptedBase`] when there
+    /// is something to append; [`lamina_cos::Error::DataPending`] /
+    /// [`lamina_cos::Error::Source`] for base bytes or objects that can't be read;
+    /// [`lamina_cos::Error::InvalidStructure`] when object numbers run out. While writing:
+    /// [`SaveError::Sink`], and source errors from the copy pass.
     pub fn write<S: WriteSink + ?Sized>(&self, sink: &mut S) -> Result<IncrementalSave> {
         let doc = self.doc;
-        let prev = doc.startxref().ok_or(SaveError::RepairedBase)?;
-        if doc.is_encrypted() {
-            return Err(SaveError::EncryptedBase);
-        }
-        let source = doc.source();
+        let source = doc.source().as_ref();
         let base_len = source.len();
-        let appended = if doc.is_dirty() {
-            self.revision(base_len, prev)?
-        } else {
-            Vec::new()
-        };
         let whole = self.options.output() == IncrementalOutput::Whole;
-        if whole {
-            check_available(source.as_ref())?;
-        }
+        require_empty(sink, (!whole).then_some(base_len))?;
+        let (appended, freed, append_offset) = if doc.is_dirty() {
+            let prev = doc.startxref().ok_or(lamina_cos::Error::RepairedBase)?;
+            if doc.is_encrypted() {
+                return Err(lamina_cos::Error::EncryptedBase.into());
+            }
+            let mut hash = ContentHash::default();
+            check_and_hash(source, Some(&mut hash))?;
+            let (appended, freed) = self.revision(base_len, prev, hash)?;
+            (appended, freed, Some(base_len))
+        } else {
+            if whole {
+                check_and_hash(source, None)?;
+            }
+            (Vec::new(), false, None)
+        };
         let mut out = CountingSink::new(sink);
         if whole {
-            copy(source.as_ref(), &mut out)?;
+            copy(source, &mut out)?;
         }
         out.write_all(&appended)?;
         Ok(IncrementalSave {
@@ -110,29 +130,37 @@ impl<'d> IncrementalWriter<'d> {
                 bytes_written: out.position(),
                 mode: SaveMode::Incremental,
                 renumbered: None,
-                append_offset: Some(base_len),
+                append_offset,
             },
             appended,
+            freed,
         })
     }
 
     /// The appended revision for a base of `base_len` bytes whose newest section is at
-    /// `prev`.
-    fn revision(&self, base_len: u64, prev: usize) -> Result<Vec<u8>> {
+    /// `prev`, `hash` holding the base; and whether it frees objects.
+    fn revision(&self, base_len: u64, prev: usize, mut hash: ContentHash) -> Result<(Vec<u8>, bool)> {
         let doc = self.doc;
         let mut out = Vec::new();
         if !matches!(last_byte(doc.source().as_ref(), base_len)?, Some(b'\n' | b'\r') | None) {
             out.push(b'\n');
         }
+        let offset_of = |out: &Vec<u8>| base_len.saturating_add(u64::try_from(out.len()).unwrap_or(u64::MAX));
         let mut rows = Rows::new();
         let mut highest = 0u32;
+        let mut freed = false;
         for (num, entry) in doc.overlay().iter() {
             highest = highest.max(num);
             let generation = doc.base_generation(num).unwrap_or(0);
-            let offset = base_len.saturating_add(u64::try_from(out.len()).unwrap_or(u64::MAX));
             match entry {
                 OverlayEntry::New(object) | OverlayEntry::Modified(object) => {
-                    rows.insert(num, Row::InFile { offset, generation });
+                    rows.insert(
+                        num,
+                        Row::InFile {
+                            offset: offset_of(&out),
+                            generation,
+                        },
+                    );
                     out.extend_from_slice(format!("{num} {generation} obj\n").as_bytes());
                     object.write_to(&mut out);
                     out.extend_from_slice(b"\nendobj\n");
@@ -140,6 +168,7 @@ impl<'d> IncrementalWriter<'d> {
                 // Deleted (and any later kind): a free entry, so the reused number gets a
                 // new generation (§7.5.4).
                 _ => {
+                    freed = true;
                     rows.insert(
                         num,
                         Row::Free {
@@ -150,70 +179,69 @@ impl<'d> IncrementalWriter<'d> {
                 }
             }
         }
-        let mut hash = ContentHash::default();
-        hash.update(&base_len.to_be_bytes());
         hash.update(&out);
 
         let size = u64::try_from(doc.size_floor().max(0))
             .unwrap_or(0)
             .max(doc.next_number())
             .max(u64::from(highest) + 1);
-        let out_of_numbers = || {
-            SaveError::Cos(lamina_cos::Error::InvalidStructure {
-                kind: "incremental update",
-                message: "object numbers exhausted",
-            })
-        };
         let current = doc.trailer();
-        let mut trailer = Dict::new();
-        let id = id_array(permanent_id(doc, current)?, hash);
+        let permanent = permanent_id(doc, current)?;
+        let head = doc.free_list_head();
         let prev = i64::try_from(prev).unwrap_or(i64::MAX);
         if doc.newest_section_is_stream() {
-            let xref_num = u32::try_from(size).map_err(|_| out_of_numbers())?;
-            let new_size = xref_num.checked_add(1).ok_or_else(out_of_numbers)?;
-            let offset = base_len.saturating_add(u64::try_from(out.len()).unwrap_or(u64::MAX));
+            let xref_num = u32::try_from(size)
+                .ok()
+                .filter(|&n| n <= doc.limits().max_object_number())
+                .ok_or_else(exhausted)?;
+            let new_size = xref_num.checked_add(1).ok_or_else(exhausted)?;
+            let offset = offset_of(&out);
             rows.insert(xref_num, Row::InFile { offset, generation: 0 });
-            if rows.values().any(|r| matches!(r, Row::Free { .. })) {
-                link_free_list(&mut rows);
+            // Object 0 only when there is something to link in front of the base's list.
+            if freed {
+                link_free_list(&mut rows, head);
             }
             let (mut dict, data) = stream_table(&rows);
+            hash.update(&data);
             dict.insert("Size", new_size);
-            for (k, v) in current.iter().filter(|(k, _)| !is_xref_key(k)) {
+            for (k, v) in document_keys(current) {
                 dict.insert(k.clone(), v.clone());
             }
-            dict.insert("ID", id);
+            dict.insert("ID", id_array(permanent, hash));
             dict.insert("Prev", prev);
             out.extend_from_slice(&stream_object(xref_num, dict, &data));
             out.extend_from_slice(format!("startxref\n{offset}\n%%EOF\n").as_bytes());
         } else {
-            let size = i64::try_from(size).map_err(|_| out_of_numbers())?;
-            link_free_list(&mut rows);
-            let xref = base_len.saturating_add(u64::try_from(out.len()).unwrap_or(u64::MAX));
-            out.extend_from_slice(&classic_table(&rows, self.options.eol())?);
+            let size = i64::try_from(size).map_err(|_| exhausted())?;
+            link_free_list(&mut rows, head);
+            let xref = offset_of(&out);
+            let table = classic_table(&rows, self.options.eol())?;
+            hash.update(&table);
+            out.extend_from_slice(&table);
             // `/Size` keeps the previous trailer's position (first when it had none).
-            for (k, v) in current
-                .iter()
-                .filter(|(k, _)| !is_xref_key(k) || k.as_bytes() == b"Size")
-            {
+            let mut trailer = Dict::new();
+            if !current.contains_key("Size") {
+                trailer.insert("Size", size);
+            }
+            for (k, v) in document_keys_and_size(current) {
                 trailer.insert(k.clone(), v.clone());
             }
-            if !trailer.contains_key("Size") {
-                let mut sized = Dict::new();
-                sized.insert("Size", size);
-                for (k, v) in trailer.iter() {
-                    sized.insert(k.clone(), v.clone());
-                }
-                trailer = sized;
-            }
             trailer.insert("Size", size);
-            trailer.insert("ID", id);
+            trailer.insert("ID", id_array(permanent, hash));
             trailer.insert(Name::from("Prev"), prev);
             out.extend_from_slice(b"trailer\n");
             Object::Dict(trailer).write_to(&mut out);
             out.extend_from_slice(format!("\nstartxref\n{xref}\n%%EOF\n").as_bytes());
         }
-        Ok(out)
+        Ok((out, freed))
     }
+}
+
+const fn exhausted() -> SaveError {
+    SaveError::Cos(lamina_cos::Error::InvalidStructure {
+        kind: "incremental update",
+        message: "object numbers exhausted (Limits::max_object_number)",
+    })
 }
 
 /// The last byte of the base (`None` when it is empty).
@@ -225,60 +253,51 @@ fn last_byte(source: &dyn ByteSource, len: u64) -> Result<Option<u8>> {
         return Ok(None);
     };
     let mut byte = [0u8; 1];
-    let n = source.read_at(at, &mut byte).map_err(lamina_cos::Error::from)?;
-    Ok(byte.first().copied().filter(|_| n == 1))
+    read_exact(source, at, &mut byte)?;
+    Ok(byte.first().copied())
 }
 
-/// Checks that every byte of a source without an in-memory slice can be read now, reporting
-/// all missing ranges in one [`DataPending`](lamina_cos::Error::DataPending).
-fn check_available(source: &dyn ByteSource) -> Result<()> {
-    if source.as_slice().is_some() {
+/// The base in chunks: `(offset, length)` pairs covering `len` bytes.
+fn chunks(len: u64) -> impl Iterator<Item = (u64, usize)> {
+    let step = CHUNK as u64;
+    (0..len.div_ceil(step)).map(move |i| {
+        let at = i * step;
+        (at, usize::try_from((len - at).min(step)).unwrap_or(CHUNK))
+    })
+}
+
+/// Reads the whole base once before anything is written: every missing range is reported in
+/// one [`DataPending`](lamina_cos::Error::DataPending), and the bytes go into `hash` when one
+/// is given.
+fn check_and_hash(source: &dyn ByteSource, mut hash: Option<&mut ContentHash>) -> Result<()> {
+    if let Some(slice) = source.as_slice() {
+        if let Some(hash) = hash {
+            hash.update(slice);
+        }
         return Ok(());
     }
-    let len = source.len();
-    let mut pending: Vec<(u64, u64)> = Vec::new();
+    let mut pending = Vec::new();
     let mut buf = vec![0u8; CHUNK];
-    let mut at = 0u64;
-    while at < len {
-        let want = usize::try_from((len - at).min(CHUNK as u64)).unwrap_or(CHUNK);
-        let chunk = buf.get_mut(..want).unwrap_or_default();
-        match read_full(source, at, chunk) {
-            Ok(()) => {}
-            Err(SourceError::Pending { .. }) => {
-                let want = want as u64;
-                match pending.last_mut() {
-                    Some((start, n)) if *start + *n == at => *n += want,
-                    _ => pending.push((at, want)),
+    for (at, len) in chunks(source.len()) {
+        let chunk = buf.get_mut(..len).unwrap_or_default();
+        match read_exact(source, at, chunk) {
+            Ok(()) => {
+                if let Some(hash) = hash.as_deref_mut() {
+                    hash.update(chunk);
                 }
             }
-            Err(e) => return Err(lamina_cos::Error::from(e).into()),
+            Err(lamina_cos::Error::DataPending { ranges }) => pending.extend(ranges),
+            Err(e) => return Err(e.into()),
         }
-        at += want as u64;
     }
     if pending.is_empty() {
         Ok(())
     } else {
-        Err(lamina_cos::Error::DataPending { ranges: pending }.into())
-    }
-}
-
-/// Fills `buf` from `offset`, calling `read_at` again for short reads; a source that ends
-/// early is a failure.
-fn read_full(source: &dyn ByteSource, offset: u64, buf: &mut [u8]) -> core::result::Result<(), SourceError> {
-    let mut filled = 0;
-    while filled < buf.len() {
-        let at = offset + filled as u64;
-        let rest = buf.get_mut(filled..).unwrap_or_default();
-        let n = source.read_at(at, rest)?;
-        if n == 0 {
-            return Err(SourceError::Failed {
-                offset: at,
-                len: rest.len() as u64,
-            });
+        Err(lamina_cos::Error::DataPending {
+            ranges: merge_ranges(pending),
         }
-        filled += n;
+        .into())
     }
-    Ok(())
 }
 
 /// Copies the whole source to `out` in chunks.
@@ -289,15 +308,11 @@ fn copy<S: WriteSink + ?Sized>(source: &dyn ByteSource, out: &mut CountingSink<&
         }
         return Ok(());
     }
-    let len = source.len();
     let mut buf = vec![0u8; CHUNK];
-    let mut at = 0u64;
-    while at < len {
-        let want = usize::try_from((len - at).min(CHUNK as u64)).unwrap_or(CHUNK);
-        let chunk = buf.get_mut(..want).unwrap_or_default();
-        read_full(source, at, chunk).map_err(lamina_cos::Error::from)?;
+    for (at, len) in chunks(source.len()) {
+        let chunk = buf.get_mut(..len).unwrap_or_default();
+        read_exact(source, at, chunk)?;
         out.write_all(chunk)?;
-        at += want as u64;
     }
     Ok(())
 }

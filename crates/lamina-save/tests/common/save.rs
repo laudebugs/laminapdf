@@ -4,7 +4,7 @@
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 
-use lamina_cos::{ByteSource, Dict, Object, OpenOptions, PdfString, SourceError};
+use lamina_cos::{ByteSource, Object, OpenOptions, PdfString, SourceError};
 use lamina_model::{PageId, Rotation};
 use lamina_ops::{Document, InfoPatch, Origin, RotatePage, SetInfo};
 use lamina_save::{SinkError, WriteSink};
@@ -21,28 +21,12 @@ pub fn corpus_doc(name: &str) -> Document {
     editable(&fixture(&format!("corpus/{name}")))
 }
 
-/// A classic file around object bodies numbered `1..`, `/Size` and `/Root 1 0 R` added to
-/// `trailer_extra`.
+/// A classic file around object bodies numbered `1..`, with `/Size` and `/Root 1 0 R` added
+/// to `trailer_extra` (over the shared [`super::classic::classic`]).
 pub fn classic(objects: &[&str], trailer_extra: &str) -> Vec<u8> {
-    let mut out = b"%PDF-1.7\n".to_vec();
-    let mut offsets = Vec::new();
-    for (i, body) in objects.iter().enumerate() {
-        offsets.push(out.len());
-        out.extend_from_slice(format!("{} 0 obj\n{body}\nendobj\n", i + 1).as_bytes());
-    }
-    let xref = out.len();
-    out.extend_from_slice(format!("xref\n0 {}\n0000000000 65535 f\r\n", objects.len() + 1).as_bytes());
-    for off in offsets {
-        out.extend_from_slice(format!("{off:010} 00000 n\r\n").as_bytes());
-    }
-    out.extend_from_slice(
-        format!(
-            "trailer\n<< /Size {} /Root 1 0 R {trailer_extra} >>\nstartxref\n{xref}\n%%EOF\n",
-            objects.len() + 1
-        )
-        .as_bytes(),
-    );
-    out
+    let bodies: Vec<&[u8]> = objects.iter().map(|o| o.as_bytes()).collect();
+    let trailer = format!("<< /Size {} /Root 1 0 R {trailer_extra} >>", objects.len() + 1);
+    super::classic::classic(&bodies, &trailer)
 }
 
 /// The `/ID` used by [`two_pages`].
@@ -62,6 +46,67 @@ pub fn two_pages() -> Vec<u8> {
         ],
         &format!("/Info 5 0 R /ID [<{ID0}> <{ID0}>]"),
     )
+}
+
+/// Catalog 1, pages 2, page 3, an orphan 4 and an xref stream 5 (uncompressed rows,
+/// `/W [1 4 2] /Index [0 6]`) that also carries stream keys a trailer must not inherit
+/// (`/DL`, `/DecodeParms`).
+pub fn xref_stream_base() -> Vec<u8> {
+    let mut out = b"%PDF-1.7\n".to_vec();
+    let mut offsets = Vec::new();
+    for (num, body) in [
+        (1, "<< /Type /Catalog /Pages 2 0 R >>"),
+        (2, "<< /Type /Pages /Kids [3 0 R] /Count 1 >>"),
+        (3, "<< /Type /Page /Parent 2 0 R >>"),
+        (4, "(orphan)"),
+    ] {
+        offsets.push(out.len());
+        out.extend_from_slice(format!("{num} 0 obj\n{body}\nendobj\n").as_bytes());
+    }
+    let xref = out.len();
+    offsets.push(xref);
+    let mut rows = vec![0u8, 0, 0, 0, 0, 0xff, 0xff];
+    for off in &offsets {
+        rows.push(1);
+        rows.extend_from_slice(&u32::try_from(*off).unwrap().to_be_bytes());
+        rows.extend_from_slice(&[0, 0]);
+    }
+    out.extend_from_slice(
+        format!(
+            "5 0 obj\n<< /Type /XRef /Size 6 /W [1 4 2] /Index [0 6] /Root 1 0 R /DL {len} \
+             /DecodeParms << /Columns 7 >> /Length {len} >>\nstream\n",
+            len = rows.len()
+        )
+        .as_bytes(),
+    );
+    out.extend_from_slice(&rows);
+    out.extend_from_slice(format!("\nendstream\nendobj\nstartxref\n{xref}\n%%EOF\n").as_bytes());
+    out
+}
+
+/// Catalog 1, pages 2, a free 3 (generation 1, head of the free list), page 4, orphan 5.
+pub fn free_list_base() -> Vec<u8> {
+    let mut out = b"%PDF-1.7\n".to_vec();
+    let mut offsets = Vec::new();
+    for (num, body) in [
+        (1, "<< /Type /Catalog /Pages 2 0 R >>"),
+        (2, "<< /Type /Pages /Kids [4 0 R] /Count 1 >>"),
+        (4, "<< /Type /Page /Parent 2 0 R >>"),
+        (5, "(orphan)"),
+    ] {
+        offsets.push((num, out.len()));
+        out.extend_from_slice(format!("{num} 0 obj\n{body}\nendobj\n").as_bytes());
+    }
+    let xref = out.len();
+    out.extend_from_slice(b"xref\n0 6\n0000000003 65535 f\r\n");
+    for (num, off) in offsets {
+        if num == 4 {
+            out.extend_from_slice(b"0000000000 00001 f\r\n");
+        }
+        out.extend_from_slice(format!("{off:010} 00000 n\r\n").as_bytes());
+    }
+    out.extend_from_slice(format!("trailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n{xref}\n%%EOF\n").as_bytes());
+    out
 }
 
 pub fn set_title(doc: &mut Document, title: &str) {
@@ -188,9 +233,4 @@ impl WriteSink for FailingSink {
         self.taken.extend_from_slice(bytes);
         Ok(())
     }
-}
-
-/// The trailer dictionary as the reopened file has it.
-pub fn trailer(doc: &lamina_cos::Document) -> Dict {
-    doc.trailer().clone()
 }

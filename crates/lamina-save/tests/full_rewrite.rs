@@ -64,27 +64,48 @@ fn earlier_revisions_disappear() {
     );
 }
 
+/// Object 1 unused, catalog 2, pages 3 with pages 4 and 5: compacting moves every number.
+fn shifted() -> Vec<u8> {
+    common::save::classic(
+        &[
+            "(orphan)",
+            "<< /Type /Catalog /Pages 3 0 R >>",
+            "<< /Type /Pages /Kids [4 0 R 5 0 R] /Count 2 >>",
+            "<< /Type /Page /Parent 3 0 R >>",
+            "<< /Type /Page /Parent 3 0 R /Rotate 90 >>",
+        ],
+        "",
+    )
+    .replace_root()
+}
+
 #[test]
-fn compact_returns_a_complete_map_and_ids_follow_it() {
-    let mut doc = editable(&two_pages());
-    rotate(&mut doc, 1, Rotation::None);
-    let before: Vec<u32> = page_ids(&doc)
-        .iter()
-        .map(|id| id.to_string()[1..].split('.').next().unwrap().parse().unwrap())
-        .collect();
+fn compact_returns_a_complete_map_and_page_ids_follow_it() {
+    let mut doc = editable(&shifted());
+    rotate(&mut doc, 0, Rotation::Half);
+    let before = page_ids(&doc);
     let report = doc
         .save_full_and_rebase(Vec::new(), &SaveOptions::new().with_renumber(Renumber::Compact))
-        .map(|r| r.renumbered().cloned());
-    let map = report.unwrap().unwrap();
-    let after: Vec<String> = page_ids(&doc).iter().map(ToString::to_string).collect();
-    let expected: Vec<String> = before.iter().map(|n| format!("p{}.0", map[n])).collect();
+        .unwrap();
+    let map = report.renumbered().cloned().unwrap();
+    let expected: Vec<lamina_model::PageId> = before
+        .iter()
+        .map(|id| {
+            let old: u32 = id.to_string()[1..].split('.').next().unwrap().parse().unwrap();
+            lamina_model::PageId::object(ObjRef::new(map[&old], 0))
+        })
+        .collect();
     assert_eq!(
         (
-            map.keys().copied().collect::<Vec<_>>(),
-            map.values().copied().collect::<Vec<_>>(),
-            after
+            map.into_iter().collect::<Vec<_>>(),
+            page_ids(&doc),
+            facts(&doc).rotations
         ),
-        (vec![1, 2, 3, 4, 5], vec![1, 2, 3, 4, 5], expected)
+        (
+            vec![(2, 1), (3, 2), (4, 3), (5, 4)],
+            expected,
+            vec![Rotation::Half, Rotation::Clockwise90]
+        )
     );
 }
 
@@ -298,4 +319,153 @@ fn objects_with_a_reference_value_are_kept() {
     let mut out = Vec::new();
     FullWriter::new(&doc, SaveOptions::new()).write(&mut out).unwrap();
     assert_eq!(*reopen(&out).object(4).unwrap(), Object::Ref(ObjRef::new(3, 0)));
+}
+
+#[test]
+fn keep_lists_only_numbers_that_hold_something_whatever_the_input_size() {
+    // A tiny file claiming two billion objects: the xref must not grow with the claim.
+    let bytes = String::from_utf8(two_pages())
+        .unwrap()
+        .replace("/Size 7", "/Size 2000000000")
+        .into_bytes();
+    let doc = Document::open(bytes, OpenOptions::default()).unwrap();
+    let mut out = Vec::new();
+    FullWriter::new(&doc, SaveOptions::new()).write(&mut out).unwrap();
+    let reopened = reopen(&out);
+    assert_eq!((reopened.trailer().get_int("Size"), out.len() < 4096), (Some(9), true));
+}
+
+#[test]
+fn keep_frees_unwritten_base_objects_with_the_next_generation() {
+    let doc = Document::open(two_pages(), OpenOptions::default()).unwrap();
+    let mut out = Vec::new();
+    FullWriter::new(&doc, SaveOptions::new().with_xref(XrefKind::Classic))
+        .write(&mut out)
+        .unwrap();
+    let text = String::from_utf8_lossy(&out).into_owned();
+    // 6 (the orphan) is freed: object 0 links to it, it ends the list, generation 1.
+    assert!(
+        text.contains("xref\n0 7\n0000000006 65535 f\r\n") && text.contains("0000000000 00001 f\r\ntrailer"),
+        "{text}"
+    );
+}
+
+#[test]
+fn an_object_that_cannot_be_loaded_fails_the_rewrite() {
+    let bytes = common::save::classic(
+        &[
+            "<< /Type /Catalog /Pages 2 0 R /Broken 4 0 R >>",
+            "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+            "<< /Type /Page /Parent 2 0 R >>",
+            "<< /Unterminated [1 2",
+        ],
+        "",
+    );
+    let doc = Document::open(bytes, OpenOptions::default()).unwrap();
+    let mut out = Vec::new();
+    let result = FullWriter::new(&doc, SaveOptions::new()).write(&mut out);
+    assert_eq!((result.is_err(), out.len()), (true, 0));
+}
+
+#[test]
+fn a_nested_length_reference_is_kept() {
+    let bytes = common::save::classic(
+        &[
+            "<< /Type /Catalog /Pages 2 0 R /Extra << /Length 4 0 R >> >>",
+            "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+            "<< /Type /Page /Parent 2 0 R >>",
+            "42",
+        ],
+        "",
+    );
+    let doc = Document::open(bytes, OpenOptions::default()).unwrap();
+    let mut out = Vec::new();
+    FullWriter::new(&doc, SaveOptions::new()).write(&mut out).unwrap();
+    let reopened = reopen(&out);
+    let extra = reopened.catalog().unwrap().get("Extra").cloned().unwrap();
+    let length = extra.as_dict().and_then(|d| d.get("Length")).cloned().unwrap();
+    assert_eq!(
+        (length.clone(), reopened.deref(&length).unwrap().as_int()),
+        (Object::Ref(ObjRef::new(4, 0)), Some(42))
+    );
+}
+
+#[test]
+fn an_indirect_trailer_id_is_not_written_as_an_orphan() {
+    let bytes = common::save::classic(
+        &[
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+            "<< /Type /Page /Parent 2 0 R >>",
+            "[<00112233445566778899AABBCCDDEEFF> <00112233445566778899AABBCCDDEEFF>]",
+        ],
+        "/ID 4 0 R",
+    );
+    let doc = Document::open(bytes, OpenOptions::default()).unwrap();
+    let mut out = Vec::new();
+    FullWriter::new(&doc, SaveOptions::new()).write(&mut out).unwrap();
+    let reopened = reopen(&out);
+    assert_eq!(
+        (reopened.base_generation(4), common::save::ids(&reopened).0.len()),
+        (None, 16)
+    );
+}
+
+#[test]
+fn indirect_id_elements_are_kept() {
+    let bytes = common::save::classic(
+        &[
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+            "<< /Type /Page /Parent 2 0 R >>",
+            "<00112233445566778899AABBCCDDEEFF>",
+        ],
+        "/ID [4 0 R 4 0 R]",
+    );
+    let doc = Document::open(bytes, OpenOptions::default()).unwrap();
+    let mut out = Vec::new();
+    FullWriter::new(&doc, SaveOptions::new()).write(&mut out).unwrap();
+    let expected: Vec<u8> = (0..16u8).map(|i| i * 0x11).collect();
+    assert_eq!(common::save::ids(&reopen(&out)).0, expected);
+}
+
+#[test]
+fn nesting_exactly_at_the_limit_is_accepted_like_the_reader_does() {
+    let bytes = common::save::classic(
+        &[
+            "<< /Type /Catalog /Pages 2 0 R /A [[1]] >>",
+            "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+            "<< /Type /Page /Parent 2 0 R >>",
+        ],
+        "",
+    );
+    let limits = lamina_cos::Limits::default().with_max_nesting_depth(3);
+    let doc = Document::open(bytes, OpenOptions::default().with_limits(limits)).unwrap();
+    let mut out = Vec::new();
+    assert!(FullWriter::new(&doc, SaveOptions::new()).write(&mut out).is_ok());
+}
+
+#[test]
+fn numbers_past_max_object_number_are_refused_before_writing() {
+    // Objects 1–6; the object stream would be 7.
+    let limits = lamina_cos::Limits::default().with_max_object_number(6);
+    let doc = Document::open(two_pages(), OpenOptions::default().with_limits(limits)).unwrap();
+    let mut out = Vec::new();
+    let result = FullWriter::new(&doc, SaveOptions::new()).write(&mut out);
+    assert_eq!(
+        (result.map(|_| ()).map_err(|e| e.code()), out.len()),
+        (Err("invalid-structure"), 0)
+    );
+}
+
+#[test]
+fn a_sink_that_already_holds_bytes_is_refused() {
+    let doc = Document::open(two_pages(), OpenOptions::default()).unwrap();
+    let mut out = b"%".to_vec();
+    assert_eq!(
+        FullWriter::new(&doc, SaveOptions::new()).write(&mut out).err(),
+        Some(lamina_save::SaveError::Sink(lamina_save::SinkError::NotEmpty {
+            held: 1
+        }))
+    );
 }

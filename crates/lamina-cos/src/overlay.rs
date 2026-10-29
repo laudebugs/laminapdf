@@ -320,8 +320,15 @@ impl Document {
 
     /// Makes `source` the new base, after a save wrote it ([ADR 0005] §3, steps 1–3): opens it
     /// with this document's [`Limits`](crate::Limits) and strict mode, loads its newest xref,
-    /// and drops the overlay and its journal. The number allocator carries over, so numbers
-    /// reserved in this session stay reserved and none is handed out twice.
+    /// and drops the overlay and its journal. The warnings raised so far are kept (before the
+    /// new base's own), and the journal's sequence numbers continue, so a mark taken before
+    /// the rebase is refused as stale afterwards.
+    ///
+    /// `reserved` says what happens to the numbers reserved in this session:
+    /// [`Reserved::Keep`] when `source` is the old base plus an appended revision (an
+    /// incremental save keeps every number), so a reserved number stays reserved and redo can
+    /// recreate its object; [`Reserved::Release`] when `source` is a new numbering (a full
+    /// rewrite): allocation starts afresh above the new base.
     ///
     /// This is the mechanism under `lamina-save`'s writers and `lamina_ops::Document::rebase`;
     /// the overlay's changes are discarded, so call it only with bytes that contain them. A
@@ -331,17 +338,20 @@ impl Document {
     /// As [`Document::open`]; on error the document is unchanged.
     ///
     /// [ADR 0005]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0005-document-model.md
-    pub fn rebase(&mut self, source: impl Into<Source>) -> Result<()> {
+    pub fn rebase(&mut self, source: impl Into<Source>, reserved: Reserved) -> Result<()> {
         let options = OpenOptions::default()
             .with_limits(*self.limits())
             .with_strict(self.is_strict());
-        let next = Self::open(source, options)?;
+        let mut next = Self::open(source, options)?;
+        next.carry_warnings(self);
         let old = self.overlay_ref();
+        next.overlay_mut().seq = old.seq;
         let fresh = next.overlay_ref();
-        // Numbers reserved but never written (a creation that was deleted or undone) stay
-        // reserved, so redo can recreate them; the range starts where the old one did.
-        // New numbers still start above the new base.
-        if let Some(&first) = old.first_new.get() {
+        // Reserved numbers start where the old range did (they are absent from the new base,
+        // which was written with `/Size` above them); new ones start above the new base.
+        if reserved == Reserved::Keep
+            && let Some(&first) = old.first_new.get()
+        {
             let floor = next.first_new_number_fresh();
             fresh.first_new.get_or_init(|| first.min(floor));
             fresh
@@ -350,6 +360,12 @@ impl Document {
         }
         *self = next;
         Ok(())
+    }
+
+    /// One past the highest number reserved in this session, `None` when none was.
+    #[must_use]
+    pub fn reserved_end(&self) -> Option<u64> {
+        self.overlay_ref().next_number.get()
     }
 
     /// [`Document::first_new_number`] as the base alone gives it (no carried-over state).
@@ -386,6 +402,16 @@ impl Document {
             _ => self.base_has(ObjRef::new(num, gen_nr)),
         }
     }
+}
+
+/// What [`Document::rebase`] does with the numbers reserved in the session.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[non_exhaustive]
+pub enum Reserved {
+    /// Keep them reserved: the new base is the old one plus an appended revision.
+    Keep,
+    /// Release them: the new base has a new numbering (a full rewrite).
+    Release,
 }
 
 /// What the overlay says about an object number.
@@ -547,32 +573,16 @@ mod tests {
     use super::*;
     use crate::OpenOptions;
 
-    /// A classic file around object bodies numbered `1..` (the writer lives in
-    /// `lamina-save`, which these unit tests can't use: it links its own `lamina-cos`).
-    fn classic(objects: &[&str], trailer: &str) -> Vec<u8> {
-        let mut out = b"%PDF-1.7\n".to_vec();
-        let mut offsets = Vec::new();
-        for (i, body) in objects.iter().enumerate() {
-            offsets.push(out.len());
-            out.extend_from_slice(format!("{} 0 obj\n{body}\nendobj\n", i + 1).as_bytes());
-        }
-        let xref = out.len();
-        out.extend_from_slice(format!("xref\n0 {}\n0000000000 65535 f\r\n", objects.len() + 1).as_bytes());
-        for off in offsets {
-            out.extend_from_slice(format!("{off:010} 00000 n\r\n").as_bytes());
-        }
-        out.extend_from_slice(format!("trailer\n{trailer}\nstartxref\n{xref}\n%%EOF\n").as_bytes());
-        out
-    }
+    use crate::test_files::classic;
 
     /// Catalog 1, pages 2, one page 3 (`/Rotate 90`), Info 4; `/Size 5`.
     fn doc_with(limits: Option<crate::Limits>) -> Document {
         let bytes = classic(
             &[
-                "<< /Type /Catalog /Pages 2 0 R >>",
-                "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
-                "<< /Type /Page /Parent 2 0 R /Rotate 90 >>",
-                "<< /Title (Old) >>",
+                b"<< /Type /Catalog /Pages 2 0 R >>",
+                b"<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+                b"<< /Type /Page /Parent 2 0 R /Rotate 90 >>",
+                b"<< /Title (Old) >>",
             ],
             "<< /Size 5 /Root 1 0 R /Info 4 0 R >>",
         );
@@ -843,5 +853,58 @@ mod tests {
             (d.reserve_number().map(|r| r.num).ok(), d.reserve_number().is_err()),
             (Some(u32::MAX), true)
         );
+    }
+
+    /// The [`doc`] file with `/Size 9`: a base a save could have written.
+    fn saved_bytes() -> Vec<u8> {
+        classic(
+            &[
+                b"<< /Type /Catalog /Pages 2 0 R >>",
+                b"<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+                b"<< /Type /Page /Parent 2 0 R /Rotate 90 >>",
+                b"<< /Title (Old) >>",
+            ],
+            "<< /Size 9 /Root 1 0 R /Info 4 0 R >>",
+        )
+    }
+
+    #[test]
+    fn a_mark_from_before_a_rebase_is_stale_after_it() {
+        let mut d = doc();
+        d.edit().create(Object::Integer(1)).unwrap();
+        let mark = d.journal_mark();
+        d.rebase(saved_bytes(), Reserved::Keep).unwrap();
+        d.edit().create(Object::Integer(2)).unwrap();
+        assert!(d.rollback_to(mark).is_err());
+    }
+
+    #[test]
+    fn a_rebase_keeps_the_warnings_raised_so_far() {
+        let mut d = doc();
+        d.resolve(ObjRef::new(3, 1)).unwrap(); // stale-generation
+        d.rebase(saved_bytes(), Reserved::Keep).unwrap();
+        assert_eq!(
+            d.warnings().iter().map(crate::Warning::code).collect::<Vec<_>>(),
+            ["stale-generation"]
+        );
+    }
+
+    #[test]
+    fn keep_carries_reserved_numbers_over_a_rebase() {
+        let mut d = doc();
+        let r = d.edit().create(Object::Integer(1)).unwrap(); // 5
+        d.edit().delete(r).unwrap();
+        d.rebase(saved_bytes(), Reserved::Keep).unwrap();
+        assert_eq!((d.is_reserved_number(5), d.reserve_number().unwrap().num), (true, 9));
+    }
+
+    #[test]
+    fn release_starts_allocation_afresh_above_the_new_base() {
+        let mut d = doc();
+        for _ in 0..20 {
+            d.reserve_number().unwrap();
+        }
+        d.rebase(saved_bytes(), Reserved::Release).unwrap();
+        assert_eq!((d.is_reserved_number(5), d.reserve_number().unwrap().num), (false, 9));
     }
 }

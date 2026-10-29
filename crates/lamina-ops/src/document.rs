@@ -3,7 +3,7 @@
 use std::collections::BTreeSet;
 use std::ops;
 
-use lamina_cos::{OpenOptions, Source};
+use lamina_cos::{OpenOptions, Reserved, Source};
 
 use crate::error::{Error, Result};
 use crate::history::{Entry, History, Reverted, UndoOutcome};
@@ -42,14 +42,22 @@ pub struct Document {
     history: History,
     open: Option<TxState>,
     /// Set by a save whose output the document has not been rebased onto yet.
-    unrebased: Option<Unrebased>,
+    unrebased: Option<PendingRebase>,
 }
 
-/// A save that has not been rebased onto yet.
-#[derive(Debug, Clone, Copy)]
-struct Unrebased {
-    /// The save renumbered objects, so the history's object numbers no longer apply.
-    renumbered: bool,
+/// What a save that wrote its bytes means for the rebase onto them
+/// ([`Document::saved_not_rebased`]).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[non_exhaustive]
+pub enum PendingRebase {
+    /// The output is the old base plus an appended revision that freed nothing: every object
+    /// the undo history names still exists under its number and generation, so the history
+    /// and the numbers reserved in the session are kept.
+    KeepHistory,
+    /// The output dropped or freed objects (a full rewrite, or an incremental save that
+    /// deleted objects): undo could restore references to objects that no longer exist, so
+    /// the history is cleared and reserved numbers are released.
+    ClearHistory,
 }
 
 /// Where a document stands relative to its last save ([ADR 0005] §3).
@@ -139,39 +147,50 @@ impl Document {
 
     /// Records that the current state was written by a save that the document has not been
     /// rebased onto yet (called by `lamina-save` once the bytes are written): marks it saved
-    /// and enters [`SaveState::SavedNotRebased`]. `renumbered` says the save compacted object
-    /// numbers, so [`Document::rebase`] clears the undo history (its records name the old
-    /// numbers).
-    pub fn saved_not_rebased(&mut self, renumbered: bool) {
-        self.mark_saved();
-        self.unrebased = Some(Unrebased { renumbered });
-    }
-
-    /// Makes `source`, the bytes a save wrote, the new base ([ADR 0005] §3): its newest xref
-    /// is loaded, the overlay and its journal are dropped, and the state becomes
-    /// [`SaveState::Clean`]. The undo history stays (its records hold values, not offsets),
-    /// unless the save renumbered objects. Object numbers, and so `LaminaId`s, are the
-    /// output's.
-    ///
-    /// The shell calls it after a full rewrite to a sink the core couldn't read back
-    /// ([`SaveState::SavedNotRebased`]); `lamina-save` calls it itself otherwise. It is also
-    /// allowed on a clean document (nothing is lost).
+    /// and enters [`SaveState::SavedNotRebased`]; `pending` says what [`Document::rebase`]
+    /// keeps.
     ///
     /// # Errors
-    /// [`Error::NestedTransaction`] while a transaction is open; [`Error::UnsavedChanges`]
-    /// when the overlay holds changes that no save wrote (they would be lost); COS errors
-    /// opening `source` (the document is then unchanged).
+    /// [`Error::NestedTransaction`] while a transaction is open (its changes would be lost by
+    /// the rebase); [`Error::SavedNotRebased`] when a save is already waiting for its rebase.
+    pub fn saved_not_rebased(&mut self, pending: PendingRebase) -> Result<()> {
+        if self.open.is_some() {
+            return Err(Error::NestedTransaction);
+        }
+        self.writable()?;
+        self.mark_saved();
+        self.unrebased = Some(pending);
+        Ok(())
+    }
+
+    /// Makes `source`, the bytes the pending save wrote, the new base ([ADR 0005] §3): its
+    /// newest xref is loaded, the overlay and its journal are dropped, and the state becomes
+    /// [`SaveState::Clean`]. Object numbers, and so `LaminaId`s, are the output's. The undo
+    /// history and the reserved numbers are kept or dropped as the save said
+    /// ([`PendingRebase`]).
+    ///
+    /// The shell calls it after a full rewrite to a sink the core couldn't read back
+    /// ([`SaveState::SavedNotRebased`]); `lamina-save` calls it itself otherwise.
+    ///
+    /// # Errors
+    /// [`Error::NestedTransaction`] while a transaction is open; [`Error::NoPendingSave`]
+    /// unless a save is waiting for its rebase (any other bytes would not match the history,
+    /// and the overlay's changes would be lost); COS errors opening `source` (the document is
+    /// then unchanged and still waiting).
     ///
     /// [ADR 0005]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0005-document-model.md
     pub fn rebase(&mut self, source: impl Into<Source>) -> Result<()> {
         if self.open.is_some() {
             return Err(Error::NestedTransaction);
         }
-        if self.unrebased.is_none() && self.model.is_dirty() {
-            return Err(Error::UnsavedChanges);
-        }
-        self.model.cos_mut().rebase(source)?;
-        if self.unrebased.take().is_some_and(|u| u.renumbered) {
+        let pending = self.unrebased.ok_or(Error::NoPendingSave)?;
+        let reserved = match pending {
+            PendingRebase::KeepHistory => Reserved::Keep,
+            PendingRebase::ClearHistory => Reserved::Release,
+        };
+        self.model.cos_mut().rebase(source, reserved)?;
+        self.unrebased = None;
+        if pending == PendingRebase::ClearHistory {
             self.history = History::new(self.history.depth());
             self.history.mark_saved();
         }

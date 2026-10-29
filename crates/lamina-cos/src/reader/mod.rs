@@ -208,6 +208,8 @@ pub struct Document {
     /// The highest object number in any xref section, including entries dropped for
     /// exceeding [`Limits::max_object_number`] (the incremental writer never goes below it).
     max_object_number: Option<u32>,
+    /// Object 0's next-free number in the newest section listing it (0 when none does).
+    free_head: u32,
     trailer: Dict,
     revisions: usize,
     repaired: bool,
@@ -623,6 +625,7 @@ impl Document {
             newest_is_stream,
             ignored_xref_streams,
             dropped_objects,
+            free_head,
         } = table;
         let Base {
             source,
@@ -641,6 +644,7 @@ impl Document {
             source,
             entries,
             max_object_number,
+            free_head: free_head.unwrap_or(0),
             trailer,
             revisions: sections,
             repaired: false,
@@ -1440,6 +1444,28 @@ impl Document {
             .get(&num)
             .filter(|e| !matches!(e, XrefEntry::Free))
             .map(|e| e.gen_nr())
+    }
+
+    /// The head of the base's free list (§7.5.4): the next-free number of object 0 in the
+    /// newest xref section that lists it, 0 when none does (or the xref was repaired). An
+    /// incremental update links its own free entries in front of it.
+    #[must_use]
+    pub const fn free_list_head(&self) -> u32 {
+        self.free_head
+    }
+
+    /// Puts `older`'s warnings before this document's own (a rebase keeps the diagnostics
+    /// raised so far).
+    pub(crate) fn carry_warnings(&self, older: &Self) {
+        let mut merged = WarningLog::default();
+        let old = older.warnings.borrow();
+        let own = self.warnings.borrow();
+        for warning in old.list().iter().chain(own.list()) {
+            // Not strict: these were raised (and accepted) already.
+            let _accepted = merged.raise(*warning, &self.limits, false);
+        }
+        drop((old, own));
+        *self.warnings.borrow_mut() = merged;
     }
 
     /// Whether the base has an in-use object `r` (number and generation).

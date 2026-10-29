@@ -11,7 +11,7 @@ mod common;
 
 use common::save::{FailingSink, editable, facts, set_title, two_pages};
 use lamina_ops::SaveState;
-use lamina_save::{IoWrite, ReadableSink, Save, SaveError, SaveOptions, SinkError, WriteSink};
+use lamina_save::{FullWriter, IoWrite, ReadableSink, Save, SaveError, SaveOptions, SinkError, WriteSink};
 
 fn dirty() -> lamina_ops::Document {
     let mut doc = editable(&two_pages());
@@ -65,15 +65,49 @@ impl ReadableSink for Unreadable {
 }
 
 #[test]
-fn a_sink_that_cannot_read_back_leaves_saved_not_rebased() {
+fn a_sink_that_cannot_give_the_bytes_back_leaves_the_document_dirty() {
     let mut doc = dirty();
     let result = doc.save_full_and_rebase(Unreadable(Vec::new()), &SaveOptions::new());
     assert_eq!(
-        (result.err(), doc.save_state()),
+        (result.err(), doc.save_state(), doc.has_unsaved_changes()),
         (
             Some(SaveError::Sink(SinkError::Failed("spool lost".into()))),
-            SaveState::SavedNotRebased
+            SaveState::Dirty,
+            true
         )
+    );
+}
+
+/// A readable sink that gives back something other than what was written.
+struct Garbled(Vec<u8>);
+
+impl WriteSink for Garbled {
+    fn write_all(&mut self, bytes: &[u8]) -> Result<(), SinkError> {
+        self.0.write_all(bytes)
+    }
+}
+
+impl ReadableSink for Garbled {
+    fn into_source(self) -> Result<std::sync::Arc<dyn lamina_cos::ByteSource>, SinkError> {
+        Ok(std::sync::Arc::new(b"not a pdf".to_vec()))
+    }
+}
+
+#[test]
+fn a_failed_rebase_hands_the_output_back_for_a_retry() {
+    let mut doc = dirty();
+    let mut good = Vec::new();
+    FullWriter::new(doc.cos(), SaveOptions::new()).write(&mut good).unwrap();
+    let result = doc.save_full_and_rebase(Garbled(Vec::new()), &SaveOptions::new());
+    let Err(SaveError::NotRebased { saved, .. }) = result else {
+        panic!("{result:?}");
+    };
+    let stuck = doc.save_state();
+    let wrong_again = doc.rebase(saved.source()).is_err();
+    doc.rebase(good).unwrap();
+    assert_eq!(
+        (stuck, wrong_again, doc.save_state(), facts(&doc).title.as_deref()),
+        (SaveState::SavedNotRebased, true, SaveState::Clean, Some("Pending"))
     );
 }
 

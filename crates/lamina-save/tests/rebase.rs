@@ -92,7 +92,27 @@ fn saved_not_rebased_refuses_ops_undo_redo_and_saves_until_rebase() {
 fn rebase_refuses_changes_no_save_wrote() {
     let mut doc = editable(&two_pages());
     set_title(&mut doc, "Unsaved");
-    assert_eq!(doc.rebase(two_pages()), Err(Error::UnsavedChanges));
+    assert_eq!(doc.rebase(two_pages()), Err(Error::NoPendingSave));
+}
+
+#[test]
+fn rebase_of_a_clean_document_without_a_pending_save_is_refused() {
+    // Unrelated bytes would leave the undo history pointing into objects it never saw.
+    let mut doc = editable(&two_pages());
+    set_title(&mut doc, "A");
+    doc.undo().unwrap();
+    let result = doc.rebase(lamina_save::Writer::new(1, 7).finish(&lamina_cos::Dict::new()).unwrap());
+    assert_eq!((result, doc.history().can_redo()), (Err(Error::NoPendingSave), true));
+}
+
+#[test]
+fn saved_not_rebased_is_refused_inside_a_transaction() {
+    let mut doc = editable(&two_pages());
+    doc.begin(Origin::Local).unwrap();
+    assert_eq!(
+        doc.saved_not_rebased(lamina_ops::PendingRebase::KeepHistory),
+        Err(Error::NestedTransaction)
+    );
 }
 
 #[test]
@@ -141,10 +161,19 @@ fn compact_clears_the_history() {
 }
 
 #[test]
-fn keep_keeps_the_history() {
+fn a_full_rewrite_with_keep_clears_the_history_too() {
+    // The rewrite drops unreachable objects, so undo could restore references to them.
     let mut doc = editable(&two_pages());
     set_title(&mut doc, "A");
     doc.save_full_and_rebase(Vec::new(), &SaveOptions::new()).unwrap();
+    assert_eq!((doc.history().can_undo(), doc.has_unsaved_changes()), (false, false));
+}
+
+#[test]
+fn an_incremental_save_that_frees_nothing_keeps_the_history() {
+    let mut doc = editable(&two_pages());
+    set_title(&mut doc, "A");
+    doc.save_incremental(&mut Vec::new(), &SaveOptions::new()).unwrap();
     doc.undo().unwrap();
     assert_eq!(facts(&doc).title.as_deref(), Some("Base"));
 }
@@ -161,7 +190,7 @@ fn numbers_reserved_before_a_save_are_not_handed_out_after_it() {
     lamina_save::IncrementalWriter::new(&cos, SaveOptions::new())
         .write(&mut out)
         .unwrap();
-    cos.rebase(out).unwrap();
+    cos.rebase(out, lamina_cos::Reserved::Keep).unwrap();
     let next = cos.edit().create(Object::Integer(3)).unwrap();
     assert!(next.num > r.num, "{next:?} reuses {r:?}");
 }
@@ -191,4 +220,14 @@ fn redo_of_a_creation_after_a_save_recreates_its_number() {
         ),
         (Some(info), Some("Created"))
     );
+}
+
+#[test]
+fn a_full_rewrite_releases_the_numbers_reserved_before_it() {
+    let mut doc = common::save::corpus_doc("hello.pdf");
+    set_title(&mut doc, "A"); // creates Info 6
+    doc.save_full_and_rebase(Vec::new(), &SaveOptions::new().with_renumber(Renumber::Compact))
+        .unwrap();
+    // 6 is a compacted object now, not a number this session reserved.
+    assert!(!doc.is_reserved_number(6));
 }
