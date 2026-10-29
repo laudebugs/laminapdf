@@ -57,11 +57,7 @@ pub fn editable(bytes: &[u8]) -> Document {
 /// repair) with its newest catalog damaged as well, so it repairs to the older, unsigned one:
 /// a signed file that is also a repaired base (`policy.rs` in `lamina-cos` checks the repair).
 pub fn tampered_and_repaired() -> Vec<u8> {
-    let mut bytes = fixture("corpus/tampered.pdf");
-    if let Some(b) = bytes.get_mut(590) {
-        *b = 73;
-    }
-    bytes
+    super::roundtrip::damage_newest_catalog(fixture("corpus/tampered.pdf"))
 }
 
 /// An editable corpus file.

@@ -163,3 +163,88 @@ fn the_removal_is_not_on_the_undo_stack() {
     let title = doc.info().unwrap().and_then(|i| i.text("Title").unwrap());
     assert_eq!(title.as_deref(), Some("Signed fixture"));
 }
+
+// --- review fixes ------------------------------------------------------------------------
+
+const SIG: &str = "<< /Type /Sig /ByteRange [0 1 2 3] /Contents <00> >>";
+
+/// A catalog with a direct `/AcroForm` whose `/Fields` holds a direct signed field, and a
+/// direct `/Perms` certifying the same signature dictionary (object 4).
+fn direct_certified() -> Vec<u8> {
+    common::save::classic(
+        &[
+            "<< /Type /Catalog /Pages 2 0 R /AcroForm << /Fields [<< /FT /Sig /T (C) /V 4 0 R >>] >> /Perms << /DocMDP 4 0 R >> >>",
+            "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+            "<< /Type /Page /Parent 2 0 R >>",
+            SIG,
+        ],
+        "",
+    )
+}
+
+#[test]
+fn a_direct_field_and_a_direct_perms_entry_are_stripped() {
+    let mut doc = editable(&direct_certified());
+    set_title(&mut doc, "Changed");
+    let mut out = Vec::new();
+    let report = doc.save(&mut out, &overridden(SaveMode::Auto)).unwrap();
+    assert_eq!((report.mode(), report.invalidated().len()), (SaveMode::Incremental, 1));
+    assert_eq!(fields_and_perms(&out), (vec![false], false));
+}
+
+#[test]
+fn an_overridden_incremental_save_also_invalidates_every_restricting_signature() {
+    // Field 5 is an approval signature with a FieldMDP lock; field 6 a P2 certification.
+    // `SetInfo` violates only the certification, but removing its value changes a locked
+    // document, so the lock's signature breaks too.
+    let bytes = common::save::classic(
+        &[
+            "<< /Type /Catalog /Pages 2 0 R /AcroForm 4 0 R /Perms << /DocMDP 8 0 R >> >>",
+            "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+            "<< /Type /Page /Parent 2 0 R >>",
+            "<< /Fields [5 0 R 6 0 R] >>",
+            "<< /FT /Sig /T (A) /V 7 0 R /Lock << /Action /All >> >>",
+            "<< /FT /Sig /T (C) /V 8 0 R >>",
+            SIG,
+            "<< /Type /Sig /ByteRange [0 1 2 3] /Contents <00> /Reference [<< /TransformMethod /DocMDP /TransformParams << /P 2 >> >>] >>",
+        ],
+        "",
+    );
+    let mut doc = editable(&bytes);
+    set_title(&mut doc, "Changed");
+    let mut out = Vec::new();
+    let report = doc.save(&mut out, &overridden(SaveMode::Auto)).unwrap();
+    let mut kinds: Vec<_> = report.invalidated().iter().map(|s| s.kind).collect();
+    kinds.sort();
+    assert_eq!(
+        (report.mode(), kinds),
+        (
+            SaveMode::Incremental,
+            vec![SignatureKind::Approval, SignatureKind::Certification]
+        )
+    );
+    assert_eq!(fields_and_perms(&out), (vec![false, false], false));
+}
+
+#[test]
+fn after_a_failed_override_the_next_save_still_protects_the_signature() {
+    let mut doc = open("signed/approval.pdf");
+    assert!(doc.save(&mut Failing, &overridden(SaveMode::FullRewrite)).is_err());
+    assert_eq!(
+        doc.save(&mut Vec::new(), &SaveOptions::new().with_mode(SaveMode::FullRewrite))
+            .map_err(|e| e.code()),
+        Err("would-invalidate-signatures")
+    );
+}
+
+#[test]
+fn a_clean_signed_and_repaired_file_saves_unchanged() {
+    let bytes = tampered_and_repaired();
+    let mut doc = editable(&bytes);
+    let mut out = Vec::new();
+    let report = doc.save(&mut out, &SaveOptions::new()).unwrap();
+    assert_eq!(
+        (report.mode(), out == bytes, report.invalidated().len()),
+        (SaveMode::Incremental, true, 0)
+    );
+}

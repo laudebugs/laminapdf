@@ -9,7 +9,7 @@ An incremental save was requested, but only a full rewrite is safe for this docu
 
 ## Why
 
-The save planner found a rewrite reason ([ADR 0007](../decisions/0007-save-planner.md) §2): a repaired base, whose cross-reference data an appended revision can't build on; an encrypted base being saved without its encryption; or a pending op, such as a redaction, whose removed content an earlier revision would keep.
+The save planner found a rewrite reason ([ADR 0007](../decisions/0007-save-planner.md) §2): a repaired base, whose cross-reference data an appended revision can't build on; an encrypted base being saved without its encryption; no base bytes at all (a document built from scratch); or a pending op, such as a redaction, whose removed content an earlier revision would keep.
 
 ## How to fix
 
@@ -24,4 +24,4 @@ assert_eq!(err.code(), "requires-rewrite");
 
 ## Data fields
 
-- `reasons`: the rewrite reasons (`RepairedBase`, `EncryptedBase`, `OpRequiresRewrite`).
+- `reasons`: the rewrite reasons (`RepairedBase`, `EncryptedBase`, `NoBase`, `OpRequiresRewrite`).

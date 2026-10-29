@@ -54,7 +54,7 @@ fn resolve(c: &SaveConstraint, mode: SaveMode, overridden: bool) -> Outcome {
     let options = SaveOptions::new()
         .with_mode(mode)
         .with_invalidate_signatures(overridden);
-    SavePlan::resolve(c.clone(), true, &options)
+    SavePlan::resolve(c.clone(), &options)
         .map(|p| p.mode())
         .map_err(|e| e.code())
 }
@@ -91,9 +91,17 @@ fn free_row() {
 }
 
 #[test]
-fn free_without_a_base_is_a_full_rewrite() {
-    let plan = SavePlan::resolve(SaveConstraint::default(), false, &SaveOptions::new()).unwrap();
-    assert_eq!(plan.mode(), Full);
+fn without_a_base_auto_is_a_full_rewrite() {
+    let mut c = SaveConstraint::default();
+    c.rewrite_reasons.push(RewriteReason::NoBase);
+    assert_eq!(resolve(&c, Auto, false), Ok(Full));
+}
+
+#[test]
+fn without_a_base_an_incremental_save_is_refused_up_front() {
+    let mut c = SaveConstraint::default();
+    c.rewrite_reasons.push(RewriteReason::NoBase);
+    assert_eq!(resolve(&c, Inc, false), Err(REWRITE));
 }
 
 #[test]
@@ -163,13 +171,14 @@ fn conflict_row_with_violations_only() {
 #[test]
 fn a_refusal_carries_the_whole_constraint() {
     let c = constraint(ConstraintKind::Conflict, true);
-    let err = SavePlan::resolve(c.clone(), true, &SaveOptions::new()).unwrap_err();
+    let err = SavePlan::resolve(c.clone(), &SaveOptions::new()).unwrap_err();
     assert_eq!(
         err,
         SaveError::WouldInvalidateSignatures {
             signatures: c.signatures,
             rewrite_reasons: c.rewrite_reasons,
             violations: c.violations,
+            signatures_unknown: false,
         }
     );
 }
@@ -177,7 +186,7 @@ fn a_refusal_carries_the_whole_constraint() {
 #[test]
 fn an_overridden_incremental_save_invalidates_only_the_violated_signatures() {
     let c = constraint(ConstraintKind::Conflict, false);
-    let plan = SavePlan::resolve(c, true, &SaveOptions::new().with_invalidate_signatures(true)).unwrap();
+    let plan = SavePlan::resolve(c, &SaveOptions::new().with_invalidate_signatures(true)).unwrap();
     let kinds: Vec<_> = plan.would_invalidate().iter().map(|s| s.kind).collect();
     assert_eq!(kinds, [SignatureKind::Certification]);
 }
@@ -186,16 +195,13 @@ fn an_overridden_incremental_save_invalidates_only_the_violated_signatures() {
 fn an_overridden_full_rewrite_invalidates_every_signature() {
     let c = constraint(ConstraintKind::Conflict, false);
     let options = SaveOptions::new().with_mode(Full).with_invalidate_signatures(true);
-    assert_eq!(
-        SavePlan::resolve(c, true, &options).unwrap().would_invalidate().len(),
-        2
-    );
+    assert_eq!(SavePlan::resolve(c, &options).unwrap().would_invalidate().len(), 2);
 }
 
 #[test]
 fn nothing_is_invalidated_without_a_need() {
     let c = constraint(ConstraintKind::AppendOnly, false);
-    let plan = SavePlan::resolve(c, true, &SaveOptions::new().with_invalidate_signatures(true)).unwrap();
+    let plan = SavePlan::resolve(c, &SaveOptions::new().with_invalidate_signatures(true)).unwrap();
     assert_eq!(plan.would_invalidate(), []);
 }
 

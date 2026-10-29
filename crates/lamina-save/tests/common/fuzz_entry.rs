@@ -5,7 +5,7 @@
 
 use lamina_cos::OpenOptions;
 use lamina_model::Rotation;
-use lamina_ops::{Document, InfoPatch, OpLog, Origin, RotatePage, SetInfo};
+use lamina_ops::{Document, InfoPatch, Op, OpLog, Origin, RotatePage, SetInfo};
 use lamina_save::{Renumber, Save, SaveMode, SaveOptions, XrefKind};
 
 /// A fuzz target's entry point.
@@ -29,31 +29,32 @@ pub const SAVE_CONTROL_LEN: usize = 8;
 /// `tools/xtask/src/harness.rs`.
 pub const SAVE_SEED_CONTROL: [u8; SAVE_CONTROL_LEN] = [0, 0x14, 0x41, 0x02, 0x03, 0x24, 0x34, 0x04];
 
-/// Reads `data` as an op log (`{ "v": 1, "ops": [ … ] }`) and applies it to each fixture:
-/// as one transaction, then saved (`Auto`) and reopened; and op by op, all undone, after which
-/// a save must write the fixture's bytes unchanged.
+/// Reads `data` as an op log (`{ "v": 1, "ops": [ … ] }`) or a single op (wrapped in a log)
+/// and applies it to each fixture: as one transaction, then saved (`Auto`, which must succeed:
+/// the fixtures are neither signed, encrypted nor repaired) and reopened; and op by op, all
+/// undone (the undo depth covers every op), after which a save must write the fixture's bytes
+/// unchanged.
 ///
 /// # Panics
-/// When a saved file does not reopen, or undoing every op leaves something to save.
+/// When a save of an applied log fails or does not reopen, or undoing every op leaves
+/// something to save.
 pub fn ops_json(data: &[u8]) {
-    let Ok(json) = std::str::from_utf8(data) else {
-        return;
-    };
-    let Ok(log) = OpLog::from_json(json) else {
+    let Some(log) = op_log(data) else {
         return;
     };
     for base in OPS_FIXTURES {
         let mut doc = open(base);
         if doc.apply_all(Origin::Local, log.ops().iter().cloned()).is_ok() {
             let mut out = Vec::new();
-            if doc.save(&mut out, &SaveOptions::new()).is_ok() {
-                assert!(
-                    lamina_cos::Document::open(out, OpenOptions::default()).is_ok(),
-                    "a saved file does not reopen"
-                );
-            }
+            doc.save(&mut out, &SaveOptions::new())
+                .unwrap_or_else(|e| panic!("saving an applied op log: {e}"));
+            assert!(
+                lamina_cos::Document::open(out, OpenOptions::default()).is_ok(),
+                "a saved file does not reopen"
+            );
         }
         let mut doc = open(base);
+        doc.set_undo_depth(log.ops().len().max(1));
         let applied = log
             .ops()
             .iter()
@@ -133,6 +134,14 @@ pub fn save_roundtrip(data: &[u8]) {
         doc.rebase(out)
             .unwrap_or_else(|e| panic!("rebasing onto the saved file: {e}"));
     }
+}
+
+/// `data` as an op log, or as one op wrapped in a log.
+pub fn op_log(data: &[u8]) -> Option<OpLog> {
+    let json = std::str::from_utf8(data).ok()?;
+    OpLog::from_json(json)
+        .ok()
+        .or_else(|| serde_json::from_str::<Op>(json).ok().map(|op| OpLog::new(vec![op])))
 }
 
 fn open(bytes: &[u8]) -> Document {

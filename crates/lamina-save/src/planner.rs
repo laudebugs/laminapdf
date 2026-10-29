@@ -5,9 +5,9 @@
 
 use lamina_ops::{ModificationClass, Op};
 
-use crate::constraint::{RewriteReason, SaveConstraint, SignatureInfo, Violation};
-use crate::detect::{self, Signatures};
-use crate::error::Result;
+use crate::constraint::{Restriction, RewriteReason, SaveConstraint, SignatureInfo, Violation};
+use crate::detect::{self, Patches, Signatures};
+use crate::error::{Result, SaveError};
 use crate::options::{SaveMode, SaveOptions};
 use crate::resolve::resolve;
 
@@ -42,7 +42,6 @@ use crate::resolve::resolve;
 pub struct SavePlanner {
     signatures: Signatures,
     constraint: SaveConstraint,
-    has_base: bool,
 }
 
 impl SavePlanner {
@@ -50,12 +49,21 @@ impl SavePlanner {
     /// changes, [`lamina_ops::Document::pending_changes`]).
     ///
     /// # Errors
+    /// [`SaveError::Ops`](crate::SaveError::Ops) with
+    /// [`NestedTransaction`](lamina_ops::Error::NestedTransaction) while a transaction is open
+    /// (its changes are in the overlay but not yet in the pending classes);
     /// [`SaveError::Cos`](crate::SaveError::Cos) when the catalog, the form or a signature
     /// dictionary can't be read: a signature that can't be read is not assumed absent.
     pub fn new(doc: &lamina_ops::Document) -> Result<Self> {
+        if doc.in_transaction() {
+            return Err(SaveError::Ops(lamina_ops::Error::NestedTransaction));
+        }
         let cos = doc.cos();
         let signatures = detect::signatures(cos)?;
         let mut rewrite_reasons = Vec::new();
+        if cos.source().is_empty() {
+            rewrite_reasons.push(RewriteReason::NoBase);
+        }
         if cos.was_repaired() {
             rewrite_reasons.push(RewriteReason::RepairedBase);
         }
@@ -77,16 +85,14 @@ impl SavePlanner {
             Vec::new()
         };
         let constraint = SaveConstraint {
-            signatures: signatures.signatures.clone(),
+            signatures: signatures.infos(),
             doc_mdp: signatures.doc_mdp(),
             rewrite_reasons,
             violations,
+            signatures_unknown: signatures.unknown,
+            unchanged: !dirty,
         };
-        Ok(Self {
-            signatures,
-            constraint,
-            has_base: !cos.source().is_empty(),
-        })
+        Ok(Self { signatures, constraint })
     }
 
     /// Everything that restricts saving the document.
@@ -96,7 +102,9 @@ impl SavePlanner {
     }
 
     /// How a save with `options` would go: the mode resolved per [ADR 0007] §3 and the
-    /// signatures it would invalidate.
+    /// signatures it would invalidate. An incremental update that removes any signature's
+    /// value changes the document in a way no certification, usage-rights signature or field
+    /// lock permits, so those signatures are invalidated (and removed) too.
     ///
     /// # Errors
     /// [`SaveError::EncryptedBase`](crate::SaveError::EncryptedBase) for an encrypted document
@@ -106,16 +114,44 @@ impl SavePlanner {
     ///
     /// [ADR 0007]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0007-save-planner.md
     pub fn plan(&self, options: &SaveOptions) -> Result<SavePlan> {
-        SavePlan::resolve(self.constraint.clone(), self.has_base, options)
+        let mut plan = SavePlan::resolve(self.constraint.clone(), options)?;
+        if plan.mode == SaveMode::Incremental && !plan.would_invalidate.is_empty() {
+            for signature in self.signatures.restricting() {
+                if !plan.would_invalidate.contains(signature) {
+                    plan.would_invalidate.push(signature.clone());
+                }
+            }
+        }
+        Ok(plan)
+    }
+
+    /// The changes that remove `plan`'s invalidated signatures from `doc` (the document this
+    /// planner inspected).
+    pub(crate) fn patches(&self, doc: &lamina_cos::Document, plan: &SavePlan) -> Result<Patches> {
+        if plan.would_invalidate.is_empty() {
+            return Ok(Patches::default());
+        }
+        self.signatures.patches(doc, &plan.would_invalidate)
     }
 
     /// The restrictions `op` would break if it were applied and saved, for the editor to block
-    /// or warn before the edit ([ADR 0007] §2). The planner stays the authority at save time.
+    /// or warn before the edit ([ADR 0007] §2): those of its class, and, for an op that needs a
+    /// full rewrite ([`Op::requires_rewrite`]), every signature ([`Restriction::SignedBytes`]).
+    /// The planner stays the authority at save time.
     ///
     /// [ADR 0007]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0007-save-planner.md
     #[must_use]
     pub fn would_violate(&self, op: &Op) -> Vec<Violation> {
-        self.would_violate_class(op.class())
+        let mut out = self.would_violate_class(op.class());
+        if op.requires_rewrite() {
+            out.extend(
+                self.constraint
+                    .signatures
+                    .iter()
+                    .map(|s| Violation::new(op.class(), Restriction::SignedBytes, s.clone())),
+            );
+        }
+        out
     }
 
     /// [`SavePlanner::would_violate`] for any change of `class`.
@@ -136,8 +172,8 @@ pub struct SavePlan {
 
 impl SavePlan {
     /// Resolves `constraint` with `options` ([ADR 0007] §3): the table, for any constraint.
-    /// `has_base` says whether there are base bytes to append to (`Auto` on a `Free` document
-    /// without one is a full rewrite).
+    /// (The planner's [`SavePlanner::plan`] also adds the restricting signatures an
+    /// overridden incremental update breaks.)
     ///
     /// ```
     /// use lamina_save::{SaveError, SaveMode, SaveOptions, SavePlan, SaveConstraint, SignatureInfo, SignatureKind};
@@ -145,8 +181,8 @@ impl SavePlan {
     /// let mut signed = SaveConstraint::default();
     /// signed.signatures.push(SignatureInfo::new(SignatureKind::Approval));
     /// let full = SaveOptions::new().with_mode(SaveMode::FullRewrite);
-    /// assert_eq!(SavePlan::resolve(signed.clone(), true, &full).map_err(|e| e.code()), Err("would-invalidate-signatures"));
-    /// let plan = SavePlan::resolve(signed, true, &full.with_invalidate_signatures(true))?;
+    /// assert_eq!(SavePlan::resolve(signed.clone(), &full).map_err(|e| e.code()), Err("would-invalidate-signatures"));
+    /// let plan = SavePlan::resolve(signed, &full.with_invalidate_signatures(true))?;
     /// assert_eq!((plan.mode(), plan.would_invalidate().len()), (SaveMode::FullRewrite, 1));
     /// # Ok::<(), SaveError>(())
     /// ```
@@ -155,8 +191,8 @@ impl SavePlan {
     /// As [`SavePlanner::plan`].
     ///
     /// [ADR 0007]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0007-save-planner.md
-    pub fn resolve(constraint: SaveConstraint, has_base: bool, options: &SaveOptions) -> Result<Self> {
-        let (mode, would_invalidate) = resolve(&constraint, has_base, *options)?;
+    pub fn resolve(constraint: SaveConstraint, options: &SaveOptions) -> Result<Self> {
+        let (mode, would_invalidate) = resolve(&constraint, *options)?;
         let removes_encryption =
             mode == SaveMode::FullRewrite && constraint.rewrite_reasons.contains(&RewriteReason::EncryptedBase);
         Ok(Self {

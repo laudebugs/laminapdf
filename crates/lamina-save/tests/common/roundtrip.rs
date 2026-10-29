@@ -46,21 +46,36 @@ enum Category {
 
 const TITLE: &str = "Round trip";
 
+/// The corpus files that open without repair and are neither signed nor encrypted.
+pub const PLAIN_CORPUS: [&str; 10] = [
+    "hello.pdf",
+    "hello-incremental.pdf",
+    "hello-xrefstm.pdf",
+    "imaging-demo.pdf",
+    "text-example.pdf",
+    "raw.pdf",
+    "pdflib.pdf",
+    "fpdf2.pdf",
+    "reportlab.pdf",
+    "outline.pdf",
+];
+
+/// The byte that damages `corpus/tampered.pdf`'s newest catalog so the file repairs to the
+/// older, unsigned one: (offset, value), the mutation `lamina-cos`'s `policy.rs`
+/// (`signed_and_tampered_with_damaged_catalog_repair_to_one_page`) checks.
+pub const TAMPERED_CATALOG_DAMAGE: (usize, u8) = (590, 73);
+
+/// `bytes` (`corpus/tampered.pdf`) with [`TAMPERED_CATALOG_DAMAGE`] applied.
+pub fn damage_newest_catalog(mut bytes: Vec<u8>) -> Vec<u8> {
+    let (at, value) = TAMPERED_CATALOG_DAMAGE;
+    bytes[at] = value;
+    bytes
+}
+
 fn fixtures(root: &Path) -> Vec<(String, Vec<u8>, Category)> {
     let read = |rel: &str| std::fs::read(root.join("fixtures").join(rel)).unwrap();
     let mut out = Vec::new();
-    for name in [
-        "hello.pdf",
-        "hello-incremental.pdf",
-        "hello-xrefstm.pdf",
-        "imaging-demo.pdf",
-        "text-example.pdf",
-        "raw.pdf",
-        "pdflib.pdf",
-        "fpdf2.pdf",
-        "reportlab.pdf",
-        "outline.pdf",
-    ] {
+    for name in PLAIN_CORPUS {
         out.push((
             format!("corpus/{name}"),
             read(&format!("corpus/{name}")),
@@ -87,8 +102,7 @@ fn fixtures(root: &Path) -> Vec<(String, Vec<u8>, Category)> {
     }
     // corpus/tampered.pdf with its newest catalog damaged too, so it repairs to the older,
     // unsigned catalog (lamina-cos's policy.rs checks the repair).
-    let mut damaged = read("corpus/tampered.pdf");
-    damaged[590] = 73;
+    let damaged = damage_newest_catalog(read("corpus/tampered.pdf"));
     out.push((
         "corpus/tampered.pdf+catalog-damaged".into(),
         damaged,
@@ -204,6 +218,11 @@ pub fn run(root: &Path) -> Suite {
                     suite.saved += 1;
                     let reopened = lamina_model::Document::open(output.clone(), OpenOptions::default()).unwrap();
                     let again = facts(&reopened);
+                    if remove && (reopened.is_encrypted() || reopened.trailer().contains_key("Encrypt")) {
+                        suite
+                            .failures
+                            .push(format!("{id}: removing the encryption left /Encrypt"));
+                    }
                     if again != (pages, rotations.clone(), title.clone()) || reopened.was_repaired() {
                         suite.failures.push(format!(
                             "{id}: lamina reopened {again:?} (repaired {}), expected {:?}",
@@ -221,6 +240,8 @@ pub fn run(root: &Path) -> Suite {
                         "rotations": rotations,
                         "title": title,
                         "encrypted": reopened.is_encrypted(),
+                        // PDFium reads no `/Title` from a direct `/Info` dictionary.
+                        "direct_info": matches!(reopened.trailer().get("Info"), Some(lamina_cos::Object::Dict(_))),
                         "invalidated": report.invalidated().len(),
                     }));
                     suite.outputs.push((file, output));

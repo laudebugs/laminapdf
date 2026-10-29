@@ -6,10 +6,10 @@
 
 use std::sync::Arc;
 
-use lamina_cos::{ByteSource, CosMut, JournalMark, ObjRef, Object, Source, SourceError};
+use lamina_cos::{ByteSource, Source, SourceError};
 use lamina_ops::{Document, PendingRebase, SaveState};
 
-use crate::constraint::SignatureInfo;
+use crate::detect::Patches;
 use crate::error::{Result, SaveError, SavedOutput};
 use crate::full::FullWriter;
 use crate::incremental::IncrementalWriter;
@@ -23,10 +23,11 @@ use crate::sink::{ReadableSink, WriteSink};
 /// Every save plans first ([`SavePlanner`]) and refuses before writing anything when the
 /// plan does ([`SaveError::WouldInvalidateSignatures`], [`SaveError::RequiresRewrite`],
 /// [`SaveError::EncryptedBase`]). With the explicit override
-/// ([`SaveOptions::with_invalidate_signatures`]) the planner removes the invalidated
-/// signatures' values (`/V`) and their `/Perms` entries in the overlay, outside the undo
-/// history, right before writing (undone again if the save fails before its output is
-/// complete), and [`SaveReport::invalidated`] lists them.
+/// ([`SaveOptions::with_invalidate_signatures`]) the output has the invalidated signatures'
+/// values (`/V`) and their `/Perms` entries removed: the writers write the planner's changes
+/// over the document's values (the document itself only changes through the rebase onto the
+/// output, so a failed save leaves nothing behind), and [`SaveReport::invalidated`] lists
+/// them.
 ///
 /// Every save is refused while a transaction is open
 /// ([`NestedTransaction`](lamina_ops::Error::NestedTransaction)) or the document is
@@ -114,105 +115,30 @@ fn settle(doc: &mut Document, source: Source, pending: PendingRebase) -> Result<
     })
 }
 
-/// Plans, and applies the override's removals. Returns the plan and the journal mark to roll
-/// the removals back to if the save fails before its output is complete.
-fn prepare(doc: &mut Document, options: SaveOptions) -> Result<(SavePlan, Option<JournalMark>)> {
+/// What [`write`] did: an incremental save (already rebased), or a full rewrite whose output
+/// the caller rebases onto or leaves pending.
+enum Written {
+    Incremental(SaveReport),
+    Full(SaveReport),
+}
+
+/// Plans and writes: the shared part of [`Save::save`] and [`Save::save_and_rebase`].
+fn write<S: WriteSink + ?Sized>(doc: &mut Document, sink: &mut S, options: SaveOptions) -> Result<Written> {
     ready(doc)?;
-    let plan = doc.plan(&options)?;
-    let mark = if plan.would_invalidate().is_empty() {
-        None
+    let planner = SavePlanner::new(doc)?;
+    let plan = planner.plan(&options)?;
+    let patches = planner.patches(doc.cos(), &plan)?;
+    let mut report = if plan.mode() == SaveMode::Incremental {
+        write_incremental(doc, sink, options, &patches).map(Written::Incremental)?
     } else {
-        Some(doc.edit_outside_history(|cos| strip_signatures(cos, plan.would_invalidate()))?)
+        FullWriter::new(doc.cos(), options)
+            .with_patches(&patches)
+            .write(sink)
+            .map(Written::Full)?
     };
-    Ok((plan, mark))
-}
-
-/// The report, or the error after the override's removals were undone (unless the output was
-/// written and the document waits for its rebase: the removals are in it).
-fn finish(
-    doc: &mut Document,
-    plan: &SavePlan,
-    mark: Option<JournalMark>,
-    result: Result<SaveReport>,
-) -> Result<SaveReport> {
-    match result {
-        Ok(mut report) => {
-            report.invalidated = plan.would_invalidate().to_vec();
-            Ok(report)
-        }
-        Err(e) => {
-            if let Some(mark) = mark
-                && doc.save_state() != SaveState::SavedNotRebased
-            {
-                doc.rollback_outside_history(mark)?;
-            }
-            Err(e)
-        }
-    }
-}
-
-/// Removes the value (`/V`) of each invalidated signature's field and the `/Perms` entries
-/// that point at an invalidated signature (`/Perms` itself when nothing is left) ([ADR 0007]
-/// §3). A signature without an indirect field keeps nothing to remove there: a full rewrite
-/// drops its dictionary when nothing else reaches it.
-///
-/// [ADR 0007]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0007-save-planner.md
-fn strip_signatures(cos: &mut CosMut<'_>, signatures: &[SignatureInfo]) -> lamina_cos::Result<()> {
-    for field in signatures
-        .iter()
-        .filter_map(|s| s.field.as_ref()?.as_lamina_id().obj_ref())
-    {
-        if let Some(object) = cos.get(field)?
-            && let Some(dict) = object.as_dict()
-            && dict.contains_key("V")
-        {
-            let mut dict = dict.clone();
-            dict.remove("V");
-            cos.set(field, Object::Dict(dict))?;
-        }
-    }
-    let values: Vec<ObjRef> = signatures.iter().filter_map(|s| s.value).collect();
-    let Some(root) = cos.trailer().get("Root").and_then(Object::as_ref) else {
-        return Ok(());
-    };
-    let Some(catalog) = cos.get(root)?.and_then(|o| o.as_dict().cloned()) else {
-        return Ok(());
-    };
-    let Some(perms_value) = catalog.get("Perms").cloned() else {
-        return Ok(());
-    };
-    let perms_ref = perms_value.as_ref();
-    let perms = match perms_ref {
-        Some(r) => cos.get(r)?.and_then(|o| o.as_dict().cloned()),
-        None => perms_value.as_dict().cloned(),
-    };
-    let Some(mut perms) = perms else {
-        return Ok(());
-    };
-    let before = perms.len();
-    for key in ["DocMDP", "UR3", "UR"] {
-        if perms
-            .get(key)
-            .and_then(Object::as_ref)
-            .is_some_and(|r| values.contains(&r))
-        {
-            perms.remove(key);
-        }
-    }
-    if perms.len() == before {
-        return Ok(());
-    }
-    let mut catalog = catalog;
-    if perms.is_empty() {
-        catalog.remove("Perms");
-        cos.set(root, Object::Dict(catalog))?;
-    } else if let Some(r) = perms_ref {
-        cos.set(r, Object::Dict(perms))?;
-    } else {
-        catalog.insert("Perms", Object::Dict(perms));
-        cos.set(root, Object::Dict(catalog))?;
-    }
-    Ok(())
+    let (Written::Incremental(r) | Written::Full(r)) = &mut report;
+    r.invalidated = plan.would_invalidate().to_vec();
+    Ok(report)
 }
 
 /// The incremental writer, then the rebase onto old base ‖ revision.
@@ -220,8 +146,11 @@ fn write_incremental<S: WriteSink + ?Sized>(
     doc: &mut Document,
     sink: &mut S,
     options: SaveOptions,
+    patches: &Patches,
 ) -> Result<SaveReport> {
-    let saved = IncrementalWriter::new(doc.cos(), options).write(sink)?;
+    let saved = IncrementalWriter::new(doc.cos(), options)
+        .with_patches(patches)
+        .write(sink)?;
     let pending = if saved.freed_objects() {
         PendingRebase::ClearHistory
     } else {
@@ -256,32 +185,24 @@ impl Save for Document {
     }
 
     fn save<S: WriteSink + ?Sized>(&mut self, sink: &mut S, options: &SaveOptions) -> Result<SaveReport> {
-        let (plan, mark) = prepare(self, *options)?;
-        let result = if plan.mode() == SaveMode::Incremental {
-            write_incremental(self, sink, *options)
-        } else {
-            FullWriter::new(self.cos(), *options).write(sink).and_then(|report| {
+        match write(self, sink, *options)? {
+            Written::Incremental(report) => Ok(report),
+            Written::Full(report) => {
                 self.saved_not_rebased(PendingRebase::ClearHistory)?;
                 Ok(report)
-            })
-        };
-        finish(self, &plan, mark, result)
+            }
+        }
     }
 
     fn save_and_rebase<S: ReadableSink>(&mut self, mut sink: S, options: &SaveOptions) -> Result<SaveReport> {
-        let (plan, mark) = prepare(self, *options)?;
-        let result = if plan.mode() == SaveMode::Incremental {
-            write_incremental(self, &mut sink, *options)
-        } else {
-            FullWriter::new(self.cos(), *options)
-                .write(&mut sink)
-                .and_then(|report| {
-                    let source = Source::from(sink.into_source()?);
-                    settle(self, source, PendingRebase::ClearHistory)?;
-                    Ok(report)
-                })
-        };
-        finish(self, &plan, mark, result)
+        match write(self, &mut sink, *options)? {
+            Written::Incremental(report) => Ok(report),
+            Written::Full(report) => {
+                let source = Source::from(sink.into_source()?);
+                settle(self, source, PendingRebase::ClearHistory)?;
+                Ok(report)
+            }
+        }
     }
 }
 

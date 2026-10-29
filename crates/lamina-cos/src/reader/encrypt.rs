@@ -393,8 +393,9 @@ pub(crate) fn decrypt_for_repair(security: &Security, stream: &mut Object, num: 
 
 /// Removes a leading `/Crypt` filter (and its `/DecodeParms` entry) from `params`, which holds a
 /// stream's resolved `/Filter` and `/DecodeParms`. Only for streams of an encrypted document,
-/// which the reader decrypted when it loaded them (ISO 32000-2 §7.4.10: `/Crypt` comes first).
-pub(crate) fn strip_crypt_filter(params: &mut Dict) {
+/// which the reader decrypted when it loaded them (ISO 32000-2 §7.4.10: `/Crypt` comes first):
+/// the decoder uses it, and `lamina-save` when it writes such a stream as plaintext.
+pub fn strip_crypt_filter(params: &mut Dict) {
     let is_crypt = |o: &Object| matches!(o, Object::Name(n) if n.as_bytes() == b"Crypt");
     match params.get_mut("Filter") {
         Some(Object::Array(filters)) if filters.first().is_some_and(is_crypt) => {

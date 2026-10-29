@@ -7,7 +7,7 @@
 mod common;
 
 use common::fixture;
-use common::fuzz_entry::{SAVE_SEED_CONTROL, TARGETS, ops_json, save_roundtrip};
+use common::fuzz_entry::{SAVE_SEED_CONTROL, TARGETS, op_log, ops_json, save_roundtrip};
 
 fn files(dir: &str) -> Vec<std::path::PathBuf> {
     let Ok(entries) = std::fs::read_dir(common::fixtures_dir().join(dir)) else {
@@ -55,4 +55,21 @@ fn every_fixture_pdf_runs_through_save_roundtrip_with_each_mode() {
 fn a_short_input_is_ignored() {
     save_roundtrip(b"abc");
     ops_json(&fixture("corpus/hello.pdf"));
+}
+
+#[test]
+fn a_bare_op_sample_is_read_as_a_one_op_log() {
+    let log = op_log(&fixture("ops/v1/rotate-page.json")).unwrap();
+    assert_eq!(log.ops().len(), 1);
+}
+
+#[test]
+fn a_log_longer_than_the_default_undo_depth_is_undone_completely() {
+    // Each op sets a different title, so each is its own undo entry.
+    let ops: Vec<String> = (0..600)
+        .map(|i| format!(r#"{{ "op": "setInfo", "args": {{ "patch": {{ "title": "t{i}" }} }} }}"#))
+        .collect();
+    let log = format!(r#"{{ "v": 1, "ops": [{}] }}"#, ops.join(","));
+    assert_eq!(op_log(log.as_bytes()).map(|l| l.ops().len()), Some(600));
+    ops_json(log.as_bytes());
 }

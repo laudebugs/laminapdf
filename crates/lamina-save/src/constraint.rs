@@ -83,14 +83,15 @@ pub enum DocMdpPermission {
 }
 
 impl DocMdpPermission {
-    /// The permission for a `/P` value; anything but 1 and 3 is 2, the default (§12.8.2.2,
-    /// Table 257).
+    /// The permission for a `/P` value (§12.8.2.2, Table 257); `None` for anything but 1, 2
+    /// and 3. An absent `/P` means 2; the planner takes an invalid one as 1, the strictest.
     #[must_use]
-    pub const fn from_p(p: Option<i64>) -> Self {
+    pub const fn from_p(p: i64) -> Option<Self> {
         match p {
-            Some(1) => Self::NoChanges,
-            Some(3) => Self::Annotate,
-            _ => Self::FormFill,
+            1 => Some(Self::NoChanges),
+            2 => Some(Self::FormFill),
+            3 => Some(Self::Annotate),
+            _ => None,
         }
     }
 
@@ -124,6 +125,9 @@ impl DocMdpPermission {
 pub struct DocMdp {
     /// What it permits.
     pub permission: DocMdpPermission,
+    /// The permission couldn't be read (no readable `DocMDP` transform, or a `/P` that isn't 1,
+    /// 2 or 3), so the strictest, [`DocMdpPermission::NoChanges`], is assumed.
+    pub assumed: bool,
     /// The certification signature.
     pub signature: SignatureInfo,
 }
@@ -140,6 +144,9 @@ pub enum RewriteReason {
     ///
     /// [`SaveOptions::with_remove_encryption`]: crate::SaveOptions::with_remove_encryption
     EncryptedBase,
+    /// There are no base bytes to append to (a document built from scratch): only a full
+    /// rewrite can write it.
+    NoBase,
     /// A pending op needs a full rewrite ([`lamina_ops::Op::requires_rewrite`]: redaction,
     /// sanitising), so that no earlier revision keeps what it removed.
     OpRequiresRewrite,
@@ -156,6 +163,9 @@ pub enum Restriction {
     FieldMdp,
     /// A usage-rights signature (§12.8.2.3): a change outside the rights it grants.
     UsageRights,
+    /// The signed bytes themselves: a change that needs a full rewrite moves them, which
+    /// breaks every signature ([`SavePlanner::would_violate`](crate::SavePlanner::would_violate)).
+    SignedBytes,
 }
 
 /// A pending change that a signature's restriction forbids: saving it, even incrementally,
@@ -215,10 +225,18 @@ pub struct SaveConstraint {
     pub rewrite_reasons: Vec<RewriteReason>,
     /// Pending changes a signature's restriction forbids.
     pub violations: Vec<Violation>,
+    /// Part of the form couldn't be followed (a branch too deep, or not an array or
+    /// dictionary where one belongs): there may be signatures nobody saw, so the document
+    /// counts as signed.
+    pub signatures_unknown: bool,
+    /// The overlay is empty: an incremental save writes the base bytes unchanged, which
+    /// invalidates nothing and keeps any encryption.
+    pub unchanged: bool,
 }
 
 impl SaveConstraint {
-    /// The summary for the UI's banner.
+    /// The summary for the UI's banner. Unknown signatures
+    /// ([`SaveConstraint::signatures_unknown`]) count as signatures.
     ///
     /// ```
     /// use lamina_save::{ConstraintKind, RewriteReason, SaveConstraint, SignatureInfo, SignatureKind};
@@ -232,7 +250,7 @@ impl SaveConstraint {
     /// ```
     #[must_use]
     pub fn kind(&self) -> ConstraintKind {
-        let signed = !self.signatures.is_empty();
+        let signed = !self.signatures.is_empty() || self.signatures_unknown;
         let rewrite = !self.rewrite_reasons.is_empty();
         match (signed, rewrite || !self.violations.is_empty()) {
             (true, true) => ConstraintKind::Conflict,

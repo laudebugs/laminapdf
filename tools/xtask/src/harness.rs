@@ -560,6 +560,29 @@ pub(crate) fn check_fuzz_excluded(ws: &Workspace) -> Result<()> {
 mod tests {
     use super::*;
 
+    /// The array literal after `const <name>` in `source`, as numbers.
+    fn const_bytes(source: &str, name: &str) -> Vec<u8> {
+        let after = source.split(&format!("const {name}")).nth(1).unwrap();
+        let list = after.split('=').nth(1).unwrap();
+        let list = list.split(']').next().unwrap().trim().trim_start_matches('[');
+        list.split(',')
+            .map(|n| {
+                let n = n.trim();
+                n.strip_prefix("0x")
+                    .map_or_else(|| n.parse().unwrap(), |h| u8::from_str_radix(h, 16).unwrap())
+            })
+            .collect()
+    }
+
+    #[test]
+    fn the_save_seed_control_bytes_match_the_fuzz_entry() {
+        let entry = fs::read_to_string(
+            Path::new(env!("CARGO_MANIFEST_DIR")).join("../../crates/lamina-save/tests/common/fuzz_entry.rs"),
+        )
+        .unwrap();
+        assert_eq!(const_bytes(&entry, "SAVE_SEED_CONTROL"), SAVE_SEED_CONTROL);
+    }
+
     fn args(list: &[&str]) -> Vec<String> {
         list.iter().map(|s| (*s).to_owned()).collect()
     }

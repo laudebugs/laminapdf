@@ -91,10 +91,16 @@ fn every_mode_refuses_an_encrypted_base_and_writes_nothing() {
 }
 
 #[test]
-fn a_clean_encrypted_document_is_refused_too() {
+fn a_clean_encrypted_document_saves_unchanged_but_refuses_a_rewrite() {
+    // Writing the base bytes unchanged keeps the encryption and breaks nothing.
+    let bytes = fixture("corpus/enc.pdf");
     let mut doc = open("corpus/enc.pdf", "");
+    let mut out = Vec::new();
+    let report = doc.save(&mut out, &SaveOptions::new()).unwrap();
+    assert_eq!((report.mode(), out == bytes), (SaveMode::Incremental, true));
     assert_eq!(
-        doc.save(&mut Vec::new(), &SaveOptions::new()).err(),
+        doc.save(&mut Vec::new(), &SaveOptions::new().with_mode(SaveMode::FullRewrite))
+            .err(),
         Some(SaveError::EncryptedBase)
     );
 }

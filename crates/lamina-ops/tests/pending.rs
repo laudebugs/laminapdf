@@ -3,8 +3,6 @@
 
 mod common;
 
-use std::collections::BTreeSet;
-
 use common::{corpus, page_ids, rotate, set_title};
 use lamina_cos::{ObjRef, Object};
 use lamina_model::Rotation;
@@ -76,43 +74,25 @@ fn undoing_to_an_empty_overlay_clears_them_and_redo_brings_them_back() {
 }
 
 #[test]
-fn an_edit_outside_history_adds_no_class_and_rolls_back() {
-    let mut doc = corpus("hello.pdf");
-    let mark = doc
-        .edit_outside_history(|cos| cos.set(ObjRef::new(1, 0), Object::Null))
-        .unwrap();
-    let dirty = doc.is_dirty();
-    doc.rollback_outside_history(mark).unwrap();
+fn a_model_document_wrapped_while_dirty_has_unknown_changes() {
+    let mut model =
+        lamina_model::Document::open(common::fixture("corpus/hello.pdf"), lamina_cos::OpenOptions::default()).unwrap();
+    model.cos_mut().edit().set(ObjRef::new(1, 0), Object::Null).unwrap();
+    let doc = Document::from(model);
+    let pending = doc.pending_changes();
     assert_eq!(
         (
-            dirty,
-            doc.pending_changes().classes().clone(),
-            doc.is_dirty(),
-            doc.history().can_undo()
+            pending.is_unknown(),
+            pending.requires_rewrite(),
+            pending.classes().len()
         ),
-        (true, BTreeSet::new(), false, false)
+        (true, true, 7)
     );
 }
 
 #[test]
-fn an_edit_outside_history_is_refused_in_a_transaction() {
-    let mut doc = corpus("hello.pdf");
-    doc.begin(Origin::Local).unwrap();
-    assert_eq!(
-        doc.edit_outside_history(|_| Ok(())).err(),
-        Some(Error::NestedTransaction)
-    );
-}
-
-#[test]
-fn a_failing_edit_outside_history_leaves_nothing() {
-    let mut doc = corpus("hello.pdf");
-    let result = doc.edit_outside_history(|cos| {
-        cos.set(ObjRef::new(1, 0), Object::Null)?;
-        Err(lamina_cos::Error::RepairedBase)
-    });
-    assert_eq!(
-        (result.err(), doc.is_dirty()),
-        (Some(Error::Cos(lamina_cos::Error::RepairedBase)), false)
-    );
+fn a_clean_model_document_has_no_pending_changes() {
+    let model =
+        lamina_model::Document::open(common::fixture("corpus/hello.pdf"), lamina_cos::OpenOptions::default()).unwrap();
+    assert!(Document::from(model).pending_changes().is_empty());
 }

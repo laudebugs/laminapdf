@@ -75,19 +75,17 @@ pub(crate) fn run_suite(ws: &Workspace, tools: &[&str]) -> Result<()> {
     versions.insert("cases".to_owned(), json!(files.len()));
     let mut failed = Vec::new();
     for &tool in tools {
-        let result = match tool {
+        // Each check reports the tool's version even when it fails, so a failure is
+        // reproducible.
+        let Checked { version, outcome } = match tool {
             "qpdf" => qpdf(&out, &files),
             "pdfjs" => pdfjs(ws, &out),
             _ => pdfium(ws, &out),
         };
-        match result {
-            Ok(version) => {
-                versions.insert(tool.to_owned(), version);
-            }
-            Err(e) => {
-                eprintln!("{tool}: {e:#}");
-                failed.push(tool);
-            }
+        versions.insert(tool.to_owned(), version);
+        if let Err(e) = outcome {
+            eprintln!("{tool}: {e:#}");
+            failed.push(tool);
         }
     }
     fs::write(out.join("versions.json"), serde_json::to_string_pretty(&versions)?)?;
@@ -103,48 +101,88 @@ pub(crate) fn run_suite(ws: &Workspace, tools: &[&str]) -> Result<()> {
     Ok(())
 }
 
+/// The qpdf release the round trip is checked with. The same as `QPDF_VERSION` in
+/// `doctor.rs` once that pins qpdf (B4a); a different version fails the check, so a result
+/// is always reproducible.
+const QPDF_VERSION: &str = "12.4.2";
+
+/// What one tool's check found: its version (`null` when it couldn't be read) and whether
+/// every output passed.
+struct Checked {
+    version: Value,
+    outcome: Result<()>,
+}
+
+impl Checked {
+    fn failed(version: Value, e: anyhow::Error) -> Self {
+        Self {
+            version,
+            outcome: Err(e),
+        }
+    }
+}
+
 /// `qpdf --check` on every output; exit status 0 only (3, warnings, is a failure too).
-fn qpdf(out: &Path, files: &[String]) -> Result<Value> {
-    let version = output("qpdf", &["--version"])?;
+fn qpdf(out: &Path, files: &[String]) -> Checked {
+    let version = match output("qpdf", &["--version"]) {
+        Ok(text) => text.lines().next().unwrap_or_default().to_owned(),
+        Err(e) => return Checked::failed(Value::Null, e),
+    };
+    let found = version.trim_start_matches("qpdf version ").trim();
+    if found != QPDF_VERSION {
+        return Checked::failed(
+            json!(version),
+            anyhow::anyhow!(
+                "qpdf {found}, expected {QPDF_VERSION} (brew install qpdf, or a {QPDF_VERSION} release from https://github.com/qpdf/qpdf/releases)"
+            ),
+        );
+    }
     step(&format!("qpdf --check on {} files", files.len()));
     let mut failures = Vec::new();
     for file in files {
-        let result = Command::new("qpdf")
-            .arg("--check")
-            .arg(out.join(file))
-            .output()
-            .context("running qpdf")?;
+        let result = match Command::new("qpdf").arg("--check").arg(out.join(file)).output() {
+            Ok(result) => result,
+            Err(e) => return Checked::failed(json!(version), anyhow::Error::new(e).context("running qpdf")),
+        };
         if !result.status.success() {
             failures.push(format!(
-                "{file}: {}\n{}",
+                "{file}: {}\n{}{}",
                 result.status,
-                String::from_utf8_lossy(&result.stdout)
+                String::from_utf8_lossy(&result.stdout),
+                String::from_utf8_lossy(&result.stderr)
             ));
         }
     }
-    if !failures.is_empty() {
-        bail!(
+    let outcome = if failures.is_empty() {
+        Ok(())
+    } else {
+        Err(anyhow::anyhow!(
             "{} file(s) failed `qpdf --check`:\n{}",
             failures.len(),
             failures.join("\n")
-        );
+        ))
+    };
+    Checked {
+        version: json!(version),
+        outcome,
     }
-    Ok(json!(version.lines().next().unwrap_or_default()))
 }
 
 /// pdf.js over the manifest.
-fn pdfjs(ws: &Workspace, out: &Path) -> Result<Value> {
+fn pdfjs(ws: &Workspace, out: &Path) -> Checked {
     let tools = ws.root.join("tools/roundtrip");
     let dir = if let Some(dir) = std::env::var_os("LAMINA_PDFJS") {
         dir.into()
     } else {
         let dir = tools.join("node_modules/pdfjs-dist");
-        if !dir.join("package.json").is_file() {
-            run(
+        if !dir.join("package.json").is_file()
+            && let Err(e) = run(
                 &tools,
                 "npm",
                 &["install", "--no-package-lock", "--no-audit", "--no-fund"],
-            )?;
+            )
+        {
+            return Checked::failed(Value::Null, e);
         }
         dir
     };
@@ -153,45 +191,62 @@ fn pdfjs(ws: &Workspace, out: &Path) -> Result<Value> {
 }
 
 /// `PDFium` (pypdfium2) over the manifest.
-fn pdfium(ws: &Workspace, out: &Path) -> Result<Value> {
+fn pdfium(ws: &Workspace, out: &Path) -> Checked {
     let script = ws.root.join("tools/roundtrip/pdfium.py");
     tool_report(&crate::harness::python(), &[script.as_os_str(), out.as_os_str()])
 }
 
-/// Runs a checker that prints one JSON line `{ tool, version, …, failures }`; fails when it
-/// reports failures or exits unsuccessfully. Returns the line without its failures.
-fn tool_report(program: &str, args: &[&std::ffi::OsStr]) -> Result<Value> {
+/// Runs a checker that prints one JSON line `{ tool, version, …, failures }`. The line without
+/// its failures is the version; the check fails when it lists failures, exits unsuccessfully
+/// or prints no report.
+fn tool_report(program: &str, args: &[&std::ffi::OsStr]) -> Checked {
     let shown: Vec<_> = args.iter().map(|a| a.to_string_lossy()).collect();
     step(&format!("{program} {}", shown.join(" ")));
-    let result = Command::new(crate::program_path(program))
-        .args(args)
-        .output()
-        .with_context(|| format!("failed to start `{program}`; is it installed and on PATH?"))?;
+    let result = match Command::new(crate::program_path(program)).args(args).output() {
+        Ok(result) => result,
+        Err(e) => {
+            return Checked::failed(
+                Value::Null,
+                anyhow::Error::new(e).context(format!("failed to start `{program}`; is it installed and on PATH?")),
+            );
+        }
+    };
     let stdout = String::from_utf8_lossy(&result.stdout);
     let line = stdout.lines().last().unwrap_or_default();
-    let mut report: Value = serde_json::from_str(line).with_context(|| {
-        format!(
-            "`{program}` printed no report ({}):\n{stdout}{}",
-            result.status,
-            String::from_utf8_lossy(&result.stderr)
-        )
-    })?;
+    let Ok(mut report) = serde_json::from_str::<Value>(line) else {
+        return Checked::failed(
+            Value::Null,
+            anyhow::anyhow!(
+                "`{program}` printed no report ({}):\n{stdout}{}",
+                result.status,
+                String::from_utf8_lossy(&result.stderr)
+            ),
+        );
+    };
     let failures = report
         .get("failures")
         .and_then(Value::as_array)
         .cloned()
         .unwrap_or_default();
-    if !failures.is_empty() || !result.status.success() {
-        let list: Vec<String> = failures
-            .iter()
-            .map(|f| f.as_str().unwrap_or_default().to_owned())
-            .collect();
-        bail!("{} failure(s):\n{}", list.len(), list.join("\n"));
-    }
     if let Some(map) = report.as_object_mut() {
         map.remove("failures");
     }
-    Ok(report)
+    let outcome = if failures.is_empty() && result.status.success() {
+        Ok(())
+    } else {
+        let list: Vec<&str> = failures.iter().map(|f| f.as_str().unwrap_or_default()).collect();
+        Err(anyhow::anyhow!(
+            "{} failure(s) ({}):\n{}{}",
+            list.len(),
+            result.status,
+            list.join("\n"),
+            String::from_utf8_lossy(&result.stderr)
+        ))
+    };
+    Checked {
+        version: report,
+        outcome,
+    }
 }
 
 /// The stdout of `program args…`.

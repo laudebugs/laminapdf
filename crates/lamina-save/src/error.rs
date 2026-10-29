@@ -53,6 +53,8 @@ pub enum SaveError {
         rewrite_reasons: Vec<RewriteReason>,
         /// Pending changes the signatures' restrictions forbid.
         violations: Vec<Violation>,
+        /// Part of the form couldn't be read: there may be signatures beyond `signatures`.
+        signatures_unknown: bool,
     },
     /// An incremental save was requested, but only a full rewrite is safe: save with
     /// [`SaveMode::Auto`](crate::SaveMode::Auto) or

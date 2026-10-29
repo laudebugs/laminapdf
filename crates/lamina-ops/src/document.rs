@@ -3,7 +3,7 @@
 use std::collections::BTreeSet;
 use std::ops;
 
-use lamina_cos::{CosMut, JournalMark, OpenOptions, Reserved, Source};
+use lamina_cos::{OpenOptions, Reserved, Source};
 
 use crate::error::{Error, Result};
 use crate::history::{Entry, History, Reverted, UndoOutcome};
@@ -85,13 +85,21 @@ const _: () = {
 };
 
 impl From<lamina_model::Document> for Document {
+    /// Wraps `model`. An overlay that already holds changes was made without ops, so what
+    /// kind of change it holds is unknown: [`PendingChanges::unknown`] (every class, and a
+    /// full rewrite needed), never empty.
     fn from(model: lamina_model::Document) -> Self {
+        let pending = if model.is_dirty() {
+            PendingChanges::unknown()
+        } else {
+            PendingChanges::default()
+        };
         Self {
             model,
             history: History::default(),
             open: None,
             unrebased: None,
-            pending: PendingChanges::default(),
+            pending,
         }
     }
 }
@@ -142,47 +150,6 @@ impl Document {
     #[must_use]
     pub const fn pending_changes(&self) -> &PendingChanges {
         &self.pending
-    }
-
-    /// Changes the COS overlay outside any transaction and outside the undo history, for
-    /// `lamina-save`'s save planner: the explicit signature override removes the values of
-    /// the signatures a save invalidates (ADR 0007 §3) right before it writes. It is not an
-    /// editing path: callers edit through ops. The changes join no undo entry and no pending
-    /// class; [`Document::rollback_outside_history`] with the returned mark undoes them when
-    /// the save fails, and the rebase after a save makes them part of the base.
-    ///
-    /// # Errors
-    /// [`Error::NestedTransaction`] while a transaction is open; [`Error::SavedNotRebased`];
-    /// what `f` returns (its changes are rolled back first).
-    pub fn edit_outside_history(
-        &mut self,
-        f: impl FnOnce(&mut CosMut<'_>) -> lamina_cos::Result<()>,
-    ) -> Result<JournalMark> {
-        if self.open.is_some() {
-            return Err(Error::NestedTransaction);
-        }
-        self.writable()?;
-        let cos = self.model.cos_mut();
-        let mark = cos.journal_mark();
-        if let Err(e) = f(&mut cos.edit()) {
-            cos.rollback_to(mark)?;
-            return Err(e.into());
-        }
-        Ok(mark)
-    }
-
-    /// Undoes the changes made since `mark` by [`Document::edit_outside_history`].
-    ///
-    /// # Errors
-    /// [`Error::NestedTransaction`] while a transaction is open; [`Error::SavedNotRebased`];
-    /// a COS error when `mark` is not one this document's journal still holds.
-    pub fn rollback_outside_history(&mut self, mark: JournalMark) -> Result<()> {
-        if self.open.is_some() {
-            return Err(Error::NestedTransaction);
-        }
-        self.writable()?;
-        self.model.cos_mut().rollback_to(mark)?;
-        Ok(())
     }
 
     /// Where the document stands relative to its last save.

@@ -21,9 +21,38 @@ use crate::op::Op;
 pub struct PendingChanges {
     classes: BTreeSet<ModificationClass>,
     requires_rewrite: bool,
+    unknown: bool,
 }
 
 impl PendingChanges {
+    /// Changes of unknown kind (an overlay changed without ops, such as a model document
+    /// wrapped while dirty): every class, and a full rewrite needed, since nothing tells
+    /// otherwise.
+    #[must_use]
+    pub fn unknown() -> Self {
+        Self {
+            classes: [
+                ModificationClass::Metadata,
+                ModificationClass::FormFill,
+                ModificationClass::Annotation,
+                ModificationClass::Signature,
+                ModificationClass::PageStructure,
+                ModificationClass::Content,
+                ModificationClass::Document,
+            ]
+            .into_iter()
+            .collect(),
+            requires_rewrite: true,
+            unknown: true,
+        }
+    }
+
+    /// Whether the changes are of unknown kind ([`PendingChanges::unknown`]).
+    #[must_use]
+    pub const fn is_unknown(&self) -> bool {
+        self.unknown
+    }
+
     /// The op classes of the changes not yet saved.
     #[must_use]
     pub const fn classes(&self) -> &BTreeSet<ModificationClass> {
@@ -52,6 +81,7 @@ impl PendingChanges {
     pub(crate) fn merge(&mut self, other: &Self) {
         self.classes.extend(other.classes.iter().copied());
         self.requires_rewrite |= other.requires_rewrite;
+        self.unknown |= other.unknown;
     }
 
     /// Forgets everything (after a rebase, or when the overlay is empty again).

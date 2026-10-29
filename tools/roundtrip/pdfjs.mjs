@@ -1,6 +1,7 @@
 // The pdf.js half of the round-trip suite (todo B3c, ADR 0018 tier 7): opens every output
 // listed in <out-dir>/manifest.json (written by lamina-save's `roundtrip` example) and checks
-// the page count, each page's rotation and the Info /Title against it. `cargo xtask roundtrip`
+// the page count, each page's rotation, the Info /Title and whether the file is encrypted
+// against it. `cargo xtask roundtrip`
 // runs it; it prints one JSON line ({ tool, version, checked, failures }) and exits 1 on any
 // failure.
 //
@@ -34,8 +35,10 @@ for (const c of cases) {
     }
     const { info } = await doc.getMetadata();
     const title = info.Title ?? null;
-    const got = { pages: doc.numPages, rotations, title };
-    const want = { pages: c.pages, rotations: c.rotations, title: c.title };
+    // getPermissions() is null for a document without encryption.
+    const encrypted = (await doc.getPermissions()) !== null || info.IsEncrypted === true;
+    const got = { pages: doc.numPages, rotations, title, encrypted };
+    const want = { pages: c.pages, rotations: c.rotations, title: c.title, encrypted: c.encrypted };
     if (JSON.stringify(got) !== JSON.stringify(want)) {
       failures.push(`${c.file}: got ${JSON.stringify(got)}, expected ${JSON.stringify(want)}`);
     }

@@ -11,22 +11,31 @@ use crate::options::{SaveMode, SaveOptions};
 ///
 /// | `kind()` | `Auto` | `Incremental` | `FullRewrite` |
 /// | --- | --- | --- | --- |
-/// | `Free` | `Incremental` with a base, else `FullRewrite` | OK | OK |
+/// | `Free` | `Incremental` | OK | OK |
 /// | `AppendOnly` | `Incremental` | OK | refused unless overridden |
 /// | `RequiresRewrite` | `FullRewrite` | refused | OK |
 /// | `Conflict` | refused unless overridden | refused unless overridden, and always with rewrite reasons | refused unless overridden |
 ///
-/// An encrypted base ([`RewriteReason::EncryptedBase`]) is refused in every mode without
-/// `remove_encryption` ([`SaveError::EncryptedBase`]), before the table.
+/// Before the table: an unchanged document ([`SaveConstraint::unchanged`]) saves
+/// incrementally in `Auto` and `Incremental` (the base bytes unchanged, which breaks nothing),
+/// unless encryption is being removed or there is no base; then an encrypted base
+/// ([`RewriteReason::EncryptedBase`]) is refused in every mode without `remove_encryption`
+/// ([`SaveError::EncryptedBase`]). A document without a base has
+/// [`RewriteReason::NoBase`], so it is `RequiresRewrite` (`Auto` writes a full rewrite).
+/// Unknown signatures ([`SaveConstraint::signatures_unknown`]) count as signatures.
 ///
 /// [ADR 0007]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0007-save-planner.md
 #[expect(clippy::match_same_arms, reason = "one arm per cell of the ADR's table")]
-pub(crate) fn resolve(
-    constraint: &SaveConstraint,
-    has_base: bool,
-    options: SaveOptions,
-) -> Result<(SaveMode, Vec<SignatureInfo>)> {
+pub(crate) fn resolve(constraint: &SaveConstraint, options: SaveOptions) -> Result<(SaveMode, Vec<SignatureInfo>)> {
     let reasons = &constraint.rewrite_reasons;
+    let removing = options.remove_encryption() && reasons.contains(&RewriteReason::EncryptedBase);
+    if constraint.unchanged
+        && matches!(options.mode(), SaveMode::Auto | SaveMode::Incremental)
+        && !removing
+        && !reasons.contains(&RewriteReason::NoBase)
+    {
+        return Ok((SaveMode::Incremental, Vec::new()));
+    }
     if reasons.contains(&RewriteReason::EncryptedBase) && !options.remove_encryption() {
         return Err(SaveError::EncryptedBase);
     }
@@ -35,13 +44,13 @@ pub(crate) fn resolve(
         signatures: constraint.signatures.clone(),
         rewrite_reasons: reasons.clone(),
         violations: constraint.violations.clone(),
+        signatures_unknown: constraint.signatures_unknown,
     };
     let requires = || SaveError::RequiresRewrite {
         reasons: reasons.clone(),
     };
     let mode = match (constraint.kind(), options.mode()) {
-        (ConstraintKind::Free, SaveMode::Auto) if has_base => SaveMode::Incremental,
-        (ConstraintKind::Free, SaveMode::Auto) => SaveMode::FullRewrite,
+        (ConstraintKind::Free, SaveMode::Auto) => SaveMode::Incremental,
         (ConstraintKind::Free, requested) => requested,
         (ConstraintKind::AppendOnly, SaveMode::Auto | SaveMode::Incremental) => SaveMode::Incremental,
         (ConstraintKind::AppendOnly, _) if overridden => SaveMode::FullRewrite,

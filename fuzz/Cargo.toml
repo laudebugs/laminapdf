@@ -20,6 +20,7 @@ lamina-cos = { path = "../crates/lamina-cos" }
 lamina-model = { path = "../crates/lamina-model" }
 lamina-ops = { path = "../crates/lamina-ops" }
 lamina-save = { path = "../crates/lamina-save" }
+serde_json = "1.0.154"
 
 [workspace]
 members = ["."]

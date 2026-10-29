@@ -142,18 +142,7 @@ fn a_signed_and_repaired_file_is_a_conflict_with_its_signature_found_by_scanning
 
 #[test]
 fn unsigned_corpus_files_are_free_or_need_a_rewrite() {
-    for name in [
-        "hello.pdf",
-        "hello-incremental.pdf",
-        "hello-xrefstm.pdf",
-        "imaging-demo.pdf",
-        "text-example.pdf",
-        "raw.pdf",
-        "pdflib.pdf",
-        "fpdf2.pdf",
-        "reportlab.pdf",
-        "outline.pdf",
-    ] {
+    for name in common::roundtrip::PLAIN_CORPUS {
         assert_eq!(
             planner(&corpus_doc(name)).constraint().kind(),
             ConstraintKind::Free,
@@ -281,16 +270,17 @@ fn usage_rights_allow_only_what_they_grant() {
 }
 
 #[test]
-fn a_perms_docmdp_without_a_transform_defaults_to_p2() {
+fn a_perms_docmdp_without_a_transform_is_taken_as_p1() {
     let bytes = hand_signed(
         "<< /FT /Sig /T (Cert) /V 7 0 R >>",
         "<< /Type /Sig /ByteRange [0 1 2 3] /Contents <00> >>",
         "<< /DocMDP 7 0 R >>",
     );
     let doc = editable(&bytes);
+    let doc_mdp = planner(&doc).constraint().doc_mdp.clone().unwrap();
     assert_eq!(
-        planner(&doc).constraint().doc_mdp.as_ref().map(|d| d.permission),
-        Some(DocMdpPermission::FormFill)
+        (doc_mdp.permission, doc_mdp.assumed),
+        (DocMdpPermission::NoChanges, true)
     );
 }
 
@@ -321,4 +311,156 @@ fn an_unsigned_signature_field_is_not_a_signature() {
 fn a_field_cycle_ends() {
     let bytes = hand_signed("<< /FT /Sig /T (Loop) /Kids [5 0 R] >>", "<< >>", "<< >>");
     assert_eq!(planner(&editable(&bytes)).constraint().kind(), ConstraintKind::Free);
+}
+
+// --- review fixes ------------------------------------------------------------------------
+
+const SIG: &str = "<< /Type /Sig /ByteRange [0 1 2 3] /Contents <00> >>";
+
+#[test]
+fn a_direct_perms_docmdp_signature_is_a_certification() {
+    // No field and no reference: `/Perms /DocMDP` holds the signature dictionary itself.
+    let bytes = classic(
+        &[
+            "<< /Type /Catalog /Pages 2 0 R /Perms << /DocMDP << /Type /Sig /ByteRange [0 1 2 3] /Contents <00> >> >> >>",
+            "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+            "<< /Type /Page /Parent 2 0 R >>",
+        ],
+        "",
+    );
+    let mut doc = editable(&bytes);
+    set_title(&mut doc, "Changed");
+    let p = planner(&doc);
+    let doc_mdp = p.constraint().doc_mdp.clone().unwrap();
+    assert_eq!(
+        (kinds(&doc), doc_mdp.permission, doc_mdp.assumed, p.constraint().kind()),
+        (
+            vec![SignatureKind::Certification],
+            DocMdpPermission::NoChanges,
+            true,
+            ConstraintKind::Conflict
+        )
+    );
+}
+
+#[test]
+fn a_direct_field_value_matching_a_direct_perms_entry_is_one_certification() {
+    let bytes = classic(
+        &[
+            &format!(
+                "<< /Type /Catalog /Pages 2 0 R /AcroForm << /Fields [<< /FT /Sig /T (C) /V {SIG} >>] >> /Perms << /DocMDP {SIG} >> >>"
+            ),
+            "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+            "<< /Type /Page /Parent 2 0 R >>",
+        ],
+        "",
+    );
+    assert_eq!(kinds(&editable(&bytes)), [SignatureKind::Certification]);
+}
+
+#[test]
+fn a_fields_entry_that_is_not_an_array_makes_the_signatures_unknown() {
+    let bytes = hand_signed("<< /FT /Sig /T (X) /V 7 0 R >>", SIG, "<< >>");
+    let bytes = String::from_utf8_lossy(&bytes)
+        .replace("/Fields [5 0 R]", "/Fields 5      ")
+        .into_bytes();
+    let doc = editable(&bytes);
+    let p = planner(&doc);
+    assert_eq!(
+        (p.constraint().signatures_unknown, p.constraint().kind()),
+        (true, ConstraintKind::AppendOnly)
+    );
+}
+
+#[test]
+fn a_field_tree_deeper_than_the_limit_makes_the_signatures_unknown() {
+    let bytes = hand_signed(
+        "<< /T (Parent) /Kids [<< /FT /Sig /T (Kid) /V 7 0 R >>] >>",
+        SIG,
+        "<< >>",
+    );
+    let limits = lamina_cos::Limits::default().with_max_tree_depth(1);
+    let doc = Document::open(bytes, lamina_cos::OpenOptions::default().with_limits(limits)).unwrap();
+    let p = planner(&doc);
+    assert_eq!(
+        (p.constraint().signatures.len(), p.constraint().signatures_unknown),
+        (0, true)
+    );
+}
+
+#[test]
+fn a_full_rewrite_with_unknown_signatures_is_refused() {
+    let bytes = hand_signed("<< /FT /Sig /T (X) /V 7 0 R >>", SIG, "<< >>");
+    let bytes = String::from_utf8_lossy(&bytes)
+        .replace("/Fields [5 0 R]", "/Fields 5      ")
+        .into_bytes();
+    let mut doc = editable(&bytes);
+    let full = lamina_save::SaveOptions::new().with_mode(lamina_save::SaveMode::FullRewrite);
+    let err = lamina_save::Save::save(&mut doc, &mut Vec::new(), &full).unwrap_err();
+    assert_eq!(err.code(), "would-invalidate-signatures");
+}
+
+#[test]
+fn a_repaired_files_untyped_signature_dictionary_is_found() {
+    let mut bytes = classic(
+        &[
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+            "<< /Type /Page /Parent 2 0 R >>",
+            "<< /Filter /Adobe.PPKLite /ByteRange [0 1 2 3] /Contents <00> >>",
+        ],
+        "",
+    );
+    // Break `startxref` so the file is repaired.
+    let at = bytes.windows(10).rposition(|w| w == b"startxref\n").unwrap() + 10;
+    bytes[at] = b'9';
+    let doc = editable(&bytes);
+    assert!(doc.was_repaired());
+    assert_eq!(kinds(&doc), [SignatureKind::Approval]);
+}
+
+#[test]
+fn a_lock_with_p_restricts_like_docmdp() {
+    let bytes = hand_signed(
+        "<< /FT /Sig /T (L) /V 7 0 R /Lock << /Type /SigFieldLock /Action /All /P 1 >> >>",
+        SIG,
+        "<< >>",
+    );
+    let mut doc = editable(&bytes);
+    set_title(&mut doc, "Changed");
+    let restrictions: Vec<Restriction> = planner(&doc)
+        .constraint()
+        .violations
+        .iter()
+        .map(|v| v.restriction)
+        .collect();
+    assert_eq!(restrictions, [Restriction::DocMdp(DocMdpPermission::NoChanges)]);
+}
+
+#[test]
+fn a_lock_including_no_field_restricts_nothing() {
+    let bytes = hand_signed(
+        "<< /FT /Sig /T (L) /V 7 0 R /Lock << /Action /Include /Fields [] >> >>",
+        SIG,
+        "<< >>",
+    );
+    let doc = editable(&bytes);
+    assert_eq!(planner(&doc).would_violate_class(ModificationClass::FormFill), []);
+}
+
+#[test]
+fn a_byte_range_before_every_section_has_no_revision() {
+    // The hand-built signature covers 5 bytes, before the file's only xref section.
+    let doc = editable(&hand_signed("<< /FT /Sig /T (X) /V 7 0 R >>", SIG, "<< >>"));
+    assert_eq!(planner(&doc).constraint().signatures[0].revision, None);
+}
+
+#[test]
+fn planning_is_refused_while_a_transaction_is_open() {
+    let mut doc = signed("certified-p1.pdf");
+    doc.begin(lamina_ops::Origin::Local).unwrap();
+    assert_eq!(
+        SavePlanner::new(&doc).err(),
+        Some(lamina_save::SaveError::Ops(lamina_ops::Error::NestedTransaction))
+    );
 }

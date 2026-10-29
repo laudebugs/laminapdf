@@ -1,6 +1,7 @@
 //! Tolerant reader: xref/xref-stream loading with repair, object resolution, page tree.
 
 mod encrypt;
+pub use encrypt::strip_crypt_filter;
 mod objstm;
 mod options;
 mod repair;
@@ -212,6 +213,8 @@ pub struct Document {
     free_head: u32,
     trailer: Dict,
     revisions: usize,
+    /// The offsets of the xref sections reached via `/Prev`, newest first (empty when repaired).
+    section_offsets: Vec<usize>,
     repaired: bool,
     has_xref_stream: bool,
     newest_is_stream: bool,
@@ -621,6 +624,7 @@ impl Document {
             entries,
             trailer,
             sections,
+            section_offsets,
             has_xref_stream,
             newest_is_stream,
             ignored_xref_streams,
@@ -647,6 +651,7 @@ impl Document {
             free_head: free_head.unwrap_or(0),
             trailer,
             revisions: sections,
+            section_offsets,
             repaired: false,
             has_xref_stream,
             newest_is_stream,
@@ -747,6 +752,14 @@ impl Document {
     #[must_use]
     pub const fn revisions(&self) -> usize {
         self.revisions
+    }
+
+    /// The offsets of the xref sections reached via `/Prev` from the newest one, newest first
+    /// (hybrid `/XRefStm` sections not included); empty for a repaired file. A signature's
+    /// `/ByteRange` end, compared with them, tells which revision it closes.
+    #[must_use]
+    pub fn xref_section_offsets(&self) -> &[usize] {
+        &self.section_offsets
     }
 
     /// True when the document is encrypted: its trailer has an `/Encrypt` dictionary (one that
@@ -1127,7 +1140,7 @@ impl Document {
         if self.security.is_some() {
             // Streams of an encrypted document were decrypted when they were loaded, which
             // applied the `/Crypt` filter (§7.4.10); the rest of the chain decodes as usual.
-            encrypt::strip_crypt_filter(&mut params);
+            strip_crypt_filter(&mut params);
         }
         let mut budget = self.budget.get();
         let decoded = filters::decode(&params, &stream.data, &self.limits, &mut budget);
