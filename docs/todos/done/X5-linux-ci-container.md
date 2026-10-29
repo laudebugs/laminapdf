@@ -12,7 +12,7 @@
 | Branch | `ci/x5-linux-ci-container` |
 | PR title | `ci: Linux check on a self-hosted runner in a container (X5)` |
 | Size | S |
-| PR | — |
+| PR | [#45](https://github.com/laudebugs/lamina/pull/45) |
 
 ## Goal
 
