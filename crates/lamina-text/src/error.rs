@@ -7,6 +7,12 @@ use crate::fstype::FsType;
 pub type Result<T, E = Error> = std::result::Result<T, E>;
 
 /// Everything that can go wrong while loading, using or embedding a font.
+///
+/// Messages carry only numbers and fixed text ([ADR 0026] §4): font names, characters, axis
+/// tags and texts are in the variant's fields, never in its `Display`. Kinds and pages:
+/// `docs/errors/<code>.md`.
+///
+/// [ADR 0026]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0026-error-and-diagnostic-contract.md
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 #[non_exhaustive]
 pub enum Error {
@@ -26,7 +32,7 @@ pub enum Error {
         count: u32,
     },
     /// An instance was asked for on an axis the font does not have (a static font has none).
-    #[error("the font {font} has no variation axis {tag}")]
+    #[error("the font has no such variation axis")]
     UnknownAxis {
         /// The font's PostScript name.
         font: String,
@@ -35,7 +41,7 @@ pub enum Error {
     },
     /// `OS/2.fsType` forbids embedding (restricted licence or bitmap embedding only), and the
     /// caller did not choose [`EmbedPolicy::Override`](crate::EmbedPolicy::Override).
-    #[error("the font {font} may not be embedded (OS/2 fsType {fs_type})")]
+    #[error("the font's OS/2 fsType ({fs_type}) forbids embedding")]
     FontNotEmbeddable {
         /// The font's PostScript name.
         font: String,
@@ -43,7 +49,7 @@ pub enum Error {
         fs_type: FsType,
     },
     /// The font has no glyph for a character: lamina never draws `.notdef` silently.
-    #[error("the font {font} has no glyph for {ch:?} (U+{code:04X})", code = u32::from(*ch))]
+    #[error("the font has no glyph for U+{code:04X}", code = u32::from(*ch))]
     MissingGlyph {
         /// The character.
         ch: char,
@@ -51,7 +57,7 @@ pub enum Error {
         font: String,
     },
     /// A glyph ID at or past the font's glyph count.
-    #[error("glyph {gid} is out of range for the font {font} ({count} glyphs)")]
+    #[error("glyph {gid} is out of range for the font ({count} glyphs)")]
     GlyphOutOfRange {
         /// The glyph ID.
         gid: u16,
@@ -67,7 +73,7 @@ pub enum Error {
         key: usize,
     },
     /// The subsetter could not build the font program.
-    #[error("subsetting the font {font} failed: {reason}")]
+    #[error("subsetting the font failed: {reason}")]
     Subset {
         /// The font's PostScript name.
         font: String,
@@ -147,15 +153,12 @@ impl Warning {
 impl std::fmt::Display for Warning {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::ToUnicodeConflict {
-                font,
-                gid,
-                kept,
-                dropped,
-            } => write!(
-                f,
-                "glyph {gid} of {font} stands for both {kept:?} and {dropped:?}; ToUnicode keeps {kept:?}"
-            ),
+            Self::ToUnicodeConflict { gid, .. } => {
+                write!(
+                    f,
+                    "glyph {gid} stands for two different texts; ToUnicode keeps the first"
+                )
+            }
         }
     }
 }
