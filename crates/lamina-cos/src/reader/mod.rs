@@ -1399,7 +1399,7 @@ impl Document {
     }
 }
 
-/// The overlay's view of the base (ADR 0005 §3), used by [`crate::overlay`].
+/// The overlay's view of the base (ADR 0005 §3), used by the overlay module and the writers.
 impl Document {
     pub(crate) const fn overlay_ref(&self) -> &Overlay {
         &self.overlay
