@@ -5,7 +5,10 @@
 // <list.tsv> has one `<name>\t<path>` line per input; <out.json> has the shape
 // tools/differential/facts.py writes (outcome, page count, outline titles per file). pdf.js
 // repairs silently, so its outcome is "opened" or "failed". Inputs are only read, never run:
-// scripting is off (no eval) and fonts are not loaded.
+// scripting is off (no eval) and fonts are not loaded. The per-file timer below only catches
+// stalls between awaits: a synchronous parse loop (or a hanging destroy) blocks it, so
+// `cargo xtask differential --live` also kills an overrunning process and reruns its files one
+// per process (tools/xtask/src/runner.rs).
 import { readFileSync, writeFileSync } from "node:fs";
 import { argv, exit } from "node:process";
 

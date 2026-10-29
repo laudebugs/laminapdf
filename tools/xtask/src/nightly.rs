@@ -12,6 +12,7 @@ use std::process::{Command, Stdio};
 use anyhow::{Context, Result, bail};
 use serde_json::{Value, json};
 
+use crate::util::{append, github_output, summary};
 use crate::workspace::Workspace;
 use crate::{corpus, harness, live, step};
 
@@ -20,28 +21,6 @@ const REGRESSION_RATIO: f64 = 1.10;
 
 /// The baseline is the median of this many previous records from the same runner.
 const BASELINE_RUNS: usize = 5;
-
-/// Writes `key=value` to `$GITHUB_OUTPUT` when running in Actions.
-fn github_output(key: &str, value: &str) -> Result<()> {
-    if let Ok(path) = std::env::var("GITHUB_OUTPUT") {
-        append(Path::new(&path), &format!("{key}={value}\n"))?;
-    }
-    Ok(())
-}
-
-fn append(path: &Path, text: &str) -> Result<()> {
-    use std::io::Write as _;
-    let mut file = fs::OpenOptions::new().append(true).create(true).open(path)?;
-    file.write_all(text.as_bytes())?;
-    Ok(())
-}
-
-fn summary(text: &str) -> Result<()> {
-    if let Ok(path) = std::env::var("GITHUB_STEP_SUMMARY") {
-        append(Path::new(&path), text)?;
-    }
-    Ok(())
-}
 
 /// The release-mode `#[ignore]`d tests: scaling ratios and anything else too slow or
 /// timing-sensitive for the PR lanes.
@@ -99,6 +78,10 @@ pub(crate) fn parse_bench_args(args: &[String]) -> Result<BenchArgs> {
     if parsed.record && parsed.history.is_none() {
         bail!("--record needs --history; {BENCH_USAGE}");
     }
+    // A quick run's timings aren't comparable with full ones; it never becomes a baseline.
+    if parsed.record && parsed.quick {
+        bail!("--record with --quick: quick timings must not enter the history; {BENCH_USAGE}");
+    }
     Ok(parsed)
 }
 
@@ -122,11 +105,17 @@ fn median(mut values: Vec<u64>) -> Option<u64> {
 
 /// `(name, baseline ns, current ns)` for every benchmark slower than its baseline by more
 /// than [`REGRESSION_RATIO`]; the baseline is the median of the last [`BASELINE_RUNS`] records
-/// from the same runner that have the benchmark.
-fn regressions(history: &[Value], runner: &str, current: &BTreeMap<String, u64>) -> Vec<(String, u64, u64)> {
+/// from the same runner, of the same kind (quick or full), that have the benchmark.
+fn regressions(
+    history: &[Value],
+    runner: &str,
+    quick: bool,
+    current: &BTreeMap<String, u64>,
+) -> Vec<(String, u64, u64)> {
     let same_runner: Vec<&Value> = history
         .iter()
         .filter(|r| r.get("runner").and_then(Value::as_str) == Some(runner))
+        .filter(|r| r.get("quick").and_then(Value::as_bool).unwrap_or(false) == quick)
         .collect();
     let mut out = Vec::new();
     for (name, &now) in current {
@@ -213,14 +202,8 @@ pub(crate) fn bench(ws: &Workspace, args: &BenchArgs) -> Result<()> {
         return summary(&table);
     };
     let history_path = Path::new(history_dir).join("history.jsonl");
-    let history: Vec<Value> = fs::read_to_string(&history_path)
-        .unwrap_or_default()
-        .lines()
-        .filter(|l| !l.trim().is_empty())
-        .map(serde_json::from_str)
-        .collect::<Result<_, _>>()
-        .with_context(|| format!("parsing {}", history_path.display()))?;
-    let found = regressions(&history, &runner, &benches);
+    let history = read_history(&history_path)?;
+    let found = regressions(&history, &runner, args.quick, &benches);
     let mut report = String::new();
     if found.is_empty() {
         let _ = writeln!(
@@ -253,17 +236,33 @@ pub(crate) fn bench(ws: &Workspace, args: &BenchArgs) -> Result<()> {
     summary(&table)
 }
 
+/// The records in `history.jsonl`: none when the file doesn't exist yet (the first run);
+/// any other read or parse error fails, so a broken history never hides a regression.
+fn read_history(path: &Path) -> Result<Vec<Value>> {
+    let text = match fs::read_to_string(path) {
+        Ok(text) => text,
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(Vec::new()),
+        Err(e) => return Err(e).with_context(|| format!("reading {}", path.display())),
+    };
+    text.lines()
+        .filter(|l| !l.trim().is_empty())
+        .map(serde_json::from_str)
+        .collect::<Result<_, _>>()
+        .with_context(|| format!("parsing {}", path.display()))
+}
+
 fn git(ws: &Workspace, args: &[&str]) -> String {
-    Command::new("git")
-        .args(args)
-        .current_dir(&ws.root)
-        .output()
-        .ok()
-        .filter(|o| o.status.success())
-        .map_or_else(
-            || "unknown".to_owned(),
-            |o| String::from_utf8_lossy(&o.stdout).trim().to_owned(),
-        )
+    crate::util::git_stdout(&ws.root, args).unwrap_or_else(|| "unknown".to_owned())
+}
+
+/// The libFuzzer limits of every run (`cargo xtask fuzz`), so `tmin` minimises a timeout or an
+/// OOM under the limits that found it.
+const LIBFUZZER_LIMITS: [&str; 2] = ["-timeout=10", "-rss_limit_mb=2048"];
+
+/// The artefacts `tmin` minimises: crashes, timeouts and OOMs. `slow-unit-*` files are slow
+/// inputs libFuzzer reports, not failures.
+fn is_failure_artefact(name: &str) -> bool {
+    ["crash-", "timeout-", "oom-"].iter().any(|p| name.starts_with(p))
 }
 
 /// `cargo xtask fuzz tmin <target>`: minimises every crash, timeout and OOM input in
@@ -280,10 +279,7 @@ pub(crate) fn fuzz_tmin(ws: &Workspace, target: &str) -> Result<()> {
                 .file_name()
                 .map(|n| n.to_string_lossy().into_owned())
                 .unwrap_or_default();
-            if ["crash-", "timeout-", "oom-", "slow-unit-"]
-                .iter()
-                .any(|p| name.starts_with(p))
-            {
+            if is_failure_artefact(&name) {
                 inputs.push(path);
             }
         }
@@ -297,17 +293,19 @@ pub(crate) fn fuzz_tmin(ws: &Workspace, target: &str) -> Result<()> {
     for input in &inputs {
         let input = input.to_string_lossy().into_owned();
         // A minimisation that fails (e.g. a timeout that doesn't reproduce) keeps the original.
-        if let Err(error) = crate::run(
-            &ws.root,
-            "cargo",
-            &[
-                "+nightly", "fuzz", "tmin", "--target", &host, "--runs", "1000", target, &input,
-            ],
-        ) {
+        if let Err(error) = crate::run(&ws.root, "cargo", &tmin_args(&host, target, &input)) {
             eprintln!("warning: could not minimise {input}: {error:#}");
         }
     }
     Ok(())
+}
+
+fn tmin_args<'a>(host: &'a str, target: &'a str, input: &'a str) -> Vec<&'a str> {
+    let mut args = vec![
+        "+nightly", "fuzz", "tmin", "--target", host, "--runs", "1000", target, input, "--",
+    ];
+    args.extend(LIBFUZZER_LIMITS);
+    args
 }
 
 /// What `cargo xtask nightly` was asked to do.
@@ -376,7 +374,7 @@ mod tests {
         let history = [record("ubuntu", 100), record("ubuntu", 100)];
         let now = BTreeMap::from([("decode/flate".to_owned(), 111)]);
         assert_eq!(
-            regressions(&history, "ubuntu", &now),
+            regressions(&history, "ubuntu", false, &now),
             [("decode/flate".to_owned(), 100, 111)]
         );
     }
@@ -385,21 +383,57 @@ mod tests {
     fn regressions_should_tolerate_ten_percent() {
         let history = [record("ubuntu", 100)];
         let now = BTreeMap::from([("decode/flate".to_owned(), 110)]);
-        assert_eq!(regressions(&history, "ubuntu", &now), []);
+        assert_eq!(regressions(&history, "ubuntu", false, &now), []);
     }
 
     #[test]
     fn regressions_should_only_compare_the_same_runner() {
         let history = [record("macos", 10)];
         let now = BTreeMap::from([("decode/flate".to_owned(), 100)]);
-        assert_eq!(regressions(&history, "ubuntu", &now), []);
+        assert_eq!(regressions(&history, "ubuntu", false, &now), []);
     }
 
     #[test]
     fn regressions_should_use_the_median_of_recent_runs() {
         let history = [100, 100, 300, 100, 100].map(|ns| record("ubuntu", ns));
         let now = BTreeMap::from([("decode/flate".to_owned(), 105)]);
-        assert_eq!(regressions(&history, "ubuntu", &now), []);
+        assert_eq!(regressions(&history, "ubuntu", false, &now), []);
+    }
+
+    #[test]
+    fn regressions_should_ignore_quick_records_in_a_full_run() {
+        let mut quick = record("ubuntu", 10);
+        quick["quick"] = json!(true);
+        let now = BTreeMap::from([("decode/flate".to_owned(), 100)]);
+        assert_eq!(regressions(&[quick], "ubuntu", false, &now), []);
+    }
+
+    #[test]
+    fn bench_args_should_reject_record_with_quick() {
+        let args: Vec<String> = ["--quick", "--history", "h", "--record"].map(String::from).to_vec();
+        assert!(parse_bench_args(&args).is_err());
+    }
+
+    #[test]
+    fn read_history_should_treat_a_missing_file_as_empty() {
+        let missing = std::env::temp_dir().join("xtask-no-such-history.jsonl");
+        assert_eq!(read_history(&missing).unwrap(), Vec::<Value>::new());
+    }
+
+    #[test]
+    fn read_history_should_fail_when_the_file_cannot_be_read() {
+        // A directory where the file should be: not "missing", so not an empty history.
+        assert!(read_history(&std::env::temp_dir()).is_err());
+    }
+
+    #[test]
+    fn tmin_should_skip_slow_units_and_keep_the_run_limits() {
+        let args = tmin_args("x86_64-unknown-linux-gnu", "open", "crash-1");
+        assert!(
+            !is_failure_artefact("slow-unit-1")
+                && is_failure_artefact("timeout-1")
+                && args.ends_with(&["--", "-timeout=10", "-rss_limit_mb=2048"])
+        );
     }
 
     #[test]

@@ -9,11 +9,10 @@
 //! each listed file is downloaded from `<mirror>/<source>/<commit>/<path>` instead and checked
 //! against the same hashes; the mirror is a copy, never the source of truth.
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use std::fmt::Write as _;
 use std::fs;
 use std::path::{Path, PathBuf};
-use std::process::Command;
 
 use anyhow::{Context, Result, bail};
 use sha2::{Digest, Sha256};
@@ -245,12 +244,27 @@ pub(crate) fn fetch(ws: &Workspace, args: &FetchArgs) -> Result<()> {
             );
             from_mirror(source, &dir, &mirror)?;
         }
-        let actual = scan(&dir, &source.licence_file)?;
+        let mut actual = scan(&dir, &source.licence_file)?;
         if args.update_manifest {
             source.files = actual;
             continue;
         }
-        let found = compare(&source.files, &actual);
+        let mut found = compare(&source.files, &actual);
+        // A checkout already at the pinned commit is reused as is (the CI cache restores one),
+        // so a file changed or deleted since, or an extra one, is restored from git here.
+        if !found.is_empty() && dir.join(".git").is_dir() {
+            step(&format!(
+                "{}: {} files differ; restoring the checkout",
+                source.name,
+                found.len()
+            ));
+            restore_checkout(&dir)?;
+            actual = scan(&dir, &source.licence_file)?;
+            found = compare(&source.files, &actual);
+        }
+        if found.is_empty() {
+            fs::write(stamp_path(&dir), stamp_digest(source))?;
+        }
         let total: u64 = actual.iter().map(|f| f.size).sum();
         if found.is_empty() {
             step(&format!(
@@ -292,25 +306,23 @@ fn git(dir: &Path, args: &[&str]) -> Result<()> {
 }
 
 fn git_head(dir: &Path) -> Option<String> {
-    let output = Command::new("git")
-        .args(["rev-parse", "HEAD"])
-        .current_dir(dir)
-        .output()
-        .ok()?;
-    output
-        .status
-        .success()
-        .then(|| String::from_utf8_lossy(&output.stdout).trim().to_owned())
+    crate::util::git_stdout(dir, &["rev-parse", "HEAD"])
 }
 
 /// A sparse, shallow, blob-filtered checkout of `source` at its commit in `dir`; a checkout
 /// already at the commit is reused (the CI cache restores one).
 fn checkout(source: &Source, dir: &Path) -> Result<()> {
     if !dir.join(".git").is_dir() {
+        // A folder without .git holds a mirror download: git can't check out over it.
+        if dir.exists() {
+            fs::remove_dir_all(dir).with_context(|| format!("removing {}", dir.display()))?;
+        }
         fs::create_dir_all(dir)?;
         git(dir, &["init", "-q"])?;
         git(dir, &["remote", "add", "origin", &source.repo])?;
     }
+    // The manifest's repository wins over whatever an earlier checkout (or the cache) recorded.
+    git(dir, &["remote", "set-url", "origin", &source.repo])?;
     git(dir, &["config", "core.sparseCheckout", "true"])?;
     let mut patterns = vec!["sparse-checkout", "set", "--no-cone"];
     patterns.extend(source.include.iter().map(String::as_str));
@@ -340,6 +352,12 @@ fn checkout(source: &Source, dir: &Path) -> Result<()> {
     Ok(())
 }
 
+/// Puts back every tracked file and removes everything else (`reset --hard`, `clean -fdx`).
+fn restore_checkout(dir: &Path) -> Result<()> {
+    git(dir, &["reset", "-q", "--hard", "HEAD"])?;
+    git(dir, &["clean", "-q", "-fdx"])
+}
+
 /// Downloads every listed file from the mirror (`curl`), replacing whatever was in `dir`.
 fn from_mirror(source: &Source, dir: &Path, mirror: &str) -> Result<()> {
     if dir.exists() {
@@ -350,17 +368,53 @@ fn from_mirror(source: &Source, dir: &Path, mirror: &str) -> Result<()> {
         if let Some(parent) = target.parent() {
             fs::create_dir_all(parent)?;
         }
-        let url = format!(
-            "{}/{}/{}/{}",
-            mirror.trim_end_matches('/'),
-            source.name,
-            source.commit,
-            file.path
-        );
+        let url = mirror_url(mirror, source, &file.path);
         let target = target.to_string_lossy().into_owned();
         run(dir, "curl", &["-fsSL", "--retry", "3", "-o", &target, &url])?;
     }
     Ok(())
+}
+
+/// `<mirror>/<source>/<commit>/<path>`, with the source name and each path segment
+/// percent-encoded (corpus paths contain `#`, spaces and other reserved characters).
+fn mirror_url(mirror: &str, source: &Source, path: &str) -> String {
+    let segments: Vec<String> = path.split('/').map(percent_encode).collect();
+    format!(
+        "{}/{}/{}/{}",
+        mirror.trim_end_matches('/'),
+        percent_encode(&source.name),
+        percent_encode(&source.commit),
+        segments.join("/")
+    )
+}
+
+/// RFC 3986 percent-encoding of everything but the unreserved characters.
+fn percent_encode(segment: &str) -> String {
+    segment.bytes().fold(String::new(), |mut out, b| {
+        if b.is_ascii_alphanumeric() || matches!(b, b'-' | b'.' | b'_' | b'~') {
+            out.push(char::from(b));
+        } else {
+            let _ = write!(out, "%{b:02X}");
+        }
+        out
+    })
+}
+
+/// `<dir>.verified`, next to the checkout (not inside it, so `scan` never sees it).
+fn stamp_path(dir: &Path) -> PathBuf {
+    let mut name = dir.file_name().unwrap_or_default().to_os_string();
+    name.push(".verified");
+    dir.with_file_name(name)
+}
+
+/// What a successful `corpus fetch` records for a source: the SHA-256 of its manifest entry, so
+/// a manifest change invalidates the stamp.
+fn stamp_digest(source: &Source) -> String {
+    let manifest = Manifest {
+        mirror: String::new(),
+        sources: vec![source.clone()],
+    };
+    sha256_hex(manifest.render().as_bytes())
 }
 
 /// Every file under `dir` except `.git/` and the licence file, sorted by path, with its size
@@ -409,6 +463,7 @@ pub(crate) fn sha256_hex(bytes: &[u8]) -> String {
 /// SHA-256) and unlisted files.
 pub(crate) fn compare(listed: &[Entry], actual: &[Entry]) -> Vec<String> {
     let on_disk: BTreeMap<&str, &Entry> = actual.iter().map(|e| (e.path.as_str(), e)).collect();
+    let wanted: BTreeSet<&str> = listed.iter().map(|e| e.path.as_str()).collect();
     let mut problems = Vec::new();
     for want in listed {
         match on_disk.get(want.path.as_str()) {
@@ -421,7 +476,7 @@ pub(crate) fn compare(listed: &[Entry], actual: &[Entry]) -> Vec<String> {
         }
     }
     for got in actual {
-        if !listed.iter().any(|want| want.path == got.path) {
+        if !wanted.contains(got.path.as_str()) {
             problems.push(format!("{}: not in the manifest", got.path));
         }
     }
@@ -430,6 +485,8 @@ pub(crate) fn compare(listed: &[Entry], actual: &[Entry]) -> Vec<String> {
 
 /// Every verified file of the selected sources as `(name, path)`, where the name is
 /// `<source>/<path in the source>`; fails when a source has not been fetched or does not match.
+/// A source that `corpus fetch` verified against this manifest (its stamp) is only checked for
+/// missing files and sizes; any other is hashed in full.
 pub(crate) fn verified_inputs(ws: &Workspace, names: &[String]) -> Result<Vec<(String, PathBuf)>> {
     let manifest = load(ws)?;
     let mut out = Vec::new();
@@ -438,7 +495,12 @@ pub(crate) fn verified_inputs(ws: &Workspace, names: &[String]) -> Result<Vec<(S
         if !dir.is_dir() {
             bail!("{} is missing: run `cargo xtask corpus fetch` first", dir.display());
         }
-        let problems = compare(&source.files, &scan(&dir, &source.licence_file)?);
+        let stamped = fs::read_to_string(stamp_path(&dir)).is_ok_and(|s| s == stamp_digest(source));
+        let problems = if stamped {
+            quick_check(&dir, &source.files)
+        } else {
+            compare(&source.files, &scan(&dir, &source.licence_file)?)
+        };
         if !problems.is_empty() {
             bail!(
                 "{}: {} files differ from {MANIFEST} (first: {}); run `cargo xtask corpus fetch`",
@@ -457,8 +519,22 @@ pub(crate) fn verified_inputs(ws: &Workspace, names: &[String]) -> Result<Vec<(S
     Ok(out)
 }
 
+/// Missing files and size changes only (no hashing), for a source with a valid stamp.
+fn quick_check(dir: &Path, files: &[Entry]) -> Vec<String> {
+    files
+        .iter()
+        .filter_map(|f| match fs::metadata(dir.join(&f.path)) {
+            Err(_) => Some(format!("{}: missing", f.path)),
+            Ok(m) if m.len() != f.size => Some(format!("{}: {} bytes, manifest {}", f.path, m.len(), f.size)),
+            Ok(_) => None,
+        })
+        .collect()
+}
+
 #[cfg(test)]
 mod tests {
+    use std::process::Command;
+
     use super::*;
 
     fn entry(path: &str, sha256: &str) -> Entry {
@@ -523,6 +599,116 @@ mod tests {
     fn fetch_args_should_collect_sources() {
         let args: Vec<String> = ["--source", "qpdf", "--source", "pdfjs"].map(String::from).to_vec();
         assert_eq!(parse_fetch_args(&args).unwrap().sources, ["qpdf", "pdfjs"]);
+    }
+
+    #[test]
+    fn mirror_url_should_percent_encode_each_segment() {
+        let source = &manifest().sources[0];
+        assert_eq!(
+            mirror_url("https://m.example/", source, "test/pdfs/a #1.pdf"),
+            "https://m.example/pdfjs/87b369cd9d4cfe415b587b26a8d81f486db02874/test/pdfs/a%20%231.pdf"
+        );
+    }
+
+    #[test]
+    fn stamp_should_change_with_the_manifest_entry() {
+        let mut source = manifest().sources[0].clone();
+        let before = stamp_digest(&source);
+        source.commit = "0".repeat(40);
+        assert_ne!(before, stamp_digest(&source));
+    }
+
+    #[test]
+    fn stamp_path_should_be_next_to_the_checkout() {
+        assert_eq!(stamp_path(Path::new("/c/pdfjs")), Path::new("/c/pdfjs.verified"));
+    }
+
+    fn scratch(name: &str) -> PathBuf {
+        let dir = std::env::temp_dir().join(format!("xtask-corpus-{name}-{}", std::process::id()));
+        let _ = fs::remove_dir_all(&dir);
+        fs::create_dir_all(&dir).unwrap();
+        dir
+    }
+
+    #[test]
+    fn quick_check_should_report_missing_and_resized_files() {
+        let dir = scratch("quick");
+        fs::write(dir.join("a.pdf"), b"abc").unwrap();
+        fs::write(dir.join("b.pdf"), b"ab").unwrap();
+        let files = [entry("a.pdf", "00"), entry("b.pdf", "00"), entry("c.pdf", "00")];
+        let problems = quick_check(&dir, &files);
+        fs::remove_dir_all(&dir).unwrap();
+        assert_eq!(problems, ["b.pdf: 2 bytes, manifest 3", "c.pdf: missing"]);
+    }
+
+    /// A local repository with one committed PDF; returns `(repo, commit)`.
+    fn local_repo(name: &str) -> (PathBuf, String) {
+        let repo = scratch(name);
+        let git = |args: &[&str]| {
+            let ok = Command::new("git")
+                .args([
+                    "-c",
+                    "user.name=t",
+                    "-c",
+                    "user.email=t@t",
+                    "-c",
+                    "commit.gpgsign=false",
+                ])
+                .args(args)
+                .current_dir(&repo)
+                .output()
+                .unwrap();
+            assert!(ok.status.success(), "{}", String::from_utf8_lossy(&ok.stderr));
+            String::from_utf8_lossy(&ok.stdout).trim().to_owned()
+        };
+        git(&["init", "-q"]);
+        fs::write(repo.join("a.pdf"), b"abc").unwrap();
+        fs::write(repo.join("LICENSE"), b"MIT").unwrap();
+        git(&["add", "."]);
+        git(&["commit", "-q", "-m", "c"]);
+        let commit = git(&["rev-parse", "HEAD"]);
+        (repo, commit)
+    }
+
+    fn local_source(repo: &Path, commit: &str) -> Source {
+        Source {
+            name: "local".to_owned(),
+            repo: repo.to_string_lossy().into_owned(),
+            commit: commit.to_owned(),
+            licence: "MIT".to_owned(),
+            licence_file: "/LICENSE".to_owned(),
+            include: vec!["/*.pdf".to_owned()],
+            files: Vec::new(),
+        }
+    }
+
+    #[test]
+    fn checkout_should_replace_a_mirror_download_and_a_changed_remote() {
+        let (repo, commit) = local_repo("repo-b2");
+        let dir = scratch("checkout-b2");
+        // A mirror download: files but no .git.
+        fs::write(dir.join("a.pdf"), b"from the mirror").unwrap();
+        checkout(&local_source(Path::new("/nonexistent"), &commit), &dir).unwrap_err();
+        // The remote recorded above is wrong; the manifest's must win.
+        checkout(&local_source(&repo, &commit), &dir).unwrap();
+        let content = fs::read(dir.join("a.pdf")).unwrap();
+        fs::remove_dir_all(&dir).unwrap();
+        fs::remove_dir_all(&repo).unwrap();
+        assert_eq!(content, b"abc");
+    }
+
+    #[test]
+    fn restore_checkout_should_undo_local_changes() {
+        let (repo, commit) = local_repo("repo-b4");
+        let dir = scratch("checkout-b4");
+        checkout(&local_source(&repo, &commit), &dir).unwrap();
+        fs::write(dir.join("a.pdf"), b"tampered").unwrap();
+        fs::write(dir.join("extra.pdf"), b"x").unwrap();
+        restore_checkout(&dir).unwrap();
+        let state = (fs::read(dir.join("a.pdf")).unwrap(), dir.join("extra.pdf").exists());
+        fs::remove_dir_all(&dir).unwrap();
+        fs::remove_dir_all(&repo).unwrap();
+        assert_eq!(state, (b"abc".to_vec(), false));
     }
 
     #[test]

@@ -25,8 +25,11 @@ FAILED = {"outcome": "failed", "page_count": None, "outline_titles": None}
 TIMEOUT = {"outcome": "timeout", "page_count": None, "outline_titles": None}
 
 
-class Timeout(Exception):
-    pass
+class Timeout(BaseException):
+    """Raised by SIGALRM. A BaseException, so a reader's own `except Exception` (pypdf's or
+    ours) can't swallow it and turn a hang into a "failed" outcome. SIGALRM can't interrupt
+    native code (PDFium) either; `cargo xtask differential --live` also kills a reader process
+    that overruns and reruns its files one per process (tools/xtask/src/runner.rs)."""
 
 
 def on_alarm(_signum, _frame):

@@ -1,7 +1,9 @@
 //! The differential suite's fixed-seed mutants of `fixtures/corpus` (ADR 0018 tier 6).
 //!
-//! Shared by `tests/differential.rs` (which compares lamina with the precomputed pypdf facts)
-//! and `examples/differential-inputs.rs` (which writes the same files for
+//! Two sets: [`all`], four per corpus file, which the fast lane checks, and [`full`], the
+//! full lane's [`FULL_PER_FILE`] per file (`cargo xtask differential --full`). Shared by
+//! `tests/differential.rs` (which compares lamina with the precomputed pypdf facts) and
+//! `examples/differential-inputs.rs` (which writes the same files for
 //! `cargo xtask differential --update`), so both always see the same bytes.
 
 use super::Rng;
@@ -9,18 +11,32 @@ use super::Rng;
 /// The seed of the mutant set; printed by the differential test.
 pub const SEED: u64 = 0xB2C0_2026;
 
-/// Mutants per corpus file in the PR lane.
+/// The seed of the full lane's mutant set ([`full`]), independent of [`SEED`] so the two
+/// sets don't share their first mutants.
+pub const FULL_SEED: u64 = 0x0F04_2026;
+
+/// Mutants per corpus file in the fast set.
 pub const PER_FILE: usize = 4;
 
-/// The first `count` mutants of one corpus file, named `<stem>-m<i>.pdf`, deterministic for
-/// its name. Mutant `i` depends only on the file and the mutants before it, so the PR lane's
-/// set is a prefix of the nightly lane's larger one (`cargo xtask differential --live`).
-pub fn of(name: &str, bytes: &[u8], count: usize) -> Vec<(String, Vec<u8>)> {
+/// Mutants per corpus file in the full lane's set: 36 × 14 files = 504 today, at least the
+/// 500 ADR 0018 asks for. A fixed count per file, so a corpus file coming or going adds or
+/// drops only its own mutants.
+pub const FULL_PER_FILE: usize = 36;
+
+/// The fast set's mutants of one corpus file, named `<stem>-m<i>.pdf`, deterministic for its name.
+pub fn of(name: &str, bytes: &[u8]) -> Vec<(String, Vec<u8>)> {
+    series(name, bytes, SEED, 'm', PER_FILE)
+}
+
+/// `count` mutants of one file, named `<stem>-<tag><i>.pdf`. The RNG is salted with the file
+/// name and mutant `i` depends only on the ones before it, so a file's mutants don't change
+/// when other corpus files come or go, and a larger `count` only appends.
+fn series(name: &str, bytes: &[u8], seed: u64, tag: char, count: usize) -> Vec<(String, Vec<u8>)> {
     let stem = name.strip_suffix(".pdf").unwrap_or(name);
-    let salt = name.bytes().fold(SEED, |acc, b| acc.rotate_left(5) ^ u64::from(b));
+    let salt = name.bytes().fold(seed, |acc, b| acc.rotate_left(5) ^ u64::from(b));
     let mut rng = Rng::new(salt);
     (0..count)
-        .map(|i| (format!("{stem}-m{i}.pdf"), mutate(&mut rng, bytes, i)))
+        .map(|i| (format!("{stem}-{tag}{i}.pdf"), mutate(&mut rng, bytes, i)))
         .collect()
 }
 
@@ -54,17 +70,40 @@ fn mutate(rng: &mut Rng, bytes: &[u8], kind: usize) -> Vec<u8> {
     out
 }
 
-/// The PR lane's mutants of every corpus file, sorted by name.
+/// Every mutant of every corpus file, sorted by name.
 pub fn all() -> Vec<(String, Vec<u8>)> {
-    first(PER_FILE)
-}
-
-/// The first `per_file` mutants of every corpus file, sorted by name.
-pub fn first(per_file: usize) -> Vec<(String, Vec<u8>)> {
     let mut out: Vec<_> = super::corpus()
         .iter()
-        .flat_map(|(name, bytes)| of(name, bytes, per_file))
+        .flat_map(|(name, bytes)| of(name, bytes))
         .collect();
     out.sort();
     out
+}
+
+/// The full lane's mutants: [`FULL_PER_FILE`] per corpus file from [`FULL_SEED`], named
+/// `<stem>-f<i>.pdf`, sorted by name.
+pub fn full() -> Vec<(String, Vec<u8>)> {
+    let mut out: Vec<_> = super::corpus()
+        .iter()
+        .flat_map(|(name, bytes)| series(name, bytes, FULL_SEED, 'f', FULL_PER_FILE))
+        .collect();
+    out.sort();
+    out
+}
+
+/// The first `per_file` mutants of every corpus file from [`SEED`] (`<stem>-m<i>.pdf`), sorted
+/// by name: the nightly lane's series (`cargo xtask differential --live`). The fast set's
+/// [`all`] is its prefix, so the fast set's exceptions apply to it.
+pub fn series_m(per_file: usize) -> Vec<(String, Vec<u8>)> {
+    let mut out: Vec<_> = super::corpus()
+        .iter()
+        .flat_map(|(name, bytes)| series(name, bytes, SEED, 'm', per_file))
+        .collect();
+    out.sort();
+    out
+}
+
+/// The fast set's inputs: every corpus file and its [`all`] mutants.
+pub fn fast_inputs() -> Vec<(String, Vec<u8>)> {
+    super::corpus().into_iter().chain(all()).collect()
 }

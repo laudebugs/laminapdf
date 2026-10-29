@@ -7,7 +7,7 @@
 | Plan | [architecture §7 Cross-cutting](../../plans/architecture.md#cross-cutting) |
 | Round / milestone | Cross-cutting (after the first fuzz targets) |
 | Depends on | [B2c](./B2c-lamina-model-corpus-fuzz.md) |
-| Blocks | [B7b](../ready/B7b-versioning-and-0-1-0-alpha.md), [B8b](../ready/B8b-conformance-profiles-and-verapdf.md), [E1b](../ready/E1b-xmp-packet-model.md), [E1c](../ready/E1c-metadata-ops.md), [E3e](../ready/E3e-xmp-editor.md), [E3f](../ready/E3f-attachments-and-associated-files.md), [E4g](../ready/E4g-appearance-parity-suite.md), [E6c](../ready/E6c-add-text.md), [E12f](../ready/E12f-leak-tests.md), [E15b](../ready/E15b-structure-tree-editing.md), [X3b](../ready/X3b-render-diff-nightly.md) |
+| Blocks | [B7b](../ready/B7b-versioning-and-0-1-0-alpha.md), [B8b](../ready/B8b-conformance-profiles-and-verapdf.md), [E1b](../ready/E1b-xmp-packet-model.md), [E1c](../ready/E1c-metadata-ops.md), [E3e](../ready/E3e-xmp-editor.md), [E3f](../ready/E3f-attachments-and-associated-files.md), [E4g](../ready/E4g-appearance-parity-suite.md), [E6c](../ready/E6c-add-text.md), [E12f](../ready/E12f-leak-tests.md), [E15b](../ready/E15b-structure-tree-editing.md), [X3b](../ready/X3b-render-diff-nightly.md), [X3c](../ready/X3c-nightly-link-check.md) |
 | ADRs | Implements [0018](../../decisions/0018-test-strategy.md) §2 nightly lane, §3 corpora (`cargo xtask corpus fetch`, pinned manifest), §4 (nightly may retry once only to report flakiness), tier 11 (performance and scaling); [0003](../../decisions/0003-reader-tolerance-and-limits.md) §4 (differential triage, exceptions file) |
 | Branch | `ci/x3a-nightly-lane` |
 | PR title | `ci: nightly lane with external-corpus differential, 10-minute fuzzing, scaling tests and benchmarks` |
@@ -40,7 +40,7 @@ Run the expensive, environment-sensitive checks every night on `main`, where a f
 
 - hayro-vs-PDFium render diffs: [X3b](../ready/X3b-render-diff-nightly.md) (needs web C2's `lamina-render`).
 - veraPDF: [B8b](../ready/B8b-conformance-profiles-and-verapdf.md) adds its job to this workflow.
-- PR-lane suites: [X4](../ongoing/X4-full-lane-gate.md).
+- PR-lane suites: [X4](../done/X4-full-lane-gate.md).
 - The release-lane guard (refuse a release when the latest nightly failed) and running the nightly suites on a release commit: [B7b](../ready/B7b-versioning-and-0-1-0-alpha.md), which owns the release lane.
 
 ## Tasks
@@ -54,7 +54,7 @@ Run the expensive, environment-sensitive checks every night on `main`, where a f
 ## Acceptance criteria
 
 - [x] `nightly.yml` passes `actionlint`; its jobs run on the branch through a temporary `pull_request`/`push` trigger (or `act`) with a short budget (`--time 60` per fuzz target, a manifest subset) and that trigger is removed before merge; run linked in the PR. Runs: [1](https://github.com/laudebugs/lamina/actions/runs/40829874450) (found the case-sensitivity bug in the qpdf patterns), [2](https://github.com/laudebugs/lamina/actions/runs/40830476951) (found a criterion cache bug in `bench`), [3](https://github.com/laudebugs/lamina/actions/runs/40831485187) (every job green except the forced failure). Budgets: 60 s per fuzz target, a 600-input differential sample
-- [x] The issue-on-failure step is exercised on the branch run with a forced failure (input or env flag) and opens/updates a `nightly` issue (closed afterwards). Run 1 opened [#33](https://github.com/laudebugs/lamina/issues/33) and runs 2 and 3 commented on it. **Deviation:** #33 is still open; closing it needs the owner (this session wasn't permitted to write to issues)
+- [x] The issue-on-failure step is exercised on the branch run with a forced failure (input or env flag) and opens/updates a `nightly` issue (closed afterwards). Run 1 opened [#33](https://github.com/laudebugs/lamina/issues/33) and runs 2 and 3 commented on it; the owner closed it. Issue titles now name the ref ("Nightly lane failing on main"), so a branch or tag run never shares main's issue
 - [x] `cargo xtask corpus fetch` downloads and verifies the manifest (SHA-256) locally; a tampered hash fails
 - [x] The `reader_cache` scaling test passes locally with `cargo test --release -- --ignored` (`cargo xtask scaling`)
 - [x] The differential report (branch run) lists per-tool agreement rates and every disagreement is in the exceptions file or reported as a new issue. Run 3: 0 failures, 57 splits, 178 excused, 1 known. **Deviation:** only disagreements where every tool disagrees with lamina must be excused; splits are listed in the report (see Notes)
@@ -84,13 +84,16 @@ The workflow itself; unit tests for manifest parsing and the differential compar
 ## Definition of done
 
 - [x] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
-- [ ] Work PR opened from a fresh worktree; **PR** field filled in
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
+- [x] Work PR opened from a fresh worktree; **PR** field filled in
+- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings): round 1 (40 findings) fixed in the review-fix commit; second review pending
 - [ ] CI green
 - [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
 
 ## Notes
 
-- **What fails the differential.** A fact fails only when every tool that compared it disagrees with lamina and `exceptions.toml` doesn't excuse it, or when lamina panics; disagreements where some tool agrees with lamina are reported as splits (ADR 0018 implementation notes). The first full local run (5,686 inputs) had 436 such failures before triage. Seven value-matched `[[class]]` rules, each citing an ADR 0003 rule, explain all but 5; those are `[[known]]` entries. Final run: 0 failures, 567 splits, 1,755 excused, 5 known.
-- **Known disagreements.** Two `enc` mutants fail with `syntax` where every other reader opens them; undefined PDFDocEncoding bytes in outline titles become U+FFFD; `issue22011.pdf` has one page fewer. They need a tracking issue; until one exists the `[[known]]` entries point at [#32](https://github.com/laudebugs/lamina/pull/32).
+- **What fails the differential.** A fact fails only when every tool that compared it disagrees with lamina and no exception excuses it. A run also fails when lamina panics, crashes or hangs on a file, or when a reader breaks or reports the wrong files. Disagreements where some tool agrees with lamina are reported as splits (ADR 0018 implementation notes).
+  - First full local run (5,686 inputs): 436 such failures before triage.
+  - Eight value-matched `[[class]]` rules, each citing an ADR 0003 rule, explain all but 5, and those 5 are `[[known]]` entries. One nightly `[[exception]]` covers the other tools' side of a full-set mutant that `full-exceptions.toml` already excuses for pypdf.
+  - Latest full local run (6,190 inputs: 2,172 external, 4,018 mutants including the full lane's set, merged from X4): 0 failures, 0 lamina errors, 611 splits, 2,003 excused, 5 known, 0 stale.
+- **Known disagreements**, tracked by [#37](https://github.com/laudebugs/lamina/issues/37): two `enc` mutants fail with `syntax` where every other reader opens them; undefined PDFDocEncoding bytes in two pdf.js files' outline titles become U+FFFD; and `pdfjs/test/pdfs/issue22011.pdf`, where lamina walks 56 pages and pdf.js 40. (PDFium, qpdf and pypdf count 57; lamina's one page fewer than them is the `lamina-skips` class, so pdf.js's 40 is the disagreement left.)
 - **Benchmarks** run on GitHub-hosted Ubuntu and keep `history.jsonl` on the `bench-data` branch, which the first run on `main` creates. The baseline is the median of the last five runs; noisy runners may still trip the 10% threshold.

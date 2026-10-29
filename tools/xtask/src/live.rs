@@ -11,6 +11,7 @@
 //! (they are differences between the tools as much as bugs) but don't fail the run.
 
 use std::collections::{BTreeMap, BTreeSet};
+use std::ffi::OsString;
 use std::fmt::Write as _;
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -19,7 +20,7 @@ use anyhow::{Context, Result, bail};
 use serde_json::{Value, json};
 
 use crate::workspace::Workspace;
-use crate::{corpus, run, step};
+use crate::{corpus, runner, step, util};
 
 /// The facts every tool reports (the order of the report's columns).
 const FACTS: [&str; 3] = ["outcome", "page_count", "outline_titles"];
@@ -112,7 +113,11 @@ pub(crate) fn parse_args(args: &[String]) -> Result<LiveArgs> {
             }
             "--sample" => {
                 let n = value()?;
-                parsed.sample = Some(n.parse().with_context(|| format!("--sample {n:?}: not a number"))?);
+                let n: usize = n.parse().with_context(|| format!("--sample {n:?}: not a number"))?;
+                if n == 0 {
+                    bail!("--sample 0 would compare nothing; {USAGE}");
+                }
+                parsed.sample = Some(n);
             }
             other => bail!("unknown argument {other:?}; {USAGE}"),
         }
@@ -120,22 +125,91 @@ pub(crate) fn parse_args(args: &[String]) -> Result<LiveArgs> {
     Ok(parsed)
 }
 
-/// At most `n` of `items`, evenly spread over the (sorted) list, so a sample covers every source.
-fn sample<T>(items: Vec<T>, n: usize) -> Vec<T> {
+/// The group a sampled input belongs to: its external source (`pdfjs/…` → `pdfjs`), or
+/// `mutants` for the `fixtures/corpus` set.
+fn group(name: &str) -> &str {
+    name.split_once('/').map_or("mutants", |(source, _)| source)
+}
+
+/// At most `n` of the sorted `items`, stratified by [`group`]: each group gets a share
+/// proportional to its size and at least one input (while `n` allows), spread evenly within it.
+fn sample(items: Vec<(String, PathBuf)>, n: usize) -> Vec<(String, PathBuf)> {
     let len = items.len();
     if n >= len {
         return items;
     }
-    let keep: BTreeSet<usize> = (0..n).map(|i| i * len / n).collect();
-    items
-        .into_iter()
-        .enumerate()
-        .filter_map(|(i, item)| keep.contains(&i).then_some(item))
-        .collect()
+    let mut groups: BTreeMap<String, Vec<(String, PathBuf)>> = BTreeMap::new();
+    for item in items {
+        groups.entry(group(&item.0).to_owned()).or_default().push(item);
+    }
+    let mut quota: BTreeMap<String, usize> = groups
+        .iter()
+        .map(|(g, v)| {
+            (
+                g.clone(),
+                (v.len() * n / len).max(usize::from(n >= groups.len())).min(v.len()),
+            )
+        })
+        .collect();
+    // Rounding down leaves some of `n` unused: hand it out to the largest groups first.
+    let mut by_size: Vec<(&String, usize)> = groups.iter().map(|(g, v)| (g, v.len())).collect();
+    by_size.sort_by(|a, b| b.1.cmp(&a.1).then(a.0.cmp(b.0)));
+    let mut left = n.saturating_sub(quota.values().sum());
+    while left > 0 {
+        let before = left;
+        for (g, size) in &by_size {
+            if left == 0 {
+                break;
+            }
+            if let Some(q) = quota.get_mut(*g)
+                && *q < *size
+            {
+                *q += 1;
+                left -= 1;
+            }
+        }
+        if left == before {
+            break;
+        }
+    }
+    let mut out = Vec::new();
+    for (g, items) in groups {
+        let take = quota.get(&g).copied().unwrap_or_default();
+        let len = items.len();
+        let keep: BTreeSet<usize> = (0..take).map(|i| i * len / take.max(1)).collect();
+        out.extend(
+            items
+                .into_iter()
+                .enumerate()
+                .filter_map(|(i, item)| keep.contains(&i).then_some(item)),
+        );
+    }
+    out.sort();
+    out
+}
+
+/// The exceptions files the live differential applies: the fast set's (with the nightly
+/// `[[class]]` and `[[known]]` entries) and the full lane's.
+const EXCEPTIONS: [&str; 2] = [
+    "fixtures/differential/exceptions.toml",
+    "fixtures/differential/full-exceptions.toml",
+];
+
+/// Where `cargo build --release` puts the lamina-model example.
+fn example_binary(ws: &Workspace, name: &str) -> PathBuf {
+    let target = std::env::var_os("CARGO_TARGET_DIR").map_or_else(|| ws.root.join("target"), PathBuf::from);
+    target
+        .join("release/examples")
+        .join(format!("{name}{}", std::env::consts::EXE_SUFFIX))
 }
 
 /// `cargo xtask differential --live …`.
 pub(crate) fn run_live(ws: &Workspace, args: &LiveArgs) -> Result<()> {
+    // Everything that can fail fast does so before hours of work.
+    let mut exceptions = Exceptions::default();
+    for file in EXCEPTIONS {
+        exceptions.merge(Exceptions::read(&ws.root.join(file)).with_context(|| format!("reading {file}"))?);
+    }
     if args.tools.contains(&Tool::Qpdf) {
         crate::doctor::require(ws, &crate::doctor::qpdf())?;
     }
@@ -160,17 +234,13 @@ pub(crate) fn run_live(ws: &Workspace, args: &LiveArgs) -> Result<()> {
     if let Some(n) = args.sample {
         inputs = sample(inputs, n);
     }
-    let list = out.join("inputs.tsv");
-    let lines = inputs.iter().fold(String::new(), |mut out, (name, path)| {
-        let _ = writeln!(out, "{name}\t{}", path.display());
-        out
-    });
-    fs::write(&list, lines)?;
-    step(&format!("differential: {} inputs in {}", inputs.len(), list.display()));
+    if inputs.is_empty() {
+        bail!("no inputs: nothing would be compared (check --corpus, --source and --sample)");
+    }
+    step(&format!("differential: {} inputs", inputs.len()));
 
-    let lamina_json = out.join("lamina.json");
     ws.cargo(&[
-        "run",
+        "build",
         "--release",
         "--locked",
         "-q",
@@ -178,24 +248,16 @@ pub(crate) fn run_live(ws: &Workspace, args: &LiveArgs) -> Result<()> {
         "lamina-model",
         "--example",
         "differential-facts",
-        "--",
-        &list.to_string_lossy(),
-        &lamina_json.to_string_lossy(),
     ])?;
-    let mut reports = Vec::new();
-    for tool in &args.tools {
-        let json_path = out.join(format!("{}.json", tool.name()));
-        run_tool(ws, *tool, &list, &json_path)?;
-        reports.push(Report::read(&json_path)?);
-    }
-    let lamina = Report::read(&lamina_json)?;
-    let exceptions = Exceptions::read(&ws.root.join("fixtures/differential/exceptions.toml"))?;
+    let (mut reports, broken) = run_readers(ws, args, &inputs, &out)?;
+    let lamina = reports.remove(0);
     let comparison = compare(&lamina, &reports, &exceptions);
     let context = RunContext {
         inputs: inputs.len(),
         external: inputs.iter().filter(|(n, _)| n.contains('/')).count(),
-        commit: git_commit(ws),
+        commit: util::git_stdout(&ws.root, &["rev-parse", "HEAD"]).unwrap_or_else(|| "unknown".to_owned()),
         sample: args.sample,
+        broken,
     };
     let markdown = comparison.markdown(&lamina, &reports, &exceptions, &context);
     fs::write(out.join("report.md"), &markdown)?;
@@ -203,43 +265,83 @@ pub(crate) fn run_live(ws: &Workspace, args: &LiveArgs) -> Result<()> {
         out.join("report.json"),
         serde_json::to_string_pretty(&comparison.json(&lamina, &reports, &exceptions, &context))? + "\n",
     )?;
-    if let Ok(summary) = std::env::var("GITHUB_STEP_SUMMARY") {
-        append(Path::new(&summary), &markdown)?;
-    }
+    util::summary(&markdown)?;
     println!("{}", comparison.summary_line());
+    for pending in exceptions.pending() {
+        println!("::warning::exceptions.toml: [[known]] {pending} has no tracking issue yet");
+    }
     step(&format!("Report: {}", out.join("report.md").display()));
+    if !context.broken.is_empty() {
+        bail!("readers failed: {}; see the report", context.broken.join("; "));
+    }
     if comparison.failed() {
         bail!(
-            "lamina disagrees with every tool on {} facts and panicked on {} files (not excused by \
-             fixtures/differential/exceptions.toml); see the report",
+            "lamina disagrees with every tool on {} facts, or failed to read {} files (panic, crash \
+             or timeout), and fixtures/differential/exceptions.toml doesn't excuse them; see the report",
             comparison.failures().count(),
-            comparison.panics.len()
+            comparison.lamina_errors.len()
         );
     }
     Ok(())
 }
 
-fn append(path: &Path, text: &str) -> Result<()> {
-    use std::io::Write as _;
-    let mut file = fs::OpenOptions::new().append(true).create(true).open(path)?;
-    file.write_all(text.as_bytes())?;
-    Ok(())
+/// Runs lamina and every tool over `inputs` at once (each in its own processes, see
+/// runner.rs) and writes their reports to `out`; returns the reports, lamina's first, and the
+/// readers that broke or reported the wrong files.
+fn run_readers(
+    ws: &Workspace,
+    args: &LiveArgs,
+    inputs: &[(String, PathBuf)],
+    out: &Path,
+) -> Result<(Vec<Report>, Vec<String>)> {
+    let mut readers = vec![runner::Reader {
+        name: "lamina",
+        program: example_binary(ws, "differential-facts").into_os_string(),
+        args: Vec::new(),
+        dir: ws.root.clone(),
+        reports_repair: true,
+    }];
+    readers.extend(args.tools.iter().map(|tool| tool.reader(ws)));
+    // Every reader runs at once, each in its own processes (see runner.rs).
+    let runs: Vec<Result<runner::Run>> = std::thread::scope(|scope| {
+        let handles: Vec<_> = readers
+            .iter()
+            .map(|reader| scope.spawn(move || runner::run(reader, inputs, out, runner::Limits::default())))
+            .collect();
+        handles
+            .into_iter()
+            .map(|h| {
+                h.join()
+                    .unwrap_or_else(|_| Err(anyhow::anyhow!("a reader thread panicked")))
+            })
+            .collect()
+    });
+    let mut broken = Vec::new();
+    let mut reports = Vec::new();
+    for (reader, run) in readers.iter().zip(runs) {
+        let run = run.with_context(|| format!("running {}", reader.name))?;
+        fs::write(
+            out.join(format!("{}.json", reader.name)),
+            serde_json::to_string_pretty(&run.report)? + "\n",
+        )?;
+        let (extra, missing) = runner::coverage(&run.report, inputs);
+        if let Some(why) = run.broken {
+            broken.push(format!("{}: {why}", reader.name));
+        } else if !extra.is_empty() || !missing.is_empty() {
+            broken.push(format!(
+                "{}: {} inputs missing from its report, {} names that aren't inputs",
+                reader.name,
+                missing.len(),
+                extra.len()
+            ));
+        }
+        reports.push(Report::parse(&run.report)?);
+    }
+    Ok((reports, broken))
 }
 
-fn git_commit(ws: &Workspace) -> String {
-    std::process::Command::new("git")
-        .args(["rev-parse", "HEAD"])
-        .current_dir(&ws.root)
-        .output()
-        .ok()
-        .filter(|o| o.status.success())
-        .map_or_else(
-            || "unknown".to_owned(),
-            |o| String::from_utf8_lossy(&o.stdout).trim().to_owned(),
-        )
-}
-
-/// The nightly mutant set (`fixtures/corpus` files and their first 250 mutants each).
+/// The nightly mutant set: every `fixtures/corpus` file, the first 250 mutants of the fast
+/// set's series and the full lane's set (`differential-inputs --nightly`).
 fn write_mutants(ws: &Workspace, dir: &Path) -> Result<Vec<(String, PathBuf)>> {
     ws.cargo(&[
         "run",
@@ -252,7 +354,7 @@ fn write_mutants(ws: &Workspace, dir: &Path) -> Result<Vec<(String, PathBuf)>> {
         "differential-inputs",
         "--",
         &dir.to_string_lossy(),
-        "--per-file",
+        "--nightly",
         &NIGHTLY_MUTANTS_PER_FILE.to_string(),
     ])?;
     let mut out = Vec::new();
@@ -264,21 +366,28 @@ fn write_mutants(ws: &Workspace, dir: &Path) -> Result<Vec<(String, PathBuf)>> {
     Ok(out)
 }
 
-fn run_tool(ws: &Workspace, tool: Tool, list: &Path, out: &Path) -> Result<()> {
-    let (list, out) = (list.as_os_str(), out.as_os_str());
-    match tool {
-        Tool::Pdfjs => {
-            let script = ws.root.join("tools/differential/pdfjs.mjs");
-            run(&ws.root, "node", &[script.as_os_str(), list, out])
-        }
-        Tool::Pdfium | Tool::Qpdf | Tool::Pypdf => {
-            let script = ws.root.join("tools/differential/facts.py");
-            let name = std::ffi::OsStr::new(tool.name());
-            run(
-                &ws.root,
-                &crate::harness::python(),
-                &[script.as_os_str(), name, list, out],
-            )
+impl Tool {
+    /// How [`runner`] starts this tool.
+    fn reader(self, ws: &Workspace) -> runner::Reader {
+        let (program, args): (OsString, Vec<OsString>) = match self {
+            Self::Pdfjs => (
+                "node".into(),
+                vec![ws.root.join("tools/differential/pdfjs.mjs").into_os_string()],
+            ),
+            Self::Pdfium | Self::Qpdf | Self::Pypdf => (
+                crate::harness::python().into(),
+                vec![
+                    ws.root.join("tools/differential/facts.py").into_os_string(),
+                    self.name().into(),
+                ],
+            ),
+        };
+        runner::Reader {
+            name: self.name(),
+            program,
+            args,
+            dir: ws.root.clone(),
+            reports_repair: matches!(self, Self::Qpdf | Self::Pypdf),
         }
     }
 }
@@ -294,11 +403,6 @@ pub(crate) struct Report {
 }
 
 impl Report {
-    fn read(path: &Path) -> Result<Self> {
-        let text = fs::read_to_string(path).with_context(|| format!("reading {}", path.display()))?;
-        Self::parse(&serde_json::from_str(&text).with_context(|| format!("parsing {}", path.display()))?)
-    }
-
     fn parse(value: &Value) -> Result<Self> {
         let text = |key: &str| {
             value
@@ -382,8 +486,13 @@ struct Known {
     file: String,
     facts: Vec<String>,
     tools: Vec<String>,
-    issue: String,
+    /// The tracking issue, or `None` while it is [`PENDING_ISSUE`] (reported as a warning).
+    issue: Option<String>,
 }
+
+/// The `issue` of a `[[known]]` entry whose tracking issue doesn't exist yet. Accepted, but every
+/// run warns about it and the report lists it, so it can't pass for tracking.
+const PENDING_ISSUE: &str = "PENDING";
 
 /// Which entry excused a disagreement.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -396,8 +505,9 @@ enum Excuse {
     Known(usize),
 }
 
-/// `fixtures/differential/exceptions.toml`. `[[exception]]` entries (shared with the PR lane's
-/// test) name one file; without `tools` they are about pypdf, the PR lane's only tool.
+/// `fixtures/differential/exceptions.toml` and `full-exceptions.toml`. `[[exception]]` entries
+/// (shared with the PR lanes' test) name a `file` or `files`; without `tools` they are about
+/// pypdf, the PR lanes' only tool.
 /// `[[class]]` and `[[known]]` entries are read by the nightly lane only. Every `[[exception]]`
 /// and `[[class]]` names the ADR 0003 rule behind lamina's answer; a `[[known]]` names its issue.
 #[derive(Debug, Default)]
@@ -443,6 +553,22 @@ impl Exceptions {
         Self::parse(&fs::read_to_string(path).with_context(|| format!("reading {}", path.display()))?)
     }
 
+    /// Adds `other`'s entries (class and known indexes continue after this file's).
+    fn merge(&mut self, other: Self) {
+        self.files.extend(other.files);
+        self.classes.extend(other.classes);
+        self.known.extend(other.known);
+    }
+
+    /// `[[known]]` files whose tracking issue is still [`PENDING_ISSUE`].
+    fn pending(&self) -> Vec<&str> {
+        self.known
+            .iter()
+            .filter(|k| k.issue.is_none())
+            .map(|k| k.file.as_str())
+            .collect()
+    }
+
     fn parse(text: &str) -> Result<Self> {
         let table: toml::Table = text.parse().context("parsing exceptions.toml")?;
         let entries = |key: &str| -> Vec<toml::Value> {
@@ -456,14 +582,19 @@ impl Exceptions {
         for entry in entries("exception") {
             let e = Entry::read(&entry, "exception")?;
             e.require_rule()?;
+            if e.files.is_empty() {
+                bail!("every [[exception]] names its `file` or `files`: {entry:?}");
+            }
             let tools = if e.tools.is_empty() {
                 vec![Tool::Pypdf.name().to_owned()]
             } else {
                 e.tools.clone()
             };
-            for fact in &e.facts {
-                for tool in &tools {
-                    out.files.insert((e.file.clone(), fact.clone(), tool.clone()));
+            for file in &e.files {
+                for fact in &e.facts {
+                    for tool in &tools {
+                        out.files.insert((file.clone(), fact.clone(), tool.clone()));
+                    }
                 }
             }
         }
@@ -475,8 +606,13 @@ impl Exceptions {
                 Some("lamina-skips") => Some(Relation::LaminaSkips),
                 Some(other) => bail!("[[class]] relation {other:?}: only \"lamina-skips\""),
             };
+            let file = match e.files.as_slice() {
+                [] => "*".to_owned(),
+                [one] => one.clone(),
+                _ => bail!("a [[class]] takes one `file` glob: {entry:?}"),
+            };
             out.classes.push(Class {
-                file: if e.file.is_empty() { "*".to_owned() } else { e.file },
+                file,
                 facts: e.facts,
                 tools: e.tools,
                 lamina: entry.get("lamina").map(toml_to_json),
@@ -493,14 +629,22 @@ impl Exceptions {
         for entry in entries("known") {
             let e = Entry::read(&entry, "known")?;
             let issue = entry.get("issue").and_then(toml::Value::as_str).unwrap_or_default();
-            if e.file.is_empty() || !issue.starts_with("https://") || e.reason.is_empty() {
-                bail!("every [[known]] needs `file`, an `issue` URL and a `reason`: {entry:?}");
+            let issue = match issue {
+                PENDING_ISSUE => None,
+                url if url.starts_with("https://") => Some(url.to_owned()),
+                _ => bail!("a [[known]] `issue` is a URL or \"{PENDING_ISSUE}\": {entry:?}"),
+            };
+            if e.reason.is_empty() {
+                bail!("every [[known]] gives a `reason`: {entry:?}");
             }
+            let [file] = e.files.as_slice() else {
+                bail!("a [[known]] names exactly one `file`: {entry:?}");
+            };
             out.known.push(Known {
-                file: e.file,
+                file: file.clone(),
                 facts: e.facts,
                 tools: e.tools,
-                issue: issue.to_owned(),
+                issue,
             });
         }
         Ok(out)
@@ -514,10 +658,10 @@ impl Exceptions {
                 .classes
                 .get(i)
                 .map_or_else(String::new, |c| format!("class {}: {}", i + 1, c.rule)),
-            Excuse::Known(i) => self
-                .known
-                .get(i)
-                .map_or_else(String::new, |k| format!("known: {}", k.issue)),
+            Excuse::Known(i) => self.known.get(i).map_or_else(String::new, |k| match &k.issue {
+                Some(url) => format!("known: {url}"),
+                None => "known: tracking issue pending".to_owned(),
+            }),
         }
     }
 
@@ -550,8 +694,10 @@ impl Exceptions {
 
 /// The fields every kind of entry shares.
 struct Entry {
-    file: String,
+    /// `file` or `files` (exactly one of them, or neither).
+    files: Vec<String>,
     facts: Vec<String>,
+    /// Validated tool names (`pdfjs`, `pdfium`, `qpdf`, `pypdf`).
     tools: Vec<String>,
     rule: String,
     reason: String,
@@ -566,21 +712,40 @@ impl Entry {
                 .unwrap_or_default()
                 .to_owned()
         };
-        let strings = |key: &str| -> Vec<String> {
-            entry
-                .get(key)
-                .and_then(toml::Value::as_array)
-                .map(|a| a.iter().filter_map(toml::Value::as_str).map(str::to_owned).collect())
-                .unwrap_or_default()
+        let strings = |key: &str| -> Result<Vec<String>> {
+            let Some(value) = entry.get(key) else {
+                return Ok(Vec::new());
+            };
+            let list = value
+                .as_array()
+                .with_context(|| format!("[[{kind}]] `{key}` must be an array: {entry:?}"))?;
+            let out: Vec<String> = list.iter().filter_map(toml::Value::as_str).map(str::to_owned).collect();
+            if out.is_empty() || out.len() != list.len() {
+                bail!("[[{kind}]] `{key}` must be a non-empty list of strings: {entry:?}");
+            }
+            Ok(out)
         };
-        let facts = strings("facts");
+        let facts = strings("facts")?;
         if facts.is_empty() || facts.iter().any(|f| !FACTS.contains(&f.as_str())) {
             bail!("[[{kind}]] needs `facts` from {FACTS:?}: {entry:?}");
         }
+        let tools = strings("tools")?;
+        for tool in &tools {
+            Tool::parse(tool).with_context(|| format!("[[{kind}]] {entry:?}"))?;
+        }
+        let files = match (entry.get("file"), entry.get("files")) {
+            (None, None) => Vec::new(),
+            (Some(file), None) => match file.as_str() {
+                Some(f) if !f.is_empty() => vec![f.to_owned()],
+                _ => bail!("[[{kind}]] `file` must be a non-empty string: {entry:?}"),
+            },
+            (None, Some(_)) => strings("files")?,
+            (Some(_), Some(_)) => bail!("[[{kind}]] has both `file` and `files`: {entry:?}"),
+        };
         Ok(Self {
-            file: text("file"),
+            files,
             facts,
-            tools: strings("tools"),
+            tools,
             rule: text("rule"),
             reason: text("reason"),
         })
@@ -590,7 +755,7 @@ impl Entry {
         if !self.rule.starts_with("ADR 0003") || self.reason.is_empty() {
             bail!(
                 "every exception and class names its ADR 0003 `rule` and a `reason` ({:?})",
-                self.file
+                self.files
             );
         }
         Ok(())
@@ -632,6 +797,8 @@ struct Tally {
 struct ToolSummary {
     files: usize,
     timeouts: usize,
+    /// Files whose single-file run crashed the tool (skipped, like timeouts).
+    crashes: usize,
     /// Per fact, in [`FACTS`] order.
     tallies: [Tally; 3],
 }
@@ -640,7 +807,10 @@ struct ToolSummary {
 struct Comparison {
     tools: BTreeMap<String, ToolSummary>,
     disagreements: Vec<Disagreement>,
-    panics: Vec<String>,
+    /// `file: panic|crash|timeout` where lamina itself failed to read a file: always a failure.
+    lamina_errors: Vec<String>,
+    /// `file (tool)` for inputs lamina read that a tool's report lacks: always a failure.
+    missing: Vec<String>,
     /// `file: fact (tool)` for `[[exception]]` and `[[known]]` entries the tool now agrees on.
     stale: Vec<String>,
     /// How many disagreements each `[[class]]` and `[[known]]` entry excused.
@@ -649,6 +819,8 @@ struct Comparison {
 }
 
 struct RunContext {
+    /// Readers that broke or reported the wrong files (the run fails).
+    broken: Vec<String>,
     inputs: usize,
     external: usize,
     commit: String,
@@ -678,9 +850,12 @@ fn compare(lamina: &Report, tools: &[Report], exceptions: &Exceptions) -> Compar
         out.tools.entry(tool.tool.clone()).or_default();
     }
     for (file, ours) in &lamina.facts {
-        if ours.get("outcome").and_then(Value::as_str) == Some("panic") {
-            out.panics.push(file.clone());
+        if let Some(error @ ("panic" | "crash" | "timeout")) = ours.get("outcome").and_then(Value::as_str) {
+            out.lamina_errors.push(format!("{file}: {error}"));
             continue;
+        }
+        for tool in tools.iter().filter(|t| !t.facts.contains_key(file)) {
+            out.missing.push(format!("{file} ({})", tool.tool));
         }
         let mut seen = BTreeSet::new();
         for (index, fact) in FACTS.into_iter().enumerate() {
@@ -691,11 +866,13 @@ fn compare(lamina: &Report, tools: &[Report], exceptions: &Exceptions) -> Compar
                 let summary = out.tools.entry(tool.tool.clone()).or_default();
                 if seen.insert(tool.tool.clone()) {
                     summary.files += 1;
-                    if theirs.get("outcome").and_then(Value::as_str) == Some("timeout") {
-                        summary.timeouts += 1;
+                    match theirs.get("outcome").and_then(Value::as_str) {
+                        Some("timeout") => summary.timeouts += 1,
+                        Some("crash") => summary.crashes += 1,
+                        _ => {}
                     }
                 }
-                if theirs.get("outcome").and_then(Value::as_str) == Some("timeout")
+                if matches!(theirs.get("outcome").and_then(Value::as_str), Some("timeout" | "crash"))
                     || (fact != "outcome" && !(readable(ours) && readable(theirs)))
                 {
                     continue;
@@ -764,12 +941,13 @@ fn rate(tally: &Tally) -> String {
 
 /// A JSON value for a Markdown table cell: compact, `|` escaped, at most 80 characters.
 fn cell(value: &Value) -> String {
-    let text = value.to_string().replace('|', "\\|");
-    if text.chars().count() > 80 {
+    let text = value.to_string();
+    let text = if text.chars().count() > 80 {
         format!("{}…", text.chars().take(79).collect::<String>())
     } else {
         text
-    }
+    };
+    util::md_cell(&text)
 }
 
 impl Comparison {
@@ -778,7 +956,7 @@ impl Comparison {
     }
 
     fn failed(&self) -> bool {
-        self.failures().next().is_some() || !self.panics.is_empty()
+        self.failures().next().is_some() || !self.lamina_errors.is_empty() || !self.missing.is_empty()
     }
 
     fn count(&self, kind: Kind) -> usize {
@@ -787,9 +965,10 @@ impl Comparison {
 
     fn summary_line(&self) -> String {
         format!(
-            "differential: {} failures, {} panics, {} split, {} excused, {} known, {} stale exceptions",
+            "differential: {} failures, {} lamina errors, {} missing, {} split, {} excused, {} known, {} stale exceptions",
             self.count(Kind::Failure),
-            self.panics.len(),
+            self.lamina_errors.len(),
+            self.missing.len(),
             self.count(Kind::Split),
             self.count(Kind::Excused),
             self.count(Kind::Known),
@@ -819,15 +998,16 @@ impl Comparison {
         );
         let _ = writeln!(
             md,
-            "| Tool | Version | Files | Timeouts | Outcome | Page count | Outline titles |"
+            "| Tool | Version | Files | Timeouts / crashes | Outcome | Page count | Outline titles |"
         );
         let _ = writeln!(md, "| --- | --- | --- | --- | --- | --- | --- |");
         let _ = writeln!(
             md,
-            "| lamina | {} (`{}`) | {} | - | - | - | - |",
-            lamina.version,
+            "| lamina | {} (`{}`) | {} | {} | - | - | - |",
+            util::md_cell(&lamina.version),
             context.commit.get(..12).unwrap_or(&context.commit),
-            lamina.facts.len()
+            lamina.facts.len(),
+            self.lamina_errors.len()
         );
         for tool in tools {
             let Some(summary) = self.tools.get(&tool.tool) else {
@@ -836,15 +1016,34 @@ impl Comparison {
             let rates: Vec<String> = summary.tallies.iter().map(rate).collect();
             let _ = writeln!(
                 md,
-                "| {} | {} | {} | {} | {} |",
-                tool.tool,
-                tool.version,
+                "| {} | {} | {} | {} / {} | {} |",
+                util::md_cell(&tool.tool),
+                util::md_cell(&tool.version),
                 summary.files,
                 summary.timeouts,
+                summary.crashes,
                 rates.join(" | ")
             );
         }
+        if !context.broken.is_empty() {
+            let _ = writeln!(md, "\n### Readers that failed (the run fails)\n");
+            for why in &context.broken {
+                let _ = writeln!(md, "- {}", util::md_cell(why));
+            }
+        }
         self.markdown_details(&mut md, exceptions);
+        let pending = exceptions.pending();
+        if !pending.is_empty() {
+            let _ = writeln!(
+                md,
+                "\n### `[[known]]` entries without a tracking issue ({})\n\nOpen the issue and put its URL in \
+                 `issue`.\n",
+                pending.len()
+            );
+            for file in pending {
+                let _ = writeln!(md, "- `{}`", util::md_cell(file));
+            }
+        }
         if !self.stale.is_empty() {
             let _ = writeln!(
                 md,
@@ -853,7 +1052,7 @@ impl Comparison {
                 self.stale.len()
             );
             for entry in self.stale.iter().take(MAX_ROWS) {
-                let _ = writeln!(md, "- `{entry}`");
+                let _ = writeln!(md, "- `{}`", util::md_cell(entry));
             }
         }
         md
@@ -861,10 +1060,15 @@ impl Comparison {
 
     /// Panics, the disagreement tables and the class and known-issue counts.
     fn markdown_details(&self, md: &mut String, exceptions: &Exceptions) {
-        if !self.panics.is_empty() {
-            let _ = writeln!(md, "\n### lamina panicked ({})\n", self.panics.len());
-            for file in self.panics.iter().take(MAX_ROWS) {
-                let _ = writeln!(md, "- `{file}`");
+        for (title, list) in [
+            ("lamina failed to read (panic, crash or timeout)", &self.lamina_errors),
+            ("Missing from a tool's report", &self.missing),
+        ] {
+            if !list.is_empty() {
+                let _ = writeln!(md, "\n### {title} ({})\n", list.len());
+                for entry in list.iter().take(MAX_ROWS) {
+                    let _ = writeln!(md, "- `{}`", util::md_cell(entry));
+                }
             }
         }
         for (kind, title) in [
@@ -888,14 +1092,14 @@ impl Comparison {
                     .tools
                     .iter()
                     .map(|(t, v, excuse)| match excuse {
-                        Some(e) => format!("{t}: {} ({})", cell(v), exceptions.describe(*e)),
+                        Some(e) => format!("{t}: {} ({})", cell(v), util::md_cell(&exceptions.describe(*e))),
                         None => format!("{t}: {}", cell(v)),
                     })
                     .collect();
                 let _ = writeln!(
                     md,
                     "| `{}` | {} | {} | {} | {} |",
-                    d.file,
+                    util::md_cell(&d.file),
                     d.fact,
                     cell(&d.lamina),
                     theirs.join("<br>"),
@@ -908,12 +1112,21 @@ impl Comparison {
             let _ = writeln!(md, "| Entry | Disagreements excused |\n| --- | --- |");
             for i in 0..exceptions.classes.len() {
                 let hits = self.class_hits.get(&i).copied().unwrap_or_default();
-                let _ = writeln!(md, "| {} | {hits} |", exceptions.describe(Excuse::Class(i)));
+                let _ = writeln!(
+                    md,
+                    "| {} | {hits} |",
+                    util::md_cell(&exceptions.describe(Excuse::Class(i)))
+                );
             }
             for i in 0..exceptions.known.len() {
                 let hits = self.known_hits.get(&i).copied().unwrap_or_default();
                 let file = exceptions.known.get(i).map_or("", |k| k.file.as_str());
-                let _ = writeln!(md, "| `{file}` ({}) | {hits} |", exceptions.describe(Excuse::Known(i)));
+                let _ = writeln!(
+                    md,
+                    "| `{}` ({}) | {hits} |",
+                    util::md_cell(file),
+                    util::md_cell(&exceptions.describe(Excuse::Known(i)))
+                );
             }
         }
     }
@@ -939,6 +1152,7 @@ impl Comparison {
                     "reports_repair": tool.reports_repair,
                     "files": summary.map_or(0, |s| s.files),
                     "timeouts": summary.map_or(0, |s| s.timeouts),
+                    "crashes": summary.map_or(0, |s| s.crashes),
                     "facts": facts,
                 })
             })
@@ -964,7 +1178,9 @@ impl Comparison {
             "sample": context.sample,
             "lamina": {"version": lamina.version, "files": lamina.facts.len()},
             "tools": tool_rows,
-            "panics": self.panics,
+            "lamina_errors": self.lamina_errors,
+            "missing": self.missing,
+            "broken_readers": context.broken,
             "disagreements": disagreements,
             "stale_exceptions": self.stale,
             "class_hits": (0..exceptions.classes.len()).map(|i| self.class_hits.get(&i).copied().unwrap_or_default()).collect::<Vec<_>>(),
@@ -1114,9 +1330,98 @@ mod tests {
         );
     }
 
+    fn named(names: &[String]) -> Vec<(String, PathBuf)> {
+        names.iter().map(|n| (n.clone(), PathBuf::from(n))).collect()
+    }
+
     #[test]
-    fn sample_should_spread_over_the_list() {
-        assert_eq!(sample((0..10).collect(), 3), [0, 3, 6]);
+    fn sample_should_keep_every_source() {
+        let mut names: Vec<String> = (0..100).map(|i| format!("pdfjs/{i:03}.pdf")).collect();
+        names.extend((0..100).map(|i| format!("m{i:03}.pdf")));
+        names.push("qpdf/only.pdf".to_owned());
+        let picked = sample(named(&names), 10);
+        let groups: BTreeSet<&str> = picked.iter().map(|(n, _)| group(n)).collect();
+        assert_eq!((picked.len(), groups.len()), (10, 3));
+    }
+
+    #[test]
+    fn sample_should_spread_within_a_group() {
+        let names: Vec<String> = (0..10).map(|i| format!("m{i}.pdf")).collect();
+        let picked: Vec<String> = sample(named(&names), 3).into_iter().map(|(n, _)| n).collect();
+        assert_eq!(picked, ["m0.pdf", "m3.pdf", "m6.pdf"]);
+    }
+
+    #[test]
+    fn live_args_should_reject_a_zero_sample() {
+        let args: Vec<String> = ["--sample", "0"].map(String::from).to_vec();
+        assert!(parse_args(&args).is_err());
+    }
+
+    #[test]
+    fn compare_should_fail_when_a_tool_report_lacks_a_file() {
+        let lamina = report("lamina", true, &json!({"a.pdf": opened(1), "b.pdf": opened(1)}));
+        let tools = [report("qpdf", true, &json!({"a.pdf": opened(1)}))];
+        let c = compare(&lamina, &tools, &Exceptions::default());
+        assert!(c.failed() && c.missing == ["b.pdf (qpdf)"]);
+    }
+
+    #[test]
+    fn compare_should_fail_on_a_lamina_crash_or_timeout() {
+        let crash = json!({"outcome": "crash", "page_count": null, "outline_titles": null});
+        let lamina = report("lamina", true, &json!({"a.pdf": crash}));
+        assert!(compare(&lamina, &[], &Exceptions::default()).failed());
+    }
+
+    #[test]
+    fn compare_should_skip_tool_crashes() {
+        let crash = json!({"outcome": "crash", "page_count": null, "outline_titles": null});
+        let lamina = report("lamina", true, &json!({"a.pdf": opened(1)}));
+        let tools = [report("pdfium", false, &json!({"a.pdf": crash}))];
+        let c = compare(&lamina, &tools, &Exceptions::default());
+        assert!(!c.failed() && c.tools["pdfium"].crashes == 1);
+    }
+
+    const RULE: &str = "rule = \"ADR 0003 §1: Repair\"\nreason = \"r\"\n";
+
+    #[test]
+    fn exceptions_should_reject_an_unknown_tool() {
+        let text = format!("[[exception]]\nfile = \"a.pdf\"\nfacts = [\"outcome\"]\ntools = [\"mupdf\"]\n{RULE}");
+        assert!(Exceptions::parse(&text).is_err());
+    }
+
+    #[test]
+    fn exceptions_should_require_a_file() {
+        let text = format!("[[exception]]\nfacts = [\"outcome\"]\n{RULE}");
+        assert!(Exceptions::parse(&text).is_err());
+    }
+
+    #[test]
+    fn exceptions_should_read_files_lists() {
+        let text = format!("[[exception]]\nfiles = [\"a.pdf\", \"b.pdf\"]\nfacts = [\"outcome\"]\n{RULE}");
+        let e = Exceptions::parse(&text).unwrap();
+        let (ours, theirs) = (json!({"outcome": "repaired"}), json!("failed"));
+        assert_eq!(
+            e.excuse("b.pdf", "outcome", "pypdf", &ours, &theirs),
+            Some(Excuse::File)
+        );
+    }
+
+    #[test]
+    fn known_entries_should_flag_a_pending_issue() {
+        let text = "[[known]]\nfile = \"a.pdf\"\nfacts = [\"page_count\"]\nissue = \"PENDING\"\nreason = \"r\"\n";
+        let e = Exceptions::parse(text).unwrap();
+        assert_eq!(
+            (e.pending(), e.describe(Excuse::Known(0))),
+            (vec!["a.pdf"], "known: tracking issue pending".to_owned())
+        );
+    }
+
+    #[test]
+    fn cell_should_escape_pipes_after_truncating() {
+        // 79 characters are kept (the opening quote and 78 x): the `|` after them is cut,
+        // never half of its escape.
+        let cut = cell(&json!(format!("{}|tail", "x".repeat(78))));
+        assert!(cell(&json!("a|b")) == "\"a\\|b\"" && !cut.contains('|') && cut.ends_with('…'));
     }
 
     #[test]

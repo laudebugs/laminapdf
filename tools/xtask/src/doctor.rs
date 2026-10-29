@@ -61,7 +61,10 @@ impl Tool {
         let Some((program, args)) = self.version_command.split_first() else {
             return Probe::Missing;
         };
-        let output = Command::new(program).args(args).current_dir(&ws.root).output();
+        let output = Command::new(crate::program_path(program))
+            .args(args)
+            .current_dir(&ws.root)
+            .output();
         let version = match output {
             Ok(out) if out.status.success() => String::from_utf8_lossy(&out.stdout).trim().to_owned(),
             _ => return Probe::Missing,
