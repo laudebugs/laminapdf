@@ -20,6 +20,7 @@ Share a cloud document for review: invites and share links (per ADR 0012's Q6 an
 
 ## Context
 
+- **Design (Paper):** [H05 Share for review](../../design/paper/account-cloud-product.md#h05-share-for-review), [H07 Notifications](../../design/paper/account-cloud-product.md#h07-notifications). Build to match these screens; record any deviation in the area document ([Paper design plan §5](../../plans/paper-design.md#5-how-the-designs-are-used)).
 - ADR 0012
 - [full-editor: optional Cloudflare server features](../../plans/full-editor.md#optional-cloudflare-server-features)
 

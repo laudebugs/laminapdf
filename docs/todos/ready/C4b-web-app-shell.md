@@ -20,6 +20,7 @@ Ship the first runnable reader: `apps/web`, a Vite 8 SPA that composes `@lamina/
 
 ## Context
 
+- **Design (Paper):** [R01 Home / open](../../design/paper/reader-a.md#r01-home--open), [R04 Repaired / damaged file](../../design/paper/reader-a.md#r04-repaired--damaged-file). Build to match these screens; record any deviation in the area document ([Paper design plan §5](../../plans/paper-design.md#5-how-the-designs-are-used)).
 - ADR 0011 (from [C2a](./C2a-render-adrs.md)) — topology, header values, Wrangler pinning.
 - [Research: Cloudflare section](../../research/architecture/app-and-package-architecture.md#cloudflare-hosts-everything-for-about-5-a-month-with-heavy-jobs-in-containers) and [cloudflare notes §1](../../research/architecture/notes/cloudflare.md) — `not_found_handling: "single-page-application"`, no `main` script needed for a pure SPA, `_headers` applies to assets only, 25 MiB per asset (PDFium WASM fits), compat date ≥ 2025-04-01 navigation behaviour.
 - [web-frontend notes](../../research/architecture/notes/web-frontend.md) §5 (COOP/COEP only for a threaded variant), §6 (`showOpenFilePicker` not Baseline; input + drag-drop fallback), §8 (Vite 8 + Rolldown, module workers + WASM).

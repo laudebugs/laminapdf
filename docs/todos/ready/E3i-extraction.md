@@ -21,6 +21,7 @@ Export extracted content: text (plain, with positions as JSON), original embedde
 
 ## Context
 
+- **Design (Paper):** [O16 Export and extraction](../../design/paper/pages-navigation-extraction.md#o16-export-and-extraction). Build to match these screens; record any deviation in the area document ([Paper design plan §5](../../plans/paper-design.md#5-how-the-designs-are-used)).
 - [library B9](../../plans/pdf-library.md#b9-text-extraction)
 - [05 §3.8 Image extraction](../../research/pdf/05-creating-pdfs-from-code.md#38-image-extraction)
 - [03 §8 Text extraction](../../research/pdf/03-text-and-fonts.md#8-text-extraction)

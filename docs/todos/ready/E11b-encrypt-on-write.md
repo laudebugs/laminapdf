@@ -21,6 +21,7 @@ Encrypt on full rewrite with the standard security handler R6 (AES-256, `/V 5`, 
 
 ## Context
 
+- **Design (Paper):** [G06 Protect](../../design/paper/sign-protect-redact.md#g06-protect). Build to match these screens; record any deviation in the area document ([Paper design plan §5](../../plans/paper-design.md#5-how-the-designs-are-used)).
 - [04 §7.2 Standard security handler revisions](../../research/pdf/04-interactive-security.md#72-standard-security-handler-revisions)
 - [04 §7.4 Permission bits](../../research/pdf/04-interactive-security.md#74-permission-bits-p)
 - [04 §7.7 PDFex](../../research/pdf/04-interactive-security.md#77-pdfex-müller-et-al-acm-ccs-2019)

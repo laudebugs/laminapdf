@@ -20,6 +20,7 @@ Close round E1: make the C6 document properties dialog editable (title, author, 
 
 ## Context
 
+- **Design (Paper):** [O04 Document info and XMP editor](../../design/paper/edit-session-organise.md#o04-document-info-and-xmp-editor), [O05 Capability page](../../design/paper/edit-session-organise.md#o05-capability-page). Build to match these screens; record any deviation in the area document ([Paper design plan §5](../../plans/paper-design.md#5-how-the-designs-are-used)).
 - [web C6](../../plans/web-app.md#c6-navigation-print-and-properties): the read-only properties dialog
 - [full-editor §3](../../plans/full-editor.md#3-tracking-the-capability-matrix): the matrix and its columns
 - [full-editor §10](../../plans/full-editor.md#10-to-dos) cross-cutting: "Show the capability matrix in the app (E1)"

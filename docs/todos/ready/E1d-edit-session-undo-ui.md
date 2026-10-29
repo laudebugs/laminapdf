@@ -21,6 +21,7 @@ Turn the readers into an editor shell: an edit session per open document that ho
 
 ## Context
 
+- **Design (Paper):** [O01 Edit session and history](../../design/paper/edit-session-organise.md#o01-edit-session-and-history). Build to match these screens; record any deviation in the area document ([Paper design plan §5](../../plans/paper-design.md#5-how-the-designs-are-used)).
 - [full-editor §6](../../plans/full-editor.md#6-design-summary): interaction modes as one state machine; tools as small modules over `@lamina/viewer` layers
 - [ADR 0006](../../decisions/0006-op-log-and-undo.md) §4: undo per document, local origin only, `UndoOutcome::Partial`; §7 two dirty levels
 - [web C3](../../plans/web-app.md#c3-viewer-core) and [desktop D4](../../plans/desktop-app.md#d4-windows-tabs-menus-and-printing): the worker RPC, menus and accelerators this extends

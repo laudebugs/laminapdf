@@ -1,0 +1,189 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Object inspector</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&amp;family=Source+Sans+3:wght@400;500;600&amp;family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&amp;display=swap">
+<style>
+body{margin:0;background:#DCD6CB}
+a{color:#1F5C63}a:hover{color:#16454B}
+button,input,textarea,select{font:inherit;color:inherit}
+</style>
+</helmet>
+<div style="min-height: 100vh; display: flex; flex-direction: column; box-sizing: border-box; background: #DCD6CB; font-family: 'Source Sans 3', 'Segoe UI', system-ui, sans-serif; font-size: 14px; line-height: 1.4; color: #1F1D1A">
+<div style="position: relative; flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; background: #F7F4EE; border: 1px solid #C9C2B6; border-radius: 10px; overflow: hidden; box-sizing: border-box">
+
+  <div style="height: 30px; flex: 0 0 auto; display: flex; align-items: center; padding: 0 12px; background: #EFEBE3; border-bottom: 1px solid #E0D9CD; position: relative">
+    <div aria-hidden="true" style="display: flex; gap: 8px">
+      <span style="width: 12px; height: 12px; border-radius: 50%; background: #EC6A5E; border: 0.5px solid #D2574C"></span>
+      <span style="width: 12px; height: 12px; border-radius: 50%; background: #F4BF4F; border: 0.5px solid #D9A63A"></span>
+      <span style="width: 12px; height: 12px; border-radius: 50%; background: #61C554; border: 0.5px solid #4CAA40"></span>
+    </div>
+    <div style="position: absolute; left: 0; right: 0; text-align: center; font-size: 13px; font-weight: 600; color: #3A3631; pointer-events: none">Q3-board-report.pdf</div>
+  </div>
+
+  <header style="min-height: 40px; flex: 0 0 auto; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 20px; padding: 0 16px; border-bottom: 1px solid #E4DED3">
+    <div style="display: flex; align-items: center; gap: 10px; flex: 1 1 220px; min-width: 0">
+      <button aria-label="Sidebar" aria-pressed="true" style="width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 4px; color: #4A453E"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="3.5" y="4.5" width="17" height="15" rx="1.5"></rect><path d="M9 4.5v15"></path></svg></button>
+      <span style="font-family: 'Newsreader', Georgia, serif; font-size: 16px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">Q3-board-report.pdf</span>
+      <span style="font-size: 12px; color: #6B645A; white-space: nowrap">No unsaved changes</span>
+    </div>
+    <div role="group" aria-label="Mode" style="display: flex; align-items: stretch; gap: 22px; height: 40px">
+      <button aria-pressed="true" style="height: 40px; display: flex; align-items: center; border: 0; background: transparent; padding: 2px 0 0; color: #1F1D1A; font-weight: 600; border-bottom: 2px solid {{accent}}">Read</button>
+      <button aria-pressed="false" style="height: 40px; display: flex; align-items: center; border: 0; background: transparent; padding: 2px 0 0; color: #6B645A; border-bottom: 2px solid transparent">Comment</button>
+      <button aria-pressed="false" style="height: 40px; display: flex; align-items: center; border: 0; background: transparent; padding: 2px 0 0; color: #6B645A; border-bottom: 2px solid transparent">Fill &amp; Sign</button>
+      <button aria-pressed="false" style="height: 40px; display: flex; align-items: center; border: 0; background: transparent; padding: 2px 0 0; color: #6B645A; border-bottom: 2px solid transparent">Organise</button>
+      <button aria-pressed="false" style="height: 40px; display: flex; align-items: center; border: 0; background: transparent; padding: 2px 0 0; color: #6B645A; border-bottom: 2px solid transparent">Edit</button>
+    </div>
+    <div style="display: flex; align-items: center; justify-content: flex-end; gap: 14px; flex: 1 1 220px">
+      <button aria-label="Find in document" style="width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 4px; color: #4A453E"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6"></circle><path d="M15 15l5 5"></path></svg></button>
+      <button style="height: 26px; display: flex; align-items: center; gap: 8px; padding: 0 6px 0 10px; border: 1px solid #E4DED3; background: #FBF9F5; border-radius: 4px; color: #6B645A; font-size: 13px"><span>Commands</span><span style="font-size: 11px; padding: 1px 5px; border: 1px solid #D8D1C5; border-radius: 3px; color: #4A453E; background: #FFFFFF">⌘K</span></button>
+      <button aria-label="More actions" style="width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 4px; color: #4A453E"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="5.5" cy="12" r="0.9"></circle><circle cx="12" cy="12" r="0.9"></circle><circle cx="18.5" cy="12" r="0.9"></circle></svg></button>
+    </div>
+  </header>
+
+  <div style="min-height: 40px; flex: 0 0 auto; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 16px; padding: 0 16px; border-bottom: 1px solid #E4DED3; background: #FBF9F5; font-size: 13px">
+    <button style="height: 28px; display: flex; align-items: center; gap: 6px; padding: 0 10px 0 6px; border: 0; background: transparent; border-radius: 4px; color: #4A453E"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M15 5l-7 7 7 7"></path></svg>Back to pages</button>
+    <span aria-hidden="true" style="width: 1px; height: 18px; background: #E4DED3"></span>
+    <div role="tablist" aria-label="Inspect" style="display: flex; align-items: stretch; gap: 16px; height: 40px">
+      <button role="tab" aria-selected="true" style="height: 40px; border: 0; background: transparent; padding: 2px 0 0; font-weight: 600; border-bottom: 2px solid {{accent}}">Objects</button>
+      <button role="tab" aria-selected="false" style="height: 40px; border: 0; background: transparent; padding: 2px 0 0; color: #6B645A; border-bottom: 2px solid transparent">Revisions</button>
+      <button role="tab" aria-selected="false" style="height: 40px; border: 0; background: transparent; padding: 2px 0 0; color: #6B645A; border-bottom: 2px solid transparent">Fonts</button>
+      <button role="tab" aria-selected="false" style="height: 40px; border: 0; background: transparent; padding: 2px 0 0; color: #6B645A; border-bottom: 2px solid transparent">Colour</button>
+      <button role="tab" aria-selected="false" style="height: 40px; border: 0; background: transparent; padding: 2px 0 0; color: #6B645A; border-bottom: 2px solid transparent">Conformance</button>
+    </div>
+    <span style="flex: 1 1 auto"></span>
+    <span style="display: inline-flex; align-items: center; height: 20px; padding: 0 8px; border-radius: 3px; background: #FBF9F5; border: 1px solid #D8D1C5; color: #4A453E; font-size: 12px; font-weight: 600">Read only</span>
+    <span style="font-size: 12px; color: #6B645A; font-variant-numeric: tabular-nums">PDF 1.7 · 412 objects · 2 revisions</span>
+  </div>
+
+  <div style="flex: 1 1 auto; min-height: 0; display: flex; flex-wrap: wrap">
+    <aside aria-label="Object tree" style="flex: 0 0 300px; min-width: 0; box-sizing: border-box; border-right: 1px solid #E4DED3; background: #F7F4EE; display: flex; flex-direction: column; overflow: hidden">
+      <div style="display: flex; flex-direction: column; gap: 6px; padding: 14px 16px 10px">
+        <label for="goto-obj" style="font-size: 12px; font-weight: 600; color: #4A453E">Go to object</label>
+        <input id="goto-obj" placeholder="Number, e.g. 14" style="height: 32px; box-sizing: border-box; padding: 0 10px; border: 1px solid #8A8174; border-radius: 4px; background: #FFFFFF; font-variant-numeric: tabular-nums">
+      </div>
+      <ul role="tree" aria-label="Objects from the trailer" style="list-style: none; margin: 0; padding: 4px 8px 16px; display: flex; flex-direction: column; gap: 1px; font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace; font-size: 12.5px; overflow: auto">
+        <li role="treeitem" aria-level="1" aria-expanded="true" style="display: flex; align-items: center; gap: 4px; min-height: 26px; padding: 0 6px; border-radius: 4px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#4A453E" stroke-width="1.5" aria-hidden="true"><path d="M7 10l5 5 5-5"></path></svg><span>Trailer</span></li>
+        <li role="treeitem" aria-level="2" aria-expanded="true" style="display: flex; align-items: center; gap: 4px; min-height: 26px; padding: 0 6px 0 22px; border-radius: 4px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#4A453E" stroke-width="1.5" aria-hidden="true"><path d="M7 10l5 5 5-5"></path></svg><span>/Root</span><span style="color: #6B645A">1 0 R · Catalog</span></li>
+        <li role="treeitem" aria-level="3" aria-expanded="false" style="display: flex; align-items: center; gap: 4px; min-height: 26px; padding: 0 6px 0 38px; border-radius: 4px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#4A453E" stroke-width="1.5" aria-hidden="true"><path d="M10 7l5 5-5 5"></path></svg><span>/Outlines</span><span style="color: #6B645A">30 0 R</span></li>
+        <li role="treeitem" aria-level="3" aria-expanded="true" style="display: flex; align-items: center; gap: 4px; min-height: 26px; padding: 0 6px 0 38px; border-radius: 4px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#4A453E" stroke-width="1.5" aria-hidden="true"><path d="M7 10l5 5 5-5"></path></svg><span>/Pages</span><span style="color: #6B645A">2 0 R · 24 kids</span></li>
+        <li role="treeitem" aria-level="4" style="display: flex; align-items: center; gap: 4px; min-height: 26px; padding: 0 6px 0 72px; border-radius: 4px"><span>[0]</span><span style="color: #6B645A">8 0 R · Page 1</span></li>
+        <li role="treeitem" aria-level="4" style="display: flex; align-items: center; gap: 4px; min-height: 26px; padding: 0 6px 0 72px; border-radius: 4px"><span>[1]</span><span style="color: #6B645A">10 0 R · Page 2</span></li>
+        <li role="treeitem" aria-level="4" aria-expanded="true" aria-selected="true" style="display: flex; align-items: center; gap: 4px; min-height: 26px; padding: 0 6px 0 54px; border-radius: 4px; background: {{accentTint}}; color: {{accent}}; font-weight: 600; outline: 2px solid {{accent}}; outline-offset: -2px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M7 10l5 5 5-5"></path></svg><span>[2]</span><span style="font-weight: 400">12 0 R · Page 3</span></li>
+        <li role="treeitem" aria-level="5" style="display: flex; align-items: center; gap: 4px; min-height: 26px; padding: 0 6px 0 88px; border-radius: 4px"><span>/Contents</span><span style="color: #6B645A">14 0 R · stream</span></li>
+        <li role="treeitem" aria-level="5" aria-expanded="false" style="display: flex; align-items: center; gap: 4px; min-height: 26px; padding: 0 6px 0 70px; border-radius: 4px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#4A453E" stroke-width="1.5" aria-hidden="true"><path d="M10 7l5 5-5 5"></path></svg><span>/Resources</span><span style="color: #6B645A">4 keys</span></li>
+        <li role="treeitem" aria-level="5" aria-expanded="false" style="display: flex; align-items: center; gap: 4px; min-height: 26px; padding: 0 6px 0 70px; border-radius: 4px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#4A453E" stroke-width="1.5" aria-hidden="true"><path d="M10 7l5 5-5 5"></path></svg><span>/Annots</span><span style="color: #6B645A">3 items</span></li>
+        <li role="treeitem" aria-level="4" style="display: flex; align-items: center; gap: 4px; min-height: 26px; padding: 0 6px 0 72px; border-radius: 4px"><span>[3]</span><span style="color: #6B645A">16 0 R · Page 4</span></li>
+        <li role="treeitem" aria-level="3" aria-expanded="false" style="display: flex; align-items: center; gap: 4px; min-height: 26px; padding: 0 6px 0 38px; border-radius: 4px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#4A453E" stroke-width="1.5" aria-hidden="true"><path d="M10 7l5 5-5 5"></path></svg><span>/Names</span><span style="color: #6B645A">5 0 R</span></li>
+        <li role="treeitem" aria-level="3" aria-expanded="false" style="display: flex; align-items: center; gap: 4px; min-height: 26px; padding: 0 6px 0 38px; border-radius: 4px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#4A453E" stroke-width="1.5" aria-hidden="true"><path d="M10 7l5 5-5 5"></path></svg><span>/StructTreeRoot</span><span style="color: #6B645A">60 0 R</span></li>
+        <li role="treeitem" aria-level="2" aria-expanded="false" style="display: flex; align-items: center; gap: 4px; min-height: 26px; padding: 0 6px 0 22px; border-radius: 4px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#4A453E" stroke-width="1.5" aria-hidden="true"><path d="M10 7l5 5-5 5"></path></svg><span>/Info</span><span style="color: #6B645A">3 0 R</span></li>
+      </ul>
+    </aside>
+
+    <main style="flex: 999 1 560px; min-width: 0; background: #FBF9F5; overflow: auto; box-sizing: border-box; padding: 24px 32px 40px">
+      <div style="max-width: 880px; display: flex; flex-direction: column; gap: 24px">
+        <nav aria-label="Object path" style="font-size: 12px; color: #6B645A">
+          <ol style="list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px">
+            <li><a href="#">Trailer</a> ›</li><li><a href="#">/Root 1 0 R</a> ›</li><li><a href="#">/Pages 2 0 R</a> ›</li><li aria-current="page" style="color: #1F1D1A">/Kids [2]</li>
+          </ol>
+        </nav>
+        <div style="display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px">
+          <div style="display: flex; flex-direction: column; gap: 4px">
+            <h2 style="margin: 0; font-family: 'Newsreader', Georgia, serif; font-size: 20px; font-weight: 500; line-height: 1.2">Object 12 · Page dictionary</h2>
+            <span style="font-size: 12px; color: #6B645A; font-variant-numeric: tabular-nums">Page 3 · last changed in revision 2 of 2 · stored in object stream 40</span>
+          </div>
+          <div style="display: flex; gap: 8px">
+            <button style="height: 30px; padding: 0 14px; border: 1px solid #8A8174; background: #FFFFFF; border-radius: 4px; font-size: 13px">Show page</button>
+            <button style="height: 30px; padding: 0 14px; border: 1px solid #8A8174; background: #FFFFFF; border-radius: 4px; font-size: 13px">Copy as text</button>
+          </div>
+        </div>
+
+        <table style="width: 100%; border-collapse: collapse; font-size: 13px">
+          <caption style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Keys of object 12</caption>
+          <thead><tr style="text-align: left; font-size: 12px; color: #4A453E"><th scope="col" style="padding: 0 16px 8px 0; font-weight: 600; width: 160px">Key</th><th scope="col" style="padding: 0 16px 8px 0; font-weight: 600">Value</th><th scope="col" style="padding: 0 0 8px; font-weight: 600; width: 110px">Type</th></tr></thead>
+          <tbody style="font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace; font-size: 12.5px">
+            <tr style="border-top: 1px solid #E4DED3"><td style="padding: 7px 16px 7px 0">/Type</td><td style="padding: 7px 16px 7px 0">/Page</td><td style="padding: 7px 0; font-family: 'Source Sans 3', system-ui, sans-serif; font-size: 12px; color: #6B645A">Name</td></tr>
+            <tr style="border-top: 1px solid #E4DED3"><td style="padding: 7px 16px 7px 0">/Parent</td><td style="padding: 7px 16px 7px 0"><a href="#">2 0 R</a></td><td style="padding: 7px 0; font-family: 'Source Sans 3', system-ui, sans-serif; font-size: 12px; color: #6B645A">Reference</td></tr>
+            <tr style="border-top: 1px solid #E4DED3"><td style="padding: 7px 16px 7px 0">/MediaBox</td><td style="padding: 7px 16px 7px 0">[0 0 612 792]</td><td style="padding: 7px 0; font-family: 'Source Sans 3', system-ui, sans-serif; font-size: 12px; color: #6B645A">Array · 4</td></tr>
+            <tr style="border-top: 1px solid #E4DED3"><td style="padding: 7px 16px 7px 0">/Resources</td><td style="padding: 7px 16px 7px 0">&lt;&lt; /Font /XObject /ExtGState /ProcSet &gt;&gt;</td><td style="padding: 7px 0; font-family: 'Source Sans 3', system-ui, sans-serif; font-size: 12px; color: #6B645A">Dictionary · 4</td></tr>
+            <tr style="border-top: 1px solid #E4DED3"><td style="padding: 7px 16px 7px 0">/Contents</td><td style="padding: 7px 16px 7px 0"><a href="#">14 0 R</a></td><td style="padding: 7px 0; font-family: 'Source Sans 3', system-ui, sans-serif; font-size: 12px; color: #6B645A">Reference</td></tr>
+            <tr style="border-top: 1px solid #E4DED3"><td style="padding: 7px 16px 7px 0">/Annots</td><td style="padding: 7px 16px 7px 0">[<a href="#">51 0 R</a> <a href="#">52 0 R</a> <a href="#">53 0 R</a>]</td><td style="padding: 7px 0; font-family: 'Source Sans 3', system-ui, sans-serif; font-size: 12px; color: #6B645A">Array · 3</td></tr>
+            <tr style="border-top: 1px solid #E4DED3; border-bottom: 1px solid #E4DED3"><td style="padding: 7px 16px 7px 0">/StructParents</td><td style="padding: 7px 16px 7px 0">2</td><td style="padding: 7px 0; font-family: 'Source Sans 3', system-ui, sans-serif; font-size: 12px; color: #6B645A">Integer</td></tr>
+          </tbody>
+        </table>
+
+        <section aria-labelledby="refby" style="display: flex; flex-direction: column; gap: 8px">
+          <h3 id="refby" style="margin: 0; font-family: 'Newsreader', Georgia, serif; font-size: 18px; font-weight: 500">Referenced by</h3>
+          <ul style="list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; font-size: 13px">
+            <li><a href="#" style="font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace; font-size: 12.5px">2 0 R</a> <span style="color: #6B645A">· page tree, /Kids</span></li>
+            <li><a href="#" style="font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace; font-size: 12.5px">33 0 R</a> <span style="color: #6B645A">· bookmark “2. Repairs backlog”, /Dest</span></li>
+            <li><a href="#" style="font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace; font-size: 12.5px">51 0 R</a> <span style="color: #6B645A">· highlight annotation, /P</span></li>
+          </ul>
+        </section>
+
+        <section aria-labelledby="stream-h" style="display: flex; flex-direction: column; gap: 10px">
+          <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px">
+            <div style="display: flex; flex-direction: column; gap: 2px">
+              <h3 id="stream-h" style="margin: 0; font-family: 'Newsreader', Georgia, serif; font-size: 18px; font-weight: 500">Content stream · object 14</h3>
+              <span style="font-size: 12px; color: #6B645A; font-variant-numeric: tabular-nums">FlateDecode · 3,412 bytes in the file · 11,876 bytes decoded</span>
+            </div>
+            <div role="group" aria-label="Stream view" style="display: flex; gap: 4px">
+              <button aria-pressed="true" style="height: 28px; padding: 0 10px; border: 1px solid {{accent}}; background: {{accentTint}}; color: {{accent}}; border-radius: 4px; font-size: 13px; font-weight: 600">Decoded</button>
+              <button aria-pressed="false" style="height: 28px; padding: 0 10px; border: 1px solid transparent; background: transparent; border-radius: 4px; font-size: 13px">Raw</button>
+              <button aria-pressed="false" style="height: 28px; padding: 0 10px; border: 1px solid transparent; background: transparent; border-radius: 4px; font-size: 13px">Hex</button>
+            </div>
+          </div>
+          <pre style="margin: 0; padding: 12px 14px; background: #FFFFFF; border: 1px solid #E4DED3; border-radius: 4px; font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace; font-size: 12.5px; line-height: 1.6; color: #1F1D1A; overflow-x: auto; white-space: pre">q
+1 0 0 1 72 744 cm
+BT
+/F2 7.5 Tf  0.43 g
+(NORTHWIND HOUSING TRUST) Tj
+ET
+BT
+/F1 17 Tf  0.11 g
+0 -56 Td
+(2. Repairs backlog) Tj
+ET
+BT
+/F3 10.5 Tf  0.15 g
+0 -84 Td  15.1 TL
+(Open repair jobs stood at 1,248 at the end of September across the four) Tj
+T* (regions. Most of the work closed this quarter was routine plumbing and) Tj</pre>
+          <span style="font-size: 12px; color: #6B645A; font-variant-numeric: tabular-nums">Showing lines 1–15 of 412 · <a href="#">Show more</a></span>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <footer style="min-height: 28px; flex: 0 0 auto; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px 16px; padding: 0 16px; border-top: 1px solid #E4DED3; font-size: 12px; color: #6B645A">
+    <button style="min-height: 24px; display: flex; align-items: center; gap: 7px; border: 0; background: transparent; padding: 0 4px; font-size: 12px; color: #6B645A"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="{{accent}}" stroke-width="1.5" aria-hidden="true"><path d="M12 3.5l7 2.5v5.5c0 4.3-3 7.6-7 9-4-1.4-7-4.7-7-9V6z"></path><path d="M9 12l2.2 2.2L15.5 10"></path></svg><span style="color: #1F1D1A; font-variant-numeric: tabular-nums">0 network requests</span><span>· Offline-safe: nothing uploaded</span></button>
+    <span style="font-variant-numeric: tabular-nums">Object 12 · Page 3</span>
+  </footer>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#1F5C63","options":["#1F5C63","#2D4A6B","#3E4A3C"]},"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    var accent = this.props.accent ?? '#1F5C63';
+    function mix(hex, base, t) {
+      var p = function (h, i) { return parseInt(h.replace('#', '').substr(i, 2), 16); };
+      var out = '#';
+      for (var i = 0; i < 6; i += 2) {
+        var v = Math.round(p(hex, i) * t + p(base, i) * (1 - t));
+        out += (v < 16 ? '0' : '') + v.toString(16);
+      }
+      return out;
+    }
+    return { accent: accent, accentTint: mix(accent, '#FBF9F5', 0.12) };
+  }
+}
+</script>
+</body>
+</html>

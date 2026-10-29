@@ -20,6 +20,7 @@ Complete `ApplyRedactions`: remove matching text from annotations (`/Contents`, 
 
 ## Context
 
+- **Design (Paper):** [G10 Apply redactions and verification report](../../design/paper/sign-protect-redact.md#g10-apply-redactions-and-verification-report). Build to match these screens; record any deviation in the area document ([Paper design plan §5](../../plans/paper-design.md#5-how-the-designs-are-used)).
 - [UI/UX plan §5.7](../../plans/ui-ux.md#57-trust-surfaces-r9r13) and [product research](../../research/product/pdf-app-product-and-ux.md#three-differentiators-ranked) — the verification report is the product's proof (failed redactions: Manafort 2019, DOJ Epstein files Dec 2025): **saving is blocked** while the report shows any leak, and the report UI says what was checked per layer.
 - [04 §10.2](../../research/pdf/04-interactive-security.md#102-what-true-redaction-must-do) (table of layers)
 - [ADR 0007](../../decisions/0007-save-planner.md) §4 order (redact → full rewrite → sign); [E10d](E10d-pades-signing-core.md) provides `Sign` for the redact-then-sign test, [E8c](E8c-acroform-field-model.md) the field model whose values and appearances are scrubbed

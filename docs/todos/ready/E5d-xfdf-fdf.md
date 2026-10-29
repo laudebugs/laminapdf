@@ -20,6 +20,7 @@ Export annotations to XFDF (and FDF) and import them, matching annotations by `/
 
 ## Context
 
+- **Design (Paper):** [C06 Import and export comments](../../design/paper/comment-review.md#c06-import-and-export-comments). Build to match these screens; record any deviation in the area document ([Paper design plan §5](../../plans/paper-design.md#5-how-the-designs-are-used)).
 - [04 §3.6 FDF and XFDF](../../research/pdf/04-interactive-security.md#36-fdf-and-xfdf)
 - ISO 19444-1 (XFDF)
 - [ADR 0005](../../decisions/0005-document-model.md) §5 `/NM` index

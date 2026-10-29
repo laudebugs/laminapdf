@@ -20,6 +20,7 @@ Flatten selected or all annotations: each appearance becomes a Form XObject draw
 
 ## Context
 
+- **Design (Paper):** [C07 Flatten and comment summary](../../design/paper/comment-review.md#c07-flatten-and-comment-summary). Build to match these screens; record any deviation in the area document ([Paper design plan §5](../../plans/paper-design.md#5-how-the-designs-are-used)).
 - [04 §2.5 Flattening](../../research/pdf/04-interactive-security.md#25-flattening)
 - [06 §10](../../research/pdf/06-feature-inventory.md#10-implications-for-lamina): "flattening without appearances" trap
 - ISO 32000-2 §12.5.5 (appearance streams, Algorithm 8.1 equivalent)

@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Performance and reader benchmark</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&amp;family=Source+Sans+3:wght@400;500;600&amp;family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&amp;display=swap">
+<style>
+body{margin:0;background:#F7F4EE}
+a{color:#1F5C63}a:hover{color:#16454B}
+button,input,textarea,select{font:inherit;color:inherit}
+</style>
+</helmet>
+<div style="min-height: 100vh; display: flex; flex-direction: column; background: #F7F4EE; color: #1F1D1A; font-family: 'Source Sans 3', 'Segoe UI', system-ui, sans-serif; font-size: 16px; line-height: 1.5">
+
+  <header style="border-bottom: 1px solid #E4DED3">
+    <div style="max-width: 1120px; margin: 0 auto; box-sizing: border-box; padding: 0 24px; min-height: 64px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 32px">
+      <a href="#home" style="font-family: 'Newsreader', Georgia, serif; font-size: 24px; font-weight: 500; color: #1F1D1A; text-decoration: none">lamina</a>
+      <nav aria-label="Site" style="flex: 1 1 auto; display: flex; flex-wrap: wrap; gap: 4px 24px; font-size: 15px">
+        <a href="#download" style="color: #3A3631; text-decoration: none; min-height: 32px; display: flex; align-items: center">Download</a>
+        <a href="#docs" style="color: #3A3631; text-decoration: none; min-height: 32px; display: flex; align-items: center">Docs</a>
+        <a href="#pricing" style="color: #3A3631; text-decoration: none; min-height: 32px; display: flex; align-items: center">Pricing</a>
+        <a href="#performance" aria-current="page" style="color: #1F1D1A; font-weight: 600; text-decoration: none; min-height: 32px; display: flex; align-items: center; border-bottom: 2px solid {{accent}}; box-sizing: border-box">Performance</a>
+        <a href="#privacy" style="color: #3A3631; text-decoration: none; min-height: 32px; display: flex; align-items: center">Privacy</a>
+      </nav>
+      <a href="#app" style="display: inline-flex; align-items: center; height: 36px; padding: 0 16px; border: 1px solid #8A8174; background: #FFFFFF; border-radius: 4px; color: #1F1D1A; text-decoration: none; font-size: 15px">Open the web app</a>
+    </div>
+  </header>
+
+  <main style="flex: 1 1 auto; max-width: 1120px; width: 100%; margin: 0 auto; box-sizing: border-box; padding: 64px 24px 72px; display: flex; flex-direction: column; gap: 56px">
+    <section style="display: flex; flex-direction: column; gap: 16px">
+      <h1 style="margin: 0; font-family: 'Newsreader', Georgia, serif; font-size: 48px; font-weight: 400; line-height: 1.1">Performance</h1>
+      <p style="margin: 0; max-width: 680px; font-size: 19px; color: #3A3631">The speed lamina must reach before a release ships, and a benchmark against other PDF readers that anyone can rerun from the published scripts and raw data.</p>
+    </section>
+
+    <section aria-labelledby="gates-h" style="display: flex; flex-direction: column; gap: 16px">
+      <h2 id="gates-h" style="margin: 0; font-family: 'Newsreader', Georgia, serif; font-size: 30px; font-weight: 400">Release gates</h2>
+      <div style="overflow-x: auto">
+        <table style="width: 100%; min-width: 760px; border-collapse: collapse; font-size: 15px; font-variant-numeric: tabular-nums">
+          <thead><tr style="text-align: left; font-size: 13px; color: #6B645A"><th scope="col" style="font-weight: 400; padding: 0 16px 10px 0; border-bottom: 1px solid #E4DED3">Measure</th><th scope="col" style="font-weight: 400; padding: 0 16px 10px; border-bottom: 1px solid #E4DED3">Gate</th><th scope="col" style="font-weight: 400; padding: 0 16px 10px; border-bottom: 1px solid #E4DED3">Stretch goal</th><th scope="col" style="font-weight: 400; padding: 0 0 10px 16px; border-bottom: 1px solid #E4DED3">lamina [VERSION]</th></tr></thead>
+          <tbody>
+            <tr><th scope="row" style="text-align: left; font-weight: 400; padding: 12px 16px 12px 0; border-bottom: 1px solid #E4DED3">Web: first page of a 10-page, 1 MB PDF, warm cache</th><td style="padding: 12px 16px; border-bottom: 1px solid #E4DED3">≤ 700 ms</td><td style="padding: 12px 16px; border-bottom: 1px solid #E4DED3">≤ 500 ms for a 10 MB PDF</td><td style="padding: 12px 0 12px 16px; border-bottom: 1px solid #E4DED3">[n ms]</td></tr>
+            <tr><th scope="row" style="text-align: left; font-weight: 400; padding: 12px 16px 12px 0; border-bottom: 1px solid #E4DED3">Desktop: cold start to an interactive window</th><td style="padding: 12px 16px; border-bottom: 1px solid #E4DED3">&lt; 300 ms</td><td style="padding: 12px 16px; border-bottom: 1px solid #E4DED3">—</td><td style="padding: 12px 0 12px 16px; border-bottom: 1px solid #E4DED3">[n ms] macOS · [n ms] Windows · [n ms] Linux</td></tr>
+            <tr><th scope="row" style="text-align: left; font-weight: 400; padding: 12px 16px 12px 0; border-bottom: 1px solid #E4DED3">Desktop installer size</th><td style="padding: 12px 16px; border-bottom: 1px solid #E4DED3">&lt; 15 MB</td><td style="padding: 12px 16px; border-bottom: 1px solid #E4DED3">—</td><td style="padding: 12px 0 12px 16px; border-bottom: 1px solid #E4DED3">[n MB] per platform</td></tr>
+            <tr><th scope="row" style="text-align: left; font-weight: 400; padding: 12px 16px 12px 0; border-bottom: 1px solid #E4DED3">Scrolling: longest main-thread task</th><td style="padding: 12px 16px; border-bottom: 1px solid #E4DED3">≤ 50 ms</td><td style="padding: 12px 16px; border-bottom: 1px solid #E4DED3">INP ≤ 200 ms (p75); every command ≤ 100 ms</td><td style="padding: 12px 0 12px 16px; border-bottom: 1px solid #E4DED3">[n ms]</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section aria-labelledby="bench-h" style="display: flex; flex-direction: column; gap: 20px">
+      <div style="display: flex; flex-direction: column; gap: 6px">
+        <h2 id="bench-h" style="margin: 0; font-family: 'Newsreader', Georgia, serif; font-size: 30px; font-weight: 400">Reader benchmark</h2>
+        <p style="margin: 0; font-size: 15px; color: #3A3631; font-variant-numeric: tabular-nums">Run [DATE] · median of 3 runs · lamina [VERSION] against each reader’s version listed in the raw data.</p>
+      </div>
+      <div style="display: flex; flex-wrap: wrap; align-items: flex-end; gap: 16px 24px">
+        <div role="tablist" aria-label="Reference file" style="display: flex; flex-wrap: wrap; gap: 4px 16px; border-bottom: 1px solid #E4DED3; flex: 1 1 560px">
+          <button role="tab" aria-selected="true" style="border: 0; background: transparent; padding: 0 0 8px; font-size: 14px; font-weight: 600; color: #1F1D1A; border-bottom: 2px solid {{accent}}; outline: 2px solid {{accent}}; outline-offset: 2px">10-page text</button>
+          <button role="tab" aria-selected="false" style="border: 0; background: transparent; padding: 0 0 8px; font-size: 14px; color: #6B645A; border-bottom: 2px solid transparent">1,000-page textbook</button>
+          <button role="tab" aria-selected="false" style="border: 0; background: transparent; padding: 0 0 8px; font-size: 14px; color: #6B645A; border-bottom: 2px solid transparent">Architectural drawing</button>
+          <button role="tab" aria-selected="false" style="border: 0; background: transparent; padding: 0 0 8px; font-size: 14px; color: #6B645A; border-bottom: 2px solid transparent">500 MB scan</button>
+          <button role="tab" aria-selected="false" style="border: 0; background: transparent; padding: 0 0 8px; font-size: 14px; color: #6B645A; border-bottom: 2px solid transparent">Tagged two-column paper</button>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 6px">
+          <label for="mach" style="font-size: 12px; font-weight: 600; color: #4A453E">Machine</label>
+          <div style="position: relative; display: flex"><select id="mach" style="appearance: none; -webkit-appearance: none; height: 32px; padding: 0 30px 0 10px; border: 1px solid #8A8174; border-radius: 4px; background: #FFFFFF; font-size: 14px"><option>Windows laptop · [SPEC]</option><option>Apple-silicon Mac · [SPEC]</option></select><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#4A453E" stroke-width="1.5" aria-hidden="true" style="position: absolute; right: 8px; top: 8px; pointer-events: none"><path d="M7 10l5 5 5-5"></path></svg></div>
+        </div>
+      </div>
+      <div style="overflow-x: auto">
+        <table style="width: 100%; min-width: 860px; border-collapse: collapse; font-size: 15px; font-variant-numeric: tabular-nums">
+          <caption style="text-align: left; padding-bottom: 10px; font-size: 13px; color: #6B645A">10-page text PDF on the Windows laptop. Lower is better in every column.</caption>
+          <thead><tr style="text-align: right; font-size: 13px; color: #6B645A"><th scope="col" style="text-align: left; font-weight: 400; padding: 0 16px 10px 0; border-bottom: 1px solid #E4DED3">Reader</th><th scope="col" style="font-weight: 400; padding: 0 16px 10px; border-bottom: 1px solid #E4DED3">Cold start to first page</th><th scope="col" style="font-weight: 400; padding: 0 16px 10px; border-bottom: 1px solid #E4DED3">Warm open</th><th scope="col" style="font-weight: 400; padding: 0 16px 10px; border-bottom: 1px solid #E4DED3">Scroll 100 pages: long tasks</th><th scope="col" style="font-weight: 400; padding: 0 16px 10px; border-bottom: 1px solid #E4DED3">Peak memory</th><th scope="col" style="font-weight: 400; padding: 0 16px 10px; border-bottom: 1px solid #E4DED3">App size</th><th scope="col" style="font-weight: 400; padding: 0 0 10px 16px; border-bottom: 1px solid #E4DED3"><span style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Raw data</span></th></tr></thead>
+          <tbody style="text-align: right">
+            <tr style="background: {{accentTint}}"><th scope="row" style="text-align: left; font-weight: 600; padding: 12px 16px 12px 8px; border-bottom: 1px solid #E4DED3">lamina desktop</th><td style="padding: 12px 16px; border-bottom: 1px solid #E4DED3">[n ms]</td><td style="padding: 12px 16px; border-bottom: 1px solid #E4DED3">[n ms]</td><td style="padding: 12px 16px; border-bottom: 1px solid #E4DED3">[n]</td><td style="padding: 12px 16px; border-bottom: 1px solid #E4DED3">[n MB]</td><td style="padding: 12px 16px; border-bottom: 1px solid #E4DED3">[n MB]</td><td style="padding: 12px 8px 12px 16px; border-bottom: 1px solid #E4DED3"><a href="#raw-lamina-desktop">Raw data</a></td></tr>
+            <tr><th scope="row" style="text-align: left; font-weight: 400; padding: 12px 16px 12px 8px; border-bottom: 1px solid #E4DED3">lamina web</th><td style="padding: 12px 16px; border-bottom: 1px solid #E4DED3">[n ms]</td><td style="padding: 12px 16px; border-bottom: 1px solid #E4DED3">[n ms]</td><td style="padding: 12px 16px; border-bottom: 1px solid #E4DED3">[n]</td><td style="padding: 12px 16px; border-bottom: 1px solid #E4DED3">[n MB]</td><td style="padding: 12px 16px; border-bottom: 1px solid #E4DED3">—</td><td style="padding: 12px 8px 12px 16px; border-bottom: 1px solid #E4DED3"><a href="#raw-lamina-web">Raw data</a></td></tr>
+            <tr><th scope="row" style="text-align: left; font-weight: 400; padding: 12px 16px 12px 8px; border-bottom: 1px solid #E4DED3">pdf.js</th><td style="padding: 12px 16px; border-bottom: 1px solid #E4DED3">[n ms]</td><td style="padding: 12px 16px; border-bottom: 1px solid #E4DED3">[n ms]</td><td style="padding: 12px 16px; border-bottom: 1px solid #E4DED3">[n]</td><td style="padding: 12px 16px; border-bottom: 1px solid #E4DED3">[n MB]</td><td style="padding: 12px 16px; border-bottom: 1px solid #E4DED3">—</td><td style="padding: 12px 8px 12px 16px; border-bottom: 1px solid #E4DED3"><a href="#raw-pdfjs">Raw data</a></td></tr>
+            <tr><th scope="row" style="text-align: left; font-weight: 400; padding: 12px 16px 12px 8px; border-bottom: 1px solid #E4DED3">Chrome PDF viewer</th><td style="padding: 12px 16px; border-bottom: 1px solid #E4DED3">[n ms]</td><td style="padding: 12px 16px; border-bottom: 1px solid #E4DED3">[n ms]</td><td style="padding: 12px 16px; border-bottom: 1px solid #E4DED3">[n]</td><td style="padding: 12px 16px; border-bottom: 1px solid #E4DED3">[n MB]</td><td style="padding: 12px 16px; border-bottom: 1px solid #E4DED3">—</td><td style="padding: 12px 8px 12px 16px; border-bottom: 1px solid #E4DED3"><a href="#raw-chrome">Raw data</a></td></tr>
+            <tr><th scope="row" style="text-align: left; font-weight: 400; padding: 12px 16px 12px 8px; border-bottom: 1px solid #E4DED3">SumatraPDF</th><td style="padding: 12px 16px; border-bottom: 1px solid #E4DED3">[n ms]</td><td style="padding: 12px 16px; border-bottom: 1px solid #E4DED3">[n ms]</td><td style="padding: 12px 16px; border-bottom: 1px solid #E4DED3">[n]</td><td style="padding: 12px 16px; border-bottom: 1px solid #E4DED3">[n MB]</td><td style="padding: 12px 16px; border-bottom: 1px solid #E4DED3">[n MB]</td><td style="padding: 12px 8px 12px 16px; border-bottom: 1px solid #E4DED3"><a href="#raw-sumatra">Raw data</a></td></tr>
+            <tr><th scope="row" style="text-align: left; font-weight: 400; padding: 12px 16px 12px 8px; border-bottom: 1px solid #E4DED3">Acrobat Reader</th><td colspan="5" style="padding: 12px 16px; border-bottom: 1px solid #E4DED3; text-align: left; color: #6B645A">[n ms] each, or “Not published: its licence terms don’t allow it”</td><td style="padding: 12px 8px 12px 16px; border-bottom: 1px solid #E4DED3"><a href="#licences">Licence notes</a></td></tr>
+            <tr><th scope="row" style="text-align: left; font-weight: 400; padding: 12px 16px 12px 8px; border-bottom: 1px solid #E4DED3">macOS Preview</th><td colspan="5" style="padding: 12px 16px; border-bottom: 1px solid #E4DED3; text-align: left; color: #6B645A">macOS only: choose the Mac above</td><td style="padding: 12px 8px 12px 16px; border-bottom: 1px solid #E4DED3"></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section aria-labelledby="method-h" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(420px, 100%), 1fr)); gap: 24px 48px">
+      <div style="display: flex; flex-direction: column; gap: 12px">
+        <h2 id="method-h" style="margin: 0; font-family: 'Newsreader', Georgia, serif; font-size: 30px; font-weight: 400">Method</h2>
+        <ul style="margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 8px; font-size: 15px; color: #3A3631">
+          <li>Five reference files with open licences; their sources are listed with the data.</li>
+          <li>Browser viewers are driven by Playwright; desktop apps by OS automation, or a screen recording with frame timing where a reader can’t be scripted.</li>
+          <li>Every reader runs three times on the same machine; we publish the median and every raw run.</li>
+          <li>lamina desktop is measured on a signed release build, not a development build.</li>
+        </ul>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 12px">
+        <h2 style="margin: 0; font-family: 'Newsreader', Georgia, serif; font-size: 30px; font-weight: 400">Rerun it</h2>
+        <p style="margin: 0; font-size: 15px; color: #3A3631">The scripts, machine specs and results file are in the repository. Results age quickly: each run is dated, and we rerun before every major release.</p>
+        <div style="display: flex; flex-wrap: wrap; gap: 12px">
+          <a href="#readme" style="display: inline-flex; align-items: center; height: 40px; padding: 0 20px; border: 1px solid {{accent}}; background: {{accent}}; border-radius: 4px; color: #FFFFFF; font-weight: 600; text-decoration: none">How to rerun the benchmark</a>
+          <a href="#json" style="display: inline-flex; align-items: center; height: 40px; padding: 0 16px; color: {{accent}}; font-weight: 600">Download results (JSON)</a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer style="border-top: 1px solid #E4DED3; font-size: 14px; color: #6B645A">
+    <div style="max-width: 1120px; margin: 0 auto; box-sizing: border-box; padding: 24px; display: flex; flex-wrap: wrap; gap: 8px 24px"><span>lamina · code licensed MIT OR Apache-2.0</span><a href="#privacy">Privacy</a><a href="#terms">Terms</a><a href="#source">Source code</a></div>
+  </footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#1F5C63","options":["#1F5C63","#2D4A6B","#3E4A3C"]},"$preview":{"width":1440,"height":1500}}'>
+class Component extends DCLogic {
+  renderVals() {
+    var accent = this.props.accent ?? '#1F5C63';
+    function mix(hex, base, t) {
+      var p = function (h, i) { return parseInt(h.replace('#', '').substr(i, 2), 16); };
+      var out = '#';
+      for (var i = 0; i < 6; i += 2) {
+        var v = Math.round(p(hex, i) * t + p(base, i) * (1 - t));
+        out += (v < 16 ? '0' : '') + v.toString(16);
+      }
+      return out;
+    }
+    return { accent: accent, accentTint: mix(accent, '#F7F4EE', 0.12) };
+  }
+}
+</script>
+</body>
+</html>

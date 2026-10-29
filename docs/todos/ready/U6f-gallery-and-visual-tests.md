@@ -7,7 +7,7 @@
 | Plan | [Paper design §6 U6](../../plans/paper-design.md#u6-design-system) |
 | Round / milestone | Round U (UI/UX) — U6 Paper design system |
 | Depends on | [U6b](./U6b-self-hosted-fonts.md), [U6e](./U6e-overlays-and-sheets.md) |
-| Blocks | — |
+| Blocks | None |
 | ADRs | Follows [0018](../../decisions/0018-test-strategy.md#2-ci-lanes) (CI lanes, flaky tests), [0015](../../decisions/0015-monorepo-layout-and-tooling.md) (`cargo xtask` as the single entry point), 0024 (from [U1a](./U1a-adr-0024-app-shell-ux.md)) |
 | Branch | `feat/u6f-gallery-and-visual-tests` |
 | PR title | `feat(gallery): add the paper component gallery with screenshot and axe tests` |

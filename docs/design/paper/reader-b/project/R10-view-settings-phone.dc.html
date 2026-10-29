@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>lamina phone, View settings sheet</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&amp;family=Source+Sans+3:wght@400;500;600&amp;family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#1F5C63}a:hover{color:#16454B}
+button,input,textarea{font:inherit;color:inherit}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; position: relative; overflow: hidden; background: #ECE7DE; font-family: 'Source Sans 3', system-ui, sans-serif; color: #1F1D1A">
+
+  <header style="position: absolute; left: 0; right: 0; top: 0; height: 56px; display: flex; align-items: center; gap: 4px; padding: 0 6px; background: #F7F4EE; border-bottom: 1px solid #E4DED3; box-sizing: border-box">
+    <button aria-label="Back to files" style="width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 6px; color: #1F1D1A"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M15 5l-7 7 7 7"></path></svg></button>
+    <div style="flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; align-items: center; line-height: 1.2">
+      <span style="font-family: 'Newsreader', Georgia, serif; font-size: 17px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%">Q3 Board Report</span>
+      <span style="font-size: 12px; color: #6B645A">Northwind Housing Trust</span>
+    </div>
+    <button aria-label="More options" style="width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 6px; color: #1F1D1A"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="5.5" cy="12" r="0.9"></circle><circle cx="12" cy="12" r="0.9"></circle><circle cx="18.5" cy="12" r="0.9"></circle></svg></button>
+  </header>
+
+  <article aria-label="Page 3" style="position: absolute; left: 16px; top: 72px; width: 358px; height: 470px; box-sizing: border-box; background: {{paper}}; color: {{ink}}; box-shadow: 0 1px 2px rgba(60,48,30,0.08), 0 6px 20px rgba(60,48,30,0.10); padding: 26px 26px 14px; display: flex; flex-direction: column; gap: 9px; font-family: 'Source Serif 4', Georgia, serif; font-size: 10.5px; line-height: 1.5">
+    <div style="display: flex; justify-content: space-between; font-family: 'Source Sans 3', system-ui, sans-serif; font-size: 7px; letter-spacing: 0.08em; text-transform: uppercase; opacity: 0.75; border-bottom: 1px solid rgba(0,0,0,0.1); padding-bottom: 6px"><span>Northwind Housing Trust</span><span>Q3 Board Report</span></div>
+    <h2 style="margin: 4px 0 0; font-size: 16px; font-weight: 600; line-height: 1.25">2. Repairs backlog</h2>
+    <p style="margin: 0; text-wrap: pretty">Open repair jobs stood at 1,248 at the end of September across the four regions. Most of the work closed this quarter was routine plumbing and joinery, which the additional contractor teams appointed in July were able to schedule within the target window.</p>
+    <p style="margin: 0; text-wrap: pretty">The backlog fell by 18% over the quarter, but the oldest 10% of jobs are now older than 90 days. These are mainly damp and mould cases that need a surveyor’s visit before work can be scheduled, and they sit in the older parts of our stock.</p>
+  </article>
+
+  <section role="dialog" aria-modal="true" aria-labelledby="vs-t" style="position: absolute; left: 0; right: 0; top: 404px; bottom: 84px; background: #FBF9F5; border-top: 1px solid #E4DED3; border-radius: 12px 12px 0 0; box-shadow: 0 -8px 28px rgba(60,48,30,0.12); display: flex; flex-direction: column; overflow: hidden">
+    <div style="display: flex; justify-content: center">
+      <button aria-label="Resize sheet" style="width: 64px; height: 44px; display: flex; align-items: flex-start; justify-content: center; padding-top: 8px; box-sizing: border-box; border: 0; background: transparent"><span style="width: 36px; height: 5px; border-radius: 3px; background: #8A8174"></span></button>
+    </div>
+    <div style="display: flex; align-items: center; justify-content: space-between; margin-top: -18px; padding: 0 8px 4px 20px">
+      <h2 id="vs-t" style="margin: 0; font-family: 'Newsreader', Georgia, serif; font-size: 20px; font-weight: 500">View</h2>
+      <button aria-label="Close view settings" style="width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 6px; color: #4A453E"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg></button>
+    </div>
+    <div style="flex: 1 1 auto; min-height: 0; overflow: auto; display: flex; flex-direction: column; gap: 18px; padding: 4px 20px 20px">
+      <div style="display: flex; flex-direction: column; gap: 8px">
+        <span id="pa-l" style="font-size: 12px; font-weight: 600; color: #4A453E">Page appearance</span>
+        <div role="group" aria-labelledby="pa-l" style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px">
+          <sc-for list="{{chips}}" as="c" hint-placeholder-count="4">
+            <button aria-pressed="{{c.pressed}}" style="{{c.style}}">
+              <span style="{{c.preview}}">Aa</span>
+              <span style="{{c.label}}">{{c.name}}</span>
+            </button>
+          </sc-for>
+        </div>
+        <span style="font-size: 12px; color: #6B645A">For this document. Photos and annotation colours stay as they are.</span>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 8px">
+        <span id="th-l" style="font-size: 12px; font-weight: 600; color: #4A453E">Theme</span>
+        <div role="radiogroup" aria-labelledby="th-l" style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px">
+          <button role="radio" aria-checked="true" style="height: 44px; padding: 0 2px; border: 1px solid {{accent}}; background: {{accentTint}}; color: {{accent}}; font-weight: 600; border-radius: 6px; font-size: 14px">System</button>
+          <button role="radio" aria-checked="false" style="height: 44px; padding: 0 2px; border: 1px solid #8A8174; background: #FFFFFF; border-radius: 6px; font-size: 14px">Light</button>
+          <button role="radio" aria-checked="false" style="height: 44px; padding: 0 2px; border: 1px solid #8A8174; background: #FFFFFF; border-radius: 6px; font-size: 14px">Dark</button>
+          <button role="radio" aria-checked="false" style="height: 44px; padding: 0 2px; border: 1px solid #8A8174; background: #FFFFFF; border-radius: 6px; font-size: 13px; line-height: 1.1">High contrast</button>
+        </div>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 8px">
+        <span id="zm-l" style="font-size: 12px; font-weight: 600; color: #4A453E">Zoom</span>
+        <div role="radiogroup" aria-labelledby="zm-l" style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px">
+          <button role="radio" aria-checked="true" style="height: 44px; border: 1px solid {{accent}}; background: {{accentTint}}; color: {{accent}}; font-weight: 600; border-radius: 6px; font-size: 14px">Fit width</button>
+          <button role="radio" aria-checked="false" style="height: 44px; border: 1px solid #8A8174; background: #FFFFFF; border-radius: 6px; font-size: 14px">Fit page</button>
+        </div>
+      </div>
+      <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 44px">
+        <span id="cont-l" style="font-size: 15px">Continuous scrolling</span>
+        <button role="switch" aria-checked="true" aria-labelledby="cont-l" style="width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; padding: 0; border: 0; background: transparent"><span style="width: 36px; height: 20px; box-sizing: border-box; border: 1px solid {{accent}}; border-radius: 10px; background: {{accent}}; position: relative; display: block"><span style="position: absolute; top: 3px; right: 3px; width: 12px; height: 12px; border-radius: 50%; background: #FFFFFF"></span></span></button>
+      </div>
+    </div>
+  </section>
+
+  <nav aria-label="Reader tools" style="position: absolute; left: 0; right: 0; bottom: 0; height: 84px; box-sizing: border-box; padding: 6px 8px 22px; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 4px; background: #F7F4EE; border-top: 1px solid #E4DED3">
+    <button style="height: 56px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; border: 0; background: transparent; border-radius: 6px; color: #3A3631; font-size: 11.5px"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6"></circle><path d="M15 15l5 5"></path></svg>Search</button>
+    <button style="height: 56px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; border: 0; background: transparent; border-radius: 6px; color: #3A3631; font-size: 11.5px"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M14.5 4.5l5 5L11 18H6v-5z"></path><path d="M4 20.5h9"></path></svg>Annotate</button>
+    <button style="height: 56px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; border: 0; background: transparent; border-radius: 6px; color: #3A3631; font-size: 11.5px"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="4.5" y="4.5" width="6" height="7.5" rx="1"></rect><rect x="13.5" y="4.5" width="6" height="7.5" rx="1"></rect><rect x="4.5" y="14" width="6" height="5.5" rx="1"></rect><rect x="13.5" y="14" width="6" height="5.5" rx="1"></rect></svg>Pages</button>
+    <button style="height: 56px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; border: 0; background: transparent; border-radius: 6px; color: #3A3631; font-size: 11.5px"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M12 6.5c-2-1.3-4.5-2-8-2v13c3.5 0 6 .7 8 2 2-1.3 4.5-2 8-2v-13c-3.5 0-6 .7-8 2z"></path><path d="M12 6.5v13"></path></svg>Reader</button>
+    <button aria-expanded="true" style="height: 56px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; border: 0; background: transparent; border-radius: 6px; color: {{accent}}; font-size: 11.5px; font-weight: 600"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="5.5" cy="12" r="0.9"></circle><circle cx="12" cy="12" r="0.9"></circle><circle cx="18.5" cy="12" r="0.9"></circle></svg>More</button>
+  </nav>
+  <span aria-hidden="true" style="position: absolute; left: 50%; bottom: 8px; transform: translateX(-50%); width: 134px; height: 5px; border-radius: 3px; background: #1F1D1A; opacity: 0.85"></span>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#1F5C63","options":["#1F5C63","#2D4A6B","#3E4A3C"]},"pageAppearance":{"editor":"enum","options":["Original","Sepia","Dark"],"default":"Sepia"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    var accent = this.props.accent ?? '#1F5C63';
+    var mode = this.props.pageAppearance ?? 'Sepia';
+    function mix(hex, base, t) {
+      var p = function (h, i) { return parseInt(h.replace('#', '').substr(i, 2), 16); };
+      var out = '#';
+      for (var i = 0; i < 6; i += 2) {
+        var v = Math.round(p(hex, i) * t + p(base, i) * (1 - t));
+        out += (v < 16 ? '0' : '') + v.toString(16);
+      }
+      return out;
+    }
+    var defs = [
+      { name: 'Original', bg: '#FFFFFF', fg: '#262421', w: 400 },
+      { name: 'Sepia', bg: '#F4ECD8', fg: '#3B2F20', w: 400 },
+      { name: 'Dark', bg: '#22211F', fg: '#E6E1D8', w: 400 },
+      { name: 'High contrast', bg: '#000000', fg: '#FFFFFF', w: 600 }
+    ];
+    var paper = '#FFFFFF', ink = '#262421';
+    var chips = defs.map(function (d) {
+      var on = d.name === mode;
+      if (on) { paper = d.bg; ink = d.fg; }
+      return {
+        name: d.name === 'High contrast' ? 'Contrast' : d.name,
+        pressed: on ? 'true' : 'false',
+        style: 'min-height: 44px; display: flex; flex-direction: column; gap: 6px; padding: 6px; border-radius: 6px; text-align: left; ' + (on ? 'border: 2px solid ' + accent + '; background: #FFFFFF; outline: 2px solid ' + accent + '; outline-offset: 2px;' : 'border: 1px solid #D8D1C5; background: #FBF9F5;'),
+        preview: 'height: 40px; display: flex; align-items: center; justify-content: center; background: ' + d.bg + '; color: ' + d.fg + '; border-radius: 3px; font-family: \'Source Serif 4\', Georgia, serif; font-size: 18px; font-weight: ' + d.w + ';' + (d.name === 'Original' ? ' border: 1px solid #E4DED3;' : ''),
+        label: 'font-size: 12px; line-height: 16px; ' + (on ? 'font-weight: 600;' : '')
+      };
+    });
+    return { accent: accent, accentTint: mix(accent, '#FBF9F5', 0.12), chips: chips, paper: paper, ink: ink };
+  }
+}
+</script>
+</body>
+</html>

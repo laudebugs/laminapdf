@@ -21,6 +21,7 @@ Keep a user's cloud documents in sync across their devices: new revisions pushed
 
 ## Context
 
+- **Design (Paper):** [H03 Cloud documents and upload consent](../../design/paper/account-cloud-product.md#h03-cloud-documents-and-upload-consent), [H04 Sync conflict and offline edits](../../design/paper/account-cloud-product.md#h04-sync-conflict-and-offline-edits). Build to match these screens; record any deviation in the area document ([Paper design plan §5](../../plans/paper-design.md#5-how-the-designs-are-used)).
 - [full-editor: optional Cloudflare server features](../../plans/full-editor.md#optional-cloudflare-server-features)
 - [editing notes §3](../../research/architecture/notes/editing-architecture.md#3-collaboration-annotation-layer-sync-crdt-vs-server-authoritative-conflict-semantics)
 - [desktop D3](../../plans/desktop-app.md#d3-files): file watching

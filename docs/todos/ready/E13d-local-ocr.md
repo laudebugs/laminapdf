@@ -20,6 +20,7 @@ Run OCR on the device: a WASM OCR engine in a worker for small documents on web 
 
 ## Context
 
+- **Design (Paper):** [X01 Make searchable (OCR)](../../design/paper/convert-compare-produce.md#x01-make-searchable-ocr). Build to match these screens; record any deviation in the area document ([Paper design plan §5](../../plans/paper-design.md#5-how-the-designs-are-used)).
 - ADR 0013
 
 ## Scope

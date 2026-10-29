@@ -20,6 +20,7 @@ Make the viewer scroll a 1,000-page document like a native app. A prefix-sum pag
 
 ## Context
 
+- **Design (Paper):** [R02 Loading states](../../design/paper/reader-a.md#r02-loading-states). Build to match these screens; record any deviation in the area document ([Paper design plan §5](../../plans/paper-design.md#5-how-the-designs-are-used)).
 - [UI/UX plan §5.6](../../plans/ui-ux.md#56-perceived-performance-r6-r7) — the four-step pipeline (true-aspect placeholders → stretched low-res bitmap → 256–512 px sharp tiles, cancelled on scroll/zoom → CSS transform only during pinch) and the mobile caps (tile ≤ 5 MP, total bitmap budget) that [U3a](./U3a-responsive-mobile-and-touch.md) tunes.
 - [web-frontend notes §2](../../research/architecture/notes/web-frontend.md) — prefix-sum virtualiser, zoom anchoring needs custom logic, pooled canvases, low-res then tiles, cap canvas area (Safari/iOS canvas memory limits).
 - [rendering notes §4](../../research/architecture/notes/rendering.md) — visible ± N pages, placeholder sizes from page boxes, LRU bitmap cache, thumbnails on a lower-priority queue.

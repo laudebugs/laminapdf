@@ -20,6 +20,7 @@ Edit `/OpenAction` (initial page and zoom), `/PageMode`, `/PageLayout` and `/Vie
 
 ## Context
 
+- **Design (Paper):** [O13 Initial view and article threads](../../design/paper/pages-navigation-extraction.md#o13-initial-view-and-article-threads). Build to match these screens; record any deviation in the area document ([Paper design plan §5](../../plans/paper-design.md#5-how-the-designs-are-used)).
 - [04 §1.5 viewer preferences, page mode/layout](../../research/pdf/04-interactive-security.md#15-page-labels-thumbnails-viewer-preferences-page-modelayout)
 - ISO 32000-2 §12.2 (viewer preferences), §12.4.3 (articles)
 

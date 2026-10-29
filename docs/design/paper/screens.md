@@ -165,6 +165,19 @@ Mode names follow the [UI/UX plan](../../plans/ui-ux.md#51-desktop-and-web-layou
 
 ## Canvases
 
-| Area | Canvas | Files in the repo |
-| --- | --- | --- |
-| F | [Paper foundations](https://claude.ai/artifact/EdzB5wLs6neApuNbwN6Jmr) | [`foundations/`](foundations/) |
+Each canvas is private to the owner until shared. Its source files are committed in the folder listed (`project/canvas.json` plus one `.dc.html` per artboard); the files render inside the Design canvas only. When a design changes, update the files here and republish the canvas from them.
+
+| Screens | Area | Document | Canvas | Files |
+| --- | --- | --- | --- | --- |
+| F | Paper foundations | this page | [canvas](https://claude.ai/artifact/EdzB5wLs6neApuNbwN6Jmr) | [`foundations/`](foundations/project/canvas.json) |
+| R01–R09 | Reader A | [reader-a.md](reader-a.md) | [canvas](https://claude.ai/artifact/MWpEwMqZSWUBYSMuCi1Fz2) | [`reader-a/`](reader-a/project/canvas.json) |
+| R10–R18 | Reader B | [reader-b.md](reader-b.md) | [canvas](https://claude.ai/artifact/KaCtzmB4hNEHgyJJQv2HBi) | [`reader-b/`](reader-b/project/canvas.json) |
+| S | Desktop shell | [desktop-shell.md](desktop-shell.md) | [canvas](https://claude.ai/artifact/RMvUvGA8RAG3AHmdCZYnfw) | [`desktop-shell/`](desktop-shell/project/canvas.json) |
+| O01–O08 | Edit session and organise | [edit-session-organise.md](edit-session-organise.md) | [canvas](https://claude.ai/artifact/R2ZvF977LNg99a85zQiEeH) | [`edit-session-organise/`](edit-session-organise/project/canvas.json) |
+| O09–O17 | Pages, navigation and extraction | [pages-navigation-extraction.md](pages-navigation-extraction.md) | [canvas](https://claude.ai/artifact/XxRzeJ46jd6mBFhp7HevYf) | [`pages-navigation-extraction/`](pages-navigation-extraction/project/canvas.json) |
+| C | Comment and review | [comment-review.md](comment-review.md) | [canvas](https://claude.ai/artifact/QCantcmCvDnr79QABZAHUo) | [`comment-review/`](comment-review/project/canvas.json) |
+| A | Add and edit content | [add-edit-content.md](add-edit-content.md) | [canvas](https://claude.ai/artifact/5CecE9xXiw2RXoVde7xEsL) | [`add-edit-content/`](add-edit-content/project/canvas.json) |
+| P | Forms | [forms.md](forms.md) | [canvas](https://claude.ai/artifact/Jat39ahU8QNgrb7TLi3mZR) | [`forms/`](forms/project/canvas.json) |
+| G | Sign, protect and redact | [sign-protect-redact.md](sign-protect-redact.md) | [canvas](https://claude.ai/artifact/QbwnMXXDikC4Fe8gwede5P) | [`sign-protect-redact/`](sign-protect-redact/project/canvas.json) |
+| X | Convert, compare and produce | [convert-compare-produce.md](convert-compare-produce.md) | [canvas](https://claude.ai/artifact/GwyjtEGo2D2wMo4VUubKKZ) | [`convert-compare-produce/`](convert-compare-produce/project/canvas.json) |
+| H | Account, cloud and product | [account-cloud-product.md](account-cloud-product.md) | [canvas](https://claude.ai/artifact/Ronx2eZUMeMbgZGbx8CYhX) | [`account-cloud-product/`](account-cloud-product/project/canvas.json) |

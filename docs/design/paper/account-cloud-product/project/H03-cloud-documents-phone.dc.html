@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Cloud documents, phone</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&amp;family=Source+Sans+3:wght@400;500;600&amp;family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#1F5C63}a:hover{color:#16454B}
+button,input,textarea{font:inherit;color:inherit}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; position: relative; overflow: hidden; background: #F7F4EE; font-family: 'Source Sans 3', system-ui, sans-serif; font-size: 14px; line-height: 1.4; color: #1F1D1A">
+
+  <header style="position: absolute; left: 0; right: 0; top: 0; height: 56px; display: flex; align-items: center; gap: 4px; padding: 0 6px 0 16px; background: #F7F4EE; border-bottom: 1px solid #E4DED3; box-sizing: border-box">
+    <h1 style="flex: 1 1 auto; margin: 0; font-family: 'Newsreader', Georgia, serif; font-size: 22px; font-weight: 500">Files</h1>
+    <button aria-label="Search files" style="width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 6px; color: #1F1D1A"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6"></circle><path d="M15 15l5 5"></path></svg></button>
+    <button aria-label="Account: R. Osei" style="width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 6px"><span aria-hidden="true" style="width: 30px; height: 30px; border-radius: 50%; background: {{accentTint}}; color: {{accent}}; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600">RO</span></button>
+  </header>
+
+  <div role="tablist" aria-label="Where" style="position: absolute; left: 0; right: 0; top: 56px; height: 44px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); padding: 0 8px; border-bottom: 1px solid #E4DED3; box-sizing: border-box">
+    <button role="tab" aria-selected="false" style="height: 44px; border: 0; background: transparent; font-size: 14px; color: #6B645A; border-bottom: 2px solid transparent">On this phone</button>
+    <button role="tab" aria-selected="true" style="height: 44px; border: 0; background: transparent; font-size: 14px; font-weight: 600; color: #1F1D1A; border-bottom: 2px solid {{accent}}">Cloud</button>
+    <button role="tab" aria-selected="false" style="height: 44px; border: 0; background: transparent; font-size: 14px; color: #6B645A; border-bottom: 2px solid transparent">Shared</button>
+  </div>
+
+  <div style="position: absolute; left: 0; right: 0; top: 100px; bottom: 84px; overflow: hidden; display: flex; flex-direction: column; padding: 12px 0 0">
+    <div style="display: flex; flex-direction: column; gap: 6px; padding: 0 16px 12px">
+      <span style="font-size: 13px; color: #6B645A; font-variant-numeric: tabular-nums">38.2 MB of [QUOTA] used · syncs when you open or save</span>
+      <span role="progressbar" aria-label="Cloud storage used" aria-valuenow="8" aria-valuemin="0" aria-valuemax="100" style="display: block; height: 4px; border-radius: 2px; background: #E4DED3"><span style="display: block; width: 8%; height: 4px; border-radius: 2px; background: {{accent}}"></span></span>
+    </div>
+    <ul style="list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column">
+      <li style="display: flex; align-items: center; gap: 8px; min-height: 72px; padding: 0 4px 0 16px; border-top: 1px solid #E4DED3">
+        <a href="#open" style="flex: 1 1 auto; min-width: 0; min-height: 64px; display: flex; flex-direction: column; justify-content: center; gap: 4px; color: #1F1D1A; text-decoration: none">
+          <span style="font-family: 'Newsreader', Georgia, serif; font-size: 17px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">Q3-board-report.pdf</span>
+          <span style="display: flex; align-items: center; gap: 6px; font-size: 13px; color: #2F6A45; font-weight: 600"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 12.5l4 4 8-9"></path></svg>Synced<span style="color: #6B645A; font-weight: 400; font-variant-numeric: tabular-nums">· 2.4 MB · 28 Oct, 16:04</span></span>
+        </a>
+        <button aria-label="More actions for Q3-board-report.pdf" style="width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 6px; color: #4A453E"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="5.5" cy="12" r="0.9"></circle><circle cx="12" cy="12" r="0.9"></circle><circle cx="18.5" cy="12" r="0.9"></circle></svg></button>
+      </li>
+      <li style="display: flex; align-items: center; gap: 8px; min-height: 72px; padding: 0 4px 0 16px; border-top: 1px solid #E4DED3">
+        <a href="#open" style="flex: 1 1 auto; min-width: 0; min-height: 64px; display: flex; flex-direction: column; justify-content: center; gap: 4px; color: #1F1D1A; text-decoration: none">
+          <span style="font-family: 'Newsreader', Georgia, serif; font-size: 17px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">Q3-board-report (conflict, MacBook Air…</span>
+          <span style="display: flex; align-items: center; gap: 6px; font-size: 13px; color: #8A5300; font-weight: 600"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M12 4l9 16H3z"></path><path d="M12 10v4M12 17v.5"></path></svg>Conflict copy<span style="color: #6B645A; font-weight: 400; font-variant-numeric: tabular-nums">· 28 Oct, 16:02</span></span>
+        </a>
+        <button aria-label="More actions for the conflict copy" style="width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 6px; color: #4A453E; outline: 2px solid {{accent}}; outline-offset: -2px"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="5.5" cy="12" r="0.9"></circle><circle cx="12" cy="12" r="0.9"></circle><circle cx="18.5" cy="12" r="0.9"></circle></svg></button>
+      </li>
+      <li style="display: flex; align-items: center; gap: 8px; min-height: 72px; padding: 0 4px 0 16px; border-top: 1px solid #E4DED3">
+        <a href="#open" style="flex: 1 1 auto; min-width: 0; min-height: 64px; display: flex; flex-direction: column; justify-content: center; gap: 6px; color: #1F1D1A; text-decoration: none">
+          <span style="font-family: 'Newsreader', Georgia, serif; font-size: 17px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">Tenancy-agreement-template.pdf</span>
+          <span style="display: flex; align-items: center; gap: 6px; font-size: 13px; font-variant-numeric: tabular-nums">Uploading… 62%</span>
+          <span role="progressbar" aria-label="Uploading Tenancy-agreement-template.pdf" aria-valuenow="62" aria-valuemin="0" aria-valuemax="100" style="display: block; height: 4px; width: 200px; border-radius: 2px; background: #E4DED3"><span style="display: block; width: 62%; height: 4px; border-radius: 2px; background: {{accent}}"></span></span>
+        </a>
+        <button aria-label="Cancel upload" style="width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 6px; color: #4A453E"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg></button>
+      </li>
+      <li style="display: flex; align-items: center; gap: 8px; min-height: 72px; padding: 0 4px 0 16px; border-top: 1px solid #E4DED3">
+        <a href="#open" style="flex: 1 1 auto; min-width: 0; min-height: 64px; display: flex; flex-direction: column; justify-content: center; gap: 4px; color: #1F1D1A; text-decoration: none">
+          <span style="font-family: 'Newsreader', Georgia, serif; font-size: 17px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">Surveyor-capacity-plan.pdf</span>
+          <span style="display: flex; align-items: center; gap: 6px; font-size: 13px; color: #4A453E"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M5 11a7 7 0 0 1 12.5-3.5M19 13a7 7 0 0 1-12.5 3.5"></path><path d="M17.5 4v3.5H14M6.5 20v-3.5H10"></path></svg>Newer on MacBook Air<span style="color: #6B645A; font-variant-numeric: tabular-nums">· 27 Oct</span></span>
+        </a>
+        <button aria-label="More actions for Surveyor-capacity-plan.pdf" style="width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 6px; color: #4A453E"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="5.5" cy="12" r="0.9"></circle><circle cx="12" cy="12" r="0.9"></circle><circle cx="18.5" cy="12" r="0.9"></circle></svg></button>
+      </li>
+      <li style="display: flex; align-items: center; gap: 8px; min-height: 72px; padding: 0 4px 0 16px; border-top: 1px solid #E4DED3; border-bottom: 1px solid #E4DED3">
+        <a href="#open" style="flex: 1 1 auto; min-width: 0; min-height: 64px; display: flex; flex-direction: column; justify-content: center; gap: 4px; color: #1F1D1A; text-decoration: none">
+          <span style="font-family: 'Newsreader', Georgia, serif; font-size: 17px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">Rent-collection-September.pdf</span>
+          <span style="display: flex; align-items: center; gap: 6px; font-size: 13px; color: #2F6A45; font-weight: 600"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 12.5l4 4 8-9"></path></svg>Synced<span style="color: #6B645A; font-weight: 400">· shared with 3</span></span>
+        </a>
+        <button aria-label="More actions for Rent-collection-September.pdf" style="width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 6px; color: #4A453E"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="5.5" cy="12" r="0.9"></circle><circle cx="12" cy="12" r="0.9"></circle><circle cx="18.5" cy="12" r="0.9"></circle></svg></button>
+      </li>
+    </ul>
+  </div>
+
+  <div style="position: absolute; left: 0; right: 0; bottom: 0; height: 84px; box-sizing: border-box; padding: 8px 16px 26px; background: #F7F4EE; border-top: 1px solid #E4DED3">
+    <button style="width: 100%; height: 48px; display: flex; align-items: center; justify-content: center; gap: 8px; border: 1px solid {{accent}}; background: {{accent}}; color: #FFFFFF; border-radius: 6px; font-size: 15px; font-weight: 600"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M12 15V4.5M8 8l4-3.5L16 8"></path><path d="M7 11H5.5v8.5h13V11H17"></path></svg>Upload a file…</button>
+  </div>
+  <span aria-hidden="true" style="position: absolute; left: 50%; bottom: 8px; transform: translateX(-50%); width: 134px; height: 5px; border-radius: 3px; background: #1F1D1A; opacity: 0.85"></span>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#1F5C63","options":["#1F5C63","#2D4A6B","#3E4A3C"]},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    var accent = this.props.accent ?? '#1F5C63';
+    function mix(hex, base, t) {
+      var p = function (h, i) { return parseInt(h.replace('#', '').substr(i, 2), 16); };
+      var out = '#';
+      for (var i = 0; i < 6; i += 2) {
+        var v = Math.round(p(hex, i) * t + p(base, i) * (1 - t));
+        out += (v < 16 ? '0' : '') + v.toString(16);
+      }
+      return out;
+    }
+    return { accent: accent, accentTint: mix(accent, '#F7F4EE', 0.12) };
+  }
+}
+</script>
+</body>
+</html>

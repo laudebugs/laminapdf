@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>lamina desktop, flatten form</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&amp;family=Source+Sans+3:wght@400;500;600&amp;family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&amp;display=swap">
+<style>
+body{margin:0;background:#DCD6CB}
+a{color:#1F5C63}a:hover{color:#16454B}
+button,input,textarea{font:inherit;color:inherit}
+</style>
+</helmet>
+<div style="min-height: 100vh; display: flex; flex-direction: column; background: #DCD6CB; font-family: 'Source Sans 3', 'Segoe UI', system-ui, sans-serif; font-size: 14px; line-height: 1.4; color: #1F1D1A">
+<div style="position: relative; flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; background: #F7F4EE; border: 1px solid #C9C2B6; border-radius: 10px; overflow: hidden; box-sizing: border-box">
+
+  <div style="height: 30px; flex: 0 0 auto; display: flex; align-items: center; padding: 0 12px; background: #EFEBE3; border-bottom: 1px solid #E0D9CD; position: relative">
+    <div aria-hidden="true" style="display: flex; gap: 8px">
+      <span style="width: 12px; height: 12px; border-radius: 50%; background: #EC6A5E; border: 0.5px solid #D2574C"></span>
+      <span style="width: 12px; height: 12px; border-radius: 50%; background: #F4BF4F; border: 0.5px solid #D9A63A"></span>
+      <span style="width: 12px; height: 12px; border-radius: 50%; background: #61C554; border: 0.5px solid #4CAA40"></span>
+    </div>
+    <div style="position: absolute; left: 0; right: 0; text-align: center; font-size: 13px; font-weight: 600; color: #3A3631; pointer-events: none">repair-request-form.pdf</div>
+  </div>
+
+  <div aria-hidden="true" style="flex: 1 1 auto; display: flex; flex-direction: column">
+    <div style="min-height: 40px; display: flex; align-items: center; gap: 20px; padding: 0 16px; border-bottom: 1px solid #E4DED3">
+      <span style="flex: 1 1 220px; font-family: 'Newsreader', Georgia, serif; font-size: 16px; font-weight: 500">repair-request-form.pdf <span style="font-family: 'Source Sans 3', system-ui, sans-serif; font-size: 12px; font-weight: 400; color: #6B645A">19 unsaved changes</span></span>
+      <span style="display: flex; gap: 22px; color: #6B645A"><span>Read</span><span>Comment</span><span style="color: #1F1D1A; font-weight: 600; border-bottom: 2px solid {{accent}}; padding: 9px 0 7px">Fill &amp; Sign</span><span>Organise</span><span>Edit</span></span>
+      <span style="flex: 1 1 220px"></span>
+    </div>
+    <div style="min-height: 40px; display: flex; align-items: center; gap: 16px; padding: 0 16px; border-bottom: 1px solid #E4DED3; background: #FBF9F5; font-size: 13px"><span>Previous field</span><span>Next field</span><span>Highlight fields</span><span>Form data</span></div>
+    <div style="flex: 1 1 auto; display: flex">
+      <div style="flex: 0 0 220px; border-right: 1px solid #E4DED3"></div>
+      <div style="flex: 1 1 auto; background: #ECE7DE; display: flex; justify-content: center; padding: 28px 16px">
+        <div style="width: 100%; max-width: 612px; min-height: 790px; background: #FFFFFF; box-shadow: 0 1px 2px rgba(60,48,30,0.08), 0 8px 28px rgba(60,48,30,0.10); padding: 48px 56px; box-sizing: border-box; display: flex; flex-direction: column; gap: 14px; font-family: 'Source Serif 4', Georgia, serif">
+          <span style="font-size: 24px; font-weight: 600; color: #1C1B19">Repair request</span>
+          <span style="height: 26px; border: 1px solid #8A8174; background: #EDF2F3"></span>
+          <span style="height: 26px; border: 1px solid #8A8174; background: #EDF2F3"></span>
+          <span style="height: 26px; border: 1px solid #8A8174; background: #EDF2F3"></span>
+        </div>
+      </div>
+    </div>
+    <div style="min-height: 28px; border-top: 1px solid #E4DED3"></div>
+  </div>
+
+  <div style="position: absolute; left: 0; right: 0; top: 30px; bottom: 0; background: rgba(31,29,26,0.30); display: flex; justify-content: center; align-items: flex-start; padding: 96px 16px 0; box-sizing: border-box">
+    <div role="alertdialog" aria-modal="true" aria-labelledby="fl-t" aria-describedby="fl-d" style="width: 100%; max-width: 520px; box-sizing: border-box; padding: 24px; display: flex; flex-direction: column; gap: 16px; background: #FBF9F5; border: 1px solid #D8D1C5; border-radius: 6px; box-shadow: 0 18px 48px rgba(31,29,26,0.22)">
+      <h2 id="fl-t" style="margin: 0; font-family: 'Newsreader', Georgia, serif; font-size: 20px; font-weight: 500; line-height: 1.2">Flatten the form?</h2>
+      <p id="fl-d" style="margin: 0; text-wrap: pretty">Flattening draws the answers onto the pages and removes the fields, so the form can no longer be filled in or changed in any PDF app.</p>
+
+      <fieldset style="margin: 0; padding: 0; border: 0; display: flex; flex-direction: column; gap: 6px">
+        <legend style="padding: 0; margin-bottom: 8px; font-size: 12px; font-weight: 600; color: #4A453E">Flatten</legend>
+        <label style="display: flex; align-items: center; gap: 8px; min-height: 24px"><span style="width: 16px; height: 16px; box-sizing: border-box; border-radius: 50%; border: 2px solid {{accent}}; display: flex; align-items: center; justify-content: center"><span style="width: 8px; height: 8px; border-radius: 50%; background: {{accent}}"></span></span><input type="radio" name="scope" checked style="position: absolute; opacity: 0; width: 1px; height: 1px"><span>Every field <span style="color: #6B645A; font-variant-numeric: tabular-nums">· 26</span></span></label>
+        <label style="display: flex; align-items: center; gap: 8px; min-height: 24px"><span style="width: 16px; height: 16px; box-sizing: border-box; border-radius: 50%; border: 1px solid #8A8174; background: #FFFFFF"></span><input type="radio" name="scope" style="position: absolute; opacity: 0; width: 1px; height: 1px"><span>Only the fields selected in the Fields tab <span style="color: #6B645A; font-variant-numeric: tabular-nums">· 0</span></span></label>
+      </fieldset>
+
+      <div role="note" style="display: flex; gap: 10px; padding: 10px 12px; background: #FBF9F5; border: 1px solid #E4DED3; border-radius: 4px; font-size: 13px">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#4A453E" stroke-width="1.5" aria-hidden="true" style="flex: 0 0 auto; margin-top: 1px"><path d="M4 19c2-1 3-4 5-4s1 3 3 3 2-2 4-2"></path><path d="M14 4.5l5 5-7 7h-2v-2z"></path></svg>
+        <span><strong style="font-weight: 600">The signature field stays a field.</strong> lamina never flattens signature fields, so the form can still be signed.</span>
+      </div>
+
+      <sc-if value="{{signed}}" hint-placeholder-val="{{ false }}">
+      <div role="note" style="display: flex; gap: 10px; padding: 10px 12px; background: #F0E8DC; border: 1px solid #E4DED3; border-radius: 4px; font-size: 13px">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8A5300" stroke-width="1.5" aria-hidden="true" style="flex: 0 0 auto; margin-top: 1px"><path d="M12 4l9 16H3z"></path><path d="M12 10v4M12 17v.5"></path></svg>
+        <span><strong style="font-weight: 600; color: #8A5300">Saving will invalidate the signature.</strong> This file is certified by Northwind Housing Trust to allow form filling only. Flattening changes page content. Save a copy instead to keep the original signed.</span>
+      </div>
+      </sc-if>
+
+      <p style="margin: 0; font-size: 13px; color: #6B645A">You can undo this until you close the file. Nothing is written until you save.</p>
+
+      <div style="display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px">
+        <button style="height: 32px; padding: 0 16px; border: 1px solid #8A8174; background: #FFFFFF; border-radius: 4px; outline: 2px solid {{accent}}; outline-offset: 2px">Cancel</button>
+        <button style="height: 32px; padding: 0 16px; border: 1px solid #9B2335; background: #9B2335; color: #FFFFFF; border-radius: 4px; font-weight: 600">Flatten 26 fields</button>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#1F5C63","options":["#1F5C63","#2D4A6B","#3E4A3C"]},"signed":{"editor":"boolean","default":false},"$preview":{"width":1440,"height":1000}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return { accent: this.props.accent ?? '#1F5C63', signed: this.props.signed ?? false };
+  }
+}
+</script>
+</body>
+</html>

@@ -21,6 +21,7 @@ Ship faithful printing on macOS, Windows and Linux using the path D1b recommende
 
 ## Context
 
+- **Design (Paper):** [S05 Print](../../design/paper/desktop-shell.md#s05-print). Build to match these screens; record any deviation in the area document ([Paper design plan §5](../../plans/paper-design.md#5-how-the-designs-are-used)).
 - D1b README (`spikes/desktop-print/`): per-OS recommendation, fidelity numbers, platform-code notes (main-thread rules, banding), and the comparison script.
 - [Desktop plan §7](../../plans/desktop-app.md#7-risks): ship the `window.print()` raster path first if native lags.
 - ADR 0008: the engine renders; the main process owns OS handles (printer DC, `NSPrintOperation`, `GtkPrintOperation`) because the engine is sandboxed (D2c) and has no access to printers.

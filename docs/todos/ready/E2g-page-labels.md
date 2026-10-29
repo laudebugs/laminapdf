@@ -20,6 +20,7 @@ Edit the `/PageLabels` number tree (style, prefix, start) per range, keep labels
 
 ## Context
 
+- **Design (Paper):** [O10 Page labels editor](../../design/paper/pages-navigation-extraction.md#o10-page-labels-editor). Build to match these screens; record any deviation in the area document ([Paper design plan §5](../../plans/paper-design.md#5-how-the-designs-are-used)).
 - [04 §1.5 Page labels](../../research/pdf/04-interactive-security.md#15-page-labels-thumbnails-viewer-preferences-page-modelayout)
 - ISO 32000-2 §12.4.2 (page labels)
 

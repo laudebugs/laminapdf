@@ -21,6 +21,7 @@ Find redaction candidates by text, regex and built-in patterns (emails, phone nu
 
 ## Context
 
+- **Design (Paper):** [G09 Find sensitive content](../../design/paper/sign-protect-redact.md#g09-find-sensitive-content). Build to match these screens; record any deviation in the area document ([Paper design plan §5](../../plans/paper-design.md#5-how-the-designs-are-used)).
 - [06 §3 group G](../../research/pdf/06-feature-inventory.md#3-full-operation-inventory-with-mechanisms)
 
 ## Scope

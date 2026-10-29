@@ -20,6 +20,7 @@ Expose the revision index built for signature diffing in E10h (`/Prev` chain, by
 
 ## Context
 
+- **Design (Paper):** [X03 Revision browser](../../design/paper/convert-compare-produce.md#x03-revision-browser). Build to match these screens; record any deviation in the area document ([Paper design plan §5](../../plans/paper-design.md#5-how-the-designs-are-used)).
 - [01 §7 Incremental updates](../../research/pdf/01-file-structure.md#7-incremental-updates-756)
 - [04 §13](../../research/pdf/04-interactive-security.md#13-implications-for-laminas-design) item 2 revision-aware reader
 

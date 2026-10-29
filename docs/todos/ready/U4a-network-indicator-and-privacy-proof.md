@@ -20,6 +20,7 @@
 
 ## Context
 
+- **Design (Paper):** [R13 Network activity panel](../../design/paper/reader-b.md#r13-network-activity-panel). Build to match these screens; record any deviation in the area document ([Paper design plan §5](../../plans/paper-design.md#5-how-the-designs-are-used)).
 - [UI/UX plan §5.7](../../plans/ui-ux.md#57-trust-surfaces-r9r13); [research: differentiators](../../research/product/pdf-app-product-and-ux.md#three-differentiators-ranked) — FBI Denver alert (March 2025) on free online converters; "client-side" doesn't guarantee no requests.
 - [C4c](./C4c-remote-files-encryption-privacy.md) — remote `#url=` files, the no-upload Playwright test.
 - [web-app plan: privacy and security](../../plans/web-app.md#privacy-and-security) — CSP, no third-party scripts.

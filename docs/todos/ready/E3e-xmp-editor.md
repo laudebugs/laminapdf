@@ -20,6 +20,7 @@ Edit any XMP property, including custom and PDF/A extension schemas (`pdfaExtens
 
 ## Context
 
+- **Design (Paper):** [O04 Document info and XMP editor](../../design/paper/edit-session-organise.md#o04-document-info-and-xmp-editor). Build to match these screens; record any deviation in the area document ([Paper design plan §5](../../plans/paper-design.md#5-how-the-designs-are-used)).
 - [04 §5 Metadata](../../research/pdf/04-interactive-security.md#5-metadata)
 - ISO 16684-1; ISO 19005-2 §6.6 (extension schemas)
 
