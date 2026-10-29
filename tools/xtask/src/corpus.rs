@@ -234,6 +234,13 @@ pub(crate) fn fetch(ws: &Workspace, args: &FetchArgs) -> Result<()> {
     let mut problems = Vec::new();
     for source in manifest.sources.iter_mut().filter(|s| names.contains(&s.name)) {
         let dir = source_dir(ws, &source.name);
+        // The stamp says "verified against this manifest entry"; drop it first, so it exists
+        // only if this fetch verifies every file again (a failed or partial fetch leaves none).
+        match fs::remove_file(stamp_path(&dir)) {
+            Ok(()) => {}
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
+            Err(e) => return Err(e).context("removing the old verified stamp"),
+        }
         if let Err(error) = checkout(source, &dir) {
             if mirror.is_empty() || args.update_manifest {
                 return Err(error.context(format!("fetching {}", source.name)));
