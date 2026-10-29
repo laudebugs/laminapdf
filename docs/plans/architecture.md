@@ -68,9 +68,9 @@ ADRs go in `docs/decisions/`, one file per decision (`NNNN-title.md`). Each roun
 | 0025 | Mobile shell: Tauri 2 mobile vs UniFFI with native UI (after the `mobile-shell` spike) | Round U (U3b) | Defer |
 | 0012 | Collaboration: one Durable Object per document, last-writer-wins records | Later (with collaboration) | Defer |
 | 0013 | Heavy jobs: Workflows + Containers; OCR/conversion engines and licences | Later (with OCR) | Defer |
-| 0026 | Error and diagnostic contract | [Shareable libraries](shareable-libraries.md#6-decisions-to-record-adrs) L1 | Propose |
-| 0027 | Coordinates, units and page indexing in public APIs | Shareable libraries L1 | Propose |
-| 0028 | Façade binding rules, jobs, cancellation and progress | Shareable libraries L1 | Propose |
+| [0026](../decisions/0026-error-and-diagnostic-contract.md) | Error and diagnostic contract | [Shareable libraries](shareable-libraries.md#6-decisions-to-record-adrs) L1 | Accepted |
+| [0027](../decisions/0027-coordinates-units-and-page-indexing.md) | Coordinates, units and page indexing in public APIs | Shareable libraries L1 | Accepted |
+| [0028](../decisions/0028-facade-rules-jobs-and-cancellation.md) | Façade binding rules, jobs, cancellation and progress | Shareable libraries L1 | Accepted |
 | 0029 | Mobile bindings and packaging (UniFFI pin, SPM, AARs) | Shareable libraries L6 | Propose |
 | 0030 | Extraction output (`lamina.extract/1`) and model plug-ins | Shareable libraries L3 | Propose |
 | 0031 | CLI and MCP contract | Shareable libraries L4 | Propose |

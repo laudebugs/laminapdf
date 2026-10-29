@@ -35,7 +35,7 @@ The policy already exists in code, ported from the spike and fixed in review of 
 
 ### 2. Warnings: stable, enumerated codes
 
-Every repair or substitution the caller might care about is a `Warning`, never silent and never an error ([code organization §5](../guidelines/code-organization.md#5-error-handling-by-layer)). `Warning` stays `#[non_exhaustive]`; each variant has a `code()` returning a kebab-case string that is part of the public API in Rust, WASM and TypeScript ([code organization §4](../guidelines/code-organization.md#4-public-api-surface-and-stability)). Codes are never renamed or reused; retired codes stay reserved. Variants carry a byte offset or object number where one exists.
+Every repair or substitution the caller might care about is a `Warning`, never silent and never an error ([code organization §5](../guidelines/code-organization.md#5-error-handling-by-layer)). `Warning` stays `#[non_exhaustive]`; each variant has a `code()` returning a kebab-case string that is part of the public API in Rust, WASM and TypeScript ([code organization §4](../guidelines/code-organization.md#4-public-api-surface-and-stability)). Codes are never renamed or reused; retired codes stay reserved. Variants carry a byte offset or object number where one exists. [ADR 0026](0026-error-and-diagnostic-contract.md) extends these codes into one error and warning shape (`kind`, `hint`, `docsUrl`) on every surface.
 
 | Code | Raised when | Status |
 | --- | --- | --- |

@@ -1,0 +1,71 @@
+# Error and warning codes
+
+One page per code in [`fixtures/codes.json`](../../fixtures/codes.json), as [ADR 0026](../decisions/0026-error-and-diagnostic-contract.md) §6 requires. Every `docsUrl` points here. A PR that adds a code adds its page. [L1b](../todos/ready/L1b-error-contract-codegen.md) expands the pages and checks the list against `codes.json`.
+
+## Warnings
+
+| Code | Kind |
+| --- | --- |
+| [`missing-header`](missing-header.md) | `input` |
+| [`xref-repaired`](xref-repaired.md) | `input` |
+| [`xrefstm-ignored`](xrefstm-ignored.md) | `input` |
+| [`stream-length-recovered`](stream-length-recovered.md) | `input` |
+| [`stale-generation`](stale-generation.md) | `input` |
+| [`page-tree-node-skipped`](page-tree-node-skipped.md) | `input` |
+| [`page-count-mismatch`](page-count-mismatch.md) | `input` |
+| [`flate-truncated`](flate-truncated.md) | `input` |
+| [`objstm-index-mismatch`](objstm-index-mismatch.md) | `input` |
+| [`object-number-out-of-range`](object-number-out-of-range.md) | `limit` |
+| [`aes-padding-invalid`](aes-padding-invalid.md) | `security` |
+| [`perms-mismatch`](perms-mismatch.md) | `security` |
+| [`warnings-truncated`](warnings-truncated.md) | `limit` |
+| [`invalid-box`](invalid-box.md) | `input` |
+| [`invalid-rotate`](invalid-rotate.md) | `input` |
+| [`name-tree-node-skipped`](name-tree-node-skipped.md) | `input` |
+| [`outline-cycle`](outline-cycle.md) | `input` |
+| [`outline-item-skipped`](outline-item-skipped.md) | `input` |
+| [`invalid-date`](invalid-date.md) | `input` |
+| [`invalid-page-label`](invalid-page-label.md) | `input` |
+| [`invalid-entry`](invalid-entry.md) | `input` |
+
+## Errors
+
+| Code | Kind |
+| --- | --- |
+| [`not-pdf`](not-pdf.md) | `input` |
+| [`missing-root`](missing-root.md) | `input` |
+| [`reference-cycle`](reference-cycle.md) | `input` |
+| [`limit-exceeded`](limit-exceeded.md) | `limit` |
+| [`strict`](strict.md) | `input` |
+| [`data-pending`](data-pending.md) | `state` |
+| [`source`](source.md) | `io` |
+| [`type`](type.md) | `input` |
+| [`invalid-structure`](invalid-structure.md) | `input` |
+| [`unset-object`](unset-object.md) | `internal` |
+| [`repaired-base`](repaired-base.md) | `state` |
+| [`encrypted-base`](encrypted-base.md) | `unsupported` |
+| [`password-required`](password-required.md) | `security` |
+| [`wrong-password`](wrong-password.md) | `security` |
+| [`unsupported-security-handler`](unsupported-security-handler.md) | `unsupported` |
+| [`unexpected-eof`](unexpected-eof.md) | `input` |
+| [`syntax`](syntax.md) | `input` |
+| [`unsupported-filter`](unsupported-filter.md) | `unsupported` |
+| [`decompress`](decompress.md) | `input` |
+
+## Op errors
+
+| Code | Kind |
+| --- | --- |
+| [`nested-transaction`](nested-transaction.md) | `state` |
+| [`no-transaction`](no-transaction.md) | `state` |
+| [`unknown-page`](unknown-page.md) | `usage` |
+| [`direct-page`](direct-page.md) | `unsupported` |
+| [`unsupported-version`](unsupported-version.md) | `unsupported` |
+| [`invalid-op-log`](invalid-op-log.md) | `input` |
+
+## Save errors
+
+| Code | Kind |
+| --- | --- |
+| [`would-invalidate-signatures`](would-invalidate-signatures.md) | `security` |
+| [`requires-rewrite`](requires-rewrite.md) | `state` |

@@ -3,16 +3,16 @@
 | Field | Value |
 | --- | --- |
 | ID | `L1a` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [shareable-libraries §7 L1](../../plans/shareable-libraries.md#l1-contracts), [§4 principles](../../plans/shareable-libraries.md#4-principles-recommendations-recorded-in-adrs-00260031), [§6 ADRs](../../plans/shareable-libraries.md#6-decisions-to-record-adrs) |
 | Round / milestone | Round L1 (shareable libraries) — before B5a/B5c |
 | Depends on | None |
-| Blocks | [B5a](../ready/B5a-lamina-build-core.md), [L1b](../ready/L1b-error-contract-codegen.md), [L2a](../ready/L2a-worker-client.md), [L3a](../ready/L3a-lamina-extract-reading-order.md), [L6a](../ready/L6a-lamina-ffi-spike.md) |
+| Blocks | [B5a](../ready/B5a-lamina-build-core.md), [B5c](../ready/B5c-lamina-facade-and-examples.md), [L1b](../ready/L1b-error-contract-codegen.md), [L1c](../ongoing/L1c-error-contract-core.md), [L2a](../ready/L2a-worker-client.md), [L3a](../ready/L3a-lamina-extract-reading-order.md), [L6a](../ready/L6a-lamina-ffi-spike.md) |
 | ADRs | Writes **0026** (error and diagnostic contract), **0027** (coordinates, units and page indexing), **0028** (façade rules, jobs, cancellation and progress); extends [0003](../../decisions/0003-reader-tolerance-and-limits.md) §2 (codes), fills in [0002](../../decisions/0002-binding-strategy.md) §3 (façade), touches [0005](../../decisions/0005-document-model.md) §7 (threads); informs proposed 0009 (worker RPC, [C2a](../ready/C2a-render-adrs.md)) and 0031 (CLI, [L4a](../ready/L4a-lamina-cli.md)) |
 | Branch | `docs/l1a-contract-adrs` |
 | PR title | `docs(decisions): ADRs 0026 (errors), 0027 (coordinates and units), 0028 (façade rules, jobs, cancellation)` |
 | Size | M (≈ 350–500 lines of docs) |
-| PR | — |
+| PR | [#40](https://github.com/laudebugs/lamina/pull/40) |
 
 ## Goal
 
@@ -69,39 +69,49 @@ Write down the contract every lamina surface shares before the first public API 
 
 ## Tasks
 
-- [ ] Read the plan §4 and §6, the report sections in Context, ADRs 0002, 0003 and 0005, and the two error guidelines
-- [ ] Confirm on the board and in `docs/decisions/` that 0026–0028 are still free (0020–0023 are reserved by editor and library todos)
-- [ ] Write ADR 0026 with the [ADR template](../../decisions/README.md) (Context, Decision, Consequences, Alternatives considered):
-  - [ ] Field table with a Rust, TS and JSON example
-  - [ ] The `kind` list
-  - [ ] Code and `hint` rules, and the no-document-text rule with one example of what is not allowed
-  - [ ] `docsUrl` pattern; where `explain` text lives
-  - [ ] Mapping per surface; the class name decision
-  - [ ] Alternatives: free-text errors, numeric codes, per-crate code lists, miette-style diagnostics
-- [ ] Write ADR 0027:
-  - [ ] The two coordinate spaces, with a diagram or table showing a rect in both
-  - [ ] Box, `/Rotate` and `/UserUnit` rules; the JSON `coordinates` block; `bboxNorm`
-  - [ ] Unit types in Rust and TS; text-baseline rule; page `index`/`number` rule
-  - [ ] Alternatives: bottom-left everywhere (pdf-lib), ratios (Textract), inches (Azure)
-- [ ] Write ADR 0028:
-  - [ ] The façade rule list, each with the UniFFI or wasm-bindgen constraint behind it
-  - [ ] The lock decision and how it relates to ADR 0005 §7 (amend 0005 in this PR if the decision changes it)
-  - [ ] `Job`/`Step`/`Budget`/`CancelToken` signatures (illustrative Rust); how TS, Swift, Kotlin and the CLI drive a job
-  - [ ] The `cancelled` code; progress throttling
-  - [ ] Alternatives: async core, threads in core, binding-level cancellation, Comlink-style proxies
-- [ ] Add the three rows to `docs/decisions/README.md` and to architecture §3; update `CLAUDE.md`'s accepted-ADR sentence
-- [ ] Update [code organisation §5](../../guidelines/code-organization.md#5-error-handling-by-layer) and [TypeScript: errors](../../guidelines/typescript.md#errors) to cite ADR 0026 (rename `PdfError` there if the ADR renames it)
-- [ ] Tick the L1 ADR to-do in [plan §9](../../plans/shareable-libraries.md#9-to-dos); set the plan's ADR table entries to link the files
-- [ ] `cargo xtask check docs`
+- [x] Read the plan §4 and §6, the report sections in Context, ADRs 0002, 0003 and 0005, and the two error guidelines
+- [x] Confirm on the board and in `docs/decisions/` that 0026–0028 are still free (0020–0023 are reserved by editor and library todos)
+- [x] Write ADR 0026 with the [ADR template](../../decisions/README.md) (Context, Decision, Consequences, Alternatives considered):
+  - [x] Field table with a Rust, TS and JSON example
+  - [x] The `kind` list
+  - [x] Code and `hint` rules, and the no-document-text rule with one example of what is not allowed
+  - [x] `docsUrl` pattern; where `explain` text lives
+  - [x] Mapping per surface; the class name decision
+  - [x] Alternatives: free-text errors, numeric codes, per-crate code lists, miette-style diagnostics
+- [x] Write ADR 0027:
+  - [x] The two coordinate spaces, with a diagram or table showing a rect in both
+  - [x] Box, `/Rotate` and `/UserUnit` rules; the JSON `coordinates` block; `bboxNorm`
+  - [x] Unit types in Rust and TS; text-baseline rule; page `index`/`number` rule
+  - [x] Alternatives: bottom-left everywhere (pdf-lib), ratios (Textract), inches (Azure)
+- [x] Write ADR 0028:
+  - [x] The façade rule list, each with the UniFFI or wasm-bindgen constraint behind it
+  - [x] The lock decision and how it relates to ADR 0005 §7 (amend 0005 in this PR if the decision changes it)
+  - [x] `Job`/`Step`/`Budget`/`CancelToken` signatures (illustrative Rust); how TS, Swift, Kotlin and the CLI drive a job
+  - [x] The `cancelled` code; progress throttling
+  - [x] Alternatives: async core, threads in core, binding-level cancellation, Comlink-style proxies
+- [x] Add the three rows to `docs/decisions/README.md` and to architecture §3; update `CLAUDE.md`'s accepted-ADR sentence
+- [x] Update [code organisation §5](../../guidelines/code-organization.md#5-error-handling-by-layer) and [TypeScript: errors](../../guidelines/typescript.md#errors) to cite ADR 0026 (rename `PdfError` there if the ADR renames it)
+- [x] Tick the L1 ADR to-do in [plan §9](../../plans/shareable-libraries.md#9-to-dos); set the plan's ADR table entries to link the files
+- [x] `cargo xtask check docs`
 
 ## Acceptance criteria
 
-- [ ] Three ADR files exist with Status `Accepted` (or `Proposed` with the owner's reason recorded), dated, in template order
-- [ ] ADR 0026 defines every field of the error shape, the `kind` list, the code rules and the no-document-text rule. It names the TS class and where `explain` text lives
-- [ ] ADR 0027 gives an unambiguous answer for: origin, unit, reference box, rotation, `/UserUnit`, text baseline, and page index vs number
-- [ ] ADR 0028 lists the façade rules B5c's acceptance criteria refer to ([B5c](../ready/B5c-lamina-facade-and-examples.md)), defines `Budget` without a clock in core, and states how it relates to ADR 0005 §7
-- [ ] The guidelines no longer contradict ADR 0026 on the error class name or shape
-- [ ] `cargo xtask check docs` passes (links and board)
+- [x] Three ADR files exist with Status `Accepted` (or `Proposed` with the owner's reason recorded), dated, in template order
+- [x] ADR 0026 defines every field of the error shape, the `kind` list, the code rules and the no-document-text rule. It names the TS class and where `explain` text lives
+- [x] ADR 0027 gives an unambiguous answer for: origin, unit, reference box, rotation, `/UserUnit`, text baseline, and page index vs number
+- [x] ADR 0028 lists the façade rules B5c's acceptance criteria refer to ([B5c](../ready/B5c-lamina-facade-and-examples.md)), defines `Budget` without a clock in core, and states how it relates to ADR 0005 §7
+- [x] The guidelines no longer contradict ADR 0026 on the error class name or shape
+- [x] `cargo xtask check docs` passes (links and board)
+
+## Outcome and deviations
+
+- **Accepted by the owner on 2026-10-29:** ADRs 0026, 0027 and 0028 as written; the ninth kind `io`; the L1c re-sequencing (L1c before B5c, and B5c and L1b depend on L1c); and the placeholder `docs/errors/` pages as `docsUrl` targets until L1b expands them. Each ADR's Status reads "Accepted (owner, 2026-10-29)".
+- **0026:** the class is `LaminaError`, and `PdfError` is not used. `explain` pages live in `docs/errors/<code>.md`. Every current code has an initial `kind` (§2). Deviations from the scope's shape: `location.page` became `location.pageIndex` (ADR 0027 §6 bans a bare `page` number), `location.id` (a `LaminaId`) was added, and a **`data`** object was added as the only place document-derived strings may appear. `docsUrl` uses the GitHub-rendered page as its base until the domain is chosen. Three existing variants put document text in their messages; L1b fixes them (recorded in [L1b](../ready/L1b-error-contract-codegen.md)).
+- **0027:** page space is the effective CropBox as displayed, top-left, y down, with `/UserUnit` applied; user space is used only in `UserSpace…` types; drawing `y` is the baseline; APIs take an `index`, output carries `index` + `number`. Deviation: concrete `RectPt`/`UserSpaceRect` instead of a generic `Rect<Space>`, because of 0028 F3.
+- **0028:** rules F1–F12; the lock lives in the binding edge (`Mutex` in `lamina-ffi`, `Rc<RefCell>` in `lamina-wasm`), and ADR 0005 §7 is unchanged (a cross-reference was added). Deviations: `PageRef` holds a `PageId` rather than an index and is built in the edge crates; jobs take the document on each `step` and check a document revision counter (new codes `job-finished`, `document-changed`). B5c is updated accordingly.
+- **After `/code-review high` (10 findings), the contract was re-sequenced.** L1b depends on B6b, which depends on B6a and B5c, so it would have landed after the first surfaces shipped. A new todo, [L1c](../ongoing/L1c-error-contract-core.md), now comes before B5c and owns `codes.json` v2, kinds, hints, tagged locations and removing document text from messages. B5c owns `Serialize` and the job codes. B6b ships `LaminaError` with every field. L1b is left with codegen, the JSON Schema and `explain`.
+- **Other review fixes:** a ninth kind, `io`, for `source`; every job, write jobs included, checks the revision in the core; `Budget` and `Progress` use `u32`; the US Letter fallback for pages without a usable box; `PageFrame` cached per page; `location` tagged (`offset` in the file, `object`, `streamOffset`); a page per current code in `docs/errors/`; the plan §5 snippet matches 0028.
+- Follow-ups recorded in [B5a](../ready/B5a-lamina-build-core.md) (unit types, `Rect` rename, `PageFrame`), [B5c](../ready/B5c-lamina-facade-and-examples.md) (revision counter, auto-trait test, job codes), [B6b](../ready/B6b-lamina-pdf-package.md) (ships `LaminaError` directly) and [L1b](../ready/L1b-error-contract-codegen.md) (decisions, document-text fixes, new codes).
 
 ## Post-merge checks
 
@@ -113,10 +123,10 @@ None (documentation only). `cargo xtask docs-links` checks the links.
 
 ## Docs to update
 
-- [ ] `docs/decisions/README.md`, [architecture §3](../../plans/architecture.md#3-decisions-to-record-adrs), `CLAUDE.md`
-- [ ] [shareable-libraries §6 and §9](../../plans/shareable-libraries.md#9-to-dos)
-- [ ] [code organisation §5](../../guidelines/code-organization.md#5-error-handling-by-layer), [TypeScript: errors](../../guidelines/typescript.md#errors)
-- [ ] ADR 0005 §7, if 0028 amends it
+- [x] `docs/decisions/README.md`, [architecture §3](../../plans/architecture.md#3-decisions-to-record-adrs), `CLAUDE.md`
+- [x] [shareable-libraries §6 and §9](../../plans/shareable-libraries.md#9-to-dos)
+- [x] [code organisation §5](../../guidelines/code-organization.md#5-error-handling-by-layer), [TypeScript: errors](../../guidelines/typescript.md#errors)
+- [x] ADR 0005 §7, if 0028 amends it
 
 ## Risks and open questions
 
@@ -125,12 +135,12 @@ None (documentation only). `cargo xtask docs-links` checks the links.
 - **Lock placement:** an edge-crate `Mutex` serialises all calls on one document. That is fine for UniFFI's model, but it should be measured once B5c exists. Amending ADR 0005 §7 to a `Sync` core is the alternative.
 - **`Budget::millis`** in the report's sketch needs a clock that core crates may not use. Recommendation: units in core, time at the edges.
 - **Naming churn:** renaming `PdfError` to `LaminaError` touches [B6b](../ready/B6b-lamina-pdf-package.md)'s scope. If B6b merges first, L1b does the rename.
-- Owner review: these are hard-to-reverse public contracts. Ask the owner to accept each ADR explicitly in the PR.
+- Owner review: these are hard-to-reverse public contracts. The owner accepted each ADR explicitly on 2026-10-29 (see Outcome).
 
 ## Definition of done
 
-- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
-- [ ] Work PR opened from a fresh worktree; **PR** field filled in
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
-- [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [x] Work PR opened from a fresh worktree; **PR** field filled in
+- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings) — run by the reviewer after this PR was opened, not by the implementing agent
+- [ ] CI green — blocked: GitHub Actions refused to start jobs (account billing); `cargo xtask ci` passes locally
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
