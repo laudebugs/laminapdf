@@ -12,7 +12,7 @@
 | Branch | `feat/b3b-lamina-save` (the claim named `feat/b3b-lamina-save-writers`) |
 | PR title | `feat(core): lamina-save: WriteSink, incremental and full writers over the overlay (B3b)` |
 | Size | L (≈ 1,000–1,400 lines incl. moved code; moved tests count once) |
-| PR | — |
+| PR | [#35](https://github.com/laudebugs/lamina/pull/35) |
 
 ## Goal
 
