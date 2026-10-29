@@ -602,16 +602,12 @@ fn plaintext_dict(doc: &Document, dict: &Dict) -> Result<Dict> {
             params.insert(key, resolve(value)?);
         }
     }
-    let is_crypt = |o: &Object| matches!(o, Object::Name(n) if n.as_bytes() == b"Crypt");
-    let starts_with_crypt = match params.get("Filter") {
-        Some(Object::Array(filters)) => filters.first().is_some_and(is_crypt),
-        Some(filter) => is_crypt(filter),
-        None => false,
-    };
-    if !starts_with_crypt {
+    // One definition of "starts with /Crypt": lamina-cos's. Nothing stripped, nothing to change.
+    let before = params.clone();
+    lamina_cos::strip_crypt_filter(&mut params);
+    if params == before {
         return Ok(dict.clone());
     }
-    lamina_cos::strip_crypt_filter(&mut params);
     let mut out = dict.clone();
     out.remove("Filter");
     out.remove("DecodeParms");
