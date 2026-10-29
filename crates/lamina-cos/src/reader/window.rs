@@ -220,13 +220,20 @@ fn stream_from(source: &Source, offset: usize, limits: &Limits, head: StreamHead
     Ok(Ok(head.into_object(data, declared_end.is_none())))
 }
 
-/// `e` with the file offsets it carries moved by `base`: from a window to the input. Object
-/// numbers and offsets in a stream's data stay as they are.
+/// `e`, from a parse of a window that starts at input byte `base`, with its window-relative
+/// offsets made absolute: those of syntax errors and of the syntax limits (nesting, string
+/// length). Every other position (an object number, a read-window limit's or any other
+/// error's offset, which the reader computes in input terms) is left as it is.
 pub(crate) fn rebase(e: Error, base: usize) -> Error {
-    if base == 0 {
-        return e;
+    let shift = |p: Position| p.shifted(u64::try_from(base).unwrap_or(u64::MAX));
+    match e {
+        Error::Syntax(_)
+        | Error::LimitExceeded {
+            limit: Limit::NestingDepth | Limit::StringLength,
+            ..
+        } => e.map_position(shift),
+        other => other,
     }
-    e.map_position(|p| p.shifted(u64::try_from(base).unwrap_or(u64::MAX)))
 }
 
 /// Walks `windows` in order, each read with `overlap` bytes of the next, until `look` finds
@@ -446,6 +453,11 @@ mod tests {
             (len, windows, inner.reads()),
             (Some(150_000), vec![WINDOW, 2 * WINDOW, total], total.div_ceil(WINDOW))
         );
+    }
+
+    #[test]
+    fn rebase_keeps_the_absolute_offset_of_a_read_window_limit() {
+        assert_eq!(rebase(read_window_exceeded(500), 100), read_window_exceeded(500));
     }
 
     #[test]

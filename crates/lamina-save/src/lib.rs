@@ -60,6 +60,10 @@ mod legacy;
 mod options;
 mod sink;
 mod xref;
+// What `fixtures/codes.json` lists, for the kind tests (shared with the other crates' tests).
+#[cfg(test)]
+#[path = "../../lamina-cos/tests/common/codes.rs"]
+mod test_codes;
 
 pub use document::Save;
 pub use error::{Result, SaveError, SavedOutput};

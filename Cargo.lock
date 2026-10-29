@@ -272,6 +272,7 @@ dependencies = [
  "aes",
  "md-5",
  "miniz_oxide",
+ "serde_json",
  "sha2",
  "stringprep",
  "thiserror",

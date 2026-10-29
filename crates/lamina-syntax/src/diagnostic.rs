@@ -1,10 +1,9 @@
 //! The parts of the error and diagnostic contract ([ADR 0026]) that every layer shares: the
-//! nine [`ErrorKind`]s, the code → kind table ([`kind_of`]), and tagged positions
-//! ([`Position`], [`Location`]).
+//! nine [`ErrorKind`]s and tagged positions ([`Position`], [`Location`]).
 //!
-//! Codes form one namespace across crates, listed once in `fixtures/codes.json`; the table
-//! here is hand-written from it and checked against it by `crates/lamina-cos/tests/codes.rs`
-//! (L1b generates it).
+//! Codes form one namespace across crates, listed once in `fixtures/codes.json`. Each crate's
+//! `kind()` is an exhaustive match over its own variants, checked against that file by the
+//! crate's tests (L1b generates them).
 //!
 //! [ADR 0026]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0026-error-and-diagnostic-contract.md
 
@@ -13,9 +12,9 @@ use core::fmt;
 /// What kind of failure a code is: what the caller can do about it (ADR 0026 §2).
 ///
 /// A closed set: bindings and the CLI match on it exhaustively, so adding a kind amends
-/// ADR 0026.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
-#[non_exhaustive]
+/// ADR 0026 and is a breaking change. That is why, unlike the error enums, it is not
+/// `#[non_exhaustive]`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum ErrorKind {
     /// The input (PDF bytes, an op log, JSON) is malformed beyond what tolerance repairs.
     Input,
@@ -72,77 +71,6 @@ impl fmt::Display for ErrorKind {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str(self.as_str())
     }
-}
-
-/// Every error and warning code lamina emits with its kind, in `fixtures/codes.json` order:
-/// one table for every crate, because codes share one namespace (ADR 0026 §3).
-///
-/// Hand-written from `codes.json` and checked against it by `crates/lamina-cos/tests/codes.rs`
-/// (L1b generates it). A crate that adds a code adds its row here.
-pub const CODE_KINDS: &[(&str, ErrorKind)] = &[
-    // `warnings`
-    ("missing-header", ErrorKind::Input),
-    ("xref-repaired", ErrorKind::Input),
-    ("xrefstm-ignored", ErrorKind::Input),
-    ("stream-length-recovered", ErrorKind::Input),
-    ("stale-generation", ErrorKind::Input),
-    ("page-tree-node-skipped", ErrorKind::Input),
-    ("page-count-mismatch", ErrorKind::Input),
-    ("flate-truncated", ErrorKind::Input),
-    ("objstm-index-mismatch", ErrorKind::Input),
-    ("object-number-out-of-range", ErrorKind::Limit),
-    ("aes-padding-invalid", ErrorKind::Security),
-    ("perms-mismatch", ErrorKind::Security),
-    ("warnings-truncated", ErrorKind::Limit),
-    ("invalid-box", ErrorKind::Input),
-    ("invalid-rotate", ErrorKind::Input),
-    ("name-tree-node-skipped", ErrorKind::Input),
-    ("outline-cycle", ErrorKind::Input),
-    ("outline-item-skipped", ErrorKind::Input),
-    ("invalid-date", ErrorKind::Input),
-    ("invalid-page-label", ErrorKind::Input),
-    ("invalid-entry", ErrorKind::Input),
-    // `errors`
-    ("not-pdf", ErrorKind::Input),
-    ("missing-root", ErrorKind::Input),
-    ("reference-cycle", ErrorKind::Input),
-    ("limit-exceeded", ErrorKind::Limit),
-    ("strict", ErrorKind::Input),
-    ("data-pending", ErrorKind::State),
-    ("source", ErrorKind::Io),
-    ("type", ErrorKind::Input),
-    ("invalid-structure", ErrorKind::Input),
-    ("unset-object", ErrorKind::Internal),
-    ("repaired-base", ErrorKind::State),
-    ("encrypted-base", ErrorKind::Unsupported),
-    ("password-required", ErrorKind::Security),
-    ("wrong-password", ErrorKind::Security),
-    ("unsupported-security-handler", ErrorKind::Unsupported),
-    ("unexpected-eof", ErrorKind::Input),
-    ("syntax", ErrorKind::Input),
-    ("unsupported-filter", ErrorKind::Unsupported),
-    ("decompress", ErrorKind::Input),
-    // `opErrors`
-    ("nested-transaction", ErrorKind::State),
-    ("no-transaction", ErrorKind::State),
-    ("unknown-page", ErrorKind::Usage),
-    ("direct-page", ErrorKind::Unsupported),
-    ("unsupported-version", ErrorKind::Unsupported),
-    ("invalid-op-log", ErrorKind::Input),
-    ("saved-not-rebased", ErrorKind::State),
-    ("no-pending-save", ErrorKind::State),
-    // `saveErrors`
-    ("sink", ErrorKind::Io),
-    ("not-rebased", ErrorKind::State),
-];
-
-/// The kind of `code`, looked up in [`CODE_KINDS`]; `None` for a string that is not a code.
-///
-/// Each crate's `kind()` looks its `code()` up here; a code missing from the table is a test
-/// failure (`crates/lamina-cos/tests/codes.rs`), not a silent default.
-#[must_use]
-pub fn kind_of(code: &str) -> Option<ErrorKind> {
-    CODE_KINDS.iter().find(|(c, _)| *c == code).map(|&(_, kind)| kind)
 }
 
 /// Where an error was found, tagged so that a number has one meaning (ADR 0026 §1.1).
@@ -207,7 +135,7 @@ impl fmt::Display for Position {
 
 /// The `location` of a serialized diagnostic (ADR 0026 §1.1): each field names one kind of
 /// position, and all of them are lamina-made values, never document text.
-#[derive(Debug, Clone, Default, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Location {
     /// Byte offset in the input file.
     pub offset: Option<u64>,
@@ -245,6 +173,12 @@ impl Location {
             && self.stream_offset.is_none()
             && self.page_index.is_none()
             && self.id.is_none()
+    }
+}
+
+impl Default for Location {
+    fn default() -> Self {
+        Self::NONE
     }
 }
 
@@ -292,11 +226,6 @@ mod tests {
                 "internal"
             ]
         );
-    }
-
-    #[test]
-    fn kind_of_is_none_for_a_string_that_is_not_a_code() {
-        assert_eq!(kind_of("no-such-code"), None);
     }
 
     #[test]

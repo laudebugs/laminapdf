@@ -1,6 +1,6 @@
 //! The error type of the syntax layer.
 
-use crate::diagnostic::{ErrorKind, Location, Position, kind_of};
+use crate::diagnostic::{ErrorKind, Location, Position};
 use crate::limits::Limit;
 
 /// Everything that can go wrong while lexing, parsing or decoding PDF syntax.
@@ -90,13 +90,21 @@ impl Error {
         }
     }
 
-    /// The kind of this error ([ADR 0026] §2), looked up by [`Error::code`] in
-    /// [`kind_of`](crate::kind_of).
+    /// The kind of this error ([ADR 0026] §2), as `fixtures/codes.json` lists it for
+    /// [`Error::code`] (a test checks every variant).
     ///
     /// [ADR 0026]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0026-error-and-diagnostic-contract.md
     #[must_use]
-    pub fn kind(&self) -> ErrorKind {
-        kind_of(self.code()).unwrap_or(ErrorKind::Internal)
+    pub const fn kind(&self) -> ErrorKind {
+        match self {
+            Self::UnexpectedEof { .. }
+            | Self::Syntax { .. }
+            | Self::Type { .. }
+            | Self::Decompress(_)
+            | Self::InvalidStructure { .. } => ErrorKind::Input,
+            Self::LimitExceeded { .. } => ErrorKind::Limit,
+            Self::UnsupportedFilter(_) => ErrorKind::Unsupported,
+        }
     }
 
     /// Where the error was found (ADR 0026 §1.1); empty when there is no position.
@@ -141,3 +149,43 @@ impl Error {
 
 /// Shorthand for `Result<T, lamina_syntax::Error>`.
 pub type Result<T> = core::result::Result<T, Error>;
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::test_codes as codes;
+
+    /// One value of every variant: the match in [`Error::kind`] has no wildcard, so a new
+    /// variant is a compile error there, and this list is what the tests compare.
+    fn samples() -> Vec<Error> {
+        let at = Position::FileOffset(0);
+        vec![
+            Error::UnexpectedEof { at },
+            Error::Syntax { at, message: "m" },
+            Error::LimitExceeded {
+                limit: Limit::NestingDepth,
+                at: None,
+            },
+            Error::Type {
+                expected: "name",
+                context: "/Filter",
+            },
+            Error::UnsupportedFilter(String::new()),
+            Error::Decompress("m"),
+            Error::InvalidStructure {
+                kind: "k",
+                message: "m",
+            },
+        ]
+    }
+
+    #[test]
+    fn codes_lists_the_code_of_every_variant_in_order() {
+        assert_eq!(codes::distinct(samples().iter().map(Error::code)), Error::CODES);
+    }
+
+    #[test]
+    fn every_variant_has_the_kind_codes_json_lists() {
+        codes::assert_kinds_match(samples().iter().map(|e| (e.code(), e.kind().as_str())));
+    }
+}

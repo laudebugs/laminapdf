@@ -342,7 +342,7 @@
       "code": "invalid-op-log",
       "kind": "input",
       "summary": "an op log does not parse: an unknown op or field, a bad value, or not JSON",
-      "hint": "validate the op log against the op schema and fix the reported entry",
+      "hint": "validate the op log against the op schema; the samples in fixtures/ops show the format",
       "since": "0.1.0"
     },
     {
@@ -364,8 +364,8 @@
     {
       "code": "sink",
       "kind": "io",
-      "summary": "the sink failed to take the bytes, already held bytes, or could not give them back",
-      "hint": "check the destination and retry the save with an empty sink; the document is unchanged",
+      "summary": "the sink failed to take the bytes or could not give them back",
+      "hint": "check the destination and retry the save; the document is unchanged",
       "since": "0.1.0"
     },
     {
@@ -373,6 +373,13 @@
       "kind": "state",
       "summary": "the output was written, but rebasing the document onto it failed",
       "hint": "retry rebase with the saved output carried by the error",
+      "since": "0.1.0"
+    },
+    {
+      "code": "sink-not-empty",
+      "kind": "usage",
+      "summary": "the sink already held bytes before the save started",
+      "hint": "pass an empty sink: output offsets count from the sink's first byte",
       "since": "0.1.0"
     }
   ]

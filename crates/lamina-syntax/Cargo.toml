@@ -23,3 +23,7 @@ sha2 = { workspace = true }
 stringprep = { workspace = true }
 miniz_oxide = { workspace = true }
 thiserror = { workspace = true }
+
+[dev-dependencies]
+# Reads fixtures/codes.json in the kind test.
+serde_json = { workspace = true }

@@ -2,7 +2,7 @@
 
 use std::collections::BTreeSet;
 
-use lamina_syntax::{ErrorKind, Limits, Location, kind_of};
+use lamina_syntax::{ErrorKind, Limits, Location, Position};
 
 use crate::error::{Error, Result};
 
@@ -223,26 +223,48 @@ impl Warning {
         }
     }
 
-    /// The kind of this warning ([ADR 0026] §2), looked up by [`Warning::code`] in
-    /// [`kind_of`](lamina_syntax::kind_of).
+    /// The kind of this warning ([ADR 0026] §2), as `fixtures/codes.json` lists it for
+    /// [`Warning::code`] (a test checks every variant).
     ///
     /// [ADR 0026]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0026-error-and-diagnostic-contract.md
     #[must_use]
-    pub fn kind(&self) -> ErrorKind {
-        kind_of(self.code()).unwrap_or(ErrorKind::Internal)
+    pub const fn kind(&self) -> ErrorKind {
+        match self {
+            Self::MissingHeader
+            | Self::XrefRepaired
+            | Self::XrefStmIgnored { .. }
+            | Self::StreamLengthRecovered { .. }
+            | Self::StaleGeneration { .. }
+            | Self::PageTreeNodeSkipped { .. }
+            | Self::PageCountMismatch { .. }
+            | Self::FlateTruncated { .. }
+            | Self::ObjStmIndexMismatch { .. }
+            | Self::InvalidBox { .. }
+            | Self::InvalidRotate { .. }
+            | Self::NameTreeNodeSkipped { .. }
+            | Self::OutlineCycle { .. }
+            | Self::OutlineItemSkipped { .. }
+            | Self::InvalidDate { .. }
+            | Self::InvalidPageLabel { .. }
+            | Self::InvalidEntry { .. } => ErrorKind::Input,
+            Self::ObjectNumberOutOfRange { .. } | Self::WarningsTruncated => ErrorKind::Limit,
+            Self::AesPaddingInvalid { .. } | Self::PermsMismatch => ErrorKind::Security,
+        }
     }
 
     /// Where the problem is (ADR 0026 §1.1): the object, a file offset, or a page index.
     #[must_use]
     pub fn location(&self) -> Location {
-        let mut location = Location::object(self.object());
-        match *self {
-            Self::XrefStmIgnored { offset } => location.offset = Some(offset),
-            Self::InvalidBox { page, .. } | Self::InvalidRotate { page, .. } => location.page_index = Some(page),
-            Self::InvalidPageLabel { start } => location.page_index = u64::try_from(start).ok(),
-            _ => {}
+        let page_index = match *self {
+            Self::XrefStmIgnored { offset } => return Location::from(Position::FileOffset(offset)),
+            Self::InvalidBox { page, .. } | Self::InvalidRotate { page, .. } => Some(page),
+            Self::InvalidPageLabel { start } => u64::try_from(start).ok(),
+            _ => None,
+        };
+        Location {
+            page_index,
+            ..Location::object(self.object())
         }
-        location
     }
 
     /// Deduplication key: (code, object, a position — byte offset, page index or label
@@ -379,13 +401,8 @@ mod tests {
     }
 
     #[test]
-    fn every_variant_has_a_kind_in_the_codes_table() {
-        let missing: Vec<_> = samples()
-            .iter()
-            .map(Warning::code)
-            .filter(|c| kind_of(c).is_none())
-            .collect();
-        assert!(missing.is_empty(), "{missing:?}");
+    fn every_variant_has_the_kind_codes_json_lists() {
+        crate::test_codes::assert_kinds_match(samples().iter().map(|w| (w.code(), w.kind().as_str())));
     }
 
     #[test]

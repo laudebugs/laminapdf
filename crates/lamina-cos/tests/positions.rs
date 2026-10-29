@@ -13,26 +13,9 @@ mod common;
 
 use std::sync::Arc;
 
+use common::NoSlice;
 use common::classic::{classic, stream_body};
-use lamina_cos::{
-    ByteSource, Document, Error, ErrorKind, Limit, Limits, Location, ObjRef, OpenOptions, Position, SourceError,
-};
-
-/// A source that is not in memory (no `as_slice`), so the reader parses it in windows.
-struct NoSlice(Vec<u8>);
-
-impl ByteSource for NoSlice {
-    fn len(&self) -> u64 {
-        u64::try_from(self.0.len()).unwrap()
-    }
-
-    fn read_at(&self, offset: u64, buf: &mut [u8]) -> Result<usize, SourceError> {
-        let tail = self.0.get(usize::try_from(offset).unwrap()..).unwrap_or_default();
-        let n = tail.len().min(buf.len());
-        buf[..n].copy_from_slice(&tail[..n]);
-        Ok(n)
-    }
-}
+use lamina_cos::{ByteSource, Document, Error, ErrorKind, Limit, Limits, Location, ObjRef, OpenOptions, Position};
 
 fn limits() -> OpenOptions {
     OpenOptions::default().with_limits(Limits::default().with_max_nesting_depth(2))

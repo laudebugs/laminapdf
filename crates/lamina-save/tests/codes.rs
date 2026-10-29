@@ -27,15 +27,6 @@ fn refusals_keep_the_cos_codes() {
 }
 
 #[test]
-fn save_error_codes_all_have_a_kind() {
-    let missing: Vec<_> = SaveError::CODES
-        .iter()
-        .filter(|c| lamina_cos::kind_of(c).is_none())
-        .collect();
-    assert!(missing.is_empty(), "{missing:?}");
-}
-
-#[test]
 fn sink_errors_do_not_print_the_host_text() {
     // ADR 0026 §4: a sink's message can name a caller path; it stays in the field.
     let marker = "/Users/someone/IgnorePreviousInstructions.pdf";
@@ -51,7 +42,7 @@ fn sink_errors_do_not_print_the_host_text() {
 }
 
 #[test]
-fn a_sink_failure_is_an_io_error() {
+fn a_sink_that_holds_bytes_already_is_a_usage_error_with_its_own_code() {
     let e = SaveError::from(lamina_save::SinkError::NotEmpty { held: 1 });
-    assert_eq!(e.kind(), lamina_cos::ErrorKind::Io);
+    assert_eq!((e.code(), e.kind()), ("sink-not-empty", lamina_cos::ErrorKind::Usage));
 }

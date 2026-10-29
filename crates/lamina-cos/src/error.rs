@@ -1,6 +1,6 @@
 //! The error type of the file-structure layer.
 
-use lamina_syntax::{ErrorKind, Limit, Location, Position, kind_of};
+use lamina_syntax::{ErrorKind, Limit, Location, Position};
 
 use crate::reader::Warning;
 use crate::source::SourceError;
@@ -188,13 +188,28 @@ impl Error {
         }
     }
 
-    /// The kind of this error ([ADR 0026] §2), looked up by [`Error::code`] in
-    /// [`kind_of`](lamina_syntax::kind_of).
+    /// The kind of this error ([ADR 0026] §2), as `fixtures/codes.json` lists it for
+    /// [`Error::code`] (a test checks every variant). Syntax-layer errors report
+    /// [`lamina_syntax::Error::kind`].
     ///
     /// [ADR 0026]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0026-error-and-diagnostic-contract.md
     #[must_use]
-    pub fn kind(&self) -> ErrorKind {
-        kind_of(self.code()).unwrap_or(ErrorKind::Internal)
+    pub const fn kind(&self) -> ErrorKind {
+        match self {
+            Self::Syntax(e) => e.kind(),
+            Self::Strict { .. }
+            | Self::NotPdf(_)
+            | Self::MissingRoot
+            | Self::ReferenceCycle(_)
+            | Self::Type { .. }
+            | Self::InvalidStructure { .. } => ErrorKind::Input,
+            Self::LimitExceeded { .. } => ErrorKind::Limit,
+            Self::DataPending { .. } | Self::RepairedBase => ErrorKind::State,
+            Self::Source(_) => ErrorKind::Io,
+            Self::UnsetObject(_) => ErrorKind::Internal,
+            Self::EncryptedBase | Self::UnsupportedSecurityHandler { .. } => ErrorKind::Unsupported,
+            Self::PasswordRequired | Self::WrongPassword => ErrorKind::Security,
+        }
     }
 
     /// Where the error was found (ADR 0026 §1.1); empty when there is no position.
@@ -204,10 +219,7 @@ impl Error {
             Self::Syntax(e) => e.location(),
             Self::LimitExceeded { at, .. } => Location::from(*at),
             Self::Strict { warning } => warning.location(),
-            Self::Source(SourceError::Failed { offset, .. }) => Location {
-                offset: Some(*offset),
-                ..Location::NONE
-            },
+            Self::Source(SourceError::Failed { offset, .. }) => Location::from(Position::FileOffset(*offset)),
             Self::ReferenceCycle(object) | Self::UnsetObject(object) => Location::object(Some(*object)),
             _ => Location::NONE,
         }
@@ -235,3 +247,75 @@ impl Error {
 
 /// Shorthand for `Result<T, lamina_cos::Error>`.
 pub type Result<T> = core::result::Result<T, Error>;
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::test_codes as codes;
+
+    /// One value of every variant (each syntax-layer one wrapped): the match in
+    /// [`Error::kind`] has no wildcard, so a new variant is a compile error there, and this
+    /// list is what the tests compare.
+    fn samples() -> Vec<Error> {
+        let at = Position::FileOffset(0);
+        let syntax = [
+            lamina_syntax::Error::UnexpectedEof { at },
+            lamina_syntax::Error::Syntax { at, message: "m" },
+            lamina_syntax::Error::Type {
+                expected: "name",
+                context: "/Filter",
+            },
+            lamina_syntax::Error::UnsupportedFilter(String::new()),
+            lamina_syntax::Error::Decompress("m"),
+            lamina_syntax::Error::InvalidStructure {
+                kind: "k",
+                message: "m",
+            },
+            lamina_syntax::Error::UnexpectedEof { at },
+        ];
+        let mut all = vec![
+            Error::NotPdf("m"),
+            Error::MissingRoot,
+            Error::ReferenceCycle(1),
+            Error::LimitExceeded {
+                limit: Limit::ResolveDepth,
+                at: None,
+            },
+            Error::Strict {
+                warning: Warning::XrefRepaired,
+            },
+            Error::DataPending { ranges: Vec::new() },
+            Error::Source(SourceError::Failed { offset: 0, len: 1 }),
+            Error::Type {
+                expected: "dictionary",
+                context: "/Kids",
+            },
+            Error::InvalidStructure {
+                kind: "k",
+                message: "m",
+            },
+            Error::UnsetObject(1),
+            Error::RepairedBase,
+            Error::EncryptedBase,
+            Error::PasswordRequired,
+            Error::WrongPassword,
+            Error::UnsupportedSecurityHandler {
+                filter: String::new(),
+                version: None,
+                revision: None,
+            },
+        ];
+        all.extend(syntax.into_iter().map(Error::Syntax));
+        all
+    }
+
+    #[test]
+    fn codes_lists_the_code_of_every_variant_in_order() {
+        assert_eq!(codes::distinct(samples().iter().map(Error::code)), Error::CODES);
+    }
+
+    #[test]
+    fn every_variant_has_the_kind_codes_json_lists() {
+        codes::assert_kinds_match(samples().iter().map(|e| (e.code(), e.kind().as_str())));
+    }
+}

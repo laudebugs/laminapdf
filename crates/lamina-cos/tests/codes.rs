@@ -4,8 +4,9 @@
 //! `docs/errors/<code>.md` page (a TS test will check the same file from B6).
 //!
 //! [`every_listed_code_is_complete`] checks every group of the file, including groups other
-//! crates add (`opErrors`, `saveErrors`, …): a new code without a kind, summary, hint or page,
-//! or missing from [`lamina_syntax::kind_of`], fails here with a message naming it.
+//! crates add (`opErrors`, `saveErrors`, …): a new code without a kind, summary, hint or page
+//! fails here with a message naming it. Each crate's unit tests check its `kind()` against the
+//! file, variant by variant (`tests/common/codes.rs`).
 
 #![allow(
     clippy::unwrap_used,
@@ -18,11 +19,9 @@ mod common;
 
 use std::collections::BTreeSet;
 
-use lamina_cos::{CODE_KINDS, Error, ErrorKind, Limit, Warning, kind_of};
+use common::codes::{NOT_CODE_GROUPS, codes_json};
+use lamina_cos::{Error, ErrorKind, Limit, Warning};
 use serde_json::Value;
-
-/// Top-level keys of `codes.json` that are not groups of codes.
-const NOT_CODE_GROUPS: [&str; 3] = ["version", "docsUrl", "limits"];
 
 /// The only `{parameter}`s a hint may use (ADR 0026 §5): lamina's own vocabulary.
 const HINT_PARAMETERS: [&str; 2] = ["{limit}", "{option}"];
@@ -35,10 +34,6 @@ const PAGE_HEADINGS: [&str; 5] = [
     "## Example",
     "## Data fields",
 ];
-
-fn codes_json() -> Value {
-    serde_json::from_slice(&common::fixture("codes.json")).unwrap()
-}
 
 /// The codes listed in group `key`, in order.
 fn listed(key: &str) -> Vec<String> {
@@ -96,13 +91,6 @@ fn problems(group: &str, entry: &Value) -> Vec<String> {
     {
         out.push(format!(
             "{group}/{code}: kind {kind:?} is not one of ADR 0026 §2's nine"
-        ));
-    }
-    let retired = entry.get("retired").is_some();
-    let table = kind_of(code).map(ErrorKind::as_str);
-    if !retired && table != kind {
-        out.push(format!(
-            "{group}/{code}: lamina_syntax::kind_of says {table:?}, codes.json says {kind:?} (add it to the table in crates/lamina-syntax/src/diagnostic.rs)"
         ));
     }
     if let Some(hint) = field("hint") {
@@ -196,24 +184,6 @@ fn every_page_is_for_a_listed_code() {
 }
 
 #[test]
-fn every_row_of_the_kind_table_is_a_listed_code() {
-    let listed: BTreeSet<String> = entries(&codes_json())
-        .iter()
-        .filter_map(|(_, e)| e["code"].as_str().map(str::to_owned))
-        .collect();
-    let mut seen = BTreeSet::new();
-    let stale: Vec<&str> = CODE_KINDS
-        .iter()
-        .map(|&(code, _)| code)
-        .filter(|code| !listed.contains(*code) || !seen.insert(*code))
-        .collect();
-    assert!(
-        stale.is_empty(),
-        "CODE_KINDS rows not in codes.json, or repeated: {stale:?}"
-    );
-}
-
-#[test]
 fn warning_codes_match_the_fixture() {
     assert_eq!(listed("warnings"), Warning::CODES);
 }
@@ -226,16 +196,6 @@ fn error_codes_match_the_fixture() {
 #[test]
 fn syntax_error_codes_are_all_error_codes() {
     assert!(lamina_syntax::Error::CODES.iter().all(|c| Error::CODES.contains(c)));
-}
-
-#[test]
-fn every_warning_and_error_code_has_a_kind() {
-    let missing: Vec<_> = Warning::CODES
-        .iter()
-        .chain(Error::CODES)
-        .filter(|c| kind_of(c).is_none())
-        .collect();
-    assert!(missing.is_empty(), "{missing:?}");
 }
 
 #[test]
