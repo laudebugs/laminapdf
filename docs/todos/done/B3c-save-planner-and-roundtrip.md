@@ -12,7 +12,7 @@
 | Branch | `feat/b3c-save-planner` |
 | PR title | `feat(save): SavePlanner and SaveConstraint with signature detection; round-trip suite` |
 | Size | L (≈ 900–1,300 lines incl. the round-trip harness and signed fixtures) |
-| PR | [#PRNUM](https://github.com/laudebugs/lamina/pull/PRNUM) |
+| PR | [#50](https://github.com/laudebugs/lamina/pull/50) |
 
 ## Goal
 
