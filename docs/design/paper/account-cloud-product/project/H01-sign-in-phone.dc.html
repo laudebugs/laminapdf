@@ -18,10 +18,10 @@ button,input,textarea{font:inherit;color:inherit}
 <div style="width: 390px; height: 844px; position: relative; overflow: hidden; background: #ECE7DE; font-family: 'Source Sans 3', system-ui, sans-serif; font-size: 14px; line-height: 1.4; color: #1F1D1A">
 
   <header style="position: absolute; left: 0; right: 0; top: 0; height: 56px; display: flex; align-items: center; gap: 4px; padding: 0 6px; background: #F7F4EE; border-bottom: 1px solid #E4DED3; box-sizing: border-box">
-    <button aria-label="Back to files" style="width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 6px; color: #1F1D1A"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M15 5l-7 7 7 7"></path></svg></button>
+    <span style="width: 44px; flex: 0 0 auto"></span>
     <div style="flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; align-items: center; line-height: 1.2">
       <span style="font-family: 'Newsreader', Georgia, serif; font-size: 17px; font-weight: 500">Files</span>
-      <span style="font-size: 12px; color: #6B645A">On this device</span>
+      <span style="font-size: 12px; color: #6B645A">On this phone</span>
     </div>
     <button aria-label="More options" style="width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 6px; color: #1F1D1A"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="5.5" cy="12" r="0.9"></circle><circle cx="12" cy="12" r="0.9"></circle><circle cx="18.5" cy="12" r="0.9"></circle></svg></button>
   </header>
@@ -34,7 +34,10 @@ button,input,textarea{font:inherit;color:inherit}
   <div style="position: absolute; inset: 0; background: rgba(31,29,26,0.30)"></div>
 
   <section role="dialog" aria-modal="true" aria-labelledby="sp-t" style="position: absolute; left: 0; right: 0; top: 56px; bottom: 0; background: #FBF9F5; border-top: 1px solid #E4DED3; border-radius: 12px 12px 0 0; box-shadow: 0 -8px 28px rgba(60,48,30,0.12); display: flex; flex-direction: column; overflow: hidden">
-    <div style="display: flex; align-items: center; justify-content: space-between; padding: 12px 8px 0 20px">
+    <div style="display: flex; justify-content: center">
+      <button aria-label="Resize sheet" style="width: 64px; height: 44px; display: flex; align-items: flex-start; justify-content: center; padding-top: 8px; box-sizing: border-box; border: 0; background: transparent"><span style="width: 36px; height: 5px; border-radius: 3px; background: #8A8174"></span></button>
+    </div>
+    <div style="display: flex; align-items: center; justify-content: space-between; margin-top: -18px; padding: 0 8px 0 20px">
       <h2 id="sp-t" style="margin: 0; font-family: 'Newsreader', Georgia, serif; font-size: 20px; font-weight: 500">Sign in to lamina</h2>
       <button aria-label="Close sign in" style="width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 6px; color: #4A453E"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg></button>
     </div>

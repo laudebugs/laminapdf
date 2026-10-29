@@ -11,8 +11,9 @@ Rules every screen here follows:
 
 - **Local use never needs an account.** Sign-in is offered, never required; nothing in the reader, editor or save path checks an account ([roadmap: hosted service](../../plans/roadmap.md#decisions-made), H2 acceptance criteria).
 - **Nothing leaves the device without a visible, per-action choice.** Every request our server receives is counted by the network indicator, which names the destination ("to lamina’s storage only").
-- **Priced, never hostile** ([principle 10](../../plans/ui-ux.md#4-principles)): the plan and price show before work starts; no watermarks; no changed deals. Pricing is not decided, so every price is `[PLAN NAME]`, `[PRICE]`, `[BILLING TERMS]`, `[QUOTA]`; the owner fills them in [U5a](../../todos/ready/U5a-pricing-and-promises-page.md).
+- **Priced, never hostile** ([principle 10](../../plans/ui-ux.md#4-principles)): the plan and price show before work starts; no surprise watermarks; no changed deals. Pricing is not decided, so every price is `[PLAN NAME]`, `[PRICE]`, `[BILLING TERMS]`, `[QUOTA]`; the owner fills them in [U5a](../../todos/ready/U5a-pricing-and-promises-page.md).
 - **Copy that makes a commitment is a draft.** Promise text on H02 and H08 is marked `[PROMISE TEXT — OWNER TO APPROVE]`; the owner words and approves each promise in [U5a](../../todos/ready/U5a-pricing-and-promises-page.md) (and its intro sentence). The tier mapping (which tasks are in which plan, whether there is a free tier) is also the owner’s: drawn as `[PLAN NAME or FREE]`.
+- Other sentences that make a commitment and wait for U5a are marked the same way: H11 "Everything you can do today keeps working whether you upgrade or not.", H03 consent "It is never used for anything else."; the H02 Licence page’s "nothing is sent" line is prefixed "If keys are checked offline:" because the licence model is undecided.
 - Command ids use the shared namespaces (`file.*`, `account.*`, `licence.*`, `settings.*`, `comment.*`, `edit.*`); the cloud, sync and sharing commands live under `file.*` because they act on the open or listed file.
 - Other undecided values are bracketed too: `[REGION]` (data residency), `[N]` (days to delete an account), `[RETENTION]` (usage counts), `[LAMINA DOMAIN]`, `[VERSION]`, `[SPEC]`, and every benchmark number (`[n ms]`, `[n MB]`).
 
@@ -136,7 +137,7 @@ Artboards live on the canvas; web screens are 1440-wide PAGE boards, phone board
 
 **Content and controls.**
 
-- Conflict dialog: title "Q3-board-report.pdf changed on another device"; one sentence that both versions were kept; two side-by-side blocks, "Your version · this browser" (new name `Q3-board-report (conflict, this browser, 29 Oct 2026).pdf`, saved time, a summary of changes, "Open now" badge) and "MacBook Air’s version" (keeps the original name, saved time, changes); a hint on how to end up with one file. Actions: "Compare the two" (`file.compare`, from the compare round), "Open MacBook Air’s version" (`file.open-other-version`), "Keep working on my copy" (primary, closes).
+- Conflict dialog: title "Q3-board-report.pdf changed on another device"; one sentence that both versions were kept; two side-by-side blocks, "Your version · this browser" (new name `Q3-board-report (conflict, this browser, 29 Oct 2026).pdf`, saved time, a summary of changes, "Open now" badge) and "MacBook Air’s version" (keeps the original name, saved time, changes); a hint on how to end up with one file. Actions: "Compare the two" (`compare.open` with both files preselected, from the compare area), "Open MacBook Air’s version" (`file.open-other-version`), "Keep working on my copy" (primary, closes).
 - Offline notice: cloud-off icon, "**You’re offline.** Saves stay on this device and upload when you’re back online. Reading, commenting and saving all keep working."
 - Status bar: network indicator "0 network requests · offline"; sync item "2 saves waiting to upload".
 - Queue popover: "Waiting to upload", one row per queued save (time, change summary), the rule that a later conflict keeps both, "Download a copy" (secondary) and "Upload now" (disabled while offline, reason under it).
@@ -161,7 +162,7 @@ Artboards live on the canvas; web screens are 1440-wide PAGE boards, phone board
 
 **Purpose.** Invite people to review a cloud document, or turn on a review link, with a role each, and take access away.
 
-**Entry points.** "Share" button in the top bar (shown when signed in), More › "Share for review…" (`file.share-for-review`), H03 row More › "Share…". No shortcut.
+**Entry points.** "Share" button in the top bar (shown on every board of a signed-in user’s cloud document: H04, H05, H06, H07), More › "Share for review…" (`file.share-for-review`), H03 row More › "Share…". No shortcut.
 
 **Layout.** Dialog (560 px) over the reader in Comment mode (full Comment toolbar, Undo/Redo, full top bar). People’s avatars use the presence colours, so a reviewer has the same colour here and in H06.
 
@@ -229,7 +230,7 @@ Artboards live on the canvas; web screens are 1440-wide PAGE boards, phone board
 
 **Purpose.** Tell people about replies, shares and removed access, in the app and, if they opt in, by email.
 
-**Entry points.** The bell icon button in the top bar, shown when signed in ("Notifications, 2 unread"; `account.open-notifications`); Settings › Notifications. No shortcut.
+**Entry points.** The bell icon button in the top bar, shown on every signed-in board (Files home, cloud documents, and any open document while signed in: H03, H04, H05, H06, H07; "Notifications, 2 unread"; `account.open-notifications`); Settings › Notifications. No shortcut.
 
 **Layout.** In-app: a popover (menu shadow, `surface`, 400 px) under the bell. Email: a plain one-column message, 560 px content width; its artboard is a fixed 720 × 900 preview on purpose (an email is not an app page).
 
@@ -238,7 +239,7 @@ Artboards live on the canvas; web screens are 1440-wide PAGE boards, phone board
 - Popover: title "Notifications", "Mark all as read" (`account.mark-notifications-read`); "Today" / "Earlier" overlines; rows for replies, shares and removed access (E18f; @mentions are not in its scope and are a proposed follow-up), as links (avatar in the reviewer’s presence colour, "**J. Mensah** replied on Q3-board-report.pdf", the comment text, "Page 3 · 10:34", and a "New" marker with a dot for unread). Selecting a row opens the document at the thread and marks it read. Footer: "Email notifications are off" + "Notification settings".
 - Email: subject "J. Mensah replied on Q3-board-report.pdf"; heading, context sentence, the reply text, "Open the comment" button-link, the reason it was sent ("because you turned on comment emails for this document"), a line that the email has the reply text and the document’s name but never the document or its pages, and "Turn off emails for this document" · "Notification settings".
 
-**States.** Unread (drawn: both unread rows on `accent-tint` with "New"; the bell count pill is 16 px high with 11 px text); all read (no "New" markers, bell count hidden); empty ("No notifications" / "Replies, mentions and shares appear here."); emails off (default) or on per user and per document. Access-removed rows are not links.
+**States.** The two boards agree: comment emails are set per document, so the popover footer reads "Comment emails: on for 1 document" and the email is for that document. Unread (drawn: both unread rows on `accent-tint` with "New"; the bell count pill is 16 px high with 11 px text); all read (no "New" markers, bell count hidden); empty ("No notifications" / "Replies and shares appear here."); emails off (default) or on per user and per document. Access-removed rows are not links.
 
 **Behaviour.** Opt-in emails per user (E18f); the bell count updates live while a shared document is open, otherwise on focus. Notifications never include document pages.
 
@@ -370,7 +371,9 @@ Assigned in order of joining, stable per person per document; the same colour is
 
 **`mono`** is used for the licence key field and the usage-count payload (12.5/1.6).
 
-**Status bar:** the sync item is a left-group item beside the network indicator, not a middle-slot note, so it never competes with the signed/repaired/history notes (decision 13).
+**Status bar:** the sync item is a left-group item beside the network indicator, not a middle-slot note, so it never competes with the signed/repaired/history notes (decision 13). Network wording follows decision 22: with a document open, "N network requests for this document" plus the destination ("· to lamina’s storage only"; in shared review "· live connection to lamina’s review server", one count only). Pages with no document (Files home, Settings, Cloud list) keep "N network requests" plus the destination.
+
+**Reader top bar in Read mode** (decision 20): every Read-mode board here (H01, H03 consent, H07, H11 ×2) has find · View settings · Reader (toggle) · Commands · ⋯, and keeps the mode switcher because these are editor-area boards (decision 9).
 
 | Component | Spec | Used in |
 | --- | --- | --- |
@@ -405,4 +408,4 @@ New icons (same grid and stroke as §5; add them to the design language table wh
 | Laptop | `<rect x="5" y="5.5" width="14" height="10" rx="1"></rect><path d="M3 18.5h18"></path>` |
 | Phone | `<rect x="7.5" y="3.5" width="9" height="17" rx="1.5"></rect><path d="M11 17.5h2"></path>` |
 
-Upload uses the existing Share glyph. Undo/Redo and the Edit toolbar icons are copied from O01 and A01. The "Tools ▾" button in the Edit toolbar is drawn here with a sliders glyph (`<path d="M4 7h16M4 12h16M4 17h16"></path><circle cx="9" cy="7" r="1.8"></circle><circle cx="15" cy="12" r="1.8"></circle><circle cx="8" cy="17" r="1.8"></circle>`) until the Add and edit content area defines one.
+Upload uses the existing Share glyph. Undo/Redo and the Edit toolbar icons are copied from O01 and A01.
