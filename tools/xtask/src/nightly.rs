@@ -422,8 +422,13 @@ mod tests {
 
     #[test]
     fn read_history_should_fail_when_the_file_cannot_be_read() {
-        // A directory where the file should be: not "missing", so not an empty history.
-        assert!(read_history(&std::env::temp_dir()).is_err());
+        // Bytes that aren't UTF-8: a read error other than "missing" (the same on every OS),
+        // so not an empty history.
+        let path = std::env::temp_dir().join(format!("xtask-bad-history-{}.jsonl", std::process::id()));
+        fs::write(&path, [0xff, 0xfe, b'\n']).unwrap();
+        let result = read_history(&path);
+        fs::remove_file(&path).unwrap();
+        assert!(result.is_err());
     }
 
     #[test]
