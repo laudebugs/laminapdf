@@ -89,13 +89,21 @@ The design system is built once, in `@lamina/tokens` and `@lamina/ui`, before th
 1. Owner sign-off on the proposed values in the design language (dark theme, warning, dialog and form-control styles) — in U6a.
 2. A logo and wordmark: the boards use a simple placeholder mark. Who designs the brand mark, and when?
 3. Tablet layouts are drawn only for reading and stylus ink; do other modes need tablet-specific designs before E-rounds start?
+4. Restricted printing: does the reader ask for confirmation (C6c) or only show the restriction (C4c)? (reader-a R09)
+5. Should the tablet reader in v0.1 use the reader top bar (R17)? (reader-b)
+6. "History" names both edit history (rail tab) and the revision browser (X03); rename one?
+7. Edit's Shape ▾ is a split button while Comment's Shapes ▾ is a menu; should they match?
+8. Where are app-level requests (update checks) counted, given the network indicator counts per document? (S06)
+9. Web `Ctrl F6` region keys wait on a browser collision test.
+10. ADR 0021 (JavaScript policy) is pending; the screens use one sentence: "This file contains JavaScript. lamina never runs it."
+11. Possible duplicate command ids to settle when U1b builds the registry (listed in the design language's appendix).
 
 ## 9. To-dos
 
 - [x] Choose a direction (Paper, 2026-10-29)
 - [x] Design language, screen inventory and area documents; every screen drawn (193 artboards in 12 canvases)
 - [x] Every UI todo links its Paper screens
-- [ ] Design reviews: two rounds per area (done so far: the five directions, Reader A twice, Forms and Account once); deferred by the owner on 2026-10-29
+- [x] Design review: one round per area across all 11 areas, with fixes, and a cross-area consistency pass (2026-10-29); a second round and a visual pass on the canvases are optional follow-ups
 - [ ] Republish the canvases from the committed files (the account's daily publish limit stopped the last publishes)
 - [ ] U6a tokens, U6b fonts, U6c icons, U6d core components, U6e overlays, U6f gallery and visual tests
 - [ ] Owner sign-off on proposed values (U6a)

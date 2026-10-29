@@ -346,26 +346,4 @@ Merged into the [design language](design-language.md#decisions-on-area-proposals
 
 ## Proposed design-language additions
 
-Earlier proposals were merged into the [design language](design-language.md#decisions-on-area-proposals) on 2026-10-29. New since the merge:
-
-- **Server consent block wording** (§7.18): replace “four fixed rows … a checkbox whose label repeats the file name” with “four rows worded for the job (see [Consent wording per job](#consent-wording-per-job)); a checkbox whose label names what is sent (file, pages, address or file count)”. Add: the retention promise is set before upload; panels after upload repeat it and offer only “Delete from server now”, never a longer stay.
-- **Command ids** for the appendix (`namespace.verb-object`, §8.8):
-
-  | Id | Title | Area and screen | Shortcut |
-  | --- | --- | --- | --- |
-  | `batch.open-recipe` | Open recipe… | Convert and produce X05 | — |
-  | `batch.run` | Run batch | Convert and produce X05 | — |
-  | `batch.save-recipe` | Save recipe | Convert and produce X05 | — |
-  | `batch.stop` | Stop after current files | Convert and produce X05 | — |
-  | `jobs.cancel` | Cancel and delete server job | Convert and produce X02 | — |
-  | `jobs.delete-from-server` | Delete from server now | Convert and produce X02 | — |
-  | `jobs.download-result` | Download result | Convert and produce X02 | — |
-  | `jobs.open` | Server jobs | Convert and produce X02 | — |
-  | `print.convert-colours` | Convert colours… | Convert and produce X10 | — |
-  | `print.set-output-intent` | Set output intent… | Convert and produce X10 | — |
-  | `revisions.back-to-current` | Back to current | Convert and produce X03 | Escape (revision open) |
-  | `revisions.save-revision-as` | Save this revision as… | Convert and produce X03 | — |
-
-  The optimise presets (Smallest, Balanced, Print quality) are an argument of `file.save-optimised`, not ids.
-- **Mockup-only colours** (§2.5) used on these boards' document content: scanned paper `#F5F2EC` and `#F3F0EA`, scan ink and smudges `#B8B2A8` and `#A9A296` (X01); photo blocks `#4E5A63` (X10, X12; flat, no gradients); the fictional spot ink “Northwind Teal” `#1F7A80` (X10 separations and the annual review's buttons in X11). Page links on mock pages use page ink with an underline.
-- **Focus ring on dark media** (§7.0, §7.40): on a dark poster the ring is 2 px white with offset 2 (X12 media), because `focus` teal has too little contrast there.
+Merged into the [design language](design-language.md#decisions-on-area-proposals) on 2026-10-29; see its decisions table.

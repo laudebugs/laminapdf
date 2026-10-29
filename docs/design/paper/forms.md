@@ -1,6 +1,6 @@
 # Paper: Forms
 
-Screens P01–P07 of the [screen inventory](screens.md): filling interactive forms in Fill & Sign mode, validation and calculated fields, form data (import, export, reset, flatten), filling on a phone, form design, the tab-order and accessible-label editor, and the review of automatically detected fields. Everything follows the [Paper design language](design-language.md); what this area adds is listed under [Proposed design-language additions](#proposed-design-language-additions).
+Screens P01–P07 of the [screen inventory](screens.md): filling interactive forms in Fill & Sign mode, validation and calculated fields, form data (import, export, reset, flatten), filling on a phone, form design, the tab-order and accessible-label editor, and the review of automatically detected fields. Everything follows the [Paper design language](design-language.md); what this area added is merged into it (see its [decisions on area proposals](design-language.md#decisions-on-area-proposals)).
 
 - **Canvas:** [lamina Paper — Forms](https://claude.ai/artifact/Jat39ahU8QNgrb7TLi3mZR) (private until the owner shares it). The files on disk are newer than the published canvas until it is republished.
 - **Plan:** [full-editor §E8](../../plans/full-editor.md#e8-form-filling-and-data) and [§E9](../../plans/full-editor.md#e9-form-authoring); layout rules from the [UI/UX plan](../../plans/ui-ux.md) §4–§5; saving signed files per [ADR 0007](../../decisions/0007-save-planner.md).
@@ -47,7 +47,7 @@ The drawn state: page 1 with six fields filled, the **Type of repair** dropdown 
 
 - **Empty form:** every field tinted; the note reads “0 of 9 required fields filled”.
 - **All required filled:** “9 of 9 required fields filled”; nothing else changes.
-- **Certified “no changes” file (DocMDP P1)** (tweak `certifiedNoChanges`): nothing may change, so the banner shows on entering the mode (the P1 exception): “**Certified: no changes allowed.** Any answer you enter will invalidate the signature by Northwind Housing Trust. lamina asks before the first change.” with **Save a copy**. The first value typed or chosen opens the conflict alertdialog (“Change this certified file?” naming Northwind Housing Trust and “the certification will no longer be valid”, Apply anyway / Cancel, Cancel focused). Cancel reverts the field; Apply anyway (`invalidate_signatures`) keeps it, and the banner then names the signature until save or undo. The same applies to a P2/P3 file for anything other than filling.
+- **Certified “no changes” file (DocMDP P1)** (tweak `certifiedNoChanges`): nothing may change, so the banner shows on entering the mode (the P1 exception): “**Certified: no changes allowed.** Any answer you enter will invalidate the signature by Northwind Housing Trust. lamina asks before the first change.” with **Download a copy** (web board; “Save a copy…” on the desktop, `file.save-copy`). The first value typed or chosen opens the conflict alertdialog (“Change this certified file?” naming Northwind Housing Trust and “the certification will no longer be valid”, Apply anyway / Cancel, Cancel focused). Cancel reverts the field; Apply anyway (`invalidate_signatures`) keeps it, and the banner then names the signature until save or undo. The same applies to a P2/P3 file for anything other than filling.
 - **Certified for form filling (P2/P3) or approval signatures:** filling is allowed; the status bar shows “Signed file. Saving adds your changes after the signature; the signature stays valid.” (design language §7.13).
 - **Field locked by a signature** (FieldMDP `/Lock` or a signature’s field-lock dictionary): the field draws read-only and its Fields-tab row says “Locked by R. Osei’s signature”. Changing it is a conflict: the first attempt opens the conflict alertdialog naming R. Osei’s signature ([E8e](../../todos/ready/E8e-field-widgets-ui.md)).
 - **XFA form:** a notice strip under the toolbar, “This form uses XFA, which lamina can’t fill. You can read it and fill the PDF fields it also contains, if any.” The Fields tab lists only AcroForm fields.
@@ -266,7 +266,4 @@ Other states: import with no matching names shows a notice in the Fields tab (�
 
 ## Proposed design-language additions
 
-Merged into the [design language](design-language.md#decisions-on-area-proposals) on 2026-10-29; see its decisions table. Still open for the owner:
-
-- **11 px page-overlay labels.** §7.32 sets 11 px for the design-mode field name (`mono` 11), the size chip (“218 × 20 pt”), the tab-stop badge number (11/600) and the suggestion type tag (11/600), while §3 allows 11 px only for shortcut chips and overlines. The boards follow §7.32. Proposal: add “page-overlay labels and tags (§7.32)” to the §3 list of 11 px exceptions; they sit on the page at the page’s zoom, are short, and are repeated in the inspector or the Fields tab at 12 px or more.
-- **Ctrl F6 on the web** (P01 Behaviour): proposed, pending the browser collision test before it joins §8.8.
+Merged into the [design language](design-language.md#decisions-on-area-proposals) on 2026-10-29; see its decisions table.

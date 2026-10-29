@@ -164,15 +164,15 @@ Codes come from `fixtures/codes.json`; each code has one plain sentence in the U
 | Context note | “Searching… page 14 of 24”, then “Searched all 24 pages” | — |
 | Close find | Clears highlights, removes the Results tab, returns focus to where it was | `find.close` (`Esc`) |
 | Results tab | Matches grouped under “Page 3 · Repairs backlog” (page label + outline section), each a link with a snippet and the match in 600; the current one has `accent-tint` and an `accent` inset ring, `aria-current="true"` | — |
-| Replace (editor only) | Opened from the Edit toolbar’s **Replace…** button or ⌥⌘F / `Ctrl H` on desktop ([A06](add-edit-content.md)): this bar plus a second row (§7.30). The reader v0.1 has no Replace row | `find.open-replace` |
+| Replace (editor only) | Opened from the Edit toolbar’s **Replace…** button or ⌥⌘F / `Ctrl H` on desktop ([A06](add-edit-content.md)): this bar plus a second row ([§7.30](design-language.md#730-find-bar-and-results-proposed)): a 300 px replace field, **Replace** · **Skip** · **Replace n checked** (primary) and a note. The reader v0.1 has no Replace row | `find.open-replace` |
 
-Match colours on the page are the `find-match` and `find-current` tokens, defined per page appearance (see [Proposed design-language additions](#proposed-design-language-additions)). On Original: other matches `#F6E3BC` with a 1 px `warning` bottom border (so they differ from a yellow highlight), the current match `#EDBF6A` with a 2 px `accent` outline.
+Match colours on the page are the `find-match` and `find-current` tokens, defined per page appearance (design language [§2.6](design-language.md#26-find-marks-proposed)). On Original: other matches `#F6E3BC` with a 1 px `warning` bottom border (so they differ from a yellow highlight), the current match `#EDBF6A` with a 2 px `accent` outline.
 
 **States.** *Typing* (count “…”); *counting* (“40+”, results stream in by page); *done* (drawn: “3 of 9”, “Searched all 24 pages”); *no matches* (count “No matches”, Results tab shows “No matches for “backlogs”.” with a ghost “Turn off Whole words” when a toggle is on); *scanned pages without text*: the context note adds “4 pages have no text to search”.
 
 **Behaviour.** The worker searches from the current page forward with wrap-around at background priority; a new query cancels the old one. Each Next/Previous or result click is a history jump (R07), so the board, reached with Next from page 1, has Back enabled as “Back to page 1”. Nothing in the file changes.
 
-**Accessibility.** The count is a polite live region, throttled to one announcement per second. Focus stays in the field while Enter moves through matches. Results are links in page order. The current match is not shown by colour alone (outline, count, `aria-current` in the list). On the phone the Results sheet is **non-modal** (`section` labelled by its title, no focus trap): Previous · Results · Next stay usable under it and the page keeps scrolling; Done or Close results closes it. Sheets that ask a question or hold a form (password, URL, properties) stay modal; see [Proposed design-language additions](#proposed-design-language-additions).
+**Accessibility.** The count is a polite live region, throttled to one announcement per second. Focus stays in the field while Enter moves through matches. Results are links in page order. The current match is not shown by colour alone (outline, count, `aria-current` in the list). On the phone the Results sheet is **non-modal** (`section` labelled by its title, no focus trap): Previous · Results · Next stay usable under it and the page keeps scrolling; Done or Close results closes it. Sheets that ask a question or hold a form (password, URL, properties) stay modal; see design language [§7.16](design-language.md#716-bottom-sheet).
 
 **Platform differences.** *Desktop:* same; `⌘F`/`Ctrl F` always belong to lamina. *Phone* (drawn): the top bar becomes a 44 px search field (16 px text, count inside) with **Done**; the bottom bar becomes a find toolbar (Previous · Results · Next); Results is a scrolling sheet at the medium detent with **Match case** / **Whole words** as 44 px toggles and 44 px result rows. *Tablet:* desktop layout, Results as a sheet when the rail is collapsed.
 
@@ -315,7 +315,4 @@ Merged into the [design language](design-language.md#decisions-on-area-proposals
 
 ## Proposed design-language additions
 
-Merged into the [design language](design-language.md#decisions-on-area-proposals) on 2026-10-29; see its decisions table. Proposed since:
-
-- **Modal and non-modal sheets (§7.16, §7.35).** A sheet that asks a question or holds a form is a modal dialog (`role="dialog"`, `aria-modal="true"`, focus trap). A sheet that lists results the user steps through with a toolbar that stays visible (phone find Results, R05) is non-modal: a labelled `section`, no focus trap, the toolbar and page stay usable.
-- **Bookmarks wording.** §7.5’s tab snippet and §7.21’s empty-state example still show a “Bookmarks” tab, and screens.md’s R06 row lists “bookmarks”; under §8.10 they should read Attachments (snippet) and “This file has no outline” / “Use Pages to move through it.” (example), and screens.md R06 “Pages · Outline · contextual tabs”.
+Merged into the [design language](design-language.md#decisions-on-area-proposals) on 2026-10-29; see its decisions table.

@@ -329,9 +329,4 @@ Merged into the [design language](design-language.md#decisions-on-area-proposals
 
 ## Proposed design-language additions
 
-Earlier proposals were merged into the [design language](design-language.md#decisions-on-area-proposals) on 2026-10-29; see its decisions table. New since then, from the final review:
-
-- **Mark area icon** (closes the open point in decision 15: it looked like Focus mode): a dashed rectangle with a square corner handle, `<rect x="4.5" y="5.5" width="12" height="10" stroke-dasharray="2 2"></rect><rect x="15" y="14" width="4.5" height="4.5"></rect>`.
-- **Target style for a page object a dialog or sheet acts on** (the field being signed behind G01's menu, G02, G03 and G11's sheet): 1 px `accent` outline, offset 2, on an `accent-tint` fill. It is not the focus ring, so a board still shows one 2 px ring.
-- **Blocked primary** (Save while a report blocks saving, G10): `hairline` fill and edge with a `text-3` label (7.09:1 on `hairline`; `muted` would be 4.36:1), `aria-disabled="true"`, kept focusable, with `aria-describedby` pointing at the strip that says why. Unlike the §7.0 disabled primary, its label stays readable because its reason matters.
-- **Redact Apply covers accepted marks only** (§8.1 Redact row and §8.5): the confirm repeats the count of accepted marks on its button and lists the marks to review and rejected ones as "left as they are".
+Merged into the [design language](design-language.md#decisions-on-area-proposals) on 2026-10-29; see its decisions table.

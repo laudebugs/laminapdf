@@ -103,17 +103,17 @@ Conventions on this canvas:
 | Menu | Items (shortcut macOS / Windows-Linux) |
 | --- | --- |
 | lamina (macOS only) | About lamina · Check for updates… · Settings… (`⌘,`) · Services · Hide lamina (`⌘H`) · Hide others · Show all · Quit lamina (`⌘Q`) |
-| File | Open… (`⌘O` / `Ctrl O`) · Open recent › (files, Clear menu) · New window (`⇧⌘N` / `Ctrl Shift N`) · Close tab (`⌘W` / `Ctrl W`) · Close window (`⇧⌘W` / `Ctrl Shift W`) · Save a copy… (`file.save-copy`, no shortcut) · Save (`⌘S` / `Ctrl S`; edit sessions only, so always disabled in the reader) · Print… (`⌘P` / `Ctrl P`) · Quit (`Ctrl Q`, Windows/Linux only) |
-| Edit | Copy · Select all (predefined) · Find… (`⌘F` / `Ctrl F`) · Find next · Find previous (no shortcut: `Mod G` is avoided; Enter and Shift+Enter work in the find bar) · Settings… (`Ctrl ,`, Windows/Linux only) |
+| File | Open… (`⌘O` / `Ctrl O`) · Open recent › (files, Clear menu) · New window (`⇧⌘N` / `Ctrl Shift N`) · Close tab (`⌘W` / `Ctrl W`) · Close window (`⇧⌘W` / `Ctrl Shift W`) · Save a copy… (`file.save-copy`, no shortcut) · Save (`⌘S` / `Ctrl S`; edit sessions only, so always disabled in the reader) · Document properties… (`file.properties`) · Print… (`⌘P` / `Ctrl P`) · Quit (`Ctrl Q`, Windows/Linux only) |
+| Edit | Undo (`⌘Z` / `Ctrl Z`) · Redo (`⇧⌘Z` / `Ctrl Y`) (edit sessions only, named with the step: “Undo rotate page 16”; disabled in the reader) · Copy · Select all (predefined) · Find… (`⌘F` / `Ctrl F`) · Find next · Find previous (no shortcut: `Mod G` is avoided; Enter and Shift+Enter work in the find bar) · Settings… (`Ctrl ,`, Windows/Linux only) |
 | View | Zoom in (`⌘+` / `Ctrl +`) · Zoom out (`⌘−` / `Ctrl −`) · Actual size (`⌘0` / `Ctrl 0`) · Fit width · Fit page · Sidebar (check) · Focus mode (`⌘\` / `Ctrl \`, check) · Page layout › (Single page, Continuous, Two pages) · Page appearance › · Theme › · Full screen (macOS predefined `⌃⌘F`; no shortcut on Windows/Linux) |
 | Go | Next page · Previous page · First page · Last page · Go to page… · Back (`⌘[` / `Alt ←`) · Forward (`⌘]` / `Alt →`) |
-| Tools | Commands… (`⌘K` / `Ctrl K`) · Find in document · Document properties… · Network activity · Reader mode |
+| Tools | Commands… (`⌘K` / `Ctrl K`) · Find in document · Network activity · Reader mode |
 | Window | Minimise (`⌘M`, macOS predefined) · Zoom (macOS) · Next tab · Previous tab · Move tab to new window · Move tab to window › · list of windows |
-| Help | lamina help · Keyboard shortcuts (`F1`) · Report an issue · View licences · Check for updates… and About lamina (Windows/Linux only) |
+| Help | lamina help · Keyboard shortcuts (`F1`) · What lamina can do (`help.capabilities`) · Report an issue · View licences · Check for updates… and About lamina (Windows/Linux only) |
 
 **States.** Items without a document are disabled (Print, Close tab, Save a copy, zoom, Go). In the reader `⌘S` / `Ctrl S` does nothing: Save stays disabled and the key never falls back to Save a copy (design language decision 18: one action, one id; `Mod S` is Save only). Zoom in/out disable at the zoom limits. Check items reflect the focused window (Sidebar, Focus mode, page layout). Open recent rebuilds when the recent list changes and is empty (“No recent files”, disabled) when the setting is off.
 
-**Behaviour.** Choosing an item emits the command id to the focused window, which runs it through the same registry as the keyboard and palette. When a menu accelerator exists, the web view does not also handle that key (no double zoom steps on Windows/Linux). Command ids: `file.open`, `file.open-recent`, `file.clear-recent`, `window.new`, `tab.close`, `window.close`, `file.save-copy`, `file.save`, `file.print`, `app.quit`, `app.settings`, `app.check-for-updates`, `app.about`, `edit.copy`, `edit.select-all`, `find.open`, `find.next`, `find.previous`, `view.zoom-in`, `view.zoom-out`, `view.actual-size`, `view.fit-width`, `view.fit-page`, `view.toggle-sidebar`, `view.focus-mode`, `view.page-layout`, `view.page-appearance`, `view.theme`, `view.full-screen`, `nav.next-page`, `nav.previous-page`, `nav.first-page`, `nav.last-page`, `nav.go-to-page`, `nav.back`, `nav.forward`, `palette.open`, `file.properties`, `privacy.network-activity`, `view.reader-mode`, `tab.next`, `tab.previous`, `tab.move-to-new-window`, `tab.move-to-window`, `help.open`, `help.shortcuts`, `help.report-issue`, `help.licences`.
+**Behaviour.** Choosing an item emits the command id to the focused window, which runs it through the same registry as the keyboard and palette. When a menu accelerator exists, the web view does not also handle that key (no double zoom steps on Windows/Linux). Command ids: `file.open`, `file.open-recent`, `file.clear-recent`, `window.new`, `tab.close`, `window.close`, `file.save-copy`, `file.save`, `file.properties`, `file.print`, `edit.undo`, `edit.redo`, `app.quit`, `app.settings`, `app.check-for-updates`, `app.about`, `edit.copy`, `edit.select-all`, `find.open`, `find.next`, `find.previous`, `view.zoom-in`, `view.zoom-out`, `view.actual-size`, `view.fit-width`, `view.fit-page`, `view.toggle-sidebar`, `view.focus-mode`, `view.page-layout`, `view.page-appearance`, `view.theme`, `view.full-screen`, `nav.next-page`, `nav.previous-page`, `nav.first-page`, `nav.last-page`, `nav.go-to-page`, `nav.back`, `nav.forward`, `palette.open`, `privacy.network-activity`, `view.reader-mode`, `tab.next`, `tab.previous`, `tab.move-to-new-window`, `tab.move-to-window`, `help.open`, `help.shortcuts`, `help.capabilities`, `help.report-issue`, `help.licences`.
 
 **Accessibility.** Native menus are accessible through the OS. The schematic drawing uses `role="menubar"`, `menu`, `menuitem`, `menuitemcheckbox`, `menuitemradio` and `aria-keyshortcuts` only as mockup markup; the highlighted item (accent fill, white text) sketches the OS's own highlight and is not the lamina menu style (lamina-drawn menus use §7.26, as in S02). Windows/Linux access keys are unique per menu. The macOS menu-bar items are drawn 24 px high; the real bar is the OS's.
 
@@ -138,7 +138,7 @@ Conventions on this canvas:
 | Case | What shows | Controls and commands |
 | --- | --- | --- |
 | Changed, **no** unsaved changes (reader default) | Silent reload keeping page and zoom, then a toast “Reloaded: Q3-board-report.pdf changed on disk” (`role="status"`, 4 s). If the page count shrank below the current page, the last page shows | — (`file.reload-from-disk` runs automatically) |
-| Changed **with** unsaved changes (S04-file-changed) | “**Q3-board-report.pdf changed on disk.** Another app saved a new version at 10:12 while you had 1 unsaved change here.” Second line: “Reload shows the new version and discards your change. Keep mine leaves your view as it is; saving then replaces the other version.” | **Compare** (`file.compare-with-disk`) · **Keep mine** (`file.keep-mine`) · **Reload from disk** (`file.reload-from-disk`) |
+| Changed **with** unsaved changes (S04-file-changed) | “**Q3-board-report.pdf changed on disk.** Another app saved a new version at 10:12 while you had 1 unsaved change here.” Second line: “Reload shows the new version and discards your change. Keep mine leaves your view as it is; the next Save asks whether to save as a new file, reload or overwrite.” | **Compare** (`file.compare-with-disk`) · **Keep mine** (`file.keep-mine`) · **Reload from disk** (`file.reload-from-disk`) |
 | Moved or deleted (S04-file-missing) | “**File was moved or deleted.** lamina is still showing the version it opened. Locate the file to keep it linked, or close the tab.” | **Close tab** (`tab.close`) · **Locate…** (`file.locate`) |
 | Changed but unreadable (a build still writing) | Notice “File changed but could not be read; retrying.” in the same strip, no buttons; it clears on the next good reload | — |
 
@@ -147,7 +147,7 @@ Conventions on this canvas:
 **Behaviour.**
 
 - **Compare** opens the on-disk version in a new read-only tab beside the current one (“Q3-board-report.pdf — on disk”), so the user can read both; the banner stays until Keep mine or Reload. A visual diff is out of scope here.
-- **Keep mine** dismisses the banner; the top bar keeps “1 unsaved change”. The next Save opens O02’s “This file changed on disk” dialog (Save as… · Reload · Overwrite, where Overwrite is a full rewrite because appending is impossible on a changed file).
+- **Keep mine** dismisses the banner; the top bar keeps “1 unsaved change”. The next Save opens O02’s “This file changed on disk” dialog (Save as… · Reload · Overwrite). Overwrite writes the bytes kept at open plus the session as an incremental revision to a temporary file and renames it over the changed file (design language [§8.4](design-language.md#84-explicit-save)); signatures in the opened file stay valid.
 - **Reload from disk** discards the op log for this document after a confirm only if there are more than 20 changes; undo history starts fresh.
 - Moved/deleted: lamina keeps serving the open handle, so reading continues; Locate… relinks to the chosen path; nothing is written.
 - With the setting off, the banner appears for every change (even without unsaved changes) with **Reload** and **Ignore**.
@@ -347,7 +347,7 @@ Sizes, hashes and the publisher name are placeholders (`[SIZE]`, `[PUBLISHER NAM
 | Tab strip | Q3-board-report.pdf (active, close button) · Damp-survey-North.pdf · Open a file in a new tab (+) | `tab.activate`, `tab.close` (`Ctrl W`), `file.open` |
 | Top bar (Reader v0.1) | Sidebar toggle, file name, Back · Forward, page 3 / 24, zoom −/110%/+, Find, View, Reader, Commands `Ctrl K`, More | `view.toggle-sidebar`, `nav.back` (`Alt ←`), `nav.forward` (`Alt →`), `nav.go-to-page`, `view.zoom-out`, `view.zoom-in`, `find.open`, `view.reader-mode`, `palette.open` (`Ctrl K`) |
 | Body | Pages rail (page 3 current) and page 3 “2. Repairs backlog” | — |
-| Status bar | Network indicator “0 network requests · Offline-safe: nothing uploaded”, “Page 3 · Repairs backlog” | `privacy.network-activity` |
+| Status bar | Network indicator “0 network requests for this document · Offline-safe: nothing uploaded”, “Page 3 · Repairs backlog” | `privacy.network-activity` |
 
 **States.** Menu bar focused after Alt (drawn: File highlighted, access keys underlined; the ring on the board is schematic) · at rest (access-key underlines hidden until Alt, per the OS setting) · a menu open (S03-menus-windows) · window maximised (radius 0, Maximise glyph becomes Restore: two offset squares) · inactive window (title text `muted`) · one tab (strip hidden, as on macOS).
 
@@ -374,12 +374,8 @@ Merged into the [design language](design-language.md#decisions-on-area-proposals
 - **Compare** (S04) opens a second read-only tab; a visual diff would need its own todo.
 - **Reset anonymous ID** is drawn in Settings › Updates, where [D5b](../../todos/ready/D5b-updater-in-app.md) puts it; Privacy no longer has it (U5c usage counts carry no identifier). D5b's owner builds it in Updates.
 - **Usage-counts wording** is S07's: “Share how often each command is used” (`settings.usage-counts`) with S07's help text; Account and cloud H02/H10 should use the same label, key and descriptions (the account fixer aligns them to S07, per the cross-area review).
-- **`F1` for Keyboard shortcuts** on the desktop is not yet in the design language's shortcut table (§8.8 lists only `?`); see Proposed design-language additions.
+- **`F1` for Keyboard shortcuts** on the desktop is in the design language's shortcut table ([§8.8](design-language.md#88-keyboard-and-shortcuts)) as proposed.
 
 ## Proposed design-language additions
 
-Merged into the [design language](design-language.md#decisions-on-area-proposals) on 2026-10-29; see its decisions table. New since the merge:
-
-- **§8.8 shortcut table:** add `F1` (desktop app only) to `help.shortcuts`, next to `?` (page). A native menu accelerator cannot be a page-scoped single key, so the desktop Help menu shows `F1`.
-- **§6.1 status bar slots:** the middle slot holds notices, progress and persistent action items (Printing with Cancel, Update ready); the right slot holds only the page label.
-- **§7.33 Linux window frame:** radius 8, like Windows.
+Merged into the [design language](design-language.md#decisions-on-area-proposals) on 2026-10-29; see its decisions table.

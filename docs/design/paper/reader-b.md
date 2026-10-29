@@ -43,7 +43,7 @@ View settings and page appearance, the dark UI theme, keyboard shortcut help, th
 
 **Entry points.** View settings › Theme › Dark, or System when the OS is dark (`prefers-color-scheme`). Command `view.theme` (`dark`).
 
-**Layout.** The shell is the same as F01. The chrome is `ground #1E1D1A`, the Commands button and fields use `surface #262421` / `field #1E1D1A`, and the gutter is `#141311`. Dividers are `hairline #3A3732`, and the page input border is `control-border #7E766A`. Text uses `#ECE7DE`, icons `#CFC8BC`, muted text `#A39B8E`. Accent, focus and the network shield are `#7DBDC2`. The page shadow is `shadow-page-dark`. The selection mini toolbar is `raised #2E2C28` with a `chip-border #4A463F` edge and `shadow-float-dark`. Thumbnails use a proposed dark thumbnail shadow (see [Proposed design-language additions](#proposed-design-language-additions)). The selection on the white page keeps the Original tint `#CEDBDD`, because the selection tint follows the page appearance, not the UI theme.
+**Layout.** The shell is the same as F01. The chrome is `ground #1E1D1A`, the Commands button and fields use `surface #262421` / `field #1E1D1A`, and the gutter is `#141311`. Dividers are `hairline #3A3732`, and the page input border is `control-border #7E766A`. Text uses `#ECE7DE`, icons `#CFC8BC`, muted text `#A39B8E`. Accent, focus and the network shield are `#7DBDC2`. The page shadow is `shadow-page-dark`. The selection mini toolbar is `raised #2E2C28` with a `chip-border #4A463F` edge and `shadow-float-dark`. Thumbnails use a proposed dark thumbnail shadow (design language [§2.3](design-language.md#23-dark-ui-theme-proposed)). The selection on the white page keeps the Original tint `#CEDBDD`, because the selection tint follows the page appearance, not the UI theme.
 
 **Content and controls.** Reader v0.1 top bar in dark tokens (Sidebar `view.toggle-sidebar`, Back/Forward `nav.back`/`nav.forward` disabled, page input, zoom `view.zoom-out`/`view.zoom-in`, Find `find.open`, View `view.settings`, Reader `view.reader-mode`, Commands `palette.open`, More). Rail: Pages · Outline · Attachments (`view.show-pages`, `view.show-outline`, `view.show-attachments`), thumbnails with page 3 current. Selection mini toolbar: Copy (`edit.copy`), Highlight (`comment.highlight`, switches to Comment, §8.11), Comment. Status bar: network indicator (`privacy.network-activity`) and page label.
 
@@ -241,14 +241,14 @@ Other controls: “Back to page 3” and Escape leave Reader mode (`view.reader-
 **Layout.** Both boards use the editor shell, because the tablet board shows Comment mode; the web reader v0.1 on a tablet uses the reader top bar with the same 44 px targets.
 
 - **Top bar:** 56 px, with 44 × 44 icon buttons and 56 px mode buttons. Zoom controls are dropped in favour of pinch. The file name sits over the save state.
-- **Comment toolbar:** 56 px, with 44 px tool toggles and colour swatches wrapped in 44 px buttons. It shows Highlight · Underline · Note · Ink · Shapes ▾ │ swatches │ More tools (⋯); at 1024 px the rest of [§8.1](design-language.md#81-modes-and-their-secondary-toolbars)’s Comment tools (Select, Strike, Caret, Text box, Stamp, Attach file) go in More tools. The right end reads “Pen draws · finger scrolls”.
+- **Comment toolbar:** the one tablet Comment toolbar of [Comment C09](comment-review.md#c09-tablet-stylus) and design language [§6.2](design-language.md#62-phone-shell-390--844-artboard): the C01 toolbar at touch size (56 px, 44 px toggles) until a pen is used, then the tool shelf ([§7.35](design-language.md#735-touch-bars-and-sheets-proposed)) for the rest of the session. A hovering pen counts as used, so this board shows the shelf (60 px): Pen · Highlighter (pressed) · Eraser · Lasso · Shapes · Text · Note │ colours │ widths │ “Draw with finger” switch (off).
 - **Page:** fitted to the width (880 px).
 - **Status bar:** 44 px.
 
 **Content and controls.**
 
 - *Top bar:* Back to files, Sidebar (`view.toggle-sidebar`, `aria-expanded`), file name over the save state, the five modes, Find (`find.open`), View settings (`view.settings`), Save (only with changes), More.
-- *Comment toolbar:* Highlight (`comment.highlight`, pressed), Underline (`comment.underline`), Note (`comment.note`), Ink (`comment.ink`), Shapes ▾ (`comment.shape`, menu), More tools (menu), four colour swatches in 44 px buttons (`role="group"` “Colour”), the pen/finger hint.
+- *Tool shelf* (`role="toolbar"` “Pen tools”, as C09): Pen (`comment.pen`, alias of `comment.ink`), Highlighter (`comment.highlighter`, pressed), Eraser (`comment.eraser`), Lasso (`comment.lasso`), Shapes (`comment.shape`), Text (`comment.text-box`), Note (`comment.note`); the highlight colours in 44 px buttons (`role="group"` “Colour”, the set swaps with the tool, §2.7); widths; the “Draw with finger” switch.
 - *Contents sheet:* grabber (`Resize sheet`), title “Contents” with “24 pages”, close, tabs Pages · Outline · Attachments (`view.show-pages`, `view.show-outline`, `view.show-attachments`), outline rows with expand/collapse buttons (`view.expand-outline`, `view.collapse-outline`) and links (`nav.go-to-outline-item`).
 - *Status bar:* network indicator and page label as 44 px targets.
 
@@ -311,13 +311,4 @@ Merged into the [design language](design-language.md#decisions-on-area-proposals
 
 ## Proposed design-language additions
 
-Earlier proposals were merged into the [design language](design-language.md#decisions-on-area-proposals) on 2026-10-29; see its decisions table. Added since, from the final review:
-
-| Addition | Spec | Where |
-| --- | --- | --- |
-| Thumbnail lines per page appearance | Extends [§2.5](design-language.md#25-mockup-only-colours-document-content)’s thumbnail lines (Original: heading `#B9B2A7`, text `#DDD7CD`, chart `#C9CFD3`). Sepia: heading `#B5A68C`, text `#DCD0B6` (the Sepia rule). Dark: heading `#8D877D`, text `#55514A`, chart `#6E777D`. Decorative only | R10, R10-page-dark, R11 |
-| Dark thumbnail shadow | `0 1px 3px rgba(0,0,0,0.50)` for thumbnails on the dark rail, beside `shadow-page-dark` and `shadow-float-dark` (§2.3) | R11 |
-| Compact page-appearance chips | §7.25 chips in a 2 × 2 grid for popovers narrower than 400 px: a 40 × 32 `Aa` preview to the left of a 13 px label, padding 6, gap 10, radius 6; selected as §7.25. Keeps “High contrast” on one line | R10 popover |
-| Theme radio grid | The Theme radio group in a 2 × 2 grid (32 px desktop, 44 px phone), order Light · Dark · High contrast · Match system | R10 |
-| Reader settings in the View slot | While Reader mode is on, the top bar’s View button toggles the docked Reader settings panel instead of the View popover (same icon and place, `aria-label="Reader settings"`) | R14 |
-| Reader and status command ids | `view.reader-text-smaller`, `view.reader-text-larger`, `view.reader-line-spacing`, `view.reader-line-length`, `view.reader-reset`, `nav.view-original-page`, `nav.go-to-page`, `help.reader-mode`, `privacy.copy-report`, `privacy.show-how-to-check`, `app.reload-update`, `app.dismiss-update`, `app.dismiss-offline`, `view.show-attachments` (already Reader A’s); none has a shortcut. For the command-id appendix | R13, R14, R15, R17, R18 |
+Merged into the [design language](design-language.md#decisions-on-area-proposals) on 2026-10-29; see its decisions table.

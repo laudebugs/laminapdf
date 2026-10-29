@@ -34,7 +34,7 @@ button,input,textarea,select{font:inherit;color:inherit}
       <span style="font-size: 12px; color: #6B645A; white-space: nowrap">4 unsaved changes</span>
       <span aria-hidden="true" style="width: 1px; height: 18px; background: #E4DED3; margin: 0 2px"></span>
       <button aria-label="Undo accept Phone" style="width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 4px; color: #4A453E"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M9 7L4.5 11.5 9 16"></path><path d="M4.5 11.5H15a4.5 4.5 0 0 1 0 9h-3"></path></svg></button>
-      <button aria-label="Redo" disabled style="width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 4px; color: #A39C91"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M15 7l4.5 4.5L15 16"></path><path d="M19.5 11.5H9a4.5 4.5 0 0 0 0 9h3"></path></svg></button>
+      <button aria-label="Redo" aria-disabled="true" style="width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 4px; color: #A39C91"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M15 7l4.5 4.5L15 16"></path><path d="M19.5 11.5H9a4.5 4.5 0 0 0 0 9h3"></path></svg></button>
     </div>
     <div role="group" aria-label="Mode" style="display: flex; align-items: stretch; gap: 22px; height: 40px">
       <button aria-pressed="false" style="height: 40px; display: flex; align-items: center; border: 0; background: transparent; padding: 2px 0 0; color: #6B645A; border-bottom: 2px solid transparent">Read</button>
@@ -164,7 +164,7 @@ button,input,textarea,select{font:inherit;color:inherit}
       <div style="display: flex; flex-direction: column; gap: 8px">
         <label for="s-type" style="font-size: 12px; font-weight: 600; color: #4A453E">Field type</label>
         <div style="position: relative; display: flex">
-          <select id="s-type" style="flex: 1 1 auto; height: 32px; box-sizing: border-box; padding: 0 30px 0 10px; border: 1px solid #8A8174; border-radius: 4px; background: #FFFFFF; appearance: none; -webkit-appearance: none"><option>Text</option><option selected>Date</option><option>Check box</option><option>Radio group</option><option>Dropdown</option><option>Signature</option></select>
+          <select id="s-type" style="flex: 1 1 auto; height: 32px; box-sizing: border-box; padding: 0 30px 0 10px; border: 1px solid #8A8174; border-radius: 4px; background: #FFFFFF; appearance: none; -webkit-appearance: none"><option>Text</option><sc-if value="{{nativeOn}}" hint-placeholder-val="{{ true }}"><option selected>Date</option></sc-if><option>Check box</option><option>Radio group</option><option>Dropdown</option><option>Signature</option></select>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#4A453E" stroke-width="1.5" aria-hidden="true" style="position: absolute; right: 8px; top: 8px; pointer-events: none"><path d="M7 10l5 5 5-5"></path></svg>
         </div>
       </div>
@@ -196,7 +196,7 @@ button,input,textarea,select{font:inherit;color:inherit}
   <footer style="min-height: 28px; flex: 0 0 auto; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px 16px; padding: 0 16px; border-top: 1px solid #E4DED3; font-size: 12px; color: #6B645A">
     <button style="min-height: 24px; display: flex; align-items: center; gap: 7px; border: 0; background: transparent; padding: 0 4px; font-size: 12px; color: #6B645A">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="{{accent}}" stroke-width="1.5" aria-hidden="true"><path d="M12 3.5l7 2.5v5.5c0 4.3-3 7.6-7 9-4-1.4-7-4.7-7-9V6z"></path><path d="M9 12l2.2 2.2L15.5 10"></path></svg>
-      <span style="color: #1F1D1A; font-variant-numeric: tabular-nums">0 network requests</span><span>· Offline-safe: nothing uploaded</span>
+      <span style="color: #1F1D1A; font-variant-numeric: tabular-nums">0 network requests for this document</span><span>· Offline-safe: nothing uploaded</span>
     </button>
     <span>Detection ran on this device</span>
     <span style="font-variant-numeric: tabular-nums">Page 1 of 2</span>
@@ -249,7 +249,7 @@ class Component extends DCLogic {
       if (st === 'cur') { box += ' outline: 2px solid ' + accent + '; outline-offset: 2px; background: ' + fieldTint + ';'; tag += ' background: ' + accent + '; color: #FFFFFF;'; }
       return { label: l[0] + ':', box: box, tag: tag, tagText: st === 'acc' ? 'Accepted · ' + l[2] : l[2] };
     });
-    return {
+    return { nativeOn: true,
       accent: accent, accentTint: tint, sugg: sugg, lines: lines,
       tagIn: 'position: absolute; right: 2px; bottom: 3px; height: 18px; padding: 0 6px; display: flex; align-items: center; background: ' + accent + '; color: #FFFFFF; font-family: \'Source Sans 3\', system-ui, sans-serif; font-size: 11px; font-weight: 600; white-space: nowrap;'
     };

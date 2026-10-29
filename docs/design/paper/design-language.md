@@ -97,7 +97,7 @@ The same warm family, inverted: chrome is warm charcoal, never pure black, and t
 | `disabled` | `#6A645A` | exempt (2.64) |
 | `scrim` | `rgba(0,0,0,0.50)` | — |
 
-Dark-theme shadows **(proposed tokens)**: `shadow-page-dark` `0 1px 2px rgba(0,0,0,0.40), 0 8px 28px rgba(0,0,0,0.45)` (page sheet) and `shadow-float-dark` `0 4px 14px rgba(0,0,0,0.45)` (selection toolbar, menus, tooltips, toasts; palette and dialogs use `0 18px 48px rgba(0,0,0,0.55)` over the dark `scrim`). Floating layers in dark use `raised` with a `chip-border` edge. A high-contrast UI theme follows `forced-colors` system colours (plan §5.5), not a hand-made palette.
+Dark-theme shadows **(proposed tokens)**: `shadow-page-dark` `0 1px 2px rgba(0,0,0,0.40), 0 8px 28px rgba(0,0,0,0.45)` (page sheet) and `shadow-float-dark` `0 4px 14px rgba(0,0,0,0.45)` (selection toolbar, menus, tooltips, toasts; palette and dialogs use `0 18px 48px rgba(0,0,0,0.55)` over the dark `scrim`). Thumbnails on the dark rail **(proposed, Reader B R11)**: `0 1px 3px rgba(0,0,0,0.50)`. Floating layers in dark use `raised` with a `chip-border` edge. A high-contrast UI theme follows `forced-colors` system colours (plan §5.5), not a hand-made palette.
 
 ### 2.4 Page appearance
 
@@ -125,7 +125,9 @@ Photos are never inverted and annotation colours never change.
 
 ### 2.5 Mockup-only colours (document content)
 
-For drawing the sample page and thumbnails; not UI tokens. Page heading `#1C1B19` (17.21 on white), page muted `#6E6A64` (5.37), page rule `#E6E3DE`, chart bars `#4E5A63` (7.08), chart labels `#3A3733` (11.84). Thumbnail lines: heading `#B9B2A7`, text `#DDD7CD`, chart `#C9CFD3`. Phone page-4 placeholders `#CFC9BF` / `#E3DED6`; phone page rules `rgba(0,0,0,0.1)` and header/footer `opacity: 0.75`. Links drawn in page content use the page ink with an underline, as the PDF draws them; there is no page-link colour. A signature field drawn on a page: `#EEF2F3` fill, 1 px `control-border` bottom rule, 12 px "Sign here" in `#4E5A63`, 72 px high on the desktop page.
+For drawing the sample page and thumbnails; not UI tokens. Page heading `#1C1B19` (17.21 on white), page muted `#6E6A64` (5.37), page rule `#E6E3DE`, chart bars `#4E5A63` (7.08), chart labels `#3A3733` (11.84). Thumbnail lines: heading `#B9B2A7`, text `#DDD7CD`, chart `#C9CFD3` (Original); **per page appearance (proposed, Reader B R10, R11)** Sepia heading `#B5A68C`, text `#DCD0B6`; Dark heading `#8D877D`, text `#55514A`, chart `#6E777D` (decorative only). Phone page-4 placeholders `#CFC9BF` / `#E3DED6`; phone page rules `rgba(0,0,0,0.1)` and header/footer `opacity: 0.75`. Links drawn in page content use the page ink with an underline, as the PDF draws them; there is no page-link colour. A signature field drawn on a page: `#EEF2F3` fill, 1 px `control-border` bottom rule, 12 px "Sign here" in `#4E5A63`, 72 px high on the desktop page.
+
+More mockup-only colours **(proposed, Convert and produce)**: scanned paper `#F5F2EC` and `#F3F0EA`, scan ink and smudges `#B8B2A8` and `#A9A296` (X01); photo blocks `#4E5A63`, flat, no gradients (X10, X12); the fictional spot ink “Northwind Teal” `#1F7A80` (X10 separations, the annual review's buttons in X11).
 
 ### 2.6 Find marks (proposed)
 
@@ -194,14 +196,14 @@ The product will self-host these fonts (no third-party requests: principle 7); t
 Rules:
 
 - **Tabular numerals** (`font-variant-numeric: tabular-nums`) on every number that changes or lines up: page input and `/ 24`, zoom %, counts ("0 network requests", "24 pages"), dates, thumbnail and outline page numbers, shortcut chips, the page pill.
-- **Minimum sizes:** 12 px for UI text; 11 px only for shortcut chips and uppercase overlines; 11.5 px only for phone bar labels under a 22 px icon. 16 px for any text input on touch.
+- **Minimum sizes:** 12 px for UI text; 11 px only for shortcut chips, uppercase overlines and, as an explicit exception **(proposed, Forms)**, the page-overlay labels and tags of §7.32 (design-mode field name, size chip, tab-stop badge, suggestion type tag, snap-guide and destination tags): they sit on the page at the page's zoom, are short, and repeat at 12 px or more in the inspector or a rail tab; 11.5 px only for phone bar labels under a 22 px icon. 16 px for any text input on touch.
 - Sentence case everywhere; uppercase only for overlines.
 
 ## 4. Space, shape, depth
 
 **Spacing scale** (from the style tile): `4 · 8 · 12 · 16 · 24 · 32 · 48`. Layout gaps and paddings use the scale. Inside components the files also use `2, 6, 10, 14, 18, 20, 22, 28` (for example 22 px between mode buttons, 20 px inspector padding); reuse those exact values for the same components, don't invent new ones.
 
-**Radius:** `3` shortcut chips, appearance-chip previews · `4` buttons, inputs, rows, swatches tiles · `6` floating panels (selection toolbar, palette, dialog), appearance chips, phone bar buttons · `12` bottom sheet top corners · `height / 2` pills and circles (colour swatches, avatar, page pill). `10` is only the drawn macOS window.
+**Radius:** `3` shortcut chips, appearance-chip previews · `4` buttons, inputs, rows, swatches tiles · `6` floating panels (selection toolbar, palette, dialog), appearance chips, phone bar buttons · `12` bottom sheet top corners · `height / 2` pills and circles (colour swatches, avatar, page pill). `10` is only the drawn macOS window; the drawn Windows and Linux frames use `8` **(proposed)**.
 
 **Borders:** 1 px everywhere. `hairline` separates regions (top bar bottom, rail right, inspector left, status bar top, secondary toolbar bottom, toolbar dividers 1×18 px). `control-border` on anything you type into or press that has no other boundary. Selected state: 2 px `accent` underline (modes, tabs) or 1 px `accent` border + `accent-tint` fill (toggles).
 
@@ -357,7 +359,7 @@ New icons follow the same grid and stroke; add them to this table when a board i
 | Signature image | the Ink icon (§5 above) | Add a signature image; signature fields use Signed file |
 | Shield cross | `<path d="M12 3.5l7 2.5v5.5c0 4.3-3 7.6-7 9-4-1.4-7-4.7-7-9V6z"></path><path d="M9.5 9.5l5 5M14.5 9.5l-5 5"></path>` | Signature not trusted |
 | Redact | `<rect x="4" y="9" width="16" height="6"></rect><path d="M4 5.5h10M4 18.5h7"></path>` | Redact |
-| Mark text / Mark area | `<path d="M6 5h12M12 5v11"></path><path d="M5 20h14"></path>` / `<path d="M4 8V4h4M16 4h4v4M20 16v4h-4M8 20H4v-4"></path>` | Redact tools |
+| Mark text / Mark area | `<path d="M6 5h12M12 5v11"></path><path d="M5 20h14"></path>` / `<rect x="4.5" y="5.5" width="12" height="10" stroke-dasharray="2 2"></rect><rect x="15" y="14" width="4.5" height="4.5"></rect>` **(proposed, Sign/protect/redact: a dashed rectangle with a square corner handle, so it no longer looks like Focus mode)** | Redact tools |
 | Keyboard / Key / Smart card | `<rect x="3" y="6.5" width="18" height="11" rx="1.5"></rect><path d="M7 10.5h1M11 10.5h1M15 10.5h1M8 14h8"></path>` / `<circle cx="8" cy="12" r="3.5"></circle><path d="M11.5 12H20M17 12v3M20 12v2"></path>` / `<rect x="3.5" y="6" width="17" height="12" rx="1.5"></rect><rect x="6.5" y="9.5" width="4" height="3.5" rx="0.5"></rect>` | Type a signature, keychain, smart card |
 
 Window caption glyphs (minimise, maximise, close) are drawn on a 10 × 10 grid with 1 px strokes and are mockup-only.
@@ -373,9 +375,9 @@ Window caption glyphs (minimise, maximise, close) are drawn on a 10 × 10 grid w
 | Left rail | `220px` (Outline, desktop board) · `196px` (Pages, web board) | `ground`, `hairline` right | Rule **(proposed)**: default 220, min 196, user-resizable, remembered locally. 280 with four or more tabs (§8.10); a rail panel (§7.34) may be 260–280 |
 | Canvas | flex `999 1 560px` (560 min before wrapping), padding `32px 16px` (desktop `28px 16px`) | `gutter` | Pages centred |
 | Inspector | `288px`, padding `20px 20px 24px`, gap 22 | `surface`, `hairline` left | Only while something is selected |
-| Wide docked panel **(proposed)** | `360px`, same anatomy as the inspector | `surface`, `hairline` left | In the inspector's place, for panels whose rows carry a sentence: Comments, network activity, reports (sanitise, redaction verification), jobs. Opened by a toggle with `aria-expanded`; it replaces the inspector while open |
-| Status bar | `min-height: 28px`, padding `0 16px`, 12 px | `ground`, `hairline` top | Left: network indicator, then the sync item when the file is in the cloud; middle: at most one note, by priority **(proposed)**: signed-file or constraint note → repaired notice → history note (“Earlier versions stay inside the file until you choose Save as optimised…”, only once original content is deleted, replaced or recoloured) → tool hint while a creation tool is active → nothing; right: page label, then signature, security or claim badges |
-| Window frame (desktop mockup) | title bar 30 px, traffic lights 12 px gap 8, radius 10 | see `window` | Draw for macOS. **Windows (proposed):** title bar 32 px, document glyph in `accent`, left-aligned title, caption buttons 46 × 32 with 10 px glyphs; menu bar 28 px. **Linux (proposed):** 36 px title bar, centred 13/600 title, one 24 px round close button on a 10% `text` fill |
+| Wide docked panel **(proposed)** | `360px`, same anatomy as the inspector | `surface`, `hairline` left | In the inspector's place, for panels whose rows carry a sentence: Comments, network activity, reports (sanitise, redaction verification), jobs. Opened by a toggle with `aria-expanded`; it replaces the inspector while open. **One right dock (proposed, Comment):** a wide panel and the inspector never show together; with the Comments panel open, selecting an annotation expands its thread, “Properties” in the thread's More menu swaps the dock to the inspector and “Back to comments” swaps it back |
+| Status bar | `min-height: 28px`, padding `0 16px`, 12 px | `ground`, `hairline` top | Left: network indicator, then the sync item when the file is in the cloud; middle **(proposed, Desktop shell)**: notices, progress and persistent action items (a progress item such as “Printing pages 5–12” with Cancel printing, the “Update ready” action item), then at most one note, by priority **(proposed)**: signed-file or constraint note → repaired notice → history note (“Earlier versions stay inside the file until you choose Save as optimised…”, only once original content is deleted, replaced or recoloured) → tool hint while a creation tool is active → nothing; right: page label, then signature, security or claim badges (facts about the document, never notices or progress) |
+| Window frame (desktop mockup) | title bar 30 px, traffic lights 12 px gap 8, radius 10 | see `window` | Draw for macOS. **Windows (proposed):** title bar 32 px, document glyph in `accent`, left-aligned title, caption buttons 46 × 32 with 10 px glyphs; menu bar 28 px. **Linux (proposed):** 36 px title bar, centred 13/600 title, one 24 px round close button on a 10% `text` fill. Windows and Linux frames use radius 8 |
 | Document tab strip (desktop) **(proposed)** | 34 px, on the title-bar colour `#EFEBE3`, `#E0D9CD` rule below | see §7.33 | Hidden with one tab |
 
 **Page sheet:** `max-width: 612px` (US Letter width at 100%), `min-height: 790px`, white, page shadow, no border, no radius. Gutter colour fills the rest.
@@ -404,7 +406,7 @@ A coarse pointer (`pointer: coarse`) uses the touch rules (§8.7) at any width. 
 
 **Sheet detents:** medium = sheet top at 404 px of 844 (≈ 48% from the top; 364 px tall above a 76 px action bar), from the file. Large **(proposed)** = sheet top 56 px from the top (just under the top bar's space), collapsed = hidden. Tapping the grabber cycles medium → large → medium; dragging snaps; the grabber is a real `<button aria-label="Resize sheet">` (single-pointer alternative to the drag, WCAG 2.5.7). The page stays visible above a medium sheet.
 
-**Tablet (1024 × 1366, proposed):** desktop shell with touch rules: rail as a docked panel (collapsed by default in portrait), inspector docked, bottom action bar instead of the mini toolbar, 44 px targets. Sizes: top bar 56 px with 44 × 44 icon buttons and 56 px mode buttons (padding `2px 10px 0`); secondary toolbar 56 px with 44 px tool toggles (padding `0 14px`, radius 6, 20 px icons, 14 px labels); status bar 44 px with 13 px items; page fitted to 880 px with 72 px gutters. Zoom controls and the Commands button leave the top bar on touch. A stylus gets a tool shelf (§7.35) instead of the secondary toolbar.
+**Tablet (1024 × 1366, proposed):** desktop shell with touch rules: rail as a docked panel (collapsed by default in portrait), inspector docked, bottom action bar instead of the mini toolbar, 44 px targets. Sizes: top bar 56 px with 44 × 44 icon buttons and 56 px mode buttons (padding `2px 10px 0`); secondary toolbar 56 px with 44 px tool toggles (padding `0 14px`, radius 6, 20 px icons, 14 px labels); status bar 44 px with 13 px items; page fitted to 880 px with 72 px gutters. Zoom controls and the Commands button leave the top bar on touch. A stylus gets a tool shelf (§7.35) instead of the secondary toolbar. **Tablet Comment toolbar (proposed, Comment C09):** the C01 Comment toolbar at touch size until a pen is used, then the tool shelf for the rest of the session; `comment.pen` is an alias of `comment.ink` (one op, one palette entry).
 
 ## 7. Components
 
@@ -423,6 +425,9 @@ Snippets use literal hex values; in canvases that expose the accent as a tweak, 
 
 Use `:focus-visible`, never remove the ring, and every board shows the ring on one control.
 
+- **Focus ring on dark media (proposed, Convert and produce X12):** on a dark poster or photo (§7.40) the ring is 2 px white with offset 2, because `focus` teal has too little contrast there.
+- **Blocked primary (proposed, Sign/protect/redact G10):** a primary that is blocked for a reason the user must read (Save while a report blocks saving, §8.5) uses a `hairline` fill and edge with a `text-3` label (7.09:1 on `hairline`; `muted` would be 4.36:1), `aria-disabled="true"`, stays focusable, and has `aria-describedby` pointing at the strip that says why. Unlike the disabled primary above, its label stays readable because its reason matters.
+
 ### 7.1 Top bar
 
 Anatomy: sidebar toggle · file name (Newsreader 16/500, ellipsis) + save state (12 `muted`: "No unsaved changes", "1 unsaved change") · mode switcher · page input `n` + `/ N` · zoom −/%/+ · find · Commands button with shortcut chip · Save (primary, only when there are changes) · More.
@@ -434,11 +439,12 @@ Variants **(proposed)**:
 | Reader v0.1 (read-only product) | Sidebar toggle · file name (with “Loading pages…” or “Locked” only while those apply) · History (Back · Forward) · page n/N · zoom −/%/+ · Find · View (view settings, `aria-haspopup="dialog"`) · Reader (toggle, `aria-pressed`) · Commands · More. No mode switcher and no save state |
 | Editor | Sidebar toggle · file name + save state · a 1×18 `hairline` divider · Undo · Redo · mode switcher · page n/N · zoom · Find · View · Commands · Save · More. In Read mode the Reader toggle joins View |
 | No document (start window, home, settings) | File area replaced by “No document open”, the wordmark (Newsreader 18/500) or Back (“Back to Q3-board-report.pdf”) + page title; Commands and More only |
-| Organise | The page input is replaced by a thumbnail size control (− 100% +) |
+| Organise | The page input and zoom are replaced by a thumbnail size control (− 100% +); while the Crop tool shows a single page (O09) the same control zooms that page, its buttons named Zoom out and Zoom in **(proposed, Pages and navigation)** |
 
 - **History buttons:** Back and Forward 26 px icon buttons in a `role="group"` before the page input; names say the destination (“Back to page 2”); disabled with the `disabled` token when there is nothing to go to.
 - **Undo and Redo:** 28 px icon buttons whose names and tooltips include the step (“Undo move image”), disabled with no history.
 - **Page input with a label:** widens to fit a page label (44 px for “A-1”); the physical position follows in `muted`: `(22 / 24)`.
+- **Reader settings in the View slot (proposed, Reader B R14):** while Reader mode is on, the View button toggles the docked Reader settings panel instead of the View popover (same icon and place, `aria-label="Reader settings"`).
 - **Save split button:** primary Save (radius `4px 0 0 4px`) plus a 24 px chevron button (radius `0 4px 4px 0`, “Save options”) behind a 45% white divider; open state `accent-strong`. Without the File System Access API (web), Save becomes Download with the Download icon.
 
 ```html
@@ -515,7 +521,7 @@ Heights: 32 (default, padding 0 16), 30 (inspector, padding 0 14), 26 (top bar, 
 <div role="tablist" aria-label="Sidebar" style="display: flex; gap: 16px; padding: 14px 18px 0; border-bottom: 1px solid #E4DED3">
   <button role="tab" aria-selected="true" style="border: 0; background: transparent; padding: 0 0 8px; font-size: 13px; font-weight: 600; color: #1F1D1A; border-bottom: 2px solid #1F5C63">Pages</button>
   <button role="tab" aria-selected="false" style="border: 0; background: transparent; padding: 0 0 8px; font-size: 13px; color: #6B645A; border-bottom: 2px solid transparent">Outline</button>
-  <button role="tab" aria-selected="false" style="border: 0; background: transparent; padding: 0 0 8px; font-size: 13px; color: #6B645A; border-bottom: 2px solid transparent">Bookmarks</button>
+  <button role="tab" aria-selected="false" style="border: 0; background: transparent; padding: 0 0 8px; font-size: 13px; color: #6B645A; border-bottom: 2px solid transparent">Attachments</button>
 </div>
 ```
 
@@ -560,7 +566,7 @@ Links in a `<nav aria-label="Document outline">`, padding `14px 10px`, gap 2. Ro
 
 ### 7.8 Status bar items
 
-Each item is a button (min-height 24, 12 px, `muted`) that opens its panel. Network indicator: shield in `accent`, count in `text`, explanation in `muted`. Repaired notice: wrench + "Repaired on open · Details" (Details underlined). Page label: plain text, "Page 3 · Repairs backlog" or "Page 3 of 24". If requests > 0 **(proposed)**: count stays `text`, explanation names the host ("2 requests · to files.example.org only"); a request to an unexpected origin turns the shield and count `warning`. With a document open the count is for that document (“N network requests for this document · to lamina’s storage only”; in shared review, “· live connection to lamina’s review server”); pages without a document keep “N network requests” plus the destination.
+Each item is a button (min-height 24, 12 px, `muted`) that opens its panel. Network indicator: shield in `accent`, count in `text`, explanation in `muted`. Repaired notice: wrench + "Repaired on open · Details" (Details underlined). Page label: plain text, "Page 3 · Repairs backlog" or "Page 3 of 24". If requests > 0 **(proposed)**: count stays `text`, explanation names the host ("2 requests · to files.example.org only"); a request to an unexpected origin turns the shield and count `warning`. **Wording (decided, one form for every area):** with a document open the count is for that document: “0 network requests for this document · Offline-safe: nothing uploaded” when nothing was sent, otherwise “N network requests for this document · to lamina’s storage only” (the destination names of [Account and cloud](account-cloud-product.md); in shared review, “· live connection to lamina’s review server”). Screens without a document (start window, home, settings, product pages) drop “for this document”: “0 network requests · Offline-safe: nothing uploaded”, or the count plus the destination.
 
 More items **(proposed)**; all keep the 2 px `focus` outline with a 1 px offset and radius 4:
 
@@ -580,7 +586,7 @@ More items **(proposed)**; all keep the 2 px `focus` outline with a 1 px offset 
 <footer style="min-height: 28px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px 16px; padding: 0 16px; border-top: 1px solid #E4DED3; background: #F7F4EE; font-size: 12px; color: #6B645A">
   <button style="min-height: 24px; display: flex; align-items: center; gap: 7px; border: 0; background: transparent; padding: 0 4px; font-size: 12px; color: #6B645A">
     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#1F5C63" stroke-width="1.5" aria-hidden="true"><path d="M12 3.5l7 2.5v5.5c0 4.3-3 7.6-7 9-4-1.4-7-4.7-7-9V6z"></path><path d="M9 12l2.2 2.2L15.5 10"></path></svg>
-    <span style="color: #1F1D1A; font-variant-numeric: tabular-nums">0 network requests</span><span>· Offline-safe: nothing uploaded</span>
+    <span style="color: #1F1D1A; font-variant-numeric: tabular-nums">0 network requests for this document</span><span>· Offline-safe: nothing uploaded</span>
   </button>
   <button style="min-height: 24px; display: flex; align-items: center; gap: 6px; border: 0; background: transparent; padding: 0 4px; font-size: 12px; color: #6B645A">
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M14.5 5.5a4 4 0 0 0-5 5L4.5 15.5l4 4 5-5a4 4 0 0 0 5-5l-2.5 2.5-2.5-.5-.5-2.5z"></path></svg>
@@ -705,9 +711,12 @@ From the files: a **status-bar note** while the signed file has unsaved changes:
 </span>
 ```
 
-**Banner (proposed)** when saving would *change* what a signature covers: a strip under the top bar (and secondary toolbar), 36 px min, `warning-tint`, `hairline` bottom, signature glyph and lead word in `warning`, 13 px `text`, actions right. It appears with the first edit that triggers it (not at save time) and stays until the edit is undone or saved. Wording: "**Saving will invalidate the signature.** This file is certified to allow no changes. Save a copy instead to keep the original signed." with buttons "Save a copy" (secondary) and "Details" (ghost).
+**Banner (proposed)** when saving would *change* what a signature covers: a strip under the top bar (and secondary toolbar), 36 px min, `warning-tint`, `hairline` bottom, signature glyph and lead word in `warning`, 13 px `text`, actions right. It appears with the first edit that triggers it (not at save time) and stays until the edit is undone or saved. Wording: "**Saving will invalidate the signature.** This file is certified to allow no changes. Save a copy instead to keep the original signed." with buttons "Save a copy…" (secondary; “Download a copy” on the web, the labels of `file.save-copy` in §8.4) and "Details" (ghost).
 
-**Constraint banner (proposed, from the editor areas):** the banner is a labelled `region` that names each signature and offers **Save a copy** · **Apply anyway…** (both secondary, 26 px) · **Details** (ghost). Apply anyway opens an `alertdialog` that lists each signature as a **signature row** (white card: signature glyph, signer 600, kind badge — Certification `accent`, Valid `positive` — and a 12 `muted` line with field, scope and date) and confirms with a danger-filled button naming the result (“Crop and invalidate signature”). It is one of the strips in §7.29.
+**Constraint banner (proposed, from the editor areas):** the banner is a labelled `region` that names each signature and offers **Save a copy…** (“Download a copy” on the web) · **Apply anyway…** (both secondary, 26 px) · **Details** (ghost). Apply anyway opens an `alertdialog` that lists each signature as a **signature row** (white card: signature glyph, signer 600, kind badge — Certification `accent`, Valid `positive` — and a 12 `muted` line with field, scope and date) and confirms with a danger-filled button naming the result (“Crop and invalidate signature”). It is one of the strips in §7.29.
+
+- **Timing in certified files (proposed, Comment):** in a mode where every tool makes a change the certification forbids, the banner shows on mode entry instead of at the first offending edit: Comment mode at DocMDP P1 and P2, Fill & Sign at P1. Everywhere else the first-edit rule stands. The wording names the level (“certified … for form filling only” or “to allow no changes”).
+- **Page changes in certified files (proposed, Edit session):** before Apply anyway the banner ends “… so nothing has been deleted”; after it, “Saving will invalidate the certification.”; Save a copy… then runs the remove-signature confirm worded for the copy.
 
 ### 7.14 Bottom bar (phone)
 
@@ -752,11 +761,15 @@ Touch selection handles: 2×16 px `accent` caret with a 10 px `accent` dot (abov
 </section>
 ```
 
+**Modal and non-modal sheets (proposed, Reader A):** a sheet that asks a question or holds a form is a modal dialog (`role="dialog"`, `aria-modal="true"`, focus trap). A sheet that lists results the user steps through with a toolbar that stays visible (phone find Results, R05) is non-modal: a labelled `section`, no focus trap, and the toolbar and page stay usable.
+
 ### 7.17 Page indicator pill (phone)
 
 ```html
 <div aria-live="polite" style="position: absolute; left: 50%; bottom: 100px; transform: translateX(-50%); height: 30px; display: flex; align-items: center; padding: 0 14px; border-radius: 15px; background: rgba(31,29,26,0.78); color: #FFFFFF; font-size: 13px; font-weight: 500; font-variant-numeric: tabular-nums; letter-spacing: 0.02em">3 / 24</div>
 ```
+
+**Hint state (proposed, Comment):** for the first three sessions of a mode that takes over one-finger gestures, the pill may show a one-line hint (“Use two fingers to scroll”) in place of the page number; it moves up to sit 16 px above whatever bar is showing.
 
 ### 7.18 Dialog (proposed)
 
@@ -766,7 +779,7 @@ Rules **(proposed)**:
 
 - **Destructive confirm:** an `alertdialog` whose confirm button is danger-filled starts with focus on Cancel, lists the consequences (each with an 18 px icon), names any signatures it will remove in a `warning-tint` notice, and repeats the count on the button (“Apply 10 redactions”, “Flatten 14 comments”).
 - **Live preview:** a page in thumbnail style (232 × 300) on a `gutter` well (radius 4, padding 16); new marks in their output colour inside 1 px dashed `control-border` boxes; a page stepper with a live region; `role="img"` with a describing note.
-- **Server consent block:** the required step before any upload, inside the dialog (never a separate pop-up): white with a `control-border` edge; Share icon in `accent` + heading (“This conversion runs on lamina’s server”) + why the device can't do it and that nothing is sent until the person agrees; a consent definition list (`dl` in a 112 px / 1fr grid between `hairline` rules, terms 12/600 `text-3`) with four fixed rows — What is sent · Where to · How long it stays · What it is used for; a checkbox whose label repeats the file name, unchecked by default and never remembered. The primary (“Upload and convert”) stays disabled with a visible reason until it is ticked.
+- **Server consent block:** the required step before any upload, inside the dialog (never a separate pop-up): white with a `control-border` edge; Share icon in `accent` + heading (“This conversion runs on lamina’s server”) + why the device can't do it and that nothing is sent until the person agrees; a consent definition list (`dl` in a 112 px / 1fr grid between `hairline` rules, terms 12/600 `text-3`) with four rows — What is sent · Where to · How long it stays · What it is used for — worded for the job **(proposed, Convert and produce: see its [consent wording per job](convert-compare-produce.md#consent-wording-per-job))**: the heading names the job (“This conversion runs on lamina’s server”, “Reading the text runs on lamina’s server”); What is sent says exactly what leaves (the whole file with its size, only the chosen pages, an address only, or *n* files with their total size); Where to uses the destination names of [Account and cloud](account-cloud-product.md) and names any other host the server will contact; How long it stays ends at download and at 24 hours at most; What it is used for names the one job and ends “Not kept, not used for anything else.”; a checkbox whose label names what is sent (file, pages, address or file count), unchecked by default and never remembered. The primary (“Upload and convert”, “Upload and read text”, “Send and convert”, “Upload and run”) stays disabled with a visible reason until it is ticked. The retention promise is set before upload; panels after upload repeat it and offer only “Delete from server now”, never a longer stay.
 - **Popover dialog:** a non-modal `role="dialog"` anchored to its button with menu styling (§7.28), for pickers (stamps) that hold a tablist.
 
 ```html
@@ -816,7 +829,7 @@ More controls **(proposed)**:
 | Control | Spec |
 | --- | --- |
 | Password field | The text input with an inline “Show” text toggle (13/600 `accent`, `aria-pressed`) inside the right edge |
-| Keyword chips input | A 32 px min field holding 22 px chips (`ground` fill, `chip-border`, radius 3) with 20 px remove buttons, and a borderless input filling the rest |
+| Keyword chips input | A 32 px min field holding 26 px chips (`ground` fill, `chip-border`, radius 3) with 24 px remove buttons (12 px icon), so the remove target meets the 24 px desktop minimum (§8.9), and a borderless input filling the rest |
 | Filter chip | 24 px, white, `control-border`, radius 3, 12 px, a 12 px close glyph; the whole chip is a button (“Remove filter: Open”) |
 | Segmented radio group | `role="radiogroup"` grid of equal buttons, 28 px (44 touch), gap 4, radius 4 (6 touch). Off: white + `control-border`; on: `accent` border, `accent-tint`, `accent` 600 |
 | Toggle group | Joined 30 × 28 buttons in one `control-border` box (radius 4) with `hairline` dividers; pressed = `accent-tint` and `accent`. `role="group"` with a visible label, each button `aria-pressed` (bold, italic, alignment) |
@@ -832,6 +845,7 @@ More controls **(proposed)**:
 ### 7.20 Toast and notice (proposed)
 
 - **Toast:** short confirmation of an action that already happened ("Copied", "Highlights exported"). Bottom centre, 24 px above the status bar (phone: above the bottom bar, where the pill sits; it replaces the pill). `text` bg `#1F1D1A`, white 13 px (16.81), radius 6, padding `8px 14px`, floating shadow; an optional action is white underlined text ("Undo"). `role="status"`; 4 s, paused while hovered or focused; never the only place an error is reported. **Persistent toast (proposed):** the same with two text actions, staying until acted on; only for something that waits on the user's consent (“Update ready · Restart · Later”).
+- **Partial undo (proposed, Edit session):** when an undo applies only partly (`UndoOutcome::Partial`), a toast with normal timing plus a `warning-tint` notice at the top of the History tab until the next edit, since a toast is never the only place.
 - **Notice:** an inline strip inside a panel or under the bars for a lasting state (repaired file details, approximate reflow, offline). Tint background (`warning-tint`, `danger-tint`, `positive-tint` or `surface`), `hairline` edge, radius 4, padding `10px 12px`, 16 px icon in the status colour, title 600 + body 13 px `text`. No left-border accent stripe.
 
 ```html
@@ -843,7 +857,7 @@ More controls **(proposed)**:
 
 ### 7.21 Empty state (proposed)
 
-Centred in the region it fills, max-width 360, gap 12: optional 32 px stroke icon `muted`; title Newsreader 20/500 (Display 40/44 only on the home screen); one sentence 14 `muted`; at most one primary and one ghost action. Example: Bookmarks tab, "No bookmarks yet" / "Choose Add bookmark from a page’s More menu."
+Centred in the region it fills, max-width 360, gap 12: optional 32 px stroke icon `muted`; title Newsreader 20/500 (Display 40/44 only on the home screen); one sentence 14 `muted`; at most one primary and one ghost action. Example: Outline tab of a file without bookmarks, "This file has no outline" / "Use Pages to move through it."
 
 **Error page (proposed):** the empty state with a 32 px `danger` Warning icon, the error code in 12 `muted` under the sentence, `role="alert"`, one primary and one ghost action; focus moves to the primary action.
 
@@ -884,7 +898,7 @@ From the Comment toolbar: 28 high, padding `0 10px`, gap 6, radius 4, 16 px icon
 <button aria-pressed="true" style="height: 28px; display: flex; align-items: center; gap: 6px; padding: 0 10px; border: 1px solid #1F5C63; background: #E1E6E3; color: #1F5C63; border-radius: 4px; font-weight: 600"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M14.5 4.5l5 5L11 18H6v-5z"></path><path d="M4 20.5h9"></path></svg>Highlight</button>
 ```
 
-**Split tool button (proposed):** the toggle (right radius 0) plus a 20 × 28 chevron part (left radius 0, 14 px chevron, `aria-label="Choose <thing>"`, `aria-haspopup="menu"`). The toggle part is the last-used item and carries the pressed state (Shape ▾, Text box ▾). **Menu tool button:** the toggle with a 14 px chevron after the label, `aria-haspopup="menu"` (Stamp ▾, Page setup ▾, Form data ▾); when the active tool lives inside its menu, the menu button shows selected.
+**Split tool button (proposed):** the toggle (right radius 0) plus a 20 × 28 chevron part (left radius 0, 14 px chevron, `aria-label="Choose <thing>"`, `aria-haspopup="menu"`). The toggle part is the last-used item and carries the pressed state (Text box ▾ in Comment; Shape ▾ in Edit, A01). **Menu tool button:** the toggle with a 14 px chevron after the label, `aria-haspopup="menu"` (Shapes ▾ in Comment, Stamp ▾, Page setup ▾, Form data ▾); when the active tool lives inside its menu, the menu button shows selected.
 
 **Tool toolbar (proposed):** the secondary toolbar of a tool that works inside a mode (Redact, Protect, Form design, Accessibility, Print production, Measure). Same metrics; it starts with the tool's 16 px icon and its name in Newsreader 15/500 and ends with a context note and **Done** (secondary), which returns to the mode's own toolbar.
 
@@ -893,6 +907,10 @@ From the Comment toolbar: 28 high, padding `0 10px`, gap 6, radius 4, 16 px icon
 From the style tile: 4-column grid gap 10; chip padding 8, gap 8, radius 6; preview 52 high, radius 3, "Aa" in Source Serif 4 20 px on the appearance's paper and ink; selected chip white with a 2 px `accent` border and a 13/600 label, others `surface` with `chip-border` and 13/400. `role="group"` + `aria-pressed`.
 
 **Theme chips (proposed):** the same anatomy with a 52 px preview of the chrome ground and a small white page; Match system splits light and dark.
+
+**Compact chips (proposed, Reader B R10):** in popovers narrower than 400 px the chips sit in a 2 × 2 grid: a 40 × 32 `Aa` preview to the left of a 13 px label, padding 6, gap 10, radius 6; selected as above. Keeps “High contrast” on one line.
+
+**Theme radio grid (proposed, Reader B R10):** the Theme radio group (§7.19) in a 2 × 2 grid, rows 32 px (44 on the phone), order Light · Dark · High contrast · Match system.
 
 ### 7.26 Menu (proposed)
 
@@ -978,11 +996,12 @@ Drawn over the page (layer 1, §4) and `aria-hidden` unless stated. Every overla
 | Redaction mark | `danger-tint` fill with a 1.5 px `danger` outline (accepted) or dashed outline (to review); preview and applied: a solid `text` box (`#1F1D1A`) with optional overlay text, `role="img"` named “Redacted” |
 | Remote selection | 2 px outline in the reviewer's presence colour, offset 2, with a 20 px name tag (white 12/600 on the colour, radius 3) at the top right |
 | Pen hover preview | 2 px `accent` caret plus a 14 px ring (2 px `accent` over 60% white), only while a pen hovers |
+| Target (proposed, Sign/protect/redact) | The page object a dialog, menu or sheet acts on (the field being signed behind G01's menu, G02, G03, G11's sheet): 1 px `accent` outline, offset 2, on an `accent-tint` fill. It is not the focus ring, so a board still shows one 2 px ring |
 
 ### 7.33 Desktop windows (proposed)
 
 - **Document tab strip:** 34 px row on `#EFEBE3`, `#E0D9CD` rule below. Tabs `flex: 0 1 220px`, min 120, padding `0 4px 0 12px`, 1 px `#E0D9CD` dividers; label 13 px (active `text` 600, others `muted`, ellipsis); the active tab sits on `ground` with `margin-bottom: -1px` so it joins the top bar; hover `hover` fill. A 24 × 24 close button with a 14 px cross on the active, hovered and focused tab. When tabs don't fit at 120 px, a “+N” overflow button (26 px, chevron, pressed = toggle-selected style) opens a menu (§7.26) of all tabs; an add button (26 px, Plus). `role="tablist"` with roving tabindex; hidden with one tab.
-- **Settings window and settings page:** a section list (200 px in the desktop window, 220 px on the web; `ground`, `hairline` right, padding `16px 10px`, 32 px link rows, radius 4; current `accent` 600 on `accent-tint`, `aria-current="page"`); content on `surface` with padding `28px 32px` (max 960); setting rows: label + 12 px help on the left, control on the right, 12 px vertical padding, `hairline` between.
+- **Settings window and settings page:** a section list (200 px in the desktop window, 220 px on the web; `ground`, `hairline` right, padding `16px 10px`, 32 px link rows, radius 4; current `accent` 600 on `accent-tint`, `aria-current="page"`); content on `surface` with padding `28px 32px` (max 960); setting rows: label + 12 px help on the left, control on the right, 12 px vertical padding, `hairline` between. **One section list (proposed, Desktop shell S07 and Account and cloud H02):** General · Appearance · Updates · Privacy · Shortcuts · Licence · Account and plan · Notifications · Advanced · About; the web page drops Updates and Advanced.
 
 ### 7.34 Rail panel and view bar (proposed)
 
@@ -1016,7 +1035,7 @@ Drawn over the page (layer 1, §4) and `aria-hidden` unless stated. Every overla
 
 ### 7.39 Site and product pages (proposed)
 
-- **Docs-site header:** 64 px, max 1120 px: wordmark Newsreader 24/500, 15 px nav links (current 600 + 2 px `accent` underline), one secondary button. The download page uses a 56 px variant with a Newsreader 22 wordmark and three links. Footer 12 `muted` with the licence line. No app shell.
+- **Docs-site header:** 64 px, max 1120 px: wordmark Newsreader 24/500, the one site nav for every docs-site page (15 px links Download · Docs · Pricing · Performance · Privacy; current 600 + 2 px `accent` underline), and one secondary button, “Open the web app”. The download page uses a 56 px variant with a Newsreader 22 wordmark and the same five links and button. Footer 12 `muted` with the licence line. No app shell.
 - **Large primary link:** 40 px primary button styling on an `<a>`, with the Download icon (“Download for macOS”).
 - **Plan block** (in dialogs): white, `hairline` edge, radius 4, padding 16: plan name Newsreader 18, price 600 + terms `muted`, a 13 px check list. **Plan card** (docs site): `surface`, padding 28, name 26, price 40 Newsreader.
 
@@ -1033,11 +1052,11 @@ One secondary toolbar at a time, under the top bar, never two: a tool toolbar (�
 | Mode or tool | Secondary toolbar |
 | --- | --- |
 | Read | None (page + top bar only); the find bar while find is open |
-| Comment **(proposed, from C01)** | Select │ Highlight · Underline · Strike · Caret · Note · Text box ▾ · Ink · Shapes ▾ · Stamp ▾ · Attach file │ Colour · Width │ … · “n comments on this page” · Comments. Colour and width show only for tools that use them; the colour set swaps with the tool (§2.7) |
+| Comment **(proposed, from C01)** | Select │ Highlight · Underline · Strike · Caret · Note · Text box ▾ · Ink · Shapes ▾ · Stamp ▾ · Attach file │ Colour · Width │ … · “n comments on this page” · Comments. Colour and width show only for tools that use them; the colour set swaps with the tool (§2.7). Fitting rules **(proposed, Comment)**: Underline, Strike and Caret are icon-only; Text box ▾ is a split tool button and Shapes ▾ a menu tool button (§7.24); the page-count note hides while Colour and Width show and the count moves into the Comments button's name. The row is then about 1,350 px wide, so Comment wraps below about 1,366 px rather than 1,024 px |
 | Fill & Sign **(proposed, from P01)** | Previous field · Next field · Highlight fields (toggle) │ Text · Check · Date │ Add a signature image (Signature image icon) · Sign with a certificate (Certificate icon) · Form data ▾ · … · “3 of 8 required fields filled” |
-| Organise **(proposed, from O06 + O09–O11)** | Insert ▾ · Rotate left · Rotate right · Extract · Delete │ Move to page… │ Page setup ▾ (Crop, Resize…, Page boxes…, Page labels…, Make landscape, Make portrait) · Bookmark ▾ (Add bookmark, Create a contents page…, Named destinations…) · More page actions (⋯) · context note (“2 pages selected”). The canvas becomes the page grid; the rail shows Outline · History (no Pages tab) |
+| Organise **(proposed, from O06 + O09–O11)** | Insert ▾ · Rotate left · Rotate right · Extract · Delete │ Move to page… │ Page setup ▾ (Crop, Resize…, Page boxes…, Page labels…, Make landscape, Make portrait) · Bookmark ▾ (Add bookmark, Create a contents page…, Named destinations…) · More page actions (⋯) · context note (“2 pages selected”). The canvas becomes the page grid; the rail shows Outline · History (no Pages tab), plus Attachments when the file has attachments (§8.10) |
 | Edit **(proposed, from A01)** | Select · Edit text · Add text · Image · Shape ▾ · Link │ Page marks ▾ · Replace… │ Redact · Protect · Tools ▾ (Form design, Actions, Accessibility, Print production) · context note with the active tool's hint |
-| Redact (tool of Edit) | “Redact” title · Mark text · Mark area · Find sensitive… │ Preview result (toggle) · state text (“11 marks · nothing removed yet”; after applying “10 redactions applied · undo with ⌘Z until you save”) · Apply redactions… (secondary, hidden after applying) · Done |
+| Redact (tool of Edit) | “Redact” title · Mark text · Mark area · Find sensitive… │ Preview result (toggle) · state text (“11 marks · nothing removed yet”; after applying “10 redactions applied · undo with ⌘Z until you save”) · Apply redactions… (secondary, hidden after applying) · Done. Apply covers accepted marks only **(proposed, Sign/protect/redact)**: the confirm repeats the count of accepted marks on its button and lists marks still to review and rejected ones as “left as they are” |
 | Protect (tool of Edit) | “Protect” title · its settings · Done |
 | Form design (tool of Edit) | “Form design” title · Select · Text field · Check box · Radio group · Dropdown · List box · Button · Signature · Date │ Tab order · Detect fields · … · Snap to grid · field count · Done. While Tab order or Detect fields is on, the field tools give way to a `muted` “Field tools are paused…” note |
 | Accessibility, Print production, Actions (tools of Edit) | Title · the tool's commands · context note · Done |
@@ -1062,7 +1081,9 @@ No auto-save. The top bar shows the state ("No unsaved changes", "1 unsaved chan
 - Closing with changes: dialog "Save changes to Q3-board-report.pdf?" with "Save", "Don't save", "Cancel".
 - **Save a copy** (`file.save-copy`, proposed): “Download a copy” on the web, “Save a copy…” on the desktop. It writes the document as it is now: in the reader v0.1 (no edits) that is the original bytes; in an edit session it includes the unsaved changes, and under a certification conflict it still needs the remove-signature confirm (ADR 0007). It has no shortcut: `Mod S` is Save, in edit sessions only. The web fallback for Save without File System Access is Download (`file.download`), which then rebases onto the downloaded bytes.
 
-**File changed on disk (proposed, desktop):** with no unsaved changes, reload silently keeping page and zoom, then a toast “Reloaded: Q3-board-report.pdf changed on disk”. With unsaved changes, a `warning-tint` strip (§7.29) offers Compare · Keep mine · Reload from disk when the change is detected; the next Save opens the alertdialog “This file changed on disk” with Save as… (primary) · Reload · Overwrite (danger ghost). Overwrite is a full rewrite: appending is impossible on a changed file.
+**File changed on disk (proposed, desktop):** with no unsaved changes, reload silently keeping page and zoom, then a toast “Reloaded: Q3-board-report.pdf changed on disk”. With unsaved changes, a `warning-tint` strip (§7.29) offers Compare · Keep mine · Reload from disk when the change is detected; the next Save opens the alertdialog “This file changed on disk” with Save as… (primary) · Reload · Overwrite (danger ghost). Keep mine dismisses the strip and keeps editing; the next Save still opens that dialog. **Overwrite** writes the whole file: the bytes kept at open plus the session as an incremental revision, rebuilt into a temporary file that is then renamed over the changed one (appending to the changed file is impossible). It is not a `FullWriter` rewrite, so signatures in the opened file stay valid (ADR 0007) **(proposed, Edit session)**.
+
+**Save blocked by a report (proposed, Edit session O02, O03):** while the redaction report blocks saving, the Save options menu and the close dialog show the block reason and “Show report” (§8.5).
 
 **Undo:** every action is one op and one undo step, including a replace-all or a page mark on every page. Undo and Redo name the step.
 
@@ -1074,7 +1095,7 @@ No auto-save. The top bar shows the state ("No unsaved changes", "1 unsaved chan
 - **Repaired file:** status-bar notice "Repaired on open · Details"; details in a panel, never a modal.
 - **JavaScript (proposed standard wording):** wherever a file's scripts are mentioned (repair details “Not run”, document properties, the status-bar note, the actions list), say “This file contains JavaScript. lamina never runs it.” Forms add what lamina handled natively (“lamina never runs JavaScript; it handled the 3 scripts it recognises natively and skipped 1.”). This assumes the outcome of ADR 0021 (PDF JavaScript policy, [E8a](../../todos/ready/E8a-adr-0021-javascript-policy.md)), which is **still pending**; change the wording if that ADR decides otherwise.
 - **Marked is not removed:** any state that keeps original content in the file says so in words where the user acts (toolbar state text, inspector note, status bar); the word “redacted” appears only after Apply and a passing report. The history note (§6.1) says the same for deleted or replaced content.
-- **Blocked save:** when a report finds a problem the user must fix first, Save stays visible but `aria-disabled="true"` with `aria-describedby` on the `danger` strip's text; the strip carries the fix button; Save re-enables as soon as a re-run passes.
+- **Blocked save:** when a report finds a problem the user must fix first, Save stays visible as the blocked primary (§7.0), `aria-disabled="true"` with `aria-describedby` on the `danger` strip's text; the strip carries the fix button; Save re-enables as soon as a re-run passes.
 - **Uploads ask first:** nothing leaves the device without the server consent block (§7.18); afterwards the network indicator names the host and counts the approved uploads, and a panel lists each upload with a delete control.
 
 ### 8.6 Page appearance vs UI theme
@@ -1098,14 +1119,14 @@ Two separate settings in View settings: **Theme** (Light, Dark, High contrast, M
 - The shortcut help dialog lists the active platform's shortcuts only.
 
 - **Scope of single keys (proposed):** a single key belongs to one mode and one focus region, so the same letter can mean different things in different modes but never two things at once. Tool letters work in the mode whose toolbar shows the tool; `R` is Reader mode in Read mode, Rectangle in Comment mode and Rotate right in the Organise grid. Single keys never switch mode.
-- **Desktop-only keys:** the desktop app may bind `⌘W`/`Ctrl W` (close tab), `⇧⌘W` (close window), `⌘Q`/`Ctrl Q` (quit), `⇧⌘N`/`Ctrl Shift N` (new window), `⇧⌘S`/`Ctrl Shift S` (Save as), `⌥⌘F`/`Ctrl H` (Find and replace) and `⌘[`/`⌘]` (Back, Forward), because no browser sits around it. The web app leaves them to the browser (on the web, Back and Forward are the browser's own; link jumps are pushed to history). The shortcut help shows them only in the desktop app. lamina never binds `⌘N`, `⌘T`, `⌘L` or `Mod G`.
+- **Desktop-only keys:** the desktop app may bind `⌘W`/`Ctrl W` (close tab), `⇧⌘W` (close window), `⌘Q`/`Ctrl Q` (quit), `⇧⌘N`/`Ctrl Shift N` (new window), `⇧⌘S`/`Ctrl Shift S` (Save as), `⌥⌘F`/`Ctrl H` (Find and replace), `⌘[`/`⌘]` (Back, Forward) and `F1` (Keyboard shortcuts), because no browser sits around it. The web app leaves them to the browser (on the web, Back and Forward are the browser's own; link jumps are pushed to history). The shortcut help shows them only in the desktop app. lamina never binds `⌘N`, `⌘T`, `⌘L` or `Mod G`.
 
 **Shortcut table (proposed).** One row per command; macOS / Windows and Linux. “Page” means the page has focus (single-key rules apply). A command not listed has no shortcut and is in the palette and menus.
 
 | Command | Id | macOS | Windows / Linux | Scope |
 | --- | --- | --- | --- | --- |
 | Command palette | `palette.open` | ⌘K | Ctrl K | Everywhere |
-| Keyboard shortcuts | `help.shortcuts` | ? | ? | Page |
+| Keyboard shortcuts | `help.shortcuts` | ? (page); F1 (desktop app) | ? (page); F1 (desktop app) | Page; F1 desktop app only **(proposed, Desktop shell)**: a native menu accelerator can't be a page-scoped single key |
 | Open a file | `file.open` | ⌘O | Ctrl O | Everywhere |
 | Save | `file.save` | ⌘S | Ctrl S | Edit sessions only |
 | Save as… | `file.save-as` | ⇧⌘S | Ctrl Shift S | Desktop app only |
@@ -1155,7 +1176,7 @@ Two separate settings in View settings: **Theme** (Light, Dark, High contrast, M
 **Command ids (proposed rule).** Every command in the registry has one id, used by the palette, menus, shortcuts, telemetry counts and the docs.
 
 - Form: `namespace.verb-object`, lowercase, kebab-case, exactly one dot (`file.save-copy`, `pages.rotate-left`). Variants are arguments, not more segments: `view.theme` (`light`, `dark`, `high-contrast`, `system`), `view.page-appearance`, `view.page-layout`, `comment.shape` (`kind`), `tool.shape` (`kind`), `comment.set-colour` (colour name).
-- The namespace names the thing acted on or the surface, never a mode: `app`, `window`, `tab`, `session`, `crash`, `help`, `palette`, `layer`, `selection`, `privacy`, `settings`, `account`, `licence`, `mode`, `file`, `view`, `nav`, `find`, `edit`, `tool`, `pages`, `document`, `xmp`, `organise` (only bookmarks, destinations, attachments and the initial view), `comment` (Comment tools and threads), `comments` (the Comments panel), `annot` (a selected annotation), `attachment`, `stamps`, `form`, `form-design`, `sign`, `signatures`, `security`, `redact`, `a11y`, `tags`, `actions`, `layers`, `measure`, `print`, `ocr`, `convert`, `compare`, `revisions`, `batch`.
+- The namespace names the thing acted on or the surface, never a mode: `app`, `window`, `tab`, `session`, `crash`, `help`, `palette`, `layer`, `selection`, `privacy`, `settings`, `account`, `licence`, `mode`, `file`, `view`, `nav`, `find`, `edit`, `tool`, `pages`, `document`, `xmp`, `organise` (only bookmarks, destinations, attachments and the initial view), `comment` (Comment tools and threads), `comments` (the Comments panel), `annot` (a selected annotation), `attachment`, `stamps`, `form`, `form-design`, `sign`, `signatures`, `security`, `redact`, `a11y`, `tags`, `actions`, `layers`, `measure`, `print`, `ocr`, `convert`, `compare`, `revisions`, `batch`, `jobs` (server jobs).
 - Page operations are `pages.*` in every mode. Tool toggles are `tool.*` in Edit and `comment.*` in Comment. A command that opens a tool toolbar is `<namespace>.open` (`redact.open`, `form-design.open`, `actions.open`, `print.open`) unless the tool's job is its own command (`a11y.check`, `security.protect`).
 - One id per action across areas; labels may differ by platform or state (`file.save-copy` is “Download a copy” on the web and “Save a copy…” on the desktop).
 - Preference keys in Settings (`open.target`, `watch.reload`…) are not command ids; a palette command that changes a setting is `settings.<name>`.
@@ -1181,7 +1202,7 @@ Two separate settings in View settings: **Theme** (Light, Dark, High contrast, M
 - The rail starts with **Pages · Outline**, then contextual tabs that exist only when the file or the moment needs them: Attachments (the file has attachments; always in Edit), Results (find is open), History (an edit session exists), Fields (the file has form fields), Signatures (the file has signatures), Review and Find sensitive (Redact), Threads (the file has article threads). “Outline” is the PDF's bookmarks; there is no separate user Bookmarks tab.
 - **Width:** 220 px for up to three tabs; 280 px with four or more, showing three tabs and the More tabs button (§7.5).
 - **Third slot:** the tab of what you are doing now takes the third visible place (Results while find is open, Fields in Fill & Sign and Form design, Review in Redact, Find sensitive while that search is open); the rest go into More tabs. The selected tab is always visible.
-- **Organise** shows Outline · History and no Pages tab (the grid is the pages).
+- **Organise** shows Outline · History and no Pages tab (the grid is the pages); Attachments joins them as a contextual tab when the file has attachments **(proposed, Pages and navigation)**.
 - A task that needs the whole rail uses a rail panel (§7.34) instead of a tab.
 
 ### 8.11 Read mode is read-only (proposed)
@@ -1199,7 +1220,7 @@ One compare view, from X04: side by side or overlay, version selects, Previous /
 - **Plain words, the user's object first:** "Delete highlight", not "Remove annotation object"; say what happens, not what the system does.
 - **Numbers:** tabular, thousands with commas ("1,248"), percentages without a space ("110%"), dates as "28 Oct 2026, 16:04".
 - **States say the fact:** "No unsaved changes", "1 unsaved change", "1 comment on this page", "24 pages".
-- **Trust copy states proof, not reassurance:** "0 network requests · Offline-safe: nothing uploaded"; "Signed file. Saving adds your changes after the signature; the signature stays valid."; "Repaired on open · Details".
+- **Trust copy states proof, not reassurance:** "0 network requests for this document · Offline-safe: nothing uploaded"; "Signed file. Saving adds your changes after the signature; the signature stays valid."; "Repaired on open · Details".
 - **Hints are short imperatives:** "↑ ↓ to move", "↵ to run", "Type “go to 12” or “zoom 150” to pass a value".
 - **Labels for icon-only buttons** are verb phrases: "Find in document", "Close inspector", "Back to files", "Resize sheet", "More selection actions".
 - No exclamation marks, no "Oops", no blame ("This file has a damaged cross-reference table; lamina rebuilt it", not "Invalid file").
@@ -1241,7 +1262,7 @@ On 2026-10-29 the “New components” and “Proposed design-language additions
 | 12 | Strips and banners | Reader B, Desktop shell, Edit session, Sign/protect/redact, Convert and produce, Account and cloud | One strip (§7.29), 36 px min, tinted by meaning | Six near-identical components | Board follow-up: Convert and produce X03 revision strip (40 px) |
 | 13 | Badge size | Convert and produce (18 px, 11/600) vs §7.23 (20 px, 12/600) | 20 px, 12/600 | 12 px is the UI minimum (§3) | Board follow-up: Convert and produce X06, X08, X10, X11 |
 | 14 | Docked panel widths | Reader B (288–320), Comment (360), Sign/protect/redact (340, 360), Convert and produce (inspector 300) | 288 inspector; 360 wide docked panel (§6.1) | Two widths | Board follow-up: Reader B R13–R14 (320), Sign/protect/redact G07 (340), Convert and produce X12 (300) |
-| 15 | Icon drawings | Several | One drawing per name (§5): Printer (Convert), File (common; not Pages and navigation's rounded one, not Desktop shell's Document), Lock rx 1.5, Paperclip (Reader A), Link (Reader A), Download (common; not Desktop shell's tray, not Forms' Import), Upload = Share, Select (Comment/Forms), Undo (Edit session), Align (Add and edit), Arrow up/down (Edit session), Eye (Convert), Delete (Edit session), Redact (Sign), Replace = Swap (Add and edit), Tools (Add and edit grid, not the wrench), Plus = Zoom in, Forward vs Chevron right kept distinct, Drag grip stroked | Same name, same drawing | Board follow-up: Reader A, Reader B, Desktop shell (Printer, Document, Download), Pages and navigation (File, Paperclip, Plus, Tools wrench, filled grip), Comment (Paperclip, Undo, Align), Add and edit (Select, Link, Redact, Chevron right), Forms (Text tool, Import), Sign/protect/redact (Lock, Eye, Delete, Upload), Convert and produce (Lock, Arrow up/down, Swap), Account and cloud (Link). Open: Mark area and Focus mode look alike |
+| 15 | Icon drawings | Several | One drawing per name (§5): Printer (Convert), File (common; not Pages and navigation's rounded one, not Desktop shell's Document), Lock rx 1.5, Paperclip (Reader A), Link (Reader A), Download (common; not Desktop shell's tray, not Forms' Import), Upload = Share, Select (Comment/Forms), Undo (Edit session), Align (Add and edit), Arrow up/down (Edit session), Eye (Convert), Delete (Edit session), Redact (Sign), Replace = Swap (Add and edit), Tools (Add and edit grid, not the wrench), Plus = Zoom in, Forward vs Chevron right kept distinct, Drag grip stroked | Same name, same drawing | Board follow-up: Reader A, Reader B, Desktop shell (Printer, Document, Download), Pages and navigation (File, Paperclip, Plus, Tools wrench, filled grip), Comment (Paperclip, Undo, Align), Add and edit (Select, Link, Redact, Chevron right), Forms (Text tool, Import), Sign/protect/redact (Lock, Eye, Delete, Upload), Convert and produce (Lock, Arrow up/down, Swap), Account and cloud (Link). Mark area redrawn as a dashed rectangle with a corner handle (decision 37) |
 | 16 | Command id form | Reader B (`view.theme.dark`, `view.zoom.actual-size`…), Comment (`annot.text.bold`, `comment.shape.rectangle`, `comment.stamp.place`…) | `namespace.verb-object` with one dot; variants are arguments (§8.8) | Ids stay stable when options change | Text updated (Reader B, Comment) |
 | 17 | Page operation ids | Edit session (`pages.*`), Pages and navigation (`organise.*`) | `pages.*` in every mode, including crop, resize, boxes, labels, orientation; `pages.export-images` for page images and `file.export-pictures` for embedded pictures; `organise.*` kept only for bookmarks, destinations, attachments, initial view | Commands act on pages whatever the mode | Text updated (Pages and navigation). Board follow-up: Account and cloud H10 payload shows `organise.rotate-right` |
 | 18 | Save a copy | Reader A, Reader B (`file.download-copy`, Ctrl S), Desktop shell (`file.export-copy`), Edit session | `file.save-copy`, no shortcut; Mod S is Save, in edit sessions only; `file.download` is only Save's web fallback (§8.4) | One action, one id; Ctrl S must not mean two things | Text updated (Reader B, Desktop shell). Board follow-up: Reader B R12 shortcut list (Ctrl S on Download a copy), Desktop shell S03 label “Export a copy…” |
@@ -1250,7 +1271,7 @@ On 2026-10-29 the “New components” and “Proposed design-language additions
 | 21 | Single key `R` | Reader B (Reader mode), Comment (Rectangle), Edit session (Rotate right) | Single keys are scoped by mode and focus (§8.8): R = Reader mode in Read only | Each use is where people expect it | Text updated (Reader B R12) |
 | 22 | Read mode edits | Comment (mini toolbar highlights “without switching”; “Pen draws in Read mode” setting), others | Read mode is read-only in every area (§8.11); Highlight from the mini toolbar switches to Comment | Read promises nothing changes | Follow-up (design change): Comment C01 entry points and C09 pen setting |
 | 23 | Compare view | Sign/protect/redact G05, Convert and produce X04 | X04's view is canonical; G05 opens it with a signature-revision preset (§8.12) | One compare UI | Board follow-up: G05 boards |
-| 24 | File changed on disk while dirty | Desktop shell S04 (strip), Edit session O02 (dialog) | Clean: silent reload + toast. Dirty: S04's strip when detected; O02's dialog at the next Save; Overwrite is a full rewrite (§8.4) | The strip informs at once; the dialog decides at save time | Text updated (Desktop shell S04, Edit session O02) |
+| 24 | File changed on disk while dirty | Desktop shell S04 (strip), Edit session O02 (dialog) | Clean: silent reload + toast. Dirty: S04's strip when detected; O02's dialog at the next Save; Overwrite rewrites the whole file through a temporary file (§8.4, decision 40) | The strip informs at once; the dialog decides at save time | Text updated (Desktop shell S04, Edit session O02) |
 | 25 | JavaScript wording | Reader A, Convert and produce X11, Forms P02 | “This file contains JavaScript. lamina never runs it.” (§8.5); ADR 0021 still pending | One sentence everywhere | Text updated. Board follow-up: X11 status note |
 | 26 | Reader v0.1 top bar | Reader A, Reader B, Account and cloud | Reader A's (§7.1): no mode switcher or save state; History, View, Reader | v0.1 is read-only | None (editor-area Read boards keep the mode switcher) |
 | 27 | Editor top bar View button | Reader B, Account and cloud vs Add and edit, Forms, Edit session | View (view settings) in every editor top bar (§7.1) | Page appearance must be reachable in every mode | Board follow-up: Add and edit, Forms, Edit session boards |
@@ -1258,10 +1279,24 @@ On 2026-10-29 the “New components” and “Proposed design-language additions
 | 29 | Diff overlay orange ratio | Convert and produce (“6.9:1”) | `#B4540F` is 4.98:1 on white | Recomputed | None (the additions text is replaced) |
 | 30 | Drop zone | Reader A (radius 6, large), Pages and navigation (radius 4, compact) | Two sizes, radius 6 (§7.21) | Same component | Board follow-up: Pages and navigation O14 |
 | 31 | Measure tool entry | Convert and produce X12 (“Comment mode › Measure tool (Tools menu…)”) | Comment has no Tools menu: Measure opens from the palette, the “This page has a scale · Measure” note and the Comment toolbar's `…` (§8.1) | Keeps the Comment toolbar as drawn in C01 | Follow-up: X12 text and board |
+| 32 | Second merge (final review) | Every area | The remaining “Proposed design-language additions” were merged on 2026-10-29 into §2.3, §2.5, §3, §4, §5, §6.1, §6.2, §7.0, §7.1, §7.5, §7.13, §7.16–§7.21, §7.24, §7.25, §7.32, §7.33, §7.39, §8.1, §8.4, §8.5, §8.8, §8.10, marked “(proposed)” with the area named; new command ids went into the appendix | One place for the rules | See rows 33–45 |
+| 33 | Shape tool buttons | Comment (Shapes ▾ menu), Add and edit (Shape ▾ split), §7.24 (Shape ▾ as a split example) | Comment's Shapes ▾ is a menu tool button; Edit's Shape ▾ stays a split tool button (A01); §7.24 names each | Comment has no “last-used shape” toggle; Edit has | None |
+| 34 | Status bar slots | Desktop shell (right slot only the page label), Sign/protect/redact and Convert and produce (badges right) | Middle: notices, progress and persistent action items (Printing · Cancel, Update ready), then one note by priority; right: page label then signature, security and claim badges (§6.1) | Badges are facts about the document, not notices | None |
+| 35 | Banner “Save a copy” label | §7.13 (“Save a copy”), §8.4 (“Save a copy…”) | The `file.save-copy` labels: “Save a copy…” on the desktop, “Download a copy” on the web | One label per platform | Text and boards updated (Forms P01 web board now says “Download a copy”) |
+| 36 | Network indicator wording | Reader A, Reader B, Account and cloud (“for this document”) vs others (“· Offline-safe: nothing uploaded”) | With a document: “0 network requests for this document · Offline-safe: nothing uploaded”; without one: “0 network requests · Offline-safe: nothing uploaded” (§7.8) | Both halves are proof; the count is per document | Text and boards aligned on 2026-10-29 |
+| 37 | Mark area icon | Sign/protect/redact (closes decision 15's open point) | Dashed rectangle with a square corner handle (§5) | No longer reads as Focus mode | None (G08–G10 draw it) |
+| 38 | 11 px labels on the page | Forms (§7.32 overlay labels) vs §3 (11 px only for chips and overlines) | Allowed as an explicit §3 exception for page-overlay labels and tags | They sit on the page at its zoom and repeat at ≥ 12 px in the inspector or a rail tab | None |
+| 39 | Keyword chip remove button | Edit session (24 px) vs §7.19 (20 px) | 26 px chips with 24 px remove buttons (§7.19) | Meets the 24 px desktop target | None |
+| 40 | Overwrite on a changed file | §8.4 (“a full rewrite”), Edit session O02 | Overwrite rebuilds the whole file from the bytes kept at open plus the session as an incremental revision, via a temporary file and a rename; not a `FullWriter` save (§8.4) | “Full rewrite” would read as breaking signatures (ADR 0007) | None |
+| 41 | Organise rail and zoom | §8.10 (Outline · History only), §7.1 (thumbnail control replaces the page input), Pages and navigation | Organise may add the contextual Attachments tab; the thumbnail size control replaces page input and zoom and zooms the single page while Crop is on | Matches O09–O14 | None |
+| 42 | Docs-site header | §7.39 (download page: three links), Account and cloud H08/H09, Desktop shell S09 | One nav for every docs-site page: Download · Docs · Pricing · Performance · Privacy + “Open the web app”, in both header sizes | One site, one nav | None |
+| 43 | `help.shortcuts` on desktop | Desktop shell (F1), §8.8 (`?` only) | `?` on the page everywhere; F1 in the desktop app (§8.8) | A native menu accelerator can't be a page-scoped single key | None |
+| 44 | Server consent wording | §7.18 (four fixed rows, checkbox repeats the file name), Convert and produce | Four rows worded per job; checkbox names what is sent; retention fixed before upload and never extended (§7.18) | Pages, addresses and batches are not “the file” | None |
+| 45 | Linux window frame radius | Desktop shell (8), §4 (10 only for macOS) | Windows and Linux frames radius 8 (§4, §6.1) | Matches the drawn boards | None |
 
 ## Appendix: Command ids
 
-Every command id used in the area documents on 2026-10-29, after the renames in the decisions table, sorted by id. Shortcuts are macOS · Windows/Linux (one value means the same on both); “—” means palette and menus only. “Shared key, scoped” marks a key used by more than one command in different modes or focus regions (§8.8); no two commands share a key in the same scope. ⚠ marks a shortcut the web app must not use. Preference keys in Settings (`open.target`, `session.reopen`, `watch.reload`, `tabs.allow-duplicates`, `recent.enabled`, `print.mode`) are not commands and are left out.
+Every command id used in the area documents on 2026-10-29 (regenerated after the second merge, decision 32), after the renames in the decisions table, sorted by id; `mode.read` and `mode.edit` come from §8.1. Shortcuts are macOS · Windows/Linux (one value means the same on both); “—” means palette and menus only. “Shared key, scoped” marks a key used by more than one command in different modes or focus regions (§8.8); no two commands share a key in the same scope. ⚠ marks a shortcut the web app must not use. Preference keys in Settings (`open.target`, `session.reopen`, `watch.reload`, `tabs.allow-duplicates`, `recent.enabled`, `print.mode`) are not commands and are left out.
 
 | Id | Title | Area and screen | Shortcut | Note |
 | --- | --- | --- | --- | --- |
@@ -1295,14 +1330,21 @@ Every command id used in the area documents on 2026-10-29, after the renames in 
 | `annot.toggle-italic` | Italic (annotation text) | Comment C03 | ⌘I · Ctrl I (editing) |  |
 | `app.about` | About lamina | Desktop shell S03 | — |  |
 | `app.check-for-updates` | Check for updates… | Desktop shell S03, S06 | — |  |
-| `app.install` | Add to home screen… | Reader B R15, R18 | — |  |
+| `app.dismiss-offline` | Dismiss offline notice | Reader B R15 | — |  |
+| `app.dismiss-update` | Dismiss update notice | Reader B R15 | — |  |
+| `app.install` | Add to home screen… | Reader A R09; Reader B R15, R18 | — |  |
 | `app.quit` | Quit | Desktop shell S03 | ⌘Q · Ctrl Q (desktop only) |  |
+| `app.reload-update` | Reload to update | Reader B R15 | — |  |
 | `app.restart-to-update` | Restart to update | Desktop shell S06 | — |  |
 | `app.settings` | Settings | Desktop shell S01, S03, S07 | ⌘, · Ctrl , (desktop) | Settings window; `view.settings` is the popover |
 | `app.update-later` | Update later | Desktop shell S06 | — |  |
 | `attachment.replace` | Replace attached file | Comment C05 | — |  |
 | `attachment.save` | Save attached file (file annotation) | Comment C05 | — | Same job as `file.save-attachment`; merge later |
 | `batch.open` | Batch… | Convert and produce X05 | — |  |
+| `batch.open-recipe` | Open recipe… | Convert and produce X05 | — |  |
+| `batch.run` | Run batch | Convert and produce X05 | — |  |
+| `batch.save-recipe` | Save recipe | Convert and produce X05 | — |  |
+| `batch.stop` | Stop after current files | Convert and produce X05 | — |  |
 | `comment.attach-file` | Attach file | Comment C01 | — | File annotation; `organise.attach-file` embeds a file |
 | `comment.callout` | Callout | Comment C01 | — |  |
 | `comment.caret` | Caret | Comment C01 | — |  |
@@ -1310,19 +1352,19 @@ Every command id used in the area documents on 2026-10-29, after the renames in 
 | `comment.draw-with-finger` | Draw with finger | Comment C09 | — |  |
 | `comment.eraser` | Eraser | Comment C08, C09 | — |  |
 | `comment.go-to` | Go to comment | Comment C04 | — |  |
-| `comment.highlight` | Highlight | Reader B R12, R17; Comment C01 | H (page) | Also the selection toolbar’s Highlight |
+| `comment.highlight` | Highlight | Reader B R11, R12, R17; Comment C01 | H (page) | Also the selection toolbar’s Highlight |
 | `comment.highlighter` | Highlighter | Comment C08, C09 | — |  |
-| `comment.ink` | Ink | Reader B R17; Comment C01 | P (page, Comment) |  |
+| `comment.ink` | Ink | Reader B R17; Comment C01, C08, C09 | P (page, Comment) | `comment.pen` is its alias |
 | `comment.lasso` | Lasso | Comment C09 | — |  |
 | `comment.note` | Note | Reader B R17; Comment C01, C08, C09 | N (page, Comment) |  |
-| `comment.pen` | Pen | Comment C08, C09 | — |  |
+| `comment.pen` | Pen | Comment C08, C09 | — | Alias of `comment.ink` (one op, one palette entry; §6.2 tablet) |
 | `comment.place-stamp` | Place stamp | Comment C05 | — |  |
 | `comment.reply` | Reply | Reader B R16; Comment C04, C08; Account and cloud H06 | — |  |
 | `comment.resolve` | Resolve | Account and cloud H06 | — |  |
 | `comment.select` | Select (Comment) | Comment C01 | V (page, Comment) — shared key, scoped |  |
 | `comment.set-colour` | Comment colour | Comment C01 | — |  |
 | `comment.set-status` | Set review status | Comment C04, C08 | — |  |
-| `comment.shape` | Shape (rectangle, ellipse, line, arrow, polygon, polyline) | Comment C01, C09 | R rectangle, A arrow (page, Comment) — shared key, scoped |  |
+| `comment.shape` | Shape (rectangle, ellipse, line, arrow, polygon, polyline) | Reader B R17; Comment C01, C09 | R rectangle, A arrow (page, Comment) — shared key, scoped |  |
 | `comment.show-reviewers` | Show reviewers | Account and cloud H06 | — |  |
 | `comment.stamp` | Stamp | Comment C01 | — |  |
 | `comment.strike` | Strike | Comment C01 | — |  |
@@ -1344,7 +1386,7 @@ Every command id used in the area documents on 2026-10-29, after the renames in 
 | `comments.toggle-panel` | Comments panel | Comment C01 | — |  |
 | `compare.export-report` | Export compare report | Convert and produce X04 | — |  |
 | `compare.next-change` | Next change | Convert and produce X04 | ⌥⌘↓ (macOS only) |  |
-| `compare.open` | Compare… | Convert and produce X04; Account and cloud H04 | — |  |
+| `compare.open` | Compare… | Convert and produce X03, X04; Account and cloud H04 | — |  |
 | `compare.previous-change` | Previous change | Convert and produce X04 | ⌥⌘↑ (macOS only) |  |
 | `convert.from-pdf` | Convert from PDF… | Convert and produce X02 | — |  |
 | `convert.to-pdf` | Convert to PDF… | Convert and produce X02 | — |  |
@@ -1364,7 +1406,7 @@ Every command id used in the area documents on 2026-10-29, after the renames in 
 | `edit.align-text` | Align text | Add and edit A01 | — |  |
 | `edit.bring-forward` | Bring forward | Add and edit A02, A05 | — |  |
 | `edit.bring-to-front` | Bring to front | Add and edit A02, A05 | — |  |
-| `edit.copy` | Copy | Reader B R12; Desktop shell S03; Add and edit A05 | ⌘C · Ctrl C | Also copies selected text in Read |
+| `edit.copy` | Copy | Reader B R11, R12; Desktop shell S03; Add and edit A05 | ⌘C · Ctrl C | Also copies selected text in Read |
 | `edit.crop-image` | Crop image | Add and edit A02 | — |  |
 | `edit.cut` | Cut | Add and edit A05 | ⌘X · Ctrl X |  |
 | `edit.delete` | Delete selection | Add and edit A01, A02, A05 | ⌫ · Delete (object) — shared key, scoped |  |
@@ -1381,7 +1423,7 @@ Every command id used in the area documents on 2026-10-29, after the renames in 
 | `edit.manage-page-marks` | Manage page marks | Add and edit A03 | — |  |
 | `edit.notify-when-free` | Notify when free | Account and cloud H06 | — |  |
 | `edit.paste` | Paste | Add and edit | ⌘V · Ctrl V |  |
-| `edit.redo` | Redo | Edit session O01 | ⇧⌘Z · Ctrl Y, Ctrl Shift Z |  |
+| `edit.redo` | Redo | Reader B R16; Edit session O01 | ⇧⌘Z · Ctrl Y, Ctrl Shift Z |  |
 | `edit.release-clip` | Release clip | Add and edit A05 | — |  |
 | `edit.release-mask` | Release mask | Add and edit A05 | — |  |
 | `edit.replace-checked` | Replace checked | Add and edit A06 | — |  |
@@ -1408,10 +1450,10 @@ Every command id used in the area documents on 2026-10-29, after the renames in 
 | `edit.toggle-superscript` | Toggle superscript | Add and edit A01 | — |  |
 | `edit.toggle-underline` | Toggle underline | Add and edit A01 | — |  |
 | `edit.transform-object` | Move, resize or rotate object | Add and edit A02 | arrows, ⇧ arrows (nudge) |  |
-| `edit.undo` | Undo | Edit session O01 | ⌘Z · Ctrl Z |  |
+| `edit.undo` | Undo | Reader B R16; Edit session O01 | ⌘Z · Ctrl Z |  |
 | `file.change-reviewer-role` | Change reviewer role | Account and cloud H05 | — |  |
 | `file.clear-recent` | Clear recent | Reader A R01; Desktop shell S01, S03 | — |  |
-| `file.compare-with-disk` | Compare with the version on disk | Desktop shell S04 | — | Opens `compare.open` with the on-disk preset (§8.12) |
+| `file.compare-with-disk` | Compare with the version on disk | Desktop shell S04; Edit session O02; Convert and produce X04 | — | Opens `compare.open` with the on-disk preset (§8.12) |
 | `file.copy-repair-details` | Copy repair details | Reader A R04 | — |  |
 | `file.copy-review-link` | Copy review link | Account and cloud H05 | — |  |
 | `file.discard-changes` | Discard changes | Edit session O03 | — |  |
@@ -1425,16 +1467,16 @@ Every command id used in the area documents on 2026-10-29, after the renames in 
 | `file.go-to-object` | Go to object | Pages and navigation O15 | — |  |
 | `file.inspect-objects` | Inspect objects | Pages and navigation O15 | — |  |
 | `file.invite-reviewer` | Invite reviewer | Account and cloud H05 | — |  |
-| `file.keep-mine` | Keep mine | Desktop shell S04 | — |  |
+| `file.keep-mine` | Keep mine | Desktop shell S04; Edit session O02 | — |  |
 | `file.locate` | Locate | Desktop shell S04 | — |  |
-| `file.open` | Open a file | Reader A R01; Reader B R12; Desktop shell S01, S02, S03, S10; Account and cloud H03 | ⌘O · Ctrl O |  |
+| `file.open` | Open a file | Reader A R01, R09; Reader B R12; Desktop shell S01, S02, S03, S10; Account and cloud H03 | ⌘O · Ctrl O |  |
 | `file.open-cloud-list` | Open cloud list | Account and cloud H03 | — |  |
 | `file.open-other-version` | Open other version | Account and cloud H04 | — |  |
 | `file.open-recent` | Open recent | Reader A R01; Desktop shell S01, S03 | — |  |
 | `file.open-url` | Open from URL | Reader A R01 | — |  |
 | `file.overwrite` | Overwrite | Edit session O02 | — |  |
 | `file.print` | Print | Reader A R09; Reader B R12, R18; Desktop shell S03, S05 | ⌘P · Ctrl P |  |
-| `file.properties` | Document properties | Reader A R08; Reader B R18; Desktop shell S03; Edit session O04 | — |  |
+| `file.properties` | Document properties | Reader A R08, R09; Reader B R18; Desktop shell S03; Edit session O04 | — |  |
 | `file.reload-from-disk` | Reload from disk | Desktop shell S04; Edit session O02 | — |  |
 | `file.remove-from-cloud` | Remove from cloud | Account and cloud H03 | — |  |
 | `file.remove-recent` | Remove recent | Desktop shell S01 | — |  |
@@ -1445,21 +1487,22 @@ Every command id used in the area documents on 2026-10-29, after the renames in 
 | `file.save-as-pdfa` | Save as PDF/A… | Convert and produce X08 | — |  |
 | `file.save-as-pdfua` | Save as PDF/UA… | Convert and produce X08 | — |  |
 | `file.save-attachment` | Save attachment (embedded file) | Reader A R06; Pages and navigation O14 | — | Same job as `attachment.save` (save an embedded file out); merge later |
-| `file.save-copy` | Download a copy / Save a copy… | Reader A R09; Reader B R12, R18; Desktop shell S03; Edit session O02 | — |  |
-| `file.save-invalidating-signatures` | Save invalidating signatures | Edit session O02 | — |  |
-| `file.save-optimised` | Save an optimised copy… | Edit session O02; Convert and produce X09 | — |  |
+| `file.save-copy` | Download a copy / Save a copy… | Reader A R09; Reader B R12, R18; Desktop shell S03; Edit session O02; Comment C01 | — | “Download a copy” on the web, “Save a copy…” on the desktop |
+| `file.save-invalidating-signatures` | Save invalidating signatures | Edit session O02; Comment C01 | — |  |
+| `file.save-optimised` | Save an optimised copy… | Edit session O02; Pages and navigation O14; Convert and produce X09 | — |  |
 | `file.share-for-review` | Share for review | Account and cloud H03, H05 | — |  |
-| `file.show-constraint-details` | Signature constraint details | Edit session O02 | — |  |
+| `file.show-constraint-details` | Signature constraint details | Edit session O02; Comment C01 | — |  |
 | `file.show-repairs` | Show repairs | Reader A R04 | — |  |
 | `file.show-sync-conflict` | Show sync conflict | Account and cloud H04 | — |  |
 | `file.show-upload-queue` | Show upload queue | Account and cloud H04 | — |  |
+| `file.stop-syncing` | Stop syncing this document | Account and cloud H03 | — |  |
 | `file.toggle-review-link` | Toggle review link | Account and cloud H05 | — |  |
 | `file.unlock` | Unlock (password) | Reader A R03 | — |  |
 | `file.upload-to-cloud` | Upload to cloud | Account and cloud H03 | — |  |
 | `find.close` | Close find | Reader A R05; Reader B R18; Add and edit A06 | Esc |  |
 | `find.match-case` | Match case | Reader A R05; Reader B R18; Add and edit A06 | — |  |
 | `find.next` | Next match | Reader A R05; Reader B R12, R18; Desktop shell S03; Add and edit A06 | ↵, F3 (find field) |  |
-| `find.open` | Find in document | Reader A R05; Reader B R12, R17, R18; Desktop shell S03 | ⌘F · Ctrl F |  |
+| `find.open` | Find in document | Reader A R05; Reader B R11, R12, R17, R18; Desktop shell S03, S10 | ⌘F · Ctrl F |  |
 | `find.open-replace` | Find and replace | Reader A R05; Add and edit A06 | ⌥⌘F · Ctrl H (desktop only; Ctrl H is history on web) |  |
 | `find.previous` | Previous match | Reader A R05; Reader B R12, R18; Desktop shell S03; Add and edit A06 | ⇧↵, ⇧F3 (find field) |  |
 | `find.whole-words` | Whole words | Reader A R05; Reader B R18; Add and edit A06 | — |  |
@@ -1514,10 +1557,15 @@ Every command id used in the area documents on 2026-10-29, after the renames in 
 | `help.capabilities` | What lamina can read and write | Edit session O05 | — |  |
 | `help.licences` | Licences | Desktop shell S03 | — |  |
 | `help.open` | Help | Desktop shell S03 | — |  |
+| `help.reader-mode` | About Reader mode | Reader B R14 | — |  |
 | `help.report-issue` | Report issue | Desktop shell S03 | — |  |
-| `help.shortcuts` | Keyboard shortcuts | Reader B R12; Desktop shell S03 | ? |  |
+| `help.shortcuts` | Keyboard shortcuts | Reader A R09; Reader B R12; Desktop shell S03 | ? (page); F1 (desktop app) |  |
 | `help.whats-new` | What’s new | Desktop shell S06 | — |  |
-| `layer.close` | Close the open panel or dialog | Reader B R12 | Esc |  |
+| `jobs.cancel` | Cancel and delete server job | Convert and produce X02 | — |  |
+| `jobs.delete-from-server` | Delete from server now | Convert and produce X02 | — |  |
+| `jobs.download-result` | Download result | Convert and produce X02 | — |  |
+| `jobs.open` | Server jobs | Convert and produce X02 | — |  |
+| `layer.close` | Close the open panel or dialog | Reader B R12, R13, R15 | Esc |  |
 | `layers.show` | Show layers | Convert and produce X11 | — |  |
 | `licence.copy-key` | Copy licence key | Account and cloud H02 | — |  |
 | `licence.download-file` | Download licence file | Account and cloud H02 | — |  |
@@ -1526,67 +1574,74 @@ Every command id used in the area documents on 2026-10-29, after the renames in 
 | `measure.area` | Measure area | Convert and produce X12 | — |  |
 | `measure.distance` | Measure distance | Convert and produce X12 | — |  |
 | `measure.perimeter` | Measure perimeter | Convert and produce X12 | — |  |
-| `mode.edit` | Edit mode | Desktop shell S10 | — |  |
+| `mode.edit` | Edit mode | Design language §8.1 | — |  |
 | `mode.fill-sign` | Fill & Sign mode | Forms P01 | — |  |
 | `mode.organise` | Organise mode | Edit session O06 | — |  |
-| `mode.read` | Read mode | Desktop shell S10 | — |  |
-| `nav.back` | Back | Reader A R07; Reader B R12; Desktop shell S03 | ⌘[ · Alt ← (desktop; browser’s own on web) |  |
+| `mode.read` | Read mode | Design language §8.1 | — |  |
+| `nav.back` | Back | Reader A R07; Reader B R11, R12; Desktop shell S03, S10 | ⌘[ · Alt ← (desktop; browser’s own on web) |  |
 | `nav.copy-link` | Copy link | Reader A R07 | — |  |
 | `nav.first-page` | First page | Reader B R12; Desktop shell S03 | Home |  |
 | `nav.follow-link` | Follow link | Reader A R07; Pages and navigation O12 | — |  |
-| `nav.forward` | Forward | Reader A R07; Reader B R12; Desktop shell S03 | ⌘] · Alt → (desktop; browser’s own on web) |  |
+| `nav.forward` | Forward | Reader A R07; Reader B R11, R12; Desktop shell S03, S10 | ⌘] · Alt → (desktop; browser’s own on web) |  |
 | `nav.go-to-outline-item` | Go to outline item | Reader A R06; Reader B R17, R18 | — |  |
-| `nav.go-to-page` | Go to page | Reader A R06; Desktop shell S03, S10 | — |  |
+| `nav.go-to-page` | Go to page… | Reader A R06; Reader B R14; Desktop shell S03, S10 | — |  |
 | `nav.last-page` | Last page | Reader B R12; Desktop shell S03 | End |  |
 | `nav.next-page` | Next page | Reader B R12; Desktop shell S03 | Page Down |  |
 | `nav.next-thread-part` | Next thread part | Pages and navigation O13 | — |  |
 | `nav.open-external-link` | Open external link | Reader A R07 | — |  |
 | `nav.previous-page` | Previous page | Reader B R12; Desktop shell S03 | Page Up |  |
 | `nav.previous-thread-part` | Previous thread part | Pages and navigation O13 | — |  |
+| `nav.view-original-page` | View original page | Reader B R14 | — |  |
 | `ocr.make-searchable` | Make searchable… | Convert and produce X01 | — |  |
 | `ocr.run` | Run OCR | Convert and produce X01 | — |  |
-| `organise.add-bookmark` | Add bookmark | Pages and navigation O11 | — |  |
+| `organise.add-bookmark` | Add bookmark | Edit session O06; Pages and navigation O11 | — |  |
 | `organise.attach-file` | Attach file | Pages and navigation O14 | — | Embeds a file; `comment.attach-file` adds a file annotation |
-| `organise.create-contents-page` | Create contents page | Pages and navigation O11 | — |  |
+| `organise.create-contents-page` | Create contents page | Edit session O06; Pages and navigation O11 | — |  |
 | `organise.delete-attachment` | Delete attachment | Pages and navigation O14 | — |  |
 | `organise.delete-bookmark` | Delete bookmark | Pages and navigation O11 | — |  |
 | `organise.initial-view` | Initial view | Pages and navigation O13 | — |  |
-| `organise.named-destinations` | Named destinations | Pages and navigation O11 | — |  |
+| `organise.named-destinations` | Named destinations | Edit session O06; Pages and navigation O11 | — |  |
 | `organise.set-bookmark-destination` | Set bookmark destination | Pages and navigation O11 | — |  |
-| `pages.crop` | Crop pages | Pages and navigation O09 | — |  |
+| `pages.crop` | Crop pages | Edit session O06; Pages and navigation O09 | — |  |
 | `pages.delete` | Delete pages | Edit session O06; Pages and navigation O17 | ⌫ · Delete (Organise grid) — shared key, scoped |  |
 | `pages.duplicate` | Duplicate pages | Edit session O06; Pages and navigation O17 | — |  |
-| `pages.edit-boxes` | Page boxes… | Pages and navigation O09 | — |  |
-| `pages.edit-labels` | Page labels… | Pages and navigation O10 | — |  |
+| `pages.edit-boxes` | Page boxes… | Edit session O06; Pages and navigation O09 | — |  |
+| `pages.edit-labels` | Page labels… | Edit session O06; Pages and navigation O10 | — |  |
 | `pages.export-images` | Export pages as images | Edit session O06; Pages and navigation O16 | — |  |
 | `pages.extract` | Extract pages | Edit session O06 | — |  |
 | `pages.insert-blank` | Insert blank pages… | Edit session O06 | — |  |
 | `pages.insert-from-file` | Insert pages from a file… | Edit session O06, O07 | — |  |
 | `pages.insert-images` | Insert pages from images… | Edit session O06, O07 | — |  |
-| `pages.make-landscape` | Make landscape | Pages and navigation O09 | — |  |
-| `pages.make-portrait` | Make portrait | Pages and navigation O09 | — |  |
+| `pages.make-landscape` | Make landscape | Edit session O06; Pages and navigation O09 | — |  |
+| `pages.make-portrait` | Make portrait | Edit session O06; Pages and navigation O09 | — |  |
 | `pages.move` | Move pages | Edit session O06 | ⇧⌘ arrows · Ctrl Shift arrows (grid) |  |
 | `pages.move-to` | Move to page… | Edit session O06; Pages and navigation O17 | — |  |
 | `pages.replace` | Replace pages | Edit session O06 | — |  |
-| `pages.resize` | Resize pages… | Pages and navigation O09 | — |  |
+| `pages.resize` | Resize pages… | Edit session O06; Pages and navigation O09 | — |  |
 | `pages.reverse` | Reverse page order | Edit session O06 | — |  |
-| `pages.rotate-left` | Rotate left | Edit session O06; Pages and navigation | ⇧R (Organise grid) |  |
-| `pages.rotate-right` | Rotate right | Edit session O06; Pages and navigation O17 | R (Organise grid) — shared key, scoped |  |
+| `pages.rotate-left` | Rotate left | Edit session O06 | ⇧R (Organise grid) |  |
+| `pages.rotate-right` | Rotate right | Edit session O06; Pages and navigation O17; Account and cloud H10 | R (Organise grid) — shared key, scoped |  |
 | `pages.select` | Select pages | Edit session O06 | — |  |
 | `pages.select-all` | Select all pages | Pages and navigation O17 | ⌘A · Ctrl A (Organise grid) |  |
-| `palette.open` | Command palette | Reader B R12; Desktop shell S03, S10 | ⌘K · Ctrl K |  |
-| `print.cancel` | Cancel printing | Desktop shell S05 | — |  |
+| `palette.open` | Command palette | Reader B R11, R12; Desktop shell S03, S10 | ⌘K · Ctrl K |  |
+| `print.cancel` | Cancel printing | Reader A R09; Desktop shell S05 | — |  |
 | `print.compatibility` | Try compatibility printing | Desktop shell S05 | — |  |
+| `print.convert-colours` | Convert colours… | Convert and produce X10 | — |  |
 | `print.impose` | Impose… | Convert and produce X10 | — |  |
 | `print.open` | Print production | Add and edit | — |  |
 | `print.preflight` | Preflight | Convert and produce X10 | — |  |
-| `privacy.network-activity` | Network activity | Reader B R13, R16, R18; Desktop shell S03, S10 | — |  |
+| `print.set-output-intent` | Set output intent… | Convert and produce X10 | — |  |
+| `privacy.copy-report` | Copy network report | Reader B R13 | — |  |
+| `privacy.network-activity` | Network activity | Reader A R09; Reader B R11, R13, R16, R18; Desktop shell S03, S10 | — |  |
+| `privacy.show-how-to-check` | How to check this yourself | Reader B R13 | — |  |
 | `redact.apply` | Apply redactions… | Sign, protect, redact G10 | — |  |
 | `redact.find-sensitive` | Find sensitive content | Sign, protect, redact G09 | — |  |
 | `redact.mark-selection` | Mark for redaction | Sign, protect, redact G08 | — |  |
 | `redact.open` | Redact | Add and edit; Sign, protect, redact G08 | — |  |
+| `revisions.back-to-current` | Back to current | Convert and produce X03 | Esc (revision open) |  |
 | `revisions.open` | Show revisions | Convert and produce X03 | — |  |
 | `revisions.open-revision` | Open revision | Convert and produce X03 | — |  |
+| `revisions.save-revision-as` | Save this revision as… | Convert and produce X03 | — |  |
 | `security.protect` | Protect document… | Add and edit; Sign, protect, redact G06 | — |  |
 | `security.remove-protection` | Remove protection… | Sign, protect, redact G06 | — |  |
 | `security.sanitise` | Sanitise document… | Sign, protect, redact G07 | — |  |
@@ -1599,12 +1654,12 @@ Every command id used in the area documents on 2026-10-29, after the renames in 
 | `settings.privacy` | Privacy settings | Account and cloud H10 | — |  |
 | `settings.update-channel` | Update channel | Desktop shell S06 | — |  |
 | `settings.update-enabled` | Automatic updates | Desktop shell S06 | — |  |
-| `settings.usage-counts` | Send usage counts | Account and cloud H10 | — |  |
+| `settings.usage-counts` | Send usage counts | Desktop shell S07; Account and cloud H10 | — |  |
 | `sign.add-signature-image` | Add a signature image | Forms P01; Sign, protect, redact G01, G11 | — |  |
 | `sign.certify` | Certify document | Sign, protect, redact G03 | — |  |
 | `sign.open-sheet` | Sign (phone sheet) | Sign, protect, redact G11 | — |  |
 | `sign.with-certificate` | Sign with a certificate | Forms P01; Sign, protect, redact G02, G11 | — |  |
-| `signatures.compare` | Compare with signed version | Sign, protect, redact G05 | — | Opens `compare.open` with the signed-revision preset (§8.12) |
+| `signatures.compare` | Compare with signed version | Sign, protect, redact G05; Convert and produce X03, X04 | — | Opens `compare.open` with the signed-revision preset (§8.12) |
 | `signatures.show-panel` | Show signatures | Sign, protect, redact G04 | — |  |
 | `stamps.add-custom` | Add custom stamp | Comment C05 | — |  |
 | `tab.activate` | Activate tab | Desktop shell S02, S10 | — |  |
@@ -1634,19 +1689,24 @@ Every command id used in the area documents on 2026-10-29, after the renames in 
 | `view.focus-next-region` | Move to next region | Forms P01 | F6 (desktop); Ctrl F6 (web, proposed) |  |
 | `view.full-screen` | Full screen | Desktop shell S03 | ⌃⌘F (macOS desktop) |  |
 | `view.open-more-tabs` | More tabs | Forms P01 | — |  |
-| `view.page-appearance` | Page appearance | Reader B R10; Desktop shell S03 | — |  |
+| `view.page-appearance` | Page appearance | Reader B R10, R14; Desktop shell S03 | — |  |
 | `view.page-layout` | Page layout | Reader B R10; Desktop shell S03 | — |  |
-| `view.reader-mode` | Reader mode | Reader A; Reader B R12, R14; Desktop shell S03 | R (page, Read mode) — shared key, scoped |  |
-| `view.settings` | View settings | Reader A; Reader B R10, R17, R18 | — | Popover; `app.settings` is the Settings window |
-| `view.show-attachments` | Show attachments | Reader A R06 | — |  |
+| `view.reader-line-length` | Line length (Reader mode) | Reader B R14 | — |  |
+| `view.reader-line-spacing` | Line spacing (Reader mode) | Reader B R14 | — |  |
+| `view.reader-mode` | Reader mode | Reader A; Reader B R11, R12, R14; Desktop shell S03, S10 | R (page, Read mode) — shared key, scoped |  |
+| `view.reader-reset` | Reset Reader settings | Reader B R14 | — |  |
+| `view.reader-text-larger` | Larger text (Reader mode) | Reader B R14 | — |  |
+| `view.reader-text-smaller` | Smaller text (Reader mode) | Reader B R14 | — |  |
+| `view.settings` | View settings | Reader A; Reader B R10, R11, R16, R17, R18 | — | Popover; `app.settings` is the Settings window |
+| `view.show-attachments` | Show attachments | Reader A R06; Reader B R11, R17, R18 | — |  |
 | `view.show-fields-tab` | Show fields tab | Forms P01 | — |  |
-| `view.show-outline` | Show outline | Reader A R06; Reader B R17, R18 | — |  |
-| `view.show-pages` | Show pages | Reader A R06; Reader B R17, R18 | — |  |
+| `view.show-outline` | Show outline | Reader A R06; Reader B R11, R17, R18 | — |  |
+| `view.show-pages` | Show pages | Reader A R06; Reader B R11, R17, R18 | — |  |
 | `view.theme` | Theme | Reader B R10, R11; Desktop shell S03 | — |  |
 | `view.thumbnail-size` | Thumbnail size | Edit session O06 | — |  |
-| `view.toggle-sidebar` | Show or hide sidebar | Reader A R06; Reader B R17; Desktop shell S03, S10 | — |  |
-| `view.zoom-in` | Zoom in | Reader B R12; Desktop shell S03 | ⌘+ · Ctrl + (desktop); + (page) |  |
-| `view.zoom-out` | Zoom out | Reader B R12; Desktop shell S03 | ⌘− · Ctrl − (desktop); − (page) |  |
+| `view.toggle-sidebar` | Show or hide sidebar | Reader A R06; Reader B R11, R17; Desktop shell S03, S10 | — |  |
+| `view.zoom-in` | Zoom in | Reader B R11, R12; Desktop shell S03, S10 | ⌘+ · Ctrl + (desktop); + (page) |  |
+| `view.zoom-out` | Zoom out | Reader B R11, R12; Desktop shell S03, S10 | ⌘− · Ctrl − (desktop); − (page) |  |
 | `window.close` | Close window | Desktop shell S03, S10 | ⇧⌘W · Ctrl Shift W (desktop only) |  |
 | `window.new` | New window | Desktop shell S01, S03 | ⇧⌘N · Ctrl Shift N (desktop) |  |
 | `xmp.remove-property` | Remove property | Edit session O04 | — |  |

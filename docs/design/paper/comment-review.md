@@ -265,7 +265,7 @@ Rules that hold for every screen here:
 
 **Entry points.** Comment mode on a tablet once a pen has been used; picking up the pen while in Comment mode selects the Pen tool (proposed).
 
-**Which toolbar.** Design language §6.2: a tablet in Comment mode uses the Comment toolbar of C01 at touch size (56 px, 44 px toggles); once lamina sees a pen (`pointerType: "pen"`), the **tool shelf** (§7.35) replaces it for the rest of the session. This is the one tablet Comment toolbar. Reader B's R17-tablet toolbar (Highlight, Underline, Note, Ink, "Pen draws highlights · finger scrolls") differs from it and needs aligning in that area.
+**Which toolbar.** Design language §6.2: a tablet in Comment mode uses the Comment toolbar of C01 at touch size (56 px, 44 px toggles); once lamina sees a pen (`pointerType: "pen"`), the **tool shelf** (§7.35) replaces it for the rest of the session. This is the one tablet Comment toolbar. Reader B's [R17-tablet](reader-b.md#r17-tablet-reading) follows it (the shelf, with Highlighter pressed).
 
 **Layout** (artboard `C09-stylus-tablet`, 1024 × 1366 portrait). The desktop shell with touch rules (§6.2): a 56 px top bar, the docked tool shelf as the secondary toolbar (60 px, wraps when narrow), the page at full width (860 px wide, rail collapsed), and a 44 px status bar with 13 px items. The shelf is the only thing between the top bar and the page; nothing floats over the page while drawing.
 
@@ -293,11 +293,4 @@ The earlier proposals were merged into the [design language](design-language.md#
 
 ## Proposed design-language additions
 
-Line colours are already in §2.7 and are not repeated here.
-
-- **§8.1 Comment row:** spell out the fitting rules: Underline, Strike and Caret icon-only; Text box ▾ a split tool button; the page-count note hidden while Colour and Width show, the count moving into the Comments button's name. With them the row is about 1,350 px wide, so Comment wraps below about 1,366 px rather than §8.1's 1,024 px.
-- **One right dock:** the Comments panel and the inspector share the right dock and never show together. While the panel is open, selecting an annotation expands its thread; "Properties" in the thread's More menu swaps the dock to the inspector, and "Back to comments" swaps it back.
-- **Docked panel width:** 360 px for the Comments panel (the "wide docked panel" of decision 14), 288 px for the inspector.
-- **Certified-file banner timing:** in a mode where every tool makes a change the certification forbids, the §7.13 banner shows on mode entry instead of at the first offending edit: Comment mode at DocMDP P1 and P2, Fill & Sign at P1. Everywhere else the first-edit rule stands. The wording names the level ("certified … for form filling only" or "to allow no changes").
-- **Page pill hint state (phone):** the page indicator pill may show a one-line hint ("Use two fingers to scroll") in place of the page number for the first three sessions of a mode that takes over one-finger gestures; it moves up to sit 16 px above whatever bar is showing.
-- **Tablet Comment toolbar:** the C01 toolbar at touch size until a pen is used, then the tool shelf (§7.35) for the session. `comment.pen` is an alias of `comment.ink` (one op, one palette entry).
+Merged into the [design language](design-language.md#decisions-on-area-proposals) on 2026-10-29; see its decisions table.

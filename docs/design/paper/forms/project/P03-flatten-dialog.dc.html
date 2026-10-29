@@ -36,7 +36,7 @@ label:has(input[type="radio"]:focus-visible), label:has(input[type="checkbox"]:f
       <span style="font-size: 12px; color: #6B645A; white-space: nowrap">19 unsaved changes</span>
       <span aria-hidden="true" style="width: 1px; height: 18px; background: #E4DED3; margin: 0 2px"></span>
       <button aria-label="Undo set Type of repair" style="width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 4px; color: #4A453E"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M9 7L4.5 11.5 9 16"></path><path d="M4.5 11.5H15a4.5 4.5 0 0 1 0 9h-3"></path></svg></button>
-      <button aria-label="Redo" disabled style="width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 4px; color: #A39C91"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M15 7l4.5 4.5L15 16"></path><path d="M19.5 11.5H9a4.5 4.5 0 0 0 0 9h3"></path></svg></button>
+      <button aria-label="Redo" aria-disabled="true" style="width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 4px; color: #A39C91"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M15 7l4.5 4.5L15 16"></path><path d="M19.5 11.5H9a4.5 4.5 0 0 0 0 9h3"></path></svg></button>
     </div>
     <div role="group" aria-label="Mode" style="display: flex; align-items: stretch; gap: 22px; height: 40px">
       <button aria-pressed="false" style="height: 40px; display: flex; align-items: center; border: 0; background: transparent; padding: 2px 0 0; color: #6B645A; border-bottom: 2px solid transparent">Read</button>
@@ -128,7 +128,7 @@ label:has(input[type="radio"]:focus-visible), label:has(input[type="checkbox"]:f
   <footer style="min-height: 28px; flex: 0 0 auto; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px 16px; padding: 0 16px; border-top: 1px solid #E4DED3; font-size: 12px; color: #6B645A">
     <button style="min-height: 24px; display: flex; align-items: center; gap: 7px; border: 0; background: transparent; padding: 0 4px; font-size: 12px; color: #6B645A">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="{{accent}}" stroke-width="1.5" aria-hidden="true"><path d="M12 3.5l7 2.5v5.5c0 4.3-3 7.6-7 9-4-1.4-7-4.7-7-9V6z"></path><path d="M9 12l2.2 2.2L15.5 10"></path></svg>
-      <span style="color: #1F1D1A; font-variant-numeric: tabular-nums">0 network requests</span><span>· Offline-safe: nothing uploaded</span>
+      <span style="color: #1F1D1A; font-variant-numeric: tabular-nums">0 network requests for this document</span><span>· Offline-safe: nothing uploaded</span>
     </button>
     <span>Interactive form · 27 fields</span>
     <span style="font-variant-numeric: tabular-nums">Page 1 of 2</span>
@@ -142,8 +142,8 @@ label:has(input[type="radio"]:focus-visible), label:has(input[type="checkbox"]:f
 
       <fieldset style="margin: 0; padding: 0; border: 0; display: flex; flex-direction: column; gap: 6px">
         <legend style="padding: 0; margin-bottom: 8px; font-size: 12px; font-weight: 600; color: #4A453E">Flatten</legend>
-        <label style="display: flex; align-items: center; gap: 8px; min-height: 24px"><span style="width: 16px; height: 16px; box-sizing: border-box; border-radius: 50%; border: 2px solid {{accent}}; display: flex; align-items: center; justify-content: center"><span style="width: 8px; height: 8px; border-radius: 50%; background: {{accent}}"></span></span><input type="radio" name="scope" checked style="position: absolute; opacity: 0; width: 1px; height: 1px"><span>Every field <span style="color: #6B645A; font-variant-numeric: tabular-nums">· 26</span></span></label>
-        <label style="display: flex; align-items: center; gap: 8px; min-height: 24px; color: #A39C91"><span style="width: 16px; height: 16px; box-sizing: border-box; border-radius: 50%; border: 1px solid #E4DED3; background: #FBF9F5"></span><input type="radio" name="scope" disabled aria-describedby="fl-sel-h" style="position: absolute; opacity: 0; width: 1px; height: 1px"><span>Only the fields selected in the Fields tab</span></label>
+        <label style="display: flex; align-items: center; gap: 8px; min-height: 24px"><span style="width: 16px; height: 16px; box-sizing: border-box; border-radius: 50%; border: 2px solid {{accent}}; display: flex; align-items: center; justify-content: center"><span style="width: 8px; height: 8px; border-radius: 50%; background: {{accent}}"></span></span><sc-if value="{{nativeOn}}" hint-placeholder-val="{{ true }}"><input type="radio" name="scope" checked style="position: absolute; opacity: 0; width: 1px; height: 1px"></sc-if><span>Every field <span style="color: #6B645A; font-variant-numeric: tabular-nums">· 26</span></span></label>
+        <label style="display: flex; align-items: center; gap: 8px; min-height: 24px; color: #A39C91"><span style="width: 16px; height: 16px; box-sizing: border-box; border-radius: 50%; border: 1px solid #E4DED3; background: #FBF9F5"></span><sc-if value="{{nativeOn}}" hint-placeholder-val="{{ true }}"><input type="radio" name="scope" disabled aria-describedby="fl-sel-h" style="position: absolute; opacity: 0; width: 1px; height: 1px"></sc-if><span>Only the fields selected in the Fields tab</span></label>
         <span id="fl-sel-h" style="padding-left: 24px; font-size: 12px; color: #6B645A">No fields are selected. Select fields in the Fields tab to flatten only those.</span>
       </fieldset>
 
@@ -184,7 +184,7 @@ class Component extends DCLogic {
       }
       return out;
     }
-    return { accent: accent, accentTint: mix(accent, '#FBF9F5', 0.12), fieldTint: mix(accent, '#FFFFFF', 0.08), signed: this.props.signed ?? false, confirmLabel: (this.props.signed ?? false) ? 'Flatten anyway' : 'Flatten 26 fields' };
+    return { nativeOn: true, accent: accent, accentTint: mix(accent, '#FBF9F5', 0.12), fieldTint: mix(accent, '#FFFFFF', 0.08), signed: this.props.signed ?? false, confirmLabel: (this.props.signed ?? false) ? 'Flatten anyway' : 'Flatten 26 fields' };
   }
 }
 </script>

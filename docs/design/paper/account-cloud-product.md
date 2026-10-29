@@ -142,7 +142,7 @@ Artboards live on the canvas; web screens are 1440-wide PAGE boards, phone board
 
 - Conflict dialog: title "Q3-board-report.pdf changed on another device"; one sentence that both versions were kept; two side-by-side blocks, "Your version · this browser" (new name `Q3-board-report (conflict, this browser, 29 Oct 2026).pdf`, saved time, a summary of changes, "Open now" badge) and "MacBook Air’s version" (keeps the original name, saved time, changes); a hint on how to end up with one file. Actions: "Compare the two" (`compare.open` with both files preselected, from the compare area), "Open MacBook Air’s version" (`file.open-other-version`), "Keep working on my copy" (primary, closes).
 - Offline notice: cloud-off icon, "**You’re offline.** Saves stay on this device and upload when you’re back online. Reading, commenting and saving all keep working."
-- Status bar: network indicator "0 network requests · offline"; sync item "2 saves waiting to upload".
+- Status bar: network indicator "0 network requests for this document · offline"; sync item "2 saves waiting to upload".
 - Queue popover: "Waiting to upload", one row per queued save (time, change summary), the rule that a later conflict keeps both, "Download a copy" (secondary) and "Upload now" (`aria-disabled` while offline, reason under it).
 
 **States.**
@@ -207,7 +207,7 @@ Artboards live on the canvas; web screens are 1440-wide PAGE boards, phone board
 
 **Content and controls.**
 
-- **Presence:** each reviewer gets a colour from the presence palette (never a status colour; see Proposed design-language additions): A. Patel violet `#5B4B8A`, J. Mensah blue `#1F5C8A`. Their current selection is outlined on the page in that colour with a name tag ("J. Mensah"). Your own selection keeps the `accent` focus outline.
+- **Presence:** each reviewer gets a colour from the presence palette (never a status colour; design language [§2.7](design-language.md#27-fixed-content-palettes-proposed)): A. Patel violet `#5B4B8A`, J. Mensah blue `#1F5C8A`. Their current selection is outlined on the page in that colour with a name tag ("J. Mensah"). Your own selection keeps the `accent` focus outline.
 - **Live thread:** the inspector shows the quoted text, messages with author and time, and a live "J. Mensah is replying…" row (`aria-live="polite"`); reply field, "Reply" (primary, `comment.reply`) and "Resolve" (`comment.resolve`).
 - **Lease** ([E18g](../../todos/ready/E18g-leases-and-base-revisions.md)): drawn in Edit mode while A. Patel holds the text lease. Edit text, Add text, Image, Shape, Page marks, Replace, Redact and Protect are `aria-disabled` and point with `aria-describedby` to the context note "Text, image, page-mark, redaction and signing tools wait for A. Patel" (Select, Link and Tools ▾ stay on; signing is disabled in Fill & Sign); the notice reads "**A. Patel is editing text on page 7** (since 10:20). Text, page-mark, redaction and signing changes take turns so nobody’s work is overwritten. Comments, links and form values still sync live." with "Tell me when it’s free" (`edit.notify-when-free`).
 
@@ -364,5 +364,3 @@ None beyond the proposed additions below; the presence palette, `mono`, the sync
 ## Proposed design-language additions
 
 Merged into the [design language](design-language.md#decisions-on-area-proposals) on 2026-10-29; see its decisions table.
-
-Added after the merge (for the next merge): the command id `file.stop-syncing` ("Stop syncing this document", H03, no shortcut); the destination names listed at the top of this document; the web settings section list (S07's list plus Licence, Account and plan, Notifications).
