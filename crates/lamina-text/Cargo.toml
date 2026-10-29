@@ -1,6 +1,6 @@
 [package]
 name = "lamina-text"
-description = "Fonts for generated PDFs: loading (skrifa), glyph usage, subsetting (subsetter) and Type 0 embedding with /W and ToUnicode (pure, bytes in / bytes out)."
+description = "Fonts and text layout for generated PDFs: loading (skrifa), shaping (HarfRust), bidi and line breaking (ICU4X), glyph usage, subsetting (subsetter) and Type 0 embedding with /W and ToUnicode (pure, bytes in / bytes out)."
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -15,10 +15,14 @@ layer = "core"
 
 [dependencies]
 lamina-cos = { workspace = true }
+harfrust = { workspace = true }
+icu_properties = { workspace = true }
+icu_segmenter = { workspace = true }
 sha2 = { workspace = true }
 skrifa = { workspace = true }
 subsetter = { workspace = true }
 thiserror = { workspace = true }
+unicode-bidi = { workspace = true }
 
 [dev-dependencies]
 lamina-save = { workspace = true }

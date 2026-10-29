@@ -60,28 +60,16 @@ impl FontUse {
     /// or empty for a glyph that stands for no text of its own, such as the second glyph of a
     /// decomposed cluster) and returns the CID to draw it with.
     ///
-    /// A glyph keeps the first non-empty text it is used with; a different text later is
-    /// returned as a [`Warning::ToUnicodeConflict`] (the builder marks that occurrence with
-    /// `/ActualText`).
+    /// A glyph keeps the first text it is used with, the empty text included; a different
+    /// text later (empty or not) is returned as a [`Warning::ToUnicodeConflict`] (the builder
+    /// marks that occurrence with `/ActualText`). A glyph whose kept text is empty maps to the
+    /// empty string in the ToUnicode CMap (`<cid> <>`, B4b).
     ///
     /// # Errors
     /// [`Error::GlyphOutOfRange`] for a glyph past the font's glyph count.
     pub fn use_glyph(&mut self, gid: GlyphId, text: &str) -> Result<(u16, Option<Warning>)> {
-        if gid.get() >= self.glyph_count {
-            return Err(Error::GlyphOutOfRange {
-                gid: gid.get(),
-                count: self.glyph_count,
-                font: self.font.clone(),
-            });
-        }
-        let cid = match &mut self.mapping {
-            Mapping::Subset(remapper) => remapper.remap(gid.get()),
-            Mapping::Whole(used) => {
-                used.insert(gid.get());
-                gid.get()
-            }
-        };
-        if text.is_empty() || cid == 0 {
+        let cid = self.glyph_cid(gid)?;
+        if cid == 0 {
             return Ok((cid, None));
         }
         let warning = match self.text.get(&cid) {
@@ -98,6 +86,29 @@ impl FontUse {
             }),
         };
         Ok((cid, warning))
+    }
+
+    /// Records that `gid` is drawn without claiming any text for it (B4b: a hidden
+    /// default-ignorable drawn as the space glyph) and returns its CID. The glyph's ToUnicode
+    /// entry is whatever other uses give it.
+    ///
+    /// # Errors
+    /// [`Error::GlyphOutOfRange`] for a glyph past the font's glyph count.
+    pub(crate) fn glyph_cid(&mut self, gid: GlyphId) -> Result<u16> {
+        if gid.get() >= self.glyph_count {
+            return Err(Error::GlyphOutOfRange {
+                gid: gid.get(),
+                count: self.glyph_count,
+                font: self.font.clone(),
+            });
+        }
+        Ok(match &mut self.mapping {
+            Mapping::Subset(remapper) => remapper.remap(gid.get()),
+            Mapping::Whole(used) => {
+                used.insert(gid.get());
+                gid.get()
+            }
+        })
     }
 
     /// CID → text, in CID order: what the ToUnicode CMap maps.

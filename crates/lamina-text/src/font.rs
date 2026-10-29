@@ -148,6 +148,8 @@ struct Source {
     index: u32,
     /// SHA-256 of `bytes`, computed when a subset tag first needs it.
     digest: OnceLock<[u8; 32]>,
+    /// HarfRust's tables for the face (B4b), built when it is first shaped.
+    shaping: OnceLock<harfrust::ShaperData>,
 }
 
 /// A font loaded from caller-supplied bytes; for a variable font, one instance of it. Cheap to
@@ -207,6 +209,7 @@ impl Font {
             bytes,
             index,
             digest: OnceLock::new(),
+            shaping: OnceLock::new(),
         });
         let font = FontRef::from_index(&source.bytes, index).map_err(|_| Error::InvalidFont { index })?;
         let info = font_info(&font, &[], LocationRef::default()).ok_or(Error::InvalidFont { index })?;
@@ -371,6 +374,15 @@ impl Font {
 
     pub(crate) fn location_ref(&self) -> LocationRef<'_> {
         LocationRef::new(&self.location)
+    }
+
+    /// HarfRust's shaping data for the face, built once and shared by every instance and clone.
+    pub(crate) fn shaper_data(&self) -> Result<&harfrust::ShaperData> {
+        if let Some(data) = self.source.shaping.get() {
+            return Ok(data);
+        }
+        let font = self.font_ref()?;
+        Ok(self.source.shaping.get_or_init(|| harfrust::ShaperData::new(&font)))
     }
 
     pub(crate) fn font_ref(&self) -> Result<FontRef<'_>> {

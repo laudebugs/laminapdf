@@ -1,0 +1,416 @@
+//! A shaped run as PDF text operations (todo B4b; research 03 §2.6–2.7, §5.3, §7.2): the
+//! glyphs' codes for `TJ`, the `TJ` numbers that turn the font's widths into the shaper's
+//! advances and offsets, `Ts` rises for vertical offsets, the glyph → text entries of the
+//! ToUnicode CMap, and the clusters that need `/ActualText`.
+//!
+//! The arithmetic (ISO 32000-2 §9.4.4): after a glyph the pen moves by
+//! `(w0 − Tj/1000) × Tfs`, with `w0` the glyph's `/W` width in thousandths of an em. The
+//! shaper wants glyph *i* drawn at `pen + x_offset` and the pen then moved by `x_advance`.
+//! So before each glyph a `TJ` number moves the pen by what the previous glyph still owed
+//! (`x_advance − x_offset − w0`) plus this glyph's `x_offset`; after the last glyph a final
+//! number settles the run's advance. Widths are the ones `/W` is written with (the same
+//! rounding, to 1/1000 of a unit), so the numbers are exact: `TJ` values here have at most
+//! three decimals, and computing them is integer arithmetic, deterministic on every target.
+//!
+//! Vertical offsets (marks above a base, cursive attachment) become the text rise `Ts`
+//! (§9.3.7), which does not move the pen; the run is cut into segments of equal rise.
+
+use std::collections::{BTreeMap, BTreeSet};
+use std::ops::Range;
+
+use icu_properties::CodePointSetData;
+use icu_properties::props::DefaultIgnorableCodePoint;
+use skrifa::MetadataProvider;
+use skrifa::instance::Size;
+
+use crate::embed::{FontKey, FontRegistry, milli};
+use crate::error::{Error, Result};
+use crate::font::GlyphId;
+use crate::itemize::needs_glyph;
+use crate::shape::{ShapedGlyph, ShapedRun, sub};
+
+/// One element of a `TJ` array.
+#[derive(Debug, Clone, PartialEq)]
+pub enum TjElement {
+    /// Glyph codes to show: two bytes per glyph (the CID, Identity-H).
+    Codes(Vec<u8>),
+    /// A `TJ` number in thousandths of text space: positive moves the pen left (back), so
+    /// `-50` adds a twentieth of an em of space.
+    Adjust(f64),
+}
+
+/// Glyphs drawn at one text rise.
+#[derive(Debug, Clone, PartialEq)]
+#[non_exhaustive]
+pub struct PdfSegment {
+    /// The rise in thousandths of the font size: set `Ts` to `rise × size / 1000` points
+    /// before the segment's `TJ`, and back to 0 after the run.
+    pub rise: f64,
+    /// The `TJ` array.
+    pub tj: Vec<TjElement>,
+}
+
+/// A stretch of the run that is either extracted through ToUnicode (`actual_text: None`) or
+/// must be wrapped in `/Span << /ActualText (…) >> BDC … EMC` (ISO 32000-2 §14.9.4).
+#[derive(Debug, Clone, PartialEq)]
+#[non_exhaustive]
+pub struct PdfPiece {
+    /// The replacement text, in logical order, when ToUnicode alone can't reproduce it.
+    pub actual_text: Option<String>,
+    /// The piece's glyphs, in drawing order.
+    pub segments: Vec<PdfSegment>,
+}
+
+/// A shaped run ready to be written: pieces in drawing order and the run's total advance.
+#[derive(Debug, Clone, PartialEq)]
+#[non_exhaustive]
+pub struct PdfRun {
+    /// The pieces, left to right.
+    pub pieces: Vec<PdfPiece>,
+    /// How far the pen moves over the whole run, in thousandths of the font size (the sum
+    /// of the shaper's advances): `advance × size / 1000` points.
+    pub advance: f64,
+}
+
+impl PdfRun {
+    /// Whether some piece needs `/ActualText`.
+    #[must_use]
+    pub fn needs_actual_text(&self) -> bool {
+        self.pieces.iter().any(|p| p.actual_text.is_some())
+    }
+}
+
+/// Turns `run` (shaped from `text` with the font registered as `key`) into PDF text
+/// operations, recording every glyph and the text it stands for in `fonts`.
+///
+/// Text mapping, per cluster (the glyphs sharing one cluster value and the characters up to
+/// the next cluster):
+/// * one glyph: it stands for the cluster's text (`ﬁ` → "fi", lam-alef → "لا");
+/// * several glyphs: each that is the font's own glyph for one of the cluster's characters
+///   stands for that character, the widest other glyph for the characters left over, and
+///   the rest for nothing: the empty string (`<cid> <>` in ToUnicode) for a glyph no
+///   character maps to (a separate dot, a conjunct part), and no claim at all for a glyph
+///   that is some character's own (the space glyph a hidden ZWJ is drawn with).
+///
+/// Default-ignorable characters (ZWJ, ZWNJ, the bidi controls) are never a glyph's text.
+/// A cluster gets `/ActualText` when its glyphs, read in drawing order (right to left in an
+/// RTL run), don't spell its text (Indic reordering), when one of them stands for nothing,
+/// or when one of them already stands for another text in this font
+/// ([`crate::Warning::ToUnicodeConflict`]); the whole run does when its clusters are not in
+/// visual order for its direction. Keeping each glyph's own character keeps the ToUnicode
+/// CMap consistent across clusters (one code, one text: ISO 32000-2 §9.10.3).
+///
+/// Everything is checked before anything is recorded: on an error, `fonts` is unchanged.
+///
+/// # Errors
+/// [`Error::FontMismatch`] when `run` was shaped with another font than `key`'s;
+/// [`Error::MissingGlyph`] for a `.notdef` glyph, naming the character the font lacks;
+/// [`Error::UnknownFont`]; [`Error::InvalidTextRange`] when the run's range or a cluster is
+/// not in `text`; [`Error::GlyphOutOfRange`].
+pub fn pdf_run(run: &ShapedRun, text: &str, fonts: &mut FontRegistry, key: FontKey) -> Result<PdfRun> {
+    let run_text = sub(text, run.text_range.clone())?;
+    let font = fonts.try_font(key)?.clone();
+    let info = font.info();
+    check_run(run, text, info)?;
+    let font_ref = font.font_ref()?;
+    let charmap = font_ref.charmap();
+    let groups = cluster_groups(run);
+    let bounds = cluster_bounds(run);
+    let cluster_text = |cluster: usize| -> &str {
+        let next = bounds.partition_point(|&b| b <= cluster);
+        let end = bounds.get(next).copied().unwrap_or(run.text_range.end);
+        text.get(cluster..end).unwrap_or_default()
+    };
+    if let Some(g) = run.glyphs.iter().find(|g| g.gid == GlyphId::NOTDEF) {
+        let cluster = cluster_text(g.cluster);
+        let ch = cluster
+            .chars()
+            .find(|&ch| needs_glyph(ch) && charmap.map(ch).is_none_or(|g| g.to_u32() == 0))
+            .or_else(|| cluster.chars().next())
+            .unwrap_or_default();
+        return Err(Error::MissingGlyph {
+            ch,
+            font: info.postscript_name.clone(),
+        });
+    }
+
+    // Plan every glyph's claim (nothing is recorded yet).
+    let mut targets: Option<BTreeSet<u32>> = None;
+    let mut is_target = |gid: GlyphId| {
+        targets
+            .get_or_insert_with(|| charmap.mappings().map(|(_, g)| g.to_u32()).collect())
+            .contains(&u32::from(gid.get()))
+    };
+    let mut claims: Vec<Claim> = Vec::with_capacity(run.glyphs.len());
+    let mut actual: Vec<Option<String>> = Vec::with_capacity(groups.len());
+    let mut kept = kept_texts(fonts, key);
+    for group in &groups {
+        let glyphs = run.glyphs.get(group.clone()).unwrap_or_default();
+        let cluster = glyphs.first().map(|g| cluster_text(g.cluster)).unwrap_or_default();
+        let nominal = |gid: GlyphId| {
+            cluster
+                .chars()
+                .find(|&ch| charmap.map(ch).is_some_and(|g| g.to_u32() == u32::from(gid.get())))
+        };
+        let (texts, mut needs_actual) = split_cluster(run, glyphs, cluster, &nominal);
+        for (g, t) in glyphs.iter().zip(texts) {
+            let claim = match t {
+                Some(t) => Claim::Text(t),
+                None if is_target(g.gid) => {
+                    needs_actual = true;
+                    Claim::Nothing
+                }
+                None => {
+                    needs_actual = true;
+                    Claim::Text(String::new())
+                }
+            };
+            if let Claim::Text(t) = &claim {
+                match kept.get(&g.gid) {
+                    Some(k) if k != t => needs_actual = true,
+                    Some(_) => {}
+                    None => {
+                        kept.insert(g.gid, t.clone());
+                    }
+                }
+            }
+            claims.push(claim);
+        }
+        actual.push(needs_actual.then(|| cluster.to_owned()));
+    }
+    let in_order = in_visual_order(run, &groups);
+    if !in_order {
+        // The whole run is wrapped instead.
+        actual.fill(None);
+    }
+
+    // Record.
+    let mut cids = Vec::with_capacity(run.glyphs.len());
+    for (g, claim) in run.glyphs.iter().zip(&claims) {
+        cids.push(match claim {
+            Claim::Text(t) => fonts.use_glyph(key, g.gid, t)?,
+            Claim::Nothing => fonts.glyph_cid(key, g.gid)?,
+        });
+    }
+
+    let metrics = font_ref.glyph_metrics(Size::unscaled(), font.location_ref());
+    let width = |gid: GlyphId| crate::embed::subset::advance_milli(&metrics, gid, info.units_per_em);
+    let (mut pieces, advance) = place(run, &width, &groups, &cids, &actual);
+    if !in_order {
+        pieces = vec![PdfPiece {
+            actual_text: Some(run_text.to_owned()),
+            segments: pieces.into_iter().flat_map(|p| p.segments).collect(),
+        }];
+    }
+    Ok(PdfRun {
+        pieces,
+        advance: milli_to_f64(advance),
+    })
+}
+
+/// Checks that `run` was shaped with the font `info` describes and that its glyphs and
+/// clusters are in range.
+fn check_run(run: &ShapedRun, text: &str, info: &crate::FontInfo) -> Result<()> {
+    if run.font != info.postscript_name || run.units_per_em != info.units_per_em {
+        return Err(Error::FontMismatch {
+            font: info.postscript_name.clone(),
+            shaped_with: run.font.clone(),
+        });
+    }
+    if let Some(g) = run.glyphs.iter().find(|g| g.gid.get() >= info.glyph_count) {
+        return Err(Error::GlyphOutOfRange {
+            gid: g.gid.get(),
+            count: info.glyph_count,
+            font: info.postscript_name.clone(),
+        });
+    }
+    if run
+        .glyphs
+        .iter()
+        .any(|g| !run.text_range.contains(&g.cluster) || !text.is_char_boundary(g.cluster))
+    {
+        return Err(Error::InvalidTextRange {
+            start: run.text_range.start,
+            end: run.text_range.end,
+            len: text.len(),
+        });
+    }
+    Ok(())
+}
+
+/// Whether the clusters of `groups` run left to right in a left-to-right run (right to left
+/// in a right-to-left one): no reordering across clusters.
+fn in_visual_order(run: &ShapedRun, groups: &[Range<usize>]) -> bool {
+    let firsts: Vec<usize> = groups
+        .iter()
+        .filter_map(|g| run.glyphs.get(g.start).map(|g| g.cluster))
+        .collect();
+    if run.direction.is_rtl() {
+        firsts.windows(2).all(|w| w.first() > w.get(1))
+    } else {
+        firsts.windows(2).all(|w| w.first() < w.get(1))
+    }
+}
+
+/// Glyph → the text it already stands for in `key`'s ToUnicode map.
+fn kept_texts(fonts: &FontRegistry, key: FontKey) -> BTreeMap<GlyphId, String> {
+    let Some(usage) = fonts.usage(key) else {
+        return BTreeMap::new();
+    };
+    usage
+        .glyphs()
+        .into_iter()
+        .filter_map(|(cid, gid)| usage.text().get(&cid).map(|t| (gid, t.clone())))
+        .collect()
+}
+
+/// What a glyph is recorded as standing for.
+enum Claim {
+    /// This text (possibly empty) in the ToUnicode CMap.
+    Text(String),
+    /// Nothing: the glyph is drawn but its ToUnicode entry is left to other uses.
+    Nothing,
+}
+
+/// The glyph index ranges of consecutive glyphs sharing one cluster value.
+fn cluster_groups(run: &ShapedRun) -> Vec<Range<usize>> {
+    let mut groups: Vec<Range<usize>> = Vec::new();
+    let mut previous = None;
+    for (i, g) in run.glyphs.iter().enumerate() {
+        match groups.last_mut() {
+            Some(group) if previous == Some(g.cluster) => group.end = i + 1,
+            _ => groups.push(i..i + 1),
+        }
+        previous = Some(g.cluster);
+    }
+    groups
+}
+
+/// Every cluster value of the run, sorted and distinct.
+fn cluster_bounds(run: &ShapedRun) -> Vec<usize> {
+    let mut bounds: Vec<usize> = run.glyphs.iter().map(|g| g.cluster).collect();
+    bounds.sort_unstable();
+    bounds.dedup();
+    bounds
+}
+
+/// The texts the glyphs of one cluster stand for (`None`: nothing of its own), and whether
+/// the cluster needs `/ActualText` because they don't spell its text in reading order. A
+/// single glyph takes the whole text; of several, a glyph that is the font's own glyph for
+/// one of the cluster's characters takes it, and the characters left over go to the widest
+/// other glyph (a conjunct, a reph, a contextual form). Default-ignorable characters are
+/// never a glyph's text.
+fn split_cluster(
+    run: &ShapedRun,
+    glyphs: &[ShapedGlyph],
+    cluster: &str,
+    nominal: &impl Fn(GlyphId) -> Option<char>,
+) -> (Vec<Option<String>>, bool) {
+    let visible: String = cluster.chars().filter(|&ch| !is_default_ignorable(ch)).collect();
+    let texts: Vec<Option<String>> = if let [_] = glyphs {
+        vec![(!visible.is_empty()).then(|| visible.clone())]
+    } else {
+        let mut left: Vec<char> = visible.chars().collect();
+        let mut texts: Vec<Option<String>> = glyphs
+            .iter()
+            .map(|g| {
+                let ch = nominal(g.gid)?;
+                let at = left.iter().position(|&c| c == ch)?;
+                left.remove(at);
+                Some(ch.to_string())
+            })
+            .collect();
+        if !left.is_empty() {
+            let taker = glyphs
+                .iter()
+                .zip(&texts)
+                .enumerate()
+                .filter(|(_, (_, t))| t.is_none())
+                .max_by_key(|&(i, (g, _))| (g.x_advance, std::cmp::Reverse(i)))
+                .map_or(0, |(i, _)| i);
+            if let Some(t) = texts.get_mut(taker) {
+                t.get_or_insert_with(String::new).extend(left);
+            }
+        }
+        texts
+    };
+    let mut reading: Vec<&str> = texts.iter().map(|t| t.as_deref().unwrap_or("")).collect();
+    if run.direction.is_rtl() {
+        reading.reverse();
+    }
+    let needs_actual = reading.concat() != cluster;
+    (texts, needs_actual)
+}
+
+/// The `TJ` arrays: pieces split where `ActualText` starts or ends, segments where the rise
+/// changes. Returns them and the run's advance in millionths of an em.
+fn place(
+    run: &ShapedRun,
+    width: &impl Fn(GlyphId) -> i64,
+    groups: &[Range<usize>],
+    cids: &[u16],
+    actual: &[Option<String>],
+) -> (Vec<PdfPiece>, i64) {
+    let to_milli = |units: i32| milli(f64::from(units), run.units_per_em);
+    let mut pieces: Vec<PdfPiece> = Vec::new();
+    let mut owed: i64 = 0; // how far the pen still has to move before the next glyph
+    let mut total: i64 = 0;
+    for (group, actual) in groups.iter().zip(actual) {
+        let joins = actual.is_none() && pieces.last().is_some_and(|p| p.actual_text.is_none());
+        if !joins {
+            pieces.push(PdfPiece {
+                actual_text: actual.clone(),
+                segments: Vec::new(),
+            });
+        }
+        let Some(piece) = pieces.last_mut() else {
+            continue;
+        };
+        for i in group.clone() {
+            let (Some(g), Some(cid)) = (run.glyphs.get(i), cids.get(i)) else {
+                continue;
+            };
+            // The width `/W` is written with: hmtx rounded to 1/1000 of a `/W` unit.
+            let width = width(g.gid);
+            let dx = to_milli(g.x_offset);
+            let advance = to_milli(g.x_advance);
+            let rise = milli_to_f64(to_milli(g.y_offset));
+            if piece.segments.last().is_none_or(|s| s.rise.to_bits() != rise.to_bits()) {
+                piece.segments.push(PdfSegment { rise, tj: Vec::new() });
+            }
+            let Some(segment) = piece.segments.last_mut() else {
+                continue;
+            };
+            let movement = owed + dx;
+            if movement != 0 {
+                segment.tj.push(TjElement::Adjust(-milli_to_f64(movement)));
+            }
+            match segment.tj.last_mut() {
+                Some(TjElement::Codes(codes)) => codes.extend_from_slice(&cid.to_be_bytes()),
+                _ => segment.tj.push(TjElement::Codes(cid.to_be_bytes().to_vec())),
+            }
+            owed = advance - dx - width;
+            total += advance;
+        }
+    }
+    if owed != 0 {
+        let tail = pieces.last_mut().and_then(|p| p.segments.last_mut());
+        if let Some(segment) = tail {
+            segment.tj.push(TjElement::Adjust(-milli_to_f64(owed)));
+        }
+    }
+    (pieces, total)
+}
+
+/// Whether `ch` is a default-ignorable code point (ZWJ, ZWNJ, the bidi controls, variation
+/// selectors): invisible, never a glyph's text.
+fn is_default_ignorable(ch: char) -> bool {
+    CodePointSetData::new::<DefaultIgnorableCodePoint>().contains(ch)
+}
+
+/// Thousandths of an em from millionths (exact: at most three decimals).
+fn milli_to_f64(milli: i64) -> f64 {
+    #[expect(clippy::cast_precision_loss, reason = "positions are far below 2^52")]
+    let v = milli as f64;
+    v / 1000.0
+}
