@@ -32,7 +32,7 @@ Create `lamina-sign`: signature dictionary with `/ByteRange` and fixed-size `/Co
 
 - `Sign` op (records request; barrier)
 - Planner integration (signing revision assembled in memory; digest streamed)
-- `Signer` trait and a software signer (PKCS#8 key)
+- `Signer` trait and a software signer (PKCS#8 key). The trait is **two-phase** ([shareable-libraries §8](../../plans/shareable-libraries.md#8-changes-to-existing-todos)): `prepare` returns the digest to sign, `finish` takes the signature (converting WebCrypto's P1363 ECDSA output to DER), so WebCrypto, the Secure Enclave and HSMs, which are async or remote, fit a synchronous core ([report: signing](../../research/libraries/shareable-libraries.md#signing-prepare-hand-off-the-digest-finish))
 - Two-phase API in `lamina` and `@lamina/pdf`
 
 **Out of scope** (and which todo covers it)

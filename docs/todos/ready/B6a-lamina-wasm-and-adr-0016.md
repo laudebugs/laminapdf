@@ -56,6 +56,7 @@ Ship the WASM build of the core with sizes we can defend. The `krilla-fit` spike
 
 ## Acceptance criteria
 
+- [ ] ADR 0016 states a budget **per module** (base, text, and placeholders for extract, render and sign), not one budget for `@lamina/pdf` including shaping; CI posts a twiggy top-items diff when a module grows by more than 5 % ([shareable-libraries §8](../../plans/shareable-libraries.md#8-changes-to-existing-todos), [report: the 350 KB budget](../../research/libraries/shareable-libraries.md#the-350-kb-budget-fits-parse-edit-and-save-only))
 - [ ] `cargo xtask wasm` produces `lamina_base.wasm`, `lamina_text.wasm` and glue in `packages/wasm/dist/` reproducibly (same bytes twice)
 - [ ] Sizes are measured with wasm-opt and recorded in ADR 0016; CI fails if either module or the JS glue exceeds its budget (prove with a deliberately bloated build in a test branch or a unit test of the checker)
 - [ ] The base module alone can open, read, transact and save a document and build vector/image pages (no text)

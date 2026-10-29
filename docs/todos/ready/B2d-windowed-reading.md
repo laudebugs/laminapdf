@@ -7,7 +7,7 @@
 | Plan | [pdf-library §7 B2](../../plans/pdf-library.md#b2-document-model) |
 | Round / milestone | Round B (library) — M1 |
 | Depends on | [B2a](../done/B2a-limits-owned-document.md) |
-| Blocks | None |
+| Blocks | [L2c](./L2c-range-byte-source.md) |
 | ADRs | Implements [0005](../../decisions/0005-document-model.md) §2 (windowed reading, chunked repair, `DataPending`); follows [0003](../../decisions/0003-reader-tolerance-and-limits.md) (`Limits`), [0018](../../decisions/0018-test-strategy.md) (no wall-clock assertions in PR lanes) |
 | Branch | `feat/b2d-windowed-reading` |
 | PR title | `feat(core): windowed reading and chunked repair for sources without as_slice` |

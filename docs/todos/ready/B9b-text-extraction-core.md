@@ -7,7 +7,7 @@
 | Plan | [pdf-library §7 B9](../../plans/pdf-library.md#b9-text-extraction), requirement [§4 F8](../../plans/pdf-library.md#functional) |
 | Round / milestone | Round B (library) — M2 Web reader v0.1 (prerequisite) |
 | Depends on | [B2b](../ongoing/B2b-standard-security-decryption.md), [B4a](./B4a-font-loading-and-subsetting.md), [B4c](./B4c-standard-14-and-simple-fonts.md), [B5c](./B5c-lamina-facade-and-examples.md), [B9a](./B9a-lamina-content-and-adr-0023.md) |
-| Blocks | [B9c](./B9c-text-extraction-bindings-and-differential.md), [U2b](./U2b-reading-order-ground-truth.md) |
+| Blocks | [B9c](./B9c-text-extraction-bindings-and-differential.md), [L3a](./L3a-lamina-extract-reading-order.md), [U2b](./U2b-reading-order-ground-truth.md) |
 | ADRs | Implements 0023 (from [B9a](./B9a-lamina-content-and-adr-0023.md)); follows [0003](../../decisions/0003-reader-tolerance-and-limits.md) (tolerance, warnings) |
 | Branch | `feat/b9b-text-extraction` |
 | PR title | `feat(text): text extraction with encodings, ToUnicode, glyph quads, ActualText and MCIDs` |
