@@ -117,7 +117,7 @@ Delivered by [U3a](../todos/ready/U3a-responsive-mobile-and-touch.md). Native ap
 
 ### 5.5 Page appearance and themes (R8)
 
-UI themes (light, dark, high contrast, from [C7a](../todos/ready/C7a-accessibility-and-theming.md)) are separate from **page appearance**, which the user picks per document or globally:
+UI themes (light, dark, high contrast, from [C7a](../todos/ready/C7a-accessibility-and-theming.md)) and the **accent colour** (Teal, Blue, Plum or Green, in light and dark; [design language §2.8](../design/paper/design-language.md#28-accent-colours-proposed)) are separate from **page appearance**, which the user picks per document or globally. Theme and accent are saved to the account when the user is signed in, so every device matches; signed out, they stay on the device.
 
 | Page mode | How | Notes |
 | --- | --- | --- |

@@ -54,7 +54,7 @@ Notes:
 
 1. **Selection tint and highlights on white are fills, not boundaries.** `selection-tint` (1.42) and the highlight colours (1.43–1.77) are low-contrast against the page by design, so text stays readable through them (ink on them ≥ 8.77). The *selected* state never relies on the fill alone: a selected annotation gets a 2 px `focus` outline (5.29 against yellow), the mini toolbar or the action bar appears, and touch selections draw `accent` handles (7.58 on white).
 2. The `Commands` button in the top bar has a `hairline` border (1.22); its visible text identifies it, so WCAG 1.4.11 does not require the border. Don't copy that border onto icon-only controls.
-3. Tweak accents in the canvas (`#2D4A6B` blue, `#3E4A3C` green) also pass: 8.31 / 8.50 on ground, white on them 9.12 / 9.34. Teal `#1F5C63` is the default.
+3. Teal `#1F5C63` is the default accent. The user can choose Blue, Plum or Green instead; every accent-derived token above has a value per accent in [§2.8](#28-accent-colours-proposed).
 
 ### 2.2 Highlight and annotation colours
 
@@ -86,7 +86,7 @@ The same warm family, inverted: chrome is warm charcoal, never pure black, and t
 | `hairline` (decorative) | `#3A3732` | ⚠ ground 1.42 |
 | `chip-border` (decorative) | `#4A463F` | ⚠ raised 1.49 |
 | `control-border` | `#7E766A` | ground 3.76 · surface 3.45 · raised 3.11 |
-| `accent` / `focus` | `#7DBDC2` | ground 7.97 · surface 7.32 · raised 6.59 |
+| `accent` / `focus` | `#7DBDC2` (Teal; other accents in [§2.8](#28-accent-colours-proposed)) | ground 7.97 · surface 7.32 · raised 6.59 |
 | `accent-strong` (hover) | `#9BCFD3` | — |
 | `on-accent` | `#1E1D1A` | on accent 7.97 |
 | `accent-tint` | `#343C3B` (16% over surface) | text 9.19 · accent 5.35 |
@@ -150,9 +150,68 @@ Colours written into the file or drawn on the page. Like the highlight colours (
 | Page content colours | Ink `#262421` · Grey `#6E6A64` · Teal `#1F5C63` · Red `#9B2335` · Custom…; "No fill" is a white swatch with a red diagonal. An existing object's colour comes first, named "(original)" | Text, shapes and fills added or edited in Edit mode |
 | Outline colours (`/C`) | Default (`text`) · Grey (`muted`) · Red (`danger`) · Blue `#2D4A6B` · Green (`positive`) | Bookmark rows |
 | Signature ink | Black `#1F1D1A` · Dark blue `#1F2F5C` (12.97 on white) | Drawn and typed signatures |
-| Presence | Violet `#5B4B8A` (white on it 7.45) · Blue `#1F5C8A` (7.10) · Plum `#8A3B5C` (7.34) · Teal-green `#3B6B5C` (6.10); the same ratios as an outline on a white page | Reviewer avatars and remote selections, assigned in joining order, stable per person per document; a fifth reviewer reuses violet. Names always show, so colour is never the only cue |
-| Diff marks | Removed: `danger-tint` + strikethrough · Added: `positive-tint` + underline · Overlay: orange `#B4540F` (4.98 on white) and blue `#2D4A6B`, with a legend | Compare views; the current change gets the 2 px `focus` outline |
+| Presence | Violet `#5B4B8A` (white on it 7.45) · Blue `#1F5C8A` (7.10) · Plum `#8A3B5C` (7.34) · Teal-green `#3B6B5C` (6.10); the same ratios as an outline on a white page | Reviewer avatars and remote selections, assigned in joining order, stable per person per document; a fifth reviewer reuses violet. Names always show, so colour is never the only cue. A remote selection is a 2 px **dashed** outline with its name tab; your own selection stays solid `focus`, so the two differ whatever the accent (§2.8) |
+| Diff marks | Removed: `danger-tint` + strikethrough · Added: `positive-tint` + underline · Overlay: orange `#B4540F` (4.98 on white) and blue `#2D4A6B`, with a legend | Compare views; the current change gets the 2 px `focus` outline at a 2 px offset **and** its number chip (“3 of 14”), so it never relies on the accent hue alone (the Blue accent is the overlay blue, §2.8) |
 | Measurement | Selected shape: `accent` at 12% with a 2 px `accent` edge, value chip filled `accent`; other measurements in `warning` with a white chip | Measure tool |
+
+### 2.8 Accent colours (proposed)
+
+The owner chose on 2026-10-29 to let people pick the accent: **Teal** (default), **Blue**, **Plum** or **Green**, in both UI themes. The accent is a third setting beside Theme and Page appearance (§8.6). High contrast ignores it and uses system colours.
+
+Each set is derived from its base colour with the same rules as Teal, and those rules reproduce every documented Teal value exactly:
+
+- `accent-tint` is the accent at 12% over `surface` (dark: 16% over dark `surface`).
+- `selection-tint` is the accent at 22% over the paper (Sepia 22%; on the Dark page, the dark accent at 35%).
+- The dark accent keeps the hue and takes Teal's dark lightness (OKLCH L 0.757).
+- `accent-strong` and primary pressed keep Teal's lightness ratios.
+
+Green is a moss green, `#495533` (OKLCH chroma 0.055, hue 124°). It replaces the canvas tweak's `#3E4A3C`, which had half Teal's chroma, read as dark text and sat next to `positive` (154°).
+
+| Accent | `accent` | `accent-strong` | primary pressed | `accent-tint` | `selection-tint` Original | Sepia | Dark `accent` / `focus` | Dark `accent-strong` | Dark `accent-tint` | Dark-page selection |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Teal (default) | `#1F5C63` | `#16454B` | `#123A3F` | `#E1E6E3` | `#CEDBDD` | `#C5CCBE` | `#7DBDC2` | `#9BCFD3` | `#343C3B` | `#425858` |
+| Blue | `#2D4A6B` | `#1A3757` | `#112E4D` | `#E2E4E4` | `#D1D7DE` | `#C8C8C0` | `#91B3DC` | `#AAC7E9` | `#373B3F` | `#495461` |
+| Plum | `#5B3B6B` | `#472856` | `#3D1E4C` | `#E8E2E4` | `#DBD4DE` | `#D2C5C0` | `#C59FD9` | `#D6B6E7` | `#3F383E` | `#5B4D60` |
+| Green | `#495533` | `#35401F` | `#2C3615` | `#E6E5DE` | `#D7DAD2` | `#CECBB4` | `#A8B78F` | `#BDCAA8` | `#3B3C33` | `#515646` |
+
+`on-accent` stays `#FFFFFF` in light and `#1E1D1A` in dark for every accent. Contrast, recomputed (WCAG 2.x):
+
+| Accent | Light: on ground · on surface · white on it · white on pressed · on its tint · text on tint · page ink on selection · Sepia ink on selection | Dark: on ground · on surface · on raised · `on-accent` on it · on its tint · text on tint · page ink on selection |
+| --- | --- | --- |
+| Teal | 6.91 · 7.21 · 7.58 · 12.33 · 6.00 · 13.32 · 10.91 · 7.91 | 7.97 · 7.32 · 6.59 · 7.97 · 5.35 · 9.19 · 5.83 |
+| Blue | 8.31 · 8.67 · 9.12 · 13.80 · 7.14 · 13.17 · 10.68 · 7.73 | 7.77 · 7.14 · 6.43 · 7.77 · 5.21 · 9.17 · 5.92 |
+| Plum | 8.38 · 8.75 · 9.20 · 14.11 · 7.20 · 13.16 · 10.68 · 7.74 | 7.49 · 6.88 · 6.19 · 7.49 · 5.06 · 9.23 · 6.03 |
+| Green | 7.27 · 7.59 · 7.98 · 12.76 · 6.32 · 13.31 · 10.94 · 7.95 | 7.89 · 7.25 · 6.53 · 7.89 · 5.23 · 9.07 · 5.82 |
+
+**What follows the accent:**
+
+- `accent`, `accent-strong`, primary pressed, `accent-tint`, `focus` and `field-tint`, the last at 8% over white.
+- Links, the active-mode underline, selected rows and tabs, pressed toggles, target fields, progress fills, the network shield, the Measure tool's selected shape and the find-current outline.
+- The text selection on the page, in every page appearance. lamina draws it; the PDF doesn't.
+
+**What never follows it:**
+
+- Annotation and highlight colours (§2.2) and page paper and ink (§2.4).
+- `danger`, `warning`, `positive` and their tints.
+- The fixed content palettes (§2.7). The Edit-mode "Teal" swatch is content `#1F5C63` whatever the accent.
+- The find-match fill (§2.6).
+
+**Collisions and how they are resolved:**
+
+- **Blue** is the hex of the outline `/C` Blue and of Compare's overlay blue (§2.7). A selected bookmark row is marked by `accent-tint` and weight, not by its text colour. The current change in Compare carries its number chip as well as the outline.
+- The **presence** blue and plum sit near the Blue and Plum accents. Remote selections are dashed and named (§2.7), so they never look like your own.
+- **Green** stays 30° of hue away from `positive`. A selected state is never drawn as green text alone; it always has the tint or the underline.
+
+**Setting.** View settings (R10) and Settings › Appearance (S07) show an **Accent** row under Theme.
+
+- **Control:** a radio group of four 32 px swatches named Teal, Blue, Plum, Green, with the selected ring from §7.12.
+- **High contrast:** in that theme the row is disabled with the help line "High contrast uses your system colours".
+- **Command:** `view.accent` (`teal`, `blue`, `plum`, `green`).
+- **Applying it:** switching swaps CSS custom properties under `[data-accent]` beside `[data-theme]`, with no re-render and no transition under reduced motion.
+- **Storage and sync:**
+  - The accent is applied before first paint, so there is no flash of teal.
+  - Signed out, it is stored on the device.
+  - Signed in, it is saved to the account with Theme, so every device that signs in gets the same look (H02). The device's own choice wins until the first sign-in, and the account's afterwards.
 
 ## 3. Typography
 
@@ -459,11 +518,11 @@ Variants **(proposed)**:
     <div style="display: flex; align-items: center; gap: 6px; font-variant-numeric: tabular-nums">
       <label for="pg" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Page</label>
       <input id="pg" value="3" style="width: 30px; height: 24px; box-sizing: border-box; text-align: center; border: 1px solid #8A8174; border-radius: 4px; background: #FFFFFF; font: inherit; font-variant-numeric: tabular-nums; color: #1F1D1A">
-      <span style="color: #6B645A">/ 24</span>
+      <span style="color: #6B645A; white-space: nowrap">/ 24</span>
     </div>
     <!-- zoom: two 26×26 icon buttons around <span style="min-width: 40px; text-align: center">110%</span> -->
     <!-- find: icon button (7.3) -->
-    <button style="height: 26px; display: flex; align-items: center; gap: 8px; padding: 0 6px 0 10px; border: 1px solid #E4DED3; background: #FBF9F5; border-radius: 4px; color: #6B645A; font-size: 13px"><span>Commands</span><span style="font-size: 11px; padding: 1px 5px; border: 1px solid #D8D1C5; border-radius: 3px; color: #4A453E; background: #FFFFFF">Ctrl K</span></button>
+    <button style="height: 26px; flex-shrink: 0; white-space: nowrap; display: flex; align-items: center; gap: 8px; padding: 0 6px 0 10px; border: 1px solid #E4DED3; background: #FBF9F5; border-radius: 4px; color: #6B645A; font-size: 13px"><span>Commands</span><span style="font-size: 11px; padding: 1px 5px; border: 1px solid #D8D1C5; border-radius: 3px; color: #4A453E; background: #FFFFFF">Ctrl K</span></button>
     <button style="height: 26px; padding: 0 12px; border: 1px solid #1F5C63; background: #1F5C63; color: #FFFFFF; border-radius: 4px; font-size: 13px; font-weight: 600">Save</button>
     <!-- more: icon button -->
   </div>
@@ -1100,7 +1159,7 @@ No auto-save. The top bar shows the state ("No unsaved changes", "1 unsaved chan
 
 ### 8.6 Page appearance vs UI theme
 
-Two separate settings in View settings: **Theme** (Light, Dark, High contrast, Match system) recolours the chrome; **Page appearance** (Original, Sepia, Dark, High contrast) recolours page content in the renderer. Original is the default in every theme: draw white pages on the dark gutter in dark mockups. Photos and annotation colours never change.
+Three separate settings in View settings: **Theme** (Light, Dark, High contrast, Match system) recolours the chrome; **Accent** (Teal, Blue, Plum, Green, [§2.8](#28-accent-colours-proposed)) recolours the accent-derived tokens of the chrome and the text selection on the page; **Page appearance** (Original, Sepia, Dark, High contrast) recolours page content in the renderer. Original is the default in every theme: draw white pages on the dark gutter in dark mockups. Photos and annotation colours never change.
 
 ### 8.7 Touch rules
 
@@ -1175,7 +1234,7 @@ Two separate settings in View settings: **Theme** (Light, Dark, High contrast, M
 
 **Command ids (proposed rule).** Every command in the registry has one id, used by the palette, menus, shortcuts, telemetry counts and the docs.
 
-- Form: `namespace.verb-object`, lowercase, kebab-case, exactly one dot (`file.save-copy`, `pages.rotate-left`). Variants are arguments, not more segments: `view.theme` (`light`, `dark`, `high-contrast`, `system`), `view.page-appearance`, `view.page-layout`, `comment.shape` (`kind`), `tool.shape` (`kind`), `comment.set-colour` (colour name).
+- Form: `namespace.verb-object`, lowercase, kebab-case, exactly one dot (`file.save-copy`, `pages.rotate-left`). Variants are arguments, not more segments: `view.theme` (`light`, `dark`, `high-contrast`, `system`), `view.accent` (`teal`, `blue`, `plum`, `green`), `view.page-appearance`, `view.page-layout`, `comment.shape` (`kind`), `tool.shape` (`kind`), `comment.set-colour` (colour name).
 - The namespace names the thing acted on or the surface, never a mode: `app`, `window`, `tab`, `session`, `crash`, `help`, `palette`, `layer`, `selection`, `privacy`, `settings`, `account`, `licence`, `mode`, `file`, `view`, `nav`, `find`, `edit`, `tool`, `pages`, `document`, `xmp`, `organise` (only bookmarks, destinations, attachments and the initial view), `comment` (Comment tools and threads), `comments` (the Comments panel), `annot` (a selected annotation), `attachment`, `stamps`, `form`, `form-design`, `sign`, `signatures`, `security`, `redact`, `a11y`, `tags`, `actions`, `layers`, `measure`, `print`, `ocr`, `convert`, `compare`, `revisions`, `batch`, `jobs` (server jobs).
 - Page operations are `pages.*` in every mode. Tool toggles are `tool.*` in Edit and `comment.*` in Comment. A command that opens a tool toolbar is `<namespace>.open` (`redact.open`, `form-design.open`, `actions.open`, `print.open`) unless the tool's job is its own command (`a11y.check`, `security.protect`).
 - One id per action across areas; labels may differ by platform or state (`file.save-copy` is “Download a copy” on the web and “Save a copy…” on the desktop).
@@ -1237,7 +1296,10 @@ One compare view, from X04: side by side or overlay, version selects, Previous /
   - Phone: fixed `390 × 844`, root `width: 390px; height: 844px; position: relative; overflow: hidden`.
   - Tablet (if used): fixed `1024 × 1366`.
 - **Never use % heights**; use flex, `min-height: 100vh` on page roots, or fixed px on fixed artboards. Widths may use % inside a sized parent (chart bars).
-- Tweaks: at most 2–3 `data-props` per artboard (the files use `accent` with options `#1F5C63`, `#2D4A6B`, `#3E4A3C`, plus one boolean such as `showRail`, `showPalette` or an enum such as `pageAppearance`). Copy stays literal markup.
+- **Keep the shell inside the board (second review, 2026-10-29).** An app shell (top bar, canvas, status bar) has `height: 100vh` on its root, not `min-height`, and every flex row or column between the root and a scrolling region has `min-height: 0` (or `min-width: 0`), so long lists, threads, dialogs and pages scroll inside their region and the status bar stays at the bottom of the 900 px board. Dialog overlays scroll their body, never the footer. Only site and document-length boards (H08, H09, S09) may grow, and their `canvas.json` height says so.
+- **Text that must not wrap:** page counts (`/ 24`), shortcut chips, badges, page labels in rows and menu items, and button labels get `white-space: nowrap; flex-shrink: 0`; long names (file names, titles) get `min-width: 0` and an ellipsis instead. Check boards with the real fonts loaded, not fallbacks.
+- Tweaks: at most 2–3 `data-props` per artboard: `accent` with the options `#1F5C63`, `#2D4A6B`, `#5B3B6B`, `#495533` (Teal, Blue, Plum, Green, §2.8), plus one boolean such as `showRail`, `showPalette` or an enum such as `pageAppearance` or `theme`. Copy stays literal markup.
+- **Every accent-derived colour follows the tweak:** `accent`, `accent-tint` (`mix(accent, surface, .12)`), `selection-tint` (`mix(accent, '#FFFFFF', .22)`), focus rings, pressed toggles, target fields, badges and links (give each `<a>` an inline `color: {{accent}}`; the `<helmet>` rule is only a fallback). Never hard-code `#1F5C63`, `#16454B` or `#E1E6E3` for UI. Teal drawn as page content (the Edit “Teal” swatch, a logo, a chart recoloured by the user) stays `#1F5C63` and is not accent.
 - Draw the macOS window frame for desktop boards (§6.1); no browser chrome for web boards; no fake device status bar on phones (the home indicator is allowed).
 - Show one keyboard focus ring per board; use real elements and ARIA as in the snippets.
 - No gradients, no left-border accent cards, no emoji, no shadows on docked panels.
@@ -1293,6 +1355,7 @@ On 2026-10-29 the “New components” and “Proposed design-language additions
 | 43 | `help.shortcuts` on desktop | Desktop shell (F1), §8.8 (`?` only) | `?` on the page everywhere; F1 in the desktop app (§8.8) | A native menu accelerator can't be a page-scoped single key | None |
 | 44 | Server consent wording | §7.18 (four fixed rows, checkbox repeats the file name), Convert and produce | Four rows worded per job; checkbox names what is sent; retention fixed before upload and never extended (§7.18) | Pages, addresses and batches are not “the file” | None |
 | 45 | Linux window frame radius | Desktop shell (8), §4 (10 only for macOS) | Windows and Linux frames radius 8 (§4, §6.1) | Matches the drawn boards | None |
+| 46 | Accent colours (owner, 2026-10-29) | Every area (canvas tweak Teal · Blue · Green, light only) | Teal (default), Blue, Plum and Green in light and dark, a user setting beside Theme, saved to the account (§2.8, §8.6); Green moved to moss `#495533`; the text selection on the page follows the accent | People asked to choose; every set passes AA and is derived like Teal | Boards updated: every board has the four-option `accent` tweak; R10 and S07 draw the Accent row; F01, F03 and R11 preview dark |
 
 ## Appendix: Command ids
 
@@ -1683,6 +1746,7 @@ Every command id used in the area documents on 2026-10-29 (regenerated after the
 | `view.collapse-outline` | Collapse outline | Reader A R06; Reader B R17, R18 | — |  |
 | `view.continuous` | Continuous scrolling | Reader B R10 | — |  |
 | `view.expand-outline` | Expand outline | Reader A R06; Reader B R17, R18 | — |  |
+| `view.accent` | Accent colour | Reader B R10; Desktop shell S07 | — | `teal`, `blue`, `plum`, `green`; synced with the account (§2.8) |
 | `view.fit-page` | Fit page | Reader B R10; Desktop shell S03 | — |  |
 | `view.fit-width` | Fit width | Reader B R10; Desktop shell S03 | — |  |
 | `view.focus-mode` | Focus mode | Reader B R12, R16; Desktop shell S03 | ⌘\ · Ctrl \ |  |
