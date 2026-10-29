@@ -11,12 +11,19 @@
 #
 #     if: ${{ !cancelled() && needs.changes.outputs.code == 'true' }}
 #
-# A suite missing from `gate.needs` doesn't block merges.
+# A suite missing from `gate.needs` doesn't block merges. `check-linux` is the one exception to
+# that condition: it also needs `changes`' `linux` output to be 'true', which it is only while
+# the repository variable LINUX_RUNNER is 'true' (the owner's switch: `gh variable set
+# LINUX_RUNNER --body true`) and the runner's heartbeat (LINUX_RUNNER_HEARTBEAT, refreshed by
+# tools/ci-runner/linux/loop.sh) is under 15 minutes old. Otherwise the job is skipped, so
+# `gate` doesn't wait on a runner that isn't there, and `gate` accepts that skip. Both read the
+# one output, so changing the variables mid-run can't make them disagree.
 #
-# Every job runs on the self-hosted macOS ARM64 runners, which share one machine: jobs isolate
-# the Rust install (isolate-rust-home), install pnpm into ${{ runner.temp }}, and don't use
-# rust-cache (see ci.yml). There are no self-hosted Linux or Windows runners, so the full lane
-# no longer runs `cargo xtask check` on those OSes; the fast lane covers macOS.
+# Every job runs on self-hosted runners on one Mac: the two macOS ARM64 runners, where jobs
+# isolate the Rust install (isolate-rust-home), install pnpm into ${{ runner.temp }} and don't
+# use rust-cache (see ci.yml), and one Linux ARM64 runner in a container on the same Mac
+# (tools/ci-runner/linux/README.md), which runs `check-linux` only. There is no Windows runner
+# (X6); the fast lane covers `cargo xtask check` on macOS.
 # Actions are pinned by full commit SHA with the release in a comment (ADR 0019).
 name: Full lane
 
@@ -52,7 +59,26 @@ jobs:
     timeout-minutes: 10
     outputs:
       code: ${{ steps.pr.outputs.code || steps.push.outputs.code }}
+      linux: ${{ steps.linux.outputs.linux }}
     steps:
+      # `linux` is exactly "true" or "false": whether check-linux may be scheduled (see the top).
+      # A runner that dies after this step leaves the job queued until it comes back; the
+      # recovery steps are in tools/ci-runner/linux/README.md.
+      - name: Is the Linux runner switched on and alive?
+        id: linux
+        env:
+          SWITCH: ${{ vars.LINUX_RUNNER }}
+          HEARTBEAT: ${{ vars.LINUX_RUNNER_HEARTBEAT }}
+        run: |
+          linux=false
+          if [ "$SWITCH" = true ]; then
+            if [[ "$HEARTBEAT" =~ ^[0-9]+$ ]] && [ $(( $(date +%s) - HEARTBEAT )) -le 900 ]; then
+              linux=true
+            else
+              echo "::warning::LINUX_RUNNER is true but the Linux runner's heartbeat is missing or older than 15 minutes, so check-linux is skipped (tools/ci-runner/linux/README.md)"
+            fi
+          fi
+          echo "linux=$linux" >> "$GITHUB_OUTPUT"
       - name: Pushes to main run every suite
         id: push
         if: github.event_name != 'pull_request'
@@ -155,13 +181,56 @@ jobs:
           path: fuzz/artifacts/
           if-no-files-found: ignore
 
+  # `cargo xtask check` (docs, Rust, TypeScript) on Linux ARM64, in the runner container on the
+  # Mac (todo X5, tools/ci-runner/linux/README.md). Each job gets a fresh container from an image
+  # with the pinned Rust toolchain already in ~/.rustup and ~/.cargo, and nothing it writes
+  # survives the job, so there is no isolate-rust-home here. Build output comes back through
+  # GitHub's cache instead (rust-cache, saved by pushes to main only): a PR can restore main's
+  # cache but never write one main reads, so PR code can't plant anything a main run executes.
+  # The container is capped at 3 CPUs and 6 GB so the macOS runners keep their share.
+  check-linux:
+    name: Check (Linux ARM64)
+    needs: changes
+    if: ${{ !cancelled() && needs.changes.outputs.code == 'true' && needs.changes.outputs.linux == 'true' }}
+    runs-on: [self-hosted, Linux, ARM64]
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      # No `toolchain` input: installs exactly what rust-toolchain.toml pins (already in the
+      # image unless main bumped it since the image was built).
+      - uses: actions-rust-lang/setup-rust-toolchain@ecabd13d1c56bd1345c230e542e9144811ad706f # v2.0.0
+        with:
+          # Dependencies' build output and the registry. Only pushes to main save it (PR caches
+          # are scoped to their PR anyway; this keeps them from filling the repository's quota).
+          # Unlike on macOS, rust-cache's post step has no `sudo purge` here.
+          cache: true
+          cache-save-if: ${{ github.ref == 'refs/heads/main' }}
+          # The tools come from install-action below on every run.
+          cache-bin: false
+      # Same versions as tools/xtask/src/doctor.rs; xtask fails if they drift.
+      - uses: taiki-e/install-action@86f7a0ffb25f40114606501a311ebcfaf882ea32 # v2.88.0
+        with:
+          tool: cargo-nextest@0.9.150,cargo-deny@0.20.2
+      # No `version` input: uses packageManager from package.json. The default install dir is
+      # fine here: the container is the job's own (the macOS jobs need `dest`, see ci.yml).
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: cargo xtask check
+
   # The required check. Fails unless `changes` succeeded with `code` exactly "true" or "false";
   # then every suite must have succeeded (code) or been skipped (docs-only). Any failure,
-  # cancellation, or skip of a suite that should have run fails it.
+  # cancellation, or skip of a suite that should have run fails it. The one allowed skip on a
+  # code change is `check-linux` while `changes`' `linux` output is 'false'.
   gate:
     name: gate
     if: always()
-    needs: [changes, differential, fuzz]
+    needs: [changes, differential, fuzz, check-linux]
     runs-on: [self-hosted, macOS, ARM64]
     timeout-minutes: 5
     steps:
@@ -169,6 +238,7 @@ jobs:
         env:
           NEEDS: ${{ toJSON(needs) }}
           CODE: ${{ needs.changes.outputs.code }}
+          LINUX: ${{ needs.changes.outputs.linux }}
         run: |
           set -euo pipefail
           changes=$(jq -r '.changes.result' <<<"$NEEDS")
@@ -183,10 +253,21 @@ jobs:
               exit 1
               ;;
           esac
+          case "$LINUX" in
+            true|false) echo "Linux runner scheduled: $LINUX" ;;
+            *)
+              echo "::error::the changes job's linux output is '$LINUX', not true or false"
+              exit 1
+              ;;
+          esac
           failed=0
           for job in $(jq -r 'del(.changes) | keys[]' <<<"$NEEDS"); do
             result=$(jq -r --arg job "$job" '.[$job].result' <<<"$NEEDS")
             echo "$job: $result"
+            if [ "$job" = check-linux ] && [ "$LINUX" = false ] && [ "$result" = skipped ]; then
+              echo "::notice::check-linux skipped: the Linux runner is switched off or not alive"
+              continue
+            fi
             case "$CODE/$result" in
               true/success | false/skipped) ;;
               *)
