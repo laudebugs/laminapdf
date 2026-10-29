@@ -4,7 +4,7 @@ Guidance for Claude Code (and humans) working in this repository.
 
 ## What lamina is
 
-lamina is a platform for anything and everything PDF: creating PDFs from code, parsing and extracting content, rendering, editing, form filling, signing, and transforming documents. The first core crates (`lamina-syntax`, `lamina-cos`, ported from the pdf-basics spike) exist; there are no packages or apps yet. Decisions are recorded as ADRs in `docs/decisions/`; accepted so far: a Rust core, `MIT OR Apache-2.0`, bytes in / bytes out with no AGPL/GPL dependencies ([0001](docs/decisions/0001-core-language-and-licence.md)); wasm-bindgen + tsify bindings ([0002](docs/decisions/0002-binding-strategy.md)); the Cargo + pnpm + `cargo xtask` monorepo ([0015](docs/decisions/0015-monorepo-layout-and-tooling.md)); cargo-deny and licence hygiene ([0019](docs/decisions/0019-supply-chain-and-licence-hygiene.md)); the reader tolerance policy and `Limits` ([0003](docs/decisions/0003-reader-tolerance-and-limits.md)); the document model ([0005](docs/decisions/0005-document-model.md); generation strategy §6: our own builder over `lamina-cos` reusing `pdf-writer`/`subsetter`/`skrifa`/HarfRust, per the `krilla-fit` spike, accepted when its PR merges); the op log and undo ([0006](docs/decisions/0006-op-log-and-undo.md)); the save planner ([0007](docs/decisions/0007-save-planner.md)); the test strategy ([0018](docs/decisions/0018-test-strategy.md)). The plan for the rest is in `docs/plans/architecture.md`, with the shareable libraries (contracts, CLI/MCP, AI extraction, agent docs, mobile; Rounds L1–L6, ADRs 0026–0031 proposed) in `docs/plans/shareable-libraries.md`; don't assume decisions that aren't in an ADR.
+lamina is a platform for anything and everything PDF: creating PDFs from code, parsing and extracting content, rendering, editing, form filling, signing, and transforming documents. The first core crates (`lamina-syntax` and `lamina-cos`, ported from the pdf-basics spike, and `lamina-model`) exist; there are no packages or apps yet. Decisions are recorded as ADRs in `docs/decisions/`; accepted so far: a Rust core, `MIT OR Apache-2.0`, bytes in / bytes out with no AGPL/GPL dependencies ([0001](docs/decisions/0001-core-language-and-licence.md)); wasm-bindgen + tsify bindings ([0002](docs/decisions/0002-binding-strategy.md)); the Cargo + pnpm + `cargo xtask` monorepo ([0015](docs/decisions/0015-monorepo-layout-and-tooling.md)); cargo-deny and licence hygiene ([0019](docs/decisions/0019-supply-chain-and-licence-hygiene.md)); the reader tolerance policy and `Limits` ([0003](docs/decisions/0003-reader-tolerance-and-limits.md)); the document model ([0005](docs/decisions/0005-document-model.md); generation strategy §6: our own builder over `lamina-cos` reusing `pdf-writer`/`subsetter`/`skrifa`/HarfRust, per the `krilla-fit` spike, accepted when its PR merges); the op log and undo ([0006](docs/decisions/0006-op-log-and-undo.md)); the save planner ([0007](docs/decisions/0007-save-planner.md)); the test strategy ([0018](docs/decisions/0018-test-strategy.md)). The plan for the rest is in `docs/plans/architecture.md`, with the shareable libraries (contracts, CLI/MCP, AI extraction, agent docs, mobile; Rounds L1–L6, ADRs 0026–0031 proposed) in `docs/plans/shareable-libraries.md`; don't assume decisions that aren't in an ADR.
 
 ## Repository layout
 
@@ -18,10 +18,15 @@ lamina is a platform for anything and everything PDF: creating PDFs from code, p
 ├── biome.json  tsconfig.base.json  deny.toml  clippy.toml  rustfmt.toml
 ├── crates/              # Rust crates, flat: crates/lamina-<name>
 │   ├── lamina-syntax/   #   core: object model + serialization, lexer, parser, filters (Flate, PNG predictors), Limits
-│   └── lamina-cos/      #   core: Document over a ByteSource (xref, object streams, repair, page tree, warnings) and writer (moves to lamina-save in Round B)
-├── fixtures/            # shared test inputs: golden/ (byte-exact), corpus/ + expected.json, codes.json; README.md has provenance
+│   ├── lamina-cos/      #   core: Document over a ByteSource (xref, object streams, repair, page tree, warnings) and writer (moves to lamina-save in Round B)
+│   └── lamina-model/    #   core: typed views (pages, outline, Info, name/number trees, page labels) and LaminaIds
+├── fixtures/            # shared test inputs: golden/ (byte-exact), corpus/ + expected.json + exceptions.toml,
+│                        #   differential/ (pypdf expectations), codes.json; README.md has provenance
+├── fuzz/                # cargo-fuzz targets (OSS-Fuzz layout), its own nightly workspace outside the root one
 ├── tools/xtask/         # `cargo xtask …`: the single task entry point
-├── .github/             # CI fast lane (workflows/ci.yml) and Dependabot
+├── tools/corpus-facts/  # pypdf facts for fixtures (Python, pinned in requirements.txt); never run by tests
+├── tools/fixtures/      # generators for fixtures written for lamina's tests (no dependencies)
+├── .github/             # CI fast lane (workflows/ci.yml), scheduled fuzzing (workflows/fuzz.yml), Dependabot
 ├── spikes/              # research spikes (throwaway code that informs decisions), outside both workspaces
 │   ├── pdf-basics/      # minimal PDF core in Rust + TypeScript, its own frozen fixtures and spec (ported to crates/)
 │   ├── krilla-fit/      # Round B1: can krilla generate into lamina's object graph? (answer + measurements in its README)
@@ -77,6 +82,11 @@ cargo xtask npm-licenses     # npm licence check only
 cargo xtask docs-links       # every relative link and #anchor in tracked *.md resolves (GitHub slugs); --json for tooling
 cargo xtask todos            # regenerate docs/todos/README.md and each todo's Blocks from its Depends on links
 cargo xtask todos --check    # fail if the board or a Blocks field is stale, or the todo graph is inconsistent
+cargo xtask golden --update  # regenerate every golden in fixtures/golden/ from its source, print the list
+cargo xtask corpus facts     # rewrite fixtures/corpus/expected.json with pypdf ($LAMINA_PYTHON or python3)
+cargo xtask differential     # lamina vs pypdf's precomputed facts (corpus + fixed-seed mutants; part of `test`)
+cargo xtask differential --update  # regenerate fixtures/differential/expected.json with pypdf
+cargo xtask fuzz <target> [--time N]  # cargo +nightly fuzz: lex, parse_object, flate_decode, open, page_tree
 cargo xtask ci               # the whole fast lane locally: check + wasm
 cargo xtask doctor           # are rustc, node, pnpm, cargo-deny, cargo-nextest, wasm-opt … at the pinned versions?
 cargo xtask doctor --install # install the pinned cargo tools
@@ -84,7 +94,9 @@ cargo xtask doctor --install # install the pinned cargo tools
 
 A single crate: `cargo test -p lamina-cos` (integration tests read the shared `fixtures/`; golden files are never rewritten by a test). Hangs are caught by nextest's per-test timeout in `.config/nextest.toml` (robustness tests: 30 s), not by wall-clock asserts (ADR 0018); plain `cargo test` runs the same tests without the timeout.
 
-Reading API (ADR 0003, 0005): `Document::open(source, OpenOptions)` takes an owned or shared `ByteSource` (`Vec<u8>`, `Arc<[u8]>`, `&'static [u8]`, `Arc<dyn ByteSource>`); `OpenOptions` holds `Limits` (hard limits fail with `Error::LimitExceeded`, soft ones drop with a warning), strict mode (`Error::Strict`) and the password: the standard security handler (R2–R6, ISO 32000 §7.6) decrypts strings and streams on load, tries it as user then owner password (owner first for R5/R6), and fails with `password-required` or `wrong-password`; `Document::encryption()` and `permissions()` describe the result. Warning and error codes are listed in `fixtures/codes.json`, which a test checks against the Rust enums.
+Fuzzing (`fuzz/`, see its README) needs nightly Rust and cargo-fuzz (pinned in `doctor.rs`); `.github/workflows/fuzz.yml` runs every target for 10 minutes nightly. Python (pypdf, pinned in `tools/corpus-facts/requirements.txt`) is only needed to regenerate facts; tests read the committed JSON.
+
+Reading API (ADR 0003, 0005): `Document::open(source, OpenOptions)` takes an owned or shared `ByteSource` (`Vec<u8>`, `Arc<[u8]>`, `&'static [u8]`, `Arc<dyn ByteSource>`); `OpenOptions` holds `Limits` (hard limits fail with `Error::LimitExceeded`, soft ones drop with a warning), strict mode (`Error::Strict`) and the password: the standard security handler (R2–R6, ISO 32000 §7.6) decrypts strings and streams on load, tries it as user then owner password (owner first for R5/R6), and fails with `password-required` or `wrong-password`; `Document::encryption()` and `permissions()` describe the result. Warning and error codes are listed in `fixtures/codes.json`, which a test checks against the Rust enums. Typed views live in `lamina-model`: its `Document` wraps the COS one (and derefs to it) with the ID allocator; `doc.pages()`, `doc.outline()`, `doc.info()`, `doc.page_labels()`, `doc.name_tree(key)`; views raise warnings on the document via `lamina_cos::Document::report`. `LaminaId`s are `p12.0` (kind + object) or path IDs such as `p5.0/Kids/3` for direct dictionaries (ADR 0005 §5).
 
 Every crate under `crates/` declares its layer in `Cargo.toml` (`[package.metadata.lamina] layer = "core" | "edge" | "app"`); xtask applies the bytes-in/bytes-out rules to core crates. External tool versions are pinned in `tools/xtask/src/doctor.rs` (CI installs the same ones): `cargo-deny` is required by `check`; `cargo-nextest` is optional (falls back to `cargo test`).
 

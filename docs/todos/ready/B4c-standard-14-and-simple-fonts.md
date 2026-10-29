@@ -29,7 +29,7 @@ Let callers write text without supplying font bytes, using the 14 standard Type 
 
 - `Standard14` enum (Helvetica, -Bold, -Oblique, -BoldOblique, Times-Roman, -Bold, -Italic, -BoldItalic, Courier ×4, Symbol, ZapfDingbats); `Font::standard(Standard14)`.
 - Generated Rust tables from the AFM files (widths per glyph name, kerning pairs optional, ascent/descent/cap height/bbox) via a generator in `tools/` (not a build script), output committed under `crates/lamina-text/src/std14/generated/` with a header naming the source and licence.
-- Encoding tables (code → glyph name) and AGL (glyph name → Unicode) as generated tables shared with extraction; PDFDocEncoding is not generated here but taken from `lamina_syntax::text` ([B2c](../ongoing/B2c-lamina-model-corpus-fuzz.md)).
+- Encoding tables (code → glyph name) and AGL (glyph name → Unicode) as generated tables shared with extraction; PDFDocEncoding is not generated here but taken from `lamina_syntax::text` ([B2c](../done/B2c-lamina-model-corpus-fuzz.md)).
 - Simple-font writer: `/Type /Font /Subtype /Type1 /BaseFont … /Encoding /WinAnsiEncoding` (Symbol/ZapfDingbats use built-in), `/FirstChar`, `/LastChar`, `/Widths` (PDF 2.0 requires widths for standard 14 too); text encoding to WinAnsi codes, unencodable characters → `missing-glyph`.
 - `Font::requires_embedding() == false` flag consulted by profiles later; `Font::is_standard14()`.
 
@@ -44,7 +44,7 @@ Let callers write text without supplying font bytes, using the 14 standard Type 
 - [ ] Load `/rust-best-practices`; read 03 §3.1, §4.1, Annex D
 - [ ] Fetch the AFM files and AGL into `tools/std14-gen/data/` with SHA-256 and licence notes; write the generator (`cargo run -p std14-gen` or an xtask subcommand `cargo xtask gen std14`)
 - [ ] Commit generated tables; add a test that regenerating produces no diff (like goldens)
-- [ ] `std14/mod.rs` (`Standard14`, metrics lookup), `encoding/{standard,winansi,macroman,symbol,zapf}.rs`, `agl.rs`; `encoding/pdfdoc.rs` only adapts the PDFDocEncoding table in `lamina_syntax::text` (added by [B2c](../ongoing/B2c-lamina-model-corpus-fuzz.md)) to code → glyph name via the AGL, so the workspace keeps one PDFDocEncoding table
+- [ ] `std14/mod.rs` (`Standard14`, metrics lookup), `encoding/{standard,winansi,macroman,symbol,zapf}.rs`, `agl.rs`; `encoding/pdfdoc.rs` only adapts the PDFDocEncoding table in `lamina_syntax::text` (added by [B2c](../done/B2c-lamina-model-corpus-fuzz.md)) to code → glyph name via the AGL, so the workspace keeps one PDFDocEncoding table
 - [ ] Simple-font dictionary writer and text encoding
 - [ ] Tests below
 

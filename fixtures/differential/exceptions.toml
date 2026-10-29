@@ -1,0 +1,127 @@
+# Deliberate differences between lamina and pypdf in the differential suite (ADR 0018 tier 6,
+# ADR 0003 §4). Each entry: the input (a corpus file or a mutant `<stem>-m<i>.pdf`), the fact
+# (outcome | page_count | outline_titles), the ADR 0003 rule behind lamina's answer, and why
+# the two readers differ. crates/lamina-model/tests/differential.rs skips exactly these and
+# fails on an entry that is no longer needed.
+#
+# Grouped by cause; regenerate the expectations (not this list) when the mutants change.
+
+[[exception]]
+file = "enc-m0.pdf"
+facts = ["outcome", "page_count", "outline_titles"]
+rule = "ADR 0003 §1: Repair"
+reason = "the truncated file has no usable xref; lamina rebuilds it by scanning object headers and reads the document, pypdf gives up"
+
+[[exception]]
+file = "fpdf2-m0.pdf"
+facts = ["outcome", "page_count", "outline_titles"]
+rule = "ADR 0003 §1: Repair"
+reason = "the truncated file has no usable xref; lamina rebuilds it by scanning object headers and reads the document, pypdf gives up"
+
+[[exception]]
+file = "fpdf2-m2.pdf"
+facts = ["outcome", "page_count", "outline_titles"]
+rule = "ADR 0003 §1: Repair"
+reason = "the damaged file has no usable xref; lamina rebuilds it by scanning object headers and reads the document, pypdf gives up"
+
+[[exception]]
+file = "hello-broken-m0.pdf"
+facts = ["outcome", "page_count", "outline_titles"]
+rule = "ADR 0003 §1: Repair"
+reason = "the truncated file has no usable xref; lamina rebuilds it by scanning object headers and reads the document, pypdf gives up"
+
+[[exception]]
+file = "hello-m0.pdf"
+facts = ["outcome", "page_count", "outline_titles"]
+rule = "ADR 0003 §1: Repair"
+reason = "the truncated file has no usable xref; lamina rebuilds it by scanning object headers and reads the document, pypdf gives up"
+
+[[exception]]
+file = "hello-xrefstm-m0.pdf"
+facts = ["outcome", "page_count", "outline_titles"]
+rule = "ADR 0003 §1: Repair"
+reason = "the truncated file has no usable xref; lamina rebuilds it by scanning object headers and reads the document, pypdf gives up"
+
+[[exception]]
+file = "hello-xrefstm-m3.pdf"
+facts = ["outcome", "page_count", "outline_titles"]
+rule = "ADR 0003 §1: Repair"
+reason = "the damaged file has no usable xref; lamina rebuilds it by scanning object headers and reads the document, pypdf gives up"
+
+[[exception]]
+file = "imaging-demo-m0.pdf"
+facts = ["outcome", "page_count", "outline_titles"]
+rule = "ADR 0003 §1: Repair"
+reason = "the truncated file has no usable xref; lamina rebuilds it by scanning object headers and reads the document, pypdf gives up"
+
+[[exception]]
+file = "outline-m0.pdf"
+facts = ["outcome", "page_count", "outline_titles"]
+rule = "ADR 0003 §1: Repair"
+reason = "the truncated file has no usable xref; lamina rebuilds it by scanning object headers and reads the document, pypdf gives up"
+
+[[exception]]
+file = "pdflib-m0.pdf"
+facts = ["outcome", "page_count", "outline_titles"]
+rule = "ADR 0003 §1: Repair"
+reason = "the truncated file has no usable xref; lamina rebuilds it by scanning object headers and reads the document, pypdf gives up"
+
+[[exception]]
+file = "pdflib-m1.pdf"
+facts = ["outcome", "page_count", "outline_titles"]
+rule = "ADR 0003 §1: Repair"
+reason = "the damaged file has no usable xref; lamina rebuilds it by scanning object headers and reads the document, pypdf gives up"
+
+[[exception]]
+file = "raw-m0.pdf"
+facts = ["outcome", "page_count", "outline_titles"]
+rule = "ADR 0003 §1: Repair"
+reason = "the truncated file has no usable xref; lamina rebuilds it by scanning object headers and reads the document, pypdf gives up"
+
+[[exception]]
+file = "reportlab-m0.pdf"
+facts = ["outcome", "page_count", "outline_titles"]
+rule = "ADR 0003 §1: Repair"
+reason = "the truncated file has no usable xref; lamina rebuilds it by scanning object headers and reads the document, pypdf gives up"
+
+[[exception]]
+file = "text-example-m0.pdf"
+facts = ["outcome", "page_count", "outline_titles"]
+rule = "ADR 0003 §1: Repair"
+reason = "the truncated file has no usable xref; lamina rebuilds it by scanning object headers and reads the document, pypdf gives up"
+
+[[exception]]
+file = "fpdf2-m3.pdf"
+facts = ["page_count"]
+rule = "ADR 0003 §1: Page tree"
+reason = "the mutation leaves the only page object unparsable; lamina's walk skips that kid (page-tree-node-skipped), pypdf still counts it"
+
+[[exception]]
+file = "hello-incremental-m2.pdf"
+facts = ["page_count"]
+rule = "ADR 0003 §1: Page tree"
+reason = "the mutation leaves the only page object unparsable; lamina's walk skips that kid (page-tree-node-skipped), pypdf still counts it"
+
+[[exception]]
+file = "hello-m1.pdf"
+facts = ["page_count"]
+rule = "ADR 0003 §1: Page tree"
+reason = "the mutation leaves the only page object unparsable; lamina's walk skips that kid (page-tree-node-skipped), pypdf still counts it"
+
+[[exception]]
+file = "imaging-demo-m3.pdf"
+facts = ["page_count"]
+rule = "ADR 0003 §1: Page tree"
+reason = "the mutation leaves the only page object unparsable; lamina's walk skips that kid (page-tree-node-skipped), pypdf still counts it"
+
+[[exception]]
+file = "pdflib-m3.pdf"
+facts = ["outcome", "page_count", "outline_titles"]
+rule = "ADR 0003 §1: Rejected (no catalog even after repair)"
+reason = "the catalog no longer parses (a comment swallows its closing >>, or its object stream is damaged); lamina fails with missing-root, pypdf recovers a partial catalog"
+
+[[exception]]
+file = "raw-m1.pdf"
+facts = ["outcome", "page_count", "outline_titles"]
+rule = "ADR 0003 §1: Rejected (no catalog even after repair)"
+reason = "the catalog no longer parses (a comment swallows its closing >>, or its object stream is damaged); lamina fails with missing-root, pypdf recovers a partial catalog"

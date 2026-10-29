@@ -1,0 +1,11 @@
+# Deliberate differences between lamina and the independent facts in expected.json
+# (ADR 0018 tier 4). Each entry names the file, the fact, and the ADR 0003 §1 rule that
+# explains lamina's answer; crates/lamina-model/tests/corpus.rs skips exactly these.
+#
+# [[exception]]
+# file = "example.pdf"
+# facts = ["page_count"]         # page_count and/or outline_titles
+# rule = "ADR 0003 §1: Page tree" # the tolerance rule lamina follows
+# reason = "pypdf trusts /Count; lamina's walk is authoritative"
+#
+# None so far: lamina agrees with pypdf on every corpus file.

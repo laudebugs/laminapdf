@@ -1,0 +1,61 @@
+# cargo-fuzz targets (ADR 0018 tier 9) in the layout OSS-Fuzz expects for Rust. Its own
+# workspace, excluded from the root one, because libFuzzer needs nightly Rust; the root
+# toolchain pin does not apply (`cargo +nightly fuzz …`). Run with `cargo xtask fuzz <target>`.
+[package]
+name = "lamina-fuzz"
+version = "0.0.0"
+edition = "2024"
+license = "MIT OR Apache-2.0"
+publish = false
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies]
+# Fuzzing harness only, never shipped: (MIT OR Apache-2.0) AND NCSA (it bundles LLVM's
+# libFuzzer). Outside the root workspace, so cargo-deny's allow-list does not apply.
+libfuzzer-sys = "0.4.10"
+lamina-syntax = { path = "../crates/lamina-syntax" }
+lamina-cos = { path = "../crates/lamina-cos" }
+lamina-model = { path = "../crates/lamina-model" }
+
+[workspace]
+members = ["."]
+
+[profile.release]
+debug = 1
+
+[[bin]]
+name = "lex"
+path = "fuzz_targets/lex.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "parse_object"
+path = "fuzz_targets/parse_object.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "flate_decode"
+path = "fuzz_targets/flate_decode.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "open"
+path = "fuzz_targets/open.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "page_tree"
+path = "fuzz_targets/page_tree.rs"
+test = false
+doc = false
+bench = false

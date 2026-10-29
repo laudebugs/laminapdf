@@ -12,7 +12,15 @@
     "object-number-out-of-range",
     "aes-padding-invalid",
     "perms-mismatch",
-    "warnings-truncated"
+    "warnings-truncated",
+    "invalid-box",
+    "invalid-rotate",
+    "name-tree-node-skipped",
+    "outline-cycle",
+    "outline-item-skipped",
+    "invalid-date",
+    "invalid-page-label",
+    "invalid-entry"
   ],
   "errors": [
     "not-pdf",
