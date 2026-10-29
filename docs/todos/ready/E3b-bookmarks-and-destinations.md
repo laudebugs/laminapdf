@@ -20,6 +20,7 @@ Create and edit nested bookmarks (add, rename, retarget, move, nest, colour/styl
 
 ## Context
 
+- **Design (Paper):** [O11 Bookmarks editor](../../design/paper/pages-navigation-extraction.md#o11-bookmarks-editor). Build to match these screens; record any deviation in the area document ([Paper design plan §5](../../plans/paper-design.md#5-how-the-designs-are-used)).
 - [04 §1.2 Document outline](../../research/pdf/04-interactive-security.md#12-document-outline-1233)
 - [04 §1.1 Destinations](../../research/pdf/04-interactive-security.md#11-destinations-1232)
 - ISO 32000-2 §12.3.3 (outline), §12.3.2.4 (named destinations)

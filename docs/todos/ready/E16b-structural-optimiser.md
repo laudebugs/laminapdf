@@ -20,6 +20,7 @@
 
 ## Context
 
+- **Design (Paper):** [X09 Optimise](../../design/paper/convert-compare-produce.md#x09-optimise). Build to match these screens; record any deviation in the area document ([Paper design plan §5](../../plans/paper-design.md#5-how-the-designs-are-used)).
 - [01 §8 Linearization](../../research/pdf/01-file-structure.md#8-linearization-fast-web-view-annex-f)
 - [ADR 0007](../../decisions/0007-save-planner.md) §5 full rewrite
 

@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Sign with a certificate, web timestamp opt-in</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&amp;family=Source+Sans+3:wght@400;500;600&amp;family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#1F5C63}a:hover{color:#16454B}
+button,input,textarea,select{font:inherit;color:inherit}
+label:has(input:focus-visible) [data-box]{outline:2px solid #1F5C63;outline-offset:2px}
+</style>
+</helmet>
+<div style="width: 640px; min-height: 760px; box-sizing: border-box; display: flex; justify-content: center; align-items: flex-start; padding: 32px 24px; background: #ECE7DE; box-shadow: inset 0 0 0 2000px rgba(31,29,26,0.30); font-family: 'Source Sans 3', 'Segoe UI', system-ui, sans-serif; font-size: 14px; line-height: 1.4; color: #1F1D1A">
+  <div role="dialog" aria-modal="true" aria-labelledby="tw-t" aria-describedby="tw-d" style="width: 100%; max-width: 560px; box-sizing: border-box; padding: 24px; display: flex; flex-direction: column; gap: 16px; background: #FBF9F5; border: 1px solid #D8D1C5; border-radius: 6px; box-shadow: 0 18px 48px rgba(31,29,26,0.22)">
+    <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 12px">
+      <div style="display: flex; flex-direction: column; gap: 4px">
+        <h2 id="tw-t" style="margin: 0; font-family: 'Newsreader', Georgia, serif; font-size: 20px; font-weight: 500; line-height: 1.2">Sign with a certificate</h2>
+        <p id="tw-d" style="margin: 0; color: #4A453E">Proves who signed and shows any change made after signing.</p>
+      </div>
+      <button aria-label="Close" style="width: 28px; height: 28px; flex: 0 0 auto; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 4px; color: #4A453E"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg></button>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 6px">
+      <span style="font-size: 12px; font-weight: 600; color: #4A453E">Sign as</span>
+      <div style="display: flex; align-items: flex-start; gap: 10px; padding: 10px 12px; border: 1px solid #E4DED3; background: #FFFFFF; border-radius: 4px">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#4A453E" stroke-width="1.5" aria-hidden="true" style="flex: 0 0 auto; margin-top: 2px"><rect x="4" y="4.5" width="16" height="11" rx="1"></rect><path d="M7.5 8.5h9M7.5 11.5h4"></path><circle cx="16" cy="16" r="2.8"></circle><path d="M14.6 18.5l-.8 3 2.2-1 2.2 1-.8-3"></path></svg>
+        <span style="display: flex; flex-direction: column; gap: 2px"><span style="font-weight: 600">Amara Okafor</span><span style="font-size: 12px; color: #4A453E">Imported from amara-okafor.p12 · kept in this browser · valid until 3 Mar 2028</span></span>
+      </div>
+      <span style="font-size: 12px; color: #6B645A">Reason, location and appearance as on the desktop (see G02).</span>
+    </div>
+
+    <fieldset style="margin: 0; padding: 0; border: 0; display: flex; flex-direction: column; gap: 10px">
+      <legend style="padding: 0; margin-bottom: 8px; font-size: 12px; font-weight: 600; color: #4A453E">Trusted timestamp</legend>
+      <label style="display: flex; align-items: flex-start; gap: 8px; min-height: 24px">
+        <input type="checkbox" aria-describedby="tw-off" style="position: absolute; width: 1px; height: 1px; opacity: 0; margin: 0"><span data-box="1" aria-hidden="true" style="flex: 0 0 auto; width: 16px; height: 16px; margin: 2px 0 0; box-sizing: border-box; border-radius: 3px; border: 1px solid #8A8174; background: #FFFFFF"></span>
+        <span style="display: flex; flex-direction: column"><span>Add a trusted timestamp</span><span id="tw-off" style="font-size: 12px; color: #6B645A">Off until you allow the proxy below. Without it, the signing time comes from this device’s clock.</span></span>
+      </label>
+      <section aria-labelledby="tw-p" style="display: flex; flex-direction: column; gap: 10px; padding: 12px 14px; background: #FFFFFF; border: 1px solid #8A8174; border-radius: 4px">
+        <h3 id="tw-p" style="margin: 0; display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="{{accent}}" stroke-width="1.5" aria-hidden="true"><path d="M12 15V4.5M8 8l4-3.5L16 8"></path><path d="M7 11H5.5v8.5h13V11H17"></path></svg>This server needs lamina’s proxy</h3>
+        <p style="margin: 0; font-size: 13px; color: #3A3631">Browsers can’t reach timestamp.example.org directly. Only a hash is sent, via lamina’s proxy. Nothing is sent until you allow it.</p>
+        <dl style="margin: 0; display: grid; grid-template-columns: 112px minmax(0, 1fr); font-size: 13px; border-top: 1px solid #E4DED3">
+          <dt style="padding: 6px 0; border-bottom: 1px solid #E4DED3; font-size: 12px; font-weight: 600; color: #4A453E">What is sent</dt><dd style="margin: 0; padding: 6px 0; border-bottom: 1px solid #E4DED3">A hash of the signature (a short fingerprint), never the file</dd>
+          <dt style="padding: 6px 0; border-bottom: 1px solid #E4DED3; font-size: 12px; font-weight: 600; color: #4A453E">Where to</dt><dd style="margin: 0; padding: 6px 0; border-bottom: 1px solid #E4DED3">lamina’s timestamp proxy, then timestamp.example.org</dd>
+          <dt style="padding: 6px 0; border-bottom: 1px solid #E4DED3; font-size: 12px; font-weight: 600; color: #4A453E">How long it stays</dt><dd style="margin: 0; padding: 6px 0; border-bottom: 1px solid #E4DED3">The proxy passes it on and doesn’t log it</dd>
+          <dt style="padding: 6px 0; border-bottom: 1px solid #E4DED3; font-size: 12px; font-weight: 600; color: #4A453E">What it is used for</dt><dd style="margin: 0; padding: 6px 0; border-bottom: 1px solid #E4DED3">Getting the timestamp token for this signature</dd>
+        </dl>
+        <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap">
+          <span style="font-size: 12px; color: #6B645A">Remembered in Settings › Privacy. Each request shows in the network indicator.</span>
+          <button style="height: 30px; padding: 0 14px; border: 1px solid #8A8174; background: #FFFFFF; border-radius: 4px; font-size: 13px; outline: 2px solid {{accent}}; outline-offset: 2px">Allow and add timestamp</button>
+        </div>
+      </section>
+    </fieldset>
+
+    <div role="note" style="display: flex; gap: 10px; padding: 10px 12px; background: #FFFFFF; border: 1px solid #E4DED3; border-radius: 4px; font-size: 13px">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#4A453E" stroke-width="1.5" aria-hidden="true" style="flex: 0 0 auto; margin-top: 2px"><path d="M4 19c2-1 3-4 5-4s1 3 3 3 2-2 4-2"></path><path d="M14 4.5l5 5-7 7h-2v-2z"></path></svg>
+      <span><strong style="font-weight: 600">Signing saves the file.</strong> Your key stays in this browser; it is never uploaded.</span>
+    </div>
+
+    <div style="display: flex; justify-content: flex-end; gap: 8px">
+      <button style="height: 32px; padding: 0 16px; border: 1px solid #8A8174; background: #FFFFFF; border-radius: 4px">Cancel</button>
+      <button style="height: 32px; padding: 0 16px; border: 1px solid {{accent}}; background: {{accent}}; color: #FFFFFF; border-radius: 4px; font-weight: 600">Sign and save</button>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#1F5C63","options":["#1F5C63","#2D4A6B","#3E4A3C"]},"$preview":{"width":640,"height":760}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return { accent: this.props.accent ?? '#1F5C63' };
+  }
+}
+</script>
+</body>
+</html>

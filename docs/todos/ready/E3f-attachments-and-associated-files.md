@@ -20,6 +20,7 @@ Attach, extract and delete embedded files (EmbeddedFiles name tree), attach asso
 
 ## Context
 
+- **Design (Paper):** [O14 Attachments panel](../../design/paper/pages-navigation-extraction.md#o14-attachments-panel). Build to match these screens; record any deviation in the area document ([Paper design plan §5](../../plans/paper-design.md#5-how-the-designs-are-used)).
 - [04 §6 Embedded files, associated files, portfolios](../../research/pdf/04-interactive-security.md#6-embedded-files-associated-files-portfolios)
 - ISO 32000-2 §7.11 (file specifications), §14.13 (associated files), §12.3.5 (collections)
 

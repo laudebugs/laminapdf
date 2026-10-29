@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>lamina desktop, crash recovered dialog</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&amp;family=Source+Sans+3:wght@400;500;600&amp;family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&amp;display=swap">
+<style>
+body{margin:0;background:#DCD6CB}
+a{color:#1F5C63}a:hover{color:#16454B}
+button,input,textarea{font:inherit;color:inherit}
+</style>
+</helmet>
+<div style="min-height: 100vh; display: flex; flex-direction: column; box-sizing: border-box; background: #DCD6CB; font-family: 'Source Sans 3', 'Segoe UI', system-ui, sans-serif; font-size: 14px; line-height: 1.4; color: #1F1D1A">
+<div style="position: relative; flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; background: #F7F4EE; border: 1px solid #C9C2B6; border-radius: 10px; overflow: hidden; box-sizing: border-box">
+
+  <div style="height: 30px; flex: 0 0 auto; display: flex; align-items: center; padding: 0 12px; background: #EFEBE3; border-bottom: 1px solid #E0D9CD; position: relative">
+    <div aria-hidden="true" style="display: flex; gap: 8px">
+      <span style="width: 12px; height: 12px; border-radius: 50%; background: #EC6A5E; border: 0.5px solid #D2574C"></span>
+      <span style="width: 12px; height: 12px; border-radius: 50%; background: #F4BF4F; border: 0.5px solid #D9A63A"></span>
+      <span style="width: 12px; height: 12px; border-radius: 50%; background: #61C554; border: 0.5px solid #4CAA40"></span>
+    </div>
+    <div style="position: absolute; left: 0; right: 0; text-align: center; font-size: 13px; font-weight: 600; color: #3A3631; pointer-events: none">lamina</div>
+  </div>
+
+  <header aria-hidden="true" style="min-height: 40px; flex: 0 0 auto; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 20px; padding: 0 16px; border-bottom: 1px solid #E4DED3">
+    <div style="display: flex; align-items: center; gap: 10px; flex: 1 1 220px; min-width: 0">
+      <span style="font-family: 'Newsreader', Georgia, serif; font-size: 16px; font-weight: 500; white-space: nowrap">No document open</span>
+    </div>
+    <div style="display: flex; align-items: center; justify-content: flex-end; gap: 14px; flex: 1 1 220px">
+      <span style="height: 26px; display: flex; align-items: center; gap: 8px; padding: 0 6px 0 10px; border: 1px solid #E4DED3; background: #FBF9F5; border-radius: 4px; color: #6B645A; font-size: 13px"><span>Commands</span><span style="font-size: 11px; padding: 1px 5px; border: 1px solid #D8D1C5; border-radius: 3px; color: #4A453E; background: #FFFFFF">⌘K</span></span>
+    </div>
+  </header>
+
+  <main aria-hidden="true" style="flex: 1 1 auto; min-height: 0; display: flex; justify-content: center; padding: 48px 32px 40px; box-sizing: border-box">
+    <div style="width: 100%; max-width: 1040px; display: flex; flex-direction: column; gap: 40px">
+      <div style="display: flex; flex-wrap: wrap; gap: 32px 48px">
+        <div style="flex: 1 1 360px; display: flex; flex-direction: column; gap: 12px; justify-content: center">
+          <span style="font-family: 'Newsreader', Georgia, serif; font-size: 40px; line-height: 44px">Open a PDF</span>
+          <span style="color: #6B645A">Drop a file anywhere in this window, or choose one from your computer. Files open in a new tab.</span>
+        </div>
+        <div style="flex: 1 1 360px; min-height: 160px; border: 1px dashed #8A8174; border-radius: 6px; background: #FBF9F5"></div>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 20px">
+        <span style="font-family: 'Newsreader', Georgia, serif; font-size: 18px; border-bottom: 1px solid #E4DED3; padding-bottom: 10px">Recent files</span>
+        <div style="display: flex; gap: 34px; flex-wrap: wrap">
+          <span style="width: 116px; height: 150px; background: #FFFFFF; outline: 1px solid #E4DED3"></span>
+          <span style="width: 116px; height: 150px; background: #FFFFFF; outline: 1px solid #E4DED3"></span>
+          <span style="width: 116px; height: 150px; background: #FFFFFF; outline: 1px solid #E4DED3"></span>
+          <span style="width: 116px; height: 150px; background: #FFFFFF; outline: 1px solid #E4DED3"></span>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <div style="position: absolute; left: 0; right: 0; top: 30px; bottom: 0; background: rgba(31,29,26,0.30); display: flex; justify-content: center; align-items: flex-start; padding: 72px 16px 24px; box-sizing: border-box; z-index: 50; overflow: auto">
+    <div role="dialog" aria-modal="true" aria-labelledby="cr-t" aria-describedby="cr-d" style="width: 100%; max-width: 520px; box-sizing: border-box; display: flex; flex-direction: column; gap: 16px; padding: 24px; background: #FBF9F5; border: 1px solid #D8D1C5; border-radius: 6px; box-shadow: 0 18px 48px rgba(31,29,26,0.22)">
+      <h2 id="cr-t" style="margin: 0; font-family: 'Newsreader', Georgia, serif; font-size: 20px; line-height: 24px; font-weight: 500">lamina quit unexpectedly</h2>
+      <p id="cr-d" style="margin: 0">Choose which tabs to reopen. If one file seems to cause the problem, leave it closed.</p>
+
+      <fieldset style="margin: 0; padding: 0; border: 0; display: flex; flex-direction: column">
+        <legend style="padding: 0 0 6px; font-size: 12px; font-weight: 600; color: #4A453E">Tabs from your last session</legend>
+        <sc-for list="{{tabs}}" as="tab" hint-placeholder-count="3">
+          <div style="display: flex; align-items: center; gap: 10px; min-height: 40px; border-top: 1px solid #E4DED3">
+            <label style="position: relative; display: flex; align-items: center; gap: 10px; flex: 1 1 auto; min-width: 0; min-height: 32px">
+              <sc-if value="{{tab.on}}" hint-placeholder-val="{{ true }}">
+                <input type="checkbox" checked style="position: absolute; width: 1px; height: 1px; opacity: 0; margin: 0">
+                <span aria-hidden="true" style="flex: 0 0 auto; width: 16px; height: 16px; box-sizing: border-box; border-radius: 3px; background: #1F5C63; border: 1px solid #1F5C63; display: flex; align-items: center; justify-content: center"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2" aria-hidden="true"><path d="M6 12.5l4 4 8-9"></path></svg></span>
+              </sc-if>
+              <sc-if value="{{tab.off}}" hint-placeholder-val="{{ false }}">
+                <input type="checkbox" aria-describedby="{{tab.badgeId}}" style="position: absolute; width: 1px; height: 1px; opacity: 0; margin: 0">
+                <span aria-hidden="true" style="flex: 0 0 auto; width: 16px; height: 16px; box-sizing: border-box; border-radius: 3px; background: #FFFFFF; border: 1px solid #8A8174"></span>
+              </sc-if>
+              <span style="flex: 1 1 auto; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{tab.name}}</span>
+              <span style="flex: 0 0 auto; font-size: 12px; color: #6B645A; font-variant-numeric: tabular-nums">{{tab.page}}</span>
+            </label>
+            <sc-if value="{{tab.crashed}}" hint-placeholder-val="{{ false }}">
+              <span id="{{tab.badgeId}}" style="flex: 0 0 auto; height: 20px; display: flex; align-items: center; gap: 4px; padding: 0 8px; border-radius: 3px; background: #F0E8DC; color: #8A5300; font-size: 12px; font-weight: 600"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 4l9 16H3z"></path><path d="M12 10v4M12 17v.5"></path></svg>Open when lamina quit</span>
+            </sc-if>
+          </div>
+        </sc-for>
+      </fieldset>
+
+      <div style="display: flex; flex-direction: column; gap: 10px; padding-top: 14px; border-top: 1px solid #E4DED3">
+        <div style="display: flex; flex-direction: column; gap: 2px">
+<label style="position: relative; align-self: flex-start; display: flex; align-items: center; gap: 10px; min-height: 24px"><input type="checkbox" aria-describedby="cr-send-d" style="position: absolute; width: 1px; height: 1px; opacity: 0; margin: 0"><span aria-hidden="true" style="flex: 0 0 auto; width: 16px; height: 16px; box-sizing: border-box; border-radius: 3px; background: #FFFFFF; border: 1px solid #8A8174"></span>Send an anonymous crash report</label>
+          <span id="cr-send-d" style="padding-left: 26px; font-size: 12px; color: #6B645A">The error, lamina’s version, your system and the renderer. Never file names, paths or document content.</span>
+        </div>
+<label style="position: relative; align-self: flex-start; display: flex; align-items: center; gap: 10px; min-height: 24px; color: #6B645A"><input type="checkbox" aria-disabled="true" aria-describedby="cr-always-d" style="position: absolute; width: 1px; height: 1px; opacity: 0; margin: 0"><span aria-hidden="true" style="flex: 0 0 auto; width: 16px; height: 16px; box-sizing: border-box; border-radius: 3px; background: #F7F4EE; border: 1px solid #D8D1C5"></span>Always send reports after a crash<span id="cr-always-d" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Available after you choose to send this report</span></label>
+        <button style="align-self: flex-start; min-height: 24px; padding: 0; border: 0; background: transparent; color: #1F5C63; font-weight: 600; font-size: 13px">View report</button>
+      </div>
+
+      <div style="display: flex; justify-content: flex-end; gap: 8px; flex-wrap: wrap">
+        <button style="height: 32px; padding: 0 16px; border: 1px solid #8A8174; background: #FFFFFF; border-radius: 4px">Start without tabs</button>
+        <button style="height: 32px; padding: 0 16px; border: 1px solid #1F5C63; background: #1F5C63; color: #FFFFFF; border-radius: 4px; font-weight: 600; outline: 2px solid #1F5C63; outline-offset: 2px">Reopen 2 tabs</button>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      tabs: [
+        { name: "Q3-board-report.pdf", page: "Page 3 of 24", on: true, off: false, crashed: false, badgeId: "cr-b1" },
+        { name: "Contractor-framework-2026.pdf", page: "Page 31 of 88", on: true, off: false, crashed: false, badgeId: "cr-b2" },
+        { name: "Damp-survey-North.pdf", page: "Page 1 of 9", on: false, off: true, crashed: true, badgeId: "cr-b3" }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

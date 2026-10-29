@@ -20,6 +20,7 @@ Fix the friction users report most after speed: copying from multi-column PDFs g
 
 ## Context
 
+- **Design (Paper):** [F01](../../design/paper/screens.md#f-foundations-the-chosen-paper-boards), [F04](../../design/paper/screens.md#f-foundations-the-chosen-paper-boards). Build to match these screens; record any deviation in the area document ([Paper design plan §5](../../plans/paper-design.md#5-how-the-designs-are-used)).
 - [UI/UX plan §5.3](../../plans/ui-ux.md#53-selection-and-copy-r4-r5) and ADR 0024.
 - [Research: selection menus](../../research/product/pdf-app-product-and-ux.md#selection-menus-float-them-on-desktop-never-over-the-os-menu-on-mobile) — Android ActionMode, iOS UIEditMenuInteraction, Wikimedia T202723.
 - [Competitive teardown: friction](../../research/product/notes/competitive-teardown.md) — multi-column copy, hard line breaks, Okular's "copy without line breaks", Preview's Option-drag.

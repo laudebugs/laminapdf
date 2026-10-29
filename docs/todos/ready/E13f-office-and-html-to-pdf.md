@@ -20,6 +20,7 @@ Convert Word/Excel/PowerPoint to PDF in the LibreOffice container (server, opt-i
 
 ## Context
 
+- **Design (Paper):** [X02 Convert to and from PDF](../../design/paper/convert-compare-produce.md#x02-convert-to-and-from-pdf). Build to match these screens; record any deviation in the area document ([Paper design plan §5](../../plans/paper-design.md#5-how-the-designs-are-used)).
 - ADR 0013
 - [05 §1.4 HTML/CSS → PDF](../../research/pdf/05-creating-pdfs-from-code.md#14-htmlcss--pdf)
 - [05 §1.6 office conversion](../../research/pdf/05-creating-pdfs-from-code.md#16-template--declarative-approaches-and-office-conversion)

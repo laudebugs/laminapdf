@@ -20,6 +20,7 @@ Open documents encrypted with the public-key handler (`/Adobe.PubSec`, `adbe.pkc
 
 ## Context
 
+- **Design (Paper):** [G06 Protect](../../design/paper/sign-protect-redact.md#g06-protect). Build to match these screens; record any deviation in the area document ([Paper design plan §5](../../plans/paper-design.md#5-how-the-designs-are-used)).
 - [04 §7.6 Public-key security handler](../../research/pdf/04-interactive-security.md#76-public-key-security-handler-765-17-764)
 
 ## Scope

@@ -1,0 +1,245 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>lamina desktop, insert pages from a PDF</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&amp;family=Source+Sans+3:wght@400;500;600&amp;family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&amp;display=swap">
+<style>
+body{margin:0;background:#DCD6CB}
+a{color:#1F5C63}a:hover{color:#16454B}
+button,input,textarea{font:inherit;color:inherit}
+</style>
+</helmet>
+<div style="min-height: 100vh; display: flex; flex-direction: column; box-sizing: border-box; background: #DCD6CB; font-family: 'Source Sans 3', 'Segoe UI', system-ui, sans-serif; font-size: 14px; line-height: 1.4; color: #1F1D1A">
+<div style="position: relative; flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; background: #F7F4EE; border: 1px solid #C9C2B6; border-radius: 10px; overflow: hidden; box-sizing: border-box">
+
+  <div style="height: 30px; flex: 0 0 auto; display: flex; align-items: center; padding: 0 12px; background: #EFEBE3; border-bottom: 1px solid #E0D9CD; position: relative">
+    <div aria-hidden="true" style="display: flex; gap: 8px">
+      <span style="width: 12px; height: 12px; border-radius: 50%; background: #EC6A5E; border: 0.5px solid #D2574C; display: flex; align-items: center; justify-content: center"><span style="width: 4px; height: 4px; border-radius: 50%; background: #8C2A22"></span></span>
+      <span style="width: 12px; height: 12px; border-radius: 50%; background: #F4BF4F; border: 0.5px solid #D9A63A"></span>
+      <span style="width: 12px; height: 12px; border-radius: 50%; background: #61C554; border: 0.5px solid #4CAA40"></span>
+    </div>
+    <div style="position: absolute; left: 0; right: 0; text-align: center; font-size: 13px; font-weight: 600; color: #3A3631; pointer-events: none">Q3-board-report.pdf — Edited</div>
+  </div>
+
+  <header style="min-height: 40px; flex: 0 0 auto; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 20px; padding: 0 16px; border-bottom: 1px solid #E4DED3">
+    <div style="display: flex; align-items: center; gap: 10px; flex: 1 1 220px; min-width: 0">
+      <button aria-label="Sidebar" aria-pressed="true" style="width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 4px; color: #4A453E"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="3.5" y="4.5" width="17" height="15" rx="1.5"></rect><path d="M9 4.5v15"></path></svg></button>
+      <span style="font-family: 'Newsreader', Georgia, serif; font-size: 16px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">Q3-board-report.pdf</span>
+      <span aria-live="polite" style="font-size: 12px; color: #6B645A; white-space: nowrap; font-variant-numeric: tabular-nums">2 unsaved changes</span>
+      <span aria-hidden="true" style="width: 1px; height: 18px; background: #E4DED3; margin: 0 2px"></span>
+      <div style="display: flex; align-items: center; gap: 2px">
+        <button aria-label="Undo rotate page 16" aria-keyshortcuts="Meta+Z" style="width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 4px; color: #4A453E"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M9 7L4.5 11.5 9 16"></path><path d="M4.5 11.5H15a4.5 4.5 0 0 1 0 9h-3"></path></svg></button>
+        <button aria-label="Redo" aria-disabled="true" style="width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 4px; color: #A39C91"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M15 7l4.5 4.5L15 16"></path><path d="M19.5 11.5H9a4.5 4.5 0 0 0 0 9h3"></path></svg></button>
+      </div>
+    </div>
+    <div role="group" aria-label="Mode" style="display: flex; align-items: stretch; gap: 22px; height: 40px">
+      <button aria-pressed="false" style="height: 40px; display: flex; align-items: center; border: 0; background: transparent; padding: 2px 0 0; color: #6B645A; border-bottom: 2px solid transparent">Read</button>
+      <button aria-pressed="false" style="height: 40px; display: flex; align-items: center; border: 0; background: transparent; padding: 2px 0 0; color: #6B645A; border-bottom: 2px solid transparent">Comment</button>
+      <button aria-pressed="false" style="height: 40px; display: flex; align-items: center; border: 0; background: transparent; padding: 2px 0 0; color: #6B645A; border-bottom: 2px solid transparent">Fill &amp; Sign</button>
+      <button aria-pressed="true" style="height: 40px; display: flex; align-items: center; border: 0; background: transparent; padding: 2px 0 0; color: #1F1D1A; font-weight: 600; border-bottom: 2px solid {{accent}}">Organise</button>
+      <button aria-pressed="false" style="height: 40px; display: flex; align-items: center; border: 0; background: transparent; padding: 2px 0 0; color: #6B645A; border-bottom: 2px solid transparent">Edit</button>
+    </div>
+    <div style="display: flex; align-items: center; justify-content: flex-end; gap: 14px; flex: 1 1 220px">
+      <div style="display: flex; align-items: center; gap: 2px; font-variant-numeric: tabular-nums">
+        <button aria-label="Smaller thumbnails" style="width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 4px; color: #4A453E"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M6 12h12"></path></svg></button>
+        <span style="min-width: 40px; text-align: center">100%</span>
+        <button aria-label="Larger thumbnails" style="width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 4px; color: #4A453E"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M6 12h12M12 6v12"></path></svg></button>
+      </div>
+      <button aria-label="Find in document" style="width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 4px; color: #4A453E"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6"></circle><path d="M15 15l5 5"></path></svg></button>
+      <button aria-label="View settings" aria-haspopup="dialog" aria-expanded="false" style="width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 4px; color: #4A453E"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="12" cy="12" r="7.5"></circle><path d="M12 4.5v15M12 8.5h5.5M12 12h7.5M12 15.5h5.5"></path></svg></button>
+      <button style="height: 26px; display: flex; align-items: center; gap: 8px; padding: 0 6px 0 10px; border: 1px solid #E4DED3; background: #FBF9F5; border-radius: 4px; color: #6B645A; font-size: 13px"><span>Commands</span><span style="font-size: 11px; padding: 1px 5px; border: 1px solid #D8D1C5; border-radius: 3px; color: #4A453E; background: #FFFFFF">⌘K</span></button>
+      <div style="display: flex; align-items: stretch">
+        <button style="height: 26px; padding: 0 12px; border: 1px solid {{accent}}; background: {{accent}}; color: #FFFFFF; border-radius: 4px 0 0 4px; font-size: 13px; font-weight: 600">Save</button>
+        <button aria-label="Save options" aria-haspopup="menu" aria-expanded="false" style="width: 24px; height: 26px; display: flex; align-items: center; justify-content: center; border: 1px solid {{accent}}; border-left: 1px solid rgba(255,255,255,0.45); background: {{accent}}; color: #FFFFFF; border-radius: 0 4px 4px 0"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M7 10l5 5 5-5"></path></svg></button>
+      </div>
+      <button aria-label="More actions" style="width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 4px; color: #4A453E"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="5.5" cy="12" r="0.9"></circle><circle cx="12" cy="12" r="0.9"></circle><circle cx="18.5" cy="12" r="0.9"></circle></svg></button>
+    </div>
+  </header>
+
+  <div role="toolbar" aria-label="Organise tools" style="min-height: 40px; flex: 0 0 auto; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; padding: 0 16px; border-bottom: 1px solid #E4DED3; background: #FBF9F5; font-size: 13px">
+    <button aria-haspopup="menu" aria-expanded="false" style="height: 28px; display: flex; align-items: center; gap: 6px; padding: 0 8px 0 10px; border: 1px solid transparent; background: transparent; border-radius: 4px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M6.5 3.5h7l4 4v13h-11z"></path><path d="M12 10.5v6M9 13.5h6"></path></svg>Insert<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M7 10l5 5 5-5"></path></svg></button>
+    <button aria-disabled="true" style="height: 28px; display: flex; align-items: center; gap: 6px; padding: 0 10px; border: 1px solid transparent; background: transparent; border-radius: 4px; color: #A39C91"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M4.5 12a7.5 7.5 0 1 0 2.2-5.3"></path><path d="M4.5 4.5v3h3"></path></svg>Rotate left</button>
+    <button aria-disabled="true" style="height: 28px; display: flex; align-items: center; gap: 6px; padding: 0 10px; border: 1px solid transparent; background: transparent; border-radius: 4px; color: #A39C91"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M19.5 12a7.5 7.5 0 1 1-2.2-5.3"></path><path d="M19.5 4.5v3h-3"></path></svg>Rotate right</button>
+    <button aria-disabled="true" style="height: 28px; display: flex; align-items: center; gap: 6px; padding: 0 10px; border: 1px solid transparent; background: transparent; border-radius: 4px; color: #A39C91"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M6.5 3.5h7l4 4v4"></path><path d="M6.5 3.5v17h6"></path><path d="M15 17.5h6M18 14.5l3 3-3 3"></path></svg>Extract</button>
+    <button aria-disabled="true" style="height: 28px; display: flex; align-items: center; gap: 6px; padding: 0 10px; border: 1px solid transparent; background: transparent; border-radius: 4px; color: #A39C91"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M4.5 6.5h15"></path><path d="M9.5 6.5V4.5h5v2"></path><path d="M6.5 6.5l1 13h9l1-13"></path></svg>Delete</button>
+    <span aria-hidden="true" style="width: 1px; height: 18px; background: #E4DED3; margin: 0 8px"></span>
+    <button aria-disabled="true" style="height: 28px; display: flex; align-items: center; gap: 6px; padding: 0 10px; border: 1px solid transparent; background: transparent; border-radius: 4px; color: #A39C91">Move to page…</button>
+    <span aria-hidden="true" style="width: 1px; height: 18px; background: #E4DED3; margin: 0 8px"></span>
+    <button aria-haspopup="menu" aria-expanded="false" style="height: 28px; display: flex; align-items: center; gap: 6px; padding: 0 8px 0 10px; border: 1px solid transparent; background: transparent; border-radius: 4px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M7 3.5V17h13.5"></path><path d="M3.5 7H17v13.5"></path></svg>Page setup<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M7 10l5 5 5-5"></path></svg></button>
+    <button aria-haspopup="menu" aria-expanded="false" style="height: 28px; display: flex; align-items: center; gap: 6px; padding: 0 8px 0 10px; border: 1px solid transparent; background: transparent; border-radius: 4px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M7 4.5h10v15l-5-4-5 4z"></path></svg>Bookmark<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M7 10l5 5 5-5"></path></svg></button>
+    <button aria-label="More page actions" aria-haspopup="menu" aria-expanded="false" style="width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 4px; color: #4A453E"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="5.5" cy="12" r="0.9"></circle><circle cx="12" cy="12" r="0.9"></circle><circle cx="18.5" cy="12" r="0.9"></circle></svg></button>
+    <span style="flex: 1 1 auto"></span>
+    <span aria-live="polite" style="font-size: 12px; color: #6B645A; font-variant-numeric: tabular-nums">24 pages · none selected</span>
+  </div>
+
+  <div style="flex: 1 1 auto; min-height: 0; display: flex; flex-wrap: wrap">
+    <aside aria-label="Sidebar" style="flex: 0 0 220px; box-sizing: border-box; border-right: 1px solid #E4DED3; display: flex; flex-direction: column; overflow: auto">
+      <div role="tablist" aria-label="Sidebar" style="display: flex; gap: 16px; padding: 14px 18px 0; border-bottom: 1px solid #E4DED3">
+        <button role="tab" aria-selected="true" style="border: 0; background: transparent; padding: 0 0 8px; font-size: 13px; font-weight: 600; color: #1F1D1A; border-bottom: 2px solid {{accent}}">Outline</button>
+        <button role="tab" aria-selected="false" style="border: 0; background: transparent; padding: 0 0 8px; font-size: 13px; color: #6B645A; border-bottom: 2px solid transparent">History</button>
+      </div>
+      <nav aria-label="Document outline" style="display: flex; flex-direction: column; gap: 2px; padding: 14px 10px; font-family: 'Newsreader', Georgia, serif; font-size: 15px">
+        <a href="#" style="display: flex; justify-content: space-between; gap: 8px; padding: 6px 8px; border-radius: 4px; color: #1F1D1A; text-decoration: none"><span>1. Chair’s summary</span><span style="font-family: 'Source Sans 3', system-ui, sans-serif; font-size: 12px; color: #6B645A; font-variant-numeric: tabular-nums">1</span></a>
+        <a href="#" aria-current="location" style="display: flex; justify-content: space-between; gap: 8px; padding: 6px 8px; border-radius: 4px; color: {{accent}}; background: {{accentTint}}; text-decoration: none; font-weight: 600"><span>2. Repairs backlog</span><span style="font-family: 'Source Sans 3', system-ui, sans-serif; font-size: 12px; font-weight: 400; font-variant-numeric: tabular-nums">3</span></a>
+        <a href="#" style="display: flex; justify-content: space-between; gap: 8px; padding: 5px 8px 5px 22px; border-radius: 4px; color: #4A453E; text-decoration: none; font-size: 14px"><span>Open repairs by region</span><span style="font-family: 'Source Sans 3', system-ui, sans-serif; font-size: 12px; color: #6B645A; font-variant-numeric: tabular-nums">3</span></a>
+        <a href="#" style="display: flex; justify-content: space-between; gap: 8px; padding: 6px 8px; border-radius: 4px; color: #1F1D1A; text-decoration: none"><span>3. Rent collection</span><span style="font-family: 'Source Sans 3', system-ui, sans-serif; font-size: 12px; color: #6B645A; font-variant-numeric: tabular-nums">7</span></a>
+        <a href="#" style="display: flex; justify-content: space-between; gap: 8px; padding: 6px 8px; border-radius: 4px; color: #1F1D1A; text-decoration: none"><span>4. Surveyor capacity</span><span style="font-family: 'Source Sans 3', system-ui, sans-serif; font-size: 12px; color: #6B645A; font-variant-numeric: tabular-nums">11</span></a>
+        <a href="#" style="display: flex; justify-content: space-between; gap: 8px; padding: 6px 8px; border-radius: 4px; color: #1F1D1A; text-decoration: none"><span>5. Risk register</span><span style="font-family: 'Source Sans 3', system-ui, sans-serif; font-size: 12px; color: #6B645A; font-variant-numeric: tabular-nums">16</span></a>
+        <a href="#" style="display: flex; justify-content: space-between; gap: 8px; padding: 6px 8px; border-radius: 4px; color: #1F1D1A; text-decoration: none"><span>Appendix A. Data notes</span><span style="font-family: 'Source Sans 3', system-ui, sans-serif; font-size: 12px; color: #6B645A; font-variant-numeric: tabular-nums">22</span></a>
+      </nav>
+    </aside>
+    <main style="flex: 999 1 560px; min-width: 0; background: #ECE7DE; overflow: auto; padding: 28px 32px; box-sizing: border-box">
+      <div role="listbox" aria-label="Pages" aria-multiselectable="true" aria-orientation="horizontal" style="display: flex; flex-wrap: wrap; gap: 20px 20px; max-width: 1240px; margin: 0 auto">
+        <sc-for list="{{pages}}" as="p" hint-placeholder-count="14">
+          <button role="option" aria-selected="{{p.selected}}" aria-label="{{p.aria}}" style="{{p.tile}}">
+            <span style="height: 171px; width: 171px; display: flex; align-items: flex-end; justify-content: center">
+              <span style="position: relative; display: block">
+                <span style="{{p.frame}}">
+                  <span style="display: flex; flex-direction: column; gap: 5px; padding: 14px 12px">
+                    <sc-for list="{{p.lines}}" as="l" hint-placeholder-count="6"><span style="{{l.s}}"></span></sc-for>
+                  </span>
+                </span>
+                <sc-if value="{{p.signed}}" hint-placeholder-val="{{ false }}">
+                  <span aria-hidden="true" style="position: absolute; left: 12px; right: 12px; bottom: 16px; display: flex; align-items: center; gap: 4px; padding-top: 4px; border-top: 1px solid #B9B2A7; color: #4A453E"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M4 19c2-1 3-4 5-4s1 3 3 3 2-2 4-2"></path><path d="M14 4.5l5 5-7 7h-2v-2z"></path></svg><span style="height: 3px; width: 40%; background: #DDD7CD"></span></span>
+                </sc-if>
+                <sc-if value="{{p.isSel}}" hint-placeholder-val="{{ false }}">
+                  <span aria-hidden="true" style="position: absolute; top: -9px; right: -9px; width: 20px; height: 20px; border-radius: 50%; background: {{accent}}; color: #FFFFFF; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 0 2px #ECE7DE"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 12.5l4 4 8-9"></path></svg></span>
+                </sc-if>
+              </span>
+            </span>
+            <span style="{{p.num}}">{{p.n}}</span>
+          </button>
+        </sc-for>
+      </div>
+    </main>
+  </div>
+
+  <footer style="min-height: 28px; flex: 0 0 auto; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px 16px; padding: 0 16px; border-top: 1px solid #E4DED3; font-size: 12px; color: #6B645A">
+    <button style="min-height: 24px; display: flex; align-items: center; gap: 7px; border: 0; background: transparent; padding: 0 4px; font-size: 12px; color: #6B645A">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="{{accent}}" stroke-width="1.5" aria-hidden="true"><path d="M12 3.5l7 2.5v5.5c0 4.3-3 7.6-7 9-4-1.4-7-4.7-7-9V6z"></path><path d="M9 12l2.2 2.2L15.5 10"></path></svg>
+      <span style="color: #1F1D1A; font-variant-numeric: tabular-nums">0 network requests for this document</span><span>· Offline-safe: nothing uploaded</span>
+    </button>
+    <span style="font-variant-numeric: tabular-nums">24 pages</span>
+  </footer>
+  <div style="position: absolute; left: 0; right: 0; top: 30px; bottom: 0; z-index: 50; background: rgba(31,29,26,0.30); display: flex; justify-content: center; align-items: flex-start; padding: 56px 16px 24px; box-sizing: border-box; overflow: auto">
+    <div role="dialog" aria-modal="true" aria-labelledby="o7i-t" style="width: 100%; max-width: 560px; box-sizing: border-box; display: flex; flex-direction: column; background: #FBF9F5; border: 1px solid #D8D1C5; border-radius: 6px; box-shadow: 0 18px 48px rgba(31,29,26,0.22)">
+      <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; padding: 20px 24px 0">
+        <h2 id="o7i-t" style="margin: 0; font-family: 'Newsreader', Georgia, serif; font-size: 20px; font-weight: 500; line-height: 1.2">Insert pages</h2>
+        <button aria-label="Close" style="width: 28px; height: 28px; margin: -4px -8px 0 0; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 4px; color: #4A453E"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg></button>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 16px; padding: 14px 24px 20px">
+        <div role="tablist" aria-label="Insert from" style="display: flex; gap: 22px; border-bottom: 1px solid #E4DED3; margin-top: -2px">
+          <button role="tab" aria-selected="false" style="height: 34px; border: 0; background: transparent; padding: 0; color: #6B645A; border-bottom: 2px solid transparent">Blank pages</button>
+          <button role="tab" aria-selected="true" aria-controls="o7i-panel" style="height: 34px; border: 0; background: transparent; padding: 0; font-weight: 600; border-bottom: 2px solid {{accent}}">From a PDF</button>
+          <button role="tab" aria-selected="false" style="height: 34px; border: 0; background: transparent; padding: 0; color: #6B645A; border-bottom: 2px solid transparent">From images</button>
+        </div>
+        <div id="o7i-panel" role="tabpanel" style="display: flex; flex-direction: column; gap: 16px">
+        <div style="display: flex; align-items: center; gap: 12px; padding: 10px 12px; background: #FFFFFF; border: 1px solid #E4DED3; border-radius: 4px">
+          <span style="color: #4A453E; display: flex"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M6.5 3.5h7l4 4v13h-11z"></path><path d="M13.5 3.5v4h4"></path></svg></span>
+          <span style="flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column">
+            <span style="font-weight: 600">Site-survey-Oct-2026.pdf</span>
+            <span style="font-size: 12px; color: #6B645A; font-variant-numeric: tabular-nums">6 pages · 2.4 MB · 3 comments</span>
+          </span>
+          <button style="height: 28px; padding: 0 12px; border: 1px solid #8A8174; background: #FFFFFF; border-radius: 4px; font-size: 13px">Choose another…</button>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 8px">
+          <div style="display: flex; align-items: flex-end; gap: 10px; flex-wrap: wrap">
+            <span style="display: flex; flex-direction: column; gap: 4px">
+              <label for="o7i-r" style="font-size: 12px; font-weight: 600; color: #4A453E">Pages to insert</label>
+              <input id="o7i-r" value="1–4" aria-describedby="o7i-rh" style="height: 32px; box-sizing: border-box; padding: 0 10px; border: 1px solid #8A8174; border-radius: 4px; background: #FFFFFF; font-variant-numeric: tabular-nums; width: 160px; outline: 2px solid {{accent}}; outline-offset: 2px">
+            </span>
+            <span id="o7i-rh" style="font-size: 12px; color: #6B645A; padding-bottom: 7px; font-variant-numeric: tabular-nums">For example 1–3, 6 · 4 of 6 selected</span>
+            <span style="flex: 1 1 auto"></span>
+            <button style="height: 28px; padding: 0 10px; border: 0; background: transparent; border-radius: 4px; font-size: 13px; color: {{accent}}; font-weight: 600; margin-bottom: 2px">Select all</button>
+          </div>
+          <ul aria-label="Pages in Site-survey-Oct-2026.pdf" style="list-style: none; margin: 0; padding: 8px; display: flex; flex-wrap: wrap; gap: 6px; background: #ECE7DE; border-radius: 4px">
+          <li><label style="display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 6px; border-radius: 4px; position: relative; background: {{accentTint}}"><sc-if value="{{on}}" hint-placeholder-val="{{ true }}"><input type="checkbox" checked style="position: absolute; top: 4px; right: 4px; width: 16px; height: 16px; margin: 0; accent-color: {{accent}}; z-index: 1"></sc-if><span style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Page 1</span><span aria-hidden="true" style="display: flex; flex-direction: column; gap: 4px; width: 62px; height: 80px; box-sizing: border-box; padding: 8px 7px; background: #FFFFFF; box-shadow: 0 1px 3px rgba(60,48,30,0.12); outline: 1px solid {{accent}}"><span style="display: block; height: 4px; width: 60%; background: #B9B2A7"></span><span style="display: block; height: 3px; width: 100%; background: #DDD7CD"></span><span style="display: block; height: 3px; width: 90%; background: #DDD7CD"></span><span style="display: block; height: 3px; width: 96%; background: #DDD7CD"></span><span style="display: block; height: 5px; width: 80%; background: #C9CFD3"></span><span style="display: block; height: 3px; width: 70%; background: #DDD7CD"></span></span><span aria-hidden="true" style="font-size: 12px; font-variant-numeric: tabular-nums; font-weight: 600">1</span></label></li>
+          <li><label style="display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 6px; border-radius: 4px; position: relative; background: {{accentTint}}"><sc-if value="{{on}}" hint-placeholder-val="{{ true }}"><input type="checkbox" checked style="position: absolute; top: 4px; right: 4px; width: 16px; height: 16px; margin: 0; accent-color: {{accent}}; z-index: 1"></sc-if><span style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Page 2</span><span aria-hidden="true" style="display: flex; flex-direction: column; gap: 4px; width: 62px; height: 80px; box-sizing: border-box; padding: 8px 7px; background: #FFFFFF; box-shadow: 0 1px 3px rgba(60,48,30,0.12); outline: 1px solid {{accent}}"><span style="display: block; height: 4px; width: 60%; background: #B9B2A7"></span><span style="display: block; height: 3px; width: 100%; background: #DDD7CD"></span><span style="display: block; height: 3px; width: 90%; background: #DDD7CD"></span><span style="display: block; height: 3px; width: 96%; background: #DDD7CD"></span><span style="display: block; height: 5px; width: 60%; background: #C9CFD3"></span><span style="display: block; height: 3px; width: 70%; background: #DDD7CD"></span></span><span aria-hidden="true" style="font-size: 12px; font-variant-numeric: tabular-nums; font-weight: 600">2</span></label></li>
+          <li><label style="display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 6px; border-radius: 4px; position: relative; background: {{accentTint}}"><sc-if value="{{on}}" hint-placeholder-val="{{ true }}"><input type="checkbox" checked style="position: absolute; top: 4px; right: 4px; width: 16px; height: 16px; margin: 0; accent-color: {{accent}}; z-index: 1"></sc-if><span style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Page 3</span><span aria-hidden="true" style="display: flex; flex-direction: column; gap: 4px; width: 62px; height: 80px; box-sizing: border-box; padding: 8px 7px; background: #FFFFFF; box-shadow: 0 1px 3px rgba(60,48,30,0.12); outline: 1px solid {{accent}}"><span style="display: block; height: 4px; width: 60%; background: #B9B2A7"></span><span style="display: block; height: 3px; width: 100%; background: #DDD7CD"></span><span style="display: block; height: 3px; width: 90%; background: #DDD7CD"></span><span style="display: block; height: 3px; width: 96%; background: #DDD7CD"></span><span style="display: block; height: 5px; width: 80%; background: #C9CFD3"></span><span style="display: block; height: 3px; width: 70%; background: #DDD7CD"></span></span><span aria-hidden="true" style="font-size: 12px; font-variant-numeric: tabular-nums; font-weight: 600">3</span></label></li>
+          <li><label style="display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 6px; border-radius: 4px; position: relative; background: {{accentTint}}"><sc-if value="{{on}}" hint-placeholder-val="{{ true }}"><input type="checkbox" checked style="position: absolute; top: 4px; right: 4px; width: 16px; height: 16px; margin: 0; accent-color: {{accent}}; z-index: 1"></sc-if><span style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Page 4</span><span aria-hidden="true" style="display: flex; flex-direction: column; gap: 4px; width: 62px; height: 80px; box-sizing: border-box; padding: 8px 7px; background: #FFFFFF; box-shadow: 0 1px 3px rgba(60,48,30,0.12); outline: 1px solid {{accent}}"><span style="display: block; height: 4px; width: 60%; background: #B9B2A7"></span><span style="display: block; height: 3px; width: 100%; background: #DDD7CD"></span><span style="display: block; height: 3px; width: 90%; background: #DDD7CD"></span><span style="display: block; height: 3px; width: 96%; background: #DDD7CD"></span><span style="display: block; height: 5px; width: 60%; background: #C9CFD3"></span><span style="display: block; height: 3px; width: 70%; background: #DDD7CD"></span></span><span aria-hidden="true" style="font-size: 12px; font-variant-numeric: tabular-nums; font-weight: 600">4</span></label></li>
+          <li><label style="display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 6px; border-radius: 4px; position: relative"><input type="checkbox" style="position: absolute; top: 4px; right: 4px; width: 16px; height: 16px; margin: 0; accent-color: {{accent}}; z-index: 1"><span style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Page 5</span><span aria-hidden="true" style="display: flex; flex-direction: column; gap: 4px; width: 62px; height: 80px; box-sizing: border-box; padding: 8px 7px; background: #FFFFFF; box-shadow: 0 1px 3px rgba(60,48,30,0.12); outline: 1px solid #E4DED3"><span style="display: block; height: 4px; width: 60%; background: #B9B2A7"></span><span style="display: block; height: 3px; width: 100%; background: #DDD7CD"></span><span style="display: block; height: 3px; width: 90%; background: #DDD7CD"></span><span style="display: block; height: 3px; width: 96%; background: #DDD7CD"></span><span style="display: block; height: 5px; width: 80%; background: #C9CFD3"></span><span style="display: block; height: 3px; width: 70%; background: #DDD7CD"></span></span><span aria-hidden="true" style="font-size: 12px; font-variant-numeric: tabular-nums; color: #6B645A">5</span></label></li>
+          <li><label style="display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 6px; border-radius: 4px; position: relative"><input type="checkbox" style="position: absolute; top: 4px; right: 4px; width: 16px; height: 16px; margin: 0; accent-color: {{accent}}; z-index: 1"><span style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Page 6</span><span aria-hidden="true" style="display: flex; flex-direction: column; gap: 4px; width: 62px; height: 80px; box-sizing: border-box; padding: 8px 7px; background: #FFFFFF; box-shadow: 0 1px 3px rgba(60,48,30,0.12); outline: 1px solid #E4DED3"><span style="display: block; height: 4px; width: 60%; background: #B9B2A7"></span><span style="display: block; height: 3px; width: 100%; background: #DDD7CD"></span><span style="display: block; height: 3px; width: 90%; background: #DDD7CD"></span><span style="display: block; height: 3px; width: 96%; background: #DDD7CD"></span><span style="display: block; height: 5px; width: 60%; background: #C9CFD3"></span><span style="display: block; height: 3px; width: 70%; background: #DDD7CD"></span></span><span aria-hidden="true" style="font-size: 12px; font-variant-numeric: tabular-nums; color: #6B645A">6</span></label></li>
+          </ul>
+        </div>
+        <div style="display: flex; gap: 12px; flex-wrap: wrap; align-items: flex-end">
+          <span style="display: flex; flex-direction: column; gap: 4px">
+            <label for="o7i-pos" style="font-size: 12px; font-weight: 600; color: #4A453E">Insert</label>
+            <button id="o7i-pos" aria-haspopup="listbox" style="height: 32px; box-sizing: border-box; padding: 0 30px 0 10px; border: 1px solid #8A8174; border-radius: 4px; background: #FFFFFF; display: flex; align-items: center; justify-content: space-between; position: relative; text-align: left; width: 180px; min-width: 0">After page<span style="position: absolute; right: 8px; top: 8px; color: #4A453E"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M7 10l5 5 5-5"></path></svg></span></button>
+          </span>
+          <span style="display: flex; flex-direction: column; gap: 4px">
+            <label for="o7i-n" style="font-size: 12px; font-weight: 600; color: #4A453E">Page</label>
+            <input id="o7i-n" value="11" inputmode="numeric" aria-describedby="o7i-nh" style="height: 32px; box-sizing: border-box; padding: 0 10px; border: 1px solid #8A8174; border-radius: 4px; background: #FFFFFF; font-variant-numeric: tabular-nums; width: 64px">
+          </span>
+          <span id="o7i-nh" style="font-size: 12px; color: #6B645A; padding-bottom: 7px; font-variant-numeric: tabular-nums">of 24 · in 4. Surveyor capacity</span>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 6px">
+          <label style="display: flex; align-items: flex-start; gap: 8px; min-height: 24px"><sc-if value="{{on}}" hint-placeholder-val="{{ true }}"><input type="checkbox" checked style="width: 16px; height: 16px; margin: 0; accent-color: {{accent}}; margin-top: 2px"></sc-if><span>Bring comments and links with the pages</span></label>
+          <label style="display: flex; align-items: flex-start; gap: 8px; min-height: 24px"><input type="checkbox" style="width: 16px; height: 16px; margin: 0; accent-color: {{accent}}; margin-top: 2px"><span>Bring form fields (renamed if a name is already used)</span></label>
+        </div>
+        <p style="margin: 0; display: flex; gap: 8px; align-items: flex-start; font-size: 13px; color: #3A3631"><span style="color: #4A453E; display: flex; padding-top: 1px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="12" cy="12" r="8"></circle><path d="M12 11v5M12 8v.5"></path></svg></span><span>The new pages become 12–15, and pages 12–24 move to 16–28. Their page labels, bookmarks and links follow them.</span></p>
+        </div>
+      </div>
+      <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 8px; padding: 14px 24px; border-top: 1px solid #E4DED3">
+        <span style="flex: 1 1 auto; font-size: 12px; color: #6B645A">Site-survey-Oct-2026.pdf isn’t changed.</span>
+        <button style="height: 32px; padding: 0 16px; border: 1px solid #8A8174; background: #FFFFFF; border-radius: 4px">Cancel</button>
+        <button style="height: 32px; padding: 0 16px; border: 1px solid {{accent}}; background: {{accent}}; color: #FFFFFF; border-radius: 4px; font-weight: 600">Insert 4 pages</button>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#1F5C63","options":["#1F5C63","#2D4A6B","#3E4A3C"]},"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    var accent = this.props.accent ?? '#1F5C63';
+    function mix(hex, base, t) {
+      var p = function (h, i) { return parseInt(h.replace('#', '').substr(i, 2), 16); };
+      var out = '#';
+      for (var i = 0; i < 6; i += 2) {
+        var v = Math.round(p(hex, i) * t + p(base, i) * (1 - t));
+        out += (v < 16 ? '0' : '') + v.toString(16);
+      }
+      return out;
+    }
+    var tint = mix(accent, '#FBF9F5', 0.12);
+    function ln(h, w, c, extra) { return { s: 'display: block; height: ' + h + 'px; width: ' + w + '%; background: ' + c + '; border-radius: 1px;' + (extra || '') }; }
+    var H = '#B9B2A7', T = '#DDD7CD', C = '#C9CFD3', R = '#E3DED6';
+    var kinds = {
+      cover: [ln(7, 70, H, ' margin-top: 34px;'), ln(4, 46, T), ln(3, 100, T, ' margin-top: 18px;'), ln(3, 92, T), ln(3, 96, T), ln(3, 58, T)],
+      text: [ln(4, 58, H), ln(3, 100, T), ln(3, 94, T), ln(3, 98, T), ln(3, 90, T), ln(3, 64, T, ' margin-bottom: 6px;'), ln(3, 100, T), ln(3, 96, T), ln(3, 88, T)],
+      chart: [ln(4, 55, H), ln(3, 100, T), ln(3, 92, T), ln(3, 70, T, ' margin-bottom: 6px;'), ln(5, 100, C), ln(5, 70, C), ln(5, 85, C), ln(5, 48, C)],
+      table: [ln(4, 50, H), ln(4, 100, C), ln(3, 100, R), ln(3, 100, R), ln(3, 100, R), ln(3, 100, R), ln(3, 100, R), ln(3, 100, R)],
+      heading: [ln(6, 66, H, ' margin-top: 8px;'), ln(3, 100, T, ' margin-top: 6px;'), ln(3, 96, T), ln(3, 90, T), ln(3, 98, T), ln(3, 54, T)],
+      sign: [ln(4, 50, H), ln(3, 100, T), ln(3, 92, T), ln(3, 96, T), ln(3, 60, T)]
+    };
+    var order = ['cover','text','chart','table','text','chart','heading','table','text','chart','heading','text','table','text','chart','heading','table','table','text','text','chart','heading','table','sign'];
+    var selected = [];
+    var signed = [];
+    var pages = order.map(function (k, i) {
+      var n = i + 1;
+      var sel = selected.indexOf(n) !== -1;
+      return {
+        n: String(n),
+        aria: 'Page ' + n + (sel ? ', selected' : ''),
+        selected: sel ? 'true' : 'false',
+        isSel: sel,
+        signed: signed.indexOf(n) !== -1,
+        lines: kinds[k],
+        tile: 'display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 8px; border: 0; border-radius: 6px; background: ' + (sel ? tint : 'transparent'),
+        frame: 'display: block; position: relative; width: 132px; height: 171px; background: #FFFFFF; box-shadow: 0 1px 3px rgba(60,48,30,0.12); overflow: hidden; ' + (sel ? 'outline: 2px solid ' + accent + '; outline-offset: 3px;' : 'outline: 1px solid #E4DED3;'),
+        num: 'font-size: 12px; font-variant-numeric: tabular-nums; ' + (sel ? 'font-weight: 600; color: #1F1D1A;' : 'color: #6B645A;')
+      };
+    });
+    return { accent: accent, accentTint: tint, pages: pages, on: true };
+  }
+}
+</script>
+</body>
+</html>

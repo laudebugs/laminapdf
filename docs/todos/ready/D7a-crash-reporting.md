@@ -20,6 +20,7 @@ When lamina or its engine crashes or panics, we want to learn why — **only if 
 
 ## Context
 
+- **Design (Paper):** [S07 Settings window](../../design/paper/desktop-shell.md#s07-settings-window), [S08 Crash recovered](../../design/paper/desktop-shell.md#s08-crash-recovered). Build to match these screens; record any deviation in the area document ([Paper design plan §5](../../plans/paper-design.md#5-how-the-designs-are-used)).
 - [Desktop plan §4 req. 9, §5 crash reports, §8 Q2](../../plans/desktop-app.md#5-design-summary): own Worker + R2 with 30-day retention recommended; alternative self-hosted/SaaS Sentry; install ID **never** linked to crash reports.
 - ADR 0011 (web C2): privacy and retention rules; the privacy page.
 - ADR 0008 / D2b–D2c: engine process lifecycle; crashes of the sandboxed engine are observed by the supervisor.

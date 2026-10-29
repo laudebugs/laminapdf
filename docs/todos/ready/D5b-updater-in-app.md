@@ -20,6 +20,7 @@ Make the desktop app update itself safely from the D5a Worker: check at start an
 
 ## Context
 
+- **Design (Paper):** [S06 Updates](../../design/paper/desktop-shell.md#s06-updates). Build to match these screens; record any deviation in the area document ([Paper design plan §5](../../plans/paper-design.md#5-how-the-designs-are-used)).
 - ADR 0014 (D5a): endpoint shape, channels, header rules, managed policy keys, key custody.
 - [Desktop plan §5](../../plans/desktop-app.md#5-design-summary): "send the ID in a custom request header (`Lamina-Install-Id`) set with the updater plugin's `UpdaterBuilder::header` in Rust" — never in the URL (the URL only substitutes `{{target}}`, `{{arch}}`, `{{current_version}}`).
 - Tauri [updater plugin](https://v2.tauri.app/plugin/updater/): `tauri-plugin-updater`; config `plugins.updater.pubkey` and `endpoints`; `bundle.createUpdaterArtifacts: true` (v2 artefacts: `.app.tar.gz` + `.sig` on macOS, `.AppImage` + `.sig` on Linux, NSIS `-setup.exe`/`.msi` + `.sig` on Windows); `plugins.updater.windows.installMode` (`passive` default, `basicUi`, `quiet`); Windows exits the app during install; `Update::download` + `Update::install` split for install-on-quit; requires HTTPS endpoints in production (`dangerousInsecureTransportProtocol` only for local tests).

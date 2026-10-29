@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Enter a licence key</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&amp;family=Source+Sans+3:wght@400;500;600&amp;family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&amp;display=swap">
+<style>
+body{margin:0;background:#F7F4EE}
+a{color:#1F5C63}a:hover{color:#16454B}
+button,input,textarea{font:inherit;color:inherit}
+</style>
+</helmet>
+<div style="min-height: 100vh; display: flex; flex-direction: column; background: #F7F4EE; color: #1F1D1A; font-family: 'Source Sans 3', 'Segoe UI', system-ui, sans-serif; font-size: 14px; line-height: 1.4">
+
+  <header style="min-height: 40px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 20px; padding: 0 16px; border-bottom: 1px solid #E4DED3; background: #F7F4EE">
+    <div style="display: flex; align-items: center; gap: 10px; flex: 1 1 220px; min-width: 0">
+      <button aria-label="Back to home" style="width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 4px; color: #4A453E"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M15 5l-7 7 7 7"></path></svg></button>
+      <span style="font-family: 'Newsreader', Georgia, serif; font-size: 16px; font-weight: 500">Settings</span>
+    </div>
+    <div style="display: flex; align-items: center; justify-content: flex-end; gap: 14px; flex: 1 1 220px">
+      <button style="height: 26px; display: flex; align-items: center; gap: 8px; padding: 0 6px 0 10px; border: 1px solid #E4DED3; background: #FBF9F5; border-radius: 4px; color: #6B645A; font-size: 13px"><span>Commands</span><span style="font-size: 11px; padding: 1px 5px; border: 1px solid #D8D1C5; border-radius: 3px; color: #4A453E; background: #FFFFFF">Ctrl K</span></button>
+      <button style="height: 26px; padding: 0 12px; border: 0; background: transparent; border-radius: 4px; font-size: 13px; color: {{accent}}; font-weight: 600">Sign in</button>
+    </div>
+  </header>
+
+  <div style="flex: 1 1 auto; min-height: 0; display: flex; flex-wrap: wrap">
+    <nav aria-label="Settings sections" style="flex: 0 0 200px; box-sizing: border-box; border-right: 1px solid #E4DED3; padding: 16px 10px; display: flex; flex-direction: column; gap: 2px">
+      <a href="#general" style="height: 32px; display: flex; align-items: center; padding: 0 10px; border-radius: 4px; color: #1F1D1A; text-decoration: none">General</a>
+      <a href="#appearance" style="height: 32px; display: flex; align-items: center; padding: 0 10px; border-radius: 4px; color: #1F1D1A; text-decoration: none">Appearance</a>
+      <a href="#privacy" style="height: 32px; display: flex; align-items: center; padding: 0 10px; border-radius: 4px; color: #1F1D1A; text-decoration: none">Privacy</a>
+      <a href="#shortcuts" style="height: 32px; display: flex; align-items: center; padding: 0 10px; border-radius: 4px; color: #1F1D1A; text-decoration: none">Shortcuts</a>
+      <a href="#licence" aria-current="page" style="height: 32px; display: flex; align-items: center; padding: 0 10px; border-radius: 4px; color: {{accent}}; background: {{accentTint}}; font-weight: 600; text-decoration: none">Licence</a>
+      <a href="#account" style="height: 32px; display: flex; align-items: center; padding: 0 10px; border-radius: 4px; color: #1F1D1A; text-decoration: none">Account and plan</a>
+      <a href="#notifications" style="height: 32px; display: flex; align-items: center; padding: 0 10px; border-radius: 4px; color: #1F1D1A; text-decoration: none">Notifications</a>
+      <a href="#about" style="height: 32px; display: flex; align-items: center; padding: 0 10px; border-radius: 4px; color: #1F1D1A; text-decoration: none">About</a>
+    </nav>
+
+    <main style="flex: 999 1 560px; min-width: 0; box-sizing: border-box; padding: 32px 32px 48px; display: flex; justify-content: center">
+      <div style="width: 100%; max-width: 640px; display: flex; flex-direction: column; gap: 24px">
+        <div style="display: flex; flex-direction: column; gap: 6px">
+          <h1 style="margin: 0; font-family: 'Newsreader', Georgia, serif; font-size: 28px; font-weight: 500; line-height: 1.2">Licence</h1>
+          <p style="margin: 0; color: #3A3631">No licence on this device yet. Paste the key you received with your purchase. You don’t need an account. [HOW THE LICENCE IS CHECKED: OFFLINE KEY OR STORE PURCHASE]</p>
+        </div>
+
+        <section aria-labelledby="ent-h" style="display: flex; flex-direction: column; gap: 14px; padding: 20px; background: #FBF9F5; border: 1px solid #E4DED3; border-radius: 4px">
+          <h2 id="ent-h" style="margin: 0; font-family: 'Newsreader', Georgia, serif; font-size: 18px; font-weight: 500">Enter a licence key</h2>
+          <div style="display: flex; flex-direction: column; gap: 8px">
+            <label for="lic" style="font-size: 12px; font-weight: 600; color: #4A453E">Licence key</label>
+            <input id="lic" value="[LICENCE KEY]" autocomplete="off" spellcheck="false" aria-describedby="lic-help" style="height: 32px; box-sizing: border-box; padding: 0 10px; border: 1px solid #8A8174; border-radius: 4px; background: #FFFFFF; font-family: ui-monospace, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace; font-size: 12.5px; letter-spacing: 0.04em; outline: 2px solid {{accent}}; outline-offset: 1px">
+            <span id="lic-help" style="font-size: 12px; color: #6B645A">Or open a licence file you downloaded.</span>
+          </div>
+          <div style="display: flex; flex-wrap: wrap; gap: 8px">
+            <button style="height: 32px; padding: 0 16px; border: 1px solid {{accent}}; background: {{accent}}; color: #FFFFFF; border-radius: 4px; font-weight: 600">Activate</button>
+            <button style="height: 32px; display: flex; align-items: center; gap: 6px; padding: 0 14px; border: 1px solid #8A8174; background: #FFFFFF; border-radius: 4px">Open licence file…</button>
+          </div>
+        </section>
+
+        <section aria-labelledby="what-h" style="display: flex; flex-direction: column; gap: 10px">
+          <h2 id="what-h" style="margin: 0; font-family: 'Newsreader', Georgia, serif; font-size: 18px; font-weight: 500">What happens</h2>
+          <ul style="margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: #3A3631">
+            <li>lamina checks the key on this device and unlocks [PLAN NAME] features that run here.</li>
+            <li>The key is stored on this device only. If keys are checked offline: nothing is sent to our server, and the network indicator stays at 0.</li>
+            <li>Using it on more devices: [DEVICE TERMS, IF ANY].</li>
+          </ul>
+        </section>
+
+        <p style="margin: 0; font-size: 13px; color: #6B645A">No key yet? <a href="#pricing">See pricing</a>. Signed in? Keys bought with an account appear in Account and plan.</p>
+      </div>
+    </main>
+  </div>
+
+  <footer style="min-height: 28px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px 16px; padding: 0 16px; border-top: 1px solid #E4DED3; background: #F7F4EE; font-size: 12px; color: #6B645A">
+    <button style="min-height: 24px; display: flex; align-items: center; gap: 7px; border: 0; background: transparent; padding: 0 4px; font-size: 12px; color: #6B645A"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="{{accent}}" stroke-width="1.5" aria-hidden="true"><path d="M12 3.5l7 2.5v5.5c0 4.3-3 7.6-7 9-4-1.4-7-4.7-7-9V6z"></path><path d="M9 12l2.2 2.2L15.5 10"></path></svg><span style="color: #1F1D1A; font-variant-numeric: tabular-nums">0 network requests</span><span>· Offline-safe: nothing uploaded</span></button>
+    <span>Not signed in</span>
+  </footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#1F5C63","options":["#1F5C63","#2D4A6B","#3E4A3C"]},"$preview":{"width":1440,"height":1000}}'>
+class Component extends DCLogic {
+  renderVals() {
+    var accent = this.props.accent ?? '#1F5C63';
+    function mix(hex, base, t) {
+      var p = function (h, i) { return parseInt(h.replace('#', '').substr(i, 2), 16); };
+      var out = '#';
+      for (var i = 0; i < 6; i += 2) {
+        var v = Math.round(p(hex, i) * t + p(base, i) * (1 - t));
+        out += (v < 16 ? '0' : '') + v.toString(16);
+      }
+      return out;
+    }
+    return { accent: accent, accentTint: mix(accent, '#FBF9F5', 0.12) };
+  }
+}
+</script>
+</body>
+</html>

@@ -20,6 +20,7 @@ Annotate mode in both apps: toolbar tools (highlight, underline, strike-through,
 
 ## Context
 
+- **Design (Paper):** [F02](../../design/paper/screens.md#f-foundations-the-chosen-paper-boards), [C01 Comment tools](../../design/paper/comment-review.md#c01-comment-tools), [C08 Phone annotate](../../design/paper/comment-review.md#c08-phone-annotate), [C09 Tablet stylus](../../design/paper/comment-review.md#c09-tablet-stylus). Build to match these screens; record any deviation in the area document ([Paper design plan §5](../../plans/paper-design.md#5-how-the-designs-are-used)).
 - [full-editor §E4](../../plans/full-editor.md#e4-markup-and-drawing-annotations) web vs desktop
 - [full-editor §6](../../plans/full-editor.md#6-design-summary) interaction modes
 

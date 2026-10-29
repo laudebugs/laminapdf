@@ -21,6 +21,7 @@ Downsample/recompress images (JPEG quality, target DPI, keep masks, skip JPX unl
 
 ## Context
 
+- **Design (Paper):** [X09 Optimise](../../design/paper/convert-compare-produce.md#x09-optimise). Build to match these screens; record any deviation in the area document ([Paper design plan §5](../../plans/paper-design.md#5-how-the-designs-are-used)).
 - [03 §6 Font embedding & subsetting](../../research/pdf/03-text-and-fonts.md#6-font-embedding--subsetting-from-code)
 
 ## Scope

@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [web reader §6 C4. App shell on Cloudflare](../../plans/web-app.md#c4-app-shell-on-cloudflare) |
 | Round / milestone | Round C (web reader) — M2 Web reader v0.1 |
-| Depends on | [C2a](./C2a-render-adrs.md), [C4a](./C4a-ui-chrome-and-platform.md) |
+| Depends on | [C2a](./C2a-render-adrs.md), [C4a](./C4a-ui-chrome-and-platform.md), [U6b](./U6b-self-hosted-fonts.md) |
 | Blocks | [C4c](./C4c-remote-files-encryption-privacy.md), [C4d](./C4d-deploy-previews-and-production.md), [D7b](./D7b-settings-renderer-switch-and-download-page.md), [U3a](./U3a-responsive-mobile-and-touch.md) |
 | ADRs | Implements 0011 (Worker with static assets, `_headers`, CSP, no `/api`), 0009 (Vite 8, module worker), 0010 (web `Platform`) |
 | Branch | `feat/c4b-web-app-shell` |
@@ -20,6 +20,7 @@ Ship the first runnable reader: `apps/web`, a Vite 8 SPA that composes `@lamina/
 
 ## Context
 
+- **Design (Paper):** [R01 Home / open](../../design/paper/reader-a.md#r01-home--open), [R04 Repaired / damaged file](../../design/paper/reader-a.md#r04-repaired--damaged-file). Build to match these screens; record any deviation in the area document ([Paper design plan §5](../../plans/paper-design.md#5-how-the-designs-are-used)).
 - ADR 0011 (from [C2a](./C2a-render-adrs.md)) — topology, header values, Wrangler pinning.
 - [Research: Cloudflare section](../../research/architecture/app-and-package-architecture.md#cloudflare-hosts-everything-for-about-5-a-month-with-heavy-jobs-in-containers) and [cloudflare notes §1](../../research/architecture/notes/cloudflare.md) — `not_found_handling: "single-page-application"`, no `main` script needed for a pure SPA, `_headers` applies to assets only, 25 MiB per asset (PDFium WASM fits), compat date ≥ 2025-04-01 navigation behaviour.
 - [web-frontend notes](../../research/architecture/notes/web-frontend.md) §5 (COOP/COEP only for a threaded variant), §6 (`showOpenFilePicker` not Baseline; input + drag-drop fallback), §8 (Vite 8 + Rolldown, module workers + WASM).
@@ -46,6 +47,7 @@ Ship the first runnable reader: `apps/web`, a Vite 8 SPA that composes `@lamina/
 
 ## Tasks
 
+- [ ] Load the self-hosted Paper fonts from `@lamina/fonts` ([U6b](./U6b-self-hosted-fonts.md)): import its `fonts.css` and add its preload link for Source Sans 3 Latin 400; no font CDN (the network indicator must stay at 0).
 - [ ] Claim via a claim PR (see Definition of done); then a fresh worktree off the updated `main`.
 - [ ] Scaffold `apps/web` (`"name": "@lamina/web"`) with Vite 8; add to `pnpm-workspace.yaml` (already covers `apps/*`); depend on `@lamina/ui`, `@lamina/viewer`, `@lamina/render-pdfium`, `@lamina/render-hayro` via `workspace:*`.
 - [ ] Pin Wrangler as a devDependency (exact version) and add scripts: `dev` (Vite), `build`, `preview` (`wrangler dev` serving `dist/`), `e2e`.

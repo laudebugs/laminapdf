@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>lamina web reader, approximate Reader mode</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&amp;family=Source+Sans+3:wght@400;500;600&amp;family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&amp;display=swap">
+<style>
+body{margin:0;background:#F7F4EE}
+a{color:#1F5C63}a:hover{color:#16454B}
+button,input,textarea{font:inherit;color:inherit}
+</style>
+</helmet>
+<div style="min-height: 100vh; display: flex; flex-direction: column; background: #F7F4EE; color: #1F1D1A; font-family: 'Source Sans 3', 'Segoe UI', system-ui, sans-serif; font-size: 14px; line-height: 1.4">
+
+  <header style="min-height: 40px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 20px; padding: 0 16px; border-bottom: 1px solid #E4DED3; background: #F7F4EE">
+    <div style="display: flex; align-items: center; gap: 10px; flex: 1 1 220px; min-width: 0">
+      <button aria-label="Sidebar" aria-pressed="false" style="width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 4px; color: #4A453E"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="3.5" y="4.5" width="17" height="15" rx="1.5"></rect><path d="M9 4.5v15"></path></svg></button>
+      <span style="font-family: 'Newsreader', Georgia, serif; font-size: 16px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">Q3-board-report.pdf</span>
+    </div>
+    <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 8px 14px; flex: 1 1 220px">
+      <div role="group" aria-label="History" style="display: flex; align-items: center; gap: 2px">
+        <button aria-label="Back" aria-disabled="true" style="width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 4px; color: #A39C91"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M15 5l-7 7 7 7"></path></svg></button>
+        <button aria-label="Forward" aria-disabled="true" style="width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 4px; color: #A39C91"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M9 5l7 7-7 7"></path></svg></button>
+      </div>
+      <div style="display: flex; align-items: center; gap: 6px; font-variant-numeric: tabular-nums">
+        <label for="pg" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Page</label>
+        <input id="pg" value="3" style="width: 30px; height: 24px; box-sizing: border-box; text-align: center; border: 1px solid #8A8174; border-radius: 4px; background: #FFFFFF; font: inherit; font-variant-numeric: tabular-nums; color: #1F1D1A">
+        <span style="color: #6B645A">/ 24</span>
+      </div>
+      <button aria-label="Find in document" style="width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 4px; color: #4A453E"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6"></circle><path d="M15 15l5 5"></path></svg></button>
+      <button aria-label="Reader settings" aria-expanded="false" style="width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 4px; color: #4A453E"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="12" cy="12" r="7.5"></circle><path d="M12 4.5v15M12 8.5h5.5M12 12h7.5M12 15.5h5.5"></path></svg></button>
+      <button aria-pressed="true" style="height: 28px; display: flex; align-items: center; gap: 6px; padding: 0 10px; border: 1px solid {{accent}}; background: {{accentTint}}; color: {{accent}}; border-radius: 4px; font-size: 13px; font-weight: 600"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M12 6.5c-2-1.3-4.5-2-8-2v13c3.5 0 6 .7 8 2 2-1.3 4.5-2 8-2v-13c-3.5 0-6 .7-8 2z"></path><path d="M12 6.5v13"></path></svg>Reader</button>
+      <button style="height: 26px; display: flex; align-items: center; gap: 8px; padding: 0 6px 0 10px; border: 1px solid #E4DED3; background: #FBF9F5; border-radius: 4px; color: #6B645A; font-size: 13px"><span>Commands</span><span style="font-size: 11px; padding: 1px 5px; border: 1px solid #D8D1C5; border-radius: 3px; color: #4A453E; background: #FFFFFF">Ctrl K</span></button>
+      <button aria-label="More actions" aria-haspopup="menu" style="width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 4px; color: #4A453E"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="5.5" cy="12" r="0.9"></circle><circle cx="12" cy="12" r="0.9"></circle><circle cx="18.5" cy="12" r="0.9"></circle></svg></button>
+    </div>
+  </header>
+
+  <main aria-label="Reader view" style="flex: 1 1 auto; min-height: 0; background: #FFFFFF; color: #262421; overflow: auto; display: flex; justify-content: center; padding: 28px 24px 48px; box-sizing: border-box">
+    <div style="width: 100%; max-width: 660px; display: flex; flex-direction: column; gap: 20px; font-family: 'Source Serif 4', Georgia, serif; font-size: 19px; line-height: 1.65">
+      <div role="status" style="display: flex; gap: 10px; padding: 10px 12px; background: #F0E8DC; border: 1px solid #E4DED3; border-radius: 4px; font-family: 'Source Sans 3', system-ui, sans-serif; font-size: 13px; line-height: 1.45; color: #1F1D1A">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8A5300" stroke-width="1.5" aria-hidden="true" style="flex: 0 0 auto; margin-top: 1px"><path d="M12 4l9 16H3z"></path><path d="M12 10v4M12 17v.5"></path></svg>
+        <div style="display: flex; flex-direction: column; gap: 8px">
+          <span><strong style="font-weight: 600">Approximate layout.</strong> This file has no tags, so lamina guessed the reading order from the page layout. Check figures and numbers against the page.</span>
+          <div style="display: flex; flex-wrap: wrap; gap: 8px">
+            <button style="height: 30px; display: flex; align-items: center; gap: 6px; padding: 0 12px 0 8px; border: 1px solid #8A8174; background: #FFFFFF; border-radius: 4px; font-size: 13px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M15 5l-7 7 7 7"></path></svg>Back to page 3</button>
+            <button style="height: 30px; padding: 0 10px; border: 0; background: transparent; border-radius: 4px; font-size: 13px; color: {{accent}}; font-weight: 600">How Reader mode works</button>
+          </div>
+        </div>
+      </div>
+
+      <div style="display: flex; align-items: center; gap: 8px; font-family: 'Source Sans 3', system-ui, sans-serif">
+        <span style="display: inline-flex; align-items: center; gap: 4px; height: 20px; padding: 0 8px; border-radius: 3px; background: #F0E8DC; color: #8A5300; font-size: 12px; font-weight: 600"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M12 4l9 16H3z"></path><path d="M12 10v4M12 17v.5"></path></svg>Approximate</span>
+        <span style="font-size: 12px; color: #6B645A; font-variant-numeric: tabular-nums">Page 3</span>
+      </div>
+
+      <h2 style="margin: 0; font-size: 30px; line-height: 1.25; font-weight: 600">2. Repairs backlog</h2>
+      <p style="margin: 0; text-wrap: pretty">Open repair jobs stood at 1,248 at the end of September across the four regions. Most of the work closed this quarter was routine plumbing and joinery, which the additional contractor teams appointed in July were able to schedule within the target window.</p>
+      <div style="position: relative; display: flex; flex-direction: column; gap: 6px; margin: 0 -12px; padding: 6px 12px; background: rgba(31,29,26,0.06); border-radius: 4px">
+        <p style="margin: 0; text-wrap: pretty">The backlog fell by 18% over the quarter, but the oldest 10% of jobs are now older than 90 days. These are mainly damp and mould cases that need a surveyor’s visit before work can be scheduled, and they sit in the older parts of our stock.</p>
+        <button aria-label="View original page (page 3)" style="align-self: flex-end; height: 26px; display: flex; align-items: center; gap: 6px; padding: 0 8px; border: 0; background: transparent; border-radius: 4px; font-family: 'Source Sans 3', system-ui, sans-serif; font-size: 13px; line-height: 1; color: {{accent}}; font-weight: 600; outline: 2px solid {{accent}}; outline-offset: 1px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M6.5 3.5h7l4 4v13h-11z"></path><path d="M13.5 3.5v4h4"></path></svg>View original page</button>
+      </div>
+      <p style="margin: 0; text-wrap: pretty">The board is asked to note the position and to consider the proposal in section 4, which would reserve surveyor time each week for the longest-waiting cases.</p>
+
+      <figure style="margin: 4px 0; display: flex; flex-direction: column; gap: 10px">
+        <div role="img" aria-label="Image from page 3. The file gives no description." style="background: #FFFFFF; border: 1px solid #E4DED3; padding: 14px 20px 18px; display: flex; flex-direction: column; gap: 10px; font-family: 'Source Sans 3', system-ui, sans-serif; font-size: 12.5px; line-height: 1.3; color: #3A3733; font-variant-numeric: tabular-nums">
+          <span style="font-weight: 600; color: #1C1B19">Open repairs by region, end of September</span>
+          <div style="display: grid; grid-template-columns: 52px minmax(0, 1fr) 36px; align-items: center; gap: 8px 12px">
+            <span>North</span><span style="height: 14px; width: 100%; background: #4E5A63"></span><span style="text-align: right">412</span>
+            <span>East</span><span style="height: 14px; width: 69.9%; background: #4E5A63"></span><span style="text-align: right">288</span>
+            <span>South</span><span style="height: 14px; width: 85.2%; background: #4E5A63"></span><span style="text-align: right">351</span>
+            <span>West</span><span style="height: 14px; width: 47.8%; background: #4E5A63"></span><span style="text-align: right">197</span>
+          </div>
+        </div>
+        <figcaption style="font-family: 'Source Sans 3', system-ui, sans-serif; font-size: 14px; line-height: 1.45; color: #6B645A">Image from page 3, shown as it appears. The file gives no description of it.</figcaption>
+      </figure>
+
+      <section aria-label="Page 4, shown as a page image" style="display: flex; flex-direction: column; gap: 12px; padding-top: 12px; border-top: 1px solid #E4DED3">
+        <div style="display: flex; align-items: center; gap: 8px; font-family: 'Source Sans 3', system-ui, sans-serif">
+          <span style="display: inline-flex; align-items: center; height: 20px; padding: 0 8px; border-radius: 3px; background: #FBF9F5; border: 1px solid #D8D1C5; box-sizing: border-box; color: #4A453E; font-size: 12px; font-weight: 600">Page image</span>
+          <span style="font-size: 12px; color: #6B645A; font-variant-numeric: tabular-nums">Page 4</span>
+        </div>
+        <p style="margin: 0; font-family: 'Source Sans 3', system-ui, sans-serif; font-size: 14px; line-height: 1.5; color: #3A3631">lamina couldn’t work out the reading order of page 4 with confidence, so it shows the page as it is rather than guess.</p>
+        <div role="img" aria-label="Page 4 as an image: a table with five rows" style="align-self: center; width: 100%; max-width: 520px; background: #FFFFFF; border: 1px solid #E4DED3; box-shadow: 0 1px 3px rgba(60,48,30,0.12); padding: 28px 30px; box-sizing: border-box; display: flex; flex-direction: column; gap: 8px">
+          <span style="height: 7px; width: 46%; background: #B9B2A7"></span>
+          <span style="height: 4px; width: 100%; background: #DDD7CD"></span>
+          <span style="height: 4px; width: 92%; background: #DDD7CD"></span>
+          <span style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; margin-top: 8px">
+            <span style="height: 6px; background: #B9B2A7"></span><span style="height: 6px; background: #B9B2A7"></span><span style="height: 6px; background: #B9B2A7"></span><span style="height: 6px; background: #B9B2A7"></span>
+            <span style="height: 5px; background: #DDD7CD"></span><span style="height: 5px; background: #DDD7CD"></span><span style="height: 5px; background: #DDD7CD"></span><span style="height: 5px; background: #DDD7CD"></span>
+            <span style="height: 5px; background: #DDD7CD"></span><span style="height: 5px; background: #DDD7CD"></span><span style="height: 5px; background: #DDD7CD"></span><span style="height: 5px; background: #DDD7CD"></span>
+            <span style="height: 5px; background: #DDD7CD"></span><span style="height: 5px; background: #DDD7CD"></span><span style="height: 5px; background: #DDD7CD"></span><span style="height: 5px; background: #DDD7CD"></span>
+          </span>
+          <span style="height: 4px; width: 84%; margin-top: 8px; background: #DDD7CD"></span>
+        </div>
+        <button style="align-self: flex-start; height: 30px; display: flex; align-items: center; gap: 6px; padding: 0 12px 0 8px; border: 1px solid #8A8174; background: #FFFFFF; border-radius: 4px; font-family: 'Source Sans 3', system-ui, sans-serif; font-size: 13px; line-height: 1"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M6.5 3.5h7l4 4v13h-11z"></path><path d="M13.5 3.5v4h4"></path></svg>Open page 4</button>
+      </section>
+    </div>
+  </main>
+
+  <footer style="min-height: 28px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px 16px; padding: 0 16px; border-top: 1px solid #E4DED3; background: #F7F4EE; font-size: 12px; color: #6B645A">
+    <button style="min-height: 24px; display: flex; align-items: center; gap: 7px; border: 0; background: transparent; padding: 0 4px; font-size: 12px; color: #6B645A">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="{{accent}}" stroke-width="1.5" aria-hidden="true"><path d="M12 3.5l7 2.5v5.5c0 4.3-3 7.6-7 9-4-1.4-7-4.7-7-9V6z"></path><path d="M9 12l2.2 2.2L15.5 10"></path></svg>
+      <span style="color: #1F1D1A; font-variant-numeric: tabular-nums">0 network requests for this document</span><span>· Offline-safe: nothing uploaded</span>
+    </button>
+    <span>Reader mode · approximate</span>
+    <span style="font-variant-numeric: tabular-nums">Page 3 · Repairs backlog</span>
+  </footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#1F5C63","options":["#1F5C63","#2D4A6B","#3E4A3C"]},"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    var accent = this.props.accent ?? '#1F5C63';
+    function mix(hex, base, t) {
+      var p = function (h, i) { return parseInt(h.replace('#', '').substr(i, 2), 16); };
+      var out = '#';
+      for (var i = 0; i < 6; i += 2) {
+        var v = Math.round(p(hex, i) * t + p(base, i) * (1 - t));
+        out += (v < 16 ? '0' : '') + v.toString(16);
+      }
+      return out;
+    }
+    return { accent: accent, accentTint: mix(accent, '#FBF9F5', 0.12) };
+  }
+}
+</script>
+</body>
+</html>

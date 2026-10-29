@@ -20,6 +20,7 @@
 
 ## Context
 
+- **Design (Paper):** [X08 Save as PDF/UA or PDF/A](../../design/paper/convert-compare-produce.md#x08-save-as-pdfua-or-pdfa). Build to match these screens; record any deviation in the area document ([Paper design plan §5](../../plans/paper-design.md#5-how-the-designs-are-used)).
 - [full-editor §E15](../../plans/full-editor.md#e15-accessibility)
 
 ## Scope

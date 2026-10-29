@@ -20,6 +20,7 @@ Place a handwritten-signature image, a drawn (ink) or typed (font) e-signature a
 
 ## Context
 
+- **Design (Paper):** [G01 Add a signature image](../../design/paper/sign-protect-redact.md#g01-add-a-signature-image). Build to match these screens; record any deviation in the area document ([Paper design plan §5](../../plans/paper-design.md#5-how-the-designs-are-used)).
 - [06 §3 group F](../../research/pdf/06-feature-inventory.md#3-full-operation-inventory-with-mechanisms)
 
 ## Scope

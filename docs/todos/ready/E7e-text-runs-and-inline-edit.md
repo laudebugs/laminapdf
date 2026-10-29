@@ -20,6 +20,7 @@ Detect editable text runs/lines (MCIDs where tagged, heuristics otherwise), edit
 
 ## Context
 
+- **Design (Paper):** [A04 Edit existing text inline](../../design/paper/add-edit-content.md#a04-edit-existing-text-inline). Build to match these screens; record any deviation in the area document ([Paper design plan §5](../../plans/paper-design.md#5-how-the-designs-are-used)).
 - [03 §1](../../research/pdf/03-text-and-fonts.md#1-the-core-insight-pdf-stores-positioned-glyphs-not-text) (positioned glyphs, not text)
 - [03 §11.2](../../research/pdf/03-text-and-fonts.md#11-implications-for-laminas-design)
 - ADR 0022

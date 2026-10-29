@@ -20,6 +20,7 @@ Stamp annotations with image or dynamic-text appearances ("Approved by {user} on
 
 ## Context
 
+- **Design (Paper):** [C05 Stamps and file attachments](../../design/paper/comment-review.md#c05-stamps-and-file-attachments). Build to match these screens; record any deviation in the area document ([Paper design plan §5](../../plans/paper-design.md#5-how-the-designs-are-used)).
 - [04 §2.2](../../research/pdf/04-interactive-security.md#22-the-annotation-zoo)
 - [04 §6.1 File specifications](../../research/pdf/04-interactive-security.md#61-file-specifications-711)
 

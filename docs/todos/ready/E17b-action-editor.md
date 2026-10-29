@@ -20,6 +20,7 @@ Author actions (GoTo, URI, Named, ResetForm, Hide, SetOCGState, JavaScript as te
 
 ## Context
 
+- **Design (Paper):** [X11 Layers and actions](../../design/paper/convert-compare-produce.md#x11-layers-and-actions). Build to match these screens; record any deviation in the area document ([Paper design plan §5](../../plans/paper-design.md#5-how-the-designs-are-used)).
 - ADR 0021
 - [04 §1.3 Actions](../../research/pdf/04-interactive-security.md#13-actions-126)
 - [04 §4](../../research/pdf/04-interactive-security.md#4-javascript-in-pdf)

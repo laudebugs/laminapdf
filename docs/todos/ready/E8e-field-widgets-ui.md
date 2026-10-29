@@ -20,6 +20,7 @@
 
 ## Context
 
+- **Design (Paper):** [P01 Fill & Sign mode](../../design/paper/forms.md#p01-fill--sign-mode), [P04 Phone: fill a form field by field](../../design/paper/forms.md#p04-phone-fill-a-form-field-by-field). Build to match these screens; record any deviation in the area document ([Paper design plan §5](../../plans/paper-design.md#5-how-the-designs-are-used)).
 - [full-editor §E8](../../plans/full-editor.md#e8-form-filling-and-data)
 - [full-editor §5](../../plans/full-editor.md#5-requirements-that-hold-for-every-round) req. 6 (privacy)
 - ISO 32000-2 §12.7.6 (form actions)

@@ -20,6 +20,7 @@ Suggest fields on flat (non-interactive) forms from ruling lines, boxes, undersc
 
 ## Context
 
+- **Design (Paper):** [P07 Automatic field detection review](../../design/paper/forms.md#p07-automatic-field-detection-review). Build to match these screens; record any deviation in the area document ([Paper design plan §5](../../plans/paper-design.md#5-how-the-designs-are-used)).
 - [03 §8.4 Table extraction](../../research/pdf/03-text-and-fonts.md#84-table-extraction) (ruling-line detection techniques)
 - [full-editor §E9](../../plans/full-editor.md#e9-form-authoring)
 

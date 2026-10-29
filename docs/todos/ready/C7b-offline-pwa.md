@@ -20,6 +20,7 @@ After one visit, the reader works with no network: a service worker precaches th
 
 ## Context
 
+- **Design (Paper):** [R15 Offline, install and update](../../design/paper/reader-b.md#r15-offline-install-and-update). Build to match these screens; record any deviation in the area document ([Paper design plan §5](../../plans/paper-design.md#5-how-the-designs-are-used)).
 - [web-app.md §4 functional 9](../../plans/web-app.md#functional), [§2 scope](../../plans/web-app.md#2-scope-and-non-goals) (OS "Open with" via PWA file handling) and [§5 storage](../../plans/web-app.md#5-design-summary) (OPFS cache and recent files; IndexedDB holds metadata only; clearable).
 - [web-frontend notes §6](../../research/architecture/notes/web-frontend.md) — OPFS + `createSyncAccessHandle` in workers in all engines; stream `File` into OPFS once; Workbox/Vite PWA; persist `FileSystemFileHandle`s in IndexedDB on Chromium only; under COEP, the SW must not strip headers.
 - [Research: Memory64/4 GB ceiling](../../research/architecture/app-and-package-architecture.md#editing-is-an-op-log-over-a-lazy-object-graph-and-signatures-and-redaction-govern-saving) — stream from `ByteSource`/OPFS rather than holding whole files.

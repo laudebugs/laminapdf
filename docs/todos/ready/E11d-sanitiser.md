@@ -20,6 +20,7 @@ A sanitiser as a set of ops, each removing one category and reporting what it re
 
 ## Context
 
+- **Design (Paper):** [G07 Sanitise](../../design/paper/sign-protect-redact.md#g07-sanitise). Build to match these screens; record any deviation in the area document ([Paper design plan §5](../../plans/paper-design.md#5-how-the-designs-are-used)).
 - [04 §11 PDF as an attack surface](../../research/pdf/04-interactive-security.md#11-pdf-as-an-attack-surface)
 - [04 §13](../../research/pdf/04-interactive-security.md#13-implications-for-laminas-design) item 11 (`sanitize()` CDR)
 - [06 §3 group G](../../research/pdf/06-feature-inventory.md#3-full-operation-inventory-with-mechanisms)

@@ -20,6 +20,7 @@ Ops to create, move, resize, rename, delete and configure fields of every type (
 
 ## Context
 
+- **Design (Paper):** [P05 Form design mode](../../design/paper/forms.md#p05-form-design-mode). Build to match these screens; record any deviation in the area document ([Paper design plan §5](../../plans/paper-design.md#5-how-the-designs-are-used)).
 - [04 §3.1](../../research/pdf/04-interactive-security.md#31-acroform-structure-127-interactive-form-dictionary-1273-17-1272)
 - [04 §3.2](../../research/pdf/04-interactive-security.md#32-field-types-and-flags)
 - [04 §8.1 signature objects](../../research/pdf/04-interactive-security.md#81-objects-involved)

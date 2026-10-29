@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>lamina tablet, rail as a Contents sheet</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&amp;family=Source+Sans+3:wght@400;500;600&amp;family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#1F5C63}a:hover{color:#16454B}
+button,input,textarea{font:inherit;color:inherit}
+</style>
+</helmet>
+<div style="width: 1024px; height: 1366px; position: relative; overflow: hidden; display: flex; flex-direction: column; background: #F7F4EE; font-family: 'Source Sans 3', system-ui, sans-serif; font-size: 15px; line-height: 1.4; color: #1F1D1A">
+
+  <header style="height: 56px; flex: 0 0 auto; box-sizing: border-box; display: flex; align-items: center; gap: 16px; padding: 0 8px 0 6px; background: #F7F4EE; border-bottom: 1px solid #E4DED3">
+    <div style="display: flex; align-items: center; gap: 4px; flex: 1 1 0; min-width: 0">
+      <button aria-label="Back to files" style="width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 6px; color: #1F1D1A"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M15 5l-7 7 7 7"></path></svg></button>
+      <button aria-label="Sidebar" aria-expanded="true" style="width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; border: 0; background: {{accentTint}}; border-radius: 6px; color: {{accent}}"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="3.5" y="4.5" width="17" height="15" rx="1.5"></rect><path d="M9 4.5v15"></path></svg></button>
+      <div style="display: flex; flex-direction: column; min-width: 0; line-height: 1.2; padding-left: 4px">
+        <span style="font-family: 'Newsreader', Georgia, serif; font-size: 17px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">Q3-board-report.pdf</span>
+        <span style="font-size: 12px; color: #6B645A; white-space: nowrap">No unsaved changes</span>
+      </div>
+    </div>
+    <div role="group" aria-label="Mode" style="display: flex; align-items: stretch; gap: 4px; height: 56px">
+      <button aria-pressed="true" style="height: 56px; display: flex; align-items: center; border: 0; background: transparent; padding: 2px 10px 0; color: #1F1D1A; font-weight: 600; border-bottom: 2px solid {{accent}}">Read</button>
+      <button aria-pressed="false" style="height: 56px; display: flex; align-items: center; border: 0; background: transparent; padding: 2px 10px 0; color: #6B645A; border-bottom: 2px solid transparent">Comment</button>
+      <button aria-pressed="false" style="height: 56px; display: flex; align-items: center; border: 0; background: transparent; padding: 2px 10px 0; color: #6B645A; border-bottom: 2px solid transparent">Fill &amp; Sign</button>
+      <button aria-pressed="false" style="height: 56px; display: flex; align-items: center; border: 0; background: transparent; padding: 2px 10px 0; color: #6B645A; border-bottom: 2px solid transparent">Organise</button>
+      <button aria-pressed="false" style="height: 56px; display: flex; align-items: center; border: 0; background: transparent; padding: 2px 10px 0; color: #6B645A; border-bottom: 2px solid transparent">Edit</button>
+    </div>
+    <div style="display: flex; align-items: center; justify-content: flex-end; gap: 4px; flex: 1 1 0">
+      <button aria-label="Find in document" style="width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 6px; color: #4A453E"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6"></circle><path d="M15 15l5 5"></path></svg></button>
+      <button aria-label="View settings" style="width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 6px; color: #4A453E"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="12" cy="12" r="7.5"></circle><path d="M12 4.5v15M12 8.5h5.5M12 12h7.5M12 15.5h5.5"></path></svg></button>
+      <button aria-label="More actions" style="width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 6px; color: #4A453E"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="5.5" cy="12" r="0.9"></circle><circle cx="12" cy="12" r="0.9"></circle><circle cx="18.5" cy="12" r="0.9"></circle></svg></button>
+    </div>
+  </header>
+
+  <main style="flex: 1 1 auto; min-height: 0; background: #ECE7DE; overflow: hidden; display: flex; flex-direction: column; align-items: center; padding: 24px 72px 0">
+    <article aria-label="Page 3" style="width: 880px; height: 1139px; flex: 0 0 auto; box-sizing: border-box; background: #FFFFFF; color: #262421; box-shadow: 0 1px 2px rgba(60,48,30,0.08), 0 8px 28px rgba(60,48,30,0.10); padding: 80px 92px 48px; display: flex; flex-direction: column; gap: 26px; font-family: 'Source Serif 4', Georgia, serif; font-size: 20.5px; line-height: 1.6">
+      <div style="display: flex; justify-content: space-between; font-family: 'Source Sans 3', system-ui, sans-serif; font-size: 14.5px; letter-spacing: 0.08em; text-transform: uppercase; color: #6E6A64; border-bottom: 1px solid #E6E3DE; padding-bottom: 14px"><span>Northwind Housing Trust</span><span>Q3 Board Report</span></div>
+      <h2 style="margin: 12px 0 0; font-size: 34px; font-weight: 600; line-height: 1.25; color: #1C1B19">2. Repairs backlog</h2>
+      <p style="margin: 0; text-wrap: pretty">Open repair jobs stood at 1,248 at the end of September across the four regions. Most of the work closed this quarter was routine plumbing and joinery, which the additional contractor teams appointed in July were able to schedule within the target window.</p>
+      <p style="margin: 0; text-wrap: pretty">The backlog fell by 18% over the quarter, but the oldest 10% of jobs are now older than 90 days. These are mainly damp and mould cases that need a surveyor’s visit before work can be scheduled, and they sit in the older parts of our stock.</p>
+      <p style="margin: 0; text-wrap: pretty">The board is asked to note the position and to consider the proposal in section 4, which would reserve surveyor time each week for the longest-waiting cases.</p>
+    </article>
+  </main>
+
+  <footer style="height: 44px; flex: 0 0 auto; box-sizing: border-box; display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 0 12px; border-top: 1px solid #E4DED3; background: #F7F4EE; font-size: 13px; color: #6B645A">
+    <button style="min-height: 44px; display: flex; align-items: center; gap: 8px; border: 0; background: transparent; padding: 0 8px; border-radius: 6px; font-size: 13px; color: #6B645A">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="{{accent}}" stroke-width="1.5" aria-hidden="true"><path d="M12 3.5l7 2.5v5.5c0 4.3-3 7.6-7 9-4-1.4-7-4.7-7-9V6z"></path><path d="M9 12l2.2 2.2L15.5 10"></path></svg>
+      <span style="color: #1F1D1A; font-variant-numeric: tabular-nums">0 network requests for this document</span><span>· Offline-safe: nothing uploaded</span>
+    </button>
+    <span style="font-variant-numeric: tabular-nums">Page 3 · Repairs backlog</span>
+  </footer>
+
+  <section role="dialog" aria-modal="true" aria-labelledby="ct-t" style="position: absolute; left: 0; right: 0; top: 640px; bottom: 44px; background: #FBF9F5; border-top: 1px solid #E4DED3; border-radius: 12px 12px 0 0; box-shadow: 0 -8px 28px rgba(60,48,30,0.12); display: flex; flex-direction: column; overflow: hidden">
+    <div style="display: flex; justify-content: center">
+      <button aria-label="Resize sheet" style="width: 64px; height: 44px; display: flex; align-items: flex-start; justify-content: center; padding-top: 8px; box-sizing: border-box; border: 0; background: transparent"><span style="width: 36px; height: 5px; border-radius: 3px; background: #8A8174"></span></button>
+    </div>
+    <div style="display: flex; align-items: center; justify-content: space-between; margin-top: -18px; padding: 0 12px 4px 28px">
+      <div style="display: flex; align-items: baseline; gap: 10px">
+        <h2 id="ct-t" style="margin: 0; font-family: 'Newsreader', Georgia, serif; font-size: 22px; font-weight: 500">Contents</h2>
+        <span style="font-size: 13px; color: #6B645A; font-variant-numeric: tabular-nums">24 pages</span>
+      </div>
+      <button aria-label="Close contents" style="width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 6px; color: #4A453E"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg></button>
+    </div>
+    <div role="tablist" aria-label="Contents" style="display: flex; gap: 8px; padding: 0 20px; border-bottom: 1px solid #E4DED3">
+      <button role="tab" aria-selected="false" style="height: 44px; border: 0; background: transparent; padding: 0 10px; font-size: 15px; color: #6B645A; border-bottom: 2px solid transparent">Pages</button>
+      <button role="tab" aria-selected="true" style="height: 44px; border: 0; background: transparent; padding: 0 10px; font-size: 15px; font-weight: 600; color: #1F1D1A; border-bottom: 2px solid {{accent}}">Outline</button>
+      <button role="tab" aria-selected="false" style="height: 44px; border: 0; background: transparent; padding: 0 10px; font-size: 15px; color: #6B645A; border-bottom: 2px solid transparent">Attachments</button>
+    </div>
+    <nav aria-label="Document outline" style="flex: 1 1 auto; min-height: 0; overflow: auto; display: flex; flex-direction: column; gap: 2px; padding: 10px 20px 20px">
+      <sc-for list="{{rows}}" as="r" hint-placeholder-count="9">
+        <div style="{{r.rowStyle}}">
+          <sc-if value="{{r.hasKids}}" hint-placeholder-val="{{ true }}">
+            <button aria-label="{{r.toggleLabel}}" aria-expanded="{{r.expanded}}" style="{{r.toggleStyle}}"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="{{r.chevron}}"></path></svg></button>
+          </sc-if>
+          <sc-if value="{{r.leaf}}" hint-placeholder-val="{{ false }}">
+            <span aria-hidden="true" style="width: 44px; flex: 0 0 44px"></span>
+          </sc-if>
+          <a href="#" aria-current="{{r.current}}" style="{{r.linkStyle}}"><span>{{r.label}}</span><span style="{{r.pageStyle}}">{{r.page}}</span></a>
+        </div>
+      </sc-for>
+    </nav>
+  </section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#1F5C63","options":["#1F5C63","#2D4A6B","#3E4A3C"]},"$preview":{"width":1024,"height":1366}}'>
+class Component extends DCLogic {
+  renderVals() {
+    var accent = this.props.accent ?? '#1F5C63';
+    function mix(hex, base, t) {
+      var p = function (h, i) { return parseInt(h.replace('#', '').substr(i, 2), 16); };
+      var out = '#';
+      for (var i = 0; i < 6; i += 2) {
+        var v = Math.round(p(hex, i) * t + p(base, i) * (1 - t));
+        out += (v < 16 ? '0' : '') + v.toString(16);
+      }
+      return out;
+    }
+    var tint = mix(accent, '#FBF9F5', 0.12);
+    var data = [
+      { label: '1. Chair’s summary', page: '1', level: 1, kids: false },
+      { label: '2. Repairs backlog', page: '3', level: 1, kids: true, open: true, current: true, focus: true },
+      { label: 'Open repairs by region', page: '3', level: 2, kids: false },
+      { label: 'Oldest cases by region', page: '4', level: 2, kids: false },
+      { label: '3. Rent collection', page: '7', level: 1, kids: true, open: false },
+      { label: '4. Surveyor capacity', page: '11', level: 1, kids: true, open: false },
+      { label: '5. Risk register', page: '16', level: 1, kids: false },
+      { label: 'Appendix A. Data notes', page: '22', level: 1, kids: false }
+    ];
+    var rows = data.map(function (d) {
+      var cur = !!d.current;
+      return {
+        label: d.label,
+        page: d.page,
+        hasKids: d.kids,
+        leaf: !d.kids,
+        expanded: d.open ? 'true' : 'false',
+        toggleLabel: (d.open ? 'Collapse ' : 'Expand ') + d.label,
+        chevron: d.open ? 'M7 10l5 5 5-5' : 'M10 7l5 5-5 5',
+        current: cur ? 'location' : 'false',
+        rowStyle: 'display: flex; align-items: center; min-height: 48px; border-radius: 6px; padding-left: ' + (d.level === 2 ? 28 : 0) + 'px; ' + (cur ? 'background: ' + tint + ';' : ''),
+        toggleStyle: 'width: 44px; height: 44px; flex: 0 0 44px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 6px; color: ' + (cur ? accent : '#4A453E') + ';' + (d.focus ? ' outline: 2px solid ' + accent + '; outline-offset: -2px;' : ''),
+        linkStyle: 'flex: 1 1 auto; min-height: 48px; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 0 12px 0 4px; text-decoration: none; font-family: \'Newsreader\', Georgia, serif; font-size: ' + (d.level === 2 ? 16 : 17) + 'px; ' + (cur ? 'color: ' + accent + '; font-weight: 600;' : (d.level === 2 ? 'color: #4A453E;' : 'color: #1F1D1A;')),
+        pageStyle: 'font-family: \'Source Sans 3\', system-ui, sans-serif; font-size: 13px; font-weight: 400; font-variant-numeric: tabular-nums; color: ' + (cur ? accent : '#6B645A') + ';'
+      };
+    });
+    return { accent: accent, accentTint: mix(accent, '#F7F4EE', 0.12), rows: rows };
+  }
+}
+</script>
+</body>
+</html>

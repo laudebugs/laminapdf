@@ -20,6 +20,7 @@ Make links in PDFs work safely. A DOM link layer on each mounted page turns link
 
 ## Context
 
+- **Design (Paper):** [R07 Links and history](../../design/paper/reader-a.md#r07-links-and-history). Build to match these screens; record any deviation in the area document ([Paper design plan §5](../../plans/paper-design.md#5-how-the-designs-are-used)).
 - [04 §1 navigation](../../research/pdf/04-interactive-security.md#1-navigation) — link annotations (ISO 32000-2 §12.5.6.5), actions (§12.6.4: GoTo, GoToR, URI, Named, Launch, JavaScript), named destinations (`/Dests` name tree, §12.3.2.4).
 - [web-app.md §2 scope](../../plans/web-app.md#2-scope-and-non-goals) — external links confirm before leaving; PDF JavaScript is never executed.
 - [web-app.md §4 functional 6](../../plans/web-app.md#functional) and [privacy and security](../../plans/web-app.md#privacy-and-security) (`Referrer-Policy: no-referrer`).
