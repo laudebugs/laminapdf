@@ -28,13 +28,15 @@ button,input,textarea,select{font:inherit;color:inherit}
       <button aria-label="Sidebar" aria-pressed="true" style="width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 4px; color: #4A453E"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="3.5" y="4.5" width="17" height="15" rx="1.5"></rect><path d="M9 4.5v15"></path></svg></button>
       <span style="font-family: 'Newsreader', Georgia, serif; font-size: 16px; font-weight: 500; white-space: nowrap">Q3-board-report.pdf</span>
       <span style="font-size: 12px; color: #6B645A; white-space: nowrap">No unsaved changes</span>
+      <span aria-hidden="true" style="width: 1px; height: 18px; background: #E4DED3; flex: 0 0 auto"></span>
+      <div role="group" aria-label="History" style="display: flex; gap: 2px"><button aria-label="Undo" aria-disabled="true" style="width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 4px; color: #A39C91"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M9 7L4.5 11.5 9 16"></path><path d="M4.5 11.5H15a4.5 4.5 0 0 1 0 9h-3"></path></svg></button><button aria-label="Redo" aria-disabled="true" style="width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 4px; color: #A39C91"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M15 7l4.5 4.5L15 16"></path><path d="M19.5 11.5H9a4.5 4.5 0 0 0 0 9h3"></path></svg></button></div>
     </div>
     <div role="group" aria-label="Mode" style="display: flex; align-items: stretch; gap: 22px; height: 40px">
-      <button aria-pressed="true" style="height: 40px; display: flex; align-items: center; border: 0; background: transparent; padding: 2px 0 0; color: #1F1D1A; font-weight: 600; border-bottom: 2px solid #1F5C63">Read</button>
+      <button aria-pressed="false" style="height: 40px; display: flex; align-items: center; border: 0; background: transparent; padding: 2px 0 0; color: #6B645A; border-bottom: 2px solid transparent">Read</button>
       <button aria-pressed="false" style="height: 40px; display: flex; align-items: center; border: 0; background: transparent; padding: 2px 0 0; color: #6B645A; border-bottom: 2px solid transparent">Comment</button>
       <button aria-pressed="false" style="height: 40px; display: flex; align-items: center; border: 0; background: transparent; padding: 2px 0 0; color: #6B645A; border-bottom: 2px solid transparent">Fill &amp; Sign</button>
       <button aria-pressed="false" style="height: 40px; display: flex; align-items: center; border: 0; background: transparent; padding: 2px 0 0; color: #6B645A; border-bottom: 2px solid transparent">Organise</button>
-      <button aria-pressed="false" style="height: 40px; display: flex; align-items: center; border: 0; background: transparent; padding: 2px 0 0; color: #6B645A; border-bottom: 2px solid transparent">Edit</button>
+      <button aria-pressed="true" style="height: 40px; display: flex; align-items: center; border: 0; background: transparent; padding: 2px 0 0; color: #1F1D1A; font-weight: 600; border-bottom: 2px solid #1F5C63">Edit</button>
     </div>
     <div style="display: flex; align-items: center; justify-content: flex-end; gap: 14px; flex: 1 1 220px">
       <div style="display: flex; align-items: center; gap: 6px; font-variant-numeric: tabular-nums">
@@ -42,11 +44,31 @@ button,input,textarea,select{font:inherit;color:inherit}
         <input id="pg" value="23" style="width: 30px; height: 24px; box-sizing: border-box; text-align: center; border: 1px solid #8A8174; border-radius: 4px; background: #FFFFFF; font-variant-numeric: tabular-nums">
         <span style="color: #6B645A">/ 24</span>
       </div>
+      <div role="group" aria-label="Zoom" style="display: flex; align-items: center; gap: 2px; font-variant-numeric: tabular-nums"><button aria-label="Zoom out" style="width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 4px; color: #4A453E"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M6 12h12"></path></svg></button><span style="min-width: 40px; text-align: center; font-size: 13px">100%</span><button aria-label="Zoom in" style="width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 4px; color: #4A453E"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M6 12h12M12 6v12"></path></svg></button></div>
       <button aria-label="Find in document" style="width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 4px; color: #4A453E"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6"></circle><path d="M15 15l5 5"></path></svg></button>
+      <button aria-label="View settings" aria-haspopup="dialog" style="width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 4px; color: #4A453E"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="12" cy="12" r="7.5"></circle><path d="M12 4.5v15M12 8.5h5.5M12 12h7.5M12 15.5h5.5"></path></svg></button>
       <button style="height: 26px; display: flex; align-items: center; gap: 8px; padding: 0 6px 0 10px; border: 1px solid #E4DED3; background: #FBF9F5; border-radius: 4px; color: #6B645A; font-size: 13px"><span>Commands</span><span style="font-size: 11px; padding: 1px 5px; border: 1px solid #D8D1C5; border-radius: 3px; color: #4A453E; background: #FFFFFF">⌘K</span></button>
       <button aria-label="More actions" style="width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 4px; color: #4A453E"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="5.5" cy="12" r="0.9"></circle><circle cx="12" cy="12" r="0.9"></circle><circle cx="18.5" cy="12" r="0.9"></circle></svg></button>
     </div>
   </header>
+
+  <div role="toolbar" aria-label="Edit tools" style="min-height: 40px; flex: 0 0 auto; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; padding: 0 16px; border-bottom: 1px solid #E4DED3; background: #FBF9F5; font-size: 13px">
+    <button aria-pressed="false" style="height: 28px; display: flex; align-items: center; gap: 6px; padding: 0 10px; border: 1px solid transparent; background: transparent; border-radius: 4px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M6 4l12 7-5.5 1.5L10 18z"></path></svg>Select</button>
+    <button aria-pressed="false" style="height: 28px; display: flex; align-items: center; gap: 6px; padding: 0 10px; border: 1px solid transparent; background: transparent; border-radius: 4px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M4 7.5V5.5h10v2M9 5.5V18.5M7 18.5h4"></path><path d="M18 8.5v11M16.5 8.5h3M16.5 19.5h3"></path></svg>Edit text</button>
+    <button aria-pressed="false" style="height: 28px; display: flex; align-items: center; gap: 6px; padding: 0 10px; border: 1px solid transparent; background: transparent; border-radius: 4px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M5 7V5h14v2M12 5v14M9.5 19h5"></path></svg>Add text</button>
+    <button aria-pressed="false" style="height: 28px; display: flex; align-items: center; gap: 6px; padding: 0 10px; border: 1px solid transparent; background: transparent; border-radius: 4px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="4" y="5" width="16" height="14" rx="1.5"></rect><circle cx="9" cy="10" r="1.5"></circle><path d="M4.5 17l5-5 4 4 2.5-2.5 3.5 3.5"></path></svg>Image</button>
+    <div style="display: flex"><button aria-pressed="false" title="Rectangle" style="height: 28px; display: flex; align-items: center; gap: 6px; padding: 0 10px; border: 1px solid transparent; background: transparent; border-radius: 4px 0 0 4px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="4.5" y="6.5" width="15" height="11" rx="1"></rect></svg>Shape</button><button aria-label="Choose shape" aria-haspopup="menu" aria-expanded="false" style="height: 28px; width: 20px; display: flex; align-items: center; justify-content: center; padding: 0; border: 1px solid transparent; border-left: 0; background: transparent; border-radius: 0 4px 4px 0; color: #4A453E"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M7 10l5 5 5-5"></path></svg></button></div>
+    <button aria-pressed="false" style="height: 28px; display: flex; align-items: center; gap: 6px; padding: 0 10px; border: 1px solid transparent; background: transparent; border-radius: 4px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"></path><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"></path></svg>Link</button>
+    <span aria-hidden="true" style="width: 1px; height: 18px; background: #E4DED3; margin: 0 8px"></span>
+    <button aria-haspopup="menu" aria-expanded="false" style="height: 28px; display: flex; align-items: center; gap: 6px; padding: 0 6px 0 10px; border: 1px solid transparent; background: transparent; border-radius: 4px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M6 3.5h8.5L18 7v13.5H6z"></path><path d="M9 16.5l6-6"></path></svg>Page marks<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M7 10l5 5 5-5"></path></svg></button>
+    <button aria-pressed="false" style="height: 28px; display: flex; align-items: center; gap: 6px; padding: 0 10px; border: 1px solid transparent; background: transparent; border-radius: 4px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M5 9h12l-3-3M19 15H7l3 3"></path></svg>Replace…</button>
+    <span aria-hidden="true" style="width: 1px; height: 18px; background: #E4DED3; margin: 0 8px"></span>
+    <button style="height: 28px; display: flex; align-items: center; gap: 6px; padding: 0 10px; border: 1px solid transparent; background: transparent; border-radius: 4px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="4" y="9" width="16" height="6"></rect><path d="M4 5.5h10M4 18.5h7"></path></svg>Redact</button>
+    <button style="height: 28px; display: flex; align-items: center; gap: 6px; padding: 0 10px; border: 1px solid transparent; background: transparent; border-radius: 4px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="5.5" y="10.5" width="13" height="9" rx="1.5"></rect><path d="M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5"></path></svg>Protect</button>
+    <button aria-haspopup="menu" aria-expanded="false" style="height: 28px; display: flex; align-items: center; gap: 6px; padding: 0 6px 0 10px; border: 1px solid transparent; background: transparent; border-radius: 4px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="4.5" y="4.5" width="6" height="6" rx="1"></rect><rect x="13.5" y="4.5" width="6" height="6" rx="1"></rect><rect x="4.5" y="13.5" width="6" height="6" rx="1"></rect><path d="M16.5 13.5v6M13.5 16.5h6"></path></svg>Tools<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M7 10l5 5 5-5"></path></svg></button>
+    <span style="flex: 1 1 auto"></span>
+    <span style="font-size: 12px; color: #6B645A">Make searchable · reading the text of scanned pages</span>
+  </div>
 
   <div style="position: relative; flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column">
   <div style="flex: 1 1 auto; min-height: 0; display: flex; flex-wrap: wrap">
@@ -54,7 +76,7 @@ button,input,textarea,select{font:inherit;color:inherit}
       <div role="tablist" aria-label="Sidebar" style="display: flex; gap: 16px; padding: 14px 18px 0; border-bottom: 1px solid #E4DED3">
         <button role="tab" aria-selected="true" style="border: 0; background: transparent; padding: 0 0 8px; font-size: 13px; font-weight: 600; color: #1F1D1A; border-bottom: 2px solid #1F5C63">Pages</button>
         <button role="tab" aria-selected="false" style="border: 0; background: transparent; padding: 0 0 8px; font-size: 13px; color: #6B645A; border-bottom: 2px solid transparent">Outline</button>
-        <button role="tab" aria-selected="false" style="border: 0; background: transparent; padding: 0 0 8px; font-size: 13px; color: #6B645A; border-bottom: 2px solid transparent">Bookmarks</button>
+        <button role="tab" aria-selected="false" style="border: 0; background: transparent; padding: 0 0 8px; font-size: 13px; color: #6B645A; border-bottom: 2px solid transparent">Attachments</button>
       </div>
       <div style="display: flex; flex-direction: column; align-items: center; gap: 22px; padding: 22px 0">
         <button aria-label="Page 22" style="display: flex; flex-direction: column; align-items: center; gap: 8px; border: 0; background: transparent; padding: 0">
@@ -106,7 +128,7 @@ button,input,textarea,select{font:inherit;color:inherit}
 
       <fieldset style="margin: 0; padding: 0; border: 0; display: flex; flex-direction: column; gap: 6px">
         <legend style="padding: 0 0 8px; font-size: 12px; font-weight: 600; color: #4A453E">Pages</legend>
-        <label style="display: flex; align-items: center; gap: 8px; min-height: 24px"><input type="radio" name="pages" checked style="width: 16px; height: 16px; margin: 0; accent-color: #1F5C63"> Pages without text <span style="color: #6B645A; font-variant-numeric: tabular-nums">· 23–24 (2 pages)</span></label>
+        <label style="display: flex; align-items: center; gap: 8px; min-height: 24px"><sc-if value="{{on}}" hint-placeholder-val="{{ true }}"><input type="radio" name="pages" checked style="width: 16px; height: 16px; margin: 0; accent-color: #1F5C63"></sc-if> Pages without text <span style="color: #6B645A; font-variant-numeric: tabular-nums">· 23–24 (2 pages)</span></label>
         <label style="display: flex; align-items: center; gap: 8px; min-height: 24px"><input type="radio" name="pages" style="width: 16px; height: 16px; margin: 0; accent-color: #1F5C63"> All pages <span style="color: #6B645A; font-variant-numeric: tabular-nums">· 24 (pages with text keep it)</span></label>
         <label style="display: flex; align-items: center; gap: 8px; min-height: 24px"><input type="radio" name="pages" style="width: 16px; height: 16px; margin: 0; accent-color: #1F5C63"> Pages <input aria-label="Page range" placeholder="e.g. 20–24" style="width: 110px; height: 28px; box-sizing: border-box; padding: 0 8px; border: 1px solid #8A8174; border-radius: 4px; background: #FFFFFF; font-size: 13px"></label>
       </fieldset>
@@ -126,7 +148,7 @@ button,input,textarea,select{font:inherit;color:inherit}
       <fieldset style="margin: 0; padding: 0; border: 0; display: flex; flex-direction: column; gap: 8px">
         <legend style="padding: 0 0 8px; font-size: 12px; font-weight: 600; color: #4A453E">Where to read the text</legend>
         <label style="display: flex; gap: 10px; align-items: flex-start; padding: 10px 12px; border: 1px solid #1F5C63; background: #E1E6E3; border-radius: 4px">
-          <input type="radio" name="where" checked style="width: 16px; height: 16px; margin: 2px 0 0; accent-color: #1F5C63">
+          <sc-if value="{{on}}" hint-placeholder-val="{{ true }}"><input type="radio" name="where" checked style="width: 16px; height: 16px; margin: 2px 0 0; accent-color: #1F5C63"></sc-if>
           <span style="display: flex; flex-direction: column; gap: 2px"><span style="font-weight: 600">On this computer</span><span style="font-size: 13px; color: #3A3631">Nothing leaves your device. Uses the OCR engine installed 12 Oct 2026 (Tesseract, English and Welsh).</span></span>
         </label>
         <label style="display: flex; gap: 10px; align-items: flex-start; padding: 10px 12px; border: 1px solid #8A8174; background: #FFFFFF; border-radius: 4px">
@@ -135,11 +157,11 @@ button,input,textarea,select{font:inherit;color:inherit}
         </label>
       </fieldset>
 
-      <label style="display: flex; align-items: center; gap: 8px; min-height: 24px"><input type="checkbox" checked style="width: 16px; height: 16px; margin: 0; accent-color: #1F5C63"> Tag the recognised text for screen readers</label>
+      <label style="display: flex; align-items: center; gap: 8px; min-height: 24px"><sc-if value="{{on}}" hint-placeholder-val="{{ true }}"><input type="checkbox" checked style="width: 16px; height: 16px; margin: 0; accent-color: #1F5C63"></sc-if> Tag the recognised text for screen readers</label>
 
       <div role="note" style="display: flex; gap: 10px; padding: 10px 12px; background: #FBF9F5; border: 1px solid #E4DED3; border-radius: 4px; font-size: 13px">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#4A453E" stroke-width="1.5" aria-hidden="true" style="flex: 0 0 auto; margin-top: 2px"><circle cx="12" cy="12" r="8"></circle><path d="M12 11v5M12 8v.5"></path></svg>
-        <span>Adds one unsaved change you can undo. Saving appends the text layer to the file; nothing already in it is rewritten.</span>
+        <span>Adds one unsaved change you can undo. Saving appends the text layer to the file; nothing already in it is rewritten. <span style="font-weight: 600">Signed file.</span> Saving adds your changes after the signature; the signature stays valid.</span>
       </div>
 
       <div style="display: flex; justify-content: flex-end; gap: 8px">
@@ -162,7 +184,7 @@ button,input,textarea,select{font:inherit;color:inherit}
 <script type="text/x-dc" data-dc-script data-props='{"showDialog":{"editor":"boolean","default":true},"$preview":{"width":1440,"height":900}}'>
 class Component extends DCLogic {
   renderVals() {
-    return { showDialog: this.props.showDialog ?? true };
+    return { on: true, showDialog: this.props.showDialog ?? true };
   }
 }
 </script>

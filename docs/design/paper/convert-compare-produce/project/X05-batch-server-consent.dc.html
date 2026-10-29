@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Server batch consent</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&amp;family=Source+Sans+3:wght@400;500;600&amp;family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&amp;display=swap">
+<style>
+body{margin:0;background:#F7F4EE}
+a{color:#1F5C63}a:hover{color:#16454B}
+button,input,textarea,select{font:inherit;color:inherit}
+</style>
+</helmet>
+<div style="min-height: 100vh; display: flex; flex-direction: column; background: #F7F4EE; font-family: 'Source Sans 3', 'Segoe UI', system-ui, sans-serif; font-size: 14px; line-height: 1.4; color: #1F1D1A">
+<div style="position: relative; flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; background: #F7F4EE; overflow: hidden; box-sizing: border-box">
+
+
+  <header style="min-height: 40px; flex: 0 0 auto; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 20px; padding: 4px 16px; border-bottom: 1px solid #E4DED3">
+    <div style="display: flex; align-items: center; gap: 10px; flex: 1 1 300px; min-width: 0">
+      <span style="font-family: 'Newsreader', Georgia, serif; font-size: 16px; font-weight: 500; white-space: nowrap">Board pack tidy-up</span>
+      <span style="font-size: 12px; color: #6B645A; white-space: nowrap">Recipe · saved 27 Oct 2026</span>
+    </div>
+    <div style="display: flex; align-items: center; justify-content: flex-end; gap: 10px; flex: 1 1 300px">
+      <button style="height: 26px; padding: 0 12px; border: 0; background: transparent; border-radius: 4px; color: #1F5C63; font-weight: 600; font-size: 13px">Open recipe…</button>
+      <button style="height: 26px; padding: 0 12px; border: 1px solid #8A8174; background: #FFFFFF; border-radius: 4px; font-size: 13px">Save recipe</button>
+      <button style="height: 26px; padding: 0 12px; border: 1px solid #1F5C63; background: #1F5C63; color: #FFFFFF; border-radius: 4px; font-size: 13px; font-weight: 600">Run on 12 files…</button>
+      <button aria-label="More actions" style="width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 4px; color: #4A453E"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="5.5" cy="12" r="0.9"></circle><circle cx="12" cy="12" r="0.9"></circle><circle cx="18.5" cy="12" r="0.9"></circle></svg></button>
+    </div>
+  </header>
+
+  <div style="flex: 1 1 auto; min-height: 0; display: flex; flex-wrap: wrap">
+    <aside aria-label="Recipe steps" style="flex: 0 0 300px; box-sizing: border-box; border-right: 1px solid #E4DED3; display: flex; flex-direction: column; overflow: auto">
+      <div style="display: flex; align-items: baseline; justify-content: space-between; padding: 14px 18px 10px; border-bottom: 1px solid #E4DED3">
+        <h2 style="margin: 0; font-family: 'Newsreader', Georgia, serif; font-size: 18px; font-weight: 500">Steps</h2>
+        <span style="font-size: 12px; color: #6B645A">Run in this order</span>
+      </div>
+      <ol style="list-style: none; margin: 0; padding: 10px; display: flex; flex-direction: column; gap: 2px">
+        <li><button style="width: 100%; display: flex; gap: 10px; align-items: flex-start; text-align: left; padding: 8px; border: 0; background: transparent; border-radius: 4px"><span style="width: 20px; flex: 0 0 auto; font-size: 12px; color: #6B645A; font-variant-numeric: tabular-nums; padding-top: 2px">1</span><span style="display: flex; flex-direction: column; gap: 2px"><span style="font-weight: 600">Remove hidden information</span><span style="font-size: 12px; color: #6B645A">Metadata, JavaScript, attachments · whole document</span></span></button></li>
+        <li><button aria-current="step" style="width: 100%; display: flex; gap: 10px; align-items: flex-start; text-align: left; padding: 8px; border: 1px solid #1F5C63; background: #E1E6E3; border-radius: 4px"><span style="width: 20px; flex: 0 0 auto; font-size: 12px; color: #1F5C63; font-variant-numeric: tabular-nums; padding-top: 2px; font-weight: 600">2</span><span style="display: flex; flex-direction: column; gap: 2px"><span style="font-weight: 600; color: #1F5C63">Add footer</span><span style="font-size: 12px; color: #4A453E">“Board use only · Page {page} of {pages}” · all pages</span></span></button></li>
+        <li><button style="width: 100%; display: flex; gap: 10px; align-items: flex-start; text-align: left; padding: 8px; border: 0; background: transparent; border-radius: 4px"><span style="width: 20px; flex: 0 0 auto; font-size: 12px; color: #6B645A; font-variant-numeric: tabular-nums; padding-top: 2px">3</span><span style="display: flex; flex-direction: column; gap: 2px"><span style="font-weight: 600">Delete pages</span><span style="font-size: 12px; color: #6B645A">Pages labelled “draft notes”</span></span></button></li>
+        <li><button style="width: 100%; display: flex; gap: 10px; align-items: flex-start; text-align: left; padding: 8px; border: 0; background: transparent; border-radius: 4px"><span style="width: 20px; flex: 0 0 auto; font-size: 12px; color: #6B645A; font-variant-numeric: tabular-nums; padding-top: 2px">4</span><span style="display: flex; flex-direction: column; gap: 2px"><span style="font-weight: 600">Optimise</span><span style="font-size: 12px; color: #6B645A">Images to 150 ppi, remove unused objects</span></span></button></li>
+        <li><button style="width: 100%; display: flex; gap: 10px; align-items: flex-start; text-align: left; padding: 8px; border: 0; background: transparent; border-radius: 4px"><span style="width: 20px; flex: 0 0 auto; font-size: 12px; color: #6B645A; font-variant-numeric: tabular-nums; padding-top: 2px">5</span><span style="display: flex; flex-direction: column; gap: 2px"><span style="font-weight: 600">Save a copy</span><span style="font-size: 12px; color: #6B645A">Next to each file, name + “-tidy”</span></span></button></li>
+      </ol>
+      <div style="display: flex; flex-direction: column; gap: 4px; padding: 0 18px 16px">
+        <button style="align-self: flex-start; height: 30px; padding: 0 12px; border: 1px solid #8A8174; background: #FFFFFF; border-radius: 4px; font-size: 13px">Add a step…</button>
+        <button style="align-self: flex-start; height: 30px; padding: 0 8px; border: 0; background: transparent; border-radius: 4px; color: #1F5C63; font-weight: 600; font-size: 13px">Record steps from an open document</button>
+      </div>
+    </aside>
+
+    <main aria-label="Files" style="flex: 999 1 560px; min-width: 0; background: #F7F4EE; overflow: auto; display: flex; flex-direction: column; gap: 14px; padding: 18px 24px 24px; box-sizing: border-box">
+      <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px">
+        <h2 style="margin: 0; font-family: 'Newsreader', Georgia, serif; font-size: 18px; font-weight: 500">Files</h2>
+        <span style="font-size: 12px; color: #6B645A; font-variant-numeric: tabular-nums">12 files added · 31.6 MB</span>
+        <span style="flex: 1 1 auto"></span>
+        <button style="height: 28px; padding: 0 12px; border: 1px solid #8A8174; background: #FFFFFF; border-radius: 4px; font-size: 13px">Add files…</button>
+      </div>
+      <span style="font-size: 12px; color: #6B645A">Ready to run · results download as one zip · originals are never changed</span>
+      <div style="overflow-x: auto; border-top: 1px solid #E4DED3">
+        <table style="width: 100%; min-width: 640px; border-collapse: collapse; font-size: 13px">
+          <thead>
+            <tr style="text-align: left; color: #4A453E; font-size: 12px">
+              <th scope="col" style="padding: 8px 8px; font-weight: 600; border-bottom: 1px solid #E4DED3">File</th>
+              <th scope="col" style="padding: 8px 8px; font-weight: 600; border-bottom: 1px solid #E4DED3; text-align: right">Pages</th>
+              <th scope="col" style="padding: 8px 8px; font-weight: 600; border-bottom: 1px solid #E4DED3">Status</th>
+              <th scope="col" style="padding: 8px 8px; font-weight: 600; border-bottom: 1px solid #E4DED3">Size</th>
+            </tr>
+          </thead>
+          <tbody style="font-variant-numeric: tabular-nums">
+            <tr><td style="padding: 8px; border-bottom: 1px solid #E4DED3">Q3-board-report.pdf</td><td style="padding: 8px; border-bottom: 1px solid #E4DED3; text-align: right">24</td><td style="padding: 8px; border-bottom: 1px solid #E4DED3"><span style="display: inline-flex; align-items: center; height: 20px; padding: 0 8px; border-radius: 3px; background: #FBF9F5; border: 1px solid #D8D1C5; color: #4A453E; font-size: 12px; font-weight: 600">Waiting</span></td><td style="padding: 8px; border-bottom: 1px solid #E4DED3; color: #6B645A">2.4 MB</td></tr>
+            <tr><td style="padding: 8px; border-bottom: 1px solid #E4DED3">Q3-finance-pack.pdf</td><td style="padding: 8px; border-bottom: 1px solid #E4DED3; text-align: right">40</td><td style="padding: 8px; border-bottom: 1px solid #E4DED3"><span style="display: inline-flex; align-items: center; height: 20px; padding: 0 8px; border-radius: 3px; background: #FBF9F5; border: 1px solid #D8D1C5; color: #4A453E; font-size: 12px; font-weight: 600">Waiting</span></td><td style="padding: 8px; border-bottom: 1px solid #E4DED3; color: #6B645A">5.8 MB</td></tr>
+            <tr><td style="padding: 8px; border-bottom: 1px solid #E4DED3">risk-register-sep.pdf</td><td style="padding: 8px; border-bottom: 1px solid #E4DED3; text-align: right">9</td><td style="padding: 8px; border-bottom: 1px solid #E4DED3"><span style="display: inline-flex; align-items: center; height: 20px; padding: 0 8px; border-radius: 3px; background: #FBF9F5; border: 1px solid #D8D1C5; color: #4A453E; font-size: 12px; font-weight: 600">Waiting</span></td><td style="padding: 8px; border-bottom: 1px solid #E4DED3; color: #6B645A">0.9 MB</td></tr>
+            <tr><td style="padding: 8px; border-bottom: 1px solid #E4DED3">surveyor-rota-oct.pdf</td><td style="padding: 8px; border-bottom: 1px solid #E4DED3; text-align: right">3</td><td style="padding: 8px; border-bottom: 1px solid #E4DED3"><span style="display: inline-flex; align-items: center; height: 20px; padding: 0 8px; border-radius: 3px; background: #FBF9F5; border: 1px solid #D8D1C5; color: #4A453E; font-size: 12px; font-weight: 600">Waiting</span></td><td style="padding: 8px; border-bottom: 1px solid #E4DED3; color: #6B645A">0.2 MB</td></tr>
+            <tr><td style="padding: 8px; border-bottom: 1px solid #E4DED3">rent-collection-q3.pdf</td><td style="padding: 8px; border-bottom: 1px solid #E4DED3; text-align: right">12</td><td style="padding: 8px; border-bottom: 1px solid #E4DED3"><span style="display: inline-flex; align-items: center; height: 20px; padding: 0 8px; border-radius: 3px; background: #FBF9F5; border: 1px solid #D8D1C5; color: #4A453E; font-size: 12px; font-weight: 600">Waiting</span></td><td style="padding: 8px; border-bottom: 1px solid #E4DED3; color: #6B645A">1.6 MB</td></tr>
+            <tr><td style="padding: 8px; border-bottom: 1px solid #E4DED3">contractor-invoices-sep.pdf</td><td style="padding: 8px; border-bottom: 1px solid #E4DED3; text-align: right">31</td><td style="padding: 8px; border-bottom: 1px solid #E4DED3"><span style="display: inline-flex; align-items: center; height: 20px; padding: 0 8px; border-radius: 3px; background: #FBF9F5; border: 1px solid #D8D1C5; color: #4A453E; font-size: 12px; font-weight: 600">Waiting</span></td><td style="padding: 8px; border-bottom: 1px solid #E4DED3; color: #6B645A">9.7 MB</td></tr>
+            <tr><td style="padding: 8px; border-bottom: 1px solid #E4DED3">damp-cases-summary.pdf</td><td style="padding: 8px; border-bottom: 1px solid #E4DED3; text-align: right">6</td><td style="padding: 8px; border-bottom: 1px solid #E4DED3"><span style="display: inline-flex; align-items: center; height: 20px; padding: 0 8px; border-radius: 3px; background: #FBF9F5; border: 1px solid #D8D1C5; color: #4A453E; font-size: 12px; font-weight: 600">Waiting</span></td><td style="padding: 8px; border-bottom: 1px solid #E4DED3; color: #6B645A">1.1 MB</td></tr>
+            <tr><td style="padding: 8px; border-bottom: 1px solid #E4DED3">tenant-survey-results.pdf</td><td style="padding: 8px; border-bottom: 1px solid #E4DED3; text-align: right">18</td><td style="padding: 8px; border-bottom: 1px solid #E4DED3"><span style="display: inline-flex; align-items: center; height: 20px; padding: 0 8px; border-radius: 3px; background: #FBF9F5; border: 1px solid #D8D1C5; color: #4A453E; font-size: 12px; font-weight: 600">Waiting</span></td><td style="padding: 8px; border-bottom: 1px solid #E4DED3; color: #6B645A">3.2 MB</td></tr>
+            <tr><td style="padding: 8px; border-bottom: 1px solid #E4DED3">minutes-sep-board.pdf</td><td style="padding: 8px; border-bottom: 1px solid #E4DED3; text-align: right">7</td><td style="padding: 8px; border-bottom: 1px solid #E4DED3"><span style="display: inline-flex; align-items: center; height: 20px; padding: 0 8px; border-radius: 3px; background: #FBF9F5; border: 1px solid #D8D1C5; color: #4A453E; font-size: 12px; font-weight: 600">Waiting</span></td><td style="padding: 8px; border-bottom: 1px solid #E4DED3; color: #6B645A">0.6 MB</td></tr>
+            <tr><td style="padding: 8px; border-bottom: 1px solid #E4DED3">capital-programme-26.pdf</td><td style="padding: 8px; border-bottom: 1px solid #E4DED3; text-align: right">22</td><td style="padding: 8px; border-bottom: 1px solid #E4DED3"><span style="display: inline-flex; align-items: center; height: 20px; padding: 0 8px; border-radius: 3px; background: #FBF9F5; border: 1px solid #D8D1C5; color: #4A453E; font-size: 12px; font-weight: 600">Waiting</span></td><td style="padding: 8px; border-bottom: 1px solid #E4DED3; color: #6B645A">3.9 MB</td></tr>
+            <tr><td style="padding: 8px; border-bottom: 1px solid #E4DED3">void-properties-sep.pdf</td><td style="padding: 8px; border-bottom: 1px solid #E4DED3; text-align: right">5</td><td style="padding: 8px; border-bottom: 1px solid #E4DED3"><span style="display: inline-flex; align-items: center; height: 20px; padding: 0 8px; border-radius: 3px; background: #FBF9F5; border: 1px solid #D8D1C5; color: #4A453E; font-size: 12px; font-weight: 600">Waiting</span></td><td style="padding: 8px; border-bottom: 1px solid #E4DED3; color: #6B645A">0.7 MB</td></tr>
+            <tr><td style="padding: 8px; border-bottom: 1px solid #E4DED3">board-actions-log.pdf</td><td style="padding: 8px; border-bottom: 1px solid #E4DED3; text-align: right">4</td><td style="padding: 8px; border-bottom: 1px solid #E4DED3"><span style="display: inline-flex; align-items: center; height: 20px; padding: 0 8px; border-radius: 3px; background: #FBF9F5; border: 1px solid #D8D1C5; color: #4A453E; font-size: 12px; font-weight: 600">Waiting</span></td><td style="padding: 8px; border-bottom: 1px solid #E4DED3; color: #6B645A">1.5 MB</td></tr>
+          </tbody>
+        </table>
+      </div>
+      
+    </main>
+
+    <aside aria-label="Step settings" style="flex: 0 0 288px; box-sizing: border-box; border-left: 1px solid #E4DED3; background: #FBF9F5; display: flex; flex-direction: column; gap: 22px; padding: 20px 20px 24px; overflow: auto">
+      <div style="display: flex; flex-direction: column; gap: 2px">
+        <h2 style="margin: 0; font-family: 'Newsreader', Georgia, serif; font-size: 20px; font-weight: 500; line-height: 1.2">Add footer</h2>
+        <span style="font-size: 12px; color: #6B645A">Step 2 of 5</span>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 8px">
+        <label for="ft" style="font-size: 12px; font-weight: 600; color: #4A453E">Text</label>
+        <input id="ft" value="Board use only · Page {page} of {pages}" style="height: 32px; box-sizing: border-box; padding: 0 10px; border: 1px solid #8A8174; border-radius: 4px; background: #FFFFFF">
+        <span style="font-size: 12px; color: #6B645A">{page} and {pages} are filled in for each file.</span>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 8px">
+        <label for="sel" style="font-size: 12px; font-weight: 600; color: #4A453E">Apply to</label>
+        <select id="sel" style="appearance: none; height: 32px; padding: 0 30px 0 10px; border: 1px solid #8A8174; border-radius: 4px; background: #FFFFFF"><option>All pages</option></select>
+        <span style="font-size: 12px; color: #6B645A">Other choices: a page range, odd or even pages, pages by label, the last page.</span>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 4px">
+        <span style="font-size: 12px; font-weight: 600; color: #4A453E">Font</span>
+        <span>Source Sans 3, 9 pt · bundled with the recipe</span>
+      </div>
+      <div role="note" style="display: flex; gap: 10px; padding: 10px 12px; background: #FBF9F5; border: 1px solid #E4DED3; border-radius: 4px; font-size: 13px">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#4A453E" stroke-width="1.5" aria-hidden="true" style="flex: 0 0 auto; margin-top: 2px"><circle cx="12" cy="12" r="8"></circle><path d="M12 11v5M12 8v.5"></path></svg>
+        <span>A step that matches nothing in a file is a warning for that file, not a failure.</span>
+      </div>
+    </aside>
+  </div>
+
+  <footer style="min-height: 28px; flex: 0 0 auto; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px 16px; padding: 0 16px; border-top: 1px solid #E4DED3; font-size: 12px; color: #6B645A">
+    <button style="min-height: 24px; display: flex; align-items: center; gap: 7px; border: 0; background: transparent; padding: 0 4px; font-size: 12px; color: #6B645A"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#1F5C63" stroke-width="1.5" aria-hidden="true"><path d="M12 3.5l7 2.5v5.5c0 4.3-3 7.6-7 9-4-1.4-7-4.7-7-9V6z"></path><path d="M9 12l2.2 2.2L15.5 10"></path></svg><span style="color: #1F1D1A; font-variant-numeric: tabular-nums">0 network requests</span><span>· Runs on this computer</span></button>
+    <span>Web · runs on lamina’s server after you agree</span>
+    <span style="font-variant-numeric: tabular-nums">12 files waiting</span>
+  </footer>
+
+  <sc-if value="{{showDialog}}" hint-placeholder-val="{{ true }}">
+  <div style="position: absolute; inset: 0; background: rgba(31,29,26,0.30); display: flex; justify-content: center; align-items: flex-start; padding: 40px 16px; box-sizing: border-box; overflow: auto">
+    <div role="dialog" aria-modal="true" aria-labelledby="bc-t" aria-describedby="bc-d" style="width: 100%; max-width: 560px; box-sizing: border-box; padding: 24px; display: flex; flex-direction: column; gap: 18px; background: #FBF9F5; border: 1px solid #D8D1C5; border-radius: 6px; box-shadow: 0 18px 48px rgba(31,29,26,0.22)">
+      <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 12px">
+        <h2 id="bc-t" style="margin: 0; font-family: 'Newsreader', Georgia, serif; font-size: 20px; font-weight: 500; line-height: 1.2">Run ‘Board pack tidy-up’ on 12 files</h2>
+        <button aria-label="Close" style="width: 28px; height: 28px; flex: 0 0 auto; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 4px; color: #4A453E"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg></button>
+      </div>
+      <section aria-labelledby="bc-up" style="display: flex; flex-direction: column; gap: 12px; padding: 16px; background: #FFFFFF; border: 1px solid #8A8174; border-radius: 4px">
+        <div style="display: flex; gap: 10px; align-items: flex-start">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1F5C63" stroke-width="1.5" aria-hidden="true" style="flex: 0 0 auto; margin-top: 1px"><path d="M12 15V4.5M8 8l4-3.5L16 8"></path><path d="M7 11H5.5v8.5h13V11H17"></path></svg>
+          <div style="display: flex; flex-direction: column; gap: 2px">
+            <h3 id="bc-up" style="margin: 0; font-size: 14px; font-weight: 600">This batch runs on lamina’s server</h3>
+            <p id="bc-d" style="margin: 0; font-size: 13px; color: #3A3631">Your browser can’t run this recipe on 12 files at once, so copies of them have to be uploaded. Nothing is sent until you agree below.</p>
+          </div>
+        </div>
+        <dl style="margin: 0; display: grid; grid-template-columns: 112px minmax(0, 1fr); gap: 8px 12px; padding: 12px 0; border-top: 1px solid #E4DED3; border-bottom: 1px solid #E4DED3; font-size: 13px">
+          <dt style="font-size: 12px; font-weight: 600; color: #4A453E; padding-top: 1px">What is sent</dt><dd style="margin: 0">12 files, the whole of each <span style="color: #6B645A; font-variant-numeric: tabular-nums">· 31.6 MB in all</span>, and the recipe ‘Board pack tidy-up’ with its bundled font</dd>
+          <dt style="font-size: 12px; font-weight: 600; color: #4A453E; padding-top: 1px">Where to</dt><dd style="margin: 0">lamina’s job server (jobs.lamina.example), in [REGION], over HTTPS</dd>
+          <dt style="font-size: 12px; font-weight: 600; color: #4A453E; padding-top: 1px">How long it stays</dt><dd style="margin: 0">Each file and its result are deleted as soon as you download the zip, and after 24 hours at the latest. You can delete them sooner.</dd>
+          <dt style="font-size: 12px; font-weight: 600; color: #4A453E; padding-top: 1px">What it is used for</dt><dd style="margin: 0">Running ‘Board pack tidy-up’ on these 12 files, once. Not kept, not used for anything else.</dd>
+        </dl>
+        <details style="font-size: 13px"><summary style="min-height: 24px; color: #1F5C63; font-weight: 600">Show the 12 files</summary><ul style="margin: 6px 0 0; padding: 0 0 0 18px; display: flex; flex-direction: column; gap: 2px; color: #3A3631; font-variant-numeric: tabular-nums"><li>Q3-board-report.pdf · 2.4 MB</li><li>Q3-finance-pack.pdf · 5.8 MB</li><li>risk-register-sep.pdf · 0.9 MB</li><li>surveyor-rota-oct.pdf · 0.2 MB</li><li style="color: #6B645A">… and 8 more</li></ul></details>
+        <label style="display: flex; align-items: flex-start; gap: 8px; min-height: 24px">
+          <input type="checkbox" aria-describedby="bc-d" style="width: 16px; height: 16px; margin: 3px 0 0; accent-color: #1F5C63; outline: 2px solid #1F5C63; outline-offset: 2px">
+          <span>Upload these 12 files (31.6 MB) to run ‘Board pack tidy-up’</span>
+        </label>
+      </section>
+      <p style="margin: 0; font-size: 13px; color: #3A3631">Want nothing to leave this device? <a href="#">Run on the desktop app</a>, which runs batches on your computer.</p>
+      <div style="display: flex; align-items: center; justify-content: flex-end; gap: 8px; flex-wrap: wrap">
+        <span id="bc-h" style="flex: 1 1 auto; font-size: 12px; color: #6B645A">Tick the box to upload</span>
+        <button style="height: 32px; padding: 0 16px; border: 1px solid #8A8174; background: #FFFFFF; border-radius: 4px">Cancel</button>
+        <button aria-disabled="true" aria-describedby="bc-h" style="height: 32px; padding: 0 16px; border: 1px solid #E4DED3; background: #E4DED3; color: #A39C91; border-radius: 4px; font-weight: 600">Upload and run</button>
+      </div>
+    </div>
+  </div>
+  </sc-if>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"showDialog":{"editor":"boolean","default":true},"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return { showDialog: this.props.showDialog ?? true };
+  }
+}
+</script>
+</body>
+</html>
