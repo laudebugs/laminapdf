@@ -1,6 +1,6 @@
 //! The error type of the file-structure layer.
 
-use lamina_syntax::Limit;
+use lamina_syntax::{ErrorKind, Limit, Location, Position, kind_of};
 
 use crate::reader::Warning;
 use crate::source::SourceError;
@@ -10,7 +10,11 @@ use crate::source::SourceError;
 /// Every fallible public function returns [`Result`]; no input is allowed to panic. Errors from
 /// the syntax layer (lexing, parsing, decoding streams) arrive as [`Error::Syntax`], except
 /// [`lamina_syntax::Error::LimitExceeded`], which becomes [`Error::LimitExceeded`] so that every
-/// limit is matched in one place.
+/// limit is matched in one place. Their positions are file offsets, object numbers or offsets
+/// in an object stream's decoded data, tagged by the reader ([`Position`]).
+///
+/// `Display` formats only fixed text and numbers, never names or bytes read from the input
+/// (ADR 0026 §4): those stay in the variant's fields.
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 #[non_exhaustive]
 pub enum Error {
@@ -22,9 +26,10 @@ pub enum Error {
     LimitExceeded {
         /// Which limit.
         limit: Limit,
-        /// Where it was hit, when known: a byte offset for syntax limits (nesting, string
-        /// length), an object number for reference chains; `None` for decoding budgets.
-        at: Option<u64>,
+        /// Where it was hit, when known: a file offset (or an offset in an object stream's
+        /// decoded data) for syntax limits (nesting, string length) and the read window, an
+        /// object for reference chains; `None` for decoding budgets.
+        at: Option<Position>,
     },
     /// Strict mode ([`OpenOptions::with_strict`](crate::OpenOptions::with_strict)) refused
     /// something the tolerant reader would have repaired with this warning.
@@ -100,8 +105,9 @@ pub enum Error {
     WrongPassword,
     /// The document is encrypted with a security handler lamina can't decrypt: not
     /// `/Standard` (e.g. the public-key handler `/Adobe.PubSec`), an unknown `/V`/`/R`
-    /// combination, or an unknown crypt filter method (e.g. ISO/TS 32003 AES-GCM).
-    #[error("unsupported security handler /{filter} (V {version:?}, R {revision:?})")]
+    /// combination, or an unknown crypt filter method (e.g. ISO/TS 32003 AES-GCM). `filter`
+    /// is read from the file, so it is not formatted (ADR 0026 §4).
+    #[error("unsupported security handler (V {version:?}, R {revision:?})")]
     UnsupportedSecurityHandler {
         /// `/Filter` of the encryption dictionary (or `Standard /CFM /…` for an unknown crypt
         /// filter method).
@@ -182,11 +188,47 @@ impl Error {
         }
     }
 
+    /// The kind of this error ([ADR 0026] §2), looked up by [`Error::code`] in
+    /// [`kind_of`](lamina_syntax::kind_of).
+    ///
+    /// [ADR 0026]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0026-error-and-diagnostic-contract.md
+    #[must_use]
+    pub fn kind(&self) -> ErrorKind {
+        kind_of(self.code()).unwrap_or(ErrorKind::Internal)
+    }
+
+    /// Where the error was found (ADR 0026 §1.1); empty when there is no position.
+    #[must_use]
+    pub fn location(&self) -> Location {
+        match self {
+            Self::Syntax(e) => e.location(),
+            Self::LimitExceeded { at, .. } => Location::from(*at),
+            Self::Strict { warning } => warning.location(),
+            Self::Source(SourceError::Failed { offset, .. }) => Location {
+                offset: Some(*offset),
+                ..Location::NONE
+            },
+            Self::ReferenceCycle(object) | Self::UnsetObject(object) => Location::object(Some(*object)),
+            _ => Location::NONE,
+        }
+    }
+
+    /// This error with its position passed through `f` (see
+    /// [`lamina_syntax::Error::map_position`]).
+    #[must_use]
+    pub(crate) fn map_position(self, f: impl FnOnce(Position) -> Position) -> Self {
+        match self {
+            Self::Syntax(e) => Self::Syntax(e.map_position(f)),
+            Self::LimitExceeded { limit, at } => Self::LimitExceeded { limit, at: at.map(f) },
+            other => other,
+        }
+    }
+
     /// An [`Error::LimitExceeded`] for `limit` at object `num`.
-    pub(crate) fn limit_at_object(limit: Limit, num: u32) -> Self {
+    pub(crate) const fn limit_at_object(limit: Limit, num: u32) -> Self {
         Self::LimitExceeded {
             limit,
-            at: Some(u64::from(num)),
+            at: Some(Position::Object(num)),
         }
     }
 }

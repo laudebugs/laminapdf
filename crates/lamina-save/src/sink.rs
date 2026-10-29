@@ -16,16 +16,18 @@ use lamina_cos::ByteSource;
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 #[non_exhaustive]
 pub enum SinkError {
-    /// An [`IoWrite`] adapter's writer failed.
-    #[error("write failed ({kind:?}): {message}")]
+    /// An [`IoWrite`] adapter's writer failed. `message` comes from the host (it may name a
+    /// path), so it is not formatted (ADR 0026 §4).
+    #[error("write failed ({kind:?})")]
     Io {
         /// The I/O error kind.
         kind: std::io::ErrorKind,
         /// The I/O error's message.
         message: String,
     },
-    /// Any other sink failure (a full spool, a closed upload, a refused read-back).
-    #[error("sink failed: {0}")]
+    /// Any other sink failure (a full spool, a closed upload, a refused read-back). The text
+    /// comes from the sink, so it is not formatted (ADR 0026 §4).
+    #[error("sink failed")]
     Failed(String),
     /// The sink already held `held` bytes. Offsets in the output count from its first byte,
     /// so a writer refuses before writing (an `AppendedOnly` incremental save also accepts a

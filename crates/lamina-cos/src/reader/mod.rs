@@ -1065,14 +1065,20 @@ impl Document {
             .ok()
             .and_then(|i| members.get(i))
             .filter(|(n, _)| *n == num);
+        // Member offsets are in the stream's decoded data, not the file (ADR 0026 §1.1).
+        let tagged = |member: &lamina_syntax::Result<Arc<Object>>| {
+            member
+                .clone()
+                .map_err(|e| Error::from(e.map_position(|p| p.in_stream(stream))))
+        };
         if let Some((_, member)) = by_index {
-            return member.clone().map_err(Error::from);
+            return tagged(member);
         }
         // Fall back to a search when the index is stale or wrong.
         match members.iter().find(|(n, _)| *n == num) {
             Some((_, member)) => {
                 self.warn(Warning::ObjStmIndexMismatch { object: num })?;
-                member.clone().map_err(Error::from)
+                tagged(member)
             }
             None => Ok(Arc::new(Object::Null)),
         }

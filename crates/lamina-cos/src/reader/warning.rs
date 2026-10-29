@@ -2,7 +2,7 @@
 
 use std::collections::BTreeSet;
 
-use lamina_syntax::Limits;
+use lamina_syntax::{ErrorKind, Limits, Location, kind_of};
 
 use crate::error::{Error, Result};
 
@@ -223,6 +223,28 @@ impl Warning {
         }
     }
 
+    /// The kind of this warning ([ADR 0026] §2), looked up by [`Warning::code`] in
+    /// [`kind_of`](lamina_syntax::kind_of).
+    ///
+    /// [ADR 0026]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0026-error-and-diagnostic-contract.md
+    #[must_use]
+    pub fn kind(&self) -> ErrorKind {
+        kind_of(self.code()).unwrap_or(ErrorKind::Internal)
+    }
+
+    /// Where the problem is (ADR 0026 §1.1): the object, a file offset, or a page index.
+    #[must_use]
+    pub fn location(&self) -> Location {
+        let mut location = Location::object(self.object());
+        match *self {
+            Self::XrefStmIgnored { offset } => location.offset = Some(offset),
+            Self::InvalidBox { page, .. } | Self::InvalidRotate { page, .. } => location.page_index = Some(page),
+            Self::InvalidPageLabel { start } => location.page_index = u64::try_from(start).ok(),
+            _ => {}
+        }
+        location
+    }
+
     /// Deduplication key: (code, object, a position — byte offset, page index or label
     /// start — and an entry key), so two different problems on one object are both kept.
     const fn key(&self) -> WarningKey {
@@ -354,6 +376,37 @@ mod tests {
     fn codes_lists_the_code_of_every_variant_in_order() {
         let codes: Vec<_> = samples().iter().map(Warning::code).collect();
         assert_eq!(codes, Warning::CODES);
+    }
+
+    #[test]
+    fn every_variant_has_a_kind_in_the_codes_table() {
+        let missing: Vec<_> = samples()
+            .iter()
+            .map(Warning::code)
+            .filter(|c| kind_of(c).is_none())
+            .collect();
+        assert!(missing.is_empty(), "{missing:?}");
+    }
+
+    #[test]
+    fn location_names_the_object_and_the_page_index() {
+        let warning = Warning::InvalidRotate {
+            object: Some(3),
+            page: 2,
+        };
+        assert_eq!(
+            warning.location(),
+            Location {
+                object: Some(3),
+                page_index: Some(2),
+                ..Location::NONE
+            }
+        );
+    }
+
+    #[test]
+    fn location_of_an_ignored_xref_stream_is_a_file_offset() {
+        assert_eq!(Warning::XrefStmIgnored { offset: 9 }.location().offset, Some(9));
     }
 
     #[test]

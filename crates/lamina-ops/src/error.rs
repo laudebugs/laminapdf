@@ -1,8 +1,12 @@
 //! The error type of the ops layer.
 
+use lamina_cos::{ErrorKind, Location, kind_of};
 use lamina_model::PageId;
 
 /// Everything that can go wrong while applying ops, running transactions or reading op logs.
+///
+/// `Display` formats only fixed text, numbers and `LaminaId`s, never text from the input or
+/// the op log (ADR 0026 §4).
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 #[non_exhaustive]
 pub enum Error {
@@ -27,8 +31,10 @@ pub enum Error {
     /// An op log with a schema version this reader does not know (ADR 0006 §6).
     #[error("unsupported op log version {0}")]
     UnsupportedVersion(u64),
-    /// An op log that does not parse: an unknown op or field, a bad value, or not JSON.
-    #[error("invalid op log: {0}")]
+    /// An op log that does not parse: an unknown op or field, a bad value, or not JSON. The
+    /// parser's message can quote the log, so it is kept here but never formatted
+    /// (ADR 0026 §4).
+    #[error("invalid op log")]
     InvalidLog(String),
     /// The document was saved to a sink the core can't read back and waits for
     /// [`Document::rebase`](crate::Document::rebase): ops, undo, redo and saves are refused
@@ -74,6 +80,28 @@ impl Error {
             Self::InvalidLog(_) => "invalid-op-log",
             Self::SavedNotRebased => "saved-not-rebased",
             Self::NoPendingSave => "no-pending-save",
+        }
+    }
+
+    /// The kind of this error ([ADR 0026] §2), looked up by [`Error::code`] in
+    /// [`kind_of`](lamina_cos::kind_of).
+    ///
+    /// [ADR 0026]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0026-error-and-diagnostic-contract.md
+    #[must_use]
+    pub fn kind(&self) -> ErrorKind {
+        kind_of(self.code()).unwrap_or(ErrorKind::Internal)
+    }
+
+    /// Where the error was found (ADR 0026 §1.1): a COS error's position, or the page's ID.
+    #[must_use]
+    pub fn location(&self) -> Location {
+        match self {
+            Self::Cos(e) => e.location(),
+            Self::UnknownPage(page) | Self::DirectPage(page) => Location {
+                id: Some(page.to_string()),
+                ..Location::NONE
+            },
+            _ => Location::NONE,
         }
     }
 }

@@ -22,6 +22,8 @@
 //! * [`filters`]: Flate encode/decode within [`Limits`], and PNG predictors.
 //! * [`crypt`]: standard security handler decryption (read only): password authentication
 //!   for R2–R6 and RC4 / AES-128 / AES-256 string and stream decryption.
+//! * [`ErrorKind`], [`Position`], [`Location`] and [`kind_of`]: the shared parts of the error
+//!   contract (ADR 0026): kinds by code and tagged positions.
 //! * [`Limits`]: the resource limits of ADR 0003, shared by every layer that reads input.
 //! * [`text`]: text strings (`PDFDocEncoding`, UTF-16BE, UTF-8) and the `PDFDocEncoding` table.
 //!
@@ -30,6 +32,7 @@
 #![forbid(unsafe_code)]
 
 pub mod crypt;
+mod diagnostic;
 mod error;
 pub mod filters;
 mod lexer;
@@ -38,6 +41,7 @@ mod object;
 mod parser;
 pub mod text;
 
+pub use diagnostic::{CODE_KINDS, ErrorKind, Location, Position, kind_of};
 pub use error::{Error, Result};
 pub use lexer::{Lexer, Token, is_delimiter, is_regular, is_whitespace};
 pub use limits::{DecodeBudget, Limit, Limits};

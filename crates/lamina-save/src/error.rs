@@ -3,7 +3,7 @@
 use std::fmt;
 use std::sync::Arc;
 
-use lamina_cos::{ByteSource, Source};
+use lamina_cos::{ByteSource, ErrorKind, Location, Source, kind_of};
 
 use crate::sink::SinkError;
 
@@ -61,6 +61,26 @@ impl SaveError {
             Self::Ops(e) => e.code(),
             Self::Sink(_) => "sink",
             Self::NotRebased { .. } => "not-rebased",
+        }
+    }
+
+    /// The kind of this error ([ADR 0026] §2), looked up by [`SaveError::code`] in
+    /// [`kind_of`](lamina_cos::kind_of).
+    ///
+    /// [ADR 0026]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0026-error-and-diagnostic-contract.md
+    #[must_use]
+    pub fn kind(&self) -> ErrorKind {
+        kind_of(self.code()).unwrap_or(ErrorKind::Internal)
+    }
+
+    /// Where the error was found (ADR 0026 §1.1): the wrapped error's location, the failed
+    /// rebase's for [`SaveError::NotRebased`]; empty for sink failures.
+    #[must_use]
+    pub fn location(&self) -> Location {
+        match self {
+            Self::Cos(e) => e.location(),
+            Self::Ops(e) | Self::NotRebased { error: e, .. } => e.location(),
+            Self::Sink(_) => Location::NONE,
         }
     }
 }

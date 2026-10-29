@@ -3,10 +3,10 @@
 | Field | Value |
 | --- | --- |
 | ID | `L1c` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [shareable-libraries §7 L1](../../plans/shareable-libraries.md#l1-contracts), [§4 principle 2](../../plans/shareable-libraries.md#4-principles-recommendations-recorded-in-adrs-00260031) |
 | Round / milestone | Round L1 (shareable libraries) — before B5c |
-| Depends on | [L1a](../done/L1a-contract-adrs.md) |
+| Depends on | [L1a](./L1a-contract-adrs.md) |
 | Blocks | [B5c](../ready/B5c-lamina-facade-and-examples.md), [L1b](../ready/L1b-error-contract-codegen.md) |
 | ADRs | Implements the Rust-core half of [0026](../../decisions/0026-error-and-diagnostic-contract.md) (§1.1 locations, §2 kinds, §3 codes, §4 no document text, §5 hints); follows [0003](../../decisions/0003-reader-tolerance-and-limits.md) §2 and §4 (codes listed once, checked by test) |
 | Branch | `feat/l1c-error-contract-core` |
@@ -41,20 +41,20 @@ Give every existing Rust error and warning the parts of ADR 0026 that the façad
 
 ## Tasks
 
-- [ ] Load the `/rust-best-practices` skill; read ADR 0026 and the four error files
-- [ ] Convert `fixtures/codes.json` to v2. Fill `kind`, `summary` and `hint` for every code
-- [ ] `ErrorKind` (in `lamina-syntax`, re-exported) and `kind()` on every error and on `Warning`
-- [ ] `Position` and `location()`. Migrate `LimitExceeded.at` and the syntax offsets. Tag positions in `lamina-cos` where syntax errors are wrapped (in-memory parse, windowed reads, object streams)
-- [ ] Remove document text from the three `Display` impls
-- [ ] Update `crates/lamina-cos/tests/codes.rs` to read v2 and check kinds; update the tests that assert exact `at` values
-- [ ] Update `CLAUDE.md`'s codes sentence and `fixtures/README.md` (v2 format)
+- [x] Load the `/rust-best-practices` skill; read ADR 0026 and the four error files
+- [x] Convert `fixtures/codes.json` to v2. Fill `kind`, `summary` and `hint` for every code
+- [x] `ErrorKind` (in `lamina-syntax`, re-exported) and `kind()` on every error and on `Warning`
+- [x] `Position` and `location()`. Migrate `LimitExceeded.at` and the syntax offsets. Tag positions in `lamina-cos` where syntax errors are wrapped (in-memory parse, windowed reads, object streams)
+- [x] Remove document text from the three `Display` impls
+- [x] Update `crates/lamina-cos/tests/codes.rs` to read v2 and check kinds; update the tests that assert exact `at` values
+- [x] Update `CLAUDE.md`'s codes sentence and `fixtures/README.md` (v2 format)
 
 ## Acceptance criteria
 
-- [ ] Every code in `codes.json` has `kind`, `summary` and `hint`, and the Rust `kind()` agrees for every variant (test)
-- [ ] A limit hit inside an object stream reports `InStream { object, offset }`, a nesting error in the file a `FileOffset`, and a reference-chain limit an `Object` (one test each)
-- [ ] No `Display` of an error or warning contains a string read from the input: a test builds the three affected errors with a marker string and asserts the marker is absent from `to_string()`
-- [ ] `docs/errors/` has a page for every code, and every page's kind line matches `codes.json`
+- [x] Every code in `codes.json` has `kind`, `summary` and `hint`, and the Rust `kind()` agrees for every variant (test)
+- [x] A limit hit inside an object stream reports `InStream { object, offset }`, a nesting error in the file a `FileOffset`, and a reference-chain limit an `Object` (one test each)
+- [x] No `Display` of an error or warning contains a string read from the input: a test builds the three affected errors with a marker string and asserts the marker is absent from `to_string()`
+- [x] `docs/errors/` has a page for every code, and every page's kind line matches `codes.json`
 
 ## Post-merge checks
 
@@ -66,7 +66,7 @@ None.
 
 ## Docs to update
 
-- [ ] `CLAUDE.md` (codes paragraph), `fixtures/README.md`, `docs/errors/` pages that change
+- [x] `CLAUDE.md` (codes paragraph), `fixtures/README.md`, `docs/errors/` pages that change
 
 ## Risks and open questions
 
@@ -75,8 +75,15 @@ None.
 
 ## Definition of done
 
-- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
-- [ ] Work PR opened from a fresh worktree; **PR** field filled in
+- [x] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [x] Work PR opened from a fresh worktree; **PR** field filled in
 - [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+
+## Notes
+
+- **Kind table.** `kind()` is a lookup of `code()` in one table, `lamina_syntax::CODE_KINDS` (with `kind_of`), not one table per crate: codes share one namespace, and L1b generates one table from one file. A crate that adds a code adds its row there; `crates/lamina-cos/tests/codes.rs` fails with a message naming the code until it does.
+- **The codes check covers every group.** `every_listed_code_is_complete` reads every top-level group of `codes.json` (not only `warnings`/`errors`), so groups other todos add (B4a's `textErrors`, B9a's content warnings) are held to v2 too: `kind`, `summary`, `hint` and `since`, a kind from the table, hint parameters only `{limit}`/`{option}`, and a page with the fixed headings and a matching `- Kind:` line. `every_page_is_for_a_listed_code` checks the other direction.
+- **Positions.** The syntax layer reports offsets in the buffer it parsed as `Position::FileOffset`; `lamina-cos` re-tags them with `Error::map_position` (`Position::shifted` for windows, `Position::in_stream` for object-stream members). The syntax variants' field is now `at: Position` (was `offset: usize`).
+- **Deviations.** The marker-text tests are here, not in L1b, because this todo's acceptance criteria ask for them (per crate: `lamina-cos/tests/codes.rs`, `lamina-ops/tests/serde.rs`, `lamina-save/tests/codes.rs`); L1b's fixture-wide check remains. Beyond the three variants ADR 0026 §4 names, `SinkError::{Io, Failed}` (host text that can name a path) and `lamina_model::ParseIdError::Syntax` (caller text) stopped formatting their strings too. `codes.json` v2 also holds the `docsUrl` constant (ADR 0026 §6) and a `version`. The four codes without pages (`saved-not-rebased`, `no-pending-save`, `sink`, `not-rebased`) got them. `since` is `0.1.0` (the first release) for every current code.

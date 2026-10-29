@@ -98,7 +98,7 @@ mod tests {
                     1,
                     Err(lamina_syntax::Error::LimitExceeded {
                         limit: lamina_syntax::Limit::StringLength,
-                        at: Some(8)
+                        at: Some(lamina_syntax::Position::FileOffset(8))
                     })
                 ),
                 (2, Ok(Object::Integer(7)))

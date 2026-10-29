@@ -18,7 +18,8 @@
 use std::ops::Range;
 
 use lamina_syntax::{
-    IndirectHead, IndirectObject, Limit, Limits, ObjRef, Parser, StreamHead, endstream_at, find, stream_data_end,
+    IndirectHead, IndirectObject, Limit, Limits, ObjRef, Parser, Position, StreamHead, endstream_at, find,
+    stream_data_end,
 };
 
 use crate::error::{Error, Result};
@@ -48,7 +49,7 @@ pub(crate) struct View<'w> {
 pub(crate) fn read_window_exceeded(offset: usize) -> Error {
     Error::LimitExceeded {
         limit: Limit::ReadWindow,
-        at: u64::try_from(offset).ok(),
+        at: Some(Position::offset(offset)),
     }
 }
 
@@ -201,7 +202,7 @@ fn stream_from(source: &Source, offset: usize, limits: &Limits, head: StreamHead
             Search::Found(at) => at,
             Search::Absent => {
                 return Ok(Err(Error::Syntax(lamina_syntax::Error::UnexpectedEof {
-                    offset: total,
+                    at: Position::offset(total),
                 })));
             }
             Search::Beyond => return Ok(Err(read_window_exceeded(offset))),
@@ -219,30 +220,13 @@ fn stream_from(source: &Source, offset: usize, limits: &Limits, head: StreamHead
     Ok(Ok(head.into_object(data, declared_end.is_none())))
 }
 
-/// `e` with the byte offsets it carries moved by `base`: from a window to the input.
+/// `e` with the file offsets it carries moved by `base`: from a window to the input. Object
+/// numbers and offsets in a stream's data stay as they are.
 pub(crate) fn rebase(e: Error, base: usize) -> Error {
-    use lamina_syntax::Error as Syntax;
     if base == 0 {
         return e;
     }
-    match e {
-        Error::Syntax(Syntax::UnexpectedEof { offset }) => Error::Syntax(Syntax::UnexpectedEof {
-            offset: offset.saturating_add(base),
-        }),
-        Error::Syntax(Syntax::Syntax { offset, message }) => Error::Syntax(Syntax::Syntax {
-            offset: offset.saturating_add(base),
-            message,
-        }),
-        // The syntax limits carry a byte offset; the others an object number or nothing.
-        Error::LimitExceeded {
-            limit: limit @ (Limit::NestingDepth | Limit::StringLength),
-            at: Some(at),
-        } => Error::LimitExceeded {
-            limit,
-            at: Some(at.saturating_add(u64::try_from(base).unwrap_or(u64::MAX))),
-        },
-        other => other,
-    }
+    e.map_position(|p| p.shifted(u64::try_from(base).unwrap_or(u64::MAX)))
 }
 
 /// Walks `windows` in order, each read with `overlap` bytes of the next, until `look` finds
@@ -467,18 +451,18 @@ mod tests {
     #[test]
     fn rebase_moves_byte_offsets_but_not_object_numbers() {
         let syntax = Error::Syntax(lamina_syntax::Error::Syntax {
-            offset: 5,
+            at: Position::FileOffset(5),
             message: "m",
         });
         let resolve = Error::LimitExceeded {
             limit: Limit::ResolveDepth,
-            at: Some(5),
+            at: Some(Position::Object(5)),
         };
         assert_eq!(
             (rebase(syntax, 100), rebase(resolve.clone(), 100)),
             (
                 Error::Syntax(lamina_syntax::Error::Syntax {
-                    offset: 105,
+                    at: Position::FileOffset(105),
                     message: "m"
                 }),
                 resolve

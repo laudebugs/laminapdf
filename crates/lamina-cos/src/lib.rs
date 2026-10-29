@@ -112,7 +112,10 @@ mod test_files;
 
 pub use error::{Error, Result};
 pub use lamina_syntax::crypt::{Cipher, PasswordKind, Permissions};
-pub use lamina_syntax::{Dict, Limit, Limits, Name, ObjRef, Object, PdfString, Stream, StringFormat};
+pub use lamina_syntax::{
+    CODE_KINDS, Dict, ErrorKind, Limit, Limits, Location, Name, ObjRef, Object, PdfString, Position, Stream,
+    StringFormat, kind_of,
+};
 pub use overlay::{CosChange, CosMut, JournalMark, Overlay, OverlayEntry, Reserved};
 pub use reader::{
     DirectPath, Document, Encryption, Inherited, OpenOptions, Page, PathSegment, Resolved, Warning, XREF_STREAM_KEYS,

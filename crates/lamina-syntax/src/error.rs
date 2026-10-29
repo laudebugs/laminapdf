@@ -1,24 +1,31 @@
 //! The error type of the syntax layer.
 
+use crate::diagnostic::{ErrorKind, Location, Position, kind_of};
 use crate::limits::Limit;
 
 /// Everything that can go wrong while lexing, parsing or decoding PDF syntax.
 ///
 /// Every fallible public function returns [`Result`]; no input is allowed to panic.
+///
+/// Positions are offsets in the buffer that was parsed, reported as
+/// [`Position::FileOffset`]: a caller that parsed something other than the file re-tags them
+/// with [`Error::map_position`] (`lamina-cos` does, for windows and object streams).
+/// `Display` formats only fixed text and numbers, never bytes or names read from the input
+/// (ADR 0026 §4).
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 #[non_exhaustive]
 pub enum Error {
     /// The input ended before a complete token or object was read.
-    #[error("unexpected end of input at byte {offset}")]
+    #[error("unexpected end of input at {at}")]
     UnexpectedEof {
-        /// Byte offset where more input was expected.
-        offset: usize,
+        /// Where more input was expected.
+        at: Position,
     },
     /// A token or structure did not match what the grammar requires.
-    #[error("syntax error at byte {offset}: {message}")]
+    #[error("syntax error at {at}: {message}")]
     Syntax {
-        /// Byte offset of the offending token.
-        offset: usize,
+        /// Where the offending token is.
+        at: Position,
         /// Human-readable description of what was expected.
         message: &'static str,
     },
@@ -27,10 +34,9 @@ pub enum Error {
     LimitExceeded {
         /// Which limit.
         limit: Limit,
-        /// Where it was hit, when known: a byte offset in the parsed buffer for syntax limits
-        /// (nesting, string length), an object number for the reader's limits (reference
-        /// chains); `None` for decoding budgets.
-        at: Option<u64>,
+        /// Where it was hit, when known: an offset for syntax limits (nesting, string length),
+        /// an object for the reader's limits (reference chains); `None` for decoding budgets.
+        at: Option<Position>,
     },
     /// An object had a different type than the structure requires.
     #[error("type error: expected {expected} for {context}")]
@@ -40,8 +46,9 @@ pub enum Error {
         /// Where the value was found (e.g. "/Filter").
         context: &'static str,
     },
-    /// The stream uses a filter that is not implemented.
-    #[error("unsupported filter /{0}")]
+    /// The stream uses a filter that is not implemented. The name is read from the file, so
+    /// it is kept here but never formatted (ADR 0026 §4).
+    #[error("unsupported filter")]
     UnsupportedFilter(String),
     /// Compressed data was corrupt.
     #[error("corrupt compressed data: {0}")]
@@ -83,11 +90,51 @@ impl Error {
         }
     }
 
-    /// An [`Error::LimitExceeded`] for `limit` at `at`.
+    /// The kind of this error ([ADR 0026] §2), looked up by [`Error::code`] in
+    /// [`kind_of`](crate::kind_of).
+    ///
+    /// [ADR 0026]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0026-error-and-diagnostic-contract.md
+    #[must_use]
+    pub fn kind(&self) -> ErrorKind {
+        kind_of(self.code()).unwrap_or(ErrorKind::Internal)
+    }
+
+    /// Where the error was found (ADR 0026 §1.1); empty when there is no position.
+    #[must_use]
+    pub fn location(&self) -> Location {
+        Location::from(self.position())
+    }
+
+    /// The tagged position this error carries, if any.
+    #[must_use]
+    pub const fn position(&self) -> Option<Position> {
+        match *self {
+            Self::UnexpectedEof { at } | Self::Syntax { at, .. } => Some(at),
+            Self::LimitExceeded { at, .. } => at,
+            Self::Type { .. } | Self::UnsupportedFilter(_) | Self::Decompress(_) | Self::InvalidStructure { .. } => {
+                None
+            }
+        }
+    }
+
+    /// This error with its position passed through `f`: how a caller re-tags an offset in
+    /// the buffer it parsed ([`Position::shifted`] for a window of the file,
+    /// [`Position::in_stream`] for a stream's decoded data).
+    #[must_use]
+    pub fn map_position(self, f: impl FnOnce(Position) -> Position) -> Self {
+        match self {
+            Self::UnexpectedEof { at } => Self::UnexpectedEof { at: f(at) },
+            Self::Syntax { at, message } => Self::Syntax { at: f(at), message },
+            Self::LimitExceeded { limit, at } => Self::LimitExceeded { limit, at: at.map(f) },
+            other => other,
+        }
+    }
+
+    /// An [`Error::LimitExceeded`] for `limit` at buffer offset `at`.
     pub(crate) fn limit(limit: Limit, at: Option<usize>) -> Self {
         Self::LimitExceeded {
             limit,
-            at: at.and_then(|at| u64::try_from(at).ok()),
+            at: at.map(Position::offset),
         }
     }
 }
