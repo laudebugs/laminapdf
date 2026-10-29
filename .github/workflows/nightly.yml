@@ -17,9 +17,6 @@
 name: Nightly
 
 on:
-  # TEMPORARY (X3a review branch run): removed before merge.
-  push:
-    branches: [ci/x3a-nightly-lane]
   schedule:
     - cron: "17 3 * * *"
   workflow_dispatch:
@@ -65,8 +62,8 @@ concurrency:
 env:
   CARGO_TERM_COLOR: always
   CARGO_INCREMENTAL: 0
-  FUZZ_SECONDS: ${{ inputs.fuzz-seconds || (github.event_name == 'push' && '60') || '600' }}
-  DIFFERENTIAL_SAMPLE: ${{ inputs.differential-sample || (github.event_name == 'push' && '600') || '' }}
+  FUZZ_SECONDS: ${{ inputs.fuzz-seconds || '600' }}
+  DIFFERENTIAL_SAMPLE: ${{ inputs.differential-sample || '' }}
 
 jobs:
   # Prefer the self-hosted runners (macOS ARM64) when one is online (see select-runner.yml).
