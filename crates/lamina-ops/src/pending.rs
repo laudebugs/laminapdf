@@ -1,0 +1,91 @@
+//! [`PendingChanges`]: what the changes not yet saved are, for the save planner (ADR 0006 §1,
+//! ADR 0007 §2).
+
+use std::collections::BTreeSet;
+
+use crate::class::ModificationClass;
+use crate::op::Op;
+
+/// The kinds of change the document holds since it was opened or last rebased onto a save:
+/// what the save planner checks against `DocMDP`, `FieldMDP` and UR3, and whether any of them
+/// needs a full rewrite ([ADR 0007] §2).
+///
+/// It errs on the side of reporting: every committed transaction's op classes are added (an
+/// undo or redo adds those of the transaction it reverts), and only an empty overlay (nothing
+/// left to save) or a rebase clears it. A class that is reported but whose change was undone
+/// can make the planner refuse a save it could allow; a class that is missing would let a save
+/// break a signature without saying so.
+///
+/// [ADR 0007]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0007-save-planner.md
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct PendingChanges {
+    classes: BTreeSet<ModificationClass>,
+    requires_rewrite: bool,
+    unknown: bool,
+}
+
+impl PendingChanges {
+    /// Changes of unknown kind (an overlay changed without ops, such as a model document
+    /// wrapped while dirty): every class, and a full rewrite needed, since nothing tells
+    /// otherwise.
+    #[must_use]
+    pub fn unknown() -> Self {
+        Self {
+            classes: [
+                ModificationClass::Metadata,
+                ModificationClass::FormFill,
+                ModificationClass::Annotation,
+                ModificationClass::Signature,
+                ModificationClass::PageStructure,
+                ModificationClass::Content,
+                ModificationClass::Document,
+            ]
+            .into_iter()
+            .collect(),
+            requires_rewrite: true,
+            unknown: true,
+        }
+    }
+
+    /// Whether the changes are of unknown kind ([`PendingChanges::unknown`]).
+    #[must_use]
+    pub const fn is_unknown(&self) -> bool {
+        self.unknown
+    }
+
+    /// The op classes of the changes not yet saved.
+    #[must_use]
+    pub const fn classes(&self) -> &BTreeSet<ModificationClass> {
+        &self.classes
+    }
+
+    /// Whether any of them needs a full rewrite ([`Op::requires_rewrite`]).
+    #[must_use]
+    pub const fn requires_rewrite(&self) -> bool {
+        self.requires_rewrite
+    }
+
+    /// Whether there are none.
+    #[must_use]
+    pub fn is_empty(&self) -> bool {
+        self.classes.is_empty() && !self.requires_rewrite
+    }
+
+    /// Adds `op`'s class and rewrite need.
+    pub(crate) fn record(&mut self, op: &Op) {
+        self.classes.insert(op.class());
+        self.requires_rewrite |= op.requires_rewrite();
+    }
+
+    /// Adds everything `other` holds.
+    pub(crate) fn merge(&mut self, other: &Self) {
+        self.classes.extend(other.classes.iter().copied());
+        self.requires_rewrite |= other.requires_rewrite;
+        self.unknown |= other.unknown;
+    }
+
+    /// Forgets everything (after a rebase, or when the overlay is empty again).
+    pub(crate) fn clear(&mut self) {
+        *self = Self::default();
+    }
+}

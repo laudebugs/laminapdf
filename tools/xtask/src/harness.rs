@@ -16,12 +16,21 @@ use crate::workspace::Workspace;
 use crate::{run, step};
 
 /// The fuzz targets in `fuzz/fuzz_targets/` (ADR 0018 tier 9).
-pub(crate) const FUZZ_TARGETS: [&str; 6] = ["lex", "parse_object", "flate_decode", "open", "page_tree", "content"];
+pub(crate) const FUZZ_TARGETS: [&str; 8] = [
+    "lex",
+    "parse_object",
+    "flate_decode",
+    "open",
+    "page_tree",
+    "content",
+    "ops_json",
+    "save_roundtrip",
+];
 
 /// Default `cargo xtask fuzz` run time in seconds (the scheduled workflow uses 600).
 const DEFAULT_FUZZ_SECONDS: u64 = 60;
 
-fn python() -> String {
+pub(crate) fn python() -> String {
     std::env::var("LAMINA_PYTHON").unwrap_or_else(|_| "python3".to_owned())
 }
 
@@ -412,10 +421,16 @@ fn host_triple(version: &str) -> Option<String> {
 /// Must match `FLATE_SEED_PARAMS` in `crates/lamina-model/tests/common/fuzz_entry.rs`.
 const FLATE_SEED_PARAMS: [u8; 4] = [1, 1, 8, 1];
 
+/// The control bytes every `save_roundtrip` seed starts with, before a fixture PDF.
+/// Must match `SAVE_SEED_CONTROL` in `crates/lamina-save/tests/common/fuzz_entry.rs`.
+const SAVE_SEED_CONTROL: [u8; 8] = [0, 0x14, 0x41, 0x02, 0x03, 0x24, 0x34, 0x04];
+
 /// Builds `fuzz/corpus/<target>/` (gitignored) from the shared fixture PDFs (`corpus/`,
 /// `golden/` and `content/`), the target's
 /// saved crash inputs in `fixtures/regressions/<target>/` and everything under
-/// `fuzz/seeds/<target>/`. Fixture PDFs are split into their streams for `flate_decode`;
+/// `fuzz/seeds/<target>/`. Fixture PDFs are split into their streams for `flate_decode`,
+/// follow [`SAVE_SEED_CONTROL`] for `save_roundtrip` (which also gets `fixtures/signed/`), and
+/// `ops_json` starts from the op samples in `fixtures/ops/v1/` instead;
 /// crash inputs and hand-written seeds are copied verbatim (they already are what the target
 /// reads). Seed names carry their source path, so files from different folders never
 /// collide. Returns the corpus directory.
@@ -423,8 +438,17 @@ fn seeds(ws: &Workspace, target: &str) -> Result<PathBuf> {
     let corpus = ws.root.join("fuzz/corpus").join(target);
     fs::create_dir_all(&corpus).with_context(|| format!("creating {}", corpus.display()))?;
     let mut fixtures: Vec<PathBuf> = Vec::new();
-    for dir in ["fixtures/corpus", "fixtures/golden", "fixtures/content"] {
-        fixtures.extend(files_in(&ws.root.join(dir))?.into_iter().filter(|p| is_pdf(p)));
+    if target == "ops_json" {
+        // Op logs, not PDFs: the frozen samples of the op format.
+        fixtures.extend(files_in(&ws.root.join("fixtures/ops/v1"))?);
+    } else {
+        for dir in ["fixtures/corpus", "fixtures/golden", "fixtures/content"] {
+            fixtures.extend(files_in(&ws.root.join(dir))?.into_iter().filter(|p| is_pdf(p)));
+        }
+    }
+    if target == "save_roundtrip" {
+        let signed = files_in(&ws.root.join("fixtures/signed"))?;
+        fixtures.extend(signed.into_iter().filter(|p| is_pdf(p)));
     }
     let mut verbatim: Vec<PathBuf> = Vec::new();
     for dir in [
@@ -448,6 +472,8 @@ fn seeds(ws: &Workspace, target: &str) -> Result<PathBuf> {
                 stream.extend(FLATE_SEED_PARAMS);
                 write(source, i, &stream)?;
             }
+        } else if target == "save_roundtrip" {
+            write(source, 0, &[&SAVE_SEED_CONTROL[..], &bytes].concat())?;
         } else {
             write(source, 0, &bytes)?;
         }
@@ -541,6 +567,29 @@ pub(crate) fn check_fuzz_excluded(ws: &Workspace) -> Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// The array literal after `const <name>` in `source`, as numbers.
+    fn const_bytes(source: &str, name: &str) -> Vec<u8> {
+        let after = source.split(&format!("const {name}")).nth(1).unwrap();
+        let list = after.split('=').nth(1).unwrap();
+        let list = list.split(']').next().unwrap().trim().trim_start_matches('[');
+        list.split(',')
+            .map(|n| {
+                let n = n.trim();
+                n.strip_prefix("0x")
+                    .map_or_else(|| n.parse().unwrap(), |h| u8::from_str_radix(h, 16).unwrap())
+            })
+            .collect()
+    }
+
+    #[test]
+    fn the_save_seed_control_bytes_match_the_fuzz_entry() {
+        let entry = fs::read_to_string(
+            Path::new(env!("CARGO_MANIFEST_DIR")).join("../../crates/lamina-save/tests/common/fuzz_entry.rs"),
+        )
+        .unwrap();
+        assert_eq!(const_bytes(&entry, "SAVE_SEED_CONTROL"), SAVE_SEED_CONTROL);
+    }
 
     fn args(list: &[&str]) -> Vec<String> {
         list.iter().map(|s| (*s).to_owned()).collect()

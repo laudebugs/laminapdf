@@ -2,7 +2,7 @@
 
 use std::collections::BTreeSet;
 
-use lamina_syntax::Limits;
+use lamina_syntax::{ErrorKind, Limits, Location, Position};
 
 use crate::error::{Error, Result};
 
@@ -338,6 +338,75 @@ impl Warning {
         }
     }
 
+    /// The kind of this warning ([ADR 0026] §2), as `fixtures/codes.json` lists it for
+    /// [`Warning::code`] (a test checks every variant).
+    ///
+    /// [ADR 0026]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0026-error-and-diagnostic-contract.md
+    #[must_use]
+    pub const fn kind(&self) -> ErrorKind {
+        match self {
+            Self::MissingHeader
+            | Self::XrefRepaired
+            | Self::XrefStmIgnored { .. }
+            | Self::StreamLengthRecovered { .. }
+            | Self::StaleGeneration { .. }
+            | Self::PageTreeNodeSkipped { .. }
+            | Self::PageCountMismatch { .. }
+            | Self::FlateTruncated { .. }
+            | Self::ObjStmIndexMismatch { .. }
+            | Self::InvalidBox { .. }
+            | Self::InvalidRotate { .. }
+            | Self::NameTreeNodeSkipped { .. }
+            | Self::OutlineCycle { .. }
+            | Self::OutlineItemSkipped { .. }
+            | Self::InvalidDate { .. }
+            | Self::InvalidPageLabel { .. }
+            | Self::InvalidEntry { .. }
+            | Self::ContentUnknownOperator { .. }
+            | Self::ContentBadOperands { .. }
+            | Self::ContentUnbalancedQ { .. }
+            | Self::ContentUnbalancedBt { .. }
+            | Self::ContentUnbalancedMarked { .. }
+            | Self::ContentSyntax { .. }
+            | Self::ContentResourceMissing { .. }
+            | Self::InlineImageUnterminated { .. }
+            | Self::XObjectCycle { .. }
+            | Self::ContentPathUnpainted { .. } => ErrorKind::Input,
+            Self::ObjectNumberOutOfRange { .. } | Self::WarningsTruncated => ErrorKind::Limit,
+            Self::AesPaddingInvalid { .. } | Self::PermsMismatch => ErrorKind::Security,
+        }
+    }
+
+    /// Where the problem is (ADR 0026 §1.1): the object, a file offset, a page index, or for
+    /// content warnings the content's object and the offset in its decoded data (no offset
+    /// when the content has no object: content interpreted on its own or a direct page).
+    #[must_use]
+    pub fn location(&self) -> Location {
+        let page_index = match *self {
+            Self::XrefStmIgnored { offset } => return Location::from(Position::FileOffset(offset)),
+            Self::ContentUnknownOperator { object, offset }
+            | Self::ContentBadOperands { object, offset }
+            | Self::ContentUnbalancedQ { object, offset }
+            | Self::ContentUnbalancedBt { object, offset }
+            | Self::ContentUnbalancedMarked { object, offset }
+            | Self::ContentSyntax { object, offset }
+            | Self::ContentResourceMissing { object, offset, .. }
+            | Self::InlineImageUnterminated { object, offset }
+            | Self::ContentPathUnpainted { object, offset } => {
+                return object.map_or(Location::NONE, |object| {
+                    Location::from(Position::InStream { object, offset })
+                });
+            }
+            Self::InvalidBox { page, .. } | Self::InvalidRotate { page, .. } => Some(page),
+            Self::InvalidPageLabel { start } => u64::try_from(start).ok(),
+            _ => None,
+        };
+        Location {
+            page_index,
+            ..Location::object(self.object())
+        }
+    }
+
     /// Deduplication key: (code, object, a position — byte offset, page index or label
     /// start — and an entry key), so two different problems on one object are both kept.
     const fn key(&self) -> WarningKey {
@@ -528,6 +597,57 @@ mod tests {
     fn codes_lists_the_code_of_every_variant_in_order() {
         let codes: Vec<_> = samples().iter().map(Warning::code).collect();
         assert_eq!(codes, Warning::CODES);
+    }
+
+    #[test]
+    fn every_variant_has_the_kind_codes_json_lists() {
+        crate::test_codes::assert_kinds_match(samples().iter().map(|w| (w.code(), w.kind().as_str())));
+    }
+
+    #[test]
+    fn location_names_the_object_and_the_page_index() {
+        let warning = Warning::InvalidRotate {
+            object: Some(3),
+            page: 2,
+        };
+        assert_eq!(
+            warning.location(),
+            Location {
+                object: Some(3),
+                page_index: Some(2),
+                ..Location::NONE
+            }
+        );
+    }
+
+    #[test]
+    fn location_of_a_content_warning_is_its_object_and_stream_offset() {
+        let warning = Warning::ContentPathUnpainted {
+            object: Some(5),
+            offset: 40,
+        };
+        assert_eq!(
+            warning.location(),
+            Location {
+                object: Some(5),
+                stream_offset: Some(40),
+                ..Location::NONE
+            }
+        );
+    }
+
+    #[test]
+    fn location_of_a_content_warning_without_an_object_is_empty() {
+        let warning = Warning::ContentSyntax {
+            object: None,
+            offset: 40,
+        };
+        assert_eq!(warning.location(), Location::NONE);
+    }
+
+    #[test]
+    fn location_of_an_ignored_xref_stream_is_a_file_offset() {
+        assert_eq!(Warning::XrefStmIgnored { offset: 9 }.location().offset, Some(9));
     }
 
     #[test]

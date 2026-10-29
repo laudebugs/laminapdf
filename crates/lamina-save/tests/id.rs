@@ -9,8 +9,10 @@
 
 mod common;
 
+use common::save::ModeSaves as _;
+
 use common::save::{ID0, corpus_doc, editable, ids, reopen, set_title, two_pages};
-use lamina_save::{Renumber, Save, SaveOptions, XrefKind};
+use lamina_save::{Renumber, SaveOptions, XrefKind};
 
 #[derive(Clone, Copy, Debug)]
 enum How {

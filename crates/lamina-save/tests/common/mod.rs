@@ -17,6 +17,8 @@
 pub mod classic;
 #[path = "../../../lamina-cos/tests/common/content.rs"]
 pub mod content;
+pub mod fuzz_entry;
+pub mod roundtrip;
 pub mod samples;
 pub mod save;
 

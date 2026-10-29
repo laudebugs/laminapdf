@@ -9,6 +9,8 @@
 
 mod common;
 
+use common::save::ModeSaves as _;
+
 use std::sync::Arc;
 use std::sync::atomic::Ordering;
 
@@ -20,7 +22,7 @@ use common::save::{
 use lamina_cos::{ByteSource, Document, ObjRef, Object, OpenOptions};
 use lamina_model::Rotation;
 use lamina_ops::SaveState;
-use lamina_save::{IncrementalOutput, IncrementalWriter, Save, SaveError, SaveMode, SaveOptions, SinkError};
+use lamina_save::{IncrementalOutput, IncrementalWriter, SaveError, SaveMode, SaveOptions, SinkError};
 
 fn save(doc: &mut lamina_ops::Document, options: SaveOptions) -> Vec<u8> {
     let mut out = Vec::new();
@@ -286,20 +288,27 @@ fn a_pending_base_through_save_lists_every_missing_range_and_stays_dirty() {
 }
 
 #[test]
-fn a_repaired_base_is_refused_when_there_is_something_to_append() {
+fn the_writer_refuses_a_repaired_base_when_there_is_something_to_append() {
+    // The planner refuses first (`RequiresRewrite`, tests/planner.rs); the writer checks too.
     let mut doc = corpus_doc("hello-broken.pdf");
     rotate(&mut doc, 0, Rotation::Half);
     let mut out = Vec::new();
+    let result = IncrementalWriter::new(doc.cos(), SaveOptions::new()).write(&mut out);
     assert_eq!(
-        (doc.save_incremental(&mut out, &SaveOptions::new()).err(), out.len()),
+        (result.err(), out.len()),
         (Some(SaveError::Cos(lamina_cos::Error::RepairedBase)), 0)
     );
 }
 
 #[test]
-fn a_clean_repaired_base_saves_unchanged() {
+fn the_writer_copies_a_clean_repaired_base_unchanged() {
     let base = fixture("corpus/hello-broken.pdf");
-    assert_eq!(save(&mut editable(&base), SaveOptions::new()), base);
+    let doc = editable(&base);
+    let mut out = Vec::new();
+    IncrementalWriter::new(doc.cos(), SaveOptions::new())
+        .write(&mut out)
+        .unwrap();
+    assert_eq!(out, base);
 }
 
 #[test]
