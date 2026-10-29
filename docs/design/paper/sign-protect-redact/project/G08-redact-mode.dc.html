@@ -114,7 +114,7 @@ button,input,textarea,select{font:inherit;color:inherit}
 
     <main style="flex: 999 1 560px; min-width: 0; background: #ECE7DE; overflow: auto; display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 24px 16px 32px; box-sizing: border-box">
       <sc-if value="{{preview}}" hint-placeholder-val="{{ false }}">
-        <div role="status" style="display: flex; align-items: center; gap: 10px; padding: 6px 12px; background: #FBF9F5; border: 1px solid #E4DED3; border-radius: 4px; font-size: 13px">Previewing the result. The page is read-only; nothing has been removed yet.<button style="white-space: nowrap; height: 26px; padding: 0 10px; border: 1px solid #8A8174; background: #FFFFFF; border-radius: 4px; font-size: 13px">Stop preview</button></div>
+        <div role="status" style="display: flex; align-items: center; gap: 10px; padding: 6px 12px; background: #FBF9F5; border: 1px solid #E4DED3; border-radius: 4px; font-size: 13px">Previewing what Apply does to the 9 accepted marks; marks to review and the rejected one stay readable. The page is read-only and nothing has been removed yet.<button style="white-space: nowrap; height: 26px; padding: 0 10px; border: 1px solid #8A8174; background: #FFFFFF; border-radius: 4px; font-size: 13px">Stop preview</button></div>
       </sc-if>
       <article aria-label="Page 23" style="width: 100%; max-width: 612px; min-height: 790px; box-sizing: border-box; background: #FFFFFF; box-shadow: 0 1px 2px rgba(60,48,30,0.08), 0 8px 28px rgba(60,48,30,0.10); padding: 56px 56px 36px; display: flex; flex-direction: column; gap: 16px; font-family: 'Source Serif 4', Georgia, serif; color: #262421; font-size: 14px; line-height: 1.6">
         <div style="display: flex; justify-content: space-between; font-family: 'Source Sans 3', system-ui, sans-serif; font-size: 10.5px; letter-spacing: 0.08em; text-transform: uppercase; color: #6E6A64; border-bottom: 1px solid #E6E3DE; padding-bottom: 10px"><span>Northwind Housing Trust</span><span>Q3 Board Report</span></div>
@@ -220,7 +220,7 @@ class Component extends DCLogic {
     var base = 'padding: 0 2px; border-radius: 1px; ';
     var mark = {
       accepted: preview ? base + 'background: #1F1D1A; color: #1F1D1A' : base + 'background: #F1E4E2; outline: 1.5px solid #9B2335',
-      review: preview ? base + 'background: #1F1D1A; color: #1F1D1A' : base + 'background: #F1E4E2; outline: 1.5px dashed #9B2335',
+      review: preview ? '' : base + 'background: #F1E4E2; outline: 1.5px dashed #9B2335',
       rejected: preview ? '' : base + 'outline: 1px dashed #8A8174',
       selected: preview ? base + 'background: #1F1D1A; color: #1F1D1A' : base + 'background: #F1E4E2; outline: 1.5px solid #9B2335; box-shadow: 0 0 0 3.5px #FFFFFF, 0 0 0 5.5px ' + accent
     };
