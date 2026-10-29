@@ -235,7 +235,12 @@ impl<'a> ContentIter<'a> {
                 Step::Keyword(b"ID") => break,
                 Step::End => {
                     self.done = true;
-                    return Ok(Self::issue(IssueKind::InlineImageUnterminated, bi));
+                    self.queue
+                        .push_back(Self::issue(IssueKind::InlineImageUnterminated, bi));
+                    return Ok(self
+                        .queue
+                        .pop_front()
+                        .unwrap_or(Self::issue(IssueKind::InlineImageUnterminated, bi)));
                 }
                 Step::Operand(Object::Name(name)) if key.is_none() => key = Some(name),
                 Step::Operand(value) => {
@@ -260,7 +265,13 @@ impl<'a> ContentIter<'a> {
         let Some((data_end, resume)) = image_end(data, data_start, &dict) else {
             self.done = true;
             self.lexer.set_pos(data.len());
-            return Ok(Self::issue(IssueKind::InlineImageUnterminated, bi));
+            // After the dictionary's own issues, which come first in offset order.
+            self.queue
+                .push_back(Self::issue(IssueKind::InlineImageUnterminated, bi));
+            return Ok(self
+                .queue
+                .pop_front()
+                .unwrap_or(Self::issue(IssueKind::InlineImageUnterminated, bi)));
         };
         self.lexer.set_pos(resume);
         self.queue.push_back(Lexed::Op(Op {
@@ -316,7 +327,10 @@ impl<'a> Iterator for ContentIter<'a> {
                     if operator == Operator::BeginInlineImage {
                         let image = self.inline_image(offset, operands);
                         if image.is_err() {
+                            // A hard limit ends the iteration: issues saved from the image's
+                            // dictionary are dropped with it.
                             self.done = true;
+                            self.queue.clear();
                         }
                         return Some(image);
                     }
@@ -490,6 +504,34 @@ mod tests {
     fn inline_image_heuristic_skips_an_ei_followed_by_binary() {
         let image = first_image(b"BI /F /DCT ID \xff EI \x01\x02 EI Q");
         assert_eq!(image.map(|i| i.data), Some(&b"\xff EI \x01\x02"[..]));
+    }
+
+    fn kinds(content: &[u8]) -> Vec<Option<IssueKind>> {
+        items(content)
+            .into_iter()
+            .map(|item| match item {
+                Lexed::Issue(issue) => Some(issue.kind),
+                Lexed::Op(_) => None,
+            })
+            .collect()
+    }
+
+    #[test]
+    fn dictionary_issues_come_before_an_unterminated_image() {
+        let expected = [Some(IssueKind::Syntax), Some(IssueKind::InlineImageUnterminated)];
+        // No `EI` after the data, and input ending inside the dictionary.
+        assert_eq!(kinds(b"BI /W 1 ) /H 1 ID \x01\x02"), expected);
+        assert_eq!(kinds(b"BI /W 1 ) /H"), expected);
+    }
+
+    #[test]
+    fn a_hard_limit_in_an_image_dictionary_ends_the_iteration() {
+        let limits = Limits::default().with_max_nesting_depth(2);
+        let results: Vec<_> = ContentIter::new(b"BI /W 1 ) /D [[[[1]]]] ID \x01 EI q Q")
+            .with_limits(&limits)
+            .collect();
+        assert!(matches!(results.last(), Some(Err(_))), "{results:?}");
+        assert_eq!(results.iter().filter(|r| r.is_err()).count(), 1);
     }
 
     #[test]
