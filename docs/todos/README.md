@@ -12,13 +12,14 @@ New todos start from [`TEMPLATE.md`](TEMPLATE.md). The workflow is in [git workf
 
 IDs: `A`/`P`/`X` [architecture](../plans/architecture.md) (foundations, publishing, cross-cutting), `B` [library](../plans/pdf-library.md), `L` [shareable libraries](../plans/shareable-libraries.md) (contracts, worker, extraction, CLI, agent docs, mobile), `C` [web reader](../plans/web-app.md), `D` [desktop reader](../plans/desktop-app.md), `U` [UI/UX](../plans/ui-ux.md), `E` [editor](../plans/full-editor.md), `H` hosted service ([full-editor](../plans/full-editor.md)). A letter suffix (`B2a`, `B2b`) splits a round into PRs.
 
-**5 ongoing · 214 ready · 16 done** (235 total).
+**4 ongoing · 214 ready · 17 done** (235 total).
 
 ## Can start now
 
 Ready todos whose dependencies are all done:
 
 - [X3c](ready/X3c-nightly-link-check.md): Nightly external link check of the docs
+- [X6](ready/X6-windows-ci.md): Windows CI coverage
 
 ## Ongoing
 
@@ -26,7 +27,6 @@ Ready todos whose dependencies are all done:
 - [B4a](ongoing/B4a-font-loading-and-subsetting.md): `lamina-text`: font loading, subsetting and Type 0 embedding with ToUnicode
 - [B9a](ongoing/B9a-lamina-content-and-adr-0023.md): ADR 0023 and `lamina-content`: read-only content-stream interpreter
 - [L1c](ongoing/L1c-error-contract-core.md): Error contract in the Rust core: `codes.json` v2 with kinds and hints, tagged locations, no document text in messages
-- [X5](ongoing/X5-linux-ci-container.md): Linux CI on a self-hosted runner in a container on the Mac
 
 ## Architecture — Round A
 
@@ -310,6 +310,6 @@ Ready todos whose dependencies are all done:
 | X3b | [Nightly hayro-vs-PDFium render diffs](ready/X3b-render-diff-nightly.md) | ready | [C2b](ready/C2b-lamina-render-crate.md), [X3a](done/X3a-nightly-lane.md) |
 | X3c | [Nightly external link check of the docs](ready/X3c-nightly-link-check.md) | ready | [X3a](done/X3a-nightly-lane.md) |
 | X4 | [Full PR lane with an always-running gate job](done/X4-full-lane-gate.md) | done | [B2c](done/B2c-lamina-model-corpus-fuzz.md) |
-| X5 | [Linux CI on a self-hosted runner in a container on the Mac](ongoing/X5-linux-ci-container.md) | ongoing | [X4](done/X4-full-lane-gate.md) |
-| X6 | [Windows CI coverage](ready/X6-windows-ci.md) | ready | [X5](ongoing/X5-linux-ci-container.md) |
+| X5 | [Linux CI on a self-hosted runner in a container on the Mac](done/X5-linux-ci-container.md) | done | [X4](done/X4-full-lane-gate.md) |
+| X6 | [Windows CI coverage](ready/X6-windows-ci.md) | ready | [X5](done/X5-linux-ci-container.md) |
 
