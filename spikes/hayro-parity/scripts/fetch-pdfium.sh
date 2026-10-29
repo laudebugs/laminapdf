@@ -20,5 +20,5 @@ if [ ! -f "$TGZ" ]; then
 fi
 echo "$SHA  $TGZ" | shasum -a 256 -c -
 # Extract only the library and the licence files; nothing from the archive is executed.
-tar -xzf "$TGZ" -C pdfium lib LICENSE VERSION 2>/dev/null || tar -xzf "$TGZ" -C pdfium
+tar -xzf "$TGZ" -C pdfium lib licenses LICENSE VERSION
 ls pdfium/lib

@@ -24,7 +24,8 @@ lamina is a platform for anything and everything PDF: creating PDFs from code, p
 ├── .github/             # CI fast lane (workflows/ci.yml) and Dependabot
 ├── spikes/              # research spikes (throwaway code that informs decisions), outside both workspaces
 │   ├── pdf-basics/      # minimal PDF core in Rust + TypeScript, its own frozen fixtures and spec (ported to crates/)
-│   └── krilla-fit/      # Round B1: can krilla generate into lamina's object graph? (answer + measurements in its README)
+│   ├── krilla-fit/      # Round B1: can krilla generate into lamina's object graph? (answer + measurements in its README)
+│   └── hayro-parity/    # Round C1a: hayro vs PDFium render parity on the pdf.js and PDFBox corpora (baseline in its README)
 └── docs/                # all documentation (see docs/README.md)
     ├── research/        # deep dives and research notes, one subfolder per topic
     ├── plans/           # roadmaps and feature design docs (each links to its todos)
@@ -90,6 +91,8 @@ Every crate under `crates/` declares its layer in `Cargo.toml` (`[package.metada
 Research spikes (`spikes/`) are throwaway-quality APIs used to inform decisions, not the product. They are outside both workspaces; CI still runs the pdf-basics spike's checks in a separate job.
 
 `spikes/krilla-fit/` — krilla vs a builder over `lamina-cos` (Round B1); standalone, not in CI: `scripts/fetch-font.sh` once, then `cargo run --release` prints the measurements (see its README).
+
+`spikes/hayro-parity/` — hayro vs PDFium render parity (Round C1a); standalone, not in CI: `scripts/fetch-pdfium.sh && scripts/fetch-corpora.sh` once (downloads into gitignored folders), then `cargo run --release` writes `out/dpi96/results.csv` and `summary.md` (see its README).
 
 `spikes/pdf-basics/` — the same minimal PDF core in Rust and TypeScript (see its `SPEC.md`):
 

@@ -55,7 +55,7 @@ pub struct HayroDoc {
 
 impl HayroDoc {
     pub fn load(bytes: Vec<u8>) -> Result<Self> {
-        let pdf = Pdf::new(bytes).map_err(|e| anyhow!("load: {e:?}"))?;
+        let pdf = Pdf::new(bytes).map_err(|e| anyhow!("{e:?}"))?;
         let warnings = Arc::new(Mutex::new(Vec::new()));
         let sink = Arc::clone(&warnings);
         let settings = InterpreterSettings {
@@ -135,7 +135,7 @@ impl<'a> PdfiumDoc<'a> {
     pub fn load(pdfium: &'a Pdfium, bytes: &'a [u8]) -> Result<Self> {
         let doc = pdfium
             .load_pdf_from_byte_slice(bytes, None)
-            .map_err(|e| anyhow!("load: {e:?}"))?;
+            .map_err(|e| anyhow!("{e:?}"))?;
         Ok(Self { doc })
     }
 
