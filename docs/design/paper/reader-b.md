@@ -204,8 +204,6 @@ Reader settings are global and stored locally.
 
 **Layout.** Top bar and status bar stay, because the status bar carries the network indicator and notices. The rail and the secondary toolbar (here Comment’s) are hidden. The mode switcher stays, so the active mode is still visible. The status bar gains a **Focus mode** item (focus icon, “Focus mode · leave with `Ctrl \`”) that leaves focus mode when pressed.
 
-**Content and controls.** Top bar as in F01 Comment mode (sidebar toggle unpressed, “1 unsaved change”, mode switcher, page 3 / 24, zoom 125%, View settings, Find, Commands `Ctrl K`, Save, More). Canvas with page 3 at the wider fit the hidden rail frees. Docked inspector: Highlight, the quote, colour swatches, author R. Osei, note “Ask for the 90-day list by region.”, created time, Reply and Delete highlight (`comment.reply`, `comment.delete`). Status bar: network indicator (`privacy.network-activity`), the **Focus mode** item (`view.focus-mode`, chip `Ctrl \`), page label. A visually hidden polite live region carries the on/off announcement.
-
 **States.** Drawn: Comment mode with a highlight selected. The inspector is docked as usual (colour, author, note, created, Reply / Delete highlight), the highlight has its 2 px focus outline, and the top bar shows “1 unsaved change” and Save. *Nothing selected* (not drawn): the canvas spans the full width between the top and status bars.
 
 **Behaviour.** Selecting opens the inspector, and deselecting closes it while focus mode stays on. Escape closes the innermost layer first: mini toolbar, then dialog, then selection, then focus mode. Mode switches keep focus mode on. The setting is per window, not stored, so it is off on the next open.
@@ -214,7 +212,7 @@ Reader settings are global and stored locally.
 
 **Platform differences.** Desktop: also in View › Focus mode, and the window can additionally go full screen with the OS control. Phone: not applicable (the phone shell is already minimal). Tablet: the same, using the tablet top bar.
 
-**Artboards.** `R16-focus-mode.dc.html` (prop `showInspector` off gives the nothing-selected state).
+**Artboards.** `R16-focus-mode.dc.html`.
 
 **Todos.** [U1c](../../todos/ready/U1c-inverted-l-shell-and-modes.md).
 
@@ -231,13 +229,6 @@ Reader settings are global and stored locally.
 - **Page:** fitted to the width (880 px).
 - **Status bar:** 44 px.
 
-**Content and controls.**
-
-- *Top bar:* Back to files, Sidebar (`view.toggle-sidebar`, `aria-expanded`), file name over the save state, the five modes, Find (`find.open`), View settings (`view.settings`), Save (only with changes), More.
-- *Comment toolbar:* Highlight (`comment.highlight`, pressed), Underline (`comment.underline`), Note (`comment.note`), Ink (`comment.ink`), four colour swatches in 44 px buttons (`role="group"` “Colour”), the pen/finger hint.
-- *Contents sheet:* grabber (`Resize sheet`), title “Contents” with “24 pages”, close, tabs Pages · Outline · Bookmarks (`view.show-pages`, `view.show-outline`), outline rows with expand/collapse buttons (`view.expand-outline`, `view.collapse-outline`) and links (`nav.go-to-outline-item`).
-- *Status bar:* network indicator and page label as 44 px targets.
-
 **States.**
 
 - *Comment mode, pen hovering* (R17-tablet). With a hover-capable pen (`pointerType: "pen"`, no buttons pressed), a 2 px accent caret and a 14 px ring show where the highlight would start. Nothing is drawn until the tip touches, and the preview disappears when the pen leaves. Fingers keep pan, pinch and double-tap. The focus ring is on the status-bar network item.
@@ -250,7 +241,7 @@ Reader settings are global and stored locally.
 
 **Platform differences.** iPadOS: Apple Pencil hover needs M2-or-later iPads, and other pens skip the preview. Android tablets: stylus hover works where the device reports it. Both use the system selection handles.
 
-**Artboards.** `R17-tablet.dc.html` (prop `penHover` toggles the preview), `R17-tablet-sheet.dc.html`. The outline’s second level under section 2 (“Open repairs by region” p. 3, “Oldest cases by region” p. 4) and the collapsed children of sections 3 and 4 are invented sample content.
+**Artboards.** `R17-tablet.dc.html`, `R17-tablet-sheet.dc.html`.
 
 **Todos.** [U3a](../../todos/ready/U3a-responsive-mobile-and-touch.md).
 
@@ -280,15 +271,13 @@ Reader settings are global and stored locally.
 
   The focus ring is drawn on the first row. More is active in the bottom bar.
 
-**Content and controls.** Outline: `view.show-pages`, `view.show-outline`, `view.expand-outline`, `view.collapse-outline`, `nav.go-to-outline-item`. Find: `find.open`, `find.match-case`, `find.whole-words`, `find.previous`, `find.next`, `find.close` (Done); “All results” opens the results list sheet. More: `view.settings`, `privacy.network-activity`, `file.properties`, `file.print`, `file.save-copy` (Download a copy), `app.install` (Add to home screen…), Privacy and help (opens the privacy page; no command id yet). None of these has a shortcut chip on the phone.
-
 **Behaviour.** Sheets keep the page visible above the medium detent. Escape, the close button, swiping down or tapping the active bottom-bar button closes a sheet. Find’s Done restores the top and bottom bars and clears the highlights but keeps the query for next time.
 
 **Accessibility.** Sheets are modal dialogs with labelled titles and a focus trap, and the grabber is a button (2.5.7). The find count lives in the field’s description and in a polite live region. Matches are told apart by lightness and outline as well as hue. Menu rows have visible labels, so no extra names are needed.
 
 **Platform differences.** iOS Safari: the find field uses 16 px text so the page doesn’t zoom, and the OS keyboard covers the results bar, which then rides above the keyboard. Android: the system back gesture closes the sheet or find first.
 
-**Artboards.** `R18-outline-phone.dc.html` (prop `emptyOutline` shows the empty state), `R18-find-phone.dc.html` (prop `noMatch` shows the no-match state with the help line), `R18-more-phone.dc.html` (page in Sepia, matching the View settings value) (+ `R10-view-settings-phone.dc.html`). On the find board the last sentence of page 3’s third paragraph (“…so that the backlog of damp and mould work falls before winter”) is added sample text so the page carries a second, non-current match.
+**Artboards.** `R18-outline-phone.dc.html`, `R18-find-phone.dc.html`, `R18-more-phone.dc.html` (+ `R10-view-settings-phone.dc.html`).
 
 **Todos.** [U3a](../../todos/ready/U3a-responsive-mobile-and-touch.md).
 
@@ -325,17 +314,3 @@ New icons (24 grid, stroke 1.5), proposed for design-language §5:
 | Properties (info) | `<circle cx="12" cy="12" r="8"></circle><path d="M12 11v5M12 8v.5"></path>` |
 | Chevron up | `<path d="M7 14l5-5 5 5"></path>` |
 | Add to home screen | `<rect x="7" y="3.5" width="10" height="17" rx="2"></rect><path d="M12 7.5v6M9.5 11l2.5 2.5 2.5-2.5"></path>` |
-| Help (question) | `<circle cx="12" cy="12" r="8"></circle><path d="M9.8 9.5a2.3 2.3 0 1 1 3.2 2.1c-.6.3-1 .8-1 1.4v.5M12 16.5v.5"></path>` |
-| Chevron right | `<path d="M10 7l5 5-5 5"></path>` |
-
-## Proposed design-language additions
-
-Parts these boards use that the design language does not yet define (none edits design-language.md; the owner decides):
-
-- **Everything in [New components](#new-components)** above, and its icon table, is proposed for §7 and §5.
-- **Touch shell sizes for tablet** (§6.2 “Tablet”, R17): top bar 56 px with 44 × 44 icon buttons and 56 px mode buttons (padding `2px 10px 0`), secondary toolbar 56 px with 44 px tool toggles (padding `0 14px`, radius 6, 20 px icons, 14 px labels), status bar 44 px with 13 px items, page fitted to 880 px with 72 px gutters. Zoom controls and the Commands button leave the top bar on touch.
-- **Swatch inside a touch target** (R17): the 26 px swatch sits centred in a 44 × 44 button; the selected ring is a `box-shadow` (2 px `surface` gap, 2 px `text`) so it doesn’t change the layout.
-- **Outline row with toggle, touch** (R17, R18): extends §7.7 to 48 px rows: a 44 px chevron button (`aria-expanded`, label “Expand/Collapse <section>”) or a 44 px spacer, then the link (Newsreader 17, level 2 at 16 with 20–28 px indent), page number 13 `muted`. The current row’s tint covers the whole row, button included.
-- **Contents sheet** (R17, R18): §7.16 sheet whose header is followed by full-width 44 px tabs (15 px; selected 600 with a 2 px `accent` underline) over a hairline. On tablet it spans the width and stops at the status bar.
-- **Results toolbar** (R18): replaces the bottom bar while find is open; count 15/600 tabular over a 12 px `muted` location line in a polite live region, text link “All results”, 44 px secondary Previous / Next.
-- **Status-bar mode item focus** (R16): status items keep the 2 px `focus` outline with a 1 px offset and radius 4.
