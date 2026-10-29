@@ -227,8 +227,11 @@ impl Document {
     /// # Errors
     /// [`Error::NoTransaction`].
     pub fn commit(&mut self) -> Result<Applied> {
+        let mark = self.open.as_ref().ok_or(Error::NoTransaction)?.mark;
+        // Close the transaction only once its changes are taken, so a failure leaves it
+        // open (and still rollback-able) instead of applied but on no stack.
+        let changes = self.model.cos_mut().take_changes(mark)?;
         let state = self.open.take().ok_or(Error::NoTransaction)?;
-        let changes = self.model.cos_mut().take_changes(state.mark)?;
         let undo = UndoRecord::from_changes(&changes);
         if !undo.is_empty() {
             if state.origin == Origin::Local {
@@ -327,6 +330,8 @@ impl Document {
                 return Err(e);
             }
         };
+        // `mark` was taken above under this `&mut self` with nothing in between that drains
+        // the journal, so it cannot be stale and this cannot fail after `revert` applied.
         let record = UndoRecord::from_changes(&cos.take_changes(mark)?);
         // Even an undo or redo that restored nothing ends coalescing.
         self.history.break_chain();
