@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [pdf-library §7 B4](../../plans/pdf-library.md#b4-fonts-and-text), requirement [§4 F2](../../plans/pdf-library.md#functional) |
 | Round / milestone | Round B (library) — M1 |
-| Depends on | [B1b](../done/B1b-krilla-fit-spike.md), [B3b](./B3b-lamina-save-writers.md), [X4](../ongoing/X4-full-lane-gate.md) |
+| Depends on | [B1b](../done/B1b-krilla-fit-spike.md), [B3b](../ongoing/B3b-lamina-save-writers.md), [X4](../ongoing/X4-full-lane-gate.md) |
 | Blocks | [B4b](./B4b-shaping-bidi-line-breaking.md), [B4c](./B4c-standard-14-and-simple-fonts.md), [B9b](./B9b-text-extraction-core.md) |
 | ADRs | Follows [0005 §6](../../decisions/0005-document-model.md#6-generation-strategy--option-b-recommended-by-the-krilla-fit-spike-accepted-when-its-pr-merges) (own builder; `skrifa`, `subsetter`; reserve-then-fill objects), [0001](../../decisions/0001-core-language-and-licence.md) (caller supplies bytes, determinism), [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) |
 | Branch | `feat/b4a-font-embedding` |
