@@ -41,6 +41,7 @@ button,input,textarea,select{font:inherit;color:inherit}
       <h2 id="gates-h" style="margin: 0; font-family: 'Newsreader', Georgia, serif; font-size: 30px; font-weight: 400">Release gates</h2>
       <div style="overflow-x: auto">
         <table style="width: 100%; min-width: 760px; border-collapse: collapse; font-size: 15px; font-variant-numeric: tabular-nums">
+          <caption style="text-align: left; padding-bottom: 10px; font-size: 13px; color: #6B645A">What each release must reach, and lamina’s result. Lower is better in every column.</caption>
           <thead><tr style="text-align: left; font-size: 13px; color: #6B645A"><th scope="col" style="font-weight: 400; padding: 0 16px 10px 0; border-bottom: 1px solid #E4DED3">Measure</th><th scope="col" style="font-weight: 400; padding: 0 16px 10px; border-bottom: 1px solid #E4DED3">Gate</th><th scope="col" style="font-weight: 400; padding: 0 16px 10px; border-bottom: 1px solid #E4DED3">Stretch goal</th><th scope="col" style="font-weight: 400; padding: 0 0 10px 16px; border-bottom: 1px solid #E4DED3">lamina [VERSION]</th></tr></thead>
           <tbody>
             <tr><th scope="row" style="text-align: left; font-weight: 400; padding: 12px 16px 12px 0; border-bottom: 1px solid #E4DED3">Web: first page of a 10-page, 1 MB PDF, warm cache</th><td style="padding: 12px 16px; border-bottom: 1px solid #E4DED3">≤ 700 ms</td><td style="padding: 12px 16px; border-bottom: 1px solid #E4DED3">≤ 500 ms for a 10 MB PDF</td><td style="padding: 12px 0 12px 16px; border-bottom: 1px solid #E4DED3">[n ms]</td></tr>
@@ -113,7 +114,7 @@ button,input,textarea,select{font:inherit;color:inherit}
   </footer>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#1F5C63","options":["#1F5C63","#2D4A6B","#5B3B6B","#495533"]},"$preview":{"width":1440,"height":1500}}'>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#1F5C63","options":["#1F5C63","#2D4A6B","#5B3B6B","#495533"]},"$preview":{"width":1440,"height":1660}}'>
 class Component extends DCLogic {
   renderVals() {
     var accent = this.props.accent ?? '#1F5C63';

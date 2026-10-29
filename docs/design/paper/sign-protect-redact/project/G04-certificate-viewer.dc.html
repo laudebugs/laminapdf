@@ -54,9 +54,9 @@ button,input,textarea{font:inherit;color:inherit}
     </div>
   </header>
   <div style="flex: 1 1 auto; min-height: 0; display: flex; overflow: hidden">
-    <aside style="flex: 0 0 220px; border-right: 1px solid #E4DED3; display: flex; flex-direction: column; gap: 12px; padding: 56px 18px">
+    <aside aria-hidden="true" style="flex: 0 0 220px; box-sizing: border-box; border-right: 1px solid #E4DED3; display: flex; flex-direction: column; gap: 12px; padding: 56px 18px">
       <span style="height: 70px; background: #FBF9F5; border: 1px solid #E4DED3; border-radius: 4px"></span>
-      <span style="height: 70px; background: {{accentTint}}; border: 1px solid #1F5C63; border-radius: 4px"></span>
+      <span style="height: 70px; background: {{accentTint}}; border: 1px solid {{accent}}; border-radius: 4px"></span>
     </aside>
     <main style="flex: 1 1 auto; min-height: 0; overflow: hidden; background: #ECE7DE; display: flex; justify-content: center; padding: 32px 16px">
       <div style="width: 100%; max-width: 612px; min-height: 790px; background: #FFFFFF; box-shadow: 0 1px 2px rgba(60,48,30,0.08), 0 8px 28px rgba(60,48,30,0.10); padding: 56px 64px; box-sizing: border-box; display: flex; flex-direction: column; gap: 14px">
@@ -110,7 +110,7 @@ button,input,textarea{font:inherit;color:inherit}
         <dt style="font-weight: 600; color: #4A453E">Valid</dt><dd style="margin: 0; font-variant-numeric: tabular-nums">2 Sep 2026 to 2 Sep 2027 · valid when signed</dd>
         <dt style="font-weight: 600; color: #4A453E">Allowed uses</dt><dd style="margin: 0">Digital signature</dd>
         <dt style="font-weight: 600; color: #4A453E">Key</dt><dd style="margin: 0">ECDSA P-256 with SHA-256</dd>
-        <dt style="font-weight: 600; color: #4A453E">Fingerprint</dt><dd style="margin: 0; font-family: ui-monospace, 'SF Mono', Menlo, monospace; font-size: 12px; word-break: break-all">9C:41:7E:0B:D2:58:13:A6:4F:90:2C:E7:51:B8:06:3D:7A:C4:19:E2:85:F0:6B:3E:D9:22:47:AC:10:5F:8B:E3</dd>
+        <dt style="font-weight: 600; color: #4A453E">Fingerprint</dt><dd style="margin: 0; font-family: ui-monospace, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace; font-size: 12.5px; line-height: 1.6; word-break: break-all">9C:41:7E:0B:D2:58:13:A6:4F:90:2C:E7:51:B8:06:3D:7A:C4:19:E2:85:F0:6B:3E:D9:22:47:AC:10:5F:8B:E3</dd>
       </dl>
 
       <p style="margin: 0; font-size: 13px; color: #4A453E">Only trust it if you have checked the fingerprint with Daniel Reyes by another route, such as a phone call.</p>

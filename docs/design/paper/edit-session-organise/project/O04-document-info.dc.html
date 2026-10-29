@@ -103,8 +103,8 @@ button,input,textarea{font:inherit;color:inherit}
     <span style="font-variant-numeric: tabular-nums; white-space: nowrap">Page 1 · Chair’s summary</span>
   </footer>
 
-  <div style="position: absolute; left: 0; right: 0; top: 30px; bottom: 0; z-index: 50; background: rgba(31,29,26,0.30); display: flex; justify-content: center; align-items: flex-start; padding: 28px 16px; box-sizing: border-box; overflow: auto">
-    <div role="dialog" aria-modal="true" aria-labelledby="o4-t" style="width: 100%; max-width: 560px; box-sizing: border-box; display: flex; flex-direction: column; background: #FBF9F5; border: 1px solid #D8D1C5; border-radius: 6px; box-shadow: 0 18px 48px rgba(31,29,26,0.22)">
+  <div style="position: absolute; left: 0; right: 0; top: 30px; bottom: 0; z-index: 50; background: rgba(31,29,26,0.30); display: flex; justify-content: center; align-items: flex-start; padding: 16px; box-sizing: border-box; overflow: hidden">
+    <div role="dialog" aria-modal="true" aria-labelledby="o4-t" style="width: 100%; max-width: 560px; max-height: 100%; box-sizing: border-box; display: flex; flex-direction: column; background: #FBF9F5; border: 1px solid #D8D1C5; border-radius: 6px; box-shadow: 0 18px 48px rgba(31,29,26,0.22)">
       <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; padding: 20px 20px 0 24px">
         <div style="display: flex; flex-direction: column; gap: 2px">
           <h2 id="o4-t" style="margin: 0; font-family: 'Newsreader', Georgia, serif; font-size: 20px; font-weight: 500; line-height: 1.2">Document properties</h2>
@@ -117,7 +117,7 @@ button,input,textarea{font:inherit;color:inherit}
         <button role="tab" aria-selected="false" style="border: 0; background: transparent; padding: 0 0 8px; font-size: 13px; color: #6B645A; border-bottom: 2px solid transparent">XMP</button>
         <button role="tab" aria-selected="false" style="border: 0; background: transparent; padding: 0 0 8px; font-size: 13px; color: #6B645A; border-bottom: 2px solid transparent">File</button>
       </div>
-      <div id="o4-desc" role="tabpanel" style="display: flex; flex-direction: column; gap: 16px; padding: 20px 24px">
+      <div id="o4-desc" role="tabpanel" tabindex="0" style="flex: 1 1 auto; min-height: 0; overflow: auto; display: flex; flex-direction: column; gap: 16px; padding: 20px 24px">
         <div style="display: flex; flex-direction: column; gap: 8px">
           <label for="o4-title" style="font-size: 12px; font-weight: 600; color: #4A453E">Title</label>
           <input id="o4-title" value="Q3 Board Report" style="height: 32px; box-sizing: border-box; padding: 0 10px; border: 1px solid #8A8174; border-radius: 4px; background: #FFFFFF; outline: 2px solid {{accent}}; outline-offset: 1px">

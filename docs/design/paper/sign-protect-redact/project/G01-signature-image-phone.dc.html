@@ -53,16 +53,16 @@ label:has(input:focus-visible) [data-box]{outline:2px solid var(--accent,#1F5C63
       </div>
       <div role="radiogroup" aria-label="Style" style="display: flex; flex-direction: column; gap: 8px">
         <span aria-hidden="true" style="font-size: 12px; font-weight: 600; color: #4A453E">Style</span>
-        <button role="radio" aria-checked="true" style="min-height: 64px; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 0 14px; border: 1px solid {{accent}}; background: {{accentTint}}; border-radius: 4px; text-align: left">
+        <label style="position: relative; box-sizing: border-box; min-height: 64px; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 0 14px; border: 1px solid {{accent}}; background: {{accentTint}}; border-radius: 4px; text-align: left"><input type="radio" name="sty" aria-label="Handwriting style: Amara Okafor" checked style="position: absolute; width: 1px; height: 1px; opacity: 0; margin: 0">
           <span style="font-family: 'Caveat', cursive; font-size: 32px; font-weight: 500; color: #1F2F5C">Amara Okafor</span>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="{{accent}}" stroke-width="2" aria-hidden="true"><path d="M6 12.5l4 4 8-9"></path></svg>
-        </button>
-        <button role="radio" aria-checked="false" style="min-height: 64px; display: flex; align-items: center; padding: 0 14px; border: 1px solid #8A8174; background: #FFFFFF; border-radius: 4px; text-align: left">
+        </label>
+        <label style="position: relative; box-sizing: border-box; min-height: 64px; display: flex; align-items: center; padding: 0 14px; border: 1px solid #8A8174; background: #FFFFFF; border-radius: 4px; text-align: left"><input type="radio" name="sty" aria-label="Italic style: Amara Okafor" style="position: absolute; width: 1px; height: 1px; opacity: 0; margin: 0">
           <span style="font-family: 'Newsreader', Georgia, serif; font-style: italic; font-size: 26px; color: #1F2F5C">Amara Okafor</span>
-        </button>
-        <button role="radio" aria-checked="false" style="min-height: 64px; display: flex; align-items: center; padding: 0 14px; border: 1px solid #8A8174; background: #FFFFFF; border-radius: 4px; text-align: left">
+        </label>
+        <label style="position: relative; box-sizing: border-box; min-height: 64px; display: flex; align-items: center; padding: 0 14px; border: 1px solid #8A8174; background: #FFFFFF; border-radius: 4px; text-align: left"><input type="radio" name="sty" aria-label="Spaced initials: A. Okafor" style="position: absolute; width: 1px; height: 1px; opacity: 0; margin: 0">
           <span style="font-family: 'Newsreader', Georgia, serif; font-size: 22px; letter-spacing: 0.04em; color: #1F2F5C">A. Okafor</span>
-        </button>
+        </label>
       </div>
       <label style="display: flex; align-items: center; gap: 12px; min-height: 44px; font-size: 15px">
         <input type="checkbox" checked style="position: absolute; width: 1px; height: 1px; opacity: 0; margin: 0"><span data-box="1" aria-hidden="true" style="flex: 0 0 auto; width: 20px; height: 20px; margin: 0; box-sizing: border-box; display: flex; align-items: center; justify-content: center; border-radius: 3px; border: 1px solid {{accent}}; background: {{accent}}; color: #FFFFFF"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 12.5l4 4 8-9"></path></svg></span>Keep in my signatures on this device
