@@ -354,13 +354,11 @@ pub fn incremental_update(base: &Document, changes: &[(ObjRef, Object)], eol: Xr
         out.extend_from_slice(b"\nendobj\n");
     }
 
-    let old = doc.trailer();
-    let next_free = |max: Option<u32>| max.map_or(0, |n| i64::from(n) + 1);
-    let size = old
-        .get_int("Size")
-        .unwrap_or(0)
-        .max(next_free(doc.max_object_number()))
-        .max(next_free(by_num.keys().next_back().copied()));
+    // The base's trailer: an overlay trailer may name objects this update does not write.
+    let old = doc.base_trailer();
+    let size = doc
+        .size_floor()
+        .max(by_num.keys().next_back().map_or(0, |&n| i64::from(n) + 1));
     let prev = i64::try_from(prev).unwrap_or(i64::MAX);
     if doc.newest_section_is_stream() {
         append_xref_stream(&mut out, old, &offsets, size, prev)?;

@@ -6,7 +6,7 @@ mod common;
 use common::{classic, corpus, inherited_rotate, open, page_ids, rotations, snapshot, title};
 use lamina_cos::{Object, OverlayEntry};
 use lamina_model::{PageId, PdfDate, Rotation};
-use lamina_ops::{Error, InfoPatch, ModificationClass, Op, Origin, RotatePage, SetInfo};
+use lamina_ops::{Error, Field, InfoPatch, ModificationClass, Op, Origin, RotatePage, SetInfo};
 
 fn set_info(patch: InfoPatch) -> Op {
     SetInfo::new(patch, None).into()
@@ -234,6 +234,105 @@ mod rotate_page {
     }
 }
 
+mod review_fixes {
+    use super::*;
+
+    #[test]
+    fn rotate_page_fixes_an_invalid_rotate_in_strict_mode() {
+        let bytes = classic(
+            &[
+                "<< /Type /Catalog /Pages 2 0 R >>",
+                "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+                "<< /Type /Page /Parent 2 0 R /Rotate 45 >>",
+            ],
+            "",
+        );
+        let mut doc = lamina_ops::Document::open(bytes, lamina_cos::OpenOptions::default().with_strict(true)).unwrap();
+        let page: PageId = "p3.0".parse().unwrap();
+        doc.apply_all(Origin::Local, [RotatePage::new(page, Rotation::Clockwise90).into()])
+            .unwrap();
+        assert_eq!(rotations(&doc), [Rotation::Clockwise90]);
+    }
+
+    #[test]
+    fn rotate_page_does_not_warn_about_the_value_it_replaces() {
+        let mut doc = open(&classic(
+            &[
+                "<< /Type /Catalog /Pages 2 0 R >>",
+                "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+                "<< /Type /Page /Parent 2 0 R /Rotate 45 >>",
+            ],
+            "",
+        ));
+        let page: PageId = "p3.0".parse().unwrap();
+        doc.apply_all(Origin::Local, [RotatePage::new(page, Rotation::Half).into()])
+            .unwrap();
+        assert_eq!(doc.warnings(), []);
+    }
+
+    #[test]
+    fn rotate_page_refuses_an_object_that_is_not_a_page() {
+        let mut doc = corpus("hello.pdf");
+        let not_a_page: PageId = "p1.0".parse().unwrap();
+        let err = doc
+            .apply_all(
+                Origin::Local,
+                [RotatePage::new(not_a_page.clone(), Rotation::Half).into()],
+            )
+            .unwrap_err();
+        assert_eq!(err, Error::UnknownPage(not_a_page));
+    }
+
+    #[test]
+    fn rotate_page_refuses_a_page_object_outside_the_tree() {
+        let mut doc = open(&classic(
+            &[
+                "<< /Type /Catalog /Pages 2 0 R >>",
+                "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+                "<< /Type /Page /Parent 2 0 R >>",
+                "<< /Type /Page /Parent 2 0 R >>",
+            ],
+            "",
+        ));
+        let orphan: PageId = "p4.0".parse().unwrap();
+        let err = doc
+            .apply_all(Origin::Local, [RotatePage::new(orphan.clone(), Rotation::Half).into()])
+            .unwrap_err();
+        assert_eq!(err, Error::UnknownPage(orphan));
+    }
+
+    #[test]
+    fn rotate_page_finds_a_page_whose_parent_entry_is_wrong() {
+        let mut doc = open(&classic(
+            &[
+                "<< /Type /Catalog /Pages 2 0 R >>",
+                "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+                "<< /Type /Page /Parent 1 0 R >>",
+            ],
+            "",
+        ));
+        let page: PageId = "p3.0".parse().unwrap();
+        doc.apply_all(Origin::Local, [RotatePage::new(page, Rotation::Half).into()])
+            .unwrap();
+        assert_eq!(rotations(&doc), [Rotation::Half]);
+    }
+
+    #[test]
+    fn set_info_replaces_an_info_object_that_does_not_parse() {
+        let mut doc = open(&classic(
+            &[
+                "<< /Type /Catalog /Pages 2 0 R >>",
+                "<< /Type /Pages /Kids [] /Count 0 >>",
+                "<< /Title ( >>",
+            ],
+            "/Info 3 0 R",
+        ));
+        doc.apply_all(Origin::Local, [set_info(InfoPatch::new().title(Some("Fixed")))])
+            .unwrap();
+        assert_eq!(title(&doc).as_deref(), Some("Fixed"));
+    }
+}
+
 mod transactions {
     use super::*;
 
@@ -374,8 +473,8 @@ mod transactions {
                 [set_info(InfoPatch::new().title(Some("A")).author(None))],
             )
             .unwrap();
-        let keys: Vec<_> = applied.undo.properties().map(|p| p.key.cloned()).collect();
-        assert_eq!(keys, [Some("Title".into()), Some("Author".into())]);
+        let keys: Vec<_> = applied.undo.properties().map(|p| p.field).collect();
+        assert_eq!(keys, [Field::Key("Title".into()), Field::Key("Author".into())]);
     }
 
     #[test]

@@ -76,7 +76,6 @@ impl serde::Serialize for BlobId {
 
 impl<'de> serde::Deserialize<'de> for BlobId {
     fn deserialize<D: serde::Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
-        let s = String::deserialize(d)?;
-        s.parse().map_err(serde::de::Error::custom)
+        crate::wire::parse(d)
     }
 }

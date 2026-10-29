@@ -145,7 +145,9 @@ pub fn decode_text_string(bytes: &[u8]) -> String {
 /// Encodes `text` as a PDF text string (§7.9.2.2), the inverse of [`decode_text_string`]:
 /// `PDFDocEncoding` when every character has a code, else UTF-16BE with a `FE FF` byte
 /// order mark. PDFDocEncoding output that would start with a byte order mark (`þÿ`, `ï»¿`)
-/// is written as UTF-16BE too, so it never decodes as something else.
+/// is written as UTF-16BE too, so it never decodes as something else. U+001B (ESC) is
+/// written as U+FFFD: in UTF-16BE it brackets a language code (§7.9.2.2.1), so a literal
+/// ESC could make a reader drop the text after it.
 ///
 /// ```
 /// use lamina_syntax::text::{decode_text_string, encode_text_string};
@@ -156,6 +158,9 @@ pub fn decode_text_string(bytes: &[u8]) -> String {
 /// ```
 #[must_use]
 pub fn encode_text_string(text: &str) -> Vec<u8> {
+    if text.contains(ESCAPE) {
+        return encode_text_string(&text.replace(ESCAPE, "\u{FFFD}"));
+    }
     let pdf_doc: Option<Vec<u8>> = text.chars().map(pdf_doc_encode).collect();
     match pdf_doc {
         Some(bytes) if !bytes.starts_with(b"\xFE\xFF") && !bytes.starts_with(b"\xEF\xBB\xBF") => bytes,
@@ -386,6 +391,12 @@ mod tests {
         ] {
             assert_eq!(decode_text_string(&encode_text_string(text)), text, "{text:?}");
         }
+    }
+
+    #[test]
+    fn encode_text_string_never_writes_a_language_escape() {
+        let text = "a\u{1B}en\u{1B}b";
+        assert_eq!(decode_text_string(&encode_text_string(text)), "a\u{FFFD}en\u{FFFD}b");
     }
 
     #[test]

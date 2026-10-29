@@ -66,9 +66,9 @@ Hand-written samples of the op JSON format, version 1, read by `crates/lamina-op
 
 | File | Exercises |
 | --- | --- |
-| `set-info.json` | One `setInfo` op: set, clear (`null`) and a UTF-16-only value, with `at` as a PDF date |
+| `set-info.json` | One `setInfo` op: set, clear (`null`, `/Author` of `corpus/outline.pdf`) and a UTF-16-only value, with `at` as a PDF date |
 | `rotate-page.json` | One `rotatePage` op on `p3.0` (the page of `corpus/hello.pdf`) |
-| `envelope.json` | The `{ "v": 1, "ops": [ … ] }` envelope with both ops, applied as one transaction |
+| `envelope.json` | The `{ "v": 1, "ops": [ … ] }` envelope with both ops (`p4.0`, `/Producer` cleared, `at` with a UTC offset), applied to `corpus/outline.pdf` as one transaction |
 
 ### `encrypted/`
 

@@ -3,7 +3,8 @@
 //! no Info dictionary and with inherited `/Rotate`. Undoing everything leaves the overlay
 //! empty; redoing everything gives the same overlay as before the undo.
 //!
-//! The seed is fixed (printed on every run) so failures reproduce; proptest still shrinks.
+//! The seed is fixed (`SEED`, also printed to stderr, which the test harness shows for a
+//! failing test) so failures reproduce; proptest still shrinks.
 #![expect(clippy::unwrap_used, reason = "tests: a panic is a test failure")]
 
 mod common;
@@ -51,11 +52,7 @@ fn recipe() -> impl Strategy<Value = Recipe> {
     ]
 }
 
-fn to_op(doc: &Document, recipe: &Recipe) -> Op {
-    to_op_in(doc, recipe)
-}
-
-fn to_op_in(doc: &lamina_model::Document, recipe: &Recipe) -> Op {
+fn to_op(doc: &lamina_model::Document, recipe: &Recipe) -> Op {
     match recipe {
         Recipe::Info([title, author, keywords], day) => {
             let mut patch = InfoPatch::new();
@@ -111,7 +108,7 @@ fn check(make: fn() -> Document, transactions: &[Transaction]) -> Result<(), Tes
     for (recipes, key) in transactions {
         let run = |tx: &mut lamina_ops::Tx<'_>| {
             for recipe in recipes {
-                let op = to_op_in(tx.document(), recipe);
+                let op = to_op(tx.document(), recipe);
                 tx.apply(op)?;
             }
             Ok(())

@@ -62,9 +62,24 @@ pub struct History {
     pub(crate) redo: Vec<Entry>,
     depth: usize,
     next_serial: u64,
-    /// The serial of the top undo entry at the last save (`None`: the empty stack, i.e. the
-    /// document as opened).
-    saved: Option<u64>,
+    /// Where the last save (or the open) left the undo stack.
+    saved: Saved,
+    /// Whether the next coalescing transaction may merge into the top entry: true right
+    /// after a local commit; false after an undo or redo (even one that restored nothing)
+    /// and after a remote or system transaction changed something, so a merged entry never
+    /// spans a change that is not its own (ADR 0006 §4).
+    chain_open: bool,
+}
+
+/// The undo position of the last save.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Saved {
+    /// The empty stack: the document as opened (or saved with nothing to undo).
+    Empty,
+    /// The top entry had this serial.
+    At(u64),
+    /// The entries leading back to it were dropped (depth), so no position matches it.
+    Lost,
 }
 
 impl Default for History {
@@ -85,7 +100,8 @@ impl History {
             redo: Vec::new(),
             depth,
             next_serial: 1,
-            saved: None,
+            saved: Saved::Empty,
+            chain_open: false,
         }
     }
 
@@ -126,11 +142,13 @@ impl History {
     }
 
     /// Records a committed local transaction: merged into the top entry when it has the
-    /// same coalescing `key` and nothing was undone since, else pushed. Clears redo.
+    /// same coalescing `key` and the chain is still open (nothing was undone or redone and
+    /// no other origin changed the document since), else pushed. Clears redo.
     pub(crate) fn push(&mut self, record: UndoRecord, touched: BTreeSet<PageId>, key: Option<String>) {
         let serial = self.serial();
-        let coalesce = self.redo.is_empty() && key.is_some() && self.undo.back().is_some_and(|top| top.key == key);
+        let coalesce = self.chain_open && key.is_some() && self.undo.back().is_some_and(|top| top.key == key);
         self.redo.clear();
+        self.chain_open = true;
         if coalesce && let Some(top) = self.undo.back_mut() {
             top.record.merge(record);
             top.touched.extend(touched);
@@ -156,20 +174,35 @@ impl History {
         serial
     }
 
+    /// Ends the coalescing chain: the next transaction starts a new entry.
+    pub(crate) fn break_chain(&mut self) {
+        self.chain_open = false;
+    }
+
     fn trim(&mut self) {
         while self.undo.len() > self.depth {
-            self.undo.pop_front();
+            let Some(dropped) = self.undo.pop_front() else { break };
+            // Undo can no longer reach the state before `dropped`: if that was the saved
+            // one, no position is saved any more.
+            if self.saved == Saved::Empty || self.saved == Saved::At(dropped.serial) {
+                self.saved = Saved::Lost;
+            }
         }
     }
 
     /// Whether the undo position differs from the last save's (ADR 0006 §7, semantic level).
     pub(crate) fn is_modified(&self) -> bool {
-        self.undo.back().map(|e| e.serial) != self.saved
+        let top = self.undo.back().map(|e| e.serial);
+        match self.saved {
+            Saved::Empty => top.is_some(),
+            Saved::At(serial) => top != Some(serial),
+            Saved::Lost => true,
+        }
     }
 
     /// Records the current position as saved.
     pub(crate) fn mark_saved(&mut self) {
-        self.saved = self.undo.back().map(|e| e.serial);
+        self.saved = self.undo.back().map_or(Saved::Empty, |e| Saved::At(e.serial));
     }
 }
 

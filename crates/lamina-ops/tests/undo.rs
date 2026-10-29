@@ -5,7 +5,7 @@ mod common;
 
 use common::{author, corpus, inherited_rotate, page_ids, rotate, rotations, set_title, snapshot, title};
 use lamina_model::Rotation;
-use lamina_ops::{Error, InfoPatch, Origin, PeerId, SetInfo, SkipReason, Target, UndoOutcome};
+use lamina_ops::{Error, Field, InfoPatch, Origin, PeerId, SetInfo, SkipReason, Target, UndoOutcome};
 
 fn remote() -> Origin {
     Origin::Remote(PeerId::new("peer-1"))
@@ -105,12 +105,12 @@ mod undo {
         };
         assert_eq!(
             (
-                skipped.iter().map(|s| (s.key.clone(), s.reason)).collect::<Vec<_>>(),
+                skipped.iter().map(|s| (s.field.clone(), s.reason)).collect::<Vec<_>>(),
                 title(&doc).as_deref(),
                 author(&doc).as_deref()
             ),
             (
-                vec![(Some("Title".into()), SkipReason::Changed)],
+                vec![(Field::Key("Title".into()), SkipReason::Changed)],
                 Some("Remote title"),
                 Some("lamina")
             )
@@ -268,6 +268,104 @@ mod coalescing {
         doc.undo().unwrap();
         type_title(&mut doc, "title", "C");
         assert_eq!(doc.history().undo_len(), 2);
+    }
+}
+
+mod review_fixes {
+    use super::*;
+
+    fn coalesce(doc: &mut lamina_ops::Document, key: &str, patch: InfoPatch) {
+        doc.transact_coalescing(key, |tx| {
+            tx.apply(SetInfo::new(patch, None))?;
+            Ok(())
+        })
+        .unwrap();
+    }
+
+    #[test]
+    fn a_remote_commit_ends_the_coalescing_chain() {
+        let mut doc = corpus("outline.pdf");
+        coalesce(&mut doc, "k", InfoPatch::new().title(Some("A")));
+        set_title(&mut doc, remote(), Some("Remote"));
+        coalesce(&mut doc, "k", InfoPatch::new().title(Some("B")));
+        doc.undo().unwrap();
+        assert_eq!(title(&doc).as_deref(), Some("Remote"));
+    }
+
+    #[test]
+    fn an_undo_that_restored_nothing_still_ends_the_coalescing_chain() {
+        let mut doc = corpus("outline.pdf");
+        coalesce(&mut doc, "k", InfoPatch::new().title(Some("A")));
+        doc.apply_all(
+            Origin::Local,
+            [SetInfo::new(InfoPatch::new().author(Some("X")), None).into()],
+        )
+        .unwrap();
+        doc.apply_all(
+            remote(),
+            [SetInfo::new(InfoPatch::new().author(Some("R")), None).into()],
+        )
+        .unwrap();
+        doc.undo().unwrap();
+        coalesce(&mut doc, "k", InfoPatch::new().title(Some("B")));
+        assert_eq!(doc.history().undo_len(), 2);
+    }
+
+    #[test]
+    fn edits_dropped_at_depth_zero_are_unsaved() {
+        let mut doc = corpus("outline.pdf");
+        doc.set_undo_depth(0);
+        set_title(&mut doc, Origin::Local, Some("One"));
+        assert!(doc.has_unsaved_changes());
+    }
+
+    #[test]
+    fn undoing_everything_kept_after_trimming_is_still_unsaved() {
+        let mut doc = corpus("outline.pdf");
+        doc.set_undo_depth(2);
+        for t in ["1", "2", "3"] {
+            set_title(&mut doc, Origin::Local, Some(t));
+        }
+        doc.undo().unwrap();
+        doc.undo().unwrap();
+        assert!(doc.has_unsaved_changes());
+    }
+
+    #[test]
+    fn a_panic_inside_transact_rolls_back_and_closes_the_transaction() {
+        let mut doc = corpus("outline.pdf");
+        let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            let _ = doc.transact(Origin::Local, |tx| -> lamina_ops::Result<()> {
+                tx.apply(SetInfo::new(InfoPatch::new().title(Some("Half")), None))?;
+                panic!("host code panicked");
+            });
+        }));
+        assert_eq!(
+            (result.is_err(), doc.in_transaction(), doc.is_dirty()),
+            (true, false, false)
+        );
+    }
+
+    #[test]
+    fn key_by_key_undo_puts_a_removed_key_back_in_place() {
+        let mut doc = inherited_rotate();
+        doc.apply_all(
+            Origin::Local,
+            [SetInfo::new(InfoPatch::new().author(None), None).into()],
+        )
+        .unwrap();
+        set_title(&mut doc, remote(), Some("Remote"));
+        doc.undo().unwrap();
+        let info = doc.trailer().get("Info").unwrap();
+        let keys: Vec<_> = doc
+            .deref(info)
+            .unwrap()
+            .as_dict()
+            .unwrap()
+            .iter()
+            .map(|(k, _)| k.clone())
+            .collect();
+        assert_eq!(keys, ["Title".into(), "Author".into(), "Subject".into()]);
     }
 }
 

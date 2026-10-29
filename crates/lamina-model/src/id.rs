@@ -339,8 +339,8 @@ typed_id!(
     Kind::Field
 );
 
-/// The document-level ID allocator (ADR 0005 §5), a view of the document's
-/// [`Document`](crate::Document).
+/// The document-level ID allocator (ADR 0005 §5): a borrowed view of the COS overlay's
+/// number allocator, returned by [`Document::ids`](crate::Document::ids).
 ///
 /// Existing items need no allocation: their ID is derived from their object (or path) when
 /// a view first sees them, so the same bytes always give the same IDs and nothing is

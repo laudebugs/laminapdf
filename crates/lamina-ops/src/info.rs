@@ -1,5 +1,7 @@
 //! `SetInfo`: edit the document information dictionary (ISO 32000-2 §14.3.3).
 
+use std::sync::Arc;
+
 use lamina_cos::{Dict, Object, PdfString};
 use lamina_model::{PageId, PdfDate};
 use lamina_syntax::text::encode_text_string;
@@ -162,24 +164,31 @@ impl SetInfo {
 
     pub(crate) fn apply_to(&self, doc: &mut lamina_model::Document) -> Result<Vec<PageId>> {
         let mut cos = doc.cos_mut().edit();
-        let mut trailer = cos.trailer().clone();
-        let (target, current) = match trailer.get("Info") {
-            Some(Object::Ref(r)) => match cos.get(*r)?.as_deref() {
-                Some(Object::Dict(d)) => (Some(*r), d.clone()),
-                // Missing, null or not a dictionary: start a new one.
-                _ => (None, Dict::new()),
-            },
-            Some(Object::Dict(d)) => (None, d.clone()),
-            _ => (None, Dict::new()),
+        // The current Info dictionary: shared with the overlay or base when indirect (a
+        // corrupt or missing object reads as absent, like a missing /Info), else the
+        // trailer's direct one.
+        let (target, current) = match cos.trailer().get("Info") {
+            Some(Object::Ref(r)) => {
+                let r = *r;
+                match cos.get(r)? {
+                    Some(info) if matches!(*info, Object::Dict(_)) => (Some(r), info),
+                    _ => (None, Arc::new(Object::Dict(Dict::new()))),
+                }
+            }
+            Some(direct @ Object::Dict(_)) => (None, Arc::new(direct.clone())),
+            _ => (None, Arc::new(Object::Dict(Dict::new()))),
         };
-        let patched = self.patched(&current);
-        if patched == current {
+        let empty = Dict::new();
+        let current = current.as_dict().unwrap_or(&empty);
+        let patched = self.patched(current);
+        if patched == *current {
             return Ok(Vec::new());
         }
         if let Some(r) = target {
             cos.set(r, Object::Dict(patched))?;
         } else {
             let r = cos.create(Object::Dict(patched))?;
+            let mut trailer = cos.trailer().clone();
             trailer.insert("Info", r);
             cos.set_trailer(trailer);
         }

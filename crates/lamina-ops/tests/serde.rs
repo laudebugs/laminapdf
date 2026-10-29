@@ -23,7 +23,7 @@ mod samples {
         assert_eq!(
             (
                 info.title().unwrap().as_deref(),
-                info.subject().unwrap(),
+                info.author().unwrap(),
                 info.keywords().unwrap().as_deref(),
                 info.mod_date().unwrap().map(|d| d.raw)
             ),
@@ -47,11 +47,28 @@ mod samples {
     #[test]
     fn the_envelope_deserialises_and_applies_as_one_transaction() {
         let log = OpLog::from_json(&fixture_text("ops/v1/envelope.json")).unwrap();
-        let mut doc = corpus("hello.pdf");
+        let mut doc = corpus("outline.pdf");
+        assert!(doc.info().unwrap().unwrap().producer().unwrap().is_some());
         doc.apply_all(Origin::Local, log.into_ops()).unwrap();
+        let info = doc.info().unwrap().unwrap();
+        let mod_date = info.mod_date().unwrap().unwrap();
         assert_eq!(
-            (title(&doc).as_deref(), rotations(&doc), doc.history().undo_len()),
-            (Some("Quarterly report"), vec![Rotation::Clockwise270], 1)
+            (
+                title(&doc).as_deref(),
+                info.producer().unwrap(),
+                mod_date.raw.as_str(),
+                mod_date.parsed.and_then(|d| d.utc_offset_minutes()),
+                rotations(&doc).first().copied(),
+                doc.history().undo_len()
+            ),
+            (
+                Some("Quarterly report"),
+                None,
+                "D:20261029120000+01'00'",
+                Some(60),
+                Some(Rotation::Clockwise270),
+                1
+            )
         );
     }
 
@@ -68,6 +85,12 @@ mod samples {
             let again: Op = serde_json::from_str(&serde_json::to_string(&op).unwrap()).unwrap();
             assert_eq!(again, op, "{name}");
         }
+    }
+
+    #[test]
+    fn the_envelope_round_trips() {
+        let log = OpLog::from_json(&fixture_text("ops/v1/envelope.json")).unwrap();
+        assert_eq!(OpLog::from_json(&log.to_json().unwrap()).unwrap(), log);
     }
 }
 
@@ -192,6 +215,11 @@ mod wire_form {
         let doc = corpus("hello.pdf");
         assert_eq!(page_ids(&doc).first().map(ToString::to_string).as_deref(), Some("p3.0"));
     }
+}
+
+#[test]
+fn op_error_codes_are_disjoint_from_cos_codes() {
+    assert!(Error::CODES.iter().all(|c| !lamina_cos::Error::CODES.contains(c)));
 }
 
 #[test]

@@ -1,9 +1,10 @@
 //! Undo records (ADR 0006 §3): what a transaction changed, as before/after values per target,
 //! derived from the COS journal so every op gets one without writing it by hand.
 
+use std::collections::BTreeMap;
 use std::sync::Arc;
 
-use lamina_cos::{CosChange, CosMut, Dict, Name, ObjRef, Object};
+use lamina_cos::{CosChange, CosMut, Dict, Name, ObjRef, Object, Stream};
 
 use crate::error::Result;
 
@@ -30,19 +31,41 @@ pub struct Change {
     pub after: Option<Arc<Object>>,
 }
 
-/// One property a [`Change`] touched: a dictionary key (`key: Some`), or the whole object
-/// when the value is not a dictionary on both sides (`key: None`). `None` values are absent.
+/// Which part of a target a [`Property`] (or a [`Skipped`] one) is.
+#[derive(Debug, Clone, PartialEq, Eq)]
+#[non_exhaustive]
+pub enum Field {
+    /// The whole value: the target is not a dictionary (or not a stream) on both sides,
+    /// or was created or deleted.
+    Value,
+    /// One key of a dictionary, or of a stream's dictionary.
+    Key(Name),
+    /// A stream's data.
+    Data,
+}
+
+/// A property's value: an object, or a stream's (encoded) data.
 #[derive(Debug, Clone, Copy, PartialEq)]
+#[non_exhaustive]
+pub enum PropertyValue<'r> {
+    /// An object (a whole value, or a dictionary key's value).
+    Object(&'r Object),
+    /// Stream data, as stored (encoded by the stream's `/Filter`).
+    Data(&'r [u8]),
+}
+
+/// One property a [`Change`] touched. `None` values are absent.
+#[derive(Debug, Clone, PartialEq)]
 #[non_exhaustive]
 pub struct Property<'r> {
     /// The object or trailer.
     pub target: Target,
-    /// The dictionary key; `None` for the whole value.
-    pub key: Option<&'r Name>,
+    /// Which part of it.
+    pub field: Field,
     /// The value before.
-    pub before: Option<&'r Object>,
+    pub before: Option<PropertyValue<'r>>,
     /// The value after.
-    pub after: Option<&'r Object>,
+    pub after: Option<PropertyValue<'r>>,
 }
 
 /// What a transaction changed ([ADR 0006] §3), in the order it first touched each target.
@@ -53,6 +76,8 @@ pub struct Property<'r> {
 #[derive(Debug, Clone, Default, PartialEq)]
 pub struct UndoRecord {
     changes: Vec<Change>,
+    /// Where each target is in `changes`.
+    index: BTreeMap<Target, usize>,
 }
 
 impl UndoRecord {
@@ -77,17 +102,25 @@ impl UndoRecord {
             };
             record.push(Change { target, before, after });
         }
-        record.changes.retain(|c| c.before != c.after);
+        record.drop_unchanged();
         record
     }
 
     /// Adds `change` after this record's: the target keeps its earliest `before` and takes
     /// the latest `after`.
     fn push(&mut self, change: Change) {
-        match self.changes.iter_mut().find(|c| c.target == change.target) {
-            Some(existing) => existing.after = change.after,
-            None => self.changes.push(change),
+        if let Some(existing) = self.index.get(&change.target).and_then(|&i| self.changes.get_mut(i)) {
+            existing.after = change.after;
+        } else {
+            self.index.insert(change.target, self.changes.len());
+            self.changes.push(change);
         }
+    }
+
+    /// Drops targets that ended where they started, and reindexes.
+    fn drop_unchanged(&mut self) {
+        self.changes.retain(|c| !same(c.before.as_ref(), c.after.as_ref()));
+        self.index = self.changes.iter().enumerate().map(|(i, c)| (c.target, i)).collect();
     }
 
     /// This record followed by `later`, as one (transaction coalescing, ADR 0006 §4).
@@ -95,7 +128,7 @@ impl UndoRecord {
         for change in later.changes {
             self.push(change);
         }
-        self.changes.retain(|c| c.before != c.after);
+        self.drop_unchanged();
     }
 
     /// True when the transaction changed nothing.
@@ -110,30 +143,91 @@ impl UndoRecord {
         &self.changes
     }
 
-    /// Every property changed: the keys that differ, for targets that are dictionaries
-    /// before and after, else the whole value.
+    /// Every property changed: for targets that are dictionaries (or streams) before and
+    /// after, each key that differs (and a stream's data when it differs); else the whole
+    /// value.
     pub fn properties(&self) -> impl Iterator<Item = Property<'_>> + '_ {
         self.changes.iter().flat_map(Change::properties)
     }
 }
 
+/// A value seen as a dictionary or a stream (dictionary and data).
+#[derive(Clone, Copy)]
+enum Shape<'a> {
+    Dict(&'a Dict),
+    Stream(&'a Dict, &'a [u8]),
+}
+
+fn shape(value: Option<&Object>) -> Option<Shape<'_>> {
+    match value? {
+        Object::Dict(d) => Some(Shape::Dict(d)),
+        Object::Stream(s) => Some(Shape::Stream(&s.dict, &s.data)),
+        _ => None,
+    }
+}
+
+/// The dictionaries (and both data, for streams) when `before` and `after` have the same
+/// kind; `None` when the change is to the whole value.
+fn same_kind<'a>(before: Option<&'a Object>, after: Option<&'a Object>) -> Option<(Shape<'a>, Shape<'a>)> {
+    match (shape(before)?, shape(after)?) {
+        pair @ ((Shape::Dict(_), Shape::Dict(_)) | (Shape::Stream(..), Shape::Stream(..))) => Some(pair),
+        _ => None,
+    }
+}
+
+const fn dict(shape: Shape<'_>) -> &Dict {
+    match shape {
+        Shape::Dict(d) | Shape::Stream(d, _) => d,
+    }
+}
+
+const fn data(shape: Shape<'_>) -> Option<&[u8]> {
+    match shape {
+        Shape::Dict(_) => None,
+        Shape::Stream(_, data) => Some(data),
+    }
+}
+
 impl Change {
     fn properties(&self) -> Vec<Property<'_>> {
-        match (dict_of(self.before.as_deref()), dict_of(self.after.as_deref())) {
-            (Some(before), Some(after)) => changed_keys(before, after)
-                .map(|key| Property {
-                    target: self.target,
-                    key: Some(key),
-                    before: lookup(before, key),
-                    after: lookup(after, key),
-                })
-                .collect(),
-            _ => vec![Property {
+        let Some((before, after)) = same_kind(self.before.as_deref(), self.after.as_deref()) else {
+            return vec![Property {
                 target: self.target,
-                key: None,
-                before: self.before.as_deref(),
-                after: self.after.as_deref(),
-            }],
+                field: Field::Value,
+                before: self.before.as_deref().map(PropertyValue::Object),
+                after: self.after.as_deref().map(PropertyValue::Object),
+            }];
+        };
+        let (b, a) = (dict(before), dict(after));
+        let mut out: Vec<Property<'_>> = changed_keys(b, a)
+            .map(|key| Property {
+                target: self.target,
+                field: Field::Key(key.clone()),
+                before: lookup(b, key).map(PropertyValue::Object),
+                after: lookup(a, key).map(PropertyValue::Object),
+            })
+            .collect();
+        if let (Some(bd), Some(ad)) = (data(before), data(after))
+            && bd != ad
+        {
+            out.push(Property {
+                target: self.target,
+                field: Field::Data,
+                before: Some(PropertyValue::Data(bd)),
+                after: Some(PropertyValue::Data(ad)),
+            });
+        }
+        out
+    }
+
+    /// `self.properties().len()`, without building them.
+    fn property_count(&self) -> usize {
+        match same_kind(self.before.as_deref(), self.after.as_deref()) {
+            Some((before, after)) => {
+                let data_changed = data(before) != data(after);
+                changed_keys(dict(before), dict(after)).count() + usize::from(data_changed)
+            }
+            None => 1,
         }
     }
 }
@@ -156,11 +250,23 @@ pub enum SkipReason {
 pub struct Skipped {
     /// The object or trailer.
     pub target: Target,
-    /// The dictionary key; `None` for the whole value.
-    pub key: Option<Name>,
+    /// Which part of it.
+    pub field: Field,
     /// Why.
     pub reason: SkipReason,
 }
+
+/// Stream dictionary keys that describe the data: they are restored together with it, never
+/// on their own (a `/Filter` that does not match the data corrupts the stream).
+const ENCODING_KEYS: [&[u8]; 7] = [
+    b"Length",
+    b"Filter",
+    b"DecodeParms",
+    b"DL",
+    b"F",
+    b"FFilter",
+    b"FDecodeParms",
+];
 
 /// Restores `record`'s `before` values where the document still holds its `after` values,
 /// newest change first, and reports what it left alone (ADR 0006 §4). Returns the number of
@@ -170,54 +276,85 @@ pub(crate) fn revert(cos: &mut CosMut<'_>, record: &UndoRecord) -> Result<(usize
     let mut skipped = Vec::new();
     for change in record.changes.iter().rev() {
         let current = read(cos, change.target)?;
-        if current == change.after {
+        if same(current.as_ref(), change.after.as_ref()) {
             write(cos, change.target, change.before.as_deref())?;
-            restored += change.properties().len();
+            restored += change.property_count();
             continue;
         }
-        let (Some(now), Some(before), Some(after)) = (
-            dict_of(current.as_deref()),
-            dict_of(change.before.as_deref()),
-            dict_of(change.after.as_deref()),
-        ) else {
-            let reason = if current.is_none() {
-                SkipReason::Missing
-            } else {
-                SkipReason::Changed
-            };
+        let skip_whole = |skipped: &mut Vec<Skipped>| {
             skipped.push(Skipped {
                 target: change.target,
-                key: None,
-                reason,
+                field: Field::Value,
+                reason: if current.is_none() {
+                    SkipReason::Missing
+                } else {
+                    SkipReason::Changed
+                },
             });
+        };
+        // Another change touched the target since. Restore key by key only when it is still
+        // the same kind of value (dictionary or stream) on every side; never mix kinds.
+        let Some((before, after)) = same_kind(change.before.as_deref(), change.after.as_deref()) else {
+            skip_whole(&mut skipped);
             continue;
         };
-        // Another change touched this dictionary: restore key by key, leaving the keys whose
-        // value is no longer ours.
-        let mut merged = now.clone();
+        let Some((now, _)) = same_kind(current.as_deref(), change.after.as_deref()) else {
+            skip_whole(&mut skipped);
+            continue;
+        };
+        let (b, a, n) = (dict(before), dict(after), dict(now));
+        // The data and the keys describing it move together: when another change replaced
+        // the data, they stay as they are.
+        let data_changed = data(before) != data(after);
+        let data_ours = data(now) == data(after);
+        let mut merged = n.clone();
+        let mut new_data = data(now);
         let mut any = false;
-        for key in changed_keys(before, after) {
-            if lookup(now, key) == lookup(after, key) {
-                merged = restore_key(&merged, key, lookup(before, key), before);
+        for key in changed_keys(b, a) {
+            let tied_to_foreign_data = data_changed && !data_ours && ENCODING_KEYS.contains(&key.as_bytes());
+            if !tied_to_foreign_data && lookup(n, key) == lookup(a, key) {
+                merged = restore_key(&merged, key, lookup(b, key), b);
                 restored += 1;
                 any = true;
             } else {
                 skipped.push(Skipped {
                     target: change.target,
-                    key: Some(key.clone()),
+                    field: Field::Key(key.clone()),
+                    reason: SkipReason::Changed,
+                });
+            }
+        }
+        if data_changed {
+            if data_ours {
+                new_data = data(before);
+                restored += 1;
+                any = true;
+            } else {
+                skipped.push(Skipped {
+                    target: change.target,
+                    field: Field::Data,
                     reason: SkipReason::Changed,
                 });
             }
         }
         if any {
-            let value = match current.as_deref() {
-                Some(Object::Stream(s)) => Object::Stream(lamina_cos::Stream::new(merged, s.data.clone())),
-                _ => Object::Dict(merged),
+            let value = match new_data {
+                Some(bytes) => Object::Stream(Stream::new(merged, bytes.to_vec())),
+                None => Object::Dict(merged),
             };
             write(cos, change.target, Some(&value))?;
         }
     }
     Ok((restored, skipped))
+}
+
+/// Value equality, shortcut when both share one allocation.
+fn same(a: Option<&Arc<Object>>, b: Option<&Arc<Object>>) -> bool {
+    match (a, b) {
+        (Some(a), Some(b)) => Arc::ptr_eq(a, b) || a == b,
+        (None, None) => true,
+        _ => false,
+    }
 }
 
 fn read(cos: &CosMut<'_>, target: Target) -> Result<Option<Arc<Object>>> {
@@ -240,15 +377,6 @@ fn write(cos: &mut CosMut<'_>, target: Target, value: Option<&Object>) -> Result
         (Target::Trailer, _) => {}
     }
     Ok(())
-}
-
-/// The dictionary of a dictionary or stream value.
-fn dict_of(value: Option<&Object>) -> Option<&Dict> {
-    match value? {
-        Object::Dict(d) => Some(d),
-        Object::Stream(s) => Some(&s.dict),
-        _ => None,
-    }
 }
 
 /// The keys whose values differ between `before` and `after`, in `before`'s order, then
@@ -318,17 +446,92 @@ mod tests {
                 .collect::<Dict>(),
         );
         w.add(dict(&[("A", 1), ("B", 2)]));
+        w.add(Stream::new(dict(&[("A", 1), ("B", 2)]), b"old".to_vec()));
         let bytes = w.finish(&[("Root", root)].into_iter().collect()).unwrap();
         Document::open(bytes, OpenOptions::default()).unwrap()
     }
 
     const OBJ: ObjRef = ObjRef::new(3, 0);
+    const STREAM: ObjRef = ObjRef::new(4, 0);
+
+    /// The base stream's dictionary (which has the `/Length` the writer added) with `entries`
+    /// set, and `data`.
+    fn stream(d: &Document, entries: &[(&str, i64)], data: &[u8]) -> Object {
+        let mut dict = match &*d.resolve(STREAM).unwrap() {
+            Object::Stream(s) => s.dict.clone(),
+            other => panic!("{other:?}"),
+        };
+        for &(k, v) in entries {
+            dict.insert(k, v);
+        }
+        Object::Stream(Stream::new(dict, data.to_vec()))
+    }
+
+    /// Sets `r` to `value` and returns the record of that change.
+    fn change_of(doc: &mut Document, r: ObjRef, value: Object) -> UndoRecord {
+        let mark = doc.journal_mark();
+        doc.edit().set(r, value).unwrap();
+        UndoRecord::from_changes(&doc.take_changes(mark).unwrap())
+    }
+
+    #[test]
+    fn a_data_only_stream_change_is_one_property() {
+        let mut d = doc();
+        let new = stream(&d, &[], b"new");
+        let record = change_of(&mut d, STREAM, new);
+        assert_eq!(record.properties().count(), 1);
+    }
+
+    #[test]
+    fn key_by_key_revert_of_a_stream_restores_its_data() {
+        let mut d = doc();
+        let (ours, remote, expected) = (
+            stream(&d, &[("A", 5)], b"new"),
+            stream(&d, &[("A", 5), ("B", 9)], b"new"),
+            stream(&d, &[("B", 9)], b"old"),
+        );
+        let record = change_of(&mut d, STREAM, ours);
+        d.edit().set(STREAM, remote).unwrap();
+        revert(&mut d.edit(), &record).unwrap();
+        assert_eq!(*d.resolve(STREAM).unwrap(), expected);
+    }
+
+    #[test]
+    fn the_filter_stays_with_data_replaced_since() {
+        let mut d = doc();
+        let ours = stream(&d, &[("Filter", 1)], b"ours");
+        let remote = stream(&d, &[("Filter", 1)], b"remote");
+        let record = change_of(&mut d, STREAM, ours);
+        d.edit().set(STREAM, remote.clone()).unwrap();
+        let (_, skipped) = revert(&mut d.edit(), &record).unwrap();
+        assert_eq!(
+            (
+                skipped.iter().map(|s| s.field.clone()).collect::<Vec<_>>(),
+                (*d.resolve(STREAM).unwrap()).clone()
+            ),
+            (vec![Field::Key(Name::from("Filter")), Field::Data], remote)
+        );
+    }
+
+    #[test]
+    fn a_dictionary_turned_stream_and_changed_since_is_not_reverted_into_a_mix() {
+        let mut d = doc();
+        let ours = Object::Stream(Stream::new(dict(&[("A", 5), ("B", 2)]), b"x".to_vec()));
+        let remote = Object::Stream(Stream::new(dict(&[("A", 5), ("B", 9)]), b"x".to_vec()));
+        let record = change_of(&mut d, OBJ, ours);
+        d.edit().set(OBJ, remote.clone()).unwrap();
+        let (_, skipped) = revert(&mut d.edit(), &record).unwrap();
+        assert_eq!(
+            (skipped.is_empty(), (*d.resolve(OBJ).unwrap()).clone()),
+            (false, remote)
+        );
+    }
 
     /// Sets object 3 to `value` and returns the record of that change.
     fn change(doc: &mut Document, value: Object) -> UndoRecord {
         let mark = doc.journal_mark();
         doc.edit().set(OBJ, value).unwrap();
-        UndoRecord::from_changes(&doc.take_changes(mark))
+        UndoRecord::from_changes(&doc.take_changes(mark).unwrap())
     }
 
     #[test]
@@ -348,12 +551,12 @@ mod tests {
         assert_eq!(
             (
                 restored,
-                skipped.iter().map(|s| s.key.clone()).collect::<Vec<_>>(),
+                skipped.iter().map(|s| s.field.clone()).collect::<Vec<_>>(),
                 (*d.resolve(OBJ).unwrap()).clone()
             ),
             (
                 1,
-                vec![Some(Name::from("A"))],
+                vec![Field::Key(Name::from("A"))],
                 Object::Dict(dict(&[("A", 9), ("B", 2)]))
             )
         );
@@ -375,8 +578,8 @@ mod tests {
         d.edit().set(OBJ, Object::Integer(2)).unwrap();
         let (restored, skipped) = revert(&mut d.edit(), &record).unwrap();
         assert_eq!(
-            (restored, skipped.first().map(|s| (s.key.clone(), s.reason))),
-            (0, Some((None, SkipReason::Changed)))
+            (restored, skipped.first().map(|s| (s.field.clone(), s.reason))),
+            (0, Some((Field::Value, SkipReason::Changed)))
         );
     }
 
@@ -386,7 +589,7 @@ mod tests {
         let mark = d.journal_mark();
         d.edit().set(OBJ, Object::Integer(1)).unwrap();
         d.edit().set(OBJ, Object::Dict(dict(&[("A", 1), ("B", 2)]))).unwrap();
-        assert!(UndoRecord::from_changes(&d.take_changes(mark)).is_empty());
+        assert!(UndoRecord::from_changes(&d.take_changes(mark).unwrap()).is_empty());
     }
 
     #[test]

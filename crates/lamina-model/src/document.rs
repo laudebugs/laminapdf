@@ -80,7 +80,8 @@ impl Document {
         &mut self.cos
     }
 
-    /// The COS document, giving up the model state.
+    /// The COS document, giving up the typed views (the overlay and the allocator stay
+    /// with it).
     #[must_use]
     pub fn into_cos(self) -> lamina_cos::Document {
         self.cos

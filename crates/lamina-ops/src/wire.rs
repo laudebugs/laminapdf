@@ -7,7 +7,8 @@ use std::str::FromStr;
 use serde::de::{self, Deserialize, Deserializer};
 use serde::ser::Serializer;
 
-fn parse<'de, T, D>(d: D) -> Result<T, D::Error>
+/// A value from its string form ([`FromStr`]).
+pub(crate) fn parse<'de, T, D>(d: D) -> Result<T, D::Error>
 where
     T: FromStr,
     T::Err: Display,

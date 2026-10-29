@@ -1,7 +1,6 @@
 //! [`Document`]: a model document that can only be changed through transactions.
 
 use std::collections::BTreeSet;
-use std::fmt;
 use std::ops;
 
 use lamina_cos::{OpenOptions, Source};
@@ -37,6 +36,7 @@ use crate::tx::{Applied, Origin, Tx, TxState};
 /// Like the documents below it, it is `Send` but `!Sync`.
 ///
 /// [ADR 0006]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0006-op-log-and-undo.md
+#[derive(Debug)]
 pub struct Document {
     model: lamina_model::Document,
     history: History,
@@ -48,16 +48,6 @@ const _: () = {
     const fn assert_send<T: Send>() {}
     assert_send::<Document>();
 };
-
-impl fmt::Debug for Document {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("Document")
-            .field("model", &self.model)
-            .field("history", &self.history)
-            .field("open", &self.open)
-            .finish()
-    }
-}
 
 impl From<lamina_model::Document> for Document {
     fn from(model: lamina_model::Document) -> Self {
@@ -166,7 +156,7 @@ impl Document {
     /// # Errors
     /// As [`Document::transact`]; the first op that fails rolls back the whole list.
     pub fn apply_all(&mut self, origin: Origin, ops: impl IntoIterator<Item = Op>) -> Result<Applied> {
-        self.transact(origin, |tx| ops.into_iter().try_for_each(|op| tx.apply(op).map(drop)))
+        self.transact(origin, |tx| ops.into_iter().try_for_each(|op| tx.apply_quietly(&op)))
             .map(|((), applied)| applied)
     }
 
@@ -177,11 +167,18 @@ impl Document {
         f: impl FnOnce(&mut Tx<'_>) -> Result<T>,
     ) -> Result<(T, Applied)> {
         self.begin_with(origin, coalesce)?;
-        let result = f(&mut self.tx()?);
+        // If `f` panics (and the host catches it), the guard rolls the transaction back, so
+        // the document is never left open with half its changes.
+        let mut guard = OpenGuard {
+            doc: self,
+            settled: false,
+        };
+        let result = f(&mut guard.doc.tx()?);
+        guard.settled = true;
         match result {
-            Ok(value) => Ok((value, self.commit()?)),
+            Ok(value) => Ok((value, guard.doc.commit()?)),
             Err(e) => {
-                self.rollback()?;
+                guard.doc.rollback()?;
                 Err(e)
             }
         }
@@ -231,10 +228,16 @@ impl Document {
     /// [`Error::NoTransaction`].
     pub fn commit(&mut self) -> Result<Applied> {
         let state = self.open.take().ok_or(Error::NoTransaction)?;
-        let changes = self.model.cos_mut().take_changes(state.mark);
+        let changes = self.model.cos_mut().take_changes(state.mark)?;
         let undo = UndoRecord::from_changes(&changes);
-        if state.origin == Origin::Local && !undo.is_empty() {
-            self.history.push(undo.clone(), state.touched.clone(), state.coalesce);
+        if !undo.is_empty() {
+            if state.origin == Origin::Local {
+                self.history.push(undo.clone(), state.touched.clone(), state.coalesce);
+            } else {
+                // A remote or system change ends coalescing: merging across it would let
+                // undo overwrite it (ADR 0006 §4).
+                self.history.break_chain();
+            }
         }
         Ok(Applied {
             undo,
@@ -249,7 +252,7 @@ impl Document {
     /// [`Error::NoTransaction`].
     pub fn rollback(&mut self) -> Result<()> {
         let state = self.open.take().ok_or(Error::NoTransaction)?;
-        self.model.cos_mut().rollback_to(state.mark);
+        self.model.cos_mut().rollback_to(state.mark)?;
         Ok(())
     }
 
@@ -320,11 +323,13 @@ impl Document {
         let (restored, skipped) = match result {
             Ok(r) => r,
             Err(e) => {
-                cos.rollback_to(mark);
+                cos.rollback_to(mark)?;
                 return Err(e);
             }
         };
-        let record = UndoRecord::from_changes(&cos.take_changes(mark));
+        let record = UndoRecord::from_changes(&cos.take_changes(mark)?);
+        // Even an undo or redo that restored nothing ends coalescing.
+        self.history.break_chain();
         let outcome = match (restored, skipped.is_empty()) {
             (_, true) => UndoOutcome::Applied,
             (0, false) => UndoOutcome::Skipped { skipped },
@@ -343,5 +348,22 @@ impl Document {
                 touched_pages: entry.touched.clone(),
             },
         ))
+    }
+}
+
+/// Rolls back the open transaction when dropped before it was committed or rolled back
+/// (a panic in the closure of [`Document::transact`]).
+struct OpenGuard<'d> {
+    doc: &'d mut Document,
+    settled: bool,
+}
+
+impl Drop for OpenGuard<'_> {
+    fn drop(&mut self) {
+        if !self.settled {
+            // Nothing to report from a drop; a failed rollback leaves the transaction
+            // closed and the journal as it was.
+            let _ = self.doc.rollback();
+        }
     }
 }

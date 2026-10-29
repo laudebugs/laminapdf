@@ -2,7 +2,7 @@
   "v": 1,
   "ops": [
     { "op": "setInfo", "args": { "patch": { "title": "Quarterly report" }, "at": "D:20261029120000+01'00'" } },
-    { "op": "rotatePage", "args": { "page": "p3.0", "rotate": 270 } },
+    { "op": "rotatePage", "args": { "page": "p4.0", "rotate": 270 } },
     { "op": "setInfo", "args": { "patch": { "producer": null } } }
   ]
 }

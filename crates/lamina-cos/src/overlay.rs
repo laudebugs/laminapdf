@@ -4,11 +4,13 @@
 //! [`Document::edit`], is the only way to create, change or delete an object or change the
 //! trailer; each change is recorded in the overlay and in its journal, so dirty tracking is
 //! automatic and `PDFBox`'s lost-changes bug is unrepresentable. Resolution
-//! ([`Document::resolve`], [`Document::object`], [`Document::trailer`]) reads the overlay
-//! first, then the base.
+//! ([`Document::resolve`], [`Document::object`], [`Document::trailer`],
+//! [`Document::object_numbers`]) reads the overlay first, then the base.
 //!
 //! * An entry whose value equals the base object is dropped, so changing a value back
-//!   leaves nothing dirty ([`Document::is_dirty`]).
+//!   leaves nothing dirty ([`Document::is_dirty`]). A base object that cannot be loaded
+//!   counts as `null` here: it can be overwritten or deleted, and setting it to `null`
+//!   leaves it as it is.
 //! * New objects get fresh numbers above every xref section's highest number and the
 //!   trailer's `/Size`, within [`Limits::max_object_number`](crate::Limits::max_object_number).
 //!   Numbers are never reused in a session: a deleted or rolled-back creation keeps its
@@ -16,11 +18,18 @@
 //! * The journal records every change with the overlay state it replaced, so a caller
 //!   (`lamina-ops`' transactions and savepoints) can take a [`JournalMark`] and roll back to
 //!   it exactly ([`Document::rollback_to`]), or take the changes since it as
-//!   [`CosChange`]s ([`Document::take_changes`]).
+//!   [`CosChange`]s ([`Document::take_changes`]). A mark that no longer names a position in
+//!   the journal (its records were taken or rolled back and others recorded since) is
+//!   refused.
+//!
+//! **API review note:** `edit()` is public, so code holding a bare `lamina_cos::Document`
+//! can change it outside a `lamina-ops` transaction. Such changes still go through the
+//! overlay and the journal (they are dirty-tracked and can be rolled back); `lamina-ops`
+//! keeps its document private so its callers can only write through transactions.
 //!
 //! [ADR 0005]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0005-document-model.md
 
-use std::cell::Cell;
+use std::cell::{Cell, OnceCell};
 use std::collections::BTreeMap;
 use std::sync::Arc;
 
@@ -91,9 +100,15 @@ pub enum CosChange {
 }
 
 /// A position in the journal: [`Document::rollback_to`] undoes every change recorded after
-/// it, [`Document::take_changes`] returns them.
+/// it, [`Document::take_changes`] returns them. It stays valid while the journal still has
+/// the records it was taken after.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct JournalMark(usize);
+pub struct JournalMark {
+    /// Records in the journal when the mark was taken.
+    len: usize,
+    /// The sequence number of the last of them (0 for none).
+    last: u64,
+}
 
 /// What a change replaced, so rolling back restores the overlay exactly.
 #[derive(Debug, Clone)]
@@ -106,6 +121,9 @@ enum Prior {
 struct Record {
     change: CosChange,
     prior: Prior,
+    /// Unique in the session, so a mark can tell its record from a later one at the same
+    /// position.
+    seq: u64,
 }
 
 /// A document's overlay: new, modified and deleted objects and a changed trailer, over the
@@ -118,9 +136,13 @@ pub struct Overlay {
     objects: BTreeMap<u32, OverlayEntry>,
     trailer: Option<Arc<Dict>>,
     journal: Vec<Record>,
+    /// The sequence number of the last journal record.
+    seq: u64,
     /// The next number to hand out (`u64` so `u32::MAX` itself can be allocated); `None`
-    /// until the first allocation, which computes it from the base.
+    /// until the first allocation.
     next_number: Cell<Option<u64>>,
+    /// The first number a new object may get, computed from the base once.
+    first_new: OnceCell<u64>,
 }
 
 impl Overlay {
@@ -130,10 +152,11 @@ impl Overlay {
         self.objects.is_empty() && self.trailer.is_none()
     }
 
-    /// The number of object entries (a changed trailer is not counted).
+    /// The number of differences from the base: object entries, plus one for a changed
+    /// trailer (so `len() == 0` exactly when [`Overlay::is_empty`]).
     #[must_use]
     pub fn len(&self) -> usize {
-        self.objects.len()
+        self.objects.len() + usize::from(self.trailer.is_some())
     }
 
     /// The entry for object `num`, if the overlay has one.
@@ -151,6 +174,18 @@ impl Overlay {
     #[must_use]
     pub fn trailer(&self) -> Option<&Dict> {
         self.trailer.as_deref()
+    }
+
+    /// The records after `mark`, or an error for a stale mark.
+    fn after(&self, mark: JournalMark) -> Result<&[Record]> {
+        let valid = mark.len == 0 || self.journal.get(mark.len - 1).is_some_and(|r| r.seq == mark.last);
+        match self.journal.get(mark.len..) {
+            Some(records) if valid => Ok(records),
+            _ => Err(Error::InvalidStructure {
+                kind: "journal mark",
+                message: "the mark's records were taken or rolled back",
+            }),
+        }
     }
 }
 
@@ -179,14 +214,22 @@ impl Document {
     /// The current end of the journal.
     #[must_use]
     pub fn journal_mark(&self) -> JournalMark {
-        JournalMark(self.overlay_ref().journal.len())
+        let journal = &self.overlay_ref().journal;
+        JournalMark {
+            len: journal.len(),
+            last: journal.last().map_or(0, |r| r.seq),
+        }
     }
 
     /// Undoes every change recorded after `mark`, newest first, restoring the overlay
     /// exactly as it was at the mark. Reserved numbers stay reserved.
-    pub fn rollback_to(&mut self, mark: JournalMark) {
+    ///
+    /// # Errors
+    /// [`Error::InvalidStructure`] for a stale mark (nothing is changed).
+    pub fn rollback_to(&mut self, mark: JournalMark) -> Result<()> {
+        self.overlay_ref().after(mark)?;
         let overlay = self.overlay_mut();
-        while overlay.journal.len() > mark.0 {
+        while overlay.journal.len() > mark.len {
             let Some(record) = overlay.journal.pop() else { break };
             match record.prior {
                 Prior::Object(num, Some(entry)) => {
@@ -198,24 +241,27 @@ impl Document {
                 Prior::Trailer(trailer) => overlay.trailer = trailer,
             }
         }
+        Ok(())
     }
 
     /// The changes recorded after `mark`, oldest first (the journal keeps them).
-    pub fn changes_since(&self, mark: JournalMark) -> impl Iterator<Item = &CosChange> + '_ {
-        self.overlay_ref()
-            .journal
-            .get(mark.0..)
-            .unwrap_or_default()
-            .iter()
-            .map(|r| &r.change)
+    ///
+    /// # Errors
+    /// [`Error::InvalidStructure`] for a stale mark.
+    pub fn changes_since(&self, mark: JournalMark) -> Result<impl Iterator<Item = &CosChange> + '_> {
+        Ok(self.overlay_ref().after(mark)?.iter().map(|r| &r.change))
     }
 
     /// Removes the changes recorded after `mark` from the journal and returns them, oldest
-    /// first. The overlay keeps them: this commits them, so they can no longer be rolled back.
-    pub fn take_changes(&mut self, mark: JournalMark) -> Vec<CosChange> {
+    /// first. The overlay keeps them: this commits them, so they can no longer be rolled
+    /// back, and marks taken after `mark` become stale.
+    ///
+    /// # Errors
+    /// [`Error::InvalidStructure`] for a stale mark (nothing is changed).
+    pub fn take_changes(&mut self, mark: JournalMark) -> Result<Vec<CosChange>> {
+        self.overlay_ref().after(mark)?;
         let journal = &mut self.overlay_mut().journal;
-        let start = mark.0.min(journal.len());
-        journal.drain(start..).map(|r| r.change).collect()
+        Ok(journal.drain(mark.len..).map(|r| r.change).collect())
     }
 
     /// Reserves a fresh object number (generation 0) without creating the object; a later
@@ -227,7 +273,7 @@ impl Document {
     /// [`Error::InvalidStructure`] once the next number would exceed
     /// [`Limits::max_object_number`](crate::Limits::max_object_number).
     pub fn reserve_number(&self) -> Result<ObjRef> {
-        let first = u64::from(self.first_new_number());
+        let first = self.first_new_number();
         let cell = &self.overlay_ref().next_number;
         let next = cell.get().unwrap_or(first);
         let num = u32::try_from(next)
@@ -248,19 +294,55 @@ impl Document {
         self.overlay_ref()
             .next_number
             .get()
-            .is_some_and(|next| num >= first && u64::from(num) < next)
+            .is_some_and(|next| u64::from(num) >= first && u64::from(num) < next)
     }
 
-    /// The first number a new object may get: above every xref entry and `/Size`.
-    fn first_new_number(&self) -> u32 {
-        let above_entries = self.max_object_number().map_or(1, |n| n.saturating_add(1));
-        let size = self
-            .base_trailer()
-            .get_int("Size")
-            .and_then(|n| u32::try_from(n).ok())
-            .unwrap_or(0);
-        above_entries.max(size).max(1)
+    /// The lowest `/Size` an update may write: the base trailer's `/Size`, and above every
+    /// xref entry (the incremental writer and the number allocator share this rule).
+    pub(crate) fn size_floor(&self) -> i64 {
+        let above_entries = self.max_object_number().map_or(0, |n| i64::from(n) + 1);
+        self.base_trailer().get_int("Size").unwrap_or(0).max(above_entries)
     }
+
+    /// The first number a new object may get: [`Document::size_floor`], at least 1.
+    fn first_new_number(&self) -> u64 {
+        *self
+            .overlay_ref()
+            .first_new
+            .get_or_init(|| u64::try_from(self.size_floor().max(1)).unwrap_or(1))
+    }
+
+    /// Object `num` as the overlay has it (the one lookup [`CosMut::get`] and resolution
+    /// share).
+    pub(crate) fn overlay_value(&self, num: u32, gen_nr: Option<u16>) -> InOverlay<'_> {
+        let Some(entry) = self.overlay_ref().objects.get(&num) else {
+            return InOverlay::NoEntry;
+        };
+        let matches = gen_nr.is_none_or(|g| self.overlay_generation_matches(num, g));
+        match entry.object() {
+            Some(value) if matches => InOverlay::Value(value),
+            _ => InOverlay::Absent,
+        }
+    }
+
+    /// Whether `gen_nr` is the generation of overlay object `num`: 0 for a new object, the
+    /// base entry's for a modified or deleted one.
+    pub(crate) fn overlay_generation_matches(&self, num: u32, gen_nr: u16) -> bool {
+        match self.overlay_ref().objects.get(&num) {
+            Some(OverlayEntry::New(_)) => gen_nr == 0,
+            _ => self.base_has(ObjRef::new(num, gen_nr)),
+        }
+    }
+}
+
+/// What the overlay says about an object number.
+pub(crate) enum InOverlay<'a> {
+    /// Its current value.
+    Value(&'a Arc<Object>),
+    /// It does not exist: deleted, or named with a generation that is not its own.
+    Absent,
+    /// The overlay has no entry; the base decides.
+    NoEntry,
 }
 
 /// Write access to a document, through the overlay ([ADR 0005] §3). Every change is
@@ -284,16 +366,16 @@ impl CosMut<'_> {
 
     /// The current value of object `r` (overlay, then base), without following a top-level
     /// reference; `None` when it does not exist (free, deleted, never created, or `r`'s
-    /// generation is not the object's).
+    /// generation is not the object's). A base object that cannot be loaded reads as `null`.
     ///
     /// # Errors
-    /// As [`Document::object`], for a base object that cannot be loaded.
+    /// Strict-mode refusals and unavailable input ([`Error::DataPending`],
+    /// [`Error::Source`]) while loading a base object.
     pub fn get(&self, r: ObjRef) -> Result<Option<Arc<Object>>> {
-        match self.doc.overlay_ref().objects.get(&r.num) {
-            Some(OverlayEntry::New(o)) => Ok((r.gen_nr == 0).then(|| Arc::clone(o))),
-            Some(OverlayEntry::Modified(o)) => Ok(self.doc.base_has(r).then(|| Arc::clone(o))),
-            None if self.doc.base_has(r) => self.doc.base_object(r.num).map(Some),
-            Some(OverlayEntry::Deleted) | None => Ok(None),
+        match self.doc.overlay_value(r.num, Some(r.gen_nr)) {
+            InOverlay::Value(value) => Ok(Some(Arc::clone(value))),
+            InOverlay::NoEntry if self.doc.base_has(r) => self.doc.base_value(r.num).map(Some),
+            InOverlay::Absent | InOverlay::NoEntry => Ok(None),
         }
     }
 
@@ -313,7 +395,7 @@ impl CosMut<'_> {
     ///
     /// # Errors
     /// [`Error::InvalidStructure`] when `r` is none of those (or its generation does not
-    /// match); errors loading the base object to compare with.
+    /// match); as [`CosMut::get`].
     pub fn set(&mut self, r: ObjRef, object: Object) -> Result<()> {
         let before = self.get(r)?;
         if before.as_deref() == Some(&object) {
@@ -322,11 +404,9 @@ impl CosMut<'_> {
         let prior = self.doc.overlay_ref().objects.get(&r.num).cloned();
         let object = Arc::new(object);
         let entry = if self.doc.base_has(r) {
-            if self.doc.base_equals(r.num, &object)? {
-                None
-            } else {
-                Some(OverlayEntry::Modified(Arc::clone(&object)))
-            }
+            // Without an overlay entry the current value is the base's, which differs.
+            let back_to_base = prior.is_some() && *self.doc.base_value(r.num)? == *object;
+            (!back_to_base).then(|| OverlayEntry::Modified(Arc::clone(&object)))
         } else if r.gen_nr == 0 && (matches!(prior, Some(OverlayEntry::New(_))) || self.doc.is_reserved_number(r.num)) {
             Some(OverlayEntry::New(Arc::clone(&object)))
         } else {
@@ -349,11 +429,11 @@ impl CosMut<'_> {
         Ok(())
     }
 
-    /// Deletes object `r`. A base object becomes [`OverlayEntry::Deleted`]; an object created in
-    /// this session leaves the overlay, and its number stays reserved.
+    /// Deletes object `r`. A base object becomes [`OverlayEntry::Deleted`]; an object created
+    /// in this session leaves the overlay, and its number stays reserved.
     ///
     /// # Errors
-    /// [`Error::InvalidStructure`] when `r` does not exist; errors loading a base object.
+    /// [`Error::InvalidStructure`] when `r` does not exist; as [`CosMut::get`].
     pub fn delete(&mut self, r: ObjRef) -> Result<()> {
         let before = self.get(r)?.ok_or_else(unknown_object)?;
         let prior = self.doc.overlay_ref().objects.get(&r.num).cloned();
@@ -395,7 +475,10 @@ impl CosMut<'_> {
     }
 
     fn record(&mut self, change: CosChange, prior: Prior) {
-        self.doc.overlay_mut().journal.push(Record { change, prior });
+        let overlay = self.doc.overlay_mut();
+        overlay.seq += 1;
+        let seq = overlay.seq;
+        overlay.journal.push(Record { change, prior, seq });
     }
 }
 
@@ -501,7 +584,7 @@ mod tests {
         let base = rotated(&d, 90);
         let mark = d.journal_mark();
         d.edit().set(PAGE, base).unwrap();
-        assert_eq!(d.changes_since(mark).count(), 0);
+        assert_eq!(d.changes_since(mark).unwrap().count(), 0);
     }
 
     #[test]
@@ -589,7 +672,7 @@ mod tests {
         let mut trailer = edit.trailer().clone();
         trailer.remove("Info");
         edit.set_trailer(trailer);
-        d.rollback_to(mark);
+        d.rollback_to(mark).unwrap();
         assert_eq!(
             (
                 d.overlay().len(),
@@ -608,7 +691,7 @@ mod tests {
         let page = rotated(&d, 0);
         d.edit().set(PAGE, page).unwrap();
         d.edit().create(Object::Null).unwrap();
-        d.rollback_to(mark);
+        d.rollback_to(mark).unwrap();
         assert!(!d.is_dirty());
     }
 
@@ -623,6 +706,7 @@ mod tests {
         edit.delete(ObjRef::new(4, 0)).unwrap();
         let kinds: Vec<_> = d
             .take_changes(mark)
+            .unwrap()
             .iter()
             .map(|c| match c {
                 CosChange::Create { r, .. } => ("create", r.num),
@@ -633,7 +717,10 @@ mod tests {
             .collect();
         assert_eq!(
             (kinds, d.journal_mark()),
-            (vec![("create", r.num), ("set", 3), ("delete", 4)], JournalMark(0))
+            (
+                vec![("create", r.num), ("set", 3), ("delete", 4)],
+                JournalMark { len: 0, last: 0 }
+            )
         );
     }
 
@@ -667,5 +754,50 @@ mod tests {
         let d = doc();
         d.reserve_number().unwrap();
         assert!(!d.is_reserved_number(3) && d.is_reserved_number(5));
+    }
+
+    #[test]
+    fn a_mark_whose_records_were_taken_is_refused() {
+        let mut d = doc();
+        let outer = d.journal_mark();
+        d.edit().create(Object::Integer(1)).unwrap();
+        let inner = d.journal_mark();
+        d.edit().create(Object::Integer(2)).unwrap();
+        d.take_changes(outer).unwrap();
+        d.edit().create(Object::Integer(3)).unwrap();
+        d.edit().create(Object::Integer(4)).unwrap();
+        assert!(d.rollback_to(inner).is_err() && d.take_changes(inner).is_err() && d.changes_since(inner).is_err());
+    }
+
+    #[test]
+    fn a_mark_at_the_take_point_stays_valid() {
+        let mut d = doc();
+        d.edit().create(Object::Integer(1)).unwrap();
+        let mark = d.journal_mark();
+        d.edit().create(Object::Integer(2)).unwrap();
+        d.take_changes(mark).unwrap();
+        assert!(d.rollback_to(mark).is_ok());
+    }
+
+    #[test]
+    fn allocation_can_hand_out_u32_max_once() {
+        let mut bytes = b"%PDF-1.7\n".to_vec();
+        let offset = bytes.len();
+        bytes.extend_from_slice(b"1 0 obj << /Type /Catalog >> endobj\n");
+        let xref = bytes.len();
+        bytes.extend_from_slice(
+            format!(
+                "xref\n0 2\n0000000000 65535 f\r\n{offset:010} 00000 n\r\n\
+                 trailer << /Root 1 0 R /Size 4294967295 >>\nstartxref\n{xref}\n%%EOF\n"
+            )
+            .as_bytes(),
+        );
+        let limits = crate::Limits::default().with_max_object_number(u32::MAX);
+        let d = Document::open(bytes, OpenOptions::default().with_limits(limits)).unwrap();
+        assert!(!d.was_repaired());
+        assert_eq!(
+            (d.reserve_number().map(|r| r.num).ok(), d.reserve_number().is_err()),
+            (Some(u32::MAX), true)
+        );
     }
 }

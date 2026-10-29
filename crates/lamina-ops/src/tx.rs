@@ -114,19 +114,32 @@ impl Tx<'_> {
     /// The op's errors ([`Error::UnknownPage`](crate::Error::UnknownPage), …) and COS errors
     /// reading the document.
     pub fn apply(&mut self, op: impl Into<Op>) -> Result<Applied> {
-        let op = op.into();
         let mark = self.doc.journal_mark();
-        let touched = match op.apply_to(self.doc) {
-            Ok(touched) => touched,
-            Err(e) => {
-                self.doc.cos_mut().rollback_to(mark);
-                return Err(e);
-            }
-        };
-        let undo = UndoRecord::from_changes(self.doc.changes_since(mark));
-        let touched_pages: BTreeSet<PageId> = touched.into_iter().collect();
-        self.state.touched.extend(touched_pages.iter().cloned());
+        let touched_pages = self.run_op(&op.into())?;
+        let undo = UndoRecord::from_changes(self.doc.changes_since(mark)?);
         Ok(Applied { undo, touched_pages })
+    }
+
+    /// [`Tx::apply`] without the per-op undo record (the transaction's record is built
+    /// once, at commit).
+    pub(crate) fn apply_quietly(&mut self, op: &Op) -> Result<()> {
+        self.run_op(op).map(drop)
+    }
+
+    /// Runs `op`, rolling back its own changes on error; returns the pages it touched.
+    fn run_op(&mut self, op: &Op) -> Result<BTreeSet<PageId>> {
+        let mark = self.doc.journal_mark();
+        match op.apply_to(self.doc) {
+            Ok(touched) => {
+                let touched: BTreeSet<PageId> = touched.into_iter().collect();
+                self.state.touched.extend(touched.iter().cloned());
+                Ok(touched)
+            }
+            Err(e) => {
+                self.doc.cos_mut().rollback_to(mark)?;
+                Err(e)
+            }
+        }
     }
 
     /// Runs `f` and, when it returns `Err`, rolls back only what `f` changed; the
@@ -141,7 +154,7 @@ impl Tx<'_> {
         let touched = self.state.touched.clone();
         let result = f(self);
         if result.is_err() {
-            self.doc.cos_mut().rollback_to(mark);
+            self.doc.cos_mut().rollback_to(mark)?;
             self.state.touched = touched;
         }
         result

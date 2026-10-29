@@ -85,6 +85,6 @@ pub use error::{Error, Result};
 pub use history::{History, Reverted, UndoOutcome};
 pub use info::{InfoPatch, SetInfo};
 pub use op::{Op, OpLog};
-pub use record::{Change, Property, SkipReason, Skipped, Target, UndoRecord};
+pub use record::{Change, Field, Property, PropertyValue, SkipReason, Skipped, Target, UndoRecord};
 pub use rotate::RotatePage;
 pub use tx::{Applied, Origin, PeerId, Tx};

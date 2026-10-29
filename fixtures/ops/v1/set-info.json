@@ -1,7 +1,7 @@
 {
   "op": "setInfo",
   "args": {
-    "patch": { "title": "Quarterly report", "author": "Ada Lovelace", "subject": null, "keywords": "Привет, 世界" },
+    "patch": { "title": "Quarterly report", "author": null, "keywords": "Привет, 世界" },
     "at": "D:20261029120000Z"
   }
 }
