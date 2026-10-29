@@ -12,7 +12,7 @@
 | Branch | `ci/x4-full-lane-gate` |
 | PR title | `ci: full PR lane with an always-running gate job (X4)` |
 | Size | M (≈ 300–600 lines of workflow, xtask and docs) |
-| PR | — |
+| PR | [#30](https://github.com/laudebugs/lamina/pull/30) |
 
 ## Goal
 
@@ -43,17 +43,17 @@ Add the second PR lane ADR 0018 defines, without blocking docs-only PRs. The ful
 - [x] Write `full.yml` with `changes`, suites and `gate`; reuse `select-runner.yml` for Linux, GitHub-hosted for macOS/Windows
 - [x] `cargo xtask differential --mutants 500` (generate with fixed seed; expectations from B2c `--update`)
 - [x] `cargo xtask fuzz --all --time 120` for CI
-- [ ] Test on a docs-only PR (gate passes in seconds) and a code PR (suites run)
+- [ ] Test on a docs-only PR (gate passes in seconds) and a code PR (suites run). Code PR: #30 itself, where every suite ran. Docs-only: no separate test PR was opened; the allowlist is covered by `changes.rs` unit tests and the gate script was dry-run on sample results, so the first real docs-only PR is the check
 - [ ] Owner: set `gate` as required in branch protection
 - [x] Document
 
 ## Acceptance criteria
 
 - [ ] A docs-only PR (only allowlisted paths) shows the full lane's `gate` green within a minute and no suite jobs run
-- [ ] A PR touching `crates/` runs all suites; a failing suite turns `gate` red
-- [ ] A PR touching only root config (e.g. `rust-toolchain.toml`, `.github/workflows/ci.yml`, `.github/actions/<x>/action.yml`, `.cargo/config.toml`, `.gitattributes`, `biome.json`, `tsconfig.base.json`, `.nvmrc`, `.npmrc`) runs all suites; a unit test (or a `changes`-job dry run over sample path lists) covers every allowlist pattern and checks that each of those config paths, plus an unknown new root file, is classified as code
-- [ ] The 500-mutant differential and 2-minute fuzz runs pass on this PR's own full-lane run
-- [ ] Full lane completes in ~30 minutes or less
+- [x] A PR touching `crates/` runs all suites; a failing suite turns `gate` red (#30 ran every suite; the red case was checked by a dry run of the gate script on sample `needs` results)
+- [x] A PR touching only root config (e.g. `rust-toolchain.toml`, `.github/workflows/ci.yml`, `.github/actions/<x>/action.yml`, `.cargo/config.toml`, `.gitattributes`, `biome.json`, `tsconfig.base.json`, `.nvmrc`, `.npmrc`) runs all suites; a unit test (or a `changes`-job dry run over sample path lists) covers every allowlist pattern and checks that each of those config paths, plus an unknown new root file, is classified as code
+- [x] The 500-mutant differential and 2-minute fuzz runs pass on this PR's own full-lane run
+- [x] Full lane completes in ~30 minutes or less (18 min on #30: `changes` 22 s, fuzz 13 min, differential 1 min, Windows 3 min)
 
 ## Post-merge checks
 
@@ -77,9 +77,9 @@ The workflow on two test PRs (docs-only and code), linked in the PR description.
 ## Definition of done
 
 - [x] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
-- [ ] Work PR opened from a fresh worktree; **PR** field filled in
+- [x] Work PR opened from a fresh worktree; **PR** field filled in
 - [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
-- [ ] CI green
+- [x] CI green
 - [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
 
 ## Notes and deviations
