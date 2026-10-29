@@ -182,7 +182,7 @@ Architecture Round B is delivered as rounds B1–B9, each split into todos (one 
 
 ### B3. Ops and save
 
-**Todos:** [B3a](../todos/done/B3a-overlay-and-ops.md) (overlay, `lamina-ops`, undo; done in [#31](https://github.com/laudebugs/lamina/pull/31)), [B3b](../todos/done/B3b-lamina-save-writers.md) (`lamina-save` writers, `WriteSink`, rebase; done in [#35](https://github.com/laudebugs/lamina/pull/35)), [B3c](../todos/ongoing/B3c-save-planner-and-roundtrip.md) (`SavePlanner`, `SaveConstraint`, round-trip).
+**Todos:** [B3a](../todos/done/B3a-overlay-and-ops.md) (overlay, `lamina-ops`, undo; done in [#31](https://github.com/laudebugs/lamina/pull/31)), [B3b](../todos/done/B3b-lamina-save-writers.md) (`lamina-save` writers, `WriteSink`, rebase; done in [#35](https://github.com/laudebugs/lamina/pull/35)), [B3c](../todos/done/B3c-save-planner-and-roundtrip.md) (`SavePlanner`, `SaveConstraint`, round-trip; done in [#PRNUM](https://github.com/laudebugs/lamina/pull/PRNUM)).
 
 **Deliverable:** `lamina-ops` (`Op`, `transact`, inverses, undo/redo) and `lamina-save` (`SavePlanner`, `SaveConstraint`, incremental and full writers over `WriteSink`). Proving ops: `SetInfo`, `RotatePage`.
 **Accepted when:** open → op → save → reopen round-trips in lamina, pdf.js, PDFium and qpdf; signed fixtures report `AppendOnly` and refuse a full rewrite; undo restores byte-identical output.
@@ -284,10 +284,10 @@ Each round's todos (one per PR, with dependencies) are linked from [§7](#7-roun
 ### B3. Ops and save
 
 - [x] Create `crates/lamina-ops`: `Op`, `transact`, inverse ops, undo/redo stack (B3a; inverses are computed at undo time from an undo record derived from the COS journal, plus savepoints, coalescing and the `OpLog` envelope)
-- [x] Create `crates/lamina-save`: `SavePlanner`, incremental and full writers, `WriteSink` (B3b: the crate, both writers over the overlay, `WriteSink`, `/ID` and rebase; `SavePlanner` is B3c)
-- [ ] Implement `SaveConstraint` detection (signatures → `AppendOnly`)
-- [ ] Implement proving ops `SetInfo` and `RotatePage` with undo tests (B3a: ops, undo and property tests done; byte-identical output after undo needs the writers, B3b/B3c)
-- [ ] Round-trip test: reopen saved output in lamina, pdf.js, PDFium and qpdf `--check`
+- [x] Create `crates/lamina-save`: `SavePlanner`, incremental and full writers, `WriteSink` (B3b: the crate, both writers over the overlay, `WriteSink`, `/ID` and rebase; B3c: `SavePlanner`, `Document::save`)
+- [x] Implement `SaveConstraint` detection (signatures → `AppendOnly`) (B3c: signature fields, `/Perms` DocMDP and UR3, transforms, FieldMDP locks, DocTimeStamp, a repaired file's objects; rewrite reasons; violations; the ADR 0007 §3 mode table and the explicit override)
+- [x] Implement proving ops `SetInfo` and `RotatePage` with undo tests (B3a: ops, undo and property tests; B3c: byte-identical output after undo)
+- [x] Round-trip test: reopen saved output in lamina, pdf.js, PDFium and qpdf `--check` (B3c: `cargo xtask roundtrip`, full lane)
 
 ### B4. Fonts and text
 

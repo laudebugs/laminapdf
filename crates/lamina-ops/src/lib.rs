@@ -43,6 +43,9 @@
 //!   [`Error::NestedTransaction`] for a transaction inside one.
 //! * [`Applied`] carries the [`UndoRecord`] (each property's value before and after) and the
 //!   touched pages; [`Document::undo`] / [`Document::redo`] return an [`UndoOutcome`].
+//! * [`PendingChanges`] ([`Document::pending_changes`]): the op classes not yet saved, which
+//!   `lamina-save`'s planner checks against signatures (ADR 0007 §2);
+//!   [`Document::edit_outside_history`] is the planner's way to remove invalidated signatures.
 //!
 //! # How a change reaches the file
 //!

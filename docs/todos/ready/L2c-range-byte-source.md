@@ -66,7 +66,7 @@ Open large and remote PDFs without downloading or loading them whole, while the 
 - Viewer block cache on OPFS, privacy fetch options and the remote-URL UI: [C4c](./C4c-remote-files-encryption-privacy.md) (it should wrap `httpRangeSource`).
 - The desktop engine's IPC-backed source: [D2b](./D2b-engine-process.md).
 - Linearization fast paths and prefetch hints: later, if the web perf harness ([C3c](./C3c-viewer-perf-harness.md)) asks for it.
-- Returning only the appended bytes of an incremental save: a follow-up on the save API ([B3c](../ongoing/B3c-save-planner-and-roundtrip.md) area).
+- Returning only the appended bytes of an incremental save: a follow-up on the save API ([B3c](../done/B3c-save-planner-and-roundtrip.md) area).
 - Streaming input (`ReadableStream`) with no `size`: later; it needs a growing source and tail-last handling.
 
 ## Tasks
