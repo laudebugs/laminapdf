@@ -39,6 +39,20 @@ pub enum Error {
         /// The axis that was asked for.
         tag: Tag,
     },
+    /// A variation coordinate that is NaN or infinite.
+    #[error("variation axis values must be finite numbers")]
+    InvalidAxisValue {
+        /// The axis.
+        tag: Tag,
+    },
+    /// [`FontRegistry::finish_fonts`](crate::FontRegistry::finish_fonts) was given a document
+    /// in which a font's reserved object is not a free reserved number: the registry reserved
+    /// it in another document.
+    #[error("object {object} is not a font object reserved in this document")]
+    WrongDocument {
+        /// The reserved object number.
+        object: u32,
+    },
     /// `OS/2.fsType` forbids embedding (restricted licence or bitmap embedding only), and the
     /// caller did not choose [`EmbedPolicy::Override`](crate::EmbedPolicy::Override).
     #[error("the font's OS/2 fsType ({fs_type}) forbids embedding")]
@@ -98,6 +112,8 @@ impl Error {
         "glyph-out-of-range",
         "unknown-font",
         "subset-failed",
+        "invalid-axis-value",
+        "wrong-document",
     ];
 
     /// A stable kebab-case code for this error.
@@ -107,6 +123,8 @@ impl Error {
             Self::InvalidFont { .. } => "invalid-font",
             Self::CollectionIndex { .. } => "collection-index",
             Self::UnknownAxis { .. } => "unknown-axis",
+            Self::InvalidAxisValue { .. } => "invalid-axis-value",
+            Self::WrongDocument { .. } => "wrong-document",
             Self::FontNotEmbeddable { .. } => "font-not-embeddable",
             Self::MissingGlyph { .. } => "missing-glyph",
             Self::GlyphOutOfRange { .. } => "glyph-out-of-range",
@@ -134,18 +152,27 @@ pub enum Warning {
         /// The text that could not be mapped.
         dropped: String,
     },
+    /// A font whose `fsType` forbids subsetting could not be embedded byte for byte: it is a
+    /// variable-font instance or has CFF2 outlines, which PDF can't embed as they are, so it
+    /// was rebuilt by the subsetter with every glyph kept (instanced, or converted to
+    /// TrueType outlines; layout tables and `cmap` dropped).
+    WholeFontRebuilt {
+        /// The font's PostScript name.
+        font: String,
+    },
 }
 
 impl Warning {
     /// Every code [`Warning::code`] can return (listed in `fixtures/codes.json` under
     /// `textWarnings`).
-    pub const CODES: &'static [&'static str] = &["tounicode-conflict"];
+    pub const CODES: &'static [&'static str] = &["tounicode-conflict", "whole-font-rebuilt"];
 
     /// A stable kebab-case code for this warning.
     #[must_use]
     pub const fn code(&self) -> &'static str {
         match self {
             Self::ToUnicodeConflict { .. } => "tounicode-conflict",
+            Self::WholeFontRebuilt { .. } => "whole-font-rebuilt",
         }
     }
 }
@@ -158,6 +185,9 @@ impl std::fmt::Display for Warning {
                     f,
                     "glyph {gid} stands for two different texts; ToUnicode keeps the first"
                 )
+            }
+            Self::WholeFontRebuilt { .. } => {
+                f.write_str("a font that forbids subsetting was rebuilt with every glyph kept")
             }
         }
     }

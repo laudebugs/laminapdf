@@ -4,17 +4,11 @@
 use std::collections::BTreeMap;
 
 use lamina_cos::{CosMut, Dict, Name, ObjRef, Object, PdfString, Stream};
-use skrifa::instance::{LocationRef, Size};
-use skrifa::{FontRef, MetadataProvider};
 
-use super::subset::Program;
-use crate::error::{Error, Result};
+use super::subset::{Kind, Milli, Program, round_i64};
+use crate::error::Result;
 use crate::font::Font;
 use crate::usage::FontUse;
-
-/// Widths are kept in thousandths of a `/W` unit (millionths of an em), so equal widths
-/// compare exactly and the output does not depend on float formatting.
-type Milli = i64;
 
 /// A run of at least this many consecutive CIDs with equal widths is written as
 /// `c_first c_last w` rather than inside a `c [w …]` array.
@@ -25,7 +19,7 @@ pub(crate) struct FontObjects<'a> {
     pub(crate) font: &'a Font,
     pub(crate) usage: &'a FontUse,
     pub(crate) program: &'a Program,
-    /// `/BaseFont`: the subset tag and PostScript name, `ABCDEF+Name`.
+    /// The CIDFont's `/BaseFont`: the subset tag and PostScript name, `ABCDEF+Name`.
     pub(crate) base_font: &'a str,
     /// The reserved Type 0 font dictionary that content streams refer to.
     pub(crate) type0: ObjRef,
@@ -46,23 +40,36 @@ pub(crate) fn write_font(cos: &mut CosMut<'_>, objects: &FontObjects<'_>) -> Res
     let units = |v: f32| Object::Integer(round_i64(f64::from(v) * scale));
     let base_font = Name::from(base_font);
 
-    let (file_key, file_dict) = if program.is_cff {
-        // A bare CID-keyed CFF (`subsetter` converts name-keyed fonts), ISO 32000-2 §9.9 (embedded font programs).
-        let mut d = Dict::new();
-        d.insert("Subtype", Name::from("CIDFontType0C"));
-        ("FontFile3", d)
-    } else {
-        let mut d = Dict::new();
-        d.insert("Length1", i64::try_from(program.data.len()).unwrap_or(i64::MAX));
-        ("FontFile2", d)
+    let mut file_dict = Dict::new();
+    let file_key = match program.kind {
+        Kind::TrueType => {
+            file_dict.insert("Length1", i64::try_from(program.data().len()).unwrap_or(i64::MAX));
+            "FontFile2"
+        }
+        // A bare CID-keyed CFF (`subsetter` converts name-keyed fonts), ISO 32000-2 §9.9.
+        Kind::Cff(_) => {
+            file_dict.insert("Subtype", Name::from("CIDFontType0C"));
+            "FontFile3"
+        }
+        // A whole OpenType font with CFF outlines (§9.9, PDF 1.6).
+        Kind::OpenType => {
+            file_dict.insert("Subtype", Name::from("OpenType"));
+            "FontFile3"
+        }
     };
-    let file = cos.create(Object::Stream(Stream::flate(file_dict, &program.data)))?;
+    let file = cos.create(Object::Stream(Stream::flate(file_dict, program.data())))?;
 
     let mut descriptor = Dict::new();
     descriptor.insert("Type", Name::from("FontDescriptor"));
     descriptor.insert("FontName", base_font.clone());
     descriptor.insert("Flags", i64::from(info.flags));
-    descriptor.insert("FontBBox", Object::Array(info.bbox.iter().map(|&v| units(v)).collect()));
+    // An instance's bbox comes from its instanced outlines (already in thousandths of an em):
+    // `head` is not varied.
+    let bbox: Vec<Object> = match program.bbox {
+        Some(b) => b.iter().map(|&v| Object::Integer(round_i64(f64::from(v)))).collect(),
+        None => info.bbox.iter().map(|&v| units(v)).collect(),
+    };
+    descriptor.insert("FontBBox", Object::Array(bbox));
     descriptor.insert("ItalicAngle", real(f64::from(info.italic_angle)));
     descriptor.insert("Ascent", units(info.ascent));
     descriptor.insert("Descent", units(info.descent));
@@ -74,13 +81,17 @@ pub(crate) fn write_font(cos: &mut CosMut<'_>, objects: &FontObjects<'_>) -> Res
     descriptor.insert(file_key, file);
     let descriptor = cos.create(Object::Dict(descriptor))?;
 
-    let widths = subset_widths(font, usage, program)?;
-    let dw = default_width(&widths);
+    let widths = &program.widths;
+    let dw = default_width(widths);
     let mut cid_font = Dict::new();
     cid_font.insert("Type", Name::from("Font"));
     cid_font.insert(
         "Subtype",
-        Name::from(if program.is_cff { "CIDFontType0" } else { "CIDFontType2" }),
+        Name::from(if program.is_cff() {
+            "CIDFontType0"
+        } else {
+            "CIDFontType2"
+        }),
     );
     cid_font.insert("BaseFont", base_font.clone());
     let mut system_info = Dict::new();
@@ -90,11 +101,11 @@ pub(crate) fn write_font(cos: &mut CosMut<'_>, objects: &FontObjects<'_>) -> Res
     cid_font.insert("CIDSystemInfo", system_info);
     cid_font.insert("FontDescriptor", descriptor);
     cid_font.insert("DW", width_object(dw));
-    let w = compress_widths(&widths, dw);
+    let w = compress_widths(widths, dw);
     if !w.is_empty() {
         cid_font.insert("W", Object::Array(w));
     }
-    if !program.is_cff {
+    if !program.is_cff() {
         // CID = GID in the embedded program (ISO 32000-2 §9.7.4.2).
         cid_font.insert("CIDToGIDMap", Name::from("Identity"));
     }
@@ -106,37 +117,19 @@ pub(crate) fn write_font(cos: &mut CosMut<'_>, objects: &FontObjects<'_>) -> Res
     let mut dict = Dict::new();
     dict.insert("Type", Name::from("Font"));
     dict.insert("Subtype", Name::from("Type0"));
-    dict.insert("BaseFont", base_font);
+    // §9.7.6.1: for a CIDFontType0 descendant, the CIDFont's name, a hyphen and the CMap
+    // name; for CIDFontType2, the CIDFont's name.
+    let type0_name = if program.is_cff() {
+        Name::from(format!("{}-Identity-H", String::from_utf8_lossy(base_font.as_bytes())).as_str())
+    } else {
+        base_font
+    };
+    dict.insert("BaseFont", type0_name);
     dict.insert("Encoding", Name::from("Identity-H"));
     dict.insert("DescendantFonts", Object::Array(vec![cid_font.into()]));
     dict.insert("ToUnicode", to_unicode);
     cos.set(type0, Object::Dict(dict))?;
     Ok(())
-}
-
-/// The used CIDs' advances in thousandths of a `/W` unit, read from the embedded program's own
-/// `hmtx` (so `/W` agrees with the glyphs a viewer draws, also for an instance).
-fn subset_widths(font: &Font, usage: &FontUse, program: &Program) -> Result<Vec<(u16, Milli)>> {
-    let subset_error = || Error::Subset {
-        font: font.info().postscript_name.clone(),
-        reason: "the subset is not a readable font",
-    };
-    let sfnt = FontRef::new(&program.sfnt).map_err(|_| subset_error())?;
-    let upem = skrifa::raw::TableProvider::head(&sfnt)
-        .map_err(|_| subset_error())?
-        .units_per_em();
-    if upem == 0 {
-        return Err(subset_error());
-    }
-    let metrics = sfnt.glyph_metrics(Size::unscaled(), LocationRef::default());
-    let mut widths = Vec::new();
-    for (cid, _) in usage.glyphs() {
-        let advance = metrics
-            .advance_width(skrifa::GlyphId::from(cid))
-            .ok_or_else(subset_error)?;
-        widths.push((cid, round_i64(f64::from(advance) * 1_000_000.0 / f64::from(upem))));
-    }
-    Ok(widths)
 }
 
 /// The most common width (the smallest of equally common ones), written as `/DW` so that
@@ -217,17 +210,6 @@ fn real(v: f64) -> Object {
 fn stem_v(weight: u16) -> Object {
     let w = f64::from(weight);
     Object::Integer(round_i64(10.0 + 220.0 * (w - 50.0) / 900.0).max(0))
-}
-
-fn round_i64(v: f64) -> i64 {
-    if !v.is_finite() {
-        return 0;
-    }
-    // Font values are bounded by i16 font units scaled by at most 1000 / 16; far from i64's
-    // range, so the cast is exact after rounding.
-    #[expect(clippy::cast_possible_truncation, reason = "bounded, see above")]
-    let r = v.round() as i64;
-    r
 }
 
 #[cfg(test)]

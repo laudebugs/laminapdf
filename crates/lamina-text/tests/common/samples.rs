@@ -5,20 +5,40 @@ use lamina_text::{Font, GlyphId, Tag};
 
 use super::{TestPdf, fixture, font};
 
-/// A generated document and the text of each of its lines, in order.
+/// A generated document (its lines are the `LATIN`, `CFF`, … constants).
 pub struct Sample {
     pub bytes: Vec<u8>,
-    pub lines: Vec<String>,
 }
 
 /// The code that builds one sample.
 pub type Build = fn() -> Sample;
 
-/// Every golden: its file name under `fixtures/golden/` and the code that builds it.
-pub const GOLDENS: [(&str, Build); 3] = [
-    ("text-latin.pdf", latin),
-    ("text-cff.pdf", cff),
-    ("text-variable-collection.pdf", variable_and_collection),
+/// The lines of [`latin`].
+pub const LATIN: [&str; 4] = [
+    "Hello, world!",
+    "Café crème brûlée, naïve façade: “curly” and ‘single’ quotes",
+    "The office staff fill the affine waffle flask first.",
+    "Bold maths: \u{1D400}\u{1D401}\u{1D402} = ABC",
+];
+/// The lines of [`cff`].
+pub const CFF: [&str; 2] = ["CFF outlines: Ådne’s naïve café", "你好世界，这是中文字体子集测试。"];
+/// The lines of [`variable_and_collection`].
+pub const VARIABLE_COLLECTION: [&str; 3] = [
+    "Variable font, default instance",
+    "Variable font, wght 700 instance",
+    "Collection member 1: Noto Sans Bold",
+];
+
+/// Every golden: its file name under `fixtures/golden/`, the code that builds it and the
+/// lines it draws.
+pub const GOLDENS: [(&str, Build, &[&str]); 3] = [
+    ("text-latin.pdf", latin, &LATIN),
+    ("text-cff.pdf", cff, &CFF),
+    (
+        "text-variable-collection.pdf",
+        variable_and_collection,
+        &VARIABLE_COLLECTION,
+    ),
 ];
 
 /// `text` as glyphs of `font`, with the `ffi`, `ffl`, `fi` and `fl` sequences drawn as the
@@ -60,21 +80,13 @@ pub fn latin() -> Sample {
     let mut pdf = TestPdf::new();
     let s = pdf.add_font(sans.clone()).unwrap();
     let m = pdf.add_font(math).unwrap();
-    let lines = [
-        "Hello, world!",
-        "Café crème brûlée, naïve façade: “curly” and ‘single’ quotes",
-        "The office staff fill the affine waffle flask first.",
-        "Bold maths: \u{1D400}\u{1D401}\u{1D402} = ABC",
-    ];
+    let lines = LATIN;
     pdf.line(s, 18.0, lines[0]).unwrap();
     pdf.line(s, 12.0, lines[1]).unwrap();
     glyph_line(&mut pdf, s, 12.0, &with_ligatures(&sans, lines[2]));
     pdf.line(m, 12.0, lines[3]).unwrap();
     let (bytes, _, _) = pdf.finish().unwrap();
-    Sample {
-        bytes,
-        lines: lines.map(str::to_owned).to_vec(),
-    }
+    Sample { bytes }
 }
 
 /// CFF outlines: Noto Sans (name-keyed CFF) and a Noto Sans SC subset (CID-keyed CFF).
@@ -82,14 +94,11 @@ pub fn cff() -> Sample {
     let mut pdf = TestPdf::new();
     let latin = pdf.add_font(font("NotoSans-Regular.otf")).unwrap();
     let cjk = pdf.add_font(font("NotoSansSC-Regular.otf")).unwrap();
-    let lines = ["CFF outlines: Ådne’s naïve café", "你好世界，这是中文字体子集测试。"];
+    let lines = CFF;
     pdf.line(latin, 14.0, lines[0]).unwrap();
     pdf.line(cjk, 14.0, lines[1]).unwrap();
     let (bytes, _, _) = pdf.finish().unwrap();
-    Sample {
-        bytes,
-        lines: lines.map(str::to_owned).to_vec(),
-    }
+    Sample { bytes }
 }
 
 /// A variable font at its default and at `wght` 700, and the Bold member of a collection.
@@ -101,17 +110,10 @@ pub fn variable_and_collection() -> Sample {
     let v = pdf.add_font(variable).unwrap();
     let b = pdf.add_font(bold).unwrap();
     let t = pdf.add_font(ttc).unwrap();
-    let lines = [
-        "Variable font, default instance",
-        "Variable font, wght 700 instance",
-        "Collection member 1: Noto Sans Bold",
-    ];
+    let lines = VARIABLE_COLLECTION;
     pdf.line(v, 14.0, lines[0]).unwrap();
     pdf.line(b, 14.0, lines[1]).unwrap();
     pdf.line(t, 14.0, lines[2]).unwrap();
     let (bytes, _, _) = pdf.finish().unwrap();
-    Sample {
-        bytes,
-        lines: lines.map(str::to_owned).to_vec(),
-    }
+    Sample { bytes }
 }

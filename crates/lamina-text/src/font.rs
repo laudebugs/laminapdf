@@ -2,7 +2,8 @@
 //! `.otc`), TrueType or CFF outlines, static or variable (research 03 §3.6, §6.1).
 
 use std::fmt;
-use std::sync::Arc;
+use std::fmt::Write as _;
+use std::sync::{Arc, OnceLock};
 
 use sha2::{Digest, Sha256};
 use skrifa::instance::{LocationRef, NormalizedCoord, Size};
@@ -98,15 +99,19 @@ pub struct FontInfo {
     /// The PostScript name (`name` ID 6), restricted to the characters a PDF name may hold
     /// unescaped. For a variable-font instance the axis values are appended
     /// (`NotoSans-Regular_wght700`), so instances of one family have distinct names
-    /// (research 03 §7.9).
+    /// (research 03 §7.9). At most [`MAX_NAME_LEN`] characters, so that with a subset tag
+    /// (`ABCDEF+`) `/BaseFont` stays within PostScript's 63; a longer name is cut and ends
+    /// with `_` and eight hex digits of its SHA-256, so cut names stay distinct.
     pub postscript_name: String,
     /// Font units per em (`head.unitsPerEm`).
     pub units_per_em: u16,
     /// The number of glyphs (`maxp.numGlyphs`).
     pub glyph_count: u16,
-    /// Typographic ascender.
+    /// Ascender, written as `/Ascent`: `OS/2.sTypoAscender` when the font sets
+    /// `USE_TYPO_METRICS`, else `hhea.ascender` (`FreeType`'s choice, which `skrifa` follows).
     pub ascent: f32,
-    /// Typographic descender (negative below the baseline).
+    /// Descender (negative below the baseline), written as `/Descent`: `OS/2.sTypoDescender`
+    /// or `hhea.descender`, as for [`FontInfo::ascent`].
     pub descent: f32,
     /// Capital height, when the font records it (`OS/2` version 2 and later).
     pub cap_height: Option<f32>,
@@ -116,7 +121,8 @@ pub struct FontInfo {
     pub italic_angle: f32,
     /// Weight class, 1–1000 (`OS/2.usWeightClass`, or the `wght` coordinate of an instance).
     pub weight: u16,
-    /// The font bounding box `[x_min, y_min, x_max, y_max]` (`head`).
+    /// The font bounding box `[x_min, y_min, x_max, y_max]` (`head`, which variations don't
+    /// change: an instance's embedded `/FontBBox` is computed from its instanced outlines).
     pub bbox: [f32; 4],
     /// The font descriptor flags (ISO 32000-2 §9.8.2): `FixedPitch` (bit
     /// 1), `Symbolic` (bit 3: always set, as a CIDFont's glyphs are addressed by CID, not by the
@@ -132,12 +138,16 @@ pub struct FontInfo {
     pub fs_type: FsType,
 }
 
+/// The longest [`FontInfo::postscript_name`]: 63 (the PostScript name limit) minus the
+/// seven characters of a subset tag.
+pub const MAX_NAME_LEN: usize = 56;
+
 /// The bytes a font was loaded from, shared by every instance of it.
 struct Source {
     bytes: Arc<[u8]>,
     index: u32,
-    /// SHA-256 of `bytes`: part of the subset tag.
-    digest: [u8; 32],
+    /// SHA-256 of `bytes`, computed when a subset tag first needs it.
+    digest: OnceLock<[u8; 32]>,
 }
 
 /// A font loaded from caller-supplied bytes; for a variable font, one instance of it. Cheap to
@@ -189,12 +199,15 @@ impl Font {
     /// [`Error::CollectionIndex`] when `index` is past its last member.
     pub fn from_collection(bytes: impl Into<Arc<[u8]>>, index: u32) -> Result<Self> {
         let bytes: Arc<[u8]> = bytes.into();
-        let count = Self::collection_len(&bytes)?;
+        let count = Self::collection_len(&bytes).map_err(|_| Error::InvalidFont { index })?;
         if index >= count {
             return Err(Error::CollectionIndex { index, count });
         }
-        let digest: [u8; 32] = Sha256::digest(&bytes).into();
-        let source = Arc::new(Source { bytes, index, digest });
+        let source = Arc::new(Source {
+            bytes,
+            index,
+            digest: OnceLock::new(),
+        });
         let font = FontRef::from_index(&source.bytes, index).map_err(|_| Error::InvalidFont { index })?;
         let info = font_info(&font, &[], LocationRef::default()).ok_or(Error::InvalidFont { index })?;
         Ok(Self {
@@ -219,29 +232,46 @@ impl Font {
 
     /// The instance of this variable font at `settings` (user units, such as `wght` 700),
     /// starting from this font's own coordinates. Values outside an axis's range are clamped
-    /// to it; when a tag is given twice the last value wins. The instance is subset at that
-    /// location when embedded (`subsetter`'s instancing), so its metrics, `/W` widths and
-    /// outlines agree.
+    /// to it; when a tag is given twice the last value wins; a value equal to the axis's
+    /// default is dropped, so an instance at every default *is* the default instance (same
+    /// name, same subset). The instance is subset at that location when embedded
+    /// (`subsetter`'s instancing), so its metrics, `/W` widths and outlines agree.
     ///
     /// # Errors
-    /// [`Error::UnknownAxis`] for a tag the font has no axis for (a static font has none).
+    /// [`Error::UnknownAxis`] for a tag the font has no axis for (a static font has none);
+    /// [`Error::InvalidAxisValue`] for a NaN or infinite value; [`Error::InvalidFont`] when the
+    /// font's `fvar` record for the axis is not `min ≤ default ≤ max`.
     pub fn instance(&self, settings: &[(Tag, f32)]) -> Result<Self> {
         let font = self.font_ref()?;
         let axes = font.axes();
+        let index = self.source.index;
         let mut coords: Vec<(Tag, f32)> = self.coords.to_vec();
         for &(tag, value) in settings {
             let found = axes.get_by_tag(tag.to_skrifa()).ok_or_else(|| Error::UnknownAxis {
                 font: self.info.postscript_name.clone(),
                 tag,
             })?;
-            let value = value.clamp(found.min_value(), found.max_value());
+            if !value.is_finite() {
+                return Err(Error::InvalidAxisValue { tag });
+            }
+            let (min, default, max) = (found.min_value(), found.default_value(), found.max_value());
+            // `f32::clamp` panics when min > max; a malformed fvar must not reach it.
+            if !(min <= default && default <= max) {
+                return Err(Error::InvalidFont { index });
+            }
+            let value = value.clamp(min, max);
             coords.retain(|(t, _)| *t != tag);
-            coords.push((tag, value));
+            if value.to_bits() != default.to_bits() {
+                coords.push((tag, value));
+            }
         }
         coords.sort_by_key(|&(tag, _)| tag);
         let location = axes.location(coords.iter().map(|&(tag, value)| (tag.to_skrifa(), value)));
-        let normalized: Arc<[NormalizedCoord]> = Arc::from(location.coords());
-        let index = self.source.index;
+        let normalized: Arc<[NormalizedCoord]> = if coords.is_empty() {
+            Arc::from([])
+        } else {
+            Arc::from(location.coords())
+        };
         let info = font_info(&font, &coords, LocationRef::new(&normalized)).ok_or(Error::InvalidFont { index })?;
         Ok(Self {
             source: Arc::clone(&self.source),
@@ -300,7 +330,43 @@ impl Font {
     }
 
     pub(crate) fn digest(&self) -> &[u8; 32] {
-        &self.source.digest
+        self.source
+            .digest
+            .get_or_init(|| Sha256::digest(&self.source.bytes).into())
+    }
+
+    /// `text` one glyph per character through the `cmap`, with each glyph's advance in font
+    /// units (rounded, as [`Font::advance`]): the font is parsed once for the whole text.
+    ///
+    /// # Errors
+    /// [`Error::MissingGlyph`] for the first character without a glyph;
+    /// [`Error::GlyphOutOfRange`] when the `cmap` points past the glyph count (a malformed font).
+    pub(crate) fn map_text(&self, text: &str) -> Result<Vec<(GlyphId, char, f32)>> {
+        let font = self.font_ref()?;
+        let charmap = font.charmap();
+        let metrics = font.glyph_metrics(Size::unscaled(), self.location_ref());
+        let count = self.info.glyph_count;
+        let name = || self.info.postscript_name.clone();
+        text.chars()
+            .map(|ch| {
+                let gid = charmap
+                    .map(ch)
+                    .and_then(|g| u16::try_from(g.to_u32()).ok())
+                    .filter(|&g| g != 0)
+                    .ok_or_else(|| Error::MissingGlyph { ch, font: name() })?;
+                if gid >= count {
+                    return Err(Error::GlyphOutOfRange {
+                        gid,
+                        count,
+                        font: name(),
+                    });
+                }
+                let advance = metrics
+                    .advance_width(skrifa::GlyphId::from(gid))
+                    .map_or(0.0, f32::round);
+                Ok((GlyphId(gid), ch, advance))
+            })
+            .collect()
     }
 
     pub(crate) fn location_ref(&self) -> LocationRef<'_> {
@@ -339,7 +405,7 @@ fn font_info(font: &FontRef<'_>, coords: &[(Tag, f32)], location: LocationRef<'_
         .filter(|s| !s.is_empty())
         .or_else(|| Some(pdf_name_chars(&family)).filter(|s| !s.is_empty()))
         .unwrap_or_else(|| "Font".to_owned());
-    let postscript_name = instance_name(&base, coords);
+    let postscript_name = cap_name(instance_name(&base, coords));
     let italic = metrics.italic_angle != 0.0
         || os2.as_ref().is_some_and(|o| {
             o.fs_selection()
@@ -415,6 +481,21 @@ fn instance_name(base: &str, coords: &[(Tag, f32)]) -> String {
     name
 }
 
+/// `name` cut to [`MAX_NAME_LEN`] characters, ending with `_` and eight hex digits of the
+/// full name's SHA-256 when it was longer (names are ASCII, see [`pdf_name_chars`]).
+fn cap_name(name: String) -> String {
+    if name.len() <= MAX_NAME_LEN {
+        return name;
+    }
+    let digest = Sha256::digest(name.as_bytes());
+    let suffix = digest.iter().take(4).fold(String::new(), |mut hex, b| {
+        let _ = write!(hex, "{b:02X}");
+        hex
+    });
+    let keep = MAX_NAME_LEN - suffix.len() - 1;
+    format!("{}_{suffix}", name.get(..keep).unwrap_or_default())
+}
+
 /// Keeps the characters a PostScript font name may use (printable ASCII except the PDF
 /// delimiters, `%` and `#`), so `/BaseFont` needs no escapes.
 fn pdf_name_chars(s: &str) -> String {
@@ -436,6 +517,25 @@ mod tests {
     fn instance_name_appends_sorted_coordinates() {
         let coords = [(Tag::WEIGHT, 700.0), (Tag::WIDTH, 87.5)];
         assert_eq!(instance_name("Noto", &coords), "Noto_wght700_wdth87.5");
+    }
+
+    #[test]
+    fn long_names_are_capped_with_a_hash() {
+        let long = format!("{}_wght700", "A".repeat(60));
+        let capped = cap_name(long.clone());
+        assert_eq!((capped.len(), capped == cap_name(long)), (MAX_NAME_LEN, true));
+    }
+
+    #[test]
+    fn capped_names_stay_distinct() {
+        let a = cap_name(format!("{}_wght700", "A".repeat(60)));
+        let b = cap_name(format!("{}_wght800", "A".repeat(60)));
+        assert_ne!(a, b);
+    }
+
+    #[test]
+    fn short_names_are_kept() {
+        assert_eq!(cap_name("NotoSans-Regular".to_owned()), "NotoSans-Regular");
     }
 
     #[test]

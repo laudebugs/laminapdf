@@ -75,9 +75,12 @@ One page per code in [`fixtures/codes.json`](../../fixtures/codes.json), as [ADR
 | [`glyph-out-of-range`](glyph-out-of-range.md) | `usage` |
 | [`unknown-font`](unknown-font.md) | `usage` |
 | [`subset-failed`](subset-failed.md) | `unsupported` |
+| [`invalid-axis-value`](invalid-axis-value.md) | `usage` |
+| [`wrong-document`](wrong-document.md) | `usage` |
 
 ## Text warnings (`lamina-text`)
 
 | Code | Kind |
 | --- | --- |
 | [`tounicode-conflict`](tounicode-conflict.md) | `usage` |
+| [`whole-font-rebuilt`](whole-font-rebuilt.md) | `usage` |

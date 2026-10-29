@@ -23,6 +23,8 @@ pub struct FontUse {
     /// CID → the text the glyph stands for (sorted: the ToUnicode CMap is written in order).
     text: BTreeMap<u16, String>,
     glyph_count: u16,
+    /// The font's PostScript name, for errors and warnings.
+    font: String,
 }
 
 #[derive(Debug, Clone)]
@@ -50,6 +52,7 @@ impl FontUse {
             mapping,
             text: BTreeMap::new(),
             glyph_count: info.glyph_count,
+            font: info.postscript_name.clone(),
         }
     }
 
@@ -63,12 +66,12 @@ impl FontUse {
     ///
     /// # Errors
     /// [`Error::GlyphOutOfRange`] for a glyph past the font's glyph count.
-    pub fn use_glyph(&mut self, font: &Font, gid: GlyphId, text: &str) -> Result<(u16, Option<Warning>)> {
+    pub fn use_glyph(&mut self, gid: GlyphId, text: &str) -> Result<(u16, Option<Warning>)> {
         if gid.get() >= self.glyph_count {
             return Err(Error::GlyphOutOfRange {
                 gid: gid.get(),
                 count: self.glyph_count,
-                font: font.info().postscript_name.clone(),
+                font: self.font.clone(),
             });
         }
         let cid = match &mut self.mapping {
@@ -88,7 +91,7 @@ impl FontUse {
             }
             Some(kept) if kept == text => None,
             Some(kept) => Some(Warning::ToUnicodeConflict {
-                font: font.info().postscript_name.clone(),
+                font: self.font.clone(),
                 gid: gid.get(),
                 kept: kept.clone(),
                 dropped: text.to_owned(),

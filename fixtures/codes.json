@@ -79,9 +79,12 @@
     "missing-glyph",
     "glyph-out-of-range",
     "unknown-font",
-    "subset-failed"
+    "subset-failed",
+    "invalid-axis-value",
+    "wrong-document"
   ],
   "textWarnings": [
-    "tounicode-conflict"
+    "tounicode-conflict",
+    "whole-font-rebuilt"
   ]
 }

@@ -35,11 +35,9 @@ fn every_character_round_trips_through_the_cmap() {
     let text = many_chars();
     let mut pdf = TestPdf::new();
     let key = pdf.add_font(font("NotoSans-Regular.ttf")).unwrap();
-    pdf.line(key, 6.0, &text).unwrap();
+    let encoded = pdf.line(key, 6.0, &text).unwrap();
     let (cmap, _) = parse_cmap(&read_fonts(&pdf.finish().unwrap().0)[0].to_unicode);
-    let mut fonts = FontRegistry::new();
-    let k = fonts.add(font("NotoSans-Regular.ttf"), EmbedPolicy::Respect).unwrap();
-    assert_eq!(common::extract(&fonts.encode(k, &text).unwrap().bytes, &cmap), text);
+    assert_eq!(common::extract(&encoded.bytes, &cmap), text);
 }
 
 #[test]

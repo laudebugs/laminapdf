@@ -4,8 +4,8 @@ SHA-256, the text pypdf extracts from page 1 (one line per text line) and whethe
 `qpdf --check` passes. crates/lamina-text/tests/extraction.rs checks the facts against the
 samples' input text and the goldens' current bytes, so tests need neither Python nor qpdf.
 
-    python3 -m venv .venv && .venv/bin/pip install pypdf==6.21.3
-    .venv/bin/python tools/fixtures/text_facts.py      # needs qpdf on PATH
+    python3 -m venv .venv && .venv/bin/pip install -r tools/fixtures/requirements.txt
+    .venv/bin/python tools/fixtures/text_facts.py      # needs qpdf on PATH (pinned in doctor.rs)
 
 Run it after `cargo xtask golden --update` changes a text golden.
 """
@@ -33,8 +33,10 @@ def facts(path):
 
 def main():
     goldens = sorted((ROOT / "fixtures" / "golden").glob("text-*.pdf"))
+    qpdf = subprocess.run(["qpdf", "--version"], capture_output=True, text=True, check=True)
     result = {
         "pypdf_version": pypdf.__version__,
+        "qpdf_version": qpdf.stdout.split()[2],
         "files": {p.name: facts(p) for p in goldens},
     }
     OUT.parent.mkdir(parents=True, exist_ok=True)

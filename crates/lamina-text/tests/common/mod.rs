@@ -23,7 +23,7 @@ use std::path::{Path, PathBuf};
 
 use lamina_cos::{Dict, Document, Name, ObjRef, Object, OpenOptions, Stream};
 use lamina_save::{FullWriter, Renumber, SaveOptions, Writer, XrefKind};
-use lamina_text::{EmbedPolicy, EmbeddedFont, Font, FontKey, FontRegistry, GlyphId, Result, Warning};
+use lamina_text::{EmbedPolicy, EmbeddedFont, Encoded, Font, FontKey, FontRegistry, GlyphId, Result, Warning};
 use pdf_writer::{Content, Str};
 
 /// The repository's shared `fixtures/` directory (docs/guidelines/code-organization.md §6).
@@ -41,20 +41,30 @@ pub fn font(name: &str) -> Font {
     Font::from_bytes(fixture(&format!("fonts/{name}"))).unwrap()
 }
 
-/// `bytes` with `OS/2.fsType` set to `fs_type` (the table checksum is left stale; nothing
-/// checks it).
-pub fn with_fs_type(bytes: &[u8], fs_type: u16) -> Vec<u8> {
+/// The offset of table `tag` in a single-font `sfnt`.
+pub fn table_offset(bytes: &[u8], tag: [u8; 4]) -> usize {
     let num_tables = usize::from(u16::from_be_bytes([bytes[4], bytes[5]]));
+    (0..num_tables)
+        .map(|i| 12 + 16 * i)
+        .find(|&record| bytes[record..record + 4] == tag)
+        .map_or_else(
+            || panic!("no {} table", String::from_utf8_lossy(&tag)),
+            |record| u32::from_be_bytes(bytes[record + 8..record + 12].try_into().unwrap()) as usize,
+        )
+}
+
+/// `bytes` with `value` written at `at` bytes into table `tag` (the table checksum is left
+/// stale; nothing checks it).
+pub fn patch_table(bytes: &[u8], tag: [u8; 4], at: usize, value: &[u8]) -> Vec<u8> {
+    let offset = table_offset(bytes, tag) + at;
     let mut out = bytes.to_vec();
-    for i in 0..num_tables {
-        let record = 12 + 16 * i;
-        if &bytes[record..record + 4] == b"OS/2" {
-            let offset = u32::from_be_bytes(bytes[record + 8..record + 12].try_into().unwrap()) as usize;
-            out[offset + 8..offset + 10].copy_from_slice(&fs_type.to_be_bytes());
-            return out;
-        }
-    }
-    panic!("no OS/2 table");
+    out[offset..offset + value.len()].copy_from_slice(value);
+    out
+}
+
+/// `bytes` with `OS/2.fsType` set to `fs_type`.
+pub fn with_fs_type(bytes: &[u8], fs_type: u16) -> Vec<u8> {
+    patch_table(bytes, *b"OS/2", 8, &fs_type.to_be_bytes())
 }
 
 /// A4, in points.
@@ -68,6 +78,11 @@ pub struct TestPdf {
     /// Resource name → font object, in order of first use.
     resources: Vec<(String, ObjRef)>,
     y: f32,
+}
+
+/// A document whose base is an empty catalog and page tree.
+pub fn empty_document() -> Document {
+    TestPdf::new().doc
 }
 
 impl TestPdf {
@@ -110,10 +125,12 @@ impl TestPdf {
         &self.fonts
     }
 
-    /// One line of `text`, one glyph per character (the font's `cmap`).
-    pub fn line(&mut self, key: FontKey, size: f32, text: &str) -> Result<()> {
+    /// One line of `text`, one glyph per character (the font's `cmap`); returns what was
+    /// shown.
+    pub fn line(&mut self, key: FontKey, size: f32, text: &str) -> Result<Encoded> {
         let encoded = self.fonts.encode(key, text)?;
-        self.show(key, size, &encoded.bytes)
+        self.show(key, size, &encoded.bytes)?;
+        Ok(encoded)
     }
 
     /// One line of explicit glyphs, each with the text it stands for (what a shaper produces:
@@ -216,6 +233,8 @@ impl Default for TestPdf {
 
 /// A Type 0 font read back from a generated file with `lamina-cos`.
 pub struct ReadFont {
+    /// Its name in the page's `/Resources /Font` (`F1`, `F2`, … in order of first use).
+    pub resource: String,
     pub type0: Dict,
     pub cid_font: Dict,
     pub descriptor: Dict,
@@ -228,7 +247,8 @@ pub struct ReadFont {
 }
 
 /// Opens `pdf` with lamina-cos and reads every font in the first page's `/Resources /Font`,
-/// sorted by resource name.
+/// in resource order (`F1`, `F2`, …, compared numerically: the order the fonts were first
+/// used).
 pub fn read_fonts(pdf: &[u8]) -> Vec<ReadFont> {
     let doc = Document::open(pdf.to_vec(), OpenOptions::default()).unwrap();
     let page = doc.pages().unwrap().remove(0);
@@ -243,7 +263,7 @@ pub fn read_fonts(pdf: &[u8]) -> Vec<ReadFont> {
         .as_dict()
         .unwrap()
         .iter()
-        .map(|(_, r)| {
+        .map(|(resource, r)| {
             let type0 = dict(r);
             let cid_font = dict(&type0.get("DescendantFonts").unwrap().as_array().unwrap()[0]);
             let descriptor = dict(cid_font.get("FontDescriptor").unwrap());
@@ -254,6 +274,7 @@ pub fn read_fonts(pdf: &[u8]) -> Vec<ReadFont> {
             let (program_dict, program) = stream(file);
             let (_, cmap) = stream(type0.get("ToUnicode").unwrap());
             ReadFont {
+                resource: String::from_utf8_lossy(resource.as_bytes()).into_owned(),
                 type0,
                 cid_font,
                 descriptor,
@@ -262,7 +283,71 @@ pub fn read_fonts(pdf: &[u8]) -> Vec<ReadFont> {
                 to_unicode: String::from_utf8(cmap).unwrap(),
             }
         })
+        .collect::<Vec<_>>()
+        .into_iter()
+        .map(|f| (f.resource.trim_start_matches('F').parse::<u32>().unwrap(), f))
+        .collect::<std::collections::BTreeMap<_, _>>()
+        .into_values()
         .collect()
+}
+
+/// The font whose CIDFont is named `postscript_name` (with or without a subset tag).
+pub fn named<'f>(fonts: &'f [ReadFont], postscript_name: &str) -> &'f ReadFont {
+    fonts
+        .iter()
+        .find(|f| {
+            let name = name_of(&f.cid_font, "BaseFont");
+            name == postscript_name || name.split_once('+').is_some_and(|(_, n)| n == postscript_name)
+        })
+        .unwrap_or_else(|| panic!("no font named {postscript_name}"))
+}
+
+/// The operators of a bare CFF's Top DICT (CFF spec, Adobe TN #5176 §4, §8–§10): the Header,
+/// the Name INDEX, then the Top DICT INDEX's first entry. Two-byte operators are `1200 + b1`.
+pub fn cff_top_dict_operators(cff: &[u8]) -> Vec<u16> {
+    // An INDEX: count (u16), offSize (u8), count + 1 offsets (1-based), data. Returns the first
+    // entry and the end of the INDEX.
+    let index = |at: usize| -> (std::ops::Range<usize>, usize) {
+        let count = usize::from(u16::from_be_bytes([cff[at], cff[at + 1]]));
+        let size = usize::from(cff[at + 2]);
+        let offset = |i: usize| {
+            cff[at + 3 + i * size..at + 3 + (i + 1) * size]
+                .iter()
+                .fold(0usize, |acc, &b| acc << 8 | usize::from(b))
+        };
+        let data = at + 3 + (count + 1) * size - 1;
+        (data + offset(0)..data + offset(1), data + offset(count))
+    };
+    let header_size = usize::from(cff[2]);
+    let (_, after_names) = index(header_size);
+    let (top, _) = index(after_names);
+    let dict = &cff[top];
+    let mut ops = Vec::new();
+    let mut i = 0;
+    while i < dict.len() {
+        match dict[i] {
+            12 => {
+                ops.push(1200 + u16::from(dict[i + 1]));
+                i += 2;
+            }
+            0..=21 => {
+                ops.push(u16::from(dict[i]));
+                i += 1;
+            }
+            28 | 247..=254 => i += if dict[i] == 28 { 3 } else { 2 },
+            29 => i += 5,
+            30 => {
+                // Real: nibbles until one is 0xF.
+                i += 1;
+                while dict[i] >> 4 != 0xF && dict[i] & 0xF != 0xF {
+                    i += 1;
+                }
+                i += 1;
+            }
+            _ => i += 1,
+        }
+    }
+    ops
 }
 
 /// A name entry's text.

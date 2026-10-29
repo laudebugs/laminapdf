@@ -81,7 +81,7 @@ Hand-written samples of the op JSON format, version 1, read by `crates/lamina-op
 
 ### `fonts/`
 
-Font fixtures for `lamina-text` (todo B4a) and later text work (B4b shapes with them: layout tables and hinting are kept). Each is a subset of an upstream [Noto](https://notofonts.github.io/) font, made by [`tools/fixtures/fonts.py`](../tools/fixtures/fonts.py) with fontTools 4.68.0 (`tools/fixtures/requirements.txt`) from downloads whose SHA-256 the script checks (URLs and hashes in the script). **Licence:** SIL Open Font License 1.1 ([`fonts/OFL.txt`](fonts/OFL.txt), copyright The Noto Project Authors). The Noto fonts declare no Reserved Font Name, so modified (subset) versions may keep their names (OFL §3); the licence travels with them (OFL §2), and the fonts are not sold on their own. Total size about 0.65 MB.
+Font fixtures for `lamina-text` (todo B4a) and later text work (B4b shapes with them: layout tables and hinting are kept). Each is a subset of an upstream [Noto](https://notofonts.github.io/) font, made by [`tools/fixtures/fonts.py`](../tools/fixtures/fonts.py) with fontTools 4.68.0 (pinned in `tools/fixtures/requirements.txt`) from downloads whose SHA-256 the script checks (URLs and hashes in the script). **Licence:** SIL Open Font License 1.1 ([`fonts/OFL.txt`](fonts/OFL.txt), copyright The Noto Project Authors). The Noto fonts declare no Reserved Font Name, so modified (subset) versions may keep their names (OFL §3); the licence travels with them (OFL §2), and the fonts are not sold on their own. Total size about 0.65 MB.
 
 | File | Source | Kept | SHA-256 | Exercises |
 | --- | --- | --- | --- | --- |
@@ -105,7 +105,7 @@ python3 -m venv .venv && .venv/bin/pip install -r tools/fixtures/requirements.tx
 
 | File | Origin | Exercises |
 | --- | --- | --- |
-| `extracted.json` | [`tools/fixtures/text_facts.py`](../tools/fixtures/text_facts.py): pypdf 6.21.3 `extract_text()` and `qpdf --check` (qpdf 12.4.2) over every `golden/text-*.pdf`, with each file's SHA-256 | `crates/lamina-text/tests/extraction.rs`: the facts describe the current goldens, pypdf returns exactly the text each sample drew, and qpdf finds no errors |
+| `extracted.json` | [`tools/fixtures/text_facts.py`](../tools/fixtures/text_facts.py): pypdf 6.21.3 `extract_text()` and `qpdf --check` (qpdf 12.4.2) over every `golden/text-*.pdf`, with each file's SHA-256 and the pypdf and qpdf versions (pinned in `tools/fixtures/requirements.txt` and `tools/xtask/src/doctor.rs`, checked by the test) | `crates/lamina-text/tests/extraction.rs`: the facts describe the current goldens, pypdf returns exactly the text each sample drew, and qpdf finds no errors |
 
 ### `encrypted/`
 

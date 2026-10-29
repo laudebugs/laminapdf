@@ -21,5 +21,5 @@ To be added ([L1b](../todos/ready/L1b-error-contract-codegen.md)).
 
 ## Data fields
 
-- `ch`: the character.
+- `ch`: the character (**untrusted**: caller or document text).
 - `font`: the font's PostScript name (**untrusted**: read from the font).

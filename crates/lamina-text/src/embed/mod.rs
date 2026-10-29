@@ -9,6 +9,7 @@ mod tounicode;
 mod type0;
 
 use std::collections::BTreeSet;
+use std::sync::atomic::{AtomicU32, Ordering};
 
 use lamina_cos::{CosMut, Document, ObjRef};
 
@@ -18,9 +19,16 @@ use crate::fstype::EmbedPolicy;
 use crate::usage::FontUse;
 
 /// A font registered with a [`FontRegistry`]. Only meaningful to the registry that returned
-/// it.
+/// it: a key carries its registry's identity, and any other registry refuses it with
+/// [`Error::UnknownFont`].
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct FontKey(usize);
+pub struct FontKey {
+    registry: u32,
+    index: usize,
+}
+
+/// Registry identities, unique within the process. Only compared, never written to output.
+static NEXT_REGISTRY: AtomicU32 = AtomicU32::new(0);
 
 /// Text encoded for one font: the bytes to show (`Tj`/`TJ` operand, two bytes per glyph,
 /// Identity-H) and their advance.
@@ -49,6 +57,8 @@ pub struct EmbeddedFont {
     pub glyphs: usize,
     /// The size of the font program before compression.
     pub program_len: usize,
+    /// What embedding this font had to work around ([`Warning::WholeFontRebuilt`]).
+    pub warnings: Vec<Warning>,
 }
 
 #[derive(Debug)]
@@ -89,17 +99,43 @@ struct Slot {
 /// assert!(embedded[0].base_font.ends_with("+NotoSans-Regular"));
 /// # Ok::<(), Box<dyn std::error::Error>>(())
 /// ```
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct FontRegistry {
+    id: u32,
     slots: Vec<Slot>,
     warnings: Vec<Warning>,
+}
+
+impl Default for FontRegistry {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl FontRegistry {
     /// An empty registry.
     #[must_use]
     pub fn new() -> Self {
-        Self::default()
+        Self {
+            id: NEXT_REGISTRY.fetch_add(1, Ordering::Relaxed),
+            slots: Vec::new(),
+            warnings: Vec::new(),
+        }
+    }
+
+    fn slot(&self, key: FontKey) -> Result<&Slot> {
+        self.slots
+            .get(key.index)
+            .filter(|_| key.registry == self.id)
+            .ok_or(Error::UnknownFont { key: key.index })
+    }
+
+    fn slot_mut(&mut self, key: FontKey) -> Result<&mut Slot> {
+        let id = self.id;
+        self.slots
+            .get_mut(key.index)
+            .filter(|_| key.registry == id)
+            .ok_or(Error::UnknownFont { key: key.index })
     }
 
     /// Registers `font`. Its `fsType` is checked now, so a font that may not be embedded fails
@@ -123,19 +159,22 @@ impl FontRegistry {
             usage,
             object: None,
         });
-        Ok(FontKey(self.slots.len() - 1))
+        Ok(FontKey {
+            registry: self.id,
+            index: self.slots.len() - 1,
+        })
     }
 
     /// The font registered as `key`.
     #[must_use]
     pub fn font(&self, key: FontKey) -> Option<&Font> {
-        self.slots.get(key.0).map(|s| &s.font)
+        self.slot(key).ok().map(|s| &s.font)
     }
 
     /// The glyph usage recorded for `key` so far.
     #[must_use]
     pub fn usage(&self, key: FontKey) -> Option<&FontUse> {
-        self.slots.get(key.0).map(|s| &s.usage)
+        self.slot(key).ok().map(|s| &s.usage)
     }
 
     /// The Type 0 font object for `key`, to put in a page's `/Resources /Font`. The first call
@@ -145,7 +184,7 @@ impl FontRegistry {
     /// # Errors
     /// [`Error::UnknownFont`]; as [`Document::reserve_number`] when numbers run out.
     pub fn reference(&mut self, key: FontKey, doc: &Document) -> Result<ObjRef> {
-        let slot = self.slots.get_mut(key.0).ok_or(Error::UnknownFont { key: key.0 })?;
+        let slot = self.slot_mut(key)?;
         if let Some(r) = slot.object {
             return Ok(r);
         }
@@ -161,8 +200,8 @@ impl FontRegistry {
     /// # Errors
     /// [`Error::UnknownFont`]; [`Error::GlyphOutOfRange`].
     pub fn use_glyph(&mut self, key: FontKey, gid: GlyphId, text: &str) -> Result<u16> {
-        let slot = self.slots.get_mut(key.0).ok_or(Error::UnknownFont { key: key.0 })?;
-        let (cid, warning) = slot.usage.use_glyph(&slot.font, gid, text)?;
+        let slot = self.slot_mut(key)?;
+        let (cid, warning) = slot.usage.use_glyph(gid, text)?;
         self.warnings.extend(warning);
         Ok(cid)
     }
@@ -174,24 +213,23 @@ impl FontRegistry {
     /// [`Error::UnknownFont`]; [`Error::MissingGlyph`] for the first character the font has no
     /// glyph for (nothing is recorded for `text` then).
     pub fn encode(&mut self, key: FontKey, text: &str) -> Result<Encoded> {
-        let slot = self.slots.get(key.0).ok_or(Error::UnknownFont { key: key.0 })?;
-        let font = slot.font.clone();
-        let mut glyphs = Vec::with_capacity(text.len());
-        for ch in text.chars() {
-            let gid = font.glyph_for(ch).ok_or_else(|| Error::MissingGlyph {
-                ch,
-                font: font.info().postscript_name.clone(),
-            })?;
-            glyphs.push((gid, ch));
-        }
-        let scale = 1000.0 / f64::from(font.info().units_per_em);
+        let id = self.id;
+        let Self { slots, warnings, .. } = self;
+        let slot = slots
+            .get_mut(key.index)
+            .filter(|_| key.registry == id)
+            .ok_or(Error::UnknownFont { key: key.index })?;
+        // Every glyph is looked up (and checked) before any is recorded.
+        let glyphs = slot.font.map_text(text)?;
+        let scale = 1000.0 / f64::from(slot.font.info().units_per_em);
         let mut bytes = Vec::with_capacity(glyphs.len() * 2);
         let mut advance = 0.0;
         let mut buf = [0u8; 4];
-        for (gid, ch) in glyphs {
-            let cid = self.use_glyph(key, gid, ch.encode_utf8(&mut buf))?;
+        for (gid, ch, width) in glyphs {
+            let (cid, warning) = slot.usage.use_glyph(gid, ch.encode_utf8(&mut buf))?;
+            warnings.extend(warning);
             bytes.extend_from_slice(&cid.to_be_bytes());
-            advance += f64::from(font.advance(gid).unwrap_or(0.0)) * scale;
+            advance += f64::from(width) * scale;
         }
         Ok(Encoded { bytes, advance })
     }
@@ -209,28 +247,34 @@ impl FontRegistry {
     /// never referenced writes nothing.
     ///
     /// # Errors
-    /// [`Error::Subset`] when the subsetter fails; as [`CosMut::create`] / [`CosMut::set`].
+    /// [`Error::WrongDocument`] (before writing anything) when a reserved object is not a free
+    /// number reserved in this document; [`Error::Subset`] when the subsetter fails; as
+    /// [`CosMut::create`] / [`CosMut::set`].
     /// Objects written before the error stay in the overlay: take a
     /// [`Document::journal_mark`] first to roll back. The registry is consumed: read its
     /// [`FontRegistry::warnings`] before.
     pub fn finish_fonts(self, cos: &mut CosMut<'_>) -> Result<Vec<EmbeddedFont>> {
+        // Every reserved object must still be a free number this document reserved, or the
+        // registry was used with another document: check all before writing any.
+        for object in self.slots.iter().filter_map(|s| s.object) {
+            let doc = cos.document();
+            if !doc.is_reserved_number(object.num) || cos.get(object)?.is_some() {
+                return Err(Error::WrongDocument { object: object.num });
+            }
+        }
         let mut tags = BTreeSet::new();
         let mut embedded = Vec::new();
         for (index, slot) in self.slots.iter().enumerate() {
             let Some(object) = slot.object else {
                 continue;
             };
-            let program = subset::subset(&slot.font, &slot.usage)?;
+            let glyphs = slot.usage.glyphs();
+            let (program, warning) = subset::build(&slot.font, &slot.usage, &glyphs)?;
             let name = &slot.font.info().postscript_name;
             let base_font = if slot.usage.is_whole() {
                 name.clone()
             } else {
-                // A collision needs two subsets hashing to the same six letters (1 in 26^6),
-                // so this ends after one or two rounds; it is bounded by the font count.
-                let tag = (0..=u32::try_from(self.slots.len()).unwrap_or(u32::MAX))
-                    .map(|salt| subset::subset_tag(&slot.font, &slot.usage, salt))
-                    .find(|tag| !tags.contains(tag))
-                    .unwrap_or_default();
+                let tag = subset::unique_tag(&tags, name, |salt| subset::subset_tag(&slot.font, &glyphs, salt))?;
                 tags.insert(tag.clone());
                 format!("{tag}+{name}")
             };
@@ -245,11 +289,15 @@ impl FontRegistry {
                 },
             )?;
             embedded.push(EmbeddedFont {
-                key: FontKey(index),
+                key: FontKey {
+                    registry: self.id,
+                    index,
+                },
                 object,
                 base_font,
-                glyphs: slot.usage.glyphs().len(),
-                program_len: program.data.len(),
+                glyphs: glyphs.len(),
+                program_len: program.data().len(),
+                warnings: warning.into_iter().collect(),
             });
         }
         Ok(embedded)

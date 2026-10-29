@@ -21,7 +21,7 @@ use std::path::PathBuf;
 fn main() {
     let out = PathBuf::from(std::env::args().nth(1).expect("usage: golden <out-dir>"));
     std::fs::create_dir_all(&out).unwrap();
-    for (name, build) in common::samples::GOLDENS {
+    for (name, build, _) in common::samples::GOLDENS {
         let bytes = build().bytes;
         let path = out.join(name);
         std::fs::write(&path, &bytes).unwrap();
