@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [shareable-libraries §7 L2](../../plans/shareable-libraries.md#l2-typescript-hardening) |
 | Round / milestone | Round L2 (shareable libraries) |
-| Depends on | [B2d](./B2d-windowed-reading.md), [B6b](./B6b-lamina-pdf-package.md) |
+| Depends on | [B2d](../ongoing/B2d-windowed-reading.md), [B6b](./B6b-lamina-pdf-package.md) |
 | Blocks | None |
 | ADRs | Implements the edge half of [0005](../../decisions/0005-document-model.md) §2 (`SourceError::Pending` → `Error::DataPending { ranges }`, edge `ByteSource`s); follows [0001](../../decisions/0001-core-language-and-licence.md) (bytes-in/bytes-out core), [0003](../../decisions/0003-reader-tolerance-and-limits.md) (`Limits` bound what is fetched), 0026 and 0028 (codes, cancellation; from [L1a](./L1a-contract-adrs.md)), [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) (new crate dependencies) |
 | Branch | `feat/l2c-range-byte-source` |
@@ -16,7 +16,7 @@
 
 ## Goal
 
-Open large and remote PDFs without downloading or loading them whole, while the core stays synchronous. [B2d](./B2d-windowed-reading.md) makes the reader ask only for the windows it needs, through `Error::DataPending { ranges }` (the report calls this `NeedData`; lamina already has the name `DataPending`, so no second one is added). This todo builds the other half: sources that start empty and are filled range by range, and edge adapters that run the fetch-and-retry loop.
+Open large and remote PDFs without downloading or loading them whole, while the core stays synchronous. [B2d](../ongoing/B2d-windowed-reading.md) makes the reader ask only for the windows it needs, through `Error::DataPending { ranges }` (the report calls this `NeedData`; lamina already has the name `DataPending`, so no second one is added). This todo builds the other half: sources that start empty and are filled range by range, and edge adapters that run the fetch-and-retry loop.
 
 - **TypeScript:** HTTP `Range` requests via `fetch`, and a caller-supplied async read callback.
 - **Rust:** a file source with positioned reads and an opt-in mmap source in an edge crate.
@@ -26,7 +26,7 @@ Open large and remote PDFs without downloading or loading them whole, while the 
 ## Context
 
 - [ADR 0005 §2](../../decisions/0005-document-model.md#2-bytesource-and-ownership-of-the-input): `ByteSource` (`Send + Sync`, `read_at`, `as_slice`), the `Pending` → `DataPending` retry pattern, "edge implementations: mmap, `FileReaderSync`, HTTP-range cache … none in core crates".
-- [B2d](./B2d-windowed-reading.md): windows, chunked repair, `DataPending` carrying only the needed ranges, and its risk that lazy calls after open can also return `DataPending`.
+- [B2d](../ongoing/B2d-windowed-reading.md): windows, chunked repair, `DataPending` carrying only the needed ranges, and its risk that lazy calls after open can also return `DataPending`.
 - [Report: bytes cross once](../../research/libraries/shareable-libraries.md#bytes-cross-once-ranges-are-pulled-and-the-core-stays-synchronous) and [rust-core-bridge note §4](../../research/libraries/notes/rust-core-bridge.md#4-zero-copy-streaming-partial-loading): pdf.js range/stream/auto-fetch options, PDFium's `FPDF_AVAIL` pull model **[unverified]**, the tail-first read for non-linearized files, and incremental save returning only the appended part.
 - [C3a](./C3a-viewer-worker-rpc.md) (a TS `ByteSource` interface `read(offset, length, signal)`, `size`) and [C4c](./C4c-remote-files-encryption-privacy.md) (`HttpRangeByteSource` in the viewer with block cache, `ETag` check → `source-changed`, privacy fetch options). Align with both, so the viewer can reuse this source instead of writing its own.
 - [D2b](./D2b-engine-process.md): the desktop main process uses positioned reads, **not** `memmap2`, because a mapped file truncated underneath raises `SIGBUS`.
@@ -62,7 +62,7 @@ Open large and remote PDFs without downloading or loading them whole, while the 
 
 **Out of scope** (and which todo covers it)
 
-- The windowed reader and chunked repair themselves: [B2d](./B2d-windowed-reading.md).
+- The windowed reader and chunked repair themselves: [B2d](../ongoing/B2d-windowed-reading.md).
 - Viewer block cache on OPFS, privacy fetch options and the remote-URL UI: [C4c](./C4c-remote-files-encryption-privacy.md) (it should wrap `httpRangeSource`).
 - The desktop engine's IPC-backed source: [D2b](./D2b-engine-process.md).
 - Linearization fast paths and prefetch hints: later, if the web perf harness ([C3c](./C3c-viewer-perf-harness.md)) asks for it.
