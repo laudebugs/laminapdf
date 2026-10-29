@@ -7,6 +7,7 @@ use std::collections::{BTreeSet, VecDeque};
 
 use lamina_model::PageId;
 
+use crate::pending::PendingChanges;
 use crate::record::{Skipped, UndoRecord};
 
 /// The result of an undo or redo ([ADR 0006] §4).
@@ -50,6 +51,9 @@ pub(crate) struct Entry {
     pub(crate) key: Option<String>,
     /// Identifies the document state this entry leads to, for the semantic dirty state.
     pub(crate) serial: u64,
+    /// The op classes of the transaction, added back to the document's pending changes when
+    /// the entry is undone or redone.
+    pub(crate) pending: PendingChanges,
 }
 
 /// A document's undo and redo stacks ([ADR 0006] §4). Only local transactions are pushed;
@@ -144,7 +148,13 @@ impl History {
     /// Records a committed local transaction: merged into the top entry when it has the
     /// same coalescing `key` and the chain is still open (nothing was undone or redone and
     /// no other origin changed the document since), else pushed. Clears redo.
-    pub(crate) fn push(&mut self, record: UndoRecord, touched: BTreeSet<PageId>, key: Option<String>) {
+    pub(crate) fn push(
+        &mut self,
+        record: UndoRecord,
+        touched: BTreeSet<PageId>,
+        pending: PendingChanges,
+        key: Option<String>,
+    ) {
         let serial = self.serial();
         let coalesce = self.chain_open && key.is_some() && self.undo.back().is_some_and(|top| top.key == key);
         self.redo.clear();
@@ -152,6 +162,7 @@ impl History {
         if coalesce && let Some(top) = self.undo.back_mut() {
             top.record.merge(record);
             top.touched.extend(touched);
+            top.pending.merge(&pending);
             top.serial = serial;
             if top.record.is_empty() {
                 self.undo.pop_back();
@@ -162,6 +173,7 @@ impl History {
                 touched,
                 key,
                 serial,
+                pending,
             });
             self.trim();
         }
@@ -226,7 +238,7 @@ mod tests {
     fn push_trims_the_oldest_entries_beyond_the_depth() {
         let mut h = History::new(2);
         for n in 0..3 {
-            h.push(record(n), BTreeSet::new(), None);
+            h.push(record(n), BTreeSet::new(), PendingChanges::default(), None);
         }
         assert_eq!(h.undo.front().map(|e| e.serial), Some(2));
     }
@@ -239,24 +251,35 @@ mod tests {
             touched: BTreeSet::new(),
             key: None,
             serial: 1,
+            pending: PendingChanges::default(),
         });
-        h.push(record(2), BTreeSet::new(), None);
+        h.push(record(2), BTreeSet::new(), PendingChanges::default(), None);
         assert!(!h.can_redo());
     }
 
     #[test]
     fn push_coalesces_entries_with_the_same_key() {
         let mut h = History::default();
-        h.push(record(1), BTreeSet::new(), Some("k".to_owned()));
-        h.push(record(2), BTreeSet::new(), Some("k".to_owned()));
+        h.push(
+            record(1),
+            BTreeSet::new(),
+            PendingChanges::default(),
+            Some("k".to_owned()),
+        );
+        h.push(
+            record(2),
+            BTreeSet::new(),
+            PendingChanges::default(),
+            Some("k".to_owned()),
+        );
         assert_eq!(h.undo_len(), 1);
     }
 
     #[test]
     fn entries_without_a_key_never_coalesce() {
         let mut h = History::default();
-        h.push(record(1), BTreeSet::new(), None);
-        h.push(record(2), BTreeSet::new(), None);
+        h.push(record(1), BTreeSet::new(), PendingChanges::default(), None);
+        h.push(record(2), BTreeSet::new(), PendingChanges::default(), None);
         assert_eq!(h.undo_len(), 2);
     }
 
@@ -264,16 +287,26 @@ mod tests {
     fn a_fresh_history_is_unmodified_and_a_push_modifies_it() {
         let mut h = History::default();
         let fresh = h.is_modified();
-        h.push(record(1), BTreeSet::new(), None);
+        h.push(record(1), BTreeSet::new(), PendingChanges::default(), None);
         assert_eq!((fresh, h.is_modified()), (false, true));
     }
 
     #[test]
     fn coalescing_after_a_save_counts_as_a_modification() {
         let mut h = History::default();
-        h.push(record(1), BTreeSet::new(), Some("k".to_owned()));
+        h.push(
+            record(1),
+            BTreeSet::new(),
+            PendingChanges::default(),
+            Some("k".to_owned()),
+        );
         h.mark_saved();
-        h.push(record(2), BTreeSet::new(), Some("k".to_owned()));
+        h.push(
+            record(2),
+            BTreeSet::new(),
+            PendingChanges::default(),
+            Some("k".to_owned()),
+        );
         assert!(h.is_modified());
     }
 
@@ -281,7 +314,7 @@ mod tests {
     fn set_depth_drops_entries_now() {
         let mut h = History::default();
         for n in 0..5 {
-            h.push(record(n), BTreeSet::new(), None);
+            h.push(record(n), BTreeSet::new(), PendingChanges::default(), None);
         }
         h.set_depth(1);
         assert_eq!(h.undo_len(), 1);

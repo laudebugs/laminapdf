@@ -1,4 +1,6 @@
-//! The codes `lamina-text` adds are listed in `fixtures/codes.json` (ADR 0003 §4).
+//! The codes `lamina-text` adds are listed in `fixtures/codes.json` (v2, ADR 0003 §4 and
+//! ADR 0026). Their kinds are checked per variant by the unit tests in `src/error.rs`, their
+//! entries and pages by `crates/lamina-cos/tests/codes.rs`.
 #![allow(
     clippy::unwrap_used,
     clippy::indexing_slicing,
@@ -15,7 +17,7 @@ fn listed(key: &str) -> Vec<String> {
         .as_array()
         .unwrap()
         .iter()
-        .map(|c| c.as_str().unwrap().to_owned())
+        .map(|c| c["code"].as_str().unwrap().to_owned())
         .collect()
 }
 
@@ -76,19 +78,4 @@ fn messages_carry_no_font_names_or_text() {
         messages.iter().all(|m| !m.contains(marker) && !m.contains("wght")),
         "{messages:?}"
     );
-}
-
-#[test]
-fn every_code_has_an_explain_page() {
-    let missing: Vec<&str> = Error::CODES
-        .iter()
-        .chain(Warning::CODES)
-        .copied()
-        .filter(|code| {
-            !common::fixtures_dir()
-                .join(format!("../docs/errors/{code}.md"))
-                .is_file()
-        })
-        .collect();
-    assert!(missing.is_empty(), "{missing:?}");
 }

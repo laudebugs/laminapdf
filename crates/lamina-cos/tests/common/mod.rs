@@ -9,16 +9,34 @@
 #![allow(
     clippy::unwrap_used,
     clippy::panic,
+    clippy::indexing_slicing,
     reason = "test helpers outside #[test] fns: a panic here is a test failure"
 )]
 
 pub mod classic;
+pub mod codes;
 pub mod content;
 
 use std::path::{Path, PathBuf};
 
-use lamina_cos::{Document, ObjRef, Object, OpenOptions, Result};
+use lamina_cos::{ByteSource, Document, ObjRef, Object, OpenOptions, Result, SourceError};
 use lamina_save::{XrefEol, incremental_update};
+
+/// A source that is not in memory (no `as_slice`), so the reader parses it in windows.
+pub struct NoSlice(pub Vec<u8>);
+
+impl ByteSource for NoSlice {
+    fn len(&self) -> u64 {
+        u64::try_from(self.0.len()).unwrap()
+    }
+
+    fn read_at(&self, offset: u64, buf: &mut [u8]) -> std::result::Result<usize, SourceError> {
+        let tail = self.0.get(usize::try_from(offset).unwrap()..).unwrap_or_default();
+        let n = tail.len().min(buf.len());
+        buf[..n].copy_from_slice(&tail[..n]);
+        Ok(n)
+    }
+}
 
 /// Opens a copy of `bytes` with default options (tests keep their inputs).
 pub fn open(bytes: &[u8]) -> Result<Document> {

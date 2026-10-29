@@ -1,0 +1,10 @@
+{
+  "name": "lamina-roundtrip-tools",
+  "private": true,
+  "description": "pdf.js for `cargo xtask roundtrip` (todo B3c). Not part of the pnpm workspace: installed on demand into tools/roundtrip/node_modules.",
+  "license": "MIT OR Apache-2.0",
+  "type": "module",
+  "dependencies": {
+    "pdfjs-dist": "6.4.299"
+  }
+}

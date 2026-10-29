@@ -43,6 +43,8 @@
 //!   [`Error::NestedTransaction`] for a transaction inside one.
 //! * [`Applied`] carries the [`UndoRecord`] (each property's value before and after) and the
 //!   touched pages; [`Document::undo`] / [`Document::redo`] return an [`UndoOutcome`].
+//! * [`PendingChanges`] ([`Document::pending_changes`]): the op classes not yet saved, which
+//!   `lamina-save`'s planner checks against signatures (ADR 0007 §2).
 //!
 //! # How a change reaches the file
 //!
@@ -74,10 +76,15 @@ mod error;
 mod history;
 mod info;
 mod op;
+mod pending;
 mod record;
 mod rotate;
 mod tx;
 mod wire;
+// What `fixtures/codes.json` lists, for the kind tests (shared with the other crates' tests).
+#[cfg(test)]
+#[path = "../../lamina-cos/tests/common/codes.rs"]
+mod test_codes;
 
 pub use blob::{BlobId, ParseBlobIdError};
 pub use class::ModificationClass;
@@ -86,6 +93,7 @@ pub use error::{Error, Result};
 pub use history::{History, Reverted, UndoOutcome};
 pub use info::{InfoPatch, SetInfo};
 pub use op::{Op, OpLog};
+pub use pending::PendingChanges;
 pub use record::{Change, Field, Property, PropertyValue, SkipReason, Skipped, Target, UndoRecord};
 pub use rotate::RotatePage;
 pub use tx::{Applied, Origin, PeerId, Tx};

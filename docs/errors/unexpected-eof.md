@@ -21,4 +21,4 @@ To be added ([L1b](../todos/ready/L1b-error-contract-codegen.md)).
 
 ## Data fields
 
-None.
+None. The `location` is a file `offset`, or `object` with `streamOffset` inside an object stream.

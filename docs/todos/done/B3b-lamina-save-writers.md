@@ -7,7 +7,7 @@
 | Plan | [pdf-library §7 B3](../../plans/pdf-library.md#b3-ops-and-save), [architecture §7 Round B](../../plans/architecture.md#round-b--core-model-and-the-first-package) |
 | Round / milestone | Round B (library) — M1 |
 | Depends on | [B3a](./B3a-overlay-and-ops.md) |
-| Blocks | [B3c](../ongoing/B3c-save-planner-and-roundtrip.md), [B4a](./B4a-font-loading-and-subsetting.md) |
+| Blocks | [B3c](./B3c-save-planner-and-roundtrip.md), [B4a](./B4a-font-loading-and-subsetting.md) |
 | ADRs | Implements [0007](../../decisions/0007-save-planner.md) §5–§7 and [0005](../../decisions/0005-document-model.md) §3 (rebase, states); follows [0001](../../decisions/0001-core-language-and-licence.md) (determinism), [0018](../../decisions/0018-test-strategy.md) tier 3 |
 | Branch | `feat/b3b-lamina-save` (the claim named `feat/b3b-lamina-save-writers`) |
 | PR title | `feat(core): lamina-save: WriteSink, incremental and full writers over the overlay (B3b)` |
@@ -16,7 +16,7 @@
 
 ## Goal
 
-Turn the overlay into bytes, safely and deterministically, and keep the document consistent afterwards. The spike-era writer (`Writer`, `incremental_update`, `XrefEol`) moves from `lamina-cos` into a new `lamina-save` crate with its golden, determinism and incremental tests unchanged; on top of it come the incremental and full-rewrite writers that read the overlay, the streaming `WriteSink`/`ReadableSink` traits, `/ID` handling and the rebase that makes the saved output the new base. The mode-resolution and signature/rewrite logic (`SavePlanner`, `SaveConstraint`) follows in [B3c](../ongoing/B3c-save-planner-and-roundtrip.md).
+Turn the overlay into bytes, safely and deterministically, and keep the document consistent afterwards. The spike-era writer (`Writer`, `incremental_update`, `XrefEol`) moves from `lamina-cos` into a new `lamina-save` crate with its golden, determinism and incremental tests unchanged; on top of it come the incremental and full-rewrite writers that read the overlay, the streaming `WriteSink`/`ReadableSink` traits, `/ID` handling and the rebase that makes the saved output the new base. The mode-resolution and signature/rewrite logic (`SavePlanner`, `SaveConstraint`) follows in [B3c](../done/B3c-save-planner-and-roundtrip.md).
 
 ## Context
 
@@ -37,12 +37,12 @@ Turn the overlay into bytes, safely and deterministically, and keep the document
 - `IncrementalWriter` over base `ByteSource` + overlay; `FullWriter` (reachability walk from trailer roots, keep numbers, `Compact` with an old → new map, object streams + xref stream or classic); `SaveOptions { mode, output: IncrementalOutput, renumber, xref: XrefKind, eol }` subset needed here; `SaveReport` (bytes written, mode, renumber map, append offset).
 - `/ID`: keep `[0]`, `[1]` = hash of content written (SHA-256 truncated to 16 bytes, deterministic), `[0]` derived the same way for new documents or when missing.
 - `Document::save_incremental`/`save_full` (temporary names until B3c's `Document::save(sink, options)`), rebase: incremental output builds the new base in memory (old base ‖ appended); full rewrite rebases from a `ReadableSink` or enters `SavedNotRebased` and `Document::rebase(source)`; ops and saves refused in `SavedNotRebased`; `LaminaId` map kept (renumber map applied on compact).
-- Refusals carried over: repaired base (`RepairedBase`) for incremental; encrypted base (`EncryptedBase`) for **both** writers. B3b has no decryption ([B2b](./B2b-standard-security-decryption.md)) and no encryption on write (E11b), so a full rewrite of an encrypted base would either copy ciphertext without `/Encrypt` or keep `/Encrypt` over objects it can't re-encrypt; `FullWriter` refuses before writing anything ([ADR 0007 §2](../../decisions/0007-save-planner.md#2-saveconstraint-all-the-conditions-not-one-of-them): an encrypted base "can only be saved by removing encryption"). The explicit `remove_encryption` option and its planner rules are [B3c](../ongoing/B3c-save-planner-and-roundtrip.md)'s.
+- Refusals carried over: repaired base (`RepairedBase`) for incremental; encrypted base (`EncryptedBase`) for **both** writers. B3b has no decryption ([B2b](./B2b-standard-security-decryption.md)) and no encryption on write (E11b), so a full rewrite of an encrypted base would either copy ciphertext without `/Encrypt` or keep `/Encrypt` over objects it can't re-encrypt; `FullWriter` refuses before writing anything ([ADR 0007 §2](../../decisions/0007-save-planner.md#2-saveconstraint-all-the-conditions-not-one-of-them): an encrypted base "can only be saved by removing encryption"). The explicit `remove_encryption` option and its planner rules are [B3c](../done/B3c-save-planner-and-roundtrip.md)'s.
 
 **Out of scope** (and which todo covers it)
 
-- `SavePlanner`, `SaveConstraint`, `SaveMode::Auto` resolution, signature detection: [B3c](../ongoing/B3c-save-planner-and-roundtrip.md).
-- Round-trip with pdf.js/PDFium/qpdf: [B3c](../ongoing/B3c-save-planner-and-roundtrip.md).
+- `SavePlanner`, `SaveConstraint`, `SaveMode::Auto` resolution, signature detection: [B3c](../done/B3c-save-planner-and-roundtrip.md).
+- Round-trip with pdf.js/PDFium/qpdf: [B3c](../done/B3c-save-planner-and-roundtrip.md).
 - Signing phase, encryption on write: full-editor E10, E11.
 - Edge sinks (OPFS spool, files): web/desktop rounds.
 

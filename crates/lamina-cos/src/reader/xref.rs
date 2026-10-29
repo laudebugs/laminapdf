@@ -67,6 +67,8 @@ pub(crate) struct XrefTable {
     pub(crate) trailer: Dict,
     /// Number of sections reached through `/Prev` (hybrid `/XRefStm` sections do not count).
     pub(crate) sections: usize,
+    /// Their offsets, newest first.
+    pub(crate) section_offsets: Vec<usize>,
     pub(crate) has_xref_stream: bool,
     /// Whether the newest section (the one `startxref` points at) is an xref stream.
     pub(crate) newest_is_stream: bool,
@@ -157,6 +159,7 @@ pub(crate) fn load(source: &Source, start: usize, limits: &Limits, budget: &mut 
             table.newest_is_stream = is_stream;
         }
         table.sections += 1;
+        table.section_offsets.push(offset);
     }
     Ok(table)
 }

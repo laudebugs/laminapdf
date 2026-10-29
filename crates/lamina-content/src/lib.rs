@@ -62,4 +62,4 @@ pub use visitor::{
 };
 
 // The layers below, in façade order: what callers need without naming `lamina-cos`.
-pub use lamina_cos::{Error, Limit, Limits, Result, Warning};
+pub use lamina_cos::{Error, Limit, Limits, Position, Result, Warning};

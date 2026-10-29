@@ -3,11 +3,11 @@
 | Field | Value |
 | --- | --- |
 | ID | `B4b` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [pdf-library §7 B4](../../plans/pdf-library.md#b4-fonts-and-text), requirement [§4 F3](../../plans/pdf-library.md#functional) |
 | Round / milestone | Round B (library) — M1 |
 | Depends on | [B4a](../done/B4a-font-loading-and-subsetting.md), [X4](../done/X4-full-lane-gate.md) |
-| Blocks | [B5b](./B5b-builder-text-and-document-features.md), [E4e](./E4e-freetext-callouts.md), [E6c](./E6c-add-text.md), [E13c](./E13c-ocr-text-layer.md), [E16c](./E16c-images-and-fonts.md) |
+| Blocks | [B5b](../ready/B5b-builder-text-and-document-features.md), [E4e](../ready/E4e-freetext-callouts.md), [E6c](../ready/E6c-add-text.md), [E13c](../ready/E13c-ocr-text-layer.md), [E16c](../ready/E16c-images-and-fonts.md) |
 | ADRs | Follows [0005 §6](../../decisions/0005-document-model.md#6-generation-strategy--option-b-recommended-by-the-krilla-fit-spike-accepted-when-its-pr-merges) (HarfRust), [0001](../../decisions/0001-core-language-and-licence.md) (pure Rust, determinism), [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) (Unicode-3.0 data licences) |
 | Branch | `feat/b4b-shaping` |
 | PR title | `feat(text): HarfRust shaping, ICU4X bidi and line breaking, shaping goldens` |
@@ -38,7 +38,7 @@ Turn a Unicode string into positioned glyph runs that render correctly in every 
 
 **Out of scope** (and which todo covers it)
 
-- `surface.text()` / `textBox()` API: [B5b](./B5b-builder-text-and-document-features.md).
+- `surface.text()` / `textBox()` API: [B5b](../ready/B5b-builder-text-and-document-features.md).
 - Hyphenation, justification, vertical writing, flowing layout across pages: later plan (pdf-library §2 non-goals).
 - Font fallback chains and system fonts: never in core (caller supplies fonts); optional `@lamina/fonts` is an open question.
 
@@ -51,7 +51,7 @@ Turn a Unicode string into positioned glyph runs that render correctly in every 
 - [ ] `pdfpos.rs`: shaped run → `TJ` array + text map + `ActualText` flags; unit tests against hand-computed values
 - [ ] `tools/shaping-goldens/`: script running `hb-shape --output-format=json` (pinned HarfBuzz) on each fixture string and font → `fixtures/shaping/<script>.json`; `cargo xtask golden --update` invokes it when HarfBuzz is present
 - [ ] Extraction tests: generate PDFs (test page writer from B4a) for the five scripts; check pdf.js, pypdf and pdftotext extraction equals the input (full lane; lamina-only checks in the fast lane)
-- [ ] Measure the added WASM size (text module) and record it in the PR for [B6a](./B6a-lamina-wasm-and-adr-0016.md)
+- [ ] Measure the added WASM size (text module) and record it in the PR for [B6a](../ready/B6a-lamina-wasm-and-adr-0016.md)
 
 ## Acceptance criteria
 

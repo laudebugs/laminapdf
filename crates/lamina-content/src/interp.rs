@@ -4,7 +4,7 @@
 use std::collections::BTreeMap;
 use std::sync::Arc;
 
-use lamina_cos::{Document, Error, Limit, Limits, Name, ObjRef, Object, Result, Stream, Warning, tolerant};
+use lamina_cos::{Document, Error, Limit, Limits, Name, ObjRef, Object, Position, Result, Stream, Warning, tolerant};
 use lamina_model::Rect;
 
 use crate::lexer::{ContentIter, IssueKind, Lexed, Op};
@@ -170,6 +170,27 @@ fn offset_u64(offset: usize) -> u64 {
     u64::try_from(offset).unwrap_or(u64::MAX)
 }
 
+/// Where `offset` in the decoded content of `object` is (ADR 0026 §1.1); `None` for content
+/// with no object (interpreted on its own, or a direct page), where no position is unambiguous.
+fn in_content(object: Option<u32>, offset: u64) -> Option<Position> {
+    object.map(|object| Position::InStream { object, offset })
+}
+
+/// `e` from lexing the content of `object`, its buffer offsets re-tagged as offsets in that
+/// content (the syntax layer reports them as file offsets).
+fn content_error(e: Error, object: Option<u32>) -> Error {
+    match e {
+        Error::LimitExceeded {
+            limit,
+            at: Some(Position::FileOffset(offset)),
+        } => Error::LimitExceeded {
+            limit,
+            at: in_content(object, offset),
+        },
+        other => other,
+    }
+}
+
 fn number(object: &Object) -> f64 {
     object.as_f64().unwrap_or_default()
 }
@@ -256,7 +277,7 @@ impl<'d, 'v, V: Visitor + ?Sized> Interpreter<'d, 'v, V> {
             });
         }
         for item in ContentIter::new(content).with_limits(&self.limits) {
-            match item? {
+            match item.map_err(|e| content_error(e, frame.object))? {
                 Lexed::Issue(issue) => {
                     let offset = offset_u64(issue.offset);
                     let object = frame.object;
@@ -403,7 +424,7 @@ impl<'d, 'v, V: Visitor + ?Sized> Interpreter<'d, 'v, V> {
                 if frame.saved.len() >= self.limits.max_nesting_depth() {
                     return Err(Error::LimitExceeded {
                         limit: Limit::NestingDepth,
-                        at: Some(offset_u64(op.offset)),
+                        at: in_content(frame.object, offset_u64(op.offset)),
                     });
                 }
                 frame.saved.push(frame.gs.clone());
@@ -871,7 +892,7 @@ impl<'d, 'v, V: Visitor + ?Sized> Interpreter<'d, 'v, V> {
         if self.forms.len() >= self.limits.max_xobject_depth() {
             return Err(Error::LimitExceeded {
                 limit: Limit::XObjectDepth,
-                at: Some(u64::from(object.num)),
+                at: Some(Position::Object(object.num)),
             });
         }
         let content = if let Some(content) = self.decoded.get(&object) {

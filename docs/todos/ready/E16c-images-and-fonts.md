@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [full-editor §E16](../../plans/full-editor.md#e16-optimisation-and-print-production) |
 | Round / milestone | Editor phase 6 (E11–E17) — M9 Advanced |
-| Depends on | [B4b](./B4b-shaping-bidi-line-breaking.md), [B4c](./B4c-standard-14-and-simple-fonts.md), [E16b](./E16b-structural-optimiser.md) |
+| Depends on | [B4b](../ongoing/B4b-shaping-bidi-line-breaking.md), [B4c](../ongoing/B4c-standard-14-and-simple-fonts.md), [E16b](./E16b-structural-optimiser.md) |
 | Blocks | [E16e](./E16e-preflight-and-conversion.md) |
 | Dependency notes | [E16b](E16b-structural-optimiser.md), `B4` ([pdf-library §B4](../../plans/pdf-library.md#b4-fonts-and-text): fonts, shaping, subsetting) |
 | ADRs | Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |

@@ -9,11 +9,13 @@
 
 mod common;
 
+use common::save::ModeSaves as _;
+
 use common::corpus;
 use common::save::{corpus_doc, editable, facts, page_ids, reopen, rotate, set_title, two_pages};
 use lamina_cos::{Document, ObjRef, Object, OpenOptions};
 use lamina_model::Rotation;
-use lamina_save::{FullWriter, Renumber, Save, SaveMode, SaveOptions, XrefKind};
+use lamina_save::{FullWriter, Renumber, SaveMode, SaveOptions, XrefKind};
 
 fn full(doc: &mut lamina_ops::Document, options: SaveOptions) -> Vec<u8> {
     let mut out = Vec::new();

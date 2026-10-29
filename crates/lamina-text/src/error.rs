@@ -1,5 +1,7 @@
 //! Errors and warnings of the font layer.
 
+use lamina_cos::{ErrorKind, Location, Position};
+
 use crate::font::Tag;
 use crate::fstype::FsType;
 
@@ -133,6 +135,46 @@ impl Error {
             Self::Cos(e) => e.code(),
         }
     }
+
+    /// The kind of this error ([ADR 0026] §2), as `fixtures/codes.json` lists it for
+    /// [`Error::code`] (a test checks every variant). COS errors report
+    /// [`lamina_cos::Error::kind`].
+    ///
+    /// [ADR 0026]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0026-error-and-diagnostic-contract.md
+    #[must_use]
+    pub const fn kind(&self) -> ErrorKind {
+        match self {
+            Self::Cos(e) => e.kind(),
+            Self::InvalidFont { .. } | Self::MissingGlyph { .. } => ErrorKind::Input,
+            Self::CollectionIndex { .. }
+            | Self::UnknownAxis { .. }
+            | Self::InvalidAxisValue { .. }
+            | Self::WrongDocument { .. }
+            | Self::FontNotEmbeddable { .. }
+            | Self::GlyphOutOfRange { .. }
+            | Self::UnknownFont { .. } => ErrorKind::Usage,
+            Self::Subset { .. } => ErrorKind::Unsupported,
+        }
+    }
+
+    /// Where the error was found (ADR 0026 §1.1): a COS error's position, or the reserved
+    /// object of [`Error::WrongDocument`]; font errors have no position in a document.
+    #[must_use]
+    pub fn location(&self) -> Location {
+        match self {
+            Self::Cos(e) => e.location(),
+            Self::WrongDocument { object } => Location::from(Position::Object(*object)),
+            Self::InvalidFont { .. }
+            | Self::CollectionIndex { .. }
+            | Self::UnknownAxis { .. }
+            | Self::InvalidAxisValue { .. }
+            | Self::FontNotEmbeddable { .. }
+            | Self::MissingGlyph { .. }
+            | Self::GlyphOutOfRange { .. }
+            | Self::UnknownFont { .. }
+            | Self::Subset { .. } => Location::NONE,
+        }
+    }
 }
 
 /// Something the font layer noticed and worked around; the output is still valid.
@@ -175,6 +217,25 @@ impl Warning {
             Self::WholeFontRebuilt { .. } => "whole-font-rebuilt",
         }
     }
+
+    /// The kind of this warning ([ADR 0026] §2), as `fixtures/codes.json` lists it for
+    /// [`Warning::code`] (a test checks every variant).
+    ///
+    /// [ADR 0026]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0026-error-and-diagnostic-contract.md
+    #[must_use]
+    pub const fn kind(&self) -> ErrorKind {
+        match self {
+            Self::ToUnicodeConflict { .. } | Self::WholeFontRebuilt { .. } => ErrorKind::Usage,
+        }
+    }
+
+    /// Where the problem is (ADR 0026 §1.1): font warnings have no position in a document.
+    #[must_use]
+    pub const fn location(&self) -> Location {
+        match self {
+            Self::ToUnicodeConflict { .. } | Self::WholeFontRebuilt { .. } => Location::NONE,
+        }
+    }
 }
 
 impl std::fmt::Display for Warning {
@@ -190,5 +251,88 @@ impl std::fmt::Display for Warning {
                 f.write_str("a font that forbids subsetting was rebuilt with every glyph kept")
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::test_codes as codes;
+
+    /// One value of every variant this crate adds: the matches in [`Error::kind`] and
+    /// [`Warning::kind`] have no wildcard, so a new variant is a compile error there, and these
+    /// lists are what the tests compare.
+    fn errors() -> Vec<Error> {
+        let tag = Tag::WEIGHT;
+        let font = String::new();
+        vec![
+            Error::InvalidFont { index: 0 },
+            Error::CollectionIndex { index: 1, count: 1 },
+            Error::UnknownAxis {
+                font: font.clone(),
+                tag,
+            },
+            Error::FontNotEmbeddable {
+                font: font.clone(),
+                fs_type: FsType::new(2),
+            },
+            Error::MissingGlyph {
+                ch: 'x',
+                font: font.clone(),
+            },
+            Error::GlyphOutOfRange {
+                gid: 9,
+                count: 3,
+                font: font.clone(),
+            },
+            Error::UnknownFont { key: 0 },
+            Error::Subset { font, reason: "r" },
+            Error::InvalidAxisValue { tag },
+            Error::WrongDocument { object: 1 },
+        ]
+    }
+
+    fn warnings() -> Vec<Warning> {
+        vec![
+            Warning::ToUnicodeConflict {
+                font: String::new(),
+                gid: 1,
+                kept: String::new(),
+                dropped: String::new(),
+            },
+            Warning::WholeFontRebuilt { font: String::new() },
+        ]
+    }
+
+    #[test]
+    fn codes_lists_the_code_of_every_error_variant_in_order() {
+        assert_eq!(codes::distinct(errors().iter().map(Error::code)), Error::CODES);
+    }
+
+    #[test]
+    fn codes_lists_the_code_of_every_warning_variant_in_order() {
+        assert_eq!(codes::distinct(warnings().iter().map(Warning::code)), Warning::CODES);
+    }
+
+    #[test]
+    fn every_variant_has_the_kind_codes_json_lists() {
+        let errors = errors();
+        let warnings = warnings();
+        codes::assert_kinds_match(
+            errors
+                .iter()
+                .map(|e| (e.code(), e.kind().as_str()))
+                .chain(warnings.iter().map(|w| (w.code(), w.kind().as_str()))),
+        );
+    }
+
+    #[test]
+    fn a_cos_error_keeps_its_kind() {
+        assert_eq!(Error::Cos(lamina_cos::Error::WrongPassword).kind(), ErrorKind::Security);
+    }
+
+    #[test]
+    fn wrong_document_is_located_at_the_reserved_object() {
+        assert_eq!(Error::WrongDocument { object: 7 }.location().object, Some(7));
     }
 }

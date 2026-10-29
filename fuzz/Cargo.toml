@@ -19,7 +19,9 @@ lamina-syntax = { path = "../crates/lamina-syntax" }
 lamina-cos = { path = "../crates/lamina-cos" }
 lamina-model = { path = "../crates/lamina-model" }
 lamina-content = { path = "../crates/lamina-content" }
+lamina-ops = { path = "../crates/lamina-ops" }
 lamina-save = { path = "../crates/lamina-save" }
+serde_json = "1.0.154"
 
 [workspace]
 members = ["."]
@@ -65,6 +67,20 @@ bench = false
 [[bin]]
 name = "content"
 path = "fuzz_targets/content.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "ops_json"
+path = "fuzz_targets/ops_json.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "save_roundtrip"
+path = "fuzz_targets/save_roundtrip.rs"
 test = false
 doc = false
 bench = false

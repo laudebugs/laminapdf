@@ -12,7 +12,7 @@
 mod common;
 
 use common::{classic, open_with, stream_body};
-use lamina_cos::{Error, Limit, Limits, ObjRef, OpenOptions, Warning};
+use lamina_cos::{Error, Limit, Limits, ObjRef, OpenOptions, Position, Warning};
 use lamina_syntax::filters::flate_encode;
 
 fn with(limits: Limits) -> OpenOptions {
@@ -327,7 +327,7 @@ mod resolve_depth {
             doc.resolve(ObjRef::new(4, 0)),
             Err(Error::LimitExceeded {
                 limit: Limit::ResolveDepth,
-                at: Some(9)
+                at: Some(Position::Object(9))
             })
         );
     }
