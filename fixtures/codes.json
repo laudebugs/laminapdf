@@ -451,6 +451,20 @@
       "summary": "the sink already held bytes before the save started",
       "hint": "pass an empty sink: output offsets count from the sink's first byte",
       "since": "0.1.0"
+    },
+    {
+      "code": "would-invalidate-signatures",
+      "kind": "security",
+      "summary": "the save would break one or more signatures",
+      "hint": "save with SaveMode::Auto, or ask the user and retry with SaveOptions::with_invalidate_signatures",
+      "since": "0.1.0"
+    },
+    {
+      "code": "requires-rewrite",
+      "kind": "state",
+      "summary": "an incremental save was requested but only a full rewrite is safe",
+      "hint": "save with SaveMode::Auto or SaveMode::FullRewrite",
+      "since": "0.1.0"
     }
   ],
   "textErrors": [

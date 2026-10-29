@@ -11,6 +11,7 @@ use lamina_model::PageId;
 
 use crate::error::Result;
 use crate::op::Op;
+use crate::pending::PendingChanges;
 use crate::record::UndoRecord;
 
 /// The identity of a collaborator (ADR 0012), as sync assigns it.
@@ -71,6 +72,8 @@ pub(crate) struct TxState {
     pub(crate) origin: Origin,
     pub(crate) mark: JournalMark,
     pub(crate) touched: BTreeSet<PageId>,
+    /// The classes of the ops applied so far.
+    pub(crate) pending: PendingChanges,
     pub(crate) coalesce: Option<String>,
 }
 
@@ -133,6 +136,7 @@ impl Tx<'_> {
             Ok(touched) => {
                 let touched: BTreeSet<PageId> = touched.into_iter().collect();
                 self.state.touched.extend(touched.iter().cloned());
+                self.state.pending.record(op);
                 Ok(touched)
             }
             Err(e) => {
@@ -152,10 +156,12 @@ impl Tx<'_> {
     pub fn savepoint<T>(&mut self, f: impl FnOnce(&mut Tx<'_>) -> Result<T>) -> Result<T> {
         let mark = self.doc.journal_mark();
         let touched = self.state.touched.clone();
+        let pending = self.state.pending.clone();
         let result = f(self);
         if result.is_err() {
             self.doc.cos_mut().rollback_to(mark)?;
             self.state.touched = touched;
+            self.state.pending = pending;
         }
         result
     }
@@ -202,6 +208,7 @@ mod tests {
             origin: Origin::Local,
             mark: doc.journal_mark(),
             touched: BTreeSet::new(),
+            pending: PendingChanges::default(),
             coalesce: None,
         }
     }

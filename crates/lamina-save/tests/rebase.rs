@@ -9,11 +9,13 @@
 
 mod common;
 
+use common::save::ModeSaves as _;
+
 use common::save::{editable, facts, rotate, set_title, two_pages};
 use lamina_cos::Object;
 use lamina_model::Rotation;
 use lamina_ops::{Error, Origin, SaveState};
-use lamina_save::{IoWrite, Renumber, Save, SaveError, SaveOptions};
+use lamina_save::{IoWrite, Renumber, SaveError, SaveOptions};
 
 #[test]
 fn a_document_is_clean_then_dirty_then_clean_after_an_incremental_save() {

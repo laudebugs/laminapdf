@@ -8,6 +8,7 @@ use std::sync::Arc;
 
 use lamina_cos::{Dict, Document, Limit, ObjRef, Object, OverlayEntry, Stream};
 
+use crate::detect::Patches;
 use crate::error::{Result, SaveError};
 use crate::id::{ContentHash, id_array, permanent_id};
 use crate::legacy::{HEADER_MARKER, document_keys};
@@ -51,6 +52,7 @@ const OBJSTM_CAPACITY: usize = 100;
 pub struct FullWriter<'d> {
     doc: &'d Document,
     options: SaveOptions,
+    patches: Option<&'d Patches>,
 }
 
 /// A reachable object: its generation in the input, and its value.
@@ -73,17 +75,29 @@ struct Plan {
 
 impl<'d> FullWriter<'d> {
     /// A writer for `doc` as it is now (overlay over base); of the options, `renumber`,
-    /// `xref` and `eol` apply.
+    /// `xref`, `eol` and `remove_encryption` apply. With `remove_encryption`, an encrypted
+    /// document is written as plaintext: the objects as the reader decrypted them, streams
+    /// without a leading `/Crypt` filter, and no `/Encrypt` in the trailer (`/ID[0]` kept).
     #[must_use]
     pub const fn new(doc: &'d Document, options: SaveOptions) -> Self {
-        Self { doc, options }
+        Self {
+            doc,
+            options,
+            patches: None,
+        }
+    }
+
+    /// With the override's changes written over the document's values.
+    pub(crate) const fn with_patches(mut self, patches: &'d Patches) -> Self {
+        self.patches = Some(patches);
+        self
     }
 
     /// Writes to `sink`, which must be empty.
     ///
     /// # Errors
     /// Before anything is written: [`SinkError::NotEmpty`](crate::SinkError::NotEmpty);
-    /// [`lamina_cos::Error::EncryptedBase`]; any error loading a reachable object or `/ID`
+    /// [`SaveError::EncryptedBase`] unless the options remove the encryption; any error loading a reachable object or `/ID`
     /// (unavailable input, strict mode, limits, unparsable objects);
     /// [`lamina_cos::Error::LimitExceeded`] for an object nested deeper than
     /// [`Limits::max_nesting_depth`](lamina_cos::Limits::max_nesting_depth);
@@ -93,35 +107,32 @@ impl<'d> FullWriter<'d> {
     pub fn write<S: WriteSink + ?Sized>(&self, sink: &mut S) -> Result<SaveReport> {
         let doc = self.doc;
         require_empty(sink, None)?;
-        if doc.is_encrypted() {
-            return Err(lamina_cos::Error::EncryptedBase.into());
+        let decrypt = doc.is_encrypted();
+        if decrypt && !self.options.remove_encryption() {
+            return Err(SaveError::EncryptedBase);
         }
-        let trailer = doc.trailer();
+        let trailer = self
+            .patches
+            .and_then(|p| p.trailer.as_ref())
+            .unwrap_or_else(|| doc.trailer());
         let depth = doc.limits().max_nesting_depth();
         let reached = self.reach(trailer, depth)?;
         let compact = self.options.xref() == XrefKind::Stream;
-        let packable = |o: &Reached| self.packed_generation(o) == 0 && !matches!(*o.value, Object::Stream(_));
-        let groups = if compact {
-            reached
-                .values()
-                .filter(|o| packable(o))
-                .count()
-                .div_ceil(OBJSTM_CAPACITY)
-        } else {
-            0
-        };
-        let plan = self.plan(&reached, groups)?;
+        let plan = self.plan(&reached, self.object_streams(&reached))?;
         let map = |r: ObjRef| -> Option<ObjRef> {
             reached.get(&r.num).filter(|o| o.generation == r.gen_nr)?;
             let &(num, generation) = plan.numbers.get(&r.num)?;
             Some(ObjRef::new(num, generation))
         };
-        let remapper = Remap { map: &map, depth };
+        let remapper = Remap {
+            map: &map,
+            depth,
+            decrypted: decrypt.then_some(doc),
+        };
         let permanent = permanent_id(doc, trailer)?;
-        let mut trailer_out = Dict::new();
-        for (k, v) in document_keys(trailer).filter(|(k, _)| k.as_bytes() != b"ID") {
-            trailer_out.insert(k.clone(), remapper.object(v)?);
-        }
+        let trailer_out = written_keys(trailer)
+            .map(|(k, v)| Ok((k.clone(), remapper.object(v)?)))
+            .collect::<Result<Dict>>()?;
         // New number order (the same as the old order: numbering keeps it).
         let objects: Vec<(u32, u16, &Object)> = reached
             .iter()
@@ -167,7 +178,12 @@ impl<'d> FullWriter<'d> {
                     generation: 0,
                 },
             );
-            out.indirect(stream_num, 0, &Object::Stream(stream), &Remap { map: &Some, depth })?;
+            let identity = Remap {
+                map: &Some,
+                depth,
+                decrypted: None,
+            };
+            out.indirect(stream_num, 0, &Object::Stream(stream), &identity)?;
         }
 
         let Output { mut sink, hash } = out;
@@ -184,7 +200,22 @@ impl<'d> FullWriter<'d> {
             mode: SaveMode::FullRewrite,
             renumbered,
             append_offset: None,
+            invalidated: Vec::new(),
+            encryption_removed: decrypt,
         })
+    }
+
+    /// How many object streams the packable objects of `reached` fill (none for a classic
+    /// layout).
+    fn object_streams(&self, reached: &BTreeMap<u32, Reached>) -> usize {
+        if self.options.xref() != XrefKind::Stream {
+            return 0;
+        }
+        reached
+            .values()
+            .filter(|o| self.packed_generation(o) == 0 && !matches!(*o.value, Object::Stream(_)))
+            .count()
+            .div_ceil(OBJSTM_CAPACITY)
     }
 
     /// The generation an object is written with.
@@ -257,14 +288,17 @@ impl<'d> FullWriter<'d> {
         let doc = self.doc;
         let mut reached = BTreeMap::new();
         let mut pending = Vec::new();
-        for (_, value) in document_keys(trailer).filter(|(k, _)| k.as_bytes() != b"ID") {
+        for (_, value) in written_keys(trailer) {
             references(value, depth, &mut pending)?;
         }
         while let Some(r) = pending.pop() {
             if reached.contains_key(&r.num) || generation(doc, r.num) != Some(r.gen_nr) {
                 continue;
             }
-            let value = doc.object(r.num)?;
+            let value = match self.patches.and_then(|p| p.objects.get(&r.num)) {
+                Some(patched) => Arc::new(patched.clone()),
+                None => doc.object(r.num)?,
+            };
             references(&value, depth, &mut pending)?;
             reached.insert(
                 r.num,
@@ -388,10 +422,20 @@ const fn too_deep() -> SaveError {
     })
 }
 
+/// The trailer's document keys a full rewrite writes: not `/ID` (rewritten) and not
+/// `/Encrypt` (a rewrite either refuses an encrypted document or removes the encryption).
+fn written_keys(trailer: &Dict) -> impl Iterator<Item = (&lamina_cos::Name, &Object)> {
+    document_keys(trailer).filter(|(k, _)| !matches!(k.as_bytes(), b"ID" | b"Encrypt"))
+}
+
 /// Rewrites references: through `map`, `None` becoming `null`.
 struct Remap<'m> {
     map: &'m dyn Fn(ObjRef) -> Option<ObjRef>,
     depth: usize,
+    /// The objects were decrypted as they were read from this document and are written as
+    /// plaintext: streams lose a leading `/Crypt` filter (§7.4.10), which the reader already
+    /// applied ([`plaintext_dict`]).
+    decrypted: Option<&'m Document>,
 }
 
 impl Remap<'_> {
@@ -404,7 +448,15 @@ impl Remap<'_> {
     /// A stream's dictionary with its references mapped; its own `/Length` (rewritten from
     /// the data, in place) loses a reference value.
     fn stream_dict(&self, dict: &Dict) -> Result<Dict> {
-        let mut out = self.dict_at(dict, self.depth)?;
+        let plain;
+        let source = match self.decrypted {
+            Some(doc) => {
+                plain = plaintext_dict(doc, dict)?;
+                &plain
+            }
+            None => dict,
+        };
+        let mut out = self.dict_at(source, self.depth)?;
         if dict.get("Length").is_some_and(|v| matches!(v, Object::Ref(_))) {
             out.insert("Length", 0);
         }
@@ -525,5 +577,111 @@ impl<S: WriteSink> Output<S> {
                 self.write(&head)
             }
         }
+    }
+}
+
+/// `dict` as written in plaintext: when its filter chain (resolved, with each `/DecodeParms`
+/// entry) starts with `/Crypt` (§7.4.10), that stage and its parameters are dropped, since the
+/// reader already applied it ([`lamina_cos::strip_crypt_filter`]); an emptied chain leaves no
+/// `/Filter` or `/DecodeParms`. Any other dictionary is returned as it is.
+fn plaintext_dict(doc: &Document, dict: &Dict) -> Result<Dict> {
+    let resolve = |value: &Object| -> Result<Object> {
+        Ok(match &*doc.deref(value)? {
+            Object::Array(items) => Object::Array(
+                items
+                    .iter()
+                    .map(|item| Ok(doc.deref(item)?.into_owned()))
+                    .collect::<Result<_>>()?,
+            ),
+            other => other.clone(),
+        })
+    };
+    let mut params = Dict::new();
+    for key in ["Filter", "DecodeParms"] {
+        if let Some(value) = dict.get(key) {
+            params.insert(key, resolve(value)?);
+        }
+    }
+    // One definition of "starts with /Crypt": lamina-cos's. Nothing stripped, nothing to change.
+    let before = params.clone();
+    lamina_cos::strip_crypt_filter(&mut params);
+    if params == before {
+        return Ok(dict.clone());
+    }
+    let mut out = dict.clone();
+    out.remove("Filter");
+    out.remove("DecodeParms");
+    let empty =
+        matches!(params.get("Filter"), Some(Object::Array(f)) if f.is_empty()) || !params.contains_key("Filter");
+    if !empty {
+        for (k, v) in params.iter() {
+            out.insert(k.clone(), v.clone());
+        }
+    }
+    Ok(out)
+}
+
+#[cfg(test)]
+mod tests {
+    use lamina_cos::{OpenOptions, Stream};
+
+    use super::*;
+    use crate::legacy::Writer;
+
+    /// A file whose object 1 is `[/Crypt /FlateDecode]` and object 2 the parameters
+    /// `[<< /Name /Identity >> null]`, both referenced from the returned stream dictionary.
+    fn indirect_crypt_chain() -> (Document, Dict) {
+        let mut w = Writer::new(1, 7);
+        let filter = w.add(Object::Array(vec![Object::name("Crypt"), Object::name("FlateDecode")]));
+        let identity: Dict = [("Name", Object::name("Identity"))].into_iter().collect();
+        let parms = w.add(Object::Array(vec![Object::Dict(identity), Object::Null]));
+        let dict: Dict = [("Filter", Object::Ref(filter)), ("DecodeParms", Object::Ref(parms))]
+            .into_iter()
+            .collect();
+        let stream = w.add(Object::Stream(Stream::new(dict.clone(), b"x".to_vec())));
+        let pages = w.add(
+            [
+                ("Type", Object::name("Pages")),
+                ("Kids", Vec::<Object>::new().into()),
+                ("Count", 0.into()),
+                ("Extra", Object::Ref(stream)),
+            ]
+            .into_iter()
+            .collect::<Dict>(),
+        );
+        let root = w.add(
+            [("Type", Object::name("Catalog")), ("Pages", pages.into())]
+                .into_iter()
+                .collect::<Dict>(),
+        );
+        let bytes = w.finish(&[("Root", root)].into_iter().collect()).unwrap();
+        (Document::open(bytes, OpenOptions::default()).unwrap(), dict)
+    }
+
+    #[test]
+    fn an_indirect_crypt_chain_loses_its_crypt_stage_and_parameters() {
+        let (doc, dict) = indirect_crypt_chain();
+        let plain = plaintext_dict(&doc, &dict).unwrap();
+        assert_eq!(
+            (plain.get("Filter").cloned(), plain.get("DecodeParms").cloned()),
+            (
+                Some(Object::Array(vec![Object::name("FlateDecode")])),
+                Some(Object::Array(vec![Object::Null]))
+            )
+        );
+    }
+
+    #[test]
+    fn a_crypt_only_chain_leaves_no_filter() {
+        let (doc, _) = indirect_crypt_chain();
+        let dict: Dict = [("Filter", Object::name("Crypt"))].into_iter().collect();
+        assert_eq!(plaintext_dict(&doc, &dict).unwrap(), Dict::new());
+    }
+
+    #[test]
+    fn a_chain_without_crypt_is_left_alone() {
+        let (doc, _) = indirect_crypt_chain();
+        let dict: Dict = [("Filter", Object::Ref(ObjRef::new(99, 0)))].into_iter().collect();
+        assert_eq!(plaintext_dict(&doc, &dict).unwrap(), dict);
     }
 }

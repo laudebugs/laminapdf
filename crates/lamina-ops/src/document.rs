@@ -8,6 +8,7 @@ use lamina_cos::{OpenOptions, Reserved, Source};
 use crate::error::{Error, Result};
 use crate::history::{Entry, History, Reverted, UndoOutcome};
 use crate::op::Op;
+use crate::pending::PendingChanges;
 use crate::record::{UndoRecord, revert};
 use crate::tx::{Applied, Origin, Tx, TxState};
 
@@ -43,6 +44,8 @@ pub struct Document {
     open: Option<TxState>,
     /// Set by a save whose output the document has not been rebased onto yet.
     unrebased: Option<PendingRebase>,
+    /// The op classes of the changes since the last rebase (for the save planner).
+    pending: PendingChanges,
 }
 
 /// What a save that wrote its bytes means for the rebase onto them
@@ -82,12 +85,21 @@ const _: () = {
 };
 
 impl From<lamina_model::Document> for Document {
+    /// Wraps `model`. An overlay that already holds changes was made without ops, so what
+    /// kind of change it holds is unknown: [`PendingChanges::unknown`] (every class, and a
+    /// full rewrite needed), never empty.
     fn from(model: lamina_model::Document) -> Self {
+        let pending = if model.is_dirty() {
+            PendingChanges::unknown()
+        } else {
+            PendingChanges::default()
+        };
         Self {
             model,
             history: History::default(),
             open: None,
             unrebased: None,
+            pending,
         }
     }
 }
@@ -131,6 +143,13 @@ impl Document {
     /// Records that the current state was saved (called by `lamina-save`).
     pub fn mark_saved(&mut self) {
         self.history.mark_saved();
+    }
+
+    /// The kinds of change not yet saved (ADR 0007 §2): what the save planner checks against
+    /// the document's signatures. Empty when the overlay is.
+    #[must_use]
+    pub const fn pending_changes(&self) -> &PendingChanges {
+        &self.pending
     }
 
     /// Where the document stands relative to its last save.
@@ -190,11 +209,19 @@ impl Document {
         };
         self.model.cos_mut().rebase(source, reserved)?;
         self.unrebased = None;
+        self.pending.clear();
         if pending == PendingRebase::ClearHistory {
             self.history = History::new(self.history.depth());
             self.history.mark_saved();
         }
         Ok(())
+    }
+
+    /// An empty overlay has nothing left to save: no pending class applies any more.
+    fn forget_pending_when_clean(&mut self) {
+        if !self.model.is_dirty() {
+            self.pending.clear();
+        }
     }
 
     /// Refuses ops, undo and redo while a save waits for its rebase.
@@ -309,6 +336,7 @@ impl Document {
             origin,
             mark: self.model.journal_mark(),
             touched: BTreeSet::new(),
+            pending: PendingChanges::default(),
             coalesce,
         });
         Ok(())
@@ -343,14 +371,17 @@ impl Document {
         let state = self.open.take().ok_or(Error::NoTransaction)?;
         let undo = UndoRecord::from_changes(&changes);
         if !undo.is_empty() {
+            self.pending.merge(&state.pending);
             if state.origin == Origin::Local {
-                self.history.push(undo.clone(), state.touched.clone(), state.coalesce);
+                self.history
+                    .push(undo.clone(), state.touched.clone(), state.pending, state.coalesce);
             } else {
                 // A remote or system change ends coalescing: merging across it would let
                 // undo overwrite it (ADR 0006 §4).
                 self.history.break_chain();
             }
         }
+        self.forget_pending_when_clean();
         Ok(Applied {
             undo,
             touched_pages: state.touched,
@@ -446,6 +477,10 @@ impl Document {
         let record = UndoRecord::from_changes(&cos.take_changes(mark)?);
         // Even an undo or redo that restored nothing ends coalescing.
         self.history.break_chain();
+        if !record.is_empty() {
+            self.pending.merge(&entry.pending);
+        }
+        self.forget_pending_when_clean();
         let outcome = match (restored, skipped.is_empty()) {
             (_, true) => UndoOutcome::Applied,
             (0, false) => UndoOutcome::Skipped { skipped },
@@ -456,6 +491,7 @@ impl Document {
             touched: entry.touched.clone(),
             key: None,
             serial: entry.serial,
+            pending: entry.pending.clone(),
         });
         Ok((
             inverse,

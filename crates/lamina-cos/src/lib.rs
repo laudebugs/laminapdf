@@ -122,5 +122,6 @@ pub use lamina_syntax::{
 pub use overlay::{CosChange, CosMut, JournalMark, Overlay, OverlayEntry, Reserved};
 pub use reader::{
     DirectPath, Document, Encryption, Inherited, OpenOptions, Page, PathSegment, Resolved, Warning, XREF_STREAM_KEYS,
+    strip_crypt_filter,
 };
 pub use source::{ByteSource, Source, SourceError, merge_ranges, read_exact};

@@ -82,6 +82,8 @@ One page per code in [`fixtures/codes.json`](../../fixtures/codes.json), as [ADR
 | [`sink`](sink.md) | `io` |
 | [`not-rebased`](not-rebased.md) | `state` |
 | [`sink-not-empty`](sink-not-empty.md) | `usage` |
+| [`would-invalidate-signatures`](would-invalidate-signatures.md) | `security` |
+| [`requires-rewrite`](requires-rewrite.md) | `state` |
 
 ## Text errors (`lamina-text`)
 

@@ -5,16 +5,18 @@ use std::sync::Arc;
 
 use lamina_cos::{ByteSource, ErrorKind, Location, Source};
 
+use crate::constraint::{RewriteReason, SignatureInfo, Violation};
 use crate::sink::SinkError;
 
 /// Everything that can go wrong while saving.
 ///
 /// When it happened decides what was written and where the document stands:
 ///
-/// * **Before writing** ([`SaveError::Cos`], [`SaveError::Ops`], and
-///   [`SinkError::NotEmpty`], code `sink-not-empty`): nothing reached the sink; the document is unchanged.
-///   Refusals (a repaired or encrypted base: [`lamina_cos::Error::RepairedBase`],
-///   [`lamina_cos::Error::EncryptedBase`]), input that isn't available yet
+/// * **Before writing** ([`SaveError::WouldInvalidateSignatures`],
+///   [`SaveError::RequiresRewrite`], [`SaveError::EncryptedBase`], [`SaveError::Cos`],
+///   [`SaveError::Ops`], and [`SinkError::NotEmpty`], code `sink-not-empty`): nothing reached
+///   the sink; the document is unchanged. The planner's refusals ([ADR 0007] §3), the writers'
+///   own (a repaired base for an incremental update, [`lamina_cos::Error::RepairedBase`]), input that isn't available yet
 ///   ([`lamina_cos::Error::DataPending`]: fetch and retry), limits and exhausted object numbers
 ///   all happen here.
 /// * **While writing** ([`SaveError::Sink`]): the sink may hold a prefix of the output; the
@@ -24,9 +26,50 @@ use crate::sink::SinkError;
 /// * **After writing** ([`SaveError::NotRebased`]): the output is complete, but the document
 ///   could not be rebased onto it. It is `SavedNotRebased`, and the error carries the output
 ///   as a source, so the caller can retry [`lamina_ops::Document::rebase`].
+///
+/// Messages hold no document text (field names, strings): only counts and fixed words.
+///
+/// [ADR 0007]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0007-save-planner.md
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 #[non_exhaustive]
 pub enum SaveError {
+    /// The save would invalidate signatures ([ADR 0007] §3): a full rewrite of a signed
+    /// document, or any save of one whose pending changes or rewrite reasons conflict with its
+    /// signatures. Carries the whole constraint, so the UI can name every signature; retry
+    /// with [`SaveOptions::with_invalidate_signatures`](crate::SaveOptions::with_invalidate_signatures)
+    /// only after asking the user.
+    ///
+    /// [ADR 0007]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0007-save-planner.md
+    #[error(
+        "the save would invalidate {} signature(s) ({} rewrite reason(s), {} violation(s))",
+        signatures.len(),
+        rewrite_reasons.len(),
+        violations.len()
+    )]
+    WouldInvalidateSignatures {
+        /// Every signature of the document.
+        signatures: Vec<SignatureInfo>,
+        /// Why only a full rewrite is safe, if anything says so.
+        rewrite_reasons: Vec<RewriteReason>,
+        /// Pending changes the signatures' restrictions forbid.
+        violations: Vec<Violation>,
+        /// Part of the form couldn't be read: there may be signatures beyond `signatures`.
+        signatures_unknown: bool,
+    },
+    /// An incremental save was requested, but only a full rewrite is safe: save with
+    /// [`SaveMode::Auto`](crate::SaveMode::Auto) or
+    /// [`SaveMode::FullRewrite`](crate::SaveMode::FullRewrite).
+    #[error("only a full rewrite is safe ({} reason(s))", reasons.len())]
+    RequiresRewrite {
+        /// Why.
+        reasons: Vec<RewriteReason>,
+    },
+    /// The document is encrypted, and lamina can't encrypt on write yet (full-editor E11):
+    /// it can only be saved as a plaintext full rewrite, with
+    /// [`SaveOptions::with_remove_encryption`](crate::SaveOptions::with_remove_encryption).
+    /// Every mode refuses without it, so encryption is never dropped silently.
+    #[error("the document is encrypted; saving it needs remove_encryption")]
+    EncryptedBase,
     /// Reading the document failed or a writer refused it (see the type's documentation).
     #[error(transparent)]
     Cos(lamina_cos::Error),
@@ -51,7 +94,14 @@ pub enum SaveError {
 impl SaveError {
     /// Every code [`SaveError::code`] can return besides those of [`lamina_cos::Error`] and
     /// [`lamina_ops::Error`] (listed in `fixtures/codes.json` under `saveErrors`).
-    pub const CODES: &'static [&'static str] = &["sink", "not-rebased", "sink-not-empty"];
+    /// [`SaveError::EncryptedBase`] reports `encrypted-base`, which `errors` already lists.
+    pub const CODES: &'static [&'static str] = &[
+        "sink",
+        "not-rebased",
+        "sink-not-empty",
+        "would-invalidate-signatures",
+        "requires-rewrite",
+    ];
 
     /// A stable kebab-case code for this error.
     #[must_use]
@@ -62,6 +112,10 @@ impl SaveError {
             Self::Sink(SinkError::NotEmpty { .. }) => "sink-not-empty",
             Self::Sink(SinkError::Io { .. } | SinkError::Failed(_)) => "sink",
             Self::NotRebased { .. } => "not-rebased",
+            Self::WouldInvalidateSignatures { .. } => "would-invalidate-signatures",
+            Self::RequiresRewrite { .. } => "requires-rewrite",
+            // The same refusal as the COS layer's, with the same code (ADR 0003 §2).
+            Self::EncryptedBase => "encrypted-base",
         }
     }
 
@@ -76,7 +130,9 @@ impl SaveError {
             Self::Ops(e) => e.kind(),
             Self::Sink(SinkError::NotEmpty { .. }) => ErrorKind::Usage,
             Self::Sink(SinkError::Io { .. } | SinkError::Failed(_)) => ErrorKind::Io,
-            Self::NotRebased { .. } => ErrorKind::State,
+            Self::NotRebased { .. } | Self::RequiresRewrite { .. } => ErrorKind::State,
+            Self::WouldInvalidateSignatures { .. } => ErrorKind::Security,
+            Self::EncryptedBase => ErrorKind::Unsupported,
         }
     }
 
@@ -89,7 +145,11 @@ impl SaveError {
         match self {
             Self::Cos(e) => e.location(),
             Self::Ops(e) => e.location(),
-            Self::Sink(_) | Self::NotRebased { .. } => Location::NONE,
+            Self::Sink(_)
+            | Self::NotRebased { .. }
+            | Self::WouldInvalidateSignatures { .. }
+            | Self::RequiresRewrite { .. }
+            | Self::EncryptedBase => Location::NONE,
         }
     }
 }
@@ -179,7 +239,20 @@ mod tests {
                 error: lamina_ops::Error::NoPendingSave,
             },
             SaveError::Sink(SinkError::NotEmpty { held: 1 }),
+            SaveError::WouldInvalidateSignatures {
+                signatures: Vec::new(),
+                rewrite_reasons: Vec::new(),
+                violations: Vec::new(),
+                signatures_unknown: false,
+            },
+            SaveError::RequiresRewrite { reasons: Vec::new() },
         ]
+    }
+
+    #[test]
+    fn the_encrypted_base_refusal_has_the_cos_code_and_kind() {
+        let e = SaveError::EncryptedBase;
+        codes::assert_kinds_match([(e.code(), e.kind().as_str())]);
     }
 
     #[test]

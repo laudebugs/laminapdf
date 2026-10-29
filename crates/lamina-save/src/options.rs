@@ -1,20 +1,27 @@
-//! [`SaveOptions`] and [`SaveReport`] ([ADR 0007] §1, §5): the subset B3b's writers need.
-//! B3c adds the mode (`Auto`), signature overrides and encryption removal.
+//! [`SaveOptions`] and [`SaveReport`] ([ADR 0007] §1, §3, §5): the mode, the explicit
+//! overrides (invalidating signatures, removing encryption) and the writers' settings.
 //!
 //! [ADR 0007]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0007-save-planner.md
 
 use std::collections::BTreeMap;
 
+use crate::constraint::SignatureInfo;
 use crate::legacy::XrefEol;
 
-/// Which writer produced the output.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+/// How to save: the mode requested in [`SaveOptions`], and the one a plan resolves to
+/// ([`SavePlan::mode`](crate::SavePlan::mode), [`SaveReport::mode`]: never `Auto`).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 #[non_exhaustive]
 pub enum SaveMode {
     /// The base bytes unchanged, then an appended revision (§7.5.6).
     Incremental,
     /// A new file holding only what is reachable from the trailer.
     FullRewrite,
+    /// Let the planner choose ([ADR 0007] §3): incremental unless only a full rewrite is safe.
+    ///
+    /// [ADR 0007]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0007-save-planner.md
+    #[default]
+    Auto,
 }
 
 /// What an incremental save writes to the sink.
@@ -55,14 +62,23 @@ pub enum XrefKind {
 
 /// How to save. Every field has a default; set them with the `with_*` builders.
 ///
+/// The two overrides are off by default and never set implicitly: invalidating signatures
+/// ([`SaveOptions::with_invalidate_signatures`]) and removing encryption
+/// ([`SaveOptions::with_remove_encryption`]) each need the caller (usually the user, asked by
+/// the UI) to opt in.
+///
 /// ```
-/// use lamina_save::{Renumber, SaveOptions, XrefKind};
+/// use lamina_save::{Renumber, SaveMode, SaveOptions, XrefKind};
 ///
 /// let options = SaveOptions::new().with_renumber(Renumber::Compact).with_xref(XrefKind::Classic);
 /// assert_eq!((options.renumber(), options.xref()), (Renumber::Compact, XrefKind::Classic));
+/// assert_eq!((options.mode(), options.invalidate_signatures()), (SaveMode::Auto, false));
 /// ```
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct SaveOptions {
+    mode: SaveMode,
+    invalidate_signatures: bool,
+    remove_encryption: bool,
     output: IncrementalOutput,
     renumber: Renumber,
     xref: XrefKind,
@@ -76,15 +92,53 @@ impl Default for SaveOptions {
 }
 
 impl SaveOptions {
-    /// The defaults: whole output, numbers kept, xref stream, `\r\n` entry EOLs.
+    /// The defaults: `Auto`, no overrides, whole output, numbers kept, xref stream, `\r\n`
+    /// entry EOLs.
     #[must_use]
     pub const fn new() -> Self {
         Self {
+            mode: SaveMode::Auto,
+            invalidate_signatures: false,
+            remove_encryption: false,
             output: IncrementalOutput::Whole,
             renumber: Renumber::Keep,
             xref: XrefKind::Stream,
             eol: XrefEol::CrLf,
         }
+    }
+
+    /// The mode to save in ([ADR 0007] §3; default [`SaveMode::Auto`]).
+    ///
+    /// [ADR 0007]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0007-save-planner.md
+    #[must_use]
+    pub const fn with_mode(mut self, mode: SaveMode) -> Self {
+        self.mode = mode;
+        self
+    }
+
+    /// The explicit override ([ADR 0007] §3): save even though signatures break. The values
+    /// (`/V`) of the signatures the save invalidates and their `/Perms` entries are removed, so
+    /// the output carries no signature a viewer would show as broken; the fields stay,
+    /// unsigned, and [`SaveReport::invalidated`] lists them. Ask the user first, naming
+    /// [`SavePlan::would_invalidate`](crate::SavePlan::would_invalidate).
+    ///
+    /// [ADR 0007]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0007-save-planner.md
+    #[must_use]
+    pub const fn with_invalidate_signatures(mut self, invalidate: bool) -> Self {
+        self.invalidate_signatures = invalidate;
+        self
+    }
+
+    /// Save an encrypted document as a plaintext full rewrite: every string and stream
+    /// decrypted, no `/Encrypt` (`/ID` kept). Without it an encrypted document can't be saved
+    /// at all ([`SaveError::EncryptedBase`](crate::SaveError::EncryptedBase)), since there is no
+    /// encryption on write yet (full-editor E11). Anyone who could open the document can
+    /// already read it decrypted; whether the editor asks for the owner password first is
+    /// E11's decision. No effect on an unencrypted document.
+    #[must_use]
+    pub const fn with_remove_encryption(mut self, remove: bool) -> Self {
+        self.remove_encryption = remove;
+        self
     }
 
     /// What an incremental save writes.
@@ -113,6 +167,24 @@ impl SaveOptions {
     pub const fn with_eol(mut self, eol: XrefEol) -> Self {
         self.eol = eol;
         self
+    }
+
+    /// See [`SaveOptions::with_mode`].
+    #[must_use]
+    pub const fn mode(&self) -> SaveMode {
+        self.mode
+    }
+
+    /// See [`SaveOptions::with_invalidate_signatures`].
+    #[must_use]
+    pub const fn invalidate_signatures(&self) -> bool {
+        self.invalidate_signatures
+    }
+
+    /// See [`SaveOptions::with_remove_encryption`].
+    #[must_use]
+    pub const fn remove_encryption(&self) -> bool {
+        self.remove_encryption
     }
 
     /// See [`SaveOptions::with_output`].
@@ -147,6 +219,8 @@ pub struct SaveReport {
     pub(crate) mode: SaveMode,
     pub(crate) renumbered: Option<BTreeMap<u32, u32>>,
     pub(crate) append_offset: Option<u64>,
+    pub(crate) invalidated: Vec<SignatureInfo>,
+    pub(crate) encryption_removed: bool,
 }
 
 impl SaveReport {
@@ -156,7 +230,7 @@ impl SaveReport {
         self.bytes_written
     }
 
-    /// The writer that ran.
+    /// The writer that ran ([`SaveMode::Incremental`] or [`SaveMode::FullRewrite`]).
     #[must_use]
     pub const fn mode(&self) -> SaveMode {
         self.mode
@@ -173,5 +247,19 @@ impl SaveReport {
     #[must_use]
     pub const fn append_offset(&self) -> Option<u64> {
         self.append_offset
+    }
+
+    /// The signatures the save invalidated under the explicit override (their values and
+    /// `/Perms` entries removed); empty otherwise.
+    #[must_use]
+    pub fn invalidated(&self) -> &[SignatureInfo] {
+        &self.invalidated
+    }
+
+    /// Whether the save removed the document's encryption
+    /// ([`SaveOptions::with_remove_encryption`]).
+    #[must_use]
+    pub const fn encryption_removed(&self) -> bool {
+        self.encryption_removed
     }
 }
