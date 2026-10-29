@@ -12,7 +12,7 @@
 | Branch | `docs/l1a-contract-adrs` |
 | PR title | `docs(decisions): ADRs 0026 (errors), 0027 (coordinates and units), 0028 (façade rules, jobs, cancellation)` |
 | Size | M (≈ 350–500 lines of docs) |
-| PR | — |
+| PR | [#40](https://github.com/laudebugs/lamina/pull/40) |
 
 ## Goal
 
@@ -140,5 +140,5 @@ None (documentation only). `cargo xtask docs-links` checks the links.
 - [x] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
 - [x] Work PR opened from a fresh worktree; **PR** field filled in
 - [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings) — run by the reviewer after this PR was opened, not by the implementing agent
-- [x] CI green
+- [ ] CI green — blocked: GitHub Actions refused to start jobs (account billing); `cargo xtask ci` passes locally
 - [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
