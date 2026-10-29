@@ -6,3 +6,7 @@
 pub mod exercise;
 #[path = "../../crates/lamina-model/tests/common/fuzz_entry.rs"]
 pub mod fuzz_entry;
+/// The save targets' entry points (`ops_json`, `save_roundtrip`), shared with lamina-save's
+/// `tests/regressions.rs`.
+#[path = "../../crates/lamina-save/tests/common/fuzz_entry.rs"]
+pub mod save_entry;

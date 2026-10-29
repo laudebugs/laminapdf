@@ -9,6 +9,7 @@ mod doctor;
 mod harness;
 mod licenses;
 mod portable_paths;
+mod roundtrip;
 mod todos;
 mod tracked;
 mod workspace;
@@ -52,8 +53,13 @@ tasks:
                     fixtures/differential/expected.json; --update regenerates it with pypdf.
                     --full: the full lane's 36 mutants per corpus file instead (full.json),
                     run through cargo-nextest
+  roundtrip [--tools qpdf,pdfjs,pdfium]
+                    lamina saves every fixture x proving op x mode, reopens each output and
+                    checks it with qpdf --check, pdf.js and PDFium (needs qpdf, Node and
+                    Python with tools/roundtrip/requirements.txt; outputs in target/xtask/roundtrip)
   fuzz <target> [--time <seconds>]
-                    run a fuzz target (lex, parse_object, flate_decode, open, page_tree) with
+                    run a fuzz target (lex, parse_object, flate_decode, open, page_tree,
+                    ops_json, save_roundtrip) with
                     cargo +nightly fuzz (default 60 s); seeds come from fixtures/ and fuzz/seeds/
   fuzz --all [--time <seconds>]
                     run every fuzz target in turn (the full lane: --time 120)
@@ -134,6 +140,7 @@ fn main() -> Result<()> {
         ("corpus", [what]) if what == "facts" => harness::corpus_facts(&ws),
         ("differential", args) => harness::differential(&ws, &harness::parse_differential_args(args)?),
         ("fuzz", args) => harness::fuzz(&ws, &harness::parse_fuzz_args(args)?),
+        ("roundtrip", args) => roundtrip::run_suite(&ws, &roundtrip::parse_args(args)?),
         ("ci", []) => {
             check_docs(&ws)?;
             check_rust(&ws)?;

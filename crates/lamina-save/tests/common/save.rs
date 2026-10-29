@@ -13,7 +13,10 @@ use super::fixture;
 
 /// B3b's save names over [`Save`] with an explicit mode, so the writer tests keep naming the
 /// writer they exercise.
-#[expect(clippy::trivially_copy_pass_by_ref, reason = "the signatures of `Save`, which they wrap")]
+#[expect(
+    clippy::trivially_copy_pass_by_ref,
+    reason = "the signatures of `Save`, which they wrap"
+)]
 pub trait ModeSaves {
     /// [`Save::save`] in [`SaveMode::Incremental`].
     fn save_incremental<S: WriteSink + ?Sized>(
