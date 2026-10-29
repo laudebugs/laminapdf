@@ -4,7 +4,8 @@
 //! ```
 //! use lamina_ops::{Document, Origin, RotatePage, UndoOutcome};
 //! use lamina_model::Rotation;
-//! # use lamina_cos::{Dict, Object, Writer};
+//! # use lamina_cos::{Dict, Object};
+//! # use lamina_save::Writer;
 //! # let mut w = Writer::new(1, 7);
 //! # let pages = w.reserve();
 //! # let page = w.add([("Type", Object::name("Page")), ("Parent", pages.into())].into_iter().collect::<Dict>());
@@ -80,7 +81,7 @@ mod wire;
 
 pub use blob::{BlobId, ParseBlobIdError};
 pub use class::ModificationClass;
-pub use document::Document;
+pub use document::{Document, PendingRebase, SaveState};
 pub use error::{Error, Result};
 pub use history::{History, Reverted, UndoOutcome};
 pub use info::{InfoPatch, SetInfo};

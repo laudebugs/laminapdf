@@ -11,8 +11,9 @@
 mod common;
 
 use common::{classic, corpus, fixture, open};
-use lamina_cos::{ObjRef, Object, XrefEol, incremental_update};
+use lamina_cos::{ObjRef, Object};
 use lamina_model::{Document, Kind, LaminaId};
+use lamina_save::{XrefEol, incremental_update};
 
 /// Every page and outline-item ID of `doc`, in document order.
 fn ids(doc: &Document) -> Vec<String> {

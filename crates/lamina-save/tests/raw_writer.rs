@@ -12,7 +12,8 @@ mod common;
 use common::content::ContentBuilder;
 use common::fixture;
 use common::open;
-use lamina_cos::{Dict, Document, ObjRef, Object, PdfString, Stream, Writer, XrefEol};
+use lamina_cos::{Dict, Document, ObjRef, Object, PdfString, Stream};
+use lamina_save::{Writer, XrefEol};
 
 const TITLE: &str = "Hello from lamina";
 const PARA: [&str; 2] = [
