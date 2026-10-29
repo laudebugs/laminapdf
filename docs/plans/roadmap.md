@@ -37,7 +37,7 @@ All four share one Rust core, so every operation is built once ([architecture §
 - **Library first** (recommended in [architecture §8](architecture.md#8-open-questions-for-the-team), question 1): B1–B3 produce the model (with decryption, so readers can open password-protected files), ops and save path everyone needs.
 - **Web reader after B6:** C1's PDFium spike loads `lamina-wasm` next to PDFium-WASM, so it starts once B6 has merged (its `hayro-parity` half can start earlier). C5's text layer needs B9 (text extraction), which runs alongside C1–C4. B7, B8 and B9 run in parallel with the reader rounds. Technically B9a (the `lamina-content` interpreter) only needs B2c, so it may start before B6 if people are free; B9c (bindings) needs B6b.
 - **Desktop after the web packages:** D1 can start after C3; D2 needs `@lamina/ui` from C4.
-- **UI/UX alongside the readers** ([UI/UX plan](ui-ux.md)): ADR 0024 (U1a) comes before `@lamina/ui` (C4a), the command registry and shell (U1b, U1c) right after it, and Round U adds selection, page modes, the phone layout and the network indicator before the web launch (C7a, C7c wait for them). Reader mode, the mobile spike and the product promises (pledge, benchmark, opt-in telemetry) follow the launch; the benchmark also waits for the desktop beta (D7c).
+- **UI/UX alongside the readers** ([UI/UX plan](ui-ux.md)): ADR 0024 (U1a) comes before `@lamina/ui` (C4a), the command registry and shell (U1b, U1c) right after it, and Round U adds selection, page modes, the phone layout and the network indicator before the web launch (C7a, C7c wait for them). Reader mode, the mobile spike and the product promises (pricing page, benchmark, opt-in telemetry) follow the launch; the pricing page and the benchmark also wait for the desktop beta (D7c).
 - **Editor after both readers** ship v0.1, so phase 1 (core viewer) is done once and E-rounds add features to both shells and the packages at the same time.
 - **Shareable libraries (L1–L6)** run alongside B and C: L1 (contracts) lands before the B5 builder so the first public API follows it; L2 follows B6; L3 (AI-ready extraction) follows B9; L4 (CLI and MCP) follows B5c and B9c; L6 (mobile spike, then a mobile plan) follows B5c and C2b ([shareable libraries §7](shareable-libraries.md#7-rounds)).
 - **B8 and later E-rounds** can overlap with reader work as people allow; they don't block each other except where listed.
@@ -100,7 +100,7 @@ One row per round. Each round is split into one or more todos, one PR each, on t
 | U2 | [UI/UX](ui-ux.md#u2-reading-quality) | Selection surfaces and copy modes, reading-order corpus, page appearance modes | — |
 | U3 | [UI/UX](ui-ux.md#u3-mobile-and-touch) | Phone and tablet layout; `mobile-shell` spike | 0025 (proposed); `mobile-shell` |
 | U4 | [UI/UX](ui-ux.md#u4-trust-and-reflow) | Network indicator, reader mode (tagged, then approximate) | — |
-| U5 | [UI/UX](ui-ux.md#u5-product-promises) | Pledge and targets, reader benchmark, opt-in telemetry | — |
+| U5 | [UI/UX](ui-ux.md#u5-product-promises) | Pricing and promises page, reader benchmark, opt-in telemetry | — |
 | E1 | [editor](full-editor.md#e1-editing-foundation) | Save, undo, metadata edits (Info + XMP in sync) | — |
 | E2 | [editor](full-editor.md#e2-page-organisation) | Page organisation, content append API | — |
 | E3 | [editor](full-editor.md#e3-navigation-attachments-inspection-and-extraction) | Navigation, attachments, extraction | — |
@@ -133,7 +133,11 @@ One row per round. Each round is split into one or more todos, one PR each, on t
 - **Hosted service** (2026-10-28, project owner): lamina will be a hosted service with user login and cloud features (accounts, cloud storage and sync), not just a reference deployment. Local, on-device processing stays the default and needs no account; the reader v0.1 (M2) still uploads nothing. Accounts arrive with the first round that needs them, after the `auth` spike ([architecture §8](architecture.md#8-open-questions-for-the-team), Q2; ADR 0011).
 - **Code signing** (2026-10-28, project owner): the owner, as the publisher, signs the desktop app for Windows, macOS and Linux (M3). Windows Artifact Signing's individual eligibility is US/Canada only, so the owner must confirm eligibility or use an OV certificate ([architecture §8](architecture.md#8-open-questions-for-the-team), Q5; ADR 0014).
 
+- **Pricing** (2026-10-29, project owner): lamina will be priced; the code stays MIT OR Apache-2.0. The model and prices are still to be set; the UI/UX plan's fair-pricing rules apply ([UI/UX §5.9](ui-ux.md#59-product-promises-r18-r19), [U5a](../todos/ready/U5a-pricing-and-promises-page.md)).
+- **Telemetry** (2026-10-29, project owner): optional, opt-in and off by default; none in web v0.1 ([U5c](../todos/ready/U5c-opt-in-usage-telemetry.md), ADR 0011).
+- **Desktop speed and size gates** (2026-10-29, project owner): the research's numbers are the release gates: cold start < 300 ms to an interactive window and installer < 15 MB per platform ([desktop-app §4](desktop-app.md#non-functional-targets-and-release-gates)).
 - **Publishing later** (2026-10-28, project owner): crates and npm packages stay local for now; registry names and publishing are a later to-do ([architecture: Publishing (later)](architecture.md#publishing-later)).
+- **Shareable libraries** (2026-10-29, project owner): the `lamina-ffi` UniFFI spike ([L6a](../todos/ready/L6a-lamina-ffi-spike.md)) runs right after B5c, in parallel with B6; UniFFI is pinned to `=0.32.x`; ADR 0016 ([B6a](../todos/ready/B6a-lamina-wasm-and-adr-0016.md)) sets a size budget per wasm module, with 350 KB gz for the base module ([shareable libraries §11](shareable-libraries.md#11-open-questions)).
 
 ## Decisions this roadmap assumes (recommendations, not yet decided)
 

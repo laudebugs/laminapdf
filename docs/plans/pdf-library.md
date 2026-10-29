@@ -63,7 +63,7 @@ Ship an importable, permissively licensed library that **generates correct PDFs 
 
 | Requirement | Target (recommendation, confirmed in ADR 0016) |
 | --- | --- |
-| `@lamina/pdf` WASM, gzipped | ≤ 350 KB including shaping and subsetting (spike core: 74 KB) |
+| `@lamina/pdf` WASM, gzipped | Per module (decided 2026-10-29): ≤ 350 KB for the base module; the text (shaping, subsetting), extract, render and sign modules get their own budgets in ADR 0016 (spike core: 74 KB; krilla-fit builder stack: 377 KB) |
 | JS glue + TS API, min+gz | ≤ 20 KB |
 | Rust `lamina` default features | No C dependencies; builds for `wasm32-unknown-unknown`, iOS and Android targets |
 | Hello-world generation | ≤ 5 ms after `init()` on a 2023 laptop; a 100-page text report ≤ 500 ms |
