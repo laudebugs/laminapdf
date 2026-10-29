@@ -1,0 +1,394 @@
+# Nightly lane (ADR 0018 §2; todo X3a): the expensive, environment-sensitive checks, every night on
+# main and on demand. A failure opens (or comments on) an issue labelled `nightly` and blocks the
+# next release (B7b's release lane checks this workflow's latest run on main), not unrelated PRs.
+#
+#   differential  lamina vs live pdf.js, PDFium, qpdf and pypdf over the external corpus and the
+#                 nightly mutant set (`cargo xtask corpus fetch`, `cargo xtask differential --live`)
+#   fuzz          every target for 10 minutes, corpus kept in the Actions cache, crashes minimised
+#                 and uploaded (`cargo xtask fuzz <target> --time 600`, `cargo xtask fuzz tmin`)
+#   scaling       release-mode #[ignore]d tests, one retry that only reports flakiness
+#                 (`cargo xtask scaling`)
+#   bench         criterion benchmarks with history on the `bench-data` branch; a regression over
+#                 10% opens an issue, never fails the run (`cargo xtask bench`)
+#
+# Every step is a `cargo xtask …` command that runs locally too; `cargo xtask nightly --quick`
+# runs them all with short budgets. veraPDF (B8b) and render diffs (X3b) add their jobs here.
+# Actions are pinned by full commit SHA with the release in a comment (ADR 0019).
+name: Nightly
+
+on:
+  schedule:
+    - cron: "17 3 * * *"
+  workflow_dispatch:
+    inputs:
+      fuzz-seconds:
+        description: Seconds per fuzz target
+        default: "600"
+      differential-sample:
+        description: Inputs for the differential (empty for all)
+        default: ""
+      force-failure:
+        description: Fail on purpose, to check that an issue is opened
+        type: boolean
+        default: false
+  # The release lane (B7b) runs these suites on the release commit. The caller grants
+  # `contents: write` (bench job; history is only recorded on main) and `issues: write`.
+  workflow_call:
+    inputs:
+      fuzz-seconds:
+        description: Seconds per fuzz target
+        type: string
+        default: "600"
+      differential-sample:
+        description: Inputs for the differential (empty for all)
+        type: string
+        default: ""
+      force-failure:
+        description: Fail on purpose, to check that an issue is opened
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: nightly-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  CARGO_TERM_COLOR: always
+  CARGO_INCREMENTAL: 0
+  FUZZ_SECONDS: ${{ inputs.fuzz-seconds || '600' }}
+  DIFFERENTIAL_SAMPLE: ${{ inputs.differential-sample || '' }}
+
+jobs:
+  # Every job runs on the self-hosted runners ([self-hosted, macOS, ARM64]), like the PR lanes
+  # (#41): isolate-rust-home first, rust-cache off (its macOS post step hangs there), pnpm into
+  # runner.temp, Python in a venv in runner.temp.
+  differential:
+    name: Differential (pdf.js, PDFium, qpdf, pypdf)
+    runs-on: [self-hosted, macOS, ARM64]
+    timeout-minutes: 180
+    env:
+      QPDF_VERSION: "12.4.2"
+      # From https://github.com/qpdf/qpdf/releases/download/v12.4.2/qpdf-12.4.2.sha256
+      QPDF_SHA256: 62e46987a30ea167cbc530ccb22690aec3d8c812ed09979a941bcee92e504b79
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/isolate-rust-home
+      # xtask and the lamina example only build for the host: no components or cross targets.
+      - uses: ./.github/actions/host-rust
+        with:
+          cache: false
+      # The corpus lives in the runner's own persistent tool cache: the checkouts survive from
+      # night to night and `corpus fetch` reuses (or restores) them, so there is no Actions cache
+      # round-trip of 177 MB.
+      - name: Point xtask at the corpus folder and the venv
+        run: |
+          echo "LAMINA_CORPUS_DIR=$RUNNER_TOOL_CACHE/lamina-corpus" >> "$GITHUB_ENV"
+          echo "LAMINA_PYTHON=$RUNNER_TEMP/differential-venv/bin/python" >> "$GITHUB_ENV"
+      - name: Install pypdf and pypdfium2 in a venv (tools/differential/requirements.txt)
+        run: |
+          python3 -m venv "$RUNNER_TEMP/differential-venv"
+          "$LAMINA_PYTHON" -m pip install --disable-pip-version-check -q -r tools/differential/requirements.txt
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+        with:
+          # Per-job install dir: the default (~/setup-pnpm) is shared by every runner on the machine.
+          dest: ${{ runner.temp }}/setup-pnpm
+          package_json_file: tools/differential/package.json
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+          cache-dependency-path: tools/differential/pnpm-lock.yaml
+      - name: Install pdf.js (tools/differential)
+        run: pnpm --dir tools/differential install --frozen-lockfile
+      # qpdf's macOS ARM64 release binaries, checked against the SHA-256 qpdf publishes;
+      # doctor.rs pins the version (and `differential --live` checks it).
+      - name: Install qpdf ${{ env.QPDF_VERSION }}
+        run: |
+          zip="qpdf-$QPDF_VERSION-bin-macos-arm64.zip"
+          curl -fsSL --retry 3 -o "$RUNNER_TEMP/$zip" "https://github.com/qpdf/qpdf/releases/download/v$QPDF_VERSION/$zip"
+          echo "$QPDF_SHA256  $RUNNER_TEMP/$zip" | shasum -a 256 -c -
+          rm -rf "$RUNNER_TEMP/qpdf"
+          unzip -q "$RUNNER_TEMP/$zip" -d "$RUNNER_TEMP/qpdf"
+          echo "$RUNNER_TEMP/qpdf/bin" >> "$GITHUB_PATH"
+      # Checks out each source at its pinned commit (or reuses the cache) and verifies every
+      # file's SHA-256 against fixtures/corpus-manifest.toml.
+      - run: cargo xtask corpus fetch
+      # Every reader runs at once, in chunks of separate processes with time limits, so a crash
+      # or hang costs one file, not the run (tools/xtask/src/runner.rs).
+      - name: Differential
+        run: cargo xtask differential --live ${DIFFERENTIAL_SAMPLE:+--sample "$DIFFERENTIAL_SAMPLE"}
+      - name: Upload the report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: differential-report
+          path: |
+            target/nightly/differential/*.json
+            target/nightly/differential/*.log
+          if-no-files-found: ignore
+      - name: Upload the report (Markdown)
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: differential-report-md
+          path: target/nightly/differential/report.md
+          if-no-files-found: ignore
+
+  fuzz:
+    name: Fuzz ${{ matrix.target }}
+    runs-on: [self-hosted, macOS, ARM64]
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        target: [lex, parse_object, flate_decode, open, page_tree, content, ops_json, save_roundtrip]
+    env:
+      TARGET: ${{ matrix.target }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/isolate-rust-home
+      # The pinned stable toolchain (host only) builds xtask; fuzz/ needs nightly.
+      - uses: ./.github/actions/host-rust
+        with:
+          cache: false
+      - name: Install nightly Rust
+        run: rustup toolchain install nightly --profile minimal
+      # Same version as tools/xtask/src/doctor.rs; xtask fails if it drifts.
+      - uses: taiki-e/install-action@86f7a0ffb25f40114606501a311ebcfaf882ea32 # v2.88.0
+        with:
+          tool: cargo-fuzz@0.13.2
+      # This target's corpus from earlier nights, else the full lane's last one saved on main
+      # (all targets). xtask adds the seeds from fixtures/ to it.
+      - name: Restore the fuzz corpus
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: fuzz/corpus
+          key: fuzz-nightly-${{ matrix.target }}-${{ runner.os }}-${{ runner.arch }}-${{ github.run_id }}
+          restore-keys: |
+            fuzz-nightly-${{ matrix.target }}-${{ runner.os }}-${{ runner.arch }}-
+            fuzz-corpus-main-${{ runner.os }}-${{ runner.arch }}-
+      # cargo +nightly fuzz run <target> -- -max_total_time=… -timeout=10 -rss_limit_mb=2048
+      - name: Fuzz ${{ matrix.target }} for ${{ env.FUZZ_SECONDS }} s
+        run: cargo xtask fuzz "$TARGET" --time "$FUZZ_SECONDS"
+      # Only main's nights save, after `cargo fuzz cmin` and with only this target's folder, so
+      # each entry stays bounded; older entries age out of the cache.
+      - name: Minimise the corpus before saving it
+        if: ${{ !cancelled() && github.ref == 'refs/heads/main' }}
+        run: |
+          cargo xtask fuzz cmin "$TARGET"
+          find fuzz/corpus -mindepth 1 -maxdepth 1 ! -name "$TARGET" -exec rm -rf {} +
+      - name: Save the fuzz corpus
+        if: ${{ !cancelled() && github.ref == 'refs/heads/main' }}
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: fuzz/corpus
+          key: fuzz-nightly-${{ matrix.target }}-${{ runner.os }}-${{ runner.arch }}-${{ github.run_id }}
+      # Writes minimized-from-<hash> next to each crash; the report job puts them in the issue.
+      - name: Minimise crashes
+        if: ${{ failure() }}
+        run: cargo xtask fuzz tmin "$TARGET"
+      - name: Upload crashes
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: fuzz-artifacts-${{ matrix.target }}
+          path: fuzz/artifacts/${{ matrix.target }}/
+          if-no-files-found: ignore
+
+  scaling:
+    name: Scaling (release, ignored tests)
+    runs-on: [self-hosted, macOS, ARM64]
+    timeout-minutes: 60
+    outputs:
+      flaky: ${{ steps.scaling.outputs.flaky }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/isolate-rust-home
+      - uses: ./.github/actions/host-rust
+        with:
+          cache: false
+      # cargo test --release -- --ignored; a failure is retried once and a pass on retry is
+      # reported as flaky (flaky=true), never hidden (ADR 0018 §4).
+      - id: scaling
+        run: cargo xtask scaling
+
+  bench:
+    name: Benchmarks
+    # History compares within one runner label (`--runner`), recorded in every record.
+    runs-on: [self-hosted, macOS, ARM64]
+    timeout-minutes: 60
+    # Pushes the history to the bench-data branch (main only).
+    permissions:
+      contents: write
+    outputs:
+      regression: ${{ steps.bench.outputs.regression }}
+    env:
+      RECORD: ${{ github.ref == 'refs/heads/main' && github.event_name != 'pull_request' }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/isolate-rust-home
+      - uses: ./.github/actions/host-rust
+        with:
+          cache: false
+      # history.jsonl on the orphan bench-data branch: one record per night (commit, runner,
+      # ns/iter per benchmark). Created by the first run on main. The token is passed per
+      # command (`git -c http.extraheader`, never stored in .git/config) and only to this step
+      # and the push, never to the step that builds and runs the benchmarks.
+      - name: Fetch the benchmark history
+        env:
+          TOKEN: ${{ github.token }}
+        run: |
+          history="$RUNNER_TEMP/bench-data"
+          remote="https://github.com/$GITHUB_REPOSITORY.git"
+          basic=$(printf 'x-access-token:%s' "$TOKEN" | base64 | tr -d '\n')
+          echo "::add-mask::$basic"
+          auth="AUTHORIZATION: basic $basic"
+          # --exit-code: 0 found, 2 no such branch, anything else a real error.
+          status=0
+          git -c http.extraheader="$auth" ls-remote --exit-code --heads "$remote" bench-data > /dev/null || status=$?
+          case "$status" in
+            0) git -c http.extraheader="$auth" clone --quiet --depth 1 --branch bench-data "$remote" "$history" ;;
+            2)
+              git init --quiet "$history"
+              git -C "$history" checkout --quiet --orphan bench-data
+              git -C "$history" remote add origin "$remote"
+              ;;
+            *)
+              echo "::error::git ls-remote failed with $status: cannot read the benchmark history"
+              exit "$status"
+              ;;
+          esac
+          echo "HISTORY=$history" >> "$GITHUB_ENV"
+      # Compares with the median of the last 5 records on this runner; regression=true when a
+      # benchmark is over 10% slower. Never fails the job for a regression.
+      - id: bench
+        run: cargo xtask bench --history "$HISTORY" --runner self-hosted-macos-arm64 ${{ env.RECORD == 'true' && '--record' || '' }}
+      - name: Push the benchmark history
+        if: ${{ env.RECORD == 'true' }}
+        env:
+          TOKEN: ${{ github.token }}
+        run: |
+          cd "$HISTORY"
+          basic=$(printf 'x-access-token:%s' "$TOKEN" | base64 | tr -d '\n')
+          echo "::add-mask::$basic"
+          git add history.jsonl
+          git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
+            commit --quiet -m "bench: $GITHUB_SHA"
+          git -c http.extraheader="AUTHORIZATION: basic $basic" push --quiet origin bench-data
+      - name: Upload the results
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: bench-results
+          path: target/nightly/bench/
+          if-no-files-found: ignore
+
+  # workflow_dispatch with force-failure: checks the issue-on-failure path end to end.
+  forced-failure:
+    name: Forced failure (on request)
+    if: ${{ inputs.force-failure }}
+    runs-on: [self-hosted, macOS, ARM64]
+    timeout-minutes: 2
+    steps:
+      - run: |
+          echo "::error::force-failure was requested: failing on purpose to test the nightly issue"
+          exit 1
+
+  # Opens or comments on one issue per kind and ref (labelled `nightly`): "Nightly lane failing
+  # on <ref>" for a failed job or a flaky scaling test, "Nightly benchmark regression on <ref>"
+  # for a >10% regression. The ref in the title keeps a branch or tag run from appending to
+  # main's issue (and main's runs from reusing an issue a test run opened).
+  report:
+    name: Open an issue on failure
+    needs: [differential, fuzz, scaling, bench, forced-failure]
+    if: >-
+      ${{ always() && (contains(needs.*.result, 'failure') || needs.scaling.outputs.flaky == 'true'
+      || needs.bench.outputs.regression == 'true') }}
+    runs-on: [self-hosted, macOS, ARM64]
+    timeout-minutes: 10
+    permissions:
+      issues: write
+    steps:
+      - name: Download crash inputs and the differential report
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        continue-on-error: true
+        with:
+          pattern: "{fuzz-artifacts-*,differential-report,bench-results}"
+          path: artefacts
+      - name: Open or update the issues
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          NEEDS: ${{ toJSON(needs) }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          FLAKY: ${{ needs.scaling.outputs.flaky }}
+          REGRESSION: ${{ needs.bench.outputs.regression }}
+        run: |
+          set -euo pipefail
+          gh label create nightly --color B60205 --description "Nightly lane failure (ADR 0018)" --force
+          upsert() { # title body-file
+            number=$(gh issue list --label nightly --state open --search "in:title \"$1\"" --json number,title \
+              --jq "map(select(.title == \"$1\")) | .[0].number // empty")
+            if [ -n "$number" ]; then
+              gh issue comment "$number" --body-file "$2"
+            else
+              gh issue create --title "$1" --label nightly --body-file "$2"
+            fi
+          }
+          failed=$(jq -r 'to_entries | map(select(.value.result == "failure") | .key) | join(", ")' <<< "$NEEDS")
+          if [ -n "$failed" ] || [ "$FLAKY" = "true" ]; then
+            {
+              echo "The [nightly run]($RUN_URL) on \`$GITHUB_SHA\` ($GITHUB_REF_NAME) failed. It blocks the next release (ADR 0018 §2)."
+              echo
+              [ -n "$failed" ] && echo "Failed jobs: **$failed**."
+              [ "$FLAKY" = "true" ] && echo "The scaling tests failed once and passed on retry: **flaky** (ADR 0018 §4)."
+              report=artefacts/differential-report/report.json
+              if [ -f "$report" ]; then
+                failures=$(jq '[.disagreements[] | select(.kind == "failure")] | length' "$report")
+                panics=$(jq '(.lamina_errors + .missing + .broken_readers) | length' "$report")
+                echo
+                echo "Differential: $failures failures, $panics lamina errors, missing files or broken readers (full report in the run's artefacts)."
+              fi
+              if [ -f "$report" ] && [ $((failures + panics)) -gt 0 ]; then
+                echo
+                echo "The first 30 of each:"
+                echo
+                jq -r '([.disagreements[] | select(.kind == "failure")][:30][] | "- \u0060\(.file)\u0060 \(.fact): lamina \(.lamina | tojson | .[:60])"), ((.lamina_errors + .missing + .broken_readers)[:30][] | "- \u0060\(.)\u0060")' "$report"
+              fi
+              for dir in artefacts/fuzz-artifacts-*; do
+                [ -d "$dir" ] || continue
+                echo
+                echo "Fuzz \`${dir#artefacts/fuzz-artifacts-}\` (minimise and commit per fuzz/README.md):"
+                for f in "$dir"/minimized-from-* "$dir"/crash-* "$dir"/timeout-* "$dir"/oom-*; do
+                  [ -f "$f" ] || continue
+                  size=$(wc -c < "$f")
+                  echo
+                  echo "- \`$(basename "$f")\` ($size bytes)"
+                  if [ "$size" -le 4096 ]; then
+                    fence='```'
+                    printf '\n  %s base64\n  %s\n  %s\n' "$fence" "$(base64 < "$f" | tr -d '\n')" "$fence"
+                  fi
+                done
+              done
+            } > failure.md
+            upsert "Nightly lane failing on $GITHUB_REF_NAME" failure.md
+          fi
+          if [ "$REGRESSION" = "true" ]; then
+            {
+              echo "The [nightly run]($RUN_URL) on \`$GITHUB_SHA\` found a benchmark regression over 10% (ADR 0018 tier 11). It does not fail the build."
+              echo
+              cat artefacts/bench-results/regressions.md 2>/dev/null || true
+            } > regression.md
+            upsert "Nightly benchmark regression on $GITHUB_REF_NAME" regression.md
+          fi

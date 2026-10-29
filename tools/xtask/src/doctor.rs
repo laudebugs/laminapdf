@@ -3,7 +3,7 @@
 //! Tasks call [`require`] before using a tool, so an off-pin version fails with the fix command
 //! instead of producing different results. `cargo xtask doctor` checks them all, and
 //! `cargo xtask doctor --install` runs the fix commands that are safe to automate (`cargo install`).
-//! CI installs the same versions (`.github/workflows/ci.yml`); keep the two in sync.
+//! CI installs the same versions (`.github/workflows/ci.yml`, `nightly.yml`); keep them in sync.
 
 use std::fs;
 use std::process::Command;
@@ -16,14 +16,16 @@ use crate::workspace::Workspace;
 const CARGO_DENY_VERSION: &str = "0.20.2";
 /// cargo-nextest release (`cargo xtask test`; plain `cargo test` is the fallback).
 const CARGO_NEXTEST_VERSION: &str = "0.9.150";
-/// cargo-fuzz release (`cargo xtask fuzz`, `.github/workflows/fuzz.yml`); it runs on nightly.
+/// cargo-fuzz release (`cargo xtask fuzz`, `.github/workflows/nightly.yml`); it runs on nightly.
 const CARGO_FUZZ_VERSION: &str = "0.13.2";
+/// qpdf release for the nightly differential (`cargo xtask differential --live`; the nightly
+/// workflow downloads this release's binaries, checked by SHA-256), the round-trip suite
+/// (`cargo xtask roundtrip`) and the committed `qpdf --check` facts (`tools/fixtures/text_facts.py`,
+/// `fixtures/encrypted/`; tests read the facts, so only regenerating them needs it).
+pub(crate) const QPDF_VERSION: &str = "12.4.2";
 /// Binaryen release for `wasm-opt`. Its output is part of the shipped .wasm, so bump it deliberately
 /// and review the wasm-opt feature list (ADR 0002) whenever this or `rust-toolchain.toml` changes.
 const BINARYEN_VERSION: &str = "133";
-/// qpdf release behind the committed `qpdf --check` facts (`tools/fixtures/text_facts.py`,
-/// `fixtures/encrypted/`); tests read the facts, so only regenerating them needs it.
-pub(crate) const QPDF_VERSION: &str = "12.4.2";
 /// HarfBuzz release behind the shaping goldens (`fixtures/shaping/`, written by
 /// `tools/shaping-goldens/goldens.py` with `hb-shape`); `golden --update` skips them on
 /// another version. `crates/lamina-text/tests/shaping_goldens.rs` checks the script's pin.
@@ -148,6 +150,19 @@ pub(crate) fn cargo_fuzz() -> Tool {
     }
 }
 
+pub(crate) fn qpdf() -> Tool {
+    Tool {
+        name: "qpdf",
+        version_command: &["qpdf", "--version"],
+        pin: Pin::Exact(QPDF_VERSION.to_owned()),
+        fix: format!("install qpdf {QPDF_VERSION} from https://github.com/qpdf/qpdf/releases (or brew install qpdf)"),
+        optional_for: Some(
+            "cargo xtask differential --live (the nightly lane), cargo xtask roundtrip and regenerating fixture facts \
+             (tools/fixtures/text_facts.py, fixtures/encrypted/)",
+        ),
+    }
+}
+
 /// Every tool, with pins read from the repository where they live (toolchain file, package.json, Cargo.lock).
 fn all_tools(ws: &Workspace) -> Result<Vec<Tool>> {
     let channel = toolchain_channel(ws)?;
@@ -178,15 +193,7 @@ fn all_tools(ws: &Workspace) -> Result<Vec<Tool>> {
         cargo_deny(),
         cargo_nextest(),
         cargo_fuzz(),
-        Tool {
-            name: "qpdf",
-            version_command: &["qpdf", "--version"],
-            pin: Pin::Exact(QPDF_VERSION.to_owned()),
-            fix: format!(
-                "brew install qpdf  # or a qpdf {QPDF_VERSION} release from https://github.com/qpdf/qpdf/releases"
-            ),
-            optional_for: Some("regenerating fixture facts (tools/fixtures/text_facts.py, fixtures/encrypted/)"),
-        },
+        qpdf(),
         hb_shape(),
         Tool {
             name: "wasm-bindgen-cli",

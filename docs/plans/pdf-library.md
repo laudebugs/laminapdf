@@ -278,7 +278,7 @@ Each round's todos (one per PR, with dependencies) are linked from [§7](#7-roun
 - [x] Encrypted fixtures for every revision (user, owner and empty passwords); wrong-password error code (B2b, [#22](https://github.com/laudebugs/lamina/pull/22))
 - [x] Assign `LaminaId`s to pages and outline items; test stability across reopen (B2c; also across an incremental save, and path IDs for direct pages)
 - [x] Add `fixtures/corpus/expected.json` facts (page count, outline titles) and a corpus test (B2c; written by `tools/corpus-facts`, exceptions in `exceptions.toml`)
-- [x] Add `fuzz/` targets for open and page-tree walk; run 10 min in CI (B2c: `lex`, `parse_object`, `flate_decode`, `open`, `page_tree`; scheduled `fuzz.yml`)
+- [x] Add `fuzz/` targets for open and page-tree walk; run 10 min in CI (B2c: `lex`, `parse_object`, `flate_decode`, `open`, `page_tree`; scheduled in `nightly.yml` since [X3a](../todos/done/X3a-nightly-lane.md))
 - [x] Differential test: page count and outline vs pypdf (B2c; corpus plus fixed-seed mutants, precomputed by `cargo xtask differential --update`)
 
 ### B3. Ops and save

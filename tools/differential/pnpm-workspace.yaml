@@ -1,0 +1,4 @@
+# Its own pnpm project, outside the root workspace (like spikes/): pdf.js is needed only by the
+# nightly lane's differential, so the root install stays small. Install with
+# `pnpm --dir tools/differential install --frozen-lockfile`.
+packages: []

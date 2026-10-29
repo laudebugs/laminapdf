@@ -1,0 +1,14 @@
+{
+  "name": "lamina-differential",
+  "private": true,
+  "description": "pdf.js side of the nightly lane's live differential (ADR 0018 tier 6); a tool, never shipped.",
+  "license": "MIT OR Apache-2.0",
+  "type": "module",
+  "packageManager": "pnpm@11.20.0",
+  "engines": {
+    "node": ">=22"
+  },
+  "dependencies": {
+    "pdfjs-dist": "6.4.299"
+  }
+}

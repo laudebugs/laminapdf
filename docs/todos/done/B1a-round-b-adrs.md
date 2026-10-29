@@ -57,7 +57,7 @@ None (documentation only).
 
 ## Risks and open questions
 
-`Limits` defaults are informed guesses; the nightly corpus run ([X3a](../ongoing/X3a-nightly-lane.md)) will show if one rejects legitimate files.
+`Limits` defaults are informed guesses; the nightly corpus run ([X3a](../done/X3a-nightly-lane.md)) will show if one rejects legitimate files.
 
 ## Definition of done
 

@@ -91,6 +91,18 @@ pub fn full() -> Vec<(String, Vec<u8>)> {
     out
 }
 
+/// The first `per_file` mutants of every corpus file from [`SEED`] (`<stem>-m<i>.pdf`), sorted
+/// by name: the nightly lane's series (`cargo xtask differential --live`). The fast set's
+/// [`all`] is its prefix, so the fast set's exceptions apply to it.
+pub fn series_m(per_file: usize) -> Vec<(String, Vec<u8>)> {
+    let mut out: Vec<_> = super::corpus()
+        .iter()
+        .flat_map(|(name, bytes)| series(name, bytes, SEED, 'm', per_file))
+        .collect();
+    out.sort();
+    out
+}
+
 /// The fast set's inputs: every corpus file and its [`all`] mutants.
 pub fn fast_inputs() -> Vec<(String, Vec<u8>)> {
     super::corpus().into_iter().chain(all()).collect()

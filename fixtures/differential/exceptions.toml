@@ -1,10 +1,29 @@
-# Deliberate differences between lamina and pypdf in the differential suite (ADR 0018 tier 6,
-# ADR 0003 §4). Each entry: the input (a corpus file or a mutant `<stem>-m<i>.pdf`), the fact
-# (outcome | page_count | outline_titles), the ADR 0003 rule behind lamina's answer, and why
-# the two readers differ. crates/lamina-model/tests/differential.rs skips exactly these and
-# fails on an entry that is no longer needed.
+# Deliberate differences between lamina and the other readers in the differential suite
+# (ADR 0018 tier 6, ADR 0003 §4).
 #
-# Grouped by cause; regenerate the expectations (not this list) when the mutants change.
+# [[exception]] (every lane): the input (`file`, or `files` for several that differ for the
+# same reason: a corpus file, a mutant `<stem>-m<i>.pdf`, or an external corpus file
+# `<source>/<path>`), the facts (outcome | page_count | outline_titles), the ADR 0003 rule behind
+# lamina's answer, and why the readers differ. `tools` (pdfjs, pdfium, qpdf, pypdf) defaults to
+# pypdf, the PR lanes' only tool; an entry whose `tools` leaves out pypdf is skipped there.
+# crates/lamina-model/tests/differential.rs skips exactly these and fails on an entry that is no
+# longer needed.
+#
+# [[class]] (nightly lane only, `cargo xtask differential --live`): a whole class of deliberate
+# differences, matched on the values rather than one file: `file` (a glob, `*` for any run of
+# characters; default "*"), `facts`, `tools` (default all), and any of: `lamina` / `theirs` (the
+# two values of the fact), `lamina_facts` (an inline table of lamina's other facts that must
+# match, including its `error` code when it failed, e.g. `{ error = "missing-root" }` or
+# `{ page_count = 0 }`) and `relation` ("lamina-skips": a lower page count, or outline titles
+# that are a shorter subsequence of the tool's).
+#
+# [[known]] (nightly lane only): a disagreement that is a lamina bug or an open question, not a
+# rule, tracked by `issue` (its URL; "PENDING" is accepted but warned about on every run and
+# listed in the report) until it is fixed, like an ignored flaky test (ADR 0018 §4).
+#
+# The nightly report lists every disagreement, how many each class and known entry excused,
+# and the entries a tool now agrees with. Grouped by cause; regenerate the expectations (not
+# this list) when the mutants change.
 
 [[exception]]
 file = "enc-m0.pdf"
@@ -125,3 +144,101 @@ file = "raw-m1.pdf"
 facts = ["outcome", "page_count", "outline_titles"]
 rule = "ADR 0003 §1: Rejected (no catalog even after repair)"
 reason = "the catalog no longer parses (a comment swallows its closing >>, or its object stream is damaged); lamina fails with missing-root, pypdf recovers a partial catalog"
+
+# ---- Nightly lane: per-file exceptions against the other tools ----
+# (pypdf's side of these is in full-exceptions.toml; without pypdf in `tools`, the PR lanes skip them.)
+
+[[exception]]
+file = "enc-f5.pdf"
+facts = ["outcome"]
+tools = ["pdfjs", "pdfium", "qpdf"]
+rule = "ADR 0003 §1: Rejected (a malformed object is an error for the call that resolves it)"
+reason = "the damage is inside the /Encrypt dictionary, which open must read to decrypt the file; lamina fails with a syntax error, the other readers recover a partial dictionary (as in full-exceptions.toml for pypdf)"
+
+# ---- Nightly lane: classes (lamina vs live pdf.js, PDFium, qpdf and pypdf) ----
+
+[[class]]
+facts = ["outcome"]
+lamina = "repaired"
+theirs = "failed"
+rule = "ADR 0003 §1: Repair"
+reason = "lamina rebuilds a missing or broken xref by scanning every `n g obj` header and reads the document; the other reader gives up on the same damage"
+
+[[class]]
+facts = ["outcome"]
+tools = ["pypdf"]
+lamina = "repaired"
+theirs = "opened"
+rule = "ADR 0003 §1: Repair"
+reason = "both read the damaged file; pypdf's repair is detected from its log warnings (tools/corpus-facts/facts.py REPAIR_HINTS) and some of its recoveries log none"
+
+[[class]]
+facts = ["page_count"]
+relation = "lamina-skips"
+rule = "ADR 0003 §1: Page tree"
+reason = "lamina's walk skips kids that are missing, unparsable or not dictionaries (and a missing /Pages is 0 pages); the other readers trust /Count or scan the file for /Type /Page objects"
+
+[[class]]
+facts = ["outline_titles"]
+relation = "lamina-skips"
+rule = "ADR 0003 §2: outline-item-skipped"
+reason = "lamina skips an outline item that is missing, not a dictionary or unreadable, with its subtree; the other readers keep a placeholder or recover the item"
+
+[[class]]
+facts = ["outcome"]
+lamina_facts = { error = "missing-root" }
+rule = "ADR 0003 §1: Rejected (no catalog even after repair)"
+reason = "the catalog no longer parses or resolves; lamina fails with missing-root, the other reader recovers a partial catalog or scans for pages without one"
+
+[[class]]
+facts = ["outcome"]
+lamina_facts = { error = "reference-cycle" }
+rule = "ADR 0003 §1: Page tree (a node reached twice is ReferenceCycle)"
+reason = "a page or intermediate node appears twice in the page tree (a duplicated kid or a loop); lamina rejects it, the other reader skips the repeat or the loop"
+
+[[class]]
+facts = ["outcome"]
+theirs = "failed"
+lamina_facts = { page_count = 0 }
+rule = "ADR 0003 §1: Page tree (missing /Pages → 0 pages)"
+reason = "the page tree is gone or unreadable; lamina opens the document with no pages, the other reader rejects a document without one"
+
+[[class]]
+file = "outline-*"
+facts = ["outline_titles"]
+tools = ["pdfjs"]
+theirs = []
+rule = "ADR 0003 §2: outline-item-skipped"
+reason = "in mutants of outline.pdf with a damaged item, pdf.js drops the whole outline; lamina skips only the unreadable items and keeps the rest"
+
+# ---- Nightly lane: known disagreements (lamina bugs or open questions, each tracked) ----
+
+[[known]]
+file = "enc-m95.pdf"
+facts = ["outcome"]
+issue = "https://github.com/laudebugs/lamina/issues/37"
+reason = "lamina fails with `syntax` where pdf.js and PDFium open the file and qpdf and pypdf repair it"
+
+[[known]]
+file = "enc-m163.pdf"
+facts = ["outcome"]
+issue = "https://github.com/laudebugs/lamina/issues/37"
+reason = "lamina fails with `syntax` where pdf.js and PDFium open the file and qpdf and pypdf repair it"
+
+[[known]]
+file = "pdfjs/test/pdfs/issue14267.pdf"
+facts = ["outline_titles"]
+issue = "https://github.com/laudebugs/lamina/issues/37"
+reason = "an undefined PDFDocEncoding byte (0x11) becomes U+FFFD in lamina; pdf.js, qpdf and pypdf keep U+0011, PDFium a space"
+
+[[known]]
+file = "pdfjs/test/pdfs/xfa_filled_imm1344e.pdf"
+facts = ["outline_titles"]
+issue = "https://github.com/laudebugs/lamina/issues/37"
+reason = "an undefined PDFDocEncoding byte (0x00) at the end of each title becomes U+FFFD in lamina; pdf.js, qpdf and pypdf keep U+0000, PDFium a space"
+
+[[known]]
+file = "pdfjs/test/pdfs/issue22011.pdf"
+facts = ["page_count"]
+issue = "https://github.com/laudebugs/lamina/issues/37"
+reason = "lamina walks 56 pages, PDFium, qpdf and pypdf 57 (a skipped kid, excused by the lamina-skips class) and pdf.js 40"

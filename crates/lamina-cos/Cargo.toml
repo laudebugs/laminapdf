@@ -18,11 +18,17 @@ lamina-syntax = { workspace = true }
 thiserror = { workspace = true }
 
 [dev-dependencies]
+criterion = { workspace = true }
 # Builds test inputs with the writer. A dev-dependency cycle Cargo accepts: the integration
 # tests link the one library `lamina-save` links; unit tests in `src/` must not use it.
 lamina-save = { workspace = true }
 serde_json = { workspace = true }
 sha2 = { workspace = true }
+
+# Release-mode benchmarks for the nightly lane (`cargo xtask bench`; ADR 0018 tier 11).
+[[bench]]
+name = "read"
+harness = false
 
 [lints]
 workspace = true
