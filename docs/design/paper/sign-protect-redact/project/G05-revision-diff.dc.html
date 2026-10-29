@@ -13,6 +13,7 @@
 body{margin:0;background:#DCD6CB}
 a{color:#1F5C63}a:hover{color:#16454B}
 button,input,textarea,select{font:inherit;color:inherit}
+label:has(input:focus-visible) [data-box]{outline:2px solid #1F5C63;outline-offset:2px}
 </style>
 </helmet>
 <div style="min-height: 100vh; display: flex; flex-direction: column; background: #DCD6CB; font-family: 'Source Sans 3', 'Segoe UI', system-ui, sans-serif; font-size: 14px; line-height: 1.4; color: #1F1D1A">
@@ -20,25 +21,28 @@ button,input,textarea,select{font:inherit;color:inherit}
 
   <div style="height: 30px; flex: 0 0 auto; display: flex; align-items: center; padding: 0 12px; background: #EFEBE3; border-bottom: 1px solid #E0D9CD; position: relative">
     <div aria-hidden="true" style="display: flex; gap: 8px"><span style="width: 12px; height: 12px; border-radius: 50%; background: #EC6A5E; border: 0.5px solid #D2574C"></span><span style="width: 12px; height: 12px; border-radius: 50%; background: #F4BF4F; border: 0.5px solid #D9A63A"></span><span style="width: 12px; height: 12px; border-radius: 50%; background: #61C554; border: 0.5px solid #4CAA40"></span></div>
-    <div style="position: absolute; left: 0; right: 0; text-align: center; font-size: 13px; font-weight: 600; color: #3A3631; pointer-events: none">Q3-board-report-signed.pdf</div>
+    <div style="position: absolute; left: 0; right: 0; text-align: center; font-size: 13px; font-weight: 600; color: #3A3631; pointer-events: none">Compare · Q3-board-report-signed.pdf</div>
   </div>
 
-  <header style="min-height: 40px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 20px; padding: 0 16px; border-bottom: 1px solid #E4DED3">
-    <div style="display: flex; align-items: center; gap: 10px; flex: 1 1 220px; min-width: 0">
-      <button aria-label="Sidebar" aria-pressed="true" style="width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 4px; color: #4A453E"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="3.5" y="4.5" width="17" height="15" rx="1.5"></rect><path d="M9 4.5v15"></path></svg></button>
-      <span style="font-family: 'Newsreader', Georgia, serif; font-size: 16px; font-weight: 500; white-space: nowrap">Q3-board-report-signed.pdf</span>
-      <span style="font-size: 12px; color: #6B645A; white-space: nowrap">No unsaved changes</span>
+  <header style="min-height: 40px; flex: 0 0 auto; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 20px; padding: 4px 16px; border-bottom: 1px solid #E4DED3">
+    <div style="display: flex; align-items: center; gap: 10px; flex: 1 1 420px; min-width: 0; flex-wrap: wrap">
+      <span style="font-family: 'Newsreader', Georgia, serif; font-size: 16px; font-weight: 500">Compare</span>
+      <button aria-label="Older version: signed version 1, Amara Okafor. Change" style="height: 26px; display: flex; align-items: center; gap: 6px; padding: 0 8px; border: 1px solid #8A8174; background: #FFFFFF; border-radius: 4px; font-size: 13px"><span style="color: #6B645A">Older</span><span>Signed version 1 · Amara Okafor</span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#4A453E" stroke-width="1.5" aria-hidden="true"><path d="M7 10l5 5 5-5"></path></svg></button>
+      <button aria-label="Swap older and newer" style="width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 4px; color: #4A453E"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M5 9h12l-3-3M19 15H7l3 3"></path></svg></button>
+      <button aria-label="Newer version: Q3-board-report-signed.pdf, current version 3. Change" style="height: 26px; display: flex; align-items: center; gap: 6px; padding: 0 8px; border: 1px solid #8A8174; background: #FFFFFF; border-radius: 4px; font-size: 13px"><span style="color: #6B645A">Newer</span><span>Q3-board-report-signed.pdf · current (version 3)</span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#4A453E" stroke-width="1.5" aria-hidden="true"><path d="M7 10l5 5 5-5"></path></svg></button>
     </div>
-    <div role="group" aria-label="Mode" style="display: flex; align-items: stretch; gap: 22px; height: 40px">
-      <button aria-pressed="true" style="height: 40px; display: flex; align-items: center; border: 0; background: transparent; padding: 2px 0 0; color: #1F1D1A; font-weight: 600; border-bottom: 2px solid {{accent}}">Read</button>
-      <button aria-pressed="false" style="height: 40px; display: flex; align-items: center; border: 0; background: transparent; padding: 2px 0 0; color: #6B645A; border-bottom: 2px solid transparent">Comment</button>
-      <button aria-pressed="false" style="height: 40px; display: flex; align-items: center; border: 0; background: transparent; padding: 2px 0 0; color: #6B645A; border-bottom: 2px solid transparent">Fill &amp; Sign</button>
-      <button aria-pressed="false" style="height: 40px; display: flex; align-items: center; border: 0; background: transparent; padding: 2px 0 0; color: #6B645A; border-bottom: 2px solid transparent">Organise</button>
-      <button aria-pressed="false" style="height: 40px; display: flex; align-items: center; border: 0; background: transparent; padding: 2px 0 0; color: #6B645A; border-bottom: 2px solid transparent">Edit</button>
+    <div role="group" aria-label="View" style="display: flex; align-items: stretch; gap: 22px; height: 40px">
+      <button aria-pressed="true" style="height: 40px; display: flex; align-items: center; border: 0; background: transparent; padding: 2px 0 0; color: #1F1D1A; font-weight: 600; border-bottom: 2px solid {{accent}}">Side by side</button>
+      <button aria-pressed="false" style="height: 40px; display: flex; align-items: center; border: 0; background: transparent; padding: 2px 0 0; color: #6B645A; border-bottom: 2px solid transparent">Overlay</button>
     </div>
-    <div style="display: flex; align-items: center; justify-content: flex-end; gap: 14px; flex: 1 1 220px">
+    <div style="display: flex; align-items: center; justify-content: flex-end; gap: 10px; flex: 1 1 260px">
+      <button aria-label="Previous change" style="width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 4px; color: #4A453E"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M12 19V5M7 10l5-5 5 5"></path></svg></button>
+      <span style="font-variant-numeric: tabular-nums; font-size: 13px">1 of 3</span>
+      <button aria-label="Next change" style="width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 4px; color: #4A453E"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M12 5v14M7 14l5 5 5-5"></path></svg></button>
+      <div role="group" aria-label="Zoom" style="display: flex; align-items: center; gap: 2px; font-variant-numeric: tabular-nums"><button aria-label="Zoom out" style="width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 4px; color: #4A453E"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M6 12h12"></path></svg></button><span style="min-width: 40px; text-align: center; font-size: 13px">90%</span><button aria-label="Zoom in" style="width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 4px; color: #4A453E"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M6 12h12M12 6v12"></path></svg></button></div>
       <button aria-label="Find in document" style="width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 4px; color: #4A453E"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6"></circle><path d="M15 15l5 5"></path></svg></button>
-      <button style="height: 26px; display: flex; align-items: center; gap: 8px; padding: 0 6px 0 10px; border: 1px solid #E4DED3; background: #FBF9F5; border-radius: 4px; color: #6B645A; font-size: 13px"><span>Commands</span><span style="font-size: 11px; padding: 1px 5px; border: 1px solid #D8D1C5; border-radius: 3px; color: #4A453E; background: #FFFFFF">⌘K</span></button>
+      <button aria-label="View settings" aria-haspopup="dialog" style="width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 4px; color: #4A453E"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="12" cy="12" r="7.5"></circle><path d="M12 4.5v15M12 8.5h5.5M12 12h7.5M12 15.5h5.5"></path></svg></button>
+      <button style="height: 26px; padding: 0 12px; border: 1px solid #8A8174; background: #FFFFFF; border-radius: 4px; font-size: 13px">Close compare</button>
       <button aria-label="More actions" style="width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 4px; color: #4A453E"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="5.5" cy="12" r="0.9"></circle><circle cx="12" cy="12" r="0.9"></circle><circle cx="18.5" cy="12" r="0.9"></circle></svg></button>
     </div>
   </header>
@@ -49,26 +53,20 @@ button,input,textarea,select{font:inherit;color:inherit}
     <button style="height: 26px; padding: 0 12px; border: 1px solid #8A8174; background: #FFFFFF; border-radius: 4px; font-size: 13px">Open signed version</button>
   </div>
 
-  <div role="toolbar" aria-label="Compare" style="min-height: 40px; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; padding: 0 16px; border-bottom: 1px solid #E4DED3; background: #FBF9F5; font-size: 13px">
-    <span style="font-weight: 600">Compare</span>
-    <label for="va" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Left side</label>
-    <div style="position: relative"><select id="va" style="height: 28px; padding: 0 28px 0 8px; border: 1px solid #8A8174; border-radius: 4px; background: #FFFFFF; appearance: none; font-size: 13px"><option>Signed: version 1 · A. Okafor</option></select><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#4A453E" stroke-width="1.5" aria-hidden="true" style="position: absolute; right: 8px; top: 7px; pointer-events: none"><path d="M7 10l5 5 5-5"></path></svg></div>
-    <span style="color: #6B645A">with</span>
-    <label for="vb" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Right side</label>
-    <div style="position: relative"><select id="vb" style="height: 28px; padding: 0 28px 0 8px; border: 1px solid #8A8174; border-radius: 4px; background: #FFFFFF; appearance: none; font-size: 13px"><option>Current: version 3</option></select><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#4A453E" stroke-width="1.5" aria-hidden="true" style="position: absolute; right: 8px; top: 7px; pointer-events: none"><path d="M7 10l5 5 5-5"></path></svg></div>
-    <span aria-hidden="true" style="width: 1px; height: 18px; background: #E4DED3; margin: 0 6px"></span>
-    <button aria-pressed="true" style="height: 28px; padding: 0 10px; border: 1px solid {{accent}}; background: {{accentTint}}; color: {{accent}}; border-radius: 4px; font-weight: 600">Side by side</button>
-    <button aria-pressed="false" style="height: 28px; padding: 0 10px; border: 1px solid transparent; background: transparent; border-radius: 4px">Overlay</button>
-    <span aria-hidden="true" style="width: 1px; height: 18px; background: #E4DED3; margin: 0 6px"></span>
-    <button style="height: 28px; padding: 0 10px; border: 1px solid transparent; background: transparent; border-radius: 4px">Previous change</button>
-    <button style="height: 28px; padding: 0 10px; border: 1px solid transparent; background: transparent; border-radius: 4px">Next change</button>
+  <div role="toolbar" aria-label="Show changes" style="min-height: 40px; flex: 0 0 auto; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; padding: 0 16px; border-bottom: 1px solid #E4DED3; background: #FBF9F5; font-size: 13px">
+    <span style="font-size: 12px; color: #6B645A; margin-right: 4px">Show</span>
+    <button aria-pressed="true" style="height: 28px; display: flex; align-items: center; gap: 6px; padding: 0 10px; border: 1px solid {{accent}}; background: #E1E6E3; color: {{accent}}; border-radius: 4px; font-weight: 600">Text <span style="font-variant-numeric: tabular-nums; font-weight: 400">0</span></button>
+    <button aria-pressed="true" style="height: 28px; display: flex; align-items: center; gap: 6px; padding: 0 10px; border: 1px solid {{accent}}; background: #E1E6E3; color: {{accent}}; border-radius: 4px; font-weight: 600">Images and drawings <span style="font-variant-numeric: tabular-nums; font-weight: 400">1</span></button>
+    <button aria-pressed="true" style="height: 28px; display: flex; align-items: center; gap: 6px; padding: 0 10px; border: 1px solid {{accent}}; background: #E1E6E3; color: {{accent}}; border-radius: 4px; font-weight: 600">Comments <span style="font-variant-numeric: tabular-nums; font-weight: 400">1</span></button>
+    <button aria-pressed="true" style="height: 28px; display: flex; align-items: center; gap: 6px; padding: 0 10px; border: 1px solid {{accent}}; background: #E1E6E3; color: {{accent}}; border-radius: 4px; font-weight: 600">Signatures <span style="font-variant-numeric: tabular-nums; font-weight: 400">1</span></button>
+    <span aria-hidden="true" style="width: 1px; height: 18px; background: #E4DED3; margin: 0 8px"></span>
+    <label style="display: flex; align-items: center; gap: 8px; min-height: 24px"><sc-if value="{{on}}" hint-placeholder-val="{{ true }}"><input type="checkbox" checked style="position: absolute; width: 1px; height: 1px; opacity: 0; margin: 0"></sc-if><span data-box="1" aria-hidden="true" style="flex: 0 0 auto; width: 16px; height: 16px; margin: 0; box-sizing: border-box; display: flex; align-items: center; justify-content: center; border-radius: 3px; border: 1px solid {{accent}}; background: {{accent}}; color: #FFFFFF"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 12.5l4 4 8-9"></path></svg></span>Scroll together</label>
     <span style="flex: 1 1 auto"></span>
-    <span style="font-size: 12px; color: #6B645A; font-variant-numeric: tabular-nums">Change 1 of 3</span>
-    <button style="height: 28px; padding: 0 12px; border: 1px solid #8A8174; background: #FFFFFF; border-radius: 4px">Close compare</button>
+    <span style="font-size: 12px; color: #6B645A">Preset: changes after Amara Okafor’s signature · object by object</span>
   </div>
 
   <div style="flex: 1 1 auto; min-height: 0; display: flex; flex-wrap: wrap">
-    <aside aria-label="Changes after signing" style="flex: 0 0 288px; min-width: 0; box-sizing: border-box; border-right: 1px solid #E4DED3; display: flex; flex-direction: column; gap: 16px; padding: 16px 12px; overflow: auto">
+    <aside aria-label="Changes after signing" style="flex: 0 0 260px; min-width: 0; box-sizing: border-box; border-right: 1px solid #E4DED3; display: flex; flex-direction: column; gap: 16px; padding: 16px 12px; overflow: auto">
       <h2 style="margin: 0; padding: 0 6px; font-family: 'Newsreader', Georgia, serif; font-size: 18px; font-weight: 500">Changes after signing</h2>
       <section aria-labelledby="v2" style="display: flex; flex-direction: column; gap: 6px">
         <h3 id="v2" style="margin: 0; padding: 0 6px; font-size: 11px; font-weight: 400; letter-spacing: 0.06em; text-transform: uppercase; color: #6B645A">Version 2 · 27 Oct 2026, 18:05</h3>
@@ -149,11 +147,11 @@ class Component extends DCLogic {
     }
     var sides = [
       { title: 'Signed version', meta: 'Version 1 · 27 Oct 2026, 09:12', aria: 'Page 3, signed version', west: '197', changed: false,
-        westBar: 'height: 10px; width: 47.8%; background: #4E5A63', westNum: 'text-align: right' },
+        westBar: 'height: 10px; width: 47.8%; background: #4E5A63; outline: 1.5px dashed #9B2335; outline-offset: 3px', westNum: 'text-align: right; background: #F1E4E2; text-decoration: line-through' },
       { title: 'Current', meta: 'Version 3', aria: 'Page 3, current version, 1 change', west: '97', changed: true,
-        westBar: 'height: 10px; width: 23.5%; background: #4E5A63; outline: 2px solid #9B2335; outline-offset: 3px', westNum: 'text-align: right; color: #9B2335; font-weight: 600; outline: 2px solid #9B2335; outline-offset: 2px' }
+        westBar: 'height: 10px; width: 23.5%; background: #4E5A63; outline: 1.5px dashed #2F6A45; outline-offset: 3px', westNum: 'text-align: right; background: #E7EBE3; text-decoration: underline; font-weight: 600; outline: 2px solid ' + accent + '; outline-offset: 2px' }
     ];
-    return { accent: accent, accentTint: mix(accent, '#F7F4EE', 0.12), sides: sides };
+    return { on: true, accent: accent, accentTint: mix(accent, '#F7F4EE', 0.12), sides: sides };
   }
 }
 </script>
