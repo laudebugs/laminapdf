@@ -66,18 +66,20 @@ button,input,textarea{font:inherit;color:inherit}
         <legend style="padding: 0 0 6px; font-size: 12px; font-weight: 600; color: #4A453E">Tabs from your last session</legend>
         <sc-for list="{{tabs}}" as="tab" hint-placeholder-count="3">
           <div style="display: flex; align-items: center; gap: 10px; min-height: 40px; border-top: 1px solid #E4DED3">
-            <button role="checkbox" aria-checked="{{tab.checked}}" aria-label="{{tab.label}}" style="display: flex; align-items: center; gap: 10px; flex: 1 1 auto; min-width: 0; min-height: 32px; border: 0; background: transparent; padding: 0; text-align: left">
+            <label style="position: relative; display: flex; align-items: center; gap: 10px; flex: 1 1 auto; min-width: 0; min-height: 32px">
               <sc-if value="{{tab.on}}" hint-placeholder-val="{{ true }}">
-                <span aria-hidden="true" style="flex: 0 0 auto; width: 16px; height: 16px; box-sizing: border-box; border-radius: 3px; background: #1F5C63; border: 1px solid #1F5C63; display: flex; align-items: center; justify-content: center"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.5" aria-hidden="true"><path d="M6 12.5l4 4 8-9"></path></svg></span>
+                <input type="checkbox" checked style="position: absolute; width: 1px; height: 1px; opacity: 0; margin: 0">
+                <span aria-hidden="true" style="flex: 0 0 auto; width: 16px; height: 16px; box-sizing: border-box; border-radius: 3px; background: #1F5C63; border: 1px solid #1F5C63; display: flex; align-items: center; justify-content: center"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2" aria-hidden="true"><path d="M6 12.5l4 4 8-9"></path></svg></span>
               </sc-if>
               <sc-if value="{{tab.off}}" hint-placeholder-val="{{ false }}">
+                <input type="checkbox" aria-describedby="{{tab.badgeId}}" style="position: absolute; width: 1px; height: 1px; opacity: 0; margin: 0">
                 <span aria-hidden="true" style="flex: 0 0 auto; width: 16px; height: 16px; box-sizing: border-box; border-radius: 3px; background: #FFFFFF; border: 1px solid #8A8174"></span>
               </sc-if>
               <span style="flex: 1 1 auto; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{tab.name}}</span>
               <span style="flex: 0 0 auto; font-size: 12px; color: #6B645A; font-variant-numeric: tabular-nums">{{tab.page}}</span>
-            </button>
+            </label>
             <sc-if value="{{tab.crashed}}" hint-placeholder-val="{{ false }}">
-              <span style="flex: 0 0 auto; height: 20px; display: flex; align-items: center; gap: 4px; padding: 0 8px; border-radius: 3px; background: #F0E8DC; color: #8A5300; font-size: 12px; font-weight: 600"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 4l9 16H3z"></path><path d="M12 10v4M12 17v.5"></path></svg>Open when lamina quit</span>
+              <span id="{{tab.badgeId}}" style="flex: 0 0 auto; height: 20px; display: flex; align-items: center; gap: 4px; padding: 0 8px; border-radius: 3px; background: #F0E8DC; color: #8A5300; font-size: 12px; font-weight: 600"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 4l9 16H3z"></path><path d="M12 10v4M12 17v.5"></path></svg>Open when lamina quit</span>
             </sc-if>
           </div>
         </sc-for>
@@ -85,10 +87,10 @@ button,input,textarea{font:inherit;color:inherit}
 
       <div style="display: flex; flex-direction: column; gap: 10px; padding-top: 14px; border-top: 1px solid #E4DED3">
         <div style="display: flex; flex-direction: column; gap: 2px">
-          <button role="checkbox" aria-checked="false" aria-describedby="cr-send-d" style="align-self: flex-start; display: flex; align-items: center; gap: 10px; min-height: 24px; border: 0; background: transparent; padding: 0; text-align: left"><span aria-hidden="true" style="width: 16px; height: 16px; box-sizing: border-box; border-radius: 3px; background: #FFFFFF; border: 1px solid #8A8174"></span>Send an anonymous crash report</button>
+<label style="position: relative; align-self: flex-start; display: flex; align-items: center; gap: 10px; min-height: 24px"><input type="checkbox" aria-describedby="cr-send-d" style="position: absolute; width: 1px; height: 1px; opacity: 0; margin: 0"><span aria-hidden="true" style="flex: 0 0 auto; width: 16px; height: 16px; box-sizing: border-box; border-radius: 3px; background: #FFFFFF; border: 1px solid #8A8174"></span>Send an anonymous crash report</label>
           <span id="cr-send-d" style="padding-left: 26px; font-size: 12px; color: #6B645A">The error, lamina’s version, your system and the renderer. Never file names, paths or document content.</span>
         </div>
-        <button role="checkbox" aria-checked="false" aria-disabled="true" style="align-self: flex-start; display: flex; align-items: center; gap: 10px; min-height: 24px; border: 0; background: transparent; padding: 0; text-align: left; color: #6B645A"><span aria-hidden="true" style="width: 16px; height: 16px; box-sizing: border-box; border-radius: 3px; background: #F7F4EE; border: 1px solid #D8D1C5"></span>Always send reports after a crash</button>
+<label style="position: relative; align-self: flex-start; display: flex; align-items: center; gap: 10px; min-height: 24px; color: #6B645A"><input type="checkbox" aria-disabled="true" aria-describedby="cr-always-d" style="position: absolute; width: 1px; height: 1px; opacity: 0; margin: 0"><span aria-hidden="true" style="flex: 0 0 auto; width: 16px; height: 16px; box-sizing: border-box; border-radius: 3px; background: #F7F4EE; border: 1px solid #D8D1C5"></span>Always send reports after a crash<span id="cr-always-d" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Available after you choose to send this report</span></label>
         <button style="align-self: flex-start; min-height: 24px; padding: 0; border: 0; background: transparent; color: #1F5C63; font-weight: 600; font-size: 13px">View report</button>
       </div>
 
@@ -106,9 +108,9 @@ class Component extends DCLogic {
   renderVals() {
     return {
       tabs: [
-        { name: "Q3-board-report.pdf", page: "Page 3 of 24", label: "Q3-board-report.pdf, page 3 of 24", checked: "true", on: true, off: false, crashed: false },
-        { name: "Contractor-framework-2026.pdf", page: "Page 1 of 12", label: "Contractor-framework-2026.pdf, page 1 of 12", checked: "true", on: true, off: false, crashed: false },
-        { name: "Damp-survey-North.pdf", page: "Page 7 of 18", label: "Damp-survey-North.pdf, page 7 of 18, open when lamina quit", checked: "false", on: false, off: true, crashed: true }
+        { name: "Q3-board-report.pdf", page: "Page 3 of 24", on: true, off: false, crashed: false, badgeId: "cr-b1" },
+        { name: "Contractor-framework-2026.pdf", page: "Page 31 of 88", on: true, off: false, crashed: false, badgeId: "cr-b2" },
+        { name: "Damp-survey-North.pdf", page: "Page 1 of 9", on: false, off: true, crashed: true, badgeId: "cr-b3" }
       ]
     };
   }

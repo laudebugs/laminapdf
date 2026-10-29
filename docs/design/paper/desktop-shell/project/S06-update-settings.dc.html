@@ -31,9 +31,12 @@ button,input,textarea,select{font:inherit;color:inherit}
     <nav aria-label="Settings sections" style="flex: 0 0 200px; box-sizing: border-box; border-right: 1px solid #E4DED3; padding: 16px 10px; display: flex; flex-direction: column; gap: 2px">
       <a href="#" style="height: 32px; display: flex; align-items: center; padding: 0 10px; border-radius: 4px; color: #1F1D1A; text-decoration: none">General</a>
       <a href="#" style="height: 32px; display: flex; align-items: center; padding: 0 10px; border-radius: 4px; color: #1F1D1A; text-decoration: none">Appearance</a>
-      <a href="#" aria-current="page" style="height: 32px; display: flex; align-items: center; justify-content: space-between; padding: 0 10px; border-radius: 4px; color: #1F5C63; background: #E1E6E3; font-weight: 600; text-decoration: none">Updates<span aria-label="Update downloading" style="width: 8px; height: 8px; border-radius: 50%; background: #1F5C63"></span></a>
+      <a href="#" aria-current="page" style="height: 32px; display: flex; align-items: center; justify-content: space-between; padding: 0 10px; border-radius: 4px; color: #1F5C63; background: #E1E6E3; font-weight: 600; text-decoration: none"><span>Updates<span style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">, downloading</span></span><span aria-hidden="true" style="width: 8px; height: 8px; border-radius: 50%; background: #1F5C63"></span></a>
       <a href="#" style="height: 32px; display: flex; align-items: center; padding: 0 10px; border-radius: 4px; color: #1F1D1A; text-decoration: none">Privacy</a>
       <a href="#" style="height: 32px; display: flex; align-items: center; padding: 0 10px; border-radius: 4px; color: #1F1D1A; text-decoration: none">Shortcuts</a>
+      <a href="#" style="height: 32px; display: flex; align-items: center; padding: 0 10px; border-radius: 4px; color: #1F1D1A; text-decoration: none">Licence</a>
+      <a href="#" style="height: 32px; display: flex; align-items: center; padding: 0 10px; border-radius: 4px; color: #1F1D1A; text-decoration: none">Account and plan</a>
+      <a href="#" style="height: 32px; display: flex; align-items: center; padding: 0 10px; border-radius: 4px; color: #1F1D1A; text-decoration: none">Notifications</a>
       <a href="#" style="height: 32px; display: flex; align-items: center; padding: 0 10px; border-radius: 4px; color: #1F1D1A; text-decoration: none">Advanced</a>
       <a href="#" style="height: 32px; display: flex; align-items: center; padding: 0 10px; border-radius: 4px; color: #1F1D1A; text-decoration: none">About</a>
     </nav>
@@ -64,12 +67,12 @@ button,input,textarea,select{font:inherit;color:inherit}
         </div>
         <div style="display: flex; justify-content: space-between; align-items: center; gap: 24px; padding: 12px 0; border-top: 1px solid #E4DED3">
           <div style="display: flex; flex-direction: column; gap: 2px">
-            <label for="chan">Channel</label>
-            <span id="chan-d" style="font-size: 12px; color: #6B645A; max-width: 440px">Beta gets new versions first. Stable gets them once they have been on Beta for a while.</span>
+            <span id="chan-l">Channel</span>
+            <span id="chan-d" style="font-size: 12px; color: #6B645A; max-width: 400px">Beta gets new versions first. Stable gets them once they have been on Beta for a while; there is no Stable release yet.</span>
           </div>
-          <div style="position: relative; flex: 0 0 auto">
-            <select id="chan" aria-describedby="chan-d" style="width: 140px; height: 32px; box-sizing: border-box; padding: 0 30px 0 10px; border: 1px solid #8A8174; border-radius: 4px; background: #FFFFFF; appearance: none; outline: 2px solid #1F5C63; outline-offset: 1px"><option>Beta</option><option>Stable</option></select>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#4A453E" stroke-width="1.5" aria-hidden="true" style="position: absolute; right: 8px; top: 8px; pointer-events: none"><path d="M7 10l5 5 5-5"></path></svg>
+          <div role="radiogroup" aria-labelledby="chan-l" aria-describedby="chan-d" style="flex: 0 0 auto; display: grid; grid-template-columns: auto auto; gap: 4px">
+            <button role="radio" aria-checked="true" style="height: 28px; padding: 0 12px; border: 1px solid #1F5C63; background: #E1E6E3; color: #1F5C63; font-weight: 600; border-radius: 4px; outline: 2px solid #1F5C63; outline-offset: 1px">Beta</button>
+            <button role="radio" aria-checked="false" aria-disabled="true" tabindex="-1" style="height: 28px; padding: 0 12px; border: 1px solid #D8D1C5; background: #F7F4EE; color: #6B645A; border-radius: 4px">Stable (not released yet)</button>
           </div>
         </div>
         <div style="display: flex; justify-content: space-between; align-items: center; gap: 24px; padding: 12px 0; border-top: 1px solid #E4DED3">
@@ -77,12 +80,18 @@ button,input,textarea,select{font:inherit;color:inherit}
             <span>Last checked</span>
             <span style="font-size: 12px; color: #6B645A; font-variant-numeric: tabular-nums">Today, 09:12 · found 0.2.0</span>
           </div>
-          <button disabled style="flex: 0 0 auto; height: 32px; padding: 0 16px; border: 1px solid #E4DED3; background: #FFFFFF; border-radius: 4px; color: #A39C91">Check now</button>
+          <button aria-disabled="true" aria-describedby="chk-why" style="flex: 0 0 auto; height: 32px; padding: 0 16px; border: 1px solid #D8D1C5; background: #F7F4EE; border-radius: 4px; color: #6B645A">Check now</button><span id="chk-why" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Not available while an update downloads</span>
         </div>
       </section>
 
       <p style="margin: 0; font-size: 12px; color: #6B645A">Want the newest builds every night? Nightly builds are a separate install with their own updates. <a href="#">Get nightly builds</a></p>
-      <p style="margin: 0; font-size: 12px; color: #6B645A; margin-top: auto">Each check sends your lamina version, system, processor type and an anonymous ID used only to stage releases. <a href="#">Reset the ID in Privacy</a></p>
+      <section aria-labelledby="g-id" style="display: flex; flex-direction: column">
+        <h2 id="g-id" style="margin: 0 0 4px; font-family: 'Newsreader', Georgia, serif; font-size: 18px; line-height: 24px; font-weight: 500">What each check sends</h2>
+        <div style="display: flex; justify-content: space-between; align-items: center; gap: 24px; padding: 12px 0">
+          <span id="id-d" style="font-size: 12px; color: #6B645A; max-width: 460px">Your lamina version, system, processor type and an anonymous install ID used only to stage releases. The ID is kept on this computer and is never sent with crash reports.</span>
+          <button aria-describedby="id-d" style="flex: 0 0 auto; height: 32px; padding: 0 16px; border: 1px solid #8A8174; background: #FFFFFF; border-radius: 4px">Reset anonymous ID</button>
+        </div>
+      </section>
     </main>
   </div>
 </div>

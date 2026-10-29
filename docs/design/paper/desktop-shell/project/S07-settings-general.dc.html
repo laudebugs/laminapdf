@@ -34,6 +34,9 @@ button,input,textarea,select{font:inherit;color:inherit}
       <a href="#" style="height: 32px; display: flex; align-items: center; padding: 0 10px; border-radius: 4px; color: #1F1D1A; text-decoration: none">Updates</a>
       <a href="#" style="height: 32px; display: flex; align-items: center; padding: 0 10px; border-radius: 4px; color: #1F1D1A; text-decoration: none">Privacy</a>
       <a href="#" style="height: 32px; display: flex; align-items: center; padding: 0 10px; border-radius: 4px; color: #1F1D1A; text-decoration: none">Shortcuts</a>
+      <a href="#" style="height: 32px; display: flex; align-items: center; padding: 0 10px; border-radius: 4px; color: #1F1D1A; text-decoration: none">Licence</a>
+      <a href="#" style="height: 32px; display: flex; align-items: center; padding: 0 10px; border-radius: 4px; color: #1F1D1A; text-decoration: none">Account and plan</a>
+      <a href="#" style="height: 32px; display: flex; align-items: center; padding: 0 10px; border-radius: 4px; color: #1F1D1A; text-decoration: none">Notifications</a>
       <a href="#" style="height: 32px; display: flex; align-items: center; padding: 0 10px; border-radius: 4px; color: #1F1D1A; text-decoration: none">Advanced</a>
       <a href="#" style="height: 32px; display: flex; align-items: center; padding: 0 10px; border-radius: 4px; color: #1F1D1A; text-decoration: none">About</a>
     </nav>
@@ -46,8 +49,8 @@ button,input,textarea,select{font:inherit;color:inherit}
         <fieldset style="margin: 0; padding: 12px 0; border: 0; display: flex; justify-content: space-between; align-items: flex-start; gap: 24px">
           <legend style="float: left; padding: 0">Open files in</legend>
           <div style="display: flex; flex-direction: column; gap: 4px">
-            <label style="display: flex; align-items: center; gap: 8px; min-height: 24px"><input type="radio" name="open" checked style="width: 16px; height: 16px; margin: 0; accent-color: #1F5C63"> A new tab in the front window</label>
-            <label style="display: flex; align-items: center; gap: 8px; min-height: 24px"><input type="radio" name="open" style="width: 16px; height: 16px; margin: 0; accent-color: #1F5C63"> A new window</label>
+            <label style="position: relative; display: flex; align-items: center; gap: 8px; min-height: 24px"><sc-if value="{{on}}" hint-placeholder-val="{{ true }}"><input type="radio" name="open" checked style="position: absolute; width: 1px; height: 1px; opacity: 0; margin: 0"></sc-if><span aria-hidden="true" style="width: 16px; height: 16px; flex: 0 0 auto; box-sizing: border-box; border-radius: 50%; border: 2px solid #1F5C63; background: #FFFFFF; display: flex; align-items: center; justify-content: center"><span style="width: 8px; height: 8px; border-radius: 50%; background: #1F5C63"></span></span>A new tab in the front window</label>
+            <label style="position: relative; display: flex; align-items: center; gap: 8px; min-height: 24px"><input type="radio" name="open" style="position: absolute; width: 1px; height: 1px; opacity: 0; margin: 0"><span aria-hidden="true" style="width: 16px; height: 16px; flex: 0 0 auto; box-sizing: border-box; border-radius: 50%; border: 1px solid #8A8174; background: #FFFFFF"></span>A new window</label>
           </div>
         </fieldset>
         <div style="display: flex; justify-content: space-between; align-items: center; gap: 24px; padding: 12px 0; border-top: 1px solid #E4DED3">
@@ -106,7 +109,7 @@ button,input,textarea,select{font:inherit;color:inherit}
 <script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
 class Component extends DCLogic {
   renderVals() {
-    return {};
+    return { on: true };
   }
 }
 </script>

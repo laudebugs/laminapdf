@@ -34,6 +34,9 @@ button,input,textarea,select{font:inherit;color:inherit}
       <a href="#" style="height: 32px; display: flex; align-items: center; padding: 0 10px; border-radius: 4px; color: #1F1D1A; text-decoration: none">Updates</a>
       <a href="#" style="height: 32px; display: flex; align-items: center; padding: 0 10px; border-radius: 4px; color: #1F1D1A; text-decoration: none">Privacy</a>
       <a href="#" aria-current="page" style="height: 32px; display: flex; align-items: center; padding: 0 10px; border-radius: 4px; color: #1F5C63; background: #E1E6E3; font-weight: 600; text-decoration: none">Shortcuts</a>
+      <a href="#" style="height: 32px; display: flex; align-items: center; padding: 0 10px; border-radius: 4px; color: #1F1D1A; text-decoration: none">Licence</a>
+      <a href="#" style="height: 32px; display: flex; align-items: center; padding: 0 10px; border-radius: 4px; color: #1F1D1A; text-decoration: none">Account and plan</a>
+      <a href="#" style="height: 32px; display: flex; align-items: center; padding: 0 10px; border-radius: 4px; color: #1F1D1A; text-decoration: none">Notifications</a>
       <a href="#" style="height: 32px; display: flex; align-items: center; padding: 0 10px; border-radius: 4px; color: #1F1D1A; text-decoration: none">Advanced</a>
       <a href="#" style="height: 32px; display: flex; align-items: center; padding: 0 10px; border-radius: 4px; color: #1F1D1A; text-decoration: none">About</a>
     </nav>
@@ -44,7 +47,7 @@ button,input,textarea,select{font:inherit;color:inherit}
       <div style="display: flex; justify-content: space-between; align-items: center; gap: 24px; padding-bottom: 14px; border-bottom: 1px solid #E4DED3">
         <div style="display: flex; flex-direction: column; gap: 2px">
           <span id="sw-single">Single-key shortcuts</span>
-          <span id="sw-single-d" style="font-size: 12px; color: #6B645A; max-width: 460px">Keys such as H to highlight work while the page has focus, never while you type. Turn them off if you use speech input or stray key presses trigger them.</span>
+          <span id="sw-single-d" style="font-size: 12px; color: #6B645A; max-width: 460px">Keys such as R for Reader mode work while the page has focus, never while you type. Turn them off if you use speech input or stray key presses trigger them.</span>
         </div>
         <button role="switch" aria-checked="true" aria-labelledby="sw-single" aria-describedby="sw-single-d" style="flex: 0 0 auto; width: 32px; height: 18px; padding: 0; border: 1px solid #1F5C63; border-radius: 9px; background: #1F5C63; position: relative"><span style="position: absolute; top: 2px; right: 2px; width: 12px; height: 12px; border-radius: 50%; background: #FFFFFF"></span></button>
       </div>
@@ -65,21 +68,34 @@ button,input,textarea,select{font:inherit;color:inherit}
         <div style="max-height: 420px; overflow: auto; border-top: 1px solid #E4DED3">
           <table style="width: 100%; border-collapse: collapse; font-size: 14px">
             <caption style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Keyboard shortcuts on macOS</caption>
+            <thead>
+              <tr><th scope="col" style="text-align: left; padding: 8px 0 0; font-size: 12px; font-weight: 600; color: #4A453E">Command</th><th scope="col" style="text-align: right; padding: 8px 0 0; font-size: 12px; font-weight: 600; color: #4A453E">Shortcut</th></tr>
+            </thead>
             <tbody>
-              <tr><th colspan="2" scope="colgroup" style="text-align: left; padding: 12px 0 4px; font-size: 11px; font-weight: 400; letter-spacing: 0.06em; text-transform: uppercase; color: #6B645A">File</th></tr>
+              <tr><th colspan="2" scope="rowgroup" style="text-align: left; padding: 12px 0 4px; font-size: 11px; font-weight: 400; letter-spacing: 0.06em; text-transform: uppercase; color: #6B645A">File</th></tr>
               <tr style="border-top: 1px solid #E4DED3"><td style="padding: 6px 0">Open…</td><td style="text-align: right"><span style="font-size: 12px; padding: 1px 6px; border: 1px solid #D8D1C5; border-radius: 3px; background: #FFFFFF; color: #4A453E">⌘O</span></td></tr>
               <tr style="border-top: 1px solid #E4DED3"><td style="padding: 6px 0">New window</td><td style="text-align: right"><span style="font-size: 12px; padding: 1px 6px; border: 1px solid #D8D1C5; border-radius: 3px; background: #FFFFFF; color: #4A453E">⇧⌘N</span></td></tr>
               <tr style="border-top: 1px solid #E4DED3"><td style="padding: 6px 0">Close tab</td><td style="text-align: right"><span style="font-size: 12px; padding: 1px 6px; border: 1px solid #D8D1C5; border-radius: 3px; background: #FFFFFF; color: #4A453E">⌘W</span></td></tr>
               <tr style="border-top: 1px solid #E4DED3"><td style="padding: 6px 0">Print…</td><td style="text-align: right"><span style="font-size: 12px; padding: 1px 6px; border: 1px solid #D8D1C5; border-radius: 3px; background: #FFFFFF; color: #4A453E">⌘P</span></td></tr>
               <tr style="border-top: 1px solid #E4DED3"><td style="padding: 6px 0">Settings…</td><td style="text-align: right"><span style="font-size: 12px; padding: 1px 6px; border: 1px solid #D8D1C5; border-radius: 3px; background: #FFFFFF; color: #4A453E">⌘,</span></td></tr>
-              <tr><th colspan="2" scope="colgroup" style="text-align: left; padding: 16px 0 4px; font-size: 11px; font-weight: 400; letter-spacing: 0.06em; text-transform: uppercase; color: #6B645A">View and tabs</th></tr>
+            </tbody>
+            <tbody>
+              <tr><th colspan="2" scope="rowgroup" style="text-align: left; padding: 16px 0 4px; font-size: 11px; font-weight: 400; letter-spacing: 0.06em; text-transform: uppercase; color: #6B645A">View and tabs</th></tr>
               <tr style="border-top: 1px solid #E4DED3"><td style="padding: 6px 0">Commands</td><td style="text-align: right"><span style="font-size: 12px; padding: 1px 6px; border: 1px solid #D8D1C5; border-radius: 3px; background: #FFFFFF; color: #4A453E">⌘K</span></td></tr>
               <tr style="border-top: 1px solid #E4DED3"><td style="padding: 6px 0">Zoom in</td><td style="text-align: right"><span style="font-size: 12px; padding: 1px 6px; border: 1px solid #D8D1C5; border-radius: 3px; background: #FFFFFF; color: #4A453E">⌘+</span></td></tr>
               <tr style="border-top: 1px solid #E4DED3"><td style="padding: 6px 0">Focus mode</td><td style="text-align: right"><span style="font-size: 12px; padding: 1px 6px; border: 1px solid #D8D1C5; border-radius: 3px; background: #FFFFFF; color: #4A453E">⌘\</span></td></tr>
-              <tr style="border-top: 1px solid #E4DED3"><td style="padding: 6px 0">Next tab</td><td style="text-align: right"><span style="font-size: 12px; padding: 1px 6px; border: 1px solid #D8D1C5; border-radius: 3px; background: #FFFFFF; color: #4A453E">⇧⌘]</span></td></tr>
-              <tr><th colspan="2" scope="colgroup" style="text-align: left; padding: 16px 0 4px; font-size: 11px; font-weight: 400; letter-spacing: 0.06em; text-transform: uppercase; color: #6B645A">Comment · single keys</th></tr>
-              <tr style="border-top: 1px solid #E4DED3"><td style="padding: 6px 0">Highlight selection</td><td style="text-align: right"><span style="font-size: 12px; padding: 1px 6px; border: 1px solid #D8D1C5; border-radius: 3px; background: #FFFFFF; color: #4A453E">H</span></td></tr>
-              <tr style="border-top: 1px solid #E4DED3"><td style="padding: 6px 0">Remove highlight</td><td style="text-align: right"><span style="font-size: 12px; padding: 1px 6px; border: 1px solid #D8D1C5; border-radius: 3px; background: #FFFFFF; color: #4A453E">⌫</span></td></tr>
+              <tr style="border-top: 1px solid #E4DED3"><td style="padding: 6px 0">Next tab</td><td style="text-align: right"><span style="font-size: 12px; padding: 1px 6px; border: 1px solid #D8D1C5; border-radius: 3px; background: #FFFFFF; color: #4A453E">⌃Tab</span> <span style="font-size: 12px; padding: 1px 6px; border: 1px solid #D8D1C5; border-radius: 3px; background: #FFFFFF; color: #4A453E">⇧⌘]</span></td></tr>
+            </tbody>
+            <tbody>
+              <tr><th colspan="2" scope="rowgroup" style="text-align: left; padding: 16px 0 4px; font-size: 11px; font-weight: 400; letter-spacing: 0.06em; text-transform: uppercase; color: #6B645A">Help</th></tr>
+              <tr style="border-top: 1px solid #E4DED3"><td style="padding: 6px 0">Keyboard shortcuts</td><td style="text-align: right"><span style="font-size: 12px; padding: 1px 6px; border: 1px solid #D8D1C5; border-radius: 3px; background: #FFFFFF; color: #4A453E">F1</span></td></tr>
+            </tbody>
+            <tbody>
+              <tr><th colspan="2" scope="rowgroup" style="text-align: left; padding: 16px 0 4px; font-size: 11px; font-weight: 400; letter-spacing: 0.06em; text-transform: uppercase; color: #6B645A">Single keys · page has focus</th></tr>
+              <tr style="border-top: 1px solid #E4DED3"><td style="padding: 6px 0">Reader mode (Read mode)</td><td style="text-align: right"><span style="font-size: 12px; padding: 1px 6px; border: 1px solid #D8D1C5; border-radius: 3px; background: #FFFFFF; color: #4A453E">R</span></td></tr>
+              <tr style="border-top: 1px solid #E4DED3"><td style="padding: 6px 0">Keyboard shortcuts</td><td style="text-align: right"><span style="font-size: 12px; padding: 1px 6px; border: 1px solid #D8D1C5; border-radius: 3px; background: #FFFFFF; color: #4A453E">?</span></td></tr>
+              <tr style="border-top: 1px solid #E4DED3"><td style="padding: 6px 0">Zoom in</td><td style="text-align: right"><span style="font-size: 12px; padding: 1px 6px; border: 1px solid #D8D1C5; border-radius: 3px; background: #FFFFFF; color: #4A453E">+</span></td></tr>
+              <tr style="border-top: 1px solid #E4DED3"><td style="padding: 6px 0">Zoom out</td><td style="text-align: right"><span style="font-size: 12px; padding: 1px 6px; border: 1px solid #D8D1C5; border-radius: 3px; background: #FFFFFF; color: #4A453E">−</span></td></tr>
             </tbody>
           </table>
         </div>

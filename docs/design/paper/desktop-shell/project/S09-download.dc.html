@@ -17,13 +17,18 @@ button,input,textarea{font:inherit;color:inherit}
 </helmet>
 <div style="min-height: 100vh; display: flex; flex-direction: column; box-sizing: border-box; background: #F7F4EE; font-family: 'Source Sans 3', 'Segoe UI', system-ui, sans-serif; font-size: 14px; line-height: 1.5; color: #1F1D1A">
 
-  <header style="min-height: 56px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 24px; padding: 0 32px; border-bottom: 1px solid #E4DED3; background: #F7F4EE">
-    <a href="#" style="font-family: 'Newsreader', Georgia, serif; font-size: 22px; font-weight: 500; color: #1F1D1A; text-decoration: none">lamina</a>
-    <nav aria-label="Site" style="display: flex; gap: 20px; font-size: 14px">
-      <a href="#" style="min-height: 24px; display: flex; align-items: center; color: #1F1D1A; text-decoration: none">Web reader</a>
-      <a href="#" aria-current="page" style="min-height: 24px; display: flex; align-items: center; color: #1F5C63; font-weight: 600; text-decoration: none; border-bottom: 2px solid #1F5C63">Download</a>
-      <a href="#" style="min-height: 24px; display: flex; align-items: center; color: #1F1D1A; text-decoration: none">Privacy</a>
-    </nav>
+  <header style="border-bottom: 1px solid #E4DED3; background: #F7F4EE">
+    <div style="max-width: 1120px; margin: 0 auto; box-sizing: border-box; padding: 0 24px; min-height: 56px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 32px">
+      <a href="#home" style="font-family: 'Newsreader', Georgia, serif; font-size: 22px; font-weight: 500; color: #1F1D1A; text-decoration: none">lamina</a>
+      <nav aria-label="Site" style="flex: 1 1 auto; display: flex; flex-wrap: wrap; gap: 4px 24px; font-size: 15px">
+        <a href="#download" aria-current="page" style="color: #1F1D1A; font-weight: 600; text-decoration: none; min-height: 32px; display: flex; align-items: center; border-bottom: 2px solid #1F5C63; box-sizing: border-box">Download</a>
+        <a href="#docs" style="color: #3A3631; text-decoration: none; min-height: 32px; display: flex; align-items: center">Docs</a>
+        <a href="#pricing" style="color: #3A3631; text-decoration: none; min-height: 32px; display: flex; align-items: center">Pricing</a>
+        <a href="#performance" style="color: #3A3631; text-decoration: none; min-height: 32px; display: flex; align-items: center">Performance</a>
+        <a href="#privacy" style="color: #3A3631; text-decoration: none; min-height: 32px; display: flex; align-items: center">Privacy</a>
+      </nav>
+      <a href="#app" style="display: inline-flex; align-items: center; height: 36px; padding: 0 16px; border: 1px solid #8A8174; background: #FFFFFF; border-radius: 4px; color: #1F1D1A; text-decoration: none; font-size: 15px">Open the web app</a>
+    </div>
   </header>
 
   <main style="flex: 1 1 auto; display: flex; justify-content: center; padding: 48px 16px 56px">
@@ -31,7 +36,7 @@ button,input,textarea{font:inherit;color:inherit}
 
       <div style="display: flex; flex-direction: column; gap: 8px">
         <h1 style="margin: 0; font-family: 'Newsreader', Georgia, serif; font-size: 40px; line-height: 44px; font-weight: 400">lamina for your desktop</h1>
-        <p style="margin: 0; color: #4A453E; max-width: 620px">Read, comment on and fill in PDFs on your own computer. Files stay on your machine; the app works offline.</p>
+        <p style="margin: 0; color: #4A453E; max-width: 620px">Read PDFs on your own computer, in tabs and windows. Files stay on your machine; the app works offline.</p>
       </div>
 
       <div role="tablist" aria-label="Release channel" style="display: flex; gap: 24px; border-bottom: 1px solid #E4DED3">
@@ -49,7 +54,7 @@ button,input,textarea{font:inherit;color:inherit}
           </div>
           <div style="flex: 0 0 auto; display: flex; align-items: center; gap: 12px; flex-wrap: wrap">
             <button aria-label="Copy SHA-256 of lamina_0.1.2_aarch64.dmg" style="height: 32px; padding: 0 12px; border: 0; background: transparent; border-radius: 4px; color: #1F5C63; font-weight: 600">Copy SHA-256</button>
-            <a href="#" style="height: 40px; display: flex; align-items: center; gap: 8px; padding: 0 20px; border: 1px solid #1F5C63; background: #1F5C63; color: #FFFFFF; border-radius: 4px; font-weight: 600; text-decoration: none; outline: 2px solid #1F5C63; outline-offset: 2px"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M12 4.5V15M8 11l4 4 4-4"></path><path d="M5 15.5v4h14v-4"></path></svg>Download for macOS</a>
+            <a href="#" style="height: 40px; display: flex; align-items: center; gap: 8px; padding: 0 20px; border: 1px solid #1F5C63; background: #1F5C63; color: #FFFFFF; border-radius: 4px; font-weight: 600; text-decoration: none; outline: 2px solid #1F5C63; outline-offset: 2px"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M12 4.5V15M8 11l4 4 4-4"></path><path d="M5 19.5h14"></path></svg>Download for macOS</a>
           </div>
         </section>
 
@@ -71,7 +76,7 @@ button,input,textarea{font:inherit;color:inherit}
                 <sc-for list="{{files}}" as="f" hint-placeholder-count="8">
                   <tr style="border-top: 1px solid #E4DED3">
                     <td style="padding: 8px 16px; border-top: 1px solid #E4DED3">{{f.os}}</td>
-                    <td style="padding: 8px 16px; border-top: 1px solid #E4DED3"><a href="#" style="font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace; font-size: 13px">{{f.file}}</a><span style="display: block; font-size: 12px; color: #6B645A">{{f.note}}</span></td>
+                    <td style="padding: 8px 16px; border-top: 1px solid #E4DED3"><a href="#" style="font-family: ui-monospace, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace; font-size: 13px">{{f.file}}</a><span style="display: block; font-size: 12px; color: #6B645A">{{f.note}}</span></td>
                     <td style="padding: 8px 16px; border-top: 1px solid #E4DED3">{{f.cpu}}</td>
                     <td style="padding: 8px 16px; border-top: 1px solid #E4DED3; color: #4A453E">[SIZE] MB</td>
                     <td style="padding: 8px 16px; border-top: 1px solid #E4DED3; text-align: right"><button aria-label="{{f.copyLabel}}" style="height: 28px; padding: 0 8px; border: 0; background: transparent; border-radius: 4px; color: #1F5C63; font-weight: 600; font-size: 13px; white-space: nowrap">Copy SHA-256</button></td>
@@ -92,7 +97,7 @@ button,input,textarea{font:inherit;color:inherit}
           <section aria-labelledby="chk-t" style="display: flex; flex-direction: column; gap: 8px; min-width: 0">
             <h2 id="chk-t" style="margin: 0; font-family: 'Newsreader', Georgia, serif; font-size: 18px; line-height: 24px; font-weight: 500">Check your download</h2>
             <p style="margin: 0; font-size: 13px; color: #4A453E">Compare the file’s SHA-256 with the one listed here, or check that it was built from lamina’s public source.</p>
-            <pre style="margin: 0; overflow-x: auto; padding: 10px 12px; background: #FFFFFF; border: 1px solid #E4DED3; border-radius: 4px; font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace; font-size: 12px; line-height: 1.6">shasum -a 256 lamina_0.1.2_aarch64.dmg
+            <pre style="margin: 0; overflow-x: auto; padding: 10px 12px; background: #FFFFFF; border: 1px solid #E4DED3; border-radius: 4px; font-family: ui-monospace, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace; font-size: 12.5px; line-height: 1.6">shasum -a 256 lamina_0.1.2_aarch64.dmg
 gh attestation verify lamina_0.1.2_aarch64.dmg \
   --repo [OWNER]/lamina</pre>
             <p style="margin: 0; font-size: 12px; color: #6B645A">Windows installers are signed by [PUBLISHER NAME].</p>

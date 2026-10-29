@@ -50,7 +50,7 @@ button,input,textarea{font:inherit;color:inherit}
         <li style="height: 20px; display: flex; align-items: center; gap: 4px; padding: 0 8px; border-radius: 3px; background: #E7EBE3; color: #2F6A45; font-size: 12px; font-weight: 600"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 12.5l4 4 8-9"></path></svg>No anonymous update ID</li>
       </ul>
 
-      <pre tabindex="0" aria-label="Crash report" style="margin: 0; max-height: 360px; overflow: auto; box-sizing: border-box; padding: 12px; background: #FFFFFF; border: 1px solid #8A8174; border-radius: 4px; font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace; font-size: 12px; line-height: 1.5; color: #1F1D1A; white-space: pre">{
+      <pre tabindex="0" aria-label="Crash report" style="margin: 0; max-height: 360px; overflow: auto; box-sizing: border-box; padding: 12px; background: #FFFFFF; border: 1px solid #8A8174; border-radius: 4px; font-family: ui-monospace, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace; font-size: 12.5px; line-height: 1.6; color: #1F1D1A; white-space: pre">{
   "schema": 1,
   "report_id": "8f3c1e0a-5b7d-4e62-9a10-3d4f2c6b81e9",
   "app_version": "0.1.2",
@@ -69,11 +69,11 @@ button,input,textarea{font:inherit;color:inherit}
     { "module": "lamina", "offset": "0x0f3a08", "function": "app::run" }
   ],
   "modules": [
-    { "name": "lamina", "version": "0.1.2" },
-    { "name": "libpdfium", "version": "[VERSION]" }
+    { "name": "lamina", "version": "0.1.2", "debug_id": "[DEBUG ID]" },
+    { "name": "libpdfium", "version": "[VERSION]", "debug_id": "[DEBUG ID]" }
   ]
 }</pre>
-      <p style="margin: 0; font-size: 12px; color: #6B645A">The report ID is random and made for this report only. It can’t be linked to you or to other reports.</p>
+      <p style="margin: 0; font-size: 12px; color: #6B645A">The report ID is random and made for this report only; it is not stored anywhere else on this computer.</p>
 
       <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap">
         <button style="height: 32px; padding: 0 12px; border: 0; background: transparent; border-radius: 4px; color: #1F5C63; font-weight: 600">Copy report</button>
