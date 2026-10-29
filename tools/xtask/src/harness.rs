@@ -16,7 +16,7 @@ use crate::workspace::Workspace;
 use crate::{run, step};
 
 /// The fuzz targets in `fuzz/fuzz_targets/` (ADR 0018 tier 9).
-pub(crate) const FUZZ_TARGETS: [&str; 5] = ["lex", "parse_object", "flate_decode", "open", "page_tree"];
+pub(crate) const FUZZ_TARGETS: [&str; 6] = ["lex", "parse_object", "flate_decode", "open", "page_tree", "content"];
 
 /// Default `cargo xtask fuzz` run time in seconds (the scheduled workflow uses 600).
 const DEFAULT_FUZZ_SECONDS: u64 = 60;
@@ -412,7 +412,8 @@ fn host_triple(version: &str) -> Option<String> {
 /// Must match `FLATE_SEED_PARAMS` in `crates/lamina-model/tests/common/fuzz_entry.rs`.
 const FLATE_SEED_PARAMS: [u8; 4] = [1, 1, 8, 1];
 
-/// Builds `fuzz/corpus/<target>/` (gitignored) from the shared fixture PDFs, the target's
+/// Builds `fuzz/corpus/<target>/` (gitignored) from the shared fixture PDFs (`corpus/`,
+/// `golden/` and `content/`), the target's
 /// saved crash inputs in `fixtures/regressions/<target>/` and everything under
 /// `fuzz/seeds/<target>/`. Fixture PDFs are split into their streams for `flate_decode`;
 /// crash inputs and hand-written seeds are copied verbatim (they already are what the target
@@ -422,7 +423,7 @@ fn seeds(ws: &Workspace, target: &str) -> Result<PathBuf> {
     let corpus = ws.root.join("fuzz/corpus").join(target);
     fs::create_dir_all(&corpus).with_context(|| format!("creating {}", corpus.display()))?;
     let mut fixtures: Vec<PathBuf> = Vec::new();
-    for dir in ["fixtures/corpus", "fixtures/golden"] {
+    for dir in ["fixtures/corpus", "fixtures/golden", "fixtures/content"] {
         fixtures.extend(files_in(&ws.root.join(dir))?.into_iter().filter(|p| is_pdf(p)));
     }
     let mut verbatim: Vec<PathBuf> = Vec::new();

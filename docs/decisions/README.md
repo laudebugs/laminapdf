@@ -36,6 +36,7 @@ Numbers follow the [architecture plan §3](../plans/architecture.md#3-decisions-
 | [0015](0015-monorepo-layout-and-tooling.md) | Monorepo layout and tooling (Cargo + pnpm + xtask) | Accepted |
 | [0018](0018-test-strategy.md) | Test strategy: tiers, CI lanes, corpora, fuzzing, flaky tests | Accepted |
 | [0019](0019-supply-chain-and-licence-hygiene.md) | Supply-chain and licence hygiene (cargo-deny, npm licence check, Dependabot, SBOM, fixture provenance) | Accepted |
+| [0023](0023-content-stream-reading.md) | Content-stream reading: the `lamina-content` crate (tokenizer, visitor), tolerance rules, operator and XObject-depth limits | Accepted |
 | [0026](0026-error-and-diagnostic-contract.md) | Error and diagnostic contract: one JSON shape, `kind`s, `hint`/`docsUrl`, no document text in messages, `explain` pages, `LaminaError` | Accepted |
 | [0027](0027-coordinates-units-and-page-indexing.md) | Coordinates, units and page indexing: top-left points of the displayed CropBox, raw user space named as such, `Pt`, 0-based `index` + 1-based `number` | Accepted |
 | [0028](0028-facade-rules-jobs-and-cancellation.md) | Façade rules, jobs, cancellation and progress: UniFFI-compatible rules, lock in the binding edge, `Job::step(Budget)` in work units, `CancelToken` | Accepted |

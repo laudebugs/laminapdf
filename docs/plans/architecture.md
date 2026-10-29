@@ -58,6 +58,7 @@ ADRs go in `docs/decisions/`, one file per decision (`NNNN-title.md`). Each roun
 | 0016 | Package design: ESM-only, export conditions, split WASM modules, size budgets | Round B | Propose |
 | 0017 | Versioning and release: lockstep core, OIDC trusted publishing, attestations | Round B | Propose |
 | [0018](../decisions/0018-test-strategy.md) | Test strategy: goldens, differential corpus, fuzzing, veraPDF | Round B | Accepted |
+| [0023](../decisions/0023-content-stream-reading.md) | Content-stream reading: `lamina-content` (tokenizer, visitor), tolerance rules, operator and XObject-depth limits | Round B (B9a) | Accepted |
 | 0004 | `RenderBackend`; PDFium default; hayro oracle; MuPDF prohibited | Round C | Propose |
 | 0009 | Web client: React chrome + framework-free viewer core; typed worker RPC | Round C | Propose |
 | 0010 | Platform adapter and capability flags | Round C | Propose |

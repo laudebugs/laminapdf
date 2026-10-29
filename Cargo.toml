@@ -26,6 +26,7 @@ lamina-cos = { path = "crates/lamina-cos" }
 lamina-model = { path = "crates/lamina-model" }
 lamina-ops = { path = "crates/lamina-ops" }
 lamina-save = { path = "crates/lamina-save" }
+lamina-content = { path = "crates/lamina-content" }
 lamina-text = { path = "crates/lamina-text" }
 
 # Flate (zlib) codec, pure Rust; `with-alloc` is the default feature, named so it stays on.

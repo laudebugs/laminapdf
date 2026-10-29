@@ -20,7 +20,17 @@
     "outline-item-skipped",
     "invalid-date",
     "invalid-page-label",
-    "invalid-entry"
+    "invalid-entry",
+    "content-unknown-operator",
+    "content-bad-operands",
+    "content-unbalanced-q",
+    "content-unbalanced-bt",
+    "content-unbalanced-marked",
+    "content-syntax",
+    "content-resource-missing",
+    "inline-image-unterminated",
+    "xobject-cycle",
+    "content-path-unpainted"
   ],
   "errors": [
     "not-pdf",
