@@ -332,17 +332,19 @@ fn write_trailer(trailer: &Dict, xref: usize, out: &mut Vec<u8>) {
 /// # Errors
 /// [`Error::RepairedBase`] when `base`'s xref was repaired (there is no valid section for
 /// `/Prev` to point at); [`Error::EncryptedBase`] when it is encrypted (the new objects would
-/// have to be encrypted too); [`Error::InvalidStructure`] when object numbers run out.
+/// have to be encrypted too); [`Error::InvalidStructure`] when object numbers run out;
+/// [`Error::DataPending`] / [`Error::Source`] when `base` was opened from a source without an
+/// in-memory slice and its bytes can't all be read (the original bytes are copied whole).
 pub fn incremental_update(base: &Document, changes: &[(ObjRef, Object)], eol: XrefEol) -> Result<Vec<u8>> {
     let doc = base;
-    let original = doc.data();
     let prev = doc.startxref().ok_or(Error::RepairedBase)?;
     if doc.is_encrypted() {
         return Err(Error::EncryptedBase);
     }
+    let original = doc.whole_input()?;
     let by_num: BTreeMap<u32, (u16, &Object)> = changes.iter().map(|(r, o)| (r.num, (r.gen_nr, o))).collect();
 
-    let mut out = original.to_vec();
+    let mut out = original.into_owned();
     if !matches!(out.last(), Some(b'\n' | b'\r')) {
         out.push(b'\n');
     }

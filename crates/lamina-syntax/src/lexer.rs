@@ -63,6 +63,8 @@ pub struct Lexer<'a> {
     data: &'a [u8],
     pos: usize,
     max_string_length: usize,
+    /// Whether a byte past the end of `data` was looked for (see [`Lexer::reached_end`]).
+    reached_end: bool,
 }
 
 impl<'a> Lexer<'a> {
@@ -72,6 +74,7 @@ impl<'a> Lexer<'a> {
             data,
             pos,
             max_string_length: Limits::new().max_string_length(),
+            reached_end: false,
         }
     }
 
@@ -106,12 +109,27 @@ impl<'a> Lexer<'a> {
         self.data
     }
 
-    fn peek(&self) -> Option<u8> {
-        self.data.get(self.pos).copied()
+    /// Whether lexing so far has looked for a byte past the end of the input (to finish a
+    /// token, skip white-space or find out that there is no next token).
+    ///
+    /// When it has not, every token read so far depends only on the bytes before the end, so
+    /// lexing a window of a larger input gave the same tokens as lexing the whole input would.
+    /// A caller reading a window (`lamina-cos` over a source without an in-memory slice)
+    /// retries with a larger one when this is `true` and the window does not end the input.
+    pub const fn reached_end(&self) -> bool {
+        self.reached_end
     }
 
-    fn peek_at(&self, ahead: usize) -> Option<u8> {
-        self.data.get(self.pos.saturating_add(ahead)).copied()
+    fn peek(&mut self) -> Option<u8> {
+        self.peek_at(0)
+    }
+
+    fn peek_at(&mut self, ahead: usize) -> Option<u8> {
+        let byte = self.data.get(self.pos.saturating_add(ahead)).copied();
+        if byte.is_none() {
+            self.reached_end = true;
+        }
+        byte
     }
 
     /// Skips white-space and `%` comments.
@@ -490,5 +508,28 @@ mod tests {
     #[test]
     fn unterminated_string_is_an_error() {
         assert!(Lexer::new(b"(abc", 0).next_token().is_err());
+    }
+
+    fn reached_end_after_one_token(input: &[u8]) -> bool {
+        let mut lex = Lexer::new(input, 0);
+        let _ = lex.next_token();
+        lex.reached_end()
+    }
+
+    #[test]
+    fn a_token_followed_by_a_delimiter_does_not_reach_the_end() {
+        assert!(!reached_end_after_one_token(b"123 "));
+    }
+
+    #[test]
+    fn a_token_that_runs_to_the_end_reaches_it() {
+        // `123` might continue past the end (`1234`), so the result depends on what follows.
+        assert!(reached_end_after_one_token(b"123"));
+    }
+
+    #[test]
+    fn a_lone_less_than_at_the_end_reaches_it() {
+        // `<` could be the start of `<<`.
+        assert!(reached_end_after_one_token(b"<"));
     }
 }

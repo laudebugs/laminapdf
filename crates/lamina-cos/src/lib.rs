@@ -22,6 +22,25 @@
 //! input as a shared [`ByteSource`] (ADR 0005), parses objects lazily and never touches the
 //! file system, network, clocks or threads.
 //!
+//! # Sources without an in-memory slice
+//!
+//! An in-memory source ([`ByteSource::as_slice`]: `Vec<u8>`, `Arc<[u8]>`, `&'static [u8]`) is
+//! parsed in place. Any other source (a memory map, a `Blob`, an HTTP range cache) is never
+//! read whole: the reader reads 64 KiB windows around the offsets it needs through
+//! [`ByteSource::read_at`], doubling a window while an object runs past its end (up to
+//! [`Limits::max_read_window`]), keeps the 64 most recently used per [`Source`], checks xref
+//! entries with small probes, reads a stream's data only once its extent is known, and scans
+//! for repair in overlapping chunks. Within [`Limits::max_read_window`] the results are the
+//! same as for the same bytes in memory.
+//!
+//! A source that answers [`SourceError::Pending`] makes the call fail with
+//! [`Error::DataPending`], which lists the ranges it still needs (merged, and collected so that
+//! one round fetches what is known: the first window and the last kilobyte at open, the xref
+//! entry probes together, every window a repair scan needs). Fetch them and call again. This
+//! applies to lazy calls after open ([`Document::resolve`], [`Document::pages`],
+//! [`Document::decode_stream`], …) too: they cache no object on failure, so the [`Document`]
+//! stays usable.
+//!
 //! * [`Document::open`] with [`OpenOptions`] ([`Limits`], strict mode): classic xref tables
 //!   and xref streams, `/Prev` chains, hybrid `/XRefStm` sections, object streams, repair by scanning when the stored
 //!   xref is unusable, an object cache, and the page tree with inherited attributes.

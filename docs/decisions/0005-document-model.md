@@ -33,6 +33,20 @@ pub trait ByteSource: Send + Sync {
 - **Edge implementations:** mmap (desktop engine process), `FileReaderSync` over a `Blob`, and an HTTP-range cache over OPFS (`lamina-wasm`/web worker). None of these live in core crates.
 - For sources without `as_slice`, the COS layer reads a window around an offset (64 KiB, doubled up to the object's extent within `Limits`) and the parser works on that `&[u8]`. Repair scans in overlapping chunks.
 
+**Implementation note (B2d, as built in `lamina-cos`):**
+
+- **Windows and growth.** Windows are 64 KiB and aligned. A parse starts on the window holding its offset. While the parser says it looked past the window's end (`Lexer::reached_end` / `Parser::reached_end` in `lamina-syntax`), the window doubles; only the new part is read. A parse that never looked past the end saw only bytes that are the same as in the whole input, so it gives the in-memory result exactly; byte offsets in its errors are moved back to input offsets.
+- **"Within `Limits`" is `Limits::max_read_window`** (hard, default 256 MiB; ADR 0003 §3 amendment). It bounds every read for one item on a source without `as_slice`: an object's head, a stream's data, the search for a missing `endstream`, and repair's walk back over a header. Past it, the object fails with `LimitExceeded`, and tolerant paths (repair, `/Length` recovery, the xref entry check) treat the item as unreadable. Within it the results equal the in-memory ones; in-memory input is not limited by it.
+- **Stream data is not read through a growing window.** `Parser::indirect_head` stops after `stream`. A declared `/Length` is checked with a small read at the declared end (a declared end past the input is wrong without reading), and only when that fails is `endstream` searched for forward. `Parser::indirect_object` makes the same checks (`endstream_at`, `stream_data_end`).
+- **Cache.** Each `Source` keeps the 64 most recently used windows (4 MiB), shared by its clones, so documents opened over one source reuse each other's windows while they stay cached. Two threads missing the same window at once may both read it, and evicted windows are read again. Reads spanning more than four windows (large streams) and one-off probes use cached windows but don't fill the cache. The cache is behind a `Mutex` because `Source` clones cross threads (as B2a's read-once buffer did); `Document` itself stays `Send + !Sync` as §7 says.
+- **Xref entry checks.** Checking every xref entry's `n g obj` header at open reads a 32-byte probe per entry, with probes within 256 bytes of each other read as one range, not a whole window. Opening an intact file therefore doesn't read the whole file.
+- **`DataPending { ranges }`** carries the ranges the source answered `Pending` for, sorted, with overlapping and adjacent ones merged. These are windows, the stream data a read needs, or probe ranges, and at most 1 024 per round.
+  - Open asks for the first window and the last kilobyte together.
+  - The backward `startxref` search asks for as many more windows as it has read (one round for a `startxref` near the end, logarithmically many for a file without one).
+  - Repair's scan asks for every window it still needs in one round.
+  - Lazy calls (`resolve`, `pages`, `decode_stream`, `page_content`) can return `DataPending` too. They cache no object on failure (windows already read stay cached), so the `Document` stays usable for a retry.
+- **Sizes and the whole input.** A `len()` over what the target can address (a file over 4 GiB on wasm32) fails with `InvalidStructure` instead of reading a prefix. `Document::data()` is `Option<&[u8]>`: `None` for a source read in windows. `incremental_update` copies the original bytes, so on such a source it reads them all (its output holds them anyway).
+
 ### 3. Base, overlay and the save cycle
 
 - The **base** is the current revision's bytes, and it is immutable. Every mutation lands in an **overlay** keyed by object number: `New(Object) | Modified(Object) | Deleted`, plus a journal per transaction for rollback ([ADR 0006](0006-op-log-and-undo.md)). Resolution checks the overlay first, then the base.
