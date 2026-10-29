@@ -189,7 +189,7 @@ Architecture Round B is delivered as rounds B1–B9, each split into todos (one 
 
 ### B4. Fonts and text
 
-**Todos:** [B4a](../todos/done/B4a-font-loading-and-subsetting.md) (font loading, subsetting, Type 0 + ToUnicode), [B4b](../todos/ready/B4b-shaping-bidi-line-breaking.md) (HarfRust, ICU4X bidi and line breaking), [B4c](../todos/ready/B4c-standard-14-and-simple-fonts.md) (standard 14, encodings).
+**Todos:** [B4a](../todos/done/B4a-font-loading-and-subsetting.md) (font loading, subsetting, Type 0 + ToUnicode), [B4b](../todos/ongoing/B4b-shaping-bidi-line-breaking.md) (HarfRust, ICU4X bidi and line breaking), [B4c](../todos/ongoing/B4c-standard-14-and-simple-fonts.md) (standard 14, encodings).
 
 **Deliverable:** `lamina-text`: font loading (skrifa), shaping (HarfRust), bidi and line breaking (ICU4X), subsetting (`subsetter`), ToUnicode/`/W` writers, standard 14 metrics, missing-glyph diagnostics.
 **Accepted when:** shaping goldens for Latin, Arabic, Devanagari, Hebrew and CJK match HarfBuzz output; extracted text from generated files (pdf.js, pypdf, pdftotext) equals the input string, including ligatures.
