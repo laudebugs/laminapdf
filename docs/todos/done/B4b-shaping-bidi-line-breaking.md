@@ -12,7 +12,7 @@
 | Branch | `feat/b4b-shaping` |
 | PR title | `feat(text): HarfRust shaping, ICU4X bidi and line breaking, shaping goldens` |
 | Size | L (≈ 800–1,200 lines + golden data) |
-| PR | — |
+| PR | [#55](https://github.com/laudebugs/lamina/pull/55) |
 
 ## Goal
 
