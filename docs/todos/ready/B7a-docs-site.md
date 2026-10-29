@@ -32,7 +32,7 @@ Publish usable documentation for `lamina` and `@lamina/pdf` before the first tag
 - Pages: Overview; Install (local tarball and path/git deps while unpublished — wording updated by [P2](./P2-first-registry-prerelease.md)); Quick start for browser/bundler, Node, Deno, Bun, Cloudflare Workers, Rust; Guides: fonts and text (shaping, scripts, fsType), images and vectors, links/outlines/labels/metadata, open/edit/save (`transact`, undo, save modes, `SaveConstraint`), encrypted files (password), errors and warnings (code table generated from `fixtures/codes.json`), limits; API: TypeDoc output for `@lamina/pdf` (via `starlight-typedoc` or a generated folder), link to rustdoc built by CI as an artefact; Examples gallery with source and output PDF.
 - Code snippets imported from the example files (single source of truth), not copied.
 - Deploy: `wrangler` Workers static assets config `apps/docs/wrangler.toml`; GitHub workflow deploying a preview per PR (comment with URL) and production from `main` (domain TBD; workers.dev until the owner picks, architecture §8 Q3).
-- Link checking inside the site build (Starlight's) plus repo-wide [X1](../ongoing/X1-docs-link-checker.md) if merged.
+- Link checking inside the site build (Starlight's) plus repo-wide [X1](../done/X1-docs-link-checker.md) if merged.
 
 **Out of scope** (and which todo covers it)
 
