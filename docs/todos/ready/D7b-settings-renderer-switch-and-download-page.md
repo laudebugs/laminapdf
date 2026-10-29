@@ -21,6 +21,7 @@ Finish the desktop settings page so every user-facing control the beta needs is 
 
 ## Context
 
+- **Design (Paper):** [S07 Settings window](../../design/paper/desktop-shell.md#s07-settings-window), [S09 Download page (web)](../../design/paper/desktop-shell.md#s09-download-page-web). Build to match these screens; record any deviation in the area document ([Paper design plan §5](../../plans/paper-design.md#5-how-the-designs-are-used)).
 - [Desktop plan §6 D7](../../plans/desktop-app.md#d7-crash-reporting-and-beta) and [§7 risks](../../plans/desktop-app.md#7-risks) (renderer switch, documented env workarounds).
 - [Desktop notes Q1](../../research/architecture/notes/desktop-shell.md#q1-shell-options-versions-size-memory-startup-webview-differences-licence-maturity-production-users) and [Tauri Linux graphics](https://v2.tauri.app/develop/debug/linux-graphics/): `WEBKIT_DISABLE_DMABUF_RENDERER=1`, `WEBKIT_DISABLE_COMPOSITING_MODE=1` (last resort), `__NV_DISABLE_EXPLICIT_SYNC=1`; these are **process environment variables** that must be set before WebKitGTK initialises, i.e. before the Tauri builder runs.
 - D5b settings store and window; D3b/D4a/D4c settings flags.

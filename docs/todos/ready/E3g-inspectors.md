@@ -20,6 +20,7 @@ Give power users and developers read-only inspection: header/catalog version and
 
 ## Context
 
+- **Design (Paper):** [O15 Object inspector](../../design/paper/pages-navigation-extraction.md#o15-object-inspector). Build to match these screens; record any deviation in the area document ([Paper design plan §5](../../plans/paper-design.md#5-how-the-designs-are-used)).
 - [06 §3 group J](../../research/pdf/06-feature-inventory.md#3-full-operation-inventory-with-mechanisms)
 - [01 §6](../../research/pdf/01-file-structure.md#6-cross-reference-streams-object-streams-hybrid-files-757758) and [§7](../../research/pdf/01-file-structure.md#7-incremental-updates-756): xref streams, object streams, incremental updates
 - qpdf `--json` and `mutool show` as reference behaviour

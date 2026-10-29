@@ -20,6 +20,7 @@ Make lamina behave like a native PDF app: it registers for `.pdf` in every insta
 
 ## Context
 
+- **Design (Paper):** [S01 Start window](../../design/paper/desktop-shell.md#s01-start-window). Build to match these screens; record any deviation in the area document ([Paper design plan §5](../../plans/paper-design.md#5-how-the-designs-are-used)).
 - [Desktop notes Q4](../../research/architecture/notes/desktop-shell.md#q4-file-system-file-associations-drag--drop-printing-sandboxing-multi-window): `RunEvent::Opened` on macOS (cold start: store URLs in state; running: emit); on Windows/Linux paths arrive as argv to a new process, so `tauri-plugin-single-instance` forwards them; single-instance fixed the macOS cwd of the second instance (v2.2.4).
 - Tauri: [`bundle.fileAssociations`](https://v2.tauri.app/reference/config/#fileassociation) (`ext`, `mimeType`, `name`, `description`, `role`, `rank` on macOS; Windows registry via NSIS/WiX; Linux `.desktop` `MimeType=`), [single-instance plugin](https://v2.tauri.app/plugin/single-instance/) (must be the **first** plugin registered), [file associations example](https://v2.tauri.app/learn/mobile-file-associations/), `WindowEvent::DragDrop(DragDropEvent::Drop { paths, position })`.
 - D2b's `DocumentRegistry`: the only way paths become documents; D2d's open flow.

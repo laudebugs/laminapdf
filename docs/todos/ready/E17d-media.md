@@ -20,6 +20,7 @@ Embed audio/video as Screen annotations with Rendition actions and RichMedia (PD
 
 ## Context
 
+- **Design (Paper):** [X12 Measurement and media](../../design/paper/convert-compare-produce.md#x12-measurement-and-media). Build to match these screens; record any deviation in the area document ([Paper design plan §5](../../plans/paper-design.md#5-how-the-designs-are-used)).
 - ISO 32000-2 §13 (multimedia)
 
 ## Scope

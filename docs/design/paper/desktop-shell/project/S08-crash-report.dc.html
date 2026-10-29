@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>lamina desktop, crash report preview</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&amp;family=Source+Sans+3:wght@400;500;600&amp;family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&amp;display=swap">
+<style>
+body{margin:0;background:#DCD6CB}
+a{color:#1F5C63}a:hover{color:#16454B}
+button,input,textarea{font:inherit;color:inherit}
+</style>
+</helmet>
+<div style="min-height: 100vh; display: flex; flex-direction: column; box-sizing: border-box; background: #DCD6CB; font-family: 'Source Sans 3', 'Segoe UI', system-ui, sans-serif; font-size: 14px; line-height: 1.4; color: #1F1D1A">
+<div style="position: relative; flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; background: #F7F4EE; border: 1px solid #C9C2B6; border-radius: 10px; overflow: hidden; box-sizing: border-box">
+
+  <div style="height: 30px; flex: 0 0 auto; display: flex; align-items: center; padding: 0 12px; background: #EFEBE3; border-bottom: 1px solid #E0D9CD; position: relative">
+    <div aria-hidden="true" style="display: flex; gap: 8px">
+      <span style="width: 12px; height: 12px; border-radius: 50%; background: #EC6A5E; border: 0.5px solid #D2574C"></span>
+      <span style="width: 12px; height: 12px; border-radius: 50%; background: #F4BF4F; border: 0.5px solid #D9A63A"></span>
+      <span style="width: 12px; height: 12px; border-radius: 50%; background: #61C554; border: 0.5px solid #4CAA40"></span>
+    </div>
+    <div style="position: absolute; left: 0; right: 0; text-align: center; font-size: 13px; font-weight: 600; color: #3A3631; pointer-events: none">lamina</div>
+  </div>
+
+  <header aria-hidden="true" style="min-height: 40px; flex: 0 0 auto; display: flex; align-items: center; padding: 0 16px; border-bottom: 1px solid #E4DED3">
+    <span style="font-family: 'Newsreader', Georgia, serif; font-size: 16px; font-weight: 500; white-space: nowrap">No document open</span>
+  </header>
+
+  <main aria-hidden="true" style="flex: 1 1 auto; min-height: 0; display: flex; justify-content: center; padding: 48px 32px 40px; box-sizing: border-box">
+    <div style="width: 100%; max-width: 1040px; display: flex; flex-direction: column; gap: 12px">
+      <span style="font-family: 'Newsreader', Georgia, serif; font-size: 40px; line-height: 44px">Open a PDF</span>
+      <span style="color: #6B645A">Drop a file anywhere in this window, or choose one from your computer. Files open in a new tab.</span>
+    </div>
+  </main>
+
+  <div style="position: absolute; left: 0; right: 0; top: 30px; bottom: 0; background: rgba(31,29,26,0.30); display: flex; justify-content: center; align-items: flex-start; padding: 48px 16px 24px; box-sizing: border-box; z-index: 50; overflow: auto">
+    <div role="dialog" aria-modal="true" aria-labelledby="rp-t" aria-describedby="rp-d" style="width: 100%; max-width: 600px; box-sizing: border-box; display: flex; flex-direction: column; gap: 14px; padding: 24px; background: #FBF9F5; border: 1px solid #D8D1C5; border-radius: 6px; box-shadow: 0 18px 48px rgba(31,29,26,0.22)">
+      <button style="align-self: flex-start; min-height: 24px; display: flex; align-items: center; gap: 4px; padding: 0 6px 0 0; border: 0; background: transparent; border-radius: 4px; color: #1F5C63; font-size: 13px; font-weight: 600"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M15 5l-7 7 7 7"></path></svg>Back to tabs</button>
+      <h2 id="rp-t" style="margin: 0; font-family: 'Newsreader', Georgia, serif; font-size: 20px; line-height: 24px; font-weight: 500">The crash report, exactly as it would be sent</h2>
+      <p id="rp-d" style="margin: 0">Nothing is sent unless you choose Send report. Sent to lamina’s own server and deleted after 30 days.</p>
+
+      <ul role="list" aria-label="What the report leaves out" style="list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px">
+        <li style="height: 20px; display: flex; align-items: center; gap: 4px; padding: 0 8px; border-radius: 3px; background: #E7EBE3; color: #2F6A45; font-size: 12px; font-weight: 600"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 12.5l4 4 8-9"></path></svg>No file names or paths</li>
+        <li style="height: 20px; display: flex; align-items: center; gap: 4px; padding: 0 8px; border-radius: 3px; background: #E7EBE3; color: #2F6A45; font-size: 12px; font-weight: 600"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 12.5l4 4 8-9"></path></svg>No document content</li>
+        <li style="height: 20px; display: flex; align-items: center; gap: 4px; padding: 0 8px; border-radius: 3px; background: #E7EBE3; color: #2F6A45; font-size: 12px; font-weight: 600"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 12.5l4 4 8-9"></path></svg>No anonymous update ID</li>
+      </ul>
+
+      <pre tabindex="0" aria-label="Crash report" style="margin: 0; max-height: 360px; overflow: auto; box-sizing: border-box; padding: 12px; background: #FFFFFF; border: 1px solid #8A8174; border-radius: 4px; font-family: ui-monospace, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace; font-size: 12.5px; line-height: 1.6; color: #1F1D1A; white-space: pre">{
+  "schema": 1,
+  "report_id": "8f3c1e0a-5b7d-4e62-9a10-3d4f2c6b81e9",
+  "app_version": "0.1.2",
+  "channel": "beta",
+  "os": "macOS",
+  "os_version": "15",
+  "arch": "aarch64",
+  "process": "main",
+  "renderer": "pdfium",
+  "sandbox": "full",
+  "uptime": "1-2h",
+  "crash_reason": "panic: index out of bounds",
+  "crashing_thread_frames": [
+    { "module": "lamina", "offset": "0x1a2f40", "function": "session::restore::reopen_tabs" },
+    { "module": "lamina", "offset": "0x19c812", "function": "window::open_document" },
+    { "module": "lamina", "offset": "0x0f3a08", "function": "app::run" }
+  ],
+  "modules": [
+    { "name": "lamina", "version": "0.1.2", "debug_id": "[DEBUG ID]" },
+    { "name": "libpdfium", "version": "[VERSION]", "debug_id": "[DEBUG ID]" }
+  ]
+}</pre>
+      <p style="margin: 0; font-size: 12px; color: #6B645A">The report ID is random and made for this report only; it is not stored anywhere else on this computer.</p>
+
+      <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap">
+        <button style="height: 32px; padding: 0 12px; border: 0; background: transparent; border-radius: 4px; color: #1F5C63; font-weight: 600">Copy report</button>
+        <div style="display: flex; gap: 8px">
+          <button style="height: 32px; padding: 0 16px; border: 1px solid #8A8174; background: #FFFFFF; border-radius: 4px">Don’t send</button>
+          <button style="height: 32px; padding: 0 16px; border: 1px solid #1F5C63; background: #1F5C63; color: #FFFFFF; border-radius: 4px; font-weight: 600; outline: 2px solid #1F5C63; outline-offset: 2px">Send report</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

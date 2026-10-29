@@ -20,6 +20,7 @@ Validate each signature per the 04 §8.8 checklist: structural rules (ByteRange 
 
 ## Context
 
+- **Design (Paper):** [G04 Signature validation](../../design/paper/sign-protect-redact.md#g04-signature-validation). Build to match these screens; record any deviation in the area document ([Paper design plan §5](../../plans/paper-design.md#5-how-the-designs-are-used)).
 - [04 §8.8 Attacks on signatures](../../research/pdf/04-interactive-security.md#88-attacks-on-signatures-ruhr-universität-bochum-pdf-insecurity-research)
 - ADR 0020
 

@@ -20,6 +20,7 @@ Import/export field values as FDF, XFDF and JSON; reset form; a library API to p
 
 ## Context
 
+- **Design (Paper):** [P03 Form data](../../design/paper/forms.md#p03-form-data). Build to match these screens; record any deviation in the area document ([Paper design plan §5](../../plans/paper-design.md#5-how-the-designs-are-used)).
 - [04 §3.6 FDF and XFDF](../../research/pdf/04-interactive-security.md#36-fdf-and-xfdf)
 - [04 §2.5 Flattening](../../research/pdf/04-interactive-security.md#25-flattening)
 

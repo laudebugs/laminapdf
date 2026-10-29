@@ -20,6 +20,7 @@ A colour module: convert content and images between colour spaces with ICC trans
 
 ## Context
 
+- **Design (Paper):** [X10 Print production](../../design/paper/convert-compare-produce.md#x10-print-production). Build to match these screens; record any deviation in the area document ([Paper design plan §5](../../plans/paper-design.md#5-how-the-designs-are-used)).
 - [02 §6 Color](../../research/pdf/02-imaging-model.md#6-color)
 
 ## Scope

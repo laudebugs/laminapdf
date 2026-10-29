@@ -207,6 +207,11 @@ Each round is split into todos (one pull request each) on the [todo board](../to
 **Accepted when:** the owner has approved the pricing page; the benchmark is reproducible from a script with published raw numbers; telemetry is off by default and its payload is documented and tested to carry no document data.
 **Todos:** [U5a](../todos/ready/U5a-pricing-and-promises-page.md), [U5b](../todos/ready/U5b-reader-benchmark.md), [U5c](../todos/ready/U5c-opt-in-usage-telemetry.md)
 
+### U6. Paper design system
+
+Planned in the [Paper design plan §6](paper-design.md#6-round-u6-paper-in-code): tokens, self-hosted fonts, icons, core components, overlays and a gallery with visual tests.
+**Todos:** [U6a](../todos/ready/U6a-paper-tokens.md), [U6b](../todos/ready/U6b-self-hosted-fonts.md), [U6c](../todos/ready/U6c-icon-set.md), [U6d](../todos/ready/U6d-core-components.md), [U6e](../todos/ready/U6e-overlays-and-sheets.md), [U6f](../todos/ready/U6f-gallery-and-visual-tests.md)
+
 ### Changes to existing todos
 
 The research and the owner's decisions on it change todos in other plans (each notes this plan or the decision in its text):
@@ -247,7 +252,7 @@ The research and the owner's decisions on it change todos in other plans (each n
 
 1. ~~Does the owner adopt the free-core pledge?~~ **Answered 2026-10-29:** no, lamina will be priced. Still open: the pricing model (one-time, subscription, or both), what each tier includes, and how licences are checked. On-device features must keep working without an account and offline (architecture principle 6, the hosted-service decision, ADR 0011), so local features need offline licence keys or store purchases; account-based checks fit only hosted services, unless the owner changes that rule. U5a needs these.
 2. Tablet stylus annotation (Apple Pencil, S Pen) in the web reader, or only in native apps after ADR 0025?
-3. When does a visual design pass (typography, iconography, brand) happen, and who does it?
+3. ~~When does a visual design pass (typography, iconography, brand) happen, and who does it?~~ **Answered 2026-10-29:** the owner chose the **Paper** direction; every screen is designed and documented in the [Paper design plan](paper-design.md), and Round U6 builds it into `@lamina/tokens` and `@lamina/ui`. Still open: a brand mark.
 4. Should citation previews (Semantic Reader style) and Zotero integration get their own plan for the academic persona?
 5. ~~Telemetry: none at all, or U5c's opt-in counts?~~ **Answered 2026-10-29:** telemetry is optional (opt-in, off by default); U5c goes ahead after v0.1.
 
@@ -283,3 +288,6 @@ Ticked by the PR that completes them.
 - [ ] Pricing, promises and targets pages (after the owner sets the pricing model)
 - [ ] Reader benchmark against other readers
 - [ ] Optional (opt-in), content-free usage telemetry
+
+### U6. Paper design system
+- [ ] Tokens, fonts, icons, core components, overlays, gallery and visual tests ([Paper design plan](paper-design.md#9-to-dos))

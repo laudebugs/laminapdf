@@ -20,6 +20,7 @@ Let signed-in users store chosen documents in the cloud: per-document opt-in upl
 
 ## Context
 
+- **Design (Paper):** [H03 Cloud documents and upload consent](../../design/paper/account-cloud-product.md#h03-cloud-documents-and-upload-consent). Build to match these screens; record any deviation in the area document ([Paper design plan §5](../../plans/paper-design.md#5-how-the-designs-are-used)).
 - [full-editor: optional Cloudflare server features](../../plans/full-editor.md#optional-cloudflare-server-features)
 - [architecture §8 Q2](../../plans/architecture.md#8-open-questions-for-the-team)
 - [cloudflare notes §2](../../research/architecture/notes/cloudflare.md#2-storage-and-compute-products-r2-d1-kv-durable-objects-queues-workflows-containers-browser-run-workers-ai) (R2, D1 limits; presigned URLs)

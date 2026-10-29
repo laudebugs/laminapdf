@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Sign in, phone sheet</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&amp;family=Source+Sans+3:wght@400;500;600&amp;family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#1F5C63}a:hover{color:#16454B}
+button,input,textarea{font:inherit;color:inherit}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; position: relative; overflow: hidden; background: #ECE7DE; font-family: 'Source Sans 3', system-ui, sans-serif; font-size: 14px; line-height: 1.4; color: #1F1D1A">
+
+  <header style="position: absolute; left: 0; right: 0; top: 0; height: 56px; display: flex; align-items: center; gap: 4px; padding: 0 6px 0 20px; background: #F7F4EE; border-bottom: 1px solid #E4DED3; box-sizing: border-box">
+    <span style="flex: 1 1 auto; font-family: 'Newsreader', Georgia, serif; font-size: 20px; font-weight: 500">lamina</span>
+    <button aria-label="More options" style="width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 6px; color: #1F1D1A"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="5.5" cy="12" r="0.9"></circle><circle cx="12" cy="12" r="0.9"></circle><circle cx="18.5" cy="12" r="0.9"></circle></svg></button>
+  </header>
+
+  <div aria-hidden="true" style="position: absolute; left: 0; right: 0; top: 56px; bottom: 0; background: #F7F4EE; display: flex; flex-direction: column; gap: 24px; padding: 28px 16px 40px; box-sizing: border-box">
+    <div style="display: flex; flex-direction: column; gap: 6px">
+      <span style="font-family: 'Newsreader', Georgia, serif; font-size: 32px; line-height: 36px; font-weight: 400">Open a PDF</span>
+      <span style="color: #6B645A; font-size: 15px">Read, search and print PDFs on this phone. The file stays here.</span>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 8px">
+      <span style="height: 48px; display: flex; align-items: center; justify-content: center; border: 1px solid {{accent}}; background: {{accent}}; color: #FFFFFF; border-radius: 6px; font-size: 16px; font-weight: 600">Choose a file</span>
+      <span style="height: 48px; display: flex; align-items: center; justify-content: center; border: 1px solid #8A8174; background: #FFFFFF; border-radius: 6px; font-size: 16px">Open from URL</span>
+    </div>
+  </div>
+
+  <div style="position: absolute; inset: 0; background: rgba(31,29,26,0.30)"></div>
+
+  <section role="dialog" aria-modal="true" aria-labelledby="sp-t" aria-describedby="sp-d" style="position: absolute; left: 0; right: 0; top: 56px; bottom: 0; background: #FBF9F5; border-top: 1px solid #E4DED3; border-radius: 12px 12px 0 0; box-shadow: 0 -8px 28px rgba(60,48,30,0.12); display: flex; flex-direction: column; overflow: hidden">
+    <div style="display: flex; justify-content: center">
+      <button aria-label="Resize sheet" style="width: 64px; height: 44px; display: flex; align-items: flex-start; justify-content: center; padding-top: 8px; box-sizing: border-box; border: 0; background: transparent"><span style="width: 36px; height: 5px; border-radius: 3px; background: #8A8174"></span></button>
+    </div>
+    <div style="display: flex; align-items: center; justify-content: space-between; margin-top: -18px; padding: 0 8px 0 20px">
+      <h2 id="sp-t" style="margin: 0; font-family: 'Newsreader', Georgia, serif; font-size: 20px; font-weight: 500">Sign in to lamina</h2>
+      <button aria-label="Close sign in" style="width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 6px; color: #4A453E"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg></button>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 20px; padding: 8px 20px 24px">
+      <p id="sp-d" style="margin: 0; font-size: 15px; line-height: 1.5">You don’t need an account to open, edit or save files on this phone. Signing in adds cloud storage, sync between your devices and shared review.</p>
+      <div style="display: flex; flex-direction: column; gap: 8px">
+        <label for="sp-email" style="font-size: 12px; font-weight: 600; color: #4A453E">Email</label>
+        <input id="sp-email" type="email" autocomplete="email" value="r.osei@northwind.example" aria-describedby="sp-help" style="height: 44px; box-sizing: border-box; padding: 0 12px; border: 1px solid #8A8174; border-radius: 4px; background: #FFFFFF; font-size: 16px; color: #1F1D1A; outline: 2px solid {{accent}}; outline-offset: 1px">
+        <span id="sp-help" style="font-size: 12px; color: #6B645A">We’ll email you a one-time sign-in code.</span>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 8px">
+        <button style="height: 44px; border: 1px solid {{accent}}; background: {{accent}}; color: #FFFFFF; border-radius: 4px; font-size: 15px; font-weight: 600">Continue</button>
+        <button style="height: 44px; border: 1px solid #8A8174; background: #FFFFFF; border-radius: 4px; font-size: 15px">Not now</button>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 4px; padding-top: 16px; border-top: 1px solid #E4DED3; font-size: 14px">
+        <a href="#create" style="min-height: 44px; display: flex; align-items: center; font-weight: 600">Create an account</a>
+        <a href="#privacy" style="min-height: 44px; display: flex; align-items: center">What an account stores</a>
+      </div>
+    </div>
+  </section>
+
+  <span aria-hidden="true" style="position: absolute; left: 50%; bottom: 8px; transform: translateX(-50%); width: 134px; height: 5px; border-radius: 3px; background: #1F1D1A; opacity: 0.85"></span>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#1F5C63","options":["#1F5C63","#2D4A6B","#3E4A3C"]},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return { accent: this.props.accent ?? '#1F5C63' };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Add a signature image: draw</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&amp;family=Source+Sans+3:wght@400;500;600&amp;family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#1F5C63}a:hover{color:#16454B}
+button,input,textarea{font:inherit;color:inherit}
+label:has(input:focus-visible) [data-box]{outline:2px solid #1F5C63;outline-offset:2px}
+</style>
+</helmet>
+<div style="min-height: 100vh; display: flex; flex-direction: column; background: #F7F4EE; color: #1F1D1A; font-family: 'Source Sans 3', 'Segoe UI', system-ui, sans-serif; font-size: 14px; line-height: 1.4; position: relative">
+
+  <header style="min-height: 40px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 20px; padding: 0 16px; border-bottom: 1px solid #E4DED3; background: #F7F4EE">
+    <div style="display: flex; align-items: center; gap: 10px; flex: 1 1 220px; min-width: 0">
+      <button tabindex="-1" aria-label="Sidebar" aria-pressed="true" style="width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 4px; color: #4A453E"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="3.5" y="4.5" width="17" height="15" rx="1.5"></rect><path d="M9 4.5v15"></path></svg></button>
+      <div style="display: flex; align-items: baseline; gap: 8px; min-width: 0">
+        <span style="font-family: 'Newsreader', Georgia, serif; font-size: 16px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">Q3-board-report.pdf</span>
+        <span style="font-size: 12px; color: #6B645A; white-space: nowrap">2 unsaved changes</span>
+      </div>
+      <span aria-hidden="true" style="width: 1px; height: 18px; background: #E4DED3"></span>
+      <button tabindex="-1" aria-label="Undo fill Date" style="width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 4px; color: #4A453E"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M9 7L4.5 11.5 9 16"></path><path d="M4.5 11.5H15a4.5 4.5 0 0 1 0 9h-3"></path></svg></button>
+      <button tabindex="-1" aria-label="Redo" aria-disabled="true" style="width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 4px; color: #A39C91"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M15 7l4.5 4.5L15 16"></path><path d="M19.5 11.5H9a4.5 4.5 0 0 0 0 9h3"></path></svg></button>
+    </div>
+    <div role="group" aria-label="Mode" style="display: flex; align-items: stretch; gap: 22px; height: 40px">
+      <button tabindex="-1" aria-pressed="false" style="height: 40px; display: flex; align-items: center; border: 0; background: transparent; padding: 2px 0 0; color: #6B645A; border-bottom: 2px solid transparent">Read</button>
+      <button tabindex="-1" aria-pressed="false" style="height: 40px; display: flex; align-items: center; border: 0; background: transparent; padding: 2px 0 0; color: #6B645A; border-bottom: 2px solid transparent">Comment</button>
+      <button tabindex="-1" aria-pressed="true" style="height: 40px; display: flex; align-items: center; border: 0; background: transparent; padding: 2px 0 0; color: #1F1D1A; font-weight: 600; border-bottom: 2px solid {{accent}}">Fill &amp; Sign</button>
+      <button tabindex="-1" aria-pressed="false" style="height: 40px; display: flex; align-items: center; border: 0; background: transparent; padding: 2px 0 0; color: #6B645A; border-bottom: 2px solid transparent">Organise</button>
+      <button tabindex="-1" aria-pressed="false" style="height: 40px; display: flex; align-items: center; border: 0; background: transparent; padding: 2px 0 0; color: #6B645A; border-bottom: 2px solid transparent">Edit</button>
+    </div>
+    <div style="display: flex; align-items: center; justify-content: flex-end; gap: 14px; flex: 1 1 220px">
+      <div style="display: flex; align-items: center; gap: 6px; font-variant-numeric: tabular-nums">
+        <label for="pg" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Page</label>
+        <input tabindex="-1" id="pg" value="24" style="width: 30px; height: 24px; box-sizing: border-box; text-align: center; border: 1px solid #8A8174; border-radius: 4px; background: #FFFFFF; font-variant-numeric: tabular-nums; color: #1F1D1A">
+        <span style="color: #6B645A">/ 24</span>
+      </div>
+      <div style="display: flex; align-items: center; gap: 2px; font-variant-numeric: tabular-nums">
+        <button tabindex="-1" aria-label="Zoom out" style="width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 4px; color: #4A453E"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M6 12h12"></path></svg></button>
+        <span style="min-width: 40px; text-align: center; color: #1F1D1A">110%</span>
+        <button tabindex="-1" aria-label="Zoom in" style="width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 4px; color: #4A453E"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M6 12h12M12 6v12"></path></svg></button>
+      </div>
+      <button tabindex="-1" aria-label="Find in document" style="width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 4px; color: #4A453E"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6"></circle><path d="M15 15l5 5"></path></svg></button>
+      <button tabindex="-1" aria-label="View settings" aria-haspopup="dialog" style="width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 4px; color: #4A453E"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="12" cy="12" r="7.5"></circle><path d="M12 4.5v15M12 8.5h5.5M12 12h7.5M12 15.5h5.5"></path></svg></button>
+      <button tabindex="-1" style="height: 26px; display: flex; align-items: center; gap: 8px; padding: 0 6px 0 10px; border: 1px solid #E4DED3; background: #FBF9F5; border-radius: 4px; color: #6B645A; font-size: 13px"><span>Commands</span><span style="font-size: 11px; padding: 1px 5px; border: 1px solid #D8D1C5; border-radius: 3px; color: #4A453E; background: #FFFFFF">Ctrl K</span></button>
+      <button tabindex="-1" style="height: 26px; padding: 0 12px; border: 1px solid {{accent}}; background: {{accent}}; color: #FFFFFF; border-radius: 4px; font-size: 13px; font-weight: 600">Save</button>
+      <button tabindex="-1" aria-label="More actions" style="width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 4px; color: #4A453E"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="5.5" cy="12" r="0.9"></circle><circle cx="12" cy="12" r="0.9"></circle><circle cx="18.5" cy="12" r="0.9"></circle></svg></button>
+    </div>
+  </header>
+  <div role="toolbar" aria-label="Fill and sign tools" style="min-height: 40px; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; padding: 0 16px; border-bottom: 1px solid #E4DED3; background: #FBF9F5; font-size: 13px">
+    <button tabindex="-1" style="height: 28px; display: flex; align-items: center; gap: 6px; padding: 0 10px; border: 1px solid transparent; background: transparent; border-radius: 4px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M15 5l-7 7 7 7"></path></svg>Previous field</button>
+    <button tabindex="-1" style="height: 28px; display: flex; align-items: center; gap: 6px; padding: 0 10px; border: 1px solid transparent; background: transparent; border-radius: 4px">Next field<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M9 5l7 7-7 7"></path></svg></button>
+    <button tabindex="-1" aria-pressed="false" style="height: 28px; display: flex; align-items: center; gap: 6px; padding: 0 10px; border: 1px solid transparent; background: transparent; border-radius: 4px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="3.5" y="7" width="17" height="10" rx="1"></rect><path d="M7 10v4"></path></svg>Highlight fields</button>
+    <span aria-hidden="true" style="width: 1px; height: 18px; background: #E4DED3; margin: 0 8px"></span>
+    <button tabindex="-1" aria-pressed="false" style="height: 28px; display: flex; align-items: center; gap: 6px; padding: 0 10px; border: 1px solid transparent; background: transparent; border-radius: 4px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M5 7V5h14v2M12 5v14M9.5 19h5"></path></svg>Text</button>
+    <button tabindex="-1" aria-pressed="false" style="height: 28px; display: flex; align-items: center; gap: 6px; padding: 0 10px; border: 1px solid transparent; background: transparent; border-radius: 4px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M6 12.5l4 4 8-9"></path></svg>Check</button>
+    <button tabindex="-1" aria-pressed="false" style="height: 28px; display: flex; align-items: center; gap: 6px; padding: 0 10px; border: 1px solid transparent; background: transparent; border-radius: 4px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="4.5" y="5.5" width="15" height="14" rx="1.5"></rect><path d="M4.5 9.5h15M8.5 3.5v4M15.5 3.5v4"></path></svg>Date</button>
+    <span aria-hidden="true" style="width: 1px; height: 18px; background: #E4DED3; margin: 0 8px"></span>
+    <button tabindex="-1" aria-pressed="true" style="height: 28px; display: flex; align-items: center; gap: 6px; padding: 0 10px; border: 1px solid {{accent}}; background: #E1E6E3; color: {{accent}}; font-weight: 600; border-radius: 4px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M4 17c3-6 5-9 7-9s1 6 3 6 3-4 6-6"></path></svg>Add a signature image</button>
+    <button tabindex="-1" aria-pressed="false" style="height: 28px; display: flex; align-items: center; gap: 6px; padding: 0 10px; border: 1px solid transparent; background: transparent; border-radius: 4px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="4" y="4.5" width="16" height="11" rx="1"></rect><path d="M7.5 8.5h9M7.5 11.5h4"></path><circle cx="16" cy="16" r="2.8"></circle><path d="M14.6 18.5l-.8 3 2.2-1 2.2 1-.8-3"></path></svg>Sign with a certificate</button>
+    <button tabindex="-1" aria-haspopup="menu" aria-expanded="false" style="height: 28px; display: flex; align-items: center; gap: 6px; padding: 0 10px; border: 1px solid transparent; background: transparent; border-radius: 4px">Form data<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M7 10l5 5 5-5"></path></svg></button>
+    <button tabindex="-1" aria-label="More fill and sign tools" style="width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 4px; color: #4A453E"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="5.5" cy="12" r="0.9"></circle><circle cx="12" cy="12" r="0.9"></circle><circle cx="18.5" cy="12" r="0.9"></circle></svg></button>
+    <span style="flex: 1 1 auto"></span>
+    <span style="font-size: 12px; color: #6B645A; font-variant-numeric: tabular-nums">2 of 4 required fields filled</span>
+  </div>
+  <main style="flex: 1 1 auto; background: #ECE7DE; display: flex; justify-content: center; padding: 32px 16px; box-sizing: border-box">
+    <div style="width: 100%; max-width: 612px; min-height: 790px; background: #FFFFFF; box-shadow: 0 1px 2px rgba(60,48,30,0.08), 0 8px 28px rgba(60,48,30,0.10); padding: 56px 64px; box-sizing: border-box; display: flex; flex-direction: column; gap: 14px">
+      <span style="height: 8px; width: 40%; background: #DDD7CD"></span>
+      <span style="height: 5px; width: 100%; background: #E3DED6"></span>
+      <span style="height: 5px; width: 92%; background: #E3DED6"></span>
+      <span style="display: flex; gap: 28px; padding-top: 40px"><span style="height: 72px; flex: 1 1 0; background: #EEF2F3"></span><span style="height: 72px; flex: 1 1 0; background: #EEF2F3"></span></span>
+    </div>
+  </main>
+  <footer style="min-height: 28px; display: flex; align-items: center; justify-content: space-between; padding: 0 16px; border-top: 1px solid #E4DED3; background: #F7F4EE; font-size: 12px; color: #6B645A"><span style="font-variant-numeric: tabular-nums">0 network requests for this document · Offline-safe: nothing uploaded</span><span style="font-variant-numeric: tabular-nums">Page 24 · Board approval</span></footer>
+
+  <div style="position: absolute; inset: 0; z-index: 50; background: rgba(31,29,26,0.30); display: flex; justify-content: center; align-items: flex-start; padding: 72px 16px 16px; box-sizing: border-box; overflow: auto">
+    <div role="dialog" aria-modal="true" aria-labelledby="sig-t" aria-describedby="sig-d" style="width: 100%; max-width: 560px; box-sizing: border-box; padding: 24px; display: flex; flex-direction: column; gap: 16px; background: #FBF9F5; border: 1px solid #D8D1C5; border-radius: 6px; box-shadow: 0 18px 48px rgba(31,29,26,0.22)">
+      <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 12px">
+        <div style="display: flex; flex-direction: column; gap: 4px">
+          <h2 id="sig-t" style="margin: 0; font-family: 'Newsreader', Georgia, serif; font-size: 20px; font-weight: 500; line-height: 1.2">Add a signature image</h2>
+          <p id="sig-d" style="margin: 0; color: #4A453E">Puts a picture of your signature on the page; it doesn’t prove who signed.</p>
+        </div>
+        <button aria-label="Close" style="width: 28px; height: 28px; flex: 0 0 auto; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 4px; color: #4A453E"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg></button>
+      </div>
+
+      <div role="tablist" aria-label="How to make the signature" style="display: flex; gap: 16px; border-bottom: 1px solid #E4DED3">
+        <button role="tab" aria-selected="true" aria-controls="pad" style="display: flex; align-items: center; gap: 6px; border: 0; background: transparent; padding: 0 0 8px; font-size: 13px; font-weight: 600; color: #1F1D1A; border-bottom: 2px solid {{accent}}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M4 17c3-6 5-9 7-9s1 6 3 6 3-4 6-6"></path></svg>Draw</button>
+        <button role="tab" aria-selected="false" style="display: flex; align-items: center; gap: 6px; border: 0; background: transparent; padding: 0 0 8px; font-size: 13px; color: #6B645A; border-bottom: 2px solid transparent"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="3" y="6.5" width="18" height="11" rx="1.5"></rect><path d="M7 10.5h1M11 10.5h1M15 10.5h1M8 14h8"></path></svg>Type</button>
+        <button role="tab" aria-selected="false" style="display: flex; align-items: center; gap: 6px; border: 0; background: transparent; padding: 0 0 8px; font-size: 13px; color: #6B645A; border-bottom: 2px solid transparent"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M12 15V4.5M8 8l4-3.5L16 8"></path><path d="M7 11H5.5v8.5h13V11H17"></path></svg>Upload</button>
+        <button role="tab" aria-selected="false" style="display: flex; align-items: center; gap: 6px; border: 0; background: transparent; padding: 0 0 8px; font-size: 13px; color: #6B645A; border-bottom: 2px solid transparent">Saved <span style="font-variant-numeric: tabular-nums">(2)</span></button>
+      </div>
+
+      <div id="pad" role="tabpanel" aria-label="Draw" style="display: flex; flex-direction: column; gap: 8px">
+        <div role="img" aria-label="Drawing area with a drawn signature" style="position: relative; height: 180px; background: #FFFFFF; border: 1px solid #8A8174; border-radius: 4px">
+          <svg width="100%" height="180" viewBox="0 0 510 180" fill="none" stroke="{{ink}}" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M70 120c10-30 22-58 32-56s-8 54 4 52 16-40 26-38-6 34 4 32 12-22 22-22 2 18 12 16 18-14 30-12"></path><path d="M230 86c14-18 30-16 24 4s-30 36-10 30 30-24 40-20-6 22 6 20 20-16 30-14 0 14 10 12 24-10 40-6"></path><path d="M160 136c60-8 140-10 230-4"></path></svg>
+          <span aria-hidden="true" style="position: absolute; left: 24px; right: 24px; bottom: 34px; border-top: 1px solid #D8D1C5"></span>
+          <span style="position: absolute; left: 24px; bottom: 12px; font-size: 12px; color: #6B645A">Sign above the line with a mouse, trackpad, pen or finger</span>
+        </div>
+        <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap">
+          <div role="group" aria-label="Ink colour" style="display: flex; align-items: center; gap: 8px">
+            <span style="font-size: 12px; color: #6B645A">Ink</span>
+            <button aria-label="Black" aria-pressed="false" style="width: 24px; height: 24px; border-radius: 50%; border: 1px solid #8A8174; background: #1F1D1A"></button>
+            <button aria-label="Dark blue" aria-pressed="true" style="width: 24px; height: 24px; border-radius: 50%; border: 1px solid #8A8174; background: #1F2F5C; outline: 2px solid #1F1D1A; outline-offset: 2px"></button>
+          </div>
+          <div style="display: flex; gap: 4px">
+            <button style="height: 30px; padding: 0 12px; border: 0; background: transparent; border-radius: 4px; font-size: 13px; color: {{accent}}; font-weight: 600">Undo stroke</button>
+            <button style="height: 30px; padding: 0 12px; border: 0; background: transparent; border-radius: 4px; font-size: 13px; color: {{accent}}; font-weight: 600">Clear</button>
+          </div>
+        </div>
+      </div>
+
+      <fieldset style="margin: 0; padding: 0; border: 0; display: flex; flex-direction: column; gap: 8px">
+        <legend style="padding: 0; margin-bottom: 8px; font-size: 12px; font-weight: 600; color: #4A453E">Place it as</legend>
+        <label style="display: flex; align-items: flex-start; gap: 8px; min-height: 24px">
+          <sc-if value="{{on}}" hint-placeholder-val="{{ true }}"><input type="radio" name="place" checked style="position: absolute; width: 1px; height: 1px; opacity: 0; margin: 0"></sc-if><span data-box="1" aria-hidden="true" style="flex: 0 0 auto; width: 16px; height: 16px; margin: 2px 0 0; box-sizing: border-box; display: flex; align-items: center; justify-content: center; border-radius: 50%; border: 2px solid {{accent}}; background: #FFFFFF"><span style="width: 8px; height: 8px; border-radius: 50%; background: {{accent}}"></span></span>
+          <span style="display: flex; flex-direction: column"><span>A movable signature image</span><span style="font-size: 12px; color: #6B645A">Saved as an annotation; you can move or delete it later.</span></span>
+        </label>
+        <label style="display: flex; align-items: flex-start; gap: 8px; min-height: 24px">
+          <input type="radio" name="place" style="position: absolute; width: 1px; height: 1px; opacity: 0; margin: 0"><span data-box="1" aria-hidden="true" style="flex: 0 0 auto; width: 16px; height: 16px; margin: 2px 0 0; box-sizing: border-box; display: flex; align-items: center; justify-content: center; border-radius: 50%; border: 1px solid #8A8174; background: #FFFFFF"></span>
+          <span style="display: flex; flex-direction: column"><span>Part of the page</span><span style="font-size: 12px; color: #6B645A">Flattened into the page content when you save. Only offered while the file has no certification.</span></span>
+        </label>
+      </fieldset>
+
+      <label style="display: flex; align-items: flex-start; gap: 8px; min-height: 24px">
+        <sc-if value="{{on}}" hint-placeholder-val="{{ true }}"><input type="checkbox" checked style="position: absolute; width: 1px; height: 1px; opacity: 0; margin: 0"></sc-if><span data-box="1" aria-hidden="true" style="flex: 0 0 auto; width: 16px; height: 16px; margin: 2px 0 0; box-sizing: border-box; display: flex; align-items: center; justify-content: center; border-radius: 3px; border: 1px solid {{accent}}; background: {{accent}}; color: #FFFFFF"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 12.5l4 4 8-9"></path></svg></span>
+        <span style="display: flex; flex-direction: column"><span>Keep in my signatures on this device</span><span style="font-size: 12px; color: #6B645A">Stored in this browser only; never uploaded.</span></span>
+      </label>
+
+      <div role="note" style="display: flex; gap: 10px; padding: 10px 12px; background: #FFFFFF; border: 1px solid #E4DED3; border-radius: 4px; font-size: 13px">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#4A453E" stroke-width="1.5" aria-hidden="true" style="flex: 0 0 auto; margin-top: 2px"><path d="M4 17c3-6 5-9 7-9s1 6 3 6 3-4 6-6"></path></svg>
+        <span><strong style="font-weight: 600">This is not a digital signature.</strong> Anyone could add or copy this picture. To prove who signed, use <a href="#">Sign with a certificate</a>.</span>
+      </div>
+
+      <div style="display: flex; justify-content: flex-end; gap: 8px">
+        <button style="height: 32px; padding: 0 16px; border: 1px solid #8A8174; background: #FFFFFF; border-radius: 4px">Cancel</button>
+        <button style="height: 32px; padding: 0 16px; border: 1px solid {{accent}}; background: {{accent}}; color: #FFFFFF; border-radius: 4px; font-weight: 600; outline: 2px solid {{accent}}; outline-offset: 2px">Place signature</button>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#1F5C63","options":["#1F5C63","#2D4A6B","#3E4A3C"]},"ink":{"editor":"color","default":"#1F2F5C","options":["#1F2F5C","#1F1D1A"]},"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return { on: true, accent: this.props.accent ?? '#1F5C63', ink: this.props.ink ?? '#1F2F5C' };
+  }
+}
+</script>
+</body>
+</html>

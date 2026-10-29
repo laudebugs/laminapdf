@@ -12,7 +12,7 @@ New todos start from [`TEMPLATE.md`](TEMPLATE.md). The workflow is in [git workf
 
 IDs: `A`/`P`/`X` [architecture](../plans/architecture.md) (foundations, publishing, cross-cutting), `B` [library](../plans/pdf-library.md), `L` [shareable libraries](../plans/shareable-libraries.md) (contracts, worker, extraction, CLI, agent docs, mobile), `C` [web reader](../plans/web-app.md), `D` [desktop reader](../plans/desktop-app.md), `U` [UI/UX](../plans/ui-ux.md), `E` [editor](../plans/full-editor.md), `H` hosted service ([full-editor](../plans/full-editor.md)). A letter suffix (`B2a`, `B2b`) splits a round into PRs.
 
-**3 ongoing · 211 ready · 20 done** (234 total).
+**3 ongoing · 217 ready · 20 done** (240 total).
 
 ## Can start now
 
@@ -99,8 +99,8 @@ Ready todos whose dependencies are all done:
 | C3a | [`@lamina/viewer` part 1: document worker and typed RPC](ready/C3a-viewer-worker-rpc.md) | ready | [B6b](ready/B6b-lamina-pdf-package.md), [L2a](ready/L2a-worker-client.md), [C2a](ready/C2a-render-adrs.md), [C2c](ready/C2c-render-packages.md) |
 | C3b | [`@lamina/viewer` part 2: virtualiser, canvas pool, progressive tiles and anchored zoom](ready/C3b-viewer-virtualiser-and-zoom.md) | ready | [C3a](ready/C3a-viewer-worker-rpc.md) |
 | C3c | [Viewer performance harness: long tasks, memory and time-to-first-page in CI](ready/C3c-viewer-perf-harness.md) | ready | [C3b](ready/C3b-viewer-virtualiser-and-zoom.md) |
-| C4a | [`@lamina/ui`: React 19 reader chrome and the `Platform` adapter](ready/C4a-ui-chrome-and-platform.md) | ready | [C2a](ready/C2a-render-adrs.md), [C3b](ready/C3b-viewer-virtualiser-and-zoom.md), [U1a](ready/U1a-adr-0024-app-shell-ux.md) |
-| C4b | [`apps/web`: the reader on Cloudflare Workers static assets, with local file opening](ready/C4b-web-app-shell.md) | ready | [C2a](ready/C2a-render-adrs.md), [C4a](ready/C4a-ui-chrome-and-platform.md) |
+| C4a | [`@lamina/ui`: React 19 reader chrome and the `Platform` adapter](ready/C4a-ui-chrome-and-platform.md) | ready | [C2a](ready/C2a-render-adrs.md), [C3b](ready/C3b-viewer-virtualiser-and-zoom.md), [U1a](ready/U1a-adr-0024-app-shell-ux.md), [U6e](ready/U6e-overlays-and-sheets.md) |
+| C4b | [`apps/web`: the reader on Cloudflare Workers static assets, with local file opening](ready/C4b-web-app-shell.md) | ready | [C2a](ready/C2a-render-adrs.md), [C4a](ready/C4a-ui-chrome-and-platform.md), [U6b](ready/U6b-self-hosted-fonts.md) |
 | C4c | [Remote files via `#url=`, encrypted files, and the privacy test suite](ready/C4c-remote-files-encryption-privacy.md) | ready | [B2b](done/B2b-standard-security-decryption.md), [B6b](ready/B6b-lamina-pdf-package.md), [C4b](ready/C4b-web-app-shell.md) |
 | C4d | [Deploy pipeline: preview URL per PR, staging from `main`, production from release tags](ready/C4d-deploy-previews-and-production.md) | ready | [C4b](ready/C4b-web-app-shell.md) |
 | C5a | [Text layer, selection and copy (from lamina's extraction), with struct-tree linking](ready/C5a-text-layer-and-selection.md) | ready | [B9c](ready/B9c-text-extraction-bindings-and-differential.md), [C3c](ready/C3c-viewer-perf-harness.md), [C4c](ready/C4c-remote-files-encryption-privacy.md) |
@@ -118,7 +118,7 @@ Ready todos whose dependencies are all done:
 | --- | --- | --- | --- |
 | D1a | [`desktop-ipc` spike: tile transport and COOP/COEP in the three webviews](ready/D1a-desktop-ipc-spike.md) | ready | [C2c](ready/C2c-render-packages.md), [C3b](ready/C3b-viewer-virtualiser-and-zoom.md) |
 | D1b | [`desktop-print` spike: faithful printing from Tauri on each OS](ready/D1b-desktop-print-spike.md) | ready | [C2c](ready/C2c-render-packages.md), [C3b](ready/C3b-viewer-virtualiser-and-zoom.md), [D1a](ready/D1a-desktop-ipc-spike.md) |
-| D2a | [ADR 0008 and the `apps/desktop` Tauri 2 scaffold](ready/D2a-adr-0008-and-desktop-scaffold.md) | ready | [C2a](ready/C2a-render-adrs.md), [C4a](ready/C4a-ui-chrome-and-platform.md), [D1a](ready/D1a-desktop-ipc-spike.md), [D1b](ready/D1b-desktop-print-spike.md) |
+| D2a | [ADR 0008 and the `apps/desktop` Tauri 2 scaffold](ready/D2a-adr-0008-and-desktop-scaffold.md) | ready | [C2a](ready/C2a-render-adrs.md), [C4a](ready/C4a-ui-chrome-and-platform.md), [D1a](ready/D1a-desktop-ipc-spike.md), [D1b](ready/D1b-desktop-print-spike.md), [U6b](ready/U6b-self-hosted-fonts.md) |
 | D2b | [Engine child process: protocol, file byte source, restart on crash](ready/D2b-engine-process.md) | ready | [C2b](ready/C2b-lamina-render-crate.md), [C4c](ready/C4c-remote-files-encryption-privacy.md), [C4d](ready/C4d-deploy-previews-and-production.md), [D2a](ready/D2a-adr-0008-and-desktop-scaffold.md) |
 | D2c | [Sandbox the engine process on macOS, Windows and Linux](ready/D2c-engine-sandbox.md) | ready | [D2b](ready/D2b-engine-process.md) |
 | D2d | [Tile transport and the desktop engine client: open and read one document](ready/D2d-tile-transport-and-first-document.md) | ready | [C3b](ready/C3b-viewer-virtualiser-and-zoom.md), [C4a](ready/C4a-ui-chrome-and-platform.md), [D2a](ready/D2a-adr-0008-and-desktop-scaffold.md), [D2b](ready/D2b-engine-process.md) |
@@ -143,7 +143,7 @@ Ready todos whose dependencies are all done:
 | ID | Todo | State | Depends on |
 | --- | --- | --- | --- |
 | U1a | [ADR 0024: app shell UX (layout, modes, command registry, selection, page appearance, mobile)](ready/U1a-adr-0024-app-shell-ux.md) | ready | [C2a](ready/C2a-render-adrs.md) |
-| U1b | [Command registry and command palette (`@lamina/ui`)](ready/U1b-command-registry-and-palette.md) | ready | [C4a](ready/C4a-ui-chrome-and-platform.md), [U1a](ready/U1a-adr-0024-app-shell-ux.md) |
+| U1b | [Command registry and command palette (`@lamina/ui`)](ready/U1b-command-registry-and-palette.md) | ready | [C4a](ready/C4a-ui-chrome-and-platform.md), [U1a](ready/U1a-adr-0024-app-shell-ux.md), [U6e](ready/U6e-overlays-and-sheets.md) |
 | U1c | [Inverted-L shell: left rail, docked inspector, modes and focus mode](ready/U1c-inverted-l-shell-and-modes.md) | ready | [C4a](ready/C4a-ui-chrome-and-platform.md), [U1a](ready/U1a-adr-0024-app-shell-ux.md), [U1b](ready/U1b-command-registry-and-palette.md) |
 | U2a | [Selection surfaces and copy modes (copy as paragraph, copy exact, column selection)](ready/U2a-selection-surfaces-and-copy-modes.md) | ready | [C5a](ready/C5a-text-layer-and-selection.md), [U1b](ready/U1b-command-registry-and-palette.md), [U2b](ready/U2b-reading-order-ground-truth.md), [U3a](ready/U3a-responsive-mobile-and-touch.md) |
 | U2b | [Reading-order ground-truth corpus and metric](ready/U2b-reading-order-ground-truth.md) | ready | [B9b](ready/B9b-text-extraction-core.md) |
@@ -156,6 +156,12 @@ Ready todos whose dependencies are all done:
 | U5a | [Pricing, promises and performance targets pages](ready/U5a-pricing-and-promises-page.md) | ready | [B7a](ready/B7a-docs-site.md), [C7c](ready/C7c-performance-gates-and-launch.md), [D7c](ready/D7c-desktop-beta-release.md) |
 | U5b | [Reader benchmark: lamina vs other PDF readers](ready/U5b-reader-benchmark.md) | ready | [C7c](ready/C7c-performance-gates-and-launch.md), [D7c](ready/D7c-desktop-beta-release.md) |
 | U5c | [Opt-in, content-free usage telemetry](ready/U5c-opt-in-usage-telemetry.md) | ready | [C7c](ready/C7c-performance-gates-and-launch.md), [D7a](ready/D7a-crash-reporting.md) |
+| U6a | [`@lamina/tokens`: Paper design tokens, themes, page appearances and a contrast test](ready/U6a-paper-tokens.md) | ready | [U1a](ready/U1a-adr-0024-app-shell-ux.md) |
+| U6b | [`@lamina/fonts`: self-hosted, subsetted Newsreader and Source Sans 3](ready/U6b-self-hosted-fonts.md) | ready | [U6a](ready/U6a-paper-tokens.md) |
+| U6c | [`@lamina/icons`: the Paper stroke icon set, `<Icon>`, gallery and grid lint](ready/U6c-icon-set.md) | ready | [U6a](ready/U6a-paper-tokens.md) |
+| U6d | [`@lamina/ui` core components: buttons, mode switcher, tabs, form controls, swatches, badges, notices, progress, status items, rows](ready/U6d-core-components.md) | ready | [U6a](ready/U6a-paper-tokens.md), [U6c](ready/U6c-icon-set.md) |
+| U6e | [`@lamina/ui` overlays: dialogs, bottom sheets, popovers and menus, selection toolbar positioning, palette shell, toasts, z-order](ready/U6e-overlays-and-sheets.md) | ready | [U6d](ready/U6d-core-components.md) |
+| U6f | [Component gallery, screenshot tests, axe on every page and the screens docs check](ready/U6f-gallery-and-visual-tests.md) | ready | [U6b](ready/U6b-self-hosted-fonts.md), [U6e](ready/U6e-overlays-and-sheets.md) |
 
 ## Hosted service
 

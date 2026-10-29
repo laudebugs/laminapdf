@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>lamina web, confirm form submission</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&amp;family=Source+Sans+3:wght@400;500;600&amp;family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&amp;display=swap">
+<style>
+body{margin:0;background:#F7F4EE}
+a{color:#1F5C63}a:hover{color:#16454B}
+button,input,textarea{font:inherit;color:inherit}
+</style>
+</helmet>
+<div style="position: relative; min-height: 100vh; display: flex; flex-direction: column; background: #F7F4EE; color: #1F1D1A; font-family: 'Source Sans 3', 'Segoe UI', system-ui, sans-serif; font-size: 14px; line-height: 1.4">
+
+  <header style="min-height: 40px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 20px; padding: 0 16px; border-bottom: 1px solid #E4DED3; background: #F7F4EE">
+    <div style="display: flex; align-items: center; gap: 10px; flex: 1 1 220px; min-width: 0">
+      <button aria-label="Sidebar" aria-pressed="true" style="width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 4px; color: #4A453E"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="3.5" y="4.5" width="17" height="15" rx="1.5"></rect><path d="M9 4.5v15"></path></svg></button>
+      <div style="display: flex; align-items: baseline; gap: 8px; min-width: 0">
+        <span style="font-family: 'Newsreader', Georgia, serif; font-size: 16px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">repair-request-form.pdf</span>
+        <span style="font-size: 12px; color: #6B645A; white-space: nowrap">19 unsaved changes</span>
+      </div>
+      <span aria-hidden="true" style="width: 1px; height: 18px; background: #E4DED3; margin: 0 2px"></span>
+      <button aria-label="Undo set Declaration" style="width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 4px; color: #4A453E"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M9 7L4.5 11.5 9 16"></path><path d="M4.5 11.5H15a4.5 4.5 0 0 1 0 9h-3"></path></svg></button>
+      <button aria-label="Redo" aria-disabled="true" style="width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 4px; color: #A39C91"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M15 7l4.5 4.5L15 16"></path><path d="M19.5 11.5H9a4.5 4.5 0 0 0 0 9h3"></path></svg></button>
+    </div>
+    <div role="group" aria-label="Mode" style="display: flex; align-items: stretch; gap: 22px; height: 40px">
+      <button aria-pressed="false" style="height: 40px; display: flex; align-items: center; border: 0; background: transparent; padding: 2px 0 0; color: #6B645A; border-bottom: 2px solid transparent">Read</button>
+      <button aria-pressed="false" style="height: 40px; display: flex; align-items: center; border: 0; background: transparent; padding: 2px 0 0; color: #6B645A; border-bottom: 2px solid transparent">Comment</button>
+      <button aria-pressed="true" style="height: 40px; display: flex; align-items: center; border: 0; background: transparent; padding: 2px 0 0; color: #1F1D1A; font-weight: 600; border-bottom: 2px solid {{accent}}">Fill &amp; Sign</button>
+      <button aria-pressed="false" style="height: 40px; display: flex; align-items: center; border: 0; background: transparent; padding: 2px 0 0; color: #6B645A; border-bottom: 2px solid transparent">Organise</button>
+      <button aria-pressed="false" style="height: 40px; display: flex; align-items: center; border: 0; background: transparent; padding: 2px 0 0; color: #6B645A; border-bottom: 2px solid transparent">Edit</button>
+    </div>
+    <div style="display: flex; align-items: center; justify-content: flex-end; gap: 14px; flex: 1 1 220px">
+      <div style="display: flex; align-items: center; gap: 6px; font-variant-numeric: tabular-nums">
+        <label for="pg" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Page</label>
+        <input id="pg" value="2" style="width: 30px; height: 24px; box-sizing: border-box; text-align: center; border: 1px solid #8A8174; border-radius: 4px; background: #FFFFFF; font-variant-numeric: tabular-nums; color: #1F1D1A">
+        <span style="color: #6B645A">/ 2</span>
+      </div>
+      <div style="display: flex; align-items: center; gap: 2px; font-variant-numeric: tabular-nums">
+        <button aria-label="Zoom out" style="width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 4px; color: #4A453E"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M6 12h12"></path></svg></button>
+        <span style="min-width: 40px; text-align: center; color: #1F1D1A">110%</span>
+        <button aria-label="Zoom in" style="width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 4px; color: #4A453E"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M6 12h12M12 6v12"></path></svg></button>
+      </div>
+      <button aria-label="Find in document" style="width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 4px; color: #4A453E"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6"></circle><path d="M15 15l5 5"></path></svg></button>
+      <button aria-label="View settings" aria-haspopup="dialog" aria-expanded="false" style="width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 4px; color: #4A453E"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="12" cy="12" r="7.5"></circle><path d="M12 4.5v15M12 8.5h5.5M12 12h7.5M12 15.5h5.5"></path></svg></button>
+      <button style="height: 26px; display: flex; align-items: center; gap: 8px; padding: 0 6px 0 10px; border: 1px solid #E4DED3; background: #FBF9F5; border-radius: 4px; color: #6B645A; font-size: 13px"><span>Commands</span><span style="font-size: 11px; padding: 1px 5px; border: 1px solid #D8D1C5; border-radius: 3px; color: #4A453E; background: #FFFFFF">Ctrl K</span></button>
+      <button style="height: 26px; padding: 0 12px; border: 1px solid {{accent}}; background: {{accent}}; color: #FFFFFF; border-radius: 4px; font-size: 13px; font-weight: 600">Save</button>
+      <button aria-label="More actions" style="width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 4px; color: #4A453E"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="5.5" cy="12" r="0.9"></circle><circle cx="12" cy="12" r="0.9"></circle><circle cx="18.5" cy="12" r="0.9"></circle></svg></button>
+    </div>
+  </header>
+
+  <div role="toolbar" aria-label="Fill and sign tools" style="min-height: 40px; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; padding: 0 16px; border-bottom: 1px solid #E4DED3; background: #FBF9F5; font-size: 13px">
+    <button style="height: 28px; display: flex; align-items: center; gap: 6px; padding: 0 10px; border: 1px solid transparent; background: transparent; border-radius: 4px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M15 5l-7 7 7 7"></path></svg>Previous field</button>
+    <button style="height: 28px; display: flex; align-items: center; gap: 6px; padding: 0 10px; border: 1px solid transparent; background: transparent; border-radius: 4px">Next field<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M9 5l7 7-7 7"></path></svg></button>
+    <button aria-pressed="true" style="height: 28px; display: flex; align-items: center; gap: 6px; padding: 0 10px; border: 1px solid {{accent}}; background: {{accentTint}}; color: {{accent}}; border-radius: 4px; font-weight: 600"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="3.5" y="7" width="17" height="10" rx="1"></rect><path d="M7 10v4"></path></svg>Highlight fields</button>
+    <span aria-hidden="true" style="width: 1px; height: 18px; background: #E4DED3; margin: 0 8px"></span>
+    <button aria-pressed="false" style="height: 28px; display: flex; align-items: center; gap: 6px; padding: 0 10px; border: 1px solid transparent; background: transparent; border-radius: 4px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M5 7V5h14v2M12 5v14M9.5 19h5"></path></svg>Text</button>
+    <button aria-pressed="false" style="height: 28px; display: flex; align-items: center; gap: 6px; padding: 0 10px; border: 1px solid transparent; background: transparent; border-radius: 4px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M6 12.5l4 4 8-9"></path></svg>Check</button>
+    <button aria-pressed="false" style="height: 28px; display: flex; align-items: center; gap: 6px; padding: 0 10px; border: 1px solid transparent; background: transparent; border-radius: 4px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="4.5" y="5.5" width="15" height="14" rx="1.5"></rect><path d="M4.5 9.5h15M8.5 3.5v4M15.5 3.5v4"></path></svg>Date</button>
+    <span aria-hidden="true" style="width: 1px; height: 18px; background: #E4DED3; margin: 0 8px"></span>
+    <button aria-pressed="false" style="height: 28px; display: flex; align-items: center; gap: 6px; padding: 0 10px; border: 1px solid transparent; background: transparent; border-radius: 4px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M4 17c3-6 5-9 7-9s1 6 3 6 3-4 6-6"></path></svg>Add a signature image</button>
+    <button aria-pressed="false" style="height: 28px; display: flex; align-items: center; gap: 6px; padding: 0 10px; border: 1px solid transparent; background: transparent; border-radius: 4px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="4" y="4.5" width="16" height="11" rx="1"></rect><path d="M7.5 8.5h9M7.5 11.5h4"></path><circle cx="16" cy="16" r="2.8"></circle><path d="M14.6 18.5l-.8 3 2.2-1 2.2 1-.8-3"></path></svg>Sign with a certificate</button>
+    <button aria-haspopup="menu" aria-expanded="false" style="height: 28px; display: flex; align-items: center; gap: 6px; padding: 0 10px; border: 1px solid transparent; background: transparent; border-radius: 4px">Form data<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M7 10l5 5 5-5"></path></svg></button>
+    <button aria-label="More fill and sign tools" style="width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 4px; color: #4A453E"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="5.5" cy="12" r="0.9"></circle><circle cx="12" cy="12" r="0.9"></circle><circle cx="18.5" cy="12" r="0.9"></circle></svg></button>
+    <span style="flex: 1 1 auto"></span>
+    <span style="font-size: 12px; color: #6B645A; font-variant-numeric: tabular-nums">9 of 9 required fields filled</span>
+  </div>
+
+  <div style="flex: 1 1 auto; min-height: 0; display: flex; flex-wrap: wrap">
+    <aside aria-label="Sidebar" style="flex: 0 0 280px; min-width: 0; box-sizing: border-box; border-right: 1px solid #E4DED3; background: #F7F4EE; display: flex; flex-direction: column; overflow: hidden">
+      <div style="display: flex; align-items: flex-end; gap: 0; padding: 14px 10px 0 14px; border-bottom: 1px solid #E4DED3">
+        <div role="tablist" aria-label="Sidebar" style="flex: 1 1 auto; display: flex; gap: 12px">
+          <button role="tab" aria-selected="false" style="border: 0; background: transparent; padding: 0 0 8px; font-size: 13px; color: #6B645A; border-bottom: 2px solid transparent">Pages</button>
+          <button role="tab" aria-selected="false" style="border: 0; background: transparent; padding: 0 0 8px; font-size: 13px; color: #6B645A; border-bottom: 2px solid transparent">Outline</button>
+          <button role="tab" aria-selected="true" style="border: 0; background: transparent; padding: 0 0 8px; font-size: 13px; font-weight: 600; color: #1F1D1A; border-bottom: 2px solid {{accent}}">Fields</button>
+        </div>
+        <button aria-label="More tabs" aria-haspopup="menu" aria-expanded="false" style="width: 28px; height: 28px; margin-bottom: 4px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 4px; color: #4A453E"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="5.5" cy="12" r="0.9"></circle><circle cx="12" cy="12" r="0.9"></circle><circle cx="18.5" cy="12" r="0.9"></circle></svg></button>
+      </div>
+      <nav aria-label="Form fields in tab order" style="display: flex; flex-direction: column; gap: 2px; padding: 12px 10px; font-size: 13px">
+        <a href="#" style="display: flex; align-items: center; gap: 8px; min-height: 28px; padding: 0 8px; border-radius: 4px; color: #1F1D1A; text-decoration: none"><span style="flex: 1 1 auto">Show page 1 fields</span><span style="font-size: 12px; color: #2F6A45">All filled</span></a>
+        <span style="margin-top: 6px; padding: 4px 8px; font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: #6B645A">Page 2 · 15 fields</span>
+        <a href="#" style="display: flex; align-items: center; gap: 8px; min-height: 28px; padding: 0 8px; border-radius: 4px; color: #1F1D1A; text-decoration: none"><span style="width: 18px; font-size: 12px; color: #6B645A; font-variant-numeric: tabular-nums">25</span><span style="flex: 1 1 auto">Declaration</span><span style="font-size: 12px; color: #2F6A45">Filled</span></a>
+        <a href="#" style="display: flex; align-items: center; gap: 8px; min-height: 28px; padding: 0 8px; border-radius: 4px; color: #1F1D1A; text-decoration: none"><span style="width: 18px; font-size: 12px; color: #6B645A; font-variant-numeric: tabular-nums">26</span><span style="flex: 1 1 auto">Signature</span><span style="font-size: 12px; color: #2F6A45">Image added</span></a>
+        <a href="#" style="display: flex; align-items: center; gap: 8px; min-height: 28px; padding: 0 8px; border-radius: 4px; color: #1F1D1A; text-decoration: none"><span style="width: 18px; font-size: 12px; color: #6B645A; font-variant-numeric: tabular-nums">27</span><span style="flex: 1 1 auto">Send request to Northwind</span><span style="font-size: 12px; color: #6B645A">Button</span></a>
+      </nav>
+    </aside>
+  <main style="flex: 999 1 560px; min-width: 0; background: #ECE7DE; display: flex; justify-content: center; padding: 32px 16px; box-sizing: border-box">
+    <div aria-hidden="true" style="width: 100%; max-width: 612px; min-height: 790px; box-sizing: border-box; background: #FFFFFF; box-shadow: 0 1px 2px rgba(60,48,30,0.08), 0 8px 28px rgba(60,48,30,0.10); padding: 48px 56px 32px; display: flex; flex-direction: column; gap: 14px; font-family: 'Source Serif 4', Georgia, serif; color: #262421; font-size: 13px">
+      <div style="display: flex; justify-content: space-between; font-family: 'Source Sans 3', system-ui, sans-serif; font-size: 10.5px; letter-spacing: 0.08em; text-transform: uppercase; color: #6E6A64; border-bottom: 1px solid #E6E3DE; padding-bottom: 10px"><span>Northwind Housing Trust</span><span>Repair request form</span></div>
+      <h3 style="margin: 6px 0 0; font-size: 15px; font-weight: 600">5. Declaration</h3>
+      <p style="margin: 0">The information I have given is true. I understand the Trust may recharge me for damage I or my visitors caused.</p>
+      <span style="height: 40px; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 0 10px; border: 1px solid #8A8174; background: #EDF2F3"><span style="font-family: 'Newsreader', Georgia, serif; font-style: italic; font-size: 20px; color: #1F1D1A">Amara Okafor</span><span style="font-family: 'Source Sans 3', system-ui, sans-serif; font-size: 12px; color: #4A453E">Signature image · 29/10/2026</span></span>
+      <span style="align-self: flex-start; height: 30px; padding: 0 18px; display: flex; align-items: center; border: 1px solid #1C1B19; font-family: 'Source Sans 3', system-ui, sans-serif; font-size: 13px; font-weight: 600">Send request to Northwind</span>
+    </div>
+  </main>
+  </div>
+
+  <footer style="min-height: 28px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px 16px; padding: 0 16px; border-top: 1px solid #E4DED3; background: #F7F4EE; font-size: 12px; color: #6B645A">
+    <span style="display: flex; align-items: center; gap: 7px"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="{{accent}}" stroke-width="1.5" aria-hidden="true"><path d="M12 3.5l7 2.5v5.5c0 4.3-3 7.6-7 9-4-1.4-7-4.7-7-9V6z"></path><path d="M9 12l2.2 2.2L15.5 10"></path></svg><span style="color: #1F1D1A">0 network requests for this document</span><span>· Offline-safe: nothing uploaded</span></span>
+    <span>Interactive form · 27 fields</span>
+    <span style="font-variant-numeric: tabular-nums">Page 2 of 2</span>
+  </footer>
+
+  <div style="position: absolute; inset: 0; background: rgba(31,29,26,0.30); display: flex; justify-content: center; align-items: flex-start; padding: 120px 16px 0; box-sizing: border-box">
+    <div role="dialog" aria-modal="true" aria-labelledby="sub-t" aria-describedby="sub-d" style="width: 100%; max-width: 560px; box-sizing: border-box; padding: 24px; display: flex; flex-direction: column; gap: 16px; background: #FBF9F5; border: 1px solid #D8D1C5; border-radius: 6px; box-shadow: 0 18px 48px rgba(31,29,26,0.22)">
+      <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 12px">
+        <h2 id="sub-t" style="margin: 0; font-family: 'Newsreader', Georgia, serif; font-size: 20px; font-weight: 500; line-height: 1.2">Send this form to another computer?</h2>
+        <button aria-label="Close Send this form" style="width: 28px; height: 28px; flex: 0 0 auto; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 4px; color: #4A453E"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg></button>
+      </div>
+      <p id="sub-d" style="margin: 0">The form’s “Send request to Northwind” button wants to send your answers over the internet. lamina sends nothing unless you choose Send.</p>
+      <dl style="margin: 0; display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: 10px 16px; padding: 14px 16px; background: #FFFFFF; border: 1px solid #E4DED3; border-radius: 4px">
+        <dt style="font-size: 12px; font-weight: 600; color: #4A453E">To</dt>
+        <dd style="margin: 0; overflow-wrap: anywhere"><span style="{{schemeStyle}}">{{scheme}}</span><span style="font-weight: 600">repairs.northwind-housing.example</span><span style="color: #6B645A">/submit</span></dd>
+        <dt style="font-size: 12px; font-weight: 600; color: #4A453E">Format</dt>
+        <dd style="margin: 0">Web form data (HTML)</dd>
+        <dt style="font-size: 12px; font-weight: 600; color: #4A453E">Fields sent</dt>
+        <dd style="margin: 0; display: flex; flex-direction: column; gap: 4px">
+          <span style="font-variant-numeric: tabular-nums">19 of 27 fields</span>
+          <span style="font-size: 13px; color: #4A453E">Full name, Tenancy reference, Address, Phone, How should we contact you?, Type of repair, Date you first noticed it, Describe the problem …</span>
+          <button style="align-self: flex-start; height: 24px; padding: 0; border: 0; background: transparent; color: {{accent}}; font-size: 13px; font-weight: 600; text-decoration: underline">Show all 19 fields and values</button>
+        </dd>
+        <dt style="font-size: 12px; font-weight: 600; color: #4A453E">Not sent</dt>
+        <dd style="margin: 0">The PDF itself, your comments, and any other file</dd>
+      </dl>
+      <div role="note" style="display: flex; gap: 10px; padding: 10px 12px; background: #FBF9F5; border: 1px solid #E4DED3; border-radius: 4px; font-size: 13px">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="{{accent}}" stroke-width="1.5" aria-hidden="true" style="flex: 0 0 auto; margin-top: 1px"><path d="M12 3.5l7 2.5v5.5c0 4.3-3 7.6-7 9-4-1.4-7-4.7-7-9V6z"></path><path d="M9 12l2.2 2.2L15.5 10"></path></svg>
+        <span>Sending makes <strong style="font-weight: 600">1 network request</strong>. The status bar will list it, and lamina asks again for every send.</span>
+      </div>
+      <sc-if value="{{errHttp}}" hint-placeholder-val="{{ false }}">
+      <div role="alert" style="display: flex; gap: 10px; padding: 10px 12px; background: #F1E4E2; border: 1px solid #9B2335; border-radius: 4px; font-size: 13px">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9B2335" stroke-width="1.5" aria-hidden="true" style="flex: 0 0 auto; margin-top: 1px"><path d="M12 4l9 16H3z"></path><path d="M12 10v4M12 17v.5"></path></svg>
+        <span><strong style="font-weight: 600; color: #9B2335">lamina can’t send to an http:// address.</strong> It isn’t encrypted, so anyone on the network could read the answers. Ask Northwind for an https:// address, or export the form data and send the file yourself.</span>
+      </div>
+      </sc-if>
+      <sc-if value="{{errBlocked}}" hint-placeholder-val="{{ false }}">
+      <div role="alert" style="display: flex; gap: 10px; padding: 10px 12px; background: #F1E4E2; border: 1px solid #9B2335; border-radius: 4px; font-size: 13px">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9B2335" stroke-width="1.5" aria-hidden="true" style="flex: 0 0 auto; margin-top: 1px"><path d="M12 4l9 16H3z"></path><path d="M12 10v4M12 17v.5"></path></svg>
+        <span><strong style="font-weight: 600; color: #9B2335">Not sent.</strong> The server at repairs.northwind-housing.example didn’t accept a send from a web page. Use the lamina desktop app, or export the form data and send the file yourself. Nothing was uploaded.</span>
+      </div>
+      </sc-if>
+      <div style="display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px">
+        <button style="height: 32px; padding: 0 16px; border: 1px solid #8A8174; background: #FFFFFF; border-radius: 4px; outline: 2px solid {{accent}}; outline-offset: 2px">Don’t send</button>
+        <sc-if value="{{anyError}}" hint-placeholder-val="{{ false }}"><button style="height: 32px; padding: 0 16px; border: 1px solid #8A8174; background: #FFFFFF; border-radius: 4px">Export form data…</button></sc-if>
+        <sc-if value="{{canSend}}" hint-placeholder-val="{{ true }}"><button style="height: 32px; padding: 0 16px; border: 1px solid {{accent}}; background: {{accent}}; color: #FFFFFF; border-radius: 4px; font-weight: 600">Send</button></sc-if>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#1F5C63","options":["#1F5C63","#2D4A6B","#3E4A3C"]},"sendError":{"editor":"enum","options":["none","http","blocked"],"default":"none"},"$preview":{"width":1440,"height":1000}}'>
+class Component extends DCLogic {
+  renderVals() {
+    var accent = this.props.accent ?? '#1F5C63';
+    function mix(hex, base, t) {
+      var p = function (h, i) { return parseInt(h.replace('#', '').substr(i, 2), 16); };
+      var out = '#';
+      for (var i = 0; i < 6; i += 2) {
+        var v = Math.round(p(hex, i) * t + p(base, i) * (1 - t));
+        out += (v < 16 ? '0' : '') + v.toString(16);
+      }
+      return out;
+    }
+    return { accent: accent, accentTint: mix(accent, '#FBF9F5', 0.12), errHttp: (this.props.sendError ?? 'none') === 'http', errBlocked: (this.props.sendError ?? 'none') === 'blocked', canSend: (this.props.sendError ?? 'none') !== 'http', anyError: (this.props.sendError ?? 'none') !== 'none', scheme: (this.props.sendError ?? 'none') === 'http' ? 'http://' : 'https://', schemeStyle: (this.props.sendError ?? 'none') === 'http' ? 'color: #9B2335; font-weight: 600' : 'color: #6B645A' };
+  }
+}
+</script>
+</body>
+</html>

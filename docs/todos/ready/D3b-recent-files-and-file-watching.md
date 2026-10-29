@@ -20,6 +20,7 @@ Two desktop-only conveniences that power users expect. **Recent files**: every o
 
 ## Context
 
+- **Design (Paper):** [S01 Start window](../../design/paper/desktop-shell.md#s01-start-window), [S04 File changed on disk](../../design/paper/desktop-shell.md#s04-file-changed-on-disk). Build to match these screens; record any deviation in the area document ([Paper design plan §5](../../plans/paper-design.md#5-how-the-designs-are-used)).
 - [Desktop plan §4 req. 1 and §2 scope](../../plans/desktop-app.md#2-scope-and-non-goals): recent files (OS + in-app list), reopen last session (D4a), file watching with reload.
 - [Desktop notes Q3](../../research/architecture/notes/desktop-shell.md#q3-performance-native-rust-over-ipc-vs-wasm-in-webview-bitmaps-1-gb-files-mmap-file-watching): use the `notify` crate in Rust rather than the fs plugin's JS `watch`.
 - D2b: `FileSource` (positioned reads on an open handle, no mmap in the main process); `DocumentRegistry` reload entry point.

@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Compare, side by side</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&amp;family=Source+Sans+3:wght@400;500;600&amp;family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&amp;display=swap">
+<style>
+body{margin:0;background:#DCD6CB}
+a{color:#1F5C63}a:hover{color:#16454B}
+button,input,textarea,select{font:inherit;color:inherit}
+</style>
+</helmet>
+<div style="min-height: 100vh; display: flex; flex-direction: column; background: #DCD6CB; font-family: 'Source Sans 3', 'Segoe UI', system-ui, sans-serif; font-size: 14px; line-height: 1.4; color: #1F1D1A">
+<div style="position: relative; flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; background: #F7F4EE; border: 1px solid #C9C2B6; border-radius: 10px; overflow: hidden; box-sizing: border-box">
+
+  <div style="height: 30px; flex: 0 0 auto; display: flex; align-items: center; padding: 0 12px; background: #EFEBE3; border-bottom: 1px solid #E0D9CD; position: relative">
+    <div aria-hidden="true" style="display: flex; gap: 8px"><span style="width: 12px; height: 12px; border-radius: 50%; background: #EC6A5E; border: 0.5px solid #D2574C"></span><span style="width: 12px; height: 12px; border-radius: 50%; background: #F4BF4F; border: 0.5px solid #D9A63A"></span><span style="width: 12px; height: 12px; border-radius: 50%; background: #61C554; border: 0.5px solid #4CAA40"></span></div>
+    <div style="position: absolute; left: 0; right: 0; text-align: center; font-size: 13px; font-weight: 600; color: #3A3631; pointer-events: none">Compare</div>
+  </div>
+
+  <header style="min-height: 40px; flex: 0 0 auto; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 20px; padding: 4px 16px; border-bottom: 1px solid #E4DED3">
+    <div style="display: flex; align-items: center; gap: 10px; flex: 1 1 420px; min-width: 0; flex-wrap: wrap">
+      <span style="font-family: 'Newsreader', Georgia, serif; font-size: 16px; font-weight: 500">Compare</span>
+      <button aria-label="Older version: Q3-board-report.pdf, revision 2. Change" style="height: 26px; display: flex; align-items: center; gap: 6px; padding: 0 8px; border: 1px solid #8A8174; background: #FFFFFF; border-radius: 4px; font-size: 13px"><span style="color: #6B645A">Older</span><span>Q3-board-report.pdf · revision 2</span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#4A453E" stroke-width="1.5" aria-hidden="true"><path d="M7 10l5 5 5-5"></path></svg></button>
+      <button aria-label="Swap older and newer" style="width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 4px; color: #4A453E"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M5 9h12l-3-3M19 15H7l3 3"></path></svg></button>
+      <button aria-label="Newer version: Q3-board-report.pdf, current. Change" style="height: 26px; display: flex; align-items: center; gap: 6px; padding: 0 8px; border: 1px solid #8A8174; background: #FFFFFF; border-radius: 4px; font-size: 13px"><span style="color: #6B645A">Newer</span><span>Q3-board-report.pdf · current</span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#4A453E" stroke-width="1.5" aria-hidden="true"><path d="M7 10l5 5 5-5"></path></svg></button>
+    </div>
+    <div role="group" aria-label="View" style="display: flex; align-items: stretch; gap: 22px; height: 40px">
+      <button aria-pressed="true" style="height: 40px; display: flex; align-items: center; border: 0; background: transparent; padding: 2px 0 0; color: #1F1D1A; font-weight: 600; border-bottom: 2px solid #1F5C63">Side by side</button>
+      <button aria-pressed="false" style="height: 40px; display: flex; align-items: center; border: 0; background: transparent; padding: 2px 0 0; color: #6B645A; border-bottom: 2px solid transparent">Overlay</button>
+    </div>
+    <div style="display: flex; align-items: center; justify-content: flex-end; gap: 10px; flex: 1 1 260px">
+      <button aria-label="Previous change" style="width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 4px; color: #4A453E"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M12 18.5V5.5M7 10.5l5-5 5 5"></path></svg></button>
+      <span style="font-variant-numeric: tabular-nums; font-size: 13px">1 of 9</span>
+      <button aria-label="Next change" style="width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 4px; color: #4A453E"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M12 5.5v13M7 13.5l5 5 5-5"></path></svg></button>
+      <div role="group" aria-label="Zoom" style="display: flex; align-items: center; gap: 2px; font-variant-numeric: tabular-nums"><button aria-label="Zoom out" style="width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 4px; color: #4A453E"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M6 12h12"></path></svg></button><span style="min-width: 40px; text-align: center; font-size: 13px">90%</span><button aria-label="Zoom in" style="width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 4px; color: #4A453E"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M6 12h12M12 6v12"></path></svg></button></div>
+      <button aria-label="Find in document" style="width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 4px; color: #4A453E"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6"></circle><path d="M15 15l5 5"></path></svg></button>
+      <button aria-label="View settings" aria-haspopup="dialog" style="width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 4px; color: #4A453E"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="12" cy="12" r="7.5"></circle><path d="M12 4.5v15M12 8.5h5.5M12 12h7.5M12 15.5h5.5"></path></svg></button>
+      <button style="height: 26px; padding: 0 12px; border: 1px solid #8A8174; background: #FFFFFF; border-radius: 4px; font-size: 13px">Export report…</button>
+      <button aria-label="More actions" style="width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 4px; color: #4A453E"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="5.5" cy="12" r="0.9"></circle><circle cx="12" cy="12" r="0.9"></circle><circle cx="18.5" cy="12" r="0.9"></circle></svg></button>
+    </div>
+  </header>
+
+  <div role="toolbar" aria-label="Show changes" style="min-height: 40px; flex: 0 0 auto; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; padding: 0 16px; border-bottom: 1px solid #E4DED3; background: #FBF9F5; font-size: 13px">
+    <span style="font-size: 12px; color: #6B645A; margin-right: 4px">Show</span>
+    <button aria-pressed="true" style="height: 28px; display: flex; align-items: center; gap: 6px; padding: 0 10px; border: 1px solid #1F5C63; background: #E1E6E3; color: #1F5C63; border-radius: 4px; font-weight: 600">Text <span style="font-variant-numeric: tabular-nums">5</span></button>
+    <button aria-pressed="true" style="height: 28px; display: flex; align-items: center; gap: 6px; padding: 0 10px; border: 1px solid #1F5C63; background: #E1E6E3; color: #1F5C63; border-radius: 4px; font-weight: 600">Images and drawings <span style="font-variant-numeric: tabular-nums">1</span></button>
+    <button aria-pressed="true" style="height: 28px; display: flex; align-items: center; gap: 6px; padding: 0 10px; border: 1px solid #1F5C63; background: #E1E6E3; color: #1F5C63; border-radius: 4px; font-weight: 600">Comments <span style="font-variant-numeric: tabular-nums">2</span></button>
+    <button aria-pressed="true" style="height: 28px; display: flex; align-items: center; gap: 6px; padding: 0 10px; border: 1px solid #1F5C63; background: #E1E6E3; color: #1F5C63; border-radius: 4px; font-weight: 600">Pages <span style="font-variant-numeric: tabular-nums">1</span></button>
+    <span aria-hidden="true" style="width: 1px; height: 18px; background: #E4DED3; margin: 0 8px"></span>
+    <label style="display: flex; align-items: center; gap: 8px; min-height: 24px"><sc-if value="{{on}}" hint-placeholder-val="{{ true }}"><input type="checkbox" checked style="width: 16px; height: 16px; margin: 0; accent-color: #1F5C63"></sc-if> Scroll together</label>
+    <span style="flex: 1 1 auto"></span>
+    <span style="font-size: 12px; color: #6B645A">Pages matched by content · page 12 was replaced</span>
+  </div>
+
+  <div style="flex: 1 1 auto; min-height: 0; display: flex; flex-wrap: wrap">
+    <aside aria-label="Changes" style="flex: 0 0 260px; box-sizing: border-box; border-right: 1px solid #E4DED3; display: flex; flex-direction: column; overflow: auto">
+      <div style="display: flex; align-items: baseline; justify-content: space-between; padding: 14px 18px 10px; border-bottom: 1px solid #E4DED3">
+        <h2 style="margin: 0; font-family: 'Newsreader', Georgia, serif; font-size: 18px; font-weight: 500">Changes</h2>
+        <span style="font-size: 12px; color: #6B645A; font-variant-numeric: tabular-nums">9 on 4 pages</span>
+      </div>
+      <nav aria-label="Changes by page" style="display: flex; flex-direction: column; gap: 2px; padding: 10px">
+        <span style="padding: 8px 8px 4px; font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; color: #6B645A">Page 3</span>
+        <a href="#" aria-current="true" style="display: flex; flex-direction: column; gap: 2px; padding: 6px 8px; border-radius: 4px; background: #E1E6E3; box-shadow: inset 0 0 0 1px #1F5C63; text-decoration: none; color: #1F1D1A; outline: 2px solid #1F5C63; outline-offset: 2px">
+          <span style="font-size: 12px; font-weight: 600; color: #1F5C63">1 · Text changed</span>
+          <span style="font-size: 13px"><span style="text-decoration: line-through">1,301</span> → <span style="text-decoration: underline">1,248</span></span>
+        </a>
+        <a href="#" style="display: flex; flex-direction: column; gap: 2px; padding: 6px 8px; border-radius: 4px; text-decoration: none; color: #1F1D1A">
+          <span style="font-size: 12px; font-weight: 600; color: #4A453E">2 · Text added</span>
+          <span style="font-size: 13px">“by 18%”</span>
+        </a>
+        <a href="#" style="display: flex; flex-direction: column; gap: 2px; padding: 6px 8px; border-radius: 4px; text-decoration: none; color: #1F1D1A">
+          <span style="font-size: 12px; font-weight: 600; color: #4A453E">3 · Chart changed</span>
+          <span style="font-size: 13px">North 440 → 412, West 222 → 197</span>
+        </a>
+        <a href="#" style="display: flex; flex-direction: column; gap: 2px; padding: 6px 8px; border-radius: 4px; text-decoration: none; color: #1F1D1A">
+          <span style="font-size: 12px; font-weight: 600; color: #4A453E">4 · Highlight added</span>
+          <span style="font-size: 13px">R. Osei · “The backlog fell…”</span>
+        </a>
+        <span style="padding: 10px 8px 4px; font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; color: #6B645A">Page 7</span>
+        <a href="#" style="display: flex; flex-direction: column; gap: 2px; padding: 6px 8px; border-radius: 4px; text-decoration: none; color: #1F1D1A"><span style="font-size: 12px; font-weight: 600; color: #4A453E">5 · Text changed</span><span style="font-size: 13px">Rent collected 97.1% → 97.4%</span></a>
+        <a href="#" style="display: flex; flex-direction: column; gap: 2px; padding: 6px 8px; border-radius: 4px; text-decoration: none; color: #1F1D1A"><span style="font-size: 12px; font-weight: 600; color: #4A453E">6 · Note added</span><span style="font-size: 13px">A. Lindqvist · “Check against Q2”</span></a>
+        <span style="padding: 10px 8px 4px; font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; color: #6B645A">Page 11</span>
+        <a href="#" style="display: flex; flex-direction: column; gap: 2px; padding: 6px 8px; border-radius: 4px; text-decoration: none; color: #1F1D1A"><span style="font-size: 12px; font-weight: 600; color: #4A453E">7 · Text removed</span><span style="font-size: 13px">“subject to budget”</span></a>
+        <a href="#" style="display: flex; flex-direction: column; gap: 2px; padding: 6px 8px; border-radius: 4px; text-decoration: none; color: #1F1D1A"><span style="font-size: 12px; font-weight: 600; color: #4A453E">8 · Text changed</span><span style="font-size: 13px">2 surveyors → 3 surveyors</span></a>
+        <span style="padding: 10px 8px 4px; font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; color: #6B645A">Page 12</span>
+        <a href="#" style="display: flex; flex-direction: column; gap: 2px; padding: 6px 8px; border-radius: 4px; text-decoration: none; color: #1F1D1A"><span style="font-size: 12px; font-weight: 600; color: #4A453E">9 · Page replaced</span><span style="font-size: 13px">“Surveyor rota, September” → “Surveyor rota, October”</span></a>
+      </nav>
+    </aside>
+
+    <main aria-label="Pages side by side" style="flex: 999 1 560px; min-width: 0; background: #ECE7DE; overflow: auto; display: flex; flex-wrap: wrap; justify-content: center; align-items: flex-start; gap: 24px; padding: 20px 16px 28px; box-sizing: border-box">
+      <section aria-label="Older: revision 2, page 3" style="flex: 1 1 380px; max-width: 470px; display: flex; flex-direction: column; gap: 8px">
+        <span style="font-size: 12px; color: #4A453E">Older · revision 2 · page 3</span>
+        <article style="min-height: 600px; box-sizing: border-box; background: #FFFFFF; box-shadow: 0 1px 2px rgba(60,48,30,0.08), 0 8px 28px rgba(60,48,30,0.10); padding: 40px 44px 28px; display: flex; flex-direction: column; gap: 13px; font-family: 'Source Serif 4', Georgia, serif; color: #262421; font-size: 11.5px; line-height: 1.6">
+          <div style="display: flex; justify-content: space-between; font-family: 'Source Sans 3', system-ui, sans-serif; font-size: 8.5px; letter-spacing: 0.08em; text-transform: uppercase; color: #6E6A64; border-bottom: 1px solid #E6E3DE; padding-bottom: 8px"><span>Northwind Housing Trust</span><span>Q3 Board Report · Draft</span></div>
+          <h3 style="margin: 6px 0 0; font-size: 18px; font-weight: 600; color: #1C1B19">2. Repairs backlog</h3>
+          <p style="margin: 0">Open repair jobs stood at <span style="background: #F1E4E2; text-decoration: line-through; outline: 2px solid #1F5C63; outline-offset: 1px">1,301</span> at the end of September across the four regions. Most of the work closed this quarter was routine plumbing and joinery.</p>
+          <p style="margin: 0">The backlog fell over the quarter, but the oldest 10% of jobs are now older than 90 days. These are mainly damp and mould cases that need a surveyor’s visit.</p>
+          <figure style="margin: 4px 0 0; display: flex; flex-direction: column; gap: 8px; font-family: 'Source Sans 3', system-ui, sans-serif; outline: 1.5px dashed #9B2335; outline-offset: 4px">
+            <figcaption style="font-size: 10.5px; font-weight: 600">Open repairs by region, end of September</figcaption>
+            <div style="display: grid; grid-template-columns: 40px minmax(0, 1fr) 30px; align-items: center; gap: 6px 8px; font-size: 10.5px; color: #3A3733; font-variant-numeric: tabular-nums">
+              <span>North</span><span style="height: 10px; width: 100%; background: #4E5A63"></span><span style="text-align: right">440</span>
+              <span>East</span><span style="height: 10px; width: 65.5%; background: #4E5A63"></span><span style="text-align: right">288</span>
+              <span>South</span><span style="height: 10px; width: 79.8%; background: #4E5A63"></span><span style="text-align: right">351</span>
+              <span>West</span><span style="height: 10px; width: 50.5%; background: #4E5A63"></span><span style="text-align: right">222</span>
+            </div>
+          </figure>
+        </article>
+      </section>
+      <section aria-label="Newer: current, page 3" style="flex: 1 1 380px; max-width: 470px; display: flex; flex-direction: column; gap: 8px">
+        <span style="font-size: 12px; color: #4A453E">Newer · current · page 3</span>
+        <article style="min-height: 600px; box-sizing: border-box; background: #FFFFFF; box-shadow: 0 1px 2px rgba(60,48,30,0.08), 0 8px 28px rgba(60,48,30,0.10); padding: 40px 44px 28px; display: flex; flex-direction: column; gap: 13px; font-family: 'Source Serif 4', Georgia, serif; color: #262421; font-size: 11.5px; line-height: 1.6">
+          <div style="display: flex; justify-content: space-between; font-family: 'Source Sans 3', system-ui, sans-serif; font-size: 8.5px; letter-spacing: 0.08em; text-transform: uppercase; color: #6E6A64; border-bottom: 1px solid #E6E3DE; padding-bottom: 8px"><span>Northwind Housing Trust</span><span>Q3 Board Report</span></div>
+          <h3 style="margin: 6px 0 0; font-size: 18px; font-weight: 600; color: #1C1B19">2. Repairs backlog</h3>
+          <p style="margin: 0">Open repair jobs stood at <span style="background: #E7EBE3; text-decoration: underline; outline: 2px solid #1F5C63; outline-offset: 1px">1,248</span> at the end of September across the four regions. Most of the work closed this quarter was routine plumbing and joinery.</p>
+          <p style="margin: 0"><span style="background: #F2D675">The backlog fell <span style="background: #E7EBE3; text-decoration: underline">by 18%</span> over the quarter, but the oldest 10% of jobs are now older than 90 days.</span> These are mainly damp and mould cases that need a surveyor’s visit.</p>
+          <figure style="margin: 4px 0 0; display: flex; flex-direction: column; gap: 8px; font-family: 'Source Sans 3', system-ui, sans-serif; outline: 1.5px dashed #2F6A45; outline-offset: 4px">
+            <figcaption style="font-size: 10.5px; font-weight: 600">Open repairs by region, end of September</figcaption>
+            <div style="display: grid; grid-template-columns: 40px minmax(0, 1fr) 30px; align-items: center; gap: 6px 8px; font-size: 10.5px; color: #3A3733; font-variant-numeric: tabular-nums">
+              <span>North</span><span style="height: 10px; width: 100%; background: #4E5A63"></span><span style="text-align: right">412</span>
+              <span>East</span><span style="height: 10px; width: 69.9%; background: #4E5A63"></span><span style="text-align: right">288</span>
+              <span>South</span><span style="height: 10px; width: 85.2%; background: #4E5A63"></span><span style="text-align: right">351</span>
+              <span>West</span><span style="height: 10px; width: 47.8%; background: #4E5A63"></span><span style="text-align: right">197</span>
+            </div>
+          </figure>
+        </article>
+      </section>
+    </main>
+  </div>
+
+  <footer style="min-height: 28px; flex: 0 0 auto; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px 16px; padding: 0 16px; border-top: 1px solid #E4DED3; font-size: 12px; color: #6B645A">
+    <button style="min-height: 24px; display: flex; align-items: center; gap: 7px; border: 0; background: transparent; padding: 0 4px; font-size: 12px; color: #6B645A"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#1F5C63" stroke-width="1.5" aria-hidden="true"><path d="M12 3.5l7 2.5v5.5c0 4.3-3 7.6-7 9-4-1.4-7-4.7-7-9V6z"></path><path d="M9 12l2.2 2.2L15.5 10"></path></svg><span style="color: #1F1D1A; font-variant-numeric: tabular-nums">0 network requests for this document</span><span>· Offline-safe: nothing uploaded</span></button>
+    <span>Removed: struck through · Added: underlined</span>
+    <span style="font-variant-numeric: tabular-nums">Page 3 of 24 · Page 3 of 24</span>
+  </footer>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return { on: true };
+  }
+}
+</script>
+</body>
+</html>

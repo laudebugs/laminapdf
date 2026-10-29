@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Paper style tile</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&amp;family=Source+Sans+3:wght@400;500;600&amp;family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#1F5C63}a:hover{color:#16454B}
+button{font:inherit;color:inherit}
+</style>
+</helmet>
+<div style="width: 1200px; height: 800px; box-sizing: border-box; padding: 44px 48px; background: #F7F4EE; color: #1F1D1A; font-family: 'Source Sans 3', system-ui, sans-serif; font-size: 14px; line-height: 1.4; display: grid; grid-template-columns: minmax(0, 1.12fr) minmax(0, 1fr); gap: 56px">
+
+  <div style="display: flex; flex-direction: column; gap: 24px">
+    <div style="display: flex; flex-direction: column; gap: 6px">
+      <span style="font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: #6B645A">lamina · direction 1</span>
+      <h1 style="margin: 0; font-family: 'Newsreader', Georgia, serif; font-size: 64px; font-weight: 400; line-height: 1; letter-spacing: -0.01em">Paper</h1>
+      <p style="margin: 4px 0 0; font-family: 'Newsreader', Georgia, serif; font-size: 19px; line-height: 1.4; color: #3A3631; max-width: 520px; text-wrap: pretty">Calm, editorial, book-like. The chrome recedes like the margins of a well-set book, so the page is the only thing that speaks.</p>
+    </div>
+
+    <section style="display: flex; flex-direction: column; gap: 12px">
+      <h2 style="margin: 0; font-family: 'Newsreader', Georgia, serif; font-size: 18px; font-weight: 500">Colour</h2>
+      <div style="display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 14px 12px">
+        <sc-for list="{{tokens}}" as="c" hint-placeholder-count="10">
+          <div style="display: flex; flex-direction: column; gap: 6px">
+            <span style="{{c.swatch}}"></span>
+            <span style="font-size: 13px; font-weight: 600">{{c.name}}</span>
+            <span style="font-size: 12px; color: #4A453E; font-variant-numeric: tabular-nums">{{c.hex}}</span>
+            <span style="font-size: 12px; color: #6B645A">{{c.note}}</span>
+          </div>
+        </sc-for>
+      </div>
+    </section>
+
+    <section style="display: flex; flex-direction: column; gap: 10px">
+      <h2 style="margin: 0; font-family: 'Newsreader', Georgia, serif; font-size: 18px; font-weight: 500">Type</h2>
+      <div style="display: grid; grid-template-columns: 96px minmax(0, 1fr); align-items: baseline; gap: 10px 16px">
+        <span style="font-size: 12px; color: #6B645A">Display 40/44</span>
+        <span style="font-family: 'Newsreader', Georgia, serif; font-size: 40px; line-height: 1.1">Q3 Board Report</span>
+        <span style="font-size: 12px; color: #6B645A">Title 20/26</span>
+        <span style="font-family: 'Newsreader', Georgia, serif; font-size: 20px; font-weight: 500">Highlight · Pages · Outline</span>
+        <span style="font-size: 12px; color: #6B645A">Body 14/20</span>
+        <span style="font-size: 14px">Source Sans 3 for every control and message.</span>
+        <span style="font-size: 12px; color: #6B645A">Label 12/16</span>
+        <span style="font-size: 12px; font-weight: 600; color: #4A453E">Author · Created · Colour</span>
+        <span style="font-size: 12px; color: #6B645A">Numbers</span>
+        <span style="display: flex; gap: 20px; font-variant-numeric: tabular-nums; font-size: 14px"><span>3 / 24</span><span>110%</span><span style="font-size: 12px; padding: 1px 6px; border: 1px solid #D8D1C5; border-radius: 3px; background: #FFFFFF; color: #4A453E">⌥⌘E</span></span>
+      </div>
+    </section>
+  </div>
+
+  <div style="display: flex; flex-direction: column; gap: 28px; padding-top: 8px">
+    <section style="display: flex; flex-direction: column; gap: 12px">
+      <h2 style="margin: 0; font-family: 'Newsreader', Georgia, serif; font-size: 18px; font-weight: 500">Buttons</h2>
+      <div style="display: flex; flex-wrap: wrap; align-items: flex-start; gap: 16px">
+        <div style="display: flex; flex-direction: column; align-items: flex-start; gap: 6px">
+          <button style="height: 32px; padding: 0 16px; border: 1px solid {{accent}}; background: {{accent}}; color: #FFFFFF; border-radius: 4px; font-weight: 600">Save</button>
+          <span style="font-size: 12px; color: #6B645A">Primary</span>
+        </div>
+        <div style="display: flex; flex-direction: column; align-items: flex-start; gap: 6px">
+          <button style="height: 32px; padding: 0 16px; border: 1px solid #8A8174; background: #FFFFFF; border-radius: 4px">Reply</button>
+          <span style="font-size: 12px; color: #6B645A">Secondary</span>
+        </div>
+        <div style="display: flex; flex-direction: column; align-items: flex-start; gap: 6px">
+          <button style="height: 32px; padding: 0 12px; border: 0; background: transparent; border-radius: 4px; color: {{accent}}; font-weight: 600">Export highlights</button>
+          <span style="font-size: 12px; color: #6B645A">Ghost</span>
+        </div>
+        <div style="display: flex; flex-direction: column; align-items: flex-start; gap: 6px">
+          <button aria-label="Find in document" style="width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 4px; color: #4A453E"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6"></circle><path d="M15 15l5 5"></path></svg></button>
+          <span style="font-size: 12px; color: #6B645A">Icon</span>
+        </div>
+        <div style="display: flex; flex-direction: column; align-items: flex-start; gap: 6px">
+          <button style="height: 32px; padding: 0 12px; border: 0; background: transparent; border-radius: 4px; color: #9B2335">Delete</button>
+          <span style="font-size: 12px; color: #6B645A">Danger ghost</span>
+        </div>
+      </div>
+    </section>
+
+    <section style="display: flex; flex-direction: column; gap: 12px">
+      <h2 style="margin: 0; font-family: 'Newsreader', Georgia, serif; font-size: 18px; font-weight: 500">Mode switcher</h2>
+      <div role="group" aria-label="Mode sample" style="display: flex; gap: 22px; height: 40px; border-bottom: 1px solid #E4DED3">
+        <button aria-pressed="false" style="height: 40px; display: flex; align-items: center; border: 0; background: transparent; padding: 2px 0 0; color: #6B645A; border-bottom: 2px solid transparent">Read</button>
+        <button aria-pressed="true" style="height: 40px; display: flex; align-items: center; border: 0; background: transparent; padding: 2px 0 0; color: #1F1D1A; font-weight: 600; border-bottom: 2px solid {{accent}}">Comment</button>
+        <button aria-pressed="false" style="height: 40px; display: flex; align-items: center; border: 0; background: transparent; padding: 2px 0 0; color: #6B645A; border-bottom: 2px solid transparent">Fill &amp; Sign</button>
+        <button aria-pressed="false" style="height: 40px; display: flex; align-items: center; border: 0; background: transparent; padding: 2px 0 0; color: #6B645A; border-bottom: 2px solid transparent">Organise</button>
+        <button aria-pressed="false" style="height: 40px; display: flex; align-items: center; border: 0; background: transparent; padding: 2px 0 0; color: #6B645A; border-bottom: 2px solid transparent">Edit</button>
+      </div>
+    </section>
+
+    <section style="display: flex; flex-direction: column; gap: 12px">
+      <h2 style="margin: 0; font-family: 'Newsreader', Georgia, serif; font-size: 18px; font-weight: 500">Focus ring</h2>
+      <div style="display: flex; align-items: center; gap: 20px">
+        <button style="height: 32px; padding: 0 16px; border: 1px solid #8A8174; background: #FFFFFF; border-radius: 4px; outline: 2px solid {{accent}}; outline-offset: 2px">Highlight</button>
+        <span style="font-size: 13px; color: #4A453E">2 px accent, 2 px offset; 6.9:1 on paper</span>
+      </div>
+    </section>
+
+    <section style="display: flex; flex-direction: column; gap: 12px">
+      <h2 style="margin: 0; font-family: 'Newsreader', Georgia, serif; font-size: 18px; font-weight: 500">Page appearance</h2>
+      <div role="group" aria-label="Page appearance" style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px">
+        <button aria-pressed="true" style="display: flex; flex-direction: column; gap: 8px; padding: 8px; border: 2px solid {{accent}}; background: #FFFFFF; border-radius: 6px; text-align: left">
+          <span style="height: 52px; display: flex; align-items: center; justify-content: center; background: #FFFFFF; color: #262421; border: 1px solid #E4DED3; border-radius: 3px; font-family: 'Source Serif 4', Georgia, serif; font-size: 20px">Aa</span>
+          <span style="font-size: 13px; font-weight: 600">Original</span>
+        </button>
+        <button aria-pressed="false" style="display: flex; flex-direction: column; gap: 8px; padding: 8px; border: 1px solid #D8D1C5; background: #FBF9F5; border-radius: 6px; text-align: left">
+          <span style="height: 52px; display: flex; align-items: center; justify-content: center; background: #F4ECD8; color: #3B2F20; border-radius: 3px; font-family: 'Source Serif 4', Georgia, serif; font-size: 20px">Aa</span>
+          <span style="font-size: 13px">Sepia</span>
+        </button>
+        <button aria-pressed="false" style="display: flex; flex-direction: column; gap: 8px; padding: 8px; border: 1px solid #D8D1C5; background: #FBF9F5; border-radius: 6px; text-align: left">
+          <span style="height: 52px; display: flex; align-items: center; justify-content: center; background: #22211F; color: #E6E1D8; border-radius: 3px; font-family: 'Source Serif 4', Georgia, serif; font-size: 20px">Aa</span>
+          <span style="font-size: 13px">Dark</span>
+        </button>
+        <button aria-pressed="false" style="display: flex; flex-direction: column; gap: 8px; padding: 8px; border: 1px solid #D8D1C5; background: #FBF9F5; border-radius: 6px; text-align: left">
+          <span style="height: 52px; display: flex; align-items: center; justify-content: center; background: #000000; color: #FFFFFF; border-radius: 3px; font-family: 'Source Serif 4', Georgia, serif; font-size: 20px; font-weight: 600">Aa</span>
+          <span style="font-size: 13px">High contrast</span>
+        </button>
+      </div>
+      <span style="font-size: 12px; color: #6B645A">Separate from the UI theme. Photos and annotation colours are never recoloured.</span>
+    </section>
+
+    <section style="display: flex; flex-direction: column; gap: 12px">
+      <h2 style="margin: 0; font-family: 'Newsreader', Georgia, serif; font-size: 18px; font-weight: 500">Radius and spacing</h2>
+      <div style="display: flex; align-items: flex-end; gap: 28px">
+        <div style="display: flex; align-items: flex-end; gap: 12px">
+          <div style="display: flex; flex-direction: column; align-items: center; gap: 4px"><span style="width: 36px; height: 36px; border: 1px solid #8A8174; border-radius: 3px; background: #FFFFFF"></span><span style="font-size: 12px; color: #6B645A">3</span></div>
+          <div style="display: flex; flex-direction: column; align-items: center; gap: 4px"><span style="width: 36px; height: 36px; border: 1px solid #8A8174; border-radius: 4px; background: #FFFFFF"></span><span style="font-size: 12px; color: #6B645A">4</span></div>
+          <div style="display: flex; flex-direction: column; align-items: center; gap: 4px"><span style="width: 36px; height: 36px; border: 1px solid #8A8174; border-radius: 6px; background: #FFFFFF"></span><span style="font-size: 12px; color: #6B645A">6</span></div>
+        </div>
+        <div style="display: flex; align-items: flex-end; gap: 10px">
+          <sc-for list="{{spaces}}" as="s" hint-placeholder-count="7">
+            <div style="display: flex; flex-direction: column; align-items: center; gap: 4px"><span style="{{s.bar}}"></span><span style="font-size: 12px; color: #6B645A; font-variant-numeric: tabular-nums">{{s.v}}</span></div>
+          </sc-for>
+        </div>
+      </div>
+    </section>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#1F5C63","options":["#1F5C63","#2D4A6B","#3E4A3C"]},"$preview":{"width":1200,"height":800}}'>
+class Component extends DCLogic {
+  renderVals() {
+    var accent = this.props.accent ?? '#1F5C63';
+    var list = [
+      ['Ground', '#F7F4EE', 'Chrome', true],
+      ['Surface', '#FBF9F5', 'Panels', true],
+      ['Gutter', '#ECE7DE', 'Behind pages', false],
+      ['Text', '#1F1D1A', '15.3:1', false],
+      ['Muted text', '#6B645A', '5.3:1', false],
+      ['Hairline', '#E4DED3', 'Dividers', false],
+      ['Control border', '#8A8174', '3.5:1', false],
+      ['Accent · focus', accent, '6.9:1', false],
+      ['Danger', '#9B2335', 'Delete', false],
+      ['Positive', '#2F6A45', '5.9:1', false]
+    ];
+    var tokens = list.map(function (t) {
+      return {
+        name: t[0], hex: t[1].toUpperCase(), note: t[2],
+        swatch: 'display: block; height: 44px; border-radius: 4px; background: ' + t[1] + '; ' + (t[3] ? 'border: 1px solid #D8D1C5;' : 'border: 1px solid rgba(0,0,0,0.06);')
+      };
+    });
+    var spaces = [4, 8, 12, 16, 24, 32, 48].map(function (v) {
+      return { v: v, bar: 'display: block; width: 14px; height: ' + v + 'px; background: #C9D9D7; border-radius: 1px;' };
+    });
+    return { accent: accent, tokens: tokens, spaces: spaces };
+  }
+}
+</script>
+</body>
+</html>
