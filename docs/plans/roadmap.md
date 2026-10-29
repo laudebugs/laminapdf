@@ -2,7 +2,7 @@
 
 - **Status:** Draft
 - **Date:** 2026-10-28
-- **Plans:** [architecture](architecture.md) · [PDF library](pdf-library.md) · [web reader](web-app.md) · [desktop reader](desktop-app.md) · [full editor](full-editor.md)
+- **Plans:** [architecture](architecture.md) · [PDF library](pdf-library.md) · [web reader](web-app.md) · [desktop reader](desktop-app.md) · [full editor](full-editor.md) · [UI/UX](ui-ux.md)
 - **Prior PRs (all merged):** #1 (PDF research and spike), #2 ([guidelines](../guidelines/README.md)), #3 ([architecture](architecture.md) and its [research](../research/architecture/app-and-package-architecture.md)). This roadmap and the product plans build on all three.
 
 ## What we are building
@@ -26,6 +26,10 @@ All four share one Rust core, so every operation is built once ([architecture §
                                                                                         │     │
                                                                                         └► D1 └► D2 ─► D3 ─► D4 ─► D5 ─► D6 ─► D7 (desktop beta)
 
+ C2a ─► U1a ─► C4a ─► U1b ─► U1c ─► C6a, C7a, U3a, U4a        (Round U: UI/UX; see the todo board for exact edges)
+ B9b ─► U2b;  C5a + U2b + U3a ─► U2a;  C2b + C7a ─► U2c;  U2a + U2c + U3a + U4a ─► C7c
+ B8a + C5a + U2b ─► U4b ─► U4c;  U3a ─► U3b;  C7c ─► U5a, U5c;  C7c + D7c ─► U5b
+
  C7 + D7 ─► E1 ─► E2 ─► E3 ─► E4 ─► E5 ─► E6 ─► E7 ─► E8 ─► E9 ─► E10 ─► E11 … E18 (editor phases 2–6)
 ```
 
@@ -33,6 +37,7 @@ All four share one Rust core, so every operation is built once ([architecture §
 - **Library first** (recommended in [architecture §8](architecture.md#8-open-questions-for-the-team), question 1): B1–B3 produce the model (with decryption, so readers can open password-protected files), ops and save path everyone needs.
 - **Web reader after B6:** C1's PDFium spike loads `lamina-wasm` next to PDFium-WASM, so it starts once B6 has merged (its `hayro-parity` half can start earlier). C5's text layer needs B9 (text extraction), which runs alongside C1–C4. B7, B8 and B9 run in parallel with the reader rounds. Technically B9a (the `lamina-content` interpreter) only needs B2c, so it may start before B6 if people are free; B9c (bindings) needs B6b.
 - **Desktop after the web packages:** D1 can start after C3; D2 needs `@lamina/ui` from C4.
+- **UI/UX alongside the readers** ([UI/UX plan](ui-ux.md)): ADR 0024 (U1a) comes before `@lamina/ui` (C4a), the command registry and shell (U1b, U1c) right after it, and Round U adds selection, page modes, the phone layout and the network indicator before the web launch (C7a, C7c wait for them). Reader mode, the mobile spike and the product promises (pledge, benchmark, opt-in telemetry) follow the launch; the benchmark also waits for the desktop beta (D7c).
 - **Editor after both readers** ship v0.1, so phase 1 (core viewer) is done once and E-rounds add features to both shells and the packages at the same time.
 - **B8 and later E-rounds** can overlap with reader work as people allow; they don't block each other except where listed.
 
@@ -42,7 +47,7 @@ All four share one Rust core, so every operation is built once ([architecture §
 | --- | --- | --- |
 | M0 Foundations | A | Monorepo, CI fast lane, `lamina-syntax` + `lamina-cos`, ADRs 0001/0002/0015/0019 |
 | M1 Library alpha | B1–B7 | `lamina` and `@lamina/pdf` `0.1.0-alpha` (local and tagged, not published to registries yet): generate PDFs with fonts, shaping, images, vectors, links, outlines, metadata; open (including encrypted files)/edit/save basics; docs site |
-| M2 Web reader v0.1 | B9, C1–C7 | Text extraction in the library; hosted reader on Cloudflare: render, search, select, navigate, print, offline, accessible, no upload |
+| M2 Web reader v0.1 | B9, C1–C7, U1, U2, U3a, U4a | Text extraction in the library; hosted reader on Cloudflare: render, search, select, navigate, print, offline, accessible, no upload; command palette, column-aware copy, page appearance modes, phone layout, network indicator |
 | M3 Desktop reader beta | D1–D7 | Signed installers for three OSes, file associations, tabs, auto-update channels |
 | M4 Library 0.2 | B8 | Tagged PDF, PDF/UA-1, PDF/A-2/3 profiles, veraPDF-clean |
 | M5 Organiser | E1–E3 | Save/undo, page organisation, bookmarks, attachments, metadata, extraction |
@@ -85,6 +90,11 @@ One row per round. Each round is split into one or more todos, one PR each, on t
 | D5 | [desktop](desktop-app.md#d5-update-service) | `apps/updates` Worker + R2 | 0014 |
 | D6 | [desktop](desktop-app.md#d6-signing-packaging-and-release-pipeline) | Signing and packaging | — |
 | D7 | [desktop](desktop-app.md#d7-crash-reporting-and-beta) | Crash reporting, beta | — |
+| U1 | [UI/UX](ui-ux.md#u1-shell-foundations) | ADR 0024, command registry and palette, inverted-L shell and modes | 0024 |
+| U2 | [UI/UX](ui-ux.md#u2-reading-quality) | Selection surfaces and copy modes, reading-order corpus, page appearance modes | — |
+| U3 | [UI/UX](ui-ux.md#u3-mobile-and-touch) | Phone and tablet layout; `mobile-shell` spike | 0025 (proposed); `mobile-shell` |
+| U4 | [UI/UX](ui-ux.md#u4-trust-and-reflow) | Network indicator, reader mode (tagged, then approximate) | — |
+| U5 | [UI/UX](ui-ux.md#u5-product-promises) | Pledge and targets, reader benchmark, opt-in telemetry | — |
 | E1 | [editor](full-editor.md#e1-editing-foundation) | Save, undo, metadata edits (Info + XMP in sync) | — |
 | E2 | [editor](full-editor.md#e2-page-organisation) | Page organisation, content append API | — |
 | E3 | [editor](full-editor.md#e3-navigation-attachments-inspection-and-extraction) | Navigation, attachments, extraction | — |
