@@ -12,7 +12,7 @@
 | Branch | `feat/b9a-lamina-content` |
 | PR title | `feat(content): ADR 0023 and a read-only content-stream interpreter (B9a)` |
 | Size | L (≈ 900–1,300 lines incl. ADR) |
-| PR | — |
+| PR | [#39](https://github.com/laudebugs/lamina/pull/39) |
 
 ## Goal
 
