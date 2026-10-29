@@ -13,6 +13,7 @@
 body{margin:0}
 a{color:#1F5C63}a:hover{color:#16454B}
 button,input,textarea{font:inherit;color:inherit}
+label:has(input[type="radio"]:focus-visible){outline:2px solid #1F5C63;outline-offset:-2px}
 </style>
 </helmet>
 <div style="width: 390px; height: 844px; position: relative; overflow: hidden; background: #ECE7DE; font-family: 'Source Sans 3', system-ui, sans-serif; color: #1F1D1A">
@@ -40,7 +41,7 @@ button,input,textarea{font:inherit;color:inherit}
     </div>
   </div>
 
-  <section role="dialog" aria-modal="false" aria-labelledby="ch-t" style="position: absolute; left: 0; right: 0; top: 300px; bottom: 0; z-index: 40; background: #FBF9F5; border-top: 1px solid #E4DED3; border-radius: 12px 12px 0 0; box-shadow: 0 -8px 28px rgba(60,48,30,0.12); display: flex; flex-direction: column; overflow: hidden">
+  <section role="dialog" aria-modal="true" aria-labelledby="ch-t" style="position: absolute; left: 0; right: 0; top: 404px; bottom: 0; z-index: 40; background: #FBF9F5; border-top: 1px solid #E4DED3; border-radius: 12px 12px 0 0; box-shadow: 0 -8px 28px rgba(60,48,30,0.12); display: flex; flex-direction: column; overflow: hidden">
     <div style="display: flex; justify-content: center">
       <button aria-label="Resize sheet" style="width: 64px; height: 44px; display: flex; align-items: flex-start; justify-content: center; padding-top: 8px; box-sizing: border-box; border: 0; background: transparent"><span style="width: 36px; height: 5px; border-radius: 3px; background: #8A8174"></span></button>
     </div>
@@ -51,10 +52,10 @@ button,input,textarea{font:inherit;color:inherit}
       </div>
       <button aria-label="Close" style="width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 6px; color: #4A453E"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg></button>
     </div>
-    <div role="radiogroup" aria-labelledby="ch-t" style="display: flex; flex-direction: column; padding: 4px 12px; overflow: auto">
+    <div role="radiogroup" aria-labelledby="ch-t" style="flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; padding: 4px 12px; overflow: auto">
       <sc-for list="{{opts}}" as="o" hint-placeholder-count="6">
         <label style="{{o.row}}">
-          <input type="radio" name="rtype" checked="{{o.on}}" style="position: absolute; opacity: 0; width: 1px; height: 1px">
+          <sc-if value="{{o.on}}" hint-placeholder-val="{{ false }}"><input type="radio" name="rtype" checked style="position: absolute; opacity: 0; width: 1px; height: 1px"></sc-if><sc-if value="{{o.off}}" hint-placeholder-val="{{ true }}"><input type="radio" name="rtype" style="position: absolute; opacity: 0; width: 1px; height: 1px"></sc-if>
           <span style="flex: 1 1 auto">{{o.name}}</span>
           <sc-if value="{{o.on}}" hint-placeholder-val="{{ false }}"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 12.5l4 4 8-9"></path></svg></sc-if>
         </label>
@@ -86,7 +87,7 @@ class Component extends DCLogic {
     var opts = names.map(function (n, i) {
       var on = i === 2;
       return {
-        name: n, on: on,
+        name: n, on: on, off: !on,
         row: 'display: flex; align-items: center; gap: 12px; min-height: 48px; padding: 0 12px; border-radius: 6px; font-size: 16px; ' + (on ? 'background: ' + tint + '; color: ' + accent + '; font-weight: 600; outline: 2px solid ' + accent + '; outline-offset: -2px;' : 'color: #1F1D1A;')
       };
     });

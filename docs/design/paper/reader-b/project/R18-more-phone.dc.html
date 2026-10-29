@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>lamina phone, More menu sheet</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&amp;family=Source+Sans+3:wght@400;500;600&amp;family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#1F5C63}a:hover{color:#16454B}
+button,input,textarea{font:inherit;color:inherit}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; position: relative; overflow: hidden; background: #ECE7DE; font-family: 'Source Sans 3', system-ui, sans-serif; color: #1F1D1A">
+
+  <header style="position: absolute; left: 0; right: 0; top: 0; height: 56px; display: flex; align-items: center; gap: 4px; padding: 0 6px; background: #F7F4EE; border-bottom: 1px solid #E4DED3; box-sizing: border-box">
+    <button aria-label="Back to files" style="width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 6px; color: #1F1D1A"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M15 5l-7 7 7 7"></path></svg></button>
+    <div style="flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; align-items: center; line-height: 1.2">
+      <span style="font-family: 'Newsreader', Georgia, serif; font-size: 17px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%">Q3 Board Report</span>
+      <span style="font-size: 12px; color: #6B645A">Northwind Housing Trust</span>
+    </div>
+    <button aria-label="More options" style="width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 6px; color: #1F1D1A"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="5.5" cy="12" r="0.9"></circle><circle cx="12" cy="12" r="0.9"></circle><circle cx="18.5" cy="12" r="0.9"></circle></svg></button>
+  </header>
+
+  <article aria-label="Page 3" style="position: absolute; left: 16px; top: 72px; width: 358px; height: 470px; box-sizing: border-box; background: #F4ECD8; color: #3B2F20; box-shadow: 0 1px 2px rgba(60,48,30,0.08), 0 6px 20px rgba(60,48,30,0.10); padding: 26px 26px 14px; display: flex; flex-direction: column; gap: 9px; font-family: 'Source Serif 4', Georgia, serif; font-size: 10.5px; line-height: 1.5">
+    <div style="display: flex; justify-content: space-between; font-family: 'Source Sans 3', system-ui, sans-serif; font-size: 7px; letter-spacing: 0.08em; text-transform: uppercase; opacity: 0.75; border-bottom: 1px solid rgba(0,0,0,0.1); padding-bottom: 6px"><span>Northwind Housing Trust</span><span>Q3 Board Report</span></div>
+    <h2 style="margin: 4px 0 0; font-size: 16px; font-weight: 600; line-height: 1.25">2. Repairs backlog</h2>
+    <p style="margin: 0; text-wrap: pretty">Open repair jobs stood at 1,248 at the end of September across the four regions. Most of the work closed this quarter was routine plumbing and joinery, which the additional contractor teams appointed in July were able to schedule within the target window.</p>
+    <p style="margin: 0; text-wrap: pretty">The backlog fell by 18% over the quarter, but the oldest 10% of jobs are now older than 90 days. These are mainly damp and mould cases that need a surveyor’s visit before work can be scheduled, and they sit in the older parts of our stock.</p>
+  </article>
+
+  <section role="dialog" aria-modal="true" aria-labelledby="more-t" style="position: absolute; left: 0; right: 0; top: 404px; bottom: 84px; background: #FBF9F5; border-top: 1px solid #E4DED3; border-radius: 12px 12px 0 0; box-shadow: 0 -8px 28px rgba(60,48,30,0.12); display: flex; flex-direction: column; overflow: hidden">
+    <div style="display: flex; justify-content: center">
+      <button aria-label="Resize sheet" style="width: 64px; height: 44px; display: flex; align-items: flex-start; justify-content: center; padding-top: 8px; box-sizing: border-box; border: 0; background: transparent"><span style="width: 36px; height: 5px; border-radius: 3px; background: #8A8174"></span></button>
+    </div>
+    <div style="display: flex; align-items: center; justify-content: space-between; margin-top: -18px; padding: 0 8px 4px 20px">
+      <div style="display: flex; align-items: baseline; gap: 10px">
+        <h2 id="more-t" style="margin: 0; font-family: 'Newsreader', Georgia, serif; font-size: 20px; font-weight: 500">More</h2>
+      </div>
+      <button aria-label="Close more" style="width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 6px; color: #4A453E"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg></button>
+    </div>
+    <ul role="menu" aria-labelledby="more-t" style="flex: 1 1 auto; min-height: 0; overflow: auto; list-style: none; margin: 0; padding: 0 8px 12px; display: flex; flex-direction: column; gap: 2px">
+        <li role="none"><button role="menuitem" style="display: flex; align-items: center; gap: 14px; width: 100%; min-height: 52px; box-sizing: border-box; padding: 4px 12px; border: 0; background: transparent; border-radius: 6px; text-align: left; font-size: 16px; color: #1F1D1A; outline: 2px solid {{accent}}; outline-offset: -2px;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="12" cy="12" r="7.5"></circle><path d="M12 4.5v15M12 8.5h5.5M12 12h7.5M12 15.5h5.5"></path></svg><span style="flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; line-height: 1.25"><span>View settings</span></span><span style="font-size: 13px; color: #6B645A">Sepia</span></button></li>
+        <li role="none"><button role="menuitem" style="display: flex; align-items: center; gap: 14px; width: 100%; min-height: 52px; box-sizing: border-box; padding: 4px 12px; border: 0; background: transparent; border-radius: 6px; text-align: left; font-size: 16px; color: #1F1D1A;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="{{accent}}" stroke-width="1.5" aria-hidden="true"><path d="M12 3.5l7 2.5v5.5c0 4.3-3 7.6-7 9-4-1.4-7-4.7-7-9V6z"></path><path d="M9 12l2.2 2.2L15.5 10"></path></svg><span style="flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; line-height: 1.25"><span>Network activity</span><span style="font-size: 13px; color: #6B645A">0 requests · nothing uploaded</span></span></button></li>
+        <li role="none"><button role="menuitem" style="display: flex; align-items: center; gap: 14px; width: 100%; min-height: 52px; box-sizing: border-box; padding: 4px 12px; border: 0; background: transparent; border-radius: 6px; text-align: left; font-size: 16px; color: #1F1D1A;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="12" cy="12" r="8"></circle><path d="M12 11v5M12 8v.5"></path></svg><span style="flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; line-height: 1.25"><span>Document properties</span></span></button></li>
+        <li role="none"><button role="menuitem" style="display: flex; align-items: center; gap: 14px; width: 100%; min-height: 52px; box-sizing: border-box; padding: 4px 12px; border: 0; background: transparent; border-radius: 6px; text-align: left; font-size: 16px; color: #1F1D1A;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M7 9V4.5h10V9"></path><rect x="4.5" y="9" width="15" height="7.5" rx="1"></rect><path d="M7 14h10v5.5H7z"></path></svg><span style="flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; line-height: 1.25"><span>Print…</span></span></button></li>
+        <li role="none"><button role="menuitem" style="display: flex; align-items: center; gap: 14px; width: 100%; min-height: 52px; box-sizing: border-box; padding: 4px 12px; border: 0; background: transparent; border-radius: 6px; text-align: left; font-size: 16px; color: #1F1D1A;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M12 4.5V15M8 11l4 4 4-4"></path><path d="M5 19.5h14"></path></svg><span style="flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; line-height: 1.25"><span>Download a copy</span></span></button></li>
+        <li role="none"><button role="menuitem" style="display: flex; align-items: center; gap: 14px; width: 100%; min-height: 52px; box-sizing: border-box; padding: 4px 12px; border: 0; background: transparent; border-radius: 6px; text-align: left; font-size: 16px; color: #1F1D1A;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="7" y="3.5" width="10" height="17" rx="2"></rect><path d="M12 7.5v6M9.5 11l2.5 2.5 2.5-2.5"></path></svg><span style="flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; line-height: 1.25"><span>Add to home screen…</span></span></button></li>
+        <li role="none"><button role="menuitem" style="display: flex; align-items: center; gap: 14px; width: 100%; min-height: 52px; box-sizing: border-box; padding: 4px 12px; border: 0; background: transparent; border-radius: 6px; text-align: left; font-size: 16px; color: #1F1D1A;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="12" cy="12" r="8"></circle><path d="M9.8 9.5a2.3 2.3 0 1 1 3.2 2.1c-.6.3-1 .8-1 1.4v.5M12 16.5v.5"></path></svg><span style="flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; line-height: 1.25"><span>Privacy and help</span></span></button></li>
+    </ul>
+  </section>
+
+  <nav aria-label="Reader tools" style="position: absolute; left: 0; right: 0; bottom: 0; height: 84px; box-sizing: border-box; padding: 6px 8px 22px; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 4px; background: #F7F4EE; border-top: 1px solid #E4DED3">
+    <button style="height: 56px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; border: 0; background: transparent; border-radius: 6px; color: #3A3631; font-size: 11.5px"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6"></circle><path d="M15 15l5 5"></path></svg>Search</button>
+    <button style="height: 56px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; border: 0; background: transparent; border-radius: 6px; color: #3A3631; font-size: 11.5px"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M14.5 4.5l5 5L11 18H6v-5z"></path><path d="M4 20.5h9"></path></svg>Annotate</button>
+    <button style="height: 56px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; border: 0; background: transparent; border-radius: 6px; color: #3A3631; font-size: 11.5px"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="4.5" y="4.5" width="6" height="7.5" rx="1"></rect><rect x="13.5" y="4.5" width="6" height="7.5" rx="1"></rect><rect x="4.5" y="14" width="6" height="5.5" rx="1"></rect><rect x="13.5" y="14" width="6" height="5.5" rx="1"></rect></svg>Pages</button>
+    <button style="height: 56px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; border: 0; background: transparent; border-radius: 6px; color: #3A3631; font-size: 11.5px"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M12 6.5c-2-1.3-4.5-2-8-2v13c3.5 0 6 .7 8 2 2-1.3 4.5-2 8-2v-13c-3.5 0-6 .7-8 2z"></path><path d="M12 6.5v13"></path></svg>Reader</button>
+    <button aria-expanded="true" style="height: 56px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; border: 0; background: transparent; border-radius: 6px; color: {{accent}}; font-size: 11.5px; font-weight: 600"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="5.5" cy="12" r="0.9"></circle><circle cx="12" cy="12" r="0.9"></circle><circle cx="18.5" cy="12" r="0.9"></circle></svg>More</button>
+  </nav>
+  <span aria-hidden="true" style="position: absolute; left: 50%; bottom: 8px; transform: translateX(-50%); width: 134px; height: 5px; border-radius: 3px; background: #1F1D1A; opacity: 0.85"></span>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#1F5C63","options":["#1F5C63","#2D4A6B","#3E4A3C"]},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    var accent = this.props.accent ?? '#1F5C63';
+    function mix(hex, base, t) {
+      var p = function (h, i) { return parseInt(h.replace('#', '').substr(i, 2), 16); };
+      var out = '#';
+      for (var i = 0; i < 6; i += 2) {
+        var v = Math.round(p(hex, i) * t + p(base, i) * (1 - t));
+        out += (v < 16 ? '0' : '') + v.toString(16);
+      }
+      return out;
+    }
+    return { accent: accent };
+  }
+}
+</script>
+</body>
+</html>
