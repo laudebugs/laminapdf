@@ -102,7 +102,9 @@ The design system is built once, in `@lamina/tokens` and `@lamina/ui`, before th
 - [x] Choose a direction (Paper, 2026-10-29)
 - [x] Design language, screen inventory and area documents; every screen drawn (205 artboards in 12 canvases)
 - [x] Every UI todo links its Paper screens
-- [x] Design review: one round per area across all 11 areas, with fixes, and a cross-area consistency pass (2026-10-29); a second round and a visual pass on the canvases are optional follow-ups
+- [x] Design review: one round per area across all 11 areas, with fixes, and a cross-area consistency pass (2026-10-29)
+- [x] Second review with a visual pass on every board at its artboard size with the real fonts, with fixes (2026-10-29): shells kept inside the board, no wrapping counts or chips, drawn check boxes, accent tweak on every board
+- [x] Accent colours: Teal, Blue, Plum and Green in light and dark, synced with the account ([design language §2.8](../design/paper/design-language.md#28-accent-colours-proposed)); owner decision 2026-10-29
 - [ ] Republish the canvases from the committed files (the account's daily publish limit stopped the last publishes)
 - [ ] U6a tokens, U6b fonts, U6c icons, U6d core components, U6e overlays, U6f gallery and visual tests
 - [ ] Owner sign-off on proposed values (U6a)

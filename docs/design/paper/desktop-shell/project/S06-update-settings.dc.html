@@ -31,7 +31,7 @@ button,input,textarea,select{font:inherit;color:inherit}
     <nav aria-label="Settings sections" style="flex: 0 0 200px; box-sizing: border-box; border-right: 1px solid #E4DED3; padding: 16px 10px; display: flex; flex-direction: column; gap: 2px">
       <a href="#" style="height: 32px; display: flex; align-items: center; padding: 0 10px; border-radius: 4px; color: #1F1D1A; text-decoration: none">General</a>
       <a href="#" style="height: 32px; display: flex; align-items: center; padding: 0 10px; border-radius: 4px; color: #1F1D1A; text-decoration: none">Appearance</a>
-      <a href="#" aria-current="page" style="height: 32px; display: flex; align-items: center; justify-content: space-between; padding: 0 10px; border-radius: 4px; color: #1F5C63; background: #E1E6E3; font-weight: 600; text-decoration: none"><span>Updates<span style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">, downloading</span></span><span aria-hidden="true" style="width: 8px; height: 8px; border-radius: 50%; background: #1F5C63"></span></a>
+      <a href="#" aria-current="page" style="height: 32px; display: flex; align-items: center; justify-content: space-between; padding: 0 10px; border-radius: 4px; color: {{accent}}; background: {{accentTint}}; font-weight: 600; text-decoration: none"><span>Updates<span style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">, downloading</span></span><span aria-hidden="true" style="width: 8px; height: 8px; border-radius: 50%; background: {{accent}}"></span></a>
       <a href="#" style="height: 32px; display: flex; align-items: center; padding: 0 10px; border-radius: 4px; color: #1F1D1A; text-decoration: none">Privacy</a>
       <a href="#" style="height: 32px; display: flex; align-items: center; padding: 0 10px; border-radius: 4px; color: #1F1D1A; text-decoration: none">Shortcuts</a>
       <a href="#" style="height: 32px; display: flex; align-items: center; padding: 0 10px; border-radius: 4px; color: #1F1D1A; text-decoration: none">Licence</a>
@@ -43,7 +43,7 @@ button,input,textarea,select{font:inherit;color:inherit}
 
     <main style="flex: 999 1 480px; min-width: 0; box-sizing: border-box; background: #FBF9F5; padding: 28px 32px 32px; display: flex; flex-direction: column; gap: 24px">
       <div style="display: flex; flex-direction: column; gap: 4px">
-        <h1 style="margin: 0; font-family: 'Newsreader', Georgia, serif; font-size: 20px; line-height: 24px; font-weight: 500">Updates</h1>
+        <h1 style="margin: 0; font-family: 'Newsreader', Georgia, serif; font-size: 28px; line-height: 34px; font-weight: 500">Updates</h1>
         <p style="margin: 0; font-size: 13px; color: #6B645A">lamina updates itself from its own update server. Every update is signed and checked before it installs.</p>
       </div>
 
@@ -52,7 +52,7 @@ button,input,textarea,select{font:inherit;color:inherit}
           <span id="dl-l" style="font-weight: 600">Downloading lamina 0.2.0</span>
           <span style="font-size: 12px; color: #6B645A; font-variant-numeric: tabular-nums">62%</span>
         </div>
-        <span role="progressbar" aria-labelledby="dl-l" aria-valuemin="0" aria-valuemax="100" aria-valuenow="62" style="display: block; height: 4px; border-radius: 2px; background: #E4DED3; overflow: hidden"><span style="display: block; width: 62%; height: 4px; background: #1F5C63"></span></span>
+        <span role="progressbar" aria-labelledby="dl-l" aria-valuemin="0" aria-valuemax="100" aria-valuenow="62" style="display: block; height: 4px; border-radius: 2px; background: #E4DED3; overflow: hidden"><span style="display: block; width: 62%; height: 4px; background: {{accent}}"></span></span>
         <span style="font-size: 12px; color: #6B645A">You have 0.1.2. The new version installs when you quit, or when you choose Restart to update.</span>
       </div>
 
@@ -63,7 +63,7 @@ button,input,textarea,select{font:inherit;color:inherit}
             <span id="sw-auto">Check for updates and download them</span>
             <span id="sw-auto-d" style="font-size: 12px; color: #6B645A; max-width: 440px">Once a day, in the background. Turning this off stops every update request.</span>
           </div>
-          <button role="switch" aria-checked="true" aria-labelledby="sw-auto" aria-describedby="sw-auto-d" style="flex: 0 0 auto; width: 32px; height: 18px; padding: 0; border: 1px solid #1F5C63; border-radius: 9px; background: #1F5C63; position: relative"><span style="position: absolute; top: 2px; right: 2px; width: 12px; height: 12px; border-radius: 50%; background: #FFFFFF"></span></button>
+          <button role="switch" aria-checked="true" aria-labelledby="sw-auto" aria-describedby="sw-auto-d" style="flex: 0 0 auto; width: 32px; height: 18px; padding: 0; border: 1px solid {{accent}}; border-radius: 9px; background: {{accent}}; position: relative"><span style="position: absolute; top: 2px; right: 2px; width: 12px; height: 12px; border-radius: 50%; background: #FFFFFF"></span></button>
         </div>
         <div style="display: flex; justify-content: space-between; align-items: center; gap: 24px; padding: 12px 0; border-top: 1px solid #E4DED3">
           <div style="display: flex; flex-direction: column; gap: 2px">
@@ -71,7 +71,7 @@ button,input,textarea,select{font:inherit;color:inherit}
             <span id="chan-d" style="font-size: 12px; color: #6B645A; max-width: 400px">Beta gets new versions first. Stable gets them once they have been on Beta for a while; there is no Stable release yet.</span>
           </div>
           <div role="radiogroup" aria-labelledby="chan-l" aria-describedby="chan-d" style="flex: 0 0 auto; display: grid; grid-template-columns: auto auto; gap: 4px">
-            <button role="radio" aria-checked="true" style="height: 28px; padding: 0 12px; border: 1px solid #1F5C63; background: #E1E6E3; color: #1F5C63; font-weight: 600; border-radius: 4px; outline: 2px solid #1F5C63; outline-offset: 1px">Beta</button>
+            <button role="radio" aria-checked="true" style="height: 28px; padding: 0 12px; border: 1px solid {{accent}}; background: {{accentTint}}; color: {{accent}}; font-weight: 600; border-radius: 4px; outline: 2px solid {{accent}}; outline-offset: 1px">Beta</button>
             <button role="radio" aria-checked="false" aria-disabled="true" tabindex="-1" style="height: 28px; padding: 0 12px; border: 1px solid #D8D1C5; background: #F7F4EE; color: #6B645A; border-radius: 4px">Stable (not released yet)</button>
           </div>
         </div>
@@ -84,7 +84,7 @@ button,input,textarea,select{font:inherit;color:inherit}
         </div>
       </section>
 
-      <p style="margin: 0; font-size: 12px; color: #6B645A">Want the newest builds every night? Nightly builds are a separate install with their own updates. <a href="#">Get nightly builds</a></p>
+      <p style="margin: 0; font-size: 12px; color: #6B645A">Want the newest builds every night? Nightly builds are a separate install with their own updates. <a href="#" style="color: {{accent}}">Get nightly builds</a></p>
       <section aria-labelledby="g-id" style="display: flex; flex-direction: column">
         <h2 id="g-id" style="margin: 0 0 4px; font-family: 'Newsreader', Georgia, serif; font-size: 18px; line-height: 24px; font-weight: 500">What each check sends</h2>
         <div style="display: flex; justify-content: space-between; align-items: center; gap: 24px; padding: 12px 0">
@@ -97,9 +97,25 @@ button,input,textarea,select{font:inherit;color:inherit}
 </div>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#1F5C63","options":["#1F5C63","#2D4A6B","#5B3B6B","#495533"]},"$preview":{"width":1440,"height":900}}'>
 class Component extends DCLogic {
   renderVals() {
+    return Object.assign(this.theme(), this.vals());
+  }
+  theme() {
+    var accent = String(this.props.accent ?? '#1F5C63').toUpperCase();
+    function mix(hex, base, t) {
+      var p = function (h, i) { return parseInt(h.replace('#', '').substr(i, 2), 16); };
+      var out = '#';
+      for (var i = 0; i < 6; i += 2) {
+        var v = Math.round(p(hex, i) * t + p(base, i) * (1 - t));
+        out += (v < 16 ? '0' : '') + v.toString(16);
+      }
+      return out;
+    }
+    return { accent: accent, accentTint: mix(accent, '#FBF9F5', 0.12), accentStrong: ({'#1F5C63':'#16454B','#2D4A6B':'#1A3757','#5B3B6B':'#472856','#495533':'#35401F'})[accent] || mix(accent, '#000000', 0.72), selTint: mix(accent, '#FFFFFF', 0.22), fieldTint: mix(accent, '#FFFFFF', 0.08) };
+  }
+  vals() {
     return {};
   }
 }

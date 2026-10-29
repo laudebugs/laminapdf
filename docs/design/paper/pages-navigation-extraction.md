@@ -85,7 +85,7 @@ Rules that hold for every screen here:
 
 **Entry points.** Rail › Outline tab, editable in Organise (in Read and other modes it is read-only with an "Edit in Organise" link at its foot); Organise toolbar › Bookmark ▾ › Add bookmark, Create a contents page…, Named destinations…; the selection mini toolbar's More › "Add bookmark here"; palette "Add bookmark" (`organise.add-bookmark`), "Create a contents page" (`organise.create-contents-page`), "Named destinations" (`organise.named-destinations`). The rail header's More menu repeats these and adds Expand all, Collapse all and Sort by page.
 
-**Layout.** Desktop shell, Organise mode, the Organise toolbar with the note "7 bookmarks"; the top bar shows "1 unsaved change", Save and "Undo add bookmark". Rail (220 px, resizable wider) with Outline · History · Attachments, Outline open. Canvas shows the destination; inspector "Bookmark". The contents-page generator and named destinations are dialogs over the same shell.
+**Layout.** Desktop shell, Organise mode, the Organise toolbar with the note "8 bookmarks"; the top bar shows "1 unsaved change", Save and "Undo add bookmark". Rail (220 px, resizable wider) with Outline · History · Attachments, Outline open. Canvas shows the destination; inspector "Bookmark". The contents-page generator and named destinations are dialogs over the same shell.
 
 **Content and controls.**
 

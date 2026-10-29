@@ -33,7 +33,7 @@ button,input,textarea,select{font:inherit;color:inherit}
       <a href="#" style="height: 32px; display: flex; align-items: center; padding: 0 10px; border-radius: 4px; color: #1F1D1A; text-decoration: none">Appearance</a>
       <a href="#" style="height: 32px; display: flex; align-items: center; padding: 0 10px; border-radius: 4px; color: #1F1D1A; text-decoration: none">Updates</a>
       <a href="#" style="height: 32px; display: flex; align-items: center; padding: 0 10px; border-radius: 4px; color: #1F1D1A; text-decoration: none">Privacy</a>
-      <a href="#" aria-current="page" style="height: 32px; display: flex; align-items: center; padding: 0 10px; border-radius: 4px; color: #1F5C63; background: #E1E6E3; font-weight: 600; text-decoration: none">Shortcuts</a>
+      <a href="#" aria-current="page" style="height: 32px; display: flex; align-items: center; padding: 0 10px; border-radius: 4px; color: {{accent}}; background: {{accentTint}}; font-weight: 600; text-decoration: none">Shortcuts</a>
       <a href="#" style="height: 32px; display: flex; align-items: center; padding: 0 10px; border-radius: 4px; color: #1F1D1A; text-decoration: none">Licence</a>
       <a href="#" style="height: 32px; display: flex; align-items: center; padding: 0 10px; border-radius: 4px; color: #1F1D1A; text-decoration: none">Account and plan</a>
       <a href="#" style="height: 32px; display: flex; align-items: center; padding: 0 10px; border-radius: 4px; color: #1F1D1A; text-decoration: none">Notifications</a>
@@ -42,14 +42,14 @@ button,input,textarea,select{font:inherit;color:inherit}
     </nav>
 
     <main style="flex: 999 1 480px; min-width: 0; box-sizing: border-box; background: #FBF9F5; padding: 28px 32px 32px; display: flex; flex-direction: column; gap: 22px">
-      <h1 style="margin: 0; font-family: 'Newsreader', Georgia, serif; font-size: 20px; line-height: 24px; font-weight: 500">Shortcuts</h1>
+      <h1 style="margin: 0; font-family: 'Newsreader', Georgia, serif; font-size: 28px; line-height: 34px; font-weight: 500">Shortcuts</h1>
 
       <div style="display: flex; justify-content: space-between; align-items: center; gap: 24px; padding-bottom: 14px; border-bottom: 1px solid #E4DED3">
         <div style="display: flex; flex-direction: column; gap: 2px">
           <span id="sw-single">Single-key shortcuts</span>
           <span id="sw-single-d" style="font-size: 12px; color: #6B645A; max-width: 460px">Keys such as R for Reader mode work while the page has focus, never while you type. Turn them off if you use speech input or stray key presses trigger them.</span>
         </div>
-        <button role="switch" aria-checked="true" aria-labelledby="sw-single" aria-describedby="sw-single-d" style="flex: 0 0 auto; width: 32px; height: 18px; padding: 0; border: 1px solid #1F5C63; border-radius: 9px; background: #1F5C63; position: relative"><span style="position: absolute; top: 2px; right: 2px; width: 12px; height: 12px; border-radius: 50%; background: #FFFFFF"></span></button>
+        <button role="switch" aria-checked="true" aria-labelledby="sw-single" aria-describedby="sw-single-d" style="flex: 0 0 auto; width: 32px; height: 18px; padding: 0; border: 1px solid {{accent}}; border-radius: 9px; background: {{accent}}; position: relative"><span style="position: absolute; top: 2px; right: 2px; width: 12px; height: 12px; border-radius: 50%; background: #FFFFFF"></span></button>
       </div>
 
       <section aria-labelledby="s-list" style="display: flex; flex-direction: column; gap: 12px">
@@ -58,14 +58,14 @@ button,input,textarea,select{font:inherit;color:inherit}
             <h2 id="s-list" style="margin: 0; font-family: 'Newsreader', Georgia, serif; font-size: 18px; line-height: 24px; font-weight: 500">Keyboard shortcuts</h2>
             <span style="font-size: 12px; color: #6B645A">The same keys work in the menus, the command palette and help.</span>
           </div>
-          <div style="display: flex; align-items: center; gap: 8px; height: 32px; padding: 0 10px; box-sizing: border-box; width: 220px; border: 1px solid #8A8174; border-radius: 4px; background: #FFFFFF; outline: 2px solid #1F5C63; outline-offset: 1px">
+          <div style="display: flex; align-items: center; gap: 8px; height: 32px; padding: 0 10px; box-sizing: border-box; width: 220px; border: 1px solid #8A8174; border-radius: 4px; background: #FFFFFF; outline: 2px solid {{accent}}; outline-offset: 1px">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6B645A" stroke-width="1.5" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6"></circle><path d="M15 15l5 5"></path></svg>
             <label for="sc-q" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Filter shortcuts</label>
             <input id="sc-q" placeholder="Filter shortcuts" style="flex: 1 1 auto; min-width: 0; border: 0; outline: 0; background: transparent; font-size: 14px">
           </div>
         </div>
 
-        <div style="max-height: 420px; overflow: auto; border-top: 1px solid #E4DED3">
+        <div tabindex="0" role="region" aria-label="Shortcut list" style="max-height: 420px; overflow: auto; border-top: 1px solid #E4DED3">
           <table style="width: 100%; border-collapse: collapse; font-size: 14px">
             <caption style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Keyboard shortcuts on macOS</caption>
             <thead>
@@ -73,29 +73,29 @@ button,input,textarea,select{font:inherit;color:inherit}
             </thead>
             <tbody>
               <tr><th colspan="2" scope="rowgroup" style="text-align: left; padding: 12px 0 4px; font-size: 11px; font-weight: 400; letter-spacing: 0.06em; text-transform: uppercase; color: #6B645A">File</th></tr>
-              <tr style="border-top: 1px solid #E4DED3"><td style="padding: 6px 0">Open…</td><td style="text-align: right"><span style="font-size: 12px; padding: 1px 6px; border: 1px solid #D8D1C5; border-radius: 3px; background: #FFFFFF; color: #4A453E">⌘O</span></td></tr>
-              <tr style="border-top: 1px solid #E4DED3"><td style="padding: 6px 0">New window</td><td style="text-align: right"><span style="font-size: 12px; padding: 1px 6px; border: 1px solid #D8D1C5; border-radius: 3px; background: #FFFFFF; color: #4A453E">⇧⌘N</span></td></tr>
-              <tr style="border-top: 1px solid #E4DED3"><td style="padding: 6px 0">Close tab</td><td style="text-align: right"><span style="font-size: 12px; padding: 1px 6px; border: 1px solid #D8D1C5; border-radius: 3px; background: #FFFFFF; color: #4A453E">⌘W</span></td></tr>
-              <tr style="border-top: 1px solid #E4DED3"><td style="padding: 6px 0">Print…</td><td style="text-align: right"><span style="font-size: 12px; padding: 1px 6px; border: 1px solid #D8D1C5; border-radius: 3px; background: #FFFFFF; color: #4A453E">⌘P</span></td></tr>
-              <tr style="border-top: 1px solid #E4DED3"><td style="padding: 6px 0">Settings…</td><td style="text-align: right"><span style="font-size: 12px; padding: 1px 6px; border: 1px solid #D8D1C5; border-radius: 3px; background: #FFFFFF; color: #4A453E">⌘,</span></td></tr>
+              <tr style="border-top: 1px solid #E4DED3"><td style="padding: 6px 0">Open…</td><td style="text-align: right"><span style="font-size: 11px; padding: 1px 5px; border: 1px solid #D8D1C5; border-radius: 3px; background: #FFFFFF; color: #4A453E; white-space: nowrap; flex-shrink: 0">⌘O</span></td></tr>
+              <tr style="border-top: 1px solid #E4DED3"><td style="padding: 6px 0">New window</td><td style="text-align: right"><span style="font-size: 11px; padding: 1px 5px; border: 1px solid #D8D1C5; border-radius: 3px; background: #FFFFFF; color: #4A453E; white-space: nowrap; flex-shrink: 0">⇧⌘N</span></td></tr>
+              <tr style="border-top: 1px solid #E4DED3"><td style="padding: 6px 0">Close tab</td><td style="text-align: right"><span style="font-size: 11px; padding: 1px 5px; border: 1px solid #D8D1C5; border-radius: 3px; background: #FFFFFF; color: #4A453E; white-space: nowrap; flex-shrink: 0">⌘W</span></td></tr>
+              <tr style="border-top: 1px solid #E4DED3"><td style="padding: 6px 0">Print…</td><td style="text-align: right"><span style="font-size: 11px; padding: 1px 5px; border: 1px solid #D8D1C5; border-radius: 3px; background: #FFFFFF; color: #4A453E; white-space: nowrap; flex-shrink: 0">⌘P</span></td></tr>
+              <tr style="border-top: 1px solid #E4DED3"><td style="padding: 6px 0">Settings…</td><td style="text-align: right"><span style="font-size: 11px; padding: 1px 5px; border: 1px solid #D8D1C5; border-radius: 3px; background: #FFFFFF; color: #4A453E; white-space: nowrap; flex-shrink: 0">⌘,</span></td></tr>
             </tbody>
             <tbody>
               <tr><th colspan="2" scope="rowgroup" style="text-align: left; padding: 16px 0 4px; font-size: 11px; font-weight: 400; letter-spacing: 0.06em; text-transform: uppercase; color: #6B645A">View and tabs</th></tr>
-              <tr style="border-top: 1px solid #E4DED3"><td style="padding: 6px 0">Commands</td><td style="text-align: right"><span style="font-size: 12px; padding: 1px 6px; border: 1px solid #D8D1C5; border-radius: 3px; background: #FFFFFF; color: #4A453E">⌘K</span></td></tr>
-              <tr style="border-top: 1px solid #E4DED3"><td style="padding: 6px 0">Zoom in</td><td style="text-align: right"><span style="font-size: 12px; padding: 1px 6px; border: 1px solid #D8D1C5; border-radius: 3px; background: #FFFFFF; color: #4A453E">⌘+</span></td></tr>
-              <tr style="border-top: 1px solid #E4DED3"><td style="padding: 6px 0">Focus mode</td><td style="text-align: right"><span style="font-size: 12px; padding: 1px 6px; border: 1px solid #D8D1C5; border-radius: 3px; background: #FFFFFF; color: #4A453E">⌘\</span></td></tr>
-              <tr style="border-top: 1px solid #E4DED3"><td style="padding: 6px 0">Next tab</td><td style="text-align: right"><span style="font-size: 12px; padding: 1px 6px; border: 1px solid #D8D1C5; border-radius: 3px; background: #FFFFFF; color: #4A453E">⌃Tab</span> <span style="font-size: 12px; padding: 1px 6px; border: 1px solid #D8D1C5; border-radius: 3px; background: #FFFFFF; color: #4A453E">⇧⌘]</span></td></tr>
+              <tr style="border-top: 1px solid #E4DED3"><td style="padding: 6px 0">Commands</td><td style="text-align: right"><span style="font-size: 11px; padding: 1px 5px; border: 1px solid #D8D1C5; border-radius: 3px; background: #FFFFFF; color: #4A453E; white-space: nowrap; flex-shrink: 0">⌘K</span></td></tr>
+              <tr style="border-top: 1px solid #E4DED3"><td style="padding: 6px 0">Zoom in</td><td style="text-align: right"><span style="font-size: 11px; padding: 1px 5px; border: 1px solid #D8D1C5; border-radius: 3px; background: #FFFFFF; color: #4A453E; white-space: nowrap; flex-shrink: 0">⌘+</span></td></tr>
+              <tr style="border-top: 1px solid #E4DED3"><td style="padding: 6px 0">Focus mode</td><td style="text-align: right"><span style="font-size: 11px; padding: 1px 5px; border: 1px solid #D8D1C5; border-radius: 3px; background: #FFFFFF; color: #4A453E; white-space: nowrap; flex-shrink: 0">⌘\</span></td></tr>
+              <tr style="border-top: 1px solid #E4DED3"><td style="padding: 6px 0">Next tab</td><td style="text-align: right"><span style="font-size: 11px; padding: 1px 5px; border: 1px solid #D8D1C5; border-radius: 3px; background: #FFFFFF; color: #4A453E; white-space: nowrap; flex-shrink: 0">⌃Tab</span> <span style="font-size: 11px; padding: 1px 5px; border: 1px solid #D8D1C5; border-radius: 3px; background: #FFFFFF; color: #4A453E; white-space: nowrap; flex-shrink: 0">⇧⌘]</span></td></tr>
             </tbody>
             <tbody>
               <tr><th colspan="2" scope="rowgroup" style="text-align: left; padding: 16px 0 4px; font-size: 11px; font-weight: 400; letter-spacing: 0.06em; text-transform: uppercase; color: #6B645A">Help</th></tr>
-              <tr style="border-top: 1px solid #E4DED3"><td style="padding: 6px 0">Keyboard shortcuts</td><td style="text-align: right"><span style="font-size: 12px; padding: 1px 6px; border: 1px solid #D8D1C5; border-radius: 3px; background: #FFFFFF; color: #4A453E">F1</span></td></tr>
+              <tr style="border-top: 1px solid #E4DED3"><td style="padding: 6px 0">Keyboard shortcuts</td><td style="text-align: right"><span style="font-size: 11px; padding: 1px 5px; border: 1px solid #D8D1C5; border-radius: 3px; background: #FFFFFF; color: #4A453E; white-space: nowrap; flex-shrink: 0">F1</span></td></tr>
             </tbody>
             <tbody>
               <tr><th colspan="2" scope="rowgroup" style="text-align: left; padding: 16px 0 4px; font-size: 11px; font-weight: 400; letter-spacing: 0.06em; text-transform: uppercase; color: #6B645A">Single keys · page has focus</th></tr>
-              <tr style="border-top: 1px solid #E4DED3"><td style="padding: 6px 0">Reader mode (Read mode)</td><td style="text-align: right"><span style="font-size: 12px; padding: 1px 6px; border: 1px solid #D8D1C5; border-radius: 3px; background: #FFFFFF; color: #4A453E">R</span></td></tr>
-              <tr style="border-top: 1px solid #E4DED3"><td style="padding: 6px 0">Keyboard shortcuts</td><td style="text-align: right"><span style="font-size: 12px; padding: 1px 6px; border: 1px solid #D8D1C5; border-radius: 3px; background: #FFFFFF; color: #4A453E">?</span></td></tr>
-              <tr style="border-top: 1px solid #E4DED3"><td style="padding: 6px 0">Zoom in</td><td style="text-align: right"><span style="font-size: 12px; padding: 1px 6px; border: 1px solid #D8D1C5; border-radius: 3px; background: #FFFFFF; color: #4A453E">+</span></td></tr>
-              <tr style="border-top: 1px solid #E4DED3"><td style="padding: 6px 0">Zoom out</td><td style="text-align: right"><span style="font-size: 12px; padding: 1px 6px; border: 1px solid #D8D1C5; border-radius: 3px; background: #FFFFFF; color: #4A453E">−</span></td></tr>
+              <tr style="border-top: 1px solid #E4DED3"><td style="padding: 6px 0">Reader mode (Read mode)</td><td style="text-align: right"><span style="font-size: 11px; padding: 1px 5px; border: 1px solid #D8D1C5; border-radius: 3px; background: #FFFFFF; color: #4A453E; white-space: nowrap; flex-shrink: 0">R</span></td></tr>
+              <tr style="border-top: 1px solid #E4DED3"><td style="padding: 6px 0">Keyboard shortcuts</td><td style="text-align: right"><span style="font-size: 11px; padding: 1px 5px; border: 1px solid #D8D1C5; border-radius: 3px; background: #FFFFFF; color: #4A453E; white-space: nowrap; flex-shrink: 0">?</span></td></tr>
+              <tr style="border-top: 1px solid #E4DED3"><td style="padding: 6px 0">Zoom in</td><td style="text-align: right"><span style="font-size: 11px; padding: 1px 5px; border: 1px solid #D8D1C5; border-radius: 3px; background: #FFFFFF; color: #4A453E; white-space: nowrap; flex-shrink: 0">+</span></td></tr>
+              <tr style="border-top: 1px solid #E4DED3"><td style="padding: 6px 0">Zoom out</td><td style="text-align: right"><span style="font-size: 11px; padding: 1px 5px; border: 1px solid #D8D1C5; border-radius: 3px; background: #FFFFFF; color: #4A453E; white-space: nowrap; flex-shrink: 0">−</span></td></tr>
             </tbody>
           </table>
         </div>
@@ -105,9 +105,25 @@ button,input,textarea,select{font:inherit;color:inherit}
 </div>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#1F5C63","options":["#1F5C63","#2D4A6B","#5B3B6B","#495533"]},"$preview":{"width":1440,"height":900}}'>
 class Component extends DCLogic {
   renderVals() {
+    return Object.assign(this.theme(), this.vals());
+  }
+  theme() {
+    var accent = String(this.props.accent ?? '#1F5C63').toUpperCase();
+    function mix(hex, base, t) {
+      var p = function (h, i) { return parseInt(h.replace('#', '').substr(i, 2), 16); };
+      var out = '#';
+      for (var i = 0; i < 6; i += 2) {
+        var v = Math.round(p(hex, i) * t + p(base, i) * (1 - t));
+        out += (v < 16 ? '0' : '') + v.toString(16);
+      }
+      return out;
+    }
+    return { accent: accent, accentTint: mix(accent, '#FBF9F5', 0.12), accentStrong: ({'#1F5C63':'#16454B','#2D4A6B':'#1A3757','#5B3B6B':'#472856','#495533':'#35401F'})[accent] || mix(accent, '#000000', 0.72), selTint: mix(accent, '#FFFFFF', 0.22), fieldTint: mix(accent, '#FFFFFF', 0.08) };
+  }
+  vals() {
     return {};
   }
 }

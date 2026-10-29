@@ -10,7 +10,7 @@ Mode names follow the [UI/UX plan](../../plans/ui-ux.md#51-desktop-and-web-layou
 
 | ID | Screen | Platforms | Todos |
 | --- | --- | --- | --- |
-| F01 | Web reader, Read mode, selection mini toolbar | W | [C4a](../../todos/ready/C4a-ui-chrome-and-platform.md), [U1c](../../todos/ready/U1c-inverted-l-shell-and-modes.md), [U2a](../../todos/ready/U2a-selection-surfaces-and-copy-modes.md) |
+| F01 | Web reader v0.1 (Reader top bar), selection mini toolbar | W | [C4a](../../todos/ready/C4a-ui-chrome-and-platform.md), [U1c](../../todos/ready/U1c-inverted-l-shell-and-modes.md), [U2a](../../todos/ready/U2a-selection-surfaces-and-copy-modes.md) |
 | F02 | Desktop, Comment mode, inspector, command palette | D | [U1b](../../todos/ready/U1b-command-registry-and-palette.md), [U1c](../../todos/ready/U1c-inverted-l-shell-and-modes.md), [E4f](../../todos/ready/E4f-annotation-tools-ui.md) |
 | F03 | Phone, reading | M | [U3a](../../todos/ready/U3a-responsive-mobile-and-touch.md) |
 | F04 | Phone, text selected, Pages sheet | M | [U3a](../../todos/ready/U3a-responsive-mobile-and-touch.md), [U2a](../../todos/ready/U2a-selection-surfaces-and-copy-modes.md) |
@@ -29,7 +29,7 @@ Mode names follow the [UI/UX plan](../../plans/ui-ux.md#51-desktop-and-web-layou
 | R07 | Links and history: link hover target preview, back/forward after following a link | W | [C6b](../../todos/ready/C6b-links-and-history.md) |
 | R08 | Document properties (dialog: title, author, PDF version, page size, fonts, security, tagged) | W | [C6c](../../todos/ready/C6c-print-download-properties.md) |
 | R09 | Print and Download a copy (print dialog: range, scale, page appearance warning) | W | [C6c](../../todos/ready/C6c-print-download-properties.md) |
-| R10 | View settings: UI theme (light, dark, high contrast, match system), page appearance (Original, Sepia, Dark, High contrast), page layout (single, two-up, continuous), zoom presets | W, M | [C7a](../../todos/ready/C7a-accessibility-and-theming.md), [U2c](../../todos/ready/U2c-page-appearance-modes.md) |
+| R10 | View settings: UI theme (light, dark, high contrast, match system), accent colour (Teal, Blue, Plum, Green), page appearance (Original, Sepia, Dark, High contrast), page layout (single, two-up, continuous), zoom presets | W, M | [C7a](../../todos/ready/C7a-accessibility-and-theming.md), [U2c](../../todos/ready/U2c-page-appearance-modes.md) |
 | R11 | Dark UI theme (F01 in dark chrome, page Original) | W | [C7a](../../todos/ready/C7a-accessibility-and-theming.md) |
 | R12 | Keyboard shortcuts (help generated from the command registry) | W | [U1b](../../todos/ready/U1b-command-registry-and-palette.md), [C7a](../../todos/ready/C7a-accessibility-and-theming.md) |
 | R13 | Network activity panel: requests since open, per-origin list, "what this proves" | W | [U4a](../../todos/ready/U4a-network-indicator-and-privacy-proof.md) |

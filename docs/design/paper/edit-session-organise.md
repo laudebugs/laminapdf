@@ -6,6 +6,8 @@ Screens O01–O08 of the [screen inventory](screens.md): the edit session and it
 - **Plan:** [full-editor §E1](../../plans/full-editor.md#e1-editing-foundation) and [§E2](../../plans/full-editor.md#e2-page-organisation); save behaviour from [ADR 0007](../../decisions/0007-save-planner.md); undo from [ADR 0006](../../decisions/0006-op-log-and-undo.md); layout rules from the [UI/UX plan](../../plans/ui-ux.md) §4–§5.
 - **Sample file:** `Q3-board-report.pdf` (Northwind Housing Trust, 24 pages). For the signed states it carries either an **approval** signature by “M. Adeyemi, Chair” on page 24 (field `Chair_Approval`, 28 Oct 2026, 11:40) or a **certification** (DocMDP P2, form filling only) by “Northwind Housing Trust” (field `Secretary_Signature`, 27 Oct 2026, 09:12). Other files (`Site-survey-Oct-2026.pdf`, `Rent-arrears-appendix.pdf`) and the custom XMP schema `nwt:` (`http://ns.example.org/northwind/report/1.0/`) are fictional.
 
+Every board has the `accent` tweak (Teal, Blue, Plum, Green; design language [§2.8](design-language.md#28-accent-colours-proposed)); every accent-derived colour, link and focus ring follows it.
+
 Where this area lives in the shell:
 
 - **Edit session** state is always in the top bar, which is the design language's Editor variant (§7.1) on every board: sidebar toggle · file name + save state (`aria-live="polite"`) · divider · Undo · Redo (always shown, disabled with nothing to undo or redo) · mode switcher · page n/N (Organise: thumbnail size) · zoom · Find · View · Commands · Save split button (primary, only while there are changes) · More. History is a contextual tab in the left rail (§8.10), present in every mode once an edit session exists.

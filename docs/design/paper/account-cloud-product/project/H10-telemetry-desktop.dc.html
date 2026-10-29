@@ -15,7 +15,7 @@ a{color:#1F5C63}a:hover{color:#16454B}
 button,input,textarea{font:inherit;color:inherit}
 </style>
 </helmet>
-<div style="min-height: 100vh; display: flex; flex-direction: column; box-sizing: border-box; background: #DCD6CB; font-family: 'Source Sans 3', 'Segoe UI', system-ui, sans-serif; font-size: 14px; line-height: 1.4; color: #1F1D1A">
+<div style="height: 100vh; overflow: hidden; display: flex; flex-direction: column; box-sizing: border-box; background: #DCD6CB; font-family: 'Source Sans 3', 'Segoe UI', system-ui, sans-serif; font-size: 14px; line-height: 1.4; color: #1F1D1A">
 <div style="position: relative; flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; background: #F7F4EE; border: 1px solid #C9C2B6; border-radius: 10px; overflow: hidden; box-sizing: border-box">
 
   <div style="height: 30px; flex: 0 0 auto; display: flex; align-items: center; padding: 0 12px; background: #EFEBE3; border-bottom: 1px solid #E0D9CD; position: relative">
@@ -27,7 +27,7 @@ button,input,textarea{font:inherit;color:inherit}
     <div style="position: absolute; left: 0; right: 0; text-align: center; font-size: 13px; font-weight: 600; color: #3A3631; pointer-events: none">Settings</div>
   </div>
 
-  <div style="flex: 1 1 auto; min-height: 0; display: flex; flex-wrap: wrap">
+  <div style="flex: 1 1 auto; min-height: 0; display: flex">
     <nav aria-label="Settings sections" style="flex: 0 0 200px; box-sizing: border-box; border-right: 1px solid #E4DED3; padding: 16px 10px; display: flex; flex-direction: column; gap: 2px">
       <a href="#general" style="height: 32px; display: flex; align-items: center; padding: 0 10px; border-radius: 4px; color: #1F1D1A; text-decoration: none">General</a>
       <a href="#appearance" style="height: 32px; display: flex; align-items: center; padding: 0 10px; border-radius: 4px; color: #1F1D1A; text-decoration: none">Appearance</a>
@@ -41,7 +41,7 @@ button,input,textarea{font:inherit;color:inherit}
       <a href="#about" style="height: 32px; display: flex; align-items: center; padding: 0 10px; border-radius: 4px; color: #1F1D1A; text-decoration: none">About</a>
     </nav>
 
-    <main style="flex: 999 1 480px; min-width: 0; box-sizing: border-box; background: #FBF9F5; padding: 28px 32px 32px; display: flex; flex-direction: column; gap: 22px">
+    <main style="min-height: 0; flex: 999 1 480px; min-width: 0; box-sizing: border-box; background: #FBF9F5; padding: 28px 32px 32px; display: flex; flex-direction: column; gap: 22px; overflow: auto">
       <div style="display: flex; flex-direction: column; gap: 4px">
         <h1 style="margin: 0; font-family: 'Newsreader', Georgia, serif; font-size: 20px; line-height: 24px; font-weight: 500">Privacy</h1>
         <p style="margin: 0; font-size: 13px; color: #4A453E">Both settings below are off when lamina is installed. Each one is separate.</p>
@@ -62,7 +62,7 @@ button,input,textarea{font:inherit;color:inherit}
         </div>
         <p id="uc-d" style="margin: 0; font-size: 13px; color: #3A3631">Once a day, how many times you used each command and mode. Never document content, file names, paths, web addresses, or anything that identifies you or this computer. The counts help decide which features come next.</p>
         <dl style="margin: 0; display: grid; grid-template-columns: 120px minmax(0, 1fr); gap: 6px 16px; font-size: 13px; font-variant-numeric: tabular-nums">
-          <dt style="font-weight: 600; color: #4A453E">Last sent</dt><dd style="margin: 0">29 Oct 2026, 09:00 · 1 request to lamina’s server</dd>
+          <dt style="font-weight: 600; color: #4A453E">Last sent</dt><dd style="margin: 0">29 Oct 2026, 09:00 · 1 request to lamina’s usage-count server</dd>
           <dt style="font-weight: 600; color: #4A453E">Next</dt><dd style="margin: 0">30 Oct 2026, around 09:00</dd>
           <dt style="font-weight: 600; color: #4A453E">Kept for</dt><dd style="margin: 0">[RETENTION]; no IP address is stored</dd>
         </dl>
@@ -83,7 +83,7 @@ button,input,textarea{font:inherit;color:inherit}
         </div>
         <div style="display: flex; flex-wrap: wrap; gap: 8px">
           <button style="height: 30px; padding: 0 14px; border: 1px solid #8A8174; background: #FFFFFF; border-radius: 4px; font-size: 13px">Copy report</button>
-          <a href="#privacy-page" style="display: flex; align-items: center; min-height: 30px; padding: 0 8px; font-size: 13px">How usage counts work</a>
+          <a href="#privacy-page" style="display: flex; align-items: center; min-height: 30px; padding: 0 8px; font-size: 13px; color: {{accent}}">How usage counts work</a>
         </div>
         <p style="margin: 0; font-size: 12px; color: #6B645A">Reports carry no identifier, so past counts can’t be traced to this computer or deleted one by one.</p>
       </section>
@@ -92,10 +92,10 @@ button,input,textarea{font:inherit;color:inherit}
 </div>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#1F5C63","options":["#1F5C63","#2D4A6B","#3E4A3C"]},"$preview":{"width":1440,"height":900}}'>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#1F5C63","options":["#1F5C63","#2D4A6B","#5B3B6B","#495533"]},"$preview":{"width":1440,"height":900}}'>
 class Component extends DCLogic {
   renderVals() {
-    var accent = this.props.accent ?? '#1F5C63';
+    var accent = String(this.props.accent ?? '#1F5C63').toUpperCase();
     function mix(hex, base, t) {
       var p = function (h, i) { return parseInt(h.replace('#', '').substr(i, 2), 16); };
       var out = '#';
@@ -103,9 +103,14 @@ class Component extends DCLogic {
         var v = Math.round(p(hex, i) * t + p(base, i) * (1 - t));
         out += (v < 16 ? '0' : '') + v.toString(16);
       }
-      return out;
+      return out.toUpperCase();
     }
-    return { accent: accent, accentTint: mix(accent, '#F7F4EE', 0.12) };
+    var strong = { '#1F5C63': '#16454B', '#2D4A6B': '#1A3757', '#5B3B6B': '#472856', '#495533': '#35401F' };
+    var rgb = [0, 2, 4].map(function (i) { return parseInt(accent.replace('#', '').substr(i, 2), 16); }).join(',');
+    return {
+      accent: accent, accentStrong: strong[accent] || accent, accentTint: mix(accent, '#FBF9F5', 0.12),
+      selTint: mix(accent, '#FFFFFF', 0.22), fieldTint: mix(accent, '#FFFFFF', 0.08), accentRgb: rgb
+    };
   }
 }
 </script>

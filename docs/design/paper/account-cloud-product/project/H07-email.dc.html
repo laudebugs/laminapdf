@@ -36,16 +36,31 @@ a{color:#1F5C63}a:hover{color:#16454B}
       </div>
       <div style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: #6B645A">
         <span>You get these emails because you turned on comment emails for this document.</span>
-        <span><a href="#off">Turn off emails for this document</a> · <a href="#settings">Notification settings</a></span>
+        <span><a href="#off" style="color: {{accent}}">Turn off emails for this document</a> · <a href="#settings" style="color: {{accent}}">Notification settings</a></span>
       </div>
     </div>
   </div>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#1F5C63","options":["#1F5C63","#2D4A6B","#3E4A3C"]},"$preview":{"width":720,"height":900}}'>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#1F5C63","options":["#1F5C63","#2D4A6B","#5B3B6B","#495533"]},"$preview":{"width":720,"height":900}}'>
 class Component extends DCLogic {
   renderVals() {
-    return { accent: this.props.accent ?? '#1F5C63' };
+    var accent = String(this.props.accent ?? '#1F5C63').toUpperCase();
+    function mix(hex, base, t) {
+      var p = function (h, i) { return parseInt(h.replace('#', '').substr(i, 2), 16); };
+      var out = '#';
+      for (var i = 0; i < 6; i += 2) {
+        var v = Math.round(p(hex, i) * t + p(base, i) * (1 - t));
+        out += (v < 16 ? '0' : '') + v.toString(16);
+      }
+      return out.toUpperCase();
+    }
+    var strong = { '#1F5C63': '#16454B', '#2D4A6B': '#1A3757', '#5B3B6B': '#472856', '#495533': '#35401F' };
+    var rgb = [0, 2, 4].map(function (i) { return parseInt(accent.replace('#', '').substr(i, 2), 16); }).join(',');
+    return {
+      accent: accent, accentStrong: strong[accent] || accent, accentTint: mix(accent, '#FBF9F5', 0.12),
+      selTint: mix(accent, '#FFFFFF', 0.22), fieldTint: mix(accent, '#FFFFFF', 0.08), accentRgb: rgb
+    };
   }
 }
 </script>

@@ -15,7 +15,7 @@ a{color:#1F5C63}a:hover{color:#16454B}
 button,input,textarea{font:inherit;color:inherit}
 </style>
 </helmet>
-<div style="min-height: 100vh; display: flex; flex-direction: column; background: #F7F4EE; color: #1F1D1A; font-family: 'Source Sans 3', 'Segoe UI', system-ui, sans-serif; font-size: 14px; line-height: 1.4">
+<div style="height: 100vh; overflow: hidden; display: flex; flex-direction: column; background: #F7F4EE; color: #1F1D1A; font-family: 'Source Sans 3', 'Segoe UI', system-ui, sans-serif; font-size: 14px; line-height: 1.4">
 
   <header style="min-height: 40px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 20px; padding: 0 16px; border-bottom: 1px solid #E4DED3; background: #F7F4EE">
     <div style="display: flex; align-items: center; gap: 10px; flex: 1 1 220px; min-width: 0">
@@ -23,13 +23,14 @@ button,input,textarea{font:inherit;color:inherit}
       <span style="font-family: 'Newsreader', Georgia, serif; font-size: 16px; font-weight: 500">Settings</span>
     </div>
     <div style="display: flex; align-items: center; justify-content: flex-end; gap: 14px; flex: 1 1 220px">
-      <button style="height: 26px; display: flex; align-items: center; gap: 8px; padding: 0 6px 0 10px; border: 1px solid #E4DED3; background: #FBF9F5; border-radius: 4px; color: #6B645A; font-size: 13px"><span>Commands</span><span style="font-size: 11px; padding: 1px 5px; border: 1px solid #D8D1C5; border-radius: 3px; color: #4A453E; background: #FFFFFF">Ctrl K</span></button>
+      <button style="height: 26px; display: flex; align-items: center; gap: 8px; padding: 0 6px 0 10px; border: 1px solid #E4DED3; background: #FBF9F5; border-radius: 4px; color: #6B645A; font-size: 13px; white-space: nowrap; flex-shrink: 0"><span>Commands</span><span style="font-size: 11px; padding: 1px 5px; border: 1px solid #D8D1C5; border-radius: 3px; color: #4A453E; background: #FFFFFF">Ctrl K</span></button>
       <button style="height: 26px; padding: 0 12px; border: 0; background: transparent; border-radius: 4px; font-size: 13px; color: {{accent}}; font-weight: 600">Sign in</button>
+      <button aria-label="More actions" style="width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 4px; color: #4A453E"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="5.5" cy="12" r="0.9"></circle><circle cx="12" cy="12" r="0.9"></circle><circle cx="18.5" cy="12" r="0.9"></circle></svg></button>
     </div>
   </header>
 
-  <div style="flex: 1 1 auto; min-height: 0; display: flex; flex-wrap: wrap">
-    <nav aria-label="Settings sections" style="flex: 0 0 200px; box-sizing: border-box; border-right: 1px solid #E4DED3; padding: 16px 10px; display: flex; flex-direction: column; gap: 2px">
+  <div style="flex: 1 1 auto; min-height: 0; display: flex">
+    <nav aria-label="Settings sections" style="flex: 0 0 220px; box-sizing: border-box; border-right: 1px solid #E4DED3; padding: 16px 10px; display: flex; flex-direction: column; gap: 2px">
       <a href="#general" style="height: 32px; display: flex; align-items: center; padding: 0 10px; border-radius: 4px; color: #1F1D1A; text-decoration: none">General</a>
       <a href="#appearance" style="height: 32px; display: flex; align-items: center; padding: 0 10px; border-radius: 4px; color: #1F1D1A; text-decoration: none">Appearance</a>
       <a href="#privacy" style="height: 32px; display: flex; align-items: center; padding: 0 10px; border-radius: 4px; color: #1F1D1A; text-decoration: none">Privacy</a>
@@ -40,7 +41,7 @@ button,input,textarea{font:inherit;color:inherit}
       <a href="#about" style="height: 32px; display: flex; align-items: center; padding: 0 10px; border-radius: 4px; color: #1F1D1A; text-decoration: none">About</a>
     </nav>
 
-    <main style="flex: 999 1 560px; min-width: 0; box-sizing: border-box; padding: 32px 32px 48px; display: flex; justify-content: center">
+    <main style="min-height: 0; flex: 999 1 560px; min-width: 0; box-sizing: border-box; background: #FBF9F5; padding: 32px 32px 48px; display: flex; justify-content: center; overflow: auto">
       <div style="width: 100%; max-width: 640px; display: flex; flex-direction: column; gap: 24px">
         <div style="display: flex; flex-direction: column; gap: 6px">
           <h1 style="margin: 0; font-family: 'Newsreader', Georgia, serif; font-size: 28px; font-weight: 500; line-height: 1.2">Licence</h1>
@@ -69,7 +70,7 @@ button,input,textarea{font:inherit;color:inherit}
           </ul>
         </section>
 
-        <p style="margin: 0; font-size: 13px; color: #6B645A">No key yet? <a href="#pricing">See pricing</a>. Signed in? Keys bought with an account appear in Account and plan.</p>
+        <p style="margin: 0; font-size: 13px; color: #6B645A">No key yet? <a href="#pricing" style="color: {{accent}}">See pricing</a>. Signed in? Keys bought with an account appear in Account and plan.</p>
       </div>
     </main>
   </div>
@@ -80,10 +81,10 @@ button,input,textarea{font:inherit;color:inherit}
   </footer>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#1F5C63","options":["#1F5C63","#2D4A6B","#3E4A3C"]},"$preview":{"width":1440,"height":1000}}'>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#1F5C63","options":["#1F5C63","#2D4A6B","#5B3B6B","#495533"]},"$preview":{"width":1440,"height":900}}'>
 class Component extends DCLogic {
   renderVals() {
-    var accent = this.props.accent ?? '#1F5C63';
+    var accent = String(this.props.accent ?? '#1F5C63').toUpperCase();
     function mix(hex, base, t) {
       var p = function (h, i) { return parseInt(h.replace('#', '').substr(i, 2), 16); };
       var out = '#';
@@ -91,9 +92,14 @@ class Component extends DCLogic {
         var v = Math.round(p(hex, i) * t + p(base, i) * (1 - t));
         out += (v < 16 ? '0' : '') + v.toString(16);
       }
-      return out;
+      return out.toUpperCase();
     }
-    return { accent: accent, accentTint: mix(accent, '#FBF9F5', 0.12) };
+    var strong = { '#1F5C63': '#16454B', '#2D4A6B': '#1A3757', '#5B3B6B': '#472856', '#495533': '#35401F' };
+    var rgb = [0, 2, 4].map(function (i) { return parseInt(accent.replace('#', '').substr(i, 2), 16); }).join(',');
+    return {
+      accent: accent, accentStrong: strong[accent] || accent, accentTint: mix(accent, '#FBF9F5', 0.12),
+      selTint: mix(accent, '#FFFFFF', 0.22), fieldTint: mix(accent, '#FFFFFF', 0.08), accentRgb: rgb
+    };
   }
 }
 </script>

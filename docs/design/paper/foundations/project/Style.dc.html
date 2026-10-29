@@ -97,7 +97,7 @@ button{font:inherit;color:inherit}
       <h2 style="margin: 0; font-family: 'Newsreader', Georgia, serif; font-size: 18px; font-weight: 500">Focus ring</h2>
       <div style="display: flex; align-items: center; gap: 20px">
         <button style="height: 32px; padding: 0 16px; border: 1px solid #8A8174; background: #FFFFFF; border-radius: 4px; outline: 2px solid {{accent}}; outline-offset: 2px">Highlight</button>
-        <span style="font-size: 13px; color: #4A453E">2 px accent, 2 px offset; 6.9:1 on paper</span>
+        <span style="font-size: 13px; color: #4A453E">2 px accent, 2 px offset; {{accentRatio}} on ground</span>
       </div>
     </section>
 
@@ -142,10 +142,12 @@ button{font:inherit;color:inherit}
   </div>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#1F5C63","options":["#1F5C63","#2D4A6B","#3E4A3C"]},"$preview":{"width":1200,"height":800}}'>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#1F5C63","options":["#1F5C63","#2D4A6B","#5B3B6B","#495533"]},"$preview":{"width":1200,"height":800}}'>
 class Component extends DCLogic {
   renderVals() {
-    var accent = this.props.accent ?? '#1F5C63';
+    var accent = String(this.props.accent ?? '#1F5C63').toUpperCase();
+    var ratios = { '#1F5C63': '6.9:1', '#2D4A6B': '8.3:1', '#5B3B6B': '8.4:1', '#495533': '7.3:1' };
+    var accentRatio = ratios[accent] || '';
     var list = [
       ['Ground', '#F7F4EE', 'Chrome', true],
       ['Surface', '#FBF9F5', 'Panels', true],
@@ -154,7 +156,7 @@ class Component extends DCLogic {
       ['Muted text', '#6B645A', '5.3:1', false],
       ['Hairline', '#E4DED3', 'Dividers', false],
       ['Control border', '#8A8174', '3.5:1', false],
-      ['Accent · focus', accent, '6.9:1', false],
+      ['Accent · focus', accent, accentRatio, false],
       ['Danger', '#9B2335', 'Delete', false],
       ['Positive', '#2F6A45', '5.9:1', false]
     ];
@@ -165,9 +167,9 @@ class Component extends DCLogic {
       };
     });
     var spaces = [4, 8, 12, 16, 24, 32, 48].map(function (v) {
-      return { v: v, bar: 'display: block; width: 14px; height: ' + v + 'px; background: #C9D9D7; border-radius: 1px;' };
+      return { v: v, bar: 'display: block; width: 14px; height: ' + v + 'px; background: #D8D1C5; border-radius: 1px;' };
     });
-    return { accent: accent, tokens: tokens, spaces: spaces };
+    return { accent: accent, accentRatio: accentRatio, tokens: tokens, spaces: spaces };
   }
 }
 </script>

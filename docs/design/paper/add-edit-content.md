@@ -248,7 +248,7 @@ Everything else in the area is identical on web and desktop.
   - **Readers can hide it**: writes an optional content group.
   - The preview draws the mark in its real colour and opacity, with a page stepper.
   - Footer: summary · Cancel · **Add watermark**.
-- **Header & footer tab** (right artboard):
+- **Header & footer tab** (right artboard; it follows the left one, so the watermark just added shows on the page and in the preview, and Undo names it):
   - A 2 × 3 grid of slot inputs, each labelled by its row and column.
   - **Insert into the slot:** Page, Pages, Page label, Date, File name. Tokens are written in square brackets ("[Page] of [Pages]").
   - Size, Top and Bottom margin, Date format, and Pages from/to.

@@ -70,9 +70,9 @@ button,input{font:inherit;color:inherit}
     <div style="flex: 1 1 auto; overflow: auto; padding: 8px 20px 0; display: flex; flex-direction: column; gap: 16px">
       <fieldset style="margin: 0; padding: 0; border: 0; display: flex; flex-direction: column">
         <legend style="padding: 0; margin-bottom: 4px; font-size: 13px; font-weight: 600; color: #4A453E">Where to</legend>
-        <label style="min-height: 48px; display: flex; align-items: center; gap: 12px; font-size: 16px; border-top: 1px solid #E4DED3"><input type="radio" name="o17w" style="width: 20px; height: 20px; margin: 0; accent-color: {{accent}}">To the start</label>
-        <label style="min-height: 48px; display: flex; align-items: center; gap: 12px; font-size: 16px; border-top: 1px solid #E4DED3"><sc-if value="{{on}}" hint-placeholder-val="{{ true }}"><input type="radio" name="o17w" checked style="width: 20px; height: 20px; margin: 0; accent-color: {{accent}}"></sc-if>After a page</label>
-        <label style="min-height: 48px; display: flex; align-items: center; gap: 12px; font-size: 16px; border-top: 1px solid #E4DED3"><input type="radio" name="o17w" style="width: 20px; height: 20px; margin: 0; accent-color: {{accent}}">To the end</label>
+        <label style="position: relative; min-height: 48px; display: flex; align-items: center; gap: 12px; font-size: 16px; border-top: 1px solid #E4DED3"><input type="radio" name="o17w" style="position: absolute; width: 1px; height: 1px; opacity: 0; margin: 0"><span aria-hidden="true" style="width: 20px; height: 20px; flex: 0 0 auto; box-sizing: border-box; border-radius: 50%; border: 1px solid #8A8174; background: #FFFFFF;"></span>To the start</label>
+        <label style="position: relative; min-height: 48px; display: flex; align-items: center; gap: 12px; font-size: 16px; border-top: 1px solid #E4DED3"><input type="radio" name="o17w" checked style="position: absolute; width: 1px; height: 1px; opacity: 0; margin: 0"><span aria-hidden="true" style="width: 20px; height: 20px; flex: 0 0 auto; box-sizing: border-box; border-radius: 50%; border: 2px solid {{accent}}; background: #FFFFFF; display: flex; align-items: center; justify-content: center;"><span style="width: 10px; height: 10px; border-radius: 50%; background: {{accent}}"></span></span>After a page</label>
+        <label style="position: relative; min-height: 48px; display: flex; align-items: center; gap: 12px; font-size: 16px; border-top: 1px solid #E4DED3"><input type="radio" name="o17w" style="position: absolute; width: 1px; height: 1px; opacity: 0; margin: 0"><span aria-hidden="true" style="width: 20px; height: 20px; flex: 0 0 auto; box-sizing: border-box; border-radius: 50%; border: 1px solid #8A8174; background: #FFFFFF;"></span>To the end</label>
       </fieldset>
       <div style="display: flex; flex-direction: column; gap: 6px">
         <label for="o17m-n" style="font-size: 13px; font-weight: 600; color: #4A453E">After page</label>
@@ -80,7 +80,7 @@ button,input{font:inherit;color:inherit}
           <button aria-label="Previous page" style="width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; border: 1px solid #8A8174; background: #FFFFFF; border-radius: 6px; color: #3A3631"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M6 12h12"></path></svg></button>
           <input id="o17m-n" value="11" inputmode="numeric" aria-describedby="o17m-h" style="width: 72px; height: 44px; box-sizing: border-box; padding: 0 10px; border: 1px solid #8A8174; border-radius: 6px; background: #FFFFFF; font-size: 16px; text-align: center; font-variant-numeric: tabular-nums">
           <button aria-label="Next page" style="width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; border: 1px solid #8A8174; background: #FFFFFF; border-radius: 6px; color: #3A3631"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M6 12h12M12 6v12"></path></svg></button>
-          <span id="o17m-h" style="flex: 1 1 auto; min-width: 0; font-size: 13px; color: #6B645A; line-height: 1.3">of 24 · in 3. Rent collection</span>
+          <span id="o17m-h" style="flex: 1 1 auto; min-width: 0; font-size: 13px; color: #6B645A; line-height: 1.3">of 24 · in 4. Surveyor capacity</span>
         </div>
       </div>
       <div style="display: flex; flex-direction: column; gap: 8px; padding: 12px; background: #F7F4EE; border: 1px solid #E4DED3; border-radius: 6px">
@@ -100,10 +100,10 @@ button,input{font:inherit;color:inherit}
   <span aria-hidden="true" style="position: absolute; left: 50%; bottom: 6px; z-index: 60; transform: translateX(-50%); width: 134px; height: 5px; border-radius: 3px; background: #1F1D1A; opacity: 0.85"></span>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#1F5C63","options":["#1F5C63","#2D4A6B","#3E4A3C"]},"$preview":{"width":390,"height":844}}'>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#1F5C63","options":["#1F5C63","#2D4A6B","#5B3B6B","#495533"]},"$preview":{"width":390,"height":844}}'>
 class Component extends DCLogic {
   renderVals() {
-    var accent = this.props.accent ?? '#1F5C63';
+    var accent = String(this.props.accent ?? '#1F5C63').toUpperCase();
     function mix(hex, base, t) {
       var p = function (h, i) { return parseInt(h.replace('#', '').substr(i, 2), 16); };
       var out = '#';
@@ -137,7 +137,9 @@ class Component extends DCLogic {
         num: 'font-size: 13px; font-variant-numeric: tabular-nums; ' + (sel ? 'color: #1F1D1A; font-weight: 600;' : 'color: #6B645A;')
       };
     });
-    return { accent: accent, accentTint: mix(accent, '#FBF9F5', 0.12), pages: pages, on: true };
+    var accentTint = mix(accent, '#FBF9F5', 0.12), selTint = mix(accent, '#FFFFFF', 0.22), fieldTint = mix(accent, '#FFFFFF', 0.08);
+    var accentStrong = ({ '#1F5C63': '#16454B', '#2D4A6B': '#1A3757', '#5B3B6B': '#472856', '#495533': '#35401F' })[accent] || accent;
+    return { accent: accent, pages: pages, accentTint: accentTint };
   }
 }
 </script>

@@ -15,7 +15,7 @@ a{color:#1F5C63}a:hover{color:#16454B}
 button,input,textarea{font:inherit;color:inherit}
 </style>
 </helmet>
-<div style="min-height: 100vh; display: flex; flex-direction: column; box-sizing: border-box; background: #DCD6CB; font-family: 'Source Sans 3', 'Segoe UI', system-ui, sans-serif; font-size: 14px; line-height: 1.4; color: #1F1D1A">
+<div style="height: 100vh; display: flex; flex-direction: column; box-sizing: border-box; background: #DCD6CB; font-family: 'Source Sans 3', 'Segoe UI', system-ui, sans-serif; font-size: 14px; line-height: 1.4; color: #1F1D1A">
 <div style="position: relative; flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; background: #F7F4EE; border: 1px solid #C9C2B6; border-radius: 10px; overflow: hidden; box-sizing: border-box">
 
   <div style="height: 30px; flex: 0 0 auto; display: flex; align-items: center; padding: 0 12px; background: #EFEBE3; border-bottom: 1px solid #E0D9CD; position: relative">
@@ -24,13 +24,13 @@ button,input,textarea{font:inherit;color:inherit}
       <span style="width: 12px; height: 12px; border-radius: 50%; background: #F4BF4F; border: 0.5px solid #D9A63A"></span>
       <span style="width: 12px; height: 12px; border-radius: 50%; background: #61C554; border: 0.5px solid #4CAA40"></span>
     </div>
-    <div style="position: absolute; left: 0; right: 0; text-align: center; font-size: 13px; font-weight: 600; color: #3A3631; pointer-events: none">Q3-board-report.pdf</div>
+    <div style="position: absolute; left: 0; right: 0; text-align: center; font-size: 13px; font-weight: 600; color: #3A3631; pointer-events: none">Q3-board-report.pdf — lamina</div>
   </div>
 
   <header style="min-height: 40px; flex: 0 0 auto; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 20px; padding: 0 16px; border-bottom: 1px solid #E4DED3">
     <div style="display: flex; align-items: center; gap: 10px; flex: 1 1 220px; min-width: 0">
       <button aria-label="Sidebar" aria-pressed="true" style="width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 4px; color: #4A453E"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="3.5" y="4.5" width="17" height="15" rx="1.5"></rect><path d="M9 4.5v15"></path></svg></button>
-      <span style="font-family: 'Newsreader', Georgia, serif; font-size: 16px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">Q3-board-report.pdf</span>
+      <span style="font-family: 'Newsreader', Georgia, serif; font-size: 16px; font-weight: 500; min-width: 80px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">Q3-board-report.pdf</span>
       <span aria-live="polite" style="font-size: 12px; color: #6B645A; white-space: nowrap; font-variant-numeric: tabular-nums">No unsaved changes</span>
       <span aria-hidden="true" style="width: 1px; height: 18px; background: #E4DED3; margin: 0 2px"></span>
       <div style="display: flex; align-items: center; gap: 2px">
@@ -53,7 +53,7 @@ button,input,textarea{font:inherit;color:inherit}
       </div>
       <button aria-label="Find in document" style="width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 4px; color: #4A453E"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6"></circle><path d="M15 15l5 5"></path></svg></button>
       <button aria-label="View settings" aria-haspopup="dialog" aria-expanded="false" style="width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 4px; color: #4A453E"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="12" cy="12" r="7.5"></circle><path d="M12 4.5v15M12 8.5h5.5M12 12h7.5M12 15.5h5.5"></path></svg></button>
-      <button style="height: 26px; display: flex; align-items: center; gap: 8px; padding: 0 6px 0 10px; border: 1px solid #E4DED3; background: #FBF9F5; border-radius: 4px; color: #6B645A; font-size: 13px"><span>Commands</span><span style="font-size: 11px; padding: 1px 5px; border: 1px solid #D8D1C5; border-radius: 3px; color: #4A453E; background: #FFFFFF">⌘K</span></button>
+      <button style="height: 26px; flex-shrink: 0; white-space: nowrap; display: flex; align-items: center; gap: 8px; padding: 0 6px 0 10px; border: 1px solid #E4DED3; background: #FBF9F5; border-radius: 4px; color: #6B645A; font-size: 13px"><span>Commands</span><span style="font-size: 11px; padding: 1px 5px; border: 1px solid #D8D1C5; border-radius: 3px; color: #4A453E; background: #FFFFFF; white-space: nowrap; flex-shrink: 0">⌘K</span></button>
       <button aria-label="More actions" style="width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 4px; color: #4A453E"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="5.5" cy="12" r="0.9"></circle><circle cx="12" cy="12" r="0.9"></circle><circle cx="18.5" cy="12" r="0.9"></circle></svg></button>
     </div>
   </header>
@@ -74,7 +74,7 @@ button,input,textarea{font:inherit;color:inherit}
     <span aria-live="polite" style="font-size: 12px; color: #6B645A; font-variant-numeric: tabular-nums">2 pages selected</span>
   </div>
 
-  <div style="flex: 1 1 auto; min-height: 0; display: flex; flex-wrap: wrap">
+  <div style="flex: 1 1 auto; min-height: 0; display: flex">
     <aside aria-label="Sidebar" style="flex: 0 0 220px; box-sizing: border-box; border-right: 1px solid #E4DED3; display: flex; flex-direction: column; overflow: auto">
       <div role="tablist" aria-label="Sidebar" style="display: flex; gap: 16px; padding: 14px 18px 0; border-bottom: 1px solid #E4DED3">
         <button role="tab" aria-selected="true" style="border: 0; background: transparent; padding: 0 0 8px; font-size: 13px; font-weight: 600; color: #1F1D1A; border-bottom: 2px solid {{accent}}">Outline</button>
@@ -103,7 +103,7 @@ button,input,textarea{font:inherit;color:inherit}
   </div>
 
   <footer style="min-height: 28px; flex: 0 0 auto; display: flex; align-items: center; justify-content: space-between; padding: 0 16px; border-top: 1px solid #E4DED3; font-size: 12px; color: #6B645A">
-    <span><span style="color: #1F1D1A">0 network requests for this document</span> · Offline-safe: nothing uploaded</span>
+    <span style="display: flex; align-items: center; gap: 7px"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="{{accent}}" stroke-width="1.5" aria-hidden="true"><path d="M12 3.5l7 2.5v5.5c0 4.3-3 7.6-7 9-4-1.4-7-4.7-7-9V6z"></path><path d="M9 12l2.2 2.2L15.5 10"></path></svg><span><span style="color: #1F1D1A">0 network requests for this document</span> · Offline-safe: nothing uploaded</span></span>
     <span style="font-variant-numeric: tabular-nums">Pages 5–6 of 24</span>
   </footer>
 
@@ -117,14 +117,14 @@ button,input,textarea{font:inherit;color:inherit}
       <fieldset style="margin: 0; padding: 0; border: 0; display: flex; flex-direction: column; gap: 6px">
         <legend style="padding: 0; margin-bottom: 8px; font-size: 12px; font-weight: 600; color: #4A453E">Position</legend>
         <div style="display: flex; align-items: center; gap: 8px; min-height: 32px">
-          <label style="display: flex; align-items: center; gap: 8px; min-width: 104px"><sc-if value="{{on}}" hint-placeholder-val="{{ true }}"><input type="radio" name="o6pos" checked style="width: 16px; height: 16px; margin: 0; accent-color: {{accent}}"></sc-if>After page</label>
+          <label style="display: flex; align-items: center; gap: 8px; min-width: 104px"><input type="radio" name="o6pos" checked style="position: absolute; width: 1px; height: 1px; opacity: 0; margin: 0"><span aria-hidden="true" style="flex: 0 0 auto; width: 16px; height: 16px; box-sizing: border-box; border-radius: 50%; border: 2px solid {{accent}}; background: #FFFFFF; display: flex; align-items: center; justify-content: center"><span style="width: 8px; height: 8px; border-radius: 50%; background: {{accent}}"></span></span>After page</label>
           <label for="o6m-n" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Page number</label>
           <input id="o6m-n" value="9" inputmode="numeric" aria-describedby="o6m-h" style="width: 64px; height: 32px; box-sizing: border-box; padding: 0 10px; border: 1px solid #8A8174; border-radius: 4px; background: #FFFFFF; font-variant-numeric: tabular-nums; outline: 2px solid {{accent}}; outline-offset: 1px">
           <span id="o6m-h" style="font-size: 12px; color: #6B645A; font-variant-numeric: tabular-nums">of 24 · in 3. Rent collection</span>
         </div>
-        <label style="display: flex; align-items: center; gap: 8px; min-height: 28px"><input type="radio" name="o6pos" style="width: 16px; height: 16px; margin: 0; accent-color: {{accent}}">Before page</label>
-        <label style="display: flex; align-items: center; gap: 8px; min-height: 28px"><input type="radio" name="o6pos" style="width: 16px; height: 16px; margin: 0; accent-color: {{accent}}">At the start</label>
-        <label style="display: flex; align-items: center; gap: 8px; min-height: 28px"><input type="radio" name="o6pos" style="width: 16px; height: 16px; margin: 0; accent-color: {{accent}}">At the end</label>
+        <label style="display: flex; align-items: center; gap: 8px; min-height: 28px"><input type="radio" name="o6pos" style="position: absolute; width: 1px; height: 1px; opacity: 0; margin: 0"><span aria-hidden="true" style="flex: 0 0 auto; width: 16px; height: 16px; box-sizing: border-box; border-radius: 50%; border: 1px solid #8A8174; background: #FFFFFF"></span>Before page</label>
+        <label style="display: flex; align-items: center; gap: 8px; min-height: 28px"><input type="radio" name="o6pos" style="position: absolute; width: 1px; height: 1px; opacity: 0; margin: 0"><span aria-hidden="true" style="flex: 0 0 auto; width: 16px; height: 16px; box-sizing: border-box; border-radius: 50%; border: 1px solid #8A8174; background: #FFFFFF"></span>At the start</label>
+        <label style="display: flex; align-items: center; gap: 8px; min-height: 28px"><input type="radio" name="o6pos" style="position: absolute; width: 1px; height: 1px; opacity: 0; margin: 0"><span aria-hidden="true" style="flex: 0 0 auto; width: 16px; height: 16px; box-sizing: border-box; border-radius: 50%; border: 1px solid #8A8174; background: #FFFFFF"></span>At the end</label>
       </fieldset>
       <div style="display: flex; flex-direction: column; gap: 4px; padding: 10px 12px; background: #F7F4EE; border: 1px solid #E4DED3; border-radius: 4px">
         <span style="font-size: 12px; font-weight: 600; color: #4A453E">New order</span>
@@ -140,10 +140,11 @@ button,input,textarea{font:inherit;color:inherit}
 </div>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#1F5C63","options":["#1F5C63","#2D4A6B","#3E4A3C"]},"$preview":{"width":1440,"height":900}}'>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#1F5C63","options":["#1F5C63","#2D4A6B","#5B3B6B","#495533"]},"$preview":{"width":1440,"height":900}}'>
 class Component extends DCLogic {
   renderVals() {
-    var accent = this.props.accent ?? '#1F5C63';
+    var accent = String(this.props.accent ?? '#1F5C63').toUpperCase();
+    var STRONG = ({'#1F5C63':'#16454B','#2D4A6B':'#1A3757','#5B3B6B':'#472856','#495533':'#35401F'})[accent] || mix(accent, '#000000', 0.72);
     function mix(hex, base, t) {
       var p = function (h, i) { return parseInt(h.replace('#', '').substr(i, 2), 16); };
       var out = '#';
@@ -164,7 +165,7 @@ class Component extends DCLogic {
         num: 'font-size: 12px; font-variant-numeric: tabular-nums; ' + (sel ? 'font-weight: 600;' : 'color: #6B645A;')
       });
     }
-    return { accent: accent, accentTint: tint, pages: pages, on: true };
+    return { accentStrong: STRONG, selTint: mix(accent, '#FFFFFF', 0.22), fieldTint: mix(accent, '#FFFFFF', 0.08), accent: accent, accentTint: tint, pages: pages, on: true };
   }
 }
 </script>

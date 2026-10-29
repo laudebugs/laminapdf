@@ -13,10 +13,10 @@
 body{margin:0;background:#DCD6CB}
 a{color:#1F5C63}a:hover{color:#16454B}
 button,input,textarea,select{font:inherit;color:inherit}
-label:has(input:focus-visible) [data-box]{outline:2px solid #1F5C63;outline-offset:2px}
+label:has(input:focus-visible) [data-box]{outline:2px solid var(--accent,#1F5C63);outline-offset:2px}
 </style>
 </helmet>
-<div style="min-height: 100vh; display: flex; flex-direction: column; background: #DCD6CB; font-family: 'Source Sans 3', 'Segoe UI', system-ui, sans-serif; font-size: 14px; line-height: 1.4; color: #1F1D1A">
+<div style="--accent: {{accent}}; --accent-strong: {{accentStrong}}; height: 100vh; overflow: hidden; display: flex; flex-direction: column; background: #DCD6CB; font-family: 'Source Sans 3', 'Segoe UI', system-ui, sans-serif; font-size: 14px; line-height: 1.4; color: #1F1D1A">
 <div style="position: relative; flex: 1 1 auto; display: flex; flex-direction: column; background: #F7F4EE; border: 1px solid #C9C2B6; border-radius: 10px; overflow: hidden">
 
   <div style="height: 30px; flex: 0 0 auto; display: flex; align-items: center; padding: 0 12px; background: #EFEBE3; border-bottom: 1px solid #E0D9CD; position: relative">
@@ -28,7 +28,7 @@ label:has(input:focus-visible) [data-box]{outline:2px solid #1F5C63;outline-offs
     <div style="display: flex; align-items: center; gap: 10px; flex: 1 1 220px; min-width: 0">
       <button tabindex="-1" aria-label="Sidebar" aria-pressed="false" style="width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 4px; color: #4A453E"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="3.5" y="4.5" width="17" height="15" rx="1.5"></rect><path d="M9 4.5v15"></path></svg></button>
       <div style="display: flex; align-items: baseline; gap: 8px; min-width: 0">
-        <span style="font-family: 'Newsreader', Georgia, serif; font-size: 16px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">Q3-board-report.pdf</span>
+        <span style="font-family: 'Newsreader', Georgia, serif; font-size: 16px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 80px">Q3-board-report.pdf</span>
         <span style="font-size: 12px; color: #6B645A; white-space: nowrap">1 unsaved change</span>
       </div>
       <span aria-hidden="true" style="width: 1px; height: 18px; background: #E4DED3"></span>
@@ -46,7 +46,7 @@ label:has(input:focus-visible) [data-box]{outline:2px solid #1F5C63;outline-offs
       <div style="display: flex; align-items: center; gap: 6px; font-variant-numeric: tabular-nums">
         <label for="pg" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Page</label>
         <input tabindex="-1" id="pg" value="24" style="width: 30px; height: 24px; box-sizing: border-box; text-align: center; border: 1px solid #8A8174; border-radius: 4px; background: #FFFFFF; font-variant-numeric: tabular-nums; color: #1F1D1A">
-        <span style="color: #6B645A">/ 24</span>
+        <span style="color: #6B645A; white-space: nowrap">/ 24</span>
       </div>
       <div style="display: flex; align-items: center; gap: 2px; font-variant-numeric: tabular-nums">
         <button tabindex="-1" aria-label="Zoom out" style="width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 4px; color: #4A453E"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M6 12h12"></path></svg></button>
@@ -55,36 +55,45 @@ label:has(input:focus-visible) [data-box]{outline:2px solid #1F5C63;outline-offs
       </div>
       <button tabindex="-1" aria-label="Find in document" style="width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 4px; color: #4A453E"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6"></circle><path d="M15 15l5 5"></path></svg></button>
       <button tabindex="-1" aria-label="View settings" aria-haspopup="dialog" style="width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 4px; color: #4A453E"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="12" cy="12" r="7.5"></circle><path d="M12 4.5v15M12 8.5h5.5M12 12h7.5M12 15.5h5.5"></path></svg></button>
-      <button tabindex="-1" style="height: 26px; display: flex; align-items: center; gap: 8px; padding: 0 6px 0 10px; border: 1px solid #E4DED3; background: #FBF9F5; border-radius: 4px; color: #6B645A; font-size: 13px"><span>Commands</span><span style="font-size: 11px; padding: 1px 5px; border: 1px solid #D8D1C5; border-radius: 3px; color: #4A453E; background: #FFFFFF">⌘K</span></button>
-      <button tabindex="-1" style="height: 26px; padding: 0 12px; border: 1px solid {{accent}}; background: {{accent}}; color: #FFFFFF; border-radius: 4px; font-size: 13px; font-weight: 600">Save</button>
+      <button tabindex="-1" style="height: 26px; flex-shrink: 0; white-space: nowrap; display: flex; align-items: center; gap: 8px; padding: 0 6px 0 10px; border: 1px solid #E4DED3; background: #FBF9F5; border-radius: 4px; color: #6B645A; font-size: 13px"><span>Commands</span><span style="font-size: 11px; padding: 1px 5px; border: 1px solid #D8D1C5; border-radius: 3px; color: #4A453E; background: #FFFFFF">⌘K</span></button>
+      <button tabindex="-1" style="white-space: nowrap; height: 26px; padding: 0 12px; border: 1px solid {{accent}}; background: {{accent}}; color: #FFFFFF; border-radius: 4px; font-size: 13px; font-weight: 600">Save</button>
       <button tabindex="-1" aria-label="More actions" style="width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 4px; color: #4A453E"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="5.5" cy="12" r="0.9"></circle><circle cx="12" cy="12" r="0.9"></circle><circle cx="18.5" cy="12" r="0.9"></circle></svg></button>
     </div>
   </header>
   <div role="toolbar" aria-label="Fill and sign tools" style="min-height: 40px; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; padding: 0 16px; border-bottom: 1px solid #E4DED3; background: #FBF9F5; font-size: 13px">
-    <button tabindex="-1" style="height: 28px; display: flex; align-items: center; gap: 6px; padding: 0 10px; border: 1px solid transparent; background: transparent; border-radius: 4px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M15 5l-7 7 7 7"></path></svg>Previous field</button>
-    <button tabindex="-1" style="height: 28px; display: flex; align-items: center; gap: 6px; padding: 0 10px; border: 1px solid transparent; background: transparent; border-radius: 4px">Next field<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M9 5l7 7-7 7"></path></svg></button>
-    <button tabindex="-1" aria-pressed="false" style="height: 28px; display: flex; align-items: center; gap: 6px; padding: 0 10px; border: 1px solid transparent; background: transparent; border-radius: 4px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="3.5" y="7" width="17" height="10" rx="1"></rect><path d="M7 10v4"></path></svg>Highlight fields</button>
+    <button tabindex="-1" style="white-space: nowrap; height: 28px; display: flex; align-items: center; gap: 6px; padding: 0 10px; border: 1px solid transparent; background: transparent; border-radius: 4px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M15 5l-7 7 7 7"></path></svg>Previous field</button>
+    <button tabindex="-1" style="white-space: nowrap; height: 28px; display: flex; align-items: center; gap: 6px; padding: 0 10px; border: 1px solid transparent; background: transparent; border-radius: 4px">Next field<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M9 5l7 7-7 7"></path></svg></button>
+    <button tabindex="-1" aria-pressed="false" style="white-space: nowrap; height: 28px; display: flex; align-items: center; gap: 6px; padding: 0 10px; border: 1px solid transparent; background: transparent; border-radius: 4px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="3.5" y="7" width="17" height="10" rx="1"></rect><path d="M7 10v4"></path></svg>Highlight fields</button>
     <span aria-hidden="true" style="width: 1px; height: 18px; background: #E4DED3; margin: 0 8px"></span>
-    <button tabindex="-1" aria-pressed="false" style="height: 28px; display: flex; align-items: center; gap: 6px; padding: 0 10px; border: 1px solid transparent; background: transparent; border-radius: 4px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M5 7V5h14v2M12 5v14M9.5 19h5"></path></svg>Text</button>
-    <button tabindex="-1" aria-pressed="false" style="height: 28px; display: flex; align-items: center; gap: 6px; padding: 0 10px; border: 1px solid transparent; background: transparent; border-radius: 4px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M6 12.5l4 4 8-9"></path></svg>Check</button>
-    <button tabindex="-1" aria-pressed="false" style="height: 28px; display: flex; align-items: center; gap: 6px; padding: 0 10px; border: 1px solid transparent; background: transparent; border-radius: 4px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="4.5" y="5.5" width="15" height="14" rx="1.5"></rect><path d="M4.5 9.5h15M8.5 3.5v4M15.5 3.5v4"></path></svg>Date</button>
+    <button tabindex="-1" aria-pressed="false" style="white-space: nowrap; height: 28px; display: flex; align-items: center; gap: 6px; padding: 0 10px; border: 1px solid transparent; background: transparent; border-radius: 4px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M5 7V5h14v2M12 5v14M9.5 19h5"></path></svg>Text</button>
+    <button tabindex="-1" aria-pressed="false" style="white-space: nowrap; height: 28px; display: flex; align-items: center; gap: 6px; padding: 0 10px; border: 1px solid transparent; background: transparent; border-radius: 4px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M6 12.5l4 4 8-9"></path></svg>Check</button>
+    <button tabindex="-1" aria-pressed="false" style="white-space: nowrap; height: 28px; display: flex; align-items: center; gap: 6px; padding: 0 10px; border: 1px solid transparent; background: transparent; border-radius: 4px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="4.5" y="5.5" width="15" height="14" rx="1.5"></rect><path d="M4.5 9.5h15M8.5 3.5v4M15.5 3.5v4"></path></svg>Date</button>
     <span aria-hidden="true" style="width: 1px; height: 18px; background: #E4DED3; margin: 0 8px"></span>
-    <button tabindex="-1" aria-pressed="false" style="height: 28px; display: flex; align-items: center; gap: 6px; padding: 0 10px; border: 1px solid transparent; background: transparent; border-radius: 4px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M4 17c3-6 5-9 7-9s1 6 3 6 3-4 6-6"></path></svg>Add a signature image</button>
-    <button tabindex="-1" aria-pressed="true" style="height: 28px; display: flex; align-items: center; gap: 6px; padding: 0 10px; border: 1px solid {{accent}}; background: #E1E6E3; color: {{accent}}; font-weight: 600; border-radius: 4px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="4" y="4.5" width="16" height="11" rx="1"></rect><path d="M7.5 8.5h9M7.5 11.5h4"></path><circle cx="16" cy="16" r="2.8"></circle><path d="M14.6 18.5l-.8 3 2.2-1 2.2 1-.8-3"></path></svg>Sign with a certificate</button>
-    <button tabindex="-1" aria-haspopup="menu" aria-expanded="false" style="height: 28px; display: flex; align-items: center; gap: 6px; padding: 0 10px; border: 1px solid transparent; background: transparent; border-radius: 4px">Form data<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M7 10l5 5 5-5"></path></svg></button>
+    <button tabindex="-1" aria-pressed="false" style="white-space: nowrap; height: 28px; display: flex; align-items: center; gap: 6px; padding: 0 10px; border: 1px solid transparent; background: transparent; border-radius: 4px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M4 17c3-6 5-9 7-9s1 6 3 6 3-4 6-6"></path></svg>Add a signature image</button>
+    <button tabindex="-1" aria-pressed="true" style="white-space: nowrap; height: 28px; display: flex; align-items: center; gap: 6px; padding: 0 10px; border: 1px solid {{accent}}; background: {{accentTint}}; color: {{accent}}; font-weight: 600; border-radius: 4px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="4" y="4.5" width="16" height="11" rx="1"></rect><path d="M7.5 8.5h9M7.5 11.5h4"></path><circle cx="16" cy="16" r="2.8"></circle><path d="M14.6 18.5l-.8 3 2.2-1 2.2 1-.8-3"></path></svg>Sign with a certificate</button>
+    <button tabindex="-1" aria-haspopup="menu" aria-expanded="false" style="white-space: nowrap; height: 28px; display: flex; align-items: center; gap: 6px; padding: 0 10px; border: 1px solid transparent; background: transparent; border-radius: 4px">Form data<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M7 10l5 5 5-5"></path></svg></button>
     <button tabindex="-1" aria-label="More fill and sign tools" style="width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 4px; color: #4A453E"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="5.5" cy="12" r="0.9"></circle><circle cx="12" cy="12" r="0.9"></circle><circle cx="18.5" cy="12" r="0.9"></circle></svg></button>
     <span style="flex: 1 1 auto"></span>
     <span style="font-size: 12px; color: #6B645A; font-variant-numeric: tabular-nums">3 of 4 required fields filled</span>
   </div>
-  <main style="flex: 1 1 auto; background: #ECE7DE; display: flex; justify-content: center; padding: 28px 16px">
+  <main style="flex: 1 1 auto; min-height: 0; overflow: hidden; background: #ECE7DE; display: flex; justify-content: center; padding: 28px 16px">
     <div style="width: 100%; max-width: 612px; min-height: 790px; background: #FFFFFF; box-shadow: 0 1px 2px rgba(60,48,30,0.08), 0 8px 28px rgba(60,48,30,0.10); padding: 56px 64px; box-sizing: border-box; display: flex; flex-direction: column; gap: 14px">
       <span style="height: 8px; width: 40%; background: #DDD7CD"></span>
       <span style="height: 5px; width: 100%; background: #E3DED6"></span>
       <span style="height: 5px; width: 92%; background: #E3DED6"></span>
-      <span style="display: flex; gap: 28px; padding-top: 40px"><span style="height: 72px; flex: 1 1 0; background: #E1E6E3; outline: 1px solid {{accent}}; outline-offset: 2px"></span><span style="height: 72px; flex: 1 1 0; background: #EEF2F3"></span></span>
+      <span style="display: flex; gap: 28px; padding-top: 40px"><span style="height: 72px; flex: 1 1 0; background: {{accentTint}}; outline: 1px solid {{accent}}; outline-offset: 2px"></span><span style="height: 72px; flex: 1 1 0; background: #EEF2F3"></span></span>
     </div>
   </main>
-  <footer style="min-height: 28px; display: flex; align-items: center; justify-content: space-between; padding: 0 16px; border-top: 1px solid #E4DED3; font-size: 12px; color: #6B645A"><span>0 network requests for this document · Offline-safe: nothing uploaded</span><span style="font-variant-numeric: tabular-nums">Page 24 of 24</span></footer>
+  <footer style="min-height: 28px; flex: 0 0 auto; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px 16px; padding: 0 16px; border-top: 1px solid #E4DED3; font-size: 12px; color: #6B645A">
+    <button tabindex="-1" style="min-height: 24px; display: flex; align-items: center; gap: 7px; border: 0; background: transparent; padding: 0 4px; font-size: 12px; color: #6B645A; white-space: nowrap">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="{{accent}}" stroke-width="1.5" aria-hidden="true"><path d="M12 3.5l7 2.5v5.5c0 4.3-3 7.6-7 9-4-1.4-7-4.7-7-9V6z"></path><path d="M9 12l2.2 2.2L15.5 10"></path></svg>
+      <span style="color: #1F1D1A; font-variant-numeric: tabular-nums">0 network requests for this document</span><span>· Offline-safe: nothing uploaded</span>
+    </button>
+    <span style="min-width: 0">Not signed yet · 2 signature fields</span>
+    <div style="display: flex; align-items: center; gap: 12px; flex-shrink: 0">
+      <span style="font-variant-numeric: tabular-nums; white-space: nowrap">Page 24 · Board approval</span>
+    </div>
+  </footer>
 
   <div style="position: absolute; left: 0; right: 0; top: 30px; bottom: 0; z-index: 50; background: rgba(31,29,26,0.30); display: flex; justify-content: center; align-items: flex-start; padding: 40px 16px 16px; box-sizing: border-box; overflow: auto">
     <div role="dialog" aria-modal="true" aria-labelledby="sc-t" aria-describedby="sc-d" style="width: 100%; max-width: 560px; box-sizing: border-box; padding: 24px; display: flex; flex-direction: column; gap: 16px; background: #FBF9F5; border: 1px solid #D8D1C5; border-radius: 6px; box-shadow: 0 18px 48px rgba(31,29,26,0.22)">
@@ -107,7 +116,7 @@ label:has(input:focus-visible) [data-box]{outline:2px solid #1F5C63;outline-offs
       <fieldset style="margin: 0; padding: 0; border: 0; display: flex; flex-direction: column; gap: 6px">
         <legend style="padding: 0; margin-bottom: 8px; font-size: 12px; font-weight: 600; color: #4A453E">Sign as</legend>
         <label style="display: flex; align-items: flex-start; gap: 10px; padding: 10px 12px; border: 1px solid {{accent}}; background: {{accentTint}}; border-radius: 4px">
-          <sc-if value="{{on}}" hint-placeholder-val="{{ true }}"><input type="radio" name="id" checked style="position: absolute; width: 1px; height: 1px; opacity: 0; margin: 0"></sc-if><span data-box="1" aria-hidden="true" style="flex: 0 0 auto; width: 16px; height: 16px; margin: 2px 0 0; box-sizing: border-box; display: flex; align-items: center; justify-content: center; border-radius: 50%; border: 2px solid {{accent}}; background: #FFFFFF"><span style="width: 8px; height: 8px; border-radius: 50%; background: {{accent}}"></span></span>
+          <input type="radio" name="id" checked style="position: absolute; width: 1px; height: 1px; opacity: 0; margin: 0"><span data-box="1" aria-hidden="true" style="flex: 0 0 auto; width: 16px; height: 16px; margin: 2px 0 0; box-sizing: border-box; display: flex; align-items: center; justify-content: center; border-radius: 50%; border: 2px solid {{accent}}; background: #FFFFFF"><span style="width: 8px; height: 8px; border-radius: 50%; background: {{accent}}"></span></span>
           <span style="flex: 1 1 auto; display: flex; flex-direction: column; gap: 2px">
             <span style="font-weight: 600">Amara Okafor</span>
             <span style="font-size: 12px; color: #4A453E">Northwind Housing Trust · issued by Example Trust CA · valid until 3 Mar 2028</span>
@@ -146,15 +155,15 @@ label:has(input:focus-visible) [data-box]{outline:2px solid #1F5C63;outline-offs
           <span style="display: flex; flex-direction: column; font-size: 11.5px; line-height: 1.35; color: #3A3733; font-variant-numeric: tabular-nums"><span>Digitally signed by Amara Okafor</span><span>29 Oct 2026, 16:40</span><span>Reason: I approve this document</span></span>
         </div>
         <label style="display: flex; align-items: center; gap: 8px; min-height: 24px">
-          <sc-if value="{{on}}" hint-placeholder-val="{{ true }}"><input type="checkbox" checked style="position: absolute; width: 1px; height: 1px; opacity: 0; margin: 0"></sc-if><span data-box="1" aria-hidden="true" style="flex: 0 0 auto; width: 16px; height: 16px; margin: 0; box-sizing: border-box; display: flex; align-items: center; justify-content: center; border-radius: 3px; border: 1px solid {{accent}}; background: {{accent}}; color: #FFFFFF"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 12.5l4 4 8-9"></path></svg></span>Show my signature image next to the details
+          <input type="checkbox" checked style="position: absolute; width: 1px; height: 1px; opacity: 0; margin: 0"><span data-box="1" aria-hidden="true" style="flex: 0 0 auto; width: 16px; height: 16px; margin: 0; box-sizing: border-box; display: flex; align-items: center; justify-content: center; border-radius: 3px; border: 1px solid {{accent}}; background: {{accent}}; color: #FFFFFF"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 12.5l4 4 8-9"></path></svg></span>Show my signature image next to the details
         </label>
       </div>
 
       <label style="display: flex; align-items: flex-start; gap: 8px; min-height: 24px">
-        <sc-if value="{{on}}" hint-placeholder-val="{{ true }}"><input type="checkbox" checked style="position: absolute; width: 1px; height: 1px; opacity: 0; margin: 0"></sc-if><span data-box="1" aria-hidden="true" style="flex: 0 0 auto; width: 16px; height: 16px; margin: 2px 0 0; box-sizing: border-box; display: flex; align-items: center; justify-content: center; outline: 2px solid {{accent}}; outline-offset: 2px; border-radius: 3px; border: 1px solid {{accent}}; background: {{accent}}; color: #FFFFFF"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 12.5l4 4 8-9"></path></svg></span>
+        <input type="checkbox" checked style="position: absolute; width: 1px; height: 1px; opacity: 0; margin: 0"><span data-box="1" aria-hidden="true" style="flex: 0 0 auto; width: 16px; height: 16px; margin: 2px 0 0; box-sizing: border-box; display: flex; align-items: center; justify-content: center; outline: 2px solid {{accent}}; outline-offset: 2px; border-radius: 3px; border: 1px solid {{accent}}; background: {{accent}}; color: #FFFFFF"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 12.5l4 4 8-9"></path></svg></span>
         <span style="display: flex; flex-direction: column"><span>Add a trusted timestamp</span><span id="ts-h" style="font-size: 12px; color: #6B645A">Asks timestamp.example.org to confirm the signing time. Only a hash of the file is sent.</span></span>
       </label>
-      <a href="#" style="align-self: flex-start; margin: -12px 0 0 24px; font-size: 12px">Change server</a>
+      <a href="#" style="color: {{accent}}; align-self: flex-start; margin: -12px 0 0 24px; font-size: 12px">Change server</a>
 
       <div role="note" style="display: flex; gap: 10px; padding: 10px 12px; background: #FFFFFF; border: 1px solid #E4DED3; border-radius: 4px; font-size: 13px">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#4A453E" stroke-width="1.5" aria-hidden="true" style="flex: 0 0 auto; margin-top: 2px"><path d="M4 19c2-1 3-4 5-4s1 3 3 3 2-2 4-2"></path><path d="M14 4.5l5 5-7 7h-2v-2z"></path></svg>
@@ -162,10 +171,10 @@ label:has(input:focus-visible) [data-box]{outline:2px solid #1F5C63;outline-offs
       </div>
 
       <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap">
-        <button style="height: 32px; padding: 0 12px; border: 0; background: transparent; border-radius: 4px; color: {{accent}}; font-weight: 600">Certify instead…</button>
-        <div style="display: flex; gap: 8px">
-          <button style="height: 32px; padding: 0 16px; border: 1px solid #8A8174; background: #FFFFFF; border-radius: 4px">Cancel</button>
-          <button style="height: 32px; padding: 0 16px; border: 1px solid {{accent}}; background: {{accent}}; color: #FFFFFF; border-radius: 4px; font-weight: 600">Sign and save</button>
+        <button style="white-space: nowrap; height: 32px; padding: 0 12px; border: 0; background: transparent; border-radius: 4px; color: {{accent}}; font-weight: 600">Certify instead…</button>
+        <div style="display: flex; gap: 8px; margin-left: auto">
+          <button style="white-space: nowrap; height: 32px; padding: 0 16px; border: 1px solid #8A8174; background: #FFFFFF; border-radius: 4px">Cancel</button>
+          <button style="white-space: nowrap; height: 32px; padding: 0 16px; border: 1px solid {{accent}}; background: {{accent}}; color: #FFFFFF; border-radius: 4px; font-weight: 600">Sign and save</button>
         </div>
       </div>
     </div>
@@ -173,10 +182,11 @@ label:has(input:focus-visible) [data-box]{outline:2px solid #1F5C63;outline-offs
 </div>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#1F5C63","options":["#1F5C63","#2D4A6B","#3E4A3C"]},"$preview":{"width":1440,"height":940}}'>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#1F5C63","options":["#1F5C63","#2D4A6B","#5B3B6B","#495533"]},"$preview":{"width":1440,"height":900}}'>
 class Component extends DCLogic {
   renderVals() {
-    var accent = this.props.accent ?? '#1F5C63';
+    var accent = String(this.props.accent ?? '#1F5C63').toUpperCase();
+    var accentStrong = ({ '#1F5C63': '#16454B', '#2D4A6B': '#1A3757', '#5B3B6B': '#472856', '#495533': '#35401F' })[accent] || accent;
     function mix(hex, base, t) {
       var p = function (h, i) { return parseInt(h.replace('#', '').substr(i, 2), 16); };
       var out = '#';
@@ -186,7 +196,7 @@ class Component extends DCLogic {
       }
       return out;
     }
-    return { on: true, accent: accent, accentTint: mix(accent, '#FBF9F5', 0.12) };
+    return { accentTint: mix(accent, '#FBF9F5', 0.12), selTint: mix(accent, '#FFFFFF', 0.22), fieldTint: mix(accent, '#FFFFFF', 0.08), accentStrong: accentStrong, on: true, accent: accent };
   }
 }
 </script>

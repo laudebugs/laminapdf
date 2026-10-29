@@ -1,6 +1,6 @@
 # Paper: design language
 
-- **Status:** Draft (the owner chose the Paper direction on 2026-10-29)
+- **Status:** Draft (the owner chose the Paper direction on 2026-10-29; second review and accent colours, 2026-10-29)
 - **Source of truth:** the reviewed Paper canvas (`Main.dc.html` web reader, `Desktop.dc.html` Comment mode with inspector and palette, `Mobile-read.dc.html`, `Mobile-select.dc.html`, `Style.dc.html` style tile). Every value marked *from the files* is copied from them; values marked **(proposed)** are new and are the defaults until a reviewed board replaces them.
 - **Rules it serves:** the [UI/UX plan](../../plans/ui-ux.md), principles [§4](../../plans/ui-ux.md#4-principles) and layout and patterns §5.
 - **Screens to design with it:** the [screen inventory](screens.md).
@@ -54,7 +54,7 @@ Notes:
 
 1. **Selection tint and highlights on white are fills, not boundaries.** `selection-tint` (1.42) and the highlight colours (1.43–1.77) are low-contrast against the page by design, so text stays readable through them (ink on them ≥ 8.77). The *selected* state never relies on the fill alone: a selected annotation gets a 2 px `focus` outline (5.29 against yellow), the mini toolbar or the action bar appears, and touch selections draw `accent` handles (7.58 on white).
 2. The `Commands` button in the top bar has a `hairline` border (1.22); its visible text identifies it, so WCAG 1.4.11 does not require the border. Don't copy that border onto icon-only controls.
-3. Tweak accents in the canvas (`#2D4A6B` blue, `#3E4A3C` green) also pass: 8.31 / 8.50 on ground, white on them 9.12 / 9.34. Teal `#1F5C63` is the default.
+3. Teal `#1F5C63` is the default accent. The user can choose Blue, Plum or Green instead; every accent-derived token above has a value per accent in [§2.8](#28-accent-colours-proposed).
 
 ### 2.2 Highlight and annotation colours
 
@@ -86,7 +86,7 @@ The same warm family, inverted: chrome is warm charcoal, never pure black, and t
 | `hairline` (decorative) | `#3A3732` | ⚠ ground 1.42 |
 | `chip-border` (decorative) | `#4A463F` | ⚠ raised 1.49 |
 | `control-border` | `#7E766A` | ground 3.76 · surface 3.45 · raised 3.11 |
-| `accent` / `focus` | `#7DBDC2` | ground 7.97 · surface 7.32 · raised 6.59 |
+| `accent` / `focus` | `#7DBDC2` (Teal; other accents in [§2.8](#28-accent-colours-proposed)) | ground 7.97 · surface 7.32 · raised 6.59 |
 | `accent-strong` (hover) | `#9BCFD3` | — |
 | `on-accent` | `#1E1D1A` | on accent 7.97 |
 | `accent-tint` | `#343C3B` (16% over surface) | text 9.19 · accent 5.35 |
@@ -150,9 +150,68 @@ Colours written into the file or drawn on the page. Like the highlight colours (
 | Page content colours | Ink `#262421` · Grey `#6E6A64` · Teal `#1F5C63` · Red `#9B2335` · Custom…; "No fill" is a white swatch with a red diagonal. An existing object's colour comes first, named "(original)" | Text, shapes and fills added or edited in Edit mode |
 | Outline colours (`/C`) | Default (`text`) · Grey (`muted`) · Red (`danger`) · Blue `#2D4A6B` · Green (`positive`) | Bookmark rows |
 | Signature ink | Black `#1F1D1A` · Dark blue `#1F2F5C` (12.97 on white) | Drawn and typed signatures |
-| Presence | Violet `#5B4B8A` (white on it 7.45) · Blue `#1F5C8A` (7.10) · Plum `#8A3B5C` (7.34) · Teal-green `#3B6B5C` (6.10); the same ratios as an outline on a white page | Reviewer avatars and remote selections, assigned in joining order, stable per person per document; a fifth reviewer reuses violet. Names always show, so colour is never the only cue |
-| Diff marks | Removed: `danger-tint` + strikethrough · Added: `positive-tint` + underline · Overlay: orange `#B4540F` (4.98 on white) and blue `#2D4A6B`, with a legend | Compare views; the current change gets the 2 px `focus` outline |
+| Presence | Violet `#5B4B8A` (white on it 7.45) · Blue `#1F5C8A` (7.10) · Plum `#8A3B5C` (7.34) · Teal-green `#3B6B5C` (6.10); the same ratios as an outline on a white page | Reviewer avatars and remote selections, assigned in joining order, stable per person per document; a fifth reviewer reuses violet. Names always show, so colour is never the only cue. A remote selection is a 2 px **dashed** outline with its name tab; your own selection stays solid `focus`, so the two differ whatever the accent (§2.8) |
+| Diff marks | Removed: `danger-tint` + strikethrough · Added: `positive-tint` + underline · Overlay: orange `#B4540F` (4.98 on white) and blue `#2D4A6B`, with a legend | Compare views; the current change gets the 2 px `focus` outline at a 2 px offset **and** its number chip (“3 of 14”), so it never relies on the accent hue alone (the Blue accent is the overlay blue, §2.8) |
 | Measurement | Selected shape: `accent` at 12% with a 2 px `accent` edge, value chip filled `accent`; other measurements in `warning` with a white chip | Measure tool |
+
+### 2.8 Accent colours (proposed)
+
+The owner chose on 2026-10-29 to let people pick the accent: **Teal** (default), **Blue**, **Plum** or **Green**, in both UI themes. The accent is a third setting beside Theme and Page appearance (§8.6). High contrast ignores it and uses system colours.
+
+Each set is derived from its base colour with the same rules as Teal, and those rules reproduce every documented Teal value exactly:
+
+- `accent-tint` is the accent at 12% over `surface` (dark: 16% over dark `surface`).
+- `selection-tint` is the accent at 22% over the paper (Sepia 22%; on the Dark page, the dark accent at 35%).
+- The dark accent keeps the hue and takes Teal's dark lightness (OKLCH L 0.757).
+- `accent-strong` and primary pressed keep Teal's lightness ratios.
+
+Green is a moss green, `#495533` (OKLCH chroma 0.055, hue 124°). It replaces the canvas tweak's `#3E4A3C`, which had half Teal's chroma, read as dark text and sat next to `positive` (154°).
+
+| Accent | `accent` | `accent-strong` | primary pressed | `accent-tint` | `selection-tint` Original | Sepia | Dark `accent` / `focus` | Dark `accent-strong` | Dark `accent-tint` | Dark-page selection |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Teal (default) | `#1F5C63` | `#16454B` | `#123A3F` | `#E1E6E3` | `#CEDBDD` | `#C5CCBE` | `#7DBDC2` | `#9BCFD3` | `#343C3B` | `#425858` |
+| Blue | `#2D4A6B` | `#1A3757` | `#112E4D` | `#E2E4E4` | `#D1D7DE` | `#C8C8C0` | `#91B3DC` | `#AAC7E9` | `#373B3F` | `#495461` |
+| Plum | `#5B3B6B` | `#472856` | `#3D1E4C` | `#E8E2E4` | `#DBD4DE` | `#D2C5C0` | `#C59FD9` | `#D6B6E7` | `#3F383E` | `#5B4D60` |
+| Green | `#495533` | `#35401F` | `#2C3615` | `#E6E5DE` | `#D7DAD2` | `#CECBB4` | `#A8B78F` | `#BDCAA8` | `#3B3C33` | `#515646` |
+
+`field-tint` (fillable fields, §2.1) is the accent at 8% over white in light; in dark it is the dark accent at 12% over dark `field`, with `control-border` on it ≥ 3.01 and text ≥ 10.9: Teal `#EDF2F3` / `#29302E`, Blue `#EEF1F3` / `#2C2F31`, Plum `#F2EFF3` / `#322D31`, Green `#F0F1EF` / `#2F2F28`. `on-accent` stays `#FFFFFF` in light and `#1E1D1A` in dark for every accent. Contrast, recomputed (WCAG 2.x):
+
+| Accent | Light: on ground · on surface · white on it · white on pressed · on its tint · text on tint · page ink on selection · Sepia ink on selection | Dark: on ground · on surface · on raised · `on-accent` on it · on its tint · text on tint · page ink on selection |
+| --- | --- | --- |
+| Teal | 6.91 · 7.21 · 7.58 · 12.33 · 6.00 · 13.32 · 10.91 · 7.91 | 7.97 · 7.32 · 6.59 · 7.97 · 5.35 · 9.19 · 5.83 |
+| Blue | 8.31 · 8.67 · 9.12 · 13.80 · 7.14 · 13.17 · 10.68 · 7.73 | 7.77 · 7.14 · 6.43 · 7.77 · 5.21 · 9.17 · 5.92 |
+| Plum | 8.38 · 8.75 · 9.20 · 14.11 · 7.20 · 13.16 · 10.68 · 7.74 | 7.49 · 6.88 · 6.19 · 7.49 · 5.06 · 9.23 · 6.03 |
+| Green | 7.27 · 7.59 · 7.98 · 12.76 · 6.32 · 13.31 · 10.94 · 7.95 | 7.89 · 7.25 · 6.53 · 7.89 · 5.23 · 9.07 · 5.82 |
+
+**What follows the accent:**
+
+- `accent`, `accent-strong`, primary pressed, `accent-tint`, `focus` and `field-tint`, the last at 8% over white.
+- Links, the active-mode underline, selected rows and tabs, pressed toggles, target fields, progress fills, the network shield, the Measure tool's selected shape and the find-current outline.
+- The text selection on the page, in every page appearance. lamina draws it; the PDF doesn't.
+
+**What never follows it:**
+
+- Annotation and highlight colours (§2.2) and page paper and ink (§2.4).
+- `danger`, `warning`, `positive` and their tints.
+- The fixed content palettes (§2.7). The Edit-mode "Teal" swatch is content `#1F5C63` whatever the accent.
+- The find-match fill (§2.6).
+
+**Collisions and how they are resolved:**
+
+- **Blue** is the hex of the outline `/C` Blue and of Compare's overlay blue (§2.7). A selected bookmark row is marked by `accent-tint` and weight, not by its text colour. The current change in Compare carries its number chip as well as the outline.
+- **Presence** blue `#1F5C8A` sits near the Blue accent and presence violet `#5B4B8A` (20° of hue) near the Plum accent; presence plum `#8A3B5C` is 42° away. Remote selections in every presence colour are dashed and named (§2.7), so they never look like your own.
+- **Green** stays 30° of hue away from `positive`. A selected state is never drawn as green text alone; it always has the tint or the underline.
+
+**Setting.** View settings (R10) and Settings › Appearance (S07) show an **Accent** row under Theme.
+
+- **Control:** a radio group of four 32 px swatches named Teal, Blue, Plum, Green, with the selected ring from §7.12.
+- **High contrast:** in that theme the row is disabled with the help line "High contrast uses your system colours".
+- **Command:** `view.accent` (`teal`, `blue`, `plum`, `green`).
+- **Applying it:** switching swaps CSS custom properties under `[data-accent]`, with no re-render and no transition under reduced motion. Each accent's dark values must apply wherever the dark theme does: under `[data-theme="dark"][data-accent=…]` **and** under `@media (prefers-color-scheme: dark)` for `:root:not([data-theme])[data-accent=…]` (Match system), so a light accent never lands on dark chrome.
+- **Storage and sync:**
+  - Every device always caches the last applied Theme and Accent locally (`localStorage` on the web, the settings file on desktop), signed in or not, and applies that cache before first paint, so there is no flash of teal.
+  - Signed in, Theme and Accent are also saved to the account, so every device that signs in gets the same look (H02 shows it; there is no switch). After load, if the account's value differs from the cache, the app applies it without animation and updates the cache.
+  - **First sign-in on a device:** if the account already has an appearance, the account's wins and replaces the device's choice; if it has none, the device's choice is uploaded and becomes the account's. After that, the latest change on any signed-in device wins.
 
 ## 3. Typography
 
@@ -361,6 +420,7 @@ New icons follow the same grid and stroke; add them to this table when a board i
 | Redact | `<rect x="4" y="9" width="16" height="6"></rect><path d="M4 5.5h10M4 18.5h7"></path>` | Redact |
 | Mark text / Mark area | `<path d="M6 5h12M12 5v11"></path><path d="M5 20h14"></path>` / `<rect x="4.5" y="5.5" width="12" height="10" stroke-dasharray="2 2"></rect><rect x="15" y="14" width="4.5" height="4.5"></rect>` **(proposed, Sign/protect/redact: a dashed rectangle with a square corner handle, so it no longer looks like Focus mode)** | Redact tools |
 | Keyboard / Key / Smart card | `<rect x="3" y="6.5" width="18" height="11" rx="1.5"></rect><path d="M7 10.5h1M11 10.5h1M15 10.5h1M8 14h8"></path>` / `<circle cx="8" cy="12" r="3.5"></circle><path d="M11.5 12H20M17 12v3M20 12v2"></path>` / `<rect x="3.5" y="6" width="17" height="12" rx="1.5"></rect><rect x="6.5" y="9.5" width="4" height="3.5" rx="0.5"></rect>` | Type a signature, keychain, smart card |
+| Snap to grid **(proposed, Forms P05)** | `<path d="M4.5 9h15M4.5 15h15M9 4.5v15M15 4.5v15"></path>` | Form design toolbar |
 
 Window caption glyphs (minimise, maximise, close) are drawn on a 10 × 10 grid with 1 px strokes and are mockup-only.
 
@@ -372,7 +432,7 @@ Window caption glyphs (minimise, maximise, close) are drawn on a 10 × 10 grid w
 | --- | --- | --- | --- |
 | Top bar | `min-height: 40px`, padding `0 16px`, gaps `8px 20px` | `ground`, `hairline` bottom | Three groups: file (flex `1 1 220px`), mode switcher (centred), tools (flex `1 1 220px`, right-aligned, gap 14). Wraps onto two lines when narrow |
 | Secondary toolbar | `min-height: 40px`, padding `0 16px`, gaps `4px 6px`, 13 px text | `surface`, `hairline` bottom | Only in modes other than Read |
-| Left rail | `220px` (Outline, desktop board) · `196px` (Pages, web board) | `ground`, `hairline` right | Rule **(proposed)**: default 220, min 196, user-resizable, remembered locally. 280 with four or more tabs (§8.10); a rail panel (§7.34) may be 260–280 |
+| Left rail | `220px` (every board) | `ground`, `hairline` right | Rule **(proposed)**: default 220, min 196, user-resizable, remembered locally. 280 with four or more tabs (§8.10); a rail panel (§7.34) may be 260–280 |
 | Canvas | flex `999 1 560px` (560 min before wrapping), padding `32px 16px` (desktop `28px 16px`) | `gutter` | Pages centred |
 | Inspector | `288px`, padding `20px 20px 24px`, gap 22 | `surface`, `hairline` left | Only while something is selected |
 | Wide docked panel **(proposed)** | `360px`, same anatomy as the inspector | `surface`, `hairline` left | In the inspector's place, for panels whose rows carry a sentence: Comments, network activity, reports (sanitise, redaction verification), jobs. Opened by a toggle with `aria-expanded`; it replaces the inspector while open. **One right dock (proposed, Comment):** a wide panel and the inspector never show together; with the Comments panel open, selecting an annotation expands its thread, “Properties” in the thread's More menu swaps the dock to the inspector and “Back to comments” swaps it back |
@@ -459,11 +519,11 @@ Variants **(proposed)**:
     <div style="display: flex; align-items: center; gap: 6px; font-variant-numeric: tabular-nums">
       <label for="pg" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Page</label>
       <input id="pg" value="3" style="width: 30px; height: 24px; box-sizing: border-box; text-align: center; border: 1px solid #8A8174; border-radius: 4px; background: #FFFFFF; font: inherit; font-variant-numeric: tabular-nums; color: #1F1D1A">
-      <span style="color: #6B645A">/ 24</span>
+      <span style="color: #6B645A; white-space: nowrap">/ 24</span>
     </div>
     <!-- zoom: two 26×26 icon buttons around <span style="min-width: 40px; text-align: center">110%</span> -->
     <!-- find: icon button (7.3) -->
-    <button style="height: 26px; display: flex; align-items: center; gap: 8px; padding: 0 6px 0 10px; border: 1px solid #E4DED3; background: #FBF9F5; border-radius: 4px; color: #6B645A; font-size: 13px"><span>Commands</span><span style="font-size: 11px; padding: 1px 5px; border: 1px solid #D8D1C5; border-radius: 3px; color: #4A453E; background: #FFFFFF">Ctrl K</span></button>
+    <button style="height: 26px; flex-shrink: 0; white-space: nowrap; display: flex; align-items: center; gap: 8px; padding: 0 6px 0 10px; border: 1px solid #E4DED3; background: #FBF9F5; border-radius: 4px; color: #6B645A; font-size: 13px"><span>Commands</span><span style="font-size: 11px; padding: 1px 5px; border: 1px solid #D8D1C5; border-radius: 3px; color: #4A453E; background: #FFFFFF">Ctrl K</span></button>
     <button style="height: 26px; padding: 0 12px; border: 1px solid #1F5C63; background: #1F5C63; color: #FFFFFF; border-radius: 4px; font-size: 13px; font-weight: 600">Save</button>
     <!-- more: icon button -->
   </div>
@@ -908,9 +968,11 @@ From the style tile: 4-column grid gap 10; chip padding 8, gap 8, radius 6; prev
 
 **Theme chips (proposed):** the same anatomy with a 52 px preview of the chrome ground and a small white page; Match system splits light and dark.
 
-**Compact chips (proposed, Reader B R10):** in popovers narrower than 400 px the chips sit in a 2 × 2 grid: a 40 × 32 `Aa` preview to the left of a 13 px label, padding 6, gap 10, radius 6; selected as above. Keeps “High contrast” on one line.
+**Compact chips (proposed, Reader B R10):** in popovers narrower than 400 px and in phone sheets the chips sit in a 2 × 2 grid: a 40 × 32 `Aa` preview to the left of a 13 px label, padding 6, gap 10, radius 6; selected as above. Keeps “High contrast” on one line.
 
-**Theme radio grid (proposed, Reader B R10):** the Theme radio group (§7.19) in a 2 × 2 grid, rows 32 px (44 on the phone), order Light · Dark · High contrast · Match system.
+**Theme radio grid (proposed, Reader B R10):** the Theme radio group (§7.19) in a 2 × 2 grid, rows 32 px (44 on the phone), order Light · Dark · High contrast · Match system. In the Settings window (S07) the same radio group may be drawn as preview cards (preview, drawn radio, label) in that order.
+
+**Accent swatches (proposed, second review):** under Theme, a `role="radiogroup"` named “Accent” of four 32 px round swatches (44 px targets on touch) named Teal, Blue, Plum and Green, with the §7.12 selected ring and the selected name beside the row; disabled in High contrast with the help line “High contrast uses your system colours” (§2.8).
 
 ### 7.26 Menu (proposed)
 
@@ -1053,7 +1115,7 @@ One secondary toolbar at a time, under the top bar, never two: a tool toolbar (�
 | --- | --- |
 | Read | None (page + top bar only); the find bar while find is open |
 | Comment **(proposed, from C01)** | Select │ Highlight · Underline · Strike · Caret · Note · Text box ▾ · Ink · Shapes ▾ · Stamp ▾ · Attach file │ Colour · Width │ … · “n comments on this page” · Comments. Colour and width show only for tools that use them; the colour set swaps with the tool (§2.7). Fitting rules **(proposed, Comment)**: Underline, Strike and Caret are icon-only; Text box ▾ is a split tool button and Shapes ▾ a menu tool button (§7.24); the page-count note hides while Colour and Width show and the count moves into the Comments button's name. The row is then about 1,350 px wide, so Comment wraps below about 1,366 px rather than 1,024 px |
-| Fill & Sign **(proposed, from P01)** | Previous field · Next field · Highlight fields (toggle) │ Text · Check · Date │ Add a signature image (Signature image icon) · Sign with a certificate (Certificate icon) · Form data ▾ · … · “3 of 8 required fields filled” |
+| Fill & Sign **(proposed, from P01)** | Previous field · Next field · Highlight fields (toggle) │ Text · Check · Date │ Add a signature image (Signature image icon) · Sign with a certificate (Certificate icon) · Form data ▾ · … · “4 of 9 required fields filled” |
 | Organise **(proposed, from O06 + O09–O11)** | Insert ▾ · Rotate left · Rotate right · Extract · Delete │ Move to page… │ Page setup ▾ (Crop, Resize…, Page boxes…, Page labels…, Make landscape, Make portrait) · Bookmark ▾ (Add bookmark, Create a contents page…, Named destinations…) · More page actions (⋯) · context note (“2 pages selected”). The canvas becomes the page grid; the rail shows Outline · History (no Pages tab), plus Attachments when the file has attachments (§8.10) |
 | Edit **(proposed, from A01)** | Select · Edit text · Add text · Image · Shape ▾ · Link │ Page marks ▾ · Replace… │ Redact · Protect · Tools ▾ (Form design, Actions, Accessibility, Print production) · context note with the active tool's hint |
 | Redact (tool of Edit) | “Redact” title · Mark text · Mark area · Find sensitive… │ Preview result (toggle) · state text (“11 marks · nothing removed yet”; after applying “10 redactions applied · undo with ⌘Z until you save”) · Apply redactions… (secondary, hidden after applying) · Done. Apply covers accepted marks only **(proposed, Sign/protect/redact)**: the confirm repeats the count of accepted marks on its button and lists marks still to review and rejected ones as “left as they are” |
@@ -1100,7 +1162,7 @@ No auto-save. The top bar shows the state ("No unsaved changes", "1 unsaved chan
 
 ### 8.6 Page appearance vs UI theme
 
-Two separate settings in View settings: **Theme** (Light, Dark, High contrast, Match system) recolours the chrome; **Page appearance** (Original, Sepia, Dark, High contrast) recolours page content in the renderer. Original is the default in every theme: draw white pages on the dark gutter in dark mockups. Photos and annotation colours never change.
+Three separate settings in View settings: **Theme** (Light, Dark, High contrast, Match system) recolours the chrome; **Accent** (Teal, Blue, Plum, Green, [§2.8](#28-accent-colours-proposed)) recolours the accent-derived tokens of the chrome and the text selection on the page; **Page appearance** (Original, Sepia, Dark, High contrast) recolours page content in the renderer. Original is the default in every theme: draw white pages on the dark gutter in dark mockups. Photos and annotation colours never change.
 
 ### 8.7 Touch rules
 
@@ -1175,7 +1237,7 @@ Two separate settings in View settings: **Theme** (Light, Dark, High contrast, M
 
 **Command ids (proposed rule).** Every command in the registry has one id, used by the palette, menus, shortcuts, telemetry counts and the docs.
 
-- Form: `namespace.verb-object`, lowercase, kebab-case, exactly one dot (`file.save-copy`, `pages.rotate-left`). Variants are arguments, not more segments: `view.theme` (`light`, `dark`, `high-contrast`, `system`), `view.page-appearance`, `view.page-layout`, `comment.shape` (`kind`), `tool.shape` (`kind`), `comment.set-colour` (colour name).
+- Form: `namespace.verb-object`, lowercase, kebab-case, exactly one dot (`file.save-copy`, `pages.rotate-left`). Variants are arguments, not more segments: `view.theme` (`light`, `dark`, `high-contrast`, `system`), `view.accent` (`teal`, `blue`, `plum`, `green`), `view.page-appearance`, `view.page-layout`, `comment.shape` (`kind`), `tool.shape` (`kind`), `comment.set-colour` (colour name).
 - The namespace names the thing acted on or the surface, never a mode: `app`, `window`, `tab`, `session`, `crash`, `help`, `palette`, `layer`, `selection`, `privacy`, `settings`, `account`, `licence`, `mode`, `file`, `view`, `nav`, `find`, `edit`, `tool`, `pages`, `document`, `xmp`, `organise` (only bookmarks, destinations, attachments and the initial view), `comment` (Comment tools and threads), `comments` (the Comments panel), `annot` (a selected annotation), `attachment`, `stamps`, `form`, `form-design`, `sign`, `signatures`, `security`, `redact`, `a11y`, `tags`, `actions`, `layers`, `measure`, `print`, `ocr`, `convert`, `compare`, `revisions`, `batch`, `jobs` (server jobs).
 - Page operations are `pages.*` in every mode. Tool toggles are `tool.*` in Edit and `comment.*` in Comment. A command that opens a tool toolbar is `<namespace>.open` (`redact.open`, `form-design.open`, `actions.open`, `print.open`) unless the tool's job is its own command (`a11y.check`, `security.protect`).
 - One id per action across areas; labels may differ by platform or state (`file.save-copy` is “Download a copy” on the web and “Save a copy…” on the desktop).
@@ -1233,11 +1295,14 @@ One compare view, from X04: side by side or overlay, version selects, Previous /
 - **Reuse the snippets** in §7 and the icons in §5 verbatim; change copy, not structure. If a board needs a new component, build it from these tokens and add it here.
 - Each artboard is one `.dc.html` file under `project/`, listed in `canvas.json` (`boards`, `order`, optional `notes`). Keep the file skeleton: `<script src="./support.js"></script>` in `<head>`, markup inside `<x-dc>`, fonts and base CSS in `<helmet>` (the §3 link line, plus `body{margin:0}`, `a{color:#1F5C63}a:hover{color:#16454B}`, `button,input,textarea{font:inherit;color:inherit}`), and logic in `<script type="text/x-dc" data-dc-script data-props='…'>` with a `Component extends DCLogic` whose `renderVals()` returns the template values. Loops and conditions use `<sc-for list="{{…}}" as="t" hint-placeholder-count="n">` and `<sc-if value="{{…}}" hint-placeholder-val="{{ true }}">`.
 - **Artboard sizes:**
-  - Web and desktop: a PAGE board, `"w": 1440`, `"h": 900`, `"expand": "fill"` in `canvas.json`, `$preview` `{"width":1440,"height":900}`; the root is fluid (`min-height: 100vh; display: flex; flex-direction: column`).
+  - Web and desktop: a PAGE board, `"w": 1440`, `"h": 900`, `"expand": "fill"` in `canvas.json`, `$preview` `{"width":1440,"height":900}`; an app shell's root is `height: 100vh; display: flex; flex-direction: column` with non-wrapping rows (a `flex-wrap: wrap` row grows to its tallest child under a fixed height); site and document-length boards keep `min-height: 100vh`.
   - Phone: fixed `390 × 844`, root `width: 390px; height: 844px; position: relative; overflow: hidden`.
   - Tablet (if used): fixed `1024 × 1366`.
 - **Never use % heights**; use flex, `min-height: 100vh` on page roots, or fixed px on fixed artboards. Widths may use % inside a sized parent (chart bars).
-- Tweaks: at most 2–3 `data-props` per artboard (the files use `accent` with options `#1F5C63`, `#2D4A6B`, `#3E4A3C`, plus one boolean such as `showRail`, `showPalette` or an enum such as `pageAppearance`). Copy stays literal markup.
+- **Keep the shell inside the board (second review, 2026-10-29).** An app shell (top bar, canvas, status bar) has `height: 100vh` on its root, not `min-height`, and every flex row or column between the root and a scrolling region has `min-height: 0` (or `min-width: 0`), so long lists, threads, dialogs and pages scroll inside their region and the status bar stays at the bottom of the 900 px board. Dialog overlays scroll their body, never the footer. Only site and document-length boards (H08, H09, S09) may grow, and their `canvas.json` height says so.
+- **Text that must not wrap:** page counts (`/ 24`), shortcut chips, badges, page labels in rows and menu items, and button labels get `white-space: nowrap; flex-shrink: 0`; long names (file names, titles) get `min-width: 0` and an ellipsis instead. Check boards with the real fonts loaded, not fallbacks.
+- Tweaks: at most 2–3 `data-props` per artboard: `accent` with the options `#1F5C63`, `#2D4A6B`, `#5B3B6B`, `#495533` (Teal, Blue, Plum, Green, §2.8), plus one boolean such as `showRail`, `showPalette` or an enum such as `pageAppearance` or `theme`. Copy stays literal markup.
+- **Every accent-derived colour follows the tweak:** `accent`, `accent-tint` (`mix(accent, surface, .12)`), `selection-tint` (`mix(accent, '#FFFFFF', .22)`), focus rings, pressed toggles, target fields, badges and links (give each `<a>` an inline `color: {{accent}}`; the `<helmet>` rule is only a fallback). Never hard-code `#1F5C63`, `#16454B` or `#E1E6E3` for UI. Teal drawn as page content (the Edit “Teal” swatch, a logo, a chart recoloured by the user) stays `#1F5C63` and is not accent.
 - Draw the macOS window frame for desktop boards (§6.1); no browser chrome for web boards; no fake device status bar on phones (the home indicator is allowed).
 - Show one keyboard focus ring per board; use real elements and ARIA as in the snippets.
 - No gradients, no left-border accent cards, no emoji, no shadows on docked panels.
@@ -1248,37 +1313,37 @@ On 2026-10-29 the “New components” and “Proposed design-language additions
 
 | # | Proposal | Areas | Choice | Why | Still using the other form |
 | --- | --- | --- | --- | --- | --- |
-| 1 | Rail tab set and overflow | Reader A, Forms, Pages and navigation, Add and edit, Sign/protect/redact, Reader B | Reader A's rule (§8.10): `Pages · Outline` + contextual tabs; 220 px up to three tabs, 280 px with four or more; a 28 px More (⋯) icon button outside the tablist; the current task's tab takes the third slot; no user Bookmarks tab | One rule for every board; the selected tab never hides | Board follow-up: Forms (26 px chevron button), Pages and navigation (24 px “More” text button; O14 rail 272 px), Sign/protect/redact (G04 288 px with a Bookmarks tab; G08–G09 Redact rail drops Outline, G09 rail 320 px), Reader B (R17 Contents sheet has a Bookmarks tab) |
-| 2 | Organise rail and toolbar | Edit session (O06), Pages and navigation | O06's toolbar order plus Pages and navigation's Page setup ▾ and Bookmark ▾ (§8.1); the rail stays with Outline · History and no Pages tab | Without a rail, History and bookmark editing are unreachable in Organise | Text updated (O06). Board follow-up: O06 (no rail, page size and labels in ⋯), Pages and navigation boards (Delete before Extract) |
-| 3 | Where Redact and Protect live | Sign/protect/redact, Add and edit | Visible on the Edit toolbar: `… │ Redact · Protect · Tools ▾`; Tools ▾ keeps Form design, Actions, Accessibility, Print production | Principle 3: every action has a visible home; both are frequent and consequential | Text updated (Add and edit A01 table, Forms P05). Board follow-up: Add and edit A01–A07 and Forms P05 boards (Tools ▾ holding Redact and Protect) |
-| 4 | Fill & Sign toolbar | Forms, Sign/protect/redact, design language | Forms' P01 version with Highlight fields and Form data ▾, signing actions with the Signature image and Certificate icons; ids `sign.add-signature-image`, `sign.with-certificate` (no area used another signing id) | Forms owns the mode and drew it in full | Text updated (Sign/protect/redact G01). Board follow-up: G01 and G11 boards (no Highlight fields or Form data) |
-| 5 | Find match colours | Reader A, Reader B, Sign/protect/redact | Reader A's `find-match` / `find-current` tokens per page appearance (§2.6), also for sensitive-content hits | Computed for every appearance; distinct from the selection tint and from yellow highlights | Board follow-up: Reader B R18 (selection tint + accent underline, current in accent with white text), Sign/protect/redact G09 (selection tint + accent underline) |
-| 6 | Phone find | Reader A (R05), Reader B (R18) | Reader A's: search field with Done in the top bar, Previous · Results · Next bottom toolbar (§7.30), for every area | One phone find everywhere | Board follow-up: Reader B R18 (60 px find row with an options row, count toolbar) |
-| 7 | Monospace stack | Desktop shell, Convert and produce vs Forms, Pages and navigation, Account and cloud | The `mono` token with `"Liberation Mono"`, 12.5/1.6 for blocks (§3) | Linux has no `ui-monospace`; one size for every code block | Board follow-up: Desktop shell S07–S09 and Convert and produce X11 (12 px, stack without Liberation Mono) |
-| 8 | Drawing check boxes and radios | Desktop shell (`role="checkbox"` buttons), Forms (hidden native input), Add and edit (`role="checkbox"` tri-state), design language (`accent-color`) | Native input visually hidden inside its label with a drawn box; mixed via `indeterminate` (§7.19) | Native semantics and keyboard, consistent drawing, edge colour under our control | Board follow-up: Desktop shell S07 Advanced and S08, Add and edit A06 tri-state markup |
-| 9 | Selection handle size | Comment (9 px), Add and edit (8 px), Forms (7 px, 1 px border), Pages and navigation (10 px crop), Convert and produce (8 px) | 8 px squares, 1.5 px `accent` border, 24 px hit area, round 10 px line points (§7.32) | Add and edit owns object editing and specified the full set | Board follow-up: Comment C02–C03, Forms P05, Pages and navigation O09 |
-| 10 | Menu | Reader A, Desktop shell, Comment, Forms, Add and edit, Edit session, Sign/protect/redact | One menu (§7.26): 32 px items, shortcut chips, palette active row; a with-descriptions variant (14/600 title over 12 px) | Seven near-identical specs | Board follow-up: Desktop shell S02 overflow (accent-filled active item, plain shortcuts), Add and edit A05 context menu (30 px, plain shortcuts), Edit session O02 (14 px regular titles), Sign/protect/redact G01 (13 px descriptions) |
-| 11 | Dialog widths | Design language (440/560), Add and edit (760), Edit session (880), Convert and produce (820) | 440 · 560 · 820 (§7.18) | Three steps are enough | Board follow-up: Add and edit A03, Edit session O04 |
-| 12 | Strips and banners | Reader B, Desktop shell, Edit session, Sign/protect/redact, Convert and produce, Account and cloud | One strip (§7.29), 36 px min, tinted by meaning | Six near-identical components | Board follow-up: Convert and produce X03 revision strip (40 px) |
-| 13 | Badge size | Convert and produce (18 px, 11/600) vs §7.23 (20 px, 12/600) | 20 px, 12/600 | 12 px is the UI minimum (§3) | Board follow-up: Convert and produce X06, X08, X10, X11 |
-| 14 | Docked panel widths | Reader B (288–320), Comment (360), Sign/protect/redact (340, 360), Convert and produce (inspector 300) | 288 inspector; 360 wide docked panel (§6.1) | Two widths | Board follow-up: Reader B R13–R14 (320), Sign/protect/redact G07 (340), Convert and produce X12 (300) |
-| 15 | Icon drawings | Several | One drawing per name (§5): Printer (Convert), File (common; not Pages and navigation's rounded one, not Desktop shell's Document), Lock rx 1.5, Paperclip (Reader A), Link (Reader A), Download (common; not Desktop shell's tray, not Forms' Import), Upload = Share, Select (Comment/Forms), Undo (Edit session), Align (Add and edit), Arrow up/down (Edit session), Eye (Convert), Delete (Edit session), Redact (Sign), Replace = Swap (Add and edit), Tools (Add and edit grid, not the wrench), Plus = Zoom in, Forward vs Chevron right kept distinct, Drag grip stroked | Same name, same drawing | Board follow-up: Reader A, Reader B, Desktop shell (Printer, Document, Download), Pages and navigation (File, Paperclip, Plus, Tools wrench, filled grip), Comment (Paperclip, Undo, Align), Add and edit (Select, Link, Redact, Chevron right), Forms (Text tool, Import), Sign/protect/redact (Lock, Eye, Delete, Upload), Convert and produce (Lock, Arrow up/down, Swap), Account and cloud (Link). Mark area redrawn as a dashed rectangle with a corner handle (decision 37) |
+| 1 | Rail tab set and overflow | Reader A, Forms, Pages and navigation, Add and edit, Sign/protect/redact, Reader B | Reader A's rule (§8.10): `Pages · Outline` + contextual tabs; 220 px up to three tabs, 280 px with four or more; a 28 px More (⋯) icon button outside the tablist; the current task's tab takes the third slot; no user Bookmarks tab | One rule for every board; the selected tab never hides | Resolved on the boards in the second review (2026-10-29) |
+| 2 | Organise rail and toolbar | Edit session (O06), Pages and navigation | O06's toolbar order plus Pages and navigation's Page setup ▾ and Bookmark ▾ (§8.1); the rail stays with Outline · History and no Pages tab | Without a rail, History and bookmark editing are unreachable in Organise | Text updated (O06). O06 resolved in the second review; Pages and navigation boards (Delete before Extract) not rechecked |
+| 3 | Where Redact and Protect live | Sign/protect/redact, Add and edit | Visible on the Edit toolbar: `… │ Redact · Protect · Tools ▾`; Tools ▾ keeps Form design, Actions, Accessibility, Print production | Principle 3: every action has a visible home; both are frequent and consequential | Resolved on the boards in the second review (2026-10-29) |
+| 4 | Fill & Sign toolbar | Forms, Sign/protect/redact, design language | Forms' P01 version with Highlight fields and Form data ▾, signing actions with the Signature image and Certificate icons; ids `sign.add-signature-image`, `sign.with-certificate` (no area used another signing id) | Forms owns the mode and drew it in full | Resolved on the boards in the second review (2026-10-29) |
+| 5 | Find match colours | Reader A, Reader B, Sign/protect/redact | Reader A's `find-match` / `find-current` tokens per page appearance (§2.6), also for sensitive-content hits | Computed for every appearance; distinct from the selection tint and from yellow highlights | Resolved on the boards in the second review (2026-10-29) |
+| 6 | Phone find | Reader A (R05), Reader B (R18) | Reader A's: search field with Done in the top bar, Previous · Results · Next bottom toolbar (§7.30), for every area | One phone find everywhere | Resolved on the boards in the second review (2026-10-29) |
+| 7 | Monospace stack | Desktop shell, Convert and produce vs Forms, Pages and navigation, Account and cloud | The `mono` token with `"Liberation Mono"`, 12.5/1.6 for blocks (§3) | Linux has no `ui-monospace`; one size for every code block | Resolved on the boards in the second review (2026-10-29) |
+| 8 | Drawing check boxes and radios | Desktop shell (`role="checkbox"` buttons), Forms (hidden native input), Add and edit (`role="checkbox"` tri-state), design language (`accent-color`) | Native input visually hidden inside its label with a drawn box; mixed via `indeterminate` (§7.19) | Native semantics and keyboard, consistent drawing, edge colour under our control | Resolved on the boards in the second review (2026-10-29): every area draws the §7.19 pattern |
+| 9 | Selection handle size | Comment (9 px), Add and edit (8 px), Forms (7 px, 1 px border), Pages and navigation (10 px crop), Convert and produce (8 px) | 8 px squares, 1.5 px `accent` border, 24 px hit area, round 10 px line points (§7.32) | Add and edit owns object editing and specified the full set | Forms P05 resolved; Comment C02–C03 and Pages and navigation O09 not rechecked |
+| 10 | Menu | Reader A, Desktop shell, Comment, Forms, Add and edit, Edit session, Sign/protect/redact | One menu (§7.26): 32 px items, shortcut chips, palette active row; a with-descriptions variant (14/600 title over 12 px) | Seven near-identical specs | Resolved on the boards in the second review (2026-10-29) |
+| 11 | Dialog widths | Design language (440/560), Add and edit (760), Edit session (880), Convert and produce (820) | 440 · 560 · 820 (§7.18) | Three steps are enough | Resolved on the boards in the second review (2026-10-29); G06-remove-security also moved to 560 |
+| 12 | Strips and banners | Reader B, Desktop shell, Edit session, Sign/protect/redact, Convert and produce, Account and cloud | One strip (§7.29), 36 px min, tinted by meaning | Six near-identical components | Resolved on the boards in the second review (2026-10-29) |
+| 13 | Badge size | Convert and produce (18 px, 11/600) vs §7.23 (20 px, 12/600) | 20 px, 12/600 | 12 px is the UI minimum (§3) | Resolved on the boards in the second review (2026-10-29) |
+| 14 | Docked panel widths | Reader B (288–320), Comment (360), Sign/protect/redact (340, 360), Convert and produce (inspector 300) | 288 inspector; 360 wide docked panel (§6.1) | Two widths | Resolved on the boards in the second review (2026-10-29) |
+| 15 | Icon drawings | Several | One drawing per name (§5): Printer (Convert), File (common; not Pages and navigation's rounded one, not Desktop shell's Document), Lock rx 1.5, Paperclip (Reader A), Link (Reader A), Download (common; not Desktop shell's tray, not Forms' Import), Upload = Share, Select (Comment/Forms), Undo (Edit session), Align (Add and edit), Arrow up/down (Edit session), Eye (Convert), Delete (Edit session), Redact (Sign), Replace = Swap (Add and edit), Tools (Add and edit grid, not the wrench), Plus = Zoom in, Forward vs Chevron right kept distinct, Drag grip stroked | Same name, same drawing | Resolved in the second review for Reader A, Reader B, Desktop shell, Forms, Add and edit, Sign/protect/redact and Convert and produce; Pages and navigation, Comment and Account and cloud not rechecked. Mark area redrawn as a dashed rectangle with a corner handle (decision 37) |
 | 16 | Command id form | Reader B (`view.theme.dark`, `view.zoom.actual-size`…), Comment (`annot.text.bold`, `comment.shape.rectangle`, `comment.stamp.place`…) | `namespace.verb-object` with one dot; variants are arguments (§8.8) | Ids stay stable when options change | Text updated (Reader B, Comment) |
-| 17 | Page operation ids | Edit session (`pages.*`), Pages and navigation (`organise.*`) | `pages.*` in every mode, including crop, resize, boxes, labels, orientation; `pages.export-images` for page images and `file.export-pictures` for embedded pictures; `organise.*` kept only for bookmarks, destinations, attachments, initial view | Commands act on pages whatever the mode | Text updated (Pages and navigation). Board follow-up: Account and cloud H10 payload shows `organise.rotate-right` |
-| 18 | Save a copy | Reader A, Reader B (`file.download-copy`, Ctrl S), Desktop shell (`file.export-copy`), Edit session | `file.save-copy`, no shortcut; Mod S is Save, in edit sessions only; `file.download` is only Save's web fallback (§8.4) | One action, one id; Ctrl S must not mean two things | Text updated (Reader B, Desktop shell). Board follow-up: Reader B R12 shortcut list (Ctrl S on Download a copy), Desktop shell S03 label “Export a copy…” |
-| 19 | Document properties | Reader A/B (`file.properties`), Desktop shell (`doc.properties`), Edit session (`document.info`) | `file.properties`, label “Document properties…”; read-only in Read, editable in the editor | One dialog, one id | Text updated. Board follow-up: Edit session O04 label “Document info…” |
+| 17 | Page operation ids | Edit session (`pages.*`), Pages and navigation (`organise.*`) | `pages.*` in every mode, including crop, resize, boxes, labels, orientation; `pages.export-images` for page images and `file.export-pictures` for embedded pictures; `organise.*` kept only for bookmarks, destinations, attachments, initial view | Commands act on pages whatever the mode | Resolved on the boards in the second review (2026-10-29) |
+| 18 | Save a copy | Reader A, Reader B (`file.download-copy`, Ctrl S), Desktop shell (`file.export-copy`), Edit session | `file.save-copy`, no shortcut; Mod S is Save, in edit sessions only; `file.download` is only Save's web fallback (§8.4) | One action, one id; Ctrl S must not mean two things | Resolved on the boards in the second review (2026-10-29) |
+| 19 | Document properties | Reader A/B (`file.properties`), Desktop shell (`doc.properties`), Edit session (`document.info`) | `file.properties`, label “Document properties…”; read-only in Read, editable in the editor | One dialog, one id | Resolved on the boards in the second review (2026-10-29) |
 | 20 | Other duplicate ids | Desktop shell, Add and edit, Reader A/B, Convert and produce, Forms, Edit session | `privacy.network-activity` (not `network.show`), `view.reader-mode` (not `reader.open`), `find.match-case` / `find.whole-words` / `find.open-replace` (not `find.toggle-*`, `find.replace`), `annot.delete` (not `comment.delete`), `tool.link` (not `edit.link`), `security.protect` (not `protect.open`), `form-design.open` (not `form-design.open-tool`), `actions.open` (not `edit.open-actions`, `actions.list`), `a11y.check` (not `a11y.open`), `print.open` (not `produce.open`), `file.save-optimised`, `file.save-as-pdfa`, `file.save-as-pdfua`, `file.show-constraint-details` (not `save.*`), `mode.fill-sign` (not `form.switch-to-fill-sign`) | Namespace by object; one id per action | Text updated in every area doc |
 | 21 | Single key `R` | Reader B (Reader mode), Comment (Rectangle), Edit session (Rotate right) | Single keys are scoped by mode and focus (§8.8): R = Reader mode in Read only | Each use is where people expect it | Text updated (Reader B R12) |
 | 22 | Read mode edits | Comment (mini toolbar highlights “without switching”; “Pen draws in Read mode” setting), others | Read mode is read-only in every area (§8.11); Highlight from the mini toolbar switches to Comment | Read promises nothing changes | Follow-up (design change): Comment C01 entry points and C09 pen setting |
-| 23 | Compare view | Sign/protect/redact G05, Convert and produce X04 | X04's view is canonical; G05 opens it with a signature-revision preset (§8.12) | One compare UI | Board follow-up: G05 boards |
+| 23 | Compare view | Sign/protect/redact G05, Convert and produce X04 | X04's view is canonical; G05 opens it with a signature-revision preset (§8.12) | One compare UI | Resolved on the boards in the second review (2026-10-29) |
 | 24 | File changed on disk while dirty | Desktop shell S04 (strip), Edit session O02 (dialog) | Clean: silent reload + toast. Dirty: S04's strip when detected; O02's dialog at the next Save; Overwrite rewrites the whole file through a temporary file (§8.4, decision 40) | The strip informs at once; the dialog decides at save time | Text updated (Desktop shell S04, Edit session O02) |
-| 25 | JavaScript wording | Reader A, Convert and produce X11, Forms P02 | “This file contains JavaScript. lamina never runs it.” (§8.5); ADR 0021 still pending | One sentence everywhere | Text updated. Board follow-up: X11 status note |
+| 25 | JavaScript wording | Reader A, Convert and produce X11, Forms P02 | “This file contains JavaScript. lamina never runs it.” (§8.5); ADR 0021 still pending | One sentence everywhere | Resolved on the boards in the second review (2026-10-29) |
 | 26 | Reader v0.1 top bar | Reader A, Reader B, Account and cloud | Reader A's (§7.1): no mode switcher or save state; History, View, Reader | v0.1 is read-only | None (editor-area Read boards keep the mode switcher) |
-| 27 | Editor top bar View button | Reader B, Account and cloud vs Add and edit, Forms, Edit session | View (view settings) in every editor top bar (§7.1) | Page appearance must be reachable in every mode | Board follow-up: Add and edit, Forms, Edit session boards |
+| 27 | Editor top bar View button | Reader B, Account and cloud vs Add and edit, Forms, Edit session | View (view settings) in every editor top bar (§7.1) | Page appearance must be reachable in every mode | Resolved on the boards in the second review (2026-10-29) |
 | 28 | Content palettes | Comment (line colours), Add and edit (content colours), Pages and navigation (outline colours), Sign (ink) | Kept separate, one job each (§2.7) | They are written into the file with different meanings | None |
 | 29 | Diff overlay orange ratio | Convert and produce (“6.9:1”) | `#B4540F` is 4.98:1 on white | Recomputed | None (the additions text is replaced) |
 | 30 | Drop zone | Reader A (radius 6, large), Pages and navigation (radius 4, compact) | Two sizes, radius 6 (§7.21) | Same component | Board follow-up: Pages and navigation O14 |
-| 31 | Measure tool entry | Convert and produce X12 (“Comment mode › Measure tool (Tools menu…)”) | Comment has no Tools menu: Measure opens from the palette, the “This page has a scale · Measure” note and the Comment toolbar's `…` (§8.1) | Keeps the Comment toolbar as drawn in C01 | Follow-up: X12 text and board |
+| 31 | Measure tool entry | Convert and produce X12 (“Comment mode › Measure tool (Tools menu…)”) | Comment has no Tools menu: Measure opens from the palette, the “This page has a scale · Measure” note and the Comment toolbar's `…` (§8.1) | Keeps the Comment toolbar as drawn in C01 | Resolved on the boards in the second review (2026-10-29) |
 | 32 | Second merge (final review) | Every area | The remaining “Proposed design-language additions” were merged on 2026-10-29 into §2.3, §2.5, §3, §4, §5, §6.1, §6.2, §7.0, §7.1, §7.5, §7.13, §7.16–§7.21, §7.24, §7.25, §7.32, §7.33, §7.39, §8.1, §8.4, §8.5, §8.8, §8.10, marked “(proposed)” with the area named; new command ids went into the appendix | One place for the rules | See rows 33–45 |
 | 33 | Shape tool buttons | Comment (Shapes ▾ menu), Add and edit (Shape ▾ split), §7.24 (Shape ▾ as a split example) | Comment's Shapes ▾ is a menu tool button; Edit's Shape ▾ stays a split tool button (A01); §7.24 names each | Comment has no “last-used shape” toggle; Edit has | None |
 | 34 | Status bar slots | Desktop shell (right slot only the page label), Sign/protect/redact and Convert and produce (badges right) | Middle: notices, progress and persistent action items (Printing · Cancel, Update ready), then one note by priority; right: page label then signature, security and claim badges (§6.1) | Badges are facts about the document, not notices | None |
@@ -1293,6 +1358,7 @@ On 2026-10-29 the “New components” and “Proposed design-language additions
 | 43 | `help.shortcuts` on desktop | Desktop shell (F1), §8.8 (`?` only) | `?` on the page everywhere; F1 in the desktop app (§8.8) | A native menu accelerator can't be a page-scoped single key | None |
 | 44 | Server consent wording | §7.18 (four fixed rows, checkbox repeats the file name), Convert and produce | Four rows worded per job; checkbox names what is sent; retention fixed before upload and never extended (§7.18) | Pages, addresses and batches are not “the file” | None |
 | 45 | Linux window frame radius | Desktop shell (8), §4 (10 only for macOS) | Windows and Linux frames radius 8 (§4, §6.1) | Matches the drawn boards | None |
+| 46 | Accent colours (owner, 2026-10-29) | Every area (canvas tweak Teal · Blue · Green, light only) | Teal (default), Blue, Plum and Green in light and dark, a user setting beside Theme, saved to the account (§2.8, §8.6); Green moved to moss `#495533`; the text selection on the page follows the accent | People asked to choose; every set passes AA and is derived like Teal | Boards updated: every board has the four-option `accent` tweak; R10 and S07 draw the Accent row; F01, F03 and R11 preview dark |
 
 ## Appendix: Command ids
 
@@ -1679,9 +1745,10 @@ Every command id used in the area documents on 2026-10-29 (regenerated after the
 | `tool.link` | Link tool | Pages and navigation O12; Add and edit | — |  |
 | `tool.select` | Select (Edit) | Add and edit A05; Forms P05 | V (page, Edit) — shared key, scoped |  |
 | `tool.shape` | Shape tool | Add and edit A02 | — |  |
+| `view.accent` | Accent colour | Reader B R10; Desktop shell S03, S07 | — | `teal`, `blue`, `plum`, `green`; synced with the account (§2.8) |
 | `view.actual-size` | Actual size | Reader B R10, R12; Desktop shell S03 | ⌘0 · Ctrl 0 (desktop); 0 (page) |  |
 | `view.collapse-outline` | Collapse outline | Reader A R06; Reader B R17, R18 | — |  |
-| `view.continuous` | Continuous scrolling | Reader B R10 | — |  |
+| `view.continuous` | Continuous scrolling | Reader B R10; Desktop shell S03 | — |  |
 | `view.expand-outline` | Expand outline | Reader A R06; Reader B R17, R18 | — |  |
 | `view.fit-page` | Fit page | Reader B R10; Desktop shell S03 | — |  |
 | `view.fit-width` | Fit width | Reader B R10; Desktop shell S03 | — |  |

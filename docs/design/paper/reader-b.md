@@ -11,29 +11,30 @@ View settings and page appearance, the dark UI theme, keyboard shortcut help, th
 
 ## R10 View settings
 
-**Purpose.** Set how the document looks in one place: the UI theme, the page appearance, the page layout and the zoom.
+**Purpose.** Set how the document looks in one place: the UI theme, the accent, the page appearance, the page layout and the zoom.
 
-**Entry points.** On web, the *View* icon button in the top bar (`aria-label="View settings"`, `aria-haspopup="dialog"`), between Find and Reader. On the phone, More › View settings. Palette commands: `view.settings`, `view.theme` (`light`, `dark`, `high-contrast`, `system`), `view.page-appearance` (`original`, `sepia`, `dark`, `high-contrast`), `view.page-layout` (`single`, `two-up`), `view.continuous`, `view.fit-width`, `view.fit-page`, `view.actual-size`. None of these has a shortcut; zoom keys are listed in R12.
+**Entry points.** On web, the *View* icon button in the top bar (`aria-label="View settings"`, `aria-haspopup="dialog"`), between Find and Reader. On the phone, More › View settings. Palette commands: `view.settings`, `view.theme` (`light`, `dark`, `high-contrast`, `system`), `view.accent` (`teal`, `blue`, `plum`, `green`), `view.page-appearance` (`original`, `sepia`, `dark`, `high-contrast`), `view.page-layout` (`single`, `two-up`), `view.continuous`, `view.fit-width`, `view.fit-page`, `view.actual-size`. None of these has a shortcut; zoom keys are listed in R12.
 
 **Layout (web).** A popover under the button, 360 px wide: `surface`, `chip-border` edge, radius 6, menu shadow, z 30. It is a non-modal `role="dialog"` titled “View” (Newsreader 18). It sits over the top-right of the canvas and never covers the top bar. Sections, top to bottom:
 
 | Section | Control | Notes |
 | --- | --- | --- |
 | Theme | Radio group in a 2 × 2 grid of 32 px buttons: Light · Dark · High contrast · Match system ([§8.6](design-language.md#86-page-appearance-vs-ui-theme)) | Help line names what “Match system” currently resolves to (“Following your system: light”) |
+| Accent | Radio group of four 32 px swatches: Teal · Blue · Plum · Green ([§2.8](design-language.md#28-accent-colours-proposed)), the selected one with the §7.12 ring, its name beside the row | Help: “Links, selection and focus. Signed in, Theme and Accent follow your account to every device.” In the High contrast theme the row is disabled with “High contrast uses your system colours” (not drawn) |
 | Page appearance | 4 compact appearance chips in a 2 × 2 grid (40 × 32 preview left of a 13 px label, padding 6, gap 10) + radio “This document / All documents” | Help: “Photos and annotation colours stay as they are.” |
 | Page layout | Radio Single page · Two pages (icons) + switch “Continuous scrolling” | Two pages shows facing pages; page 1 alone on the right, as books do (setting in the doc only, not drawn) |
 | Zoom | Radio chips Fit width · Fit page · 75% · 100% · 150% · 200% | When the zoom matches no preset (e.g. 113% after pinching), none of the chips is selected |
-| Footer | “Saved on this device only” · ghost “More settings…” | Opens C7a’s settings dialog (Appearance and accessibility section: reduced motion and the other options) |
+| Footer | “Page settings stay on this device” · ghost “More settings…” | Opens C7a’s settings dialog (Appearance and accessibility section: reduced motion and the other options) |
 
 **States.** The board shows Sepia selected for this document, with the page and thumbnails recoloured in the Sepia page content colours ([§2.4](design-language.md#24-page-appearance)). *R10-page-dark* shows the result of choosing Dark: page text and vector paths are recoloured with the Dark page content colours (heading `#F2EEE7`, muted `#ADA597`, bars `#A9B4BC`, chart labels `#C9C2B6`), the yellow highlight keeps its colour, the thumbnails follow the page, and a toast reads “Page appearance: Dark, for this document only · Undo”. In High contrast the page uses `forced-colors` system colours. When `forced-colors: active` is detected the page appearance switches to High contrast unless the user chose something else (U2c). If a page draws its text as images in Dark, a notice on that page says “Text on this page is part of an image, so it can’t be recoloured.” (not drawn).
 
-**Behaviour.** Every control applies at once (live preview). Nothing in the file changes: this is a view preference, stored in `localStorage` (wrapped in try/catch) per document or globally. Undo is the toast, or choosing again. Changing the appearance re-renders only the visible tiles and keeps the scroll position (U2c). Escape or a click outside closes the popover. Focus returns to the View settings button.
+**Behaviour.** Every control applies at once (live preview). Nothing in the file changes: these are view preferences. Page appearance, layout and zoom are stored in `localStorage` (wrapped in try/catch) per document or globally. Theme and Accent are app-wide: signed out they are stored on the device; signed in they are saved to the account, so every device that signs in gets the same look (§2.8, H02). The accent is applied before first paint and swaps CSS custom properties under `[data-accent]`, with no re-render. Undo is the toast, or choosing again. Changing the appearance re-renders only the visible tiles and keeps the scroll position (U2c). Escape or a click outside closes the popover. Focus returns to the View settings button.
 
-**Accessibility.** The trigger has `aria-haspopup="dialog"`, `aria-expanded` and `aria-controls`, and shows the pressed fill while open. Each group is a `radiogroup` labelled by its section label. Arrow keys move inside a group and Tab moves between groups. The appearance chips use `aria-pressed` and have a name as well as a colour. The board shows the focus ring on the selected Sepia chip.
+**Accessibility.** The trigger has `aria-haspopup="dialog"`, `aria-expanded` and `aria-controls`, and shows the pressed fill while open. Each group is a `radiogroup` labelled by its section label; the accent swatches are `role="radio"` buttons named by their colour (“Plum”), with the help line as their description, so colour is never the only cue. Arrow keys move inside a group and Tab moves between groups. The appearance chips use `aria-pressed` and have a name as well as a colour. The board shows the focus ring on the selected Sepia chip.
 
-**Platform differences.** On the phone (*R10-view-settings-phone*) it is a sheet at the medium detent, opened from More (More shows as active). Page appearance comes first, because it is what people change while reading. The theme radios are 44 px in the same 2 × 2 grid, zoom offers Fit width and Fit page only (pinch does the rest), and there is no two-up layout. The desktop app shows the same popover, and also puts these items in the native View menu (D4b).
+**Platform differences.** On the phone (*R10-view-settings-phone*) it is a sheet at the medium detent, opened from More (More shows as active). Page appearance comes first, because it is what people change while reading. The appearance chips are the compact 2 × 2 chips (§7.25), the theme radios are 44 px in the same 2 × 2 grid, the accent swatches sit in 44 px targets under Theme, zoom offers Fit width and Fit page only (pinch does the rest), and there is no two-up layout. The desktop app shows the same popover, and also puts these items in the native View menu (D4b).
 
-**Artboards.** `R10-view-settings.dc.html`, `R10-page-dark.dc.html`, `R10-view-settings-phone.dc.html`.
+**Artboards.** `R10-view-settings.dc.html`, `R10-page-dark.dc.html`, `R10-view-settings-phone.dc.html`. The `accent` tweak of each board is also the selected swatch of the Accent row. On the phone the Accent row is below Theme, under the medium detent's fold (the sheet scrolls).
 
 **Todos.** [C7a](../../todos/ready/C7a-accessibility-and-theming.md), [U2c](../../todos/ready/U2c-page-appearance-modes.md).
 
@@ -45,9 +46,9 @@ View settings and page appearance, the dark UI theme, keyboard shortcut help, th
 
 **Layout.** The shell is the same as F01. The chrome is `ground #1E1D1A`, the Commands button and fields use `surface #262421` / `field #1E1D1A`, and the gutter is `#141311`. Dividers are `hairline #3A3732`, and the page input border is `control-border #7E766A`. Text uses `#ECE7DE`, icons `#CFC8BC`, muted text `#A39B8E`. Accent, focus and the network shield are `#7DBDC2`. The page shadow is `shadow-page-dark`. The selection mini toolbar is `raised #2E2C28` with a `chip-border #4A463F` edge and `shadow-float-dark`. Thumbnails use a proposed dark thumbnail shadow (design language [§2.3](design-language.md#23-dark-ui-theme-proposed)). The selection on the white page keeps the Original tint `#CEDBDD`, because the selection tint follows the page appearance, not the UI theme.
 
-**Content and controls.** Reader v0.1 top bar in dark tokens (Sidebar `view.toggle-sidebar`, Back/Forward `nav.back`/`nav.forward` disabled, page input, zoom `view.zoom-out`/`view.zoom-in`, Find `find.open`, View `view.settings`, Reader `view.reader-mode`, Commands `palette.open`, More). Rail: Pages · Outline · Attachments (`view.show-pages`, `view.show-outline`, `view.show-attachments`), thumbnails with page 3 current. Selection mini toolbar: Copy (`edit.copy`), Highlight (`comment.highlight`, switches to Comment, §8.11), Comment. Status bar: network indicator (`privacy.network-activity`) and page label.
+**Content and controls.** Reader v0.1 top bar in dark tokens (Sidebar `view.toggle-sidebar`, Back/Forward `nav.back`/`nav.forward` disabled, page input, zoom `view.zoom-out`/`view.zoom-in`, Find `find.open`, View `view.settings`, Reader `view.reader-mode`, Commands `palette.open`, More). Rail: Pages · Outline · Attachments (`view.show-pages`, `view.show-outline`, `view.show-attachments`), thumbnails with page 3 current. Selection mini toolbar: Copy (`edit.copy`), Highlight (`comment.highlight`, switches to Comment, §8.11), Comment. Status bar: network indicator (`privacy.network-activity`), the repaired-file notice, as on F01, and page label.
 
-**States.** The board shows text selected with the mini toolbar, and the focus ring on Highlight. The `pageAppearance` tweak switches the page to Dark, drawn exactly as R10-page-dark (heading and figure caption `#F2EEE7`, chart labels `#C9C2B6`, selection tint `#425858`, thumbnails dark). High contrast UI is not drawn: it follows `forced-colors` system colours (plan §5.5).
+**States.** The board shows text selected with the mini toolbar, and the focus ring on Highlight. The `accent` tweak previews all four accents with their dark values from [§2.8](design-language.md#28-accent-colours-proposed) (dark `accent`/`focus` for the ring, the tab underline, the current thumbnail and the shield; the Original-page selection is that accent at 22% over white, the Dark-page selection is the §2.8 dark-page value). The `pageAppearance` tweak switches the page to Dark, drawn exactly as R10-page-dark (heading and figure caption `#F2EEE7`, chart labels `#C9C2B6`, selection tint `#425858`, thumbnails dark). High contrast UI is not drawn: it follows `forced-colors` system colours (plan §5.5).
 
 **Behaviour.** Switching theme only swaps CSS custom properties: no re-render, no layout change. With reduced motion there is no transition.
 
@@ -65,7 +66,7 @@ View settings and page appearance, the dark UI theme, keyboard shortcut help, th
 
 **Entry points.** `?` (page focus), palette command `help.shortcuts`, More › Keyboard shortcuts. The desktop app adds F1 and Help › Keyboard shortcuts. F1 is not bound on the web, where browsers use it for their own help.
 
-**Layout.** A dialog over the dimmed shell (`scrim`), `max-width: 760px`. It is wider than the 440 default because the shortcuts sit in two columns. Its parts:
+**Layout.** A dialog over the dimmed shell (`scrim`), 820 px wide (§7.18) because the shortcuts sit in two columns. Its parts:
 
 - **Header:** title “Keyboard shortcuts”, a subline naming the platform and the single-key rule, and a close button.
 - **Search field:** focused on open.
@@ -84,14 +85,13 @@ Shortcuts shown (Windows/Linux; macOS swaps `Ctrl` for `⌘`):
 | `layer.close` | Close the open panel or dialog | Esc |
 | `nav.next-page` / `nav.previous-page` | Next / previous page | Page Down / Page Up |
 | `nav.first-page` / `nav.last-page` | First / last page | Home / End |
-| `nav.back` / `nav.forward` | Back after following a link / Forward | Alt ← / Alt → (on the web these are the browser’s own Back and Forward: link jumps are pushed to history, C6b) |
 | `find.open` | Find in document | Ctrl F |
-| `find.next` / `find.previous` | Next / previous match | Enter / Shift Enter (in the find field) |
+| `find.next` / `find.previous` | Next / previous match | Enter, F3 / Shift Enter, Shift F3 (in the find field) |
 | `view.zoom-in` / `view.zoom-out` / `view.actual-size` | Zoom in / out / actual size | + / − / 0 (single keys, page focus; Ctrl + and Ctrl − stay the browser’s) |
 | `view.reader-mode` | Reader mode | R (single key, Read mode only) |
 | `edit.copy` | Copy | Ctrl C |
 | `selection.actions` | Show selection actions | Shift F10 |
-| `comment.highlight` / `annot.delete` | Highlight / delete highlight (Comment mode) | H / Backspace (⌫ on macOS) |
+| `comment.highlight` / `annot.delete` | Highlight / delete highlight (Comment mode) | H / Backspace, Delete (⌫ on macOS) |
 
 `file.save-copy` (Download a copy) has no shortcut, so it isn’t listed; `Ctrl S` is Save, in edit sessions only ([§8.4](design-language.md#84-explicit-save)).
 
@@ -103,7 +103,7 @@ Shortcuts shown (Windows/Linux; macOS swaps `Ctrl` for `⌘`):
 
 **Accessibility.** `role="dialog"`, `aria-modal`, labelled by the title and described by the subline. The list is real `<dl>`/`<kbd>`, and the search field filters live, announcing the count (“6 shortcuts”) politely.
 
-**Platform differences.** macOS shows glyph chips. Desktop adds F1 and F6 / Shift F6 (region cycling); F6 is desktop only ([§8.8](design-language.md#88-keyboard-and-shortcuts)), and the web’s candidate `Ctrl F6` is not listed until the collision test passes it. Phone and tablet without a keyboard don’t list it; tablet with a hardware keyboard shows it from More.
+**Platform differences.** macOS shows glyph chips. Desktop adds F1, Back / Forward (`nav.back` / `nav.forward`: Alt ← / Alt →, ⌘[ / ⌘]; on the web these are the browser’s own, link jumps are pushed to history, C6b) and F6 / Shift F6 (region cycling); F6 is desktop only ([§8.8](design-language.md#88-keyboard-and-shortcuts)), and the web’s candidate `Ctrl F6` is not listed until the collision test passes it. Phone and tablet without a keyboard don’t list it; tablet with a hardware keyboard shows it from More.
 
 **Artboards.** `R12-shortcut-help.dc.html`.
 
@@ -150,7 +150,7 @@ Shortcuts shown (Windows/Linux; macOS swaps `Ctrl` for `⌘`):
 
 **Entry points.** The *Reader* toggle in the top bar (pressed while active; the zoom controls hide), the phone bottom-bar Reader button, palette `view.reader-mode`, and the single key `R`.
 
-**Layout (web).** The canvas becomes a reading column (`max-width` from Line length, Source Serif 4 at 19 px / 1.65) on the chosen appearance’s paper. The top of the column holds a secondary “Back to page 3” button and the source badge (accent “From the document’s tags”, or warning “Approximate”). The Reader settings panel is docked in the inspector slot (288 px). While Reader mode is on, the top bar’s View button becomes the Reader settings toggle (same place and icon, `aria-label="Reader settings"`, `aria-expanded`, pressed fill while open), so the top bar keeps one settings button. The status bar shows “Reader mode · from tags / approximate”, and its page label follows the scroll position.
+**Layout (web).** The canvas becomes a reading column (`max-width` from Line length, Source Serif 4 at 19 px / 1.65) on the chosen appearance’s paper. The top of the column holds a secondary “Back to page 3” button and the source badge (accent “From the document’s tags”, or warning “Approximate”). The Reader settings panel is docked in the inspector slot (288 px); its subline says “Text for every document · Appearance for this one”. While Reader mode is on, the top bar’s View button becomes the Reader settings toggle (same place and icon, `aria-label="Reader settings"`, `aria-expanded`, pressed fill while open), so the top bar keeps one settings button. The status bar shows “Reader mode · from tags / approximate”, and its page label follows the scroll position.
 
 | Setting | Control | Values | Command id |
 | --- | --- | --- | --- |
@@ -195,10 +195,10 @@ Other controls: “Back to page 3” and Escape leave Reader mode (`view.reader-
 **Layout and states.**
 
 - **Install dialog** (R15-install). A §7.18 dialog over the scrim titled “Install lamina on this computer”. It lists three facts with icons: Open with › lamina, works with no connection, files stay on the device. A muted note says the browser asks to confirm. Actions: “Not now” and “Install” (primary, focused). Install calls the deferred prompt. If the user cancels the browser prompt, nothing happens and the menu item stays. Once installed, the menu item is removed. The item is chosen by feature detection, not by browser name: with no `beforeinstallprompt` but a browser-level install path (Safari’s Add to Dock / Add to Home Screen), the item reads “Add to Dock / Home Screen…” and opens a short how-to dialog with the browser’s own steps; where there is no install path at all (desktop Firefox), the item is hidden.
-- **Offline notice** (R15-offline). A strip under the top bar (`surface`, hairline, offline icon, `role="status"`) reading “**You’re offline.** lamina keeps working: files on this device open, render and search as usual. Opening a file from a web address needs a connection.” It can be dismissed (focus ring drawn). The status bar adds “· Offline”. The notice clears itself on `online`, without a toast. *Open from URL while offline:* the field shows the error “You’re offline. Connect to open a file from a web address.”
-- **Update ready** (R15-update). A toast reads “A new version of lamina is ready. Reload to use it; you’ll come back to page 3.” with “Reload” and “Later”. Unlike other toasts it stays until acted on, because it waits on the user’s consent (`skipWaiting` only on Reload). After “Later”, the status bar keeps a quiet item, “Update ready · Reload”, for the rest of the session. If the open file can’t be reopened automatically after reload (not Chromium, no OPFS copy), the toast says “Reload to use it; you’ll need to open this file again.”
+- **Offline notice** (R15-offline). A strip under the top bar (`surface`, hairline, offline icon, `role="status"`) reading “**You’re offline.** lamina keeps working: files on this device open, render and search as usual. Opening a file from a web address needs a connection.” It can be dismissed (focus ring drawn). The status bar adds “· Offline” after the usual wording. The notice clears itself on `online`, without a toast. *Open from URL while offline:* the field shows the error “You’re offline. Connect to open a file from a web address.”
+- **Update ready** (R15-update). A toast reads “A new version of lamina is ready. Reload to use it; you’ll come back to page 3.” with “Reload” and “Later”. Unlike other toasts it stays until acted on, because it waits on the user’s consent (`skipWaiting` only on Reload). While the update waits, the status bar carries the “Update ready” action item (§7.8: `accent-tint`, `accent` 600 label, Download icon), which opens a status popover with Reload; after “Later” the toast goes and the item stays for the rest of the session. If the open file can’t be reopened automatically after reload (not Chromium, no OPFS copy), the toast says “Reload to use it; you’ll need to open this file again.”
 
-**Content and controls.** Install dialog: Close install dialog and “Not now” (`layer.close`), “Install” (`app.install`). Offline strip: “Dismiss offline notice” (`app.dismiss-offline`). Update toast: “Reload” (`app.reload-update`), “Later” (`app.dismiss-update`); the status item “Update ready · Reload” is `app.reload-update`. None has a shortcut.
+**Content and controls.** Install dialog: Close install dialog and “Not now” (`layer.close`), “Install” (`app.install`). Offline strip: “Dismiss offline notice” (`app.dismiss-offline`). Update toast: “Reload” (`app.reload-update`), “Later” (`app.dismiss-update`); the status item “Update ready” opens its popover, whose Reload is `app.reload-update`. None has a shortcut.
 
 **Behaviour.** No file changes. Reload restores the document and page through recent files or OPFS where possible. In the edit rounds, Reload is disabled with “Save or discard your changes first” while there are unsaved changes.
 
@@ -276,7 +276,7 @@ Other controls: “Back to page 3” and Escape leave Reader mode (`view.reader-
 
 **Layout and states.**
 
-- **Outline sheet** (R18-outline-phone). A medium-detent sheet titled “Contents” (with “24 pages”) and three 44 px tabs: Pages (F04’s grid), Outline, Attachments. Outline rows are 48 px, Newsreader 17, page numbers right-aligned. The current row uses the accent tint with `aria-current="location"`, and a 44 px chevron button expands or collapses each level (focus ring drawn). The Pages button in the bottom bar is active. Empty outline: “This document has no outline” / “Use Pages to move around.”
+- **Outline sheet** (R18-outline-phone). A medium-detent sheet titled “Contents” (with “24 pages”) and three 44 px tabs: Pages (F04’s grid), Outline, Attachments. Outline rows are 48 px, Newsreader 17, page numbers right-aligned. The current row uses the accent tint with `aria-current="location"`, and a 44 px chevron button expands or collapses each level (focus ring drawn). The Pages button in the bottom bar is active. Empty outline: “This file has no outline” / “Use Pages to move through it.” (§7.21).
 - **Find** (R18-find-phone). The phone find is [Reader A’s R05](reader-a.md#r05-find-in-document), the canonical one; this board is the same find with the Results sheet closed:
   - *Find bar:* the top bar becomes a 44 px search field (16 px text, focused) holding “backlog” and its count “3 of 9”, with **Done**.
   - *Matches on the page:* the find marks of [§2.6](design-language.md#26-find-marks-proposed): other matches `find-match` `#F6E3BC` with a 1 px `warning` bottom edge, the current match `find-current` `#EDBF6A` with a 2 px `accent` outline.

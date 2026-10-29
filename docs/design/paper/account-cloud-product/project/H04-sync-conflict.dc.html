@@ -15,13 +15,13 @@ a{color:#1F5C63}a:hover{color:#16454B}
 button,input,textarea{font:inherit;color:inherit}
 </style>
 </helmet>
-<div style="position: relative; min-height: 100vh; display: flex; flex-direction: column; background: #F7F4EE; color: #1F1D1A; font-family: 'Source Sans 3', 'Segoe UI', system-ui, sans-serif; font-size: 14px; line-height: 1.4">
+<div style="position: relative; height: 100vh; overflow: hidden; display: flex; flex-direction: column; background: #F7F4EE; color: #1F1D1A; font-family: 'Source Sans 3', 'Segoe UI', system-ui, sans-serif; font-size: 14px; line-height: 1.4">
 
   <header style="min-height: 40px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 20px; padding: 0 16px; border-bottom: 1px solid #E4DED3; background: #F7F4EE">
     <div style="display: flex; align-items: center; gap: 10px; flex: 1 1 220px; min-width: 0">
       <button aria-label="Sidebar" aria-pressed="false" style="width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 4px; color: #4A453E"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="3.5" y="4.5" width="17" height="15" rx="1.5"></rect><path d="M9 4.5v15"></path></svg></button>
-      <span style="font-family: 'Newsreader', Georgia, serif; font-size: 16px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">Q3-board-report (conflict, this browser, 29 Oct 2026).pdf</span>
-      <span style="font-size: 12px; color: #6B645A; white-space: nowrap">Saved · uploaded to your cloud</span>
+      <span style="font-family: 'Newsreader', Georgia, serif; font-size: 16px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 80px; max-width: 280px; flex: 0 0 auto">Q3-board-report (conflict, this browser, 29 Oct 2026).pdf</span>
+      <span style="font-size: 12px; color: #6B645A; white-space: nowrap; flex: 0 100 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis">Saved · uploaded to your cloud</span>
       <span aria-hidden="true" style="width: 1px; height: 18px; background: #E4DED3; margin: 0 2px"></span>
       <div style="display: flex; align-items: center; gap: 2px">
         <button aria-label="Undo highlight" aria-keyshortcuts="Control+Z" style="width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 4px; color: #4A453E"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M9 7L4.5 11.5 9 16"></path><path d="M4.5 11.5H15a4.5 4.5 0 0 1 0 9h-3"></path></svg></button>
@@ -39,7 +39,7 @@ button,input,textarea{font:inherit;color:inherit}
       <div style="display: flex; align-items: center; gap: 6px; font-variant-numeric: tabular-nums">
         <label for="pg" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Page</label>
         <input id="pg" value="3" style="width: 30px; height: 24px; box-sizing: border-box; text-align: center; border: 1px solid #8A8174; border-radius: 4px; background: #FFFFFF; font: inherit; font-variant-numeric: tabular-nums; color: #1F1D1A">
-        <span style="color: #6B645A">/ 24</span>
+        <span style="color: #6B645A; white-space: nowrap; flex-shrink: 0">/ 24</span>
       </div>
       <div style="display: flex; align-items: center; gap: 2px; font-variant-numeric: tabular-nums">
         <button aria-label="Zoom out" style="width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 4px; color: #4A453E"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M6 12h12"></path></svg></button>
@@ -50,7 +50,7 @@ button,input,textarea{font:inherit;color:inherit}
       <button aria-label="View settings" aria-haspopup="dialog" aria-expanded="false" style="width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 4px; color: #4A453E"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="12" cy="12" r="7.5"></circle><path d="M12 4.5v15M12 8.5h5.5M12 12h7.5M12 15.5h5.5"></path></svg></button>
       <button style="height: 26px; display: flex; align-items: center; gap: 6px; padding: 0 10px; border: 1px solid #8A8174; background: #FFFFFF; border-radius: 4px; font-size: 13px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M12 15V4.5M8 8l4-3.5L16 8"></path><path d="M7 11H5.5v8.5h13V11H17"></path></svg>Share</button>
       <button aria-label="Notifications, 2 unread" aria-haspopup="dialog" style="position: relative; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 4px; color: #4A453E"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M6.5 16.5V11a5.5 5.5 0 0 1 11 0v5.5l1.5 1.5H5z"></path><path d="M10 20.5h4"></path></svg><span aria-hidden="true" style="position: absolute; top: -2px; right: -4px; min-width: 16px; height: 16px; padding: 0 4px; box-sizing: border-box; border-radius: 8px; background: {{accent}}; color: #FFFFFF; font-size: 12px; font-weight: 600; line-height: 16px; text-align: center; font-variant-numeric: tabular-nums">2</span></button>
-      <button style="height: 26px; display: flex; align-items: center; gap: 8px; padding: 0 6px 0 10px; border: 1px solid #E4DED3; background: #FBF9F5; border-radius: 4px; color: #6B645A; font-size: 13px"><span>Commands</span><span style="font-size: 11px; padding: 1px 5px; border: 1px solid #D8D1C5; border-radius: 3px; color: #4A453E; background: #FFFFFF">Ctrl K</span></button>
+      <button style="height: 26px; display: flex; align-items: center; gap: 8px; padding: 0 6px 0 10px; border: 1px solid #E4DED3; background: #FBF9F5; border-radius: 4px; color: #6B645A; font-size: 13px; white-space: nowrap; flex-shrink: 0"><span>Commands</span><span style="font-size: 11px; padding: 1px 5px; border: 1px solid #D8D1C5; border-radius: 3px; color: #4A453E; background: #FFFFFF">Ctrl K</span></button>
       <button aria-label="More actions" style="width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 4px; color: #4A453E"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="5.5" cy="12" r="0.9"></circle><circle cx="12" cy="12" r="0.9"></circle><circle cx="18.5" cy="12" r="0.9"></circle></svg></button>
     </div>
   </header>
@@ -59,9 +59,9 @@ button,input,textarea{font:inherit;color:inherit}
     <button aria-pressed="false" style="height: 28px; display: flex; align-items: center; gap: 6px; padding: 0 10px; border: 1px solid transparent; background: transparent; border-radius: 4px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M6 4l12 7-5.5 1.5L10 18z"></path></svg>Select</button>
     <span aria-hidden="true" style="width: 1px; height: 18px; background: #E4DED3; margin: 0 4px"></span>
     <button aria-pressed="true" style="height: 28px; display: flex; align-items: center; gap: 6px; padding: 0 10px; border: 1px solid {{accent}}; background: {{accentTint}}; color: {{accent}}; border-radius: 4px; font-weight: 600"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M14.5 4.5l5 5L11 18H6v-5z"></path><path d="M4 20.5h9"></path></svg>Highlight</button>
-    <button aria-pressed="false" style="height: 28px; display: flex; align-items: center; gap: 6px; padding: 0 10px; border: 1px solid transparent; background: transparent; border-radius: 4px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M7 4.5v6a5 5 0 0 0 10 0v-6"></path><path d="M5 20h14"></path></svg>Underline</button>
-    <button aria-pressed="false" style="height: 28px; display: flex; align-items: center; gap: 6px; padding: 0 10px; border: 1px solid transparent; background: transparent; border-radius: 4px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M5 12h14"></path><path d="M16 7.5c-.6-1.8-2.2-3-4.2-3-2.4 0-4.1 1.3-4.1 3.2 0 1.4.9 2.4 2.6 3"></path><path d="M8 16.5c.6 1.8 2.2 3 4.3 3 2.5 0 4.2-1.3 4.2-3.3 0-.9-.4-1.7-1.1-2.3"></path></svg>Strike</button>
-    <button aria-pressed="false" style="height: 28px; display: flex; align-items: center; gap: 6px; padding: 0 10px; border: 1px solid transparent; background: transparent; border-radius: 4px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M6 17l6-10 6 10"></path><path d="M4 20.5h16"></path></svg>Caret</button>
+    <button aria-pressed="false" aria-label="Underline" title="Underline" style="width: 30px; height: 28px; display: flex; align-items: center; justify-content: center; padding: 0; border: 1px solid transparent; background: transparent; border-radius: 4px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M7 4.5v6a5 5 0 0 0 10 0v-6"></path><path d="M5 20h14"></path></svg></button>
+    <button aria-pressed="false" aria-label="Strike" title="Strike" style="width: 30px; height: 28px; display: flex; align-items: center; justify-content: center; padding: 0; border: 1px solid transparent; background: transparent; border-radius: 4px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M5 12h14"></path><path d="M16 7.5c-.6-1.8-2.2-3-4.2-3-2.4 0-4.1 1.3-4.1 3.2 0 1.4.9 2.4 2.6 3"></path><path d="M8 16.5c.6 1.8 2.2 3 4.3 3 2.5 0 4.2-1.3 4.2-3.3 0-.9-.4-1.7-1.1-2.3"></path></svg></button>
+    <button aria-pressed="false" aria-label="Caret" title="Caret" style="width: 30px; height: 28px; display: flex; align-items: center; justify-content: center; padding: 0; border: 1px solid transparent; background: transparent; border-radius: 4px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M6 17l6-10 6 10"></path><path d="M4 20.5h16"></path></svg></button>
     <button aria-pressed="false" style="height: 28px; display: flex; align-items: center; gap: 6px; padding: 0 10px; border: 1px solid transparent; background: transparent; border-radius: 4px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M5 5.5h14v10H10l-4 3.5v-3.5H5z"></path></svg>Note</button>
     <button aria-pressed="false" aria-haspopup="menu" aria-expanded="false" style="height: 28px; display: flex; align-items: center; gap: 6px; padding: 0 6px 0 10px; border: 1px solid transparent; background: transparent; border-radius: 4px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="3.5" y="5.5" width="17" height="13" rx="1"></rect><path d="M8 9.5h8M12 9.5v6"></path></svg>Text box<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M7 10l5 5 5-5"></path></svg></button>
     <button aria-pressed="false" style="height: 28px; display: flex; align-items: center; gap: 6px; padding: 0 10px; border: 1px solid transparent; background: transparent; border-radius: 4px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M4 17c3-6 5-9 7-9s1 6 3 6 3-4 6-6"></path></svg>Ink</button>
@@ -76,13 +76,13 @@ button,input,textarea{font:inherit;color:inherit}
       <button aria-label="Blue" aria-pressed="false" style="width: 24px; height: 24px; border-radius: 50%; border: 1px solid #8A8174; background: #A9C8E8"></button>
       <button aria-label="Pink" aria-pressed="false" style="width: 24px; height: 24px; border-radius: 50%; border: 1px solid #8A8174; background: #EBB4C8"></button>
     </div>
+    <button aria-label="More comment tools" aria-haspopup="menu" aria-expanded="false" style="width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; padding: 0; border: 0; background: transparent; border-radius: 4px; color: #4A453E"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="5.5" cy="12" r="0.9"></circle><circle cx="12" cy="12" r="0.9"></circle><circle cx="18.5" cy="12" r="0.9"></circle></svg></button>
     <span style="flex: 1 1 auto"></span>
-    <span style="font-size: 12px; color: #6B645A; font-variant-numeric: tabular-nums">1 comment on this page</span>
-    <button aria-pressed="false" style="height: 28px; display: flex; align-items: center; gap: 6px; padding: 0 10px; margin-left: 6px; border: 1px solid #8A8174; background: #FFFFFF; border-radius: 4px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M9 7h11M9 12h11M9 17h11"></path><path d="M4.5 7h1M4.5 12h1M4.5 17h1"></path></svg>Comments</button>
+    <button aria-pressed="false" aria-label="Comments, 1 on this page" style="height: 28px; display: flex; align-items: center; gap: 6px; padding: 0 10px; margin-left: 6px; border: 1px solid #8A8174; background: #FFFFFF; border-radius: 4px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M9 7h11M9 12h11M9 17h11"></path><path d="M4.5 7h1M4.5 12h1M4.5 17h1"></path></svg>Comments</button>
   </div>
 
 
-  <main style="flex: 1 1 auto; min-height: 0; background: #ECE7DE; display: flex; justify-content: center; padding: 32px 16px; box-sizing: border-box">
+  <main style="flex: 1 1 auto; min-height: 0; background: #ECE7DE; display: flex; justify-content: center; padding: 32px 16px; box-sizing: border-box; overflow: auto">
     <article aria-label="Page 3" style="width: 100%; max-width: 612px; min-height: 790px; box-sizing: border-box; background: #FFFFFF; box-shadow: 0 1px 2px rgba(60,48,30,0.08), 0 8px 28px rgba(60,48,30,0.10); padding: 56px 64px 36px; display: flex; flex-direction: column; gap: 18px; font-family: 'Source Serif 4', Georgia, serif; color: #262421; font-size: 14.5px; line-height: 1.6">
       <div style="display: flex; justify-content: space-between; font-family: 'Source Sans 3', system-ui, sans-serif; font-size: 10.5px; letter-spacing: 0.08em; text-transform: uppercase; color: #6E6A64; border-bottom: 1px solid #E6E3DE; padding-bottom: 10px"><span>Northwind Housing Trust</span><span>Q3 Board Report</span></div>
       <h2 style="margin: 10px 0 0; font-size: 24px; font-weight: 600; line-height: 1.25; color: #1C1B19">2. Repairs backlog</h2>
@@ -99,13 +99,13 @@ button,input,textarea{font:inherit;color:inherit}
     <span style="font-variant-numeric: tabular-nums">Page 3 · Repairs backlog</span>
   </footer>
 
-  <div style="position: absolute; inset: 0; background: rgba(31,29,26,0.30); display: flex; justify-content: center; align-items: flex-start; padding: 96px 16px 0; box-sizing: border-box">
-    <div role="dialog" aria-modal="true" aria-labelledby="cf-t" aria-describedby="cf-d" style="width: 100%; max-width: 560px; box-sizing: border-box; padding: 24px; display: flex; flex-direction: column; gap: 16px; background: #FBF9F5; border: 1px solid #D8D1C5; border-radius: 6px; box-shadow: 0 18px 48px rgba(31,29,26,0.22)">
+  <div style="position: absolute; inset: 0; background: rgba(31,29,26,0.30); display: flex; flex-direction: column; align-items: center; justify-content: flex-start; padding: 96px 16px 24px; box-sizing: border-box">
+    <div role="dialog" aria-modal="true" aria-labelledby="cf-t" aria-describedby="cf-d" style="flex: 0 1 auto; min-height: 0; width: 100%; max-width: 560px; box-sizing: border-box; padding: 24px; display: flex; flex-direction: column; gap: 16px; background: #FBF9F5; border: 1px solid #D8D1C5; border-radius: 6px; box-shadow: 0 18px 48px rgba(31,29,26,0.22)">
       <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 8px">
         <h2 id="cf-t" style="margin: 0; font-family: 'Newsreader', Georgia, serif; font-size: 20px; font-weight: 500; line-height: 1.2">Q3-board-report.pdf changed on another device</h2>
         <button aria-label="Close sync conflict" style="width: 28px; height: 28px; margin: -4px -4px 0 0; flex: 0 0 auto; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; border-radius: 4px; color: #4A453E"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg></button>
       </div>
-      <p id="cf-d" style="margin: 0">Your MacBook Air saved a new version after you opened this one. lamina kept both, so nothing is lost: your save became a separate copy.</p>
+      <div style="flex: 1 1 auto; min-height: 0; overflow: auto; display: flex; flex-direction: column; gap: 16px; padding: 4px; margin: -4px"><p id="cf-d" style="margin: 0">Your MacBook Air saved a new version after you opened this one. lamina kept both, so nothing is lost: your save became a separate copy.</p>
       <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr)); gap: 12px">
         <div style="display: flex; flex-direction: column; gap: 6px; padding: 14px; background: #FFFFFF; border: 1px solid #E4DED3; border-radius: 4px">
           <span style="font-size: 12px; font-weight: 600; color: #4A453E">Your version · this browser</span>
@@ -121,7 +121,7 @@ button,input,textarea{font:inherit;color:inherit}
           <span style="font-size: 13px; color: #6B645A">Pages 12–13 rotated, 1 comment resolved</span>
         </div>
       </div>
-      <p style="margin: 0; font-size: 13px; color: #6B645A">To end up with one file, compare the two, copy what you need into one of them, then delete the other from the cloud.</p>
+      <p style="margin: 0; font-size: 13px; color: #6B645A">To end up with one file, compare the two, copy what you need into one of them, then delete the other from the cloud.</p></div>
       <div style="display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px">
         <button style="height: 32px; padding: 0 16px; border: 1px solid #8A8174; background: #FFFFFF; border-radius: 4px; outline: 2px solid {{accent}}; outline-offset: 2px">Compare the two</button>
         <button style="height: 32px; padding: 0 16px; border: 1px solid #8A8174; background: #FFFFFF; border-radius: 4px">Open MacBook Air’s version</button>
@@ -131,10 +131,10 @@ button,input,textarea{font:inherit;color:inherit}
   </div>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#1F5C63","options":["#1F5C63","#2D4A6B","#3E4A3C"]},"$preview":{"width":1440,"height":900}}'>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#1F5C63","options":["#1F5C63","#2D4A6B","#5B3B6B","#495533"]},"$preview":{"width":1440,"height":900}}'>
 class Component extends DCLogic {
   renderVals() {
-    var accent = this.props.accent ?? '#1F5C63';
+    var accent = String(this.props.accent ?? '#1F5C63').toUpperCase();
     function mix(hex, base, t) {
       var p = function (h, i) { return parseInt(h.replace('#', '').substr(i, 2), 16); };
       var out = '#';
@@ -142,9 +142,14 @@ class Component extends DCLogic {
         var v = Math.round(p(hex, i) * t + p(base, i) * (1 - t));
         out += (v < 16 ? '0' : '') + v.toString(16);
       }
-      return out;
+      return out.toUpperCase();
     }
-    return { accent: accent, accentTint: mix(accent, '#FBF9F5', 0.12) };
+    var strong = { '#1F5C63': '#16454B', '#2D4A6B': '#1A3757', '#5B3B6B': '#472856', '#495533': '#35401F' };
+    var rgb = [0, 2, 4].map(function (i) { return parseInt(accent.replace('#', '').substr(i, 2), 16); }).join(',');
+    return {
+      accent: accent, accentStrong: strong[accent] || accent, accentTint: mix(accent, '#FBF9F5', 0.12),
+      selTint: mix(accent, '#FFFFFF', 0.22), fieldTint: mix(accent, '#FFFFFF', 0.08), accentRgb: rgb
+    };
   }
 }
 </script>
