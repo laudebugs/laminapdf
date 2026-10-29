@@ -123,20 +123,19 @@ pub(crate) fn build(font: &Font, usage: &FontUse, glyphs: &[(u16, GlyphId)]) -> 
     if upem == 0 {
         return Err(unreadable());
     }
-    let to_milli = |v: f32| milli(f64::from(v), upem);
-    let metrics = parsed.glyph_metrics(Size::unscaled(), LocationRef::default());
+    // `/W` from the original font at the instance's location (the advances the shaper used),
+    // not the subset's hmtx, so `TJ` corrections computed from the same function are exact.
+    let original = font.font_ref()?;
+    let original_metrics = original.glyph_metrics(Size::unscaled(), font.location_ref());
     let widths = glyphs
         .iter()
-        .map(|&(cid, _)| {
-            let advance = metrics
-                .advance_width(skrifa::GlyphId::from(cid))
-                .ok_or_else(unreadable)?;
-            Ok((cid, to_milli(advance)))
-        })
+        .map(|&(cid, gid)| Ok((cid, advance_milli(&original_metrics, gid, upem))))
         .collect::<Result<Vec<_>>>()?;
     let bbox = if font.coordinates().is_empty() {
         None
     } else {
+        // The instanced subset's own outlines: what the viewer draws.
+        let metrics = parsed.glyph_metrics(Size::unscaled(), LocationRef::default());
         let count = parsed.maxp().map_err(|_| unreadable())?.num_glyphs();
         let scale = 1000.0 / f32::from(upem);
         (0..count)
@@ -243,6 +242,14 @@ pub(crate) fn subset_tag(font: &Font, glyphs: &[(u16, GlyphId)], salt: u32) -> S
         .take(6)
         .map(|b| char::from(b'A' + b % 26))
         .collect()
+}
+
+/// A glyph's advance as `/W` writes it and as the shaped runs' `TJ` numbers (B4b) assume it:
+/// the original font's advance at the instance's location, rounded to a whole font unit, in
+/// millionths of an em. One function for both, so the two can't disagree.
+pub(crate) fn advance_milli(metrics: &skrifa::metrics::GlyphMetrics<'_>, gid: GlyphId, upem: u16) -> i64 {
+    let advance = metrics.advance_width(skrifa::GlyphId::from(gid.get())).unwrap_or(0.0);
+    milli(f64::from(advance.round()), upem)
 }
 
 /// `units` font units in millionths of an em (thousandths of a `/W` unit), rounded: the one

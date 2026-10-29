@@ -194,10 +194,7 @@ pub fn pdf_run(run: &ShapedRun, text: &str, fonts: &mut FontRegistry, key: FontK
     }
 
     let metrics = font_ref.glyph_metrics(Size::unscaled(), font.location_ref());
-    let width = |gid: GlyphId| {
-        let advance = metrics.advance_width(skrifa::GlyphId::from(gid.get())).unwrap_or(0.0);
-        milli(f64::from(advance.round()), info.units_per_em)
-    };
+    let width = |gid: GlyphId| crate::embed::subset::advance_milli(&metrics, gid, info.units_per_em);
     let (mut pieces, advance) = place(run, &width, &groups, &cids, &actual);
     if !in_order {
         pieces = vec![PdfPiece {

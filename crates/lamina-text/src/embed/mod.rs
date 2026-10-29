@@ -4,7 +4,7 @@
 //!
 //! [ADR 0005]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0005-document-model.md
 
-mod subset;
+pub(crate) mod subset;
 
 pub(crate) use subset::milli;
 mod tounicode;
