@@ -1,7 +1,7 @@
 //! Release-mode benchmarks for the nightly lane (ADR 0018 tier 11): open + page-tree walk,
-//! Flate decode and writing. `cargo xtask bench` runs them and keeps the history; a regression
-//! over 10% opens an issue rather than failing the build. Save benchmarks join when the save
-//! planner lands (B3b); until then `write` measures the `Writer` serialising a document.
+//! Flate decode and building a file with `lamina-save`'s `Writer`. `cargo xtask bench` runs
+//! them, with the save benchmarks in `crates/lamina-save/benches/`, and keeps the history; a
+//! regression over 10% opens an issue rather than failing the build.
 //!
 //! ```sh
 //! cargo bench -p lamina-cos --bench read                  # all, criterion's default budget
@@ -74,7 +74,7 @@ fn decode(c: &mut Criterion) {
     group.finish();
 }
 
-/// Serialising a 1,000-page document with the `Writer` (until the save planner, B3b).
+/// Building and serialising a 1,000-page document with `lamina-save`'s `Writer`.
 fn write(c: &mut Criterion) {
     let mut group = c.benchmark_group("write");
     group.bench_function("shared_resources_1000_pages", |b| {

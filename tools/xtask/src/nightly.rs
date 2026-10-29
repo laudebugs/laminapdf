@@ -19,6 +19,9 @@ use crate::{corpus, harness, live, step};
 /// A benchmark regressed when it is this much slower than its baseline (ADR 0018 tier 11).
 const REGRESSION_RATIO: f64 = 1.10;
 
+/// The criterion benchmark targets `cargo xtask bench` runs: `(package, bench)`.
+const BENCHES: [(&str, &str); 2] = [("lamina-cos", "read"), ("lamina-save", "save")];
+
 /// The baseline is the median of this many previous records from the same runner.
 const BASELINE_RUNS: usize = 5;
 
@@ -137,7 +140,7 @@ fn regressions(
 }
 
 /// `cargo xtask bench [--quick] [--history <dir> [--runner <label>] [--record]]`: runs the
-/// criterion benches in `crates/*/benches/` and writes `target/nightly/bench/results.json`.
+/// criterion benches in [`BENCHES`] and writes `target/nightly/bench/results.json`.
 /// With `--history`, compares them with `<dir>/history.jsonl` (one record per run) and writes
 /// `regressions.md` (`regression=true` in `$GITHUB_OUTPUT`); `--record` appends this run to the
 /// history. A regression is reported, never a failure.
@@ -151,17 +154,12 @@ pub(crate) fn bench(ws: &Workspace, args: &BenchArgs) -> Result<()> {
     if criterion_dir.exists() {
         fs::remove_dir_all(&criterion_dir).with_context(|| format!("removing {}", criterion_dir.display()))?;
     }
-    let mut cargo_args = vec![
-        "bench",
-        "--locked",
-        "-p",
-        "lamina-cos",
-        "--bench",
-        "read",
-        "--",
-        "--output-format",
-        "bencher",
-    ];
+    // Every benchmark target of the nightly lane, run by one `cargo bench`.
+    let mut cargo_args = vec!["bench", "--locked"];
+    for (package, bench) in BENCHES {
+        cargo_args.extend(["-p", package, "--bench", bench]);
+    }
+    cargo_args.extend(["--", "--output-format", "bencher"]);
     if args.quick {
         cargo_args.extend(["--warm-up-time", "1", "--measurement-time", "2", "--sample-size", "20"]);
     }

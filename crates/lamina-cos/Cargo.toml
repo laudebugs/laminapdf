@@ -19,6 +19,9 @@ thiserror = { workspace = true }
 
 [dev-dependencies]
 criterion = { workspace = true }
+# Builds test inputs with the writer. A dev-dependency cycle Cargo accepts: the integration
+# tests link the one library `lamina-save` links; unit tests in `src/` must not use it.
+lamina-save = { workspace = true }
 serde_json = { workspace = true }
 sha2 = { workspace = true }
 

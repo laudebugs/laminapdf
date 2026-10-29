@@ -10,7 +10,8 @@
 mod common;
 
 use common::{classic, open, open_with};
-use lamina_cos::{Document, ObjRef, Object, OpenOptions, Warning, XrefEol, incremental_update};
+use lamina_cos::{Document, ObjRef, Object, OpenOptions, Warning};
+use lamina_save::{XrefEol, incremental_update};
 
 /// Catalog 1, pages 2, and object 3 that does not parse.
 fn with_corrupt_object() -> Document {

@@ -13,7 +13,8 @@ use std::collections::BTreeMap;
 use std::fmt::Write as _;
 
 use anyhow::{Result, anyhow};
-use lamina_cos::{Dict, Name, ObjRef, Object, PdfString, Stream, Writer};
+use lamina_cos::{Dict, Name, ObjRef, Object, PdfString, Stream};
+use lamina_save::Writer;
 use pdf_writer::{Content, Str};
 use skrifa::instance::{LocationRef, Size};
 use skrifa::raw::TableProvider;

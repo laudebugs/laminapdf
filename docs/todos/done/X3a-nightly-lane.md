@@ -48,7 +48,7 @@ Run the expensive, environment-sensitive checks every night on `main`, where a f
 - [x] Write `fixtures/corpus-manifest.toml` (start with pdf.js test PDFs that are redistributable-licence-checked, qpdf test suite, PDFium testing corpus, SafeDocs subset); `cargo xtask corpus fetch`. **Deviation:** pdf.js, PDFBox, PDFium and qpdf (2,172 files, 177 MB, pinned by commit with per-file SHA-256); SafeDocs is left out (multi-GB archives with mixed provenance), and so are PDFium's `.in` templates (they need its generator script); the mirror fallback is wired (`mirror` / `$LAMINA_CORPUS_MIRROR`) but no mirror exists yet
 - [x] Differential runners in `tools/differential/` (pinned versions, manifest of tool versions in the report)
 - [x] `nightly.yml` jobs: differential, fuzz (matrix over targets), scaling, benches; issue-on-failure step
-- [x] Bench harness in `crates/lamina-cos/benches/` (+ save benches once B3b exists): criterion, open + walk, Flate decode, `Writer` serialisation; save benches still wait for B3b
+- [x] Bench harness in `crates/lamina-cos/benches/` (+ save benches once B3b exists): criterion, open + walk, Flate decode, `Writer` serialisation; save benches in `crates/lamina-save/benches/` (full rewrite in both layouts, incremental) since B3b merged
 - [x] Document in `CLAUDE.md` and ADR 0018 (implementation notes)
 
 ## Acceptance criteria

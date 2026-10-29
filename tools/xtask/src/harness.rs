@@ -63,7 +63,7 @@ pub(crate) fn golden(ws: &Workspace, update: bool) -> Result<()> {
         "--locked",
         "-q",
         "-p",
-        "lamina-cos",
+        "lamina-save",
         "--example",
         "golden",
         "--",

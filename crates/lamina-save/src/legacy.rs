@@ -1,19 +1,22 @@
-//! PDF writer: classic files, compact (object + xref stream) files, and incremental updates.
+//! The spike-era writer, moved here from `lamina-cos` in B3b (ADR 0007 §7) with its tests:
+//! classic files, compact (object + xref stream) files built from objects numbered `1..n`,
+//! and [`incremental_update`] from an explicit list of changes. It builds whole files in
+//! memory and returns `lamina_cos` errors.
 //!
-//! The writer lives in `lamina-cos` until the save planner exists: in Round B it moves into
-//! `lamina-save` (`SavePlanner`, `SaveConstraint`, streaming `WriteSink`), see
-//! `docs/plans/architecture.md` §7. Its output is byte-deterministic (ADR 0001): every map it
-//! iterates is ordered, and running it twice on the same input gives identical bytes.
+//! Saving an edited document goes through [`IncrementalWriter`](crate::IncrementalWriter) and
+//! [`FullWriter`](crate::FullWriter) instead, which read the overlay and stream to a
+//! [`WriteSink`](crate::WriteSink). [`Writer`] stays as the way tests (and, until
+//! `lamina-build`, generation code) build files from scratch. Its output is byte-deterministic
+//! (ADR 0001): every map it iterates is ordered, and running it twice on the same input gives
+//! identical bytes.
 
 use std::collections::BTreeMap;
 
+use lamina_cos::{Document, Error, Result, XREF_STREAM_KEYS};
 use lamina_syntax::{Dict, Name, ObjRef, Object, Stream};
 
-use crate::error::{Error, Result};
-use crate::reader::{Document, XREF_STREAM_KEYS};
-
 /// The 20-byte cross-reference entry ends with a two-byte EOL; both forms are legal (§7.5.4).
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 pub enum XrefEol {
     /// `\r\n`.
     #[default]
@@ -23,7 +26,7 @@ pub enum XrefEol {
 }
 
 impl XrefEol {
-    const fn bytes(self) -> &'static [u8] {
+    pub(crate) const fn bytes(self) -> &'static [u8] {
         match self {
             Self::CrLf => b"\r\n",
             Self::SpaceLf => b" \n",
@@ -43,7 +46,8 @@ enum Body {
 ///
 /// # Examples
 /// ```
-/// use lamina_cos::{Dict, Document, Object, OpenOptions, Writer};
+/// use lamina_cos::{Dict, Document, Object, OpenOptions};
+/// use lamina_save::Writer;
 /// let mut w = Writer::new(1, 7);
 /// let pages = w.reserve();
 /// let page = w.add([("Type", Object::name("Page")), ("Parent", pages.into())].into_iter().collect::<Dict>());
@@ -61,7 +65,7 @@ pub struct Writer {
     objects: Vec<Option<Body>>,
 }
 
-const HEADER_MARKER: &[u8] = b"%\xE2\xE3\xCF\xD3\n";
+pub(crate) const HEADER_MARKER: &[u8] = b"%\xE2\xE3\xCF\xD3\n";
 
 impl Writer {
     /// A writer emitting `%PDF-major.minor`.
@@ -274,7 +278,7 @@ impl Writer {
 }
 
 /// Whether `key` describes an xref section rather than the document (see [`XREF_STREAM_KEYS`]).
-fn is_xref_key(key: &Name) -> bool {
+pub(crate) fn is_xref_key(key: &Name) -> bool {
     XREF_STREAM_KEYS.iter().any(|k| k.as_bytes() == key.as_bytes())
 }
 
@@ -318,7 +322,8 @@ fn write_trailer(trailer: &Dict, xref: usize, out: &mut Vec<u8>) {
 /// in any section + 1, and the highest new number + 1. The original bytes are copied untouched.
 ///
 /// ```
-/// use lamina_cos::{Document, ObjRef, Object, OpenOptions, Writer, XrefEol, incremental_update};
+/// use lamina_cos::{Document, ObjRef, Object, OpenOptions};
+/// use lamina_save::{Writer, XrefEol, incremental_update};
 ///
 /// let mut w = Writer::new(1, 7);
 /// let root = w.add([("Type", Object::name("Catalog"))].into_iter().collect::<lamina_cos::Dict>());
@@ -371,12 +376,12 @@ pub fn incremental_update(base: &Document, changes: &[(ObjRef, Object)], eol: Xr
 }
 
 /// The previous trailer's document keys (no xref-section keys), in their order.
-fn document_keys(old: &Dict) -> impl Iterator<Item = (&Name, &Object)> {
+pub(crate) fn document_keys(old: &Dict) -> impl Iterator<Item = (&Name, &Object)> {
     old.iter().filter(|(k, _)| !is_xref_key(k))
 }
 
 /// Like [`document_keys`], but keeps `/Size` so a classic trailer can hold it in its old position.
-fn document_keys_and_size(old: &Dict) -> impl Iterator<Item = (&Name, &Object)> {
+pub(crate) fn document_keys_and_size(old: &Dict) -> impl Iterator<Item = (&Name, &Object)> {
     old.iter().filter(|(k, _)| !is_xref_key(k) || k.as_bytes() == b"Size")
 }
 

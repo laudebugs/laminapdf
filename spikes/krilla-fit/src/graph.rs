@@ -4,7 +4,8 @@
 use std::collections::{BTreeMap, VecDeque};
 
 use anyhow::{Context, Result, anyhow, bail};
-use lamina_cos::{Dict, Document, ObjRef, Object, XrefEol, incremental_update};
+use lamina_cos::{Dict, Document, ObjRef, Object};
+use lamina_save::{XrefEol, incremental_update};
 
 /// What an import did, for the README.
 #[derive(Debug, Default)]
@@ -23,7 +24,7 @@ pub struct ImportReport {
 }
 
 /// The next free object number of `doc` (max of `/Size` and the highest number + 1).
-pub fn next_free(doc: &Document<'_>) -> u32 {
+pub fn next_free(doc: &Document) -> u32 {
     let size = doc.trailer().get_int("Size").unwrap_or(0);
     let max = doc.object_numbers().max().map_or(0, |n| i64::from(n) + 1);
     u32::try_from(size.max(max)).unwrap_or(u32::MAX)
@@ -33,8 +34,8 @@ pub fn next_free(doc: &Document<'_>) -> u32 {
 /// `base`. Catalog-level features of `src` (outline, structure tree, …) are imported when the
 /// base lacks them and reported as conflicts otherwise.
 pub fn append_pages(base: &[u8], src: &[u8]) -> Result<(Vec<u8>, ImportReport)> {
-    let base_doc = lamina_cos::open(base)?;
-    let src_doc = lamina_cos::open(src)?;
+    let base_doc = lamina_cos::Document::open(base.to_vec(), lamina_cos::OpenOptions::default())?;
+    let src_doc = lamina_cos::Document::open(src.to_vec(), lamina_cos::OpenOptions::default())?;
     let mut report = ImportReport::default();
 
     let root_ref = base_doc
@@ -138,12 +139,12 @@ pub fn append_pages(base: &[u8], src: &[u8]) -> Result<(Vec<u8>, ImportReport)> 
     let mut changes = cx.out;
     changes.push((pages_ref, Object::Dict(pages_root)));
     changes.push((root_ref, Object::Dict(catalog)));
-    let bytes = incremental_update(base, &changes, XrefEol::default())?;
+    let bytes = incremental_update(&lamina_cos::Document::open(base.to_vec(), lamina_cos::OpenOptions::default())?, &changes, XrefEol::default())?;
     Ok((bytes, report))
 }
 
-struct Copier<'d, 'a> {
-    src: &'d Document<'a>,
+struct Copier<'d> {
+    src: &'d Document,
     /// Source (number, generation) → new reference in the base's numbering space.
     map: BTreeMap<(u32, u16), ObjRef>,
     next: u32,
@@ -153,7 +154,7 @@ struct Copier<'d, 'a> {
     struct_keys_dropped: usize,
 }
 
-impl Copier<'_, '_> {
+impl Copier<'_> {
     fn map_ref(&mut self, r: ObjRef, enqueue: bool) -> ObjRef {
         if let Some(&n) = self.map.get(&(r.num, r.gen_nr)) {
             return n;

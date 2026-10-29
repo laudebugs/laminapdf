@@ -3,7 +3,8 @@
 //! Ported from the `pdf-basics` spike as test support; generation code (and these samples as
 //! examples) belongs in `lamina-build` (Round B).
 
-use lamina_cos::{Dict, ObjRef, Object, Result, Stream, Writer, XrefEol};
+use lamina_cos::{Dict, ObjRef, Object, Result, Stream};
+use lamina_save::{Writer, XrefEol};
 
 use super::content::{ContentBuilder, fixed};
 
@@ -148,4 +149,47 @@ pub fn imaging_demo() -> Result<Vec<u8>> {
         ("CA", 0.5.into()),
     ]));
     w.finish(&dict([("Root", catalog.into())]))
+}
+
+/// `fixtures/golden/incremental-set-info.pdf`: [`hello`] opened for editing, one `SetInfo`
+/// (title, author, a fixed `/ModDate`), saved incrementally: the overlay writer's classic
+/// section, a new Info object and a derived `/ID`.
+///
+/// # Errors
+/// Never in practice (other failures panic: this is test support).
+pub fn incremental_set_info() -> Result<Vec<u8>> {
+    use lamina_save::Save as _;
+    let mut doc = lamina_ops::Document::open(hello()?, lamina_cos::OpenOptions::default()).unwrap();
+    let at = "D:20261029120000Z".parse::<lamina_model::PdfDate>().unwrap();
+    let patch = lamina_ops::InfoPatch::new()
+        .title(Some("Hello, Save"))
+        .author(Some("lamina"));
+    doc.apply_all(
+        lamina_ops::Origin::Local,
+        [lamina_ops::SetInfo::new(patch, Some(at)).into()],
+    )
+    .unwrap();
+    let mut out = Vec::new();
+    doc.save_incremental(&mut out, &lamina_save::SaveOptions::new())
+        .unwrap();
+    Ok(out)
+}
+
+/// `fixtures/golden/full-rewrite-hello.pdf`: [`hello`] with its page rotated by 90°, written
+/// by the full-rewrite writer with the defaults (numbers kept, object stream + xref stream).
+///
+/// # Errors
+/// Never in practice (other failures panic: this is test support).
+pub fn full_rewrite_hello() -> Result<Vec<u8>> {
+    use lamina_save::Save as _;
+    let mut doc = lamina_ops::Document::open(hello()?, lamina_cos::OpenOptions::default()).unwrap();
+    let page = doc.pages()?.get(0).map(|p| p.id().clone()).unwrap();
+    doc.apply_all(
+        lamina_ops::Origin::Local,
+        [lamina_ops::RotatePage::new(page, lamina_model::Rotation::Clockwise90).into()],
+    )
+    .unwrap();
+    let mut out = Vec::new();
+    doc.save_full(&mut out, &lamina_save::SaveOptions::new()).unwrap();
+    Ok(out)
 }

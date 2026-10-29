@@ -443,6 +443,7 @@ impl Scan {
             newest_is_stream: false,
             ignored_xref_streams: Vec::new(),
             dropped_objects: BTreeSet::new(),
+            free_head: None,
         }
     }
 
@@ -514,6 +515,7 @@ impl Scan {
             newest_is_stream: false,
             ignored_xref_streams: Vec::new(),
             dropped_objects: self.dropped_objects,
+            free_head: None,
         };
         Ok((table, malformed))
     }
