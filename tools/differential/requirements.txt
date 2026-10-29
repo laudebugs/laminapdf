@@ -1,0 +1,9 @@
+# External readers for the nightly lane's live differential (ADR 0018 tier 6, X3a). Tools only:
+# nothing here ships or links into lamina, and they run as separate processes.
+# pypdf: BSD-3-Clause; cryptography (pypdf's AES): Apache-2.0 OR BSD-3-Clause;
+# pypdfium2 (PDFium bindings with a bundled PDFium build): Apache-2.0 OR BSD-3-Clause, PDFium BSD-3-Clause.
+# pypdf matches tools/corpus-facts/requirements.txt: the PR lane's precomputed facts and the
+# nightly lane's live ones come from the same version.
+pypdf==6.21.3
+cryptography==50.0.2
+pypdfium2==5.14.0

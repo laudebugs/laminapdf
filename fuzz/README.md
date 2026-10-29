@@ -19,16 +19,17 @@ rustup toolchain install nightly --profile minimal
 cargo install cargo-fuzz --locked --version 0.13.2    # or: cargo xtask doctor --install
 cargo xtask fuzz <target> --time 600                  # default 60 s
 cargo xtask fuzz seeds [<target>]                     # only build fuzz/corpus/<target>/
+cargo xtask fuzz tmin <target>                        # minimise every crash in fuzz/artifacts/<target>/
 ```
 
-`cargo xtask fuzz` first builds the seed corpus `fuzz/corpus/<target>/` (gitignored) from the PDFs in `fixtures/corpus/` and `fixtures/golden/`, plus `fixtures/regressions/<target>/` and everything under `fuzz/seeds/<target>/` (except `passwords.txt`) copied verbatim; seed names carry their source path, then runs `cargo +nightly fuzz run <target> fuzz/corpus/<target> -- -max_total_time=<N> -timeout=10 -rss_limit_mb=2048`. The scheduled workflow [`.github/workflows/fuzz.yml`](../.github/workflows/fuzz.yml) runs every target for 10 minutes each night (and on demand) and uploads crashes as artefacts.
+`cargo xtask fuzz` first builds the seed corpus `fuzz/corpus/<target>/` (gitignored) from the PDFs in `fixtures/corpus/` and `fixtures/golden/`, plus `fixtures/regressions/<target>/` and everything under `fuzz/seeds/<target>/` (except `passwords.txt`) copied verbatim; seed names carry their source path, then runs `cargo +nightly fuzz run <target> fuzz/corpus/<target> -- -max_total_time=<N> -timeout=10 -rss_limit_mb=2048`. The nightly lane ([`.github/workflows/nightly.yml`](../.github/workflows/nightly.yml), todo X3a) runs every target for 10 minutes each night (and on demand), keeps each target's grown corpus in the Actions cache from one night to the next, minimises crashes with `cargo xtask fuzz tmin <target>`, uploads them as artefacts and opens a `nightly` issue with the minimised inputs.
 
 Encrypted seeds are maintained with decryption ([B2b](../docs/todos/done/B2b-standard-security-decryption.md)): the files go in `seeds/open/encrypted/` and their passwords, one per line, in `seeds/open/passwords.txt` (lines starting with `#` are ignored).
 
 ## When a target finds a crash
 
 1. Reproduce: `cargo +nightly fuzz run <target> fuzz/artifacts/<target>/<crash-file>`.
-2. Minimise: `cargo +nightly fuzz tmin <target> fuzz/artifacts/<target>/<crash-file>`.
+2. Minimise: `cargo +nightly fuzz tmin <target> fuzz/artifacts/<target>/<crash-file>` (or `cargo xtask fuzz tmin <target>` for every crash; the nightly issue already carries the minimised input, base64-encoded when it is at most 4 KiB).
 3. Commit the minimised input, raw bytes as the target received them, as `fixtures/regressions/<target>/<hash>` (the hash from the artefact name) and list it in `fixtures/README.md`. `crates/lamina-model/tests/regressions.rs` replays every file there through the same `fuzz_entry` function, so it fails before the fix; also add a named test for the behaviour in the crate whose code was wrong. The seed step picks the file up from then on.
 4. Fix the bug in the same PR.
 

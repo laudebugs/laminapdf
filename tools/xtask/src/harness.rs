@@ -21,7 +21,7 @@ pub(crate) const FUZZ_TARGETS: [&str; 5] = ["lex", "parse_object", "flate_decode
 /// Default `cargo xtask fuzz` run time in seconds (the scheduled workflow uses 600).
 const DEFAULT_FUZZ_SECONDS: u64 = 60;
 
-fn python() -> String {
+pub(crate) fn python() -> String {
     std::env::var("LAMINA_PYTHON").unwrap_or_else(|_| "python3".to_owned())
 }
 
@@ -215,7 +215,7 @@ pub(crate) fn fuzz(ws: &Workspace, task: &FuzzTask<'_>) -> Result<()> {
 }
 
 /// The host triple of the nightly toolchain (`rustc +nightly -vV`).
-fn nightly_host() -> Result<String> {
+pub(crate) fn nightly_host() -> Result<String> {
     let output = Command::new("rustc")
         .args(["+nightly", "-vV"])
         .output()

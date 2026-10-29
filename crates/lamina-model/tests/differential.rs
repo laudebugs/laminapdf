@@ -17,23 +17,8 @@ mod common;
 
 use std::collections::BTreeSet;
 
-use common::{corpus, fixture, json, mutants, open, outline_titles};
-use serde_json::{Value, json};
-
-/// lamina's facts about `bytes`, in the shape `expected.json` stores pypdf's, extracted the
-/// same way as `tools/corpus-facts/facts.py` does: the outcome is about opening the file and
-/// walking its pages; an unreadable outline is its own fact (`null`) and leaves the outcome.
-fn ours(bytes: &[u8]) -> Value {
-    let failed = json!({"outcome": "failed", "page_count": null, "outline_titles": null});
-    let Ok(doc) = open(bytes) else { return failed };
-    let Ok(pages) = doc.pages() else { return failed };
-    let outcome = if doc.was_repaired() { "repaired" } else { "opened" };
-    json!({
-        "outcome": outcome,
-        "page_count": pages.len(),
-        "outline_titles": outline_titles(&doc).ok(),
-    })
-}
+use common::differential::{FACTS, facts as ours};
+use common::{corpus, fixture, json, mutants};
 
 /// `(file, fact)` pairs excused by `exceptions.toml`.
 fn exceptions() -> BTreeSet<(String, String)> {
@@ -78,7 +63,7 @@ fn lamina_agrees_with_pypdf_except_for_listed_exceptions() {
             "{name} missing from fixtures/differential/expected.json"
         );
         let ours = ours(&bytes);
-        for fact in ["outcome", "page_count", "outline_titles"] {
+        for fact in FACTS {
             if ours[fact] != theirs[fact] && !excused.contains(&(name.clone(), fact.to_owned())) {
                 failures.push(format!(
                     "{name}: {fact}: lamina {} vs pypdf {}",
@@ -103,7 +88,7 @@ fn every_exception_is_still_needed() {
     let mut stale = Vec::new();
     for (name, bytes) in inputs() {
         let ours = ours(&bytes);
-        for fact in ["outcome", "page_count", "outline_titles"] {
+        for fact in FACTS {
             if ours[fact] == expected[&name][fact] && excused.contains(&(name.clone(), fact.to_owned())) {
                 stale.push(format!("{name}: {fact}"));
             }

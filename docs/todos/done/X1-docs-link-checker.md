@@ -35,7 +35,7 @@ Catch broken documentation links before merge. The todo board makes link rot lik
 
 **Out of scope**
 
-- External URL checking (network; flaky): maybe a nightly job later ([X3a](../ongoing/X3a-nightly-lane.md) can add `lychee` if wanted).
+- External URL checking (network; flaky): maybe a nightly job later ([X3a](../done/X3a-nightly-lane.md) can add `lychee` if wanted).
 - The docs site's own checker: [B7a](../ready/B7a-docs-site.md).
 
 ## Tasks

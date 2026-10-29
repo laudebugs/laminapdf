@@ -7,7 +7,7 @@
 | Plan | [pdf-library §7 B2](../../plans/pdf-library.md#b2-document-model), [architecture §7 Round B](../../plans/architecture.md#round-b--core-model-and-the-first-package) |
 | Round / milestone | Round B (library) — M1 |
 | Depends on | [B2a](./B2a-limits-owned-document.md) |
-| Blocks | [B3a](../ongoing/B3a-overlay-and-ops.md), [B9a](../ready/B9a-lamina-content-and-adr-0023.md), [C2b](../ready/C2b-lamina-render-crate.md), [C6a](../ready/C6a-thumbnails-outline-page-labels.md), [X3a](../ongoing/X3a-nightly-lane.md), [X4](../ongoing/X4-full-lane-gate.md) |
+| Blocks | [B3a](../ongoing/B3a-overlay-and-ops.md), [B9a](../ready/B9a-lamina-content-and-adr-0023.md), [C2b](../ready/C2b-lamina-render-crate.md), [C6a](../ready/C6a-thumbnails-outline-page-labels.md), [X3a](./X3a-nightly-lane.md), [X4](../ongoing/X4-full-lane-gate.md) |
 | ADRs | Implements [0005](../../decisions/0005-document-model.md) §4–§5; [0018](../../decisions/0018-test-strategy.md) tiers 3, 4, 6, 9; follows [0003](../../decisions/0003-reader-tolerance-and-limits.md) (per-field tolerance, `max_tree_depth`) |
 | Branch | `feat/b2c-lamina-model` |
 | PR title | `feat(model): typed page, outline, info and name-tree views with LaminaIds; corpus facts and fuzz targets` |
@@ -40,13 +40,13 @@ Give callers a typed, tolerant read API over the lazy COS graph (pages with thei
 - `cargo xtask golden --update` regenerating every golden under `fixtures/golden/` from its source and printing the list.
 - `cargo xtask differential` (pypdf only in this PR): runs pypdf over `fixtures/corpus` + a fixed-seed mutant set, compares page count, outcome (opened/repaired/failed) and outline titles; `--update` writes precomputed expectations to `fixtures/differential/expected.json`.
 - `fuzz/` (outside the workspace, nightly toolchain, OSS-Fuzz layout): `Cargo.toml`, targets `lex`, `parse_object`, `flate_decode`, `open` (open and drive every read path like `tests/common::exercise`, plus the model views), `page_tree`; seed corpus script from `fixtures/`; `cargo xtask fuzz <target> [--time N]`.
-- `.github/workflows/fuzz.yml`: scheduled (nightly) and `workflow_dispatch`, 10 min per target, uploads crashes as artefacts; [X3a](../ongoing/X3a-nightly-lane.md) later folds it into the nightly lane.
+- `.github/workflows/fuzz.yml`: scheduled (nightly) and `workflow_dispatch`, 10 min per target, uploads crashes as artefacts; [X3a](../done/X3a-nightly-lane.md) later folds it into the nightly lane.
 
 **Out of scope** (and which todo covers it)
 
 - Annotations, fields, structure tree views: full-editor E-rounds.
 - Mutation, overlay, op application: [B3a](../ongoing/B3a-overlay-and-ops.md).
-- pdf.js, PDFium and qpdf in the differential, the 500-mutant set in the PR lane: [X4](../ongoing/X4-full-lane-gate.md) and [X3a](../ongoing/X3a-nightly-lane.md).
+- pdf.js, PDFium and qpdf in the differential, the 500-mutant set in the PR lane: [X4](../ongoing/X4-full-lane-gate.md) and [X3a](../done/X3a-nightly-lane.md).
 - Fuzzing in the PR lane (2 min per target): [X4](../ongoing/X4-full-lane-gate.md).
 
 ## Tasks

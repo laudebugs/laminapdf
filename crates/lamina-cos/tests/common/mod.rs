@@ -16,7 +16,7 @@ pub mod samples;
 
 use std::path::{Path, PathBuf};
 
-use lamina_cos::{Document, ObjRef, Object, OpenOptions, Result, XrefEol, incremental_update};
+use lamina_cos::{Dict, Document, ObjRef, Object, OpenOptions, Result, Writer, XrefEol, incremental_update};
 
 /// Opens a copy of `bytes` with default options (tests keep their inputs).
 pub fn open(bytes: &[u8]) -> Result<Document> {
@@ -129,4 +129,46 @@ pub fn stream_body(dict: &str, data: &[u8]) -> Vec<u8> {
     out.extend_from_slice(data);
     out.extend_from_slice(b"\nendstream");
     out
+}
+
+/// A classic file with `page_count` pages, all sharing one indirect `/Resources` (the
+/// `reader_cache` scaling test and the `read` benchmarks).
+pub fn shared_resources_pdf(page_count: u32) -> Result<(Vec<u8>, ObjRef)> {
+    let mut w = Writer::new(1, 7);
+    let catalog = w.reserve();
+    let pages = w.reserve();
+    let font: Dict = [("Type", Object::name("Font")), ("BaseFont", Object::name("Helvetica"))]
+        .into_iter()
+        .collect();
+    let fonts: Dict = [("F1", Object::Dict(font))].into_iter().collect();
+    let resources: Dict = [("Font", Object::Dict(fonts))].into_iter().collect();
+    let resources = w.add(resources);
+    let media_box = Object::Array(vec![0.into(), 0.into(), 612.into(), 792.into()]);
+    let kids: Vec<Object> = (0..page_count)
+        .map(|_| {
+            let page: Dict = [
+                ("Type", Object::name("Page")),
+                ("Parent", pages.into()),
+                ("Resources", resources.into()),
+            ]
+            .into_iter()
+            .collect();
+            w.add(page).into()
+        })
+        .collect();
+    let pages_dict: Dict = [
+        ("Type", Object::name("Pages")),
+        ("Count", page_count.into()),
+        ("MediaBox", media_box),
+        ("Kids", Object::Array(kids)),
+    ]
+    .into_iter()
+    .collect();
+    w.set(pages, pages_dict);
+    let catalog_dict: Dict = [("Type", Object::name("Catalog")), ("Pages", pages.into())]
+        .into_iter()
+        .collect();
+    w.set(catalog, catalog_dict);
+    let trailer: Dict = [("Root", catalog)].into_iter().collect();
+    Ok((w.finish(&trailer)?, resources))
 }

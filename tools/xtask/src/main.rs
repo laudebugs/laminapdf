@@ -3,10 +3,13 @@
 //! This is the single entry point for repo-wide tasks; CI runs the same commands developers run
 //! (docs/guidelines/code-organization.md §10). Run `cargo xtask help` for the task list.
 
+mod corpus;
 mod docs_links;
 mod doctor;
 mod harness;
 mod licenses;
+mod live;
+mod nightly;
 mod todos;
 mod tracked;
 mod workspace;
@@ -45,14 +48,26 @@ tasks:
                     list (--update writes them; without it, fail if they would change)
   corpus facts      rewrite fixtures/corpus/expected.json with pypdf (needs Python: see
                     tools/corpus-facts/requirements.txt; $LAMINA_PYTHON or python3)
+  corpus fetch [--source <name>]… [--update-manifest]
+                    check out the external corpora pinned in fixtures/corpus-manifest.toml into
+                    target/corpus/ and verify every file's SHA-256 (--update-manifest rewrites the lists)
   differential [--update]
                     lamina vs pypdf over the corpus and fixed-seed mutants, from the precomputed
                     fixtures/differential/expected.json; --update regenerates it with pypdf
+  differential --live [--corpus external|mutants|all] [--source <name>]… [--tools a,b] [--sample N]
+                    nightly: lamina vs live pdf.js, PDFium, qpdf and pypdf over the external corpus
+                    and 250 mutants per corpus file; report in target/nightly/differential/
   fuzz <target> [--time <seconds>]
                     run a fuzz target (lex, parse_object, flate_decode, open, page_tree) with
                     cargo +nightly fuzz (default 60 s); seeds come from fixtures/ and fuzz/seeds/
   fuzz seeds [<target>]
                     only build the seed corpora in fuzz/corpus/
+  fuzz tmin <target>
+                    minimise every crash input in fuzz/artifacts/<target>/
+  scaling           nightly: release-mode #[ignore]d tests (scaling ratios); one retry, reported as flaky
+  bench [--quick] [--history <dir> [--runner <label>] [--record]]
+                    nightly: criterion benches; with --history, flag >10% regressions (never fails)
+  nightly [--quick] the whole nightly lane locally (corpus, differential, fuzz, scaling, bench)
   ci                check + wasm: the whole fast lane, locally
   doctor [--install]
                     check that external tools are installed at their pinned versions;
@@ -109,9 +124,18 @@ fn main() -> Result<()> {
         ("golden", []) => harness::golden(&ws, false),
         ("golden", [flag]) if flag == "--update" => harness::golden(&ws, true),
         ("corpus", [what]) if what == "facts" => harness::corpus_facts(&ws),
+        ("corpus", [what, args @ ..]) if what == "fetch" => corpus::fetch(&ws, &corpus::parse_fetch_args(args)?),
         ("differential", []) => harness::differential(&ws, false),
         ("differential", [flag]) if flag == "--update" => harness::differential(&ws, true),
+        ("differential", [flag, args @ ..]) if flag == "--live" => live::run_live(&ws, &live::parse_args(args)?),
+        ("fuzz", [cmd, target]) if cmd == "tmin" => {
+            harness::parse_fuzz_args(std::slice::from_ref(target))?;
+            nightly::fuzz_tmin(&ws, target)
+        }
         ("fuzz", args) => harness::fuzz(&ws, &harness::parse_fuzz_args(args)?),
+        ("scaling", []) => nightly::scaling(&ws),
+        ("bench", args) => nightly::bench(&ws, &nightly::parse_bench_args(args)?),
+        ("nightly", args) => nightly::nightly(&ws, nightly::parse_nightly_args(args)?),
         ("ci", []) => {
             check_docs(&ws)?;
             check_rust(&ws)?;

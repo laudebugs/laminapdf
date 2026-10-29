@@ -43,7 +43,7 @@ Make unsafe saves impossible by default. `SavePlanner` inspects the base and the
 - Executing signatures (two-phase signing), validating signature cryptography: full-editor E10 (ADR 0020).
 - Redaction and other rewrite-requiring ops: E12.
 - Capability-matrix rows: [X2](./X2-capability-matrix.md).
-- Nightly round-trip over the external corpus: [X3a](../ongoing/X3a-nightly-lane.md).
+- Nightly round-trip over the external corpus: [X3a](../done/X3a-nightly-lane.md).
 
 ## Tasks
 

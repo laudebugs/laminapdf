@@ -25,8 +25,9 @@ lamina is a platform for anything and everything PDF: creating PDFs from code, p
 ├── fuzz/                # cargo-fuzz targets (OSS-Fuzz layout), its own nightly workspace outside the root one
 ├── tools/xtask/         # `cargo xtask …`: the single task entry point
 ├── tools/corpus-facts/  # pypdf facts for fixtures (Python, pinned in requirements.txt); never run by tests
+├── tools/differential/  # pdf.js, PDFium, qpdf and pypdf runners for the nightly differential (pinned; own pnpm project)
 ├── tools/fixtures/      # generators for fixtures written for lamina's tests (no dependencies)
-├── .github/             # CI fast lane (workflows/ci.yml), scheduled fuzzing (workflows/fuzz.yml), Dependabot
+├── .github/             # CI fast lane (workflows/ci.yml), nightly lane (workflows/nightly.yml), Dependabot
 ├── spikes/              # research spikes (throwaway code that informs decisions), outside both workspaces
 │   ├── pdf-basics/      # minimal PDF core in Rust + TypeScript, its own frozen fixtures and spec (ported to crates/)
 │   ├── krilla-fit/      # Round B1: can krilla generate into lamina's object graph? (answer + measurements in its README)
@@ -87,6 +88,12 @@ cargo xtask corpus facts     # rewrite fixtures/corpus/expected.json with pypdf 
 cargo xtask differential     # lamina vs pypdf's precomputed facts (corpus + fixed-seed mutants; part of `test`)
 cargo xtask differential --update  # regenerate fixtures/differential/expected.json with pypdf
 cargo xtask fuzz <target> [--time N]  # cargo +nightly fuzz: lex, parse_object, flate_decode, open, page_tree
+cargo xtask fuzz tmin <target>        # minimise every crash in fuzz/artifacts/<target>/
+cargo xtask corpus fetch     # external corpora (pinned commits, SHA-256 per file in fixtures/corpus-manifest.toml) → target/corpus/
+cargo xtask differential --live [--sample N]  # nightly: lamina vs live pdf.js, PDFium, qpdf, pypdf (external corpus + all mutants)
+cargo xtask scaling          # nightly: release-mode #[ignore]d tests (scaling ratios), one retry reported as flaky
+cargo xtask bench [--quick]  # nightly: criterion benches (crates/lamina-cos/benches); --history <dir> flags >10% regressions
+cargo xtask nightly [--quick]  # the whole nightly lane locally, in the workflow's order (--quick: short budgets)
 cargo xtask ci               # the whole fast lane locally: check + wasm
 cargo xtask doctor           # are rustc, node, pnpm, cargo-deny, cargo-nextest, wasm-opt … at the pinned versions?
 cargo xtask doctor --install # install the pinned cargo tools
@@ -94,7 +101,9 @@ cargo xtask doctor --install # install the pinned cargo tools
 
 A single crate: `cargo test -p lamina-cos` (integration tests read the shared `fixtures/`; golden files are never rewritten by a test). Hangs are caught by nextest's per-test timeout in `.config/nextest.toml` (robustness tests: 30 s), not by wall-clock asserts (ADR 0018); plain `cargo test` runs the same tests without the timeout.
 
-Fuzzing (`fuzz/`, see its README) needs nightly Rust and cargo-fuzz (pinned in `doctor.rs`); `.github/workflows/fuzz.yml` runs every target for 10 minutes nightly. Python (pypdf, pinned in `tools/corpus-facts/requirements.txt`) is only needed to regenerate facts; tests read the committed JSON.
+Fuzzing (`fuzz/`, see its README) needs nightly Rust and cargo-fuzz (pinned in `doctor.rs`). Python (pypdf, pinned in `tools/corpus-facts/requirements.txt`) is only needed to regenerate facts; tests read the committed JSON.
+
+The nightly lane (`.github/workflows/nightly.yml`, cron and `workflow_dispatch`; ADR 0018 §2) runs on `main`: the live differential, every fuzz target for 10 minutes (corpus kept in the Actions cache), the scaling tests and the benchmarks (history in `history.jsonl` on the `bench-data` branch). A failed job or a flaky scaling test opens or comments on a `nightly` issue; a benchmark regression over 10% opens its own issue and never fails the run. Its jobs are the `cargo xtask` tasks above. The live differential needs the corpus (`cargo xtask corpus fetch`), qpdf at the version pinned in `doctor.rs`, `pnpm --dir tools/differential install --frozen-lockfile` (pdf.js) and Python with `tools/differential/requirements.txt` (`$LAMINA_PYTHON`); it fails only when lamina disagrees with every tool on a fact and `fixtures/differential/exceptions.toml` doesn't excuse it (per-file `[[exception]]`, value-matched `[[class]]` with its ADR 0003 rule, or `[[known]]` with its issue), or when lamina panics. External corpus files are never committed.
 
 Reading API (ADR 0003, 0005): `Document::open(source, OpenOptions)` takes an owned or shared `ByteSource` (`Vec<u8>`, `Arc<[u8]>`, `&'static [u8]`, `Arc<dyn ByteSource>`); `OpenOptions` holds `Limits` (hard limits fail with `Error::LimitExceeded`, soft ones drop with a warning), strict mode (`Error::Strict`) and the password: the standard security handler (R2–R6, ISO 32000 §7.6) decrypts strings and streams on load, tries it as user then owner password (owner first for R5/R6), and fails with `password-required` or `wrong-password`; `Document::encryption()` and `permissions()` describe the result. Warning and error codes are listed in `fixtures/codes.json`, which a test checks against the Rust enums. Typed views live in `lamina-model`: its `Document` wraps the COS one (and derefs to it) with the ID allocator; `doc.pages()`, `doc.outline()`, `doc.info()`, `doc.page_labels()`, `doc.name_tree(key)`; views raise warnings on the document via `lamina_cos::Document::report`. `LaminaId`s are `p12.0` (kind + object) or path IDs such as `p5.0/Kids/3` for direct dictionaries (ADR 0005 §5).
 
