@@ -125,8 +125,8 @@ pub struct PageText {
 impl PageText {
     /// The page's text as lines, in content order (see the module docs): runs joined, a new
     /// line where the baseline moves by more than half the size or the direction turns, a
-    /// space where the pen jumps forward by more than a quarter of it between runs that have
-    /// none. Each line is trimmed; empty lines are dropped.
+    /// space where the pen jumps forward or back by more than a quarter of it between runs that
+    /// have none. Each line is trimmed; empty lines are dropped.
     #[must_use]
     pub fn lines(&self) -> Vec<String> {
         runs::lines(&self.glyphs, &self.runs)

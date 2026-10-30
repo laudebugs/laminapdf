@@ -269,3 +269,17 @@ fn a_visual_order_right_to_left_line_split_by_fonts_comes_out_in_logical_order()
     );
     assert_eq!(extract(&doc).expect("extracts").lines(), ["שלום עולם"]);
 }
+
+#[test]
+fn cells_drawn_right_to_left_on_one_line_are_separated() {
+    // Three cells of a row drawn last first: "C" at x 200, "B" at 150, "A" at 100.
+    let text = text(b"BT /F1 10 Tf 200 700 Td (Gamma) Tj -50 0 Td (Beta) Tj -50 0 Td (Alpha) Tj ET");
+    assert_eq!(text.lines(), ["Gamma Beta Alpha"]);
+}
+
+#[test]
+fn a_small_step_back_inside_a_word_adds_no_space() {
+    // A kerning-sized correction (1 pt at 10 pt) between two pieces of one word.
+    let text = text(b"BT /F1 10 Tf 100 700 Td (Wor) Tj -1 0 Td /F2 10 Tf (d) Tj ET");
+    assert_eq!(text.lines().concat().replace(' ', "").len(), "Word".len());
+}

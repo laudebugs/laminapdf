@@ -192,7 +192,7 @@ fn the_ctm_and_text_matrix_scale_positions_and_sizes() {
 #[test]
 fn a_baseline_change_starts_a_new_line() {
     let doc = page(
-        b"BT /F1 10 Tf 0 100 Td (Hello) Tj 0 -12 Td (world) Tj 0 1 Td (!) Tj ET",
+        b"BT /F1 10 Tf 0 100 Td (Hello) Tj 0 -12 Td (world) Tj 1 Ts (!) Tj ET",
         vec![helvetica()],
         OpenOptions::default(),
     );

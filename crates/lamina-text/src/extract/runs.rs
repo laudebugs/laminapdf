@@ -401,13 +401,19 @@ pub(super) fn lines(glyphs: &[Glyph], runs: &[TextRun]) -> Vec<String> {
 }
 
 /// Units joined in the order given, with a space where the next one starts over a quarter of
-/// the size after the previous one ends.
+/// the size away from where the previous one ended: after it (a gap) or behind it (the pen
+/// jumped back: a table cell or column drawn out of order, never the same word; todo B9e).
 fn join(units: &[Unit<'_>]) -> String {
     let mut line = String::new();
     let mut previous: Option<&Unit<'_>> = None;
     for u in units {
         if let Some(p) = previous
-            && needs_space(&line, u.text, u.start - p.end, p.size.max(u.size).max(f64::EPSILON))
+            && needs_space(
+                &line,
+                u.text,
+                (u.start - p.end).abs(),
+                p.size.max(u.size).max(f64::EPSILON),
+            )
         {
             line.push(' ');
         }

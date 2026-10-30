@@ -3,10 +3,10 @@
 | Field | Value |
 | --- | --- |
 | ID | `B9e` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [pdf-library §7 B9](../../plans/pdf-library.md#b9-text-extraction) |
 | Round / milestone | Round B (library) — M2 Web reader v0.1 |
-| Depends on | [B9d](../done/B9d-text-runs-quads-and-page-text.md), [U2b](../done/U2b-reading-order-ground-truth.md) |
+| Depends on | [B9d](./B9d-text-runs-quads-and-page-text.md), [U2b](./U2b-reading-order-ground-truth.md) |
 | Blocks | None |
 | ADRs | Follows [0018](../../decisions/0018-test-strategy.md) (the reading-order ratchet measures it) |
 | Branch | `fix/b9e-backward-jump-separators` |
@@ -36,13 +36,13 @@ Text drawn out of order on one baseline comes out glued: [U2b](../done/U2b-readi
 
 ## Tasks
 
-- [ ] The separator in `join`, with tests
-- [ ] Rescore the corpus, raise `threshold.json` (history entry)
+- [x] The separator in `join`, with tests
+- [x] Rescore the corpus, raise `threshold.json` (history entry)
 
 ## Acceptance criteria
 
-- [ ] `table-reversed` keeps every cell's words (text score 1.000); no other corpus file's score drops
-- [ ] Every text golden still extracts its drawn lines (`extract_fonts.rs`)
+- [x] `table-reversed` keeps every cell's words (text score 1.000); no other corpus file's score drops (corpus mean 0.787 → 0.797, threshold raised with its history)
+- [x] Every text golden still extracts its drawn lines (`extract_fonts.rs`)
 
 ## Post-merge checks
 
@@ -54,7 +54,7 @@ None.
 
 ## Docs to update
 
-- [ ] `fixtures/README.md` (the first scores' note on `table-reversed`), the `lamina-text` README (`lines()`)
+- [x] `fixtures/README.md` (the first scores' note on `table-reversed`), the `lamina-text` README (`lines()`)
 
 ## Risks and open questions
 
@@ -62,8 +62,8 @@ None.
 
 ## Definition of done
 
-- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started (here: added straight to `ongoing/` by its claim PR)
-- [ ] Work PR opened from a fresh worktree; **PR** field filled in
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
-- [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started (here: added straight to `ongoing/` by its claim PR)
+- [x] Work PR opened from a fresh worktree; **PR** field filled in
+- [x] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
+- [x] CI green
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
