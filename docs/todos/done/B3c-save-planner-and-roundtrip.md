@@ -7,7 +7,7 @@
 | Plan | [pdf-library §7 B3](../../plans/pdf-library.md#b3-ops-and-save), [architecture §7 Round B](../../plans/architecture.md#round-b--core-model-and-the-first-package) |
 | Round / milestone | Round B (library) — M1 |
 | Depends on | [B2b](./B2b-standard-security-decryption.md), [B3b](./B3b-lamina-save-writers.md), [X4](./X4-full-lane-gate.md) |
-| Blocks | [B5a](./B5a-lamina-build-core.md), [C1b](../ready/C1b-pdfium-wasm-spike.md), [E1a](../ready/E1a-editing-foundation-feature-plan.md), [E1c](../ready/E1c-metadata-ops.md), [X2](../ongoing/X2-capability-matrix.md) |
+| Blocks | [B5a](./B5a-lamina-build-core.md), [C1b](../ready/C1b-pdfium-wasm-spike.md), [E1a](../ready/E1a-editing-foundation-feature-plan.md), [E1c](../ready/E1c-metadata-ops.md), [X2](./X2-capability-matrix.md) |
 | ADRs | Implements [0007](../../decisions/0007-save-planner.md) §1–§4 (planner, constraint, mode table, override); [0018](../../decisions/0018-test-strategy.md) tier 7 (round-trip) and fuzz target `ops_json`/`save_roundtrip`; [0006](../../decisions/0006-op-log-and-undo.md) §1 (classification) |
 | Branch | `feat/b3c-save-planner` |
 | PR title | `feat(save): SavePlanner and SaveConstraint with signature detection; round-trip suite` |
@@ -43,7 +43,7 @@ Make unsafe saves impossible by default. `SavePlanner` inspects the base and the
 
 - Executing signatures (two-phase signing), validating signature cryptography: full-editor E10 (ADR 0020).
 - Redaction and other rewrite-requiring ops: E12.
-- Capability-matrix rows: [X2](../ongoing/X2-capability-matrix.md).
+- Capability-matrix rows: [X2](./X2-capability-matrix.md).
 
 ## Tasks
 
