@@ -12,7 +12,7 @@
 | Branch | `feat/l2c-range-byte-source` |
 | PR title | `feat(core): range byte sources with DataPending at the edges (HTTP range, JS callback, mmap)` |
 | Size | L (≈ 500–800 lines of Rust, TS and tests) |
-| PR | — |
+| PR | [#91](https://github.com/laudebugs/lamina/pull/91) |
 
 ## Goal
 
