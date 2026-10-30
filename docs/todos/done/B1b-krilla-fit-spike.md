@@ -32,7 +32,7 @@ Decide the generation strategy with measurements: depend on krilla, or build `la
 
 **Out of scope**
 
-- Product code: [B4a](../done/B4a-font-loading-and-subsetting.md)–[B5c](../ongoing/B5c-lamina-facade-and-examples.md).
+- Product code: [B4a](../done/B4a-font-loading-and-subsetting.md)–[B5c](./B5c-lamina-facade-and-examples.md).
 
 ## Tasks
 

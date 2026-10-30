@@ -1,0 +1,23 @@
+# Render goldens (todo B5c, ADR 0018 tier 8): the limits `cargo xtask render-golden` applies.
+# Goldens are rewritten only by `cargo xtask render-golden --update`; review the PNG diff.
+
+# A render against its committed PNG (`<example>/<page>-<engine>.png`, 72 dpi), same engine:
+# a pixel differs when its CIE76 ΔE exceeds `delta_e` (≈ one just-noticeable difference), with
+# no blur or tolerance, so a one-pixel-wide change fails. The same engine at the same pinned
+# version renders the same pixels, so no differing pixel is allowed.
+[golden]
+max_diff_pixels = 0
+delta_e = 2.3
+min_ssim = 0.99
+
+# hayro against PDFium at 150 dpi, with the hayro-parity spike's metric and its `pass`
+# thresholds (spikes/hayro-parity/README.md, "Method"): ≤ 0.5 % of pixels over ΔE 10 not
+# explained by anti-aliasing, SSIM ≥ 0.90.
+[parity]
+max_diff_percent = 0.5
+min_ssim = 0.90
+
+# Known differences: one entry per page and check that needs a looser limit, with the reason.
+# An entry that matches no page fails the run. Fields: example, page (0-based), check
+# ("golden-hayro" | "golden-pdfium" | "parity"), any of max_diff_pixels, max_diff_percent,
+# min_ssim, and reason.

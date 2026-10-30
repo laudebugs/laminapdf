@@ -60,8 +60,9 @@ fn files_in(dir: &Path) -> Result<Vec<PathBuf>> {
 const GOLDEN_CRATES: [&str; 3] = ["lamina-build", "lamina-save", "lamina-text"];
 
 /// `cargo xtask golden [--update]`: regenerates every golden in `fixtures/golden/` from its
-/// source (`--update` writes them in place and prints the list); without `--update`, checks
-/// that regenerating them changes nothing.
+/// source (`--update` writes them in place and prints the list), the `lamina` examples' into
+/// `fixtures/golden/examples/`; without `--update`, checks that regenerating them changes
+/// nothing.
 pub(crate) fn golden(ws: &Workspace, update: bool) -> Result<()> {
     let golden_dir = ws.root.join("fixtures/golden");
     let out = if update {
@@ -84,6 +85,8 @@ pub(crate) fn golden(ws: &Workspace, update: bool) -> Result<()> {
             &out_arg,
         ])?;
     }
+    // The façade's examples are goldens too, one directory down (todo B5c).
+    let examples = crate::examples::run_all(ws, &out.join("examples"))?;
     if update {
         shaping_goldens(ws)?;
         step("Goldens regenerated; review the diff (`git diff fixtures/golden`) like code");
@@ -102,6 +105,19 @@ pub(crate) fn golden(ws: &Workspace, update: bool) -> Result<()> {
         let name = path.file_name().context("file name")?;
         if !generated.iter().any(|g| g.file_name() == Some(name)) {
             stale.push(format!("{} (no generator)", name.to_string_lossy()));
+        }
+    }
+    let examples_dir = golden_dir.join("examples");
+    for path in &examples {
+        let name = path.file_name().context("file name")?;
+        if fs::read(path)? != fs::read(examples_dir.join(name)).unwrap_or_default() {
+            stale.push(format!("examples/{}", name.to_string_lossy()));
+        }
+    }
+    for path in files_in(&examples_dir)? {
+        let name = path.file_name().context("file name")?;
+        if !examples.iter().any(|g| g.file_name() == Some(name)) {
+            stale.push(format!("examples/{} (no example)", name.to_string_lossy()));
         }
     }
     if !stale.is_empty() {

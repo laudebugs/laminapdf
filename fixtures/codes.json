@@ -682,5 +682,28 @@
       "hint": "give ranges sorted by first page, the first at page 0, numbered from 1",
       "since": "0.1.0"
     }
+  ],
+  "facadeErrors": [
+    {
+      "code": "cancelled",
+      "kind": "cancelled",
+      "summary": "a CancelToken stopped the work; the job is finished and returned no partial result",
+      "hint": "nothing to do: this is the outcome the caller asked for; start a new job to try again",
+      "since": "0.1.0"
+    },
+    {
+      "code": "job-finished",
+      "kind": "state",
+      "summary": "a job was stepped after it had finished, failed or been cancelled",
+      "hint": "stop stepping a job once a step returned its result or an error; create a new job",
+      "since": "0.1.0"
+    },
+    {
+      "code": "document-changed",
+      "kind": "state",
+      "summary": "the document a job was created for changed (an edit, undo, redo, save or rebase) or a different document was passed to step",
+      "hint": "pass the document the job was created from, and don't change it while the job runs; create a new job",
+      "since": "0.1.0"
+    }
   ]
 }
