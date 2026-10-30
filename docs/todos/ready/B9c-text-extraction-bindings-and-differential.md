@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [pdf-library §7 B9](../../plans/pdf-library.md#b9-text-extraction) |
 | Round / milestone | Round B (library) — M2 Web reader v0.1 (prerequisite) |
-| Depends on | [B6b](./B6b-lamina-pdf-package.md), [B6c](./B6c-runtime-matrix.md), [B9d](../done/B9d-text-runs-quads-and-page-text.md) |
+| Depends on | [B6b](../ongoing/B6b-lamina-pdf-package.md), [B6c](./B6c-runtime-matrix.md), [B9d](../done/B9d-text-runs-quads-and-page-text.md) |
 | Blocks | [L3b](./L3b-extract-tables-and-serialisers.md), [L4a](./L4a-lamina-cli.md), [C5a](./C5a-text-layer-and-selection.md), [C5b](./C5b-find-in-document.md), [C6c](./C6c-print-download-properties.md), [E2a](./E2a-page-organisation-feature-plan.md), [E2e](./E2e-content-append-api.md), [E3i](./E3i-extraction.md), [E7a](./E7a-adr-0022-content-editing.md) |
 | ADRs | Follows 0023, 0016 (module placement: extraction lives in the text module or base — decide by size), [0018](../../decisions/0018-test-strategy.md) tiers 6 and 9 |
 | Branch | `feat/b9c-text-bindings` |

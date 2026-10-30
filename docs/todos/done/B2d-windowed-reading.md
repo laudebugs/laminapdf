@@ -38,7 +38,7 @@ Make `Document::open` work over a source it can't hold in memory at once. [B2a](
 **Out of scope** (and which todo covers it)
 
 - Edge `ByteSource`s (mmap, `Blob`, HTTP range cache over OPFS): desktop D2 and web C3/C4 todos.
-- Exposing `DataPending` through WASM/TS: [B6b](../ready/B6b-lamina-pdf-package.md) and the web reader todos.
+- Exposing `DataPending` through WASM/TS: [B6b](../ongoing/B6b-lamina-pdf-package.md) and the web reader todos.
 - Prefetch hints and linearization (`/Linearized` first-page fast path): later, if the web perf harness asks for it.
 
 ## Tasks

@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [pdf-library §7 B8](../../plans/pdf-library.md#b8-tagged-pdf-pdfua-and-pdfa), requirement [§4 F6](../../plans/pdf-library.md#functional) |
 | Round / milestone | Round B (library) — M4 Library 0.2 |
-| Depends on | [B5c](../done/B5c-lamina-facade-and-examples.md), [B6b](./B6b-lamina-pdf-package.md) |
+| Depends on | [B5c](../done/B5c-lamina-facade-and-examples.md), [B6b](../ongoing/B6b-lamina-pdf-package.md) |
 | Blocks | [B8b](./B8b-conformance-profiles-and-verapdf.md), [L3a](./L3a-lamina-extract-reading-order.md), [U4b](./U4b-reader-mode-from-structure-tree.md), [E2b](./E2b-page-structure-ops.md), [E2d](./E2d-merge-and-split.md), [E6c](./E6c-add-text.md), [E6d](./E6d-watermarks-headers-footers.md) |
 | ADRs | Follows [0005 §6](../../decisions/0005-document-model.md#6-generation-strategy--option-b-recommended-by-the-krilla-fit-spike-accepted-when-its-pr-merges) (lamina owns tagging; krilla's rule lists as reference), [0006](../../decisions/0006-op-log-and-undo.md) (no ops here: build-time only) |
 | Branch | `feat/b8a-structure-tree` |
