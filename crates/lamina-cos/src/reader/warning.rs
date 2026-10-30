@@ -224,6 +224,27 @@ pub enum Warning {
         /// The form reached again.
         object: u32,
     },
+    /// `font-invalid`: a font dictionary read for text extraction has a missing, unreadable
+    /// or malformed entry (descendant font, encoding, `/Differences`, widths, font program);
+    /// its text was decoded with defaults (`lamina-text`, todo B9b).
+    FontInvalid {
+        /// The font dictionary's object (`None` for a direct one).
+        object: Option<u32>,
+    },
+    /// `cmap-invalid`: a font's CMap or ToUnicode CMap had malformed entries (skipped), names
+    /// a predefined CMap lamina has no table for (read as Identity), or a `/UseCMap` chain
+    /// too deep (cut) (`lamina-text`, todo B9b).
+    CMapInvalid {
+        /// The font dictionary's object (`None` for a direct one).
+        object: Option<u32>,
+    },
+    /// `unmapped-glyph`: a font showed glyphs that neither its ToUnicode CMap, its encoding's
+    /// glyph names nor its font program map to text; they extract as U+FFFD (`lamina-text`,
+    /// todo B9b).
+    UnmappedGlyph {
+        /// The font dictionary's object (`None` for a direct one).
+        object: Option<u32>,
+    },
 }
 
 impl Warning {
@@ -260,6 +281,9 @@ impl Warning {
         "inline-image-unterminated",
         "xobject-cycle",
         "content-path-unpainted",
+        "font-invalid",
+        "cmap-invalid",
+        "unmapped-glyph",
     ];
 
     /// The stable kebab-case code, e.g. `"xref-repaired"`.
@@ -297,6 +321,9 @@ impl Warning {
             Self::InlineImageUnterminated { .. } => "inline-image-unterminated",
             Self::XObjectCycle { .. } => "xobject-cycle",
             Self::ContentPathUnpainted { .. } => "content-path-unpainted",
+            Self::FontInvalid { .. } => "font-invalid",
+            Self::CMapInvalid { .. } => "cmap-invalid",
+            Self::UnmappedGlyph { .. } => "unmapped-glyph",
         }
     }
 
@@ -328,7 +355,10 @@ impl Warning {
             | Self::ContentSyntax { object, .. }
             | Self::ContentResourceMissing { object, .. }
             | Self::InlineImageUnterminated { object, .. }
-            | Self::ContentPathUnpainted { object, .. } => object,
+            | Self::ContentPathUnpainted { object, .. }
+            | Self::FontInvalid { object }
+            | Self::CMapInvalid { object }
+            | Self::UnmappedGlyph { object } => object,
             Self::MissingHeader
             | Self::XrefRepaired
             | Self::XrefStmIgnored { .. }
@@ -371,7 +401,10 @@ impl Warning {
             | Self::ContentResourceMissing { .. }
             | Self::InlineImageUnterminated { .. }
             | Self::XObjectCycle { .. }
-            | Self::ContentPathUnpainted { .. } => ErrorKind::Input,
+            | Self::ContentPathUnpainted { .. }
+            | Self::FontInvalid { .. }
+            | Self::CMapInvalid { .. }
+            | Self::UnmappedGlyph { .. } => ErrorKind::Input,
             Self::ObjectNumberOutOfRange { .. } | Self::WarningsTruncated => ErrorKind::Limit,
             Self::AesPaddingInvalid { .. } | Self::PermsMismatch => ErrorKind::Security,
         }
@@ -554,6 +587,9 @@ mod tests {
                 object: None,
                 offset: 0,
             },
+            Warning::FontInvalid { object: None },
+            Warning::CMapInvalid { object: None },
+            Warning::UnmappedGlyph { object: None },
         ];
         for w in &all {
             match w {
@@ -587,7 +623,10 @@ mod tests {
                 | Warning::ContentResourceMissing { .. }
                 | Warning::InlineImageUnterminated { .. }
                 | Warning::XObjectCycle { .. }
-                | Warning::ContentPathUnpainted { .. } => {}
+                | Warning::ContentPathUnpainted { .. }
+                | Warning::FontInvalid { .. }
+                | Warning::CMapInvalid { .. }
+                | Warning::UnmappedGlyph { .. } => {}
             }
         }
         all

@@ -221,6 +221,27 @@
       "summary": "a content stream ended with a path no painting operator ended",
       "hint": "nothing to do; the unpainted path was dropped as the spec intends",
       "since": "0.1.0"
+    },
+    {
+      "code": "font-invalid",
+      "kind": "input",
+      "summary": "a font dictionary has a missing or malformed entry, so its text was decoded with defaults",
+      "hint": "nothing to do; extracted text or positions for that font may be off",
+      "since": "0.1.0"
+    },
+    {
+      "code": "cmap-invalid",
+      "kind": "input",
+      "summary": "a font's CMap or ToUnicode CMap is malformed or names a predefined CMap lamina has no table for",
+      "hint": "nothing to do; the bad entries were skipped and the rest of the CMap is used",
+      "since": "0.1.0"
+    },
+    {
+      "code": "unmapped-glyph",
+      "kind": "input",
+      "summary": "a font shows glyphs that nothing maps to text",
+      "hint": "nothing to do; those glyphs extract as U+FFFD (the file needs a ToUnicode CMap)",
+      "since": "0.1.0"
     }
   ],
   "errors": [

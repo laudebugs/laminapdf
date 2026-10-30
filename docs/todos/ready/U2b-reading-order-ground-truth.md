@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [UI/UX §6 U2. Reading quality](../../plans/ui-ux.md#u2-reading-quality) |
 | Round / milestone | Round U (UI/UX) — M2 Web reader v0.1 |
-| Depends on | [B9b](../ongoing/B9b-text-extraction-core.md) |
+| Depends on | [B9d](./B9d-text-runs-quads-and-page-text.md) |
 | Blocks | [L3a](./L3a-lamina-extract-reading-order.md), [U2a](./U2a-selection-surfaces-and-copy-modes.md), [U4b](./U4b-reader-mode-from-structure-tree.md) |
 | ADRs | Follows 0018 (test strategy: corpora, differential tests) and 0019 (fixture provenance) |
 | Branch | `test/u2b-reading-order-ground-truth` |
@@ -22,7 +22,7 @@ No public benchmark measures reading order, yet column-aware copy, reflow and sc
 
 - [Research: text extraction](../../research/product/pdf-app-product-and-ux.md#five-conclusions-from-the-comparison) — py-pdf's benchmark doesn't explain its metric; pdf_oxide's reports pass rates, not correctness.
 - [Engines notes](../../research/product/notes/engines-sdks.md) — the benchmarks and their limits.
-- [B9b](../ongoing/B9b-text-extraction-core.md) — the extraction API whose order this measures.
+- [B9d](./B9d-text-runs-quads-and-page-text.md) — the extraction API whose order this measures.
 - [ADR 0018](../../decisions/0018-test-strategy.md), [ADR 0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) — corpus rules and provenance.
 
 ## Scope

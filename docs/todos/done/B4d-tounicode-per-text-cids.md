@@ -34,7 +34,7 @@ Make the text drawn from shaped runs extract as the input in pypdf, pdf.js and p
 
 **Out of scope**
 
-- Text extraction in lamina itself: [B9b](../ongoing/B9b-text-extraction-core.md).
+- Text extraction in lamina itself: [B9b](../done/B9b-text-extraction-core.md).
 
 ## Tasks
 
