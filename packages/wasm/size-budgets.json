@@ -1,0 +1,88 @@
+{
+  "baseline": {
+    "base": {
+      "top": [
+        [19439, "data segment \".rodata.55\""],
+        [12024, "<lamina_build::page::PageBuilder>::write"],
+        [10774, "data segment \".rodata\""],
+        [10062, "sha2::sha512::compress512"],
+        [9374, "data segment \".rodata.115\""],
+        [8531, "<lamina_build::builder::Builder>::finish"],
+        [8313, "<lamina_save::planner::SavePlanner>::new"],
+        [7949, "sha2::sha256::compress256"],
+        [7645, "data segment \".rodata.139\""],
+        [7111, "miniz_oxide::inflate::core::decompress_with_limit"],
+        [5752, "core::num::imp::flt2dec::strategy::dragon::format_shortest"],
+        [5485, "<lamina::error::Error>::diagnostic"],
+        [5284, "data segment \".rodata.163\""],
+        [5141, "<lamina_cos::reader::Document>::pages"],
+        [4975, "<lamina_ops::tx::Tx>::run_op"],
+        [4865, "data segment \".rodata.114\""],
+        [4808, "<dlmalloc::dlmalloc::Dlmalloc<dlmalloc::sys::System>>::malloc"],
+        [4804, "core::num::imp::flt2dec::strategy::dragon::format_exact"],
+        [4447, "<lamina_cos::reader::Document>::read_security"],
+        [4415, "miniz_oxide::deflate::core::compress_inner"],
+        [4358, "data segment \".rodata.131\""],
+        [4264, "<lamina_build::surface::image::Image>::png_with"],
+        [4216, "data segment \".rodata.89\""],
+        [4199, "data segment \".rodata.137\""],
+        [
+          3857,
+          "<&mut serde_json::de::Deserializer<serde_json::read::StrRead> as serde_core::de::Deserializer>::deserialize_struct::<<lamina_wasm::dto::LimitsInit as serde_core::de::Deserialize>::deserialize::__Visitor>"
+        ],
+        [3429, "<lamina_cos::reader::Document>::open::<lamina_cos::source::Source>"],
+        [3392, "<lamina_cos::reader::Document>::open::<alloc::vec::Vec<u8>>"],
+        [
+          3370,
+          "<&mut serde_json::de::Deserializer<serde_json::read::StrRead> as serde_core::de::Deserializer>::deserialize_struct::<<lamina_wasm::build_dto::MetadataInit as serde_core::de::Deserialize>::deserialize::__Visitor>"
+        ],
+        [3182, "data segment \".rodata.48\""]
+      ],
+      "wasmGzip": 368180
+    },
+    "text": {
+      "top": [
+        [152356, "data segment \".rodata.432\""],
+        [40891, "data segment \".rodata\""],
+        [28913, "<skrifa::outline::glyf::hint::engine::Engine>::dispatch_inner"],
+        [24779, "data segment \".rodata.725\""],
+        [19559, "data segment \".rodata.64\""],
+        [17233, "<subsetter::Context>::process"],
+        [16973, "data segment \".rodata.905\""],
+        [15798, "\"data names\" subsection"],
+        [14574, "<lamina_build::page::PageBuilder>::write"],
+        [13987, "<lamina_text::embed::FontRegistry>::finish_fonts"],
+        [13203, "<harfrust::hb::ot_shape::OtShapeContext>::shape_internal"],
+        [13184, "data segment \".rodata.440\""],
+        [13183, "<harfrust::hb::ot_shape_plan::hb_ot_shape_plan_t>::new"],
+        [12428, "data segment \".rodata.1011\""],
+        [12295, "harfrust::hb::ot_shaper_vowel_constraints::preprocess_text_vowel_constraints"],
+        [12257, "<harfrust::hb::ot_shape::OtShapeContext>::position_by_plan"],
+        [11592, "harfrust::hb::aat::layout::substitute"],
+        [11161, "data segment \".rodata.904\""],
+        [10881, "skrifa::outline::autohint::hint::hint_outline"],
+        [10461, "harfrust::hb::tag_table::tags_from_complex_language"],
+        [10062, "sha2::sha512::compress512"],
+        [9652, "data segment \".rodata.1074\""],
+        [9045, "<write_fonts::graph::Graph>::pack_objects"],
+        [8916, "<lamina_build::builder::Builder>::finish_with_warnings"],
+        [8372, "skrifa::outline::autohint::metrics::scale::compute_unscaled_style_metrics"],
+        [8316, "<lamina_save::planner::SavePlanner>::new"],
+        [8064, "data segment \".rodata.698\""],
+        [7949, "sha2::sha256::compress256"],
+        [7677, "data segment \".rodata.1103\""]
+      ],
+      "wasmGzip": 937259
+    }
+  },
+  "budgets": {
+    "base": {
+      "glueGzip": 5000,
+      "wasmGzip": 380000
+    },
+    "text": {
+      "glueGzip": 5000,
+      "wasmGzip": 960000
+    }
+  }
+}

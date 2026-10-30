@@ -85,8 +85,8 @@ None.
 ## Risks and open questions
 
 - Dependency cycle: `lamina-cos` tests using the builder from a crate above it; use a dev-dependency (allowed by Cargo) or a `publish = false` test-kit crate.
-- PNG decoder choice affects WASM size (krilla-fit counted `png` in its probe); consider decoding only what's needed and measure in [B6a](../ongoing/B6a-lamina-wasm-and-adr-0016.md).
-- API names are provisional until ADR 0016 ([B6a](../ongoing/B6a-lamina-wasm-and-adr-0016.md)); keep the public surface small and `#[non_exhaustive]`.
+- PNG decoder choice affects WASM size (krilla-fit counted `png` in its probe); consider decoding only what's needed and measure in [B6a](../done/B6a-lamina-wasm-and-adr-0016.md).
+- API names are provisional until ADR 0016 ([B6a](../done/B6a-lamina-wasm-and-adr-0016.md)); keep the public surface small and `#[non_exhaustive]`.
 
 ## Definition of done
 

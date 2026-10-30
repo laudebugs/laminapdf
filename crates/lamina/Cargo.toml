@@ -17,11 +17,16 @@ build = "build.rs"
 layer = "core"
 
 [features]
-default = ["text"]
-# Fonts and the builder (lamina-text, lamina-build: shaping, bidi, line breaking, subsetting).
-# Without it the crate opens, reads, edits and saves documents only: the structure-only build
-# for WASM splitting. lamina-build depends on lamina-text, so the builder goes with it.
-text = ["dep:lamina-text", "dep:lamina-build"]
+default = ["text", "saslprep"]
+# SASLprep for R5/R6 passwords (RFC 4013; lamina-syntax's `saslprep`). Left out of the WASM
+# base module (ADR 0016 §5).
+saslprep = ["lamina-cos/saslprep"]
+# The builder without text (lamina-build: pages, paths, colour, images, links, navigation,
+# metadata): the WASM base module's builder (ADR 0016 §4). Without it (and `text`) the crate
+# opens, reads, edits and saves documents only.
+build = ["dep:lamina-build"]
+# Fonts and text on top of the builder (lamina-text: shaping, bidi, line breaking, subsetting).
+text = ["build", "dep:lamina-text", "lamina-build/text"]
 
 [dependencies]
 lamina-cos = { workspace = true }
@@ -40,7 +45,7 @@ serde_json = { workspace = true }
 
 [dev-dependencies]
 # The data-fields test builds one value of every variant of the wrapped crates' errors.
-lamina-build = { workspace = true }
+lamina-build = { workspace = true, features = ["text"] }
 lamina-text = { workspace = true }
 serde_json = { workspace = true }
 

@@ -20,6 +20,7 @@ mod runner;
 mod todos;
 mod tracked;
 mod util;
+mod wasm;
 mod workspace;
 
 use std::env;
@@ -46,7 +47,12 @@ tasks:
   test              Rust tests (cargo-nextest when installed, else cargo test) + doc tests, TS tests
   portability       core crates: forbidden-API grep, dependency and unsafe rules,
                     cargo check for wasm32, iOS and Android
-  wasm              build the wasm32 crates with the size-optimised `wasm-release` profile
+  wasm              build the wasm32 crates with the size-optimised `wasm-release` profile, then
+                    the @lamina/wasm modules (lamina_base, lamina_text) into packages/wasm/dist/
+                    (wasm-bindgen, wasm-opt) and their tests in Node
+  size [--update-baseline]
+                    measure packages/wasm/dist/ (raw, gzip, brotli; glue min+gzip), write
+                    target/size-report.json, fail above packages/wasm/size-budgets.json
   deny              cargo-deny (licences, advisories, bans, sources) + npm licence check
   npm-licenses      npm licence check only (pnpm licenses list)
   docs-links [--json]
@@ -106,7 +112,7 @@ tasks:
                     list the paths changed since the merge base with <rev> (default origin/main)
                     and say whether any is code (not docs); sets `code` in $GITHUB_OUTPUT
                     (default base: origin/main, or main when there is no origin/main)
-  ci                check + wasm: the whole fast lane, locally
+  ci                check + wasm + size: the whole fast lane, locally
   doctor [--install]
                     check that external tools are installed at their pinned versions;
                     --install runs the `cargo install` fixes
@@ -159,6 +165,8 @@ fn main() -> Result<()> {
         }
         ("portability", []) => portability(&ws),
         ("wasm", []) => wasm(&ws),
+        ("size", []) => wasm::size(&ws, false),
+        ("size", [flag]) if flag == "--update-baseline" => wasm::size(&ws, true),
         ("deny", []) => {
             cargo_deny(&ws)?;
             licenses::check_npm(&ws)
@@ -191,7 +199,8 @@ fn main() -> Result<()> {
             check_docs(&ws)?;
             check_rust(&ws)?;
             check_ts(&ws)?;
-            wasm(&ws)
+            wasm(&ws)?;
+            wasm::size(&ws, false)
         }
         _ => bail!("unknown task or arguments: {}\n\n{USAGE}", args.join(" ")),
     }
@@ -337,18 +346,23 @@ fn portability(ws: &Workspace) -> Result<()> {
         let mut args = vec!["check", "--locked", "--lib", "--target", target];
         args.extend(package_args(ws.core_crates(), "core")?);
         ws.cargo(&args)?;
-        // The façade's structure-only build (no `text`: no fonts, no builder) is a shipping
-        // configuration of its own, for WASM splitting (todo B5c).
-        ws.cargo(&[
-            "check",
-            "--locked",
-            "--lib",
-            "--target",
-            target,
-            "-p",
-            "lamina",
-            "--no-default-features",
-        ])?;
+        // The façade's structure-only build (no builder, no text) and the WASM base module's
+        // (the builder without text, no SASLprep) are shipping configurations of their own
+        // (todo B5c, ADR 0016 §4).
+        for features in [&[][..], &["--features", "build"][..]] {
+            let mut args = vec![
+                "check",
+                "--locked",
+                "--lib",
+                "--target",
+                target,
+                "-p",
+                "lamina",
+                "--no-default-features",
+            ];
+            args.extend(features);
+            ws.cargo(&args)?;
+        }
     }
     Ok(())
 }
@@ -364,12 +378,10 @@ fn wasm(ws: &Workspace) -> Result<()> {
         WASM_TARGET,
     ];
     args.extend(package_args(ws.wasm_crates(), "wasm32")?);
-    // The core crates are rlibs, so there is no .wasm artefact yet; this only proves they build
-    // with the shipping profile. When the lamina-wasm cdylib lands (Round B), this task also runs
-    // wasm-bindgen and wasm-opt (binaryen pinned in doctor.rs, with explicit feature flags matching
-    // rustc's wasm32 defaults), enforces a size budget, and writes the output gitignored inside the
-    // consuming package, never as a separate workspace member.
-    ws.cargo(&args)
+    // Every wasm32 crate builds with the shipping profile; then the two modules of @lamina/wasm
+    // (ADR 0016), written gitignored into packages/wasm/dist/, and their tests.
+    ws.cargo(&args)?;
+    wasm::build(ws)
 }
 
 fn cargo_deny(ws: &Workspace) -> Result<()> {

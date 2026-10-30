@@ -6,16 +6,27 @@
 pub(crate) mod color;
 pub(crate) mod image;
 pub(crate) mod path;
+mod png;
 pub(crate) mod style;
+#[cfg(feature = "text")]
 pub(crate) mod text;
+#[cfg(feature = "text")]
 pub(crate) mod textbox;
 
 use lamina_model::{PageFrame, PointPt, Pt, RectPt, UserSpaceRect};
+#[cfg(feature = "text")]
 use lamina_text::{Alignment, FontRegistry, TjElement, pdf_run};
-use pdf_writer::types::{ColorSpaceOperand, LineCapStyle, LineJoinStyle, TextRenderingMode};
-use pdf_writer::{Content, Name, Str, TextStr};
+#[cfg(feature = "text")]
+use pdf_writer::types::TextRenderingMode;
+use pdf_writer::types::{ColorSpaceOperand, LineCapStyle, LineJoinStyle};
+use pdf_writer::{Content, Name};
+#[cfg(feature = "text")]
+use pdf_writer::{Str, TextStr};
 
-use crate::error::{Error, Result};
+use crate::annot::link::LinkSpec;
+#[cfg(feature = "text")]
+use crate::error::Error;
+use crate::error::Result;
 use crate::nav::LinkTarget;
 use crate::nav::dest::fit_is_valid;
 use crate::resources::{GsKey, PageResources};
@@ -23,7 +34,9 @@ use color::Color;
 use image::Image;
 use path::{FillRule, Matrix, PathBuilder, Segment};
 use style::{BlendMode, LineCap, LineJoin, StrokeStyle};
-use text::{Font, LinkSpec, Spec, TextCommand, TextRenderMode, TextRun, lay_out};
+#[cfg(feature = "text")]
+use text::{Font, Spec, TextCommand, TextRenderMode, TextRun, lay_out};
+#[cfg(feature = "text")]
 use textbox::{LineBox, Overflow, TextBoxOptions, TextLayout};
 
 /// How a path is painted.
@@ -46,6 +59,7 @@ enum Command {
     State(GsKey),
     Paint(Vec<Segment>, Paint),
     Image(Image, RectPt),
+    #[cfg(feature = "text")]
     Text(Box<TextCommand>),
     /// A link annotation over a page-space rectangle (already through the transform).
     Link(RectPt, LinkSpec),
@@ -61,7 +75,9 @@ pub(crate) struct Rendered {
 /// What text needs while a page is written: the document's fonts and the document, where
 /// a font's object number is reserved at its first use.
 pub(crate) struct TextTarget<'a> {
+    #[cfg(feature = "text")]
     pub(crate) fonts: &'a mut FontRegistry,
+    #[cfg_attr(not(feature = "text"), expect(dead_code, reason = "only text reserves font objects"))]
     pub(crate) doc: &'a lamina_cos::Document,
 }
 
@@ -182,6 +198,7 @@ impl<'s> PendingPath<'s> {
 }
 
 /// A font size must be finite and positive.
+#[cfg(feature = "text")]
 fn check_size(size: Pt) -> Result<()> {
     if size.get().is_finite() && size.get() > 0.0 {
         Ok(())
@@ -278,10 +295,12 @@ impl Surface {
     }
 
     /// Whether anything drawn is text (so finishing the page records glyphs).
+    #[cfg(feature = "text")]
     pub(crate) fn has_text(&self) -> bool {
         self.commands.iter().any(|c| matches!(c, Command::Text(_)))
     }
 
+    #[cfg(feature = "text")]
     pub(crate) fn text_command(&self, index: usize) -> Option<&TextCommand> {
         match self.commands.get(index) {
             Some(Command::Text(t)) => Some(t),
@@ -289,6 +308,7 @@ impl Surface {
         }
     }
 
+    #[cfg(feature = "text")]
     pub(crate) fn text_command_mut(&mut self, index: usize) -> Option<&mut TextCommand> {
         match self.commands.get_mut(index) {
             Some(Command::Text(t)) => Some(t),
@@ -314,6 +334,7 @@ impl Surface {
     /// (`missing-glyph`) or can't be read.
     ///
     /// [ADR 0027]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0027-coordinates-units-and-page-indexing.md
+    #[cfg(feature = "text")]
     pub fn text(&mut self, text: &str, font: &Font, size: Pt, at: PointPt) -> Result<TextRun<'_>> {
         check_size(size)?;
         if !(at.x.get().is_finite() && at.y.get().is_finite()) {
@@ -335,6 +356,7 @@ impl Surface {
         Ok(self.push_text(spec, at, 1.2 * size.get(), lines))
     }
 
+    #[cfg(feature = "text")]
     fn push_text(&mut self, spec: Spec, origin: PointPt, leading: f64, lines: Vec<text::LaidLine>) -> TextRun<'_> {
         let index = self.commands.len();
         self.commands.push(Command::Text(Box::new(TextCommand {
@@ -386,6 +408,7 @@ impl Surface {
     /// As [`Surface::text`]; [`Error::InvalidGeometry`] for a rectangle that isn't finite or
     /// has no width, or a line height that isn't finite and positive;
     /// [`Error::TextOverflow`] with [`Overflow::Error`].
+    #[cfg(feature = "text")]
     pub fn text_box(
         &mut self,
         text: &str,
@@ -484,6 +507,10 @@ impl Surface {
     }
 
     /// The content stream for a page with `frame`, registering the resources it names.
+    #[cfg_attr(
+        not(feature = "text"),
+        expect(clippy::unnecessary_wraps, reason = "only text can fail while a page is written")
+    )]
     pub(crate) fn render(
         &self,
         frame: &PageFrame,
@@ -501,10 +528,14 @@ impl Surface {
             state: State::default(),
             saved: Vec::new(),
         };
+        // Only text writes through the target (fonts are reserved at first use).
+        #[cfg(not(feature = "text"))]
+        let _ = target;
         let mut links = Vec::new();
         for command in &self.commands {
             match command {
                 Command::Link(rect, link) => links.push((frame.rect_to_user_space(rect), link.clone())),
+                #[cfg(feature = "text")]
                 Command::Text(t) => {
                     out.text(t, resources, target)?;
                     if let (Some(link), Some(bounds)) = (&t.link, t.bounds()) {
@@ -533,6 +564,7 @@ struct State {
     stroke: Option<Color>,
     line: Option<StrokeStyle>,
     /// `Tr` (0, fill, at the start of a page: text state is part of the graphics state).
+    #[cfg(feature = "text")]
     mode: TextRenderMode,
 }
 
@@ -582,7 +614,9 @@ impl Writer {
             }
             Command::Paint(segments, paint) => self.paint(segments, paint),
             // Written by `render` itself (they need the fonts or produce annotations).
-            Command::Text(_) | Command::Link(..) => {}
+            #[cfg(feature = "text")]
+            Command::Text(_) => {}
+            Command::Link(..) => {}
             Command::Image(image, r) => {
                 let name = resources.image(image);
                 let (w, h) = (r.width().get(), r.height().get());
@@ -601,6 +635,7 @@ impl Writer {
     /// `Tm` at the run's origin and its `TJ` arrays, with `Ts` rises and `/ActualText` spans
     /// where `pdf_run` asks for them; `ET`. A run with its own fill colour is wrapped in
     /// `q … Q`.
+    #[cfg(feature = "text")]
     fn text(&mut self, t: &TextCommand, resources: &mut PageResources, target: &mut TextTarget<'_>) -> Result<()> {
         if t.lines.iter().all(|l| l.content.is_empty()) {
             return Ok(());
@@ -689,6 +724,7 @@ impl Writer {
 
     /// `Tm` placing text space's origin at `(x, baseline)` in page space, upright as
     /// displayed (text space is y up, page space y down).
+    #[cfg(feature = "text")]
     fn text_matrix(&mut self, x: f64, baseline: f64) {
         let place = Matrix::new([1.0, 0.0, 0.0, -1.0, x, baseline]);
         self.content.set_text_matrix(matrix(&self.to_user.after(&place)));

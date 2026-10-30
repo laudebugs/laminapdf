@@ -23,14 +23,17 @@ publish = false
 
 [workspace.dependencies]
 # Internal crates are added here as `lamina-x = { path = "crates/lamina-x" }`.
-lamina-syntax = { path = "crates/lamina-syntax" }
-lamina-cos = { path = "crates/lamina-cos" }
+# No default features: `saslprep` (R5/R6 passwords, ~130 KB of Unicode tables in WASM) is asked
+# for by the crates and builds that want it (lamina-cos and the façade by default; ADR 0016 §5).
+lamina-syntax = { path = "crates/lamina-syntax", default-features = false }
+lamina-cos = { path = "crates/lamina-cos", default-features = false }
 lamina-model = { path = "crates/lamina-model" }
 lamina-ops = { path = "crates/lamina-ops" }
 lamina-save = { path = "crates/lamina-save" }
 lamina-content = { path = "crates/lamina-content" }
 lamina-text = { path = "crates/lamina-text" }
-lamina-build = { path = "crates/lamina-build" }
+# No default features: dependents ask for `text` (fonts and text) explicitly (ADR 0016 §4).
+lamina-build = { path = "crates/lamina-build", default-features = false }
 lamina = { path = "crates/lamina", default-features = false }
 
 # Flate (zlib) codec, pure Rust; `with-alloc` is the default feature, named so it stays on.
@@ -101,6 +104,12 @@ tsify = { version = "0.5.8", default-features = false, features = ["js"] }
 # Edge-only (xtask portability): reachable from a core crate only through that optional feature.
 # MIT OR Apache-2.0
 wasm-bindgen = { version = "0.2.129", default-features = false }
+# lamina-wasm's JS values (objects, Uint8Array) and serde ↔ JS conversion (ADR 0002: tsify's
+# `js` mode is serde-wasm-bindgen). Edge-only. MIT OR Apache-2.0
+js-sys = { version = "0.3.106", default-features = false, features = ["std"] }
+serde-wasm-bindgen = { version = "0.6.5", default-features = false }
+# lamina-wasm's tests in a wasm runtime (Node), dev-dependency only. MIT OR Apache-2.0
+wasm-bindgen-test = { version = "0.3", default-features = false, features = ["std"] }
 # Property tests (ADR 0018 tier 5), dev-dependency only; `std` without the fork/timeout runner
 # (which needs processes and temp files). MIT OR Apache-2.0
 proptest = { version = "1.12.0", default-features = false, features = ["std"] }
@@ -110,6 +119,9 @@ toml = { version = "1.1.8", default-features = false, features = ["std", "parse"
 # library dependency. No default features: no rayon and no plotters backend (criterion-plot, a
 # non-optional dependency, still builds but draws nothing). Apache-2.0 OR MIT
 criterion = { version = "0.8.2", default-features = false, features = ["cargo_bench_support"] }
+# Brotli sizes in `cargo xtask size` (xtask only). No default features: compression only, no
+# SIMD. BSD-3-Clause AND MIT (alloc-no-stdlib, alloc-stdlib, brotli-decompressor: BSD-3-Clause OR MIT)
+brotli = { version = "9.1.1", default-features = false, features = ["std"] }
 # Markdown links and headings for `cargo xtask docs-links`; no default features (they add HTML
 # output and a CLI). MIT (dependencies bitflags, memchr, unicase: MIT OR Apache-2.0)
 pulldown-cmark = { version = "0.13.5", default-features = false }
@@ -153,6 +165,10 @@ debug = "line-tables-only"
 opt-level = 3
 [profile.dev.package.adler2]
 opt-level = 3
+# `cargo xtask size` compresses megabytes of WASM at brotli's highest quality; unoptimised it
+# takes minutes.
+[profile.dev.package.brotli]
+opt-level = 3
 
 [profile.release]
 lto = "thin"
@@ -160,8 +176,11 @@ lto = "thin"
 # Size-optimised profile for WebAssembly builds (`cargo xtask wasm`); the spike's settings.
 [profile.wasm-release]
 inherits = "release"
-opt-level = "s"
+# "z" over "s": a 6–7 % smaller gzip for the WASM modules (ADR 0016 §5).
+opt-level = "z"
 lto = true
 codegen-units = 1
 panic = "abort"
-strip = true
+# Keep the name section: `cargo xtask wasm` strips it with wasm-opt after keeping a named copy
+# for twiggy (`cargo xtask size`).
+strip = "debuginfo"

@@ -163,9 +163,13 @@ pub struct Authenticated {
 fn candidates(password: &[u8], revision: u8) -> Vec<Vec<u8>> {
     let text = std::str::from_utf8(password).ok();
     if revision >= 5 {
+        #[cfg(feature = "saslprep")]
         let prepared = text
             .and_then(|t| stringprep::saslprep(t).ok())
             .map_or_else(|| password.to_vec(), |p| p.as_bytes().to_vec());
+        // Without SASLprep the password is tried as given (feature `saslprep`).
+        #[cfg(not(feature = "saslprep"))]
+        let prepared = password.to_vec();
         let mut out = vec![key::prefix(&prepared, 127).to_vec()];
         let raw = key::prefix(password, 127).to_vec();
         if !out.contains(&raw) {

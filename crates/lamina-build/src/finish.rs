@@ -6,6 +6,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use lamina_cos::{CosMut, Dict, Name, ObjRef, Object, PdfString, Stream};
 use lamina_model::{PageFrame, PageId};
 use lamina_syntax::text::encode_text_string;
+#[cfg(feature = "text")]
 use lamina_text::FontRegistry;
 
 use crate::annot::link::PendingLink;
@@ -29,6 +30,7 @@ fn kids(pages: &[ObjRef]) -> Object {
 }
 
 /// Subsets and writes every font text was drawn with.
+#[cfg(feature = "text")]
 fn write_fonts(cos: &mut CosMut<'_>, state: &mut BuildState) -> Result<()> {
     let fonts = std::mem::replace(&mut state.fonts, FontRegistry::new());
     state.font_warnings.extend_from_slice(fonts.warnings());
@@ -119,6 +121,7 @@ pub(crate) fn finish_appended(doc: &mut lamina_model::Document, mut state: Build
     let written = (|| -> Result<()> {
         append_pages(doc.cos_mut(), &state)?;
         let mut edit = doc.cos_mut().edit();
+        #[cfg(feature = "text")]
         write_fonts(&mut edit, &mut state)?;
         write_links(&mut edit, links)?;
         raise_version(doc.cos_mut(), state.required)
@@ -164,6 +167,7 @@ pub(crate) fn new_document(
     };
     let links = resolve_links(std::mem::take(&mut state.links), &targets)?;
     let mut cos = doc.edit();
+    #[cfg(feature = "text")]
     write_fonts(&mut cos, state)?;
     write_links(&mut cos, links)?;
 

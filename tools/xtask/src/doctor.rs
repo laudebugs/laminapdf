@@ -29,7 +29,10 @@ pub(crate) const QPDF_VERSION: &str = "12.4.2";
 pub(crate) const POPPLER_VERSION: &str = "26.10.0";
 /// Binaryen release for `wasm-opt`. Its output is part of the shipped .wasm, so bump it deliberately
 /// and review the wasm-opt feature list (ADR 0002) whenever this or `rust-toolchain.toml` changes.
-const BINARYEN_VERSION: &str = "133";
+pub(crate) const BINARYEN_VERSION: &str = "133";
+/// twiggy release for the size reports of `cargo xtask size` (the top-items diff when a WASM
+/// module grows more than 5 %).
+const TWIGGY_VERSION: &str = "0.8.0";
 /// HarfBuzz release behind the shaping goldens (`fixtures/shaping/`, written by
 /// `tools/shaping-goldens/goldens.py` with `hb-shape`); `golden --update` skips them on
 /// another version. `crates/lamina-text/tests/shaping_goldens.rs` checks the script's pin.
@@ -204,26 +207,54 @@ fn all_tools(ws: &Workspace) -> Result<Vec<Tool>> {
         qpdf(),
         pdftotext(),
         hb_shape(),
-        Tool {
-            name: "wasm-bindgen-cli",
-            version_command: &["wasm-bindgen", "--version"],
-            fix: match &wasm_bindgen {
-                Some(v) => format!("cargo install wasm-bindgen-cli --locked --version {v}"),
-                None => "not needed until a crate depends on wasm-bindgen".to_owned(),
-            },
-            pin: wasm_bindgen.map_or(Pin::Any, Pin::Exact),
-            optional_for: Some("lamina-wasm (Round B); must match the wasm-bindgen crate in Cargo.lock"),
-        },
-        Tool {
-            name: "wasm-opt",
-            version_command: &["wasm-opt", "--version"],
-            pin: Pin::Exact(BINARYEN_VERSION.to_owned()),
-            fix: format!(
-                "download binaryen version_{BINARYEN_VERSION} from https://github.com/WebAssembly/binaryen/releases"
-            ),
-            optional_for: Some("lamina-wasm size optimisation (Round B)"),
-        },
+        wasm_bindgen_tool(wasm_bindgen),
+        wasm_opt(),
+        twiggy(),
     ])
+}
+
+/// wasm-bindgen-cli at exactly the `wasm-bindgen` crate's version in Cargo.lock (it brings
+/// `wasm-bindgen-test-runner`).
+pub(crate) fn wasm_bindgen(ws: &Workspace) -> Result<Tool> {
+    Ok(wasm_bindgen_tool(locked_version(ws, "wasm-bindgen")?))
+}
+
+fn wasm_bindgen_tool(locked: Option<String>) -> Tool {
+    Tool {
+        name: "wasm-bindgen-cli",
+        version_command: &["wasm-bindgen", "--version"],
+        fix: match &locked {
+            Some(v) => format!("cargo install wasm-bindgen-cli --locked --version {v}"),
+            None => "not needed until a crate depends on wasm-bindgen".to_owned(),
+        },
+        pin: locked.map_or(Pin::Any, Pin::Exact),
+        optional_for: Some("cargo xtask wasm (lamina-wasm); must match the wasm-bindgen crate in Cargo.lock"),
+    }
+}
+
+/// binaryen's `wasm-opt` on `PATH`. Optional: `cargo xtask wasm` downloads the pinned release
+/// into `target/tools/` (checked against its SHA-256) when `PATH` has no matching one.
+pub(crate) fn wasm_opt() -> Tool {
+    Tool {
+        name: "wasm-opt",
+        version_command: &["wasm-opt", "--version"],
+        pin: Pin::Exact(BINARYEN_VERSION.to_owned()),
+        fix: format!(
+            "nothing to do: cargo xtask wasm downloads binaryen version_{BINARYEN_VERSION} into target/tools/"
+        ),
+        optional_for: Some("cargo xtask wasm (fetched into target/tools/ when missing)"),
+    }
+}
+
+/// twiggy, for the top-items diff of `cargo xtask size`.
+pub(crate) fn twiggy() -> Tool {
+    Tool {
+        name: "twiggy",
+        version_command: &["twiggy", "--version"],
+        pin: Pin::Exact(TWIGGY_VERSION.to_owned()),
+        fix: format!("cargo install twiggy --locked --version {TWIGGY_VERSION}"),
+        optional_for: Some("cargo xtask size (the top-items diff when a WASM module grows more than 5 %)"),
+    }
 }
 
 /// Poppler's `pdftotext` at [`POPPLER_VERSION`] (optional: only regenerating the text

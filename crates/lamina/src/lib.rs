@@ -84,8 +84,10 @@
 //!
 //! # Features
 //!
-//! * `text` (default): fonts and the builder (`lamina-text`, `lamina-build`). Without it the
-//!   crate opens, reads, edits and saves only: the structure-only build for WASM splitting.
+//! * `build`: the builder without text (`lamina-build`): pages, paths, colour, images,
+//!   links, navigation and metadata; the WASM base module's builder (ADR 0016 §4).
+//! * `text` (default; implies `build`): fonts and text (`lamina-text`). Without either, the
+//!   crate opens, reads, edits and saves only.
 //!
 //! This crate is part of lamina's pure core: no file system, network, clocks or threads.
 //!
@@ -94,7 +96,7 @@
 //! [ADR 0028]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0028-facade-rules-jobs-and-cancellation.md
 #![forbid(unsafe_code)]
 
-#[cfg(feature = "text")]
+#[cfg(feature = "build")]
 mod builder;
 mod codes;
 mod data;
@@ -114,29 +116,35 @@ pub use error::{Error, Result};
 pub use job::{Budget, CancelToken, Phase, SaveJob, Step};
 pub use warning::{Warning, WarningCursor};
 
+#[cfg(feature = "build")]
+pub use lamina_build::Error as BuildError;
 /// The wrapped errors, for matching on [`Error`]'s variants.
 pub use lamina_cos::Error as CosError;
 pub use lamina_ops::Error as OpsError;
 pub use lamina_save::{SaveError, SinkError};
 #[cfg(feature = "text")]
-pub use {lamina_build::Error as BuildError, lamina_text::Error as TextError};
+pub use lamina_text::Error as TextError;
 
 pub use lamina_cos::{ByteSource, ErrorKind, Limit, Limits, Location, OpenOptions, Position};
 pub use lamina_model::{PageId, PdfDate, PointPt, Pt, RectPt, Rotation};
 pub use lamina_ops::{InfoPatch, Op, OpLog, RotatePage, SetInfo, UndoOutcome};
 pub use lamina_save::{IncrementalOutput, Renumber, SaveMode, SaveOptions, SaveReport, XrefEol, XrefKind};
 
-#[cfg(feature = "text")]
+#[cfg(feature = "build")]
 pub use builder::Builder;
 /// A font registered with a [`Builder`], to draw text with ([`Surface::text`]).
 #[cfg(feature = "text")]
 pub use lamina_build::Font as FontHandle;
 #[cfg(feature = "text")]
 pub use lamina_build::{
-    Alignment, BlendMode, BuildOptions, Color, Dash, Direction, EmbedPolicy, Feature, FillRule, Fit, IccProfile, Image,
-    ImageFormat, LabelStyle, LineBox, LineCap, LineJoin, LinkTarget, Matrix, Metadata, OutlineEntry, OutlineItemId,
-    Overflow, PageBuilder, PageLabel, PageLayout, PageMode, PageSize, PathBuilder, PdfVersion, PendingPath, PngOptions,
-    Standard14, StrokeStyle, Surface, TextBoxOptions, TextLayout, TextRenderMode, TextRun, ViewerPreferences,
+    Alignment, Direction, EmbedPolicy, Feature, LineBox, Overflow, Standard14, TextBoxOptions, TextLayout,
+    TextRenderMode, TextRun,
+};
+#[cfg(feature = "build")]
+pub use lamina_build::{
+    BlendMode, BuildOptions, Color, Dash, FillRule, Fit, IccProfile, Image, ImageFormat, LabelStyle, LineCap, LineJoin,
+    LinkTarget, Matrix, Metadata, OutlineEntry, OutlineItemId, PageBuilder, PageLabel, PageLayout, PageMode, PageSize,
+    PathBuilder, PdfVersion, PendingPath, PngOptions, StrokeStyle, Surface, ViewerPreferences,
 };
 /// A font loaded from its bytes (TrueType, OpenType/CFF, collections, variable instances).
 #[cfg(feature = "text")]

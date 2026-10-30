@@ -1,0 +1,38 @@
+{
+  "name": "@lamina/wasm",
+  "version": "0.0.0",
+  "private": true,
+  "description": "lamina's WebAssembly modules and their wasm-bindgen glue: lamina_base (open, read, edit, save, vector and image pages) and lamina_text (all of base plus fonts and text). Generated into dist/ by `cargo xtask wasm`; @lamina/pdf is the API to use.",
+  "license": "MIT OR Apache-2.0",
+  "type": "module",
+  "sideEffects": false,
+  "engines": {
+    "node": ">=22"
+  },
+  "files": [
+    "dist"
+  ],
+  "exports": {
+    "./base": {
+      "types": "./dist/lamina_base.d.ts",
+      "default": "./dist/lamina_base.js"
+    },
+    "./text": {
+      "types": "./dist/lamina_text.d.ts",
+      "default": "./dist/lamina_text.js"
+    },
+    "./lamina_base.wasm": "./dist/lamina_base.wasm",
+    "./lamina_text.wasm": "./dist/lamina_text.wasm",
+    "./package.json": "./package.json"
+  },
+  "scripts": {
+    "typecheck:wasm": "tsc --noEmit -p tsconfig.json",
+    "test:wasm": "tsc --noEmit -p tsconfig.json && vitest run"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "esbuild": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

@@ -4,10 +4,18 @@ packages:
   - packages/*
   - apps/*
 
+# Install scripts that may run. esbuild's postinstall only re-checks the platform binary that
+# its optional dependency already installed, so it stays off.
+allowBuilds:
+  esbuild: false
+
 # Shared third-party versions; packages depend on them with "catalog:" (typescript.md).
 catalog:
   "@biomejs/biome": 2.6.3
+  "@types/node": 24.19.2
+  esbuild: 0.28.2
   typescript: 7.0.2
+  vitest: 5.0.5
 
 # Fail installs on the wrong Node version instead of warning.
 engineStrict: true

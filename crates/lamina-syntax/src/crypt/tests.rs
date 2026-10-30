@@ -265,6 +265,7 @@ mod candidates {
         assert_eq!(candidates("é".as_bytes(), 4), [vec![0xC3, 0xA9], vec![0xE9]]);
     }
 
+    #[cfg(feature = "saslprep")]
     #[test]
     fn r6_applies_saslprep() {
         // U+00A0 NO-BREAK SPACE maps to U+0020 under SASLprep (RFC 4013 §2.1).
