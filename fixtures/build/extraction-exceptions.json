@@ -1,0 +1,69 @@
+{
+  "comment": "Lines of fixtures/build/facts.json where an extractor does not return the text lamina-build drew, each with the extractor's limitation behind it (todo B5b). crates/lamina-build/tests/external.rs requires every other line to equal the drawn text and every entry here to still match the facts.",
+  "exceptions": [
+    {
+      "file": "build-text-multiscript.pdf",
+      "extractor": "pdfjs",
+      "page": 0,
+      "line": 2,
+      "extracted": "नमस्ते दु निया। हिन्दी पाठ का परीक्षण",
+      "reason": "pdf.js treats a glyph whose text contains a nonspacing mark anywhere as a zero-width diacritic (getCharUnicodeCategory's /^(\\s)|(\\p{Mn})|(\\p{Cf})$/u test) and starts a new text item after it: the i-matra glyph standing for “नि” gets a space before it, as on text-shaped.pdf line 5"
+    },
+    {
+      "file": "build-text-multiscript.pdf",
+      "extractor": "pdfjs",
+      "page": 1,
+      "line": 6,
+      "extracted": "नमस्ते दु निया। हिन्दी",
+      "reason": "pdf.js treats a glyph whose text contains a nonspacing mark anywhere as a zero-width diacritic (getCharUnicodeCategory's /^(\\s)|(\\p{Mn})|(\\p{Cf})$/u test) and starts a new text item after it: the i-matra glyph standing for “नि” gets a space before it, as on text-shaped.pdf line 5"
+    },
+    {
+      "file": "build-text-multiscript.pdf",
+      "extractor": "pdftotext",
+      "page": 0,
+      "line": 1,
+      "extracted": "‫مرحبا بالعالم السلام عليكم‬",
+      "reason": "pdftotext writes right-to-left text as it is displayed, each right-to-left phrase wrapped in U+202B…U+202C embeddings (as on text-shaped.pdf lines 3, 4 and 7)"
+    },
+    {
+      "file": "build-text-multiscript.pdf",
+      "extractor": "pdftotext",
+      "page": 0,
+      "line": 3,
+      "extracted": "‫שלום עולם וברוכים הבאים‬",
+      "reason": "pdftotext writes right-to-left text as it is displayed, each right-to-left phrase wrapped in U+202B…U+202C embeddings (as on text-shaped.pdf lines 3, 4 and 7)"
+    },
+    {
+      "file": "build-text-multiscript.pdf",
+      "extractor": "pdftotext",
+      "page": 1,
+      "line": 4,
+      "extracted": "‫مرحبا بالعالم السلام‬",
+      "reason": "pdftotext writes right-to-left text as it is displayed, each right-to-left phrase wrapped in U+202B…U+202C embeddings (as on text-shaped.pdf lines 3, 4 and 7)"
+    },
+    {
+      "file": "build-text-multiscript.pdf",
+      "extractor": "pdftotext",
+      "page": 1,
+      "line": 5,
+      "extracted": "‫عليكم‬",
+      "reason": "pdftotext writes right-to-left text as it is displayed, each right-to-left phrase wrapped in U+202B…U+202C embeddings (as on text-shaped.pdf lines 3, 4 and 7)"
+    },
+    {
+      "file": "build-text-multiscript.pdf",
+      "extractor": "pdftotext",
+      "page": 1,
+      "line": 8,
+      "extracted": "‫שלום עולם‬",
+      "reason": "pdftotext writes right-to-left text as it is displayed, each right-to-left phrase wrapped in U+202B…U+202C embeddings (as on text-shaped.pdf lines 3, 4 and 7)"
+    },
+    {
+      "file": "build-text-multiscript.pdf",
+      "extractor": "pdftotext",
+      "page": 1,
+      "line": 9,
+      "extracted": "‫וברוכים הבאים‬",
+      "reason": "pdftotext writes right-to-left text as it is displayed, each right-to-left phrase wrapped in U+202B…U+202C embeddings (as on text-shaped.pdf lines 3, 4 and 7)"
+    }
+  ]
+}

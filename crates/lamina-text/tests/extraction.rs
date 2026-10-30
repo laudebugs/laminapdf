@@ -197,6 +197,7 @@ fn pdfjs_scripts_pin_the_doctor_version() {
     let pinned_version = pinned(&doctor, "const PDFJS_DIST_VERSION: &str =");
     for script in [
         "../tools/fixtures/pdfjs_text.mjs",
+        "../tools/fixtures/pdfjs_build.mjs",
         "../tools/corpus-facts/pdfjs-operators.mjs",
         "../tools/roundtrip/pdfjs.mjs",
     ] {

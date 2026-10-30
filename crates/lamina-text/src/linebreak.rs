@@ -61,7 +61,12 @@ pub fn grapheme_boundaries(text: &str) -> Vec<usize> {
 }
 
 /// Whether `ch` is a hard line break (classes `BK`, `CR`, `LF`, `NL`; rules LB4–LB5).
-pub(crate) fn is_hard_break(ch: char) -> bool {
+///
+/// ```
+/// assert!(lamina_text::is_hard_break('\n') && !lamina_text::is_hard_break(' '));
+/// ```
+#[must_use]
+pub fn is_hard_break(ch: char) -> bool {
     matches!(
         CodePointMapData::<LineBreak>::new().get(ch),
         LineBreak::MandatoryBreak | LineBreak::CarriageReturn | LineBreak::LineFeed | LineBreak::NextLine
@@ -70,8 +75,13 @@ pub(crate) fn is_hard_break(ch: char) -> bool {
 
 /// Whether `ch` hangs at the end of a line instead of taking space: spaces and the like
 /// (classes `SP`, `ZW`, and the hard breaks), which UAX #14 lets a line end with and which
-/// alignment ignores.
-pub(crate) fn is_trailing_space(ch: char) -> bool {
+/// alignment ignores. Shared with `lamina-build`'s unshaped (standard 14) layout.
+///
+/// ```
+/// assert!(lamina_text::is_trailing_space(' ') && !lamina_text::is_trailing_space('a'));
+/// ```
+#[must_use]
+pub fn is_trailing_space(ch: char) -> bool {
     matches!(
         CodePointMapData::<LineBreak>::new().get(ch),
         LineBreak::Space | LineBreak::ZWSpace

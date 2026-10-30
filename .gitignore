@@ -33,6 +33,8 @@ node_modules/
 !.yarn/releases
 dist/
 build/
+# Committed fixtures (lamina-build's facts), not build output.
+!fixtures/build/
 out/
 coverage/
 .turbo/

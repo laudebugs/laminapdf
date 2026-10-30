@@ -42,16 +42,26 @@
 //!   page in order of first use (`GS1`, `Im1`, `CS1`) and every image, profile and
 //!   `ExtGState` is written once per document.
 //!
-//! Text, links, outlines and metadata are [B5b]'s.
+//! * Text ([B5b]): [`Builder::font`] / [`Builder::standard_font`] give a [`Font`];
+//!   [`Surface::text`] draws a shaped, bidi-resolved run with its **baseline at `y`** and
+//!   returns a [`TextRun`]; [`Surface::text_box`] breaks a paragraph into a rectangle
+//!   ([`TextBoxOptions`], [`TextLayout`]).
+//! * Navigation and metadata ([B5b]): [`Surface::link`] ([`LinkTarget`], [`Fit`]),
+//!   [`Builder::destination`], [`Builder::outline`] ([`OutlineEntry`]),
+//!   [`Builder::page_labels`] ([`PageLabel`]), [`Builder::metadata`] (Info and XMP from one
+//!   [`Metadata`]), [`Builder::lang`], [`Builder::viewer_preferences`].
 //!
 //! [ADR 0005]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0005-document-model.md
 //! [ADR 0027]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0027-coordinates-units-and-page-indexing.md
-//! [B5b]: https://github.com/laudebugs/lamina/blob/main/docs/todos/ongoing/B5b-builder-text-and-document-features.md
+//! [B5b]: https://github.com/laudebugs/lamina/blob/main/docs/todos/done/B5b-builder-text-and-document-features.md
 #![forbid(unsafe_code)]
 
+mod annot;
 mod builder;
 mod error;
 mod finish;
+mod meta;
+mod nav;
 mod page;
 mod resources;
 mod surface;
@@ -63,10 +73,15 @@ mod test_codes;
 
 pub use builder::{Appender, BuildOptions, Builder, PdfVersion};
 pub use error::{Error, ImageFormat, Result};
-pub use lamina_model::{PageFrame, PageId, PointPt, Pt, RectPt, Rotation};
+pub use lamina_model::{LabelStyle, OutlineItemId, PageFrame, PageId, PdfDate, PointPt, Pt, RectPt, Rotation};
+pub use lamina_text::{Alignment, Direction, EmbedPolicy, Feature, Standard14};
+pub use meta::{Metadata, PageLayout, PageMode, ViewerPreferences};
+pub use nav::{Fit, LinkTarget, OutlineEntry, PageLabel};
 pub use page::{PageBuilder, PageSize};
 pub use surface::color::{Color, IccProfile};
 pub use surface::image::{Image, MAX_DECODED_IMAGE_BYTES, PngOptions};
 pub use surface::path::{FillRule, Matrix, PathBuilder};
 pub use surface::style::{BlendMode, Dash, LineCap, LineJoin, StrokeStyle};
+pub use surface::text::{Font, TextRenderMode, TextRun};
+pub use surface::textbox::{LineBox, Overflow, TextBoxOptions, TextLayout};
 pub use surface::{PendingPath, Surface};

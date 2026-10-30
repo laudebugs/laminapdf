@@ -1,0 +1,550 @@
+{
+  "pypdf_version": "6.21.3",
+  "pdfjs_version": "6.4.299",
+  "qpdf_version": "12.4.2",
+  "poppler_version": "26.10.0",
+  "files": {
+    "build-text-latin.pdf": {
+      "sha256": "047bac17dc4c64c68ac767f8fbb2c4c5d1fe147fbbb35218cbe0524d805fcc64",
+      "qpdf_check": true,
+      "pdftotext": {
+        "pages": [
+          [
+            "Hello, world! The office staff fill the affine waffle flask.",
+            "Café crème brûlée, naïve façade: “curly” and ‘single’ quotes",
+            "AVATAR Wave: To Yo! (kerned) and fi without ligatures",
+            "Helvetica: “Curly” ‘quotes’ — and dashes – too",
+            "Times-Roman: The quick brown fox jumps over the lazy dog.",
+            "Invisible but extractable",
+            "Outlined",
+            "The quick brown fox jumps",
+            "over the lazy dog. Pack my",
+            "box with five dozen liquor",
+            "jugs; sphinx of black quartz,",
+            "judge my vow.",
+            "The quick brown fox jumps",
+            "over the lazy dog. Pack my",
+            "box with five dozen liquor",
+            "jugs; sphinx of black quartz,",
+            "judge my vow.",
+            "The quick brown fox jumps",
+            "over the lazy dog. Pack my",
+            "box with five dozen liquor",
+            "jugs; sphinx of black quartz,",
+            "judge my vow.",
+            "The quick brown fox jumps over the lazy dog. Pack my box with five dozen liquor jugs; sphinx of black",
+            "quartz, judge my vow."
+          ]
+        ]
+      },
+      "pypdf": {
+        "pages": [
+          [
+            "Hello, world! The office staff fill the affine waffle flask.",
+            "Café crème brûlée, naïve façade: “curly” and ‘single’ quotes",
+            "AVATAR Wave: To Yo! (kerned) and fi without ligatures",
+            "Helvetica: “Curly” ‘quotes’ — and dashes – too",
+            "Times-Roman: The quick brown fox jumps over the lazy dog.",
+            "Invisible but extractable",
+            "Outlined",
+            "The quick brown fox jumps",
+            "over the lazy dog. Pack my",
+            "box with five dozen liquor",
+            "jugs; sphinx of black quartz,",
+            "judge my vow.",
+            "The quick brown fox jumps",
+            "over the lazy dog. Pack my",
+            "box with five dozen liquor",
+            "jugs; sphinx of black quartz,",
+            "judge my vow.",
+            "The quick brown fox jumps",
+            "over the lazy dog. Pack my",
+            "box with five dozen liquor",
+            "jugs; sphinx of black quartz,",
+            "judge my vow.",
+            "The quick brown fox jumps over the lazy dog. Pack my box with five dozen liquor jugs; sphinx of black",
+            "quartz, judge my vow."
+          ]
+        ],
+        "links": [
+          []
+        ],
+        "outline": [],
+        "destinations": {},
+        "page_labels": [
+          "1"
+        ],
+        "info": {
+          "Producer": "lamina-build golden",
+          "CreationDate": "D:20261029120000Z"
+        },
+        "xmp": {}
+      },
+      "pdfjs": {
+        "pages": [
+          [
+            "Hello, world! The office staff fill the affine waffle flask.",
+            "Café crème brûlée, naïve façade: “curly” and ‘single’ quotes",
+            "AVATAR Wave: To Yo! (kerned) and fi without ligatures",
+            "Helvetica: “Curly” ‘quotes’ — and dashes – too",
+            "Times-Roman: The quick brown fox jumps over the lazy dog.",
+            "Invisible but extractable",
+            "Outlined",
+            "The quick brown fox jumps",
+            "over the lazy dog. Pack my",
+            "box with five dozen liquor",
+            "jugs; sphinx of black quartz,",
+            "judge my vow.",
+            "The quick brown fox jumps",
+            "over the lazy dog. Pack my",
+            "box with five dozen liquor",
+            "jugs; sphinx of black quartz,",
+            "judge my vow.",
+            "The quick brown fox jumps",
+            "over the lazy dog. Pack my",
+            "box with five dozen liquor",
+            "jugs; sphinx of black quartz,",
+            "judge my vow.",
+            "The quick brown fox jumps over the lazy dog. Pack my box with five dozen liquor jugs; sphinx of black",
+            "quartz, judge my vow."
+          ]
+        ],
+        "links": [
+          []
+        ],
+        "outline": [],
+        "destinations": {},
+        "page_labels": null,
+        "info": {
+          "Producer": "lamina-build golden",
+          "CreationDate": "D:20261029120000Z"
+        },
+        "xmp": {}
+      }
+    },
+    "build-text-multiscript.pdf": {
+      "sha256": "219ecf6df797310319a814396853e21bb90c27b133a2cc608917e70697ee2c56",
+      "qpdf_check": true,
+      "pdftotext": {
+        "pages": [
+          [
+            "Latin: the office staff fill the affine waffle flask",
+            "‫مرحبا بالعالم السلام عليكم‬",
+            "नमस्ते दुनिया। हिन्दी पाठ का परीक्षण",
+            "‫שלום עולם וברוכים הבאים‬",
+            "你好世界，这是中文字体子集测试。"
+          ],
+          [
+            "Latin: the office",
+            "staff fill the",
+            "affine waffle",
+            "flask",
+            "‫مرحبا بالعالم السلام‬",
+            "‫عليكم‬",
+            "नमस्ते दुनिया। हिन्दी",
+            "पाठ का परीक्षण",
+            "‫שלום עולם‬",
+            "‫וברוכים הבאים‬",
+            "你好世界，这是",
+            "中文字体子集测",
+            "试。"
+          ]
+        ]
+      },
+      "pypdf": {
+        "pages": [
+          [
+            "Latin: the office staff fill the affine waffle flask",
+            "مرحبا بالعالم السلام عليكم",
+            "नमस्ते दुनिया। हिन्दी पाठ का परीक्षण",
+            "שלום עולם וברוכים הבאים",
+            "你好世界，这是中文字体子集测试。"
+          ],
+          [
+            "Latin: the office",
+            "staff fill the",
+            "affine waffle",
+            "flask",
+            "مرحبا بالعالم السلام",
+            "عليكم",
+            "नमस्ते दुनिया। हिन्दी",
+            "पाठ का परीक्षण",
+            "שלום עולם",
+            "וברוכים הבאים",
+            "你好世界，这是",
+            "中文字体子集测",
+            "试。"
+          ]
+        ],
+        "links": [
+          [],
+          []
+        ],
+        "outline": [],
+        "destinations": {},
+        "page_labels": [
+          "1",
+          "2"
+        ],
+        "info": {
+          "Producer": "lamina-build golden",
+          "CreationDate": "D:20261029120000Z"
+        },
+        "xmp": {}
+      },
+      "pdfjs": {
+        "pages": [
+          [
+            "Latin: the office staff fill the affine waffle flask",
+            "مرحبا بالعالم السلام عليكم",
+            "नमस्ते दु निया। हिन्दी पाठ का परीक्षण",
+            "שלום עולם וברוכים הבאים",
+            "你好世界，这是中文字体子集测试。"
+          ],
+          [
+            "Latin: the office",
+            "staff fill the",
+            "affine waffle",
+            "flask",
+            "مرحبا بالعالم السلام",
+            "عليكم",
+            "नमस्ते दु निया। हिन्दी",
+            "पाठ का परीक्षण",
+            "שלום עולם",
+            "וברוכים הבאים",
+            "你好世界，这是",
+            "中文字体子集测",
+            "试。"
+          ]
+        ],
+        "links": [
+          [],
+          []
+        ],
+        "outline": [],
+        "destinations": {},
+        "page_labels": null,
+        "info": {
+          "Producer": "lamina-build golden",
+          "CreationDate": "D:20261029120000Z"
+        },
+        "xmp": {}
+      }
+    },
+    "links-and-outlines.pdf": {
+      "sha256": "f3c6abdc7a60482d259e5ff4b68d079eaeb4373723bf6b9a5961adf9d610df49",
+      "qpdf_check": true,
+      "pdftotext": {
+        "pages": [
+          [
+            "Title page",
+            "Visit example.com",
+            "Go to chapter 1",
+            "Go to chapter 2 (named)",
+            "Contents (a linked run)"
+          ],
+          [
+            "Contents"
+          ],
+          [
+            "Chapter 1"
+          ],
+          [
+            "Chapter 2"
+          ]
+        ]
+      },
+      "pypdf": {
+        "pages": [
+          [
+            "Title page",
+            "Visit example.com",
+            "Go to chapter 1",
+            "Go to chapter 2 (named)",
+            "Contents (a linked run)"
+          ],
+          [
+            "Contents"
+          ],
+          [
+            "Chapter 1"
+          ],
+          [
+            "Chapter 2"
+          ]
+        ],
+        "links": [
+          [
+            {
+              "url": "https://example.com/lamina?q=links&lang=en"
+            },
+            {
+              "page": 2
+            },
+            {
+              "page": 3
+            },
+            {
+              "page": 1
+            }
+          ],
+          [],
+          [],
+          []
+        ],
+        "outline": [
+          {
+            "title": "Title page",
+            "depth": 0,
+            "page": 0,
+            "url": null
+          },
+          {
+            "title": "Contents",
+            "depth": 0,
+            "page": 1,
+            "url": null
+          },
+          {
+            "title": "Chapters",
+            "depth": 0,
+            "page": null,
+            "url": null
+          },
+          {
+            "title": "Chapter 1",
+            "depth": 1,
+            "page": 2,
+            "url": null
+          },
+          {
+            "title": "Chapter 2",
+            "depth": 1,
+            "page": 3,
+            "url": null
+          },
+          {
+            "title": "Appendix",
+            "depth": 2,
+            "page": 3,
+            "url": null
+          },
+          {
+            "title": "Website",
+            "depth": 0,
+            "page": null,
+            "url": null
+          }
+        ],
+        "destinations": {
+          "appendix": 3,
+          "chapter-2": 3,
+          "contents": 1
+        },
+        "page_labels": [
+          "i",
+          "ii",
+          "1",
+          "2"
+        ],
+        "info": {
+          "Producer": "lamina-build golden",
+          "CreationDate": "D:20261029120000Z"
+        },
+        "xmp": {}
+      },
+      "pdfjs": {
+        "pages": [
+          [
+            "Title page",
+            "Visit example.com",
+            "Go to chapter 1",
+            "Go to chapter 2 (named)",
+            "Contents (a linked run)"
+          ],
+          [
+            "Contents"
+          ],
+          [
+            "Chapter 1"
+          ],
+          [
+            "Chapter 2"
+          ]
+        ],
+        "links": [
+          [
+            {
+              "url": "https://example.com/lamina?q=links&lang=en"
+            },
+            {
+              "page": 2
+            },
+            {
+              "page": 3
+            },
+            {
+              "page": 1
+            }
+          ],
+          [],
+          [],
+          []
+        ],
+        "outline": [
+          {
+            "title": "Title page",
+            "depth": 0,
+            "page": 0,
+            "url": null,
+            "bold": false,
+            "italic": false
+          },
+          {
+            "title": "Contents",
+            "depth": 0,
+            "page": 1,
+            "url": null,
+            "bold": false,
+            "italic": false
+          },
+          {
+            "title": "Chapters",
+            "depth": 0,
+            "page": null,
+            "url": null,
+            "bold": true,
+            "italic": false
+          },
+          {
+            "title": "Chapter 1",
+            "depth": 1,
+            "page": 2,
+            "url": null,
+            "bold": false,
+            "italic": false
+          },
+          {
+            "title": "Chapter 2",
+            "depth": 1,
+            "page": 3,
+            "url": null,
+            "bold": false,
+            "italic": false
+          },
+          {
+            "title": "Appendix",
+            "depth": 2,
+            "page": 3,
+            "url": null,
+            "bold": false,
+            "italic": true
+          },
+          {
+            "title": "Website",
+            "depth": 0,
+            "page": null,
+            "url": "https://example.com/lamina?q=links&lang=en",
+            "bold": false,
+            "italic": false
+          }
+        ],
+        "destinations": {
+          "appendix": 3,
+          "chapter-2": 3,
+          "contents": 1
+        },
+        "page_labels": [
+          "i",
+          "ii",
+          "1",
+          "2"
+        ],
+        "info": {
+          "Producer": "lamina-build golden",
+          "CreationDate": "D:20261029120000Z"
+        },
+        "xmp": {}
+      }
+    },
+    "metadata.pdf": {
+      "sha256": "94b924a90540b37dd1c1133f2efc117bc1cf6ef6084090164d8a2575de7fdb23",
+      "qpdf_check": true,
+      "pdftotext": {
+        "pages": [
+          [
+            "Metadata"
+          ]
+        ]
+      },
+      "pypdf": {
+        "pages": [
+          [
+            "Metadata"
+          ]
+        ],
+        "links": [
+          []
+        ],
+        "outline": [],
+        "destinations": {},
+        "page_labels": [
+          "1"
+        ],
+        "info": {
+          "Title": "Metadata golden: Info & XMP <in sync>",
+          "Author": "Ada Lovelace",
+          "Subject": "Info and XMP carry the same values",
+          "Keywords": "pdf, xmp, info, lamina",
+          "Creator": "lamina-build tests",
+          "Producer": "lamina-build golden",
+          "CreationDate": "D:20261029120000Z",
+          "ModDate": "D:20261030083000+01'00'"
+        },
+        "xmp": {
+          "dc:title": "Metadata golden: Info & XMP <in sync>",
+          "dc:creator": "Ada Lovelace",
+          "dc:description": "Info and XMP carry the same values",
+          "pdf:keywords": "pdf, xmp, info, lamina",
+          "pdf:producer": "lamina-build golden",
+          "xmp:creatortool": "lamina-build tests",
+          "xmp:createdate": "2026-10-29T12:00:00",
+          "xmp:modifydate": "2026-10-30T07:30:00"
+        }
+      },
+      "pdfjs": {
+        "pages": [
+          [
+            "Metadata"
+          ]
+        ],
+        "links": [
+          []
+        ],
+        "outline": [],
+        "destinations": {},
+        "page_labels": null,
+        "info": {
+          "Title": "Metadata golden: Info & XMP <in sync>",
+          "Author": "Ada Lovelace",
+          "Subject": "Info and XMP carry the same values",
+          "Keywords": "pdf, xmp, info, lamina",
+          "Creator": "lamina-build tests",
+          "Producer": "lamina-build golden",
+          "CreationDate": "D:20261029120000Z",
+          "ModDate": "D:20261030083000+01'00'"
+        },
+        "xmp": {
+          "dc:title": "Metadata golden: Info & XMP <in sync>",
+          "dc:creator": "Ada Lovelace",
+          "dc:description": "Info and XMP carry the same values",
+          "pdf:keywords": "pdf, xmp, info, lamina",
+          "pdf:producer": "lamina-build golden",
+          "xmp:creatortool": "lamina-build tests",
+          "xmp:createdate": "2026-10-29T12:00:00Z",
+          "xmp:modifydate": "2026-10-30T08:30:00+01:00"
+        }
+      }
+    }
+  }
+}

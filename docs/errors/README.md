@@ -125,3 +125,7 @@ One page per code in [`fixtures/codes.json`](../../fixtures/codes.json), as [ADR
 | [`color-components`](color-components.md) | `usage` |
 | [`invalid-color`](invalid-color.md) | `usage` |
 | [`invalid-geometry`](invalid-geometry.md) | `usage` |
+| [`text-overflow`](text-overflow.md) | `usage` |
+| [`page-index-out-of-range`](page-index-out-of-range.md) | `usage` |
+| [`unknown-destination`](unknown-destination.md) | `usage` |
+| [`invalid-page-labels`](invalid-page-labels.md) | `usage` |

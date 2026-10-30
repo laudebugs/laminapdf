@@ -7,7 +7,7 @@
 | Plan | [pdf-library §7 B5](../../plans/pdf-library.md#b5-builder-and-the-lamina-crate), requirements [§4 F1, F4, F5](../../plans/pdf-library.md#functional) |
 | Round / milestone | Round B (library) — M1 |
 | Depends on | [B1b](./B1b-krilla-fit-spike.md), [B3c](./B3c-save-planner-and-roundtrip.md), [L1a](./L1a-contract-adrs.md) |
-| Blocks | [B5b](../ongoing/B5b-builder-text-and-document-features.md) |
+| Blocks | [B5b](./B5b-builder-text-and-document-features.md) |
 | ADRs | Follows 0027 (coordinates and units, from [L1a](../done/L1a-contract-adrs.md)); implements [0005 §6](../../decisions/0005-document-model.md#6-generation-strategy--option-b-recommended-by-the-krilla-fit-spike-accepted-when-its-pr-merges) (builder writes `New` overlay entries; reserve-then-fill; `pdf_writer::Content`); follows [0001](../../decisions/0001-core-language-and-licence.md) (determinism), [0018](../../decisions/0018-test-strategy.md) tier 3 |
 | Branch | `feat/b5a-lamina-build` |
 | PR title | `feat(build): lamina-build with pages, paths, colour, opacity and images` |
@@ -16,7 +16,7 @@
 
 ## Goal
 
-Create the generation API everything else hangs off: `Builder → page → surface → finish() → Document`, writing directly into a `Document` whose base is empty (or, later, an existing document's overlay), with vector graphics, colour, opacity, clipping and images. Promote the spike's content builder and golden samples (`hello`, `imaging_demo`), today test support in `crates/lamina-cos/tests/common/`, into this crate. Text and document-level features follow in [B5b](../ongoing/B5b-builder-text-and-document-features.md).
+Create the generation API everything else hangs off: `Builder → page → surface → finish() → Document`, writing directly into a `Document` whose base is empty (or, later, an existing document's overlay), with vector graphics, colour, opacity, clipping and images. Promote the spike's content builder and golden samples (`hello`, `imaging_demo`), today test support in `crates/lamina-cos/tests/common/`, into this crate. Text and document-level features follow in [B5b](../done/B5b-builder-text-and-document-features.md).
 
 ## Context
 
@@ -40,7 +40,7 @@ Create the generation API everything else hangs off: `Builder → page → surfa
 
 **Out of scope** (and which todo covers it)
 
-- Text, links, outlines, destinations, page labels, metadata/XMP, viewer preferences: [B5b](../ongoing/B5b-builder-text-and-document-features.md).
+- Text, links, outlines, destinations, page labels, metadata/XMP, viewer preferences: [B5b](../done/B5b-builder-text-and-document-features.md).
 - The `lamina` façade and Rust examples: [B5c](../ready/B5c-lamina-facade-and-examples.md).
 - Tagging and conformance: [B8a](../ready/B8a-structure-tree.md), [B8b](../ready/B8b-conformance-profiles-and-verapdf.md).
 - Shadings, patterns, Form XObjects as API: later (full-editor E6).

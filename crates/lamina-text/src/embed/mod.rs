@@ -74,7 +74,7 @@ pub struct EmbeddedFont {
     pub warnings: Vec<Warning>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 struct Slot {
     font: Font,
     usage: Usage,
@@ -142,7 +142,7 @@ impl<'a> FontUsage<'a> {
 }
 
 /// How one font is written.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 enum Usage {
     /// An embedded font: a Type 0 font over a subset.
     Embedded(FontUse),
@@ -180,7 +180,10 @@ enum Usage {
 /// assert!(embedded[0].base_font.ends_with("+NotoSans-Regular"));
 /// # Ok::<(), Box<dyn std::error::Error>>(())
 /// ```
-#[derive(Debug)]
+///
+/// Cloning snapshots the registry (same identity, so its keys stay valid): the builder keeps
+/// one to restore when a page fails half-way, so nothing that page recorded is written.
+#[derive(Debug, Clone)]
 pub struct FontRegistry {
     id: u32,
     slots: Vec<Slot>,
