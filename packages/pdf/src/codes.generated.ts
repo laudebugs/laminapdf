@@ -261,6 +261,6 @@ export const RAISED_BY_PACKAGE = {
   },
   "text-module-not-loaded": {
     kind: "state",
-    hint: "await init({ text: true }) (or loadText()) before creating the builder that draws text",
+    hint: "load the text module with init and the text option, or with loadText, before creating the builder that draws text",
   },
 } as const;
