@@ -1,8 +1,8 @@
-//! Fonts and text layout for generated PDFs (todos B4a, B4b; [ADR 0005] §6): load TrueType/OpenType/CFF fonts and
+//! Fonts and text layout for generated PDFs (todos B4a, B4b, B4d; [ADR 0005] §6): load TrueType/OpenType/CFF fonts and
 //! collection members from caller-supplied bytes, pick variable-font instances, track the
 //! glyphs a document uses, and at the end write each font as a deterministic subset: a Type 0
 //! font with Identity-H, a `CIDFontType2` (TrueType outlines, `/FontFile2`,
-//! `/CIDToGIDMap /Identity`) or `CIDFontType0` (CFF outlines, `/FontFile3 /CIDFontType0C`)
+//! `/CIDToGIDMap /Identity`, or a stream once a glyph has several CIDs) or `CIDFontType0` (CFF outlines, `/FontFile3 /CIDFontType0C`)
 //! descendant with compressed `/W` widths, and a ToUnicode CMap, so text is selectable and
 //! extractable (ISO 32000-2 §9.6–9.10; research 03 §3.5–6).
 //!
@@ -30,8 +30,9 @@
 //! * [`FsType`] / [`EmbedPolicy`]: a restricted-licence or bitmap-only font fails with
 //!   [`Error::FontNotEmbeddable`] unless the caller overrides; a "no subsetting" font is
 //!   embedded whole.
-//! * [`FontUse`]: per font, glyph → CID (dense, in order of first use) and CID → text.
-//!   One glyph used for two texts keeps the first and reports [`Warning::ToUnicodeConflict`].
+//! * [`FontUse`]: per font, one CID per (glyph, text) (dense, in order of first use) and
+//!   CID → text, so every use extracts exactly. With CFF outlines a glyph keeps one CID and
+//!   its first text, and a second text reports [`Warning::ToUnicodeConflict`].
 //! * [`FontRegistry`]: per document; [`FontRegistry::reference`] reserves the font object in
 //!   the overlay at first use, [`FontRegistry::encode`] / [`FontRegistry::use_glyph`] return
 //!   the bytes to show ([`GlyphCode`]: a two-byte CID or a one-byte code),

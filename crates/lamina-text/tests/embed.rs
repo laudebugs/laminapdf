@@ -1,5 +1,6 @@
 //! Type 0 embedding read back with lamina-cos: the font dictionaries, the font program, `/W`
-//! against the subset's `hmtx`, subset tags and determinism (todo B4a).
+//! against the subset's `hmtx`, subset tags and determinism (todo B4a); `/CIDToGIDMap`
+//! streams for glyphs drawn with several texts (todo B4d).
 #![allow(clippy::unwrap_used, reason = "tests: a panic is a test failure")]
 
 mod common;
@@ -340,4 +341,70 @@ fn embedded_font_counts_notdef_and_the_glyphs_drawn() {
     pdf.line(key, 12.0, "x").unwrap();
     let (_, embedded, _) = pdf.finish().unwrap();
     assert_eq!(embedded[0].glyphs, 2);
+}
+
+/// A glyph drawn with two texts: two CIDs (B4d), a `/CIDToGIDMap` stream sending both to the
+/// glyph, `/W` giving both its width, and the ToUnicode CMap both texts.
+#[test]
+fn a_glyph_with_two_texts_gets_a_cid_to_gid_map_stream() {
+    let sans = font("NotoSans-Regular.ttf");
+    let (a, b) = (sans.glyph_for('a').unwrap(), sans.glyph_for('b').unwrap());
+    let mut pdf = TestPdf::new();
+    let key = pdf.add_font(sans).unwrap();
+    pdf.glyphs(key, 12.0, &[(a, "a"), (a, "α"), (b, "b")]).unwrap();
+    let fonts = read_fonts(&pdf.finish().unwrap().0);
+    let f = &fonts[0];
+    let widths = expand_widths(f.cid_font.get("W").and_then(Object::as_array).unwrap_or(&[]));
+    let dw = f.cid_font.get("DW").and_then(Object::as_f64).unwrap_or(1000.0);
+    let width = |cid| widths.get(&cid).copied().unwrap_or(dw);
+    let (cmap, _) = common::parse_cmap(&f.to_unicode);
+    assert_eq!(
+        (
+            f.cid_to_gid.clone(),
+            width(1).to_bits() == width(2).to_bits(),
+            cmap.get(&1).map(String::as_str),
+            cmap.get(&2).map(String::as_str)
+        ),
+        (Some(vec![0, 0, 0, 1, 0, 1, 0, 2]), true, Some("a"), Some("α"))
+    );
+}
+
+/// The shaped golden's fonts (B4d): every TrueType font whose glyphs got several texts has a
+/// map stream, and each CID in it points at a glyph of the subset.
+#[test]
+fn shaped_sample_maps_every_cid_into_its_subset() {
+    let fonts = read_fonts(&samples::shaped().bytes);
+    let mapped: Vec<_> = fonts
+        .iter()
+        .filter_map(|f| f.cid_to_gid.as_ref().map(|m| (f, m)))
+        .collect();
+    assert!(!mapped.is_empty());
+    for (f, map) in mapped {
+        let count = skrifa::raw::TableProvider::maxp(&skrifa::FontRef::new(&f.program).unwrap())
+            .unwrap()
+            .num_glyphs();
+        assert!(
+            map.chunks(2).all(|p| u16::from_be_bytes([p[0], p[1]]) < count),
+            "{}",
+            f.resource
+        );
+    }
+}
+
+/// A font embedded whole (`fsType` no-subsetting): a glyph's first CID is its own ID, a second
+/// text's CID comes after the glyph count.
+#[test]
+fn a_whole_font_puts_second_texts_past_its_glyph_count() {
+    let sans = Font::from_bytes(common::with_fs_type(
+        &common::fixture("fonts/NotoSans-Regular.ttf"),
+        0x0100,
+    ))
+    .unwrap();
+    let a = sans.glyph_for('a').unwrap();
+    let count = sans.info().glyph_count;
+    let mut fonts = FontRegistry::new();
+    let key = fonts.add(sans, lamina_text::EmbedPolicy::Respect).unwrap();
+    let first = fonts.use_glyph(key, a, "a").unwrap().cid();
+    let second = fonts.use_glyph(key, a, "α").unwrap().cid();
+    assert_eq!((first, second), (Some(a.get()), Some(count)));
 }

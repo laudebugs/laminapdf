@@ -1,7 +1,7 @@
 //! A shaped run as PDF text operations (todo B4b; research 03 §2.6–2.7, §5.3, §7.2): the
 //! glyphs' codes for `TJ`, the `TJ` numbers that turn the font's widths into the shaper's
 //! advances and offsets, `Ts` rises for vertical offsets, the glyph → text entries of the
-//! ToUnicode CMap, and the clusters that need `/ActualText`.
+//! ToUnicode CMap (one CID per glyph and text, B4d), and the clusters that need `/ActualText`.
 //!
 //! The arithmetic (ISO 32000-2 §9.4.4): after a glyph the pen moves by
 //! `(w0 − Tj/1000) × Tfs`, with `w0` the glyph's `/W` width in thousandths of an em. The
@@ -88,17 +88,24 @@ impl PdfRun {
 /// * one glyph: it stands for the cluster's text (`ﬁ` → "fi", lam-alef → "لا");
 /// * several glyphs: each that is the font's own glyph for one of the cluster's characters
 ///   stands for that character, the widest other glyph for the characters left over, and
-///   the rest for nothing: the empty string (`<cid> <>` in ToUnicode) for a glyph no
-///   character maps to (a separate dot, a conjunct part), and no claim at all for a glyph
-///   that is some character's own (the space glyph a hidden ZWJ is drawn with).
+///   the rest for nothing.
 ///
-/// Default-ignorable characters (ZWJ, ZWNJ, the bidi controls) are never a glyph's text.
-/// A cluster gets `/ActualText` when its glyphs, read in drawing order (right to left in an
-/// RTL run), don't spell its text (Indic reordering), when one of them stands for nothing,
-/// or when one of them already stands for another text in this font
-/// ([`crate::Warning::ToUnicodeConflict`]); the whole run does when its clusters are not in
-/// visual order for its direction. Keeping each glyph's own character keeps the ToUnicode
-/// CMap consistent across clusters (one code, one text: ISO 32000-2 §9.10.3).
+/// With TrueType outlines a glyph gets one CID per text it stands for (B4d, [`crate::FontUse`]),
+/// so the texts are then dealt out again in reading order (drawing order, reversed in a
+/// right-to-left run), each glyph keeping its share's length: a cluster the shaper
+/// reordered (a pre-base matra, a reph, marks in another order) reads back as its text
+/// from the codes alone, and a glyph that stands for nothing (Noto Sans Arabic's separate
+/// dots, a conjunct part, the space glyph a hidden ZWJ is drawn with) gets a textless CID
+/// (`<cid> <>`, a format character's code point that pdf.js skips). No `/ActualText` is
+/// needed, except for a cluster holding default-ignorable characters (ZWJ, ZWNJ, the bidi
+/// controls), which are never a glyph's text.
+///
+/// With CFF outlines (`CIDFontType0`: one CID per glyph) B4b's mapping stays: a glyph that is
+/// some character's own claims no text when it stands for nothing, and a cluster gets
+/// `/ActualText` when its glyphs, read in reading order, don't spell its text, when one of
+/// them stands for nothing, or when one of them already stands for another text in this font
+/// ([`crate::Warning::ToUnicodeConflict`]). Either way the whole run gets `/ActualText` when
+/// its clusters are not in visual order for its direction.
 ///
 /// Everything is checked before anything is recorded: on an error, `fonts` is unchanged.
 ///
@@ -143,7 +150,14 @@ pub fn pdf_run(run: &ShapedRun, text: &str, fonts: &mut FontRegistry, key: FontK
     };
     let mut claims: Vec<Claim> = Vec::with_capacity(run.glyphs.len());
     let mut actual: Vec<Option<String>> = Vec::with_capacity(groups.len());
-    let mut kept = kept_texts(fonts, key);
+    // B4d: a glyph may get one CID per text (TrueType outlines), so each glyph's text can be
+    // chosen for the extractors alone; with CFF outlines it keeps its first text (B4b).
+    let splits = fonts.usage(key)?.embedded().is_some_and(crate::FontUse::splits_texts);
+    let mut kept = if splits {
+        BTreeMap::new()
+    } else {
+        kept_texts(fonts, key)
+    };
     for group in &groups {
         let glyphs = run.glyphs.get(group.clone()).unwrap_or_default();
         let cluster = glyphs.first().map(|g| cluster_text(g.cluster)).unwrap_or_default();
@@ -153,27 +167,14 @@ pub fn pdf_run(run: &ShapedRun, text: &str, fonts: &mut FontRegistry, key: FontK
                 .find(|&ch| charmap.map(ch).is_some_and(|g| g.to_u32() == u32::from(gid.get())))
         };
         let (texts, mut needs_actual) = split_cluster(run, glyphs, cluster, &nominal);
+        if splits {
+            let (texts, needs_actual) = in_reading_order(run, &texts, cluster);
+            claims.extend(texts.into_iter().map(Claim::Text));
+            actual.push(needs_actual.then(|| cluster.to_owned()));
+            continue;
+        }
         for (g, t) in glyphs.iter().zip(texts) {
-            let claim = match t {
-                Some(t) => Claim::Text(t),
-                None if is_target(g.gid) => {
-                    needs_actual = true;
-                    Claim::Nothing
-                }
-                None => {
-                    needs_actual = true;
-                    Claim::Text(String::new())
-                }
-            };
-            if let Claim::Text(t) = &claim {
-                match kept.get(&g.gid) {
-                    Some(k) if k != t => needs_actual = true,
-                    Some(_) => {}
-                    None => {
-                        kept.insert(g.gid, t.clone());
-                    }
-                }
-            }
+            let claim = one_cid_claim(g.gid, t, &mut is_target, &mut kept, &mut needs_actual);
             claims.push(claim);
         }
         actual.push(needs_actual.then(|| cluster.to_owned()));
@@ -256,6 +257,40 @@ fn in_visual_order(run: &ShapedRun, groups: &[Range<usize>]) -> bool {
     } else {
         firsts.windows(2).all(|w| w.first() < w.get(1))
     }
+}
+
+/// A glyph's claim in a font with one CID per glyph (CFF outlines; B4b's mapping): its text;
+/// for a glyph given none, nothing when it is some character's own glyph and the empty text
+/// otherwise. Sets `needs_actual` when the glyph stands for nothing or already stands for
+/// another text (`kept`, updated with the first text of each glyph).
+fn one_cid_claim(
+    gid: GlyphId,
+    text: Option<String>,
+    is_target: &mut impl FnMut(GlyphId) -> bool,
+    kept: &mut BTreeMap<GlyphId, String>,
+    needs_actual: &mut bool,
+) -> Claim {
+    let claim = match text {
+        Some(t) => Claim::Text(t),
+        None if is_target(gid) => {
+            *needs_actual = true;
+            Claim::Nothing
+        }
+        None => {
+            *needs_actual = true;
+            Claim::Text(String::new())
+        }
+    };
+    if let Claim::Text(t) = &claim {
+        match kept.get(&gid) {
+            Some(k) if k != t => *needs_actual = true,
+            Some(_) => {}
+            None => {
+                kept.insert(gid, t.clone());
+            }
+        }
+    }
+    claim
 }
 
 /// Glyph → the text it already stands for in `key`'s ToUnicode map.
@@ -346,6 +381,36 @@ fn split_cluster(
     }
     let needs_actual = reading.concat() != cluster;
     (texts, needs_actual)
+}
+
+/// The texts of one cluster's glyphs (drawing order) for a font whose glyphs get one CID per
+/// text (B4d): the cluster's visible characters dealt out in reading order (drawing order,
+/// reversed in a right-to-left run), each glyph taking as many as [`split_cluster`] gave it
+/// and a glyph given none standing for nothing (`""`, a textless CID). Read in reading order
+/// the glyphs then spell the cluster however the shaper reordered them (a pre-base matra, a
+/// reph, marks in another order than the text), without `/ActualText`. Returns the texts and
+/// whether the cluster still needs `/ActualText`: only when it holds default-ignorable
+/// characters, which are no glyph's text.
+fn in_reading_order(run: &ShapedRun, texts: &[Option<String>], cluster: &str) -> (Vec<String>, bool) {
+    let mut sizes: Vec<usize> = texts
+        .iter()
+        .map(|t| t.as_deref().map_or(0, |t| t.chars().count()))
+        .collect();
+    if run.direction.is_rtl() {
+        sizes.reverse();
+    }
+    let mut chars = cluster.chars().filter(|&ch| !is_default_ignorable(ch));
+    let mut dealt: Vec<String> = sizes.iter().map(|&n| chars.by_ref().take(n).collect()).collect();
+    // `split_cluster` gives out every visible character, so nothing is left; keep any rest
+    // on the last glyph rather than lose it.
+    if let Some(last) = dealt.last_mut() {
+        last.extend(chars);
+    }
+    let reading_len: usize = dealt.iter().map(String::len).sum();
+    if run.direction.is_rtl() {
+        dealt.reverse();
+    }
+    (dealt, reading_len != cluster.len())
 }
 
 /// The `TJ` arrays: pieces split where `ActualText` starts or ends, segments where the rise

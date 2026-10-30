@@ -1,4 +1,4 @@
-//! Shaped runs as PDF text operations (todo B4b), against values computed by hand from the
+//! Shaped runs as PDF text operations (todos B4b, B4d), against values computed by hand from the
 //! fonts' `hmtx` widths and HarfBuzz's positions (`hb-shape` output in the comments).
 #![allow(
     clippy::unwrap_used,
@@ -57,26 +57,44 @@ fn a_ligature_maps_to_its_letters_without_actual_text() {
 }
 
 #[test]
-fn a_reordered_matra_needs_actual_text() {
-    // hb-shape "कि": i-matra (88) drawn before KA (7), both in cluster 0. Each glyph keeps
-    // its own character in ToUnicode; read in drawing order they spell "िक", so the span
-    // gets /ActualText with the logical "कि".
+fn a_reordered_matra_reads_in_order_without_actual_text() {
+    // hb-shape "कि": i-matra (88) drawn before KA (7), both in cluster 0 (B4d). The cluster's
+    // characters are dealt out in drawing order: the i-matra's CID stands for "क", KA's for
+    // "ि", so extractors that read codes in order get "कि" without /ActualText.
     let (pdf, fonts, key) = run("NotoSansDevanagari-Regular.ttf", "कि");
     assert_eq!(pdf.pieces.len(), 1);
-    assert_eq!(pdf.pieces[0].actual_text.as_deref(), Some("कि"));
+    assert!(!pdf.needs_actual_text());
     assert_eq!(pdf.pieces[0].segments[0].tj, [codes(&[1, 2])]);
     let text = fonts.usage(key).unwrap().embedded().unwrap().text();
-    assert_eq!(text.values().map(String::as_str).collect::<Vec<_>>(), ["\u{93F}", "क"]);
+    assert_eq!(text.values().map(String::as_str).collect::<Vec<_>>(), ["क", "\u{93F}"]);
 }
 
 #[test]
-fn a_reph_takes_the_ra_and_virama() {
-    // hb-shape "र्म": MA (14) then the reph (82), both in cluster 0. MA keeps "म"; the reph,
-    // the font's glyph for neither character, takes the rest, "र्"; read in order: "मर्".
+fn a_reph_reads_in_order_without_actual_text() {
+    // hb-shape "र्म": MA (14) then the reph (82), both in cluster 0. MA would keep "म" and the
+    // reph the rest, "र्" (three characters: one, two); dealt out in drawing order MA's CID
+    // stands for "र" and the reph's for "्म".
     let (pdf, fonts, key) = run("NotoSansDevanagari-Regular.ttf", "र्म");
-    assert_eq!(pdf.pieces[0].actual_text.as_deref(), Some("र्म"));
+    assert!(!pdf.needs_actual_text());
     let text = fonts.usage(key).unwrap().embedded().unwrap().text();
-    assert_eq!(text.values().map(String::as_str).collect::<Vec<_>>(), ["म", "र्"]);
+    assert_eq!(text.values().map(String::as_str).collect::<Vec<_>>(), ["र", "्म"]);
+}
+
+#[test]
+fn a_reordered_matra_in_a_cff_font_keeps_actual_text() {
+    // CFF outlines can't give a glyph a second CID (B4d), so B4b's mapping stays: each glyph
+    // its own character and /ActualText for the reordered cluster. Noto Sans (CFF) has no
+    // Devanagari, so the reordering is simulated: "ab" shaped as one cluster drawn "ba".
+    let font = common::font("NotoSans-Regular.otf");
+    let mut shaped = HarfRust.shape(&font, "ab", &ShapeOptions::new()).unwrap();
+    shaped.glyphs.swap(0, 1);
+    for g in &mut shaped.glyphs {
+        g.cluster = 0;
+    }
+    let mut fonts = FontRegistry::new();
+    let key = fonts.add(font, EmbedPolicy::Respect).unwrap();
+    let pdf = pdf_run(&shaped, "ab", &mut fonts, key).unwrap();
+    assert_eq!(pdf.pieces[0].actual_text.as_deref(), Some("ab"));
 }
 
 #[test]
@@ -94,14 +112,15 @@ fn a_base_and_its_mark_map_one_to_one() {
 fn vertical_offsets_become_rises_and_horizontal_offsets_tj_numbers() {
     // hb-shape "كِ" (RTL): kasra 270 at (268, −21) advance 0, glyph 236 advance 0, KAF 48
     // advance 882; hmtx widths 0, 0, 882. The kasra is moved right by 268 and down by 21;
-    // the pen comes back before glyph 236.
+    // the pen comes back before glyph 236, which stands for no text: it is drawn with the
+    // first textless CID, 0x200B (B4d).
     let (pdf, _, _) = run("NotoSansArabic-Regular.ttf", "كِ");
     let segments = &pdf.pieces[0].segments;
     assert_eq!(segments.len(), 2);
     assert_eq!(segments[0].rise, -21.0);
     assert_eq!(segments[0].tj, [TjElement::Adjust(-268.0), codes(&[1])]);
     assert_eq!(segments[1].rise, 0.0);
-    assert_eq!(segments[1].tj, [TjElement::Adjust(268.0), codes(&[2, 3])]);
+    assert_eq!(segments[1].tj, [TjElement::Adjust(268.0), codes(&[0x200B, 2])]);
     assert_eq!(pdf.advance, 882.0);
 }
 
@@ -128,15 +147,39 @@ fn notdef_glyphs_are_missing_glyph_errors() {
 }
 
 #[test]
-fn a_glyph_already_standing_for_other_text_gets_actual_text() {
+fn a_glyph_drawn_for_other_text_gets_a_second_cid() {
+    // B4d: the `fi` ligature glyph drawn for "fi", then (a contrived run) for "f": two CIDs,
+    // each with its own text, and no /ActualText.
     let font = common::font("NotoSans-Regular.ttf");
+    let mut fonts = FontRegistry::new();
+    let key = fonts.add(font.clone(), EmbedPolicy::Respect).unwrap();
+    let shaped = HarfRust.shape(&font, "fi", &ShapeOptions::new()).unwrap();
+    pdf_run(&shaped, "fi", &mut fonts, key).unwrap();
+    let mut other = shaped.clone();
+    other.text_range = 0..1;
+    other.glyphs[0].cluster = 0;
+    let pdf = pdf_run(&other, "fx", &mut fonts, key).unwrap();
+    assert!(!pdf.needs_actual_text());
+    let usage = fonts.usage(key).unwrap().embedded().unwrap();
+    assert_eq!(
+        (
+            usage.text()[&1].as_str(),
+            usage.text()[&2].as_str(),
+            usage.glyphs()[1].1,
+            usage.glyphs()[2].1
+        ),
+        ("fi", "f", shaped.glyphs[0].gid, shaped.glyphs[0].gid)
+    );
+}
+
+#[test]
+fn a_cff_glyph_already_standing_for_other_text_gets_actual_text() {
+    let font = common::font("NotoSans-Regular.otf");
     let mut fonts = FontRegistry::new();
     let key = fonts.add(font.clone(), EmbedPolicy::Respect).unwrap();
     // The `fi` ligature glyph first drawn for "fi", then claimed for other text.
     let shaped = HarfRust.shape(&font, "fi", &ShapeOptions::new()).unwrap();
     pdf_run(&shaped, "fi", &mut fonts, key).unwrap();
-    let gid = shaped.glyphs[0].gid;
-    fonts.use_glyph(key, gid, "fi").unwrap();
     let mut other = shaped.clone();
     other.text_range = 0..1;
     other.glyphs[0].cluster = 0;

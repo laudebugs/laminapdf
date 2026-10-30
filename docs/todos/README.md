@@ -12,7 +12,7 @@ New todos start from [`TEMPLATE.md`](TEMPLATE.md). The workflow is in [git workf
 
 IDs: `A`/`P`/`X` [architecture](../plans/architecture.md) (foundations, publishing, cross-cutting), `B` [library](../plans/pdf-library.md), `L` [shareable libraries](../plans/shareable-libraries.md) (contracts, worker, extraction, CLI, agent docs, mobile), `C` [web reader](../plans/web-app.md), `D` [desktop reader](../plans/desktop-app.md), `U` [UI/UX](../plans/ui-ux.md), `E` [editor](../plans/full-editor.md), `H` hosted service ([full-editor](../plans/full-editor.md)). A letter suffix (`B2a`, `B2b`) splits a round into PRs.
 
-**3 ongoing · 215 ready · 24 done** (242 total).
+**2 ongoing · 215 ready · 25 done** (242 total).
 
 ## Can start now
 
@@ -23,7 +23,6 @@ Ready todos whose dependencies are all done:
 
 ## Ongoing
 
-- [B4d](ongoing/B4d-tounicode-per-text-cids.md): One CID per (glyph, text): exact extraction of shaped text in every script
 - [B5b](ongoing/B5b-builder-text-and-document-features.md): Builder text, links, destinations, outlines, page labels and metadata
 - [X2](ongoing/X2-capability-matrix.md): Capability matrix generator: ~180 operations, test-backed statuses
 
@@ -51,7 +50,7 @@ Ready todos whose dependencies are all done:
 | B4a | [`lamina-text`: font loading, subsetting and Type 0 embedding with ToUnicode](done/B4a-font-loading-and-subsetting.md) | done | [B1b](done/B1b-krilla-fit-spike.md), [B3b](done/B3b-lamina-save-writers.md), [X4](done/X4-full-lane-gate.md) |
 | B4b | [Shaping (HarfRust), bidi and line breaking (ICU4X), with goldens in five scripts](done/B4b-shaping-bidi-line-breaking.md) | done | [B4a](done/B4a-font-loading-and-subsetting.md), [X4](done/X4-full-lane-gate.md) |
 | B4c | [Standard 14 fonts with AFM metrics and simple-font encoding](done/B4c-standard-14-and-simple-fonts.md) | done | [B4a](done/B4a-font-loading-and-subsetting.md) |
-| B4d | [One CID per (glyph, text): exact extraction of shaped text in every script](ongoing/B4d-tounicode-per-text-cids.md) | ongoing | [B4b](done/B4b-shaping-bidi-line-breaking.md) |
+| B4d | [One CID per (glyph, text): exact extraction of shaped text in every script](done/B4d-tounicode-per-text-cids.md) | done | [B4b](done/B4b-shaping-bidi-line-breaking.md) |
 | B5a | [`lamina-build` core: builder, pages, vectors, colour and images](done/B5a-lamina-build-core.md) | done | [B1b](done/B1b-krilla-fit-spike.md), [B3c](done/B3c-save-planner-and-roundtrip.md), [L1a](done/L1a-contract-adrs.md) |
 | B5b | [Builder text, links, destinations, outlines, page labels and metadata](ongoing/B5b-builder-text-and-document-features.md) | ongoing | [B4b](done/B4b-shaping-bidi-line-breaking.md), [B4c](done/B4c-standard-14-and-simple-fonts.md), [B5a](done/B5a-lamina-build-core.md) |
 | B5c | [The `lamina` façade crate, Rust examples, and byte and render goldens](ready/B5c-lamina-facade-and-examples.md) | ready | [B5b](ongoing/B5b-builder-text-and-document-features.md), [L1a](done/L1a-contract-adrs.md), [L1c](done/L1c-error-contract-core.md), [X4](done/X4-full-lane-gate.md) |
