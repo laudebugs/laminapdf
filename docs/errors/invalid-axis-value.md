@@ -17,7 +17,7 @@ Pass finite values; values outside the axis range are clamped, so there is no ne
 
 ## Example
 
-To be added ([L1b](../todos/ready/L1b-error-contract-codegen.md)).
+To be added ([L1b](../todos/ongoing/L1b-error-contract-codegen.md)).
 
 ## Data fields
 

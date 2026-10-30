@@ -17,7 +17,7 @@ Check the font's licence allows this, or use a static TrueType/CFF version of th
 
 ## Example
 
-To be added ([L1b](../todos/ready/L1b-error-contract-codegen.md)).
+To be added ([L1b](../todos/ongoing/L1b-error-contract-codegen.md)).
 
 ## Data fields
 

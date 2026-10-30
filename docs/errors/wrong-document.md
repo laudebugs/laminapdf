@@ -17,7 +17,7 @@ Use one `FontRegistry` per document, and pass `finish_fonts` the document its `r
 
 ## Example
 
-To be added ([L1b](../todos/ready/L1b-error-contract-codegen.md)).
+To be added ([L1b](../todos/ongoing/L1b-error-contract-codegen.md)).
 
 ## Data fields
 
