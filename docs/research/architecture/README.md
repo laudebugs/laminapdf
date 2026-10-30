@@ -11,5 +11,6 @@ How to architect lamina's apps and packages: a web PDF reader→editor on Cloudf
 | [notes/web-frontend.md](notes/web-frontend.md) | Framework choice, virtualisation, overlays, undo state, workers/COOP-COEP, OPFS/File System Access. |
 | [notes/editing-architecture.md](notes/editing-architecture.md) | Document model, op log/undo, incremental vs full save, signatures/redaction ordering, collaboration, WASM memory. |
 | [notes/repo-and-packaging.md](notes/repo-and-packaging.md) | Monorepo layout, Rust→WASM tooling, package design, versioning/publishing, CI tiers, licence hygiene. |
+| [notes/hosted-ci-runners.md](notes/hosted-ci-runners.md) | Blacksmith vs CircleCI vs GitHub-hosted runners for Linux and Windows CI: prices, measured run times, monthly estimates (2026-10-30). Re-check before moving CI to hosted machines. |
 
 Method: six parallel research threads (one per note), each citing primary sources where possible and marking unverified claims, then synthesised into the report. The plan that turns this into work is [`docs/plans/architecture.md`](../../plans/architecture.md).
