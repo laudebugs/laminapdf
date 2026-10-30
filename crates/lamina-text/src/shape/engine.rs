@@ -8,7 +8,7 @@
 use std::ops::Range;
 use std::str::FromStr;
 
-use harfrust::{ShaperInstance, UnicodeBuffer, Variation};
+use harfrust::{ShapePlan, ShapePlanKey, ShaperInstance, UnicodeBuffer, Variation};
 
 use super::{Direction, Script, ShapeOptions, ShapedGlyph, ShapedRun, Shaper, sub};
 use crate::error::{Error, Result};
@@ -44,6 +44,17 @@ impl Shaper for HarfRust {
             .unwrap_or(Script::COMMON);
         let direction = options.direction.unwrap_or_else(|| script.direction());
 
+        let hb_script = harfrust::Script::from_iso15924_tag(harfrust::Tag::new(&script.to_bytes()));
+        let hb_direction = match direction {
+            Direction::LeftToRight => harfrust::Direction::LeftToRight,
+            Direction::RightToLeft => harfrust::Direction::RightToLeft,
+        };
+        // Any non-empty tag is accepted (unknown ones select the default language system).
+        let language = options
+            .language
+            .as_deref()
+            .and_then(|language| harfrust::Language::from_str(language).ok());
+
         let mut buffer = UnicodeBuffer::new();
         buffer.set_pre_context(before);
         for (at, ch) in run_text.char_indices() {
@@ -55,18 +66,12 @@ impl Shaper for HarfRust {
             buffer.add(stand_in(ch), cluster);
         }
         buffer.set_post_context(after);
-        if let Some(s) = harfrust::Script::from_iso15924_tag(harfrust::Tag::new(&script.to_bytes())) {
+        if let Some(s) = hb_script {
             buffer.set_script(s);
         }
-        buffer.set_direction(match direction {
-            Direction::LeftToRight => harfrust::Direction::LeftToRight,
-            Direction::RightToLeft => harfrust::Direction::RightToLeft,
-        });
-        if let Some(language) = &options.language {
-            // Any non-empty tag is accepted (unknown ones select the default language system).
-            if let Ok(language) = harfrust::Language::from_str(language) {
-                buffer.set_language(language);
-            }
+        buffer.set_direction(hb_direction);
+        if let Some(language) = &language {
+            buffer.set_language(language.clone());
         }
         let features: Vec<harfrust::Feature> = options
             .features
@@ -85,7 +90,20 @@ impl Shaper for HarfRust {
             )
         });
         let shaper = data.shaper(&font_ref).instance(instance.as_ref()).build();
-        let output = shaper.shape(buffer, harfrust::ShapeOptions::new().features(&features));
+        // The plan HarfRust would build for this buffer (its direction, script and language
+        // as set above), cached on the font's face and found by HarfRust's own key.
+        let key = ShapePlanKey::new(hb_script, hb_direction)
+            .language(language.as_ref())
+            .instance(instance.as_ref())
+            .features(&features);
+        let plan = font.shape_plan(
+            |plan| key.matches(plan),
+            || ShapePlan::new(&shaper, hb_direction, hb_script, language.as_ref(), &features),
+        );
+        let output = shaper.shape(
+            buffer,
+            harfrust::ShapeOptions::new().plan(Some(&plan)).features(&features),
+        );
 
         let glyphs = output
             .glyph_infos()

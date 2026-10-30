@@ -142,12 +142,11 @@ pub(crate) fn lay_out(spec: &Spec) -> Result<Vec<LaidLine>> {
         .map(|line| {
             // Drawn in logical order (each run at its own x), so extractors that read in
             // content order get multi-run right-to-left lines in reading order (B4d).
-            let runs = line
-                .drawing_order()
-                .into_iter()
-                .filter_map(|i| line.runs.get(i))
-                .map(|r| (r.run.clone(), r.x))
-                .collect();
+            // `Line::drawing_order`, moving the runs: a stable sort by where each run's text
+            // starts, as that method's sort of their indices is.
+            let mut runs = line.runs;
+            runs.sort_by_key(|r| r.run.text_range.start);
+            let runs = runs.into_iter().map(|r| (r.run, r.x)).collect();
             LaidLine {
                 x: line.x,
                 width: line.width,

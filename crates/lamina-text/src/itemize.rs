@@ -120,7 +120,10 @@ pub fn itemize(para: &BidiParagraph<'_>, fonts: &[Font]) -> Result<Vec<Item>> {
 /// controls, variation selectors), not a control character (a tab is drawn as a space, other
 /// controls as nothing; see the shaper) and not a hard line break.
 pub(crate) fn needs_glyph(ch: char) -> bool {
-    !ch.is_control() && !is_hard_break(ch) && !CodePointSetData::new::<DefaultIgnorableCodePoint>().contains(ch)
+    // No ASCII character is default-ignorable: skip the set lookup for them.
+    !ch.is_control()
+        && !is_hard_break(ch)
+        && (ch.is_ascii() || !CodePointSetData::new::<DefaultIgnorableCodePoint>().contains(ch))
 }
 
 /// [`Error::MissingGlyph`] for the first character of `cluster` the primary font lacks.
@@ -176,6 +179,12 @@ mod tests {
         let para = BidiParagraph::new(text, None);
         let items = itemize(&para, &fonts).unwrap();
         assert_eq!(summary(text, &items), [("1. नमस्ते", Script::DEVANAGARI, 0, 0)]);
+    }
+
+    #[test]
+    fn no_ascii_character_is_default_ignorable() {
+        let set = CodePointSetData::new::<DefaultIgnorableCodePoint>();
+        assert!((0..=0x7f_u8).map(char::from).all(|ch| !set.contains(ch)));
     }
 
     #[test]
