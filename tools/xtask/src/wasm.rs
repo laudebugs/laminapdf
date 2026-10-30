@@ -462,13 +462,19 @@ fn package_js(ws: &Workspace) -> Result<Vec<u8>> {
 }
 
 /// The JS budgets of `size-budgets.json`'s `packages` (`{ "<name>": { "jsGzip" } }`).
-fn package_budgets(file: &Value) -> BTreeMap<String, u64> {
-    file.get("packages")
-        .and_then(Value::as_object)
-        .into_iter()
-        .flatten()
-        .filter_map(|(name, b)| Some((name.clone(), b.get("jsGzip")?.as_u64()?)))
-        .collect()
+///
+/// # Errors
+/// A `packages` entry whose `jsGzip` is missing or not a number, named.
+fn package_budgets(file: &Value) -> Result<BTreeMap<String, u64>> {
+    let mut out = BTreeMap::new();
+    for (name, b) in file.get("packages").and_then(Value::as_object).into_iter().flatten() {
+        let gzip = b
+            .get("jsGzip")
+            .and_then(Value::as_u64)
+            .with_context(|| format!("size-budgets.json: packages.{name}.jsGzip must be a number"))?;
+        out.insert(name.clone(), gzip);
+    }
+    Ok(out)
 }
 
 /// The violation of `name`'s JS budget, if any (a package without a budget is one too).
@@ -639,7 +645,8 @@ pub(crate) fn size(ws: &Workspace, update_baseline: bool) -> Result<()> {
         );
     }
     let pdf = Sizes::of(&package_js(ws)?);
-    let pdf_budget = package_budgets(&file).get(PDF_PACKAGE).copied();
+    let package_budgets = package_budgets(&file)?;
+    let pdf_budget = package_budgets.get(PDF_PACKAGE).copied();
     let _ = writeln!(
         table,
         "| {PDF_PACKAGE} (JS: glue + API) | — | — | — | — | {} | {} | {} |",
@@ -667,7 +674,7 @@ pub(crate) fn size(ws: &Workspace, update_baseline: bool) -> Result<()> {
     }
 
     let mut problems = violations(&measured, &budgets);
-    problems.extend(package_violation(PDF_PACKAGE, pdf.gzip, &package_budgets(&file)));
+    problems.extend(package_violation(PDF_PACKAGE, pdf.gzip, &package_budgets));
     if problems.is_empty() {
         crate::step("WASM sizes are within budget");
         Ok(())
@@ -731,7 +738,10 @@ fn write_baseline(ws: &Workspace, measured: &BTreeMap<String, ModuleSizes>, file
 mod tests {
     use std::collections::BTreeMap;
 
-    use super::{Budget, ModuleSizes, Sizes, grown, largest, package_violation, stable_name, top_diff, violations};
+    use super::{
+        Budget, ModuleSizes, Sizes, grown, largest, package_budgets, package_violation, stable_name, top_diff,
+        violations,
+    };
 
     #[test]
     fn largest_sums_the_data_segments_into_one_item() {
@@ -824,6 +834,13 @@ mod tests {
     fn a_package_within_its_js_budget_passes() {
         let budgets = BTreeMap::from([("@lamina/pdf".to_owned(), 20_000)]);
         assert_eq!(package_violation("@lamina/pdf", 20_000, &budgets), None);
+    }
+
+    #[test]
+    fn a_malformed_js_budget_is_an_error_naming_the_field() {
+        let file = serde_json::json!({ "packages": { "@lamina/pdf": { "jsGzip": "20 KB" } } });
+        let message = package_budgets(&file).map_or_else(|e| e.to_string(), |_| String::new());
+        assert!(message.contains("packages.@lamina/pdf.jsGzip"), "{message}");
     }
 
     #[test]

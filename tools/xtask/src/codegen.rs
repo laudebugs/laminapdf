@@ -4,28 +4,39 @@
 //!
 //! The file holds types (no runtime cost), the code lists the tests compare with, and the kind
 //! and hint of the codes the TS layer raises itself (every other code arrives from the WASM
-//! with its kind and hint already filled in).
+//! with its kind and hint already filled in). The output is formatted the way Biome formats it
+//! (one line when it fits in 120 columns, else one member per line) and then passed through
+//! `biome format` itself, so the generated file and `biome ci` always agree.
 
 use std::fmt::Write as _;
 use std::fs;
+use std::io::Write as _;
 use std::path::PathBuf;
+use std::process::{Command, Stdio};
 
 use anyhow::{Context, Result, bail};
 use serde_json::Value;
 
 use crate::workspace::Workspace;
 
+#[path = "../../../crates/lamina-cos/tests/common/code_groups.rs"]
+mod code_groups;
+
+use code_groups::{NOT_CODE_GROUPS, TS_ONLY_GROUPS, is_warning_group};
+
 /// Where the generated module goes.
 const OUT: &str = "packages/pdf/src/codes.generated.ts";
 
-/// The groups of warning codes; every other code group lists errors.
-const WARNING_GROUPS: [&str; 2] = ["warnings", "textWarnings"];
+/// Codes of other groups that `@lamina/pdf` raises itself; each must be listed in `codes.json`.
+const ALSO_RAISED_BY_TS: [&str; 4] = [
+    "builder-finished",
+    "invalid-argument",
+    "nested-transaction",
+    "no-transaction",
+];
 
-/// Keys of `codes.json` that aren't code groups.
-const NOT_CODE_GROUPS: [&str; 3] = ["version", "docsUrl", "limits"];
-
-/// Codes of other groups that `@lamina/pdf` raises itself (besides `packageErrors`).
-const ALSO_RAISED_BY_TS: [&str; 3] = ["builder-finished", "nested-transaction", "no-transaction"];
+/// Biome's line width (`biome.json`).
+const LINE_WIDTH: usize = 120;
 
 fn out_path(ws: &Workspace) -> PathBuf {
     ws.root.join(OUT)
@@ -36,7 +47,7 @@ pub(crate) fn codes(ws: &Workspace, check: bool) -> Result<()> {
     let path = ws.root.join("fixtures/codes.json");
     let json: Value =
         serde_json::from_str(&fs::read_to_string(&path)?).with_context(|| format!("{} is not JSON", path.display()))?;
-    let generated = render(&json)?;
+    let generated = biome_format(ws, &render(&json)?)?;
     let out = out_path(ws);
     let current = fs::read_to_string(&out).unwrap_or_default();
     if check {
@@ -53,7 +64,30 @@ pub(crate) fn codes(ws: &Workspace, check: bool) -> Result<()> {
     Ok(())
 }
 
-/// One code entry: (group, code, kind, hint).
+/// `source` as `biome format` writes it (Biome reads the root `biome.json`).
+fn biome_format(ws: &Workspace, source: &str) -> Result<String> {
+    ws.require_node_modules()?;
+    let mut child = Command::new(crate::program_path("pnpm"))
+        .args(["exec", "biome", "format", "--stdin-file-path", OUT])
+        .current_dir(&ws.root)
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .context("running biome format through pnpm")?;
+    child
+        .stdin
+        .take()
+        .context("biome's stdin")?
+        .write_all(source.as_bytes())?;
+    let output = child.wait_with_output()?;
+    if !output.status.success() {
+        bail!("biome format failed: {}", String::from_utf8_lossy(&output.stderr));
+    }
+    String::from_utf8(output.stdout).context("biome's output is not UTF-8")
+}
+
+/// One code entry.
 struct Entry<'a> {
     group: &'a str,
     code: &'a str,
@@ -61,14 +95,19 @@ struct Entry<'a> {
     hint: &'a str,
 }
 
+/// Every code of every group, groups in alphabetical order of their key (a stable order that
+/// doesn't depend on how the JSON map is stored), codes in file order within a group.
 fn entries(json: &Value) -> Result<Vec<Entry<'_>>> {
     let groups = json.as_object().context("codes.json is not an object")?;
+    let mut keys: Vec<&String> = groups
+        .keys()
+        .filter(|k| !NOT_CODE_GROUPS.contains(&k.as_str()))
+        .collect();
+    keys.sort();
     let mut out = Vec::new();
-    for (group, list) in groups.iter().filter(|(k, _)| !NOT_CODE_GROUPS.contains(&k.as_str())) {
-        for entry in list
-            .as_array()
-            .with_context(|| format!("codes.json: {group} is not a list"))?
-        {
+    for group in keys {
+        let list = groups.get(group).and_then(Value::as_array);
+        for entry in list.with_context(|| format!("codes.json: {group} is not a list"))? {
             let field = |k: &str| {
                 entry
                     .get(k)
@@ -91,8 +130,23 @@ fn quoted(s: &str) -> String {
     Value::String(s.to_owned()).to_string()
 }
 
+/// `export type name = …;`: `never` when empty, one line when it fits, else one member per line.
 fn union(out: &mut String, doc: &str, name: &str, members: &[&str]) {
-    let _ = writeln!(out, "/** {doc} */\nexport type {name} =");
+    let _ = writeln!(out, "/** {doc} */");
+    let head = format!("export type {name} =");
+    let one_line = format!(
+        "{head} {};",
+        if members.is_empty() {
+            "never".to_owned()
+        } else {
+            members.iter().map(|m| quoted(m)).collect::<Vec<_>>().join(" | ")
+        }
+    );
+    if one_line.len() <= LINE_WIDTH {
+        let _ = writeln!(out, "{one_line}\n");
+        return;
+    }
+    let _ = writeln!(out, "{head}");
     for (i, m) in members.iter().enumerate() {
         let end = if i + 1 == members.len() { ";" } else { "" };
         let _ = writeln!(out, "  | {}{end}", quoted(m));
@@ -100,25 +154,39 @@ fn union(out: &mut String, doc: &str, name: &str, members: &[&str]) {
     out.push('\n');
 }
 
+/// `export const name: readonly ty[] = […];`: one line when it fits, else one member per line.
 fn list(out: &mut String, doc: &str, name: &str, ty: &str, members: &[&str]) {
-    let _ = writeln!(out, "/** {doc} */\nexport const {name}: readonly {ty}[] = [");
+    let _ = writeln!(out, "/** {doc} */");
+    let head = format!("export const {name}: readonly {ty}[] = [");
+    let one_line = format!(
+        "{head}{}];",
+        members.iter().map(|m| quoted(m)).collect::<Vec<_>>().join(", ")
+    );
+    if one_line.len() <= LINE_WIDTH {
+        let _ = writeln!(out, "{one_line}\n");
+        return;
+    }
+    let _ = writeln!(out, "{head}");
     for m in members {
         let _ = writeln!(out, "  {},", quoted(m));
     }
     out.push_str("];\n\n");
 }
 
-/// The TS module for `json` (Biome-formatted as written).
+/// The TS module for `json`.
 fn render(json: &Value) -> Result<String> {
     let all = entries(json)?;
+    if let Some(missing) = ALSO_RAISED_BY_TS.iter().find(|c| !all.iter().any(|e| e.code == **c)) {
+        bail!("codes.json does not list {missing:?}, which @lamina/pdf raises (ALSO_RAISED_BY_TS)");
+    }
     let errors: Vec<&str> = all
         .iter()
-        .filter(|e| !WARNING_GROUPS.contains(&e.group))
+        .filter(|e| !is_warning_group(e.group))
         .map(|e| e.code)
         .collect();
     let warnings: Vec<&str> = all
         .iter()
-        .filter(|e| WARNING_GROUPS.contains(&e.group))
+        .filter(|e| is_warning_group(e.group))
         .map(|e| e.code)
         .collect();
     let limits: Vec<&str> = json
@@ -155,16 +223,17 @@ fn render(json: &Value) -> Result<String> {
         "LimitName",
         &limits,
     );
+    let order = "groups in alphabetical order of their key, codes in file order";
     list(
         &mut out,
-        "Every error code, grouped as in `codes.json`.",
+        &format!("Every error code: {order}."),
         "ERROR_CODES",
         "ErrorCode",
         &errors,
     );
     list(
         &mut out,
-        "Every warning code, grouped as in `codes.json`.",
+        &format!("Every warning code: {order}."),
         "WARNING_CODES",
         "WarningCode",
         &warnings,
@@ -181,7 +250,7 @@ fn render(json: &Value) -> Result<String> {
     );
     for e in all
         .iter()
-        .filter(|e| e.group == "packageErrors" || ALSO_RAISED_BY_TS.contains(&e.code))
+        .filter(|e| TS_ONLY_GROUPS.contains(&e.group) || ALSO_RAISED_BY_TS.contains(&e.code))
     {
         let _ = writeln!(
             out,
@@ -199,32 +268,84 @@ fn render(json: &Value) -> Result<String> {
 mod tests {
     use super::render;
 
-    #[test]
-    fn render_should_split_errors_from_warnings() {
-        let json = serde_json::json!({
+    /// A `codes.json` with the codes `ALSO_RAISED_BY_TS` needs, plus `extra` groups.
+    fn json(extra: &serde_json::Value) -> serde_json::Value {
+        let mut base = serde_json::json!({
             "version": 2,
             "docsUrl": { "base": "b/", "suffix": ".md" },
             "limits": ["max_x"],
-            "warnings": [{ "code": "w", "kind": "input", "hint": "h" }],
-            "errors": [{ "code": "e", "kind": "input", "hint": "h" }],
-            "packageErrors": [{ "code": "p", "kind": "state", "hint": "do it" }],
+            "bindingErrors": [
+                { "code": "builder-finished", "kind": "state", "hint": "h" },
+                { "code": "invalid-argument", "kind": "usage", "hint": "h" },
+            ],
+            "opErrors": [
+                { "code": "nested-transaction", "kind": "state", "hint": "h" },
+                { "code": "no-transaction", "kind": "state", "hint": "h" },
+            ],
         });
-        let ts = render(&json).unwrap_or_default();
-        assert!(ts.contains("export type ErrorCode =\n  | \"e\"\n  | \"p\";"), "{ts}");
+        if let (Some(map), Some(more)) = (base.as_object_mut(), extra.as_object()) {
+            map.extend(more.clone());
+        }
+        base
+    }
+
+    #[test]
+    fn render_should_split_errors_from_warnings_by_group_name() {
+        let ts = render(&json(&serde_json::json!({
+            "warnings": [{ "code": "w", "kind": "input" }],
+            "fontWarnings": [{ "code": "fw", "kind": "input" }],
+        })))
+        .unwrap_or_default();
+        assert!(ts.contains("export type WarningCode = \"fw\" | \"w\";"), "{ts}");
+    }
+
+    #[test]
+    fn render_should_write_a_short_union_on_one_line() {
+        let ts = render(&json(&serde_json::json!({ "warnings": [] }))).unwrap_or_default();
+        assert!(ts.contains("export type LimitName = \"max_x\";"), "{ts}");
+    }
+
+    #[test]
+    fn render_should_write_never_and_an_empty_list_for_an_empty_group() {
+        let ts = render(&json(&serde_json::json!({ "warnings": [] }))).unwrap_or_default();
+        assert!(
+            ts.contains("export type WarningCode = never;")
+                && ts.contains("WARNING_CODES: readonly WarningCode[] = [];"),
+            "{ts}"
+        );
+    }
+
+    #[test]
+    fn render_should_break_a_long_union_one_member_per_line() {
+        let codes: Vec<serde_json::Value> = (0..20)
+            .map(|i| serde_json::json!({ "code": format!("error-number-{i}"), "kind": "input" }))
+            .collect();
+        let ts = render(&json(&serde_json::json!({ "errors": codes, "warnings": [] }))).unwrap_or_default();
+        assert!(
+            ts.contains("export type ErrorCode =\n  | \"builder-finished\"\n"),
+            "{ts}"
+        );
     }
 
     #[test]
     fn render_should_list_package_codes_with_their_hint() {
-        let json = serde_json::json!({
-            "docsUrl": { "base": "b/", "suffix": ".md" },
-            "limits": [],
-            "warnings": [{ "code": "w", "kind": "input" }],
+        let ts = render(&json(&serde_json::json!({
+            "warnings": [],
             "packageErrors": [{ "code": "p", "kind": "state", "hint": "do it" }],
-        });
-        let ts = render(&json).unwrap_or_default();
+        })))
+        .unwrap_or_default();
         assert!(
             ts.contains("  \"p\": {\n    kind: \"state\",\n    hint: \"do it\",\n  },"),
             "{ts}"
         );
+    }
+
+    #[test]
+    fn render_should_fail_when_a_code_raised_by_ts_is_not_listed() {
+        let mut codes = json(&serde_json::json!({ "warnings": [] }));
+        if let Some(map) = codes.as_object_mut() {
+            map.remove("opErrors");
+        }
+        assert!(render(&codes).is_err());
     }
 }

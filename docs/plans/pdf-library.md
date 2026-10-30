@@ -196,7 +196,7 @@ Architecture Round B is delivered as rounds B1–B9, each split into todos (one 
 
 ### B5. Builder and the `lamina` crate
 
-**Todos:** [B5a](../todos/done/B5a-lamina-build-core.md) (builder, vectors, colour, images), [B5b](../todos/done/B5b-builder-text-and-document-features.md) (text, links, outlines, labels, metadata), [B5c](../todos/done/B5c-lamina-facade-and-examples.md) (`lamina` façade, examples, byte and render goldens).
+**Todos:** [B5a](../todos/done/B5a-lamina-build-core.md) (builder, vectors, colour, images), [B5b](../todos/done/B5b-builder-text-and-document-features.md) (text, links, outlines, labels, metadata), [B5c](../todos/done/B5c-lamina-facade-and-examples.md) (`lamina` façade, examples, byte and render goldens), [B5d](../todos/ready/B5d-text-report-generation-performance.md) (a 100-page text report within 500 ms; B6b measured 2.96 s).
 
 **Deliverable:** `lamina-build` (pages, text, text boxes, images, paths, colour, links, named destinations, outlines, page labels, Info + XMP); `finish()` returns `Document`; the `lamina` façade crate with Rust examples.
 **Accepted when:** every example produces byte-identical goldens; qpdf `--check` clean; golden renders match in PDFium and hayro within thresholds.

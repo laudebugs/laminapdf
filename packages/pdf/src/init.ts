@@ -45,10 +45,16 @@ interface Exports {
   readonly memory: WebAssembly.Memory;
 }
 
-let base: { readonly glue: BaseGlue; readonly exports: Exports } | undefined;
-let basePending: Promise<void> | undefined;
-let text: { readonly glue: TextGlue; readonly exports: Exports } | undefined;
-let textPending: Promise<void> | undefined;
+/** One module's state: what it was asked to load from, and the load (pending or done). */
+interface Slot<G> {
+  /** The source of the first call (`undefined`: the export condition's default file). */
+  requested?: WasmSource | undefined;
+  pending?: Promise<void> | undefined;
+  loaded?: { readonly glue: G; readonly exports: Exports } | undefined;
+}
+
+const base: Slot<BaseGlue> = {};
+const text: Slot<TextGlue> = {};
 
 function isOptions(input: unknown): input is InitOptions {
   if (typeof input !== "object" || input === null || "then" in input) return false;
@@ -56,66 +62,54 @@ function isOptions(input: unknown): input is InitOptions {
   return proto === Object.prototype || proto === null;
 }
 
-async function fromResponse(response: Response): Promise<WebAssembly.Module> {
-  if (!response.ok) {
-    throw new Error(`fetching the lamina WebAssembly module failed: HTTP ${response.status}`);
-  }
-  const type = response.headers.get("content-type") ?? "";
-  // compileStreaming needs the application/wasm type; file: URLs and some servers don't send it.
-  if (typeof WebAssembly.compileStreaming === "function" && type.startsWith("application/wasm")) {
-    return WebAssembly.compileStreaming(response);
-  }
-  return WebAssembly.compile(await response.arrayBuffer());
-}
+/** The glue's default `init`: it fetches URLs, streams `Response`s (falling back when the MIME type isn't wasm) and instantiates bytes or a `WebAssembly.Module` as they are. */
+type GlueInit = (input?: { module_or_path: unknown }) => Promise<unknown>;
 
-/** Compiles `source` (once: a `WebAssembly.Module` is used as it is). */
-async function compile(source: WasmSource): Promise<WebAssembly.Module> {
-  if (source instanceof WebAssembly.Module) return source;
-  if (typeof source === "string" || source instanceof URL) return fromResponse(await fetch(source));
-  if (source instanceof ArrayBuffer) return WebAssembly.compile(source);
-  if (ArrayBuffer.isView(source)) {
-    const bytes = new Uint8Array(source.buffer, source.byteOffset, source.byteLength);
-    return WebAssembly.compile(bytes.slice());
-  }
-  return fromResponse(await source);
-}
-
-async function instantiate<G extends { default: (input?: { module_or_path: WebAssembly.Module }) => Promise<unknown> }>(
-  glue: G,
+/**
+ * Loads `slot`'s module once with `glue` (a failed load can be retried). A later call naming a
+ * different source than the first throws `already-initialized` instead of being ignored.
+ */
+function load<G extends { default: GlueInit }>(
+  slot: Slot<G>,
+  name: "base" | "text",
+  glue: () => Promise<G>,
+  locate: Locate,
   source: WasmSource | undefined,
-): Promise<{ readonly glue: G; readonly exports: Exports }> {
-  const input = source === undefined ? undefined : { module_or_path: await compile(source) };
-  const exports = (await glue.default(input)) as Exports;
-  return { glue, exports };
-}
-
-/** Loads the base module (once; a failed load can be retried). */
-function loadBase(locate: Locate, source: WasmSource | undefined): Promise<void> {
-  basePending ??= (async () => {
-    base = await instantiate(baseGlue, source ?? (await locate("base")));
+): Promise<void> {
+  if (slot.pending !== undefined) {
+    if (source !== undefined && source !== slot.requested) {
+      return Promise.reject(
+        packageError(
+          "already-initialized",
+          `the ${name} module is already loaded or loading from another source; the new source is ignored`,
+        ),
+      );
+    }
+    return slot.pending;
+  }
+  slot.requested = source;
+  slot.pending = (async () => {
+    const g = await glue();
+    const from = source ?? (await locate(name));
+    const exports = (await g.default(from === undefined ? undefined : { module_or_path: from })) as Exports;
+    slot.loaded = { glue: g, exports };
   })().catch((e: unknown) => {
-    basePending = undefined;
+    slot.pending = undefined;
+    slot.requested = undefined;
     throw e;
   });
-  return basePending;
+  return slot.pending;
 }
 
 /** Loads the text module (once; a failed load can be retried). */
 export function loadTextWith(locate: Locate, source?: WasmSource): Promise<void> {
-  textPending ??= (async () => {
-    const glue = await import("@lamina/wasm/text");
-    text = await instantiate(glue, source ?? (await locate("text")));
-  })().catch((e: unknown) => {
-    textPending = undefined;
-    throw e;
-  });
-  return textPending;
+  return load(text, "text", () => import("@lamina/wasm/text"), locate, source);
 }
 
 /** `init` for an export condition's `locate`. */
 export async function initWith(locate: Locate, input?: WasmSource | InitOptions): Promise<void> {
   const options: InitOptions = input === undefined ? {} : isOptions(input) ? input : { module: input };
-  const loads = [loadBase(locate, options.module)];
+  const loads = [load(base, "base", async () => baseGlue, locate, options.module)];
   if (options.text !== undefined && options.text !== false) {
     loads.push(loadTextWith(locate, options.text === true ? undefined : options.text));
   }
@@ -124,25 +118,25 @@ export async function initWith(locate: Locate, input?: WasmSource | InitOptions)
 
 /** The base module's glue. @throws {@link LaminaError} `not-initialized` before `init()`. */
 export function baseModule(): BaseGlue {
-  if (base === undefined) {
+  if (base.loaded === undefined) {
     throw packageError("not-initialized", "init() has not finished loading the WebAssembly module");
   }
-  return base.glue;
+  return base.loaded.glue;
 }
 
 /** The text module's glue, when loaded. */
 export function textModule(): TextGlue | undefined {
-  return text?.glue;
+  return text.loaded?.glue;
 }
 
 /** Whether `init()` has finished. */
 export function isInitialized(): boolean {
-  return base !== undefined;
+  return base.loaded !== undefined;
 }
 
 /** Whether the text module is loaded (builders created now can draw text). */
 export function isTextLoaded(): boolean {
-  return text !== undefined;
+  return text.loaded !== undefined;
 }
 
 /** The size of each loaded module's linear memory, in bytes. */
@@ -161,7 +155,7 @@ export interface WasmMemory {
  */
 export function wasmMemory(): WasmMemory {
   return {
-    ...(base === undefined ? {} : { base: base.exports.memory.buffer.byteLength }),
-    ...(text === undefined ? {} : { text: text.exports.memory.buffer.byteLength }),
+    ...(base.loaded === undefined ? {} : { base: base.loaded.exports.memory.buffer.byteLength }),
+    ...(text.loaded === undefined ? {} : { text: text.loaded.exports.memory.buffer.byteLength }),
   };
 }

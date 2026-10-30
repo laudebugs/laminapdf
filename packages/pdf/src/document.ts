@@ -1,7 +1,7 @@
 // Document: open, read, edit with ops (transactions, undo), save. A thin layer over
 // WasmDocument (ADR 0028 F12): every call is synchronous and throws LaminaError.
 import type { WasmDocument, WasmPage, WasmSaveJob } from "@lamina/wasm/base";
-import { guard, type LaminaWarning, packageError } from "./errors.js";
+import { guard, isLaminaError, type LaminaWarning, packageError } from "./errors.js";
 import { baseModule } from "./init.js";
 import { Transaction } from "./transaction.js";
 import type {
@@ -16,6 +16,14 @@ import type {
   SaveReport,
   UndoOutcome,
 } from "./types.js";
+
+function isThenable(value: unknown): boolean {
+  return (
+    (typeof value === "object" || typeof value === "function") &&
+    value !== null &&
+    typeof (value as { then?: unknown }).then === "function"
+  );
+}
 
 /** How many warnings one cursor call fetches. */
 const WARNING_BATCH = 256;
@@ -83,8 +91,6 @@ export class SaveJob {
   }
 }
 
-let transacting = false;
-
 /**
  * An open PDF: read it, edit it with ops (atomic transactions with undo), save it.
  *
@@ -100,6 +106,8 @@ let transacting = false;
 export class Document {
   readonly #doc: WasmDocument;
   #freed = false;
+  /** Whether a `transact` callback of this document is running. */
+  #transacting = false;
 
   /** @internal Wraps a raw document (from `open` or `Builder.finish`). */
   constructor(doc: WasmDocument) {
@@ -109,6 +117,11 @@ export class Document {
   /**
    * Opens a document from its bytes (the bytes are copied into the WASM memory).
    *
+   * The password is tried as given. When that fails with `wrong-password` and its NFKC form
+   * differs, the NFKC form is tried too: R5/R6 passwords are prepared with SASLprep, whose
+   * normalisation the WASM modules leave out (ADR 0016 §7), while R2–R4 passwords must reach
+   * the core unchanged.
+   *
    * @param bytes - the PDF file.
    * @param options - password, strict mode, limits.
    * @returns the document.
@@ -117,9 +130,17 @@ export class Document {
    */
   static open(bytes: Uint8Array | ArrayBuffer, options?: OpenOptions): Document {
     const wasm = baseModule();
-    const init =
-      options?.password === undefined ? options : { ...options, password: options.password.normalize("NFKC") };
-    return new Document(guard(() => wasm.WasmDocument.openBytes(bytesOf(bytes), init)));
+    const data = bytesOf(bytes);
+    const open = (opts: OpenOptions | undefined) => new Document(guard(() => wasm.WasmDocument.openBytes(data, opts)));
+    const password = options?.password;
+    const nfkc = password?.normalize("NFKC");
+    if (password === undefined || nfkc === password) return open(options);
+    try {
+      return open(options);
+    } catch (e) {
+      if (!isLaminaError(e, "wrong-password")) throw e;
+      return open({ ...options, password: nfkc ?? password });
+    }
   }
 
   /** The number of pages. @throws {@link LaminaError} reading errors. */
@@ -192,6 +213,7 @@ export class Document {
    *   the first failing op's error (`unknown-page`, …), with nothing applied.
    */
   apply(ops: readonly Op[]): Edited {
+    this.#notInTransaction("apply");
     return guard(() => this.#doc.apply(ops as Op[]));
   }
 
@@ -201,6 +223,7 @@ export class Document {
    * @throws {@link LaminaError} `invalid-op-log`, `unsupported-version`; as {@link Document.apply}.
    */
   applyLog(log: string | OpLog): Edited {
+    this.#notInTransaction("applyLog");
     const json = typeof log === "string" ? log : JSON.stringify(log);
     return guard(() => this.#doc.applyLog(json));
   }
@@ -210,9 +233,12 @@ export class Document {
    * (ADR 0006 §2). When `edit` throws, nothing is applied and the error propagates. The ops are
    * applied when `edit` returns: reads inside `edit` see the document before the transaction.
    *
-   * @param edit - collects ops on `tx`; must not return a promise.
+   * @param edit - collects ops on `tx`; synchronous only (a callback returning a promise is
+   *   refused with `invalid-argument` and nothing is applied).
    * @returns what `edit` returned.
-   * @throws {@link LaminaError} `nested-transaction` inside another `transact`; as {@link Document.apply}.
+   * @throws {@link LaminaError} `nested-transaction` when called (or when `apply`, `undo`, `redo`,
+   *   `save`… are called) inside a `transact` of the same document; `invalid-argument` for an
+   *   async callback; as {@link Document.apply}.
    * @example
    * ```ts
    * doc.transact((tx) => {
@@ -222,20 +248,31 @@ export class Document {
    * ```
    */
   transact<T>(edit: (tx: Transaction) => T): T {
-    if (transacting) {
-      throw packageError("nested-transaction", "a transaction is already open");
-    }
-    transacting = true;
+    this.#notInTransaction("transact");
+    this.#transacting = true;
     const tx = new Transaction();
     let result: T;
     try {
       result = edit(tx);
     } finally {
-      transacting = false;
+      this.#transacting = false;
       tx.close();
+    }
+    if (isThenable(result)) {
+      // The ops of an async callback would be applied before its awaits finish: refuse it.
+      throw packageError("invalid-argument", "transact takes a synchronous callback; it returned a promise", {
+        data: { argument: "edit", detail: "the callback returned a promise; nothing was applied" },
+      });
     }
     if (tx.ops.length > 0) this.apply(tx.ops);
     return result;
+  }
+
+  /** Throws `nested-transaction` while a `transact` callback of this document runs. */
+  #notInTransaction(call: string): void {
+    if (this.#transacting) {
+      throw packageError("nested-transaction", `${call} was called inside a transaction of the same document`);
+    }
   }
 
   /**
@@ -245,6 +282,7 @@ export class Document {
    * @throws {@link LaminaError} `saved-not-rebased`; reading errors.
    */
   undo(): UndoOutcome | undefined {
+    this.#notInTransaction("undo");
     return guard(() => this.#doc.undo());
   }
 
@@ -255,6 +293,7 @@ export class Document {
    * @throws {@link LaminaError} as {@link Document.undo}.
    */
   redo(): UndoOutcome | undefined {
+    this.#notInTransaction("redo");
     return guard(() => this.#doc.redo());
   }
 
@@ -275,6 +314,7 @@ export class Document {
    * @throws {@link LaminaError} as {@link Document.save}.
    */
   saveWithReport(options?: SaveOptions): { readonly bytes: Uint8Array; readonly report: SaveReport } {
+    this.#notInTransaction("save");
     return guard(() => this.#doc.save(options));
   }
 
@@ -284,6 +324,7 @@ export class Document {
    * @throws {@link LaminaError} `unknown-option` / `invalid-argument` for bad options.
    */
   saveJob(options?: SaveOptions): SaveJob {
+    this.#notInTransaction("saveJob");
     return new SaveJob(guard(() => this.#doc.saveJob(options)));
   }
 
@@ -293,6 +334,7 @@ export class Document {
    * @throws {@link LaminaError} `no-pending-save`; reading errors in `bytes`.
    */
   rebase(bytes: Uint8Array): void {
+    this.#notInTransaction("rebase");
     guard(() => this.#doc.rebase(bytes));
   }
 

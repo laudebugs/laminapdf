@@ -12,12 +12,13 @@ New todos start from [`TEMPLATE.md`](TEMPLATE.md). The workflow is in [git workf
 
 IDs: `A`/`P`/`X` [architecture](../plans/architecture.md) (foundations, publishing, cross-cutting), `B` [library](../plans/pdf-library.md), `L` [shareable libraries](../plans/shareable-libraries.md) (contracts, worker, extraction, CLI, agent docs, mobile), `C` [web reader](../plans/web-app.md), `D` [desktop reader](../plans/desktop-app.md), `U` [UI/UX](../plans/ui-ux.md), `E` [editor](../plans/full-editor.md), `H` hosted service ([full-editor](../plans/full-editor.md)). A letter suffix (`B2a`, `B2b`) splits a round into PRs.
 
-**2 ongoing · 208 ready · 34 done** (244 total).
+**2 ongoing · 209 ready · 34 done** (245 total).
 
 ## Can start now
 
 Ready todos whose dependencies are all done:
 
+- [B5d](ready/B5d-text-report-generation-performance.md): Generation performance: a 100-page text report within 500 ms
 - [B6c](ready/B6c-runtime-matrix.md): Runtime matrix in CI: browsers, Node 22/24/26, Deno, Bun and workerd
 - [B8a](ready/B8a-structure-tree.md): Tagged PDF: structure tree builder, artifacts, alt text, MCIDs and ParentTree
 - [L1b](ready/L1b-error-contract-codegen.md): Error and diagnostic contract: codegen from `fixtures/codes.json` into Rust, TypeScript and JSON Schema, with `explain` text
@@ -58,6 +59,7 @@ Ready todos whose dependencies are all done:
 | B5a | [`lamina-build` core: builder, pages, vectors, colour and images](done/B5a-lamina-build-core.md) | done | [B1b](done/B1b-krilla-fit-spike.md), [B3c](done/B3c-save-planner-and-roundtrip.md), [L1a](done/L1a-contract-adrs.md) |
 | B5b | [Builder text, links, destinations, outlines, page labels and metadata](done/B5b-builder-text-and-document-features.md) | done | [B4b](done/B4b-shaping-bidi-line-breaking.md), [B4c](done/B4c-standard-14-and-simple-fonts.md), [B5a](done/B5a-lamina-build-core.md) |
 | B5c | [The `lamina` façade crate, Rust examples, and byte and render goldens](done/B5c-lamina-facade-and-examples.md) | done | [B5b](done/B5b-builder-text-and-document-features.md), [L1a](done/L1a-contract-adrs.md), [L1c](done/L1c-error-contract-core.md), [X4](done/X4-full-lane-gate.md) |
+| B5d | [Generation performance: a 100-page text report within 500 ms](ready/B5d-text-report-generation-performance.md) | ready | [B6b](done/B6b-lamina-pdf-package.md) |
 | B6a | [`lamina-wasm`, `@lamina/wasm` build, ADR 0016 and size budgets](done/B6a-lamina-wasm-and-adr-0016.md) | done | [B5c](done/B5c-lamina-facade-and-examples.md) |
 | B6b | [`@lamina/pdf`: the TypeScript API, `init()`, export conditions, publint and attw](done/B6b-lamina-pdf-package.md) | done | [B2b](done/B2b-standard-security-decryption.md), [B6a](done/B6a-lamina-wasm-and-adr-0016.md) |
 | B6c | [Runtime matrix in CI: browsers, Node 22/24/26, Deno, Bun and workerd](ready/B6c-runtime-matrix.md) | ready | [B6b](done/B6b-lamina-pdf-package.md) |

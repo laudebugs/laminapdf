@@ -27,8 +27,13 @@ describe("init", () => {
 
   it("is idempotent", async () => {
     await init();
-    await init(read("packages/wasm/dist/lamina_base.wasm"));
+    await init({});
     expect(Document.open(read("fixtures/golden/examples/hello.pdf")).pageCount).toBe(1);
+  });
+
+  it("refuses a different source once the module is loaded (already-initialized)", async () => {
+    const e = await init(read("packages/wasm/dist/lamina_base.wasm")).catch((error: unknown) => error);
+    expect(isLaminaError(e, "already-initialized")).toBe(true);
   });
 
   it("builds without text in the base module", () => {
@@ -53,7 +58,9 @@ describe("init", () => {
   });
 
   it("loads the text module from a compiled WebAssembly.Module", async () => {
-    await loadText(await WebAssembly.compile(read("packages/wasm/dist/lamina_text.wasm").slice()));
+    const module = await WebAssembly.compile(read("packages/wasm/dist/lamina_text.wasm").slice());
+    await loadText(module);
+    await loadText(module); // the same source again is fine
     const b = new Builder();
     const page = b.page("A6");
     page.surface().text("Hi", { font: Font.standard("Helvetica"), size: 9, at: [9, 20] });

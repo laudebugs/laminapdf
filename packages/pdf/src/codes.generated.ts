@@ -48,6 +48,7 @@ export type ErrorCode =
   | "invalid-op-log"
   | "saved-not-rebased"
   | "no-pending-save"
+  | "already-initialized"
   | "not-initialized"
   | "text-module-not-loaded"
   | "sink"
@@ -126,7 +127,7 @@ export type LimitName =
   | "max_image_pixels"
   | "max_read_window";
 
-/** Every error code, grouped as in `codes.json`. */
+/** Every error code: groups in alphabetical order of their key, codes in file order. */
 export const ERROR_CODES: readonly ErrorCode[] = [
   "builder-finished",
   "invalid-argument",
@@ -173,6 +174,7 @@ export const ERROR_CODES: readonly ErrorCode[] = [
   "invalid-op-log",
   "saved-not-rebased",
   "no-pending-save",
+  "already-initialized",
   "not-initialized",
   "text-module-not-loaded",
   "sink",
@@ -198,7 +200,7 @@ export const ERROR_CODES: readonly ErrorCode[] = [
   "font-not-shapable",
 ];
 
-/** Every warning code, grouped as in `codes.json`. */
+/** Every warning code: groups in alphabetical order of their key, codes in file order. */
 export const WARNING_CODES: readonly WarningCode[] = [
   "tounicode-conflict",
   "whole-font-rebuilt",
@@ -247,6 +249,10 @@ export const RAISED_BY_PACKAGE = {
     kind: "state",
     hint: "create a new builder or page: a finished one takes no more drawing, pages, fonts or settings",
   },
+  "invalid-argument": {
+    kind: "usage",
+    hint: "pass the value the type declarations describe; the data field says what was wrong",
+  },
   "nested-transaction": {
     kind: "state",
     hint: "commit or roll back the open transaction first, or use a savepoint inside it",
@@ -254,6 +260,10 @@ export const RAISED_BY_PACKAGE = {
   "no-transaction": {
     kind: "state",
     hint: "call begin first, or use transact",
+  },
+  "already-initialized": {
+    kind: "state",
+    hint: "call init and loadText with a source once, before the first load; later calls need no source",
   },
   "not-initialized": {
     kind: "state",

@@ -4,7 +4,7 @@
 import type { WasmBuilder as BaseBuilder, WasmDocument } from "@lamina/wasm/base";
 import type { WasmBuilder as TextBuilder, WasmPageBuilder as TextPageBuilder, WasmFont } from "@lamina/wasm/text";
 import { Document } from "./document.js";
-import { guard, packageError } from "./errors.js";
+import { didYouMean, guard, packageError } from "./errors.js";
 import type { Font, FontInfo, Image } from "./font.js";
 import { type BaseGlue, baseModule, type TextGlue, textModule } from "./init.js";
 import type { Transform } from "./matrix.js";
@@ -140,6 +140,24 @@ export interface TextBoxOptions {
   readonly features?: readonly string[];
 }
 
+/** The size of a named page; `invalid-argument` (with suggestions) for an unknown name. */
+function namedSize(name: string): readonly [number, number] {
+  const size = (PAGE_SIZES as Readonly<Record<string, readonly [number, number]>>)[name];
+  if (size !== undefined && Object.hasOwn(PAGE_SIZES, name)) return size;
+  throw packageError("invalid-argument", "not a page size name", {
+    didYouMean: didYouMean(name, Object.keys(PAGE_SIZES)),
+    data: { argument: "size", detail: "a page size is a name such as A4 or Letter, or [width, height] in points" },
+  });
+}
+
+/** Whether `a` and `b` hold the same bytes (identity first: no copy, no hash). */
+function sameBytes(a: Uint8Array, b: Uint8Array): boolean {
+  if (a === b) return true;
+  if (a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return false;
+  return true;
+}
+
 const HEX = "0123456789abcdef";
 
 function hexId(id: string | Uint8Array): string {
@@ -165,9 +183,11 @@ function rest<T extends object>(record: T, keys: readonly string[]): object | un
 /** The raw page of a {@link Page}: freed when the page finishes, `builder-finished` afterwards. */
 class LivePage {
   #raw: TextPageBuilder | undefined;
+  readonly #onFree: (page: LivePage) => void;
 
-  constructor(raw: TextPageBuilder) {
+  constructor(raw: TextPageBuilder, onFree: (page: LivePage) => void) {
     this.#raw = raw;
+    this.#onFree = onFree;
   }
 
   get(): TextPageBuilder {
@@ -178,6 +198,7 @@ class LivePage {
   free(): void {
     this.#raw?.free();
     this.#raw = undefined;
+    this.#onFree(this);
   }
 }
 
@@ -360,8 +381,8 @@ export class Page {
   readonly #surface: Surface;
 
   /** @internal */
-  constructor(builder: Builder, page: TextPageBuilder) {
-    this.#page = new LivePage(page);
+  constructor(builder: Builder, page: LivePage) {
+    this.#page = page;
     this.#surface = new Surface(builder, this.#page);
   }
 
@@ -447,7 +468,10 @@ export class Page {
 export class Builder {
   #raw: TextBuilder | undefined;
   readonly #text: boolean;
-  readonly #fonts = new Map<Font, WasmFont>();
+  /** Registered fonts: standard 14 by name, others by their bytes (one PDF font per distinct font). */
+  readonly #fonts = new Map<string | Uint8Array, WasmFont>();
+  /** Pages not yet finished: freed with the builder, so they can't finish into nothing. */
+  readonly #pages = new Set<LivePage>();
   /** @internal The module the document is built in. */
   readonly glue: BaseGlue | TextGlue;
 
@@ -486,8 +510,11 @@ export class Builder {
 
   /** A new page of a named size or `[width, height]` in points. */
   page(size: PageSizeName | readonly [width: number, height: number] = "A4"): Page {
-    const [w, h] = typeof size === "string" ? PAGE_SIZES[size] : size;
-    return new Page(this, guard(() => this.#builder.page(w, h)) as TextPageBuilder);
+    const [w, h] = typeof size === "string" ? namedSize(size) : size;
+    const raw = guard(() => this.#builder.page(w, h)) as TextPageBuilder;
+    const live = new LivePage(raw, (p) => this.#pages.delete(p));
+    this.#pages.add(live);
+    return new Page(this, live);
   }
 
   /**
@@ -502,7 +529,8 @@ export class Builder {
 
   /** @internal The font in this builder's instance. */
   wasmFont(font: Font): WasmFont {
-    let raw = this.#fonts.get(font);
+    const key = font.standard ?? this.#bytesKey(font.bytes ?? new Uint8Array());
+    let raw = this.#fonts.get(key);
     if (raw !== undefined) return raw;
     if (!this.#text) {
       throw packageError("text-module-not-loaded", "this builder was created without the text module");
@@ -511,8 +539,16 @@ export class Builder {
     raw = guard(() =>
       font.bytes !== undefined ? builder.fontBytes(font.bytes) : builder.standardFont(font.standard ?? ""),
     );
-    this.#fonts.set(font, raw);
+    this.#fonts.set(key, raw);
     return raw;
+  }
+
+  /** The key of a font program already registered with equal bytes, else `bytes` itself. */
+  #bytesKey(bytes: Uint8Array): Uint8Array {
+    for (const key of this.#fonts.keys()) {
+      if (typeof key !== "string" && sameBytes(key, bytes)) return key;
+    }
+    return bytes;
   }
 
   /** Defines the named destination `name`: page `index`, shown as `fit` (default: the page). */
@@ -572,6 +608,7 @@ export class Builder {
    * calls afterwards. Unfinished pages are freed with {@link Page.free}.
    */
   free(): void {
+    for (const page of [...this.#pages]) page.free();
     for (const font of this.#fonts.values()) font.free();
     this.#fonts.clear();
     (this.#raw as unknown as BaseBuilder | undefined)?.free();

@@ -1,5 +1,6 @@
 // Document: open, read, errors as LaminaError, edits (transactions, undo), saves.
 import { Document, init, isLaminaError, LaminaError } from "@lamina/pdf";
+import * as wasm from "@lamina/wasm/base";
 import { beforeAll, describe, expect, it } from "vitest";
 import { read, thrown } from "./helpers.js";
 
@@ -41,6 +42,21 @@ describe("Document.open", () => {
   it("normalises the password to NFKC (a decomposed ä opens an R6 file)", () => {
     const doc = Document.open(read("fixtures/encrypted/r6-aes-256-user.pdf"), { password: "Pässwört-6" });
     expect(doc.pageCount).toBeGreaterThan(0);
+  });
+
+  it("passes the password unchanged first (R2–R4 passwords are not normalised)", () => {
+    const calls: unknown[] = [];
+    const original = wasm.WasmDocument.openBytes;
+    wasm.WasmDocument.openBytes = (bytes, options) => {
+      calls.push(options?.password);
+      return original.call(wasm.WasmDocument, bytes, options);
+    };
+    try {
+      thrown(() => Document.open(read("fixtures/encrypted/r6-aes-256-user.pdf"), { password: "ﬁ" }));
+    } finally {
+      wasm.WasmDocument.openBytes = original;
+    }
+    expect(calls).toEqual(["ﬁ", "fi"]);
   });
 
   it("refuses an unknown option and suggests the known one", () => {
@@ -89,6 +105,34 @@ describe("Document edits", () => {
     const doc = hello();
     const e = thrown(() => doc.transact(() => doc.transact(() => undefined)));
     expect(isLaminaError(e, "nested-transaction")).toBe(true);
+  });
+
+  it("refuses an async callback and applies nothing (invalid-argument)", () => {
+    const doc = hello();
+    const e = thrown(() =>
+      doc.transact(async (tx) => {
+        tx.setInfo({ title: "async" });
+      }),
+    );
+    expect([isLaminaError(e, "invalid-argument"), doc.hasUnsavedChanges]).toEqual([true, false]);
+  });
+
+  it("refuses undo, apply and save inside a transaction of the same document", () => {
+    const doc = hello();
+    const codes = [() => doc.undo(), () => doc.apply([]), () => doc.save()].map((call) => {
+      const e = thrown(() => doc.transact(() => call()));
+      return isLaminaError(e) ? e.code : e;
+    });
+    expect(codes).toEqual(["nested-transaction", "nested-transaction", "nested-transaction"]);
+  });
+
+  it("allows a transaction of another document inside a transaction", () => {
+    const [a, b] = [hello(), hello()];
+    a.transact((tx) => {
+      b.transact((inner) => inner.setInfo({ title: "B" }));
+      tx.setInfo({ title: "A" });
+    });
+    expect([a.info.title, b.info.title]).toEqual(["A", "B"]);
   });
 
   it("refuses ops after the transaction ended", () => {

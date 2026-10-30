@@ -752,6 +752,13 @@
   ],
   "packageErrors": [
     {
+      "code": "already-initialized",
+      "kind": "state",
+      "summary": "init() or loadText() named a different source for a module that is already loaded or loading",
+      "hint": "call init and loadText with a source once, before the first load; later calls need no source",
+      "since": "0.1.0"
+    },
+    {
       "code": "not-initialized",
       "kind": "state",
       "summary": "an @lamina/pdf function was called before init() finished loading the WebAssembly module",

@@ -95,12 +95,12 @@ The owner chose **A** on 2026-10-30.
 
 Gzip bytes as `cargo xtask size` measures them (deflate level 9 plus the gzip header; a few hundred bytes more than `gzip -9`), enforced in the fast lane's `wasm` job from `packages/wasm/size-budgets.json`, which holds the same numbers:
 
-| Module | Measured (2026-10-30, after the review fixes and B9d) | Budget | Headroom |
+| Module | Measured (2026-10-30, after the review fixes and B9d; unchanged by B6b, whose TS-only codes stay out of the WASM) | Budget | Headroom |
 | --- | ---: | ---: | ---: |
 | base (`lamina_base.wasm`) | 372,711 (brotli 298,462) | **380,000** | 2.0 % |
 | text (`lamina_text.wasm`) | 943,924 (brotli 723,348) | **960,000** | 1.7 % |
 | JS glue per module (wasm-bindgen output, minified by esbuild) | 3,769 base, 3,978 text | **5,000** each | |
-| `@lamina/pdf` JS: both glues + the TS API, bundled and minified by esbuild (B6b, `packages` in `size-budgets.json`) | 9,304 | **20,000** | 53 % |
+| `@lamina/pdf` JS: both glues + the TS API, bundled and minified by esbuild (B6b, `packages` in `size-budgets.json`) | 10,041 | **20,000** | 50 % |
 | extract (B9c) | — | placeholder: decided when the module exists | |
 | render (C2) | — | placeholder: decided by C2's ADRs | |
 | sign (E10) | — | placeholder: decided by E10a | |
@@ -116,7 +116,7 @@ The `@lamina/pdf` TS layer has its own budget (glue + API ≤ 20 KB min+gzip, pl
 - **Errors** are thrown as the [ADR 0026](0026-error-and-diagnostic-contract.md) §1 object (a plain object), which `@lamina/pdf` turns into its `LaminaError` (ADR 0026 §7). The binding's own codes are `bindingErrors` in `fixtures/codes.json`: `invalid-argument`, `unknown-option`, `builder-finished`.
 - **The builder's binding form** (left to B6a by B5c): `WasmBuilder.page(width, height)` returns an owned `WasmPageBuilder` that draws on its own `Surface` and is written into the builder by `finish()`, with the same bytes as the Rust API. No method consumes its handle: a finished page or builder answers every later call with `builder-finished` (the §1 object), never with wasm-bindgen's null-pointer error. A call that fails draws nothing (a text run's options are all checked before it is drawn).
 - **Unknown keys:** the record's own field list (serde's, read once per type) decides which key is unknown and what `didYouMean` suggests; serde's message, which quotes the caller's key, is never parsed (ADR 0026 §4). A key unknown to a nested record gives `unknown-option` without suggestions.
-- **Passwords:** without the `saslprep` feature, the WASM modules apply SASLprep's mapping step to an R5/R6 password (RFC 4013 §2.1: non-ASCII spaces become U+0020, the "commonly mapped to nothing" characters of RFC 3454 B.1 are removed; a few code points, in every build) but not its NFKC normalisation or its prohibited-character and bidi checks. `@lamina/pdf` normalises passwords to NFKC (`String.prototype.normalize`) before passing them, so every password SASLprep accepts is prepared the same way; one it would reject is tried mapped instead of refused.
+- **Passwords:** without the `saslprep` feature, the WASM modules apply SASLprep's mapping step to an R5/R6 password (RFC 4013 §2.1: non-ASCII spaces become U+0020, the "commonly mapped to nothing" characters of RFC 3454 B.1 are removed; a few code points, in every build) but not its NFKC normalisation or its prohibited-character and bidi checks. `@lamina/pdf` passes the password as given and, when that fails with `wrong-password` and its NFKC form (`String.prototype.normalize`) differs, tries the NFKC form (B6b review): R2–R4 passwords reach the core unchanged, and every password SASLprep accepts is prepared the same way for R5/R6; one it would reject is tried mapped instead of refused.
 
 ## Consequences
 

@@ -18,7 +18,7 @@ const bytes: Uint8Array = b.finish().save();
 
 // Read and edit
 const doc = Document.open(bytes);
-doc.transact((tx) => tx.setInfo({ title: "Hello" }));
+doc.transact((tx) => tx.setInfo({ title: "Hello" })); // synchronous: collected ops are applied as one transaction
 const edited = doc.save({ mode: "incremental" }); // the original bytes, then one appended revision
 doc.free();
 ```
@@ -44,7 +44,7 @@ A page that never draws text never downloads the text module. A `Builder` is bui
 | `deno`, `browser`, `default` | `dist/index.js` | the glue's `new URL("lamina_base.wasm", import.meta.url)`, fetched and compiled streaming; bundlers emit it as an asset |
 | `node` (Node, Bun) | `dist/entry/node.js` | the file of `@lamina/wasm`, read as bytes |
 
-The escape hatch is the input of `init`: a URL or string, a `Response` (or a promise of one), bytes (`ArrayBuffer`, `Uint8Array`) or a compiled `WebAssembly.Module`, for the base module (`init(source)` or `init({ module })`) and the text module (`init({ text: source })` or `loadText(source)`). `init` is idempotent and a failed load can be retried.
+The escape hatch is the input of `init`: a URL or string, a `Response` (or a promise of one), bytes (`ArrayBuffer`, `Uint8Array`) or a compiled `WebAssembly.Module`, for the base module (`init(source)` or `init({ module })`) and the text module (`init({ text: source })` or `loadText(source)`). `init` is idempotent and a failed load can be retried; naming a different source after a module is loaded (or loading) throws `already-initialized`.
 
 **Vite:** exclude the package from dependency pre-bundling, so the `.wasm` URLs stay next to the glue:
 
@@ -52,6 +52,12 @@ The escape hatch is the input of `init`: a URL or string, a `Response` (or a pro
 // vite.config.ts
 export default { optimizeDeps: { exclude: ["@lamina/pdf"] } };
 ```
+
+## Passwords, fonts and images
+
+- A password is tried as given, then (after `wrong-password`) in its NFKC form, so R2–R4 passwords reach the core unchanged and R5/R6 ones match SASLprep's normalisation ([ADR 0016](../../docs/decisions/0016-package-design.md) §7).
+- Equal fonts are one PDF font per builder: standard 14 fonts by name, others by their bytes, however many `Font` objects name them.
+- `Image` copies its input and decodes it in the module of first use; bad data surfaces there (or when `width`/`height` is read).
 
 ## Errors and warnings
 

@@ -153,5 +153,6 @@ One page per code in [`fixtures/codes.json`](../../fixtures/codes.json), as [ADR
 
 | Code | Kind |
 | --- | --- |
+| [`already-initialized`](already-initialized.md) | `state` |
 | [`not-initialized`](not-initialized.md) | `state` |
 | [`text-module-not-loaded`](text-module-not-loaded.md) | `state` |

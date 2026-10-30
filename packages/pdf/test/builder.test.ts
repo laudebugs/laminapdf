@@ -72,11 +72,36 @@ describe("Builder", () => {
     ).toBe(true);
   });
 
-  it("refuses an RGBA image of the wrong length", () => {
+  it("reports an RGBA image of the wrong length when it is first decoded", () => {
+    const image = Image.rgba(2, 2, new Uint8Array(3));
     expect(
       isLaminaError(
-        thrown(() => Image.rgba(2, 2, new Uint8Array(3))),
+        thrown(() => image.width),
         "image-data-length",
+      ),
+    ).toBe(true);
+  });
+
+  it("copies an image's bytes, so changing the input later changes nothing", () => {
+    const png = pngPixel();
+    const image = Image.png(png);
+    png.fill(0);
+    expect(drawn((_, page) => page.surface().image(image, [0, 0, 10, 10])).pageCount).toBe(1);
+  });
+
+  it("refuses an unknown page size name with suggestions", () => {
+    const e = thrown(() => new Builder().page("A44" as never));
+    expect(isLaminaError(e, "invalid-argument") && e.didYouMean?.[0]).toBe("A4");
+  });
+
+  it("frees unfinished pages with the builder (builder-finished afterwards)", () => {
+    const b = new Builder();
+    const page = b.page("A6");
+    b.free();
+    expect(
+      isLaminaError(
+        thrown(() => page.finish()),
+        "builder-finished",
       ),
     ).toBe(true);
   });

@@ -87,38 +87,47 @@ function decode(glue: BaseGlue | TextGlue, source: ImageSource): WasmImage {
 
 /**
  * An image to draw: a JPEG (passed through), a PNG (alpha as a soft mask) or raw RGBA pixels.
- * Checked when created; written once per document however often it is drawn.
+ * The bytes are copied when the image is created. It is decoded once per WASM module, the first
+ * time a builder of that module draws it (or `width`/`height` is read), so problems with the
+ * data (`invalid-image`, `unsupported-image`, …) surface there. Written once per document however
+ * often it is drawn.
  */
 export class Image {
   readonly #source: ImageSource;
   readonly #decoded = new Map<BaseGlue | TextGlue, WasmImage>();
-  /** Width in pixels. */
-  readonly width: number;
-  /** Height in pixels. */
-  readonly height: number;
 
   private constructor(source: ImageSource) {
     this.#source = source;
-    const glue = baseModule();
-    const image = decode(glue, source);
-    this.#decoded.set(glue, image);
-    this.width = image.width;
-    this.height = image.height;
   }
 
-  /** A JPEG. @throws {@link LaminaError} `invalid-image`, `unsupported-image`. */
+  /** A JPEG. */
   static jpeg(bytes: Uint8Array): Image {
-    return new Image({ kind: "jpeg", bytes });
+    return new Image({ kind: "jpeg", bytes: bytes.slice() });
   }
 
-  /** A PNG. @throws {@link LaminaError} `invalid-image`, `unsupported-image`, `image-too-large`. */
+  /** A PNG. */
   static png(bytes: Uint8Array): Image {
-    return new Image({ kind: "png", bytes });
+    return new Image({ kind: "png", bytes: bytes.slice() });
   }
 
-  /** 8-bit RGBA pixels, row by row. @throws {@link LaminaError} `invalid-image` for a wrong length. */
+  /** 8-bit RGBA pixels, row by row (`image-data-length` at first use for a wrong length). */
   static rgba(width: number, height: number, pixels: Uint8Array): Image {
-    return new Image({ kind: "rgba", width, height, bytes: pixels });
+    return new Image({ kind: "rgba", width, height, bytes: pixels.slice() });
+  }
+
+  /** Width in pixels (decodes the image if no module has yet). @throws {@link LaminaError} as `in`. */
+  get width(): number {
+    return this.#any().width;
+  }
+
+  /** Height in pixels (decodes the image if no module has yet). @throws {@link LaminaError} as `in`. */
+  get height(): number {
+    return this.#any().height;
+  }
+
+  #any(): WasmImage {
+    for (const image of this.#decoded.values()) return image;
+    return this.in(baseModule());
   }
 
   /** Frees the image's WASM memory now (otherwise when it is garbage-collected). */
@@ -127,7 +136,10 @@ export class Image {
     this.#decoded.clear();
   }
 
-  /** @internal The image in `glue`'s instance. */
+  /**
+   * @internal The image in `glue`'s instance, decoded there at first use.
+   * @throws {@link LaminaError} `invalid-image`, `unsupported-image`, `image-too-large`, `image-data-length`.
+   */
   in(glue: BaseGlue | TextGlue): WasmImage {
     let image = this.#decoded.get(glue);
     if (image === undefined) {

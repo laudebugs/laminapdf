@@ -128,9 +128,36 @@ export function isDiagnostic(value: unknown): value is Diagnostic<ErrorCode> {
 }
 
 /** A LaminaError for a code `@lamina/pdf` raises itself (kind and hint from codes.json). */
-export function packageError<C extends keyof typeof RAISED_BY_PACKAGE>(code: C, message: string): LaminaError<C> {
+export function packageError<C extends keyof typeof RAISED_BY_PACKAGE>(
+  code: C,
+  message: string,
+  extra: Pick<Diagnostic<C>, "didYouMean" | "data"> = {},
+): LaminaError<C> {
   const { kind, hint } = RAISED_BY_PACKAGE[code];
-  return new LaminaError<C>({ code, kind, message, hint, docsUrl: `${DOCS_URL.base}${code}${DOCS_URL.suffix}` });
+  const docsUrl = `${DOCS_URL.base}${code}${DOCS_URL.suffix}`;
+  return new LaminaError<C>({ code, kind, message, hint, ...extra, docsUrl });
+}
+
+/** The names in `known` within two edits of `given` (case-insensitive), closest first. */
+export function didYouMean(given: string, known: readonly string[]): string[] {
+  const distance = (a: string, b: string): number => {
+    let row = Array.from({ length: b.length + 1 }, (_, i) => i);
+    for (let i = 0; i < a.length; i++) {
+      const next = [i + 1];
+      for (let j = 0; j < b.length; j++) {
+        const cost = (row[j] ?? 0) + (a[i] === b[j] ? 0 : 1);
+        next.push(Math.min(cost, (row[j + 1] ?? 0) + 1, (next[j] ?? 0) + 1));
+      }
+      row = next;
+    }
+    return row[b.length] ?? 0;
+  };
+  const lower = given.toLowerCase();
+  return known
+    .map((k) => [distance(lower, k.toLowerCase()), k] as const)
+    .filter(([d]) => d <= 2)
+    .sort((x, y) => x[0] - y[0])
+    .map(([, k]) => k);
 }
 
 /**
