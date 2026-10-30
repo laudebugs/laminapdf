@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [UI/UX §6 U4. Trust and reflow](../../plans/ui-ux.md#u4-trust-and-reflow) |
 | Round / milestone | Round U (UI/UX) — after M2 |
-| Depends on | [B8a](./B8a-structure-tree.md), [C5a](./C5a-text-layer-and-selection.md), [U1c](./U1c-inverted-l-shell-and-modes.md), [U2b](../done/U2b-reading-order-ground-truth.md) |
+| Depends on | [B8a](../ongoing/B8a-structure-tree.md), [C5a](./C5a-text-layer-and-selection.md), [U1c](./U1c-inverted-l-shell-and-modes.md), [U2b](../done/U2b-reading-order-ground-truth.md) |
 | Blocks | [U4c](./U4c-approximate-reader-mode.md) |
 | ADRs | Follows 0024 (reader mode surface), 0005 (typed views); may propose a `lamina-reflow` crate per [code organization](../../guidelines/code-organization.md) |
 | Branch | `feat/u4b-reader-mode-tagged` |
@@ -23,7 +23,7 @@ Give phone readers and people who need larger text a one-tap reader mode that tu
 - **Design (Paper):** [R14 Reader mode](../../design/paper/reader-b.md#r14-reader-mode). Build to match these screens; record any deviation in the area document ([Paper design plan §5](../../plans/paper-design.md#5-how-the-designs-are-used)).
 - [UI/UX plan §5.8](../../plans/ui-ux.md#58-reader-mode-reflow-and-local-intelligence-r15-r16); [research: reflow](../../research/product/pdf-app-product-and-ux.md#reflow-organiser-dark-mode-and-perceived-speed) — Acrobat Reflow can't fix bad reading order (Fondazione LIA 2024); Liquid Mode needs Adobe's cloud and skips files over 200 pages; half of web PDFs tagged since mid-2025, fewer than 1% PDF/UA.
 - ISO 32000-2 §14.7–§14.8 (logical structure, tagged PDF) and the PDF Association's "Deriving HTML from PDF" (v1.0, 2019) — read before writing code (spec first).
-- [B8a](./B8a-structure-tree.md) — the structure-tree reader; [C5a](./C5a-text-layer-and-selection.md) — text runs and positions; [U2b](../done/U2b-reading-order-ground-truth.md) — scoring.
+- [B8a](../ongoing/B8a-structure-tree.md) — the structure-tree reader; [C5a](./C5a-text-layer-and-selection.md) — text runs and positions; [U2b](../done/U2b-reading-order-ground-truth.md) — scoring.
 - [PDF research ch. 06](../../research/pdf/06-feature-inventory.md) — where reflow sits in the feature inventory.
 
 ## Scope
