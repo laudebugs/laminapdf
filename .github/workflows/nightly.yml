@@ -66,7 +66,9 @@ env:
 jobs:
   # Every job runs on the self-hosted runners ([self-hosted, macOS, ARM64]), like the PR lanes
   # (#41): isolate-rust-home first, rust-cache off (its macOS post step hangs there), pnpm into
-  # runner.temp, Python in a venv in runner.temp.
+  # runner.temp, Python in a venv in runner.temp. Each job's `target-dir` keeps its build output
+  # on the runner between nights (scheduled runs on main get their own directories; see the
+  # action). The fuzz matrix shares one: its jobs build the same targets the same way.
   differential:
     name: Differential (pdf.js, PDFium, qpdf, pypdf)
     runs-on: [self-hosted, macOS, ARM64]
@@ -80,6 +82,8 @@ jobs:
         with:
           persist-credentials: false
       - uses: ./.github/actions/isolate-rust-home
+        with:
+          target-dir: nightly-differential
       # xtask and the lamina example only build for the host: no components or cross targets.
       - uses: ./.github/actions/host-rust
         with:
@@ -156,6 +160,8 @@ jobs:
         with:
           persist-credentials: false
       - uses: ./.github/actions/isolate-rust-home
+        with:
+          target-dir: nightly-fuzz
       # The pinned stable toolchain (host only) builds xtask; fuzz/ needs nightly.
       - uses: ./.github/actions/host-rust
         with:
@@ -215,6 +221,8 @@ jobs:
         with:
           persist-credentials: false
       - uses: ./.github/actions/isolate-rust-home
+        with:
+          target-dir: nightly-scaling
       - uses: ./.github/actions/host-rust
         with:
           cache: false
@@ -240,6 +248,8 @@ jobs:
         with:
           persist-credentials: false
       - uses: ./.github/actions/isolate-rust-home
+        with:
+          target-dir: nightly-bench
       - uses: ./.github/actions/host-rust
         with:
           cache: false
@@ -307,6 +317,8 @@ jobs:
         with:
           persist-credentials: false
       - uses: ./.github/actions/isolate-rust-home
+        with:
+          target-dir: xtask
       - uses: ./.github/actions/host-rust
         with:
           cache: false
