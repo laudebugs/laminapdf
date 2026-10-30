@@ -66,3 +66,5 @@ run "AAR (gradle aar)" bash -c 'cd kotlin && gradle aar --no-daemon -q && unzip 
 log "## Sizes"
 scripts/size-report.sh >/dev/null && cat target/size-report.md >>"$report"
 echo "report: $report"
+echo "=== mac-report.md ==="
+cat "$report"
