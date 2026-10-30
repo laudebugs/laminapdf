@@ -12,7 +12,7 @@
 | Branch | `ci/x3c-link-check` |
 | PR title | `ci: nightly external link check of the docs` |
 | Size | S (≈ 100–200 lines) |
-| PR | — |
+| PR | [#66](https://github.com/laudebugs/lamina/pull/66) |
 
 ## Goal
 
