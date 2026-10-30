@@ -12,7 +12,7 @@
 | Branch | `feat/b9b-text-extraction` |
 | PR title | `feat(text): text extraction with encodings, ToUnicode, glyph quads, ActualText and MCIDs` |
 | Size | L (≈ 1,100–1,500 lines) |
-| PR | — |
+| PR | [#72](https://github.com/laudebugs/lamina/pull/72) |
 
 > **Split.** As the risks below allowed, this todo was split when the whole passed ~1,500 lines: B9b (this one) reads fonts, CMaps and ToUnicode and decodes every shown glyph to Unicode with its origin and advance; [B9d](../ready/B9d-text-runs-quads-and-page-text.md) adds quads, runs, `ActualText`, MCIDs, invisible text and the façade's `page.text()`. The scope, tasks and criteria below say which part moved.
 

@@ -24,8 +24,8 @@ use skrifa::{FontRef, MetadataProvider};
 use super::cmap::{CMap, Code};
 use crate::{Encoding, Standard14, agl};
 
-/// How deep `usecmap` / `/UseCMap` chains are followed (TN #5014 allows one level; files nest
-/// a few). Deeper links are dropped with `cmap-invalid`.
+/// How many `usecmap` / `/UseCMap` links are followed from a font's CMap (TN #5014 allows
+/// one; files nest a few). Further links are dropped with `cmap-invalid`.
 pub const MAX_USECMAP_DEPTH: usize = 8;
 
 /// The default vertical metrics of a CIDFont, `/DW2 [880 −1000]` (§9.7.4.3).
@@ -41,7 +41,7 @@ pub(crate) struct ExtractFont {
 #[derive(Debug)]
 enum Kind {
     Simple(Simple),
-    Composite(Composite),
+    Composite(Box<Composite>),
 }
 
 /// Type 1, `MMType1`, TrueType and Type 3 fonts: one byte per code.
@@ -77,7 +77,7 @@ enum CidEncoding {
     /// A predefined `Uni…-UCS2-…` or `Uni…-UTF16-…` CMap: the code is UTF-16, the CID unknown.
     Utf16,
     /// An embedded CMap stream.
-    Embedded(CMap),
+    Embedded(Box<CMap>),
 }
 
 /// `/W` or `/W2`: CID ranges with one value each, or a run of values from a first CID.
@@ -90,6 +90,14 @@ struct Widths<T> {
 enum Run<T> {
     Same(T),
     Each(Vec<T>),
+}
+
+impl<T> Default for Widths<T> {
+    fn default() -> Self {
+        Self {
+            ranges: BTreeMap::new(),
+        }
+    }
 }
 
 impl<T: Copy> Widths<T> {
@@ -168,20 +176,26 @@ impl Reader<'_> {
         }
     }
 
-    /// The numbers of an array (non-numbers dropped, and noted).
-    fn numbers(&mut self, object: &Object) -> Vec<f64> {
+    /// The numbers of an array (non-numbers dropped, and noted; a fatal error while
+    /// resolving an element ends the load).
+    fn numbers(&mut self, object: &Object) -> Result<Vec<f64>> {
         let Some(items) = object.as_array() else {
             self.issues.font = true;
-            return Vec::new();
+            return Ok(Vec::new());
         };
         let mut out = Vec::with_capacity(items.len());
         for item in items {
-            match self.doc.deref(item).ok().and_then(|o| o.as_f64()) {
+            let value = match self.doc.deref(item) {
+                Ok(resolved) => resolved.as_f64(),
+                Err(error) if fatal(&error) => return Err(error),
+                Err(_) => None,
+            };
+            match value {
                 Some(n) if n.is_finite() => out.push(n),
                 _ => self.issues.font = true,
             }
         }
-        out
+        Ok(out)
     }
 
     /// The embedded font program of a descriptor, if TrueType or OpenType (skrifa reads
@@ -289,7 +303,7 @@ impl ExtractFont {
             None => None,
         };
         let kind = if name_of(dict.get("Subtype")) == Some(b"Type0") {
-            Kind::Composite(Composite::load(&mut reader, dict)?)
+            Kind::Composite(Box::new(Composite::load(&mut reader, dict)?))
         } else {
             Kind::Simple(Simple::load(&mut reader, dict)?)
         };
@@ -359,18 +373,8 @@ impl ExtractFont {
 }
 
 fn fixed(bytes: &[u8], len: usize) -> Option<(Code, usize)> {
-    if bytes.is_empty() {
-        return None;
-    }
     let len = len.min(bytes.len());
-    let value = bytes.get(..len)?.iter().fold(0u32, |acc, &b| (acc << 8) | u32::from(b));
-    Some((
-        Code {
-            value,
-            len: u8::try_from(len).ok()?,
-        },
-        len,
-    ))
+    Some((super::cmap::code_of(bytes.get(..len)?)?, len))
 }
 
 impl Simple {
@@ -464,25 +468,29 @@ impl Simple {
         // Type 3 widths are in glyph space: `/FontMatrix` maps them to text space (§9.6.4).
         let scale = if type3 {
             let matrix = match reader.get(dict, "FontMatrix")? {
-                Some(m) => reader.numbers(&m),
+                Some(m) => reader.numbers(&m)?,
                 None => Vec::new(),
             };
             matrix.first().copied().unwrap_or(0.001) * 1000.0
         } else {
             1.0
         };
+        let first = reader.number(dict, "FirstChar")?;
+        let listed = reader.get(dict, "Widths")?;
+        // §9.6.2.1: codes outside `/Widths` take `/MissingWidth`; only a font without
+        // `/Widths` (a standard 14 font written by name) takes the AFM widths.
+        let afm = if listed.is_none() { standard } else { None };
         let mut widths: Vec<f64> = (0..256)
             .map(|code| {
                 let name = names.get(code).and_then(Option::as_deref);
-                match (standard, name) {
+                match (afm, name) {
                     (Some(font), Some(name)) => font.width(name).map_or(missing, f64::from),
                     _ => missing,
                 }
             })
             .collect();
-        let first = reader.number(dict, "FirstChar")?;
-        if let (Some(first), Some(list)) = (first, reader.get(dict, "Widths")?) {
-            let list = reader.numbers(&list);
+        if let (Some(first), Some(list)) = (first, listed) {
+            let list = reader.numbers(&list)?;
             let first = whole(first).and_then(|n| usize::try_from(n).ok()).unwrap_or(0);
             for (i, w) in list.into_iter().enumerate() {
                 if let Some(slot) = widths.get_mut(first.saturating_add(i)) {
@@ -542,7 +550,7 @@ impl Composite {
             Some(stream @ Object::Stream(_)) => {
                 let cmap = embedded_cmap(reader, stream, 0)?;
                 let vertical = cmap.vertical();
-                (CidEncoding::Embedded(cmap), vertical)
+                (CidEncoding::Embedded(Box::new(cmap)), vertical)
             }
             _ => {
                 reader.issues.font = true;
@@ -584,7 +592,7 @@ impl Composite {
             },
         };
         let default_vertical = match reader.get(&cid_font, "DW2")? {
-            Some(dw2) => match reader.numbers(&dw2).as_slice() {
+            Some(dw2) => match reader.numbers(&dw2)?.as_slice() {
                 [vy, w1] => (*vy, *w1),
                 _ => DW2,
             },
@@ -600,11 +608,13 @@ impl Composite {
             },
         };
         let descriptor = reader.dict(&cid_font, "FontDescriptor")?;
-        let program = match reader.program(descriptor.as_ref())? {
+        // Only a CIDFontType2's program is read: its `/CIDToGIDMap` (default identity) gives
+        // the glyph of a CID. A CIDFontType0's CFF maps CIDs through its charset, which is
+        // not read, so its glyphs need a ToUnicode CMap.
+        let truetype = name_of(cid_font.get("Subtype")) == Some(b"CIDFontType2");
+        let program = match reader.program(descriptor.as_ref().filter(|_| truetype))? {
             Some(bytes) => {
                 let by_glyph = glyph_text(&bytes);
-                // CIDFontType2: `/CIDToGIDMap` (default identity); a CFF-flavoured OpenType
-                // program is CID-keyed by the same numbers here.
                 let map = match reader.get(&cid_font, "CIDToGIDMap")? {
                     Some(object) if matches!(&*object, Object::Stream(_)) => reader.stream(&object)?,
                     _ => None,
@@ -688,26 +698,40 @@ fn embedded_cmap(reader: &mut Reader<'_>, object: &Object, depth: usize) -> Resu
     };
     let mut cmap = CMap::parse(&bytes);
     reader.issues.cmap |= cmap.skipped() > 0;
-    let parent = match object {
-        Object::Stream(s) => reader.get(&s.dict, "UseCMap")?,
-        _ => None,
+    let Object::Stream(stream) = object else {
+        return Ok(cmap);
     };
-    if let Some(parent) = parent.as_deref().filter(|p| matches!(p, Object::Stream(_))) {
-        if depth + 1 >= MAX_USECMAP_DEPTH {
-            reader.issues.cmap = true;
-        } else {
-            let parent = embedded_cmap(reader, parent, depth + 1)?;
-            cmap.inherit(&parent);
+    // The dictionary's `/WMode` (Table 118) where the source states none.
+    if let Some(wmode) = reader.number(&stream.dict, "WMode")? {
+        cmap.default_vertical(whole(wmode) == Some(1));
+    }
+    // `/UseCMap` in the dictionary (a stream or a predefined name), else `usecmap` in the
+    // source (a name).
+    let parent = match reader.get(&stream.dict, "UseCMap")? {
+        Some(parent) => Some(parent),
+        None => cmap
+            .use_cmap()
+            .map(|name| Arc::new(Object::Name(lamina_syntax::Name::new(name.to_vec())))),
+    };
+    match parent.as_deref() {
+        Some(parent @ Object::Stream(_)) => {
+            if depth >= MAX_USECMAP_DEPTH {
+                reader.issues.cmap = true;
+            } else {
+                let parent = embedded_cmap(reader, parent, depth + 1)?;
+                cmap.inherit(&parent);
+            }
         }
-    } else if let Some(name) = cmap.use_cmap().map(<[u8]>::to_vec) {
-        // A predefined parent: Identity adds the two-byte codespace; others are not bundled.
-        if name == b"Identity-H" || name == b"Identity-V" {
+        // A predefined parent: Identity adds the two-byte codespace and identity CIDs; the
+        // others are not bundled.
+        Some(Object::Name(name)) if name.0 == b"Identity-H" || name.0 == b"Identity-V" => {
             cmap.inherit(&CMap::parse(
                 b"1 begincodespacerange <0000> <FFFF> endcodespacerange 1 begincidrange <0000> <FFFF> 0 endcidrange",
             ));
-        } else {
-            reader.issues.cmap = true;
+            cmap.default_vertical(name.0 == b"Identity-V");
         }
+        Some(_) => reader.issues.cmap = true,
+        None => {}
     }
     Ok(cmap)
 }
@@ -723,7 +747,7 @@ fn cid_widths<T: Copy>(
     let mut ranges = BTreeMap::new();
     let Some(items) = object.as_array() else {
         reader.issues.font = true;
-        return Ok(Widths { ranges });
+        return Ok(Widths::default());
     };
     let mut i = 0;
     let int = |o: Option<&Object>| o.and_then(Object::as_f64).and_then(whole);
@@ -731,7 +755,7 @@ fn cid_widths<T: Copy>(
         if let Some(list @ (Object::Array(_) | Object::Ref(_))) = items.get(i + 1) {
             // `c [v …]`: a run of values from `c`.
             let list = match reader.doc.deref(list) {
-                Ok(resolved) => reader.numbers(&resolved),
+                Ok(resolved) => reader.numbers(&resolved)?,
                 Err(error) if fatal(&error) => return Err(error),
                 Err(_) => Vec::new(),
             };
@@ -765,7 +789,13 @@ fn cid_widths<T: Copy>(
 #[derive(Debug, Default)]
 pub(crate) struct FontCache {
     fonts: BTreeMap<lamina_syntax::ObjRef, Arc<ExtractFont>>,
+    /// Direct font dictionaries (no object to key by), compared by value: their streams are
+    /// indirect, so a comparison is cheap. At most [`DIRECT_FONTS`].
+    direct: Vec<(Dict, Arc<ExtractFont>)>,
 }
+
+/// Direct font dictionaries cached per extractor; further ones are loaded on each use.
+const DIRECT_FONTS: usize = 64;
 
 impl FontCache {
     /// The font of `dict` (object `object`, when indirect), loading it on first use and
@@ -779,6 +809,11 @@ impl FontCache {
         if let Some(font) = object.and_then(|r| self.fonts.get(&r)) {
             return Ok(Arc::clone(font));
         }
+        if object.is_none()
+            && let Some((_, font)) = self.direct.iter().find(|(d, _)| d == dict)
+        {
+            return Ok(Arc::clone(font));
+        }
         let (font, issues) = ExtractFont::load(doc, dict)?;
         let num = object.map(|r| r.num);
         if issues.font {
@@ -788,8 +823,12 @@ impl FontCache {
             doc.report(Warning::CMapInvalid { object: num })?;
         }
         let font = Arc::new(font);
-        if let Some(r) = object {
-            self.fonts.insert(r, Arc::clone(&font));
+        match object {
+            Some(r) => {
+                self.fonts.insert(r, Arc::clone(&font));
+            }
+            None if self.direct.len() < DIRECT_FONTS => self.direct.push((dict.clone(), Arc::clone(&font))),
+            None => {}
         }
         Ok(font)
     }
@@ -876,7 +915,7 @@ mod tests {
     }
 
     #[test]
-    fn widths_from_first_char_win_over_the_afm_and_missing_width_covers_the_rest() {
+    fn widths_cover_their_codes_and_missing_width_the_rest() {
         let mut font = dict(
             "<< /Subtype /TrueType /BaseFont /Arial /FirstChar 65 /Widths [500 600]
                /FontDescriptor << /Flags 32 /MissingWidth 250 >> >>",
@@ -885,7 +924,7 @@ mod tests {
         let (font, _) = load(&font);
         assert_eq!(
             [byte(65), byte(66), byte(0x57)].map(|c| font.displacement(c).0),
-            [500.0, 600.0, 944.0]
+            [500.0, 600.0, 250.0]
         );
     }
 
@@ -1022,14 +1061,49 @@ mod tests {
 
     #[test]
     fn usecmap_chains_are_followed_to_the_depth_limit() {
-        let (font, issues) = load(&chained(MAX_USECMAP_DEPTH - 1));
+        let (font, issues) = load(&chained(MAX_USECMAP_DEPTH));
         assert_eq!((font.displacement(two(1)).0, issues.cmap), (123.0, false));
     }
 
     #[test]
     fn usecmap_chains_past_the_depth_limit_are_cut() {
-        let (font, issues) = load(&chained(MAX_USECMAP_DEPTH));
+        let (font, issues) = load(&chained(MAX_USECMAP_DEPTH + 1));
         assert_eq!((font.displacement(two(1)).0, issues.cmap), (1000.0, true));
+    }
+
+    #[test]
+    fn a_predefined_use_cmap_in_the_dictionary_is_inherited_with_its_wmode() {
+        let mut font = type0("null", "<< /Subtype /CIDFontType2 /W [9 [300]] >>");
+        font.insert(
+            "Encoding",
+            stream(
+                "<< /Type /CMap /UseCMap /Identity-V >>",
+                b"1 begincidchar <0001> 9 endcidchar",
+            ),
+        );
+        let (font, issues) = load(&font);
+        assert_eq!(
+            (
+                font.displacement(two(1)).0,
+                font.displacement(two(9)).0,
+                font.vertical(),
+                issues.cmap
+            ),
+            (300.0, 300.0, true, false)
+        );
+    }
+
+    #[test]
+    fn the_cmap_dictionarys_wmode_applies_when_the_source_has_none() {
+        let mut font = type0("null", "<< /Subtype /CIDFontType2 >>");
+        font.insert(
+            "Encoding",
+            stream(
+                "<< /Type /CMap /WMode 1 >>",
+                b"1 begincodespacerange <0000> <FFFF> endcodespacerange",
+            ),
+        );
+        assert!(load(&font).0.vertical());
     }
 
     #[test]

@@ -194,16 +194,13 @@ impl Collector<'_> {
         for item in show.items() {
             match item {
                 TextItem::Adjust(n) => {
-                    let advance = state.glyph_advance(0.0, 0.0, n, false, vertical);
-                    // `glyph_advance` adds `Tc` per glyph; an adjustment is no glyph.
+                    // A `TJ` number moves by −n/1000 · Tfs (and Th horizontally), §9.4.3.
+                    let shift = -n / 1000.0 * state.font_size;
                     let advance = if vertical {
-                        TextAdvance {
-                            tx: 0.0,
-                            ty: advance.ty - state.char_spacing,
-                        }
+                        TextAdvance { tx: 0.0, ty: shift }
                     } else {
                         TextAdvance {
-                            tx: advance.tx - state.char_spacing * state.horizontal_scaling,
+                            tx: shift * state.horizontal_scaling,
                             ty: 0.0,
                         }
                     };

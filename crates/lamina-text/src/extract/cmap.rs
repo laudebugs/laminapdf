@@ -61,28 +61,71 @@ struct Range<T> {
 /// an earlier one (pdf.js and Poppler keep the last).
 type Ranges<T> = BTreeMap<(u8, u32), Range<T>>;
 
-/// Entries looked at below a code before giving up: a wide range with single-code overrides
-/// inside it (`<0000> <FFFF>` plus `cidchar`s) needs a few steps back; hostile CMaps with
-/// thousands of overrides must not make every lookup linear.
+/// Ranges looked at below a code before giving up: overlapping ranges (a wide range with
+/// narrower ones inside it) need a few steps back; a hostile CMap with thousands of nested
+/// ranges must not make every lookup linear. Single codes are kept apart, so any number of
+/// `cidchar`/`bfchar` overrides inside a wide range costs nothing.
 const LOOKBACK: usize = 64;
 
-fn lookup<T>(ranges: &Ranges<T>, code: Code) -> Option<(u32, &T)> {
-    ranges
-        .range((code.len, 0)..=(code.len, code.value))
-        .rev()
-        .take(LOOKBACK)
-        .find(|(_, range)| code.value <= range.hi)
-        .map(|(&(_, lo), range)| (code.value - lo, &range.value))
+/// One mapping: single codes (`…char`) and ranges (`…range`), kept apart. A single code wins
+/// over a range that covers it.
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct Table<T> {
+    singles: BTreeMap<(u8, u32), T>,
+    ranges: Ranges<T>,
+}
+
+impl<T> Default for Table<T> {
+    fn default() -> Self {
+        Self {
+            singles: BTreeMap::new(),
+            ranges: BTreeMap::new(),
+        }
+    }
+}
+
+impl<T: Clone> Table<T> {
+    fn insert(&mut self, lo: Code, hi: u32, value: T) {
+        if lo.value == hi {
+            self.singles.insert((lo.len, lo.value), value);
+        } else {
+            self.ranges.insert((lo.len, lo.value), Range { hi, value });
+        }
+    }
+
+    /// The entry covering `code` and `code`'s offset from the entry's first code.
+    fn get(&self, code: Code) -> Option<(u32, &T)> {
+        if let Some(value) = self.singles.get(&(code.len, code.value)) {
+            return Some((0, value));
+        }
+        self.ranges
+            .range((code.len, 0)..=(code.len, code.value))
+            .rev()
+            .take(LOOKBACK)
+            .find(|(_, range)| code.value <= range.hi)
+            .map(|(&(_, lo), range)| (code.value - lo, &range.value))
+    }
+
+    /// Adds `parent`'s entries where this table has none at the same start.
+    fn inherit(&mut self, parent: &Self) {
+        for (key, value) in &parent.singles {
+            self.singles.entry(*key).or_insert_with(|| value.clone());
+        }
+        for (key, range) in &parent.ranges {
+            self.ranges.entry(*key).or_insert_with(|| range.clone());
+        }
+    }
 }
 
 /// A parsed CMap (either kind).
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct CMap {
     codespace: Vec<CodeSpace>,
-    cids: Ranges<u32>,
-    notdef: Ranges<u32>,
-    unicode: Ranges<Dst>,
-    wmode: u8,
+    cids: Table<u32>,
+    notdef: Table<u32>,
+    unicode: Table<Dst>,
+    /// `/WMode` as the source states it (`None`: not stated).
+    wmode: Option<u8>,
     use_cmap: Option<Vec<u8>>,
     skipped: usize,
 }
@@ -100,10 +143,16 @@ impl CMap {
         self.skipped
     }
 
-    /// `/WMode` (0 horizontal, 1 vertical).
+    /// `/WMode` (0 horizontal, 1 vertical; horizontal when not stated).
     #[must_use]
     pub const fn vertical(&self) -> bool {
-        self.wmode == 1
+        matches!(self.wmode, Some(1))
+    }
+
+    /// Sets `/WMode` from the CMap stream's dictionary (Table 118) when the source states
+    /// none.
+    pub fn default_vertical(&mut self, vertical: bool) {
+        self.wmode.get_or_insert(u8::from(vertical));
     }
 
     /// The CMap named by `usecmap`, if any (resolved by the caller).
@@ -126,14 +175,11 @@ impl CMap {
                 self.codespace.push(space.clone());
             }
         }
-        for (key, range) in &parent.cids {
-            self.cids.entry(*key).or_insert_with(|| range.clone());
-        }
-        for (key, range) in &parent.notdef {
-            self.notdef.entry(*key).or_insert_with(|| range.clone());
-        }
-        for (key, range) in &parent.unicode {
-            self.unicode.entry(*key).or_insert_with(|| range.clone());
+        self.cids.inherit(&parent.cids);
+        self.notdef.inherit(&parent.notdef);
+        self.unicode.inherit(&parent.unicode);
+        if self.wmode.is_none() {
+            self.wmode = parent.wmode;
         }
     }
 
@@ -154,16 +200,7 @@ impl CMap {
             })
             .unwrap_or_else(|| self.fallback_len(bytes, default_len));
         let len = len.clamp(1, bytes.len());
-        let value = bytes
-            .get(..len)
-            .unwrap_or_default()
-            .iter()
-            .fold(0u32, |acc, &b| (acc << 8) | u32::from(b));
-        let code = Code {
-            value,
-            len: u8::try_from(len).unwrap_or(1),
-        };
-        Some((code, len))
+        Some((code_of(bytes.get(..len)?)?, len))
     }
 
     fn fallback_len(&self, bytes: &[u8], default_len: usize) -> usize {
@@ -181,16 +218,22 @@ impl CMap {
     /// (which is CID 0 for rendering).
     #[must_use]
     pub fn cid(&self, code: Code) -> Option<u32> {
-        if let Some((offset, start)) = lookup(&self.cids, code) {
+        if let Some((offset, start)) = self.cids.get(code) {
             return start.checked_add(offset);
         }
-        lookup(&self.notdef, code).map(|(_, cid)| *cid)
+        self.notdef.get(code).map(|(_, cid)| *cid)
     }
 
-    /// The text `code` maps to in a ToUnicode CMap (`bfchar`/`bfrange`).
+    /// The text `code` maps to in a ToUnicode CMap (`bfchar`/`bfrange`). A code the CMap
+    /// writes with another byte length (`<0041>` entries for a one-byte simple font, a common
+    /// producer bug) matches by value, as in pdf.js and Poppler.
     #[must_use]
     pub fn unicode(&self, code: Code) -> Option<String> {
-        let (offset, dst) = lookup(&self.unicode, code)?;
+        let (offset, dst) = self.unicode.get(code).or_else(|| {
+            (1..=4u8)
+                .filter(|&len| len != code.len && (len == 4 || code.value >> (8 * u32::from(len)) == 0))
+                .find_map(|len| self.unicode.get(Code { len, ..code }))
+        })?;
         let units = match dst {
             Dst::List(list) => list.get(usize::try_from(offset).ok()?)?.clone(),
             Dst::Base(base) => {
@@ -224,7 +267,8 @@ fn units(bytes: &[u8]) -> Vec<u16> {
         .collect()
 }
 
-fn code_of(bytes: &[u8]) -> Option<Code> {
+/// The code `bytes` (1–4 of them, big-endian) spell.
+pub(crate) fn code_of(bytes: &[u8]) -> Option<Code> {
     if bytes.is_empty() || bytes.len() > MAX_CODE_LEN {
         return None;
     }
@@ -353,17 +397,7 @@ impl Lexer<'_> {
         while let Some(b) = self.peek() {
             self.pos += 1;
             match b {
-                b'\\' => {
-                    if let Some(next) = self.peek() {
-                        self.pos += 1;
-                        out.push(match next {
-                            b'n' => b'\n',
-                            b'r' => b'\r',
-                            b't' => b'\t',
-                            other => other,
-                        });
-                    }
-                }
+                b'\\' => self.escape(&mut out),
                 b'(' => {
                     depth += 1;
                     out.push(b);
@@ -379,6 +413,41 @@ impl Lexer<'_> {
             }
         }
         Token::Str(out)
+    }
+
+    /// One escape after `\\` in a literal string (§7.3.4.2): `\\n` and the rest, `\\ddd`
+    /// octal (one to three digits, high bits dropped), and a backslash before an end of line
+    /// continuing the string.
+    fn escape(&mut self, out: &mut Vec<u8>) {
+        let Some(next) = self.peek() else { return };
+        self.pos += 1;
+        match next {
+            b'n' => out.push(b'\n'),
+            b'r' => out.push(b'\r'),
+            b't' => out.push(b'\t'),
+            b'b' => out.push(0x08),
+            b'f' => out.push(0x0C),
+            b'0'..=b'7' => {
+                let mut value = u32::from(next - b'0');
+                for _ in 0..2 {
+                    match self.peek() {
+                        Some(d @ b'0'..=b'7') => {
+                            self.pos += 1;
+                            value = value * 8 + u32::from(d - b'0');
+                        }
+                        _ => break,
+                    }
+                }
+                out.push(u8::try_from(value & 0xFF).unwrap_or(0));
+            }
+            b'\r' => {
+                if self.peek() == Some(b'\n') {
+                    self.pos += 1;
+                }
+            }
+            b'\n' => {}
+            other => out.push(other),
+        }
     }
 }
 
@@ -439,10 +508,12 @@ impl<'a> Parser<'a> {
 
     fn run(mut self) -> CMap {
         let mut last: Vec<Token> = Vec::new();
-        while let Some(token) = self.lexer.next_token() {
+        // A keyword that ended a section missing its `end…`: handled here next.
+        let mut pending: Option<Token> = None;
+        while let Some(token) = pending.take().or_else(|| self.lexer.next_token()) {
             if let Token::Keyword(word) = &token {
                 if let Some(section) = Section::begin(word) {
-                    self.section(section);
+                    pending = self.section(section).map(Token::Keyword);
                 } else if word == b"usecmap" {
                     if let Some(Token::Name(name)) = last.last() {
                         self.cmap.use_cmap = Some(name.clone());
@@ -451,7 +522,7 @@ impl<'a> Parser<'a> {
                     && let [.., Token::Name(key), Token::Int(value)] = last.as_slice()
                     && key == b"WMode"
                 {
-                    self.cmap.wmode = u8::from(*value == 1);
+                    self.cmap.wmode = Some(u8::from(*value == 1));
                 }
                 last.clear();
             } else {
@@ -465,17 +536,20 @@ impl<'a> Parser<'a> {
         self.cmap
     }
 
-    /// Reads entries until the section's `end…` keyword (or any keyword: a missing `end` is
-    /// counted and the keyword handled as usual by the caller's next round).
-    fn section(&mut self, section: Section) {
+    /// Reads entries until an `end…` keyword. Any other keyword means the `end…` is missing:
+    /// that is counted and the keyword is returned for [`Parser::run`] to handle (so a
+    /// `begin…` right after starts its own section).
+    fn section(&mut self, section: Section) -> Option<Vec<u8>> {
         let mut operands: Vec<Operand> = Vec::with_capacity(3);
         while let Some(token) = self.lexer.next_token() {
             let operand = match token {
-                Token::Keyword(_) => {
-                    if !operands.is_empty() {
-                        self.cmap.skipped += 1;
+                Token::Keyword(word) => {
+                    if word.starts_with(b"end") {
+                        self.cmap.skipped += usize::from(!operands.is_empty());
+                        return None;
                     }
-                    return;
+                    self.cmap.skipped += 1;
+                    return Some(word);
                 }
                 Token::ArrayStart => Operand::Array(self.array()),
                 Token::Other | Token::ArrayEnd => {
@@ -493,6 +567,7 @@ impl<'a> Parser<'a> {
                 operands.clear();
             }
         }
+        None
     }
 
     fn array(&mut self) -> Vec<Token> {
@@ -542,13 +617,7 @@ impl<'a> Parser<'a> {
                 } else {
                     &mut self.cmap.notdef
                 };
-                map.insert(
-                    (lo.len, lo.value),
-                    Range {
-                        hi: hi.value,
-                        value: cid,
-                    },
-                );
+                map.insert(lo, hi.value, cid);
             }
             Section::CidChar | Section::NotDefChar => {
                 let (Some(code), Some(cid)) = (hex(0).and_then(code_of), int(1)) else {
@@ -559,13 +628,7 @@ impl<'a> Parser<'a> {
                 } else {
                     &mut self.cmap.notdef
                 };
-                map.insert(
-                    (code.len, code.value),
-                    Range {
-                        hi: code.value,
-                        value: cid,
-                    },
-                );
+                map.insert(code, code.value, cid);
             }
             Section::BfChar => {
                 let Some(code) = hex(0).and_then(code_of) else {
@@ -574,13 +637,7 @@ impl<'a> Parser<'a> {
                 let Some(dst) = operands.get(1).and_then(destination) else {
                     return false;
                 };
-                self.cmap.unicode.insert(
-                    (code.len, code.value),
-                    Range {
-                        hi: code.value,
-                        value: Dst::List(vec![dst]),
-                    },
-                );
+                self.cmap.unicode.insert(code, code.value, Dst::List(vec![dst]));
             }
             Section::BfRange => {
                 let Some((lo, hi)) = range() else { return false };
@@ -597,9 +654,7 @@ impl<'a> Parser<'a> {
                     },
                     None => return false,
                 };
-                self.cmap
-                    .unicode
-                    .insert((lo.len, lo.value), Range { hi: hi.value, value });
+                self.cmap.unicode.insert(lo, hi.value, value);
             }
         }
         true
@@ -662,9 +717,12 @@ mod tests {
     }
 
     #[test]
-    fn unmapped_codes_and_other_lengths_have_no_unicode() {
+    fn unmapped_codes_have_no_unicode() {
         let cmap = CMap::parse(TO_UNICODE);
-        assert_eq!([cmap.unicode(code(0x20, 2)), cmap.unicode(code(0x12, 1))], [None, None]);
+        assert_eq!(
+            [cmap.unicode(code(0x20, 2)), cmap.unicode(code(0x2000, 2))],
+            [None, None]
+        );
     }
 
     #[test]
@@ -729,7 +787,7 @@ mod tests {
             b"3 beginbfchar <0001> <0041> <0002> 42 <XYZ> <0043> endbfchar
               1 beginbfrange <0010> <0005> <0041> endbfrange",
         );
-        assert_eq!((cmap.unicode(code(1, 2)).as_deref(), cmap.skipped()), (Some("A"), 3));
+        assert_eq!((cmap.unicode(code(1, 2)).as_deref(), cmap.skipped()), (Some("A"), 4));
     }
 
     #[test]
@@ -754,6 +812,58 @@ mod tests {
     fn an_increment_past_the_last_unit_maps_to_nothing() {
         let cmap = CMap::parse(b"1 beginbfrange <0000> <FFFF> <FFFF> endbfrange");
         assert_eq!(cmap.unicode(code(2, 2)), None);
+    }
+
+    #[test]
+    fn a_missing_end_keeps_the_next_section() {
+        let cmap = CMap::parse(b"1 beginbfchar <01> <0041> 1 beginbfrange <02> <03> <0042> endbfrange");
+        assert_eq!(
+            (cmap.unicode(code(3, 1)).as_deref(), cmap.skipped() > 0),
+            (Some("C"), true)
+        );
+    }
+
+    #[test]
+    fn many_single_overrides_do_not_hide_a_wide_range() {
+        let mut source = b"1 begincidrange <0000> <FFFF> 0 endcidrange 200 begincidchar".to_vec();
+        for i in 0..200u32 {
+            source.extend(format!(" <{:04X}> 7", 0x0100 + i).bytes());
+        }
+        source.extend(b" endcidchar");
+        let cmap = CMap::parse(&source);
+        assert_eq!(
+            [cmap.cid(code(0x0150, 2)), cmap.cid(code(0x5000, 2))],
+            [Some(7), Some(0x5000)]
+        );
+    }
+
+    #[test]
+    fn to_unicode_codes_of_another_length_match_by_value() {
+        let cmap = CMap::parse(b"1 beginbfchar <0041> <0042> endbfchar");
+        assert_eq!(cmap.unicode(code(0x41, 1)).as_deref(), Some("B"));
+    }
+
+    #[test]
+    fn literal_strings_read_octal_escapes_and_line_continuations() {
+        let cmap = CMap::parse(b"2 beginbfchar <01> (\\000A) <02> (\\000\\\nB) endbfchar");
+        assert_eq!(
+            [cmap.unicode(code(1, 1)), cmap.unicode(code(2, 1))],
+            [Some("A".into()), Some("B".into())]
+        );
+    }
+
+    #[test]
+    fn wmode_is_inherited_and_defaults_from_the_dictionary() {
+        let mut child = CMap::parse(b"");
+        child.inherit(&CMap::parse(b"/WMode 1 def"));
+        let mut stated = CMap::parse(b"/WMode 0 def");
+        stated.default_vertical(true);
+        let mut unstated = CMap::parse(b"");
+        unstated.default_vertical(true);
+        assert_eq!(
+            [child.vertical(), stated.vertical(), unstated.vertical()],
+            [true, false, true]
+        );
     }
 
     #[test]
