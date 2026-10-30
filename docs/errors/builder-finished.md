@@ -26,6 +26,4 @@ page.finish(); // throws { code: "builder-finished", … }
 
 ## Data fields
 
-| Field | Type | Meaning |
-| --- | --- | --- |
-| `argument` | string | Always `builder` |
+- `argument`: always `builder`.

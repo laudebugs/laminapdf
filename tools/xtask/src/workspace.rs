@@ -40,12 +40,25 @@ const EDGE_ONLY_DEPS: [&str; 13] = [
 ];
 /// `(parent, edge-only crate)` edges that are allowed anyway, each with its reason. Nothing else
 /// reached through the parent, and no other path to the edge-only crate, is exempt.
-const ALLOWED_EDGE_ONLY_EDGES: [(&str, &str, &str); 1] = [(
-    "cpufeatures",
-    "libc",
-    "RustCrypto's CPU-feature detection (aes, sha2; B2b): reads hardware capabilities only \
-     (getauxval, sysctlbyname) on aarch64 Linux/Android/Apple; no file system, network, clocks or threads",
-)];
+const ALLOWED_EDGE_ONLY_EDGES: [(&str, &str, &str); 3] = [
+    (
+        "cpufeatures",
+        "libc",
+        "RustCrypto's CPU-feature detection (aes, sha2; B2b): reads hardware capabilities only \
+         (getauxval, sysctlbyname) on aarch64 Linux/Android/Apple; no file system, network, clocks or threads",
+    ),
+    (
+        "lamina-ops",
+        "wasm-bindgen",
+        "only behind lamina-ops' optional `tsify` feature (TS declarations of the op types), which \
+         only the edge crate lamina-wasm enables (B6a); the core builds `portability` checks leave it off",
+    ),
+    (
+        "lamina-ops",
+        "tsify",
+        "the same optional `tsify` feature (tsify reaches js-sys through serde-wasm-bindgen)",
+    ),
+];
 
 /// A workspace crate under `crates/`.
 struct Crate {

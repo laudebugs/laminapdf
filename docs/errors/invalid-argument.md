@@ -23,7 +23,5 @@ page.blendMode("multiplly"); // throws { code: "invalid-argument", didYouMean: [
 
 ## Data fields
 
-| Field | Type | Meaning |
-| --- | --- | --- |
-| `argument` | string | The parameter that was wrong (`options`, `path`, `mode`, …) |
-| `detail` | string | What the conversion said. **Untrusted**: it may quote the value passed |
+- `argument`: the parameter that was wrong (`options`, `path`, `mode`, …).
+- `detail`: what the conversion said (untrusted: it may quote the value passed).

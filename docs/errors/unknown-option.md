@@ -23,7 +23,5 @@ WasmDocument.openBytes(bytes, { pasword: "secret" }); // throws { code: "unknown
 
 ## Data fields
 
-| Field | Type | Meaning |
-| --- | --- | --- |
-| `argument` | string | The parameter whose record had the key (`options`, `metadata`, …) |
-| `option` | string | The key given. **Untrusted**: caller text |
+- `argument`: the parameter whose record had the key (`options`, `metadata`, …).
+- `option`: the key given (untrusted: caller text, never in the message).

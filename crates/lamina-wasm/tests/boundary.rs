@@ -29,13 +29,13 @@ fn string(value: &JsValue, key: &str) -> Option<String> {
 }
 
 fn hello() -> WasmDocument {
-    WasmDocument::open_bytes(HELLO.to_vec(), JsValue::UNDEFINED).unwrap()
+    WasmDocument::open_bytes(HELLO.to_vec(), &JsValue::UNDEFINED).unwrap()
 }
 
 #[wasm_bindgen_test]
 fn the_set_info_sample_applies() {
     let mut doc = hello();
-    doc.apply(js(&format!(
+    doc.apply(&js(&format!(
         "[{}]",
         include_str!("../../../fixtures/ops/v1/set-info.json")
     )))
@@ -51,7 +51,7 @@ fn the_rotate_page_sample_applies_to_this_documents_page() {
     let mut doc = hello();
     let id = doc.page(0).unwrap().id();
     let sample = include_str!("../../../fixtures/ops/v1/rotate-page.json").replace("p3.0", &id);
-    doc.apply(js(&format!("[{sample}]"))).unwrap();
+    doc.apply(&js(&format!("[{sample}]"))).unwrap();
     assert_eq!(get(&doc.page_info(0).unwrap(), "rotation").as_f64(), Some(90.0));
 }
 
@@ -67,7 +67,7 @@ fn the_envelope_sample_applies_as_a_log() {
 #[wasm_bindgen_test]
 fn an_unknown_op_is_refused_with_the_known_ones() {
     let mut doc = hello();
-    let e = doc.apply(js(r#"[{ "op": "rotatePag", "args": {} }]"#)).unwrap_err();
+    let e = doc.apply(&js(r#"[{ "op": "rotatePag", "args": {} }]"#)).unwrap_err();
     assert_eq!(string(&e, "code").as_deref(), Some("invalid-argument"));
     assert_eq!(
         JSON::stringify(&get(&e, "didYouMean")).unwrap().as_string().as_deref(),
@@ -77,7 +77,7 @@ fn an_unknown_op_is_refused_with_the_known_ones() {
 
 #[wasm_bindgen_test]
 fn an_unknown_option_key_is_unknown_option() {
-    let e = WasmDocument::open_bytes(HELLO.to_vec(), js(r#"{ "strickt": true }"#))
+    let e = WasmDocument::open_bytes(HELLO.to_vec(), &js(r#"{ "strickt": true }"#))
         .err()
         .expect("an error");
     assert_eq!(
@@ -89,7 +89,7 @@ fn an_unknown_option_key_is_unknown_option() {
 
 #[wasm_bindgen_test]
 fn a_core_error_is_the_adr_0026_object() {
-    let e = WasmDocument::open_bytes(b"not a pdf".to_vec(), JsValue::UNDEFINED)
+    let e = WasmDocument::open_bytes(b"not a pdf".to_vec(), &JsValue::UNDEFINED)
         .err()
         .expect("an error");
     assert_eq!(
@@ -109,7 +109,9 @@ fn a_core_error_is_the_adr_0026_object() {
 #[wasm_bindgen_test]
 fn save_options_cross_as_a_record() {
     let mut doc = hello();
-    let saved = doc.save(js(r#"{ "mode": "fullRewrite", "xref": "classic" }"#)).unwrap();
+    let saved = doc
+        .save(&js(r#"{ "mode": "fullRewrite", "xref": "classic" }"#))
+        .unwrap();
     let report = get(&saved, "report");
     assert_eq!(string(&report, "mode").as_deref(), Some("fullRewrite"));
     assert!(get(&saved, "bytes").is_instance_of::<js_sys::Uint8Array>());
@@ -119,7 +121,7 @@ fn save_options_cross_as_a_record() {
 fn warnings_are_diagnostics() {
     // A header-less copy of hello.pdf opens with the `missing-header` warning.
     let bytes = HELLO.get(8..).unwrap().to_vec();
-    let doc = WasmDocument::open_bytes(bytes, JsValue::UNDEFINED).unwrap();
+    let doc = WasmDocument::open_bytes(bytes, &JsValue::UNDEFINED).unwrap();
     let batch: js_sys::Array = doc.warnings().next_batch(10).into();
     let codes: Vec<String> = batch.iter().filter_map(|w| string(&w, "code")).collect();
     assert!(codes.iter().any(|c| c == "missing-header"), "{codes:?}");
@@ -127,7 +129,7 @@ fn warnings_are_diagnostics() {
 
 #[wasm_bindgen_test]
 fn a_finished_builder_refuses_more_pages() {
-    let b = WasmBuilder::new(JsValue::UNDEFINED).unwrap();
+    let b = WasmBuilder::new(&JsValue::UNDEFINED).unwrap();
     let page = b.page(100.0, 100.0);
     b.finish().unwrap();
     let e = page.finish().unwrap_err();
@@ -136,7 +138,7 @@ fn a_finished_builder_refuses_more_pages() {
 
 #[wasm_bindgen_test]
 fn a_path_cut_short_is_an_invalid_argument() {
-    let b = WasmBuilder::new(JsValue::UNDEFINED).unwrap();
+    let b = WasmBuilder::new(&JsValue::UNDEFINED).unwrap();
     let mut page = b.page(100.0, 100.0);
     let e = page.fill_path(&[1.0, 2.0], "nonZero").unwrap_err();
     assert_eq!(string(&e, "code").as_deref(), Some("invalid-argument"));
@@ -145,7 +147,7 @@ fn a_path_cut_short_is_an_invalid_argument() {
 #[cfg(feature = "text")]
 #[wasm_bindgen_test]
 fn a_misspelt_standard_font_suggests_the_name() {
-    let b = WasmBuilder::new(JsValue::UNDEFINED).unwrap();
+    let b = WasmBuilder::new(&JsValue::UNDEFINED).unwrap();
     let e = b.standard_font("Helvetika").err().expect("an error");
     assert_eq!(
         JSON::stringify(&get(&e, "didYouMean")).unwrap().as_string().as_deref(),

@@ -97,8 +97,8 @@ Gzip bytes as `cargo xtask size` measures them (deflate level 9 plus the gzip he
 
 | Module | Measured (2026-10-30) | Budget | Headroom |
 | --- | ---: | ---: | ---: |
-| base (`lamina_base.wasm`) | 368,180 (brotli 295,416) | **380,000** | 3.2 % |
-| text (`lamina_text.wasm`) | 937,259 (brotli 717,937) | **960,000** | 2.4 % |
+| base (`lamina_base.wasm`) | 368,245 (brotli 295,648) | **380,000** | 3.2 % |
+| text (`lamina_text.wasm`) | 937,217 (brotli 717,867) | **960,000** | 2.4 % |
 | JS glue per module (wasm-bindgen output, minified by esbuild) | 3,610 base, 3,821 text | **5,000** each | |
 | extract (B9c) | — | placeholder: decided when the module exists | |
 | render (C2) | — | placeholder: decided by C2's ADRs | |

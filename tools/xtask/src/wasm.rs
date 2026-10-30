@@ -565,7 +565,29 @@ pub(crate) fn size(ws: &Workspace, update_baseline: bool) -> Result<()> {
     println!("wrote {}", report_path.display());
     crate::util::summary(&format!("### WASM sizes\n\n{table}\n"))?;
 
-    for (name, before, now) in grown(&measured, &baseline) {
+    report_growth(ws, &measured, &baseline, &file)?;
+    if update_baseline {
+        write_baseline(ws, &measured, &mut file)?;
+    }
+
+    let problems = violations(&measured, &budgets);
+    if problems.is_empty() {
+        crate::step("WASM sizes are within budget");
+        Ok(())
+    } else {
+        bail!("over the size budget (ADR 0016 §6):\n  {}", problems.join("\n  "))
+    }
+}
+
+/// Prints (and posts to the job summary) the twiggy top-items diff of every module that grew
+/// more than 5 % over its baseline.
+fn report_growth(
+    ws: &Workspace,
+    measured: &BTreeMap<String, ModuleSizes>,
+    baseline: &BTreeMap<String, u64>,
+    file: &Value,
+) -> Result<()> {
+    for (name, before, now) in grown(measured, baseline) {
         let module = MODULES.iter().find(|m| m.name == name).context("module")?;
         let message = format!("`{name}` grew from {before} B to {now} B gzip (more than 5 %).");
         match top_items(module, ws, 60) {
@@ -587,29 +609,25 @@ pub(crate) fn size(ws: &Workspace, update_baseline: bool) -> Result<()> {
         }
     }
 
-    if update_baseline {
-        let mut base = serde_json::Map::new();
-        for module in &MODULES {
-            let top = top_items(module, ws, 30)?;
-            let gzip = measured.get(module.name).map_or(0, |s| s.wasm.gzip);
-            base.insert(module.name.to_owned(), json!({ "wasmGzip": gzip, "top": top }));
-        }
-        if let Some(obj) = file.as_object_mut() {
-            obj.insert("baseline".to_owned(), Value::Object(base));
-        }
-        let path = budgets_path(ws);
-        fs::write(&path, serde_json::to_string_pretty(&file)? + "\n")?;
-        ws.pnpm(&["exec", "biome", "format", "--write", &path.to_string_lossy()])?;
-        println!("updated the baseline in {}", budgets_path(ws).display());
-    }
+    Ok(())
+}
 
-    let problems = violations(&measured, &budgets);
-    if problems.is_empty() {
-        crate::step("WASM sizes are within budget");
-        Ok(())
-    } else {
-        bail!("over the size budget (ADR 0016 §6):\n  {}", problems.join("\n  "))
+/// Records the current sizes and top items as the baseline in `size-budgets.json`.
+fn write_baseline(ws: &Workspace, measured: &BTreeMap<String, ModuleSizes>, file: &mut Value) -> Result<()> {
+    let mut base = serde_json::Map::new();
+    for module in &MODULES {
+        let top = top_items(module, ws, 30)?;
+        let gzip = measured.get(module.name).map_or(0, |s| s.wasm.gzip);
+        base.insert(module.name.to_owned(), json!({ "wasmGzip": gzip, "top": top }));
     }
+    if let Some(obj) = file.as_object_mut() {
+        obj.insert("baseline".to_owned(), Value::Object(base));
+    }
+    let path = budgets_path(ws);
+    fs::write(&path, serde_json::to_string_pretty(&file)? + "\n")?;
+    ws.pnpm(&["exec", "biome", "format", "--write", &path.to_string_lossy()])?;
+    println!("updated the baseline in {}", budgets_path(ws).display());
+    Ok(())
 }
 
 #[cfg(test)]
