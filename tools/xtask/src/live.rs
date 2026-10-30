@@ -197,8 +197,7 @@ const EXCEPTIONS: [&str; 2] = [
 
 /// Where `cargo build --release` puts the lamina-model example.
 fn example_binary(ws: &Workspace, name: &str) -> PathBuf {
-    let target = std::env::var_os("CARGO_TARGET_DIR").map_or_else(|| ws.root.join("target"), PathBuf::from);
-    target
+    ws.target_dir
         .join("release/examples")
         .join(format!("{name}{}", std::env::consts::EXE_SUFFIX))
 }
