@@ -99,7 +99,7 @@ Shortcuts are declared once per command with per-platform variants (`Mod` = Cmd/
 - **Desktop/web with a fine pointer**: a mini toolbar (`role="toolbar"`) above the first selected line, flipped below on collision, shown on `pointerup` (never during a drag), reachable with Shift+F10, dismissed with Escape. Its actions also exist in the context menu, menu bar and palette.
 - **Touch**: no floating toolbar. While a selection exists, a contextual **bottom action bar** (Copy, Highlight, Comment, Share, More) replaces the bottom bar; the OS selection menu is left alone (on iOS, scrolling hides it and code can't bring it back).
 - **Copy as paragraph** is the default: column-aware, line breaks joined inside paragraphs, hyphenation repaired from lamina's extraction (B9). **Copy exact** keeps the layout's line breaks. Rectangular (column) selection with Alt/Option-drag, as in Preview.
-- Quality is measured, not assumed: [U2b](../todos/ready/U2b-reading-order-ground-truth.md) builds a reading-order ground-truth corpus and metric (no public benchmark measures reading order).
+- Quality is measured, not assumed: [U2b](../todos/ongoing/U2b-reading-order-ground-truth.md) builds a reading-order ground-truth corpus and metric (no public benchmark measures reading order).
 
 Delivered by [C5a](../todos/ready/C5a-text-layer-and-selection.md) (text layer and selection events) and [U2a](../todos/ready/U2a-selection-surfaces-and-copy-modes.md) (menus and copy modes).
 
@@ -187,7 +187,7 @@ Each round is split into todos (one pull request each) on the [todo board](../to
 
 **Deliverable:** selection toolbar and bottom action bar, copy as paragraph / copy exact / column selection; a reading-order ground-truth corpus with a metric in CI; page appearance modes in both render backends.
 **Accepted when:** copy-as-paragraph meets the U2b reading-order threshold on the corpus; Sepia and Dark modes leave opaque raster images pixel-identical to Original, and never recolour any image's samples.
-**Todos:** [U2a](../todos/ready/U2a-selection-surfaces-and-copy-modes.md), [U2b](../todos/ready/U2b-reading-order-ground-truth.md), [U2c](../todos/ready/U2c-page-appearance-modes.md)
+**Todos:** [U2a](../todos/ready/U2a-selection-surfaces-and-copy-modes.md), [U2b](../todos/ongoing/U2b-reading-order-ground-truth.md), [U2c](../todos/ready/U2c-page-appearance-modes.md)
 
 ### U3. Mobile and touch
 

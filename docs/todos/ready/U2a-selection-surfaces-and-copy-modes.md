@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [UI/UX §6 U2. Reading quality](../../plans/ui-ux.md#u2-reading-quality) |
 | Round / milestone | Round U (UI/UX) — M2 Web reader v0.1 |
-| Depends on | [C5a](./C5a-text-layer-and-selection.md), [U1b](./U1b-command-registry-and-palette.md), [U2b](./U2b-reading-order-ground-truth.md), [U3a](./U3a-responsive-mobile-and-touch.md) |
+| Depends on | [C5a](./C5a-text-layer-and-selection.md), [U1b](./U1b-command-registry-and-palette.md), [U2b](../ongoing/U2b-reading-order-ground-truth.md), [U3a](./U3a-responsive-mobile-and-touch.md) |
 | Blocks | [C7c](./C7c-performance-gates-and-launch.md) |
 | ADRs | Implements 0024 (selection surfaces); follows 0009 |
 | Branch | `feat/u2a-selection-surfaces` |
@@ -25,7 +25,7 @@ Fix the friction users report most after speed: copying from multi-column PDFs g
 - [Research: selection menus](../../research/product/pdf-app-product-and-ux.md#selection-menus-float-them-on-desktop-never-over-the-os-menu-on-mobile) — Android ActionMode, iOS UIEditMenuInteraction, Wikimedia T202723.
 - [Competitive teardown: friction](../../research/product/notes/competitive-teardown.md) — multi-column copy, hard line breaks, Okular's "copy without line breaks", Preview's Option-drag.
 - [C5a](./C5a-text-layer-and-selection.md) — the text layer and the selection events with rects and runs.
-- [U2b](./U2b-reading-order-ground-truth.md) — the reading-order metric copy-as-paragraph is held to.
+- [U2b](../ongoing/U2b-reading-order-ground-truth.md) — the reading-order metric copy-as-paragraph is held to.
 
 ## Scope
 
@@ -40,7 +40,7 @@ Fix the friction users report most after speed: copying from multi-column PDFs g
 **Out of scope** (and which todo covers it)
 
 - Highlight, underline, comment actions → [E4f](./E4f-annotation-tools-ui.md) adds them to these surfaces.
-- Reading-order corpus and metric → [U2b](./U2b-reading-order-ground-truth.md).
+- Reading-order corpus and metric → [U2b](../ongoing/U2b-reading-order-ground-truth.md).
 
 ## Tasks
 
