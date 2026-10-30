@@ -35,7 +35,7 @@ Write down, before any Round B code, how the reader tolerates damage and bounds 
 
 **Out of scope**
 
-- The generation-strategy decision: [B1b](./B1b-krilla-fit-spike.md). ADRs 0016/0017: [B6a](../ongoing/B6a-lamina-wasm-and-adr-0016.md), [B7b](../ready/B7b-versioning-and-0-1-0-alpha.md).
+- The generation-strategy decision: [B1b](./B1b-krilla-fit-spike.md). ADRs 0016/0017: [B6a](../done/B6a-lamina-wasm-and-adr-0016.md), [B7b](../ready/B7b-versioning-and-0-1-0-alpha.md).
 
 ## Tasks
 

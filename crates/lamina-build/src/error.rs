@@ -115,6 +115,7 @@ pub enum Error {
         what: &'static str,
     },
     /// Shaping, laying out or embedding text failed (`missing-glyph`, `invalid-feature`, …).
+    #[cfg(feature = "text")]
     #[error(transparent)]
     Text(#[from] lamina_text::Error),
     /// Reading or writing the document's objects failed.
@@ -156,6 +157,7 @@ impl Error {
             Self::PageIndexOutOfRange { .. } => "page-index-out-of-range",
             Self::UnknownDestination { .. } => "unknown-destination",
             Self::InvalidPageLabels { .. } => "invalid-page-labels",
+            #[cfg(feature = "text")]
             Self::Text(e) => e.code(),
             Self::Cos(e) => e.code(),
         }
@@ -170,6 +172,7 @@ impl Error {
     pub const fn kind(&self) -> ErrorKind {
         match self {
             Self::Cos(e) => e.kind(),
+            #[cfg(feature = "text")]
             Self::Text(e) => e.kind(),
             Self::InvalidImage { .. } | Self::InvalidIccProfile { .. } => ErrorKind::Input,
             Self::UnsupportedImage { .. } => ErrorKind::Unsupported,
@@ -191,6 +194,7 @@ impl Error {
     pub fn location(&self) -> Location {
         match self {
             Self::Cos(e) => e.location(),
+            #[cfg(feature = "text")]
             Self::Text(e) => e.location(),
             Self::InvalidImage { .. }
             | Self::UnsupportedImage { .. }
@@ -255,6 +259,7 @@ mod tests {
         assert_eq!((e.code(), e.kind()), ("repaired-base", ErrorKind::State));
     }
 
+    #[cfg(feature = "text")]
     #[test]
     fn a_text_error_keeps_its_kind_and_code() {
         let e = Error::from(lamina_text::Error::InvalidFeature { feature: String::new() });

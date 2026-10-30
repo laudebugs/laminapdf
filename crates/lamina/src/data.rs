@@ -24,7 +24,7 @@ pub(crate) fn of_error(error: &Error) -> Data {
         Error::Save(e) => save(e),
         #[cfg(feature = "text")]
         Error::Text(e) => text(e),
-        #[cfg(feature = "text")]
+        #[cfg(feature = "build")]
         Error::Build(e) => build(e),
         Error::PageIndexOutOfRange { index, count } => data([("index", json!(index)), ("count", json!(count))]),
         Error::Cancelled | Error::JobFinished | Error::DocumentChanged => Data::new(),
@@ -168,7 +168,7 @@ fn text(e: &lamina_text::Error) -> Data {
     }
 }
 
-#[cfg(feature = "text")]
+#[cfg(feature = "build")]
 fn build(e: &lamina_build::Error) -> Data {
     use lamina_build::Error as E;
     match e {
@@ -188,6 +188,7 @@ fn build(e: &lamina_build::Error) -> Data {
         E::TextOverflow { fits, needed } => data([("fits", json!(fits)), ("needed", json!(needed))]),
         E::PageIndexOutOfRange { index, count } => data([("index", json!(index)), ("count", json!(count))]),
         E::UnknownDestination { name } => data([("name", json!(name))]),
+        #[cfg(feature = "text")]
         E::Text(e) => text(e),
         E::Cos(e) => cos(e),
         _ => Data::new(),

@@ -272,6 +272,18 @@ mod candidates {
     }
 
     #[test]
+    fn r6_removes_characters_mapped_to_nothing() {
+        // U+00AD SOFT HYPHEN and U+200D ZERO WIDTH JOINER (RFC 3454 B.1), in every build.
+        assert_eq!(candidates("p\u{AD}a\u{200D}ss".as_bytes(), 6)[0], b"pass");
+    }
+
+    #[test]
+    fn saslprep_mapping_maps_spaces_and_removes_b1_characters() {
+        let text = "a\u{A0}b\u{AD}c\u{3000}d\u{FEFF}e";
+        assert_eq!(super::super::saslprep_mapping(text), "a bc de");
+    }
+
+    #[test]
     fn r6_truncates_to_127_bytes() {
         assert_eq!(candidates(&[b'x'; 200], 6), [vec![b'x'; 127]]);
     }

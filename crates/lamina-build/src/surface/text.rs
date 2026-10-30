@@ -15,6 +15,7 @@ use lamina_text::{
 use super::Surface;
 use super::color::Color;
 use super::path::Matrix;
+use crate::annot::link::LinkSpec;
 use crate::error::Result;
 use crate::nav::LinkTarget;
 
@@ -308,13 +309,6 @@ fn simple_paragraph(spec: &Spec, para: Range<usize>, lines: &mut Vec<LaidLine>) 
         }
     }
     Ok(())
-}
-
-/// A link annotation: where it goes and its `/Contents`.
-#[derive(Debug, Clone, PartialEq)]
-pub(crate) struct LinkSpec {
-    pub(crate) target: LinkTarget,
-    pub(crate) contents: Option<String>,
 }
 
 /// Text recorded on a surface: what was asked for and how it was laid out.

@@ -726,5 +726,28 @@
       "hint": "pass the document the job was created from, and don't change it while the job runs; create a new job",
       "since": "0.1.0"
     }
+  ],
+  "bindingErrors": [
+    {
+      "code": "builder-finished",
+      "kind": "state",
+      "summary": "a builder or one of its pages was used after it finished",
+      "hint": "create a new builder or page: a finished one takes no more drawing, pages, fonts or settings",
+      "since": "0.1.0"
+    },
+    {
+      "code": "invalid-argument",
+      "kind": "usage",
+      "summary": "a value passed to a binding does not have the shape its type declares",
+      "hint": "pass the value the type declarations describe; the data field says what was wrong",
+      "since": "0.1.0"
+    },
+    {
+      "code": "unknown-option",
+      "kind": "usage",
+      "summary": "an options record passed to a binding has a key lamina does not know",
+      "hint": "remove the key or correct its spelling; didYouMean lists the closest known names",
+      "since": "0.1.0"
+    }
   ]
 }

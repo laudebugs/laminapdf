@@ -1,10 +1,13 @@
 //! [`Builder`]: `lamina-build`'s builder, finishing into a façade [`Document`].
 
+use lamina_build::ViewerPreferences;
 use lamina_build::{BuildOptions, Fit, Metadata, OutlineEntry, OutlineItemId, PageBuilder, PageLabel, PageSize};
-use lamina_build::{EmbedPolicy, Standard14, ViewerPreferences};
+#[cfg(feature = "text")]
+use lamina_build::{EmbedPolicy, Standard14};
 
 use crate::document::Document;
 use crate::error::Result;
+#[cfg(feature = "text")]
 use crate::{Font, FontHandle};
 
 /// Builds a new document ([ADR 0005] §6): fonts, pages (each drawn on a
@@ -35,6 +38,7 @@ impl Builder {
     ///
     /// # Errors
     /// `font-not-embeddable` when the font's `fsType` forbids embedding.
+    #[cfg(feature = "text")]
     pub fn font(&mut self, font: Font) -> Result<FontHandle> {
         Ok(self.0.font(font)?)
     }
@@ -43,6 +47,7 @@ impl Builder {
     ///
     /// # Errors
     /// `invalid-font`; as [`Builder::font`].
+    #[cfg(feature = "text")]
     pub fn font_bytes(&mut self, bytes: Vec<u8>) -> Result<FontHandle> {
         self.font(Font::from_bytes(bytes)?)
     }
@@ -52,6 +57,7 @@ impl Builder {
     ///
     /// # Errors
     /// As [`Builder::font`].
+    #[cfg(feature = "text")]
     pub fn font_with(&mut self, font: Font, policy: EmbedPolicy) -> Result<FontHandle> {
         Ok(self.0.font_with(font, policy)?)
     }
@@ -60,6 +66,7 @@ impl Builder {
     ///
     /// # Errors
     /// None in practice.
+    #[cfg(feature = "text")]
     pub fn standard_font(&mut self, font: Standard14) -> Result<FontHandle> {
         Ok(self.0.standard_font(font)?)
     }
@@ -115,10 +122,14 @@ impl Builder {
     /// `page-index-out-of-range`, `unknown-destination`, `invalid-page-labels`,
     /// `invalid-geometry`, `subset-failed`.
     pub fn finish(self) -> Result<Document> {
-        let (doc, warnings) = self.0.finish_with_warnings()?;
-        Ok(Document::built(
-            doc,
-            warnings.into_iter().map(crate::Warning::from).collect(),
-        ))
+        // Only font embedding raises build warnings.
+        #[cfg(feature = "text")]
+        let (doc, warnings) = {
+            let (doc, warnings) = self.0.finish_with_warnings()?;
+            (doc, warnings.into_iter().map(crate::Warning::from).collect())
+        };
+        #[cfg(not(feature = "text"))]
+        let (doc, warnings) = (self.0.finish()?, Vec::new());
+        Ok(Document::built(doc, warnings))
     }
 }
