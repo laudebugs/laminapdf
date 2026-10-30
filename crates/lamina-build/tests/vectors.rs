@@ -39,7 +39,7 @@ fn a_rect_from_the_top_left_lands_at_the_top_of_user_space() {
             .fill(FillRule::NonZero);
     });
     // ADR 0027 §3's worked example: page-space [72 72 272 100] is user space [72 692 272 720].
-    assert_eq!(record(&doc, 0).painted[0].points, [(72.0, 692.0), (272.0, 720.0)]);
+    assert_eq!(record(&doc, 0).painted[0].points, [(72.0, 720.0), (272.0, 692.0)]);
 }
 
 #[test]
@@ -140,9 +140,13 @@ fn unbalanced_saves_and_restores_still_give_a_balanced_stream() {
 }
 
 #[test]
-fn painting_without_a_path_draws_nothing() {
+fn painting_an_empty_path_draws_nothing() {
     let doc = one_page(PageSize::A6, |page| {
-        page.surface().fill(FillRule::NonZero).stroke(&StrokeStyle::default());
+        page.surface()
+            .path(|_| {})
+            .fill(FillRule::NonZero)
+            .path(|_| {})
+            .stroke(&StrokeStyle::default());
     });
     assert_eq!(record(&doc, 0).painted, vec![]);
 }
@@ -254,4 +258,94 @@ fn a_new_document_saves_as_a_full_rewrite_with_the_default_options() {
         (report.mode(), reopen(&out).pages().unwrap().len()),
         (lamina_save::SaveMode::FullRewrite, 1)
     );
+}
+
+/// `page.finish()`'s error code after `draw`.
+fn refused(draw: impl FnOnce(&mut lamina_build::Surface)) -> &'static str {
+    let mut b = Builder::new(BuildOptions::default());
+    let mut page = b.page(PageSize::A6);
+    draw(page.surface());
+    page.finish().unwrap_err().code()
+}
+
+#[test]
+fn a_nan_coordinate_is_refused_when_the_page_is_finished() {
+    let code = refused(|s| {
+        s.path(|p| {
+            p.move_to(PointPt::from_points(f64::NAN, 1.0))
+                .line_to(PointPt::from_points(2.0, 2.0));
+        })
+        .fill(FillRule::NonZero);
+    });
+    assert_eq!(code, "invalid-geometry");
+}
+
+#[test]
+fn a_negative_line_width_is_refused() {
+    let code = refused(|s| {
+        s.path(|p| {
+            p.rect(rect(1.0, 1.0, 5.0, 5.0));
+        })
+        .stroke(&StrokeStyle {
+            width: Pt::new(-2.0),
+            ..StrokeStyle::default()
+        });
+    });
+    assert_eq!(code, "invalid-geometry");
+}
+
+#[test]
+fn an_infinite_matrix_or_image_rect_is_refused() {
+    let image = lamina_build::Image::rgba(1, 1, &[0, 0, 0, 255]).unwrap();
+    let matrix = refused(|s| {
+        s.transform(Matrix::scale(f64::INFINITY, 1.0));
+    });
+    let image = refused(|s| {
+        s.image(&image, rect(0.0, f64::NAN, 1.0, 1.0));
+    });
+    assert_eq!((matrix, image), ("invalid-geometry", "invalid-geometry"));
+}
+
+#[test]
+fn after_a_rect_the_current_point_is_its_top_left_on_every_rotation() {
+    // `re` then `l`: the line starts where `re` left the current point, which must be the
+    // rect's page-space top-left (10, 20), whatever the rotation.
+    for rotate in [
+        Rotation::None,
+        Rotation::Clockwise90,
+        Rotation::Half,
+        Rotation::Clockwise270,
+    ] {
+        let doc = one_page(PageSize::A5, |page| {
+            page.rotate(rotate);
+            page.surface()
+                .path(|p| {
+                    p.rect(rect(10.0, 20.0, 30.0, 40.0))
+                        .line_to(PointPt::from_points(100.0, 100.0));
+                })
+                .stroke(&StrokeStyle::default());
+        });
+        let frame = doc.pages().unwrap().get(0).unwrap().frame().unwrap();
+        let first = record(&doc, 0).painted[0].points[0];
+        let p = frame.to_page(UserSpacePoint::new(first.0, first.1));
+        assert_eq!((p.x.get().round(), p.y.get().round()), (10.0, 20.0), "{rotate:?}");
+    }
+}
+
+#[test]
+fn features_newer_than_the_version_raise_the_catalog_version() {
+    let mut b = Builder::new(BuildOptions::default().with_version(PdfVersion::V1_4));
+    let mut page = b.page(PageSize::A6);
+    page.user_unit(2.0);
+    page.finish().unwrap();
+    let doc = b.finish().unwrap();
+    assert_eq!(doc.catalog().unwrap().get_name("Version"), Some(&b"1.6"[..]));
+}
+
+#[test]
+fn a_document_whose_version_has_every_feature_gets_no_catalog_version() {
+    let mut b = Builder::new(BuildOptions::default().with_version(PdfVersion::V1_4));
+    b.page(PageSize::A6).surface().opacity(0.5, 0.5);
+    let doc = b.finish().unwrap();
+    assert_eq!(doc.catalog().unwrap().get("Version"), None);
 }

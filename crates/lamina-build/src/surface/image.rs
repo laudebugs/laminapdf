@@ -264,7 +264,8 @@ impl Image {
     /// becomes an `/SMask` unless every pixel is opaque.
     ///
     /// # Errors
-    /// [`Error::ImageDataLength`] when `rgba` is not `width × height × 4` bytes;
+    /// [`Error::ImageTooLarge`] when `width × height × 4` doesn't fit in memory's address
+    /// space; [`Error::ImageDataLength`] when `rgba` is not that many bytes;
     /// [`Error::InvalidGeometry`] for a zero width or height.
     pub fn rgba(width: u32, height: u32, rgba: &[u8]) -> Result<Self> {
         if width == 0 || height == 0 {
@@ -272,7 +273,13 @@ impl Image {
                 what: "an image needs a width and height of at least one pixel",
             });
         }
-        let expected = usize::try_from(u64::from(width) * u64::from(height) * 4).unwrap_or(usize::MAX);
+        let expected = u64::from(width)
+            .checked_mul(u64::from(height))
+            .and_then(|n| n.checked_mul(4))
+            .and_then(|n| usize::try_from(n).ok())
+            .ok_or(Error::ImageTooLarge {
+                limit: MAX_DECODED_IMAGE_BYTES,
+            })?;
         if rgba.len() != expected {
             return Err(Error::ImageDataLength {
                 expected,
@@ -511,6 +518,14 @@ mod tests {
                 expected: 16,
                 actual: 15
             }
+        );
+    }
+
+    #[test]
+    fn rgba_dimensions_whose_size_overflows_are_refused() {
+        assert_eq!(
+            Image::rgba(u32::MAX, u32::MAX, &[]).unwrap_err().code(),
+            "image-too-large"
         );
     }
 

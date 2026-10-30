@@ -46,11 +46,18 @@ enum Command {
 /// so what is drawn at the top-left is at the top-left in every viewer, whatever the page's
 /// boxes, rotation and unit. Text ([B5b]) puts its `y` on the baseline.
 ///
-/// A path is built with [`Surface::path`] and used by the next [`Surface::stroke`],
-/// [`Surface::fill`], [`Surface::fill_stroke`] or [`Surface::clip`]; painting without a path
-/// draws nothing. A [`Surface::restore`] without a matching [`Surface::save`] is ignored and
-/// a save left open is closed at the end of the page, so the content stream is always
-/// balanced.
+/// [`Surface::path`] builds a path and returns a [`PendingPath`] that borrows the surface
+/// until it is painted ([`PendingPath::fill`], [`PendingPath::stroke`],
+/// [`PendingPath::fill_stroke`], [`PendingPath::clip`]), so no transform, colour or state
+/// change can come between building a path and painting it (PDF forbids them inside a path
+/// object, ISO 32000-2 §8.2). A [`Surface::restore`] without a matching [`Surface::save`] is
+/// ignored and a save left open is closed at the end of the page, so the content stream is
+/// always balanced.
+///
+/// Geometry that PDF can't express (a NaN or infinite coordinate or matrix entry, a negative
+/// line width, a dash pattern that is negative or all zeros, a miter limit below 1) is not
+/// written: the first such value is reported by [`PageBuilder::finish`](crate::PageBuilder::finish)
+/// as [`Error::InvalidGeometry`](crate::Error::InvalidGeometry).
 ///
 /// ```
 /// use lamina_build::{BuildOptions, Builder, Color, FillRule, PageSize, StrokeStyle};
@@ -80,11 +87,69 @@ enum Command {
 #[derive(Debug, Default)]
 pub struct Surface {
     commands: Vec<Command>,
-    path: PathBuilder,
     depth: usize,
+    /// The first invalid value given, reported when the page is finished.
+    error: Option<&'static str>,
+}
+
+/// A path built by [`Surface::path`], waiting to be painted. Dropping it draws nothing.
+#[derive(Debug)]
+#[must_use = "a path is drawn only when it is painted (fill, stroke, fill_stroke or clip)"]
+pub struct PendingPath<'s> {
+    surface: &'s mut Surface,
+    path: PathBuilder,
+}
+
+impl<'s> PendingPath<'s> {
+    fn paint(self, paint: Paint) -> &'s mut Surface {
+        let Self { surface, mut path } = self;
+        if !path.is_finite() {
+            surface.invalid("a path coordinate is not a finite number");
+        }
+        if let Paint::Stroke(style) | Paint::FillStroke(_, style) = &paint
+            && let Some(problem) = style.problem()
+        {
+            surface.invalid(problem);
+        }
+        let segments = path.take();
+        if !segments.is_empty() {
+            surface.commands.push(Command::Paint(segments, paint));
+        }
+        surface
+    }
+
+    /// Strokes the path (`S`).
+    pub fn stroke(self, style: &StrokeStyle) -> &'s mut Surface {
+        self.paint(Paint::Stroke(style.clone()))
+    }
+
+    /// Fills the path (`f` or `f*`).
+    pub fn fill(self, rule: FillRule) -> &'s mut Surface {
+        self.paint(Paint::Fill(rule))
+    }
+
+    /// Fills, then strokes the path (`B` or `B*`).
+    pub fn fill_stroke(self, rule: FillRule, style: &StrokeStyle) -> &'s mut Surface {
+        self.paint(Paint::FillStroke(rule, style.clone()))
+    }
+
+    /// Intersects the clipping region with the path (`W n` or `W* n`) until the next
+    /// [`Surface::restore`].
+    pub fn clip(self, rule: FillRule) -> &'s mut Surface {
+        self.paint(Paint::Clip(rule))
+    }
 }
 
 impl Surface {
+    fn invalid(&mut self, what: &'static str) {
+        self.error.get_or_insert(what);
+    }
+
+    /// The first invalid value given, if any.
+    pub(crate) fn error(&self) -> Option<&'static str> {
+        self.error
+    }
+
     /// Saves the graphics state (`q`): transformations, colours, opacity and clipping until
     /// the matching [`Surface::restore`].
     pub fn save(&mut self) -> &mut Self {
@@ -106,7 +171,11 @@ impl Surface {
     /// Transforms what is drawn next (`cm`), in page space: points are mapped by `m` before
     /// they are placed on the page.
     pub fn transform(&mut self, m: Matrix) -> &mut Self {
-        self.commands.push(Command::Transform(m));
+        if m.to_array().iter().all(|v| v.is_finite()) {
+            self.commands.push(Command::Transform(m));
+        } else {
+            self.invalid("a matrix entry is not a finite number");
+        }
         self
     }
 
@@ -123,7 +192,8 @@ impl Surface {
     }
 
     /// Constant opacity for fills and strokes (`/ca`, `/CA` in an `ExtGState`, §11.6.4.4),
-    /// each clamped to `[0, 1]`. Equal settings share one `ExtGState` per document.
+    /// each clamped to `[0, 1]` (NaN is opaque). Equal settings share one `ExtGState` per
+    /// document.
     pub fn opacity(&mut self, fill: f64, stroke: f64) -> &mut Self {
         self.commands.push(Command::State(GsKey::alpha(fill, stroke)));
         self
@@ -135,44 +205,20 @@ impl Surface {
         self
     }
 
-    /// Builds the path the next painting operation uses (appending to one not yet painted).
-    pub fn path(&mut self, build: impl FnOnce(&mut PathBuilder)) -> &mut Self {
-        build(&mut self.path);
-        self
-    }
-
-    fn paint(&mut self, paint: Paint) -> &mut Self {
-        let segments = self.path.take();
-        if !segments.is_empty() {
-            self.commands.push(Command::Paint(segments, paint));
-        }
-        self
-    }
-
-    /// Strokes the path (`S`).
-    pub fn stroke(&mut self, style: &StrokeStyle) -> &mut Self {
-        self.paint(Paint::Stroke(style.clone()))
-    }
-
-    /// Fills the path (`f` or `f*`).
-    pub fn fill(&mut self, rule: FillRule) -> &mut Self {
-        self.paint(Paint::Fill(rule))
-    }
-
-    /// Fills, then strokes the path (`B` or `B*`).
-    pub fn fill_stroke(&mut self, rule: FillRule, style: &StrokeStyle) -> &mut Self {
-        self.paint(Paint::FillStroke(rule, style.clone()))
-    }
-
-    /// Intersects the clipping region with the path (`W n` or `W* n`) until the next
-    /// [`Surface::restore`].
-    pub fn clip(&mut self, rule: FillRule) -> &mut Self {
-        self.paint(Paint::Clip(rule))
+    /// Builds a path; paint it with the returned [`PendingPath`].
+    pub fn path(&mut self, build: impl FnOnce(&mut PathBuilder)) -> PendingPath<'_> {
+        let mut path = PathBuilder::default();
+        build(&mut path);
+        PendingPath { surface: self, path }
     }
 
     /// Draws `image` stretched over `rect` (`Do`, §8.9.5), upright as displayed.
     pub fn image(&mut self, image: &Image, rect: RectPt) -> &mut Self {
-        self.commands.push(Command::Image(image.clone(), rect));
+        if rect.is_finite() {
+            self.commands.push(Command::Image(image.clone(), rect));
+        } else {
+            self.invalid("an image rectangle coordinate is not a finite number");
+        }
         self
     }
 
@@ -321,7 +367,7 @@ impl Writer {
             });
         }
         if changed(&|p| p.miter_limit.to_bits() == style.miter_limit.to_bits()) {
-            c.set_miter_limit(n(style.miter_limit.max(1.0)));
+            c.set_miter_limit(n(style.miter_limit));
         }
         if changed(&|p| p.dash == style.dash) {
             match &style.dash {
@@ -361,10 +407,13 @@ impl Writer {
                     c.close_path();
                 }
                 Segment::Rect(r) => {
+                    // `re` starts (and leaves the current point) at its first corner: the
+                    // rect's page-space top-left, so the path builder's current point holds.
+                    // The frame maps page axes onto user axes, so the corners `a` and `b` span the
+                    // same rectangle with signed sides whatever the rotation.
                     let a = to_user.apply(r.x0.get(), r.y0.get());
                     let b = to_user.apply(r.x1.get(), r.y1.get());
-                    let (x0, y0) = (a.0.min(b.0), a.1.min(b.1));
-                    c.rect(n(x0), n(y0), n((a.0 - b.0).abs()), n((a.1 - b.1).abs()));
+                    c.rect(n(a.0), n(a.1), n(b.0 - a.0), n(b.1 - a.1));
                 }
             }
         }

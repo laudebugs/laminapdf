@@ -179,11 +179,18 @@ impl<'b> PageBuilder<'b> {
     /// Writes the page: its content stream, the resources it uses (each object once per
     /// document) and the page dictionary, appended to the page tree. Returns its ID.
     ///
+    /// Features newer than the document's version (`/UserUnit`: 1.6, 16-bit images: 1.5,
+    /// soft masks and `ExtGState` transparency: 1.4) raise it through the catalog's `/Version`
+    /// when the build finishes.
+    ///
     /// # Errors
     /// [`Error::InvalidGeometry`] for a size, box or `/UserUnit` that isn't finite and
-    /// positive; [`Error::Cos`] when object numbers run out
+    /// positive, or for the first invalid value given to the [`Surface`]; [`Error::Cos`] when object numbers run out
     /// ([`Limits::max_object_number`](lamina_cos::Limits::max_object_number)).
     pub fn finish(self) -> Result<PageId> {
+        if let Some(what) = self.surface.error() {
+            return Err(Error::InvalidGeometry { what });
+        }
         let (media, frame) = self.geometry()?;
         let mut page = Dict::new();
         page.insert("Type", Name::from("Page"));
@@ -207,10 +214,12 @@ impl<'b> PageBuilder<'b> {
         }
         if self.user_unit.to_bits() != 1.0f64.to_bits() {
             page.insert("UserUnit", self.user_unit);
+            self.target.state.require((1, 6));
         }
         let mut resources = PageResources::default();
         let content = self.surface.render(&frame, &mut resources);
         let state = self.target.state;
+        state.require(resources.required_version());
         let mut cos = self.target.doc.edit();
         page.insert("Resources", resources.write(&mut cos, &mut state.resources)?);
         let stream = if state.compress {

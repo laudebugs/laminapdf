@@ -129,17 +129,22 @@ pub struct RectPt {
 }
 
 impl RectPt {
-    /// The rectangle with corners `(x0, y0)` and `(x1, y1)`, in any order.
+    /// The rectangle with corners `(x0, y0)` and `(x1, y1)`, in any order. A NaN or
+    /// infinite coordinate is kept (never replaced by the other corner), so
+    /// [`RectPt::is_finite`] reports it.
     #[must_use]
     pub fn new(x0: Pt, y0: Pt, x1: Pt, y1: Pt) -> Self {
-        let (x0, x1) = (x0.get().min(x1.get()), x0.get().max(x1.get()));
-        let (y0, y1) = (y0.get().min(y1.get()), y0.get().max(y1.get()));
-        Self {
-            x0: Pt(x0),
-            y0: Pt(y0),
-            x1: Pt(x1),
-            y1: Pt(y1),
-        }
+        // Not f64::min/max: they return the other operand for NaN.
+        let order = |a: Pt, b: Pt| if b.0 < a.0 { (b, a) } else { (a, b) };
+        let (x0, x1) = order(x0, x1);
+        let (y0, y1) = order(y0, y1);
+        Self { x0, y0, x1, y1 }
+    }
+
+    /// Whether every coordinate is finite.
+    #[must_use]
+    pub fn is_finite(&self) -> bool {
+        [self.x0, self.y0, self.x1, self.y1].iter().all(|v| v.0.is_finite())
     }
 
     /// The rectangle whose top-left corner is `(x, y)`, `width` wide and `height` tall
@@ -481,6 +486,12 @@ mod tests {
     #[test]
     fn an_invalid_user_unit_counts_as_one() {
         assert_eq!(PageFrame::new(LETTER, Rotation::None, -3.0).user_unit(), 1.0);
+    }
+
+    #[test]
+    fn rect_pt_keeps_a_nan_coordinate() {
+        let r = RectPt::new(Pt(f64::NAN), Pt(0.0), Pt(10.0), Pt(10.0));
+        assert!(!r.is_finite());
     }
 
     #[test]

@@ -28,7 +28,10 @@ pub(crate) enum Segment {
 }
 
 /// Builds a path in page space (points from the top-left of the page as displayed, y down).
-/// Quadratic curves become cubic ones; rectangles stay `re`; ellipses are four cubics.
+/// Quadratic curves become cubic ones; rectangles stay `re`; ellipses are four cubics. A
+/// segment drawn without a current point (a `line_to`, curve or `close` first, as PDF
+/// forbids) starts a subpath where the segment starts instead: `line_to(p)` moves to `p`,
+/// curves move to their first control point, and `close` is dropped.
 ///
 /// ```
 /// use lamina_build::PathBuilder;
@@ -70,8 +73,18 @@ impl PathBuilder {
         self
     }
 
+    /// Starts a subpath at `p` when there is no current point.
+    fn ensure_current(&mut self, p: PointPt) {
+        if self.current.is_none() {
+            self.move_to(p);
+        }
+    }
+
     /// A straight line to `p` (`l`).
     pub fn line_to(&mut self, p: PointPt) -> &mut Self {
+        if self.current.is_none() {
+            return self.move_to(p);
+        }
         self.segments.push(Segment::LineTo(p));
         self.current = Some(p);
         self
@@ -79,6 +92,7 @@ impl PathBuilder {
 
     /// A cubic Bézier curve to `p` with control points `c1` and `c2` (`c`).
     pub fn cubic_to(&mut self, c1: PointPt, c2: PointPt, p: PointPt) -> &mut Self {
+        self.ensure_current(c1);
         self.segments.push(Segment::CubicTo(c1, c2, p));
         self.current = Some(p);
         self
@@ -87,12 +101,16 @@ impl PathBuilder {
     /// A quadratic Bézier curve to `p` with control point `c`, written as the equivalent cubic
     /// (PDF has no quadratic operator). Without a current point it starts at `c`.
     pub fn quad_to(&mut self, c: PointPt, p: PointPt) -> &mut Self {
+        self.ensure_current(c);
         let from = self.current.unwrap_or(c);
         self.cubic_to(lerp(from, c, 2.0 / 3.0), lerp(p, c, 2.0 / 3.0), p)
     }
 
     /// Closes the current subpath with a straight line to its start (`h`).
     pub fn close(&mut self) -> &mut Self {
+        if self.current.is_none() {
+            return self;
+        }
         self.segments.push(Segment::Close);
         self.current = self.start;
         self
@@ -129,6 +147,17 @@ impl PathBuilder {
             center.x + radius,
             center.y + radius,
         ))
+    }
+
+    /// Whether every coordinate is finite.
+    pub(crate) fn is_finite(&self) -> bool {
+        let ok = |p: &PointPt| p.x.get().is_finite() && p.y.get().is_finite();
+        self.segments.iter().all(|s| match s {
+            Segment::MoveTo(p) | Segment::LineTo(p) => ok(p),
+            Segment::CubicTo(a, b, c) => ok(a) && ok(b) && ok(c),
+            Segment::Close => true,
+            Segment::Rect(r) => r.is_finite(),
+        })
     }
 
     pub(crate) fn take(&mut self) -> Vec<Segment> {
@@ -278,6 +307,35 @@ mod tests {
                 Some(&Segment::Close)
             )
         );
+    }
+
+    #[test]
+    fn a_line_without_a_current_point_starts_a_subpath_there() {
+        let mut p = PathBuilder::default();
+        p.line_to(pt(1.0, 2.0)).line_to(pt(3.0, 4.0));
+        assert_eq!(p.take(), [Segment::MoveTo(pt(1.0, 2.0)), Segment::LineTo(pt(3.0, 4.0))]);
+    }
+
+    #[test]
+    fn a_curve_without_a_current_point_moves_to_its_first_control_point() {
+        let mut p = PathBuilder::default();
+        p.quad_to(pt(30.0, 30.0), pt(60.0, 0.0));
+        let segments = p.take();
+        assert_eq!(segments[0], Segment::MoveTo(pt(30.0, 30.0)));
+    }
+
+    #[test]
+    fn close_without_a_current_point_is_dropped() {
+        let mut p = PathBuilder::default();
+        p.close();
+        assert!(p.is_empty());
+    }
+
+    #[test]
+    fn a_nan_coordinate_is_reported() {
+        let mut p = PathBuilder::default();
+        p.move_to(pt(f64::NAN, 0.0));
+        assert!(!p.is_finite());
     }
 
     #[test]

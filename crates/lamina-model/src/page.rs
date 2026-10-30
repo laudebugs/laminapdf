@@ -60,20 +60,28 @@ pub struct Pages<'d> {
     ids: Vec<PageId>,
     /// Page index by ID (IDs are unique: one object, or one path, per page).
     by_id: BTreeMap<PageId, usize>,
-    /// Each page's media and crop boxes, read once (every other box is clipped to them).
-    boxes: Vec<OnceCell<Boxes>>,
-    /// Each page's rotation, user unit and frame (ADR 0027 §3), read once, so their
-    /// warnings are raised once.
-    frames: Vec<Geometry>,
+    /// What each page reads once: its media and crop boxes (every other box is clipped to
+    /// them), rotation, user unit and frame (ADR 0027 §3), so their warnings are raised once.
+    cache: Vec<PageCache>,
     labels: OnceCell<PageLabels>,
 }
 
-/// A page's rotation, user unit and frame, each computed at most once.
+/// A page's boxes, rotation, user unit and frame, each computed at most once.
 #[derive(Debug, Default)]
-struct Geometry {
+struct PageCache {
+    boxes: OnceCell<Boxes>,
     rotate: OnceCell<Rotation>,
     user_unit: OnceCell<f64>,
     frame: OnceCell<PageFrame>,
+}
+
+/// `cell`'s value, computing it with `compute` the first time (a failure is not cached).
+fn memo<T: Copy>(cell: Option<&OnceCell<T>>, compute: impl FnOnce() -> Result<T>) -> Result<T> {
+    if let Some(value) = cell.and_then(OnceCell::get) {
+        return Ok(*value);
+    }
+    let value = compute()?;
+    Ok(cell.map_or(value, |c| *c.get_or_init(|| value)))
 }
 
 /// A page's effective media and crop boxes.
@@ -100,15 +108,13 @@ impl<'d> Pages<'d> {
             })
             .collect();
         let by_id = ids.iter().enumerate().map(|(i, id)| (id.clone(), i)).collect();
-        let boxes = walked.iter().map(|_| OnceCell::new()).collect();
-        let frames = walked.iter().map(|_| Geometry::default()).collect();
+        let cache = walked.iter().map(|_| PageCache::default()).collect();
         Ok(Self {
             doc,
             walked,
             ids,
             by_id,
-            boxes,
-            frames,
+            cache,
             labels: OnceCell::new(),
         })
     }
@@ -250,18 +256,19 @@ impl<'p> Page<'p> {
 
     /// The media and crop boxes, read once per page.
     fn boxes(&self) -> Result<Boxes> {
-        let cell = self.pages.boxes.get(self.index);
-        if let Some(boxes) = cell.and_then(OnceCell::get) {
-            return Ok(*boxes);
-        }
-        let media = self.read_box("MediaBox", self.cos.inherited.media_box.as_deref())?;
-        let crop = self.read_box("CropBox", self.cos.inherited.crop_box.as_deref())?;
-        let crop = match (crop, media) {
-            (Some(crop), Some(media)) => Some(crop.intersect(&media).unwrap_or(media)),
-            (crop, media) => crop.or(media),
-        };
-        let boxes = Boxes { media, crop };
-        Ok(cell.map_or(boxes, |c| *c.get_or_init(|| boxes)))
+        memo(self.cache().map(|c| &c.boxes), || {
+            let media = self.read_box("MediaBox", self.cos.inherited.media_box.as_deref())?;
+            let crop = self.read_box("CropBox", self.cos.inherited.crop_box.as_deref())?;
+            let crop = match (crop, media) {
+                (Some(crop), Some(media)) => Some(crop.intersect(&media).unwrap_or(media)),
+                (crop, media) => crop.or(media),
+            };
+            Ok(Boxes { media, crop })
+        })
+    }
+
+    fn cache(&self) -> Option<&'p PageCache> {
+        self.pages.cache.get(self.index)
     }
 
     /// `/MediaBox`, own or inherited (§14.11.2); `None` when absent or malformed (the latter
@@ -325,12 +332,7 @@ impl<'p> Page<'p> {
     /// [`lamina_cos::Error::Strict`] in strict mode for an invalid value;
     /// [`lamina_cos::Error::DataPending`] / [`lamina_cos::Error::Source`].
     pub fn rotate(&self) -> Result<Rotation> {
-        let cell = self.pages.frames.get(self.index).map(|f| &f.rotate);
-        if let Some(rotation) = cell.and_then(OnceCell::get) {
-            return Ok(*rotation);
-        }
-        let rotation = self.read_rotate()?;
-        Ok(cell.map_or(rotation, |c| *c.get_or_init(|| rotation)))
+        memo(self.cache().map(|c| &c.rotate), || self.read_rotate())
     }
 
     fn read_rotate(&self) -> Result<Rotation> {
@@ -365,12 +367,7 @@ impl<'p> Page<'p> {
     /// [`lamina_cos::Error::Strict`] in strict mode for an invalid value;
     /// [`lamina_cos::Error::DataPending`] / [`lamina_cos::Error::Source`].
     pub fn user_unit(&self) -> Result<f64> {
-        let cell = self.pages.frames.get(self.index).map(|f| &f.user_unit);
-        if let Some(unit) = cell.and_then(OnceCell::get) {
-            return Ok(*unit);
-        }
-        let unit = self.read_user_unit()?;
-        Ok(cell.map_or(unit, |c| *c.get_or_init(|| unit)))
+        memo(self.cache().map(|c| &c.user_unit), || self.read_user_unit())
     }
 
     fn read_user_unit(&self) -> Result<f64> {
@@ -403,10 +400,10 @@ impl<'p> Page<'p> {
     ///
     /// [ADR 0027]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0027-coordinates-units-and-page-indexing.md
     pub fn frame(&self) -> Result<PageFrame> {
-        let cell = self.pages.frames.get(self.index).map(|f| &f.frame);
-        if let Some(frame) = cell.and_then(OnceCell::get) {
-            return Ok(*frame);
-        }
+        memo(self.cache().map(|c| &c.frame), || self.read_frame())
+    }
+
+    fn read_frame(&self) -> Result<PageFrame> {
         let Boxes { media, crop } = self.boxes()?;
         let rotate = self.rotate()?;
         let unit = self.user_unit()?;
@@ -423,7 +420,7 @@ impl<'p> Page<'p> {
             })?;
             PageFrame::new(LETTER, rotate, unit).with_letter_fallback()
         };
-        Ok(cell.map_or(frame, |c| *c.get_or_init(|| frame)))
+        Ok(frame)
     }
 
     /// `/Resources`, own or inherited, resolved.

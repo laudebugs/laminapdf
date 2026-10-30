@@ -78,6 +78,31 @@ impl Default for StrokeStyle {
     }
 }
 
+impl StrokeStyle {
+    /// What PDF can't express in this style (§8.4.3): a width that is negative or not finite,
+    /// a miter limit below 1, or a dash pattern with a negative or non-finite length, a phase
+    /// that isn't finite, or only zeros.
+    pub(crate) fn problem(&self) -> Option<&'static str> {
+        let width = self.width.get();
+        if !width.is_finite() || width < 0.0 {
+            return Some("a line width must be a finite number of at least 0");
+        }
+        if !self.miter_limit.is_finite() || self.miter_limit < 1.0 {
+            return Some("a miter limit must be a finite number of at least 1");
+        }
+        if let Some(dash) = &self.dash {
+            let lengths = dash.array.iter().map(|d| d.get());
+            if !dash.phase.get().is_finite() || lengths.clone().any(|d| !d.is_finite() || d < 0.0) {
+                return Some("dash lengths must be finite numbers of at least 0");
+            }
+            if !dash.array.is_empty() && lengths.clone().all(|d| d == 0.0) {
+                return Some("a dash pattern can't be all zeros");
+            }
+        }
+        None
+    }
+}
+
 /// A blend mode (§11.3.5, Tables 134 and 135).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, Default)]
 #[non_exhaustive]
@@ -139,5 +164,48 @@ impl BlendMode {
             Self::Color => "Color",
             Self::Luminosity => "Luminosity",
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn dashed(array: &[f64]) -> StrokeStyle {
+        StrokeStyle {
+            dash: Some(Dash {
+                array: array.iter().map(|d| Pt::new(*d)).collect(),
+                phase: Pt::ZERO,
+            }),
+            ..StrokeStyle::default()
+        }
+    }
+
+    #[test]
+    fn the_default_style_is_valid() {
+        assert_eq!((StrokeStyle::default().problem(), dashed(&[]).problem()), (None, None));
+    }
+
+    #[test]
+    fn a_negative_width_is_refused() {
+        let style = StrokeStyle {
+            width: Pt::new(-1.0),
+            ..StrokeStyle::default()
+        };
+        assert!(style.problem().is_some());
+    }
+
+    #[test]
+    fn an_all_zero_or_negative_dash_is_refused() {
+        assert!(dashed(&[0.0, 0.0]).problem().is_some() && dashed(&[3.0, -1.0]).problem().is_some());
+    }
+
+    #[test]
+    fn a_miter_limit_below_one_is_refused() {
+        let style = StrokeStyle {
+            miter_limit: 0.5,
+            ..StrokeStyle::default()
+        };
+        assert!(style.problem().is_some());
     }
 }

@@ -110,7 +110,8 @@ impl Color {
 
 /// An ICC profile (ICC.1:2010; ISO 32000-2 §8.6.5.5) given by the caller, checked when it is
 /// made: its header's size, `acsp` signature, profile class and data colour space, which gives
-/// `/N` (Gray 1, RGB 3, CMYK 4, Lab 3). Cheap to clone; the builder writes each distinct
+/// `/N` (Gray 1, RGB 3, CMYK 4; Lab profiles, whose components need a `/Range` outside
+/// `[0, 1]`, are refused). Cheap to clone; the builder writes each distinct
 /// profile once per document.
 #[derive(Clone, PartialEq, Eq)]
 pub struct IccProfile {
@@ -130,7 +131,6 @@ pub(crate) enum IccSpace {
     Gray,
     Rgb,
     Cmyk,
-    Lab,
 }
 
 impl std::fmt::Debug for IccProfile {
@@ -148,7 +148,7 @@ impl IccProfile {
     /// # Errors
     /// [`Error::InvalidIccProfile`] for bytes shorter than a header and tag count, a declared
     /// size that doesn't fit, no `acsp` signature, a device-link, abstract or named-colour
-    /// profile, or a data colour space other than Gray, RGB, CMYK or Lab.
+    /// profile, or a data colour space other than Gray, RGB or CMYK.
     pub fn new(bytes: Vec<u8>) -> Result<Self> {
         let invalid = |reason| Error::InvalidIccProfile { reason };
         let field = |at: usize| -> Option<[u8; 4]> { bytes.get(at..at + 4)?.try_into().ok() };
@@ -169,8 +169,8 @@ impl IccProfile {
             Some(b"GRAY") => IccSpace::Gray,
             Some(b"RGB ") => IccSpace::Rgb,
             Some(b"CMYK") => IccSpace::Cmyk,
-            Some(b"Lab ") => IccSpace::Lab,
-            _ => return Err(invalid("the data colour space is not Gray, RGB, CMYK or Lab")),
+            // Lab profiles take components outside [0, 1] and need a /Range: not supported.
+            _ => return Err(invalid("the data colour space is not Gray, RGB or CMYK")),
         };
         let hash = Sha256::digest(&bytes).into();
         Ok(Self {
@@ -183,7 +183,7 @@ impl IccProfile {
     pub fn components(&self) -> usize {
         match self.inner.space {
             IccSpace::Gray => 1,
-            IccSpace::Rgb | IccSpace::Lab => 3,
+            IccSpace::Rgb => 3,
             IccSpace::Cmyk => 4,
         }
     }
@@ -249,7 +249,7 @@ mod tests {
         #[test]
         fn takes_n_from_the_data_colour_space() {
             let n = |space: &[u8; 4]| IccProfile::new(header(*b"mntr", *space)).unwrap().components();
-            assert_eq!([n(b"GRAY"), n(b"RGB "), n(b"CMYK"), n(b"Lab ")], [1, 3, 4, 3]);
+            assert_eq!([n(b"GRAY"), n(b"RGB "), n(b"CMYK")], [1, 3, 4]);
         }
 
         #[test]
@@ -270,6 +270,7 @@ mod tests {
         fn rejects_device_link_profiles_and_other_spaces() {
             assert!(IccProfile::new(header(*b"link", *b"RGB ")).is_err());
             assert!(IccProfile::new(header(*b"mntr", *b"XYZ ")).is_err());
+            assert!(IccProfile::new(header(*b"spac", *b"Lab ")).is_err());
         }
 
         #[test]

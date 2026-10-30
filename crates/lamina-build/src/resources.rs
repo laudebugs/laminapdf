@@ -89,6 +89,19 @@ impl PageResources {
         name_of("CS", index)
     }
 
+    /// The lowest PDF version that has every feature these resources use: `ExtGState`
+    /// transparency and soft masks 1.4 (§11.6), 16-bit samples 1.5 (§8.9.5.1).
+    pub(crate) fn required_version(&self) -> (u8, u8) {
+        let mut v = (1, 0);
+        if !self.gstates.is_empty() || self.images.iter().any(|i| i.data.alpha.is_some()) {
+            v = v.max((1, 4));
+        }
+        if self.images.iter().any(|i| i.data.bits == 16) {
+            v = v.max((1, 5));
+        }
+        v
+    }
+
     /// Writes the objects this document doesn't have yet and returns the page's
     /// `/Resources` dictionary.
     pub(crate) fn write(&self, cos: &mut CosMut<'_>, doc: &mut DocResources) -> Result<Dict> {
@@ -143,14 +156,11 @@ fn icc_stream(profile: &IccProfile) -> Object {
     let mut d = Dict::new();
     d.insert("N", i64::try_from(profile.components()).unwrap_or(0));
     let alternate = match profile.space() {
-        IccSpace::Gray => Some("DeviceGray"),
-        IccSpace::Rgb => Some("DeviceRGB"),
-        IccSpace::Cmyk => Some("DeviceCMYK"),
-        IccSpace::Lab => None,
+        IccSpace::Gray => "DeviceGray",
+        IccSpace::Rgb => "DeviceRGB",
+        IccSpace::Cmyk => "DeviceCMYK",
     };
-    if let Some(alt) = alternate {
-        d.insert("Alternate", Name::from(alt));
-    }
+    d.insert("Alternate", Name::from(alternate));
     Object::Stream(Stream::flate(d, profile.as_bytes()))
 }
 

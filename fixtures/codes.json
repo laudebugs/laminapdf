@@ -615,7 +615,7 @@
     {
       "code": "image-too-large",
       "kind": "limit",
-      "summary": "decoding the image would need more memory than the builder allows",
+      "summary": "the image needs more memory than the builder allows (a decoded PNG over 256 MiB, or raw dimensions whose size overflows)",
       "hint": "scale the image down before adding it",
       "since": "0.1.0"
     },
@@ -630,7 +630,7 @@
       "code": "invalid-icc-profile",
       "kind": "input",
       "summary": "the bytes are not a usable ICC profile",
-      "hint": "pass a complete ICC profile with a Gray, RGB, CMYK or Lab data colour space",
+      "hint": "pass a complete ICC profile with a Gray, RGB or CMYK data colour space",
       "since": "0.1.0"
     },
     {
@@ -650,8 +650,8 @@
     {
       "code": "invalid-geometry",
       "kind": "usage",
-      "summary": "a page size, box or /UserUnit is not finite and positive where it must be",
-      "hint": "use finite sizes and a positive /UserUnit",
+      "summary": "a page size, box, /UserUnit, drawing value (coordinate, matrix, line width, dash, miter limit) or image size is not usable",
+      "hint": "use finite coordinates, positive page sizes and /UserUnit, non-negative line widths and dashes, a miter limit of at least 1, and images of at least one pixel",
       "since": "0.1.0"
     }
   ]

@@ -10,7 +10,7 @@
 mod common;
 
 use common::{fixture, record, reopen};
-use lamina_build::{Builder, Color, FillRule, PageSize, Rotation};
+use lamina_build::{BuildOptions, Builder, Color, FillRule, PageSize, Rotation};
 use lamina_cos::{Dict, Object};
 use lamina_model::{PageId, Pt, RectPt};
 use lamina_save::{IncrementalWriter, SaveOptions, Writer};
@@ -22,7 +22,7 @@ fn ids(doc: &lamina_model::Document) -> Vec<String> {
 /// Adds one Letter page with a filled square to `base`, saved incrementally.
 fn append_square(base: &[u8]) -> (Vec<u8>, Vec<PageId>) {
     let mut doc = reopen(base);
-    let mut appender = Builder::on(&mut doc).unwrap();
+    let mut appender = Builder::on(&mut doc, &BuildOptions::default()).unwrap();
     let mut page = appender.page(PageSize::LETTER);
     page.surface()
         .fill_color(Color::rgb(0.1, 0.5, 0.2))
@@ -65,7 +65,7 @@ fn the_added_page_draws_its_content_and_reads_without_warnings() {
     let drawn = record(&doc, 1);
     assert_eq!(
         (drawn.painted[0].points.clone(), drawn.warnings, doc.warnings().len()),
-        (vec![(72.0, 620.0), (172.0, 720.0)], vec![], 0)
+        (vec![(72.0, 720.0), (172.0, 620.0)], vec![], 0)
     );
 }
 
@@ -131,5 +131,62 @@ fn a_catalog_without_an_indirect_page_tree_is_refused() {
     );
     let bytes = w.finish(&[("Root", Object::from(root))].into_iter().collect()).unwrap();
     let mut doc = reopen(&bytes);
-    assert_eq!(Builder::on(&mut doc).unwrap_err().code(), "invalid-structure");
+    assert_eq!(
+        Builder::on(&mut doc, &BuildOptions::default()).unwrap_err().code(),
+        "invalid-structure"
+    );
+}
+
+#[test]
+fn an_uncompressed_appender_writes_readable_content() {
+    let mut doc = reopen(&fixture("corpus/hello.pdf"));
+    let mut appender = Builder::on(&mut doc, &BuildOptions::default().with_compress(false)).unwrap();
+    appender.page(PageSize::A6).finish().unwrap();
+    let id = appender.finish().unwrap().remove(0);
+    let page = doc.pages().unwrap().by_id(&id).unwrap().contents().unwrap()[0];
+    let Object::Stream(stream) = &*doc.resolve(page).unwrap() else {
+        panic!("a stream")
+    };
+    assert_eq!(stream.dict.get("Filter"), None);
+}
+
+#[test]
+fn a_feature_newer_than_the_base_raises_the_catalog_version() {
+    // A PDF 1.3 base and a page with /UserUnit (PDF 1.6).
+    let dict = |entries: Vec<(&str, Object)>| -> Dict { entries.into_iter().collect() };
+    let mut w = Writer::new(1, 3);
+    let pages = w.reserve();
+    let page = w.add(dict(vec![
+        ("Type", Object::name("Page")),
+        ("Parent", pages.into()),
+        ("MediaBox", vec![0.into(), 0.into(), 612.into(), 792.into()].into()),
+    ]));
+    w.set(
+        pages,
+        dict(vec![
+            ("Type", Object::name("Pages")),
+            ("Kids", vec![page.into()].into()),
+            ("Count", 1.into()),
+        ]),
+    );
+    let root = w.add(dict(vec![("Type", Object::name("Catalog")), ("Pages", pages.into())]));
+    let base = w.finish(&[("Root", Object::from(root))].into_iter().collect()).unwrap();
+    let mut doc = reopen(&base);
+    let mut appender = Builder::on(&mut doc, &BuildOptions::default()).unwrap();
+    let mut page = appender.page(PageSize::A6);
+    page.user_unit(2.0);
+    page.finish().unwrap();
+    appender.finish().unwrap();
+    assert_eq!(doc.catalog().unwrap().get_name("Version"), Some(&b"1.6"[..]));
+}
+
+#[test]
+fn a_document_at_a_new_enough_version_is_left_alone() {
+    let mut doc = reopen(&fixture("corpus/hello.pdf"));
+    let mut appender = Builder::on(&mut doc, &BuildOptions::default()).unwrap();
+    let mut page = appender.page(PageSize::A6);
+    page.user_unit(2.0);
+    page.finish().unwrap();
+    appender.finish().unwrap();
+    assert_eq!(doc.catalog().unwrap().get("Version"), None);
 }

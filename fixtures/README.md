@@ -51,10 +51,10 @@ Inputs for `lamina-build`'s image and colour tests (todo B5a), written by [`tool
 
 | File | Origin |
 | --- | --- |
-| `photo-rgb.jpg` | The krilla-fit spike's generated 192×192 baseline JPEG (`spikes/krilla-fit/assets/photo.jpg`), APP1 and APP13 segments removed |
+| `photo-rgb.jpg` | The krilla-fit spike's generated 192×192 baseline JPEG (`spikes/krilla-fit/assets/photo.jpg`), APP1, APP2 and APP13 segments removed (as for every JPEG here) |
 | `photo-cmyk.jpg` | The same photo converted by `sips` with the Generic CMYK profile: inverted samples and an Adobe `APP14` marker, as Photoshop writes; APP1, APP2 (Apple's ICC profile) and APP13 removed |
 | `photo-gray.jpg` | The same with the Generic Gray profile, one component |
-| `gray-gamma22.icc`, `srgb-like.icc` | Minimal ICC v2 profiles written by the script (a gamma 2.2 gray TRC; sRGB primaries adapted to D50 with gamma 2.2 TRCs) |
+| `gray-gamma22.icc`, `srgb-like.icc` | Minimal ICC v2 profiles written by the script (a gamma 2.2 gray TRC; sRGB primaries adapted to D50 with gamma 2.2 TRCs), `MIT OR Apache-2.0` (their `cprt` tag says so) |
 
 ### `corpus/`
 

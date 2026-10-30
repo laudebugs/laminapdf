@@ -5,7 +5,7 @@
 
 ## What happened
 
-Decoding a PNG would need more than `MAX_DECODED_IMAGE_BYTES` (256 MiB).
+Decoding a PNG would need more than `MAX_DECODED_IMAGE_BYTES` (256 MiB), or the dimensions given to `Image::rgba` describe more bytes than fit in memory's address space.
 
 ## Why
 

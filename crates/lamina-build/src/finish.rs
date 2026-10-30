@@ -38,6 +38,9 @@ pub(crate) fn new_document(
 
     let mut cat = Dict::new();
     cat.insert("Type", Name::from("Catalog"));
+    if state.required > version_of(options.version().as_str().as_bytes()).unwrap_or((1, 7)) {
+        cat.insert("Version", version_name(state.required));
+    }
     cat.insert("Pages", state.pages_root);
     cos.set(catalog, Object::Dict(cat))?;
 
@@ -108,5 +111,38 @@ pub(crate) fn append_pages(doc: &mut lamina_cos::Document, state: &BuildState) -
     }
     root.insert("Count", count(before + state.pages.len()));
     cos.set(root_ref, Object::Dict(root))?;
+    Ok(())
+}
+
+/// `major.minor` from a version string (`1.7`), `None` for anything else.
+pub(crate) fn version_of(text: &[u8]) -> Option<(u8, u8)> {
+    let text = std::str::from_utf8(text).ok()?;
+    let (major, minor) = text.split_once('.')?;
+    Some((major.parse().ok()?, minor.parse().ok()?))
+}
+
+fn version_name((major, minor): (u8, u8)) -> Name {
+    Name::new(format!("{major}.{minor}"))
+}
+
+/// Raises an open document's version to `required` with the catalog's `/Version` (§7.7.2)
+/// when neither the header nor an existing `/Version` reaches it.
+pub(crate) fn raise_version(doc: &mut lamina_cos::Document, required: (u8, u8)) -> Result<()> {
+    let header = doc.header_version().and_then(|v| version_of(v.as_bytes()));
+    let mut catalog = doc.catalog()?;
+    let declared = catalog.get_name("Version").and_then(version_of);
+    let current = header.max(declared).unwrap_or((1, 0));
+    if required <= current {
+        return Ok(());
+    }
+    let Some(root) = doc.trailer().get("Root").and_then(Object::as_ref) else {
+        return Err(lamina_cos::Error::InvalidStructure {
+            kind: "catalog",
+            message: "the catalog is not an indirect object, so /Version can't be raised",
+        }
+        .into());
+    };
+    catalog.insert("Version", version_name(required));
+    doc.edit().set(root, Object::Dict(catalog))?;
     Ok(())
 }

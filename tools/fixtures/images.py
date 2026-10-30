@@ -3,15 +3,15 @@
 only, plus macOS `sips` for the JPEG conversions.
 
 * `photo-rgb.jpg`: the krilla-fit spike's baseline JPEG (`spikes/krilla-fit/assets/photo.jpg`,
-  a generated 192x192 pattern encoded by `sips`), with its APP1 (Exif) and APP13 (Photoshop)
-  segments removed.
+  a generated 192x192 pattern encoded by `sips`), with its APP1 (Exif), APP2 (ICC) and APP13
+  (Photoshop) segments removed (it has no APP2; the same filter runs on every JPEG).
 * `photo-cmyk.jpg`, `photo-gray.jpg`: the same photo converted by `sips` with macOS's Generic
   CMYK and Generic Gray profiles. `sips` writes CMYK as Photoshop does: inverted samples and an
   Adobe APP14 marker. APP1, APP2 (the embedded Apple ICC profile) and APP13 are removed, so no
   third-party profile data is committed.
 * `gray-gamma22.icc`, `srgb-like.icc`: minimal ICC v2 profiles written here from first principles
-  (a gamma 2.2 gray TRC; sRGB primaries adapted to D50 with gamma 2.2 TRCs), CC0 like the rest
-  of this script's output.
+  (a gamma 2.2 gray TRC; sRGB primaries adapted to D50 with gamma 2.2 TRCs), licensed
+  `MIT OR Apache-2.0` like the rest of lamina (their copyright tag says so).
 
     python3 tools/fixtures/images.py
 """
@@ -92,7 +92,7 @@ def profile(cls: bytes, space: bytes, tags) -> bytes:
 def gray_profile() -> bytes:
     return profile(b"mntr", b"GRAY", [
         (b"desc", desc("lamina gray gamma 2.2")),
-        (b"cprt", text("CC0")),
+        (b"cprt", text("MIT OR Apache-2.0")),
         (b"wtpt", xyz(0.9642, 1.0, 0.8249)),
         (b"kTRC", curve(2.2)),
     ])
@@ -102,7 +102,7 @@ def rgb_profile() -> bytes:
     # sRGB primaries, Bradford-adapted to D50 (the ICC's PCS white), as in IEC 61966-2-1.
     return profile(b"mntr", b"RGB ", [
         (b"desc", desc("lamina sRGB-like gamma 2.2")),
-        (b"cprt", text("CC0")),
+        (b"cprt", text("MIT OR Apache-2.0")),
         (b"wtpt", xyz(0.9642, 1.0, 0.8249)),
         (b"rXYZ", xyz(0.4361, 0.2225, 0.0139)),
         (b"gXYZ", xyz(0.3851, 0.7169, 0.0971)),

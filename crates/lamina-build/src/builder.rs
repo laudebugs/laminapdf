@@ -148,6 +148,26 @@ pub(crate) struct BuildState {
     /// Write `/Rotate` and `/CropBox` on every page, so nothing is inherited from an
     /// existing page tree's root.
     pub(crate) explicit_inherited: bool,
+    /// The lowest PDF version with every feature written so far.
+    pub(crate) required: (u8, u8),
+}
+
+impl BuildState {
+    fn new(pages_root: ObjRef, compress: bool, explicit_inherited: bool) -> Self {
+        Self {
+            pages_root,
+            pages: Vec::new(),
+            resources: DocResources::default(),
+            compress,
+            explicit_inherited,
+            required: (1, 0),
+        }
+    }
+
+    /// Notes that something written needs PDF `version`.
+    pub(crate) fn require(&mut self, version: (u8, u8)) {
+        self.required = self.required.max(version);
+    }
 }
 
 /// What a page writes into: the document and the build's shared state.
@@ -196,13 +216,7 @@ impl Builder {
             doc,
             options,
             catalog,
-            state: BuildState {
-                pages_root,
-                pages: Vec::new(),
-                resources: DocResources::default(),
-                compress,
-                explicit_inherited: false,
-            },
+            state: BuildState::new(pages_root, compress, false),
         }
     }
 
@@ -218,14 +232,15 @@ impl Builder {
     }
 
     /// Adds pages to `doc`, an open document ([ADR 0005] §6: the same code path, and the
-    /// result saves incrementally). See [`Appender`].
+    /// result saves incrementally). Of `options`, only [`BuildOptions::with_compress`]
+    /// applies (the document keeps its own version, `/ID` and Info). See [`Appender`].
     ///
     /// # Errors
     /// As [`Appender::new`].
     ///
     /// [ADR 0005]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0005-document-model.md
-    pub fn on(doc: &mut lamina_model::Document) -> Result<Appender<'_>> {
-        Appender::new(doc)
+    pub fn on<'d>(doc: &'d mut lamina_model::Document, options: &BuildOptions) -> Result<Appender<'d>> {
+        Appender::new(doc, options)
     }
 
     /// Writes the page tree, the catalog, the Info dictionary when [`BuildOptions`] asked
@@ -247,6 +262,14 @@ impl Builder {
 ///
 /// The changes are not op-log transactions (there is no op for drawn content yet), so they
 /// are made on a [`lamina_model::Document`], not through `lamina_ops`.
+///
+/// Images, ICC profiles and `ExtGState`s are written once per appender. Each appender (each
+/// [`Builder::on`] call) writes its own: it doesn't look for equal objects already in the
+/// document, so adding the same image in two separate calls embeds it twice. Add pages that
+/// share resources through one appender.
+///
+/// A feature newer than the document's version (see [`PageBuilder::finish`]) raises it with
+/// the catalog's `/Version` (§7.7.2) when the appender finishes.
 #[derive(Debug)]
 pub struct Appender<'d> {
     doc: &'d mut lamina_model::Document,
@@ -254,22 +277,16 @@ pub struct Appender<'d> {
 }
 
 impl<'d> Appender<'d> {
-    /// An appender for `doc`.
+    /// An appender for `doc`; of `options`, only the compression of content streams applies.
     ///
     /// # Errors
     /// [`Error::Cos`](crate::Error::Cos) with `invalid-structure` when the catalog's `/Pages`
     /// is not an indirect page tree node; errors reading the catalog.
-    pub fn new(doc: &'d mut lamina_model::Document) -> Result<Self> {
+    pub fn new(doc: &'d mut lamina_model::Document, options: &BuildOptions) -> Result<Self> {
         let pages_root = finish::page_tree_root(doc.cos())?;
         Ok(Self {
             doc,
-            state: BuildState {
-                pages_root,
-                pages: Vec::new(),
-                resources: DocResources::default(),
-                compress: true,
-                explicit_inherited: true,
-            },
+            state: BuildState::new(pages_root, !options.uncompressed, true),
         })
     }
 
@@ -290,6 +307,7 @@ impl<'d> Appender<'d> {
     /// As [`Appender::new`], when the root node changed meanwhile.
     pub fn finish(self) -> Result<Vec<PageId>> {
         finish::append_pages(self.doc.cos_mut(), &self.state)?;
+        finish::raise_version(self.doc.cos_mut(), self.state.required)?;
         Ok(self.state.pages.iter().map(|r| PageId::object(*r)).collect())
     }
 }

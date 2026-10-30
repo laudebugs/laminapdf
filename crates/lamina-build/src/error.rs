@@ -13,8 +13,6 @@ pub enum ImageFormat {
     Jpeg,
     /// PNG (decoded).
     Png,
-    /// Raw 8-bit RGBA samples.
-    Rgba,
 }
 
 /// Everything that can go wrong while building.

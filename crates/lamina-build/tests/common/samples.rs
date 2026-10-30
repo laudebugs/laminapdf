@@ -96,10 +96,11 @@ pub fn vectors() -> Vec<u8> {
             ..StrokeStyle::default()
         });
     // 3. A clip: stripes inside an ellipse.
-    s.save().path(|path| {
-        path.ellipse(rect(56.0, 420.0, 480.0, 140.0));
-    });
-    s.clip(FillRule::NonZero);
+    s.save()
+        .path(|path| {
+            path.ellipse(rect(56.0, 420.0, 480.0, 140.0));
+        })
+        .clip(FillRule::NonZero);
     for i in 0..12 {
         let level = f64::from(i) / 12.0;
         s.fill_color(Color::rgb(level, 0.5, 1.0 - level))
