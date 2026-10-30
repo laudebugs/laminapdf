@@ -66,7 +66,7 @@ Ship an importable, permissively licensed library that **generates correct PDFs 
 | `@lamina/pdf` WASM, gzipped | Per module ([ADR 0016](../decisions/0016-package-design.md) §6, owner 2026-10-30): base ≤ 380 KB (measured 368 KB; the 350 KB of 2026-10-29 revised after measurement), text ≤ 960 KB (measured 937 KB); extract, render and sign get theirs when they exist (spike core: 74 KB; krilla-fit builder stack: 377 KB) |
 | JS glue + TS API, min+gz | ≤ 20 KB |
 | Rust `lamina` default features | No C dependencies; builds for `wasm32-unknown-unknown`, iOS and Android targets |
-| Hello-world generation | ≤ 5 ms after `init()` on a 2023 laptop; a 100-page text report ≤ 500 ms |
+| Hello-world generation | ≤ 5 ms after `init()` on a 2023 laptop; a 100-page text report ≤ 500 ms (B5d: 251–422 ms in Node 24 for the B6c report, 658–958 ms before, measured under a load average near 190 on 8 cores; natively 39 ms, 78 ms before; `cargo xtask pdf-runtimes` records it nightly) |
 | Memory in a Worker | 100-page report with two embedded fonts under 64 MB peak |
 | Output validity | qpdf `--check` clean, opens in pdf.js and PDFium, veraPDF-clean under each profile (B8) |
 | Licence | MIT OR Apache-2.0; dependency licences gated by cargo-deny and the npm licence check (ADR 0019) |
@@ -196,7 +196,7 @@ Architecture Round B is delivered as rounds B1–B9, each split into todos (one 
 
 ### B5. Builder and the `lamina` crate
 
-**Todos:** [B5a](../todos/done/B5a-lamina-build-core.md) (builder, vectors, colour, images), [B5b](../todos/done/B5b-builder-text-and-document-features.md) (text, links, outlines, labels, metadata), [B5c](../todos/done/B5c-lamina-facade-and-examples.md) (`lamina` façade, examples, byte and render goldens), [B5d](../todos/ongoing/B5d-text-report-generation-performance.md) (a 100-page text report within 500 ms; B6b measured 2.96 s).
+**Todos:** [B5a](../todos/done/B5a-lamina-build-core.md) (builder, vectors, colour, images), [B5b](../todos/done/B5b-builder-text-and-document-features.md) (text, links, outlines, labels, metadata), [B5c](../todos/done/B5c-lamina-facade-and-examples.md) (`lamina` façade, examples, byte and render goldens), [B5d](../todos/done/B5d-text-report-generation-performance.md) (a 100-page text report within 500 ms: shape plans cached per font, a line holding a whole item reuses its shaping, fewer copies in `pdf_run`; the B6c report went from 658–958 ms to 251–422 ms in Node 24 on a heavily loaded machine, and is benchmarked nightly by `lamina`'s `report` bench).
 
 **Deliverable:** `lamina-build` (pages, text, text boxes, images, paths, colour, links, named destinations, outlines, page labels, Info + XMP); `finish()` returns `Document`; the `lamina` façade crate with Rust examples.
 **Accepted when:** every example produces byte-identical goldens; qpdf `--check` clean; golden renders match in PDFium and hayro within thresholds.
@@ -308,6 +308,7 @@ Each round's todos (one per PR, with dependencies) are linked from [§7](#7-roun
 - [x] Create the `lamina` façade crate; `lib.rs` docs open with the invoice example ([B5c](../todos/done/B5c-lamina-facade-and-examples.md))
 - [x] Add Rust examples (hello, invoice, multilingual, vectors, links-and-outlines, generate-then-edit) ([B5c](../todos/done/B5c-lamina-facade-and-examples.md))
 - [x] Byte-identical goldens and render goldens (PDFium and hayro) for every example ([B5c](../todos/done/B5c-lamina-facade-and-examples.md): 72 dpi goldens per engine, hayro vs PDFium at 150 dpi)
+- [x] A 100-page text report within 500 ms after `init()`, benchmarked nightly ([B5d](../todos/done/B5d-text-report-generation-performance.md): `crates/lamina/benches/report.rs` in `cargo xtask bench`, `packages/pdf/bench/reports.mjs` in Node)
 
 ### B6. WASM and `@lamina/pdf`
 

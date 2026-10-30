@@ -164,14 +164,16 @@ pub fn break_lines(shaper: &impl Shaper, fonts: &[Font], text: &str, options: &L
         let ptext = text.get(paragraph.clone()).unwrap_or_default();
         let para = BidiParagraph::new(ptext, options.direction);
         let items = itemize(&para, fonts)?;
-        let layout = Layouter {
+        let mut layout = Layouter {
             shaper,
             fonts,
             text: ptext,
             options,
             para: &para,
             items: &items,
+            shaped: Vec::new(),
         };
+        layout.shaped = layout.shape_items()?;
         for mut line in layout.lines()? {
             line.shift(paragraph.start);
             lines.push(line);
@@ -255,6 +257,10 @@ struct Layouter<'a, S> {
     options: &'a LayoutOptions,
     para: &'a BidiParagraph<'a>,
     items: &'a [Item],
+    /// Each item shaped whole at its own level ([`Layouter::shape_items`]): the estimates,
+    /// and the runs of a line that holds an item whole at that level (most short texts), which
+    /// would shape exactly the same again.
+    shaped: Vec<Option<ShapedRun>>,
 }
 
 impl<S: Shaper> Layouter<'_, S> {
@@ -263,7 +269,7 @@ impl<S: Shaper> Layouter<'_, S> {
     /// moved back or forward one opportunity at a time until it is the longest that fits.
     fn lines(&self) -> Result<Vec<Line>> {
         let limit = f64::from(self.options.width);
-        let estimate = self.estimates()?;
+        let estimate = self.estimates();
         let estimated = |range: Range<usize>| {
             let content = self.content(range);
             estimate.get(content.end).copied().unwrap_or(0.0) - estimate.get(content.start).copied().unwrap_or(0.0)
@@ -323,14 +329,19 @@ impl<S: Shaper> Layouter<'_, S> {
         Ok(lines)
     }
 
+    /// Every item shaped whole at its own level.
+    fn shape_items(&self) -> Result<Vec<Option<ShapedRun>>> {
+        self.items
+            .iter()
+            .map(|item| self.shape(item, item.range.clone(), item.level))
+            .collect()
+    }
+
     /// Prefix sums of the paragraph's advances in points by byte offset: each item shaped
     /// once at its own level, every glyph's advance counted at its cluster.
-    fn estimates(&self) -> Result<Vec<f64>> {
+    fn estimates(&self) -> Vec<f64> {
         let mut at = vec![0.0; self.text.len() + 1];
-        for item in self.items {
-            let Some(run) = self.shape(item, item.range.clone(), item.level)? else {
-                continue;
-            };
+        for run in self.shaped.iter().flatten() {
             for glyph in &run.glyphs {
                 if let Some(slot) = at.get_mut(glyph.cluster) {
                     *slot += crate::shape::to_points(i64::from(glyph.x_advance), run.units_per_em, self.options.size);
@@ -344,7 +355,7 @@ impl<S: Shaper> Layouter<'_, S> {
             sum += v;
             prefix.push(sum);
         }
-        Ok(prefix)
+        prefix
     }
 
     /// `range` without trailing spaces and hard breaks.
@@ -356,14 +367,21 @@ impl<S: Shaper> Layouter<'_, S> {
 
     /// The items intersecting `range`, clipped to it, in logical order (items are sorted and
     /// contiguous, so a binary search finds the first).
-    fn parts(&self, range: Range<usize>) -> impl Iterator<Item = (&Item, Range<usize>)> + '_ {
+    fn parts(&self, range: Range<usize>) -> impl Iterator<Item = (usize, &Item, Range<usize>)> + '_ {
         let first = self.items.partition_point(|item| item.range.end <= range.start);
         self.items
             .get(first..)
             .unwrap_or_default()
             .iter()
-            .take_while(move |item| item.range.start < range.end)
-            .map(move |item| (item, item.range.start.max(range.start)..item.range.end.min(range.end)))
+            .zip(first..)
+            .take_while(move |(item, _)| item.range.start < range.end)
+            .map(move |(item, i)| {
+                (
+                    i,
+                    item,
+                    item.range.start.max(range.start)..item.range.end.min(range.end),
+                )
+            })
     }
 
     /// `range` of `item` shaped at `level`; `None` when the item's font is not in the list,
@@ -388,12 +406,20 @@ impl<S: Shaper> Layouter<'_, S> {
         let mut runs = Vec::new();
         let mut x = 0.0;
         for visual in self.para.visual_runs(content.clone())? {
-            let mut parts: Vec<(&Item, Range<usize>)> = self.parts(visual.range.clone()).collect();
+            let mut parts: Vec<(usize, &Item, Range<usize>)> = self.parts(visual.range.clone()).collect();
             if visual.direction().is_rtl() {
                 parts.reverse();
             }
-            for (item, part) in parts {
-                let Some(run) = self.shape(item, part, visual.level)? else {
+            for (i, item, part) in parts {
+                // An item drawn whole at its own level shapes as it did for the estimates.
+                let shaped = (part == item.range && visual.level == item.level)
+                    .then(|| self.shaped.get(i).cloned().flatten())
+                    .flatten();
+                let run = match shaped {
+                    Some(run) => Some(run),
+                    None => self.shape(item, part, visual.level)?,
+                };
+                let Some(run) = run else {
                     continue;
                 };
                 let width = run.width(self.options.size);
@@ -509,6 +535,18 @@ mod tests {
         let one = format!("{one}").parse::<f32>().unwrap() + 0.01;
         let lines = break_lines(&HarfRust, &fonts, text, &LayoutOptions::new(one, 10.0)).unwrap();
         assert_eq!(texts(text, &lines), ["aaa bbb", "ccc"]);
+    }
+
+    #[test]
+    fn a_line_holding_a_whole_item_has_the_run_shaped_for_it() {
+        let fonts = [font("NotoSans-Regular.ttf")];
+        let text = "Total € 1,250.00";
+        let lines = break_lines(&HarfRust, &fonts, text, &LayoutOptions::new(500.0, 10.0)).unwrap();
+        let options = ShapeOptions::new()
+            .with_script(crate::shape::Script::LATIN)
+            .with_direction(Direction::LeftToRight);
+        let fresh = HarfRust.shape_range(&fonts[0], text, 0..text.len(), &options).unwrap();
+        assert_eq!(lines[0].runs[0].run, fresh);
     }
 
     #[test]

@@ -650,6 +650,7 @@ dependencies = [
 name = "lamina"
 version = "0.0.0"
 dependencies = [
+ "criterion",
  "lamina-build",
  "lamina-cos",
  "lamina-model",
@@ -659,6 +660,7 @@ dependencies = [
  "lamina-text",
  "serde",
  "serde_json",
+ "sha2",
  "thiserror",
 ]
 

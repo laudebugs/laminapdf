@@ -48,6 +48,9 @@ serde_json = { workspace = true }
 lamina-build = { workspace = true, features = ["text"] }
 lamina-text = { workspace = true }
 serde_json = { workspace = true }
+# The report bench checks its bytes against the TS suite's REPORT_SHA256.
+criterion = { workspace = true }
+sha2 = { workspace = true }
 
 [[example]]
 name = "hello"
@@ -75,6 +78,13 @@ required-features = ["text"]
 
 [[test]]
 name = "examples"
+required-features = ["text"]
+
+# Release-mode benchmarks for the nightly lane (`cargo xtask bench`; ADR 0018 tier 11): the
+# 100-page text report of pdf-library §4 (todo B5d).
+[[bench]]
+name = "report"
+harness = false
 required-features = ["text"]
 
 [lints]

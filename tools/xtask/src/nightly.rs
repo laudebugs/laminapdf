@@ -20,8 +20,9 @@ use crate::{corpus, docs_links, harness, live, pdf_runtimes, step};
 /// A benchmark regressed when it is this much slower than its baseline (ADR 0018 tier 11).
 const REGRESSION_RATIO: f64 = 1.10;
 
-/// The criterion benchmark targets `cargo xtask bench` runs: `(package, bench)`.
-const BENCHES: [(&str, &str); 2] = [("lamina-cos", "read"), ("lamina-save", "save")];
+/// The criterion benchmark targets `cargo xtask bench` runs: `(package, bench)`. `lamina`'s
+/// `report` is the 100-page text report of pdf-library §4 (B5d).
+const BENCHES: [(&str, &str); 3] = [("lamina-cos", "read"), ("lamina-save", "save"), ("lamina", "report")];
 
 /// The baseline is the median of this many previous records from the same runner.
 const BASELINE_RUNS: usize = 5;

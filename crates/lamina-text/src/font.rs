@@ -3,7 +3,7 @@
 
 use std::fmt;
 use std::fmt::Write as _;
-use std::sync::{Arc, OnceLock};
+use std::sync::{Arc, Mutex, OnceLock};
 
 use sha2::{Digest, Sha256};
 use skrifa::instance::{LocationRef, NormalizedCoord, Size};
@@ -13,6 +13,7 @@ use skrifa::{FontRef, MetadataProvider};
 
 use crate::error::{Error, Result};
 use crate::fstype::FsType;
+use crate::shape::PlanKey;
 use crate::std14::Standard14;
 
 /// A four-byte OpenType tag, such as the variation axis `wght`.
@@ -153,7 +154,14 @@ struct Source {
     digest: OnceLock<[u8; 32]>,
     /// HarfRust's tables for the face (B4b), built when it is first shaped.
     shaping: OnceLock<harfrust::ShaperData>,
+    /// HarfRust's shape plans (the lookups and feature masks for one instance, direction,
+    /// script, language and feature list), built at first use and reused (B5d): building one
+    /// costs more than shaping a short run with it.
+    plans: Mutex<Vec<(PlanKey, Arc<harfrust::ShapePlan>)>>,
 }
+
+/// The most shape plans one font keeps; past it, plans are built for each run and dropped.
+const MAX_PLANS: usize = 64;
 
 /// A font loaded from caller-supplied bytes (for a variable font, one instance of it), or one
 /// of the [standard 14](Standard14) referred to by name. Cheap to clone (the bytes are
@@ -216,6 +224,7 @@ impl Font {
             index,
             digest: OnceLock::new(),
             shaping: OnceLock::new(),
+            plans: Mutex::new(Vec::new()),
         });
         let font = FontRef::from_index(&source.bytes, index).map_err(|_| Error::InvalidFont { index })?;
         let info = font_info(&font, &[], LocationRef::default()).ok_or(Error::InvalidFont { index })?;
@@ -280,6 +289,7 @@ impl Font {
                 index: 0,
                 digest: OnceLock::new(),
                 shaping: OnceLock::new(),
+                plans: Mutex::new(Vec::new()),
             }),
             coords: Arc::from([]),
             location: Arc::from([]),
@@ -502,6 +512,36 @@ impl Font {
         }
         let font = self.font_ref()?;
         Ok(self.source.shaping.get_or_init(|| harfrust::ShaperData::new(&font)))
+    }
+
+    /// The shape plan for `key`, built by `build` the first time it is asked for and shared by
+    /// every clone of the font. A plan depends only on the face and its key, so a cached one
+    /// shapes exactly as a fresh one would.
+    pub(crate) fn shape_plan(
+        &self,
+        key: PlanKey,
+        build: impl FnOnce() -> harfrust::ShapePlan,
+    ) -> Arc<harfrust::ShapePlan> {
+        // A poisoned lock (a panic while another thread held it) only costs the cache.
+        if let Ok(plans) = self.source.plans.lock()
+            && let Some((_, plan)) = plans.iter().find(|(k, _)| *k == key)
+        {
+            return Arc::clone(plan);
+        }
+        let plan = Arc::new(build());
+        if let Ok(mut plans) = self.source.plans.lock()
+            && plans.len() < MAX_PLANS
+            && !plans.iter().any(|(k, _)| *k == key)
+        {
+            plans.push((key, Arc::clone(&plan)));
+        }
+        plan
+    }
+
+    /// How many shape plans the font's face has cached.
+    #[cfg(test)]
+    pub(crate) fn cached_plans(&self) -> usize {
+        self.source.plans.lock().map_or(0, |plans| plans.len())
     }
 
     /// The font program for shaping and subsetting.

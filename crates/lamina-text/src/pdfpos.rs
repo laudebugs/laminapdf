@@ -15,6 +15,7 @@
 //! Vertical offsets (marks above a base, cursive attachment) become the text rise `Ts`
 //! (§9.3.7), which does not move the pen; the run is cut into segments of equal rise.
 
+use std::borrow::Cow;
 use std::collections::{BTreeMap, BTreeSet};
 use std::ops::Range;
 
@@ -151,7 +152,7 @@ pub fn pdf_run(run: &ShapedRun, text: &str, fonts: &mut FontRegistry, key: FontK
             .get_or_insert_with(|| charmap.mappings().map(|(_, g)| g.to_u32()).collect())
             .contains(&u32::from(gid.get()))
     };
-    let mut claims: Vec<Claim> = Vec::with_capacity(run.glyphs.len());
+    let mut claims: Vec<Claim<'_>> = Vec::with_capacity(run.glyphs.len());
     let mut actual: Vec<Option<String>> = Vec::with_capacity(groups.len());
     // B4d: a glyph may get one CID per text (TrueType outlines), so each glyph's text can be
     // chosen for the extractors alone; with CFF outlines it keeps its first text (B4b).
@@ -169,10 +170,18 @@ pub fn pdf_run(run: &ShapedRun, text: &str, fonts: &mut FontRegistry, key: FontK
                 .chars()
                 .find(|&ch| charmap.map(ch).is_some_and(|g| g.to_u32() == u32::from(gid.get())))
         };
+        if splits && glyphs.len() == 1 {
+            // What split_cluster and in_reading_order give one glyph, without their copies:
+            // the cluster's visible characters, which spell it unless it has default-ignorables.
+            let visible = visible_text(cluster);
+            actual.push((visible.len() != cluster.len()).then(|| cluster.to_owned()));
+            claims.push(Claim::Text(visible));
+            continue;
+        }
         let (texts, mut needs_actual) = split_cluster(run, glyphs, cluster, &nominal);
         if splits {
             let (texts, needs_actual) = in_reading_order(run, &texts, cluster);
-            claims.extend(texts.into_iter().map(Claim::Text));
+            claims.extend(texts.into_iter().map(|t| Claim::Text(Cow::Owned(t))));
             actual.push(needs_actual.then(|| cluster.to_owned()));
             continue;
         }
@@ -275,16 +284,16 @@ fn one_cid_claim(
     is_target: &mut impl FnMut(GlyphId) -> bool,
     kept: &mut BTreeMap<GlyphId, String>,
     needs_actual: &mut bool,
-) -> Claim {
+) -> Claim<'static> {
     let claim = match text {
-        Some(t) => Claim::Text(t),
+        Some(t) => Claim::Text(Cow::Owned(t)),
         None if is_target(gid) => {
             *needs_actual = true;
             Claim::Nothing
         }
         None => {
             *needs_actual = true;
-            Claim::Text(String::new())
+            Claim::Text(Cow::Borrowed(""))
         }
     };
     if let Claim::Text(t) = &claim {
@@ -292,7 +301,7 @@ fn one_cid_claim(
             Some(k) if k != t => *needs_actual = true,
             Some(_) => {}
             None => {
-                kept.insert(gid, t.clone());
+                kept.insert(gid, t.clone().into_owned());
             }
         }
     }
@@ -312,9 +321,9 @@ fn kept_texts(fonts: &FontRegistry, key: FontKey) -> BTreeMap<GlyphId, String> {
 }
 
 /// What a glyph is recorded as standing for.
-enum Claim {
+enum Claim<'t> {
     /// This text (possibly empty) in the ToUnicode CMap.
-    Text(String),
+    Text(Cow<'t, str>),
     /// Nothing: the glyph is drawn but its ToUnicode entry is left to other uses.
     Nothing,
 }
@@ -353,9 +362,12 @@ fn split_cluster(
     cluster: &str,
     nominal: &impl Fn(GlyphId) -> Option<char>,
 ) -> (Vec<Option<String>>, bool) {
-    let visible: String = cluster.chars().filter(|&ch| !is_default_ignorable(ch)).collect();
+    let visible = visible_text(cluster);
     let texts: Vec<Option<String>> = if let [_] = glyphs {
-        vec![(!visible.is_empty()).then(|| visible.clone())]
+        // The common case: one glyph takes the visible characters, which spell the cluster
+        // unless it holds default-ignorables (`visible` is a subsequence of it).
+        let needs_actual = visible.len() != cluster.len();
+        return (vec![(!visible.is_empty()).then(|| visible.into_owned())], needs_actual);
     } else {
         let mut left: Vec<char> = visible.chars().collect();
         let mut texts: Vec<Option<String>> = glyphs
@@ -381,12 +393,34 @@ fn split_cluster(
         }
         texts
     };
-    let mut reading: Vec<&str> = texts.iter().map(|t| t.as_deref().unwrap_or("")).collect();
-    if run.direction.is_rtl() {
-        reading.reverse();
+    let reading = texts.iter().map(|t| t.as_deref().unwrap_or(""));
+    let spelled = if run.direction.is_rtl() {
+        spells(reading.rev(), cluster)
+    } else {
+        spells(reading, cluster)
+    };
+    (texts, !spelled)
+}
+
+/// `cluster` without its default-ignorable characters, borrowed when it has none.
+fn visible_text(cluster: &str) -> Cow<'_, str> {
+    if cluster.chars().any(is_default_ignorable) {
+        Cow::Owned(cluster.chars().filter(|&ch| !is_default_ignorable(ch)).collect())
+    } else {
+        Cow::Borrowed(cluster)
     }
-    let needs_actual = reading.concat() != cluster;
-    (texts, needs_actual)
+}
+
+/// Whether `pieces`, concatenated, are `text` (without building the concatenation).
+fn spells<'p>(pieces: impl Iterator<Item = &'p str>, text: &str) -> bool {
+    let mut rest = text;
+    for piece in pieces {
+        match rest.strip_prefix(piece) {
+            Some(r) => rest = r,
+            None => return false,
+        }
+    }
+    rest.is_empty()
 }
 
 /// The texts of one cluster's glyphs (drawing order) for a font whose glyphs get one CID per
@@ -398,6 +432,12 @@ fn split_cluster(
 /// whether the cluster still needs `/ActualText`: only when it holds default-ignorable
 /// characters, which are no glyph's text.
 fn in_reading_order(run: &ShapedRun, texts: &[Option<String>], cluster: &str) -> (Vec<String>, bool) {
+    if let [_] = texts {
+        // One glyph is dealt every visible character.
+        let visible = visible_text(cluster);
+        let needs_actual = visible.len() != cluster.len();
+        return (vec![visible.into_owned()], needs_actual);
+    }
     let mut sizes: Vec<usize> = texts
         .iter()
         .map(|t| t.as_deref().map_or(0, |t| t.chars().count()))
@@ -482,7 +522,8 @@ fn place(
 /// Whether `ch` is a default-ignorable code point (ZWJ, ZWNJ, the bidi controls, variation
 /// selectors): invisible, never a glyph's text.
 fn is_default_ignorable(ch: char) -> bool {
-    CodePointSetData::new::<DefaultIgnorableCodePoint>().contains(ch)
+    // None is ASCII: skip the set lookup for them.
+    !ch.is_ascii() && CodePointSetData::new::<DefaultIgnorableCodePoint>().contains(ch)
 }
 
 /// Thousandths of an em from millionths (exact: at most three decimals).

@@ -142,11 +142,12 @@ pub(crate) fn lay_out(spec: &Spec) -> Result<Vec<LaidLine>> {
         .map(|line| {
             // Drawn in logical order (each run at its own x), so extractors that read in
             // content order get multi-run right-to-left lines in reading order (B4d).
-            let runs = line
-                .drawing_order()
+            let order = line.drawing_order();
+            let mut runs: Vec<Option<lamina_text::LineRun>> = line.runs.into_iter().map(Some).collect();
+            let runs = order
                 .into_iter()
-                .filter_map(|i| line.runs.get(i))
-                .map(|r| (r.run.clone(), r.x))
+                .filter_map(|i| runs.get_mut(i).and_then(Option::take))
+                .map(|r| (r.run, r.x))
                 .collect();
             LaidLine {
                 x: line.x,

@@ -167,7 +167,8 @@ cargo xtask differential --live [--corpus external|mutants|all] [--source <name>
                              # nightly: lamina vs live pdf.js, PDFium, qpdf, pypdf over the external corpus and the mutants
                              #   (250 per corpus file from the fast set's series + the full set's 36); --sample is stratified per source
 cargo xtask scaling          # nightly: release-mode #[ignore]d tests (scaling ratios), one retry reported as flaky
-cargo xtask bench [--quick]  # nightly: criterion benches (crates/lamina-cos/benches, crates/lamina-save/benches); --history <dir> flags >10% regressions
+cargo xtask bench [--quick]  # nightly: criterion benches (crates/lamina-cos/benches, crates/lamina-save/benches, crates/lamina/benches:
+                             #   the 100-page text report); --history <dir> flags >10% regressions
 cargo xtask nightly [--quick]  # the whole nightly lane locally, in the workflow's order (--quick: short budgets)
 cargo xtask ci               # the whole fast lane locally: check + wasm + size
 cargo xtask doctor           # are rustc, node, pnpm, cargo-deny, cargo-nextest, wasm-opt … at the pinned versions?
