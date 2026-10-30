@@ -303,7 +303,8 @@ struct Link {
 struct Scan {
     /// Inline, reference and image links (not autolinks), relative or not.
     links: Vec<Link>,
-    /// Every `http(s)` URL, autolinks included: what `--external` checks.
+    /// Every `http(s)` URL GitHub renders as a link: links, autolinks, bare URLs in text (GFM's
+    /// autolink extension) and raw HTML `href`/`src`. What `--external` checks.
     external: Vec<Link>,
     /// Heading slugs plus explicit HTML `id`/`name` anchors.
     anchors: BTreeSet<String>,
@@ -331,6 +332,19 @@ fn scan(text: &str) -> Scan {
     // GitHub leaves image alt text out of heading anchors.
     let mut image_depth = 0usize;
     let mut html_block: Option<String> = None;
+    // Bare URLs are links only outside links and code blocks. Consecutive text events are joined
+    // first: the parser may split one run of text (and so one URL) at characters like `_`.
+    let mut link_depth = 0usize;
+    let mut code_block = false;
+    let mut text_run: Option<(usize, String)> = None;
+    let push_html = |scan: &mut Scan, html: &str, offset: usize| {
+        for target in html::targets(html).into_iter().filter(|t| external::is_http(t)) {
+            scan.external.push(Link {
+                line: line_of(offset),
+                target,
+            });
+        }
+    };
     let push_link = |scan: &mut Scan, link_type: LinkType, dest: CowStr<'_>, offset: usize| {
         let line = line_of(offset);
         if external::is_http(&dest) {
@@ -347,12 +361,28 @@ fn scan(text: &str) -> Scan {
         }
     };
     for (event, range) in Parser::new_ext(text, options()).into_offset_iter() {
+        if let Event::Text(t) = &event
+            && link_depth == 0
+            && !code_block
+        {
+            text_run
+                .get_or_insert_with(|| (range.start, String::new()))
+                .1
+                .push_str(t);
+        } else if let Some((start, run)) = text_run.take() {
+            // Line breaks are events of their own, so a run sits on one line.
+            push_bare(&mut scan, line_of(start), &run);
+        }
         match event {
             Event::Start(Tag::Link {
                 link_type, dest_url, ..
             }) => {
+                link_depth += 1;
                 push_link(&mut scan, link_type, dest_url, range.start);
             }
+            Event::End(TagEnd::Link) => link_depth = link_depth.saturating_sub(1),
+            Event::Start(Tag::CodeBlock(_)) => code_block = true,
+            Event::End(TagEnd::CodeBlock) => code_block = false,
             Event::Start(Tag::Image {
                 link_type, dest_url, ..
             }) => {
@@ -377,15 +407,32 @@ fn scan(text: &str) -> Scan {
                     scan.anchors.extend(html::anchors(&block));
                 }
             }
-            Event::Html(part) => match html_block.as_mut() {
-                Some(block) => block.push_str(&part),
-                None => scan.anchors.extend(html::anchors(&part)),
-            },
-            Event::InlineHtml(part) => scan.anchors.extend(html::anchors(&part)),
+            Event::Html(part) => {
+                push_html(&mut scan, &part, range.start);
+                match html_block.as_mut() {
+                    Some(block) => block.push_str(&part),
+                    None => scan.anchors.extend(html::anchors(&part)),
+                }
+            }
+            Event::InlineHtml(part) => {
+                push_html(&mut scan, &part, range.start);
+                scan.anchors.extend(html::anchors(&part));
+            }
             _ => {}
         }
     }
+    if let Some((start, run)) = text_run {
+        push_bare(&mut scan, line_of(start), &run);
+    }
     scan
+}
+
+/// Adds the bare URLs of one run of text on `line` to `scan.external`.
+fn push_bare(scan: &mut Scan, line: usize, run: &str) {
+    scan.external.extend(external::bare_urls(run).map(|url| Link {
+        line,
+        target: url.to_owned(),
+    }));
 }
 
 #[cfg(test)]

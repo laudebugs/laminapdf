@@ -3,13 +3,16 @@
 //! The nightly lane's link check (todo X3c). It needs the network and remote hosts are flaky, so
 //! it never runs in the PR lanes (ADR 0018 §2). Each distinct URL (its `#fragment` dropped) is
 //! fetched once with `curl`: a `HEAD`, then a one-byte ranged `GET` when the host refuses `HEAD`.
-//! Timeouts, connection errors, 429 and 5xx answers are retried with a pause; a URL that passes
-//! only on a retry is reported as flaky, never hidden (ADR 0018 §4). Hosts are checked in
-//! parallel, but the URLs of one host one at a time with a pause between them (the rate limit).
+//! Timeouts, connection errors, 429 and 5xx answers are retried once after a pause; a URL that
+//! passes only on the retry is reported as flaky, never hidden (ADR 0018 §4). Hosts are checked in
+//! parallel, but the URLs of one host one at a time with a pause between them (the rate limit);
+//! after [`HOST_GIVE_UP`] URLs of one host in a row fail without an HTTP answer, the rest of that
+//! host is reported dead unfetched, so one stalled host cannot outlast the job's timeout.
 //! URLs under a prefix in [`ALLOWLIST`] (hosts known to refuse bots) are listed, not fetched.
 //!
 //! The report (every URL with its outcome) goes to stdout, `target/nightly/links/report.json`
-//! and `report.md`, and the job summary; the run fails when any URL is dead.
+//! and `report.md`, and the job summary; `flaky=true|false` goes to `$GITHUB_OUTPUT`. The run
+//! fails when any URL is dead.
 
 use std::collections::{BTreeMap, VecDeque};
 use std::fmt::Write as _;
@@ -25,7 +28,7 @@ use serde_json::json;
 
 use super::{markdown_files, scan};
 use crate::tracked::Tracked;
-use crate::util::{md_cell, summary};
+use crate::util::{github_output, md_cell, summary};
 
 /// The allowlist, relative to the repository root.
 pub(crate) const ALLOWLIST: &str = ".config/link-check.toml";
@@ -35,6 +38,12 @@ const REPORT_DIR: &str = "target/nightly/links";
 
 /// Hosts checked at once.
 const WORKERS: usize = 8;
+
+/// Consecutive URLs of one host failing without an HTTP answer before the rest are skipped.
+const HOST_GIVE_UP: usize = 3;
+
+/// The most `file:line` sites listed per URL in the Markdown report.
+const SITES_SHOWN: usize = 3;
 
 /// How the checks are paced: the per-host rate limit and the retry policy.
 #[derive(Debug, Clone, Copy)]
@@ -51,7 +60,8 @@ impl Pacing {
     /// The nightly lane's pacing.
     pub(crate) const NIGHTLY: Self = Self {
         per_host: Duration::from_millis(1000),
-        retries: 2,
+        // ADR 0018 §4: one retry, only to report flakiness.
+        retries: 1,
         backoff: Duration::from_secs(5),
     };
 }
@@ -60,6 +70,43 @@ impl Pacing {
 pub(crate) fn is_http(target: &str) -> bool {
     let lower = target.get(..8).unwrap_or(target).to_ascii_lowercase();
     lower.starts_with("http://") || lower.starts_with("https://")
+}
+
+/// The bare `http(s)` URLs in a run of text, as GitHub's autolink extension finds them: a URL
+/// starts after whitespace, `(` or a line start, ends at whitespace or `<`, and loses trailing
+/// punctuation (`?!.,:;*_~'"`) and any unbalanced closing `)`.
+pub(crate) fn bare_urls(text: &str) -> impl Iterator<Item = &str> {
+    text.match_indices("http")
+        .filter(move |(at, _)| {
+            let starts_word = text
+                .get(..*at)
+                .and_then(|head| head.chars().next_back())
+                .is_none_or(|c| c.is_whitespace() || matches!(c, '(' | '*' | '_' | '~'));
+            let tail = text.get(*at..).unwrap_or_default();
+            starts_word && is_http(tail)
+        })
+        .filter_map(move |(at, _)| {
+            let tail = text.get(at..)?;
+            let end = tail.find(|c: char| c.is_whitespace() || c == '<').unwrap_or(tail.len());
+            let mut url = tail.get(..end)?;
+            loop {
+                let trimmed = url.trim_end_matches(['?', '!', '.', ',', ':', ';', '*', '_', '~', '\'', '"']);
+                let unbalanced = trimmed.ends_with(')') && trimmed.matches(')').count() > trimmed.matches('(').count();
+                let trimmed = if unbalanced {
+                    trimmed.get(..trimmed.len() - 1)?
+                } else {
+                    trimmed
+                };
+                if trimmed.len() == url.len() {
+                    break;
+                }
+                url = trimmed;
+            }
+            // GFM needs a domain after the scheme (`https://…` or `https://”` is not a link).
+            url.split_once("://")
+                .is_some_and(|(_, rest)| rest.starts_with(|c: char| c.is_ascii_alphanumeric()))
+                .then_some(url)
+        })
 }
 
 /// `url` without its `#fragment`: anchors on other sites are not checked.
@@ -149,9 +196,19 @@ pub(crate) fn parse_allowlist(text: &str) -> Result<Vec<Allow>> {
         .collect()
 }
 
+/// `true` when `prefix` covers `url`: a case-insensitive prefix match, where a prefix ending in
+/// `/` also covers the URL without that slash (`…/lamina/` covers `…/lamina`).
+fn covers(prefix: &str, url: &str) -> bool {
+    let starts = |p: &str| url.get(..p.len()).is_some_and(|head| head.eq_ignore_ascii_case(p));
+    starts(prefix)
+        || prefix
+            .strip_suffix('/')
+            .is_some_and(|p| p.len() == url.len() && starts(p))
+}
+
 /// The first allowlist entry covering `url`.
 fn allowed<'a>(allowlist: &'a [Allow], url: &str) -> Option<&'a Allow> {
-    allowlist.iter().find(|allow| url.starts_with(&allow.prefix))
+    allowlist.iter().find(|allow| covers(&allow.prefix, url))
 }
 
 /// The request method of one probe.
@@ -231,6 +288,10 @@ impl Outcome {
             } => format!("{status} after {attempts} attempt(s)"),
             Self::Dead {
                 last: Probe::Network(message),
+                attempts: 0,
+            } => message.clone(),
+            Self::Dead {
+                last: Probe::Network(message),
                 attempts,
             } => format!("{message} after {attempts} attempt(s)"),
             Self::Allowed { reason } => reason.clone(),
@@ -252,7 +313,8 @@ pub(crate) fn check_url(
         let mut answer = probe(url, Method::Head);
         let mut class = match answer {
             Probe::Status(status) => classify(Method::Head, status),
-            Probe::Network(_) => Class::Transient,
+            // Some servers hang up on or time out HEAD only: ask with GET before retrying.
+            Probe::Network(_) => Class::TryGet,
         };
         if class == Class::TryGet {
             sleep(pacing.per_host);
@@ -302,6 +364,9 @@ fn curl(url: &str, method: Method) -> Probe {
         null,
         "--write-out",
         "%{http_code}",
+        // A host that ignores `Range` would send the whole file: stop after the headers.
+        "--max-filesize",
+        "1",
     ]);
     match method {
         Method::Head => command.arg("--head"),
@@ -317,7 +382,8 @@ fn curl(url: &str, method: Method) -> Probe {
         .trim()
         .parse::<u16>()
         .unwrap_or(0);
-    if output.status.success() && code != 0 {
+    // Exit 63: the body was over `--max-filesize`, after a status was received.
+    if code != 0 && (output.status.success() || output.status.code() == Some(63)) {
         Probe::Status(code)
     } else {
         let stderr = String::from_utf8_lossy(&output.stderr);
@@ -360,11 +426,32 @@ pub(crate) fn check_all(
             scope.spawn(|| {
                 // A poisoned lock means another worker panicked: stop taking hosts.
                 while let Some(host_urls) = queue.lock().ok().and_then(|mut queue| queue.pop_front()) {
+                    let mut unreachable = 0;
                     for (i, url) in host_urls.into_iter().enumerate() {
-                        if i > 0 {
-                            sleep(pacing.per_host);
+                        let outcome = if unreachable >= HOST_GIVE_UP {
+                            Outcome::Dead {
+                                last: Probe::Network(format!(
+                                    "not fetched: the host's previous {HOST_GIVE_UP} URLs got no HTTP answer"
+                                )),
+                                attempts: 0,
+                            }
+                        } else {
+                            if i > 0 {
+                                sleep(pacing.per_host);
+                            }
+                            check_url(url, pacing, probe, sleep)
+                        };
+                        if matches!(
+                            outcome,
+                            Outcome::Dead {
+                                last: Probe::Network(_),
+                                ..
+                            }
+                        ) {
+                            unreachable += 1;
+                        } else {
+                            unreachable = 0;
                         }
-                        let outcome = check_url(url, pacing, probe, sleep);
                         on_done(url, &outcome);
                         if let Ok(mut done) = done.lock() {
                             done.push((url.to_owned(), outcome));
@@ -382,7 +469,7 @@ pub(crate) fn check_all(
 fn unused<'a>(allowlist: &'a [Allow], urls: &BTreeMap<String, Vec<Site>>) -> Vec<&'a str> {
     allowlist
         .iter()
-        .filter(|allow| !urls.keys().any(|url| url.starts_with(&allow.prefix)))
+        .filter(|allow| !urls.keys().any(|url| covers(&allow.prefix, url)))
         .map(|allow| allow.prefix.as_str())
         .collect()
 }
@@ -414,11 +501,16 @@ fn markdown_report(urls: &BTreeMap<String, Vec<Site>>, results: &BTreeMap<String
         );
         for (url, outcome) in rows {
             let sites = urls.get(url).map_or_else(String::new, |sites| {
-                sites
+                let mut shown = sites
                     .iter()
+                    .take(SITES_SHOWN)
                     .map(|s| format!("`{}:{}`", s.file, s.line))
                     .collect::<Vec<_>>()
-                    .join(", ")
+                    .join(", ");
+                if sites.len() > SITES_SHOWN {
+                    let _ = write!(shown, " and {} more", sites.len() - SITES_SHOWN);
+                }
+                shown
             });
             let _ = writeln!(
                 out,
@@ -438,6 +530,14 @@ pub(crate) fn run(root: &Path, json_output: bool) -> Result<()> {
     let tracked = Tracked::from_git(root)?;
     let files = markdown_files(&tracked);
     let urls = collect(root, &files)?;
+    // Without curl every probe would fail as a network error and be retried: fail now instead.
+    let curl_runs = Command::new("curl")
+        .arg("--version")
+        .output()
+        .is_ok_and(|out| out.status.success());
+    if !curl_runs {
+        bail!("docs-links --external needs `curl` on PATH");
+    }
     let allowlist = match fs::read_to_string(root.join(ALLOWLIST)) {
         Ok(text) => parse_allowlist(&text)?,
         Err(error) if error.kind() == std::io::ErrorKind::NotFound => Vec::new(),
@@ -495,6 +595,7 @@ pub(crate) fn run(root: &Path, json_output: bool) -> Result<()> {
         }
     }
     let flaky = results.values().filter(|o| o.is_flaky()).count();
+    github_output("flaky", if flaky > 0 { "true" } else { "false" })?;
     if !dead.is_empty() {
         bail!(
             "{} dead external link(s) of {} (report in {REPORT_DIR}/report.md)",
@@ -517,9 +618,10 @@ mod tests {
     use std::time::Duration;
 
     use super::{
-        Allow, Method, Outcome, Pacing, Probe, Site, allowed, check_all, check_url, host, is_http, markdown_report,
-        parse_allowlist, scan, unused, without_fragment,
+        Allow, Method, Outcome, Pacing, Probe, Site, allowed, bare_urls, check_all, check_url, host, is_http,
+        markdown_report, parse_allowlist, scan, unused, without_fragment,
     };
+    use std::sync::atomic::{AtomicUsize, Ordering};
 
     const FAST: Pacing = Pacing {
         per_host: Duration::ZERO,
@@ -571,6 +673,42 @@ mod tests {
         let text = "[r](docs/x.md) [m](mailto:me@example.com) <me@example.com> `https://code.example`\n\n\
                     ```\nhttps://block.example\n```\n";
         assert_eq!(external(text), Vec::<String>::new());
+    }
+
+    #[test]
+    fn external_should_include_bare_urls_in_text_and_tables() {
+        let text = "See https://pdfa.org/standards/, then (https://w.example/a_(b)).\n\n\
+                    | Topic | Link |\n| --- | --- |\n| PDF | https://pypdf.example/x_y?q=1 |\n";
+        assert_eq!(
+            external(text),
+            [
+                "https://pdfa.org/standards/",
+                "https://w.example/a_(b)",
+                "https://pypdf.example/x_y?q=1"
+            ]
+        );
+    }
+
+    #[test]
+    fn external_should_count_a_url_used_as_link_text_once() {
+        assert_eq!(
+            external("[https://a.example](https://a.example)\n"),
+            ["https://a.example"]
+        );
+    }
+
+    #[test]
+    fn external_should_include_raw_html_href_and_src() {
+        let text = "<p><img src=\"https://img.example/i.png\"></p>\n\nx <a href='https://a.example/'>a</a>\n";
+        assert_eq!(external(text), ["https://img.example/i.png", "https://a.example/"]);
+    }
+
+    #[test]
+    fn bare_urls_should_skip_mid_word_schemes_and_empty_hosts() {
+        assert_eq!(
+            bare_urls("xhttps://a.example https:// ok “https://” https://…").count(),
+            0
+        );
     }
 
     #[test]
@@ -630,6 +768,22 @@ mod tests {
     #[test]
     fn parse_allowlist_should_reject_unknown_keys() {
         assert!(parse_allowlist("[[allowed]]\nprefix = \"https://x/\"\nreason = \"r\"\n").is_err());
+    }
+
+    #[test]
+    fn allowed_should_ignore_case_and_a_trailing_slash() {
+        let list = [Allow {
+            prefix: "https://github.com/laudebugs/lamina/".into(),
+            reason: "private".into(),
+        }];
+        assert_eq!(
+            [
+                allowed(&list, "https://GitHub.com/laudebugs/lamina/pull/1").is_some(),
+                allowed(&list, "https://github.com/laudebugs/lamina").is_some(),
+                allowed(&list, "https://github.com/laudebugs/laminax").is_some()
+            ],
+            [true, true, false]
+        );
     }
 
     #[test]
@@ -693,9 +847,20 @@ mod tests {
 
     #[test]
     fn check_url_should_report_a_pass_after_a_timeout_as_flaky() {
-        let (probe, _) = scripted(vec![Probe::Network("timeout".into()), Probe::Status(200)]);
+        let timeout = || Probe::Network("timeout".into());
+        let (probe, _) = scripted(vec![timeout(), timeout(), Probe::Status(200)]);
         let outcome = check_url("u", FAST, &probe, &no_sleep);
         assert!(outcome.is_flaky());
+    }
+
+    #[test]
+    fn check_url_should_try_get_when_head_gets_no_answer() {
+        let (probe, asked) = scripted(vec![Probe::Network("reset".into()), Probe::Status(200)]);
+        let outcome = check_url("u", FAST, &probe, &no_sleep);
+        assert_eq!(
+            (outcome.label(), asked.borrow().clone()),
+            ("ok", vec![Method::Head, Method::Get])
+        );
     }
 
     #[test]
@@ -751,6 +916,31 @@ mod tests {
         let results = check_all(&urls, &list, FAST, &probe, &no_sleep, &|_: &str, _: &Outcome| {});
         let labels: Vec<_> = results.values().map(Outcome::label).collect();
         assert_eq!(labels, ["ok", "dead", "allowed"]);
+    }
+
+    #[test]
+    fn check_all_should_stop_fetching_a_host_after_repeated_network_failures() {
+        let urls = urls(&[
+            "https://s.example/1",
+            "https://s.example/2",
+            "https://s.example/3",
+            "https://s.example/4",
+            "https://s.example/5",
+        ]);
+        let asked = AtomicUsize::new(0);
+        let probe = |_: &str, _: Method| {
+            asked.fetch_add(1, Ordering::Relaxed);
+            Probe::Network("timeout".into())
+        };
+        let results = check_all(&urls, &[], FAST, &probe, &no_sleep, &|_: &str, _: &Outcome| {});
+        let probes_per_url = 2 * (FAST.retries as usize + 1);
+        assert_eq!(
+            (
+                results.values().filter(|o| o.is_dead()).count(),
+                asked.load(Ordering::Relaxed)
+            ),
+            (5, super::HOST_GIVE_UP * probes_per_url)
+        );
     }
 
     #[test]
