@@ -13,8 +13,9 @@ use lamina_cos::{DirectPath, ObjRef, Object, PathSegment, Result, Warning};
 use lamina_syntax::text::decode_text_string;
 
 use crate::document::{Document, object_number};
+use crate::geometry::UserSpaceRect;
 use crate::id::OutlineItemId;
-use crate::page::{Pages, Rect, number, read_rect};
+use crate::page::{Pages, number, read_rect};
 
 /// How a destination shows its page (§12.3.2.2, Table 149). Coordinates that the file
 /// leaves `null` ("unchanged") are `None`.
@@ -43,7 +44,7 @@ pub enum View {
         left: Option<f64>,
     },
     /// `/FitR left bottom right top`: a rectangle.
-    FitR(Rect),
+    FitR(UserSpaceRect),
     /// `/FitB`: the page's bounding box.
     FitB,
     /// `/FitBH top`.

@@ -183,6 +183,17 @@
       "showText": 1
     }
   ],
+  "fixtures/golden/images.pdf": [
+    {
+      "constructPath": 1,
+      "paintImageXObject": 9,
+      "restore": 12,
+      "save": 12,
+      "setFillRGBColor": 1,
+      "setGState": 3,
+      "transform": 9
+    }
+  ],
   "fixtures/golden/imaging-demo.pdf": [
     {
       "clip": 1,
@@ -254,6 +265,27 @@
       "moveText": 3,
       "setFont": 3,
       "showText": 3
+    }
+  ],
+  "fixtures/golden/vectors.pdf": [
+    {
+      "clip": 1,
+      "constructPath": 20,
+      "restore": 5,
+      "save": 5,
+      "setDash": 2,
+      "setFillRGBColor": 17,
+      "setGState": 2,
+      "setLineCap": 4,
+      "setLineJoin": 2,
+      "setLineWidth": 4,
+      "setMiterLimit": 2,
+      "setStrokeRGBColor": 4,
+      "transform": 1
+    },
+    {
+      "constructPath": 2,
+      "setFillRGBColor": 2
     }
   ],
   "fixtures/content/operators.pdf": [
