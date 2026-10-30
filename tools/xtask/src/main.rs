@@ -72,7 +72,8 @@ tasks:
                     verifies (and fails if a tagged test fails)
   golden [--update] regenerate every golden in fixtures/golden/ from its source and print the
                     list (--update writes them, the lamina examples' in fixtures/golden/examples/,
-                    and the shaping goldens in fixtures/shaping/ when hb-shape is installed;
+                    the reading-order corpus in fixtures/reading-order/, and the shaping goldens
+                    in fixtures/shaping/ when hb-shape is installed;
                     without it, fail if they would change)
   examples          run the lamina crate's examples into target/examples-out/, compare them
                     with fixtures/golden/examples/ and run qpdf --check on each (needs qpdf)
