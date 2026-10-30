@@ -41,7 +41,7 @@ Create the generation API everything else hangs off: `Builder → page → surfa
 **Out of scope** (and which todo covers it)
 
 - Text, links, outlines, destinations, page labels, metadata/XMP, viewer preferences: [B5b](../done/B5b-builder-text-and-document-features.md).
-- The `lamina` façade and Rust examples: [B5c](../ready/B5c-lamina-facade-and-examples.md).
+- The `lamina` façade and Rust examples: [B5c](../ongoing/B5c-lamina-facade-and-examples.md).
 - Tagging and conformance: [B8a](../ready/B8a-structure-tree.md), [B8b](../ready/B8b-conformance-profiles-and-verapdf.md).
 - Shadings, patterns, Form XObjects as API: later (full-editor E6).
 
