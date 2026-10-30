@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `B4d` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [pdf-library §7 B4](../../plans/pdf-library.md#b4-fonts-and-text), requirement [§4 F3](../../plans/pdf-library.md#functional) |
 | Round / milestone | Round B (library) — M1 |
 | Depends on | [B4b](../done/B4b-shaping-bidi-line-breaking.md) |
@@ -34,7 +34,7 @@ Make the text drawn from shaped runs extract as the input in pypdf, pdf.js and p
 
 **Out of scope**
 
-- Text extraction in lamina itself: [B9b](./B9b-text-extraction-core.md).
+- Text extraction in lamina itself: [B9b](../ready/B9b-text-extraction-core.md).
 
 ## Tasks
 
