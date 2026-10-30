@@ -59,6 +59,53 @@ fn files_in(dir: &Path) -> Result<Vec<PathBuf>> {
     Ok(files)
 }
 
+/// The reading-order corpus (todo U2b): `lamina-build`'s `reading_order` example writes it.
+/// With `update`, into `fixtures/reading-order/`, removing the files no layout writes any
+/// more (they would still be scored); without, it compares and returns the files that
+/// differ or have no generator. `threshold.json` is hand-kept.
+fn reading_order(ws: &Workspace, update: bool) -> Result<Vec<String>> {
+    let dir = ws.root.join("fixtures/reading-order");
+    let out = scratch(ws, "reading-order")?;
+    ws.cargo(&[
+        "run",
+        "--locked",
+        "-q",
+        "-p",
+        "lamina-build",
+        "--example",
+        "reading_order",
+        "--",
+        &out.to_string_lossy(),
+    ])?;
+    let generated = files_in(&out)?;
+    let mut stale = Vec::new();
+    for path in &generated {
+        let name = path.file_name().context("file name")?;
+        let target = dir.join(name);
+        let bytes = fs::read(path)?;
+        if bytes != fs::read(&target).unwrap_or_default() {
+            if update {
+                fs::write(&target, &bytes).with_context(|| format!("writing {}", target.display()))?;
+            } else {
+                stale.push(format!("reading-order/{}", name.to_string_lossy()));
+            }
+        }
+    }
+    for path in files_in(&dir)? {
+        let name = path.file_name().context("file name")?;
+        if name == "threshold.json" || generated.iter().any(|g| g.file_name() == Some(name)) {
+            continue;
+        }
+        if update {
+            fs::remove_file(&path).with_context(|| format!("removing {}", path.display()))?;
+            step(&format!("removed {} (no layout writes it)", path.display()));
+        } else {
+            stale.push(format!("reading-order/{} (no generator)", name.to_string_lossy()));
+        }
+    }
+    Ok(stale)
+}
+
 /// The crates whose `golden` example writes goldens into `fixtures/golden/`.
 const GOLDEN_CRATES: [&str; 3] = ["lamina-build", "lamina-save", "lamina-text"];
 
@@ -88,28 +135,9 @@ pub(crate) fn golden(ws: &Workspace, update: bool) -> Result<()> {
             &out_arg,
         ])?;
     }
-    // The reading-order corpus (todo U2b): `lamina-build`'s `reading_order` example, into
-    // `fixtures/reading-order/` (its `threshold.json` is hand-kept, not generated).
-    let reading_dir = ws.root.join("fixtures/reading-order");
-    let reading_out = if update {
-        reading_dir.clone()
-    } else {
-        scratch(ws, "reading-order")?
-    };
-    let reading_arg = reading_out.to_string_lossy().into_owned();
-    ws.cargo(&[
-        "run",
-        "--locked",
-        "-q",
-        "-p",
-        "lamina-build",
-        "--example",
-        "reading_order",
-        "--",
-        &reading_arg,
-    ])?;
     // The façade's examples are goldens too, one directory down (todo B5c).
     let examples = crate::examples::run_all(ws, &out.join("examples"))?;
+    let reading_stale = reading_order(ws, update)?;
     if update {
         // A golden whose example is gone would fail `crates/lamina/tests/examples.rs`.
         for path in files_in(&out.join("examples"))? {
@@ -122,7 +150,7 @@ pub(crate) fn golden(ws: &Workspace, update: bool) -> Result<()> {
         step("Goldens regenerated; review the diff (`git diff fixtures/golden`) like code");
         return Ok(());
     }
-    let mut stale = Vec::new();
+    let mut stale = reading_stale;
     let generated = files_in(&out)?;
     for path in &generated {
         let name = path.file_name().context("file name")?;
@@ -148,19 +176,6 @@ pub(crate) fn golden(ws: &Workspace, update: bool) -> Result<()> {
         let name = path.file_name().context("file name")?;
         if !examples.iter().any(|g| g.file_name() == Some(name)) {
             stale.push(format!("examples/{} (no example)", name.to_string_lossy()));
-        }
-    }
-    let reading = files_in(&reading_out)?;
-    for path in &reading {
-        let name = path.file_name().context("file name")?;
-        if fs::read(path)? != fs::read(reading_dir.join(name)).unwrap_or_default() {
-            stale.push(format!("reading-order/{}", name.to_string_lossy()));
-        }
-    }
-    for path in files_in(&reading_dir)? {
-        let name = path.file_name().context("file name")?;
-        if name != "threshold.json" && !reading.iter().any(|g| g.file_name() == Some(name)) {
-            stale.push(format!("reading-order/{} (no generator)", name.to_string_lossy()));
         }
     }
     if !stale.is_empty() {

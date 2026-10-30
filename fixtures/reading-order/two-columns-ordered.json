@@ -2,26 +2,56 @@
   "about": "a heading across two columns of two paragraphs each: left column, then right",
   "blocks": [
     {
+      "box": [
+        56.0,
+        56.0,
+        480.0,
+        30.0
+      ],
       "page": 0,
       "role": "heading",
       "text": "Needle spindle yonder dynamo indigo."
     },
     {
+      "box": [
+        56.0,
+        100.0,
+        230.0,
+        220.0
+      ],
       "page": 0,
       "role": "paragraph",
       "text": "Fresco lantern signal marble window tunnel hammer parcel walnut ember stone orchard falcon silver saddle goblet oyster valley dynamo river engine ribbon garden mirror feather needle umbrella cobalt juniper violet canyon island pocket desert mantle tablet beacon indigo copper pepper compass ladder cotton lemon spindle."
     },
     {
+      "box": [
+        56.0,
+        330.0,
+        230.0,
+        220.0
+      ],
       "page": 0,
       "role": "paragraph",
       "text": "Pepper garden tunnel kettle tablet dynamo lantern glacier island saddle jacket spindle cobalt stone timber compass mirror hammer rocket beacon river signal velvet pocket goblet quarry amber juniper orchard thunder ladder feather parcel zephyr indigo engine marble candle desert oyster."
     },
     {
+      "box": [
+        306.0,
+        100.0,
+        230.0,
+        220.0
+      ],
       "page": 0,
       "role": "paragraph",
       "text": "Saddle lemon walnut indigo signal island anchor needle zephyr river glacier silver cotton parcel beacon lantern canyon basket feather rocket dynamo meadow falcon ladder hammer tablet fresco violet thunder mirror kettle valley hollow orchard compass tunnel mantle yonder juniper timber garden bridge oyster amber stone."
     },
     {
+      "box": [
+        306.0,
+        330.0,
+        230.0,
+        220.0
+      ],
       "page": 0,
       "role": "paragraph",
       "text": "Rocket fresco orchard garden desert spindle granite signal silver feather tablet hollow timber window goblet umbrella indigo glacier basket hammer valley juniper pepper candle jacket walnut river canyon ladder kettle yonder stone ribbon pocket lemon zephyr lantern falcon mirror mantle."

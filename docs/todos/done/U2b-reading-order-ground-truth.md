@@ -35,7 +35,7 @@ No public benchmark measures reading order, yet column-aware copy, reflow and sc
 - `cargo xtask` or a test in `lamina-text` that prints the score table and fails below a threshold set from the first run (ratchet: the threshold can only go up).
 - Provenance in `fixtures/README.md` (generated files preferred; third-party files only with a permissive licence).
 
-*As built:* 22 generated files rather than 30–50 mixed ones; tagged variants wait for the structure tree writer (B8a), vertical CJK for vertical layout in the builder. The first run found that cells drawn right to left on one baseline come out joined without a space (`table-reversed`): an extraction fix for a B9 follow-up, measured here, not made.
+*As built:* 22 generated files rather than 30–50 mixed ones; tagged variants wait for the structure tree writer (B8a), vertical CJK for vertical layout in the builder. The first run found that cells drawn right to left on one baseline come out joined without a space (`table-reversed`): an extraction fix for a B9 follow-up, measured here, not made. Every block's JSON also carries its box (page space), for geometry-aware scorers (U4c).
 
 **Out of scope** (and which todo covers it)
 

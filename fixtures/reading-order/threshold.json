@@ -1,10 +1,10 @@
 {
-  "mean": 0.7870,
+  "mean": 0.787,
   "history": [
     {
       "date": "2026-10-30",
-      "mean": 0.7870,
-      "by": "U2b: first run (content-order extraction, B9d); every -ordered file scores 1.000 but chinese-ordered (0.996: its 20-character vocabulary makes a few stretches ambiguous); the -reversed files lose order, and table-reversed loses text too (cells drawn right to left on one baseline are joined without a space)"
+      "mean": 0.787,
+      "by": "U2b: first run (content-order extraction, B9d): every -ordered file scores 1.000; the -reversed files lose order (0.000-0.333) and keep their text, except table-reversed (text 0.572: cells drawn right to left on one baseline are joined without a space, an extraction bug left for a B9 follow-up)"
     }
   ]
 }

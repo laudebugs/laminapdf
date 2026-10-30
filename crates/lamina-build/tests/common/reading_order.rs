@@ -1,6 +1,7 @@
 //! The reading-order corpus (todo U2b): `fixtures/reading-order/<name>.pdf` and
 //! `<name>.json`, generated here so the ground truth is exact. Each layout lists its blocks
-//! (page, role, text, box) in reading order; each is written twice, once drawn in reading
+//! (page, role, text, box: the `text_box` rectangle in page space, x, y, width, height) in
+//! reading order; each is written twice, once drawn in reading
 //! order (`-ordered`) and once drawn in reverse (`-reversed`), since an extractor that follows
 //! the content stream gets the first right for free. The JSON holds the blocks in reading
 //! order with the method; `crates/lamina/tests/reading_order.rs` scores extraction against
@@ -142,7 +143,13 @@ fn words(script: Script, seed: usize, count: usize) -> String {
         Script::Chinese => &CHINESE_CHARS,
     };
     // A stride coprime with the list length visits every word before repeating.
-    let strides = [1, 3, 5, 7, 9, 11, 13, 15];
+    let gcd = |mut a: usize, mut b: usize| {
+        while b != 0 {
+            (a, b) = (b, a % b);
+        }
+        a
+    };
+    let strides: Vec<usize> = (1..list.len()).filter(|&s| gcd(s, list.len()) == 1).take(8).collect();
     let stride = strides[seed % strides.len()];
     let start = seed * 17;
     let picked: Vec<&str> = (0..count).map(|i| list[(start + i * stride) % list.len()]).collect();
@@ -400,7 +407,10 @@ fn expected(layout: &Layout, file: &str, order: DrawOrder) -> String {
     let blocks: Vec<_> = layout
         .blocks
         .iter()
-        .map(|b| json!({ "page": b.page, "role": b.role.name(), "text": b.text }))
+        .map(|b| {
+            let (x, y, width, height) = b.area;
+            json!({ "page": b.page, "role": b.role.name(), "text": b.text, "box": [x, y, width, height] })
+        })
         .collect();
     let value = json!({
         "file": file,

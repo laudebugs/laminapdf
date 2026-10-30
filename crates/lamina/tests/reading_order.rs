@@ -6,16 +6,17 @@
 //!
 //! The metric, per file (all lines of all pages, in the order extraction returns them):
 //!
-//! * each line is split into the longest stretches of its tokens (words; characters for text
-//!   without spaces) that lie inside one expected block, and each stretch is assigned to that
+//! * text is tokenized once per file, into words when any expected block has a space, else
+//!   into characters (Chinese); each line is split into the longest stretches of its tokens
+//!   that occur in one expected block as whole tokens, and each stretch is assigned to that
 //!   block (the block the previous stretch went to when it contains the stretch, else the
 //!   first such block not yet started, else the first such block);
 //! * **order** = 1 − d(S, E) / max(|S|, |E|), where S is the sequence of blocks the stretches
 //!   went to, consecutive repeats merged, E is the blocks in reading order (0, 1, …, n−1) and
 //!   d is the Levenshtein distance over block indices;
 //! * **text** = the mean over expected blocks of 1 − d(got, want) / max(|got|, |want|) over
-//!   characters, `got` being the block's stretches joined with spaces (whitespace normalised;
-//!   two empty texts score 1);
+//!   characters, `got` being the block's tokens joined as the block is written (with spaces,
+//!   or none for text without spaces; two empty texts score 1);
 //! * **score** = (order + text) / 2. The corpus score is the mean over files.
 #![cfg(feature = "text")]
 #![allow(
@@ -36,11 +37,6 @@ use serde_json::Value;
 
 fn corpus_dir() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).join("../../fixtures/reading-order")
-}
-
-/// Whitespace collapsed to single spaces, trimmed.
-fn normalise(text: &str) -> String {
-    text.split_whitespace().collect::<Vec<_>>().join(" ")
 }
 
 /// The Levenshtein distance between two sequences.
@@ -81,30 +77,43 @@ impl Score {
     }
 }
 
-/// Scores `lines` (extracted, in order) against `blocks` (expected, in reading order).
+/// `text` as tokens: words when `spaced`, else characters.
+fn tokens(text: &str, spaced: bool) -> Vec<String> {
+    if spaced {
+        text.split_whitespace().map(str::to_owned).collect()
+    } else {
+        text.chars().filter(|c| !c.is_whitespace()).map(String::from).collect()
+    }
+}
+
+/// Whether `needle` occurs in `haystack` as a run of whole tokens.
+fn contains_run(haystack: &[String], needle: &[String]) -> bool {
+    !needle.is_empty() && haystack.windows(needle.len()).any(|w| w == needle)
+}
+
+/// Scores `lines` (extracted, in order) against `blocks` (expected, in reading order). Text
+/// is tokenized once per file: by words when any expected block has a space, else by
+/// characters (Chinese), so an extraction error is scored the same on every line; stretches
+/// match whole tokens only, so a broken word earns nothing.
 fn score(blocks: &[String], lines: &[String]) -> Score {
-    let blocks: Vec<String> = blocks.iter().map(|b| normalise(b)).collect();
+    let spaced = blocks.iter().any(|b| b.contains(' '));
+    let joiner = if spaced { " " } else { "" };
+    let block_tokens: Vec<Vec<String>> = blocks.iter().map(|b| tokens(b, spaced)).collect();
     let mut assigned: Vec<Vec<String>> = vec![Vec::new(); blocks.len()];
     let mut sequence: Vec<usize> = Vec::new();
     let mut unassigned = 0;
     let mut current: Option<usize> = None;
     for line in lines {
-        let line = normalise(line);
-        // Words, or characters for text written without spaces.
-        let spaced = line.contains(' ');
-        let tokens: Vec<String> = if spaced {
-            line.split(' ').map(str::to_owned).collect()
-        } else {
-            line.chars().map(String::from).collect()
-        };
-        let joiner = if spaced { " " } else { "" };
+        let line = tokens(line, spaced);
         let mut at = 0;
-        while at < tokens.len() {
-            // The longest stretch from `at` that some block contains.
+        while at < line.len() {
+            // The longest stretch from `at` that some block contains as whole tokens.
             let mut best: Option<(usize, usize)> = None; // (end, block)
-            for end in (at + 1..=tokens.len()).rev() {
-                let stretch = tokens[at..end].join(joiner);
-                let candidates: Vec<usize> = (0..blocks.len()).filter(|&i| blocks[i].contains(&stretch)).collect();
+            for end in (at + 1..=line.len()).rev() {
+                let stretch = &line[at..end];
+                let candidates: Vec<usize> = (0..blocks.len())
+                    .filter(|&i| contains_run(&block_tokens[i], stretch))
+                    .collect();
                 if candidates.is_empty() {
                     continue;
                 }
@@ -116,7 +125,7 @@ fn score(blocks: &[String], lines: &[String]) -> Score {
                 break;
             }
             if let Some((end, block)) = best {
-                assigned[block].push(tokens[at..end].join(joiner));
+                assigned[block].extend(line[at..end].iter().cloned());
                 if sequence.last() != Some(&block) {
                     sequence.push(block);
                 }
@@ -133,12 +142,12 @@ fn score(blocks: &[String], lines: &[String]) -> Score {
     let text = if blocks.is_empty() {
         1.0
     } else {
-        blocks
+        block_tokens
             .iter()
             .zip(&assigned)
             .map(|(want, got)| {
-                let got: Vec<char> = normalise(&got.join(" ")).chars().collect();
-                let want: Vec<char> = want.chars().collect();
+                let got: Vec<char> = got.join(joiner).chars().collect();
+                let want: Vec<char> = want.join(joiner).chars().collect();
                 similarity(&got, &want)
             })
             .sum::<f64>()
@@ -192,6 +201,30 @@ fn text_without_spaces_is_split_by_character() {
     let blocks = strings(&["你好世界", "中文字体"]);
     let s = score(&blocks, &strings(&["你好世界中文字体"]));
     assert_eq!((s.order, s.text), (1.0, 1.0));
+}
+
+#[test]
+fn text_without_spaces_over_several_lines_keeps_its_full_score() {
+    let blocks = strings(&["你好世界中文字体"]);
+    let s = score(&blocks, &strings(&["你好世界", "中文字体"]));
+    assert_eq!((s.order, s.text), (1.0, 1.0));
+}
+
+#[test]
+fn a_broken_word_earns_nothing() {
+    let blocks = strings(&["signal pepper canyon"]);
+    let s = score(&blocks, &strings(&["ignal pepper canyon"]));
+    assert_eq!(s.unassigned, 1, "{s:?}");
+}
+
+#[test]
+fn words_glued_together_are_scored_the_same_on_any_line() {
+    // Two cells drawn without a space between them: the glued token is lost whether or not
+    // the rest of its line has spaces.
+    let blocks = strings(&["red copper.", "Silver lining"]);
+    let alone = score(&blocks, &strings(&["copper.Silver"]));
+    let with_others = score(&blocks, &strings(&["red copper.Silver lining"]));
+    assert_eq!((alone.unassigned, with_others.unassigned), (1, 1));
 }
 
 #[test]
@@ -264,7 +297,11 @@ fn the_corpus_meets_the_ratchet_threshold() {
     let threshold = file["mean"].as_f64().unwrap();
     let report = table(&scores, mean, threshold);
     println!("{report}");
-    if let Some(summary) = std::env::var_os("GITHUB_STEP_SUMMARY") {
+    // Into the job summary once per run of the fast lane's `rust` job (not every job that
+    // runs the tests).
+    if std::env::var("GITHUB_JOB").as_deref() == Ok("rust")
+        && let Some(summary) = std::env::var_os("GITHUB_STEP_SUMMARY")
+    {
         use std::io::Write as _;
         let mut f = std::fs::OpenOptions::new()
             .append(true)
