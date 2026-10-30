@@ -46,7 +46,7 @@
 //!
 //! [ADR 0005]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0005-document-model.md
 //! [ADR 0027]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0027-coordinates-units-and-page-indexing.md
-//! [B5b]: https://github.com/laudebugs/lamina/blob/main/docs/todos/ready/B5b-builder-text-and-document-features.md
+//! [B5b]: https://github.com/laudebugs/lamina/blob/main/docs/todos/ongoing/B5b-builder-text-and-document-features.md
 #![forbid(unsafe_code)]
 
 mod builder;
