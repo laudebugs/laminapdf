@@ -12,19 +12,19 @@ New todos start from [`TEMPLATE.md`](TEMPLATE.md). The workflow is in [git workf
 
 IDs: `A`/`P`/`X` [architecture](../plans/architecture.md) (foundations, publishing, cross-cutting), `B` [library](../plans/pdf-library.md), `L` [shareable libraries](../plans/shareable-libraries.md) (contracts, worker, extraction, CLI, agent docs, mobile), `C` [web reader](../plans/web-app.md), `D` [desktop reader](../plans/desktop-app.md), `U` [UI/UX](../plans/ui-ux.md), `E` [editor](../plans/full-editor.md), `H` hosted service ([full-editor](../plans/full-editor.md)). A letter suffix (`B2a`, `B2b`) splits a round into PRs.
 
-**2 ongoing · 217 ready · 23 done** (242 total).
+**1 ongoing · 217 ready · 24 done** (242 total).
 
 ## Can start now
 
 Ready todos whose dependencies are all done:
 
 - [B4d](ready/B4d-tounicode-per-text-cids.md): One CID per (glyph, text): exact extraction of shaped text in every script
+- [B5b](ready/B5b-builder-text-and-document-features.md): Builder text, links, destinations, outlines, page labels and metadata
 - [X3c](ready/X3c-nightly-link-check.md): Nightly external link check of the docs
 - [X6](ready/X6-windows-ci.md): Windows CI coverage
 
 ## Ongoing
 
-- [B5a](ongoing/B5a-lamina-build-core.md): `lamina-build` core: builder, pages, vectors, colour and images
 - [X2](ongoing/X2-capability-matrix.md): Capability matrix generator: ~180 operations, test-backed statuses
 
 ## Architecture — Round A
@@ -52,8 +52,8 @@ Ready todos whose dependencies are all done:
 | B4b | [Shaping (HarfRust), bidi and line breaking (ICU4X), with goldens in five scripts](done/B4b-shaping-bidi-line-breaking.md) | done | [B4a](done/B4a-font-loading-and-subsetting.md), [X4](done/X4-full-lane-gate.md) |
 | B4c | [Standard 14 fonts with AFM metrics and simple-font encoding](done/B4c-standard-14-and-simple-fonts.md) | done | [B4a](done/B4a-font-loading-and-subsetting.md) |
 | B4d | [One CID per (glyph, text): exact extraction of shaped text in every script](ready/B4d-tounicode-per-text-cids.md) | ready | [B4b](done/B4b-shaping-bidi-line-breaking.md) |
-| B5a | [`lamina-build` core: builder, pages, vectors, colour and images](ongoing/B5a-lamina-build-core.md) | ongoing | [B1b](done/B1b-krilla-fit-spike.md), [B3c](done/B3c-save-planner-and-roundtrip.md), [L1a](done/L1a-contract-adrs.md) |
-| B5b | [Builder text, links, destinations, outlines, page labels and metadata](ready/B5b-builder-text-and-document-features.md) | ready | [B4b](done/B4b-shaping-bidi-line-breaking.md), [B4c](done/B4c-standard-14-and-simple-fonts.md), [B5a](ongoing/B5a-lamina-build-core.md) |
+| B5a | [`lamina-build` core: builder, pages, vectors, colour and images](done/B5a-lamina-build-core.md) | done | [B1b](done/B1b-krilla-fit-spike.md), [B3c](done/B3c-save-planner-and-roundtrip.md), [L1a](done/L1a-contract-adrs.md) |
+| B5b | [Builder text, links, destinations, outlines, page labels and metadata](ready/B5b-builder-text-and-document-features.md) | ready | [B4b](done/B4b-shaping-bidi-line-breaking.md), [B4c](done/B4c-standard-14-and-simple-fonts.md), [B5a](done/B5a-lamina-build-core.md) |
 | B5c | [The `lamina` façade crate, Rust examples, and byte and render goldens](ready/B5c-lamina-facade-and-examples.md) | ready | [B5b](ready/B5b-builder-text-and-document-features.md), [L1a](done/L1a-contract-adrs.md), [L1c](done/L1c-error-contract-core.md), [X4](done/X4-full-lane-gate.md) |
 | B6a | [`lamina-wasm`, `@lamina/wasm` build, ADR 0016 and size budgets](ready/B6a-lamina-wasm-and-adr-0016.md) | ready | [B5c](ready/B5c-lamina-facade-and-examples.md) |
 | B6b | [`@lamina/pdf`: the TypeScript API, `init()`, export conditions, publint and attw](ready/B6b-lamina-pdf-package.md) | ready | [B2b](done/B2b-standard-security-decryption.md), [B6a](ready/B6a-lamina-wasm-and-adr-0016.md) |

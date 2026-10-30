@@ -12,7 +12,10 @@ mod common;
 
 use common::{classic, fixture, open};
 use lamina_cos::ObjRef;
-use lamina_model::{ActionKind, Document, Error, LabelStyle, OpenOptions, PageId, Rect, Rotation, View, Warning};
+use lamina_model::{
+    ActionKind, Document, Error, LabelStyle, OpenOptions, PageId, PointPt, Pt, Rotation, UserSpacePoint, UserSpaceRect,
+    View, Warning,
+};
 
 fn outline_pdf() -> Document {
     open(&fixture("corpus/outline.pdf")).unwrap()
@@ -33,6 +36,88 @@ fn one_page(page_extra: &str) -> Document {
         "",
     ))
     .unwrap()
+}
+
+mod frame {
+    use super::*;
+
+    /// A one-page file without any box (pages: object 2, page: 3).
+    fn boxless(page_extra: &str) -> Document {
+        open(&classic(
+            &[
+                "<< /Type /Catalog /Pages 2 0 R >>",
+                "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+                &format!("<< /Type /Page /Parent 2 0 R {page_extra} >>"),
+            ],
+            "",
+        ))
+        .unwrap()
+    }
+
+    #[test]
+    fn uses_the_crop_box_rotation_and_user_unit() {
+        let doc = one_page("/CropBox [10 20 310 420] /Rotate 90 /UserUnit 2");
+        let frame = doc.pages().unwrap().get(0).unwrap().frame().unwrap();
+        assert_eq!(
+            (frame.width(), frame.height(), frame.is_letter_fallback()),
+            (Pt::new(800.0), Pt::new(600.0), false)
+        );
+        assert_eq!(
+            frame.to_page(UserSpacePoint::new(10.0, 20.0)),
+            PointPt::new(Pt::ZERO, Pt::ZERO)
+        );
+    }
+
+    #[test]
+    fn falls_back_to_us_letter_with_one_invalid_box_warning_when_no_box_exists() {
+        let doc = boxless("");
+        let pages = doc.pages().unwrap();
+        let page = pages.get(0).unwrap();
+        let frame = page.frame().unwrap();
+        let again = page.frame().unwrap();
+        assert_eq!(
+            (frame.crop_box(), frame.is_letter_fallback(), again, codes(&doc)),
+            (lamina_model::LETTER, true, frame, vec!["invalid-box"])
+        );
+    }
+
+    #[test]
+    fn falls_back_to_us_letter_when_the_media_box_has_no_area() {
+        let doc = boxless("/MediaBox [0 0 0 792]");
+        let frame = doc.pages().unwrap().get(0).unwrap().frame().unwrap();
+        assert_eq!((frame.width(), frame.height()), (Pt::new(612.0), Pt::new(792.0)));
+    }
+
+    #[test]
+    fn the_letter_fallback_is_an_error_in_strict_mode() {
+        let bytes = classic(
+            &[
+                "<< /Type /Catalog /Pages 2 0 R >>",
+                "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+                "<< /Type /Page /Parent 2 0 R >>",
+            ],
+            "",
+        );
+        let doc = Document::open(bytes, OpenOptions::default().with_strict(true)).unwrap();
+        let err = doc.pages().unwrap().get(0).unwrap().frame().unwrap_err();
+        assert_eq!(err.code(), "strict");
+    }
+
+    #[test]
+    fn an_invalid_rotate_is_read_once_per_page() {
+        let doc = one_page("/Rotate 45");
+        let pages = doc.pages().unwrap();
+        let page = pages.get(0).unwrap();
+        let rotations = (
+            page.rotate().unwrap(),
+            page.frame().unwrap().rotate(),
+            page.rotate().unwrap(),
+        );
+        assert_eq!(
+            (rotations, codes(&doc)),
+            ((Rotation::None, Rotation::None, Rotation::None), vec!["invalid-rotate"])
+        );
+    }
 }
 
 mod pages {
@@ -69,7 +154,7 @@ mod pages {
         let page = doc.pages().unwrap();
         assert_eq!(
             page.get(0).unwrap().media_box().unwrap(),
-            Some(Rect::from_corners(0.0, 0.0, 612.0, 792.0))
+            Some(UserSpaceRect::from_corners(0.0, 0.0, 612.0, 792.0))
         );
     }
 
@@ -123,7 +208,7 @@ mod pages {
     fn crop_box_is_clipped_to_the_media_box() {
         let doc = one_page("/CropBox [-10 -10 300 300]");
         let crop = doc.pages().unwrap().get(0).unwrap().crop_box().unwrap();
-        assert_eq!(crop, Some(Rect::from_corners(0.0, 0.0, 300.0, 300.0)));
+        assert_eq!(crop, Some(UserSpaceRect::from_corners(0.0, 0.0, 300.0, 300.0)));
     }
 
     #[test]
@@ -142,8 +227,8 @@ mod pages {
         assert_eq!(
             (page.art_box().unwrap(), page.bleed_box().unwrap()),
             (
-                Some(Rect::from_corners(1.0, 2.0, 3.0, 4.0)),
-                Some(Rect::from_corners(0.0, 0.0, 600.0, 780.0))
+                Some(UserSpaceRect::from_corners(1.0, 2.0, 3.0, 4.0)),
+                Some(UserSpaceRect::from_corners(0.0, 0.0, 600.0, 780.0))
             )
         );
     }

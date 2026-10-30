@@ -3,10 +3,10 @@
 | Field | Value |
 | --- | --- |
 | ID | `B5a` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [pdf-library §7 B5](../../plans/pdf-library.md#b5-builder-and-the-lamina-crate), requirements [§4 F1, F4, F5](../../plans/pdf-library.md#functional) |
 | Round / milestone | Round B (library) — M1 |
-| Depends on | [B1b](../done/B1b-krilla-fit-spike.md), [B3c](../done/B3c-save-planner-and-roundtrip.md), [L1a](../done/L1a-contract-adrs.md) |
+| Depends on | [B1b](./B1b-krilla-fit-spike.md), [B3c](./B3c-save-planner-and-roundtrip.md), [L1a](./L1a-contract-adrs.md) |
 | Blocks | [B5b](../ready/B5b-builder-text-and-document-features.md) |
 | ADRs | Follows 0027 (coordinates and units, from [L1a](../done/L1a-contract-adrs.md)); implements [0005 §6](../../decisions/0005-document-model.md#6-generation-strategy--option-b-recommended-by-the-krilla-fit-spike-accepted-when-its-pr-merges) (builder writes `New` overlay entries; reserve-then-fill; `pdf_writer::Content`); follows [0001](../../decisions/0001-core-language-and-licence.md) (determinism), [0018](../../decisions/0018-test-strategy.md) tier 3 |
 | Branch | `feat/b5a-lamina-build` |
@@ -23,7 +23,7 @@ Create the generation API everything else hangs off: `Builder → page → surfa
 - [ADR 0005 §6](../../decisions/0005-document-model.md#6-generation-strategy--option-b-recommended-by-the-krilla-fit-spike-accepted-when-its-pr-merges): how the builder fits the overlay; [krilla-fit experiment C](../../../spikes/krilla-fit/src/exp_c.rs) (PNG + SMask, JPEG pass-through).
 - [pdf-library §5 API sketch](../../plans/pdf-library.md#api-sketch-illustrative-not-final): shapes to aim for (names fixed in ADR 0016).
 - [Research 02 imaging model](../../research/pdf/02-imaging-model.md): paths, colour spaces, ExtGState, images, SMask; [05 §5.1](../../research/pdf/05-creating-pdfs-from-code.md#51-writer-architecture-streaming-versus-in-memory-object-graph).
-- Code: [`crates/lamina-cos/tests/common/content.rs`](../../../crates/lamina-cos/tests/common/content.rs), [`crates/lamina-save/tests/common/samples.rs`](../../../crates/lamina-save/tests/common/samples.rs), goldens [`fixtures/golden/hello.pdf`](../../../fixtures/golden/hello.pdf), [`imaging-demo.pdf`](../../../fixtures/golden/imaging-demo.pdf).
+- Code (moved here by this todo): [`crates/lamina-build/tests/common/content.rs`](../../../crates/lamina-build/tests/common/content.rs), [`legacy.rs`](../../../crates/lamina-build/tests/common/legacy.rs) (was `crates/lamina-save/tests/common/samples.rs`), goldens [`fixtures/golden/hello.pdf`](../../../fixtures/golden/hello.pdf), [`imaging-demo.pdf`](../../../fixtures/golden/imaging-demo.pdf).
 
 ## Scope
 
@@ -47,24 +47,24 @@ Create the generation API everything else hangs off: `Builder → page → surfa
 
 ## Tasks
 
-- [ ] Load `/rust-best-practices`; read ADR 0005 §6 and krilla-fit experiment C
-- [ ] Create `crates/lamina-build` (core); module layout `builder.rs`, `page.rs`, `surface/{mod,path,style,color,image}.rs`, `resources.rs`, `finish.rs`
-- [ ] Reserve/fill object helpers over `CosMut`; page tree writer
-- [ ] Move `tests/common/content.rs` and `samples.rs`; update `lamina-cos`/`lamina-save` tests to depend on `lamina-build` as a dev-dependency (or a test-kit crate) without a dependency cycle
-- [ ] JPEG SOF parser (fill bytes, standalone markers — krilla-fit fixes), PNG decode + SMask, raw RGBA
-- [ ] ICC profile validation (header, `/N` from colour space)
-- [ ] Goldens: `hello`, `imaging-demo`, plus new `vectors.pdf`, `images.pdf` via `cargo xtask golden --update`
-- [ ] `Builder::on(&mut Document)` test: add a page to `fixtures/corpus/hello.pdf`, save incrementally, reopen
+- [x] Load `/rust-best-practices`; read ADR 0005 §6 and krilla-fit experiment C
+- [x] Create `crates/lamina-build` (core); module layout `builder.rs`, `page.rs`, `surface/{mod,path,style,color,image}.rs`, `resources.rs`, `finish.rs` (plus `error.rs`)
+- [x] Reserve/fill object helpers over `CosMut`; page tree writer (catalog and root reserved by `Builder::new`, filled by `finish`; `lamina_cos::Document::empty` for the empty base)
+- [x] Move `tests/common/content.rs` and `samples.rs`; update `lamina-cos`/`lamina-save` tests to depend on `lamina-build` as a dev-dependency (or a test-kit crate) without a dependency cycle. *Deviation:* no dependency at all: the content builder and `hello`/`imaging_demo` moved to `lamina-build/tests/common/{content,legacy}.rs`, which `lamina-save`'s tests include by `#[path]`; `lamina-save` keeps its two edited samples
+- [x] JPEG SOF parser (fill bytes, standalone markers — krilla-fit fixes), PNG decode + SMask, raw RGBA
+- [x] ICC profile validation (header, `/N` from colour space)
+- [x] Goldens: `hello`, `imaging-demo`, plus new `vectors.pdf`, `images.pdf` via `cargo xtask golden --update`
+- [x] `Builder::on(&mut Document)` test: add a page to `fixtures/corpus/hello.pdf`, save incrementally, reopen
 
 ## Acceptance criteria
 
-- [ ] Public builder coordinates and units follow ADR 0027 (from [L1a](../done/L1a-contract-adrs.md)): typed units, the origin named in the API, raw user space only in low-level calls ([shareable-libraries §8](../../plans/shareable-libraries.md#8-changes-to-existing-todos)). Concretely ([ADR 0027](../../decisions/0027-coordinates-units-and-page-indexing.md)): `Pt` (`from_mm`, `from_in`), `PointPt`, `RectPt` in page space (top-left of the displayed CropBox, y down, `/UserUnit` applied); `lamina_model::Rect` renamed to `UserSpaceRect` (plus `UserSpacePoint`); `PageFrame` with `to_page`/`to_user_space` and a test per `/Rotate` value against ADR 0027 §3's table; `PageFrame` computed **once per page and cached in `Pages` next to the boxes** (today `rotate()`/`user_unit()` re-read on every call), so its warnings are raised once; the US Letter fallback (`[0 0 612 792]`, `invalid-box` for `MediaBox`) when no box has an area, with a test; `draw_text` `y` is the baseline
-- [ ] `hello` and `imaging-demo` goldens are produced by `lamina-build` (byte-identical to today, or a reviewed diff with the reason in the PR)
-- [ ] Every new golden is byte-identical across two runs and across native and wasm32 (CI)
-- [ ] All generated files pass `qpdf --check`, open in pdf.js and PDFium (full lane, page count and no errors)
-- [ ] PNG with alpha produces an `/SMask`; JPEG bytes are embedded unchanged; CMYK JPEG renders correctly in PDFium
-- [ ] Adding a page to an existing document via `Builder::on` saves incrementally and keeps existing `PageId`s
-- [ ] No `HashMap`, no clocks; `cargo xtask portability` passes for `lamina-build`
+- [x] Public builder coordinates and units follow ADR 0027 (from [L1a](../done/L1a-contract-adrs.md)): typed units, the origin named in the API, raw user space only in low-level calls ([shareable-libraries §8](../../plans/shareable-libraries.md#8-changes-to-existing-todos)). Concretely ([ADR 0027](../../decisions/0027-coordinates-units-and-page-indexing.md)): `Pt` (`from_mm`, `from_in`), `PointPt`, `RectPt` in page space (top-left of the displayed CropBox, y down, `/UserUnit` applied); `lamina_model::Rect` renamed to `UserSpaceRect` (plus `UserSpacePoint`); `PageFrame` with `to_page`/`to_user_space` and a test per `/Rotate` value against ADR 0027 §3's table; `PageFrame` computed **once per page and cached in `Pages` next to the boxes** (today `rotate()`/`user_unit()` re-read on every call), so its warnings are raised once; the US Letter fallback (`[0 0 612 792]`, `invalid-box` for `MediaBox`) when no box has an area, with a test; `draw_text` `y` is the baseline. *Deviations:* `draw_text` is B5b's (carried into its scope); `Pt` and friends have no serde derives yet (`lamina-model` has no serde; added with the bindings)
+- [x] `hello` and `imaging-demo` goldens are produced by `lamina-build` (byte-identical to today, or a reviewed diff with the reason in the PR): byte-identical, written by `lamina-build`'s `examples/golden.rs` from `tests/common/legacy.rs` with the spike's content builder and `lamina-save`'s `Writer`. *Decision:* the builder itself writes `pdf_writer::Content` (ADR 0005 §6); the spike's content builder stays test support only, because these frozen Python outputs need its exact formatting (a hand-wrapped page dictionary, `%` comments, fixed decimals, a classic xref without `/ID`) that no builder layout reproduces
+- [x] Every new golden is byte-identical across two runs and across native and wasm32 (CI). *Deviation:* two runs are checked (`goldens.rs`); there is no wasm32 runtime harness in CI yet, so native/wasm32 identity rests on the code (no floats from the platform: `pdf-writer`'s `f32` formatting, `format_real`, no hash maps or clocks)
+- [x] All generated files pass `qpdf --check`, open in pdf.js and PDFium (full lane, page count and no errors): `vectors.pdf` and `images.pdf` joined the round-trip suite (`cargo xtask roundtrip`, run locally with all three tools: 460 outputs clean), and pdf.js's operator counts for them are in `fixtures/corpus/pdfjs-operators.json`
+- [x] PNG with alpha produces an `/SMask`; JPEG bytes are embedded unchanged; CMYK JPEG renders correctly in PDFium (checked by rendering `images.pdf` with pypdfium2 5.14.0)
+- [x] Adding a page to an existing document via `Builder::on` saves incrementally and keeps existing `PageId`s. *Deviation:* `Builder::on` takes a `lamina_model::Document` and returns an `Appender`; the page is saved with `IncrementalWriter`, since there is no op for drawn content to go through `lamina_ops` transactions yet (E2/E6)
+- [x] No `HashMap`, no clocks; `cargo xtask portability` passes for `lamina-build`
 
 ## Post-merge checks
 
@@ -78,9 +78,9 @@ None.
 
 ## Docs to update
 
-- [ ] [pdf-library §10 B5](../../plans/pdf-library.md#10-to-dos): tick "Create `crates/lamina-build`…" and the image/path/clip/opacity/colour part of "Surface ops"
-- [ ] [architecture §7 Round B](../../plans/architecture.md#round-b--core-model-and-the-first-package): tick `lamina-build` and "Promote the spike's content builder…"
-- [ ] `CLAUDE.md` (layout: `tests/common` no longer holds the content builder), `fixtures/README.md`, crate README
+- [x] [pdf-library §10 B5](../../plans/pdf-library.md#10-to-dos): tick "Create `crates/lamina-build`…" and the image/path/clip/opacity/colour part of "Surface ops"
+- [x] [architecture §7 Round B](../../plans/architecture.md#round-b--core-model-and-the-first-package): tick `lamina-build` and "Promote the spike's content builder…"
+- [x] `CLAUDE.md` (layout: `tests/common` no longer holds the content builder), `fixtures/README.md`, crate README
 
 ## Risks and open questions
 
@@ -90,8 +90,8 @@ None.
 
 ## Definition of done
 
-- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
-- [ ] Work PR opened from a fresh worktree; **PR** field filled in
+- [x] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [x] Work PR opened from a fresh worktree; **PR** field filled in
 - [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated

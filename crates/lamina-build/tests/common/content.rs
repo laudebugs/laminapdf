@@ -1,6 +1,8 @@
 //! Content-stream builder (ISO 32000-1 §8–9 operators), ported from the `pdf-basics` spike as
-//! test support for the golden and raw-writer tests. Generation code belongs in `lamina-build`
-//! (Round B), which will replace this module.
+//! test support for the frozen `hello`/`imaging-demo` goldens (`legacy.rs`) and
+//! `lamina-save`'s raw-writer tests. `lamina-build` itself writes content with
+//! `pdf_writer::Content` (ADR 0005 §6); this builder stays only because those goldens need
+//! its exact formatting (`%` comments, fixed decimals, operators grouped on one line).
 //!
 //! Operators are separated by `\n` (like Python's `"\n".join(ops)`); inside
 //! [`ContentBuilder::line`] they are separated by a single space instead. No trailing

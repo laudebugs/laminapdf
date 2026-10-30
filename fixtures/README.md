@@ -31,8 +31,10 @@ The scripts behind the research-chapter files live in [`docs/research/pdf/exampl
 
 | File | Origin | Exercises |
 | --- | --- | --- |
-| `hello.pdf` | `01-file-structure/hello.py` (no dependencies) | Byte-identical rebuild with `lamina-save`'s `Writer` and the content builder; `CrLf` xref entries; a hand-wrapped page dictionary (written as a raw body) |
-| `imaging-demo.pdf` | `02-imaging-model/make_imaging_demo.py` (no dependencies) | Byte-identical rebuild; `SpaceLf` xref entries; per-operand number formatting in content streams |
+| `hello.pdf` | `01-file-structure/hello.py` (no dependencies); rebuilt by `crates/lamina-build/tests/common/legacy.rs` | Byte-identical rebuild with `lamina-save`'s `Writer` and the spike's content builder (`lamina-build`'s `tests/common/content.rs`); `CrLf` xref entries; a hand-wrapped page dictionary (written as a raw body) |
+| `imaging-demo.pdf` | `02-imaging-model/make_imaging_demo.py` (no dependencies); rebuilt by `legacy.rs` | Byte-identical rebuild; `SpaceLf` xref entries; per-operand number formatting in content streams |
+| `vectors.pdf` | `crates/lamina-build/tests/common/samples.rs` (`vectors`, todo B5a): `Builder`, full rewrite with a classic xref, uncompressed content | Paths in page space (rect, dashed circle, even-odd star, quadratic curve, ellipse clip), device gray/RGB/CMYK and `ICCBased` colour (`images/srgb-like.icc`), a transform, opacity and `Multiply` as `ExtGState`s; page 2: Letter with `/Rotate 90`, a crop box and `/UserUnit 2`, markers at the displayed top-left and bottom-right |
+| `images.pdf` | `samples.rs` (`images`): PNGs generated in the test (RGBA, 16-bit gray, palette with `tRNS`), raw RGBA, `images/photo-*.jpg` | `/SMask` for alpha, 16-bit samples kept and down-converted, palette expansion, JPEG pass-through (`DCTDecode`) in RGB, gray and Adobe CMYK (`/Decode [1 0 1 0 1 0 1 0]`), one XObject for an image drawn twice |
 | `incremental-set-info.pdf` | `crates/lamina-save/tests/common/samples.rs` (`incremental_set_info`): `hello.pdf` + `SetInfo` (fixed `/ModDate`), incremental save | The overlay's incremental writer: a new Info object, a classic section with `/Prev`, a derived `/ID` |
 | `full-rewrite-hello.pdf` | `crates/lamina-save/tests/common/samples.rs` (`full_rewrite_hello`): `hello.pdf` + `RotatePage` 90°, full rewrite with the defaults | The full-rewrite writer: numbers kept, an object stream and an xref stream, a derived `/ID` |
 | `text-latin.pdf` | `crates/lamina-text/tests/common/samples.rs` (`latin`): the test page writer, Noto Sans and Noto Sans Math subsets, full rewrite | Type 0 / `CIDFontType2` embedding: accents, curly quotes, ligature glyphs (`ffi`, `fi`, `fl`) mapped to their letters, a non-BMP character (U+1D400) as a surrogate pair; `/W`, ToUnicode, subset tags |
@@ -42,6 +44,17 @@ The scripts behind the research-chapter files live in [`docs/research/pdf/exampl
 | `text-shaped.pdf` | `samples.rs` (`shaped`, todo B4b): paragraphs laid out with `break_lines` (HarfRust, ICU4X) and written by `tests/common/shaped.rs` from `pdf_run`'s `TJ` arrays | Shaped Latin (kerning, ligatures, CFF), Arabic (joining, marks), pointed Hebrew, Devanagari (conjuncts, reph, pre-base matra), CJK and a mixed English/Hebrew/Arabic line: `TJ` adjustments, `Ts` rises, `/ActualText` spans, empty ToUnicode entries, bidi visual order, line breaking |
 
 The `text-*.pdf` goldens are rebuilt by `cargo xtask golden --update` like the others; [`tools/fixtures/text_facts.py`](../tools/fixtures/text_facts.py) then rewrites `text/extracted.json` (below).
+
+### `images/`
+
+Inputs for `lamina-build`'s image and colour tests (todo B5a), written by [`tools/fixtures/images.py`](../tools/fixtures/images.py) (standard library; macOS `sips` for the JPEG conversions). `MIT OR Apache-2.0` like the rest.
+
+| File | Origin |
+| --- | --- |
+| `photo-rgb.jpg` | The krilla-fit spike's generated 192×192 baseline JPEG (`spikes/krilla-fit/assets/photo.jpg`), APP1 and APP13 segments removed |
+| `photo-cmyk.jpg` | The same photo converted by `sips` with the Generic CMYK profile: inverted samples and an Adobe `APP14` marker, as Photoshop writes; APP1, APP2 (Apple's ICC profile) and APP13 removed |
+| `photo-gray.jpg` | The same with the Generic Gray profile, one component |
+| `gray-gamma22.icc`, `srgb-like.icc` | Minimal ICC v2 profiles written by the script (a gamma 2.2 gray TRC; sRGB primaries adapted to D50 with gamma 2.2 TRCs) |
 
 ### `corpus/`
 

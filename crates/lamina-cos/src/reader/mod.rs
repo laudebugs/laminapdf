@@ -616,6 +616,39 @@ impl Document {
         Ok(doc)
     }
 
+    /// A document with no base bytes: no objects, an empty trailer and the header version
+    /// `version` (for example `"1.7"`; the writers fall back to 1.7 for `None` or anything
+    /// that is not `major.minor`). The builder (`lamina-build`) creates every object in the
+    /// overlay; saving it is always a full rewrite (`lamina-save`'s `NoBase`). Reads behave as
+    /// for a file whose objects are all free until the overlay sets a `/Root`.
+    #[must_use]
+    pub fn empty(version: Option<&str>, options: &OpenOptions) -> Self {
+        let limits = *options.limits();
+        Self {
+            source: Source::from(Vec::new()),
+            entries: BTreeMap::new(),
+            max_object_number: None,
+            free_head: 0,
+            trailer: Dict::new(),
+            revisions: 0,
+            section_offsets: Vec::new(),
+            repaired: false,
+            has_xref_stream: false,
+            newest_is_stream: false,
+            startxref: None,
+            header_version: version.map(str::to_owned),
+            limits,
+            strict: options.strict(),
+            warnings: RefCell::new(WarningLog::default()),
+            call_depth: Cell::new(0),
+            budget: Cell::new(DecodeBudget::new(&limits)),
+            objstm_cache: RefCell::new(BTreeMap::new()),
+            object_cache: RefCell::new(BTreeMap::new()),
+            overlay: Overlay::default(),
+            security: None,
+        }
+    }
+
     /// A document over `base` using `table` (not marked repaired). Raises the warnings the
     /// xref loader recorded.
     fn new(base: Base, table: XrefTable, startxref: Option<usize>, mut log: WarningLog) -> Result<Self> {

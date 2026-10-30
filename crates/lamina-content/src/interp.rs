@@ -5,7 +5,7 @@ use std::collections::BTreeMap;
 use std::sync::Arc;
 
 use lamina_cos::{Document, Error, Limit, Limits, Name, ObjRef, Object, Position, Result, Stream, Warning, tolerant};
-use lamina_model::Rect;
+use lamina_model::UserSpaceRect;
 
 use crate::lexer::{ContentIter, IssueKind, Lexed, Op};
 use crate::operator::Operator;
@@ -926,7 +926,7 @@ impl<'d, 'v, V: Visitor + ?Sized> Interpreter<'d, 'v, V> {
             None => None,
         }
         .and_then(|b| match *b.as_slice() {
-            [x0, y0, x1, y1] => Some(Rect::from_corners(x0, y0, x1, y1)),
+            [x0, y0, x1, y1] => Some(UserSpaceRect::from_corners(x0, y0, x1, y1)),
             _ => None,
         });
         if bbox.is_none() {

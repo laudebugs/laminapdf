@@ -7,65 +7,10 @@ use std::collections::BTreeMap;
 use lamina_cos::{Dict, DirectPath, ObjRef, Object, PathSegment, Result, Warning};
 
 use crate::document::Document;
+use crate::geometry::{LETTER, PageFrame, UserSpaceRect};
 use crate::id::PageId;
 use crate::labels::PageLabels;
 use crate::outline::Outline;
-
-/// A rectangle with its corners normalised (§7.9.5): `x0 <= x1` and `y0 <= y1`.
-#[derive(Debug, Clone, Copy, PartialEq)]
-pub struct Rect {
-    /// Lower-left x.
-    pub x0: f64,
-    /// Lower-left y.
-    pub y0: f64,
-    /// Upper-right x.
-    pub x1: f64,
-    /// Upper-right y.
-    pub y1: f64,
-}
-
-impl Rect {
-    /// The rectangle with corners `(a, b)` and `(c, d)`, in any order.
-    #[must_use]
-    pub const fn from_corners(a: f64, b: f64, c: f64, d: f64) -> Self {
-        Self {
-            x0: a.min(c),
-            y0: b.min(d),
-            x1: a.max(c),
-            y1: b.max(d),
-        }
-    }
-
-    /// `x1 - x0`.
-    #[must_use]
-    pub fn width(&self) -> f64 {
-        self.x1 - self.x0
-    }
-
-    /// `y1 - y0`.
-    #[must_use]
-    pub fn height(&self) -> f64 {
-        self.y1 - self.y0
-    }
-
-    /// The overlap of two rectangles, `None` when they don't overlap.
-    #[must_use]
-    pub const fn intersect(&self, other: &Self) -> Option<Self> {
-        let r = Self {
-            x0: self.x0.max(other.x0),
-            y0: self.y0.max(other.y0),
-            x1: self.x1.min(other.x1),
-            y1: self.y1.min(other.y1),
-        };
-        if r.x0 <= r.x1 && r.y0 <= r.y1 { Some(r) } else { None }
-    }
-
-    /// `[x0 y0 x1 y1]`.
-    #[must_use]
-    pub const fn to_array(&self) -> [f64; 4] {
-        [self.x0, self.y0, self.x1, self.y1]
-    }
-}
 
 /// A page's rotation (`/Rotate`, §7.7.3.3), clockwise when displayed.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
@@ -117,14 +62,25 @@ pub struct Pages<'d> {
     by_id: BTreeMap<PageId, usize>,
     /// Each page's media and crop boxes, read once (every other box is clipped to them).
     boxes: Vec<OnceCell<Boxes>>,
+    /// Each page's rotation, user unit and frame (ADR 0027 §3), read once, so their
+    /// warnings are raised once.
+    frames: Vec<Geometry>,
     labels: OnceCell<PageLabels>,
+}
+
+/// A page's rotation, user unit and frame, each computed at most once.
+#[derive(Debug, Default)]
+struct Geometry {
+    rotate: OnceCell<Rotation>,
+    user_unit: OnceCell<f64>,
+    frame: OnceCell<PageFrame>,
 }
 
 /// A page's effective media and crop boxes.
 #[derive(Debug, Clone, Copy)]
 struct Boxes {
-    media: Option<Rect>,
-    crop: Option<Rect>,
+    media: Option<UserSpaceRect>,
+    crop: Option<UserSpaceRect>,
 }
 
 impl<'d> Pages<'d> {
@@ -145,12 +101,14 @@ impl<'d> Pages<'d> {
             .collect();
         let by_id = ids.iter().enumerate().map(|(i, id)| (id.clone(), i)).collect();
         let boxes = walked.iter().map(|_| OnceCell::new()).collect();
+        let frames = walked.iter().map(|_| Geometry::default()).collect();
         Ok(Self {
             doc,
             walked,
             ids,
             by_id,
             boxes,
+            frames,
             labels: OnceCell::new(),
         })
     }
@@ -275,7 +233,7 @@ impl<'p> Page<'p> {
 
     /// The box `key` from its stored value: `None` when absent, `None` plus
     /// [`Warning::InvalidBox`] (naming the page and the box) when it is not four numbers.
-    fn read_box(&self, key: &'static str, value: Option<&Object>) -> Result<Option<Rect>> {
+    fn read_box(&self, key: &'static str, value: Option<&Object>) -> Result<Option<UserSpaceRect>> {
         let Some(value) = value else {
             return Ok(None);
         };
@@ -312,7 +270,7 @@ impl<'p> Page<'p> {
     /// # Errors
     /// [`lamina_cos::Error::Strict`] in strict mode for a malformed box;
     /// [`lamina_cos::Error::DataPending`] / [`lamina_cos::Error::Source`].
-    pub fn media_box(&self) -> Result<Option<Rect>> {
+    pub fn media_box(&self) -> Result<Option<UserSpaceRect>> {
         Ok(self.boxes()?.media)
     }
 
@@ -321,13 +279,13 @@ impl<'p> Page<'p> {
     ///
     /// # Errors
     /// As [`Page::media_box`].
-    pub fn crop_box(&self) -> Result<Option<Rect>> {
+    pub fn crop_box(&self) -> Result<Option<UserSpaceRect>> {
         Ok(self.boxes()?.crop)
     }
 
     /// A box that defaults to the crop box (bleed, trim and art boxes are not inheritable).
     /// The box itself is read first, so in strict mode its own problem is the one reported.
-    fn clipped_box(&self, key: &'static str) -> Result<Option<Rect>> {
+    fn clipped_box(&self, key: &'static str) -> Result<Option<UserSpaceRect>> {
         let own = self.read_box(key, self.cos.dict.get(key))?;
         let crop = self.crop_box()?;
         Ok(match (own, crop) {
@@ -340,7 +298,7 @@ impl<'p> Page<'p> {
     ///
     /// # Errors
     /// As [`Page::media_box`].
-    pub fn bleed_box(&self) -> Result<Option<Rect>> {
+    pub fn bleed_box(&self) -> Result<Option<UserSpaceRect>> {
         self.clipped_box("BleedBox")
     }
 
@@ -348,7 +306,7 @@ impl<'p> Page<'p> {
     ///
     /// # Errors
     /// As [`Page::media_box`].
-    pub fn trim_box(&self) -> Result<Option<Rect>> {
+    pub fn trim_box(&self) -> Result<Option<UserSpaceRect>> {
         self.clipped_box("TrimBox")
     }
 
@@ -356,17 +314,26 @@ impl<'p> Page<'p> {
     ///
     /// # Errors
     /// As [`Page::media_box`].
-    pub fn art_box(&self) -> Result<Option<Rect>> {
+    pub fn art_box(&self) -> Result<Option<UserSpaceRect>> {
         self.clipped_box("ArtBox")
     }
 
-    /// `/Rotate`, own or inherited. A value that is not a multiple of 90 (or not a number)
-    /// reads as [`Rotation::None`] with [`Warning::InvalidRotate`].
+    /// `/Rotate`, own or inherited, read once per page. A value that is not a multiple of 90
+    /// (or not a number) reads as [`Rotation::None`] with [`Warning::InvalidRotate`].
     ///
     /// # Errors
     /// [`lamina_cos::Error::Strict`] in strict mode for an invalid value;
     /// [`lamina_cos::Error::DataPending`] / [`lamina_cos::Error::Source`].
     pub fn rotate(&self) -> Result<Rotation> {
+        let cell = self.pages.frames.get(self.index).map(|f| &f.rotate);
+        if let Some(rotation) = cell.and_then(OnceCell::get) {
+            return Ok(*rotation);
+        }
+        let rotation = self.read_rotate()?;
+        Ok(cell.map_or(rotation, |c| *c.get_or_init(|| rotation)))
+    }
+
+    fn read_rotate(&self) -> Result<Rotation> {
         let Some(value) = self.cos.inherited.rotate.as_deref() else {
             return Ok(Rotation::None);
         };
@@ -390,13 +357,23 @@ impl<'p> Page<'p> {
         }
     }
 
-    /// `/UserUnit` (§14.11.2.1): the size of a default user-space unit in 1/72 inch; 1 when
-    /// absent, and 1 with [`Warning::InvalidEntry`] when not a positive number.
+    /// `/UserUnit` (§14.11.2.1): the size of a default user-space unit in 1/72 inch, read
+    /// once per page; 1 when absent, and 1 with [`Warning::InvalidEntry`] when not a positive
+    /// number.
     ///
     /// # Errors
     /// [`lamina_cos::Error::Strict`] in strict mode for an invalid value;
     /// [`lamina_cos::Error::DataPending`] / [`lamina_cos::Error::Source`].
     pub fn user_unit(&self) -> Result<f64> {
+        let cell = self.pages.frames.get(self.index).map(|f| &f.user_unit);
+        if let Some(unit) = cell.and_then(OnceCell::get) {
+            return Ok(*unit);
+        }
+        let unit = self.read_user_unit()?;
+        Ok(cell.map_or(unit, |c| *c.get_or_init(|| unit)))
+    }
+
+    fn read_user_unit(&self) -> Result<f64> {
         let Some(value) = self.cos.dict.get("UserUnit") else {
             return Ok(1.0);
         };
@@ -414,6 +391,39 @@ impl<'p> Page<'p> {
             })?;
             Ok(1.0)
         }
+    }
+
+    /// The page's frame ([ADR 0027] §3): the effective crop box, [`Page::rotate`] and
+    /// [`Page::user_unit`], computed once per page. When neither the crop box nor the media
+    /// box has an area, the frame is US Letter (`[0 0 612 792]`) and [`Warning::InvalidBox`]
+    /// (key `MediaBox`) is raised, once.
+    ///
+    /// # Errors
+    /// As [`Page::media_box`], [`Page::rotate`] and [`Page::user_unit`].
+    ///
+    /// [ADR 0027]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0027-coordinates-units-and-page-indexing.md
+    pub fn frame(&self) -> Result<PageFrame> {
+        let cell = self.pages.frames.get(self.index).map(|f| &f.frame);
+        if let Some(frame) = cell.and_then(OnceCell::get) {
+            return Ok(*frame);
+        }
+        let Boxes { media, crop } = self.boxes()?;
+        let rotate = self.rotate()?;
+        let unit = self.user_unit()?;
+        let reference = crop
+            .filter(UserSpaceRect::has_area)
+            .or(media.filter(UserSpaceRect::has_area));
+        let frame = if let Some(reference) = reference {
+            PageFrame::new(reference, rotate, unit)
+        } else {
+            self.doc().warn(Warning::InvalidBox {
+                object: self.object(),
+                page: self.page_number(),
+                key: "MediaBox",
+            })?;
+            PageFrame::new(LETTER, rotate, unit).with_letter_fallback()
+        };
+        Ok(cell.map_or(frame, |c| *c.get_or_init(|| frame)))
     }
 
     /// `/Resources`, own or inherited, resolved.
@@ -466,7 +476,7 @@ impl<'p> Page<'p> {
 }
 
 /// `obj` as a rectangle of four numbers, tolerantly; `None` when it is anything else.
-pub(crate) fn read_rect(doc: &Document, obj: &Object) -> Result<Option<Rect>> {
+pub(crate) fn read_rect(doc: &Document, obj: &Object) -> Result<Option<UserSpaceRect>> {
     let Some(arr) = doc.read(obj)? else {
         return Ok(None);
     };
@@ -481,7 +491,7 @@ pub(crate) fn read_rect(doc: &Document, obj: &Object) -> Result<Option<Rect>> {
         }
     }
     let [x0, y0, x1, y1] = out;
-    Ok(Some(Rect::from_corners(x0, y0, x1, y1)))
+    Ok(Some(UserSpaceRect::from_corners(x0, y0, x1, y1)))
 }
 
 /// A finite number, tolerantly.

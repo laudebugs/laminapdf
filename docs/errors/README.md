@@ -112,3 +112,16 @@ One page per code in [`fixtures/codes.json`](../../fixtures/codes.json), as [ADR
 | --- | --- |
 | [`tounicode-conflict`](tounicode-conflict.md) | `usage` |
 | [`whole-font-rebuilt`](whole-font-rebuilt.md) | `usage` |
+
+## Build errors (`lamina-build`)
+
+| Code | Kind |
+| --- | --- |
+| [`invalid-image`](invalid-image.md) | `input` |
+| [`unsupported-image`](unsupported-image.md) | `unsupported` |
+| [`image-too-large`](image-too-large.md) | `limit` |
+| [`image-data-length`](image-data-length.md) | `usage` |
+| [`invalid-icc-profile`](invalid-icc-profile.md) | `input` |
+| [`color-components`](color-components.md) | `usage` |
+| [`invalid-color`](invalid-color.md) | `usage` |
+| [`invalid-geometry`](invalid-geometry.md) | `usage` |
