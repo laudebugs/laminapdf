@@ -78,7 +78,16 @@ for (const file of files) {
   }
   const meta = await doc.getMetadata();
   const xmp = {};
-  for (const key of ["dc:title", "dc:creator", "dc:description", "pdf:keywords", "pdf:producer", "xmp:creatortool", "xmp:createdate", "xmp:modifydate"]) {
+  for (const key of [
+    "dc:title",
+    "dc:creator",
+    "dc:description",
+    "pdf:keywords",
+    "pdf:producer",
+    "xmp:creatortool",
+    "xmp:createdate",
+    "xmp:modifydate",
+  ]) {
     const value = meta.metadata?.get(key);
     if (value !== null && value !== undefined) {
       xmp[key] = Array.isArray(value) ? value.join("; ") : value;

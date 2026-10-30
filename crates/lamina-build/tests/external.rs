@@ -148,7 +148,10 @@ fn links_resolve_to_the_builders_targets_in_both_readers() {
     let facts = facts();
     let want = json!([[{ "url": URI }, { "page": 2 }, { "page": 3 }, { "page": 1 }], [], [], []]);
     for extractor in EXTRACTORS {
-        assert_eq!(facts["files"]["links-and-outlines.pdf"][extractor]["links"], want, "{extractor}");
+        assert_eq!(
+            facts["files"]["links-and-outlines.pdf"][extractor]["links"], want,
+            "{extractor}"
+        );
     }
 }
 
@@ -170,7 +173,13 @@ fn outlines_and_named_destinations_match_in_both_readers() {
             .as_array()
             .unwrap()
             .iter()
-            .map(|i| (i["title"].as_str().unwrap().to_owned(), i["depth"].as_u64().unwrap(), i["page"].as_u64()))
+            .map(|i| {
+                (
+                    i["title"].as_str().unwrap().to_owned(),
+                    i["depth"].as_u64().unwrap(),
+                    i["page"].as_u64(),
+                )
+            })
             .collect();
         let want: Vec<(String, u64, Option<u64>)> = want.iter().map(|(t, d, p)| ((*t).to_owned(), *d, *p)).collect();
         assert_eq!(got, want, "{extractor}");
@@ -182,7 +191,11 @@ fn outlines_and_named_destinations_match_in_both_readers() {
     }
     let pdfjs = &facts["files"]["links-and-outlines.pdf"]["pdfjs"]["outline"];
     assert_eq!(
-        (pdfjs[6]["url"].as_str(), pdfjs[2]["bold"].as_bool(), pdfjs[5]["italic"].as_bool()),
+        (
+            pdfjs[6]["url"].as_str(),
+            pdfjs[2]["bold"].as_bool(),
+            pdfjs[5]["italic"].as_bool()
+        ),
         (Some(URI), Some(true), Some(true))
     );
 }
@@ -250,7 +263,13 @@ fn facts_were_written_with_the_pinned_tools() {
     let requirements = String::from_utf8(fixture("../tools/fixtures/requirements.txt")).unwrap();
     let script = String::from_utf8(fixture("../tools/fixtures/pdfjs_build.mjs")).unwrap();
     assert_eq!(
-        (facts["pypdf_version"].as_str().unwrap(), facts["pdfjs_version"].as_str().unwrap()),
-        (pinned(&requirements, "pypdf==").as_str(), pinned(&script, "const PINNED =").as_str())
+        (
+            facts["pypdf_version"].as_str().unwrap(),
+            facts["pdfjs_version"].as_str().unwrap()
+        ),
+        (
+            pinned(&requirements, "pypdf==").as_str(),
+            pinned(&script, "const PINNED =").as_str()
+        )
     );
 }

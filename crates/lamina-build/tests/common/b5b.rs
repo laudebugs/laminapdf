@@ -55,7 +55,11 @@ pub fn text_latin() -> Vec<u8> {
 
 /// The text of each line a text box drew.
 fn drawn(text: &str, layout: &lamina_build::TextLayout) -> Vec<String> {
-    layout.lines.iter().map(|l| text[l.content.clone()].to_owned()).collect()
+    layout
+        .lines
+        .iter()
+        .map(|l| text[l.content.clone()].to_owned())
+        .collect()
 }
 
 /// `build-text-latin.pdf` and the lines it draws, top to bottom.
@@ -152,7 +156,10 @@ pub fn text_multiscript() -> Vec<u8> {
 
 /// `build-text-multiscript.pdf` and the lines each page draws, top to bottom.
 pub fn text_multiscript_drawn() -> (Vec<u8>, Vec<Vec<String>>) {
-    let mut lines = vec![SCRIPTS.iter().map(|(_, t)| (*t).to_owned()).collect::<Vec<_>>(), Vec::new()];
+    let mut lines = vec![
+        SCRIPTS.iter().map(|(_, t)| (*t).to_owned()).collect::<Vec<_>>(),
+        Vec::new(),
+    ];
     let mut b = Builder::new(options(b"lamina-build-5sc"));
     let fonts: Vec<_> = SCRIPTS.iter().map(|(f, _)| b.font(font(f)).unwrap()).collect();
     let mut page = b.page(PageSize::A4);
