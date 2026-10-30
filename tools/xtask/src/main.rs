@@ -3,6 +3,7 @@
 //! This is the single entry point for repo-wide tasks; CI runs the same commands developers run
 //! (docs/guidelines/code-organization.md §10). Run `cargo xtask help` for the task list.
 
+mod capabilities;
 mod changes;
 mod corpus;
 mod docs_links;
@@ -34,7 +35,8 @@ usage: cargo xtask <task> [args]
 tasks:
   check [rust|ts|docs]
                     everything a PR must pass (default: docs, rust and ts)
-                    docs: docs-links, todos --check and portable paths
+                    docs: docs-links, todos --check, portable paths and the capability
+                    matrix's static checks (capabilities --check runs the tests)
                     rust: fmt --check, portability, clippy (native + wasm32), tests, rustdoc, cargo-deny
                     ts:   biome ci, typecheck and tests of the pnpm workspace, npm licences
   fmt [--check]     format Rust (cargo fmt) and TS/JSON (biome); --check only verifies
@@ -49,6 +51,10 @@ tasks:
                     check every relative link and #anchor in the tracked Markdown files
   todos [--check]   regenerate the todo board (docs/todos/README.md) and each todo's Blocks
                     field from the Depends on links; --check only verifies
+  capabilities [--check]
+                    run every test tagged `/// capability: <ID> <surface> <status>` and
+                    rewrite docs/capabilities/README.md from what they prove; --check only
+                    verifies (and fails if a tagged test fails)
   golden [--update] regenerate every golden in fixtures/golden/ from its source and print the
                     list (--update writes them, and the shaping goldens in fixtures/shaping/
                     when hb-shape is installed; without it, fail if they would change)
@@ -153,6 +159,8 @@ fn main() -> Result<()> {
         ("docs-links", [flag]) if flag == "--json" => docs_links::run(&ws.root, true),
         ("todos", []) => todos::run(&ws.root, false),
         ("todos", [flag]) if flag == "--check" => todos::run(&ws.root, true),
+        ("capabilities", []) => capabilities::run(&ws.root, false),
+        ("capabilities", [flag]) if flag == "--check" => capabilities::run(&ws.root, true),
         ("golden", []) => harness::golden(&ws, false),
         ("golden", [flag]) if flag == "--update" => harness::golden(&ws, true),
         ("corpus", [what]) if what == "facts" => harness::corpus_facts(&ws),
@@ -192,6 +200,8 @@ fn check_docs(ws: &Workspace) -> Result<()> {
     todos::run(&ws.root, true)?;
     step("portable paths: every tracked path checks out on Windows, macOS and Linux");
     portable_paths::check(&ws.root)?;
+    step("capabilities: manifest vs 06 §3, tags, and no README claim beyond the tagged tests");
+    capabilities::check_static(&ws.root)?;
     step("Docs checks passed");
     Ok(())
 }

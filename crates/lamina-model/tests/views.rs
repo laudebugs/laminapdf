@@ -123,6 +123,7 @@ mod frame {
 mod pages {
     use super::*;
 
+    /// capability: C.04 core read
     #[test]
     fn ids_are_the_page_objects() {
         let doc = outline_pdf();
@@ -204,6 +205,7 @@ mod pages {
         assert_eq!(page.crop_box().unwrap(), page.media_box().unwrap());
     }
 
+    /// capability: C.09 core read
     #[test]
     fn crop_box_is_clipped_to_the_media_box() {
         let doc = one_page("/CropBox [-10 -10 300 300]");
@@ -219,6 +221,8 @@ mod pages {
         assert_eq!(page.trim_box().unwrap(), page.crop_box().unwrap());
     }
 
+    /// capability: C.11 core read
+    /// capability: K.10 core read
     #[test]
     fn art_and_bleed_boxes_are_read_from_the_page() {
         let doc = one_page("/ArtBox [1 2 3 4] /BleedBox [0 0 600 780]");
@@ -233,6 +237,7 @@ mod pages {
         );
     }
 
+    /// capability: C.08 core read
     #[test]
     fn rotate_normalises_negative_multiples_of_90() {
         let doc = one_page("/Rotate -90");
@@ -353,6 +358,8 @@ mod pages {
 mod labels {
     use super::*;
 
+    /// capability: C.14 core read
+    /// capability: I.10 core read
     #[test]
     fn labels_follow_the_ranges() {
         let doc = outline_pdf();
@@ -444,6 +451,7 @@ mod labels {
 mod outline {
     use super::*;
 
+    /// capability: I.01 core read
     #[test]
     fn items_nest_as_in_the_file() {
         let doc = outline_pdf();
@@ -511,6 +519,7 @@ mod outline {
         );
     }
 
+    /// capability: I.04 core read
     #[test]
     fn a_named_destination_resolves_through_the_catalog_dests() {
         let doc = outline_pdf();
@@ -522,6 +531,7 @@ mod outline {
         );
     }
 
+    /// capability: I.04 core read
     #[test]
     fn a_goto_action_resolves_through_the_names_tree() {
         let doc = outline_pdf();
@@ -735,6 +745,7 @@ mod outline {
 mod info {
     use super::*;
 
+    /// capability: J.01 core read
     #[test]
     fn text_fields_are_decoded() {
         let doc = outline_pdf();
@@ -745,6 +756,7 @@ mod info {
         );
     }
 
+    /// capability: J.02 core read
     #[test]
     fn a_valid_date_is_parsed() {
         let doc = outline_pdf();
