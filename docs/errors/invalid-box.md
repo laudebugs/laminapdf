@@ -17,7 +17,7 @@ Nothing; the page uses the next box in the chain.
 
 ## Example
 
-To be added ([L1b](../todos/ready/L1b-error-contract-codegen.md)).
+To be added ([L1b](../todos/ongoing/L1b-error-contract-codegen.md)).
 
 ## Data fields
 

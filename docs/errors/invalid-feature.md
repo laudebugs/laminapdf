@@ -17,7 +17,7 @@ Write the setting as `liga=0`, `-liga`, `smcp` or `aalt=2`, or build it with `Fe
 
 ## Example
 
-To be added ([L1b](../todos/ready/L1b-error-contract-codegen.md)).
+To be added ([L1b](../todos/ongoing/L1b-error-contract-codegen.md)).
 
 ## Data fields
 

@@ -17,7 +17,7 @@ Scale the image down before adding it, or use a JPEG, which is embedded without 
 
 ## Example
 
-To be added ([L1b](../todos/ready/L1b-error-contract-codegen.md)).
+To be added ([L1b](../todos/ongoing/L1b-error-contract-codegen.md)).
 
 ## Data fields
 

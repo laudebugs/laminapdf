@@ -17,7 +17,7 @@ Pass the complete file. Check that the bytes are the format you called (a PNG pa
 
 ## Example
 
-To be added ([L1b](../todos/ready/L1b-error-contract-codegen.md)).
+To be added ([L1b](../todos/ongoing/L1b-error-contract-codegen.md)).
 
 ## Data fields
 
