@@ -79,10 +79,16 @@ runs:
         min_free_kb=$((25 * 1024 * 1024))
         mkdir -p "$root"
 
-        # This runner's build directories, least recently used first. `ls -t`, not find: macOS's
-        # find has no -printf, and every path component here matches [A-Za-z0-9_-]+.
+        # This runner's build directories, least recently used first: any without `.last-used`
+        # (never stamped, so never evicted otherwise) count as the oldest. `ls -t`, not find:
+        # macOS's find has no -printf, and every path component here matches [A-Za-z0-9_-]+.
         # shellcheck disable=SC2012
         oldest_first() {
+          for d in "$root"/*/*; do
+            if [ -d "$d" ] && [ ! -e "$d/.last-used" ]; then
+              printf '%s\n' "$d"
+            fi
+          done
           ls -1tr "$root"/*/*/.last-used 2>/dev/null | sed 's|/\.last-used$||' || true
         }
         free_kb() { df -Pk "$root" | awk 'NR == 2 { print $4 }'; }
