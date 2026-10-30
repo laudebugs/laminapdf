@@ -2,6 +2,10 @@
 //! every fixture × proving op × mode × overrides saves (or is refused) as expected and reopens
 //! with the expected facts. The full lane also checks the outputs with qpdf, pdf.js and `PDFium`
 //! (`cargo xtask roundtrip`).
+#![allow(
+    clippy::unwrap_used,
+    reason = "tests and their helpers: a panic is a test failure"
+)]
 
 mod common;
 
