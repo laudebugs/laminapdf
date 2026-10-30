@@ -6,8 +6,8 @@
 # a workflow-level `paths` filter here.
 #
 # Adding a suite (B4b/B5b extraction, B6c runtimes; B5c added `examples`): give the job
-# `needs: changes`, `runs-on: [self-hosted, macOS, ARM64]` and exactly this condition, then add
-# it to `gate`'s `needs`:
+# `needs: changes`, `runs-on: [self-hosted, macOS, ARM64]`, isolate-rust-home with its own
+# `target-dir` if it builds Rust, and exactly this condition, then add it to `gate`'s `needs`:
 #
 #     if: ${{ !cancelled() && needs.changes.outputs.code == 'true' }}
 #
@@ -20,8 +20,9 @@
 # one output, so changing the variables mid-run can't make them disagree.
 #
 # Every job runs on self-hosted runners on one Mac: the two macOS ARM64 runners, where jobs
-# isolate the Rust install (isolate-rust-home), install pnpm into ${{ runner.temp }} and don't
-# use rust-cache (see ci.yml), and one Linux ARM64 runner in a container on the same Mac
+# isolate the Rust install (isolate-rust-home, which also gives each Rust-building job its own
+# persistent CARGO_TARGET_DIR per runner and kind of trigger: PR output is never reused on main),
+# install pnpm into ${{ runner.temp }} and don't use rust-cache (see ci.yml), and one Linux ARM64 runner in a container on the same Mac
 # (tools/ci-runner/linux/README.md), which runs `check-linux` only. There is no Windows runner
 # (X6); the fast lane covers `cargo xtask check` on macOS.
 # Actions are pinned by full commit SHA with the release in a comment (ADR 0019).
@@ -91,6 +92,8 @@ jobs:
           fetch-depth: 0
       - if: github.event_name == 'pull_request'
         uses: ./.github/actions/isolate-rust-home
+        with:
+          target-dir: xtask
       - if: github.event_name == 'pull_request'
         uses: ./.github/actions/host-rust
         with:
@@ -121,6 +124,8 @@ jobs:
         with:
           persist-credentials: false
       - uses: ./.github/actions/isolate-rust-home
+        with:
+          target-dir: full-differential
       - uses: actions-rust-lang/setup-rust-toolchain@ecabd13d1c56bd1345c230e542e9144811ad706f # v2.0.0
         with:
           # rust-cache's post step on macOS runs `sudo /usr/sbin/purge`, which hangs forever on
@@ -132,11 +137,14 @@ jobs:
           tool: cargo-nextest@0.9.150
       - run: cargo xtask differential --full
 
-  # ADR 0018 tier 9: every fuzz target for 2 minutes under default Limits (the nightly lane
-  # runs 10). Every run starts from the corpus last saved on main; only pushes to main save
-  # it, minimised first (`cargo fuzz cmin`), so the cache stays one bounded entry per runner OS.
+  # ADR 0018 tier 9: every fuzz target under default Limits, 4 at once (`--jobs 4`: built once,
+  # then separate cargo-fuzz processes): 30 s per target on PRs, a smoke test that keeps the PR
+  # lane short, and 2 minutes on pushes to main, so the corpus main saves keeps growing (the
+  # nightly lane runs 10 minutes per target). Every run starts from the corpus last saved on
+  # main; only pushes to main save it, minimised first (`cargo fuzz cmin`), so the cache stays
+  # one bounded entry per runner OS.
   fuzz:
-    name: Fuzz smoke (2 min per target)
+    name: Fuzz smoke (${{ github.event_name == 'pull_request' && '30 s' || '2 min' }} per target)
     needs: changes
     if: ${{ !cancelled() && needs.changes.outputs.code == 'true' }}
     runs-on: [self-hosted, macOS, ARM64]
@@ -146,6 +154,8 @@ jobs:
         with:
           persist-credentials: false
       - uses: ./.github/actions/isolate-rust-home
+        with:
+          target-dir: full-fuzz
       # The pinned stable toolchain (rust-toolchain.toml) builds xtask; fuzz/ needs nightly.
       - uses: actions-rust-lang/setup-rust-toolchain@ecabd13d1c56bd1345c230e542e9144811ad706f # v2.0.0
         with:
@@ -162,8 +172,12 @@ jobs:
           path: fuzz/corpus
           key: fuzz-corpus-main-${{ runner.os }}-${{ runner.arch }}-${{ github.run_id }}
           restore-keys: fuzz-corpus-main-${{ runner.os }}-${{ runner.arch }}-
-      # Adds the seeds from fixtures/ and fuzz/seeds/ to the corpus, then runs each target.
-      - run: cargo xtask fuzz --all --time 120
+      # Adds the seeds from fixtures/ and fuzz/seeds/ to the corpus, builds every target, then
+      # fuzzes them 4 at once; fails if any target crashed (all of them still run).
+      - name: Fuzz every target
+        env:
+          SECONDS_PER_TARGET: ${{ github.event_name == 'pull_request' && '30' || '120' }}
+        run: cargo xtask fuzz --all --time "$SECONDS_PER_TARGET" --jobs 4
       - name: Minimise the corpus before saving it
         if: github.event_name == 'push'
         run: cargo xtask fuzz cmin
@@ -238,6 +252,8 @@ jobs:
         with:
           persist-credentials: false
       - uses: ./.github/actions/isolate-rust-home
+        with:
+          target-dir: full-roundtrip
       - uses: actions-rust-lang/setup-rust-toolchain@ecabd13d1c56bd1345c230e542e9144811ad706f # v2.0.0
         with:
           cache: false
@@ -275,6 +291,8 @@ jobs:
         with:
           persist-credentials: false
       - uses: ./.github/actions/isolate-rust-home
+        with:
+          target-dir: full-examples
       - uses: actions-rust-lang/setup-rust-toolchain@ecabd13d1c56bd1345c230e542e9144811ad706f # v2.0.0
         with:
           cache: false
@@ -312,6 +330,8 @@ jobs:
         with:
           persist-credentials: false
       - uses: ./.github/actions/isolate-rust-home
+        with:
+          target-dir: full-capabilities
       - uses: actions-rust-lang/setup-rust-toolchain@ecabd13d1c56bd1345c230e542e9144811ad706f # v2.0.0
         with:
           cache: false

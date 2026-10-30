@@ -7,8 +7,11 @@
 
 use std::ffi::OsStr;
 use std::fs;
+use std::io::Write as _;
 use std::path::{Path, PathBuf};
 use std::process::Command;
+use std::sync::Mutex;
+use std::sync::atomic::{AtomicUsize, Ordering};
 
 use anyhow::{Context, Result, bail};
 
@@ -276,16 +279,16 @@ pub(crate) fn differential(ws: &Workspace, task: &Differential) -> Result<()> {
 pub(crate) enum FuzzTask<'a> {
     /// Run one target for `seconds`.
     Run { target: &'a str, seconds: u64 },
-    /// Run every target in turn, each for `seconds` (`--all`).
-    RunAll { seconds: u64 },
+    /// Run every target, each for `seconds`, `jobs` of them at once (`--all [--jobs N]`).
+    RunAll { seconds: u64, jobs: usize },
     /// Only build the seed corpora (all targets, or one).
     Seeds(Option<&'a str>),
     /// Minimise the corpora in place (`cargo fuzz cmin`; all targets, or one).
     Cmin(Option<&'a str>),
 }
 
-const FUZZ_USAGE: &str =
-    "usage: cargo xtask fuzz <target>|--all [--time <seconds>] | fuzz seeds [<target>] | fuzz cmin [<target>]";
+const FUZZ_USAGE: &str = "usage: cargo xtask fuzz <target> [--time <seconds>] | fuzz --all [--time <seconds>] \
+     [--jobs <n>] | fuzz seeds [<target>] | fuzz cmin [<target>]";
 
 /// Parses `fuzz <target>|--all [--time N]`, `fuzz seeds [<target>]` and `fuzz cmin [<target>]`.
 /// `target` if it is one of [`FUZZ_TARGETS`], else an error listing them.
@@ -301,12 +304,7 @@ pub(crate) fn parse_fuzz_args(args: &[String]) -> Result<FuzzTask<'_>> {
     let known = |t: &str| known_fuzz_target(t).map(drop);
     let seconds = |s: &str| -> Result<u64> { s.parse().with_context(|| format!("--time {s:?}: not a number")) };
     match args {
-        [all] if all == "--all" => Ok(FuzzTask::RunAll {
-            seconds: DEFAULT_FUZZ_SECONDS,
-        }),
-        [all, flag, time] if all == "--all" && flag == "--time" => Ok(FuzzTask::RunAll {
-            seconds: seconds(time)?,
-        }),
+        [all, flags @ ..] if all == "--all" => parse_run_all(flags),
         [cmd] if cmd == "seeds" => Ok(FuzzTask::Seeds(None)),
         [cmd, target] if cmd == "seeds" => {
             known(target)?;
@@ -335,6 +333,38 @@ pub(crate) fn parse_fuzz_args(args: &[String]) -> Result<FuzzTask<'_>> {
     }
 }
 
+/// `--time N` and `--jobs N` after `--all`, in any order, each at most once.
+fn parse_run_all(flags: &[String]) -> Result<FuzzTask<'static>> {
+    let mut seconds = None;
+    let mut jobs = None;
+    for pair in flags.chunks(2) {
+        let [flag, value] = pair else { bail!("{FUZZ_USAGE}") };
+        match flag.as_str() {
+            "--time" if seconds.is_none() => {
+                seconds = Some(
+                    value
+                        .parse()
+                        .with_context(|| format!("--time {value:?}: not a number"))?,
+                );
+            }
+            "--jobs" if jobs.is_none() => {
+                let n: usize = value
+                    .parse()
+                    .with_context(|| format!("--jobs {value:?}: not a number"))?;
+                if n == 0 {
+                    bail!("--jobs must be at least 1");
+                }
+                jobs = Some(n);
+            }
+            _ => bail!("{FUZZ_USAGE}"),
+        }
+    }
+    Ok(FuzzTask::RunAll {
+        seconds: seconds.unwrap_or(DEFAULT_FUZZ_SECONDS),
+        jobs: jobs.unwrap_or(1),
+    })
+}
+
 /// `cargo xtask fuzz …`.
 pub(crate) fn fuzz(ws: &Workspace, task: &FuzzTask<'_>) -> Result<()> {
     match *task {
@@ -347,14 +377,18 @@ pub(crate) fn fuzz(ws: &Workspace, task: &FuzzTask<'_>) -> Result<()> {
             let host = fuzz_setup(ws)?;
             fuzz_one(ws, &host, target, seconds)
         }
-        FuzzTask::RunAll { seconds } => {
+        FuzzTask::RunAll { seconds, jobs } => {
             let host = fuzz_setup(ws)?;
             // Every target runs even after one fails, so one run reports every crash.
-            let failed: Vec<String> = FUZZ_TARGETS
-                .into_iter()
-                .filter_map(|target| fuzz_one(ws, &host, target, seconds).err())
-                .map(|e| format!("{e:#}"))
-                .collect();
+            let failed: Vec<String> = if jobs == 1 {
+                FUZZ_TARGETS
+                    .into_iter()
+                    .filter_map(|target| fuzz_one(ws, &host, target, seconds).err())
+                    .map(|e| format!("{e:#}"))
+                    .collect()
+            } else {
+                fuzz_parallel(ws, &host, seconds, jobs)?
+            };
             if !failed.is_empty() {
                 bail!("{} fuzz target(s) failed:\n  {}", failed.len(), failed.join("\n  "));
             }
@@ -365,6 +399,89 @@ pub(crate) fn fuzz(ws: &Workspace, task: &FuzzTask<'_>) -> Result<()> {
             Ok(())
         }
     }
+}
+
+/// Runs every target for `seconds`, `jobs` cargo-fuzz processes at once, and returns one
+/// message per failed target. The seed corpora are written and every target is built first
+/// (one `cargo fuzz build`), so the concurrent runs only fuzz. Each run's output is buffered
+/// and printed whole when it ends, so the log reads one target at a time.
+fn fuzz_parallel(ws: &Workspace, host: &str, seconds: u64, jobs: usize) -> Result<Vec<String>> {
+    let corpora = FUZZ_TARGETS
+        .into_iter()
+        .map(|target| Ok((target, seeds(ws, target)?)))
+        .collect::<Result<Vec<_>>>()?;
+    // The same build options as `cargo fuzz run`'s defaults, so the runs find it up to date.
+    run(&ws.root, "cargo", &["+nightly", "fuzz", "build", "--target", host])?;
+    step(&format!(
+        "Fuzzing {} targets for {seconds} s each, {jobs} at once",
+        corpora.len()
+    ));
+    let next = AtomicUsize::new(0);
+    let failures = Mutex::new(Vec::new());
+    std::thread::scope(|scope| {
+        for _ in 0..jobs.min(corpora.len()) {
+            scope.spawn(|| {
+                while let Some((target, corpus)) = corpora.get(next.fetch_add(1, Ordering::Relaxed)) {
+                    if let Err(e) = fuzz_captured(ws, host, target, corpus, seconds) {
+                        failures
+                            .lock()
+                            .unwrap_or_else(std::sync::PoisonError::into_inner)
+                            .push((*target, format!("{e:#}")));
+                    }
+                }
+            });
+        }
+    });
+    let mut failures = failures.into_inner().unwrap_or_else(std::sync::PoisonError::into_inner);
+    // Report in target order, whatever order the runs ended in.
+    failures.sort_by_key(|(target, _)| FUZZ_TARGETS.iter().position(|t| t == target));
+    Ok(failures.into_iter().map(|(_, message)| message).collect())
+}
+
+/// One target's run for [`fuzz_parallel`]: its output captured and printed in one block
+/// (`[target]` on every line) when the run ends.
+fn fuzz_captured(ws: &Workspace, host: &str, target: &str, corpus: &Path, seconds: u64) -> Result<()> {
+    let artifacts = ws.root.join("fuzz/artifacts").join(target);
+    let before = artifact_names(&artifacts);
+    let args = fuzz_run_args(host, target, &corpus.to_string_lossy(), seconds);
+    println!("[{target}] started: cargo {}", args.join(" "));
+    let output = Command::new("cargo")
+        .args(&args)
+        .current_dir(&ws.root)
+        .output()
+        .with_context(|| format!("{target}: failed to start cargo fuzz"))?;
+    {
+        let mut out = std::io::stdout().lock();
+        let text = [output.stdout.as_slice(), output.stderr.as_slice()].concat();
+        for line in String::from_utf8_lossy(&text).lines() {
+            // A closed stdout must not hide the run's result, so write errors are ignored.
+            let _ = writeln!(out, "[{target}] {line}");
+        }
+        let _ = writeln!(out, "[{target}] finished: {}", output.status);
+    }
+    if output.status.success() {
+        return Ok(());
+    }
+    let new: Vec<String> = artifact_names(&artifacts).difference(&before).cloned().collect();
+    bail!(describe_failure(
+        target,
+        &new,
+        &format!("cargo fuzz run exited with {}", output.status)
+    ))
+}
+
+/// `cargo` arguments that fuzz `target` over `corpus` for `seconds` under
+/// [`crate::nightly::LIBFUZZER_LIMITS`] (which `tmin` uses too).
+fn fuzz_run_args(host: &str, target: &str, corpus: &str, seconds: u64) -> Vec<String> {
+    // fuzz/ is its own nightly workspace (ADR 0018); `+nightly` overrides the root pin.
+    let max_time = format!("-max_total_time={seconds}");
+    [
+        "+nightly", "fuzz", "run", "--target", host, target, corpus, "--", &max_time,
+    ]
+    .into_iter()
+    .chain(crate::nightly::LIBFUZZER_LIMITS)
+    .map(str::to_owned)
+    .collect()
 }
 
 /// `[target]`, or every target when none was named.
@@ -387,25 +504,7 @@ fn fuzz_one(ws: &Workspace, host: &str, target: &str, seconds: u64) -> Result<()
     let corpus = corpus.to_string_lossy().into_owned();
     let artifacts = ws.root.join("fuzz/artifacts").join(target);
     let before = artifact_names(&artifacts);
-    let max_time = format!("-max_total_time={seconds}");
-    // fuzz/ is its own nightly workspace (ADR 0018); `+nightly` overrides the root pin.
-    let result = run(
-        &ws.root,
-        "cargo",
-        &[
-            "+nightly",
-            "fuzz",
-            "run",
-            "--target",
-            host,
-            target,
-            &corpus,
-            "--",
-            &max_time,
-            "-timeout=10",
-            "-rss_limit_mb=2048",
-        ],
-    );
+    let result = run(&ws.root, "cargo", &fuzz_run_args(host, target, &corpus, seconds));
     result.map_err(|e| {
         let new: Vec<String> = artifact_names(&artifacts).difference(&before).cloned().collect();
         anyhow::anyhow!(describe_failure(target, &new, &format!("{e:#}")))
@@ -674,7 +773,28 @@ mod tests {
     #[test]
     fn fuzz_all_reads_the_time() {
         let a = args(&["--all", "--time", "120"]);
-        assert_eq!(parse_fuzz_args(&a).unwrap(), FuzzTask::RunAll { seconds: 120 });
+        assert_eq!(parse_fuzz_args(&a).unwrap(), FuzzTask::RunAll { seconds: 120, jobs: 1 });
+    }
+
+    #[test]
+    fn fuzz_all_reads_jobs_in_any_order() {
+        let a = args(&["--all", "--jobs", "4", "--time", "30"]);
+        assert_eq!(parse_fuzz_args(&a).unwrap(), FuzzTask::RunAll { seconds: 30, jobs: 4 });
+    }
+
+    #[test]
+    fn fuzz_all_rejects_zero_jobs() {
+        assert!(parse_fuzz_args(&args(&["--all", "--jobs", "0"])).is_err());
+    }
+
+    #[test]
+    fn fuzz_all_rejects_a_repeated_flag() {
+        assert!(parse_fuzz_args(&args(&["--all", "--time", "1", "--time", "2"])).is_err());
+    }
+
+    #[test]
+    fn fuzz_jobs_needs_all() {
+        assert!(parse_fuzz_args(&args(&["lex", "--jobs", "2"])).is_err());
     }
 
     #[test]

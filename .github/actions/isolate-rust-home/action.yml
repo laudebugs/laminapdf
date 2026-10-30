@@ -3,8 +3,40 @@
 # directory overrides, and two runners doing so at once can leave the user without a rustup binary.
 # This points CARGO_HOME and RUSTUP_HOME at the runner's own tool cache instead, so each runner
 # keeps a private, persistent Rust install. GitHub-hosted runners keep their preinstalled one.
+#
+# With `target-dir`, it also points CARGO_TARGET_DIR at a persistent build directory in that tool
+# cache, so a job reuses the build output of the runner's previous run of the same job instead
+# of compiling from scratch (actions/checkout cleans the workspace's target/, and rust-cache is
+# off on macOS: its post step hangs on `sudo purge`). The directory is
+#
+#     $RUNNER_TOOL_CACHE/lamina-target/<bucket>/<target-dir>
+#
+# - One per runner: each runner has its own tool cache and runs one job at a time.
+# - One per job (`target-dir`, e.g. `ci-rust`): jobs build different features, profiles and
+#   targets, and sharing one directory would keep rebuilding each other's output.
+# - One per kind of trigger (<bucket>): `main-push` (pushes to main), `main-schedule` (the nightly
+#   lane on main), and every other event or ref apart (`pull_request`, `workflow_dispatch`, …).
+#   Build output a pull request's code produced is never reused by a run on main: main's runs
+#   only ever build into, and read from, directories that only main's runs write. This is the
+#   same rule as check-linux's rust-cache (only main saves). It keeps cargo from reusing PR
+#   output; it is not a sandbox: PR code runs as the runner's user, which can write anywhere in
+#   the tool cache, as it can CARGO_HOME today. The repository is private, so PR authors are
+#   collaborators and fork PRs can't run here.
+# - Capped: when the directory is over 15 GB before the build, it is deleted and the job builds
+#   from scratch (cargo never deletes stale artefacts by itself).
+#
+# xtask reads the directory from `cargo metadata` (Workspace::target_dir) wherever it needs
+# cargo's output. Its reports stay in the checkout's target/ (target/xtask/, target/nightly/,
+# target/examples-out/), where the workflows upload them from, fresh for every job.
 name: Isolate the Rust install on self-hosted runners
-description: Use a per-runner CARGO_HOME and RUSTUP_HOME on self-hosted runners.
+description: Use a per-runner CARGO_HOME and RUSTUP_HOME (and optionally CARGO_TARGET_DIR) on self-hosted runners.
+inputs:
+  target-dir:
+    description: >-
+      Name of this job's persistent build directory (letters, digits, `-`, `_`), unique per
+      workflow job. Empty: cargo builds into the checkout's target/ as usual.
+    required: false
+    default: ""
 runs:
   using: composite
   steps:
@@ -14,3 +46,39 @@ runs:
         echo "CARGO_HOME=$RUNNER_TOOL_CACHE/cargo" >> "$GITHUB_ENV"
         echo "RUSTUP_HOME=$RUNNER_TOOL_CACHE/rustup" >> "$GITHUB_ENV"
         echo "$RUNNER_TOOL_CACHE/cargo/bin" >> "$GITHUB_PATH"
+    - if: runner.environment == 'self-hosted' && inputs.target-dir != ''
+      shell: bash
+      env:
+        NAME: ${{ inputs.target-dir }}
+        EVENT: ${{ github.event_name }}
+        REF: ${{ github.ref }}
+      run: |
+        set -euo pipefail
+        if ! [[ "$NAME" =~ ^[A-Za-z0-9_-]+$ ]]; then
+          echo "::error::target-dir '$NAME' must be letters, digits, '-' and '_' only"
+          exit 1
+        fi
+        case "$EVENT/$REF" in
+          push/refs/heads/main) bucket=main-push ;;
+          schedule/refs/heads/main) bucket=main-schedule ;;
+          push/* | schedule/*) bucket="$EVENT-other-ref" ;;
+          *) bucket="$EVENT" ;;
+        esac
+        if ! [[ "$bucket" =~ ^[A-Za-z0-9_-]+$ ]]; then
+          echo "::error::unexpected event name '$EVENT'"
+          exit 1
+        fi
+        dir="$RUNNER_TOOL_CACHE/lamina-target/$bucket/$NAME"
+        limit_kb=$((15 * 1024 * 1024))
+        if [ -d "$dir" ]; then
+          size_kb=$(du -sk "$dir" | cut -f1)
+          echo "Build directory $dir: $((size_kb / 1024)) MB"
+          if [ "$size_kb" -gt "$limit_kb" ]; then
+            echo "::notice::$dir is over 15 GB: deleting it, this job builds from scratch"
+            rm -rf "$dir"
+          fi
+        else
+          echo "Build directory $dir: new, this job builds from scratch"
+        fi
+        mkdir -p "$dir"
+        echo "CARGO_TARGET_DIR=$dir" >> "$GITHUB_ENV"

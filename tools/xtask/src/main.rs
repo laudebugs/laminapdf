@@ -92,8 +92,10 @@ tasks:
                     run a fuzz target (lex, parse_object, flate_decode, open, page_tree, content,
                     ops_json, save_roundtrip) with
                     cargo +nightly fuzz (default 60 s); seeds come from fixtures/ and fuzz/seeds/
-  fuzz --all [--time <seconds>]
-                    run every fuzz target in turn (the full lane: --time 120)
+  fuzz --all [--time <seconds>] [--jobs <n>]
+                    run every fuzz target, <n> at once (default 1: in turn); built once first,
+                    each run's output printed whole when it ends (the full lane: 30 s on PRs,
+                    120 s on main, --jobs 4)
   fuzz seeds [<target>]
                     only build the seed corpora in fuzz/corpus/
   fuzz cmin [<target>]
