@@ -17,7 +17,9 @@ Check the values passed to `Builder::page`, `PageBuilder::user_unit`, the box se
 
 ## Example
 
-To be added ([L1b](../todos/ongoing/L1b-error-contract-codegen.md)).
+```rust
+let page = builder.page(PageSize::new(Pt::new(0.0), Pt::new(842.0))); // invalid-geometry at finish
+```
 
 ## Data fields
 

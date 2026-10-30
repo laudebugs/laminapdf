@@ -17,7 +17,9 @@ Pass exactly 4 bytes per pixel.
 
 ## Example
 
-To be added ([L1b](../todos/ongoing/L1b-error-contract-codegen.md)).
+```rust
+let img = Image::rgba(2, 2, vec![0; 12])?; // image-data-length: 16 bytes expected
+```
 
 ## Data fields
 

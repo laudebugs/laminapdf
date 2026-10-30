@@ -17,7 +17,11 @@ Treat the permissions as untrusted.
 
 ## Example
 
-To be added ([L1b](../todos/ongoing/L1b-error-contract-codegen.md)).
+```text
+/Encrypt << /V 5 /R 6 /P -3904 /Perms <…> … >>   % /Perms decrypts to a different /P
+```
+
+The document opens, but `Document::permissions()` comes from a `/P` that the encrypted `/Perms` contradicts.
 
 ## Data fields
 

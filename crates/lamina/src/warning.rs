@@ -32,16 +32,12 @@ impl Warning {
         }
     }
 
-    /// The kind ([ADR 0026] §2).
+    /// The kind ([ADR 0026] §2), from the generated [`WarningCode`](crate::WarningCode) table.
     ///
     /// [ADR 0026]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0026-error-and-diagnostic-contract.md
     #[must_use]
     pub const fn kind(&self) -> ErrorKind {
-        match self {
-            Self::Document(w) => w.kind(),
-            #[cfg(feature = "text")]
-            Self::Font(w) => w.kind(),
-        }
+        codes::kind(self.code())
     }
 
     /// Where the problem is ([ADR 0026] §1.1).

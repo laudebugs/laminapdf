@@ -9,7 +9,7 @@ An object had a different type than the structure requires.
 
 ## Why
 
-Malformed input.
+Malformed input: an object of the wrong type where the structure requires a specific one.
 
 ## How to fix
 
@@ -17,7 +17,11 @@ Use another copy of the file.
 
 ## Example
 
-To be added ([L1b](../todos/ongoing/L1b-error-contract-codegen.md)).
+```text
+2 0 obj << /Type /Pages /Kids 5 >>
+```
+
+`/Kids` must be an array; reading the page tree fails with `type`, and `data` names what was expected and where (`expected`, `context`, from lamina's own vocabulary).
 
 ## Data fields
 

@@ -20,6 +20,9 @@ catalog:
   "@biomejs/biome": 2.6.3
   "@types/node": 24.19.2
   "@vitest/browser-playwright": 5.0.5
+  # JSON Schema 2020-12 validation of LaminaError.toJSON() against lamina.error/1 (tests only).
+  # MIT (fast-deep-equal, json-schema-traverse, require-from-string: MIT; fast-uri: BSD-3-Clause)
+  ajv: 8.20.0
   bun: 1.4.3
   deno: 2.9.6
   esbuild: 0.28.2

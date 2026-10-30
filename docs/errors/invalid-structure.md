@@ -9,7 +9,7 @@ An object stream, xref section or filter parameter was malformed or out of range
 
 ## Why
 
-Malformed input.
+Malformed input: an object stream, xref section or filter parameter out of range.
 
 ## How to fix
 
@@ -17,7 +17,11 @@ Use another copy of the file.
 
 ## Example
 
-To be added ([L1b](../todos/ongoing/L1b-error-contract-codegen.md)).
+```text
+12 0 obj << /Type /ObjStm /N 3 /First -4 >>
+```
+
+A negative `/First` makes the object stream unusable; `data.structure` says which structure was malformed.
 
 ## Data fields
 

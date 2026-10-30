@@ -17,7 +17,12 @@ Retry `rebase` with the output the error carries (`saved.source()`; in the `lami
 
 ## Example
 
-To be added ([L1b](../todos/ongoing/L1b-error-contract-codegen.md)).
+```rust
+match doc.save(&options, &cancel) {
+    Err(e) if e.code() == "not-rebased" => doc.rebase(e.saved_output().unwrap())?,
+    other => { other?; }
+}
+```
 
 ## Data fields
 

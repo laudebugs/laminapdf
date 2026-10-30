@@ -17,7 +17,11 @@ Use a tool that supports the handler.
 
 ## Example
 
-To be added ([L1b](../todos/ongoing/L1b-error-contract-codegen.md)).
+```text
+trailer << /Encrypt << /Filter /Adobe.PubSec /SubFilter /adbe.pkcs7.s5 … >> >>
+```
+
+A public-key (certificate) handler: lamina implements only `/Standard`, so `open` fails. `data.filter` holds the handler's name as read from the file.
 
 ## Data fields
 

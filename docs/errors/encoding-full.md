@@ -17,7 +17,7 @@ Embed a font (`Font::from_bytes`), which addresses every glyph through a Type 0 
 
 ## Example
 
-To be added ([L1b](../todos/ongoing/L1b-error-contract-codegen.md)).
+Drawing more than 37 different non-WinAnsi Latin glyphs (Ā, ă, Ą, …) with `Standard14::Helvetica` in one document: the 38th has no free code in the font's `/Differences`, so the call fails with `encoding-full`.
 
 ## Data fields
 

@@ -17,7 +17,11 @@ The `Info` view keeps the raw string; read it there if you need it.
 
 ## Example
 
-To be added ([L1b](../todos/ongoing/L1b-error-contract-codegen.md)).
+```text
+<< /CreationDate (last Tuesday) >>
+```
+
+The Info view's `creation_date` is `None` and its raw string is kept; `data` is `{ "key": "CreationDate" }`.
 
 ## Data fields
 

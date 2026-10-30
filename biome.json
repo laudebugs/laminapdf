@@ -11,6 +11,8 @@
       "!!tools/std14-gen/data",
       "!!**/target",
       "!!**/dist",
+      "!!**/src/generated",
+      "!!**/schemas/*.schema.json",
       "!!**/pnpm-lock.yaml"
     ]
   },

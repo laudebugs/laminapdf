@@ -17,7 +17,11 @@ Check the page: everything after the inline image is missing.
 
 ## Example
 
-To be added ([L1b](../todos/ongoing/L1b-error-contract-codegen.md)).
+```text
+BI /W 10 /H 10 /CS /G /BPC 8 ID …(100 bytes, then the stream ends)…
+```
+
+No `EI` follows the image data, so the rest of the stream is skipped.
 
 ## Data fields
 

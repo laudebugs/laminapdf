@@ -17,7 +17,9 @@ Write the setting as `liga=0`, `-liga`, `smcp` or `aalt=2`, or build it with `Fe
 
 ## Example
 
-To be added ([L1b](../todos/ongoing/L1b-error-contract-codegen.md)).
+```rust
+let f: Feature = "liga[3:5]=0".parse()?; // invalid-feature: ranges are not supported
+```
 
 ## Data fields
 

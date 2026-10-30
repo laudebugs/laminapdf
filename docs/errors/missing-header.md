@@ -13,11 +13,18 @@ Files are often truncated at the front or prefixed with other data.
 
 ## How to fix
 
-Nothing, if the document reads correctly. Use strict mode to refuse such files.
+Nothing, if the document reads correctly. Open in strict mode to refuse such files, or strip whatever precedes `%PDF` before opening.
 
 ## Example
 
-To be added ([L1b](../todos/ongoing/L1b-error-contract-codegen.md)).
+```text
+From: mailer@example.org
+...
+%PDF-1.7
+1 0 obj << /Type /Catalog /Pages 2 0 R >> endobj
+```
+
+The header starts after the first 1,024 bytes (here behind mail headers), so `Document::open_bytes` warns and reads the objects anyway. With `OpenOptions::default().with_strict(true)` the same open fails with [`strict`](strict.md).
 
 ## Data fields
 

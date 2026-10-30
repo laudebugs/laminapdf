@@ -96,23 +96,13 @@ impl Error {
         }
     }
 
-    /// The kind ([ADR 0026] §2): what the caller can do about it.
+    /// The kind ([ADR 0026] §2): what the caller can do about it, from the generated
+    /// [`ErrorCode`](crate::ErrorCode) table.
     ///
     /// [ADR 0026]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0026-error-and-diagnostic-contract.md
     #[must_use]
     pub const fn kind(&self) -> ErrorKind {
-        match self {
-            Self::Cos(e) => e.kind(),
-            Self::Ops(e) => e.kind(),
-            Self::Save(e) => e.kind(),
-            #[cfg(feature = "text")]
-            Self::Text(e) => e.kind(),
-            #[cfg(feature = "build")]
-            Self::Build(e) => e.kind(),
-            Self::PageIndexOutOfRange { .. } => ErrorKind::Usage,
-            Self::Cancelled => ErrorKind::Cancelled,
-            Self::JobFinished | Self::DocumentChanged => ErrorKind::State,
-        }
+        codes::kind(self.code())
     }
 
     /// Where the error was found ([ADR 0026] §1.1); empty when nothing is known.
@@ -317,6 +307,25 @@ mod tests {
             e.hint()
                 .is_some_and(|h| h.contains("max_nesting_depth") && !h.contains('{'))
         );
+    }
+
+    /// The façade's `kind()` (the generated table) agrees with the core crates' own `kind()`
+    /// (`tests/error_contract.rs` checks every variant against `codes.json`).
+    #[test]
+    fn kind_from_the_generated_table_matches_the_core_crates() {
+        let wrapped = [
+            Error::Cos(lamina_cos::Error::MissingRoot),
+            Error::Cos(lamina_cos::Error::WrongPassword),
+            Error::Ops(lamina_ops::Error::NoTransaction),
+            Error::Save(lamina_save::SaveError::RequiresRewrite { reasons: Vec::new() }),
+        ];
+        let core = [
+            lamina_cos::Error::MissingRoot.kind(),
+            lamina_cos::Error::WrongPassword.kind(),
+            lamina_ops::Error::NoTransaction.kind(),
+            lamina_save::SaveError::RequiresRewrite { reasons: Vec::new() }.kind(),
+        ];
+        assert_eq!(wrapped.map(|e| e.kind()), core);
     }
 
     #[test]

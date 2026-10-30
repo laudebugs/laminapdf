@@ -17,7 +17,10 @@ Pass an empty sink. The document is unchanged.
 
 ## Example
 
-To be added ([L1b](../todos/ongoing/L1b-error-contract-codegen.md)).
+```rust
+let mut sink = b"%PDF-".to_vec();
+ops.save(&mut sink, &options)?; // sink-not-empty, data.held = 5
+```
 
 ## Data fields
 

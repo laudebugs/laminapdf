@@ -17,7 +17,10 @@ Define the name with `Builder::destination(name, page_index, fit)` before `Build
 
 ## Example
 
-To be added ([L1b](../todos/ongoing/L1b-error-contract-codegen.md)).
+```rust
+surface.link(rect, LinkTarget::Named("appendix".into()), None);
+builder.finish()?; // unknown-destination: call builder.destination("appendix", …) first
+```
 
 ## Data fields
 

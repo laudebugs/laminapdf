@@ -17,7 +17,10 @@ Register every font of a layout and pass the key of the run's own font: each `Li
 
 ## Example
 
-To be added ([L1b](../todos/ongoing/L1b-error-contract-codegen.md)).
+```rust
+let run = shaper.shape(&noto, text, &options)?;
+pdf_run(&run, text, &mut registry, roboto_key)?; // font-mismatch: shaped with Noto
+```
 
 ## Data fields
 

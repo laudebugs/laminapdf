@@ -9,7 +9,7 @@ A Form XObject draws itself, directly or through other forms; the inner `Do` was
 
 ## Why
 
-A malformed or hostile file.
+A malformed or hostile file: forms that draw each other without end would never finish.
 
 ## How to fix
 
@@ -17,7 +17,11 @@ Nothing to do.
 
 ## Example
 
-To be added ([L1b](../todos/ongoing/L1b-error-contract-codegen.md)).
+```text
+8 0 obj << /Subtype /Form /Resources << /XObject << /Me 8 0 R >> >> >> stream /Me Do endstream
+```
+
+The form draws itself: the inner `/Me Do` is skipped once lamina sees form 8 a second time.
 
 ## Data fields
 

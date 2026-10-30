@@ -17,7 +17,11 @@ Check the page's `/Resources`.
 
 ## Example
 
-To be added ([L1b](../todos/ongoing/L1b-error-contract-codegen.md)).
+```text
+/Im7 Do      % /Resources << /XObject << /Im1 8 0 R >> >>
+```
+
+`/Im7` is not in the page's resources, so the `Do` draws nothing. `data.category` is `XObject`; the resource's name, which comes from the file, is never put in the message.
 
 ## Data fields
 

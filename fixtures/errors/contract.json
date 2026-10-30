@@ -1,0 +1,55 @@
+{
+  "description": "Shared expectations (ADR 0018 §5) for the ADR 0026 §1 error object: each case opens an input with options (and, with `call: \"pageCount\"`, then reads the page count), and the Rust façade (crates/lamina/tests/error_contract.rs) and @lamina/pdf (packages/pdf/test/codes.test.ts) must both throw exactly `expected`, which validates against lamina.error/1. `file` is relative to the repository root; `text` is the input's bytes as UTF-8. Limits use the TS (camelCase) names.",
+  "cases": [
+    {
+      "name": "wrong password",
+      "file": "fixtures/encrypted/r6-aes-256-user.pdf",
+      "options": {
+        "password": "nope"
+      },
+      "expected": {
+        "code": "wrong-password",
+        "kind": "security",
+        "message": "wrong password",
+        "hint": "ask for the password again and retry with the correct one",
+        "docsUrl": "https://github.com/laudebugs/lamina/blob/main/docs/errors/wrong-password.md"
+      }
+    },
+    {
+      "name": "limit exceeded",
+      "file": "fixtures/golden/examples/hello.pdf",
+      "options": {
+        "limits": {
+          "maxNestingDepth": 1
+        }
+      },
+      "call": "pageCount",
+      "expected": {
+        "code": "limit-exceeded",
+        "kind": "limit",
+        "message": "max_nesting_depth exceeded at byte 89 of object 9's stream data",
+        "hint": "the input exceeds a safety limit; raise max_nesting_depth in Limits only if you trust the input",
+        "location": {
+          "object": 9,
+          "streamOffset": 89
+        },
+        "data": {
+          "limit": "max_nesting_depth"
+        },
+        "docsUrl": "https://github.com/laudebugs/lamina/blob/main/docs/errors/limit-exceeded.md"
+      }
+    },
+    {
+      "name": "malformed file",
+      "text": "not a pdf",
+      "options": {},
+      "expected": {
+        "code": "not-pdf",
+        "kind": "input",
+        "message": "not a PDF: no objects found",
+        "hint": "check that the bytes passed to open are a PDF file",
+        "docsUrl": "https://github.com/laudebugs/lamina/blob/main/docs/errors/not-pdf.md"
+      }
+    }
+  ]
+}

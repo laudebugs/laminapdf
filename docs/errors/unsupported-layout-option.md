@@ -17,7 +17,10 @@ Leave `justify` at `false` and pick an `Alignment` (start, end, left, right or c
 
 ## Example
 
-To be added ([L1b](../todos/ongoing/L1b-error-contract-codegen.md)).
+```rust
+let options = LayoutOptions { justify: true, ..LayoutOptions::new(300.0, 12.0) };
+break_lines(&shaper, &fonts, text, &options)?; // unsupported-layout-option
+```
 
 ## Data fields
 

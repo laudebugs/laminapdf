@@ -17,7 +17,13 @@ Nothing to do. The rest of the CMap is used; affected glyphs may extract as othe
 
 ## Example
 
-To be added ([L1b](../todos/ongoing/L1b-error-contract-codegen.md)).
+```text
+1 beginbfchar
+<0003> <0020
+endbfchar
+```
+
+The destination string is not closed; the entry is skipped, and the rest of the ToUnicode CMap is used.
 
 ## Data fields
 

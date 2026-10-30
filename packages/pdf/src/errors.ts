@@ -1,19 +1,9 @@
 // LaminaError and LaminaWarning (ADR 0026 §1, §7): every error @lamina/pdf throws is a
 // LaminaError built from the §1 object the WASM throws, or raised here with the kind and hint
 // codes.json gives the code.
-import { DOCS_URL, type ErrorCode, RAISED_BY_PACKAGE, type WarningCode } from "./codes.generated.js";
+import { DOCS_URL, type ErrorCode, type ErrorKind, RAISED_BY_PACKAGE, type WarningCode } from "./generated/codes.js";
 
-/** The nine kinds of ADR 0026 §2: what the caller can do about an error. */
-export type ErrorKind =
-  | "input"
-  | "io"
-  | "unsupported"
-  | "limit"
-  | "security"
-  | "usage"
-  | "state"
-  | "cancelled"
-  | "internal";
+export type { ErrorKind };
 
 /** Where a problem is (ADR 0026 §1.1); each field has one meaning, all lamina-made values. */
 export interface Location {

@@ -17,7 +17,11 @@ Check tagged-content results; the sequences were closed for you.
 
 ## Example
 
-To be added ([L1b](../todos/ongoing/L1b-error-contract-codegen.md)).
+```text
+/P << /MCID 0 >> BDC (text) Tj
+```
+
+The stream ends with the marked-content sequence open; it is closed at the end, so MCID 0 covers the text that follows it.
 
 ## Data fields
 

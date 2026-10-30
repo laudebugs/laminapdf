@@ -40,14 +40,19 @@ usage: cargo xtask <task> [args]
 tasks:
   check [rust|ts|docs]
                     everything a PR must pass (default: docs, rust and ts)
-                    docs: docs-links, todos --check, portable paths and the capability
-                    matrix's static checks (capabilities --check runs the tests)
+                    docs: docs-links, todos --check, portable paths, the capability
+                    matrix's static checks (capabilities --check runs the tests) and
+                    gen codes --check
                     rust: fmt --check, portability, clippy (native + wasm32), tests, rustdoc, cargo-deny
-                    ts:   biome ci, gen codes --check, typecheck and tests of the pnpm
+                    ts:   biome ci, typecheck and tests of the pnpm
                           workspace, npm licences
-  gen codes [--check]
-                    write @lamina/pdf's code unions (packages/pdf/src/codes.generated.ts) from
-                    fixtures/codes.json; --check fails when the file is stale
+  gen codes [--check|--md]
+                    validate fixtures/codes.json against fixtures/codes.schema.json and write
+                    the error contract from it: the façade's ErrorCode/WarningCode
+                    (crates/lamina/src/generated/), @lamina/pdf's unions, tables and explain
+                    pages (packages/pdf/src/generated/), the lamina.error/1 JSON Schema
+                    (packages/pdf/schemas/, crates/lamina/schemas/) and docs/errors/README.md's
+                    tables; --check fails naming each stale file; --md prints the tables
   fmt [--check]     format Rust (cargo fmt) and TS/JSON (biome); --check only verifies
   lint              clippy native (all targets) and wasm32 (core crates), biome ci
   test              Rust tests (cargo-nextest when installed, else cargo test) + doc tests, TS tests
@@ -173,6 +178,7 @@ fn main() -> Result<()> {
         ("check", [scope]) if scope == "ts" => check_ts(&ws),
         ("gen", [what]) if what == "codes" => codegen::codes(&ws, false),
         ("gen", [what, flag]) if what == "codes" && flag == "--check" => codegen::codes(&ws, true),
+        ("gen", [what, flag]) if what == "codes" && flag == "--md" => codegen::markdown(&ws),
         ("fmt", []) => fmt(&ws, false),
         ("fmt", [flag]) if flag == "--check" => fmt(&ws, true),
         ("lint", []) => {
@@ -250,6 +256,7 @@ fn check_docs(ws: &Workspace) -> Result<()> {
     portable_paths::check(&ws.root)?;
     step("capabilities: manifest vs 06 §3, tags, and no README claim beyond the tagged tests");
     capabilities::check_static(&ws.root)?;
+    codegen::codes(ws, true)?;
     step("Docs checks passed");
     Ok(())
 }
@@ -267,7 +274,6 @@ fn check_rust(ws: &Workspace) -> Result<()> {
 
 fn check_ts(ws: &Workspace) -> Result<()> {
     biome_ci(ws)?;
-    codegen::codes(ws, true)?;
     ws.pnpm(&["-r", "--if-present", "run", "typecheck"])?;
     ts_tests(ws)?;
     licenses::check_npm(ws)?;

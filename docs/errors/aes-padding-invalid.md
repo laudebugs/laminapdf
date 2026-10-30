@@ -13,11 +13,15 @@ Damaged data, or plaintext spliced into an encrypted file (PDFex-style).
 
 ## How to fix
 
-Treat the affected content as suspect.
+Treat the affected strings and streams as suspect: they may have been altered or spliced in. Don't use them for anything security-relevant.
 
 ## Example
 
-To be added ([L1b](../todos/ongoing/L1b-error-contract-codegen.md)).
+```text
+(an AESV2 string whose last block does not end in valid PKCS#5 padding)
+```
+
+lamina keeps the data as stored (or unstripped) instead of failing, and raises the warning with the string's or stream's `object`.
 
 ## Data fields
 
