@@ -962,7 +962,7 @@ Reader/renderer hygiene: tolerate unbalanced `Q`, operators in wrong contexts, m
 - ISO 32000-1:2008 (PDF 1.7), Adobe public copy: https://opensource.adobe.com/dc-acrobat-sdk-docs/pdfstandards/PDF32000_2008.pdf
 - Adobe *PDF Reference, sixth edition (1.7)* and the *Transparency in PDF* technical note (archived): https://opensource.adobe.com/dc-acrobat-sdk-docs/
 - *PostScript Language Reference Manual, 3rd ed.* (imaging model, scan conversion, shadings): https://www.adobe.com/jp/print/postscript/pdfs/PLRM.pdf
-- John Warnock, "The Camelot Project" (1991): https://www.planetpdf.com/planetpdf/pdfs/warnock_camelot.pdf
+- John Warnock, "The Camelot Project" (1991): https://web.archive.org/web/20230905100828/http://www.planetpdf.com/planetpdf/pdfs/warnock_camelot.pdf
 - PDF Association, *PDF 2.0 Application Note 001: Black Point Compensation*: https://pdfa.org/download-area/publications/PDF20_AN001-BPC.pdf
 - PDF Association, "What's new in the updated PDF 2.0 dated revision": https://www.pdfa.org/presentation/whats-new-in-the-updated-pdf-2-0-dated-revision/
 - QualityLogic, "Technical review of ISO 32000-2 (PDF 2.0)": https://www.qualitylogic.com/knowledge-center/technical-review-iso-32000-2-pdf-2-0/
@@ -972,7 +972,7 @@ Reader/renderer hygiene: tolerate unbalanced `Q`, operators in wrong contexts, m
 - pdf-tools.com, "Inline images and Type 3 fonts" (PDF 2.0 inline image length): https://www.pdf-tools.com/pdf-knowledge/inline-images-type3-fonts/
 - pdf.js source (canvas renderer, patterns, functions): https://github.com/mozilla/pdf.js/tree/master/src/display and https://github.com/mozilla/pdf.js/blob/master/src/core/function.js
 - PDFium source: https://pdfium.googlesource.com/pdfium/
-- MuPDF (fitz draw device): https://git.ghostscript.com/?p=mupdf.git and https://mupdf.com/docs/
+- MuPDF (fitz draw device): https://github.com/ArtifexSoftware/mupdf and https://mupdf.com/docs/
 - Poppler (Splash/Cairo): https://gitlab.freedesktop.org/poppler/poppler
 - Skia PDF backend (SkPDF): https://skia.org/docs/user/sample/pdf/
 - PNG specification (filters/predictors, chunks): https://www.w3.org/TR/png-3/
