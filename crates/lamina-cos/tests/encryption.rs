@@ -180,6 +180,7 @@ mod opening {
         assert_eq!(mismatches(&source, facts, &source), Vec::<String>::new());
     }
 
+    /// capability: G.01 core read
     #[test]
     fn every_fixture_opens_with_its_user_password() {
         check_all(
@@ -188,6 +189,7 @@ mod opening {
         );
     }
 
+    /// capability: G.03 core read
     #[test]
     fn every_fixture_opens_with_its_owner_password() {
         check_all(
@@ -287,6 +289,7 @@ mod opening {
 mod summary {
     use super::*;
 
+    /// capability: G.11 core read
     #[test]
     fn encryption_matches_the_encrypt_dictionary() {
         let mut failures = Vec::new();
@@ -377,6 +380,7 @@ mod summary {
         })
     }
 
+    /// capability: G.04 core read
     #[test]
     fn permissions_match_qpdf_show_encryption() {
         let mut failures = Vec::new();

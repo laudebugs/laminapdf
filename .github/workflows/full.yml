@@ -260,6 +260,26 @@ jobs:
           path: target/xtask/roundtrip/
           if-no-files-found: ignore
 
+  # Todo X2 (full-editor §3): run every test tagged `/// capability: <ID> <surface> <status>`
+  # and fail when docs/capabilities/README.md differs from what they prove, or one fails.
+  # `cargo xtask check docs` (in `changes`, every PR) already rejects a README that claims more
+  # than any tagged test could prove; this job checks the tests actually pass. Plain cargo test.
+  capabilities:
+    name: Capability matrix
+    needs: changes
+    if: ${{ !cancelled() && needs.changes.outputs.code == 'true' }}
+    runs-on: [self-hosted, macOS, ARM64]
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/isolate-rust-home
+      - uses: actions-rust-lang/setup-rust-toolchain@ecabd13d1c56bd1345c230e542e9144811ad706f # v2.0.0
+        with:
+          cache: false
+      - run: cargo xtask capabilities --check
+
   # The required check. Fails unless `changes` succeeded with `code` exactly "true" or "false";
   # then every suite must have succeeded (code) or been skipped (docs-only). Any failure,
   # cancellation, or skip of a suite that should have run fails it. The one allowed skip on a
@@ -267,7 +287,7 @@ jobs:
   gate:
     name: gate
     if: always()
-    needs: [changes, differential, fuzz, check-linux, roundtrip]
+    needs: [changes, differential, fuzz, check-linux, roundtrip, capabilities]
     runs-on: [self-hosted, macOS, ARM64]
     timeout-minutes: 5
     steps:

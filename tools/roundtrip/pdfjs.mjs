@@ -37,8 +37,10 @@ for (const c of cases) {
     const title = info.Title ?? null;
     // getPermissions() is null for a document without encryption.
     const encrypted = (await doc.getPermissions()) !== null || info.IsEncrypted === true;
-    const got = { pages: doc.numPages, rotations, title, encrypted };
-    const want = { pages: c.pages, rotations: c.rotations, title: c.title, encrypted: c.encrypted };
+    // The setInfo cases also wrote /Author, /Subject and /Keywords (c.info); null elsewhere.
+    const keys = c.info === null ? null : Object.fromEntries(Object.keys(c.info).map((k) => [k, info[k] ?? null]));
+    const got = { pages: doc.numPages, rotations, title, encrypted, info: keys };
+    const want = { pages: c.pages, rotations: c.rotations, title: c.title, encrypted: c.encrypted, info: c.info };
     if (JSON.stringify(got) !== JSON.stringify(want)) {
       failures.push(`${c.file}: got ${JSON.stringify(got)}, expected ${JSON.stringify(want)}`);
     }
