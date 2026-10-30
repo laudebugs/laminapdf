@@ -80,12 +80,51 @@ Documents, builders, pages and images live in WebAssembly memory. `doc.free()` (
 
 ## Examples
 
-[`examples/`](examples) holds the TypeScript twins of the Rust examples (`hello`, `invoice`, `multilingual`, `images-and-vectors`, `links-and-outlines`, `generate-then-edit`); `test/examples.test.ts` checks that each produces the bytes of its Rust golden in [`fixtures/golden/examples/`](../../fixtures/golden/examples).
+[`examples/`](examples) holds the TypeScript twins of the Rust examples (`hello`, `invoice`, `multilingual`, `images-and-vectors`, `links-and-outlines`, `generate-then-edit`), each producing the bytes of its Rust golden in [`fixtures/golden/examples/`](../../fixtures/golden/examples), and `report` (100 pages, two embedded fonts: the performance case of [pdf-library §4](../../docs/plans/pdf-library.md#non-functional), checked by its SHA-256 instead of a golden).
+
+[`examples/worker/`](examples/worker) is a Cloudflare Worker that generates a PDF per request (`/?name=Ada`: a letter; `/report`: the report). From this folder:
+
+```sh
+pnpm exec wrangler dev -c examples/worker/wrangler.toml   # then open http://localhost:8787/?name=Ada
+```
+
+## Runtimes
+
+The one example list, [`test/suite/examples.ts`](test/suite/examples.ts) (no Node API, no test framework), runs in every runtime the package supports, each comparing every example with its golden byte for byte and the report with its hash ([B6c](../../docs/todos/done/B6c-runtime-matrix.md)):
+
+| Runtime | Runner | Export condition |
+| --- | --- | --- |
+| Node 22, 24, 26 | Vitest, [`vitest.node.config.ts`](vitest.node.config.ts) (`test/*.test.ts`, also the Vite tests) | `node` |
+| Chromium, Firefox, WebKit | Vitest browser mode with Playwright, [`vitest.browser.config.ts`](vitest.browser.config.ts) (`test/browser/`; fixtures fetched as Vite assets); its `vite-build` project runs a Vite production build of [`test/vite-app/`](test/vite-app) in a Chromium page | `browser` |
+| Deno | `deno test` over [`test/deno/`](test/deno) | `deno` |
+| Bun | `bun test` over [`test/bun/`](test/bun) | `node` |
+| workerd | Vitest in Node, [`vitest.workers.config.ts`](vitest.workers.config.ts): wrangler's test harness runs [`test/workerd/worker.ts`](test/workerd/worker.ts) and the Worker example in workerd, and the test compares their responses | `workerd` |
+
+Each also prints the performance smoke's figures: hello after `init()` (first call and median of 20), the report (median of 3) and the WebAssembly memory after it. They are recorded, never asserted: `cargo xtask pdf-runtimes` collects them into a table against the §4 targets (≤ 5 ms, ≤ 500 ms, < 64 MB in a Worker; the job summary in CI) and `target/xtask/pdf-runtimes/measurements.json`; the nightly lane appends them to the benchmark history.
+
+```sh
+cargo xtask wasm                          # first: builds packages/wasm/dist/ and this package's dist/
+cargo xtask pdf-runtimes                  # every runtime, in turn
+cargo xtask pdf-runtimes chromium deno    # some of them (node, chromium, firefox, webkit, deno, bun, workerd)
+```
+
+`pdf-runtimes node` uses the `node` on `PATH`. Deno, Bun, wrangler (with workerd) and Playwright are dev dependencies of this package, so `pnpm install` brings them; `pdf-runtimes` runs `playwright install <browser>` before a browser (into Playwright's per-user cache, or `PLAYWRIGHT_BROWSERS_PATH`). By hand, from this folder:
+
+```sh
+pnpm exec vitest run -c vitest.node.config.ts
+pnpm exec vitest run -c vitest.browser.config.ts --project chromium --project vite-build   # or firefox, webkit
+pnpm exec deno test --sloppy-imports --no-check --allow-read test/deno/
+pnpm exec bun test ./test/bun/
+pnpm exec vitest run -c vitest.workers.config.ts
+```
+
+CI: the fast lane runs Node 22/24/26 and Chromium on every PR, the full lane Firefox, WebKit, Deno, Bun and workerd, and the nightly lane all of them with the figures recorded.
 
 ## Development
 
 ```sh
 cargo xtask wasm   # builds @lamina/wasm, then this package (tsc), its tests (Vitest: Node, Vite), publint, attw --pack
+cargo xtask pdf-runtimes   # the example suite in every runtime (see Runtimes)
 cargo xtask size   # includes this package's JS (glue + API, min+gzip) against its 20 KB budget
 cargo xtask gen codes   # regenerate src/codes.generated.ts from fixtures/codes.json (`check ts` fails when stale)
 ```

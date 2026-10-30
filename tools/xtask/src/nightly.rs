@@ -15,7 +15,7 @@ use serde_json::{Value, json};
 
 use crate::util::{append, github_output, summary};
 use crate::workspace::Workspace;
-use crate::{corpus, docs_links, harness, live, step};
+use crate::{corpus, docs_links, harness, live, pdf_runtimes, step};
 
 /// A benchmark regressed when it is this much slower than its baseline (ADR 0018 tier 11).
 const REGRESSION_RATIO: f64 = 1.10;
@@ -346,6 +346,10 @@ pub(crate) fn nightly(ws: &Workspace, quick: bool) -> Result<()> {
         ..BenchArgs::default()
     };
     part("bench", bench(ws, &bench_args));
+    part(
+        "pdf-runtimes",
+        crate::wasm(ws).and_then(|()| pdf_runtimes::run(ws, &pdf_runtimes::Args::default())),
+    );
     part("docs-links --external", docs_links::external::run(&ws.root, false));
     if failed.is_empty() {
         step("Nightly lane passed");

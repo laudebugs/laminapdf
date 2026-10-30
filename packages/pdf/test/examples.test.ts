@@ -1,40 +1,38 @@
-// The TS examples produce the Rust examples' bytes (fixtures/golden/examples/, ADR 0018 §5).
+// The TS examples produce the Rust examples' bytes (fixtures/golden/examples/, ADR 0018 §5), and
+// the 100-page report its hash, in Node: the shared list (test/suite/examples.ts) every runtime
+// of the B6c matrix runs. The performance smoke's figures go to stdout for
+// `cargo xtask pdf-runtimes` (recorded, not asserted).
+import { versions } from "node:process";
 import { Builder, Font, init } from "@lamina/pdf";
 import { beforeAll, describe, expect, it } from "vitest";
-import { generateThenEdit } from "../examples/generate-then-edit.js";
-import { hello } from "../examples/hello.js";
-import { imagesAndVectors } from "../examples/images-and-vectors.js";
-import { invoice } from "../examples/invoice.js";
-import { linksAndOutlines } from "../examples/links-and-outlines.js";
-import { multilingual } from "../examples/multilingual.js";
 import { read } from "./helpers.js";
+import {
+  difference,
+  EXAMPLES,
+  fixturePaths,
+  type Inputs,
+  measure,
+  printMeasurement,
+  REPORT_SHA256,
+  sha256,
+} from "./suite/examples.js";
 
-const golden = (name: string): Uint8Array => read(`fixtures/golden/examples/${name}.pdf`);
+const inputs: Inputs = Object.fromEntries(fixturePaths().map((p) => [p, read(p)]));
 
 beforeAll(() => init({ text: true }));
 
 describe("examples", () => {
-  it("hello builds the bytes of the Rust golden", () => {
-    expect(hello()).toEqual(golden("hello"));
-  });
+  for (const example of EXAMPLES) {
+    it(`${example.name} builds the bytes of the Rust ${example.golden} golden`, async () => {
+      const golden = read(`fixtures/golden/examples/${example.golden}.pdf`);
+      expect(await difference(example.build(inputs), golden)).toBeUndefined();
+    });
+  }
 
-  it("invoice builds the bytes of the Rust golden", () => {
-    expect(invoice(read("fixtures/fonts/NotoSans-Regular.ttf"))).toEqual(golden("invoice"));
-  });
-
-  it("multilingual builds the bytes of the Rust golden", () => {
-    const fonts = ["NotoSans-Regular.ttf", "NotoSansArabic-Regular.ttf", "NotoSansDevanagari-Regular.ttf"]
-      .concat(["NotoSansHebrew-Regular.ttf", "NotoSansSC-Regular.otf"])
-      .map((f) => read(`fixtures/fonts/${f}`));
-    expect(multilingual(fonts)).toEqual(golden("multilingual"));
-  });
-
-  it("images-and-vectors builds the bytes of the Rust vectors golden", () => {
-    expect(imagesAndVectors(read("fixtures/images/photo-rgb.jpg"))).toEqual(golden("vectors"));
-  });
-
-  it("links-and-outlines builds the bytes of the Rust golden", () => {
-    expect(linksAndOutlines()).toEqual(golden("links_and_outlines"));
+  it("builds the 100-page report with the same bytes as every runtime, and measures", async () => {
+    const { measurements, report } = measure(`node-${versions.node.split(".")[0]}`, inputs);
+    for (const m of measurements) printMeasurement(m);
+    expect(await sha256(report)).toBe(REPORT_SHA256);
   });
 
   it("uses one PDF font for equal fonts created per call", () => {
@@ -53,9 +51,5 @@ describe("examples", () => {
     };
     const helvetica = Font.standard("Helvetica");
     expect(build(() => Font.standard("Helvetica"))).toEqual(build(() => helvetica));
-  });
-
-  it("generate-then-edit builds the bytes of the Rust golden", () => {
-    expect(generateThenEdit()).toEqual(golden("generate_then_edit"));
   });
 });

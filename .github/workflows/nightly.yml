@@ -10,6 +10,9 @@
 #                 (`cargo xtask scaling`)
 #   bench         criterion benchmarks with history on the `bench-data` branch; a regression over
 #                 10% opens an issue, never fails the run (`cargo xtask bench`)
+#   pdf-runtimes  @lamina/pdf's example suite in Node, Chromium, Firefox, WebKit, Deno, Bun and
+#                 workerd, its timings and WebAssembly memory recorded in the benchmark history
+#                 (`cargo xtask pdf-runtimes --record`; todo B6c); never a regression issue
 #   links         every external URL in the tracked Markdown answers, with retries, a per-host
 #                 rate limit and an allowlist (`cargo xtask docs-links --external`; todo X3c)
 #
@@ -306,6 +309,101 @@ jobs:
           path: target/nightly/bench/
           if-no-files-found: ignore
 
+  # Todo B6c: the whole runtime matrix on one runner, with the hello and 100-page report timings
+  # and WebAssembly memory appended to history.jsonl on bench-data (`pdf/<runtime>/<case>` keys,
+  # the record format of `cargo xtask bench`; main only). After `bench`, so the two pushes to
+  # bench-data never race. A runtime that fails fails the job (and opens the nightly issue);
+  # the timings themselves are recorded, not compared.
+  pdf-runtimes:
+    name: "@lamina/pdf in every runtime (timings)"
+    needs: bench
+    if: ${{ !cancelled() }}
+    runs-on: [self-hosted, macOS, ARM64]
+    timeout-minutes: 60
+    permissions:
+      contents: write
+    env:
+      RECORD: ${{ github.ref == 'refs/heads/main' && github.event_name != 'pull_request' }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/isolate-rust-home
+        with:
+          target-dir: nightly-wasm
+      - uses: actions-rust-lang/setup-rust-toolchain@ecabd13d1c56bd1345c230e542e9144811ad706f # v2.0.0
+        with:
+          cache: false
+      # Same version as ci.yml's wasm job (tools/xtask/src/doctor.rs).
+      - uses: taiki-e/install-action@86f7a0ffb25f40114606501a311ebcfaf882ea32 # v2.88.0
+        with:
+          tool: wasm-bindgen@0.2.129
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+        with:
+          # Per-job install dir: the default (~/setup-pnpm) is shared by every runner on the machine.
+          dest: ${{ runner.temp }}/setup-pnpm
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: cargo xtask wasm
+      - name: Keep the Playwright browsers in the runner's tool cache
+        run: echo "PLAYWRIGHT_BROWSERS_PATH=$RUNNER_TOOL_CACHE/ms-playwright" >> "$GITHUB_ENV"
+      # As in the bench job: the token only reaches the fetch and the push.
+      - name: Fetch the benchmark history
+        if: ${{ env.RECORD == 'true' }}
+        env:
+          TOKEN: ${{ github.token }}
+        run: |
+          history="$RUNNER_TEMP/bench-data"
+          remote="https://github.com/$GITHUB_REPOSITORY.git"
+          basic=$(printf 'x-access-token:%s' "$TOKEN" | base64 | tr -d '\n')
+          echo "::add-mask::$basic"
+          auth="AUTHORIZATION: basic $basic"
+          rm -rf "$history"
+          status=0
+          git -c http.extraheader="$auth" ls-remote --exit-code --heads "$remote" bench-data > /dev/null || status=$?
+          case "$status" in
+            0) git -c http.extraheader="$auth" clone --quiet --depth 1 --branch bench-data "$remote" "$history" ;;
+            2)
+              git init --quiet "$history"
+              git -C "$history" checkout --quiet --orphan bench-data
+              git -C "$history" remote add origin "$remote"
+              ;;
+            *)
+              echo "::error::git ls-remote failed with $status: cannot read the benchmark history"
+              exit "$status"
+              ;;
+          esac
+          echo "HISTORY=$history" >> "$GITHUB_ENV"
+      - name: Every runtime (recording on main)
+        run: |
+          if [ "$RECORD" = true ]; then
+            cargo xtask pdf-runtimes --history "$HISTORY" --runner self-hosted-macos-arm64 --record
+          else
+            cargo xtask pdf-runtimes
+          fi
+      - name: Push the benchmark history
+        if: ${{ env.RECORD == 'true' }}
+        env:
+          TOKEN: ${{ github.token }}
+        run: |
+          cd "$HISTORY"
+          basic=$(printf 'x-access-token:%s' "$TOKEN" | base64 | tr -d '\n')
+          echo "::add-mask::$basic"
+          git add history.jsonl
+          git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
+            commit --quiet -m "bench(pdf-runtimes): $GITHUB_SHA"
+          git -c http.extraheader="AUTHORIZATION: basic $basic" push --quiet origin bench-data
+      - name: Upload the measurements
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: pdf-runtimes
+          path: target/xtask/pdf-runtimes/
+          if-no-files-found: ignore
+
   links:
     name: External links in the docs
     runs-on: [self-hosted, macOS, ARM64]
@@ -352,7 +450,7 @@ jobs:
   # main's issue (and main's runs from reusing an issue a test run opened).
   report:
     name: Open an issue on failure
-    needs: [differential, fuzz, scaling, bench, links, forced-failure]
+    needs: [differential, fuzz, scaling, bench, pdf-runtimes, links, forced-failure]
     if: >-
       ${{ always() && (contains(needs.*.result, 'failure') || needs.scaling.outputs.flaky == 'true'
       || needs.links.outputs.flaky == 'true' || needs.bench.outputs.regression == 'true') }}
