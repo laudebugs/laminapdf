@@ -18,7 +18,7 @@ use std::future::Future;
 use std::pin::Pin;
 use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
 use std::sync::{Arc, Mutex, MutexGuard, TryLockError};
-use std::task::{Context, Poll};
+use std::task::{Context, Poll, Waker};
 
 use lamina::{
     Budget, CancelToken, Document, IncrementalOutput, InfoPatch, Op, OpenOptions, SaveMode, SaveOptions, SetInfo, Step,
@@ -54,6 +54,12 @@ pub enum FfiError {
     /// The document's lock was poisoned by a panic in an earlier call.
     #[error("the document is unusable after an earlier panic")]
     Poisoned,
+    /// The façade returned something this binding doesn't know yet (a newer `lamina`).
+    #[error("unsupported by this binding: {what}")]
+    Unsupported {
+        /// What it was.
+        what: String,
+    },
 }
 
 impl From<lamina::Error> for FfiError {
@@ -241,15 +247,93 @@ fn phase(p: lamina::Phase) -> String {
 #[derive(uniffi::Object)]
 pub struct FfiDocument {
     inner: Mutex<Document>,
+    /// Async calls waiting for the lock: woken when a guard is dropped, so they wait without
+    /// polling (ADR 0029 §4).
+    waiters: Wakers,
+}
+
+/// Wakers to wake once: a lock release, or a cancel.
+#[derive(Default)]
+struct Wakers(Mutex<Vec<Waker>>);
+
+impl Wakers {
+    fn register(&self, waker: &Waker) {
+        if let Ok(mut list) = self.0.lock()
+            && !list.iter().any(|w| w.will_wake(waker))
+        {
+            list.push(waker.clone());
+        }
+    }
+
+    fn wake_all(&self) {
+        let list = self.0.lock().map(|mut l| std::mem::take(&mut *l)).unwrap_or_default();
+        for w in list {
+            w.wake();
+        }
+    }
+}
+
+/// The document lock's guard: releasing it wakes the async calls waiting for it.
+struct DocGuard<'a> {
+    guard: Option<MutexGuard<'a, Document>>,
+    waiters: &'a Wakers,
+}
+
+impl std::ops::Deref for DocGuard<'_> {
+    type Target = Document;
+    fn deref(&self) -> &Document {
+        // `guard` is `Some` until `drop`.
+        self.guard.as_deref().unwrap_or_else(|| unreachable!())
+    }
+}
+
+impl std::ops::DerefMut for DocGuard<'_> {
+    fn deref_mut(&mut self) -> &mut Document {
+        self.guard.as_deref_mut().unwrap_or_else(|| unreachable!())
+    }
+}
+
+impl Drop for DocGuard<'_> {
+    fn drop(&mut self) {
+        drop(self.guard.take());
+        self.waiters.wake_all();
+    }
 }
 
 impl FfiDocument {
-    fn lock(&self) -> FfiResult<MutexGuard<'_, Document>> {
-        self.inner.lock().map_err(|_| FfiError::Poisoned)
+    fn lock(&self) -> FfiResult<DocGuard<'_>> {
+        let guard = self.inner.lock().map_err(|_| FfiError::Poisoned)?;
+        Ok(DocGuard {
+            guard: Some(guard),
+            waiters: &self.waiters,
+        })
+    }
+
+    /// Takes the lock without blocking: `Pending` (with `cx`'s waker registered, woken when
+    /// the holder releases it or `cancel` fires) while another call holds it.
+    fn poll_lock(&self, cx: &Context<'_>, cancel: &FfiCancelToken) -> Poll<FfiResult<DocGuard<'_>>> {
+        // Register before trying, so a release between the try and the registration can't be
+        // missed; a spurious wake only costs one more try.
+        self.waiters.register(cx.waker());
+        cancel.waiters.register(cx.waker());
+        if cancel.is_cancelled() {
+            return Poll::Ready(Err(lamina::Error::Cancelled.into()));
+        }
+        match self.inner.try_lock() {
+            Ok(guard) => Poll::Ready(Ok(DocGuard {
+                guard: Some(guard),
+                waiters: &self.waiters,
+            })),
+            Err(TryLockError::WouldBlock) => Poll::Pending,
+            Err(TryLockError::Poisoned(_)) => Poll::Ready(Err(FfiError::Poisoned)),
+        }
     }
 
     fn wrap(doc: Document) -> Arc<Self> {
-        Arc::new(Self { inner: Mutex::new(doc) })
+        Arc::new(Self {
+            inner: Mutex::new(doc),
+            waiters: Wakers::default(),
+        })
     }
 }
 
@@ -379,7 +463,7 @@ impl FfiDocument {
     /// # Errors
     /// `cancelled`, `requires-rewrite`, `would-invalidate-signatures`, `encrypted-base`, …
     pub fn save(&self, options: FfiSaveOptions, cancel: Arc<FfiCancelToken>) -> FfiResult<FfiSaved> {
-        Ok(saved(self.lock()?.save(&save_options(options), &cancel.0)?))
+        Ok(saved(self.lock()?.save(&save_options(options), &cancel.token)?))
     }
 
     /// A save as a resumable job (ADR 0028 §3): step it with a budget, cancel it from any
@@ -413,7 +497,11 @@ impl FfiDocument {
 
 /// A cancel token to pass to run-to-completion calls ([`FfiDocument::save`]).
 #[derive(uniffi::Object, Default)]
-pub struct FfiCancelToken(CancelToken);
+pub struct FfiCancelToken {
+    token: CancelToken,
+    /// Async calls to wake on `cancel`, so a call waiting for the lock sees it at once.
+    waiters: Wakers,
+}
 
 #[uniffi::export]
 impl FfiCancelToken {
@@ -425,12 +513,13 @@ impl FfiCancelToken {
 
     /// Cancels every call and job holding this token (from any thread).
     pub fn cancel(&self) {
-        self.0.cancel();
+        self.token.cancel();
+        self.waiters.wake_all();
     }
 
     /// Whether [`FfiCancelToken::cancel`] was called.
     pub fn is_cancelled(&self) -> bool {
-        self.0.is_cancelled()
+        self.token.is_cancelled()
     }
 }
 
@@ -458,11 +547,13 @@ impl FfiSaveJob {
                 phase: phase(p),
             },
             Step::Done(s) => FfiSaveStep::Done { saved: saved(s) },
-            _ => FfiSaveStep::Progress {
-                done: 0,
-                total: None,
-                phase: "other".to_owned(),
-            },
+            // A step kind this binding doesn't know: an error, not fake progress that callers
+            // would step forever.
+            other => {
+                return Err(FfiError::Unsupported {
+                    what: format!("save step {other:?}"),
+                });
+            }
         })
     }
 
@@ -604,25 +695,14 @@ pub async fn run_until_cancelled(probe: Arc<FfiDropProbe>) {
 }
 
 /// An async export over the document lock, written the way ADR 0029 §4 asks: it never parks
-/// the foreign executor's thread on the lock (it tries the lock and yields while another call
-/// holds it), and it takes a cancel token, which the Swift layer cancels in `onCancel` because
-/// the generated Swift never drops a cancelled future.
+/// the foreign executor's thread on the lock, nor spins: while another call holds the lock it
+/// returns `Pending` with its waker registered, and the release (or a cancel) wakes it. It
+/// takes a cancel token, which the Swift layer cancels in `onCancel` because the generated
+/// Swift never drops a cancelled future.
 #[uniffi::export]
 pub async fn page_count_async(doc: Arc<FfiDocument>, cancel: Arc<FfiCancelToken>) -> FfiResult<u32> {
-    std::future::poll_fn(|cx| {
-        if cancel.is_cancelled() {
-            return Poll::Ready(Err(lamina::Error::Cancelled.into()));
-        }
-        match doc.inner.try_lock() {
-            Ok(d) => Poll::Ready(d.page_count().map_err(FfiError::from)),
-            Err(TryLockError::WouldBlock) => {
-                cx.waker().wake_by_ref();
-                Poll::Pending
-            }
-            Err(TryLockError::Poisoned(_)) => Poll::Ready(Err(FfiError::Poisoned)),
-        }
-    })
-    .await
+    let guard = std::future::poll_fn(|cx| doc.poll_lock(cx, &cancel)).await?;
+    Ok(guard.page_count()?)
 }
 
 /// Panics on purpose, in an infallible export: Kotlin gets an `InternalException`, but the
@@ -780,21 +860,56 @@ mod tests {
         assert!(probe.dropped() && !probe.finished());
     }
 
+    /// Counts wakes.
+    struct CountingWaker(AtomicU32);
+
+    impl std::task::Wake for CountingWaker {
+        fn wake(self: Arc<Self>) {
+            let _ = self.0.fetch_add(1, Ordering::SeqCst);
+        }
+    }
+
     #[test]
-    fn page_count_async_yields_while_locked_and_honours_its_token() -> FfiResult<()> {
+    fn page_count_async_waits_without_spinning_and_wakes_on_release() -> FfiResult<()> {
+        let doc = FfiDocument::open(HELLO.to_vec(), None)?;
+        let counter = Arc::new(CountingWaker(AtomicU32::new(0)));
+        let waker = Waker::from(Arc::clone(&counter));
+        let mut cx = Context::from_waker(&waker);
+        let mut future = Box::pin(page_count_async(Arc::clone(&doc), FfiCancelToken::new()));
+        let held = doc.lock()?;
+        assert!(future.as_mut().poll(&mut cx).is_pending());
+        assert!(future.as_mut().poll(&mut cx).is_pending());
+        assert_eq!(
+            counter.0.load(Ordering::SeqCst),
+            0,
+            "no self-wake while the lock is held"
+        );
+        drop(held);
+        assert!(
+            counter.0.load(Ordering::SeqCst) >= 1,
+            "releasing the lock wakes the waiter"
+        );
+        assert!(matches!(future.as_mut().poll(&mut cx), Poll::Ready(Ok(1))));
+        Ok(())
+    }
+
+    #[test]
+    fn page_count_async_wakes_and_stops_on_cancel() -> FfiResult<()> {
         let doc = FfiDocument::open(HELLO.to_vec(), None)?;
         let cancel = FfiCancelToken::new();
-        let mut cx = Context::from_waker(std::task::Waker::noop());
+        let counter = Arc::new(CountingWaker(AtomicU32::new(0)));
+        let waker = Waker::from(Arc::clone(&counter));
+        let mut cx = Context::from_waker(&waker);
         let mut future = Box::pin(page_count_async(Arc::clone(&doc), Arc::clone(&cancel)));
-        {
-            let _held = doc.lock()?;
-            assert!(future.as_mut().poll(&mut cx).is_pending(), "never blocks on the lock");
-        }
-        assert!(matches!(future.as_mut().poll(&mut cx), Poll::Ready(Ok(1))));
-        let mut stopped = Box::pin(page_count_async(Arc::clone(&doc), Arc::clone(&cancel)));
+        let _held = doc.lock()?;
+        assert!(future.as_mut().poll(&mut cx).is_pending());
         cancel.cancel();
+        assert!(
+            counter.0.load(Ordering::SeqCst) >= 1,
+            "cancel wakes the waiter while the lock is held"
+        );
         assert!(matches!(
-            stopped.as_mut().poll(&mut cx),
+            future.as_mut().poll(&mut cx),
             Poll::Ready(Err(FfiError::Lamina { code, .. })) if code == "cancelled"
         ));
         Ok(())

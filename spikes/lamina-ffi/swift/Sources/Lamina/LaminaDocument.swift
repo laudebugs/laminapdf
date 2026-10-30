@@ -2,8 +2,9 @@ import Foundation
 import LaminaFFI
 
 /// The hand-written idiomatic layer over the generated bindings (ADR 0029: generated code is
-/// internal, this is the API). Every call that locks the Rust document runs off the caller's
-/// thread (`Task.detached`), so a long step never blocks the main actor. Handles are
+/// internal, this is the API). Every blocking call runs on a dispatch queue, not on the caller's
+/// thread or Swift's cooperative pool (a few threads that must never block), so a long step
+/// blocks neither the main actor nor other async work. Handles are
 /// `Sendable` because the Rust object locks itself; long work is a job stepped in a loop, and
 /// cancelling the Swift task cancels the Rust job through its token
 /// (`withTaskCancellationHandler`). Unlike Kotlin, a Swift task returns its value even when
@@ -15,10 +16,16 @@ public final class LaminaDocument: @unchecked Sendable {
 
     private init(raw: FfiDocument) { self.raw = raw }
 
-    /// Runs a blocking Rust call on a detached task at the caller's priority (detached so it
-    /// never runs on the main actor; one task per call, and one for a whole job loop).
+    /// Where blocking Rust calls run: a GCD queue, outside the cooperative pool.
+    static let blocking = DispatchQueue(label: "dev.lamina.blocking", qos: .userInitiated, attributes: .concurrent)
+
+    /// Runs a blocking Rust call on `blocking` and suspends until it returns (one call, or a
+    /// whole job loop). An already-cancelled task doesn't start it.
     static func offCaller<T: Sendable>(_ body: @escaping @Sendable () throws -> T) async throws -> T {
-        try await Task.detached(priority: Task.currentPriority) { try body() }.value
+        try Task.checkCancellation()
+        return try await withCheckedThrowingContinuation { continuation in
+            blocking.async { continuation.resume(with: Result { try body() }) }
+        }
     }
 
     /// Opens a document. `Data` crosses as UniFFI 0.32's zero-copy `&[u8]`: read in place for

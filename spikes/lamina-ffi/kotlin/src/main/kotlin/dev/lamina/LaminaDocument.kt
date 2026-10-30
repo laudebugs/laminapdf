@@ -17,6 +17,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.asExecutor
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.withContext
 import java.nio.ByteBuffer
 
@@ -32,7 +33,11 @@ class LaminaDocument private constructor(
     private val dispatcher: CoroutineDispatcher,
 ) : AutoCloseable {
     companion object {
-        /** Opens a document; the bytes are copied once into Rust, which keeps them. */
+        /**
+         * Opens a document from a [ByteArray]. Convenient, but it copies twice (into a
+         * `RustBuffer`, then into Rust's own `Vec`); for large files use the direct
+         * [ByteBuffer] overload, which Rust reads in place and copies once.
+         */
         suspend fun open(
             bytes: ByteArray,
             password: String? = null,
@@ -40,15 +45,17 @@ class LaminaDocument private constructor(
         ): LaminaDocument = withContext(dispatcher) { LaminaDocument(FfiDocument.open(bytes, password), dispatcher) }
 
         /**
-         * Opens from a direct [ByteBuffer] (UniFFI 0.32's zero-copy `&[u8]`): the buffer is
-         * read in place for the call; Rust copies it once to own it.
+         * Opens from a direct [ByteBuffer] (UniFFI 0.32's zero-copy `&[u8]`): the bytes from its
+         * position to its limit are read in place for the call; Rust copies them once to own
+         * them. The generated code reads from the buffer's base address, so the layer passes a
+         * [ByteBuffer.slice] that starts at the position.
          */
         suspend fun open(
             direct: ByteBuffer,
             password: String? = null,
             dispatcher: CoroutineDispatcher = Dispatchers.IO,
         ): LaminaDocument =
-            withContext(dispatcher) { LaminaDocument(FfiDocument.openBorrowed(direct, password), dispatcher) }
+            withContext(dispatcher) { LaminaDocument(FfiDocument.openBorrowed(direct.slice(), password), dispatcher) }
     }
 
     suspend fun pageCount(): Int = withContext(dispatcher) { raw.pageCount().toInt() }
@@ -83,7 +90,12 @@ class LaminaDocument private constructor(
                         onResultAfterCancel = { if (it is FfiSaveStep.Done) onSavedAfterCancel(it.saved) },
                     ) { job.step(unitsPerStep) }
                 when (step) {
-                    is FfiSaveStep.Done -> return step.saved
+                    is FfiSaveStep.Done -> {
+                        // Cancelled after the last step returned: a cancelled coroutine's return
+                        // value is discarded, so hand the bytes over here too.
+                        if (!currentCoroutineContext().isActive) onSavedAfterCancel(step.saved)
+                        return step.saved
+                    }
                     is FfiSaveStep.Progress -> onProgress(step)
                 }
             }

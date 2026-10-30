@@ -70,6 +70,14 @@ class LaminaFfiTest {
     }
 
     @Test
+    fun zeroCopyOpenReadsFromTheBufferPosition() = runBlocking {
+        val header = "junk before the PDF".toByteArray()
+        val buffer = ByteBuffer.allocateDirect(header.size + hello.size).put(header).put(hello).flip()
+        buffer.position(header.size)
+        LaminaDocument.open(buffer).use { assertEquals(1, it.pageCount()) }
+    }
+
+    @Test
     fun errorsCarryTheContract() {
         val e = assertFailsWith<FfiException.Lamina> { FfiDocument.open("not a pdf".toByteArray(), null) }
         assertEquals("not-pdf", e.code)

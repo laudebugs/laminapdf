@@ -36,8 +36,9 @@ run "XCFramework zip" bash -c 'cd swift/build && ditto -c -k --keepParent Lamina
 run "Apple libraries without text" scripts/build-ios.sh --no-text
 run "cargo-swift 0.11.1 probe" bash -c '
   command -v cargo-swift >/dev/null || cargo install cargo-swift@0.11.1 --locked
-  rm -rf /tmp/l6a-cargo-swift && mkdir /tmp/l6a-cargo-swift && rsync -a --exclude target --exclude swift/build . /tmp/l6a-cargo-swift/
-  cd /tmp/l6a-cargo-swift
+  probe=$(mktemp -d -t l6a-cargo-swift) && trap "rm -rf $probe" EXIT  # mktemp paths have no spaces
+  rsync -a --exclude target --exclude swift/build . "$probe/"
+  cd "$probe"
   # cargo-swift reads the path dependency relative to the crate: point it back at the repo.
   sed -i "" "s|path = \"../../crates/lamina\"|path = \"'"$PWD"'/../../crates/lamina\"|" Cargo.toml
   cargo swift package -y -p ios macos -n LaminaCargoSwift -r --lib-type static \
@@ -54,11 +55,12 @@ if [[ -z "${ANDROID_NDK_HOME:-}" ]]; then
       set -euo pipefail
       mkdir -p "$HOME/.cache/lamina-ffi"
       rm -rf "$ANDROID_NDK_HOME" "$ANDROID_NDK_HOME.partial"
-      [[ -d /tmp/ndk-mnt ]] && hdiutil detach -force /tmp/ndk-mnt >/dev/null 2>&1 || true
-      curl -fsSL -o /tmp/ndk.dmg "https://dl.google.com/android/repository/android-ndk-$ver-darwin.dmg"
-      hdiutil attach -nobrowse -readonly /tmp/ndk.dmg -mountpoint /tmp/ndk-mnt
-      trap 'hdiutil detach -force /tmp/ndk-mnt >/dev/null 2>&1 || true; rm -f /tmp/ndk.dmg' EXIT
-      cp -R /tmp/ndk-mnt/AndroidNDK*.app/Contents/NDK "$ANDROID_NDK_HOME.partial"
+      # Per-run temporary paths, so two worktrees running this at once don't collide.
+      tmp=$(mktemp -d -t l6a-ndk)
+      trap 'hdiutil detach -force "$tmp/mnt" >/dev/null 2>&1 || true; rm -rf "$tmp"' EXIT
+      curl -fsSL -o "$tmp/ndk.dmg" "https://dl.google.com/android/repository/android-ndk-$ver-darwin.dmg"
+      hdiutil attach -nobrowse -readonly "$tmp/ndk.dmg" -mountpoint "$tmp/mnt"
+      cp -R "$tmp"/mnt/AndroidNDK*.app/Contents/NDK "$ANDROID_NDK_HOME.partial"
       mv "$ANDROID_NDK_HOME.partial" "$ANDROID_NDK_HOME"
     ) || log "- [ ] **FAILED:** Android NDK $ver download (the Android steps below will fail)"
   fi

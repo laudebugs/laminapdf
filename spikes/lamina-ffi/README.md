@@ -98,7 +98,7 @@ Removing the last copy would need a `ByteSource` over foreign memory that outliv
 - **Swift async (UniFFI 0.32): not dropped.** The generated `uniffiRustCallAsync` has no cancellation path: it polls the Rust future until it completes and frees it only then. After `Task.cancel()` the future is neither dropped nor stopped and keeps being polled (`testCancellingAnAsyncCallLeavesTheRustFutureRunning`: "dropped the future = false, still polling = true"). The first Mac run hung on a test that waited for the drop.
   - **The layer's fix:** wrap every async export in `withTaskCancellationHandler` and cancel on the Rust side in `onCancel` (the probe here; a `CancelToken` in product code), so the future finishes (`runUntilCancelledOrTaskCancelled`, `testTheLayerCancelsAnAsyncCallThroughRust`).
   - **Product rule:** every async export takes a cancel token, and the Swift layer never calls a generated async function without that wrapper.
-  - **Async exports never block the executor:** `page_count_async` shows the pattern: it tries the document lock and yields while another call holds it (a blocking `lock()` would park a thread of Swift's small cooperative pool), and checks its token on every poll (`LaminaDocument.pageCountAsync()` in Swift).
+  - **Async exports never block the executor, nor spin:** `page_count_async` shows the pattern. While another call holds the document lock it returns `Pending` with its waker registered; dropping the lock's guard (`DocGuard`) or cancelling the token wakes it. A blocking `lock()` would park a thread of Swift's small cooperative pool; re-waking itself would burn a core. The Swift layer runs its blocking calls on a dispatch queue for the same reason (`LaminaDocument.pageCountAsync()` cancels the token).
 
 ### Panics
 
