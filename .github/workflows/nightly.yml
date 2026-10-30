@@ -10,6 +10,8 @@
 #                 (`cargo xtask scaling`)
 #   bench         criterion benchmarks with history on the `bench-data` branch; a regression over
 #                 10% opens an issue, never fails the run (`cargo xtask bench`)
+#   links         every external URL in the tracked Markdown answers, with retries, a per-host
+#                 rate limit and an allowlist (`cargo xtask docs-links --external`; todo X3c)
 #
 # Every step is a `cargo xtask …` command that runs locally too; `cargo xtask nightly --quick`
 # runs them all with short budgets. veraPDF (B8b) and render diffs (X3b) add their jobs here.
@@ -294,6 +296,33 @@ jobs:
           path: target/nightly/bench/
           if-no-files-found: ignore
 
+  links:
+    name: External links in the docs
+    runs-on: [self-hosted, macOS, ARM64]
+    timeout-minutes: 45
+    outputs:
+      flaky: ${{ steps.links.outputs.flaky }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/isolate-rust-home
+      - uses: ./.github/actions/host-rust
+        with:
+          cache: false
+      # curl per URL: HEAD, then a one-byte GET if HEAD is refused; timeouts, 429 and 5xx are
+      # retried once and a pass on retry is reported as flaky (flaky=true). Allowlist:
+      # .config/link-check.toml.
+      - id: links
+        run: cargo xtask docs-links --external
+      - name: Upload the report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: links-report
+          path: target/nightly/links/
+          if-no-files-found: ignore
+
   # workflow_dispatch with force-failure: checks the issue-on-failure path end to end.
   forced-failure:
     name: Forced failure (on request)
@@ -311,10 +340,10 @@ jobs:
   # main's issue (and main's runs from reusing an issue a test run opened).
   report:
     name: Open an issue on failure
-    needs: [differential, fuzz, scaling, bench, forced-failure]
+    needs: [differential, fuzz, scaling, bench, links, forced-failure]
     if: >-
       ${{ always() && (contains(needs.*.result, 'failure') || needs.scaling.outputs.flaky == 'true'
-      || needs.bench.outputs.regression == 'true') }}
+      || needs.links.outputs.flaky == 'true' || needs.bench.outputs.regression == 'true') }}
     runs-on: [self-hosted, macOS, ARM64]
     timeout-minutes: 10
     permissions:
@@ -326,6 +355,14 @@ jobs:
         with:
           pattern: "{fuzz-artifacts-*,differential-report,bench-results}"
           path: artefacts
+      # By name, so it always lands in its own folder (a pattern matching one artifact unpacks it
+      # straight into `path`).
+      - name: Download the link report
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        continue-on-error: true
+        with:
+          name: links-report
+          path: artefacts/links-report
       - name: Open or update the issues
         env:
           GH_TOKEN: ${{ github.token }}
@@ -333,6 +370,7 @@ jobs:
           NEEDS: ${{ toJSON(needs) }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           FLAKY: ${{ needs.scaling.outputs.flaky }}
+          LINKS_FLAKY: ${{ needs.links.outputs.flaky }}
           REGRESSION: ${{ needs.bench.outputs.regression }}
         run: |
           set -euo pipefail
@@ -347,12 +385,24 @@ jobs:
             fi
           }
           failed=$(jq -r 'to_entries | map(select(.value.result == "failure") | .key) | join(", ")' <<< "$NEEDS")
-          if [ -n "$failed" ] || [ "$FLAKY" = "true" ]; then
+          # One section of the links report (`### <title>…` up to the next heading), at most 30 rows.
+          links_section() { # title-prefix report
+            table=$(sed -n "/^### $1/,/^### /p" "$2" | sed '1!{ /^### /d; }' | sed '/^$/d')
+            rows=$(( $(wc -l <<< "$table") - 3 ))
+            echo
+            head -n 33 <<< "$table"
+            if [ "$rows" -gt 30 ]; then
+              echo
+              echo "… and $((rows - 30)) more (full report in the run's artefacts)."
+            fi
+          }
+          if [ -n "$failed" ] || [ "$FLAKY" = "true" ] || [ "$LINKS_FLAKY" = "true" ]; then
             {
               echo "The [nightly run]($RUN_URL) on \`$GITHUB_SHA\` ($GITHUB_REF_NAME) failed. It blocks the next release (ADR 0018 §2)."
               echo
               [ -n "$failed" ] && echo "Failed jobs: **$failed**."
               [ "$FLAKY" = "true" ] && echo "The scaling tests failed once and passed on retry: **flaky** (ADR 0018 §4)."
+              [ "$LINKS_FLAKY" = "true" ] && echo "Some external links failed once and passed on retry: **flaky** (ADR 0018 §4)."
               report=artefacts/differential-report/report.json
               if [ -f "$report" ]; then
                 failures=$(jq '[.disagreements[] | select(.kind == "failure")] | length' "$report")
@@ -366,6 +416,12 @@ jobs:
                 echo
                 jq -r '([.disagreements[] | select(.kind == "failure")][:30][] | "- \u0060\(.file)\u0060 \(.fact): lamina \(.lamina | tojson | .[:60])"), ((.lamina_errors + .missing + .broken_readers)[:30][] | "- \u0060\(.)\u0060")' "$report"
               fi
+              links=artefacts/links-report/report.md
+              for section in Dead Flaky; do
+                if [ -f "$links" ] && grep -q "^### $section" "$links"; then
+                  links_section "$section" "$links"
+                fi
+              done
               for dir in artefacts/fuzz-artifacts-*; do
                 [ -d "$dir" ] || continue
                 echo
