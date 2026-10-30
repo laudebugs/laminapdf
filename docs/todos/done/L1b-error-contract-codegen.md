@@ -12,7 +12,7 @@
 | Branch | `feat/l1b-error-contract` |
 | PR title | `feat(codes): generate the error contract into Rust, TypeScript and JSON Schema with explain text` |
 | Size | L (≈ 500–800 lines of generator, tests and explain text; generated files don't count) |
-| PR | — |
+| PR | [#96](https://github.com/laudebugs/lamina/pull/96) |
 
 ## Goal
 
