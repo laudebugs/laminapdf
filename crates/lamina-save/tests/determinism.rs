@@ -3,8 +3,8 @@
 
 mod common;
 
+use common::fixture;
 use common::update;
-use common::{fixture, samples};
 use lamina_cos::{Dict, ObjRef, Object, PdfString, Stream};
 use lamina_save::{Writer, XrefEol};
 
@@ -103,6 +103,9 @@ fn incremental_update_of_compact_file_should_produce_identical_bytes_when_run_tw
 
 #[test]
 fn golden_samples_should_produce_identical_bytes_when_run_twice() {
-    assert_eq!(samples::hello().unwrap(), samples::hello().unwrap());
-    assert_eq!(samples::imaging_demo().unwrap(), samples::imaging_demo().unwrap());
+    assert_eq!(common::legacy::hello().unwrap(), common::legacy::hello().unwrap());
+    assert_eq!(
+        common::legacy::imaging_demo().unwrap(),
+        common::legacy::imaging_demo().unwrap()
+    );
 }

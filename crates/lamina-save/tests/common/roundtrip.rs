@@ -60,6 +60,10 @@ pub const PLAIN_CORPUS: [&str; 10] = [
     "outline.pdf",
 ];
 
+/// The goldens `lamina-build` writes (B5a): plain files too, so the full lane's qpdf, pdf.js
+/// and PDFium checks cover the builder's output.
+pub const PLAIN_BUILT: [&str; 2] = ["vectors.pdf", "images.pdf"];
+
 /// The byte that damages `corpus/tampered.pdf`'s newest catalog so the file repairs to the
 /// older, unsigned one: (offset, value), the mutation `lamina-cos`'s `policy.rs`
 /// (`signed_and_tampered_with_damaged_catalog_repair_to_one_page`) checks.
@@ -79,6 +83,13 @@ fn fixtures(root: &Path) -> Vec<(String, Vec<u8>, Category)> {
         out.push((
             format!("corpus/{name}"),
             read(&format!("corpus/{name}")),
+            Category::Plain,
+        ));
+    }
+    for name in PLAIN_BUILT {
+        out.push((
+            format!("golden/{name}"),
+            read(&format!("golden/{name}")),
             Category::Plain,
         ));
     }

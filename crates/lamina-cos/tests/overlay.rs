@@ -101,3 +101,43 @@ fn len_counts_a_changed_trailer_like_is_empty_does() {
     doc.edit().set_trailer(trailer);
     assert_eq!((doc.overlay().is_empty(), doc.overlay().len()), (false, 1));
 }
+
+mod empty_document {
+    use super::*;
+
+    #[test]
+    fn has_no_base_objects_and_numbers_new_ones_from_one() {
+        let mut doc = Document::empty(Some("1.7"), &OpenOptions::default());
+        let first = doc.edit().create(Object::Null).unwrap();
+        assert_eq!(
+            (doc.source().is_empty(), doc.header_version(), first),
+            (true, Some("1.7"), ObjRef::new(1, 0))
+        );
+    }
+
+    #[test]
+    fn reads_the_catalog_the_overlay_sets() {
+        let mut doc = Document::empty(None, &OpenOptions::default());
+        let mut cos = doc.edit();
+        let pages = cos
+            .create(Object::Dict(
+                [
+                    ("Type", Object::name("Pages")),
+                    ("Kids", Object::Array(vec![])),
+                    ("Count", 0.into()),
+                ]
+                .into_iter()
+                .collect(),
+            ))
+            .unwrap();
+        let root = cos
+            .create(Object::Dict(
+                [("Type", Object::name("Catalog")), ("Pages", pages.into())]
+                    .into_iter()
+                    .collect(),
+            ))
+            .unwrap();
+        cos.set_trailer([("Root", Object::from(root))].into_iter().collect());
+        assert_eq!(doc.pages().unwrap().len(), 0);
+    }
+}

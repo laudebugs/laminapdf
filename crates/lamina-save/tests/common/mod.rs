@@ -1,6 +1,7 @@
 //! Shared helpers for `lamina-save`'s tests: fixture loading, the legacy update helper, the
-//! golden samples (`samples`) and the overlay-writer helpers (`save`). The content builder and
-//! the hand-built files come from `lamina-cos`'s tests by `#[path]`.
+//! edited golden samples (`samples`) and the overlay-writer helpers (`save`). The hand-built
+//! files come from `lamina-cos`'s tests, the content builder and the `hello`/`imaging-demo`
+//! documents from `lamina-build`'s, by `#[path]`.
 #![allow(
     dead_code,
     unreachable_pub,
@@ -12,12 +13,14 @@
     reason = "test helpers outside #[test] fns: a panic here is a test failure"
 )]
 
-// Shared with lamina-cos's tests rather than copied: the content builder and hand-built files.
+// Shared with lamina-cos's and lamina-build's tests rather than copied.
 #[path = "../../../lamina-cos/tests/common/classic.rs"]
 pub mod classic;
-#[path = "../../../lamina-cos/tests/common/content.rs"]
+#[path = "../../../lamina-build/tests/common/content.rs"]
 pub mod content;
 pub mod fuzz_entry;
+#[path = "../../../lamina-build/tests/common/legacy.rs"]
+pub mod legacy;
 pub mod roundtrip;
 pub mod samples;
 pub mod save;

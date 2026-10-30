@@ -1,0 +1,24 @@
+# `image-too-large`
+
+- Type: error
+- Kind: `limit` (a `Limits` value or another resource bound was hit)
+
+## What happened
+
+Decoding a PNG would need more than `MAX_DECODED_IMAGE_BYTES` (256 MiB), or the dimensions given to `Image::rgba` describe more bytes than fit in memory's address space.
+
+## Why
+
+The builder decodes PNGs to split colour and alpha; a bound on the decoded size keeps a small file with huge dimensions from exhausting memory.
+
+## How to fix
+
+Scale the image down before adding it, or use a JPEG, which is embedded without decoding.
+
+## Example
+
+To be added ([L1b](../todos/ready/L1b-error-contract-codegen.md)).
+
+## Data fields
+
+- `limit`: the limit in decoded bytes.
