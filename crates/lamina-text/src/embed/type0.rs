@@ -106,8 +106,18 @@ pub(crate) fn write_font(cos: &mut CosMut<'_>, objects: &FontObjects<'_>) -> Res
         cid_font.insert("W", Object::Array(w));
     }
     if !program.is_cff() {
-        // CID = GID in the embedded program (ISO 32000-2 §9.7.4.2).
-        cid_font.insert("CIDToGIDMap", Name::from("Identity"));
+        // ISO 32000-2 §9.7.4.2: `/Identity` when every CID is its glyph's ID in the embedded
+        // program; a stream (two bytes per CID, big-endian GID) once a glyph has several CIDs
+        // (one per text it is drawn with, B4d).
+        match usage.cid_to_gid_map() {
+            None => {
+                cid_font.insert("CIDToGIDMap", Name::from("Identity"));
+            }
+            Some(map) => {
+                let stream = cos.create(Object::Stream(Stream::flate(Dict::new(), &map)))?;
+                cid_font.insert("CIDToGIDMap", stream);
+            }
+        }
     }
     let cid_font = cos.create(Object::Dict(cid_font))?;
 

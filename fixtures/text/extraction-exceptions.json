@@ -1,47 +1,61 @@
 {
-  "comment": "Lines of fixtures/text/extracted.json where an extractor does not return the text lamina drew, each with the extractor's limitation behind it (todo B4b). crates/lamina-text/tests/extraction.rs requires every other line to equal the input and every entry here to still match the facts.",
+  "comment": "Lines of fixtures/text/extracted.json where an extractor does not return the text lamina drew, each with the extractor behaviour behind it and a link to the upstream code (todos B4b, B4d). crates/lamina-text/tests/extraction.rs requires every other line to equal the input and every entry here to still match the facts.",
   "exceptions": [
     {
       "file": "text-shaped.pdf",
       "extractor": "pdfjs",
+      "line": 4,
+      "extracted": "שָׁלוֹם עוֹלָם,שלום עולם",
+      "reason": "pdf.js rebuilds spaces from the gaps between glyphs and drops whitespace glyphs; a right-to-left line of several runs (Hebrew words around a comma from Noto Sans) is drawn in logical order, right to left, and at each backward move to the next run pdf.js resets its last-characters state and starts a new text item, so the space at the run boundary is lost (drawn in visual order instead, the items come out in visual order)",
+      "upstream": "https://github.com/mozilla/pdf.js/blob/v6.4.299/src/core/evaluator.js"
+    },
+    {
+      "file": "text-shaped.pdf",
+      "extractor": "pdfjs",
+      "line": 5,
+      "extracted": "नमस्ते दु निया। हिन्दी पाठ का परीक्षण कर्म",
+      "reason": "pdf.js treats a glyph whose text contains a nonspacing mark anywhere as a zero-width diacritic (getCharUnicodeCategory's /^(\\s)|(\\p{Mn})|(\\p{Cf})$/u leaves the Mn alternative unanchored), so the दु ligature (one spacing glyph standing for द + U+0941) neither advances nor checks its position, and the space before it is emitted after it",
+      "upstream": "https://github.com/mozilla/pdf.js/blob/v6.4.299/src/core/unicode.js"
+    },
+    {
+      "file": "text-shaped.pdf",
+      "extractor": "pypdf",
+      "line": 4,
+      "extracted": "שָׁלוֹם עוֹלָם , שלום עולם",
+      "reason": "pypdf turns a TJ number of at least half a space into a space appended to the current text, while it builds right-to-left text by prepending; the Hebrew points are positioned with such numbers, so a space lands at the logical end of the pointed run",
+      "upstream": "https://github.com/py-pdf/pypdf/blob/6.21.3/pypdf/_page.py#L1948-L1961"
+    },
+    {
+      "file": "text-shaped.pdf",
+      "extractor": "pdftotext",
       "line": 3,
-      "extracted": "كمي\u0003العالم، السلام علب\u0011 اب\u0011مرح",
-      "reason": "pdf.js ignores marked-content /ActualText, reads an empty ToUnicode destination (<cid> <>, the dot glyphs Noto Sans Arabic draws apart from their base) as the code (U+0011, U+0003), and the /Span sequences around those clusters split the line into text items it puts in visual order"
+      "extracted": "‫ السلام عليكم‬،‫مرحبا بالعالم‬",
+      "reason": "pdftotext writes right-to-left text as it is displayed: phrases in visual order, each wrapped in U+202B…U+202C embeddings, not in logical order",
+      "upstream": "https://gitlab.freedesktop.org/poppler/poppler/-/blob/poppler-26.10.0/poppler/TextOutputDev.cc"
     },
     {
       "file": "text-shaped.pdf",
-      "extractor": "pdfjs",
+      "extractor": "pdftotext",
       "line": 4,
-      "extracted": "שלום עולם ,לוֹם עוֹלָםָׁש",
-      "reason": "pdf.js orders right-to-left text items by position and the Hebrew points' offsets split the line into items, so the pieces come out in visual order"
+      "extracted": "‫ שלום עולם‬,‫ָשׁ לוֹם עוֹלָ ם‬",
+      "reason": "pdftotext writes right-to-left text in display order inside U+202B…U+202C embeddings and splits words at the Hebrew points' offsets",
+      "upstream": "https://gitlab.freedesktop.org/poppler/poppler/-/blob/poppler-26.10.0/poppler/TextOutputDev.cc"
     },
     {
       "file": "text-shaped.pdf",
-      "extractor": "pdfjs",
-      "line": 5,
-      "extracted": "नमस्ते दु िनया। िहन्दी पाठ का परीक्षण कमर्",
-      "reason": "pdf.js getTextContent ignores marked-content /ActualText: reordered Devanagari clusters read in drawing order, and the i-matra's negative offset starts a new item (a space)"
-    },
-    {
-      "file": "text-shaped.pdf",
-      "extractor": "pdfjs",
+      "extractor": "pdftotext",
       "line": 7,
-      "extracted": "The words שלום עולם and العالمب\u0011 ا\u0011 بمرح mean hello.",
-      "reason": "pdf.js ignores marked-content /ActualText, reads an empty ToUnicode destination (<cid> <>, the dot glyphs Noto Sans Arabic draws apart from their base) as the code (U+0011, U+0003), and the /Span sequences around those clusters split the line into text items it puts in visual order"
+      "extracted": "The words ‫ שלום עולם‬and ‫ مرحبا بالعالم‬mean hello.",
+      "reason": "pdftotext wraps each right-to-left phrase of the mixed line in U+202B…U+202C embeddings, moving the space after it inside, before the phrase",
+      "upstream": "https://gitlab.freedesktop.org/poppler/poppler/-/blob/poppler-26.10.0/poppler/TextOutputDev.cc"
     },
     {
-      "file": "text-shaped.pdf",
-      "extractor": "pypdf",
-      "line": 4,
-      "extracted": "שלום עולם, שָׁלוֹם עוֹלָם ",
-      "reason": "pypdf reverses right-to-left text piece by piece between TJ position adjustments; the Hebrew points' x offsets split the line, so the pieces come out in visual order (the unpointed Arabic and Hebrew lines extract correctly)"
-    },
-    {
-      "file": "text-shaped.pdf",
-      "extractor": "pypdf",
-      "line": 5,
-      "extracted": "नमस्ते दुिनया। िहन्दी पाठ का परीक्षण कमर्",
-      "reason": "pypdf ignores /ActualText: reordered Devanagari clusters (a pre-base i-matra drawn before its consonant, a reph drawn after it) read in drawing order, each glyph as its own character"
+      "file": "text-std14.pdf",
+      "extractor": "pdftotext",
+      "line": 13,
+      "extracted": "✔✈❤☎",
+      "reason": "pdftotext drops the spaces of the non-embedded ZapfDingbats line (its word segmentation treats the symbolic font's glyphs as one word); pypdf and pdf.js read them",
+      "upstream": "https://gitlab.freedesktop.org/poppler/poppler/-/blob/poppler-26.10.0/poppler/TextOutputDev.cc"
     }
   ]
 }

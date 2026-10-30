@@ -34,7 +34,8 @@ impl TestPdf {
             let y = self.y;
             self.content.begin_text();
             let mut rise = 0.0_f32;
-            for run in &line.runs {
+            // Logical order, so extractors read right-to-left lines in order (B4d).
+            for run in line.drawing_order().into_iter().map(|i| &line.runs[i]) {
                 let key = keys[run.font];
                 let name = self.resource(key)?;
                 let pdf = pdf_run(&run.run, text, &mut self.fonts, key)?;
