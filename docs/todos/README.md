@@ -12,7 +12,7 @@ New todos start from [`TEMPLATE.md`](TEMPLATE.md). The workflow is in [git workf
 
 IDs: `A`/`P`/`X` [architecture](../plans/architecture.md) (foundations, publishing, cross-cutting), `B` [library](../plans/pdf-library.md), `L` [shareable libraries](../plans/shareable-libraries.md) (contracts, worker, extraction, CLI, agent docs, mobile), `C` [web reader](../plans/web-app.md), `D` [desktop reader](../plans/desktop-app.md), `U` [UI/UX](../plans/ui-ux.md), `E` [editor](../plans/full-editor.md), `H` hosted service ([full-editor](../plans/full-editor.md)). A letter suffix (`B2a`, `B2b`) splits a round into PRs.
 
-**3 ongoing · 215 ready · 24 done** (242 total).
+**2 ongoing · 215 ready · 25 done** (242 total).
 
 ## Can start now
 
@@ -25,7 +25,6 @@ Ready todos whose dependencies are all done:
 
 - [B4d](ongoing/B4d-tounicode-per-text-cids.md): One CID per (glyph, text): exact extraction of shaped text in every script
 - [B5b](ongoing/B5b-builder-text-and-document-features.md): Builder text, links, destinations, outlines, page labels and metadata
-- [X2](ongoing/X2-capability-matrix.md): Capability matrix generator: ~180 operations, test-backed statuses
 
 ## Architecture — Round A
 
@@ -176,12 +175,12 @@ Ready todos whose dependencies are all done:
 
 | ID | Todo | State | Depends on |
 | --- | --- | --- | --- |
-| E1a | [Editing foundation: feature plan](ready/E1a-editing-foundation-feature-plan.md) | ready | [B3c](done/B3c-save-planner-and-roundtrip.md), [B5c](ready/B5c-lamina-facade-and-examples.md), [C7c](ready/C7c-performance-gates-and-launch.md), [D7c](ready/D7c-desktop-beta-release.md), [X2](ongoing/X2-capability-matrix.md) |
+| E1a | [Editing foundation: feature plan](ready/E1a-editing-foundation-feature-plan.md) | ready | [B3c](done/B3c-save-planner-and-roundtrip.md), [B5c](ready/B5c-lamina-facade-and-examples.md), [C7c](ready/C7c-performance-gates-and-launch.md), [D7c](ready/D7c-desktop-beta-release.md), [X2](done/X2-capability-matrix.md) |
 | E1b | [XMP packet parse and update for Info-mapped properties](ready/E1b-xmp-packet-model.md) | ready | [B5c](ready/B5c-lamina-facade-and-examples.md), [B8b](ready/B8b-conformance-profiles-and-verapdf.md), [E1a](ready/E1a-editing-foundation-feature-plan.md), [X3a](done/X3a-nightly-lane.md) |
 | E1c | [Metadata ops: Info and XMP in sync (J.01–J.03, J.10)](ready/E1c-metadata-ops.md) | ready | [B3c](done/B3c-save-planner-and-roundtrip.md), [B6b](ready/B6b-lamina-pdf-package.md), [B8b](ready/B8b-conformance-profiles-and-verapdf.md), [E1b](ready/E1b-xmp-packet-model.md), [X3a](done/X3a-nightly-lane.md) |
 | E1d | [Edit session, interaction modes, undo/redo UI and history panel](ready/E1d-edit-session-undo-ui.md) | ready | [B6b](ready/B6b-lamina-pdf-package.md), [C4a](ready/C4a-ui-chrome-and-platform.md), [D4b](ready/D4b-native-menus.md), [E1a](ready/E1a-editing-foundation-feature-plan.md) |
 | E1e | [Save, Save as, Download copy and the SaveConstraint banner](ready/E1e-save-and-constraint-banner.md) | ready | [D3b](ready/D3b-recent-files-and-file-watching.md), [E1c](ready/E1c-metadata-ops.md), [E1d](ready/E1d-edit-session-undo-ui.md) |
-| E1f | [Metadata editor UI and in-app capability-matrix page](ready/E1f-metadata-ui-capability-page.md) | ready | [E1c](ready/E1c-metadata-ops.md), [E1e](ready/E1e-save-and-constraint-banner.md), [X2](ongoing/X2-capability-matrix.md) |
+| E1f | [Metadata editor UI and in-app capability-matrix page](ready/E1f-metadata-ui-capability-page.md) | ready | [E1c](ready/E1c-metadata-ops.md), [E1e](ready/E1e-save-and-constraint-banner.md), [X2](done/X2-capability-matrix.md) |
 | E2a | [Page organisation: feature plan](ready/E2a-page-organisation-feature-plan.md) | ready | [B9c](ready/B9c-text-extraction-bindings-and-differential.md), [E1a](ready/E1a-editing-foundation-feature-plan.md), [E1f](ready/E1f-metadata-ui-capability-page.md) |
 | E2b | [Page-structure ops: insert blank, delete, duplicate, reorder, rotate, reverse](ready/E2b-page-structure-ops.md) | ready | [B8a](ready/B8a-structure-tree.md), [B8b](ready/B8b-conformance-profiles-and-verapdf.md), [E1c](ready/E1c-metadata-ops.md), [E2a](ready/E2a-page-organisation-feature-plan.md) |
 | E2c | [Insert pages from other PDFs, replace pages, extract and export ranges](ready/E2c-cross-document-pages.md) | ready | [E2b](ready/E2b-page-structure-ops.md) |
@@ -311,7 +310,7 @@ Ready todos whose dependencies are all done:
 | ID | Todo | State | Depends on |
 | --- | --- | --- | --- |
 | X1 | [Docs link checker and todo-board check in `cargo xtask`, run in CI](done/X1-docs-link-checker.md) | done | — |
-| X2 | [Capability matrix generator: ~180 operations, test-backed statuses](ongoing/X2-capability-matrix.md) | ongoing | [B3c](done/B3c-save-planner-and-roundtrip.md) |
+| X2 | [Capability matrix generator: ~180 operations, test-backed statuses](done/X2-capability-matrix.md) | done | [B3c](done/B3c-save-planner-and-roundtrip.md) |
 | X3a | [Nightly CI lane: external-corpus differential, extended fuzzing, scaling tests and benchmarks](done/X3a-nightly-lane.md) | done | [B2c](done/B2c-lamina-model-corpus-fuzz.md) |
 | X3b | [Nightly hayro-vs-PDFium render diffs](ready/X3b-render-diff-nightly.md) | ready | [C2b](ready/C2b-lamina-render-crate.md), [X3a](done/X3a-nightly-lane.md) |
 | X3c | [Nightly external link check of the docs](ready/X3c-nightly-link-check.md) | ready | [X3a](done/X3a-nightly-lane.md) |

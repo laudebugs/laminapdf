@@ -1,0 +1,973 @@
+# The capability matrix's rows: one per operation of the feature inventory
+# (docs/research/pdf/06-feature-inventory.md §3), in its order (full-editor §3, todo X2).
+# `cargo xtask capabilities` turns this file and the tagged tests into README.md; never edit
+# README.md by hand.
+#
+# Each [[op]]:
+#   id        `<group>.<nn>`, stable: never renumbered, never reused. When 06 drops or splits
+#             an operation, remove its row and add its ID to `retired`.
+#   name      the operation exactly as in 06 §3's first column (`cargo xtask check docs`
+#             checks that every 06 operation has exactly one row and every row is in 06)
+#   round     the editor round that targets it (full-editor §7)
+#   target    the status that round must reach: unsupported | read | write | round-trip
+#             (default round-trip)
+#   surfaces  the columns it targets, of core, pdf, web, desktop (default all four)
+#
+# Generated once from 06 §3 (X2); maintained by hand since.
+
+version = 1
+retired = []
+
+[[group]]
+id = "A"
+name = "Text & typography"
+
+[[group]]
+id = "B"
+name = "Images & vector graphics"
+
+[[group]]
+id = "C"
+name = "Page organisation & geometry"
+
+[[group]]
+id = "D"
+name = "Comments & annotations"
+
+[[group]]
+id = "E"
+name = "Interactive forms"
+
+[[group]]
+id = "F"
+name = "Signatures & approval"
+
+[[group]]
+id = "G"
+name = "Security & privacy"
+
+[[group]]
+id = "H"
+name = "Conversion & extraction"
+
+[[group]]
+id = "I"
+name = "Navigation & document structure"
+
+[[group]]
+id = "J"
+name = "Metadata & attachments"
+
+[[group]]
+id = "K"
+name = "Printing & optimisation"
+
+[[group]]
+id = "L"
+name = "Accessibility"
+
+[[group]]
+id = "M"
+name = "Advanced interactions"
+
+# A. Text & typography
+
+[[op]]
+id = "A.01"
+name = "Add text anywhere on a page"
+round = "E6"
+
+[[op]]
+id = "A.02"
+name = "Edit existing text"
+round = "E7"
+
+[[op]]
+id = "A.03"
+name = "Delete or replace text"
+round = "E7"
+
+[[op]]
+id = "A.04"
+name = "Change font family/size/colour/style"
+round = "E7"
+
+[[op]]
+id = "A.05"
+name = "Bold, italic, underline, super/subscript"
+round = "E7"
+
+[[op]]
+id = "A.06"
+name = "Alignment & line spacing"
+round = "E7"
+
+[[op]]
+id = "A.07"
+name = "Move/resize/rotate text blocks"
+round = "E7"
+
+[[op]]
+id = "A.08"
+name = "Search & replace throughout document"
+round = "E7"
+
+[[op]]
+id = "A.09"
+name = "Add hyperlinks to text"
+round = "E3"
+
+[[op]]
+id = "A.10"
+name = "Extract text with position & formatting"
+round = "E3"
+target = "read"
+
+[[op]]
+id = "A.11"
+name = "Convert outlined or scanned text via OCR"
+round = "E13"
+
+[[op]]
+id = "A.12"
+name = "Insert special characters & symbols"
+round = "E6"
+
+# B. Images & vector graphics
+
+[[op]]
+id = "B.01"
+name = "Insert, delete, replace images"
+round = "E6"
+
+[[op]]
+id = "B.02"
+name = "Resize, rotate, crop, reposition"
+round = "E6"
+
+[[op]]
+id = "B.03"
+name = "Extract original embedded images"
+round = "E3"
+target = "read"
+
+[[op]]
+id = "B.04"
+name = "Adjust transparency/opacity"
+round = "E6"
+
+[[op]]
+id = "B.05"
+name = "Draw lines, rectangles, circles, polygons"
+round = "E6"
+
+[[op]]
+id = "B.06"
+name = "Arrows, paths, freehand drawing"
+round = "E4"
+
+[[op]]
+id = "B.07"
+name = "Edit vector paths, fills, strokes"
+round = "E7"
+
+[[op]]
+id = "B.08"
+name = "Change stacking order"
+round = "E7"
+
+[[op]]
+id = "B.09"
+name = "Add logos, icons, stamps"
+round = "E6"
+
+[[op]]
+id = "B.10"
+name = "Background images & watermarks"
+round = "E6"
+
+[[op]]
+id = "B.11"
+name = "Clipping paths & masks"
+round = "E7"
+
+[[op]]
+id = "B.12"
+name = "Transformations on graphical objects"
+round = "E7"
+
+# C. Page organisation & geometry
+
+[[op]]
+id = "C.01"
+name = "Insert blank pages"
+round = "E2"
+
+[[op]]
+id = "C.02"
+name = "Insert pages from other PDFs"
+round = "E2"
+
+[[op]]
+id = "C.03"
+name = "Delete & duplicate pages"
+round = "E2"
+
+[[op]]
+id = "C.04"
+name = "Reorder pages"
+round = "E2"
+
+[[op]]
+id = "C.05"
+name = "Extract selected pages"
+round = "E2"
+
+[[op]]
+id = "C.06"
+name = "Merge multiple documents"
+round = "E2"
+
+[[op]]
+id = "C.07"
+name = "Split by count, ranges, bookmarks"
+round = "E2"
+
+[[op]]
+id = "C.08"
+name = "Rotate pages 90/180/270"
+round = "E2"
+
+[[op]]
+id = "C.09"
+name = "Crop display area"
+round = "E2"
+
+[[op]]
+id = "C.10"
+name = "Resize page dimensions"
+round = "E2"
+
+[[op]]
+id = "C.11"
+name = "Modify margins & page boxes"
+round = "E2"
+
+[[op]]
+id = "C.12"
+name = "Portrait ↔ landscape"
+round = "E2"
+
+[[op]]
+id = "C.13"
+name = "Reverse page order"
+round = "E2"
+
+[[op]]
+id = "C.14"
+name = "Labels, page numbers, headers/footers"
+round = "E2"
+
+[[op]]
+id = "C.15"
+name = "Booklet / N-up layouts"
+round = "E16"
+
+[[op]]
+id = "C.16"
+name = "Replace pages, preserving the rest"
+round = "E2"
+
+# D. Comments & annotations
+
+[[op]]
+id = "D.01"
+name = "Highlight / underline / strike through"
+round = "E4"
+
+[[op]]
+id = "D.02"
+name = "Sticky notes & text comments"
+round = "E4"
+
+[[op]]
+id = "D.03"
+name = "Text-correction annotations"
+round = "E4"
+
+[[op]]
+id = "D.04"
+name = "Freehand ink"
+round = "E4"
+
+[[op]]
+id = "D.05"
+name = "Shapes, lines, arrows"
+round = "E4"
+
+[[op]]
+id = "D.06"
+name = "Callouts & text boxes"
+round = "E4"
+
+[[op]]
+id = "D.07"
+name = "Custom stamps"
+round = "E5"
+
+[[op]]
+id = "D.08"
+name = "Attach files as annotations"
+round = "E5"
+
+[[op]]
+id = "D.09"
+name = "Audio annotations"
+round = "E5"
+target = "read"
+
+[[op]]
+id = "D.10"
+name = "Replies to comments"
+round = "E5"
+
+[[op]]
+id = "D.11"
+name = "Status & review properties"
+round = "E5"
+
+[[op]]
+id = "D.12"
+name = "Filter & search comments"
+round = "E5"
+target = "read"
+
+[[op]]
+id = "D.13"
+name = "Import & export annotation data"
+round = "E5"
+
+[[op]]
+id = "D.14"
+name = "Flatten annotations into content"
+round = "E5"
+
+[[op]]
+id = "D.15"
+name = "Delete or summarise annotations"
+round = "E5"
+
+[[op]]
+id = "D.16"
+name = "(cross-cutting) Generate appearance streams"
+round = "E4"
+
+# E. Interactive forms
+
+[[op]]
+id = "E.01"
+name = "Text fields (single/multi-line)"
+round = "E8"
+
+[[op]]
+id = "E.02"
+name = "Checkboxes & radio buttons"
+round = "E8"
+
+[[op]]
+id = "E.03"
+name = "Dropdowns & list boxes"
+round = "E8"
+
+[[op]]
+id = "E.04"
+name = "Push buttons"
+round = "E8"
+
+[[op]]
+id = "E.05"
+name = "Date/formatted input"
+round = "E8"
+
+[[op]]
+id = "E.06"
+name = "Required & read-only"
+round = "E8"
+
+[[op]]
+id = "E.07"
+name = "Input validation"
+round = "E8"
+
+[[op]]
+id = "E.08"
+name = "Automatic calculations"
+round = "E8"
+
+[[op]]
+id = "E.09"
+name = "Tab order"
+round = "E8"
+
+[[op]]
+id = "E.10"
+name = "Conditional behaviour"
+round = "E8"
+
+[[op]]
+id = "E.11"
+name = "Import & export form data"
+round = "E8"
+
+[[op]]
+id = "E.12"
+name = "Populate fields programmatically"
+round = "E8"
+surfaces = ["core", "pdf"]
+
+[[op]]
+id = "E.13"
+name = "Reset form fields"
+round = "E8"
+
+[[op]]
+id = "E.14"
+name = "Flatten forms"
+round = "E8"
+
+[[op]]
+id = "E.15"
+name = "Signature fields"
+round = "E9"
+
+[[op]]
+id = "E.16"
+name = "Submit to external endpoints"
+round = "E8"
+
+[[op]]
+id = "E.17"
+name = "(cross-cutting) XFA forms"
+round = "E8"
+target = "read"
+
+# F. Signatures & approval
+
+[[op]]
+id = "F.01"
+name = "Handwritten signature image"
+round = "E10"
+
+[[op]]
+id = "F.02"
+name = "Draw/type e-signature"
+round = "E10"
+
+[[op]]
+id = "F.03"
+name = "Certificate-based digital signatures"
+round = "E10"
+
+[[op]]
+id = "F.04"
+name = "Verify signatures"
+round = "E10"
+target = "read"
+
+[[op]]
+id = "F.05"
+name = "Certify a document"
+round = "E10"
+
+[[op]]
+id = "F.06"
+name = "Trusted timestamps"
+round = "E10"
+
+[[op]]
+id = "F.07"
+name = "Inspect signer identity & certificates"
+round = "E10"
+target = "read"
+
+[[op]]
+id = "F.08"
+name = "Lock fields after signing"
+round = "E10"
+
+[[op]]
+id = "F.09"
+name = "Allowed changes after certification"
+round = "E10"
+
+[[op]]
+id = "F.10"
+name = "Signature status & modification warnings"
+round = "E10"
+target = "read"
+
+[[op]]
+id = "F.11"
+name = "Signing workflows via external services"
+round = "E10"
+
+# G. Security & privacy
+
+[[op]]
+id = "G.01"
+name = "Document-open password"
+round = "E11"
+
+[[op]]
+id = "G.02"
+name = "Encrypt a PDF"
+round = "E11"
+
+[[op]]
+id = "G.03"
+name = "Permission passwords"
+round = "E11"
+
+[[op]]
+id = "G.04"
+name = "Restrict print/copy/edit"
+round = "E11"
+
+[[op]]
+id = "G.05"
+name = "Remove security with authorisation"
+round = "E11"
+
+[[op]]
+id = "G.06"
+name = "Permanent redaction"
+round = "E12"
+
+[[op]]
+id = "G.07"
+name = "Search sensitive content to redact"
+round = "E12"
+
+[[op]]
+id = "G.08"
+name = "Remove hidden metadata & comments"
+round = "E11"
+
+[[op]]
+id = "G.09"
+name = "Sanitise embedded content"
+round = "E11"
+
+[[op]]
+id = "G.10"
+name = "Remove attachments & scripts"
+round = "E11"
+
+[[op]]
+id = "G.11"
+name = "Inspect encryption"
+round = "E11"
+target = "read"
+
+[[op]]
+id = "G.12"
+name = "Certificate-based security"
+round = "E11"
+
+[[op]]
+id = "G.13"
+name = "Remove hidden layers/information"
+round = "E11"
+
+# H. Conversion & extraction
+
+[[op]]
+id = "H.01"
+name = "Word / Excel / PowerPoint → PDF"
+round = "E13"
+
+[[op]]
+id = "H.02"
+name = "Images → PDF"
+round = "E3"
+target = "write"
+
+[[op]]
+id = "H.03"
+name = "HTML / webpages → PDF"
+round = "E13"
+
+[[op]]
+id = "H.04"
+name = "PDF → Word"
+round = "E13"
+target = "read"
+
+[[op]]
+id = "H.05"
+name = "PDF tables → Excel"
+round = "E13"
+target = "read"
+
+[[op]]
+id = "H.06"
+name = "Pages → PNG/JPEG/TIFF"
+round = "E3"
+target = "read"
+
+[[op]]
+id = "H.07"
+name = "Extract text & images"
+round = "E3"
+target = "read"
+
+[[op]]
+id = "H.08"
+name = "Extract hyperlinks & bookmarks"
+round = "E3"
+target = "read"
+
+[[op]]
+id = "H.09"
+name = "Extract attachments"
+round = "E3"
+target = "read"
+
+[[op]]
+id = "H.10"
+name = "Export pages/ranges"
+round = "E2"
+
+[[op]]
+id = "H.11"
+name = "Render pages to images"
+round = "E3"
+target = "read"
+
+[[op]]
+id = "H.12"
+name = "Convert to PDF/A, PDF/X, PDF/UA"
+round = "E16"
+
+[[op]]
+id = "H.13"
+name = "Scanned → searchable PDF"
+round = "E13"
+
+# I. Navigation & document structure
+
+[[op]]
+id = "I.01"
+name = "Create/edit bookmarks; nested trees"
+round = "E3"
+
+[[op]]
+id = "I.02"
+name = "Internal page links"
+round = "E3"
+
+[[op]]
+id = "I.03"
+name = "External hyperlinks"
+round = "E3"
+
+[[op]]
+id = "I.04"
+name = "Named destinations"
+round = "E3"
+
+[[op]]
+id = "I.05"
+name = "Clickable table of contents"
+round = "E3"
+
+[[op]]
+id = "I.06"
+name = "Initial view & zoom; page display mode"
+round = "E3"
+
+[[op]]
+id = "I.07"
+name = "Define reading order; logical structure tags"
+round = "E15"
+
+[[op]]
+id = "I.08"
+name = "Optional content groups (layers)"
+round = "E17"
+
+[[op]]
+id = "I.09"
+name = "Article threads"
+round = "E3"
+target = "read"
+
+[[op]]
+id = "I.10"
+name = "Page labels"
+round = "E2"
+
+[[op]]
+id = "I.11"
+name = "Outline & navigation preferences"
+round = "E3"
+
+# J. Metadata & attachments
+
+[[op]]
+id = "J.01"
+name = "Title, author, subject, keywords"
+round = "E1"
+
+[[op]]
+id = "J.02"
+name = "Creation/modification dates"
+round = "E1"
+
+[[op]]
+id = "J.03"
+name = "Producer & creator"
+round = "E1"
+
+[[op]]
+id = "J.04"
+name = "Manage XMP"
+round = "E3"
+
+[[op]]
+id = "J.05"
+name = "Attach / extract / delete embedded files"
+round = "E3"
+
+[[op]]
+id = "J.06"
+name = "Portfolios / collections"
+round = "E3"
+target = "read"
+
+[[op]]
+id = "J.07"
+name = "Inspect version & conformance"
+round = "E3"
+target = "read"
+
+[[op]]
+id = "J.08"
+name = "Identify fonts & colour profiles"
+round = "E3"
+target = "read"
+
+[[op]]
+id = "J.09"
+name = "Inspect internal objects, streams, references"
+round = "E3"
+target = "read"
+
+[[op]]
+id = "J.10"
+name = "Remove selected metadata"
+round = "E1"
+
+# K. Printing & optimisation
+
+[[op]]
+id = "K.01"
+name = "Compress / reduce size"
+round = "E16"
+
+[[op]]
+id = "K.02"
+name = "Downsample & recompress images"
+round = "E16"
+
+[[op]]
+id = "K.03"
+name = "Embed or subset fonts"
+round = "E16"
+
+[[op]]
+id = "K.04"
+name = "Remove unused objects"
+round = "E16"
+
+[[op]]
+id = "K.05"
+name = "Deduplicate shared resources"
+round = "E16"
+
+[[op]]
+id = "K.06"
+name = "Linearise for fast web view"
+round = "E16"
+
+[[op]]
+id = "K.07"
+name = "Flatten transparency"
+round = "E16"
+
+[[op]]
+id = "K.08"
+name = "Convert colour spaces"
+round = "E16"
+
+[[op]]
+id = "K.09"
+name = "ICC profiles & output intents"
+round = "E16"
+
+[[op]]
+id = "K.10"
+name = "Bleed, trim, crop"
+round = "E16"
+
+[[op]]
+id = "K.11"
+name = "Print-ready PDFs / preflight"
+round = "E16"
+target = "read"
+
+[[op]]
+id = "K.12"
+name = "Validate PDF/A or PDF/X"
+round = "E16"
+target = "read"
+
+[[op]]
+id = "K.13"
+name = "Imposition & booklet"
+round = "E16"
+
+[[op]]
+id = "K.14"
+name = "Spot colours & overprint"
+round = "E16"
+
+# L. Accessibility
+
+[[op]]
+id = "L.01"
+name = "Add structure tags (headings, paragraphs, lists, tables)"
+round = "E15"
+
+[[op]]
+id = "L.02"
+name = "Logical reading order"
+round = "E15"
+
+[[op]]
+id = "L.03"
+name = "Alt text for images"
+round = "E15"
+
+[[op]]
+id = "L.04"
+name = "Document language"
+round = "E15"
+
+[[op]]
+id = "L.05"
+name = "Mark decorative artifacts"
+round = "E15"
+
+[[op]]
+id = "L.06"
+name = "Accessible form labels"
+round = "E15"
+
+[[op]]
+id = "L.07"
+name = "Accessible link descriptions"
+round = "E15"
+
+[[op]]
+id = "L.08"
+name = "Check missing fonts / Unicode mappings"
+round = "E15"
+target = "read"
+
+[[op]]
+id = "L.09"
+name = "Run accessibility validation"
+round = "E15"
+target = "read"
+
+[[op]]
+id = "L.10"
+name = "Fix tagging & structure issues"
+round = "E15"
+
+[[op]]
+id = "L.11"
+name = "PDF/UA-compliant output"
+round = "E15"
+
+# M. Advanced interactions
+
+[[op]]
+id = "M.01"
+name = "Add/edit JavaScript actions"
+round = "E17"
+
+[[op]]
+id = "M.02"
+name = "Interactive buttons"
+round = "E17"
+
+[[op]]
+id = "M.03"
+name = "Event-triggered actions"
+round = "E17"
+
+[[op]]
+id = "M.04"
+name = "Manage/show/hide layers"
+round = "E17"
+
+[[op]]
+id = "M.05"
+name = "Embed audio & video"
+round = "E17"
+
+[[op]]
+id = "M.06"
+name = "Embed 3D models"
+round = "E17"
+target = "read"
+
+[[op]]
+id = "M.07"
+name = "Measurement tools & scales"
+round = "E17"
+
+[[op]]
+id = "M.08"
+name = "Geospatial coordinates"
+round = "E17"
+target = "read"
+
+[[op]]
+id = "M.09"
+name = "Associated files & structured metadata"
+round = "E3"
+
+[[op]]
+id = "M.10"
+name = "Document open actions"
+round = "E17"
+
+[[op]]
+id = "M.11"
+name = "Rich-media annotations"
+round = "E17"
+
+[[op]]
+id = "M.12"
+name = "Inspect incremental updates & revisions"
+round = "E14"
+target = "read"
+
+[[op]]
+id = "M.13"
+name = "Compare versions visually & structurally"
+round = "E14"
+target = "read"
