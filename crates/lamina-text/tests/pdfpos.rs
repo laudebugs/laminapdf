@@ -186,3 +186,42 @@ fn a_cff_glyph_already_standing_for_other_text_gets_actual_text() {
     let pdf = pdf_run(&other, "fx", &mut fonts, key).unwrap();
     assert_eq!(pdf.pieces[0].actual_text.as_deref(), Some("f"));
 }
+
+#[test]
+fn a_textless_glyph_past_the_textless_cids_gets_actual_text() {
+    // Review of B4d: 29 textless CIDs; a cluster whose 30th textless glyph has to take an
+    // ordinary CID (which pdf.js would read as its code) is covered by /ActualText.
+    let font = common::font("NotoSans-Regular.ttf");
+    let mut shaped = HarfRust.shape(&font, "a", &ShapeOptions::new()).unwrap();
+    let base = shaped.glyphs[0];
+    let a = base.gid;
+    shaped.glyphs.extend(
+        (100..)
+            .map(lamina_text::GlyphId::new)
+            .filter(|&g| g != a)
+            .take(30)
+            .map(|gid| {
+                let mut g = base;
+                g.gid = gid;
+                g.x_advance = 0;
+                g
+            }),
+    );
+    let mut fonts = FontRegistry::new();
+    let key = fonts.add(font, EmbedPolicy::Respect).unwrap();
+    let pdf = pdf_run(&shaped, "a", &mut fonts, key).unwrap();
+    assert_eq!(pdf.pieces[0].actual_text.as_deref(), Some("a"));
+}
+
+#[test]
+fn textless_glyphs_within_the_textless_cids_need_no_actual_text() {
+    let font = common::font("NotoSans-Regular.ttf");
+    let mut shaped = HarfRust.shape(&font, "a", &ShapeOptions::new()).unwrap();
+    let mut extra = shaped.glyphs[0];
+    extra.gid = lamina_text::GlyphId::new(100);
+    extra.x_advance = 0;
+    shaped.glyphs.push(extra);
+    let mut fonts = FontRegistry::new();
+    let key = fonts.add(font, EmbedPolicy::Respect).unwrap();
+    assert!(!pdf_run(&shaped, "a", &mut fonts, key).unwrap().needs_actual_text());
+}

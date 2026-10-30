@@ -123,7 +123,8 @@ pub struct Line {
     /// The bytes drawn: [`Line::range`] without trailing spaces and hard breaks, which hang
     /// past the line's end (UAX #14) and are neither drawn nor measured.
     pub content: Range<usize>,
-    /// The runs in visual order, left to right.
+    /// The runs in visual order, left to right. Draw them in [`Line::drawing_order`] (each
+    /// at its own `x`) so extractors read the line in order.
     pub runs: Vec<LineRun>,
     /// The width of the drawn content in points.
     pub width: f64,

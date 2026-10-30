@@ -24,7 +24,17 @@ const TEXTLESS_CIDS: [std::ops::RangeInclusive<u16>; 6] = [
 ];
 
 /// How many values [`TEXTLESS_CIDS`] holds.
-const TEXTLESS_LEN: u32 = 5 + 5 + 5 + 10 + 1 + 3;
+const TEXTLESS_LEN: u32 = textless_len();
+
+const fn textless_len() -> u32 {
+    let mut n = 0;
+    let mut rest: &[std::ops::RangeInclusive<u16>] = &TEXTLESS_CIDS;
+    while let [r, tail @ ..] = rest {
+        n += (*r.end() - *r.start()) as u32 + 1;
+        rest = tail;
+    }
+    n
+}
 
 fn is_textless_slot(cid: u16) -> bool {
     TEXTLESS_CIDS.iter().any(|r| r.contains(&cid))
@@ -60,10 +70,11 @@ pub struct FontUse {
     /// The next ordinary CID to try: in a subset, the dense numbering; in a font embedded
     /// whole, the CIDs past its glyph count.
     next_cid: u32,
-    /// How many CIDs beyond one per glyph were allocated (glyphs with several texts).
-    extra: u32,
     /// Whether a glyph may get several CIDs (`false` for CFF outlines).
     per_text: bool,
+    /// Whether the textless slots are set aside ([`TEXTLESS_CIDS`]): with several CIDs per
+    /// glyph, unless a subset's glyphs could need every ordinary CID (over 65 507 glyphs).
+    pool: bool,
     glyph_count: u16,
     /// The font's PostScript name, for errors and warnings.
     font: String,
@@ -90,14 +101,13 @@ impl FontUse {
             remapper.remap(0);
             Mapping::Subset(remapper)
         };
-        // The program keeps CFF outlines (`CIDFontType0`) when the font has a `CFF ` table;
-        // CFF2 is converted to TrueType outlines by the subsetter.
-        let cff = font.font_ref().is_ok_and(|f| {
-            f.table_data(skrifa::Tag::new(b"CFF ")).is_some() && f.table_data(skrifa::Tag::new(b"glyf")).is_none()
-        });
-        let next_cid = match mapping {
-            Mapping::Subset(_) => 1,
-            Mapping::Whole => u32::from(info.glyph_count),
+        // The program keeps CFF outlines (`CIDFontType0`) when the font has a `CFF ` table
+        // (the same test `subset::build` makes on the program); CFF2 is converted to TrueType
+        // outlines by the subsetter.
+        let cff = font.font_ref().is_ok_and(|f| crate::embed::subset::has_cff_table(&f));
+        let (next_cid, pool) = match mapping {
+            Mapping::Subset(_) => (1, u32::from(info.glyph_count) + TEXTLESS_LEN <= 0x1_0000),
+            Mapping::Whole => (u32::from(info.glyph_count), true),
         };
         Self {
             mapping,
@@ -105,8 +115,8 @@ impl FontUse {
             by_glyph: BTreeMap::from([(GlyphId::NOTDEF, vec![0])]),
             text: BTreeMap::new(),
             next_cid,
-            extra: 0,
             per_text: !cff,
+            pool: pool && !cff,
             glyph_count: info.glyph_count,
             font: info.postscript_name.clone(),
         }
@@ -125,31 +135,51 @@ impl FontUse {
     /// # Errors
     /// [`Error::GlyphOutOfRange`] for a glyph past the font's glyph count.
     pub fn use_glyph(&mut self, gid: GlyphId, text: &str) -> Result<(u16, Option<Warning>)> {
+        self.use_glyph_exact(gid, text).map(|(cid, warning, _)| (cid, warning))
+    }
+
+    /// [`FontUse::use_glyph`], also saying whether the CID extracts as `text` exactly: `false`
+    /// on a conflict, and for an empty text drawn with an ordinary CID (no textless slot left,
+    /// or none in this font), which pdf.js reads as the code. [`crate::pdf_run`] marks such
+    /// clusters with `/ActualText`.
+    pub(crate) fn use_glyph_exact(&mut self, gid: GlyphId, text: &str) -> Result<(u16, Option<Warning>, bool)> {
         self.check(gid)?;
         if gid == GlyphId::NOTDEF {
-            return Ok((0, None));
+            return Ok((0, None, true));
         }
-        let existing = self.by_glyph.get(&gid).cloned().unwrap_or_default();
-        if let Some(&cid) = existing.iter().find(|c| self.text.get(c).is_some_and(|t| t == text)) {
-            return Ok((cid, None));
-        }
+        let (cid, warning) = self.claim(gid, text);
+        let exact = warning.is_none() && (!text.is_empty() || self.reserved(cid));
+        Ok((cid, warning, exact))
+    }
+
+    fn claim(&mut self, gid: GlyphId, text: &str) -> (u16, Option<Warning>) {
+        let existing = self.by_glyph.get(&gid).map_or(&[][..], Vec::as_slice);
+        let same = existing
+            .iter()
+            .copied()
+            .find(|c| self.text.get(c).is_some_and(|t| t == text));
         // A CID drawn so far without a text claims this one.
-        if let Some(&cid) = existing.iter().find(|c| !self.text.contains_key(c)) {
-            self.text.insert(cid, text.to_owned());
-            return Ok((cid, None));
+        let untexted = existing.iter().copied().find(|c| !self.text.contains_key(c));
+        let first = existing.first().copied();
+        if let Some(cid) = same {
+            return (cid, None);
         }
-        let Some(&first) = existing.first() else {
+        if let Some(cid) = untexted {
+            self.text.insert(cid, text.to_owned());
+            return (cid, None);
+        }
+        let Some(first) = first else {
             let cid = self.first_cid(gid, text.is_empty());
             self.text.insert(cid, text.to_owned());
-            return Ok((cid, None));
+            return (cid, None);
         };
         match self.extra_cid(text.is_empty()) {
             Some(cid) => {
                 self.bind(cid, gid);
                 self.text.insert(cid, text.to_owned());
-                Ok((cid, None))
+                (cid, None)
             }
-            None => Ok((
+            None => (
                 first,
                 Some(Warning::ToUnicodeConflict {
                     font: self.font.clone(),
@@ -157,7 +187,7 @@ impl FontUse {
                     kept: self.text.get(&first).cloned().unwrap_or_default(),
                     dropped: text.to_owned(),
                 }),
-            )),
+            ),
         }
     }
 
@@ -193,43 +223,54 @@ impl FontUse {
         Ok(())
     }
 
-    /// The CID of a glyph not drawn before: in a subset, the next dense CID (or a textless
-    /// slot for `textless`); in a font embedded whole, its own GID.
+    /// The CID of a glyph not drawn before: a textless slot for `textless` while one is free;
+    /// otherwise, in a subset, the next dense CID, and in a font embedded whole, its own GID.
     fn first_cid(&mut self, gid: GlyphId, textless: bool) -> u16 {
         let new_gid = match &mut self.mapping {
             Mapping::Subset(remapper) => Some(remapper.remap(gid.get())),
             Mapping::Whole => None,
         };
-        let cid = match new_gid {
-            None => gid.get(),
+        let slot = textless.then(|| self.free_textless_slot()).flatten();
+        let cid = match (new_gid, slot) {
+            (_, Some(slot)) => slot,
+            (None, None) => gid.get(),
             // CFF: CID = the subset's GID (its charset is the identity).
-            Some(new_gid) if !self.per_text => new_gid,
-            Some(_) => match textless.then(|| self.free_textless_slot()).flatten() {
-                Some(cid) => cid,
-                None => self.next_ordinary(),
-            },
+            (Some(new_gid), None) if !self.per_text => new_gid,
+            (Some(_), None) => self.next_ordinary(),
         };
         self.bind(cid, gid);
         cid
     }
 
-    /// A further CID for a glyph that already has one, or `None` when the glyph can't have
-    /// another (CFF outlines, or too few CIDs left to be sure every glyph still gets one).
+    /// A further CID for a glyph that already has one: a free textless slot for `textless`,
+    /// else the next ordinary CID; `None` when the glyph can't have another (CFF outlines, or
+    /// too few CIDs left to be sure every glyph not drawn yet still gets one).
     fn extra_cid(&mut self, textless: bool) -> Option<u16> {
-        let room = u32::from(self.glyph_count) + self.extra + 1 + TEXTLESS_LEN <= 0x1_0000;
-        if !self.per_text || !room {
+        if !self.per_text {
             return None;
         }
-        let cid = textless
-            .then(|| self.free_textless_slot())
-            .flatten()
-            .unwrap_or_else(|| self.next_ordinary());
-        self.extra += 1;
-        Some(cid)
+        if let Some(slot) = textless.then(|| self.free_textless_slot()).flatten() {
+            return Some(slot);
+        }
+        // Ordinary CIDs still needed at worst: this one, one per glyph not drawn yet (in a
+        // subset; a font embedded whole draws those with their own GIDs) and the textless
+        // slots the numbering may skip.
+        let unseen = match self.mapping {
+            Mapping::Subset(_) => {
+                u32::from(self.glyph_count).saturating_sub(u32::try_from(self.by_glyph.len()).unwrap_or(u32::MAX))
+            }
+            Mapping::Whole => 0,
+        };
+        let skipped = if self.pool { TEXTLESS_LEN } else { 0 };
+        if self.next_cid + 1 + unseen + skipped > 0x1_0000 {
+            return None;
+        }
+        Some(self.next_ordinary())
     }
 
     /// The next ordinary CID, skipping the textless slots. The room check in
-    /// [`FontUse::extra_cid`] keeps it below 0x10000.
+    /// [`FontUse::extra_cid`] (and, without the slots, a glyph count below 0x10000) keeps it
+    /// below 0x10000.
     fn next_ordinary(&mut self) -> u16 {
         loop {
             let candidate = self.next_cid;
@@ -254,7 +295,7 @@ impl FontUse {
 
     /// Whether `cid` is a textless slot ordinary CIDs skip.
     fn reserved(&self, cid: u16) -> bool {
-        self.per_text
+        self.pool
             && is_textless_slot(cid)
             && match self.mapping {
                 Mapping::Subset(_) => true,
@@ -279,6 +320,11 @@ impl FontUse {
     #[must_use]
     pub fn glyphs(&self) -> Vec<(u16, GlyphId)> {
         self.cids.iter().map(|(&cid, &gid)| (cid, gid)).collect()
+    }
+
+    /// How many distinct glyphs are drawn, `.notdef` included.
+    pub(crate) fn glyph_total(&self) -> usize {
+        self.by_glyph.len()
     }
 
     /// Whether the font is embedded whole (its `fsType` forbids subsetting).
@@ -405,9 +451,47 @@ mod tests {
     }
 
     #[test]
-    fn the_textless_pool_has_the_counted_size() {
-        let n: usize = TEXTLESS_CIDS.iter().map(|r| r.clone().count()).sum();
-        assert_eq!(u32::try_from(n).unwrap(), TEXTLESS_LEN);
+    fn a_textless_glyph_past_the_slots_is_not_exact() {
+        // 29 textless slots; the 30th textless glyph gets an ordinary CID, which pdf.js
+        // would read as its code: reported as not exact, for `/ActualText`.
+        let f = font("NotoSans-Regular.ttf");
+        let mut usage = FontUse::new(&f);
+        let exact: Vec<bool> = (1..=30)
+            .map(|g| usage.use_glyph_exact(GlyphId::new(g), "").unwrap().2)
+            .collect();
+        assert_eq!(
+            (exact.iter().filter(|&&e| e).count(), exact.last().copied()),
+            (29, Some(false))
+        );
+    }
+
+    #[test]
+    fn a_conflict_is_not_exact() {
+        let (mut usage, a, _) = latin();
+        usage.per_text = false;
+        usage.use_glyph(a, "a").unwrap();
+        let (_, warning, exact) = usage.use_glyph_exact(a, "α").unwrap();
+        assert_eq!((warning.is_some(), exact), (true, false));
+    }
+
+    #[test]
+    fn a_font_with_too_many_glyphs_for_the_slots_still_splits() {
+        // As `new` sets it up for a 65 535-glyph font: no textless slots, CIDs still split
+        // while there is room for every glyph not drawn yet.
+        let (mut usage, a, _) = latin();
+        usage.glyph_count = u16::MAX;
+        usage.pool = false;
+        cid(&mut usage, a, "a");
+        let (second, warning, _) = usage.use_glyph_exact(a, "α").unwrap();
+        assert_eq!((second, warning), (2, None));
+    }
+
+    #[test]
+    fn a_textless_glyph_in_a_whole_font_takes_a_slot() {
+        let (mut usage, a, _) = latin();
+        usage.mapping = Mapping::Whole;
+        usage.next_cid = u32::from(usage.glyph_count);
+        assert_eq!(usage.use_glyph_exact(a, "").unwrap(), (0x200B, None, true));
     }
 
     #[test]

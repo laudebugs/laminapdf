@@ -369,25 +369,46 @@ fn a_glyph_with_two_texts_gets_a_cid_to_gid_map_stream() {
     );
 }
 
-/// The shaped golden's fonts (B4d): every TrueType font whose glyphs got several texts has a
-/// map stream, and each CID in it points at a glyph of the subset.
+/// Shaped text whose glyphs got several texts (B4d): every CID the content draws maps, in the
+/// `/CIDToGIDMap` stream, to the subset glyph made from the glyph it was drawn with (same
+/// advance and outline bounds as in the original font).
 #[test]
-fn shaped_sample_maps_every_cid_into_its_subset() {
-    let fonts = read_fonts(&samples::shaped().bytes);
-    let mapped: Vec<_> = fonts
-        .iter()
-        .filter_map(|f| f.cid_to_gid.as_ref().map(|m| (f, m)))
-        .collect();
-    assert!(!mapped.is_empty());
-    for (f, map) in mapped {
-        let count = skrifa::raw::TableProvider::maxp(&skrifa::FontRef::new(&f.program).unwrap())
-            .unwrap()
-            .num_glyphs();
-        assert!(
-            map.chunks(2).all(|p| u16::from_be_bytes([p[0], p[1]]) < count),
-            "{}",
-            f.resource
-        );
+fn every_drawn_cid_maps_to_the_glyph_it_was_drawn_with() {
+    for (name, text) in [
+        ("NotoSansDevanagari-Regular.ttf", "नमस्ते दुनिया। हिन्दी पाठ का परीक्षण कर्म"),
+        ("NotoSansArabic-Regular.ttf", "مرحبا بالعالم، السلام عليكم"),
+    ] {
+        let original = font(name);
+        let mut pdf = TestPdf::new();
+        let key = pdf.add_font(original.clone()).unwrap();
+        pdf.paragraph(&[key], text, &lamina_text::LayoutOptions::new(450.0, 16.0))
+            .unwrap();
+        let drawn = pdf.registry().usage(key).unwrap().embedded().unwrap().glyphs();
+        let fonts = read_fonts(&pdf.finish().unwrap().0);
+        let map = fonts[0]
+            .cid_to_gid
+            .clone()
+            .unwrap_or_else(|| panic!("{name}: no map stream"));
+        let program = skrifa::FontRef::new(&fonts[0].program).unwrap();
+        let source = skrifa::FontRef::new(original.bytes()).unwrap();
+        let shape = |f: &skrifa::FontRef<'_>, gid: u16| {
+            let m = f.glyph_metrics(Size::unscaled(), LocationRef::default());
+            let g = skrifa::GlyphId::from(gid);
+            (
+                m.advance_width(g),
+                m.bounds(g).map(|b| [b.x_min, b.y_min, b.x_max, b.y_max]),
+            )
+        };
+        for (cid, gid) in drawn {
+            let at = usize::from(cid) * 2;
+            let mapped = u16::from_be_bytes([map[at], map[at + 1]]);
+            assert_eq!(
+                shape(&program, mapped),
+                shape(&source, gid.get()),
+                "{name}: CID {cid:#06X} drawn with glyph {} maps to subset glyph {mapped}",
+                gid.get()
+            );
+        }
     }
 }
 

@@ -98,7 +98,10 @@ impl PdfRun {
 /// dots, a conjunct part, the space glyph a hidden ZWJ is drawn with) gets a textless CID
 /// (`<cid> <>`, a format character's code point that pdf.js skips). No `/ActualText` is
 /// needed, except for a cluster holding default-ignorable characters (ZWJ, ZWNJ, the bidi
-/// controls), which are never a glyph's text.
+/// controls), which are never a glyph's text, and for a cluster with a glyph whose CID
+/// doesn't extract as its text after all: a textless glyph once the textless CIDs are used
+/// up (pdf.js would read its code), or a second text once the font's CIDs run out
+/// ([`crate::Warning::ToUnicodeConflict`]).
 ///
 /// With CFF outlines (`CIDFontType0`: one CID per glyph) B4b's mapping stays: a glyph that is
 /// some character's own claims no text when it stands for nothing, and a cluster gets
@@ -185,17 +188,20 @@ pub fn pdf_run(run: &ShapedRun, text: &str, fonts: &mut FontRegistry, key: FontK
         actual.fill(None);
     }
 
-    // Record.
+    // Record. A glyph whose CID doesn't extract as its text after all (a conflict once the
+    // CIDs run out, or a textless glyph without a textless slot) puts its cluster under
+    // `/ActualText` (the whole run's span covers it when the run is out of order).
     let mut cids = Vec::with_capacity(run.glyphs.len());
-    for (g, claim) in run.glyphs.iter().zip(&claims) {
+    for (i, (g, claim)) in run.glyphs.iter().zip(&claims).enumerate() {
         cids.push(match claim {
-            // `font_ref` above already refused a standard 14 font, so every code is a CID.
-            Claim::Text(t) => fonts
-                .use_glyph(key, g.gid, t)?
-                .cid()
-                .ok_or_else(|| Error::FontNotShapable {
-                    font: info.postscript_name.clone(),
-                })?,
+            Claim::Text(t) => {
+                let (cid, exact) = fonts.use_glyph_exact(key, g.gid, t)?;
+                let group = groups.partition_point(|r| r.end <= i);
+                if let (false, true, Some(slot)) = (exact, in_order, actual.get_mut(group)) {
+                    slot.get_or_insert_with(|| cluster_text(g.cluster).to_owned());
+                }
+                cid
+            }
             Claim::Nothing => fonts.glyph_cid(key, g.gid)?,
         });
     }

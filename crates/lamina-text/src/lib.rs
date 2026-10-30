@@ -58,7 +58,8 @@
 //! * [`BidiParagraph`]: UAX #9 levels and per-line visual runs; [`line_breaks`]: UAX #14
 //!   break opportunities; [`grapheme_boundaries`]: UAX #29.
 //! * [`itemize`] and [`break_lines`]: runs of one script, level and font; greedy lines in a
-//!   box, measured by shaping, reordered and aligned.
+//!   box, measured by shaping, reordered and aligned; draw a line's runs in
+//!   [`Line::drawing_order`].
 //! * [`pdf_run`]: a shaped run as `TJ` arrays, `Ts` rises, ToUnicode entries and `/ActualText`
 //!   spans.
 //!
@@ -72,7 +73,9 @@
 //! let mut fonts = FontRegistry::new();
 //! let key = fonts.add(font, EmbedPolicy::Respect)?;
 //! for line in &lines {
-//!     for run in &line.runs {
+//!     // Runs in logical order (each still at its own `x`), so extractors read right-to-left
+//!     // lines in order.
+//!     for run in line.drawing_order().into_iter().filter_map(|i| line.runs.get(i)) {
 //!         let pdf = pdf_run(&run.run, text, &mut fonts, key)?;
 //!         assert!(!pdf.pieces.is_empty()); // write each piece's segments as `Ts` + `TJ`
 //!     }
