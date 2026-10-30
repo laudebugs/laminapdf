@@ -14,7 +14,7 @@ Rows per surface by best proven status (of the rows that target the surface).
 
 | Surface | Rows | 🟢 round-trip | 🔵 write | 🟡 read | 🔴 unsupported | — none | At target |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| core | 169 | 3 | 7 | 14 | 0 | 145 | 4 |
+| core | 169 | 3 | 7 | 15 | 0 | 144 | 5 |
 | pdf | 169 | 0 | 0 | 0 | 0 | 169 | 0 |
 | web | 168 | 0 | 0 | 0 | 0 | 168 | 0 |
 | desktop | 168 | 0 | 0 | 0 | 0 | 168 | 0 |
@@ -32,7 +32,7 @@ Rows per surface by best proven status (of the rows that target the surface).
 | A.07 | Move/resize/rotate text blocks | — | — | — | — | E7 round-trip |  |
 | A.08 | Search & replace throughout document | — | — | — | — | E7 round-trip |  |
 | A.09 | Add hyperlinks to text | 🔵 write | — | — | — | E3 round-trip | [`built_text_links_outlines_labels_and_xmp_survive_a_save`](../../crates/lamina-save/tests/roundtrip_suite.rs) core write |
-| A.10 | Extract text with position & formatting | — | — | — | — | E3 read |  |
+| A.10 | Extract text with position & formatting | 🟡 read | — | — | — | E3 read | [`a_quad_spans_the_advance_and_the_fonts_extent_in_page_space`](../../crates/lamina-text/tests/extract_runs.rs) core read |
 | A.11 | Convert outlined or scanned text via OCR | — | — | — | — | E13 round-trip |  |
 | A.12 | Insert special characters & symbols | — | — | — | — | E6 round-trip |  |
 

@@ -117,7 +117,7 @@ pub use bidi::{BidiParagraph, BidiRun};
 pub use embed::{EmbeddedFont, Encoded, FontKey, FontRegistry, FontUsage, GlyphCode};
 pub use encoding::{Encoding, UnsupportedEncoding};
 pub use error::{Error, Result, Warning};
-pub use extract::{Glyph, PageText, TextExtractor};
+pub use extract::{Glyph, PageText, Quad, TextExtractor, TextRun};
 pub use font::{Axis, Font, FontInfo, GlyphId, MAX_NAME_LEN, Tag};
 pub use fstype::{EmbedPolicy, FsType};
 pub use itemize::{Item, itemize};

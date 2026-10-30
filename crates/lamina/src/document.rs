@@ -45,6 +45,9 @@ pub struct Document {
     /// Every page's facts, read in one page-tree walk and kept until the revision moves
     /// (a `RefCell` cache, as ADR 0005 §7 allows: the document is `!Sync` anyway).
     pages: RefCell<Option<Vec<PageInfo>>>,
+    /// The text extractor (its font cache), kept for the revision it was made at.
+    #[cfg(feature = "text")]
+    extractor: RefCell<Option<(u64, lamina_text::TextExtractor)>>,
     /// `!Sync` whatever the inner document becomes: the lock lives in the edge (ADR 0028 §2).
     _not_sync: PhantomData<Cell<()>>,
 }
@@ -149,6 +152,31 @@ impl Document {
                 .cloned()
                 .ok_or(Error::PageIndexOutOfRange { index, count })
         })
+    }
+
+    /// The text page `index` shows (B9d; feature `text`): glyphs with Unicode and boxes in
+    /// page space, runs, lines ([`crate::extract`]). Fonts are parsed once per document and
+    /// revision; problems are warnings (`font-invalid`, `cmap-invalid`, `unmapped-glyph`, the
+    /// content warnings) in [`Document::warnings`].
+    ///
+    /// # Errors
+    /// `page-index-out-of-range`; the content limits, `strict`, `data-pending` and the other
+    /// reading errors.
+    #[cfg(feature = "text")]
+    pub fn page_text(&self, index: u32, options: &crate::extract::TextOptions) -> Result<crate::extract::PageText> {
+        let pages = self.inner.pages()?;
+        let count = u32::try_from(pages.len()).unwrap_or(u32::MAX);
+        let page = usize::try_from(index)
+            .ok()
+            .and_then(|i| pages.get(i))
+            .ok_or(Error::PageIndexOutOfRange { index, count })?;
+        let mut cache = self.extractor.borrow_mut();
+        if cache.as_ref().is_some_and(|(revision, _)| *revision != self.revision) {
+            *cache = None;
+        }
+        let (_, extractor) = cache.get_or_insert_with(|| (self.revision, lamina_text::TextExtractor::new()));
+        let text = extractor.page(&self.inner, &page)?;
+        Ok(if options.skip_invisible { text.visible() } else { text })
     }
 
     /// Every page's facts, in order: one read of the page tree (cached until the next
@@ -368,6 +396,10 @@ impl Document {
     fn bump(&mut self) {
         self.revision = self.revision.wrapping_add(1);
         *self.pages.get_mut() = None;
+        #[cfg(feature = "text")]
+        {
+            *self.extractor.get_mut() = None;
+        }
     }
 
     /// A built document with the warnings building it raised.
@@ -388,6 +420,8 @@ impl From<lamina_ops::Document> for Document {
             revision: 0,
             build_warnings: Vec::new(),
             pages: RefCell::new(None),
+            #[cfg(feature = "text")]
+            extractor: RefCell::new(None),
             _not_sync: PhantomData,
         }
     }

@@ -1,5 +1,6 @@
-//! Text extraction (todo B9b): the text goldens extract the text their samples drew (as pypdf,
-//! pdf.js and pdftotext read it, `fixtures/text/extracted.json` and `fixtures/build/facts.json`),
+//! Text extraction (todos B9b, B9d): the text goldens extract the text their samples drew (as
+//! pypdf, pdf.js and pdftotext read it, `fixtures/text/extracted.json` and
+//! `fixtures/build/facts.json`, but for each extractor's listed mistakes),
 //! glyph origins follow `/Widths`, `TJ`, `Tc`, `Tw` and `Tz` (§9.4.4), and broken fonts degrade
 //! with warnings.
 #![allow(
@@ -11,10 +12,13 @@
 
 use lamina_cos::OpenOptions;
 use lamina_model::Document;
-use lamina_save::Writer;
-use lamina_syntax::{Dict, Object, Stream};
+use lamina_syntax::Dict;
 use lamina_text::{PageText, TextExtractor};
 use serde_json::Value;
+
+mod common;
+
+use common::extract::{extract, font, helvetica, page};
 
 fn fixture(rel: &str) -> Vec<u8> {
     std::fs::read(format!("{}/../../fixtures/{rel}", env!("CARGO_MANIFEST_DIR"))).expect("fixture")
@@ -32,24 +36,11 @@ fn pages_text(bytes: Vec<u8>) -> (Vec<PageText>, Document) {
     (text, doc)
 }
 
-/// Right-to-left lines come out in the order the glyphs are drawn (visual); bidi reordering and
-/// `ActualText` are todo B9d, so only left-to-right lines are compared here.
-fn right_to_left(line: &str) -> bool {
-    line.chars()
-        .any(|c| matches!(c, '\u{0590}'..='\u{08FF}' | '\u{FB1D}'..='\u{FEFF}'))
-}
-
 fn compare(name: &str, expected: &[Vec<String>]) {
     let (pages, doc) = pages_text(fixture(&format!("golden/{name}")));
     assert_eq!(pages.len(), expected.len(), "{name}: pages");
     for (i, (page, want)) in pages.iter().zip(expected).enumerate() {
-        let got = page.lines();
-        assert_eq!(got.len(), want.len(), "{name} page {i}: lines {got:?}");
-        for (g, w) in got.iter().zip(want) {
-            if !right_to_left(w) {
-                assert_eq!(g, w, "{name} page {i}");
-            }
-        }
+        assert_eq!(&page.lines(), want, "{name} page {i}");
         assert_eq!(page.unmapped, 0, "{name} page {i}");
     }
     assert_eq!(doc.warnings(), [], "{name}");
@@ -64,91 +55,80 @@ fn strings(value: &Value) -> Vec<String> {
         .collect()
 }
 
+/// The extractors whose output is the reference, in order of preference.
+const EXTRACTORS: [&str; 3] = ["pypdf", "pdfjs", "pdftotext"];
+
+/// The drawn text of each line: the first extractor's line that its exceptions file does not
+/// list as one that extractor gets wrong (every line has one: the exceptions tests check that
+/// each listed line differs from the drawn text and that the others equal it).
+fn drawn(lines: impl Fn(&str) -> Vec<Vec<String>>, excepted: impl Fn(&str, usize, usize) -> bool) -> Vec<Vec<String>> {
+    let reference = lines(EXTRACTORS[0]);
+    reference
+        .iter()
+        .enumerate()
+        .map(|(page, page_lines)| {
+            (0..page_lines.len())
+                .map(|line| {
+                    EXTRACTORS
+                        .iter()
+                        .find(|e| !excepted(e, page, line))
+                        .and_then(|e| lines(e).get(page)?.get(line).cloned())
+                        .expect("an extractor that gets the line right")
+                })
+                .collect()
+        })
+        .collect()
+}
+
+fn exceptions(rel: &str) -> Vec<Value> {
+    let file: Value = serde_json::from_slice(&fixture(rel)).expect("json");
+    file["exceptions"].as_array().expect("exceptions").clone()
+}
+
+/// Every line, right to left included (logical order: `ActualText`, or bidi over the glyphs'
+/// positions, todo B9d), equals the text the sample drew.
 #[test]
 fn text_goldens_extract_the_drawn_text() {
-    let facts: Value = serde_json::from_slice(&fixture("text/extracted.json")).expect("json");
-    let files = facts["files"].as_object().expect("files");
-    assert!(files.len() >= 5);
-    for (name, file) in files {
-        compare(name, &[strings(&file["pypdf"])]);
+    for (name, _, lines) in common::samples::GOLDENS {
+        let drawn: Vec<String> = lines.iter().map(|l| (*l).to_owned()).collect();
+        compare(name, &[drawn]);
     }
 }
 
+/// The builder's goldens: the drawn text is each line as the extractors read it, but for the
+/// lines its exceptions file lists for that extractor.
 #[test]
 fn builder_goldens_extract_the_drawn_text() {
     let facts: Value = serde_json::from_slice(&fixture("build/facts.json")).expect("json");
+    let listed = exceptions("build/extraction-exceptions.json");
     for name in [
         "build-text-latin.pdf",
         "build-text-multiscript.pdf",
         "links-and-outlines.pdf",
     ] {
-        let pages: Vec<Vec<String>> = facts["files"][name]["pypdf"]["pages"]
-            .as_array()
-            .expect("pages")
-            .iter()
-            .map(strings)
-            .collect();
-        compare(name, &pages);
+        let expected = drawn(
+            |e| {
+                facts["files"][name][e]["pages"]
+                    .as_array()
+                    .expect("pages")
+                    .iter()
+                    .map(strings)
+                    .collect()
+            },
+            |e, page, line| {
+                listed
+                    .iter()
+                    .any(|x| x["file"] == name && x["extractor"] == e && x["page"] == page && x["line"] == line)
+            },
+        );
+        compare(name, &expected);
     }
-}
-
-/// A one-page document with `content` and the fonts `fonts` as `/F1`, `/F2`, ….
-fn page(content: &[u8], fonts: Vec<Dict>, options: OpenOptions) -> Document {
-    let dict = |entries: Vec<(&str, Object)>| entries.into_iter().collect::<Dict>();
-    let mut w = Writer::new(1, 7);
-    let pages = w.reserve();
-    let font_refs: Dict = fonts
-        .into_iter()
-        .enumerate()
-        .map(|(i, font)| {
-            (
-                lamina_syntax::Name::new(format!("F{}", i + 1)),
-                Object::from(w.add(font)),
-            )
-        })
-        .collect();
-    let content = w.add(Stream::new(Dict::new(), content.to_vec()));
-    let page = w.add(dict(vec![
-        ("Type", Object::name("Page")),
-        ("Parent", pages.into()),
-        ("MediaBox", vec![0.into(), 0.into(), 612.into(), 792.into()].into()),
-        ("Contents", content.into()),
-        ("Resources", dict(vec![("Font", font_refs.into())]).into()),
-    ]));
-    w.set(
-        pages,
-        dict(vec![
-            ("Type", Object::name("Pages")),
-            ("Kids", vec![page.into()].into()),
-            ("Count", 1.into()),
-        ]),
-    );
-    let root = w.add(dict(vec![("Type", Object::name("Catalog")), ("Pages", pages.into())]));
-    let bytes = w.finish(&[("Root", root)].into_iter().collect()).expect("writes");
-    Document::open(bytes, options).expect("opens")
-}
-
-fn font(source: &str) -> Dict {
-    match lamina_syntax::parse_object(source.as_bytes()) {
-        Ok(Object::Dict(d)) => d,
-        other => panic!("{other:?}"),
-    }
-}
-
-fn helvetica() -> Dict {
-    font("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>")
-}
-
-fn extract(doc: &Document) -> lamina_cos::Result<PageText> {
-    let pages = doc.pages()?;
-    let page = pages.get(0).expect("a page");
-    TextExtractor::new().page(doc, &page)
 }
 
 fn xs(text: &PageText) -> Vec<f64> {
     text.glyphs
         .iter()
-        .map(|g| (g.origin.0 * 1000.0).round() / 1000.0)
+        .map(|g| (g.origin.x * 1000.0).round() / 1000.0)
         .collect()
 }
 
@@ -200,7 +180,11 @@ fn the_ctm_and_text_matrix_scale_positions_and_sizes() {
     let glyph = extract(&doc).expect("extracts").glyphs.remove(0);
     let round = |v: f64| (v * 1000.0).round() / 1000.0;
     assert_eq!(
-        (glyph.origin, (round(glyph.advance.0), glyph.advance.1), glyph.size),
+        (
+            (glyph.origin.x, glyph.origin.y),
+            (round(glyph.advance.0), glyph.advance.1),
+            glyph.size
+        ),
         ((20.0, 30.0), (13.34, 0.0), 20.0)
     );
 }

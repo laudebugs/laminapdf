@@ -31,11 +31,19 @@ pub const MAX_USECMAP_DEPTH: usize = 8;
 /// The default vertical metrics of a CIDFont, `/DW2 [880 −1000]` (§9.7.4.3).
 const DW2: (f64, f64) = (880.0, -1000.0);
 
+/// The extent used when a font gives none (thousandths of text space): about what common
+/// Latin fonts have.
+const DEFAULT_EXTENT: (f64, f64) = (800.0, -200.0);
+
 /// A font loaded for extraction.
 #[derive(Debug)]
 pub(crate) struct ExtractFont {
     kind: Kind,
     to_unicode: Option<CMap>,
+    /// `/BaseFont` (the font's name), read lossily.
+    pub(crate) name: String,
+    /// Ascent and descent in thousandths of text space, for glyph boxes.
+    pub(crate) extent: (f64, f64),
 }
 
 #[derive(Debug)]
@@ -302,12 +310,39 @@ impl ExtractFont {
             },
             None => None,
         };
-        let kind = if name_of(dict.get("Subtype")) == Some(b"Type0") {
+        let composite = name_of(dict.get("Subtype")) == Some(b"Type0");
+        let kind = if composite {
             Kind::Composite(Box::new(Composite::load(&mut reader, dict)?))
         } else {
             Kind::Simple(Simple::load(&mut reader, dict)?)
         };
-        Ok((Self { kind, to_unicode }, reader.issues))
+        let base_font = name_of(dict.get("BaseFont")).unwrap_or_default();
+        let extent = extent(&mut reader, dict, composite, base_font)?;
+        let name = String::from_utf8_lossy(base_font).into_owned();
+        Ok((
+            Self {
+                kind,
+                to_unicode,
+                name,
+                extent,
+            },
+            reader.issues,
+        ))
+    }
+
+    /// The position vector `(vx, vy)` of a glyph in vertical writing, thousandths of text
+    /// space (§9.7.4.3): from `/W2`, else half the horizontal width and `/DW2`'s first number.
+    pub(crate) fn position_vector(&self, code: Code) -> (f64, f64) {
+        match &self.kind {
+            Kind::Simple(_) => (0.0, 0.0),
+            Kind::Composite(c) => {
+                let cid = c.cid(code);
+                c.vertical_widths.get(cid).map_or_else(
+                    || (c.widths.get(cid).unwrap_or(c.default_width) / 2.0, c.default_vertical.0),
+                    |(_, vx, vy)| (vx, vy),
+                )
+            }
+        }
     }
 
     /// Whether the font writes vertically (`/WMode 1`, `Identity-V`).
@@ -557,18 +592,7 @@ impl Composite {
                 (CidEncoding::Identity, false)
             }
         };
-        let descendant = match reader.get(dict, "DescendantFonts")? {
-            Some(list) => match list.as_array().and_then(<[Object]>::first) {
-                Some(first) => match reader.doc.deref(first) {
-                    Ok(object) => object.as_dict().cloned(),
-                    Err(error) if fatal(&error) => return Err(error),
-                    Err(_) => None,
-                },
-                None => None,
-            },
-            None => None,
-        };
-        let Some(cid_font) = descendant else {
+        let Some(cid_font) = descendant(reader, dict)? else {
             reader.issues.font = true;
             return Ok(Self {
                 encoding,
@@ -667,6 +691,75 @@ impl Composite {
         }
         self.program.get(&self.cid(code)).map(char::to_string)
     }
+}
+
+/// A Type 0 font's descendant CIDFont dictionary (`/DescendantFonts`' first element).
+fn descendant(reader: &mut Reader<'_>, dict: &Dict) -> Result<Option<Dict>> {
+    let Some(list) = reader.get(dict, "DescendantFonts")? else {
+        return Ok(None);
+    };
+    let Some(first) = list.as_array().and_then(<[Object]>::first) else {
+        return Ok(None);
+    };
+    match reader.doc.deref(first) {
+        Ok(object) => Ok(object.as_dict().cloned()),
+        Err(error) if fatal(&error) => Err(error),
+        Err(_) => Ok(None),
+    }
+}
+
+/// A font's ascent and descent in thousandths of text space, for glyph boxes: Type 3's
+/// `/FontBBox` through `/FontMatrix`; else the descriptor's `/Ascent` and `/Descent` (when they
+/// make a box), else its `/FontBBox`; else a standard 14 font's AFM values; else
+/// [`DEFAULT_EXTENT`]. (pdf.js and PDFium differ here; B9c's quad tests set the tolerance.)
+fn extent(reader: &mut Reader<'_>, dict: &Dict, composite: bool, base_font: &[u8]) -> Result<(f64, f64)> {
+    let valid = |ascent: f64, descent: f64| (ascent > descent && ascent > 0.0).then_some((ascent, descent));
+    let bbox = |numbers: &[f64]| match *numbers {
+        [_, y0, _, y1] => valid(y1.max(y0), y0.min(y1)),
+        _ => None,
+    };
+    if name_of(dict.get("Subtype")) == Some(b"Type3") {
+        let matrix = match reader.get(dict, "FontMatrix")? {
+            Some(m) => reader.numbers(&m)?,
+            None => Vec::new(),
+        };
+        let scale = matrix.get(3).copied().unwrap_or(0.001) * 1000.0;
+        let numbers = match reader.get(dict, "FontBBox")? {
+            Some(b) => reader.numbers(&b)?,
+            None => Vec::new(),
+        };
+        let scaled: Vec<f64> = numbers.iter().map(|n| n * scale).collect();
+        return Ok(bbox(&scaled).unwrap_or(DEFAULT_EXTENT));
+    }
+    let owner = if composite {
+        descendant(reader, dict)?
+    } else {
+        Some(dict.clone())
+    };
+    if let Some(descriptor) = match owner {
+        Some(owner) => reader.dict(&owner, "FontDescriptor")?,
+        None => None,
+    } {
+        let ascent = reader.number(&descriptor, "Ascent")?;
+        let descent = reader.number(&descriptor, "Descent")?;
+        if let Some(found) = ascent.zip(descent).and_then(|(a, d)| valid(a, d)) {
+            return Ok(found);
+        }
+        if let Some(b) = reader.get(&descriptor, "FontBBox")?
+            && let Some(found) = bbox(&reader.numbers(&b)?)
+        {
+            return Ok(found);
+        }
+    }
+    if let Some(font) = standard_font(base_font) {
+        let m = font.metrics();
+        let afm = m.ascender.zip(m.descender).map(|(a, d)| (f64::from(a), f64::from(d)));
+        let from_bbox = bbox(&m.bbox.map(f64::from));
+        if let Some(found) = afm.and_then(|(a, d)| valid(a, d)).or(from_bbox) {
+            return Ok(found);
+        }
+    }
+    Ok(DEFAULT_EXTENT)
 }
 
 /// A predefined CMap by name (§9.7.5.2, Table 116): Identity-H/V, and the UCS-2/UTF-16 ones
@@ -1127,6 +1220,50 @@ mod tests {
         );
         let (font, issues) = load(&font);
         assert_eq!((text(&font, b"A"), issues.cmap), (vec![Some("B".into())], true));
+    }
+
+    #[test]
+    fn extents_come_from_the_descriptor_then_its_bbox_then_the_afm() {
+        let ascent = |source: &str| load(&dict(source)).0.extent;
+        assert_eq!(
+            [
+                ascent("<< /Subtype /TrueType /BaseFont /X /FontDescriptor << /Ascent 900 /Descent -100 >> >>"),
+                ascent(
+                    "<< /Subtype /TrueType /BaseFont /X /FontDescriptor << /Ascent 0 /Descent 0 /FontBBox [0 -300 1000 950] >> >>"
+                ),
+                ascent("<< /Subtype /Type1 /BaseFont /Helvetica >>"),
+                ascent("<< /Subtype /Type1 /BaseFont /Unknown >>"),
+                ascent("<< /Subtype /Type3 /FontMatrix [0.01 0 0 0.01 0 0] /FontBBox [0 -10 100 90] >>"),
+            ],
+            [
+                (900.0, -100.0),
+                (950.0, -300.0),
+                (718.0, -207.0),
+                (800.0, -200.0),
+                (900.0, -100.0)
+            ]
+        );
+    }
+
+    #[test]
+    fn a_type0_extent_comes_from_its_descendants_descriptor() {
+        let (font, _) = load(&type0(
+            "/Identity-H",
+            "<< /Subtype /CIDFontType2 /FontDescriptor << /Ascent 1069 /Descent -293 >> >>",
+        ));
+        assert_eq!((font.extent, font.name.as_str()), ((1069.0, -293.0), "F"));
+    }
+
+    #[test]
+    fn position_vectors_come_from_w2_else_half_the_width_and_dw2() {
+        let (font, _) = load(&type0(
+            "/Identity-V",
+            "<< /Subtype /CIDFontType0 /W [6 [600]] /W2 [5 [-900 500 800]] /DW2 [870 -1000] >>",
+        ));
+        assert_eq!(
+            [font.position_vector(two(5)), font.position_vector(two(6))],
+            [(500.0, 800.0), (300.0, 870.0)]
+        );
     }
 
     #[test]
