@@ -12,7 +12,7 @@
 | Branch | `feat/b9d-text-runs-and-quads` |
 | PR title | `feat(text): glyph quads, text runs with ActualText and MCIDs, page.text()` |
 | Size | M–L (≈ 800–1,200 lines) |
-| PR | — |
+| PR | [#76](https://github.com/laudebugs/lamina/pull/76) |
 
 ## Goal
 
