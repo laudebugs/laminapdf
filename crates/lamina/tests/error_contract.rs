@@ -106,9 +106,7 @@ fn shared_cases_serialise_to_the_expected_object() {
             Some("pageCount") => opened.and_then(|d| d.page_count()).map(drop),
             Some(other) => panic!("contract.json: call {other} is not mapped in this test"),
         };
-        let err = result
-            .err()
-            .unwrap_or_else(|| panic!("{}: no error", case["name"]));
+        let err = result.err().unwrap_or_else(|| panic!("{}: no error", case["name"]));
         let actual = serde_json::to_value(&err).unwrap();
         schema.check(&actual);
         if actual != case["expected"] {
@@ -138,11 +136,17 @@ fn marker_diagnostics() -> (Vec<Error>, Vec<Warning>) {
         keep(doc.page_text(index, &TextOptions::new()).map(drop));
     }
     let mut edited = Document::open_bytes(bytes.clone(), OpenOptions::default()).unwrap();
-    keep(edited.apply_log(&format!(r#"{{ "v": 1, "ops": [{{ "op": "{MARKER}" }}] }}"#)).map(drop));
+    keep(
+        edited
+            .apply_log(&format!(r#"{{ "v": 1, "ops": [{{ "op": "{MARKER}" }}] }}"#))
+            .map(drop),
+    );
     keep(edited.apply_log(MARKER).map(drop));
     keep(
         edited
-            .apply_log(&format!(r#"{{ "v": 1, "ops": [{{ "op": "setInfo", "args": {{ "{MARKER}": 1 }} }}] }}"#))
+            .apply_log(&format!(
+                r#"{{ "v": 1, "ops": [{{ "op": "setInfo", "args": {{ "{MARKER}": 1 }} }}] }}"#
+            ))
             .map(drop),
     );
     // The same bytes with the marker as the /Encrypt /Filter (unsupported-security-handler;
@@ -175,7 +179,11 @@ fn no_message_or_hint_carries_document_text() {
         })
         .map(|d| format!("{}: {}", d.code, d.to_json()))
         .collect();
-    assert!(leaks.is_empty(), "document text in a message or hint:\n  {}", leaks.join("\n  "));
+    assert!(
+        leaks.is_empty(),
+        "document text in a message or hint:\n  {}",
+        leaks.join("\n  ")
+    );
 }
 
 /// Without this, the test above would pass on a fixture that provokes nothing.
