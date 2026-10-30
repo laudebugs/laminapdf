@@ -6,9 +6,9 @@
 | Status | `ready` |
 | Plan | [shareable-libraries §7 L2](../../plans/shareable-libraries.md#l2-typescript-hardening) |
 | Round / milestone | Round L2 (shareable libraries) |
-| Depends on | [B6b](./B6b-lamina-pdf-package.md), [L1b](./L1b-error-contract-codegen.md) |
+| Depends on | [B6b](../ongoing/B6b-lamina-pdf-package.md), [L1b](./L1b-error-contract-codegen.md) |
 | Blocks | None |
-| ADRs | Follows [0002](../../decisions/0002-binding-strategy.md) (wasm-bindgen handles, `free()`/`using`), [0003](../../decisions/0003-reader-tolerance-and-limits.md) §3 (`Limits` as the first memory bound), 0016 (build profile, from [B6a](../ongoing/B6a-lamina-wasm-and-adr-0016.md)), 0026 (codes, from [L1a](../done/L1a-contract-adrs.md), if merged), [0018](../../decisions/0018-test-strategy.md) §2 (no wall-clock assertions) |
+| ADRs | Follows [0002](../../decisions/0002-binding-strategy.md) (wasm-bindgen handles, `free()`/`using`), [0003](../../decisions/0003-reader-tolerance-and-limits.md) §3 (`Limits` as the first memory bound), 0016 (build profile, from [B6a](../done/B6a-lamina-wasm-and-adr-0016.md)), 0026 (codes, from [L1a](../done/L1a-contract-adrs.md), if merged), [0018](../../decisions/0018-test-strategy.md) §2 (no wall-clock assertions) |
 | Branch | `feat/l2b-disposal-and-memory` |
 | PR title | `feat(pdf): Symbol.dispose on every handle, capped wasm memory and instance recovery` |
 | Size | M (≈ 300–500 lines of TS, Rust build config and tests) |
@@ -29,7 +29,7 @@ Keep `@lamina/pdf` from leaking or growing without bound in long-lived pages and
 - [Report: disposal](../../research/libraries/shareable-libraries.md#disposal-using-first-finalizationregistry-as-a-backstop-memory-bounded-three-ways): `using` support by engine, Safari's conflicting status, FinalizationRegistry as a backstop, three memory bounds, `DISPOSED`.
 - [TypeScript note §5](../../research/libraries/notes/typescript-web-dx.md#5-resource-management-using-finalizationregistry-linear-memory): `--max-memory` linker flag, `reset()`, memory never shrinks **[unverified]**.
 - [Report: panic safety](../../research/libraries/shareable-libraries.md#panic-safety-no-panics-in-core-a-disposable-instance-on-the-web-unwinding-at-native-edges) and [rust-core-bridge note §8](../../research/libraries/notes/rust-core-bridge.md#8-panic-safety-across-ffi): stable wasm32 is `panic=abort`; treat the instance as disposable; reinstantiate on `RuntimeError: unreachable`.
-- [B6b](./B6b-lamina-pdf-package.md): ships `doc.free()` and `Symbol.dispose` on `Document`, and lists "memory management across the boundary" as a risk. This todo covers every handle and the rest.
+- [B6b](../ongoing/B6b-lamina-pdf-package.md): ships `doc.free()` and `Symbol.dispose` on `Document`, and lists "memory management across the boundary" as a risk. This todo covers every handle and the rest.
 - [ADR 0003 §3](../../decisions/0003-reader-tolerance-and-limits.md#3-limits): `Limits` is the first bound. Most hostile input must fail there, before memory runs out.
 - [ADR 0006](../../decisions/0006-op-log-and-undo.md): the op log can replay edits onto a re-opened document (an option for recovery; see Risks).
 

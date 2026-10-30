@@ -21,10 +21,16 @@ use lamina_cos::Warning as W;
 use lamina_syntax::{Limit, Position};
 
 /// Codes whose page lists data keys but whose value can't be built outside its crate.
-const UNBUILDABLE: [(&str, &str); 1] = [(
-    "not-rebased",
-    "SaveError::NotRebased carries a SavedOutput, whose constructor is private to lamina-save",
-)];
+const UNBUILDABLE: [(&str, &str); 4] = [
+    (
+        "not-rebased",
+        "SaveError::NotRebased carries a SavedOutput, whose constructor is private to lamina-save",
+    ),
+    // `bindingErrors`: raised by lamina-wasm, not the façade; its tests check their data keys.
+    ("builder-finished", "raised by lamina-wasm"),
+    ("invalid-argument", "raised by lamina-wasm"),
+    ("unknown-option", "raised by lamina-wasm"),
+];
 
 fn root() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).join("../..")

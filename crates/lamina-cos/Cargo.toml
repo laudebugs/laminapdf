@@ -13,6 +13,11 @@ publish.workspace = true
 [package.metadata.lamina]
 layer = "core"
 
+[features]
+default = ["saslprep"]
+# SASLprep for R5/R6 passwords (lamina-syntax's `saslprep`).
+saslprep = ["lamina-syntax/saslprep"]
+
 [dependencies]
 lamina-syntax = { workspace = true }
 thiserror = { workspace = true }

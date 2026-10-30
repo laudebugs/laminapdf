@@ -45,7 +45,7 @@ pub enum Error {
     #[error(transparent)]
     Text(lamina_text::Error),
     /// Building pages (`lamina-build`).
-    #[cfg(feature = "text")]
+    #[cfg(feature = "build")]
     #[error(transparent)]
     Build(lamina_build::Error),
     /// A 0-based page index the document doesn't have (`page-index-out-of-range`).
@@ -87,7 +87,7 @@ impl Error {
             Self::Save(e) => e.code(),
             #[cfg(feature = "text")]
             Self::Text(e) => e.code(),
-            #[cfg(feature = "text")]
+            #[cfg(feature = "build")]
             Self::Build(e) => e.code(),
             Self::PageIndexOutOfRange { .. } => "page-index-out-of-range",
             Self::Cancelled => "cancelled",
@@ -107,7 +107,7 @@ impl Error {
             Self::Save(e) => e.kind(),
             #[cfg(feature = "text")]
             Self::Text(e) => e.kind(),
-            #[cfg(feature = "text")]
+            #[cfg(feature = "build")]
             Self::Build(e) => e.kind(),
             Self::PageIndexOutOfRange { .. } => ErrorKind::Usage,
             Self::Cancelled => ErrorKind::Cancelled,
@@ -126,7 +126,7 @@ impl Error {
             Self::Save(e) => e.location(),
             #[cfg(feature = "text")]
             Self::Text(e) => e.location(),
-            #[cfg(feature = "text")]
+            #[cfg(feature = "build")]
             Self::Build(e) => e.location(),
             Self::PageIndexOutOfRange { .. } | Self::Cancelled | Self::JobFinished | Self::DocumentChanged => {
                 Location::NONE
@@ -245,11 +245,12 @@ impl From<lamina_text::Error> for Error {
     }
 }
 
-#[cfg(feature = "text")]
+#[cfg(feature = "build")]
 impl From<lamina_build::Error> for Error {
     fn from(e: lamina_build::Error) -> Self {
         match e {
             lamina_build::Error::Cos(e) => Self::Cos(e),
+            #[cfg(feature = "text")]
             lamina_build::Error::Text(e) => e.into(),
             other => Self::Build(other),
         }

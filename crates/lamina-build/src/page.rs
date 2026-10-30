@@ -199,6 +199,7 @@ impl<'b> PageBuilder<'b> {
     pub fn finish(mut self) -> Result<PageId> {
         let mark = self.target.doc.journal_mark();
         let state = &*self.target.state;
+        #[cfg(feature = "text")]
         let fonts = self.surface.has_text().then(|| state.fonts.clone());
         let resources = state.resources.clone();
         let (links, required) = (state.links.len(), state.required);
@@ -207,6 +208,7 @@ impl<'b> PageBuilder<'b> {
             // Should the rollback fail too, the first error is the one to report.
             let _ = self.target.doc.rollback_to(mark);
             let state = &mut *self.target.state;
+            #[cfg(feature = "text")]
             if let Some(fonts) = fonts {
                 state.fonts = fonts;
             }
@@ -252,6 +254,7 @@ impl<'b> PageBuilder<'b> {
             &frame,
             &mut resources,
             &mut TextTarget {
+                #[cfg(feature = "text")]
                 fonts: &mut state.fonts,
                 doc: &*self.target.doc,
             },

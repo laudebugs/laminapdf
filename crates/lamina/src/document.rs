@@ -427,7 +427,7 @@ impl Document {
     }
 
     /// A built document with the warnings building it raised.
-    #[cfg(feature = "text")]
+    #[cfg(feature = "build")]
     pub(crate) fn built(inner: lamina_ops::Document, warnings: Vec<Warning>) -> Self {
         Self {
             build_warnings: warnings,

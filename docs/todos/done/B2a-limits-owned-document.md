@@ -48,7 +48,7 @@ Make the reader's safety policy explicit and configurable, and make `Document` s
 - Overlay and mutation (`CosMut`): [B3a](./B3a-overlay-and-ops.md).
 - Windowed reading of non-slice sources, chunked repair scan, `DataPending` per window (moved out after #13 shipped read-all-at-open): [B2d](./B2d-windowed-reading.md).
 - Edge `ByteSource`s (mmap, `Blob`, HTTP range + OPFS): desktop D2 and web C3 todos.
-- The TS half of the codes test: [B6b](../ready/B6b-lamina-pdf-package.md).
+- The TS half of the codes test: [B6b](../ongoing/B6b-lamina-pdf-package.md).
 
 ## Tasks
 

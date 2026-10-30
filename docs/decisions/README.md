@@ -34,6 +34,7 @@ Numbers follow the [architecture plan §3](../plans/architecture.md#3-decisions-
 | [0006](0006-op-log-and-undo.md) | Op log, transactions, undo/redo and barrier ops | Accepted |
 | [0007](0007-save-planner.md) | Save planner, `SaveMode` and `SaveConstraint` | Accepted |
 | [0015](0015-monorepo-layout-and-tooling.md) | Monorepo layout and tooling (Cargo + pnpm + xtask) | Accepted |
+| [0016](0016-package-design.md) | Package design: ESM-only, export conditions, base and text WASM modules, per-module size budgets | Accepted |
 | [0018](0018-test-strategy.md) | Test strategy: tiers, CI lanes, corpora, fuzzing, flaky tests | Accepted |
 | [0019](0019-supply-chain-and-licence-hygiene.md) | Supply-chain and licence hygiene (cargo-deny, npm licence check, Dependabot, SBOM, fixture provenance) | Accepted |
 | [0023](0023-content-stream-reading.md) | Content-stream reading: the `lamina-content` crate (tokenizer, visitor), tolerance rules, operator and XObject-depth limits | Accepted |

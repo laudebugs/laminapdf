@@ -86,7 +86,7 @@ None.
 - `subsetter`'s variable-font instancing support and CFF2 handling: verify on the pinned version; if missing, ship instancing as a follow-up todo and error clearly meanwhile.
 - `skrifa` versions move fast (krilla pinned 0.42 while 0.49 is current); pin one and track with Dependabot.
 - CJK fixture size: commit only a pre-subset test font; full fonts fetched in the nightly lane.
-- WASM size: `skrifa` + `subsetter` belong in the text module ([B6a](../ongoing/B6a-lamina-wasm-and-adr-0016.md)); keep `lamina-text` separable from base crates (no dependency from `lamina-build`'s non-text parts on it — feature-gate).
+- WASM size: `skrifa` + `subsetter` belong in the text module ([B6a](../done/B6a-lamina-wasm-and-adr-0016.md)); keep `lamina-text` separable from base crates (no dependency from `lamina-build`'s non-text parts on it — feature-gate).
 
 ## Definition of done
 

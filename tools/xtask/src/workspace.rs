@@ -44,7 +44,7 @@ const ALLOWED_EDGE_ONLY_EDGES: [(&str, &str, &str); 1] = [(
     "cpufeatures",
     "libc",
     "RustCrypto's CPU-feature detection (aes, sha2; B2b): reads hardware capabilities only \
-     (getauxval, sysctlbyname) on aarch64 Linux/Android/Apple; no file system, network, clocks or threads",
+         (getauxval, sysctlbyname) on aarch64 Linux/Android/Apple; no file system, network, clocks or threads",
 )];
 
 /// `cargo metadata`'s `target_directory`, or `<root>/target` if it is missing.
@@ -61,11 +61,9 @@ struct Crate {
     dir: PathBuf,
     layer: Layer,
     wasm: bool,
-    /// Cargo package id, the key into [`Workspace::graph`].
-    id: String,
 }
 
-/// A package in the resolved dependency graph.
+/// A package in a crate's dependency graph ([`crate_graph`]).
 struct Node {
     name: String,
     /// Proc-macros run on the host at build time; their dependencies are not shipped.
@@ -91,12 +89,10 @@ pub(crate) struct Workspace {
     /// `<root>/target`, where the workflows upload them from.
     pub(crate) target_dir: PathBuf,
     crates: Vec<Crate>,
-    /// The resolved dependency graph, by package id.
-    graph: BTreeMap<String, Node>,
 }
 
 impl Workspace {
-    /// Reads `cargo metadata` (with the resolved dependency graph) and the
+    /// Reads `cargo metadata` and the
     /// `[package.metadata.lamina]` table of every crate in `crates/`.
     pub(crate) fn load(root: PathBuf) -> Result<Self> {
         let output = Command::new("cargo")
@@ -108,7 +104,6 @@ impl Workspace {
             bail!("cargo metadata failed: {}", String::from_utf8_lossy(&output.stderr));
         }
         let metadata: Value = serde_json::from_slice(&output.stdout).context("cargo metadata returned bad JSON")?;
-        let graph = dependency_graph(&metadata);
         let target_dir = target_directory(&metadata, &root);
         let crates_dir = root.join("crates");
         let mut crates = Vec::new();
@@ -134,7 +129,6 @@ impl Workspace {
             root,
             target_dir,
             crates,
-            graph,
         })
     }
 
@@ -158,7 +152,11 @@ impl Workspace {
     pub(crate) fn check_core_sources(&self) -> Result<()> {
         let mut problems = Vec::new();
         for krate in self.crates.iter().filter(|c| c.layer == Layer::Core) {
-            for path in edge_only_paths(&self.graph, &krate.id) {
+            // The crate's own dependency graph, with only the features it (and its own
+            // dependencies) enable: the workspace-wide resolve also has the features edge crates
+            // turn on (lamina-wasm's `tsify` on lamina-ops), which a core build never sees.
+            let (graph, root) = crate_graph(&self.root, &krate.name)?;
+            for path in edge_only_paths(&graph, &root) {
                 problems.push(format!("{}: depends on edge-only crate: {path}", krate.name));
             }
             let lib = krate.dir.join("src/lib.rs");
@@ -225,56 +223,72 @@ impl Crate {
             wasm: layer == Layer::Edge
                 && package.pointer("/metadata/lamina/wasm").and_then(Value::as_bool) == Some(true),
             layer,
-            id: str_field(package, "/id").to_owned(),
         })
     }
 }
 
-/// The resolved graph from `cargo metadata`: every package with its normal dependencies.
-fn dependency_graph(metadata: &Value) -> BTreeMap<String, Node> {
-    let mut graph = BTreeMap::new();
-    for package in metadata.get("packages").and_then(Value::as_array).into_iter().flatten() {
-        let proc_macro = package
-            .get("targets")
-            .and_then(Value::as_array)
-            .into_iter()
-            .flatten()
-            .filter_map(|t| t.get("kind").and_then(Value::as_array))
-            .flatten()
-            .any(|kind| kind.as_str() == Some("proc-macro"));
-        let node = Node {
-            name: str_field(package, "/name").to_owned(),
-            proc_macro,
-            normal_deps: Vec::new(),
+/// `name`'s normal dependency graph for every target, as a build of it alone resolves its
+/// features (`cargo tree -p name -e normal,no-proc-macro --target all`), keyed by
+/// `name version`; the root's key is returned with it.
+fn crate_graph(root: &Path, name: &str) -> Result<(BTreeMap<String, Node>, String)> {
+    let output = Command::new(crate::program_path("cargo"))
+        .args([
+            "tree",
+            "--locked",
+            "-p",
+            name,
+            "-e",
+            "normal,no-proc-macro",
+            "--target",
+            "all",
+            "--prefix",
+            "depth",
+        ])
+        .current_dir(root)
+        .output()
+        .context("running cargo tree")?;
+    if !output.status.success() {
+        bail!(
+            "cargo tree -p {name} failed: {}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+    }
+    Ok(parse_tree(&String::from_utf8_lossy(&output.stdout)))
+}
+
+/// The graph of `cargo tree --prefix depth` output (`2lamina-syntax v0.0.0 (path)`, repeats
+/// marked `(*)`), and its root's key.
+fn parse_tree(text: &str) -> (BTreeMap<String, Node>, String) {
+    let mut graph: BTreeMap<String, Node> = BTreeMap::new();
+    let mut stack: Vec<String> = Vec::new();
+    let mut root = String::new();
+    for line in text.lines() {
+        let digits = line.bytes().take_while(u8::is_ascii_digit).count();
+        let Some(depth) = line.get(..digits).and_then(|d| d.parse::<usize>().ok()) else {
+            continue;
         };
-        graph.insert(str_field(package, "/id").to_owned(), node);
-    }
-    for node in metadata
-        .pointer("/resolve/nodes")
-        .and_then(Value::as_array)
-        .into_iter()
-        .flatten()
-    {
-        let normal_deps = node
-            .get("deps")
-            .and_then(Value::as_array)
-            .into_iter()
-            .flatten()
-            .filter(|dep| {
-                // `kind: null` is a normal dependency (on any target platform).
-                dep.get("dep_kinds")
-                    .and_then(Value::as_array)
-                    .into_iter()
-                    .flatten()
-                    .any(|k| k.get("kind").is_none_or(Value::is_null))
-            })
-            .filter_map(|dep| dep.get("pkg").and_then(Value::as_str).map(str::to_owned))
-            .collect();
-        if let Some(entry) = graph.get_mut(str_field(node, "/id")) {
-            entry.normal_deps = normal_deps;
+        let mut tokens = line.get(digits..).unwrap_or_default().split_whitespace();
+        let (Some(name), Some(version)) = (tokens.next(), tokens.next()) else {
+            continue;
+        };
+        let id = format!("{name} {version}");
+        graph.entry(id.clone()).or_insert_with(|| Node {
+            name: name.to_owned(),
+            proc_macro: false,
+            normal_deps: Vec::new(),
+        });
+        stack.truncate(depth);
+        if let Some(parent) = stack.last().and_then(|p| graph.get_mut(p))
+            && !parent.normal_deps.contains(&id)
+        {
+            parent.normal_deps.push(id.clone());
         }
+        if depth == 0 {
+            root.clone_from(&id);
+        }
+        stack.push(id);
     }
-    graph
+    (graph, root)
 }
 
 /// Every edge-only crate reachable from `root` through normal dependencies, as a path
@@ -419,7 +433,17 @@ mod tests {
 
     use std::path::Path;
 
-    use super::{Node, edge_only_paths, forbidden_api, forbids_unsafe_at_crate_root, target_directory};
+    use super::{Node, edge_only_paths, forbidden_api, forbids_unsafe_at_crate_root, parse_tree, target_directory};
+
+    #[test]
+    fn parse_tree_links_each_line_to_the_line_above_it_one_level_up() {
+        let (graph, root) =
+            parse_tree("0core v0.0.0 (/p)\n1helper v1.0.0\n2getrandom v0.3.0\n1other v2.0.0\n2helper v1.0.0 (*)\n");
+        assert_eq!(
+            (root.as_str(), edge_only_paths(&graph, &root)),
+            ("core v0.0.0", vec!["core → helper → getrandom".to_owned()])
+        );
+    }
 
     #[test]
     fn target_directory_should_follow_cargo_metadata() {
