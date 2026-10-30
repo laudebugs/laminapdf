@@ -82,11 +82,13 @@ fn every_corpus_file_is_in_expected_json() {
     }
 }
 
+/// capability: C.04 core read
 #[test]
 fn page_count_matches_pypdf() {
     check_fact("page_count", |doc| doc.pages().ok().map(|p| p.len().into()));
 }
 
+/// capability: I.01 core read
 #[test]
 fn outline_titles_match_pypdf() {
     check_fact("outline_titles", |doc| outline_titles(doc).ok().map(Value::from));

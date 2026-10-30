@@ -27,6 +27,7 @@ fn numbers(doc: &Document) -> Vec<u32> {
     doc.object_numbers().collect()
 }
 
+/// capability: K.04 core write
 #[test]
 fn rotate_then_keep_keeps_numbers_and_page_ids_and_drops_unreachable_objects() {
     let mut doc = editable(&two_pages());

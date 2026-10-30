@@ -34,7 +34,7 @@ The capability matrix is the editor's roadmap and progress report ([06 §10](../
   - `read`: displayed or extracted faithfully.
   - `write`: can be created or changed; output passes qpdf `--check` and opens correctly in pdf.js and PDFium.
   - `round-trip`: open → change → save → reopen in lamina, pdf.js and PDFium preserves the feature and everything else in the file (golden and differential tests).
-- **Mechanics (recommendation):** a manifest `docs/capabilities/manifest.toml` (ID, name, group, target round) and test attributes that tag tests with an ID and status; `cargo xtask capabilities` runs the tagged tests and regenerates `docs/capabilities/README.md`. CI fails if a row claims a status that no passing test proves.
+- **Mechanics** (built in [X2](../todos/done/X2-capability-matrix.md)): the manifest [`docs/capabilities/manifest.toml`](../capabilities/manifest.toml) (169 rows: ID, name as in 06 §3, target round, target status, targeted surfaces; IDs are never reused, removed ones are `retired`) and a doc-comment tag on each proving Rust test, `/// capability: C.08 core round-trip` (TS tests: `test("[cap C.04 pdf round-trip] …")`, collected once a package exists); `cargo xtask capabilities` runs the tagged tests and regenerates [`docs/capabilities/README.md`](../capabilities/README.md). The full lane's `cargo xtask capabilities --check` fails when the page differs from what the passing tests prove, and `cargo xtask check docs` (every PR) fails when the manifest and 06 §3 disagree or the page claims more than any tagged test could prove.
 - **Done means:** a round is done when every row it targets reaches its target status in every column it lists.
 
 ## 4. Users and use cases
@@ -290,11 +290,11 @@ Editor rounds are larger than reader rounds. Each starts with a short **feature-
 Each round's todos (one per PR, with dependencies) are linked from [§7](#7-phases-and-rounds) and on the [todo board](../todos/README.md); this checklist is the summary.
 
 ### Cross-cutting
-Todos: [X2](../todos/ongoing/X2-capability-matrix.md) (capability matrix; E1a and E1f depend on it)
-- [ ] Assign stable IDs `<group>.<nn>` to all operations in 06 §3 and create `docs/capabilities/manifest.toml`
-- [ ] Implement test tagging and `cargo xtask capabilities`; generate `docs/capabilities/README.md`
-- [ ] CI gate: no status claimed without a passing tagged test
-- [ ] Show the capability matrix in the app (E1) and docs site
+Todos: [X2](../todos/done/X2-capability-matrix.md) (capability matrix; E1a and E1f depend on it)
+- [x] Assign stable IDs `<group>.<nn>` to all operations in 06 §3 and create `docs/capabilities/manifest.toml`
+- [x] Implement test tagging and `cargo xtask capabilities`; generate `docs/capabilities/README.md`
+- [x] CI gate: no status claimed without a passing tagged test
+- [ ] Show the capability matrix in the app (E1) and docs site (the generated page is [`docs/capabilities/`](../capabilities/README.md))
 
 ### E1. Editing foundation
 - [ ] Feature-plan PR for E1

@@ -132,6 +132,7 @@ fn an_incremental_save_with_remove_encryption_requires_a_rewrite() {
     );
 }
 
+/// capability: G.05 core round-trip
 #[test]
 fn auto_with_remove_encryption_writes_a_plaintext_full_rewrite_of_every_fixture() {
     for (path, password) in encrypted() {
