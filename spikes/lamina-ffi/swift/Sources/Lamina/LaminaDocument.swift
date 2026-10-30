@@ -13,9 +13,10 @@ public final class LaminaDocument: @unchecked Sendable {
 
     private init(raw: FfiDocument) { self.raw = raw }
 
-    /// Runs a blocking Rust call on a detached task.
-    static func offCaller<T>(_ body: @escaping @Sendable () throws -> T) async throws -> T {
-        try await Task.detached { try body() }.value
+    /// Runs a blocking Rust call on a detached task at the caller's priority (detached so it
+    /// never runs on the main actor; one task per call, and one for a whole job loop).
+    static func offCaller<T: Sendable>(_ body: @escaping @Sendable () throws -> T) async throws -> T {
+        try await Task.detached(priority: Task.currentPriority) { try body() }.value
     }
 
     /// Opens a document. `Data` crosses as UniFFI 0.32's zero-copy `&[u8]`: read in place for
@@ -53,15 +54,18 @@ public final class LaminaDocument: @unchecked Sendable {
     ) async throws -> FfiSaved {
         let raw = self.raw
         let job = try await Self.offCaller { try raw.saveJob(options: FfiSaveOptions(mode: mode, appendedOnly: false)) }
+        // The whole loop runs in one detached task; cancelling this task cancels the Rust job,
+        // whose next step then fails with `cancelled` (mapped to CancellationError). A step that
+        // had already finished the save returns its bytes: a cancelled Swift task still returns.
         return try await withTaskCancellationHandler {
-            while true {
-                try Task.checkCancellation()
-                let step = try await Self.offCaller { try Self.mapCancelled { try job.step(units: unitsPerStep) } }
-                switch step {
-                case let .done(saved):
-                    return saved
-                case let .progress(done, total, phase):
-                    onProgress(done, total, phase)
+            try await Self.offCaller {
+                while true {
+                    switch try Self.mapCancelled({ try job.step(units: unitsPerStep) }) {
+                    case let .done(saved):
+                        return saved
+                    case let .progress(done, total, phase):
+                        onProgress(done, total, phase)
+                    }
                 }
             }
         } onCancel: {

@@ -4,8 +4,8 @@ import XCTest
 @testable import Lamina
 import LaminaFFI
 
-/// SHA-256 of the scenario output from the Rust test (target/scenario-rust.pdf); Kotlin
-/// asserts the same value.
+/// SHA-256 of the scenario's output: `SCENARIO_SHA256` in src/lib.rs's Rust test; Kotlin asserts
+/// the same value.
 let scenarioSHA256 = "12dc111c8a4c9b7f5b298caf19a84f17381387514b2ed51dafaf554d7feb2966"
 
 final class LaminaTests: XCTestCase {
@@ -23,7 +23,8 @@ final class LaminaTests: XCTestCase {
         let doc = try await LaminaDocument.open(hello)
         let count = try await doc.pageCount()
         XCTAssertEqual(count, 1)
-        let page = try XCTUnwrap(try await doc.pages().first)
+        let pages = try await doc.pages()
+        let page = try XCTUnwrap(pages.first)
         print("swift: page 0: \(page.width) x \(page.height) pt, id \(page.id)")
         let lines = try doc.raw.pageText(index: 0)
         print("swift: page 0 text: \(lines)")
@@ -58,6 +59,25 @@ final class LaminaTests: XCTestCase {
         let saved = try await doc.save(unitsPerStep: 1) { _, _, _ in counter.add() }
         XCTAssertFalse(saved.bytes.isEmpty)
         XCTAssertGreaterThan(counter.value, 0)
+    }
+
+    func testCancellingASaveNeverLosesBoth() async throws {
+        let doc = try await LaminaDocument.open(hello)
+        try await doc.setTitle("cancel me")
+        let started = Counter()
+        let task = Task { try await doc.save(unitsPerStep: 1) { _, _, _ in started.add() } }
+        while started.value == 0 { try await Task.sleep(nanoseconds: 100_000) }
+        task.cancel()
+        switch await task.result {
+        case let .success(saved):
+            // The last step had already finished: the bytes come back and the document is saved.
+            XCTAssertFalse(saved.bytes.isEmpty)
+            XCTAssertFalse(try doc.raw.hasUnsavedChanges())
+            print("swift: the cancelled save had already finished and returned its bytes")
+        case let .failure(error):
+            XCTAssertTrue(error is CancellationError, "\(error)")
+            XCTAssertTrue(try doc.raw.hasUnsavedChanges(), "a stopped save leaves the edit unsaved")
+        }
     }
 
     func testCancellingTheTaskCancelsTheRustJobWithinOneStep() async throws {

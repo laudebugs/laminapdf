@@ -29,7 +29,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
 
-/** SHA-256 of the scenario output from the Rust test (target/scenario-rust.pdf). */
+/** SHA-256 of the scenario's output: `SCENARIO_SHA256` in src/lib.rs's Rust test. */
 const val SCENARIO_SHA256 = "12dc111c8a4c9b7f5b298caf19a84f17381387514b2ed51dafaf554d7feb2966"
 
 class LaminaFfiTest {
@@ -102,6 +102,8 @@ class LaminaFfiTest {
                 assertTrue(doc.raw.hasUnsavedChanges(), "a cancelled save leaves the edit unsaved")
             } else {
                 assertTrue(saved.bytes.isNotEmpty())
+                assertTrue(!doc.raw.hasUnsavedChanges(), "a finished save rebased the document")
+                LaminaDocument.open(saved.bytes).use { assertEquals("cancel me", it.title(), "the bytes are this save's") }
                 println("kotlin: the cancelled save had already finished; bytes kept in lastSaved")
             }
         }

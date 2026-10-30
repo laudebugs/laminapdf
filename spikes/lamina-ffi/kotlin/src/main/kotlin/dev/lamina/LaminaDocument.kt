@@ -15,6 +15,8 @@ import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.asExecutor
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.withContext
 import java.nio.ByteBuffer
 
@@ -57,7 +59,7 @@ class LaminaDocument private constructor(
     suspend fun setTitle(title: String?) = withContext(dispatcher) { raw.setInfo(FfiInfoKey.TITLE, title) }
 
     /**
-     * The output of the newest save that completed, including one that completed although
+     * The output of the current or newest [save] (cleared when a save starts), including one that completed although
      * its coroutine was cancelled during the last step: Rust finished the save and rebased
      * the document, so the bytes must not be lost (a cancelled coroutine can't return them).
      */
@@ -76,6 +78,7 @@ class LaminaDocument private constructor(
         unitsPerStep: UInt = 256u,
         onProgress: (FfiSaveStep.Progress) -> Unit = {},
     ): FfiSaved {
+        lastSaved = null // a value here after a cancel always belongs to this save
         val job = withContext(dispatcher) { raw.saveJob(FfiSaveOptions(mode, false)) }
         job.use {
             while (true) {
@@ -113,6 +116,7 @@ suspend fun <T> cancellableStep(
     onResultAfterCancel: (T) -> Unit = {},
     block: () -> T,
 ): T {
+    currentCoroutineContext().ensureActive() // cancelled between steps: don't start another
     val pending = CompletableDeferred<Result<T>>()
     dispatcher.asExecutor().execute { pending.complete(runCatching(block)) }
     val result =
