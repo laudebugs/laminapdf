@@ -23,6 +23,10 @@ const CARGO_FUZZ_VERSION: &str = "0.13.2";
 /// (`cargo xtask roundtrip`) and the committed `qpdf --check` facts (`tools/fixtures/text_facts.py`,
 /// `fixtures/encrypted/`; tests read the facts, so only regenerating them needs it).
 pub(crate) const QPDF_VERSION: &str = "12.4.2";
+/// Poppler release behind the committed `pdftotext` facts (`tools/fixtures/text_facts.py`,
+/// todo B4d; tests read the facts, so only regenerating them needs it).
+/// `crates/lamina-text/tests/extraction.rs` checks the facts were written with it.
+pub(crate) const POPPLER_VERSION: &str = "26.10.0";
 /// Binaryen release for `wasm-opt`. Its output is part of the shipped .wasm, so bump it deliberately
 /// and review the wasm-opt feature list (ADR 0002) whenever this or `rust-toolchain.toml` changes.
 const BINARYEN_VERSION: &str = "133";
@@ -77,6 +81,10 @@ impl Tool {
             .current_dir(&ws.root)
             .output();
         let version = match output {
+            // Some tools (poppler's `pdftotext -v`) print their version on stderr.
+            Ok(out) if out.status.success() && out.stdout.is_empty() => {
+                String::from_utf8_lossy(&out.stderr).trim().to_owned()
+            }
             Ok(out) if out.status.success() => String::from_utf8_lossy(&out.stdout).trim().to_owned(),
             _ => return Probe::Missing,
         };
@@ -194,6 +202,7 @@ fn all_tools(ws: &Workspace) -> Result<Vec<Tool>> {
         cargo_nextest(),
         cargo_fuzz(),
         qpdf(),
+        pdftotext(),
         hb_shape(),
         Tool {
             name: "wasm-bindgen-cli",
@@ -215,6 +224,18 @@ fn all_tools(ws: &Workspace) -> Result<Vec<Tool>> {
             optional_for: Some("lamina-wasm size optimisation (Round B)"),
         },
     ])
+}
+
+/// Poppler's `pdftotext` at [`POPPLER_VERSION`] (optional: only regenerating the text
+/// extraction facts uses it).
+pub(crate) fn pdftotext() -> Tool {
+    Tool {
+        name: "pdftotext",
+        version_command: &["pdftotext", "-v"],
+        pin: Pin::Exact(POPPLER_VERSION.to_owned()),
+        fix: format!("brew install poppler  # or a poppler {POPPLER_VERSION} release"),
+        optional_for: Some("regenerating the text extraction facts (tools/fixtures/text_facts.py)"),
+    }
 }
 
 /// HarfBuzz's `hb-shape` at [`HB_SHAPE_VERSION`] (optional: only `golden --update` uses it).

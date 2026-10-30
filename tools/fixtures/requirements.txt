@@ -1,6 +1,7 @@
-# Fixture generators in tools/fixtures/: fonts.py (fontTools: MIT) and text_facts.py (pypdf:
+# Fixture generators in tools/fixtures/: fonts.py (fontTools: MIT), text_facts.py and build_facts.py (pypdf:
 # BSD-3-Clause; also needs qpdf at the version pinned in tools/xtask/src/doctor.rs). Tools only:
-# nothing here ships or links into lamina. crates/lamina-text/tests/extraction.rs checks that
-# fixtures/text/extracted.json was written with these versions.
+# nothing here ships or links into lamina. crates/lamina-text/tests/extraction.rs and
+# crates/lamina-build/tests/external.rs check that fixtures/text/extracted.json and
+# fixtures/build/facts.json were written with these versions.
 fonttools==4.68.0
 pypdf==6.21.3

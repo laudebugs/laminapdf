@@ -105,7 +105,15 @@ pub(crate) fn build(font: &Font, usage: &FontUse, glyphs: &[(u16, GlyphId)]) -> 
         .table_directory
         .table_records()
         .iter()
-        .find(|r| r.tag() == skrifa::Tag::new(b"CFF "));
+        .find(|r| r.tag() == CFF_TAG);
+    if cff.is_some() && !has_cff_table(&source) {
+        // `FontUse` decided from the source whether glyphs may get several CIDs; a CFF
+        // program must not get CIDs its charset doesn't have.
+        return Err(Error::Subset {
+            font: name(),
+            reason: "the subset's outline format differs from the font's",
+        });
+    }
     let kind = match cff {
         None => Kind::TrueType,
         Some(_) if usage.is_whole() && can_embed_as_is => Kind::OpenType,
@@ -199,6 +207,15 @@ fn reason(e: subsetter::Error) -> &'static str {
         subsetter::Error::OverflowError => "overflow while subsetting",
         subsetter::Error::CFFError => "malformed CFF table",
     }
+}
+
+const CFF_TAG: skrifa::Tag = skrifa::Tag::new(b"CFF ");
+
+/// Whether `font` has CFF outlines that the embedded program keeps (a `CFF ` table: such a
+/// font is embedded as `CIDFontType0`, one CID per glyph). CFF2 is converted to TrueType
+/// outlines by the subsetter. [`FontUse`] and [`build`] both decide with this.
+pub(crate) fn has_cff_table(font: &FontRef<'_>) -> bool {
+    font.table_data(CFF_TAG).is_some()
 }
 
 /// How many salts [`unique_tag`] tries before giving up. Two subsets collide with probability

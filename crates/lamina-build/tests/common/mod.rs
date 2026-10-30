@@ -16,9 +16,11 @@
     reason = "test helpers outside #[test] fns: a panic here is a test failure; pixel values are in 0..=255"
 )]
 
+pub mod b5b;
 pub mod content;
 pub mod legacy;
 pub mod samples;
+pub mod text;
 
 use std::path::{Path, PathBuf};
 

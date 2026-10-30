@@ -1,12 +1,19 @@
 //! [`Builder`] (a new document) and [`Appender`] (pages added to an open one).
 
-use lamina_cos::{ObjRef, OpenOptions};
-use lamina_model::{PageId, PdfDate};
+use std::collections::BTreeMap;
 
+use lamina_cos::{ObjRef, OpenOptions};
+use lamina_model::{IdAllocator, Kind, OutlineItemId, PageFrame, PageId, PdfDate};
+use lamina_text::{EmbedPolicy, FontRegistry, Standard14};
+
+use crate::annot::link::PendingLink;
 use crate::error::Result;
 use crate::finish;
+use crate::meta::{Metadata, ViewerPreferences};
+use crate::nav::{Fit, OutlineEntry, PageLabel};
 use crate::page::{PageBuilder, PageSize};
 use crate::resources::DocResources;
+use crate::surface::text::Font;
 
 /// The header version of a new document (§7.5.2). Saving with object and cross-reference
 /// streams (`lamina-save`'s default) raises anything below 1.5 to 1.5.
@@ -81,7 +88,8 @@ impl BuildOptions {
         self
     }
 
-    /// `/Producer` in a minimal Info dictionary (the full Info and XMP are B5b's).
+    /// `/Producer` in the Info dictionary ([`Builder::metadata`] sets the rest, and its own
+    /// producer wins).
     #[must_use]
     pub fn with_producer(mut self, producer: impl Into<String>) -> Self {
         self.producer = Some(producer.into());
@@ -141,8 +149,13 @@ impl BuildOptions {
 pub(crate) struct BuildState {
     /// The `/Pages` node new pages hang off (reserved for a new document).
     pub(crate) pages_root: ObjRef,
-    /// The pages written so far, in order.
+    /// The pages written so far, in order, and their frames.
     pub(crate) pages: Vec<ObjRef>,
+    pub(crate) frames: Vec<PageFrame>,
+    /// The fonts text was drawn with (one registry per build).
+    pub(crate) fonts: FontRegistry,
+    /// Link annotations waiting for their targets.
+    pub(crate) links: Vec<PendingLink>,
     pub(crate) resources: DocResources,
     pub(crate) compress: bool,
     /// Write `/Rotate` and `/CropBox` on every page, so nothing is inherited from an
@@ -157,6 +170,9 @@ impl BuildState {
         Self {
             pages_root,
             pages: Vec::new(),
+            frames: Vec::new(),
+            fonts: FontRegistry::new(),
+            links: Vec::new(),
             resources: DocResources::default(),
             compress,
             explicit_inherited,
@@ -168,6 +184,30 @@ impl BuildState {
     pub(crate) fn require(&mut self, version: (u8, u8)) {
         self.required = self.required.max(version);
     }
+
+    fn add_font(&mut self, font: lamina_text::Font, policy: EmbedPolicy) -> Result<Font> {
+        let key = self.fonts.add(font.clone(), policy)?;
+        Ok(Font { key, font })
+    }
+}
+
+/// The outline of a new document: its root and items' reserved numbers, pre-order.
+#[derive(Debug)]
+pub(crate) struct OutlineState {
+    pub(crate) root: ObjRef,
+    pub(crate) entries: Vec<OutlineEntry>,
+    pub(crate) ids: Vec<ObjRef>,
+}
+
+/// What a new document has besides its pages.
+#[derive(Debug, Default)]
+pub(crate) struct DocFeatures {
+    pub(crate) names: BTreeMap<String, (u32, Fit)>,
+    pub(crate) outline: Option<OutlineState>,
+    pub(crate) labels: Option<Vec<PageLabel>>,
+    pub(crate) metadata: Option<Metadata>,
+    pub(crate) lang: Option<String>,
+    pub(crate) prefs: Option<ViewerPreferences>,
 }
 
 /// What a page writes into: the document and the build's shared state.
@@ -199,6 +239,7 @@ pub struct Builder {
     options: BuildOptions,
     catalog: ObjRef,
     state: BuildState,
+    features: DocFeatures,
 }
 
 impl Builder {
@@ -217,7 +258,110 @@ impl Builder {
             options,
             catalog,
             state: BuildState::new(pages_root, compress, false),
+            features: DocFeatures::default(),
         }
+    }
+
+    /// Registers `font` for text ([`Surface::text`](crate::Surface::text),
+    /// [`Surface::text_box`](crate::Surface::text_box)); it is subset to the glyphs drawn and
+    /// embedded when the build finishes.
+    ///
+    /// # Errors
+    /// `font-not-embeddable` when the font's `fsType` forbids embedding (see
+    /// [`Builder::font_with`]).
+    pub fn font(&mut self, font: lamina_text::Font) -> Result<Font> {
+        self.state.add_font(font, EmbedPolicy::Respect)
+    }
+
+    /// Registers `font` with an embedding `policy` (`EmbedPolicy::Override` embeds a font
+    /// whose licence restricts it: the caller's responsibility).
+    ///
+    /// # Errors
+    /// As [`Builder::font`].
+    pub fn font_with(&mut self, font: lamina_text::Font, policy: EmbedPolicy) -> Result<Font> {
+        self.state.add_font(font, policy)
+    }
+
+    /// One of the standard 14 fonts: not embedded, one glyph per character (no shaping),
+    /// WinAnsi-encoded (Latin) or in its built-in encoding (Symbol, `ZapfDingbats`).
+    ///
+    /// # Errors
+    /// None in practice (the registry accepts every standard 14 font); kept for symmetry
+    /// with [`Builder::font`].
+    pub fn standard_font(&mut self, font: Standard14) -> Result<Font> {
+        self.state
+            .add_font(lamina_text::Font::standard(font), EmbedPolicy::Respect)
+    }
+
+    /// Defines the named destination `name` (`/Names /Dests`, §12.3.2.4): page `index`
+    /// (0-based, resolved when the build finishes) shown as `fit`. Links and outline items
+    /// reach it with [`LinkTarget::Named`](crate::LinkTarget::Named). Defining a name again
+    /// replaces it. The tree is written sorted by name, so the output doesn't depend on the
+    /// order of the calls.
+    pub fn destination(&mut self, name: impl Into<String>, index: u32, fit: Fit) -> &mut Self {
+        self.features.names.insert(name.into(), (index, fit));
+        self
+    }
+
+    /// Adds `entries` (with their children) at the end of the document's outline. Each item
+    /// gets its object number, and so its [`OutlineItemId`], now (ADR 0005 §5); the IDs come
+    /// back in pre-order (an item before its children). Targets are resolved when the build
+    /// finishes.
+    ///
+    /// # Errors
+    /// [`Error::Cos`](crate::Error::Cos) when object numbers run out.
+    pub fn outline(&mut self, entries: impl IntoIterator<Item = OutlineEntry>) -> Result<Vec<OutlineItemId>> {
+        let ids = IdAllocator::new(&self.doc);
+        if self.features.outline.is_none() {
+            let root = self.doc.reserve_number()?;
+            self.features.outline = Some(OutlineState {
+                root,
+                entries: Vec::new(),
+                ids: Vec::new(),
+            });
+        }
+        let Some(outline) = self.features.outline.as_mut() else {
+            return Ok(Vec::new());
+        };
+        let mut new = Vec::new();
+        for entry in entries {
+            for _ in 0..entry.len() {
+                let (r, _) = ids.allocate(Kind::OutlineItem)?;
+                outline.ids.push(r);
+                new.push(OutlineItemId::object(r));
+            }
+            outline.entries.push(entry);
+        }
+        Ok(new)
+    }
+
+    /// The page labels (`/PageLabels`, §12.4.2): ranges by first page, checked when the build
+    /// finishes (the first must start at page 0, starts must increase and be pages of the
+    /// document, numbers start at 1).
+    pub fn page_labels(&mut self, ranges: impl IntoIterator<Item = PageLabel>) -> &mut Self {
+        self.features.labels = Some(ranges.into_iter().collect());
+        self
+    }
+
+    /// The document's metadata, written both as the Info dictionary and as an XMP packet
+    /// (the catalog's uncompressed `/Metadata` stream) with the same values. Values left
+    /// `None` fall back to [`BuildOptions::with_producer`] and
+    /// [`BuildOptions::with_creation_date`].
+    pub fn metadata(&mut self, metadata: Metadata) -> &mut Self {
+        self.features.metadata = Some(metadata);
+        self
+    }
+
+    /// The document's natural language (`/Lang`, §14.9.2.2), a BCP 47 tag such as `en-GB`.
+    pub fn lang(&mut self, lang: impl Into<String>) -> &mut Self {
+        self.features.lang = Some(lang.into());
+        self
+    }
+
+    /// How viewers present the document when it opens.
+    pub fn viewer_preferences(&mut self, prefs: ViewerPreferences) -> &mut Self {
+        self.features.prefs = Some(prefs);
+        self
     }
 
     /// A page of `size`, appended to the document by [`PageBuilder::finish`].
@@ -243,13 +387,26 @@ impl Builder {
         Appender::new(doc, options)
     }
 
-    /// Writes the page tree, the catalog, the Info dictionary when [`BuildOptions`] asked
-    /// for one, and the trailer (`/Root`, `/Info`, `/ID`), and returns the document.
+    /// Writes the fonts (subset and embedded), the links' targets, the page tree, the
+    /// outline, named destinations, page labels, the catalog, the Info dictionary and XMP
+    /// packet, and the trailer (`/Root`, `/Info`, `/ID`), and returns the document.
     ///
     /// # Errors
+    /// [`Error::PageIndexOutOfRange`](crate::Error::PageIndexOutOfRange) for a link,
+    /// outline item or destination naming a page the document doesn't have;
+    /// [`Error::UnknownDestination`](crate::Error::UnknownDestination) for a name never
+    /// defined; [`Error::InvalidPageLabels`](crate::Error::InvalidPageLabels);
+    /// [`Error::InvalidGeometry`](crate::Error::InvalidGeometry) for a destination coordinate
+    /// that isn't finite; [`Error::Text`](crate::Error::Text) when subsetting a font fails;
     /// [`Error::Cos`](crate::Error::Cos) when object numbers run out.
     pub fn finish(mut self) -> Result<lamina_ops::Document> {
-        finish::new_document(&mut self.doc, &self.options, self.catalog, &self.state)?;
+        finish::new_document(
+            &mut self.doc,
+            &self.options,
+            self.catalog,
+            &mut self.state,
+            &self.features,
+        )?;
         Ok(lamina_ops::Document::from(lamina_model::Document::from(self.doc)))
     }
 }
@@ -301,13 +458,43 @@ impl<'d> Appender<'d> {
         )
     }
 
-    /// Links the new pages into the page tree; returns their IDs in order.
+    /// Registers `font` for the new pages' text (as [`Builder::font`]).
     ///
     /// # Errors
-    /// As [`Appender::new`], when the root node changed meanwhile.
+    /// As [`Builder::font`].
+    pub fn font(&mut self, font: lamina_text::Font) -> Result<Font> {
+        self.state.add_font(font, EmbedPolicy::Respect)
+    }
+
+    /// Registers `font` with an embedding `policy` (as [`Builder::font_with`]).
+    ///
+    /// # Errors
+    /// As [`Builder::font`].
+    pub fn font_with(&mut self, font: lamina_text::Font, policy: EmbedPolicy) -> Result<Font> {
+        self.state.add_font(font, policy)
+    }
+
+    /// One of the standard 14 fonts (as [`Builder::standard_font`]).
+    ///
+    /// # Errors
+    /// As [`Builder::standard_font`].
+    pub fn standard_font(&mut self, font: Standard14) -> Result<Font> {
+        self.state
+            .add_font(lamina_text::Font::standard(font), EmbedPolicy::Respect)
+    }
+
+    /// Writes the fonts, links the new pages into the page tree and resolves the new links'
+    /// targets against every page of the document (named destinations are not checked:
+    /// the document may define them); returns the new pages' IDs in order.
+    ///
+    /// # Errors
+    /// As [`Appender::new`], when the root node changed meanwhile;
+    /// [`Error::PageIndexOutOfRange`](crate::Error::PageIndexOutOfRange) for a link to a page
+    /// the document doesn't have; [`Error::Text`](crate::Error::Text) when subsetting fails.
+    ///
+    /// Targets are checked before anything changes, and a write that fails rolls the
+    /// document's overlay back to where this call started.
     pub fn finish(self) -> Result<Vec<PageId>> {
-        finish::append_pages(self.doc.cos_mut(), &self.state)?;
-        finish::raise_version(self.doc.cos_mut(), self.state.required)?;
-        Ok(self.state.pages.iter().map(|r| PageId::object(*r)).collect())
+        finish::finish_appended(self.doc, self.state)
     }
 }

@@ -7,7 +7,7 @@
 | Plan | [shareable-libraries §7 L1](../../plans/shareable-libraries.md#l1-contracts), [§4 principle 2](../../plans/shareable-libraries.md#4-principles-recommendations-recorded-in-adrs-00260031) |
 | Round / milestone | Round L1 (shareable libraries) — before B5c |
 | Depends on | [L1a](./L1a-contract-adrs.md) |
-| Blocks | [B5c](../ready/B5c-lamina-facade-and-examples.md), [L1b](../ready/L1b-error-contract-codegen.md) |
+| Blocks | [B5c](../ongoing/B5c-lamina-facade-and-examples.md), [L1b](../ready/L1b-error-contract-codegen.md) |
 | ADRs | Implements the Rust-core half of [0026](../../decisions/0026-error-and-diagnostic-contract.md) (§1.1 locations, §2 kinds, §3 codes, §4 no document text, §5 hints); follows [0003](../../decisions/0003-reader-tolerance-and-limits.md) §2 and §4 (codes listed once, checked by test) |
 | Branch | `feat/l1c-error-contract-core` |
 | PR title | `feat(codes): kinds, hints and tagged locations for every error and warning code` |
@@ -36,7 +36,7 @@ Give every existing Rust error and warning the parts of ADR 0026 that the façad
 
 **Out of scope** (and which todo covers it)
 
-- `lamina::Error`, `hint()`/`docs_url()`/`Serialize` into the §1 shape, and the job codes `cancelled`/`job-finished`/`document-changed`: [B5c](../ready/B5c-lamina-facade-and-examples.md).
+- `lamina::Error`, `hint()`/`docs_url()`/`Serialize` into the §1 shape, and the job codes `cancelled`/`job-finished`/`document-changed`: [B5c](../ongoing/B5c-lamina-facade-and-examples.md).
 - `cargo xtask gen codes`, TS unions, the JSON Schema, the `explain` feature, the marker-text test: [L1b](../ready/L1b-error-contract-codegen.md).
 
 ## Tasks
