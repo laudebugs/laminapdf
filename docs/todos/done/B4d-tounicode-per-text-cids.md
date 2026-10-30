@@ -12,7 +12,7 @@
 | Branch | `feat/b4d-per-text-cids` |
 | PR title | `feat(text): one CID per glyph and text, so shaped text extracts exactly` |
 | Size | M (≈ 400–700 lines) |
-| PR | — |
+| PR | [#62](https://github.com/laudebugs/lamina/pull/62) |
 
 ## Goal
 
