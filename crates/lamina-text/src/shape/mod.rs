@@ -20,7 +20,6 @@ use icu_properties::props::Script as IcuScript;
 use icu_properties::{CodePointMapData, PropertyNamesShort};
 
 pub use self::engine::HarfRust;
-pub(crate) use self::engine::PlanKey;
 use crate::error::{Error, Result};
 use crate::font::{Font, GlyphId, Tag};
 

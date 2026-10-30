@@ -13,7 +13,6 @@ use skrifa::{FontRef, MetadataProvider};
 
 use crate::error::{Error, Result};
 use crate::fstype::FsType;
-use crate::shape::PlanKey;
 use crate::std14::Standard14;
 
 /// A four-byte OpenType tag, such as the variation axis `wght`.
@@ -154,14 +153,15 @@ struct Source {
     digest: OnceLock<[u8; 32]>,
     /// HarfRust's tables for the face (B4b), built when it is first shaped.
     shaping: OnceLock<harfrust::ShaperData>,
-    /// HarfRust's shape plans (the lookups and feature masks for one instance, direction,
-    /// script, language and feature list), built at first use and reused (B5d): building one
-    /// costs more than shaping a short run with it.
-    plans: Mutex<Vec<(PlanKey, Arc<harfrust::ShapePlan>)>>,
+    /// HarfRust's shape plans (the lookups and feature masks for one direction, script,
+    /// language, feature list and set of feature variations), built at first use and reused
+    /// (B5d): building one costs more than shaping a short run with it. Least recently used
+    /// first.
+    plans: Mutex<Vec<Arc<harfrust::ShapePlan>>>,
 }
 
-/// The most shape plans one font keeps; past it, plans are built for each run and dropped.
-const MAX_PLANS: usize = 64;
+/// The most shape plans one face keeps; past it, the least recently used one is dropped.
+pub(crate) const MAX_PLANS: usize = 64;
 
 /// A font loaded from caller-supplied bytes (for a variable font, one instance of it), or one
 /// of the [standard 14](Standard14) referred to by name. Cheap to clone (the bytes are
@@ -514,26 +514,31 @@ impl Font {
         Ok(self.source.shaping.get_or_init(|| harfrust::ShaperData::new(&font)))
     }
 
-    /// The shape plan for `key`, built by `build` the first time it is asked for and shared by
-    /// every clone of the font. A plan depends only on the face and its key, so a cached one
-    /// shapes exactly as a fresh one would.
+    /// The cached shape plan `matches` accepts (HarfRust's `ShapePlanKey::matches`), else the
+    /// one `build` makes, cached for every instance and clone of the face. A plan depends only
+    /// on the face and what its key compares, so a cached one shapes exactly as a fresh one.
     pub(crate) fn shape_plan(
         &self,
-        key: PlanKey,
+        matches: impl Fn(&harfrust::ShapePlan) -> bool,
         build: impl FnOnce() -> harfrust::ShapePlan,
     ) -> Arc<harfrust::ShapePlan> {
         // A poisoned lock (a panic while another thread held it) only costs the cache.
-        if let Ok(plans) = self.source.plans.lock()
-            && let Some((_, plan)) = plans.iter().find(|(k, _)| *k == key)
+        if let Ok(mut plans) = self.source.plans.lock()
+            && let Some(at) = plans.iter().position(|plan| matches(plan))
         {
-            return Arc::clone(plan);
+            // The most recently used goes last.
+            let plan = plans.remove(at);
+            plans.push(Arc::clone(&plan));
+            return plan;
         }
         let plan = Arc::new(build());
         if let Ok(mut plans) = self.source.plans.lock()
-            && plans.len() < MAX_PLANS
-            && !plans.iter().any(|(k, _)| *k == key)
+            && !plans.iter().any(|cached| matches(cached))
         {
-            plans.push((key, Arc::clone(&plan)));
+            if plans.len() >= MAX_PLANS {
+                plans.remove(0);
+            }
+            plans.push(Arc::clone(&plan));
         }
         plan
     }
@@ -689,6 +694,38 @@ fn pdf_name_chars(s: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn the_plan_cache_drops_the_least_recently_used_past_its_limit() {
+        use harfrust::{Direction, Feature, ShapePlan, ShapePlanKey, Tag as HbTag};
+        use std::cell::Cell;
+
+        let font = crate::test_fonts::font("NotoSans-Regular.ttf");
+        let font_ref = font.font_ref().unwrap();
+        let shaper = font.shaper_data().unwrap().shaper(&font_ref).build();
+        let builds = Cell::new(0);
+        // Plans told apart by a `kern` value; returns whether it had to be built.
+        let plan = |n: u32| {
+            let features = [Feature::new(HbTag::new(b"kern"), n, ..)];
+            let key = ShapePlanKey::new(None, Direction::LeftToRight).features(&features);
+            let before = builds.get();
+            font.shape_plan(
+                |p| key.matches(p),
+                || {
+                    builds.set(builds.get() + 1);
+                    ShapePlan::new(&shaper, Direction::LeftToRight, None, None, &features)
+                },
+            );
+            builds.get() > before
+        };
+        let limit = u32::try_from(MAX_PLANS).unwrap();
+        assert!((0..limit).all(plan), "each new key is built");
+        assert!(!plan(0), "a cached key is not rebuilt");
+        assert!(plan(limit), "a new key past the limit is built");
+        assert_eq!(font.cached_plans(), MAX_PLANS);
+        assert!(!plan(0), "0 was used recently, so it was kept");
+        assert!(plan(1), "1 was the least recently used, so it was dropped");
+    }
 
     #[test]
     fn pdf_name_chars_drops_spaces_and_delimiters() {

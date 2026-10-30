@@ -20,8 +20,11 @@
 #![allow(
     clippy::unwrap_used,
     clippy::expect_used,
+    clippy::panic,
+    clippy::indexing_slicing,
     missing_docs,
-    reason = "a benchmark harness: failing loudly is the right behaviour; criterion's macros \
+    reason = "a benchmark harness: failing loudly (here or in the compile-time hash lookup, \
+              which can't use the non-const `get`) is the right behaviour; criterion's macros \
               generate undocumented items"
 )]
 
@@ -38,8 +41,38 @@ use sha2::{Digest, Sha256};
 const NOTO_SANS: &[u8] = include_bytes!("../../../fixtures/fonts/NotoSans-Regular.ttf");
 const NOTO_SANS_SC: &[u8] = include_bytes!("../../../fixtures/fonts/NotoSansSC-Regular.otf");
 
-/// `REPORT_SHA256` in `packages/pdf/test/suite/examples.ts`: the bytes every runtime produces.
-const REPORT_SHA256: &str = "fcf0579526a631fe375d3966c805d5b8e6b262e178f506a0958b8bc00f611601";
+/// `REPORT_SHA256` in `packages/pdf/test/suite/examples.ts` (the bytes every runtime
+/// produces), read from that file when the bench compiles, so there is no copy to go stale; a
+/// change to how the file declares it fails the build (clippy builds benches on every PR).
+const REPORT_SHA256: &str = suite_hash(include_str!("../../../packages/pdf/test/suite/examples.ts"));
+
+/// The 64 hex digits after `export const REPORT_SHA256 = "` in `suite`.
+const fn suite_hash(suite: &str) -> &str {
+    const PREFIX: &[u8] = b"export const REPORT_SHA256 = \"";
+    let bytes = suite.as_bytes();
+    let mut at = 0;
+    while at + PREFIX.len() + 64 <= bytes.len() {
+        let mut k = 0;
+        while k < PREFIX.len() && bytes[at + k] == PREFIX[k] {
+            k += 1;
+        }
+        if k == PREFIX.len() {
+            let (_, rest) = bytes.split_at(at + k);
+            let (hash, _) = rest.split_at(64);
+            let mut d = 0;
+            while d < 64 {
+                assert!(hash[d].is_ascii_hexdigit(), "REPORT_SHA256 is not 64 hex digits");
+                d += 1;
+            }
+            return match core::str::from_utf8(hash) {
+                Ok(hash) => hash,
+                Err(_) => panic!("REPORT_SHA256 is not 64 hex digits"),
+            };
+        }
+        at += 1;
+    }
+    panic!("packages/pdf/test/suite/examples.ts no longer declares `export const REPORT_SHA256 = \"…\"`")
+}
 
 const PAGES: u32 = 100;
 

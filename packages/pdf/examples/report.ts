@@ -1,8 +1,10 @@
 // A 100-page report with two embedded fonts: a heading, a paragraph broken into a box, a table
 // with hairlines, a line of Chinese (glyphs the fixture subset has) and a footer on every page.
-// It has no Rust twin: it is the §4 performance case (pdf-library plan: a 100-page report in
+// It has no Rust golden: it is the §4 performance case (pdf-library plan: a 100-page report in
 // ≤ 500 ms, < 64 MB in a Worker) that the runtime matrix (B6c) times in every runtime, checking
-// that each produces the same bytes (test/suite/examples.ts).
+// that each produces the same bytes (test/suite/examples.ts). Its Rust twin is the
+// `report_100_pages` bench in crates/lamina/benches/report.rs, which checks it builds the same
+// bytes (REPORT_SHA256): change both together.
 import { Builder, Font } from "@lamina/pdf";
 
 /** The number of pages. */

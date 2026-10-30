@@ -173,9 +173,9 @@ pub fn pdf_run(run: &ShapedRun, text: &str, fonts: &mut FontRegistry, key: FontK
         if splits && glyphs.len() == 1 {
             // What split_cluster and in_reading_order give one glyph, without their copies:
             // the cluster's visible characters, which spell it unless it has default-ignorables.
-            let visible = visible_text(cluster);
-            actual.push((visible.len() != cluster.len()).then(|| cluster.to_owned()));
-            claims.push(Claim::Text(visible));
+            let (text, needs_actual) = one_glyph_text(cluster);
+            actual.push(needs_actual.then(|| cluster.to_owned()));
+            claims.push(Claim::Text(text));
             continue;
         }
         let (texts, mut needs_actual) = split_cluster(run, glyphs, cluster, &nominal);
@@ -362,37 +362,33 @@ fn split_cluster(
     cluster: &str,
     nominal: &impl Fn(GlyphId) -> Option<char>,
 ) -> (Vec<Option<String>>, bool) {
+    if let [_] = glyphs {
+        let (text, needs_actual) = one_glyph_text(cluster);
+        return (vec![(!text.is_empty()).then(|| text.into_owned())], needs_actual);
+    }
     let visible = visible_text(cluster);
-    let texts: Vec<Option<String>> = if let [_] = glyphs {
-        // The common case: one glyph takes the visible characters, which spell the cluster
-        // unless it holds default-ignorables (`visible` is a subsequence of it).
-        let needs_actual = visible.len() != cluster.len();
-        return (vec![(!visible.is_empty()).then(|| visible.into_owned())], needs_actual);
-    } else {
-        let mut left: Vec<char> = visible.chars().collect();
-        let mut texts: Vec<Option<String>> = glyphs
+    let mut left: Vec<char> = visible.chars().collect();
+    let mut texts: Vec<Option<String>> = glyphs
+        .iter()
+        .map(|g| {
+            let ch = nominal(g.gid)?;
+            let at = left.iter().position(|&c| c == ch)?;
+            left.remove(at);
+            Some(ch.to_string())
+        })
+        .collect();
+    if !left.is_empty() {
+        let taker = glyphs
             .iter()
-            .map(|g| {
-                let ch = nominal(g.gid)?;
-                let at = left.iter().position(|&c| c == ch)?;
-                left.remove(at);
-                Some(ch.to_string())
-            })
-            .collect();
-        if !left.is_empty() {
-            let taker = glyphs
-                .iter()
-                .zip(&texts)
-                .enumerate()
-                .filter(|(_, (_, t))| t.is_none())
-                .max_by_key(|&(i, (g, _))| (g.x_advance, std::cmp::Reverse(i)))
-                .map_or(0, |(i, _)| i);
-            if let Some(t) = texts.get_mut(taker) {
-                t.get_or_insert_with(String::new).extend(left);
-            }
+            .zip(&texts)
+            .enumerate()
+            .filter(|(_, (_, t))| t.is_none())
+            .max_by_key(|&(i, (g, _))| (g.x_advance, std::cmp::Reverse(i)))
+            .map_or(0, |(i, _)| i);
+        if let Some(t) = texts.get_mut(taker) {
+            t.get_or_insert_with(String::new).extend(left);
         }
-        texts
-    };
+    }
     let reading = texts.iter().map(|t| t.as_deref().unwrap_or(""));
     let spelled = if run.direction.is_rtl() {
         spells(reading.rev(), cluster)
@@ -400,6 +396,16 @@ fn split_cluster(
         spells(reading, cluster)
     };
     (texts, !spelled)
+}
+
+/// What the one glyph of `cluster` stands for: its visible characters, and whether the cluster
+/// needs `/ActualText` because they don't spell it (it holds default-ignorables; the visible
+/// characters are a subsequence of it, so the lengths tell). [`split_cluster`]'s answer for one
+/// glyph, and [`in_reading_order`]'s after it.
+fn one_glyph_text(cluster: &str) -> (Cow<'_, str>, bool) {
+    let visible = visible_text(cluster);
+    let needs_actual = visible.len() != cluster.len();
+    (visible, needs_actual)
 }
 
 /// `cluster` without its default-ignorable characters, borrowed when it has none.
@@ -432,12 +438,6 @@ fn spells<'p>(pieces: impl Iterator<Item = &'p str>, text: &str) -> bool {
 /// whether the cluster still needs `/ActualText`: only when it holds default-ignorable
 /// characters, which are no glyph's text.
 fn in_reading_order(run: &ShapedRun, texts: &[Option<String>], cluster: &str) -> (Vec<String>, bool) {
-    if let [_] = texts {
-        // One glyph is dealt every visible character.
-        let visible = visible_text(cluster);
-        let needs_actual = visible.len() != cluster.len();
-        return (vec![visible.into_owned()], needs_actual);
-    }
     let mut sizes: Vec<usize> = texts
         .iter()
         .map(|t| t.as_deref().map_or(0, |t| t.chars().count()))

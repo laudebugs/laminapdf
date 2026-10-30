@@ -66,11 +66,15 @@ function time(name, runs, build) {
     ms.push(performance.now() - start);
   }
   ms.sort((a, b) => a - b);
-  const median = ms[Math.floor(runs / 2)];
+  const mid = Math.floor(runs / 2);
+  const median = runs % 2 === 1 ? ms[mid] : (ms[mid - 1] + ms[mid]) / 2;
   console.info(`${name}: min ${ms[0].toFixed(1)} ms, median ${median.toFixed(1)} ms (${runs} runs)`);
 }
 
-await init({ text: true });
 const runs = Number(argv[2] ?? 10);
+if (!Number.isInteger(runs) || runs < 1) {
+  throw new Error(`runs must be a positive integer, not ${argv[2]}`);
+}
+await init({ text: true });
 time("report", runs, () => report(notoSans, notoSansSC));
 time("text-boxes", runs, textBoxes);
