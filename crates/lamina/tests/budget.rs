@@ -7,6 +7,7 @@
 //! cargo test --release -p lamina --test budget -- --ignored --nocapture
 //! ```
 #![cfg(feature = "text")]
+#![expect(clippy::unwrap_used, reason = "test helper: a panic is a test failure")]
 
 use std::time::Instant;
 
@@ -23,14 +24,22 @@ fn large(pages: u32) -> Document {
         let mut page = b.page(PageSize::A4);
         let _ = page
             .surface()
-            .text(&format!("Page {i}"), &font, Pt::new(12.0), PointPt::from_points(72.0, 72.0))
+            .text(
+                &format!("Page {i}"),
+                &font,
+                Pt::new(12.0),
+                PointPt::from_points(72.0, 72.0),
+            )
             .unwrap();
         page.finish().unwrap();
     }
     let bytes = b
         .finish()
         .unwrap()
-        .save(&SaveOptions::new().with_mode(SaveMode::FullRewrite), &CancelToken::new())
+        .save(
+            &SaveOptions::new().with_mode(SaveMode::FullRewrite),
+            &CancelToken::new(),
+        )
         .unwrap()
         .bytes;
     Document::open_bytes(bytes, OpenOptions::default()).unwrap()
