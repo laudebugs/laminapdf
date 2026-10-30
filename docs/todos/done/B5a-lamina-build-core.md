@@ -12,7 +12,7 @@
 | Branch | `feat/b5a-lamina-build` |
 | PR title | `feat(build): lamina-build with pages, paths, colour, opacity and images` |
 | Size | L (≈ 1,000–1,400 lines; the moved content builder counts once) |
-| PR | — |
+| PR | [#59](https://github.com/laudebugs/lamina/pull/59) |
 
 ## Goal
 
