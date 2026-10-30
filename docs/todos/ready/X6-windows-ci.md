@@ -21,6 +21,7 @@ Run `cargo xtask check` on Windows again (X4 had it on GitHub-hosted `windows-la
 ## Context
 
 - [ADR 0018 §2 and its X4 implementation note](../../decisions/0018-test-strategy.md#2-ci-lanes); [X5](../done/X5-linux-ci-container.md) (the Linux runner pattern to mirror).
+- [Hosted CI runner pricing](../../research/architecture/notes/hosted-ci-runners.md) (2026-10-30): Blacksmith vs CircleCI vs GitHub-hosted Windows and Linux runners, with measured run times and monthly estimates; re-check it before choosing.
 - Known Windows-specific code: `pnpm.cmd` lookup in xtask, path portability checks (`cargo xtask check docs`).
 
 ## Scope
