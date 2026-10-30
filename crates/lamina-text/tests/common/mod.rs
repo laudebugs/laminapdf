@@ -17,6 +17,7 @@
     reason = "test helpers outside #[test] fns: a panic here is a test failure"
 )]
 
+pub mod extract;
 pub mod samples;
 pub mod shaped;
 

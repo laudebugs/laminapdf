@@ -1,5 +1,6 @@
-//! Text extraction, read side (todo B9b; ISO 32000-2 §9.4–9.10; research 03 §3–5, §8.1): a
-//! page's text-showing operators to glyphs with the text each stands for.
+//! Text extraction, read side (todos B9b, B9d; ISO 32000-2 §9.4–9.10, §14.6, §14.9.4;
+//! research 03 §2.6, §3–5, §8.1): a page's text-showing operators to glyphs with the text each
+//! stands for, their boxes in page space, and runs of them.
 //!
 //! ```
 //! # fn sample() -> Vec<u8> { std::fs::read(concat!(env!("CARGO_MANIFEST_DIR"), "/../../fixtures/golden/text-std14.pdf")).unwrap() }
@@ -10,6 +11,7 @@
 //! let page = pages.get(0).expect("a page");
 //! let text = TextExtractor::new().page(&doc, &page)?;
 //! assert_eq!(text.lines().first().map(String::as_str), Some("Courier: Hello, world! 0123456789"));
+//! assert_eq!(&*text.runs[0].font_name, "Courier");
 //! # Ok::<(), lamina_cos::Error>(())
 //! ```
 //!
@@ -17,10 +19,24 @@
 //! decodes every shown string with its font: codes by the font's encoding or CMap, widths
 //! from `/Widths`, `/W` and `/W2` (which move the text matrix, so the interpreter sees the
 //! right positions across `Tj` sequences), and Unicode by ToUnicode, then encoding and glyph
-//! names, then the embedded font's `cmap` (see `font.rs`). Each [`Glyph`] keeps its code,
-//! text, origin and advance in user space, and size. [`PageText::lines`] joins them in
-//! content order into lines, a new one where the baseline moves, with a space where the pen
-//! jumps forward. Glyph boxes, runs, `ActualText` and MCIDs are todo B9d.
+//! names, then the embedded font's `cmap` (see `font.rs`).
+//!
+//! Each [`Glyph`] keeps its code, text, origin and advance in user space, its size, and a
+//! [`Quad`] in page space (ADR 0027: the displayed `CropBox`, top-left origin, y down,
+//! `/Rotate` and `/UserUnit` applied; [`PageText::frame`] maps back): the glyph's width across
+//! the font's ascent and descent (descriptor, `/FontBBox`, AFM, else a default), through the
+//! text rendering matrix; vertical fonts place it by the `/W2` position vector. Glyphs inside
+//! marked content carry the innermost MCID (§14.7.5) and the outermost `ActualText` span
+//! (§14.9.4); text drawn in rendering mode 3 or 7 is `invisible` (OCR layers).
+//!
+//! [`TextRun`]s group consecutive glyphs of one font, size, direction, MCID, `ActualText`
+//! span and visibility that follow each other on one baseline (see `runs.rs`). A run inside
+//! an `ActualText` span takes the span's text (the first run of the span; later runs of it
+//! add none) and keeps its glyphs' boxes. Other runs join their glyphs' text, with a space
+//! where the pen jumps forward over a quarter of the size; a run with right-to-left
+//! characters is taken to be drawn in visual order and is put in logical order by UAX #9 over
+//! grapheme clusters (`BidiParagraph`), as pdf.js does. [`PageText::lines`] joins the runs in
+//! content order, a new line where the baseline moves by over half the size.
 //!
 //! Fonts are parsed once per [`TextExtractor`] (keyed by font object). Problems follow
 //! ADR 0003 and are warnings on the document: `font-invalid` (a malformed font dictionary,
@@ -31,31 +47,48 @@
 
 mod cmap;
 mod font;
+mod runs;
 
 pub use cmap::{CMap, Code};
 pub use font::MAX_USECMAP_DEPTH;
+pub use runs::TextRun;
 
-use lamina_content::{Matrix, TextAdvance, TextItem, TextShow, Visitor};
+use std::sync::Arc;
+
+use lamina_content::{MarkedContent, Matrix, TextAdvance, TextItem, TextShow, Visitor};
 use lamina_cos::{Error, Result, Warning};
+use lamina_model::{PageFrame, PointPt, UserSpacePoint};
 use lamina_syntax::{ObjRef, Object};
 
 use font::FontCache;
+
+/// A vector `(dx, dy)` in raw user space (y up; ADR 0027 keeps raw user space in
+/// `UserSpace…` types).
+pub type UserSpaceVector = (f64, f64);
+
+/// A glyph's box in page space: the baseline's start and end, then the top's end and start.
+/// For unrotated horizontal text that is bottom-left, bottom-right, top-right, top-left.
+pub type Quad = [PointPt; 4];
 
 /// One shown glyph.
 #[derive(Debug, Clone, PartialEq)]
 #[non_exhaustive]
 pub struct Glyph {
     /// The text it stands for: possibly several characters (a ligature), possibly none (a
-    /// glyph mapped to no text), U+FFFD when nothing maps it (`mapped` is `false`).
+    /// glyph mapped to no text), U+FFFD when nothing maps it (`mapped` is `false`). Not
+    /// replaced by `ActualText`: see the glyph's run.
     pub text: String,
     /// Whether a rule mapped the code (else `text` is U+FFFD).
     pub mapped: bool,
     /// The character code.
     pub code: Code,
-    /// The glyph origin in user space (the text rendering matrix's translation, §9.4.4).
-    pub origin: (f64, f64),
-    /// How far the glyph moved the pen, in user space (with `Tc`, `Tw` and `Th`).
-    pub advance: (f64, f64),
+    /// The glyph origin in raw user space (the text rendering matrix's translation, §9.4.4).
+    pub origin: UserSpacePoint,
+    /// How far the glyph moved the pen (with `Tc`, `Tw` and `Th`): a vector in raw user space,
+    /// y up, unlike [`Glyph::quad`] (page space, y down).
+    pub advance: UserSpaceVector,
+    /// The glyph's box in page space.
+    pub quad: Quad,
     /// The size the glyph is drawn at in user space: `Tfs` scaled by the text and current
     /// transformation matrices.
     pub size: f64,
@@ -63,70 +96,57 @@ pub struct Glyph {
     pub vertical: bool,
     /// The font's object, when the font dictionary is indirect.
     pub font: Option<ObjRef>,
+    /// The font's `/BaseFont`.
+    pub font_name: Arc<str>,
+    /// The innermost marked-content identifier around the glyph (`/MCID`, §14.7.5).
+    pub mcid: Option<i64>,
+    /// The `ActualText` span the glyph is in: an index into [`PageText::actual_texts`].
+    pub actual_text: Option<usize>,
+    /// Drawn in text rendering mode 3 or 7: neither filled nor stroked (OCR layers).
+    pub invisible: bool,
 }
 
-/// The glyphs a page shows, in content order.
-#[derive(Debug, Clone, Default, PartialEq)]
+/// The text a page shows, in content order.
+#[derive(Debug, Clone, PartialEq)]
 #[non_exhaustive]
 pub struct PageText {
     /// Every glyph, in the order the content shows them.
     pub glyphs: Vec<Glyph>,
+    /// The glyphs grouped into runs, in content order.
+    pub runs: Vec<TextRun>,
+    /// The text of each `ActualText` span (`BDC` with `/ActualText`), in content order.
+    pub actual_texts: Vec<String>,
     /// Glyphs no rule mapped (their text is U+FFFD).
     pub unmapped: usize,
+    /// The page's frame: [`PageFrame::to_user_space`] maps a quad back to user space.
+    pub frame: PageFrame,
 }
-
-/// A baseline moving by more than this fraction of the glyph size starts a new line.
-const LINE_SHIFT: f64 = 0.5;
-
-/// The pen jumping forward by more than this fraction of the size inserts a space.
-const SPACE_GAP: f64 = 0.25;
 
 impl PageText {
-    /// The page's text as lines, in content order: a new line where the baseline moves by
-    /// more than half the glyph size (or the writing direction turns); a space where the pen
-    /// jumps forward by more than a quarter of it between two glyphs that have none. Glyphs
-    /// drawn backwards on one baseline (right-to-left runs in logical order) stay on the line.
+    /// The page's text as lines, in content order (see the module docs): runs joined, a new
+    /// line where the baseline moves by more than half the size or the direction turns, a
+    /// space where the pen jumps forward by more than a quarter of it between runs that have
+    /// none. Each line is trimmed; empty lines are dropped.
     #[must_use]
     pub fn lines(&self) -> Vec<String> {
-        let mut lines: Vec<String> = Vec::new();
-        let mut line = String::new();
-        // The previous glyph's end, its writing direction (unit vector) and size.
-        let mut previous: Option<(Point, Point, f64)> = None;
-        for glyph in &self.glyphs {
-            let direction = unit(glyph.advance)
-                .or(previous.map(|(_, d, _)| d))
-                .unwrap_or((1.0, 0.0));
-            if let Some((end, prev_direction, size)) = previous {
-                let delta = (glyph.origin.0 - end.0, glyph.origin.1 - end.1);
-                let size = size.max(glyph.size).max(f64::EPSILON);
-                let shift = (delta.1 * prev_direction.0 - delta.0 * prev_direction.1).abs();
-                let turned = direction.0 * prev_direction.0 + direction.1 * prev_direction.1 < 0.9;
-                if shift > LINE_SHIFT * size || turned {
-                    lines.push(std::mem::take(&mut line));
-                } else {
-                    let gap = delta.0 * prev_direction.0 + delta.1 * prev_direction.1;
-                    let spaced = line.ends_with(char::is_whitespace) || glyph.text.starts_with(char::is_whitespace);
-                    if gap > SPACE_GAP * size && !spaced && !line.is_empty() {
-                        line.push(' ');
-                    }
-                }
-            }
-            line.push_str(&glyph.text);
-            let end = (glyph.origin.0 + glyph.advance.0, glyph.origin.1 + glyph.advance.1);
-            previous = Some((end, direction, glyph.size));
-        }
-        lines.push(line);
-        lines.retain(|l| !l.trim().is_empty());
-        lines
+        runs::lines(&self.glyphs, &self.runs)
     }
-}
 
-/// A point or vector `(x, y)` in user space.
-type Point = (f64, f64);
-
-fn unit((x, y): Point) -> Option<Point> {
-    let length = x.hypot(y);
-    (length > f64::EPSILON).then(|| (x / length, y / length))
+    /// The same text without invisible glyphs (`Tr` 3 and 7): the drawn text only (runs
+    /// regrouped, `unmapped` recounted).
+    #[must_use]
+    pub fn visible(self) -> Self {
+        let glyphs: Vec<Glyph> = self.glyphs.into_iter().filter(|g| !g.invisible).collect();
+        let runs = runs::runs(&glyphs, &self.actual_texts);
+        let unmapped = glyphs.iter().filter(|g| !g.mapped).count();
+        Self {
+            glyphs,
+            runs,
+            actual_texts: self.actual_texts,
+            unmapped,
+            frame: self.frame,
+        }
+    }
 }
 
 /// Extracts text page by page, parsing each font once.
@@ -143,31 +163,54 @@ impl TextExtractor {
         Self::default()
     }
 
-    /// The glyphs `page` of `doc` shows (its content and every Form XObject it draws).
+    /// The text `page` of `doc` shows (its content and every Form XObject it draws).
     ///
     /// # Errors
     /// What [`lamina_content::interpret_page`] returns (the content limits, strict mode, an
     /// undecodable content stream), and [`Error::LimitExceeded`] or [`Error::Strict`] while
-    /// reading a font.
+    /// reading a font or the page's boxes.
     pub fn page(&mut self, doc: &lamina_model::Document, page: &lamina_model::Page<'_>) -> Result<PageText> {
+        let frame = page.frame()?;
         let mut collector = Collector {
             doc,
             fonts: &mut self.fonts,
-            text: PageText::default(),
+            frame,
+            glyphs: Vec::new(),
+            actual_texts: Vec::new(),
+            marked: Vec::new(),
+            unmapped: 0,
             error: None,
         };
         lamina_content::interpret_page(doc, page, &mut collector)?;
-        match collector.error {
-            Some(error) => Err(error),
-            None => Ok(collector.text),
+        if let Some(error) = collector.error {
+            return Err(error);
         }
+        let runs = runs::runs(&collector.glyphs, &collector.actual_texts);
+        Ok(PageText {
+            glyphs: collector.glyphs,
+            runs,
+            actual_texts: collector.actual_texts,
+            unmapped: collector.unmapped,
+            frame,
+        })
     }
+}
+
+/// One open marked-content sequence.
+#[derive(Debug, Clone, Copy)]
+struct Marked {
+    mcid: Option<i64>,
+    actual_text: Option<usize>,
 }
 
 struct Collector<'a> {
     doc: &'a lamina_cos::Document,
     fonts: &'a mut FontCache,
-    text: PageText,
+    frame: PageFrame,
+    glyphs: Vec<Glyph>,
+    actual_texts: Vec<String>,
+    marked: Vec<Marked>,
+    unmapped: usize,
     /// The first error met inside a visitor call (which can't return one); the walk goes on
     /// and [`TextExtractor::page`] returns it.
     error: Option<Error>,
@@ -182,8 +225,13 @@ impl Collector<'_> {
             return Ok(TextAdvance::default());
         };
         let font = self.fonts.get(self.doc, font_ref.object, dict)?;
+        let font_name = Arc::clone(&font.name);
         let state = &show.state.text;
         let vertical = font.vertical();
+        let invisible = matches!(state.render_mode, 3 | 7);
+        let mcid = self.marked.iter().rev().find_map(|m| m.mcid);
+        let actual_text = self.marked.iter().find_map(|m| m.actual_text);
+        let (ascent, descent) = font.extent;
         let mut tm = show.tm;
         let mut total = TextAdvance::default();
         let mut unmapped = false;
@@ -222,22 +270,46 @@ impl Collector<'_> {
                         let trm = state.text_space_matrix().multiply(&user);
                         let (x0, y0) = user.transform_point(0.0, 0.0);
                         let (x1, y1) = user.transform_point(advance.tx, advance.ty);
+                        // The box in glyph space (thousandths), relative to the pen: the width
+                        // across the ascent and descent, moved by the position vector when
+                        // writing vertically (§9.7.4.3).
+                        let (left, bottom) = if vertical {
+                            let (vx, vy) = font.position_vector(code);
+                            (-vx, -vy)
+                        } else {
+                            (0.0, 0.0)
+                        };
+                        let corner = |x: f64, y: f64| {
+                            let (ux, uy) = trm.transform_point((left + x) / 1000.0, (bottom + y) / 1000.0);
+                            self.frame.to_page(UserSpacePoint::new(ux, uy))
+                        };
+                        let quad = [
+                            corner(0.0, descent),
+                            corner(w0, descent),
+                            corner(w0, ascent),
+                            corner(0.0, ascent),
+                        ];
                         let (text, mapped) = if let Some(text) = font.unicode(code) {
                             (text, true)
                         } else {
                             unmapped = true;
-                            self.text.unmapped += 1;
+                            self.unmapped += 1;
                             (char::REPLACEMENT_CHARACTER.to_string(), false)
                         };
-                        self.text.glyphs.push(Glyph {
+                        self.glyphs.push(Glyph {
                             text,
                             mapped,
                             code,
-                            origin: (trm.e, trm.f),
+                            origin: UserSpacePoint::new(trm.e, trm.f),
                             advance: (x1 - x0, y1 - y0),
+                            quad,
                             size: trm.c.hypot(trm.d),
                             vertical,
                             font: font_ref.object,
+                            font_name: Arc::clone(&font_name),
+                            mcid,
+                            actual_text,
+                            invisible,
                         });
                         step(advance, &mut tm, &mut total);
                     }
@@ -251,6 +323,24 @@ impl Collector<'_> {
         }
         Ok(total)
     }
+
+    /// The `/ActualText` of a property list, decoded as a text string (§7.9.2.2).
+    fn actual_text(&self, marked: &MarkedContent<'_>) -> Result<Option<String>> {
+        let Some(value) = marked.properties.and_then(|p| p.get("ActualText")) else {
+            return Ok(None);
+        };
+        let value = match self.doc.deref(value) {
+            Ok(resolved) => resolved.into_arc(),
+            Err(error @ (Error::LimitExceeded { .. } | Error::Strict { .. } | Error::DataPending { .. })) => {
+                return Err(error);
+            }
+            Err(_) => return Ok(None),
+        };
+        Ok(match &*value {
+            Object::String(s) => Some(lamina_syntax::text::decode_text_string(&s.bytes)),
+            _ => None,
+        })
+    }
 }
 
 impl Visitor for Collector<'_> {
@@ -262,5 +352,27 @@ impl Visitor for Collector<'_> {
                 TextAdvance::default()
             }
         }
+    }
+
+    fn begin_marked(&mut self, marked: &MarkedContent<'_>) {
+        let actual_text = match self.actual_text(marked) {
+            Ok(Some(text)) => {
+                self.actual_texts.push(text);
+                Some(self.actual_texts.len() - 1)
+            }
+            Ok(None) => None,
+            Err(error) => {
+                self.error.get_or_insert(error);
+                None
+            }
+        };
+        self.marked.push(Marked {
+            mcid: marked.mcid,
+            actual_text,
+        });
+    }
+
+    fn end_marked(&mut self) {
+        self.marked.pop();
     }
 }

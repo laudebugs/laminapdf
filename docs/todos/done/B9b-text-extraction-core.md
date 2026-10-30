@@ -7,14 +7,14 @@
 | Plan | [pdf-library §7 B9](../../plans/pdf-library.md#b9-text-extraction), requirement [§4 F8](../../plans/pdf-library.md#functional) |
 | Round / milestone | Round B (library) — M2 Web reader v0.1 (prerequisite) |
 | Depends on | [B2b](./B2b-standard-security-decryption.md), [B4a](./B4a-font-loading-and-subsetting.md), [B4c](./B4c-standard-14-and-simple-fonts.md), [B5c](./B5c-lamina-facade-and-examples.md), [B9a](./B9a-lamina-content-and-adr-0023.md) |
-| Blocks | [B9d](../ongoing/B9d-text-runs-quads-and-page-text.md) |
+| Blocks | [B9d](./B9d-text-runs-quads-and-page-text.md) |
 | ADRs | Implements 0023 (from [B9a](../done/B9a-lamina-content-and-adr-0023.md)); follows [0003](../../decisions/0003-reader-tolerance-and-limits.md) (tolerance, warnings) |
 | Branch | `feat/b9b-text-extraction` |
 | PR title | `feat(text): text extraction with encodings, ToUnicode, glyph quads, ActualText and MCIDs` |
 | Size | L (≈ 1,100–1,500 lines) |
 | PR | [#72](https://github.com/laudebugs/lamina/pull/72) |
 
-> **Split.** As the risks below allowed, this todo was split when the whole passed ~1,500 lines: B9b (this one) reads fonts, CMaps and ToUnicode and decodes every shown glyph to Unicode with its origin and advance; [B9d](../ongoing/B9d-text-runs-quads-and-page-text.md) adds quads, runs, `ActualText`, MCIDs, invisible text and the façade's `page.text()`. The scope, tasks and criteria below say which part moved.
+> **Split.** As the risks below allowed, this todo was split when the whole passed ~1,500 lines: B9b (this one) reads fonts, CMaps and ToUnicode and decodes every shown glyph to Unicode with its origin and advance; [B9d](../done/B9d-text-runs-quads-and-page-text.md) adds quads, runs, `ActualText`, MCIDs, invisible text and the façade's `page.text()`. The scope, tasks and criteria below say which part moved.
 
 ## Goal
 
@@ -50,17 +50,17 @@ Turn a page's text-showing operators into Unicode text with geometry: per page, 
 ## Tasks
 
 - [x] Load `/rust-best-practices`; read 03 §3–5, §2.6, §8.1
-- [x] `extract/font.rs` (simple, Type 0 and Type 3 fonts, descriptors, Unicode resolution), `extract/cmap.rs` (CMaps and ToUnicode CMaps, one parser), `extract/mod.rs` (the `lamina_content::Visitor`); geometry and runs moved to [B9d](../ongoing/B9d-text-runs-quads-and-page-text.md)
+- [x] `extract/font.rs` (simple, Type 0 and Type 3 fonts, descriptors, Unicode resolution), `extract/cmap.rs` (CMaps and ToUnicode CMaps, one parser), `extract/mod.rs` (the `lamina_content::Visitor`); geometry and runs moved to [B9d](../done/B9d-text-runs-quads-and-page-text.md)
 - [x] Font cache per document (keyed by font object id) to avoid re-parsing
 - [x] Predefined CMaps: Identity-H/V built in, and the `Uni…-UCS2-…`/`Uni…-UTF16-…` ones read as UTF-16; bundling Adobe's CJK character-collection CMaps is left to [B9c](../ready/B9c-text-extraction-bindings-and-differential.md) (WASM size budget); until then they raise `cmap-invalid`
-- [x] Warnings and codes (`font-invalid`, `cmap-invalid`, `unmapped-glyph`); the façade API moved to [B9d](../ongoing/B9d-text-runs-quads-and-page-text.md)
-- [x] Fixtures: the existing text goldens in five scripts (`text-*.pdf` from `lamina-text`, `build-text-*.pdf` from `lamina-build`) with what pypdf, pdf.js and pdftotext extract (`fixtures/text/extracted.json`, `fixtures/build/facts.json`; not lamina); encrypted copies moved to [B9d](../ongoing/B9d-text-runs-quads-and-page-text.md)
+- [x] Warnings and codes (`font-invalid`, `cmap-invalid`, `unmapped-glyph`); the façade API moved to [B9d](../done/B9d-text-runs-quads-and-page-text.md)
+- [x] Fixtures: the existing text goldens in five scripts (`text-*.pdf` from `lamina-text`, `build-text-*.pdf` from `lamina-build`) with what pypdf, pdf.js and pdftotext extract (`fixtures/text/extracted.json`, `fixtures/build/facts.json`; not lamina); encrypted copies moved to [B9d](../done/B9d-text-runs-quads-and-page-text.md)
 - [x] Tests below
 
 ## Acceptance criteria
 
-- [x] Extracted text for the five-script fixtures equals the drawn text that pypdf, pdf.js and pdftotext extract (`fixtures/text/extracted.json`, `fixtures/build/facts.json`), line by line, for every left-to-right line (Latin, Devanagari, CJK); right-to-left lines (Arabic, Hebrew) come out in drawing order and move to [B9d](../ongoing/B9d-text-runs-quads-and-page-text.md) with `ActualText` and bidi. Line rules (`PageText::lines`): a new line where the baseline moves by more than half the size, a space where the pen jumps forward by more than a quarter of it
-- [x] Unit tests for the text-rendering matrix match hand-computed values (research 03 §2.6's `TJ` example, `Tc`/`Tw`/`Tz`, CTM and `Tm` scaling); quads, rotated pages, `UserUnit`, encrypted fixtures, `ActualText` and MCIDs moved to [B9d](../ongoing/B9d-text-runs-quads-and-page-text.md)
+- [x] Extracted text for the five-script fixtures equals the drawn text that pypdf, pdf.js and pdftotext extract (`fixtures/text/extracted.json`, `fixtures/build/facts.json`), line by line, for every left-to-right line (Latin, Devanagari, CJK); right-to-left lines (Arabic, Hebrew) come out in drawing order and move to [B9d](../done/B9d-text-runs-quads-and-page-text.md) with `ActualText` and bidi. Line rules (`PageText::lines`): a new line where the baseline moves by more than half the size, a space where the pen jumps forward by more than a quarter of it
+- [x] Unit tests for the text-rendering matrix match hand-computed values (research 03 §2.6's `TJ` example, `Tc`/`Tw`/`Tz`, CTM and `Tm` scaling); quads, rotated pages, `UserUnit`, encrypted fixtures, `ActualText` and MCIDs moved to [B9d](../done/B9d-text-runs-quads-and-page-text.md)
 - [x] Malformed CMaps/ToUnicode degrade with warnings, never panic; limits paired tests (`/UseCMap` chains at and past `MAX_USECMAP_DEPTH`)
 
 ## Post-merge checks
@@ -70,7 +70,7 @@ None.
 ## Tests
 
 - Unit tests (CMap/ToUnicode parsing, AGL heuristics, matrices).
-- `crates/lamina-text/tests/extract_fonts.rs` (goldens, matrices, warnings, strict mode); unit tests in `extract/cmap.rs` and `extract/font.rs`. `extract_scripts`, `extract_encrypted` and `extract_geometry` moved to [B9d](../ongoing/B9d-text-runs-quads-and-page-text.md).
+- `crates/lamina-text/tests/extract_fonts.rs` (goldens, matrices, warnings, strict mode); unit tests in `extract/cmap.rs` and `extract/font.rs`. `extract_scripts`, `extract_encrypted` and `extract_geometry` moved to [B9d](../done/B9d-text-runs-quads-and-page-text.md).
 
 ## Docs to update
 
