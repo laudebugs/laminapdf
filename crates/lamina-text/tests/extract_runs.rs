@@ -278,8 +278,47 @@ fn cells_drawn_right_to_left_on_one_line_are_separated() {
 }
 
 #[test]
-fn a_small_step_back_inside_a_word_adds_no_space() {
-    // A kerning-sized correction (1 pt at 10 pt) between two pieces of one word.
-    let text = text(b"BT /F1 10 Tf 100 700 Td (Wor) Tj -1 0 Td /F2 10 Tf (d) Tj ET");
-    assert_eq!(text.lines().concat().replace(' ', "").len(), "Word".len());
+fn a_small_step_back_between_runs_adds_no_space() {
+    // A kerning-sized correction (a TJ number of 100: 1 pt back at 10 pt) before the last
+    // letter, drawn in another font: two runs that overlap by 1 pt.
+    let text = text(b"BT /F1 10 Tf 100 700 Td [(Wor) 100] TJ /F2 10 Tf (d) Tj ET");
+    assert_eq!((text.runs.len(), text.lines()), (2, vec!["Word".to_owned()]));
+}
+
+#[test]
+fn an_accent_drawn_over_its_letter_in_another_font_adds_no_space() {
+    // "e" in Helvetica (556 wide), then back over it with `Td` for a combining acute from
+    // another font: the second run lies inside the first.
+    let accent = font(
+        "<< /Type /Font /Subtype /Type1 /BaseFont /Accents /FontDescriptor << /Flags 32 /MissingWidth 0 >>
+           /Encoding << /Differences [1 /uni0301] >> >>",
+    );
+    let doc = page(
+        b"BT /F1 10 Tf 100 700 Td (caf) Tj (e) Tj 15.01 0 Td /F2 10 Tf <01> Tj ET",
+        vec![helvetica(), accent],
+        OpenOptions::default(),
+    );
+    assert_eq!(extract(&doc).expect("extracts").lines(), ["cafe\u{301}"]);
+}
+
+#[test]
+fn a_span_drawn_in_two_runs_gets_no_space_inside_its_actual_text() {
+    // "É" as E, then a jump back and an accent from another font, inside one `ActualText`.
+    let text = text(b"BT /F1 10 Tf 100 700 Td /Span << /ActualText (\\311) >> BDC (E) Tj -1 0 Td /F2 10 Tf (\\264) Tj EMC (COLE) Tj ET");
+    assert_eq!(text.lines(), ["\u{c9}COLE"]);
+}
+
+#[test]
+fn glyphs_drawn_backwards_one_by_one_get_no_spaces() {
+    // Four glyphs, each drawn just left of the previous one (`Td` back by its own width from
+    // the previous line start): they abut. D and C are 722 wide, B and A 667.
+    let doc = page(
+        b"BT /F1 10 Tf 200 700 Td (D) Tj -7.22 0 Td (C) Tj -6.67 0 Td (B) Tj -6.67 0 Td (A) Tj ET",
+        vec![helvetica()],
+        OpenOptions::default(),
+    );
+    assert_eq!(
+        extract(&doc).expect("extracts").lines().concat().matches(' ').count(),
+        0
+    );
 }

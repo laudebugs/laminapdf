@@ -12,7 +12,7 @@
 | Branch | `fix/b9e-backward-jump-separators` |
 | PR title | `fix(text): separate text where the pen jumps back on a line` |
 | Size | S (≈ 50–150 lines) |
-| PR | — |
+| PR | [#84](https://github.com/laudebugs/lamina/pull/84) |
 
 ## Goal
 
