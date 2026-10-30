@@ -12,7 +12,7 @@
 | Branch | `spike/l6a-lamina-ffi` |
 | PR title | `spike(ffi): bind the lamina façade with UniFFI for Swift and Kotlin; ADR 0029` |
 | Size | L (spike code ≈ 600–1,000 lines incl. Swift/Kotlin tests and scripts; ADR and README extra) |
-| PR | — |
+| PR | [#80](https://github.com/laudebugs/lamina/pull/80) (draft) |
 
 ## Goal
 
