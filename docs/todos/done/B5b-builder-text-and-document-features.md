@@ -30,7 +30,7 @@ Complete the builder's feature list for M1: shaped text runs and single-box para
 **In scope**
 
 - Positions in page space as `lamina-build`'s surface takes them (ADR 0027; `PointPt`/`RectPt`, mapped through the page's `PageFrame` like paths); **`at`'s `y` is the baseline** (ADR 0027 §5; the acceptance criterion carried over from [B5a](../done/B5a-lamina-build-core.md)).
-- `surface.text(str, &Font, size, at)` returning a `TextRun` handle (`.fill(color)`, `.features(...)`, `.render_mode(...)`, `.tag(...)` stubbed for [B8a](../ready/B8a-structure-tree.md)); shaped via B4b; emits `BT … Tf … Tm … TJ … ET`, real U+0020 space glyphs kept in the run (03 §11.2), `ActualText` marked content for clusters flagged by B4b.
+- `surface.text(str, &Font, size, at)` returning a `TextRun` handle (`.fill(color)`, `.features(...)`, `.render_mode(...)`, `.tag(...)` stubbed for [B8a](../ongoing/B8a-structure-tree.md)); shaped via B4b; emits `BT … Tf … Tm … TJ … ET`, real U+0020 space glyphs kept in the run (03 §11.2), `ActualText` marked content for clusters flagged by B4b.
 - `surface.text_box(str, &Font, size, Rect, TextBoxOptions { align, line_height, overflow: Clip | Error })` using B4b's greedy breaking, bidi-aware; returns `TextLayout` with line boxes and overflow info.
 - Links: `surface.link(Rect, LinkTarget::{Uri(String), Page { page: PageRef, fit }, Named(String)}, contents: Option<String>)` → `/Annot /Subtype /Link` with `/A /URI` or `/Dest`, `/Contents`, `/F 4` (print), `/Border [0 0 0]`; also the `link:` option on `text()` covering the run's bounding box.
 - Named destinations: `builder.destination(name, page, fit)` → `/Names /Dests` name tree (sorted, deterministic).
@@ -41,7 +41,7 @@ Complete the builder's feature list for M1: shaped text runs and single-box para
 
 **Out of scope** (and which todo covers it)
 
-- Structure tree, `tag()`, artifacts, `Link` structure elements with OBJR, alt text: [B8a](../ready/B8a-structure-tree.md).
+- Structure tree, `tag()`, artifacts, `Link` structure elements with OBJR, alt text: [B8a](../ongoing/B8a-structure-tree.md).
 - PDF/A identification XMP schemas and output intents: [B8b](../ready/B8b-conformance-profiles-and-verapdf.md).
 - Editing Info/XMP on existing documents in sync: full-editor E1.
 - Font fallback across fonts within one run: later.
