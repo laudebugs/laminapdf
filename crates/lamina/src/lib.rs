@@ -103,6 +103,8 @@ mod data;
 mod diagnostic;
 mod document;
 mod error;
+#[cfg(feature = "text")]
+pub mod extract;
 mod job;
 mod warning;
 // What `fixtures/codes.json` lists, for the kind tests (shared with the other crates' tests).
