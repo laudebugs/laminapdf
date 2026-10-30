@@ -41,3 +41,4 @@ Numbers follow the [architecture plan §3](../plans/architecture.md#3-decisions-
 | [0026](0026-error-and-diagnostic-contract.md) | Error and diagnostic contract: one JSON shape, `kind`s, `hint`/`docsUrl`, no document text in messages, `explain` pages, `LaminaError` | Accepted |
 | [0027](0027-coordinates-units-and-page-indexing.md) | Coordinates, units and page indexing: top-left points of the displayed CropBox, raw user space named as such, `Pt`, 0-based `index` + 1-based `number` | Accepted |
 | [0028](0028-facade-rules-jobs-and-cancellation.md) | Façade rules, jobs, cancellation and progress: UniFFI-compatible rules, lock in the binding edge, `Job::step(Budget)` in work units, `CancelToken` | Accepted |
+| [0029](0029-mobile-bindings-and-packaging.md) | Mobile bindings and packaging: UniFFI `=0.32.2`, `crates/lamina-ffi` edge crate, idiomatic Swift/Kotlin layers, SwiftPM and Maven Central AARs, 16 KB pages, `mobile-release` profile | Accepted |

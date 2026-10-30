@@ -1,0 +1,9 @@
+# UniFFI binding settings (one file for both languages).
+[bindings.kotlin]
+package_name = "dev.lamina.ffi"
+cdylib_name = "lamina_ffi"
+
+[bindings.swift]
+module_name = "LaminaFFI"
+ffi_module_name = "LaminaFFIFFI"
+ffi_module_filename = "LaminaFFIFFI"
