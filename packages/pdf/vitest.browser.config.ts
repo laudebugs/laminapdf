@@ -1,5 +1,19 @@
+import { mkdirSync } from "node:fs";
+import { env } from "node:process";
+import { fileURLToPath } from "node:url";
 import { playwright } from "@vitest/browser-playwright";
 import { defineConfig } from "vitest/config";
+
+// Firefox (Playwright's build, 155 and later) reads the user's Firefox data folder
+// (~/Library/Application Support/Firefox on macOS) even with its own profile, and fails with
+// "Could not find profile folder." where it can't read that folder (macOS refuses it on the
+// self-hosted runners and in sandboxed shells). MOZ_APP_DATA and MOZ_LOCAL_APP_DATA point it at a
+// folder of its own instead, in this checkout (so runners sharing a machine don't share it).
+const firefoxData = fileURLToPath(new URL("node_modules/.cache/lamina-firefox/", import.meta.url));
+mkdirSync(firefoxData, { recursive: true });
+const firefox = playwright({
+  launchOptions: { env: { ...env, MOZ_APP_DATA: firefoxData, MOZ_LOCAL_APP_DATA: firefoxData } },
+});
 
 // The browser runs of the B6c matrix: test/browser/*.browser.test.ts in Chromium, Firefox and
 // WebKit (Vitest browser mode with Playwright, headless; one project per browser, picked with
@@ -26,7 +40,7 @@ export default defineConfig({
             provider: playwright(),
             instances: [
               { browser: "chromium", name: "chromium" },
-              { browser: "firefox", name: "firefox" },
+              { browser: "firefox", name: "firefox", provider: firefox },
               { browser: "webkit", name: "webkit" },
             ],
           },

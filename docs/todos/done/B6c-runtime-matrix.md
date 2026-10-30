@@ -85,17 +85,18 @@ As above; all under `packages/pdf/test/` sharing one example list.
   | Node 24 | 0.8 ms | 0.9 ms | 623 ms (462 ms run alone) | 5.4 MB |
   | Node 26 | 1.2 ms | 0.6 ms | 572 ms | 5.4 MB |
   | Chromium | 0.7 ms | 0.4 ms | 298 ms | 5.4 MB |
+  | Firefox | 1.0 ms | 1.0 ms | 520 ms (712 ms in another run) | 5.4 MB |
   | WebKit | 2.0 ms | 1.0 ms | 270 ms | 5.4 MB |
   | Deno | 1.2 ms | 0.4 ms | 526 ms | 5.2 MB |
   | Bun | 1.7 ms | 1.4 ms | 442 ms | 5.1 MB |
   | workerd | 34 ms | 1.0 ms | 562 ms | 4.7 MB |
 
-  Hello (≤ 5 ms) and Worker memory (< 64 MB) are met everywhere; the report (≤ 500 ms) is missed in Node, Deno and workerd (520–690 ms over several runs), which is [B5d](../ready/B5d-text-report-generation-performance.md)'s target. workerd's first hello includes its lazy compilation of the module. The Node figures come from the whole Node suite running in parallel Vitest workers.
+  Hello (≤ 5 ms) and Worker memory (< 64 MB) are met everywhere; the report (≤ 500 ms) is missed in Node, Firefox, Deno and workerd (520–710 ms over several runs), which is [B5d](../ready/B5d-text-report-generation-performance.md)'s target. workerd's first hello includes its lazy compilation of the module. The Node figures come from the whole Node suite running in parallel Vitest workers.
 - Deviations:
   - workerd runs through wrangler's `createTestHarness` from a Vitest test in Node (`vitest.workers.config.ts`), not `@cloudflare/vitest-pool-workers`: its latest release (0.23.0) supports Vitest 4 only and the repo is on Vitest 5. The examples still run inside workerd (test/workerd/worker.ts answers with each example's bytes and the measurements), bundled by wrangler through the `workerd` export condition; Node compares the bytes with the goldens.
   - Worker memory is the WebAssembly linear memory (`wasmMemory()`, measured inside the Worker): workerd reports no per-isolate figure locally, and the JS heap is not included.
   - The nightly job records the timings but doesn't compare them: millisecond timings on a shared runner vary by more than the 10 % the criterion benchmarks use, so they would open a regression issue most nights.
-  - Firefox could not be launched in the local sandbox ("Could not find profile folder"); it runs in the full lane.
+  - Playwright's Firefox (155 and later) reads the user's Firefox data folder (`~/Library/Application Support/Firefox`) even with its own profile; where it can't read that folder (the runners, sandboxed shells: macOS refuses it, presumably as another app's data) it exits with "Could not find profile folder." (the first full-lane run failed this way). `vitest.browser.config.ts` points `MOZ_APP_DATA`/`MOZ_LOCAL_APP_DATA` at `node_modules/.cache/lamina-firefox/` in the checkout for the Firefox project.
 
 ## Definition of done
 
