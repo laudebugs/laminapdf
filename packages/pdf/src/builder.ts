@@ -399,7 +399,7 @@ export class Page {
 
   /** `/UserUnit`, for pages larger than 14,400 units. */
   userUnit(unit: number): this {
-    this.#page.get().userUnit(unit);
+    guard(() => this.#page.get().userUnit(unit));
     return this;
   }
 

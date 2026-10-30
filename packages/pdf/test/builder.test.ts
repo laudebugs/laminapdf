@@ -55,6 +55,12 @@ describe("Builder", () => {
     ).toBe(true);
   });
 
+  it("reports a bad user unit as a LaminaError", () => {
+    const page = new Builder().page("A6");
+    const e = thrown(() => page.userUnit(Number.NaN).finish());
+    expect(isLaminaError(e)).toBe(true);
+  });
+
   it("refuses an unknown blend mode with suggestions", () => {
     const surface = new Builder().page("A6").surface();
     const e = thrown(() => surface.blendMode("multiplly" as never));
