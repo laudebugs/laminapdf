@@ -12,7 +12,7 @@
 | Branch | `feat/b6b-lamina-pdf` |
 | PR title | `feat(pdf): @lamina/pdf TypeScript API over @lamina/wasm with init() and export conditions` |
 | Size | L (≈ 900–1,300 lines of TS + tests) |
-| PR | PRNUM |
+| PR | [#85](https://github.com/laudebugs/lamina/pull/85) |
 
 ## Goal
 
