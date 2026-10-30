@@ -22,7 +22,7 @@ The technical case for PDFium-WASM as the default renderer, behind a tile-based 
 
 - **Adobe: subscription-only, with AI in a higher tier.** Acrobat Studio launched in Q3 2025 at **$24.99/month**, bundling Acrobat Pro, AI Assistant, PDF Spaces and Adobe Express Premium ([PricingSaaS](https://pricingsaas.com/companies/adobe.creativecloud/diffs/2025Q3); [Schneider licensing guide](https://www.schneider.im/adobe-acrobat-studio-licensing-guide-plans-features-pricing-comparison/)). Pro sits around $19.99/month and Standard around $14.99/month ([thewearify](https://thewearify.com/acrobat-professional-price/)). The AI Assistant add-on price is unresolved: sources say $1.99 or $4.99.
 - **Challengers that sell "pay once".**
-  - Foxit sells PDF Editor 14 perpetually for about **$209.99** ([casrai](https://www.casrai.org/guides/foxit-pdf-editor-price)).
+  - Foxit sells PDF Editor 14 perpetually for about **$209.99** ([casrai](https://web.archive.org/web/20260926000124/https://casrai.org/guides/foxit-pdf-editor-price)).
   - Xodo PDF Studio is **$240 perpetual** ([Xodo plans explained](https://xodo.com/blog/xodo-plans-explained)).
   - PDF Expert's Mac lifetime licence was repeatedly discounted to $69.97–$79.99 through 2026 ([Macworld](https://macworld.com/article/3217258/pay-once-skip-adobes-subscription-pdf-expert-for-mac-is-79-99-42-off-for-life.html)). That licence excludes AI and translation and does not carry over to iPhone or iPad ([Frontdesk Review](https://frontdeskreview.com/software/pdf-tools/pdf-expert.md)).
 - **Freemium web tools that ration tasks, not features.**
@@ -108,7 +108,7 @@ The three personas differ less in which features they want than in what makes th
 
 The strongest UX evidence is negative, and it is recent:
 
-- **[Fact]** Figma's UI3 launched with floating panels and then **reattached the navigation and properties panels** after user feedback. Panels float only in "Minimize UI" mode, where selecting something on the canvas temporarily brings back the properties panel ([Figma blog](https://www.figma.com/blog/figma-2024-we-shipped-it-you-shaped-it/); [Figma Help](https://help.figma.com/hc/articles/23954856027159)).
+- **[Fact]** Figma's UI3 launched with floating panels and then **reattached the navigation and properties panels** after user feedback. Panels float only in "Minimize UI" mode, where selecting something on the canvas temporarily brings back the properties panel ([Figma blog](https://www.figma.com/blog/figma-2024-we-shipped-it-you-shaped-it/); Figma Help (offline, no archived copy, 2026-10-30)).
 - **[Report]** Acrobat's 2023 floating quick-tools widget drew complaints for covering page content, and Adobe had to make it movable ([Adobe Community](https://community.adobe.com/t5/acrobat-discussions/how-do-i-move-remove-the-quick-actions-toolbar-from-acrobat-pro-2022-003-xxxx/m-p/13946883/highlight/true)).
 - **[Fact]** Linear's 2024 redesign centred on the "inverted L": a sidebar plus a top header that frame the main view, with the aim of less visual noise ([Linear](https://linear.app/blog/how-we-redesigned-the-linear-ui)).
 - The Office ribbon research adds a quantitative warning, via secondary accounts. About 80% of saves came from the toolbar icon and only 20% from Ctrl+S, so **visible affordances beat shortcuts** for most users ([GNOME blog](https://blogs.gnome.org/bolsh/?p=582)). The ribbon's lasting contribution was contextual tabs that appear only when relevant ([Thurrott](https://www.thurrott.com/office/161324/vaults-office-ribbon)).
@@ -149,7 +149,7 @@ The viewer should only *emit* selection events with client rects, and `@lamina/u
 - The dialog variant uses Radix Dialog, and labelling and ARIA were tested with VoiceOver.
 - It has no built-in nested pages. The README shows them through a page stack held in component state ([cmdk README](https://github.com/pacocoursey/cmdk)).
 
-kbar, the alternative, last saw a push in March 2024 ([Ecosyste.ms](https://awesome.ecosyste.ms/projects/36282)).
+kbar, the alternative, last saw a push in March 2024 ([GitHub: timc1/kbar](https://github.com/timc1/kbar)).
 
 **[Opinion]** The palette is a *view* of a single command registry, not a feature in its own right. That registry should also feed:
 
@@ -165,7 +165,7 @@ Each command carries an id, title, keywords, shortcut, an `enabled(ctx)` check a
 
 Other platform facts that shape the layout:
 
-- **[Fact]** Apple sheets support medium and large detents ([Apple HIG](https://developer-mdn.apple.com/design/human-interface-guidelines/components/presentation/sheets)).
+- **[Fact]** Apple sheets support medium and large detents ([Apple HIG](https://developer.apple.com/design/human-interface-guidelines/sheets)).
 - **[Fact]** On iOS, `env(safe-area-inset-*)` is zero unless the viewport sets `viewport-fit=cover` ([WebKit bug 272779](https://bugs.webkit.org/show_bug.cgi?id=272779)).
 - **[Fact]** WCAG 2.2 AA requires 24×24 CSS px targets (SC 2.5.8) and a single-pointer alternative to every drag (SC 2.5.7) ([TetraLogical](https://tetralogical.com/blog/2023/10/05/whats-new-wcag-2.2)).
 

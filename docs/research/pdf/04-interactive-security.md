@@ -1113,7 +1113,7 @@ Lamina should separate "mark" (annotate), "preview" (render with overlays) and "
 - Library of Congress, *PDF 2.0 (ISO 32000-2)*, format description FDD000474: https://www.loc.gov/preservation/digital/formats/fdd/fdd000474.shtml
 - ISO 32000-2:2020, *Document management — Portable document format — Part 2: PDF 2.0* (no-cost access): https://pdfa.org/announcing-no-cost-access-to-iso-32000-2-pdf-2-0/ · https://pdfa.org/sponsored-standards/
 - ISO/TS 32001 (hash extensions), ISO/TS 32002 (signature extensions: ECC/EdDSA), ISO/TS 32003:2023 (AES-GCM), ISO/TS 32004:2024 (integrity protection in encrypted documents): https://pdfa.org/sponsored-standards/ · https://www.iso.org/standard/45877.html
-- ETSI EN 319 142-1 V1.2.1 (2024-01), *PAdES digital signatures; Part 1: Building blocks and PAdES baseline signatures*: https://www.etsi.org/deliver/etsi_en/319100_319199/31914201/ (copy: https://developer.adobe.com/document-services/docs/assets/70fef5ab21077e8ef86384a148080a0d/ETSI_EN_319_142-1.pdf)
+- ETSI EN 319 142-1 V1.2.1 (2024-01), *PAdES digital signatures; Part 1: Building blocks and PAdES baseline signatures*: https://www.etsi.org/deliver/etsi_en/319100_319199/31914201/
 - ETSI EN 319 102-1 (creation & validation of AdES): https://www.etsi.org/deliver/etsi_en/319100_319199/31910201/
 - RFC 5652 (CMS), RFC 3161 (Time-Stamp Protocol), RFC 5035 (ESS signing-certificate-v2), RFC 4013 (SASLprep), RFC 6960 (OCSP)
 - ISO 16684-1 (XMP), ISO 19005-3 (PDF/A-3), ISO 19444-1:2016 (XFDF)
@@ -1121,10 +1121,10 @@ Lamina should separate "mark" (annotate), "preview" (render with overlays) and "
 
 **Attacks & security research**
 - PDF Insecurity project (RUB/Münster): https://pdf-insecurity.org/ (the landing page was checked on 2026-10-28 for the viewer counts in §7.7 and §8.8)
-- Mladenov et al., "1 Trillion Dollar Refund – How To Spoof PDF Signatures", ACM CCS 2019: https://nds.ruhr-uni-bochum.de/research/publications/1-trillion-dollar-refund-how-spoof-pdf-signatures · paper: https://pdf-insecurity.org/download/paper-pdf-signatures-ccs2019.pdf
+- Mladenov et al., "1 Trillion Dollar Refund – How To Spoof PDF Signatures", ACM CCS 2019: https://web.archive.org/web/20250121112220/https://www.nds.ruhr-uni-bochum.de/research/publications/1-trillion-dollar-refund-how-spoof-pdf-signatures/ · paper: https://pdf-insecurity.org/download/paper-pdf-signatures-ccs2019.pdf
 - Müller et al., "Practical Decryption exFiltration: Breaking PDF Encryption", ACM CCS 2019, DOI 10.1145/3319535.3354214: https://pdf-insecurity.org/download/paper-pdf_encryption-ccs2019.pdf
 - Mainka, Mladenov, Rohlmann, "Shadow Attacks: Hiding and Replacing Content in Signed PDFs", NDSS 2021: https://www.ndss-symposium.org/ndss-paper/shadow-attacks-hiding-and-replacing-content-in-signed-pdfs/ · https://www.ndss-symposium.org/wp-content/uploads/ndss2021_1B-4_24117_paper.pdf
-- Rohlmann, Mladenov, Mainka, Schwenk, "Breaking the Specification: PDF Certification", IEEE S&P 2021: https://www.nds.ruhr-uni-bochum.de/research/publications/breaking-specification-pdf-certification · vulnerability report: https://www.nds.rub.de/media/nds/veroeffentlichungen/2021/05/25/Vulnerability-Report_Attacks-on-PDF-Certification_V2.pdf
+- Rohlmann, Mladenov, Mainka, Schwenk, "Breaking the Specification: PDF Certification", IEEE S&P 2021: https://web.archive.org/web/20260210011739/https://www.nds.ruhr-uni-bochum.de/research/publications/breaking-specification-pdf-certification/ · vulnerability report (offline, no archived copy, 2026-10-30)
 - Mainka/Mladenov/Müller, "How to Break PDFs", 36C3: https://media.ccc.de/v/36c3-10832-how_to_break_pdfs
 - Beer & Groß, "A deep dive into an NSO zero-click iMessage exploit: Remote Code Execution" (FORCEDENTRY, CVE-2021-30860), Google Project Zero, Dec 2021: https://projectzero.google/2021/12/a-deep-dive-into-nso-zero-click.html
 - Citizen Lab, FORCEDENTRY: https://citizenlab.ca/2021/09/forcedentry-nso-group-imessage-zero-click-exploit-captured-in-the-wild/
