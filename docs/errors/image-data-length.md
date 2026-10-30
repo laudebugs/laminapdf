@@ -18,7 +18,7 @@ Pass exactly 4 bytes per pixel.
 ## Example
 
 ```rust
-let img = Image::rgba(2, 2, vec![0; 12])?; // image-data-length: 16 bytes expected
+let img = Image::rgba(2, 2, &[0; 12])?; // image-data-length: 16 bytes expected
 ```
 
 ## Data fields

@@ -1,32 +1,98 @@
-//! Hints, summaries and `docsUrl`s, from the generated [`ErrorCode`] and [`WarningCode`]
-//! tables (`src/generated/codes.rs`, written by `cargo xtask gen codes` from
-//! `fixtures/codes.json`).
+//! The generated [`ErrorCode`] and [`WarningCode`] tables (`src/generated/codes.rs`, written by
+//! `cargo xtask gen codes` from `fixtures/codes.json`) as the façade uses them: the code of a
+//! wrapped crate's error or warning, checked at compile time, and the hint with its parameter.
 
-use lamina_cos::ErrorKind;
+use crate::generated::codes::{ErrorCode, WarningCode};
 
-use crate::generated::codes::{DOCS_URL_BASE, DOCS_URL_SUFFIX, ErrorCode, WarningCode};
+/// Whether every code in `codes` is in the generated [`ErrorCode`] table.
+const fn all_errors_listed(codes: &[&str]) -> bool {
+    let mut rest = codes;
+    while let [code, tail @ ..] = rest {
+        if ErrorCode::from_code(code).is_none() {
+            return false;
+        }
+        rest = tail;
+    }
+    true
+}
 
-/// The kind `codes.json` gives `code`. Every code a façade type raises is listed (checked by
-/// the tests); an unlisted one would be a lamina bug, hence `internal`.
-pub(crate) const fn kind(code: &str) -> ErrorKind {
-    match (ErrorCode::from_code(code), WarningCode::from_code(code)) {
-        (Some(c), _) => c.kind(),
-        (None, Some(c)) => c.kind(),
-        (None, None) => ErrorKind::Internal,
+/// Whether every code in `codes` is in the generated [`WarningCode`] table.
+const fn all_warnings_listed(codes: &[&str]) -> bool {
+    let mut rest = codes;
+    while let [code, tail @ ..] = rest {
+        if WarningCode::from_code(code).is_none() {
+            return false;
+        }
+        rest = tail;
+    }
+    true
+}
+
+// Every code a wrapped crate declares (its `CODES`, which that crate's tests tie to its
+// variants' `code()`) is in the generated tables: a code missing from `codes.json`, or a stale
+// generated file, fails the build here rather than at run time.
+const _: () = assert!(
+    all_errors_listed(lamina_cos::Error::CODES),
+    "a lamina-cos error code is not in codes.json"
+);
+const _: () = assert!(
+    all_errors_listed(lamina_syntax::Error::CODES),
+    "a lamina-syntax error code is not in codes.json"
+);
+const _: () = assert!(
+    all_errors_listed(lamina_ops::Error::CODES),
+    "a lamina-ops error code is not in codes.json"
+);
+const _: () = assert!(
+    all_errors_listed(lamina_save::SaveError::CODES),
+    "a lamina-save error code is not in codes.json"
+);
+#[cfg(feature = "text")]
+const _: () = assert!(
+    all_errors_listed(lamina_text::Error::CODES),
+    "a lamina-text error code is not in codes.json"
+);
+#[cfg(feature = "build")]
+const _: () = assert!(
+    all_errors_listed(lamina_build::Error::CODES),
+    "a lamina-build error code is not in codes.json"
+);
+const _: () = assert!(
+    all_errors_listed(crate::Error::CODES),
+    "a façade error code is not in codes.json"
+);
+const _: () = assert!(
+    all_warnings_listed(lamina_cos::Warning::CODES),
+    "a lamina-cos warning code is not in codes.json"
+);
+#[cfg(feature = "text")]
+const _: () = assert!(
+    all_warnings_listed(lamina_text::Warning::CODES),
+    "a lamina-text warning code is not in codes.json"
+);
+
+/// The [`ErrorCode`] of a wrapped crate's error code. Every such code is in the table (the
+/// assertions above), so the fallback is never taken; it is `unset-object`, kind `internal`,
+/// whose hint says to report a lamina bug.
+pub(crate) const fn error_code(code: &str) -> ErrorCode {
+    match ErrorCode::from_code(code) {
+        Some(c) => c,
+        None => ErrorCode::UnsetObject,
     }
 }
 
-/// The hint template of `code`.
-fn hint_template(code: &str) -> Option<&'static str> {
-    ErrorCode::from_code(code)
-        .map(ErrorCode::hint)
-        .or_else(|| WarningCode::from_code(code).map(WarningCode::hint))
+/// The [`WarningCode`] of a wrapped crate's warning code. Every such code is in the table (the
+/// assertions above), so the fallback is never taken.
+pub(crate) const fn warning_code(code: &str) -> WarningCode {
+    match WarningCode::from_code(code) {
+        Some(c) => c,
+        None => WarningCode::InvalidEntry,
+    }
 }
 
-/// The hint of `code` with `{limit}` filled in (ADR 0026 §5: the only parameters are lamina's
-/// own vocabulary). A parameter with no value leaves the hint out rather than show a brace.
-pub(crate) fn hint(code: &str, limit: Option<&'static str>) -> Option<String> {
-    let template = hint_template(code)?;
+/// `template` with `{limit}` filled in (ADR 0026 §5: the only parameters are lamina's own
+/// vocabulary). A parameter with no value leaves the hint out rather than show a brace.
+pub(crate) fn fill_hint(template: &str, limit: Option<&'static str>) -> Option<String> {
     let filled = match limit {
         Some(limit) => template.replace("{limit}", limit),
         None => template.to_owned(),
@@ -34,47 +100,10 @@ pub(crate) fn hint(code: &str, limit: Option<&'static str>) -> Option<String> {
     (!filled.contains('{')).then_some(filled)
 }
 
-/// `base + code + suffix` (ADR 0026 §6).
-pub(crate) fn docs_url(code: &str) -> String {
-    format!("{DOCS_URL_BASE}{code}{DOCS_URL_SUFFIX}")
-}
-
-/// The summary of `code`: a fixed sentence, used as a warning's `message`.
-pub(crate) fn summary(code: &str) -> Option<&'static str> {
-    WarningCode::from_code(code)
-        .map(WarningCode::summary)
-        .or_else(|| ErrorCode::from_code(code).map(ErrorCode::summary))
-}
-
-/// `a == b`, usable in `const fn` (the generated `from_code`).
-pub(crate) const fn same(a: &str, b: &str) -> bool {
-    let (mut a, mut b) = (a.as_bytes(), b.as_bytes());
-    loop {
-        match (a, b) {
-            ([x, rest_a @ ..], [y, rest_b @ ..]) => {
-                if *x != *y {
-                    return false;
-                }
-                a = rest_a;
-                b = rest_b;
-            }
-            ([], []) => return true,
-            _ => return false,
-        }
-    }
-}
-
 #[cfg(test)]
 mod tests {
-    use super::{ErrorCode, WarningCode, same};
-
-    #[test]
-    fn same_should_compare_whole_strings() {
-        assert_eq!(
-            (same("abc", "abc"), same("abc", "abd"), same("ab", "abc"), same("", "")),
-            (true, false, false, true)
-        );
-    }
+    use super::{ErrorCode, WarningCode, fill_hint};
+    use crate::test_codes::code_groups::{NOT_CODE_GROUPS, TS_ONLY_GROUPS};
 
     #[test]
     fn from_code_should_round_trip_every_code() {
@@ -93,6 +122,17 @@ mod tests {
         assert_eq!(ErrorCode::from_code("not-a-code"), None);
     }
 
+    #[test]
+    fn fill_hint_should_leave_out_a_hint_with_an_unfilled_parameter() {
+        assert_eq!(
+            (
+                fill_hint("raise {limit}", Some("max_x")),
+                fill_hint("raise {limit}", None)
+            ),
+            (Some("raise max_x".to_owned()), None)
+        );
+    }
+
     /// The generated tables say what `codes.json` says (the generator's `--check` keeps them
     /// in step; this catches a generator bug).
     #[test]
@@ -100,7 +140,7 @@ mod tests {
         let codes = crate::test_codes::codes_json();
         let mut listed = Vec::new();
         for (group, entries) in codes.as_object().into_iter().flatten() {
-            if ["version", "docsUrl", "limits", "packageErrors"].contains(&group.as_str()) {
+            if NOT_CODE_GROUPS.contains(&group.as_str()) || TS_ONLY_GROUPS.contains(&group.as_str()) {
                 continue;
             }
             for e in entries.as_array().into_iter().flatten() {

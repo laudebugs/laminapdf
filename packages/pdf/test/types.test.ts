@@ -10,6 +10,7 @@ import {
   type LaminaWarning,
   type WarningCode,
 } from "@lamina/pdf";
+import { ERROR_CODES, KINDS } from "@lamina/pdf/explain";
 import { describe, expect, expectTypeOf, it } from "vitest";
 
 /** Every error code by hand, grouped by kind: a new code in codes.json fails here first. */
@@ -120,6 +121,8 @@ function partial(code: ErrorCode): string {
 describe("LaminaError types", () => {
   it("switches exhaustively over ErrorCode", () => {
     expect([kindOf("wrong-password"), partial("wrong-password")]).toEqual(["security", "ask again"]);
+    // The hand-written grouping agrees with the generated kinds.
+    expect(ERROR_CODES.filter((c) => kindOf(c) !== KINDS[c])).toEqual([]);
   });
 
   it("narrows code with isLaminaError(e, code)", () => {

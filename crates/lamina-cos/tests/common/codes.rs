@@ -12,7 +12,7 @@
 use std::path::Path;
 
 #[path = "code_groups.rs"]
-mod code_groups;
+pub mod code_groups;
 
 /// Top-level keys of `codes.json` that are not groups of codes.
 pub use code_groups::NOT_CODE_GROUPS;

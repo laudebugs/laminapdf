@@ -20,7 +20,7 @@ Use a `PageId` from this document.
 ```rust
 let other = Document::open_bytes(other_bytes, OpenOptions::default())?;
 let id = other.page_info(0)?.id;
-doc.apply(vec![Op::from(RotatePage::new(id, Rotation::D90))]); // unknown-page
+doc.apply(vec![Op::from(RotatePage::new(id, Rotation::Clockwise90))]); // unknown-page
 ```
 
 ## Data fields

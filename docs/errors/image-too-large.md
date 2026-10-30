@@ -18,7 +18,7 @@ Scale the image down before adding it, or use a JPEG, which is embedded without 
 ## Example
 
 ```rust
-let img = Image::png(png_of_30000_by_30000_pixels)?; // image-too-large: over 256 MiB decoded
+let img = Image::png(&png_of_30000_by_30000_pixels)?; // image-too-large: over 256 MiB decoded
 ```
 
 ## Data fields

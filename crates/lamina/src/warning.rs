@@ -6,6 +6,7 @@ use serde::{Serialize, Serializer};
 use crate::codes;
 use crate::data;
 use crate::diagnostic::Diagnostic;
+use crate::generated::codes::WarningCode;
 
 /// A recoverable problem lamina repaired or worked around ([ADR 0003] §2), with the same
 /// accessors and serialisation as [`Error`](crate::Error) (no `didYouMean`).
@@ -25,10 +26,19 @@ impl Warning {
     /// The stable kebab-case code.
     #[must_use]
     pub const fn code(&self) -> &'static str {
+        self.warning_code().as_str()
+    }
+
+    /// The code as the generated [`WarningCode`], from which [`code`](Warning::code),
+    /// [`kind`](Warning::kind), [`hint`](Warning::hint), [`docs_url`](Warning::docs_url) and
+    /// the message are read. The build fails if any code a wrapped crate declares is missing
+    /// from the table.
+    #[must_use]
+    pub const fn warning_code(&self) -> WarningCode {
         match self {
-            Self::Document(w) => w.code(),
+            Self::Document(w) => codes::warning_code(w.code()),
             #[cfg(feature = "text")]
-            Self::Font(w) => w.code(),
+            Self::Font(w) => codes::warning_code(w.code()),
         }
     }
 
@@ -37,7 +47,7 @@ impl Warning {
     /// [ADR 0026]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0026-error-and-diagnostic-contract.md
     #[must_use]
     pub const fn kind(&self) -> ErrorKind {
-        codes::kind(self.code())
+        self.warning_code().kind()
     }
 
     /// Where the problem is ([ADR 0026] §1.1).
@@ -55,13 +65,13 @@ impl Warning {
     /// The code's hint from `fixtures/codes.json`.
     #[must_use]
     pub fn hint(&self) -> Option<String> {
-        codes::hint(self.code(), None)
+        codes::fill_hint(self.warning_code().hint(), None)
     }
 
     /// The code's explain page.
     #[must_use]
     pub fn docs_url(&self) -> String {
-        codes::docs_url(self.code())
+        self.warning_code().docs_url()
     }
 
     /// The [ADR 0026] §1 object (see [`Error::diagnostic`](crate::Error::diagnostic)). The
@@ -74,7 +84,7 @@ impl Warning {
         Diagnostic {
             code: self.code().to_owned(),
             kind: self.kind(),
-            message: codes::summary(self.code()).unwrap_or(self.code()).to_owned(),
+            message: self.warning_code().summary().to_owned(),
             hint: self.hint(),
             did_you_mean: Vec::new(),
             location: self.location(),

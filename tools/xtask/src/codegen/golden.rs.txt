@@ -39,7 +39,7 @@ pub enum ErrorCode {
 
 impl ErrorCode {
     /// Every variant, in `codes.json` order.
-    pub const ALL: [Self; 6] = [
+    pub const ALL: &'static [Self] = &[
         Self::NotPdf,
         Self::LimitExceeded,
         Self::NestedTransaction,
@@ -51,14 +51,15 @@ impl ErrorCode {
     /// The code with this name, if there is one.
     #[must_use]
     pub const fn from_code(code: &str) -> Option<Self> {
-        let mut rest: &[Self] = &Self::ALL;
-        while let [first, tail @ ..] = rest {
-            if crate::codes::same(first.as_str(), code) {
-                return Some(*first);
-            }
-            rest = tail;
-        }
-        None
+        Some(match code.as_bytes() {
+            b"not-pdf" => Self::NotPdf,
+            b"limit-exceeded" => Self::LimitExceeded,
+            b"nested-transaction" => Self::NestedTransaction,
+            b"no-transaction" => Self::NoTransaction,
+            b"builder-finished" => Self::BuilderFinished,
+            b"invalid-argument" => Self::InvalidArgument,
+            _ => return None,
+        })
     }
 
     /// The kebab-case code.
@@ -130,21 +131,17 @@ pub enum WarningCode {
 
 impl WarningCode {
     /// Every variant, in `codes.json` order.
-    pub const ALL: [Self; 1] = [
+    pub const ALL: &'static [Self] = &[
         Self::WOne,
     ];
 
     /// The code with this name, if there is one.
     #[must_use]
     pub const fn from_code(code: &str) -> Option<Self> {
-        let mut rest: &[Self] = &Self::ALL;
-        while let [first, tail @ ..] = rest {
-            if crate::codes::same(first.as_str(), code) {
-                return Some(*first);
-            }
-            rest = tail;
-        }
-        None
+        Some(match code.as_bytes() {
+            b"w-one" => Self::WOne,
+            _ => return None,
+        })
     }
 
     /// The kebab-case code.

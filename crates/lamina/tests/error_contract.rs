@@ -284,3 +284,39 @@ fn explain_returns_the_page_for_every_code() {
         .collect();
     assert_eq!((missing, lamina::explain("not-a-code")), (Vec::<String>::new(), None));
 }
+
+/// The façade's code and kind (the generated tables) agree with the wrapped crates' own for
+/// every error and warning the marker fixture provokes.
+#[test]
+fn reached_codes_agree_with_the_wrapped_crates() {
+    let (errors, warnings) = marker_diagnostics();
+    let mut wrong = Vec::new();
+    for e in &errors {
+        let core = match e {
+            Error::Cos(i) => Some((i.code(), i.kind())),
+            Error::Ops(i) => Some((i.code(), i.kind())),
+            Error::Save(i) => Some((i.code(), i.kind())),
+            Error::Text(i) => Some((i.code(), i.kind())),
+            Error::Build(i) => Some((i.code(), i.kind())),
+            _ => None,
+        };
+        if let Some(core) = core
+            && core != (e.code(), e.kind())
+        {
+            wrong.push(e.code());
+        }
+    }
+    for w in &warnings {
+        let core = match w {
+            Warning::Document(i) => Some((i.code(), i.kind())),
+            Warning::Font(i) => Some((i.code(), i.kind())),
+            _ => None,
+        };
+        if let Some(core) = core
+            && core != (w.code(), w.kind())
+        {
+            wrong.push(w.code());
+        }
+    }
+    assert!(wrong.is_empty(), "{wrong:?}");
+}

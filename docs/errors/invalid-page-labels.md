@@ -18,7 +18,7 @@ Give the ranges sorted by first page, the first starting at page 0, each start a
 ## Example
 
 ```rust
-builder.page_labels([PageLabel::new(1, Some(LabelStyle::Decimal))]); // at finish: // invalid-page-labels: none starts at page 0
+builder.page_labels([PageLabel::new(1, Some(LabelStyle::Decimal))]); // invalid-page-labels at finish: no range starts at page 0
 ```
 
 ## Data fields

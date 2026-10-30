@@ -161,7 +161,7 @@ pub enum ErrorCode {
 
 impl ErrorCode {
     /// Every variant, in `codes.json` order.
-    pub const ALL: [Self; 67] = [
+    pub const ALL: &'static [Self] = &[
         Self::NotPdf,
         Self::MissingRoot,
         Self::ReferenceCycle,
@@ -234,14 +234,76 @@ impl ErrorCode {
     /// The code with this name, if there is one.
     #[must_use]
     pub const fn from_code(code: &str) -> Option<Self> {
-        let mut rest: &[Self] = &Self::ALL;
-        while let [first, tail @ ..] = rest {
-            if crate::codes::same(first.as_str(), code) {
-                return Some(*first);
-            }
-            rest = tail;
-        }
-        None
+        Some(match code.as_bytes() {
+            b"not-pdf" => Self::NotPdf,
+            b"missing-root" => Self::MissingRoot,
+            b"reference-cycle" => Self::ReferenceCycle,
+            b"limit-exceeded" => Self::LimitExceeded,
+            b"strict" => Self::Strict,
+            b"data-pending" => Self::DataPending,
+            b"source" => Self::Source,
+            b"type" => Self::Type,
+            b"invalid-structure" => Self::InvalidStructure,
+            b"unset-object" => Self::UnsetObject,
+            b"repaired-base" => Self::RepairedBase,
+            b"encrypted-base" => Self::EncryptedBase,
+            b"password-required" => Self::PasswordRequired,
+            b"wrong-password" => Self::WrongPassword,
+            b"unsupported-security-handler" => Self::UnsupportedSecurityHandler,
+            b"unexpected-eof" => Self::UnexpectedEof,
+            b"syntax" => Self::Syntax,
+            b"unsupported-filter" => Self::UnsupportedFilter,
+            b"decompress" => Self::Decompress,
+            b"nested-transaction" => Self::NestedTransaction,
+            b"no-transaction" => Self::NoTransaction,
+            b"unknown-page" => Self::UnknownPage,
+            b"direct-page" => Self::DirectPage,
+            b"unsupported-version" => Self::UnsupportedVersion,
+            b"invalid-op-log" => Self::InvalidOpLog,
+            b"saved-not-rebased" => Self::SavedNotRebased,
+            b"no-pending-save" => Self::NoPendingSave,
+            b"sink" => Self::Sink,
+            b"not-rebased" => Self::NotRebased,
+            b"sink-not-empty" => Self::SinkNotEmpty,
+            b"would-invalidate-signatures" => Self::WouldInvalidateSignatures,
+            b"requires-rewrite" => Self::RequiresRewrite,
+            b"invalid-font" => Self::InvalidFont,
+            b"collection-index" => Self::CollectionIndex,
+            b"unknown-axis" => Self::UnknownAxis,
+            b"font-not-embeddable" => Self::FontNotEmbeddable,
+            b"missing-glyph" => Self::MissingGlyph,
+            b"glyph-out-of-range" => Self::GlyphOutOfRange,
+            b"unknown-font" => Self::UnknownFont,
+            b"subset-failed" => Self::SubsetFailed,
+            b"invalid-axis-value" => Self::InvalidAxisValue,
+            b"wrong-document" => Self::WrongDocument,
+            b"invalid-feature" => Self::InvalidFeature,
+            b"invalid-text-range" => Self::InvalidTextRange,
+            b"unsupported-layout-option" => Self::UnsupportedLayoutOption,
+            b"font-mismatch" => Self::FontMismatch,
+            b"encoding-full" => Self::EncodingFull,
+            b"font-not-shapable" => Self::FontNotShapable,
+            b"invalid-image" => Self::InvalidImage,
+            b"unsupported-image" => Self::UnsupportedImage,
+            b"image-too-large" => Self::ImageTooLarge,
+            b"image-data-length" => Self::ImageDataLength,
+            b"invalid-icc-profile" => Self::InvalidIccProfile,
+            b"color-components" => Self::ColorComponents,
+            b"invalid-color" => Self::InvalidColor,
+            b"invalid-geometry" => Self::InvalidGeometry,
+            b"text-overflow" => Self::TextOverflow,
+            b"page-index-out-of-range" => Self::PageIndexOutOfRange,
+            b"unknown-destination" => Self::UnknownDestination,
+            b"invalid-page-labels" => Self::InvalidPageLabels,
+            b"cancelled" => Self::Cancelled,
+            b"job-finished" => Self::JobFinished,
+            b"document-changed" => Self::DocumentChanged,
+            b"builder-finished" => Self::BuilderFinished,
+            b"invalid-argument" => Self::InvalidArgument,
+            b"source-budget-exceeded" => Self::SourceBudgetExceeded,
+            b"unknown-option" => Self::UnknownOption,
+            _ => return None,
+        })
     }
 
     /// The kebab-case code.
@@ -627,7 +689,7 @@ pub enum WarningCode {
 
 impl WarningCode {
     /// Every variant, in `codes.json` order.
-    pub const ALL: [Self; 36] = [
+    pub const ALL: &'static [Self] = &[
         Self::MissingHeader,
         Self::XrefRepaired,
         Self::XrefstmIgnored,
@@ -669,14 +731,45 @@ impl WarningCode {
     /// The code with this name, if there is one.
     #[must_use]
     pub const fn from_code(code: &str) -> Option<Self> {
-        let mut rest: &[Self] = &Self::ALL;
-        while let [first, tail @ ..] = rest {
-            if crate::codes::same(first.as_str(), code) {
-                return Some(*first);
-            }
-            rest = tail;
-        }
-        None
+        Some(match code.as_bytes() {
+            b"missing-header" => Self::MissingHeader,
+            b"xref-repaired" => Self::XrefRepaired,
+            b"xrefstm-ignored" => Self::XrefstmIgnored,
+            b"stream-length-recovered" => Self::StreamLengthRecovered,
+            b"stale-generation" => Self::StaleGeneration,
+            b"page-tree-node-skipped" => Self::PageTreeNodeSkipped,
+            b"page-count-mismatch" => Self::PageCountMismatch,
+            b"flate-truncated" => Self::FlateTruncated,
+            b"objstm-index-mismatch" => Self::ObjstmIndexMismatch,
+            b"object-number-out-of-range" => Self::ObjectNumberOutOfRange,
+            b"aes-padding-invalid" => Self::AesPaddingInvalid,
+            b"perms-mismatch" => Self::PermsMismatch,
+            b"warnings-truncated" => Self::WarningsTruncated,
+            b"invalid-box" => Self::InvalidBox,
+            b"invalid-rotate" => Self::InvalidRotate,
+            b"name-tree-node-skipped" => Self::NameTreeNodeSkipped,
+            b"outline-cycle" => Self::OutlineCycle,
+            b"outline-item-skipped" => Self::OutlineItemSkipped,
+            b"invalid-date" => Self::InvalidDate,
+            b"invalid-page-label" => Self::InvalidPageLabel,
+            b"invalid-entry" => Self::InvalidEntry,
+            b"content-unknown-operator" => Self::ContentUnknownOperator,
+            b"content-bad-operands" => Self::ContentBadOperands,
+            b"content-unbalanced-q" => Self::ContentUnbalancedQ,
+            b"content-unbalanced-bt" => Self::ContentUnbalancedBt,
+            b"content-unbalanced-marked" => Self::ContentUnbalancedMarked,
+            b"content-syntax" => Self::ContentSyntax,
+            b"content-resource-missing" => Self::ContentResourceMissing,
+            b"inline-image-unterminated" => Self::InlineImageUnterminated,
+            b"xobject-cycle" => Self::XobjectCycle,
+            b"content-path-unpainted" => Self::ContentPathUnpainted,
+            b"font-invalid" => Self::FontInvalid,
+            b"cmap-invalid" => Self::CmapInvalid,
+            b"unmapped-glyph" => Self::UnmappedGlyph,
+            b"tounicode-conflict" => Self::TounicodeConflict,
+            b"whole-font-rebuilt" => Self::WholeFontRebuilt,
+            _ => return None,
+        })
     }
 
     /// The kebab-case code.

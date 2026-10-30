@@ -354,8 +354,7 @@ fn rust_enum(out: &mut String, name: &str, doc: &str, entries: &[&Entry]) {
         out,
         "}}\n\nimpl {name} {{\n    \
          /// Every variant, in `codes.json` order.\n    \
-         pub const ALL: [Self; {}] = [\n",
-        entries.len()
+         pub const ALL: &'static [Self] = &[\n"
     );
     for e in entries {
         let _ = writeln!(out, "        Self::{},", variant(&e.code));
@@ -365,16 +364,12 @@ fn rust_enum(out: &mut String, name: &str, doc: &str, entries: &[&Entry]) {
          /// The code with this name, if there is one.\n    \
          #[must_use]\n    \
          pub const fn from_code(code: &str) -> Option<Self> {\n        \
-         let mut rest: &[Self] = &Self::ALL;\n        \
-         while let [first, tail @ ..] = rest {\n            \
-         if crate::codes::same(first.as_str(), code) {\n                \
-         return Some(*first);\n            \
-         }\n            \
-         rest = tail;\n        \
-         }\n        \
-         None\n    \
-         }\n",
+         Some(match code.as_bytes() {\n",
     );
+    for e in entries {
+        let _ = writeln!(out, "            b{} => Self::{},", rust_str(&e.code), variant(&e.code));
+    }
+    out.push_str("            _ => return None,\n        })\n    }\n");
     let accessor = |out: &mut String, doc: &str, sig: &str, value: &dyn Fn(&Entry) -> String| {
         let _ = write!(
             out,
@@ -535,8 +530,41 @@ fn render_ts(codes: &Codes) -> String {
         quoted(&codes.docs_base),
         quoted(&codes.docs_suffix)
     );
+    ts_groups(&mut out);
     ts_raised_by_package(&mut out, codes);
     out
+}
+
+/// The groups of `codes.json`, by what they list (for the tests that read the file).
+fn ts_groups(out: &mut String) {
+    let names = |warnings: bool| -> Vec<&str> {
+        GROUPS
+            .iter()
+            .map(|(g, _)| *g)
+            .filter(|g| is_warning_group(g) == warnings)
+            .collect()
+    };
+    ts_list(
+        out,
+        "The groups of `codes.json` that list errors.",
+        "ERROR_GROUPS",
+        "string",
+        &names(false),
+    );
+    ts_list(
+        out,
+        "The groups of `codes.json` that list warnings.",
+        "WARNING_GROUPS",
+        "string",
+        &names(true),
+    );
+    ts_list(
+        out,
+        "The groups whose codes only `@lamina/pdf` raises (not in the Rust enums or the WASM).",
+        "TS_ONLY_GROUPS",
+        "string",
+        &TS_ONLY_GROUPS,
+    );
 }
 
 /// `RAISED_BY_PACKAGE`: kind and hint of the codes the TS layer raises itself.

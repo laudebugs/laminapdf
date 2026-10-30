@@ -6,7 +6,7 @@ import { Document, init, LaminaError, type OpenOptions } from "@lamina/pdf";
 import { DOCS_URL, docsUrl, ERROR_CODES, explain, HINTS, isCode, KINDS, WARNING_CODES } from "@lamina/pdf/explain";
 import { Ajv2020 } from "ajv/dist/2020.js";
 import { beforeAll, describe, expect, it } from "vitest";
-import { RAISED_BY_PACKAGE } from "../src/generated/codes.js";
+import { ERROR_GROUPS, RAISED_BY_PACKAGE, WARNING_GROUPS } from "../src/generated/codes.js";
 import { read, readText, thrown } from "./helpers.js";
 
 interface Entry {
@@ -16,12 +16,13 @@ interface Entry {
   readonly hint: string;
 }
 const codes = JSON.parse(readText("fixtures/codes.json")) as Record<string, unknown>;
-const groups = Object.entries(codes).filter(([k]) => !["version", "docsUrl", "limits"].includes(k)) as [
-  string,
-  Entry[],
-][];
+// A group of codes is a list of objects with a `code`; which ones list warnings comes from the
+// generator (code_groups.rs), so the rule is written once.
+const isGroup = (value: unknown): value is Entry[] =>
+  Array.isArray(value) && value.every((e) => typeof e === "object" && e !== null && "code" in e);
+const groups = Object.entries(codes).filter((entry): entry is [string, Entry[]] => isGroup(entry[1]));
 const all = groups.flatMap(([, list]) => list);
-const isWarningGroup = (group: string) => group === "warnings" || group.endsWith("Warnings");
+const isWarningGroup = (group: string) => WARNING_GROUPS.includes(group);
 
 const schema = JSON.parse(readText("packages/pdf/schemas/error.schema.json")) as object;
 const validate = new Ajv2020({ allErrors: true, strict: true }).compile(schema);
@@ -30,6 +31,10 @@ const errorsOf = () => JSON.stringify(validate.errors);
 beforeAll(() => init());
 
 describe("generated codes", () => {
+  it("knows every group of codes.json", () => {
+    expect(groups.map(([g]) => g).sort()).toEqual([...ERROR_GROUPS, ...WARNING_GROUPS].sort());
+  });
+
   it("lists every error code of codes.json", () => {
     const errors = groups.filter(([g]) => !isWarningGroup(g)).flatMap(([, l]) => l.map((e) => e.code));
     expect([...ERROR_CODES].sort()).toEqual(errors.sort());
@@ -106,6 +111,18 @@ describe("lamina.error/1", () => {
     const e = thrown(() => Document.open(new Uint8Array(), { pasword: "x" } as OpenOptions));
     const json = (e as LaminaError).toJSON();
     expect([json.code, validate(json), errorsOf()]).toEqual(["unknown-option", true, "null"]);
+  });
+
+  it("leaves an empty didYouMean out of the error and its object", () => {
+    const e = new LaminaError({
+      code: "unknown-option",
+      kind: "usage",
+      message: "an options record has a key lamina does not know",
+      didYouMean: [],
+      docsUrl: docsUrl("unknown-option"),
+    });
+    const json = e.toJSON();
+    expect([e.didYouMean, "didYouMean" in json, validate(json), errorsOf()]).toEqual([undefined, false, true, "null"]);
   });
 
   it("rejects an object whose code is not listed", () => {
