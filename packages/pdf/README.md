@@ -30,7 +30,8 @@ Coordinates are page space: points from the top-left of the displayed page, y do
 | Module | gzip | What it can do |
 | --- | ---: | --- |
 | base (`init()`) | ≈ 373 KB | Open (passwords, limits, strict mode), read pages and Info, warnings, edit with ops (transactions, undo/redo), save (auto, incremental, full rewrite; save jobs); build vector and image pages with links, outline, page labels, metadata |
-| text (`init({ text: true })` or `loadText()`) | ≈ 944 KB | Everything in base, plus fonts (`Font.fromBytes`, the standard 14), shaped text runs and text boxes |
+| extract (`init({ extract: true })` or `loadExtract()`) | ≈ 526 KB | Everything in base, plus text extraction (`page.text()`) |
+| text (`init({ text: true })` or `loadText()`) | ≈ 1,009 KB | Everything in base, plus fonts (`Font.fromBytes`, the standard 14), shaped text runs and text boxes, and text extraction |
 
 A page that never draws text never downloads the text module. A `Builder` is built in the text module when it is loaded at the time the builder is created (or with `new Builder({ text: true })`); drawing text on a base-module builder throws `text-module-not-loaded`.
 
@@ -73,6 +74,17 @@ try {
 ```
 
 `doc.warnings` lists what the reader repaired, as `LaminaWarning` objects of the same shape.
+
+## Extracting text
+
+`page.text()` returns a page's text: `lines` (in reading order, trimmed), `text()` (the lines joined with `\n`), `runs` (font, size, direction, marked-content ID, `ActualText`, visibility, bounds; `glyphs()` gives each glyph's text and quad) and `buffers` (every glyph's quad in one `Float32Array`, 8 numbers per glyph in ADR 0027 page space, and the glyph text with UTF-16 offsets, to transfer from a worker). Documents open in the richest module loaded (text, then extract, then base): load the extract or text module before opening a document whose text you need, or `page.text()` throws `extract-module-not-loaded`.
+
+```ts
+await init({ extract: true });
+const doc = Document.open(bytes);
+const text = doc.page(0).text({ skipInvisible: true });
+console.log(text.text());
+```
 
 ## Remote and large files
 

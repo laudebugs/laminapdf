@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [full-editor §E3](../../plans/full-editor.md#e3-navigation-attachments-inspection-and-extraction) |
 | Round / milestone | Editor phase 2 (E1–E3) — M5 Organiser |
-| Depends on | [B9c](../ongoing/B9c-text-extraction-bindings-and-differential.md), [E3a](./E3a-navigation-attachments-inspection-feature-plan.md) |
+| Depends on | [B9c](../done/B9c-text-extraction-bindings-and-differential.md), [E3a](./E3a-navigation-attachments-inspection-feature-plan.md) |
 | Blocks | None |
 | Dependency notes | [E3a](E3a-navigation-attachments-inspection-feature-plan.md), `B9` ([pdf-library §B9](../../plans/pdf-library.md#b9-text-extraction): content reading and text extraction) |
 | ADRs | Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |

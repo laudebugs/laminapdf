@@ -42,7 +42,7 @@ Turn a page's text-showing operators into Unicode text with geometry: per page, 
 
 **Out of scope** (and which todo covers it)
 
-- WASM/TS exposure, differential tests vs pdf.js/pdftotext, quad tests vs PDFium, 10-min extraction fuzz run: [B9c](../ongoing/B9c-text-extraction-bindings-and-differential.md).
+- WASM/TS exposure, differential tests vs pdf.js/pdftotext, quad tests vs PDFium, 10-min extraction fuzz run: [B9c](../done/B9c-text-extraction-bindings-and-differential.md).
 - Text layer UI, selection, search: web C5.
 - Layout analysis, tables, OCR: full-editor E3/E13.
 - Bundling predefined CJK CMaps beyond Identity: decide in risks (may fetch from Adobe's cmap-resources, BSD-3-Clause).
@@ -52,7 +52,7 @@ Turn a page's text-showing operators into Unicode text with geometry: per page, 
 - [x] Load `/rust-best-practices`; read 03 §3–5, §2.6, §8.1
 - [x] `extract/font.rs` (simple, Type 0 and Type 3 fonts, descriptors, Unicode resolution), `extract/cmap.rs` (CMaps and ToUnicode CMaps, one parser), `extract/mod.rs` (the `lamina_content::Visitor`); geometry and runs moved to [B9d](../done/B9d-text-runs-quads-and-page-text.md)
 - [x] Font cache per document (keyed by font object id) to avoid re-parsing
-- [x] Predefined CMaps: Identity-H/V built in, and the `Uni…-UCS2-…`/`Uni…-UTF16-…` ones read as UTF-16; bundling Adobe's CJK character-collection CMaps is left to [B9c](../ongoing/B9c-text-extraction-bindings-and-differential.md) (WASM size budget); until then they raise `cmap-invalid`
+- [x] Predefined CMaps: Identity-H/V built in, and the `Uni…-UCS2-…`/`Uni…-UTF16-…` ones read as UTF-16; bundling Adobe's CJK character-collection CMaps is left to [B9c](../done/B9c-text-extraction-bindings-and-differential.md) (WASM size budget); until then they raise `cmap-invalid`
 - [x] Warnings and codes (`font-invalid`, `cmap-invalid`, `unmapped-glyph`); the façade API moved to [B9d](../done/B9d-text-runs-quads-and-page-text.md)
 - [x] Fixtures: the existing text goldens in five scripts (`text-*.pdf` from `lamina-text`, `build-text-*.pdf` from `lamina-build`) with what pypdf, pdf.js and pdftotext extract (`fixtures/text/extracted.json`, `fixtures/build/facts.json`; not lamina); encrypted copies moved to [B9d](../done/B9d-text-runs-quads-and-page-text.md)
 - [x] Tests below
