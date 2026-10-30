@@ -70,7 +70,8 @@ class FileServer {
   ranges = true;
   /** Answer only the first ranged request with 206, later ones with 200 (a CDN that does that). */
   rangesOnlyFirst = false;
-  etag = '"v1"';
+  etag: string | undefined = '"v1"';
+  lastModified: string | undefined;
   delayMs = 0;
   #server: Server;
   url = "";
@@ -95,6 +96,7 @@ class FileServer {
     this.ranges = true;
     this.rangesOnlyFirst = false;
     this.etag = '"v1"';
+    this.lastModified = undefined;
     this.delayMs = 0;
     return this;
   }
@@ -114,7 +116,8 @@ class FileServer {
     });
     const send = () => {
       if (res.destroyed) return;
-      res.setHeader("ETag", this.etag);
+      if (this.etag !== undefined) res.setHeader("ETag", this.etag);
+      if (this.lastModified !== undefined) res.setHeader("Last-Modified", this.lastModified);
       res.setHeader("Accept-Ranges", "bytes");
       const ifRange = req.headers["if-range"];
       const m = header === undefined ? null : /^bytes=(\d*)-(\d*)$/.exec(header);
@@ -125,7 +128,8 @@ class FileServer {
         res.end();
         return;
       }
-      if (!this.ranges || later || m === null || (ifRange !== undefined && ifRange !== this.etag)) {
+      const current = this.etag ?? this.lastModified;
+      if (!this.ranges || later || m === null || (ifRange !== undefined && ifRange !== current)) {
         entry.status = 200;
         entry.end = size;
         res.writeHead(200, { "Content-Length": size });
@@ -265,6 +269,36 @@ describe("Document.openRange over HTTP", () => {
     expect(JSON.stringify(e)).not.toContain(server.url);
   });
 
+  it("fails with source-changed when Last-Modified changes and there is no ETag", async () => {
+    const { bytes } = largePdf();
+    server.serve(bytes);
+    server.etag = undefined;
+    server.lastModified = "Wed, 21 Oct 2026 07:28:00 GMT";
+    const doc = await Document.openRange(httpRangeSource(server.url));
+    server.lastModified = "Thu, 22 Oct 2026 07:28:00 GMT";
+    const e = await doc.ensure(() => doc.save({ mode: "fullRewrite" })).catch((x: unknown) => x);
+    expect(isLaminaError(e, "source-changed")).toBe(true);
+  });
+
+  it("starts a new full download after one that was aborted", async () => {
+    const { bytes } = largePdf();
+    server.serve(bytes).rangesOnlyFirst = true;
+    const doc = await Document.openRange(httpRangeSource(server.url), { blockSize: 0 }).catch(() => undefined);
+    // Opening already needed a 200 (the shared download); force a fresh document whose first
+    // full download is aborted.
+    doc?.free();
+    server.serve(bytes).rangesOnlyFirst = true;
+    server.delayMs = 200;
+    const source = await httpRangeSource(server.url);
+    const controller = new AbortController();
+    const first = Document.openRange(source, { signal: controller.signal });
+    setTimeout(() => controller.abort(new Error("stop")), 50);
+    await expect(first).rejects.toThrow("stop");
+    server.delayMs = 0;
+    const second = await Document.openRange(source);
+    expect(await second.ensure(() => second.pageCount)).toBe(32);
+  });
+
   it("fails with fetch-failed and the status, never the URL, for an error response", async () => {
     const e = await httpRangeSource(`${server.url}?token=secret`, {
       fetch: async () => new Response("nope", { status: 403 }),
@@ -307,6 +341,30 @@ describe("doc.ensure", () => {
     expect(saved.length).toBeGreaterThan(bytes.length / 2);
   });
 
+  it("takes its own signal: the open's, aborted after the open, doesn't stop later calls", async () => {
+    const { bytes } = largePdf();
+    server.serve(bytes);
+    const controller = new AbortController();
+    const doc = await Document.openRange(httpRangeSource(server.url), { signal: controller.signal });
+    controller.abort(new Error("open is over"));
+    const saved = await doc.ensure(() => doc.save({ mode: "fullRewrite" }));
+    expect(saved.length).toBeGreaterThan(0);
+    const own = new AbortController();
+    own.abort(new Error("mine"));
+    const fresh = await Document.openRange(httpRangeSource(server.url));
+    await expect(fresh.ensure(() => fresh.save({ mode: "fullRewrite" }), { signal: own.signal })).rejects.toThrow(
+      "mine",
+    );
+  });
+
+  it("retries an async callback's data-pending too", async () => {
+    const { bytes } = largePdf();
+    server.serve(bytes);
+    const doc = await Document.openRange(httpRangeSource(server.url));
+    const saved = await doc.ensure(async () => doc.save({ mode: "fullRewrite" }));
+    expect(saved.length).toBeGreaterThan(bytes.length / 2);
+  });
+
   it("just runs the call on an ordinary document", async () => {
     const doc = Document.open(read("fixtures/golden/examples/hello.pdf"));
     expect(await doc.ensure(() => doc.pageCount)).toBe(1);
@@ -331,6 +389,27 @@ describe("callbackSource", () => {
     const source = callbackSource(bytes.length, async (o, n) => bytes.slice(o, o + n - 1));
     const e = await Document.openRange(source).catch((x: unknown) => x);
     expect(isLaminaError(e, "fetch-failed") && e.data?.reason).toBe("length");
+  });
+
+  it("aborts the other fetches of a round when one fails, and waits for them", async () => {
+    const { bytes } = largePdf();
+    const aborted: boolean[] = [];
+    let calls = 0;
+    const source = callbackSource(bytes.length, (o, n, signal) => {
+      calls++;
+      if (calls === 2) return Promise.reject(new Error("one read failed"));
+      return new Promise((resolve, reject) => {
+        const timer = setTimeout(() => resolve(bytes.slice(o, o + n)), 200);
+        signal?.addEventListener("abort", () => {
+          clearTimeout(timer);
+          aborted.push(true);
+          reject(signal.reason);
+        });
+      });
+    });
+    await expect(Document.openRange(source, { blockSize: 0 })).rejects.toThrow("one read failed");
+    expect(calls).toBeGreaterThanOrEqual(2); // the first round: head and tail windows
+    expect(aborted.length).toBe(calls - 1);
   });
 
   it("fails with source-budget-exceeded past the budget", async () => {

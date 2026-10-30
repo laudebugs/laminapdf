@@ -59,16 +59,6 @@ impl WasmSparseSource {
         lamina::ByteSource::len(self.inner.as_ref()) as f64
     }
 
-    /// Bytes supplied so far.
-    ///
-    /// # Errors
-    /// Never in WASM (`panic = "abort"`: no lock is ever poisoned).
-    #[wasm_bindgen(getter)]
-    #[expect(clippy::cast_precision_loss, reason = "at most the size, which fits")]
-    pub fn held(&self) -> JsResult<f64> {
-        Ok(self.inner.held().map_err(supply_error)? as f64)
-    }
-
     /// Adds `bytes` at `offset` (bytes already held win over overlapping ones).
     ///
     /// # Errors
@@ -93,17 +83,6 @@ impl WasmSparseSource {
             .to_fetch(&asked, whole(block, "block")?, whole(readahead, "readahead")?)
             .map_err(supply_error)?;
         Ok(flat(&ranges))
-    }
-
-    /// The parts of `ranges` (flat `[start, end, …]`) not supplied yet, in the same flat form,
-    /// sorted and merged.
-    ///
-    /// # Errors
-    /// `invalid-argument` for an odd length or a value that isn't a whole number of bytes.
-    pub fn missing(&self, ranges: &[f64]) -> JsResult<Float64Array> {
-        let wanted = pairs(ranges)?;
-        let missing = self.inner.missing(&wanted).map_err(supply_error)?;
-        Ok(flat(&missing))
     }
 }
 

@@ -3,7 +3,7 @@
 import type { WasmDocument, WasmPage, WasmSaveJob } from "@lamina/wasm/base";
 import { guard, isLaminaError, type LaminaWarning, packageError } from "./errors.js";
 import { baseModule } from "./init.js";
-import { type RangeOptions, type RangeSource, type RangeState, settle } from "./source/range.js";
+import { type RangeOptions, type RangeSource, type RangeState, settle, wholeBytes } from "./source/range.js";
 import { Transaction } from "./transaction.js";
 import type {
   DocumentInfo,
@@ -31,6 +31,25 @@ const WARNING_BATCH = 256;
 
 function bytesOf(input: Uint8Array | ArrayBuffer): Uint8Array {
   return input instanceof Uint8Array ? input : new Uint8Array(input);
+}
+
+/**
+ * The open options to try, in order: as given, then, when the password's NFKC form differs, with
+ * that form (tried only after `wrong-password`). R5/R6 passwords are prepared with SASLprep,
+ * whose normalisation the WASM modules leave out (ADR 0016 §7), while R2–R4 passwords must reach
+ * the core unchanged.
+ */
+function passwordAttempts<O extends OpenOptions>(options: O): O[] {
+  const password = options.password;
+  const nfkc = password?.normalize("NFKC");
+  return password === undefined || nfkc === undefined || nfkc === password
+    ? [options]
+    : [options, { ...options, password: nfkc }];
+}
+
+/** Whether a failed attempt should be followed by the next one. */
+function tryNext(e: unknown, attempt: number, attempts: number): boolean {
+  return attempt + 1 < attempts && isLaminaError(e, "wrong-password");
 }
 
 /** A page of a {@link Document}, held by its ID: moving pages doesn't retarget it (ADR 0028 F2). */
@@ -137,28 +156,36 @@ export class Document {
   ): Promise<Document> {
     // The source first: a rejected source promise must not go unhandled behind not-initialized.
     const src = await source;
+    const { signal, blockSize, readahead, maxRounds, budget, ...open } = options;
+    // A server that ignored Range from the start sent the whole file: open those bytes as they
+    // are, rather than copying them into a sparse source as well.
+    const whole = wholeBytes(src);
+    if (whole !== undefined) return Document.open(whole, open);
     const wasm = baseModule();
-    const sparse = guard(() => new wasm.WasmSparseSource(src.size, options.budget));
-    const { signal: _s, blockSize: _b, readahead: _r, maxRounds: _m, budget: _g, ...open } = options;
-    const state: RangeState = { sparse, source: src, options };
-    const openWith = (opts: OpenOptions) =>
-      settle(
-        state,
-        () =>
-          new Document(
-            guard(() => wasm.WasmDocument.openSource(sparse, opts)),
-            state,
-          ),
-      );
-    const password = open.password;
-    const nfkc = password?.normalize("NFKC");
+    const sparse = guard(() => new wasm.WasmSparseSource(src.size, budget));
+    const state: RangeState = {
+      sparse,
+      source: src,
+      blockSize: blockSize ?? src.blockSize ?? 4096,
+      readahead: readahead ?? 0,
+      maxRounds: maxRounds ?? 1024,
+    };
+    const attempts = passwordAttempts(open);
     try {
-      if (password === undefined || nfkc === password) return await openWith(open);
-      try {
-        return await openWith(open);
-      } catch (e) {
-        if (!isLaminaError(e, "wrong-password")) throw e;
-        return await openWith({ ...open, password: nfkc ?? password });
+      for (let i = 0; ; i++) {
+        try {
+          return await settle(
+            state,
+            () =>
+              new Document(
+                guard(() => wasm.WasmDocument.openSource(sparse, attempts[i])),
+                state,
+              ),
+            signal,
+          );
+        } catch (e) {
+          if (!tryNext(e, i, attempts.length)) throw e;
+        }
       }
     } catch (e) {
       // Nothing holds the fetched bytes now: free them at once rather than at collection.
@@ -177,12 +204,15 @@ export class Document {
    * const doc = await Document.openRange(httpRangeSource(url));
    * const pages = await doc.ensure(() => doc.pages);
    * ```
-   * @param f - the call (it may run several times; keep it free of side effects).
+   * @param f - the call (it may run several times; keep it free of side effects). An async
+   *   function works too: its `data-pending` rejections are caught the same way.
+   * @param options - `signal` aborts this call's fetches (the open's signal applies to the open
+   *   only).
    * @returns what `f` returns.
    * @throws what `f` throws, and as {@link Document.openRange}.
    */
-  async ensure<T>(f: () => T): Promise<T> {
-    return this.#range === undefined ? f() : settle(this.#range, f);
+  async ensure<T>(f: () => T | Promise<T>, options: { readonly signal?: AbortSignal } = {}): Promise<T> {
+    return this.#range === undefined ? f() : settle(this.#range, f, options.signal);
   }
 
   /**
@@ -202,15 +232,13 @@ export class Document {
   static open(bytes: Uint8Array | ArrayBuffer, options?: OpenOptions): Document {
     const wasm = baseModule();
     const data = bytesOf(bytes);
-    const open = (opts: OpenOptions | undefined) => new Document(guard(() => wasm.WasmDocument.openBytes(data, opts)));
-    const password = options?.password;
-    const nfkc = password?.normalize("NFKC");
-    if (password === undefined || nfkc === password) return open(options);
-    try {
-      return open(options);
-    } catch (e) {
-      if (!isLaminaError(e, "wrong-password")) throw e;
-      return open({ ...options, password: nfkc ?? password });
+    const attempts = passwordAttempts(options ?? {});
+    for (let i = 0; ; i++) {
+      try {
+        return new Document(guard(() => wasm.WasmDocument.openBytes(data, attempts[i])));
+      } catch (e) {
+        if (!tryNext(e, i, attempts.length)) throw e;
+      }
     }
   }
 

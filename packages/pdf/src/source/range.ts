@@ -30,7 +30,8 @@ export interface RangeSource {
 
 /** How a range document fetches. */
 export interface RangeOptions {
-  /** Aborts fetching: the pending call rejects with the signal's reason. */
+  /** Aborts the open's fetches: it rejects with the signal's reason. Later calls take their own
+   * signal ({@link Document.ensure}). */
   readonly signal?: AbortSignal;
   /** Fetches are widened to whole blocks of this many bytes (default: the source's, else 4096). */
   readonly blockSize?: number;
@@ -60,31 +61,41 @@ function rangesOf(e: LaminaError): readonly ByteRange[] {
   return e.ranges ?? [];
 }
 
-/** @internal What a range document keeps to fetch more. */
+/** @internal Marks a source whose bytes are all in memory already (`httpRangeSource` after a `200`). */
+export const WHOLE: unique symbol = Symbol("lamina.wholeBytes");
+
+/** @internal The whole file, when `source` already has it in memory. */
+export function wholeBytes(source: RangeSource): Uint8Array | undefined {
+  const bytes = (source as { [WHOLE]?: unknown })[WHOLE];
+  return bytes instanceof Uint8Array ? bytes : undefined;
+}
+
+/** @internal What a range document keeps to fetch more: never the password or a signal. */
 export interface RangeState {
   readonly sparse: WasmSparseSource;
   readonly source: RangeSource;
-  readonly options: RangeOptions;
+  readonly blockSize: number;
+  readonly readahead: number;
+  readonly maxRounds: number;
 }
 
 /**
- * Runs `call` until it stops throwing `data-pending`: fetches the ranges asked for (widened to
- * blocks, minus what the source holds), supplies them and calls again. Gives up with the last
- * `data-pending` after `maxRounds`, or when a round asks again for exactly what the round before
- * asked (no progress).
+ * Runs `call` until it stops throwing (or rejecting with) `data-pending`: fetches the ranges
+ * asked for (widened to blocks, minus what the source holds), supplies them and calls again.
+ * Gives up with the last `data-pending` after `maxRounds`, or when a round asks again for
+ * exactly what the round before asked (no progress). The fetches of a round share one abort
+ * controller: `signal` aborts them all, and the first failure aborts the others; the round waits
+ * for every fetch before it throws, so nothing is supplied after it returns.
  *
  * @internal
  */
-export async function settle<T>(state: RangeState, call: () => T): Promise<T> {
-  const { sparse, source, options } = state;
-  const block = options.blockSize ?? source.blockSize ?? 4096;
-  const readahead = options.readahead ?? 0;
-  const maxRounds = options.maxRounds ?? 1024;
+export async function settle<T>(state: RangeState, call: () => T | Promise<T>, signal?: AbortSignal): Promise<T> {
+  const { sparse, blockSize, readahead, maxRounds } = state;
   let previous: string | undefined;
   for (let round = 0; ; round++) {
     let error: LaminaError;
     try {
-      return call();
+      return await call();
     } catch (e) {
       if (!isLaminaError(e, "data-pending")) throw e;
       error = e;
@@ -93,27 +104,48 @@ export async function settle<T>(state: RangeState, call: () => T): Promise<T> {
     const key = JSON.stringify(asked);
     const flat = new Float64Array(asked.flatMap((r) => [r.offset, r.offset + r.length]));
     // The planning is lamina-source's (`SparseSource::to_fetch`), shared with the Rust loop.
-    const todo = guard(() => sparse.toFetch(flat, block, readahead));
+    const todo = guard(() => sparse.toFetch(flat, blockSize, readahead));
     if (round >= maxRounds || todo.length === 0 || key === previous) throw error;
-    options.signal?.throwIfAborted();
-    const fetches: Promise<void>[] = [];
-    for (let i = 0; i + 1 < todo.length; i += 2) {
-      const start = todo[i] ?? 0;
-      const end = todo[i + 1] ?? 0;
-      fetches.push(
-        source
-          .read(start, end - start, options.signal === undefined ? {} : { signal: options.signal })
-          .then((bytes) => {
-            if (bytes.length !== end - start) {
-              throw packageError("fetch-failed", "a range source returned a different number of bytes than asked for", {
-                data: { reason: "length", expected: end - start, got: bytes.length },
-              });
-            }
-            guard(() => sparse.supply(start, bytes));
-          }),
-      );
-    }
-    await Promise.all(fetches);
+    signal?.throwIfAborted();
+    await fetchRound(state, todo, signal);
     previous = key;
   }
+}
+
+/** Fetches and supplies the flat `[start, end, …]` ranges of one round. */
+async function fetchRound(state: RangeState, todo: Float64Array, signal: AbortSignal | undefined): Promise<void> {
+  const { sparse, source } = state;
+  const controller = new AbortController();
+  const onAbort = () => controller.abort(signal?.reason);
+  signal?.addEventListener("abort", onAbort, { once: true });
+  let failure: { reason: unknown } | undefined;
+  const fetches: Promise<void>[] = [];
+  for (let i = 0; i + 1 < todo.length; i += 2) {
+    const start = todo[i] ?? 0;
+    const end = todo[i + 1] ?? 0;
+    fetches.push(
+      source
+        .read(start, end - start, { signal: controller.signal })
+        .then((bytes) => {
+          if (bytes.length !== end - start) {
+            throw packageError("fetch-failed", "a range source returned a different number of bytes than asked for", {
+              data: { reason: "length", expected: end - start, got: bytes.length },
+            });
+          }
+          if (!controller.signal.aborted) guard(() => sparse.supply(start, bytes));
+        })
+        .catch((e: unknown) => {
+          // The first failure wins; the aborts it causes in the other fetches don't replace it.
+          failure ??= { reason: e };
+          controller.abort(e);
+        }),
+    );
+  }
+  try {
+    await Promise.all(fetches);
+  } finally {
+    signal?.removeEventListener("abort", onAbort);
+  }
+  if (signal?.aborted) throw signal.reason;
+  if (failure !== undefined) throw failure.reason;
 }

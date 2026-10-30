@@ -1,7 +1,7 @@
 // httpRangeSource (L2c): a remote PDF read with HTTP Range requests. Errors never carry the URL
 // (ADR 0026 §4): it may hold tokens.
 import { packageError } from "../errors.js";
-import type { RangeSource } from "./range.js";
+import { type RangeSource, WHOLE } from "./range.js";
 
 /** Options for {@link httpRangeSource}. */
 export interface HttpRangeOptions {
@@ -42,8 +42,9 @@ function changed() {
 /**
  * A {@link RangeSource} over a URL, for `Document.openRange`. The first request asks for the
  * last `tail` bytes, which gives the size and the part of the file a reader needs first (the
- * xref is at the end). Every later request sends `If-Range` with the first strong `ETag`; a
- * response whose `ETag` or total size differs fails with `source-changed`. A server that ignores
+ * xref is at the end). Every later request sends `If-Range` with the first strong `ETag` (else
+ * its `Last-Modified`); a response whose `ETag`, `Last-Modified` or total size differs fails
+ * with `source-changed`. A server that ignores
  * `Range` (it answers `200`) is read with that one full download.
  *
  * The server must allow `Range` (across origins: `Access-Control-Allow-Headers: Range` and
@@ -79,10 +80,12 @@ export async function httpRangeSource(url: string | URL, options: HttpRangeOptio
   if (first.status === 200) {
     // No range support: this response is the whole file.
     const whole = new Uint8Array(await first.arrayBuffer());
+    // Tagged, so Document.openRange opens these bytes directly instead of copying them again.
     return {
       size: whole.length,
       read: async (offset, length) => whole.slice(offset, offset + length),
-    };
+      [WHOLE]: whole,
+    } as RangeSource;
   }
   if (first.status === 416 && /^bytes \*\/0$/.test(first.headers.get("Content-Range")?.trim() ?? "")) {
     // An empty file has no last bytes to send: open it as empty (lamina then says what it is).
@@ -94,14 +97,25 @@ export async function httpRangeSource(url: string | URL, options: HttpRangeOptio
     throw failed("status", first.status);
   }
   const range = contentRange(first.headers.get("Content-Range"));
-  if (range === undefined || range.end !== range.size - 1) throw failed("content-range", 206);
+  if (range === undefined || range.end !== range.size - 1) {
+    await first.body?.cancel();
+    throw failed("content-range", 206);
+  }
   const size = range.size;
   const tailStart = range.start;
   const tailBytes = new Uint8Array(await first.arrayBuffer());
   if (tailBytes.length !== size - tailStart) throw failed("content-range", 206);
   const etag = first.headers.get("ETag") ?? undefined;
-  // If-Range needs a strong validator; a weak one is only compared.
-  const ifRange = etag !== undefined && !etag.startsWith("W/") ? etag : undefined;
+  const lastModified = first.headers.get("Last-Modified") ?? undefined;
+  // If-Range needs a strong ETag, else a Last-Modified date; a weak ETag is only compared.
+  const ifRange = etag !== undefined && !etag.startsWith("W/") ? etag : lastModified;
+  /** Whether `res` shows a different version than the first response (ETag, then Last-Modified). */
+  const differs = (res: Response): boolean => {
+    const tag = res.headers.get("ETag") ?? undefined;
+    if (etag !== undefined && tag !== undefined) return tag !== etag;
+    const modified = res.headers.get("Last-Modified") ?? undefined;
+    return lastModified !== undefined && modified !== undefined && modified !== lastModified;
+  };
   // Set once a ranged request is answered 200: the whole file, downloaded once and shared by
   // every read (reads already in flight cancel their own bodies and wait for it).
   let whole: Promise<Uint8Array> | undefined;
@@ -111,7 +125,7 @@ export async function httpRangeSource(url: string | URL, options: HttpRangeOptio
     if (whole !== undefined) return (await whole).slice(offset, end);
     const res = await request(`bytes=${offset}-${end - 1}`, signal, ifRange);
     const tag = res.headers.get("ETag") ?? undefined;
-    if (etag !== undefined && tag !== undefined && tag !== etag) {
+    if (differs(res)) {
       await res.body?.cancel();
       throw changed();
     }
@@ -122,10 +136,16 @@ export async function httpRangeSource(url: string | URL, options: HttpRangeOptio
         throw changed();
       }
       if (whole === undefined) {
-        whole = res.arrayBuffer().then((buffer) => {
+        const download = res.arrayBuffer().then((buffer) => {
           const bytes = new Uint8Array(buffer);
           if (bytes.length !== size) throw changed();
           return bytes;
+        });
+        whole = download;
+        // A failed or aborted download (its read's signal) must not stick: the next read that
+        // gets a 200 starts a new one.
+        download.catch(() => {
+          if (whole === download) whole = undefined;
         });
       } else {
         await res.body?.cancel();
