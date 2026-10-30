@@ -51,7 +51,7 @@ Turn a Unicode string into positioned glyph runs that render correctly in every 
 - [x] `pdfpos.rs`: shaped run → `TJ` array + text map + `ActualText` flags; unit tests against hand-computed values (`tests/pdfpos.rs`). Changes B4a's `FontUse`/ToUnicode: a glyph used only with empty text maps to `<cid> <>` instead of being left out, so extractors don't read its CID as a character
 - [x] `tools/shaping-goldens/`: script running `hb-shape --output-format=json` (pinned HarfBuzz) on each fixture string and font → `fixtures/shaping/<script>.json`; `cargo xtask golden --update` invokes it when HarfBuzz is present
 - [x] Extraction tests: generate PDFs (test page writer from B4a) for the five scripts; check pdf.js, pypdf and pdftotext extraction equals the input (full lane; lamina-only checks in the fast lane). Deviations: `golden/text-shaped.pdf` with pypdf and pdf.js facts in `fixtures/text/extracted.json` (tests read committed facts, as in B4a, so they run in the fast lane; no lamina-only extraction yet: that is B9b); pdftotext not covered (not installed where the facts are written; add with the full-lane tools)
-- [x] Measure the added WASM size (text module) and record it in the PR for [B6a](../ready/B6a-lamina-wasm-and-adr-0016.md)
+- [x] Measure the added WASM size (text module) and record it in the PR for [B6a](../ongoing/B6a-lamina-wasm-and-adr-0016.md)
 
 ## Acceptance criteria
 

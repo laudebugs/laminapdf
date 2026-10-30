@@ -12,20 +12,19 @@ New todos start from [`TEMPLATE.md`](TEMPLATE.md). The workflow is in [git workf
 
 IDs: `A`/`P`/`X` [architecture](../plans/architecture.md) (foundations, publishing, cross-cutting), `B` [library](../plans/pdf-library.md), `L` [shareable libraries](../plans/shareable-libraries.md) (contracts, worker, extraction, CLI, agent docs, mobile), `C` [web reader](../plans/web-app.md), `D` [desktop reader](../plans/desktop-app.md), `U` [UI/UX](../plans/ui-ux.md), `E` [editor](../plans/full-editor.md), `H` hosted service ([full-editor](../plans/full-editor.md)). A letter suffix (`B2a`, `B2b`) splits a round into PRs.
 
-**0 ongoing · 213 ready · 29 done** (242 total).
+**2 ongoing · 211 ready · 29 done** (242 total).
 
 ## Can start now
 
 Ready todos whose dependencies are all done:
 
-- [B6a](ready/B6a-lamina-wasm-and-adr-0016.md): `lamina-wasm`, `@lamina/wasm` build, ADR 0016 and size budgets
-- [B9b](ready/B9b-text-extraction-core.md): Text extraction in `lamina-text`: fonts from files, encodings, ToUnicode, glyph runs and quads
 - [L6a](ready/L6a-lamina-ffi-spike.md): `lamina-ffi` spike (start right after B5c): UniFFI over the façade, XCFramework and AARs, size report, ADR 0029
 - [X6](ready/X6-windows-ci.md): Windows CI coverage
 
 ## Ongoing
 
-Nothing claimed right now.
+- [B6a](ongoing/B6a-lamina-wasm-and-adr-0016.md): `lamina-wasm`, `@lamina/wasm` build, ADR 0016 and size budgets
+- [B9b](ongoing/B9b-text-extraction-core.md): Text extraction in `lamina-text`: fonts from files, encodings, ToUnicode, glyph runs and quads
 
 ## Architecture — Round A
 
@@ -55,16 +54,16 @@ Nothing claimed right now.
 | B5a | [`lamina-build` core: builder, pages, vectors, colour and images](done/B5a-lamina-build-core.md) | done | [B1b](done/B1b-krilla-fit-spike.md), [B3c](done/B3c-save-planner-and-roundtrip.md), [L1a](done/L1a-contract-adrs.md) |
 | B5b | [Builder text, links, destinations, outlines, page labels and metadata](done/B5b-builder-text-and-document-features.md) | done | [B4b](done/B4b-shaping-bidi-line-breaking.md), [B4c](done/B4c-standard-14-and-simple-fonts.md), [B5a](done/B5a-lamina-build-core.md) |
 | B5c | [The `lamina` façade crate, Rust examples, and byte and render goldens](done/B5c-lamina-facade-and-examples.md) | done | [B5b](done/B5b-builder-text-and-document-features.md), [L1a](done/L1a-contract-adrs.md), [L1c](done/L1c-error-contract-core.md), [X4](done/X4-full-lane-gate.md) |
-| B6a | [`lamina-wasm`, `@lamina/wasm` build, ADR 0016 and size budgets](ready/B6a-lamina-wasm-and-adr-0016.md) | ready | [B5c](done/B5c-lamina-facade-and-examples.md) |
-| B6b | [`@lamina/pdf`: the TypeScript API, `init()`, export conditions, publint and attw](ready/B6b-lamina-pdf-package.md) | ready | [B2b](done/B2b-standard-security-decryption.md), [B6a](ready/B6a-lamina-wasm-and-adr-0016.md) |
+| B6a | [`lamina-wasm`, `@lamina/wasm` build, ADR 0016 and size budgets](ongoing/B6a-lamina-wasm-and-adr-0016.md) | ongoing | [B5c](done/B5c-lamina-facade-and-examples.md) |
+| B6b | [`@lamina/pdf`: the TypeScript API, `init()`, export conditions, publint and attw](ready/B6b-lamina-pdf-package.md) | ready | [B2b](done/B2b-standard-security-decryption.md), [B6a](ongoing/B6a-lamina-wasm-and-adr-0016.md) |
 | B6c | [Runtime matrix in CI: browsers, Node 22/24/26, Deno, Bun and workerd](ready/B6c-runtime-matrix.md) | ready | [B6b](ready/B6b-lamina-pdf-package.md) |
 | B7a | [Docs site (`apps/docs`): Starlight, quick starts, guides and TypeDoc, with per-PR previews](ready/B7a-docs-site.md) | ready | [B2b](done/B2b-standard-security-decryption.md), [B6b](ready/B6b-lamina-pdf-package.md), [B6c](ready/B6c-runtime-matrix.md) |
 | B7b | [Changesets, Cargo version sync, ADR 0017 (versioning) and the local `0.1.0-alpha.0` tag](ready/B7b-versioning-and-0-1-0-alpha.md) | ready | [B6c](ready/B6c-runtime-matrix.md), [B7a](ready/B7a-docs-site.md), [X3a](done/X3a-nightly-lane.md) |
 | B8a | [Tagged PDF: structure tree builder, artifacts, alt text, MCIDs and ParentTree](ready/B8a-structure-tree.md) | ready | [B5c](done/B5c-lamina-facade-and-examples.md), [B6b](ready/B6b-lamina-pdf-package.md) |
 | B8b | [Conformance profiles (PDF/UA-1, PDF/A-2b/2u/3b), output intents, veraPDF nightly and `0.2.0-alpha`](ready/B8b-conformance-profiles-and-verapdf.md) | ready | [B4c](done/B4c-standard-14-and-simple-fonts.md), [B7b](ready/B7b-versioning-and-0-1-0-alpha.md), [B8a](ready/B8a-structure-tree.md), [X3a](done/X3a-nightly-lane.md) |
 | B9a | [ADR 0023 and `lamina-content`: read-only content-stream interpreter](done/B9a-lamina-content-and-adr-0023.md) | done | [B2c](done/B2c-lamina-model-corpus-fuzz.md), [X4](done/X4-full-lane-gate.md) |
-| B9b | [Text extraction in `lamina-text`: fonts from files, encodings, ToUnicode, glyph runs and quads](ready/B9b-text-extraction-core.md) | ready | [B2b](done/B2b-standard-security-decryption.md), [B4a](done/B4a-font-loading-and-subsetting.md), [B4c](done/B4c-standard-14-and-simple-fonts.md), [B5c](done/B5c-lamina-facade-and-examples.md), [B9a](done/B9a-lamina-content-and-adr-0023.md) |
-| B9c | [`page.text()` in WASM and TypeScript; differential and quad tests; extraction fuzzing](ready/B9c-text-extraction-bindings-and-differential.md) | ready | [B6b](ready/B6b-lamina-pdf-package.md), [B6c](ready/B6c-runtime-matrix.md), [B9b](ready/B9b-text-extraction-core.md) |
+| B9b | [Text extraction in `lamina-text`: fonts from files, encodings, ToUnicode, glyph runs and quads](ongoing/B9b-text-extraction-core.md) | ongoing | [B2b](done/B2b-standard-security-decryption.md), [B4a](done/B4a-font-loading-and-subsetting.md), [B4c](done/B4c-standard-14-and-simple-fonts.md), [B5c](done/B5c-lamina-facade-and-examples.md), [B9a](done/B9a-lamina-content-and-adr-0023.md) |
+| B9c | [`page.text()` in WASM and TypeScript; differential and quad tests; extraction fuzzing](ready/B9c-text-extraction-bindings-and-differential.md) | ready | [B6b](ready/B6b-lamina-pdf-package.md), [B6c](ready/B6c-runtime-matrix.md), [B9b](ongoing/B9b-text-extraction-core.md) |
 
 ## Shareable libraries — Rounds L1–L6
 
@@ -76,7 +75,7 @@ Nothing claimed right now.
 | L2a | [`@lamina/pdf/worker`: the async twin of the sync API, with typed RPC, version handshake, `AbortSignal`, transfer lists and progress](ready/L2a-worker-client.md) | ready | [B6b](ready/B6b-lamina-pdf-package.md), [L1a](done/L1a-contract-adrs.md), [L1b](ready/L1b-error-contract-codegen.md) |
 | L2b | [Disposal and memory bounds: `Symbol.dispose` on every handle, `disposed` code, capped wasm memory, `reset()` and trap recovery](ready/L2b-disposal-and-memory.md) | ready | [B6b](ready/B6b-lamina-pdf-package.md), [L1b](ready/L1b-error-contract-codegen.md) |
 | L2c | [Range `ByteSource`: `DataPending` ranges at the edges (HTTP Range, JS callback, native file and mmap), core stays synchronous](ready/L2c-range-byte-source.md) | ready | [B2d](done/B2d-windowed-reading.md), [B6b](ready/B6b-lamina-pdf-package.md) |
-| L3a | [ADR 0030 and `lamina-extract`: blocks, reading order, headings, lists, header/footer removal, hidden-text flags](ready/L3a-lamina-extract-reading-order.md) | ready | [B8a](ready/B8a-structure-tree.md), [B9b](ready/B9b-text-extraction-core.md), [L1a](done/L1a-contract-adrs.md), [U2b](ready/U2b-reading-order-ground-truth.md) |
+| L3a | [ADR 0030 and `lamina-extract`: blocks, reading order, headings, lists, header/footer removal, hidden-text flags](ready/L3a-lamina-extract-reading-order.md) | ready | [B8a](ready/B8a-structure-tree.md), [B9b](ongoing/B9b-text-extraction-core.md), [L1a](done/L1a-contract-adrs.md), [U2b](ready/U2b-reading-order-ground-truth.md) |
 | L3b | [Lattice tables, Markdown/JSON/chunk serialisers, extraction in the façade, WASM and `@lamina/pdf`](ready/L3b-extract-tables-and-serialisers.md) | ready | [B9c](ready/B9c-text-extraction-bindings-and-differential.md), [L3a](ready/L3a-lamina-extract-reading-order.md) |
 | L3c | [Model plug-ins: `LayoutModel` and `OcrEngine` traits in core, an optional ONNX layout edge crate](ready/L3c-model-plugins.md) | ready | [L3b](ready/L3b-extract-tables-and-serialisers.md) |
 | L4a | [ADR 0031 and `crates/lamina-cli`: `info`, `check`, `pages rotate`, `extract`, `explain`](ready/L4a-lamina-cli.md) | ready | [B5c](done/B5c-lamina-facade-and-examples.md), [B9c](ready/B9c-text-extraction-bindings-and-differential.md), [L1b](ready/L1b-error-contract-codegen.md) |
@@ -146,7 +145,7 @@ Nothing claimed right now.
 | U1b | [Command registry and command palette (`@lamina/ui`)](ready/U1b-command-registry-and-palette.md) | ready | [C4a](ready/C4a-ui-chrome-and-platform.md), [U1a](ready/U1a-adr-0024-app-shell-ux.md), [U6e](ready/U6e-overlays-and-sheets.md) |
 | U1c | [Inverted-L shell: left rail, docked inspector, modes and focus mode](ready/U1c-inverted-l-shell-and-modes.md) | ready | [C4a](ready/C4a-ui-chrome-and-platform.md), [U1a](ready/U1a-adr-0024-app-shell-ux.md), [U1b](ready/U1b-command-registry-and-palette.md) |
 | U2a | [Selection surfaces and copy modes (copy as paragraph, copy exact, column selection)](ready/U2a-selection-surfaces-and-copy-modes.md) | ready | [C5a](ready/C5a-text-layer-and-selection.md), [U1b](ready/U1b-command-registry-and-palette.md), [U2b](ready/U2b-reading-order-ground-truth.md), [U3a](ready/U3a-responsive-mobile-and-touch.md) |
-| U2b | [Reading-order ground-truth corpus and metric](ready/U2b-reading-order-ground-truth.md) | ready | [B9b](ready/B9b-text-extraction-core.md) |
+| U2b | [Reading-order ground-truth corpus and metric](ready/U2b-reading-order-ground-truth.md) | ready | [B9b](ongoing/B9b-text-extraction-core.md) |
 | U2c | [Page appearance modes: Original, Sepia, Dark and High contrast](ready/U2c-page-appearance-modes.md) | ready | [C2b](ready/C2b-lamina-render-crate.md), [C7a](ready/C7a-accessibility-and-theming.md) |
 | U3a | [Responsive mobile and touch layout for the web reader](ready/U3a-responsive-mobile-and-touch.md) | ready | [C4b](ready/C4b-web-app-shell.md), [U1b](ready/U1b-command-registry-and-palette.md), [U1c](ready/U1c-inverted-l-shell-and-modes.md) |
 | U3b | [`mobile-shell` spike: Tauri 2 mobile vs UniFFI with native UI](ready/U3b-mobile-shell-spike.md) | ready | [C2b](ready/C2b-lamina-render-crate.md), [U3a](ready/U3a-responsive-mobile-and-touch.md) |
