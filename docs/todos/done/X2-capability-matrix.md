@@ -12,7 +12,7 @@
 | Branch | `build/x2-capability-matrix` |
 | PR title | `build(xtask): test-backed capability matrix for the ~180 operations` |
 | Size | L (≈ 700–1,100 lines incl. the manifest) |
-| PR | PR_PLACEHOLDER |
+| PR | [#58](https://github.com/laudebugs/lamina/pull/58) |
 
 ## Goal
 
