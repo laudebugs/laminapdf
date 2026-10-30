@@ -57,7 +57,7 @@ fn files_in(dir: &Path) -> Result<Vec<PathBuf>> {
 }
 
 /// The crates whose `golden` example writes goldens into `fixtures/golden/`.
-const GOLDEN_CRATES: [&str; 2] = ["lamina-save", "lamina-text"];
+const GOLDEN_CRATES: [&str; 3] = ["lamina-build", "lamina-save", "lamina-text"];
 
 /// `cargo xtask golden [--update]`: regenerates every golden in `fixtures/golden/` from its
 /// source (`--update` writes them in place and prints the list); without `--update`, checks

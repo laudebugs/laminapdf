@@ -40,7 +40,7 @@ Embed fonts correctly from code: load TrueType/OpenType/CFF fonts (and TTC membe
 
 - Shaping, bidi, line breaking, OpenType features: [B4b](./B4b-shaping-bidi-line-breaking.md).
 - Standard 14 fonts, simple TrueType/WinAnsi embedding: [B4c](../done/B4c-standard-14-and-simple-fonts.md).
-- `surface.text()` API: [B5b](../ready/B5b-builder-text-and-document-features.md).
+- `surface.text()` API: [B5b](../ongoing/B5b-builder-text-and-document-features.md).
 - Reading fonts from existing PDFs for extraction: [B9b](../ready/B9b-text-extraction-core.md).
 - Colour fonts / emoji: later (03 §7.8), reported as unsupported.
 

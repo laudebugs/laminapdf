@@ -7,7 +7,7 @@
 | Plan | [shareable-libraries §7 L1](../../plans/shareable-libraries.md#l1-contracts), [§4 principles](../../plans/shareable-libraries.md#4-principles-recommendations-recorded-in-adrs-00260031), [§6 ADRs](../../plans/shareable-libraries.md#6-decisions-to-record-adrs) |
 | Round / milestone | Round L1 (shareable libraries) — before B5a/B5c |
 | Depends on | None |
-| Blocks | [B5a](../ongoing/B5a-lamina-build-core.md), [B5c](../ready/B5c-lamina-facade-and-examples.md), [L1b](../ready/L1b-error-contract-codegen.md), [L1c](./L1c-error-contract-core.md), [L2a](../ready/L2a-worker-client.md), [L3a](../ready/L3a-lamina-extract-reading-order.md), [L6a](../ready/L6a-lamina-ffi-spike.md) |
+| Blocks | [B5a](./B5a-lamina-build-core.md), [B5c](../ready/B5c-lamina-facade-and-examples.md), [L1b](../ready/L1b-error-contract-codegen.md), [L1c](./L1c-error-contract-core.md), [L2a](../ready/L2a-worker-client.md), [L3a](../ready/L3a-lamina-extract-reading-order.md), [L6a](../ready/L6a-lamina-ffi-spike.md) |
 | ADRs | Writes **0026** (error and diagnostic contract), **0027** (coordinates, units and page indexing), **0028** (façade rules, jobs, cancellation and progress); extends [0003](../../decisions/0003-reader-tolerance-and-limits.md) §2 (codes), fills in [0002](../../decisions/0002-binding-strategy.md) §3 (façade), touches [0005](../../decisions/0005-document-model.md) §7 (threads); informs proposed 0009 (worker RPC, [C2a](../ready/C2a-render-adrs.md)) and 0031 (CLI, [L4a](../ready/L4a-lamina-cli.md)) |
 | Branch | `docs/l1a-contract-adrs` |
 | PR title | `docs(decisions): ADRs 0026 (errors), 0027 (coordinates and units), 0028 (façade rules, jobs, cancellation)` |
@@ -64,7 +64,7 @@ Write down the contract every lamina surface shares before the first public API 
 **Out of scope** (and which todo covers it)
 
 - Generating codes, the TS union, the JSON Schema and `explain` text: [L1b](../ready/L1b-error-contract-codegen.md).
-- Applying the rules in code: [B5a](../ongoing/B5a-lamina-build-core.md) (coordinates), [B5c](../ready/B5c-lamina-facade-and-examples.md) (façade), [L2a](../ready/L2a-worker-client.md) (async edge).
+- Applying the rules in code: [B5a](./B5a-lamina-build-core.md) (coordinates), [B5c](../ready/B5c-lamina-facade-and-examples.md) (façade), [L2a](../ready/L2a-worker-client.md) (async edge).
 - Extraction schema `lamina.extract/1`: ADR 0030 in [L3a](../ready/L3a-lamina-extract-reading-order.md). CLI exit codes: ADR 0031 in [L4a](../ready/L4a-lamina-cli.md). UniFFI pin: ADR 0029 in [L6a](../ready/L6a-lamina-ffi-spike.md).
 
 ## Tasks
@@ -111,7 +111,7 @@ Write down the contract every lamina surface shares before the first public API 
 - **0028:** rules F1–F12; the lock lives in the binding edge (`Mutex` in `lamina-ffi`, `Rc<RefCell>` in `lamina-wasm`), and ADR 0005 §7 is unchanged (a cross-reference was added). Deviations: `PageRef` holds a `PageId` rather than an index and is built in the edge crates; jobs take the document on each `step` and check a document revision counter (new codes `job-finished`, `document-changed`). B5c is updated accordingly.
 - **After `/code-review high` (10 findings), the contract was re-sequenced.** L1b depends on B6b, which depends on B6a and B5c, so it would have landed after the first surfaces shipped. A new todo, [L1c](../done/L1c-error-contract-core.md), now comes before B5c and owns `codes.json` v2, kinds, hints, tagged locations and removing document text from messages. B5c owns `Serialize` and the job codes. B6b ships `LaminaError` with every field. L1b is left with codegen, the JSON Schema and `explain`.
 - **Other review fixes:** a ninth kind, `io`, for `source`; every job, write jobs included, checks the revision in the core; `Budget` and `Progress` use `u32`; the US Letter fallback for pages without a usable box; `PageFrame` cached per page; `location` tagged (`offset` in the file, `object`, `streamOffset`); a page per current code in `docs/errors/`; the plan §5 snippet matches 0028.
-- Follow-ups recorded in [B5a](../ongoing/B5a-lamina-build-core.md) (unit types, `Rect` rename, `PageFrame`), [B5c](../ready/B5c-lamina-facade-and-examples.md) (revision counter, auto-trait test, job codes), [B6b](../ready/B6b-lamina-pdf-package.md) (ships `LaminaError` directly) and [L1b](../ready/L1b-error-contract-codegen.md) (decisions, document-text fixes, new codes).
+- Follow-ups recorded in [B5a](./B5a-lamina-build-core.md) (unit types, `Rect` rename, `PageFrame`), [B5c](../ready/B5c-lamina-facade-and-examples.md) (revision counter, auto-trait test, job codes), [B6b](../ready/B6b-lamina-pdf-package.md) (ships `LaminaError` directly) and [L1b](../ready/L1b-error-contract-codegen.md) (decisions, document-text fixes, new codes).
 
 ## Post-merge checks
 

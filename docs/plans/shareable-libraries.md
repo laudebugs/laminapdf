@@ -151,7 +151,7 @@ Each round is split into todos (one PR each) on the [todo board](../todos/README
 
 This plan adjusts these todos (edited in the same PR):
 
-- [B5a](../todos/ongoing/B5a-lamina-build-core.md) depends on L1a: the builder's coordinates follow ADR 0027.
+- [B5a](../todos/done/B5a-lamina-build-core.md) depends on L1a: the builder's coordinates follow ADR 0027.
 - [B5c](../todos/ready/B5c-lamina-facade-and-examples.md): acceptance criteria add ADR 0028's façade rules.
 - [B6a](../todos/ready/B6a-lamina-wasm-and-adr-0016.md): ADR 0016 states per-module budgets (base, text, extract, render, sign) and adds twiggy diffs.
 - [B6b](../todos/ready/B6b-lamina-pdf-package.md): per-condition wasm loaders and the `init({ module })` escape hatch.

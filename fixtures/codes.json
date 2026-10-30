@@ -596,5 +596,63 @@
       "hint": "check that the font's licence allows this, or use a static TrueType or CFF version",
       "since": "0.1.0"
     }
+  ],
+  "buildErrors": [
+    {
+      "code": "invalid-image",
+      "kind": "input",
+      "summary": "image bytes are not a readable image of the format they were given as",
+      "hint": "pass the complete bytes of a JPEG or PNG file to Image::jpeg or Image::png",
+      "since": "0.1.0"
+    },
+    {
+      "code": "unsupported-image",
+      "kind": "unsupported",
+      "summary": "the image uses a feature that PDF or lamina does not support",
+      "hint": "convert it to a baseline or progressive 8-bit JPEG, or to PNG",
+      "since": "0.1.0"
+    },
+    {
+      "code": "image-too-large",
+      "kind": "limit",
+      "summary": "the image needs more memory than the builder allows (a decoded PNG over 256 MiB, or raw dimensions whose size overflows)",
+      "hint": "scale the image down before adding it",
+      "since": "0.1.0"
+    },
+    {
+      "code": "image-data-length",
+      "kind": "usage",
+      "summary": "raw image samples are not width x height x channels bytes long",
+      "hint": "pass exactly 4 bytes (RGBA) per pixel, row by row",
+      "since": "0.1.0"
+    },
+    {
+      "code": "invalid-icc-profile",
+      "kind": "input",
+      "summary": "the bytes are not a usable ICC profile",
+      "hint": "pass a complete ICC profile with a Gray, RGB or CMYK data colour space",
+      "since": "0.1.0"
+    },
+    {
+      "code": "color-components",
+      "kind": "usage",
+      "summary": "a colour has the wrong number of components for its colour space",
+      "hint": "give one component per channel of the colour space (/N of the ICC profile)",
+      "since": "0.1.0"
+    },
+    {
+      "code": "invalid-color",
+      "kind": "usage",
+      "summary": "a colour string is not of the form #rgb or #rrggbb",
+      "hint": "write the colour as # followed by 3 or 6 hexadecimal digits",
+      "since": "0.1.0"
+    },
+    {
+      "code": "invalid-geometry",
+      "kind": "usage",
+      "summary": "a page size, box, /UserUnit, drawing value (coordinate, matrix, line width, dash, miter limit) or image size is not usable",
+      "hint": "use finite coordinates, positive page sizes and /UserUnit, non-negative line widths and dashes, a miter limit of at least 1, and images of at least one pixel",
+      "since": "0.1.0"
+    }
   ]
 }

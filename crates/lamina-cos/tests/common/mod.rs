@@ -1,5 +1,6 @@
-//! Shared helpers for the integration tests: fixture loading, a seeded PRNG, hand-built files
-//! and the content builder (`content`). The writer is `lamina-save`'s (a dev-dependency).
+//! Shared helpers for the integration tests: fixture loading, a seeded PRNG and hand-built
+//! files. The writer is `lamina-save`'s (a dev-dependency); the content builder moved to
+//! `lamina-build`'s tests.
 #![allow(
     dead_code,
     unused_imports,
@@ -15,7 +16,6 @@
 
 pub mod classic;
 pub mod codes;
-pub mod content;
 
 use std::path::{Path, PathBuf};
 
