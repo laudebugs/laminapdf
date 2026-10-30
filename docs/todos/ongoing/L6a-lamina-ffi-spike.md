@@ -59,17 +59,17 @@ Answer one question with measurements before any mobile SDK work: **does the B5c
 
 ## Tasks
 
-- [ ] Load `/rust-best-practices` and follow [docs/guidelines/rust.md](../../guidelines/rust.md) (the spike is throwaway-quality but keeps no `unwrap` in exported paths; every `unsafe`, if any, has `// SAFETY:`); read the Context links and ADR 0002, 0028
-- [ ] Decide spike vs edge crate (recommendation above) and say so in the PR description
-- [ ] Create `spikes/lamina-ffi/{Cargo.toml,src/lib.rs,uniffi.toml,README.md,scripts/}`; pin `uniffi`, cargo-swift and cargo-ndk versions; licence-check new dependencies (`cargo deny` in the spike)
-- [ ] `scripts/build-ios.sh`, `scripts/build-android.sh`, `scripts/size-report.sh` (writes a Markdown table into the README), `scripts/check-alignment.sh`
-- [ ] Swift package `spikes/lamina-ffi/swift/` with XCTest; Kotlin/Gradle project `spikes/lamina-ffi/kotlin/` with JVM tests
-- [ ] Build and test with UniFFI `=0.32.x`; confirm zero-copy `&[u8]` input reaches Rust without a copy in the generated Swift and Kotlin code
-- [ ] Cancellation prototype on both platforms; **verify Kotlin cancellation semantics in UniFFI 0.32** (does cancelling the coroutine drop the Rust future, and does our `Drop` set the flag?) with a test that observes the flag
-- [ ] Panic test on both platforms under `mobile-release`
-- [ ] List every façade change UniFFI forced (expected: none if ADR 0028 holds); file each as a follow-up against B5c if any
-- [ ] Write ADR 0029; add it to `docs/decisions/README.md` and the [architecture §3 table](../../plans/architecture.md#3-decisions-to-record-adrs)
-- [ ] Spike README: question, answer, measurements, how to reproduce (rustup targets `aarch64-apple-ios-sim`, `x86_64-linux-android`, etc. installed by the scripts, not added to the root `rust-toolchain.toml` unless ADR 0029 decides so); add the spike to `CLAUDE.md` and the spikes list
+- [ ] Load `/rust-best-practices` (not installed in the session that started the spike; it followed `docs/guidelines/rust.md` and clippy `-D warnings` instead) and follow [docs/guidelines/rust.md](../../guidelines/rust.md) (the spike is throwaway-quality but keeps no `unwrap` in exported paths; every `unsafe`, if any, has `// SAFETY:`); read the Context links and ADR 0002, 0028
+- [x] Decide spike vs edge crate (recommendation above) and say so in the PR description (spike; the product crate is L6b)
+- [x] Create `spikes/lamina-ffi/{Cargo.toml,src/lib.rs,uniffi.toml,README.md,scripts/}`; pin `uniffi`, cargo-swift and cargo-ndk versions; licence-check new dependencies (`cargo deny` in the spike: **fails**, UniFFI is MPL-2.0; ADR 0029 open item 1)
+- [x] `scripts/build-ios.sh`, `scripts/build-android.sh`, `scripts/size-report.sh` (writes a Markdown table into the README), `scripts/check-alignment.sh`
+- [ ] Swift package `spikes/lamina-ffi/swift/` with XCTest (written; not yet run: needs the Mac run); Kotlin/Gradle project `spikes/lamina-ffi/kotlin/` with JVM tests (11 passing)
+- [ ] Build and test with UniFFI `=0.32.x` (Rust and Kotlin done; Swift pending); confirm zero-copy `&[u8]` input reaches Rust without a copy in the generated Swift and Kotlin code
+- [ ] Cancellation prototype on both platforms (Kotlin verified: the future is dropped; Swift pending); **verify Kotlin cancellation semantics in UniFFI 0.32** (does cancelling the coroutine drop the Rust future, and does our `Drop` set the flag?) with a test that observes the flag
+- [ ] Panic test on both platforms under `mobile-release` (Kotlin passes; Swift pending)
+- [x] List every façade change UniFFI forced (none; five edge-only adaptations in the spike README) (expected: none if ADR 0028 holds); file each as a follow-up against B5c if any
+- [x] Write ADR 0029 (Proposed, three open items); add it to `docs/decisions/README.md` and the [architecture §3 table](../../plans/architecture.md#3-decisions-to-record-adrs)
+- [x] Spike README: question, answer, measurements, how to reproduce (rustup targets `aarch64-apple-ios-sim`, `x86_64-linux-android`, etc. installed by the scripts, not added to the root `rust-toolchain.toml` unless ADR 0029 decides so); add the spike to `CLAUDE.md` and the spikes list
 
 ## Acceptance criteria
 

@@ -61,7 +61,8 @@ lamina is a platform for anything and everything PDF: creating PDFs from code, p
 ├── spikes/              # research spikes (throwaway code that informs decisions), outside both workspaces
 │   ├── pdf-basics/      # minimal PDF core in Rust + TypeScript, its own frozen fixtures and spec (ported to crates/)
 │   ├── krilla-fit/      # Round B1: can krilla generate into lamina's object graph? (answer + measurements in its README)
-│   └── hayro-parity/    # Round C1a: hayro vs PDFium render parity on the pdf.js and PDFBox corpora (baseline in its README)
+│   ├── hayro-parity/    # Round C1a: hayro vs PDFium render parity on the pdf.js and PDFBox corpora (baseline in its README)
+│   └── lamina-ffi/      # Round L6a: the façade over UniFFI 0.32 for Swift and Kotlin (findings in its README; ADR 0029)
 └── docs/                # all documentation (see docs/README.md)
     ├── research/        # deep dives and research notes, one subfolder per topic
     ├── plans/           # roadmaps and feature design docs (each links to its todos)
@@ -179,6 +180,8 @@ Every crate under `crates/` declares its layer in `Cargo.toml` (`[package.metada
 Research spikes (`spikes/`) are throwaway-quality APIs used to inform decisions, not the product. They are outside both workspaces; CI still runs the pdf-basics spike's checks in a separate job.
 
 `spikes/krilla-fit/` — krilla vs a builder over `lamina-cos` (Round B1); standalone, not in CI: `scripts/fetch-font.sh` once, then `cargo run --release` prints the measurements (see its README).
+
+`spikes/lamina-ffi/` — the `lamina` façade bound with UniFFI `=0.32.2` (Round L6a, ADR 0029); standalone, not in CI: `cargo test` (Rust), `scripts/build-kotlin.sh` (Kotlin JVM tests; JDK 17+ and Gradle 8), `scripts/run-on-mac.sh` on Apple silicon with Xcode (XCFramework, Swift tests, Android NDK libraries, 16 KB check, AAR, sizes into `target/mac-report.md`; see its README).
 
 `spikes/hayro-parity/` — hayro vs PDFium render parity (Round C1a); standalone, not in CI: `scripts/fetch-pdfium.sh && scripts/fetch-corpora.sh` once (downloads into gitignored folders), then `cargo run --release` writes `out/dpi96/results.csv` and `summary.md` (see its README).
 

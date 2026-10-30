@@ -380,6 +380,22 @@ impl FfiDocument {
     }
 }
 
+// Feature-gated exports need their own `#[uniffi::export]` block with the `cfg` on the whole
+// block: a `#[cfg]` on one method inside an exported block is not honoured by UniFFI 0.32's
+// macro (the scaffolding still references the method, so the build without `text` fails).
+#[cfg(feature = "text")]
+#[uniffi::export]
+impl FfiDocument {
+    /// The page's text as lines in reading order (B9d's `page_text`; feature `text`).
+    ///
+    /// # Errors
+    /// `page-index-out-of-range` and reading errors.
+    pub fn page_text(&self, index: u32) -> FfiResult<Vec<String>> {
+        let text = self.lock()?.page_text(index, &lamina::extract::TextOptions::new())?;
+        Ok(text.lines())
+    }
+}
+
 /// A cancel token to pass to run-to-completion calls ([`FfiDocument::save`]).
 #[derive(uniffi::Object, Default)]
 pub struct FfiCancelToken(CancelToken);
@@ -606,6 +622,8 @@ mod tests {
         assert_eq!(doc.page_count()?, 1);
         let pages = doc.page_infos()?;
         assert_eq!(pages.len(), 1);
+        #[cfg(feature = "text")]
+        assert!(!doc.page_text(0)?.is_empty(), "hello.pdf has text");
         doc.set_info(FfiInfoKey::Title, Some("From the FFI".into()))?;
         assert_eq!(doc.info()?.title.as_deref(), Some("From the FFI"));
         let out = doc.save(opts(FfiSaveMode::Incremental), FfiCancelToken::new())?;
