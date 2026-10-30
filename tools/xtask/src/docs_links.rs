@@ -5,7 +5,11 @@
 //! against the linking file (or the repository root for `/…`) and must be a tracked file or a
 //! directory holding one, compared case-sensitively as GitHub does. A `#fragment` on a Markdown
 //! target (or on the same file) must name a heading, using GitHub's slugs, or an HTML `id`/`name`.
+//!
+//! `cargo xtask docs-links --external` checks the `http(s)` URLs instead, over the network: the
+//! nightly lane's job (see [`external`]).
 
+pub(crate) mod external;
 mod html;
 mod slug;
 
@@ -99,7 +103,7 @@ pub(crate) fn run(root: &Path, json_output: bool) -> Result<()> {
 }
 
 /// Tracked `*.md` files, without build output or installed packages.
-fn markdown_files(tracked: &Tracked) -> Vec<PathBuf> {
+pub(crate) fn markdown_files(tracked: &Tracked) -> Vec<PathBuf> {
     tracked
         .files()
         .filter(|path| is_markdown(path) && !is_excluded(path))
@@ -297,7 +301,10 @@ struct Link {
 /// What the checker needs from one Markdown document.
 #[derive(Debug, Default)]
 struct Scan {
+    /// Inline, reference and image links (not autolinks), relative or not.
     links: Vec<Link>,
+    /// Every `http(s)` URL, autolinks included: what `--external` checks.
+    external: Vec<Link>,
     /// Heading slugs plus explicit HTML `id`/`name` anchors.
     anchors: BTreeSet<String>,
 }
@@ -325,9 +332,16 @@ fn scan(text: &str) -> Scan {
     let mut image_depth = 0usize;
     let mut html_block: Option<String> = None;
     let push_link = |scan: &mut Scan, link_type: LinkType, dest: CowStr<'_>, offset: usize| {
+        let line = line_of(offset);
+        if external::is_http(&dest) {
+            scan.external.push(Link {
+                line,
+                target: dest.to_string(),
+            });
+        }
         if !matches!(link_type, LinkType::Autolink | LinkType::Email) {
             scan.links.push(Link {
-                line: line_of(offset),
+                line,
                 target: dest.into_string(),
             });
         }

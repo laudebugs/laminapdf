@@ -10,6 +10,8 @@
 #                 (`cargo xtask scaling`)
 #   bench         criterion benchmarks with history on the `bench-data` branch; a regression over
 #                 10% opens an issue, never fails the run (`cargo xtask bench`)
+#   links         every external URL in the tracked Markdown answers, with retries, a per-host
+#                 rate limit and an allowlist (`cargo xtask docs-links --external`; todo X3c)
 #
 # Every step is a `cargo xtask …` command that runs locally too; `cargo xtask nightly --quick`
 # runs them all with short budgets. veraPDF (B8b) and render diffs (X3b) add their jobs here.
@@ -294,6 +296,29 @@ jobs:
           path: target/nightly/bench/
           if-no-files-found: ignore
 
+  links:
+    name: External links in the docs
+    runs-on: [self-hosted, macOS, ARM64]
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/isolate-rust-home
+      - uses: ./.github/actions/host-rust
+        with:
+          cache: false
+      # curl per URL: HEAD, then a one-byte GET if HEAD is refused; timeouts, 429 and 5xx are
+      # retried and reported as flaky if they pass. Allowlist: .config/link-check.toml.
+      - run: cargo xtask docs-links --external
+      - name: Upload the report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: links-report
+          path: target/nightly/links/
+          if-no-files-found: ignore
+
   # workflow_dispatch with force-failure: checks the issue-on-failure path end to end.
   forced-failure:
     name: Forced failure (on request)
@@ -311,7 +336,7 @@ jobs:
   # main's issue (and main's runs from reusing an issue a test run opened).
   report:
     name: Open an issue on failure
-    needs: [differential, fuzz, scaling, bench, forced-failure]
+    needs: [differential, fuzz, scaling, bench, links, forced-failure]
     if: >-
       ${{ always() && (contains(needs.*.result, 'failure') || needs.scaling.outputs.flaky == 'true'
       || needs.bench.outputs.regression == 'true') }}
@@ -324,7 +349,7 @@ jobs:
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         continue-on-error: true
         with:
-          pattern: "{fuzz-artifacts-*,differential-report,bench-results}"
+          pattern: "{fuzz-artifacts-*,differential-report,bench-results,links-report}"
           path: artefacts
       - name: Open or update the issues
         env:
@@ -365,6 +390,12 @@ jobs:
                 echo "The first 30 of each:"
                 echo
                 jq -r '([.disagreements[] | select(.kind == "failure")][:30][] | "- \u0060\(.file)\u0060 \(.fact): lamina \(.lamina | tojson | .[:60])"), ((.lamina_errors + .missing + .broken_readers)[:30][] | "- \u0060\(.)\u0060")' "$report"
+              fi
+              links=artefacts/links-report/report.md
+              if [ -f "$links" ] && grep -q '^### Dead' "$links"; then
+                echo
+                # The dead-link table, without the report's own heading.
+                sed -n '/^### Dead/,/^### /p' "$links" | sed '$ { /^### /d; }'
               fi
               for dir in artefacts/fuzz-artifacts-*; do
                 [ -d "$dir" ] || continue
