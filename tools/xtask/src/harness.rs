@@ -59,12 +59,59 @@ fn files_in(dir: &Path) -> Result<Vec<PathBuf>> {
     Ok(files)
 }
 
+/// The reading-order corpus (todo U2b): `lamina-build`'s `reading_order` example writes it.
+/// With `update`, into `fixtures/reading-order/`, removing the files no layout writes any
+/// more (they would still be scored); without, it compares and returns the files that
+/// differ or have no generator. `threshold.json` is hand-kept.
+fn reading_order(ws: &Workspace, update: bool) -> Result<Vec<String>> {
+    let dir = ws.root.join("fixtures/reading-order");
+    let out = scratch(ws, "reading-order")?;
+    ws.cargo(&[
+        "run",
+        "--locked",
+        "-q",
+        "-p",
+        "lamina-build",
+        "--example",
+        "reading_order",
+        "--",
+        &out.to_string_lossy(),
+    ])?;
+    let generated = files_in(&out)?;
+    let mut stale = Vec::new();
+    for path in &generated {
+        let name = path.file_name().context("file name")?;
+        let target = dir.join(name);
+        let bytes = fs::read(path)?;
+        if bytes != fs::read(&target).unwrap_or_default() {
+            if update {
+                fs::write(&target, &bytes).with_context(|| format!("writing {}", target.display()))?;
+            } else {
+                stale.push(format!("reading-order/{}", name.to_string_lossy()));
+            }
+        }
+    }
+    for path in files_in(&dir)? {
+        let name = path.file_name().context("file name")?;
+        if name == "threshold.json" || generated.iter().any(|g| g.file_name() == Some(name)) {
+            continue;
+        }
+        if update {
+            fs::remove_file(&path).with_context(|| format!("removing {}", path.display()))?;
+            step(&format!("removed {} (no layout writes it)", path.display()));
+        } else {
+            stale.push(format!("reading-order/{} (no generator)", name.to_string_lossy()));
+        }
+    }
+    Ok(stale)
+}
+
 /// The crates whose `golden` example writes goldens into `fixtures/golden/`.
 const GOLDEN_CRATES: [&str; 3] = ["lamina-build", "lamina-save", "lamina-text"];
 
 /// `cargo xtask golden [--update]`: regenerates every golden in `fixtures/golden/` from its
 /// source (`--update` writes them in place and prints the list), the `lamina` examples' into
-/// `fixtures/golden/examples/`; without `--update`, checks that regenerating them changes
+/// `fixtures/golden/examples/` and the reading-order corpus into `fixtures/reading-order/`; without `--update`, checks that regenerating them changes
 /// nothing.
 pub(crate) fn golden(ws: &Workspace, update: bool) -> Result<()> {
     let golden_dir = ws.root.join("fixtures/golden");
@@ -90,6 +137,7 @@ pub(crate) fn golden(ws: &Workspace, update: bool) -> Result<()> {
     }
     // The façade's examples are goldens too, one directory down (todo B5c).
     let examples = crate::examples::run_all(ws, &out.join("examples"))?;
+    let reading_stale = reading_order(ws, update)?;
     if update {
         // A golden whose example is gone would fail `crates/lamina/tests/examples.rs`.
         for path in files_in(&out.join("examples"))? {
@@ -102,7 +150,7 @@ pub(crate) fn golden(ws: &Workspace, update: bool) -> Result<()> {
         step("Goldens regenerated; review the diff (`git diff fixtures/golden`) like code");
         return Ok(());
     }
-    let mut stale = Vec::new();
+    let mut stale = reading_stale;
     let generated = files_in(&out)?;
     for path in &generated {
         let name = path.file_name().context("file name")?;

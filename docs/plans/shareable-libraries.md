@@ -157,7 +157,7 @@ This plan adjusts these todos (edited in the same PR):
 - [B6b](../todos/ongoing/B6b-lamina-pdf-package.md): per-condition wasm loaders and the `init({ module })` escape hatch.
 - [C3a](../todos/ready/C3a-viewer-worker-rpc.md) depends on L2a: the viewer reuses `@lamina/pdf/worker` instead of a second protocol.
 - [C2a](../todos/ready/C2a-render-adrs.md): ADR 0004 picks the render backend per surface (desktop, web, edge, mobile) using hayro's measured wasm size.
-- [L3a](../todos/ready/L3a-lamina-extract-reading-order.md) depends on [U2b](../todos/ongoing/U2b-reading-order-ground-truth.md) (UI/UX plan): reading order is measured on its ground-truth corpus, and the reader's copy and reader mode reuse `lamina-extract`'s ordering.
+- [L3a](../todos/ready/L3a-lamina-extract-reading-order.md) depends on [U2b](../todos/done/U2b-reading-order-ground-truth.md) (UI/UX plan): reading order is measured on its ground-truth corpus, and the reader's copy and reader mode reuse `lamina-extract`'s ordering.
 - [L6a](../todos/ongoing/L6a-lamina-ffi-spike.md) feeds [U3b](../todos/ready/U3b-mobile-shell-spike.md) (`mobile-shell` spike, ADR 0025); [L6b](../todos/ready/L6b-mobile-sdk-plan.md) waits for U3b. U3b decides lamina's own mobile apps; L6 is the SDK for other developers, which needs UniFFI either way.
 - [E10d](../todos/ready/E10d-pades-signing-core.md): the `Signer` is two-phase (`prepare` returns the digest, `finish` takes the signature) so WebCrypto, the Secure Enclave and HSMs fit a synchronous core.
 

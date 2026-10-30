@@ -19,6 +19,7 @@
 pub mod b5b;
 pub mod content;
 pub mod legacy;
+pub mod reading_order;
 pub mod samples;
 pub mod text;
 
