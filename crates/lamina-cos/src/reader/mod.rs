@@ -616,44 +616,71 @@ impl Document {
         Ok(doc)
     }
 
+    /// A document with no base bytes: no objects, an empty trailer and the header version
+    /// `version` (for example `"1.7"`; the writers fall back to 1.7 for `None` or anything
+    /// that is not `major.minor`). The builder (`lamina-build`) creates every object in the
+    /// overlay; saving it is always a full rewrite (`lamina-save`'s `NoBase`). Reads behave as
+    /// for a file whose objects are all free until the overlay sets a `/Root`.
+    #[must_use]
+    pub fn empty(version: Option<&str>, options: &OpenOptions) -> Self {
+        let base = Base {
+            source: Source::from(Vec::new()),
+            header_version: version.map(str::to_owned),
+            limits: *options.limits(),
+            strict: options.strict(),
+        };
+        Self::from_parts(base, XrefTable::default(), None, WarningLog::default(), 0, None)
+    }
+
     /// A document over `base` using `table` (not marked repaired). Raises the warnings the
     /// xref loader recorded.
-    fn new(base: Base, table: XrefTable, startxref: Option<usize>, mut log: WarningLog) -> Result<Self> {
-        let XrefTable {
-            entries,
-            trailer,
-            sections,
-            section_offsets,
-            has_xref_stream,
-            newest_is_stream,
-            ignored_xref_streams,
-            dropped_objects,
+    fn new(base: Base, mut table: XrefTable, startxref: Option<usize>, mut log: WarningLog) -> Result<Self> {
+        let (limits, strict) = (base.limits, base.strict);
+        for offset in std::mem::take(&mut table.ignored_xref_streams) {
+            log.raise(Warning::XrefStmIgnored { offset }, &limits, strict)?;
+        }
+        let dropped = std::mem::take(&mut table.dropped_objects);
+        let max_object_number = table.entries.keys().chain(&dropped).max().copied();
+        for object in dropped {
+            log.raise(Warning::ObjectNumberOutOfRange { object }, &limits, strict)?;
+        }
+        let free_head = table.free_head.unwrap_or(0);
+        Ok(Self::from_parts(
+            base,
+            table,
+            startxref,
+            log,
             free_head,
-        } = table;
+            max_object_number,
+        ))
+    }
+
+    /// The document's fields (no checks, no warnings raised).
+    fn from_parts(
+        base: Base,
+        table: XrefTable,
+        startxref: Option<usize>,
+        log: WarningLog,
+        free_head: u32,
+        max_object_number: Option<u32>,
+    ) -> Self {
         let Base {
             source,
             header_version,
             limits,
             strict,
         } = base;
-        for offset in ignored_xref_streams {
-            log.raise(Warning::XrefStmIgnored { offset }, &limits, strict)?;
-        }
-        let max_object_number = entries.keys().chain(&dropped_objects).max().copied();
-        for object in dropped_objects {
-            log.raise(Warning::ObjectNumberOutOfRange { object }, &limits, strict)?;
-        }
-        Ok(Self {
+        Self {
             source,
-            entries,
+            entries: table.entries,
             max_object_number,
-            free_head: free_head.unwrap_or(0),
-            trailer,
-            revisions: sections,
-            section_offsets,
+            free_head,
+            trailer: table.trailer,
+            revisions: table.sections,
+            section_offsets: table.section_offsets,
             repaired: false,
-            has_xref_stream,
-            newest_is_stream,
+            has_xref_stream: table.has_xref_stream,
+            newest_is_stream: table.newest_is_stream,
             startxref,
             header_version,
             limits,
@@ -665,7 +692,7 @@ impl Document {
             object_cache: RefCell::new(BTreeMap::new()),
             overlay: Overlay::default(),
             security: None,
-        })
+        }
     }
 
     /// Reads `/Encrypt` and authenticates `password` (`None` for an unencrypted document: no

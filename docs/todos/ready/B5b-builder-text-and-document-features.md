@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [pdf-library §7 B5](../../plans/pdf-library.md#b5-builder-and-the-lamina-crate), requirements [§4 F2–F5](../../plans/pdf-library.md#functional) |
 | Round / milestone | Round B (library) — M1 |
-| Depends on | [B4b](../done/B4b-shaping-bidi-line-breaking.md), [B4c](../done/B4c-standard-14-and-simple-fonts.md), [B5a](../ongoing/B5a-lamina-build-core.md) |
+| Depends on | [B4b](../done/B4b-shaping-bidi-line-breaking.md), [B4c](../done/B4c-standard-14-and-simple-fonts.md), [B5a](../done/B5a-lamina-build-core.md) |
 | Blocks | [B5c](./B5c-lamina-facade-and-examples.md) |
 | ADRs | Follows [0005](../../decisions/0005-document-model.md) §5–§6 (IDs for created pages/outline items; overlay), [0001](../../decisions/0001-core-language-and-licence.md) (determinism: dates and IDs from options) |
 | Branch | `feat/b5b-builder-text-and-navigation` |
@@ -29,6 +29,7 @@ Complete the builder's feature list for M1: shaped text runs and single-box para
 
 **In scope**
 
+- Positions in page space as `lamina-build`'s surface takes them (ADR 0027; `PointPt`/`RectPt`, mapped through the page's `PageFrame` like paths); **`at`'s `y` is the baseline** (ADR 0027 §5; the acceptance criterion carried over from [B5a](../done/B5a-lamina-build-core.md)).
 - `surface.text(str, &Font, size, at)` returning a `TextRun` handle (`.fill(color)`, `.features(...)`, `.render_mode(...)`, `.tag(...)` stubbed for [B8a](./B8a-structure-tree.md)); shaped via B4b; emits `BT … Tf … Tm … TJ … ET`, real U+0020 space glyphs kept in the run (03 §11.2), `ActualText` marked content for clusters flagged by B4b.
 - `surface.text_box(str, &Font, size, Rect, TextBoxOptions { align, line_height, overflow: Clip | Error })` using B4b's greedy breaking, bidi-aware; returns `TextLayout` with line boxes and overflow info.
 - Links: `surface.link(Rect, LinkTarget::{Uri(String), Page { page: PageRef, fit }, Named(String)}, contents: Option<String>)` → `/Annot /Subtype /Link` with `/A /URI` or `/Dest`, `/Contents`, `/F 4` (print), `/Border [0 0 0]`; also the `link:` option on `text()` covering the run's bounding box.

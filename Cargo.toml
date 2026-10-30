@@ -28,6 +28,7 @@ lamina-ops = { path = "crates/lamina-ops" }
 lamina-save = { path = "crates/lamina-save" }
 lamina-content = { path = "crates/lamina-content" }
 lamina-text = { path = "crates/lamina-text" }
+lamina-build = { path = "crates/lamina-build" }
 
 # Flate (zlib) codec, pure Rust; `with-alloc` is the default feature, named so it stays on.
 # MIT OR Zlib OR Apache-2.0 (dependency adler2: 0BSD OR MIT OR Apache-2.0)
@@ -53,8 +54,13 @@ skrifa = { version = "=0.42.0", default-features = false, features = ["std"] }
 # Subsetting TrueType/CFF/CFF2 into PDF-ready font programs, with variable-font instancing
 # (`variable-fonts`, its default feature: write-fonts, kurbo). MIT OR Apache-2.0
 subsetter = { version = "=0.2.6" }
-# Content-stream operators in lamina-text's tests and goldens (dev-dependency). MIT OR Apache-2.0
+# Content-stream operators: lamina-build's content streams (ADR 0005 §6), lamina-text's tests and
+# goldens. MIT OR Apache-2.0
 pdf-writer = { version = "=0.15.0", default-features = false }
+# PNG decoding for lamina-build's images (B5a). No default features (none are needed: decoding and
+# encoding are always built). MIT OR Apache-2.0 (bitflags, crc32fast, fdeflate, flate2,
+# miniz_oxide 0.8 [a second copy, deny.toml warns], simd-adler32: MIT OR Apache-2.0 / Zlib)
+png = { version = "0.18.1", default-features = false }
 
 # Shaping, bidi and line breaking (lamina-text, B4b; ADR 0005 §6). HarfRust: HarfBuzz's shaping
 # algorithm in Rust. Pinned to 0.8.0, the last release on read-fonts 0.39 (skrifa 0.42's, see

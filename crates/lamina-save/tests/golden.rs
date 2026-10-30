@@ -1,5 +1,6 @@
-//! SPEC case 1: golden, byte-identical rebuilds (plus the incremental-update fixture), and the
-//! overlay writers' goldens (B3b).
+//! SPEC case 1: the incremental-update fixture and the overlay writers' goldens (B3b), byte for
+//! byte. `hello.pdf` and `imaging-demo.pdf` themselves are checked by `lamina-build`'s
+//! `goldens.rs`.
 #![allow(
     clippy::unwrap_used,
     clippy::panic,
@@ -14,26 +15,6 @@ use common::samples;
 use common::update;
 use lamina_cos::{Dict, ObjRef, Stream};
 use lamina_save::XrefEol;
-
-#[test]
-fn hello_rebuild_is_byte_identical_to_golden_fixture() {
-    assert_eq!(samples::hello().unwrap(), fixture("golden/hello.pdf"));
-}
-
-#[test]
-fn imaging_demo_rebuild_is_byte_identical_to_golden_fixture() {
-    let ours = samples::imaging_demo().unwrap();
-    let golden = fixture("golden/imaging-demo.pdf");
-    assert_eq!(String::from_utf8_lossy(&ours), String::from_utf8_lossy(&golden));
-}
-
-#[test]
-fn imaging_demo_content_matches_fixture_stream() {
-    let golden = fixture("golden/imaging-demo.pdf");
-    let doc = common::open(&golden).unwrap();
-    let page = doc.pages().unwrap().remove(0);
-    assert_eq!(doc.page_content(&page).unwrap(), samples::imaging_demo_content());
-}
 
 #[test]
 fn incremental_update_of_hello_reproduces_corpus_fixture_byte_for_byte() {

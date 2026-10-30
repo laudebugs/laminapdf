@@ -1,7 +1,7 @@
 //! The [`Visitor`] trait and the events the interpreter reports to it.
 
 use lamina_cos::Warning;
-use lamina_model::Rect;
+use lamina_model::UserSpaceRect;
 use lamina_syntax::{Dict, Name, ObjRef, Object};
 
 use crate::lexer::{InlineImage, Op};
@@ -322,7 +322,7 @@ pub struct FormXObject<'s> {
     /// `/BBox` in form space, normalised (§7.9.5): the clip the form's content is drawn in
     /// (noted, not applied: the interpreter does not track clipping). `None` when missing or
     /// malformed (`invalid-entry`).
-    pub bbox: Option<Rect>,
+    pub bbox: Option<UserSpaceRect>,
     /// The nesting depth of this form (1 for a form drawn by the page's own content).
     pub depth: usize,
     /// The graphics state the form starts with (its matrix applied to the CTM).

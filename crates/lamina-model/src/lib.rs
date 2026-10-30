@@ -35,13 +35,16 @@
 //!
 //! * [`Document`]: a [`lamina_cos::Document`] (it dereferences to one) plus the
 //!   document-level [`IdAllocator`].
-//! * [`Pages`] / [`Page`]: boxes as normalised [`Rect`]s, [`Rotation`], user unit,
+//! * [`Pages`] / [`Page`]: boxes as normalised [`UserSpaceRect`]s, [`Rotation`], user unit,
+//!   the [`PageFrame`] (page space, [ADR 0027]),
 //!   resources, contents and annotation references, page labels.
 //! * [`Outline`] / [`OutlineItem`]: titles, nesting, open state, [`Destination`]s resolved
 //!   to [`PageId`]s, action kinds.
 //! * [`Info`]: the information dictionary, with dates as [`PdfDate`].
 //! * [`NameTree`] / [`NumberTree`] and [`PageLabels`].
 //! * [`LaminaId`], [`PageId`], [`OutlineItemId`], [`AnnotId`], [`FieldId`].
+//! * Units and coordinates ([ADR 0027]): [`Pt`], [`PointPt`], [`RectPt`] (page space) and
+//!   [`UserSpacePoint`], [`UserSpaceRect`] (raw user space).
 //!
 //! # Tolerance
 //!
@@ -54,11 +57,13 @@
 //! [`Error::Source`]) end a view's call; every other unreadable value counts as absent.
 //!
 //! [ADR 0005]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0005-document-model.md
+//! [ADR 0027]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0027-coordinates-units-and-page-indexing.md
 //! [ADR 0003]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0003-reader-tolerance-and-limits.md
 #![forbid(unsafe_code)]
 
 mod date;
 mod document;
+mod geometry;
 mod id;
 mod info;
 mod labels;
@@ -68,11 +73,12 @@ mod tree;
 
 pub use date::{InvalidDate, PdfDate};
 pub use document::Document;
+pub use geometry::{LETTER, PageFrame, PointPt, Pt, RectPt, UserSpacePoint, UserSpaceRect};
 pub use id::{AnnotId, FieldId, IdAllocator, Kind, LaminaId, OutlineItemId, PageId, ParseIdError};
 pub use info::{Info, InfoDate};
 pub use labels::{LabelRange, LabelStyle, PageLabels};
 pub use outline::{ActionKind, Destination, Outline, OutlineItem, View};
-pub use page::{Page, Pages, Rect, Rotation};
+pub use page::{Page, Pages, Rotation};
 pub use tree::{NameTree, NumberTree};
 
 // The layers below, in façade order (ADR 0005 §1): what callers of the model need without
