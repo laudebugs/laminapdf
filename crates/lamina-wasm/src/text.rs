@@ -53,7 +53,7 @@ pub struct TextRunJs {
 }
 
 /// A number JavaScript can use: non-finite values (a malformed file's huge `Tf` or matrix) become
-/// 0, so a run's size and bounds are always numbers (serde_json would write `null`).
+/// 0, so a run's size and bounds are always numbers (`serde_json` would write `null`).
 fn finite(x: f64) -> f64 {
     if x.is_finite() { x } else { 0.0 }
 }
