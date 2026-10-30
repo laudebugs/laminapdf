@@ -8,6 +8,8 @@ export const locate: Locate = (module) =>
     new URL(
       module === "base"
         ? import.meta.resolve("@lamina/wasm/lamina_base.wasm")
-        : import.meta.resolve("@lamina/wasm/lamina_text.wasm"),
+        : module === "text"
+          ? import.meta.resolve("@lamina/wasm/lamina_text.wasm")
+          : import.meta.resolve("@lamina/wasm/lamina_extract.wasm"),
     ),
   );

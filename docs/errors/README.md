@@ -155,6 +155,7 @@ One page per code in [`fixtures/codes.json`](../../fixtures/codes.json), as [ADR
 | Code | Kind |
 | --- | --- |
 | [`already-initialized`](already-initialized.md) | `state` |
+| [`extract-module-not-loaded`](extract-module-not-loaded.md) | `state` |
 | [`fetch-failed`](fetch-failed.md) | `io` |
 | [`not-initialized`](not-initialized.md) | `state` |
 | [`source-changed`](source-changed.md) | `io` |

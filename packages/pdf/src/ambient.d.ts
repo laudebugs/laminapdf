@@ -10,6 +10,10 @@ declare module "@lamina/wasm/lamina_text.wasm" {
   const module: WebAssembly.Module;
   export default module;
 }
+declare module "@lamina/wasm/lamina_extract.wasm" {
+  const module: WebAssembly.Module;
+  export default module;
+}
 
 // The one Node API, in loader/node.ts.
 declare module "node:fs/promises" {

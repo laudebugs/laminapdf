@@ -103,7 +103,7 @@ mod data;
 mod diagnostic;
 mod document;
 mod error;
-#[cfg(feature = "text")]
+#[cfg(feature = "extract")]
 pub mod extract;
 mod job;
 mod warning;
@@ -124,7 +124,7 @@ pub use lamina_build::Error as BuildError;
 pub use lamina_cos::Error as CosError;
 pub use lamina_ops::Error as OpsError;
 pub use lamina_save::{SaveError, SinkError};
-#[cfg(feature = "text")]
+#[cfg(feature = "extract")]
 pub use lamina_text::Error as TextError;
 
 pub use lamina_cos::{ByteSource, ErrorKind, Limit, Limits, Location, OpenOptions, Position};

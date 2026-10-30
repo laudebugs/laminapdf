@@ -31,6 +31,8 @@ mod document;
 mod dto;
 mod error;
 mod source;
+#[cfg(feature = "extract")]
+mod text;
 
 #[cfg(feature = "text")]
 pub use builder::WasmFont;

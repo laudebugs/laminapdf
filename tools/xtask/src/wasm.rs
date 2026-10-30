@@ -70,13 +70,13 @@ const TARGET: &str = "wasm32-unknown-unknown";
 
 /// One module of `@lamina/wasm`.
 pub(crate) struct Module {
-    /// `base` or `text`: the files are `lamina_<name>.{js,d.ts,wasm}`.
+    /// `base`, `text` or `extract`: the files are `lamina_<name>.{js,d.ts,wasm}`.
     pub(crate) name: &'static str,
     features: &'static [&'static str],
 }
 
 /// The modules, in build order.
-pub(crate) const MODULES: [Module; 2] = [
+pub(crate) const MODULES: [Module; 3] = [
     Module {
         name: "base",
         features: &[],
@@ -84,6 +84,12 @@ pub(crate) const MODULES: [Module; 2] = [
     Module {
         name: "text",
         features: &["--features", "text"],
+    },
+    // Base plus text extraction (B9c; ADR 0016 §4): what a reader needs, about half the text
+    // module, so a viewer's text layer doesn't need fonts and shaping.
+    Module {
+        name: "extract",
+        features: &["--features", "extract"],
     },
 ];
 
@@ -101,7 +107,7 @@ fn named(ws: &Workspace, module: &Module) -> PathBuf {
     work(ws, module).join(format!("lamina_{}.named.wasm", module.name))
 }
 
-/// `cargo xtask wasm`: both modules into `packages/wasm/dist/`, then the tests that load them.
+/// `cargo xtask wasm`: every module into `packages/wasm/dist/`, then the tests that load them.
 pub(crate) fn build(ws: &Workspace) -> Result<()> {
     doctor::require(ws, &doctor::wasm_bindgen(ws)?)?;
     let wasm_opt = wasm_opt(ws)?;

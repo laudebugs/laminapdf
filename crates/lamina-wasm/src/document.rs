@@ -255,6 +255,29 @@ pub struct WasmPage {
     id: PageId,
 }
 
+#[cfg(feature = "extract")]
+#[wasm_bindgen]
+impl WasmPage {
+    /// The page's text: lines, runs, glyph quads and glyph text (B9c, the text module only).
+    ///
+    /// # Errors
+    /// `unknown-page` when the page is gone; `data-pending` and the reading errors;
+    /// `unknown-option` / `invalid-argument` for bad options.
+    #[wasm_bindgen(unchecked_return_type = "PageTextJs")]
+    pub fn text(
+        &self,
+        #[wasm_bindgen(unchecked_param_type = "TextOptionsInit | undefined")] options: &JsValue,
+    ) -> JsResult<JsValue> {
+        let options: crate::text::TextOptionsInit = from_js_or_default(options, "options")?;
+        let doc = self.doc.borrow();
+        let info = doc.page_by_id(&self.id).map_err(|e| lamina_error(&e))?;
+        let text = doc
+            .page_text(info.index, &options.to_options())
+            .map_err(|e| lamina_error(&e))?;
+        crate::text::page_text_js(&text)
+    }
+}
+
 #[wasm_bindgen]
 impl WasmPage {
     /// The page's stable ID (`p12.0`).

@@ -46,7 +46,7 @@ pub struct Document {
     /// (a `RefCell` cache, as ADR 0005 §7 allows: the document is `!Sync` anyway).
     pages: RefCell<Option<Vec<PageInfo>>>,
     /// The text extractor (its font cache), kept for the revision it was made at.
-    #[cfg(feature = "text")]
+    #[cfg(feature = "extract")]
     extractor: RefCell<Option<(u64, lamina_text::TextExtractor)>>,
     /// `!Sync` whatever the inner document becomes: the lock lives in the edge (ADR 0028 §2).
     _not_sync: PhantomData<Cell<()>>,
@@ -163,7 +163,7 @@ impl Document {
     /// # Errors
     /// `page-index-out-of-range`; the content limits, `strict`, `data-pending` and the other
     /// reading errors.
-    #[cfg(feature = "text")]
+    #[cfg(feature = "extract")]
     pub fn page_text(&self, index: u32, options: &crate::extract::TextOptions) -> Result<crate::extract::PageText> {
         let pages = self.inner.pages()?;
         let count = u32::try_from(pages.len()).unwrap_or(u32::MAX);
@@ -186,7 +186,7 @@ impl Document {
     ///
     /// # Errors
     /// As [`Document::page_text`].
-    #[cfg(feature = "text")]
+    #[cfg(feature = "extract")]
     pub fn page_texts(&self, options: &crate::extract::TextOptions) -> Result<Vec<crate::extract::PageText>> {
         let pages = self.inner.pages()?;
         let mut cache = self.extractor.borrow_mut();
@@ -420,7 +420,7 @@ impl Document {
     fn bump(&mut self) {
         self.revision = self.revision.wrapping_add(1);
         *self.pages.get_mut() = None;
-        #[cfg(feature = "text")]
+        #[cfg(feature = "extract")]
         {
             *self.extractor.get_mut() = None;
         }
@@ -444,7 +444,7 @@ impl From<lamina_ops::Document> for Document {
             revision: 0,
             build_warnings: Vec::new(),
             pages: RefCell::new(None),
-            #[cfg(feature = "text")]
+            #[cfg(feature = "extract")]
             extractor: RefCell::new(None),
             _not_sync: PhantomData,
         }

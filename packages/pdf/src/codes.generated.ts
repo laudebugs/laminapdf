@@ -50,6 +50,7 @@ export type ErrorCode =
   | "saved-not-rebased"
   | "no-pending-save"
   | "already-initialized"
+  | "extract-module-not-loaded"
   | "fetch-failed"
   | "not-initialized"
   | "source-changed"
@@ -179,6 +180,7 @@ export const ERROR_CODES: readonly ErrorCode[] = [
   "saved-not-rebased",
   "no-pending-save",
   "already-initialized",
+  "extract-module-not-loaded",
   "fetch-failed",
   "not-initialized",
   "source-changed",
@@ -270,6 +272,10 @@ export const RAISED_BY_PACKAGE = {
   "already-initialized": {
     kind: "state",
     hint: "call init and loadText with a source once, before the first load; later calls need no source",
+  },
+  "extract-module-not-loaded": {
+    kind: "state",
+    hint: "load the extract module (init with the extract option, or loadExtract) or the text module before opening the document",
   },
   "fetch-failed": {
     kind: "io",

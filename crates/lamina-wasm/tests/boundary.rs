@@ -1,5 +1,5 @@
 //! The boundary types in a wasm runtime (Node, through `wasm-bindgen-test-runner`; `cargo xtask
-//! wasm` runs this for the base and the text module): the op samples of `fixtures/ops/v1` cross
+//! wasm` runs this for the base, text and extract modules): the op samples of `fixtures/ops/v1` cross
 //! as JS values exactly as their JSON wire format says, records refuse unknown keys with
 //! `unknown-option`, and every error is the ADR 0026 §1 object.
 #![cfg(target_arch = "wasm32")]
@@ -189,4 +189,26 @@ fn a_text_call_that_fails_draws_nothing() {
     let saved = b.finish().unwrap().save(&JsValue::UNDEFINED).unwrap();
     let bytes = js_sys::Uint8Array::new(&get(&saved, "bytes")).to_vec();
     assert!(!bytes.windows(5).any(|w| w == b"Hello"));
+}
+
+/// `WasmPage.text` (the extract and text modules): lines, runs as records, one quad per glyph
+/// in a `Float32Array`, glyph text with UTF-16 offsets.
+#[cfg(feature = "extract")]
+#[wasm_bindgen_test]
+fn page_text_crosses_as_a_struct_of_arrays() {
+    use js_sys::{Array, Float32Array, Uint32Array};
+    let doc = hello();
+    let text = doc.page(0).unwrap().text(&JsValue::UNDEFINED).unwrap();
+    let lines: Array = get(&text, "lines").dyn_into().unwrap();
+    assert_eq!(lines.get(0).as_string().as_deref(), Some("Hello, world!"));
+    let runs: Array = get(&text, "runs").dyn_into().unwrap();
+    assert_eq!(string(&runs.get(0), "text").as_deref(), Some("Hello, world!"));
+    let offsets: Uint32Array = get(&text, "glyphOffsets").dyn_into().unwrap();
+    let glyphs = offsets.length() - 1;
+    assert_eq!(glyphs, 13);
+    let quads: Float32Array = get(&text, "quads").dyn_into().unwrap();
+    assert_eq!(quads.length(), glyphs * 8);
+    assert_eq!(string(&text, "glyphText").as_deref(), Some("Hello, world!"));
+    let err = doc.page(0).unwrap().text(&js(r#"{"skipInvisibles":true}"#)).unwrap_err();
+    assert_eq!(string(&err, "code").as_deref(), Some("unknown-option"));
 }

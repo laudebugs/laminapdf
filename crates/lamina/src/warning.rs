@@ -17,7 +17,7 @@ pub enum Warning {
     /// Raised while reading the document (`lamina-cos`, `lamina-model`, `lamina-content`).
     Document(lamina_cos::Warning),
     /// Raised while embedding a font (`lamina-text`).
-    #[cfg(feature = "text")]
+    #[cfg(feature = "extract")]
     Font(lamina_text::Warning),
 }
 
@@ -27,7 +27,7 @@ impl Warning {
     pub const fn code(&self) -> &'static str {
         match self {
             Self::Document(w) => w.code(),
-            #[cfg(feature = "text")]
+            #[cfg(feature = "extract")]
             Self::Font(w) => w.code(),
         }
     }
@@ -39,7 +39,7 @@ impl Warning {
     pub const fn kind(&self) -> ErrorKind {
         match self {
             Self::Document(w) => w.kind(),
-            #[cfg(feature = "text")]
+            #[cfg(feature = "extract")]
             Self::Font(w) => w.kind(),
         }
     }
@@ -51,7 +51,7 @@ impl Warning {
     pub fn location(&self) -> Location {
         match self {
             Self::Document(w) => w.location(),
-            #[cfg(feature = "text")]
+            #[cfg(feature = "extract")]
             Self::Font(w) => w.location(),
         }
     }
@@ -100,7 +100,7 @@ impl From<lamina_cos::Warning> for Warning {
     }
 }
 
-#[cfg(feature = "text")]
+#[cfg(feature = "extract")]
 impl From<lamina_text::Warning> for Warning {
     fn from(w: lamina_text::Warning) -> Self {
         Self::Font(w)

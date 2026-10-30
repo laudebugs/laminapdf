@@ -315,6 +315,7 @@ fn clippy(ws: &Workspace) -> Result<()> {
     for features in [
         &["-p", "lamina-wasm"][..],
         &["-p", "lamina-wasm", "--features", "text"],
+        &["-p", "lamina-wasm", "--features", "extract"],
         &["-p", "lamina", "--no-default-features"],
     ] {
         let mut args = vec!["clippy", "--locked", "--target", WASM_TARGET, "--lib"];

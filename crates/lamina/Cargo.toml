@@ -25,8 +25,11 @@ saslprep = ["lamina-cos/saslprep"]
 # metadata): the WASM base module's builder (ADR 0016 §4). Without it (and `text`) the crate
 # opens, reads, edits and saves documents only.
 build = ["dep:lamina-build"]
+# Text extraction alone (lamina-text's extractor: `page_text`, `lamina::extract`), without the
+# builder: what a reader needs (B9c; ADR 0016 §4 places it by size).
+extract = ["dep:lamina-text"]
 # Fonts and text on top of the builder (lamina-text: shaping, bidi, line breaking, subsetting).
-text = ["build", "dep:lamina-text", "lamina-build/text"]
+text = ["build", "extract", "lamina-build/text"]
 
 [dependencies]
 lamina-cos = { workspace = true }

@@ -41,7 +41,7 @@ pub enum Error {
     #[error(transparent)]
     Save(lamina_save::SaveError),
     /// Fonts, shaping and layout (`lamina-text`).
-    #[cfg(feature = "text")]
+    #[cfg(feature = "extract")]
     #[error(transparent)]
     Text(lamina_text::Error),
     /// Building pages (`lamina-build`).
@@ -85,7 +85,7 @@ impl Error {
             Self::Cos(e) => e.code(),
             Self::Ops(e) => e.code(),
             Self::Save(e) => e.code(),
-            #[cfg(feature = "text")]
+            #[cfg(feature = "extract")]
             Self::Text(e) => e.code(),
             #[cfg(feature = "build")]
             Self::Build(e) => e.code(),
@@ -105,7 +105,7 @@ impl Error {
             Self::Cos(e) => e.kind(),
             Self::Ops(e) => e.kind(),
             Self::Save(e) => e.kind(),
-            #[cfg(feature = "text")]
+            #[cfg(feature = "extract")]
             Self::Text(e) => e.kind(),
             #[cfg(feature = "build")]
             Self::Build(e) => e.kind(),
@@ -124,7 +124,7 @@ impl Error {
             Self::Cos(e) => e.location(),
             Self::Ops(e) => e.location(),
             Self::Save(e) => e.location(),
-            #[cfg(feature = "text")]
+            #[cfg(feature = "extract")]
             Self::Text(e) => e.location(),
             #[cfg(feature = "build")]
             Self::Build(e) => e.location(),
@@ -235,7 +235,7 @@ impl From<lamina_save::SaveError> for Error {
     }
 }
 
-#[cfg(feature = "text")]
+#[cfg(feature = "extract")]
 impl From<lamina_text::Error> for Error {
     fn from(e: lamina_text::Error) -> Self {
         match e {

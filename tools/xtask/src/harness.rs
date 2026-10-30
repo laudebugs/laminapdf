@@ -59,6 +59,42 @@ fn files_in(dir: &Path) -> Result<Vec<PathBuf>> {
     Ok(files)
 }
 
+/// The shared `page.text()` snapshot (todo B9c): `crates/lamina/tests/page_text_snapshot.rs`
+/// writes it (its ignored `write_snapshot` test, to a scratch file); with `update`, into
+/// `fixtures/text/page-text.json`, else compared. `@lamina/pdf`'s text test reads the same file.
+fn page_text_snapshot(ws: &Workspace, update: bool) -> Result<Vec<String>> {
+    let out = scratch(ws, "page-text")?.join("page-text.json");
+    let out_arg = out.to_string_lossy().into_owned();
+    crate::run_env(
+        &ws.root,
+        "cargo",
+        &[
+            "test",
+            "--locked",
+            "-q",
+            "-p",
+            "lamina",
+            "--test",
+            "page_text_snapshot",
+            "--",
+            "--ignored",
+            "--exact",
+            "write_snapshot",
+        ],
+        &[("LAMINA_SNAPSHOT_OUT", out_arg.as_str())],
+    )?;
+    let target = ws.root.join("fixtures/text/page-text.json");
+    let bytes = fs::read(&out)?;
+    if bytes == fs::read(&target).unwrap_or_default() {
+        return Ok(Vec::new());
+    }
+    if update {
+        fs::write(&target, &bytes).with_context(|| format!("writing {}", target.display()))?;
+        return Ok(Vec::new());
+    }
+    Ok(vec!["text/page-text.json".to_owned()])
+}
+
 /// The reading-order corpus (todo U2b): `lamina-build`'s `reading_order` example writes it.
 /// With `update`, into `fixtures/reading-order/`, removing the files no layout writes any
 /// more (they would still be scored); without, it compares and returns the files that
@@ -137,7 +173,8 @@ pub(crate) fn golden(ws: &Workspace, update: bool) -> Result<()> {
     }
     // The façade's examples are goldens too, one directory down (todo B5c).
     let examples = crate::examples::run_all(ws, &out.join("examples"))?;
-    let reading_stale = reading_order(ws, update)?;
+    let mut reading_stale = reading_order(ws, update)?;
+    reading_stale.extend(page_text_snapshot(ws, update)?);
     if update {
         // A golden whose example is gone would fail `crates/lamina/tests/examples.rs`.
         for path in files_in(&out.join("examples"))? {

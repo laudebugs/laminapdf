@@ -17,7 +17,7 @@ export { isLaminaError, LaminaError } from "./errors.js";
 export type { FontInfo, Standard14 } from "./font.js";
 export { Font, Image } from "./font.js";
 export type { InitOptions, WasmMemory, WasmSource } from "./init.js";
-export { isInitialized, isTextLoaded, wasmMemory } from "./init.js";
+export { isExtractLoaded, isInitialized, isTextLoaded, wasmMemory } from "./init.js";
 export type { Transform } from "./matrix.js";
 export { Matrix } from "./matrix.js";
 export type { PathBuilder } from "./path.js";
@@ -25,6 +25,8 @@ export type { HttpRangeOptions } from "./source/http.js";
 export { httpRangeSource } from "./source/http.js";
 export type { ByteRange, RangeOptions, RangeSource } from "./source/range.js";
 export { callbackSource } from "./source/range.js";
+export type { GlyphQuad, QuadPoint, TextGlyph, TextOptions as PageTextOptions } from "./text.js";
+export { PageText, TextRun as PageTextRun } from "./text.js";
 export type { InfoPatch, Rotation } from "./transaction.js";
 export { Transaction } from "./transaction.js";
 export type {
