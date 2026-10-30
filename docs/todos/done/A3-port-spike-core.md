@@ -31,7 +31,7 @@ Turn the `pdf-basics` spike's Rust core into the first two product crates, keepi
 - [`crates/lamina-cos`](../../../crates/lamina-cos/): tolerant reader (classic and stream xref, `/Prev`, hybrid `/XRefStm`, object streams, repair, page tree, object cache, `OpenOptions::max_decoded_size`) and the classic/compact/incremental writer (moves to `lamina-save` in [B3b](../done/B3b-lamina-save-writers.md)).
 - `HashMap`/`HashSet` replaced by `BTreeMap`/`BTreeSet`; determinism tests.
 - Fixtures moved to `fixtures/` (`golden/`, `corpus/` + `expected.json`) with a provenance and licence `fixtures/README.md`.
-- The spike's content builder and golden samples kept as test support in `crates/lamina-cos/tests/common/` until `lamina-build` ([B5a](../ready/B5a-lamina-build-core.md)).
+- The spike's content builder and golden samples kept as test support in `crates/lamina-cos/tests/common/` until `lamina-build` ([B5a](../ongoing/B5a-lamina-build-core.md)).
 - Review fixes: repair order (last definition in the file wins), generation checks (stale → `null`), `null` page attributes, references inside `/Filter`/`/DecodeParms`, object-stream header lexing, `incremental_update` refusing encrypted bases, matching xref kind and never shrinking `/Size`.
 
 **Out of scope**

@@ -290,7 +290,7 @@ Editor rounds are larger than reader rounds. Each starts with a short **feature-
 Each round's todos (one per PR, with dependencies) are linked from [§7](#7-phases-and-rounds) and on the [todo board](../todos/README.md); this checklist is the summary.
 
 ### Cross-cutting
-Todos: [X2](../todos/ready/X2-capability-matrix.md) (capability matrix; E1a and E1f depend on it)
+Todos: [X2](../todos/ongoing/X2-capability-matrix.md) (capability matrix; E1a and E1f depend on it)
 - [ ] Assign stable IDs `<group>.<nn>` to all operations in 06 §3 and create `docs/capabilities/manifest.toml`
 - [ ] Implement test tagging and `cargo xtask capabilities`; generate `docs/capabilities/README.md`
 - [ ] CI gate: no status claimed without a passing tagged test
