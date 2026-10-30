@@ -28,7 +28,7 @@ import pypdfium2.version as pdfium_version
 PINNED = "5.14.0"
 
 
-def render(page: pdfium.PdfPage, dpi: int) -> tuple[int, int, bytes]:
+def render(pdf: pdfium.PdfDocument, page: pdfium.PdfPage, dpi: int) -> tuple[int, int, bytes]:
     scale = dpi / 72
     width = math.floor(page.get_width() * scale)
     height = math.floor(page.get_height() * scale)
@@ -37,6 +37,7 @@ def render(page: pdfium.PdfPage, dpi: int) -> tuple[int, int, bytes]:
     bitmap.fill_rect((255, 255, 255, 255), 0, 0, width, height)
     flags = raw.FPDF_ANNOT | raw.FPDF_REVERSE_BYTE_ORDER
     raw.FPDF_RenderPageBitmap(bitmap, page, 0, 0, width, height, 0, flags)
+    raw.FPDF_FFLDraw(pdf.formenv, bitmap, page, 0, 0, width, height, 0, flags)
     data = ctypes.string_at(bitmap.buffer, bitmap.stride * height)
     rows = (data[y * bitmap.stride : y * bitmap.stride + width * 3] for y in range(height))
     pixels = b"".join(rows)
@@ -55,10 +56,12 @@ def main() -> int:
     pages = 0
     for path in sorted(pdf_dir.glob("*.pdf")):
         pdf = pdfium.PdfDocument(str(path))
+        # Before any page is loaded, so pages get form-field appearances (FPDF_FFLDraw).
+        pdf.init_forms()
         for index in range(len(pdf)):
             page = pdf[index]
             for dpi in dpis:
-                width, height, pixels = render(page, dpi)
+                width, height, pixels = render(pdf, page, dpi)
                 target = out / str(dpi) / path.stem / f"{index}.ppm"
                 target.parent.mkdir(parents=True, exist_ok=True)
                 target.write_bytes(b"P6\n%d %d\n255\n" % (width, height) + pixels)

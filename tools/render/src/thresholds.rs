@@ -128,8 +128,12 @@ impl Thresholds {
         for (i, known) in self.known.iter().enumerate() {
             if known.example == example && known.page == page && known.check == name {
                 used.insert(i);
-                limits.max_diff_pixels = known.max_diff_pixels.or(limits.max_diff_pixels);
-                limits.max_diff_percent = known.max_diff_percent.or(limits.max_diff_percent);
+                // An entry's count limit replaces the check's default one, whichever form
+                // either uses, so it can loosen as well as tighten.
+                if known.max_diff_pixels.is_some() || known.max_diff_percent.is_some() {
+                    limits.max_diff_pixels = known.max_diff_pixels;
+                    limits.max_diff_percent = known.max_diff_percent;
+                }
                 limits.min_ssim = known.min_ssim.unwrap_or(limits.min_ssim);
             }
         }
@@ -149,5 +153,50 @@ impl Thresholds {
                 )
             })
             .collect()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn diff(differing: usize, percent: f64) -> Diff {
+        Diff {
+            ssim: 1.0,
+            differing,
+            percent,
+            mask: Vec::new(),
+        }
+    }
+
+    fn parse(known: &str) -> Thresholds {
+        let text = format!(
+            "[golden]\nmax_diff_pixels = 0\ndelta_e = 2.3\nmin_ssim = 0.99\n\
+             [parity]\nmax_diff_percent = 0.5\nmin_ssim = 0.9\n{known}"
+        );
+        toml::from_str(&text).unwrap()
+    }
+
+    #[test]
+    fn a_known_difference_loosens_a_golden_check_by_percent() {
+        let t = parse(
+            "[[known]]\nexample = \"a\"\npage = 0\ncheck = \"golden-hayro\"\nmax_diff_percent = 1.0\nreason = \"r\"\n",
+        );
+        let limits = t.for_page("a", 0, &Check::Golden("hayro"), &mut BTreeSet::new());
+        assert!(limits.violated(Some(&diff(50, 0.5))).is_none());
+    }
+
+    #[test]
+    fn a_known_difference_loosens_parity_by_pixels() {
+        let t =
+            parse("[[known]]\nexample = \"a\"\npage = 0\ncheck = \"parity\"\nmax_diff_pixels = 100\nreason = \"r\"\n");
+        let limits = t.for_page("a", 0, &Check::Parity, &mut BTreeSet::new());
+        assert!(limits.violated(Some(&diff(90, 3.0))).is_none());
+    }
+
+    #[test]
+    fn without_an_entry_the_defaults_apply() {
+        let limits = parse("").for_page("a", 0, &Check::Golden("hayro"), &mut BTreeSet::new());
+        assert!(limits.violated(Some(&diff(1, 0.0))).is_some());
     }
 }

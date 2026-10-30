@@ -64,10 +64,11 @@ tasks:
   examples          run the lamina crate's examples into target/examples-out/, compare them
                     with fixtures/golden/examples/ and run qpdf --check on each (needs qpdf)
   render-golden [--update]
-                    render every example page with PDFium (pypdfium2: tools/render/requirements.txt,
-                    $LAMINA_PYTHON) and hayro at 72 dpi, compare with fixtures/render-golden/
-                    (thresholds.toml; diff images in target/xtask/render-golden/), and hayro vs
-                    PDFium at 150 dpi; --update rewrites the PNGs
+                    render every page of fixtures/golden/examples/ with PDFium (pypdfium2:
+                    tools/render/requirements.txt, $LAMINA_PYTHON) and hayro (tools/render, its
+                    own workspace) at 72 dpi, compare with fixtures/render-golden/ (thresholds.toml;
+                    diff images in target/xtask/render-golden/), and hayro vs PDFium at 150 dpi;
+                    --update rewrites the PNGs (and still fails on a parity disagreement)
   corpus facts      rewrite fixtures/corpus/expected.json with pypdf (needs Python: see
                     tools/corpus-facts/requirements.txt; $LAMINA_PYTHON or python3)
   corpus fetch [--source <name>]… [--update-manifest]
@@ -373,7 +374,11 @@ fn wasm(ws: &Workspace) -> Result<()> {
 
 fn cargo_deny(ws: &Workspace) -> Result<()> {
     doctor::require(ws, &doctor::cargo_deny())?;
-    ws.cargo(&["deny", "--all-features", "check"])
+    ws.cargo(&["deny", "--all-features", "check"])?;
+    // The render tool is its own workspace with its own lockfile (hayro and its graph): the
+    // same policy (the root deny.toml, cargo-deny's default from the root) applies to it.
+    let manifest = ws.root.join(render::MANIFEST).to_string_lossy().into_owned();
+    ws.cargo(&["deny", "--manifest-path", &manifest, "check"])
 }
 
 fn biome_ci(ws: &Workspace) -> Result<()> {

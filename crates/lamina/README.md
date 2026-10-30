@@ -6,9 +6,9 @@ The façade crate: one dependency for Rust users, and the API every binding wrap
 
 | Area | API |
 | --- | --- |
-| Open and read | `Document::open_bytes(Vec<u8>, OpenOptions)`, `open_source(Arc<dyn ByteSource>, …)`; `page_count`, `page_info(index)`, `page_by_id(&PageId)`, `info`, `warnings()` (a `WarningCursor` with `next_batch(max)`) |
+| Open and read | `Document::open_bytes(Vec<u8>, OpenOptions)`, `open_source(Arc<dyn ByteSource>, …)`; `page_count`, `page_info(index)`, `page_infos()`, `page_by_id(&PageId)` (one page-tree walk, cached until the next change), `info`, `warnings()` (a `WarningCursor` with `next_batch(max)`; build warnings first) |
 | Edit | `apply(Vec<Op>)` (one transaction), `apply_log(json)`, `undo`, `redo` |
-| Save | `save(&SaveOptions, &CancelToken) -> Saved { bytes, report }`, or `save_job(&SaveOptions)` stepped with a `Budget` |
+| Save | `save(&SaveOptions, &CancelToken) -> Saved { bytes, report }`, or `save_job(&SaveOptions)` stepped with a `Budget`; after `not-rebased`, `Error::saved_output()` and `rebase(bytes)` |
 | Build (`text`) | `Builder` (fonts, pages and their `Surface`, destinations, outline, page labels, metadata) → `finish()` → `Document` |
 | Errors | `Error` with `code()`, `kind()`, `location()`, `hint()`, `docs_url()`, `diagnostic()`, and `Serialize` to the [ADR 0026](../../docs/decisions/0026-error-and-diagnostic-contract.md) §1 object; `Warning` likewise |
 
@@ -18,14 +18,15 @@ The ADR 0028 rules it follows, by number: no lifetimes on `Document` (F1: pages 
 
 Every job records the document's instance and revision when it is created, and every `step` checks them first: a committed `apply`, an `undo`, a `redo`, a save or a rebase moves the revision, and a job stepped after that fails with `document-changed` and finishes. Stepping a finished job is `job-finished`; a cancelled token is `cancelled`. Errors end the job, and a failed or cancelled save leaves the document as it was.
 
-`SaveJob`'s work units: planning is 1 unit; for a full rewrite of an opened document, 1 unit per object of the base, parsed and cached ahead of the writer (`Phase::Parse`); then writing and rebasing is 1 indivisible unit (`Phase::Write`), because `lamina-save`'s writers are not resumable yet. A step that reaches the write therefore overshoots its budget by serialising the whole file (cancellation lands before it, not inside it).
+`SaveJob`'s work units: planning is 1 unit (it also checks that a save may start); for a full rewrite of an opened document, 1 unit per object of the base the session didn't change, parsed and cached ahead of the writer (`Phase::Parse`); then writing and rebasing is 1 indivisible unit (`Phase::Write`), because `lamina-save`'s writers are not resumable yet. A step that reaches the write therefore overshoots its budget by serialising the whole file (cancellation lands before it, not inside it).
 
-Measured with `cargo test --release -p lamina --test budget -- --ignored --nocapture` (a 2,000-page document from bytes, full rewrite, steps of 256 units; Apple M1 Pro, macOS 27, rustc 1.99.1, shared machine):
+Measured with `cargo test --release -p lamina --test budget -- --ignored --nocapture`. The test uses a 2,000-page document from bytes (4,027 base objects) and saves it as a full rewrite: planning as one step, the whole parse phase as the next, then the write. Three runs on an Apple M1 Pro (macOS 27, rustc 1.99.1, a shared machine):
 
 | Phase | Measured | Starting budget for an 8 ms slice (Web Worker) | for 50 ms (native) |
 | --- | --- | ---: | ---: |
-| Parse (1 unit = 1 object) | ≈ 200 units/ms | ≈ 1,600 units | ≈ 10,000 units |
-| Write + rebase (1 unit) | ≈ 22 ms for 2,000 pages (310 kB) | one step | one step |
+| Plan (1 unit) | ≈ 0.03 ms | | |
+| Parse (1 unit = 1 object) | 550–990 units/ms | ≈ 4,000 units | ≈ 25,000 units |
+| Write + rebase (1 unit) | 12–17 ms for 2,000 pages (310 kB) | one step | one step |
 
 Edges should still adapt the next budget from the time the last step took (ADR 0028 §4); these numbers are only where to start.
 

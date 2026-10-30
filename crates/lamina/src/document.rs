@@ -1,6 +1,6 @@
 //! [`Document`]: the façade's document handle (ADR 0028 F1–F12).
 
-use std::cell::Cell;
+use std::cell::{Cell, RefCell};
 use std::marker::PhantomData;
 use std::sync::Arc;
 
@@ -40,6 +40,11 @@ pub struct Document {
     inner: lamina_ops::Document,
     instance: Arc<Instance>,
     revision: u64,
+    /// Warnings raised while building it (font embedding), before it existed as a document.
+    build_warnings: Vec<Warning>,
+    /// Every page's facts, read in one page-tree walk and kept until the revision moves
+    /// (a `RefCell` cache, as ADR 0005 §7 allows: the document is `!Sync` anyway).
+    pages: RefCell<Option<Vec<PageInfo>>>,
     /// `!Sync` whatever the inner document becomes: the lock lives in the edge (ADR 0028 §2).
     _not_sync: PhantomData<Cell<()>>,
 }
@@ -128,7 +133,7 @@ impl Document {
     /// # Errors
     /// Reading errors (the page tree).
     pub fn page_count(&self) -> Result<u32> {
-        Ok(u32::try_from(self.inner.pages()?.len()).unwrap_or(u32::MAX))
+        self.with_pages(|pages| Ok(u32::try_from(pages.len()).unwrap_or(u32::MAX)))
     }
 
     /// Page `index`'s facts.
@@ -136,21 +141,23 @@ impl Document {
     /// # Errors
     /// `page-index-out-of-range`; reading errors.
     pub fn page_info(&self, index: u32) -> Result<PageInfo> {
-        let pages = self.inner.pages()?;
-        let count = u32::try_from(pages.len()).unwrap_or(u32::MAX);
-        let page = usize::try_from(index)
-            .ok()
-            .and_then(|i| pages.get(i))
-            .ok_or(Error::PageIndexOutOfRange { index, count })?;
-        let frame = page.frame()?;
-        Ok(PageInfo {
-            index,
-            id: page.id().clone(),
-            width: frame.width().get(),
-            height: frame.height().get(),
-            rotation: frame.rotate().degrees(),
-            label: page.label()?,
+        self.with_pages(|pages| {
+            let count = u32::try_from(pages.len()).unwrap_or(u32::MAX);
+            usize::try_from(index)
+                .ok()
+                .and_then(|i| pages.get(i))
+                .cloned()
+                .ok_or(Error::PageIndexOutOfRange { index, count })
         })
+    }
+
+    /// Every page's facts, in order: one read of the page tree (cached until the next
+    /// change), for listing pages without one call per page.
+    ///
+    /// # Errors
+    /// Reading errors.
+    pub fn page_infos(&self) -> Result<Vec<PageInfo>> {
+        self.with_pages(|pages| Ok(pages.to_vec()))
     }
 
     /// The facts of the page with `id` (F1: sub-objects are addressed by value).
@@ -158,12 +165,43 @@ impl Document {
     /// # Errors
     /// `unknown-page` when the document has no such page; reading errors.
     pub fn page_by_id(&self, id: &PageId) -> Result<PageInfo> {
-        let index = self
-            .inner
-            .pages()?
-            .index_of(id)
-            .ok_or_else(|| Error::from(lamina_ops::Error::UnknownPage(id.clone())))?;
-        self.page_info(u32::try_from(index).unwrap_or(u32::MAX))
+        self.with_pages(|pages| {
+            pages
+                .iter()
+                .find(|p| p.id == *id)
+                .cloned()
+                .ok_or_else(|| Error::from(lamina_ops::Error::UnknownPage(id.clone())))
+        })
+    }
+
+    /// Runs `f` over the cached page facts, reading them first when the cache is empty.
+    fn with_pages<T>(&self, f: impl FnOnce(&[PageInfo]) -> Result<T>) -> Result<T> {
+        if let Some(pages) = self.pages.borrow().as_deref() {
+            return f(pages);
+        }
+        let read = self.read_pages()?;
+        let result = f(&read);
+        *self.pages.borrow_mut() = Some(read);
+        result
+    }
+
+    /// One walk of the page tree: every page's facts.
+    fn read_pages(&self) -> Result<Vec<PageInfo>> {
+        let pages = self.inner.pages()?;
+        pages
+            .iter()
+            .map(|page| {
+                let frame = page.frame()?;
+                Ok(PageInfo {
+                    index: u32::try_from(page.index()).unwrap_or(u32::MAX),
+                    id: page.id().clone(),
+                    width: frame.width().get(),
+                    height: frame.height().get(),
+                    rotation: frame.rotate().degrees(),
+                    label: page.label()?,
+                })
+            })
+            .collect()
     }
 
     /// The Info dictionary's text entries (all `None` without one).
@@ -184,16 +222,19 @@ impl Document {
         })
     }
 
-    /// A cursor over the warnings raised so far (F8), oldest first.
+    /// A cursor over the warnings raised so far (F8), oldest first: those of building the
+    /// document (font embedding), then those of reading it.
     #[must_use]
     pub fn warnings(&self) -> WarningCursor {
-        WarningCursor::new(self.inner.warnings().into_iter().map(Warning::from).collect())
+        let read = self.inner.warnings().into_iter().map(Warning::from);
+        WarningCursor::new(self.build_warnings.iter().cloned().chain(read).collect())
     }
 
-    /// Whether there are changes no save has written yet.
+    /// Whether there are changes no save has written yet: an edit since the last save, or a
+    /// built document that was never saved (its objects are all in the overlay).
     #[must_use]
     pub fn has_unsaved_changes(&self) -> bool {
-        self.inner.has_unsaved_changes()
+        self.inner.has_unsaved_changes() || self.inner.is_dirty()
     }
 
     /// Applies `ops` in order as one transaction (ADR 0006): all of them or none. Each op is
@@ -205,7 +246,11 @@ impl Document {
     /// reading errors; `saved-not-rebased`.
     pub fn apply(&mut self, ops: Vec<Op>) -> Result<Edited> {
         let applied = self.inner.apply_all(Origin::Local, ops)?;
-        self.bump();
+        // An edit that changed nothing (setting a value it already had) commits no record:
+        // the document is unchanged, so running jobs stay valid.
+        if !applied.undo.is_empty() {
+            self.bump();
+        }
         Ok(Edited {
             touched_pages: applied.touched_pages.into_iter().collect(),
         })
@@ -273,6 +318,19 @@ impl Document {
         SaveJob::new(self, *options, cancel.clone())
     }
 
+    /// Rebases the document onto `bytes`, the output of a save whose rebase failed
+    /// (`not-rebased`: the error carries the output, see [`Error::saved_output`]): ops, undo
+    /// and saves are refused until the document is rebased.
+    ///
+    /// # Errors
+    /// `no-pending-save` when no save is waiting; reading errors in `bytes` (the document
+    /// keeps waiting).
+    pub fn rebase(&mut self, bytes: Vec<u8>) -> Result<()> {
+        self.inner.rebase(bytes)?;
+        self.bump();
+        Ok(())
+    }
+
     /// The `lamina-ops` document underneath, for Rust callers who want the typed, borrowed
     /// views of `lamina-model` (pages, outline, page labels) or `lamina-content`'s
     /// interpreter. Read-only: every change goes through the façade, so the revision moves.
@@ -307,8 +365,18 @@ impl Document {
         self.revision
     }
 
-    const fn bump(&mut self) {
+    fn bump(&mut self) {
         self.revision = self.revision.wrapping_add(1);
+        *self.pages.get_mut() = None;
+    }
+
+    /// A built document with the warnings building it raised.
+    #[cfg(feature = "text")]
+    pub(crate) fn built(inner: lamina_ops::Document, warnings: Vec<Warning>) -> Self {
+        Self {
+            build_warnings: warnings,
+            ..Self::from(inner)
+        }
     }
 }
 
@@ -318,13 +386,16 @@ impl From<lamina_ops::Document> for Document {
             inner,
             instance: Arc::new(Instance),
             revision: 0,
+            build_warnings: Vec::new(),
+            pages: RefCell::new(None),
             _not_sync: PhantomData,
         }
     }
 }
 
 /// The façade's sink: the output stays in `bytes` (returned to the caller, F7), and a full
-/// rewrite rebases onto a shared copy of it.
+/// rewrite rebases onto a copy of it. Two buffers at the peak are the minimum while both the
+/// caller and the document own the file as bytes (F7: `Vec<u8>` out).
 struct Output<'a> {
     bytes: &'a mut Vec<u8>,
 }

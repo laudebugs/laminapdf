@@ -85,11 +85,26 @@ fn save(e: &lamina_save::SaveError) -> Data {
         E::WouldInvalidateSignatures {
             signatures,
             rewrite_reasons,
+            violations,
             signatures_unknown,
-            ..
         } => data([
-            ("signatures", json!(signatures.len())),
+            ("signatures", Value::Array(signatures.iter().map(signature).collect())),
             ("rewrite_reasons", json!(names(rewrite_reasons))),
+            (
+                "violations",
+                Value::Array(
+                    violations
+                        .iter()
+                        .map(|v| {
+                            json!({
+                                "class": format!("{:?}", v.class),
+                                "restriction": format!("{:?}", v.restriction),
+                                "signature": signature(&v.signature),
+                            })
+                        })
+                        .collect(),
+                ),
+            ),
             ("signatures_unknown", json!(signatures_unknown)),
         ]),
         E::Sink(SinkError::Io { kind, message }) => {
@@ -98,11 +113,28 @@ fn save(e: &lamina_save::SaveError) -> Data {
         E::Sink(SinkError::Failed(message)) => data([("message", json!(message))]),
         E::Sink(SinkError::NotEmpty { held }) => data([("held", json!(held))]),
         E::NotRebased { error, .. } => {
-            let inner = Error::from(error.clone());
-            data([("error", json!({ "code": inner.code(), "kind": inner.kind().as_str() }))])
+            let inner = Error::from(error.clone()).diagnostic();
+            let mut error = json!({ "code": inner.code, "kind": inner.kind.as_str() });
+            if let (Some(map), Ok(json)) = (error.as_object_mut(), serde_json::to_value(&inner))
+                && let Some(location) = json.get("location")
+            {
+                map.insert("location".to_owned(), location.clone());
+            }
+            data([("error", error)])
         }
         _ => Data::new(),
     }
+}
+
+/// One signature as `would-invalidate-signatures` lists it: lamina-made values only.
+fn signature(s: &lamina_save::SignatureInfo) -> Value {
+    json!({
+        "field": s.field.as_ref().map(ToString::to_string),
+        "kind": format!("{:?}", s.kind),
+        "value": s.value.map(|r| format!("{} {}", r.num, r.gen_nr)),
+        "revision": s.revision,
+        "covers": s.covers,
+    })
 }
 
 #[cfg(feature = "text")]

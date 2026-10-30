@@ -31,7 +31,10 @@ fn kids(pages: &[ObjRef]) -> Object {
 /// Subsets and writes every font text was drawn with.
 fn write_fonts(cos: &mut CosMut<'_>, state: &mut BuildState) -> Result<()> {
     let fonts = std::mem::replace(&mut state.fonts, FontRegistry::new());
-    fonts.finish_fonts(cos)?;
+    state.font_warnings.extend_from_slice(fonts.warnings());
+    for embedded in fonts.finish_fonts(cos)? {
+        state.font_warnings.extend(embedded.warnings);
+    }
     Ok(())
 }
 

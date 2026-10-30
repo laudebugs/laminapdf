@@ -88,6 +88,13 @@ pub(crate) fn golden(ws: &Workspace, update: bool) -> Result<()> {
     // The façade's examples are goldens too, one directory down (todo B5c).
     let examples = crate::examples::run_all(ws, &out.join("examples"))?;
     if update {
+        // A golden whose example is gone would fail `crates/lamina/tests/examples.rs`.
+        for path in files_in(&out.join("examples"))? {
+            if !examples.contains(&path) {
+                fs::remove_file(&path).with_context(|| format!("removing {}", path.display()))?;
+                step(&format!("removed {} (no example)", path.display()));
+            }
+        }
         shaping_goldens(ws)?;
         step("Goldens regenerated; review the diff (`git diff fixtures/golden`) like code");
         return Ok(());

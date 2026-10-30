@@ -39,6 +39,9 @@ thiserror = { workspace = true }
 serde_json = { workspace = true }
 
 [dev-dependencies]
+# The data-fields test builds one value of every variant of the wrapped crates' errors.
+lamina-build = { workspace = true }
+lamina-text = { workspace = true }
 serde_json = { workspace = true }
 
 [[example]]

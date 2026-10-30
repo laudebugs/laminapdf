@@ -108,12 +108,17 @@ impl Builder {
     }
 
     /// Writes the fonts, links, page tree, outline, destinations, labels, catalog and
-    /// metadata, and returns the document (unsaved: [`Document::save`] writes it).
+    /// metadata, and returns the document (unsaved: [`Document::save`] writes it). Warnings
+    /// embedding the fonts raised are in its [`Document::warnings`].
     ///
     /// # Errors
     /// `page-index-out-of-range`, `unknown-destination`, `invalid-page-labels`,
     /// `invalid-geometry`, `subset-failed`.
     pub fn finish(self) -> Result<Document> {
-        Ok(Document::from(self.0.finish()?))
+        let (doc, warnings) = self.0.finish_with_warnings()?;
+        Ok(Document::built(
+            doc,
+            warnings.into_iter().map(crate::Warning::from).collect(),
+        ))
     }
 }

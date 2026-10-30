@@ -171,6 +171,24 @@ impl Error {
         }
     }
 
+    /// The output of a save whose rebase failed (`not-rebased`): the file was written in
+    /// full. Rebase the document onto it with [`Document::rebase`](crate::Document::rebase),
+    /// or keep it and reopen.
+    #[must_use]
+    pub fn saved_output(&self) -> Option<Vec<u8>> {
+        let Self::Save(lamina_save::SaveError::NotRebased { saved, .. }) = self else {
+            return None;
+        };
+        let source = saved.bytes();
+        if let Some(bytes) = source.as_slice() {
+            return Some(bytes.to_vec());
+        }
+        let len = usize::try_from(source.len()).ok()?;
+        let mut bytes = vec![0; len];
+        lamina_cos::read_exact(source.as_ref(), 0, &mut bytes).ok()?;
+        Some(bytes)
+    }
+
     /// The limit's name, for a `limit-exceeded` error.
     fn limit_name(&self) -> Option<&'static str> {
         match self {

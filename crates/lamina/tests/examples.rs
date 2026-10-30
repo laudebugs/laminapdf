@@ -85,3 +85,28 @@ fn every_golden_has_an_example() {
         .collect();
     assert!(orphans.is_empty(), "goldens without an example: {orphans:?}");
 }
+
+/// The examples are listed here (to build them in process), in `Cargo.toml` (`[[example]]`, for
+/// `required-features`) and found by `cargo xtask examples` in the folder: all must agree.
+#[test]
+fn every_example_file_is_listed_here_and_in_the_manifest() {
+    let root = Path::new(env!("CARGO_MANIFEST_DIR"));
+    let mut files: Vec<String> = std::fs::read_dir(root.join("examples"))
+        .unwrap()
+        .filter_map(|e| {
+            let path = e.unwrap().path();
+            (path.extension()? == "rs").then(|| path.file_stem().unwrap().to_string_lossy().into_owned())
+        })
+        .collect();
+    files.sort();
+    let manifest = std::fs::read_to_string(root.join("Cargo.toml")).unwrap();
+    let mut in_manifest: Vec<String> = manifest
+        .split("[[example]]")
+        .skip(1)
+        .filter_map(|block| block.split('"').nth(1).map(str::to_owned))
+        .collect();
+    in_manifest.sort();
+    let mut here: Vec<String> = EXAMPLES.iter().map(|(name, _)| (*name).to_owned()).collect();
+    here.sort();
+    assert_eq!((&here, &in_manifest), (&files, &files));
+}

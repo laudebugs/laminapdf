@@ -186,9 +186,10 @@ enum Stage {
 /// [`Document::save_job`](crate::Document::save_job), stepped with the document it was
 /// created from.
 ///
-/// **Units:** planning is 1 unit; for a full rewrite of an opened document, each object of
-/// the base is 1 unit (parsed and cached, [`Phase::Parse`]); writing and rebasing is 1
-/// indivisible unit ([`Phase::Write`]): `lamina-save`'s writers are not resumable yet, so a
+/// **Units:** planning is 1 unit (it also checks that a save may start); for a full rewrite
+/// of an opened document, each object of the base that the session didn't change is 1 unit
+/// (parsed and cached, [`Phase::Parse`]); writing and rebasing is 1 indivisible unit
+/// ([`Phase::Write`]): `lamina-save`'s writers are not resumable yet, so a
 /// step that reaches the write overshoots its budget by the serialisation of the whole file.
 /// That is fast next to parsing (see the crate README's measurements), and cancellation
 /// lands before it, not inside it.
@@ -263,9 +264,23 @@ impl SaveJob {
             match &mut self.stage {
                 Stage::Plan => {
                     units -= 1;
-                    let plan = doc.ops().plan(&self.options)?;
+                    // `Save::plan` doesn't check that a save may start; the write would
+                    // refuse only at the end, after the parse units were spent.
+                    let ops = doc.ops();
+                    if ops.save_state() == lamina_save::SaveState::SavedNotRebased {
+                        return Err(lamina_ops::Error::SavedNotRebased.into());
+                    }
+                    if ops.in_transaction() {
+                        return Err(lamina_ops::Error::NestedTransaction.into());
+                    }
+                    let plan = ops.plan(&self.options)?;
+                    // Only the base's objects need parsing: overlay objects (new or changed)
+                    // are already in memory.
+                    let cos = ops.cos();
                     let numbers: Vec<u32> = if plan.mode() == SaveMode::FullRewrite {
-                        doc.ops().cos().object_numbers().collect()
+                        cos.object_numbers()
+                            .filter(|&n| cos.overlay().get(n).is_none())
+                            .collect()
                     } else {
                         Vec::new()
                     };

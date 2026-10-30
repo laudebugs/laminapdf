@@ -4,7 +4,10 @@
 # A render against its committed PNG (`<example>/<page>-<engine>.png`, 72 dpi), same engine:
 # a pixel differs when its CIE76 ΔE exceeds `delta_e` (≈ one just-noticeable difference), with
 # no blur or tolerance, so a one-pixel-wide change fails. The same engine at the same pinned
-# version renders the same pixels, so no differing pixel is allowed.
+# version (pypdfium2's wheel; hayro's whole graph by tools/render/Cargo.lock, --locked) on the
+# same architecture renders the same pixels, so no differing pixel is allowed. hayro picks its
+# SIMD level at run time with no way to force one; on aarch64 (where the goldens are made and
+# the full lane runs) it is always NEON. See README.md for other architectures.
 [golden]
 max_diff_pixels = 0
 delta_e = 2.3
@@ -18,6 +21,7 @@ max_diff_percent = 0.5
 min_ssim = 0.90
 
 # Known differences: one entry per page and check that needs a looser limit, with the reason.
-# An entry that matches no page fails the run. Fields: example, page (0-based), check
+# Its count limit (pixels or percent) replaces the check's default for that page and check, so
+# it can loosen either check. An entry that matches no page fails the run. Fields: example, page (0-based), check
 # ("golden-hayro" | "golden-pdfium" | "parity"), any of max_diff_pixels, max_diff_percent,
 # min_ssim, and reason.

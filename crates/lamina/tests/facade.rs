@@ -396,3 +396,109 @@ mod diagnostics {
         );
     }
 }
+
+/// Review fixes: unsaved state, no-op edits, rebase, cached page reads, plan readiness and
+/// build warnings.
+mod state {
+    use super::*;
+
+    #[cfg(feature = "text")]
+    fn built() -> Document {
+        let mut b = lamina::Builder::new(lamina::BuildOptions::default());
+        b.page(lamina::PageSize::A4).finish().unwrap();
+        b.finish().unwrap()
+    }
+
+    #[cfg(feature = "text")]
+    #[test]
+    fn a_built_document_has_unsaved_changes_until_saved() {
+        let mut doc = built();
+        let before = doc.has_unsaved_changes();
+        doc.save(&SaveOptions::new(), &CancelToken::new()).unwrap();
+        assert_eq!((before, doc.has_unsaved_changes()), (true, false));
+    }
+
+    #[test]
+    fn an_edit_that_changes_nothing_keeps_running_jobs_valid() {
+        let mut doc = hello();
+        doc.apply(vec![set_title("Same")]).unwrap();
+        let mut job = doc.save_job(&SaveOptions::new());
+        doc.apply(vec![set_title("Same")]).unwrap();
+        assert!(job.step(&mut doc, Budget::UNLIMITED).is_ok());
+    }
+
+    #[test]
+    fn rebase_without_a_waiting_save_is_refused() {
+        let err = hello().rebase(fixture("corpus/hello.pdf")).unwrap_err();
+        assert_eq!(err.code(), "no-pending-save");
+    }
+
+    #[test]
+    fn page_infos_lists_what_page_info_reads() {
+        let doc = Document::open_bytes(fixture("golden/links-and-outlines.pdf"), OpenOptions::default()).unwrap();
+        let all = doc.page_infos().unwrap();
+        let one_by_one: Vec<_> = (0..doc.page_count().unwrap())
+            .map(|i| doc.page_info(i).unwrap())
+            .collect();
+        assert_eq!((all.len(), all), (4, one_by_one));
+    }
+
+    #[test]
+    fn page_facts_follow_an_edit() {
+        let mut doc = hello();
+        let before = doc.page_info(0).unwrap();
+        doc.apply(vec![Op::from(RotatePage::new(before.id, Rotation::Clockwise90))])
+            .unwrap();
+        assert_eq!(doc.page_info(0).unwrap().rotation, 90);
+    }
+
+    #[test]
+    fn a_full_rewrite_parses_only_the_base_objects_the_session_left_alone() {
+        let mut doc = hello();
+        let base = u32::try_from(doc.ops().cos().object_numbers().count()).unwrap();
+        let page = doc.page_info(0).unwrap().id;
+        doc.apply(vec![Op::from(RotatePage::new(page, Rotation::Clockwise90))])
+            .unwrap();
+        let mut job = doc.save_job(&SaveOptions::new().with_mode(SaveMode::FullRewrite));
+        let step = job.step(&mut doc, Budget::units(1)).unwrap();
+        assert!(
+            matches!(step, Step::Progress { total: Some(t), .. } if t == base - 1),
+            "{step:?}"
+        );
+    }
+
+    #[cfg(feature = "text")]
+    #[test]
+    fn font_warnings_from_the_build_are_document_warnings() {
+        let mut b = lamina::Builder::new(lamina::BuildOptions::default());
+        let font = b.font_bytes(fixture("fonts/NotoSans-Regular.otf")).unwrap();
+        let mut page = b.page(lamina::PageSize::A4);
+        let s = page.surface();
+        // A CFF font has one CID per glyph: the `fi` ligature reached from two texts.
+        let _ = s
+            .text(
+                "fine",
+                &font,
+                lamina::Pt::new(12.0),
+                lamina::PointPt::from_points(72.0, 72.0),
+            )
+            .unwrap();
+        let _ = s
+            .text(
+                "\u{FB01}ne",
+                &font,
+                lamina::Pt::new(12.0),
+                lamina::PointPt::from_points(72.0, 96.0),
+            )
+            .unwrap();
+        page.finish().unwrap();
+        let doc = b.finish().unwrap();
+        let codes: Vec<&str> = doc
+            .warnings()
+            .next_batch(10)
+            .iter()
+            .map(lamina::Warning::code)
+            .collect();
+        assert!(codes.contains(&"tounicode-conflict"), "{codes:?}");
+    }
+}

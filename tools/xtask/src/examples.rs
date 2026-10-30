@@ -12,15 +12,26 @@ use anyhow::{Context, Result, bail};
 use crate::step;
 use crate::workspace::Workspace;
 
-/// The façade's examples (`crates/lamina/examples/<name>.rs`), each writing `<name>.pdf`.
-pub(crate) const EXAMPLES: [&str; 6] = [
-    "hello",
-    "invoice",
-    "multilingual",
-    "vectors",
-    "links_and_outlines",
-    "generate_then_edit",
-];
+/// The façade's examples: every `crates/lamina/examples/<name>.rs`, each writing `<name>.pdf`,
+/// in name order. Discovered, not listed, so a new example is a golden without an xtask edit
+/// (`crates/lamina/tests/examples.rs` checks its own list against the same folder).
+pub(crate) fn names(root: &Path) -> Result<Vec<String>> {
+    let dir = root.join("crates/lamina/examples");
+    let mut names = Vec::new();
+    for entry in fs::read_dir(&dir).with_context(|| format!("reading {}", dir.display()))? {
+        let path = entry?.path();
+        if path.extension().is_some_and(|e| e == "rs")
+            && let Some(stem) = path.file_stem()
+        {
+            names.push(stem.to_string_lossy().into_owned());
+        }
+    }
+    names.sort();
+    if names.is_empty() {
+        bail!("no examples in {}", dir.display());
+    }
+    Ok(names)
+}
 
 /// Where `cargo xtask examples` writes the outputs.
 pub(crate) const OUT_DIR: &str = "target/examples-out";
@@ -32,7 +43,8 @@ pub(crate) fn run_all(ws: &Workspace, out: &Path) -> Result<Vec<PathBuf>> {
     // One build for all of them, then each example on its own.
     ws.cargo(&["build", "--locked", "-q", "-p", "lamina", "--examples"])?;
     let mut files = Vec::new();
-    for name in EXAMPLES {
+    for name in names(&ws.root)? {
+        let name = name.as_str();
         ws.cargo(&[
             "run",
             "--locked",
@@ -103,12 +115,9 @@ mod tests {
     use super::*;
 
     #[test]
-    fn every_listed_example_has_a_source_file() {
-        let dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../crates/lamina/examples");
-        let missing: Vec<_> = EXAMPLES
-            .iter()
-            .filter(|name| !dir.join(format!("{name}.rs")).is_file())
-            .collect();
-        assert!(missing.is_empty(), "{missing:?}");
+    fn the_examples_are_found() {
+        let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
+        let names = names(&root).unwrap();
+        assert!(names.iter().any(|n| n == "invoice"), "{names:?}");
     }
 }

@@ -103,12 +103,12 @@ fn run() -> Result<bool> {
                 let name = format!("{index}-{engine}.png");
                 let golden = args.golden.join(&example).join(&name);
                 written.insert(name);
+                let check = Check::Golden(engine);
+                let limits = thresholds.for_page(&example, index, &check, &mut known_used);
                 if args.update {
                     image::write_png(&golden, &render)?;
                     continue;
                 }
-                let check = Check::Golden(engine);
-                let limits = thresholds.for_page(&example, index, &check, &mut known_used);
                 let expected = image::read_png(&golden).with_context(|| {
                     format!("{example} page {index}: no golden; run `cargo xtask render-golden --update`")
                 })?;
@@ -153,16 +153,15 @@ fn run() -> Result<bool> {
             }
         }
     }
-    if !args.update {
-        failures.extend(thresholds.unused(&known_used));
-    }
+    // Even with --update: rewriting the goldens never hides hayro and PDFium disagreeing, nor
+    // a known difference that no longer applies.
+    failures.extend(thresholds.unused(&known_used));
     if args.update {
         println!(
             "render goldens: wrote {pages} pages × {} engines into {}",
             ENGINES.len(),
             args.golden.display()
         );
-        return Ok(true);
     }
     if failures.is_empty() {
         println!(
@@ -240,7 +239,8 @@ fn subdirs(dir: &Path) -> Result<Vec<String>> {
     Ok(dirs)
 }
 
-/// Goldens in `dir` that no page produced: removed with `--update`, failures otherwise.
+/// Goldens (`*.png`) in `dir` that no page produced: removed with `--update`, failures
+/// otherwise. Other entries (`.DS_Store`, folders) are not goldens and are left alone.
 fn stale_goldens(dir: &Path, written: &BTreeSet<String>, update: bool) -> Result<Vec<String>> {
     let mut stale = Vec::new();
     if !dir.is_dir() {
@@ -248,6 +248,9 @@ fn stale_goldens(dir: &Path, written: &BTreeSet<String>, update: bool) -> Result
     }
     for entry in fs::read_dir(dir)? {
         let path = entry?.path();
+        if !path.is_file() || path.extension().is_none_or(|e| e != "png") {
+            continue;
+        }
         let name = path
             .file_name()
             .map(|n| n.to_string_lossy().into_owned())
