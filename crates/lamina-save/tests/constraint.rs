@@ -61,6 +61,7 @@ fn the_signature_covers_the_whole_signed_file() {
     assert_eq!(covers, Some(u64::try_from(bytes.len()).unwrap()));
 }
 
+/// capability: F.05 core read
 #[test]
 fn certified_files_report_their_docmdp_permission() {
     for (name, permission) in [
@@ -94,6 +95,7 @@ fn a_document_timestamp_is_found() {
     assert_eq!(kinds(&signed("timestamp.pdf")), [SignatureKind::DocTimeStamp]);
 }
 
+/// capability: F.08 core read
 #[test]
 fn a_field_lock_restricts_form_changes_only() {
     let doc = signed("locked.pdf");
@@ -187,6 +189,7 @@ fn docmdp_p2_forbids_rotate_page() {
     );
 }
 
+/// capability: F.09 core read
 #[test]
 fn docmdp_p3_allows_annotations_and_p2_does_not() {
     let p3 = signed("certified-p3.pdf");

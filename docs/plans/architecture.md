@@ -144,7 +144,7 @@ Todos: [A1](../todos/done/A1-foundation-adrs.md) (ADRs), [A2](../todos/done/A2-m
 - [x] `lamina-ops`: `Op` enum, `transact()`, inverses, undo/redo ([B3a](../todos/done/B3a-overlay-and-ops.md))
 - [x] `lamina-save`: save planner, `SaveConstraint`, streaming `WriteSink` (B3b: the crate, writers and `WriteSink`; B3c: planner, `SaveConstraint`, round-trip) ([B3b](../todos/done/B3b-lamina-save-writers.md), [B3c](../todos/done/B3c-save-planner-and-roundtrip.md))
 - [x] Move the writer (`Writer`, `incremental_update`, `XrefEol`) from `lamina-cos` into `lamina-save`, keeping the determinism and golden tests ([B3b](../todos/done/B3b-lamina-save-writers.md))
-- [x] `lamina-build`: builder API (`Document → page → surface → finish() → Document`) ([B5a](../todos/done/B5a-lamina-build-core.md), [B5b](../todos/ready/B5b-builder-text-and-document-features.md))
+- [x] `lamina-build`: builder API (`Document → page → surface → finish() → Document`) ([B5a](../todos/done/B5a-lamina-build-core.md), [B5b](../todos/ongoing/B5b-builder-text-and-document-features.md))
 - [x] Promote the spike's content builder and golden samples (`hello`, `imaging_demo`), until then test support in `crates/lamina-cos/tests/common/`, into `lamina-build` (API and examples) ([B5a](../todos/done/B5a-lamina-build-core.md): the builder uses `pdf_writer::Content`; the spike's builder and the two frozen goldens are `lamina-build`'s test support)
 - [ ] `lamina` façade crate: re-exports the public API of the core crates; this is what goes to crates.io ([B5c](../todos/ready/B5c-lamina-facade-and-examples.md))
 - [x] `lamina-text`: font embedding and subsetting for generation (see [03](../research/pdf/03-text-and-fonts.md)) (B4a done: loading, TTC, variable instances, subsetting, Type 0 with `/W` and ToUnicode; B4b done: HarfRust shaping, ICU4X bidi and line breaking, greedy layout; B4c done: the standard 14 with AFM metrics, simple-font encodings, the AGL) ([B4a](../todos/done/B4a-font-loading-and-subsetting.md), [B4b](../todos/done/B4b-shaping-bidi-line-breaking.md), [B4c](../todos/done/B4c-standard-14-and-simple-fonts.md))
@@ -190,7 +190,7 @@ Todos: [P1](../todos/ready/P1-reserve-names-and-trusted-publishing.md) and [P2](
 - [ ] Publish the stability policy and changelog; enable cargo-semver-checks against the published version ([P2](../todos/ready/P2-first-registry-prerelease.md))
 
 ### Cross-cutting
-- [ ] Capability matrix: generate a test-backed table of the ~180 operations (unsupported / read / write / round-trip) ([X2](../todos/ongoing/X2-capability-matrix.md))
+- [x] Capability matrix: generate a test-backed table of the ~180 operations (unsupported / read / write / round-trip) ([X2](../todos/done/X2-capability-matrix.md), [`docs/capabilities/`](../capabilities/README.md))
 - [x] Nightly lane: differential tests vs pdf.js, PDFium, qpdf, pypdf; benchmarks; 10-minute fuzzing; scaling tests ([X3a](../todos/done/X3a-nightly-lane.md), `.github/workflows/nightly.yml`)
 - [ ] Nightly external link check of the docs ([X3c](../todos/ready/X3c-nightly-link-check.md))
 - [ ] Nightly lane: hayro-vs-PDFium render diffs ([X3b](../todos/ready/X3b-render-diff-nightly.md)); veraPDF ([B8b](../todos/ready/B8b-conformance-profiles-and-verapdf.md))

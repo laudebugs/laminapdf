@@ -196,7 +196,7 @@ Architecture Round B is delivered as rounds B1–B9, each split into todos (one 
 
 ### B5. Builder and the `lamina` crate
 
-**Todos:** [B5a](../todos/done/B5a-lamina-build-core.md) (builder, vectors, colour, images), [B5b](../todos/ready/B5b-builder-text-and-document-features.md) (text, links, outlines, labels, metadata), [B5c](../todos/ready/B5c-lamina-facade-and-examples.md) (`lamina` façade, examples, byte and render goldens).
+**Todos:** [B5a](../todos/done/B5a-lamina-build-core.md) (builder, vectors, colour, images), [B5b](../todos/ongoing/B5b-builder-text-and-document-features.md) (text, links, outlines, labels, metadata), [B5c](../todos/ready/B5c-lamina-facade-and-examples.md) (`lamina` façade, examples, byte and render goldens).
 
 **Deliverable:** `lamina-build` (pages, text, text boxes, images, paths, colour, links, named destinations, outlines, page labels, Info + XMP); `finish()` returns `Document`; the `lamina` façade crate with Rust examples.
 **Accepted when:** every example produces byte-identical goldens; qpdf `--check` clean; golden renders match in PDFium and hayro within thresholds.
@@ -298,12 +298,12 @@ Each round's todos (one per PR, with dependencies) are linked from [§7](#7-roun
 - [x] Bundle standard 14 AFM metrics ([B4c](../todos/done/B4c-standard-14-and-simple-fonts.md)); reject them under PDF/A and PDF/UA profiles ([B8b](../todos/ready/B8b-conformance-profiles-and-verapdf.md))
 - [x] Emit missing-glyph diagnostics with codes ([B4a](../todos/done/B4a-font-loading-and-subsetting.md): `missing-glyph`)
 - [x] Shaping goldens for five scripts ([B4b](../todos/done/B4b-shaping-bidi-line-breaking.md))
-- [ ] Extraction tests with pdf.js, pypdf, pdftotext that return the input in every script ([B4b](../todos/done/B4b-shaping-bidi-line-breaking.md): pdf.js and pypdf facts, exact for Latin and CJK, with the Arabic/Hebrew/Devanagari limitations listed; [B4d](../todos/ready/B4d-tounicode-per-text-cids.md): one CID per glyph and text, pdftotext)
+- [ ] Extraction tests with pdf.js, pypdf, pdftotext that return the input in every script ([B4b](../todos/done/B4b-shaping-bidi-line-breaking.md): pdf.js and pypdf facts, exact for Latin and CJK, with the Arabic/Hebrew/Devanagari limitations listed; [B4d](../todos/ongoing/B4d-tounicode-per-text-cids.md): one CID per glyph and text, pdftotext)
 
 ### B5. Builder and the `lamina` crate
 
 - [x] Create `crates/lamina-build`: `Builder`, `page()`, `surface()`, `finish() -> Document` ([B5a](../todos/done/B5a-lamina-build-core.md))
-- [ ] Surface ops: text, text box ([B5b](../todos/ready/B5b-builder-text-and-document-features.md)); image (JPEG, PNG + SMask, raw RGBA), path, clip, opacity, colour spaces done in [B5a](../todos/done/B5a-lamina-build-core.md)
+- [ ] Surface ops: text, text box ([B5b](../todos/ongoing/B5b-builder-text-and-document-features.md)); image (JPEG, PNG + SMask, raw RGBA), path, clip, opacity, colour spaces done in [B5a](../todos/done/B5a-lamina-build-core.md)
 - [ ] Document ops: links, named destinations, outlines, page labels, Info + XMP, viewer preferences
 - [ ] Create the `lamina` façade crate; `lib.rs` docs open with the invoice example
 - [ ] Add Rust examples (hello, invoice, multilingual, vectors, links-and-outlines, generate-then-edit)

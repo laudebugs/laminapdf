@@ -83,7 +83,7 @@ enum Command {
 /// ```
 ///
 /// [ADR 0027]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0027-coordinates-units-and-page-indexing.md
-/// [B5b]: https://github.com/laudebugs/lamina/blob/main/docs/todos/ready/B5b-builder-text-and-document-features.md
+/// [B5b]: https://github.com/laudebugs/lamina/blob/main/docs/todos/ongoing/B5b-builder-text-and-document-features.md
 #[derive(Debug, Default)]
 pub struct Surface {
     commands: Vec<Command>,
