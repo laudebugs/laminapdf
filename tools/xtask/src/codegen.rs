@@ -165,7 +165,7 @@ fn render_all(root: &Path) -> Result<Vec<(String, String)>> {
     let schema = render_error_schema(&codes)?;
     let mut out = vec![
         (RUST.to_owned(), render_rust(&codes)),
-        (TS.to_owned(), render_ts(&codes)?),
+        (TS.to_owned(), render_ts(&codes)),
         (TS_EXPLAIN.to_owned(), render_ts_explain(&pages)),
         (ERRORS_README.to_owned(), render_readme(&readme, &codes)?),
     ];
@@ -451,7 +451,7 @@ fn ts_record(out: &mut String, doc: &str, name: &str, value_ty: &str, rows: &[(&
 }
 
 /// The TS module of codes, kinds and hints.
-fn render_ts(codes: &Codes) -> Result<String> {
+fn render_ts(codes: &Codes) -> String {
     let errors: Vec<&str> = codes
         .entries
         .iter()
@@ -535,6 +535,12 @@ fn render_ts(codes: &Codes) -> Result<String> {
         quoted(&codes.docs_base),
         quoted(&codes.docs_suffix)
     );
+    ts_raised_by_package(&mut out, codes);
+    out
+}
+
+/// `RAISED_BY_PACKAGE`: kind and hint of the codes the TS layer raises itself.
+fn ts_raised_by_package(out: &mut String, codes: &Codes) {
     out.push_str(
         "/** Kind and hint of the codes `@lamina/pdf` raises itself (the WASM fills in the others). */\n\
          export const RAISED_BY_PACKAGE = {\n",
@@ -553,7 +559,6 @@ fn render_ts(codes: &Codes) -> Result<String> {
         );
     }
     out.push_str("} as const;\n");
-    Ok(out)
 }
 
 /// The TS module of explain pages.
@@ -826,7 +831,7 @@ mod tests {
 
     #[test]
     fn render_ts_should_match_its_golden() {
-        golden("golden.ts.txt", &render_ts(&codes(&small())).unwrap_or_default());
+        golden("golden.ts.txt", &render_ts(&codes(&small())));
     }
 
     #[test]
