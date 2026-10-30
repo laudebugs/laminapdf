@@ -76,19 +76,30 @@ fn parse_cmap(cmap: &str) -> (BTreeMap<Vec<u8>, String>, usize) {
 
 impl Reader<'_> {
     fn cmap(&mut self, font: &lamina_content::FontRef) -> &(BTreeMap<Vec<u8>, String>, usize) {
-        let key = format!("{:?}", font.object);
+        // An indirect font by its object; a direct one by its dictionary's identity.
+        let key = match (font.object, &font.dict) {
+            (Some(r), _) => format!("{r:?}"),
+            (None, Some(dict)) => format!("direct {:p}", std::sync::Arc::as_ptr(dict)),
+            (None, None) => "missing".to_owned(),
+        };
         let doc = self.doc.unwrap();
         self.cmaps.entry(key).or_insert_with(|| {
             let Some(dict) = font.dict.as_deref().and_then(Object::as_dict) else {
                 return (BTreeMap::new(), 1);
             };
-            let Some(Object::Ref(r)) = dict.get("ToUnicode") else {
-                return (BTreeMap::new(), 1);
+            let resolved;
+            let stream = match dict.get("ToUnicode") {
+                Some(Object::Ref(r)) => {
+                    resolved = doc.resolve(*r).unwrap();
+                    match &*resolved {
+                        Object::Stream(s) => s,
+                        other => panic!("ToUnicode is {other:?}"),
+                    }
+                }
+                Some(Object::Stream(s)) => s,
+                _ => return (BTreeMap::new(), 1),
             };
-            let Object::Stream(s) = &*doc.resolve(*r).unwrap() else {
-                panic!("ToUnicode is a stream")
-            };
-            parse_cmap(&String::from_utf8(doc.decode_stream(s).unwrap()).unwrap())
+            parse_cmap(&String::from_utf8(doc.decode_stream(stream).unwrap()).unwrap())
         })
     }
 }

@@ -1,0 +1,61 @@
+{
+  "comment": "Lines of fixtures/build/facts.json where an extractor does not return the text lamina-build drew, each with the extractor's limitation behind it (todo B5b). crates/lamina-build/tests/external.rs requires every other line to equal the drawn text and every entry here to still match the facts.",
+  "exceptions": [
+    {
+      "file": "build-text-multiscript.pdf",
+      "extractor": "pypdf",
+      "page": 0,
+      "line": 2,
+      "extracted": "नमस्ते दुिनया। िहन्दी पाठ का परीक्षण",
+      "reason": "pypdf ignores marked-content /ActualText: the reordered i-matra (drawn before its consonant) reads in drawing order"
+    },
+    {
+      "file": "build-text-multiscript.pdf",
+      "extractor": "pypdf",
+      "page": 1,
+      "line": 6,
+      "extracted": "नमस्ते दुिनया। िहन्दी",
+      "reason": "pypdf ignores marked-content /ActualText: the reordered i-matra (drawn before its consonant) reads in drawing order"
+    },
+    {
+      "file": "build-text-multiscript.pdf",
+      "extractor": "pdfjs",
+      "page": 0,
+      "line": 1,
+      "extracted": "كمي\u0003العالم السلام علب\u0010 اب\u0010مرح",
+      "reason": "pdf.js ignores marked-content /ActualText, reads an empty ToUnicode destination (<cid> <>, the dot glyphs Noto Sans Arabic draws apart from their base) as the code, and the /Span sequences around those clusters split the line into text items it puts in visual order (as for text-shaped.pdf; B4d's one CID per (glyph, text) removes the empty destinations)"
+    },
+    {
+      "file": "build-text-multiscript.pdf",
+      "extractor": "pdfjs",
+      "page": 0,
+      "line": 2,
+      "extracted": "नमस्ते दु िनया। िहन्दी पाठ का परीक्षण",
+      "reason": "pdf.js getTextContent ignores marked-content /ActualText: the reordered i-matra reads in drawing order, and its negative offset starts a new text item (a space)"
+    },
+    {
+      "file": "build-text-multiscript.pdf",
+      "extractor": "pdfjs",
+      "page": 1,
+      "line": 4,
+      "extracted": "العالم السلامب\u0010 اب\u0010مرح",
+      "reason": "pdf.js ignores marked-content /ActualText, reads an empty ToUnicode destination (<cid> <>, the dot glyphs Noto Sans Arabic draws apart from their base) as the code, and the /Span sequences around those clusters split the line into text items it puts in visual order (as for text-shaped.pdf; B4d's one CID per (glyph, text) removes the empty destinations)"
+    },
+    {
+      "file": "build-text-multiscript.pdf",
+      "extractor": "pdfjs",
+      "page": 1,
+      "line": 5,
+      "extracted": "كمي\u0003عل",
+      "reason": "pdf.js ignores marked-content /ActualText, reads an empty ToUnicode destination (<cid> <>, the dot glyphs Noto Sans Arabic draws apart from their base) as the code, and the /Span sequences around those clusters split the line into text items it puts in visual order (as for text-shaped.pdf; B4d's one CID per (glyph, text) removes the empty destinations)"
+    },
+    {
+      "file": "build-text-multiscript.pdf",
+      "extractor": "pdfjs",
+      "page": 1,
+      "line": 6,
+      "extracted": "नमस्ते दु िनया। िहन्दी",
+      "reason": "pdf.js getTextContent ignores marked-content /ActualText: the reordered i-matra reads in drawing order, and its negative offset starts a new text item (a space)"
+    }
+  ]
+}

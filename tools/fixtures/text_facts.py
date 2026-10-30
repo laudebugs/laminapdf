@@ -13,50 +13,33 @@ nor qpdf.
 Run it after `cargo xtask golden --update` changes a text golden.
 """
 
-import hashlib
 import json
-import os
-import subprocess
-import sys
-from pathlib import Path
 
 import pypdf
+from facts_common import ROOT, qpdf_check, qpdf_version, run_pdfjs, sha256
 
-ROOT = Path(__file__).resolve().parents[2]
 OUT = ROOT / "fixtures" / "text" / "extracted.json"
 
 
 def facts(path):
     reader = pypdf.PdfReader(path, strict=True)
-    check = subprocess.run(["qpdf", "--check", str(path)], capture_output=True, text=True)
     return {
-        "sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
+        "sha256": sha256(path),
         "pypdf": reader.pages[0].extract_text().split("\n"),
-        "qpdf_check": check.returncode == 0,
+        "qpdf_check": qpdf_check(path),
     }
-
-
-def pdfjs(goldens):
-    """pdf.js's lines for each golden, through tools/fixtures/pdfjs_text.mjs."""
-    dist = os.environ.get("PDFJS_DIST")
-    if not dist:
-        sys.exit("set PDFJS_DIST to node_modules/pdfjs-dist (pdfjs-dist@6.4.299)")
-    script = ROOT / "tools" / "fixtures" / "pdfjs_text.mjs"
-    out = subprocess.run(["node", str(script), dist, *map(str, goldens)], capture_output=True, text=True, check=True)
-    return json.loads(out.stdout)
 
 
 def main():
     goldens = sorted((ROOT / "fixtures" / "golden").glob("text-*.pdf"))
-    qpdf = subprocess.run(["qpdf", "--version"], capture_output=True, text=True, check=True)
-    js = pdfjs(goldens)
+    js = run_pdfjs("pdfjs_text.mjs", goldens)
     files = {p.name: facts(p) for p in goldens}
     for name, lines in js["files"].items():
         files[name]["pdfjs"] = lines
     result = {
         "pypdf_version": pypdf.__version__,
         "pdfjs_version": js["pdfjs_version"],
-        "qpdf_version": qpdf.stdout.split()[2],
+        "qpdf_version": qpdf_version(),
         "files": files,
     }
     OUT.parent.mkdir(parents=True, exist_ok=True)

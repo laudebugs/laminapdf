@@ -14,16 +14,11 @@ neither Python, Node nor qpdf.
 Run it after `cargo xtask golden --update` changes one of these goldens.
 """
 
-import hashlib
 import json
-import os
-import subprocess
-import sys
-from pathlib import Path
 
 import pypdf
+from facts_common import ROOT, qpdf_check, qpdf_version, run_pdfjs, sha256
 
-ROOT = Path(__file__).resolve().parents[2]
 OUT = ROOT / "fixtures" / "build" / "facts.json"
 GOLDENS = ["build-text-latin.pdf", "build-text-multiscript.pdf", "links-and-outlines.pdf", "metadata.pdf"]
 
@@ -96,11 +91,10 @@ def xmp_facts(reader):
 
 def facts(path):
     reader = pypdf.PdfReader(path, strict=True)
-    check = subprocess.run(["qpdf", "--check", str(path)], capture_output=True, text=True)
     info = {k.lstrip("/"): str(v) for k, v in (reader.metadata or {}).items()}
     return {
-        "sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
-        "qpdf_check": check.returncode == 0,
+        "sha256": sha256(path),
+        "qpdf_check": qpdf_check(path),
         "pypdf": {
             "pages": [[line for line in p.extract_text().split("\n") if line] for p in reader.pages],
             "links": [links(reader, p) for p in reader.pages],
@@ -113,26 +107,16 @@ def facts(path):
     }
 
 
-def pdfjs(paths):
-    dist = os.environ.get("PDFJS_DIST")
-    if not dist:
-        sys.exit("set PDFJS_DIST to node_modules/pdfjs-dist (pdfjs-dist@6.4.299)")
-    script = ROOT / "tools" / "fixtures" / "pdfjs_build.mjs"
-    out = subprocess.run(["node", str(script), dist, *map(str, paths)], capture_output=True, text=True, check=True)
-    return json.loads(out.stdout)
-
-
 def main():
     paths = [ROOT / "fixtures" / "golden" / name for name in GOLDENS]
-    qpdf = subprocess.run(["qpdf", "--version"], capture_output=True, text=True, check=True)
-    js = pdfjs(paths)
+    js = run_pdfjs("pdfjs_build.mjs", paths)
     files = {p.name: facts(p) for p in paths}
     for name, view in js["files"].items():
         files[name]["pdfjs"] = view
     result = {
         "pypdf_version": pypdf.__version__,
         "pdfjs_version": js["pdfjs_version"],
-        "qpdf_version": qpdf.stdout.split()[2],
+        "qpdf_version": qpdf_version(),
         "files": files,
     }
     OUT.parent.mkdir(parents=True, exist_ok=True)

@@ -139,23 +139,30 @@ impl ViewerPreferences {
         self.page_layout
     }
 
-    /// Adds these preferences to the catalog; returns the PDF version they need.
-    pub(crate) fn write(self, catalog: &mut Dict) -> (u8, u8) {
-        let mut version = (1, 0);
+    /// The PDF version these preferences need.
+    pub(crate) fn version(self) -> (u8, u8) {
+        let mut version = if self.display_doc_title { (1, 4) } else { (1, 0) };
+        if let Some(mode) = self.page_mode {
+            version = version.max(mode.version());
+        }
+        if let Some(layout) = self.page_layout {
+            version = version.max(layout.version());
+        }
+        version
+    }
+
+    /// Adds these preferences to the catalog.
+    pub(crate) fn write(self, catalog: &mut Dict) {
         if self.display_doc_title {
             let mut prefs = Dict::new();
             prefs.insert("DisplayDocTitle", true);
             catalog.insert("ViewerPreferences", prefs);
-            version = (1, 4);
         }
         if let Some(mode) = self.page_mode {
             catalog.insert("PageMode", Name::from(mode.pdf_name()));
-            version = version.max(mode.version());
         }
         if let Some(layout) = self.page_layout {
             catalog.insert("PageLayout", Name::from(layout.pdf_name()));
-            version = version.max(layout.version());
         }
-        version
     }
 }

@@ -491,10 +491,10 @@ impl<'d> Appender<'d> {
     /// As [`Appender::new`], when the root node changed meanwhile;
     /// [`Error::PageIndexOutOfRange`](crate::Error::PageIndexOutOfRange) for a link to a page
     /// the document doesn't have; [`Error::Text`](crate::Error::Text) when subsetting fails.
-    pub fn finish(mut self) -> Result<Vec<PageId>> {
-        finish::append_pages(self.doc.cos_mut(), &self.state)?;
-        finish::finish_appended(self.doc, &mut self.state)?;
-        finish::raise_version(self.doc.cos_mut(), self.state.required)?;
-        Ok(self.state.pages.iter().map(|r| PageId::object(*r)).collect())
+    ///
+    /// Targets are checked before anything changes, and a write that fails rolls the
+    /// document's overlay back to where this call started.
+    pub fn finish(self) -> Result<Vec<PageId>> {
+        finish::finish_appended(self.doc, self.state)
     }
 }

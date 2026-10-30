@@ -223,3 +223,84 @@ fn links_are_deterministic() {
     };
     assert_eq!(target, pages[0]);
 }
+
+#[test]
+fn a_failed_append_leaves_the_page_tree_alone() {
+    let base = fixture("corpus/hello.pdf");
+    let mut doc = reopen(&base);
+    let mut appender = Builder::on(&mut doc, &BuildOptions::default()).unwrap();
+    let f = appender.standard_font(Standard14::Helvetica).unwrap();
+    let mut page = appender.page(PageSize::LETTER);
+    let _ = page
+        .surface()
+        .text("nowhere", &f, Pt::new(12.0), PointPt::from_points(72.0, 72.0))
+        .unwrap()
+        .link(LinkTarget::page(9), None);
+    page.finish().unwrap();
+    assert_eq!(appender.finish().unwrap_err().code(), "page-index-out-of-range");
+    // The new page was never linked into the tree.
+    assert_eq!(doc.pages().unwrap().len(), 1);
+    let mut out = Vec::new();
+    IncrementalWriter::new(doc.cos(), SaveOptions::default())
+        .write(&mut out)
+        .unwrap();
+    assert_eq!(reopen(&out).pages().unwrap().len(), 1);
+}
+
+/// A one-page document whose page is a direct dictionary in `/Kids` (and has no usable
+/// `/MediaBox`).
+fn direct_page_document() -> Vec<u8> {
+    let mut w = lamina_save::Writer::new(1, 7);
+    let page: Dict = [("Type", Object::name("Page"))].into_iter().collect();
+    let pages = w.add(
+        [
+            ("Type", Object::name("Pages")),
+            ("Kids", Object::Array(vec![Object::Dict(page)])),
+            ("Count", 1.into()),
+        ]
+        .into_iter()
+        .collect::<Dict>(),
+    );
+    let root = w.add(
+        [("Type", Object::name("Catalog")), ("Pages", pages.into())]
+            .into_iter()
+            .collect::<Dict>(),
+    );
+    w.finish(&[("Root", root)].into_iter().collect()).unwrap()
+}
+
+#[test]
+fn appending_reads_only_the_pages_links_target() {
+    let base = direct_page_document();
+    // No link to the direct page: appending works.
+    let mut doc = reopen(&base);
+    let mut appender = Builder::on(&mut doc, &BuildOptions::default()).unwrap();
+    let mut page = appender.page(PageSize::A6);
+    page.surface().link(rect(0.0, 0.0, 9.0, 9.0), LinkTarget::page(1), None);
+    page.finish().unwrap();
+    assert_eq!(appender.finish().unwrap().len(), 1);
+    // A link to it can't be written: refused before anything changes.
+    let mut doc = reopen(&base);
+    let mut appender = Builder::on(&mut doc, &BuildOptions::default()).unwrap();
+    let mut page = appender.page(PageSize::A6);
+    page.surface().link(rect(0.0, 0.0, 9.0, 9.0), LinkTarget::page(0), None);
+    page.finish().unwrap();
+    assert_eq!(appender.finish().unwrap_err().code(), "invalid-structure");
+    assert_eq!(doc.pages().unwrap().len(), 1);
+}
+
+#[test]
+fn a_negative_zoom_is_invalid_geometry() {
+    let code = finish_err(|b| {
+        b.destination(
+            "x",
+            0,
+            Fit::Xyz {
+                left: None,
+                top: None,
+                zoom: Some(-2.0),
+            },
+        );
+    });
+    assert_eq!(code, "invalid-geometry");
+}

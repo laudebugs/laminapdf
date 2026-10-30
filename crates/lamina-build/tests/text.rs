@@ -65,11 +65,12 @@ fn y_is_the_baseline_on_every_rotation() {
 fn the_latin_golden_reads_back_as_its_input() {
     let doc = reopen(&fixture("golden/build-text-latin.pdf"));
     let got = lines(&doc, 0);
+    // Every run and every text box line, in drawing order.
+    assert_eq!(vec![got.clone()], b5b::text_latin_drawn().1);
     assert_eq!(&got[..5], &LATIN_RUNS[..]);
-    assert_eq!(got[5], "Invisible but extractable");
-    // Every text box line is a piece of the paragraph, in order.
-    let boxed: String = got[7..12].join(" ");
-    assert_eq!(boxed, LATIN_PARAGRAPH);
+    // Each of the four boxes holds the whole paragraph, broken at spaces.
+    let boxed = got[7..].join(" ");
+    assert_eq!(boxed, [LATIN_PARAGRAPH; 4].join(" "));
 }
 
 #[test]
@@ -244,26 +245,92 @@ fn a_font_from_another_builder_is_unknown_font() {
     assert_eq!(page.finish().unwrap_err().code(), "unknown-font");
 }
 
-#[test]
-fn actual_text_raises_an_old_version_to_1_5() {
+/// A PDF 1.4 document with `text` in `font`: its first page's content and catalog `/Version`.
+fn at_1_4(font: &str, text: &str) -> (String, Option<Vec<u8>>) {
     let mut b = Builder::new(BuildOptions::default().with_version(PdfVersion::V1_4));
-    let f = b.font(b5b::font("NotoSansDevanagari-Regular.ttf")).unwrap();
+    let f = b.font(b5b::font(font)).unwrap();
     let mut page = b.page(PageSize::A4);
     let _ = page
         .surface()
-        .text("हिन्दी", &f, Pt::new(12.0), PointPt::from_points(72.0, 72.0))
+        .text(text, &f, Pt::new(12.0), PointPt::from_points(72.0, 72.0))
         .unwrap();
     page.finish().unwrap();
     let doc = b.finish().unwrap();
     let cos: &lamina_cos::Document = &doc;
     let content = String::from_utf8_lossy(&cos.page_content(&cos.pages().unwrap().remove(0)).unwrap()).into_owned();
-    let version = doc.catalog().unwrap().get_name("Version").map(<[u8]>::to_vec);
-    if content.contains("ActualText") {
-        assert_eq!(version.as_deref(), Some(&b"1.5"[..]));
-    } else {
-        // B4d maps every cluster through ToUnicode where it can; nothing to raise then.
-        assert_eq!(version, None);
+    (content, doc.catalog().unwrap().get_name("Version").map(<[u8]>::to_vec))
+}
+
+#[test]
+fn actual_text_raises_an_old_version_to_1_5() {
+    // The i-matra is drawn before the consonant it follows: its cluster needs /ActualText.
+    let (content, version) = at_1_4("NotoSansDevanagari-Regular.ttf", "हिन्दी");
+    assert!(content.contains("/ActualText"), "{content}");
+    assert_eq!(version.as_deref(), Some(&b"1.5"[..]));
+}
+
+#[test]
+fn plain_text_leaves_a_1_4_document_alone() {
+    let (content, version) = at_1_4("NotoSans-Regular.ttf", "Hello");
+    assert!(!content.contains("/ActualText"));
+    assert_eq!(version, None);
+}
+
+/// The lines `text()` lays `text` out in with a standard 14 font and with an embedded one.
+fn line_counts(text: &str) -> (usize, usize) {
+    let mut b = Builder::new(BuildOptions::default());
+    let std = b.standard_font(Standard14::Helvetica).unwrap();
+    let noto = b.font(b5b::font("NotoSans-Regular.ttf")).unwrap();
+    let mut page = b.page(PageSize::A4);
+    let s = page.surface();
+    let at = PointPt::from_points(72.0, 72.0);
+    let simple = s.text(text, &std, Pt::new(12.0), at).unwrap().lines();
+    let shaped = s.text(text, &noto, Pt::new(12.0), at).unwrap().lines();
+    (simple, shaped)
+}
+
+#[test]
+fn standard_14_and_shaped_layouts_break_paragraphs_alike() {
+    for text in [
+        "",
+        "a",
+        "a\n",
+        "a\nb",
+        "a\n\nb",
+        "a\r\nb",
+        "a\u{1C}b",
+        "a\u{2029}b",
+        "a\u{85}b",
+        "a b  \n",
+    ] {
+        let (simple, shaped) = line_counts(text);
+        assert_eq!(simple, shaped, "{text:?}");
     }
+}
+
+#[test]
+fn a_failed_page_leaves_no_font_behind() {
+    let mut other = Builder::new(BuildOptions::default());
+    let foreign = other.standard_font(Standard14::Courier).unwrap();
+    let mut b = Builder::new(BuildOptions::default().with_compress(false));
+    let helvetica = b.standard_font(Standard14::Helvetica).unwrap();
+    let mut page = b.page(PageSize::A4);
+    let s = page.surface();
+    let _ = s
+        .text("recorded", &helvetica, Pt::new(12.0), PointPt::from_points(72.0, 72.0))
+        .unwrap();
+    let _ = s
+        .text("refused", &foreign, Pt::new(12.0), PointPt::from_points(72.0, 92.0))
+        .unwrap();
+    assert_eq!(page.finish().unwrap_err().code(), "unknown-font");
+    b.page(PageSize::A4).finish().unwrap();
+    let bytes = save(b.finish().unwrap());
+    let doc = reopen(&bytes);
+    assert_eq!(doc.pages().unwrap().len(), 1);
+    assert!(
+        !String::from_utf8_lossy(&bytes).contains("/BaseFont"),
+        "an orphan font was written"
+    );
 }
 
 #[test]

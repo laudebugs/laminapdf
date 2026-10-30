@@ -193,7 +193,31 @@ impl<'b> PageBuilder<'b> {
     /// positive, or for the first invalid value given to the [`Surface`]; [`Error::Text`]
     /// for a font from another builder (`unknown-font`); [`Error::Cos`] when object numbers run out
     /// ([`Limits::max_object_number`](lamina_cos::Limits::max_object_number)).
-    pub fn finish(self) -> Result<PageId> {
+    ///
+    /// A page that fails leaves nothing behind: the objects it wrote are rolled back, and the
+    /// glyphs, fonts, resources and links it recorded are forgotten.
+    pub fn finish(mut self) -> Result<PageId> {
+        let mark = self.target.doc.journal_mark();
+        let state = &*self.target.state;
+        let fonts = self.surface.has_text().then(|| state.fonts.clone());
+        let resources = state.resources.clone();
+        let (links, required) = (state.links.len(), state.required);
+        let written = self.write();
+        if written.is_err() {
+            // Should the rollback fail too, the first error is the one to report.
+            let _ = self.target.doc.rollback_to(mark);
+            let state = &mut *self.target.state;
+            if let Some(fonts) = fonts {
+                state.fonts = fonts;
+            }
+            state.resources = resources;
+            state.links.truncate(links);
+            state.required = required;
+        }
+        written
+    }
+
+    fn write(&mut self) -> Result<PageId> {
         if let Some(what) = self.surface.error() {
             return Err(Error::InvalidGeometry { what });
         }
@@ -223,13 +247,13 @@ impl<'b> PageBuilder<'b> {
             self.target.state.require((1, 6));
         }
         let mut resources = PageResources::default();
-        let state = self.target.state;
+        let state = &mut *self.target.state;
         let rendered = self.surface.render(
             &frame,
             &mut resources,
             &mut TextTarget {
                 fonts: &mut state.fonts,
-                doc: self.target.doc,
+                doc: &*self.target.doc,
             },
         )?;
         state.require(resources.required_version());
@@ -261,6 +285,16 @@ impl<'b> PageBuilder<'b> {
         state.frames.push(frame);
         Ok(PageId::object(r))
     }
+}
+
+/// A count as an integer object (saturating; counts never get near `i64::MAX`).
+pub(crate) fn count(n: usize) -> Object {
+    Object::Integer(count_i64(n))
+}
+
+/// A count as an `i64` (saturating).
+pub(crate) fn count_i64(n: usize) -> i64 {
+    i64::try_from(n).unwrap_or(i64::MAX)
 }
 
 /// `[x0 y0 x1 y1]`, integers where exact.

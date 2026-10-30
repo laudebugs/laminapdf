@@ -7,20 +7,17 @@
 //     cd "$(mktemp -d)" && npm init -y && npm i pdfjs-dist@6.4.299   # Apache-2.0; tools only
 //     node tools/fixtures/pdfjs_build.mjs "$PWD/node_modules/pdfjs-dist" <file.pdf>…
 import { readFileSync } from "node:fs";
-import { basename, join } from "node:path";
+import { basename } from "node:path";
 import { argv, stdout } from "node:process";
-import { pathToFileURL } from "node:url";
+import { loadPdfjs, pageLines } from "./pdfjs_common.mjs";
 
 const PINNED = "6.4.299";
 const [pdfjsDir, ...files] = argv.slice(2);
-if (!pdfjsDir) {
-  throw new Error("usage: pdfjs_build.mjs <path to node_modules/pdfjs-dist> <file.pdf>…");
-}
-const version = JSON.parse(readFileSync(join(pdfjsDir, "package.json"), "utf8")).version;
-if (version !== PINNED) {
-  throw new Error(`pdfjs-dist ${version}, expected ${PINNED}`);
-}
-const pdfjs = await import(pathToFileURL(join(pdfjsDir, "legacy/build/pdf.mjs")).href);
+const { pdfjs, version } = await loadPdfjs(
+  pdfjsDir,
+  PINNED,
+  "usage: pdfjs_build.mjs <path to node_modules/pdfjs-dist> <file.pdf>…",
+);
 
 // The 0-based page index of an explicit destination array or a destination name.
 async function pageOf(doc, dest) {
@@ -54,15 +51,7 @@ for (const file of files) {
   const links = [];
   for (let i = 1; i <= doc.numPages; i++) {
     const page = await doc.getPage(i);
-    const content = await page.getTextContent();
-    let text = "";
-    for (const item of content.items) {
-      text += item.str ?? "";
-      if (item.hasEOL) {
-        text += "\n";
-      }
-    }
-    pages.push(text.split("\n").filter((line) => line.length > 0));
+    pages.push(await pageLines(page));
     const annotations = await page.getAnnotations();
     const pageLinks = [];
     for (const a of annotations.filter((a) => a.subtype === "Link")) {

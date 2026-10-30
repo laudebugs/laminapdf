@@ -4,8 +4,14 @@ use lamina_cos::{Dict, PdfString};
 use lamina_model::PdfDate;
 use lamina_syntax::text::encode_text_string;
 
+/// Whether XML 1.0 can't hold `ch` (§2.2 `Char`).
+pub(crate) const fn not_xml(ch: char) -> bool {
+    matches!(ch, '\u{0}'..='\u{8}' | '\u{B}' | '\u{C}' | '\u{E}'..='\u{1F}' | '\u{FFFE}' | '\u{FFFF}')
+}
+
 /// What the Info dictionary and the XMP packet say about the document. Dates are given,
-/// never read from a clock (ADR 0001): the same values give the same bytes.
+/// never read from a clock (ADR 0001): the same values give the same bytes. Characters XML
+/// can't hold (C0 controls but tab, line feed and carriage return) are left out of both.
 ///
 /// ```
 /// use lamina_build::Metadata;
@@ -93,6 +99,25 @@ impl Metadata {
     pub const fn with_mod_date(mut self, date: PdfDate) -> Self {
         self.mod_date = Some(date);
         self
+    }
+
+    /// Removes the characters XML 1.0 can't hold (C0 controls other than tab, line feed and
+    /// carriage return; U+FFFE, U+FFFF) from every text value, so the Info dictionary and the
+    /// XMP packet written from it say the same.
+    pub(crate) fn sanitize(&mut self) {
+        let fields = [
+            &mut self.title,
+            &mut self.author,
+            &mut self.subject,
+            &mut self.keywords,
+            &mut self.creator,
+            &mut self.producer,
+        ];
+        for text in fields.into_iter().flatten() {
+            if text.chars().any(not_xml) {
+                text.retain(|c| !not_xml(c));
+            }
+        }
     }
 
     /// The Info dictionary: text strings in PDFDocEncoding or UTF-16BE, dates as written by

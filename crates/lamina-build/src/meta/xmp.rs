@@ -23,7 +23,7 @@ pub(crate) fn escape(text: &str) -> String {
             '\t' => out.push_str("&#x9;"),
             '\n' => out.push_str("&#xA;"),
             '\r' => out.push_str("&#xD;"),
-            '\u{0}'..='\u{1F}' | '\u{FFFE}' | '\u{FFFF}' => {}
+            c if super::info::not_xml(c) => {}
             _ => out.push(ch),
         }
     }

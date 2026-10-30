@@ -116,7 +116,7 @@ pub use font::{Axis, Font, FontInfo, GlyphId, MAX_NAME_LEN, Tag};
 pub use fstype::{EmbedPolicy, FsType};
 pub use itemize::{Item, itemize};
 pub use layout::{Alignment, LayoutOptions, Line, LineRun, break_lines};
-pub use linebreak::{BreakOpportunity, grapheme_boundaries, line_breaks};
+pub use linebreak::{BreakOpportunity, grapheme_boundaries, is_hard_break, is_trailing_space, line_breaks};
 pub use pdfpos::{PdfPiece, PdfRun, PdfSegment, TjElement, pdf_run};
 pub use shape::{Direction, Feature, HarfRust, Script, ShapeOptions, ShapedGlyph, ShapedRun, Shaper};
 pub use simple::SimpleUse;

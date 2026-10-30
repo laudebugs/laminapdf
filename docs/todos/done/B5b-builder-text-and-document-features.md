@@ -76,6 +76,7 @@ Complete the builder's feature list for M1: shaped text runs and single-box para
 - **Runs are drawn in logical order** within a line (each at its own x), what B4d's `Line::drawing_order` does, so extractors read multi-run right-to-left lines in order; this needs no B4d API.
 - **XMP drops C0 control characters** other than tab, line feed and carriage return (XML 1.0 can't hold them), so Info and XMP differ only for such text.
 - **Goldens and pdftotext**: see the tasks above.
+- **Code review** (20 findings, fixed in one commit; see its message): appends resolve every link before changing anything and roll the overlay back on a failed write; a failed page is rolled back with the font registry, resources and links it recorded (`FontRegistry` became `Clone`, a two-word additive change in `lamina-text`, which also now exports `is_hard_break`/`is_trailing_space` for the standard 14 layout); `/FitH`/`/FitV` operands are user-space y/x, `null` on pages turned sideways; a negative zoom is `invalid-geometry`, zoom 0 is `null`; Info and XMP drop the same XML-illegal characters.
 
 ## Post-merge checks
 
@@ -101,6 +102,6 @@ None.
 
 - [x] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
 - [x] Work PR opened from a fresh worktree; **PR** field filled in
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
+- [x] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
 - [ ] CI green
 - [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated

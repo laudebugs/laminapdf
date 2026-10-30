@@ -43,7 +43,7 @@ impl GsKey {
 }
 
 /// The objects already written in this document, by key: each is written once.
-#[derive(Debug, Default)]
+#[derive(Debug, Clone, Default)]
 pub(crate) struct DocResources {
     gstates: BTreeMap<GsKey, ObjRef>,
     images: BTreeMap<[u8; 32], ObjRef>,

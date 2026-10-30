@@ -17,7 +17,7 @@ use pdf_writer::{Content, Name, Str, TextStr};
 
 use crate::error::{Error, Result};
 use crate::nav::LinkTarget;
-use crate::nav::dest::fit_is_finite;
+use crate::nav::dest::fit_is_valid;
 use crate::resources::{GsKey, PageResources};
 use color::Color;
 use image::Image;
@@ -277,6 +277,11 @@ impl Surface {
         self
     }
 
+    /// Whether anything drawn is text (so finishing the page records glyphs).
+    pub(crate) fn has_text(&self) -> bool {
+        self.commands.iter().any(|c| matches!(c, Command::Text(_)))
+    }
+
     pub(crate) fn text_command(&self, index: usize) -> Option<&TextCommand> {
         match self.commands.get(index) {
             Some(Command::Text(t)) => Some(t),
@@ -464,7 +469,7 @@ impl Surface {
     /// `contents` as its `/Contents` (alternate text). No border; printed with the page.
     pub fn link(&mut self, rect: RectPt, target: LinkTarget, contents: Option<String>) -> &mut Self {
         let finite = match &target {
-            LinkTarget::Page { fit, .. } => fit_is_finite(fit),
+            LinkTarget::Page { fit, .. } => fit_is_valid(fit),
             _ => true,
         };
         if rect.is_finite() && finite {

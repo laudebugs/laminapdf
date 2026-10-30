@@ -6,6 +6,7 @@ use lamina_syntax::text::encode_text_string;
 
 use super::dest::{LinkTarget, Targets};
 use crate::error::Result;
+use crate::page::{count, count_i64};
 
 /// One outline item ("bookmark"): a title, where it goes, its children, whether it starts
 /// open, and its colour and style (`/C`, `/F`, PDF 1.4).
@@ -136,10 +137,6 @@ impl OutlineEntry {
     }
 }
 
-fn count(n: usize) -> Object {
-    Object::Integer(i64::try_from(n).unwrap_or(i64::MAX))
-}
-
 /// Writes the outline: the root at `root`, the items at `ids` (pre-order, as
 /// [`OutlineEntry::len`] counts them).
 pub(crate) fn write(
@@ -193,7 +190,7 @@ fn siblings(
             d.insert("First", *first);
             d.insert("Last", *last);
             // Closed: minus the descendants that opening it would show.
-            let shown = i64::try_from(entry.visible()).unwrap_or(i64::MAX);
+            let shown = count_i64(entry.visible());
             d.insert("Count", if entry.open { shown } else { -shown });
         }
         if let Some(target) = &entry.target {

@@ -162,3 +162,15 @@ fn without_metadata_no_xmp_is_written() {
     let doc = reopen(&save(b.finish().unwrap()));
     assert!(!doc.catalog().unwrap().contains_key("Metadata"));
 }
+
+#[test]
+fn control_characters_are_dropped_from_info_and_xmp_alike() {
+    let mut b = Builder::new(BuildOptions::default());
+    b.page(PageSize::A6).finish().unwrap();
+    b.metadata(Metadata::default().with_title("a\u{1}b\tc"));
+    let doc = reopen(&save(b.finish().unwrap()));
+    let info = doc.info().unwrap().unwrap().title().unwrap();
+    let xml = xmp(&doc);
+    assert_eq!(info.as_deref(), Some("ab\tc"));
+    assert_eq!(xmp_value(&xml, "dc:title").map(|t| t.replace("&#x9;", "\t")), info);
+}

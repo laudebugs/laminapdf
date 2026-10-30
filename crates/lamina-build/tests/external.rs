@@ -273,3 +273,39 @@ fn facts_were_written_with_the_pinned_tools() {
         )
     );
 }
+
+#[test]
+fn facts_and_scripts_use_the_doctor_pins() {
+    let facts = facts();
+    let doctor = String::from_utf8(fixture("../tools/xtask/src/doctor.rs")).unwrap();
+    let script = String::from_utf8(fixture("../tools/fixtures/pdfjs_build.mjs")).unwrap();
+    assert_eq!(
+        pinned(&script, "const PINNED ="),
+        pinned(&doctor, "const PDFJS_DIST_VERSION: &str =")
+    );
+    assert_eq!(
+        facts["qpdf_version"].as_str(),
+        Some(pinned(&doctor, "pub(crate) const QPDF_VERSION: &str =").as_str()),
+        "fixtures/build/facts.json was written with another qpdf; rerun tools/fixtures/build_facts.py"
+    );
+}
+
+#[test]
+fn every_exception_names_one_drawn_line() {
+    let goldens = goldens();
+    let mut seen = std::collections::BTreeSet::new();
+    for ((file, extractor, page, line), _) in exceptions() {
+        let pages = goldens
+            .iter()
+            .find(|(name, _)| *name == file)
+            .map_or_else(|| panic!("{file} is not a B5b golden"), |(_, pages)| pages);
+        assert!(
+            pages.get(page).is_some_and(|lines| line < lines.len()),
+            "{file} has no page {page} line {line}"
+        );
+        assert!(
+            seen.insert((file.clone(), extractor.clone(), page, line)),
+            "{file} {extractor} page {page} line {line} is listed twice"
+        );
+    }
+}

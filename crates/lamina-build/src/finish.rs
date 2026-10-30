@@ -1,17 +1,21 @@
 //! Finishing a build: the page tree (ISO 32000-2 §7.7.3.2), the catalog (§7.7.2), the Info
 //! dictionary (§14.3.3) and the trailer, or new pages linked into an existing tree.
 
+use std::collections::{BTreeMap, BTreeSet};
+
 use lamina_cos::{CosMut, Dict, Name, ObjRef, Object, PdfString, Stream};
-use lamina_model::PageFrame;
+use lamina_model::{PageFrame, PageId};
 use lamina_syntax::text::encode_text_string;
 use lamina_text::FontRegistry;
 
+use crate::annot::link::PendingLink;
 use crate::builder::{BuildOptions, BuildState, DocFeatures};
 use crate::error::Result;
 use crate::meta::Metadata;
 use crate::meta::xmp;
 use crate::nav::dest::Targets;
-use crate::nav::{labels, outline};
+use crate::nav::{LinkTarget, labels, outline};
+use crate::page::count;
 
 fn invalid(message: &'static str) -> lamina_cos::Error {
     lamina_cos::Error::InvalidStructure {
@@ -24,10 +28,6 @@ fn kids(pages: &[ObjRef]) -> Object {
     Object::Array(pages.iter().map(|r| Object::Ref(*r)).collect())
 }
 
-fn count(n: usize) -> Object {
-    Object::Integer(i64::try_from(n).unwrap_or(i64::MAX))
-}
-
 /// Subsets and writes every font text was drawn with.
 fn write_fonts(cos: &mut CosMut<'_>, state: &mut BuildState) -> Result<()> {
     let fonts = std::mem::replace(&mut state.fonts, FontRegistry::new());
@@ -35,44 +35,102 @@ fn write_fonts(cos: &mut CosMut<'_>, state: &mut BuildState) -> Result<()> {
     Ok(())
 }
 
-/// Writes the pending link annotations with their targets resolved.
-fn write_links(cos: &mut CosMut<'_>, state: &BuildState, targets: &Targets<'_>) -> Result<()> {
-    for link in &state.links {
-        let mut dict = link.dict.clone();
-        targets.apply(&mut dict, &link.target)?;
-        cos.set(link.object, Object::Dict(dict))?;
+/// The pending link annotations with their targets resolved (nothing is written yet).
+fn resolve_links(links: Vec<PendingLink>, targets: &Targets<'_>) -> Result<Vec<(ObjRef, Dict)>> {
+    links
+        .into_iter()
+        .map(
+            |PendingLink {
+                 object,
+                 mut dict,
+                 target,
+             }| {
+                targets.apply(&mut dict, &target)?;
+                Ok((object, dict))
+            },
+        )
+        .collect()
+}
+
+fn write_links(cos: &mut CosMut<'_>, links: Vec<(ObjRef, Dict)>) -> Result<()> {
+    for (object, dict) in links {
+        cos.set(object, Object::Dict(dict))?;
     }
     Ok(())
 }
 
-/// The new pages of an open document: fonts and links (resolved against all its pages).
-pub(crate) fn finish_appended(doc: &mut lamina_model::Document, state: &mut BuildState) -> Result<()> {
-    let pages: Vec<(ObjRef, PageFrame)> = {
-        let pages = doc.pages()?;
-        let mut out = Vec::with_capacity(pages.len());
-        for page in pages.iter() {
+/// The pages links target, by index: page `i` of the document, an existing one (`existing`
+/// of them) or one of the new ones in `state`. Only the targeted pages are read, so a
+/// malformed page nobody links to doesn't fail the append.
+fn targeted_pages(
+    doc: &lamina_model::Document,
+    existing: usize,
+    state: &BuildState,
+) -> Result<BTreeMap<u32, (ObjRef, PageFrame)>> {
+    let wanted: BTreeSet<u32> = state
+        .links
+        .iter()
+        .filter_map(|l| match l.target {
+            LinkTarget::Page { index, .. } => Some(index),
+            _ => None,
+        })
+        .collect();
+    let mut out = BTreeMap::new();
+    if wanted.is_empty() {
+        return Ok(out);
+    }
+    let pages = doc.pages()?;
+    for index in wanted {
+        let Ok(i) = usize::try_from(index) else { continue };
+        let found = if let Some(page) = (i < existing).then(|| pages.get(i)).flatten() {
             let r = page
                 .obj_ref()
-                .ok_or_else(|| invalid("a page is a direct object, so links can't point at it"))?;
-            out.push((r, page.frame()?));
+                .ok_or_else(|| invalid("a linked page is a direct object, so a link can't point at it"))?;
+            Some((r, page.frame()?))
+        } else {
+            let j = i - existing.min(i);
+            (i >= existing)
+                .then(|| state.pages.get(j).copied().zip(state.frames.get(j).copied()))
+                .flatten()
+        };
+        if let Some(found) = found {
+            out.insert(index, found);
         }
-        out
-    };
-    let cos = doc.cos_mut();
-    let mut edit = cos.edit();
-    write_fonts(&mut edit, state)?;
-    write_links(
-        &mut edit,
-        state,
-        &Targets {
-            pages: &pages,
-            names: None,
-        },
-    )?;
-    Ok(())
+    }
+    Ok(out)
 }
 
-/// The Info values: the metadata's, falling back to the options' producer and date.
+/// Finishes an appender: links resolved against every page of the document first (reads
+/// only, so a bad target changes nothing), then the new pages linked into the tree, the
+/// fonts and links written and the version raised. A write that fails rolls the document's
+/// overlay back to where this call started.
+pub(crate) fn finish_appended(doc: &mut lamina_model::Document, mut state: BuildState) -> Result<Vec<PageId>> {
+    let existing = doc.pages()?.len();
+    let targets = Targets {
+        pages: targeted_pages(doc, existing, &state)?,
+        count: existing + state.pages.len(),
+        names: None,
+    };
+    let links = resolve_links(std::mem::take(&mut state.links), &targets)?;
+    let mark = doc.journal_mark();
+    let written = (|| -> Result<()> {
+        append_pages(doc.cos_mut(), &state)?;
+        let mut edit = doc.cos_mut().edit();
+        write_fonts(&mut edit, &mut state)?;
+        write_links(&mut edit, links)?;
+        raise_version(doc.cos_mut(), state.required)
+    })();
+    if let Err(e) = written {
+        // The overlay goes back to the mark; should that fail too, the first error is the one
+        // to report.
+        let _ = doc.cos_mut().rollback_to(mark);
+        return Err(e);
+    }
+    Ok(state.pages.iter().map(|r| PageId::object(*r)).collect())
+}
+
+/// The Info values: the metadata's, falling back to the options' producer and date, with
+/// text XML can't hold removed (so Info and XMP say the same).
 fn merged_metadata(options: &BuildOptions, features: &DocFeatures) -> Metadata {
     let mut meta = features.metadata.clone().unwrap_or_default();
     if meta.producer.is_none() {
@@ -81,6 +139,7 @@ fn merged_metadata(options: &BuildOptions, features: &DocFeatures) -> Metadata {
     if meta.creation_date.is_none() {
         meta.creation_date = options.creation_date().copied();
     }
+    meta.sanitize();
     meta
 }
 
@@ -93,14 +152,17 @@ pub(crate) fn new_document(
     state: &mut BuildState,
     features: &DocFeatures,
 ) -> Result<()> {
-    let mut cos = doc.edit();
-    write_fonts(&mut cos, state)?;
-    let pages: Vec<(ObjRef, PageFrame)> = state.pages.iter().copied().zip(state.frames.iter().copied()).collect();
     let targets = Targets {
-        pages: &pages,
+        pages: (0_u32..)
+            .zip(state.pages.iter().copied().zip(state.frames.iter().copied()))
+            .collect(),
+        count: state.pages.len(),
         names: Some(&features.names),
     };
-    write_links(&mut cos, state, &targets)?;
+    let links = resolve_links(std::mem::take(&mut state.links), &targets)?;
+    let mut cos = doc.edit();
+    write_fonts(&mut cos, state)?;
+    write_links(&mut cos, links)?;
 
     let mut root = Dict::new();
     root.insert("Type", Name::from("Pages"));
@@ -108,52 +170,59 @@ pub(crate) fn new_document(
     root.insert("Count", count(state.pages.len()));
     cos.set(state.pages_root, Object::Dict(root))?;
 
-    // Everything after /Type, /Version and /Pages.
-    let mut cat = Dict::new();
+    let meta = merged_metadata(options, features);
     let mut required = state.required;
+    if !features.names.is_empty() {
+        required = required.max((1, 2));
+    }
+    if features
+        .outline
+        .as_ref()
+        .is_some_and(|o| o.entries.iter().any(outline::OutlineEntry::styled))
+    {
+        required = required.max((1, 4));
+    }
+    if features.labels.is_some() {
+        required = required.max((1, 3));
+    }
+    if let Some(prefs) = features.prefs {
+        required = required.max(prefs.version());
+    }
+    if features.lang.is_some() || features.metadata.is_some() {
+        required = required.max((1, 4));
+    }
+    let mut cat = Dict::new();
+    cat.insert("Type", Name::from("Catalog"));
+    if required > version_of(options.version().as_str().as_bytes()).unwrap_or((1, 7)) {
+        cat.insert("Version", version_name(required));
+    }
+    cat.insert("Pages", state.pages_root);
     if let Some(tree) = targets.dests_tree()? {
         let mut names = Dict::new();
         names.insert("Dests", tree);
         cat.insert("Names", names);
-        required = required.max((1, 2));
     }
     if let Some(o) = &features.outline {
         outline::write(&mut cos, o.root, &o.entries, &o.ids, &targets)?;
         cat.insert("Outlines", o.root);
-        if o.entries.iter().any(outline::OutlineEntry::styled) {
-            required = required.max((1, 4));
-        }
     }
     if let Some(ranges) = &features.labels {
         cat.insert("PageLabels", labels::labels_tree(ranges, state.pages.len())?);
-        required = required.max((1, 3));
     }
-    if let Some(prefs) = &features.prefs {
-        required = required.max(prefs.write(&mut cat));
+    if let Some(prefs) = features.prefs {
+        prefs.write(&mut cat);
     }
     if let Some(lang) = &features.lang {
         cat.insert("Lang", PdfString::literal(encode_text_string(lang)));
-        required = required.max((1, 4));
     }
-    let meta = merged_metadata(options, features);
     if features.metadata.is_some() {
         let mut d = Dict::new();
         d.insert("Type", Name::from("Metadata"));
         d.insert("Subtype", Name::from("XML"));
         let stream = Stream::new(d, xmp::packet(&meta).into_bytes());
         cat.insert("Metadata", cos.create(Object::Stream(stream))?);
-        required = required.max((1, 4));
     }
-    let mut head = Dict::new();
-    head.insert("Type", Name::from("Catalog"));
-    if required > version_of(options.version().as_str().as_bytes()).unwrap_or((1, 7)) {
-        head.insert("Version", version_name(required));
-    }
-    head.insert("Pages", state.pages_root);
-    for (key, value) in cat.iter() {
-        head.insert(key.clone(), value.clone());
-    }
-    cos.set(catalog, Object::Dict(head))?;
+    cos.set(catalog, Object::Dict(cat))?;
 
     let mut trailer = Dict::new();
     trailer.insert("Root", catalog);

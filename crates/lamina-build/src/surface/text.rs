@@ -155,17 +155,16 @@ pub(crate) fn lay_out(spec: &Spec) -> Result<Vec<LaidLine>> {
         .collect())
 }
 
-/// Whether `ch` ends a line by itself (UAX #14 classes `BK`, `CR`, `LF`, `NL`).
-fn is_hard_break(ch: char) -> bool {
-    matches!(
-        ch,
-        '\n' | '\r' | '\u{0B}' | '\u{0C}' | '\u{85}' | '\u{2028}' | '\u{2029}'
-    )
+/// Whether `ch` ends a paragraph (bidi class `B`, UAX #9 P1), as `lamina-text`'s layout splits
+/// them: line feed, carriage return, U+001C–001E, U+0085, U+2029.
+fn is_paragraph_separator(ch: char) -> bool {
+    matches!(ch, '\n' | '\r' | '\u{1C}'..='\u{1E}' | '\u{85}' | '\u{2029}')
 }
 
-/// Whether `ch` hangs at a line's end, neither drawn nor measured.
+/// Whether `ch` hangs at a line's end, neither drawn nor measured: `lamina-text`'s rule
+/// (spaces and hard breaks, UAX #14) plus the paragraph separators.
 fn is_trailing(ch: char) -> bool {
-    matches!(ch, ' ' | '\u{200B}') || is_hard_break(ch)
+    lamina_text::is_trailing_space(ch) || is_paragraph_separator(ch)
 }
 
 /// `range` of `text` without its trailing spaces and hard breaks.
@@ -177,10 +176,44 @@ fn content_of(text: &str, range: Range<usize>) -> Range<usize> {
     range.start..range.start + trimmed.len()
 }
 
+/// The paragraphs of `text`, each ending after its separator (CR LF together), as
+/// `lamina-text`'s `break_lines` resolves them.
+fn paragraphs(text: &str) -> Vec<Range<usize>> {
+    let mut out = Vec::new();
+    let mut start = 0;
+    let mut chars = text.char_indices().peekable();
+    while let Some((at, ch)) = chars.next() {
+        if !is_paragraph_separator(ch) {
+            continue;
+        }
+        let mut end = at + ch.len_utf8();
+        if ch == '\r' && chars.peek().is_some_and(|&(_, next)| next == '\n') {
+            chars.next();
+            end += 1;
+        }
+        out.push(start..end);
+        start = end;
+    }
+    if start < text.len() || out.is_empty() {
+        out.push(start..text.len());
+    }
+    out
+}
+
 /// Greedy lines for a standard 14 font: left to right, one glyph per character (the font
-/// has no program to shape with), at UAX #14 opportunities, an overlong word broken between
-/// grapheme clusters, as `lamina-text`'s layout does.
+/// has no program to shape with), each paragraph on its own, at UAX #14 opportunities, an
+/// overlong word broken between grapheme clusters: `lamina-text`'s `break_lines` rules,
+/// measured with the AFM widths instead of a shaper.
 fn simple_lines(spec: &Spec) -> Result<Vec<LaidLine>> {
+    let mut lines = Vec::new();
+    for paragraph in paragraphs(&spec.text) {
+        simple_paragraph(spec, paragraph, &mut lines)?;
+    }
+    Ok(lines)
+}
+
+/// The lines of the paragraph `para` of `spec.text`.
+fn simple_paragraph(spec: &Spec, para: Range<usize>, lines: &mut Vec<LaidLine>) -> Result<()> {
     let font = &spec.font;
     let text = spec.text.as_str();
     let measure = |range: Range<usize>| -> Result<f64> {
@@ -214,20 +247,23 @@ fn simple_lines(spec: &Spec) -> Result<Vec<LaidLine>> {
             runs: Vec::new(),
         }
     };
-    let breaks = line_breaks(text);
-    let mut lines = Vec::new();
-    let mut start = 0;
+    let ptext = text.get(para.clone()).unwrap_or_default();
+    let breaks: Vec<(usize, bool)> = line_breaks(ptext)
+        .iter()
+        .map(|b| (para.start + b.offset, b.mandatory))
+        .collect();
+    let mut start = para.start;
     let mut fit: Option<(usize, f64)> = None;
     let mut i = 0;
-    while let Some(b) = breaks.get(i) {
-        let width = measure(content_of(text, start..b.offset))?;
+    while let Some(&(offset, mandatory)) = breaks.get(i) {
+        let width = measure(content_of(text, start..offset))?;
         if width <= limit {
-            if b.mandatory {
-                lines.push(line(start..b.offset, width));
-                start = b.offset;
+            if mandatory {
+                lines.push(line(start..offset, width));
+                start = offset;
                 fit = None;
             } else {
-                fit = Some((b.offset, width));
+                fit = Some((offset, width));
             }
             i += 1;
             continue;
@@ -238,7 +274,7 @@ fn simple_lines(spec: &Spec) -> Result<Vec<LaidLine>> {
             continue;
         }
         // One word wider than the box: as many grapheme clusters as fit (at least one).
-        let word = content_of(text, start..b.offset);
+        let word = content_of(text, start..offset);
         let mut end = None;
         for boundary in grapheme_boundaries(text.get(word.clone()).unwrap_or_default()) {
             let at = word.start + boundary;
@@ -253,22 +289,22 @@ fn simple_lines(spec: &Spec) -> Result<Vec<LaidLine>> {
         }
         let Some((end, width)) = end else {
             // Only spaces: nothing to draw before the opportunity.
-            lines.push(line(start..b.offset, 0.0));
-            start = b.offset;
+            lines.push(line(start..offset, 0.0));
+            start = offset;
             i += 1;
             continue;
         };
         if end >= word.end {
             // A single cluster wider than the box: it takes the line on its own.
-            lines.push(line(start..b.offset, width));
-            start = b.offset;
+            lines.push(line(start..offset, width));
+            start = offset;
             i += 1;
         } else {
             lines.push(line(start..end, width));
             start = end;
         }
     }
-    Ok(lines)
+    Ok(())
 }
 
 /// A link annotation: where it goes and its `/Contents`.

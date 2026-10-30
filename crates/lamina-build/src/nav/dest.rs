@@ -111,22 +111,26 @@ pub(crate) fn dest_array(page: ObjRef, frame: &PageFrame, fit: &Fit) -> Object {
     match fit {
         Fit::Page => array.push(Object::name("Fit")),
         Fit::Bounds => array.push(Object::name("FitB")),
+        // `/FitH`'s operand is a user-space y and `/FitV`'s a user-space x (Table 149; pdf.js
+        // converts them as points). On a page turned sideways the displayed top is a user x,
+        // which `/FitH` can't name, so the operand is `null` (the viewer keeps its position).
         Fit::Width { top } => {
-            let (ux, uy) = point(None, *top);
+            let (_, uy) = point(None, *top);
             array.push(Object::name("FitH"));
-            array.push(optional(if upright { uy } else { ux }));
+            array.push(optional(uy.filter(|_| upright)));
         }
         Fit::Height { left } => {
-            let (ux, uy) = point(*left, None);
+            let (ux, _) = point(*left, None);
             array.push(Object::name("FitV"));
-            array.push(optional(if upright { ux } else { uy }));
+            array.push(optional(ux.filter(|_| upright)));
         }
         Fit::Xyz { left, top, zoom } => {
             let (ux, uy) = point(*left, *top);
             array.push(Object::name("XYZ"));
             array.push(optional(ux));
             array.push(optional(uy));
-            array.push(optional(*zoom));
+            // 0 means "unchanged", as null does (§12.3.2.2).
+            array.push(optional(zoom.filter(|z| *z != 0.0)));
         }
         Fit::Rect(r) => {
             array.push(Object::name("FitR"));
@@ -138,41 +142,39 @@ pub(crate) fn dest_array(page: ObjRef, frame: &PageFrame, fit: &Fit) -> Object {
     Object::Array(array)
 }
 
-/// Whether every coordinate of `fit` is finite.
-pub(crate) fn fit_is_finite(fit: &Fit) -> bool {
+/// Whether `fit` can be written: every coordinate finite, a zoom finite and not negative.
+pub(crate) fn fit_is_valid(fit: &Fit) -> bool {
     let finite = |v: Option<Pt>| v.is_none_or(|v| v.get().is_finite());
     match fit {
         Fit::Page | Fit::Bounds => true,
         Fit::Width { top } => finite(*top),
         Fit::Height { left } => finite(*left),
-        Fit::Xyz { left, top, zoom } => finite(*left) && finite(*top) && zoom.is_none_or(f64::is_finite),
+        Fit::Xyz { left, top, zoom } => finite(*left) && finite(*top) && zoom.is_none_or(|z| z.is_finite() && z >= 0.0),
         Fit::Rect(r) => r.is_finite(),
     }
 }
 
-/// What link targets resolve against when the build finishes: the document's pages and,
-/// for a new document, its named destinations (an open document's names aren't checked).
+/// What link targets resolve against when the build finishes: the targeted pages of the
+/// document (by index; `count` pages in all) and, for a new document, its named destinations
+/// (an open document's names aren't checked).
 pub(crate) struct Targets<'a> {
-    pub(crate) pages: &'a [(ObjRef, PageFrame)],
+    pub(crate) pages: BTreeMap<u32, (ObjRef, PageFrame)>,
+    pub(crate) count: usize,
     pub(crate) names: Option<&'a BTreeMap<String, (u32, Fit)>>,
 }
 
 impl Targets<'_> {
     /// The destination array for page `index`.
     pub(crate) fn page(&self, index: u32, fit: &Fit) -> Result<Object> {
-        if !fit_is_finite(fit) {
+        if !fit_is_valid(fit) {
             return Err(Error::InvalidGeometry {
-                what: "a destination coordinate is not a finite number",
+                what: "a destination coordinate is not a finite number, or its zoom is negative",
             });
         }
-        let (page, frame) =
-            usize::try_from(index)
-                .ok()
-                .and_then(|i| self.pages.get(i))
-                .ok_or(Error::PageIndexOutOfRange {
-                    index,
-                    count: self.pages.len(),
-                })?;
+        let (page, frame) = self.pages.get(&index).ok_or(Error::PageIndexOutOfRange {
+            index,
+            count: self.count,
+        })?;
         Ok(dest_array(*page, frame, fit))
     }
 
@@ -239,14 +241,53 @@ mod tests {
     }
 
     #[test]
-    fn fit_h_on_a_page_turned_sideways_uses_the_user_x() {
+    fn fit_h_is_a_user_y_upright_and_null_sideways() {
         let fit = Fit::Width {
-            top: Some(Pt::new(0.0)),
+            top: Some(Pt::new(92.0)),
         };
-        let Object::Array(a) = dest_array(ObjRef::new(3, 0), &letter(Rotation::Clockwise90), &fit) else {
+        let operand = |rotate| {
+            let Object::Array(a) = dest_array(ObjRef::new(3, 0), &letter(rotate), &fit) else {
+                panic!("an array");
+            };
+            a[2].clone()
+        };
+        assert_eq!(
+            [
+                operand(Rotation::None),
+                operand(Rotation::Half),
+                operand(Rotation::Clockwise90)
+            ],
+            [Object::Integer(700), Object::Integer(92), Object::Null]
+        );
+    }
+
+    #[test]
+    fn fit_v_is_a_user_x_upright_and_null_sideways() {
+        let fit = Fit::Height {
+            left: Some(Pt::new(12.0)),
+        };
+        let Object::Array(a) = dest_array(ObjRef::new(3, 0), &letter(Rotation::Clockwise270), &fit) else {
             panic!("an array");
         };
-        assert_eq!(a.get(1..), Some(&[Object::name("FitH"), Object::Integer(0)][..]));
+        assert_eq!(a[2], Object::Null);
+        let Object::Array(a) = dest_array(ObjRef::new(3, 0), &letter(Rotation::None), &fit) else {
+            panic!("an array");
+        };
+        assert_eq!(a[2], Object::Integer(12));
+    }
+
+    #[test]
+    fn a_zero_zoom_is_null_and_a_negative_one_is_invalid() {
+        let xyz = |zoom| Fit::Xyz {
+            left: None,
+            top: None,
+            zoom: Some(zoom),
+        };
+        let Object::Array(a) = dest_array(ObjRef::new(3, 0), &letter(Rotation::None), &xyz(0.0)) else {
+            panic!("an array");
+        };
+        assert_eq!(a[4], Object::Null);
+        assert!(fit_is_valid(&xyz(2.0)) && !fit_is_valid(&xyz(-1.0)) && !fit_is_valid(&xyz(f64::NAN)));
     }
 
     #[test]
