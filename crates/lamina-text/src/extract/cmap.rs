@@ -205,12 +205,14 @@ impl CMap {
 
     fn fallback_len(&self, bytes: &[u8], default_len: usize) -> usize {
         let first = bytes.first().copied().unwrap_or_default();
+        let fits =
+            |s: &&CodeSpace| s.lo.first().is_some_and(|&lo| lo <= first) && s.hi.first().is_some_and(|&hi| first <= hi);
         self.codespace
             .iter()
-            .filter(|s| s.lo.first().is_some_and(|&lo| lo <= first) && s.hi.first().is_some_and(|&hi| first <= hi))
-            .chain(self.codespace.iter())
+            .filter(fits)
             .map(|s| s.lo.len())
-            .next()
+            .min()
+            .or_else(|| self.codespace.iter().map(|s| s.lo.len()).min())
             .unwrap_or(default_len)
     }
 
@@ -747,6 +749,12 @@ mod tests {
     fn a_code_outside_every_codespace_takes_the_range_length_of_its_first_byte() {
         let cmap = CMap::parse(b"1 begincodespacerange <8140> <9FFC> endcodespacerange");
         assert_eq!(cmap.next_code(&[0x81, 0x20], 1), Some((code(0x8120, 2), 2)));
+    }
+
+    #[test]
+    fn an_unmatched_code_takes_the_shortest_fitting_range_length() {
+        let cmap = CMap::parse(b"2 begincodespacerange <81000000> <81FFFFFF> <8140> <81FF> endcodespacerange");
+        assert_eq!(cmap.next_code(&[0x81, 0x20, 0x41], 1), Some((code(0x8120, 2), 2)));
     }
 
     #[test]
