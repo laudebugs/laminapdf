@@ -3,11 +3,11 @@
 | Field | Value |
 | --- | --- |
 | ID | `B9c` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [pdf-library §7 B9](../../plans/pdf-library.md#b9-text-extraction) |
 | Round / milestone | Round B (library) — M2 Web reader v0.1 (prerequisite) |
 | Depends on | [B6b](../done/B6b-lamina-pdf-package.md), [B6c](../done/B6c-runtime-matrix.md), [B9d](../done/B9d-text-runs-quads-and-page-text.md) |
-| Blocks | [L3b](./L3b-extract-tables-and-serialisers.md), [L4a](./L4a-lamina-cli.md), [C5a](./C5a-text-layer-and-selection.md), [C5b](./C5b-find-in-document.md), [C6c](./C6c-print-download-properties.md), [E2a](./E2a-page-organisation-feature-plan.md), [E2e](./E2e-content-append-api.md), [E3i](./E3i-extraction.md), [E7a](./E7a-adr-0022-content-editing.md) |
+| Blocks | [L3b](../ready/L3b-extract-tables-and-serialisers.md), [L4a](../ready/L4a-lamina-cli.md), [C5a](../ready/C5a-text-layer-and-selection.md), [C5b](../ready/C5b-find-in-document.md), [C6c](../ready/C6c-print-download-properties.md), [E2a](../ready/E2a-page-organisation-feature-plan.md), [E2e](../ready/E2e-content-append-api.md), [E3i](../ready/E3i-extraction.md), [E7a](../ready/E7a-adr-0022-content-editing.md) |
 | ADRs | Follows 0023, 0016 (module placement: extraction lives in the text module or base — decide by size), [0018](../../decisions/0018-test-strategy.md) tiers 6 and 9 |
 | Branch | `feat/b9c-text-bindings` |
 | PR title | `feat(pdf): page.text() in WASM and TypeScript with differential and quad tests` |
@@ -70,7 +70,7 @@ Expose text extraction everywhere the readers need it and prove it against indep
 ## Docs to update
 
 - [ ] [pdf-library §10 B9](../../plans/pdf-library.md#10-to-dos): tick "expose `page.text()` …" and "Extraction tests … quad tests … fuzz target"
-- [ ] Docs site guide "Extracting text" (if [B7a](./B7a-docs-site.md) merged)
+- [ ] Docs site guide "Extracting text" (if [B7a](../ready/B7a-docs-site.md) merged)
 - [ ] Web plan C5 can now reference the API (parent updates web-app.md)
 
 ## Risks and open questions
@@ -80,7 +80,7 @@ Expose text extraction everywhere the readers need it and prove it against indep
 
 ## Definition of done
 
-- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [x] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
 - [ ] Work PR opened from a fresh worktree; **PR** field filled in
 - [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
 - [ ] CI green

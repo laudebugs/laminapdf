@@ -50,7 +50,7 @@ The text module is a **superset**, not an add-on: a document that needs text is 
 
 To make the base module exclude text, `lamina-build` gained a `text` feature (default on): without it, the builder has no fonts, no text runs or boxes, and doesn't link `lamina-text`. The façade's `text` feature now implies a new `build` feature (the builder alone).
 
-Text *extraction* (B9b's `page.text()`) is not part of either module yet; [B9c](../todos/ready/B9c-text-extraction-bindings-and-differential.md) binds it and decides, by measurement against these budgets, whether it joins base, text, or a third `extract` module.
+Text *extraction* (B9b's `page.text()`) is not part of either module yet; [B9c](../todos/ongoing/B9c-text-extraction-bindings-and-differential.md) binds it and decides, by measurement against these budgets, whether it joins base, text, or a third `extract` module.
 
 ### 5. Measurements and the shrinking pass
 

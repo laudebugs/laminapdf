@@ -41,7 +41,7 @@ Ship the WASM build of the core with sizes we can defend. The `krilla-fit` spike
 - The TS API package `@lamina/pdf`, publint/attw: [B6b](../done/B6b-lamina-pdf-package.md).
 - Runtime matrix in CI: [B6c](../done/B6c-runtime-matrix.md).
 - Edge `ByteSource`s for the web (Blob, OPFS, HTTP range): web C3.
-- Text extraction bindings: [B9c](../ready/B9c-text-extraction-bindings-and-differential.md).
+- Text extraction bindings: [B9c](../ongoing/B9c-text-extraction-bindings-and-differential.md).
 
 ## Tasks
 
