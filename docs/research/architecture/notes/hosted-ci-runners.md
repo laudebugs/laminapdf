@@ -33,7 +33,7 @@ Notes:
 
 ## 3. Measured run times (2026-10-29 and 2026-10-30)
 
-Only two days of runs exist in the window (the repository's CI history starts on 2026-10-28). The pace is agent-driven and may not match a normal month.
+The sample covers the CI, Full lane and Nightly runs created on those two days (291 runs, 5 of whose job lists failed to load). The pace is agent-driven and may not match a normal month.
 
 | Measure | Value |
 | --- | --- |
@@ -50,8 +50,8 @@ Estimates used below: **Linux x64 ≈ 6 min** on 4 vCPU (rounded up from the Lin
 | Linux x64 + Windows x64 run on | Blacksmith | CircleCI | GitHub-hosted |
 | --- | --- | --- | --- |
 | Every code run (≈ 1,170) | **≈ $230** (Linux $56 + Windows $187 − $12 free) | ≈ $360 (Linux $84 + Windows $281 − $18 free + $15 plan) | ≈ $340 (Linux $84 + Windows $257) |
-| Linux every code run, Windows on `main` only (≈ 420) | **≈ $110** (Linux $56 + Windows $67 − $12) | ≈ $180 (Linux $84 + Windows $101 − $18 + $15) | ≈ $175 (Linux $84 + Windows $92) |
-| Both on `main` only | **≈ $75** (Linux $20 + Windows $67 − $12) | ≈ $130 (Linux $30 + Windows $101 − $18 + $15) | ≈ $120 (Linux $30 + Windows $92) |
+| Linux every code run, Windows on `main` only (≈ 420) | **≈ $110** (Linux $56 + Windows $67 − $12) | ≈ $180 (Linux $84 + Windows $101 − $18 + $15) | ≈ $177 (Linux $84 + Windows $92) |
+| Both on `main` only | **≈ $75** (Linux $20 + Windows $67 − $12) | ≈ $130 (Linux $30 + Windows $101 − $18 + $15) | ≈ $123 (Linux $30 + Windows $92) |
 
 - Sensitivity: every extra 5 min of Windows time adds ≈ $94/month (Blacksmith, every code run) or ≈ $34 (`main` only).
 - Not included: cancelled runs, first cold builds on each runner, per-minute rounding. Allow 10–20% on top.
