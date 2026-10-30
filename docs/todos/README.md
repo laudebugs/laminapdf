@@ -12,7 +12,7 @@ New todos start from [`TEMPLATE.md`](TEMPLATE.md). The workflow is in [git workf
 
 IDs: `A`/`P`/`X` [architecture](../plans/architecture.md) (foundations, publishing, cross-cutting), `B` [library](../plans/pdf-library.md), `L` [shareable libraries](../plans/shareable-libraries.md) (contracts, worker, extraction, CLI, agent docs, mobile), `C` [web reader](../plans/web-app.md), `D` [desktop reader](../plans/desktop-app.md), `U` [UI/UX](../plans/ui-ux.md), `E` [editor](../plans/full-editor.md), `H` hosted service ([full-editor](../plans/full-editor.md)). A letter suffix (`B2a`, `B2b`) splits a round into PRs.
 
-**3 ongoing · 209 ready · 31 done** (243 total).
+**2 ongoing · 209 ready · 32 done** (243 total).
 
 ## Can start now
 
@@ -23,7 +23,6 @@ Ready todos whose dependencies are all done:
 ## Ongoing
 
 - [B6a](ongoing/B6a-lamina-wasm-and-adr-0016.md): `lamina-wasm`, `@lamina/wasm` build, ADR 0016 and size budgets
-- [L6a](ongoing/L6a-lamina-ffi-spike.md): `lamina-ffi` spike (start right after B5c): UniFFI over the façade, XCFramework and AARs, size report, ADR 0029
 - [U2b](ongoing/U2b-reading-order-ground-truth.md): Reading-order ground-truth corpus and metric
 
 ## Architecture — Round A
@@ -84,8 +83,8 @@ Ready todos whose dependencies are all done:
 | L4c | [`lamina mcp`: a stdio MCP server over the CLI commands, with `--root` and read-only defaults](ready/L4c-mcp-mode.md) | ready | [L4a](ready/L4a-lamina-cli.md) |
 | L4d | [CLI distribution: release binaries with cargo-dist, Homebrew tap and an npm wrapper](ready/L4d-cli-distribution.md) | ready | [L4a](ready/L4a-lamina-cli.md), [P1](ready/P1-reserve-names-and-trusted-publishing.md) |
 | L5a | [Docs for agents: `llms.txt`, Markdown twins, docs shipped in the packages, `AGENTS.md` snippet, rename log and an agent-eval baseline](ready/L5a-agent-docs.md) | ready | [B7a](ready/B7a-docs-site.md), [L1b](ready/L1b-error-contract-codegen.md) |
-| L6a | [`lamina-ffi` spike (start right after B5c): UniFFI over the façade, XCFramework and AARs, size report, ADR 0029](ongoing/L6a-lamina-ffi-spike.md) | ongoing | [B5c](done/B5c-lamina-facade-and-examples.md), [L1a](done/L1a-contract-adrs.md) |
-| L6b | [Mobile SDK plan: `LaminaView` (SwiftUI) and `LaminaViewer` (Compose), rounds and todos](ready/L6b-mobile-sdk-plan.md) | ready | [L6a](ongoing/L6a-lamina-ffi-spike.md), [C2b](ready/C2b-lamina-render-crate.md), [U3b](ready/U3b-mobile-shell-spike.md) |
+| L6a | [`lamina-ffi` spike (start right after B5c): UniFFI over the façade, XCFramework and AARs, size report, ADR 0029](done/L6a-lamina-ffi-spike.md) | done | [B5c](done/B5c-lamina-facade-and-examples.md), [L1a](done/L1a-contract-adrs.md) |
+| L6b | [Mobile SDK plan: `LaminaView` (SwiftUI) and `LaminaViewer` (Compose), rounds and todos](ready/L6b-mobile-sdk-plan.md) | ready | [L6a](done/L6a-lamina-ffi-spike.md), [C2b](ready/C2b-lamina-render-crate.md), [U3b](ready/U3b-mobile-shell-spike.md) |
 
 ## Web reader — Round C
 

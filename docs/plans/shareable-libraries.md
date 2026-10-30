@@ -97,7 +97,7 @@ Numbers 0020–0023 are reserved by editor and library todos, and 0024–0025 by
 | [0026](../decisions/0026-error-and-diagnostic-contract.md) (Accepted, owner 2026-10-29) | Error and diagnostic contract: JSON shape, `hint`/`docsUrl` rules, no document text in messages, `explain` pages | [L1a](../todos/done/L1a-contract-adrs.md) | Extends ADR 0003's codes |
 | [0027](../decisions/0027-coordinates-units-and-page-indexing.md) (Accepted, owner 2026-10-29) | Coordinates, units and page indexing in public APIs | [L1a](../todos/done/L1a-contract-adrs.md) | New; constrains B5 builder and B9 extraction |
 | [0028](../decisions/0028-facade-rules-jobs-and-cancellation.md) (Accepted, owner 2026-10-29) | Façade rules, jobs, cancellation and progress across bindings | [L1a](../todos/done/L1a-contract-adrs.md) | Fills in ADR 0002 §3; informs proposed ADR 0009 |
-| 0029 | Mobile bindings and packaging: UniFFI pin, idiomatic Swift/Kotlin layer, SPM only, AAR layout | [L6a](../todos/ongoing/L6a-lamina-ffi-spike.md) | Fills in ADR 0002 §5; does not change it |
+| 0029 | Mobile bindings and packaging: UniFFI pin, idiomatic Swift/Kotlin layer, SPM only, AAR layout | [L6a](../todos/done/L6a-lamina-ffi-spike.md) | Fills in ADR 0002 §5; does not change it |
 | 0030 | Extraction output (`lamina.extract/1`) and model plug-ins | [L3a](../todos/ready/L3a-lamina-extract-reading-order.md) | Follows ADR 0001 and proposed ADR 0023 |
 | 0031 | CLI and MCP contract: grammar, exit codes, JSON/NDJSON versioning, MCP security defaults | [L4a](../todos/ready/L4a-lamina-cli.md) | New; reuses ADR 0026 errors |
 
@@ -142,7 +142,7 @@ Each round is split into todos (one PR each) on the [todo board](../todos/README
 
 ### L6. Mobile
 
-**Todos:** [L6a](../todos/ongoing/L6a-lamina-ffi-spike.md) (`lamina-ffi` spike, ADR 0029), [L6b](../todos/ready/L6b-mobile-sdk-plan.md) (mobile SDK plan).
+**Todos:** [L6a](../todos/done/L6a-lamina-ffi-spike.md) (`lamina-ffi` spike, ADR 0029), [L6b](../todos/ready/L6b-mobile-sdk-plan.md) (mobile SDK plan).
 
 **Deliverable:** a spike that binds the B5c façade with UniFFI, builds an XCFramework and AARs, runs open/extract/save from Swift and Kotlin tests, and reports per-ABI sizes; then a mobile plan (`LaminaView` for SwiftUI, `LaminaViewer` for Compose; tiles, memory trimming, stylus to `/Ink`, accessibility, SPM and Maven Central) with its own rounds and todos.
 **Accepted when:** the spike README answers "does the façade bind without changes?" with measurements; the plan is reviewed and its todos are on the board.
@@ -158,7 +158,7 @@ This plan adjusts these todos (edited in the same PR):
 - [C3a](../todos/ready/C3a-viewer-worker-rpc.md) depends on L2a: the viewer reuses `@lamina/pdf/worker` instead of a second protocol.
 - [C2a](../todos/ready/C2a-render-adrs.md): ADR 0004 picks the render backend per surface (desktop, web, edge, mobile) using hayro's measured wasm size.
 - [L3a](../todos/ready/L3a-lamina-extract-reading-order.md) depends on [U2b](../todos/ongoing/U2b-reading-order-ground-truth.md) (UI/UX plan): reading order is measured on its ground-truth corpus, and the reader's copy and reader mode reuse `lamina-extract`'s ordering.
-- [L6a](../todos/ongoing/L6a-lamina-ffi-spike.md) feeds [U3b](../todos/ready/U3b-mobile-shell-spike.md) (`mobile-shell` spike, ADR 0025); [L6b](../todos/ready/L6b-mobile-sdk-plan.md) waits for U3b. U3b decides lamina's own mobile apps; L6 is the SDK for other developers, which needs UniFFI either way.
+- [L6a](../todos/done/L6a-lamina-ffi-spike.md) feeds [U3b](../todos/ready/U3b-mobile-shell-spike.md) (`mobile-shell` spike, ADR 0025); [L6b](../todos/ready/L6b-mobile-sdk-plan.md) waits for U3b. U3b decides lamina's own mobile apps; L6 is the SDK for other developers, which needs UniFFI either way.
 - [E10d](../todos/ready/E10d-pades-signing-core.md): the `Signer` is two-phase (`prepare` returns the digest, `finish` takes the signature) so WebCrypto, the Secure Enclave and HSMs fit a synchronous core.
 
 ## 9. To-dos
@@ -194,7 +194,7 @@ This plan adjusts these todos (edited in the same PR):
 
 ### L6. Mobile
 
-- [ ] `lamina-ffi` spike right after B5c with UniFFI `=0.32.x`, XCFramework and AARs, size report; ADR 0029
+- [x] `lamina-ffi` spike right after B5c with UniFFI `=0.32.x`, XCFramework and AARs, size report; ADR 0029
 - [ ] Mobile SDK plan with rounds and todos
 
 ## 10. Risks
@@ -219,4 +219,4 @@ Decided (project owner, 2026-10-29), recorded in the [roadmap](roadmap.md#decisi
 Still open:
 
 1. **Render default per surface** (proposed ADR 0004): PDFium (~2.15 MB gz in wasm) for desktop; hayro may suit edge and mobile if C1a's fidelity holds.
-2. **Facts to verify before the dependent todos start:** androidx.pdf release state (1.0.0-beta01 vs alpha19), Safari `Symbol.dispose`, whether Workers can compile wasm from bytes, Marker's and Docling's licences ([report: items to verify](../research/libraries/shareable-libraries.md#items-to-verify-before-planning)). Kotlin cancellation in UniFFI 0.32 is verified by the L6a spike: cancelling a `suspend` call drops the Rust future ([spike README](../../spikes/lamina-ffi/README.md#cancellation)). New from L6a: UniFFI is MPL-2.0; the owner allowed it for the UniFFI crates (2026-10-30), as an exception in `deny.toml` ([ADR 0029](../decisions/0029-mobile-bindings-and-packaging.md) item 1).
+2. **Facts to verify before the dependent todos start:** androidx.pdf release state (checked by L6a, 2026-10-30: 1.0.0-beta01 of 26 August 2026, no stable yet), Safari `Symbol.dispose`, whether Workers can compile wasm from bytes, Marker's and Docling's licences ([report: items to verify](../research/libraries/shareable-libraries.md#items-to-verify-before-planning)). Kotlin cancellation in UniFFI 0.32 is verified by the L6a spike: cancelling a `suspend` call drops the Rust future ([spike README](../../spikes/lamina-ffi/README.md#cancellation)). New from L6a: UniFFI is MPL-2.0; the owner allowed it for the UniFFI crates (2026-10-30), as an exception in `deny.toml` ([ADR 0029](../decisions/0029-mobile-bindings-and-packaging.md) item 1).

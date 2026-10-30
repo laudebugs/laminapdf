@@ -52,7 +52,7 @@ Make ADR 0026's error shape real on every surface, from one file. `fixtures/code
 
 - The CLI `explain` command and exit-code mapping: [L4a](./L4a-lamina-cli.md).
 - The docs-site code table and error pages: [B7a](./B7a-docs-site.md) (it can consume this generator's `--md` output if L1b merges first; B7a does not depend on L1b, see the order note under Risks); shipping the pages inside packages: [L5a](./L5a-agent-docs.md).
-- Swift and Kotlin error types: [L6a](../ongoing/L6a-lamina-ffi-spike.md).
+- Swift and Kotlin error types: [L6a](../done/L6a-lamina-ffi-spike.md).
 - `lamina.extract/1` and other output schemas: [L3a](./L3a-lamina-extract-reading-order.md), [L4b](./L4b-cli-batch-render-schema.md).
 
 ## Tasks

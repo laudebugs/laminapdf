@@ -3,16 +3,16 @@
 | Field | Value |
 | --- | --- |
 | ID | `L6a` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [shareable-libraries §7 L6](../../plans/shareable-libraries.md#l6-mobile), principles [§4](../../plans/shareable-libraries.md#4-principles-recommendations-recorded-in-adrs-00260031) (1, 4), open questions [§11](../../plans/shareable-libraries.md#11-open-questions) (1, 2) |
 | Round / milestone | Round L6 (shareable libraries) — Mobile |
-| Depends on | [B5c](../done/B5c-lamina-facade-and-examples.md), [L1a](../done/L1a-contract-adrs.md) |
+| Depends on | [B5c](./B5c-lamina-facade-and-examples.md), [L1a](./L1a-contract-adrs.md) |
 | Blocks | [L6b](../ready/L6b-mobile-sdk-plan.md) |
 | ADRs | Writes **0029** (mobile bindings and packaging); fills in [0002 §5](../../decisions/0002-binding-strategy.md#decision) without changing it; follows 0028 (façade rules, jobs, cancellation) and 0026 (errors) from [L1a](../done/L1a-contract-adrs.md), [0001](../../decisions/0001-core-language-and-licence.md), [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) |
 | Branch | `spike/l6a-lamina-ffi` |
 | PR title | `spike(ffi): bind the lamina façade with UniFFI for Swift and Kotlin; ADR 0029` |
 | Size | L (spike code ≈ 600–1,000 lines incl. Swift/Kotlin tests and scripts; ADR and README extra) |
-| PR | [#80](https://github.com/laudebugs/lamina/pull/80) (spike merged; L6a stays ongoing until the Mac run and the licence decision) |
+| PR | [#80](https://github.com/laudebugs/lamina/pull/80) |
 
 ## Goal
 
@@ -59,28 +59,28 @@ Answer one question with measurements before any mobile SDK work: **does the B5c
 
 ## Tasks
 
-- [ ] Load `/rust-best-practices` (not installed in the session that started the spike; it followed `docs/guidelines/rust.md` and clippy `-D warnings` instead) and follow [docs/guidelines/rust.md](../../guidelines/rust.md) (the spike is throwaway-quality but keeps no `unwrap` in exported paths; every `unsafe`, if any, has `// SAFETY:`); read the Context links and ADR 0002, 0028
+- [x] Load `/rust-best-practices` (not installed in the session that started the spike, which followed `docs/guidelines/rust.md` and clippy `-D warnings`; loaded for the Mac-half fixes) and follow [docs/guidelines/rust.md](../../guidelines/rust.md) (the spike is throwaway-quality but keeps no `unwrap` in exported paths; every `unsafe`, if any, has `// SAFETY:`); read the Context links and ADR 0002, 0028
 - [x] Decide spike vs edge crate (recommendation above) and say so in the PR description (spike; the product crate is L6b)
 - [x] Create `spikes/lamina-ffi/{Cargo.toml,src/lib.rs,uniffi.toml,README.md,scripts/}`; pin `uniffi`, cargo-swift and cargo-ndk versions; licence-check new dependencies (`cargo deny` in the spike: passes with the owner's MPL-2.0 exception for the UniFFI crates in `deny.toml`, 2026-10-30)
 - [x] `scripts/build-ios.sh`, `scripts/build-android.sh`, `scripts/size-report.sh` (writes a Markdown table into the README), `scripts/check-alignment.sh`
-- [ ] Swift package `spikes/lamina-ffi/swift/` with XCTest (written; not yet run: needs the Mac run); Kotlin/Gradle project `spikes/lamina-ffi/kotlin/` with JVM tests (11 passing)
-- [ ] Build and test with UniFFI `=0.32.x` (Rust and Kotlin done; Swift pending); confirm zero-copy `&[u8]` input reaches Rust without a copy in the generated Swift and Kotlin code
-- [ ] Cancellation prototype on both platforms (Kotlin verified: the future is dropped; Swift pending); **verify Kotlin cancellation semantics in UniFFI 0.32** (does cancelling the coroutine drop the Rust future, and does our `Drop` set the flag?) with a test that observes the flag
-- [ ] Panic test on both platforms under `mobile-release` (Kotlin passes; Swift pending)
+- [x] Swift package `spikes/lamina-ffi/swift/` with XCTest (10 of 10 on macOS and the iOS simulator); Kotlin/Gradle project `spikes/lamina-ffi/kotlin/` with JVM tests (11 passing)
+- [x] Build and test with UniFFI `=0.32.x` (Rust, Kotlin and Swift; zero-copy confirmed in both generated bindings); confirm zero-copy `&[u8]` input reaches Rust without a copy in the generated Swift and Kotlin code
+- [x] Cancellation prototype on both platforms (Kotlin: the future is dropped; Swift: never dropped by the generated code, so the layer cancels through Rust); **verify Kotlin cancellation semantics in UniFFI 0.32** (does cancelling the coroutine drop the Rust future, and does our `Drop` set the flag?) with a test that observes the flag
+- [x] Panic test on both platforms under `mobile-release` (both pass)
 - [x] List every façade change UniFFI forced (none; five edge-only adaptations in the spike README) (expected: none if ADR 0028 holds); file each as a follow-up against B5c if any
-- [x] Write ADR 0029 (Proposed, three open items); add it to `docs/decisions/README.md` and the [architecture §3 table](../../plans/architecture.md#3-decisions-to-record-adrs)
+- [x] Write ADR 0029 (Accepted; its three open items closed); add it to `docs/decisions/README.md` and the [architecture §3 table](../../plans/architecture.md#3-decisions-to-record-adrs)
 - [x] Spike README: question, answer, measurements, how to reproduce (rustup targets `aarch64-apple-ios-sim`, `x86_64-linux-android`, etc. installed by the scripts, not added to the root `rust-toolchain.toml` unless ADR 0029 decides so); add the spike to `CLAUDE.md` and the spikes list
 
 ## Acceptance criteria
 
-- [ ] The spike README answers "does the façade bind without changes?" with a yes or a list of the changes needed, each with the UniFFI rule that forced it
-- [ ] Swift XCTest and Kotlin JVM tests pass for open → page count → page sizes → text (or info) → `set_info` → save → reopen, and the saved bytes are identical between Swift, Kotlin and Rust for the same input
-- [ ] Cancelling a running job from Swift (`Task.cancel()`) and Kotlin (`job.cancel()`) stops it within one step and surfaces `Cancelled`; the Kotlin drop behaviour under the chosen pin is recorded
-- [ ] A deliberate panic in a test export becomes a Swift error and a Kotlin exception under `mobile-release` (not a process abort)
-- [ ] Size table per ABI and slice, with and without `text`, is in the README
-- [ ] Every Android `.so` is 16 KB page-aligned (script output in the README)
-- [ ] ADR 0029 is merged (status Accepted or Proposed with named open items) and records the 0.32 pin, its reasons and the upgrade policy
-- [ ] The spike is outside both workspaces: `cargo xtask check` is unaffected
+- [x] The spike README answers "does the façade bind without changes?" with a yes or a list of the changes needed, each with the UniFFI rule that forced it
+- [x] Swift XCTest and Kotlin JVM tests pass for open → page count → page sizes → text (or info) → `set_info` → save → reopen, and the saved bytes are identical between Swift, Kotlin and Rust for the same input
+- [x] Cancelling a running job from Swift (`Task.cancel()`) and Kotlin (`job.cancel()`) stops it within one step and surfaces `Cancelled`; the Kotlin drop behaviour under the chosen pin is recorded
+- [x] A deliberate panic in a test export becomes a Swift error and a Kotlin exception under `mobile-release` (not a process abort)
+- [x] Size table per ABI and slice, with and without `text`, is in the README
+- [x] Every Android `.so` is 16 KB page-aligned (script output in the README)
+- [x] ADR 0029 is merged (status Accepted or Proposed with named open items) and records the 0.32 pin, its reasons and the upgrade policy
+- [x] The spike is outside both workspaces: `cargo xtask check` is unaffected
 
 ## Post-merge checks
 
@@ -95,9 +95,9 @@ None.
 
 ## Docs to update
 
-- [ ] [shareable-libraries §9 L6](../../plans/shareable-libraries.md#9-to-dos): tick "`lamina-ffi` spike …; ADR 0029"; answer open questions 1 and 2 in [§11](../../plans/shareable-libraries.md#11-open-questions)
-- [ ] `docs/decisions/README.md`, [architecture §3](../../plans/architecture.md#3-decisions-to-record-adrs); ADR 0002 gets a "see ADR 0029" note (no change to its decision)
-- [ ] `CLAUDE.md` (spike entry and how to run it), `spikes/lamina-ffi/README.md`
+- [x] [shareable-libraries §9 L6](../../plans/shareable-libraries.md#9-to-dos): tick "`lamina-ffi` spike …; ADR 0029"; answer open questions 1 and 2 in [§11](../../plans/shareable-libraries.md#11-open-questions)
+- [x] `docs/decisions/README.md`, [architecture §3](../../plans/architecture.md#3-decisions-to-record-adrs); ADR 0002 gets a "see ADR 0029" note (no change to its decision)
+- [x] `CLAUDE.md` (spike entry and how to run it), `spikes/lamina-ffi/README.md`
 
 ## Risks and open questions
 
@@ -110,8 +110,8 @@ None.
 
 ## Definition of done
 
-- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
-- [ ] Work PR opened from a fresh worktree; **PR** field filled in
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
-- [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [x] Work PR opened from a fresh worktree; **PR** field filled in
+- [x] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
+- [x] CI green
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
