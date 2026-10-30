@@ -83,6 +83,40 @@ pub enum Error {
         /// What is invalid (fixed text).
         what: &'static str,
     },
+    /// A text box's lines don't all fit its height, and its options asked for an error
+    /// rather than clipping ([`Overflow::Error`](crate::Overflow::Error)).
+    #[error("the text needs {needed} lines, the box holds {fits}")]
+    TextOverflow {
+        /// The lines that fit.
+        fits: usize,
+        /// The lines the text needs.
+        needed: usize,
+    },
+    /// A link, outline item or destination names a page index the document doesn't have.
+    #[error("page index {index} is out of range: the document has {count} pages")]
+    PageIndexOutOfRange {
+        /// The 0-based index given.
+        index: u32,
+        /// The number of pages.
+        count: usize,
+    },
+    /// A link or outline item names a destination that [`Builder::destination`](crate::Builder::destination)
+    /// never defined.
+    #[error("no named destination with this name was defined")]
+    UnknownDestination {
+        /// The name (**untrusted**: caller text).
+        name: String,
+    },
+    /// Page label ranges that don't start at page 0, aren't in increasing order, start past
+    /// the last page or number from 0.
+    #[error("invalid page label ranges: {what}")]
+    InvalidPageLabels {
+        /// What is wrong (fixed text).
+        what: &'static str,
+    },
+    /// Shaping, laying out or embedding text failed (`missing-glyph`, `invalid-feature`, …).
+    #[error(transparent)]
+    Text(#[from] lamina_text::Error),
     /// Reading or writing the document's objects failed.
     #[error(transparent)]
     Cos(#[from] lamina_cos::Error),
@@ -100,6 +134,10 @@ impl Error {
         "color-components",
         "invalid-color",
         "invalid-geometry",
+        "text-overflow",
+        "page-index-out-of-range",
+        "unknown-destination",
+        "invalid-page-labels",
     ];
 
     /// A stable kebab-case code for this error.
@@ -114,6 +152,11 @@ impl Error {
             Self::ColorComponents { .. } => "color-components",
             Self::InvalidColor { .. } => "invalid-color",
             Self::InvalidGeometry { .. } => "invalid-geometry",
+            Self::TextOverflow { .. } => "text-overflow",
+            Self::PageIndexOutOfRange { .. } => "page-index-out-of-range",
+            Self::UnknownDestination { .. } => "unknown-destination",
+            Self::InvalidPageLabels { .. } => "invalid-page-labels",
+            Self::Text(e) => e.code(),
             Self::Cos(e) => e.code(),
         }
     }
@@ -127,22 +170,28 @@ impl Error {
     pub const fn kind(&self) -> ErrorKind {
         match self {
             Self::Cos(e) => e.kind(),
+            Self::Text(e) => e.kind(),
             Self::InvalidImage { .. } | Self::InvalidIccProfile { .. } => ErrorKind::Input,
             Self::UnsupportedImage { .. } => ErrorKind::Unsupported,
             Self::ImageTooLarge { .. } => ErrorKind::Limit,
             Self::ImageDataLength { .. }
             | Self::ColorComponents { .. }
             | Self::InvalidColor { .. }
-            | Self::InvalidGeometry { .. } => ErrorKind::Usage,
+            | Self::InvalidGeometry { .. }
+            | Self::TextOverflow { .. }
+            | Self::PageIndexOutOfRange { .. }
+            | Self::UnknownDestination { .. }
+            | Self::InvalidPageLabels { .. } => ErrorKind::Usage,
         }
     }
 
-    /// Where the error was found (ADR 0026 §1.1): a COS error's position; the builder's own
+    /// Where the error was found (ADR 0026 §1.1): a COS or text error's position; the builder's own
     /// errors are about the caller's inputs, which have no position in a document.
     #[must_use]
     pub fn location(&self) -> Location {
         match self {
             Self::Cos(e) => e.location(),
+            Self::Text(e) => e.location(),
             Self::InvalidImage { .. }
             | Self::UnsupportedImage { .. }
             | Self::ImageTooLarge { .. }
@@ -150,7 +199,11 @@ impl Error {
             | Self::InvalidIccProfile { .. }
             | Self::ColorComponents { .. }
             | Self::InvalidColor { .. }
-            | Self::InvalidGeometry { .. } => Location::NONE,
+            | Self::InvalidGeometry { .. }
+            | Self::TextOverflow { .. }
+            | Self::PageIndexOutOfRange { .. }
+            | Self::UnknownDestination { .. }
+            | Self::InvalidPageLabels { .. } => Location::NONE,
         }
     }
 }
@@ -179,6 +232,10 @@ mod tests {
             Error::ColorComponents { expected: 3, actual: 1 },
             Error::InvalidColor { text: String::new() },
             Error::InvalidGeometry { what: "w" },
+            Error::TextOverflow { fits: 1, needed: 2 },
+            Error::PageIndexOutOfRange { index: 3, count: 1 },
+            Error::UnknownDestination { name: String::new() },
+            Error::InvalidPageLabels { what: "w" },
         ]
     }
 
@@ -196,6 +253,20 @@ mod tests {
     fn a_cos_error_keeps_its_kind_and_code() {
         let e = Error::from(lamina_cos::Error::RepairedBase);
         assert_eq!((e.code(), e.kind()), ("repaired-base", ErrorKind::State));
+    }
+
+    #[test]
+    fn a_text_error_keeps_its_kind_and_code() {
+        let e = Error::from(lamina_text::Error::InvalidFeature { feature: String::new() });
+        assert_eq!((e.code(), e.kind()), ("invalid-feature", ErrorKind::Usage));
+    }
+
+    #[test]
+    fn the_message_never_contains_the_destination_name() {
+        let e = Error::UnknownDestination {
+            name: "IgnorePreviousInstructions".into(),
+        };
+        assert!(!e.to_string().contains("Ignore"));
     }
 
     #[test]

@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [shareable-libraries §7 L6](../../plans/shareable-libraries.md#l6-mobile), principles [§4](../../plans/shareable-libraries.md#4-principles-recommendations-recorded-in-adrs-00260031) (1, 4), open questions [§11](../../plans/shareable-libraries.md#11-open-questions) (1, 2) |
 | Round / milestone | Round L6 (shareable libraries) — Mobile |
-| Depends on | [B5c](./B5c-lamina-facade-and-examples.md), [L1a](../done/L1a-contract-adrs.md) |
+| Depends on | [B5c](../ongoing/B5c-lamina-facade-and-examples.md), [L1a](../done/L1a-contract-adrs.md) |
 | Blocks | [L6b](./L6b-mobile-sdk-plan.md) |
 | ADRs | Writes **0029** (mobile bindings and packaging); fills in [0002 §5](../../decisions/0002-binding-strategy.md#decision) without changing it; follows 0028 (façade rules, jobs, cancellation) and 0026 (errors) from [L1a](../done/L1a-contract-adrs.md), [0001](../../decisions/0001-core-language-and-licence.md), [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) |
 | Branch | `spike/l6a-lamina-ffi` |
@@ -16,7 +16,7 @@
 
 ## Goal
 
-**Timing (decided (project owner, 2026-10-29)):** start as soon as [B5c](./B5c-lamina-facade-and-examples.md) merges, in parallel with B6, so façade problems surface before `@lamina/pdf` fixes the TypeScript API.
+**Timing (decided (project owner, 2026-10-29)):** start as soon as [B5c](../ongoing/B5c-lamina-facade-and-examples.md) merges, in parallel with B6, so façade problems surface before `@lamina/pdf` fixes the TypeScript API.
 
 Answer one question with measurements before any mobile SDK work: **does the B5c façade bind to Swift and Kotlin through UniFFI without changes?** Bind open, page count and sizes, extraction and save; build an XCFramework (via cargo-swift) and AARs (via cargo-ndk); run the same scenario from Swift and Kotlin tests; prototype cancellation on top of ADR 0028's `CancelToken`; report sizes per ABI. Record the binding and packaging decisions in ADR 0029 (UniFFI pin, idiomatic Swift/Kotlin layer, SPM only, Maven Central AARs, 16 KB page alignment, panic profile).
 

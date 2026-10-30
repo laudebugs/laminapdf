@@ -1,8 +1,8 @@
-//! Fonts and text layout for generated PDFs (todos B4a, B4b; [ADR 0005] §6): load TrueType/OpenType/CFF fonts and
+//! Fonts and text layout for generated PDFs (todos B4a, B4b, B4d; [ADR 0005] §6): load TrueType/OpenType/CFF fonts and
 //! collection members from caller-supplied bytes, pick variable-font instances, track the
 //! glyphs a document uses, and at the end write each font as a deterministic subset: a Type 0
 //! font with Identity-H, a `CIDFontType2` (TrueType outlines, `/FontFile2`,
-//! `/CIDToGIDMap /Identity`) or `CIDFontType0` (CFF outlines, `/FontFile3 /CIDFontType0C`)
+//! `/CIDToGIDMap /Identity`, or a stream once a glyph has several CIDs) or `CIDFontType0` (CFF outlines, `/FontFile3 /CIDFontType0C`)
 //! descendant with compressed `/W` widths, and a ToUnicode CMap, so text is selectable and
 //! extractable (ISO 32000-2 §9.6–9.10; research 03 §3.5–6).
 //!
@@ -30,8 +30,9 @@
 //! * [`FsType`] / [`EmbedPolicy`]: a restricted-licence or bitmap-only font fails with
 //!   [`Error::FontNotEmbeddable`] unless the caller overrides; a "no subsetting" font is
 //!   embedded whole.
-//! * [`FontUse`]: per font, glyph → CID (dense, in order of first use) and CID → text.
-//!   One glyph used for two texts keeps the first and reports [`Warning::ToUnicodeConflict`].
+//! * [`FontUse`]: per font, one CID per (glyph, text) (dense, in order of first use) and
+//!   CID → text, so every use extracts exactly. With CFF outlines a glyph keeps one CID and
+//!   its first text, and a second text reports [`Warning::ToUnicodeConflict`].
 //! * [`FontRegistry`]: per document; [`FontRegistry::reference`] reserves the font object in
 //!   the overlay at first use, [`FontRegistry::encode`] / [`FontRegistry::use_glyph`] return
 //!   the bytes to show ([`GlyphCode`]: a two-byte CID or a one-byte code),
@@ -57,7 +58,8 @@
 //! * [`BidiParagraph`]: UAX #9 levels and per-line visual runs; [`line_breaks`]: UAX #14
 //!   break opportunities; [`grapheme_boundaries`]: UAX #29.
 //! * [`itemize`] and [`break_lines`]: runs of one script, level and font; greedy lines in a
-//!   box, measured by shaping, reordered and aligned.
+//!   box, measured by shaping, reordered and aligned; draw a line's runs in
+//!   [`Line::drawing_order`].
 //! * [`pdf_run`]: a shaped run as `TJ` arrays, `Ts` rises, ToUnicode entries and `/ActualText`
 //!   spans.
 //!
@@ -71,7 +73,9 @@
 //! let mut fonts = FontRegistry::new();
 //! let key = fonts.add(font, EmbedPolicy::Respect)?;
 //! for line in &lines {
-//!     for run in &line.runs {
+//!     // Runs in logical order (each still at its own `x`), so extractors read right-to-left
+//!     // lines in order.
+//!     for run in line.drawing_order().into_iter().filter_map(|i| line.runs.get(i)) {
 //!         let pdf = pdf_run(&run.run, text, &mut fonts, key)?;
 //!         assert!(!pdf.pieces.is_empty()); // write each piece's segments as `Ts` + `TJ`
 //!     }
@@ -116,7 +120,7 @@ pub use font::{Axis, Font, FontInfo, GlyphId, MAX_NAME_LEN, Tag};
 pub use fstype::{EmbedPolicy, FsType};
 pub use itemize::{Item, itemize};
 pub use layout::{Alignment, LayoutOptions, Line, LineRun, break_lines};
-pub use linebreak::{BreakOpportunity, grapheme_boundaries, line_breaks};
+pub use linebreak::{BreakOpportunity, grapheme_boundaries, is_hard_break, is_trailing_space, line_breaks};
 pub use pdfpos::{PdfPiece, PdfRun, PdfSegment, TjElement, pdf_run};
 pub use shape::{Direction, Feature, HarfRust, Script, ShapeOptions, ShapedGlyph, ShapedRun, Shaper};
 pub use simple::SimpleUse;

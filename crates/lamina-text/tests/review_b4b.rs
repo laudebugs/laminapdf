@@ -111,11 +111,12 @@ fn a7_justify_is_refused() {
     assert_eq!(err.code(), "unsupported-layout-option");
 }
 
-/// B1: empty text is a text like any other: a glyph first used for nothing keeps that, and a
-/// later real text is a conflict (not a silent overwrite).
+/// B1: empty text is a text like any other: in a CFF font (one CID per glyph, B4d), a glyph
+/// first used for nothing keeps that, and a later real text is a conflict (not a silent
+/// overwrite).
 #[test]
 fn b1_empty_then_real_text_conflicts() {
-    let font = latin();
+    let font = font("NotoSans-Regular.otf");
     let a = font.glyph_for('a').unwrap();
     let mut fonts = FontRegistry::new();
     let key = fonts.add(font, EmbedPolicy::Respect).unwrap();
@@ -135,16 +136,32 @@ fn b1_empty_then_real_text_conflicts() {
     assert!(matches!(fonts.warnings(), [Warning::ToUnicodeConflict { .. }]));
 }
 
-/// B1: a real text then an empty one is a conflict too.
+/// B1: a real text then an empty one is a conflict too (CFF).
 #[test]
 fn b1_real_then_empty_text_conflicts() {
-    let font = latin();
+    let font = font("NotoSans-Regular.otf");
     let a = font.glyph_for('a').unwrap();
     let mut fonts = FontRegistry::new();
     let key = fonts.add(font, EmbedPolicy::Respect).unwrap();
     fonts.use_glyph(key, a, "a").unwrap();
     fonts.use_glyph(key, a, "").unwrap();
     assert!(matches!(fonts.warnings(), [Warning::ToUnicodeConflict { .. }]));
+}
+
+/// B1 with TrueType outlines (B4d): the empty and the real text each get a CID, no warning.
+#[test]
+fn b1_empty_and_real_text_get_two_cids_in_a_truetype_font() {
+    let font = latin();
+    let a = font.glyph_for('a').unwrap();
+    let mut fonts = FontRegistry::new();
+    let key = fonts.add(font, EmbedPolicy::Respect).unwrap();
+    let empty = fonts.use_glyph(key, a, "").unwrap().cid().unwrap();
+    let real = fonts.use_glyph(key, a, "a").unwrap().cid().unwrap();
+    let text = fonts.usage(key).unwrap().embedded().unwrap().text().clone();
+    assert_eq!(
+        (text[&empty].as_str(), text[&real].as_str(), fonts.warnings().len()),
+        ("", "a", 0)
+    );
 }
 
 /// B2: a default-ignorable character (ZWJ, drawn as a hidden space glyph) never becomes a
@@ -169,10 +186,12 @@ fn b2_default_ignorables_get_no_glyph_text() {
     assert_eq!(usage.text()[&space_cid], " ");
 }
 
-/// B3: a cluster with a glyph that stands for no text gets `/ActualText`, so extractors that
-/// honour it don't depend on the empty ToUnicode entry.
+/// B3, revised by B4d: a glyph that stands for no text (Noto Sans Arabic's separate dots) is
+/// drawn with a CID that is a format character's code point (pdf.js, which reads an empty
+/// ToUnicode destination as the code, then skips it), mapped to `<>`, and its cluster needs
+/// no `/ActualText`.
 #[test]
-fn b3_clusters_with_textless_glyphs_get_actual_text() {
+fn b3_textless_glyphs_get_format_character_cids_and_no_actual_text() {
     let font = font("NotoSansArabic-Regular.ttf");
     let text = "بالعالم";
     let run = HarfRust.shape(&font, text, &ShapeOptions::new()).unwrap();
@@ -190,25 +209,10 @@ fn b3_clusters_with_textless_glyphs_get_actual_text() {
         .map(|(c, _)| *c)
         .collect();
     assert!(!empty.is_empty(), "the fixture draws the beh's dot as its own glyph");
-    for piece in &pdf.pieces {
-        let codes: Vec<u16> = piece
-            .segments
-            .iter()
-            .flat_map(|s| &s.tj)
-            .filter_map(|e| match e {
-                TjElement::Codes(c) => Some(
-                    c.chunks(2)
-                        .map(|p| u16::from_be_bytes([p[0], p[1]]))
-                        .collect::<Vec<_>>(),
-                ),
-                TjElement::Adjust(_) => None,
-            })
-            .flatten()
-            .collect();
-        if codes.iter().any(|c| empty.contains(c)) {
-            assert!(piece.actual_text.is_some(), "{piece:?}");
-        }
-    }
+    assert!(
+        empty.iter().all(|&c| (0x200B..=0x200F).contains(&c)) && !pdf.needs_actual_text(),
+        "{empty:X?} {pdf:?}"
+    );
 }
 
 /// B4: the `TJ` corrections use the widths `/W` is written with, also for a variable-font

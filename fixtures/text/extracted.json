@@ -2,10 +2,15 @@
   "pypdf_version": "6.21.3",
   "pdfjs_version": "6.4.299",
   "qpdf_version": "12.4.2",
+  "poppler_version": "26.10.0",
   "files": {
     "text-cff.pdf": {
       "sha256": "5a86c6148c539f2d6fa57d35396449feee7db718f121909f5bf8b1a1e5fd0a29",
       "pypdf": [
+        "CFF outlines: Ådne’s naïve café",
+        "你好世界，这是中文字体子集测试。"
+      ],
+      "pdftotext": [
         "CFF outlines: Ådne’s naïve café",
         "你好世界，这是中文字体子集测试。"
       ],
@@ -23,6 +28,12 @@
         "The office staff fill the affine waffle flask first.",
         "Bold maths: 𝐀𝐁𝐂 = ABC"
       ],
+      "pdftotext": [
+        "Hello, world!",
+        "Café crème brûlée, naïve façade: “curly” and ‘single’ quotes",
+        "The office staff fill the affine waffle flask first.",
+        "Bold maths: 𝐀𝐁𝐂 = ABC"
+      ],
       "qpdf_check": true,
       "pdfjs": [
         "Hello, world!",
@@ -32,27 +43,37 @@
       ]
     },
     "text-shaped.pdf": {
-      "sha256": "3dca26d40d69e1aa29ed1cd085532ad0407076eb821dbe90d240aa33b7a95e2b",
+      "sha256": "8efe72c6fa34bc64c0ea25dd257b5848d8a038e8a3dfe849715d98a48ee3455e",
       "pypdf": [
         "The office staff fill the affine waffle flask first. AVATAR",
         "Wave: To Yo!",
         "CFF outlines: office, AVATAR.",
         "مرحبا بالعالم، السلام عليكم",
-        "שלום עולם, שָׁלוֹם עוֹלָם ",
-        "नमस्ते दुिनया। िहन्दी पाठ का परीक्षण कमर्",
+        "שָׁלוֹם עוֹלָם , שלום עולם",
+        "नमस्ते दुनिया। हिन्दी पाठ का परीक्षण कर्म",
         "你好世界，这是中文字体子集测试。汉字排版与文本提取",
         "The words שלום עולם and مرحبا بالعالم mean hello."
+      ],
+      "pdftotext": [
+        "The office staff fill the affine waffle flask first. AVATAR",
+        "Wave: To Yo!",
+        "CFF outlines: office, AVATAR.",
+        "‫ السلام عليكم‬،‫مرحبا بالعالم‬",
+        "‫ שלום עולם‬,‫ָשׁ לוֹם עוֹלָ ם‬",
+        "नमस्ते दुनिया। हिन्दी पाठ का परीक्षण कर्म",
+        "你好世界，这是中文字体子集测试。汉字排版与文本提取",
+        "The words ‫ שלום עולם‬and ‫ مرحبا بالعالم‬mean hello."
       ],
       "qpdf_check": true,
       "pdfjs": [
         "The office staff fill the affine waffle flask first. AVATAR",
         "Wave: To Yo!",
         "CFF outlines: office, AVATAR.",
-        "كمي\u0003العالم، السلام علب\u0011 اب\u0011مرح",
-        "שלום עולם ,לוֹם עוֹלָםָׁש",
-        "नमस्ते दु िनया। िहन्दी पाठ का परीक्षण कमर्",
+        "مرحبا بالعالم، السلام عليكم",
+        "שָׁלוֹם עוֹלָם,שלום עולם",
+        "नमस्ते दु निया। हिन्दी पाठ का परीक्षण कर्म",
         "你好世界，这是中文字体子集测试。汉字排版与文本提取",
-        "The words שלום עולם and العالمب\u0011 ا\u0011 بمرح mean hello."
+        "The words שלום עולם and مرحبا بالعالم mean hello."
       ]
     },
     "text-std14.pdf": {
@@ -72,6 +93,24 @@
         "Times-BoldItalic: Ça va… très «bien» ‰",
         "αβγ π ∑ ≤ ∞ €",
         "✔ ✈ ❤ ☎",
+        "Łódź, Kraków − Şişli",
+        "Țară, Ğğ İı őű"
+      ],
+      "pdftotext": [
+        "Courier: Hello, world! 0123456789",
+        "Courier-Bold: {braces} [brackets] <angles>",
+        "Courier-Oblique: café, naïve, façade",
+        "Courier-BoldOblique: 50% off ~ $9.99",
+        "Helvetica: “Curly” ‘quotes’ — and dashes – too",
+        "Helvetica-Bold: Euro € pound £ yen ¥",
+        "Helvetica-Oblique: Ærøskøbing, Þórshöfn, Œuvre",
+        "Helvetica-BoldOblique: ½ ¼ ¾ © ® ™ § ¶",
+        "Times-Roman: The quick brown fox jumps over the lazy dog.",
+        "Times-Bold: Grüße aus Köln • München",
+        "Times-Italic: ¿Qué tal? ¡Muy bien!",
+        "Times-BoldItalic: Ça va… très «bien» ‰",
+        "αβγ π ∑ ≤ ∞ €",
+        "✔✈❤☎",
         "Łódź, Kraków − Şişli",
         "Țară, Ğğ İı őű"
       ],
@@ -98,6 +137,11 @@
     "text-variable-collection.pdf": {
       "sha256": "309f91cd50271aa97ce2f579d3d8f02c9be9839e97d084ab67e68853dc888190",
       "pypdf": [
+        "Variable font, default instance",
+        "Variable font, wght 700 instance",
+        "Collection member 1: Noto Sans Bold"
+      ],
+      "pdftotext": [
         "Variable font, default instance",
         "Variable font, wght 700 instance",
         "Collection member 1: Noto Sans Bold"

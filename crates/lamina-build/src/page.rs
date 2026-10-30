@@ -3,10 +3,11 @@
 use lamina_cos::{Dict, Name, Object, Stream};
 use lamina_model::{PageFrame, PageId, Pt, RectPt, Rotation, UserSpaceRect};
 
+use crate::annot::link::{PendingLink, link_dict};
 use crate::builder::Target;
 use crate::error::{Error, Result};
 use crate::resources::PageResources;
-use crate::surface::Surface;
+use crate::surface::{Surface, TextTarget};
 
 /// A page size in points (physical: `/UserUnit` is applied when the page is written).
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -183,11 +184,40 @@ impl<'b> PageBuilder<'b> {
     /// soft masks and `ExtGState` transparency: 1.4) raise it through the catalog's `/Version`
     /// when the build finishes.
     ///
+    /// Text is encoded with the document's fonts now (glyphs recorded for subsetting and
+    /// ToUnicode); links get their object numbers now and their targets when the build
+    /// finishes. `/ActualText` raises the version to 1.5.
+    ///
     /// # Errors
     /// [`Error::InvalidGeometry`] for a size, box or `/UserUnit` that isn't finite and
-    /// positive, or for the first invalid value given to the [`Surface`]; [`Error::Cos`] when object numbers run out
+    /// positive, or for the first invalid value given to the [`Surface`]; [`Error::Text`]
+    /// for a font from another builder (`unknown-font`); [`Error::Cos`] when object numbers run out
     /// ([`Limits::max_object_number`](lamina_cos::Limits::max_object_number)).
-    pub fn finish(self) -> Result<PageId> {
+    ///
+    /// A page that fails leaves nothing behind: the objects it wrote are rolled back, and the
+    /// glyphs, fonts, resources and links it recorded are forgotten.
+    pub fn finish(mut self) -> Result<PageId> {
+        let mark = self.target.doc.journal_mark();
+        let state = &*self.target.state;
+        let fonts = self.surface.has_text().then(|| state.fonts.clone());
+        let resources = state.resources.clone();
+        let (links, required) = (state.links.len(), state.required);
+        let written = self.write();
+        if written.is_err() {
+            // Should the rollback fail too, the first error is the one to report.
+            let _ = self.target.doc.rollback_to(mark);
+            let state = &mut *self.target.state;
+            if let Some(fonts) = fonts {
+                state.fonts = fonts;
+            }
+            state.resources = resources;
+            state.links.truncate(links);
+            state.required = required;
+        }
+        written
+    }
+
+    fn write(&mut self) -> Result<PageId> {
         if let Some(what) = self.surface.error() {
             return Err(Error::InvalidGeometry { what });
         }
@@ -217,21 +247,54 @@ impl<'b> PageBuilder<'b> {
             self.target.state.require((1, 6));
         }
         let mut resources = PageResources::default();
-        let content = self.surface.render(&frame, &mut resources);
-        let state = self.target.state;
+        let state = &mut *self.target.state;
+        let rendered = self.surface.render(
+            &frame,
+            &mut resources,
+            &mut TextTarget {
+                fonts: &mut state.fonts,
+                doc: &*self.target.doc,
+            },
+        )?;
         state.require(resources.required_version());
         let mut cos = self.target.doc.edit();
         page.insert("Resources", resources.write(&mut cos, &mut state.resources)?);
+        let content = rendered.content;
         let stream = if state.compress {
             Stream::flate(Dict::new(), &content)
         } else {
             Stream::new(Dict::new(), content)
         };
         page.insert("Contents", cos.create(Object::Stream(stream))?);
+        if !rendered.links.is_empty() {
+            // Reserved now, written when the build finishes: a link may name a later page.
+            let mut annots = Vec::with_capacity(rendered.links.len());
+            for (rect, link) in rendered.links {
+                let object = cos.document().reserve_number()?;
+                annots.push(Object::Ref(object));
+                state.links.push(PendingLink {
+                    object,
+                    dict: link_dict(&rect, link.contents.as_deref()),
+                    target: link.target,
+                });
+            }
+            page.insert("Annots", Object::Array(annots));
+        }
         let r = cos.create(Object::Dict(page))?;
         state.pages.push(r);
+        state.frames.push(frame);
         Ok(PageId::object(r))
     }
+}
+
+/// A count as an integer object (saturating; counts never get near `i64::MAX`).
+pub(crate) fn count(n: usize) -> Object {
+    Object::Integer(count_i64(n))
+}
+
+/// A count as an `i64` (saturating).
+pub(crate) fn count_i64(n: usize) -> i64 {
+    i64::try_from(n).unwrap_or(i64::MAX)
 }
 
 /// `[x0 y0 x1 y1]`, integers where exact.

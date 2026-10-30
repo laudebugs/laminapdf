@@ -7,7 +7,7 @@
 | Plan | [pdf-library §7 B4](../../plans/pdf-library.md#b4-fonts-and-text), requirement [§4 F2](../../plans/pdf-library.md#functional) |
 | Round / milestone | Round B (library) — M1 |
 | Depends on | [B4a](./B4a-font-loading-and-subsetting.md) |
-| Blocks | [B5b](../ongoing/B5b-builder-text-and-document-features.md), [B8b](../ready/B8b-conformance-profiles-and-verapdf.md), [B9b](../ready/B9b-text-extraction-core.md), [E4e](../ready/E4e-freetext-callouts.md), [E6c](../ready/E6c-add-text.md), [E13c](../ready/E13c-ocr-text-layer.md), [E16c](../ready/E16c-images-and-fonts.md) |
+| Blocks | [B5b](./B5b-builder-text-and-document-features.md), [B8b](../ready/B8b-conformance-profiles-and-verapdf.md), [B9b](../ready/B9b-text-extraction-core.md), [E4e](../ready/E4e-freetext-callouts.md), [E6c](../ready/E6c-add-text.md), [E13c](../ready/E13c-ocr-text-layer.md), [E16c](../ready/E16c-images-and-fonts.md) |
 | ADRs | Follows [0001](../../decisions/0001-core-language-and-licence.md) (licences of bundled metrics, determinism), [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) |
 | Branch | `feat/b4c-standard-14` |
 | PR title | `feat(text): standard 14 fonts with bundled AFM metrics and simple-font encodings` |

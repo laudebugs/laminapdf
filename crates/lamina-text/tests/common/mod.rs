@@ -244,6 +244,8 @@ pub struct ReadFont {
     pub program_dict: Dict,
     /// The decoded ToUnicode CMap.
     pub to_unicode: String,
+    /// The decoded `/CIDToGIDMap` stream (`None` for `/Identity` or no entry).
+    pub cid_to_gid: Option<Vec<u8>>,
 }
 
 /// Opens `pdf` with lamina-cos and reads every font in the first page's `/Resources /Font`,
@@ -273,6 +275,10 @@ pub fn read_fonts(pdf: &[u8]) -> Vec<ReadFont> {
                 .unwrap();
             let (program_dict, program) = stream(file);
             let (_, cmap) = stream(type0.get("ToUnicode").unwrap());
+            let cid_to_gid = cid_font
+                .get("CIDToGIDMap")
+                .filter(|o| matches!(&*doc.deref(o).unwrap(), Object::Stream(_)))
+                .map(|o| stream(o).1);
             ReadFont {
                 resource: String::from_utf8_lossy(resource.as_bytes()).into_owned(),
                 type0,
@@ -281,6 +287,7 @@ pub fn read_fonts(pdf: &[u8]) -> Vec<ReadFont> {
                 program,
                 program_dict,
                 to_unicode: String::from_utf8(cmap).unwrap(),
+                cid_to_gid,
             }
         })
         .collect::<Vec<_>>()
