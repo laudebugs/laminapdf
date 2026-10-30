@@ -33,7 +33,9 @@ fn the_fixture_file_extracts_both_fonts() {
 BT /F1 12 Tf 72 700 Td (AB) Tj /F2 12 Tf <0001> Tj ET";
     let doc = lamina_model::Document::open(fixture_file(cmap), lamina_model::OpenOptions::default()).unwrap();
     let pages = doc.pages().unwrap();
-    let text = lamina_text::TextExtractor::new().page(&doc, &pages.get(0).unwrap()).unwrap();
+    let text = lamina_text::TextExtractor::new()
+        .page(&doc, &pages.get(0).unwrap())
+        .unwrap();
     assert_eq!(text.lines(), ["\u{391}fiA"]);
 }
 

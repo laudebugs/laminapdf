@@ -31,7 +31,10 @@ pub fn extract_text(data: &[u8]) {
             continue;
         };
         for run in &text.runs {
-            assert!(run.glyphs.start <= run.glyphs.end && run.glyphs.end <= text.glyphs.len(), "run glyphs in range");
+            assert!(
+                run.glyphs.start <= run.glyphs.end && run.glyphs.end <= text.glyphs.len(),
+                "run glyphs in range"
+            );
         }
         for glyph in &text.glyphs {
             for p in glyph.quad {
@@ -61,7 +64,10 @@ pub fn fixture_file(data: &[u8]) -> Vec<u8> {
             dict([
                 ("Type", Object::name("Encoding")),
                 ("BaseEncoding", Object::name("WinAnsiEncoding")),
-                ("Differences", vec![65.into(), Object::name("Alpha"), Object::name("f_i")].into()),
+                (
+                    "Differences",
+                    vec![65.into(), Object::name("Alpha"), Object::name("f_i")].into(),
+                ),
             ])
             .into(),
         ),

@@ -209,6 +209,10 @@ fn page_text_crosses_as_a_struct_of_arrays() {
     let quads: Float32Array = get(&text, "quads").dyn_into().unwrap();
     assert_eq!(quads.length(), glyphs * 8);
     assert_eq!(string(&text, "glyphText").as_deref(), Some("Hello, world!"));
-    let err = doc.page(0).unwrap().text(&js(r#"{"skipInvisibles":true}"#)).unwrap_err();
+    let err = doc
+        .page(0)
+        .unwrap()
+        .text(&js(r#"{"skipInvisibles":true}"#))
+        .unwrap_err();
     assert_eq!(string(&err, "code").as_deref(), Some("unknown-option"));
 }
