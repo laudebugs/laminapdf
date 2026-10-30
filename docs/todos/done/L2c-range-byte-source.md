@@ -3,16 +3,16 @@
 | Field | Value |
 | --- | --- |
 | ID | `L2c` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [shareable-libraries §7 L2](../../plans/shareable-libraries.md#l2-typescript-hardening) |
 | Round / milestone | Round L2 (shareable libraries) |
-| Depends on | [B2d](../done/B2d-windowed-reading.md), [B6b](../done/B6b-lamina-pdf-package.md) |
+| Depends on | [B2d](./B2d-windowed-reading.md), [B6b](./B6b-lamina-pdf-package.md) |
 | Blocks | None |
 | ADRs | Implements the edge half of [0005](../../decisions/0005-document-model.md) §2 (`SourceError::Pending` → `Error::DataPending { ranges }`, edge `ByteSource`s); follows [0001](../../decisions/0001-core-language-and-licence.md) (bytes-in/bytes-out core), [0003](../../decisions/0003-reader-tolerance-and-limits.md) (`Limits` bound what is fetched), 0026 and 0028 (codes, cancellation; from [L1a](../done/L1a-contract-adrs.md)), [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) (new crate dependencies) |
 | Branch | `feat/l2c-range-byte-source` |
 | PR title | `feat(core): range byte sources with DataPending at the edges (HTTP range, JS callback, mmap)` |
 | Size | L (≈ 500–800 lines of Rust, TS and tests) |
-| PR | — |
+| PR | [#91](https://github.com/laudebugs/lamina/pull/91) |
 
 ## Goal
 
@@ -71,32 +71,32 @@ Open large and remote PDFs without downloading or loading them whole, while the 
 
 ## Tasks
 
-- [ ] Load the `/rust-best-practices` skill and follow [docs/guidelines/rust.md](../../guidelines/rust.md). Re-read ADR 0005 §2 and B2d's `source.rs` on `main`. `lamina-cos` stays core: no fs, net, clocks or threads (`cargo xtask portability`)
-- [ ] `crates/lamina-source/src/sparse.rs`:
-  - [ ] `SparseSource` (interval map of supplied chunks, merge, byte budget)
-  - [ ] Unit tests for gaps, overlaps, out-of-range supply and the budget
-- [ ] `open_with` retry helper:
-  - [ ] Stop when a retry asks for the same ranges again (no progress)
-  - [ ] Cap the rounds via `Limits` or an option, failing with a coded error (`data-pending` with the last ranges)
-- [ ] `lamina-wasm`: `SparseSource` class; `DataPending` → `LaminaError { code: "data-pending", ranges }`
-- [ ] `packages/pdf/src/source/`: `RangeSource`, `httpRangeSource`, `callbackSource`, `Document.openRange`, `doc.ensure`. `AbortSignal` passes through to `fetch`. Never put document bytes or the URL in error messages (ADR 0026)
-- [ ] Add codes `source-changed` and `range-unsupported` (if a warning is wanted for the 200 fallback) to `fixtures/codes.json` and regenerate
-- [ ] `crates/lamina-source` (edge):
-  - [ ] `Cargo.toml` with `[package.metadata.lamina] layer = "edge"`
-  - [ ] `FileSource`; `MmapSource` behind `mmap`
-  - [ ] `cargo deny` passes
-- [ ] Wire `httpRangeSource` into [L2a](../ready/L2a-worker-client.md)'s worker if merged; otherwise leave a TODO in the worker README
-- [ ] README sections: remote files (CORS: `Range` triggers a preflight, `Content-Range`/`ETag` must be exposed; `Content-Encoding` breaks ranges), large local files (`FileSource` vs `MmapSource`)
+- [x] Load the `/rust-best-practices` skill and follow [docs/guidelines/rust.md](../../guidelines/rust.md). Re-read ADR 0005 §2 and B2d's `source.rs` on `main`. `lamina-cos` stays core: no fs, net, clocks or threads (`cargo xtask portability`)
+- [x] `crates/lamina-source/src/sparse.rs`:
+  - [x] `SparseSource` (interval map of supplied chunks, merge, byte budget)
+  - [x] Unit tests for gaps, overlaps, out-of-range supply and the budget
+- [x] `open_with` retry helper:
+  - [x] Stop when a retry asks for the same ranges again (no progress)
+  - [x] Cap the rounds via `Limits` or an option, failing with a coded error (`data-pending` with the last ranges)
+- [x] `lamina-wasm`: `SparseSource` class; `DataPending` → `LaminaError { code: "data-pending", ranges }`
+- [x] `packages/pdf/src/source/`: `RangeSource`, `httpRangeSource`, `callbackSource`, `Document.openRange`, `doc.ensure`. `AbortSignal` passes through to `fetch`. Never put document bytes or the URL in error messages (ADR 0026)
+- [x] Add codes `source-changed` and `range-unsupported` (if a warning is wanted for the 200 fallback) to `fixtures/codes.json` and regenerate (added `source-changed`, `fetch-failed` and the binding code `source-budget-exceeded`; no warning for the `200` fallback, which is a supported mode)
+- [x] `crates/lamina-source` (edge):
+  - [x] `Cargo.toml` with `[package.metadata.lamina] layer = "edge"`
+  - [x] `FileSource`; `MmapSource` behind `mmap`
+  - [x] `cargo deny` passes
+- [x] Wire `httpRangeSource` into [L2a](../ready/L2a-worker-client.md)'s worker if merged; otherwise leave a TODO in the worker README (L2a isn't merged: the note is in L2a's Context)
+- [x] README sections: remote files (CORS: `Range` triggers a preflight, `Content-Range`/`ETag` must be exposed; `Content-Encoding` breaks ranges), large local files (`FileSource` vs `MmapSource`)
 
 ## Acceptance criteria
 
-- [ ] For every `fixtures/corpus` file, opening through `SparseSource` + `open_with` (fetch closure reads from the file bytes) gives the same page count, objects, warnings and decoded streams as a `Vec<u8>` open
-- [ ] Total bytes supplied is less than the file size for every corpus file over 256 KiB with an intact xref (or a generated 1 MiB multi-page file), matching B2d's criterion
-- [ ] TS: against a local test HTTP server that logs requests, `Document.openRange(httpRangeSource(url))` gives the same results as `Document.open(bytes)`, and the logged ranges cover less than the file for the same files. Reading page *n* fetches only that page's objects (asserted on the log)
-- [ ] TS: a server that ignores `Range` (answers `200`) still opens the file with one full download; a server whose `ETag` changes mid-read fails with `source-changed`; aborting the signal rejects and leaves no request running
-- [ ] TS: a lazy call (`doc.page(n)`) on a range document that needs more data works through `doc.ensure`, and throws `data-pending` with ranges when called bare
-- [ ] Rust: `FileSource` over each corpus file equals a `Vec<u8>` open; truncating the file mid-read gives a `SourceError`, not a panic. `MmapSource` passes the same parity test
-- [ ] `cargo xtask portability` still passes; `lamina-source` is the only crate with fs or `unsafe` code added
+- [x] For every `fixtures/corpus` file, opening through `SparseSource` + `open_with` (fetch closure reads from the file bytes) gives the same page count, objects, warnings and decoded streams as a `Vec<u8>` open
+- [x] Total bytes supplied is less than the file size for every corpus file over 256 KiB with an intact xref (or a generated 1 MiB multi-page file), matching B2d's criterion
+- [x] TS: against a local test HTTP server that logs requests, `Document.openRange(httpRangeSource(url))` gives the same results as `Document.open(bytes)`, and the logged ranges cover less than the file for the same files. Reading page *n* fetches only that page's objects (asserted on the log)
+- [x] TS: a server that ignores `Range` (answers `200`) still opens the file with one full download; a server whose `ETag` changes mid-read fails with `source-changed`; aborting the signal rejects and leaves no request running
+- [x] TS: a lazy call (`doc.page(n)`) on a range document that needs more data works through `doc.ensure`, and throws `data-pending` with ranges when called bare
+- [x] Rust: `FileSource` over each corpus file equals a `Vec<u8>` open; truncating the file mid-read gives a `SourceError`, not a panic. `MmapSource` passes the same parity test
+- [x] `cargo xtask portability` still passes; `lamina-source` is the only crate with fs or `unsafe` code added
 
 ## Post-merge checks
 
@@ -110,11 +110,11 @@ None.
 
 ## Docs to update
 
-- [ ] [shareable-libraries §9 L2](../../plans/shareable-libraries.md#9-to-dos): tick the range `ByteSource` to-do
-- [ ] `crates/lamina-source/README.md` (sparse sources, `open_with`, native sources), `packages/pdf/README.md` (remote and large files)
-- [ ] `CLAUDE.md` (layout: `crates/lamina-source`; reading API paragraph mentions range sources)
-- [ ] ADR 0005 §2: implementation note naming `SparseSource` and the edge crate
-- [ ] [C4c](../ready/C4c-remote-files-encryption-privacy.md): a Context line pointing at `httpRangeSource`, so the viewer wraps it instead of duplicating it
+- [x] [shareable-libraries §9 L2](../../plans/shareable-libraries.md#9-to-dos): tick the range `ByteSource` to-do
+- [x] `crates/lamina-source/README.md` (sparse sources, `open_with`, native sources), `packages/pdf/README.md` (remote and large files)
+- [x] `CLAUDE.md` (layout: `crates/lamina-source`; reading API paragraph mentions range sources)
+- [x] ADR 0005 §2: implementation note naming `SparseSource` and the edge crate
+- [x] [C4c](../ready/C4c-remote-files-encryption-privacy.md): a Context line pointing at `httpRangeSource`, so the viewer wraps it instead of duplicating it
 
 ## Risks and open questions
 
@@ -127,7 +127,7 @@ None.
 ## Definition of done
 
 - [x] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
-- [ ] Work PR opened from a fresh worktree; **PR** field filled in
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
-- [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] Work PR opened from a fresh worktree; **PR** field filled in
+- [x] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
+- [x] CI green
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated

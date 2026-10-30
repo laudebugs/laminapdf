@@ -2,7 +2,7 @@
   "baseline": {
     "base": {
       "top": [
-        [106281, "data segments"],
+        [108369, "data segments"],
         [12024, "<lamina_build::page::PageBuilder>::write"],
         [10062, "sha2::sha512::compress512"],
         [8932, "<lamina_build::builder::Builder>::finish"],
@@ -23,6 +23,7 @@
           "<&mut serde_json::de::Deserializer<serde_json::read::StrRead> as serde_core::de::Deserializer>::deserialize_struct::<<lamina_wasm::dto::LimitsInit as serde_core::de::Deserialize>::deserialize::__Visitor>"
         ],
         [3429, "<lamina_cos::reader::Document>::open::<lamina_cos::source::Source>"],
+        [3394, "<lamina_cos::reader::Document>::open::<alloc::sync::Arc<dyn lamina_cos::source::ByteSource>>"],
         [3392, "<lamina_cos::reader::Document>::open::<alloc::vec::Vec<u8>>"],
         [
           3370,
@@ -30,7 +31,6 @@
         ],
         [3137, "<lamina_syntax::lexer::Lexer>::next_token"],
         [2957, "<lamina_save::full::FullWriter>::write::<lamina::document::Output>"],
-        [2949, "<lamina_wasm::document::WasmDocument>::open_bytes"],
         [2866, "<lamina_model::labels::PageLabels>::new"],
         [2789, "<miniz_oxide::deflate::core::HuffmanOxide>::optimize_table"],
         [
@@ -58,14 +58,14 @@
         [2311, "lamina_cos::reader::window::read_indirect"],
         [2279, "md5::compress::compress"]
       ],
-      "wasmGzip": 372711
+      "wasmGzip": 382000
     },
     "text": {
       "top": [
-        [549665, "data segments"],
+        [551757, "data segments"],
         [28913, "<skrifa::outline::glyf::hint::engine::Engine>::dispatch_inner"],
         [17233, "<subsetter::Context>::process"],
-        [15813, "\"data names\" subsection"],
+        [15798, "\"data names\" subsection"],
         [14574, "<lamina_build::page::PageBuilder>::write"],
         [13876, "<lamina_text::embed::FontRegistry>::finish_fonts"],
         [13203, "<harfrust::hb::ot_shape::OtShapeContext>::shape_internal"],
@@ -148,13 +148,13 @@
         [5756, "core::num::imp::flt2dec::strategy::dragon::format_shortest"],
         [5618, "read_fonts::ps::cff::dict::parse_entry"]
       ],
-      "wasmGzip": 943924
+      "wasmGzip": 952810
     }
   },
   "budgets": {
     "base": {
       "glueGzip": 5000,
-      "wasmGzip": 380000
+      "wasmGzip": 390000
     },
     "text": {
       "glueGzip": 5000,

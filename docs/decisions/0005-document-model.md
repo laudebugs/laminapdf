@@ -33,6 +33,8 @@ pub trait ByteSource: Send + Sync {
 - **Edge implementations:** mmap (desktop engine process), `FileReaderSync` over a `Blob`, and an HTTP-range cache over OPFS (`lamina-wasm`/web worker). None of these live in core crates.
 - For sources without `as_slice`, the COS layer reads a window around an offset (64 KiB, doubled up to the object's extent within `Limits`) and the parser works on that `&[u8]`. Repair scans in overlapping chunks.
 
+**Implementation note (L2c, the edge half):** the edge sources live in `crates/lamina-source` (layer `edge`). `SparseSource` is a source of known length filled by `supply(offset, bytes)` (chunks merged, a byte budget, gaps answer `Pending`); it is behind a lock, which is why it isn't in `lamina-cos` (§7). `retry` / `open_with` run the fetch-and-retry loop over `DataPending` (4 KiB blocks, only missing bytes; stops on no progress or a round cap). `FileSource` (feature `native`) reads with positioned reads; `MmapSource` (feature `mmap`, memmap2) maps the file and is only for files nothing changes (`SIGBUS`). The wasm edge exposes `WasmSparseSource` and `WasmDocument.openSource`; `@lamina/pdf` has `Document.openRange`, `doc.ensure`, `httpRangeSource` and `callbackSource`.
+
 **Implementation note (B2d, as built in `lamina-cos`):**
 
 - **Windows and growth.** Windows are 64 KiB and aligned. A parse starts on the window holding its offset. While the parser says it looked past the window's end (`Lexer::reached_end` / `Parser::reached_end` in `lamina-syntax`), the window doubles; only the new part is read. A parse that never looked past the end saw only bytes that are the same as in the whole input, so it gives the in-memory result exactly; byte offsets in its errors are moved back to input offsets.

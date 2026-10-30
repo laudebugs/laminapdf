@@ -29,6 +29,7 @@ lamina-syntax = { path = "crates/lamina-syntax", default-features = false }
 lamina-cos = { path = "crates/lamina-cos", default-features = false }
 lamina-model = { path = "crates/lamina-model" }
 lamina-ops = { path = "crates/lamina-ops" }
+lamina-source = { path = "crates/lamina-source" }
 lamina-save = { path = "crates/lamina-save" }
 lamina-content = { path = "crates/lamina-content" }
 lamina-text = { path = "crates/lamina-text" }
@@ -90,6 +91,8 @@ unicode-bidi = { version = "0.3.18", default-features = false, features = ["std"
 
 # Library errors. MIT OR Apache-2.0
 thiserror = { version = "2.0.21", default-features = false }
+# Memory-mapped files for lamina-source's opt-in `mmap` feature (MIT OR Apache-2.0).
+memmap2 = "0.9.12"
 # Binaries, xtask and tests only (never in library APIs). MIT OR Apache-2.0
 anyhow = "1.0.104"
 # Serialisable ops (ADR 0006 §1, §6): derive only. MIT OR Apache-2.0

@@ -5,6 +5,7 @@
 export type ErrorCode =
   | "builder-finished"
   | "invalid-argument"
+  | "source-budget-exceeded"
   | "unknown-option"
   | "invalid-image"
   | "unsupported-image"
@@ -49,7 +50,9 @@ export type ErrorCode =
   | "saved-not-rebased"
   | "no-pending-save"
   | "already-initialized"
+  | "fetch-failed"
   | "not-initialized"
+  | "source-changed"
   | "text-module-not-loaded"
   | "sink"
   | "not-rebased"
@@ -131,6 +134,7 @@ export type LimitName =
 export const ERROR_CODES: readonly ErrorCode[] = [
   "builder-finished",
   "invalid-argument",
+  "source-budget-exceeded",
   "unknown-option",
   "invalid-image",
   "unsupported-image",
@@ -175,7 +179,9 @@ export const ERROR_CODES: readonly ErrorCode[] = [
   "saved-not-rebased",
   "no-pending-save",
   "already-initialized",
+  "fetch-failed",
   "not-initialized",
+  "source-changed",
   "text-module-not-loaded",
   "sink",
   "not-rebased",
@@ -265,9 +271,17 @@ export const RAISED_BY_PACKAGE = {
     kind: "state",
     hint: "call init and loadText with a source once, before the first load; later calls need no source",
   },
+  "fetch-failed": {
+    kind: "io",
+    hint: "check that the URL is reachable and that the server sends the CORS headers range requests need (Content-Range must be exposed); data.reason and data.status say what failed",
+  },
   "not-initialized": {
     kind: "state",
     hint: "await init() once before calling anything else in @lamina/pdf",
+  },
+  "source-changed": {
+    kind: "io",
+    hint: "open the file again; the document already read parts of the old version and can't mix in the new one",
   },
   "text-module-not-loaded": {
     kind: "state",

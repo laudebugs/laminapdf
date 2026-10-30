@@ -29,6 +29,7 @@ text = ["build", "lamina/text"]
 [dependencies]
 lamina = { workspace = true }
 lamina-ops = { workspace = true, features = ["tsify"] }
+lamina-source = { workspace = true }
 js-sys = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
