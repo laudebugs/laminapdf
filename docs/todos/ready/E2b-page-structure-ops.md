@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [full-editor §E2](../../plans/full-editor.md#e2-page-organisation) |
 | Round / milestone | Editor phase 2 (E1–E3) — M5 Organiser |
-| Depends on | [B8a](./B8a-structure-tree.md), [B8b](./B8b-conformance-profiles-and-verapdf.md), [E1c](./E1c-metadata-ops.md), [E2a](./E2a-page-organisation-feature-plan.md) |
+| Depends on | [B8a](../ongoing/B8a-structure-tree.md), [B8b](./B8b-conformance-profiles-and-verapdf.md), [E1c](./E1c-metadata-ops.md), [E2a](./E2a-page-organisation-feature-plan.md) |
 | Blocks | [E2c](./E2c-cross-document-pages.md), [E2f](./E2f-page-geometry.md), [E2g](./E2g-page-labels.md), [E3b](./E3b-bookmarks-and-destinations.md), [E18b](./E18b-collaboration-feature-plan.md), [E18c](./E18c-layer-document-schema.md), [E18e](./E18e-client-sync-and-presence.md) |
 | ADRs | Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
 | Branch | `feat/e2b-page-structure-ops` |

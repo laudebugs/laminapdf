@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [full-editor §E6](../../plans/full-editor.md#e6-adding-content-to-pages) |
 | Round / milestone | Editor phase 4 (E6–E7) — M7 Content editor |
-| Depends on | [B8a](./B8a-structure-tree.md), [B8b](./B8b-conformance-profiles-and-verapdf.md), [E6c](./E6c-add-text.md) |
+| Depends on | [B8a](../ongoing/B8a-structure-tree.md), [B8b](./B8b-conformance-profiles-and-verapdf.md), [E6c](./E6c-add-text.md) |
 | Blocks | [E14d](./E14d-batch-runner.md) |
 | ADRs | Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
 | Branch | `feat/e6d-watermarks-headers-footers` |

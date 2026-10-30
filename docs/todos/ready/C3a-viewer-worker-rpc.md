@@ -24,7 +24,7 @@ Create `packages/viewer` and its foundation: one **document worker** per open do
 - ADR 0009 (from [C2a](./C2a-render-adrs.md)) — RPC requirements, single-threaded baseline, no Comlink.
 - [Research: the web client](../../research/architecture/app-and-package-architecture.md#the-web-client-is-react-chrome-around-an-imperative-viewer-core) — "fast scrolling cancels stale render jobs"; shell owns threads.
 - [web-frontend notes](../../research/architecture/notes/web-frontend.md) §2 (render path (b): rasterise in WASM, `createImageBitmap`, transfer) and §5 (custom RPC, COOP/COEP) and §6 (stream `File.slice()`; avoid double copies; OPFS).
-- [C1b result](./C1b-pdfium-wasm-spike.md) — chosen input strategy and instantiate timings.
+- [C1b result](../ongoing/C1b-pdfium-wasm-spike.md) — chosen input strategy and instantiate timings.
 - [web-app.md §4 functional 1–2, 10](../../plans/web-app.md#functional) and [privacy and security](../../plans/web-app.md#privacy-and-security) (hostile files crash the worker, not the page; password stays in worker memory).
 - [TypeScript guidelines](../../guidelines/typescript.md) — `@lamina/viewer` is a browser UI package (DOM globals allowed), still ESM-only, named exports, Vitest browser mode.
 
