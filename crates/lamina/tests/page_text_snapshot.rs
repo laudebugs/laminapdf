@@ -8,7 +8,7 @@
 //! `cargo xtask golden --update` rewrites the file through `write_snapshot` (ignored; it writes to
 //! `$LAMINA_SNAPSHOT_OUT`, never into `fixtures/`).
 #![cfg(feature = "extract")]
-#![expect(
+#![allow(
     clippy::unwrap_used,
     clippy::panic,
     clippy::float_arithmetic,
@@ -81,7 +81,11 @@ fn page_json(text: &lamina::extract::PageText) -> Value {
         .glyphs
         .iter()
         .map(|g| {
-            let quad: Vec<f64> = g.quad.iter().flat_map(|p| [coord(p.x.get()), coord(p.y.get())]).collect();
+            let quad: Vec<f64> = g
+                .quad
+                .iter()
+                .flat_map(|p| [coord(p.x.get()), coord(p.y.get())])
+                .collect();
             json!({ "text": g.text, "quad": quad })
         })
         .collect();

@@ -89,14 +89,20 @@ tasks:
   corpus fetch [--source <name>]… [--update-manifest]
                     check out the external corpora pinned in fixtures/corpus-manifest.toml into
                     target/corpus/ and verify every file's SHA-256 (--update-manifest rewrites the lists)
-  differential [--full] [--update]
+  differential [--full | --text] [--update]
                     lamina vs pypdf over the corpus and fixed-seed mutants, from the precomputed
                     fixtures/differential/expected.json; --update regenerates it with pypdf.
                     --full: the full lane's 36 mutants per corpus file instead (full.json),
                     run through cargo-nextest
+                    --text: lamina's page text vs pdf.js and pdftotext (whitespace and bidi
+                    controls removed) from fixtures/differential/text.json; --update regenerates
+                    it (tools/differential/text.mjs; pdftotext at the pinned poppler)
   differential --live [--corpus external|mutants|all] [--source <name>]… [--tools a,b] [--sample N]
                     nightly: lamina vs live pdf.js, PDFium, qpdf and pypdf over the external corpus
                     and 250 mutants per corpus file; report in target/nightly/differential/
+  quads [--update]  lamina's glyph quads vs PDFium's character boxes from the precomputed
+                    fixtures/text/charboxes.json; --update regenerates it (tools/render/charbox.py,
+                    pypdfium2 from tools/render/requirements.txt; $LAMINA_PYTHON or python3)
   roundtrip [--tools qpdf,pdfjs,pdfium]
                     lamina saves every fixture x proving op x mode, reopens each output and
                     checks it with qpdf --check, pdf.js and PDFium (needs qpdf, Node and
@@ -211,6 +217,7 @@ fn main() -> Result<()> {
         ("render-golden", [flag]) if flag == "--update" => render::run(&ws, true),
         ("corpus", [what]) if what == "facts" => harness::corpus_facts(&ws),
         ("corpus", [what, args @ ..]) if what == "fetch" => corpus::fetch(&ws, &corpus::parse_fetch_args(args)?),
+        ("quads", args) => harness::quads(&ws, args),
         ("differential", [flag, args @ ..]) if flag == "--live" => live::run_live(&ws, &live::parse_args(args)?),
         ("differential", args) => harness::differential(&ws, &harness::parse_differential_args(args)?),
         ("fuzz", [cmd, target]) if cmd == "tmin" => nightly::fuzz_tmin(&ws, harness::known_fuzz_target(target)?),
