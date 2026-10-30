@@ -885,10 +885,10 @@ The sizes are all within 2× of each other because none embeds a font. With a re
 
 **Registries (all versions in this chapter checked 2026-10-28)**
 - npm registry: https://registry.npmjs.org/ (pdf-lib, @cantoo/pdf-lib, pdfkit, jspdf, pdfmake, @react-pdf/renderer, pdfjs-dist, puppeteer, playwright, @pdfme/generator, unpdf, mupdf, @embedpdf/pdfium, @hyzyla/pdfium, @libpdf/core, muhammara, @vivliostyle/core, @vivliostyle/cli, pagedjs, @sparticuz/chromium)
-- PyPI JSON API: https://pypi.org/pypi/{name}/json (reportlab, fpdf2, weasyprint, pypdf, pikepdf, PyMuPDF, pypdfium2, pdfminer.six, pdfplumber, borb, xhtml2pdf, pyHanko, ocrmypdf)
+- PyPI JSON API: `https://pypi.org/pypi/{name}/json` (reportlab, fpdf2, weasyprint, pypdf, pikepdf, PyMuPDF, pypdfium2, pdfminer.six, pdfplumber, borb, xhtml2pdf, pyHanko, ocrmypdf)
 - crates.io API: https://crates.io/api/v1/crates/{name} (lopdf, printpdf, pdf-writer, krilla, pdf, hayro, pdfium-render, typst, typst-pdf, mupdf, pdf_oxide, oxidize-pdf, genpdf)
 - Maven Central: https://repo1.maven.org/maven2/ (org.apache.pdfbox:pdfbox, com.itextpdf:itext-core, com.github.librepdf:openpdf, org.xhtmlrenderer:flying-saucer-pdf, io.github.openhtmltopdf:openhtmltopdf-pdfbox, org.verapdf:validation-model-jakarta)
-- NuGet: https://api.nuget.org/v3-flatcontainer/ (QuestPDF, PDFsharp, PDFsharp-MigraDoc, itext, PdfPig)
+- NuGet: `https://api.nuget.org/v3-flatcontainer/` (QuestPDF, PDFsharp, PDFsharp-MigraDoc, itext, PdfPig)
 - Go module proxy: https://proxy.golang.org/ (gofpdf, go-pdf/fpdf, pdfcpu, unipdf/v4, gopdf, maroto/v2, go-pdfium, gotenberg/v8)
 - Puppeteer `PDFOptions` typings (puppeteer-core 25.16.0, `lib/types.d.ts`): `tagged` default `true`, `outline` default `false`
 
@@ -933,7 +933,7 @@ The sizes are all within 2× of each other because none embeds a font. With a re
 - veraPDF: https://verapdf.org/ ; https://github.com/veraPDF/veraPDF-library
 - Arlington PDF Model: https://pdfa.org/resource/arlington-pdf-model/ ; https://github.com/pdf-association/arlington-pdf-model ; SafeDocs research summary https://pdfa.org/safedocs-latest-research-into-securing-pdf/
 - Matterhorn Protocol: https://pdfa.org/resource/the-matterhorn-protocol/
-- PDF Association sample files: https://pdfa.org/resource/pdf-2-0-examples/ (and https://github.com/pdf-association/pdf20examples)
+- PDF Association sample files: https://github.com/pdf-association/pdf20examples
 - GovDocs1: https://digitalcorpora.org/corpora/file-corpora/files/
 - SafeDocs CC-MAIN-2021-31-PDF-UNTRUNCATED: https://digitalcorpora.org/corpora/file-corpora/cc-main-2021-31-pdf-untruncated/
 - OSS-Fuzz: https://github.com/google/oss-fuzz (projects: pdfium, poppler, mupdf, qpdf, ghostscript, xpdf)

@@ -192,11 +192,19 @@ fn the_ctm_and_text_matrix_scale_positions_and_sizes() {
 #[test]
 fn a_baseline_change_starts_a_new_line() {
     let doc = page(
-        b"BT /F1 10 Tf 0 100 Td (Hello) Tj 0 -12 Td (world) Tj 0 1 Td (!) Tj ET",
-        vec![helvetica()],
+        b"BT /F1 10 Tf 0 100 Td (Hello) Tj 0 -12 Td (world) Tj 1 Ts /F2 10 Tf (!) Tj ET",
+        vec![
+            helvetica(),
+            font("<< /Type /Font /Subtype /Type1 /BaseFont /Times-Roman /Encoding /WinAnsiEncoding >>"),
+        ],
         OpenOptions::default(),
     );
-    assert_eq!(extract(&doc).expect("extracts").lines(), ["Hello", "world!"]);
+    // The raised "!" is a run of its own (another font), so `lines()` decides it stays.
+    let text = extract(&doc).expect("extracts");
+    assert_eq!(
+        (text.runs.len(), text.lines()),
+        (3, vec!["Hello".to_owned(), "world!".to_owned()])
+    );
 }
 
 fn unmapped_font() -> Dict {

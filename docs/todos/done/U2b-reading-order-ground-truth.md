@@ -7,7 +7,7 @@
 | Plan | [UI/UX §6 U2. Reading quality](../../plans/ui-ux.md#u2-reading-quality) |
 | Round / milestone | Round U (UI/UX) — M2 Web reader v0.1 |
 | Depends on | [B9d](./B9d-text-runs-quads-and-page-text.md) |
-| Blocks | [B9e](../ongoing/B9e-separators-at-backward-jumps.md), [L3a](../ready/L3a-lamina-extract-reading-order.md), [U2a](../ready/U2a-selection-surfaces-and-copy-modes.md), [U4b](../ready/U4b-reader-mode-from-structure-tree.md) |
+| Blocks | [B9e](./B9e-separators-at-backward-jumps.md), [L3a](../ready/L3a-lamina-extract-reading-order.md), [U2a](../ready/U2a-selection-surfaces-and-copy-modes.md), [U4b](../ready/U4b-reader-mode-from-structure-tree.md) |
 | ADRs | Follows 0018 (test strategy: corpora, differential tests) and 0019 (fixture provenance) |
 | Branch | `test/u2b-reading-order-ground-truth` |
 | PR title | `test(text): add a reading-order ground-truth corpus and metric` |
