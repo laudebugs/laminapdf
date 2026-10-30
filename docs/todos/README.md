@@ -12,18 +12,18 @@ New todos start from [`TEMPLATE.md`](TEMPLATE.md). The workflow is in [git workf
 
 IDs: `A`/`P`/`X` [architecture](../plans/architecture.md) (foundations, publishing, cross-cutting), `B` [library](../plans/pdf-library.md), `L` [shareable libraries](../plans/shareable-libraries.md) (contracts, worker, extraction, CLI, agent docs, mobile), `C` [web reader](../plans/web-app.md), `D` [desktop reader](../plans/desktop-app.md), `U` [UI/UX](../plans/ui-ux.md), `E` [editor](../plans/full-editor.md), `H` hosted service ([full-editor](../plans/full-editor.md)). A letter suffix (`B2a`, `B2b`) splits a round into PRs.
 
-**2 ongoing · 212 ready · 28 done** (242 total).
+**3 ongoing · 211 ready · 28 done** (242 total).
 
 ## Can start now
 
 Ready todos whose dependencies are all done:
 
-- [B6a](ready/B6a-lamina-wasm-and-adr-0016.md): `lamina-wasm`, `@lamina/wasm` build, ADR 0016 and size budgets
 - [L6a](ready/L6a-lamina-ffi-spike.md): `lamina-ffi` spike (start right after B5c): UniFFI over the façade, XCFramework and AARs, size report, ADR 0029
 - [X6](ready/X6-windows-ci.md): Windows CI coverage
 
 ## Ongoing
 
+- [B6a](ongoing/B6a-lamina-wasm-and-adr-0016.md): `lamina-wasm`, `@lamina/wasm` build, ADR 0016 and size budgets
 - [B9b](ongoing/B9b-text-extraction-core.md): Text extraction in `lamina-text`: fonts from files, encodings, ToUnicode, glyph runs and quads
 - [X3c](ongoing/X3c-nightly-link-check.md): Nightly external link check of the docs
 
@@ -55,8 +55,8 @@ Ready todos whose dependencies are all done:
 | B5a | [`lamina-build` core: builder, pages, vectors, colour and images](done/B5a-lamina-build-core.md) | done | [B1b](done/B1b-krilla-fit-spike.md), [B3c](done/B3c-save-planner-and-roundtrip.md), [L1a](done/L1a-contract-adrs.md) |
 | B5b | [Builder text, links, destinations, outlines, page labels and metadata](done/B5b-builder-text-and-document-features.md) | done | [B4b](done/B4b-shaping-bidi-line-breaking.md), [B4c](done/B4c-standard-14-and-simple-fonts.md), [B5a](done/B5a-lamina-build-core.md) |
 | B5c | [The `lamina` façade crate, Rust examples, and byte and render goldens](done/B5c-lamina-facade-and-examples.md) | done | [B5b](done/B5b-builder-text-and-document-features.md), [L1a](done/L1a-contract-adrs.md), [L1c](done/L1c-error-contract-core.md), [X4](done/X4-full-lane-gate.md) |
-| B6a | [`lamina-wasm`, `@lamina/wasm` build, ADR 0016 and size budgets](ready/B6a-lamina-wasm-and-adr-0016.md) | ready | [B5c](done/B5c-lamina-facade-and-examples.md) |
-| B6b | [`@lamina/pdf`: the TypeScript API, `init()`, export conditions, publint and attw](ready/B6b-lamina-pdf-package.md) | ready | [B2b](done/B2b-standard-security-decryption.md), [B6a](ready/B6a-lamina-wasm-and-adr-0016.md) |
+| B6a | [`lamina-wasm`, `@lamina/wasm` build, ADR 0016 and size budgets](ongoing/B6a-lamina-wasm-and-adr-0016.md) | ongoing | [B5c](done/B5c-lamina-facade-and-examples.md) |
+| B6b | [`@lamina/pdf`: the TypeScript API, `init()`, export conditions, publint and attw](ready/B6b-lamina-pdf-package.md) | ready | [B2b](done/B2b-standard-security-decryption.md), [B6a](ongoing/B6a-lamina-wasm-and-adr-0016.md) |
 | B6c | [Runtime matrix in CI: browsers, Node 22/24/26, Deno, Bun and workerd](ready/B6c-runtime-matrix.md) | ready | [B6b](ready/B6b-lamina-pdf-package.md) |
 | B7a | [Docs site (`apps/docs`): Starlight, quick starts, guides and TypeDoc, with per-PR previews](ready/B7a-docs-site.md) | ready | [B2b](done/B2b-standard-security-decryption.md), [B6b](ready/B6b-lamina-pdf-package.md), [B6c](ready/B6c-runtime-matrix.md) |
 | B7b | [Changesets, Cargo version sync, ADR 0017 (versioning) and the local `0.1.0-alpha.0` tag](ready/B7b-versioning-and-0-1-0-alpha.md) | ready | [B6c](ready/B6c-runtime-matrix.md), [B7a](ready/B7a-docs-site.md), [X3a](done/X3a-nightly-lane.md) |
