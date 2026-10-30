@@ -12,7 +12,7 @@
 | Branch | `ci/b6c-runtime-matrix` |
 | PR title | `ci(pdf): run the @lamina/pdf example suite in browsers, Node, Deno, Bun and workerd` |
 | Size | M (≈ 400–700 lines: test configs, workflow, a Worker fixture) |
-| PR | — |
+| PR | [#88](https://github.com/laudebugs/lamina/pull/88) |
 
 ## Goal
 
