@@ -7,7 +7,7 @@
 | Plan | [pdf-library §7 B2](../../plans/pdf-library.md#b2-document-model), requirement [§4 F7](../../plans/pdf-library.md#functional) |
 | Round / milestone | Round B (library) — M1 |
 | Depends on | [B2a](./B2a-limits-owned-document.md) |
-| Blocks | [B3c](./B3c-save-planner-and-roundtrip.md), [B6b](../ready/B6b-lamina-pdf-package.md), [B7a](../ready/B7a-docs-site.md), [B9b](./B9b-text-extraction-core.md), [C4c](../ready/C4c-remote-files-encryption-privacy.md), [E11b](../ready/E11b-encrypt-on-write.md) |
+| Blocks | [B3c](./B3c-save-planner-and-roundtrip.md), [B6b](../ongoing/B6b-lamina-pdf-package.md), [B7a](../ready/B7a-docs-site.md), [B9b](./B9b-text-extraction-core.md), [C4c](../ready/C4c-remote-files-encryption-privacy.md), [E11b](../ready/E11b-encrypt-on-write.md) |
 | ADRs | Follows [0003](../../decisions/0003-reader-tolerance-and-limits.md) (encrypted files open; password in `OpenOptions`), [0001](../../decisions/0001-core-language-and-licence.md) (no C crypto, permissive licences), [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) (new crypto crates through cargo-deny) |
 | Branch | `feat/b2b-decryption` |
 | PR title | `feat(core): standard security handler decryption (R2–R6, crypt filters)` |
@@ -43,7 +43,7 @@ Let `Document::open` read files encrypted with the standard security handler whe
 - Writing encrypted files, changing or removing encryption, permission enforcement on write: full-editor E11.
 - Public-key security handler (§7.6.5), ISO/TS 32003 AES-GCM and 32004 integrity: later (reported as `UnsupportedSecurityHandler`).
 - Password UI: web C4, desktop D-rounds.
-- Exposing passwords through WASM/TS: [B6b](../ready/B6b-lamina-pdf-package.md).
+- Exposing passwords through WASM/TS: [B6b](../ongoing/B6b-lamina-pdf-package.md).
 
 ## Tasks
 
