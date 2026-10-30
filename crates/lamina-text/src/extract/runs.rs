@@ -44,7 +44,8 @@ pub struct TextRun {
 /// A baseline moving by more than this fraction of the glyph size starts a new run and line.
 const LINE_SHIFT: f64 = 0.5;
 
-/// The pen jumping forward by more than this fraction of the size inserts a space.
+/// A gap of more than this fraction of the size between two pieces of text is a space (the pen
+/// jumping forward, or, between runs, a run lying wholly behind the previous one).
 const SPACE_GAP: f64 = 0.25;
 
 /// The pen jumping back by more than this fraction of the size starts a new run (the next
@@ -256,9 +257,13 @@ fn by_position(run: &[Glyph]) -> String {
     text
 }
 
+/// Whether a gap of `gap` between `before` and `after` is a space: over a quarter of the size,
+/// both sides with text (an `ActualText` span's later runs have none), neither with whitespace
+/// at the join.
 fn needs_space(before: &str, after: &str, gap: f64, size: f64) -> bool {
     gap > SPACE_GAP * size
         && !before.is_empty()
+        && !after.is_empty()
         && !before.ends_with(char::is_whitespace)
         && !after.starts_with(char::is_whitespace)
 }
@@ -400,14 +405,22 @@ pub(super) fn lines(glyphs: &[Glyph], runs: &[TextRun]) -> Vec<String> {
         .collect()
 }
 
-/// Units joined in the order given, with a space where the next one starts over a quarter of
-/// the size after the previous one ends.
+/// Units joined in the order given, with a space between two that don't overlap with a gap of
+/// over a quarter of the size: the next one starts that far after the previous one ends, or
+/// lies wholly that far behind its start (a table cell or column drawn out of order; todo
+/// B9e). Units that overlap (an accent drawn over its letter, an overprint, fake bold) or
+/// abut (glyphs drawn backwards one by one) get none.
 fn join(units: &[Unit<'_>]) -> String {
     let mut line = String::new();
     let mut previous: Option<&Unit<'_>> = None;
     for u in units {
         if let Some(p) = previous
-            && needs_space(&line, u.text, u.start - p.end, p.size.max(u.size).max(f64::EPSILON))
+            && needs_space(
+                &line,
+                u.text,
+                (u.start - p.end).max(p.start - u.end),
+                p.size.max(u.size).max(f64::EPSILON),
+            )
         {
             line.push(' ');
         }
