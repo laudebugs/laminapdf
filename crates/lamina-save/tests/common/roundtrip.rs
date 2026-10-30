@@ -70,9 +70,16 @@ pub const PLAIN_CORPUS: [&str; 10] = [
     "outline.pdf",
 ];
 
-/// The goldens `lamina-build` writes (B5a): plain files too, so the full lane's qpdf, pdf.js
-/// and PDFium checks cover the builder's output.
-pub const PLAIN_BUILT: [&str; 2] = ["vectors.pdf", "images.pdf"];
+/// The goldens `lamina-build` writes (B5a, B5b): plain files too, so the full lane's qpdf,
+/// pdf.js and PDFium checks cover the builder's output.
+pub const PLAIN_BUILT: [&str; 6] = [
+    "vectors.pdf",
+    "images.pdf",
+    "build-text-latin.pdf",
+    "build-text-multiscript.pdf",
+    "links-and-outlines.pdf",
+    "metadata.pdf",
+];
 
 /// The byte that damages `corpus/tampered.pdf`'s newest catalog so the file repairs to the
 /// older, unsigned one: (offset, value), the mutation `lamina-cos`'s `policy.rs`

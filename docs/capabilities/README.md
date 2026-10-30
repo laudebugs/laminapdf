@@ -14,7 +14,7 @@ Rows per surface by best proven status (of the rows that target the surface).
 
 | Surface | Rows | 🟢 round-trip | 🔵 write | 🟡 read | 🔴 unsupported | — none | At target |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| core | 169 | 3 | 0 | 16 | 0 | 150 | 4 |
+| core | 169 | 3 | 7 | 14 | 0 | 145 | 4 |
 | pdf | 169 | 0 | 0 | 0 | 0 | 169 | 0 |
 | web | 168 | 0 | 0 | 0 | 0 | 168 | 0 |
 | desktop | 168 | 0 | 0 | 0 | 0 | 168 | 0 |
@@ -23,7 +23,7 @@ Rows per surface by best proven status (of the rows that target the surface).
 
 | ID | Operation | core | pdf | web | desktop | Target | Evidence |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| A.01 | Add text anywhere on a page | — | — | — | — | E6 round-trip |  |
+| A.01 | Add text anywhere on a page | 🔵 write | — | — | — | E6 round-trip | [`built_text_links_outlines_labels_and_xmp_survive_a_save`](../../crates/lamina-save/tests/roundtrip_suite.rs) core write |
 | A.02 | Edit existing text | — | — | — | — | E7 round-trip |  |
 | A.03 | Delete or replace text | — | — | — | — | E7 round-trip |  |
 | A.04 | Change font family/size/colour/style | — | — | — | — | E7 round-trip |  |
@@ -31,7 +31,7 @@ Rows per surface by best proven status (of the rows that target the surface).
 | A.06 | Alignment & line spacing | — | — | — | — | E7 round-trip |  |
 | A.07 | Move/resize/rotate text blocks | — | — | — | — | E7 round-trip |  |
 | A.08 | Search & replace throughout document | — | — | — | — | E7 round-trip |  |
-| A.09 | Add hyperlinks to text | — | — | — | — | E3 round-trip |  |
+| A.09 | Add hyperlinks to text | 🔵 write | — | — | — | E3 round-trip | [`built_text_links_outlines_labels_and_xmp_survive_a_save`](../../crates/lamina-save/tests/roundtrip_suite.rs) core write |
 | A.10 | Extract text with position & formatting | — | — | — | — | E3 read |  |
 | A.11 | Convert outlined or scanned text via OCR | — | — | — | — | E13 round-trip |  |
 | A.12 | Insert special characters & symbols | — | — | — | — | E6 round-trip |  |
@@ -174,15 +174,15 @@ Rows per surface by best proven status (of the rows that target the surface).
 | ID | Operation | core | pdf | web | desktop | Target | Evidence |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | I.01 | Create/edit bookmarks; nested trees | 🟡 read | — | — | — | E3 round-trip | [`outline_titles_match_pypdf`](../../crates/lamina-model/tests/corpus.rs) core read<br>[`items_nest_as_in_the_file`](../../crates/lamina-model/tests/views.rs) core read |
-| I.02 | Internal page links | — | — | — | — | E3 round-trip |  |
-| I.03 | External hyperlinks | — | — | — | — | E3 round-trip |  |
-| I.04 | Named destinations | 🟡 read | — | — | — | E3 round-trip | [`a_goto_action_resolves_through_the_names_tree`](../../crates/lamina-model/tests/views.rs) core read<br>[`a_named_destination_resolves_through_the_catalog_dests`](../../crates/lamina-model/tests/views.rs) core read |
+| I.02 | Internal page links | 🔵 write | — | — | — | E3 round-trip | [`built_text_links_outlines_labels_and_xmp_survive_a_save`](../../crates/lamina-save/tests/roundtrip_suite.rs) core write |
+| I.03 | External hyperlinks | 🔵 write | — | — | — | E3 round-trip | [`built_text_links_outlines_labels_and_xmp_survive_a_save`](../../crates/lamina-save/tests/roundtrip_suite.rs) core write |
+| I.04 | Named destinations | 🔵 write | — | — | — | E3 round-trip | [`a_goto_action_resolves_through_the_names_tree`](../../crates/lamina-model/tests/views.rs) core read<br>[`a_named_destination_resolves_through_the_catalog_dests`](../../crates/lamina-model/tests/views.rs) core read<br>[`built_text_links_outlines_labels_and_xmp_survive_a_save`](../../crates/lamina-save/tests/roundtrip_suite.rs) core write |
 | I.05 | Clickable table of contents | — | — | — | — | E3 round-trip |  |
 | I.06 | Initial view & zoom; page display mode | — | — | — | — | E3 round-trip |  |
 | I.07 | Define reading order; logical structure tags | — | — | — | — | E15 round-trip |  |
 | I.08 | Optional content groups (layers) | — | — | — | — | E17 round-trip |  |
 | I.09 | Article threads | — | — | — | — | E3 read |  |
-| I.10 | Page labels | 🟡 read | — | — | — | E2 round-trip | [`labels_follow_the_ranges`](../../crates/lamina-model/tests/views.rs) core read |
+| I.10 | Page labels | 🔵 write | — | — | — | E2 round-trip | [`labels_follow_the_ranges`](../../crates/lamina-model/tests/views.rs) core read<br>[`built_text_links_outlines_labels_and_xmp_survive_a_save`](../../crates/lamina-save/tests/roundtrip_suite.rs) core write |
 | I.11 | Outline & navigation preferences | — | — | — | — | E3 round-trip |  |
 
 ## J. Metadata & attachments
@@ -192,7 +192,7 @@ Rows per surface by best proven status (of the rows that target the surface).
 | J.01 | Title, author, subject, keywords | 🟢 round-trip | — | — | — | E1 round-trip | [`text_fields_are_decoded`](../../crates/lamina-model/tests/views.rs) core read<br>[`every_case_saves_or_refuses_as_expected_and_reopens_in_lamina`](../../crates/lamina-save/tests/roundtrip_suite.rs) core round-trip |
 | J.02 | Creation/modification dates | 🟡 read | — | — | — | E1 round-trip | [`a_valid_date_is_parsed`](../../crates/lamina-model/tests/views.rs) core read |
 | J.03 | Producer & creator | — | — | — | — | E1 round-trip |  |
-| J.04 | Manage XMP | — | — | — | — | E3 round-trip |  |
+| J.04 | Manage XMP | 🔵 write | — | — | — | E3 round-trip | [`built_text_links_outlines_labels_and_xmp_survive_a_save`](../../crates/lamina-save/tests/roundtrip_suite.rs) core write |
 | J.05 | Attach / extract / delete embedded files | — | — | — | — | E3 round-trip |  |
 | J.06 | Portfolios / collections | — | — | — | — | E3 read |  |
 | J.07 | Inspect version & conformance | — | — | — | — | E3 read |  |

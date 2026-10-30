@@ -50,6 +50,18 @@ pub const LATIN_PARAGRAPH: &str = "The quick brown fox jumps over the lazy dog. 
 /// ligatures and kerning on, one with `liga=0`), a coloured run, an invisible run, the
 /// standard 14 Helvetica and Times, and `text_box()` paragraphs in three alignments.
 pub fn text_latin() -> Vec<u8> {
+    text_latin_drawn().0
+}
+
+/// The text of each line a text box drew.
+fn drawn(text: &str, layout: &lamina_build::TextLayout) -> Vec<String> {
+    layout.lines.iter().map(|l| text[l.content.clone()].to_owned()).collect()
+}
+
+/// `build-text-latin.pdf` and the lines it draws, top to bottom.
+pub fn text_latin_drawn() -> (Vec<u8>, Vec<Vec<String>>) {
+    let mut lines: Vec<String> = LATIN_RUNS.iter().map(|s| (*s).to_owned()).collect();
+    lines.extend(["Invisible but extractable".to_owned(), "Outlined".to_owned()]);
     let mut b = Builder::new(options(b"lamina-build-B5b"));
     let noto = b.font(font("NotoSans-Regular.ttf")).unwrap();
     let helvetica = b.standard_font(Standard14::Helvetica).unwrap();
@@ -91,25 +103,29 @@ pub fn text_latin() -> Vec<u8> {
                 p.rect(r);
             })
             .stroke(&lamina_build::StrokeStyle::default());
-        s.text_box(
+        let layout = s
+            .text_box(
+                LATIN_PARAGRAPH,
+                f,
+                Pt::new(11.0),
+                r,
+                &TextBoxOptions::default().with_align(align),
+            )
+            .unwrap();
+        lines.extend(drawn(LATIN_PARAGRAPH, &layout));
+    }
+    let layout = s
+        .text_box(
             LATIN_PARAGRAPH,
-            f,
+            &times,
             Pt::new(11.0),
-            r,
-            &TextBoxOptions::default().with_align(align),
+            rect(56.0, 460.0, 480.0, 100.0),
+            &TextBoxOptions::default().with_line_height(1.5),
         )
         .unwrap();
-    }
-    s.text_box(
-        LATIN_PARAGRAPH,
-        &times,
-        Pt::new(11.0),
-        rect(56.0, 460.0, 480.0, 100.0),
-        &TextBoxOptions::default().with_line_height(1.5),
-    )
-    .unwrap();
+    lines.extend(drawn(LATIN_PARAGRAPH, &layout));
     page.finish().unwrap();
-    save(b.finish().unwrap())
+    (save(b.finish().unwrap()), vec![lines])
 }
 
 /// `build-text-multiscript.pdf`: each script's text drawn with `text()` (one line) and in a
@@ -131,6 +147,12 @@ pub const MULTISCRIPT_BOX_WIDTH: f64 = 110.0;
 /// `fixtures/golden/build-text-multiscript.pdf`: page 1 has every script with `text()`,
 /// page 2 the same texts in narrow text boxes.
 pub fn text_multiscript() -> Vec<u8> {
+    text_multiscript_drawn().0
+}
+
+/// `build-text-multiscript.pdf` and the lines each page draws, top to bottom.
+pub fn text_multiscript_drawn() -> (Vec<u8>, Vec<Vec<String>>) {
+    let mut lines = vec![SCRIPTS.iter().map(|(_, t)| (*t).to_owned()).collect::<Vec<_>>(), Vec::new()];
     let mut b = Builder::new(options(b"lamina-build-5sc"));
     let fonts: Vec<_> = SCRIPTS.iter().map(|(f, _)| b.font(font(f)).unwrap()).collect();
     let mut page = b.page(PageSize::A4);
@@ -144,17 +166,19 @@ pub fn text_multiscript() -> Vec<u8> {
     let s = page.surface();
     for (i, ((_, text), f)) in SCRIPTS.iter().zip(&fonts).enumerate() {
         let y = 56.0 + 150.0 * f64::from(u32::try_from(i).unwrap());
-        s.text_box(
-            text,
-            f,
-            Pt::new(14.0),
-            rect(56.0, y, MULTISCRIPT_BOX_WIDTH, 140.0),
-            &TextBoxOptions::default(),
-        )
-        .unwrap();
+        let layout = s
+            .text_box(
+                text,
+                f,
+                Pt::new(14.0),
+                rect(56.0, y, MULTISCRIPT_BOX_WIDTH, 140.0),
+                &TextBoxOptions::default(),
+            )
+            .unwrap();
+        lines[1].extend(drawn(text, &layout));
     }
     page.finish().unwrap();
-    save(b.finish().unwrap())
+    (save(b.finish().unwrap()), lines)
 }
 
 /// `links-and-outlines.pdf`'s page labels: i, ii, then 1, 2 from the third page.

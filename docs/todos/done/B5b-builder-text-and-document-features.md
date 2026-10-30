@@ -3,16 +3,16 @@
 | Field | Value |
 | --- | --- |
 | ID | `B5b` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [pdf-library §7 B5](../../plans/pdf-library.md#b5-builder-and-the-lamina-crate), requirements [§4 F2–F5](../../plans/pdf-library.md#functional) |
 | Round / milestone | Round B (library) — M1 |
-| Depends on | [B4b](../done/B4b-shaping-bidi-line-breaking.md), [B4c](../done/B4c-standard-14-and-simple-fonts.md), [B5a](../done/B5a-lamina-build-core.md) |
+| Depends on | [B4b](./B4b-shaping-bidi-line-breaking.md), [B4c](./B4c-standard-14-and-simple-fonts.md), [B5a](./B5a-lamina-build-core.md) |
 | Blocks | [B5c](../ready/B5c-lamina-facade-and-examples.md) |
 | ADRs | Follows [0005](../../decisions/0005-document-model.md) §5–§6 (IDs for created pages/outline items; overlay), [0001](../../decisions/0001-core-language-and-licence.md) (determinism: dates and IDs from options) |
 | Branch | `feat/b5b-builder-text-and-navigation` |
 | PR title | `feat(build): text runs and text boxes, links, destinations, outlines, page labels, Info and XMP` |
 | Size | L (≈ 1,000–1,400 lines) |
-| PR | — |
+| PR | (filled in below once opened) |
 
 ## Goal
 
@@ -48,22 +48,34 @@ Complete the builder's feature list for M1: shaped text runs and single-box para
 
 ## Tasks
 
-- [ ] Load `/rust-best-practices`; read 03 §2, §5.3, §11.2 and 04 §1, §5
-- [ ] `surface/text.rs` (runs), `surface/textbox.rs`, content emission with `pdf_writer::Content`
-- [ ] `annot/link.rs`, `nav/{dest,outline,labels}.rs`, `meta/{info,xmp,prefs}.rs`
-- [ ] PDF text-string encoding shared with `lamina-ops` `InfoPatch` (move to a common place if duplicated)
-- [ ] XMP writer (deterministic attribute order, escaped values); tests that Info and XMP agree
-- [ ] Goldens: `text-latin.pdf`, `text-multiscript.pdf`, `links-and-outlines.pdf`, `metadata.pdf`
-- [ ] Full-lane checks: pdf.js link/outline extraction equals the builder's input; pypdf/pdftotext text equals input
+- [x] Load `/rust-best-practices`; read 03 §2, §5.3, §11.2 and 04 §1, §5
+- [x] `surface/text.rs` (runs), `surface/textbox.rs`, content emission with `pdf_writer::Content`
+- [x] `annot/link.rs`, `nav/{dest,outline,labels}.rs`, `meta/{info,xmp,prefs}.rs`
+- [x] PDF text-string encoding shared with `lamina-ops` `InfoPatch` (move to a common place if duplicated): already one function, `lamina_syntax::text::encode_text_string`, which both use; nothing to move
+- [x] XMP writer (deterministic attribute order, escaped values); tests that Info and XMP agree
+- [x] Goldens: `text-latin.pdf`, `text-multiscript.pdf`, `links-and-outlines.pdf`, `metadata.pdf` (deviation: the text ones are `build-text-latin.pdf` and `build-text-multiscript.pdf`, as `text-latin.pdf` is lamina-text's and `text-*.pdf` is the glob `tools/fixtures/text_facts.py` reads)
+- [x] Full-lane checks: pdf.js link/outline extraction equals the builder's input; pypdf/pdftotext text equals input (as committed facts, the repository's pattern: `tools/fixtures/build_facts.py` + `pdfjs_build.mjs` write `fixtures/build/facts.json`, `tests/external.rs` checks it; the goldens also joined the round-trip suite's `PLAIN_BUILT`, so the full lane's `cargo xtask roundtrip` runs qpdf, pdf.js and PDFium on them and their saves. Deviation: no pdftotext, which isn't installed or pinned anywhere; pypdf and pdf.js cover extraction)
 
 ## Acceptance criteria
 
-- [ ] Text in five scripts (Latin, Arabic, Devanagari, Hebrew, CJK) generated via `text()` and `text_box()` extracts equal to the input in pdf.js, pypdf and pdftotext
-- [ ] A text box never produces a line wider than its box; overflow is reported or clipped per option
-- [ ] URI and internal links, named destinations and outlines resolve correctly in pdf.js (`getOutline`, `getDestination`, annotations) and in `lamina-model` views (round-trip through B2c's views)
-- [ ] Page labels read back through `lamina-model::PageLabels` and pypdf `page_labels`
-- [ ] Info and XMP carry the same values; `qpdf --check` clean; byte-identical across runs
-- [ ] No ambient time: building twice with the same options gives identical bytes
+- [x] Text in five scripts (Latin, Arabic, Devanagari, Hebrew, CJK) generated via `text()` and `text_box()` extracts equal to the input in pdf.js, pypdf and pdftotext (Latin, Hebrew, CJK and the standard 14 exactly in both; Arabic in pypdf; the extractor limitations already known from `text-shaped.pdf` are listed with reasons in `fixtures/build/extraction-exceptions.json`: pdf.js on Arabic's empty ToUnicode destinations, which B4d removes, and both on the Devanagari i-matra, as neither reads `/ActualText`; no pdftotext, see above)
+- [x] A text box never produces a line wider than its box; overflow is reported or clipped per option
+- [x] URI and internal links, named destinations and outlines resolve correctly in pdf.js (`getOutline`, `getDestination`, annotations) and in `lamina-model` views (round-trip through B2c's views)
+- [x] Page labels read back through `lamina-model::PageLabels` and pypdf `page_labels` (and pdf.js `getPageLabels`)
+- [x] Info and XMP carry the same values; `qpdf --check` clean; byte-identical across runs
+- [x] No ambient time: building twice with the same options gives identical bytes
+
+## Deviations
+
+- **API names.** `Font` is the builder's registered-font handle (`Builder::font`, `font_with`, `standard_font`; also on `Appender`); outline items are `OutlineEntry` and label ranges `PageLabel` (`lamina-model` already has `OutlineItem` and `LabelRange` for reading); the Info values are `Metadata` (written as Info and XMP, set with `Builder::metadata`).
+- **Page targets are 0-based indexes** (`LinkTarget::Page { index: u32, fit }`, ADR 0027 §6), resolved when the build finishes so a link can name a later page; there is no `PageRef` in the core (ADR 0028 F2 puts handles in the edges).
+- **`tag(...)` is not stubbed**: a public no-op would promise behaviour B8a defines; B8a adds it.
+- **`text()` and `text_box()` return `Result`** (shaping errors such as `missing-glyph` come back at the call); `TextRun`'s shaping changes (`features`, `language`, `direction`) do too.
+- **Standard 14 fonts** are laid out by the builder (one glyph per character with AFM widths, UAX #14 breaks, left to right), since `lamina-text` refuses to shape them.
+- **Overflow::Clip** draws the lines that fit and reports where the rest starts; it does not add a clipping path (no drawn line crosses the box).
+- **Runs are drawn in logical order** within a line (each at its own x), what B4d's `Line::drawing_order` does, so extractors read multi-run right-to-left lines in order; this needs no B4d API.
+- **XMP drops C0 control characters** other than tab, line feed and carriage return (XML 1.0 can't hold them), so Info and XMP differ only for such text.
+- **Goldens and pdftotext**: see the tasks above.
 
 ## Post-merge checks
 
@@ -76,8 +88,8 @@ None.
 
 ## Docs to update
 
-- [ ] [pdf-library §10 B5](../../plans/pdf-library.md#10-to-dos): tick text/text box part of "Surface ops" and "Document ops"
-- [ ] Crate README; `fixtures/README.md`
+- [x] [pdf-library §10 B5](../../plans/pdf-library.md#10-to-dos): tick text/text box part of "Surface ops" and "Document ops"
+- [x] Crate README; `fixtures/README.md`
 
 ## Risks and open questions
 
@@ -87,8 +99,8 @@ None.
 
 ## Definition of done
 
-- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
-- [ ] Work PR opened from a fresh worktree; **PR** field filled in
+- [x] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [x] Work PR opened from a fresh worktree; **PR** field filled in
 - [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated

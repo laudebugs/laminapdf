@@ -165,6 +165,48 @@
       "showText": 4
     }
   ],
+  "fixtures/golden/build-text-latin.pdf": [
+    {
+      "beginText": 11,
+      "constructPath": 3,
+      "endText": 11,
+      "restore": 1,
+      "save": 1,
+      "setDash": 1,
+      "setFillRGBColor": 1,
+      "setFont": 11,
+      "setLineCap": 1,
+      "setLineJoin": 1,
+      "setLineWidth": 1,
+      "setMiterLimit": 1,
+      "setStrokeRGBColor": 2,
+      "setTextMatrix": 24,
+      "setTextRenderingMode": 3,
+      "showText": 24
+    }
+  ],
+  "fixtures/golden/build-text-multiscript.pdf": [
+    {
+      "beginMarkedContentProps": 5,
+      "beginText": 5,
+      "endMarkedContent": 5,
+      "endText": 5,
+      "setFont": 5,
+      "setTextMatrix": 5,
+      "setTextRise": 6,
+      "showText": 18
+    },
+    {
+      "beginMarkedContentProps": 5,
+      "beginText": 5,
+      "endMarkedContent": 5,
+      "endText": 5,
+      "setFont": 5,
+      "setTextMatrix": 13,
+      "setTextRise": 6,
+      "showText": 26
+    }
+  ],
   "fixtures/golden/full-rewrite-hello.pdf": [
     {
       "beginText": 1,
@@ -216,6 +258,48 @@
       "endText": 1,
       "moveText": 1,
       "setFont": 1,
+      "showText": 1
+    }
+  ],
+  "fixtures/golden/links-and-outlines.pdf": [
+    {
+      "beginText": 5,
+      "endText": 5,
+      "restore": 1,
+      "save": 1,
+      "setFillRGBColor": 1,
+      "setFont": 5,
+      "setTextMatrix": 5,
+      "showText": 5
+    },
+    {
+      "beginText": 1,
+      "endText": 1,
+      "setFont": 1,
+      "setTextMatrix": 1,
+      "showText": 1
+    },
+    {
+      "beginText": 1,
+      "endText": 1,
+      "setFont": 1,
+      "setTextMatrix": 1,
+      "showText": 1
+    },
+    {
+      "beginText": 1,
+      "endText": 1,
+      "setFont": 1,
+      "setTextMatrix": 1,
+      "showText": 1
+    }
+  ],
+  "fixtures/golden/metadata.pdf": [
+    {
+      "beginText": 1,
+      "endText": 1,
+      "setFont": 1,
+      "setTextMatrix": 1,
       "showText": 1
     }
   ],

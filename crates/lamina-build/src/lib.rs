@@ -42,11 +42,18 @@
 //!   page in order of first use (`GS1`, `Im1`, `CS1`) and every image, profile and
 //!   `ExtGState` is written once per document.
 //!
-//! Text, links, outlines and metadata are [B5b]'s.
+//! * Text ([B5b]): [`Builder::font`] / [`Builder::standard_font`] give a [`Font`];
+//!   [`Surface::text`] draws a shaped, bidi-resolved run with its **baseline at `y`** and
+//!   returns a [`TextRun`]; [`Surface::text_box`] breaks a paragraph into a rectangle
+//!   ([`TextBoxOptions`], [`TextLayout`]).
+//! * Navigation and metadata ([B5b]): [`Surface::link`] ([`LinkTarget`], [`Fit`]),
+//!   [`Builder::destination`], [`Builder::outline`] ([`OutlineEntry`]),
+//!   [`Builder::page_labels`] ([`PageLabel`]), [`Builder::metadata`] (Info and XMP from one
+//!   [`Metadata`]), [`Builder::lang`], [`Builder::viewer_preferences`].
 //!
 //! [ADR 0005]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0005-document-model.md
 //! [ADR 0027]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0027-coordinates-units-and-page-indexing.md
-//! [B5b]: https://github.com/laudebugs/lamina/blob/main/docs/todos/ongoing/B5b-builder-text-and-document-features.md
+//! [B5b]: https://github.com/laudebugs/lamina/blob/main/docs/todos/done/B5b-builder-text-and-document-features.md
 #![forbid(unsafe_code)]
 
 mod annot;

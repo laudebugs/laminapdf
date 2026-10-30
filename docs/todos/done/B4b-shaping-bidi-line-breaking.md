@@ -7,7 +7,7 @@
 | Plan | [pdf-library §7 B4](../../plans/pdf-library.md#b4-fonts-and-text), requirement [§4 F3](../../plans/pdf-library.md#functional) |
 | Round / milestone | Round B (library) — M1 |
 | Depends on | [B4a](./B4a-font-loading-and-subsetting.md), [X4](./X4-full-lane-gate.md) |
-| Blocks | [B4d](../ongoing/B4d-tounicode-per-text-cids.md), [B5b](../ongoing/B5b-builder-text-and-document-features.md), [E4e](../ready/E4e-freetext-callouts.md), [E6c](../ready/E6c-add-text.md), [E13c](../ready/E13c-ocr-text-layer.md), [E16c](../ready/E16c-images-and-fonts.md) |
+| Blocks | [B4d](../ongoing/B4d-tounicode-per-text-cids.md), [B5b](./B5b-builder-text-and-document-features.md), [E4e](../ready/E4e-freetext-callouts.md), [E6c](../ready/E6c-add-text.md), [E13c](../ready/E13c-ocr-text-layer.md), [E16c](../ready/E16c-images-and-fonts.md) |
 | ADRs | Follows [0005 §6](../../decisions/0005-document-model.md#6-generation-strategy--option-b-recommended-by-the-krilla-fit-spike-accepted-when-its-pr-merges) (HarfRust), [0001](../../decisions/0001-core-language-and-licence.md) (pure Rust, determinism), [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) (Unicode-3.0 data licences) |
 | Branch | `feat/b4b-shaping` |
 | PR title | `feat(text): HarfRust shaping, ICU4X bidi and line breaking, shaping goldens` |
@@ -38,7 +38,7 @@ Turn a Unicode string into positioned glyph runs that render correctly in every 
 
 **Out of scope** (and which todo covers it)
 
-- `surface.text()` / `textBox()` API: [B5b](../ongoing/B5b-builder-text-and-document-features.md).
+- `surface.text()` / `textBox()` API: [B5b](../done/B5b-builder-text-and-document-features.md).
 - Hyphenation, justification, vertical writing, flowing layout across pages: later plan (pdf-library §2 non-goals).
 - Font fallback chains and system fonts: never in core (caller supplies fonts); optional `@lamina/fonts` is an open question.
 
