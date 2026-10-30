@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `X3c` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [architecture §7 Cross-cutting](../../plans/architecture.md#cross-cutting) |
 | Round / milestone | Cross-cutting |
 | Depends on | [X3a](../done/X3a-nightly-lane.md) |

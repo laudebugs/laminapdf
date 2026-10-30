@@ -12,7 +12,7 @@ New todos start from [`TEMPLATE.md`](TEMPLATE.md). The workflow is in [git workf
 
 IDs: `A`/`P`/`X` [architecture](../plans/architecture.md) (foundations, publishing, cross-cutting), `B` [library](../plans/pdf-library.md), `L` [shareable libraries](../plans/shareable-libraries.md) (contracts, worker, extraction, CLI, agent docs, mobile), `C` [web reader](../plans/web-app.md), `D` [desktop reader](../plans/desktop-app.md), `U` [UI/UX](../plans/ui-ux.md), `E` [editor](../plans/full-editor.md), `H` hosted service ([full-editor](../plans/full-editor.md)). A letter suffix (`B2a`, `B2b`) splits a round into PRs.
 
-**0 ongoing · 214 ready · 28 done** (242 total).
+**1 ongoing · 213 ready · 28 done** (242 total).
 
 ## Can start now
 
@@ -21,12 +21,11 @@ Ready todos whose dependencies are all done:
 - [B6a](ready/B6a-lamina-wasm-and-adr-0016.md): `lamina-wasm`, `@lamina/wasm` build, ADR 0016 and size budgets
 - [B9b](ready/B9b-text-extraction-core.md): Text extraction in `lamina-text`: fonts from files, encodings, ToUnicode, glyph runs and quads
 - [L6a](ready/L6a-lamina-ffi-spike.md): `lamina-ffi` spike (start right after B5c): UniFFI over the façade, XCFramework and AARs, size report, ADR 0029
-- [X3c](ready/X3c-nightly-link-check.md): Nightly external link check of the docs
 - [X6](ready/X6-windows-ci.md): Windows CI coverage
 
 ## Ongoing
 
-Nothing claimed right now.
+- [X3c](ongoing/X3c-nightly-link-check.md): Nightly external link check of the docs
 
 ## Architecture — Round A
 
@@ -315,7 +314,7 @@ Nothing claimed right now.
 | X2 | [Capability matrix generator: ~180 operations, test-backed statuses](done/X2-capability-matrix.md) | done | [B3c](done/B3c-save-planner-and-roundtrip.md) |
 | X3a | [Nightly CI lane: external-corpus differential, extended fuzzing, scaling tests and benchmarks](done/X3a-nightly-lane.md) | done | [B2c](done/B2c-lamina-model-corpus-fuzz.md) |
 | X3b | [Nightly hayro-vs-PDFium render diffs](ready/X3b-render-diff-nightly.md) | ready | [C2b](ready/C2b-lamina-render-crate.md), [X3a](done/X3a-nightly-lane.md) |
-| X3c | [Nightly external link check of the docs](ready/X3c-nightly-link-check.md) | ready | [X3a](done/X3a-nightly-lane.md) |
+| X3c | [Nightly external link check of the docs](ongoing/X3c-nightly-link-check.md) | ongoing | [X3a](done/X3a-nightly-lane.md) |
 | X4 | [Full PR lane with an always-running gate job](done/X4-full-lane-gate.md) | done | [B2c](done/B2c-lamina-model-corpus-fuzz.md) |
 | X5 | [Linux CI on a self-hosted runner in a container on the Mac](done/X5-linux-ci-container.md) | done | [X4](done/X4-full-lane-gate.md) |
 | X6 | [Windows CI coverage](ready/X6-windows-ci.md) | ready | [X5](done/X5-linux-ci-container.md) |
