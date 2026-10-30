@@ -12,7 +12,7 @@
 | Branch | `perf/b5d-text-report-generation` |
 | PR title | `perf(build): a 100-page text report within the 500 ms target` |
 | Size | M (profiling, a benchmark, targeted fixes in lamina-text / lamina-build) |
-| PR | — |
+| PR | [#92](https://github.com/laudebugs/lamina/pull/92) |
 
 ## Goal
 
