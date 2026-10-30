@@ -3,7 +3,7 @@
 import type { WasmDocument, WasmPage, WasmSaveJob } from "@lamina/wasm/base";
 import type { PageTextJs } from "@lamina/wasm/extract";
 import { guard, isLaminaError, type LaminaWarning, packageError } from "./errors.js";
-import { readingModule } from "./init.js";
+import { extractsText, readingModule } from "./init.js";
 import { type RangeOptions, type RangeSource, type RangeState, settle, wholeBytes } from "./source/range.js";
 import { PageText, type TextOptions } from "./text.js";
 import { Transaction } from "./transaction.js";
@@ -268,6 +268,15 @@ export class Document {
         if (!tryNext(e, i, attempts.length)) throw e;
       }
     }
+  }
+
+  /**
+   * Whether `page(i).text()` works on this document: it was opened or built while the extract or
+   * the text module was loaded. A document opened before the module loaded stays in the base
+   * module; save and reopen it to move it.
+   */
+  get canExtractText(): boolean {
+    return extractsText(this.#doc);
   }
 
   /** The number of pages. @throws {@link LaminaError} reading errors. */

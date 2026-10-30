@@ -121,7 +121,7 @@ pub(crate) fn page_text_js(text: &lamina::extract::PageText) -> JsResult<JsValue
 const PAGE_TEXT_TS: &str = r#"
 /** A page's text as `WasmPage.text` returns it (B9c). */
 export interface PageTextJs {
-  /** The text by line, in reading order (runs on one baseline, joined; trimmed). */
+  /** The text by line, in content order (runs on one baseline, joined; trimmed). */
   lines: string[];
   /** The runs, in content order. */
   runs: TextRunJs[];

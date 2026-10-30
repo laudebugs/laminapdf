@@ -1,6 +1,6 @@
 // page.text() (B9c): the extract module, the shared snapshot with the Rust output, encrypted
 // copies, and the error for a document opened in the base module.
-import { Document, init, isExtractLoaded, isLaminaError, loadExtract, type PageText } from "@lamina/pdf";
+import { Builder, Document, init, isExtractLoaded, isLaminaError, loadExtract, type PageText } from "@lamina/pdf";
 import { beforeAll, describe, expect, it } from "vitest";
 import { read, readText, thrown } from "./helpers.js";
 
@@ -51,6 +51,7 @@ describe("page.text() before the extract module", () => {
   it("throws extract-module-not-loaded for a document opened in the base module", () => {
     expect(isExtractLoaded()).toBe(false);
     const doc = Document.open(read("fixtures/golden/examples/hello.pdf"));
+    expect(doc.canExtractText).toBe(false);
     const e = thrown(() => doc.page(0).text());
     expect(isLaminaError(e, "extract-module-not-loaded")).toBe(true);
   });
@@ -58,6 +59,13 @@ describe("page.text() before the extract module", () => {
 
 describe("page.text() with the extract module", () => {
   beforeAll(() => loadExtract());
+
+  it("builds documents that extract too", () => {
+    const builder = new Builder();
+    builder.page("A4").finish();
+    const doc = builder.finish();
+    expect([doc.canExtractText, doc.page(0).text().lines]).toEqual([true, []]);
+  });
 
   it("extracts the hello example", () => {
     const text = Document.open(read("fixtures/golden/examples/hello.pdf")).page(0).text();

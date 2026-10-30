@@ -122,8 +122,11 @@ export function loadTextWith(locate: Locate, source?: WasmSource): Promise<void>
  * would never be used.
  */
 export function loadExtractWith(locate: Locate, source?: WasmSource): Promise<void> {
-  if (text.pending !== undefined) return text.pending;
-  return load(extract, "extract", () => import("@lamina/wasm/extract"), locate, source);
+  const loadIt = () => load(extract, "extract", () => import("@lamina/wasm/extract"), locate, source);
+  // A source given is honoured as for any module; without one, a text module loaded or loading
+  // makes the extract module unnecessary, unless that load fails.
+  if (source !== undefined || text.pending === undefined) return loadIt();
+  return text.pending.catch(loadIt);
 }
 
 /** `init` for an export condition's `locate`. */
@@ -162,9 +165,21 @@ export function readingModule(): BaseGlue {
   return (text.loaded?.glue ?? extract.loaded?.glue ?? base) as BaseGlue;
 }
 
-/** Whether documents opened now can extract text: the extract or the text module is loaded. */
+/**
+ * Whether documents opened or built from now on can extract text: the extract or the text module
+ * is loaded. A document opened earlier stays in the module it was opened in; ask it with
+ * {@link Document.canExtractText}.
+ */
 export function isExtractLoaded(): boolean {
   return extract.loaded !== undefined || text.loaded !== undefined;
+}
+
+/** Whether `doc` lives in a module that extracts text (the extract or the text module). */
+export function extractsText(doc: object): boolean {
+  return (
+    (text.loaded !== undefined && doc instanceof text.loaded.glue.WasmDocument) ||
+    (extract.loaded !== undefined && doc instanceof extract.loaded.glue.WasmDocument)
+  );
 }
 
 /** The text module's glue, when loaded. */

@@ -162,7 +162,8 @@ export class PageText {
    * `glyphOffsets` (glyph i is `glyphText.slice(glyphOffsets[i], glyphOffsets[i + 1])`). Post
    * `quads.buffer` and `glyphOffsets.buffer` as transferables to move them to another thread;
    * that detaches them here, and this PageText's `glyph()` and `glyphs()` then throw (`lines`
-   * and `runs` keep working).
+   * and `runs` keep working). They are this PageText's own arrays, not copies: writing to them
+   * changes what `glyph()` returns.
    */
   get buffers(): { readonly quads: Float32Array; readonly glyphText: string; readonly glyphOffsets: Uint32Array } {
     return { quads: this.#raw.quads, glyphText: this.#raw.glyphText, glyphOffsets: this.#raw.glyphOffsets };
