@@ -68,3 +68,16 @@ fn quads_follow_a_rotation_made_through_the_facade() {
         "{before:?} → {after:?}"
     );
 }
+
+#[test]
+fn page_texts_gives_every_page_as_page_text_does() {
+    let doc = open("golden/build-text-multiscript.pdf");
+    let all = doc.page_texts(&TextOptions::new()).unwrap();
+    let one_by_one: Vec<_> = (0..doc.page_count().unwrap())
+        .map(|i| doc.page_text(i, &TextOptions::new()).unwrap().lines())
+        .collect();
+    assert_eq!(
+        all.iter().map(lamina::extract::PageText::lines).collect::<Vec<_>>(),
+        one_by_one
+    );
+}

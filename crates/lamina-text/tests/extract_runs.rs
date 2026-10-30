@@ -193,7 +193,7 @@ fn invisible_text_is_flagged_and_visible_drops_it() {
     let text = text(b"BT /F1 10 Tf 72 700 Td 3 Tr (OCR) Tj 0 Tr ( drawn) Tj ET");
     let flags: Vec<(&str, bool)> = text.runs.iter().map(|r| (r.text.as_str(), r.invisible)).collect();
     assert_eq!(
-        (flags, text.lines(), text.visible().lines()),
+        (flags, text.lines(), text.clone().visible().lines()),
         (
             vec![("OCR", true), (" drawn", false)],
             vec!["OCR drawn".to_owned()],
@@ -222,4 +222,50 @@ fn right_to_left_runs_drawn_in_logical_order_come_out_in_logical_order() {
         (runs, text.lines()),
         (vec!["שלום", " עולם"], vec!["שלום עולם".to_owned()])
     );
+}
+
+/// A Hebrew font: code 1 ש, 2 ל, 3 ו, 4 ם, 5 ע, 32 space, each `width` thousandths wide.
+fn hebrew(name: &str, width: u32) -> lamina_syntax::Dict {
+    font(&format!(
+        "<< /Type /Font /Subtype /Type1 /BaseFont /{name} /FontDescriptor << /Flags 32 /MissingWidth {width} >>
+           /Encoding << /Differences [1 /uni05E9 /uni05DC /uni05D5 /uni05DD /uni05E2 32 /space] >> >>"
+    ))
+}
+
+#[test]
+fn a_right_to_left_run_without_widths_keeps_its_text() {
+    // No glyph moves the pen: every glyph is a letter, none is dropped as a mark.
+    let doc = page(
+        b"BT /F1 10 Tf 100 700 Td <01> Tj 5 0 Td <02> Tj ET",
+        vec![hebrew("H", 0)],
+        OpenOptions::default(),
+    );
+    let text = extract(&doc).expect("extracts").lines().concat();
+    assert_eq!(text.chars().filter(|c| !c.is_whitespace()).count(), 2, "{text}");
+}
+
+#[test]
+fn a_gap_after_a_zero_width_mark_is_a_space() {
+    let accented = font(
+        "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica
+           /Encoding << /BaseEncoding /WinAnsiEncoding /Differences [1 /uni0301] >> >>",
+    );
+    let doc = page(
+        b"BT /F1 10 Tf 72 700 Td [(cafe) <01> -400 (bar)] TJ ET",
+        vec![accented],
+        OpenOptions::default(),
+    );
+    assert_eq!(extract(&doc).expect("extracts").lines(), ["cafe\u{301} bar"]);
+}
+
+#[test]
+fn a_visual_order_right_to_left_line_split_by_fonts_comes_out_in_logical_order() {
+    // "שלום עולם" drawn left to right as it is displayed: "עולם" (bold, x 100 → 120: ם ל ו ע),
+    // a gap, then "שלום" (regular, x 130 → 150: ם ו ל ש). The font change makes two runs.
+    let doc = page(
+        b"BT /F2 10 Tf 100 700 Td <04020305> Tj /F1 10 Tf 30 0 Td <04030201> Tj ET",
+        vec![hebrew("Regular", 500), hebrew("Bold", 500)],
+        OpenOptions::default(),
+    );
+    assert_eq!(extract(&doc).expect("extracts").lines(), ["שלום עולם"]);
 }

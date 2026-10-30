@@ -62,6 +62,10 @@ use lamina_syntax::{ObjRef, Object};
 
 use font::FontCache;
 
+/// A vector `(dx, dy)` in raw user space (y up; ADR 0027 keeps raw user space in
+/// `UserSpace…` types).
+pub type UserSpaceVector = (f64, f64);
+
 /// A glyph's box in page space: the baseline's start and end, then the top's end and start.
 /// For unrotated horizontal text that is bottom-left, bottom-right, top-right, top-left.
 pub type Quad = [PointPt; 4];
@@ -80,8 +84,9 @@ pub struct Glyph {
     pub code: Code,
     /// The glyph origin in raw user space (the text rendering matrix's translation, §9.4.4).
     pub origin: UserSpacePoint,
-    /// How far the glyph moved the pen, a vector in user space (with `Tc`, `Tw` and `Th`).
-    pub advance: (f64, f64),
+    /// How far the glyph moved the pen (with `Tc`, `Tw` and `Th`): a vector in raw user space,
+    /// y up, unlike [`Glyph::quad`] (page space, y down).
+    pub advance: UserSpaceVector,
     /// The glyph's box in page space.
     pub quad: Quad,
     /// The size the glyph is drawn at in user space: `Tfs` scaled by the text and current
@@ -127,15 +132,19 @@ impl PageText {
         runs::lines(&self.glyphs, &self.runs)
     }
 
-    /// The same text without invisible glyphs (`Tr` 3 and 7): the drawn text only.
+    /// The same text without invisible glyphs (`Tr` 3 and 7): the drawn text only (runs
+    /// regrouped, `unmapped` recounted).
     #[must_use]
-    pub fn visible(&self) -> Self {
-        let glyphs: Vec<Glyph> = self.glyphs.iter().filter(|g| !g.invisible).cloned().collect();
+    pub fn visible(self) -> Self {
+        let glyphs: Vec<Glyph> = self.glyphs.into_iter().filter(|g| !g.invisible).collect();
         let runs = runs::runs(&glyphs, &self.actual_texts);
+        let unmapped = glyphs.iter().filter(|g| !g.mapped).count();
         Self {
             glyphs,
             runs,
-            ..self.clone()
+            actual_texts: self.actual_texts,
+            unmapped,
+            frame: self.frame,
         }
     }
 }
@@ -216,7 +225,7 @@ impl Collector<'_> {
             return Ok(TextAdvance::default());
         };
         let font = self.fonts.get(self.doc, font_ref.object, dict)?;
-        let font_name: Arc<str> = Arc::from(font.name.as_str());
+        let font_name = Arc::clone(&font.name);
         let state = &show.state.text;
         let vertical = font.vertical();
         let invisible = matches!(state.render_mode, 3 | 7);

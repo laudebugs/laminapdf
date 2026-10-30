@@ -169,16 +169,19 @@ pub(super) fn runs(glyphs: &[Glyph], actual_texts: &[String]) -> Vec<TextRun> {
 fn joined(run: &[Glyph]) -> String {
     let mut text = String::new();
     let mut previous: Option<&Glyph> = None;
+    // The last writing direction seen: a zero-width glyph (a combining mark) has none.
+    let mut direction: Vector = run.iter().find_map(|g| unit(g.advance)).unwrap_or((1.0, 0.0));
     for glyph in run {
-        if let Some(p) = previous
-            && let Some(direction) = unit(p.advance)
-        {
+        if let Some(p) = previous {
             let (_, along) = offset(end_of(p), direction, glyph);
             if needs_space(&text, &glyph.text, along, p.size.max(glyph.size)) {
                 text.push(' ');
             }
         }
         text.push_str(&glyph.text);
+        if let Some(d) = unit(glyph.advance) {
+            direction = d;
+        }
         previous = Some(glyph);
     }
     text
@@ -199,9 +202,12 @@ fn by_position(run: &[Glyph]) -> String {
     let direction = run.iter().find_map(|g| unit(g.advance)).unwrap_or((1.0, 0.0));
     let along = |p: Vector| p.0 * direction.0 + p.1 * direction.1;
     let start = |g: &Glyph| along((g.origin.x, g.origin.y));
-    let letters: Vec<&Glyph> = run.iter().filter(|g| !is_mark(g)).collect();
+    // A run where no glyph moves the pen (a font without widths, words placed by `Td`) has
+    // only letters.
+    let marked = |g: &&Glyph| is_mark(g) && run.iter().any(|l| !is_mark(l));
+    let letters: Vec<&Glyph> = run.iter().filter(|g| !marked(g)).collect();
     let mut marks: Vec<Vec<&Glyph>> = vec![Vec::new(); letters.len()];
-    for mark in run.iter().filter(|g| is_mark(g)) {
+    for mark in run.iter().filter(marked) {
         let at = start(mark);
         let inside = letters.iter().position(|l| {
             let (s, e) = (start(l), along(end_of(l)));
@@ -261,7 +267,7 @@ fn needs_space(before: &str, after: &str, gap: f64, size: f64) -> bool {
 /// N’Ko and their presentation forms).
 fn has_right_to_left(text: &str) -> bool {
     text.chars()
-        .any(|c| matches!(c, '\u{0590}'..='\u{08FF}' | '\u{FB1D}'..='\u{FDFF}' | '\u{FE70}'..='\u{FEFF}'))
+        .any(|c| matches!(c, '\u{0590}'..='\u{08FF}' | '\u{FB1D}'..='\u{FDFF}' | '\u{FE70}'..='\u{FEFC}'))
 }
 
 /// Text drawn in visual order, in logical order: UAX #9 run levels of the text as it stands,
@@ -318,17 +324,46 @@ fn bounds(run: &[Glyph]) -> RectPt {
     RectPt::new(Pt::new(x0), Pt::new(y0), Pt::new(x1), Pt::new(y1))
 }
 
+/// One run on a line, for ordering the line.
+struct Unit<'r> {
+    text: &'r str,
+    /// Where the run starts and ends along the line's direction.
+    start: f64,
+    end: f64,
+    size: f64,
+    /// 'R' (right-to-left letters), 'L' (other letters or digits) or 'N' (neither).
+    class: char,
+}
+
+impl Unit<'_> {
+    fn new<'r>(run: &'r TextRun, first: &Glyph, last: &Glyph, direction: Vector) -> Unit<'r> {
+        let along = |p: Vector| p.0 * direction.0 + p.1 * direction.1;
+        let class = if has_right_to_left(&run.text) {
+            'R'
+        } else if run.text.chars().any(char::is_alphanumeric) {
+            'L'
+        } else {
+            'N'
+        };
+        Unit {
+            text: &run.text,
+            start: along((first.origin.x, first.origin.y)),
+            end: along(end_of(last)),
+            size: run.font_size,
+            class,
+        }
+    }
+}
+
 /// The runs' text as lines (see [`PageText::lines`](super::PageText::lines)).
 pub(super) fn lines(glyphs: &[Glyph], runs: &[TextRun]) -> Vec<String> {
-    let mut lines: Vec<String> = Vec::new();
-    let mut line = String::new();
-    // The previous run's end, writing direction and size.
+    // Group runs into lines, in content order.
+    let mut grouped: Vec<Vec<Unit<'_>>> = vec![Vec::new()];
     let mut previous: Option<(Vector, Vector, f64)> = None;
+    let mut line_direction: Vector = (1.0, 0.0);
     for run in runs {
-        let (Some(first), Some(last)) = (
-            glyphs.get(run.glyphs.start),
-            run.glyphs.end.checked_sub(1).and_then(|i| glyphs.get(i)),
-        ) else {
+        let last_index = run.glyphs.end.checked_sub(1);
+        let (Some(first), Some(last)) = (glyphs.get(run.glyphs.start), last_index.and_then(|i| glyphs.get(i))) else {
             continue;
         };
         let direction = unit(first.advance)
@@ -336,24 +371,137 @@ pub(super) fn lines(glyphs: &[Glyph], runs: &[TextRun]) -> Vec<String> {
             .unwrap_or((1.0, 0.0));
         if let Some((end, prev_direction, size)) = previous {
             let size = size.max(run.font_size).max(f64::EPSILON);
-            let (across, along) = offset(end, prev_direction, first);
+            let (across, _) = offset(end, prev_direction, first);
             let turned = direction.0 * prev_direction.0 + direction.1 * prev_direction.1 < 0.9;
             if across > LINE_SHIFT * size || turned {
-                lines.push(std::mem::take(&mut line));
-            } else if needs_space(&line, &run.text, along, size) {
-                line.push(' ');
+                grouped.push(Vec::new());
+                line_direction = direction;
             }
+        } else {
+            line_direction = direction;
         }
-        line.push_str(&run.text);
+        if let Some(line) = grouped.last_mut() {
+            line.push(Unit::new(run, first, last, line_direction));
+        }
         let last_direction = unit(last.advance).unwrap_or(direction);
         previous = Some((end_of(last), last_direction, run.font_size));
     }
-    lines.push(line);
-    lines
+    grouped
         .into_iter()
+        .map(|units| {
+            if units.iter().any(|u| u.class == 'R') {
+                bidi_line(units)
+            } else {
+                join(&units)
+            }
+        })
         .map(|l| l.trim().to_owned())
         .filter(|l| !l.is_empty())
         .collect()
+}
+
+/// Units joined in the order given, with a space where the next one starts over a quarter of
+/// the size after the previous one ends.
+fn join(units: &[Unit<'_>]) -> String {
+    let mut line = String::new();
+    let mut previous: Option<&Unit<'_>> = None;
+    for u in units {
+        if let Some(p) = previous
+            && needs_space(&line, u.text, u.start - p.end, p.size.max(u.size).max(f64::EPSILON))
+        {
+            line.push(' ');
+        }
+        line.push_str(u.text);
+        previous = Some(u);
+    }
+    line
+}
+
+/// A line with right-to-left runs, its runs in logical order whatever order they were drawn
+/// in: UAX #9 at the level of runs. The runs are taken in visual order (by position); the
+/// paragraph is right to left when it has more right-to-left letters than others; a neutral
+/// run takes the direction of the strong runs on both sides when they agree, else the
+/// paragraph's (rules N1, N2); levels are 1 for right to left, 0 or 2 for left to right
+/// (I1, I2), and L2 reverses each sequence at or above each level from the highest down. Each
+/// run's own text is already in logical order (see [`runs`]). A space goes between two runs
+/// that are neighbours on the page with a gap of over a quarter of the size.
+fn bidi_line(mut units: Vec<Unit<'_>>) -> String {
+    units.sort_by(|a, b| a.start.total_cmp(&b.start));
+    let count = |class: char| {
+        units
+            .iter()
+            .filter(|u| u.class == class)
+            .map(|u| u.text.chars().filter(|c| c.is_alphabetic()).count())
+            .sum::<usize>()
+    };
+    let paragraph = if count('R') > count('L') { 'R' } else { 'L' };
+    let strong: Vec<Option<char>> = units.iter().map(|u| (u.class != 'N').then_some(u.class)).collect();
+    let resolved: Vec<char> = (0..units.len())
+        .map(|i| {
+            if let Some(class) = strong.get(i).copied().flatten() {
+                return class;
+            }
+            let before = strong.get(..i).and_then(|s| s.iter().rev().find_map(|c| *c));
+            let after = strong.get(i + 1..).and_then(|s| s.iter().find_map(|c| *c));
+            match (before, after) {
+                (Some(b), Some(a)) if a == b => a,
+                _ => paragraph,
+            }
+        })
+        .collect();
+    let levels: Vec<u8> = resolved
+        .iter()
+        .map(|&class| match (class, paragraph) {
+            ('R', _) => 1,
+            (_, 'R') => 2,
+            _ => 0,
+        })
+        .collect();
+    // Visual neighbours with a gap between them, by unit index.
+    let gaps: Vec<bool> = units
+        .windows(2)
+        .map(|pair| match pair {
+            [a, b] => b.start - a.end > SPACE_GAP * a.size.max(b.size).max(f64::EPSILON),
+            _ => false,
+        })
+        .collect();
+    let mut order: Vec<usize> = (0..units.len()).collect();
+    for level in (1..=levels.iter().copied().max().unwrap_or(0)).rev() {
+        let mut i = 0;
+        while i < order.len() {
+            let at = |k: usize| order.get(k).and_then(|&u| levels.get(u)).copied().unwrap_or(0);
+            if at(i) >= level {
+                let mut j = i;
+                while j < order.len() && at(j) >= level {
+                    j += 1;
+                }
+                if let Some(slice) = order.get_mut(i..j) {
+                    slice.reverse();
+                }
+                i = j;
+            } else {
+                i += 1;
+            }
+        }
+    }
+    let mut line = String::new();
+    let mut previous: Option<usize> = None;
+    for &u in &order {
+        let Some(unit) = units.get(u) else { continue };
+        if let Some(p) = previous {
+            let neighbours_with_gap = gaps.get(p.min(u)).copied().unwrap_or(false) && p.abs_diff(u) == 1;
+            if neighbours_with_gap
+                && !line.is_empty()
+                && !line.ends_with(char::is_whitespace)
+                && !unit.text.starts_with(char::is_whitespace)
+            {
+                line.push(' ');
+            }
+        }
+        line.push_str(unit.text);
+        previous = Some(u);
+    }
+    line
 }
 
 #[cfg(test)]
@@ -369,6 +517,11 @@ mod tests {
     #[test]
     fn a_visual_arabic_line_comes_out_in_logical_order() {
         assert_eq!(logical("مكيلع مالسلا"), "السلام عليكم");
+    }
+
+    #[test]
+    fn a_feff_does_not_make_a_run_right_to_left() {
+        assert!(!super::has_right_to_left("Hello\u{FEFF}"));
     }
 
     #[test]

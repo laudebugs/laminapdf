@@ -40,8 +40,8 @@ const DEFAULT_EXTENT: (f64, f64) = (800.0, -200.0);
 pub(crate) struct ExtractFont {
     kind: Kind,
     to_unicode: Option<CMap>,
-    /// `/BaseFont` (the font's name), read lossily.
-    pub(crate) name: String,
+    /// `/BaseFont` (the font's name), read lossily; shared by every glyph shown in the font.
+    pub(crate) name: Arc<str>,
     /// Ascent and descent in thousandths of text space, for glyph boxes.
     pub(crate) extent: (f64, f64),
 }
@@ -63,6 +63,8 @@ struct Simple {
     zapf: bool,
     /// Code → text from the embedded font's `cmap` (for codes the names don't map).
     program: BTreeMap<u8, char>,
+    /// Ascent and descent, thousandths of text space.
+    extent: (f64, f64),
 }
 
 /// Type 0 fonts: codes by CMap, CIDs, `/W`, `/W2`.
@@ -76,6 +78,8 @@ struct Composite {
     default_vertical: (f64, f64),
     /// CID → text from the embedded font's `cmap` through `/CIDToGIDMap`.
     program: BTreeMap<u32, char>,
+    /// Ascent and descent, thousandths of text space.
+    extent: (f64, f64),
 }
 
 #[derive(Debug)]
@@ -316,9 +320,13 @@ impl ExtractFont {
         } else {
             Kind::Simple(Simple::load(&mut reader, dict)?)
         };
-        let base_font = name_of(dict.get("BaseFont")).unwrap_or_default();
-        let extent = extent(&mut reader, dict, composite, base_font)?;
-        let name = String::from_utf8_lossy(base_font).into_owned();
+        let extent = match &kind {
+            Kind::Simple(s) => s.extent,
+            Kind::Composite(c) => c.extent,
+        };
+        let name = Arc::from(String::from_utf8_lossy(
+            name_of(dict.get("BaseFont")).unwrap_or_default(),
+        ));
         Ok((
             Self {
                 kind,
@@ -480,11 +488,13 @@ impl Simple {
                 })
                 .collect()
         });
+        let extent = extent(reader, dict, descriptor.as_ref(), standard)?;
         Ok(Self {
             names: glyph_names,
             widths,
             zapf: standard == Some(Standard14::ZapfDingbats),
             program,
+            extent,
         })
     }
 
@@ -606,6 +616,7 @@ impl Composite {
                 },
                 default_vertical: DW2,
                 program: BTreeMap::new(),
+                extent: DEFAULT_EXTENT,
             });
         };
         let default_width = reader.number(&cid_font, "DW")?.unwrap_or(1000.0);
@@ -659,6 +670,7 @@ impl Composite {
             }
             None => BTreeMap::new(),
         };
+        let extent = extent(reader, &cid_font, descriptor.as_ref(), None)?;
         Ok(Self {
             encoding,
             vertical,
@@ -667,6 +679,7 @@ impl Composite {
             vertical_widths,
             default_vertical,
             program,
+            extent,
         })
     }
 
@@ -709,13 +722,22 @@ fn descendant(reader: &mut Reader<'_>, dict: &Dict) -> Result<Option<Dict>> {
 }
 
 /// A font's ascent and descent in thousandths of text space, for glyph boxes: Type 3's
-/// `/FontBBox` through `/FontMatrix`; else the descriptor's `/Ascent` and `/Descent` (when they
-/// make a box), else its `/FontBBox`; else a standard 14 font's AFM values; else
-/// [`DEFAULT_EXTENT`]. (pdf.js and PDFium differ here; B9c's quad tests set the tolerance.)
-fn extent(reader: &mut Reader<'_>, dict: &Dict, composite: bool, base_font: &[u8]) -> Result<(f64, f64)> {
-    let valid = |ascent: f64, descent: f64| (ascent > descent && ascent > 0.0).then_some((ascent, descent));
+/// `/FontBBox` through `/FontMatrix` (from `dict`); else the descriptor's `/Ascent` and
+/// `/Descent`, else its `/FontBBox`; else a standard 14 font's AFM values; else
+/// [`DEFAULT_EXTENT`]. A positive descent (a sign error some producers make) counts as
+/// negative. (pdf.js and PDFium differ here; B9c's quad tests set the tolerance.)
+fn extent(
+    reader: &mut Reader<'_>,
+    dict: &Dict,
+    descriptor: Option<&Dict>,
+    standard: Option<Standard14>,
+) -> Result<(f64, f64)> {
+    let valid = |ascent: f64, descent: f64| {
+        let descent = -descent.abs();
+        (ascent > 0.0 && ascent.is_finite() && descent.is_finite()).then_some((ascent, descent))
+    };
     let bbox = |numbers: &[f64]| match *numbers {
-        [_, y0, _, y1] => valid(y1.max(y0), y0.min(y1)),
+        [_, y0, _, y1] => valid(y1.max(y0), y0.min(y1).min(0.0)),
         _ => None,
     };
     if name_of(dict.get("Subtype")) == Some(b"Type3") {
@@ -731,27 +753,19 @@ fn extent(reader: &mut Reader<'_>, dict: &Dict, composite: bool, base_font: &[u8
         let scaled: Vec<f64> = numbers.iter().map(|n| n * scale).collect();
         return Ok(bbox(&scaled).unwrap_or(DEFAULT_EXTENT));
     }
-    let owner = if composite {
-        descendant(reader, dict)?
-    } else {
-        Some(dict.clone())
-    };
-    if let Some(descriptor) = match owner {
-        Some(owner) => reader.dict(&owner, "FontDescriptor")?,
-        None => None,
-    } {
-        let ascent = reader.number(&descriptor, "Ascent")?;
-        let descent = reader.number(&descriptor, "Descent")?;
+    if let Some(descriptor) = descriptor {
+        let ascent = reader.number(descriptor, "Ascent")?;
+        let descent = reader.number(descriptor, "Descent")?;
         if let Some(found) = ascent.zip(descent).and_then(|(a, d)| valid(a, d)) {
             return Ok(found);
         }
-        if let Some(b) = reader.get(&descriptor, "FontBBox")?
+        if let Some(b) = reader.get(descriptor, "FontBBox")?
             && let Some(found) = bbox(&reader.numbers(&b)?)
         {
             return Ok(found);
         }
     }
-    if let Some(font) = standard_font(base_font) {
+    if let Some(font) = standard {
         let m = font.metrics();
         let afm = m.ascender.zip(m.descender).map(|(a, d)| (f64::from(a), f64::from(d)));
         let from_bbox = bbox(&m.bbox.map(f64::from));
@@ -1246,12 +1260,20 @@ mod tests {
     }
 
     #[test]
+    fn a_positive_descent_counts_as_negative() {
+        let (font, _) = load(&dict(
+            "<< /Subtype /TrueType /BaseFont /X /FontDescriptor << /Ascent 900 /Descent 200 >> >>",
+        ));
+        assert_eq!(font.extent, (900.0, -200.0));
+    }
+
+    #[test]
     fn a_type0_extent_comes_from_its_descendants_descriptor() {
         let (font, _) = load(&type0(
             "/Identity-H",
             "<< /Subtype /CIDFontType2 /FontDescriptor << /Ascent 1069 /Descent -293 >> >>",
         ));
-        assert_eq!((font.extent, font.name.as_str()), ((1069.0, -293.0), "F"));
+        assert_eq!((font.extent, &*font.name), ((1069.0, -293.0), "F"));
     }
 
     #[test]

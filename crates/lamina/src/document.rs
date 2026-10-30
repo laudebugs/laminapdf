@@ -158,6 +158,7 @@ impl Document {
     /// page space, runs, lines ([`crate::extract`]). Fonts are parsed once per document and
     /// revision; problems are warnings (`font-invalid`, `cmap-invalid`, `unmapped-glyph`, the
     /// content warnings) in [`Document::warnings`].
+    /// Each call walks the page tree once: for every page, use [`Document::page_texts`].
     ///
     /// # Errors
     /// `page-index-out-of-range`; the content limits, `strict`, `data-pending` and the other
@@ -177,6 +178,29 @@ impl Document {
         let (_, extractor) = cache.get_or_insert_with(|| (self.revision, lamina_text::TextExtractor::new()));
         let text = extractor.page(&self.inner, &page)?;
         Ok(if options.skip_invisible { text.visible() } else { text })
+    }
+
+    /// The text of every page, in order ([`Document::page_text`] for each, but one walk of the
+    /// page tree and one font cache for all: `page_text` walks the tree on each call, so a
+    /// loop over it is quadratic in the page count).
+    ///
+    /// # Errors
+    /// As [`Document::page_text`].
+    #[cfg(feature = "text")]
+    pub fn page_texts(&self, options: &crate::extract::TextOptions) -> Result<Vec<crate::extract::PageText>> {
+        let pages = self.inner.pages()?;
+        let mut cache = self.extractor.borrow_mut();
+        if cache.as_ref().is_some_and(|(revision, _)| *revision != self.revision) {
+            *cache = None;
+        }
+        let (_, extractor) = cache.get_or_insert_with(|| (self.revision, lamina_text::TextExtractor::new()));
+        pages
+            .iter()
+            .map(|page| {
+                let text = extractor.page(&self.inner, &page)?;
+                Ok(if options.skip_invisible { text.visible() } else { text })
+            })
+            .collect()
     }
 
     /// Every page's facts, in order: one read of the page tree (cached until the next

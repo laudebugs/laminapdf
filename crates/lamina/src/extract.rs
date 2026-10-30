@@ -14,7 +14,7 @@
 //! # Ok::<(), lamina::Error>(())
 //! ```
 
-pub use lamina_text::extract::{Code, Glyph, PageText, Quad, TextRun};
+pub use lamina_text::extract::{Code, Glyph, PageText, Quad, TextRun, UserSpaceVector};
 
 /// What [`Document::page_text`](crate::Document::page_text) returns.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
