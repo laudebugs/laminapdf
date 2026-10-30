@@ -147,6 +147,7 @@ One page per code in [`fixtures/codes.json`](../../fixtures/codes.json), as [ADR
 | --- | --- |
 | [`builder-finished`](builder-finished.md) | `state` |
 | [`invalid-argument`](invalid-argument.md) | `usage` |
+| [`source-budget-exceeded`](source-budget-exceeded.md) | `limit` |
 | [`unknown-option`](unknown-option.md) | `usage` |
 
 ## Package errors (`@lamina/pdf`)
@@ -154,5 +155,7 @@ One page per code in [`fixtures/codes.json`](../../fixtures/codes.json), as [ADR
 | Code | Kind |
 | --- | --- |
 | [`already-initialized`](already-initialized.md) | `state` |
+| [`fetch-failed`](fetch-failed.md) | `io` |
 | [`not-initialized`](not-initialized.md) | `state` |
+| [`source-changed`](source-changed.md) | `io` |
 | [`text-module-not-loaded`](text-module-not-loaded.md) | `state` |

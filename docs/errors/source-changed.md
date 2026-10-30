@@ -9,7 +9,7 @@ A remote file changed while `@lamina/pdf` was reading it range by range: a respo
 
 ## Why
 
-A range document is assembled from many responses. If the file changed between them, the parts no longer belong to one file, and the document would read a mix of two versions. `httpRangeSource` sends `If-Range` with the first `ETag` and compares each response's `ETag` and `Content-Range` length with the first ([L2c](../todos/ongoing/L2c-range-byte-source.md)).
+A range document is assembled from many responses. If the file changed between them, the parts no longer belong to one file, and the document would read a mix of two versions. `httpRangeSource` sends `If-Range` with the first `ETag` and compares each response's `ETag` and `Content-Range` length with the first ([L2c](../todos/done/L2c-range-byte-source.md)).
 
 ## How to fix
 
