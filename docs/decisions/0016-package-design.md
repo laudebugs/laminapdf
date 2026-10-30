@@ -100,6 +100,7 @@ Gzip bytes as `cargo xtask size` measures them (deflate level 9 plus the gzip he
 | base (`lamina_base.wasm`) | 372,711 (brotli 298,462) | **380,000** | 2.0 % |
 | text (`lamina_text.wasm`) | 943,924 (brotli 723,348) | **960,000** | 1.7 % |
 | JS glue per module (wasm-bindgen output, minified by esbuild) | 3,769 base, 3,978 text | **5,000** each | |
+| `@lamina/pdf` JS: both glues + the TS API, bundled and minified by esbuild (B6b, `packages` in `size-budgets.json`) | 9,299 | **20,000** | 53 % |
 | extract (B9c) | — | placeholder: decided when the module exists | |
 | render (C2) | — | placeholder: decided by C2's ADRs | |
 | sign (E10) | — | placeholder: decided by E10a | |

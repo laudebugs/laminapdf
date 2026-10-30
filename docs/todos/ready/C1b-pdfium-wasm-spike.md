@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [web reader §6 C1. Rendering spikes](../../plans/web-app.md#c1-rendering-spikes) |
 | Round / milestone | Round C (web reader) — M2 Web reader v0.1 |
-| Depends on | [B3c](../done/B3c-save-planner-and-roundtrip.md), [B6b](../ongoing/B6b-lamina-pdf-package.md), [C1a](../done/C1a-hayro-parity-spike.md) |
+| Depends on | [B3c](../done/B3c-save-planner-and-roundtrip.md), [B6b](../done/B6b-lamina-pdf-package.md), [C1a](../done/C1a-hayro-parity-spike.md) |
 | Blocks | [C2a](./C2a-render-adrs.md) |
 | Dependency notes | Library **B6** (`lamina-wasm` + `@lamina/pdf`; [pdf-library §7 B6](../../plans/pdf-library.md#b6-wasm-and-laminapdf)) — and through it B3 (`lamina-save` incremental save); [C1a](../done/C1a-hayro-parity-spike.md) (same machine and corpus; the joint recommendation builds on its numbers) |
 | ADRs | Informs ADR 0004 (render backend) and ADR 0009 (worker topology, single- vs multi-threaded WASM). Must follow [0001](../../decisions/0001-core-language-and-licence.md), [0002](../../decisions/0002-binding-strategy.md), [0005](../../decisions/0005-document-model.md) §2–3 (`ByteSource`, overlay, incremental save), [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) |

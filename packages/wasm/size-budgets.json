@@ -151,6 +151,11 @@
       "wasmGzip": 943924
     }
   },
+  "packages": {
+    "@lamina/pdf": {
+      "jsGzip": 20000
+    }
+  },
   "budgets": {
     "base": {
       "glueGzip": 5000,

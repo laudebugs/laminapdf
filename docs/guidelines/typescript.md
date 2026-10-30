@@ -89,7 +89,7 @@ Shared packages run in browsers, Cloudflare Workers, Deno, Bun, Node, React Nati
 ## API design (types first)
 
 - **SHOULD:** design the public API as types before writing the implementation: write `index.ts`'s exported types, review them in the PR, then implement. The `.d.ts` *is* the contract.
-- **MUST:** `src/index.ts` exports public symbols **by name**. `export *` from internal modules is not allowed, and sub-folders don't get barrel files. Expose bigger areas as subpath exports (`@lamina/pdf/forms`).
+- **MUST:** `src/index.ts` exports public symbols **by name**. `export *` from internal modules is not allowed, and sub-folders don't get barrel files. Expose bigger areas as subpath exports (`@lamina/pdf/forms`). A package with one entry per export condition (`@lamina/pdf`: `src/index.ts`, `src/entry/node.ts`, `src/entry/workerd.ts`) lists its public names once, in `src/api.ts`, and each entry adds its own `init` and re-exports that module with `export *`, so the entries can't drift; a test compares their exports.
 - **SHOULD:** public inputs and outputs use `readonly` properties and `ReadonlyArray`/`Readonly<…>`. Options are a single object parameter (`open(bytes, { maxDecoded })`), and an optional property means "omitted", not `undefined` (`exactOptionalPropertyTypes`).
 - **SHOULD:** accept `Uint8Array` (and `ArrayBuffer` where cheap) and return `Uint8Array`. Async only where work is truly async (WASM instantiation, workers).
 - **MUST:** every exported symbol has a TSDoc comment (`@param`, `@returns`, `@throws`, `@example`; [tsdoc.org](https://tsdoc.org/)).

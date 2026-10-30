@@ -6,7 +6,10 @@
 //! Cargo.lock), optimises with `wasm-opt` (binaryen pinned below, rustc's feature set passed
 //! explicitly) keeping a named copy in `target/wasm/` for size reports, strips it into
 //! `packages/wasm/dist/`, and runs the `wasm-bindgen-test` suite (Node) and the package's Node
-//! smoke test. `size` measures what `wasm` wrote and fails above `packages/wasm/size-budgets.json`.
+//! smoke test, then builds `@lamina/pdf` over them, runs its tests (Node and Vite) and checks its
+//! packaging with publint and `attw --pack` (they need `dist/`, so they run here rather than in
+//! `check ts`). `size` measures what `wasm` wrote and fails above
+//! `packages/wasm/size-budgets.json`, `@lamina/pdf`'s JS (glue + TS API, min+gzip) included.
 
 use std::collections::BTreeMap;
 use std::fmt::Write as _;
@@ -181,8 +184,8 @@ fn build_module(ws: &Workspace, module: &Module, wasm_opt: &Path, out: &Path) ->
     Ok(())
 }
 
-/// The `wasm-bindgen-test` suite (Node) for each module's features, then the package's smoke
-/// test (Vitest, Node) over `dist/`.
+/// The `wasm-bindgen-test` suite (Node) for each module's features, the package's smoke test
+/// (Vitest, Node) over `dist/`, then `@lamina/pdf`: build, typecheck, tests, publint and attw.
 fn test(ws: &Workspace) -> Result<()> {
     crate::step("lamina-wasm tests in Node (wasm-bindgen-test-runner)");
     for module in &MODULES {
@@ -204,7 +207,10 @@ fn test(ws: &Workspace) -> Result<()> {
             &[("CARGO_TARGET_WASM32_UNKNOWN_UNKNOWN_RUNNER", "wasm-bindgen-test-runner")],
         )?;
     }
-    ws.pnpm(&["--filter", "@lamina/wasm", "run", "test:wasm"])
+    ws.pnpm(&["--filter", "@lamina/wasm", "run", "test:wasm"])?;
+    crate::step("@lamina/pdf over the modules: build, typecheck, Vitest (Node, Vite), publint, attw --pack");
+    ws.pnpm(&["--filter", "@lamina/pdf", "run", "test:wasm"])?;
+    ws.pnpm(&["--filter", "@lamina/pdf", "run", "lint:package"])
 }
 
 /// A usable `wasm-opt`: on `PATH` at [`BINARYEN_VERSION`], else the release in
@@ -426,6 +432,61 @@ fn minified(ws: &Workspace, js: &Path) -> Result<Vec<u8>> {
     Ok(output.stdout)
 }
 
+/// `@lamina/pdf`'s browser entry bundled with its glue and minified (esbuild), as a page that
+/// imports the whole API downloads it (the `.wasm` files are measured as modules).
+fn package_js(ws: &Workspace) -> Result<Vec<u8>> {
+    let entry = ws.root.join("packages/pdf/dist/index.js");
+    if !entry.exists() {
+        bail!("{} is missing: run `cargo xtask wasm` first", entry.display());
+    }
+    let output = Command::new(crate::program_path("pnpm"))
+        .args([
+            "--filter",
+            "@lamina/pdf",
+            "exec",
+            "esbuild",
+            "--bundle",
+            "--minify",
+            "--format=esm",
+            "--platform=browser",
+            "--log-level=warning",
+        ])
+        .arg(&entry)
+        .current_dir(&ws.root)
+        .output()
+        .context("running esbuild through pnpm")?;
+    if !output.status.success() {
+        bail!("esbuild failed: {}", String::from_utf8_lossy(&output.stderr));
+    }
+    Ok(output.stdout)
+}
+
+/// The JS budgets of `size-budgets.json`'s `packages` (`{ "<name>": { "jsGzip" } }`).
+fn package_budgets(file: &Value) -> BTreeMap<String, u64> {
+    file.get("packages")
+        .and_then(Value::as_object)
+        .into_iter()
+        .flatten()
+        .filter_map(|(name, b)| Some((name.clone(), b.get("jsGzip")?.as_u64()?)))
+        .collect()
+}
+
+/// The violation of `name`'s JS budget, if any (a package without a budget is one too).
+pub(crate) fn package_violation(name: &str, gzip: u64, budgets: &BTreeMap<String, u64>) -> Option<String> {
+    match budgets.get(name) {
+        None => Some(format!(
+            "{name}: no budget under packages in packages/wasm/size-budgets.json"
+        )),
+        Some(&budget) if gzip > budget => Some(format!(
+            "{name}: its JS (glue + API, minified) is {gzip} B gzip, over its budget of {budget} B"
+        )),
+        Some(_) => None,
+    }
+}
+
+/// The package whose JS `size` measures (ADR 0016 §6: glue + TS API ≤ 20 KB min+gzip).
+const PDF_PACKAGE: &str = "@lamina/pdf";
+
 /// How many items the baseline keeps and the growth diff compares.
 const TOP_ITEMS: usize = 40;
 
@@ -577,6 +638,19 @@ pub(crate) fn size(ws: &Workspace, update_baseline: bool) -> Result<()> {
             }),
         );
     }
+    let pdf = Sizes::of(&package_js(ws)?);
+    let pdf_budget = package_budgets(&file).get(PDF_PACKAGE).copied();
+    let _ = writeln!(
+        table,
+        "| {PDF_PACKAGE} (JS: glue + API) | — | — | — | — | {} | {} | {} |",
+        pdf.raw,
+        pdf.gzip,
+        pdf_budget.map_or("—".to_owned(), |b| b.to_string()),
+    );
+    report.insert(
+        PDF_PACKAGE.to_owned(),
+        json!({ "jsMinified": pdf.json(), "budget": pdf_budget.map(|b| json!({ "jsGzip": b })) }),
+    );
     println!("{table}");
     fs::create_dir_all(ws.root.join("target"))?;
     let report_path = ws.root.join("target/size-report.json");
@@ -592,7 +666,8 @@ pub(crate) fn size(ws: &Workspace, update_baseline: bool) -> Result<()> {
         write_baseline(ws, &measured, &mut file)?;
     }
 
-    let problems = violations(&measured, &budgets);
+    let mut problems = violations(&measured, &budgets);
+    problems.extend(package_violation(PDF_PACKAGE, pdf.gzip, &package_budgets(&file)));
     if problems.is_empty() {
         crate::step("WASM sizes are within budget");
         Ok(())
@@ -656,7 +731,7 @@ fn write_baseline(ws: &Workspace, measured: &BTreeMap<String, ModuleSizes>, file
 mod tests {
     use std::collections::BTreeMap;
 
-    use super::{Budget, ModuleSizes, Sizes, grown, largest, stable_name, top_diff, violations};
+    use super::{Budget, ModuleSizes, Sizes, grown, largest, package_violation, stable_name, top_diff, violations};
 
     #[test]
     fn largest_sums_the_data_segments_into_one_item() {
@@ -737,6 +812,23 @@ mod tests {
     fn a_module_without_a_budget_fails() {
         let measured = BTreeMap::from([("extract".to_owned(), sizes(1, 1))]);
         assert_eq!(violations(&measured, &budgets()).len(), 1);
+    }
+
+    #[test]
+    fn a_package_over_its_js_budget_fails() {
+        let budgets = BTreeMap::from([("@lamina/pdf".to_owned(), 20_000)]);
+        assert!(package_violation("@lamina/pdf", 20_001, &budgets).is_some());
+    }
+
+    #[test]
+    fn a_package_within_its_js_budget_passes() {
+        let budgets = BTreeMap::from([("@lamina/pdf".to_owned(), 20_000)]);
+        assert_eq!(package_violation("@lamina/pdf", 20_000, &budgets), None);
+    }
+
+    #[test]
+    fn a_package_without_a_js_budget_fails() {
+        assert!(package_violation("@lamina/pdf", 1, &BTreeMap::new()).is_some());
     }
 
     #[test]

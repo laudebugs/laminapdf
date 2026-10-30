@@ -1,0 +1,13 @@
+// The `node` condition (Node, Bun): the `.wasm` file of @lamina/wasm, read as bytes (Node's
+// fetch can't read file: URLs). The one file in src/ allowed a Node API (biome.json override).
+import { readFile } from "node:fs/promises";
+import type { Locate } from "../init.js";
+
+export const locate: Locate = (module) =>
+  readFile(
+    new URL(
+      module === "base"
+        ? import.meta.resolve("@lamina/wasm/lamina_base.wasm")
+        : import.meta.resolve("@lamina/wasm/lamina_text.wasm"),
+    ),
+  );

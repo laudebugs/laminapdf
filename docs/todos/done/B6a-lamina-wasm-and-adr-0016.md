@@ -7,7 +7,7 @@
 | Plan | [pdf-library §7 B6](../../plans/pdf-library.md#b6-wasm-and-laminapdf), non-functional targets [§4](../../plans/pdf-library.md#non-functional) |
 | Round / milestone | Round B (library) — M1 |
 | Depends on | [B5c](./B5c-lamina-facade-and-examples.md) |
-| Blocks | [B6b](../ongoing/B6b-lamina-pdf-package.md) |
+| Blocks | [B6b](./B6b-lamina-pdf-package.md) |
 | ADRs | Writes **0016** (package design: ESM-only, export conditions, split WASM modules, size budgets); implements [0002](../../decisions/0002-binding-strategy.md) (wasm-bindgen + tsify, committed `@lamina/wasm` manifest, gitignored `dist/`, pinned binaryen with rustc's feature set) |
 | Branch | `feat/b6a-lamina-wasm` |
 | PR title | `feat(wasm): lamina-wasm bindings, split base/text modules, ADR 0016 and size budgets` |
@@ -38,7 +38,7 @@ Ship the WASM build of the core with sizes we can defend. The `krilla-fit` spike
 
 **Out of scope** (and which todo covers it)
 
-- The TS API package `@lamina/pdf`, publint/attw: [B6b](../ongoing/B6b-lamina-pdf-package.md).
+- The TS API package `@lamina/pdf`, publint/attw: [B6b](../done/B6b-lamina-pdf-package.md).
 - Runtime matrix in CI: [B6c](../ready/B6c-runtime-matrix.md).
 - Edge `ByteSource`s for the web (Blob, OPFS, HTTP range): web C3.
 - Text extraction bindings: [B9c](../ready/B9c-text-extraction-bindings-and-differential.md).

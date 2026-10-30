@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [shareable-libraries §7 L1](../../plans/shareable-libraries.md#l1-contracts), [§4 principle 2](../../plans/shareable-libraries.md#4-principles-recommendations-recorded-in-adrs-00260031) |
 | Round / milestone | Round L1 (shareable libraries) |
-| Depends on | [B6b](../ongoing/B6b-lamina-pdf-package.md), [L1a](../done/L1a-contract-adrs.md), [L1c](../done/L1c-error-contract-core.md) |
+| Depends on | [B6b](../done/B6b-lamina-pdf-package.md), [L1a](../done/L1a-contract-adrs.md), [L1c](../done/L1c-error-contract-core.md) |
 | Blocks | [L2a](./L2a-worker-client.md), [L2b](./L2b-disposal-and-memory.md), [L4a](./L4a-lamina-cli.md), [L5a](./L5a-agent-docs.md) |
 | ADRs | Implements 0026 (from [L1a](../done/L1a-contract-adrs.md)); follows [0003](../../decisions/0003-reader-tolerance-and-limits.md) §2 and §4 (codes listed once, Rust and TS tests), [0002](../../decisions/0002-binding-strategy.md) §1 (errors map 1:1 to a JS `Error` with `code`), [0018](../../decisions/0018-test-strategy.md) §5 (shared expectations), [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) (new dev dependencies) |
 | Branch | `feat/l1b-error-contract` |
@@ -21,9 +21,9 @@ Make ADR 0026's error shape real on every surface, from one file. `fixtures/code
 ## Context
 
 - [ADR 0026](../../decisions/0026-error-and-diagnostic-contract.md) from [L1a](../done/L1a-contract-adrs.md): fields (incl. `data`, the only place for document-derived strings, and `location.pageIndex`/`id`), the `kind` list with an initial assignment for every current code (§2), code and hint rules, no document text in messages, `docsUrl`, TS class name. Decided there: the class is **`LaminaError`** (B6b ships it; `PdfError` is never used); `explain` pages live in **`docs/errors/<code>.md`**; `docsUrl` uses one generated base constant, the GitHub-rendered page until the domain is chosen.
-- Already done before this todo (re-sequenced after L1a's review): [L1c](../done/L1c-error-contract-core.md) converts `fixtures/codes.json` to v2 (kind, summary, hint), adds `kind()`/`location()` with tagged positions to the core errors, and removes document text from `Display`. [B5c](../done/B5c-lamina-facade-and-examples.md) adds `lamina::Error`'s `hint()`/`docs_url()`/`Serialize` and the job codes. [B6b](../ongoing/B6b-lamina-pdf-package.md) ships `LaminaError` with every field. This todo replaces those hand-checked tables with generated ones and adds what is listed below.
+- Already done before this todo (re-sequenced after L1a's review): [L1c](../done/L1c-error-contract-core.md) converts `fixtures/codes.json` to v2 (kind, summary, hint), adds `kind()`/`location()` with tagged positions to the core errors, and removes document text from `Display`. [B5c](../done/B5c-lamina-facade-and-examples.md) adds `lamina::Error`'s `hint()`/`docs_url()`/`Serialize` and the job codes. [B6b](../done/B6b-lamina-pdf-package.md) ships `LaminaError` with every field. This todo replaces those hand-checked tables with generated ones and adds what is listed below.
 - [ADR 0003 §2](../../decisions/0003-reader-tolerance-and-limits.md#2-warnings-stable-enumerated-codes) and [§4](../../decisions/0003-reader-tolerance-and-limits.md#4-enforcement): codes in `fixtures/codes.json`, checked by `crates/lamina-cos/tests/codes.rs` and (from B6b) a TS test.
-- [B6b](../ongoing/B6b-lamina-pdf-package.md): introduces `cargo xtask gen codes` → `packages/pdf/src/codes.generated.ts` and `LaminaError`; this todo extends both.
+- [B6b](../done/B6b-lamina-pdf-package.md): introduces `cargo xtask gen codes` → `packages/pdf/src/codes.generated.ts` and `LaminaError`; this todo extends both.
 - [Report: strict types](../../research/libraries/shareable-libraries.md#strict-types-branded-units-discriminated-options-codes-generated-from-one-file) and the [TypeScript note §6](../../research/libraries/notes/typescript-web-dx.md#6-strict-typescript-types-errors-tooling): `LaminaError<C>`, `isLaminaError(e, code)`.
 - [Code organisation §9](../../guidelines/code-organization.md#9-generated-code): `@generated` header, dedicated location, `linguist-generated`, a CI check that regeneration gives no diff.
 - [Rust guideline: errors](../../guidelines/rust.md#errors) and [TypeScript guideline: errors](../../guidelines/typescript.md#errors).
@@ -108,7 +108,7 @@ None.
 
 - **Order with B7a:** B7a also plans `gen codes --md`. Whichever merges second extends the other's generator rather than adding a second one.
 - **Hand tables vs generated:** L1c and B5c keep hand-written kind/hint tables checked by test. The generator must reproduce them exactly, so the first generated diff is empty.
-- **`didYouMean`** needs the set of valid option names per call. Recommendation: generate it from the tsify option types in [B6b](../ongoing/B6b-lamina-pdf-package.md)'s runtime unknown-key check, and leave it empty where no list exists.
+- **`didYouMean`** needs the set of valid option names per call. Recommendation: generate it from the tsify option types in [B6b](../done/B6b-lamina-pdf-package.md)'s runtime unknown-key check, and leave it empty where no list exists.
 - **`schemars` vs hand-written schema:** schemars keeps the schema next to the Rust types but adds a dependency to the façade. Decide in the PR, behind a non-default feature if kept.
 - **Hint quality** is a writing task as much as a code task. Ask the reviewer to read every hint once.
 
