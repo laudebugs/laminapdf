@@ -12,7 +12,7 @@
 | Branch | `feat/b5c-lamina-facade` |
 | PR title | `feat(lamina): façade crate with examples, byte goldens and PDFium/hayro render goldens (B5c)` |
 | Size | L (≈ 700–1,200 lines: re-exports, docs, six examples, render-golden tooling) |
-| PR | — |
+| PR | [#65](https://github.com/laudebugs/lamina/pull/65) |
 
 ## Goal
 
