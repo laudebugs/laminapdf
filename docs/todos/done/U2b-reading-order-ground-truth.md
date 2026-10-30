@@ -12,7 +12,7 @@
 | Branch | `test/u2b-reading-order-ground-truth` |
 | PR title | `test(text): add a reading-order ground-truth corpus and metric` |
 | Size | M (fixtures and expected files don't count; ~300 lines of harness) |
-| PR | — |
+| PR | [#79](https://github.com/laudebugs/lamina/pull/79) |
 
 ## Goal
 
