@@ -743,6 +743,13 @@
       "since": "0.1.0"
     },
     {
+      "code": "source-budget-exceeded",
+      "kind": "limit",
+      "summary": "a sparse source was given more bytes than its byte budget allows",
+      "hint": "raise the source's budget, or open the file with fewer bytes fetched (smaller blocks, no readahead)",
+      "since": "0.1.0"
+    },
+    {
       "code": "unknown-option",
       "kind": "usage",
       "summary": "an options record passed to a binding has a key lamina does not know",
@@ -759,10 +766,24 @@
       "since": "0.1.0"
     },
     {
+      "code": "fetch-failed",
+      "kind": "io",
+      "summary": "a range source could not fetch input bytes: a network error or an HTTP status other than 200 and 206",
+      "hint": "check that the URL is reachable and that the server sends the CORS headers range requests need; data.status has the HTTP status",
+      "since": "0.1.0"
+    },
+    {
       "code": "not-initialized",
       "kind": "state",
       "summary": "an @lamina/pdf function was called before init() finished loading the WebAssembly module",
       "hint": "await init() once before calling anything else in @lamina/pdf",
+      "since": "0.1.0"
+    },
+    {
+      "code": "source-changed",
+      "kind": "io",
+      "summary": "a remote file changed while it was being read: its ETag or length differs from the first response",
+      "hint": "open the file again; the document already read parts of the old version and can't mix in the new one",
       "since": "0.1.0"
     },
     {

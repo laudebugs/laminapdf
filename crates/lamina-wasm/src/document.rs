@@ -7,6 +7,7 @@
 
 use std::cell::RefCell;
 use std::rc::Rc;
+use std::sync::Arc;
 
 use js_sys::{Object, Reflect, Uint8Array};
 use lamina::{Budget, PageId, SaveJob, Step};
@@ -18,6 +19,7 @@ use crate::dto::{
     phase_name,
 };
 use crate::error::{JsResult, invalid_argument, lamina_error};
+use crate::source::WasmSparseSource;
 
 /// The shared document behind every handle.
 pub(crate) type Shared = Rc<RefCell<lamina::Document>>;
@@ -47,6 +49,23 @@ fn saved(saved: &lamina::Saved) -> JsResult<JsValue> {
 
 #[wasm_bindgen]
 impl WasmDocument {
+    /// Opens a document over a sparse source whose bytes arrive later. Until the source holds
+    /// what a call needs, the call throws `data-pending` with `data.ranges` (`[offset, length]`
+    /// pairs): supply them and call again. Lazy reads on the document can do the same.
+    ///
+    /// # Errors
+    /// As `openBytes`, and `data-pending`.
+    #[wasm_bindgen(js_name = openSource)]
+    pub fn open_source(
+        source: &WasmSparseSource,
+        #[wasm_bindgen(unchecked_param_type = "OpenOptionsInit | undefined")] options: &JsValue,
+    ) -> JsResult<Self> {
+        let options: OpenOptionsInit = from_js_or_default(options, "options")?;
+        let shared: Arc<dyn lamina::ByteSource> = Arc::clone(&source.inner) as Arc<dyn lamina::ByteSource>;
+        let doc = lamina::Document::open_source(shared, options.to_options()?).map_err(|e| lamina_error(&e))?;
+        Ok(Self::new(doc))
+    }
+
     /// Opens a document from its bytes.
     ///
     /// # Errors

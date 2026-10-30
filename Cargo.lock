@@ -800,6 +800,7 @@ dependencies = [
  "js-sys",
  "lamina",
  "lamina-ops",
+ "lamina-source",
  "serde",
  "serde_json",
  "tsify",
