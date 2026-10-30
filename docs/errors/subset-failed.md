@@ -17,7 +17,7 @@ Try another version or format of the font (for example TrueType instead of CFF),
 
 ## Example
 
-To be added ([L1b](../todos/ready/L1b-error-contract-codegen.md)).
+To be added ([L1b](../todos/ongoing/L1b-error-contract-codegen.md)).
 
 ## Data fields
 

@@ -17,7 +17,7 @@ Check the values passed to `Builder::page`, `PageBuilder::user_unit`, the box se
 
 ## Example
 
-To be added ([L1b](../todos/ready/L1b-error-contract-codegen.md)).
+To be added ([L1b](../todos/ongoing/L1b-error-contract-codegen.md)).
 
 ## Data fields
 

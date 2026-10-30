@@ -17,7 +17,7 @@ Use a font that covers the character (check with `Font::glyph_for`), or split th
 
 ## Example
 
-To be added ([L1b](../todos/ready/L1b-error-contract-codegen.md)).
+To be added ([L1b](../todos/ongoing/L1b-error-contract-codegen.md)).
 
 ## Data fields
 

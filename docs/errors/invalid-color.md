@@ -17,7 +17,7 @@ Write the colour as `#3366cc` or `#36c`, or use `Color::rgb`.
 
 ## Example
 
-To be added ([L1b](../todos/ready/L1b-error-contract-codegen.md)).
+To be added ([L1b](../todos/ongoing/L1b-error-contract-codegen.md)).
 
 ## Data fields
 

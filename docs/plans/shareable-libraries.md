@@ -107,7 +107,7 @@ Each round is split into todos (one PR each) on the [todo board](../todos/README
 
 ### L1. Contracts
 
-**Todos:** [L1a](../todos/done/L1a-contract-adrs.md) (ADRs 0026, 0027, 0028), [L1c](../todos/done/L1c-error-contract-core.md) (kinds, hints and tagged locations in the Rust core, before B5c), [L1b](../todos/ready/L1b-error-contract-codegen.md) (error codegen, `explain`).
+**Todos:** [L1a](../todos/done/L1a-contract-adrs.md) (ADRs 0026, 0027, 0028), [L1c](../todos/done/L1c-error-contract-core.md) (kinds, hints and tagged locations in the Rust core, before B5c), [L1b](../todos/ongoing/L1b-error-contract-codegen.md) (error codegen, `explain`).
 
 **Deliverable:** three ADRs; codes and error types generated from `fixtures/codes.json` into Rust, TypeScript and JSON Schema; `explain` text per code.
 **Accepted when:** B5a's builder uses ADR 0027's coordinates; B5c's façade meets ADR 0028's rules; a TS test narrows the error class's `code` exhaustively (the class is `LaminaError`, [ADR 0026](../decisions/0026-error-and-diagnostic-contract.md) §7); a change to `codes.json` without regenerating fails CI.

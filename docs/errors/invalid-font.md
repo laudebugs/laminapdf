@@ -17,7 +17,7 @@ Pass the bytes of a `.ttf`, `.otf`, `.ttc` or `.otc` file; check that the file i
 
 ## Example
 
-To be added ([L1b](../todos/ready/L1b-error-contract-codegen.md)).
+To be added ([L1b](../todos/ongoing/L1b-error-contract-codegen.md)).
 
 ## Data fields
 

@@ -17,7 +17,7 @@ Check `font.info().axes` before choosing coordinates, or use a variable font.
 
 ## Example
 
-To be added ([L1b](../todos/ready/L1b-error-contract-codegen.md)).
+To be added ([L1b](../todos/ongoing/L1b-error-contract-codegen.md)).
 
 ## Data fields
 
