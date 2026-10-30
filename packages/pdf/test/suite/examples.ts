@@ -1,8 +1,9 @@
 // The one example list every runtime runs (B6c): Node and Vite (Vitest), Chromium, Firefox and
 // WebKit (Vitest browser mode), Deno, Bun and workerd. Runtime-neutral: no Node API, no test
-// framework; each runner supplies the fixture bytes (`Inputs`) its own way and compares the
-// output with the Rust golden, so every runtime produces the same bytes.
-import { wasmMemory } from "@lamina/pdf";
+// framework; each runner supplies the fixture bytes its own way (`runSuite`'s `read`, or the
+// Worker's bundled `INPUT_PATHS`) and the output is compared with the Rust golden, so every
+// runtime produces the same bytes.
+import { init, wasmMemory } from "@lamina/pdf";
 import { generateThenEdit } from "../../examples/generate-then-edit.js";
 import { hello } from "../../examples/hello.js";
 import { imagesAndVectors } from "../../examples/images-and-vectors.js";
@@ -79,14 +80,67 @@ export function buildReport(inputs: Inputs): Uint8Array {
 
 export { REPORT_PAGES };
 
-/** Every fixture the suite reads, golden files included. */
-export function fixturePaths(): string[] {
-  const paths = new Set<string>(REPORT_INPUTS);
-  for (const e of EXAMPLES) {
-    paths.add(`fixtures/golden/examples/${e.golden}.pdf`);
-    for (const p of e.inputs) paths.add(p);
+/** An example's golden, by path from the repository root. */
+export function goldenPath(example: Example): string {
+  return `fixtures/golden/examples/${example.golden}.pdf`;
+}
+
+/** Every file the examples and the report read (not the goldens), sorted: what a Worker bundles. */
+export const INPUT_PATHS: readonly string[] = [
+  ...new Set<string>([...REPORT_INPUTS, ...EXAMPLES.flatMap((e) => e.inputs)]),
+].sort();
+
+/** Every fixture the suite reads: the inputs and the goldens, sorted. */
+export const FIXTURE_PATHS: readonly string[] = [...INPUT_PATHS, ...EXAMPLES.map(goldenPath)].sort();
+
+/** The paths of `paths` that `inputs` lacks (a runner that bundles its inputs checks this is empty). */
+export function missingInputs(inputs: Inputs, paths: readonly string[] = INPUT_PATHS): string[] {
+  return paths.filter((p) => inputs[p] === undefined);
+}
+
+/** How a runner reads a fixture (by path from the repository root). */
+export type Read = (path: string) => Uint8Array | Promise<Uint8Array>;
+
+/** How a runner registers a test (Vitest's `it`, Bun's `test`, `Deno.test`). */
+export type Register = (name: string, body: () => Promise<void>) => void;
+
+/** What {@link runSuite} registers: everything (default), only the measurement, or only the examples. */
+export type SuitePart = "all" | "measure" | "examples";
+
+/** The report's test name, the same in every runtime. */
+export const MEASURE_TEST = "builds the 100-page report with the same bytes as every runtime, and measures";
+
+/**
+ * Registers the suite with a runner's test function: first the report's hash check with the
+ * performance smoke (so it runs cold, in the file's fresh module instance), then one test per
+ * example comparing its bytes with the golden. The first test to run calls `init({ text: true })`
+ * and reads every fixture once with `read`; failures throw an `Error` saying what differed.
+ */
+export function runSuite(runtime: string, read: Read, register: Register, part: SuitePart = "all"): void {
+  let loading: Promise<Inputs> | undefined;
+  const inputs = (): Promise<Inputs> => {
+    loading ??= (async () => {
+      await init({ text: true });
+      return Object.fromEntries(await Promise.all(FIXTURE_PATHS.map(async (p) => [p, await read(p)] as const)));
+    })();
+    return loading;
+  };
+  if (part !== "examples") {
+    register(MEASURE_TEST, async () => {
+      const { measurements, report } = await measure(runtime, await inputs());
+      for (const m of measurements) printMeasurement(m);
+      const hash = await sha256(report);
+      if (hash !== REPORT_SHA256) throw new Error(`the report's sha256 is ${hash}, not ${REPORT_SHA256}`);
+    });
   }
-  return [...paths].sort();
+  if (part === "measure") return;
+  for (const example of EXAMPLES) {
+    register(`${example.name} builds the bytes of the Rust ${example.golden} golden`, async () => {
+      const loaded = await inputs();
+      const problem = await difference(example.build(loaded), input(loaded, goldenPath(example)));
+      if (problem !== undefined) throw new Error(problem);
+    });
+  }
 }
 
 /** Lowercase hex SHA-256 with Web Crypto (every runtime has it). */
@@ -101,7 +155,8 @@ export interface Measurement {
   /**
    * `hello-first` (the first call after `init()`), `hello` (median), `report` (median), or
    * `wasm-memory` (both modules' linear memory after the reports: memory never shrinks, so this
-   * is its peak).
+   * is its peak; hello() and report() free their builder and document, so it is one run's peak,
+   * not the garbage collector's backlog).
    */
   readonly case: string;
   /** Milliseconds, or bytes for `wasm-memory`. */
@@ -158,6 +213,8 @@ export async function measure(
   const first = await time(hello);
   const hellos: number[] = [];
   for (let i = 0; i < 20; i++) hellos.push(await time(hello));
+  // report() returns a JS copy of the saved bytes and frees its document, so the last run's
+  // bytes stay valid for the hash check.
   let bytes: Uint8Array = new Uint8Array();
   const reports: number[] = [];
   for (let i = 0; i < 3; i++) {

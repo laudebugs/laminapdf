@@ -90,7 +90,7 @@ pnpm exec wrangler dev -c examples/worker/wrangler.toml   # then open http://loc
 
 ## Runtimes
 
-The one example list, [`test/suite/examples.ts`](test/suite/examples.ts) (no Node API, no test framework), runs in every runtime the package supports, each comparing every example with its golden byte for byte and the report with its hash ([B6c](../../docs/todos/done/B6c-runtime-matrix.md)):
+The one example list, [`test/suite/examples.ts`](test/suite/examples.ts) (no Node API, no test framework; `runSuite(runtime, read, register)` registers it with a runner's test function), runs in every runtime the package supports, each comparing every example with its golden byte for byte and the report with its hash ([B6c](../../docs/todos/done/B6c-runtime-matrix.md)):
 
 | Runtime | Runner | Export condition |
 | --- | --- | --- |

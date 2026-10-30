@@ -10,9 +10,11 @@ import notoSansDevanagari from "../../../../fixtures/fonts/NotoSansDevanagari-Re
 import notoSansHebrew from "../../../../fixtures/fonts/NotoSansHebrew-Regular.ttf";
 import notoSansSC from "../../../../fixtures/fonts/NotoSansSC-Regular.otf";
 import photo from "../../../../fixtures/images/photo-rgb.jpg";
-import { EXAMPLES, type Inputs, measure, sha256 } from "../suite/examples.js";
+import { EXAMPLES, INPUT_PATHS, type Inputs, measure, missingInputs, sha256 } from "../suite/examples.js";
 
-// Workers can't read files: the inputs are bundled (wrangler.toml `rules`).
+// Workers can't read files: the inputs are bundled (wrangler.toml `rules`). Imports must be
+// static, so this lists them again, keyed by the suite's paths; the check below fails the Worker
+// at load when the suite's INPUT_PATHS name one that is missing here.
 const inputs: Inputs = Object.fromEntries(
   Object.entries({
     "fixtures/fonts/NotoSans-Regular.ttf": notoSans,
@@ -23,6 +25,8 @@ const inputs: Inputs = Object.fromEntries(
     "fixtures/images/photo-rgb.jpg": photo,
   }).map(([path, data]) => [path, new Uint8Array(data)]),
 );
+const missing = missingInputs(inputs, INPUT_PATHS);
+if (missing.length > 0) throw new Error(`test/workerd/worker.ts doesn't bundle ${missing.join(", ")}`);
 
 // Workers' scheduler (https://developers.cloudflare.com/workers/runtime-apis/scheduler/).
 declare const scheduler: { wait(ms: number): Promise<void> };

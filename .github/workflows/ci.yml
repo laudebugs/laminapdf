@@ -101,6 +101,10 @@ jobs:
     if: ${{ !cancelled() && needs.changes.outputs.code == 'true' }}
     runs-on: [self-hosted, macOS, ARM64]
     timeout-minutes: 30
+    outputs:
+      # "true" once the built packages are uploaded: the pdf-runtimes legs need the build, not
+      # the whole job (a size-budget failure after the upload still lets them run).
+      dist: ${{ steps.dist.outputs.uploaded }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -142,6 +146,8 @@ jobs:
             packages/pdf/dist/
           if-no-files-found: error
           retention-days: 1
+      - id: dist
+        run: echo "uploaded=true" >> "$GITHUB_OUTPUT"
       - run: cargo xtask size
       - name: Upload the size report
         if: ${{ !cancelled() }}
@@ -160,7 +166,7 @@ jobs:
   pdf-runtimes:
     name: "@lamina/pdf in ${{ matrix.runtime == 'node' && format('Node {0}', matrix.node) || 'Chromium' }}"
     needs: [changes, wasm]
-    if: ${{ !cancelled() && needs.changes.outputs.code == 'true' && needs.wasm.result == 'success' }}
+    if: ${{ !cancelled() && needs.changes.outputs.code == 'true' && needs.wasm.outputs.dist == 'true' }}
     runs-on: [self-hosted, macOS, ARM64]
     timeout-minutes: 20
     strategy:

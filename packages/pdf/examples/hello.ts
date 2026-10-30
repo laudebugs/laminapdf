@@ -14,5 +14,12 @@ export function hello(): Uint8Array {
   // Page space: points from the top-left corner, y down; `at[1]` is the text's baseline.
   page.surface().text("Hello, world!", { font: Font.standard("Helvetica"), size: 24, at: [72, 96] });
   page.finish();
-  return b.finish().save();
+  // Free the document at once (the saved bytes are a copy): a Worker or a timing loop calling
+  // this many times shouldn't wait for the garbage collector to release WebAssembly memory.
+  const doc = b.finish();
+  try {
+    return doc.save();
+  } finally {
+    doc.free();
+  }
 }

@@ -143,8 +143,12 @@ fn commands(runtime: &str) -> Result<Vec<Vec<&'static str>>> {
             vitest("vitest.node.config.ts", &["measure"]),
             vitest("vitest.node.config.ts", &["node"]),
         ],
-        // The `vite-build` project runs a Vite production build in a Chromium page.
-        "chromium" => vec![vitest("vitest.browser.config.ts", &["chromium", "vite-build"])],
+        // Chromium alone first (its timings shouldn't share the machine with a Vite build), then
+        // the `vite-build` project: a Vite production build run in a Chromium page.
+        "chromium" => vec![
+            vitest("vitest.browser.config.ts", &["chromium"]),
+            vitest("vitest.browser.config.ts", &["vite-build"]),
+        ],
         "firefox" => vec![vitest("vitest.browser.config.ts", &["firefox"])],
         "webkit" => vec![vitest("vitest.browser.config.ts", &["webkit"])],
         // --sloppy-imports: the suite imports `.ts` files by their `.js` paths (as tsc wants);
@@ -240,8 +244,14 @@ pub(crate) fn run(ws: &Workspace, args: &Args) -> Result<()> {
     let table = table(&measurements);
     println!("\n{table}");
     summary(&table)?;
+    // What the runtimes that passed measured is recorded even when others failed (the nightly
+    // job pushes it before failing).
     if let (Some(history), Some(runner)) = (&args.history, &args.runner) {
-        record(ws, Path::new(history), runner, &measurements)?;
+        if measurements.is_empty() {
+            eprintln!("pdf-runtimes: nothing to record: no runtime printed measurements");
+        } else {
+            record(ws, Path::new(history), runner, &measurements)?;
+        }
     }
     if failed.is_empty() {
         step(&format!("pdf-runtimes: {} passed", args.runtimes.join(", ")));
@@ -317,9 +327,6 @@ fn history_entries(measurements: &[Measurement]) -> BTreeMap<String, u64> {
 /// Appends one record to `<history>/history.jsonl` (`cargo xtask bench`'s format; its
 /// regression check only compares benchmarks a record has, so these never mix with criterion's).
 fn record(ws: &Workspace, history: &Path, runner: &str, measurements: &[Measurement]) -> Result<()> {
-    if measurements.is_empty() {
-        bail!("no measurements to record");
-    }
     let git = |args: &[&str]| git_stdout(&ws.root, args).unwrap_or_else(|| "unknown".to_owned());
     let record = json!({
         "commit": git(&["rev-parse", "HEAD"]),
@@ -365,12 +372,16 @@ mod tests {
     }
 
     #[test]
-    fn commands_should_run_nodes_measurements_first_and_alone() {
-        let node = commands("node").unwrap();
-        assert_eq!(
-            node.iter().map(|c| c.last().copied()).collect::<Vec<_>>(),
-            [Some("measure"), Some("node")]
-        );
+    fn commands_should_run_the_measuring_project_alone_first() {
+        let last = |runtime: &str| {
+            commands(runtime)
+                .unwrap()
+                .iter()
+                .map(|c| c.last().copied())
+                .collect::<Vec<_>>()
+        };
+        assert_eq!(last("node"), [Some("measure"), Some("node")]);
+        assert_eq!(last("chromium"), [Some("chromium"), Some("vite-build")]);
     }
 
     #[test]

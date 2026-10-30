@@ -4,19 +4,12 @@
 import { Builder, Font, init } from "@lamina/pdf";
 import { beforeAll, describe, expect, it } from "vitest";
 import { read } from "./helpers.js";
-import { difference, EXAMPLES, fixturePaths, type Inputs } from "./suite/examples.js";
-
-const inputs: Inputs = Object.fromEntries(fixturePaths().map((p) => [p, read(p)]));
+import { runSuite } from "./suite/examples.js";
 
 beforeAll(() => init({ text: true }));
 
 describe("examples", () => {
-  for (const example of EXAMPLES) {
-    it(`${example.name} builds the bytes of the Rust ${example.golden} golden`, async () => {
-      const golden = read(`fixtures/golden/examples/${example.golden}.pdf`);
-      expect(await difference(example.build(inputs), golden)).toBeUndefined();
-    });
-  }
+  runSuite("node", read, it, "examples");
 
   it("uses one PDF font for equal fonts created per call", () => {
     const build = (font: () => Font) => {

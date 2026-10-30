@@ -339,8 +339,10 @@ jobs:
           else
             cargo xtask pdf-runtimes
           fi
+      # Also after a failed run: the runtimes that passed were recorded (the action does nothing
+      # when no record was added).
       - name: Push the benchmark history
-        if: ${{ env.RECORD == 'true' }}
+        if: ${{ !cancelled() && env.RECORD == 'true' }}
         uses: ./.github/actions/bench-history
         with:
           mode: push

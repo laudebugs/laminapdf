@@ -8,7 +8,16 @@ import { fileURLToPath } from "node:url";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createTestHarness, type TestHarness } from "wrangler";
 import { read } from "../helpers.js";
-import { difference, EXAMPLES, type Measurement, printMeasurement, REPORT_SHA256, sha256 } from "../suite/examples.js";
+import {
+  difference,
+  EXAMPLES,
+  goldenPath,
+  MEASURE_TEST,
+  type Measurement,
+  printMeasurement,
+  REPORT_SHA256,
+  sha256,
+} from "../suite/examples.js";
 
 const config = (path: string): string => fileURLToPath(new URL(path, import.meta.url));
 
@@ -31,7 +40,7 @@ const bytes = async (response: { status: number; arrayBuffer(): Promise<ArrayBuf
 
 describe("workerd", () => {
   // First, so the WebAssembly memory it reports is only the hello and report runs'.
-  it("builds the 100-page report with the same bytes as every runtime, and measures", async () => {
+  it(MEASURE_TEST, async () => {
     const { measurements, reportSha256 } = (await (await suite.fetch("/measure")).json()) as {
       measurements: Measurement[];
       reportSha256: string;
@@ -42,16 +51,23 @@ describe("workerd", () => {
 
   for (const e of EXAMPLES) {
     it(`${e.name} builds the bytes of the Rust ${e.golden} golden`, async () => {
-      const golden = read(`fixtures/golden/examples/${e.golden}.pdf`);
+      const golden = read(goldenPath(e));
       expect(await difference(await bytes(await suite.fetch(`/example/${e.name}`)), golden)).toBeUndefined();
     });
   }
 
-  it("answers a name Helvetica can't draw with a 400 and the error, not a 500", async () => {
-    const response = await example.fetch(`/?name=${encodeURIComponent("Ада 世界")}`);
-    const body = (await response.json()) as { code?: string };
-    expect([response.status, body.code]).toEqual([400, "missing-glyph"]);
-  });
+  // A name in a script Helvetica lacks (missing-glyph, kind input), and one with more distinct
+  // non-WinAnsi Latin letters than its 37 spare codes (encoding-full, kind limit).
+  for (const [name, code] of [
+    ["Ада 世界", "missing-glyph"],
+    ["ĀāĂăĄąĆćČčĎďĐđĒēĖėĘęĚěĞğĢģĪīĮįĶķĹĺĻļĽľŁłŃńŅņŇňŌōŐőŔŕ", "encoding-full"],
+  ] as const) {
+    it(`answers a name Helvetica can't draw (${code}) with a 400 and the error, not a 500`, async () => {
+      const response = await example.fetch(`/?name=${encodeURIComponent(name)}`);
+      const body = (await response.json()) as { code?: string };
+      expect([response.status, body.code]).toEqual([400, code]);
+    });
+  }
 
   it("serves a letter and the report from the Worker example", async () => {
     const letter = await bytes(await example.fetch(`/?name=${encodeURIComponent("Zoë Łukasz")}`));
