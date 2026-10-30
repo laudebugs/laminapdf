@@ -104,7 +104,7 @@ None.
 - R5 was never standardised; support read-only, document it.
 - SASLprep crate choice (licence, size in WASM); if too heavy, implement the RFC 4013 subset needed and test against pypdf.
 - AES padding errors in real files: tolerate (keep data, warn) rather than fail, consistent with ADR 0003; confirm with the corpus.
-- WASM size: crypto adds to the base module; measure in [B6a](../ready/B6a-lamina-wasm-and-adr-0016.md).
+- WASM size: crypto adds to the base module; measure in [B6a](../ongoing/B6a-lamina-wasm-and-adr-0016.md).
 
 ## Definition of done
 
