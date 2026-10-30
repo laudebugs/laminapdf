@@ -24,9 +24,9 @@ assert_eq!(err.code(), "would-invalidate-signatures");
 
 ## Data fields
 
-- `signatures`: every signature (field ID, kind, signature dictionary, revision, covered length).
+- `signatures`: every signature, as `{ field, kind, value, revision, covers }` (field ID, kind, signature dictionary as `num gen`, revision, covered length).
 - `rewrite_reasons`: why only a full rewrite is safe, if anything says so.
-- `violations`: pending changes a signature's restriction forbids (op class, restriction, signature).
+- `violations`: pending changes a signature's restriction forbids, as `{ class, restriction, signature }`.
 - `signatures_unknown`: part of the form couldn't be followed, so there may be signatures beyond `signatures`.
 
 None of them hold document text.

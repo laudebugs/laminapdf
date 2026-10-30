@@ -129,3 +129,11 @@ One page per code in [`fixtures/codes.json`](../../fixtures/codes.json), as [ADR
 | [`page-index-out-of-range`](page-index-out-of-range.md) | `usage` |
 | [`unknown-destination`](unknown-destination.md) | `usage` |
 | [`invalid-page-labels`](invalid-page-labels.md) | `usage` |
+
+## Façade errors (`lamina`)
+
+| Code | Kind |
+| --- | --- |
+| [`cancelled`](cancelled.md) | `cancelled` |
+| [`job-finished`](job-finished.md) | `state` |
+| [`document-changed`](document-changed.md) | `state` |

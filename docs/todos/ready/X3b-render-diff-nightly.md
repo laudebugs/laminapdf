@@ -22,7 +22,7 @@ Measure, every night, how far hayro is from PDFium on the external corpus, so th
 
 - [Architecture §2 principle 4](../../plans/architecture.md#principles-each-becomes-part-of-an-adr) (rendering is swappable; hayro becomes default at parity), [§4 `hayro-parity` spike](../../plans/architecture.md#4-spikes-to-close-open-questions).
 - [Rendering notes §1, §5](../../research/architecture/notes/rendering.md#5-recommendation-options-and-risks).
-- Render-golden tooling from [B5c](../ongoing/B5c-lamina-facade-and-examples.md) (thresholds, diff images).
+- Render-golden tooling from [B5c](../done/B5c-lamina-facade-and-examples.md) (thresholds, diff images).
 
 ## Scope
 
