@@ -265,11 +265,22 @@ mod candidates {
         assert_eq!(candidates("é".as_bytes(), 4), [vec![0xC3, 0xA9], vec![0xE9]]);
     }
 
-    #[cfg(feature = "saslprep")]
     #[test]
     fn r6_applies_saslprep() {
         // U+00A0 NO-BREAK SPACE maps to U+0020 under SASLprep (RFC 4013 §2.1).
         assert_eq!(candidates("a\u{A0}b".as_bytes(), 6)[0], b"a b");
+    }
+
+    #[test]
+    fn r6_removes_characters_mapped_to_nothing() {
+        // U+00AD SOFT HYPHEN and U+200D ZERO WIDTH JOINER (RFC 3454 B.1), in every build.
+        assert_eq!(candidates("p\u{AD}a\u{200D}ss".as_bytes(), 6)[0], b"pass");
+    }
+
+    #[test]
+    fn saslprep_mapping_maps_spaces_and_removes_b1_characters() {
+        let text = "a\u{A0}b\u{AD}c\u{3000}d\u{FEFF}e";
+        assert_eq!(super::super::saslprep_mapping(text), "a bc de");
     }
 
     #[test]

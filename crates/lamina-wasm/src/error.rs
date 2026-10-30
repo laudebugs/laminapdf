@@ -26,7 +26,7 @@ pub(crate) const CODES: [(&str, &str, &str); 3] = [
     (
         "builder-finished",
         "state",
-        "create a new builder: a finished builder takes no more pages, fonts or settings",
+        "create a new builder or page: a finished one takes no more drawing, pages, fonts or settings",
     ),
     (
         "invalid-argument",
@@ -89,12 +89,12 @@ fn binding(code: &'static str, message: &'static str, did_you_mean: Vec<String>,
     })
 }
 
-/// `builder-finished`: the builder was used after its `finish`.
+/// `builder-finished`: a builder or page was used after its `finish`.
 #[cfg(feature = "build")]
 pub(crate) fn builder_finished() -> JsValue {
     binding(
         "builder-finished",
-        "the builder has already finished",
+        "the builder or page has already finished",
         Vec::new(),
         BindingData {
             argument: "builder",
@@ -119,16 +119,17 @@ pub(crate) fn invalid_argument(argument: &'static str, detail: String, did_you_m
     )
 }
 
-/// `unknown-option`: `argument` has a key `option` none of `known` is.
-pub(crate) fn unknown_option(argument: &'static str, option: String, known: &[String]) -> JsValue {
-    let did_you_mean = did_you_mean(&option, known);
+/// `unknown-option`: `argument` has a key `option` (when it is a top-level key) none of
+/// `known` is.
+pub(crate) fn unknown_option(argument: &'static str, option: Option<String>, known: &[String]) -> JsValue {
+    let did_you_mean = option.as_deref().map(|o| did_you_mean(o, known)).unwrap_or_default();
     binding(
         "unknown-option",
         "an options record has a key lamina does not know",
         did_you_mean,
         BindingData {
             argument,
-            option: Some(option),
+            option,
             detail: None,
         },
     )

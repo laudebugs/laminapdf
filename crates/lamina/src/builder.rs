@@ -122,15 +122,14 @@ impl Builder {
     /// `page-index-out-of-range`, `unknown-destination`, `invalid-page-labels`,
     /// `invalid-geometry`, `subset-failed`.
     pub fn finish(self) -> Result<Document> {
+        // Only font embedding raises build warnings.
         #[cfg(feature = "text")]
-        {
+        let (doc, warnings) = {
             let (doc, warnings) = self.0.finish_with_warnings()?;
-            Ok(Document::built(
-                doc,
-                warnings.into_iter().map(crate::Warning::from).collect(),
-            ))
-        }
+            (doc, warnings.into_iter().map(crate::Warning::from).collect())
+        };
         #[cfg(not(feature = "text"))]
-        Ok(Document::built(self.0.finish()?, Vec::new()))
+        let (doc, warnings) = (self.0.finish()?, Vec::new());
+        Ok(Document::built(doc, warnings))
     }
 }

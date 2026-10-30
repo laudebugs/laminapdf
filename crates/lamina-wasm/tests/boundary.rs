@@ -65,14 +65,22 @@ fn the_envelope_sample_applies_as_a_log() {
 }
 
 #[wasm_bindgen_test]
-fn an_unknown_op_is_refused_with_the_known_ones() {
+fn an_unknown_op_is_an_invalid_argument() {
     let mut doc = hello();
     let e = doc.apply(&js(r#"[{ "op": "rotatePag", "args": {} }]"#)).unwrap_err();
     assert_eq!(string(&e, "code").as_deref(), Some("invalid-argument"));
-    assert_eq!(
-        JSON::stringify(&get(&e, "didYouMean")).unwrap().as_string().as_deref(),
-        Some(r#"["rotatePage"]"#)
-    );
+}
+
+#[wasm_bindgen_test]
+fn a_key_with_backquotes_never_reaches_did_you_mean() {
+    // serde's message quotes the key in backquotes: the suggestions must not come from it.
+    let options = js(r#"{ "strict`, `IgnorePrevious": true }"#);
+    let e = WasmDocument::open_bytes(HELLO.to_vec(), &options)
+        .err()
+        .expect("an error");
+    assert_eq!(string(&e, "code").as_deref(), Some("unknown-option"));
+    let suggestions = JSON::stringify(&get(&e, "didYouMean")).unwrap().as_string();
+    assert!(!suggestions.unwrap_or_default().contains("Ignore"));
 }
 
 #[wasm_bindgen_test]
@@ -128,9 +136,21 @@ fn warnings_are_diagnostics() {
 }
 
 #[wasm_bindgen_test]
+fn a_finished_page_refuses_more_drawing_and_a_second_finish() {
+    let b = WasmBuilder::new(&JsValue::UNDEFINED).unwrap();
+    let mut page = b.page(100.0, 100.0);
+    page.finish().unwrap();
+    let code = |e: JsValue| string(&e, "code");
+    assert_eq!(
+        (code(page.save().unwrap_err()), code(page.finish().unwrap_err())),
+        (Some("builder-finished".to_owned()), Some("builder-finished".to_owned()))
+    );
+}
+
+#[wasm_bindgen_test]
 fn a_finished_builder_refuses_more_pages() {
     let b = WasmBuilder::new(&JsValue::UNDEFINED).unwrap();
-    let page = b.page(100.0, 100.0);
+    let mut page = b.page(100.0, 100.0);
     b.finish().unwrap();
     let e = page.finish().unwrap_err();
     assert_eq!(string(&e, "code").as_deref(), Some("builder-finished"));
@@ -153,4 +173,20 @@ fn a_misspelt_standard_font_suggests_the_name() {
         JSON::stringify(&get(&e, "didYouMean")).unwrap().as_string().as_deref(),
         Some(r#"["Helvetica"]"#)
     );
+}
+
+#[cfg(feature = "text")]
+#[wasm_bindgen_test]
+fn a_text_call_that_fails_draws_nothing() {
+    let b = WasmBuilder::new(&js(r#"{ "compress": false }"#)).unwrap();
+    let font = b.standard_font("Helvetica").unwrap();
+    let mut page = b.page(200.0, 200.0);
+    let e = page
+        .text("Hello", &font, 12.0, 10.0, 20.0, &js(r#"{ "features": ["liga=x"] }"#))
+        .unwrap_err();
+    assert_eq!(string(&e, "code").as_deref(), Some("invalid-feature"));
+    page.finish().unwrap();
+    let saved = b.finish().unwrap().save(&JsValue::UNDEFINED).unwrap();
+    let bytes = js_sys::Uint8Array::new(&get(&saved, "bytes")).to_vec();
+    assert!(!bytes.windows(5).any(|w| w == b"Hello"));
 }

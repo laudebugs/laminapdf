@@ -5,23 +5,23 @@
 
 ## What happened
 
-A `WasmBuilder` method, or `finish` on one of its `WasmPageBuilder`s, was called after the builder's `finish`.
+A `WasmBuilder` method was called after the builder's `finish`, or a `WasmPageBuilder` was drawn on or finished again after its own `finish` (or after its builder's).
 
 ## Why
 
-`finish` writes the document and hands it over as a `WasmDocument`; the builder holds nothing afterwards. A page started before `finish` and finished after it has no builder left to write into (the binding's owned pages, [ADR 0016](../decisions/0016-package-design.md) §7).
+`finish` hands the work over: a builder's becomes a `WasmDocument`, a page's is written into its builder. Neither holds anything to draw on afterwards (the binding's owned pages, [ADR 0016](../decisions/0016-package-design.md) §7).
 
 ## How to fix
 
-Finish every page before the builder. To build another document, create a new builder.
+Draw everything on a page before finishing it, and finish every page before the builder. To build more, create a new page or builder.
 
 ## Example
 
 ```js
 const b = new WasmBuilder(undefined);
 const page = b.page(595, 842);
-b.finish();
-page.finish(); // throws { code: "builder-finished", … }
+page.finish();
+page.save(); // throws { code: "builder-finished", … }
 ```
 
 ## Data fields

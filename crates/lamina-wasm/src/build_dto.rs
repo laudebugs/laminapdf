@@ -380,7 +380,9 @@ impl BuildOptionsInit {
             });
         }
         if let Some(id) = &self.id {
-            options = options.with_id(parse_id(id)?);
+            let id = parse_id(id)
+                .ok_or_else(|| invalid_argument("options.id", "the ID must be 32 hex digits".to_owned(), Vec::new()))?;
+            options = options.with_id(id);
         }
         if let Some(producer) = &self.producer {
             options = options.with_producer(producer.clone());
@@ -395,19 +397,18 @@ impl BuildOptionsInit {
     }
 }
 
-/// 32 hex digits → 16 bytes.
-fn parse_id(hex: &str) -> JsResult<[u8; 16]> {
-    let bad = || invalid_argument("options.id", "the ID must be 32 hex digits".to_owned(), Vec::new());
+/// 32 hex digits → 16 bytes; `None` for anything else.
+fn parse_id(hex: &str) -> Option<[u8; 16]> {
     let digits = hex.as_bytes();
-    if digits.len() != 32 {
-        return Err(bad());
+    // `from_str_radix` alone would also take a sign (`+f`).
+    if digits.len() != 32 || !digits.iter().all(u8::is_ascii_hexdigit) {
+        return None;
     }
     let mut id = [0u8; 16];
     for (byte, pair) in id.iter_mut().zip(digits.as_chunks::<2>().0) {
-        let text = std::str::from_utf8(pair).map_err(|_| bad())?;
-        *byte = u8::from_str_radix(text, 16).map_err(|_| bad())?;
+        *byte = u8::from_str_radix(std::str::from_utf8(pair).ok()?, 16).ok()?;
     }
-    Ok(id)
+    Some(id)
 }
 
 fn parse_date(text: &str, argument: &'static str) -> JsResult<lamina::PdfDate> {
@@ -670,10 +671,13 @@ mod tests {
     use super::parse_id;
 
     #[test]
+    fn parse_id_refuses_a_sign() {
+        let id = format!("+{}", "f".repeat(31));
+        assert_eq!(parse_id(&id), None);
+    }
+
+    #[test]
     fn parse_id_reads_32_hex_digits() {
-        assert_eq!(
-            parse_id("6c616d696e612d65782d68656c6c6f21").ok(),
-            Some(*b"lamina-ex-hello!")
-        );
+        assert_eq!(parse_id("6c616d696e612d65782d68656c6c6f21"), Some(*b"lamina-ex-hello!"));
     }
 }

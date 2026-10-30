@@ -95,11 +95,11 @@ The owner chose **A** on 2026-10-30.
 
 Gzip bytes as `cargo xtask size` measures them (deflate level 9 plus the gzip header; a few hundred bytes more than `gzip -9`), enforced in the fast lane's `wasm` job from `packages/wasm/size-budgets.json`, which holds the same numbers:
 
-| Module | Measured (2026-10-30) | Budget | Headroom |
+| Module | Measured (2026-10-30, after the review fixes and B9d) | Budget | Headroom |
 | --- | ---: | ---: | ---: |
-| base (`lamina_base.wasm`) | 368,245 (brotli 295,648) | **380,000** | 3.2 % |
-| text (`lamina_text.wasm`) | 937,217 (brotli 717,867) | **960,000** | 2.4 % |
-| JS glue per module (wasm-bindgen output, minified by esbuild) | 3,610 base, 3,821 text | **5,000** each | |
+| base (`lamina_base.wasm`) | 372,711 (brotli 298,462) | **380,000** | 2.0 % |
+| text (`lamina_text.wasm`) | 943,924 (brotli 723,348) | **960,000** | 1.7 % |
+| JS glue per module (wasm-bindgen output, minified by esbuild) | 3,769 base, 3,978 text | **5,000** each | |
 | extract (B9c) | — | placeholder: decided when the module exists | |
 | render (C2) | — | placeholder: decided by C2's ADRs | |
 | sign (E10) | — | placeholder: decided by E10a | |
@@ -113,8 +113,9 @@ The `@lamina/pdf` TS layer has its own budget (glue + API ≤ 20 KB min+gzip, pl
 - **Records** (options, results) are plain JS objects with `.d.ts` types from tsify (F5, F6): every option optional, unknown keys refused with `unknown-option` and `didYouMean`. They cross as JSON (`JSON.stringify` → `serde_json` and back), because the core already links `serde_json`; serde-wasm-bindgen's generic (de)serialiser cost more (§5). This is a measured exception to ADR 0002 §1's "tsify `js` mode": tsify still writes the types.
 - **String unions** are camelCase, as the op JSON (`"setInfo"`, `"fullRewrite"`, `"evenOdd"`). Standard 14 fonts are named by their PostScript names (`Helvetica`, `Times-Roman`).
 - **Errors** are thrown as the [ADR 0026](0026-error-and-diagnostic-contract.md) §1 object (a plain object), which `@lamina/pdf` turns into its `LaminaError` (ADR 0026 §7). The binding's own codes are `bindingErrors` in `fixtures/codes.json`: `invalid-argument`, `unknown-option`, `builder-finished`.
-- **The builder's binding form** (left to B6a by B5c): `WasmBuilder.page(width, height)` returns an owned `WasmPageBuilder` that draws on its own `Surface` and is written into the builder by `finish()`, with the same bytes as the Rust API.
-- **Passwords:** without the `saslprep` feature, the WASM modules try an R5/R6 password as its UTF-8 bytes; `@lamina/pdf` normalises passwords to NFKC (`String.prototype.normalize`) before passing them, which covers SASLprep for every password whose prepared form is its NFKC form.
+- **The builder's binding form** (left to B6a by B5c): `WasmBuilder.page(width, height)` returns an owned `WasmPageBuilder` that draws on its own `Surface` and is written into the builder by `finish()`, with the same bytes as the Rust API. No method consumes its handle: a finished page or builder answers every later call with `builder-finished` (the §1 object), never with wasm-bindgen's null-pointer error. A call that fails draws nothing (a text run's options are all checked before it is drawn).
+- **Unknown keys:** the record's own field list (serde's, read once per type) decides which key is unknown and what `didYouMean` suggests; serde's message, which quotes the caller's key, is never parsed (ADR 0026 §4). A key unknown to a nested record gives `unknown-option` without suggestions.
+- **Passwords:** without the `saslprep` feature, the WASM modules apply SASLprep's mapping step to an R5/R6 password (RFC 4013 §2.1: non-ASCII spaces become U+0020, the "commonly mapped to nothing" characters of RFC 3454 B.1 are removed; a few code points, in every build) but not its NFKC normalisation or its prohibited-character and bidi checks. `@lamina/pdf` normalises passwords to NFKC (`String.prototype.normalize`) before passing them, so every password SASLprep accepts is prepared the same way; one it would reject is tried mapped instead of refused.
 
 ## Consequences
 

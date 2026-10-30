@@ -294,7 +294,7 @@ pub struct SaveReportJs {
     pub mode: SaveModeJs,
     /// Old → new object numbers, when a full rewrite renumbered.
     #[serde(skip_serializing_if = "Option::is_none")]
-    #[tsify(optional)]
+    #[tsify(optional, type = "Record<string, number>")]
     pub renumbered: Option<std::collections::BTreeMap<u32, u32>>,
     /// Where the appended revision starts, for an incremental save.
     #[serde(skip_serializing_if = "Option::is_none")]

@@ -69,7 +69,7 @@ impl WasmBuilder {
             user_unit: 1.0,
             boxes: [None; 4],
             stroke: lamina::StrokeStyle::default(),
-            surface: Surface::default(),
+            surface: Some(Surface::default()),
         }
     }
 
@@ -241,7 +241,13 @@ pub struct WasmPageBuilder {
     boxes: [Option<lamina::RectPt>; 4],
     /// The style strokes use ([`WasmPageBuilder::stroke_style`]).
     stroke: lamina::StrokeStyle,
-    surface: Surface,
+    /// What is drawn; `None` once [`WasmPageBuilder::finish`] moved it into the builder.
+    surface: Option<Surface>,
+}
+
+/// The page's surface, unless the page has finished.
+fn live(surface: &mut Option<Surface>) -> JsResult<&mut Surface> {
+    surface.as_mut().ok_or_else(builder_finished)
 }
 
 #[wasm_bindgen]
@@ -289,13 +295,21 @@ impl WasmPageBuilder {
     }
 
     /// Saves the graphics state (`q`).
-    pub fn save(&mut self) {
-        self.surface.save();
+    ///
+    /// # Errors
+    /// `builder-finished` after [`WasmPageBuilder::finish`] (so does every drawing method).
+    pub fn save(&mut self) -> JsResult<()> {
+        live(&mut self.surface)?.save();
+        Ok(())
     }
 
     /// Restores the graphics state (`Q`); one without a matching save is ignored.
-    pub fn restore(&mut self) {
-        self.surface.restore();
+    ///
+    /// # Errors
+    /// `builder-finished`.
+    pub fn restore(&mut self) -> JsResult<()> {
+        live(&mut self.surface)?.restore();
+        Ok(())
     }
 
     /// Applies `[a, b, c, d, e, f]` (page space) to what is drawn next.
@@ -306,7 +320,7 @@ impl WasmPageBuilder {
         let m: [f64; 6] = m
             .try_into()
             .map_err(|_| invalid_argument("matrix", "a matrix has 6 numbers".to_owned(), Vec::new()))?;
-        self.surface.transform(matrix(m));
+        live(&mut self.surface)?.transform(matrix(m));
         Ok(())
     }
 
@@ -316,7 +330,7 @@ impl WasmPageBuilder {
     /// `invalid-argument` for another number of components.
     #[wasm_bindgen(js_name = fillColor)]
     pub fn fill_color(&mut self, components: &[f64]) -> JsResult<()> {
-        self.surface.fill_color(color(components)?);
+        live(&mut self.surface)?.fill_color(color(components)?);
         Ok(())
     }
 
@@ -326,7 +340,7 @@ impl WasmPageBuilder {
     /// As [`WasmPageBuilder::fill_color`].
     #[wasm_bindgen(js_name = strokeColor)]
     pub fn stroke_color(&mut self, components: &[f64]) -> JsResult<()> {
-        self.surface.stroke_color(color(components)?);
+        live(&mut self.surface)?.stroke_color(color(components)?);
         Ok(())
     }
 
@@ -337,7 +351,7 @@ impl WasmPageBuilder {
     #[wasm_bindgen(js_name = fillColorHex)]
     pub fn fill_color_hex(&mut self, hex: &str) -> JsResult<()> {
         let c = lamina::Color::hex(hex).map_err(|e| lamina_error(&e.into()))?;
-        self.surface.fill_color(c);
+        live(&mut self.surface)?.fill_color(c);
         Ok(())
     }
 
@@ -348,13 +362,17 @@ impl WasmPageBuilder {
     #[wasm_bindgen(js_name = strokeColorHex)]
     pub fn stroke_color_hex(&mut self, hex: &str) -> JsResult<()> {
         let c = lamina::Color::hex(hex).map_err(|e| lamina_error(&e.into()))?;
-        self.surface.stroke_color(c);
+        live(&mut self.surface)?.stroke_color(c);
         Ok(())
     }
 
     /// Fill and stroke opacity, 0 to 1 (an `ExtGState`).
-    pub fn opacity(&mut self, fill: f64, stroke: f64) {
-        self.surface.opacity(fill, stroke);
+    ///
+    /// # Errors
+    /// `builder-finished`.
+    pub fn opacity(&mut self, fill: f64, stroke: f64) -> JsResult<()> {
+        live(&mut self.surface)?.opacity(fill, stroke);
+        Ok(())
     }
 
     /// The blend mode, camelCase (`multiply`, `colorDodge`, …).
@@ -363,7 +381,7 @@ impl WasmPageBuilder {
     /// `invalid-argument` for an unknown mode.
     #[wasm_bindgen(js_name = blendMode)]
     pub fn blend_mode(&mut self, mode: &str) -> JsResult<()> {
-        self.surface.blend_mode(pick("mode", mode, &BLEND_MODES)?);
+        live(&mut self.surface)?.blend_mode(pick("mode", mode, &BLEND_MODES)?);
         Ok(())
     }
 
@@ -394,7 +412,7 @@ impl WasmPageBuilder {
     #[wasm_bindgen(js_name = fillPath)]
     pub fn fill_path(&mut self, path: &[f64], rule: &str) -> JsResult<()> {
         let (path, rule) = (Path::decode(path)?, pick("rule", rule, &FILL_RULES)?);
-        let _ = self.surface.path(|p| path.build(p)).fill(rule);
+        let _ = live(&mut self.surface)?.path(|p| path.build(p)).fill(rule);
         Ok(())
     }
 
@@ -405,7 +423,7 @@ impl WasmPageBuilder {
     #[wasm_bindgen(js_name = strokePath)]
     pub fn stroke_path(&mut self, path: &[f64]) -> JsResult<()> {
         let path = Path::decode(path)?;
-        let _ = self.surface.path(|p| path.build(p)).stroke(&self.stroke);
+        let _ = live(&mut self.surface)?.path(|p| path.build(p)).stroke(&self.stroke);
         Ok(())
     }
 
@@ -416,7 +434,9 @@ impl WasmPageBuilder {
     #[wasm_bindgen(js_name = fillStrokePath)]
     pub fn fill_stroke_path(&mut self, path: &[f64], rule: &str) -> JsResult<()> {
         let (path, rule) = (Path::decode(path)?, pick("rule", rule, &FILL_RULES)?);
-        let _ = self.surface.path(|p| path.build(p)).fill_stroke(rule, &self.stroke);
+        let _ = live(&mut self.surface)?
+            .path(|p| path.build(p))
+            .fill_stroke(rule, &self.stroke);
         Ok(())
     }
 
@@ -427,13 +447,17 @@ impl WasmPageBuilder {
     #[wasm_bindgen(js_name = clipPath)]
     pub fn clip_path(&mut self, path: &[f64], rule: &str) -> JsResult<()> {
         let (path, rule) = (Path::decode(path)?, pick("rule", rule, &FILL_RULES)?);
-        let _ = self.surface.path(|p| path.build(p)).clip(rule);
+        let _ = live(&mut self.surface)?.path(|p| path.build(p)).clip(rule);
         Ok(())
     }
 
     /// Draws `image` scaled into the rectangle.
-    pub fn image(&mut self, image: &WasmImage, x: f64, y: f64, width: f64, height: f64) {
-        self.surface.image(&image.image, rect(x, y, width, height));
+    ///
+    /// # Errors
+    /// `builder-finished`.
+    pub fn image(&mut self, image: &WasmImage, x: f64, y: f64, width: f64, height: f64) -> JsResult<()> {
+        live(&mut self.surface)?.image(&image.image, rect(x, y, width, height));
+        Ok(())
     }
 
     /// A link annotation over the rectangle, with `contents` as its alternate text.
@@ -450,17 +474,19 @@ impl WasmPageBuilder {
         contents: Option<String>,
     ) -> JsResult<()> {
         let target = from_js::<LinkTargetInit>(target, "target")?.to_target();
-        self.surface.link(rect(x, y, width, height), target, contents);
+        live(&mut self.surface)?.link(rect(x, y, width, height), target, contents);
         Ok(())
     }
 
     /// Writes the page into its builder: content stream, resources and page dictionary.
-    /// Returns its page ID. The page handle is consumed.
+    /// Returns its page ID. The page is finished afterwards: every later call on it fails
+    /// with `builder-finished`.
     ///
     /// # Errors
-    /// `builder-finished`; `invalid-geometry` for the first invalid value drawn; `unknown-font`
-    /// for a font from another builder.
-    pub fn finish(self) -> JsResult<String> {
+    /// `builder-finished` (the page or its builder already finished); `invalid-geometry` for
+    /// the first invalid value drawn; `unknown-font` for a font from another builder.
+    pub fn finish(&mut self) -> JsResult<String> {
+        let surface = self.surface.take().ok_or_else(builder_finished)?;
         let mut shared = self.builder.borrow_mut();
         let builder = shared.as_mut().ok_or_else(builder_finished)?;
         let mut page = builder.page(self.size);
@@ -478,7 +504,7 @@ impl WasmPageBuilder {
         if let Some(r) = art {
             page.art_box(r);
         }
-        *page.surface() = self.surface;
+        *page.surface() = surface;
         let id = page.finish().map_err(|e| lamina_error(&e.into()))?;
         Ok(id.to_string())
     }
@@ -521,7 +547,7 @@ mod text {
     use tsify::Tsify;
     use wasm_bindgen::prelude::*;
 
-    use super::{RectJs, WasmBuilder, WasmPageBuilder};
+    use super::{RectJs, WasmBuilder, WasmPageBuilder, live};
     use crate::build_dto::{ColorInit, LinkTargetInit, rect};
     use crate::convert::{from_js_or_default, to_js};
     use crate::error::{JsResult, invalid_argument, lamina_error};
@@ -749,10 +775,29 @@ mod text {
         pub overflow: Option<u32>,
     }
 
-    /// A UTF-8 byte offset into `text` as a UTF-16 offset.
-    fn utf16(text: &str, byte: usize) -> u32 {
-        let n = text.get(..byte).map_or(0, |s| s.encode_utf16().count());
-        u32::try_from(n).unwrap_or(u32::MAX)
+    /// UTF-8 byte offsets into `text` as UTF-16 offsets (JS string indices), in one pass over
+    /// the text: offsets are looked up in increasing order. An offset inside a character
+    /// counts the characters before it.
+    fn utf16(text: &str, bytes: &[usize]) -> Vec<u32> {
+        let mut order: Vec<usize> = (0..bytes.len()).collect();
+        order.sort_by_key(|&i| bytes.get(i).copied().unwrap_or(0));
+        let mut out = vec![0u32; bytes.len()];
+        let mut chars = text.char_indices().peekable();
+        let mut units = 0usize;
+        for i in order {
+            let target = bytes.get(i).copied().unwrap_or(0);
+            while let Some(&(at, c)) = chars.peek() {
+                if at >= target {
+                    break;
+                }
+                units += c.len_utf16();
+                chars.next();
+            }
+            if let Some(slot) = out.get_mut(i) {
+                *slot = u32::try_from(units).unwrap_or(u32::MAX);
+            }
+        }
+        out
     }
 
     fn features(names: &[String]) -> lamina::Result<Vec<Feature>> {
@@ -780,14 +825,18 @@ mod text {
             y: f64,
             #[wasm_bindgen(unchecked_param_type = "TextOptionsInit | undefined")] options: &JsValue,
         ) -> JsResult<JsValue> {
+            // Every option is checked before anything is drawn.
             let options: TextOptionsInit = from_js_or_default(options, "options")?;
             let fill = options.fill.as_ref().map(ColorInit::to_color).transpose()?;
-            let draw = || -> lamina::Result<TextRunJs> {
-                let mut run = self
-                    .surface
-                    .text(text, &font.font, Pt::new(size), PointPt::from_points(x, y))?;
-                if !options.features.is_empty() {
-                    run = run.features(&features(&options.features)?)?;
+            let features = features(&options.features).map_err(|e| lamina_error(&e))?;
+            let surface = live(&mut self.surface)?;
+            let run = surface
+                .text(text, &font.font, Pt::new(size), PointPt::from_points(x, y))
+                .map_err(|e| lamina_error(&e.into()))?;
+            let styled = (|| -> lamina::Result<TextRunJs> {
+                let mut run = run;
+                if !features.is_empty() {
+                    run = run.features(&features)?;
                 }
                 if let Some(language) = &options.language {
                     run = run.language(language)?;
@@ -814,8 +863,12 @@ mod text {
                     bounds: run.bounds().into(),
                     lines: u32::try_from(run.lines()).unwrap_or(u32::MAX),
                 })
-            };
-            let run = draw().map_err(|e| lamina_error(&e))?;
+            })();
+            let run = styled.map_err(|e| {
+                // Laying the run out again failed: draw nothing.
+                surface.discard_last_text();
+                lamina_error(&e)
+            })?;
             Ok(to_js(&run))
         }
 
@@ -867,25 +920,44 @@ mod text {
             for feature in features(&init.features).map_err(|e| lamina_error(&e))? {
                 options = options.with_feature(feature);
             }
-            let layout = self
-                .surface
+            let layout = live(&mut self.surface)?
                 .text_box(text, &font.font, Pt::new(size), r, &options)
                 .map_err(|e| lamina_error(&e.into()))?;
+            let mut offsets: Vec<usize> = layout
+                .lines
+                .iter()
+                .flat_map(|l| [l.range.start, l.range.end, l.content.end])
+                .collect();
+            offsets.extend(layout.overflow);
+            let units = utf16(text, &offsets);
+            let unit = |i: usize| units.get(i).copied().unwrap_or(0);
             let lines = layout
                 .lines
                 .iter()
-                .map(|l| LineBoxJs {
-                    start: utf16(text, l.range.start),
-                    end: utf16(text, l.range.end),
-                    content_end: utf16(text, l.content.end),
+                .enumerate()
+                .map(|(i, l)| LineBoxJs {
+                    start: unit(3 * i),
+                    end: unit(3 * i + 1),
+                    content_end: unit(3 * i + 2),
                     rect: l.rect.into(),
                     baseline: l.baseline.get(),
                 })
                 .collect();
             Ok(to_js(&TextLayoutJs {
                 lines,
-                overflow: layout.overflow.map(|o| utf16(text, o)),
+                overflow: layout.overflow.map(|_| unit(3 * layout.lines.len())),
             }))
+        }
+    }
+
+    #[cfg(test)]
+    mod tests {
+        use super::utf16;
+
+        #[test]
+        fn utf16_converts_unsorted_offsets_in_one_pass() {
+            // "aé𝄞b": a (1 byte, 1 unit), é (2, 1), 𝄞 (4, 2), b.
+            assert_eq!(utf16("aé𝄞b", &[7, 0, 3, 1, 8]), [4, 0, 2, 1, 5]);
         }
     }
 }

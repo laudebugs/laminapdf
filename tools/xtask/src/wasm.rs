@@ -89,6 +89,7 @@ fn dist(ws: &Workspace) -> PathBuf {
 }
 
 fn work(ws: &Workspace, module: &Module) -> PathBuf {
+    // xtask's own files stay under `<root>/target` (Workspace::target_dir is cargo's).
     ws.root.join("target/wasm").join(module.name)
 }
 
@@ -134,14 +135,8 @@ fn build_module(ws: &Workspace, module: &Module, wasm_opt: &Path, out: &Path) ->
     fs::create_dir_all(&work)?;
     // The cargo artefact has one name for both modules: copy it before the next build.
     let built = work.join("lamina_wasm.wasm");
-    fs::copy(
-        ws.root
-            .join("target")
-            .join(TARGET)
-            .join("wasm-release/lamina_wasm.wasm"),
-        &built,
-    )
-    .context("copying the lamina-wasm artefact")?;
+    fs::copy(ws.target_dir.join(TARGET).join("wasm-release/lamina_wasm.wasm"), &built)
+        .context("copying the lamina-wasm artefact")?;
     let stem = format!("lamina_{}", module.name);
     let built_arg = built.to_string_lossy().into_owned();
     let work_arg = work.to_string_lossy().into_owned();
@@ -225,12 +220,12 @@ fn wasm_opt(ws: &Workspace) -> Result<PathBuf> {
     if !local.is_file() {
         download_binaryen(&dir)?;
     }
-    let version = Command::new(&local)
+    let output = Command::new(&local)
         .arg("--version")
         .output()
         .with_context(|| format!("running {}", local.display()))?;
-    let version = String::from_utf8_lossy(&version.stdout);
-    if !version.contains(&format!("version {BINARYEN_VERSION} ")) {
+    let version = String::from_utf8_lossy(&output.stdout);
+    if !on_path.accepts(&version) {
         bail!("{} is not binaryen {BINARYEN_VERSION}: {version}", local.display());
     }
     Ok(local)
@@ -431,10 +426,15 @@ fn minified(ws: &Workspace, js: &Path) -> Result<Vec<u8>> {
     Ok(output.stdout)
 }
 
-/// `twiggy top` of a module's named build: the largest items, (bytes, name).
+/// How many items the baseline keeps and the growth diff compares.
+const TOP_ITEMS: usize = 40;
+
+/// `twiggy top` of a module's named build: the `n` largest items, (bytes, name), with names
+/// made stable across builds ([`stable_name`]) and every data segment counted as one item
+/// (rustc numbers them `.rodata.N` differently from build to build).
 fn top_items(module: &Module, ws: &Workspace, n: usize) -> Result<Vec<(u64, String)>> {
     let output = Command::new(crate::program_path("twiggy"))
-        .args(["top", "-n", &n.to_string(), "--format", "json"])
+        .args(["top", "-n", "1000000", "--format", "json"])
         .arg(named(ws, module))
         .output()
         .context("running twiggy")?;
@@ -442,13 +442,34 @@ fn top_items(module: &Module, ws: &Workspace, n: usize) -> Result<Vec<(u64, Stri
         bail!("twiggy failed: {}", String::from_utf8_lossy(&output.stderr));
     }
     let items: Value = serde_json::from_slice(&output.stdout).context("twiggy's JSON")?;
-    Ok(items
+    let items = items
         .as_array()
         .into_iter()
         .flatten()
-        .filter_map(|i| Some((i.get("shallow_size")?.as_u64()?, stable_name(i.get("name")?.as_str()?))))
-        .filter(|(_, name)| !name.contains("function names") && !name.starts_with("custom section"))
-        .collect())
+        .filter_map(|i| Some((i.get("shallow_size")?.as_u64()?, stable_name(i.get("name")?.as_str()?))));
+    Ok(largest(items, n))
+}
+
+/// The `n` largest of `items`, without the names section and twiggy's summary rows, with every
+/// data segment summed into one `data segments` item.
+fn largest(items: impl Iterator<Item = (u64, String)>, n: usize) -> Vec<(u64, String)> {
+    let mut data = 0u64;
+    let mut out: Vec<(u64, String)> = Vec::new();
+    for (size, name) in items {
+        if name.starts_with("data segment") {
+            data += size;
+        } else if !name.contains("function names")
+            && !name.starts_with("custom section")
+            && !name.starts_with("Σ")
+            && !name.starts_with("...")
+        {
+            out.push((size, name));
+        }
+    }
+    out.push((data, "data segments".to_owned()));
+    out.sort_by(|a, b| b.0.cmp(&a.0).then_with(|| a.1.cmp(&b.1)));
+    out.truncate(n);
+    out
 }
 
 /// `name` without rustc's crate disambiguators (`lamina_build[19234177ad06dfd]::…` →
@@ -557,6 +578,7 @@ pub(crate) fn size(ws: &Workspace, update_baseline: bool) -> Result<()> {
         );
     }
     println!("{table}");
+    fs::create_dir_all(ws.root.join("target"))?;
     let report_path = ws.root.join("target/size-report.json");
     fs::write(
         &report_path,
@@ -590,7 +612,7 @@ fn report_growth(
     for (name, before, now) in grown(measured, baseline) {
         let module = MODULES.iter().find(|m| m.name == name).context("module")?;
         let message = format!("`{name}` grew from {before} B to {now} B gzip (more than 5 %).");
-        match top_items(module, ws, 60) {
+        match top_items(module, ws, TOP_ITEMS) {
             Ok(items) => {
                 let old: Vec<(u64, String)> = file
                     .pointer(&format!("/baseline/{name}/top"))
@@ -616,7 +638,7 @@ fn report_growth(
 fn write_baseline(ws: &Workspace, measured: &BTreeMap<String, ModuleSizes>, file: &mut Value) -> Result<()> {
     let mut base = serde_json::Map::new();
     for module in &MODULES {
-        let top = top_items(module, ws, 30)?;
+        let top = top_items(module, ws, TOP_ITEMS)?;
         let gzip = measured.get(module.name).map_or(0, |s| s.wasm.gzip);
         base.insert(module.name.to_owned(), json!({ "wasmGzip": gzip, "top": top }));
     }
@@ -634,7 +656,31 @@ fn write_baseline(ws: &Workspace, measured: &BTreeMap<String, ModuleSizes>, file
 mod tests {
     use std::collections::BTreeMap;
 
-    use super::{Budget, ModuleSizes, Sizes, grown, stable_name, top_diff, violations};
+    use super::{Budget, ModuleSizes, Sizes, grown, largest, stable_name, top_diff, violations};
+
+    #[test]
+    fn largest_sums_the_data_segments_into_one_item() {
+        let items = [
+            (5, ".rodata.12"),
+            (7, "f"),
+            (3, ".rodata.3"),
+            (100, "\"function names\" subsection"),
+        ]
+        .map(|(s, n)| {
+            (
+                s,
+                if n.starts_with('.') {
+                    format!("data segment \"{n}\"")
+                } else {
+                    n.to_owned()
+                },
+            )
+        });
+        assert_eq!(
+            largest(items.into_iter(), 5),
+            [(8, "data segments".to_owned()), (7, "f".to_owned())]
+        );
+    }
 
     #[test]
     fn stable_name_drops_crate_disambiguators_only() {

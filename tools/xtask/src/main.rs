@@ -290,7 +290,22 @@ fn clippy(ws: &Workspace) -> Result<()> {
     let mut args = vec!["clippy", "--locked", "--target", WASM_TARGET, "--lib"];
     args.extend(package_args(ws.wasm_crates(), "wasm32")?);
     args.extend(["--", "-D", "warnings"]);
-    ws.cargo(&args)
+    ws.cargo(&args)?;
+    // The shipping configurations, which the unified build above never compiles: the WASM
+    // modules (the base: lamina-build without text, no SASLprep, the façade with `build`
+    // only; ADR 0016 §4) and the façade without the builder. Clippy lints every workspace
+    // crate a build compiles, so each of these lints its dependencies' configuration too.
+    for features in [
+        &["-p", "lamina-wasm"][..],
+        &["-p", "lamina-wasm", "--features", "text"],
+        &["-p", "lamina", "--no-default-features"],
+    ] {
+        let mut args = vec!["clippy", "--locked", "--target", WASM_TARGET, "--lib"];
+        args.extend(features);
+        args.extend(["--", "-D", "warnings"]);
+        ws.cargo(&args)?;
+    }
+    Ok(())
 }
 
 fn rust_tests(ws: &Workspace) -> Result<()> {
@@ -386,7 +401,11 @@ fn wasm(ws: &Workspace) -> Result<()> {
         "--target",
         WASM_TARGET,
     ];
-    args.extend(package_args(ws.wasm_crates(), "wasm32")?);
+    // lamina-wasm is built per module by `wasm::build` (an LTO link here would be thrown away).
+    args.extend(package_args(
+        ws.wasm_crates().filter(|c| *c != "lamina-wasm"),
+        "wasm32",
+    )?);
     // Every wasm32 crate builds with the shipping profile; then the two modules of @lamina/wasm
     // (ADR 0016), written gitignored into packages/wasm/dist/, and their tests.
     ws.cargo(&args)?;

@@ -731,8 +731,8 @@
     {
       "code": "builder-finished",
       "kind": "state",
-      "summary": "a builder, or a page of it, was used after the builder finished",
-      "hint": "create a new builder: a finished builder takes no more pages, fonts or settings",
+      "summary": "a builder or one of its pages was used after it finished",
+      "hint": "create a new builder or page: a finished one takes no more drawing, pages, fonts or settings",
       "since": "0.1.0"
     },
     {

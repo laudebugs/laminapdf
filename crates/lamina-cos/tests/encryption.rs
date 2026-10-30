@@ -252,6 +252,9 @@ mod opening {
         assert_eq!(result.err(), Some(Error::WrongPassword));
     }
 
+    // NFKC is SASLprep's part that needs the `saslprep` feature (lamina-syntax's mapping step
+    // runs in every build).
+    #[cfg(feature = "saslprep")]
     #[test]
     fn r6_password_is_prepared_with_saslprep() {
         // NFD input normalises (NFKC) to the NFC password the file was written with.

@@ -153,6 +153,42 @@ pub struct Authenticated {
     pub perms_valid: Option<bool>,
 }
 
+/// SASLprep's mapping step (RFC 4013 §2.1): the non-ASCII spaces of RFC 3454 table C.1.2
+/// become U+0020 and the characters of table B.1 ("commonly mapped to nothing") are removed.
+/// The tables are a handful of code points, so this runs in every build.
+#[cfg(any(not(feature = "saslprep"), test))]
+fn saslprep_mapping(text: &str) -> String {
+    const SPACES: [char; 17] = [
+        '\u{00A0}', '\u{1680}', '\u{2000}', '\u{2001}', '\u{2002}', '\u{2003}', '\u{2004}', '\u{2005}', '\u{2006}',
+        '\u{2007}', '\u{2008}', '\u{2009}', '\u{200A}', '\u{200B}', '\u{202F}', '\u{205F}', '\u{3000}',
+    ];
+    let to_nothing = |c: char| {
+        matches!(
+            c,
+            '\u{00AD}'
+                | '\u{034F}'
+                | '\u{1806}'
+                | '\u{180B}'..='\u{180D}'
+                | '\u{200C}'
+                | '\u{200D}'
+                | '\u{2060}'
+                | '\u{FE00}'..='\u{FE0F}'
+                | '\u{FEFF}'
+        )
+    };
+    text.chars()
+        .filter_map(|c| {
+            if SPACES.contains(&c) {
+                Some(' ')
+            } else if to_nothing(c) {
+                None
+            } else {
+                Some(c)
+            }
+        })
+        .collect()
+}
+
 /// The password byte strings to try for `password` at `revision`.
 ///
 /// R2–R4 passwords are PDFDocEncoding bytes: the input as given, then (if it is UTF-8 text with
@@ -160,6 +196,12 @@ pub struct Authenticated {
 /// shares for most of the range. R5/R6 passwords are UTF-8 after SASLprep (RFC 4013), truncated
 /// to 127 bytes (ISO 32000-2 §7.6.4.3.3); input that isn't UTF-8 or that SASLprep rejects is
 /// tried as given.
+///
+/// Without the `saslprep` feature (the WASM modules, ADR 0016 §7), only SASLprep's mapping
+/// step (RFC 4013 §2.1: non-ASCII spaces to U+0020, characters "commonly mapped to nothing"
+/// removed) is applied; NFKC normalisation and the prohibited-character and bidi checks are
+/// left out, so a password that differs from its NFKC form must be normalised by the caller
+/// (`@lamina/pdf` does), and a password SASLprep would reject is tried mapped.
 fn candidates(password: &[u8], revision: u8) -> Vec<Vec<u8>> {
     let text = std::str::from_utf8(password).ok();
     if revision >= 5 {
@@ -169,7 +211,7 @@ fn candidates(password: &[u8], revision: u8) -> Vec<Vec<u8>> {
             .map_or_else(|| password.to_vec(), |p| p.as_bytes().to_vec());
         // Without SASLprep the password is tried as given (feature `saslprep`).
         #[cfg(not(feature = "saslprep"))]
-        let prepared = password.to_vec();
+        let prepared = text.map_or_else(|| password.to_vec(), |t| saslprep_mapping(t).into_bytes());
         let mut out = vec![key::prefix(&prepared, 127).to_vec()];
         let raw = key::prefix(password, 127).to_vec();
         if !out.contains(&raw) {

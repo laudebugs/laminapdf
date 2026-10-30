@@ -4,9 +4,11 @@
 //! ADR 0026 object), so this costs a fraction of `serde-wasm-bindgen`'s generic
 //! deserialiser (measured in ADR 0016 §5). Records stay plain objects on the JS side.
 
+use std::cell::Cell;
+
 use serde::Serialize;
-use serde::de::DeserializeOwned;
-use wasm_bindgen::JsValue;
+use serde::de::{DeserializeOwned, Deserializer, Visitor};
+use wasm_bindgen::{JsCast as _, JsValue};
 
 use crate::error::{JsResult, invalid_argument, unknown_option};
 
@@ -29,7 +31,7 @@ pub(crate) fn from_js<T: DeserializeOwned>(value: &JsValue, argument: &'static s
         .ok()
         .and_then(|s| s.as_string())
         .ok_or_else(|| invalid_argument(argument, "the value can't be written as JSON".to_owned(), Vec::new()))?;
-    serde_json::from_str(&json).map_err(|e| conversion_error(argument, &e.to_string()))
+    serde_json::from_str(&json).map_err(|e| conversion_error::<T>(value, argument, &e))
 }
 
 /// [`from_js`], with `undefined` and `null` meaning the record's defaults.
@@ -47,47 +49,79 @@ pub(crate) fn from_js_or_default<T: DeserializeOwned + Default>(
     }
 }
 
-/// Maps serde's message to the binding's codes. serde words unknown keys and variants as
-/// "unknown field `x`, expected one of `a`, `b`" ("expected `a`" for one, "there are no
-/// fields" for none).
-pub(crate) fn conversion_error(argument: &'static str, message: &str) -> JsValue {
-    if let Some((given, known)) = unknown_name(message, "unknown field `") {
-        return unknown_option(argument, given, &known);
+/// The binding error for a value `T` refused. An unknown key is `unknown-option`; the key and
+/// the suggestions come from the value's own keys and `T`'s field list, never from serde's
+/// message (which quotes the caller's key: ADR 0026 §4 keeps caller text out of `didYouMean`).
+fn conversion_error<T: DeserializeOwned>(value: &JsValue, argument: &'static str, e: &serde_json::Error) -> JsValue {
+    let message = e.to_string();
+    if !message.starts_with("unknown field") {
+        return invalid_argument(argument, message, Vec::new());
     }
-    let did_you_mean = unknown_name(message, "unknown variant `")
-        .map(|(given, known)| crate::error::did_you_mean(&given, &known))
-        .unwrap_or_default();
-    invalid_argument(argument, message.to_owned(), did_you_mean)
+    let known = fields_of::<T>();
+    let keys = if value.is_object() {
+        js_sys::Object::keys(value.unchecked_ref::<js_sys::Object>()).to_vec()
+    } else {
+        Vec::new()
+    };
+    let unknown = keys
+        .iter()
+        .filter_map(JsValue::as_string)
+        .find(|k| !known.contains(&k.as_str()));
+    // A key unknown to a nested record (the top-level keys are all known): no suggestion.
+    let known: Vec<String> = if unknown.is_some() {
+        known.iter().map(|k| (*k).to_owned()).collect()
+    } else {
+        Vec::new()
+    };
+    unknown_option(argument, unknown, &known)
 }
 
-/// The name after `prefix` and the backquoted names serde says it expected.
-fn unknown_name(message: &str, prefix: &str) -> Option<(String, Vec<String>)> {
-    let rest = message.strip_prefix(prefix)?;
-    let (given, expected) = rest.split_once('`')?;
-    let known = expected.split('`').skip(1).step_by(2).map(str::to_owned).collect();
-    Some((given.to_owned(), known))
+/// The field names a struct's `Deserialize` impl declares (serde passes them to
+/// `deserialize_struct`); empty for anything that isn't a struct.
+pub(crate) fn fields_of<T: DeserializeOwned>() -> &'static [&'static str] {
+    let probe = FieldProbe(Cell::new(&[]));
+    let _ = T::deserialize(&probe);
+    probe.0.get()
+}
+
+/// A deserialiser that only records the field list serde hands it.
+struct FieldProbe(Cell<&'static [&'static str]>);
+
+impl<'de> Deserializer<'de> for &FieldProbe {
+    type Error = serde::de::value::Error;
+
+    fn deserialize_any<V: Visitor<'de>>(self, _visitor: V) -> Result<V::Value, Self::Error> {
+        Err(serde::de::Error::custom("field probe"))
+    }
+
+    fn deserialize_struct<V: Visitor<'de>>(
+        self,
+        _name: &'static str,
+        fields: &'static [&'static str],
+        _visitor: V,
+    ) -> Result<V::Value, Self::Error> {
+        self.0.set(fields);
+        Err(serde::de::Error::custom("field probe"))
+    }
+
+    serde::forward_to_deserialize_any! {
+        bool i8 i16 i32 i64 i128 u8 u16 u32 u64 u128 f32 f64 char str string bytes byte_buf option
+        unit unit_struct newtype_struct seq tuple tuple_struct map enum identifier ignored_any
+    }
 }
 
 #[cfg(test)]
 mod tests {
-    use super::unknown_name;
+    use super::fields_of;
+    use crate::dto::OpenOptionsInit;
 
     #[test]
-    fn unknown_name_reads_serdes_message() {
-        assert_eq!(
-            unknown_name(
-                "unknown field `pasword`, expected one of `password`, `strict`",
-                "unknown field `"
-            ),
-            Some(("pasword".to_owned(), vec!["password".to_owned(), "strict".to_owned()]))
-        );
+    fn fields_of_reads_a_records_field_list() {
+        assert_eq!(fields_of::<OpenOptionsInit>(), ["password", "strict", "limits"]);
     }
 
     #[test]
-    fn unknown_name_is_none_for_other_messages() {
-        assert_eq!(
-            unknown_name("invalid type: string, expected u32", "unknown field `"),
-            None
-        );
+    fn fields_of_is_empty_for_a_list() {
+        assert_eq!(fields_of::<Vec<u32>>(), [""; 0]);
     }
 }

@@ -42,19 +42,36 @@ fn too_large() -> Error {
     }
 }
 
-/// CRC-32 (ISO 3309, as PNG §5.5 specifies), bitwise: chunks are small next to the inflate.
+/// The CRC-32 table (ISO 3309, as PNG §5.5 specifies), computed at compile time.
+#[expect(
+    clippy::cast_possible_truncation,
+    clippy::indexing_slicing,
+    reason = "const evaluation: n < 256 indexes the 256-entry table"
+)]
+const CRC_TABLE: [u32; 256] = {
+    let mut table = [0u32; 256];
+    let mut n = 0;
+    while n < 256 {
+        let mut c = n as u32;
+        let mut k = 0;
+        while k < 8 {
+            c = if c & 1 == 1 { 0xEDB8_8320 ^ (c >> 1) } else { c >> 1 };
+            k += 1;
+        }
+        table[n] = c;
+        n += 1;
+    }
+    table
+};
+
+/// CRC-32 over `parts` in order.
 fn crc32(parts: &[&[u8]]) -> u32 {
     let mut crc = !0u32;
     for part in parts {
         for &byte in *part {
-            crc ^= u32::from(byte);
-            for _ in 0..8 {
-                crc = if crc & 1 == 1 {
-                    (crc >> 1) ^ 0xEDB8_8320
-                } else {
-                    crc >> 1
-                };
-            }
+            let [low, ..] = crc.to_le_bytes();
+            let index = usize::from(low ^ byte);
+            crc = CRC_TABLE.get(index).copied().unwrap_or(0) ^ (crc >> 8);
         }
     }
     !crc
@@ -160,7 +177,14 @@ struct Chunks<'a> {
     idat: Vec<u8>,
 }
 
-/// Reads the chunks up to `IEND`, checking each CRC.
+/// The longest chunk PNG allows (§5.3: lengths are below 2^31).
+const MAX_CHUNK: usize = 0x7FFF_FFFF;
+
+/// Reads the chunks, checking each CRC, up to the end of the image data: the first chunk
+/// after the `IDAT`s (normally `IEND`) ends the reading, so what follows the image data,
+/// even a missing or damaged `IEND`, doesn't matter, as in the `png` crate. A chunk cut short
+/// after image data was read ends the reading too; the inflate decides whether the data
+/// read is enough.
 fn read_chunks(bytes: &[u8]) -> Result<Chunks<'_>> {
     let mut rest = bytes
         .strip_prefix(&SIGNATURE)
@@ -169,21 +193,33 @@ fn read_chunks(bytes: &[u8]) -> Result<Chunks<'_>> {
     let mut palette: Option<&[u8]> = None;
     let mut trns: Option<&[u8]> = None;
     let mut idat = Vec::new();
-    loop {
-        let len = be32(rest).ok_or_else(|| invalid("the data ends inside a chunk"))?;
-        let len = usize::try_from(len).map_err(|_| invalid("a chunk is too long"))?;
-        let kind = rest.get(4..8).ok_or_else(|| invalid("the data ends inside a chunk"))?;
-        let data = rest
-            .get(8..8 + len)
-            .ok_or_else(|| invalid("the data ends inside a chunk"))?;
-        let crc = rest
-            .get(8 + len..12 + len)
-            .and_then(be32)
-            .ok_or_else(|| invalid("the data ends inside a chunk"))?;
+    while !rest.is_empty() {
+        let in_image_data = !idat.is_empty();
+        let cut = || invalid("the data ends inside a chunk");
+        let parsed = (|| {
+            let len = be32(rest).and_then(|l| usize::try_from(l).ok()).ok_or_else(cut)?;
+            if len > MAX_CHUNK {
+                return Err(invalid("a chunk is longer than PNG allows"));
+            }
+            let kind = rest.get(4..8).ok_or_else(cut)?;
+            let data_end = len.checked_add(8).ok_or_else(cut)?;
+            let crc_end = data_end.checked_add(4).ok_or_else(cut)?;
+            let data = rest.get(8..data_end).ok_or_else(cut)?;
+            let crc = rest.get(data_end..crc_end).and_then(be32).ok_or_else(cut)?;
+            Ok((kind, data, crc, crc_end))
+        })();
+        let (kind, data, crc, end) = match parsed {
+            Ok(chunk) => chunk,
+            Err(_) if in_image_data => break,
+            Err(e) => return Err(e),
+        };
+        if in_image_data && kind != b"IDAT" {
+            break;
+        }
         if crc != crc32(&[kind, data]) {
             return Err(invalid("a chunk's CRC does not match"));
         }
-        rest = rest.get(12 + len..).unwrap_or_default();
+        rest = rest.get(end..).unwrap_or_default();
         match kind {
             b"IHDR" if header.is_none() => header = Some(Header::parse(data)?),
             _ if header.is_none() => return Err(invalid("the first chunk is not IHDR")),
@@ -207,6 +243,25 @@ fn read_chunks(bytes: &[u8]) -> Result<Chunks<'_>> {
         trns,
         idat,
     })
+}
+
+/// Inflates zlib `data` into exactly `needed` bytes. Like the `png` crate, a stream that
+/// holds more data than the image needs, or ends without (or with a wrong) Adler-32 after
+/// the image's bytes, is accepted; fewer bytes than the image needs are an error.
+fn inflate(data: &[u8], needed: usize) -> Result<Vec<u8>> {
+    use miniz_oxide::inflate::core::{DecompressorOxide, decompress, inflate_flags};
+    let mut out = vec![0u8; needed];
+    let mut state = DecompressorOxide::new();
+    let flags = inflate_flags::TINFL_FLAG_PARSE_ZLIB_HEADER
+        | inflate_flags::TINFL_FLAG_USING_NON_WRAPPING_OUTPUT_BUF
+        | inflate_flags::TINFL_FLAG_IGNORE_ADLER32;
+    let (_, _, written) = decompress(&mut state, data, &mut out, 0, flags);
+    if written < needed {
+        return Err(invalid(
+            "the image data is shorter than the image or not valid zlib data",
+        ));
+    }
+    Ok(out)
 }
 
 /// Decodes `bytes`; `strip_16` keeps the high byte of 16-bit samples.
@@ -248,15 +303,7 @@ pub(crate) fn decode(bytes: &[u8], strip_16: bool) -> Result<Png> {
                 .ok_or_else(too_large)?;
         }
     }
-    let data = match miniz_oxide::inflate::decompress_to_vec_zlib_with_limit(&idat, needed) {
-        Ok(data) => data,
-        // A wrong Adler-32 with the data complete is accepted, as the `png` crate does.
-        Err(e) if e.status == miniz_oxide::inflate::TINFLStatus::Adler32Mismatch => e.output,
-        Err(_) => return Err(invalid("the image data is not valid zlib data")),
-    };
-    if data.len() < needed {
-        return Err(invalid("the image data is shorter than the image"));
-    }
+    let data = inflate(&idat, needed)?;
 
     let mut data = data.as_slice();
     for (x0, y0, dx, dy) in passes {
@@ -278,8 +325,16 @@ pub(crate) fn decode(bytes: &[u8], strip_16: bool) -> Result<Png> {
             data = rest.get(row_len..).unwrap_or_default();
             unfilter(*filter, raw, &previous, &mut current, bpp)?;
             let y = y0 + r * dy;
-            for i in 0..w {
-                out.put(&mut pixels, &current, i, x0 + i * dx, y);
+            if !h.interlaced && out.stored_as_output() {
+                // Samples already in the output layout: copy the row.
+                let at = index(y).saturating_mul(row_len);
+                if let Some(dst) = pixels.get_mut(at..at.saturating_add(row_len)) {
+                    dst.copy_from_slice(&current);
+                }
+            } else {
+                for i in 0..w {
+                    out.put(&mut pixels, &current, i, x0 + i * dx, y);
+                }
             }
             std::mem::swap(&mut previous, &mut current);
         }
@@ -353,6 +408,12 @@ impl<'a> Output<'a> {
             bits: if h.depth == 16 && !strip_16 { 16 } else { 8 },
             width: usize::try_from(h.width).map_err(|_| too_large())?,
         })
+    }
+
+    /// Whether a stored row is already an output row: no palette, no `tRNS`, no bit-depth
+    /// change.
+    fn stored_as_output(&self) -> bool {
+        self.h.color != 3 && self.trns.is_none() && self.h.depth >= 8 && self.bits == self.h.depth
     }
 
     /// Output bytes per pixel.
@@ -547,6 +608,15 @@ mod tests {
 
     /// A PNG with pseudo-random samples, every row filter in turn, and Adam7 when asked.
     fn encode(spec: &Spec, seed: u32) -> Vec<u8> {
+        assemble(
+            spec,
+            &miniz_oxide::deflate::compress_to_vec_zlib(&filtered(spec, seed), 6),
+            true,
+        )
+    }
+
+    /// The filtered image data (before zlib).
+    fn filtered(spec: &Spec, seed: u32) -> Vec<u8> {
         let channels = match spec.color {
             2 => 3,
             4 => 2,
@@ -581,6 +651,11 @@ mod tests {
                 prev = row;
             }
         }
+        raw
+    }
+
+    /// The PNG file around zlib data `z`, with or without `IEND`.
+    fn assemble(spec: &Spec, z: &[u8], iend: bool) -> Vec<u8> {
         let mut out = b"\x89PNG\r\n\x1a\n".to_vec();
         let mut ihdr = Vec::new();
         ihdr.extend_from_slice(&spec.width.to_be_bytes());
@@ -594,25 +669,27 @@ mod tests {
         if let Some(t) = &spec.trns {
             chunk(&mut out, *b"tRNS", t);
         }
-        let z = miniz_oxide::deflate::compress_to_vec_zlib(&raw, 6);
         let (a, b) = z.split_at(z.len() / 2);
         chunk(&mut out, *b"IDAT", a);
         chunk(&mut out, *b"IDAT", b);
-        chunk(&mut out, *b"IEND", &[]);
+        if iend {
+            chunk(&mut out, *b"IEND", &[]);
+        }
         out
     }
 
-    /// The `png` crate's output with `EXPAND` (and `STRIP_16`): (gray, alpha, bits, pixels).
-    fn reference(bytes: &[u8], strip: bool) -> (bool, bool, u8, Vec<u8>) {
+    /// The `png` crate's output with `EXPAND` (and `STRIP_16`): (gray, alpha, bits, pixels),
+    /// or `None` when it refuses the data.
+    fn try_reference(bytes: &[u8], strip: bool) -> Option<(bool, bool, u8, Vec<u8>)> {
         let mut d = png::Decoder::new(std::io::Cursor::new(bytes));
         let mut t = png::Transformations::EXPAND;
         if strip {
             t |= png::Transformations::STRIP_16;
         }
         d.set_transformations(t);
-        let mut r = d.read_info().unwrap();
-        let mut buf = vec![0; r.output_buffer_size().unwrap()];
-        let info = r.next_frame(&mut buf).unwrap();
+        let mut r = d.read_info().ok()?;
+        let mut buf = vec![0; r.output_buffer_size()?];
+        let info = r.next_frame(&mut buf).ok()?;
         buf.truncate(info.buffer_size());
         let (gray, alpha) = match info.color_type {
             png::ColorType::Grayscale => (true, false),
@@ -625,7 +702,77 @@ mod tests {
         } else {
             8
         };
-        (gray, alpha, bits, buf)
+        Some((gray, alpha, bits, buf))
+    }
+
+    fn reference(bytes: &[u8], strip: bool) -> (bool, bool, u8, Vec<u8>) {
+        try_reference(bytes, strip).unwrap()
+    }
+
+    fn ours(bytes: &[u8]) -> Option<(bool, bool, u8, Vec<u8>)> {
+        decode(bytes, false).ok().map(|p| (p.gray, p.alpha, p.bits, p.pixels))
+    }
+
+    /// Every spec's PNG with its zlib data changed by `change`, decoded by both.
+    fn compare_with_changed_zlib(change: impl Fn(Vec<u8>) -> Vec<u8>) {
+        for (i, spec) in specs().iter().enumerate() {
+            let z = change(miniz_oxide::deflate::compress_to_vec_zlib(&filtered(spec, i as u32), 6));
+            let bytes = assemble(spec, &z, true);
+            let reference = try_reference(&bytes, false);
+            assert!(reference.is_some(), "the png crate refused case {i}");
+            assert_eq!(ours(&bytes), reference, "case {i}");
+        }
+    }
+
+    #[test]
+    fn accepts_like_the_png_crate_a_stream_with_more_data_than_the_image() {
+        for (i, spec) in specs().iter().enumerate() {
+            let mut raw = filtered(spec, i as u32);
+            raw.extend_from_slice(&[0; 37]);
+            let bytes = assemble(spec, &miniz_oxide::deflate::compress_to_vec_zlib(&raw, 6), true);
+            assert_eq!(ours(&bytes), try_reference(&bytes, false), "case {i}");
+            assert!(ours(&bytes).is_some(), "case {i}");
+        }
+    }
+
+    #[test]
+    fn accepts_like_the_png_crate_a_stream_without_its_adler32() {
+        compare_with_changed_zlib(|mut z| {
+            z.truncate(z.len() - 4);
+            z
+        });
+    }
+
+    #[test]
+    fn decodes_a_file_without_iend_as_the_whole_file() {
+        // More lenient than the `png` crate, which refuses it: nothing after the image data
+        // matters to the pixels.
+        for (i, spec) in specs().iter().enumerate() {
+            let z = miniz_oxide::deflate::compress_to_vec_zlib(&filtered(spec, i as u32), 6);
+            assert_eq!(
+                ours(&assemble(spec, &z, false)),
+                ours(&assemble(spec, &z, true)),
+                "case {i}"
+            );
+        }
+    }
+
+    #[test]
+    fn refuses_like_the_png_crate_truncated_image_data() {
+        for (i, spec) in specs().iter().enumerate() {
+            let z = miniz_oxide::deflate::compress_to_vec_zlib(&filtered(spec, i as u32), 6);
+            let bytes = assemble(spec, &z[..z.len() / 2], true);
+            assert_eq!((ours(&bytes), try_reference(&bytes, false)), (None, None), "case {i}");
+        }
+    }
+
+    #[test]
+    fn a_chunk_longer_than_png_allows_is_refused() {
+        let mut out = b"\x89PNG\r\n\x1a\n".to_vec();
+        chunk(&mut out, *b"IHDR", &[0, 0, 0, 1, 0, 0, 0, 1, 8, 0, 0, 0, 0]);
+        out.extend_from_slice(&[0xFF, 0xFF, 0xFF, 0xF0]);
+        out.extend_from_slice(b"IDAT");
+        assert_eq!(decode(&out, false).unwrap_err().code(), "invalid-image");
     }
 
     fn specs() -> Vec<Spec> {

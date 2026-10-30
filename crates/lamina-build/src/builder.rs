@@ -413,20 +413,7 @@ impl Builder {
     /// that isn't finite; [`Error::Text`](crate::Error::Text) when subsetting a font fails;
     /// [`Error::Cos`](crate::Error::Cos) when object numbers run out.
     pub fn finish(self) -> Result<lamina_ops::Document> {
-        #[cfg(feature = "text")]
-        return self.finish_with_warnings().map(|(doc, _)| doc);
-        #[cfg(not(feature = "text"))]
-        {
-            let mut this = self;
-            finish::new_document(
-                &mut this.doc,
-                &this.options,
-                this.catalog,
-                &mut this.state,
-                &this.features,
-            )?;
-            Ok(lamina_ops::Document::from(lamina_model::Document::from(this.doc)))
-        }
+        self.finish_inner().map(|(doc, _)| doc)
     }
 
     /// [`Builder::finish`], also returning the warnings embedding the fonts raised
@@ -435,7 +422,12 @@ impl Builder {
     /// # Errors
     /// As [`Builder::finish`].
     #[cfg(feature = "text")]
-    pub fn finish_with_warnings(mut self) -> Result<(lamina_ops::Document, Vec<lamina_text::Warning>)> {
+    pub fn finish_with_warnings(self) -> Result<(lamina_ops::Document, Vec<lamina_text::Warning>)> {
+        self.finish_inner().map(|(doc, state)| (doc, state.font_warnings))
+    }
+
+    /// Writes the document's objects; returns it with the build's final state.
+    fn finish_inner(mut self) -> Result<(lamina_ops::Document, BuildState)> {
         finish::new_document(
             &mut self.doc,
             &self.options,
@@ -444,7 +436,7 @@ impl Builder {
             &self.features,
         )?;
         let doc = lamina_ops::Document::from(lamina_model::Document::from(self.doc));
-        Ok((doc, self.state.font_warnings))
+        Ok((doc, self.state))
     }
 }
 

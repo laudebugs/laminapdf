@@ -63,9 +63,10 @@ subsetter = { version = "=0.2.6" }
 # Content-stream operators: lamina-build's content streams (ADR 0005 §6), lamina-text's tests and
 # goldens. MIT OR Apache-2.0
 pdf-writer = { version = "=0.15.0", default-features = false }
-# PNG decoding for lamina-build's images (B5a). No default features (none are needed: decoding and
-# encoding are always built). MIT OR Apache-2.0 (bitflags, crc32fast, fdeflate, flate2,
-# miniz_oxide 0.8 [a second copy, deny.toml warns], simd-adler32: MIT OR Apache-2.0 / Zlib)
+# PNG encoding for lamina-build's tests, and the reference its own decoder (surface/png.rs, B6a)
+# is compared with: a dev-dependency only. No default features. MIT OR Apache-2.0 (bitflags,
+# crc32fast, fdeflate, flate2, miniz_oxide 0.8 [a second copy, deny.toml warns], simd-adler32:
+# MIT OR Apache-2.0 / Zlib)
 png = { version = "0.18.1", default-features = false }
 
 # Shaping, bidi and line breaking (lamina-text, B4b; ADR 0005 §6). HarfRust: HarfBuzz's shaping
@@ -97,17 +98,17 @@ serde = { version = "1.0.229", default-features = false, features = ["std", "der
 serde_json = "1.0.154"
 # TypeScript declarations for serde types (ADR 0002), only behind lamina-ops' optional `tsify`
 # feature (off by default, so core builds never see it; lamina-wasm enables it in B6a). tsify
-# needs `js` or `json`; `js` (serde-wasm-bindgen) is the one ADR 0002 picks for the boundary.
+# needs `js` or `json`; `js` (serde-wasm-bindgen) is ADR 0002's. lamina-wasm uses only the declarations:
+# its records cross as JSON (ADR 0016 §7), so the conversion code is never linked.
 # MIT OR Apache-2.0
 tsify = { version = "0.5.8", default-features = false, features = ["js"] }
 # The Tsify derive expands to wasm-bindgen glue, so the crate deriving it names wasm-bindgen too.
 # Edge-only (xtask portability): reachable from a core crate only through that optional feature.
 # MIT OR Apache-2.0
 wasm-bindgen = { version = "0.2.129", default-features = false }
-# lamina-wasm's JS values (objects, Uint8Array) and serde ↔ JS conversion (ADR 0002: tsify's
-# `js` mode is serde-wasm-bindgen). Edge-only. MIT OR Apache-2.0
+# lamina-wasm's JS values (objects, Uint8Array, JSON). Records cross as JSON through serde_json,
+# not serde-wasm-bindgen (ADR 0016 §7). Edge-only. MIT OR Apache-2.0
 js-sys = { version = "0.3.106", default-features = false, features = ["std"] }
-serde-wasm-bindgen = { version = "0.6.5", default-features = false }
 # lamina-wasm's tests in a wasm runtime (Node), dev-dependency only. MIT OR Apache-2.0
 wasm-bindgen-test = { version = "0.3", default-features = false, features = ["std"] }
 # Property tests (ADR 0018 tier 5), dev-dependency only; `std` without the fork/timeout runner

@@ -88,7 +88,7 @@ None.
 ## Outcome
 
 - Deviations: the base budget is 380 KB gzip, not 350 KB (owner, 2026-10-30, option A of ADR 0016 §5); the text module is a superset of base (documents move between modules as bytes), not a run-time add-on; records cross as JSON through `serde_json`, not serde-wasm-bindgen (measured, ADR 0016 §7); `wasm-opt -O1`, not `-Oz`. The cross-module call overhead and the 100-page report against the §4 targets are not measured here: with no cross-module calls (superset), the first is moot; the second goes to B6b's TS example suite.
-- Measured by `cargo xtask size`: base 368,245 B gzip, text 937,217 B; glue 3.6 KB and 3.8 KB min+gzip (ADR 0016 §6). `cargo xtask wasm` twice gives identical `dist/` bytes.
+- Measured by `cargo xtask size` (after the review fixes and B9d): base 372,711 B gzip, text 943,924 B; glue 3.8 KB and 4.0 KB min+gzip (ADR 0016 §6). `cargo xtask wasm` twice gives identical `dist/` bytes.
 - Cfg-only change in `crates/lamina/src/data.rs` (three attributes: `Build` under `build`, its `Text` arm under `text`), agreed with the B9b session.
 
 ## Definition of done

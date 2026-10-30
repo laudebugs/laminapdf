@@ -98,7 +98,8 @@ impl Tool {
         }
     }
 
-    fn accepts(&self, output: &str) -> bool {
+    /// Whether a version output is at this tool's pin.
+    pub(crate) fn accepts(&self, output: &str) -> bool {
         let found = version_token(output);
         match &self.pin {
             Pin::Exact(want) => found == Some(want.as_str()),

@@ -294,6 +294,19 @@ impl Surface {
         self
     }
 
+    /// Removes the last thing drawn when it is a text run, and says whether it did: a caller
+    /// that draws a run and then fails to change it ([`TextRun::features`],
+    /// [`TextRun::language`], [`TextRun::direction`] lay it out again) can leave nothing
+    /// behind, as the bindings do.
+    #[cfg(feature = "text")]
+    pub fn discard_last_text(&mut self) -> bool {
+        let last = matches!(self.commands.last(), Some(Command::Text(_)));
+        if last {
+            self.commands.pop();
+        }
+        last
+    }
+
     /// Whether anything drawn is text (so finishing the page records glyphs).
     #[cfg(feature = "text")]
     pub(crate) fn has_text(&self) -> bool {
