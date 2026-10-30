@@ -82,7 +82,7 @@ Documents, builders, pages and images live in WebAssembly memory. `doc.free()` (
 
 [`examples/`](examples) holds the TypeScript twins of the Rust examples (`hello`, `invoice`, `multilingual`, `images-and-vectors`, `links-and-outlines`, `generate-then-edit`), each producing the bytes of its Rust golden in [`fixtures/golden/examples/`](../../fixtures/golden/examples), and `report` (100 pages, two embedded fonts: the performance case of [pdf-library §4](../../docs/plans/pdf-library.md#non-functional), checked by its SHA-256 instead of a golden).
 
-[`examples/worker/`](examples/worker) is a Cloudflare Worker that generates a PDF per request (`/?name=Ada`: a letter; `/report`: the report). From this folder:
+[`examples/worker/`](examples/worker) is a Cloudflare Worker that generates a PDF per request (`/?name=Ada`: a letter in Helvetica, or a 400 with the error as JSON for a name it can't draw; `/report`: the report). From this folder:
 
 ```sh
 pnpm exec wrangler dev -c examples/worker/wrangler.toml   # then open http://localhost:8787/?name=Ada
@@ -94,13 +94,13 @@ The one example list, [`test/suite/examples.ts`](test/suite/examples.ts) (no Nod
 
 | Runtime | Runner | Export condition |
 | --- | --- | --- |
-| Node 22, 24, 26 | Vitest, [`vitest.node.config.ts`](vitest.node.config.ts) (`test/*.test.ts`, also the Vite tests) | `node` |
+| Node 22, 24, 26 | Vitest, [`vitest.node.config.ts`](vitest.node.config.ts): project `node` (`test/*.test.ts`, also the Vite tests; what `cargo xtask wasm` runs) and project `measure` ([`test/node/measure.test.ts`](test/node/measure.test.ts)) | `node` |
 | Chromium, Firefox, WebKit | Vitest browser mode with Playwright, [`vitest.browser.config.ts`](vitest.browser.config.ts) (`test/browser/`; fixtures fetched as Vite assets); its `vite-build` project runs a Vite production build of [`test/vite-app/`](test/vite-app) in a Chromium page | `browser` |
 | Deno | `deno test` over [`test/deno/`](test/deno) | `deno` |
 | Bun | `bun test` over [`test/bun/`](test/bun) | `node` |
 | workerd | Vitest in Node, [`vitest.workers.config.ts`](vitest.workers.config.ts): wrangler's test harness runs [`test/workerd/worker.ts`](test/workerd/worker.ts) and the Worker example in workerd, and the test compares their responses | `workerd` |
 
-Each also prints the performance smoke's figures: hello after `init()` (first call and median of 20), the report (median of 3) and the WebAssembly memory after it. They are recorded, never asserted: `cargo xtask pdf-runtimes` collects them into a table against the §4 targets (≤ 5 ms, ≤ 500 ms, < 64 MB in a Worker; the job summary in CI) and `target/xtask/pdf-runtimes/measurements.json`; the nightly lane appends them to the benchmark history.
+Each also prints the performance smoke's figures, measured first in a fresh module instance (Node: its own file; elsewhere the first test of the file, or the first request to a fresh Worker), so the first hello is cold and the memory is the hello and report runs' alone: hello after `init()` (first call and median of 20), the report (median of 3) and the WebAssembly memory after it. They are recorded, never asserted: `cargo xtask pdf-runtimes` collects them into a table against the §4 targets (≤ 5 ms, ≤ 500 ms, < 64 MB in a Worker; the job summary in CI) and `target/xtask/pdf-runtimes/measurements.json`; the nightly lane appends them to the benchmark history.
 
 ```sh
 cargo xtask wasm                          # first: builds packages/wasm/dist/ and this package's dist/
@@ -111,14 +111,14 @@ cargo xtask pdf-runtimes chromium deno    # some of them (node, chromium, firefo
 `pdf-runtimes node` uses the `node` on `PATH`. Deno, Bun, wrangler (with workerd) and Playwright are dev dependencies of this package, so `pnpm install` brings them; `pdf-runtimes` runs `playwright install <browser>` before a browser (into Playwright's per-user cache, or `PLAYWRIGHT_BROWSERS_PATH`). By hand, from this folder:
 
 ```sh
-pnpm exec vitest run -c vitest.node.config.ts
+pnpm exec vitest run -c vitest.node.config.ts --project measure   # then --project node
 pnpm exec vitest run -c vitest.browser.config.ts --project chromium --project vite-build   # or firefox, webkit
 pnpm exec deno test --sloppy-imports --no-check --allow-read test/deno/
 pnpm exec bun test ./test/bun/
 pnpm exec vitest run -c vitest.workers.config.ts
 ```
 
-CI: the fast lane runs Node 22/24/26 and Chromium on every PR, the full lane Firefox, WebKit, Deno, Bun and workerd, and the nightly lane all of them with the figures recorded.
+CI: the fast lane runs Node 22 and 26 and Chromium on every PR (Node 24, `.nvmrc`, is the `wasm` job's own run), the full lane Firefox, WebKit, Deno, Bun and workerd, and the nightly lane all of them with the figures recorded.
 
 ## Development
 

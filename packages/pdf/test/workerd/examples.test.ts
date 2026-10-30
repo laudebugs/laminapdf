@@ -47,8 +47,14 @@ describe("workerd", () => {
     });
   }
 
+  it("answers a name Helvetica can't draw with a 400 and the error, not a 500", async () => {
+    const response = await example.fetch(`/?name=${encodeURIComponent("Ада 世界")}`);
+    const body = (await response.json()) as { code?: string };
+    expect([response.status, body.code]).toEqual([400, "missing-glyph"]);
+  });
+
   it("serves a letter and the report from the Worker example", async () => {
-    const letter = await bytes(await example.fetch("/?name=Ada"));
+    const letter = await bytes(await example.fetch(`/?name=${encodeURIComponent("Zoë Łukasz")}`));
     const report = await bytes(await example.fetch("/report"));
     expect([new TextDecoder().decode(letter.subarray(0, 5)), await sha256(report)]).toEqual(["%PDF-", REPORT_SHA256]);
   });

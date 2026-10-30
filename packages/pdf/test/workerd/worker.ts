@@ -1,7 +1,8 @@
 // The shared example list (test/suite/examples.ts) inside workerd: `/example/<name>` answers
 // with the example's bytes (the Node side compares them with the golden), `/measure` with the
-// performance smoke's figures and the report's hash. Request `/measure` first: the WebAssembly
-// memory it reports is then the hello and report runs' alone (memory never shrinks).
+// performance smoke's figures and the report's hash. Request `/measure` first, in a fresh
+// isolate: hello-first is then cold and the WebAssembly memory is the hello and report runs'
+// alone (memory never shrinks).
 import { init } from "@lamina/pdf";
 import notoSans from "../../../../fixtures/fonts/NotoSans-Regular.ttf";
 import notoSansArabic from "../../../../fixtures/fonts/NotoSansArabic-Regular.ttf";
@@ -23,12 +24,21 @@ const inputs: Inputs = Object.fromEntries(
   }).map(([path, data]) => [path, new Uint8Array(data)]),
 );
 
+// Workers' scheduler (https://developers.cloudflare.com/workers/runtime-apis/scheduler/).
+declare const scheduler: { wait(ms: number): Promise<void> };
+
+// workerd's clock only advances across I/O (a Spectre mitigation): without a wait between the
+// two readings every sample would be 0 ms. A zero-length `scheduler.wait` is the cheapest I/O.
+const settle = (): Promise<void> => scheduler.wait(0);
+
+// A default export because that is how a Worker module exposes its handlers (the named-exports
+// rule is for package code).
 export default {
   async fetch(request: Request): Promise<Response> {
     await init({ text: true });
     const path = new URL(request.url).pathname;
     if (path === "/measure") {
-      const { measurements, report } = measure("workerd", inputs);
+      const { measurements, report } = await measure("workerd", inputs, settle);
       return Response.json({ measurements, reportSha256: await sha256(report) });
     }
     const example = EXAMPLES.find((e) => path === `/example/${e.name}`);

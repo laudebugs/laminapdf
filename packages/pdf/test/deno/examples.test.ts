@@ -25,15 +25,17 @@ function check(problem: string | undefined): void {
   if (problem !== undefined) throw new Error(problem);
 }
 
+// First, in this fresh module instance: hello-first is cold and the memory is the hello and
+// report runs' alone (measure()).
+Deno.test("builds the 100-page report with the same bytes as every runtime, and measures", async () => {
+  const { measurements, report } = await measure("deno", inputs);
+  for (const m of measurements) printMeasurement(m);
+  const hash = await sha256(report);
+  check(hash === REPORT_SHA256 ? undefined : `the report's sha256 is ${hash}, not ${REPORT_SHA256}`);
+});
+
 for (const example of EXAMPLES) {
   Deno.test(`${example.name} builds the bytes of the Rust ${example.golden} golden`, async () => {
     check(await difference(example.build(inputs), await read(`fixtures/golden/examples/${example.golden}.pdf`)));
   });
 }
-
-Deno.test("builds the 100-page report with the same bytes as every runtime, and measures", async () => {
-  const { measurements, report } = measure("deno", inputs);
-  for (const m of measurements) printMeasurement(m);
-  const hash = await sha256(report);
-  check(hash === REPORT_SHA256 ? undefined : `the report's sha256 is ${hash}, not ${REPORT_SHA256}`);
-});

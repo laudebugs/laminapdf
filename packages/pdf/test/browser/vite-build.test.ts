@@ -37,7 +37,9 @@ afterAll(() => rmSync(out, { recursive: true, force: true }));
 describe("Vite production build in Chromium", () => {
   it("loads both modules from the emitted assets and runs", async () => {
     await build(config);
-    const entry = readdirSync(join(out, "assets")).find((f) => f.startsWith("main") && f.endsWith(".js"));
+    const assets = readdirSync(join(out, "assets"));
+    const entry = assets.find((f) => f.startsWith("main") && f.endsWith(".js"));
+    if (entry === undefined) throw new Error(`the build emitted no main-*.js entry in assets/: ${assets.join(", ")}`);
     const server = await preview({ ...config, preview: { port: 0, host: "127.0.0.1" } });
     const browser = await chromium.launch();
     try {

@@ -67,7 +67,7 @@ export const REPORT_INPUTS = [NOTO, "fixtures/fonts/NotoSansSC-Regular.otf"] as 
  * The SHA-256 (hex) of the 100-page report's bytes: it has no Rust golden, so every runtime
  * checks its output against this. When a change to lamina-build or lamina-text changes the
  * output on purpose (the Rust goldens change too: `cargo xtask golden --update`), print the new
- * hash with `pnpm --dir packages/pdf exec vitest run -c vitest.node.config.ts test/examples.test.ts`
+ * hash with `pnpm --dir packages/pdf exec vitest run -c vitest.node.config.ts --project measure`
  * (the failure shows it) and update it here.
  */
 export const REPORT_SHA256 = "fcf0579526a631fe375d3966c805d5b8e6b262e178f506a0958b8bc00f611601";
@@ -116,9 +116,12 @@ export function printMeasurement(m: Measurement): void {
   console.info(`${MEASUREMENT_PREFIX}${JSON.stringify(m)}`);
 }
 
-function median(values: number[]): number {
+/** The median; for an even count, the mean of the two middle values. */
+export function median(values: readonly number[]): number {
   const sorted = [...values].sort((a, b) => a - b);
-  return sorted[Math.floor(sorted.length / 2)] ?? Number.NaN;
+  const mid = Math.floor(sorted.length / 2);
+  const upper = sorted[mid] ?? Number.NaN;
+  return sorted.length % 2 === 1 ? upper : ((sorted[mid - 1] ?? Number.NaN) + upper) / 2;
 }
 
 /**
@@ -133,22 +136,37 @@ export async function difference(actual: Uint8Array, golden: Uint8Array): Promis
 /**
  * Times hello (the first call after `init()`, then the median of 20) and the 100-page report
  * (median of 3) with `performance.now()`. Returns the report's bytes, for the hash check.
- * Needs `init({ text: true })`.
+ * Needs `init({ text: true })`, and must run first in a fresh module instance (before any other
+ * example): then `hello-first` is cold and `wasm-memory` is the hello and report runs' alone.
+ *
+ * @param settle - awaited before reading the clock at the start and the end of each sample: in
+ *   workerd the clock only advances across I/O, so the Worker passes a zero-length timer; elsewhere
+ *   it does nothing.
  */
-export function measure(runtime: string, inputs: Inputs): { measurements: Measurement[]; report: Uint8Array } {
-  const time = (f: () => unknown): number => {
+export async function measure(
+  runtime: string,
+  inputs: Inputs,
+  settle: () => Promise<void> = async () => {},
+): Promise<{ measurements: Measurement[]; report: Uint8Array }> {
+  const time = async (f: () => unknown): Promise<number> => {
+    await settle();
     const start = performance.now();
     f();
+    await settle();
     return performance.now() - start;
   };
-  const first = time(hello);
-  const hellos = Array.from({ length: 20 }, () => time(hello));
+  const first = await time(hello);
+  const hellos: number[] = [];
+  for (let i = 0; i < 20; i++) hellos.push(await time(hello));
   let bytes: Uint8Array = new Uint8Array();
-  const reports = Array.from({ length: 3 }, () =>
-    time(() => {
-      bytes = buildReport(inputs);
-    }),
-  );
+  const reports: number[] = [];
+  for (let i = 0; i < 3; i++) {
+    reports.push(
+      await time(() => {
+        bytes = buildReport(inputs);
+      }),
+    );
+  }
   const memory = wasmMemory();
   return {
     measurements: [

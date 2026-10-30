@@ -125,63 +125,42 @@ impl Measurement {
     }
 }
 
-/// The command that runs `runtime`'s suite, as `pnpm --filter @lamina/pdf exec …` arguments.
-fn command(runtime: &str) -> Vec<&'static str> {
-    match runtime {
-        "node" => vec!["vitest", "run", "-c", "vitest.node.config.ts", "--reporter", "verbose"],
-        // The `vite-build` project runs the Vite production build in Chromium.
-        "chromium" => vec![
-            "vitest",
-            "run",
-            "-c",
-            "vitest.browser.config.ts",
-            "--project",
-            "chromium",
-            "--project",
-            "vite-build",
-            "--reporter",
-            "verbose",
+/// Vitest over `config`, limited to `projects`, with every test's output.
+fn vitest<'a>(config: &'a str, projects: &[&'a str]) -> Vec<&'a str> {
+    let mut args = vec!["vitest", "run", "-c", config, "--reporter", "verbose"];
+    for project in projects {
+        args.extend(["--project", project]);
+    }
+    args
+}
+
+/// The commands that run `runtime`'s suite, in order, as `pnpm --filter @lamina/pdf exec …`
+/// arguments. `node` runs the `measure` project first (alone, so its timings don't compete with
+/// the other test files), then the rest of the Node suite.
+fn commands(runtime: &str) -> Result<Vec<Vec<&'static str>>> {
+    Ok(match runtime {
+        "node" => vec![
+            vitest("vitest.node.config.ts", &["measure"]),
+            vitest("vitest.node.config.ts", &["node"]),
         ],
-        "firefox" => vec![
-            "vitest",
-            "run",
-            "-c",
-            "vitest.browser.config.ts",
-            "--project",
-            "firefox",
-            "--reporter",
-            "verbose",
-        ],
-        "webkit" => vec![
-            "vitest",
-            "run",
-            "-c",
-            "vitest.browser.config.ts",
-            "--project",
-            "webkit",
-            "--reporter",
-            "verbose",
-        ],
+        // The `vite-build` project runs a Vite production build in a Chromium page.
+        "chromium" => vec![vitest("vitest.browser.config.ts", &["chromium", "vite-build"])],
+        "firefox" => vec![vitest("vitest.browser.config.ts", &["firefox"])],
+        "webkit" => vec![vitest("vitest.browser.config.ts", &["webkit"])],
         // --sloppy-imports: the suite imports `.ts` files by their `.js` paths (as tsc wants);
         // --no-check: tsc checks the types (the wasm job's typecheck).
-        "deno" => vec![
+        "deno" => vec![vec![
             "deno",
             "test",
             "--sloppy-imports",
             "--no-check",
             "--allow-read",
             "test/deno/",
-        ],
-        "bun" => vec!["bun", "test", "./test/bun/"],
-        _ => vec![
-            "vitest",
-            "run",
-            "-c",
-            "vitest.workers.config.ts",
-            "--reporter",
-            "verbose",
-        ],
-    }
+        ]],
+        "bun" => vec![vec!["bun", "test", "./test/bun/"]],
+        "workerd" => vec![vitest("vitest.workers.config.ts", &[])],
+        other => bail!("no command for runtime {other:?}"),
+    })
 }
 
 /// Runs `pnpm --filter @lamina/pdf exec <args>`, echoing its stdout as it comes, and returns it.
@@ -226,7 +205,7 @@ pub(crate) fn run(ws: &Workspace, args: &Args) -> Result<()> {
     let mut measurements = Vec::new();
     let mut failed = Vec::new();
     for &runtime in &args.runtimes {
-        let result = (|| {
+        let result = (|| -> Result<Vec<Measurement>> {
             if matches!(runtime, "chromium" | "firefox" | "webkit") {
                 crate::run(
                     &ws.root,
@@ -234,7 +213,11 @@ pub(crate) fn run(ws: &Workspace, args: &Args) -> Result<()> {
                     &["--filter", "@lamina/pdf", "exec", "playwright", "install", runtime],
                 )?;
             }
-            parse_measurements(&run_captured(ws, &command(runtime))?)
+            let mut found = Vec::new();
+            for command in commands(runtime)? {
+                found.extend(parse_measurements(&run_captured(ws, &command)?)?);
+            }
+            Ok(found)
         })();
         match result {
             Ok(found) if found.is_empty() => {
@@ -370,6 +353,23 @@ mod tests {
         assert_eq!(
             parse_args(&args(&["deno", "node", "deno"])).unwrap().runtimes,
             ["deno", "node"]
+        );
+    }
+
+    #[test]
+    fn commands_should_cover_every_runtime() {
+        for runtime in RUNTIMES {
+            assert!(!commands(runtime).unwrap().is_empty(), "{runtime}");
+        }
+        assert!(commands("safari").is_err());
+    }
+
+    #[test]
+    fn commands_should_run_nodes_measurements_first_and_alone() {
+        let node = commands("node").unwrap();
+        assert_eq!(
+            node.iter().map(|c| c.last().copied()).collect::<Vec<_>>(),
+            [Some("measure"), Some("node")]
         );
     }
 

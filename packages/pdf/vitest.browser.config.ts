@@ -24,7 +24,6 @@ const firefox = playwright({
 // Browsers come from `playwright install` (PLAYWRIGHT_BROWSERS_PATH in CI).
 // A default export because Vitest reads one (the named-exports rule is for package code).
 export default defineConfig({
-  optimizeDeps: { exclude: ["@lamina/pdf"] },
   test: {
     testTimeout: 60_000,
     projects: [

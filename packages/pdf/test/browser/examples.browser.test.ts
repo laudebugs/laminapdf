@@ -41,16 +41,18 @@ beforeAll(async () => {
 });
 
 describe(`examples in ${server.browser}`, () => {
+  // First, in this file's fresh module instance: hello-first is cold and the memory is the
+  // hello and report runs' alone (measure()).
+  it("builds the 100-page report with the same bytes as every runtime, and measures", async () => {
+    const { measurements, report } = await measure(server.browser, inputs);
+    for (const m of measurements) printMeasurement(m);
+    expect(await sha256(report)).toBe(REPORT_SHA256);
+  });
+
   for (const example of EXAMPLES) {
     it(`${example.name} builds the bytes of the Rust ${example.golden} golden`, async () => {
       const golden = await read(`fixtures/golden/examples/${example.golden}.pdf`);
       expect(await difference(example.build(inputs), golden)).toBeUndefined();
     });
   }
-
-  it("builds the 100-page report with the same bytes as every runtime, and measures", async () => {
-    const { measurements, report } = measure(server.browser, inputs);
-    for (const m of measurements) printMeasurement(m);
-    expect(await sha256(report)).toBe(REPORT_SHA256);
-  });
 });

@@ -1,21 +1,10 @@
-// The TS examples produce the Rust examples' bytes (fixtures/golden/examples/, ADR 0018 §5), and
-// the 100-page report its hash, in Node: the shared list (test/suite/examples.ts) every runtime
-// of the B6c matrix runs. The performance smoke's figures go to stdout for
-// `cargo xtask pdf-runtimes` (recorded, not asserted).
-import { versions } from "node:process";
+// The TS examples produce the Rust examples' bytes (fixtures/golden/examples/, ADR 0018 §5) in
+// Node: the shared list (test/suite/examples.ts) every runtime of the B6c matrix runs. The
+// report's hash and the performance smoke are test/node/measure.test.ts.
 import { Builder, Font, init } from "@lamina/pdf";
 import { beforeAll, describe, expect, it } from "vitest";
 import { read } from "./helpers.js";
-import {
-  difference,
-  EXAMPLES,
-  fixturePaths,
-  type Inputs,
-  measure,
-  printMeasurement,
-  REPORT_SHA256,
-  sha256,
-} from "./suite/examples.js";
+import { difference, EXAMPLES, fixturePaths, type Inputs } from "./suite/examples.js";
 
 const inputs: Inputs = Object.fromEntries(fixturePaths().map((p) => [p, read(p)]));
 
@@ -28,12 +17,6 @@ describe("examples", () => {
       expect(await difference(example.build(inputs), golden)).toBeUndefined();
     });
   }
-
-  it("builds the 100-page report with the same bytes as every runtime, and measures", async () => {
-    const { measurements, report } = measure(`node-${versions.node.split(".")[0]}`, inputs);
-    for (const m of measurements) printMeasurement(m);
-    expect(await sha256(report)).toBe(REPORT_SHA256);
-  });
 
   it("uses one PDF font for equal fonts created per call", () => {
     const build = (font: () => Font) => {
