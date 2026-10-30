@@ -12,7 +12,7 @@
 | Branch | `feat/b5b-builder-text-and-navigation` |
 | PR title | `feat(build): text runs and text boxes, links, destinations, outlines, page labels, Info and XMP` |
 | Size | L (≈ 1,000–1,400 lines) |
-| PR | (filled in below once opened) |
+| PR | [#63](https://github.com/laudebugs/lamina/pull/63) |
 
 ## Goal
 
