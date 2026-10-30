@@ -607,7 +607,11 @@ pub fn build_info() -> String {
 mod tests {
     use super::*;
 
+    use sha2::Digest as _;
+
     const HELLO: &[u8] = include_bytes!("../../../fixtures/golden/examples/hello.pdf");
+    /// SHA-256 of the scenario's output; the Kotlin and Swift tests assert the same value.
+    const SCENARIO_SHA256: &str = "12dc111c8a4c9b7f5b298caf19a84f17381387514b2ed51dafaf554d7feb2966";
 
     fn opts(mode: FfiSaveMode) -> FfiSaveOptions {
         FfiSaveOptions {
@@ -644,12 +648,10 @@ mod tests {
             )
             .map_err(FfiError::from)?;
         assert_eq!(out.bytes, expected.bytes);
-        // The Kotlin and Swift tests assert this file's SHA-256 (scripts/compare-outputs.sh).
-        std::fs::write(
-            concat!(env!("CARGO_MANIFEST_DIR"), "/target/scenario-rust.pdf"),
-            &out.bytes,
-        )
-        .map_err(|_| FfiError::Poisoned)?;
+        // The Kotlin and Swift tests assert the same hash (SCENARIO_SHA256 / scenarioSHA256).
+        let digest = sha2::Sha256::digest(&out.bytes);
+        let hex: String = digest.iter().map(|b| format!("{b:02x}")).collect();
+        assert_eq!(hex, SCENARIO_SHA256);
 
         let reopened = FfiDocument::open_borrowed(&out.bytes, None)?;
         assert_eq!(reopened.info()?.title.as_deref(), Some("From the FFI"));

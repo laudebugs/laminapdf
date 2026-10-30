@@ -22,6 +22,7 @@ Time-boxed experiments under [`spikes/`](../spikes/) that answer one question ea
 | --- | --- | --- |
 | [`pdf-basics`](../spikes/pdf-basics/) | Rust or TypeScript for the core? | Rust core (ADR 0001); see [research ch. 07](research/pdf/07-spike-rust-and-typescript.md) |
 | [`krilla-fit`](../spikes/krilla-fit/README.md) | Can krilla generate into lamina's object graph? | No (bytes only). Recommends an own builder over `lamina-cos` reusing `pdf-writer`, `subsetter`, `skrifa`, HarfRust; recorded in ADR 0005 §6 |
+| [`lamina-ffi`](../spikes/lamina-ffi/README.md) | Does the `lamina` façade bind to Swift and Kotlin through UniFFI 0.32 without changes? | Yes, with five edge-only adaptations; Kotlin verified on the JVM (cancelling a `suspend` call drops the Rust future); Swift and Android pending a Mac run; UniFFI is MPL-2.0 (owner decision). Input to ADR 0029 (L6a, in progress) |
 | [`hayro-parity`](../spikes/hayro-parity/README.md) | How close is hayro to PDFium on the pdf.js and PDFBox corpora? | 81.8 % pass, 90.8 % pass+minor at 96 DPI (macOS); where hayro is clearly wrong, it is mostly fonts and annotations. Recommends PDFium as the default and hayro as the CI oracle (input to ADR 0004) |
 
 ## Conventions

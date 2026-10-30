@@ -14,6 +14,7 @@ import dev.lamina.ffi.panicForTest
 import dev.lamina.ffi.panicForTestFallible
 import dev.lamina.ffi.runUntilCancelled
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
@@ -89,10 +90,20 @@ class LaminaFfiTest {
     fun cancellingASuspendSaveThrowsCancellation() = runBlocking {
         LaminaDocument.open(hello).use { doc ->
             doc.setTitle("cancel me")
-            val call = async { doc.save(unitsPerStep = 1u) { } }
+            val started = CompletableDeferred<Unit>()
+            val call = async(Dispatchers.Default) { doc.save(unitsPerStep = 1u) { started.complete(Unit) } }
+            started.await() // the Rust job exists and has run at least one step
             call.cancel()
             assertFailsWith<CancellationException> { call.await() }
-            assertTrue(doc.raw.hasUnsavedChanges(), "a cancelled save leaves the edit unsaved")
+            // Either the job stopped (the edit is still unsaved) or its last step had already
+            // finished the save, whose bytes are then kept in lastSaved: never neither.
+            val saved = doc.lastSaved
+            if (saved == null) {
+                assertTrue(doc.raw.hasUnsavedChanges(), "a cancelled save leaves the edit unsaved")
+            } else {
+                assertTrue(saved.bytes.isNotEmpty())
+                println("kotlin: the cancelled save had already finished; bytes kept in lastSaved")
+            }
         }
     }
 
@@ -105,7 +116,7 @@ class LaminaFfiTest {
             }
         while (job.done() < 10u) delay(1)
         running.cancel()
-        running.join()
+        running.join() // returns after the step in flight has finished (cancellableStep waits)
         val doneAtCancel = job.done()
         val e = assertFailsWith<FfiException.Lamina> { job.step() }
         assertEquals("cancelled", e.code)

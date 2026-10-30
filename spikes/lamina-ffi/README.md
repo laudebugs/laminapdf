@@ -71,7 +71,7 @@ Edge-only adaptations UniFFI forced, each recorded in ADR 0029:
 | 2 | ADR 0026's `message` field is called `detail` in `FfiError` | A field named `message` clashes with `Throwable.message` in the generated Kotlin exception, and the code doesn't compile. UniFFI 0.32 doesn't rename it. |
 | 3 | `page_text` (feature `text`) lives in its own `#[cfg(feature = "text")] #[uniffi::export] impl` block | A `#[cfg]` on one method inside an exported block is not honoured: the scaffolding still references it, and the build without `text` fails |
 | 4 | `#![allow(clippy::result_large_err)]` | UniFFI error variants hold their fields by value (no `Box`). The error crosses the FFI serialised. |
-| 5 | Every export returns `Result` (product rule) | Swift calls infallible exports with `try!`, so a panic in one traps the app (see panics) |
+| 5 | Every export that locks, allocates or calls into `lamina` returns `Result`. Only trivial accessors (an atomic load or store, such as `cancel()`, `is_cancelled()`, `dropped()`) stay infallible, and so does the deliberate `panic_for_test`. | Swift calls infallible exports with `try!`, so a panic in one traps the app (see panics) |
 
 ### Zero-copy `&[u8]` input works, with one copy left
 
@@ -87,6 +87,11 @@ Removing the last copy would need a `ByteSource` over foreign memory that outliv
 - **Jobs:** cancelling stops a job within one step on Kotlin, and the next step returns `cancelled` (tests `cancellingTheCoroutineCancelsTheRustJobWithinOneStep` and `cancellingASuspendSaveThrowsCancellation`).
   - The working Kotlin pattern is `suspendCancellableCoroutine` with `invokeOnCancellation { job.cancel() }` around each blocking step.
   - A first version used a completion handler disposed in `finally`, and it never fired. The handle was disposed before the coroutine finished cancelling.
+  - After a cancel, the layer waits (non-cancellably) for the step already running, at most one. Without that, a step that finished the save was dropped: Rust had saved and rebased, but the bytes never reached anyone.
+- **A cancelled save can still finish.** If the save completes during the step that was running when the cancel arrived, the document is already rebased onto the new output.
+  - **Kotlin:** a cancelled coroutine can't return a value, so the layer keeps the bytes in `LaminaDocument.lastSaved`. On `hello.pdf` (a few steps) the test usually takes this path.
+  - **Swift:** a cancelled task still returns its value, so `save()` simply returns the bytes.
+  - **Product layer:** must expose the same guarantee: never neither the bytes nor the unsaved edit.
 - **Kotlin async (UniFFI 0.32): verified.** Cancelling the coroutine of a `suspend` export **drops the Rust future**, and our `Drop` runs (test `cancellingASuspendCallDropsTheRustFuture`). This answers the open question in [shareable-libraries §11](../../docs/plans/shareable-libraries.md#11-open-questions).
 - **Swift:** the same tests are in `LaminaTests.swift` (`withTaskCancellationHandler`, `Task.cancel()`); results pending the Mac run.
 
@@ -102,7 +107,7 @@ Removing the last copy would need a `ByteSource` over foreign memory that outliv
 
 ### Same bytes everywhere
 
-The scenario gives the same output, SHA-256 `12dc111c…2966` (1,774 bytes, append offset 1,395), from Rust and from Kotlin. The scenario: open `fixtures/golden/examples/hello.pdf`, read page count, sizes and text, `set_info(title)`, incremental save, reopen. The Rust test compares the FFI path with the façade called directly, and the Kotlin and Swift tests assert the hash.
+The scenario gives the same output, SHA-256 `12dc111c…2966` (1,774 bytes, append offset 1,395), from Rust and from Kotlin. The scenario: open `fixtures/golden/examples/hello.pdf`, read page count, sizes and text, `set_info(title)`, incremental save, reopen. The Rust test compares the FFI path with the façade called directly and asserts the hash; the Kotlin and Swift tests assert the same hash.
 
 ### Sizes (Linux x86_64 host; Android and Apple pending)
 

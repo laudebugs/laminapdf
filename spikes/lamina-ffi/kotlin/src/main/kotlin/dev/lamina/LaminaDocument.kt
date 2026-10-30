@@ -10,10 +10,11 @@ import dev.lamina.ffi.FfiSaveOptions
 import dev.lamina.ffi.FfiSaveStep
 import dev.lamina.ffi.FfiSaved
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.asExecutor
-import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
 import java.nio.ByteBuffer
 
@@ -56,20 +57,36 @@ class LaminaDocument private constructor(
     suspend fun setTitle(title: String?) = withContext(dispatcher) { raw.setInfo(FfiInfoKey.TITLE, title) }
 
     /**
-     * Saves as a job of [unitsPerStep] units per step, reporting progress; cancelling the
-     * calling coroutine cancels the Rust job (even mid-step: the step returns `cancelled` at
-     * its next check) and this throws [CancellationException].
+     * The output of the newest save that completed, including one that completed although
+     * its coroutine was cancelled during the last step: Rust finished the save and rebased
+     * the document, so the bytes must not be lost (a cancelled coroutine can't return them).
+     */
+    @Volatile
+    var lastSaved: FfiSaved? = null
+        private set
+
+    /**
+     * Saves as a job of [unitsPerStep] units per step, reporting progress. Cancelling the
+     * calling coroutine cancels the Rust job: the step in flight returns `cancelled` at its
+     * next check, and this throws [CancellationException]. If that step had already finished
+     * the save, its output is in [lastSaved].
      */
     suspend fun save(
         mode: FfiSaveMode = FfiSaveMode.AUTO,
         unitsPerStep: UInt = 256u,
         onProgress: (FfiSaveStep.Progress) -> Unit = {},
     ): FfiSaved {
-        val job = raw.saveJob(FfiSaveOptions(mode, false))
+        val job = withContext(dispatcher) { raw.saveJob(FfiSaveOptions(mode, false)) }
         job.use {
             while (true) {
-                when (val step = cancellableStep(dispatcher, onCancel = job::cancel) { job.step(unitsPerStep) }) {
-                    is FfiSaveStep.Done -> return step.saved
+                val step =
+                    cancellableStep(
+                        dispatcher,
+                        onCancel = job::cancel,
+                        onResultAfterCancel = { if (it is FfiSaveStep.Done) lastSaved = it.saved },
+                    ) { job.step(unitsPerStep) }
+                when (step) {
+                    is FfiSaveStep.Done -> return step.saved.also { lastSaved = it }
                     is FfiSaveStep.Progress -> onProgress(step)
                 }
             }
@@ -85,22 +102,31 @@ class LaminaDocument private constructor(
 
 /**
  * Runs one blocking Rust call on [dispatcher] and suspends until it returns. If the coroutine
- * is cancelled meanwhile, [onCancel] runs at once (cancelling the Rust job through its token)
- * and the coroutine resumes with [CancellationException] without waiting for the step.
+ * is cancelled meanwhile, [onCancel] runs at once (cancelling the Rust job through its token),
+ * then this waits, non-cancellably, for the call in flight (at most one step), hands a value it
+ * returned to [onResultAfterCancel] so it is never dropped, and throws [CancellationException].
  * A `cancelled` error from Rust is rethrown as [CancellationException].
  */
-suspend fun <T> cancellableStep(dispatcher: CoroutineDispatcher, onCancel: () -> Unit, block: () -> T): T =
-    suspendCancellableCoroutine { cont ->
-        cont.invokeOnCancellation { onCancel() }
-        dispatcher.asExecutor().execute {
-            val result =
-                runCatching(block).recoverCatching { e ->
-                    if (e is FfiException.Lamina && e.code == "cancelled") {
-                        throw CancellationException("lamina job cancelled").apply { initCause(e) }
-                    }
-                    throw e
-                }
-            // Ignored when the coroutine was already cancelled.
-            cont.resumeWith(result)
+suspend fun <T> cancellableStep(
+    dispatcher: CoroutineDispatcher,
+    onCancel: () -> Unit,
+    onResultAfterCancel: (T) -> Unit = {},
+    block: () -> T,
+): T {
+    val pending = CompletableDeferred<Result<T>>()
+    dispatcher.asExecutor().execute { pending.complete(runCatching(block)) }
+    val result =
+        try {
+            pending.await()
+        } catch (e: CancellationException) {
+            onCancel()
+            withContext(NonCancellable) { pending.await() }.onSuccess(onResultAfterCancel)
+            throw e
         }
+    return result.getOrElse { e ->
+        if (e is FfiException.Lamina && e.code == "cancelled") {
+            throw CancellationException("lamina job cancelled").apply { initCause(e) }
+        }
+        throw e
     }
+}

@@ -31,7 +31,7 @@ The measured findings:
    - **What goes in it:** binding code only, meaning UniFFI wrapper types and conversions over `lamina`. No PDF logic.
    - **No UniFFI in core crates:** derives live on wrapper types in `lamina-ffi`, not as `cfg_attr(feature = "uniffi", derive(…))` on core types. Core crates take no UniFFI dependency (none of the portability rules change, and the MPL code stays at the edge). The cost is duplicated record definitions, which a test keeps in step with the façade.
 3. **Rules for the edge crate**, from the spike:
-   - **Errors:** every export returns `Result<_, FfiError>`, because Swift calls infallible exports with `try!`, so a panic would trap the app.
+   - **Errors:** every export that locks, allocates or calls into `lamina` returns `Result<_, FfiError>`, because Swift calls infallible exports with `try!`, so a panic would trap the app. Only trivial accessors (an atomic load or store) may stay infallible, and L6b's test lists them.
    - **Error fields:** `FfiError` carries ADR 0026's fields as `code`, `kind`, `detail` (ADR 0026's `message`), `hint`, `docs_url` and `json`. No field may be named `message`: it clashes with `Throwable.message` in Kotlin.
    - **Feature-gated exports:** each goes in its own `#[cfg(feature = …)] #[uniffi::export] impl` block. A `cfg` on one method inside an exported block is not honoured.
    - **Records:** one concrete record or enum per job step (`FfiSaveStep`), per ADR 0028 F3.
@@ -39,7 +39,8 @@ The measured findings:
    - **Bytes in:** constructors take `&[u8]` (UniFFI 0.32 zero-copy), copied once into the owned document. In Kotlin that means a direct `ByteBuffer`, plus a `ByteArray` overload for convenience.
 4. **An idiomatic, hand-written layer per language, on top of the generated bindings** (which are internal).
    - **Handles:** `Sendable` in Swift (`@unchecked`, since the Rust object locks itself) and `AutoCloseable` in Kotlin.
-   - **Calls:** blocking calls run off the main thread. Swift uses `async` with `withTaskCancellationHandler { … } onCancel: { job.cancel() }`. Kotlin uses `suspend` with `suspendCancellableCoroutine` and `invokeOnCancellation { job.cancel() }` around each blocking step.
+   - **Calls:** every call that locks the Rust document runs off the caller's thread: a detached task in Swift, the layer's dispatcher in Kotlin. Swift wraps job loops in `withTaskCancellationHandler { … } onCancel: { job.cancel() }`. Kotlin runs each blocking step on the dispatcher and, on cancellation, calls `job.cancel()` and then waits non-cancellably for the step in flight, so its result is never dropped.
+   - **A cancelled save that finished anyway:** a cancel that arrives during the save's last step loses the race, and the document is rebased onto the output. The layer must never lose those bytes. Swift returns them (a cancelled task still returns its value); Kotlin keeps them in `lastSaved`, since a cancelled coroutine can't return.
    - **Cancellation:** lamina's `cancelled` maps to `CancellationError` in Swift and `CancellationException` in Kotlin.
    - **Progress:** reported through a callback in the layer, not across the FFI. `AsyncStream` and `Flow` come in L6b.
 5. **Packaging.**

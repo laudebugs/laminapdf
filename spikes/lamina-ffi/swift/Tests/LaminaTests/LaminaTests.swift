@@ -18,21 +18,24 @@ final class LaminaTests: XCTestCase {
 
     func sha256(_ d: Data) -> String { SHA256.hash(data: d).map { String(format: "%02x", $0) }.joined() }
 
-    func testScenarioOpenReadEditSaveReopen() throws {
+    func testScenarioOpenReadEditSaveReopen() async throws {
         print(buildInfo())
-        let doc = try LaminaDocument(hello)
-        XCTAssertEqual(try doc.pageCount(), 1)
-        let page = try XCTUnwrap(try doc.pages().first)
+        let doc = try await LaminaDocument.open(hello)
+        let count = try await doc.pageCount()
+        XCTAssertEqual(count, 1)
+        let page = try XCTUnwrap(try await doc.pages().first)
         print("swift: page 0: \(page.width) x \(page.height) pt, id \(page.id)")
         let lines = try doc.raw.pageText(index: 0)
         print("swift: page 0 text: \(lines)")
         XCTAssertFalse(lines.isEmpty)
-        try doc.setTitle("From the FFI")
-        XCTAssertEqual(try doc.title(), "From the FFI")
+        try await doc.setTitle("From the FFI")
+        let title = try await doc.title()
+        XCTAssertEqual(title, "From the FFI")
         let saved = try doc.raw.save(options: FfiSaveOptions(mode: .incremental, appendedOnly: false), cancel: FfiCancelToken())
         XCTAssertEqual(sha256(saved.bytes), scenarioSHA256, "same bytes as Rust and Kotlin")
         print("swift: scenario sha256 \(sha256(saved.bytes)) (\(saved.bytes.count) bytes)")
-        XCTAssertEqual(try LaminaDocument(saved.bytes).title(), "From the FFI")
+        let reopened = try await LaminaDocument.open(saved.bytes).title()
+        XCTAssertEqual(reopened, "From the FFI")
     }
 
     func testOwnedOpenToo() throws {
@@ -40,7 +43,7 @@ final class LaminaTests: XCTestCase {
     }
 
     func testErrorsCarryTheContract() {
-        XCTAssertThrowsError(try LaminaDocument(Data("not a pdf".utf8))) { error in
+        XCTAssertThrowsError(try FfiDocument.openBorrowed(bytes: Data("not a pdf".utf8), password: nil)) { error in
             guard case let FfiError.Lamina(code, kind, _, _, _, json) = error else { return XCTFail("\(error)") }
             XCTAssertEqual(code, "not-pdf")
             XCTAssertEqual(kind, "input")
@@ -49,8 +52,8 @@ final class LaminaTests: XCTestCase {
     }
 
     func testAsyncSaveReportsProgressAndFinishes() async throws {
-        let doc = try LaminaDocument(hello)
-        try doc.setTitle("job")
+        let doc = try await LaminaDocument.open(hello)
+        try await doc.setTitle("job")
         let counter = Counter()
         let saved = try await doc.save(unitsPerStep: 1) { _, _, _ in counter.add() }
         XCTAssertFalse(saved.bytes.isEmpty)
