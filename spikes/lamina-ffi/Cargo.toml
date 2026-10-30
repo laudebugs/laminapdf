@@ -1,0 +1,51 @@
+[package]
+name = "lamina-ffi"
+version = "0.0.0"
+edition = "2024"
+description = "Research spike (L6a): does the lamina façade bind to Swift and Kotlin through UniFFI without changes?"
+license = "MIT OR Apache-2.0"
+publish = false
+
+# Standalone: spikes are outside the root workspace (docs/guidelines/code-organization.md §12).
+[workspace]
+
+[lib]
+# cdylib: Android .so and the JVM host tests; staticlib: the iOS XCFramework; lib: the Rust tests.
+crate-type = ["cdylib", "staticlib", "lib"]
+name = "lamina_ffi"
+
+[[bin]]
+name = "uniffi-bindgen"
+path = "src/bin/uniffi-bindgen.rs"
+required-features = ["bindgen"]
+
+[features]
+default = ["text"]
+# The façade's `text` feature (fonts, builder): the size report measures with and without it.
+text = ["lamina/text"]
+bindgen = ["uniffi/cli"]
+
+[dependencies]
+lamina = { path = "../../crates/lamina", default-features = false }
+# Pinned exactly (owner decision 2026-10-29: UniFFI 0.32; ADR 0029 records the upgrade policy).
+uniffi = "=0.32.2"
+thiserror = "2"
+serde_json = "1"
+
+[profile.release]
+panic = "unwind"
+
+# What the mobile packages build with: size-optimised, but unwinding, so UniFFI's scaffolding
+# can turn a panic into a foreign exception instead of aborting the app (the panic test).
+[profile.mobile-release]
+inherits = "release"
+panic = "unwind"
+lto = true
+codegen-units = 1
+opt-level = "s"
+strip = true
+debug = false
+
+[profile.mobile-release-z]
+inherits = "mobile-release"
+opt-level = "z"
