@@ -47,12 +47,20 @@ log "## Android"
 if [[ -z "${ANDROID_NDK_HOME:-}" ]]; then
   ver=r28c
   ANDROID_NDK_HOME="$HOME/.cache/lamina-ffi/android-ndk-$ver"
-  if [[ ! -d "$ANDROID_NDK_HOME" ]]; then
-    mkdir -p "$HOME/.cache/lamina-ffi"
-    curl -fsSL -o /tmp/ndk.dmg "https://dl.google.com/android/repository/android-ndk-$ver-darwin.dmg"
-    hdiutil attach -nobrowse -readonly /tmp/ndk.dmg -mountpoint /tmp/ndk-mnt
-    cp -R /tmp/ndk-mnt/AndroidNDK*.app/Contents/NDK "$ANDROID_NDK_HOME"
-    hdiutil detach /tmp/ndk-mnt && rm /tmp/ndk.dmg
+  # Installed only when complete: copied into a temporary folder and moved into place at the
+  # end, so an interrupted download or copy never leaves a half NDK that later runs would use.
+  if [[ ! -f "$ANDROID_NDK_HOME/source.properties" ]]; then
+    (
+      set -euo pipefail
+      mkdir -p "$HOME/.cache/lamina-ffi"
+      rm -rf "$ANDROID_NDK_HOME" "$ANDROID_NDK_HOME.partial"
+      [[ -d /tmp/ndk-mnt ]] && hdiutil detach -force /tmp/ndk-mnt >/dev/null 2>&1 || true
+      curl -fsSL -o /tmp/ndk.dmg "https://dl.google.com/android/repository/android-ndk-$ver-darwin.dmg"
+      hdiutil attach -nobrowse -readonly /tmp/ndk.dmg -mountpoint /tmp/ndk-mnt
+      trap 'hdiutil detach -force /tmp/ndk-mnt >/dev/null 2>&1 || true; rm -f /tmp/ndk.dmg' EXIT
+      cp -R /tmp/ndk-mnt/AndroidNDK*.app/Contents/NDK "$ANDROID_NDK_HOME.partial"
+      mv "$ANDROID_NDK_HOME.partial" "$ANDROID_NDK_HOME"
+    ) || log "- [ ] **FAILED:** Android NDK $ver download (the Android steps below will fail)"
   fi
 fi
 export ANDROID_NDK_HOME

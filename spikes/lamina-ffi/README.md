@@ -90,7 +90,7 @@ Removing the last copy would need a `ByteSource` over foreign memory that outliv
   - A first version used a completion handler disposed in `finally`, and it never fired. The handle was disposed before the coroutine finished cancelling.
   - After a cancel, the layer waits (non-cancellably) for the step already running, at most one. Without that, a step that finished the save was dropped: Rust had saved and rebased, but the bytes never reached anyone.
 - **A cancelled save can still finish.** If the save completes during the step that was running when the cancel arrived, the document is already rebased onto the new output.
-  - **Kotlin:** a cancelled coroutine can't return a value, so the layer keeps the bytes in `LaminaDocument.lastSaved`. On `hello.pdf` (a few steps) the test usually takes this path.
+  - **Kotlin:** a cancelled coroutine can't return a value, so `save()` hands the bytes to that call's `onSavedAfterCancel` callback (per call, so overlapping saves can't take each other's bytes). On `hello.pdf` (a few steps) the test usually takes this path.
   - **Swift:** a cancelled task still returns its value, so `save()` simply returns the bytes.
   - **Product layer:** must expose the same guarantee: never neither the bytes nor the unsaved edit.
 - **Kotlin async (UniFFI 0.32): verified.** Cancelling the coroutine of a `suspend` export **drops the Rust future**, and our `Drop` runs (test `cancellingASuspendCallDropsTheRustFuture`). This answers the open question in [shareable-libraries §11](../../docs/plans/shareable-libraries.md#11-open-questions).
@@ -98,6 +98,7 @@ Removing the last copy would need a `ByteSource` over foreign memory that outliv
 - **Swift async (UniFFI 0.32): not dropped.** The generated `uniffiRustCallAsync` has no cancellation path: it polls the Rust future until it completes and frees it only then. After `Task.cancel()` the future is neither dropped nor stopped and keeps being polled (`testCancellingAnAsyncCallLeavesTheRustFutureRunning`: "dropped the future = false, still polling = true"). The first Mac run hung on a test that waited for the drop.
   - **The layer's fix:** wrap every async export in `withTaskCancellationHandler` and cancel on the Rust side in `onCancel` (the probe here; a `CancelToken` in product code), so the future finishes (`runUntilCancelledOrTaskCancelled`, `testTheLayerCancelsAnAsyncCallThroughRust`).
   - **Product rule:** every async export takes a cancel token, and the Swift layer never calls a generated async function without that wrapper.
+  - **Async exports never block the executor:** `page_count_async` shows the pattern: it tries the document lock and yields while another call holds it (a blocking `lock()` would park a thread of Swift's small cooperative pool), and checks its token on every poll (`LaminaDocument.pageCountAsync()` in Swift).
 
 ### Panics
 
@@ -115,7 +116,9 @@ The scenario gives the same output, SHA-256 `12dc111c…2966` (1,774 bytes, appe
 
 ### Sizes
 
-| Library (`mobile-release`: `opt-level = "s"`, LTO, 1 CGU, stripped) | Raw | gzip -9 |
+First measured on the research session's Linux x86_64 host (a host `.so`, not an Android ABI; superseded by the Mac table below):
+
+| Linux x86_64 host library (`mobile-release`: `opt-level = "s"`, LTO, 1 CGU, stripped) | Raw | gzip -9 |
 | --- | --- | --- |
 | `liblamina_ffi.so`, with `text` | 2.64 MB | 1.03 MB |
 | `liblamina_ffi.so`, without `text` | 1.65 MB | 0.74 MB |

@@ -135,8 +135,10 @@ final class LaminaTests: XCTestCase {
     }
 
     func testAsyncExportsWork() async throws {
-        let n = try await pageCountAsync(doc: try FfiDocument.open(bytes: hello, password: nil))
+        let n = try await pageCountAsync(doc: try FfiDocument.open(bytes: hello, password: nil), cancel: FfiCancelToken())
         XCTAssertEqual(n, 1)
+        let viaLayer = try await LaminaDocument.open(hello).pageCountAsync()
+        XCTAssertEqual(viaLayer, 1)
     }
 
     func testAPanicInAFallibleExportBecomesAnError() {

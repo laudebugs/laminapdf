@@ -97,7 +97,7 @@ Numbers 0020–0023 are reserved by editor and library todos, and 0024–0025 by
 | [0026](../decisions/0026-error-and-diagnostic-contract.md) (Accepted, owner 2026-10-29) | Error and diagnostic contract: JSON shape, `hint`/`docsUrl` rules, no document text in messages, `explain` pages | [L1a](../todos/done/L1a-contract-adrs.md) | Extends ADR 0003's codes |
 | [0027](../decisions/0027-coordinates-units-and-page-indexing.md) (Accepted, owner 2026-10-29) | Coordinates, units and page indexing in public APIs | [L1a](../todos/done/L1a-contract-adrs.md) | New; constrains B5 builder and B9 extraction |
 | [0028](../decisions/0028-facade-rules-jobs-and-cancellation.md) (Accepted, owner 2026-10-29) | Façade rules, jobs, cancellation and progress across bindings | [L1a](../todos/done/L1a-contract-adrs.md) | Fills in ADR 0002 §3; informs proposed ADR 0009 |
-| 0029 | Mobile bindings and packaging: UniFFI pin, idiomatic Swift/Kotlin layer, SPM only, AAR layout | [L6a](../todos/done/L6a-lamina-ffi-spike.md) | Fills in ADR 0002 §5; does not change it |
+| [0029](../decisions/0029-mobile-bindings-and-packaging.md) (Accepted, 2026-10-30) | Mobile bindings and packaging: UniFFI pin, idiomatic Swift/Kotlin layer, SPM only, AAR layout | [L6a](../todos/done/L6a-lamina-ffi-spike.md) | Fills in ADR 0002 §5; does not change it |
 | 0030 | Extraction output (`lamina.extract/1`) and model plug-ins | [L3a](../todos/ready/L3a-lamina-extract-reading-order.md) | Follows ADR 0001 and proposed ADR 0023 |
 | 0031 | CLI and MCP contract: grammar, exit codes, JSON/NDJSON versioning, MCP security defaults | [L4a](../todos/ready/L4a-lamina-cli.md) | New; reuses ADR 0026 errors |
 

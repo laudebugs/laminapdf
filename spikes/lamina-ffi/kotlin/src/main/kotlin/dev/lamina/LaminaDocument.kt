@@ -27,7 +27,8 @@ import java.nio.ByteBuffer
  * cancels the Rust job through its token, so a step already running stops at its next check.
  */
 class LaminaDocument private constructor(
-    val raw: FfiDocument,
+    /** The generated handle: internal, so callers go through this layer (ADR 0029 §4). */
+    internal val raw: FfiDocument,
     private val dispatcher: CoroutineDispatcher,
 ) : AutoCloseable {
     companion object {
@@ -59,26 +60,19 @@ class LaminaDocument private constructor(
     suspend fun setTitle(title: String?) = withContext(dispatcher) { raw.setInfo(FfiInfoKey.TITLE, title) }
 
     /**
-     * The output of the current or newest [save] (cleared when a save starts), including one that completed although
-     * its coroutine was cancelled during the last step: Rust finished the save and rebased
-     * the document, so the bytes must not be lost (a cancelled coroutine can't return them).
-     */
-    @Volatile
-    var lastSaved: FfiSaved? = null
-        private set
-
-    /**
      * Saves as a job of [unitsPerStep] units per step, reporting progress. Cancelling the
      * calling coroutine cancels the Rust job: the step in flight returns `cancelled` at its
      * next check, and this throws [CancellationException]. If that step had already finished
-     * the save, its output is in [lastSaved].
+     * the save, Rust has rebased the document onto the output, and a cancelled coroutine can't
+     * return it: this call's [onSavedAfterCancel] receives it instead, so the bytes are never
+     * lost. Per call, so overlapping saves can't take each other's bytes.
      */
     suspend fun save(
         mode: FfiSaveMode = FfiSaveMode.AUTO,
         unitsPerStep: UInt = 256u,
+        onSavedAfterCancel: (FfiSaved) -> Unit,
         onProgress: (FfiSaveStep.Progress) -> Unit = {},
     ): FfiSaved {
-        lastSaved = null // a value here after a cancel always belongs to this save
         val job = withContext(dispatcher) { raw.saveJob(FfiSaveOptions(mode, false)) }
         job.use {
             while (true) {
@@ -86,10 +80,10 @@ class LaminaDocument private constructor(
                     cancellableStep(
                         dispatcher,
                         onCancel = job::cancel,
-                        onResultAfterCancel = { if (it is FfiSaveStep.Done) lastSaved = it.saved },
+                        onResultAfterCancel = { if (it is FfiSaveStep.Done) onSavedAfterCancel(it.saved) },
                     ) { job.step(unitsPerStep) }
                 when (step) {
-                    is FfiSaveStep.Done -> return step.saved.also { lastSaved = it }
+                    is FfiSaveStep.Done -> return step.saved
                     is FfiSaveStep.Progress -> onProgress(step)
                 }
             }

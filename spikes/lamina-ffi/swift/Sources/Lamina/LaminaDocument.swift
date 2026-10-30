@@ -1,5 +1,5 @@
 import Foundation
-@_exported import LaminaFFI
+import LaminaFFI
 
 /// The hand-written idiomatic layer over the generated bindings (ADR 0029: generated code is
 /// internal, this is the API). Every call that locks the Rust document runs off the caller's
@@ -9,7 +9,9 @@ import Foundation
 /// (`withTaskCancellationHandler`). Unlike Kotlin, a Swift task returns its value even when
 /// cancelled, so a save whose last step already finished still hands back its bytes.
 public final class LaminaDocument: @unchecked Sendable {
-    public let raw: FfiDocument
+    /// The generated handle: internal, so callers go through this layer (ADR 0029 §4). Tests
+    /// reach it with `@testable import`.
+    let raw: FfiDocument
 
     private init(raw: FfiDocument) { self.raw = raw }
 
@@ -28,6 +30,18 @@ public final class LaminaDocument: @unchecked Sendable {
     public func pageCount() async throws -> Int {
         let raw = self.raw
         return Int(try await Self.offCaller { try raw.pageCount() })
+    }
+
+    /// The page count through an async export: `Task.cancel()` cancels its token, since the
+    /// generated Swift never drops a cancelled Rust future.
+    public func pageCountAsync() async throws -> Int {
+        let raw = self.raw
+        let token = FfiCancelToken()
+        return Int(try await withTaskCancellationHandler {
+            try await Self.mapCancelled { try await LaminaFFI.pageCountAsync(doc: raw, cancel: token) }
+        } onCancel: {
+            token.cancel()
+        })
     }
 
     public func pages() async throws -> [FfiPageInfo] {
@@ -78,6 +92,15 @@ public final class LaminaDocument: @unchecked Sendable {
     public static func mapCancelled<T>(_ body: () throws -> T) throws -> T {
         do {
             return try body()
+        } catch let FfiError.Lamina(code, _, _, _, _, _) where code == "cancelled" {
+            throw CancellationError()
+        }
+    }
+
+    /// The async form of `mapCancelled`.
+    public static func mapCancelled<T>(_ body: () async throws -> T) async throws -> T {
+        do {
+            return try await body()
         } catch let FfiError.Lamina(code, _, _, _, _, _) where code == "cancelled" {
             throw CancellationError()
         }

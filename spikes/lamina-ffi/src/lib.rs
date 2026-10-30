@@ -17,7 +17,7 @@
 use std::future::Future;
 use std::pin::Pin;
 use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
-use std::sync::{Arc, Mutex, MutexGuard};
+use std::sync::{Arc, Mutex, MutexGuard, TryLockError};
 use std::task::{Context, Poll};
 
 use lamina::{
@@ -152,8 +152,9 @@ pub struct FfiSaveOptions {
 pub struct FfiSaved {
     /// The file (or only the appended section with `appended_only`).
     pub bytes: Vec<u8>,
-    /// The mode the writer used.
-    pub mode: FfiSaveMode,
+    /// The mode the writer used (`Incremental` or `FullRewrite`; `None` for a mode this
+    /// binding doesn't know yet).
+    pub mode: Option<FfiSaveMode>,
     /// Where the appended revision starts (incremental saves).
     pub append_offset: Option<u64>,
 }
@@ -200,11 +201,14 @@ fn save_options(o: FfiSaveOptions) -> SaveOptions {
     SaveOptions::new().with_mode(mode).with_output(output)
 }
 
+/// The mode the writer used. `Auto` is a request, never a result, so a mode this list doesn't
+/// know is `None`, not a guess (and not an error: the save happened, and its bytes must reach
+/// the caller).
 fn saved(s: lamina::Saved) -> FfiSaved {
     let mode = match s.report.mode() {
-        SaveMode::Incremental => FfiSaveMode::Incremental,
-        SaveMode::FullRewrite => FfiSaveMode::FullRewrite,
-        _ => FfiSaveMode::Auto,
+        SaveMode::Incremental => Some(FfiSaveMode::Incremental),
+        SaveMode::FullRewrite => Some(FfiSaveMode::FullRewrite),
+        _ => None,
     };
     FfiSaved {
         append_offset: s.report.append_offset(),
@@ -213,8 +217,19 @@ fn saved(s: lamina::Saved) -> FfiSaved {
     }
 }
 
+/// Phase names, spelled out so they match `lamina-wasm`'s `phase_name` (crates/lamina-wasm/src/dto.rs).
 fn phase(p: lamina::Phase) -> String {
-    format!("{p:?}").to_lowercase()
+    match p {
+        lamina::Phase::Parse => "parse",
+        lamina::Phase::Layout => "layout",
+        lamina::Phase::Extract => "extract",
+        lamina::Phase::Render => "render",
+        lamina::Phase::Write => "write",
+        lamina::Phase::Sign => "sign",
+        // A phase added to the non-exhaustive enum before this list learns it.
+        _ => "other",
+    }
+    .to_owned()
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -446,7 +461,7 @@ impl FfiSaveJob {
             _ => FfiSaveStep::Progress {
                 done: 0,
                 total: None,
-                phase: "unknown".to_owned(),
+                phase: "other".to_owned(),
             },
         })
     }
@@ -588,10 +603,26 @@ pub async fn run_until_cancelled(probe: Arc<FfiDropProbe>) {
     Forever { probe }.await;
 }
 
-/// An async export that finishes: async functions work at all through the pin.
+/// An async export over the document lock, written the way ADR 0029 §4 asks: it never parks
+/// the foreign executor's thread on the lock (it tries the lock and yields while another call
+/// holds it), and it takes a cancel token, which the Swift layer cancels in `onCancel` because
+/// the generated Swift never drops a cancelled future.
 #[uniffi::export]
-pub async fn page_count_async(doc: Arc<FfiDocument>) -> FfiResult<u32> {
-    doc.page_count()
+pub async fn page_count_async(doc: Arc<FfiDocument>, cancel: Arc<FfiCancelToken>) -> FfiResult<u32> {
+    std::future::poll_fn(|cx| {
+        if cancel.is_cancelled() {
+            return Poll::Ready(Err(lamina::Error::Cancelled.into()));
+        }
+        match doc.inner.try_lock() {
+            Ok(d) => Poll::Ready(d.page_count().map_err(FfiError::from)),
+            Err(TryLockError::WouldBlock) => {
+                cx.waker().wake_by_ref();
+                Poll::Pending
+            }
+            Err(TryLockError::Poisoned(_)) => Poll::Ready(Err(FfiError::Poisoned)),
+        }
+    })
+    .await
 }
 
 /// Panics on purpose, in an infallible export: Kotlin gets an `InternalException`, but the
@@ -653,7 +684,7 @@ mod tests {
         doc.set_info(FfiInfoKey::Title, Some("From the FFI".into()))?;
         assert_eq!(doc.info()?.title.as_deref(), Some("From the FFI"));
         let out = doc.save(opts(FfiSaveMode::Incremental), FfiCancelToken::new())?;
-        assert_eq!(out.mode, FfiSaveMode::Incremental);
+        assert_eq!(out.mode, Some(FfiSaveMode::Incremental));
 
         // The same edit through the façade directly gives the same bytes.
         let mut direct = Document::open_bytes(HELLO.to_vec(), OpenOptions::default()).map_err(FfiError::from)?;
@@ -747,5 +778,25 @@ mod tests {
             assert!(future.as_mut().poll(&mut cx).is_pending());
         }
         assert!(probe.dropped() && !probe.finished());
+    }
+
+    #[test]
+    fn page_count_async_yields_while_locked_and_honours_its_token() -> FfiResult<()> {
+        let doc = FfiDocument::open(HELLO.to_vec(), None)?;
+        let cancel = FfiCancelToken::new();
+        let mut cx = Context::from_waker(std::task::Waker::noop());
+        let mut future = Box::pin(page_count_async(Arc::clone(&doc), Arc::clone(&cancel)));
+        {
+            let _held = doc.lock()?;
+            assert!(future.as_mut().poll(&mut cx).is_pending(), "never blocks on the lock");
+        }
+        assert!(matches!(future.as_mut().poll(&mut cx), Poll::Ready(Ok(1))));
+        let mut stopped = Box::pin(page_count_async(Arc::clone(&doc), Arc::clone(&cancel)));
+        cancel.cancel();
+        assert!(matches!(
+            stopped.as_mut().poll(&mut cx),
+            Poll::Ready(Err(FfiError::Lamina { code, .. })) if code == "cancelled"
+        ));
+        Ok(())
     }
 }

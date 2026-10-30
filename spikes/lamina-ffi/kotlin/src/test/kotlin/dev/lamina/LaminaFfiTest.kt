@@ -1,5 +1,6 @@
 package dev.lamina
 
+import dev.lamina.ffi.FfiCancelToken
 import dev.lamina.ffi.FfiCountJob
 import dev.lamina.ffi.FfiDocument
 import dev.lamina.ffi.FfiDropProbe
@@ -7,6 +8,7 @@ import dev.lamina.ffi.FfiException
 import dev.lamina.ffi.FfiSaveMode
 import dev.lamina.ffi.FfiSaveOptions
 import dev.lamina.ffi.FfiSaveStep
+import dev.lamina.ffi.FfiSaved
 import dev.lamina.ffi.InternalException
 import dev.lamina.ffi.buildInfo
 import dev.lamina.ffi.pageCountAsync
@@ -80,7 +82,7 @@ class LaminaFfiTest {
         LaminaDocument.open(hello).use { doc ->
             doc.setTitle("job")
             var steps = 0
-            val saved = doc.save(unitsPerStep = 1u) { steps++ }
+            val saved = doc.save(unitsPerStep = 1u, onSavedAfterCancel = {}) { steps++ }
             assertTrue(saved.bytes.isNotEmpty())
             assertTrue(steps > 0, "a 1-unit budget reports progress")
         }
@@ -91,20 +93,24 @@ class LaminaFfiTest {
         LaminaDocument.open(hello).use { doc ->
             doc.setTitle("cancel me")
             val started = CompletableDeferred<Unit>()
-            val call = async(Dispatchers.Default) { doc.save(unitsPerStep = 1u) { started.complete(Unit) } }
+            var savedAfterCancel: FfiSaved? = null
+            val call =
+                async(Dispatchers.Default) {
+                    doc.save(unitsPerStep = 1u, onSavedAfterCancel = { savedAfterCancel = it }) { started.complete(Unit) }
+                }
             started.await() // the Rust job exists and has run at least one step
             call.cancel()
             assertFailsWith<CancellationException> { call.await() }
             // Either the job stopped (the edit is still unsaved) or its last step had already
-            // finished the save, whose bytes are then kept in lastSaved: never neither.
-            val saved = doc.lastSaved
+            // finished the save, whose bytes then reach onSavedAfterCancel: never neither.
+            val saved = savedAfterCancel
             if (saved == null) {
                 assertTrue(doc.raw.hasUnsavedChanges(), "a cancelled save leaves the edit unsaved")
             } else {
                 assertTrue(saved.bytes.isNotEmpty())
                 assertTrue(!doc.raw.hasUnsavedChanges(), "a finished save rebased the document")
                 LaminaDocument.open(saved.bytes).use { assertEquals("cancel me", it.title(), "the bytes are this save's") }
-                println("kotlin: the cancelled save had already finished; bytes kept in lastSaved")
+                println("kotlin: the cancelled save had already finished; bytes passed to onSavedAfterCancel")
             }
         }
     }
@@ -140,7 +146,7 @@ class LaminaFfiTest {
 
     @Test
     fun asyncExportsWork() = runBlocking {
-        FfiDocument.open(hello, null).use { assertEquals(1u, pageCountAsync(it)) }
+        FfiDocument.open(hello, null).use { assertEquals(1u, pageCountAsync(it, FfiCancelToken())) }
     }
 
     @Test
