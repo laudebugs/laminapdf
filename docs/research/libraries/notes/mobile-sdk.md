@@ -96,7 +96,7 @@ The common pattern is: virtualized page list → each visible page drawn first a
 
 ### Cited Findings
 - saket/telephoto: `ZoomableImage` is a "drop-in replacement for Image() composables featuring support for pan & zoom gestures and automatic sub-sampling of large images"; `Modifier.zoomable()` for other composables; Apache 2.0 — [klibs.io telephoto](https://klibs.io/project/saket/telephoto)
-- panpf/zoomimage: Compose Multiplatform + Views; subsampling via Sketch/Coil integrations; base `ZoomImage` requires manual `subsampling.setImageResource()` — [zoomimage subsampling wiki](https://github.com/panpf/zoomimage/blob/main/docs/wiki/subsampling.md)
+- panpf/zoomimage: Compose Multiplatform + Views; subsampling via Sketch/Coil integrations; base `ZoomImage` requires manual `subsampling.setImageResource()` — [zoomimage subsampling wiki](https://github.com/panpf/zoomimage/blob/main/docs/subsampling.md)
 - hehua2008/ComposeSubsamplingImage: experimental CMP subsampling library, possibly first to support iOS — [Kotlin Slack](https://slack-chats.kotlinlang.org/t/18819156/hi-all-i-developed-composesubsamplingimage-https-github-com-)
 - PDFKit itself renders via tiles: a reported iPadOS 26 crash is in PDFKit's tile-rendering code — [Apple forums 825803](https://origin-devforums.apple.com/forums/thread/825803)
 - `androidx.graphics.lowlatency` is explicitly "not intended… when large areas are modified like panning or zooming" — i.e. tiling/zoom must use the normal render path — [Android Developers: stylus low latency](https://medium.com/androiddevelopers/stylus-low-latency-d4a140a9c982)

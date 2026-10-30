@@ -140,3 +140,19 @@ One page per code in [`fixtures/codes.json`](../../fixtures/codes.json), as [ADR
 | [`cancelled`](cancelled.md) | `cancelled` |
 | [`job-finished`](job-finished.md) | `state` |
 | [`document-changed`](document-changed.md) | `state` |
+
+## Binding errors (`lamina-wasm`)
+
+| Code | Kind |
+| --- | --- |
+| [`builder-finished`](builder-finished.md) | `state` |
+| [`invalid-argument`](invalid-argument.md) | `usage` |
+| [`unknown-option`](unknown-option.md) | `usage` |
+
+## Package errors (`@lamina/pdf`)
+
+| Code | Kind |
+| --- | --- |
+| [`already-initialized`](already-initialized.md) | `state` |
+| [`not-initialized`](not-initialized.md) | `state` |
+| [`text-module-not-loaded`](text-module-not-loaded.md) | `state` |

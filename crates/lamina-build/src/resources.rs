@@ -94,6 +94,7 @@ impl PageResources {
         name_of("CS", index)
     }
 
+    #[cfg(feature = "text")]
     pub(crate) fn font(&mut self, object: ObjRef) -> String {
         let index = self.fonts.iter().position(|r| *r == object).unwrap_or_else(|| {
             self.fonts.push(object);
@@ -102,6 +103,7 @@ impl PageResources {
         name_of("F", index)
     }
 
+    #[cfg(feature = "text")]
     pub(crate) fn uses_actual_text(&mut self) {
         self.actual_text = true;
     }

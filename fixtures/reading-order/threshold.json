@@ -1,0 +1,15 @@
+{
+  "mean": 0.7971,
+  "history": [
+    {
+      "date": "2026-10-30",
+      "mean": 0.787,
+      "by": "U2b: first run (content-order extraction, B9d): every -ordered file scores 1.000; the -reversed files lose order (0.000-0.333) and keep their text, except table-reversed (text 0.572: cells drawn right to left on one baseline are joined without a space, an extraction bug left for a B9 follow-up)"
+    },
+    {
+      "date": "2026-10-30",
+      "mean": 0.7971,
+      "by": "B9e: a separator where the pen jumps back on a line; table-reversed keeps every cell's words (text 0.572 → 1.000), no other file changes"
+    }
+  ]
+}

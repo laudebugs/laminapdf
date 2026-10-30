@@ -122,7 +122,7 @@ Comparable Rust WASM libraries sit far above lamina's ≤350 KB gz budget once t
 - `@embedpdf/pdfium` 2.15.1 (PDFium compiled to WASM): 2,148,845 B gz [4,646,932 B] — [npm tarball](https://registry.npmjs.org/@embedpdf/pdfium/-/pdfium-2.15.1.tgz)
 - `@myriaddreamin/typst-ts-web-compiler` 0.7.0: 10,767,675 B gz [28,325,178 B] (fonts/compiler embedded) — [npm tarball](https://registry.npmjs.org/@myriaddreamin/typst-ts-web-compiler/-/typst-ts-web-compiler-0.7.0.tgz)
 - `pdfjs-dist` 6.4.299 unpacked package is 34.9 MB (all builds, maps, viewer; not comparable per-module) — [npm registry pdfjs-dist](https://registry.npmjs.org/pdfjs-dist/latest)
-- hayro has no published npm/wasm package (npm `hayro` → Not Found); its demo is at laurenzv.github.io/hayro — [hayro repo](https://github.com/LaurenzV/hayro), [npm registry](https://registry.npmjs.org/hayro).
+- hayro has no published npm/wasm package (npm `hayro` → Not Found); its demo is at laurenzv.github.io/hayro — [hayro repo](https://github.com/LaurenzV/hayro), npm registry (`https://registry.npmjs.org/hayro`).
 - Tooling: `twiggy` 0.8.0 (2025-06-15); `wasm-split-cli` 0.7.10 stable / 0.8.0-alpha.3 (2026-10-16) for splitting a module into lazily loaded parts; `no-panic` 0.1.37 — [crates.io twiggy](https://crates.io/crates/twiggy), [crates.io wasm-split-cli](https://crates.io/crates/wasm-split-cli), [crates.io no-panic](https://crates.io/crates/no-panic).
 
 ### Inferences / techniques (recommendations; [prior knowledge] where noted)

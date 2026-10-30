@@ -55,7 +55,7 @@ ADRs go in `docs/decisions/`, one file per decision (`NNNN-title.md`). Each roun
 | [0005](../decisions/0005-document-model.md) | Document model: lazy COS overlay, typed views, stable `LaminaId`s | Round B | Accepted (generation strategy Proposed) |
 | [0006](../decisions/0006-op-log-and-undo.md) | Op log, transactions, undo semantics | Round B | Accepted |
 | [0007](../decisions/0007-save-planner.md) | Save planner and `SaveConstraint` | Round B | Accepted |
-| 0016 | Package design: ESM-only, export conditions, split WASM modules, size budgets | Round B | Propose |
+| [0016](../decisions/0016-package-design.md) | Package design: ESM-only, export conditions, split WASM modules, size budgets | Round B | Accepted |
 | 0017 | Versioning and release: lockstep core, OIDC trusted publishing, attestations | Round B | Propose |
 | [0018](../decisions/0018-test-strategy.md) | Test strategy: goldens, differential corpus, fuzzing, veraPDF | Round B | Accepted |
 | [0023](../decisions/0023-content-stream-reading.md) | Content-stream reading: `lamina-content` (tokenizer, visitor), tolerance rules, operator and XObject-depth limits | Round B (B9a) | Accepted |
@@ -139,7 +139,7 @@ Todos: [A1](../todos/done/A1-foundation-adrs.md) (ADRs), [A2](../todos/done/A2-m
 
 ### Round B — Core model and the first package
 - [x] Write ADRs 0003, 0005, 0006, 0007, 0018 ([B1a](../todos/done/B1a-round-b-adrs.md); 0005 §6, the generation strategy, settled by `krilla-fit`)
-- [ ] Write ADRs 0016 ([B6a](../todos/ongoing/B6a-lamina-wasm-and-adr-0016.md)), 0017 ([B7b](../todos/ready/B7b-versioning-and-0-1-0-alpha.md))
+- [ ] Write ADRs 0016 ([B6a](../todos/done/B6a-lamina-wasm-and-adr-0016.md): [done](../decisions/0016-package-design.md)), 0017 ([B7b](../todos/ready/B7b-versioning-and-0-1-0-alpha.md))
 - [x] `krilla-fit` spike ([B1b](../todos/done/B1b-krilla-fit-spike.md), [result](../../spikes/krilla-fit/README.md)), then decide the generation strategy (Option B, recorded in [ADR 0005 §6](../decisions/0005-document-model.md))
 - [x] `lamina-model`: typed pages, annotations, fields, outline; stable IDs (pages, outline, Info, name trees and page labels with their IDs done; annotations and fields come later. [B2a](../todos/done/B2a-limits-owned-document.md) owned `Document` and `Limits`, [B2b](../todos/done/B2b-standard-security-decryption.md) decryption, [B2c](../todos/done/B2c-lamina-model-corpus-fuzz.md) views and IDs; annotations and fields in the editor rounds)
 - [x] `lamina-ops`: `Op` enum, `transact()`, inverses, undo/redo ([B3a](../todos/done/B3a-overlay-and-ops.md))
@@ -149,7 +149,7 @@ Todos: [A1](../todos/done/A1-foundation-adrs.md) (ADRs), [A2](../todos/done/A2-m
 - [x] Promote the spike's content builder and golden samples (`hello`, `imaging_demo`), until then test support in `crates/lamina-cos/tests/common/`, into `lamina-build` (API and examples) ([B5a](../todos/done/B5a-lamina-build-core.md): the builder uses `pdf_writer::Content`; the spike's builder and the two frozen goldens are `lamina-build`'s test support)
 - [x] `lamina` façade crate: re-exports the public API of the core crates; this is what goes to crates.io ([B5c](../todos/done/B5c-lamina-facade-and-examples.md))
 - [x] `lamina-text`: font embedding and subsetting for generation (see [03](../research/pdf/03-text-and-fonts.md)) (B4a done: loading, TTC, variable instances, subsetting, Type 0 with `/W` and ToUnicode; B4b done: HarfRust shaping, ICU4X bidi and line breaking, greedy layout; B4c done: the standard 14 with AFM metrics, simple-font encodings, the AGL) ([B4a](../todos/done/B4a-font-loading-and-subsetting.md), [B4b](../todos/done/B4b-shaping-bidi-line-breaking.md), [B4c](../todos/done/B4c-standard-14-and-simple-fonts.md))
-- [ ] `lamina-wasm` (wasm-bindgen + tsify) and `@lamina/pdf` (ESM-only, `init()`, export conditions; publint + attw) ([B6a](../todos/ongoing/B6a-lamina-wasm-and-adr-0016.md), [B6b](../todos/ready/B6b-lamina-pdf-package.md), [B6c](../todos/ready/B6c-runtime-matrix.md))
+- [x] `lamina-wasm` (wasm-bindgen + tsify) and `@lamina/pdf` (ESM-only, `init()`, export conditions; publint + attw) (`lamina-wasm` and `@lamina/wasm` done in [B6a](../todos/done/B6a-lamina-wasm-and-adr-0016.md), `@lamina/pdf` in [B6b](../todos/done/B6b-lamina-pdf-package.md); the runtime matrix is [B6c](../todos/ongoing/B6c-runtime-matrix.md))
 - [x] Fuzz targets under `fuzz/`, with a scheduled 10-minute run, and the golden, corpus-facts and differential harness in the fast lane ([B2c](../todos/done/B2c-lamina-model-corpus-fuzz.md))
 - [x] Golden-file and corpus test harness in CI (full lane) ([X4](../todos/done/X4-full-lane-gate.md) full lane)
 - [x] Linux CI on a self-hosted runner in a container on the Mac ([X5](../todos/done/X5-linux-ci-container.md))

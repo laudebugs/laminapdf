@@ -61,9 +61,9 @@ Ship an importable, permissively licensed library that **generates correct PDFs 
 
 ### Non-functional
 
-| Requirement | Target (recommendation, confirmed in ADR 0016) |
+| Requirement | Target (WASM sizes: [ADR 0016](../decisions/0016-package-design.md) §6) |
 | --- | --- |
-| `@lamina/pdf` WASM, gzipped | Per module (decided 2026-10-29): ≤ 350 KB for the base module; the text (shaping, subsetting), extract, render and sign modules get their own budgets in ADR 0016 (spike core: 74 KB; krilla-fit builder stack: 377 KB) |
+| `@lamina/pdf` WASM, gzipped | Per module ([ADR 0016](../decisions/0016-package-design.md) §6, owner 2026-10-30): base ≤ 380 KB (measured 368 KB; the 350 KB of 2026-10-29 revised after measurement), text ≤ 960 KB (measured 937 KB); extract, render and sign get theirs when they exist (spike core: 74 KB; krilla-fit builder stack: 377 KB) |
 | JS glue + TS API, min+gz | ≤ 20 KB |
 | Rust `lamina` default features | No C dependencies; builds for `wasm32-unknown-unknown`, iOS and Android targets |
 | Hello-world generation | ≤ 5 ms after `init()` on a 2023 laptop; a 100-page text report ≤ 500 ms |
@@ -196,14 +196,14 @@ Architecture Round B is delivered as rounds B1–B9, each split into todos (one 
 
 ### B5. Builder and the `lamina` crate
 
-**Todos:** [B5a](../todos/done/B5a-lamina-build-core.md) (builder, vectors, colour, images), [B5b](../todos/done/B5b-builder-text-and-document-features.md) (text, links, outlines, labels, metadata), [B5c](../todos/done/B5c-lamina-facade-and-examples.md) (`lamina` façade, examples, byte and render goldens).
+**Todos:** [B5a](../todos/done/B5a-lamina-build-core.md) (builder, vectors, colour, images), [B5b](../todos/done/B5b-builder-text-and-document-features.md) (text, links, outlines, labels, metadata), [B5c](../todos/done/B5c-lamina-facade-and-examples.md) (`lamina` façade, examples, byte and render goldens), [B5d](../todos/ready/B5d-text-report-generation-performance.md) (a 100-page text report within 500 ms; B6b measured 2.96 s).
 
 **Deliverable:** `lamina-build` (pages, text, text boxes, images, paths, colour, links, named destinations, outlines, page labels, Info + XMP); `finish()` returns `Document`; the `lamina` façade crate with Rust examples.
 **Accepted when:** every example produces byte-identical goldens; qpdf `--check` clean; golden renders match in PDFium and hayro within thresholds.
 
 ### B6. WASM and `@lamina/pdf`
 
-**Todos:** [B6a](../todos/ongoing/B6a-lamina-wasm-and-adr-0016.md) (`lamina-wasm`, split base/text modules, ADR 0016, size budgets), [B6b](../todos/ready/B6b-lamina-pdf-package.md) (`@lamina/pdf`), [B6c](../todos/ready/B6c-runtime-matrix.md) (runtime matrix).
+**Todos:** [B6a](../todos/done/B6a-lamina-wasm-and-adr-0016.md) (`lamina-wasm`, split base/text modules, ADR 0016, size budgets), [B6b](../todos/done/B6b-lamina-pdf-package.md) (`@lamina/pdf`), [B6c](../todos/ongoing/B6c-runtime-matrix.md) (runtime matrix).
 
 **Deliverable:** `lamina-wasm` (wasm-bindgen + tsify), `@lamina/wasm`, `@lamina/pdf` with `init()` and export conditions; ADR 0016; size budget checks; the runtime matrix in CI.
 **Accepted when:** the same example suite passes in Chromium, Firefox, WebKit, Node 22/24/26, Deno, Bun and workerd; size budgets enforced (CI fails above budget); publint and attw clean.
@@ -224,7 +224,7 @@ Architecture Round B is delivered as rounds B1–B9, each split into todos (one 
 
 ### B9. Text extraction
 
-**Todos:** [B9a](../todos/done/B9a-lamina-content-and-adr-0023.md) (ADR 0023, `lamina-content`), [B9b](../todos/done/B9b-text-extraction-core.md) (fonts, CMaps and Unicode per glyph in `lamina-text`), [B9d](../todos/done/B9d-text-runs-quads-and-page-text.md) (quads, runs, `ActualText`, MCIDs, the façade's `page.text()`), [B9c](../todos/ready/B9c-text-extraction-bindings-and-differential.md) (`page.text()` in WASM/TS, differential and quad tests; must merge before web C5).
+**Todos:** [B9a](../todos/done/B9a-lamina-content-and-adr-0023.md) (ADR 0023, `lamina-content`), [B9b](../todos/done/B9b-text-extraction-core.md) (fonts, CMaps and Unicode per glyph in `lamina-text`), [B9d](../todos/done/B9d-text-runs-quads-and-page-text.md) (quads, runs, `ActualText`, MCIDs, the façade's `page.text()`), [B9e](../todos/done/B9e-separators-at-backward-jumps.md) (a separator where the pen jumps back on a line, found by U2b), [B9c](../todos/ready/B9c-text-extraction-bindings-and-differential.md) (`page.text()` in WASM/TS, differential and quad tests; must merge before web C5).
 
 **Deliverable:** ADR 0023 (content-stream reading: adds `lamina-content` to the crate list); `crates/lamina-content` as a **read-only** content-stream interpreter (tokenizer, graphics and text state, `q`/`Q`, `cm`, text operators, Form XObject recursion with depth limits, marked content); text extraction in `lamina-text` on top of it: font dictionaries read (simple and Type 0, `/Widths` and `/W`, embedded font metrics via skrifa), encodings and ToUnicode CMap parsing, glyph quads, `ActualText` and MCIDs; exposed in `lamina`, `lamina-wasm` and `@lamina/pdf` (`page.text()`). [Full-editor](full-editor.md#6-design-summary) E2 adds a content append API to this crate and E7 extends it for editing (ADR 0022).
 **Accepted when:** extracted text for fixtures in five scripts (Latin, Arabic, Devanagari, Hebrew, CJK) matches expected text and pdf.js/pdftotext output on the corpus; glyph quads lie within tolerance of PDFium's character boxes; encrypted fixtures extract the same text as their originals; extraction fuzz target runs 10 min without a panic.
@@ -311,11 +311,11 @@ Each round's todos (one per PR, with dependencies) are linked from [§7](#7-roun
 
 ### B6. WASM and `@lamina/pdf`
 
-- [ ] Create `crates/lamina-wasm` (wasm-bindgen + tsify) and the `cargo xtask wasm` build with `wasm-opt -Oz`
-- [ ] Create `packages/pdf` with `init()`, `Builder`, `Document`, `Font`, `LaminaError` codes matching Rust
-- [ ] Add export conditions and validate with publint and `attw --pack`
-- [ ] Write ADR 0016 with measured sizes; decide split WASM modules
-- [ ] Add size-budget checks to CI (WASM gz, JS min+gz)
+- [x] Create `crates/lamina-wasm` (wasm-bindgen + tsify) and the `cargo xtask wasm` build with `wasm-opt` ([B6a](../todos/done/B6a-lamina-wasm-and-adr-0016.md); `-O1`, which gzips smaller than `-Oz`, ADR 0016 §5)
+- [x] Create `packages/pdf` with `init()`, `Builder`, `Document`, `Font`, `LaminaError` codes matching Rust ([B6b](../todos/done/B6b-lamina-pdf-package.md))
+- [x] Add export conditions and validate with publint and `attw --pack` ([B6b](../todos/done/B6b-lamina-pdf-package.md))
+- [x] Write ADR 0016 with measured sizes; decide split WASM modules ([B6a](../todos/done/B6a-lamina-wasm-and-adr-0016.md), [ADR 0016](../decisions/0016-package-design.md): base + text)
+- [x] Add size-budget checks to CI (WASM gz, JS min+gz) ([B6a](../todos/done/B6a-lamina-wasm-and-adr-0016.md): `cargo xtask size`, the fast lane's `wasm` job; the TS API's share with B6b)
 - [ ] Run the TS example suite in Chromium, Firefox, WebKit, Node 22/24/26, Deno, Bun, workerd
 
 ### B7. Docs, examples and first release

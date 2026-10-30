@@ -4,6 +4,7 @@ use std::collections::BTreeMap;
 
 use lamina_cos::{ObjRef, OpenOptions};
 use lamina_model::{IdAllocator, Kind, OutlineItemId, PageFrame, PageId, PdfDate};
+#[cfg(feature = "text")]
 use lamina_text::{EmbedPolicy, FontRegistry, Standard14};
 
 use crate::annot::link::PendingLink;
@@ -13,6 +14,7 @@ use crate::meta::{Metadata, ViewerPreferences};
 use crate::nav::{Fit, OutlineEntry, PageLabel};
 use crate::page::{PageBuilder, PageSize};
 use crate::resources::DocResources;
+#[cfg(feature = "text")]
 use crate::surface::text::Font;
 
 /// The header version of a new document (§7.5.2). Saving with object and cross-reference
@@ -153,6 +155,7 @@ pub(crate) struct BuildState {
     pub(crate) pages: Vec<ObjRef>,
     pub(crate) frames: Vec<PageFrame>,
     /// The fonts text was drawn with (one registry per build).
+    #[cfg(feature = "text")]
     pub(crate) fonts: FontRegistry,
     /// Link annotations waiting for their targets.
     pub(crate) links: Vec<PendingLink>,
@@ -164,6 +167,7 @@ pub(crate) struct BuildState {
     /// The lowest PDF version with every feature written so far.
     pub(crate) required: (u8, u8),
     /// What embedding the fonts raised (ToUnicode conflicts, whole fonts kept).
+    #[cfg(feature = "text")]
     pub(crate) font_warnings: Vec<lamina_text::Warning>,
 }
 
@@ -173,12 +177,14 @@ impl BuildState {
             pages_root,
             pages: Vec::new(),
             frames: Vec::new(),
+            #[cfg(feature = "text")]
             fonts: FontRegistry::new(),
             links: Vec::new(),
             resources: DocResources::default(),
             compress,
             explicit_inherited,
             required: (1, 0),
+            #[cfg(feature = "text")]
             font_warnings: Vec::new(),
         }
     }
@@ -188,6 +194,7 @@ impl BuildState {
         self.required = self.required.max(version);
     }
 
+    #[cfg(feature = "text")]
     fn add_font(&mut self, font: lamina_text::Font, policy: EmbedPolicy) -> Result<Font> {
         let key = self.fonts.add(font.clone(), policy)?;
         Ok(Font { key, font })
@@ -272,6 +279,7 @@ impl Builder {
     /// # Errors
     /// `font-not-embeddable` when the font's `fsType` forbids embedding (see
     /// [`Builder::font_with`]).
+    #[cfg(feature = "text")]
     pub fn font(&mut self, font: lamina_text::Font) -> Result<Font> {
         self.state.add_font(font, EmbedPolicy::Respect)
     }
@@ -281,6 +289,7 @@ impl Builder {
     ///
     /// # Errors
     /// As [`Builder::font`].
+    #[cfg(feature = "text")]
     pub fn font_with(&mut self, font: lamina_text::Font, policy: EmbedPolicy) -> Result<Font> {
         self.state.add_font(font, policy)
     }
@@ -291,6 +300,7 @@ impl Builder {
     /// # Errors
     /// None in practice (the registry accepts every standard 14 font); kept for symmetry
     /// with [`Builder::font`].
+    #[cfg(feature = "text")]
     pub fn standard_font(&mut self, font: Standard14) -> Result<Font> {
         self.state
             .add_font(lamina_text::Font::standard(font), EmbedPolicy::Respect)
@@ -403,7 +413,7 @@ impl Builder {
     /// that isn't finite; [`Error::Text`](crate::Error::Text) when subsetting a font fails;
     /// [`Error::Cos`](crate::Error::Cos) when object numbers run out.
     pub fn finish(self) -> Result<lamina_ops::Document> {
-        self.finish_with_warnings().map(|(doc, _)| doc)
+        self.finish_inner().map(|(doc, _)| doc)
     }
 
     /// [`Builder::finish`], also returning the warnings embedding the fonts raised
@@ -411,7 +421,13 @@ impl Builder {
     ///
     /// # Errors
     /// As [`Builder::finish`].
-    pub fn finish_with_warnings(mut self) -> Result<(lamina_ops::Document, Vec<lamina_text::Warning>)> {
+    #[cfg(feature = "text")]
+    pub fn finish_with_warnings(self) -> Result<(lamina_ops::Document, Vec<lamina_text::Warning>)> {
+        self.finish_inner().map(|(doc, state)| (doc, state.font_warnings))
+    }
+
+    /// Writes the document's objects; returns it with the build's final state.
+    fn finish_inner(mut self) -> Result<(lamina_ops::Document, BuildState)> {
         finish::new_document(
             &mut self.doc,
             &self.options,
@@ -420,7 +436,7 @@ impl Builder {
             &self.features,
         )?;
         let doc = lamina_ops::Document::from(lamina_model::Document::from(self.doc));
-        Ok((doc, self.state.font_warnings))
+        Ok((doc, self.state))
     }
 }
 
@@ -475,6 +491,7 @@ impl<'d> Appender<'d> {
     ///
     /// # Errors
     /// As [`Builder::font`].
+    #[cfg(feature = "text")]
     pub fn font(&mut self, font: lamina_text::Font) -> Result<Font> {
         self.state.add_font(font, EmbedPolicy::Respect)
     }
@@ -483,6 +500,7 @@ impl<'d> Appender<'d> {
     ///
     /// # Errors
     /// As [`Builder::font`].
+    #[cfg(feature = "text")]
     pub fn font_with(&mut self, font: lamina_text::Font, policy: EmbedPolicy) -> Result<Font> {
         self.state.add_font(font, policy)
     }
@@ -491,6 +509,7 @@ impl<'d> Appender<'d> {
     ///
     /// # Errors
     /// As [`Builder::standard_font`].
+    #[cfg(feature = "text")]
     pub fn standard_font(&mut self, font: Standard14) -> Result<Font> {
         self.state
             .add_font(lamina_text::Font::standard(font), EmbedPolicy::Respect)

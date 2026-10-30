@@ -1,7 +1,6 @@
 //! Images (ISO 32000-2 §8.9): JPEG passed through as `DCTDecode`, PNG decoded into samples
 //! plus an `/SMask` for alpha (§11.6.5.3), and raw RGBA.
 
-use std::io::Cursor;
 use std::sync::Arc;
 
 use sha2::{Digest, Sha256};
@@ -208,52 +207,18 @@ impl Image {
     /// [`Error::InvalidImage`] for bytes the decoder rejects; [`Error::ImageTooLarge`] when
     /// the decoded image would exceed [`MAX_DECODED_IMAGE_BYTES`].
     pub fn png_with(bytes: &[u8], options: PngOptions) -> Result<Self> {
-        let mut decoder = png::Decoder::new_with_limits(
-            Cursor::new(bytes),
-            png::Limits {
-                bytes: MAX_DECODED_IMAGE_BYTES,
-            },
-        );
-        let mut transform = png::Transformations::EXPAND;
-        if options.downconvert_16 {
-            transform |= png::Transformations::STRIP_16;
-        }
-        decoder.set_transformations(transform);
-        decoder.set_ignore_text_chunk(true);
-        let mut reader = decoder.read_info().map_err(png_error)?;
-        let size = reader
-            .output_buffer_size()
-            .filter(|s| *s <= MAX_DECODED_IMAGE_BYTES)
-            .ok_or(Error::ImageTooLarge {
-                limit: MAX_DECODED_IMAGE_BYTES,
-            })?;
-        let mut buf = vec![0; size];
-        let info = reader.next_frame(&mut buf).map_err(png_error)?;
-        buf.truncate(info.buffer_size());
-        let bits = match info.bit_depth {
-            png::BitDepth::Sixteen => 16,
-            png::BitDepth::Eight => 8,
-            _ => return Err(unsupported(ImageFormat::Png, "a bit depth below 8 after expansion")),
-        };
-        let (color, has_alpha) = match info.color_type {
-            png::ColorType::Grayscale => (ImageColor::Gray, false),
-            png::ColorType::GrayscaleAlpha => (ImageColor::Gray, true),
-            png::ColorType::Rgb => (ImageColor::Rgb, false),
-            png::ColorType::Rgba => (ImageColor::Rgb, true),
-            png::ColorType::Indexed => {
-                return Err(unsupported(ImageFormat::Png, "an indexed image after expansion"));
-            }
-        };
-        let (samples, alpha) = if has_alpha {
-            split_alpha(&buf, color.channels(), usize::from(bits / 8))
+        let png = super::png::decode(bytes, options.downconvert_16)?;
+        let color = if png.gray { ImageColor::Gray } else { ImageColor::Rgb };
+        let (samples, alpha) = if png.alpha {
+            split_alpha(&png.pixels, color.channels(), usize::from(png.bits / 8))
         } else {
-            (buf, None)
+            (png.pixels, None)
         };
         Ok(Self::new(
-            info.width,
-            info.height,
+            png.width,
+            png.height,
             color,
-            bits,
+            png.bits,
             Samples::Raw(samples),
             alpha,
             false,
@@ -301,19 +266,6 @@ impl Image {
 
 fn unsupported(format: ImageFormat, feature: &'static str) -> Error {
     Error::UnsupportedImage { format, feature }
-}
-
-#[expect(clippy::needless_pass_by_value, reason = "used as map_err(png_error)")]
-fn png_error(e: png::DecodingError) -> Error {
-    match e {
-        png::DecodingError::LimitsExceeded => Error::ImageTooLarge {
-            limit: MAX_DECODED_IMAGE_BYTES,
-        },
-        _ => Error::InvalidImage {
-            format: ImageFormat::Png,
-            reason: "the PNG decoder rejected the data",
-        },
-    }
 }
 
 /// Splits interleaved samples with a trailing alpha channel into colour and alpha planes

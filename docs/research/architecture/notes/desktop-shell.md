@@ -36,7 +36,7 @@ Tauri 2 (core 2.12.5, 21 Oct 2026; v3 in alpha) is the best fit: it reuses the w
 
 **Production users**
 - Tauri: Spacedrive, AppFlowy, Clash Verge (blog claims); Cloudflare and 1Password reportedly "used Tauri in production products" (low-quality secondary source). — [noqta](https://www.noqta.tn/en/blog/tauri-2-desktop-apps-rust-web-technologies-2026); [GUVI](https://www.guvi.in/blog/tauri-2-0-desktop-app-tutorial/)
-- **Stirling-PDF** (open-source PDF tool) has a `frontend/src-tauri` Tauri desktop build, the closest domain peer. — [Stirling-PDF mirror Cargo.toml](https://git.laurivan.com/Mirrors/Stirling-PDF/src/branch/settingsPageEnhanced/frontend/src-tauri/Cargo.toml)
+- **Stirling-PDF** (open-source PDF tool) has a `frontend/src-tauri` Tauri desktop build, the closest domain peer. — [Stirling-PDF mirror Cargo.toml](https://github.com/Stirling-Tools/Stirling-PDF/tree/main/frontend/src-tauri)
 
 ### Inferences
 - For lamina, Tauri gives about 90% UI reuse with the Cloudflare web app and native Rust calls. The PDF canvas must not depend on WebGL or WebGPU on Linux: use a CPU/WASM or Rust-rendered bitmap path (Canvas2D / `ImageBitmap`) as the baseline and treat GPU as an enhancement.
@@ -56,7 +56,7 @@ Use one TS UI package that targets both the browser (Rust core compiled to WASM,
 
 ### Cited Findings
 - Tauri frontend calls go through `invoke()` and the Channel APIs. Desktop-only features come from plugins (fs, dialog, updater, deep-link, single-instance). — [Tauri calling Rust](https://v2.tauri.app/develop/calling-rust/); [Tauri plugins](https://v2.tauri.app/fr/plugin/)
-- Stirling-PDF keeps its Tauri shell inside the web `frontend/` package (`frontend/src-tauri`), sharing one frontend between web and desktop. — [Stirling-PDF mirror](https://git.laurivan.com/Mirrors/Stirling-PDF/src/branch/settingsPageEnhanced/frontend/src-tauri/Cargo.toml)
+- Stirling-PDF keeps its Tauri shell inside the web `frontend/` package (`frontend/src-tauri`), sharing one frontend between web and desktop. — [Stirling-PDF mirror](https://github.com/Stirling-Tools/Stirling-PDF/tree/main/frontend/src-tauri)
 
 ### Inferences
 - Suggested monorepo layout: `packages/core` (Rust: PDF parse/render/edit), `packages/core-wasm` (wasm-bindgen build for web), `packages/ui` (TS components plus an `Engine` interface), `apps/web` (Cloudflare Workers/Pages, `Engine` = WASM in a Web Worker), `apps/desktop` (Tauri, `src-tauri` depends on `core` natively, `Engine` = invoke/channel/custom-protocol adapter).

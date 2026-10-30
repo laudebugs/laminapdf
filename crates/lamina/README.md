@@ -1,6 +1,6 @@
 # `lamina`
 
-The façade crate: one dependency for Rust users, and the API every binding wraps one-to-one (`lamina-wasm`, `lamina-ffi`, Tauri commands; [ADR 0002](../../docs/decisions/0002-binding-strategy.md) §3, [ADR 0028](../../docs/decisions/0028-facade-rules-jobs-and-cancellation.md)). It re-exports and wraps the core crates (`lamina-cos`, `lamina-model`, `lamina-ops`, `lamina-save`, and with the `text` feature `lamina-text` and `lamina-build`). The crate docs (`cargo doc -p lamina --open`) open with an invoice built, saved, reopened, edited and saved incrementally.
+The façade crate: one dependency for Rust users, and the API every binding wraps one-to-one (`lamina-wasm`, `lamina-ffi`, Tauri commands; [ADR 0002](../../docs/decisions/0002-binding-strategy.md) §3, [ADR 0028](../../docs/decisions/0028-facade-rules-jobs-and-cancellation.md)). It re-exports and wraps the core crates (`lamina-cos`, `lamina-model`, `lamina-ops`, `lamina-save`, and with the `build` and `text` features `lamina-build` and `lamina-text`). The crate docs (`cargo doc -p lamina --open`) open with an invoice built, saved, reopened, edited and saved incrementally.
 
 ## What it offers
 
@@ -9,7 +9,7 @@ The façade crate: one dependency for Rust users, and the API every binding wrap
 | Open and read | `Document::open_bytes(Vec<u8>, OpenOptions)`, `open_source(Arc<dyn ByteSource>, …)`; `page_count`, `page_info(index)`, `page_infos()`, `page_by_id(&PageId)` (one page-tree walk, cached until the next change), `info`, `warnings()` (a `WarningCursor` with `next_batch(max)`; build warnings first) |
 | Edit | `apply(Vec<Op>)` (one transaction), `apply_log(json)`, `undo`, `redo` |
 | Save | `save(&SaveOptions, &CancelToken) -> Saved { bytes, report }`, or `save_job(&SaveOptions)` stepped with a `Budget`; after `not-rebased`, `Error::saved_output()` and `rebase(bytes)` |
-| Build (`text`) | `Builder` (fonts, pages and their `Surface`, destinations, outline, page labels, metadata) → `finish()` → `Document` |
+| Build (`build`; fonts and text with `text`) | `Builder` (fonts, pages and their `Surface`, destinations, outline, page labels, metadata) → `finish()` → `Document` |
 | Extract (`text`) | `page_text(index, &TextOptions)` → `extract::PageText` (`page_texts` for every page in one walk): glyphs with Unicode and quads in page space, runs (font, size, MCID, `ActualText`, invisible), `lines()` (todo B9d); fonts parsed once per document and revision (a `RefCell` cache like the page facts') |
 | Errors | `Error` with `code()`, `kind()`, `location()`, `hint()`, `docs_url()`, `diagnostic()`, and `Serialize` to the [ADR 0026](../../docs/decisions/0026-error-and-diagnostic-contract.md) §1 object; `Warning` likewise |
 
@@ -33,7 +33,9 @@ Edges should still adapt the next budget from the time the last step took (ADR 0
 
 ## Features
 
-- `text` (default): fonts (`lamina-text`) and the builder (`lamina-build`). Without it the crate opens, reads, edits and saves only, the structure-only build for WASM splitting; `cargo xtask portability` checks both builds for wasm32, iOS and Android. The builder needs `lamina-text`, so it goes with the feature.
+- `build`: the builder without text (`lamina-build` without its `text` feature): pages, paths, colour, images, links, navigation and metadata. The WASM base module's builder ([ADR 0016](../../docs/decisions/0016-package-design.md) §4).
+- `text` (default; implies `build`): fonts and text (`lamina-text`). Without `build` or `text` the crate opens, reads, edits and saves only; `cargo xtask portability` checks the three builds for wasm32, iOS and Android.
+- `saslprep` (default): SASLprep (RFC 4013) for R5/R6 passwords. Left out of the WASM modules, whose TS layer normalises passwords to NFKC (ADR 0016 §7).
 
 ## Examples and goldens
 

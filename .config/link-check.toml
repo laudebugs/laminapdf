@@ -90,3 +90,7 @@ reason = "answers 403 to non-browser clients (bot protection)"
 [[allow]]
 prefix = "https://yingtongli.me/"
 reason = "answers 403 to non-browser clients, even with a browser user agent (bot protection)"
+
+[[allow]]
+prefix = "https://web.archive.org/web/"
+reason = "Wayback Machine snapshots stand in for dead pages (they don't move); the archive is slow and rate-limits bots, so a nightly check would only add noise"

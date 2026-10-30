@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [shareable-libraries §7 L3](../../plans/shareable-libraries.md#l3-ai-ready-extraction), principles [§4](../../plans/shareable-libraries.md#4-principles-recommendations-recorded-in-adrs-00260031) (3, 5, 7) |
 | Round / milestone | Round L3 (shareable libraries) — AI-ready extraction |
-| Depends on | [B8a](./B8a-structure-tree.md), [B9d](../done/B9d-text-runs-quads-and-page-text.md), [L1a](../done/L1a-contract-adrs.md), [U2b](../ongoing/U2b-reading-order-ground-truth.md) |
+| Depends on | [B8a](./B8a-structure-tree.md), [B9d](../done/B9d-text-runs-quads-and-page-text.md), [L1a](../done/L1a-contract-adrs.md), [U2b](../done/U2b-reading-order-ground-truth.md) |
 | Blocks | [L3b](./L3b-extract-tables-and-serialisers.md) |
 | ADRs | Writes **0030** (extraction output `lamina.extract/1` and model plug-in policy); follows 0026 (errors), 0027 (coordinates, top-left points), 0028 (jobs, cancellation) from [L1a](../done/L1a-contract-adrs.md), 0023 (from [B9a](../done/B9a-lamina-content-and-adr-0023.md)), [0001](../../decisions/0001-core-language-and-licence.md) (licences, bytes in / bytes out), [0003](../../decisions/0003-reader-tolerance-and-limits.md) (warnings, `Limits`), [0018](../../decisions/0018-test-strategy.md) (goldens, fuzz) |
 | Branch | `feat/l3a-lamina-extract` |
@@ -20,7 +20,7 @@ Turn B9's glyph runs into document structure an LLM or a RAG pipeline can use: b
 
 ## Context
 
-- [U2b](../ongoing/U2b-reading-order-ground-truth.md): the hand-checked reading-order corpus and metric. This crate's reading order is measured with that metric, and the reader's copy and reader mode ([U2a](./U2a-selection-surfaces-and-copy-modes.md), [U4b](./U4b-reader-mode-from-structure-tree.md)) should use this crate's ordering rather than a second implementation.
+- [U2b](../done/U2b-reading-order-ground-truth.md): the hand-checked reading-order corpus and metric. This crate's reading order is measured with that metric, and the reader's copy and reader mode ([U2a](./U2a-selection-surfaces-and-copy-modes.md), [U4b](./U4b-reader-mode-from-structure-tree.md)) should use this crate's ordering rather than a second implementation.
 - [Report: rule-based extraction in core, models as licence-clean plug-ins](../../research/libraries/shareable-libraries.md#rule-based-extraction-in-core-models-as-licence-clean-plug-ins): rules reach about 0.90 reading-order accuracy at 15 ms a page (OpenDataLoader's vendor benchmark); fewer than 20% of PDFs are tagged; the proposed JSON shape; the hidden-text security point.
 - [AI extraction note §B](../../research/libraries/notes/llm-api-and-ai-extraction.md#b-ai-consumption-primitives-the-2026-landscape-algorithms-bboxprovenance-schema-tagged-pdf-and-rule-based-vs-model-based): algorithms (XY-cut, XY-Cut++, Docstrum), header/footer and de-hyphenation heuristics, bbox conventions of Textract, Azure, Docling and OpenDataLoader, and the full proposed `lamina.extract/1` example.
 - [Report: coordinates must be an explicit, typed field](../../research/libraries/shareable-libraries.md#coordinates-must-be-an-explicit-typed-field) and ADR 0027 (from [L1a](../done/L1a-contract-adrs.md)): points, top-left origin, y down; 0-based `index` plus 1-based `number`; record CropBox, `/Rotate` and `/UserUnit`.

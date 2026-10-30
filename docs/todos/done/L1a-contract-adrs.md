@@ -111,7 +111,7 @@ Write down the contract every lamina surface shares before the first public API 
 - **0028:** rules F1–F12; the lock lives in the binding edge (`Mutex` in `lamina-ffi`, `Rc<RefCell>` in `lamina-wasm`), and ADR 0005 §7 is unchanged (a cross-reference was added). Deviations: `PageRef` holds a `PageId` rather than an index and is built in the edge crates; jobs take the document on each `step` and check a document revision counter (new codes `job-finished`, `document-changed`). B5c is updated accordingly.
 - **After `/code-review high` (10 findings), the contract was re-sequenced.** L1b depends on B6b, which depends on B6a and B5c, so it would have landed after the first surfaces shipped. A new todo, [L1c](../done/L1c-error-contract-core.md), now comes before B5c and owns `codes.json` v2, kinds, hints, tagged locations and removing document text from messages. B5c owns `Serialize` and the job codes. B6b ships `LaminaError` with every field. L1b is left with codegen, the JSON Schema and `explain`.
 - **Other review fixes:** a ninth kind, `io`, for `source`; every job, write jobs included, checks the revision in the core; `Budget` and `Progress` use `u32`; the US Letter fallback for pages without a usable box; `PageFrame` cached per page; `location` tagged (`offset` in the file, `object`, `streamOffset`); a page per current code in `docs/errors/`; the plan §5 snippet matches 0028.
-- Follow-ups recorded in [B5a](./B5a-lamina-build-core.md) (unit types, `Rect` rename, `PageFrame`), [B5c](./B5c-lamina-facade-and-examples.md) (revision counter, auto-trait test, job codes), [B6b](../ready/B6b-lamina-pdf-package.md) (ships `LaminaError` directly) and [L1b](../ready/L1b-error-contract-codegen.md) (decisions, document-text fixes, new codes).
+- Follow-ups recorded in [B5a](./B5a-lamina-build-core.md) (unit types, `Rect` rename, `PageFrame`), [B5c](./B5c-lamina-facade-and-examples.md) (revision counter, auto-trait test, job codes), [B6b](../done/B6b-lamina-pdf-package.md) (ships `LaminaError` directly) and [L1b](../ready/L1b-error-contract-codegen.md) (decisions, document-text fixes, new codes).
 
 ## Post-merge checks
 
@@ -134,7 +134,7 @@ None (documentation only). `cargo xtask docs-links` checks the links.
 - **Rotated pages:** output in the displayed frame matches viewers and extraction vendors, but content-stream editing needs the unrotated frame. The ADR must say which API sees which frame. The owner decides if the two cases conflict.
 - **Lock placement:** an edge-crate `Mutex` serialises all calls on one document. That is fine for UniFFI's model, but it should be measured once B5c exists. Amending ADR 0005 §7 to a `Sync` core is the alternative.
 - **`Budget::millis`** in the report's sketch needs a clock that core crates may not use. Recommendation: units in core, time at the edges.
-- **Naming churn:** renaming `PdfError` to `LaminaError` touches [B6b](../ready/B6b-lamina-pdf-package.md)'s scope. If B6b merges first, L1b does the rename.
+- **Naming churn:** renaming `PdfError` to `LaminaError` touches [B6b](../done/B6b-lamina-pdf-package.md)'s scope. If B6b merges first, L1b does the rename.
 - Owner review: these are hard-to-reverse public contracts. The owner accepted each ADR explicitly on 2026-10-29 (see Outcome).
 
 ## Definition of done

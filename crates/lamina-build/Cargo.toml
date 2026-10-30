@@ -13,18 +13,28 @@ publish.workspace = true
 [package.metadata.lamina]
 layer = "core"
 
+[features]
+default = ["text"]
+# Fonts, text runs and text boxes (lamina-text: skrifa, subsetter, HarfRust, ICU4X, the standard
+# 14). Without it: pages, paths, colour, images, links, navigation and metadata, the base of the
+# WASM split (ADR 0016 §4).
+text = ["dep:lamina-text"]
+
 [dependencies]
 lamina-cos = { workspace = true }
 lamina-model = { workspace = true }
 lamina-ops = { workspace = true }
 lamina-syntax = { workspace = true }
-lamina-text = { workspace = true }
+lamina-text = { workspace = true, optional = true }
 pdf-writer = { workspace = true }
-png = { workspace = true }
+# zlib for PNG image data (surface/png.rs; the same copy lamina-syntax's Flate uses).
+miniz_oxide = { workspace = true }
 sha2 = { workspace = true }
 thiserror = { workspace = true }
 
 [dev-dependencies]
+# Writes the PNGs the image tests read, and is the reference decoder surface/png.rs is compared with.
+png = { workspace = true }
 lamina-content = { workspace = true }
 lamina-save = { workspace = true }
 serde_json = { workspace = true }

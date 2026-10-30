@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [shareable-libraries §7 L2](../../plans/shareable-libraries.md#l2-typescript-hardening) |
 | Round / milestone | Round L2 (shareable libraries) |
-| Depends on | [B2d](../done/B2d-windowed-reading.md), [B6b](./B6b-lamina-pdf-package.md) |
+| Depends on | [B2d](../done/B2d-windowed-reading.md), [B6b](../done/B6b-lamina-pdf-package.md) |
 | Blocks | None |
 | ADRs | Implements the edge half of [0005](../../decisions/0005-document-model.md) §2 (`SourceError::Pending` → `Error::DataPending { ranges }`, edge `ByteSource`s); follows [0001](../../decisions/0001-core-language-and-licence.md) (bytes-in/bytes-out core), [0003](../../decisions/0003-reader-tolerance-and-limits.md) (`Limits` bound what is fetched), 0026 and 0028 (codes, cancellation; from [L1a](../done/L1a-contract-adrs.md)), [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) (new crate dependencies) |
 | Branch | `feat/l2c-range-byte-source` |

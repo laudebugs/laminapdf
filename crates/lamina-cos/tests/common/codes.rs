@@ -11,8 +11,11 @@
 
 use std::path::Path;
 
+#[path = "code_groups.rs"]
+mod code_groups;
+
 /// Top-level keys of `codes.json` that are not groups of codes.
-pub const NOT_CODE_GROUPS: [&str; 3] = ["version", "docsUrl", "limits"];
+pub use code_groups::NOT_CODE_GROUPS;
 
 /// The parsed `fixtures/codes.json` (crates sit two levels below the repository root).
 pub fn codes_json() -> serde_json::Value {

@@ -5,6 +5,7 @@
 
 mod capabilities;
 mod changes;
+mod codegen;
 mod corpus;
 mod docs_links;
 mod doctor;
@@ -20,6 +21,7 @@ mod runner;
 mod todos;
 mod tracked;
 mod util;
+mod wasm;
 mod workspace;
 
 use std::env;
@@ -40,13 +42,22 @@ tasks:
                     docs: docs-links, todos --check, portable paths and the capability
                     matrix's static checks (capabilities --check runs the tests)
                     rust: fmt --check, portability, clippy (native + wasm32), tests, rustdoc, cargo-deny
-                    ts:   biome ci, typecheck and tests of the pnpm workspace, npm licences
+                    ts:   biome ci, gen codes --check, typecheck and tests of the pnpm
+                          workspace, npm licences
+  gen codes [--check]
+                    write @lamina/pdf's code unions (packages/pdf/src/codes.generated.ts) from
+                    fixtures/codes.json; --check fails when the file is stale
   fmt [--check]     format Rust (cargo fmt) and TS/JSON (biome); --check only verifies
   lint              clippy native (all targets) and wasm32 (core crates), biome ci
   test              Rust tests (cargo-nextest when installed, else cargo test) + doc tests, TS tests
   portability       core crates: forbidden-API grep, dependency and unsafe rules,
                     cargo check for wasm32, iOS and Android
-  wasm              build the wasm32 crates with the size-optimised `wasm-release` profile
+  wasm              build the wasm32 crates with the size-optimised `wasm-release` profile, then
+                    the @lamina/wasm modules (lamina_base, lamina_text) into packages/wasm/dist/
+                    (wasm-bindgen, wasm-opt) and their tests in Node
+  size [--update-baseline]
+                    measure packages/wasm/dist/ (raw, gzip, brotli; glue min+gzip), write
+                    target/size-report.json, fail above packages/wasm/size-budgets.json
   deny              cargo-deny (licences, advisories, bans, sources) + npm licence check
   npm-licenses      npm licence check only (pnpm licenses list)
   docs-links [--external] [--json]
@@ -61,7 +72,8 @@ tasks:
                     verifies (and fails if a tagged test fails)
   golden [--update] regenerate every golden in fixtures/golden/ from its source and print the
                     list (--update writes them, the lamina examples' in fixtures/golden/examples/,
-                    and the shaping goldens in fixtures/shaping/ when hb-shape is installed;
+                    the reading-order corpus in fixtures/reading-order/, and the shaping goldens
+                    in fixtures/shaping/ when hb-shape is installed;
                     without it, fail if they would change)
   examples          run the lamina crate's examples into target/examples-out/, compare them
                     with fixtures/golden/examples/ and run qpdf --check on each (needs qpdf)
@@ -111,7 +123,7 @@ tasks:
                     list the paths changed since the merge base with <rev> (default origin/main)
                     and say whether any is code (not docs); sets `code` in $GITHUB_OUTPUT
                     (default base: origin/main, or main when there is no origin/main)
-  ci                check + wasm: the whole fast lane, locally
+  ci                check + wasm + size: the whole fast lane, locally
   doctor [--install]
                     check that external tools are installed at their pinned versions;
                     --install runs the `cargo install` fixes
@@ -152,6 +164,8 @@ fn main() -> Result<()> {
         ("check", [scope]) if scope == "docs" => check_docs(&ws),
         ("check", [scope]) if scope == "rust" => check_rust(&ws),
         ("check", [scope]) if scope == "ts" => check_ts(&ws),
+        ("gen", [what]) if what == "codes" => codegen::codes(&ws, false),
+        ("gen", [what, flag]) if what == "codes" && flag == "--check" => codegen::codes(&ws, true),
         ("fmt", []) => fmt(&ws, false),
         ("fmt", [flag]) if flag == "--check" => fmt(&ws, true),
         ("lint", []) => {
@@ -164,6 +178,8 @@ fn main() -> Result<()> {
         }
         ("portability", []) => portability(&ws),
         ("wasm", []) => wasm(&ws),
+        ("size", []) => wasm::size(&ws, false),
+        ("size", [flag]) if flag == "--update-baseline" => wasm::size(&ws, true),
         ("deny", []) => {
             cargo_deny(&ws)?;
             licenses::check_npm(&ws)
@@ -200,7 +216,8 @@ fn main() -> Result<()> {
             check_docs(&ws)?;
             check_rust(&ws)?;
             check_ts(&ws)?;
-            wasm(&ws)
+            wasm(&ws)?;
+            wasm::size(&ws, false)
         }
         _ => bail!("unknown task or arguments: {}\n\n{USAGE}", args.join(" ")),
     }
@@ -242,6 +259,7 @@ fn check_rust(ws: &Workspace) -> Result<()> {
 
 fn check_ts(ws: &Workspace) -> Result<()> {
     biome_ci(ws)?;
+    codegen::codes(ws, true)?;
     ws.pnpm(&["-r", "--if-present", "run", "typecheck"])?;
     ts_tests(ws)?;
     licenses::check_npm(ws)?;
@@ -281,7 +299,22 @@ fn clippy(ws: &Workspace) -> Result<()> {
     let mut args = vec!["clippy", "--locked", "--target", WASM_TARGET, "--lib"];
     args.extend(package_args(ws.wasm_crates(), "wasm32")?);
     args.extend(["--", "-D", "warnings"]);
-    ws.cargo(&args)
+    ws.cargo(&args)?;
+    // The shipping configurations, which the unified build above never compiles: the WASM
+    // modules (the base: lamina-build without text, no SASLprep, the façade with `build`
+    // only; ADR 0016 §4) and the façade without the builder. Clippy lints every workspace
+    // crate a build compiles, so each of these lints its dependencies' configuration too.
+    for features in [
+        &["-p", "lamina-wasm"][..],
+        &["-p", "lamina-wasm", "--features", "text"],
+        &["-p", "lamina", "--no-default-features"],
+    ] {
+        let mut args = vec!["clippy", "--locked", "--target", WASM_TARGET, "--lib"];
+        args.extend(features);
+        args.extend(["--", "-D", "warnings"]);
+        ws.cargo(&args)?;
+    }
+    Ok(())
 }
 
 fn rust_tests(ws: &Workspace) -> Result<()> {
@@ -346,18 +379,23 @@ fn portability(ws: &Workspace) -> Result<()> {
         let mut args = vec!["check", "--locked", "--lib", "--target", target];
         args.extend(package_args(ws.core_crates(), "core")?);
         ws.cargo(&args)?;
-        // The façade's structure-only build (no `text`: no fonts, no builder) is a shipping
-        // configuration of its own, for WASM splitting (todo B5c).
-        ws.cargo(&[
-            "check",
-            "--locked",
-            "--lib",
-            "--target",
-            target,
-            "-p",
-            "lamina",
-            "--no-default-features",
-        ])?;
+        // The façade's structure-only build (no builder, no text) and the WASM base module's
+        // (the builder without text, no SASLprep) are shipping configurations of their own
+        // (todo B5c, ADR 0016 §4).
+        for features in [&[][..], &["--features", "build"][..]] {
+            let mut args = vec![
+                "check",
+                "--locked",
+                "--lib",
+                "--target",
+                target,
+                "-p",
+                "lamina",
+                "--no-default-features",
+            ];
+            args.extend(features);
+            ws.cargo(&args)?;
+        }
     }
     Ok(())
 }
@@ -372,13 +410,15 @@ fn wasm(ws: &Workspace) -> Result<()> {
         "--target",
         WASM_TARGET,
     ];
-    args.extend(package_args(ws.wasm_crates(), "wasm32")?);
-    // The core crates are rlibs, so there is no .wasm artefact yet; this only proves they build
-    // with the shipping profile. When the lamina-wasm cdylib lands (Round B), this task also runs
-    // wasm-bindgen and wasm-opt (binaryen pinned in doctor.rs, with explicit feature flags matching
-    // rustc's wasm32 defaults), enforces a size budget, and writes the output gitignored inside the
-    // consuming package, never as a separate workspace member.
-    ws.cargo(&args)
+    // lamina-wasm is built per module by `wasm::build` (an LTO link here would be thrown away).
+    args.extend(package_args(
+        ws.wasm_crates().filter(|c| *c != "lamina-wasm"),
+        "wasm32",
+    )?);
+    // Every wasm32 crate builds with the shipping profile; then the two modules of @lamina/wasm
+    // (ADR 0016), written gitignored into packages/wasm/dist/, and their tests.
+    ws.cargo(&args)?;
+    wasm::build(ws)
 }
 
 fn cargo_deny(ws: &Workspace) -> Result<()> {

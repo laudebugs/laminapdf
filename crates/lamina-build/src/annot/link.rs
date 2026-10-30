@@ -8,6 +8,13 @@ use lamina_syntax::text::encode_text_string;
 use crate::nav::LinkTarget;
 use crate::page::rect_object;
 
+/// A link annotation as drawn: where it goes and its `/Contents`.
+#[derive(Debug, Clone, PartialEq)]
+pub(crate) struct LinkSpec {
+    pub(crate) target: LinkTarget,
+    pub(crate) contents: Option<String>,
+}
+
 /// A link annotation whose object number is reserved and listed in its page's `/Annots`,
 /// waiting for its target to be resolved.
 #[derive(Debug, Clone)]
