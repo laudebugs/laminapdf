@@ -37,6 +37,9 @@ One page per code in [`fixtures/codes.json`](../../fixtures/codes.json), as [ADR
 | [`inline-image-unterminated`](inline-image-unterminated.md) | `input` |
 | [`xobject-cycle`](xobject-cycle.md) | `input` |
 | [`content-path-unpainted`](content-path-unpainted.md) | `input` |
+| [`font-invalid`](font-invalid.md) | `input` |
+| [`cmap-invalid`](cmap-invalid.md) | `input` |
+| [`unmapped-glyph`](unmapped-glyph.md) | `input` |
 
 ## Errors
 

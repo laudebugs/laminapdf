@@ -7,7 +7,7 @@
 | Plan | [pdf-library §7 B9](../../plans/pdf-library.md#b9-text-extraction), requirement [§4 F8](../../plans/pdf-library.md#functional) |
 | Round / milestone | Round B (library) — M2 Web reader v0.1 (prerequisite) |
 | Depends on | [B2c](./B2c-lamina-model-corpus-fuzz.md), [X4](./X4-full-lane-gate.md) |
-| Blocks | [B9b](../ongoing/B9b-text-extraction-core.md) |
+| Blocks | [B9b](./B9b-text-extraction-core.md) |
 | ADRs | Writes **0023** (content-stream reading: `lamina-content` crate, operator and XObject-depth limits); uses [0003](../../decisions/0003-reader-tolerance-and-limits.md) reserved limits `max_content_operators` and `max_xobject_depth`; [0018](../../decisions/0018-test-strategy.md) fuzz target `content` |
 | Branch | `feat/b9a-lamina-content` |
 | PR title | `feat(content): ADR 0023 and a read-only content-stream interpreter (B9a)` |
@@ -16,7 +16,7 @@
 
 ## Goal
 
-Read what is drawn on a page. A tolerant tokenizer and a read-only interpreter walk a page's content streams (and Form XObjects, recursively and bounded) while tracking graphics and text state, and report typed events (text show, path paint, image, marked-content begin/end, XObject enter/leave) to a visitor. Text extraction ([B9b](../ongoing/B9b-text-extraction-core.md)) is the first consumer; full-editor E2 (content append) and E7 (editing, ADR 0022) extend the crate later.
+Read what is drawn on a page. A tolerant tokenizer and a read-only interpreter walk a page's content streams (and Form XObjects, recursively and bounded) while tracking graphics and text state, and report typed events (text show, path paint, image, marked-content begin/end, XObject enter/leave) to a visitor. Text extraction ([B9b](../done/B9b-text-extraction-core.md)) is the first consumer; full-editor E2 (content append) and E7 (editing, ADR 0022) extend the crate later.
 
 ## Context
 
@@ -40,7 +40,7 @@ Read what is drawn on a page. A tolerant tokenizer and a read-only interpreter w
 
 **Out of scope** (and which todo covers it)
 
-- Font decoding, Unicode mapping, glyph quads: [B9b](../ongoing/B9b-text-extraction-core.md).
+- Font decoding, Unicode mapping, glyph quads: [B9b](../done/B9b-text-extraction-core.md).
 - Bindings and differential tests: [B9c](../ready/B9c-text-extraction-bindings-and-differential.md).
 - Writing/editing content streams: full-editor E2, E7.
 - Rendering (PDFium/hayro do it): web C2.
