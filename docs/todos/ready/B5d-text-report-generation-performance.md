@@ -35,7 +35,7 @@ Plan §4 asks for a 100-page text report in ≤ 500 ms after `init()`. B6b measu
 **Out of scope** (and which todo covers it)
 
 - Worker memory under 64 MB (measured at 5 MB by B6b; re-check only).
-- Runtime matrix timing in browsers: [B6c](./B6c-runtime-matrix.md).
+- Runtime matrix timing in browsers: [B6c](../ongoing/B6c-runtime-matrix.md).
 
 ## Tasks
 

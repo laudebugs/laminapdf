@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [pdf-library §7 B7](../../plans/pdf-library.md#b7-docs-examples-and-first-release), [§6](../../plans/pdf-library.md#6-docs-examples-and-publishing) |
 | Round / milestone | Round B (library) — M1 |
-| Depends on | [B2b](../done/B2b-standard-security-decryption.md), [B6b](../done/B6b-lamina-pdf-package.md), [B6c](./B6c-runtime-matrix.md) |
+| Depends on | [B2b](../done/B2b-standard-security-decryption.md), [B6b](../done/B6b-lamina-pdf-package.md), [B6c](../ongoing/B6c-runtime-matrix.md) |
 | Blocks | [B7b](./B7b-versioning-and-0-1-0-alpha.md), [L5a](./L5a-agent-docs.md), [U5a](./U5a-pricing-and-promises-page.md) |
 | ADRs | Follows [0015](../../decisions/0015-monorepo-layout-and-tooling.md) (apps in the pnpm workspace), [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) (npm licences), 0016 (API names); Cloudflare deploy conventions until ADR 0011 (web C2) |
 | Branch | `docs/b7a-docs-site` |
@@ -22,7 +22,7 @@ Publish usable documentation for `lamina` and `@lamina/pdf` before the first tag
 
 - [pdf-library §6](../../plans/pdf-library.md#6-docs-examples-and-publishing): Starlight (MIT), `docs.<domain>`, TypeDoc, docs.rs (later; locally `cargo doc` for now since nothing is published).
 - [Cloudflare notes](../../research/architecture/notes/cloudflare.md): Workers static assets, preview URLs.
-- Examples from [B5c](../done/B5c-lamina-facade-and-examples.md) (Rust) and [B6b](../done/B6b-lamina-pdf-package.md)/[B6c](./B6c-runtime-matrix.md) (TS, Worker).
+- Examples from [B5c](../done/B5c-lamina-facade-and-examples.md) (Rust) and [B6b](../done/B6b-lamina-pdf-package.md)/[B6c](../ongoing/B6c-runtime-matrix.md) (TS, Worker).
 
 ## Scope
 
@@ -52,7 +52,7 @@ Publish usable documentation for `lamina` and `@lamina/pdf` before the first tag
 
 - [ ] `pnpm --filter docs build` succeeds with zero broken internal links
 - [ ] Every PR touching `apps/docs/`, `packages/pdf/` or examples gets a preview URL comment (this PR's own preview included)
-- [ ] Every code snippet on the site is imported from a tested example file (the Worker, Deno and Bun quick starts from [B6c](./B6c-runtime-matrix.md)'s `packages/pdf/examples/worker/` and its Deno/Bun runners)
+- [ ] Every code snippet on the site is imported from a tested example file (the Worker, Deno and Bun quick starts from [B6c](../ongoing/B6c-runtime-matrix.md)'s `packages/pdf/examples/worker/` and its Deno/Bun runners)
 - [ ] The error/warning code table matches `fixtures/codes.json` (generated)
 
 ## Post-merge checks
