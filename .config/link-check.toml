@@ -1,0 +1,92 @@
+# Allowlist for `cargo xtask docs-links --external`, the nightly external link check (todo X3c).
+# URLs starting with a `prefix` are listed in the report but not fetched: hosts that refuse
+# automated requests (bot walls, logins, aggressive rate limits) even though the page exists.
+# Every entry needs a `reason`. The check warns about entries that no longer match any link.
+#
+# [[allow]]
+# prefix = "https://example.com/"
+# reason = "answers 403 to non-browser clients"
+
+[[allow]]
+prefix = "https://github.com/laudebugs/lamina/"
+reason = "the repository is private: its PRs, issues and runs answer 404 without a login"
+
+[[allow]]
+prefix = "https://app.semanticdiff.com/"
+reason = "answers 429 to automated clients (rate limit or bot protection)"
+
+[[allow]]
+prefix = "https://business.adobe.com/"
+reason = "stalls non-browser clients until they time out, over HTTP/1.1 and HTTP/2 (bot protection)"
+
+[[allow]]
+prefix = "https://deepwiki.com/"
+reason = "answers 429 to automated clients (rate limit or bot protection)"
+
+[[allow]]
+prefix = "https://deu.proz.com/"
+reason = "answers 403 to non-browser clients (bot protection)"
+
+[[allow]]
+prefix = "https://fourweekmba.com/"
+reason = "answers 403 to non-browser clients (bot protection)"
+
+[[allow]]
+prefix = "https://gitlab.torproject.org/"
+reason = "answers 403 to non-browser clients (bot protection)"
+
+[[allow]]
+prefix = "https://hacecuentas.com/"
+reason = "answers 403 to non-browser clients (bot protection)"
+
+[[allow]]
+prefix = "https://mcpplaygroundonline.com/"
+reason = "answers 429 to automated clients (rate limit or bot protection)"
+
+[[allow]]
+prefix = "https://nl-be.trustpilot.com/"
+reason = "answers 403 to non-browser clients (bot protection)"
+
+[[allow]]
+prefix = "https://press.rebus.community/"
+reason = "answers 403 to non-browser clients (bot protection)"
+
+[[allow]]
+prefix = "https://slack-chats.kotlinlang.org/"
+reason = "answers 429 to automated clients (rate limit or bot protection)"
+
+[[allow]]
+prefix = "https://wikidocs.net/"
+reason = "answers 403 to non-browser clients (bot protection)"
+
+[[allow]]
+prefix = "https://www.brainbound.blog/"
+reason = "answers 403 to non-browser clients (bot protection)"
+
+[[allow]]
+prefix = "https://www.g2.com/"
+reason = "answers 403 to non-browser clients (bot protection)"
+
+[[allow]]
+prefix = "https://www.publicsector.shidirect.com/"
+reason = "answers 403 to non-browser clients (bot protection)"
+
+[[allow]]
+prefix = "https://www.shi.com/"
+reason = "answers 403 to non-browser clients (bot protection)"
+
+[[allow]]
+prefix = "https://www.themoonlight.io/"
+reason = "answers 429 to automated clients (rate limit or bot protection)"
+
+[[allow]]
+prefix = "https://www.w3schools.com/"
+reason = "answers 403 to non-browser clients (bot protection)"
+
+[[allow]]
+prefix = "https://www.iso.org/"
+reason = "answers 403 to non-browser clients (bot protection)"
+
+[[allow]]
+prefix = "https://yingtongli.me/"
+reason = "answers 403 to non-browser clients, even with a browser user agent (bot protection)"

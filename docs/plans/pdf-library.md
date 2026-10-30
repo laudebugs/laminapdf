@@ -224,7 +224,7 @@ Architecture Round B is delivered as rounds B1–B9, each split into todos (one 
 
 ### B9. Text extraction
 
-**Todos:** [B9a](../todos/done/B9a-lamina-content-and-adr-0023.md) (ADR 0023, `lamina-content`), [B9b](../todos/ready/B9b-text-extraction-core.md) (extraction in `lamina-text`), [B9c](../todos/ready/B9c-text-extraction-bindings-and-differential.md) (`page.text()` in WASM/TS, differential and quad tests; must merge before web C5).
+**Todos:** [B9a](../todos/done/B9a-lamina-content-and-adr-0023.md) (ADR 0023, `lamina-content`), [B9b](../todos/done/B9b-text-extraction-core.md) (fonts, CMaps and Unicode per glyph in `lamina-text`), [B9d](../todos/ongoing/B9d-text-runs-quads-and-page-text.md) (quads, runs, `ActualText`, MCIDs, the façade's `page.text()`), [B9c](../todos/ready/B9c-text-extraction-bindings-and-differential.md) (`page.text()` in WASM/TS, differential and quad tests; must merge before web C5).
 
 **Deliverable:** ADR 0023 (content-stream reading: adds `lamina-content` to the crate list); `crates/lamina-content` as a **read-only** content-stream interpreter (tokenizer, graphics and text state, `q`/`Q`, `cm`, text operators, Form XObject recursion with depth limits, marked content); text extraction in `lamina-text` on top of it: font dictionaries read (simple and Type 0, `/Widths` and `/W`, embedded font metrics via skrifa), encodings and ToUnicode CMap parsing, glyph quads, `ActualText` and MCIDs; exposed in `lamina`, `lamina-wasm` and `@lamina/pdf` (`page.text()`). [Full-editor](full-editor.md#6-design-summary) E2 adds a content append API to this crate and E7 extends it for editing (ADR 0022).
 **Accepted when:** extracted text for fixtures in five scripts (Latin, Arabic, Devanagari, Hebrew, CJK) matches expected text and pdf.js/pdftotext output on the corpus; glyph quads lie within tolerance of PDFium's character boxes; encrypted fixtures extract the same text as their originals; extraction fuzz target runs 10 min without a panic.
@@ -340,7 +340,7 @@ Each round's todos (one per PR, with dependencies) are linked from [§7](#7-roun
 
 - [x] Write ADR 0023 (content-stream reading; `lamina-content` crate; limits on operators and XObject depth) ([B9a](../todos/done/B9a-lamina-content-and-adr-0023.md))
 - [x] Create `crates/lamina-content`: tokenizer and read-only interpreter with graphics and text state (B9a; Form XObjects, marked content, the `content` fuzz target, operator counts checked against pdf.js)
-- [ ] Font dictionary reading: simple and Type 0 fonts, `/Widths`, `/W`, embedded metrics
-- [ ] Encodings, glyph-name fallbacks and ToUnicode CMap parsing
-- [ ] Glyph runs with Unicode, quads, direction, `ActualText`, MCIDs; expose `page.text()` in Rust, WASM and TS
+- [x] Font dictionary reading: simple and Type 0 fonts, `/Widths`, `/W`, embedded metrics ([B9b](../todos/done/B9b-text-extraction-core.md))
+- [x] Encodings, glyph-name fallbacks and ToUnicode CMap parsing ([B9b](../todos/done/B9b-text-extraction-core.md))
+- [ ] Glyph runs with Unicode, quads, direction, `ActualText`, MCIDs; expose `page.text()` in Rust, WASM and TS ([B9d](../todos/ongoing/B9d-text-runs-quads-and-page-text.md), [B9c](../todos/ready/B9c-text-extraction-bindings-and-differential.md))
 - [ ] Extraction tests in five scripts vs pdf.js and pdftotext; quad tests vs PDFium; fuzz target

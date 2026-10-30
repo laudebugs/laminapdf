@@ -1,7 +1,8 @@
 //! The nightly lane's local entry points (ADR 0018 §2, tiers 9 and 11; todo X3a), each also a
 //! job of `.github/workflows/nightly.yml`: release-mode scaling tests with one retry that only
 //! reports flakiness (§4), benchmarks with history and a 10% regression check that never fails
-//! the build, fuzz crash minimisation, and `nightly`, which runs the whole lane in sequence.
+//! the build, fuzz crash minimisation, and `nightly`, which runs the whole lane in sequence (the
+//! external link check is `docs_links::external`).
 
 use std::collections::BTreeMap;
 use std::fmt::Write as _;
@@ -14,7 +15,7 @@ use serde_json::{Value, json};
 
 use crate::util::{append, github_output, summary};
 use crate::workspace::Workspace;
-use crate::{corpus, harness, live, step};
+use crate::{corpus, docs_links, harness, live, step};
 
 /// A benchmark regressed when it is this much slower than its baseline (ADR 0018 tier 11).
 const REGRESSION_RATIO: f64 = 1.10;
@@ -344,6 +345,7 @@ pub(crate) fn nightly(ws: &Workspace, quick: bool) -> Result<()> {
         ..BenchArgs::default()
     };
     part("bench", bench(ws, &bench_args));
+    part("docs-links --external", docs_links::external::run(&ws.root, false));
     if failed.is_empty() {
         step("Nightly lane passed");
         Ok(())
