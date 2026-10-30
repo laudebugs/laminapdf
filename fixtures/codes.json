@@ -565,6 +565,20 @@
       "summary": "a shaped run was given with a font key for a different font than it was shaped with",
       "hint": "pass the key of the font the run was shaped with (the font index of each line run maps to your keys)",
       "since": "0.1.0"
+    },
+    {
+      "code": "encoding-full",
+      "kind": "limit",
+      "summary": "a standard 14 font has no free one-byte code left for another glyph",
+      "hint": "embed a font with Font::from_bytes, or split the text across two registrations of the standard font",
+      "since": "0.1.0"
+    },
+    {
+      "code": "font-not-shapable",
+      "kind": "unsupported",
+      "summary": "a standard 14 font was given to shaping or layout, which need a font program",
+      "hint": "draw standard 14 fonts with FontRegistry::encode, or shape with an embedded font",
+      "since": "0.1.0"
     }
   ],
   "textWarnings": [

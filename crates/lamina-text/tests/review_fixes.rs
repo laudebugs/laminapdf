@@ -201,7 +201,7 @@ fn encode_records_nothing_when_a_glyph_is_out_of_range() {
     assert_eq!(
         (
             result.is_err(),
-            fonts.usage(key).unwrap().glyphs().len(),
+            fonts.usage(key).unwrap().embedded().unwrap().glyphs().len(),
             space.is_some()
         ),
         (true, 1, true)

@@ -130,6 +130,29 @@ pub enum Error {
         /// The PostScript name of the font the run was shaped with.
         shaped_with: String,
     },
+    /// A standard 14 font was given to the shaper, itemizer, line breaker or
+    /// [`pdf_run`](crate::pdf_run): it has no font program to shape with and no CIDs. Draw
+    /// it with [`FontRegistry::encode`](crate::FontRegistry::encode) (one byte per
+    /// character), or shape with an embedded font.
+    #[error("a standard 14 font has no font program to shape with")]
+    FontNotShapable {
+        /// The font's PostScript name (one of the fourteen).
+        font: String,
+    },
+    /// A standard 14 font ran out of codes: each Latin glyph outside `WinAnsiEncoding` that
+    /// the document uses takes one of the codes `WinAnsiEncoding` leaves undefined, through
+    /// `/Differences`, and there are only 37 of them (`limit`). The text needed more new codes
+    /// than were `free`; none were assigned (all or nothing, like
+    /// [`FontRegistry::encode`](crate::FontRegistry::encode)).
+    #[error("the simple font has {free} of its {limit} /Differences codes left, fewer than the text needs")]
+    EncodingFull {
+        /// The font's PostScript name.
+        font: String,
+        /// How many codes `/Differences` can assign in this font.
+        limit: usize,
+        /// How many of them were still free.
+        free: usize,
+    },
     /// Writing the font objects into the document failed.
     #[error(transparent)]
     Cos(#[from] lamina_cos::Error),
@@ -153,6 +176,8 @@ impl Error {
         "invalid-text-range",
         "unsupported-layout-option",
         "font-mismatch",
+        "encoding-full",
+        "font-not-shapable",
     ];
 
     /// A stable kebab-case code for this error.
@@ -173,6 +198,8 @@ impl Error {
             Self::InvalidTextRange { .. } => "invalid-text-range",
             Self::UnsupportedLayoutOption { .. } => "unsupported-layout-option",
             Self::FontMismatch { .. } => "font-mismatch",
+            Self::EncodingFull { .. } => "encoding-full",
+            Self::FontNotShapable { .. } => "font-not-shapable",
             Self::Cos(e) => e.code(),
         }
     }
@@ -197,7 +224,10 @@ impl Error {
             | Self::InvalidFeature { .. }
             | Self::InvalidTextRange { .. }
             | Self::FontMismatch { .. } => ErrorKind::Usage,
-            Self::Subset { .. } | Self::UnsupportedLayoutOption { .. } => ErrorKind::Unsupported,
+            Self::Subset { .. } | Self::UnsupportedLayoutOption { .. } | Self::FontNotShapable { .. } => {
+                ErrorKind::Unsupported
+            }
+            Self::EncodingFull { .. } => ErrorKind::Limit,
         }
     }
 
@@ -220,7 +250,9 @@ impl Error {
             | Self::InvalidFeature { .. }
             | Self::InvalidTextRange { .. }
             | Self::UnsupportedLayoutOption { .. }
-            | Self::FontMismatch { .. } => Location::NONE,
+            | Self::FontMismatch { .. }
+            | Self::EncodingFull { .. }
+            | Self::FontNotShapable { .. } => Location::NONE,
         }
     }
 }
@@ -348,6 +380,12 @@ mod tests {
                 font: String::new(),
                 shaped_with: String::new(),
             },
+            Error::EncodingFull {
+                font: String::new(),
+                limit: 37,
+                free: 0,
+            },
+            Error::FontNotShapable { font: String::new() },
         ]
     }
 

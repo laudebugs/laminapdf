@@ -55,6 +55,46 @@
         "The words שלום עולם and العالمب\u0011 ا\u0011 بمرح mean hello."
       ]
     },
+    "text-std14.pdf": {
+      "sha256": "2c690120e09bf0d2c0e139efab093eed5e786d4ea34fbf5d86a307070f92006d",
+      "pypdf": [
+        "Courier: Hello, world! 0123456789",
+        "Courier-Bold: {braces} [brackets] <angles>",
+        "Courier-Oblique: café, naïve, façade",
+        "Courier-BoldOblique: 50% off ~ $9.99",
+        "Helvetica: “Curly” ‘quotes’ — and dashes – too",
+        "Helvetica-Bold: Euro € pound £ yen ¥",
+        "Helvetica-Oblique: Ærøskøbing, Þórshöfn, Œuvre",
+        "Helvetica-BoldOblique: ½ ¼ ¾ © ® ™ § ¶",
+        "Times-Roman: The quick brown fox jumps over the lazy dog.",
+        "Times-Bold: Grüße aus Köln • München",
+        "Times-Italic: ¿Qué tal? ¡Muy bien!",
+        "Times-BoldItalic: Ça va… très «bien» ‰",
+        "αβγ π ∑ ≤ ∞ €",
+        "✔ ✈ ❤ ☎",
+        "Łódź, Kraków − Şişli",
+        "Țară, Ğğ İı őű"
+      ],
+      "qpdf_check": true,
+      "pdfjs": [
+        "Courier: Hello, world! 0123456789",
+        "Courier-Bold: {braces} [brackets] <angles>",
+        "Courier-Oblique: café, naïve, façade",
+        "Courier-BoldOblique: 50% off ~ $9.99",
+        "Helvetica: “Curly” ‘quotes’ — and dashes – too",
+        "Helvetica-Bold: Euro € pound £ yen ¥",
+        "Helvetica-Oblique: Ærøskøbing, Þórshöfn, Œuvre",
+        "Helvetica-BoldOblique: ½ ¼ ¾ © ® ™ § ¶",
+        "Times-Roman: The quick brown fox jumps over the lazy dog.",
+        "Times-Bold: Grüße aus Köln • München",
+        "Times-Italic: ¿Qué tal? ¡Muy bien!",
+        "Times-BoldItalic: Ça va… très «bien» ‰",
+        "αβγ π ∑ ≤ ∞ €",
+        "✔ ✈ ❤ ☎",
+        "Łódź, Kraków − Şişli",
+        "Țară, Ğğ İı őű"
+      ]
+    },
     "text-variable-collection.pdf": {
       "sha256": "309f91cd50271aa97ce2f579d3d8f02c9be9839e97d084ab67e68853dc888190",
       "pypdf": [

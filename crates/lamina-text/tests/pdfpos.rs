@@ -52,7 +52,7 @@ fn a_ligature_maps_to_its_letters_without_actual_text() {
     // hb-shape "fi": one glyph (368), advance 602 = its hmtx width.
     let (pdf, fonts, key) = run("NotoSans-Regular.ttf", "fi");
     assert_eq!(pdf.pieces[0].segments[0].tj, [codes(&[1])]);
-    assert_eq!(fonts.usage(key).unwrap().text()[&1], "fi");
+    assert_eq!(fonts.usage(key).unwrap().embedded().unwrap().text()[&1], "fi");
     assert!(!pdf.needs_actual_text());
 }
 
@@ -65,7 +65,7 @@ fn a_reordered_matra_needs_actual_text() {
     assert_eq!(pdf.pieces.len(), 1);
     assert_eq!(pdf.pieces[0].actual_text.as_deref(), Some("कि"));
     assert_eq!(pdf.pieces[0].segments[0].tj, [codes(&[1, 2])]);
-    let text = fonts.usage(key).unwrap().text();
+    let text = fonts.usage(key).unwrap().embedded().unwrap().text();
     assert_eq!(text.values().map(String::as_str).collect::<Vec<_>>(), ["\u{93F}", "क"]);
 }
 
@@ -75,7 +75,7 @@ fn a_reph_takes_the_ra_and_virama() {
     // the font's glyph for neither character, takes the rest, "र्"; read in order: "मर्".
     let (pdf, fonts, key) = run("NotoSansDevanagari-Regular.ttf", "र्म");
     assert_eq!(pdf.pieces[0].actual_text.as_deref(), Some("र्म"));
-    let text = fonts.usage(key).unwrap().text();
+    let text = fonts.usage(key).unwrap().embedded().unwrap().text();
     assert_eq!(text.values().map(String::as_str).collect::<Vec<_>>(), ["म", "र्"]);
 }
 
@@ -86,7 +86,7 @@ fn a_base_and_its_mark_map_one_to_one() {
     // order. No /ActualText needed.
     let (pdf, fonts, key) = run("NotoSansHebrew-Regular.ttf", "בְ");
     assert!(!pdf.needs_actual_text());
-    let text = fonts.usage(key).unwrap().text();
+    let text = fonts.usage(key).unwrap().embedded().unwrap().text();
     assert_eq!(text.values().map(String::as_str).collect::<Vec<_>>(), ["\u{5B0}", "ב"]);
 }
 

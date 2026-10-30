@@ -15,9 +15,13 @@ use std::sync::atomic::{AtomicU32, Ordering};
 
 use lamina_cos::{CosMut, Document, ObjRef};
 
+pub(crate) use subset::round_i64;
+pub(crate) use type0::real;
+
 use crate::error::{Error, Result, Warning};
 use crate::font::{Font, GlyphId};
 use crate::fstype::EmbedPolicy;
+use crate::simple::SimpleUse;
 use crate::usage::FontUse;
 
 /// A font registered with a [`FontRegistry`]. Only meaningful to the registry that returned
@@ -32,32 +36,39 @@ pub struct FontKey {
 /// Registry identities, unique within the process. Only compared, never written to output.
 static NEXT_REGISTRY: AtomicU32 = AtomicU32::new(0);
 
-/// Text encoded for one font: the bytes to show (`Tj`/`TJ` operand, two bytes per glyph,
-/// Identity-H) and their advance.
+/// Text encoded for one font: the bytes to show (`Tj`/`TJ` operand: two bytes per glyph,
+/// Identity-H, for an embedded font; one byte per glyph for a standard 14 font) and their
+/// advance.
 #[derive(Debug, Clone, PartialEq)]
 #[non_exhaustive]
 pub struct Encoded {
-    /// The string operand: each glyph's CID, big-endian.
+    /// The string operand: each glyph's CID, big-endian (embedded fonts), or each glyph's
+    /// one-byte code (standard 14 fonts).
     pub bytes: Vec<u8>,
     /// The total advance in thousandths of the font size (glyph space units of `/W`), without
     /// character or word spacing.
     pub advance: f64,
 }
 
-/// What [`FontRegistry::finish_fonts`] embedded for one font.
+/// What [`FontRegistry::finish_fonts`] wrote for one font: an embedded Type 0 font, or a
+/// standard 14 font written as a simple font without a program (`embedded` is `false`).
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[non_exhaustive]
 pub struct EmbeddedFont {
     /// The font's key.
     pub key: FontKey,
-    /// The Type 0 font dictionary (the object content streams refer to).
+    /// The font dictionary content streams refer to: Type 0, or `/Type1` for a standard 14
+    /// font.
     pub object: ObjRef,
+    /// Whether a font program was embedded (`false` for a standard 14 font).
+    pub embedded: bool,
     /// `/BaseFont`: `ABCDEF+PostScriptName` for a subset, the PostScript name alone for a
     /// font embedded whole.
     pub base_font: String,
-    /// The glyphs in the embedded program's `/W` and ToUnicode, `.notdef` included.
+    /// The glyphs in the embedded program's `/W` and ToUnicode, `.notdef` included; for a
+    /// standard 14 font, the distinct codes drawn.
     pub glyphs: usize,
-    /// The size of the font program before compression.
+    /// The size of the font program before compression (0 when not `embedded`).
     pub program_len: usize,
     /// What embedding this font had to work around ([`Warning::WholeFontRebuilt`]).
     pub warnings: Vec<Warning>,
@@ -66,9 +77,77 @@ pub struct EmbeddedFont {
 #[derive(Debug)]
 struct Slot {
     font: Font,
-    usage: FontUse,
-    /// The Type 0 font dictionary, once reserved.
+    usage: Usage,
+    /// The font dictionary (Type 0, or `/Type1` for a standard 14 font), once reserved.
     object: Option<ObjRef>,
+}
+
+/// The code [`FontRegistry::use_glyph`] returns: what to put in the `Tj`/`TJ` string.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[non_exhaustive]
+pub enum GlyphCode {
+    /// A CID of an embedded (Type 0, Identity-H) font: two bytes, big-endian.
+    Cid(u16),
+    /// A code of a standard 14 (simple) font: one byte.
+    Byte(u8),
+}
+
+impl GlyphCode {
+    /// Appends the code's bytes to a string operand.
+    pub fn push_to(self, out: &mut Vec<u8>) {
+        match self {
+            Self::Cid(cid) => out.extend_from_slice(&cid.to_be_bytes()),
+            Self::Byte(code) => out.push(code),
+        }
+    }
+
+    /// The CID, for an embedded font.
+    #[must_use]
+    pub const fn cid(self) -> Option<u16> {
+        match self {
+            Self::Cid(cid) => Some(cid),
+            Self::Byte(_) => None,
+        }
+    }
+}
+
+/// What [`FontRegistry::usage`] reports for one font.
+#[derive(Debug, Clone, Copy)]
+#[non_exhaustive]
+pub enum FontUsage<'a> {
+    /// An embedded font: its glyphs and their CIDs.
+    Embedded(&'a FontUse),
+    /// A standard 14 font: its codes, `/Differences` and texts.
+    Simple(&'a SimpleUse),
+}
+
+impl<'a> FontUsage<'a> {
+    /// The usage of an embedded font.
+    #[must_use]
+    pub const fn embedded(self) -> Option<&'a FontUse> {
+        match self {
+            Self::Embedded(usage) => Some(usage),
+            Self::Simple(_) => None,
+        }
+    }
+
+    /// The usage of a standard 14 font.
+    #[must_use]
+    pub const fn simple(self) -> Option<&'a SimpleUse> {
+        match self {
+            Self::Simple(usage) => Some(usage),
+            Self::Embedded(_) => None,
+        }
+    }
+}
+
+/// How one font is written.
+#[derive(Debug)]
+enum Usage {
+    /// An embedded font: a Type 0 font over a subset.
+    Embedded(FontUse),
+    /// A standard 14 font: a simple, non-embedded Type 1 font.
+    Simple(SimpleUse),
 }
 
 /// The fonts of one document under construction: each font's glyph usage, and the Type 0
@@ -155,7 +234,10 @@ impl FontRegistry {
                 fs_type: info.fs_type,
             });
         }
-        let usage = FontUse::new(&font);
+        let usage = match font.standard14() {
+            Some(standard) => Usage::Simple(SimpleUse::new(standard)),
+            None => Usage::Embedded(FontUse::new(&font)),
+        };
         self.slots.push(Slot {
             font,
             usage,
@@ -178,13 +260,19 @@ impl FontRegistry {
         self.slot(key).map(|s| &s.font)
     }
 
-    /// The glyph usage recorded for `key` so far.
-    #[must_use]
-    pub fn usage(&self, key: FontKey) -> Option<&FontUse> {
-        self.slot(key).ok().map(|s| &s.usage)
+    /// The glyph or code usage recorded for `key` so far.
+    ///
+    /// # Errors
+    /// [`Error::UnknownFont`] for a key this registry did not hand out.
+    pub fn usage(&self, key: FontKey) -> Result<FontUsage<'_>> {
+        Ok(match &self.slot(key)?.usage {
+            Usage::Embedded(usage) => FontUsage::Embedded(usage),
+            Usage::Simple(usage) => FontUsage::Simple(usage),
+        })
     }
 
-    /// The Type 0 font object for `key`, to put in a page's `/Resources /Font`. The first call
+    /// The font object for `key` (Type 0, or `/Type1` for a standard 14 font), to put in a
+    /// page's `/Resources /Font`. The first call
     /// reserves a fresh object number in `doc` ([`Document::reserve_number`]); the object is
     /// written by [`FontRegistry::finish_fonts`].
     ///
@@ -201,30 +289,61 @@ impl FontRegistry {
     }
 
     /// Records that glyph `gid` of `key` is drawn standing for `text` (for shaped text: the
-    /// cluster's characters on its first glyph, empty on the others) and returns its CID. A
-    /// conflicting text is kept as a warning ([`FontRegistry::warnings`]).
+    /// cluster's characters on its first glyph, empty on the others) and returns the code to
+    /// show it with: a two-byte CID for an embedded font, a one-byte code for a standard 14
+    /// font ([`GlyphCode::push_to`] writes either). The text goes into the font's ToUnicode
+    /// CMap; a conflicting text is kept as a warning ([`FontRegistry::warnings`]).
     ///
     /// # Errors
-    /// [`Error::UnknownFont`]; [`Error::GlyphOutOfRange`].
-    pub fn use_glyph(&mut self, key: FontKey, gid: GlyphId, text: &str) -> Result<u16> {
-        let slot = self.slot_mut(key)?;
-        let (cid, warning) = slot.usage.use_glyph(gid, text)?;
-        self.warnings.extend(warning);
-        Ok(cid)
+    /// [`Error::UnknownFont`]; [`Error::GlyphOutOfRange`] (for a standard 14 font, also
+    /// `.notdef`); [`Error::EncodingFull`] for a standard 14 font with no code left for the
+    /// glyph.
+    pub fn use_glyph(&mut self, key: FontKey, gid: GlyphId, text: &str) -> Result<GlyphCode> {
+        let id = self.id;
+        let Self { slots, warnings, .. } = self;
+        let slot = slots
+            .get_mut(key.index)
+            .filter(|_| key.registry == id)
+            .ok_or(Error::UnknownFont { key: key.index })?;
+        let (code, warning) = match &mut slot.usage {
+            Usage::Embedded(usage) => {
+                let (cid, warning) = usage.use_glyph(gid, text)?;
+                (GlyphCode::Cid(cid), warning)
+            }
+            Usage::Simple(usage) => {
+                let (code, warning) = usage.use_glyph(gid, text)?;
+                (GlyphCode::Byte(code), warning)
+            }
+        };
+        warnings.extend(warning);
+        Ok(code)
     }
 
     /// The CID of glyph `gid` of `key`, recorded as used without claiming any text
     /// ([`FontUse`]'s `glyph_cid`, B4b).
+    ///
+    /// # Errors
+    /// [`Error::UnknownFont`]; [`Error::GlyphOutOfRange`]; [`Error::FontNotShapable`] for a
+    /// standard 14 font, which has no CIDs (shaped runs never come from one).
     pub(crate) fn glyph_cid(&mut self, key: FontKey, gid: GlyphId) -> Result<u16> {
-        self.slot_mut(key)?.usage.glyph_cid(gid)
+        let slot = self.slot_mut(key)?;
+        match &mut slot.usage {
+            Usage::Embedded(usage) => usage.glyph_cid(gid),
+            Usage::Simple(_) => Err(Error::FontNotShapable {
+                font: slot.font.info().postscript_name.clone(),
+            }),
+        }
     }
 
     /// Encodes `text` one glyph per character through the font's `cmap` (no shaping: ligatures
-    /// and complex scripts need B4b's shaper, which calls [`FontRegistry::use_glyph`]).
+    /// and complex scripts need B4b's shaper, which calls [`FontRegistry::use_glyph`]). A
+    /// standard 14 font maps characters to glyphs by name (Adobe Glyph List) and writes one
+    /// byte per character.
     ///
     /// # Errors
     /// [`Error::UnknownFont`]; [`Error::MissingGlyph`] for the first character the font has no
-    /// glyph for (nothing is recorded for `text` then).
+    /// glyph for (nothing is recorded for `text` then); [`Error::EncodingFull`] when a
+    /// standard 14 font has no code left for a glyph outside its encoding (nothing recorded).
     pub fn encode(&mut self, key: FontKey, text: &str) -> Result<Encoded> {
         let id = self.id;
         let Self { slots, warnings, .. } = self;
@@ -232,6 +351,14 @@ impl FontRegistry {
             .get_mut(key.index)
             .filter(|_| key.registry == id)
             .ok_or(Error::UnknownFont { key: key.index })?;
+        let usage = match &mut slot.usage {
+            Usage::Embedded(usage) => usage,
+            Usage::Simple(usage) => {
+                let (encoded, warning) = usage.encode(&slot.font, text)?;
+                warnings.extend(warning);
+                return Ok(encoded);
+            }
+        };
         // Every glyph is looked up (and checked) before any is recorded.
         let glyphs = slot.font.map_text(text)?;
         let scale = 1000.0 / f64::from(slot.font.info().units_per_em);
@@ -239,7 +366,7 @@ impl FontRegistry {
         let mut advance = 0.0;
         let mut buf = [0u8; 4];
         for (gid, ch, width) in glyphs {
-            let (cid, warning) = slot.usage.use_glyph(gid, ch.encode_utf8(&mut buf))?;
+            let (cid, warning) = usage.use_glyph(gid, ch.encode_utf8(&mut buf))?;
             warnings.extend(warning);
             bytes.extend_from_slice(&cid.to_be_bytes());
             advance += f64::from(width) * scale;
@@ -255,7 +382,9 @@ impl FontRegistry {
 
     /// Subsets every font that was [referenced](FontRegistry::reference) and writes it into the
     /// document: the font program (Flate), its descriptor, the CIDFont with `/W`, the ToUnicode
-    /// CMap as new objects, and the reserved Type 0 dictionary. Fonts are written in the order
+    /// CMap as new objects, and the reserved Type 0 dictionary. A standard 14 font is written
+    /// as a `/Type1` font dictionary with `/Encoding`, `/FirstChar`, `/LastChar`, `/Widths` and
+    /// a font descriptor without a font program. Fonts are written in the order
     /// they were registered, so the output is deterministic. A font that was registered but
     /// never referenced writes nothing.
     ///
@@ -281,10 +410,30 @@ impl FontRegistry {
             let Some(object) = slot.object else {
                 continue;
             };
-            let glyphs = slot.usage.glyphs();
-            let (program, warning) = subset::build(&slot.font, &slot.usage, &glyphs)?;
+            let key = FontKey {
+                registry: self.id,
+                index,
+            };
+            let usage = match &slot.usage {
+                Usage::Embedded(usage) => usage,
+                Usage::Simple(usage) => {
+                    usage.write(cos, &slot.font, object)?;
+                    embedded.push(EmbeddedFont {
+                        key,
+                        object,
+                        embedded: false,
+                        base_font: slot.font.info().postscript_name.clone(),
+                        glyphs: usage.code_count(),
+                        program_len: 0,
+                        warnings: Vec::new(),
+                    });
+                    continue;
+                }
+            };
+            let glyphs = usage.glyphs();
+            let (program, warning) = subset::build(&slot.font, usage, &glyphs)?;
             let name = &slot.font.info().postscript_name;
-            let base_font = if slot.usage.is_whole() {
+            let base_font = if usage.is_whole() {
                 name.clone()
             } else {
                 let tag = subset::unique_tag(&tags, name, |salt| subset::subset_tag(&slot.font, &glyphs, salt))?;
@@ -295,18 +444,16 @@ impl FontRegistry {
                 cos,
                 &type0::FontObjects {
                     font: &slot.font,
-                    usage: &slot.usage,
+                    usage,
                     program: &program,
                     base_font: &base_font,
                     type0: object,
                 },
             )?;
             embedded.push(EmbeddedFont {
-                key: FontKey {
-                    registry: self.id,
-                    index,
-                },
+                key,
                 object,
+                embedded: true,
                 base_font,
                 glyphs: glyphs.len(),
                 program_len: program.data().len(),

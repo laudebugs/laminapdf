@@ -188,7 +188,13 @@ pub fn pdf_run(run: &ShapedRun, text: &str, fonts: &mut FontRegistry, key: FontK
     let mut cids = Vec::with_capacity(run.glyphs.len());
     for (g, claim) in run.glyphs.iter().zip(&claims) {
         cids.push(match claim {
-            Claim::Text(t) => fonts.use_glyph(key, g.gid, t)?,
+            // `font_ref` above already refused a standard 14 font, so every code is a CID.
+            Claim::Text(t) => fonts
+                .use_glyph(key, g.gid, t)?
+                .cid()
+                .ok_or_else(|| Error::FontNotShapable {
+                    font: info.postscript_name.clone(),
+                })?,
             Claim::Nothing => fonts.glyph_cid(key, g.gid)?,
         });
     }
@@ -254,7 +260,7 @@ fn in_visual_order(run: &ShapedRun, groups: &[Range<usize>]) -> bool {
 
 /// Glyph → the text it already stands for in `key`'s ToUnicode map.
 fn kept_texts(fonts: &FontRegistry, key: FontKey) -> BTreeMap<GlyphId, String> {
-    let Some(usage) = fonts.usage(key) else {
+    let Some(usage) = fonts.usage(key).ok().and_then(crate::FontUsage::embedded) else {
         return BTreeMap::new();
     };
     usage

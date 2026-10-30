@@ -121,7 +121,17 @@ fn b1_empty_then_real_text_conflicts() {
     let key = fonts.add(font, EmbedPolicy::Respect).unwrap();
     let cid = fonts.use_glyph(key, a, "").unwrap();
     fonts.use_glyph(key, a, "a").unwrap();
-    assert_eq!(fonts.usage(key).unwrap().text().get(&cid).map(String::as_str), Some(""));
+    assert_eq!(
+        fonts
+            .usage(key)
+            .unwrap()
+            .embedded()
+            .unwrap()
+            .text()
+            .get(&cid.cid().unwrap())
+            .map(String::as_str),
+        Some("")
+    );
     assert!(matches!(fonts.warnings(), [Warning::ToUnicodeConflict { .. }]));
 }
 
@@ -149,7 +159,7 @@ fn b2_default_ignorables_get_no_glyph_text() {
         let run = HarfRust.shape(&font, text, &ShapeOptions::new()).unwrap();
         pdf_run(&run, text, &mut fonts, key).unwrap();
     }
-    let usage = fonts.usage(key).unwrap();
+    let usage = fonts.usage(key).unwrap().embedded().unwrap();
     assert!(
         usage.text().values().all(|t| !t.contains('\u{200D}')),
         "{:?}",
@@ -171,6 +181,8 @@ fn b3_clusters_with_textless_glyphs_get_actual_text() {
     let pdf = pdf_run(&run, text, &mut fonts, key).unwrap();
     let empty: Vec<u16> = fonts
         .usage(key)
+        .unwrap()
+        .embedded()
         .unwrap()
         .text()
         .iter()
@@ -244,7 +256,11 @@ fn b5_runs_from_another_font_are_refused_without_side_effects() {
     let key = fonts.add(latin(), EmbedPolicy::Respect).unwrap();
     let err = pdf_run(&run, "שלום", &mut fonts, key).unwrap_err();
     assert_eq!(err.code(), "font-mismatch");
-    assert_eq!(fonts.usage(key).unwrap().glyphs().len(), 1, "only .notdef");
+    assert_eq!(
+        fonts.usage(key).unwrap().embedded().unwrap().glyphs().len(),
+        1,
+        "only .notdef"
+    );
 }
 
 /// B6: a missing glyph names the character the font lacks, not the cluster's first.

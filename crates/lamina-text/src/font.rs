@@ -13,6 +13,7 @@ use skrifa::{FontRef, MetadataProvider};
 
 use crate::error::{Error, Result};
 use crate::fstype::FsType;
+use crate::std14::Standard14;
 
 /// A four-byte OpenType tag, such as the variation axis `wght`.
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -125,8 +126,10 @@ pub struct FontInfo {
     /// change: an instance's embedded `/FontBBox` is computed from its instanced outlines).
     pub bbox: [f32; 4],
     /// The font descriptor flags (ISO 32000-2 §9.8.2): `FixedPitch` (bit
-    /// 1), `Symbolic` (bit 3: always set, as a CIDFont's glyphs are addressed by CID, not by the
-    /// standard Latin encoding) and `Italic` (bit 7).
+    /// 1), `Symbolic` (bit 3: always set for a loaded font, as a CIDFont's glyphs are addressed
+    /// by CID, not by the standard Latin encoding) and `Italic` (bit 7). A standard 14 font
+    /// sets `Serif` (bit 2) for Times, `Symbolic` for Symbol and `ZapfDingbats` and `Nonsymbolic`
+    /// (bit 6) for the others.
     pub flags: u32,
     /// CFF (or CFF2) outlines, as opposed to TrueType `glyf` outlines.
     pub is_cff: bool,
@@ -152,8 +155,9 @@ struct Source {
     shaping: OnceLock<harfrust::ShaperData>,
 }
 
-/// A font loaded from caller-supplied bytes; for a variable font, one instance of it. Cheap to
-/// clone (the bytes are shared). `Send + Sync`.
+/// A font loaded from caller-supplied bytes (for a variable font, one instance of it), or one
+/// of the [standard 14](Standard14) referred to by name. Cheap to clone (the bytes are
+/// shared). `Send + Sync`.
 ///
 /// ```
 /// # fn font_bytes() -> Vec<u8> { include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/../../fixtures/fonts/NotoSans-Regular.ttf")).to_vec() }
@@ -172,6 +176,8 @@ pub struct Font {
     /// The same, normalised, in `fvar` axis order (empty: the default instance).
     location: Arc<[NormalizedCoord]>,
     info: Arc<FontInfo>,
+    /// A standard 14 font: no program (its `source` bytes are empty), metrics from its AFM.
+    standard: Option<Standard14>,
 }
 
 impl fmt::Debug for Font {
@@ -218,7 +224,83 @@ impl Font {
             coords: Arc::from([]),
             location: Arc::from([]),
             info: Arc::new(info),
+            standard: None,
         })
+    }
+
+    /// One of the standard 14 fonts, which every PDF reader provides (ISO 32000-2 §9.6.2.2):
+    /// no font bytes needed, metrics from Adobe's AFM files, never embedded. Text is written
+    /// as one byte per character: `WinAnsiEncoding` for the Latin fonts (glyphs of the
+    /// standard Latin character set outside it through `/Differences`), the built-in encoding
+    /// for Symbol and `ZapfDingbats`. PDF/A and PDF/UA require embedded fonts, so their profiles
+    /// reject these ([`Font::requires_embedding`]).
+    ///
+    /// ```
+    /// use lamina_text::{Font, Standard14};
+    ///
+    /// let font = Font::standard(Standard14::Helvetica);
+    /// assert_eq!(font.info().postscript_name, "Helvetica");
+    /// assert!(font.standard14().is_some() && !font.requires_embedding());
+    /// assert!(font.glyph_for('é').is_some());
+    /// assert!(font.glyph_for('中').is_none());
+    /// ```
+    #[must_use]
+    pub fn standard(font: Standard14) -> Self {
+        let m = font.metrics();
+        let bbox = m.bbox.map(f32::from);
+        let [_, y_min, _, y_max] = bbox;
+        let italic = m.italic_angle != 0.0;
+        // ISO 32000-2 §9.8.2: bit 1 FixedPitch, 2 Serif, 3 Symbolic, 6 Nonsymbolic, 7 Italic.
+        let flags = u32::from(m.is_fixed_pitch)
+            | if m.family_name == "Times" { 2 } else { 0 }
+            | if font.is_symbolic() { 4 } else { 32 }
+            | if italic { 64 } else { 0 };
+        let info = FontInfo {
+            family: m.family_name.to_owned(),
+            postscript_name: m.font_name.to_owned(),
+            units_per_em: 1000,
+            // `.notdef` and one glyph per name.
+            glyph_count: font.glyph_count(),
+            ascent: m.ascender.map_or(y_max, f32::from),
+            descent: m.descender.map_or(y_min, f32::from),
+            cap_height: m.cap_height.map(f32::from),
+            x_height: m.x_height.map(f32::from),
+            italic_angle: m.italic_angle,
+            weight: if m.weight == "Bold" { 700 } else { 400 },
+            bbox,
+            flags,
+            is_cff: false,
+            is_variable: false,
+            axes: Vec::new(),
+            fs_type: FsType::new(0),
+        };
+        Self {
+            source: Arc::new(Source {
+                bytes: Arc::from([]),
+                index: 0,
+                digest: OnceLock::new(),
+                shaping: OnceLock::new(),
+            }),
+            coords: Arc::from([]),
+            location: Arc::from([]),
+            info: Arc::new(info),
+            standard: Some(font),
+        }
+    }
+
+    /// Which standard 14 font this is, if it is one ([`Font::standard`]); `None` for a font
+    /// loaded from bytes.
+    #[must_use]
+    pub fn standard14(&self) -> Option<Standard14> {
+        self.standard
+    }
+
+    /// Whether a document using this font has to embed it to be self-contained: `false` only
+    /// for the standard 14, which readers provide. PDF/A and PDF/UA require every font
+    /// embedded, so their profiles (B8b) reject a font for which this is `false`.
+    #[must_use]
+    pub fn requires_embedding(&self) -> bool {
+        self.standard.is_none()
     }
 
     /// The number of fonts in `bytes`: the member count of a collection, 1 for a single font.
@@ -245,6 +327,15 @@ impl Font {
     /// [`Error::InvalidAxisValue`] for a NaN or infinite value; [`Error::InvalidFont`] when the
     /// font's `fvar` record for the axis is not `min ≤ default ≤ max`.
     pub fn instance(&self, settings: &[(Tag, f32)]) -> Result<Self> {
+        if self.standard.is_some() {
+            return match settings.first() {
+                Some(&(tag, _)) => Err(Error::UnknownAxis {
+                    font: self.info.postscript_name.clone(),
+                    tag,
+                }),
+                None => Ok(self.clone()),
+            };
+        }
         let font = self.font_ref()?;
         let axes = font.axes();
         let index = self.source.index;
@@ -281,6 +372,7 @@ impl Font {
             coords: Arc::from(coords),
             location: normalized,
             info: Arc::new(info),
+            standard: None,
         })
     }
 
@@ -305,9 +397,14 @@ impl Font {
 
     /// The glyph the font's `cmap` maps `ch` to; `None` when it has none (the font would draw
     /// `.notdef`). This is the unshaped, one-glyph-per-character mapping; shaping (B4b) picks
-    /// glyphs from the same font.
+    /// glyphs from the same font. For a standard 14 font the glyph is found by name through
+    /// the Adobe Glyph List; its ID is its index in [`Standard14::glyph_names`] plus one, as
+    /// glyph 0 is `.notdef`.
     #[must_use]
     pub fn glyph_for(&self, ch: char) -> Option<GlyphId> {
+        if let Some(standard) = self.standard {
+            return standard.glyph_for_char(ch);
+        }
         let gid = self.font_ref().ok()?.charmap().map(ch)?;
         u16::try_from(gid.to_u32()).ok().filter(|&g| g != 0).map(GlyphId)
     }
@@ -320,13 +417,23 @@ impl Font {
         if gid.get() >= self.info.glyph_count {
             return None;
         }
+        if let Some(standard) = self.standard {
+            return standard.glyph_width(gid).map(f32::from);
+        }
         let font = self.font_ref().ok()?;
         font.glyph_metrics(Size::unscaled(), self.location_ref())
             .advance_width(skrifa::GlyphId::from(gid.get()))
             .map(f32::round)
     }
 
-    /// The bytes the font was loaded from (the whole collection for a member).
+    /// The glyph name of `gid` in a standard 14 font (`None` for other fonts).
+    #[must_use]
+    pub fn glyph_name(&self, gid: GlyphId) -> Option<&'static str> {
+        self.standard?.glyph_name(gid)
+    }
+
+    /// The bytes the font was loaded from (the whole collection for a member); empty for a
+    /// standard 14 font.
     #[must_use]
     pub fn bytes(&self) -> &[u8] {
         &self.source.bytes
@@ -345,6 +452,18 @@ impl Font {
     /// [`Error::MissingGlyph`] for the first character without a glyph;
     /// [`Error::GlyphOutOfRange`] when the `cmap` points past the glyph count (a malformed font).
     pub(crate) fn map_text(&self, text: &str) -> Result<Vec<(GlyphId, char, f32)>> {
+        if let Some(standard) = self.standard {
+            return text
+                .chars()
+                .map(|ch| {
+                    let gid = standard.glyph_for_char(ch).ok_or_else(|| Error::MissingGlyph {
+                        ch,
+                        font: self.info.postscript_name.clone(),
+                    })?;
+                    Ok((gid, ch, standard.glyph_width(gid).map_or(0.0, f32::from)))
+                })
+                .collect();
+        }
         let font = self.font_ref()?;
         let charmap = font.charmap();
         let metrics = font.glyph_metrics(Size::unscaled(), self.location_ref());
@@ -385,7 +504,18 @@ impl Font {
         Ok(self.source.shaping.get_or_init(|| harfrust::ShaperData::new(&font)))
     }
 
+    /// The font program for shaping and subsetting.
+    ///
+    /// # Errors
+    /// [`Error::FontNotShapable`] for a standard 14 font, which has no program (so shaping,
+    /// itemizing, line breaking and [`crate::pdf_run`] fail clearly for one);
+    /// [`Error::InvalidFont`].
     pub(crate) fn font_ref(&self) -> Result<FontRef<'_>> {
+        if self.standard.is_some() {
+            return Err(Error::FontNotShapable {
+                font: self.info.postscript_name.clone(),
+            });
+        }
         let index = self.source.index;
         FontRef::from_index(&self.source.bytes, index).map_err(|_| Error::InvalidFont { index })
     }

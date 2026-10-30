@@ -139,8 +139,7 @@ impl TestPdf {
     pub fn glyphs(&mut self, key: FontKey, size: f32, glyphs: &[(GlyphId, &str)]) -> Result<()> {
         let mut bytes = Vec::new();
         for &(gid, text) in glyphs {
-            let cid = self.fonts.use_glyph(key, gid, text)?;
-            bytes.extend_from_slice(&cid.to_be_bytes());
+            self.fonts.use_glyph(key, gid, text)?.push_to(&mut bytes);
         }
         self.show(key, size, &bytes)
     }

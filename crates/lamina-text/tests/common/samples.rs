@@ -1,7 +1,7 @@
 //! The documents behind the `fixtures/golden/text-*.pdf` goldens, with the text each line
 //! should extract to (checked against pypdf's output in `fixtures/text/extracted.json`).
 
-use lamina_text::{Font, GlyphId, LayoutOptions, Tag};
+use lamina_text::{Font, GlyphId, LayoutOptions, Standard14, Tag};
 
 use super::{TestPdf, fixture, font};
 
@@ -28,6 +28,32 @@ pub const VARIABLE_COLLECTION: [&str; 3] = [
     "Variable font, wght 700 instance",
     "Collection member 1: Noto Sans Bold",
 ];
+
+/// The lines of [`std14`]: one per standard 14 font, in [`Standard14::ALL`] order, then
+/// [`STD14_DIFFERENCES`].
+pub const STD14: [&str; 16] = [
+    "Courier: Hello, world! 0123456789",
+    "Courier-Bold: {braces} [brackets] <angles>",
+    "Courier-Oblique: café, naïve, façade",
+    "Courier-BoldOblique: 50% off ~ $9.99",
+    "Helvetica: “Curly” ‘quotes’ — and dashes – too",
+    "Helvetica-Bold: Euro € pound £ yen ¥",
+    "Helvetica-Oblique: Ærøskøbing, Þórshöfn, Œuvre",
+    "Helvetica-BoldOblique: ½ ¼ ¾ © ® ™ § ¶",
+    "Times-Roman: The quick brown fox jumps over the lazy dog.",
+    "Times-Bold: Grüße aus Köln • München",
+    "Times-Italic: ¿Qué tal? ¡Muy bien!",
+    "Times-BoldItalic: Ça va… très «bien» ‰",
+    "αβγ π ∑ ≤ ∞ €",
+    "✔ ✈ ❤ ☎",
+    "Łódź, Kraków − Şişli",
+    "Țară, Ğğ İı őű",
+];
+
+/// How many of [`STD14`]'s lines are Helvetica lines outside `WinAnsiEncoding` (written through
+/// `/Differences`), after the one line per font: together more such glyphs than
+/// `WinAnsiEncoding`'s five undefined high codes, so control codes are assigned too.
+pub const STD14_DIFFERENCES: usize = 2;
 
 /// The paragraphs of [`shaped`]: (fonts in order of preference, box width, size, text).
 pub const SHAPED_PARAGRAPHS: [(&[&str], f32, f32, &str); 7] = [
@@ -88,7 +114,7 @@ pub const SHAPED: [&str; 8] = [
 
 /// Every golden: its file name under `fixtures/golden/`, the code that builds it and the
 /// lines it draws.
-pub const GOLDENS: [(&str, Build, &[&str]); 4] = [
+pub const GOLDENS: [(&str, Build, &[&str]); 5] = [
     ("text-latin.pdf", latin, &LATIN),
     ("text-cff.pdf", cff, &CFF),
     (
@@ -97,6 +123,7 @@ pub const GOLDENS: [(&str, Build, &[&str]); 4] = [
         &VARIABLE_COLLECTION,
     ),
     ("text-shaped.pdf", shaped, &SHAPED),
+    ("text-std14.pdf", std14, &STD14),
 ];
 
 /// `text` as glyphs of `font`, with the `ffi`, `ffl`, `fi` and `fl` sequences drawn as the
@@ -199,4 +226,25 @@ pub fn shaped_with_lines() -> (Sample, Vec<String>) {
     }
     let (bytes, _, _) = pdf.finish().unwrap();
     (Sample { bytes }, lines)
+}
+
+/// Each standard 14 font by name (not embedded), and Helvetica again for glyphs outside
+/// `WinAnsiEncoding`.
+pub fn std14() -> Sample {
+    let mut pdf = TestPdf::new();
+    let keys: Vec<(Standard14, _)> = Standard14::ALL
+        .into_iter()
+        .map(|f| (f, pdf.add_font(Font::standard(f)).unwrap()))
+        .collect();
+    let (per_font, differences) = STD14.split_at(STD14.len() - STD14_DIFFERENCES);
+    assert_eq!(per_font.len(), keys.len());
+    for ((_, key), line) in keys.iter().zip(per_font) {
+        pdf.line(*key, 12.0, line).unwrap();
+    }
+    let (_, helvetica) = keys.iter().find(|(f, _)| *f == Standard14::Helvetica).unwrap();
+    for line in differences {
+        pdf.line(*helvetica, 12.0, line).unwrap();
+    }
+    let (bytes, _, _) = pdf.finish().unwrap();
+    Sample { bytes }
 }

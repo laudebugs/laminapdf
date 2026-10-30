@@ -103,6 +103,8 @@ One page per code in [`fixtures/codes.json`](../../fixtures/codes.json), as [ADR
 | [`invalid-text-range`](invalid-text-range.md) | `usage` |
 | [`unsupported-layout-option`](unsupported-layout-option.md) | `unsupported` |
 | [`font-mismatch`](font-mismatch.md) | `usage` |
+| [`encoding-full`](encoding-full.md) | `limit` |
+| [`font-not-shapable`](font-not-shapable.md) | `unsupported` |
 
 ## Text warnings (`lamina-text`)
 
