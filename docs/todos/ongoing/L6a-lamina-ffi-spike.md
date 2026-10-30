@@ -61,7 +61,7 @@ Answer one question with measurements before any mobile SDK work: **does the B5c
 
 - [ ] Load `/rust-best-practices` (not installed in the session that started the spike; it followed `docs/guidelines/rust.md` and clippy `-D warnings` instead) and follow [docs/guidelines/rust.md](../../guidelines/rust.md) (the spike is throwaway-quality but keeps no `unwrap` in exported paths; every `unsafe`, if any, has `// SAFETY:`); read the Context links and ADR 0002, 0028
 - [x] Decide spike vs edge crate (recommendation above) and say so in the PR description (spike; the product crate is L6b)
-- [x] Create `spikes/lamina-ffi/{Cargo.toml,src/lib.rs,uniffi.toml,README.md,scripts/}`; pin `uniffi`, cargo-swift and cargo-ndk versions; licence-check new dependencies (`cargo deny` in the spike: **fails**, UniFFI is MPL-2.0; ADR 0029 open item 1)
+- [x] Create `spikes/lamina-ffi/{Cargo.toml,src/lib.rs,uniffi.toml,README.md,scripts/}`; pin `uniffi`, cargo-swift and cargo-ndk versions; licence-check new dependencies (`cargo deny` in the spike: passes with the owner's MPL-2.0 exception for the UniFFI crates in `deny.toml`, 2026-10-30)
 - [x] `scripts/build-ios.sh`, `scripts/build-android.sh`, `scripts/size-report.sh` (writes a Markdown table into the README), `scripts/check-alignment.sh`
 - [ ] Swift package `spikes/lamina-ffi/swift/` with XCTest (written; not yet run: needs the Mac run); Kotlin/Gradle project `spikes/lamina-ffi/kotlin/` with JVM tests (11 passing)
 - [ ] Build and test with UniFFI `=0.32.x` (Rust and Kotlin done; Swift pending); confirm zero-copy `&[u8]` input reaches Rust without a copy in the generated Swift and Kotlin code

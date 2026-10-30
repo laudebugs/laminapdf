@@ -1,6 +1,6 @@
 # 0029 — Mobile bindings and packaging
 
-- Status: Proposed. Open items 1–3 below must close before acceptance.
+- Status: Proposed. Open items 2 and 3 below must close before acceptance (item 1 is decided).
 - Date: 2026-10-30
 
 ## Context
@@ -61,11 +61,7 @@ The measured findings:
 
 ## Open items (before acceptance)
 
-1. **UniFFI's licence (owner decision).** All eight UniFFI crates are MPL-2.0, which `deny.toml`'s allow-list doesn't include. The options:
-   - (a) A per-crate exception in `deny.toml` for the UniFFI crates, with the reason: MPL-2.0 is file-level copyleft, so lamina stays MIT OR Apache-2.0, unmodified sources stay available on crates.io, and the licence text ships with the SDK. Also decide whether the generated Swift and Kotlin (from MPL templates) are MPL and ship under it.
-   - (b) Another generator: Diplomat or cbindgen, the alternatives ADR 0002 considered. Their licences and Kotlin support were not checked in this spike.
-
-   Recommendation (opinion): (a). Its obligations are light and it doesn't touch the core.
+1. ~~**UniFFI's licence (owner decision).**~~ **Decided 2026-10-30 (owner): an exception for the UniFFI crates.** All eight UniFFI crates are MPL-2.0. [`deny.toml`](../../deny.toml) now allows MPL-2.0 for exactly these crates (`uniffi`, `uniffi_bindgen`, `uniffi_core`, `uniffi_internal_macros`, `uniffi_macros`, `uniffi_meta`, `uniffi_pipeline`, `uniffi_udl`), with the reason written next to the entry. MPL-2.0 is file-level copyleft: lamina stays MIT OR Apache-2.0, the unmodified UniFFI sources stay available on crates.io, and the MPL-2.0 text ships with the mobile SDK. Whether the generated Swift and Kotlin files are covered by MPL-2.0 is unsettled. Recommendation (opinion): ship them unmodified, with the MPL-2.0 notice, which meets the obligations either way.
 2. **The Mac half of the spike.** Before this ADR is accepted, run `spikes/lamina-ffi/scripts/run-on-mac.sh` and record the results. They cover:
    - Swift XCTest with byte equality, cancellation and the fallible panic, plus the iOS simulator.
    - The cargo-swift 0.11.1 probe. It builds only `debug` or `release`, so the product may build with plain `cargo` and `xcodebuild -create-xcframework`, as the spike does.
@@ -79,7 +75,7 @@ The measured findings:
 - **Swift panics:** an export added without a `Result` is a crash risk in Swift. L6b adds a test that every exported function in the generated Swift `throws`.
 - **Kotlin error field:** Kotlin users read `detail`, not `message`, on `FfiException.Lamina`. The idiomatic layer can expose a `LaminaException` with `message` set from `detail`.
 - **Copies:** large inputs are copied once into Rust. Files of 50 MB and more should open through a host `ByteSource` (a mapped file) in L6b rather than through bytes.
-- **Licence:** adds an MPL-2.0 dependency at the edge, once open item 1 allows it.
+- **Licence:** adds an MPL-2.0 dependency at the edge (the owner allowed it for the UniFFI crates, 2026-10-30).
 
 ## Alternatives considered
 

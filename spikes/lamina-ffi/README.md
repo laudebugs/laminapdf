@@ -6,7 +6,7 @@
 - **Binding:** yes, the façade binds without changes. Every adaptation is edge-only (list below).
 - **Kotlin:** proved on the desktop JVM, 11 tests.
 - **Swift and Android:** need Xcode and the Android NDK, which this research session couldn't reach. `scripts/run-on-mac.sh` runs that half in one go and writes the report its results paste into [§ Mac half](#mac-half-pending).
-- **Licence blocker:** UniFFI is **MPL-2.0**, which [`deny.toml`](../../deny.toml) doesn't allow (see [licence](#licence-uniffi-is-mpl-20)).
+- **Licence:** UniFFI is **MPL-2.0**; the owner allowed it for the UniFFI crates on 2026-10-30, as an exception in [`deny.toml`](../../deny.toml) (see [licence](#licence-uniffi-is-mpl-20)).
 
 Throwaway-quality code outside both workspaces (like `krilla-fit`). It depends on `crates/lamina` by path, and `cargo xtask check` doesn't see it.
 
@@ -125,7 +125,7 @@ The scenario gives the same output, SHA-256 `12dc111c…2966` (1,774 bytes, appe
 
 `cargo deny check licenses` with the repo's [`deny.toml`](../../deny.toml) fails on every UniFFI crate: `uniffi`, `uniffi_core`, `uniffi_macros`, `uniffi_internal_macros`, `uniffi_meta`, `uniffi_bindgen`, `uniffi_pipeline` and `uniffi_udl` 0.32.2, all MPL-2.0.
 
-MPL-2.0 is file-level copyleft, not GPL. It lets lamina stay MIT OR Apache-2.0 and ship binaries, as long as the MPL files' source stays available (unmodified crates.io sources qualify) and their notices ship. But it is not on ADR 0019's allow-list. And the generated Swift and Kotlin come from MPL-licensed templates in `uniffi_bindgen`; whether that makes the generated files MPL as well is not settled here. Both points need the owner (ADR 0029 open item 1).
+MPL-2.0 is file-level copyleft, not GPL. It lets lamina stay MIT OR Apache-2.0 and ship binaries, as long as the MPL files' source stays available (unmodified crates.io sources qualify) and their notices ship. But it is not on ADR 0019's allow-list. And the generated Swift and Kotlin come from MPL-licensed templates in `uniffi_bindgen`; whether that makes the generated files MPL as well is not settled here. **Decided 2026-10-30 (owner):** `deny.toml` now allows MPL-2.0 for exactly these eight crates, and `cargo deny` passes for the spike. The generated files ship unmodified with the MPL-2.0 notice (ADR 0029, item 1).
 
 ### Not yet verified (the Mac half)
 
