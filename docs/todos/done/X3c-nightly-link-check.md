@@ -3,16 +3,16 @@
 | Field | Value |
 | --- | --- |
 | ID | `X3c` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [architecture §7 Cross-cutting](../../plans/architecture.md#cross-cutting) |
 | Round / milestone | Cross-cutting |
-| Depends on | [X3a](../done/X3a-nightly-lane.md) |
+| Depends on | [X3a](./X3a-nightly-lane.md) |
 | Blocks | None |
 | ADRs | Follows [0018](../../decisions/0018-test-strategy.md) §2 (network-dependent checks run nightly, not in the PR lanes) and §4 (the nightly lane may retry once only to report flakiness) |
 | Branch | `ci/x3c-link-check` |
 | PR title | `ci: nightly external link check of the docs` |
 | Size | S (≈ 100–200 lines) |
-| PR | — |
+| PR | [#66](https://github.com/laudebugs/lamina/pull/66) |
 
 ## Goal
 
@@ -36,14 +36,14 @@ Find dead external links in the tracked Markdown every night. `cargo xtask docs-
 
 ## Tasks
 
-- [ ] The external check and its allowlist
-- [ ] The nightly job
-- [ ] Document it in `CLAUDE.md`
+- [x] The external check and its allowlist
+- [x] The nightly job
+- [x] Document it in `CLAUDE.md`
 
 ## Acceptance criteria
 
-- [ ] A local run lists every external URL checked and the dead ones; a deliberately dead URL in a scratch file fails it
-- [ ] The job runs on the branch through a temporary `push` trigger, removed before merge
+- [x] A local run lists every external URL checked and the dead ones; a deliberately dead URL in a scratch file fails it
+- [x] The job runs on the branch through a temporary `push` trigger, removed before merge
 
 ## Post-merge checks
 
@@ -55,8 +55,8 @@ Unit tests for URL extraction and the allowlist.
 
 ## Docs to update
 
-- [ ] `CLAUDE.md`
-- [ ] [architecture §7 Cross-cutting](../../plans/architecture.md#cross-cutting): tick the link-check item
+- [x] `CLAUDE.md`
+- [x] [architecture §7 Cross-cutting](../../plans/architecture.md#cross-cutting): tick the link-check item
 
 ## Risks and open questions
 
@@ -64,8 +64,8 @@ Unit tests for URL extraction and the allowlist.
 
 ## Definition of done
 
-- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
-- [ ] Work PR opened from a fresh worktree; **PR** field filled in
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
-- [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [x] Work PR opened from a fresh worktree; **PR** field filled in
+- [x] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
+- [x] CI green
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated

@@ -1,4 +1,5 @@
-//! Explicit anchors in raw HTML: the `id` and `name` attributes of start tags.
+//! Attributes of raw HTML start tags: explicit anchors (`id`, `name`) and link targets (`href`,
+//! `src`).
 //!
 //! A small tokenizer, not a full HTML parser: comments are skipped, attribute names are
 //! case-insensitive, values may be double-quoted, single-quoted or unquoted, and whitespace is
@@ -6,6 +7,16 @@
 
 /// The `id`/`name` values in a fragment of HTML, in order.
 pub(crate) fn anchors(html: &str) -> Vec<String> {
+    values(html, &["id", "name"])
+}
+
+/// The `href`/`src` values in a fragment of HTML, in order.
+pub(crate) fn targets(html: &str) -> Vec<String> {
+    values(html, &["href", "src"])
+}
+
+/// The values of the attributes called one of `names` (case-insensitive), in order.
+fn values(html: &str, names: &[&str]) -> Vec<String> {
     let mut found = Vec::new();
     let mut rest = html;
     while let Some(lt) = rest.find('<') {
@@ -22,14 +33,14 @@ pub(crate) fn anchors(html: &str) -> Vec<String> {
         let name_end = after_lt
             .find(|c: char| c.is_whitespace() || c == '>' || c == '/')
             .unwrap_or(after_lt.len());
-        rest = attributes(split(after_lt, name_end).1, &mut found);
+        rest = attributes(split(after_lt, name_end).1, names, &mut found);
     }
     found
 }
 
-/// Reads the attributes of one start tag up to its `>`, pushing `id`/`name` values to `found`;
-/// returns the text after the tag.
-fn attributes<'a>(mut s: &'a str, found: &mut Vec<String>) -> &'a str {
+/// Reads the attributes of one start tag up to its `>`, pushing the values of those called one of
+/// `names` to `found`; returns the text after the tag.
+fn attributes<'a>(mut s: &'a str, names: &[&str], found: &mut Vec<String>) -> &'a str {
     loop {
         s = s.trim_start();
         let Some(first) = s.chars().next() else {
@@ -66,7 +77,7 @@ fn attributes<'a>(mut s: &'a str, found: &mut Vec<String>) -> &'a str {
             s = after;
             value
         };
-        if (name.eq_ignore_ascii_case("id") || name.eq_ignore_ascii_case("name")) && !value.is_empty() {
+        if names.iter().any(|n| name.eq_ignore_ascii_case(n)) && !value.is_empty() {
             found.push(value.to_owned());
         }
     }
@@ -79,7 +90,15 @@ fn split(s: &str, at: usize) -> (&str, &str) {
 
 #[cfg(test)]
 mod tests {
-    use super::anchors;
+    use super::{anchors, targets};
+
+    #[test]
+    fn href_and_src_values_are_found() {
+        assert_eq!(
+            targets(r#"<a HREF="https://a.example">x</a><img src=i.png id="z">"#),
+            ["https://a.example", "i.png"]
+        );
+    }
 
     #[test]
     fn quoted_ids_and_names_are_found() {
