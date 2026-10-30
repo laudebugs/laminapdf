@@ -65,8 +65,8 @@ pub struct EmbeddedFont {
     /// `/BaseFont`: `ABCDEF+PostScriptName` for a subset, the PostScript name alone for a
     /// font embedded whole.
     pub base_font: String,
-    /// The glyphs in the embedded program's `/W` and ToUnicode, `.notdef` included; for a
-    /// standard 14 font, the distinct codes drawn.
+    /// The distinct glyphs drawn, `.notdef` included (a glyph drawn with several texts has
+    /// several CIDs but counts once); for a standard 14 font, the distinct codes drawn.
     pub glyphs: usize,
     /// The size of the font program before compression (0 when not `embedded`).
     pub program_len: usize,
@@ -322,6 +322,31 @@ impl FontRegistry {
         Ok(code)
     }
 
+    /// [`FontRegistry::use_glyph`] for an embedded font, also saying whether the CID extracts
+    /// as `text` exactly (`FontUse`'s `use_glyph_exact`): `pdf_run` marks the cluster with
+    /// `/ActualText` otherwise.
+    ///
+    /// # Errors
+    /// As [`FontRegistry::use_glyph`]; [`Error::FontNotShapable`] for a standard 14 font.
+    pub(crate) fn use_glyph_exact(&mut self, key: FontKey, gid: GlyphId, text: &str) -> Result<(u16, bool)> {
+        let id = self.id;
+        let Self { slots, warnings, .. } = self;
+        let slot = slots
+            .get_mut(key.index)
+            .filter(|_| key.registry == id)
+            .ok_or(Error::UnknownFont { key: key.index })?;
+        match &mut slot.usage {
+            Usage::Embedded(usage) => {
+                let (cid, warning, exact) = usage.use_glyph_exact(gid, text)?;
+                warnings.extend(warning);
+                Ok((cid, exact))
+            }
+            Usage::Simple(_) => Err(Error::FontNotShapable {
+                font: slot.font.info().postscript_name.clone(),
+            }),
+        }
+    }
+
     /// The CID of glyph `gid` of `key`, recorded as used without claiming any text
     /// ([`FontUse`]'s `glyph_cid`, B4b).
     ///
@@ -458,7 +483,7 @@ impl FontRegistry {
                 object,
                 embedded: true,
                 base_font,
-                glyphs: glyphs.len(),
+                glyphs: usage.glyph_total(),
                 program_len: program.data().len(),
                 warnings: warning.into_iter().collect(),
             });

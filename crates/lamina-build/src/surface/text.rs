@@ -138,19 +138,22 @@ pub(crate) fn lay_out(spec: &Spec) -> Result<Vec<LaidLine>> {
     let lines = break_lines(&HarfRust, slice::from_ref(&spec.font.font), &spec.text, &options)?;
     Ok(lines
         .into_iter()
-        .map(|line| LaidLine {
-            x: line.x,
-            width: line.width,
-            range: line.range,
-            content: line.content,
-            runs: {
-                // Drawn in logical order (each run at its own x), so extractors that read
-                // in content order get multi-run right-to-left lines in reading order
-                // (lamina-text's `Line::drawing_order`, B4d).
-                let mut runs: Vec<_> = line.runs.into_iter().map(|r| (r.run, r.x)).collect();
-                runs.sort_by_key(|(run, _)| run.text_range.start);
-                runs
-            },
+        .map(|line| {
+            // Drawn in logical order (each run at its own x), so extractors that read in
+            // content order get multi-run right-to-left lines in reading order (B4d).
+            let runs = line
+                .drawing_order()
+                .into_iter()
+                .filter_map(|i| line.runs.get(i))
+                .map(|r| (r.run.clone(), r.x))
+                .collect();
+            LaidLine {
+                x: line.x,
+                width: line.width,
+                range: line.range,
+                content: line.content,
+                runs,
+            }
         })
         .collect())
 }

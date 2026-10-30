@@ -1,6 +1,6 @@
 """Helpers shared by the facts scripts in tools/fixtures/ (text_facts.py, build_facts.py):
-the SHA-256 and `qpdf --check` of a file, qpdf's version, and running a pdf.js script under
-Node with PDFJS_DIST. Tools only, never run by tests."""
+the SHA-256 and `qpdf --check` of a file, pdftotext's lines, the qpdf and poppler versions,
+and running a pdf.js script under Node with PDFJS_DIST. Tools only, never run by tests."""
 
 import hashlib
 import json
@@ -24,6 +24,24 @@ def qpdf_check(path):
 def qpdf_version():
     out = subprocess.run(["qpdf", "--version"], capture_output=True, text=True, check=True)
     return out.stdout.split()[2]
+
+
+def pdftotext(path, page=1):
+    """pdftotext's lines for `page` (its default reading-order mode, UTF-8), without the blank
+    lines it puts between blocks and the form feed that ends the page."""
+    out = subprocess.run(
+        ["pdftotext", "-f", str(page), "-l", str(page), "-enc", "UTF-8", str(path), "-"],
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    return [line for line in out.stdout.replace("\f", "").split("\n") if line]
+
+
+def poppler_version():
+    # `pdftotext -v` prints "pdftotext version X.Y.Z" on stderr.
+    out = subprocess.run(["pdftotext", "-v"], capture_output=True, text=True, check=True)
+    return (out.stderr or out.stdout).split()[2]
 
 
 def run_pdfjs(script, paths):

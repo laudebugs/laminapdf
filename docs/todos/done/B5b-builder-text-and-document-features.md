@@ -54,11 +54,11 @@ Complete the builder's feature list for M1: shaped text runs and single-box para
 - [x] PDF text-string encoding shared with `lamina-ops` `InfoPatch` (move to a common place if duplicated): already one function, `lamina_syntax::text::encode_text_string`, which both use; nothing to move
 - [x] XMP writer (deterministic attribute order, escaped values); tests that Info and XMP agree
 - [x] Goldens: `text-latin.pdf`, `text-multiscript.pdf`, `links-and-outlines.pdf`, `metadata.pdf` (deviation: the text ones are `build-text-latin.pdf` and `build-text-multiscript.pdf`, as `text-latin.pdf` is lamina-text's and `text-*.pdf` is the glob `tools/fixtures/text_facts.py` reads)
-- [x] Full-lane checks: pdf.js link/outline extraction equals the builder's input; pypdf/pdftotext text equals input (as committed facts, the repository's pattern: `tools/fixtures/build_facts.py` + `pdfjs_build.mjs` write `fixtures/build/facts.json`, `tests/external.rs` checks it; the goldens also joined the round-trip suite's `PLAIN_BUILT`, so the full lane's `cargo xtask roundtrip` runs qpdf, pdf.js and PDFium on them and their saves. Deviation: no pdftotext, which isn't installed or pinned anywhere; pypdf and pdf.js cover extraction)
+- [x] Full-lane checks: pdf.js link/outline extraction equals the builder's input; pypdf/pdftotext text equals input (as committed facts, the repository's pattern: `tools/fixtures/build_facts.py` + `pdfjs_build.mjs` write `fixtures/build/facts.json`, `tests/external.rs` checks it; the goldens also joined the round-trip suite's `PLAIN_BUILT`, so the full lane's `cargo xtask roundtrip` runs qpdf, pdf.js and PDFium on them and their saves; pdftotext 26.10.0 joined the facts once B4d pinned it)
 
 ## Acceptance criteria
 
-- [x] Text in five scripts (Latin, Arabic, Devanagari, Hebrew, CJK) generated via `text()` and `text_box()` extracts equal to the input in pdf.js, pypdf and pdftotext (Latin, Hebrew, CJK and the standard 14 exactly in both; Arabic in pypdf; the extractor limitations already known from `text-shaped.pdf` are listed with reasons in `fixtures/build/extraction-exceptions.json`: pdf.js on Arabic's empty ToUnicode destinations, which B4d removes, and both on the Devanagari i-matra, as neither reads `/ActualText`; no pdftotext, see above)
+- [x] Text in five scripts (Latin, Arabic, Devanagari, Hebrew, CJK) generated via `text()` and `text_box()` extracts equal to the input in pdf.js, pypdf and pdftotext (after B4d: every line exact in pypdf; Latin, CJK and the standard 14 exact in all three; the extractor limitations already known from `text-shaped.pdf` are listed with reasons in `fixtures/build/extraction-exceptions.json`: pdf.js's space before the Devanagari i-matra, and pdftotext writing right-to-left lines in display order inside U+202B…U+202C)
 - [x] A text box never produces a line wider than its box; overflow is reported or clipped per option
 - [x] URI and internal links, named destinations and outlines resolve correctly in pdf.js (`getOutline`, `getDestination`, annotations) and in `lamina-model` views (round-trip through B2c's views)
 - [x] Page labels read back through `lamina-model::PageLabels` and pypdf `page_labels` (and pdf.js `getPageLabels`)
@@ -73,9 +73,9 @@ Complete the builder's feature list for M1: shaped text runs and single-box para
 - **`text()` and `text_box()` return `Result`** (shaping errors such as `missing-glyph` come back at the call); `TextRun`'s shaping changes (`features`, `language`, `direction`) do too.
 - **Standard 14 fonts** are laid out by the builder (one glyph per character with AFM widths, UAX #14 breaks, left to right), since `lamina-text` refuses to shape them.
 - **Overflow::Clip** draws the lines that fit and reports where the rest starts; it does not add a clipping path (no drawn line crosses the box).
-- **Runs are drawn in logical order** within a line (each at its own x), what B4d's `Line::drawing_order` does, so extractors read multi-run right-to-left lines in order; this needs no B4d API.
+- **Runs are drawn in logical order** within a line (each at its own x), through B4d's `Line::drawing_order`, so extractors read multi-run right-to-left lines in order.
 - **XMP drops C0 control characters** other than tab, line feed and carriage return (XML 1.0 can't hold them), so Info and XMP differ only for such text.
-- **Goldens and pdftotext**: see the tasks above.
+- **Goldens**: see the tasks above.
 - **Code review** (20 findings, fixed in one commit; see its message): appends resolve every link before changing anything and roll the overlay back on a failed write; a failed page is rolled back with the font registry, resources and links it recorded (`FontRegistry` became `Clone`, a two-word additive change in `lamina-text`, which also now exports `is_hard_break`/`is_trailing_space` for the standard 14 layout); `/FitH`/`/FitV` operands are user-space y/x, `null` on pages turned sideways; a negative zoom is `invalid-geometry`, zoom 0 is `null`; Info and XMP drop the same XML-illegal characters.
 
 ## Post-merge checks

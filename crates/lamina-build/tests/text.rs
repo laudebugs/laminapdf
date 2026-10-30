@@ -263,8 +263,9 @@ fn at_1_4(font: &str, text: &str) -> (String, Option<Vec<u8>>) {
 
 #[test]
 fn actual_text_raises_an_old_version_to_1_5() {
-    // The i-matra is drawn before the consonant it follows: its cluster needs /ActualText.
-    let (content, version) = at_1_4("NotoSansDevanagari-Regular.ttf", "हिन्दी");
+    // A cluster holding a default-ignorable (the ZWJ asking for a half form) can't be spelt
+    // by its glyphs' CIDs (ZWJ is never a glyph's text), so it gets /ActualText (B4d).
+    let (content, version) = at_1_4("NotoSansDevanagari-Regular.ttf", "क्\u{200D}ष");
     assert!(content.contains("/ActualText"), "{content}");
     assert_eq!(version.as_deref(), Some(&b"1.5"[..]));
 }

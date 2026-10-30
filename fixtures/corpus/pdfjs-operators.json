@@ -187,24 +187,20 @@
   ],
   "fixtures/golden/build-text-multiscript.pdf": [
     {
-      "beginMarkedContentProps": 5,
       "beginText": 5,
-      "endMarkedContent": 5,
       "endText": 5,
       "setFont": 5,
       "setTextMatrix": 5,
       "setTextRise": 6,
-      "showText": 18
+      "showText": 11
     },
     {
-      "beginMarkedContentProps": 5,
       "beginText": 5,
-      "endMarkedContent": 5,
       "endText": 5,
       "setFont": 5,
       "setTextMatrix": 13,
       "setTextRise": 6,
-      "showText": 26
+      "showText": 19
     }
   ],
   "fixtures/golden/full-rewrite-hello.pdf": [
@@ -323,14 +319,12 @@
   ],
   "fixtures/golden/text-shaped.pdf": [
     {
-      "beginMarkedContentProps": 9,
       "beginText": 8,
-      "endMarkedContent": 9,
       "endText": 8,
       "setFont": 14,
       "setTextMatrix": 14,
       "setTextRise": 10,
-      "showText": 35
+      "showText": 24
     }
   ],
   "fixtures/golden/text-std14.pdf": [

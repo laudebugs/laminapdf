@@ -298,7 +298,7 @@ Each round's todos (one per PR, with dependencies) are linked from [§7](#7-roun
 - [x] Bundle standard 14 AFM metrics ([B4c](../todos/done/B4c-standard-14-and-simple-fonts.md)); reject them under PDF/A and PDF/UA profiles ([B8b](../todos/ready/B8b-conformance-profiles-and-verapdf.md))
 - [x] Emit missing-glyph diagnostics with codes ([B4a](../todos/done/B4a-font-loading-and-subsetting.md): `missing-glyph`)
 - [x] Shaping goldens for five scripts ([B4b](../todos/done/B4b-shaping-bidi-line-breaking.md))
-- [ ] Extraction tests with pdf.js, pypdf, pdftotext that return the input in every script ([B4b](../todos/done/B4b-shaping-bidi-line-breaking.md): pdf.js and pypdf facts, exact for Latin and CJK, with the Arabic/Hebrew/Devanagari limitations listed; [B4d](../todos/ongoing/B4d-tounicode-per-text-cids.md): one CID per glyph and text, pdftotext)
+- [x] Extraction tests with pdf.js, pypdf, pdftotext that return the input in every script ([B4b](../todos/done/B4b-shaping-bidi-line-breaking.md): pdf.js and pypdf facts, exact for Latin and CJK; [B4d](../todos/done/B4d-tounicode-per-text-cids.md): one CID per glyph and text and pdftotext facts; Arabic, Devanagari (pypdf) and the mixed line now exact, the remaining lines listed as extractor bugs with upstream links)
 
 ### B5. Builder and the `lamina` crate
 

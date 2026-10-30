@@ -123,7 +123,8 @@ pub struct Line {
     /// The bytes drawn: [`Line::range`] without trailing spaces and hard breaks, which hang
     /// past the line's end (UAX #14) and are neither drawn nor measured.
     pub content: Range<usize>,
-    /// The runs in visual order, left to right.
+    /// The runs in visual order, left to right. Draw them in [`Line::drawing_order`] (each
+    /// at its own `x`) so extractors read the line in order.
     pub runs: Vec<LineRun>,
     /// The width of the drawn content in points.
     pub width: f64,
@@ -205,6 +206,34 @@ fn paragraphs(text: &str) -> Vec<Range<usize>> {
 }
 
 impl Line {
+    /// The order to draw [`Line::runs`] in for text extraction (B4d): their indices in
+    /// logical (reading) order, by where each run's text starts. Each run is still drawn at
+    /// its own `x`, so the page looks the same in any order, but extractors that keep the
+    /// order of the content stream across a font change (pypdf flushes its right-to-left
+    /// reversal at every `Tf`, pdf.js orders text items by appearance) read a right-to-left
+    /// line made of several runs (Hebrew words around a comma from another font) in the
+    /// order it was written.
+    ///
+    /// ```
+    /// # fn hebrew() -> Vec<u8> { include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/../../fixtures/fonts/NotoSansHebrew-Regular.ttf")).to_vec() }
+    /// # fn latin() -> Vec<u8> { include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/../../fixtures/fonts/NotoSans-Regular.ttf")).to_vec() }
+    /// use lamina_text::{Font, HarfRust, LayoutOptions, break_lines};
+    ///
+    /// let fonts = [Font::from_bytes(hebrew())?, Font::from_bytes(latin())?];
+    /// let text = "שלום, עולם";
+    /// let line = &break_lines(&HarfRust, &fonts, text, &LayoutOptions::new(400.0, 12.0))?[0];
+    /// let order = line.drawing_order();
+    /// // Visual order is left to right; the first run drawn holds the text's start.
+    /// assert_eq!(line.runs[order[0]].run.text_range.start, 0);
+    /// # Ok::<(), lamina_text::Error>(())
+    /// ```
+    #[must_use]
+    pub fn drawing_order(&self) -> Vec<usize> {
+        let mut order: Vec<usize> = (0..self.runs.len()).collect();
+        order.sort_by_key(|&i| self.runs.get(i).map(|r| r.run.text_range.start));
+        order
+    }
+
     /// Moves the line's byte offsets by `by` (from its paragraph's text to the whole text).
     fn shift(&mut self, by: usize) {
         self.range = self.range.start + by..self.range.end + by;

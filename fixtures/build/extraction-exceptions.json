@@ -3,59 +3,67 @@
   "exceptions": [
     {
       "file": "build-text-multiscript.pdf",
-      "extractor": "pypdf",
+      "extractor": "pdfjs",
       "page": 0,
       "line": 2,
-      "extracted": "नमस्ते दुिनया। िहन्दी पाठ का परीक्षण",
-      "reason": "pypdf ignores marked-content /ActualText: the reordered i-matra (drawn before its consonant) reads in drawing order"
-    },
-    {
-      "file": "build-text-multiscript.pdf",
-      "extractor": "pypdf",
-      "page": 1,
-      "line": 6,
-      "extracted": "नमस्ते दुिनया। िहन्दी",
-      "reason": "pypdf ignores marked-content /ActualText: the reordered i-matra (drawn before its consonant) reads in drawing order"
+      "extracted": "नमस्ते दु निया। हिन्दी पाठ का परीक्षण",
+      "reason": "pdf.js treats a glyph whose text contains a nonspacing mark anywhere as a zero-width diacritic (getCharUnicodeCategory's /^(\\s)|(\\p{Mn})|(\\p{Cf})$/u test) and starts a new text item after it: the i-matra glyph standing for “नि” gets a space before it, as on text-shaped.pdf line 5"
     },
     {
       "file": "build-text-multiscript.pdf",
       "extractor": "pdfjs",
+      "page": 1,
+      "line": 6,
+      "extracted": "नमस्ते दु निया। हिन्दी",
+      "reason": "pdf.js treats a glyph whose text contains a nonspacing mark anywhere as a zero-width diacritic (getCharUnicodeCategory's /^(\\s)|(\\p{Mn})|(\\p{Cf})$/u test) and starts a new text item after it: the i-matra glyph standing for “नि” gets a space before it, as on text-shaped.pdf line 5"
+    },
+    {
+      "file": "build-text-multiscript.pdf",
+      "extractor": "pdftotext",
       "page": 0,
       "line": 1,
-      "extracted": "كمي\u0003العالم السلام علب\u0010 اب\u0010مرح",
-      "reason": "pdf.js ignores marked-content /ActualText, reads an empty ToUnicode destination (<cid> <>, the dot glyphs Noto Sans Arabic draws apart from their base) as the code, and the /Span sequences around those clusters split the line into text items it puts in visual order (as for text-shaped.pdf; B4d's one CID per (glyph, text) removes the empty destinations)"
+      "extracted": "‫مرحبا بالعالم السلام عليكم‬",
+      "reason": "pdftotext writes right-to-left text as it is displayed, each right-to-left phrase wrapped in U+202B…U+202C embeddings (as on text-shaped.pdf lines 3, 4 and 7)"
     },
     {
       "file": "build-text-multiscript.pdf",
-      "extractor": "pdfjs",
+      "extractor": "pdftotext",
       "page": 0,
-      "line": 2,
-      "extracted": "नमस्ते दु िनया। िहन्दी पाठ का परीक्षण",
-      "reason": "pdf.js getTextContent ignores marked-content /ActualText: the reordered i-matra reads in drawing order, and its negative offset starts a new text item (a space)"
+      "line": 3,
+      "extracted": "‫שלום עולם וברוכים הבאים‬",
+      "reason": "pdftotext writes right-to-left text as it is displayed, each right-to-left phrase wrapped in U+202B…U+202C embeddings (as on text-shaped.pdf lines 3, 4 and 7)"
     },
     {
       "file": "build-text-multiscript.pdf",
-      "extractor": "pdfjs",
+      "extractor": "pdftotext",
       "page": 1,
       "line": 4,
-      "extracted": "العالم السلامب\u0010 اب\u0010مرح",
-      "reason": "pdf.js ignores marked-content /ActualText, reads an empty ToUnicode destination (<cid> <>, the dot glyphs Noto Sans Arabic draws apart from their base) as the code, and the /Span sequences around those clusters split the line into text items it puts in visual order (as for text-shaped.pdf; B4d's one CID per (glyph, text) removes the empty destinations)"
+      "extracted": "‫مرحبا بالعالم السلام‬",
+      "reason": "pdftotext writes right-to-left text as it is displayed, each right-to-left phrase wrapped in U+202B…U+202C embeddings (as on text-shaped.pdf lines 3, 4 and 7)"
     },
     {
       "file": "build-text-multiscript.pdf",
-      "extractor": "pdfjs",
+      "extractor": "pdftotext",
       "page": 1,
       "line": 5,
-      "extracted": "كمي\u0003عل",
-      "reason": "pdf.js ignores marked-content /ActualText, reads an empty ToUnicode destination (<cid> <>, the dot glyphs Noto Sans Arabic draws apart from their base) as the code, and the /Span sequences around those clusters split the line into text items it puts in visual order (as for text-shaped.pdf; B4d's one CID per (glyph, text) removes the empty destinations)"
+      "extracted": "‫عليكم‬",
+      "reason": "pdftotext writes right-to-left text as it is displayed, each right-to-left phrase wrapped in U+202B…U+202C embeddings (as on text-shaped.pdf lines 3, 4 and 7)"
     },
     {
       "file": "build-text-multiscript.pdf",
-      "extractor": "pdfjs",
+      "extractor": "pdftotext",
       "page": 1,
-      "line": 6,
-      "extracted": "नमस्ते दु िनया। िहन्दी",
-      "reason": "pdf.js getTextContent ignores marked-content /ActualText: the reordered i-matra reads in drawing order, and its negative offset starts a new text item (a space)"
+      "line": 8,
+      "extracted": "‫שלום עולם‬",
+      "reason": "pdftotext writes right-to-left text as it is displayed, each right-to-left phrase wrapped in U+202B…U+202C embeddings (as on text-shaped.pdf lines 3, 4 and 7)"
+    },
+    {
+      "file": "build-text-multiscript.pdf",
+      "extractor": "pdftotext",
+      "page": 1,
+      "line": 9,
+      "extracted": "‫וברוכים הבאים‬",
+      "reason": "pdftotext writes right-to-left text as it is displayed, each right-to-left phrase wrapped in U+202B…U+202C embeddings (as on text-shaped.pdf lines 3, 4 and 7)"
     }
   ]
 }

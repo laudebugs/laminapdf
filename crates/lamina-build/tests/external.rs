@@ -21,7 +21,11 @@ use common::fixture;
 use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
 
+/// The readers whose links, outline, destinations, labels and metadata are in the facts.
 const EXTRACTORS: [&str; 2] = ["pypdf", "pdfjs"];
+
+/// The readers whose text is in the facts.
+const TEXT_EXTRACTORS: [&str; 3] = ["pypdf", "pdfjs", "pdftotext"];
 
 fn facts() -> Value {
     serde_json::from_slice(&fixture("build/facts.json")).unwrap()
@@ -113,7 +117,7 @@ fn extractors_read_the_drawn_text() {
     let facts = facts();
     let excused = exceptions();
     for (name, pages) in goldens() {
-        for extractor in EXTRACTORS {
+        for extractor in TEXT_EXTRACTORS {
             let got = &facts["files"][name][extractor]["pages"];
             assert_eq!(got.as_array().map(Vec::len), Some(pages.len()), "{name} {extractor}");
             for (p, want) in pages.iter().enumerate() {
@@ -132,14 +136,27 @@ fn extractors_read_the_drawn_text() {
 }
 
 #[test]
-fn exceptions_are_limited_to_complex_scripts() {
-    // Only the Arabic (line 1 of page 1; lines 4–5 of page 2) and Devanagari (line 2; lines 6–7)
-    // of the multiscript golden: Latin, Hebrew, CJK and the standard 14 extract exactly.
+fn exceptions_are_limited_to_known_extractor_bugs() {
+    // B4d made every line exact in pypdf. pdf.js puts a space before the Devanagari i-matra
+    // (page 1 line 2, page 2 line 6; its zero-width test, as on text-shaped.pdf); pdftotext
+    // writes right-to-left lines in display order inside U+202B…U+202C (the Arabic and Hebrew
+    // lines). Latin, CJK and the standard 14 extract exactly everywhere.
+    let allowed = [
+        ("pdfjs", 0, 2),
+        ("pdfjs", 1, 6),
+        ("pdftotext", 0, 1),
+        ("pdftotext", 0, 3),
+        ("pdftotext", 1, 4),
+        ("pdftotext", 1, 5),
+        ("pdftotext", 1, 8),
+        ("pdftotext", 1, 9),
+    ];
     for ((file, extractor, page, line), _) in exceptions() {
         assert_eq!(file, "build-text-multiscript.pdf");
-        assert!(EXTRACTORS.contains(&extractor.as_str()));
-        let allowed: &[usize] = if page == 0 { &[1, 2] } else { &[4, 5, 6, 7] };
-        assert!(allowed.contains(&line), "{extractor} page {page} line {line}");
+        assert!(
+            allowed.contains(&(extractor.as_str(), page, line)),
+            "{extractor} page {page} line {line}"
+        );
     }
 }
 
@@ -275,13 +292,14 @@ fn facts_were_written_with_the_pinned_tools() {
 }
 
 #[test]
-fn facts_and_scripts_use_the_doctor_pins() {
+fn facts_were_written_with_the_doctor_pins() {
+    // pdfjs_build.mjs's own pin is in lamina-text's `pdfjs_scripts_pin_the_doctor_version`.
     let facts = facts();
     let doctor = String::from_utf8(fixture("../tools/xtask/src/doctor.rs")).unwrap();
-    let script = String::from_utf8(fixture("../tools/fixtures/pdfjs_build.mjs")).unwrap();
     assert_eq!(
-        pinned(&script, "const PINNED ="),
-        pinned(&doctor, "const PDFJS_DIST_VERSION: &str =")
+        facts["poppler_version"].as_str(),
+        Some(pinned(&doctor, "pub(crate) const POPPLER_VERSION: &str =").as_str()),
+        "fixtures/build/facts.json was written with another pdftotext; rerun tools/fixtures/build_facts.py"
     );
     assert_eq!(
         facts["qpdf_version"].as_str(),

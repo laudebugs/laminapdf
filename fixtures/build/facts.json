@@ -2,10 +2,41 @@
   "pypdf_version": "6.21.3",
   "pdfjs_version": "6.4.299",
   "qpdf_version": "12.4.2",
+  "poppler_version": "26.10.0",
   "files": {
     "build-text-latin.pdf": {
       "sha256": "047bac17dc4c64c68ac767f8fbb2c4c5d1fe147fbbb35218cbe0524d805fcc64",
       "qpdf_check": true,
+      "pdftotext": {
+        "pages": [
+          [
+            "Hello, world! The office staff fill the affine waffle flask.",
+            "Café crème brûlée, naïve façade: “curly” and ‘single’ quotes",
+            "AVATAR Wave: To Yo! (kerned) and fi without ligatures",
+            "Helvetica: “Curly” ‘quotes’ — and dashes – too",
+            "Times-Roman: The quick brown fox jumps over the lazy dog.",
+            "Invisible but extractable",
+            "Outlined",
+            "The quick brown fox jumps",
+            "over the lazy dog. Pack my",
+            "box with five dozen liquor",
+            "jugs; sphinx of black quartz,",
+            "judge my vow.",
+            "The quick brown fox jumps",
+            "over the lazy dog. Pack my",
+            "box with five dozen liquor",
+            "jugs; sphinx of black quartz,",
+            "judge my vow.",
+            "The quick brown fox jumps",
+            "over the lazy dog. Pack my",
+            "box with five dozen liquor",
+            "jugs; sphinx of black quartz,",
+            "judge my vow.",
+            "The quick brown fox jumps over the lazy dog. Pack my box with five dozen liquor jugs; sphinx of black",
+            "quartz, judge my vow."
+          ]
+        ]
+      },
       "pypdf": {
         "pages": [
           [
@@ -92,14 +123,40 @@
       }
     },
     "build-text-multiscript.pdf": {
-      "sha256": "6a338bc05131cca960f4fc9af5f2e0fc17602df2612dad97712a07a08cb0c9dc",
+      "sha256": "219ecf6df797310319a814396853e21bb90c27b133a2cc608917e70697ee2c56",
       "qpdf_check": true,
+      "pdftotext": {
+        "pages": [
+          [
+            "Latin: the office staff fill the affine waffle flask",
+            "‫مرحبا بالعالم السلام عليكم‬",
+            "नमस्ते दुनिया। हिन्दी पाठ का परीक्षण",
+            "‫שלום עולם וברוכים הבאים‬",
+            "你好世界，这是中文字体子集测试。"
+          ],
+          [
+            "Latin: the office",
+            "staff fill the",
+            "affine waffle",
+            "flask",
+            "‫مرحبا بالعالم السلام‬",
+            "‫عليكم‬",
+            "नमस्ते दुनिया। हिन्दी",
+            "पाठ का परीक्षण",
+            "‫שלום עולם‬",
+            "‫וברוכים הבאים‬",
+            "你好世界，这是",
+            "中文字体子集测",
+            "试。"
+          ]
+        ]
+      },
       "pypdf": {
         "pages": [
           [
             "Latin: the office staff fill the affine waffle flask",
             "مرحبا بالعالم السلام عليكم",
-            "नमस्ते दुिनया। िहन्दी पाठ का परीक्षण",
+            "नमस्ते दुनिया। हिन्दी पाठ का परीक्षण",
             "שלום עולם וברוכים הבאים",
             "你好世界，这是中文字体子集测试。"
           ],
@@ -110,7 +167,7 @@
             "flask",
             "مرحبا بالعالم السلام",
             "عليكم",
-            "नमस्ते दुिनया। िहन्दी",
+            "नमस्ते दुनिया। हिन्दी",
             "पाठ का परीक्षण",
             "שלום עולם",
             "וברוכים הבאים",
@@ -139,8 +196,8 @@
         "pages": [
           [
             "Latin: the office staff fill the affine waffle flask",
-            "كمي\u0003العالم السلام علب\u0010 اب\u0010مرح",
-            "नमस्ते दु िनया। िहन्दी पाठ का परीक्षण",
+            "مرحبا بالعالم السلام عليكم",
+            "नमस्ते दु निया। हिन्दी पाठ का परीक्षण",
             "שלום עולם וברוכים הבאים",
             "你好世界，这是中文字体子集测试。"
           ],
@@ -149,9 +206,9 @@
             "staff fill the",
             "affine waffle",
             "flask",
-            "العالم السلامب\u0010 اب\u0010مرح",
-            "كمي\u0003عل",
-            "नमस्ते दु िनया। िहन्दी",
+            "مرحبا بالعالم السلام",
+            "عليكم",
+            "नमस्ते दु निया। हिन्दी",
             "पाठ का परीक्षण",
             "שלום עולם",
             "וברוכים הבאים",
@@ -177,6 +234,26 @@
     "links-and-outlines.pdf": {
       "sha256": "f3c6abdc7a60482d259e5ff4b68d079eaeb4373723bf6b9a5961adf9d610df49",
       "qpdf_check": true,
+      "pdftotext": {
+        "pages": [
+          [
+            "Title page",
+            "Visit example.com",
+            "Go to chapter 1",
+            "Go to chapter 2 (named)",
+            "Contents (a linked run)"
+          ],
+          [
+            "Contents"
+          ],
+          [
+            "Chapter 1"
+          ],
+          [
+            "Chapter 2"
+          ]
+        ]
+      },
       "pypdf": {
         "pages": [
           [
@@ -393,6 +470,13 @@
     "metadata.pdf": {
       "sha256": "94b924a90540b37dd1c1133f2efc117bc1cf6ef6084090164d8a2575de7fdb23",
       "qpdf_check": true,
+      "pdftotext": {
+        "pages": [
+          [
+            "Metadata"
+          ]
+        ]
+      },
       "pypdf": {
         "pages": [
           [

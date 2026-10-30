@@ -1,5 +1,6 @@
 //! Type 0 embedding read back with lamina-cos: the font dictionaries, the font program, `/W`
-//! against the subset's `hmtx`, subset tags and determinism (todo B4a).
+//! against the subset's `hmtx`, subset tags and determinism (todo B4a); `/CIDToGIDMap`
+//! streams for glyphs drawn with several texts (todo B4d).
 #![allow(clippy::unwrap_used, reason = "tests: a panic is a test failure")]
 
 mod common;
@@ -340,4 +341,91 @@ fn embedded_font_counts_notdef_and_the_glyphs_drawn() {
     pdf.line(key, 12.0, "x").unwrap();
     let (_, embedded, _) = pdf.finish().unwrap();
     assert_eq!(embedded[0].glyphs, 2);
+}
+
+/// A glyph drawn with two texts: two CIDs (B4d), a `/CIDToGIDMap` stream sending both to the
+/// glyph, `/W` giving both its width, and the ToUnicode CMap both texts.
+#[test]
+fn a_glyph_with_two_texts_gets_a_cid_to_gid_map_stream() {
+    let sans = font("NotoSans-Regular.ttf");
+    let (a, b) = (sans.glyph_for('a').unwrap(), sans.glyph_for('b').unwrap());
+    let mut pdf = TestPdf::new();
+    let key = pdf.add_font(sans).unwrap();
+    pdf.glyphs(key, 12.0, &[(a, "a"), (a, "α"), (b, "b")]).unwrap();
+    let fonts = read_fonts(&pdf.finish().unwrap().0);
+    let f = &fonts[0];
+    let widths = expand_widths(f.cid_font.get("W").and_then(Object::as_array).unwrap_or(&[]));
+    let dw = f.cid_font.get("DW").and_then(Object::as_f64).unwrap_or(1000.0);
+    let width = |cid| widths.get(&cid).copied().unwrap_or(dw);
+    let (cmap, _) = common::parse_cmap(&f.to_unicode);
+    assert_eq!(
+        (
+            f.cid_to_gid.clone(),
+            width(1).to_bits() == width(2).to_bits(),
+            cmap.get(&1).map(String::as_str),
+            cmap.get(&2).map(String::as_str)
+        ),
+        (Some(vec![0, 0, 0, 1, 0, 1, 0, 2]), true, Some("a"), Some("α"))
+    );
+}
+
+/// Shaped text whose glyphs got several texts (B4d): every CID the content draws maps, in the
+/// `/CIDToGIDMap` stream, to the subset glyph made from the glyph it was drawn with (same
+/// advance and outline bounds as in the original font).
+#[test]
+fn every_drawn_cid_maps_to_the_glyph_it_was_drawn_with() {
+    for (name, text) in [
+        ("NotoSansDevanagari-Regular.ttf", "नमस्ते दुनिया। हिन्दी पाठ का परीक्षण कर्म"),
+        ("NotoSansArabic-Regular.ttf", "مرحبا بالعالم، السلام عليكم"),
+    ] {
+        let original = font(name);
+        let mut pdf = TestPdf::new();
+        let key = pdf.add_font(original.clone()).unwrap();
+        pdf.paragraph(&[key], text, &lamina_text::LayoutOptions::new(450.0, 16.0))
+            .unwrap();
+        let drawn = pdf.registry().usage(key).unwrap().embedded().unwrap().glyphs();
+        let fonts = read_fonts(&pdf.finish().unwrap().0);
+        let map = fonts[0]
+            .cid_to_gid
+            .clone()
+            .unwrap_or_else(|| panic!("{name}: no map stream"));
+        let program = skrifa::FontRef::new(&fonts[0].program).unwrap();
+        let source = skrifa::FontRef::new(original.bytes()).unwrap();
+        let shape = |f: &skrifa::FontRef<'_>, gid: u16| {
+            let m = f.glyph_metrics(Size::unscaled(), LocationRef::default());
+            let g = skrifa::GlyphId::from(gid);
+            (
+                m.advance_width(g),
+                m.bounds(g).map(|b| [b.x_min, b.y_min, b.x_max, b.y_max]),
+            )
+        };
+        for (cid, gid) in drawn {
+            let at = usize::from(cid) * 2;
+            let mapped = u16::from_be_bytes([map[at], map[at + 1]]);
+            assert_eq!(
+                shape(&program, mapped),
+                shape(&source, gid.get()),
+                "{name}: CID {cid:#06X} drawn with glyph {} maps to subset glyph {mapped}",
+                gid.get()
+            );
+        }
+    }
+}
+
+/// A font embedded whole (`fsType` no-subsetting): a glyph's first CID is its own ID, a second
+/// text's CID comes after the glyph count.
+#[test]
+fn a_whole_font_puts_second_texts_past_its_glyph_count() {
+    let sans = Font::from_bytes(common::with_fs_type(
+        &common::fixture("fonts/NotoSans-Regular.ttf"),
+        0x0100,
+    ))
+    .unwrap();
+    let a = sans.glyph_for('a').unwrap();
+    let count = sans.info().glyph_count;
+    let mut fonts = FontRegistry::new();
+    let key = fonts.add(sans, lamina_text::EmbedPolicy::Respect).unwrap();
+    let first = fonts.use_glyph(key, a, "a").unwrap().cid();
+    let second = fonts.use_glyph(key, a, "α").unwrap().cid();
+    assert_eq!((first, second), (Some(a.get()), Some(count)));
 }

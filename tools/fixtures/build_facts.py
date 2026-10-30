@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Writes fixtures/build/facts.json (todo B5b): for each of lamina-build's B5b goldens, its
-SHA-256, whether `qpdf --check` passes, and what pypdf and pdf.js read from it: each page's
+SHA-256, whether `qpdf --check` passes, pdftotext's text lines per page, and what pypdf and pdf.js read from it: each page's
 text lines, link annotations, the outline with each item's page, the named destinations, the
 page labels, the Info dictionary and the XMP values. crates/lamina-build/tests/external.rs
 checks the facts against the builder's input and the goldens' current bytes, so tests need
@@ -9,7 +9,7 @@ neither Python, Node nor qpdf.
     python3 -m venv .venv && .venv/bin/pip install -r tools/fixtures/requirements.txt
     (cd "$(mktemp -d)" && npm init -y && npm i pdfjs-dist@6.4.299)   # pdf.js: Apache-2.0
     PDFJS_DIST=<that dir>/node_modules/pdfjs-dist .venv/bin/python tools/fixtures/build_facts.py
-    # needs qpdf on PATH (pinned in doctor.rs) and node (tools/fixtures/pdfjs_build.mjs)
+    # needs qpdf and poppler's pdftotext on PATH (pinned in doctor.rs) and node (tools/fixtures/pdfjs_build.mjs)
 
 Run it after `cargo xtask golden --update` changes one of these goldens.
 """
@@ -17,7 +17,7 @@ Run it after `cargo xtask golden --update` changes one of these goldens.
 import json
 
 import pypdf
-from facts_common import ROOT, qpdf_check, qpdf_version, run_pdfjs, sha256
+from facts_common import ROOT, pdftotext, poppler_version, qpdf_check, qpdf_version, run_pdfjs, sha256
 
 OUT = ROOT / "fixtures" / "build" / "facts.json"
 GOLDENS = ["build-text-latin.pdf", "build-text-multiscript.pdf", "links-and-outlines.pdf", "metadata.pdf"]
@@ -95,6 +95,7 @@ def facts(path):
     return {
         "sha256": sha256(path),
         "qpdf_check": qpdf_check(path),
+        "pdftotext": {"pages": [pdftotext(path, i + 1) for i in range(len(reader.pages))]},
         "pypdf": {
             "pages": [[line for line in p.extract_text().split("\n") if line] for p in reader.pages],
             "links": [links(reader, p) for p in reader.pages],
@@ -117,6 +118,7 @@ def main():
         "pypdf_version": pypdf.__version__,
         "pdfjs_version": js["pdfjs_version"],
         "qpdf_version": qpdf_version(),
+        "poppler_version": poppler_version(),
         "files": files,
     }
     OUT.parent.mkdir(parents=True, exist_ok=True)

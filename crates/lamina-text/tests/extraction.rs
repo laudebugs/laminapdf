@@ -1,5 +1,6 @@
-//! Text extraction by independent tools (todos B4a, B4b): `fixtures/text/extracted.json` holds
-//! what pypdf and pdf.js extract from each text golden and whether `qpdf --check` passes,
+//! Text extraction by independent tools (todos B4a, B4b, B4d): `fixtures/text/extracted.json`
+//! holds what pypdf, pdf.js and pdftotext extract from each text golden and whether
+//! `qpdf --check` passes,
 //! written by `tools/fixtures/text_facts.py`. The facts must describe the goldens' current
 //! bytes, and each extractor's text must equal the text each sample drew, except the lines in
 //! `fixtures/text/extraction-exceptions.json` (an extractor's known limitation, each with its
@@ -16,6 +17,9 @@ mod common;
 use std::fmt::Write as _;
 
 use sha2::{Digest, Sha256};
+
+/// The extractors with facts.
+const EXTRACTORS: [&str; 3] = ["pypdf", "pdfjs", "pdftotext"];
 
 fn facts() -> serde_json::Value {
     serde_json::from_slice(&common::fixture("text/extracted.json")).unwrap()
@@ -94,6 +98,11 @@ fn pdfjs_extracts_the_input_text() {
 }
 
 #[test]
+fn pdftotext_extracts_the_input_text() {
+    check_extractor("pdftotext");
+}
+
+#[test]
 fn every_exception_names_a_golden_line() {
     for ((file, extractor, line), _) in exceptions() {
         let lines = common::samples::GOLDENS
@@ -101,20 +110,38 @@ fn every_exception_names_a_golden_line() {
             .find(|(name, _, _)| *name == file)
             .map_or_else(|| panic!("{file} is not a text golden"), |(_, _, lines)| lines.len());
         assert!(line < lines, "{file} has no line {line}");
-        assert!(["pypdf", "pdfjs"].contains(&extractor.as_str()), "{extractor}");
+        assert!(EXTRACTORS.contains(&extractor.as_str()), "{extractor}");
     }
 }
 
 #[test]
-fn shaped_extraction_exceptions_are_limited_to_complex_scripts() {
-    // Only text-shaped.pdf's Arabic (3), pointed Hebrew (4) and Devanagari (5) lines, and for
-    // pdf.js the mixed line's Arabic (7): Latin, CJK and the other goldens extract exactly.
+fn exceptions_are_limited_to_known_extractor_bugs() {
+    // B4d: one CID per (glyph, text) made every shaped line exact in pypdf and pdf.js except
+    // the right-to-left line of several runs (4: pypdf's TJ spaces, pdf.js's item spaces)
+    // and, for pdf.js, the Devanagari line (5: its zero-width test). pdftotext writes
+    // right-to-left text in display order (3, 4, 7) and drops the ZapfDingbats spaces.
+    let allowed = [
+        ("text-shaped.pdf", "pypdf", 4),
+        ("text-shaped.pdf", "pdfjs", 4),
+        ("text-shaped.pdf", "pdfjs", 5),
+        ("text-shaped.pdf", "pdftotext", 3),
+        ("text-shaped.pdf", "pdftotext", 4),
+        ("text-shaped.pdf", "pdftotext", 7),
+        ("text-std14.pdf", "pdftotext", 13),
+    ];
     for ((file, extractor, line), _) in exceptions() {
-        assert_eq!(file, "text-shaped.pdf");
         assert!(
-            (3..=5).contains(&line) || (extractor == "pdfjs" && line == 7),
-            "{extractor} line {line}"
+            allowed.contains(&(file.as_str(), extractor.as_str(), line)),
+            "{file} {extractor} line {line}"
         );
+    }
+}
+
+#[test]
+fn every_exception_links_upstream() {
+    let file: serde_json::Value = serde_json::from_slice(&common::fixture("text/extraction-exceptions.json")).unwrap();
+    for e in file["exceptions"].as_array().unwrap() {
+        assert!(e["upstream"].as_str().unwrap().starts_with("https://"), "{e}");
     }
 }
 
@@ -155,11 +182,22 @@ fn facts_were_written_with_the_pinned_qpdf() {
 }
 
 #[test]
+fn facts_were_written_with_the_pinned_poppler() {
+    let doctor = String::from_utf8(common::fixture("../tools/xtask/src/doctor.rs")).unwrap();
+    assert_eq!(
+        facts()["poppler_version"].as_str(),
+        Some(pinned(&doctor, "pub(crate) const POPPLER_VERSION: &str =").as_str()),
+        "fixtures/text/extracted.json was written with another pdftotext than tools/xtask/src/doctor.rs pins; rerun tools/fixtures/text_facts.py"
+    );
+}
+
+#[test]
 fn pdfjs_scripts_pin_the_doctor_version() {
     let doctor = String::from_utf8(common::fixture("../tools/xtask/src/doctor.rs")).unwrap();
     let pinned_version = pinned(&doctor, "const PDFJS_DIST_VERSION: &str =");
     for script in [
         "../tools/fixtures/pdfjs_text.mjs",
+        "../tools/fixtures/pdfjs_build.mjs",
         "../tools/corpus-facts/pdfjs-operators.mjs",
         "../tools/roundtrip/pdfjs.mjs",
     ] {

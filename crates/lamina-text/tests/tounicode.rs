@@ -59,8 +59,27 @@ fn non_bmp_character_maps_to_a_surrogate_pair() {
 }
 
 #[test]
-fn conflicting_text_keeps_the_first_and_warns() {
+fn a_glyph_drawn_with_two_texts_gets_two_cids() {
+    // B4d: a space glyph used for U+0020 and for U+00A0: two CIDs, one glyph, a
+    // /CIDToGIDMap stream, no warning.
     let sans = font("NotoSans-Regular.ttf");
+    let space = sans.glyph_for(' ').unwrap();
+    let mut pdf = TestPdf::new();
+    let key = pdf.add_font(sans).unwrap();
+    pdf.glyphs(key, 12.0, &[(space, " "), (space, "\u{A0}")]).unwrap();
+    let (bytes, _, warnings) = pdf.finish().unwrap();
+    let fonts = read_fonts(&bytes);
+    let (cmap, _) = parse_cmap(&fonts[0].to_unicode);
+    assert_eq!(
+        (cmap.get(&1).cloned(), cmap.get(&2).cloned(), warnings),
+        (Some(" ".to_owned()), Some("\u{A0}".to_owned()), vec![])
+    );
+}
+
+#[test]
+fn conflicting_text_keeps_the_first_and_warns() {
+    // CFF outlines: one CID per glyph (B4d), so the first text is kept.
+    let sans = font("NotoSans-Regular.otf");
     let space = sans.glyph_for(' ').unwrap();
     let mut pdf = TestPdf::new();
     let key = pdf.add_font(sans).unwrap();
@@ -84,7 +103,7 @@ fn conflicting_text_keeps_the_first_and_warns() {
 
 #[test]
 fn conflict_warning_has_its_code() {
-    let sans = font("NotoSans-Regular.ttf");
+    let sans = font("NotoSans-Regular.otf");
     let a = sans.glyph_for('a').unwrap();
     let mut fonts = FontRegistry::new();
     let key = fonts.add(sans, EmbedPolicy::Respect).unwrap();
@@ -95,8 +114,8 @@ fn conflict_warning_has_its_code() {
 
 #[test]
 fn glyph_first_used_without_text_keeps_it_and_reports_the_later_text() {
-    // B4b review B1: the empty text is a text; a later different one is a conflict.
-    let sans = font("NotoSans-Regular.ttf");
+    // B4b review B1: the empty text is a text; a later different one is a conflict (CFF).
+    let sans = font("NotoSans-Regular.otf");
     let a = sans.glyph_for('a').unwrap();
     let mut fonts = FontRegistry::new();
     let key = fonts.add(sans, EmbedPolicy::Respect).unwrap();
