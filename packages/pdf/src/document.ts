@@ -3,6 +3,7 @@
 import type { WasmDocument, WasmPage, WasmSaveJob } from "@lamina/wasm/base";
 import { guard, isLaminaError, type LaminaWarning, packageError } from "./errors.js";
 import { baseModule } from "./init.js";
+import { type RangeOptions, type RangeSource, type RangeState, settle } from "./source/range.js";
 import { Transaction } from "./transaction.js";
 import type {
   DocumentInfo,
@@ -105,13 +106,76 @@ export class SaveJob {
  */
 export class Document {
   readonly #doc: WasmDocument;
+  /** Set for a document opened with {@link Document.openRange}: where more bytes come from. */
+  readonly #range: RangeState | undefined;
   #freed = false;
   /** Whether a `transact` callback of this document is running. */
   #transacting = false;
 
-  /** @internal Wraps a raw document (from `open` or `Builder.finish`). */
-  constructor(doc: WasmDocument) {
+  /** @internal Wraps a raw document (from `open`, `openRange` or `Builder.finish`). */
+  constructor(doc: WasmDocument, range?: RangeState) {
     this.#doc = doc;
+    this.#range = range;
+  }
+
+  /**
+   * Opens a document whose bytes are fetched range by range ({@link httpRangeSource},
+   * {@link callbackSource}): only what the open needs is fetched (the end of the file, the xref,
+   * the catalog). Calls on the document stay synchronous; one that needs bytes not fetched yet
+   * throws `data-pending` with `ranges`, so wrap later reads in {@link Document.ensure}.
+   *
+   * @param source - the file (or a promise of it, as `httpRangeSource` returns).
+   * @param options - open options (password, strict, limits) and fetch options.
+   * @returns the document, once open has everything it needs.
+   * @throws {@link LaminaError} as {@link Document.open}; `data-pending` when fetching made no
+   *   progress or `maxRounds` ran out; `source-budget-exceeded`; the source's own errors
+   *   (`fetch-failed`, `source-changed`); the signal's reason when aborted.
+   */
+  static async openRange(
+    source: RangeSource | Promise<RangeSource>,
+    options: OpenOptions & RangeOptions = {},
+  ): Promise<Document> {
+    const wasm = baseModule();
+    const src = await source;
+    const sparse = guard(() => new wasm.WasmSparseSource(src.size, options.budget));
+    const { signal: _s, blockSize: _b, readahead: _r, maxRounds: _m, budget: _g, ...open } = options;
+    const state: RangeState = { sparse, source: src, options };
+    const openWith = (opts: OpenOptions) =>
+      settle(
+        state,
+        () =>
+          new Document(
+            guard(() => wasm.WasmDocument.openSource(sparse, opts)),
+            state,
+          ),
+      );
+    const password = open.password;
+    const nfkc = password?.normalize("NFKC");
+    if (password === undefined || nfkc === password) return openWith(open);
+    try {
+      return await openWith(open);
+    } catch (e) {
+      if (!isLaminaError(e, "wrong-password")) throw e;
+      return openWith({ ...open, password: nfkc ?? password });
+    }
+  }
+
+  /**
+   * Runs a synchronous call on this document, fetching what it needs first: for a document
+   * from {@link Document.openRange}, a `data-pending` makes it fetch the ranges asked for and
+   * call `f` again. For other documents it just returns `f()`.
+   *
+   * @example
+   * ```ts
+   * const doc = await Document.openRange(httpRangeSource(url));
+   * const pages = await doc.ensure(() => doc.pages);
+   * ```
+   * @param f - the call (it may run several times; keep it free of side effects).
+   * @returns what `f` returns.
+   * @throws what `f` throws, and as {@link Document.openRange}.
+   */
+  async ensure<T>(f: () => T): Promise<T> {
+    return this.#range === undefined ? f() : settle(this.#range, f);
   }
 
   /**
