@@ -1,0 +1,170 @@
+%PDF-1.7
+%âãÏÓ
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R /Names << /Dests << /Names [(appendix) [15 0 R /FitH 523.275591] (chapter-2) [15 0 R /XYZ 0 495.275591 null] (contents) [11 0 R /Fit]] >> >> /Outlines 16 0 R /PageLabels << /Nums [0 << /S /r >> 2 << /S /D >>] >> /PageMode /UseOutlines >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [9 0 R 11 0 R 13 0 R 15 0 R] /Count 4 >>
+endobj
+3 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding /FirstChar 32 /LastChar 120 /Widths [278 278 355 556 556 889 667 191 333 333 389 584 278 333 278 278 556 556 556 556 556 556 556 556 556 556 278 278 584 584 584 556 1015 667 667 722 722 667 611 778 722 278 500 667 556 833 722 778 667 778 722 667 611 722 667 944 667 667 611 278 278 278 469 556 333 556 556 500 556 556 278 556 556 222 222 500 222 833 556 556 556 556 333 500 278 556 500 722 500] /FontDescriptor 24 0 R /ToUnicode 25 0 R >>
+endobj
+4 0 obj
+<< /Length 329 >>
+stream
+BT
+/F1 18 Tf
+1 0 0 1 36 535.2756 Tm
+(Title page) Tj
+ET
+BT
+/F1 12 Tf
+1 0 0 1 36 500.2756 Tm
+(Visit example.com) Tj
+ET
+BT
+/F1 12 Tf
+1 0 0 1 36 470.2756 Tm
+(Go to chapter 1) Tj
+ET
+BT
+/F1 12 Tf
+1 0 0 1 36 440.2756 Tm
+(Go to chapter 2 (named)) Tj
+ET
+q
+0 0.2 0.8 rg
+BT
+/F1 12 Tf
+1 0 0 1 36 410.2756 Tm
+(Contents (a linked run)) Tj
+ET
+Q
+endstream
+endobj
+5 0 obj
+<< /Type /Annot /Subtype /Link /Rect [36 495.275591 236 515.275591] /Border [0 0 0] /F 4 /Contents (Example) /A << /S /URI /URI (https://example.com/lamina?q=links&lang=en) >> >>
+endobj
+6 0 obj
+<< /Type /Annot /Subtype /Link /Rect [36 465.275591 236 485.275591] /Border [0 0 0] /F 4 /Dest [13 0 R /Fit] >>
+endobj
+7 0 obj
+<< /Type /Annot /Subtype /Link /Rect [36 435.275591 236 455.275591] /Border [0 0 0] /F 4 /Dest (chapter-2) >>
+endobj
+8 0 obj
+<< /Type /Annot /Subtype /Link /Rect [36 407.791591 157.38 418.891591] /Border [0 0 0] /F 4 /Contents (Contents) /Dest [11 0 R /Fit] >>
+endobj
+9 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 419.527559 595.275591] /Resources << /Font << /F1 3 0 R >> >> /Contents 4 0 R /Annots [5 0 R 6 0 R 7 0 R 8 0 R] >>
+endobj
+10 0 obj
+<< /Length 52 >>
+stream
+BT
+/F1 18 Tf
+1 0 0 1 36 535.2756 Tm
+(Contents) Tj
+ET
+endstream
+endobj
+11 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 419.527559 595.275591] /Resources << /Font << /F1 3 0 R >> >> /Contents 10 0 R >>
+endobj
+12 0 obj
+<< /Length 53 >>
+stream
+BT
+/F1 18 Tf
+1 0 0 1 36 535.2756 Tm
+(Chapter 1) Tj
+ET
+endstream
+endobj
+13 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 419.527559 595.275591] /Resources << /Font << /F1 3 0 R >> >> /Contents 12 0 R >>
+endobj
+14 0 obj
+<< /Length 53 >>
+stream
+BT
+/F1 18 Tf
+1 0 0 1 36 535.2756 Tm
+(Chapter 2) Tj
+ET
+endstream
+endobj
+15 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 419.527559 595.275591] /Resources << /Font << /F1 3 0 R >> >> /Contents 14 0 R >>
+endobj
+16 0 obj
+<< /Type /Outlines /First 17 0 R /Last 23 0 R /Count 6 >>
+endobj
+17 0 obj
+<< /Title (Title page) /Parent 16 0 R /Next 18 0 R /Dest [9 0 R /Fit] >>
+endobj
+18 0 obj
+<< /Title (Contents) /Parent 16 0 R /Prev 17 0 R /Next 19 0 R /Dest (contents) /C [0 0 0.6] >>
+endobj
+19 0 obj
+<< /Title (Chapters) /Parent 16 0 R /Prev 18 0 R /Next 23 0 R /First 20 0 R /Last 21 0 R /Count 2 /F 2 >>
+endobj
+20 0 obj
+<< /Title (Chapter 1) /Parent 19 0 R /Next 21 0 R /Dest [13 0 R /Fit] >>
+endobj
+21 0 obj
+<< /Title (Chapter 2) /Parent 19 0 R /Prev 20 0 R /First 22 0 R /Last 22 0 R /Count -1 /Dest (chapter-2) >>
+endobj
+22 0 obj
+<< /Title (Appendix) /Parent 21 0 R /Dest (appendix) /F 1 >>
+endobj
+23 0 obj
+<< /Title (Website) /Parent 16 0 R /Prev 19 0 R /A << /S /URI /URI (https://example.com/lamina?q=links&lang=en) >> >>
+endobj
+24 0 obj
+<< /Type /FontDescriptor /FontName /Helvetica /Flags 32 /FontBBox [-166 -225 1000 931] /ItalicAngle 0 /Ascent 718 /Descent -207 /CapHeight 718 /XHeight 523 /StemV 88 /StemH 76 >>
+endobj
+25 0 obj
+<< /Filter /FlateDecode /Length 354 >>
+stream
+xœ]’Ïnƒ0Æï<EŽÝ¡‚ÒÖi%„´ÒVâ°?ÛPb:¤¢@¼ýì¸ê¤À¿(þ¬Ïvâ¢<–¶›Tüî‡¦ÂIµ5ÇáæT¼v6Z¥ÊtÍt?…Ó×.ŠI\Íã„}iÛAe™Š?èrœü¬Ïf¸à“Šß¼AßÙ«Z|«›s?Ø£T¢ò\l©ÐKí^ëUdËÒÐ}7ÍKÒüe|ÎUÎ+1ÓGW7èk{Å(K’\eçs¡5ÿîÒH.mó]û(K95I(ï„wÌ{á=óIøD¼^¦@œ
+§Ä›u`
+ÄZXo7)ƒ0ƒÔ®¢Ö‚äçÃVxË,5k‚øö	âØ'„Ì…pÁ|>2K/À½ÀY˜•i™ƒæ9héKs_Z¼iö¦Å›foZ¼iö¦Åø}²<z~67ïiá	…=ò;‹WæÇªðýðJ­É
+endstream
+endobj
+26 0 obj
+<< /Producer (lamina-build golden) /CreationDate (D:20261029120000Z) >>
+endobj
+xref
+0 27
+0000000000 65535 f
+0000000015 00000 n
+0000000299 00000 n
+0000000377 00000 n
+0000000910 00000 n
+0000001290 00000 n
+0000001484 00000 n
+0000001611 00000 n
+0000001736 00000 n
+0000001887 00000 n
+0000002061 00000 n
+0000002164 00000 n
+0000002306 00000 n
+0000002410 00000 n
+0000002552 00000 n
+0000002656 00000 n
+0000002798 00000 n
+0000002872 00000 n
+0000002961 00000 n
+0000003072 00000 n
+0000003194 00000 n
+0000003283 00000 n
+0000003407 00000 n
+0000003484 00000 n
+0000003618 00000 n
+0000003813 00000 n
+0000004240 00000 n
+trailer
+<< /Size 27 /Root 1 0 R /Info 26 0 R /ID [<6C616D696E612D6275696C642D6E6176> <0D3DF3B3EABAB4BFC91D4B3CD3B98702>] >>
+startxref
+4328
+%%EOF

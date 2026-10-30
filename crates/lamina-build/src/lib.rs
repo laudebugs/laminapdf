@@ -49,9 +49,12 @@
 //! [B5b]: https://github.com/laudebugs/lamina/blob/main/docs/todos/ongoing/B5b-builder-text-and-document-features.md
 #![forbid(unsafe_code)]
 
+mod annot;
 mod builder;
 mod error;
 mod finish;
+mod meta;
+mod nav;
 mod page;
 mod resources;
 mod surface;
@@ -63,10 +66,15 @@ mod test_codes;
 
 pub use builder::{Appender, BuildOptions, Builder, PdfVersion};
 pub use error::{Error, ImageFormat, Result};
-pub use lamina_model::{PageFrame, PageId, PointPt, Pt, RectPt, Rotation};
+pub use lamina_model::{LabelStyle, OutlineItemId, PageFrame, PageId, PdfDate, PointPt, Pt, RectPt, Rotation};
+pub use lamina_text::{Alignment, Direction, EmbedPolicy, Feature, Standard14};
+pub use meta::{Metadata, PageLayout, PageMode, ViewerPreferences};
+pub use nav::{Fit, LinkTarget, OutlineEntry, PageLabel};
 pub use page::{PageBuilder, PageSize};
 pub use surface::color::{Color, IccProfile};
 pub use surface::image::{Image, MAX_DECODED_IMAGE_BYTES, PngOptions};
 pub use surface::path::{FillRule, Matrix, PathBuilder};
 pub use surface::style::{BlendMode, Dash, LineCap, LineJoin, StrokeStyle};
+pub use surface::text::{Font, TextRenderMode, TextRun};
+pub use surface::textbox::{LineBox, Overflow, TextBoxOptions, TextLayout};
 pub use surface::{PendingPath, Surface};

@@ -609,6 +609,7 @@ dependencies = [
  "lamina-ops",
  "lamina-save",
  "lamina-syntax",
+ "lamina-text",
  "pdf-writer",
  "png",
  "serde_json",

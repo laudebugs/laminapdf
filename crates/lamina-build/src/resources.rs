@@ -56,6 +56,11 @@ pub(crate) struct PageResources {
     gstates: Vec<GsKey>,
     images: Vec<Image>,
     profiles: Vec<IccProfile>,
+    /// Font objects (reserved by the document's `FontRegistry`, written when the build
+    /// finishes).
+    fonts: Vec<ObjRef>,
+    /// Whether the content uses `/ActualText` (PDF 1.5).
+    actual_text: bool,
 }
 
 fn name_of(prefix: &str, index: usize) -> String {
@@ -89,14 +94,27 @@ impl PageResources {
         name_of("CS", index)
     }
 
+    pub(crate) fn font(&mut self, object: ObjRef) -> String {
+        let index = self.fonts.iter().position(|r| *r == object).unwrap_or_else(|| {
+            self.fonts.push(object);
+            self.fonts.len() - 1
+        });
+        name_of("F", index)
+    }
+
+    pub(crate) fn uses_actual_text(&mut self) {
+        self.actual_text = true;
+    }
+
     /// The lowest PDF version that has every feature these resources use: `ExtGState`
-    /// transparency and soft masks 1.4 (§11.6), 16-bit samples 1.5 (§8.9.5.1).
+    /// transparency and soft masks 1.4 (§11.6), 16-bit samples and `/ActualText` 1.5
+    /// (§8.9.5.1, §14.9.4).
     pub(crate) fn required_version(&self) -> (u8, u8) {
         let mut v = (1, 0);
         if !self.gstates.is_empty() || self.images.iter().any(|i| i.data.alpha.is_some()) {
             v = v.max((1, 4));
         }
-        if self.images.iter().any(|i| i.data.bits == 16) {
+        if self.actual_text || self.images.iter().any(|i| i.data.bits == 16) {
             v = v.max((1, 5));
         }
         v
@@ -121,6 +139,15 @@ impl PageResources {
                 dict.insert(Name::new(name_of("CS", i)), vec![Object::name("ICCBased"), r.into()]);
             }
             resources.insert("ColorSpace", dict);
+        }
+        if !self.fonts.is_empty() {
+            let dict: Dict = self
+                .fonts
+                .iter()
+                .enumerate()
+                .map(|(i, r)| (Name::new(name_of("F", i)), Object::Ref(*r)))
+                .collect();
+            resources.insert("Font", dict);
         }
         if !self.images.is_empty() {
             let mut dict = Dict::new();
