@@ -64,7 +64,7 @@ const GOLDEN_CRATES: [&str; 3] = ["lamina-build", "lamina-save", "lamina-text"];
 
 /// `cargo xtask golden [--update]`: regenerates every golden in `fixtures/golden/` from its
 /// source (`--update` writes them in place and prints the list), the `lamina` examples' into
-/// `fixtures/golden/examples/`; without `--update`, checks that regenerating them changes
+/// `fixtures/golden/examples/` and the reading-order corpus into `fixtures/reading-order/`; without `--update`, checks that regenerating them changes
 /// nothing.
 pub(crate) fn golden(ws: &Workspace, update: bool) -> Result<()> {
     let golden_dir = ws.root.join("fixtures/golden");
@@ -88,6 +88,26 @@ pub(crate) fn golden(ws: &Workspace, update: bool) -> Result<()> {
             &out_arg,
         ])?;
     }
+    // The reading-order corpus (todo U2b): `lamina-build`'s `reading_order` example, into
+    // `fixtures/reading-order/` (its `threshold.json` is hand-kept, not generated).
+    let reading_dir = ws.root.join("fixtures/reading-order");
+    let reading_out = if update {
+        reading_dir.clone()
+    } else {
+        scratch(ws, "reading-order")?
+    };
+    let reading_arg = reading_out.to_string_lossy().into_owned();
+    ws.cargo(&[
+        "run",
+        "--locked",
+        "-q",
+        "-p",
+        "lamina-build",
+        "--example",
+        "reading_order",
+        "--",
+        &reading_arg,
+    ])?;
     // The façade's examples are goldens too, one directory down (todo B5c).
     let examples = crate::examples::run_all(ws, &out.join("examples"))?;
     if update {
@@ -128,6 +148,19 @@ pub(crate) fn golden(ws: &Workspace, update: bool) -> Result<()> {
         let name = path.file_name().context("file name")?;
         if !examples.iter().any(|g| g.file_name() == Some(name)) {
             stale.push(format!("examples/{} (no example)", name.to_string_lossy()));
+        }
+    }
+    let reading = files_in(&reading_out)?;
+    for path in &reading {
+        let name = path.file_name().context("file name")?;
+        if fs::read(path)? != fs::read(reading_dir.join(name)).unwrap_or_default() {
+            stale.push(format!("reading-order/{}", name.to_string_lossy()));
+        }
+    }
+    for path in files_in(&reading_dir)? {
+        let name = path.file_name().context("file name")?;
+        if name != "threshold.json" && !reading.iter().any(|g| g.file_name() == Some(name)) {
+            stale.push(format!("reading-order/{} (no generator)", name.to_string_lossy()));
         }
     }
     if !stale.is_empty() {
