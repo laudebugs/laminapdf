@@ -47,6 +47,7 @@ public final class LaminaDocument: @unchecked Sendable {
 
     /// Saves as a job of `unitsPerStep` units per step; cancelling the task cancels the Rust
     /// job and this throws `CancellationError` (unless the save had already finished).
+    /// `onProgress` runs on the job's background task: hop to the main actor to update UI.
     public func save(
         mode: FfiSaveMode = .auto,
         unitsPerStep: UInt32 = 256,
