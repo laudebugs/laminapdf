@@ -154,7 +154,7 @@ This plan adjusts these todos (edited in the same PR):
 - [B5a](../todos/done/B5a-lamina-build-core.md) depends on L1a: the builder's coordinates follow ADR 0027.
 - [B5c](../todos/done/B5c-lamina-facade-and-examples.md): acceptance criteria add ADR 0028's façade rules.
 - [B6a](../todos/done/B6a-lamina-wasm-and-adr-0016.md): ADR 0016 states per-module budgets (base, text, extract, render, sign) and adds twiggy diffs.
-- [B6b](../todos/ongoing/B6b-lamina-pdf-package.md): per-condition wasm loaders and the `init({ module })` escape hatch.
+- [B6b](../todos/done/B6b-lamina-pdf-package.md): per-condition wasm loaders and the `init({ module })` escape hatch.
 - [C3a](../todos/ready/C3a-viewer-worker-rpc.md) depends on L2a: the viewer reuses `@lamina/pdf/worker` instead of a second protocol.
 - [C2a](../todos/ready/C2a-render-adrs.md): ADR 0004 picks the render backend per surface (desktop, web, edge, mobile) using hayro's measured wasm size.
 - [L3a](../todos/ready/L3a-lamina-extract-reading-order.md) depends on [U2b](../todos/done/U2b-reading-order-ground-truth.md) (UI/UX plan): reading order is measured on its ground-truth corpus, and the reader's copy and reader mode reuse `lamina-extract`'s ordering.

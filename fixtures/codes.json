@@ -749,5 +749,28 @@
       "hint": "remove the key or correct its spelling; didYouMean lists the closest known names",
       "since": "0.1.0"
     }
+  ],
+  "packageErrors": [
+    {
+      "code": "already-initialized",
+      "kind": "state",
+      "summary": "init() or loadText() named a different source for a module that is already loaded or loading",
+      "hint": "call init and loadText with a source once, before the first load; later calls need no source",
+      "since": "0.1.0"
+    },
+    {
+      "code": "not-initialized",
+      "kind": "state",
+      "summary": "an @lamina/pdf function was called before init() finished loading the WebAssembly module",
+      "hint": "await init() once before calling anything else in @lamina/pdf",
+      "since": "0.1.0"
+    },
+    {
+      "code": "text-module-not-loaded",
+      "kind": "state",
+      "summary": "a font or text call was made on a builder of the base module, which has no fonts or text",
+      "hint": "load the text module with init and the text option, or with loadText, before creating the builder that draws text",
+      "since": "0.1.0"
+    }
   ]
 }

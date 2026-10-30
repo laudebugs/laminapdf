@@ -148,3 +148,11 @@ One page per code in [`fixtures/codes.json`](../../fixtures/codes.json), as [ADR
 | [`builder-finished`](builder-finished.md) | `state` |
 | [`invalid-argument`](invalid-argument.md) | `usage` |
 | [`unknown-option`](unknown-option.md) | `usage` |
+
+## Package errors (`@lamina/pdf`)
+
+| Code | Kind |
+| --- | --- |
+| [`already-initialized`](already-initialized.md) | `state` |
+| [`not-initialized`](not-initialized.md) | `state` |
+| [`text-module-not-loaded`](text-module-not-loaded.md) | `state` |

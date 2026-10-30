@@ -196,14 +196,14 @@ Architecture Round B is delivered as rounds B1–B9, each split into todos (one 
 
 ### B5. Builder and the `lamina` crate
 
-**Todos:** [B5a](../todos/done/B5a-lamina-build-core.md) (builder, vectors, colour, images), [B5b](../todos/done/B5b-builder-text-and-document-features.md) (text, links, outlines, labels, metadata), [B5c](../todos/done/B5c-lamina-facade-and-examples.md) (`lamina` façade, examples, byte and render goldens).
+**Todos:** [B5a](../todos/done/B5a-lamina-build-core.md) (builder, vectors, colour, images), [B5b](../todos/done/B5b-builder-text-and-document-features.md) (text, links, outlines, labels, metadata), [B5c](../todos/done/B5c-lamina-facade-and-examples.md) (`lamina` façade, examples, byte and render goldens), [B5d](../todos/ready/B5d-text-report-generation-performance.md) (a 100-page text report within 500 ms; B6b measured 2.96 s).
 
 **Deliverable:** `lamina-build` (pages, text, text boxes, images, paths, colour, links, named destinations, outlines, page labels, Info + XMP); `finish()` returns `Document`; the `lamina` façade crate with Rust examples.
 **Accepted when:** every example produces byte-identical goldens; qpdf `--check` clean; golden renders match in PDFium and hayro within thresholds.
 
 ### B6. WASM and `@lamina/pdf`
 
-**Todos:** [B6a](../todos/done/B6a-lamina-wasm-and-adr-0016.md) (`lamina-wasm`, split base/text modules, ADR 0016, size budgets), [B6b](../todos/ongoing/B6b-lamina-pdf-package.md) (`@lamina/pdf`), [B6c](../todos/ready/B6c-runtime-matrix.md) (runtime matrix).
+**Todos:** [B6a](../todos/done/B6a-lamina-wasm-and-adr-0016.md) (`lamina-wasm`, split base/text modules, ADR 0016, size budgets), [B6b](../todos/done/B6b-lamina-pdf-package.md) (`@lamina/pdf`), [B6c](../todos/ready/B6c-runtime-matrix.md) (runtime matrix).
 
 **Deliverable:** `lamina-wasm` (wasm-bindgen + tsify), `@lamina/wasm`, `@lamina/pdf` with `init()` and export conditions; ADR 0016; size budget checks; the runtime matrix in CI.
 **Accepted when:** the same example suite passes in Chromium, Firefox, WebKit, Node 22/24/26, Deno, Bun and workerd; size budgets enforced (CI fails above budget); publint and attw clean.
@@ -312,8 +312,8 @@ Each round's todos (one per PR, with dependencies) are linked from [§7](#7-roun
 ### B6. WASM and `@lamina/pdf`
 
 - [x] Create `crates/lamina-wasm` (wasm-bindgen + tsify) and the `cargo xtask wasm` build with `wasm-opt` ([B6a](../todos/done/B6a-lamina-wasm-and-adr-0016.md); `-O1`, which gzips smaller than `-Oz`, ADR 0016 §5)
-- [ ] Create `packages/pdf` with `init()`, `Builder`, `Document`, `Font`, `LaminaError` codes matching Rust
-- [ ] Add export conditions and validate with publint and `attw --pack`
+- [x] Create `packages/pdf` with `init()`, `Builder`, `Document`, `Font`, `LaminaError` codes matching Rust ([B6b](../todos/done/B6b-lamina-pdf-package.md))
+- [x] Add export conditions and validate with publint and `attw --pack` ([B6b](../todos/done/B6b-lamina-pdf-package.md))
 - [x] Write ADR 0016 with measured sizes; decide split WASM modules ([B6a](../todos/done/B6a-lamina-wasm-and-adr-0016.md), [ADR 0016](../decisions/0016-package-design.md): base + text)
 - [x] Add size-budget checks to CI (WASM gz, JS min+gz) ([B6a](../todos/done/B6a-lamina-wasm-and-adr-0016.md): `cargo xtask size`, the fast lane's `wasm` job; the TS API's share with B6b)
 - [ ] Run the TS example suite in Chromium, Firefox, WebKit, Node 22/24/26, Deno, Bun, workerd

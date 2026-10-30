@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [web reader §6 C6. Navigation, print and properties](../../plans/web-app.md#c6-navigation-print-and-properties) |
 | Round / milestone | Round C (web reader) — M2 Web reader v0.1 |
-| Depends on | [B2c](../done/B2c-lamina-model-corpus-fuzz.md), [B6b](../ongoing/B6b-lamina-pdf-package.md), [C3c](./C3c-viewer-perf-harness.md), [C4c](./C4c-remote-files-encryption-privacy.md), [U1c](./U1c-inverted-l-shell-and-modes.md) |
+| Depends on | [B2c](../done/B2c-lamina-model-corpus-fuzz.md), [B6b](../done/B6b-lamina-pdf-package.md), [C3c](./C3c-viewer-perf-harness.md), [C4c](./C4c-remote-files-encryption-privacy.md), [U1c](./U1c-inverted-l-shell-and-modes.md) |
 | Blocks | [C6b](./C6b-links-and-history.md), [C7a](./C7a-accessibility-and-theming.md) |
 | Dependency notes | [C4c](./C4c-remote-files-encryption-privacy.md) (app opens every file type); library B2 (`Outline` and `NameTree` views, `LaminaId`s; [pdf-library B2](../../plans/pdf-library.md#b2-document-model)) exposed through **B6**; [C3c](./C3c-viewer-perf-harness.md) (thumbnails keep the harness's long-task budget) |
 | ADRs | Follows 0004 (thumbnails rendered through `RenderBackend` at low priority), 0009, [0005](../../decisions/0005-document-model.md) §4–5 (typed views, stable IDs) |

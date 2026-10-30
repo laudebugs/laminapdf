@@ -11,10 +11,13 @@ allowBuilds:
 
 # Shared third-party versions; packages depend on them with "catalog:" (typescript.md).
 catalog:
+  "@arethetypeswrong/cli": 0.18.5
   "@biomejs/biome": 2.6.3
   "@types/node": 24.19.2
   esbuild: 0.28.2
+  publint: 0.3.25
   typescript: 7.0.2
+  vite: 8.3.5
   vitest: 5.0.5
 
 # Fail installs on the wrong Node version instead of warning.

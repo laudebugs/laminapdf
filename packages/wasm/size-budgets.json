@@ -160,5 +160,10 @@
       "glueGzip": 5000,
       "wasmGzip": 960000
     }
+  },
+  "packages": {
+    "@lamina/pdf": {
+      "jsGzip": 20000
+    }
   }
 }

@@ -10,10 +10,15 @@
 use std::fmt::Write as _;
 use std::path::Path;
 
+#[path = "../lamina-cos/tests/common/code_groups.rs"]
+#[expect(dead_code, reason = "the build script needs the group lists, not is_warning_group")]
+mod code_groups;
+
 fn main() {
     let manifest = std::env::var("CARGO_MANIFEST_DIR").expect("CARGO_MANIFEST_DIR");
     let path = Path::new(&manifest).join("../../fixtures/codes.json");
     println!("cargo::rerun-if-changed={}", path.display());
+    println!("cargo::rerun-if-changed=../lamina-cos/tests/common/code_groups.rs");
     let text = std::fs::read_to_string(&path).unwrap_or_else(|e| panic!("reading {}: {e}", path.display()));
     let codes: serde_json::Value = serde_json::from_str(&text).expect("fixtures/codes.json is JSON");
     let url = codes.get("docsUrl").expect("codes.json has docsUrl");
@@ -40,7 +45,9 @@ fn main() {
         let (name, key) = (field.0, field.1);
         let mut rows: Vec<(String, String)> = Vec::new();
         for (group_key, group) in groups {
-            if matches!(group_key.as_str(), "version" | "docsUrl" | "limits") {
+            // TS-only codes (`packageErrors`) never come from Rust: keep them out of the WASM.
+            let group_name = group_key.as_str();
+            if code_groups::NOT_CODE_GROUPS.contains(&group_name) || code_groups::TS_ONLY_GROUPS.contains(&group_name) {
                 continue;
             }
             for entry in group.as_array().into_iter().flatten() {

@@ -12,17 +12,22 @@ New todos start from [`TEMPLATE.md`](TEMPLATE.md). The workflow is in [git workf
 
 IDs: `A`/`P`/`X` [architecture](../plans/architecture.md) (foundations, publishing, cross-cutting), `B` [library](../plans/pdf-library.md), `L` [shareable libraries](../plans/shareable-libraries.md) (contracts, worker, extraction, CLI, agent docs, mobile), `C` [web reader](../plans/web-app.md), `D` [desktop reader](../plans/desktop-app.md), `U` [UI/UX](../plans/ui-ux.md), `E` [editor](../plans/full-editor.md), `H` hosted service ([full-editor](../plans/full-editor.md)). A letter suffix (`B2a`, `B2b`) splits a round into PRs.
 
-**2 ongoing · 208 ready · 34 done** (244 total).
+**1 ongoing · 209 ready · 35 done** (245 total).
 
 ## Can start now
 
 Ready todos whose dependencies are all done:
 
+- [B5d](ready/B5d-text-report-generation-performance.md): Generation performance: a 100-page text report within 500 ms
+- [B6c](ready/B6c-runtime-matrix.md): Runtime matrix in CI: browsers, Node 22/24/26, Deno, Bun and workerd
+- [B8a](ready/B8a-structure-tree.md): Tagged PDF: structure tree builder, artifacts, alt text, MCIDs and ParentTree
+- [L1b](ready/L1b-error-contract-codegen.md): Error and diagnostic contract: codegen from `fixtures/codes.json` into Rust, TypeScript and JSON Schema, with `explain` text
+- [L2c](ready/L2c-range-byte-source.md): Range `ByteSource`: `DataPending` ranges at the edges (HTTP Range, JS callback, native file and mmap), core stays synchronous
+- [C1b](ready/C1b-pdfium-wasm-spike.md): `pdfium-wasm` spike: PDFium-WASM next to `lamina-wasm` in one worker
 - [X6](ready/X6-windows-ci.md): Windows CI coverage
 
 ## Ongoing
 
-- [B6b](ongoing/B6b-lamina-pdf-package.md): `@lamina/pdf`: the TypeScript API, `init()`, export conditions, publint and attw
 - [L6a](ongoing/L6a-lamina-ffi-spike.md): `lamina-ffi` spike (start right after B5c): UniFFI over the façade, XCFramework and AARs, size report, ADR 0029
 
 ## Architecture — Round A
@@ -53,16 +58,17 @@ Ready todos whose dependencies are all done:
 | B5a | [`lamina-build` core: builder, pages, vectors, colour and images](done/B5a-lamina-build-core.md) | done | [B1b](done/B1b-krilla-fit-spike.md), [B3c](done/B3c-save-planner-and-roundtrip.md), [L1a](done/L1a-contract-adrs.md) |
 | B5b | [Builder text, links, destinations, outlines, page labels and metadata](done/B5b-builder-text-and-document-features.md) | done | [B4b](done/B4b-shaping-bidi-line-breaking.md), [B4c](done/B4c-standard-14-and-simple-fonts.md), [B5a](done/B5a-lamina-build-core.md) |
 | B5c | [The `lamina` façade crate, Rust examples, and byte and render goldens](done/B5c-lamina-facade-and-examples.md) | done | [B5b](done/B5b-builder-text-and-document-features.md), [L1a](done/L1a-contract-adrs.md), [L1c](done/L1c-error-contract-core.md), [X4](done/X4-full-lane-gate.md) |
+| B5d | [Generation performance: a 100-page text report within 500 ms](ready/B5d-text-report-generation-performance.md) | ready | [B6b](done/B6b-lamina-pdf-package.md) |
 | B6a | [`lamina-wasm`, `@lamina/wasm` build, ADR 0016 and size budgets](done/B6a-lamina-wasm-and-adr-0016.md) | done | [B5c](done/B5c-lamina-facade-and-examples.md) |
-| B6b | [`@lamina/pdf`: the TypeScript API, `init()`, export conditions, publint and attw](ongoing/B6b-lamina-pdf-package.md) | ongoing | [B2b](done/B2b-standard-security-decryption.md), [B6a](done/B6a-lamina-wasm-and-adr-0016.md) |
-| B6c | [Runtime matrix in CI: browsers, Node 22/24/26, Deno, Bun and workerd](ready/B6c-runtime-matrix.md) | ready | [B6b](ongoing/B6b-lamina-pdf-package.md) |
-| B7a | [Docs site (`apps/docs`): Starlight, quick starts, guides and TypeDoc, with per-PR previews](ready/B7a-docs-site.md) | ready | [B2b](done/B2b-standard-security-decryption.md), [B6b](ongoing/B6b-lamina-pdf-package.md), [B6c](ready/B6c-runtime-matrix.md) |
+| B6b | [`@lamina/pdf`: the TypeScript API, `init()`, export conditions, publint and attw](done/B6b-lamina-pdf-package.md) | done | [B2b](done/B2b-standard-security-decryption.md), [B6a](done/B6a-lamina-wasm-and-adr-0016.md) |
+| B6c | [Runtime matrix in CI: browsers, Node 22/24/26, Deno, Bun and workerd](ready/B6c-runtime-matrix.md) | ready | [B6b](done/B6b-lamina-pdf-package.md) |
+| B7a | [Docs site (`apps/docs`): Starlight, quick starts, guides and TypeDoc, with per-PR previews](ready/B7a-docs-site.md) | ready | [B2b](done/B2b-standard-security-decryption.md), [B6b](done/B6b-lamina-pdf-package.md), [B6c](ready/B6c-runtime-matrix.md) |
 | B7b | [Changesets, Cargo version sync, ADR 0017 (versioning) and the local `0.1.0-alpha.0` tag](ready/B7b-versioning-and-0-1-0-alpha.md) | ready | [B6c](ready/B6c-runtime-matrix.md), [B7a](ready/B7a-docs-site.md), [X3a](done/X3a-nightly-lane.md) |
-| B8a | [Tagged PDF: structure tree builder, artifacts, alt text, MCIDs and ParentTree](ready/B8a-structure-tree.md) | ready | [B5c](done/B5c-lamina-facade-and-examples.md), [B6b](ongoing/B6b-lamina-pdf-package.md) |
+| B8a | [Tagged PDF: structure tree builder, artifacts, alt text, MCIDs and ParentTree](ready/B8a-structure-tree.md) | ready | [B5c](done/B5c-lamina-facade-and-examples.md), [B6b](done/B6b-lamina-pdf-package.md) |
 | B8b | [Conformance profiles (PDF/UA-1, PDF/A-2b/2u/3b), output intents, veraPDF nightly and `0.2.0-alpha`](ready/B8b-conformance-profiles-and-verapdf.md) | ready | [B4c](done/B4c-standard-14-and-simple-fonts.md), [B7b](ready/B7b-versioning-and-0-1-0-alpha.md), [B8a](ready/B8a-structure-tree.md), [X3a](done/X3a-nightly-lane.md) |
 | B9a | [ADR 0023 and `lamina-content`: read-only content-stream interpreter](done/B9a-lamina-content-and-adr-0023.md) | done | [B2c](done/B2c-lamina-model-corpus-fuzz.md), [X4](done/X4-full-lane-gate.md) |
 | B9b | [Text extraction in `lamina-text`: fonts from files, encodings, ToUnicode, glyph runs and quads](done/B9b-text-extraction-core.md) | done | [B2b](done/B2b-standard-security-decryption.md), [B4a](done/B4a-font-loading-and-subsetting.md), [B4c](done/B4c-standard-14-and-simple-fonts.md), [B5c](done/B5c-lamina-facade-and-examples.md), [B9a](done/B9a-lamina-content-and-adr-0023.md) |
-| B9c | [`page.text()` in WASM and TypeScript; differential and quad tests; extraction fuzzing](ready/B9c-text-extraction-bindings-and-differential.md) | ready | [B6b](ongoing/B6b-lamina-pdf-package.md), [B6c](ready/B6c-runtime-matrix.md), [B9d](done/B9d-text-runs-quads-and-page-text.md) |
+| B9c | [`page.text()` in WASM and TypeScript; differential and quad tests; extraction fuzzing](ready/B9c-text-extraction-bindings-and-differential.md) | ready | [B6b](done/B6b-lamina-pdf-package.md), [B6c](ready/B6c-runtime-matrix.md), [B9d](done/B9d-text-runs-quads-and-page-text.md) |
 | B9d | [Text extraction: glyph quads, runs with `ActualText` and MCIDs, `page.text()`](done/B9d-text-runs-quads-and-page-text.md) | done | [B9b](done/B9b-text-extraction-core.md) |
 | B9e | [Text extraction: a separator where the pen jumps back on a line](done/B9e-separators-at-backward-jumps.md) | done | [B9d](done/B9d-text-runs-quads-and-page-text.md), [U2b](done/U2b-reading-order-ground-truth.md) |
 
@@ -71,11 +77,11 @@ Ready todos whose dependencies are all done:
 | ID | Todo | State | Depends on |
 | --- | --- | --- | --- |
 | L1a | [Contract ADRs 0026 (errors), 0027 (coordinates and units), 0028 (façade rules, jobs, cancellation)](done/L1a-contract-adrs.md) | done | — |
-| L1b | [Error and diagnostic contract: codegen from `fixtures/codes.json` into Rust, TypeScript and JSON Schema, with `explain` text](ready/L1b-error-contract-codegen.md) | ready | [B6b](ongoing/B6b-lamina-pdf-package.md), [L1a](done/L1a-contract-adrs.md), [L1c](done/L1c-error-contract-core.md) |
+| L1b | [Error and diagnostic contract: codegen from `fixtures/codes.json` into Rust, TypeScript and JSON Schema, with `explain` text](ready/L1b-error-contract-codegen.md) | ready | [B6b](done/B6b-lamina-pdf-package.md), [L1a](done/L1a-contract-adrs.md), [L1c](done/L1c-error-contract-core.md) |
 | L1c | [Error contract in the Rust core: `codes.json` v2 with kinds and hints, tagged locations, no document text in messages](done/L1c-error-contract-core.md) | done | [L1a](done/L1a-contract-adrs.md) |
-| L2a | [`@lamina/pdf/worker`: the async twin of the sync API, with typed RPC, version handshake, `AbortSignal`, transfer lists and progress](ready/L2a-worker-client.md) | ready | [B6b](ongoing/B6b-lamina-pdf-package.md), [L1a](done/L1a-contract-adrs.md), [L1b](ready/L1b-error-contract-codegen.md) |
-| L2b | [Disposal and memory bounds: `Symbol.dispose` on every handle, `disposed` code, capped wasm memory, `reset()` and trap recovery](ready/L2b-disposal-and-memory.md) | ready | [B6b](ongoing/B6b-lamina-pdf-package.md), [L1b](ready/L1b-error-contract-codegen.md) |
-| L2c | [Range `ByteSource`: `DataPending` ranges at the edges (HTTP Range, JS callback, native file and mmap), core stays synchronous](ready/L2c-range-byte-source.md) | ready | [B2d](done/B2d-windowed-reading.md), [B6b](ongoing/B6b-lamina-pdf-package.md) |
+| L2a | [`@lamina/pdf/worker`: the async twin of the sync API, with typed RPC, version handshake, `AbortSignal`, transfer lists and progress](ready/L2a-worker-client.md) | ready | [B6b](done/B6b-lamina-pdf-package.md), [L1a](done/L1a-contract-adrs.md), [L1b](ready/L1b-error-contract-codegen.md) |
+| L2b | [Disposal and memory bounds: `Symbol.dispose` on every handle, `disposed` code, capped wasm memory, `reset()` and trap recovery](ready/L2b-disposal-and-memory.md) | ready | [B6b](done/B6b-lamina-pdf-package.md), [L1b](ready/L1b-error-contract-codegen.md) |
+| L2c | [Range `ByteSource`: `DataPending` ranges at the edges (HTTP Range, JS callback, native file and mmap), core stays synchronous](ready/L2c-range-byte-source.md) | ready | [B2d](done/B2d-windowed-reading.md), [B6b](done/B6b-lamina-pdf-package.md) |
 | L3a | [ADR 0030 and `lamina-extract`: blocks, reading order, headings, lists, header/footer removal, hidden-text flags](ready/L3a-lamina-extract-reading-order.md) | ready | [B8a](ready/B8a-structure-tree.md), [B9d](done/B9d-text-runs-quads-and-page-text.md), [L1a](done/L1a-contract-adrs.md), [U2b](done/U2b-reading-order-ground-truth.md) |
 | L3b | [Lattice tables, Markdown/JSON/chunk serialisers, extraction in the façade, WASM and `@lamina/pdf`](ready/L3b-extract-tables-and-serialisers.md) | ready | [B9c](ready/B9c-text-extraction-bindings-and-differential.md), [L3a](ready/L3a-lamina-extract-reading-order.md) |
 | L3c | [Model plug-ins: `LayoutModel` and `OcrEngine` traits in core, an optional ONNX layout edge crate](ready/L3c-model-plugins.md) | ready | [L3b](ready/L3b-extract-tables-and-serialisers.md) |
@@ -92,20 +98,20 @@ Ready todos whose dependencies are all done:
 | ID | Todo | State | Depends on |
 | --- | --- | --- | --- |
 | C1a | [`hayro-parity` spike: hayro vs PDFium pass rate on the pdf.js and PDFBox corpora](done/C1a-hayro-parity-spike.md) | done | — |
-| C1b | [`pdfium-wasm` spike: PDFium-WASM next to `lamina-wasm` in one worker](ready/C1b-pdfium-wasm-spike.md) | ready | [B3c](done/B3c-save-planner-and-roundtrip.md), [B6b](ongoing/B6b-lamina-pdf-package.md), [C1a](done/C1a-hayro-parity-spike.md) |
+| C1b | [`pdfium-wasm` spike: PDFium-WASM next to `lamina-wasm` in one worker](ready/C1b-pdfium-wasm-spike.md) | ready | [B3c](done/B3c-save-planner-and-roundtrip.md), [B6b](done/B6b-lamina-pdf-package.md), [C1a](done/C1a-hayro-parity-spike.md) |
 | C2a | [ADRs 0004, 0009, 0010, 0011: render backend, web client, platform adapter, Cloudflare and privacy](ready/C2a-render-adrs.md) | ready | [C1a](done/C1a-hayro-parity-spike.md), [C1b](ready/C1b-pdfium-wasm-spike.md), [X1](done/X1-docs-link-checker.md) |
 | C2b | [`crates/lamina-render`: the `RenderBackend` trait, PDFium and hayro adapters, render goldens](ready/C2b-lamina-render-crate.md) | ready | [B2c](done/B2c-lamina-model-corpus-fuzz.md), [C2a](ready/C2a-render-adrs.md) |
-| C2c | [`@lamina/render-pdfium` and `@lamina/render-hayro`: the web render adapters](ready/C2c-render-packages.md) | ready | [B6b](ongoing/B6b-lamina-pdf-package.md), [C2b](ready/C2b-lamina-render-crate.md) |
-| C3a | [`@lamina/viewer` part 1: document worker and typed RPC](ready/C3a-viewer-worker-rpc.md) | ready | [B6b](ongoing/B6b-lamina-pdf-package.md), [L2a](ready/L2a-worker-client.md), [C2a](ready/C2a-render-adrs.md), [C2c](ready/C2c-render-packages.md) |
+| C2c | [`@lamina/render-pdfium` and `@lamina/render-hayro`: the web render adapters](ready/C2c-render-packages.md) | ready | [B6b](done/B6b-lamina-pdf-package.md), [C2b](ready/C2b-lamina-render-crate.md) |
+| C3a | [`@lamina/viewer` part 1: document worker and typed RPC](ready/C3a-viewer-worker-rpc.md) | ready | [B6b](done/B6b-lamina-pdf-package.md), [L2a](ready/L2a-worker-client.md), [C2a](ready/C2a-render-adrs.md), [C2c](ready/C2c-render-packages.md) |
 | C3b | [`@lamina/viewer` part 2: virtualiser, canvas pool, progressive tiles and anchored zoom](ready/C3b-viewer-virtualiser-and-zoom.md) | ready | [C3a](ready/C3a-viewer-worker-rpc.md) |
 | C3c | [Viewer performance harness: long tasks, memory and time-to-first-page in CI](ready/C3c-viewer-perf-harness.md) | ready | [C3b](ready/C3b-viewer-virtualiser-and-zoom.md) |
 | C4a | [`@lamina/ui`: React 19 reader chrome and the `Platform` adapter](ready/C4a-ui-chrome-and-platform.md) | ready | [C2a](ready/C2a-render-adrs.md), [C3b](ready/C3b-viewer-virtualiser-and-zoom.md), [U1a](ready/U1a-adr-0024-app-shell-ux.md), [U6e](ready/U6e-overlays-and-sheets.md) |
 | C4b | [`apps/web`: the reader on Cloudflare Workers static assets, with local file opening](ready/C4b-web-app-shell.md) | ready | [C2a](ready/C2a-render-adrs.md), [C4a](ready/C4a-ui-chrome-and-platform.md), [U6b](ready/U6b-self-hosted-fonts.md) |
-| C4c | [Remote files via `#url=`, encrypted files, and the privacy test suite](ready/C4c-remote-files-encryption-privacy.md) | ready | [B2b](done/B2b-standard-security-decryption.md), [B6b](ongoing/B6b-lamina-pdf-package.md), [C4b](ready/C4b-web-app-shell.md) |
+| C4c | [Remote files via `#url=`, encrypted files, and the privacy test suite](ready/C4c-remote-files-encryption-privacy.md) | ready | [B2b](done/B2b-standard-security-decryption.md), [B6b](done/B6b-lamina-pdf-package.md), [C4b](ready/C4b-web-app-shell.md) |
 | C4d | [Deploy pipeline: preview URL per PR, staging from `main`, production from release tags](ready/C4d-deploy-previews-and-production.md) | ready | [C4b](ready/C4b-web-app-shell.md) |
 | C5a | [Text layer, selection and copy (from lamina's extraction), with struct-tree linking](ready/C5a-text-layer-and-selection.md) | ready | [B9c](ready/B9c-text-extraction-bindings-and-differential.md), [C3c](ready/C3c-viewer-perf-harness.md), [C4c](ready/C4c-remote-files-encryption-privacy.md) |
 | C5b | [Find in document: streaming search, highlights, options and pdf.js count parity](ready/C5b-find-in-document.md) | ready | [B9c](ready/B9c-text-extraction-bindings-and-differential.md), [C3c](ready/C3c-viewer-perf-harness.md), [C5a](ready/C5a-text-layer-and-selection.md) |
-| C6a | [Thumbnails sidebar, outline sidebar, page labels and go-to-page](ready/C6a-thumbnails-outline-page-labels.md) | ready | [B2c](done/B2c-lamina-model-corpus-fuzz.md), [B6b](ongoing/B6b-lamina-pdf-package.md), [C3c](ready/C3c-viewer-perf-harness.md), [C4c](ready/C4c-remote-files-encryption-privacy.md), [U1c](ready/U1c-inverted-l-shell-and-modes.md) |
+| C6a | [Thumbnails sidebar, outline sidebar, page labels and go-to-page](ready/C6a-thumbnails-outline-page-labels.md) | ready | [B2c](done/B2c-lamina-model-corpus-fuzz.md), [B6b](done/B6b-lamina-pdf-package.md), [C3c](ready/C3c-viewer-perf-harness.md), [C4c](ready/C4c-remote-files-encryption-privacy.md), [U1c](ready/U1c-inverted-l-shell-and-modes.md) |
 | C6b | [Link layer (internal, named and external links) and back/forward history](ready/C6b-links-and-history.md) | ready | [C5a](ready/C5a-text-layer-and-selection.md), [C6a](ready/C6a-thumbnails-outline-page-labels.md) |
 | C6c | [Print, download of original bytes, and the document properties dialog](ready/C6c-print-download-properties.md) | ready | [B9c](ready/B9c-text-extraction-bindings-and-differential.md), [C3c](ready/C3c-viewer-perf-harness.md), [C4c](ready/C4c-remote-files-encryption-privacy.md), [C5a](ready/C5a-text-layer-and-selection.md) |
 | C7a | [Accessibility: keyboard map and help, focus, landmarks, announcements, themes and axe in CI](ready/C7a-accessibility-and-theming.md) | ready | [C5b](ready/C5b-find-in-document.md), [C6a](ready/C6a-thumbnails-outline-page-labels.md), [C6b](ready/C6b-links-and-history.md), [C6c](ready/C6c-print-download-properties.md), [U1b](ready/U1b-command-registry-and-palette.md), [U1c](ready/U1c-inverted-l-shell-and-modes.md) |
@@ -178,8 +184,8 @@ Ready todos whose dependencies are all done:
 | --- | --- | --- | --- |
 | E1a | [Editing foundation: feature plan](ready/E1a-editing-foundation-feature-plan.md) | ready | [B3c](done/B3c-save-planner-and-roundtrip.md), [B5c](done/B5c-lamina-facade-and-examples.md), [C7c](ready/C7c-performance-gates-and-launch.md), [D7c](ready/D7c-desktop-beta-release.md), [X2](done/X2-capability-matrix.md) |
 | E1b | [XMP packet parse and update for Info-mapped properties](ready/E1b-xmp-packet-model.md) | ready | [B5c](done/B5c-lamina-facade-and-examples.md), [B8b](ready/B8b-conformance-profiles-and-verapdf.md), [E1a](ready/E1a-editing-foundation-feature-plan.md), [X3a](done/X3a-nightly-lane.md) |
-| E1c | [Metadata ops: Info and XMP in sync (J.01–J.03, J.10)](ready/E1c-metadata-ops.md) | ready | [B3c](done/B3c-save-planner-and-roundtrip.md), [B6b](ongoing/B6b-lamina-pdf-package.md), [B8b](ready/B8b-conformance-profiles-and-verapdf.md), [E1b](ready/E1b-xmp-packet-model.md), [X3a](done/X3a-nightly-lane.md) |
-| E1d | [Edit session, interaction modes, undo/redo UI and history panel](ready/E1d-edit-session-undo-ui.md) | ready | [B6b](ongoing/B6b-lamina-pdf-package.md), [C4a](ready/C4a-ui-chrome-and-platform.md), [D4b](ready/D4b-native-menus.md), [E1a](ready/E1a-editing-foundation-feature-plan.md) |
+| E1c | [Metadata ops: Info and XMP in sync (J.01–J.03, J.10)](ready/E1c-metadata-ops.md) | ready | [B3c](done/B3c-save-planner-and-roundtrip.md), [B6b](done/B6b-lamina-pdf-package.md), [B8b](ready/B8b-conformance-profiles-and-verapdf.md), [E1b](ready/E1b-xmp-packet-model.md), [X3a](done/X3a-nightly-lane.md) |
+| E1d | [Edit session, interaction modes, undo/redo UI and history panel](ready/E1d-edit-session-undo-ui.md) | ready | [B6b](done/B6b-lamina-pdf-package.md), [C4a](ready/C4a-ui-chrome-and-platform.md), [D4b](ready/D4b-native-menus.md), [E1a](ready/E1a-editing-foundation-feature-plan.md) |
 | E1e | [Save, Save as, Download copy and the SaveConstraint banner](ready/E1e-save-and-constraint-banner.md) | ready | [D3b](ready/D3b-recent-files-and-file-watching.md), [E1c](ready/E1c-metadata-ops.md), [E1d](ready/E1d-edit-session-undo-ui.md) |
 | E1f | [Metadata editor UI and in-app capability-matrix page](ready/E1f-metadata-ui-capability-page.md) | ready | [E1c](ready/E1c-metadata-ops.md), [E1e](ready/E1e-save-and-constraint-banner.md), [X2](done/X2-capability-matrix.md) |
 | E2a | [Page organisation: feature plan](ready/E2a-page-organisation-feature-plan.md) | ready | [B9c](ready/B9c-text-extraction-bindings-and-differential.md), [E1a](ready/E1a-editing-foundation-feature-plan.md), [E1f](ready/E1f-metadata-ui-capability-page.md) |
