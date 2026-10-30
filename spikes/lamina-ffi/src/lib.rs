@@ -512,10 +512,14 @@ impl FfiCountJob {
 }
 
 /// Records whether a Rust future was dropped before it finished: the Kotlin and Swift tests
-/// cancel the foreign coroutine/task and then read it.
+/// cancel the foreign coroutine/task and then read it. `cancel` stops the future from the Rust
+/// side, which is how the Swift layer cancels: `UniFFI` 0.32's generated Swift never drops a
+/// future whose task was cancelled.
 #[derive(uniffi::Object, Default)]
 pub struct FfiDropProbe {
     dropped: AtomicBool,
+    finished: AtomicBool,
+    cancelled: AtomicBool,
     polls: AtomicU32,
 }
 
@@ -532,6 +536,16 @@ impl FfiDropProbe {
         self.dropped.load(Ordering::SeqCst)
     }
 
+    /// Whether the future finished because `cancel` was called.
+    pub fn finished(&self) -> bool {
+        self.finished.load(Ordering::SeqCst)
+    }
+
+    /// Asks the future to finish at its next poll.
+    pub fn cancel(&self) {
+        self.cancelled.store(true, Ordering::SeqCst);
+    }
+
     /// How often the future was polled.
     pub fn polls(&self) -> u32 {
         self.polls.load(Ordering::SeqCst)
@@ -539,7 +553,8 @@ impl FfiDropProbe {
 }
 
 /// A future that never finishes on its own: it re-wakes itself on every poll (so the foreign
-/// executor keeps polling) and sets the probe's flag in `Drop`.
+/// executor keeps polling), finishes once the probe is cancelled, and sets the probe's
+/// `dropped` flag in `Drop` if it had not finished.
 struct Forever {
     probe: Arc<FfiDropProbe>,
 }
@@ -548,6 +563,10 @@ impl Future for Forever {
     type Output = ();
     fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<()> {
         let _ = self.probe.polls.fetch_add(1, Ordering::SeqCst);
+        if self.probe.cancelled.load(Ordering::SeqCst) {
+            self.probe.finished.store(true, Ordering::SeqCst);
+            return Poll::Ready(());
+        }
         cx.waker().wake_by_ref();
         Poll::Pending
     }
@@ -555,12 +574,15 @@ impl Future for Forever {
 
 impl Drop for Forever {
     fn drop(&mut self) {
-        self.probe.dropped.store(true, Ordering::SeqCst);
+        if !self.probe.finished.load(Ordering::SeqCst) {
+            self.probe.dropped.store(true, Ordering::SeqCst);
+        }
     }
 }
 
 /// An async export that runs until the caller cancels it: does cancelling the Kotlin
-/// coroutine or the Swift task drop the Rust future (and run our `Drop`)?
+/// coroutine or the Swift task drop the Rust future (and run our `Drop`)? It also finishes
+/// when the probe is cancelled.
 #[uniffi::export]
 pub async fn run_until_cancelled(probe: Arc<FfiDropProbe>) {
     Forever { probe }.await;
@@ -703,5 +725,27 @@ mod tests {
         job.cancel();
         assert!(matches!(job.step(1), Err(FfiError::Lamina { code, .. }) if code == "cancelled"));
         Ok(())
+    }
+
+    #[test]
+    fn cancelling_the_probe_finishes_the_future_without_a_drop() {
+        let probe = FfiDropProbe::new();
+        let mut future = std::pin::pin!(run_until_cancelled(Arc::clone(&probe)));
+        let mut cx = Context::from_waker(std::task::Waker::noop());
+        assert!(future.as_mut().poll(&mut cx).is_pending());
+        probe.cancel();
+        assert!(future.as_mut().poll(&mut cx).is_ready());
+        assert!(probe.finished() && !probe.dropped());
+    }
+
+    #[test]
+    fn dropping_the_future_unfinished_sets_dropped() {
+        let probe = FfiDropProbe::new();
+        {
+            let mut future = Box::pin(run_until_cancelled(Arc::clone(&probe)));
+            let mut cx = Context::from_waker(std::task::Waker::noop());
+            assert!(future.as_mut().poll(&mut cx).is_pending());
+        }
+        assert!(probe.dropped() && !probe.finished());
     }
 }

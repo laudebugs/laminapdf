@@ -83,3 +83,15 @@ public final class LaminaDocument: @unchecked Sendable {
         }
     }
 }
+
+/// Cancellation for async exports. UniFFI 0.32's generated Swift ignores task cancellation: it
+/// polls the Rust future until it completes and frees it only then, so `Task.cancel()` alone
+/// never stops or drops it. The layer wraps every async export: `withTaskCancellationHandler`
+/// tells Rust to stop (here the probe; a token in product code), and the future then finishes.
+public func runUntilCancelledOrTaskCancelled(probe: FfiDropProbe) async {
+    await withTaskCancellationHandler {
+        await runUntilCancelled(probe: probe)
+    } onCancel: {
+        probe.cancel()
+    }
+}

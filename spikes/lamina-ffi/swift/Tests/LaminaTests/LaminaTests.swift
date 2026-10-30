@@ -103,15 +103,35 @@ final class LaminaTests: XCTestCase {
         XCTAssertEqual(job.done(), doneAtCancel, "no unit runs after cancel")
     }
 
-    func testCancellingAnAsyncCallDropsTheRustFuture() async throws {
+    /// UniFFI 0.32's generated Swift has no cancellation path: after `Task.cancel()` the Rust
+    /// future is neither dropped nor stopped, and keeps being polled. (Kotlin drops it.) The
+    /// probe's Rust-side cancel ends it so the test finishes.
+    func testCancellingAnAsyncCallLeavesTheRustFutureRunning() async throws {
         let probe = FfiDropProbe()
         let task = Task.detached { await runUntilCancelled(probe: probe) }
         while probe.polls() < 3 { try await Task.sleep(nanoseconds: 1_000_000) }
         task.cancel()
+        try await Task.sleep(nanoseconds: 100_000_000)
+        let polled = probe.polls()
+        try await Task.sleep(nanoseconds: 100_000_000)
+        let stillPolled = probe.polls() > polled
+        print("swift: after Task.cancel() the generated binding dropped the future = \(probe.dropped()), still polling = \(stillPolled)")
+        probe.cancel()
         _ = await task.result
-        for _ in 0..<5000 where !probe.dropped() { try await Task.sleep(nanoseconds: 1_000_000) }
-        print("swift: future dropped after cancel = \(probe.dropped()), polled \(probe.polls()) times")
-        XCTAssertTrue(probe.dropped())
+        XCTAssertFalse(probe.dropped())
+        XCTAssertTrue(stillPolled)
+        XCTAssertTrue(probe.finished())
+    }
+
+    /// The layer's wrapper turns `Task.cancel()` into a Rust-side cancel: the future finishes.
+    func testTheLayerCancelsAnAsyncCallThroughRust() async throws {
+        let probe = FfiDropProbe()
+        let task = Task.detached { await runUntilCancelledOrTaskCancelled(probe: probe) }
+        while probe.polls() < 3 { try await Task.sleep(nanoseconds: 1_000_000) }
+        task.cancel()
+        _ = await task.result
+        print("swift: layer cancel finished the future = \(probe.finished()), polled \(probe.polls()) times")
+        XCTAssertTrue(probe.finished())
     }
 
     func testAsyncExportsWork() async throws {
