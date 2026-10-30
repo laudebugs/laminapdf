@@ -10,7 +10,10 @@
 //! (CSS `overflow-wrap: anywhere`). No hyphenation and no justification yet (pdf-library §2
 //! non-goals; [`LayoutOptions::justify`] is reserved).
 
+use std::cell::RefCell;
+use std::collections::BTreeMap;
 use std::ops::Range;
+use std::rc::Rc;
 
 use icu_properties::CodePointMapData;
 use icu_properties::props::BidiClass;
@@ -171,6 +174,7 @@ pub fn break_lines(shaper: &impl Shaper, fonts: &[Font], text: &str, options: &L
             options,
             para: &para,
             items: &items,
+            shaped: RefCell::new(BTreeMap::new()),
         };
         for mut line in layout.lines()? {
             line.shift(paragraph.start);
@@ -255,6 +259,23 @@ struct Layouter<'a, S> {
     options: &'a LayoutOptions,
     para: &'a BidiParagraph<'a>,
     items: &'a [Item],
+    /// Every run shaped so far, by (item index, range, level): shaping is deterministic, so
+    /// the estimates' runs serve lines that hold an item whole (most short texts), and the
+    /// candidates line breaking tries again (backing off, trying a longer line, splitting an
+    /// overlong word, the line finally kept) are shaped once.
+    shaped: RefCell<BTreeMap<ShapeKey, Option<Rc<ShapedRun>>>>,
+}
+
+/// What a run is shaped from in a paragraph: an item, a range of it (start, end), a bidi level.
+type ShapeKey = (usize, usize, usize, u8);
+
+/// A candidate line: its runs (shared with the memo) and where they go, before it is kept.
+struct Draft {
+    range: Range<usize>,
+    content: Range<usize>,
+    /// Each run with its font index, level and left edge, in visual order.
+    runs: Vec<(Rc<ShapedRun>, usize, u8, f64)>,
+    width: f64,
 }
 
 impl<S: Shaper> Layouter<'_, S> {
@@ -287,29 +308,29 @@ impl<S: Shaper> Layouter<'_, S> {
                 }
             }
             let end_at = |k: usize| breaks.get(k).map_or(self.text.len(), |b| b.offset);
-            let mut line = self.line(start..end_at(j))?;
+            let mut line = self.draft(start..end_at(j))?;
             while line.width > limit && j > i {
                 j -= 1;
-                line = self.line(start..end_at(j))?;
+                line = self.draft(start..end_at(j))?;
             }
             if line.width > limit {
                 // Nothing fits: break the overlong stretch between grapheme clusters.
                 let (full, rest) = self.split_overlong(start..end_at(i), limit)?;
                 for range in full {
-                    lines.push(self.line(range)?);
+                    lines.push(self.line(self.draft(range)?));
                 }
                 start = rest;
-                let remainder = self.line(start..end_at(i))?;
+                let remainder = self.draft(start..end_at(i))?;
                 if remainder.width > limit || first.mandatory {
                     // A single cluster wider than the box, or the paragraph's end.
-                    lines.push(remainder);
+                    lines.push(self.line(remainder));
                     start = end_at(i);
                     i += 1;
                 }
                 continue;
             }
             while breaks.get(j).is_some_and(|b| !b.mandatory) && j + 1 < breaks.len() {
-                let longer = self.line(start..end_at(j + 1))?;
+                let longer = self.draft(start..end_at(j + 1))?;
                 if longer.width > limit {
                     break;
                 }
@@ -317,7 +338,7 @@ impl<S: Shaper> Layouter<'_, S> {
                 j += 1;
             }
             start = end_at(j);
-            lines.push(line);
+            lines.push(self.line(line));
             i = j + 1;
         }
         Ok(lines)
@@ -327,8 +348,8 @@ impl<S: Shaper> Layouter<'_, S> {
     /// once at its own level, every glyph's advance counted at its cluster.
     fn estimates(&self) -> Result<Vec<f64>> {
         let mut at = vec![0.0; self.text.len() + 1];
-        for item in self.items {
-            let Some(run) = self.shape(item, item.range.clone(), item.level)? else {
+        for (i, item) in self.items.iter().enumerate() {
+            let Some(run) = self.shaped(i, item, item.range.clone(), item.level)? else {
                 continue;
             };
             for glyph in &run.glyphs {
@@ -356,57 +377,84 @@ impl<S: Shaper> Layouter<'_, S> {
 
     /// The items intersecting `range`, clipped to it, in logical order (items are sorted and
     /// contiguous, so a binary search finds the first).
-    fn parts(&self, range: Range<usize>) -> impl Iterator<Item = (&Item, Range<usize>)> + '_ {
+    fn parts(&self, range: Range<usize>) -> impl Iterator<Item = (usize, &Item, Range<usize>)> + '_ {
         let first = self.items.partition_point(|item| item.range.end <= range.start);
         self.items
             .get(first..)
             .unwrap_or_default()
             .iter()
-            .take_while(move |item| item.range.start < range.end)
-            .map(move |item| (item, item.range.start.max(range.start)..item.range.end.min(range.end)))
+            .zip(first..)
+            .take_while(move |(item, _)| item.range.start < range.end)
+            .map(move |(item, i)| {
+                (
+                    i,
+                    item,
+                    item.range.start.max(range.start)..item.range.end.min(range.end),
+                )
+            })
     }
 
-    /// `range` of `item` shaped at `level`; `None` when the item's font is not in the list,
-    /// which [`itemize`] only allows for text with nothing to draw.
-    fn shape(&self, item: &Item, range: Range<usize>, level: u8) -> Result<Option<ShapedRun>> {
-        let Some(font) = self.fonts.get(item.font) else {
-            return Ok(None);
+    /// `range` of item `i` shaped at `level`, from the memo or shaped now; `None` when the
+    /// item's font is not in the list, which [`itemize`] only allows for text with nothing to
+    /// draw.
+    fn shaped(&self, i: usize, item: &Item, range: Range<usize>, level: u8) -> Result<Option<Rc<ShapedRun>>> {
+        let key = (i, range.start, range.end, level);
+        if let Some(run) = self.shaped.borrow().get(&key) {
+            return Ok(run.clone());
+        }
+        let run = match self.fonts.get(item.font) {
+            Some(font) => {
+                let options = ShapeOptions {
+                    script: Some(item.script),
+                    language: self.options.language.clone(),
+                    direction: Some(Direction::from_level(level)),
+                    features: self.options.features.clone(),
+                };
+                Some(Rc::new(self.shaper.shape_range(font, self.text, range, &options)?))
+            }
+            None => None,
         };
-        let options = ShapeOptions {
-            script: Some(item.script),
-            language: self.options.language.clone(),
-            direction: Some(Direction::from_level(level)),
-            features: self.options.features.clone(),
-        };
-        self.shaper.shape_range(font, self.text, range, &options).map(Some)
+        self.shaped.borrow_mut().insert(key, run.clone());
+        Ok(run)
     }
 
-    /// The line `range`: shaped as drawn (visual runs at their post-L1 levels), reordered
-    /// and aligned.
-    fn line(&self, range: Range<usize>) -> Result<Line> {
+    /// The candidate line `range`: shaped as drawn (visual runs at their post-L1 levels),
+    /// reordered and measured.
+    fn draft(&self, range: Range<usize>) -> Result<Draft> {
         let content = self.content(range.clone());
         let mut runs = Vec::new();
         let mut x = 0.0;
         for visual in self.para.visual_runs(content.clone())? {
-            let mut parts: Vec<(&Item, Range<usize>)> = self.parts(visual.range.clone()).collect();
+            let mut parts: Vec<(usize, &Item, Range<usize>)> = self.parts(visual.range.clone()).collect();
             if visual.direction().is_rtl() {
                 parts.reverse();
             }
-            for (item, part) in parts {
-                let Some(run) = self.shape(item, part, visual.level)? else {
+            for (i, item, part) in parts {
+                let Some(run) = self.shaped(i, item, part, visual.level)? else {
                     continue;
                 };
                 let width = run.width(self.options.size);
-                runs.push(LineRun {
-                    run,
-                    font: item.font,
-                    level: visual.level,
-                    x,
-                });
+                runs.push((run, item.font, visual.level, x));
                 x += width;
             }
         }
-        let room = f64::from(self.options.width) - x;
+        Ok(Draft {
+            range,
+            content,
+            runs,
+            width: x,
+        })
+    }
+
+    /// The line kept from `draft`: its runs copied out of the memo, aligned.
+    fn line(&self, draft: Draft) -> Line {
+        let Draft {
+            range,
+            content,
+            runs,
+            width,
+        } = draft;
+        let room = f64::from(self.options.width) - width;
         let rtl = self.para.base_direction().is_rtl();
         let offset = match (self.options.align, rtl) {
             (Alignment::Left, _) | (Alignment::Start, false) | (Alignment::End, true) => 0.0,
@@ -418,14 +466,22 @@ impl<S: Shaper> Layouter<'_, S> {
             .get(range.clone())
             .and_then(|t| t.chars().next_back())
             .is_some_and(is_hard_break);
-        Ok(Line {
+        Line {
             range,
             content,
-            runs,
-            width: x,
+            runs: runs
+                .into_iter()
+                .map(|(run, font, level, x)| LineRun {
+                    run: Rc::unwrap_or_clone(run),
+                    font,
+                    level,
+                    x,
+                })
+                .collect(),
+            width,
             x: offset,
             hard_break,
-        })
+        }
     }
 
     /// Splits `range`, too wide for one line, into lines that fit between grapheme clusters
@@ -453,7 +509,7 @@ impl<S: Shaper> Layouter<'_, S> {
                 i += 1;
                 continue;
             }
-            if self.line(start..b)?.width <= limit {
+            if self.draft(start..b)?.width <= limit {
                 last_fit = Some(b);
                 i += 1;
                 continue;
@@ -509,6 +565,77 @@ mod tests {
         let one = format!("{one}").parse::<f32>().unwrap() + 0.01;
         let lines = break_lines(&HarfRust, &fonts, text, &LayoutOptions::new(one, 10.0)).unwrap();
         assert_eq!(texts(text, &lines), ["aaa bbb", "ccc"]);
+    }
+
+    #[test]
+    fn a_line_holding_a_whole_item_has_the_run_shaped_for_it() {
+        let fonts = [font("NotoSans-Regular.ttf")];
+        let text = "Total € 1,250.00";
+        let lines = break_lines(&HarfRust, &fonts, text, &LayoutOptions::new(500.0, 10.0)).unwrap();
+        let options = ShapeOptions::new()
+            .with_script(crate::shape::Script::LATIN)
+            .with_direction(Direction::LeftToRight);
+        let fresh = HarfRust.shape_range(&fonts[0], text, 0..text.len(), &options).unwrap();
+        assert_eq!(lines[0].runs[0].run, fresh);
+    }
+
+    /// A [`HarfRust`] that records every range it is asked to shape.
+    #[derive(Default)]
+    struct Counting(RefCell<Vec<(Range<usize>, Option<Direction>)>>);
+
+    impl Shaper for Counting {
+        fn shape_range(
+            &self,
+            font: &Font,
+            text: &str,
+            range: Range<usize>,
+            options: &ShapeOptions,
+        ) -> Result<ShapedRun> {
+            self.0.borrow_mut().push((range.clone(), options.direction));
+            HarfRust.shape_range(font, text, range, options)
+        }
+    }
+
+    #[test]
+    fn a_single_line_is_shaped_once() {
+        let shaper = Counting::default();
+        let text = "Product 12";
+        let lines = break_lines(
+            &shaper,
+            &[font("NotoSans-Regular.ttf")],
+            text,
+            &LayoutOptions::new(500.0, 10.0),
+        )
+        .unwrap();
+        assert_eq!(lines.len(), 1);
+        assert_eq!(*shaper.0.borrow(), [(0..text.len(), Some(Direction::LeftToRight))]);
+    }
+
+    #[test]
+    fn line_breaking_shapes_no_range_twice() {
+        // Words, then an overlong one broken between graphemes (whose lines are measured while
+        // splitting and kept afterwards).
+        let fonts = [font("NotoSans-Regular.ttf")];
+        for (text, width) in [
+            (
+                "The quarter closed with steady growth across every region we track, and shipments rose.",
+                120.0,
+            ),
+            ("abcdefghij klm", 20.0),
+        ] {
+            let shaper = Counting::default();
+            let lines = break_lines(&shaper, &fonts, text, &LayoutOptions::new(width, 11.0)).unwrap();
+            assert!(lines.len() > 2, "{text}");
+            let calls = shaper.0.borrow();
+            let mut unique = calls.clone();
+            unique.sort_by_key(|(r, _)| (r.start, r.end));
+            unique.dedup();
+            assert_eq!(
+                unique.len(),
+                calls.len(),
+                "a range of {text:?} was shaped twice: {calls:?}"
+            );
+        }
     }
 
     #[test]

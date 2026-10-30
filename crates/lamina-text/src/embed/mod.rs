@@ -338,7 +338,9 @@ impl FontRegistry {
         match &mut slot.usage {
             Usage::Embedded(usage) => {
                 let (cid, warning, exact) = usage.use_glyph_exact(gid, text)?;
-                warnings.extend(warning);
+                if let Some(warning) = warning {
+                    warnings.push(warning);
+                }
                 Ok((cid, exact))
             }
             Usage::Simple(_) => Err(Error::FontNotShapable {
