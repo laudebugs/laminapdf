@@ -39,7 +39,7 @@ Give TypeScript users the same library as Rust: `init()`, then a synchronous, ty
 
 **Out of scope** (and which todo covers it)
 
-- Browser/Deno/Bun/workerd CI matrix: [B6c](../ongoing/B6c-runtime-matrix.md).
+- Browser/Deno/Bun/workerd CI matrix: [B6c](./B6c-runtime-matrix.md).
 - TypeDoc site: [B7a](../ready/B7a-docs-site.md).
 - `page.text()`: [B9c](../ready/B9c-text-extraction-bindings-and-differential.md).
 - Publishing to npm: [P1](../ready/P1-reserve-names-and-trusted-publishing.md), [P2](../ready/P2-first-registry-prerelease.md).
