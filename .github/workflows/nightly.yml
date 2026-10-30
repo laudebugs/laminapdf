@@ -359,8 +359,16 @@ jobs:
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         continue-on-error: true
         with:
-          pattern: "{fuzz-artifacts-*,differential-report,bench-results,links-report}"
+          pattern: "{fuzz-artifacts-*,differential-report,bench-results}"
           path: artefacts
+      # By name, so it always lands in its own folder (a pattern matching one artifact unpacks it
+      # straight into `path`).
+      - name: Download the link report
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        continue-on-error: true
+        with:
+          name: links-report
+          path: artefacts/links-report
       - name: Open or update the issues
         env:
           GH_TOKEN: ${{ github.token }}
