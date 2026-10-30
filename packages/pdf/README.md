@@ -77,7 +77,7 @@ try {
 
 ## Extracting text
 
-`page.text()` returns a page's text: `lines` (in reading order, trimmed), `text()` (the lines joined with `\n`), `runs` (font, size, direction, marked-content ID, `ActualText`, visibility, bounds; `glyphs()` gives each glyph's text and quad) and `buffers` (every glyph's quad in one `Float32Array`, 8 numbers per glyph in ADR 0027 page space, and the glyph text with UTF-16 offsets, to transfer from a worker). Documents open in the richest module loaded (text, then extract, then base): load the extract or text module before opening a document whose text you need, or `page.text()` throws `extract-module-not-loaded`.
+`page.text()` returns a page's text: `lines` (in reading order, trimmed), `text()` (the lines joined with `\n`), `runs` (font, size, direction, marked-content ID, `ActualText`, visibility, bounds; `glyphs()` gives each glyph's text and quad) and `buffers` (every glyph's quad in one `Float32Array`, 8 numbers per glyph in ADR 0027 page space, and the glyph text with UTF-16 offsets, to transfer from a worker). Documents open in the richest module loaded (text, then extract, then base): load the extract or text module before opening a document whose text you need, or `page.text()` throws `extract-module-not-loaded`. With the text module loaded, the extract module isn't loaded (the text module extracts too), and documents live in the text module's memory. In Cloudflare Workers, pass the module yourself so other Workers don't bundle it: `import extract from "@lamina/wasm/lamina_extract.wasm"; await loadExtract(extract);`.
 
 ```ts
 await init({ extract: true });

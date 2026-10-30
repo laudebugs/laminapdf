@@ -52,6 +52,20 @@ pub struct TextRunJs {
     pub glyphs: [u32; 2],
 }
 
+/// A number JavaScript can use: non-finite values (a malformed file's huge `Tf` or matrix) become
+/// 0, so a run's size and bounds are always numbers (serde_json would write `null`).
+fn finite(x: f64) -> f64 {
+    if x.is_finite() { x } else { 0.0 }
+}
+
+/// A coordinate as `f32`, clamped to its range (a finite `f64` past `f32::MAX` would otherwise
+/// become an infinity) and 0 when not finite.
+fn coord32(x: f64) -> f32 {
+    #[expect(clippy::cast_possible_truncation, reason = "clamped to the f32 range first")]
+    let v = finite(x).clamp(f64::from(f32::MIN), f64::from(f32::MAX)) as f32;
+    v
+}
+
 fn index(i: usize) -> u32 {
     u32::try_from(i).unwrap_or(u32::MAX)
 }
@@ -64,26 +78,25 @@ pub(crate) fn page_text_js(text: &lamina::extract::PageText) -> JsResult<JsValue
         .map(|r| TextRunJs {
             text: r.text.clone(),
             font: r.font_name.to_string(),
-            size: r.font_size,
+            size: finite(r.font_size),
             vertical: r.vertical,
             #[expect(clippy::cast_precision_loss, reason = "MCIDs are small integers")]
             mcid: r.mcid.map(|m| m as f64),
             actual_text: r.actual_text,
             invisible: r.invisible,
             bounds: [
-                r.bounds.x0.get(),
-                r.bounds.y0.get(),
-                r.bounds.width().get(),
-                r.bounds.height().get(),
+                finite(r.bounds.x0.get()),
+                finite(r.bounds.y0.get()),
+                finite(r.bounds.width().get()),
+                finite(r.bounds.height().get()),
             ],
             glyphs: [index(r.glyphs.start), index(r.glyphs.end)],
         })
         .collect();
-    #[expect(clippy::cast_possible_truncation, reason = "Float32 is enough for points on a page")]
     let quads: Vec<f32> = text
         .glyphs
         .iter()
-        .flat_map(|g| g.quad.iter().flat_map(|p| [p.x.get() as f32, p.y.get() as f32]))
+        .flat_map(|g| g.quad.iter().flat_map(|p| [coord32(p.x.get()), coord32(p.y.get())]))
         .collect();
     let mut glyph_text = String::new();
     let mut offsets: Vec<u32> = Vec::with_capacity(text.glyphs.len() + 1);

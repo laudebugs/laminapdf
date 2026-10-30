@@ -106,6 +106,11 @@ fn glyph_quads_lie_within_tolerance_of_pdfium_char_boxes() {
         let bytes = std::fs::read(root().join(file)).unwrap();
         let doc = Document::open_bytes(bytes, OpenOptions::default()).unwrap();
         let texts = doc.page_texts(&TextOptions::new()).unwrap();
+        assert_eq!(
+            texts.len(),
+            pages.as_array().unwrap().len(),
+            "{file}: lamina's and PDFium's page counts"
+        );
         for (index, (page, text)) in pages.as_array().unwrap().iter().zip(&texts).enumerate() {
             assert_eq!(
                 page["rotation"].as_i64(),

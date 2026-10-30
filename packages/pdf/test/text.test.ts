@@ -106,3 +106,26 @@ describe("page.text() with the extract module", () => {
     expect([quads instanceof Float32Array, quads.length, glyphOffsets.length]).toEqual([true, 13 * 8, 14]);
   });
 });
+
+describe("PageText's guards", () => {
+  beforeAll(() => loadExtract());
+
+  it("refuses a glyph index outside the page's glyphs", () => {
+    const text = Document.open(read("fixtures/golden/examples/hello.pdf")).page(0).text();
+    expect(() => text.glyph(-1)).toThrow(RangeError);
+    expect(() => text.glyph(text.glyphCount)).toThrow(RangeError);
+  });
+
+  it("throws after its buffers were transferred, and keeps its lines and runs", () => {
+    const text = Document.open(read("fixtures/golden/examples/hello.pdf")).page(0).text();
+    const { quads, glyphOffsets } = text.buffers;
+    structuredClone(null, { transfer: [quads.buffer, glyphOffsets.buffer] });
+    expect(() => text.glyph(0)).toThrow(TypeError);
+    expect([text.text(), text.runs.length, text.glyphCount]).toEqual(["Hello, world!", 1, 13]);
+  });
+
+  it("hands out lines and glyph ranges that can't change its data", () => {
+    const text = Document.open(read("fixtures/golden/examples/hello.pdf")).page(0).text();
+    expect(Object.isFrozen(text.lines) && Object.isFrozen(text.runs[0]?.glyphRange)).toBe(true);
+  });
+});

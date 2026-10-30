@@ -32,10 +32,13 @@ export class TextRun {
   readonly #page: PageText;
   readonly #run: TextRunJs;
 
+  readonly #range: readonly [number, number];
+
   /** @internal */
   constructor(page: PageText, run: TextRunJs) {
     this.#page = page;
     this.#run = run;
+    this.#range = Object.freeze([run.glyphs[0], run.glyphs[1]] as const);
   }
 
   /** The run's text in logical order (document text). */
@@ -81,7 +84,7 @@ export class TextRun {
 
   /** The `[start, end)` range of its glyphs in the page's glyph arrays ({@link PageText.buffers}). */
   get glyphRange(): readonly [number, number] {
-    return this.#run.glyphs;
+    return this.#range;
   }
 
   /** Its glyphs, with their quads (built on each call). */
@@ -98,19 +101,24 @@ export class PageText {
   readonly #raw: PageTextJs;
   #runs: readonly TextRun[] | undefined;
 
+  readonly #lines: readonly string[];
+
   /** @internal */
   constructor(raw: PageTextJs) {
     this.#raw = raw;
+    this.#lines = Object.freeze([...raw.lines]);
+    // Kept from the start: transferring the buffers detaches glyphOffsets.
+    this.glyphCount = Math.max(0, raw.glyphOffsets.length - 1);
   }
 
-  /** The text by line (runs on one baseline joined, trimmed), in reading order. */
+  /** The text by line (runs on one baseline joined, trimmed), in content order. */
   get lines(): readonly string[] {
-    return this.#raw.lines;
+    return this.#lines;
   }
 
   /** The page's text: its lines joined with `\n`. */
   text(): string {
-    return this.#raw.lines.join("\n");
+    return this.#lines.join("\n");
   }
 
   /** The runs, in content order (made on first use). */
@@ -125,13 +133,22 @@ export class PageText {
   }
 
   /** The number of glyphs. */
-  get glyphCount(): number {
-    return this.#raw.glyphOffsets.length - 1;
-  }
+  readonly glyphCount: number;
 
-  /** Glyph `i`'s text and quad. */
+  /**
+   * Glyph `i`'s text and quad.
+   *
+   * @throws `RangeError` for an index outside `0 … glyphCount - 1`; `TypeError` once
+   *   {@link PageText.buffers}' arrays were transferred to another thread.
+   */
   glyph(i: number): TextGlyph {
+    if (!Number.isInteger(i) || i < 0 || i >= this.glyphCount) {
+      throw new RangeError(`glyph index ${i} is outside 0..${this.glyphCount - 1}`);
+    }
     const q = this.#raw.quads;
+    if (q.length < (i + 1) * 8 || this.#raw.glyphOffsets.length <= i + 1) {
+      throw new TypeError("the glyph arrays were transferred (buffers): this PageText no longer holds them");
+    }
     const o = i * 8;
     const point = (k: number): QuadPoint => ({ x: q[o + 2 * k] ?? 0, y: q[o + 2 * k + 1] ?? 0 });
     return {
@@ -143,7 +160,9 @@ export class PageText {
   /**
    * The arrays as the WASM returned them: `quads` (8 numbers per glyph), `glyphText` and
    * `glyphOffsets` (glyph i is `glyphText.slice(glyphOffsets[i], glyphOffsets[i + 1])`). Post
-   * `quads.buffer` and `glyphOffsets.buffer` as transferables to move them to another thread.
+   * `quads.buffer` and `glyphOffsets.buffer` as transferables to move them to another thread;
+   * that detaches them here, and this PageText's `glyph()` and `glyphs()` then throw (`lines`
+   * and `runs` keep working).
    */
   get buffers(): { readonly quads: Float32Array; readonly glyphText: string; readonly glyphOffsets: Uint32Array } {
     return { quads: this.#raw.quads, glyphText: this.#raw.glyphText, glyphOffsets: this.#raw.glyphOffsets };

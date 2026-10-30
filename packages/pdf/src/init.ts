@@ -116,8 +116,13 @@ export function loadTextWith(locate: Locate, source?: WasmSource): Promise<void>
   return load(text, "text", () => import("@lamina/wasm/text"), locate, source);
 }
 
-/** Loads the extract module (once; a failed load can be retried). */
+/**
+ * Loads the extract module (once; a failed load can be retried). Not when the text module is
+ * loaded or loading: it extracts too, and documents open in it first, so the extract module
+ * would never be used.
+ */
 export function loadExtractWith(locate: Locate, source?: WasmSource): Promise<void> {
+  if (text.pending !== undefined) return text.pending;
   return load(extract, "extract", () => import("@lamina/wasm/extract"), locate, source);
 }
 
@@ -128,7 +133,12 @@ export async function initWith(locate: Locate, input?: WasmSource | InitOptions)
   if (options.text !== undefined && options.text !== false) {
     loads.push(loadTextWith(locate, options.text === true ? undefined : options.text));
   }
-  if (options.extract !== undefined && options.extract !== false) {
+  // The text module extracts too: with it, the extract module would never be used.
+  if (
+    options.extract !== undefined &&
+    options.extract !== false &&
+    (options.text === undefined || options.text === false)
+  ) {
     loads.push(loadExtractWith(locate, options.extract === true ? undefined : options.extract));
   }
   await Promise.all(loads);
@@ -152,9 +162,9 @@ export function readingModule(): BaseGlue {
   return (text.loaded?.glue ?? extract.loaded?.glue ?? base) as BaseGlue;
 }
 
-/** Whether the extract module is loaded (documents opened now can extract text). */
+/** Whether documents opened now can extract text: the extract or the text module is loaded. */
 export function isExtractLoaded(): boolean {
-  return extract.loaded !== undefined;
+  return extract.loaded !== undefined || text.loaded !== undefined;
 }
 
 /** The text module's glue, when loaded. */

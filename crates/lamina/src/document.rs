@@ -154,7 +154,7 @@ impl Document {
         })
     }
 
-    /// The text page `index` shows (B9d; feature `text`): glyphs with Unicode and boxes in
+    /// The text page `index` shows (B9d; feature `extract`): glyphs with Unicode and boxes in
     /// page space, runs, lines ([`crate::extract`]). Fonts are parsed once per document and
     /// revision; problems are warnings (`font-invalid`, `cmap-invalid`, `unmapped-glyph`, the
     /// content warnings) in [`Document::warnings`].

@@ -258,7 +258,8 @@ pub struct WasmPage {
 #[cfg(feature = "extract")]
 #[wasm_bindgen]
 impl WasmPage {
-    /// The page's text: lines, runs, glyph quads and glyph text (B9c, the text module only).
+    /// The page's text: lines, runs, glyph quads and glyph text (B9c; the extract and text
+    /// modules).
     ///
     /// # Errors
     /// `unknown-page` when the page is gone; `data-pending` and the reading errors;

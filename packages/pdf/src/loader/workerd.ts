@@ -2,8 +2,16 @@
 // so the modules are imported statically; wrangler turns a `.wasm` import into a
 // `WebAssembly.Module` (ADR 0016 §2). Both modules are part of the Worker's bundle.
 import base from "@lamina/wasm/lamina_base.wasm";
-import extract from "@lamina/wasm/lamina_extract.wasm";
 import text from "@lamina/wasm/lamina_text.wasm";
 import type { Locate } from "../init.js";
 
-export const locate: Locate = (module) => (module === "base" ? base : module === "text" ? text : extract);
+// The extract module isn't imported here: a static import would put it in every Worker's bundle
+// (about 526 KB gzip) whether or not it extracts text. A Worker that does passes it itself.
+export const locate: Locate = (module) => {
+  if (module === "extract") {
+    throw new TypeError(
+      'in workerd, pass the extract module: import extract from "@lamina/wasm/lamina_extract.wasm"; await loadExtract(extract)',
+    );
+  }
+  return module === "base" ? base : text;
+};

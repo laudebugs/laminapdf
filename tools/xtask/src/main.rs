@@ -324,6 +324,8 @@ fn clippy(ws: &Workspace) -> Result<()> {
         &["-p", "lamina-wasm", "--features", "text"],
         &["-p", "lamina-wasm", "--features", "extract"],
         &["-p", "lamina", "--no-default-features"],
+        // The reader configuration: extraction without the builder (B9c).
+        &["-p", "lamina", "--no-default-features", "--features", "extract"],
     ] {
         let mut args = vec!["clippy", "--locked", "--target", WASM_TARGET, "--lib"];
         args.extend(features);

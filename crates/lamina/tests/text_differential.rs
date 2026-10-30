@@ -73,10 +73,23 @@ fn page_text_agrees_with_pdfjs_and_pdftotext() {
     for (file, tools) in expected["files"].as_object().unwrap() {
         let ours = lamina_pages(file);
         for tool in ["pdfjs", "pdftotext"] {
+            // A tool that failed on the file (null) is a disagreement too: listed with page 0.
             let Some(theirs) = tools[tool].as_array() else {
+                let key = (file.clone(), 0, tool.to_owned());
+                disagreeing.push(key.clone());
+                if !listed.contains(&key) {
+                    unexplained.push(format!("{file}: {tool} read nothing (null in text.json)"));
+                }
                 continue;
             };
             let theirs: Vec<String> = theirs.iter().map(|p| squeeze(p.as_str().unwrap())).collect();
+            if ours.len() > theirs.len() {
+                unexplained.push(format!(
+                    "{file}: lamina has {} pages, {tool} {}",
+                    ours.len(),
+                    theirs.len()
+                ));
+            }
             for (i, theirs) in theirs.iter().enumerate() {
                 let page = i as u64;
                 if ours.get(i) == Some(theirs) {
