@@ -52,7 +52,7 @@ Prove the package works where the plan says it does. The same TS example suite r
 
 - [x] The example suite passes in Chromium, Firefox, WebKit, Node 22/24/26, Deno, Bun and workerd with byte-identical outputs
 - [x] A Vite production build of a tiny app importing `@lamina/pdf` works in Chromium
-- [x] Timings and Worker peak memory are reported per runtime; any miss of the §4 targets is listed in the PR and filed as an issue (not a CI failure) (the report misses are [B5d](../ready/B5d-text-report-generation-performance.md)'s, see Outcome)
+- [x] Timings and Worker peak memory are reported per runtime; any miss of the §4 targets is listed in the PR and filed as an issue (not a CI failure) (the report misses are [B5d](../ongoing/B5d-text-report-generation-performance.md)'s, see Outcome)
 
 ## Post-merge checks
 
@@ -92,7 +92,7 @@ As above; all under `packages/pdf/test/` sharing one example list.
   | Bun | 1.7 ms | 1.4 ms | 442 ms | 5.1 MB |
   | workerd | 34 ms | 1.0 ms | 562 ms | 4.7 MB |
 
-  Hello (≤ 5 ms) and Worker memory (< 64 MB) are met everywhere; the report (≤ 500 ms) is missed in Node, Firefox, Deno and workerd (520–710 ms over several runs), which is [B5d](../ready/B5d-text-report-generation-performance.md)'s target. workerd's first hello includes its lazy compilation of the module. The Node figures come from the whole Node suite running in parallel Vitest workers.
+  Hello (≤ 5 ms) and Worker memory (< 64 MB) are met everywhere; the report (≤ 500 ms) is missed in Node, Firefox, Deno and workerd (520–710 ms over several runs), which is [B5d](../ongoing/B5d-text-report-generation-performance.md)'s target. workerd's first hello includes its lazy compilation of the module. The Node figures come from the whole Node suite running in parallel Vitest workers.
 - Deviations:
   - workerd runs through wrangler's `createTestHarness` from a Vitest test in Node (`vitest.workers.config.ts`), not `@cloudflare/vitest-pool-workers`: its latest release (0.23.0) supports Vitest 4 only and the repo is on Vitest 5. The examples still run inside workerd (test/workerd/worker.ts answers with each example's bytes and the measurements), bundled by wrangler through the `workerd` export condition; Node compares the bytes with the goldens.
   - Worker memory is the WebAssembly linear memory (`wasmMemory()`, measured inside the Worker): workerd reports no per-isolate figure locally, and the JS heap is not included.

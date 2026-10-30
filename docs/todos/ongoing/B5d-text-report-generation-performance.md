@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `B5d` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [pdf-library §4 non-functional](../../plans/pdf-library.md#non-functional), [§7 B5](../../plans/pdf-library.md#b5-builder-and-the-lamina-crate) |
 | Round / milestone | Round B (library) — M1 |
 | Depends on | [B6b](../done/B6b-lamina-pdf-package.md) |
