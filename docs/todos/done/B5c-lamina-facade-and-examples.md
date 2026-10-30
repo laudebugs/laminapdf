@@ -38,9 +38,9 @@ Give Rust users one crate, `lamina`, whose docs open with the invoice example an
 
 **Out of scope** (and which todo covers it)
 
-- TS examples and runtime matrix: [B6b](../done/B6b-lamina-pdf-package.md), [B6c](../ready/B6c-runtime-matrix.md).
+- TS examples and runtime matrix: [B6b](../done/B6b-lamina-pdf-package.md), [B6c](../ongoing/B6c-runtime-matrix.md).
 - PDF/UA and PDF/A examples: [B8b](../ready/B8b-conformance-profiles-and-verapdf.md).
-- Worker endpoint example: [B6c](../ready/B6c-runtime-matrix.md)/[B7a](../ready/B7a-docs-site.md).
+- Worker endpoint example: [B6c](../ongoing/B6c-runtime-matrix.md)/[B7a](../ready/B7a-docs-site.md).
 - `lamina-render` / `RenderBackend`: web C2.
 - Nightly hayro-vs-PDFium diffs over external corpora: [X3b](../ready/X3b-render-diff-nightly.md).
 

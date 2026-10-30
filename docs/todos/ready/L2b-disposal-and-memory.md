@@ -95,7 +95,7 @@ None.
 ## Tests
 
 - `packages/pdf/test/dispose.test.ts`: inventory, `using`, double dispose, children, `disposed` errors.
-- `packages/pdf/test/memory.test.ts`: the 1,000-iteration baseline loop (byte counts, no timing), the cap and `__grow`, `__trap`, `reset()`, leak hook. Run in Node in the fast lane, and in browser mode where [B6c](./B6c-runtime-matrix.md) provides it.
+- `packages/pdf/test/memory.test.ts`: the 1,000-iteration baseline loop (byte counts, no timing), the cap and `__grow`, `__trap`, `reset()`, leak hook. Run in Node in the fast lane, and in browser mode where [B6c](../ongoing/B6c-runtime-matrix.md) provides it.
 - xtask: unit test for the export check on the release build.
 
 ## Docs to update

@@ -80,7 +80,7 @@ Let web apps keep lamina off the main thread without learning a second API. `@la
   - [ ] Error serialisation
 - [ ] Remote handles with `Symbol.asyncDispose` (use `Symbol.asyncDispose ?? Symbol.for("Symbol.asyncDispose")`, without mutating globals)
 - [ ] `package.json`: add the `./worker` export and the worker file to `files`; check publint and `attw --pack` still pass; include `worker.js` in `cargo xtask size`
-- [ ] Vitest browser mode (Playwright: Chromium, Firefox, WebKit) in `packages/pdf`, if [B6c](./B6c-runtime-matrix.md) has not set it up yet; Deno and Bun smoke tests through B6c's runners, if present
+- [ ] Vitest browser mode (Playwright: Chromium, Firefox, WebKit) in `packages/pdf`, if [B6c](../ongoing/B6c-runtime-matrix.md) has not set it up yet; Deno and Bun smoke tests through B6c's runners, if present
 - [ ] A worker example in `packages/pdf/examples/worker-client/` (open, page count, save, abort), run as a test
 - [ ] README section: when to use the worker client, bundler notes (Vite `optimizeDeps.exclude`), CSP and `{ worker }`
 
