@@ -107,14 +107,14 @@ Each round is split into todos (one PR each) on the [todo board](../todos/README
 
 ### L1. Contracts
 
-**Todos:** [L1a](../todos/done/L1a-contract-adrs.md) (ADRs 0026, 0027, 0028), [L1c](../todos/done/L1c-error-contract-core.md) (kinds, hints and tagged locations in the Rust core, before B5c), [L1b](../todos/ready/L1b-error-contract-codegen.md) (error codegen, `explain`).
+**Todos:** [L1a](../todos/done/L1a-contract-adrs.md) (ADRs 0026, 0027, 0028), [L1c](../todos/done/L1c-error-contract-core.md) (kinds, hints and tagged locations in the Rust core, before B5c), [L1b](../todos/ongoing/L1b-error-contract-codegen.md) (error codegen, `explain`).
 
 **Deliverable:** three ADRs; codes and error types generated from `fixtures/codes.json` into Rust, TypeScript and JSON Schema; `explain` text per code.
 **Accepted when:** B5a's builder uses ADR 0027's coordinates; B5c's façade meets ADR 0028's rules; a TS test narrows the error class's `code` exhaustively (the class is `LaminaError`, [ADR 0026](../decisions/0026-error-and-diagnostic-contract.md) §7); a change to `codes.json` without regenerating fails CI.
 
 ### L2. TypeScript hardening
 
-**Todos:** [L2a](../todos/ready/L2a-worker-client.md) (`@lamina/pdf/worker`), [L2b](../todos/ready/L2b-disposal-and-memory.md) (disposal and memory bounds), [L2c](../todos/ongoing/L2c-range-byte-source.md) (range `ByteSource` over `Error::DataPending`).
+**Todos:** [L2a](../todos/ready/L2a-worker-client.md) (`@lamina/pdf/worker`), [L2b](../todos/ready/L2b-disposal-and-memory.md) (disposal and memory bounds), [L2c](../todos/done/L2c-range-byte-source.md) (range `ByteSource` over `Error::DataPending`).
 
 **Deliverable:** a worker client with the same method names as the sync API, version handshake, `AbortSignal` and transfer lists, which `@lamina/viewer` (C3a) consumes; `Symbol.dispose` on every handle, a capped wasm memory and an abort-and-reinstantiate wrapper; range reading for large and remote files.
 **Accepted when:** a 50 MB file opens in a worker with no long task over 50 ms on the main thread; opening and disposing a document in a loop keeps wasm memory at its post-warm-up size (± one 64 KiB page; linear memory never shrinks, so the high-water mark is the baseline); opening a remote file fetches only the ranges it needs.
@@ -173,7 +173,7 @@ This plan adjusts these todos (edited in the same PR):
 
 - [ ] `@lamina/pdf/worker`: typed RPC, version handshake, `AbortSignal`, transfer lists
 - [ ] `Symbol.dispose` on every handle, capped wasm memory, abort-and-reinstantiate wrapper
-- [ ] Range `ByteSource` reporting missing ranges through `Error::DataPending` (ADR 0005 §2), with edge adapters (HTTP range, JS callback, native positioned reads)
+- [x] Range `ByteSource` reporting missing ranges through `Error::DataPending` (ADR 0005 §2), with edge adapters (HTTP range, JS callback, native positioned reads)
 
 ### L3. AI-ready extraction
 

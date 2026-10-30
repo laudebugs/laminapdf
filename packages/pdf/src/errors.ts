@@ -94,6 +94,19 @@ export class LaminaError<C extends ErrorCode = ErrorCode> extends Error {
     if (diagnostic.data !== undefined) this.data = diagnostic.data;
   }
 
+  /**
+   * For `data-pending`: the byte ranges a range document needs fetched before the call can
+   * succeed (`data.ranges`); `undefined` for other codes. {@link Document.ensure} fetches them.
+   */
+  get ranges(): readonly { readonly offset: number; readonly length: number }[] | undefined {
+    if (this.code !== "data-pending") return undefined;
+    const raw = this.data?.ranges;
+    if (!Array.isArray(raw)) return [];
+    return raw.flatMap((r: unknown) =>
+      Array.isArray(r) && typeof r[0] === "number" && typeof r[1] === "number" ? [{ offset: r[0], length: r[1] }] : [],
+    );
+  }
+
   /** The ADR 0026 §1 object (for logs, workers and `--json` output); optional fields omitted. */
   toJSON(): Diagnostic<C> {
     return {

@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [shareable-libraries §7 L5](../../plans/shareable-libraries.md#l5-docs-for-agents) |
 | Round / milestone | Round L5 (shareable libraries) — before the first registry prerelease |
-| Depends on | [B7a](./B7a-docs-site.md), [L1b](./L1b-error-contract-codegen.md) |
+| Depends on | [B7a](./B7a-docs-site.md), [L1b](../ongoing/L1b-error-contract-codegen.md) |
 | Blocks | None |
 | ADRs | Follows 0026 (error codes and `explain` pages, from [L1a](../done/L1a-contract-adrs.md)), [0015](../../decisions/0015-monorepo-layout-and-tooling.md) (xtask, pnpm workspace), [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) (new docs tooling licences), 0017 (lockstep versions, from [B7b](./B7b-versioning-and-0-1-0-alpha.md)), [0018](../../decisions/0018-test-strategy.md) (the eval is recorded, not gating) |
 | Branch | `docs/l5a-agent-docs` |
@@ -29,7 +29,7 @@ Users get an `AGENTS.md` snippet for their own repositories. A machine-readable 
 - [Report: a new library is a rare API to every model](../../research/libraries/shareable-libraries.md#a-new-library-is-a-rare-api-to-every-model): CloudAPIBench and GitChameleon results, llms.txt with `.md` twins (Stripe), docs in the npm tarball (Vercel AI SDK), Context7, AGENTS.md. No controlled study shows llms.txt itself helps; it is cheap.
 - [LLM note (A)](../../research/libraries/notes/llm-api-and-ai-extraction.md#a-what-makes-llmsagents-write-correct-code-against-a-library-api-and-what-lamina-should-do): the llms.txt format (H1, blockquote, H2 link lists to `.md` pages; `llms-ctx.txt` variant), the four channels to ship, deprecated aliases and a machine-readable rename changelog.
 - [B7a](./B7a-docs-site.md): the Starlight site in `apps/docs`, TypeDoc, snippets imported from tested examples, per-PR previews.
-- [L1b](./L1b-error-contract-codegen.md): `explain` pages and the `lamina.error/1` schema, both shipped here.
+- [L1b](../ongoing/L1b-error-contract-codegen.md): `explain` pages and the `lamina.error/1` schema, both shipped here.
 - [B7b](./B7b-versioning-and-0-1-0-alpha.md): lockstep versions and `pnpm pack` install checks; the docs in the tarball must carry the same version.
 - [Code organisation §1](../../guidelines/code-organization.md#1-top-level-layout): where `tools/` scripts and `apps/docs` live.
 
@@ -58,7 +58,7 @@ Users get an `AGENTS.md` snippet for their own repositories. A machine-readable 
   - A check fails when a `#[deprecated]` Rust item or `@deprecated` TSDoc tag has no entry naming its replacement, and when an entry points at a symbol that no longer exists.
   - Shipped in the packages and on the site.
 - **Agent-eval baseline** (recorded, not gating):
-  - `tools/agent-eval/tasks/*.md`: 10–20 fixed tasks, each with a checker script that validates the result with lamina itself and `qpdf --check`. Example tasks: build a two-page invoice; open an encrypted file and handle `wrong-password` by code; rotate page 3 and save incrementally; read page sizes in points; extract text if [B9c](./B9c-text-extraction-bindings-and-differential.md) has merged.
+  - `tools/agent-eval/tasks/*.md`: 10–20 fixed tasks, each with a checker script that validates the result with lamina itself and `qpdf --check`. Example tasks: build a two-page invoice; open an encrypted file and handle `wrong-password` by code; rotate page 3 and save incrementally; read page sizes in points; extract text if [B9c](../ongoing/B9c-text-extraction-bindings-and-differential.md) has merged.
   - A runner that starts a pinned coding agent in a scratch project, once with no docs and once with the shipped docs, and writes pass/fail per task.
   - The first run's results go in `docs/research/libraries/agent-eval-baseline.md`, with the agent, model, date and lamina version.
 
@@ -74,7 +74,7 @@ Users get an `AGENTS.md` snippet for their own repositories. A machine-readable 
 - [ ] Choose the generation route (plugin vs own integration). Check licences with `cargo xtask npm-licenses`. Pin versions
 - [ ] Generate `.md` twins for every route. Inline imported snippets (the twin must be self-contained). Emit `llms.txt` and `llms-full.txt` with the version
 - [ ] TypeDoc Markdown output for `@lamina/pdf`; rustdoc stays linked (Markdown rustdoc is out of scope unless cheap)
-- [ ] `cargo xtask docs-pack`, or a pack step in the existing build: copy the Markdown, `explain` pages (from [L1b](./L1b-error-contract-codegen.md)), schemas and `renames.json` into `packages/pdf/docs/` and the crate's `docs/`; stamp `version`; add to `files` / `include`
+- [ ] `cargo xtask docs-pack`, or a pack step in the existing build: copy the Markdown, `explain` pages (from [L1b](../ongoing/L1b-error-contract-codegen.md)), schemas and `renames.json` into `packages/pdf/docs/` and the crate's `docs/`; stamp `version`; add to `files` / `include`
 - [ ] The "Using lamina with coding agents" page and `packages/pdf/examples/AGENTS.md` (same text, one source)
 - [ ] `renames.json`, its schema, and the deprecation check in `cargo xtask check docs` (grep `#[deprecated` and `@deprecated` in `crates/` and `packages/`; every hit has an entry)
 - [ ] `tools/agent-eval/`:

@@ -50,7 +50,7 @@ The text module is a **superset**, not an add-on: a document that needs text is 
 
 To make the base module exclude text, `lamina-build` gained a `text` feature (default on): without it, the builder has no fonts, no text runs or boxes, and doesn't link `lamina-text`. The façade's `text` feature now implies a new `build` feature (the builder alone).
 
-Text *extraction* (B9b's `page.text()`) is not part of either module yet; [B9c](../todos/ready/B9c-text-extraction-bindings-and-differential.md) binds it and decides, by measurement against these budgets, whether it joins base, text, or a third `extract` module.
+Text *extraction* (B9b's `page.text()`) is not part of either module yet; [B9c](../todos/ongoing/B9c-text-extraction-bindings-and-differential.md) binds it and decides, by measurement against these budgets, whether it joins base, text, or a third `extract` module.
 
 ### 5. Measurements and the shrinking pass
 
@@ -97,7 +97,7 @@ Gzip bytes as `cargo xtask size` measures them (deflate level 9 plus the gzip he
 
 | Module | Measured (2026-10-30, after the review fixes and B9d; unchanged by B6b, whose TS-only codes stay out of the WASM) | Budget | Headroom |
 | --- | ---: | ---: | ---: |
-| base (`lamina_base.wasm`) | 372,711 (brotli 298,462) | **380,000** | 2.0 % |
+| base (`lamina_base.wasm`) | 382,000 (brotli 304,955; L2c, 2026-10-30) | **390,000** (amended 2026-10-30; was 380,000) | 2.1 % |
 | text (`lamina_text.wasm`) | 943,924 (brotli 723,348) | **960,000** | 1.7 % |
 | JS glue per module (wasm-bindgen output, minified by esbuild) | 3,769 base, 3,978 text | **5,000** each | |
 | `@lamina/pdf` JS: both glues + the TS API, bundled and minified by esbuild (B6b, `packages` in `size-budgets.json`) | 10,041 | **20,000** | 50 % |
@@ -106,6 +106,8 @@ Gzip bytes as `cargo xtask size` measures them (deflate level 9 plus the gzip he
 | sign (E10) | — | placeholder: decided by E10a | |
 
 The `@lamina/pdf` TS layer has its own budget (glue + API ≤ 20 KB min+gzip, plan §4), enforced by B6b. A module without a budget fails the check, so a new module can't ship unmeasured. A module that grows more than 5 % over the baseline in `size-budgets.json` gets a twiggy top-items diff against the baseline in the job summary; `cargo xtask size --update-baseline` records a new baseline when a growth is accepted. Raising a budget is an amendment of this table, approved by the owner.
+
+**Amendment (owner, 2026-10-30, L2c):** the base budget rises from 380,000 to 390,000 bytes. Range loading (`WasmDocument.openSource` over a sparse source, [L2c](../todos/done/L2c-range-byte-source.md)) links `lamina-cos`'s windowed reader (64 KiB windows, chunked repair, xref-entry probes), which the base module never used while it only opened in-memory bytes: +9.3 KB gzip (372,688 → 382,000). Range loading belongs with reading, so it stays in the base module rather than moving to a third one.
 
 ### 7. API naming and shape at the WASM boundary
 

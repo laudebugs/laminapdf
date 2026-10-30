@@ -17,7 +17,7 @@ Mark the second occurrence with `/ActualText` (§14.9.4) so extraction gets its 
 
 ## Example
 
-To be added ([L1b](../todos/ready/L1b-error-contract-codegen.md)).
+To be added ([L1b](../todos/ongoing/L1b-error-contract-codegen.md)).
 
 ## Data fields
 

@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [full-editor §E7](../../plans/full-editor.md#e7-editing-existing-content) |
 | Round / milestone | Editor phase 4 (E6–E7) — M7 Content editor |
-| Depends on | [B9c](./B9c-text-extraction-bindings-and-differential.md), [E6a](./E6a-adding-content-feature-plan.md) |
+| Depends on | [B9c](../ongoing/B9c-text-extraction-bindings-and-differential.md), [E6a](./E6a-adding-content-feature-plan.md) |
 | Blocks | [E7b](./E7b-editing-existing-content-feature-plan.md) |
 | Dependency notes | [E6a](E6a-adding-content-feature-plan.md), `B9` ([pdf-library §B9](../../plans/pdf-library.md#b9-text-extraction): content reading and text extraction) |
 | ADRs | Writes ADR 0022; builds on ADR 0023 (B9) and 0005 §6 |

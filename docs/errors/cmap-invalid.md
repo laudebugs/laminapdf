@@ -17,7 +17,7 @@ Nothing to do. The rest of the CMap is used; affected glyphs may extract as othe
 
 ## Example
 
-To be added ([L1b](../todos/ready/L1b-error-contract-codegen.md)).
+To be added ([L1b](../todos/ongoing/L1b-error-contract-codegen.md)).
 
 ## Data fields
 

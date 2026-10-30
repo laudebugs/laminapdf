@@ -30,12 +30,14 @@ mod convert;
 mod document;
 mod dto;
 mod error;
+mod source;
 
 #[cfg(feature = "text")]
 pub use builder::WasmFont;
 #[cfg(feature = "build")]
 pub use builder::{WasmBuilder, WasmImage, WasmPageBuilder};
 pub use document::{WasmDocument, WasmPage, WasmSaveJob, WasmWarningCursor};
+pub use source::WasmSparseSource;
 
 use wasm_bindgen::prelude::*;
 

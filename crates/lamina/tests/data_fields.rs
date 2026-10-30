@@ -21,7 +21,7 @@ use lamina_cos::Warning as W;
 use lamina_syntax::{Limit, Position};
 
 /// Codes whose page lists data keys but whose value can't be built outside its crate.
-const UNBUILDABLE: [(&str, &str); 4] = [
+const UNBUILDABLE: [(&str, &str); 6] = [
     (
         "not-rebased",
         "SaveError::NotRebased carries a SavedOutput, whose constructor is private to lamina-save",
@@ -30,6 +30,9 @@ const UNBUILDABLE: [(&str, &str); 4] = [
     ("builder-finished", "raised by lamina-wasm"),
     ("invalid-argument", "raised by lamina-wasm"),
     ("unknown-option", "raised by lamina-wasm"),
+    ("source-budget-exceeded", "raised by lamina-wasm"),
+    // `packageErrors`: raised by @lamina/pdf; packages/pdf/test/source.test.ts checks the keys.
+    ("fetch-failed", "raised by @lamina/pdf"),
 ];
 
 fn root() -> PathBuf {

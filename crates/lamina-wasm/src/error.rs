@@ -1,11 +1,12 @@
 //! Errors across the boundary: always the [ADR 0026] §1 object (a plain JS object, never a
 //! string), which `@lamina/pdf` turns into its `LaminaError` (ADR 0026 §7).
 //!
-//! Core errors are [`lamina::Error::diagnostic`] as it is. The binding adds the two codes only
-//! it can raise (listed under `bindingErrors` in `fixtures/codes.json`): `invalid-argument`
-//! (a value from JavaScript of the wrong shape), `unknown-option` (a key the record doesn't
-//! have, with `didYouMean`; ADR 0028 F6) and `builder-finished` (an owned page or the
-//! builder used after the builder's `finish`).
+//! Core errors are [`lamina::Error::diagnostic`] as it is. The binding adds the codes only it
+//! can raise (listed under `bindingErrors` in `fixtures/codes.json`): `invalid-argument` (a
+//! value from JavaScript of the wrong shape), `unknown-option` (a key the record doesn't have,
+//! with `didYouMean`; ADR 0028 F6), `builder-finished` (an owned page or the builder used after
+//! the builder's `finish`) and `source-budget-exceeded` (a sparse source given more than its
+//! budget).
 //!
 //! [ADR 0026]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0026-error-and-diagnostic-contract.md
 
@@ -22,7 +23,7 @@ const DOCS_BASE: &str = "https://github.com/laudebugs/lamina/blob/main/docs/erro
 const DOCS_SUFFIX: &str = ".md";
 
 /// The codes the binding raises (its `bindingErrors` group), with their kind and hint.
-pub(crate) const CODES: [(&str, &str, &str); 3] = [
+pub(crate) const CODES: [(&str, &str, &str); 4] = [
     (
         "builder-finished",
         "state",
@@ -32,6 +33,11 @@ pub(crate) const CODES: [(&str, &str, &str); 3] = [
         "invalid-argument",
         "usage",
         "pass the value the type declarations describe; the data field says what was wrong",
+    ),
+    (
+        "source-budget-exceeded",
+        "limit",
+        "raise the source's budget, or open the file with fewer bytes fetched (smaller blocks, no readahead)",
     ),
     (
         "unknown-option",
@@ -113,6 +119,21 @@ pub(crate) fn invalid_argument(argument: &'static str, detail: String, did_you_m
         did_you_mean,
         BindingData {
             argument,
+            option: None,
+            detail: Some(detail),
+        },
+    )
+}
+
+/// `source-budget-exceeded`: a sparse source would hold more than its budget (`detail` says how
+/// much; lamina's own numbers).
+pub(crate) fn source_budget_exceeded(detail: String) -> JsValue {
+    binding(
+        "source-budget-exceeded",
+        "the source would hold more bytes than its budget allows",
+        Vec::new(),
+        BindingData {
+            argument: "bytes",
             option: None,
             detail: Some(detail),
         },

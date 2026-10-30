@@ -74,6 +74,23 @@ try {
 
 `doc.warnings` lists what the reader repaired, as `LaminaWarning` objects of the same shape.
 
+## Remote and large files
+
+`Document.openRange(source, options)` opens a file whose bytes are fetched range by range, so a remote PDF opens without downloading it whole. Only what the open needs is fetched: the end of the file (the xref), the catalog, the page tree. The document stays synchronous; a call that needs bytes not fetched yet throws `data-pending` with `e.ranges`, and `await doc.ensure(() => …)` fetches them and calls again.
+
+```ts
+const doc = await Document.openRange(httpRangeSource("https://example.com/big.pdf"));
+const pages = await doc.ensure(() => doc.pages);
+const bytes = await doc.ensure(() => doc.save({ mode: "fullRewrite" })); // fetches the rest
+```
+
+- **`httpRangeSource(url, { headers, credentials, signal, blockSize })`:** the first request asks for the last 64 KiB with `Range: bytes=-65536`, which also gives the size. Later requests are aligned to 16 KiB blocks and send `If-Range` with the first strong `ETag` (else `Last-Modified`); a different `ETag`, `Last-Modified` or size fails with `source-changed`. A server without either validator can't be checked: serve one. A server that answers `200` (no range support) is read from that one full download. HTTP errors are `fetch-failed` with `data.status`; the URL never appears in an error.
+- **CORS:** a `Range` header makes a cross-origin request preflighted. The server must answer with `Access-Control-Allow-Headers: Range` and expose `Content-Range`, `Content-Length` and `ETag` (`Access-Control-Expose-Headers`). It must not compress the response: `Content-Encoding` breaks byte ranges.
+- **`callbackSource(size, read)`:** any other random-access input (a `Blob`'s `slice`, a file handle, an IPC call).
+- **Options:** `signal` (for the open; aborting rejects and cancels its requests in flight; `ensure(f, { signal })` takes its own), `blockSize`, `readahead`, `budget` (the most bytes the document may hold; more is `source-budget-exceeded`) and `maxRounds`.
+- **Workers:** each `ensure` call can take several round trips. The worker client ([L2a](../../docs/todos/ready/L2a-worker-client.md)) will hide the loop behind its async API.
+- **Large local files in Rust:** `lamina-source`'s `FileSource` (positioned reads) or, for files nothing changes, `MmapSource` ([its README](../../crates/lamina-source/README.md)).
+
 ## Memory
 
 Documents, builders, pages and images live in WebAssembly memory. `doc.free()` (or `using doc = Document.open(…)`) frees a document at once; `page.finish()` and `builder.finish()` free their own side; unreleased objects are freed by the glue's `FinalizationRegistry` when collected. `wasmMemory()` reports each module's memory size. The disposed-handle error and the other memory bounds are [L2b](../../docs/todos/ready/L2b-disposal-and-memory.md).

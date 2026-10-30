@@ -1,6 +1,6 @@
 # Error and warning codes
 
-One page per code in [`fixtures/codes.json`](../../fixtures/codes.json), as [ADR 0026](../decisions/0026-error-and-diagnostic-contract.md) §6 requires. Every `docsUrl` points here. A PR that adds a code adds its entry to `codes.json` (its `kind`, `summary` and `hint`), the arm in its type's `kind()` (an exhaustive match, checked against `codes.json` by that crate's tests), and its page here, with the headings *What happened*, *Why*, *How to fix*, *Example* and *Data fields* and a `- Kind:` line matching `codes.json`. `crates/lamina-cos/tests/codes.rs` checks the entries and pages, and that every page here is for a listed code. [L1b](../todos/ready/L1b-error-contract-codegen.md) expands the pages and generates the tables.
+One page per code in [`fixtures/codes.json`](../../fixtures/codes.json), as [ADR 0026](../decisions/0026-error-and-diagnostic-contract.md) §6 requires. Every `docsUrl` points here. A PR that adds a code adds its entry to `codes.json` (its `kind`, `summary` and `hint`), the arm in its type's `kind()` (an exhaustive match, checked against `codes.json` by that crate's tests), and its page here, with the headings *What happened*, *Why*, *How to fix*, *Example* and *Data fields* and a `- Kind:` line matching `codes.json`. `crates/lamina-cos/tests/codes.rs` checks the entries and pages, and that every page here is for a listed code. [L1b](../todos/ongoing/L1b-error-contract-codegen.md) expands the pages and generates the tables.
 
 ## Warnings
 
@@ -147,6 +147,7 @@ One page per code in [`fixtures/codes.json`](../../fixtures/codes.json), as [ADR
 | --- | --- |
 | [`builder-finished`](builder-finished.md) | `state` |
 | [`invalid-argument`](invalid-argument.md) | `usage` |
+| [`source-budget-exceeded`](source-budget-exceeded.md) | `limit` |
 | [`unknown-option`](unknown-option.md) | `usage` |
 
 ## Package errors (`@lamina/pdf`)
@@ -154,5 +155,7 @@ One page per code in [`fixtures/codes.json`](../../fixtures/codes.json), as [ADR
 | Code | Kind |
 | --- | --- |
 | [`already-initialized`](already-initialized.md) | `state` |
+| [`fetch-failed`](fetch-failed.md) | `io` |
 | [`not-initialized`](not-initialized.md) | `state` |
+| [`source-changed`](source-changed.md) | `io` |
 | [`text-module-not-loaded`](text-module-not-loaded.md) | `state` |
