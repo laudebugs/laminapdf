@@ -14,16 +14,24 @@
 # - One per runner: each runner has its own tool cache and runs one job at a time.
 # - One per job (`target-dir`, e.g. `ci-rust`): jobs build different features, profiles and
 #   targets, and sharing one directory would keep rebuilding each other's output.
-# - One per kind of trigger (<bucket>): `main-push` (pushes to main), `main-schedule` (the nightly
-#   lane on main), and every other event or ref apart (`pull_request`, `workflow_dispatch`, …).
-#   Build output a pull request's code produced is never reused by a run on main: main's runs
-#   only ever build into, and read from, directories that only main's runs write. This is the
-#   same rule as check-linux's rust-cache (only main saves). It keeps cargo from reusing PR
-#   output; it is not a sandbox: PR code runs as the runner's user, which can write anywhere in
-#   the tool cache, as it can CARGO_HOME today. The repository is private, so PR authors are
-#   collaborators and fork PRs can't run here.
-# - Capped: when the directory is over 15 GB before the build, it is deleted and the job builds
-#   from scratch (cargo never deletes stale artefacts by itself).
+# - One per kind of run (<bucket>), keyed on the event and the ref:
+#     main-push      pushes to main
+#     main-nightly   scheduled and dispatched runs on main (the nightly lane)
+#     pull_request   pull requests
+#     other          anything else (a dispatch on another branch, a tag push, …): rare, so it is
+#                    emptied before every use rather than kept
+#   Build output a pull request's (or another branch's) code produced is never reused by a run
+#   on main: main's runs only ever build into, and read from, directories that only main's runs
+#   write. This is the same rule as check-linux's rust-cache (only main saves). It keeps cargo
+#   from reusing PR output; it is not a sandbox: PR code runs as the runner's user, which can
+#   write anywhere in the tool cache, as it can CARGO_HOME today. The repository is private, so
+#   PR authors are collaborators and fork PRs can't run here.
+# - Bounded, since cargo never deletes stale output and the runners share one disk. Every job
+#   touches `.last-used` in its directory, and directories are deleted oldest-used first:
+#     every job (cheap: df)  while the disk has under 25 GB free;
+#     once a day per runner  (du, stamp `.sizes-checked`) any directory over 15 GB, then more
+#                            until this runner's directories total at most 40 GB.
+#   A deleted directory only means that job builds from scratch once.
 #
 # xtask reads the directory from `cargo metadata` (Workspace::target_dir) wherever it needs
 # cargo's output. Its reports stay in the checkout's target/ (target/xtask/, target/nightly/,
@@ -60,25 +68,70 @@ runs:
         fi
         case "$EVENT/$REF" in
           push/refs/heads/main) bucket=main-push ;;
-          schedule/refs/heads/main) bucket=main-schedule ;;
-          push/* | schedule/*) bucket="$EVENT-other-ref" ;;
-          *) bucket="$EVENT" ;;
+          schedule/refs/heads/main | workflow_dispatch/refs/heads/main) bucket=main-nightly ;;
+          pull_request/*) bucket=pull_request ;;
+          *) bucket=other ;;
         esac
-        if ! [[ "$bucket" =~ ^[A-Za-z0-9_-]+$ ]]; then
-          echo "::error::unexpected event name '$EVENT'"
-          exit 1
+        root="$RUNNER_TOOL_CACHE/lamina-target"
+        dir="$root/$bucket/$NAME"
+        dir_limit_kb=$((15 * 1024 * 1024))
+        total_limit_kb=$((40 * 1024 * 1024))
+        min_free_kb=$((25 * 1024 * 1024))
+        mkdir -p "$root"
+
+        # This runner's build directories, least recently used first. `ls -t`, not find: macOS's
+        # find has no -printf, and every path component here matches [A-Za-z0-9_-]+.
+        # shellcheck disable=SC2012
+        oldest_first() {
+          ls -1tr "$root"/*/*/.last-used 2>/dev/null | sed 's|/\.last-used$||' || true
+        }
+        free_kb() { df -Pk "$root" | awk 'NR == 2 { print $4 }'; }
+        evict() { # dir reason
+          echo "::notice::deleting the build directory $1 ($2); its job builds from scratch once"
+          rm -rf "$1"
+        }
+
+        if [ "$bucket" = other ]; then
+          rm -rf "$dir"
         fi
-        dir="$RUNNER_TOOL_CACHE/lamina-target/$bucket/$NAME"
-        limit_kb=$((15 * 1024 * 1024))
-        if [ -d "$dir" ]; then
-          size_kb=$(du -sk "$dir" | cut -f1)
-          echo "Build directory $dir: $((size_kb / 1024)) MB"
-          if [ "$size_kb" -gt "$limit_kb" ]; then
-            echo "::notice::$dir is over 15 GB: deleting it, this job builds from scratch"
-            rm -rf "$dir"
+        # Every job: free disk space, without walking any directory.
+        while [ "$(free_kb)" -lt "$min_free_kb" ]; do
+          victim=$(oldest_first | head -n 1)
+          if [ -z "$victim" ]; then
+            echo "::warning::under 25 GB free on the runner's disk and no build directory left to delete"
+            break
           fi
+          evict "$victim" "under 25 GB free on the disk"
+        done
+        # Once a day: sizes (du), per directory and in total, oldest first.
+        stamp="$root/.sizes-checked"
+        if [ ! -f "$stamp" ] || [ -z "$(find "$stamp" -mtime -1)" ]; then
+          total=0
+          kept=""
+          while IFS= read -r d; do
+            [ -n "$d" ] || continue
+            size=$(du -sk "$d" | cut -f1)
+            if [ "$size" -gt "$dir_limit_kb" ]; then
+              evict "$d" "over 15 GB"
+            else
+              total=$((total + size))
+              kept="$kept$size $d"$'\n'
+            fi
+          done <<< "$(oldest_first)"
+          while IFS=' ' read -r size d; do
+            [ -n "$d" ] && [ "$total" -gt "$total_limit_kb" ] || continue
+            evict "$d" "this runner's build directories are over 40 GB"
+            total=$((total - size))
+          done <<< "$kept"
+          echo "This runner's build directories: $((total / 1024)) MB"
+          touch "$stamp"
+        fi
+
+        if [ -d "$dir" ]; then
+          echo "Build directory $dir: reused"
         else
           echo "Build directory $dir: new, this job builds from scratch"
         fi
         mkdir -p "$dir"
+        touch "$dir/.last-used"
         echo "CARGO_TARGET_DIR=$dir" >> "$GITHUB_ENV"

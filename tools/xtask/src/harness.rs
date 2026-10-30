@@ -9,7 +9,7 @@ use std::ffi::OsStr;
 use std::fs;
 use std::io::Write as _;
 use std::path::{Path, PathBuf};
-use std::process::Command;
+use std::process::{Command, Stdio};
 use std::sync::Mutex;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
@@ -290,7 +290,6 @@ pub(crate) enum FuzzTask<'a> {
 const FUZZ_USAGE: &str = "usage: cargo xtask fuzz <target> [--time <seconds>] | fuzz --all [--time <seconds>] \
      [--jobs <n>] | fuzz seeds [<target>] | fuzz cmin [<target>]";
 
-/// Parses `fuzz <target>|--all [--time N]`, `fuzz seeds [<target>]` and `fuzz cmin [<target>]`.
 /// `target` if it is one of [`FUZZ_TARGETS`], else an error listing them.
 pub(crate) fn known_fuzz_target(target: &str) -> Result<&str> {
     if FUZZ_TARGETS.contains(&target) {
@@ -300,6 +299,8 @@ pub(crate) fn known_fuzz_target(target: &str) -> Result<&str> {
     }
 }
 
+/// Parses `fuzz <target> [--time N]`, `fuzz --all [--time N] [--jobs N]` (flags in any order),
+/// `fuzz seeds [<target>]` and `fuzz cmin [<target>]`.
 pub(crate) fn parse_fuzz_args(args: &[String]) -> Result<FuzzTask<'_>> {
     let known = |t: &str| known_fuzz_target(t).map(drop);
     let seconds = |s: &str| -> Result<u64> { s.parse().with_context(|| format!("--time {s:?}: not a number")) };
@@ -351,8 +352,8 @@ fn parse_run_all(flags: &[String]) -> Result<FuzzTask<'static>> {
                 let n: usize = value
                     .parse()
                     .with_context(|| format!("--jobs {value:?}: not a number"))?;
-                if n == 0 {
-                    bail!("--jobs must be at least 1");
+                if !(1..=MAX_FUZZ_JOBS).contains(&n) {
+                    bail!("--jobs must be between 1 and {MAX_FUZZ_JOBS}");
                 }
                 jobs = Some(n);
             }
@@ -402,28 +403,49 @@ pub(crate) fn fuzz(ws: &Workspace, task: &FuzzTask<'_>) -> Result<()> {
 }
 
 /// Runs every target for `seconds`, `jobs` cargo-fuzz processes at once, and returns one
-/// message per failed target. The seed corpora are written and every target is built first
-/// (one `cargo fuzz build`), so the concurrent runs only fuzz. Each run's output is buffered
-/// and printed whole when it ends, so the log reads one target at a time.
+/// message per failed target (in target order). Seed corpora are written and the targets
+/// built first, so the concurrent runs only fuzz; a target whose seeds or build fail is
+/// reported by name and the others still run. Each run streams its output to
+/// `target/xtask/fuzz/<target>.log` (kept if the job is killed; the full lane uploads it) and
+/// prints it whole, every line prefixed `[target]`, when the run ends.
 fn fuzz_parallel(ws: &Workspace, host: &str, seconds: u64, jobs: usize) -> Result<Vec<String>> {
-    let corpora = FUZZ_TARGETS
-        .into_iter()
-        .map(|target| Ok((target, seeds(ws, target)?)))
-        .collect::<Result<Vec<_>>>()?;
-    // The same build options as `cargo fuzz run`'s defaults, so the runs find it up to date.
-    run(&ws.root, "cargo", &["+nightly", "fuzz", "build", "--target", host])?;
+    let mut failures: Vec<(&str, String)> = Vec::new();
+    let mut ready = Vec::new();
+    for target in FUZZ_TARGETS {
+        match seeds(ws, target) {
+            Ok(corpus) => ready.push((target, corpus)),
+            Err(e) => failures.push((target, format!("{target}: setup failed (seed corpus): {e:#}"))),
+        }
+    }
+    // One build for every target, with `cargo fuzz run`'s default options so the runs find it
+    // up to date. If it fails, each target is built on its own to name the broken ones.
+    if let Err(e) = run(&ws.root, "cargo", &fuzz_build_args(host, None)) {
+        eprintln!("note: building every fuzz target at once failed ({e:#}); building each on its own");
+        ready.retain(
+            |&(target, _)| match run(&ws.root, "cargo", &fuzz_build_args(host, Some(target))) {
+                Ok(()) => true,
+                Err(e) => {
+                    failures.push((target, format!("{target}: build failed (setup problem): {e:#}")));
+                    false
+                }
+            },
+        );
+    }
+    let logs = scratch(ws, "fuzz")?;
     step(&format!(
-        "Fuzzing {} targets for {seconds} s each, {jobs} at once",
-        corpora.len()
+        "Fuzzing {} targets for {seconds} s each, {jobs} at once (logs in {})",
+        ready.len(),
+        logs.display()
     ));
     let next = AtomicUsize::new(0);
-    let failures = Mutex::new(Vec::new());
+    let run_failures = Mutex::new(Vec::new());
     std::thread::scope(|scope| {
-        for _ in 0..jobs.min(corpora.len()) {
+        for _ in 0..jobs.min(ready.len()) {
             scope.spawn(|| {
-                while let Some((target, corpus)) = corpora.get(next.fetch_add(1, Ordering::Relaxed)) {
-                    if let Err(e) = fuzz_captured(ws, host, target, corpus, seconds) {
-                        failures
+                while let Some((target, corpus)) = ready.get(next.fetch_add(1, Ordering::Relaxed)) {
+                    let log = logs.join(format!("{target}.log"));
+                    if let Err(e) = fuzz_logged(ws, host, target, corpus, seconds, jobs, &log) {
+                        run_failures
                             .lock()
                             .unwrap_or_else(std::sync::PoisonError::into_inner)
                             .push((*target, format!("{e:#}")));
@@ -432,56 +454,126 @@ fn fuzz_parallel(ws: &Workspace, host: &str, seconds: u64, jobs: usize) -> Resul
             });
         }
     });
-    let mut failures = failures.into_inner().unwrap_or_else(std::sync::PoisonError::into_inner);
+    failures.extend(
+        run_failures
+            .into_inner()
+            .unwrap_or_else(std::sync::PoisonError::into_inner),
+    );
     // Report in target order, whatever order the runs ended in.
     failures.sort_by_key(|(target, _)| FUZZ_TARGETS.iter().position(|t| t == target));
     Ok(failures.into_iter().map(|(_, message)| message).collect())
 }
 
-/// One target's run for [`fuzz_parallel`]: its output captured and printed in one block
-/// (`[target]` on every line) when the run ends.
-fn fuzz_captured(ws: &Workspace, host: &str, target: &str, corpus: &Path, seconds: u64) -> Result<()> {
-    let artifacts = ws.root.join("fuzz/artifacts").join(target);
-    let before = artifact_names(&artifacts);
-    let args = fuzz_run_args(host, target, &corpus.to_string_lossy(), seconds);
+/// One target's run for [`fuzz_parallel`]: stdout and stderr stream into `log`, which is
+/// printed with `[target]` prefixes when the run ends.
+fn fuzz_logged(
+    ws: &Workspace,
+    host: &str,
+    target: &str,
+    corpus: &Path,
+    seconds: u64,
+    jobs: usize,
+    log: &Path,
+) -> Result<()> {
+    let watch = ArtifactWatch::new(&ws.root, target);
+    let args = fuzz_run_args(host, target, &corpus.to_string_lossy(), seconds, jobs);
+    let file = fs::File::create(log).with_context(|| format!("{target}: creating {}", log.display()))?;
+    let stderr = file
+        .try_clone()
+        .with_context(|| format!("{target}: opening {}", log.display()))?;
     println!("[{target}] started: cargo {}", args.join(" "));
-    let output = Command::new("cargo")
+    let status = Command::new(crate::program_path("cargo"))
         .args(&args)
         .current_dir(&ws.root)
-        .output()
-        .with_context(|| format!("{target}: failed to start cargo fuzz"))?;
-    {
-        let mut out = std::io::stdout().lock();
-        let text = [output.stdout.as_slice(), output.stderr.as_slice()].concat();
-        for line in String::from_utf8_lossy(&text).lines() {
-            // A closed stdout must not hide the run's result, so write errors are ignored.
-            let _ = writeln!(out, "[{target}] {line}");
-        }
-        let _ = writeln!(out, "[{target}] finished: {}", output.status);
+        .stdout(Stdio::from(file))
+        .stderr(Stdio::from(stderr))
+        .status()
+        .map_err(|e| watch.failure(&format!("failed to start cargo: {e}")))?;
+    let text = fs::read(log).unwrap_or_default();
+    // A closed stdout must not hide the run's result, so a failed write is ignored.
+    let _ = writeln!(
+        std::io::stdout().lock(),
+        "{}[{target}] finished: {status}",
+        prefixed(target, &String::from_utf8_lossy(&text))
+    );
+    if status.success() {
+        Ok(())
+    } else {
+        Err(watch.failure(&format!("cargo fuzz run exited with {status} (log: {})", log.display())))
     }
-    if output.status.success() {
-        return Ok(());
+}
+
+/// `text` with `[target] ` before every line.
+fn prefixed(target: &str, text: &str) -> String {
+    let mut out = String::with_capacity(text.len());
+    for line in text.lines() {
+        out.push('[');
+        out.push_str(target);
+        out.push_str("] ");
+        out.push_str(line);
+        out.push('\n');
     }
-    let new: Vec<String> = artifact_names(&artifacts).difference(&before).cloned().collect();
-    bail!(describe_failure(
-        target,
-        &new,
-        &format!("cargo fuzz run exited with {}", output.status)
-    ))
+    out
+}
+
+/// `cargo fuzz build` for every target (`None`) or one, with `cargo fuzz run`'s defaults.
+fn fuzz_build_args<'a>(host: &'a str, target: Option<&'a str>) -> Vec<&'a str> {
+    let mut args = vec!["+nightly", "fuzz", "build", "--target", host];
+    args.extend(target);
+    args
+}
+
+/// The most cargo-fuzz processes `--jobs` allows at once: each may use up to
+/// `-rss_limit_mb=2048`, so 8 bounds a run at 16 GB.
+const MAX_FUZZ_JOBS: usize = 8;
+
+/// libFuzzer's limits for a run with `jobs` processes at once. With one, exactly
+/// [`crate::nightly::LIBFUZZER_LIMITS`] (which `tmin` uses). With more, the per-input timeout
+/// grows with `jobs` (10 s each), so a slow input on a busy, shared machine isn't reported as
+/// a timeout crash; the memory limit stays 2048 MB per process (lowering it would turn inputs
+/// that are fine alone into OOMs), and [`MAX_FUZZ_JOBS`] bounds the total.
+fn libfuzzer_limits(jobs: usize) -> Vec<String> {
+    if jobs <= 1 {
+        return crate::nightly::LIBFUZZER_LIMITS.map(str::to_owned).to_vec();
+    }
+    let timeout = 10 * jobs;
+    vec![format!("-timeout={timeout}"), "-rss_limit_mb=2048".to_owned()]
 }
 
 /// `cargo` arguments that fuzz `target` over `corpus` for `seconds` under
-/// [`crate::nightly::LIBFUZZER_LIMITS`] (which `tmin` uses too).
-fn fuzz_run_args(host: &str, target: &str, corpus: &str, seconds: u64) -> Vec<String> {
+/// [`libfuzzer_limits`] for `jobs` runs at once.
+fn fuzz_run_args(host: &str, target: &str, corpus: &str, seconds: u64, jobs: usize) -> Vec<String> {
     // fuzz/ is its own nightly workspace (ADR 0018); `+nightly` overrides the root pin.
     let max_time = format!("-max_total_time={seconds}");
     [
         "+nightly", "fuzz", "run", "--target", host, target, corpus, "--", &max_time,
     ]
     .into_iter()
-    .chain(crate::nightly::LIBFUZZER_LIMITS)
     .map(str::to_owned)
+    .chain(libfuzzer_limits(jobs))
     .collect()
+}
+
+/// The crash inputs a run may leave in `fuzz/artifacts/<target>/`: the names there before
+/// it, so a failure can be told apart as a crash (new files) or a build or setup problem.
+struct ArtifactWatch<'a> {
+    target: &'a str,
+    dir: PathBuf,
+    before: std::collections::BTreeSet<String>,
+}
+
+impl<'a> ArtifactWatch<'a> {
+    fn new(root: &Path, target: &'a str) -> Self {
+        let dir = root.join("fuzz/artifacts").join(target);
+        let before = artifact_names(&dir);
+        Self { target, dir, before }
+    }
+
+    /// The error for a failed run: [`describe_failure`] with the files that appeared since.
+    fn failure(&self, error: &str) -> anyhow::Error {
+        let new: Vec<String> = artifact_names(&self.dir).difference(&self.before).cloned().collect();
+        anyhow::anyhow!(describe_failure(self.target, &new, error))
+    }
 }
 
 /// `[target]`, or every target when none was named.
@@ -501,14 +593,13 @@ fn fuzz_setup(ws: &Workspace) -> Result<String> {
 /// in `fuzz/artifacts/<target>/` is a crash; any other is a build or setup failure.
 fn fuzz_one(ws: &Workspace, host: &str, target: &str, seconds: u64) -> Result<()> {
     let corpus = seeds(ws, target)?;
-    let corpus = corpus.to_string_lossy().into_owned();
-    let artifacts = ws.root.join("fuzz/artifacts").join(target);
-    let before = artifact_names(&artifacts);
-    let result = run(&ws.root, "cargo", &fuzz_run_args(host, target, &corpus, seconds));
-    result.map_err(|e| {
-        let new: Vec<String> = artifact_names(&artifacts).difference(&before).cloned().collect();
-        anyhow::anyhow!(describe_failure(target, &new, &format!("{e:#}")))
-    })
+    let watch = ArtifactWatch::new(&ws.root, target);
+    run(
+        &ws.root,
+        "cargo",
+        &fuzz_run_args(host, target, &corpus.to_string_lossy(), seconds, 1),
+    )
+    .map_err(|e| watch.failure(&format!("{e:#}")))
 }
 
 /// How a failed fuzz run is reported: a crash with its saved inputs, or a run that failed
@@ -785,6 +876,72 @@ mod tests {
     #[test]
     fn fuzz_all_rejects_zero_jobs() {
         assert!(parse_fuzz_args(&args(&["--all", "--jobs", "0"])).is_err());
+    }
+
+    #[test]
+    fn fuzz_all_rejects_more_jobs_than_the_memory_bound() {
+        assert!(parse_fuzz_args(&args(&["--all", "--jobs", "9"])).is_err());
+    }
+
+    #[test]
+    fn one_job_uses_the_tmin_limits() {
+        assert_eq!(libfuzzer_limits(1), crate::nightly::LIBFUZZER_LIMITS);
+    }
+
+    #[test]
+    fn parallel_jobs_scale_the_timeout_not_the_memory_limit() {
+        assert_eq!(libfuzzer_limits(4), ["-timeout=40", "-rss_limit_mb=2048"]);
+    }
+
+    #[test]
+    fn fuzz_run_args_end_with_the_limits() {
+        let a = fuzz_run_args("aarch64-apple-darwin", "lex", "fuzz/corpus/lex", 30, 4);
+        assert_eq!(
+            a[7..],
+            ["--", "-max_total_time=30", "-timeout=40", "-rss_limit_mb=2048"]
+        );
+    }
+
+    #[test]
+    fn fuzz_build_args_name_one_target_or_none() {
+        assert_eq!(
+            fuzz_build_args("h", None),
+            ["+nightly", "fuzz", "build", "--target", "h"]
+        );
+        assert_eq!(fuzz_build_args("h", Some("lex")).last(), Some(&"lex"));
+    }
+
+    #[test]
+    fn prefixed_marks_every_line() {
+        assert_eq!(prefixed("lex", "a\nb\n"), "[lex] a\n[lex] b\n");
+    }
+
+    fn artifact_dir(name: &str) -> PathBuf {
+        let root = std::env::temp_dir().join(format!("xtask-fuzz-{name}-{}", std::process::id()));
+        let _ = fs::remove_dir_all(&root);
+        fs::create_dir_all(root.join("fuzz/artifacts/lex")).unwrap();
+        root
+    }
+
+    #[test]
+    fn a_failure_with_new_inputs_is_a_crash() {
+        let root = artifact_dir("crash");
+        fs::write(root.join("fuzz/artifacts/lex/old"), b"").unwrap();
+        let watch = ArtifactWatch::new(&root, "lex");
+        fs::write(root.join("fuzz/artifacts/lex/crash-1"), b"").unwrap();
+        let message = watch.failure("exit 1").to_string();
+        fs::remove_dir_all(&root).unwrap();
+        assert_eq!(message, "lex: crashed; inputs saved in fuzz/artifacts/lex/: crash-1");
+    }
+
+    #[test]
+    fn a_failure_without_new_inputs_is_a_setup_problem() {
+        let root = artifact_dir("setup");
+        fs::write(root.join("fuzz/artifacts/lex/old"), b"").unwrap();
+        let watch = ArtifactWatch::new(&root, "lex");
+        let message = watch.failure("exit 1").to_string();
+        fs::remove_dir_all(&root).unwrap();
+        assert!(message.contains("build or setup problem"), "{message}");
     }
 
     #[test]

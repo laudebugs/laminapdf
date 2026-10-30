@@ -93,9 +93,10 @@ tasks:
                     ops_json, save_roundtrip) with
                     cargo +nightly fuzz (default 60 s); seeds come from fixtures/ and fuzz/seeds/
   fuzz --all [--time <seconds>] [--jobs <n>]
-                    run every fuzz target, <n> at once (default 1: in turn); built once first,
-                    each run's output printed whole when it ends (the full lane: 30 s on PRs,
-                    120 s on main, --jobs 4)
+                    run every fuzz target, <n> at once (default 1: in turn; at most 8); built
+                    once first, each run logged to target/xtask/fuzz/<target>.log and printed
+                    whole when it ends; the per-input timeout is 10 s x <n> (the full lane: 30 s
+                    on PRs, 120 s on main, --jobs 4)
   fuzz seeds [<target>]
                     only build the seed corpora in fuzz/corpus/
   fuzz cmin [<target>]
