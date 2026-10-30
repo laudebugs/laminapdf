@@ -20,7 +20,7 @@ Expose text extraction everywhere the readers need it and prove it against indep
 
 ## Context
 
-- [B9b](./B9b-text-extraction-core.md) API; ADR 0016 (from [B6a](./B6a-lamina-wasm-and-adr-0016.md)) for module split and size budgets.
+- [B9b](./B9b-text-extraction-core.md) API; ADR 0016 (from [B6a](../ongoing/B6a-lamina-wasm-and-adr-0016.md)) for module split and size budgets.
 - Web plan [C5](../../plans/web-app.md#c5-text-selection-and-search) acceptance (copy in five scripts, search counts vs pdf.js) — design the TS shape for it.
 - [Rendering notes §3](../../research/architecture/notes/rendering.md#3-text-layer-selection-search-accessibility-hit-testing).
 - [ADR 0018 §1](../../decisions/0018-test-strategy.md#1-tiers) tier 6 (differential), tier 9 (fuzz).

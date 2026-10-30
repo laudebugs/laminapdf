@@ -203,7 +203,7 @@ Architecture Round B is delivered as rounds B1–B9, each split into todos (one 
 
 ### B6. WASM and `@lamina/pdf`
 
-**Todos:** [B6a](../todos/ready/B6a-lamina-wasm-and-adr-0016.md) (`lamina-wasm`, split base/text modules, ADR 0016, size budgets), [B6b](../todos/ready/B6b-lamina-pdf-package.md) (`@lamina/pdf`), [B6c](../todos/ready/B6c-runtime-matrix.md) (runtime matrix).
+**Todos:** [B6a](../todos/ongoing/B6a-lamina-wasm-and-adr-0016.md) (`lamina-wasm`, split base/text modules, ADR 0016, size budgets), [B6b](../todos/ready/B6b-lamina-pdf-package.md) (`@lamina/pdf`), [B6c](../todos/ready/B6c-runtime-matrix.md) (runtime matrix).
 
 **Deliverable:** `lamina-wasm` (wasm-bindgen + tsify), `@lamina/wasm`, `@lamina/pdf` with `init()` and export conditions; ADR 0016; size budget checks; the runtime matrix in CI.
 **Accepted when:** the same example suite passes in Chromium, Firefox, WebKit, Node 22/24/26, Deno, Bun and workerd; size budgets enforced (CI fails above budget); publint and attw clean.
