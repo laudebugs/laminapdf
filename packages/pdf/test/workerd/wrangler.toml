@@ -1,0 +1,11 @@
+# The test Worker of the workerd run (B6c): test/workerd/examples.test.ts starts it with wrangler's
+# test harness. It bundles the `workerd` export condition (both `.wasm` files imported as
+# modules) and the suite's fixtures as `Data` modules.
+name = "lamina-pdf-suite"
+main = "worker.ts"
+compatibility_date = "2026-10-01"
+
+[[rules]]
+type = "Data"
+globs = ["**/*.ttf", "**/*.otf", "**/*.jpg"]
+fallthrough = true
