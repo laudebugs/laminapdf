@@ -3,11 +3,11 @@
 | Field | Value |
 | --- | --- |
 | ID | `L6a` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [shareable-libraries §7 L6](../../plans/shareable-libraries.md#l6-mobile), principles [§4](../../plans/shareable-libraries.md#4-principles-recommendations-recorded-in-adrs-00260031) (1, 4), open questions [§11](../../plans/shareable-libraries.md#11-open-questions) (1, 2) |
 | Round / milestone | Round L6 (shareable libraries) — Mobile |
 | Depends on | [B5c](../done/B5c-lamina-facade-and-examples.md), [L1a](../done/L1a-contract-adrs.md) |
-| Blocks | [L6b](./L6b-mobile-sdk-plan.md) |
+| Blocks | [L6b](../ready/L6b-mobile-sdk-plan.md) |
 | ADRs | Writes **0029** (mobile bindings and packaging); fills in [0002 §5](../../decisions/0002-binding-strategy.md#decision) without changing it; follows 0028 (façade rules, jobs, cancellation) and 0026 (errors) from [L1a](../done/L1a-contract-adrs.md), [0001](../../decisions/0001-core-language-and-licence.md), [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) |
 | Branch | `spike/l6a-lamina-ffi` |
 | PR title | `spike(ffi): bind the lamina façade with UniFFI for Swift and Kotlin; ADR 0029` |
@@ -20,11 +20,11 @@
 
 Answer one question with measurements before any mobile SDK work: **does the B5c façade bind to Swift and Kotlin through UniFFI without changes?** Bind open, page count and sizes, extraction and save; build an XCFramework (via cargo-swift) and AARs (via cargo-ndk); run the same scenario from Swift and Kotlin tests; prototype cancellation on top of ADR 0028's `CancelToken`; report sizes per ABI. Record the binding and packaging decisions in ADR 0029 (UniFFI pin, idiomatic Swift/Kotlin layer, SPM only, Maven Central AARs, 16 KB page alignment, panic profile).
 
-**Recommendation: spike first.** Put the code in `spikes/lamina-ffi/` (outside both workspaces, like `spikes/krilla-fit/`, depending on `crates/lamina` by path). A product `crates/lamina-ffi` edge crate comes from the mobile SDK plan ([L6b](./L6b-mobile-sdk-plan.md)) once ADR 0029 is accepted. Reasons: the UniFFI pin is still open, the toolchain targets and CI runners (macOS, Android NDK) are not in the workspace yet, and a spike can be thrown away if the façade needs reshaping. Decide in the PR; if the façade binds cleanly and the CI cost is small, promoting straight to `crates/lamina-ffi` is acceptable.
+**Recommendation: spike first.** Put the code in `spikes/lamina-ffi/` (outside both workspaces, like `spikes/krilla-fit/`, depending on `crates/lamina` by path). A product `crates/lamina-ffi` edge crate comes from the mobile SDK plan ([L6b](../ready/L6b-mobile-sdk-plan.md)) once ADR 0029 is accepted. Reasons: the UniFFI pin is still open, the toolchain targets and CI runners (macOS, Android NDK) are not in the workspace yet, and a spike can be thrown away if the façade needs reshaping. Decide in the PR; if the façade binds cleanly and the CI cost is small, promoting straight to `crates/lamina-ffi` is acceptable.
 
 ## Context
 
-- [U3b](./U3b-mobile-shell-spike.md) (`mobile-shell` spike, ADR 0025) decides how lamina's **own** mobile apps are built (Tauri 2 mobile or UniFFI with native UI). This spike is about the **SDK for other developers**, which needs UniFFI whatever U3b decides; its size and binding measurements are an input to U3b, and the two spikes should share the test device matrix.
+- [U3b](../ready/U3b-mobile-shell-spike.md) (`mobile-shell` spike, ADR 0025) decides how lamina's **own** mobile apps are built (Tauri 2 mobile or UniFFI with native UI). This spike is about the **SDK for other developers**, which needs UniFFI whatever U3b decides; its size and binding measurements are an input to U3b, and the two spikes should share the test device matrix.
 - [Report: design the façade to the stricter binding now](../../research/libraries/shareable-libraries.md#design-the-façade-to-the-stricter-binding-now): UniFFI's `Arc`/`&self`/`Send + Sync` rules, Bitwarden's and Matrix's thin leaf crates per binding, no generics; the 0.31 vs 0.32 trade-off.
 - [Report: cancellation and progress](../../research/libraries/shareable-libraries.md#cancellation-and-progress-belong-in-laminas-api-not-the-bindings) and [concurrency: generated bindings need a hand-written idiomatic layer](../../research/libraries/shareable-libraries.md#concurrency-generated-bindings-need-a-hand-written-idiomatic-layer): no built-in cancellation; Swift `withTaskCancellationHandler`; Kotlin coroutine cancellation plus `Drop`; `@unchecked Sendable`.
 - [Report: packaging: SPM only, AARs on Maven Central](../../research/libraries/shareable-libraries.md#packaging-spm-only-aars-on-maven-central): CocoaPods trunk read-only on 2 December 2026; cargo-swift 0.11.1; `lamina-core` and `lamina-compose` AARs; 16 KB alignment.
@@ -41,7 +41,7 @@ Answer one question with measurements before any mobile SDK work: **does the B5c
   - `FfiDocument` (`#[derive(uniffi::Object)]` around `lamina::Document`): `open(bytes, options) -> Arc<FfiDocument>`, `page_count()`, `page_sizes() -> Vec<PageSize>` (top-left points per ADR 0027), `info()`, `text(page)` when B9b is merged (else metadata only, noted in the README), `set_info(key, value)` through the op log, `save(options) -> SaveResult` (full bytes, and the appended section only for incremental saves).
   - Records and enums for options, sizes, warnings; one `FfiError` (`#[derive(uniffi::Error)]`) mapping `lamina::Error` with ADR 0026's `code`, `kind`, `message`, `hint`.
   - A job prototype: `FfiJob` with `step(budget_ms) -> FfiStep` and `cancel()` over ADR 0028's job if B5c has one, else a toy job over all pages.
-- **UniFFI pin: 0.32** (decided (project owner, 2026-10-29); [roadmap: decisions made](../../plans/roadmap.md#decisions-made)). Pin an exact `=0.32.x`. Exercise what 0.32 adds: zero-copy `&[u8]` input, foreign traits (`#[uniffi::export(foreign)]`, needed if Swift/Kotlin implement [L3c](./L3c-model-plugins.md)'s `OcrEngine` or a platform signer) and async constructors. 0.31 is not built; React Native (ubrn, which supports only `=0.31` today) is revisited when it is scheduled.
+- **UniFFI pin: 0.32** (decided (project owner, 2026-10-29); [roadmap: decisions made](../../plans/roadmap.md#decisions-made)). Pin an exact `=0.32.x`. Exercise what 0.32 adds: zero-copy `&[u8]` input, foreign traits (`#[uniffi::export(foreign)]`, needed if Swift/Kotlin implement [L3c](../ready/L3c-model-plugins.md)'s `OcrEngine` or a platform signer) and async constructors. 0.31 is not built; React Native (ubrn, which supports only `=0.31` today) is revisited when it is scheduled.
 - **iOS:** `cargo swift package` (cargo-swift, pinned) producing `Lamina.xcframework` (ios-arm64, ios-arm64-simulator; macOS slice optional for host tests) inside a Swift package with a binary target plus a small hand-written source target (`LaminaDocument` with `async` methods; `withTaskCancellationHandler` calling `job.cancel()`); XCTest tests for open → page count → text → `set_info` → save → reopen.
 - **Android:** `cargo ndk` (pinned) for arm64-v8a and x86_64 (armeabi-v7a measured, recommendation to drop), linked with `-Wl,-z,max-page-size=16384`; Kotlin bindings plus a small hand-written layer (`suspend` functions, `suspendCancellableCoroutine` with `invokeOnCancellation { job.cancel() }`); JVM host tests with the host `.so` (UniFFI Kotlin over JNA runs on desktop JVM), and one instrumented emulator test if practical; an AAR assembled by a minimal Gradle project.
 - **Panic profile:** `[profile.mobile-release]` (inherits `release`, `panic = "unwind"`, `lto`, `codegen-units = 1`, `opt-level` measured `s` vs `z`, `strip`); a test-only export that panics proves the panic surfaces as a Swift error and a Kotlin exception instead of aborting.
@@ -51,9 +51,9 @@ Answer one question with measurements before any mobile SDK work: **does the B5c
 
 **Out of scope** (and which todo covers it)
 
-- The product `crates/lamina-ffi`, release pipelines, Maven Central and SPM publishing: rounds from [L6b](./L6b-mobile-sdk-plan.md) (and [P1](./P1-reserve-names-and-trusted-publishing.md) for name reservation).
-- Rendering and tiles (`render_tile`, `trim`): need [C2b](./C2b-lamina-render-crate.md); planned in [L6b](./L6b-mobile-sdk-plan.md).
-- SwiftUI and Compose views: [L6b](./L6b-mobile-sdk-plan.md).
+- The product `crates/lamina-ffi`, release pipelines, Maven Central and SPM publishing: rounds from [L6b](../ready/L6b-mobile-sdk-plan.md) (and [P1](../ready/P1-reserve-names-and-trusted-publishing.md) for name reservation).
+- Rendering and tiles (`render_tile`, `trim`): need [C2b](../ready/C2b-lamina-render-crate.md); planned in [L6b](../ready/L6b-mobile-sdk-plan.md).
+- SwiftUI and Compose views: [L6b](../ready/L6b-mobile-sdk-plan.md).
 - React Native (ubrn) and Kotlin Multiplatform (Gobley): measured only as "does the pin allow it"; no bindings built.
 - Adding mobile jobs to the PR lane: the spike is not in CI (like `spikes/krilla-fit/`); ADR 0029 states the CI plan for the product crate.
 

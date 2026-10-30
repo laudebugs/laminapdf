@@ -57,7 +57,7 @@ Keep `@lamina/pdf` from leaking or growing without bound in long-lived pages and
 
 - Worker termination as the memory-reclaim path and worker crash handling: [L2a](./L2a-worker-client.md), [C3a](./C3a-viewer-worker-rpc.md).
 - Rust-side allocation budgets beyond today's `Limits`: an ADR 0003 amendment if measurement shows a need.
-- `panic=unwind` wasm builds (nightly only): not planned; native `catch_unwind` at the edge belongs to [L6a](./L6a-lamina-ffi-spike.md).
+- `panic=unwind` wasm builds (nightly only): not planned; native `catch_unwind` at the edge belongs to [L6a](../ongoing/L6a-lamina-ffi-spike.md).
 
 ## Tasks
 
