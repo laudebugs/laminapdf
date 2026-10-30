@@ -17,7 +17,7 @@ Draw standard 14 text with `FontRegistry::encode` (one glyph per character, kern
 
 ## Example
 
-To be added ([L1b](../todos/ready/L1b-error-contract-codegen.md)).
+To be added ([L1b](../todos/ongoing/L1b-error-contract-codegen.md)).
 
 ## Data fields
 

@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [shareable libraries §7 L4](../../plans/shareable-libraries.md#l4-cli-and-mcp) |
 | Round / milestone | Round L4 (shareable libraries) |
-| Depends on | [B5c](../done/B5c-lamina-facade-and-examples.md), [B9c](../ongoing/B9c-text-extraction-bindings-and-differential.md), [L1b](./L1b-error-contract-codegen.md) |
+| Depends on | [B5c](../done/B5c-lamina-facade-and-examples.md), [B9c](../ongoing/B9c-text-extraction-bindings-and-differential.md), [L1b](../ongoing/L1b-error-contract-codegen.md) |
 | Blocks | [L4b](./L4b-cli-batch-render-schema.md), [L4c](./L4c-mcp-mode.md), [L4d](./L4d-cli-distribution.md) |
 | ADRs | Writes **0031** (CLI and MCP contract). Follows 0026 (error shape, from [L1a](../done/L1a-contract-adrs.md)), 0027 (coordinates and page indexing), [0003](../../decisions/0003-reader-tolerance-and-limits.md) (`Limits`, warnings, strict mode), [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) (new dependencies), [0015](../../decisions/0015-monorepo-layout-and-tooling.md) (crate layout, xtask) |
 | Branch | `feat/l4a-lamina-cli` |
@@ -25,7 +25,7 @@ Give shell users, CI pipelines and AI agents one binary, `lamina`, with a stable
 - [CLI spec note §1](../../research/libraries/notes/cli-spec.md#1-command-grammars-of-existing-pdf-clis-qpdf-mutool-pdftk-cpdf-poppler-ghostscript): qpdf page ranges and exit codes, mutool verbs, pdftk handles, Ghostscript's interactive-by-default anti-pattern.
 - [CLI spec note §2](../../research/libraries/notes/cli-spec.md#2-modern-cli-conventions-cligdev-12-factor-posix-exit-codes-env-vars-json): stdout for data, stderr for the rest, `-`, TTY and `NO_COLOR`, no prompts without a TTY.
 - [CLI spec note §6](../../research/libraries/notes/cli-spec.md#6-proposed-command-set-with-example-sessions-recommendations): the proposed command set, example sessions and the error JSON.
-- ADR 0026 (from [L1a](../done/L1a-contract-adrs.md)) and the generated error types and `explain` text from [L1b](./L1b-error-contract-codegen.md): the CLI's errors are these, not a new shape.
+- ADR 0026 (from [L1a](../done/L1a-contract-adrs.md)) and the generated error types and `explain` text from [L1b](../ongoing/L1b-error-contract-codegen.md): the CLI's errors are these, not a new shape.
 - [ADR 0003 §2](../../decisions/0003-reader-tolerance-and-limits.md#2-warnings-stable-enumerated-codes) and [§3](../../decisions/0003-reader-tolerance-and-limits.md#3-limits): warning codes drive exit code 3; `Limits` are CLI flags.
 - [B3a](../done/B3a-overlay-and-ops.md): today the only page op is `RotatePage`; that limits `pages` in this PR.
 - [Code organisation §2](../../guidelines/code-organization.md#2-boundaries-and-dependency-direction): `app` crates may use the file system and threads; core crates may not.

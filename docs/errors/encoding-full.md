@@ -17,7 +17,7 @@ Embed a font (`Font::from_bytes`), which addresses every glyph through a Type 0 
 
 ## Example
 
-To be added ([L1b](../todos/ready/L1b-error-contract-codegen.md)).
+To be added ([L1b](../todos/ongoing/L1b-error-contract-codegen.md)).
 
 ## Data fields
 

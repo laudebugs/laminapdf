@@ -17,7 +17,7 @@ Save with `SaveOptions::with_remove_encryption(true)` to write a plaintext full 
 
 ## Example
 
-To be added ([L1b](../todos/ready/L1b-error-contract-codegen.md)).
+To be added ([L1b](../todos/ongoing/L1b-error-contract-codegen.md)).
 
 ## Data fields
 

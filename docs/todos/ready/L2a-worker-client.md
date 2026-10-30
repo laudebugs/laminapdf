@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [shareable-libraries §7 L2](../../plans/shareable-libraries.md#l2-typescript-hardening), [§5 design summary](../../plans/shareable-libraries.md#5-design-summary) |
 | Round / milestone | Round L2 (shareable libraries) — before C3a |
-| Depends on | [B6b](../done/B6b-lamina-pdf-package.md), [L1a](../done/L1a-contract-adrs.md), [L1b](./L1b-error-contract-codegen.md) |
+| Depends on | [B6b](../done/B6b-lamina-pdf-package.md), [L1a](../done/L1a-contract-adrs.md), [L1b](../ongoing/L1b-error-contract-codegen.md) |
 | Blocks | [C3a](./C3a-viewer-worker-rpc.md) |
 | ADRs | Follows 0028 (jobs, `CancelToken`, async only at the edges) and 0026 (errors cross as JSON, not `Error` objects), both from [L1a](../done/L1a-contract-adrs.md); [0002](../../decisions/0002-binding-strategy.md) §1 (sync core after `init()`); 0016 (export conditions, from [B6a](../done/B6a-lamina-wasm-and-adr-0016.md)); informs proposed 0009 (typed worker RPC, [C2a](./C2a-render-adrs.md)) |
 | Branch | `feat/l2a-worker-client` |
@@ -42,7 +42,7 @@ Let web apps keep lamina off the main thread without learning a second API. `@la
   - A `Methods` map from the sync interfaces gives fully typed calls.
   - `Promisified<T>` / `Remote<T>` mapped types turn each sync method into `(...args) => Promise<R>` and each handle-returning method into a remote handle.
 - **Handles:** documents, pages and builders live in the worker and are referenced by ID. Remote handles implement `Symbol.asyncDispose` (and `close()`), which frees the worker-side object.
-- **Version handshake:** on connect the worker replies `{ protocol, version }`. A mismatch with the client's build rejects `connect()` with a `LaminaError` (new code, e.g. `worker-version-mismatch`, added via [L1b](./L1b-error-contract-codegen.md)'s process).
+- **Version handshake:** on connect the worker replies `{ protocol, version }`. A mismatch with the client's build rejects `connect()` with a `LaminaError` (new code, e.g. `worker-version-mismatch`, added via [L1b](../ongoing/L1b-error-contract-codegen.md)'s process).
 - **Cancellation:** each call accepts `signal`. Abort sends `cancel { id }`. The worker trips the job's `CancelToken` (ADR 0028) and checks it between `step()` calls. A call that cannot be stepped is documented as not interruptible, with `client.terminate()` as the hard stop. The client rejects aborted calls promptly and drops late responses.
 - **Transfers:** outputs (`save()` bytes, rendered pixels) are always transferred. Inputs are transferred when the caller passes `{ transfer: true }`; otherwise they are copied (see Risks).
 - **Progress:** `onProgress` per call, sent as throttled event messages, never as a callback proxy.
