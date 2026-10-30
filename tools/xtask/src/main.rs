@@ -8,11 +8,13 @@ mod changes;
 mod corpus;
 mod docs_links;
 mod doctor;
+mod examples;
 mod harness;
 mod licenses;
 mod live;
 mod nightly;
 mod portable_paths;
+mod render;
 mod roundtrip;
 mod runner;
 mod todos;
@@ -58,8 +60,17 @@ tasks:
                     rewrite docs/capabilities/README.md from what they prove; --check only
                     verifies (and fails if a tagged test fails)
   golden [--update] regenerate every golden in fixtures/golden/ from its source and print the
-                    list (--update writes them, and the shaping goldens in fixtures/shaping/
-                    when hb-shape is installed; without it, fail if they would change)
+                    list (--update writes them, the lamina examples' in fixtures/golden/examples/,
+                    and the shaping goldens in fixtures/shaping/ when hb-shape is installed;
+                    without it, fail if they would change)
+  examples          run the lamina crate's examples into target/examples-out/, compare them
+                    with fixtures/golden/examples/ and run qpdf --check on each (needs qpdf)
+  render-golden [--update]
+                    render every page of fixtures/golden/examples/ with PDFium (pypdfium2:
+                    tools/render/requirements.txt, $LAMINA_PYTHON) and hayro (tools/render, its
+                    own workspace) at 72 dpi, compare with fixtures/render-golden/ (thresholds.toml;
+                    diff images in target/xtask/render-golden/), and hayro vs PDFium at 150 dpi;
+                    --update rewrites the PNGs (and still fails on a parity disagreement)
   corpus facts      rewrite fixtures/corpus/expected.json with pypdf (needs Python: see
                     tools/corpus-facts/requirements.txt; $LAMINA_PYTHON or python3)
   corpus fetch [--source <name>]… [--update-manifest]
@@ -169,6 +180,9 @@ fn main() -> Result<()> {
         ("capabilities", [flag]) if flag == "--check" => capabilities::run(&ws.root, true),
         ("golden", []) => harness::golden(&ws, false),
         ("golden", [flag]) if flag == "--update" => harness::golden(&ws, true),
+        ("examples", []) => examples::run(&ws),
+        ("render-golden", []) => render::run(&ws, false),
+        ("render-golden", [flag]) if flag == "--update" => render::run(&ws, true),
         ("corpus", [what]) if what == "facts" => harness::corpus_facts(&ws),
         ("corpus", [what, args @ ..]) if what == "fetch" => corpus::fetch(&ws, &corpus::parse_fetch_args(args)?),
         ("differential", [flag, args @ ..]) if flag == "--live" => live::run_live(&ws, &live::parse_args(args)?),
@@ -329,6 +343,18 @@ fn portability(ws: &Workspace) -> Result<()> {
         let mut args = vec!["check", "--locked", "--lib", "--target", target];
         args.extend(package_args(ws.core_crates(), "core")?);
         ws.cargo(&args)?;
+        // The façade's structure-only build (no `text`: no fonts, no builder) is a shipping
+        // configuration of its own, for WASM splitting (todo B5c).
+        ws.cargo(&[
+            "check",
+            "--locked",
+            "--lib",
+            "--target",
+            target,
+            "-p",
+            "lamina",
+            "--no-default-features",
+        ])?;
     }
     Ok(())
 }
@@ -354,7 +380,11 @@ fn wasm(ws: &Workspace) -> Result<()> {
 
 fn cargo_deny(ws: &Workspace) -> Result<()> {
     doctor::require(ws, &doctor::cargo_deny())?;
-    ws.cargo(&["deny", "--all-features", "check"])
+    ws.cargo(&["deny", "--all-features", "check"])?;
+    // The render tool is its own workspace with its own lockfile (hayro and its graph): the
+    // same policy (the root deny.toml, cargo-deny's default from the root) applies to it.
+    let manifest = ws.root.join(render::MANIFEST).to_string_lossy().into_owned();
+    ws.cargo(&["deny", "--manifest-path", &manifest, "check"])
 }
 
 fn biome_ci(ws: &Workspace) -> Result<()> {

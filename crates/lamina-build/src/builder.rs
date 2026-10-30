@@ -163,6 +163,8 @@ pub(crate) struct BuildState {
     pub(crate) explicit_inherited: bool,
     /// The lowest PDF version with every feature written so far.
     pub(crate) required: (u8, u8),
+    /// What embedding the fonts raised (ToUnicode conflicts, whole fonts kept).
+    pub(crate) font_warnings: Vec<lamina_text::Warning>,
 }
 
 impl BuildState {
@@ -177,6 +179,7 @@ impl BuildState {
             compress,
             explicit_inherited,
             required: (1, 0),
+            font_warnings: Vec::new(),
         }
     }
 
@@ -399,7 +402,16 @@ impl Builder {
     /// [`Error::InvalidGeometry`](crate::Error::InvalidGeometry) for a destination coordinate
     /// that isn't finite; [`Error::Text`](crate::Error::Text) when subsetting a font fails;
     /// [`Error::Cos`](crate::Error::Cos) when object numbers run out.
-    pub fn finish(mut self) -> Result<lamina_ops::Document> {
+    pub fn finish(self) -> Result<lamina_ops::Document> {
+        self.finish_with_warnings().map(|(doc, _)| doc)
+    }
+
+    /// [`Builder::finish`], also returning the warnings embedding the fonts raised
+    /// (`tounicode-conflict`, `whole-font-rebuilt`), in the order they were raised.
+    ///
+    /// # Errors
+    /// As [`Builder::finish`].
+    pub fn finish_with_warnings(mut self) -> Result<(lamina_ops::Document, Vec<lamina_text::Warning>)> {
         finish::new_document(
             &mut self.doc,
             &self.options,
@@ -407,7 +419,8 @@ impl Builder {
             &mut self.state,
             &self.features,
         )?;
-        Ok(lamina_ops::Document::from(lamina_model::Document::from(self.doc)))
+        let doc = lamina_ops::Document::from(lamina_model::Document::from(self.doc));
+        Ok((doc, self.state.font_warnings))
     }
 }
 

@@ -7,7 +7,7 @@
 | Plan | [pdf-library §7 B5](../../plans/pdf-library.md#b5-builder-and-the-lamina-crate), requirements [§4 F2–F5](../../plans/pdf-library.md#functional) |
 | Round / milestone | Round B (library) — M1 |
 | Depends on | [B4b](./B4b-shaping-bidi-line-breaking.md), [B4c](./B4c-standard-14-and-simple-fonts.md), [B5a](./B5a-lamina-build-core.md) |
-| Blocks | [B5c](../ongoing/B5c-lamina-facade-and-examples.md) |
+| Blocks | [B5c](./B5c-lamina-facade-and-examples.md) |
 | ADRs | Follows [0005](../../decisions/0005-document-model.md) §5–§6 (IDs for created pages/outline items; overlay), [0001](../../decisions/0001-core-language-and-licence.md) (determinism: dates and IDs from options) |
 | Branch | `feat/b5b-builder-text-and-navigation` |
 | PR title | `feat(build): text runs and text boxes, links, destinations, outlines, page labels, Info and XMP` |

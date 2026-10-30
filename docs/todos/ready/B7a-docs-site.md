@@ -22,7 +22,7 @@ Publish usable documentation for `lamina` and `@lamina/pdf` before the first tag
 
 - [pdf-library §6](../../plans/pdf-library.md#6-docs-examples-and-publishing): Starlight (MIT), `docs.<domain>`, TypeDoc, docs.rs (later; locally `cargo doc` for now since nothing is published).
 - [Cloudflare notes](../../research/architecture/notes/cloudflare.md): Workers static assets, preview URLs.
-- Examples from [B5c](../ongoing/B5c-lamina-facade-and-examples.md) (Rust) and [B6b](./B6b-lamina-pdf-package.md)/[B6c](./B6c-runtime-matrix.md) (TS, Worker).
+- Examples from [B5c](../done/B5c-lamina-facade-and-examples.md) (Rust) and [B6b](./B6b-lamina-pdf-package.md)/[B6c](./B6c-runtime-matrix.md) (TS, Worker).
 
 ## Scope
 
@@ -61,7 +61,7 @@ Publish usable documentation for `lamina` and `@lamina/pdf` before the first tag
 
 ## Tests
 
-Site build in CI; snippet sources are already tested by [B5c](../ongoing/B5c-lamina-facade-and-examples.md)/[B6b](./B6b-lamina-pdf-package.md).
+Site build in CI; snippet sources are already tested by [B5c](../done/B5c-lamina-facade-and-examples.md)/[B6b](./B6b-lamina-pdf-package.md).
 
 ## Docs to update
 

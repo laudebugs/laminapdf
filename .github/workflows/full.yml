@@ -5,9 +5,9 @@
 # check branch protection requires — passes when every suite passed or was not needed. Never add
 # a workflow-level `paths` filter here.
 #
-# Adding a suite (B5c render goldens and qpdf, B4b/B5b extraction, B6c
-# runtimes): give the job `needs: changes`, `runs-on: [self-hosted, macOS, ARM64]` and exactly
-# this condition, then add it to `gate`'s `needs`:
+# Adding a suite (B4b/B5b extraction, B6c runtimes; B5c added `examples`): give the job
+# `needs: changes`, `runs-on: [self-hosted, macOS, ARM64]` and exactly this condition, then add
+# it to `gate`'s `needs`:
 #
 #     if: ${{ !cancelled() && needs.changes.outputs.code == 'true' }}
 #
@@ -260,6 +260,43 @@ jobs:
           path: target/xtask/roundtrip/
           if-no-files-found: ignore
 
+  # Todo B5c (ADR 0018 tiers 3 and 8): the `lamina` examples, byte-compared with
+  # fixtures/golden/examples/ and checked by `qpdf --check` (`cargo xtask examples`), then every
+  # page rendered by PDFium (pypdfium2, a per-job venv with tools/render/requirements.txt) and
+  # hayro, compared with fixtures/render-golden/ and with each other (`cargo xtask render-golden`).
+  examples:
+    name: Examples (goldens, qpdf, PDFium and hayro render goldens)
+    needs: changes
+    if: ${{ !cancelled() && needs.changes.outputs.code == 'true' }}
+    runs-on: [self-hosted, macOS, ARM64]
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/isolate-rust-home
+      - uses: actions-rust-lang/setup-rust-toolchain@ecabd13d1c56bd1345c230e542e9144811ad706f # v2.0.0
+        with:
+          cache: false
+      - name: qpdf and a Python venv with pypdfium2
+        run: |
+          qpdf --version
+          python3 -m venv "$RUNNER_TEMP/render-venv"
+          "$RUNNER_TEMP/render-venv/bin/pip" install -r tools/render/requirements.txt
+      - run: cargo xtask examples
+      - run: cargo xtask render-golden
+        env:
+          LAMINA_PYTHON: ${{ runner.temp }}/render-venv/bin/python
+      - name: Upload the outputs and diff images
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: examples-outputs
+          path: |
+            target/examples-out/
+            target/xtask/render-golden/diff/
+          if-no-files-found: ignore
+
   # Todo X2 (full-editor §3): run every test tagged `/// capability: <ID> <surface> <status>`
   # and fail when docs/capabilities/README.md differs from what they prove, or one fails.
   # `cargo xtask check docs` (in `changes`, every PR) already rejects a README that claims more
@@ -287,7 +324,7 @@ jobs:
   gate:
     name: gate
     if: always()
-    needs: [changes, differential, fuzz, check-linux, roundtrip, capabilities]
+    needs: [changes, differential, fuzz, check-linux, roundtrip, capabilities, examples]
     runs-on: [self-hosted, macOS, ARM64]
     timeout-minutes: 5
     steps:

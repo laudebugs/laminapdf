@@ -1,0 +1,4 @@
+# PDFium for `cargo xtask render-golden` (todo B5c). pypdfium2: Apache-2.0 OR BSD-3-Clause, with
+# PDFium's BSD-3-Clause binaries. Tools only: nothing here ships or links into lamina. Same pin
+# as tools/roundtrip/requirements.txt.
+pypdfium2==5.14.0

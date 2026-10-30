@@ -600,6 +600,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "lamina"
+version = "0.0.0"
+dependencies = [
+ "lamina-build",
+ "lamina-cos",
+ "lamina-model",
+ "lamina-ops",
+ "lamina-save",
+ "lamina-syntax",
+ "lamina-text",
+ "serde",
+ "serde_json",
+ "thiserror",
+]
+
+[[package]]
 name = "lamina-build"
 version = "0.0.0"
 dependencies = [
