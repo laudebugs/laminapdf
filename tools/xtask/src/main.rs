@@ -14,6 +14,7 @@ mod harness;
 mod licenses;
 mod live;
 mod nightly;
+mod pdf_runtimes;
 mod portable_paths;
 mod render;
 mod roundtrip;
@@ -118,7 +119,13 @@ tasks:
   scaling           nightly: release-mode #[ignore]d tests (scaling ratios); one retry, reported as flaky
   bench [--quick] [--history <dir> [--runner <label>] [--record]]
                     nightly: criterion benches; with --history, flag >10% regressions (never fails)
-  nightly [--quick] the whole nightly lane locally (corpus, differential, fuzz, scaling, bench)
+  pdf-runtimes [node|chromium|firefox|webkit|deno|bun|workerd]… [--history <dir> --runner <label> --record]
+                    @lamina/pdf's example suite in each runtime (default: all; needs `wasm` first;
+                    installs the Playwright browsers it runs): byte-identical to the goldens, with
+                    the timings and WebAssembly memory against pdf-library §4 in the job summary
+                    and target/xtask/pdf-runtimes/; --record appends them to <dir>/history.jsonl
+  nightly [--quick] the whole nightly lane locally (corpus, differential, fuzz, scaling, bench,
+                    wasm + pdf-runtimes)
   changes [--base <rev>]
                     list the paths changed since the merge base with <rev> (default origin/main)
                     and say whether any is code (not docs); sets `code` in $GITHUB_OUTPUT
@@ -210,6 +217,7 @@ fn main() -> Result<()> {
         ("fuzz", args) => harness::fuzz(&ws, &harness::parse_fuzz_args(args)?),
         ("scaling", []) => nightly::scaling(&ws),
         ("bench", args) => nightly::bench(&ws, &nightly::parse_bench_args(args)?),
+        ("pdf-runtimes", args) => pdf_runtimes::run(&ws, &pdf_runtimes::parse_args(args)?),
         ("nightly", args) => nightly::nightly(&ws, nightly::parse_nightly_args(args)?),
         ("roundtrip", args) => roundtrip::run_suite(&ws, &roundtrip::parse_args(args)?),
         ("ci", []) => {

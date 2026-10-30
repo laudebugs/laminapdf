@@ -40,7 +40,7 @@
   "scripts": {
     "build:wasm": "tsc -p tsconfig.build.json",
     "typecheck:wasm": "tsc --noEmit -p tsconfig.json",
-    "test:wasm": "pnpm run build:wasm && tsc --noEmit -p tsconfig.json && vitest run",
+    "test:wasm": "pnpm run build:wasm && tsc --noEmit -p tsconfig.json && vitest run -c vitest.node.config.ts --project node",
     "lint:package": "publint --strict && attw --pack . --profile esm-only"
   },
   "dependencies": {
@@ -49,10 +49,15 @@
   "devDependencies": {
     "@arethetypeswrong/cli": "catalog:",
     "@types/node": "catalog:",
+    "@vitest/browser-playwright": "catalog:",
+    "bun": "catalog:",
+    "deno": "catalog:",
     "esbuild": "catalog:",
+    "playwright": "catalog:",
     "publint": "catalog:",
     "typescript": "catalog:",
     "vite": "catalog:",
-    "vitest": "catalog:"
+    "vitest": "catalog:",
+    "wrangler": "catalog:"
   }
 }

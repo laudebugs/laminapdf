@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `B5d` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [pdf-library §4 non-functional](../../plans/pdf-library.md#non-functional), [§7 B5](../../plans/pdf-library.md#b5-builder-and-the-lamina-crate) |
 | Round / milestone | Round B (library) — M1 |
 | Depends on | [B6b](../done/B6b-lamina-pdf-package.md) |
@@ -35,7 +35,7 @@ Plan §4 asks for a 100-page text report in ≤ 500 ms after `init()`. B6b measu
 **Out of scope** (and which todo covers it)
 
 - Worker memory under 64 MB (measured at 5 MB by B6b; re-check only).
-- Runtime matrix timing in browsers: [B6c](../ongoing/B6c-runtime-matrix.md).
+- Runtime matrix timing in browsers: [B6c](../done/B6c-runtime-matrix.md).
 
 ## Tasks
 

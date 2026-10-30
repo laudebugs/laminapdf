@@ -1,0 +1,97 @@
+# The nightly benchmark history: history.jsonl on the orphan `bench-data` branch, one record per
+# line (`cargo xtask bench`, `cargo xtask pdf-runtimes --record`). Used by nightly.yml's `bench`
+# and `pdf-runtimes` jobs.
+#
+#   mode: fetch  clones the branch (or starts it: the first run on main) into
+#                $RUNNER_TEMP/bench-data-<job>, sets HISTORY to that folder and remembers how
+#                many records it had.
+#   mode: push   commits the records appended since the fetch and pushes them. When the push is
+#                refused (another job pushed first) it fetches the branch again, re-appends the
+#                same records to it and retries, up to 3 times: appends never conflict.
+#
+# The token is passed per git command (`-c http.extraheader`), never stored in .git/config, and
+# only to this action: callers give it to these steps alone, not to the steps that run code.
+name: Benchmark history (bench-data)
+description: Fetch or push history.jsonl on the bench-data branch.
+inputs:
+  mode:
+    description: fetch or push
+    required: true
+  token:
+    description: A token that can read (fetch) or push (push) the repository's contents.
+    required: true
+  message:
+    description: The commit message (push).
+    required: false
+    default: "bench: ${{ github.sha }}"
+runs:
+  using: composite
+  steps:
+    - shell: bash
+      env:
+        MODE: ${{ inputs.mode }}
+        TOKEN: ${{ inputs.token }}
+        MESSAGE: ${{ inputs.message }}
+        JOB: ${{ github.job }}
+      run: |
+        set -euo pipefail
+        remote="https://github.com/$GITHUB_REPOSITORY.git"
+        basic=$(printf 'x-access-token:%s' "$TOKEN" | base64 | tr -d '\n')
+        echo "::add-mask::$basic"
+        auth="AUTHORIZATION: basic $basic"
+        authed() { git -c http.extraheader="$auth" "$@"; }
+        # Clones bench-data into $1, or starts the branch there when it doesn't exist yet.
+        clone() {
+          rm -rf "$1"
+          # --exit-code: 0 found, 2 no such branch, anything else a real error.
+          status=0
+          authed ls-remote --exit-code --heads "$remote" bench-data > /dev/null || status=$?
+          case "$status" in
+            0) authed clone --quiet --depth 1 --branch bench-data "$remote" "$1" ;;
+            2)
+              git init --quiet "$1"
+              git -C "$1" checkout --quiet --orphan bench-data
+              git -C "$1" remote add origin "$remote"
+              ;;
+            *)
+              echo "::error::git ls-remote failed with $status: cannot read the benchmark history"
+              exit "$status"
+              ;;
+          esac
+        }
+        lines() { if [ -f "$1/history.jsonl" ]; then wc -l < "$1/history.jsonl" | tr -d ' '; else echo 0; fi; }
+        case "$MODE" in
+          fetch)
+            history="$RUNNER_TEMP/bench-data-$JOB"
+            clone "$history"
+            echo "HISTORY=$history" >> "$GITHUB_ENV"
+            echo "HISTORY_BASE_LINES=$(lines "$history")" >> "$GITHUB_ENV"
+            ;;
+          push)
+            : "${HISTORY:?run this action with mode: fetch first}"
+            new="$RUNNER_TEMP/bench-data-new.jsonl"
+            tail -n +"$((HISTORY_BASE_LINES + 1))" "$HISTORY/history.jsonl" > "$new"
+            if [ ! -s "$new" ]; then
+              echo "::warning::no new benchmark records to push"
+              exit 0
+            fi
+            for attempt in 1 2 3; do
+              git -C "$HISTORY" add history.jsonl
+              git -C "$HISTORY" -c user.name="github-actions[bot]" \
+                -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
+                commit --quiet -m "$MESSAGE"
+              if authed -C "$HISTORY" push --quiet origin bench-data; then
+                exit 0
+              fi
+              echo "::notice::the bench-data push was refused (attempt $attempt); re-appending to the branch as it is now"
+              clone "$HISTORY"
+              cat "$new" >> "$HISTORY/history.jsonl"
+            done
+            echo "::error::could not push the benchmark history after 3 attempts"
+            exit 1
+            ;;
+          *)
+            echo "::error::mode must be fetch or push, not '$MODE'"
+            exit 1
+            ;;
+        esac
