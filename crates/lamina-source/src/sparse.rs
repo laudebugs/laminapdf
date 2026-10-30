@@ -40,7 +40,8 @@ pub enum SupplyError {
 /// ranges it needs. The shell fetches those ranges (HTTP `Range`, a file, a callback),
 /// [`supply`](Self::supply)s them and retries the call; [`retry`](crate::retry) runs that loop.
 ///
-/// Chunks are `Arc<[u8]>`, merged when they touch, and their total is bounded by a byte budget.
+/// Chunks are `Arc<[u8]>` that never overlap (a supply stores only what it adds, so it copies
+/// no more than it is given), and their total is bounded by a byte budget.
 /// Supplied bytes are never evicted: the document may already have read them. No I/O, clocks
 /// or threads; the chunk map is behind a lock because `supply` runs while the document shares
 /// the source, which is why this lives in an edge crate (ADR 0005 §2, §7).
@@ -51,7 +52,7 @@ pub struct SparseSource {
     chunks: Mutex<Chunks>,
 }
 
-/// Supplied chunks by first byte; never overlapping or touching (merged on supply).
+/// Supplied chunks by first byte; never overlapping (each supply stores only the gaps it fills).
 #[derive(Debug, Default)]
 struct Chunks {
     map: BTreeMap<u64, Arc<[u8]>>,
@@ -86,8 +87,9 @@ impl SparseSource {
         Ok(self.lock()?.held)
     }
 
-    /// Adds `bytes` at `offset`. Bytes already held win over overlapping new ones (the document
-    /// may have read them); chunks that touch are merged into one.
+    /// Adds `bytes` at `offset`. Only the parts not held yet are stored (bytes already held win
+    /// over overlapping new ones: the document may have read them), each as its own chunk, so a
+    /// supply copies at most `bytes.len()` bytes whatever the source already holds.
     ///
     /// # Errors
     /// [`SupplyError::OutOfRange`] past the end, [`SupplyError::Budget`] over the budget
@@ -102,42 +104,46 @@ impl SparseSource {
                 len,
                 size: self.len,
             })?;
-        if len == 0 {
-            return Ok(());
-        }
         let mut chunks = self.lock()?;
-        // Every chunk that overlaps or touches [offset, end) is merged with the new bytes.
-        let touching: Vec<(u64, Arc<[u8]>)> = chunks
-            .map
-            .range(..=end)
-            .filter(|(start, c)| *start + span(c) >= offset)
-            .map(|(s, c)| (*s, Arc::clone(c)))
-            .collect();
-        let start = touching.first().map_or(offset, |(s, _)| (*s).min(offset));
-        let stop = touching.last().map_or(end, |(s, c)| (s + span(c)).max(end));
-        let old: u64 = touching.iter().map(|(_, c)| span(c)).sum();
-        let needed = chunks.held - old + (stop - start);
+        let gaps = chunks.gaps(offset..end);
+        let added: u64 = gaps.iter().map(|g| g.end - g.start).sum();
+        let needed = chunks.held.saturating_add(added);
         if needed > self.budget {
             return Err(SupplyError::Budget {
                 needed,
                 budget: self.budget,
             });
         }
-        let mut merged = vec![
-            0_u8;
-            usize::try_from(stop - start).map_err(|_| SupplyError::Budget {
-                needed,
-                budget: self.budget,
-            })?
-        ];
-        copy_into(&mut merged, start, offset, bytes);
-        for (s, c) in &touching {
-            copy_into(&mut merged, start, *s, c);
-            chunks.map.remove(s);
+        for gap in gaps {
+            let from = usize::try_from(gap.start - offset).unwrap_or(usize::MAX);
+            let to = usize::try_from(gap.end - offset).unwrap_or(usize::MAX);
+            if let Some(piece) = bytes.get(from..to) {
+                chunks.map.insert(gap.start, Arc::from(piece));
+            }
         }
-        chunks.map.insert(start, Arc::from(merged));
         chunks.held = needed;
         Ok(())
+    }
+
+    /// What to fetch for the ranges a `data-pending` asked for: each widened to whole blocks of
+    /// `block` bytes (0: as asked) plus `readahead`, clamped to the source, sorted and merged,
+    /// minus what is held. The planning step of [`retry`](crate::retry), shared with the
+    /// bindings that run the loop themselves.
+    ///
+    /// # Errors
+    /// [`SupplyError::Poisoned`] after a panic while the map was locked.
+    pub fn to_fetch(&self, asked: &[Range<u64>], block: u64, readahead: u64) -> Result<Vec<Range<u64>>, SupplyError> {
+        let widened: Vec<Range<u64>> = asked
+            .iter()
+            .map(|r| {
+                let end = r.end.saturating_add(readahead);
+                match block {
+                    0 => r.start..end,
+                    b => (r.start / b * b)..end.div_ceil(b).saturating_mul(b),
+                }
+            })
+            .collect();
+        self.missing(&widened)
     }
 
     /// The parts of `ranges` not supplied yet, clamped to the source and in order, adjacent
@@ -155,15 +161,8 @@ impl SparseSource {
         wanted.sort_by_key(|r| r.start);
         let mut out: Vec<Range<u64>> = Vec::new();
         for r in wanted {
-            let mut at = r.start;
-            while at < r.end {
-                if let Some(held_to) = chunks.covering(at) {
-                    at = held_to.min(r.end);
-                } else {
-                    let gap_end = chunks.next_start(at).map_or(r.end, |n| n.min(r.end));
-                    push_merged(&mut out, at..gap_end);
-                    at = gap_end;
-                }
+            for gap in chunks.gaps(r) {
+                push_merged(&mut out, gap);
             }
         }
         Ok(out)
@@ -175,6 +174,22 @@ impl SparseSource {
 }
 
 impl Chunks {
+    /// The parts of `range` no chunk holds, in order.
+    fn gaps(&self, range: Range<u64>) -> Vec<Range<u64>> {
+        let mut out = Vec::new();
+        let mut at = range.start;
+        while at < range.end {
+            if let Some(held_to) = self.covering(at) {
+                at = held_to.min(range.end);
+            } else {
+                let gap_end = self.next_start(at).map_or(range.end, |n| n.min(range.end));
+                out.push(at..gap_end);
+                at = gap_end;
+            }
+        }
+        out
+    }
+
     /// The end of the chunk holding byte `at`, if one does.
     fn covering(&self, at: u64) -> Option<u64> {
         let (start, c) = self.map.range(..=at).next_back()?;
@@ -192,14 +207,6 @@ impl Chunks {
 /// would otherwise be picked).
 fn span(c: &[u8]) -> u64 {
     c.len() as u64
-}
-
-/// Copies `bytes` (which start at absolute `at`) into `buf` (which starts at absolute `base`).
-fn copy_into(buf: &mut [u8], base: u64, at: u64, bytes: &[u8]) {
-    let from = usize::try_from(at - base).unwrap_or(usize::MAX);
-    if let Some(dst) = buf.get_mut(from..).and_then(|d| d.get_mut(..bytes.len())) {
-        dst.copy_from_slice(bytes);
-    }
 }
 
 fn push_merged(out: &mut Vec<Range<u64>>, r: Range<u64>) {
@@ -253,5 +260,24 @@ fn pending(chunks: &Chunks, offset: u64, want: u64) -> SourceError {
     SourceError::Pending {
         offset,
         len: end - offset,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn to_fetch_aligns_to_blocks_adds_readahead_and_merges() {
+        let s = SparseSource::new(45);
+        assert_eq!(s.to_fetch(&[3..4, 12..13, 40..41], 10, 5), Ok(vec![0..20, 40..45]));
+        assert_eq!(s.to_fetch(&[3..4, 9..12], 0, 0), Ok(vec![3..4, 9..12]));
+    }
+
+    #[test]
+    fn to_fetch_leaves_out_what_is_held() {
+        let s = SparseSource::new(100);
+        s.supply(10, &[0; 10]).unwrap_or_default();
+        assert_eq!(s.to_fetch(&[12..13, 18..21], 8, 0), Ok(vec![8..10, 20..24]));
     }
 }

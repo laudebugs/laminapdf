@@ -273,7 +273,7 @@ export const RAISED_BY_PACKAGE = {
   },
   "fetch-failed": {
     kind: "io",
-    hint: "check that the URL is reachable and that the server sends the CORS headers range requests need; data.status has the HTTP status",
+    hint: "check that the URL is reachable and that the server sends the CORS headers range requests need (Content-Range must be exposed); data.reason and data.status say what failed",
   },
   "not-initialized": {
     kind: "state",

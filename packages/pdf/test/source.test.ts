@@ -68,6 +68,8 @@ class FileServer {
   readonly log: Logged[] = [];
   bytes: Uint8Array = new Uint8Array();
   ranges = true;
+  /** Answer only the first ranged request with 206, later ones with 200 (a CDN that does that). */
+  rangesOnlyFirst = false;
   etag = '"v1"';
   delayMs = 0;
   #server: Server;
@@ -91,6 +93,7 @@ class FileServer {
     this.bytes = bytes;
     this.log.length = 0;
     this.ranges = true;
+    this.rangesOnlyFirst = false;
     this.etag = '"v1"';
     this.delayMs = 0;
     return this;
@@ -115,7 +118,14 @@ class FileServer {
       res.setHeader("Accept-Ranges", "bytes");
       const ifRange = req.headers["if-range"];
       const m = header === undefined ? null : /^bytes=(\d*)-(\d*)$/.exec(header);
-      if (!this.ranges || m === null || (ifRange !== undefined && ifRange !== this.etag)) {
+      const later = this.rangesOnlyFirst && this.log.length > 1;
+      if (size === 0 && m !== null) {
+        entry.status = 416;
+        res.writeHead(416, { "Content-Range": "bytes */0" });
+        res.end();
+        return;
+      }
+      if (!this.ranges || later || m === null || (ifRange !== undefined && ifRange !== this.etag)) {
         entry.status = 200;
         entry.end = size;
         res.writeHead(200, { "Content-Length": size });
@@ -219,6 +229,32 @@ describe("Document.openRange over HTTP", () => {
     expect(server.log.map((l) => l.status)).toEqual([200]);
   });
 
+  it("downloads the file once when ranged requests after the first are answered 200", async () => {
+    const { bytes } = largePdf();
+    server.serve(bytes).rangesOnlyFirst = true;
+    const doc = await Document.openRange(httpRangeSource(server.url));
+    await doc.ensure(() => doc.save({ mode: "fullRewrite" }));
+    // Reads in flight when the first 200 arrived cancel their bodies; later reads use the download.
+    expect(server.log.slice(1).every((l) => l.status === 200)).toBe(true);
+    expect(server.log.length).toBeLessThan(10);
+  });
+
+  it("never fetches over the network what the tail probe already brought", async () => {
+    const { bytes } = largePdf();
+    server.serve(bytes);
+    const doc = await Document.openRange(httpRangeSource(server.url));
+    await doc.ensure(() => doc.save({ mode: "fullRewrite" }));
+    const tailStart = bytes.length - 65_536;
+    for (const l of server.log.slice(1)) expect(l.end, l.range).toBeLessThanOrEqual(tailStart);
+  });
+
+  it("opens an empty remote file as empty (the reader then says it isn't a PDF)", async () => {
+    server.serve(new Uint8Array());
+    const e = await Document.openRange(httpRangeSource(server.url)).catch((x: unknown) => x);
+    expect(isLaminaError(e) && e.code !== "fetch-failed").toBe(true);
+    expect(server.log.map((l) => l.status)).toEqual([416]);
+  });
+
   it("fails with source-changed when the ETag changes mid-read", async () => {
     const { bytes } = largePdf();
     server.serve(bytes);
@@ -288,6 +324,13 @@ describe("callbackSource", () => {
     const doc = await Document.openRange(source, { blockSize: 0 });
     expect(await doc.ensure(() => doc.pageCount)).toBe(4);
     expect(asked.reduce((a, b) => a + b, 0)).toBeLessThan(bytes.length);
+  });
+
+  it("fails with fetch-failed when a read returns the wrong number of bytes", async () => {
+    const { bytes } = largePdf(4);
+    const source = callbackSource(bytes.length, async (o, n) => bytes.slice(o, o + n - 1));
+    const e = await Document.openRange(source).catch((x: unknown) => x);
+    expect(isLaminaError(e, "fetch-failed") && e.data?.reason).toBe("length");
   });
 
   it("fails with source-budget-exceeded past the budget", async () => {

@@ -28,6 +28,19 @@ fn read(source: &SparseSource, offset: u64, len: usize) -> Result<Vec<u8>, Sourc
     Ok(buf)
 }
 
+/// Reads `len` bytes at `offset` the way the reader does: again after each short read.
+fn read_all(source: &SparseSource, offset: u64, len: usize) -> Result<Vec<u8>, SourceError> {
+    let mut out = Vec::new();
+    while out.len() < len {
+        let part = read(source, offset + out.len() as u64, len - out.len())?;
+        if part.is_empty() {
+            break;
+        }
+        out.extend(part);
+    }
+    Ok(out)
+}
+
 #[test]
 fn an_empty_source_answers_pending_for_any_read() {
     let s = SparseSource::new(100);
@@ -55,15 +68,20 @@ fn a_supplied_range_reads_back_and_a_gap_after_it_is_pending() {
 }
 
 #[test]
-fn touching_and_overlapping_chunks_merge_and_held_bytes_win() {
+fn touching_and_overlapping_chunks_read_as_one_and_held_bytes_win() {
     let s = SparseSource::new(100);
     s.supply(10, b"aaaa").unwrap();
     s.supply(20, b"cccc").unwrap();
-    s.supply(14, b"bbbbbb").unwrap(); // touches both: one chunk 10..24
-    assert_eq!(read(&s, 10, 14), Ok(b"aaaabbbbbbcccc".to_vec()));
-    s.supply(8, b"XXXXXX").unwrap(); // overlaps 10..14: the held "aa" stays
-    assert_eq!(read(&s, 8, 16), Ok(b"XXaaaabbbbbbcccc".to_vec()));
+    s.supply(14, b"bbbbbb").unwrap(); // fills 14..20 between them
+    assert_eq!(read_all(&s, 10, 14), Ok(b"aaaabbbbbbcccc".to_vec()));
+    s.supply(8, b"XXXXXX").unwrap(); // overlaps 10..14: only 8..10 is added, "aa" stays
+    assert_eq!(read_all(&s, 8, 16), Ok(b"XXaaaabbbbbbcccc".to_vec()));
     assert_eq!(s.held(), Ok(16));
+    assert_eq!(
+        read(&s, 10, 14),
+        Ok(b"aaaa".to_vec()),
+        "a single read stops at a chunk's end"
+    );
 }
 
 #[test]
@@ -266,6 +284,21 @@ fn the_loop_stops_when_a_round_makes_no_progress() {
     let RetryError::Lamina(e) = err else { panic!("{err:?}") };
     assert_eq!(e.code(), "data-pending");
     assert_eq!(rounds.get(), 2, "one fetch, then the same ranges again: stop");
+}
+
+#[test]
+fn a_fetch_of_the_wrong_length_ends_the_loop() {
+    let bytes = multi_page(false);
+    let source = Arc::new(SparseSource::new(bytes.len() as u64));
+    let err = open_with(&source, &OpenOptions::default(), &RetryOptions::default(), |r| {
+        Ok::<_, Infallible>(bytes[usize::try_from(r.start).unwrap()..usize::try_from(r.end).unwrap() - 1].to_vec())
+    })
+    .unwrap_err();
+    assert!(
+        matches!(err, RetryError::FetchLength { got, expected, .. } if got + 1 == expected),
+        "{err:?}"
+    );
+    assert_eq!(source.held(), Ok(0), "nothing supplied");
 }
 
 #[test]

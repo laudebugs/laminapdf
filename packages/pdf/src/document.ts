@@ -135,8 +135,9 @@ export class Document {
     source: RangeSource | Promise<RangeSource>,
     options: OpenOptions & RangeOptions = {},
   ): Promise<Document> {
-    const wasm = baseModule();
+    // The source first: a rejected source promise must not go unhandled behind not-initialized.
     const src = await source;
+    const wasm = baseModule();
     const sparse = guard(() => new wasm.WasmSparseSource(src.size, options.budget));
     const { signal: _s, blockSize: _b, readahead: _r, maxRounds: _m, budget: _g, ...open } = options;
     const state: RangeState = { sparse, source: src, options };
@@ -151,12 +152,18 @@ export class Document {
       );
     const password = open.password;
     const nfkc = password?.normalize("NFKC");
-    if (password === undefined || nfkc === password) return openWith(open);
     try {
-      return await openWith(open);
+      if (password === undefined || nfkc === password) return await openWith(open);
+      try {
+        return await openWith(open);
+      } catch (e) {
+        if (!isLaminaError(e, "wrong-password")) throw e;
+        return await openWith({ ...open, password: nfkc ?? password });
+      }
     } catch (e) {
-      if (!isLaminaError(e, "wrong-password")) throw e;
-      return openWith({ ...open, password: nfkc ?? password });
+      // Nothing holds the fetched bytes now: free them at once rather than at collection.
+      sparse.free();
+      throw e;
     }
   }
 
@@ -410,6 +417,8 @@ export class Document {
     if (this.#freed) return;
     this.#freed = true;
     this.#doc.free();
+    // A range document's fetched bytes live in its sparse source.
+    this.#range?.sparse.free();
   }
 
   /** Frees the document at the end of a `using` block. */

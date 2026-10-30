@@ -2,7 +2,7 @@
 // synchronously from a sparse source; when bytes are missing it throws `data-pending` with the
 // ranges it needs, and the loop here fetches them, supplies them and calls again.
 import type { WasmSparseSource } from "@lamina/wasm/base";
-import { guard, isLaminaError, type LaminaError } from "../errors.js";
+import { guard, isLaminaError, type LaminaError, packageError } from "../errors.js";
 
 /** A byte range of the input. */
 export interface ByteRange {
@@ -67,29 +67,6 @@ export interface RangeState {
   readonly options: RangeOptions;
 }
 
-/** Widens `ranges` to blocks plus readahead, clamped to `size`, as flat sorted `[start, end, …]`. */
-function plan(ranges: readonly ByteRange[], block: number, readahead: number, size: number): number[] {
-  const spans = ranges
-    .map((r) => {
-      let start = r.offset;
-      let end = r.offset + r.length + readahead;
-      if (block > 0) {
-        start = Math.floor(start / block) * block;
-        end = Math.ceil(end / block) * block;
-      }
-      return [Math.min(start, size), Math.min(end, size)] as const;
-    })
-    .filter(([s, e]) => s < e)
-    .sort((a, b) => a[0] - b[0]);
-  const flat: number[] = [];
-  for (const [s, e] of spans) {
-    const last = flat.length - 1;
-    if (last > 0 && (flat[last] ?? 0) >= s) flat[last] = Math.max(flat[last] ?? 0, e);
-    else flat.push(s, e);
-  }
-  return flat;
-}
-
 /**
  * Runs `call` until it stops throwing `data-pending`: fetches the ranges asked for (widened to
  * blocks, minus what the source holds), supplies them and calls again. Gives up with the last
@@ -114,7 +91,9 @@ export async function settle<T>(state: RangeState, call: () => T): Promise<T> {
     }
     const asked = rangesOf(error);
     const key = JSON.stringify(asked);
-    const todo = guard(() => sparse.missing(new Float64Array(plan(asked, block, readahead, source.size))));
+    const flat = new Float64Array(asked.flatMap((r) => [r.offset, r.offset + r.length]));
+    // The planning is lamina-source's (`SparseSource::to_fetch`), shared with the Rust loop.
+    const todo = guard(() => sparse.toFetch(flat, block, readahead));
     if (round >= maxRounds || todo.length === 0 || key === previous) throw error;
     options.signal?.throwIfAborted();
     const fetches: Promise<void>[] = [];
@@ -125,6 +104,11 @@ export async function settle<T>(state: RangeState, call: () => T): Promise<T> {
         source
           .read(start, end - start, options.signal === undefined ? {} : { signal: options.signal })
           .then((bytes) => {
+            if (bytes.length !== end - start) {
+              throw packageError("fetch-failed", "a range source returned a different number of bytes than asked for", {
+                data: { reason: "length", expected: end - start, got: bytes.length },
+              });
+            }
             guard(() => sparse.supply(start, bytes));
           }),
       );

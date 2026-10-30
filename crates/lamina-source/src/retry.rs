@@ -71,6 +71,16 @@ pub enum RetryError<E> {
     /// A fetched chunk couldn't be supplied (past the end, or over the source's budget).
     #[error(transparent)]
     Supply(SupplyError),
+    /// The fetch returned a different number of bytes than the range it was asked for.
+    #[error("a fetch of {expected} bytes at {offset} returned {got}")]
+    FetchLength {
+        /// First byte of the range.
+        offset: u64,
+        /// The range's length.
+        expected: u64,
+        /// Bytes returned.
+        got: u64,
+    },
 }
 
 /// The ranges a `data-pending` error asks for, if it is one.
@@ -94,7 +104,8 @@ pub fn pending_ranges(error: &lamina::Error) -> Option<Vec<Range<u64>>> {
 /// # Errors
 /// [`RetryError::Lamina`] for the call's own errors, and its last `data-pending` when
 /// `max_rounds` run out or a round makes no progress (nothing left to fetch, or the same
-/// ranges as the round before); [`RetryError::Fetch`] and [`RetryError::Supply`] from fetching.
+/// ranges as the round before); [`RetryError::Fetch`], [`RetryError::FetchLength`] and
+/// [`RetryError::Supply`] from fetching.
 pub fn retry<T, E>(
     source: &SparseSource,
     options: &RetryOptions,
@@ -111,14 +122,22 @@ pub fn retry<T, E>(
         let Some(asked) = pending_ranges(&error) else {
             return Err(RetryError::Lamina(error));
         };
-        let planned = plan(&asked, options, source.len());
-        let todo = source.missing(&planned).map_err(RetryError::Supply)?;
+        let todo = source
+            .to_fetch(&asked, options.block_size, options.readahead)
+            .map_err(RetryError::Supply)?;
         if rounds >= options.max_rounds || todo.is_empty() || previous.as_ref() == Some(&asked) {
             return Err(RetryError::Lamina(error));
         }
         for range in todo {
-            let offset = range.start;
+            let (offset, expected) = (range.start, range.end - range.start);
             let bytes = fetch(range).map_err(RetryError::Fetch)?;
+            if bytes.len() as u64 != expected {
+                return Err(RetryError::FetchLength {
+                    offset,
+                    expected,
+                    got: bytes.len() as u64,
+                });
+            }
             source.supply(offset, &bytes).map_err(RetryError::Supply)?;
         }
         previous = Some(asked);
@@ -142,42 +161,4 @@ pub fn open_with<E>(
         let shared: Arc<dyn ByteSource> = Arc::clone(source) as Arc<dyn ByteSource>;
         Document::open_source(shared, open.clone())
     })
-}
-
-/// Widens `ranges` to whole blocks plus readahead, clamped to `len`, sorted and merged.
-fn plan(ranges: &[Range<u64>], options: &RetryOptions, len: u64) -> Vec<Range<u64>> {
-    let mut out: Vec<Range<u64>> = ranges
-        .iter()
-        .map(|r| {
-            let end = r.end.saturating_add(options.readahead);
-            match options.block_size {
-                0 => r.start..end,
-                b => (r.start / b * b)..end.div_ceil(b).saturating_mul(b),
-            }
-        })
-        .map(|r| r.start.min(len)..r.end.min(len))
-        .filter(|r| r.start < r.end)
-        .collect();
-    out.sort_by_key(|r| r.start);
-    let mut merged: Vec<Range<u64>> = Vec::with_capacity(out.len());
-    for r in out {
-        match merged.last_mut() {
-            Some(last) if last.end >= r.start => last.end = last.end.max(r.end),
-            _ => merged.push(r),
-        }
-    }
-    merged
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn plan_aligns_to_blocks_adds_readahead_and_merges() {
-        let o = RetryOptions::default().with_block_size(10).with_readahead(5);
-        assert_eq!(plan(&[3..4, 12..13, 40..41], &o, 45), vec![0..20, 40..45]);
-        let exact = RetryOptions::default().with_block_size(0);
-        assert_eq!(plan(&[3..4, 9..12], &exact, 100), vec![3..4, 9..12]);
-    }
 }

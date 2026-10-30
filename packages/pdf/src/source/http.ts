@@ -57,7 +57,8 @@ function changed() {
  */
 export async function httpRangeSource(url: string | URL, options: HttpRangeOptions = {}): Promise<RangeSource> {
   const doFetch = options.fetch ?? fetch;
-  const tail = Math.max(1, options.tail ?? 65_536);
+  // A whole number of bytes, at least 1 (a fraction would make a malformed Range header).
+  const tail = Number.isFinite(options.tail) ? Math.max(1, Math.floor(options.tail ?? 0)) : 65_536;
   const request = async (range: string, signal: AbortSignal | undefined, ifRange?: string): Promise<Response> => {
     const headers = new Headers(options.headers);
     headers.set("Range", range);
@@ -83,6 +84,11 @@ export async function httpRangeSource(url: string | URL, options: HttpRangeOptio
       read: async (offset, length) => whole.slice(offset, offset + length),
     };
   }
+  if (first.status === 416 && /^bytes \*\/0$/.test(first.headers.get("Content-Range")?.trim() ?? "")) {
+    // An empty file has no last bytes to send: open it as empty (lamina then says what it is).
+    await first.body?.cancel();
+    return { size: 0, read: async () => new Uint8Array() };
+  }
   if (first.status !== 206) {
     await first.body?.cancel();
     throw failed("status", first.status);
@@ -96,13 +102,14 @@ export async function httpRangeSource(url: string | URL, options: HttpRangeOptio
   const etag = first.headers.get("ETag") ?? undefined;
   // If-Range needs a strong validator; a weak one is only compared.
   const ifRange = etag !== undefined && !etag.startsWith("W/") ? etag : undefined;
-  let whole: Uint8Array | undefined;
+  // Set once a ranged request is answered 200: the whole file, downloaded once and shared by
+  // every read (reads already in flight cancel their own bodies and wait for it).
+  let whole: Promise<Uint8Array> | undefined;
 
-  const read = async (offset: number, length: number, opts?: { readonly signal?: AbortSignal }) => {
-    const end = offset + length;
-    if (whole !== undefined) return whole.slice(offset, end);
-    if (offset >= tailStart) return tailBytes.slice(offset - tailStart, end - tailStart);
-    const res = await request(`bytes=${offset}-${end - 1}`, opts?.signal, ifRange);
+  /** The bytes `offset..end` from the network (or from the whole file, once there is one). */
+  const fetchRange = async (offset: number, end: number, signal: AbortSignal | undefined): Promise<Uint8Array> => {
+    if (whole !== undefined) return (await whole).slice(offset, end);
+    const res = await request(`bytes=${offset}-${end - 1}`, signal, ifRange);
     const tag = res.headers.get("ETag") ?? undefined;
     if (etag !== undefined && tag !== undefined && tag !== etag) {
       await res.body?.cancel();
@@ -114,10 +121,16 @@ export async function httpRangeSource(url: string | URL, options: HttpRangeOptio
         await res.body?.cancel();
         throw changed();
       }
-      const bytes = new Uint8Array(await res.arrayBuffer());
-      if (bytes.length !== size) throw changed();
-      whole = bytes;
-      return whole.slice(offset, end);
+      if (whole === undefined) {
+        whole = res.arrayBuffer().then((buffer) => {
+          const bytes = new Uint8Array(buffer);
+          if (bytes.length !== size) throw changed();
+          return bytes;
+        });
+      } else {
+        await res.body?.cancel();
+      }
+      return (await whole).slice(offset, end);
     }
     if (res.status !== 206) {
       await res.body?.cancel();
@@ -133,8 +146,19 @@ export async function httpRangeSource(url: string | URL, options: HttpRangeOptio
       throw failed("content-range", 206);
     }
     const bytes = new Uint8Array(await res.arrayBuffer());
-    if (bytes.length !== length) throw failed("content-range", 206);
+    if (bytes.length !== end - offset) throw failed("content-range", 206);
     return bytes;
+  };
+
+  const read = async (offset: number, length: number, opts?: { readonly signal?: AbortSignal }) => {
+    const end = offset + length;
+    if (offset >= tailStart) return tailBytes.slice(offset - tailStart, end - tailStart);
+    if (end <= tailStart) return fetchRange(offset, end, opts?.signal);
+    // Straddles the tail the probe brought: fetch only the part before it.
+    const out = new Uint8Array(length);
+    out.set(await fetchRange(offset, tailStart, opts?.signal));
+    out.set(tailBytes.subarray(0, end - tailStart), tailStart - offset);
+    return out;
   };
 
   return { size, read, blockSize: options.blockSize ?? 16_384 };

@@ -60,10 +60,13 @@ impl WasmSparseSource {
     }
 
     /// Bytes supplied so far.
+    ///
+    /// # Errors
+    /// Never in WASM (`panic = "abort"`: no lock is ever poisoned).
     #[wasm_bindgen(getter)]
     #[expect(clippy::cast_precision_loss, reason = "at most the size, which fits")]
-    pub fn held(&self) -> f64 {
-        self.inner.held().unwrap_or(0) as f64
+    pub fn held(&self) -> JsResult<f64> {
+        Ok(self.inner.held().map_err(supply_error)? as f64)
     }
 
     /// Adds `bytes` at `offset` (bytes already held win over overlapping ones).
@@ -72,39 +75,69 @@ impl WasmSparseSource {
     /// `invalid-argument` past the end; `source-budget-exceeded` over the budget.
     pub fn supply(&self, offset: f64, bytes: &[u8]) -> JsResult<()> {
         let offset = whole(offset, "offset")?;
-        self.inner.supply(offset, bytes).map_err(|e| match e {
-            SupplyError::Budget { needed, budget } => {
-                source_budget_exceeded(format!("would hold {needed} bytes; the budget is {budget}"))
-            }
-            other => invalid_argument("offset", other.to_string(), Vec::new()),
-        })
+        self.inner.supply(offset, bytes).map_err(supply_error)
     }
 
-    /// The parts of `ranges` (flat `[start, end, start, end, …]`) not supplied yet, in the same
-    /// flat form, sorted and merged.
+    /// What to fetch for the ranges a `data-pending` asked for (flat `[start, end, …]`): each
+    /// widened to blocks of `block` bytes (0: as asked) plus `readahead`, merged, minus what is
+    /// held, in the same flat form. The planning step of `lamina-source`'s `retry`, so every
+    /// loop plans the same way.
+    ///
+    /// # Errors
+    /// `invalid-argument` for an odd length or a value that isn't a whole number of bytes.
+    #[wasm_bindgen(js_name = toFetch)]
+    pub fn to_fetch(&self, asked: &[f64], block: f64, readahead: f64) -> JsResult<Float64Array> {
+        let asked = pairs(asked)?;
+        let ranges = self
+            .inner
+            .to_fetch(&asked, whole(block, "block")?, whole(readahead, "readahead")?)
+            .map_err(supply_error)?;
+        Ok(flat(&ranges))
+    }
+
+    /// The parts of `ranges` (flat `[start, end, …]`) not supplied yet, in the same flat form,
+    /// sorted and merged.
     ///
     /// # Errors
     /// `invalid-argument` for an odd length or a value that isn't a whole number of bytes.
     pub fn missing(&self, ranges: &[f64]) -> JsResult<Float64Array> {
-        if !ranges.len().is_multiple_of(2) {
-            return Err(invalid_argument(
-                "ranges",
-                "pairs of start and end".to_owned(),
-                Vec::new(),
-            ));
+        let wanted = pairs(ranges)?;
+        let missing = self.inner.missing(&wanted).map_err(supply_error)?;
+        Ok(flat(&missing))
+    }
+}
+
+/// Flat `[start, end, …]` as ranges.
+fn pairs(flat: &[f64]) -> JsResult<Vec<std::ops::Range<u64>>> {
+    if !flat.len().is_multiple_of(2) {
+        return Err(invalid_argument(
+            "ranges",
+            "pairs of start and end".to_owned(),
+            Vec::new(),
+        ));
+    }
+    flat.as_chunks::<2>()
+        .0
+        .iter()
+        .map(|[start, end]| Ok(whole(*start, "ranges")?..whole(*end, "ranges")?))
+        .collect()
+}
+
+/// Ranges as flat `[start, end, …]`.
+fn flat(ranges: &[std::ops::Range<u64>]) -> Float64Array {
+    #[expect(clippy::cast_precision_loss, reason = "offsets are within the size, which fits")]
+    let flat: Vec<f64> = ranges.iter().flat_map(|r| [r.start as f64, r.end as f64]).collect();
+    Float64Array::from(flat.as_slice())
+}
+
+/// A supply error as the §1 object: over the budget is `source-budget-exceeded`; a chunk past
+/// the end is `invalid-argument` on `bytes` (the count is what's wrong: the source has a fixed
+/// size). A poisoned lock can't happen in WASM (`panic = "abort"`).
+fn supply_error(e: SupplyError) -> JsValue {
+    match e {
+        SupplyError::Budget { needed, budget } => {
+            source_budget_exceeded(format!("would hold {needed} bytes; the budget is {budget}"))
         }
-        let wanted = ranges
-            .as_chunks::<2>()
-            .0
-            .iter()
-            .map(|[start, end]| Ok(whole(*start, "ranges")?..whole(*end, "ranges")?))
-            .collect::<JsResult<Vec<_>>>()?;
-        let missing = self
-            .inner
-            .missing(&wanted)
-            .map_err(|e| invalid_argument("ranges", e.to_string(), Vec::new()))?;
-        #[expect(clippy::cast_precision_loss, reason = "offsets are within the size, which fits")]
-        let flat: Vec<f64> = missing.iter().flat_map(|r| [r.start as f64, r.end as f64]).collect();
-        Ok(Float64Array::from(flat.as_slice()))
+        other => invalid_argument("bytes", other.to_string(), Vec::new()),
     }
 }
