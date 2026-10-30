@@ -47,7 +47,10 @@ async function pdfjs(path) {
 function pdftotext(path) {
   let text;
   try {
-    text = execFileSync("pdftotext", ["-enc", "UTF-8", path, "-"], { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] });
+    text = execFileSync("pdftotext", ["-enc", "UTF-8", path, "-"], {
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"],
+    });
   } catch {
     return null;
   }
