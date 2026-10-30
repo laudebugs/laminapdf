@@ -44,7 +44,17 @@ enum Category {
     SignedEncrypted,
 }
 
-const TITLE: &str = "Round trip";
+/// What the `setInfo` cases write: `/Title`, `/Author`, `/Subject`, `/Keywords` (J.01).
+const INFO: [(&str, &str); 4] = [
+    ("Title", "Round trip"),
+    ("Author", "lamina round trip"),
+    ("Subject", "Every case of the suite"),
+    ("Keywords", "lamina, round trip"),
+];
+
+/// The `rotatePage` rotations, one per fixture in turn, so each of 90, 180 and 270 (C.08) is
+/// saved from every kind of fixture.
+const ROTATIONS: [Rotation; 3] = [Rotation::Clockwise90, Rotation::Half, Rotation::Clockwise270];
 
 /// The corpus files that open without repair and are neither signed nor encrypted.
 pub const PLAIN_CORPUS: [&str; 10] = [
@@ -143,20 +153,31 @@ fn expected(category: Category, mode: SaveMode, invalidate: bool, remove: bool) 
     }
 }
 
-/// The facts the other tools compare: page count, rotations (degrees) and `/Title`.
-fn facts(doc: &lamina_model::Document) -> (usize, Vec<u16>, Option<String>) {
+/// The facts lamina compares after reopening: page count, rotations (degrees) and the
+/// [`INFO`] keys' values, in that order (the other tools compare the same ones).
+fn facts(doc: &lamina_model::Document) -> (usize, Vec<u16>, Vec<Option<String>>) {
     let pages = doc.pages().unwrap();
     let rotations = pages.iter().map(|p| p.rotate().unwrap().degrees()).collect();
-    let title = doc.info().unwrap().and_then(|i| i.text("Title").unwrap());
-    (pages.len(), rotations, title)
+    let info = doc.info().unwrap();
+    let values = INFO
+        .iter()
+        .map(|(key, _)| info.as_ref().and_then(|i| i.text(key).unwrap()))
+        .collect();
+    (pages.len(), rotations, values)
 }
 
-fn op(doc: &Document, name: &str) -> Op {
+fn op(doc: &Document, name: &str, rotation: Rotation) -> Op {
     if name == "setInfo" {
-        SetInfo::new(InfoPatch::new().title(Some(TITLE)), None).into()
+        let [title, author, subject, keywords] = INFO.map(|(_, value)| Some(value));
+        let patch = InfoPatch::new()
+            .title(title)
+            .author(author)
+            .subject(subject)
+            .keywords(keywords);
+        SetInfo::new(patch, None).into()
     } else {
         let page = doc.pages().unwrap().get(0).unwrap().id().clone();
-        RotatePage::new(page, Rotation::Clockwise90).into()
+        RotatePage::new(page, rotation).into()
     }
 }
 
@@ -178,7 +199,8 @@ pub struct Suite {
 /// Runs every case over the fixtures under `root` (the repository root).
 pub fn run(root: &Path) -> Suite {
     let mut suite = Suite::default();
-    for (name, bytes, category) in fixtures(root) {
+    for (index, (name, bytes, category)) in fixtures(root).into_iter().enumerate() {
+        let rotation = ROTATIONS[index % ROTATIONS.len()];
         for op_name in ["setInfo", "rotatePage"] {
             for mode in [SaveMode::Auto, SaveMode::Incremental, SaveMode::FullRewrite] {
                 for (invalidate, remove) in [(false, false), (true, false), (false, true), (true, true)] {
@@ -190,11 +212,11 @@ pub fn run(root: &Path) -> Suite {
                     )
                     .to_lowercase();
                     let mut doc = Document::open(bytes.clone(), OpenOptions::default()).unwrap();
-                    let (pages, mut rotations, mut title) = facts(&doc);
-                    let op = op(&doc, op_name);
+                    let (pages, mut rotations, mut info) = facts(&doc);
+                    let op = op(&doc, op_name, rotation);
                     match op {
-                        Op::SetInfo(_) => title = Some(TITLE.to_owned()),
-                        _ => rotations[0] = 90,
+                        Op::SetInfo(_) => info = INFO.iter().map(|(_, v)| Some((*v).to_owned())).collect(),
+                        _ => rotations[0] = rotation.degrees(),
                     }
                     doc.apply_all(Origin::Local, [op]).unwrap();
                     let options = SaveOptions::new()
@@ -223,11 +245,11 @@ pub fn run(root: &Path) -> Suite {
                             .failures
                             .push(format!("{id}: removing the encryption left /Encrypt"));
                     }
-                    if again != (pages, rotations.clone(), title.clone()) || reopened.was_repaired() {
+                    if again != (pages, rotations.clone(), info.clone()) || reopened.was_repaired() {
                         suite.failures.push(format!(
                             "{id}: lamina reopened {again:?} (repaired {}), expected {:?}",
                             reopened.was_repaired(),
-                            (pages, &rotations, &title)
+                            (pages, &rotations, &info)
                         ));
                     }
                     let file = format!("{id}.pdf");
@@ -238,7 +260,14 @@ pub fn run(root: &Path) -> Suite {
                         "mode": format!("{:?}", report.mode()),
                         "pages": pages,
                         "rotations": rotations,
-                        "title": title,
+                        "title": info[0],
+                        // The other three keys the setInfo cases write (J.01), compared by the
+                        // tools only there: elsewhere they are the fixture's own values.
+                        "info": (op_name == "setInfo").then(|| json!({
+                            "Author": info[1],
+                            "Subject": info[2],
+                            "Keywords": info[3],
+                        })),
                         "encrypted": reopened.is_encrypted(),
                         // PDFium reads no `/Title` from a direct `/Info` dictionary.
                         "direct_info": matches!(reopened.trailer().get("Info"), Some(lamina_cos::Object::Dict(_))),

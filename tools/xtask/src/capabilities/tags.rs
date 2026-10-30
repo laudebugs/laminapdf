@@ -9,14 +9,15 @@
 //! fn every_case_saves_or_refuses_as_expected_and_reopens_in_lamina() { … }
 //! ```
 //!
-//! One test may carry several tags. Only `#[test]` functions in a crate's `src/` (run with
-//! `--lib`) or in `tests/<name>.rs` / `tests/<name>/main.rs` (run with `--test <name>`) can
-//! be tagged. TypeScript tests will be tagged in their name, `test("[cap C.04 pdf round-trip] …")`,
+//! One test may carry several tags. Only `#[test]` functions in a crate's test targets can be
+//! tagged: `src/main.rs` and `src/bin/<name>.rs` or `src/bin/<name>/…` (`--bin`), the rest of
+//! `src/` (`--lib`), and `tests/<name>.rs` or `tests/<name>/…` when `tests/<name>/main.rs` exists
+//! (`--test <name>`). TypeScript tests will be tagged in their name, `test("[cap C.04 pdf round-trip] …")`,
 //! once a package exists to run them.
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use std::fmt;
-use std::path::{Component, Path};
+use std::path::{Component, Path, PathBuf};
 
 use anyhow::{Result, bail};
 
@@ -29,6 +30,7 @@ const MARKER: &str = "capability:";
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub(crate) enum Target {
     Lib,
+    Bin(String),
     Test(String),
 }
 
@@ -36,6 +38,7 @@ impl fmt::Display for Target {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Lib => f.write_str("--lib"),
+            Self::Bin(name) => write!(f, "--bin {name}"),
             Self::Test(name) => write!(f, "--test {name}"),
         }
     }
@@ -64,8 +67,11 @@ pub(crate) struct Tag {
     pub(crate) line: usize,
 }
 
-/// The cargo package and target of a tracked Rust file, if it can hold tagged tests.
-fn cargo_target(path: &Path) -> Option<(String, Target)> {
+/// The cargo package and target of a tracked Rust file, if it can hold tagged tests. `files`
+/// are every tracked Rust file, to tell a `tests/<dir>/main.rs` target from a shared helper
+/// module such as `tests/common/mod.rs`. (A package with both `src/lib.rs` and `src/main.rs`
+/// gets its other `src/` files counted as the library's.)
+fn cargo_target(path: &Path, files: &BTreeSet<PathBuf>) -> Option<(String, Target)> {
     let parts: Vec<&str> = path
         .components()
         .map(|c| match c {
@@ -73,20 +79,26 @@ fn cargo_target(path: &Path) -> Option<(String, Target)> {
             _ => None,
         })
         .collect::<Option<_>>()?;
-    match parts.as_slice() {
-        ["crates", krate, "src", ..] => Some(((*krate).to_owned(), Target::Lib)),
-        ["crates", krate, "tests", file] => {
-            let name = file.strip_suffix(".rs")?;
-            Some(((*krate).to_owned(), Target::Test(name.to_owned())))
+    let target = match parts.as_slice() {
+        ["crates", krate, "src", "main.rs"] => Target::Bin((*krate).to_owned()),
+        ["crates", _, "src", "bin", file] => Target::Bin(file.strip_suffix(".rs")?.to_owned()),
+        ["crates", _, "src", "bin", dir, _, ..] => Target::Bin((*dir).to_owned()),
+        ["crates", _, "src", ..] => Target::Lib,
+        ["crates", _, "tests", file] => Target::Test(file.strip_suffix(".rs")?.to_owned()),
+        ["crates", krate, "tests", dir, _, ..]
+            if files.contains(&Path::new("crates").join(krate).join("tests").join(dir).join("main.rs")) =>
+        {
+            Target::Test((*dir).to_owned())
         }
-        ["crates", krate, "tests", dir, "main.rs"] => Some(((*krate).to_owned(), Target::Test((*dir).to_owned()))),
-        _ => None,
-    }
+        _ => return None,
+    };
+    Some(((*parts.get(1)?).to_owned(), target))
 }
 
-/// Every tag in one Rust source file. Fails on a malformed tag, a tag that is not on a
-/// `#[test]` function, or a tag in a file that is not a test target.
-pub(crate) fn scan_rust(path: &Path, text: &str) -> Result<Vec<Tag>> {
+/// Every tag in one Rust source file (`files`: every tracked Rust file, see [`cargo_target`]).
+/// Fails on a malformed tag, a tag that is not on a `#[test]` function, or a tag in a file
+/// that is not part of a test target.
+pub(crate) fn scan_rust(path: &Path, text: &str, files: &BTreeSet<PathBuf>) -> Result<Vec<Tag>> {
     let lines: Vec<&str> = text.lines().collect();
     let shown = path.display();
     let mut tags = Vec::new();
@@ -101,8 +113,11 @@ pub(crate) fn scan_rust(path: &Path, text: &str) -> Result<Vec<Tag>> {
         };
         let at = format!("{shown}:{i}");
         let (id, surface, status) = parse_claim(claim).map_err(|e| anyhow::anyhow!("{at}: {e}"))?;
-        let Some((krate, target)) = cargo_target(path) else {
-            bail!("{at}: capability tags go on tests in crates/<crate>/src/ or crates/<crate>/tests/<name>.rs");
+        let Some((krate, target)) = cargo_target(path, files) else {
+            bail!(
+                "{at}: capability tags go on tests in crates/<crate>/src/, tests/<name>.rs or tests/<name>/ \
+                 (with a main.rs)"
+            );
         };
         let Some(function) = tagged_function(lines.get(i..).unwrap_or_default()) else {
             bail!("{at}: a capability tag must be followed by a #[test] fn (only doc comments and attributes between)");
@@ -204,8 +219,9 @@ pub(crate) fn is_ts_test(path: &Path) -> bool {
 }
 
 /// The results in libtest's default output: `test <name> ... ok|FAILED|ignored`, by full name
-/// (`true` when it passed). Interleaved stdout from tests can't forge a passing line for a test
-/// that failed: libtest prints exactly one result line per test, and a failure wins.
+/// (`true` when it passed). A name is one word: libtest appends ` - should panic` (and the
+/// like) after it. Interleaved stdout from tests can't forge a passing line for a test that
+/// failed: libtest prints one result line per test, and a failure wins.
 pub(crate) fn parse_libtest(stdout: &str) -> BTreeMap<String, bool> {
     let mut results: BTreeMap<String, bool> = BTreeMap::new();
     for line in stdout.lines() {
@@ -215,9 +231,12 @@ pub(crate) fn parse_libtest(stdout: &str) -> BTreeMap<String, bool> {
         let Some((name, outcome)) = rest.split_once(" ... ") else {
             continue;
         };
+        let Some(name) = name.split_whitespace().next() else {
+            continue;
+        };
         let passed = outcome.trim() == "ok";
         results
-            .entry(name.trim().to_owned())
+            .entry(name.to_owned())
             .and_modify(|p| *p &= passed)
             .or_insert(passed);
     }
@@ -225,12 +244,19 @@ pub(crate) fn parse_libtest(stdout: &str) -> BTreeMap<String, bool> {
 }
 
 /// Whether the test a tag names passed: at least one test of that function ran, and all of
-/// them passed (several match when the same name is in two modules, or for `rstest` cases).
+/// them passed. A test is the function's when its name's last segment is the function, or,
+/// for `rstest` cases (`function::case_1_…`), the one before a `case_` segment. Several match
+/// when the same function name is in two modules.
 pub(crate) fn passed(results: &BTreeMap<String, bool>, function: &str) -> Option<bool> {
-    let mut matched = results
-        .iter()
-        .filter(|(name, _)| name.split("::").any(|segment| segment == function))
-        .peekable();
+    let is_function = |name: &str| {
+        let mut segments = name.rsplit("::");
+        match (segments.next(), segments.next()) {
+            (Some(last), _) if last == function => true,
+            (Some(last), Some(parent)) => parent == function && last.starts_with("case_"),
+            _ => false,
+        }
+    };
+    let mut matched = results.iter().filter(|(name, _)| is_function(name)).peekable();
     matched.peek()?;
     Some(matched.all(|(_, ok)| *ok))
 }
@@ -273,7 +299,12 @@ mod pages {
 ";
 
     fn scan(path: &str, text: &str) -> Result<Vec<Tag>> {
-        scan_rust(Path::new(path), text)
+        let files = BTreeSet::from([PathBuf::from("crates/a/tests/suite/main.rs")]);
+        scan_rust(Path::new(path), text, &files)
+    }
+
+    fn target(path: &str) -> Option<Target> {
+        scan(path, SOURCE).ok().map(|tags| tags[0].test.target.clone())
     }
 
     #[test]
@@ -306,6 +337,30 @@ mod pages {
     fn scan_rust_should_map_a_source_file_to_the_lib_target() {
         let tags = scan("crates/lamina-ops/src/op.rs", SOURCE).unwrap();
         assert_eq!(tags[0].test.target, Target::Lib);
+    }
+
+    #[test]
+    fn scan_rust_should_map_binaries_to_their_bin_target() {
+        assert_eq!(
+            [
+                target("crates/a/src/main.rs"),
+                target("crates/a/src/bin/tool.rs"),
+                target("crates/a/src/bin/tool/args.rs"),
+            ],
+            [
+                Some(Target::Bin("a".to_owned())),
+                Some(Target::Bin("tool".to_owned())),
+                Some(Target::Bin("tool".to_owned())),
+            ]
+        );
+    }
+
+    #[test]
+    fn scan_rust_should_map_a_submodule_of_a_test_directory_to_its_target() {
+        assert_eq!(
+            target("crates/a/tests/suite/cases.rs"),
+            Some(Target::Test("suite".to_owned()))
+        );
     }
 
     #[test]
@@ -360,6 +415,24 @@ test result: FAILED. 1 passed; 1 failed; 1 ignored
             ],
             [Some(true), Some(false), Some(false), None]
         );
+    }
+
+    #[test]
+    fn parse_libtest_should_drop_the_should_panic_suffix() {
+        let results = parse_libtest("test m::f - should panic ... ok\n");
+        assert_eq!(passed(&results, "f"), Some(true));
+    }
+
+    #[test]
+    fn passed_should_not_match_a_module_of_the_same_name() {
+        let results = parse_libtest("test round_trips::other_test ... ok\n");
+        assert_eq!(passed(&results, "round_trips"), None);
+    }
+
+    #[test]
+    fn passed_should_match_rstest_cases() {
+        let results = parse_libtest("test m::f::case_1_one ... ok\ntest m::f::case_2_two ... FAILED\n");
+        assert_eq!(passed(&results, "f"), Some(false));
     }
 
     #[test]

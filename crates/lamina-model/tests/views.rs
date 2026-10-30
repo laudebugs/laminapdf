@@ -38,6 +38,7 @@ fn one_page(page_extra: &str) -> Document {
 mod pages {
     use super::*;
 
+    /// capability: C.04 core read
     #[test]
     fn ids_are_the_page_objects() {
         let doc = outline_pdf();

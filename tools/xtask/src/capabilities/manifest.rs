@@ -120,20 +120,29 @@ impl Manifest {
     /// and surfaces, no retired ID in use.
     pub(crate) fn parse(text: &str) -> Result<Self> {
         let table: toml::Table = toml::from_str(text).context("manifest.toml is not valid TOML")?;
+        known_keys(&table, &["version", "retired", "group", "op"], "manifest.toml")?;
         let version = table.get("version").and_then(toml::Value::as_integer);
         if version != Some(1) {
             bail!("manifest.toml: `version` must be 1");
         }
-        let retired = table
-            .get("retired")
-            .and_then(toml::Value::as_array)
-            .map(|ids| strings(ids, "retired"))
-            .transpose()?
-            .unwrap_or_default();
+        let retired = match table.get("retired") {
+            None => BTreeSet::new(),
+            Some(value) => {
+                let ids = strings(
+                    value.as_array().context("`retired` must be an array of IDs")?,
+                    "retired",
+                )?;
+                if let Some(id) = ids.iter().find(|id| !is_id(id)) {
+                    bail!("retired id `{id}` is not `<group>.<nn>`");
+                }
+                ids
+            }
+        };
         let groups = tables(&table, "group")?
             .iter()
             .map(|g| {
                 let id = string(g, "id", "group")?;
+                known_keys(g, &["id", "name"], &format!("group {id}"))?;
                 let mut chars = id.chars();
                 let (Some(letter), None) = (chars.next(), chars.next()) else {
                     bail!("group id `{id}` must be one capital letter");
@@ -250,11 +259,7 @@ fn parse_row(op: &toml::Table) -> Result<Row> {
             surfaces
         }
     };
-    for key in op.keys() {
-        if !["id", "name", "round", "target", "surfaces"].contains(&key.as_str()) {
-            bail!("op {id}: unknown key `{key}`");
-        }
-    }
+    known_keys(op, &["id", "name", "round", "target", "surfaces"], &format!("op {id}"))?;
     Ok(Row {
         name: string(op, "name", &id)?,
         round: string(op, "round", &id)?,
@@ -262,6 +267,14 @@ fn parse_row(op: &toml::Table) -> Result<Row> {
         target,
         surfaces,
     })
+}
+
+/// Fails on a key not in `known` (a typo such as `taget` would otherwise be ignored).
+fn known_keys(table: &toml::Table, known: &[&str], what: &str) -> Result<()> {
+    match table.keys().find(|key| !known.contains(&key.as_str())) {
+        Some(key) => bail!("{what}: unknown key `{key}` (expected one of {})", known.join(", ")),
+        None => Ok(()),
+    }
 }
 
 /// `<capital letter>.<two digits>`.
@@ -420,6 +433,31 @@ surfaces = ["pdf", "core"]
     fn parse_should_reject_an_unknown_status() {
         let text = MANIFEST.replace("target = \"read\"", "target = \"edit\"");
         assert!(Manifest::parse(&text).is_err());
+    }
+
+    #[test]
+    fn parse_should_reject_an_unknown_top_level_key() {
+        assert!(Manifest::parse(&format!("retierd = []\n{MANIFEST}")).is_err());
+    }
+
+    #[test]
+    fn parse_should_reject_an_unknown_group_key() {
+        assert!(Manifest::parse(&MANIFEST.replace("name = \"Text\"", "name = \"Text\"\nlabel = \"x\"")).is_err());
+    }
+
+    #[test]
+    fn parse_should_reject_an_unknown_op_key() {
+        assert!(Manifest::parse(&MANIFEST.replace("target = \"read\"", "taget = \"read\"")).is_err());
+    }
+
+    #[test]
+    fn parse_should_reject_a_retired_that_is_not_an_array() {
+        assert!(Manifest::parse(&MANIFEST.replace("retired = [\"A.03\"]", "retired = \"A.03\"")).is_err());
+    }
+
+    #[test]
+    fn parse_should_reject_a_retired_entry_that_is_not_an_id() {
+        assert!(Manifest::parse(&MANIFEST.replace("retired = [\"A.03\"]", "retired = [\"A3\"]")).is_err());
     }
 
     #[test]

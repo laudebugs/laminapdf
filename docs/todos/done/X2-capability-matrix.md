@@ -42,14 +42,14 @@ Make progress measurable and honest: a manifest of every operation in the [featu
 
 - [x] Extract 06 §3's operations into `manifest.toml` (script in `tools/`, then hand-edit target rounds from the plans). *Deviation:* the one-off extraction script was not kept in `tools/`; instead `cargo xtask check docs` parses 06 §3 on every PR and fails unless every operation has exactly one manifest row (same group, same name) and every row is in 06. 06 §3 has **169** operations (the plans' "~180")
 - [x] Choose and document the tagging convention (Rust and TS): a doc-comment line on the test, `/// capability: C.08 core round-trip` (no rename, no proc-macro, no dependency; test names keep reading as behaviour per rust.md), on `#[test]` fns in `src/` or `tests/<name>.rs`; TS `test("[cap C.04 pdf round-trip] …")`. *Deviation:* there is no TS package yet, so a TS tag is an error ("not collected yet") rather than run with Vitest `-t`; the first package that tags a test adds the runner
-- [x] Implement `cargo xtask capabilities` with evidence collection and README generation (`tools/xtask/src/capabilities.rs` + `capabilities/{manifest,tags,matrix}.rs`; one `cargo test -p <crate> --lib|--test <name> -- <fns>` per target, libtest output parsed; plain `cargo test`, not nextest)
-- [x] Tag existing tests; generate the first README: 25 tags on 22 tests in `lamina-model`, `lamina-cos`, `lamina-save`. core round-trip: C.08 rotate, J.01 title (`SetInfo`; Info only, XMP sync comes with E1), G.05 remove encryption; write: K.04 remove unused objects (full rewrite); read: C.04 (page count), C.08, C.09, C.11, C.14, F.05, F.08, F.09, G.01, G.03, G.04, G.11, I.01 (outline), I.04, I.10, J.01, J.02, K.10
+- [x] Implement `cargo xtask capabilities` with evidence collection and README generation (`tools/xtask/src/capabilities.rs` + `capabilities/{manifest,tags,matrix}.rs`; one `cargo test --no-run --message-format=json` builds every tagged target, then each test binary runs filtered to its tagged functions and its libtest output is parsed; not nextest)
+- [x] Tag existing tests; generate the first README: 23 tags on 21 tests in `lamina-model`, `lamina-cos`, `lamina-save`. Core `write`/`round-trip` may only be claimed in `lamina-save/tests/roundtrip_suite.rs` (enforced), whose outputs `cargo xtask roundtrip` checks with qpdf, pdf.js and PDFium. The suite now writes `/Title`, `/Author`, `/Subject` and `/Keywords` (compared by lamina, pdf.js and PDFium) and rotates by 90, 180 or 270 in turn per fixture. Core round-trip: C.08 rotate, J.01 the four Info keys (`SetInfo`; Info only, XMP sync comes with E1), G.05 remove encryption. Read: C.04 (page order), C.08, C.09, C.11, C.14, F.05, F.08, F.09, G.01, G.03, G.04, G.11, I.01 (outline), I.04, I.10, J.01, J.02, K.10. Page count alone proves no operation row, so it is not tagged
 - [x] Add to the full lane (`capabilities` job in `full.yml`, in `gate`'s needs); document in `CLAUDE.md`, full-editor §3 and ADR 0018's implementation note
 
 ## Acceptance criteria
 
 - [x] Every operation in 06 §3 has exactly one manifest row with a stable ID (enforced by `check docs`)
-- [x] `cargo xtask capabilities --check` passes on `main` and fails when a README row is edited to claim an unproven status or a tagged test is made to fail (both checked by hand; an overclaim also fails `cargo xtask check docs`, which needs no test run and so covers docs-only PRs)
+- [x] `cargo xtask capabilities --check` passes on `main` and fails when a README row is edited to claim an unproven status or a tagged test is made to fail (both checked by hand). `cargo xtask check docs`, which needs no test run and so covers docs-only PRs, fails on the same edit and on any README that differs from what the manifest and the tags generate
 - [x] The generated README shows at least: page count/outline read (core: C.04, I.01), `SetInfo`/`RotatePage` round-trip (core: J.01, C.08)
 - [x] Runs in the full lane
 
@@ -70,7 +70,7 @@ Unit tests for status aggregation and README generation; an integration test wit
 
 - Test-name tagging is brittle but dependency-free; a proc-macro is cleaner but adds a crate — decide in the PR. *Decided:* a doc-comment tag (`/// capability: …`), dependency-free and without renaming tests. A renamed or moved test changes the generated page, so `--check` catches it; a deleted one drops its claims, so `check docs` catches the stale page.
 - 06 §3's list will change; IDs are never reused (like warning codes). *Done:* the manifest's `retired` list; a retired ID can be neither a row nor a tag.
-- Core `write`/`round-trip` evidence is lamina's side of the round-trip suite; the qpdf/pdf.js/PDFium half (`cargo xtask roundtrip`) is a separate full-lane job, not linked to individual rows yet.
+- Core `write`/`round-trip` claims are accepted only from the round-trip suite (`cargo xtask check docs` rejects them elsewhere), so every such claim is also checked by qpdf, pdf.js and PDFium in the full lane's `roundtrip` job.
 
 ## Definition of done
 

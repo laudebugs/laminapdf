@@ -6,7 +6,7 @@ Every operation of the [feature inventory](../research/pdf/06-feature-inventory.
 
 **Statuses**, weakest first: 🔴 `unsupported` (detected and reported, never silently dropped), 🟡 `read` (displayed or extracted faithfully), 🔵 `write` (created or changed; output passes qpdf `--check` and opens in pdf.js and PDFium), 🟢 `round-trip` (open → change → save → reopen preserves the feature and everything else). `—` means no evidence yet; `n/a` means the row doesn't target that surface. **Columns:** `core` (the Rust crates), `pdf` (`@lamina/pdf`), `web`, `desktop`; *Target* is the round that must reach the target status on every targeted surface.
 
-**Evidence.** A Rust test claims a status with a doc-comment line above it, `/// capability: C.08 core round-trip` (ID, surface, status; several lines for several claims), on a `#[test]` function in a crate's `src/` or `tests/<name>.rs`. TypeScript tests will use their name, `test("[cap C.04 pdf round-trip] …")`. `cargo xtask capabilities` runs every tagged test and rewrites this page; `cargo xtask capabilities --check` (full lane) fails when this page differs from what the passing tests prove or a tagged test fails, and `cargo xtask check docs` fails when this page claims more than any tagged test could prove. Core `write` and `round-trip` evidence is lamina's side of the round-trip suite; the full lane's `cargo xtask roundtrip` checks the same saves with qpdf, pdf.js and PDFium.
+**Evidence.** A Rust test claims a status with a doc-comment line above it, `/// capability: C.08 core round-trip` (ID, surface, status; several lines for several claims), on a `#[test]` function in a crate's `src/` or `tests/<name>.rs`. TypeScript tests will use their name, `test("[cap C.04 pdf round-trip] …")`. `cargo xtask capabilities` runs every tagged test and rewrites this page; `cargo xtask capabilities --check` (full lane) fails when this page differs from what the passing tests prove or a tagged test fails, and `cargo xtask check docs` (every PR, no test run) fails when this page claims more than any tagged test could prove or differs from what the manifest and the tags generate. Core `write` and `round-trip` may be claimed only by tests in the round-trip suite ([`roundtrip_suite.rs`](../../crates/lamina-save/tests/roundtrip_suite.rs)), whose saves the full lane's `cargo xtask roundtrip` also checks with qpdf `--check`, pdf.js and PDFium.
 
 ## Summary
 
@@ -14,7 +14,7 @@ Rows per surface by best proven status (of the rows that target the surface).
 
 | Surface | Rows | 🟢 round-trip | 🔵 write | 🟡 read | 🔴 unsupported | — none | At target |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| core | 169 | 3 | 1 | 16 | 0 | 149 | 4 |
+| core | 169 | 3 | 0 | 16 | 0 | 150 | 4 |
 | pdf | 169 | 0 | 0 | 0 | 0 | 169 | 0 |
 | web | 168 | 0 | 0 | 0 | 0 | 168 | 0 |
 | desktop | 168 | 0 | 0 | 0 | 0 | 168 | 0 |
@@ -60,7 +60,7 @@ Rows per surface by best proven status (of the rows that target the surface).
 | C.01 | Insert blank pages | — | — | — | — | E2 round-trip |  |
 | C.02 | Insert pages from other PDFs | — | — | — | — | E2 round-trip |  |
 | C.03 | Delete & duplicate pages | — | — | — | — | E2 round-trip |  |
-| C.04 | Reorder pages | 🟡 read | — | — | — | E2 round-trip | [`page_count_matches_pypdf`](../../crates/lamina-model/tests/corpus.rs) core read |
+| C.04 | Reorder pages | 🟡 read | — | — | — | E2 round-trip | [`ids_are_the_page_objects`](../../crates/lamina-model/tests/views.rs) core read |
 | C.05 | Extract selected pages | — | — | — | — | E2 round-trip |  |
 | C.06 | Merge multiple documents | — | — | — | — | E2 round-trip |  |
 | C.07 | Split by count, ranges, bookmarks | — | — | — | — | E2 round-trip |  |
@@ -141,7 +141,7 @@ Rows per surface by best proven status (of the rows that target the surface).
 | G.02 | Encrypt a PDF | — | — | — | — | E11 round-trip |  |
 | G.03 | Permission passwords | 🟡 read | — | — | — | E11 round-trip | [`every_fixture_opens_with_its_owner_password`](../../crates/lamina-cos/tests/encryption.rs) core read |
 | G.04 | Restrict print/copy/edit | 🟡 read | — | — | — | E11 round-trip | [`permissions_match_qpdf_show_encryption`](../../crates/lamina-cos/tests/encryption.rs) core read |
-| G.05 | Remove security with authorisation | 🟢 round-trip | — | — | — | E11 round-trip | [`auto_with_remove_encryption_writes_a_plaintext_full_rewrite_of_every_fixture`](../../crates/lamina-save/tests/encrypted_base.rs) core round-trip<br>[`every_case_saves_or_refuses_as_expected_and_reopens_in_lamina`](../../crates/lamina-save/tests/roundtrip_suite.rs) core round-trip |
+| G.05 | Remove security with authorisation | 🟢 round-trip | — | — | — | E11 round-trip | [`every_case_saves_or_refuses_as_expected_and_reopens_in_lamina`](../../crates/lamina-save/tests/roundtrip_suite.rs) core round-trip |
 | G.06 | Permanent redaction | — | — | — | — | E12 round-trip |  |
 | G.07 | Search sensitive content to redact | — | — | — | — | E12 round-trip |  |
 | G.08 | Remove hidden metadata & comments | — | — | — | — | E11 round-trip |  |
@@ -207,7 +207,7 @@ Rows per surface by best proven status (of the rows that target the surface).
 | K.01 | Compress / reduce size | — | — | — | — | E16 round-trip |  |
 | K.02 | Downsample & recompress images | — | — | — | — | E16 round-trip |  |
 | K.03 | Embed or subset fonts | — | — | — | — | E16 round-trip |  |
-| K.04 | Remove unused objects | 🔵 write | — | — | — | E16 round-trip | [`rotate_then_keep_keeps_numbers_and_page_ids_and_drops_unreachable_objects`](../../crates/lamina-save/tests/full_rewrite.rs) core write |
+| K.04 | Remove unused objects | — | — | — | — | E16 round-trip |  |
 | K.05 | Deduplicate shared resources | — | — | — | — | E16 round-trip |  |
 | K.06 | Linearise for fast web view | — | — | — | — | E16 round-trip |  |
 | K.07 | Flatten transparency | — | — | — | — | E16 round-trip |  |

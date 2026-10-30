@@ -36,11 +36,24 @@ impl<'a> Matrix<'a> {
     }
 }
 
-/// Tags that don't fit the manifest: unknown or retired IDs, or a surface the row doesn't target.
+/// The only file whose tests may claim core `write` or `round-trip`: lamina's side of the
+/// round-trip suite, whose outputs the full lane's `cargo xtask roundtrip` also checks with
+/// qpdf `--check`, pdf.js and `PDFium` (the definition of those statuses, full-editor §3).
+pub(crate) const ROUND_TRIP_SUITE: &str = "crates/lamina-save/tests/roundtrip_suite.rs";
+
+/// Tags that don't fit the manifest (unknown or retired IDs, a surface the row doesn't
+/// target) or claim core `write`/`round-trip` outside [`ROUND_TRIP_SUITE`].
 pub(crate) fn tag_problems(manifest: &Manifest, tags: &[Tag]) -> Vec<String> {
     let mut problems = Vec::new();
     for tag in tags {
         let at = format!("{}:{}", tag.test.file, tag.line);
+        if tag.surface == Surface::Core && tag.status >= Status::Write && tag.test.file != ROUND_TRIP_SUITE {
+            problems.push(format!(
+                "{at}: core `{}` needs the qpdf, pdf.js and PDFium checks, so only tests in {ROUND_TRIP_SUITE} \
+                 (checked by `cargo xtask roundtrip`) may claim it",
+                tag.status
+            ));
+        }
         match manifest.row(&tag.id) {
             None if manifest.retired.contains(&tag.id) => problems.push(format!("{at}: {} is retired", tag.id)),
             None => problems.push(format!("{at}: {} is not in docs/capabilities/manifest.toml", tag.id)),
@@ -73,9 +86,11 @@ extracted faithfully), 🔵 `write` (created or changed; output passes qpdf `--c
 (ID, surface, status; several lines for several claims), on a `#[test]` function in a crate's `src/` or \
 `tests/<name>.rs`. TypeScript tests will use their name, `test(\"[cap C.04 pdf round-trip] …\")`. `cargo xtask capabilities` \
 runs every tagged test and rewrites this page; `cargo xtask capabilities --check` (full lane) fails when this page differs \
-from what the passing tests prove or a tagged test fails, and `cargo xtask check docs` fails when this page claims more than \
-any tagged test could prove. Core `write` and `round-trip` evidence is lamina's side of the round-trip suite; the full \
-lane's `cargo xtask roundtrip` checks the same saves with qpdf, pdf.js and PDFium.
+from what the passing tests prove or a tagged test fails, and `cargo xtask check docs` (every PR, no test run) fails when \
+this page claims more than any tagged test could prove or differs from what the manifest and the tags generate. Core \
+`write` and `round-trip` may be claimed only by tests in the round-trip suite \
+([`roundtrip_suite.rs`](../../crates/lamina-save/tests/roundtrip_suite.rs)), whose saves the full lane's \
+`cargo xtask roundtrip` also checks with qpdf `--check`, pdf.js and PDFium.
 ";
 
 fn icon(status: Option<Status>) -> &'static str {
@@ -206,6 +221,7 @@ pub(crate) fn overclaims(manifest: &Manifest, readme: &str, upper: &Matrix<'_>) 
 
 #[cfg(test)]
 mod tests {
+    use std::collections::BTreeSet;
     use std::path::Path;
 
     use super::*;
@@ -243,7 +259,7 @@ fn round_trips() {}
 
     fn fixture() -> (Manifest, Vec<Tag>) {
         let manifest = Manifest::parse(MANIFEST).unwrap();
-        let tags = scan_rust(Path::new("crates/lamina-x/tests/t.rs"), SOURCE).unwrap();
+        let tags = scan_rust(Path::new("crates/lamina-x/tests/t.rs"), SOURCE, &BTreeSet::new()).unwrap();
         (manifest, tags)
     }
 
@@ -328,7 +344,20 @@ fn round_trips() {}
         let (manifest, _) = fixture();
         let source =
             "/// capability: C.02 web read\n#[test]\nfn a() {}\n/// capability: C.09 core read\n#[test]\nfn b() {}\n";
-        let tags = scan_rust(Path::new("crates/x/tests/t.rs"), source).unwrap();
+        let tags = scan_rust(Path::new("crates/x/tests/t.rs"), source, &BTreeSet::new()).unwrap();
         assert_eq!(tag_problems(&manifest, &tags).len(), 2);
+    }
+
+    #[test]
+    fn tag_problems_should_reject_core_round_trip_outside_the_round_trip_suite() {
+        let (manifest, tags) = fixture();
+        assert_eq!(tag_problems(&manifest, &tags).len(), 1);
+    }
+
+    #[test]
+    fn tag_problems_should_accept_core_round_trip_in_the_round_trip_suite() {
+        let (manifest, _) = fixture();
+        let tags = scan_rust(Path::new(ROUND_TRIP_SUITE), SOURCE, &BTreeSet::new()).unwrap();
+        assert_eq!(tag_problems(&manifest, &tags), Vec::<String>::new());
     }
 }
