@@ -5,6 +5,10 @@
 # GitHub-hosted minutes are not used. (The Linux runner container, tools/ci-runner/linux, only
 # serves full.yml's check-linux.) The runners share one machine, so jobs that install Rust
 # run isolate-rust-home first, pnpm installs into the runner's temp dir, and rust-cache is off.
+# Instead, isolate-rust-home's `target-dir` keeps each job's build output on its runner between
+# runs, apart per job and per kind of trigger, so PR output is never reused on main (see the
+# action). Jobs that only build xtask share `xtask`. The spikes job keeps the checkout's target/:
+# the frozen spike's scripts and TS tests read its wasm from spikes/pdf-basics/rust/target/.
 # The repository is private, so fork PRs (which must never run on self-hosted runners) can't occur.
 # Actions are pinned by full commit SHA with the release in a comment (ADR 0019); Dependabot bumps them.
 name: CI
@@ -49,6 +53,8 @@ jobs:
           fetch-depth: 0
       - if: github.event_name == 'pull_request'
         uses: ./.github/actions/isolate-rust-home
+        with:
+          target-dir: xtask
       - if: github.event_name == 'pull_request'
         uses: ./.github/actions/host-rust
         with:
@@ -71,6 +77,8 @@ jobs:
         with:
           persist-credentials: false
       - uses: ./.github/actions/isolate-rust-home
+        with:
+          target-dir: ci-rust
       # No `toolchain` input: installs exactly what rust-toolchain.toml pins (version, components, targets).
       - uses: actions-rust-lang/setup-rust-toolchain@ecabd13d1c56bd1345c230e542e9144811ad706f # v2.0.0
         with:
@@ -141,6 +149,8 @@ jobs:
         with:
           persist-credentials: false
       - uses: ./.github/actions/isolate-rust-home
+        with:
+          target-dir: ci-msrv
       - name: Read the declared rust-version
         id: msrv
         run: |
@@ -181,6 +191,8 @@ jobs:
         with:
           persist-credentials: false
       - uses: ./.github/actions/isolate-rust-home
+        with:
+          target-dir: xtask
       # No `version` input: uses packageManager from package.json.
       - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
         with:

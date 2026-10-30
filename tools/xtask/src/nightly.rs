@@ -150,8 +150,9 @@ pub(crate) fn bench(ws: &Workspace, args: &BenchArgs) -> Result<()> {
     fs::create_dir_all(&out_dir)?;
     // History lives in history.jsonl, not criterion's own baselines. A partial target/criterion
     // restored by the CI cache made criterion fail ("Failed to access … base/sample.json") on
-    // the second branch run, so every run starts without one.
-    let criterion_dir = ws.root.join("target/criterion");
+    // the second branch run, so every run starts without one. Criterion writes it under cargo's
+    // target directory, which persists between jobs on the self-hosted runners.
+    let criterion_dir = ws.target_dir.join("criterion");
     if criterion_dir.exists() {
         fs::remove_dir_all(&criterion_dir).with_context(|| format!("removing {}", criterion_dir.display()))?;
     }
@@ -256,7 +257,7 @@ fn git(ws: &Workspace, args: &[&str]) -> String {
 
 /// The libFuzzer limits of every run (`cargo xtask fuzz`), so `tmin` minimises a timeout or an
 /// OOM under the limits that found it.
-const LIBFUZZER_LIMITS: [&str; 2] = ["-timeout=10", "-rss_limit_mb=2048"];
+pub(crate) const LIBFUZZER_LIMITS: [&str; 2] = ["-timeout=10", "-rss_limit_mb=2048"];
 
 /// The artefacts `tmin` minimises: crashes, timeouts and OOMs. `slow-unit-*` files are slow
 /// inputs libFuzzer reports, not failures.

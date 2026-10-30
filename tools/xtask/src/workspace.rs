@@ -60,6 +60,14 @@ const ALLOWED_EDGE_ONLY_EDGES: [(&str, &str, &str); 3] = [
     ),
 ];
 
+/// `cargo metadata`'s `target_directory`, or `<root>/target` if it is missing.
+fn target_directory(metadata: &Value, root: &Path) -> PathBuf {
+    metadata
+        .get("target_directory")
+        .and_then(Value::as_str)
+        .map_or_else(|| root.join("target"), PathBuf::from)
+}
+
 /// A workspace crate under `crates/`.
 struct Crate {
     name: String,
@@ -89,6 +97,12 @@ enum Layer {
 /// The repository root and its crates.
 pub(crate) struct Workspace {
     pub(crate) root: PathBuf,
+    /// Cargo's build output directory (`cargo metadata`'s `target_directory`): `<root>/target`
+    /// unless `CARGO_TARGET_DIR` (or `build.target-dir`) moves it, as the self-hosted CI
+    /// runners do (isolate-rust-home). Only cargo's own output lives there: xtask's reports and
+    /// scratch folders (`target/xtask/`, `target/nightly/`, `target/examples-out/`) stay under
+    /// `<root>/target`, where the workflows upload them from.
+    pub(crate) target_dir: PathBuf,
     crates: Vec<Crate>,
     /// The resolved dependency graph, by package id.
     graph: BTreeMap<String, Node>,
@@ -108,6 +122,7 @@ impl Workspace {
         }
         let metadata: Value = serde_json::from_slice(&output.stdout).context("cargo metadata returned bad JSON")?;
         let graph = dependency_graph(&metadata);
+        let target_dir = target_directory(&metadata, &root);
         let crates_dir = root.join("crates");
         let mut crates = Vec::new();
         let members: BTreeSet<&str> = metadata
@@ -128,7 +143,12 @@ impl Workspace {
             }
             crates.push(Crate::from_metadata(package, dir)?);
         }
-        Ok(Self { root, crates, graph })
+        Ok(Self {
+            root,
+            target_dir,
+            crates,
+            graph,
+        })
     }
 
     /// Names of the core crates.
@@ -410,7 +430,24 @@ fn rust_files(dir: &Path) -> Result<Vec<PathBuf>> {
 mod tests {
     use std::collections::BTreeMap;
 
-    use super::{Node, edge_only_paths, forbidden_api, forbids_unsafe_at_crate_root};
+    use std::path::Path;
+
+    use super::{Node, edge_only_paths, forbidden_api, forbids_unsafe_at_crate_root, target_directory};
+
+    #[test]
+    fn target_directory_should_follow_cargo_metadata() {
+        let metadata = serde_json::json!({ "target_directory": "/cache/lamina-target/x" });
+        assert_eq!(
+            target_directory(&metadata, Path::new("/r")),
+            Path::new("/cache/lamina-target/x")
+        );
+    }
+
+    #[test]
+    fn target_directory_should_default_to_root_target() {
+        let metadata = serde_json::json!({});
+        assert_eq!(target_directory(&metadata, Path::new("/r")), Path::new("/r/target"));
+    }
 
     fn graph(nodes: &[(&str, bool, &[&str])]) -> BTreeMap<String, Node> {
         nodes

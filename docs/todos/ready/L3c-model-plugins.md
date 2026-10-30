@@ -98,7 +98,7 @@ Let models improve extraction where rules fail (complex untagged layouts, border
 - **Licences to verify:** Heron weights and ONNX export (Apache-2.0 per the Hugging Face card), Docling code (MIT per most sources, Apache-2.0 per one), Marker's code move to Apache-2.0 (single blog source; weights stay restricted either way). If Heron's licence does not hold up, ship the traits and fakes only and leave the edge crate for a follow-up.
 - **ONNX determinism.** CPU inference may differ across platforms and ONNX Runtime versions; compare with IoU thresholds, never byte equality, and pin the runtime.
 - **Binary weight.** ONNX Runtime adds tens of MB natively; the edge crate must stay optional and out of default features everywhere.
-- **Trait shape for UniFFI.** Swift/Kotlin implementing `OcrEngine` needs foreign traits (`#[uniffi::export(foreign)]`, UniFFI 0.32) or callback interfaces; the request/provide path avoids depending on that. [L6a](./L6a-lamina-ffi-spike.md) checks which works.
+- **Trait shape for UniFFI.** Swift/Kotlin implementing `OcrEngine` needs foreign traits (`#[uniffi::export(foreign)]`, UniFFI 0.32) or callback interfaces; the request/provide path avoids depending on that. [L6a](../ongoing/L6a-lamina-ffi-spike.md) checks which works.
 - **OCR on pages with `Tr 3` layers** (existing OCR from scanners): trusting vs replacing them is a policy choice; default to trusting, flag low-quality layers, decide in the PR.
 
 ## Definition of done
