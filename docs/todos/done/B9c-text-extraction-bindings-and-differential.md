@@ -12,7 +12,7 @@
 | Branch | `feat/b9c-text-bindings` |
 | PR title | `feat(pdf): page.text() in WASM and TypeScript with differential and quad tests` |
 | Size | M–L (≈ 600–1,000 lines incl. test tooling) |
-| PR | — |
+| PR | [#97](https://github.com/laudebugs/lamina/pull/97) |
 
 ## Goal
 
