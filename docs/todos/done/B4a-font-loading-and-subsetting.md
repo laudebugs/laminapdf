@@ -7,7 +7,7 @@
 | Plan | [pdf-library §7 B4](../../plans/pdf-library.md#b4-fonts-and-text), requirement [§4 F2](../../plans/pdf-library.md#functional) |
 | Round / milestone | Round B (library) — M1 |
 | Depends on | [B1b](./B1b-krilla-fit-spike.md), [B3b](./B3b-lamina-save-writers.md), [X4](./X4-full-lane-gate.md) |
-| Blocks | [B4b](./B4b-shaping-bidi-line-breaking.md), [B4c](./B4c-standard-14-and-simple-fonts.md), [B9b](../ready/B9b-text-extraction-core.md) |
+| Blocks | [B4b](./B4b-shaping-bidi-line-breaking.md), [B4c](./B4c-standard-14-and-simple-fonts.md), [B9b](../ongoing/B9b-text-extraction-core.md) |
 | ADRs | Follows [0005 §6](../../decisions/0005-document-model.md#6-generation-strategy--option-b-recommended-by-the-krilla-fit-spike-accepted-when-its-pr-merges) (own builder; `skrifa`, `subsetter`; reserve-then-fill objects), [0001](../../decisions/0001-core-language-and-licence.md) (caller supplies bytes, determinism), [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) |
 | Branch | `feat/b4a-font-embedding` |
 | PR title | `feat(text): font loading, subsetting and Type 0 embedding with /W and ToUnicode` |
@@ -41,7 +41,7 @@ Embed fonts correctly from code: load TrueType/OpenType/CFF fonts (and TTC membe
 - Shaping, bidi, line breaking, OpenType features: [B4b](./B4b-shaping-bidi-line-breaking.md).
 - Standard 14 fonts, simple TrueType/WinAnsi embedding: [B4c](../done/B4c-standard-14-and-simple-fonts.md).
 - `surface.text()` API: [B5b](../done/B5b-builder-text-and-document-features.md).
-- Reading fonts from existing PDFs for extraction: [B9b](../ready/B9b-text-extraction-core.md).
+- Reading fonts from existing PDFs for extraction: [B9b](../ongoing/B9b-text-extraction-core.md).
 - Colour fonts / emoji: later (03 §7.8), reported as unsupported.
 
 ## Tasks

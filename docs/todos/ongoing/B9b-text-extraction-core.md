@@ -3,11 +3,11 @@
 | Field | Value |
 | --- | --- |
 | ID | `B9b` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [pdf-library §7 B9](../../plans/pdf-library.md#b9-text-extraction), requirement [§4 F8](../../plans/pdf-library.md#functional) |
 | Round / milestone | Round B (library) — M2 Web reader v0.1 (prerequisite) |
 | Depends on | [B2b](../done/B2b-standard-security-decryption.md), [B4a](../done/B4a-font-loading-and-subsetting.md), [B4c](../done/B4c-standard-14-and-simple-fonts.md), [B5c](../done/B5c-lamina-facade-and-examples.md), [B9a](../done/B9a-lamina-content-and-adr-0023.md) |
-| Blocks | [B9c](./B9c-text-extraction-bindings-and-differential.md), [L3a](./L3a-lamina-extract-reading-order.md), [U2b](./U2b-reading-order-ground-truth.md) |
+| Blocks | [B9c](../ready/B9c-text-extraction-bindings-and-differential.md), [L3a](../ready/L3a-lamina-extract-reading-order.md), [U2b](../ready/U2b-reading-order-ground-truth.md) |
 | ADRs | Implements 0023 (from [B9a](../done/B9a-lamina-content-and-adr-0023.md)); follows [0003](../../decisions/0003-reader-tolerance-and-limits.md) (tolerance, warnings) |
 | Branch | `feat/b9b-text-extraction` |
 | PR title | `feat(text): text extraction with encodings, ToUnicode, glyph quads, ActualText and MCIDs` |
@@ -40,7 +40,7 @@ Turn a page's text-showing operators into Unicode text with geometry: per page, 
 
 **Out of scope** (and which todo covers it)
 
-- WASM/TS exposure, differential tests vs pdf.js/pdftotext, quad tests vs PDFium, 10-min extraction fuzz run: [B9c](./B9c-text-extraction-bindings-and-differential.md).
+- WASM/TS exposure, differential tests vs pdf.js/pdftotext, quad tests vs PDFium, 10-min extraction fuzz run: [B9c](../ready/B9c-text-extraction-bindings-and-differential.md).
 - Text layer UI, selection, search: web C5.
 - Layout analysis, tables, OCR: full-editor E3/E13.
 - Bundling predefined CJK CMaps beyond Identity: decide in risks (may fetch from Adobe's cmap-resources, BSD-3-Clause).
@@ -59,7 +59,7 @@ Turn a page's text-showing operators into Unicode text with geometry: per page, 
 
 - [ ] Extracted text for the five-script fixtures (Latin, Arabic, Devanagari, Hebrew, CJK) equals `fixtures/text/expected.json` (normalised whitespace rules documented)
 - [ ] Encrypted fixtures extract the same text and quads as their plaintext originals
-- [ ] `ActualText` replaces run text where present; MCIDs are attached and match the structure tree of tagged fixtures (from [B8a](./B8a-structure-tree.md) if merged, else hand-made fixtures)
+- [ ] `ActualText` replaces run text where present; MCIDs are attached and match the structure tree of tagged fixtures (from [B8a](../ready/B8a-structure-tree.md) if merged, else hand-made fixtures)
 - [ ] Unit tests for the text-rendering matrix and quad computation match hand-computed values; rotated pages and `UserUnit` covered
 - [ ] Malformed CMaps/ToUnicode degrade with warnings, never panic; limits paired tests
 

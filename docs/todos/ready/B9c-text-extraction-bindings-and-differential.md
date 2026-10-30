@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [pdf-library §7 B9](../../plans/pdf-library.md#b9-text-extraction) |
 | Round / milestone | Round B (library) — M2 Web reader v0.1 (prerequisite) |
-| Depends on | [B6b](./B6b-lamina-pdf-package.md), [B6c](./B6c-runtime-matrix.md), [B9b](./B9b-text-extraction-core.md) |
+| Depends on | [B6b](./B6b-lamina-pdf-package.md), [B6c](./B6c-runtime-matrix.md), [B9b](../ongoing/B9b-text-extraction-core.md) |
 | Blocks | [L3b](./L3b-extract-tables-and-serialisers.md), [L4a](./L4a-lamina-cli.md), [C5a](./C5a-text-layer-and-selection.md), [C5b](./C5b-find-in-document.md), [C6c](./C6c-print-download-properties.md), [E2a](./E2a-page-organisation-feature-plan.md), [E2e](./E2e-content-append-api.md), [E3i](./E3i-extraction.md), [E7a](./E7a-adr-0022-content-editing.md) |
 | ADRs | Follows 0023, 0016 (module placement: extraction lives in the text module or base — decide by size), [0018](../../decisions/0018-test-strategy.md) tiers 6 and 9 |
 | Branch | `feat/b9c-text-bindings` |
@@ -20,7 +20,7 @@ Expose text extraction everywhere the readers need it and prove it against indep
 
 ## Context
 
-- [B9b](./B9b-text-extraction-core.md) API; ADR 0016 (from [B6a](../ongoing/B6a-lamina-wasm-and-adr-0016.md)) for module split and size budgets.
+- [B9b](../ongoing/B9b-text-extraction-core.md) API; ADR 0016 (from [B6a](../ongoing/B6a-lamina-wasm-and-adr-0016.md)) for module split and size budgets.
 - Web plan [C5](../../plans/web-app.md#c5-text-selection-and-search) acceptance (copy in five scripts, search counts vs pdf.js) — design the TS shape for it.
 - [Rendering notes §3](../../research/architecture/notes/rendering.md#3-text-layer-selection-search-accessibility-hit-testing).
 - [ADR 0018 §1](../../decisions/0018-test-strategy.md#1-tiers) tier 6 (differential), tier 9 (fuzz).
