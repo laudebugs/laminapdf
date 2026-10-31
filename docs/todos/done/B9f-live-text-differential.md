@@ -3,16 +3,16 @@
 | Field | Value |
 | --- | --- |
 | ID | `B9f` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [pdf-library §7 B9](../../plans/pdf-library.md#b9-text-extraction) |
 | Round / milestone | Round B (library) — M2 Web reader v0.1 (hardening) |
-| Depends on | [B9c](../done/B9c-text-extraction-bindings-and-differential.md), [X3a](../done/X3a-nightly-lane.md) |
+| Depends on | [B9c](./B9c-text-extraction-bindings-and-differential.md), [X3a](./X3a-nightly-lane.md) |
 | Blocks | None |
 | ADRs | [0018](../../decisions/0018-test-strategy.md) tier 6 (differential); [0003](../../decisions/0003-reader-tolerance-and-limits.md) (exception classes carry their rule) |
 | Branch | `test/b9f-live-text-differential` |
 | PR title | `test(text): live text differential in the nightly lane` |
 | Size | M (≈ 300–500 lines of Rust, JS and TOML) |
-| PR | — |
+| PR | [#111](https://github.com/laudebugs/lamina/pull/111) |
 
 ## Goal
 
@@ -20,8 +20,8 @@ Run B9c's text comparison on the external corpus every night, not only on the fi
 
 ## Context
 
-- [B9c](../done/B9c-text-extraction-bindings-and-differential.md): `tools/differential/text.mjs` (pdf.js `getTextContent` and pdftotext per page), the comparison rule (whitespace and bidi controls removed; `crates/lamina/tests/text_differential.rs`), `fixtures/differential/text-exceptions.json` (ASCII85Decode content, pdftotext's widget text, pdftotext's visual-order RTL).
-- [X3a](../done/X3a-nightly-lane.md): `cargo xtask differential --live` (`tools/xtask/src/live.rs`), the runner that kills overrunning readers and reruns their files one per process (`tools/xtask/src/runner.rs`), exception classes in `fixtures/differential/exceptions.toml`.
+- [B9c](./B9c-text-extraction-bindings-and-differential.md): `tools/differential/text.mjs` (pdf.js `getTextContent` and pdftotext per page), the comparison rule (whitespace and bidi controls removed; `crates/lamina/tests/text_differential.rs`), `fixtures/differential/text-exceptions.json` (ASCII85Decode content, pdftotext's widget text, pdftotext's visual-order RTL).
+- [X3a](./X3a-nightly-lane.md): `cargo xtask differential --live` (`tools/xtask/src/live.rs`), the runner that kills overrunning readers and reruns their files one per process (`tools/xtask/src/runner.rs`), exception classes in `fixtures/differential/exceptions.toml`.
 
 ## Scope
 
@@ -39,16 +39,16 @@ Run B9c's text comparison on the external corpus every night, not only on the fi
 
 ## Tasks
 
-- [ ] Load `/rust-best-practices`; read `tools/xtask/src/live.rs` and B9c's `text_differential.rs`
-- [ ] lamina text facts runner; pdf.js and pdftotext text readers under `runner.rs`
-- [ ] `--text` in `differential --live`; summary table; exceptions classes
-- [ ] Nightly workflow: the differential job runs the text facts
-- [ ] Run it locally on a sample (`--sample 50`) and file issues for lamina bugs found
+- [x] Load `/rust-best-practices`; read `tools/xtask/src/live.rs` and B9c's `text_differential.rs`
+- [x] lamina text facts runner; pdf.js and pdftotext text readers under `runner.rs`
+- [x] `--text` in `differential --live`; summary table; exceptions classes
+- [x] Nightly workflow: the differential job runs the text facts
+- [x] Run it locally on a sample (`--sample 50`) and file issues for lamina bugs found
 
 ## Acceptance criteria
 
-- [ ] `cargo xtask differential --live --text --sample 50` runs locally with every disagreement excused or listed as known with an issue
-- [ ] The nightly differential job reports text agreement per source in its summary
+- [x] `cargo xtask differential --live --text --sample 50` runs locally with every disagreement excused or listed as known with an issue
+- [x] The nightly differential job reports text agreement per source in its summary
 
 ## Post-merge checks
 
@@ -60,7 +60,7 @@ Run B9c's text comparison on the external corpus every night, not only on the fi
 
 ## Docs to update
 
-- [ ] `CLAUDE.md` (the live differential's facts), `tools/differential/README.md`
+- [x] `CLAUDE.md` (the live differential's facts), `tools/differential/README.md`
 
 ## Risks and open questions
 
@@ -68,8 +68,8 @@ Run B9c's text comparison on the external corpus every night, not only on the fi
 
 ## Definition of done
 
-- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
-- [ ] Work PR opened from a fresh worktree; **PR** field filled in
+- [x] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [x] Work PR opened from a fresh worktree; **PR** field filled in
 - [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated

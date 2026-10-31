@@ -258,15 +258,18 @@ pub(crate) fn twiggy() -> Tool {
     }
 }
 
-/// Poppler's `pdftotext` at [`POPPLER_VERSION`] (optional: only regenerating the text
-/// extraction facts uses it).
+/// Poppler's `pdftotext` at [`POPPLER_VERSION`] (optional: regenerating the text extraction
+/// facts and the nightly text differential use it).
 pub(crate) fn pdftotext() -> Tool {
     Tool {
         name: "pdftotext",
         version_command: &["pdftotext", "-v"],
         pin: Pin::Exact(POPPLER_VERSION.to_owned()),
         fix: format!("brew install poppler  # or a poppler {POPPLER_VERSION} release"),
-        optional_for: Some("regenerating the text extraction facts (tools/fixtures/text_facts.py)"),
+        optional_for: Some(
+            "regenerating the text extraction facts (tools/fixtures/text_facts.py, cargo xtask differential --text \
+             --update) and cargo xtask differential --live --text (the nightly lane)",
+        ),
     }
 }
 
