@@ -66,7 +66,7 @@ Put the desktop reader in users' hands: tag and publish `desktop v0.1.0` to the 
 
 ## Acceptance criteria
 
-- [ ] `desktop v0.1.0` is downloadable from `<domain>/download` for macOS, Windows and Linux; each artefact passes the runbook's signature checks (Gatekeeper, Authenticode with the owner as publisher, GPG/debsig/rpm, AppImage) and `gh attestation verify`.
+- [ ] `desktop v0.1.0` is downloadable from `laminapdf.com/download` for macOS, Windows and Linux; each artefact passes the runbook's signature checks (Gatekeeper, Authenticode with the owner as publisher, GPG/debsig/rpm, AppImage) and `gh attestation verify`.
 - [ ] The 0.1.1 update-cycle and kill-switch rehearsal procedure (below) is written in the runbook and linked from the PR.
 - [ ] Crash reporting: zero reports sent without consent (no reports at all is fine); any received reports triaged into follow-up todos.
 - [ ] Known issues and target misses are listed in the release notes and have follow-up todos.
