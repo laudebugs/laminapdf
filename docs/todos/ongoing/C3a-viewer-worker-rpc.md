@@ -3,11 +3,11 @@
 | Field | Value |
 | --- | --- |
 | ID | `C3a` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [web reader §6 C3. Viewer core](../../plans/web-app.md#c3-viewer-core) |
 | Round / milestone | Round C (web reader) — M2 Web reader v0.1 |
 | Depends on | [B6b](../done/B6b-lamina-pdf-package.md), [L2a](../done/L2a-worker-client.md), [C2a](../done/C2a-render-adrs.md), [C2c](../done/C2c-render-packages.md) |
-| Blocks | [C3b](./C3b-viewer-virtualiser-and-zoom.md), [E10i](./E10i-platform-signers.md) |
+| Blocks | [C3b](../ready/C3b-viewer-virtualiser-and-zoom.md), [E10i](../ready/E10i-platform-signers.md) |
 | Dependency notes | [C2c](../done/C2c-render-packages.md) (web render adapters); [C2a](../done/C2a-render-adrs.md) (ADR 0009 RPC requirements); library **B6** (`@lamina/pdf` `Document` in the worker; [pdf-library B6](../../plans/pdf-library.md#b6-wasm-and-laminapdf)) |
 | ADRs | Implements 0009 (typed worker RPC) and 0004 (backend selection). Follows [0003](../../decisions/0003-reader-tolerance-and-limits.md) (`Limits`, warning codes surfaced to the UI), [0005](../../decisions/0005-document-model.md) (`ByteSource`) |
 | Branch | `feat/c3a-viewer-worker-rpc` |
@@ -43,10 +43,10 @@ Create `packages/viewer` and its foundation: one **document worker** per open do
 
 **Out of scope** (and which todo covers it)
 
-- Virtualiser, canvas pool, tiles, zoom → [C3b](./C3b-viewer-virtualiser-and-zoom.md).
-- Performance harness → [C3c](./C3c-viewer-perf-harness.md).
-- HTTP range `ByteSource` and password UI → [C4c](./C4c-remote-files-encryption-privacy.md).
-- Text runs, struct tree, search RPC methods → [C5a](./C5a-text-layer-and-selection.md), [C5b](./C5b-find-in-document.md) (the protocol leaves room for them).
+- Virtualiser, canvas pool, tiles, zoom → [C3b](../ready/C3b-viewer-virtualiser-and-zoom.md).
+- Performance harness → [C3c](../ready/C3c-viewer-perf-harness.md).
+- HTTP range `ByteSource` and password UI → [C4c](../ready/C4c-remote-files-encryption-privacy.md).
+- Text runs, struct tree, search RPC methods → [C5a](../ready/C5a-text-layer-and-selection.md), [C5b](../ready/C5b-find-in-document.md) (the protocol leaves room for them).
 - Threaded (SharedArrayBuffer) variant (ADR 0009: later).
 
 ## Tasks

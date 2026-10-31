@@ -27,7 +27,7 @@ Complete the reader's opening story and prove its privacy promise. Remote PDFs o
 - ADR 0011 (from [C2a](../done/C2a-render-adrs.md)) — testable privacy statements; no CORS proxy in v0.1 ([§8 Q2](../../plans/web-app.md#8-open-questions)).
 - [04 §7 encryption](../../research/pdf/04-interactive-security.md#7-encryption-76) — standard security handler; user vs owner passwords.
 - [pdf-library B2](../../plans/pdf-library.md#b2-document-model) — `OpenOptions` password, wrong-password error code, encrypted fixtures for every revision.
-- [C3a](./C3a-viewer-worker-rpc.md) — `ByteSource` interface and the password-once rule.
+- [C3a](../ongoing/C3a-viewer-worker-rpc.md) — `ByteSource` interface and the password-once rule.
 
 ## Scope
 
