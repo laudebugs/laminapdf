@@ -17,7 +17,7 @@
 
 ## Goal
 
-Answer the [architecture §4](../../plans/architecture.md#4-spikes-to-close-open-questions) question **"how close is hayro to PDFium today?"** with numbers. Render every page of the pdf.js and PDFBox test corpora with hayro (pure Rust, MIT/Apache) and with PDFium (native, via `pdfium-render`), compare them with a perceptual metric, and report the pass rate, the failure classes and the speed. The result is the baseline ADR 0004 records for "PDFium is the default, hayro is the CI oracle and the future default", and it defines the threshold the nightly hayro-vs-PDFium diff ([X3b](../ready/X3b-render-diff-nightly.md), on top of C2b's `lamina-render`) will track. Because it touches no lamina crate, this half of C1 can run before B6 merges.
+Answer the [architecture §4](../../plans/architecture.md#4-spikes-to-close-open-questions) question **"how close is hayro to PDFium today?"** with numbers. Render every page of the pdf.js and PDFBox test corpora with hayro (pure Rust, MIT/Apache) and with PDFium (native, via `pdfium-render`), compare them with a perceptual metric, and report the pass rate, the failure classes and the speed. The result is the baseline ADR 0004 records for "PDFium is the default, hayro is the CI oracle and the future default", and it defines the threshold the nightly hayro-vs-PDFium diff ([X3b](../ongoing/X3b-render-diff-nightly.md), on top of C2b's `lamina-render`) will track. Because it touches no lamina crate, this half of C1 can run before B6 merges.
 
 ## Context
 
@@ -41,7 +41,7 @@ Answer the [architecture §4](../../plans/architecture.md#4-spikes-to-close-open
 **Out of scope** (and which todo covers it)
 
 - PDFium-WASM size, memory and reload-after-incremental-save measurements in the browser → [C1b](../done/C1b-pdfium-wasm-spike.md).
-- The product `RenderBackend` trait and adapters, render goldens on `fixtures/` → [C2b](../done/C2b-lamina-render-crate.md); the nightly diff job → [X3b](../ready/X3b-render-diff-nightly.md).
+- The product `RenderBackend` trait and adapters, render goldens on `fixtures/` → [C2b](../done/C2b-lamina-render-crate.md); the nightly diff job → [X3b](../ongoing/X3b-render-diff-nightly.md).
 - Writing ADR 0004 itself → [C2a](../done/C2a-render-adrs.md).
 - Any MuPDF comparison (AGPL, excluded by ADR 0001).
 
