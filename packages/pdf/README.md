@@ -60,6 +60,24 @@ export default { optimizeDeps: { exclude: ["@lamina/pdf"] } };
 - Equal fonts are one PDF font per builder: standard 14 fonts by name, others by their bytes, however many `Font` objects name them.
 - `Image` copies its input and decodes it in the module of first use; bad data surfaces there (or when `width`/`height` is read).
 
+## Tagged PDF
+
+`new Builder({ tagged: true })` tags a document before anything is drawn; a page that uses `tag` or `artifact` tags it either way. Structure is drawn with callbacks, as paths and transactions are:
+
+```ts
+s.artifact("pagination", (s) => s.text("Page 1", { font, size: 9, at: [520, 810] }));
+s.text("Invoice 42", { font, size: 24, at: [56, 80], tag: "H1" });
+s.tag("Table", (s) => {
+  s.tag("TR", (s) => {
+    s.text("Item", { font, size: 11, at: [56, 160], tag: { type: "TH", scope: "column" } });
+  });
+});
+s.image(logo, [440, 56, 100, 40], "The Acme logo"); // a Figure with /Alt
+s.text("Pay online", { font, size: 11, at: [56, 320], link: { target, contents: "Pay invoice 42 online" }, tag: "P" });
+```
+
+`tag` takes a standard type (`TagName`) or a `TagSpec` (`{ type, role, alt, actualText, lang, expansion, scope }`; a custom `type` needs the standard `role` it maps to); text and text boxes take a `tag` option; a link inside an element becomes a `Link` element holding its annotation. Elements and artifacts the callback leaves open end with it, also when it throws. Elements are per page.
+
 ## Errors and warnings
 
 Every error is a `LaminaError` with the [ADR 0026](../../docs/decisions/0026-error-and-diagnostic-contract.md) §1 fields: `code` (from [`fixtures/codes.json`](../../fixtures/codes.json); the `ErrorCode` union is generated from it by `cargo xtask gen codes`), `kind`, `message`, `hint`, `didYouMean`, `location`, `data` (the only place document text appears) and `docsUrl` (the code's page in [`docs/errors/`](../../docs/errors/README.md)). `toJSON()` gives the plain object back.

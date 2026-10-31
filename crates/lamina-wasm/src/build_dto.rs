@@ -6,8 +6,9 @@
 //! [ADR 0027]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0027-coordinates-units-and-page-indexing.md
 
 use lamina::{
-    BlendMode, BuildOptions, Color, Dash, FillRule, Fit, LineCap, LineJoin, LinkTarget, Matrix, Metadata, OutlineEntry,
-    PageLabel, PageLayout, PageMode, PathBuilder, PdfVersion, PointPt, Pt, RectPt, StrokeStyle, ViewerPreferences,
+    ArtifactKind, BlendMode, BuildOptions, Color, Dash, FillRule, Fit, LineCap, LineJoin, LinkTarget, Matrix, Metadata,
+    OutlineEntry, PageLabel, PageLayout, PageMode, PathBuilder, PdfVersion, PointPt, Pt, RectPt, StrokeStyle,
+    TableScope, Tag, TagKind, ViewerPreferences,
 };
 use serde::Deserialize;
 use tsify::Tsify;
@@ -159,6 +160,63 @@ pub(crate) fn pick<T: Copy>(argument: &'static str, name: &str, known: &[(&str, 
             crate::error::did_you_mean(name, &names),
         )
     })
+}
+
+/// A structure element from `@lamina/pdf`, which checks the names: `kind` indexes
+/// [`TagKind::ALL`] (a custom type's role when `custom` names it), `scope` is 0 (none), 1 (row),
+/// 2 (column) or 3 (both). Indices keep the type names and their suggestions out of the module.
+///
+/// # Errors
+/// `invalid-argument` for a `kind` or `scope` out of range.
+pub(crate) fn tag(kind: u8, custom: Option<String>, attributes: [Option<String>; 4], scope: u8) -> JsResult<Tag> {
+    let out_of_range = || invalid_argument("kind", "not a structure type index".to_owned(), Vec::new());
+    let kind = *TagKind::ALL.get(usize::from(kind)).ok_or_else(out_of_range)?;
+    let mut tag = match custom {
+        Some(name) => Tag::custom(name, kind),
+        None => Tag::new(kind),
+    };
+    let [alt, actual_text, lang, expansion] = attributes;
+    if let Some(alt) = alt {
+        tag = tag.with_alt(alt);
+    }
+    if let Some(text) = actual_text {
+        tag = tag.with_actual_text(text);
+    }
+    if let Some(lang) = lang {
+        tag = tag.with_lang(lang);
+    }
+    if let Some(expansion) = expansion {
+        tag = tag.with_expansion(expansion);
+    }
+    let scope = match scope {
+        0 => return Ok(tag),
+        1 => TableScope::Row,
+        2 => TableScope::Column,
+        3 => TableScope::Both,
+        _ => {
+            return Err(invalid_argument(
+                "scope",
+                "not a table scope index".to_owned(),
+                Vec::new(),
+            ));
+        }
+    };
+    Ok(tag.with_scope(scope))
+}
+
+/// An artifact kind by index (`layout`, `page`, `pagination`, `background`).
+pub(crate) fn artifact_kind(kind: u8) -> JsResult<ArtifactKind> {
+    match kind {
+        0 => Ok(ArtifactKind::Layout),
+        1 => Ok(ArtifactKind::Page),
+        2 => Ok(ArtifactKind::Pagination),
+        3 => Ok(ArtifactKind::Background),
+        _ => Err(invalid_argument(
+            "kind",
+            "not an artifact kind index".to_owned(),
+            Vec::new(),
+        )),
+    }
 }
 
 /// Fill rules by name.
@@ -365,6 +423,10 @@ pub struct BuildOptionsInit {
     /// Flate-compress content streams (default `true`).
     #[tsify(optional)]
     pub compress: Option<bool>,
+    /// A tagged document (structure tree, `/MarkInfo`) even before any element (default
+    /// `false`; a page using `beginTag` or `beginArtifact` makes it tagged either way).
+    #[tsify(optional)]
+    pub tagged: Option<bool>,
 }
 
 impl BuildOptionsInit {
@@ -392,6 +454,9 @@ impl BuildOptionsInit {
         }
         if let Some(compress) = self.compress {
             options = options.with_compress(compress);
+        }
+        if let Some(tagged) = self.tagged {
+            options = options.with_tagged(tagged);
         }
         Ok(options)
     }

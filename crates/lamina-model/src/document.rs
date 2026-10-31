@@ -111,6 +111,14 @@ impl Document {
         Outline::new(self)
     }
 
+    /// The logical structure (the catalog's `/StructTreeRoot`, §14.7), if any.
+    ///
+    /// # Errors
+    /// As [`Document::outline`].
+    pub fn structure(&self) -> Result<Option<crate::StructTree>> {
+        crate::structure::read(self)
+    }
+
     /// The document information dictionary (the trailer's `/Info`), if any.
     ///
     /// # Errors
@@ -160,6 +168,18 @@ impl Document {
     /// Records `warning` on the document ([`lamina_cos::Document::report`]).
     pub(crate) fn warn(&self, warning: Warning) -> Result<()> {
         self.cos.report(warning)
+    }
+
+    /// The text string (§7.9.2.2) at `key` of `dict`, decoded to Unicode; `None` when absent,
+    /// unreadable or not a string.
+    pub(crate) fn text_entry(&self, dict: &lamina_cos::Dict, key: &str) -> Result<Option<String>> {
+        let Some(value) = dict.get(key) else {
+            return Ok(None);
+        };
+        Ok(match self.read(value)?.as_deref() {
+            Some(Object::String(s)) => Some(lamina_syntax::text::decode_text_string(&s.bytes)),
+            _ => None,
+        })
     }
 
     /// Resolves `obj` tolerantly: `Ok(None)` when it cannot be read (malformed, a cycle,

@@ -30,6 +30,8 @@ use crate::error::Result;
 use crate::nav::LinkTarget;
 use crate::nav::dest::fit_is_valid;
 use crate::resources::{GsKey, PageResources};
+use crate::tag::mcid::{Marking, PageMarks};
+use crate::tag::{ArtifactKind, ContentKind, Tag, TagKind};
 use color::Color;
 use image::Image;
 use path::{FillRule, Matrix, PathBuilder, Segment};
@@ -63,13 +65,21 @@ enum Command {
     Text(Box<TextCommand>),
     /// A link annotation over a page-space rectangle (already through the transform).
     Link(RectPt, LinkSpec),
+    /// Opens a structure element.
+    BeginTag(Box<Tag>),
+    /// Opens an artifact.
+    BeginArtifact(ArtifactKind),
+    /// Ends the innermost element or artifact.
+    EndMarked,
 }
 
-/// A page's content stream and the links it asked for.
+/// A page's content stream, the links it asked for and its structure.
 pub(crate) struct Rendered {
     pub(crate) content: Vec<u8>,
     /// Each link's rectangle in user space, in order of drawing.
     pub(crate) links: Vec<(UserSpaceRect, LinkSpec)>,
+    /// The page's elements, MCIDs and untagged content.
+    pub(crate) marks: PageMarks,
 }
 
 /// What text needs while a page is written: the document's fonts and the document, where
@@ -147,6 +157,10 @@ pub struct Surface {
     saved_ctm: Vec<Matrix>,
     /// The first invalid value given, reported when the page is finished.
     error: Option<&'static str>,
+    /// Elements and artifacts begun and not yet ended.
+    marks_open: usize,
+    /// Whether anything drawn opened an element or artifact.
+    tagged: bool,
 }
 
 /// A path built by [`Surface::path`], waiting to be painted. Dropping it draws nothing.
@@ -294,6 +308,114 @@ impl Surface {
         self
     }
 
+    /// Draws `image` over `rect` as a `Figure` structure element with `alt` as its `/Alt`
+    /// (alternate description, §14.9.3). A figure without one (`None`) is drawn too, and
+    /// reported by [`Builder::tagging_diagnostics`](crate::Builder::tagging_diagnostics).
+    /// Inside an artifact it is part of the artifact.
+    pub fn figure(&mut self, image: &Image, rect: RectPt, alt: Option<&str>) -> &mut Self {
+        let tag = Tag::new(TagKind::Figure);
+        self.begin_tag(match alt {
+            Some(alt) => tag.with_alt(alt),
+            None => tag,
+        });
+        self.image(image, rect);
+        self.end_tag()
+    }
+
+    /// Draws what `draw` draws inside the structure element `tag` (§14.7.2): text, paths and
+    /// images become its marked content (MCIDs), elements opened inside it its children, and
+    /// links its `Link` children, in reading order. Elements and artifacts `draw` leaves open
+    /// are ended with it. Inside an artifact, `tag` is part of the artifact.
+    ///
+    /// A page that uses an element or artifact makes the document tagged (see
+    /// [`BuildOptions::with_tagged`](crate::BuildOptions::with_tagged)). Elements are per page:
+    /// one doesn't continue on the next page.
+    ///
+    /// ```
+    /// use lamina_build::{BuildOptions, Builder, PageSize, Standard14, Tag, TagKind};
+    /// use lamina_model::{PointPt, Pt};
+    ///
+    /// let mut b = Builder::new(BuildOptions::default());
+    /// let helvetica = b.standard_font(Standard14::Helvetica)?;
+    /// let mut page = b.page(PageSize::A4);
+    /// page.surface().tag(TagKind::Sect, |s| {
+    ///     s.tag(Tag::new(TagKind::H1).with_lang("en"), |s| {
+    ///         s.text("Tagged", &helvetica, Pt::new(24.0), PointPt::from_points(72.0, 96.0)).map(|_| ())
+    ///     })
+    /// })?;
+    /// page.finish()?;
+    /// assert!(b.tagging_diagnostics().is_empty());
+    /// # Ok::<(), lamina_build::Error>(())
+    /// ```
+    ///
+    /// # Errors
+    /// What `draw` returns (the element is ended either way).
+    pub fn tag<T>(&mut self, tag: impl Into<Tag>, draw: impl FnOnce(&mut Self) -> Result<T>) -> Result<T> {
+        let depth = self.marks_open;
+        self.begin_tag(tag);
+        let drawn = draw(self);
+        self.end_to(depth);
+        drawn
+    }
+
+    /// Draws what `draw` draws as an artifact of `kind` (§14.8.2.2): content that isn't part
+    /// of the document's logical content (rules, running heads, backgrounds), outside the
+    /// structure tree. Elements opened inside it are part of it.
+    ///
+    /// # Errors
+    /// What `draw` returns.
+    pub fn artifact<T>(&mut self, kind: ArtifactKind, draw: impl FnOnce(&mut Self) -> Result<T>) -> Result<T> {
+        let depth = self.marks_open;
+        self.begin_artifact(kind);
+        let drawn = draw(self);
+        self.end_to(depth);
+        drawn
+    }
+
+    /// Opens the structure element `tag` until the matching [`Surface::end_tag`]: the
+    /// begin/end form of [`Surface::tag`], for bindings that can't pass a closure. One left
+    /// open is ended at the end of the page.
+    pub fn begin_tag(&mut self, tag: impl Into<Tag>) -> &mut Self {
+        self.marks_open += 1;
+        self.tagged = true;
+        self.commands.push(Command::BeginTag(Box::new(tag.into())));
+        self
+    }
+
+    /// Opens an artifact until the matching [`Surface::end_tag`] (see [`Surface::artifact`]).
+    pub fn begin_artifact(&mut self, kind: ArtifactKind) -> &mut Self {
+        self.marks_open += 1;
+        self.tagged = true;
+        self.commands.push(Command::BeginArtifact(kind));
+        self
+    }
+
+    /// Ends the innermost open element or artifact; ignored when none is open.
+    pub fn end_tag(&mut self) -> &mut Self {
+        if self.marks_open > 0 {
+            self.marks_open -= 1;
+            self.commands.push(Command::EndMarked);
+        }
+        self
+    }
+
+    fn end_to(&mut self, depth: usize) {
+        while self.marks_open > depth {
+            self.end_tag();
+        }
+    }
+
+    /// Whether anything drawn opens an element or artifact.
+    pub(crate) const fn uses_tags(&self) -> bool {
+        self.tagged
+    }
+
+    /// Notes that a text run became an element ([`TextRun::tag`]).
+    #[cfg(feature = "text")]
+    pub(crate) const fn mark_tagged(&mut self) {
+        self.tagged = true;
+    }
+
     /// Removes the last thing drawn when it is a text run, and says whether it did: a caller
     /// that draws a run and then fails to change it ([`TextRun::features`],
     /// [`TextRun::language`], [`TextRun::direction`] lay it out again) can leave nothing
@@ -380,6 +502,7 @@ impl Surface {
             fill: None,
             mode: TextRenderMode::Fill,
             link: None,
+            tag: None,
             ctm: self.ctm,
         })));
         TextRun::new(self, index)
@@ -529,6 +652,7 @@ impl Surface {
         frame: &PageFrame,
         resources: &mut PageResources,
         target: &mut TextTarget<'_>,
+        marking: Marking,
     ) -> Result<Rendered> {
         let to_user = Matrix::new(frame.to_user_space_matrix());
         // The frame maps page space to user space with a positive /UserUnit: never singular.
@@ -540,6 +664,7 @@ impl Surface {
             unit,
             state: State::default(),
             saved: Vec::new(),
+            marking,
         };
         // Only text writes through the target (fonts are reserved at first use).
         #[cfg(not(feature = "text"))]
@@ -547,24 +672,44 @@ impl Surface {
         let mut links = Vec::new();
         for command in &self.commands {
             match command {
-                Command::Link(rect, link) => links.push((frame.rect_to_user_space(rect), link.clone())),
+                Command::Link(rect, link) => {
+                    out.link();
+                    links.push((frame.rect_to_user_space(rect), link.clone()));
+                }
                 #[cfg(feature = "text")]
                 Command::Text(t) => {
+                    if let Some(tag) = &t.tag {
+                        out.marking.begin_tag(&mut out.content, tag);
+                    }
+                    let link = t.link.as_ref().zip(t.bounds());
+                    let in_link = link.is_some() && out.marking.begin_link(&mut out.content);
                     out.text(t, resources, target)?;
-                    if let (Some(link), Some(bounds)) = (&t.link, t.bounds()) {
+                    if let Some((link, bounds)) = link {
+                        out.marking.link();
                         let rect = transformed_bounds(&t.ctm, &bounds);
                         links.push((frame.rect_to_user_space(&rect), link.clone()));
                     }
+                    if in_link {
+                        out.marking.end(&mut out.content);
+                    }
+                    if t.tag.is_some() {
+                        out.marking.end(&mut out.content);
+                    }
                 }
+                Command::BeginTag(tag) => out.marking.begin_tag(&mut out.content, tag),
+                Command::BeginArtifact(kind) => out.marking.begin_artifact(&mut out.content, *kind),
+                Command::EndMarked => out.marking.end(&mut out.content),
                 _ => out.command(command, &from_user, resources),
             }
         }
+        let marks = out.marking.finish(&mut out.content);
         for _ in 0..self.depth {
             out.content.restore_state();
         }
         Ok(Rendered {
             content: out.content.finish().into_vec(),
             links,
+            marks,
         })
     }
 }
@@ -587,6 +732,7 @@ struct Writer {
     unit: f64,
     state: State,
     saved: Vec<State>,
+    marking: Marking,
 }
 
 /// An operand: non-finite values (which PDF can't express) are written as 0.
@@ -594,7 +740,7 @@ struct Writer {
     clippy::cast_possible_truncation,
     reason = "content-stream operands are f32 in pdf-writer; out-of-range values become 0 below"
 )]
-fn n(v: f64) -> f32 {
+pub(crate) fn n(v: f64) -> f32 {
     let v = v as f32;
     if v.is_finite() { v } else { 0.0 }
 }
@@ -604,13 +750,27 @@ fn matrix(m: &Matrix) -> [f32; 6] {
 }
 
 impl Writer {
+    /// A link annotation drawn now: its `OBJR` goes in the innermost `Link` element, one made
+    /// for it when the innermost element is another kind.
+    fn link(&mut self) {
+        let in_link = self.marking.begin_link(&mut self.content);
+        self.marking.link();
+        if in_link {
+            self.marking.end(&mut self.content);
+        }
+    }
+
     fn command(&mut self, command: &Command, from_user: &Matrix, resources: &mut PageResources) {
+        // Every arm that draws marks first (a clip draws nothing), and `q`/`Q` close the open
+        // sequence, so a new command can't be drawn outside the marking.
         match command {
             Command::Save => {
+                self.marking.close(&mut self.content);
                 self.saved.push(self.state.clone());
                 self.content.save_state();
             }
             Command::Restore => {
+                self.marking.close(&mut self.content);
                 self.state = self.saved.pop().unwrap_or_default();
                 self.content.restore_state();
             }
@@ -625,12 +785,18 @@ impl Writer {
                 let name = resources.gstate(*key);
                 self.content.set_parameters(Name(name.as_bytes()));
             }
-            Command::Paint(segments, paint) => self.paint(segments, paint),
+            Command::Paint(segments, paint) => {
+                if !matches!(paint, Paint::Clip(_)) {
+                    self.marking.mark(&mut self.content, ContentKind::Path);
+                }
+                self.paint(segments, paint);
+            }
             // Written by `render` itself (they need the fonts or produce annotations).
             #[cfg(feature = "text")]
             Command::Text(_) => {}
-            Command::Link(..) => {}
+            Command::Link(..) | Command::BeginTag(_) | Command::BeginArtifact(_) | Command::EndMarked => {}
             Command::Image(image, r) => {
+                self.marking.mark(&mut self.content, ContentKind::Image);
                 let name = resources.image(image);
                 let (w, h) = (r.width().get(), r.height().get());
                 // The unit square, upright: its bottom-left at the rect's bottom-left.
@@ -653,6 +819,7 @@ impl Writer {
         if t.lines.iter().all(|l| l.content.is_empty()) {
             return Ok(());
         }
+        self.marking.mark(&mut self.content, ContentKind::Text);
         let key = t.spec.font.key;
         let object = target.fonts.reference(key, target.doc)?;
         let name = resources.font(object);

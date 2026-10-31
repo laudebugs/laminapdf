@@ -3,16 +3,16 @@
 | Field | Value |
 | --- | --- |
 | ID | `B8a` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [pdf-library §7 B8](../../plans/pdf-library.md#b8-tagged-pdf-pdfua-and-pdfa), requirement [§4 F6](../../plans/pdf-library.md#functional) |
 | Round / milestone | Round B (library) — M4 Library 0.2 |
-| Depends on | [B5c](../done/B5c-lamina-facade-and-examples.md), [B6b](../done/B6b-lamina-pdf-package.md) |
+| Depends on | [B5c](./B5c-lamina-facade-and-examples.md), [B6b](./B6b-lamina-pdf-package.md) |
 | Blocks | [B8b](../ready/B8b-conformance-profiles-and-verapdf.md), [L3a](../ready/L3a-lamina-extract-reading-order.md), [U4b](../ready/U4b-reader-mode-from-structure-tree.md), [E2b](../ready/E2b-page-structure-ops.md), [E2d](../ready/E2d-merge-and-split.md), [E6c](../ready/E6c-add-text.md), [E6d](../ready/E6d-watermarks-headers-footers.md) |
 | ADRs | Follows [0005 §6](../../decisions/0005-document-model.md#6-generation-strategy--option-b-recommended-by-the-krilla-fit-spike-accepted-when-its-pr-merges) (lamina owns tagging; krilla's rule lists as reference), [0006](../../decisions/0006-op-log-and-undo.md) (no ops here: build-time only) |
 | Branch | `feat/b8a-structure-tree` |
 | PR title | `feat(build): tagged PDF with structure tree, artifacts, alt text, MCIDs and ParentTree` |
 | Size | L (≈ 900–1,300 lines Rust + TS bindings) |
-| PR | — |
+| PR | [#100](https://github.com/laudebugs/lamina/pull/100) |
 
 ## Goal
 
@@ -45,20 +45,29 @@ Make generated documents tagged: every piece of content is either inside a struc
 
 ## Tasks
 
-- [ ] Load `/rust-best-practices`; read 03 §9 and ISO 32000-2 §14.7–14.8
-- [ ] `lamina-build/src/tag/{mod,elem,mcid,parent_tree,artifact,rolemap}.rs`
-- [ ] Integrate with text runs, images, paths and links from B5a/B5b
-- [ ] `lamina-model::structure` read view
-- [ ] TS API and tests; update examples (`invoice` tagged)
-- [ ] Goldens: `tagged-report.pdf`; full-lane checks with pdf.js (structure tree via `getStructTree`) and PDFium
+- [x] Load `/rust-best-practices`; read 03 §9 and ISO 32000-2 §14.7–14.8
+- [x] `lamina-build/src/tag/{mod,elem,mcid,parent_tree,artifact,rolemap}.rs`
+- [x] Integrate with text runs, images, paths and links from B5a/B5b
+- [x] `lamina-model::structure` read view
+- [x] TS API and tests; update examples (`invoice` tagged)
+- [x] Goldens: `tagged-report.pdf`; full-lane checks with pdf.js (structure tree via `getStructTree`) and PDFium
 
 ## Acceptance criteria
 
-- [ ] A tagged example's structure tree read by pdf.js `getStructTree()` and by `lamina-model` matches the builder input (kinds, order, alt text)
-- [ ] Every MCID on every page is referenced exactly once from the ParentTree; every `/StructParent(s)` resolves
-- [ ] Link annotations are inside `Link` elements via OBJR and have `/Contents`
-- [ ] Untagged-content diagnostics are empty for all tagged examples and non-empty for a deliberately untagged path
-- [ ] Byte-identical goldens; `qpdf --check` clean
+- [x] A tagged example's structure tree read by pdf.js `getStructTree()` and by `lamina-model` matches the builder input (kinds, order, alt text)
+- [x] Every MCID on every page is referenced exactly once from the ParentTree; every `/StructParent(s)` resolves
+- [x] Link annotations are inside `Link` elements via OBJR and have `/Contents`
+- [x] Untagged-content diagnostics are empty for all tagged examples and non-empty for a deliberately untagged path
+- [x] Byte-identical goldens; `qpdf --check` clean
+
+## Outcome
+
+- **API.** Rust: closures, as `path(|p| …)` and ADR 0016's `transact(tx => …)`: `surface.tag(tag, |s| …)`, `surface.artifact(kind, |s| …)` (the closure returns `lamina_build::Result`; the element ends even when it fails), `TextRun::tag`, `surface.figure(&image, rect, alt)`; `begin_tag`/`begin_artifact`/`end_tag` are the begin/end form the bindings use. TS: the same closures (`s.tag("H1", s => …)`, `s.artifact("layout", s => …)`, ended in a `finally`), a `tag` option on `text`/`textBox`, `image(image, rect, alt)`; WASM: `beginTag`/`beginArtifact`/`endTag` with flat arguments, types and artifact kinds as indices that `@lamina/pdf` checks and suggests names for (no new serde records or name tables in the modules, for the size budget; `TAG_NAMES` mirrors `TagKind::ALL`, which a Rust test checks). `BuildOptions::with_tagged` (TS `tagged: true`) tags a document before any element; a page using one tags it either way.
+- **Elements are per page** (one doesn't continue on the next page); appended pages (`Builder::on`) are never tagged (merging structure trees is E2). Tables: `TH` `/Scope` only; `/Headers`, `RowSpan`/`ColSpan`, `THead`/`TBody`/`TFoot` are not offered.
+- **Diagnostics** are `Builder::tagging_diagnostics()` → `TagDiagnostic::{Untagged { page, content, count }, MissingAlt { page }}` (Rust and the façade only; no new error or warning codes: B8b decides which become errors). A clip path alone isn't counted as content. Tagging may begin on a later page (a page using an element tags the document), so every page is counted whether or not the document is tagged yet: pages finished before tagging began report all they drew and linked, and a link annotation without a `Link` element (inside an artifact, or on such a page) is `ContentKind::Link`. The list is empty only when everything has structure.
+- **Custom types** never remap a standard type: a `Tag::custom` name that is one of `TagKind`'s is that kind, and any other PDF 1.7 or 2.0 standard type (`Div`, `BlockQuote`, `THead`, `Formula`, `Hn`, …) is written as `/S` unmapped.
+- **Versions**: `/Tabs /S` and `/E` raise the document to PDF 1.5; the rest needs 1.4 (`/MarkInfo`).
+- **Full-lane checks** follow B5b's precomputed-facts pattern: `fixtures/build/structure.json` (pdf.js `getStructTree`, PDFium `FPDF_StructTree_GetForPage`, `qpdf --check`) from `tools/fixtures/structure_facts.py`, checked by `tests/tagging.rs` in every lane.
 
 ## Post-merge checks
 
@@ -70,8 +79,8 @@ None.
 
 ## Docs to update
 
-- [ ] [pdf-library §10 B8](../../plans/pdf-library.md#10-to-dos): tick "Add structure-tree building"
-- [ ] Docs site guide stub "Accessible PDFs" (completed in [B8b](../ready/B8b-conformance-profiles-and-verapdf.md))
+- [x] [pdf-library §10 B8](../../plans/pdf-library.md#10-to-dos): tick "Add structure-tree building"
+- [ ] Docs site guide stub "Accessible PDFs" (completed in [B8b](../ready/B8b-conformance-profiles-and-verapdf.md)): not written, there is no docs site yet ([B7a](../ready/B7a-docs-site.md) is still `ready`); B8b writes the page
 
 ## Risks and open questions
 
@@ -80,8 +89,8 @@ None.
 
 ## Definition of done
 
-- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
-- [ ] Work PR opened from a fresh worktree; **PR** field filled in
+- [x] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [x] Work PR opened from a fresh worktree; **PR** field filled in
 - [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated

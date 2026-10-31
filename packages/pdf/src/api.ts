@@ -1,15 +1,19 @@
 // The public API every export condition shares; each entry adds its own `init` and `loadText`
 // (src/index.ts for browsers, Deno and the default; src/entry/ for Node and workerd).
 export type {
+  ArtifactKind,
   BlendMode,
   BuilderOptions,
   FillRule,
   PageSizeName,
   StrokeStyle,
+  Tag,
+  TagName,
+  TagSpec,
   TextBoxOptions,
   TextOptions,
 } from "./builder.js";
-export { Builder, PAGE_SIZES, Page, PendingPath, Surface } from "./builder.js";
+export { Builder, PAGE_SIZES, Page, PendingPath, Surface, TAG_NAMES } from "./builder.js";
 export { Document, PageRef, SaveJob } from "./document.js";
 export type { Diagnostic, ErrorKind, LaminaWarning, Location } from "./errors.js";
 export { isLaminaError, LaminaError } from "./errors.js";

@@ -8,6 +8,7 @@ use crate::builder::Target;
 use crate::error::{Error, Result};
 use crate::resources::PageResources;
 use crate::surface::{Surface, TextTarget};
+use crate::tag::mcid::Marking;
 
 /// A page size in points (physical: `/UserUnit` is applied when the page is written).
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -202,7 +203,7 @@ impl<'b> PageBuilder<'b> {
         #[cfg(feature = "text")]
         let fonts = self.surface.has_text().then(|| state.fonts.clone());
         let resources = state.resources.clone();
-        let (links, required) = (state.links.len(), state.required);
+        let (links, required, tags) = (state.links.len(), state.required, state.tag.mark());
         let written = self.write();
         if written.is_err() {
             // Should the rollback fail too, the first error is the one to report.
@@ -215,6 +216,7 @@ impl<'b> PageBuilder<'b> {
             state.resources = resources;
             state.links.truncate(links);
             state.required = required;
+            state.tag.rollback(tags);
         }
         written
     }
@@ -250,6 +252,9 @@ impl<'b> PageBuilder<'b> {
         }
         let mut resources = PageResources::default();
         let state = &mut *self.target.state;
+        // Appended pages are never tagged (no structure tree to merge into).
+        let tagged = state.tagging && (state.tag.tagged || self.surface.uses_tags());
+        let crop = frame.crop_box().to_array().map(crate::surface::n);
         let rendered = self.surface.render(
             &frame,
             &mut resources,
@@ -258,7 +263,12 @@ impl<'b> PageBuilder<'b> {
                 fonts: &mut state.fonts,
                 doc: &*self.target.doc,
             },
+            Marking::new(state.tagging, tagged, crop),
         )?;
+        let keys = state.tag.keys(&rendered.marks, self.target.doc)?;
+        if let Some(key) = keys.page {
+            page.insert("StructParents", key);
+        }
         state.require(resources.required_version());
         let mut cos = self.target.doc.edit();
         page.insert("Resources", resources.write(&mut cos, &mut state.resources)?);
@@ -269,21 +279,36 @@ impl<'b> PageBuilder<'b> {
             Stream::new(Dict::new(), content)
         };
         page.insert("Contents", cos.create(Object::Stream(stream))?);
+        let mut annots = Vec::with_capacity(rendered.links.len());
         if !rendered.links.is_empty() {
             // Reserved now, written when the build finishes: a link may name a later page.
-            let mut annots = Vec::with_capacity(rendered.links.len());
-            for (rect, link) in rendered.links {
+            for (i, (rect, link)) in rendered.links.into_iter().enumerate() {
                 let object = cos.document().reserve_number()?;
-                annots.push(Object::Ref(object));
+                annots.push(object);
+                let mut dict = link_dict(&rect, link.contents.as_deref());
+                if let Some(key) = keys.links.get(i).copied().flatten() {
+                    dict.insert("StructParent", key);
+                }
                 state.links.push(PendingLink {
                     object,
-                    dict: link_dict(&rect, link.contents.as_deref()),
+                    dict,
                     target: link.target,
                 });
             }
-            page.insert("Annots", Object::Array(annots));
+            page.insert("Annots", annots.iter().map(|r| Object::Ref(*r)).collect::<Vec<_>>());
+            if tagged {
+                // Annotations in structure order (§12.5.1, PDF 1.5; PDF/UA requires it).
+                page.insert("Tabs", Name::from("S"));
+                state.require((1, 5));
+            }
+        }
+        if rendered.marks.elems.iter().any(|e| e.tag.expansion().is_some()) {
+            // `/E` is PDF 1.5 (§14.9.5); the rest of the structure 1.3 and `/MarkInfo` 1.4.
+            state.require((1, 5));
         }
         let r = cos.create(Object::Dict(page))?;
+        let index = u32::try_from(state.pages.len()).unwrap_or(u32::MAX);
+        state.tag.add_page(index, r, rendered.marks, &keys, &annots);
         state.pages.push(r);
         state.frames.push(frame);
         Ok(PageId::object(r))

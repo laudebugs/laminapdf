@@ -59,8 +59,9 @@
 //!   [`save`](Document::save) with [`SaveOptions`] (incremental or a full rewrite, planned
 //!   around signatures).
 //! * [`Builder`] (feature `text`, on by default): pages, paths, colour, images, shaped text in
-//!   any script, text boxes, links, outlines, page labels and metadata, finishing into a
-//!   [`Document`].
+//!   any script, text boxes, links, outlines, page labels and metadata, tagged PDF
+//!   ([`Surface::tag`], [`Surface::figure`], [`Surface::artifact`]; [`Tag`], [`TagKind`]),
+//!   finishing into a [`Document`].
 //! * [`Error`]: one error type with a stable [`code`](Error::code), a [`kind`](Error::kind),
 //!   a [`hint`](Error::hint), a [`location`](Error::location) and a
 //!   [`docs_url`](Error::docs_url), serialising to the [ADR 0026] object ([`Diagnostic`]);
@@ -152,9 +153,10 @@ pub use lamina_build::{
 };
 #[cfg(feature = "build")]
 pub use lamina_build::{
-    BlendMode, BuildOptions, Color, Dash, FillRule, Fit, IccProfile, Image, ImageFormat, LabelStyle, LineCap, LineJoin,
-    LinkTarget, Matrix, Metadata, OutlineEntry, OutlineItemId, PageBuilder, PageLabel, PageLayout, PageMode, PageSize,
-    PathBuilder, PdfVersion, PendingPath, PngOptions, StrokeStyle, Surface, ViewerPreferences,
+    ArtifactKind, BlendMode, BuildOptions, Color, ContentKind, Dash, FillRule, Fit, IccProfile, Image, ImageFormat,
+    LabelStyle, LineCap, LineJoin, LinkTarget, Matrix, Metadata, OutlineEntry, OutlineItemId, PageBuilder, PageLabel,
+    PageLayout, PageMode, PageSize, PathBuilder, PdfVersion, PendingPath, PngOptions, StrokeStyle, Surface, TableScope,
+    Tag, TagDiagnostic, TagKind, ViewerPreferences,
 };
 /// A font loaded from its bytes (TrueType, OpenType/CFF, collections, variable instances).
 #[cfg(feature = "text")]

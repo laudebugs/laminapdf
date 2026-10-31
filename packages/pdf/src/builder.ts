@@ -96,6 +96,75 @@ export type BlendMode =
   | "color"
   | "luminosity";
 
+/**
+ * The standard structure types (ISO 32000-1 §14.8.4), in the order of lamina-build's
+ * `TagKind::ALL` (the module takes their index).
+ */
+export const TAG_NAMES = [
+  "Document",
+  "Part",
+  "Sect",
+  "H1",
+  "H2",
+  "H3",
+  "H4",
+  "H5",
+  "H6",
+  "P",
+  "L",
+  "LI",
+  "Lbl",
+  "LBody",
+  "Table",
+  "TR",
+  "TH",
+  "TD",
+  "Figure",
+  "Caption",
+  "Link",
+  "Span",
+  "Quote",
+  "Note",
+  "Code",
+] as const;
+
+/** A standard structure type. */
+export type TagName = (typeof TAG_NAMES)[number];
+
+const ARTIFACT_KINDS = ["layout", "page", "pagination", "background"] as const;
+const SCOPES = ["row", "column", "both"] as const;
+
+/** The index of `name` in `names`, else `invalid-argument` with the closest names. */
+function indexOf(names: readonly string[], name: string, argument: string, detail: string): number {
+  const i = names.indexOf(name);
+  if (i >= 0) return i;
+  throw packageError("invalid-argument", detail, { didYouMean: didYouMean(name, names), data: { argument, detail } });
+}
+
+/** A structure element with attributes; `type` may be a custom name when `role` is given. */
+export interface TagSpec {
+  /** A standard type, or a custom name written with a `RoleMap` entry to `role`. */
+  readonly type: TagName | (string & {});
+  /** The standard type a custom `type` stands for. */
+  readonly role?: TagName;
+  /** `/Alt`: alternate text (a `Figure` needs it). */
+  readonly alt?: string;
+  /** `/ActualText`: the exact text the content stands for. */
+  readonly actualText?: string;
+  /** `/Lang`: the element's language (BCP 47). */
+  readonly lang?: string;
+  /** `/E`: the expansion of an abbreviation. */
+  readonly expansion?: string;
+  /** `/Scope` of a `TH`. */
+  readonly scope?: "row" | "column" | "both";
+}
+
+/** A structure element: a type, or a type with attributes. */
+export type Tag = TagName | TagSpec;
+
+/** What kind of artifact (content outside the logical structure). */
+export type ArtifactKind = (typeof ARTIFACT_KINDS)[number];
+
 /** Options of {@link Surface.text}. */
 export interface TextOptions {
   /** The font (needs the text module). */
@@ -116,6 +185,8 @@ export interface TextOptions {
   readonly language?: string;
   /** Paragraph direction (default: from the first strong character). */
   readonly direction?: Direction;
+  /** The structure element the run is (as drawing it inside {@link Surface.tag}). */
+  readonly tag?: Tag;
 }
 
 /** Options of {@link Surface.textBox}. */
@@ -138,6 +209,8 @@ export interface TextBoxOptions {
   readonly language?: string;
   /** OpenType features. */
   readonly features?: readonly string[];
+  /** The structure element the box is (as drawing it inside {@link Surface.tag}). */
+  readonly tag?: Tag;
 }
 
 /** The size of a named page; `invalid-argument` (with suggestions) for an unknown name. */
@@ -336,11 +409,91 @@ export class Surface {
     return new PendingPath(this, this.#page, encoder.finish());
   }
 
-  /** Draws `image` scaled into `rect`. */
-  image(image: Image, rect: Rect): this {
+  /**
+   * Draws `image` scaled into `rect`; with `alt`, as a `Figure` structure element with that
+   * alternate text.
+   */
+  image(image: Image, rect: Rect, alt?: string): this {
     const raw = image.in(this.#builder.glue);
-    guard(() => this.#page.get().image(raw, rect[0], rect[1], rect[2], rect[3]));
+    const draw = () => guard(() => this.#page.get().image(raw, rect[0], rect[1], rect[2], rect[3]));
+    return alt === undefined ? (draw(), this) : this.tag({ type: "Figure", alt }, draw);
+  }
+
+  /**
+   * Draws what `draw` draws inside the structure element `tag`: its text, paths and images
+   * become the element's content, elements opened inside it its children, links its `Link`
+   * children, in reading order. Elements and artifacts `draw` leaves open end with it, also when
+   * it throws. A page using an element makes the document tagged.
+   *
+   * @example
+   * ```ts
+   * s.tag("Sect", (s) => {
+   *   s.text("Results", { font, size: 18, at: [56, 96], tag: "H1" });
+   *   s.tag({ type: "P", lang: "en-GB" }, (s) => s.textBox(summary, { font, size: 11, box }));
+   * });
+   * ```
+   * @throws {@link LaminaError} `invalid-argument` for an unknown type without a `role`.
+   */
+  tag(tag: Tag, draw: (s: this) => void): this {
+    this.#begin(tag);
+    this.#within(draw);
     return this;
+  }
+
+  /**
+   * Draws what `draw` draws as an artifact: decoration, running heads and footers, backgrounds;
+   * content outside the structure tree.
+   */
+  artifact(kind: ArtifactKind, draw: (s: this) => void): this {
+    const index = indexOf(ARTIFACT_KINDS, kind, "kind", "not an artifact kind");
+    guard(() => this.#page.get().beginArtifact(index));
+    this.#within(draw);
+    return this;
+  }
+
+  #begin(tag: Tag): void {
+    const t: TagSpec = typeof tag === "string" ? { type: tag } : tag;
+    const standard = TAG_NAMES.indexOf(t.type as TagName);
+    const custom = standard < 0 && t.role !== undefined;
+    const kind = custom
+      ? indexOf(TAG_NAMES, t.role ?? "", "role", "not a standard structure type")
+      : indexOf(TAG_NAMES, t.type, "type", "not a standard structure type (give a custom type a role)");
+    const scope = t.scope === undefined ? 0 : indexOf(SCOPES, t.scope, "scope", "not a table scope") + 1;
+    guard(() =>
+      this.#page.get().beginTag(kind, custom ? t.type : undefined, t.alt, t.actualText, t.lang, t.expansion, scope),
+    );
+  }
+
+  /** Runs `draw`, then ends the element or artifact just begun. */
+  #within(draw: (s: this) => void): void {
+    this.#ended(() => draw(this));
+  }
+
+  /**
+   * Runs `draw`, then ends the innermost element or artifact. When `draw` throws, its error is
+   * the one thrown (ending is still tried, and its own failure, a finished page, ignored).
+   */
+  #ended<T>(draw: () => T): T {
+    let result: T;
+    try {
+      result = draw();
+    } catch (e) {
+      try {
+        this.#page.get().endTag();
+      } catch {
+        // `draw`'s error is the one to report.
+      }
+      throw e;
+    }
+    guard(() => this.#page.get().endTag());
+    return result;
+  }
+
+  /** Runs `draw` inside `tag`, when there is one. */
+  #tagged<T>(tag: Tag | undefined, draw: () => T): T {
+    if (tag === undefined) return draw();
+    this.#begin(tag);
+    return this.#ended(draw);
   }
 
   /** A link annotation over `rect`, with `contents` as its alternate text. */
@@ -357,8 +510,10 @@ export class Surface {
    */
   text(text: string, options: TextOptions): TextRunInfo {
     const font = this.#builder.wasmFont(options.font);
-    const extra = rest(options, ["font", "size", "at"]);
-    return guard(() => this.#page.get().text(text, font, options.size, options.at[0], options.at[1], extra as never));
+    const extra = rest(options, ["font", "size", "at", "tag"]);
+    return this.#tagged(options.tag, () =>
+      guard(() => this.#page.get().text(text, font, options.size, options.at[0], options.at[1], extra as never)),
+    );
   }
 
   /**
@@ -370,8 +525,10 @@ export class Surface {
   textBox(text: string, options: TextBoxOptions): TextLayout {
     const font = this.#builder.wasmFont(options.font);
     const [x, y, w, h] = options.box;
-    const extra = rest(options, ["font", "size", "box"]);
-    return guard(() => this.#page.get().textBox(text, font, options.size, x, y, w, h, extra as never));
+    const extra = rest(options, ["font", "size", "box", "tag"]);
+    return this.#tagged(options.tag, () =>
+      guard(() => this.#page.get().textBox(text, font, options.size, x, y, w, h, extra as never)),
+    );
   }
 }
 

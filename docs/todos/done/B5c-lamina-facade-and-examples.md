@@ -7,7 +7,7 @@
 | Plan | [pdf-library §7 B5](../../plans/pdf-library.md#b5-builder-and-the-lamina-crate), [§6 docs and examples](../../plans/pdf-library.md#6-docs-examples-and-publishing) |
 | Round / milestone | Round B (library) — M1 |
 | Depends on | [B5b](./B5b-builder-text-and-document-features.md), [L1a](./L1a-contract-adrs.md), [L1c](./L1c-error-contract-core.md), [X4](./X4-full-lane-gate.md) |
-| Blocks | [B6a](./B6a-lamina-wasm-and-adr-0016.md), [B8a](../ongoing/B8a-structure-tree.md), [B9b](./B9b-text-extraction-core.md), [L4a](../ready/L4a-lamina-cli.md), [L6a](./L6a-lamina-ffi-spike.md), [E1a](../ready/E1a-editing-foundation-feature-plan.md), [E1b](../ready/E1b-xmp-packet-model.md), [E2e](../ready/E2e-content-append-api.md), [E6b](../ready/E6b-place-images-and-shapes.md) |
+| Blocks | [B6a](./B6a-lamina-wasm-and-adr-0016.md), [B8a](./B8a-structure-tree.md), [B9b](./B9b-text-extraction-core.md), [L4a](../ready/L4a-lamina-cli.md), [L6a](./L6a-lamina-ffi-spike.md), [E1a](../ready/E1a-editing-foundation-feature-plan.md), [E1b](../ready/E1b-xmp-packet-model.md), [E2e](../ready/E2e-content-append-api.md), [E6b](../ready/E6b-place-images-and-shapes.md) |
 | ADRs | Follows [0005 §1](../../decisions/0005-document-model.md#1-layers) (façade on top), [0018](../../decisions/0018-test-strategy.md) tiers 3 and 8, [0001](../../decisions/0001-core-language-and-licence.md); code-organisation [§4 public API](../../guidelines/code-organization.md#4-public-api-surface-and-stability) |
 | Branch | `feat/b5c-lamina-facade` |
 | PR title | `feat(lamina): façade crate with examples, byte goldens and PDFium/hayro render goldens (B5c)` |

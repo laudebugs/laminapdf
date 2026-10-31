@@ -299,6 +299,40 @@
       "showText": 1
     }
   ],
+  "fixtures/golden/tagged-report.pdf": [
+    {
+      "beginMarkedContentProps": 23,
+      "beginText": 22,
+      "constructPath": 1,
+      "endMarkedContent": 23,
+      "endText": 22,
+      "paintImageXObject": 1,
+      "restore": 2,
+      "save": 2,
+      "setDash": 1,
+      "setFillRGBColor": 1,
+      "setFont": 22,
+      "setLineCap": 1,
+      "setLineJoin": 1,
+      "setLineWidth": 1,
+      "setMiterLimit": 1,
+      "setStrokeRGBColor": 1,
+      "setTextMatrix": 23,
+      "showText": 23,
+      "transform": 1
+    },
+    {
+      "beginMarkedContentProps": 8,
+      "beginText": 8,
+      "constructPath": 1,
+      "endMarkedContent": 8,
+      "endText": 8,
+      "setFillRGBColor": 2,
+      "setFont": 8,
+      "setTextMatrix": 8,
+      "showText": 8
+    }
+  ],
   "fixtures/golden/text-cff.pdf": [
     {
       "beginText": 2,

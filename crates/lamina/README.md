@@ -9,7 +9,7 @@ The façade crate: one dependency for Rust users, and the API every binding wrap
 | Open and read | `Document::open_bytes(Vec<u8>, OpenOptions)`, `open_source(Arc<dyn ByteSource>, …)`; `page_count`, `page_info(index)`, `page_infos()`, `page_by_id(&PageId)` (one page-tree walk, cached until the next change), `info`, `warnings()` (a `WarningCursor` with `next_batch(max)`; build warnings first) |
 | Edit | `apply(Vec<Op>)` (one transaction), `apply_log(json)`, `undo`, `redo` |
 | Save | `save(&SaveOptions, &CancelToken) -> Saved { bytes, report }`, or `save_job(&SaveOptions)` stepped with a `Budget`; after `not-rebased`, `Error::saved_output()` and `rebase(bytes)` |
-| Build (`build`; fonts and text with `text`) | `Builder` (fonts, pages and their `Surface`, destinations, outline, page labels, metadata) → `finish()` → `Document` |
+| Build (`build`; fonts and text with `text`) | `Builder` (fonts, pages and their `Surface`, destinations, outline, page labels, metadata; tagged PDF: `Surface::tag`, `figure`, `artifact`, `tagging_diagnostics`) → `finish()` → `Document` |
 | Extract (`text`) | `page_text(index, &TextOptions)` → `extract::PageText` (`page_texts` for every page in one walk): glyphs with Unicode and quads in page space, runs (font, size, MCID, `ActualText`, invisible), `lines()` (todo B9d); fonts parsed once per document and revision (a `RefCell` cache like the page facts') |
 | Errors | `Error` with `code()`, `kind()`, `location()`, `hint()`, `docs_url()`, `diagnostic()`, and `Serialize` to the [ADR 0026](../../docs/decisions/0026-error-and-diagnostic-contract.md) §1 object; `Warning` likewise |
 

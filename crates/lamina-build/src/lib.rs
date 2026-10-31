@@ -50,10 +50,16 @@
 //!   [`Builder::destination`], [`Builder::outline`] ([`OutlineEntry`]),
 //!   [`Builder::page_labels`] ([`PageLabel`]), [`Builder::metadata`] (Info and XMP from one
 //!   [`Metadata`]), [`Builder::lang`], [`Builder::viewer_preferences`].
+//! * Tagged PDF ([B8a]): [`Surface::tag`] ([`Tag`], [`TagKind`], [`TableScope`]),
+//!   [`TextRun::tag`], [`Surface::figure`] (`/Alt`), [`Surface::artifact`] ([`ArtifactKind`]);
+//!   MCIDs per page, `/StructParents`, the `ParentTree`, `OBJR`s for links, the `RoleMap`
+//!   and `/MarkInfo`; [`Builder::tagging_diagnostics`] ([`TagDiagnostic`]) for what is left
+//!   untagged.
 //!
 //! [ADR 0005]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0005-document-model.md
 //! [ADR 0027]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0027-coordinates-units-and-page-indexing.md
 //! [B5b]: https://github.com/laudebugs/lamina/blob/main/docs/todos/done/B5b-builder-text-and-document-features.md
+//! [B8a]: https://github.com/laudebugs/lamina/blob/main/docs/todos/done/B8a-structure-tree.md
 #![forbid(unsafe_code)]
 
 mod annot;
@@ -65,6 +71,7 @@ mod nav;
 mod page;
 mod resources;
 mod surface;
+mod tag;
 
 // What `fixtures/codes.json` lists, for the kind tests (shared with the other crates' tests).
 #[cfg(test)]
@@ -88,3 +95,4 @@ pub use surface::text::{Font, TextRenderMode, TextRun};
 #[cfg(feature = "text")]
 pub use surface::textbox::{LineBox, Overflow, TextBoxOptions, TextLayout};
 pub use surface::{PendingPath, Surface};
+pub use tag::{ArtifactKind, ContentKind, TableScope, Tag, TagDiagnostic, TagKind};

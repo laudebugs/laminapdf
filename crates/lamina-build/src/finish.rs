@@ -195,7 +195,7 @@ pub(crate) fn new_document(
     if let Some(prefs) = features.prefs {
         required = required.max(prefs.version());
     }
-    if features.lang.is_some() || features.metadata.is_some() {
+    if features.lang.is_some() || features.metadata.is_some() || state.tag.tagged {
         required = required.max((1, 4));
     }
     let mut cat = Dict::new();
@@ -222,6 +222,7 @@ pub(crate) fn new_document(
     if let Some(lang) = &features.lang {
         cat.insert("Lang", PdfString::literal(encode_text_string(lang)));
     }
+    state.tag.write(&mut cos, &mut cat)?;
     if features.metadata.is_some() {
         let mut d = Dict::new();
         d.insert("Type", Name::from("Metadata"));

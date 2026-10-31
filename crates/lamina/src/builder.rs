@@ -1,7 +1,9 @@
 //! [`Builder`]: `lamina-build`'s builder, finishing into a façade [`Document`].
 
 use lamina_build::ViewerPreferences;
-use lamina_build::{BuildOptions, Fit, Metadata, OutlineEntry, OutlineItemId, PageBuilder, PageLabel, PageSize};
+use lamina_build::{
+    BuildOptions, Fit, Metadata, OutlineEntry, OutlineItemId, PageBuilder, PageLabel, PageSize, TagDiagnostic,
+};
 #[cfg(feature = "text")]
 use lamina_build::{EmbedPolicy, Standard14};
 
@@ -107,6 +109,15 @@ impl Builder {
     pub fn viewer_preferences(&mut self, prefs: ViewerPreferences) -> &mut Self {
         self.0.viewer_preferences(prefs);
         self
+    }
+
+    /// What the tagged document lacks so far: content drawn outside every structure element
+    /// and artifact, and figures without alternate text, per finished page. Empty while the
+    /// document isn't tagged ([`BuildOptions::with_tagged`], or a page using
+    /// [`Surface::tag`](crate::Surface::tag)).
+    #[must_use]
+    pub fn tagging_diagnostics(&self) -> Vec<TagDiagnostic> {
+        self.0.tagging_diagnostics().to_vec()
     }
 
     /// A page of `size`, added by [`PageBuilder::finish`].
