@@ -12,7 +12,7 @@
 | Branch | `ci/x3b-render-diffs` |
 | PR title | `ci: nightly hayro-vs-PDFium render diffs (X3b)` |
 | Size | M (≈ 300–600 lines) |
-| PR | — |
+| PR | [#133](https://github.com/laudebugs/lamina/pull/133) |
 
 ## Goal
 
@@ -71,7 +71,7 @@ Unit tests for the comparator and report generator.
 ## Definition of done
 
 - [x] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
-- [ ] Work PR opened from a fresh worktree; **PR** field filled in
+- [x] Work PR opened from a fresh worktree; **PR** field filled in
 - [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
 - [ ] CI green
 - [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
