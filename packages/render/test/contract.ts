@@ -3,7 +3,7 @@
 // lamina reports, bounded tiles that stitch into the whole page, view rotations, typed errors,
 // AbortSignal handling, bounded memory and, where the runner can decode PNGs (browsers), C2b's
 // render goldens of the same backend.
-import { describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it } from "vitest";
 import {
   bytesSource,
   isRenderError,
@@ -104,8 +104,12 @@ export function renderContract(options: ContractOptions): void {
     backend.open(bytesSource(await read(path)), password === undefined ? {} : { password });
 
   describe("RenderBackend contract", () => {
-    it("opens every corpus file with lamina's page count and first page size", async () => {
+    // Every test can run alone (`-t`): the backend is made before any of them.
+    beforeAll(async () => {
       backend = await options.backend();
+    });
+
+    it("opens every corpus file with lamina's page count and first page size", async () => {
       const expected = JSON.parse(new TextDecoder().decode(await read("fixtures/corpus/expected.json"))) as Record<
         string,
         { page_count: number; first_page_mediabox: number[]; encrypted: boolean }
@@ -169,6 +173,27 @@ export function renderContract(options: ContractOptions): void {
       }
     });
 
+    it("turns a throwing source into a source error", async () => {
+      const bytes = await read("fixtures/corpus/text-example.pdf");
+      const throwing: RenderSource = {
+        size: bytes.length,
+        readSync: (offset, length) => {
+          // Any read that touches the middle throws (hayro reads the whole small file at once).
+          if (offset + length > 1024 && offset < bytes.length - 1024) throw new TypeError("disk on fire");
+          return bytes.subarray(offset, Math.min(bytes.length, offset + length));
+        },
+      };
+      const e = thrown(() => {
+        const doc = backend.open(throwing);
+        try {
+          doc.render({ page: 0, scale: 0.25 });
+        } finally {
+          doc.close();
+        }
+      });
+      expect(isRenderError(e, "source")).toBe(true);
+    });
+
     it("throws typed errors for passwords, pages and oversized requests", async () => {
       expect(
         isRenderError(
@@ -225,7 +250,22 @@ export function renderContract(options: ContractOptions): void {
         }
       });
       expect(isRenderError(e, "data-pending")).toBe(true);
-      expect((e as { ranges?: unknown[] }).ranges?.length ?? 0).toBeGreaterThan(0);
+      const ranges = (e as { ranges?: (readonly [number, number])[] }).ranges ?? [];
+      expect(ranges.length).toBeGreaterThan(0);
+      // Sorted and merged: no range overlaps or touches the next.
+      for (let i = 1; i < ranges.length; i++) {
+        const [o0 = 0, l0 = 0] = ranges[i - 1] ?? [];
+        expect((ranges[i]?.[0] ?? 0) > o0 + l0).toBe(true);
+      }
+    });
+
+    it("checks an aborted signal before whether the document is closed", async () => {
+      const doc = await open("fixtures/corpus/hello.pdf");
+      doc.close();
+      const controller = new AbortController();
+      controller.abort();
+      const e = thrown(() => doc.render({ page: 0, scale: 1 }, { signal: controller.signal }));
+      expect(e instanceof DOMException && e.name === "AbortError").toBe(true);
     });
 
     it("rejects an aborted request with AbortError and a closed document with disposed", async () => {

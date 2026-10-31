@@ -8,6 +8,14 @@ describe("verify-pdfium", () => {
     expect(verify(readFileSync(wasmPath()))).toBe(PDFIUM_WASM_SHA256);
   });
 
+  it("names the version package.json pins", async () => {
+    const manifest = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8")) as {
+      dependencies: Record<string, string>;
+    };
+    const { PDFIUM_PACKAGE } = await import("../src/index.js");
+    expect(PDFIUM_PACKAGE).toBe(`@embedpdf/pdfium@${manifest.dependencies["@embedpdf/pdfium"]}`);
+  });
+
   it("refuses any other bytes", () => {
     const bytes = new Uint8Array(readFileSync(wasmPath()));
     bytes[100] = (bytes[100] ?? 0) ^ 1;

@@ -230,9 +230,18 @@ export function isRenderError<C extends RenderErrorCode>(e: unknown, code?: C): 
   return typeof actual === "string" && (code === undefined || actual === code);
 }
 
-/** Merges limits over the defaults. */
+/** Whether `code` is one of the codes a render backend throws. */
+export function isRenderErrorCode(code: unknown): code is RenderErrorCode {
+  return typeof code === "string" && Object.hasOwn(KINDS, code);
+}
+
+/**
+ * Merges limits over the defaults. Sides are clamped to 2^32 − 1 (a u32 in the Rust planner),
+ * so both planners see the same limit.
+ */
 export function limitsOf(limits?: Partial<RenderLimits>): RenderLimits {
-  return { ...DEFAULT_LIMITS, ...limits };
+  const merged = { ...DEFAULT_LIMITS, ...limits };
+  return { ...merged, maxRenderSide: Math.min(Math.max(0, Math.floor(merged.maxRenderSide)), 0xffff_ffff) };
 }
 
 /** Merges flags over the defaults. */
@@ -249,7 +258,8 @@ export function flagsOf(flags?: Partial<RenderFlags>): RenderFlags {
  */
 export function planTile(page: RenderPage, request: RenderRequest, limits: RenderLimits): TilePlan {
   const { scale } = request;
-  if (!Number.isFinite(scale) || scale <= 0) {
+  // The Rust planner sees the scale as an f32: check that value, so both agree.
+  if (!Number.isFinite(Math.fround(scale)) || Math.fround(scale) <= 0) {
     throw new RenderError("invalid-argument", "invalid render request: scale must be finite and positive");
   }
   if (!(page.width > 0 && page.height > 0 && Number.isFinite(page.width) && Number.isFinite(page.height))) {

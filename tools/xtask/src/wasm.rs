@@ -540,15 +540,34 @@ fn pdfium_size(
     table: &mut String,
     report: &mut serde_json::Map<String, Value>,
 ) -> Result<Option<String>> {
-    let path = ws
-        .root
-        .join("packages/render-pdfium/node_modules/@embedpdf/pdfium/dist/pdfium.wasm");
-    let bytes = fs::read(&path).with_context(|| format!("reading {}: run `pnpm install` first", path.display()))?;
+    // The pin and the file come from the package, never a copy here: package.json's exact
+    // version, and pdfium.wasm resolved as Node resolves it from the package (any pnpm layout).
+    let manifest: Value = serde_json::from_str(&fs::read_to_string(
+        ws.root.join("packages/render-pdfium/package.json"),
+    )?)?;
+    let version = manifest
+        .pointer("/dependencies/@embedpdf~1pdfium")
+        .and_then(Value::as_str)
+        .context("packages/render-pdfium/package.json has no @embedpdf/pdfium dependency")?;
+    let label = format!("@embedpdf/pdfium@{version}");
+    let resolved = Command::new("node")
+        .args([
+            "-p",
+            "require.resolve('@embedpdf/pdfium/pdfium.wasm', { paths: ['packages/render-pdfium'] })",
+        ])
+        .current_dir(&ws.root)
+        .output()
+        .context("running node to find pdfium.wasm")?;
+    if !resolved.status.success() {
+        bail!("pdfium.wasm can't be resolved from packages/render-pdfium: run `pnpm install` first");
+    }
+    let path = PathBuf::from(String::from_utf8_lossy(&resolved.stdout).trim());
+    let bytes = fs::read(&path).with_context(|| format!("reading {}", path.display()))?;
     let sizes = Sizes::of(&bytes);
     let budget = file.pointer("/thirdParty/pdfium/wasmGzip").and_then(Value::as_u64);
     let _ = writeln!(
         table,
-        "| pdfium ({PDFIUM_PACKAGE}) | {} | {} | {} | {} | — | — | — |",
+        "| pdfium ({label}) | {} | {} | {} | {} | — | — | — |",
         sizes.raw,
         sizes.gzip,
         sizes.brotli,
@@ -567,9 +586,6 @@ fn pdfium_size(
         Some(_) => None,
     })
 }
-
-/// The pinned PDFium-WASM package (ADR 0004 §3).
-const PDFIUM_PACKAGE: &str = "@embedpdf/pdfium@2.15.1";
 
 /// The package whose JS `size` measures (ADR 0016 §6: glue + TS API ≤ 20 KB min+gzip).
 const PDF_PACKAGE: &str = "@lamina/pdf";

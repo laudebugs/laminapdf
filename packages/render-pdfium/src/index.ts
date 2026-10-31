@@ -123,10 +123,18 @@ function refusal(reads: Reads): RenderError | undefined {
   return reads.pending.length > 0 ? pendingError(reads.pending) : undefined;
 }
 
-function pendingError(pending: (readonly [number, number])[]): RenderError {
-  return new RenderError("data-pending", `${pending.length} byte range(s) of the input are not available yet`, [
-    ...pending,
-  ]);
+/** `data-pending` with `pending` sorted and merged (PDFium may ask for one window many times). */
+function pendingError(pending: readonly (readonly [number, number])[]): RenderError {
+  const merged: [number, number][] = [];
+  for (const [offset, length] of [...pending].sort((a, b) => a[0] - b[0] || a[1] - b[1])) {
+    const last = merged.at(-1);
+    if (last !== undefined && offset <= last[0] + last[1]) {
+      last[1] = Math.max(last[1], offset + length - last[0]);
+    } else {
+      merged.push([offset, length]);
+    }
+  }
+  return new RenderError("data-pending", `${merged.length} byte range(s) of the input are not available yet`, merged);
 }
 
 class PdfiumDocument implements RenderDocument {
@@ -298,8 +306,9 @@ class PdfiumDocument implements RenderDocument {
   }
 
   render(request: RenderRequest, options: { readonly signal?: AbortSignal } = {}): RenderedTile {
-    this.#live();
+    // As in every adapter: the abort first, then whether the document is open.
     throwIfAborted(options.signal);
+    this.#live();
     const p = this.#p;
     const { malloc, free } = p.pdfium.wasmExports;
     const result = this.#reading(() =>

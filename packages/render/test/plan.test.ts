@@ -25,7 +25,7 @@ describe("planTile", () => {
   });
 
   it("rejects a non-finite or non-positive scale", () => {
-    for (const scale of [0, -1, Number.NaN, Number.POSITIVE_INFINITY]) {
+    for (const scale of [0, -1, Number.NaN, Number.POSITIVE_INFINITY, 1e-50, 1e40]) {
       expect(code(() => planTile(LETTER, { page: 0, scale }, DEFAULT_LIMITS))).toBe("invalid-argument");
     }
   });

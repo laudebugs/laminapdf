@@ -38,12 +38,23 @@ pub struct InputBuffer {
 
 #[wasm_bindgen]
 impl InputBuffer {
-    /// A zeroed buffer of `len` bytes.
+    /// A zeroed buffer of `len` bytes, reserved fallibly: in this `panic = "abort"` module a
+    /// failed allocation must be an error, not a trap that breaks the instance.
+    ///
+    /// # Errors
+    /// `render-too-large` when the module's memory can't grow by `len` bytes.
     #[wasm_bindgen(constructor)]
-    pub fn new(len: u32) -> InputBuffer {
-        Self {
-            bytes: vec![0; len as usize],
-        }
+    pub fn new(len: u32) -> Result<InputBuffer, JsValue> {
+        let size = len as usize;
+        let mut bytes = Vec::new();
+        bytes.try_reserve_exact(size).map_err(|_| {
+            throw(&RenderError::InputTooLarge {
+                len: u64::from(len),
+                limit: 0,
+            })
+        })?;
+        bytes.resize(size, 0);
+        Ok(Self { bytes })
     }
 
     /// Copies `chunk` to `offset`.

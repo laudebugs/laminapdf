@@ -7,6 +7,8 @@
 
 import {
   flagsOf,
+  isRenderError,
+  isRenderErrorCode,
   limitsOf,
   planTile,
   type RenderBackend,
@@ -63,7 +65,8 @@ function rethrow(e: unknown): never {
     broken = true;
     throw new RenderError("render-failed", "the hayro backend failed on this document (the module must be reloaded)");
   }
-  if (e instanceof Error && typeof (e as { code?: unknown }).code === "string") {
+  // Only the module's own errors (a known render code): anything else is passed on unchanged.
+  if (e instanceof Error && isRenderErrorCode((e as { code?: unknown }).code)) {
     const { code, ranges } = e as unknown as { code: RenderErrorCode; ranges?: [number, number][] };
     throw new RenderError(code, e.message, ranges);
   }
@@ -125,7 +128,15 @@ function fill(source: RenderSource, limits: RenderLimits): InputBuffer {
   try {
     for (let at = 0; at < source.size; at += CHUNK) {
       const length = Math.min(CHUNK, source.size - at);
-      const chunk = source.readSync(at, length);
+      let chunk: Uint8Array | undefined;
+      try {
+        chunk = source.readSync(at, length);
+      } catch (e) {
+        // As PDFium's adapter: a throwing source is a failed read (or its own RenderError).
+        throw isRenderError(e)
+          ? e
+          : new RenderError("source", `bytes ${at}..+${length} of the input could not be read`);
+      }
       if (chunk === undefined) pending.push([at, length]);
       else if (chunk.length !== length) {
         throw new RenderError("source", `bytes ${at}..+${length} of the input could not be read`);
