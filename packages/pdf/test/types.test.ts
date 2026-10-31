@@ -92,6 +92,7 @@ function kindOf(code: ErrorCode): ErrorKind {
     case "already-initialized":
     case "not-initialized":
     case "text-module-not-loaded":
+    case "extract-module-not-loaded":
     case "disposed":
       return "state";
     case "cancelled":

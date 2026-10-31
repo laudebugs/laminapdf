@@ -1,0 +1,180 @@
+{
+  "pdfjs_version": "6.4.299",
+  "pdftotext_version": "pdftotext version 26.10.0",
+  "files": {
+    "fixtures/corpus/enc.pdf": {
+      "pdfjs": [
+        ""
+      ],
+      "pdftotext": [
+        ""
+      ]
+    },
+    "fixtures/corpus/fpdf2.pdf": {
+      "pdfjs": [
+        "Hello from lamina\nThis one-page document was produced with fpdf2. multi_cell() wraps the\nparagraph to the given width, a first step towards layout."
+      ],
+      "pdftotext": [
+        "Hello from lamina\nThis one-page document was produced with fpdf2. multi_cell() wraps the\nparagraph to the given width, a first step towards layout.\n\n"
+      ]
+    },
+    "fixtures/corpus/hello-broken.pdf": {
+      "pdfjs": [
+        "Hello, World"
+      ],
+      "pdftotext": [
+        "Hello, World\n\n"
+      ]
+    },
+    "fixtures/corpus/hello-incremental.pdf": {
+      "pdfjs": [
+        "Hello, Update"
+      ],
+      "pdftotext": [
+        "Hello, Update\n\n"
+      ]
+    },
+    "fixtures/corpus/hello-xrefstm.pdf": {
+      "pdfjs": [
+        "Hello, World"
+      ],
+      "pdftotext": [
+        "Hello, World\n\n"
+      ]
+    },
+    "fixtures/corpus/hello.pdf": {
+      "pdfjs": [
+        "Hello, World"
+      ],
+      "pdftotext": [
+        "Hello, World\n\n"
+      ]
+    },
+    "fixtures/corpus/imaging-demo.pdf": {
+      "pdfjs": [
+        ""
+      ],
+      "pdftotext": [
+        ""
+      ]
+    },
+    "fixtures/corpus/outline.pdf": {
+      "pdfjs": [
+        "Page 1",
+        "Page 2",
+        "Page 3"
+      ],
+      "pdftotext": [
+        "Page 1\n\n",
+        "Page 2\n\n",
+        "Page 3\n\n"
+      ]
+    },
+    "fixtures/corpus/pdflib.pdf": {
+      "pdfjs": [
+        "Hello from lamina\nThis one-page document was produced with pdf-lib, a drawing-API library.\nLine breaks are explicit: pdf-lib does no paragraph layout."
+      ],
+      "pdftotext": [
+        "Hello from lamina\nThis one-page document was produced with pdf-lib, a drawing-API library.\nLine breaks are explicit: pdf-lib does no paragraph layout.\n\n"
+      ]
+    },
+    "fixtures/corpus/raw.pdf": {
+      "pdfjs": [
+        "Hello from lamina\nThis one-page document was produced by hand-emitting PDF objects:\na catalog, a page tree, one page, a font and a content stream."
+      ],
+      "pdftotext": [
+        "Hello from lamina\nThis one-page document was produced by hand-emitting PDF objects:\na catalog, a page tree, one page, a font and a content stream.\n\n"
+      ]
+    },
+    "fixtures/corpus/reportlab.pdf": {
+      "pdfjs": [
+        "Hello from lamina\nThis document was produced with ReportLab's PLATYPUS layout engine: flowables are measured,\nwrapped and paginated into frames automatically."
+      ],
+      "pdftotext": [
+        "Hello from lamina\nThis document was produced with ReportLab's PLATYPUS layout engine: flowables are measured,\nwrapped and paginated into frames automatically.\n\n"
+      ]
+    },
+    "fixtures/corpus/signed.pdf": {
+      "pdfjs": [
+        ""
+      ],
+      "pdftotext": [
+        "Digitally signed by Lamina Demo Signer.\nTimestamp: 2026-10-28 15:05:26 UTC.\n\n"
+      ]
+    },
+    "fixtures/corpus/tampered.pdf": {
+      "pdfjs": [
+        ""
+      ],
+      "pdftotext": [
+        "Digitally signed by Lamina Demo Signer.\nTimestamp: 2026-10-28 15:05:26 UTC.\n\n"
+      ]
+    },
+    "fixtures/corpus/text-example.pdf": {
+      "pdfjs": [
+        "Hello, PDF text!\nWAVE kerned via TJ\nΕλληνικά · Кириллица · final\nHidden OCR-style text layer"
+      ],
+      "pdftotext": [
+        "Hello, PDF text!\nWAVE kerned via TJ\nΕλληνικά · Кириллица · final\nHidden OCR-style text layer\n\n"
+      ]
+    },
+    "fixtures/golden/build-text-latin.pdf": {
+      "pdfjs": [
+        "Hello, world! The office staff fill the affine waffle flask.\nCafé crème brûlée, naïve façade: “curly” and ‘single’ quotes\nAVATAR Wave: To Yo! (kerned) and fi without ligatures\nHelvetica: “Curly” ‘quotes’ — and dashes – too\nTimes-Roman: The quick brown fox jumps over the lazy dog.\nInvisible but extractable\nOutlined\nThe quick brown fox jumps\nover the lazy dog. Pack my\nbox with five dozen liquor\njugs; sphinx of black quartz,\njudge my vow.\nThe quick brown fox jumps\nover the lazy dog. Pack my\nbox with five dozen liquor\njugs; sphinx of black quartz,\njudge my vow.\nThe quick brown fox jumps\nover the lazy dog. Pack my\nbox with five dozen liquor\njugs; sphinx of black quartz,\njudge my vow.\nThe quick brown fox jumps over the lazy dog. Pack my box with five dozen liquor jugs; sphinx of black\nquartz, judge my vow."
+      ],
+      "pdftotext": [
+        "Hello, world! The office staff fill the affine waffle flask.\nCafé crème brûlée, naïve façade: “curly” and ‘single’ quotes\nAVATAR Wave: To Yo! (kerned) and fi without ligatures\nHelvetica: “Curly” ‘quotes’ — and dashes – too\nTimes-Roman: The quick brown fox jumps over the lazy dog.\nInvisible but extractable\n\nOutlined\nThe quick brown fox jumps\nover the lazy dog. Pack my\nbox with five dozen liquor\njugs; sphinx of black quartz,\njudge my vow.\n\nThe quick brown fox jumps\nover the lazy dog. Pack my\nbox with five dozen liquor\njugs; sphinx of black quartz,\njudge my vow.\n\nThe quick brown fox jumps\nover the lazy dog. Pack my\nbox with five dozen liquor\njugs; sphinx of black quartz,\njudge my vow.\n\nThe quick brown fox jumps over the lazy dog. Pack my box with five dozen liquor jugs; sphinx of black\nquartz, judge my vow.\n\n"
+      ]
+    },
+    "fixtures/golden/build-text-multiscript.pdf": {
+      "pdfjs": [
+        "Latin: the office staff fill the affine waffle flask\nمرحبا بالعالم السلام عليكم\nनमस्ते दु निया। हिन्दी पाठ का परीक्षण\nשלום עולם וברוכים הבאים\n你好世界，这是中文字体子集测试。",
+        "Latin: the office\nstaff fill the\naffine waffle\nflask\nمرحبا بالعالم السلام\nعليكم\nनमस्ते दु निया। हिन्दी\nपाठ का परीक्षण\nשלום עולם\nוברוכים הבאים\n你好世界，这是\n中文字体子集测\n试。"
+      ],
+      "pdftotext": [
+        "Latin: the office staff fill the affine waffle flask\n‫مرحبا بالعالم السلام عليكم‬\nनमस्ते दुनिया। हिन्दी पाठ का परीक्षण\n‫שלום עולם וברוכים הבאים‬\n你好世界，这是中文字体子集测试。\n\n",
+        "Latin: the office\nstaff fill the\naffine waffle\nflask\n\n‫مرحبا بالعالم السلام‬\n‫عليكم‬\n\nनमस्ते दुनिया। हिन्दी\nपाठ का परीक्षण\n\n‫שלום עולם‬\n‫וברוכים הבאים‬\n\n你好世界，这是\n中文字体子集测\n试。\n\n"
+      ]
+    },
+    "fixtures/golden/text-cff.pdf": {
+      "pdfjs": [
+        "CFF outlines: Ådne’s naïve café\n你好世界，这是中文字体子集测试。"
+      ],
+      "pdftotext": [
+        "CFF outlines: Ådne’s naïve café\n你好世界，这是中文字体子集测试。\n\n"
+      ]
+    },
+    "fixtures/golden/text-latin.pdf": {
+      "pdfjs": [
+        "Hello, world!\nCafé crème brûlée, naïve façade: “curly” and ‘single’ quotes\nThe office staff fill the affine waffle flask first.\nBold maths: 𝐀𝐁𝐂 = ABC"
+      ],
+      "pdftotext": [
+        "Hello, world!\n\nCafé crème brûlée, naïve façade: “curly” and ‘single’ quotes\nThe office staff fill the affine waffle flask first.\nBold maths: 𝐀𝐁𝐂 = ABC\n\n"
+      ]
+    },
+    "fixtures/golden/text-shaped.pdf": {
+      "pdfjs": [
+        "The office staff fill the affine waffle flask first. AVATAR\nWave: To Yo!\nCFF outlines: office, AVATAR.\nمرحبا بالعالم، السلام عليكم\nשָׁלוֹם עוֹלָם,שלום עולם\nनमस्ते दु निया। हिन्दी पाठ का परीक्षण कर्म\n你好世界，这是中文字体子集测试。汉字排版与文本提取\nThe words שלום עולם and مرحبا بالعالم mean hello."
+      ],
+      "pdftotext": [
+        "The office staff fill the affine waffle flask first. AVATAR\nWave: To Yo!\nCFF outlines: office, AVATAR.\n\n‫ السلام عليكم‬،‫مرحبا بالعالم‬\n‫ שלום עולם‬,‫ָשׁ לוֹם עוֹלָ ם‬\n\nनमस्ते दुनिया। हिन्दी पाठ का परीक्षण कर्म\n\n你好世界，这是中文字体子集测试。汉字排版与文本提取\nThe words ‫ שלום עולם‬and ‫ مرحبا بالعالم‬mean hello.\n\n"
+      ]
+    },
+    "fixtures/golden/text-std14.pdf": {
+      "pdfjs": [
+        "Courier: Hello, world! 0123456789\nCourier-Bold: {braces} [brackets] <angles>\nCourier-Oblique: café, naïve, façade\nCourier-BoldOblique: 50% off ~ $9.99\nHelvetica: “Curly” ‘quotes’ — and dashes – too\nHelvetica-Bold: Euro € pound £ yen ¥\nHelvetica-Oblique: Ærøskøbing, Þórshöfn, Œuvre\nHelvetica-BoldOblique: ½ ¼ ¾ © ® ™ § ¶\nTimes-Roman: The quick brown fox jumps over the lazy dog.\nTimes-Bold: Grüße aus Köln • München\nTimes-Italic: ¿Qué tal? ¡Muy bien!\nTimes-BoldItalic: Ça va… très «bien» ‰\nαβγ π ∑ ≤ ∞ €\n✔ ✈ ❤ ☎\nŁódź, Kraków − Şişli\nȚară, Ğğ İı őű"
+      ],
+      "pdftotext": [
+        "Courier: Hello, world! 0123456789\nCourier-Bold: {braces} [brackets] <angles>\nCourier-Oblique: café, naïve, façade\nCourier-BoldOblique: 50% off ~ $9.99\nHelvetica: “Curly” ‘quotes’ — and dashes – too\nHelvetica-Bold: Euro € pound £ yen ¥\nHelvetica-Oblique: Ærøskøbing, Þórshöfn, Œuvre\nHelvetica-BoldOblique: ½ ¼ ¾ © ® ™ § ¶\nTimes-Roman: The quick brown fox jumps over the lazy dog.\nTimes-Bold: Grüße aus Köln • München\nTimes-Italic: ¿Qué tal? ¡Muy bien!\nTimes-BoldItalic: Ça va… très «bien» ‰\nαβγ π ∑ ≤ ∞ €\n✔✈❤☎\nŁódź, Kraków − Şişli\nȚară, Ğğ İı őű\n\n"
+      ]
+    },
+    "fixtures/golden/text-variable-collection.pdf": {
+      "pdfjs": [
+        "Variable font, default instance\nVariable font, wght 700 instance\nCollection member 1: Noto Sans Bold"
+      ],
+      "pdftotext": [
+        "Variable font, default instance\nVariable font, wght 700 instance\nCollection member 1: Noto Sans Bold\n\n"
+      ]
+    }
+  }
+}

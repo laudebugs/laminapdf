@@ -166,6 +166,7 @@ A PR that adds a code adds:
 | Code | Kind | Summary |
 | --- | --- | --- |
 | [`already-initialized`](already-initialized.md) | `state` | init() or loadText() named a different source for a module that is already loaded or loading |
+| [`extract-module-not-loaded`](extract-module-not-loaded.md) | `state` | page.text() was called on a document opened in the base module, which has no text extraction |
 | [`fetch-failed`](fetch-failed.md) | `io` | a range source could not fetch input bytes: a network error, an HTTP status other than 200 and 206, a 206 whose Content-Range or length doesn't match the request, or a read that returned the wrong number of bytes |
 | [`not-initialized`](not-initialized.md) | `state` | an @lamina/pdf function was called before init() finished loading the WebAssembly module |
 | [`source-changed`](source-changed.md) | `io` | a remote file changed while it was being read: its ETag or length differs from the first response |

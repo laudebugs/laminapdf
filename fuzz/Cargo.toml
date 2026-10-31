@@ -21,6 +21,7 @@ lamina-model = { path = "../crates/lamina-model" }
 lamina-content = { path = "../crates/lamina-content" }
 lamina-ops = { path = "../crates/lamina-ops" }
 lamina-save = { path = "../crates/lamina-save" }
+lamina-text = { path = "../crates/lamina-text" }
 serde_json = "1.0.154"
 
 [workspace]
@@ -81,6 +82,13 @@ bench = false
 [[bin]]
 name = "save_roundtrip"
 path = "fuzz_targets/save_roundtrip.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "extract_text"
+path = "fuzz_targets/extract_text.rs"
 test = false
 doc = false
 bench = false

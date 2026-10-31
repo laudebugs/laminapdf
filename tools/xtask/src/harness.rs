@@ -19,7 +19,7 @@ use crate::workspace::Workspace;
 use crate::{run, step};
 
 /// The fuzz targets in `fuzz/fuzz_targets/` (ADR 0018 tier 9).
-pub(crate) const FUZZ_TARGETS: [&str; 8] = [
+pub(crate) const FUZZ_TARGETS: [&str; 9] = [
     "lex",
     "parse_object",
     "flate_decode",
@@ -28,6 +28,7 @@ pub(crate) const FUZZ_TARGETS: [&str; 8] = [
     "content",
     "ops_json",
     "save_roundtrip",
+    "extract_text",
 ];
 
 /// Default `cargo xtask fuzz` run time in seconds (the scheduled workflow uses 600).
@@ -57,6 +58,42 @@ fn files_in(dir: &Path) -> Result<Vec<PathBuf>> {
     }
     files.sort();
     Ok(files)
+}
+
+/// The shared `page.text()` snapshot (todo B9c): `crates/lamina/tests/page_text_snapshot.rs`
+/// writes it (its ignored `write_snapshot` test, to a scratch file); with `update`, into
+/// `fixtures/text/page-text.json`, else compared. `@lamina/pdf`'s text test reads the same file.
+fn page_text_snapshot(ws: &Workspace, update: bool) -> Result<Vec<String>> {
+    let out = scratch(ws, "page-text")?.join("page-text.json");
+    let out_arg = out.to_string_lossy().into_owned();
+    crate::run_env(
+        &ws.root,
+        "cargo",
+        &[
+            "test",
+            "--locked",
+            "-q",
+            "-p",
+            "lamina",
+            "--test",
+            "page_text_snapshot",
+            "--",
+            "--ignored",
+            "--exact",
+            "write_snapshot",
+        ],
+        &[("LAMINA_SNAPSHOT_OUT", out_arg.as_str())],
+    )?;
+    let target = ws.root.join("fixtures/text/page-text.json");
+    let bytes = fs::read(&out)?;
+    if bytes == fs::read(&target).unwrap_or_default() {
+        return Ok(Vec::new());
+    }
+    if update {
+        fs::write(&target, &bytes).with_context(|| format!("writing {}", target.display()))?;
+        return Ok(Vec::new());
+    }
+    Ok(vec!["text/page-text.json".to_owned()])
 }
 
 /// The reading-order corpus (todo U2b): `lamina-build`'s `reading_order` example writes it.
@@ -137,7 +174,8 @@ pub(crate) fn golden(ws: &Workspace, update: bool) -> Result<()> {
     }
     // The façade's examples are goldens too, one directory down (todo B5c).
     let examples = crate::examples::run_all(ws, &out.join("examples"))?;
-    let reading_stale = reading_order(ws, update)?;
+    let mut reading_stale = reading_order(ws, update)?;
+    reading_stale.extend(page_text_snapshot(ws, update)?);
     if update {
         // A golden whose example is gone would fail `crates/lamina/tests/examples.rs`.
         for path in files_in(&out.join("examples"))? {
@@ -226,6 +264,9 @@ pub(crate) struct Differential {
     pub(crate) full: bool,
     /// Regenerate the expectations with pypdf first.
     pub(crate) update: bool,
+    /// The text differential (`--text`, todo B9c): lamina's page text against pdf.js and
+    /// pdftotext, from `fixtures/differential/text.json`.
+    pub(crate) text: bool,
 }
 
 /// Parses `differential [--full] [--update]` (flags in any order, each at most once).
@@ -233,12 +274,14 @@ pub(crate) fn parse_differential_args(args: &[String]) -> Result<Differential> {
     let mut task = Differential {
         full: false,
         update: false,
+        text: false,
     };
     for arg in args {
         match arg.as_str() {
             "--update" if !task.update => task.update = true,
-            "--full" if !task.full => task.full = true,
-            _ => bail!("usage: cargo xtask differential [--full] [--update]"),
+            "--full" if !task.full && !task.text => task.full = true,
+            "--text" if !task.text && !task.full => task.text = true,
+            _ => bail!("usage: cargo xtask differential [--full | --text] [--update]"),
         }
     }
     Ok(task)
@@ -278,6 +321,9 @@ fn full_set_test_args() -> Vec<String> {
 /// set (`fixtures/differential/expected.json`, run with the other tests); with it, the full
 /// lane's set (`full.json`, exceptions in `full-exceptions.toml`), run through nextest.
 pub(crate) fn differential(ws: &Workspace, task: &Differential) -> Result<()> {
+    if task.text {
+        return text_differential(ws, task.update);
+    }
     if task.update {
         let inputs = scratch(ws, "differential")?;
         let inputs_arg = inputs.to_string_lossy().into_owned();
@@ -320,6 +366,74 @@ pub(crate) fn differential(ws: &Workspace, task: &Differential) -> Result<()> {
     } else {
         ws.cargo(&["test", "--locked", "-q", "-p", "lamina-model", "--test", "differential"])
     }
+}
+
+/// The inputs of the text differential: the corpus and the text goldens.
+fn text_inputs(ws: &Workspace) -> Result<Vec<String>> {
+    let mut out = Vec::new();
+    for dir in ["fixtures/corpus", "fixtures/golden"] {
+        for path in files_in(&ws.root.join(dir))? {
+            let name = path.file_name().context("file name")?.to_string_lossy().into_owned();
+            let wanted = path.extension().is_some_and(|e| e == "pdf")
+                && (dir == "fixtures/corpus" || name.starts_with("text-") || name.starts_with("build-text-"));
+            if wanted {
+                out.push(format!("{dir}/{name}"));
+            }
+        }
+    }
+    out.sort();
+    Ok(out)
+}
+
+/// `differential --text [--update]` (todo B9c): with `--update`, `tools/differential/text.mjs`
+/// rewrites `fixtures/differential/text.json` with pdf.js and pdftotext; then lamina's test
+/// compares against it.
+fn text_differential(ws: &Workspace, update: bool) -> Result<()> {
+    if update {
+        crate::doctor::require(ws, &crate::doctor::pdftotext())?;
+        ws.pnpm(&["--dir", "tools/differential", "install", "--frozen-lockfile"])?;
+        let mut args = vec![
+            "tools/differential/text.mjs".to_owned(),
+            "fixtures/differential/text.json".to_owned(),
+        ];
+        args.extend(text_inputs(ws)?);
+        run(&ws.root, "node", &args)?;
+    }
+    ws.cargo(&["test", "--locked", "-q", "-p", "lamina", "--test", "text_differential"])
+}
+
+/// The quad fixtures: the text goldens and the examples with text.
+const QUAD_FILES: [&str; 10] = [
+    "fixtures/golden/build-text-latin.pdf",
+    "fixtures/golden/build-text-multiscript.pdf",
+    "fixtures/golden/examples/hello.pdf",
+    "fixtures/golden/examples/invoice.pdf",
+    "fixtures/golden/examples/multilingual.pdf",
+    "fixtures/golden/text-cff.pdf",
+    "fixtures/golden/text-latin.pdf",
+    "fixtures/golden/text-shaped.pdf",
+    "fixtures/golden/text-std14.pdf",
+    "fixtures/golden/text-variable-collection.pdf",
+];
+
+/// `cargo xtask quads [--update]` (todo B9c): with `--update`, `tools/render/charbox.py`
+/// (pypdfium2, `tools/render/requirements.txt`) rewrites `fixtures/text/charboxes.json`; then
+/// lamina's `quads` test compares its glyph quads with PDFium's character boxes.
+pub(crate) fn quads(ws: &Workspace, args: &[String]) -> Result<()> {
+    let update = match args {
+        [] => false,
+        [flag] if flag == "--update" => true,
+        _ => bail!("usage: cargo xtask quads [--update]"),
+    };
+    if update {
+        let mut script = vec![
+            "tools/render/charbox.py".to_owned(),
+            "fixtures/text/charboxes.json".to_owned(),
+        ];
+        script.extend(QUAD_FILES.iter().map(|f| (*f).to_owned()));
+        run(&ws.root, &python(), &script)?;
+    }
+    ws.cargo(&["test", "--locked", "-q", "-p", "lamina", "--test", "quads"])
 }
 
 /// What `cargo xtask fuzz` was asked to do.
@@ -1008,7 +1122,8 @@ mod tests {
             parse_differential_args(&[]).unwrap(),
             Differential {
                 full: false,
-                update: false
+                update: false,
+                text: false
             }
         );
     }
@@ -1020,9 +1135,24 @@ mod tests {
             parse_differential_args(&a).unwrap(),
             Differential {
                 full: true,
-                update: true
+                update: true,
+                text: false
             }
         );
+    }
+
+    #[test]
+    fn differential_args_take_text_but_not_with_full() {
+        let a = args(&["--text", "--update"]);
+        assert_eq!(
+            parse_differential_args(&a).unwrap(),
+            Differential {
+                full: false,
+                update: true,
+                text: true
+            }
+        );
+        assert!(parse_differential_args(&args(&["--text", "--full"])).is_err());
     }
 
     #[test]

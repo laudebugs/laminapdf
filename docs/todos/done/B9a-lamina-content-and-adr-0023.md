@@ -41,7 +41,7 @@ Read what is drawn on a page. A tolerant tokenizer and a read-only interpreter w
 **Out of scope** (and which todo covers it)
 
 - Font decoding, Unicode mapping, glyph quads: [B9b](../done/B9b-text-extraction-core.md).
-- Bindings and differential tests: [B9c](../ongoing/B9c-text-extraction-bindings-and-differential.md).
+- Bindings and differential tests: [B9c](../done/B9c-text-extraction-bindings-and-differential.md).
 - Writing/editing content streams: full-editor E2, E7.
 - Rendering (PDFium/hayro do it): web C2.
 - Type 3 font glyph procedures (interpreted later; reported as unsupported now), shading/pattern internals.

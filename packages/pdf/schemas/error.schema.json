@@ -73,6 +73,7 @@
             "source-budget-exceeded",
             "unknown-option",
             "already-initialized",
+            "extract-module-not-loaded",
             "fetch-failed",
             "not-initialized",
             "source-changed",

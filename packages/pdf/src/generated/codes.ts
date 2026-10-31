@@ -83,6 +83,7 @@ export type ErrorCode =
   | "source-budget-exceeded"
   | "unknown-option"
   | "already-initialized"
+  | "extract-module-not-loaded"
   | "fetch-failed"
   | "not-initialized"
   | "source-changed"
@@ -213,6 +214,7 @@ export const ERROR_CODES: readonly ErrorCode[] = [
   "source-budget-exceeded",
   "unknown-option",
   "already-initialized",
+  "extract-module-not-loaded",
   "fetch-failed",
   "not-initialized",
   "source-changed",
@@ -366,6 +368,7 @@ export const KINDS: { readonly [C in ErrorCode | WarningCode]: ErrorKind } = {
   "source-budget-exceeded": "limit",
   "unknown-option": "usage",
   "already-initialized": "state",
+  "extract-module-not-loaded": "state",
   "fetch-failed": "io",
   "not-initialized": "state",
   "source-changed": "io",
@@ -479,6 +482,7 @@ export const HINTS: { readonly [C in ErrorCode | WarningCode]: string } = {
   "source-budget-exceeded": "raise the source's budget, or open the file with fewer bytes fetched (smaller blocks, no readahead)",
   "unknown-option": "remove the key or correct its spelling; didYouMean lists the closest known names",
   "already-initialized": "call init and loadText with a source once, before the first load; later calls need no source",
+  "extract-module-not-loaded": "load the extract module (init with the extract option, or loadExtract) or the text module before opening the document",
   "fetch-failed": "check that the URL is reachable and that the server sends the CORS headers range requests need (Content-Range must be exposed); data.reason and data.status say what failed",
   "not-initialized": "await init() once before calling anything else in @lamina/pdf",
   "source-changed": "open the file again; the document already read parts of the old version and can't mix in the new one",
@@ -524,6 +528,7 @@ export const RAISED_BY_PACKAGE = {
   "builder-finished": { kind: "state", hint: "create a new builder or page: a finished one takes no more drawing, pages, fonts or settings" },
   "invalid-argument": { kind: "usage", hint: "pass the value the type declarations describe; the data field says what was wrong" },
   "already-initialized": { kind: "state", hint: "call init and loadText with a source once, before the first load; later calls need no source" },
+  "extract-module-not-loaded": { kind: "state", hint: "load the extract module (init with the extract option, or loadExtract) or the text module before opening the document" },
   "fetch-failed": { kind: "io", hint: "check that the URL is reachable and that the server sends the CORS headers range requests need (Content-Range must be exposed); data.reason and data.status say what failed" },
   "not-initialized": { kind: "state", hint: "await init() once before calling anything else in @lamina/pdf" },
   "source-changed": { kind: "io", hint: "open the file again; the document already read parts of the old version and can't mix in the new one" },

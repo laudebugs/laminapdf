@@ -1063,6 +1063,7 @@ pub fn explain(code: &str) -> Option<&'static str> {
         "source-budget-exceeded" => include_str!("../../../../docs/errors/source-budget-exceeded.md"),
         "unknown-option" => include_str!("../../../../docs/errors/unknown-option.md"),
         "already-initialized" => include_str!("../../../../docs/errors/already-initialized.md"),
+        "extract-module-not-loaded" => include_str!("../../../../docs/errors/extract-module-not-loaded.md"),
         "fetch-failed" => include_str!("../../../../docs/errors/fetch-failed.md"),
         "not-initialized" => include_str!("../../../../docs/errors/not-initialized.md"),
         "source-changed" => include_str!("../../../../docs/errors/source-changed.md"),

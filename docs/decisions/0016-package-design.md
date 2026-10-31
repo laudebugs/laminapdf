@@ -39,18 +39,19 @@ Constraints:
 
 `init(input?)` accepts a URL (or string), a `Response` (or a promise of one), bytes (`ArrayBuffer`, `Uint8Array`) or a compiled `WebAssembly.Module`, and is idempotent. With no input, the export condition's loader (§2) picks the file. The wasm-bindgen glue provides exactly these forms (`--target web`: the default `init` export and `initSync({ module })`), so `@lamina/pdf`'s `init` is a thin wrapper. After `init`, **every call is synchronous**: long work is a job stepped by the caller ([ADR 0028](0028-facade-rules-jobs-and-cancellation.md) §3), never a promise.
 
-### 4. Two modules: base and text, one crate built twice
+### 4. Three modules: base, text and extract, one crate built three times
 
 | Module | Built as | Contains |
 | --- | --- | --- |
 | `lamina_base.wasm` | `lamina-wasm` without features (`lamina` with `build`) | Open, read, edit with ops, undo/redo, save (save jobs, warnings); the builder without text: pages and boxes, paths, colour, opacity and blend modes, clipping, images (JPEG, PNG, RGBA), links, destinations, outline, page labels, metadata, viewer preferences |
-| `lamina_text.wasm` | `lamina-wasm --features text` | Everything in base, plus fonts (`fontBytes`, `standardFont`), shaped `text` runs and `textBox` (lamina-text: skrifa, subsetter, HarfRust, ICU4X, the standard 14) |
+| `lamina_text.wasm` | `lamina-wasm --features text` | Everything in base, plus fonts (`fontBytes`, `standardFont`), shaped `text` runs and `textBox` (lamina-text: skrifa, subsetter, HarfRust, ICU4X, the standard 14), and text extraction (`WasmPage.text`) |
+| `lamina_extract.wasm` | `lamina-wasm --features extract` (B9c) | Everything in base, plus text extraction (`WasmPage.text`: lamina-text's extractor, CMaps, ICU4X's bidi data), without fonts for building or shaping |
 
 The text module is a **superset**, not an add-on: a document that needs text is built entirely in the text module. A document moves between the two as PDF bytes (save, then open), which is the narrow ABI between them. `@lamina/pdf` loads the base module by default and the text module on its first text call or with `init({ text: true })` (B6b); a page that loaded only base never downloads text.
 
 To make the base module exclude text, `lamina-build` gained a `text` feature (default on): without it, the builder has no fonts, no text runs or boxes, and doesn't link `lamina-text`. The façade's `text` feature now implies a new `build` feature (the builder alone).
 
-Text *extraction* (B9b's `page.text()`) is not part of either module yet; [B9c](../todos/ongoing/B9c-text-extraction-bindings-and-differential.md) binds it and decides, by measurement against these budgets, whether it joins base, text, or a third `extract` module.
+**Text extraction (B9c, owner decision 2026-10-30): a third module.** [B9c](../todos/done/B9c-text-extraction-bindings-and-differential.md) measured three placements (gzip): base with extraction 523 KB (+143 KB: ICU4X's bidi data and the font parsing join base), the text module with extraction 1,008 KB (+56 KB, since it already has both), and a third `extract` module, base plus extraction, about 525 KB. The owner chose the third: a reader's text layer and search load about half the text module, and nobody who doesn't extract pays for it. The text module has extraction too (it stays a superset). `@lamina/pdf` opens documents in the richest module loaded (text, then extract, then base), and `page.text()` on a document opened in base is `extract-module-not-loaded`. The façade gained an `extract` feature (lamina-text's extractor without the builder's text), which `text` implies. Two consequences: documents opened while the text module is loaded now live in its memory, not base's (so `wasmMemory()` and the nightly memory history move to `text` for runs that load it), and loading the extract module while the text module is loaded or loading does nothing. In workerd, where each module is a static import that every Worker bundles, the loader leaves the extract module out (about 526 KB): a Worker that extracts text imports `@lamina/wasm/lamina_extract.wasm` and passes it to `loadExtract`.
 
 ### 5. Measurements and the shrinking pass
 
@@ -98,14 +99,16 @@ Gzip bytes as `cargo xtask size` measures them (deflate level 9 plus the gzip he
 | Module | Measured (2026-10-30, after the review fixes and B9d; unchanged by B6b, whose TS-only codes stay out of the WASM) | Budget | Headroom |
 | --- | ---: | ---: | ---: |
 | base (`lamina_base.wasm`) | 382,000 (brotli 304,955; L2c, 2026-10-30) | **390,000** (amended 2026-10-30; was 380,000) | 2.1 % |
-| text (`lamina_text.wasm`) | 943,924 (brotli 723,348) | **960,000** | 1.7 % |
+| text (`lamina_text.wasm`) | 1,008,844 (brotli 770,741; with extraction, B9c) | **1,020,000** (amended 2026-10-30; was 960,000) | 1.1 % |
 | JS glue per module (wasm-bindgen output, minified by esbuild) | 3,769 base, 3,978 text | **5,000** each | |
 | `@lamina/pdf` JS: both glues + the TS API, bundled and minified by esbuild (B6b, `packages` in `size-budgets.json`) | 10,041 | **20,000** | 50 % |
-| extract (B9c) | — | placeholder: decided when the module exists | |
+| extract (`lamina_extract.wasm`, B9c) | 526,184 (brotli 414,641) | **535,000** (owner, 2026-10-30) | 1.7 % |
 | render (C2) | — | placeholder: decided by C2's ADRs | |
 | sign (E10) | — | placeholder: decided by E10a | |
 
 The `@lamina/pdf` TS layer has its own budget (glue + API ≤ 20 KB min+gzip, plan §4), enforced by B6b. A module without a budget fails the check, so a new module can't ship unmeasured. A module that grows more than 5 % over the baseline in `size-budgets.json` gets a twiggy top-items diff against the baseline in the job summary; `cargo xtask size --update-baseline` records a new baseline when a growth is accepted. Raising a budget is an amendment of this table, approved by the owner.
+
+**Amendment (owner, 2026-10-30, B9c):** the extract module's budget is 535,000 bytes, and the text module's rises from 960,000 to 1,020,000, both for text extraction (§4).
 
 **Amendment (owner, 2026-10-30, L2c):** the base budget rises from 380,000 to 390,000 bytes. Range loading (`WasmDocument.openSource` over a sparse source, [L2c](../todos/done/L2c-range-byte-source.md)) links `lamina-cos`'s windowed reader (64 KiB windows, chunked repair, xref-entry probes), which the base module never used while it only opened in-memory bytes: +9.3 KB gzip (372,688 → 382,000). Range loading belongs with reading, so it stays in the base module rather than moving to a third one.
 

@@ -58,7 +58,7 @@ Users get an `AGENTS.md` snippet for their own repositories. A machine-readable 
   - A check fails when a `#[deprecated]` Rust item or `@deprecated` TSDoc tag has no entry naming its replacement, and when an entry points at a symbol that no longer exists.
   - Shipped in the packages and on the site.
 - **Agent-eval baseline** (recorded, not gating):
-  - `tools/agent-eval/tasks/*.md`: 10–20 fixed tasks, each with a checker script that validates the result with lamina itself and `qpdf --check`. Example tasks: build a two-page invoice; open an encrypted file and handle `wrong-password` by code; rotate page 3 and save incrementally; read page sizes in points; extract text if [B9c](../ongoing/B9c-text-extraction-bindings-and-differential.md) has merged.
+  - `tools/agent-eval/tasks/*.md`: 10–20 fixed tasks, each with a checker script that validates the result with lamina itself and `qpdf --check`. Example tasks: build a two-page invoice; open an encrypted file and handle `wrong-password` by code; rotate page 3 and save incrementally; read page sizes in points; extract text if [B9c](../done/B9c-text-extraction-bindings-and-differential.md) has merged.
   - A runner that starts a pinned coding agent in a scratch project, once with no docs and once with the shipped docs, and writes pass/fail per task.
   - The first run's results go in `docs/research/libraries/agent-eval-baseline.md`, with the agent, model, date and lamina version.
 
