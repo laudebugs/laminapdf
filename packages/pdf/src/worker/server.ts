@@ -13,7 +13,7 @@
 // crash and ends the worker.
 import { Document, PageRef } from "../document.js";
 import { type Diagnostic, isDiagnostic, LaminaError, packageError } from "../errors.js";
-import { docsUrl, ERROR_CODES, type ErrorCode, HINTS } from "../generated/codes.js";
+import { docsUrl, type ErrorCode } from "../generated/codes.js";
 import { init, loadExtract, loadText } from "../index.js";
 import { httpRangeSource } from "../source/http.js";
 import type { RangeOptions } from "../source/range.js";
@@ -94,7 +94,6 @@ let running = false;
 let started = 0;
 let ready = false;
 let extension: ServerExtension = { methods: {} };
-const knownCodes = new Set<string>(ERROR_CODES);
 
 function post(message: FromWorker, transfer: Transferable[] = []): void {
   scope.postMessage(message, transfer);
@@ -107,9 +106,10 @@ export function emit(name: string, data?: unknown, transfer: Transferable[] = []
 
 /**
  * The ADR 0026 object for anything thrown. lamina's own errors pass through, and so does any
- * error shaped like one whose code `codes.json` lists (`@lamina/render`'s RenderError: `code`,
- * `kind`, `message`, and `ranges` for `data-pending`), given its hint and docs URL, with the
- * ranges as `data.ranges` (`LaminaError.ranges`). Anything else is a failure of the worker itself
+ * error shaped like one (`@lamina/render`'s RenderError: `code`, `kind`, `message`, and `ranges`
+ * for `data-pending`), given its docs URL, with the ranges as `data.ranges` (`LaminaError.ranges`).
+ * It carries no hint: the hint table is 5 KB, a quarter of the worker file's budget, for an
+ * optional field (the docs page has it). Anything else is a failure of the worker itself
  * (`worker-failed`, kind internal). Caller mistakes the worker detects (an unknown method) are
  * thrown as `invalid-argument` where they are found.
  */
@@ -118,7 +118,7 @@ function diagnostic(e: unknown): Diagnostic<ErrorCode> {
   if (isDiagnostic(e)) return e;
   if (typeof e === "object" && e !== null) {
     const { code, kind, message, ranges } = e as Record<string, unknown>;
-    if (typeof code === "string" && knownCodes.has(code) && typeof kind === "string" && typeof message === "string") {
+    if (typeof code === "string" && typeof kind === "string" && typeof message === "string") {
       const c = code as ErrorCode;
       const data = Array.isArray(ranges)
         ? { ranges: (ranges as [number, number][]).map(([offset, length]) => ({ offset, length })) }
@@ -127,7 +127,6 @@ function diagnostic(e: unknown): Diagnostic<ErrorCode> {
         code: c,
         kind: kind as Diagnostic<ErrorCode>["kind"],
         message,
-        hint: HINTS[c],
         ...(data === undefined ? {} : { data }),
         docsUrl: docsUrl(c),
       };
