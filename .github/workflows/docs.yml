@@ -20,7 +20,7 @@ on:
   pull_request:
     paths: &inputs
       - apps/docs/**
-      - packages/pdf/**
+      - packages/sdk/**
       - packages/wasm/package.json
       - crates/lamina/examples/**
       - fixtures/golden/examples/**
