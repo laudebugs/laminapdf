@@ -70,26 +70,52 @@ const TARGET: &str = "wasm32-unknown-unknown";
 
 /// One module of `@lamina/wasm`.
 pub(crate) struct Module {
-    /// `base`, `text` or `extract`: the files are `lamina_<name>.{js,d.ts,wasm}`.
+    /// `base`, `text`, `extract` or `render_hayro`: the files are `lamina_<name>.{js,d.ts,wasm}`.
     pub(crate) name: &'static str,
+    /// The crate built (`lamina-wasm` for lamina's three modules).
+    krate: &'static str,
+    /// The crate's cdylib file stem in `target/wasm32-unknown-unknown/wasm-release/`.
+    artefact: &'static str,
     features: &'static [&'static str],
 }
 
+impl Module {
+    /// Whether this is one of lamina's own modules (`lamina-wasm`'s builds), which its
+    /// `wasm-bindgen-test` suite and `@lamina/pdf` cover.
+    fn is_lamina(&self) -> bool {
+        self.krate == "lamina-wasm"
+    }
+}
+
 /// The modules, in build order.
-pub(crate) const MODULES: [Module; 3] = [
+pub(crate) const MODULES: [Module; 4] = [
     Module {
         name: "base",
+        krate: "lamina-wasm",
+        artefact: "lamina_wasm",
         features: &[],
     },
     Module {
         name: "text",
+        krate: "lamina-wasm",
+        artefact: "lamina_wasm",
         features: &["--features", "text"],
     },
     // Base plus text extraction (B9c; ADR 0016 §4): what a reader needs, about half the text
     // module, so a viewer's text layer doesn't need fonts and shaping.
     Module {
         name: "extract",
+        krate: "lamina-wasm",
+        artefact: "lamina_wasm",
         features: &["--features", "extract"],
+    },
+    // lamina-render's hayro adapter (C2c, ADR 0004 §5): its own crate, wrapped by
+    // @lamina/render-hayro; never loaded by @lamina/pdf.
+    Module {
+        name: "render_hayro",
+        krate: "lamina-render-wasm",
+        artefact: "lamina_render_wasm",
+        features: &[],
     },
 ];
 
@@ -128,7 +154,7 @@ fn build_module(ws: &Workspace, module: &Module, wasm_opt: &Path, out: &Path) ->
         "build",
         "--locked",
         "-p",
-        "lamina-wasm",
+        module.krate,
         "--lib",
         "--profile",
         "wasm-release",
@@ -142,10 +168,15 @@ fn build_module(ws: &Workspace, module: &Module, wasm_opt: &Path, out: &Path) ->
         fs::remove_dir_all(&work)?;
     }
     fs::create_dir_all(&work)?;
-    // The cargo artefact has one name for both modules: copy it before the next build.
-    let built = work.join("lamina_wasm.wasm");
-    fs::copy(ws.target_dir.join(TARGET).join("wasm-release/lamina_wasm.wasm"), &built)
-        .context("copying the lamina-wasm artefact")?;
+    // lamina-wasm's artefact has one name for its three modules: copy it before the next build.
+    let built = work.join(format!("{}.wasm", module.artefact));
+    fs::copy(
+        ws.target_dir
+            .join(TARGET)
+            .join(format!("wasm-release/{}.wasm", module.artefact)),
+        &built,
+    )
+    .with_context(|| format!("copying the {} artefact", module.krate))?;
     let stem = format!("lamina_{}", module.name);
     let built_arg = built.to_string_lossy().into_owned();
     let work_arg = work.to_string_lossy().into_owned();
@@ -191,10 +222,11 @@ fn build_module(ws: &Workspace, module: &Module, wasm_opt: &Path, out: &Path) ->
 }
 
 /// The `wasm-bindgen-test` suite (Node) for each module's features, the package's smoke test
-/// (Vitest, Node) over `dist/`, then `@lamina/pdf`: build, typecheck, tests, publint and attw.
+/// (Vitest, Node) over `dist/`, then `@lamina/pdf`: build, typecheck, tests, publint and attw;
+/// then `@lamina/render-hayro`'s `RenderBackend` contract over `lamina_render_hayro` (C2c).
 fn test(ws: &Workspace) -> Result<()> {
     crate::step("lamina-wasm tests in Node (wasm-bindgen-test-runner)");
-    for module in &MODULES {
+    for module in MODULES.iter().filter(|m| m.is_lamina()) {
         let mut args = vec![
             "test",
             "--locked",
@@ -216,7 +248,10 @@ fn test(ws: &Workspace) -> Result<()> {
     ws.pnpm(&["--filter", "@lamina/wasm", "run", "test:wasm"])?;
     crate::step("@lamina/pdf over the modules: build, typecheck, Vitest (Node, Vite), publint, attw --pack");
     ws.pnpm(&["--filter", "@lamina/pdf", "run", "test:wasm"])?;
-    ws.pnpm(&["--filter", "@lamina/pdf", "run", "lint:package"])
+    ws.pnpm(&["--filter", "@lamina/pdf", "run", "lint:package"])?;
+    crate::step("@lamina/render-hayro over lamina_render_hayro: build, typecheck, the RenderBackend contract (Node)");
+    ws.pnpm(&["--filter", "@lamina/render", "run", "build"])?;
+    ws.pnpm(&["--filter", "@lamina/render-hayro", "run", "test:wasm"])
 }
 
 /// A usable `wasm-opt`: on `PATH` at [`BINARYEN_VERSION`], else the release in
@@ -496,6 +531,62 @@ pub(crate) fn package_violation(name: &str, gzip: u64, budgets: &BTreeMap<String
     }
 }
 
+/// `@lamina/render-pdfium`'s `pdfium.wasm` (npm-pinned, not built here; C2c): its sizes as a
+/// table row and a report entry, and the violation of `thirdParty.pdfium.wasmGzip` (C1b's
+/// measured gzip size + 5 %), if any.
+fn pdfium_size(
+    ws: &Workspace,
+    file: &Value,
+    table: &mut String,
+    report: &mut serde_json::Map<String, Value>,
+) -> Result<Option<String>> {
+    // The pin and the file come from the package, never a copy here: package.json's exact
+    // version, and pdfium.wasm resolved as Node resolves it from the package (any pnpm layout).
+    let manifest: Value = serde_json::from_str(&fs::read_to_string(
+        ws.root.join("packages/render-pdfium/package.json"),
+    )?)?;
+    let version = manifest
+        .pointer("/dependencies/@embedpdf~1pdfium")
+        .and_then(Value::as_str)
+        .context("packages/render-pdfium/package.json has no @embedpdf/pdfium dependency")?;
+    let label = format!("@embedpdf/pdfium@{version}");
+    let resolved = Command::new("node")
+        .args([
+            "-p",
+            "require.resolve('@embedpdf/pdfium/pdfium.wasm', { paths: ['packages/render-pdfium'] })",
+        ])
+        .current_dir(&ws.root)
+        .output()
+        .context("running node to find pdfium.wasm")?;
+    if !resolved.status.success() {
+        bail!("pdfium.wasm can't be resolved from packages/render-pdfium: run `pnpm install` first");
+    }
+    let path = PathBuf::from(String::from_utf8_lossy(&resolved.stdout).trim());
+    let bytes = fs::read(&path).with_context(|| format!("reading {}", path.display()))?;
+    let sizes = Sizes::of(&bytes);
+    let budget = file.pointer("/thirdParty/pdfium/wasmGzip").and_then(Value::as_u64);
+    let _ = writeln!(
+        table,
+        "| pdfium ({label}) | {} | {} | {} | {} | — | — | — |",
+        sizes.raw,
+        sizes.gzip,
+        sizes.brotli,
+        budget.map_or("—".to_owned(), |b| b.to_string()),
+    );
+    report.insert(
+        "pdfium".to_owned(),
+        json!({ "wasm": sizes.json(), "budget": budget.map(|b| json!({ "wasmGzip": b })) }),
+    );
+    Ok(match budget {
+        None => Some("pdfium: no budget at thirdParty.pdfium.wasmGzip in packages/wasm/size-budgets.json".to_owned()),
+        Some(b) if sizes.gzip > b => Some(format!(
+            "pdfium: pdfium.wasm is {} B gzip, over its budget of {b} B",
+            sizes.gzip
+        )),
+        Some(_) => None,
+    })
+}
+
 /// The package whose JS `size` measures (ADR 0016 §6: glue + TS API ≤ 20 KB min+gzip).
 const PDF_PACKAGE: &str = "@lamina/pdf";
 
@@ -664,6 +755,7 @@ pub(crate) fn size(ws: &Workspace, update_baseline: bool) -> Result<()> {
         PDF_PACKAGE.to_owned(),
         json!({ "jsMinified": pdf.json(), "budget": pdf_budget.map(|b| json!({ "jsGzip": b })) }),
     );
+    let pdfium = pdfium_size(ws, &file, &mut table, &mut report)?;
     println!("{table}");
     fs::create_dir_all(ws.root.join("target"))?;
     let report_path = ws.root.join("target/size-report.json");
@@ -681,6 +773,7 @@ pub(crate) fn size(ws: &Workspace, update_baseline: bool) -> Result<()> {
 
     let mut problems = violations(&measured, &budgets);
     problems.extend(package_violation(PDF_PACKAGE, pdf.gzip, &package_budgets));
+    problems.extend(pdfium);
     if problems.is_empty() {
         crate::step("WASM sizes are within budget");
         Ok(())

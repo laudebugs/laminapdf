@@ -5,6 +5,7 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import * as base from "../dist/lamina_base.js";
 import * as extract from "../dist/lamina_extract.js";
+import * as hayro from "../dist/lamina_render_hayro.js";
 import * as text from "../dist/lamina_text.js";
 
 const root = new URL("../../../", import.meta.url);
@@ -13,6 +14,7 @@ const read = (path: string): Uint8Array => new Uint8Array(readFileSync(new URL(p
 base.initSync({ module: read("packages/wasm/dist/lamina_base.wasm") });
 text.initSync({ module: read("packages/wasm/dist/lamina_text.wasm") });
 extract.initSync({ module: read("packages/wasm/dist/lamina_extract.wasm") });
+hayro.initSync({ module: read("packages/wasm/dist/lamina_render_hayro.wasm") });
 
 /** What a failed call threw: the ADR 0026 §1 object. */
 function thrown(f: () => unknown): Record<string, unknown> {
@@ -122,5 +124,39 @@ describe("lamina_extract", () => {
     const doc = extract.WasmDocument.openBytes(read("fixtures/golden/examples/hello.pdf"), undefined);
     const text = doc.page(0).text(undefined);
     expect([text.lines, text.runs.length, text.quads.length]).toEqual([["Hello, world!"], 1, 13 * 8]);
+  });
+});
+
+/** The module's input buffer holding `bytes`. */
+function input(bytes: Uint8Array): hayro.InputBuffer {
+  const buffer = new hayro.InputBuffer(bytes.length);
+  buffer.write(0, bytes);
+  return buffer;
+}
+
+describe("lamina_render_hayro", () => {
+  it("opens a page and renders a white tile", () => {
+    const doc = hayro.HayroDocument.open(
+      input(read("fixtures/corpus/hello.pdf")),
+      undefined,
+      16_777_216,
+      16_384,
+      2 ** 30,
+    );
+    expect(doc.pageCount()).toBe(1);
+    const [width, height] = Array.from(doc.page(0));
+    expect([width, height]).toEqual([612, 792]);
+    // The top-left 8 × 8 pixels at 1×, upright, annotations and widgets on, on white.
+    const out = new Uint8Array(8 * 8 * 4);
+    doc.render(0, 1, 0, 0, 8, 8, 0, 3, 0xffffffff, out);
+    expect(out.every((b) => b === 255)).toBe(true);
+    doc.free();
+  });
+
+  it("throws render errors with their code and kind", () => {
+    const e = thrown(() =>
+      hayro.HayroDocument.open(input(new TextEncoder().encode("not a pdf")), undefined, 16_777_216, 16_384, 2 ** 30),
+    );
+    expect([e.code, e.kind]).toEqual(["render-failed", "input"]);
   });
 });

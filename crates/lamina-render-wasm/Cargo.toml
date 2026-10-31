@@ -1,0 +1,24 @@
+[package]
+name = "lamina-render-wasm"
+description = "wasm-bindgen bindings of lamina-render's hayro adapter (ADR 0004 §5): one module, lamina_render_hayro, built by `cargo xtask wasm` into @lamina/wasm and wrapped by @lamina/render-hayro."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+publish.workspace = true
+
+# Edge: JS bindings.
+[package.metadata.lamina]
+layer = "edge"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+lamina-render = { workspace = true, features = ["hayro"] }
+js-sys = { workspace = true }
+wasm-bindgen = { workspace = true, features = ["std"] }
+
+[lints]
+workspace = true

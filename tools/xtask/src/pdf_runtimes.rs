@@ -167,6 +167,19 @@ fn commands(runtime: &str) -> Result<Vec<Vec<&'static str>>> {
     })
 }
 
+/// The web render adapters' `RenderBackend` contract in `browser` (todo C2c): `@lamina/render`
+/// built, then `@lamina/render-pdfium` and `@lamina/render-hayro` (over the `wasm` job's
+/// `lamina_render_hayro.wasm`), each with C2b's goldens. They record no measurements.
+fn render_suites(ws: &Workspace, browser: &str) -> Result<()> {
+    crate::run(&ws.root, "pnpm", &["--filter", "@lamina/render", "run", "build"])?;
+    for package in ["@lamina/render-pdfium", "@lamina/render-hayro"] {
+        let mut args = vec!["--filter", package, "exec"];
+        args.extend(vitest("vitest.browser.config.ts", &[browser]));
+        crate::run(&ws.root, "pnpm", &args)?;
+    }
+    Ok(())
+}
+
 /// Runs `pnpm --filter @lamina/pdf exec <args>`, echoing its stdout as it comes, and returns it.
 fn run_captured(ws: &Workspace, args: &[&str]) -> Result<String> {
     let mut full = vec!["--filter", "@lamina/pdf", "exec"];
@@ -201,7 +214,11 @@ fn run_captured(ws: &Workspace, args: &[&str]) -> Result<String> {
 /// needs (`playwright install`, a no-op when they are present).
 pub(crate) fn run(ws: &Workspace, args: &Args) -> Result<()> {
     ws.require_node_modules()?;
-    for dist in ["packages/wasm/dist/lamina_text.wasm", "packages/pdf/dist/index.js"] {
+    for dist in [
+        "packages/wasm/dist/lamina_text.wasm",
+        "packages/wasm/dist/lamina_render_hayro.wasm",
+        "packages/pdf/dist/index.js",
+    ] {
         if !ws.root.join(dist).is_file() {
             bail!("{dist} is missing: run `cargo xtask wasm` first");
         }
@@ -220,6 +237,9 @@ pub(crate) fn run(ws: &Workspace, args: &Args) -> Result<()> {
             let mut found = Vec::new();
             for command in commands(runtime)? {
                 found.extend(parse_measurements(&run_captured(ws, &command)?)?);
+            }
+            if matches!(runtime, "chromium" | "firefox" | "webkit") {
+                render_suites(ws, runtime)?;
             }
             Ok(found)
         })();
