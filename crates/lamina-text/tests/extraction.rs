@@ -198,6 +198,7 @@ fn pdfjs_scripts_pin_the_doctor_version() {
     for script in [
         "../tools/fixtures/pdfjs_text.mjs",
         "../tools/fixtures/pdfjs_build.mjs",
+        "../tools/fixtures/pdfjs_structure.mjs",
         "../tools/corpus-facts/pdfjs-operators.mjs",
         "../tools/roundtrip/pdfjs.mjs",
     ] {

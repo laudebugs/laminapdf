@@ -53,7 +53,7 @@ Finish what [B9b](../done/B9b-text-extraction-core.md) started: B9b decodes ever
 
 - [x] Extracted text for the five-script fixtures (Latin, Arabic, Devanagari, Hebrew, CJK: `text-shaped.pdf`, `build-text-multiscript.pdf`) equals the drawn text in `fixtures/text/extracted.json` and `fixtures/build/facts.json`, right-to-left lines included (normalised whitespace rules documented: lines trimmed, empty ones dropped, a space where the pen jumps forward over a quarter of the size). The text goldens are compared with their samples' drawn lines, the builder goldens with each line from the first extractor not listed as getting it wrong
 - [x] Encrypted fixtures extract the same text and quads as their plaintext originals
-- [x] `ActualText` replaces run text where present; MCIDs are attached and match the structure tree of tagged fixtures (from [B8a](../ongoing/B8a-structure-tree.md) if merged, else hand-made fixtures): B8a has not merged, so hand-made content (nested spans, innermost MCID, outermost `ActualText`, a span over two runs)
+- [x] `ActualText` replaces run text where present; MCIDs are attached and match the structure tree of tagged fixtures (from [B8a](./B8a-structure-tree.md) if merged, else hand-made fixtures): B8a has not merged, so hand-made content (nested spans, innermost MCID, outermost `ActualText`, a span over two runs)
 - [x] Unit tests for the quad computation match hand-computed values; rotated pages and `UserUnit` covered (and the `CropBox` origin, vertical writing)
 
 ## Post-merge checks

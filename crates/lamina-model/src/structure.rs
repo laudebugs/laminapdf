@@ -1,0 +1,314 @@
+//! A minimal read-only view of the logical structure (ISO 32000-2 §14.7): the structure tree
+//! root's elements with their types, attributes and kids (child elements, marked-content
+//! references and object references), the `RoleMap` and the `ParentTree`.
+//!
+//! The walk is depth-first and tolerant: an element reached twice, or nested deeper than
+//! [`Limits::max_tree_depth`](lamina_cos::Limits::max_tree_depth), is skipped with
+//! [`Warning::InvalidEntry`] (key `K`); a kid that is neither an element, an MCID, an `MCR`
+//! nor an `OBJR` is skipped the same way.
+
+use std::collections::{BTreeMap, BTreeSet};
+
+use lamina_cos::{Dict, ObjRef, Object, Result, Warning};
+use lamina_syntax::text::decode_text_string;
+
+use crate::document::{Document, object_number};
+use crate::id::PageId;
+
+/// A kid of a structure element, in the element's (reading) order.
+#[derive(Debug, Clone, PartialEq)]
+#[non_exhaustive]
+pub enum StructKid {
+    /// A child element.
+    Elem(StructElem),
+    /// Marked content: MCID `mcid` of `page` (the element's `/Pg` unless an `MCR` names one).
+    Mcid {
+        /// The page whose content stream holds it.
+        page: Option<PageId>,
+        /// The marked-content ID.
+        mcid: i64,
+    },
+    /// An object reference (`OBJR`): an annotation or an XObject.
+    Object {
+        /// The page it is on.
+        page: Option<PageId>,
+        /// The object.
+        object: ObjRef,
+    },
+}
+
+/// A structure element (`/Type /StructElem`).
+#[derive(Debug, Clone, PartialEq, Default)]
+#[non_exhaustive]
+pub struct StructElem {
+    /// The element's object, when it is indirect.
+    pub object: Option<ObjRef>,
+    /// `/S`, as stored (a standard type or a custom name the `RoleMap` maps).
+    pub kind: Vec<u8>,
+    /// `/Pg`: the page its content is on by default.
+    pub page: Option<PageId>,
+    /// `/Alt`.
+    pub alt: Option<String>,
+    /// `/ActualText`.
+    pub actual_text: Option<String>,
+    /// `/E`.
+    pub expansion: Option<String>,
+    /// `/Lang`.
+    pub lang: Option<String>,
+    /// `/K`: the kids, in order.
+    pub kids: Vec<StructKid>,
+}
+
+impl StructElem {
+    /// The child elements, in order.
+    pub fn children(&self) -> impl Iterator<Item = &StructElem> {
+        self.kids.iter().filter_map(|k| match k {
+            StructKid::Elem(e) => Some(e),
+            _ => None,
+        })
+    }
+
+    /// This element and every element below it, depth-first (reading order).
+    #[must_use]
+    pub fn descendants(&self) -> Vec<&StructElem> {
+        let mut out = Vec::new();
+        let mut stack = vec![self];
+        while let Some(e) = stack.pop() {
+            out.push(e);
+            let children: Vec<&StructElem> = e.children().collect();
+            stack.extend(children.into_iter().rev());
+        }
+        out
+    }
+}
+
+/// The structure tree (`/StructTreeRoot`).
+#[derive(Debug, Clone, PartialEq, Default)]
+#[non_exhaustive]
+pub struct StructTree {
+    /// The root's `/K`: its top-level elements (one `Document` in Tagged PDF).
+    pub roots: Vec<StructElem>,
+    /// `/RoleMap`: custom type → the type it maps to.
+    pub role_map: BTreeMap<Vec<u8>, Vec<u8>>,
+    /// `/ParentTree`, as stored: read it with [`Document::number_tree`].
+    pub parent_tree: Option<Object>,
+    /// `/ParentTreeNextKey`.
+    pub parent_tree_next_key: Option<i64>,
+}
+
+impl StructTree {
+    /// The standard type `kind` stands for: followed through the `RoleMap` (at most as many
+    /// steps as it has entries, so a cycle ends), else `kind` itself.
+    #[must_use]
+    pub fn standard_kind<'a>(&'a self, kind: &'a [u8]) -> &'a [u8] {
+        let mut current = kind;
+        for _ in 0..self.role_map.len() {
+            match self.role_map.get(current) {
+                Some(next) => current = next,
+                None => break,
+            }
+        }
+        current
+    }
+
+    /// Every element, depth-first (reading order).
+    #[must_use]
+    pub fn elements(&self) -> Vec<&StructElem> {
+        self.roots.iter().flat_map(StructElem::descendants).collect()
+    }
+}
+
+struct Walk<'d> {
+    doc: &'d Document,
+    max_depth: usize,
+    visited: BTreeSet<u32>,
+}
+
+fn page_of(dict: &Dict) -> Option<PageId> {
+    dict.get("Pg").and_then(Object::as_ref).map(PageId::object)
+}
+
+impl Walk<'_> {
+    fn skip(&self, obj: &Object) -> Result<()> {
+        self.doc.warn(Warning::InvalidEntry {
+            object: object_number(obj),
+            key: "K",
+        })
+    }
+
+    fn text(&self, dict: &Dict, key: &str) -> Result<Option<String>> {
+        let Some(value) = dict.get(key) else {
+            return Ok(None);
+        };
+        Ok(match self.doc.read(value)?.as_deref() {
+            Some(Object::String(s)) => Some(decode_text_string(&s.bytes)),
+            _ => None,
+        })
+    }
+
+    /// The element at `obj` (`None` when it is skipped).
+    fn elem(&mut self, obj: &Object, depth: usize) -> Result<Option<StructElem>> {
+        if depth > self.max_depth {
+            self.skip(obj)?;
+            return Ok(None);
+        }
+        if let Some(r) = obj.as_ref()
+            && !self.visited.insert(r.num)
+        {
+            self.skip(obj)?;
+            return Ok(None);
+        }
+        let Some(node) = self.doc.read(obj)? else {
+            self.skip(obj)?;
+            return Ok(None);
+        };
+        let Some(dict) = node.as_dict() else {
+            self.skip(obj)?;
+            return Ok(None);
+        };
+        let page = page_of(dict);
+        let mut elem = StructElem {
+            object: obj.as_ref(),
+            kind: dict.get_name("S").map(<[u8]>::to_vec).unwrap_or_default(),
+            page: page.clone(),
+            alt: self.text(dict, "Alt")?,
+            actual_text: self.text(dict, "ActualText")?,
+            expansion: self.text(dict, "E")?,
+            lang: self.text(dict, "Lang")?,
+            kids: Vec::new(),
+        };
+        if let Some(k) = dict.get("K") {
+            for item in kids_of(self.doc, k)? {
+                if let Some(kid) = self.kid(&item, page.as_ref(), depth)? {
+                    elem.kids.push(kid);
+                }
+            }
+        }
+        Ok(Some(elem))
+    }
+
+    fn kid(&mut self, item: &Object, page: Option<&PageId>, depth: usize) -> Result<Option<StructKid>> {
+        if let Some(mcid) = item.as_int() {
+            return Ok(Some(StructKid::Mcid {
+                page: page.cloned(),
+                mcid,
+            }));
+        }
+        if matches!(item, Object::Null) {
+            return Ok(None);
+        }
+        let resolved = self.doc.read(item)?;
+        let Some(dict) = resolved.as_deref().and_then(Object::as_dict) else {
+            self.skip(item)?;
+            return Ok(None);
+        };
+        let kid_page = page_of(dict).or_else(|| page.cloned());
+        let kid = match dict.get_name("Type") {
+            Some(b"MCR") => dict
+                .get("MCID")
+                .and_then(Object::as_int)
+                .map(|mcid| StructKid::Mcid { page: kid_page, mcid }),
+            Some(b"OBJR") => dict
+                .get("Obj")
+                .and_then(Object::as_ref)
+                .map(|object| StructKid::Object { page: kid_page, object }),
+            _ => return Ok(self.elem(item, depth + 1)?.map(StructKid::Elem)),
+        };
+        if kid.is_none() {
+            self.skip(item)?;
+        }
+        Ok(kid)
+    }
+}
+
+/// The items of a `/K`: an array (direct or indirect), else the one value (a reference to an
+/// element stays a reference, so the element keeps its object).
+fn kids_of(doc: &Document, k: &Object) -> Result<Vec<Object>> {
+    Ok(match k {
+        Object::Array(items) => items.clone(),
+        Object::Ref(_) => match doc.read(k)?.as_deref() {
+            Some(Object::Array(items)) => items.clone(),
+            _ => vec![k.clone()],
+        },
+        other => vec![other.clone()],
+    })
+}
+
+/// Reads the catalog's `/StructTreeRoot`.
+pub(crate) fn read(doc: &Document) -> Result<Option<StructTree>> {
+    let catalog = doc.catalog()?;
+    let Some(root_obj) = catalog.get("StructTreeRoot") else {
+        return Ok(None);
+    };
+    let root = doc.read(root_obj)?;
+    let Some(root) = root.as_deref().and_then(Object::as_dict) else {
+        doc.warn(Warning::InvalidEntry {
+            object: doc.trailer().get("Root").and_then(Object::as_ref).map(|r| r.num),
+            key: "StructTreeRoot",
+        })?;
+        return Ok(None);
+    };
+    let mut walk = Walk {
+        doc,
+        max_depth: doc.limits().max_tree_depth(),
+        visited: root_obj.as_ref().map(|r| r.num).into_iter().collect(),
+    };
+    let mut tree = StructTree {
+        parent_tree: root.get("ParentTree").cloned(),
+        parent_tree_next_key: root.get("ParentTreeNextKey").and_then(Object::as_int),
+        ..StructTree::default()
+    };
+    if let Some(map) = root.get("RoleMap")
+        && let Some(map) = doc.read(map)?
+        && let Some(map) = map.as_dict()
+    {
+        for (key, value) in map.iter() {
+            if let Object::Name(name) = value {
+                tree.role_map.insert(key.as_bytes().to_vec(), name.as_bytes().to_vec());
+            }
+        }
+    }
+    if let Some(k) = root.get("K") {
+        for item in kids_of(doc, k)? {
+            if let Some(elem) = walk.elem(&item, 1)? {
+                tree.roots.push(elem);
+            }
+        }
+    }
+    Ok(Some(tree))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn elem(kind: &str, kids: Vec<StructKid>) -> StructElem {
+        StructElem {
+            kind: kind.as_bytes().to_vec(),
+            kids,
+            ..StructElem::default()
+        }
+    }
+
+    #[test]
+    fn descendants_are_in_reading_order() {
+        let tree = elem(
+            "Document",
+            vec![
+                StructKid::Elem(elem("H1", vec![])),
+                StructKid::Elem(elem("P", vec![StructKid::Elem(elem("Span", vec![]))])),
+                StructKid::Elem(elem("P", vec![])),
+            ],
+        );
+        let kinds: Vec<&[u8]> = tree.descendants().iter().map(|e| e.kind.as_slice()).collect();
+        assert_eq!(kinds, [&b"Document"[..], b"H1", b"P", b"Span", b"P"]);
+    }
+
+    #[test]
+    fn a_role_map_cycle_ends() {
+        let mut tree = StructTree::default();
+        tree.role_map.insert(b"A".to_vec(), b"B".to_vec());
+        tree.role_map.insert(b"B".to_vec(), b"A".to_vec());
+        assert!(matches!(tree.standard_kind(b"A"), b"A" | b"B"));
+    }
+}

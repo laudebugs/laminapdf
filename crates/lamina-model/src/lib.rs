@@ -42,6 +42,8 @@
 //!   to [`PageId`]s, action kinds.
 //! * [`Info`]: the information dictionary, with dates as [`PdfDate`].
 //! * [`NameTree`] / [`NumberTree`] and [`PageLabels`].
+//! * [`StructTree`] / [`StructElem`]: a minimal read-only view of the logical structure
+//!   (types, attributes, MCIDs and `OBJR`s per element, the `RoleMap`).
 //! * [`LaminaId`], [`PageId`], [`OutlineItemId`], [`AnnotId`], [`FieldId`].
 //! * Units and coordinates ([ADR 0027]): [`Pt`], [`PointPt`], [`RectPt`] (page space) and
 //!   [`UserSpacePoint`], [`UserSpaceRect`] (raw user space).
@@ -69,6 +71,7 @@ mod info;
 mod labels;
 mod outline;
 mod page;
+mod structure;
 mod tree;
 
 pub use date::{InvalidDate, PdfDate};
@@ -79,6 +82,7 @@ pub use info::{Info, InfoDate};
 pub use labels::{LabelRange, LabelStyle, PageLabels};
 pub use outline::{ActionKind, Destination, Outline, OutlineItem, View};
 pub use page::{Page, Pages, Rotation};
+pub use structure::{StructElem, StructKid, StructTree};
 pub use tree::{NameTree, NumberTree};
 
 // The layers below, in façade order (ADR 0005 §1): what callers of the model need without

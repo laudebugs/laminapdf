@@ -1,0 +1,570 @@
+{
+ "pdfjs_version": "6.4.299",
+ "pypdfium2_version": "5.14.0",
+ "qpdf_version": "12.4.2",
+ "files": {
+  "tagged-report.pdf": {
+   "sha256": "d51a6cd41de2d0607d4f896baccc13ae800833e848fbfebbb8091893523bfd6f",
+   "qpdf_check": true,
+   "pdfjs": {
+    "pages": [
+     {
+      "role": "Root",
+      "children": [
+       {
+        "role": "Document",
+        "children": [
+         {
+          "role": "H1",
+          "children": [
+           {
+            "content": 0
+           }
+          ]
+         },
+         {
+          "role": "P",
+          "children": [
+           {
+            "content": 1
+           }
+          ]
+         },
+         {
+          "role": "Figure",
+          "alt": "A bar chart of sales by quarter, rising from 120 to 310",
+          "children": [
+           {
+            "content": 2
+           }
+          ]
+         },
+         {
+          "role": "Caption",
+          "children": [
+           {
+            "content": 3
+           }
+          ]
+         },
+         {
+          "role": "Table",
+          "children": [
+           {
+            "role": "TR",
+            "children": [
+             {
+              "role": "TH",
+              "children": [
+               {
+                "content": 4
+               }
+              ]
+             },
+             {
+              "role": "TH",
+              "children": [
+               {
+                "content": 5
+               }
+              ]
+             },
+             {
+              "role": "TH",
+              "children": [
+               {
+                "content": 6
+               }
+              ]
+             }
+            ]
+           },
+           {
+            "role": "TR",
+            "children": [
+             {
+              "role": "TD",
+              "children": [
+               {
+                "content": 7
+               }
+              ]
+             },
+             {
+              "role": "TD",
+              "children": [
+               {
+                "content": 8
+               }
+              ]
+             },
+             {
+              "role": "TD",
+              "children": [
+               {
+                "content": 9
+               }
+              ]
+             }
+            ]
+           },
+           {
+            "role": "TR",
+            "children": [
+             {
+              "role": "TD",
+              "children": [
+               {
+                "content": 10
+               }
+              ]
+             },
+             {
+              "role": "TD",
+              "children": [
+               {
+                "content": 11
+               }
+              ]
+             },
+             {
+              "role": "TD",
+              "children": [
+               {
+                "content": 12
+               }
+              ]
+             }
+            ]
+           }
+          ]
+         },
+         {
+          "role": "L",
+          "children": [
+           {
+            "role": "LI",
+            "children": [
+             {
+              "role": "Lbl",
+              "children": [
+               {
+                "content": 13
+               }
+              ]
+             },
+             {
+              "role": "LBody",
+              "children": [
+               {
+                "content": 14
+               }
+              ]
+             }
+            ]
+           },
+           {
+            "role": "LI",
+            "children": [
+             {
+              "role": "Lbl",
+              "children": [
+               {
+                "content": 15
+               }
+              ]
+             },
+             {
+              "role": "LBody",
+              "children": [
+               {
+                "content": 16
+               }
+              ]
+             }
+            ]
+           }
+          ]
+         },
+         {
+          "role": "P",
+          "children": [
+           {
+            "role": "Link",
+            "children": [
+             {
+              "content": 17
+             },
+             {
+              "annotation": true
+             }
+            ]
+           }
+          ]
+         },
+         {
+          "role": "P",
+          "children": [
+           {
+            "content": 18
+           },
+           {
+            "role": "Span",
+            "lang": "fr",
+            "children": [
+             {
+              "content": 19
+             }
+            ]
+           }
+          ]
+         },
+         {
+          "role": "P",
+          "children": [
+           {
+            "content": 20
+           }
+          ]
+         }
+        ]
+       }
+      ]
+     },
+     {
+      "role": "Root",
+      "children": [
+       {
+        "role": "Document",
+        "children": [
+         {
+          "role": "Sect",
+          "children": [
+           {
+            "role": "H2",
+            "children": [
+             {
+              "content": 0
+             }
+            ]
+           },
+           {
+            "role": "P",
+            "children": [
+             {
+              "content": 1
+             }
+            ]
+           },
+           {
+            "role": "Quote",
+            "children": [
+             {
+              "content": 2
+             }
+            ]
+           },
+           {
+            "role": "Note",
+            "children": [
+             {
+              "content": 3
+             }
+            ]
+           },
+           {
+            "role": "Code",
+            "children": [
+             {
+              "content": 4
+             }
+            ]
+           }
+          ]
+         },
+         {
+          "role": "Link",
+          "children": [
+           {
+            "content": 5
+           },
+           {
+            "annotation": true
+           }
+          ]
+         }
+        ]
+       }
+      ]
+     }
+    ]
+   },
+   "pdfium": {
+    "pages": [
+     [
+      {
+       "type": "Document",
+       "mcids": [],
+       "children": [
+        {
+         "type": "H1",
+         "mcids": [
+          0
+         ],
+         "children": []
+        },
+        {
+         "type": "P",
+         "mcids": [
+          1
+         ],
+         "children": []
+        },
+        {
+         "type": "Figure",
+         "alt": "A bar chart of sales by quarter, rising from 120 to 310",
+         "mcids": [
+          2
+         ],
+         "children": []
+        },
+        {
+         "type": "Caption",
+         "mcids": [
+          3
+         ],
+         "children": []
+        },
+        {
+         "type": "Table",
+         "mcids": [],
+         "children": [
+          {
+           "type": "TR",
+           "mcids": [],
+           "children": [
+            {
+             "type": "TH",
+             "mcids": [
+              4
+             ],
+             "children": []
+            },
+            {
+             "type": "TH",
+             "mcids": [
+              5
+             ],
+             "children": []
+            },
+            {
+             "type": "TH",
+             "mcids": [
+              6
+             ],
+             "children": []
+            }
+           ]
+          },
+          {
+           "type": "TR",
+           "mcids": [],
+           "children": [
+            {
+             "type": "TD",
+             "mcids": [
+              7
+             ],
+             "children": []
+            },
+            {
+             "type": "TD",
+             "mcids": [
+              8
+             ],
+             "children": []
+            },
+            {
+             "type": "TD",
+             "mcids": [
+              9
+             ],
+             "children": []
+            }
+           ]
+          },
+          {
+           "type": "TR",
+           "mcids": [],
+           "children": [
+            {
+             "type": "TD",
+             "mcids": [
+              10
+             ],
+             "children": []
+            },
+            {
+             "type": "TD",
+             "mcids": [
+              11
+             ],
+             "children": []
+            },
+            {
+             "type": "TD",
+             "mcids": [
+              12
+             ],
+             "children": []
+            }
+           ]
+          }
+         ]
+        },
+        {
+         "type": "L",
+         "mcids": [],
+         "children": [
+          {
+           "type": "LI",
+           "mcids": [],
+           "children": [
+            {
+             "type": "Lbl",
+             "mcids": [
+              13
+             ],
+             "children": []
+            },
+            {
+             "type": "LBody",
+             "mcids": [
+              14
+             ],
+             "children": []
+            }
+           ]
+          },
+          {
+           "type": "LI",
+           "mcids": [],
+           "children": [
+            {
+             "type": "Lbl",
+             "mcids": [
+              15
+             ],
+             "children": []
+            },
+            {
+             "type": "LBody",
+             "mcids": [
+              16
+             ],
+             "children": []
+            }
+           ]
+          }
+         ]
+        },
+        {
+         "type": "P",
+         "mcids": [],
+         "children": [
+          {
+           "type": "Link",
+           "mcids": [
+            17
+           ],
+           "children": []
+          }
+         ]
+        },
+        {
+         "type": "P",
+         "mcids": [
+          18
+         ],
+         "children": [
+          {
+           "type": "Span",
+           "lang": "fr",
+           "mcids": [
+            19
+           ],
+           "children": []
+          }
+         ]
+        },
+        {
+         "type": "P",
+         "mcids": [
+          20
+         ],
+         "children": []
+        }
+       ]
+      }
+     ],
+     [
+      {
+       "type": "Document",
+       "mcids": [],
+       "children": [
+        {
+         "type": "Sect",
+         "mcids": [],
+         "children": [
+          {
+           "type": "H2",
+           "mcids": [
+            0
+           ],
+           "children": []
+          },
+          {
+           "type": "P",
+           "mcids": [
+            1
+           ],
+           "children": []
+          },
+          {
+           "type": "Quote",
+           "mcids": [
+            2
+           ],
+           "children": []
+          },
+          {
+           "type": "Note",
+           "mcids": [
+            3
+           ],
+           "children": []
+          },
+          {
+           "type": "Code",
+           "mcids": [
+            4
+           ],
+           "children": []
+          }
+         ]
+        },
+        {
+         "type": "Link",
+         "mcids": [
+          5
+         ],
+         "children": []
+        }
+       ]
+      }
+     ]
+    ]
+   }
+  }
+ }
+}

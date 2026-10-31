@@ -16,6 +16,8 @@ use crate::page::{PageBuilder, PageSize};
 use crate::resources::DocResources;
 #[cfg(feature = "text")]
 use crate::surface::text::Font;
+use crate::tag::TagDiagnostic;
+use crate::tag::elem::TagState;
 
 /// The header version of a new document (§7.5.2). Saving with object and cross-reference
 /// streams (`lamina-save`'s default) raises anything below 1.5 to 1.5.
@@ -71,6 +73,7 @@ pub struct BuildOptions {
     producer: Option<String>,
     creation_date: Option<PdfDate>,
     uncompressed: bool,
+    tagged: bool,
     open: OpenOptions,
 }
 
@@ -111,6 +114,25 @@ impl BuildOptions {
     pub const fn with_compress(mut self, compress: bool) -> Self {
         self.uncompressed = !compress;
         self
+    }
+
+    /// Whether the document is tagged (§14.8): a structure tree with a `Document` element
+    /// and `/MarkInfo << /Marked true >>`, even before (or without) any
+    /// [`Surface::tag`](crate::Surface::tag), so content drawn outside every element is
+    /// reported by [`Builder::tagging_diagnostics`]. Default `false`; a page that uses an
+    /// element or artifact makes the document tagged either way. Appended pages
+    /// ([`Builder::on`]) are never tagged: merging into an existing structure tree isn't
+    /// supported, so their elements and artifacts are drawn as plain content.
+    #[must_use]
+    pub const fn with_tagged(mut self, tagged: bool) -> Self {
+        self.tagged = tagged;
+        self
+    }
+
+    /// Whether the document is asked to be tagged.
+    #[must_use]
+    pub const fn tagged(&self) -> bool {
+        self.tagged
     }
 
     /// The limits and strict mode the new document carries (default
@@ -169,10 +191,14 @@ pub(crate) struct BuildState {
     /// What embedding the fonts raised (ToUnicode conflicts, whole fonts kept).
     #[cfg(feature = "text")]
     pub(crate) font_warnings: Vec<lamina_text::Warning>,
+    /// Whether pages may build structure (not for an appender).
+    pub(crate) tagging: bool,
+    /// The structure elements, `ParentTree` and diagnostics so far.
+    pub(crate) tag: TagState,
 }
 
 impl BuildState {
-    fn new(pages_root: ObjRef, compress: bool, explicit_inherited: bool) -> Self {
+    fn new(pages_root: ObjRef, compress: bool, explicit_inherited: bool, tagged: Option<bool>) -> Self {
         Self {
             pages_root,
             pages: Vec::new(),
@@ -186,6 +212,8 @@ impl BuildState {
             required: (1, 0),
             #[cfg(feature = "text")]
             font_warnings: Vec::new(),
+            tagging: tagged.is_some(),
+            tag: TagState::new(tagged.unwrap_or(false)),
         }
     }
 
@@ -263,11 +291,12 @@ impl Builder {
         let catalog = doc.reserve_number().unwrap_or(ObjRef::new(1, 0));
         let pages_root = doc.reserve_number().unwrap_or(ObjRef::new(2, 0));
         let compress = !options.uncompressed;
+        let tagged = options.tagged;
         Self {
             doc,
             options,
             catalog,
-            state: BuildState::new(pages_root, compress, false),
+            state: BuildState::new(pages_root, compress, false, Some(tagged)),
             features: DocFeatures::default(),
         }
     }
@@ -377,6 +406,17 @@ impl Builder {
         self
     }
 
+    /// What the tagged document lacks so far ([B8a]): for each finished page, the content
+    /// drawn outside every structure element and artifact, and the figures without alternate
+    /// text, in page order. Empty while the document isn't tagged (see
+    /// [`BuildOptions::with_tagged`]).
+    ///
+    /// [B8a]: https://github.com/laudebugs/lamina/blob/main/docs/todos/done/B8a-structure-tree.md
+    #[must_use]
+    pub fn tagging_diagnostics(&self) -> &[TagDiagnostic] {
+        self.state.tag.diagnostics()
+    }
+
     /// A page of `size`, appended to the document by [`PageBuilder::finish`].
     pub fn page(&mut self, size: PageSize) -> PageBuilder<'_> {
         PageBuilder::new(
@@ -472,7 +512,7 @@ impl<'d> Appender<'d> {
         let pages_root = finish::page_tree_root(doc.cos())?;
         Ok(Self {
             doc,
-            state: BuildState::new(pages_root, !options.uncompressed, true),
+            state: BuildState::new(pages_root, !options.uncompressed, true, None),
         })
     }
 

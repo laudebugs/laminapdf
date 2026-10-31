@@ -18,6 +18,7 @@ use super::path::Matrix;
 use crate::annot::link::LinkSpec;
 use crate::error::Result;
 use crate::nav::LinkTarget;
+use crate::tag::Tag;
 
 /// A font registered with one builder ([`Builder::font`](crate::Builder::font),
 /// [`Builder::standard_font`](crate::Builder::standard_font) or the [`Appender`](crate::Appender)'s):
@@ -322,6 +323,8 @@ pub(crate) struct TextCommand {
     pub(crate) fill: Option<Color>,
     pub(crate) mode: TextRenderMode,
     pub(crate) link: Option<LinkSpec>,
+    /// The structure element the run is (its own, inside the surface's current one).
+    pub(crate) tag: Option<Box<Tag>>,
     /// The surface's transform when the text was drawn (page space), for the link's
     /// rectangle.
     pub(crate) ctm: Matrix,
@@ -423,6 +426,14 @@ impl<'s> TextRun<'s> {
     /// transform, as an axis-aligned box), with `contents` as its `/Contents`.
     pub fn link(self, target: LinkTarget, contents: Option<String>) -> Self {
         self.edit(|c| c.link = Some(LinkSpec { target, contents }))
+    }
+
+    /// Makes the run the structure element `tag` (§14.7.2), a child of the surface's
+    /// innermost open element: the same as drawing it inside [`Surface::tag`]. A run that is
+    /// also a link holds a `Link` element with the text and the annotation.
+    pub fn tag(self, tag: impl Into<Tag>) -> Self {
+        let tag = Box::new(tag.into());
+        self.edit(|c| c.tag = Some(tag))
     }
 
     /// Shapes the run with OpenType `features` on top of the defaults (`liga=0`, `smcp`).

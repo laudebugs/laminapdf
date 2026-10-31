@@ -76,6 +76,11 @@ fn every_example_reopens_without_warnings() {
 }
 
 #[test]
+fn the_tagged_invoice_leaves_nothing_untagged() {
+    assert_eq!(invoice::builder().unwrap().tagging_diagnostics(), []);
+}
+
+#[test]
 fn every_golden_has_an_example() {
     let dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../fixtures/golden/examples");
     let orphans: Vec<String> = std::fs::read_dir(dir)

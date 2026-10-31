@@ -217,7 +217,7 @@ Architecture Round B is delivered as rounds B1–B9, each split into todos (one 
 
 ### B8. Tagged PDF, PDF/UA and PDF/A
 
-**Todos:** [B8a](../todos/ongoing/B8a-structure-tree.md) (structure tree), [B8b](../todos/ready/B8b-conformance-profiles-and-verapdf.md) (profiles, veraPDF, `0.2.0-alpha`).
+**Todos:** [B8a](../todos/done/B8a-structure-tree.md) (structure tree), [B8b](../todos/ready/B8b-conformance-profiles-and-verapdf.md) (profiles, veraPDF, `0.2.0-alpha`).
 
 **Deliverable:** structure tree builder (`tag()` on content, artifacts, alt text, MCID and ParentTree bookkeeping), conformance profiles, XMP identification, output intents, embedded sRGB ICC; veraPDF in the nightly lane (as an external tool, never linked); release `0.2.0-alpha`.
 **Accepted when:** generated examples pass veraPDF for PDF/UA-1 and PDF/A-2b/2u/3b; a missing alt text or `Lang` fails `finish()` with a coded error; the Matterhorn checks that machines can test pass.
@@ -330,7 +330,7 @@ Each round's todos (one per PR, with dependencies) are linked from [§7](#7-roun
 
 ### B8. Tagged PDF, PDF/UA and PDF/A
 
-- [ ] Add structure-tree building: `tag()`, artifacts, alt text, MCIDs, ParentTree, RoleMap
+- [x] Add structure-tree building: `tag()`, artifacts, alt text, MCIDs, ParentTree, RoleMap ([B8a](../todos/done/B8a-structure-tree.md))
 - [ ] Add profiles `PdfUa1`, `PdfA2b`, `PdfA2u`, `PdfA3b` with build-time errors
 - [ ] Write XMP identification schemas and output intents with an embedded sRGB profile
 - [ ] Add veraPDF (Docker, nightly) over all generated examples; fail on any violation

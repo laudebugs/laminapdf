@@ -20,7 +20,8 @@ use wasm_bindgen::prelude::*;
 
 use crate::build_dto::{
     BLEND_MODES, BuildOptionsInit, FILL_RULES, FitInit, LINE_CAPS, LINE_JOINS, LinkTargetInit, MetadataInit,
-    OutlineEntryInit, PageLabelInit, Path, ViewerPreferencesInit, color, matrix, pick, rect, stroke_style,
+    OutlineEntryInit, PageLabelInit, Path, ViewerPreferencesInit, artifact_kind, color, matrix, pick, rect,
+    stroke_style, tag,
 };
 use crate::convert::{from_js, from_js_or_default, to_js};
 use crate::document::WasmDocument;
@@ -457,6 +458,53 @@ impl WasmPageBuilder {
     /// `builder-finished`.
     pub fn image(&mut self, image: &WasmImage, x: f64, y: f64, width: f64, height: f64) -> JsResult<()> {
         live(&mut self.surface)?.image(&image.image, rect(x, y, width, height));
+        Ok(())
+    }
+
+    /// Opens a structure element until the matching `endTag`: `kind` indexes the standard
+    /// types (`Document`, `Part`, `Sect`, `H1`–`H6`, `P`, `L`, `LI`, `Lbl`, `LBody`, `Table`,
+    /// `TR`, `TH`, `TD`, `Figure`, `Caption`, `Link`, `Span`, `Quote`, `Note`, `Code`), the role
+    /// of `custom` when given; `/Alt`, `/ActualText`, `/Lang`, `/E`; `scope` 0 (none), 1 (row),
+    /// 2 (column), 3 (both). `@lamina/pdf` turns names into these indices and checks them.
+    ///
+    /// # Errors
+    /// `invalid-argument` for an index out of range.
+    #[wasm_bindgen(js_name = beginTag)]
+    #[expect(clippy::too_many_arguments, reason = "flat attributes (no record to convert)")]
+    pub fn begin_tag(
+        &mut self,
+        kind: u8,
+        custom: Option<String>,
+        alt: Option<String>,
+        #[wasm_bindgen(js_name = "actualText")] actual_text: Option<String>,
+        lang: Option<String>,
+        expansion: Option<String>,
+        scope: u8,
+    ) -> JsResult<()> {
+        let tag = tag(kind, custom, [alt, actual_text, lang, expansion], scope)?;
+        live(&mut self.surface)?.begin_tag(tag);
+        Ok(())
+    }
+
+    /// Opens an artifact until the matching `endTag`: `kind` 0 (layout), 1 (page),
+    /// 2 (pagination) or 3 (background).
+    ///
+    /// # Errors
+    /// `invalid-argument` for another kind.
+    #[wasm_bindgen(js_name = beginArtifact)]
+    pub fn begin_artifact(&mut self, kind: u8) -> JsResult<()> {
+        let kind = artifact_kind(kind)?;
+        live(&mut self.surface)?.begin_artifact(kind);
+        Ok(())
+    }
+
+    /// Ends the innermost open element or artifact (none open: nothing happens).
+    ///
+    /// # Errors
+    /// `builder-finished`.
+    #[wasm_bindgen(js_name = endTag)]
+    pub fn end_tag(&mut self) -> JsResult<()> {
+        live(&mut self.surface)?.end_tag();
         Ok(())
     }
 

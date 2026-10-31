@@ -111,6 +111,14 @@ impl Document {
         Outline::new(self)
     }
 
+    /// The logical structure (the catalog's `/StructTreeRoot`, §14.7), if any.
+    ///
+    /// # Errors
+    /// As [`Document::outline`].
+    pub fn structure(&self) -> Result<Option<crate::StructTree>> {
+        crate::structure::read(self)
+    }
+
     /// The document information dictionary (the trailer's `/Info`), if any.
     ///
     /// # Errors
