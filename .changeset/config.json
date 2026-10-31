@@ -2,7 +2,14 @@
   "$schema": "https://unpkg.com/@changesets/config@4.0.1/schema.json",
   "baseBranch": "main",
   "fixed": [
-    ["@laminapdf/wasm", "@laminapdf/sdk", "@laminapdf/render", "@laminapdf/render-hayro", "@laminapdf/render-pdfium"]
+    [
+      "@laminapdf/wasm",
+      "@laminapdf/sdk",
+      "@laminapdf/render",
+      "@laminapdf/render-hayro",
+      "@laminapdf/render-pdfium",
+      "@laminapdf/viewer"
+    ]
   ],
   "linked": [],
   "ignore": ["@laminapdf/docs"],

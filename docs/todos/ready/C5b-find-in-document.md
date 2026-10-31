@@ -24,7 +24,7 @@ Let users find text across a whole document without blocking scrolling: the work
 - **Design (Paper):** [R05 Find in document](../../design/paper/reader-a.md#r05-find-in-document). Build to match these screens; record any deviation in the area document ([Paper design plan §5](../../plans/paper-design.md#5-how-the-designs-are-used)).
 - [web-app.md §4 functional 5](../../plans/web-app.md#functional) and [non-functional targets](../../plans/web-app.md#non-functional-targets-are-recommendations-measured-from-c3-onward) (search row).
 - [C5a](./C5a-text-layer-and-selection.md) — text runs and quads; text-layer span mapping used for highlight rectangles.
-- [C3a](../ongoing/C3a-viewer-worker-rpc.md) — priorities and cancellation (a new query cancels the old one).
+- [C3a](../done/C3a-viewer-worker-rpc.md) — priorities and cancellation (a new query cancels the old one).
 - [C3c](./C3c-viewer-perf-harness.md) — harness to measure search timings.
 - [ADR 0018 §1](../../decisions/0018-test-strategy.md#1-tiers) — expected facts produced by independent tools (pdf.js) and stored in `fixtures/corpus/expected.json`, with an exceptions file for deliberate differences.
 

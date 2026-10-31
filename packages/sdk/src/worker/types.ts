@@ -19,6 +19,16 @@ export interface CallOptions {
   readonly transfer?: boolean;
 }
 
+/**
+ * Options of an extension call (`client.request`, for packages that extend the worker, such as
+ * `@laminapdf/viewer`): the worker runs the highest `priority` first, and runs calls with the same
+ * `key` once (each caller still gets its own answer).
+ */
+export interface RequestOptions extends CallOptions {
+  readonly priority?: number;
+  readonly key?: string;
+}
+
 /** `R` as the page receives it. */
 export type RemoteResult<R> = R extends PageRef ? RemotePage : R;
 

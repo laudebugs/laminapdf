@@ -110,7 +110,7 @@ Each round is split into one or more todos (one pull request each) on the [todo 
 
 **Deliverable:** `@laminapdf/viewer`: worker RPC, page virtualiser, canvas pool, progressive rendering, zoom with anchoring; a minimal demo page; performance harness.
 **Accepted when:** a 1,000-page fixture scrolls end to end in Playwright (Chromium, Firefox, WebKit) within the memory and long-task budgets; cancelled renders never paint.
-**Todos:** [C3a](../todos/ongoing/C3a-viewer-worker-rpc.md), [C3b](../todos/ready/C3b-viewer-virtualiser-and-zoom.md), [C3c](../todos/ready/C3c-viewer-perf-harness.md)
+**Todos:** [C3a](../todos/done/C3a-viewer-worker-rpc.md), [C3b](../todos/ready/C3b-viewer-virtualiser-and-zoom.md), [C3c](../todos/ready/C3c-viewer-perf-harness.md)
 
 ### C4. App shell on Cloudflare
 
@@ -178,7 +178,7 @@ Ticked by the PR that completes them.
 - [ ] Add golden render tests and the nightly hayro-vs-PDFium diff
 
 ### C3. Viewer core
-- [ ] Create `packages/viewer` with the typed RPC (IDs, priorities, transfer lists, cancellation)
+- [x] Create `packages/viewer` with the typed RPC (IDs, priorities, transfer lists, cancellation) ([C3a](../todos/done/C3a-viewer-worker-rpc.md))
 - [ ] Implement the prefix-sum virtualiser and canvas pool
 - [ ] Implement low-res then tiled sharp rendering with `ImageBitmap` transfer
 - [ ] Implement zoom modes and anchor-preserving zoom

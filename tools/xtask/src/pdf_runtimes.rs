@@ -168,11 +168,22 @@ fn commands(runtime: &str) -> Result<Vec<Vec<&'static str>>> {
 }
 
 /// The web render adapters' `RenderBackend` contract in `browser` (todo C2c): `@laminapdf/render`
-/// built, then `@laminapdf/render-pdfium` and `@laminapdf/render-hayro` (over the `wasm` job's
-/// `lamina_render_hayro.wasm`), each with C2b's goldens. They record no measurements.
+/// built, then `@laminapdf/render-pdfium`, `@laminapdf/render-hayro` (over the `wasm` job's
+/// `lamina_render_hayro.wasm`), each with C2b's goldens, and `@laminapdf/viewer`'s document worker and RPC
+/// (C3a, built first). They record no measurements.
 fn render_suites(ws: &Workspace, browser: &str) -> Result<()> {
     crate::run(&ws.root, "pnpm", &["--filter", "@laminapdf/render", "run", "build"])?;
-    for package in ["@laminapdf/render-pdfium", "@laminapdf/render-hayro"] {
+    // The viewer's document worker and RPC (C3a), over the built package.
+    crate::run(
+        &ws.root,
+        "pnpm",
+        &["--filter", "@laminapdf/viewer", "run", "build:wasm"],
+    )?;
+    for package in [
+        "@laminapdf/render-pdfium",
+        "@laminapdf/render-hayro",
+        "@laminapdf/viewer",
+    ] {
         let mut args = vec!["--filter", package, "exec"];
         args.extend(vitest("vitest.browser.config.ts", &[browser]));
         crate::run(&ws.root, "pnpm", &args)?;

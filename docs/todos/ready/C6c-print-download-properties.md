@@ -25,7 +25,7 @@ Finish the reader's output features. **Print** rasterises pages at print DPI in 
 - [web-app.md §4 functional 7](../../plans/web-app.md#functional) — print via rasterised pages in a hidden iframe, native PDF printing where supported; download returns original bytes.
 - [web-app.md §2](../../plans/web-app.md#2-scope-and-non-goals) — properties scope (metadata, fonts, version, encryption, signatures present).
 - [04 §7 encryption](../../research/pdf/04-interactive-security.md#7-encryption-76) (handler, revision, permissions), [04 §8 signatures](../../research/pdf/04-interactive-security.md) (signature fields presence), [03](../../research/pdf/03-text-and-fonts.md) (font types, embedding, subset tags).
-- [C3a](../ongoing/C3a-viewer-worker-rpc.md) (background priority, cancellation), [C4c](./C4c-remote-files-encryption-privacy.md) (`ByteSource` for remote files).
+- [C3a](../done/C3a-viewer-worker-rpc.md) (background priority, cancellation), [C4c](./C4c-remote-files-encryption-privacy.md) (`ByteSource` for remote files).
 
 ## Scope
 
