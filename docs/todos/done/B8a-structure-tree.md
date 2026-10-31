@@ -12,7 +12,7 @@
 | Branch | `feat/b8a-structure-tree` |
 | PR title | `feat(build): tagged PDF with structure tree, artifacts, alt text, MCIDs and ParentTree` |
 | Size | L (≈ 900–1,300 lines Rust + TS bindings) |
-| PR | — |
+| PR | [#100](https://github.com/laudebugs/lamina/pull/100) |
 
 ## Goal
 
