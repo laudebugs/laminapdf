@@ -6,9 +6,9 @@
 | Status | `ready` |
 | Plan | [web reader §6 C3. Viewer core](../../plans/web-app.md#c3-viewer-core) |
 | Round / milestone | Round C (web reader) — M2 Web reader v0.1 |
-| Depends on | [B6b](../done/B6b-lamina-pdf-package.md), [L2a](./L2a-worker-client.md), [C2a](../done/C2a-render-adrs.md), [C2c](./C2c-render-packages.md) |
+| Depends on | [B6b](../done/B6b-lamina-pdf-package.md), [L2a](./L2a-worker-client.md), [C2a](../done/C2a-render-adrs.md), [C2c](../ongoing/C2c-render-packages.md) |
 | Blocks | [C3b](./C3b-viewer-virtualiser-and-zoom.md), [E10i](./E10i-platform-signers.md) |
-| Dependency notes | [C2c](./C2c-render-packages.md) (web render adapters); [C2a](../done/C2a-render-adrs.md) (ADR 0009 RPC requirements); library **B6** (`@lamina/pdf` `Document` in the worker; [pdf-library B6](../../plans/pdf-library.md#b6-wasm-and-laminapdf)) |
+| Dependency notes | [C2c](../ongoing/C2c-render-packages.md) (web render adapters); [C2a](../done/C2a-render-adrs.md) (ADR 0009 RPC requirements); library **B6** (`@lamina/pdf` `Document` in the worker; [pdf-library B6](../../plans/pdf-library.md#b6-wasm-and-laminapdf)) |
 | ADRs | Implements 0009 (typed worker RPC) and 0004 (backend selection). Follows [0003](../../decisions/0003-reader-tolerance-and-limits.md) (`Limits`, warning codes surfaced to the UI), [0005](../../decisions/0005-document-model.md) (`ByteSource`) |
 | Branch | `feat/c3a-viewer-worker-rpc` |
 | PR title | `feat(viewer): add the document worker and typed rpc with priorities and cancellation` |
