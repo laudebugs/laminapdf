@@ -7,7 +7,7 @@
 #   Wrangler into a fresh npm cache, uploads the artifact as a preview version under the alias
 #   pr-<number> and comments its URL on the PR (one comment, updated on every push).
 # Pushes to main (and manual runs on main) build and deploy production in one job (`production`):
-# main is trusted. workers.dev until the owner picks a domain (architecture §8 Q3).
+# main is trusted. Production is https://docs.laminapdf.com (the custom domain route in wrangler.toml).
 #
 # Fork PRs are skipped (they must never run on self-hosted runners or see the secrets). Without
 # the secrets CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID, the deploy steps are skipped with a

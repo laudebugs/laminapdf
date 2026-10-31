@@ -17,7 +17,7 @@
 
 ## Goal
 
-Finish the desktop settings page so every user-facing control the beta needs is in one place — updates and channel (D5b), crash reports (D7a), the **renderer backend switch for Linux** (the plan's mitigation for WebKitGTK's blank windows and slow canvas), plus the general options earlier todos stored (recent files, session restore, reload on change, open in tabs vs windows, print path) — and publish a **download page** at `<domain>/download` with per-OS links served from R2 so people can install the beta.
+Finish the desktop settings page so every user-facing control the beta needs is in one place — updates and channel (D5b), crash reports (D7a), the **renderer backend switch for Linux** (the plan's mitigation for WebKitGTK's blank windows and slow canvas), plus the general options earlier todos stored (recent files, session restore, reload on change, open in tabs vs windows, print path) — and publish a **download page** at `laminapdf.com/download` with per-OS links served from R2 so people can install the beta.
 
 ## Context
 
@@ -26,7 +26,7 @@ Finish the desktop settings page so every user-facing control the beta needs is 
 - [Desktop notes Q1](../../research/architecture/notes/desktop-shell.md#q1-shell-options-versions-size-memory-startup-webview-differences-licence-maturity-production-users) and [Tauri Linux graphics](https://v2.tauri.app/develop/debug/linux-graphics/): `WEBKIT_DISABLE_DMABUF_RENDERER=1`, `WEBKIT_DISABLE_COMPOSITING_MODE=1` (last resort), `__NV_DISABLE_EXPLICIT_SYNC=1`; these are **process environment variables** that must be set before WebKitGTK initialises, i.e. before the Tauri builder runs.
 - D5b settings store and window; D3b/D4a/D4c settings flags.
 - Web plan C4 (`apps/web`, static assets, `_headers`/CSP) and C7 (launch, privacy page).
-- ADR 0014: `downloads.<domain>` custom domain, R2 layout, `SHA256SUMS`, GPG key location.
+- ADR 0014: `downloads.laminapdf.com` custom domain, R2 layout, `SHA256SUMS`, GPG key location.
 
 ## Scope
 
@@ -38,7 +38,7 @@ Finish the desktop settings page so every user-facing control the beta needs is 
   - Command-line override `--safe-graphics` documented for users who can't reach settings.
 - **Settings page completion** (`@lamina/ui` settings route for the `settings` window): sections General (open in tabs/windows, reopen last session, reload when file changes, remember recent files + clear), Updates (D5b), Privacy (crash reports from D7a, reset anonymous ID, link to privacy page), Graphics (Linux only; hidden elsewhere), Printing (system vs compatibility from D4c), About (version, channel, licences). Accessible (labels, keyboard, axe clean).
 - Optional per plan open question 5: "Set Lamina as the default PDF app…" button that opens the OS's default-apps settings (`ms-settings:defaultapps` on Windows via the opener plugin from Rust; macOS: instructions — no API to set default without user action besides `LSSetDefaultRoleHandlerForContentType`, which we don't call silently; Linux: `xdg-mime default lamina.desktop application/pdf` only on explicit click) — only if D3a's decision says so.
-- **Download page** in `apps/web`: route `/download` (static page, part of the SPA or a static HTML asset), detecting the visitor's OS/arch with `navigator.userAgentData.getHighEntropyValues(['platform','architecture'])` where available, else UA parsing, offering the matching installer first and all others below: macOS dmg (arm64/x64 or universal), Windows NSIS `.exe` and `.msi` (x64/arm64), Linux AppImage, `.deb`, `.rpm` (x64/arm64); each with size, SHA-256 and links to `.asc`/`SHA256SUMS`, the GPG key, and attestation verification instructions (`gh attestation verify`); channel tabs (Stable when it exists, Beta). Data source: a small `downloads/{channel}.json` written by D6b's publish job to R2 and fetched from `downloads.<domain>` at runtime (CORS allowing the web origin) — or built into the page at deploy time (decide; runtime fetch avoids redeploying the site per release).
+- **Download page** in `apps/web`: route `/download` (static page, part of the SPA or a static HTML asset), detecting the visitor's OS/arch with `navigator.userAgentData.getHighEntropyValues(['platform','architecture'])` where available, else UA parsing, offering the matching installer first and all others below: macOS dmg (arm64/x64 or universal), Windows NSIS `.exe` and `.msi` (x64/arm64), Linux AppImage, `.deb`, `.rpm` (x64/arm64); each with size, SHA-256 and links to `.asc`/`SHA256SUMS`, the GPG key, and attestation verification instructions (`gh attestation verify`); channel tabs (Stable when it exists, Beta). Data source: a small `downloads/{channel}.json` written by D6b's publish job to R2 and fetched from `downloads.laminapdf.com` at runtime (CORS allowing the web origin) — or built into the page at deploy time (decide; runtime fetch avoids redeploying the site per release).
 - SmartScreen/Gatekeeper/Linux notes on the page (from the runbook), system requirements (macOS 13+, Windows 11, Ubuntu 22.04+/Fedora), and a link to the privacy page.
 
 **Out of scope** (and which todo covers it)
@@ -61,7 +61,7 @@ Finish the desktop settings page so every user-facing control the beta needs is 
 - [ ] On Linux, choosing *Compatibility* and restarting launches with `WEBKIT_DISABLE_DMABUF_RENDERER=1` in the process environment (unit test of the decision function + manual check via `/proc/<pid>/environ`).
 - [ ] Two abnormal exits within 10 s on Linux trigger the automatic fallback and a notice (unit test of the guard).
 - [ ] Every setting stored by D3b, D4a, D4c, D5b and D7a is visible and changeable in the settings page; axe reports zero serious violations on the settings route.
-- [ ] `<domain>/download` (preview deploy) offers the right installer first on macOS arm64, Windows x64 and Linux x64 browsers (Playwright with UA/client-hint overrides) and lists all artefacts with SHA-256 values matching `SHA256SUMS` (test against the mocked JSON).
+- [ ] `/download` on the PR's preview deploy offers the right installer first on macOS arm64, Windows x64 and Linux x64 browsers (Playwright with UA/client-hint overrides) and lists all artefacts with SHA-256 values matching `SHA256SUMS` (test against the mocked JSON).
 - [ ] The download page works without JavaScript errors in Chromium, Firefox and WebKit (web Playwright suite).
 
 ## Post-merge checks

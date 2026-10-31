@@ -12,7 +12,7 @@ New todos start from [`TEMPLATE.md`](TEMPLATE.md). The workflow is in [git workf
 
 IDs: `A`/`P`/`X` [architecture](../plans/architecture.md) (foundations, publishing, cross-cutting), `B` [library](../plans/pdf-library.md), `L` [shareable libraries](../plans/shareable-libraries.md) (contracts, worker, extraction, CLI, agent docs, mobile), `C` [web reader](../plans/web-app.md), `D` [desktop reader](../plans/desktop-app.md), `U` [UI/UX](../plans/ui-ux.md), `E` [editor](../plans/full-editor.md), `H` hosted service ([full-editor](../plans/full-editor.md)). A letter suffix (`B2a`, `B2b`) splits a round into PRs.
 
-**2 ongoing · 196 ready · 49 done** (247 total).
+**2 ongoing · 196 ready · 50 done** (248 total).
 
 ## Can start now
 
@@ -65,6 +65,7 @@ Ready todos whose dependencies are all done:
 | B6c | [Runtime matrix in CI: browsers, Node 22/24/26, Deno, Bun and workerd](done/B6c-runtime-matrix.md) | done | [B6b](done/B6b-lamina-pdf-package.md) |
 | B7a | [Docs site (`apps/docs`): Starlight, quick starts, guides and TypeDoc, with per-PR previews](done/B7a-docs-site.md) | done | [B2b](done/B2b-standard-security-decryption.md), [B6b](done/B6b-lamina-pdf-package.md), [B6c](done/B6c-runtime-matrix.md) |
 | B7b | [Changesets, Cargo version sync, ADR 0017 (versioning) and the local `0.1.0-alpha.0` tag](ongoing/B7b-versioning-and-0-1-0-alpha.md) | ongoing | [B6c](done/B6c-runtime-matrix.md), [B7a](done/B7a-docs-site.md), [X3a](done/X3a-nightly-lane.md) |
+| B7c | [The docs site at `docs.laminapdf.com`, and the domain filled in everywhere](done/B7c-docs-custom-domain.md) | done | [B7a](done/B7a-docs-site.md) |
 | B8a | [Tagged PDF: structure tree builder, artifacts, alt text, MCIDs and ParentTree](done/B8a-structure-tree.md) | done | [B5c](done/B5c-lamina-facade-and-examples.md), [B6b](done/B6b-lamina-pdf-package.md) |
 | B8b | [Conformance profiles (PDF/UA-1, PDF/A-2b/2u/3b), output intents, veraPDF nightly and `0.2.0-alpha`](ready/B8b-conformance-profiles-and-verapdf.md) | ready | [B4c](done/B4c-standard-14-and-simple-fonts.md), [B7b](ongoing/B7b-versioning-and-0-1-0-alpha.md), [B8a](done/B8a-structure-tree.md), [X3a](done/X3a-nightly-lane.md) |
 | B9a | [ADR 0023 and `lamina-content`: read-only content-stream interpreter](done/B9a-lamina-content-and-adr-0023.md) | done | [B2c](done/B2c-lamina-model-corpus-fuzz.md), [X4](done/X4-full-lane-gate.md) |

@@ -2,9 +2,13 @@
 # Worker script, every request answered by the asset server from `astro build`'s dist/, with
 # public/_headers' headers. Deployed by .github/workflows/docs.yml: a preview version per PR
 # (`wrangler versions upload --preview-alias pr-<n>`) and production from main (`wrangler
-# deploy`), on workers.dev until the owner picks a domain (architecture §8 Q3).
+# deploy`). Production is at https://docs.laminapdf.com (the owner's choice, 2026-10-31).
 name = "lamina-docs"
 compatibility_date = "2026-10-01"
+# A Workers custom domain on the laminapdf.com zone: `wrangler deploy` creates the DNS record and
+# certificate for it. The deploy token needs Zone → Workers Routes → Edit on that zone.
+routes = [{ pattern = "docs.laminapdf.com", custom_domain = true }]
+# The workers.dev route stays on: the per-PR preview URLs live under it.
 workers_dev = true
 # Preview URLs for uploaded versions (the per-PR previews), on workers.dev.
 preview_urls = true
