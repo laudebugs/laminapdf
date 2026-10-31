@@ -8,8 +8,12 @@
 //!
 //! hayro can't be paused, so the cancel token is checked before and after each call. An engine
 //! panic (C1a saw one) is caught where unwinding is available and reported as `render-failed`.
-//! hayro has no print intent and draws widgets with the other annotations: `print` is
-//! ignored, and `form_widgets` only matters together with `annotations`.
+//!
+//! Known differences from PDFium, which the oracle diff (X3b) must compare with default flags:
+//! hayro has no print intent (`print` is ignored) and no switch for widgets alone (it draws
+//! them with the other annotations, so `form_widgets: false` is ignored too). A
+//! [`RenderCache`] lives for one call: its lifetime is tied to the page borrowed from the
+//! document, so it can't be kept on the document without a self-referential type.
 
 use std::panic::{AssertUnwindSafe, catch_unwind};
 use std::sync::Arc;
@@ -28,7 +32,7 @@ use lamina_syntax::CancelToken;
 
 use crate::backend::{RenderBackend, RenderDocument};
 use crate::error::RenderError;
-use crate::request::{RenderLimits, RenderOpenOptions, RenderPage, RenderRequest, TilePlan, ViewRotation};
+use crate::request::{RenderLimits, RenderOpenOptions, RenderPage, RenderRequest, TilePlan};
 use crate::source::read_all;
 
 const NAME: &str = "hayro";
@@ -109,17 +113,7 @@ impl RenderDocument for HayroDocument {
             .ok()
             .and_then(|i| pages.get(i))
             .ok_or_else(|| self.out_of_range(index))?;
-        let (width, height) = page.render_dimensions();
-        Ok(RenderPage {
-            width,
-            height,
-            rotate: match page.rotation() {
-                Rotation::None => 0,
-                Rotation::Horizontal => 90,
-                Rotation::Flipped => 180,
-                Rotation::FlippedHorizontal => 270,
-            },
-        })
+        Ok(geometry(page))
     }
 
     fn limits(&self) -> &RenderLimits {
@@ -127,7 +121,12 @@ impl RenderDocument for HayroDocument {
     }
 
     fn render(&self, request: &RenderRequest, out: &mut [u8], cancel: &CancelToken) -> Result<TilePlan, RenderError> {
-        let info = self.page(request.page)?;
+        let pages = self.pdf.pages();
+        let page = usize::try_from(request.page)
+            .ok()
+            .and_then(|i| pages.get(i))
+            .ok_or_else(|| self.out_of_range(request.page))?;
+        let info = geometry(page);
         let plan = TilePlan::new(&info, request, &self.limits)?;
         plan.check_buffer(out)?;
         let (Ok(tw), Ok(th)) = (u16::try_from(plan.tile.width), u16::try_from(plan.tile.height)) else {
@@ -141,13 +140,10 @@ impl RenderDocument for HayroDocument {
         if cancel.is_cancelled() {
             return Err(RenderError::Cancelled);
         }
-        let pages = self.pdf.pages();
-        let page = usize::try_from(request.page)
-            .ok()
-            .and_then(|i| pages.get(i))
-            .ok_or_else(|| self.out_of_range(request.page))?;
 
-        let transform = tile_transform(&info, &plan, request.rotation) * page.initial_transform(true).to_kurbo();
+        // initial_transform(true) is the displayed page space (points, y down, /Rotate applied).
+        let transform =
+            Affine::new(plan.page_to_tile(&info, request.rotation)) * page.initial_transform(true).to_kurbo();
         let settings = InterpreterSettings {
             render_annotations: request.flags.annotations,
             ..InterpreterSettings::default()
@@ -180,30 +176,23 @@ impl RenderDocument for HayroDocument {
     }
 }
 
-const fn failed(stage: &'static str) -> RenderError {
-    RenderError::Failed { backend: NAME, stage }
+/// A page's displayed size and `/Rotate`.
+fn geometry(page: &hayro::hayro_syntax::page::Page<'_>) -> RenderPage {
+    let (width, height) = page.render_dimensions();
+    RenderPage {
+        width,
+        height,
+        rotate: match page.rotation() {
+            Rotation::None => 0,
+            Rotation::Horizontal => 90,
+            Rotation::Flipped => 180,
+            Rotation::FlippedHorizontal => 270,
+        },
+    }
 }
 
-/// From hayro's page space (points, y down, `/Rotate` applied: `initial_transform(true)`) to
-/// the tile's pixels: scale to the page's integer pixel size, rotate the view, shift the tile
-/// to the origin.
-fn tile_transform(page: &RenderPage, plan: &TilePlan, rotation: ViewRotation) -> Affine {
-    // The page's pixel size before the view rotation.
-    let (w0, h0) = if rotation.is_quarter_turn() {
-        (f64::from(plan.page_height), f64::from(plan.page_width))
-    } else {
-        (f64::from(plan.page_width), f64::from(plan.page_height))
-    };
-    let scale = Affine::scale_non_uniform(w0 / f64::from(page.width), h0 / f64::from(page.height));
-    // Clockwise view rotations of the w0 × h0 bitmap: x' = a x + c y + e, y' = b x + d y + f.
-    let view = match rotation {
-        ViewRotation::None => Affine::IDENTITY,
-        ViewRotation::Clockwise90 => Affine::new([0.0, 1.0, -1.0, 0.0, h0, 0.0]),
-        ViewRotation::Half => Affine::new([-1.0, 0.0, 0.0, -1.0, w0, h0]),
-        ViewRotation::Clockwise270 => Affine::new([0.0, -1.0, 1.0, 0.0, 0.0, w0]),
-    };
-    let shift = Affine::translate((-f64::from(plan.tile.x), -f64::from(plan.tile.y)));
-    shift * view * scale
+const fn failed(stage: &'static str) -> RenderError {
+    RenderError::Failed { backend: NAME, stage }
 }
 
 /// hayro's premultiplied RGBA8 into straight-alpha RGBA8 (optionally gray), same size.

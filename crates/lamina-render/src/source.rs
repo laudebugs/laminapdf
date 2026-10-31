@@ -16,9 +16,6 @@ const CHUNK: usize = 64 * 1024;
 /// `render-too-large` when the source is longer than `max_bytes`; `data-pending` with the
 /// merged missing ranges; `source` when a read fails.
 pub fn read_all(source: &dyn ByteSource, max_bytes: u64) -> Result<Vec<u8>, RenderError> {
-    if let Some(bytes) = source.as_slice() {
-        return Ok(bytes.to_vec());
-    }
     let len = source.len();
     if len > max_bytes {
         return Err(RenderError::TooLarge {
@@ -27,6 +24,9 @@ pub fn read_all(source: &dyn ByteSource, max_bytes: u64) -> Result<Vec<u8>, Rend
             limit: max_bytes,
             unit: "bytes of input",
         });
+    }
+    if let Some(bytes) = source.as_slice() {
+        return Ok(bytes.to_vec());
     }
     let size = usize::try_from(len).map_err(|_| RenderError::TooLarge {
         width: len,
@@ -121,6 +121,11 @@ mod tests {
                 ranges: vec![(70_000, 70_000)]
             }
         );
+    }
+
+    #[test]
+    fn refuses_an_in_memory_source_over_the_limit_without_copying() {
+        assert_eq!(read_all(&vec![0u8; 2048], 1024).unwrap_err().code(), "render-too-large");
     }
 
     #[test]

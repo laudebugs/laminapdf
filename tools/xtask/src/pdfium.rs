@@ -97,7 +97,8 @@ pub(crate) fn fetch(ws: &Workspace) -> Result<PathBuf> {
     }
     fs::create_dir_all(&dir).with_context(|| format!("creating {}", dir.display()))?;
     if !verify(&archive, sha)? {
-        let part = dir.join(format!("{asset}.part"));
+        // A per-process name, so two jobs sharing the cache never write the same partial file.
+        let part = dir.join(format!("{asset}.{}.part", std::process::id()));
         let url = format!("https://github.com/bblanchon/pdfium-binaries/releases/download/{TAG}/{asset}");
         crate::run(
             &dir,

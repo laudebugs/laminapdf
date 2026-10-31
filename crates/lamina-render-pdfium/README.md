@@ -8,7 +8,10 @@ The PDFium adapter of [`lamina-render`](../lamina-render/README.md) ([ADR 0004](
   - **Cache:** `$LAMINA_PDFIUM_CACHE`, else `$RUNNER_TOOL_CACHE/lamina-pdfium` on CI, else `target/pdfium/`.
 - **Input:** PDFium reads lamina's `ByteSource` through its custom file access, never a second copy. Reads the source answers `Pending` for are remembered, and the call fails with `data-pending` and those ranges. A render that hit one is discarded, because PDFium can't report a failed read mid-page.
 - **Threads:** one process-wide lock covers every `open`, `page` and `render`, on top of `pdfium-render`'s per-call lock, because PDFium's state is global. Two documents on two threads render one after the other.
-- **Tiles:** the page is laid out at its whole pixel size and shifted, so only the tile lands in a tile-sized bitmap that wraps the caller's buffer (`PdfBitmap::from_bytes`). There's no copy and no full-page allocation. `FPDF_REVERSE_BYTE_ORDER` gives RGBA.
+- **Tiles:** only the tile lands in a tile-sized bitmap that wraps the caller's buffer (`PdfBitmap::from_bytes`). There's no copy and no full-page allocation. `FPDF_REVERSE_BYTE_ORDER` gives RGBA.
+  - **With widgets** (`FPDF_RenderPageBitmap` then `FPDF_FFLDraw`), the page is laid out at its whole pixel size and shifted by the tile's offset.
+  - **Without widgets,** pdfium-render switches to `FPDF_RenderPageBitmapWithMatrix`, which ignores that offset, so it gets `TilePlan::page_to_tile` instead: the same matrix hayro draws with.
+- **Every engine call is under the lock,** closing a document included (`Drop`). Each call loads its page once, and a read the source refused during any call, even one PDFium then recovered from with defaults, makes it `data-pending`.
 - **Cancellation:** checked before and after the call. `pdfium-render` doesn't expose PDFium's progressive rendering (`FPDF_RenderPageBitmap_Start`), so a running render finishes.
 
 ```rust

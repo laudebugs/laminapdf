@@ -327,6 +327,30 @@ impl TilePlan {
             .unwrap_or(usize::MAX)
     }
 
+    /// The affine matrix `[a, b, c, d, e, f]` (`x' = a·x + c·y + e`, `y' = b·x + d·y + f`) from
+    /// the displayed page space of `page` (points, top-left origin, y down, `/Rotate` applied:
+    /// ADR 0027's page space) to this tile's pixels: scale to the page's integer pixel size,
+    /// apply the view `rotation`, shift the tile to the origin. Both adapters draw with it, so
+    /// their tiles agree.
+    #[must_use]
+    pub fn page_to_tile(&self, page: &RenderPage, rotation: ViewRotation) -> [f64; 6] {
+        // The page's pixel size before the view rotation.
+        let (w0, h0) = if rotation.is_quarter_turn() {
+            (f64::from(self.page_height), f64::from(self.page_width))
+        } else {
+            (f64::from(self.page_width), f64::from(self.page_height))
+        };
+        let (sx, sy) = (w0 / f64::from(page.width), h0 / f64::from(page.height));
+        let (tx, ty) = (f64::from(self.tile.x), f64::from(self.tile.y));
+        // Clockwise view rotations of the w0 × h0 bitmap, after scaling, then the tile shift.
+        match rotation {
+            ViewRotation::None => [sx, 0.0, 0.0, sy, -tx, -ty],
+            ViewRotation::Clockwise90 => [0.0, sx, -sy, 0.0, h0 - tx, -ty],
+            ViewRotation::Half => [-sx, 0.0, 0.0, -sy, w0 - tx, h0 - ty],
+            ViewRotation::Clockwise270 => [0.0, -sx, sy, 0.0, -tx, w0 - ty],
+        }
+    }
+
     /// Checks that `out` has exactly [`TilePlan::byte_len`] bytes.
     ///
     /// # Errors
@@ -455,6 +479,40 @@ mod tests {
         fn refuses_a_page_too_large_to_address() {
             let err = TilePlan::new(&LETTER, &RenderRequest::page(0, 1e9), &RenderLimits::default()).unwrap_err();
             assert_eq!(err.code(), "invalid-argument");
+        }
+
+        #[test]
+        fn page_to_tile_maps_the_corners() {
+            let page = RenderPage {
+                width: 100.0,
+                height: 50.0,
+                rotate: 0,
+            };
+            let apply = |m: [f64; 6], x: f64, y: f64| (m[0] * x + m[2] * y + m[4], m[1] * x + m[3] * y + m[5]);
+            let req = RenderRequest::page(0, 2.0);
+            let plan = TilePlan::new(&page, &req, &RenderLimits::default()).unwrap();
+            assert_eq!(
+                apply(plan.page_to_tile(&page, ViewRotation::None), 100.0, 50.0),
+                (200.0, 100.0)
+            );
+            let turned = req.with_rotation(ViewRotation::Clockwise90);
+            let plan = TilePlan::new(&page, &turned, &RenderLimits::default()).unwrap();
+            // Clockwise: the top-left corner goes to the top-right of the 100 × 200 bitmap.
+            assert_eq!(
+                apply(plan.page_to_tile(&page, ViewRotation::Clockwise90), 0.0, 0.0),
+                (100.0, 0.0)
+            );
+            let shifted = req.with_clip(PixelRect {
+                x: 10,
+                y: 20,
+                width: 5,
+                height: 5,
+            });
+            let plan = TilePlan::new(&page, &shifted, &RenderLimits::default()).unwrap();
+            assert_eq!(
+                apply(plan.page_to_tile(&page, ViewRotation::None), 5.0, 10.0),
+                (0.0, 0.0)
+            );
         }
 
         #[test]

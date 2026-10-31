@@ -25,8 +25,8 @@ use lamina_render::{
     RenderRequest, SourceError, TilePlan, ViewRotation, merge_ranges,
 };
 use pdfium_render::prelude::{
-    PdfBitmap, PdfBitmapFormat, PdfColor, PdfDocument, PdfPageRenderRotation, PdfRenderConfig, Pdfium, PdfiumError,
-    PdfiumInternalError,
+    PdfBitmap, PdfBitmapFormat, PdfColor, PdfDocument, PdfMatrix, PdfPage, PdfPageRenderRotation, PdfRenderConfig,
+    Pdfium, PdfiumError, PdfiumInternalError,
 };
 
 const NAME: &str = "pdfium";
@@ -136,9 +136,15 @@ impl RenderBackend for PdfiumBackend {
                     _ => failed("open"),
                 })
             })?;
+        // PDFium rebuilds a damaged structure by scanning, so it may open after refused reads,
+        // with the wrong pages: any refused read makes the open data-pending.
         let count = u32::try_from(doc.pages().len()).unwrap_or(0);
+        if let Some(e) = take_pending(&pending) {
+            drop(doc);
+            return Err(e);
+        }
         Ok(Box::new(PdfiumDocument {
-            doc,
+            doc: Some(doc),
             count,
             pending,
             limits: *options.limits(),
@@ -146,9 +152,9 @@ impl RenderBackend for PdfiumBackend {
     }
 }
 
-/// A document open in PDFium.
+/// A document open in PDFium. `doc` is only `None` while being dropped.
 struct PdfiumDocument {
-    doc: PdfDocument<'static>,
+    doc: Option<PdfDocument<'static>>,
     count: u32,
     pending: Arc<Mutex<Vec<(u64, u64)>>>,
     limits: RenderLimits,
@@ -170,20 +176,48 @@ impl PdfiumDocument {
         }
     }
 
-    /// Page `index`'s geometry; the caller holds the engine lock.
-    fn page_locked(&self, index: u32) -> Result<RenderPage, RenderError> {
+    fn doc(&self) -> Result<&PdfDocument<'static>, RenderError> {
+        self.doc.as_ref().ok_or_else(|| failed("render"))
+    }
+
+    /// Runs `f` under the engine lock with the pending list cleared; any read the source refused
+    /// during `f` turns the outcome into `data-pending`, success or not (PDFium falls back to
+    /// defaults, such as a 612 × 792 page, when it can't read inherited values).
+    fn with_engine<T>(&self, f: impl FnOnce() -> Result<T, RenderError>) -> Result<T, RenderError> {
+        let _guard = engine();
+        clear_pending(&self.pending);
+        let outcome = f();
+        match take_pending(&self.pending) {
+            Some(pending) => Err(pending),
+            None => outcome,
+        }
+    }
+
+    fn load(&self, index: u32) -> Result<PdfPage<'_>, RenderError> {
         let at = self.index(index)?;
-        let page = self.doc.pages().get(at).map_err(|_| failed("render"))?;
-        Ok(RenderPage {
-            width: page.width().value,
-            height: page.height().value,
-            rotate: match page.rotation() {
-                Ok(PdfPageRenderRotation::Degrees90) => 90,
-                Ok(PdfPageRenderRotation::Degrees180) => 180,
-                Ok(PdfPageRenderRotation::Degrees270) => 270,
-                Ok(PdfPageRenderRotation::None) | Err(_) => 0,
-            },
-        })
+        self.doc()?.pages().get(at).map_err(|_| failed("render"))
+    }
+}
+
+impl Drop for PdfiumDocument {
+    fn drop(&mut self) {
+        // Closing the document is engine work too: under the same lock as every other call.
+        let _guard = engine();
+        drop(self.doc.take());
+    }
+}
+
+/// A loaded page's displayed size and `/Rotate`.
+fn geometry(page: &PdfPage<'_>) -> RenderPage {
+    RenderPage {
+        width: page.width().value,
+        height: page.height().value,
+        rotate: match page.rotation() {
+            Ok(PdfPageRenderRotation::Degrees90) => 90,
+            Ok(PdfPageRenderRotation::Degrees180) => 180,
+            Ok(PdfPageRenderRotation::Degrees270) => 270,
+            Ok(PdfPageRenderRotation::None) | Err(_) => 0,
+        },
     }
 }
 
@@ -193,10 +227,7 @@ impl RenderDocument for PdfiumDocument {
     }
 
     fn page(&self, index: u32) -> Result<RenderPage, RenderError> {
-        let _guard = engine();
-        clear_pending(&self.pending);
-        self.page_locked(index)
-            .map_err(|e| take_pending(&self.pending).unwrap_or(e))
+        self.with_engine(|| self.load(index).map(|page| geometry(&page)))
     }
 
     fn limits(&self) -> &RenderLimits {
@@ -204,51 +235,70 @@ impl RenderDocument for PdfiumDocument {
     }
 
     fn render(&self, request: &RenderRequest, out: &mut [u8], cancel: &CancelToken) -> Result<TilePlan, RenderError> {
-        let _guard = engine();
-        clear_pending(&self.pending);
-        let info = self.page_locked(request.page)?;
-        let plan = TilePlan::new(&info, request, &self.limits)?;
-        plan.check_buffer(out)?;
-        if cancel.is_cancelled() {
-            return Err(RenderError::Cancelled);
-        }
-        let int = |v: u32| i32::try_from(v).map_err(|_| failed("render"));
-        let page = self
-            .doc
-            .pages()
-            .get(self.index(request.page)?)
+        self.with_engine(|| {
+            // One page load for the geometry and the drawing.
+            let page = self.load(request.page)?;
+            let info = geometry(&page);
+            let plan = TilePlan::new(&info, request, &self.limits)?;
+            plan.check_buffer(out)?;
+            if cancel.is_cancelled() {
+                return Err(RenderError::Cancelled);
+            }
+            let int = |v: u32| i32::try_from(v).map_err(|_| failed("render"));
+            let background = request
+                .background
+                .map_or(PdfColor::new(0, 0, 0, 0), |c| PdfColor::new(c.r, c.g, c.b, c.a));
+            let config = PdfRenderConfig::new()
+                .render_annotations(request.flags.annotations)
+                .use_print_quality(request.flags.print)
+                .use_grayscale_rendering(request.flags.grayscale)
+                .set_reverse_byte_order(true)
+                .clear_before_rendering(true)
+                .set_clear_color(background);
+            let config = if request.flags.form_widgets {
+                // pdfium-render's form path: FPDF_RenderPageBitmap then FPDF_FFLDraw at the whole
+                // page's pixel size, shifted so the tile lands in the tile-sized bitmap.
+                config
+                    .render_form_data(true)
+                    .set_fixed_size(int(plan.page_width)?, int(plan.page_height)?)
+                    .rotate(rotation(request.rotation), false)
+                    .set_origin(-int(plan.tile.x)?, -int(plan.tile.y)?)
+            } else {
+                // Without widgets pdfium-render uses FPDF_RenderPageBitmapWithMatrix, which ignores
+                // the origin and the fixed size: give it the whole page-to-tile matrix (from
+                // PDFium's displayed page space, the same space hayro draws from) and the tile's
+                // own size, with no rotation or scale of its own.
+                let m = plan.page_to_tile(&info, request.rotation);
+                #[expect(clippy::cast_possible_truncation, reason = "PDFium's matrix is f32")]
+                let matrix = PdfMatrix::new(
+                    m[0] as f32,
+                    m[1] as f32,
+                    m[2] as f32,
+                    m[3] as f32,
+                    m[4] as f32,
+                    m[5] as f32,
+                );
+                config
+                    .render_form_data(false)
+                    .set_fixed_size(int(plan.tile.width)?, int(plan.tile.height)?)
+                    .apply_matrix(matrix)
+                    .map_err(|_| failed("render"))?
+            };
+            let mut bitmap = PdfBitmap::from_bytes(
+                int(plan.tile.width)?,
+                int(plan.tile.height)?,
+                PdfBitmapFormat::BGRA,
+                out,
+            )
             .map_err(|_| failed("render"))?;
-        let background = request
-            .background
-            .map_or(PdfColor::new(0, 0, 0, 0), |c| PdfColor::new(c.r, c.g, c.b, c.a));
-        let config = PdfRenderConfig::new()
-            .set_fixed_size(int(plan.page_width)?, int(plan.page_height)?)
-            .rotate(rotation(request.rotation), false)
-            .set_origin(-int(plan.tile.x)?, -int(plan.tile.y)?)
-            .render_annotations(request.flags.annotations)
-            .render_form_data(request.flags.form_widgets)
-            .use_print_quality(request.flags.print)
-            .use_grayscale_rendering(request.flags.grayscale)
-            .set_reverse_byte_order(true)
-            .clear_before_rendering(true)
-            .set_clear_color(background);
-        let mut bitmap = PdfBitmap::from_bytes(
-            int(plan.tile.width)?,
-            int(plan.tile.height)?,
-            PdfBitmapFormat::BGRA,
-            out,
-        )
-        .map_err(|_| failed("render"))?;
-        page.render_into_bitmap_with_config(&mut bitmap, &config)
-            .map_err(|_| failed("render"))?;
-        drop(bitmap);
-        if let Some(e) = take_pending(&self.pending) {
-            return Err(e);
-        }
-        if cancel.is_cancelled() {
-            return Err(RenderError::Cancelled);
-        }
-        Ok(plan)
+            page.render_into_bitmap_with_config(&mut bitmap, &config)
+                .map_err(|_| failed("render"))?;
+            drop(bitmap);
+            if cancel.is_cancelled() {
+                return Err(RenderError::Cancelled);
+            }
+            Ok(plan)
+        })
     }
 }
 
@@ -289,16 +339,36 @@ impl Read for SourceReader {
         if self.position >= self.source.len() {
             return Ok(0);
         }
-        match self.source.read_at(self.position, buf) {
-            Ok(n) => {
-                self.position += n as u64;
-                Ok(n)
+        // pdfium-render treats any non-zero read as the whole block: fill `buf` (a source may
+        // return short reads, ByteSource docs) up to the end of the input.
+        let mut done = 0;
+        while let Some(rest) = buf.get_mut(done..).filter(|r| !r.is_empty()) {
+            let at = self.position + done as u64;
+            if at >= self.source.len() {
+                break;
             }
-            Err(SourceError::Pending { offset, len }) => {
-                lock_pending(&self.pending).push((offset, len));
-                Err(io::Error::other("data pending"))
+            match self.source.read_at(at, rest) {
+                Ok(0) => break,
+                Ok(n) => done += n,
+                Err(e) => {
+                    self.position = at;
+                    return Err(self.refused(&e));
+                }
             }
-            Err(_) => Err(io::Error::other("source failed")),
+        }
+        self.position += done as u64;
+        Ok(done)
+    }
+}
+
+impl SourceReader {
+    /// Records a pending range and turns the source error into an I/O error for PDFium.
+    fn refused(&self, e: &SourceError) -> io::Error {
+        if let SourceError::Pending { offset, len } = *e {
+            lock_pending(&self.pending).push((offset, len));
+            io::Error::other("data pending")
+        } else {
+            io::Error::other("source failed")
         }
     }
 }

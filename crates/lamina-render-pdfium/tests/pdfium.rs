@@ -16,8 +16,8 @@ use std::sync::Arc;
 
 use common::{fixture, open, pdfium, render};
 use lamina_render::{
-    ByteSource, CancelToken, PixelRect, RenderBackend, RenderError, RenderOpenOptions, RenderRequest, SourceError,
-    ViewRotation,
+    ByteSource, CancelToken, PixelRect, RenderBackend, RenderError, RenderFlags, RenderOpenOptions, RenderRequest,
+    SourceError, ViewRotation,
 };
 
 mod errors {
@@ -223,6 +223,70 @@ mod geometry {
                 }
             }
         }
+    }
+
+    /// Widgets off makes pdfium-render take its matrix path: tiles, scale and rotation must
+    /// still match the form path's output (no widgets on this page, so the pixels agree).
+    #[test]
+    #[ignore = "needs the PDFium library: cargo xtask render-golden"]
+    fn without_widgets_tiles_and_rotations_match_the_form_path() {
+        let doc = open(&pdfium(), fixture("corpus/imaging-demo.pdf"), &RenderOpenOptions::new()).unwrap();
+        let off = RenderFlags {
+            form_widgets: false,
+            ..RenderFlags::default()
+        };
+        for rotation in [
+            ViewRotation::None,
+            ViewRotation::Clockwise90,
+            ViewRotation::Half,
+            ViewRotation::Clockwise270,
+        ] {
+            let base = RenderRequest::page(0, 2.0).with_rotation(rotation);
+            let with = render(doc.as_ref(), &base).unwrap();
+            let clip = PixelRect {
+                x: with.width / 3,
+                y: with.height / 4,
+                width: 256,
+                height: 192,
+            };
+            let tile_with = render(doc.as_ref(), &base.with_clip(clip)).unwrap();
+            let tile_without = render(doc.as_ref(), &base.with_clip(clip).with_flags(off)).unwrap();
+            let share = differing(&tile_with.rgba, &tile_without.rgba) as f64 / f64::from(clip.width * clip.height);
+            assert!(share < 0.01, "{rotation:?}: {:.2} % of the tile differs", share * 100.0);
+        }
+    }
+
+    /// A source that returns at most 100 bytes per read.
+    struct Dribble(Vec<u8>);
+
+    impl ByteSource for Dribble {
+        fn len(&self) -> u64 {
+            self.0.len() as u64
+        }
+
+        fn read_at(&self, offset: u64, buf: &mut [u8]) -> Result<usize, SourceError> {
+            let start = (offset as usize).min(self.0.len());
+            let n = buf.len().min(100).min(self.0.len() - start);
+            buf[..n].copy_from_slice(&self.0[start..start + n]);
+            Ok(n)
+        }
+    }
+
+    #[test]
+    #[ignore = "needs the PDFium library: cargo xtask render-golden"]
+    fn short_reads_render_like_a_whole_buffer() {
+        let bytes = fixture("corpus/text-example.pdf");
+        let whole = render(
+            open(&pdfium(), bytes.clone(), &RenderOpenOptions::new())
+                .unwrap()
+                .as_ref(),
+            &RenderRequest::page(0, 1.0),
+        )
+        .unwrap();
+        let source: Arc<dyn ByteSource> = Arc::new(Dribble(bytes));
+        let doc = pdfium().open(source, &RenderOpenOptions::new()).unwrap();
+        let dribbled = render(doc.as_ref(), &RenderRequest::page(0, 1.0)).unwrap();
+        assert!(whole.rgba == dribbled.rgba, "short reads changed the pixels");
     }
 
     fn differing(a: &[u8], b: &[u8]) -> usize {
