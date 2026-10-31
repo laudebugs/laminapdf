@@ -79,7 +79,7 @@ The architecture is in [architecture.md](architecture.md); this section lists on
 - **Generation strategy** depends on the `krilla-fit` spike ([architecture §4](architecture.md#4-spikes-to-close-open-questions)): either depend on krilla and adapt its output into `lamina-cos`, or build a krilla-like builder directly over `lamina-cos`, reusing `subsetter`, `skrifa` and HarfRust. The [spike result](../../spikes/krilla-fit/README.md) recommends the second (recorded in [ADR 0005 §6](../decisions/0005-document-model.md); accepted when the spike's PR merges).
 - **Split WASM modules** (ADR 0016): the base module (COS, model, save, build) and a text module (shaping, subsetting) may be separate so pure-structure users don't pay for HarfRust. Decided by measurement in B6.
 - **TypeScript is synchronous after `init()`**. `init()` takes a URL, `Response`, bytes or a precompiled `WebAssembly.Module` (required on Workers). Export conditions: `browser`, `workerd`, `node`, `deno`, `default`; checked with publint and `attw --pack`.
-- **Lockstep versions** for the core crates, `@lamina/wasm` and `@lamina/pdf`; OIDC trusted publishing (ADR 0017).
+- **Lockstep versions** for the core crates, `@lamina/wasm`, `@lamina/pdf` and the render packages; OIDC trusted publishing (ADR 0017).
 
 ### API sketch (illustrative, not final)
 
