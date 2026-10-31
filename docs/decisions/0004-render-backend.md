@@ -68,8 +68,23 @@ pub trait RenderDocument: Send {
 ```
 
 - **`ByteSource`** is `lamina-cos`'s trait (ADR 0005 §2). The renderer reads the same source as lamina, never a second copy. A source that answers `Pending` makes `open`, `page` or `render` fail with `data-pending` and the ranges, as lamina's own reads do. The PDFium adapter maps PDFium's availability API (`FPDFAvail_*` with download hints) onto it, and C2b verifies that.
+- **The web adapters' contract.** On the web, PDFium is a separate Emscripten module and can't read a Rust `ByteSource` inside `@lamina/pdf`'s memory. So the shared source is **one JS-level reader in the document worker**, which both engines read through (ADR 0009 §2):
+
+  ```ts
+  interface RenderSource {
+    readonly size: number;
+    /** Synchronous: PDFium's getBlock can't await. undefined = not available yet. */
+    readSync(offset: number, length: number): Uint8Array | undefined;
+  }
+  ```
+
+  - **Local files:** `FileReaderSync` over `File.slice()`, or an OPFS sync access handle.
+  - **Remote files:** the worker's block cache, filled by `httpRangeSource`.
+  - **Pending data:** `undefined` from `readSync` is the web form of `Pending`. The adapter asks `FPDFAvail_*` which ranges it needs, fails the call with `data-pending` and those ranges, and the worker fetches them and retries, as `doc.ensure` does for lamina.
+  - **One reader, both engines:** lamina's `callbackSource` reads the same blocks asynchronously.
+  - **Implementations:** `@lamina/render-pdfium` and `@lamina/render-hayro` both take a `RenderSource` (C2c).
 - **`RenderOpenOptions`:**
-  - the password, used once and not kept as a string after `open`;
+  - the password. The backend uses it in `open` and keeps no copy. Reopening an encrypted document (after a save, §4.2, or after a crash) needs it again, so the **shell** keeps it: the document worker holds it in memory for the document's lifetime and drops it on close (ADR 0009 §3.8). It is never written anywhere;
   - `RenderLimits`.
 - **`RenderLimits`:**
   - `max_render_pixels`, default 16,777,216 (4096 × 4096, the iOS per-canvas cap);
@@ -86,7 +101,10 @@ pub trait RenderDocument: Send {
 - **Pixel format:** RGBA8, **straight (not premultiplied) alpha**, sRGB, rows packed at `width × 4` with no padding. That is what `ImageData` and `createImageBitmap` take, so the web path never converts. Adapters repack internally: PDFium uses `FPDF_REVERSE_BYTE_ORDER`, and hayro un-premultiplies.
 - **`RenderedTile`:** the `width` and `height` written, and whether annotations were drawn.
 - **Cancellation:** a `CancelToken` (ADR 0028), returning the `cancelled` code.
-  - **PDFium:** progressive rendering (`FPDF_RenderPageBitmap_Start` / `FPDF_RenderPage_Continue`), with a pause callback that polls the token. C2b checks the native build exports it and C2c the WASM one; where a build doesn't, the token is checked before and after the call, as for hayro.
+  - **Where the token can flip during a call:** natively, another thread can cancel it. PDFium then uses progressive rendering (`FPDF_RenderPageBitmap_Start` / `FPDF_RenderPage_Continue`) with a pause callback that polls the token. C2b checks that the native build exports it.
+  - **Single-threaded WebAssembly:** a `cancel` message can't run while the render does (ADR 0028 §5: cancellation lands between steps). The token can only stop work that hasn't started, so web renders are kept small (tiles: 2–15 ms per page in C1b) and cancellation drops queued tiles.
+  - **A render already running on the web** finishes, and its result is discarded (ADR 0009 §3.5). Only terminating the worker stops it sooner.
+  - **Exception:** C2c may make the web PDFium adapter yield to the event loop between `FPDF_RenderPage_Continue` steps, if the WASM build exports them and C3c shows long single tiles.
   - **hayro:** the token is checked before and after the call, because hayro can't be paused.
 - **Determinism:** the same backend version, input and request give the same bytes. Goldens depend on it, and C2b tests it.
 - **Errors:** `RenderError` maps to the ADR 0026 contract. It reuses `page-index-out-of-range`, `password-required`, `wrong-password`, `data-pending`, `cancelled` and `limit-exceeded`, and adds `render-too-large`, `render-failed` (the engine refused the page) and `render-backend-unavailable` (the library or module isn't loaded). C2b adds these to `fixtures/codes.json`.
@@ -98,7 +116,7 @@ pub trait RenderDocument: Send {
 
 | Surface | Default | Second adapter |
 | --- | --- | --- |
-| Web reader (`apps/web`) | **PDFium-WASM** in the document worker (`@lamina/render-pdfium`) | hayro (`@lamina/render-hayro`), selectable in the `?debug` menu |
+| Web reader (`apps/web`) | **PDFium-WASM** in the document worker (`@lamina/render-pdfium`) | hayro (`@lamina/render-hayro`), selectable in the debug menu (`#debug`, a fragment, so it never reaches our server, ADR 0011 §3.6) |
 | Desktop (`apps/desktop`, Round D) | **Native PDFium** through `pdfium-render`, in the engine process (ADR 0008) | hayro, in the debug menu |
 | Mobile (later, ADR 0025/0029) | **Native PDFium**, the same pinned binaries | hayro |
 | Library users and edge runtimes (`@lamina/pdf` on Cloudflare Workers, Deno, Node) | **None bundled.** `@lamina/render-hayro` is the recommended optional renderer: pure Rust, no Emscripten glue or C++ surface, and about 1.1 MB gzip with fonts and CMaps fetched separately (1.7 MB with them built in) against PDFium's 2.1 MB | `@lamina/render-pdfium` where its size fits (Workers paid plan) |
@@ -142,10 +160,10 @@ lamina parses for the model, and PDFium parses for pixels. They are kept consist
 
 ### 5. Packaging
 
-- **`crates/lamina-render`:** the trait, the types, request validation and the hayro adapter (feature `hayro`). Layer `core` when it builds without `unsafe` and passes the portability rules; otherwise C2b records why.
-- **The PDFium adapter:** feature `pdfium` (dynamic loading, `unsafe` FFI with `// SAFETY:`). It lives in an **`edge`** crate, `crates/lamina-render-pdfium`, whenever it needs `unsafe` or the file system.
+- **`crates/lamina-render`** (layer `core`): the trait, the types, request validation and the hayro adapter behind feature `hayro`, off by default. It has no `pdfium` feature and never depends on the PDFium crate.
+- **`crates/lamina-render-pdfium`** (layer `edge`): the PDFium adapter, always this separate crate. It depends on `lamina-render` and implements its trait, with dynamic loading and `unsafe` FFI under `// SAFETY:`. Shells that want PDFium depend on it directly, so there is no feature cycle.
 - **npm:** `@lamina/render-pdfium` (the PDFium-WASM adapter) and `@lamina/render-hayro` (`lamina-render`'s hayro adapter as its own `.wasm`) are **optional packages**. `@lamina/pdf` never depends on either, so its size budgets (ADR 0016 §6) don't move. Each gets its own budget in `packages/wasm/size-budgets.json` when C2c creates it.
-- **Worker only:** both web adapters run only inside a worker (ADR 0009). The PDFium adapter reads its input through PDFium's custom file access over the shared `ByteSource` (`FPDF_LoadCustomDocument`), which is C1b's default strategy.
+- **Worker only:** both web adapters run only inside a worker (ADR 0009). The PDFium adapter reads its input through PDFium's custom file access (`FPDF_LoadCustomDocument`) over the worker's `RenderSource` (§1), which is C1b's default strategy.
 
 ### 6. When hayro becomes the default (C1a's criteria)
 

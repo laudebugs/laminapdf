@@ -59,8 +59,9 @@ export interface PlatformFile {
   readonly size: number;
   /** Random access for the document worker (ADR 0009 §2): no whole copy. */
   read(offset: number, length: number): Promise<Uint8Array>;
-  /** A worker-transferable handle when one exists (File, FileSystemFileHandle), else undefined. */
-  readonly transferable?: File | FileSystemFileHandle;
+  /** What the document worker opens, sent in the message body (structured clone, never the
+   *  transfer list): a File or an OPFS/picker FileSystemFileHandle; undefined for URL sources. */
+  readonly handle?: File | FileSystemFileHandle;
   /** True when saveInPlace can write back to this file. */
   readonly writable: boolean;
 }
@@ -99,7 +100,7 @@ UI code **branches on these flags, never on the platform's identity**. Web value
 
 1. **Capabilities, not platforms.** No package except the shell entry may import `@tauri-apps/*`, call `isTauri()` or read `navigator.userAgent` for behaviour. `apps/desktop` calls `isTauri()` once, in its entry (D2a). A lint check in `cargo xtask check ts` enforces this for `packages/*` (C4a).
 2. **Disabled, not missing.** A control whose capability is `false` is hidden when the platform can never have it (no "watch" toggle on the web). It is disabled with an explanation when the user could change that, for example by installing the PWA or using a browser with pickers.
-3. **One file contract.** Every way in (picker, drop, paste, OS open, recent, URL) produces a `PlatformFile`, and the viewer opens all of them the same way. The bytes go to the worker by range reads or a transferred handle, never through React state.
+3. **One file contract.** Every way in (picker, drop, paste, OS open, recent, URL) produces a `PlatformFile`, and the viewer opens all of them the same way. The bytes go to the worker by range reads or a cloned `File`/handle, never through React state.
 4. **Writing is gated twice.** `saveInPlace` requires both the capability and `file.writable`, and the save planner (ADR 0007) still decides the mode.
 5. **Changing the interface.** A new method or flag is added to this ADR's tables in the same PR, with its web value. Desktop-only methods are optional members (`watch?`, `openWindow?`) with matching flags, so the web implementation never stubs behaviour it can't have. D2a may extend the interface this way.
 

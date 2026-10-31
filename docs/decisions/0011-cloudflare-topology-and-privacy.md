@@ -49,7 +49,7 @@ Telemetry was decided by the owner on 2026-10-29: none in v0.1; afterwards optio
   - with `credentials: "omit"`, `referrerPolicy: "no-referrer"` and `cache: "no-store"`;
   - following the host's own HTTP redirects (`redirect: "follow"`; hosted PDFs often redirect to a storage or CDN host). The viewer shows the final host's name in the document's properties.
 - **CORS:** a host without CORS gets an explanation, never a silent proxy. An opt-in CORS proxy would see the bytes, so it is a later server feature under §6, if ever ([web-app §8](../plans/web-app.md#8-open-questions) Q2).
-- **The URL is in-memory state:** the app reads the fragment and then replaces it in the address bar (`history.replaceState`), so it isn't left in history or copied by accident. It is never written to storage, the recent list or logs.
+- **The URL is in-memory state:** the app reads the fragment and then replaces it in the address bar (`history.replaceState`), so it isn't left in history or copied by accident. It is never written to storage, the recent list or logs. The OPFS block cache of a remote document (C4c) is keyed by a random ID generated when the document opens, never by the URL or a hash of it, and is deleted when the document closes or at the next start.
 
 ### 3. The v0.1 privacy guarantees (testable)
 
@@ -60,7 +60,7 @@ Each statement is an assertion in C4c's Playwright suite (and, where noted, C4d'
 3. **Remote documents go only to their own host and its redirects.** Requests for a `#url=` document go only to that URL's origin and the origins its HTTP redirects lead to, with no cookies or credentials and no `Referer`. The app never adds a host of its own.
 4. **No cookies.** No response from our origin sets a cookie, and `document.cookie` stays empty. This holds for anonymous use in every later version too (§6).
 5. **No third parties.** Every script, style sheet, font, image, worker and WASM module comes from our origin. The only other origin the app ever contacts is a remote document's host, at the user's request.
-6. **No telemetry in v0.1.** Every request the app makes to our origin is a `GET`, with no query string and no body, for a file of the deployed build: one listed in the build's asset manifest (lazily loaded chunks, WASM modules and hayro's fonts and CMaps included), `/sw.js` or the web manifest. In particular there are no analytics, error reports, beacons or pings. C4c asserts every request to our origin against the manifest.
+6. **No telemetry in v0.1.** Every request the app makes to our origin is a `GET`, with no query string and no body, for a file of the deployed build: one listed in the build's asset manifest (lazily loaded chunks, WASM modules and hayro's fonts and CMaps included), `/sw.js` or the web manifest. In particular there are no analytics, error reports, beacons or pings. C4c asserts every request to our origin against the manifest. App state that must not reach the server, such as the debug menu (`#debug`) and remote documents (`#url=`), lives in the fragment, never in the query string.
 7. **No fingerprinting.** Nothing is collected, and there are no third-party scripts that could. The app reads no device APIs it doesn't need: the §4 Permissions-Policy denies them.
 8. **Passwords stay in the worker.** A password is posted once, to the document worker, and is never stored, logged or sent anywhere (C3a asserts the message flow).
 9. **Local data is the user's to clear.** The app stores only:
@@ -75,18 +75,18 @@ Each statement is an assertion in C4c's Playwright suite (and, where noted, C4d'
 ### 4. Security headers (`apps/web/public/_headers`, for `/*`)
 
 ```
-Content-Security-Policy: default-src 'none'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self'; img-src 'self' blob: data:; font-src 'self'; connect-src 'self' https:; worker-src 'self'; manifest-src 'self'; frame-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'; object-src 'none'; upgrade-insecure-requests
+Content-Security-Policy: default-src 'none'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self'; img-src 'self' blob: data:; font-src 'self'; connect-src 'self' https:; worker-src 'self'; manifest-src 'self'; frame-src 'self'; frame-ancestors 'self'; base-uri 'none'; form-action 'none'; object-src 'none'; upgrade-insecure-requests
 Referrer-Policy: no-referrer
 Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=(), usb=(), serial=(), hid=(), bluetooth=(), browsing-topics=(), clipboard-read=(), clipboard-write=(self)
 Strict-Transport-Security: max-age=63072000; includeSubDomains
 X-Content-Type-Options: nosniff
-X-Frame-Options: DENY
+X-Frame-Options: SAMEORIGIN
 Cross-Origin-Resource-Policy: same-origin
 ```
 
 - **No inline scripts and no `unsafe-eval`.** `'wasm-unsafe-eval'` is the only exception, and WebAssembly compilation needs it.
 - **`connect-src https:`** is what lets the worker fetch a remote document from any host (§2); everything else is `'self'`.
-- **`frame-src 'self'`** is for the print iframe (C6c). Styles are set through the CSSOM, never through `style` attributes in markup.
+- **`frame-src 'self'` with `frame-ancestors 'self'` and `X-Frame-Options: SAMEORIGIN`** allow the same-origin print iframe (C6c) and refuse framing by every other site. Styles are set through the CSSOM, never through `style` attributes in markup.
 - **No COOP or COEP in v0.1** (ADR 0009 §5). The threaded variant would add them on its own route.
 - **`preload` is added to HSTS** once `<domain>` is chosen and every subdomain is HTTPS.
 - **Changes are amendments:** a change that loosens any directive is an amendment to this ADR, and C4d's header test pins the exact values.
@@ -109,7 +109,7 @@ These rules bind every later round that adds a server feature: telemetry (U5c), 
 2. **Opt-in per document for anything that uploads.** Before a document or any part of it leaves the device, a dialog names what is sent, where it is stored and for how long, and the user confirms for that document. There is no "remember for all documents" option for content uploads.
 3. **Retention:**
    - **Processing temporaries** (heavy jobs, conversions) expire within **24 hours**, through R2 lifecycle rules. Queues and Workflows use their shortest retention.
-   - **Documents a user stores in the cloud** are kept until the user deletes them. An account deletion removes them within **30 days**, and backups go no further back than D1 Time Travel's window.
+   - **Documents a user stores in the cloud** are kept until the user deletes them. An account deletion removes the live data at once (within 24 hours), so that **no copy can be restored 30 days after the request**: D1 Time Travel's window (30 days on Paid) is counted from the request, and any other backup keeps to the same limit.
    - **End-to-end encryption:** a feature that doesn't need server-side processing (storage and sync of the file itself) encrypts on the client before upload, so the server only stores ciphertext. The feature's ADR says when that is impossible and why.
 4. **Telemetry (when U5c lands):**
    - **Consent:** optional, opt-in and off by default, as one setting per install. The exact payload is shown before the user agrees.

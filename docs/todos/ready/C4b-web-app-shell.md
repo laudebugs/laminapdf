@@ -36,7 +36,7 @@ Ship the first runnable reader: `apps/web`, a Vite 8 SPA that composes `@lamina/
 - Opening flows: file input, drag-and-drop on the whole window, paste of a PDF file from the clipboard, `showOpenFilePicker` where available — all via `Platform.openFiles` → `ByteSource` over `File.slice()` → viewer worker.
 - PDFium and lamina WASM lazy-loaded at app start in parallel with file selection (from C3a), served as hashed static assets.
 - Repair/warning notices and error states wired from viewer events to `@lamina/ui`.
-- Debug menu (`?debug`) switching backend PDFium ↔ hayro.
+- Debug menu (`#debug`, a fragment per ADR 0011 §3.6) switching backend PDFium ↔ hayro.
 - Playwright e2e project for `apps/web` against `wrangler dev` (production-equivalent assets + headers).
 
 **Out of scope** (and which todo covers it)

@@ -32,7 +32,7 @@ Create the single Rust abstraction every lamina surface renders through. `crates
 **In scope**
 
 - `crates/lamina-render` (layer per ADR 0004; likely `core` for the trait + hayro, with the PDFium adapter in `crates/lamina-render-pdfium` as `edge` if `unsafe`/dynamic loading is needed — decide by the portability rules in xtask).
-- Trait, types (`RenderRequest`, `RenderFlags`, `PixelFormat`, `RenderedTile`, `RenderError` via `thiserror`), adapters behind features `pdfium` and `hayro`.
+- Trait, types (`RenderRequest`, `RenderFlags`, `PixelFormat`, `RenderedTile`, `RenderError` via `thiserror`), the hayro adapter behind feature `hayro`; the PDFium adapter in the separate edge crate `crates/lamina-render-pdfium` (ADR 0004 §5).
 - Golden PNGs in `fixtures/golden/render/{pdfium,hayro}/` for every `fixtures/corpus` page at 96 DPI; `cargo xtask render-golden [--update]`; comparison helper with perceptual thresholds.
 - Full-lane job running render goldens over `fixtures/corpus` (committed fixtures only; no external corpus in this PR).
 - `deny.toml`/licence allow-list updates for new crates.
@@ -47,7 +47,7 @@ Create the single Rust abstraction every lamina surface renders through. `crates
 ## Tasks
 
 - [ ] Claim via a claim PR (see Definition of done); then a fresh worktree off the updated `main`. Load `/rust-best-practices`.
-- [ ] Add `crates/lamina-render/Cargo.toml` (workspace package fields, `[lints] workspace = true`, `[package.metadata.lamina] layer = …`, features `pdfium`, `hayro`, default none) and register it in the root `Cargo.toml`.
+- [ ] Add `crates/lamina-render/Cargo.toml` (workspace package fields, `[lints] workspace = true`, `[package.metadata.lamina] layer = …`, feature `hayro`, default none; `crates/lamina-render-pdfium` gets its own manifest, layer `edge`) and register it in the root `Cargo.toml`.
 - [ ] `src/lib.rs`: `pub trait RenderBackend { fn page_count(&self) -> Result<u32, RenderError>; fn page_size(&self, page: PageIndex) -> Result<PageSize, RenderError>; fn render(&self, req: &RenderRequest, out: &mut [u8]) -> Result<RenderedTile, RenderError>; }` plus a loader (`fn open(bytes/ByteSource, password: Option<&str>, limits: &Limits)`) — exact signatures per ADR 0004. `RenderRequest` = page, scale or target pixel size, source rect (for tiles), rotation, flags (annotations, form widgets, print, background), pixel format (RGBA8 premultiplied or not; document which).
 - [ ] Validate requests: reject zero/oversized dimensions, cap total pixels per request (a `Limits`-style `max_tile_pixels`) so hostile page sizes cannot allocate unbounded buffers; return `RenderError` codes, never panic.
 - [ ] `src/hayro.rs` (feature `hayro`): wrap `hayro` 0.8.x; map errors; convert its pixmap into the caller's buffer without extra allocation where possible.
