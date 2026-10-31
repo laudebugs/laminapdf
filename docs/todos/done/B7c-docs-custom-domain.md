@@ -29,7 +29,7 @@ The owner chose the domain `laminapdf.com` (2026-10-31) and put its zone on Clou
 
 - `apps/docs/wrangler.toml`: a Workers custom domain route for `docs.laminapdf.com`; workers.dev stays on for the PR previews.
 - `apps/docs/astro.config.mjs`: `site` (canonical links, sitemap).
-- The owner's setup in `apps/docs/README.md` (the token's zone permission), CLAUDE.md.
+- The owner's setup in `apps/docs/README.md` (the token's zone permission), the comment in `.github/workflows/docs.yml` (committed by the owner), CLAUDE.md.
 - Every `<domain>` in `docs/` (plans, ADRs 0011 and 0026, design, research, todos); web-app §8 Q1 and architecture §8 Q3 answered; the roadmap's decisions.
 
 **Out of scope** (and which todo covers it)
@@ -37,7 +37,6 @@ The owner chose the domain `laminapdf.com` (2026-10-31) and put its zone on Clou
 - The reader at `laminapdf.com` and `staging.laminapdf.com` → [C4d](../ready/C4d-deploy-previews-and-production.md).
 - The HSTS preload submission: it needs the apex served with the header → C4d.
 - Moving `codes.json`'s `docsUrl` base to the docs site's code pages: it changes every surface's URLs, so it waits until production serves them.
-- The `workers.dev` comment in `.github/workflows/docs.yml`: this session can't push workflow files; the next workflow change fixes it.
 
 ## Tasks
 
