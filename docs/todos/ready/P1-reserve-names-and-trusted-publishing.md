@@ -6,7 +6,7 @@
 | Status | `ready` — **blocked on the owner's decision to publish** (2026-10-28: crates and npm packages stay local until then) |
 | Plan | [architecture: Publishing (later)](../../plans/architecture.md#publishing-later), [pdf-library §6](../../plans/pdf-library.md#6-docs-examples-and-publishing) |
 | Round / milestone | Publishing (deferred) |
-| Depends on | [B7b](./B7b-versioning-and-0-1-0-alpha.md) |
+| Depends on | [B7b](../ongoing/B7b-versioning-and-0-1-0-alpha.md) |
 | Blocks | [L4d](./L4d-cli-distribution.md), [P2](./P2-first-registry-prerelease.md) |
 | ADRs | Completes **0017** (publishing part: OIDC trusted publishing, provenance, attestations); follows [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) (SBOM), [0002](../../decisions/0002-binding-strategy.md) (`@lamina/wasm` packaging) |
 | Branch | `build/p1-trusted-publishing` |
@@ -22,7 +22,7 @@ Prepare publishing so the first release is safe and needs no long-lived tokens: 
 
 - [Repo and packaging notes §5](../../research/architecture/notes/repo-and-packaging.md#5-versioning-and-release-changesets-release-plz-cargo-release-semver-checks-provenance-trusted-publishing): trusted publishing on npm and crates.io, provenance, attestations; crates.io's first publish must be manual.
 - [Report: repository and release](../../research/architecture/app-and-package-architecture.md#the-repository-is-cargo-pnpm-and-a-task-runner-released-through-oidc-and-gated-by-a-pdf-corpus).
-- ADR 0017 versioning half from [B7b](./B7b-versioning-and-0-1-0-alpha.md).
+- ADR 0017 versioning half from [B7b](../ongoing/B7b-versioning-and-0-1-0-alpha.md).
 
 ## Scope
 

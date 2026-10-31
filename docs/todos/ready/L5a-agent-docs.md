@@ -8,7 +8,7 @@
 | Round / milestone | Round L5 (shareable libraries) — before the first registry prerelease |
 | Depends on | [B7a](../done/B7a-docs-site.md), [L1b](../done/L1b-error-contract-codegen.md) |
 | Blocks | None |
-| ADRs | Follows 0026 (error codes and `explain` pages, from [L1a](../done/L1a-contract-adrs.md)), [0015](../../decisions/0015-monorepo-layout-and-tooling.md) (xtask, pnpm workspace), [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) (new docs tooling licences), 0017 (lockstep versions, from [B7b](./B7b-versioning-and-0-1-0-alpha.md)), [0018](../../decisions/0018-test-strategy.md) (the eval is recorded, not gating) |
+| ADRs | Follows 0026 (error codes and `explain` pages, from [L1a](../done/L1a-contract-adrs.md)), [0015](../../decisions/0015-monorepo-layout-and-tooling.md) (xtask, pnpm workspace), [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) (new docs tooling licences), 0017 (lockstep versions, from [B7b](../ongoing/B7b-versioning-and-0-1-0-alpha.md)), [0018](../../decisions/0018-test-strategy.md) (the eval is recorded, not gating) |
 | Branch | `docs/l5a-agent-docs` |
 | PR title | `docs(site): llms.txt, Markdown twins, docs in packages, rename log and agent-eval baseline` |
 | Size | M (≈ 400–700 lines of config, scripts and tests; generated docs and copied pages don't count) |
@@ -30,7 +30,7 @@ Users get an `AGENTS.md` snippet for their own repositories. A machine-readable 
 - [LLM note (A)](../../research/libraries/notes/llm-api-and-ai-extraction.md#a-what-makes-llmsagents-write-correct-code-against-a-library-api-and-what-lamina-should-do): the llms.txt format (H1, blockquote, H2 link lists to `.md` pages; `llms-ctx.txt` variant), the four channels to ship, deprecated aliases and a machine-readable rename changelog.
 - [B7a](../done/B7a-docs-site.md): the Starlight site in `apps/docs`, TypeDoc, snippets imported from tested examples, per-PR previews.
 - [L1b](../done/L1b-error-contract-codegen.md): `explain` pages and the `lamina.error/1` schema, both shipped here.
-- [B7b](./B7b-versioning-and-0-1-0-alpha.md): lockstep versions and `pnpm pack` install checks; the docs in the tarball must carry the same version.
+- [B7b](../ongoing/B7b-versioning-and-0-1-0-alpha.md): lockstep versions and `pnpm pack` install checks; the docs in the tarball must carry the same version.
 - [Code organisation §1](../../guidelines/code-organization.md#1-top-level-layout): where `tools/` scripts and `apps/docs` live.
 
 ## Scope
