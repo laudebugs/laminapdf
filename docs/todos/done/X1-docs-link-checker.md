@@ -36,7 +36,7 @@ Catch broken documentation links before merge. The todo board makes link rot lik
 **Out of scope**
 
 - External URL checking (network; flaky): [X3c](X3c-nightly-link-check.md), a nightly job.
-- The docs site's own checker: [B7a](../ongoing/B7a-docs-site.md).
+- The docs site's own checker: [B7a](./B7a-docs-site.md).
 
 ## Tasks
 

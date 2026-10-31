@@ -1,0 +1,21 @@
+# The docs site on Cloudflare Workers static assets (todo B7a; ADR 0011 §1's conventions): no
+# Worker script, every request answered by the asset server from `astro build`'s dist/, with
+# public/_headers' headers. Deployed by .github/workflows/docs.yml: a preview version per PR
+# (`wrangler versions upload --preview-alias pr-<n>`) and production from main (`wrangler
+# deploy`), on workers.dev until the owner picks a domain (architecture §8 Q3).
+name = "lamina-docs"
+compatibility_date = "2026-10-01"
+workers_dev = true
+# Preview URLs for uploaded versions (the per-PR previews), on workers.dev.
+preview_urls = true
+
+[assets]
+directory = "./dist"
+# Unknown paths get the site's 404 page with a 404 status.
+not_found_handling = "404-page"
+# Answer /guides/limits without its trailing slash too (Astro writes /guides/limits/index.html).
+html_handling = "auto-trailing-slash"
+
+# No Worker code runs, so there are no Worker logs to keep (ADR 0011 §5).
+[observability]
+enabled = false

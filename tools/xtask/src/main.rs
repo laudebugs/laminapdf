@@ -46,7 +46,7 @@ tasks:
                     gen codes --check
                     rust: fmt --check, portability, clippy (native + wasm32), tests, rustdoc, cargo-deny
                     ts:   biome ci, typecheck and tests of the pnpm
-                          workspace, npm licences
+                          workspace, the docs site's build (apps/docs), npm licences
   gen codes [--check|--md]
                     validate fixtures/codes.json against fixtures/codes.schema.json and write
                     the error contract from it: the façade's ErrorCode/WarningCode
@@ -295,6 +295,7 @@ fn check_ts(ws: &Workspace) -> Result<()> {
     biome_ci(ws)?;
     ws.pnpm(&["-r", "--if-present", "run", "typecheck"])?;
     ts_tests(ws)?;
+    docs_site(ws)?;
     licenses::check_npm(ws)?;
     step("TypeScript checks passed");
     Ok(())
@@ -472,6 +473,13 @@ fn biome_ci(ws: &Workspace) -> Result<()> {
 
 fn ts_tests(ws: &Workspace) -> Result<()> {
     ws.pnpm(&["-r", "--if-present", "run", "test"])
+}
+
+/// Builds the docs site (`apps/docs`): its `TypeDoc` reference, the snippets read from the example
+/// files and the code table from `codes.json`; the build fails on any broken internal link.
+fn docs_site(ws: &Workspace) -> Result<()> {
+    step("docs site: astro build of apps/docs (TypeDoc, snippets, code table, link check)");
+    ws.pnpm(&["--filter", "@lamina/docs", "run", "build"])
 }
 
 fn step(message: &str) {

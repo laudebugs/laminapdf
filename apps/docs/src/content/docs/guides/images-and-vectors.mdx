@@ -1,0 +1,27 @@
+---
+title: Images and vectors
+description: Paths, strokes, colour, transparency, clipping, transforms and images.
+sidebar:
+  order: 2
+---
+
+import { Tabs, TabItem } from "@astrojs/starlight/components";
+import Snippet from "../../../components/Snippet.astro";
+
+Vector pages need only the base module (`init()`).
+
+- **Paths:** `surface.path(p => …)` returns a pending path, which you paint with `fill`, `stroke`, `fillStroke` or `clip`. An invalid value (NaN, a negative width) fails `page.finish()` with `invalid-geometry`.
+- **Colour:** gray `[g]`, RGB `[r, g, b]`, CMYK `[c, m, y, k]` or hex, plus opacity and blend modes.
+- **Images:** `Image.jpeg(bytes)` passes the JPEG through as it is. `Image.png(bytes)` keeps its alpha channel as a soft mask. `Image.rgba(width, height, pixels)` takes raw pixels.
+- **Transforms:** `Matrix` for rotation, scaling and translation, in page space.
+
+<Tabs syncKey="lang">
+  <TabItem label="TypeScript">
+    <Snippet file="packages/pdf/examples/images-and-vectors.ts" />
+  </TabItem>
+  <TabItem label="Rust">
+    <Snippet file="crates/lamina/examples/vectors.rs" />
+  </TabItem>
+</Tabs>
+
+[See the output](/examples/#images-and-vectors).

@@ -1,0 +1,16 @@
+---
+title: Deno
+description: Use @lamina/pdf in Deno.
+sidebar:
+  order: 3
+---
+
+import Snippet from "../../../components/Snippet.astro";
+
+Deno resolves the `deno` export condition. The glue fetches each `.wasm` file from next to itself (a `file:` URL), so reading files needs `--allow-read`.
+
+This is the Deno runner of the example suite, which CI runs with `cargo xtask pdf-runtimes deno`. It reads each input with `Deno.readFile` and registers each example with `Deno.test`:
+
+<Snippet file="packages/pdf/test/deno/examples.test.ts" />
+
+The suite it runs, `runSuite`, calls `await init({ text: true })` once, then builds each example, such as [`hello`](/quick-start/node/), and compares its bytes with the Rust golden.

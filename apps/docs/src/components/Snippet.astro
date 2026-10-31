@@ -1,0 +1,38 @@
+---
+// Shows a file of the repository as a code block, read at build time: the site's code is the
+// tested example files themselves (todo B7a), never a copy. `file` is the path from the
+// repository root; a path that isn't one of the globbed files below fails the build.
+import { Code } from "@astrojs/starlight/components";
+
+interface Props {
+  /** The path from the repository root, e.g. `packages/pdf/examples/hello.ts`. */
+  readonly file: string;
+  /** The title above the block (default: the path). */
+  readonly title?: string;
+}
+
+// The files a page may show: the TS examples (and the Worker's), the runtime runners the quick
+// starts use, and the Rust examples. Each is run by a test or CI job (see the quick starts).
+const FILES: Record<string, string> = import.meta.glob(
+  [
+    "../../../../packages/pdf/examples/**/*.{ts,toml}",
+    "../../../../packages/pdf/test/{deno,bun}/examples.test.ts",
+    "../../../../packages/pdf/test/vite-app/main.ts",
+    "../../../../packages/pdf/test/examples.test.ts",
+    "../../../../packages/pdf/test/suite/examples.ts",
+    "../../../../crates/lamina/examples/*.rs",
+  ],
+  { query: "?raw", import: "default", eager: true },
+);
+const PREFIX = "../../../../";
+
+const { file, title } = Astro.props;
+const code = FILES[PREFIX + file];
+if (code === undefined) {
+  throw new Error(`Snippet: ${file} is not one of the example files apps/docs may show`);
+}
+const extension = file.slice(file.lastIndexOf(".") + 1);
+const lang = ({ ts: "ts", rs: "rust", toml: "toml" } as Record<string, string>)[extension] ?? "text";
+---
+
+<Code code={code} lang={lang} title={title ?? file} />

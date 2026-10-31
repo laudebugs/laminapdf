@@ -1,0 +1,22 @@
+# Response headers for every file of the docs site (Workers static assets): ADR 0011 §4's, with
+# the differences a static docs site needs. `script-src` lists the hash of each inline script
+# the build wrote (astro.config.mjs replaces the placeholder in dist/_headers);
+# `style-src` has 'unsafe-inline' because Expressive Code colours code tokens with style
+# attributes; and `connect-src` is only 'self' (search fetches its own index; nothing remote).
+# PR previews also get `X-Robots-Tag: noindex`, appended by .github/workflows/docs.yml.
+/*
+  Content-Security-Policy: default-src 'none'; script-src 'self' 'wasm-unsafe-eval' 'inline-script-hashes'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'; worker-src 'self'; manifest-src 'self'; frame-src 'self'; frame-ancestors 'self'; base-uri 'none'; form-action 'none'; object-src 'none'; upgrade-insecure-requests
+  Referrer-Policy: no-referrer
+  Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=(), usb=(), serial=(), hid=(), bluetooth=(), browsing-topics=(), clipboard-read=(), clipboard-write=(self)
+  Strict-Transport-Security: max-age=63072000; includeSubDomains
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: SAMEORIGIN
+  Cross-Origin-Resource-Policy: same-origin
+
+# Astro's bundled assets are content-hashed.
+/_astro/*
+  Cache-Control: public, max-age=31536000, immutable
+
+# The example PDFs open in the browser's own PDF viewer, which a page CSP can block.
+/examples/pdf/*
+  ! Content-Security-Policy

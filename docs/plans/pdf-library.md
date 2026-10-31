@@ -210,7 +210,7 @@ Architecture Round B is delivered as rounds B1–B9, each split into todos (one 
 
 ### B7. Docs, examples and first release
 
-**Todos:** [B7a](../todos/ongoing/B7a-docs-site.md) (docs site), [B7b](../todos/ready/B7b-versioning-and-0-1-0-alpha.md) (Changesets, ADR 0017, local `0.1.0-alpha.0`); publishing later: [P1](../todos/ready/P1-reserve-names-and-trusted-publishing.md), [P2](../todos/ready/P2-first-registry-prerelease.md).
+**Todos:** [B7a](../todos/done/B7a-docs-site.md) (docs site; done), [B7b](../todos/ready/B7b-versioning-and-0-1-0-alpha.md) (Changesets, ADR 0017, local `0.1.0-alpha.0`); publishing later: [P1](../todos/ready/P1-reserve-names-and-trusted-publishing.md), [P2](../todos/ready/P2-first-registry-prerelease.md).
 
 **Deliverable:** `apps/docs` site; examples; Changesets with Cargo version sync; ADR 0017 (versioning; publishing part deferred); `0.1.0-alpha.0` versioned and tagged, **not published**.
 **Accepted when:** docs deploy on a preview URL per PR; a fresh project outside the repo installs the packed tarballs (`pnpm pack`) and a git/path dependency on the `lamina` crate, and runs the quick start in each runtime.
@@ -321,8 +321,8 @@ Each round's todos (one per PR, with dependencies) are linked from [§7](#7-roun
 
 ### B7. Docs, examples and first release
 
-- [ ] Create `apps/docs` (Starlight) with quick start per runtime, guides and TypeDoc API
-- [ ] Deploy docs to Workers static assets with per-PR preview URLs
+- [x] Create `apps/docs` (Starlight) with quick start per runtime, guides and TypeDoc API ([B7a](../todos/done/B7a-docs-site.md))
+- [x] Deploy docs to Workers static assets with per-PR preview URLs ([B7a](../todos/done/B7a-docs-site.md): `.github/workflows/docs.yml`; it deploys once the owner adds the Cloudflare secrets, `apps/docs/README.md`)
 - [ ] Add Changesets and the Cargo version-sync script; write ADR 0017
 - [ ] Tag `0.1.0-alpha.0` locally (not published); verify install from `pnpm pack` tarballs and a git/path crate dependency in a clean project in each runtime
 - [ ] Write the stability policy and changelog (published with the first registry release)
