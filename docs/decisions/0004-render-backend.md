@@ -55,7 +55,8 @@ pub trait RenderBackend: Send {
         -> Result<Box<dyn RenderDocument>, RenderError>;
 }
 
-/// One open document. `Send + !Sync`: one call at a time (PDFium is not thread-safe).
+/// One open document. `Send + !Sync`: one call at a time on the document. Owns everything
+/// it needs (`'static`), so it can move to the shell's render thread.
 pub trait RenderDocument: Send {
     fn page_count(&self) -> u32;
     /// Boxes and `/Rotate` in points, ADR 0027 (0-based `index`).
@@ -89,6 +90,8 @@ pub trait RenderDocument: Send {
   - **hayro:** the token is checked before and after the call, because hayro can't be paused.
 - **Determinism:** the same backend version, input and request give the same bytes. Goldens depend on it, and C2b tests it.
 - **Errors:** `RenderError` maps to the ADR 0026 contract. It reuses `page-index-out-of-range`, `password-required`, `wrong-password`, `data-pending`, `cancelled` and `limit-exceeded`, and adds `render-too-large`, `render-failed` (the engine refused the page) and `render-backend-unavailable` (the library or module isn't loaded). C2b adds these to `fixtures/codes.json`.
+- **Thread safety is the backend's job, across documents.** PDFium is not thread-safe at the library level: its global state is shared by every document in a process. So the PDFium adapter serialises **every** call of every document it opened through one backend-wide lock (pdfium-render's `thread_safe` feature, as C1a used). Two documents on two threads then render one after the other, never at once. hayro's documents are independent and take no shared lock. Shells that want parallel PDFium rendering use separate processes (desktop, ADR 0008) or separate workers (web, ADR 0009), each with its own PDFium instance.
+- **Ownership:** a `RenderDocument` is `'static`. pdfium-render's `PdfDocument<'a>` borrows its `Pdfium` bindings, so the adapter binds PDFium once per process and holds the bindings in a process-lifetime value (a `OnceLock`), which every document borrows for `'static`. C2b confirms this compiles with pdfium-render 0.9.4, or records the self-owning wrapper it uses instead.
 - **Coordinates:** page geometry follows ADR 0027. The renderer's page size must equal lamina's `page_info` for the same index, and C2b's goldens assert it.
 
 ### 2. Adapters and default per surface
@@ -117,7 +120,10 @@ PDFium is a third-party binary under [ADR 0019](0019-supply-chain-and-licence-hy
 - **Native:** `bblanchon/pdfium-binaries`, the `chromium/7881` release that C1a used and `pdfium-render`'s `pdfium_latest` targets.
   - `cargo xtask fetch-pdfium` downloads it per host OS from a pinned URL and checks a SHA-256 per asset recorded in `tools/xtask` (C2b).
   - `pdfium-render` binds it dynamically at runtime, so builds and clippy never need the library.
-- **Notices:** the wasm package ships no third-party notices (C1b). The products bundle them: PDFium's BSD-3 and Apache-2.0, FreeType (under the FTL), zlib, OpenJPEG, libpng, Little-CMS 2 and libjpeg-turbo. C2c confirms the list against EmbedPDF's build script.
+- **Notices:** every product that ships a PDFium build ships its third-party notices too.
+  - **Web build:** the wasm package ships none (C1b), so `@lamina/render-pdfium` bundles them: PDFium's BSD-3 and Apache-2.0, FreeType (under the FTL), zlib, OpenJPEG, libpng, Little-CMS 2 and libjpeg-turbo. C2c confirms the list against EmbedPDF's build script.
+  - **Native build:** `chromium/7881` carries its notices in `pdfium/licenses/` (C1a): FreeType (FTL), libjpeg-turbo (IJG + BSD-3-Clause), OpenJPEG (BSD-2-Clause), lcms2 (MIT), zlib, libpng, libtiff, AGG 2.3, ICU (Unicode), Abseil (Apache-2.0), fast_float, simdutf and llvm-libc. The desktop and mobile bundles copy that folder whole (D-rounds), and `cargo xtask fetch-pdfium` keeps it next to the library.
+  - **Re-pins:** a PDFium re-pin rechecks both lists.
 - **Updates:**
   - A PDFium bump is its own PR that re-pins both builds where possible, re-records the hashes and regenerates the PDFium goldens. It runs the nightly diff before merging.
   - Security fixes from upstream PDFium (Chromium's security releases) are picked up within the next release lane after a package containing them is published.

@@ -36,7 +36,7 @@ Numbers follow the [architecture plan §3](../plans/architecture.md#3-decisions-
 | [0007](0007-save-planner.md) | Save planner, `SaveMode` and `SaveConstraint` | Accepted |
 | [0009](0009-web-client-architecture.md) | Web client: React 19 chrome in `@lamina/ui`, framework-free `@lamina/viewer`, one document worker per document, typed RPC on `@lamina/pdf/worker`, transferred `ImageBitmap`s, single-threaded v0.1 without COOP/COEP | Accepted |
 | [0010](0010-platform-adapter.md) | Platform adapter: one `Platform` interface, `PlatformFile`, capability flags with web values, no platform checks in UI code | Accepted |
-| [0011](0011-cloudflare-topology-and-privacy.md) | Cloudflare topology (one static-assets Worker, previews, tagged production), the v0.1 privacy guarantees, security headers, telemetry and hosted-service rules | Accepted (login stack by amendment after H1) |
+| [0011](0011-cloudflare-topology-and-privacy.md) | Cloudflare topology (static-assets Workers for staging and production, previews, production only from tags), the v0.1 privacy guarantees, security headers, telemetry and hosted-service rules | Accepted (login stack by amendment after H1) |
 | [0015](0015-monorepo-layout-and-tooling.md) | Monorepo layout and tooling (Cargo + pnpm + xtask) | Accepted |
 | [0016](0016-package-design.md) | Package design: ESM-only, export conditions, base and text WASM modules, per-module size budgets | Accepted |
 | [0018](0018-test-strategy.md) | Test strategy: tiers, CI lanes, corpora, fuzzing, flaky tests | Accepted |

@@ -87,7 +87,7 @@ UI code **branches on these flags, never on the platform's identity**. Web value
 | `canWatchFiles` | `watch` reports external changes | `false` | `true` |
 | `hasNativePrint` | `print` can hand the PDF to the OS print system | `false`: the web prints rendered pages from a hidden iframe (C6c) | `true` where D1b's spike proves it per OS |
 | `multiWindow` | `openWindow` exists | `false` (one document view per tab; a new tab is the browser's job) | `true` |
-| `hasFileHandlers` | the OS can open files in the app (`onOpenRequest` fires) | `true` when `"launchQueue" in window` (an installed Chromium PWA with `file_handlers`); else `false` | `true` |
+| `hasFileHandlers` | the OS can open files in the app (`onOpenRequest` fires) | `true` when `"launchQueue" in window` **and** the app runs installed (`matchMedia("(display-mode: standalone)")` or `window-controls-overlay` matches); else `false`. `"launchQueue" in window` alone only means the browser could, so the UI uses it for the "install to open files from your computer" hint (rule 2) | `true` |
 | `canReopenRecent` | `recent.reopen` can read a file again without a picker | `true` only where file handles persist in IndexedDB (Chromium, with permission); else `false` | `true` |
 | `hasOpfs` | `storage.opfs()` returns a directory, and workers can use `createSyncAccessHandle` | `true` when `navigator.storage.getDirectory` exists (all current engines); else `false` | `true` (the webview's) |
 | `canPersistStorage` | `storage.persist()` can make storage durable | `true` when `navigator.storage.persist` exists | `true` |

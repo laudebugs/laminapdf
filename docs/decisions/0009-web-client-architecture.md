@@ -66,17 +66,20 @@ The [C1b spike](../../spikes/pdfium-wasm/README.md) measured the worker on one m
 
 The viewer's protocol **extends `@lamina/pdf/worker`** (L2a) rather than defining a second one. It is hand-written and typed, not Comlink. C3a implements these requirements:
 
-1. **Request IDs.** Every request has a monotonically increasing `id` per connection. Responses are `{ id, ok: true, result }` or `{ id, ok: false, error }`, where `error` is the ADR 0026 object; an `Error` is never posted, because structured clone loses its fields. Events (`warning`, `progress`, `render-slow`, `crashed`) carry no `id`.
+1. **Request IDs.** Every request has a monotonically increasing `id` per connection. Responses are `{ id, ok: true, result }` or `{ id, ok: false, error }`, where `error` is the ADR 0026 object; an `Error` is never posted, because structured clone loses its fields. Events use L2a's envelope `{ kind, id? }`: `progress` and `render-slow` carry the `id` of the call they belong to, so per-call `onProgress` and "this page is slow" route correctly. Document-wide events (`warning`, `crashed`) carry none.
 2. **A typed method union.** Methods and their params and results are one TypeScript union derived from the sync API's interfaces (`Promisified<T>`, L2a), plus the render methods. An unknown method or wrong params fails `tsc`.
-3. **Priorities.** The levels are `visible` > `prefetch` > `background` (thumbnails, search). The worker's scheduler runs one call at a time, takes the highest priority first, and coalesces identical `(page, scale, clip, flags)` renders.
+3. **Priorities.** The levels are `visible` > `prefetch` > `background` (thumbnails, search). The worker's scheduler runs one call at a time, takes the highest priority first, and coalesces renders whose whole ADR 0004 `RenderRequest` is equal (page, scale, clip, rotation, flags and background), so a rotated or differently backed tile is never answered with another's bitmap.
 4. **Transfer lists.** `ImageBitmap`s and `ArrayBuffer`s cross by transfer, never by copy: bitmaps from the worker, file chunks and text buffers (`PageText.buffers`) in either direction.
 5. **Cancellation.** `call(method, params, { signal })`: aborting sends `cancel { id }` and rejects at once with an `AbortError`.
    - The worker drops a queued request, and passes the cancellation into a running one through the ADR 0028 `CancelToken`, which ADR 0004's `render` takes.
    - A late response for a cancelled ID is discarded, and any bitmap in it is `close()`d. **A cancelled render never paints.**
 6. **Restart after a crash.** A crash is the worker's `error` or `messageerror` event, or a WebAssembly trap reported by the server. It is never silence: a synchronous render can't answer, so there is no heartbeat.
-   - On a crash, pending calls reject with `worker-crashed`. A new worker reopens the document from the same source, and the viewer re-requests its visible tiles.
+   - On a crash, pending calls reject with `worker-crashed`. A new worker reopens the document from the same source, and the viewer re-requests its visible tiles **except the request that was running when the worker died**.
+   - That page shows "Couldn't render this page" with Retry instead of being re-sent automatically, so a page that crashes the engine can't loop through crash and restart. Retry is the user's choice.
    - An encrypted document asks for the password again. The password is never remembered outside the worker.
-7. **Long work.** A render has a soft timeout (default 10 s), after which the client emits `render-slow` so the UI can offer Stop, and a hard cap (default 120 s). Only Stop or the hard cap terminates the worker.
+7. **Long work.** A render has a soft timeout (default 10 s), after which the client emits `render-slow` so the UI can offer Stop, and a hard cap (default 120 s).
+   - Only the user's Stop, or the hard cap, terminates the worker.
+   - **Encrypted documents are the exception:** the password lives only in that worker, so reaching the hard cap emits `render-stuck { needsPassword: true }`. The worker is terminated only after the user confirms, knowing they will be asked for the password again.
 8. **Secrets.** A password crosses the boundary exactly once, in the `open` call, and no main-thread object keeps it afterwards (C3a asserts this).
 
 ### 4. Pixels to the screen
