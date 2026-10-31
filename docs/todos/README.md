@@ -12,7 +12,7 @@ New todos start from [`TEMPLATE.md`](TEMPLATE.md). The workflow is in [git workf
 
 IDs: `A`/`P`/`X` [architecture](../plans/architecture.md) (foundations, publishing, cross-cutting), `B` [library](../plans/pdf-library.md), `L` [shareable libraries](../plans/shareable-libraries.md) (contracts, worker, extraction, CLI, agent docs, mobile), `C` [web reader](../plans/web-app.md), `D` [desktop reader](../plans/desktop-app.md), `U` [UI/UX](../plans/ui-ux.md), `E` [editor](../plans/full-editor.md), `H` hosted service ([full-editor](../plans/full-editor.md)). A letter suffix (`B2a`, `B2b`) splits a round into PRs.
 
-**0 ongoing · 196 ready · 52 done** (248 total).
+**1 ongoing · 195 ready · 52 done** (248 total).
 
 ## Can start now
 
@@ -26,12 +26,11 @@ Ready todos whose dependencies are all done:
 - [C3a](ready/C3a-viewer-worker-rpc.md): `@lamina/viewer` part 1: document worker and typed RPC
 - [U1a](ready/U1a-adr-0024-app-shell-ux.md): ADR 0024: app shell UX (layout, modes, command registry, selection, page appearance, mobile)
 - [P1](ready/P1-reserve-names-and-trusted-publishing.md): Reserve names, ADR 0017 publishing part, OIDC trusted publishing and the release workflow
-- [X3b](ready/X3b-render-diff-nightly.md): Nightly hayro-vs-PDFium render diffs
 - [X6](ready/X6-windows-ci.md): Windows CI coverage
 
 ## Ongoing
 
-Nothing claimed right now.
+- [X3b](ongoing/X3b-render-diff-nightly.md): Nightly hayro-vs-PDFium render diffs
 
 ## Architecture — Round A
 
@@ -325,7 +324,7 @@ Nothing claimed right now.
 | X1 | [Docs link checker and todo-board check in `cargo xtask`, run in CI](done/X1-docs-link-checker.md) | done | — |
 | X2 | [Capability matrix generator: ~180 operations, test-backed statuses](done/X2-capability-matrix.md) | done | [B3c](done/B3c-save-planner-and-roundtrip.md) |
 | X3a | [Nightly CI lane: external-corpus differential, extended fuzzing, scaling tests and benchmarks](done/X3a-nightly-lane.md) | done | [B2c](done/B2c-lamina-model-corpus-fuzz.md) |
-| X3b | [Nightly hayro-vs-PDFium render diffs](ready/X3b-render-diff-nightly.md) | ready | [C2b](done/C2b-lamina-render-crate.md), [X3a](done/X3a-nightly-lane.md) |
+| X3b | [Nightly hayro-vs-PDFium render diffs](ongoing/X3b-render-diff-nightly.md) | ongoing | [C2b](done/C2b-lamina-render-crate.md), [X3a](done/X3a-nightly-lane.md) |
 | X3c | [Nightly external link check of the docs](done/X3c-nightly-link-check.md) | done | [X3a](done/X3a-nightly-lane.md) |
 | X4 | [Full PR lane with an always-running gate job](done/X4-full-lane-gate.md) | done | [B2c](done/B2c-lamina-model-corpus-fuzz.md) |
 | X5 | [Linux CI on a self-hosted runner in a container on the Mac](done/X5-linux-ci-container.md) | done | [X4](done/X4-full-lane-gate.md) |

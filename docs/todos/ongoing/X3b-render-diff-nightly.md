@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `X3b` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [architecture §7 Cross-cutting](../../plans/architecture.md#cross-cutting), web plan [C2](../../plans/web-app.md#c2-render-backend-and-adrs) ("the hayro-vs-PDFium diff runs in the nightly lane") |
 | Round / milestone | Cross-cutting (with Round C) |
 | Depends on | [C2b](../done/C2b-lamina-render-crate.md), [X3a](../done/X3a-nightly-lane.md) |
