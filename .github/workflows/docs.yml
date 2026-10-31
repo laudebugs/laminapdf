@@ -109,12 +109,15 @@ jobs:
             echo "::notice title=Docs deploy skipped::The repository secrets CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID are not set. The owner needs to add them (see apps/docs/README.md) to deploy the docs site; until then this job only skips."
             echo "enabled=false" >> "$GITHUB_OUTPUT"
           fi
-      # The default branch's deploy configuration, never the PR's.
+      # The default branch's deploy configuration, never the PR's. It goes in its own folder:
+      # a sparse checkout of the job's workspace would leave the runner's shared checkout
+      # sparse, and the next job on this runner would fail to check out.
       - name: Check out the default branch's deploy configuration
         if: steps.secrets.outputs.enabled == 'true'
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ github.event.repository.default_branch }}
+          path: .docs-base
           persist-credentials: false
           sparse-checkout: |
             apps/docs/wrangler.toml
@@ -124,6 +127,7 @@ jobs:
       - name: Read the Wrangler version
         id: tooling
         if: steps.secrets.outputs.enabled == 'true'
+        working-directory: .docs-base
         run: |
           if [ ! -f apps/docs/wrangler.toml ]; then
             echo "::notice title=Docs preview skipped::The default branch has no apps/docs/wrangler.toml yet (the PR that adds the site); previews start once it is on main."
@@ -140,17 +144,17 @@ jobs:
       - if: steps.tooling.outputs.ready == 'true'
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
-          node-version-file: .nvmrc
+          node-version-file: .docs-base/.nvmrc
       - name: Download the preview build
         if: steps.tooling.outputs.ready == 'true'
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: docs-preview-dist
-          path: apps/docs/dist/
+          path: .docs-base/apps/docs/dist/
       - name: Upload a preview version
         id: preview
         if: steps.tooling.outputs.ready == 'true'
-        working-directory: apps/docs
+        working-directory: .docs-base/apps/docs
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
@@ -192,6 +196,9 @@ jobs:
           else
             gh api --method POST "repos/$REPO/issues/$PR/comments" -f body="$body" > /dev/null
           fi
+      - name: Remove the deploy configuration checkout
+        if: always()
+        run: rm -rf .docs-base
 
   production:
     name: Docs production
