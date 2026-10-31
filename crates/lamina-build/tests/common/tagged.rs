@@ -131,35 +131,7 @@ fn first_page(s: &mut Surface, noto: &Font) -> Res {
             .stroke(&StrokeStyle::default());
         Ok(())
     })?;
-    s.tag(TagKind::Table, |s| {
-        let header = Tag::new(TagKind::TH).with_scope(TableScope::Column);
-        s.tag(TagKind::TR, |s| {
-            for (i, h) in (0_u32..).zip(HEADERS) {
-                tagged(s, header.clone(), h, noto, 11.0, 56.0 + 120.0 * f64::from(i), 290.0)?;
-            }
-            Ok(())
-        })?;
-        for (r, row) in (0_u32..).zip(ROWS) {
-            s.tag(TagKind::TR, |s| {
-                for (i, cell) in (0_u32..).zip(row) {
-                    let y = 310.0 + 18.0 * f64::from(r);
-                    tagged(s, TagKind::TD, cell, noto, 11.0, 56.0 + 120.0 * f64::from(i), y)?;
-                }
-                Ok(())
-            })?;
-        }
-        Ok(())
-    })?;
-    s.tag(TagKind::L, |s| {
-        for (i, item) in (0_u32..).zip(ITEMS) {
-            let y = 370.0 + 18.0 * f64::from(i);
-            s.tag(TagKind::LI, |s| {
-                tagged(s, TagKind::Lbl, "•", noto, 11.0, 56.0, y)?;
-                tagged(s, TagKind::LBody, item, noto, 11.0, 70.0, y)
-            })?;
-        }
-        Ok(())
-    })?;
+    table_and_list(s, noto)?;
     let _ = s
         .text(
             "Read the full report at example.com/report",
@@ -194,6 +166,39 @@ fn first_page(s: &mut Surface, noto: &Font) -> Res {
         56.0,
         470.0,
     )
+}
+
+/// The table with column headers and the list of page 1.
+fn table_and_list(s: &mut Surface, noto: &Font) -> Res {
+    s.tag(TagKind::Table, |s| {
+        let header = Tag::new(TagKind::TH).with_scope(TableScope::Column);
+        s.tag(TagKind::TR, |s| {
+            for (i, h) in (0_u32..).zip(HEADERS) {
+                tagged(s, header.clone(), h, noto, 11.0, 56.0 + 120.0 * f64::from(i), 290.0)?;
+            }
+            Ok(())
+        })?;
+        for (r, row) in (0_u32..).zip(ROWS) {
+            s.tag(TagKind::TR, |s| {
+                for (i, cell) in (0_u32..).zip(row) {
+                    let y = 310.0 + 18.0 * f64::from(r);
+                    tagged(s, TagKind::TD, cell, noto, 11.0, 56.0 + 120.0 * f64::from(i), y)?;
+                }
+                Ok(())
+            })?;
+        }
+        Ok(())
+    })?;
+    s.tag(TagKind::L, |s| {
+        for (i, item) in (0_u32..).zip(ITEMS) {
+            let y = 370.0 + 18.0 * f64::from(i);
+            s.tag(TagKind::LI, |s| {
+                tagged(s, TagKind::Lbl, "•", noto, 11.0, 56.0, y)?;
+                tagged(s, TagKind::LBody, item, noto, 11.0, 70.0, y)
+            })?;
+        }
+        Ok(())
+    })
 }
 
 fn second_page(s: &mut Surface, noto: &Font) -> Res {
