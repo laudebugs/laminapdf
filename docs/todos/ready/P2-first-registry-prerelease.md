@@ -21,7 +21,7 @@ Publish lamina for the first time: a `0.x` pre-release of every public crate on 
 ## Context
 
 - [pdf-library §6](../../plans/pdf-library.md#6-docs-examples-and-publishing) and [§8 risks](../../plans/pdf-library.md#8-risks) ("cargo-semver-checks from 0.2").
-- `docs/stability-policy.md` and `CHANGELOG.md` drafts from [B7b](./B7b-versioning-and-0-1-0-alpha.md).
+- `docs/stability-policy.md` and `CHANGELOG.md` drafts from [B7b](../ongoing/B7b-versioning-and-0-1-0-alpha.md).
 - [Repo and packaging notes §5](../../research/architecture/notes/repo-and-packaging.md#5-versioning-and-release-changesets-release-plz-cargo-release-semver-checks-provenance-trusted-publishing).
 
 ## Scope

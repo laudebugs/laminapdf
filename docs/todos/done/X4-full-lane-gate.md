@@ -36,7 +36,7 @@ Add the second PR lane ADR 0018 defines, without blocking docs-only PRs. The ful
 
 **Out of scope** (and which todo covers it)
 
-- Nightly lane: [X3a](../done/X3a-nightly-lane.md). Release lane: [B7b](../ready/B7b-versioning-and-0-1-0-alpha.md).
+- Nightly lane: [X3a](../done/X3a-nightly-lane.md). Release lane: [B7b](../ongoing/B7b-versioning-and-0-1-0-alpha.md).
 
 ## Tasks
 
