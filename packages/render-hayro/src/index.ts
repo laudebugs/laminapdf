@@ -1,12 +1,14 @@
 // ADR 0004's second web renderer and CI oracle (todo C2c): lamina-render's hayro adapter, built by
 // `cargo xtask wasm` as lamina_render_hayro (crates/lamina-render-wasm) into @lamina/wasm, behind
-// @lamina/render's RenderBackend. hayro reads the whole file, so `open` reads the source in one
-// pass (every missing range in one `data-pending`) and moves the bytes into the module, which
-// borrows them (no second copy inside). Tile geometry and validation are the Rust planner's.
+// @lamina/render's RenderBackend. hayro reads the whole file, so `open` fills the module's input
+// buffer from the source in one pass, chunk by chunk (every missing range in one `data-pending`),
+// and the module borrows it. Requests are validated by @lamina/render's planner (the Rust one,
+// ported), so both web adapters refuse the same requests; Rust re-checks them.
 
 import {
   flagsOf,
   limitsOf,
+  planTile,
   type RenderBackend,
   type RenderDocument,
   RenderError,
@@ -21,7 +23,7 @@ import {
   throwIfAborted,
   WHITE,
 } from "@lamina/render";
-import initGlue, { HayroDocument, type InitInput } from "@lamina/wasm/render-hayro";
+import initGlue, { HayroDocument, type InitInput, InputBuffer } from "@lamina/wasm/render-hayro";
 
 /** The pinned hayro version (the workspace's `=0.8.0`). */
 export const HAYRO_VERSION = "0.8.0";
@@ -47,13 +49,34 @@ export async function initHayro(wasm?: InitInput | Promise<InitInput>): Promise<
   return new HayroBackend();
 }
 
-/** Converts the module's thrown errors (`code`, `kind`, `ranges`) into RenderError. */
+/** Set once the module trapped: its state may be half-updated, so nothing else runs in it. */
+let broken = false;
+
+/**
+ * Converts what the module threw: its errors (`code`, `kind`, `ranges`) into RenderError, and a
+ * WebAssembly trap (a hayro panic: the module is built with `panic = "abort"`) into
+ * `render-failed`, after which the instance is broken and the worker must be restarted
+ * (ADR 0009 §3.6).
+ */
 function rethrow(e: unknown): never {
+  if (e instanceof WebAssembly.RuntimeError) {
+    broken = true;
+    throw new RenderError("render-failed", "the hayro backend failed on this document (the module must be reloaded)");
+  }
   if (e instanceof Error && typeof (e as { code?: unknown }).code === "string") {
     const { code, ranges } = e as unknown as { code: RenderErrorCode; ranges?: [number, number][] };
     throw new RenderError(code, e.message, ranges);
   }
   throw e;
+}
+
+function healthy(): void {
+  if (broken) {
+    throw new RenderError(
+      "render-backend-unavailable",
+      "the hayro module failed earlier and must be reloaded: restart the worker",
+    );
+  }
 }
 
 /** hayro as a RenderBackend. */
@@ -67,71 +90,80 @@ export class HayroBackend implements RenderBackend {
   }
 
   open(source: RenderSource, options: RenderOpenOptions = {}): RenderDocument {
+    healthy();
     const limits = limitsOf(options.limits);
-    const bytes = readAll(source, limits);
     try {
-      const doc = HayroDocument.open(bytes, options.password, limits.maxRenderPixels, limits.maxRenderSide);
+      const input = fill(source, limits);
+      const doc = HayroDocument.open(
+        input,
+        options.password,
+        limits.maxRenderPixels,
+        limits.maxRenderSide,
+        limits.maxInputBytes,
+      );
       return new HayroRenderDocument(doc, limits);
     } catch (e) {
+      if (e instanceof RenderError) throw e;
       rethrow(e);
     }
   }
 }
 
-/** All of `source`, or `data-pending` with every range it lacks. */
-function readAll(source: RenderSource, limits: RenderLimits): Uint8Array {
-  if (source.size > limits.maxInputBytes) {
+/**
+ * The module's input buffer, filled straight from `source` in 64 KiB chunks (never a whole
+ * copy in JS), or `data-pending` with every range the source lacks.
+ */
+function fill(source: RenderSource, limits: RenderLimits): InputBuffer {
+  if (source.size > limits.maxInputBytes || source.size > 0xffff_ffff) {
     throw new RenderError(
       "render-too-large",
-      `the input is ${source.size} bytes, over the render limit of ${limits.maxInputBytes} bytes`,
+      `the input is ${source.size} bytes, over the render limit of ${Math.min(limits.maxInputBytes, 0xffff_ffff)} bytes`,
     );
   }
-  const out = new Uint8Array(source.size);
+  const input = new InputBuffer(source.size);
   const pending: [number, number][] = [];
-  for (let at = 0; at < source.size; at += CHUNK) {
-    const length = Math.min(CHUNK, source.size - at);
-    const chunk = source.readSync(at, length);
-    if (chunk === undefined) pending.push([at, length]);
-    else if (chunk.length !== length) {
-      throw new RenderError("source", `bytes ${at}..+${length} of the input could not be read`);
-    } else out.set(chunk, at);
+  try {
+    for (let at = 0; at < source.size; at += CHUNK) {
+      const length = Math.min(CHUNK, source.size - at);
+      const chunk = source.readSync(at, length);
+      if (chunk === undefined) pending.push([at, length]);
+      else if (chunk.length !== length) {
+        throw new RenderError("source", `bytes ${at}..+${length} of the input could not be read`);
+      } else if (pending.length === 0) input.write(at, chunk);
+    }
+  } catch (e) {
+    input.free();
+    throw e;
   }
   if (pending.length > 0) {
+    input.free();
     throw new RenderError(
       "data-pending",
       `${pending.length} byte range(s) of the input are not available yet`,
       pending,
     );
   }
-  return out;
+  return input;
 }
 
-/** The request as the module's flat arguments. */
+/** The validated request as the module's flat arguments. */
 function flat(
   request: RenderRequest,
+  plan: TilePlan,
 ): [number, number, number, number, number, number, number, number, number | undefined] {
   const f = flagsOf(request.flags);
   const bits = (f.annotations ? 1 : 0) | (f.formWidgets ? 2 : 0) | (f.print ? 4 : 0) | (f.grayscale ? 8 : 0);
   const c = request.background === undefined ? WHITE : request.background;
   const background = c === null ? undefined : ((c.r << 24) | (c.g << 16) | (c.b << 8) | c.a) >>> 0;
-  const clip = request.clip ?? { x: 0, y: 0, width: 0, height: 0 };
-  return [
-    request.page,
-    request.scale,
-    clip.x,
-    clip.y,
-    clip.width,
-    clip.height,
-    request.rotation ?? 0,
-    bits,
-    background,
-  ];
+  const { x, y, width, height } = plan.tile;
+  return [request.page, request.scale, x, y, width, height, request.rotation ?? 0, bits, background];
 }
 
 class HayroRenderDocument implements RenderDocument {
   readonly pageCount: number;
   #doc: HayroDocument | undefined;
   readonly #limits: RenderLimits;
+  readonly #pages = new Map<number, RenderPage>();
 
   constructor(doc: HayroDocument, limits: RenderLimits) {
     this.#doc = doc;
@@ -141,6 +173,7 @@ class HayroRenderDocument implements RenderDocument {
 
   #live(): HayroDocument {
     if (this.#doc === undefined) throw new RenderError("disposed", "the document was closed");
+    healthy();
     return this.#doc;
   }
 
@@ -152,36 +185,31 @@ class HayroRenderDocument implements RenderDocument {
         `page index ${index} is out of range for a document of ${this.pageCount} pages`,
       );
     }
+    const cached = this.#pages.get(index);
+    if (cached !== undefined) return cached;
     try {
       const [width = 0, height = 0, rotate = 0] = doc.page(index);
-      return { width, height, rotate };
+      const page = { width, height, rotate };
+      this.#pages.set(index, page);
+      return page;
     } catch (e) {
       rethrow(e);
     }
   }
 
+  /** The shared planner (Rust's, ported): both web adapters refuse the same requests. */
   plan(request: RenderRequest): TilePlan {
-    const doc = this.#live();
-    this.page(request.page);
-    try {
-      const [pageWidth = 0, pageHeight = 0, x = 0, y = 0, width = 0, height = 0] = doc.plan(...flat(request));
-      return { pageWidth, pageHeight, tile: { x, y, width, height }, byteLength: width * height * 4 };
-    } catch (e) {
-      rethrow(e);
-    }
+    return planTile(this.page(request.page), request, this.#limits);
   }
 
   render(request: RenderRequest, options: { readonly signal?: AbortSignal } = {}): RenderedTile {
     throwIfAborted(options.signal);
     const doc = this.#live();
     const plan = this.plan(request);
-    if (plan.byteLength > this.#limits.maxRenderPixels * 4) {
-      throw new RenderError("render-too-large", "the tile exceeds the render limit");
-    }
     const pixels = new Uint8ClampedArray(plan.byteLength);
     try {
       // wasm-bindgen copies `&mut [u8]` back into this array after the call.
-      doc.render(...flat(request), new Uint8Array(pixels.buffer));
+      doc.render(...flat(request, plan), new Uint8Array(pixels.buffer));
     } catch (e) {
       rethrow(e);
     }
@@ -190,7 +218,8 @@ class HayroRenderDocument implements RenderDocument {
   }
 
   close(): void {
-    this.#doc?.free();
+    // A broken instance can't run `free`; dropping the handle is all that's left.
+    if (!broken) this.#doc?.free();
     this.#doc = undefined;
   }
 

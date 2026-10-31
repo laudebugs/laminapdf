@@ -3,7 +3,14 @@
 //! `@lamina/render-pdfium`.
 //!
 //! The surface is deliberately flat: numbers and byte arrays, no records, so the glue stays
-//! tiny. Requests are `(page, scale, clip x/y/width/height, rotation, flags, background)`,
+//! tiny. The wrapper validates every request with `@lamina/render`'s planner first (the port of
+//! the Rust one), so both web adapters refuse the same requests.
+//!
+//! The module is built with `panic = "abort"` (the `wasm-release` profile; stable wasm32 has no
+//! unwinding), so lamina-render's `catch_unwind` around hayro can't catch here: a hayro panic is
+//! a WebAssembly trap. The wrapper turns a trap into `render-failed` and treats the instance as
+//! broken from then on (every later call is `render-backend-unavailable`): the shell restarts
+//! the worker (ADR 0009 §3.6). Requests are `(page, scale, clip x/y/width/height, rotation, flags, background)`,
 //! with a clip width of 0 meaning the whole page; flags are bits (1 annotations, 2 form
 //! widgets, 4 print, 8 grayscale); the background is `0xRRGGBBAA` or `None` for transparent.
 //! Errors are thrown as `Error` objects carrying the ADR 0026 `code` and `kind` (and `ranges`
@@ -21,6 +28,43 @@ use lamina_render::{
 };
 use wasm_bindgen::prelude::{JsValue, wasm_bindgen};
 
+/// The input, filled chunk by chunk from JS so the whole file is never copied twice: the
+/// wrapper reads its `RenderSource` in 64 KiB pieces straight into this buffer, which `open` then
+/// moves into the document (hayro borrows it).
+#[wasm_bindgen]
+pub struct InputBuffer {
+    bytes: Vec<u8>,
+}
+
+#[wasm_bindgen]
+impl InputBuffer {
+    /// A zeroed buffer of `len` bytes.
+    #[wasm_bindgen(constructor)]
+    pub fn new(len: u32) -> InputBuffer {
+        Self {
+            bytes: vec![0; len as usize],
+        }
+    }
+
+    /// Copies `chunk` to `offset`.
+    ///
+    /// # Errors
+    /// `invalid-argument` when the chunk doesn't fit.
+    pub fn write(&mut self, offset: u32, chunk: &[u8]) -> Result<(), JsValue> {
+        let start = offset as usize;
+        let target = start
+            .checked_add(chunk.len())
+            .and_then(|end| self.bytes.get_mut(start..end))
+            .ok_or_else(|| {
+                throw(&RenderError::InvalidRequest {
+                    what: "the chunk extends past the input",
+                })
+            })?;
+        target.copy_from_slice(chunk);
+        Ok(())
+    }
+}
+
 /// A document open in hayro.
 #[wasm_bindgen]
 pub struct HayroDocument {
@@ -29,39 +73,32 @@ pub struct HayroDocument {
 
 #[wasm_bindgen]
 impl HayroDocument {
-    /// Opens `bytes` (moved into the module's memory; hayro borrows them, no second copy).
+    /// Opens `input` (moved into the document; hayro borrows it, no second copy). The limits
+    /// are the JS `RenderLimits`, applied as given (0 pixels refuses every render).
     ///
     /// # Errors
     /// The render errors of opening, thrown as `Error` objects with `code` and `kind`.
     #[expect(
         clippy::needless_pass_by_value,
-        reason = "wasm-bindgen passes JS strings as owned values"
+        reason = "wasm-bindgen passes JS values as owned values"
     )]
     pub fn open(
-        bytes: Vec<u8>,
+        input: InputBuffer,
         password: Option<String>,
-        max_render_pixels: Option<f64>,
-        max_render_side: Option<u32>,
+        max_render_pixels: f64,
+        max_render_side: u32,
+        max_input_bytes: f64,
     ) -> Result<HayroDocument, JsValue> {
-        let mut limits = RenderLimits::default();
-        if let Some(pixels) = max_render_pixels.filter(|p| p.is_finite() && *p >= 1.0) {
-            #[expect(
-                clippy::cast_possible_truncation,
-                clippy::cast_sign_loss,
-                clippy::cast_precision_loss,
-                reason = "checked finite and positive; saturates at u64::MAX"
-            )]
-            let pixels = pixels.min(u64::MAX as f64) as u64;
-            limits.max_render_pixels = pixels;
-        }
-        if let Some(side) = max_render_side {
-            limits.max_render_side = side;
-        }
+        let limits = RenderLimits {
+            max_render_pixels: saturating_u64(max_render_pixels),
+            max_render_side,
+            max_input_bytes: saturating_u64(max_input_bytes),
+        };
         let mut options = RenderOpenOptions::new().with_limits(limits);
         if let Some(password) = password.as_deref() {
             options = options.with_password(password);
         }
-        let source: Arc<dyn ByteSource> = Arc::new(bytes);
+        let source: Arc<dyn ByteSource> = Arc::new(input.bytes);
         let doc = HayroBackend::new().open(source, &options).map_err(|e| throw(&e))?;
         Ok(Self { doc })
     }
@@ -134,6 +171,21 @@ impl HayroDocument {
             .map(|_| ())
             .map_err(|e| throw(&e))
     }
+}
+
+/// A JS number as a `u64`: negative or NaN is 0, beyond `u64::MAX` saturates.
+fn saturating_u64(v: f64) -> u64 {
+    if v.is_nan() || v <= 0.0 {
+        return 0;
+    }
+    #[expect(
+        clippy::cast_possible_truncation,
+        clippy::cast_sign_loss,
+        clippy::cast_precision_loss,
+        reason = "positive and finite or +inf, which `as` saturates"
+    )]
+    let v = v.min(u64::MAX as f64) as u64;
+    v
 }
 
 #[expect(

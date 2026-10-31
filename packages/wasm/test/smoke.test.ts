@@ -127,9 +127,22 @@ describe("lamina_extract", () => {
   });
 });
 
+/** The module's input buffer holding `bytes`. */
+function input(bytes: Uint8Array): hayro.InputBuffer {
+  const buffer = new hayro.InputBuffer(bytes.length);
+  buffer.write(0, bytes);
+  return buffer;
+}
+
 describe("lamina_render_hayro", () => {
   it("opens a page and renders a white tile", () => {
-    const doc = hayro.HayroDocument.open(read("fixtures/corpus/hello.pdf"), undefined, undefined, undefined);
+    const doc = hayro.HayroDocument.open(
+      input(read("fixtures/corpus/hello.pdf")),
+      undefined,
+      16_777_216,
+      16_384,
+      2 ** 30,
+    );
     expect(doc.pageCount()).toBe(1);
     const [width, height] = Array.from(doc.page(0));
     expect([width, height]).toEqual([612, 792]);
@@ -142,7 +155,7 @@ describe("lamina_render_hayro", () => {
 
   it("throws render errors with their code and kind", () => {
     const e = thrown(() =>
-      hayro.HayroDocument.open(new TextEncoder().encode("not a pdf"), undefined, undefined, undefined),
+      hayro.HayroDocument.open(input(new TextEncoder().encode("not a pdf")), undefined, 16_777_216, 16_384, 2 ** 30),
     );
     expect([e.code, e.kind]).toEqual(["render-failed", "input"]);
   });

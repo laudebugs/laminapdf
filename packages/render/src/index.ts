@@ -145,7 +145,11 @@ export interface RenderBackend {
   open(source: RenderSource, options?: RenderOpenOptions): RenderDocument;
 }
 
-/** The codes a render backend throws (ADR 0026; `fixtures/codes.json`). */
+/**
+ * The codes a render backend throws (ADR 0026). They are defined in `fixtures/codes.json`
+ * (`renderErrors` and the groups whose codes it reuses); test/codes.test.ts checks this union
+ * and its kinds against that file, so a drift fails the tests.
+ */
 export type RenderErrorCode =
   | "render-too-large"
   | "render-failed"
@@ -156,6 +160,7 @@ export type RenderErrorCode =
   | "wrong-password"
   | "data-pending"
   | "source"
+  | "cancelled"
   | "disposed";
 
 const KINDS: Record<RenderErrorCode, string> = {
@@ -168,6 +173,7 @@ const KINDS: Record<RenderErrorCode, string> = {
   "wrong-password": "security",
   "data-pending": "state",
   source: "io",
+  cancelled: "cancelled",
   disposed: "state",
 };
 
@@ -185,12 +191,41 @@ export class RenderError extends Error {
     this.kind = KINDS[code];
     this.ranges = ranges;
   }
+
+  /**
+   * A plain object that survives `postMessage` (structured clone keeps neither a custom error
+   * name nor own properties): post `e.toJSON()`, then `reviveRenderError` on the other side.
+   */
+  toJSON(): SerializedRenderError {
+    return {
+      name: "RenderError",
+      code: this.code,
+      kind: this.kind,
+      message: this.message,
+      ...(this.ranges === undefined ? {} : { ranges: this.ranges }),
+    };
+  }
+}
+
+/** A RenderError as a plain, cloneable object. */
+export interface SerializedRenderError {
+  readonly name: "RenderError";
+  readonly code: RenderErrorCode;
+  readonly kind: string;
+  readonly message: string;
+  readonly ranges?: readonly (readonly [number, number])[];
+}
+
+/** A RenderError again, from `toJSON()`'s object (after `postMessage`). */
+export function reviveRenderError(e: SerializedRenderError): RenderError {
+  return new RenderError(e.code, e.message, e.ranges);
 }
 
 /** Whether `e` is a RenderError (with `code`, if given). */
 export function isRenderError<C extends RenderErrorCode>(e: unknown, code?: C): e is RenderError & { code: C } {
-  // Structural, not instanceof: errors cross worker boundaries and module copies (ADR 0009 §3).
-  if (!(e instanceof Error) || e.name !== "RenderError") return false;
+  // Structural, not instanceof: module copies give one class per copy, and a serialised error
+  // (`toJSON()`, posted across a worker boundary) is a plain object (ADR 0009 §3).
+  if (typeof e !== "object" || e === null || (e as { name?: unknown }).name !== "RenderError") return false;
   const actual = (e as { code?: unknown }).code;
   return typeof actual === "string" && (code === undefined || actual === code);
 }
@@ -219,6 +254,13 @@ export function planTile(page: RenderPage, request: RenderRequest, limits: Rende
   }
   if (!(page.width > 0 && page.height > 0 && Number.isFinite(page.width) && Number.isFinite(page.height))) {
     throw new RenderError("invalid-argument", "invalid render request: the page has no drawable area");
+  }
+  const background = request.background;
+  if (background !== undefined && background !== null) {
+    const channels = [background.r, background.g, background.b, background.a];
+    if (!channels.every((c) => Number.isInteger(c) && c >= 0 && c <= 255)) {
+      throw new RenderError("invalid-argument", "invalid render request: colour channels must be integers 0–255");
+    }
   }
   const rotation = request.rotation ?? 0;
   if (![0, 90, 180, 270].includes(rotation)) {

@@ -11,6 +11,7 @@
 import { init, type WrappedPdfiumModule } from "@embedpdf/pdfium";
 import {
   flagsOf,
+  isRenderError,
   limitsOf,
   pageToTile,
   planTile,
@@ -110,6 +111,18 @@ function heap(p: Pdfium): WebAssembly.Memory {
   return (p.pdfium.wasmExports as unknown as { memory: WebAssembly.Memory }).memory;
 }
 
+/** What the source refused during one engine call: missing ranges, or a failed read. */
+interface Reads {
+  readonly pending: (readonly [number, number])[];
+  failure: RenderError | undefined;
+}
+
+/** The error the refused reads make, if any: a failed read first, else `data-pending`. */
+function refusal(reads: Reads): RenderError | undefined {
+  if (reads.failure !== undefined) return reads.failure;
+  return reads.pending.length > 0 ? pendingError(reads.pending) : undefined;
+}
+
 function pendingError(pending: (readonly [number, number])[]): RenderError {
   return new RenderError("data-pending", `${pending.length} byte range(s) of the input are not available yet`, [
     ...pending,
@@ -121,7 +134,7 @@ class PdfiumDocument implements RenderDocument {
   readonly #p: Pdfium;
   readonly #limits: RenderLimits;
   readonly #pages = new Map<number, RenderPage>();
-  readonly #pending: (readonly [number, number])[];
+  readonly #reads: Reads;
   #doc: number;
   #form: number;
   #formInfo: number;
@@ -131,7 +144,7 @@ class PdfiumDocument implements RenderDocument {
   private constructor(
     p: Pdfium,
     handles: { doc: number; form: number; formInfo: number; access: number; getBlock: number; count: number },
-    pending: (readonly [number, number])[],
+    reads: Reads,
     limits: RenderLimits,
   ) {
     this.#p = p;
@@ -141,7 +154,7 @@ class PdfiumDocument implements RenderDocument {
     this.#access = handles.access;
     this.#getBlock = handles.getBlock;
     this.pageCount = handles.count;
-    this.#pending = pending;
+    this.#reads = reads;
     this.#limits = limits;
   }
 
@@ -149,22 +162,39 @@ class PdfiumDocument implements RenderDocument {
     if (source.size > 0xffff_ffff) {
       throw new RenderError("render-too-large", "custom file access on wasm32 is limited to 4 GiB of input");
     }
-    const pending: (readonly [number, number])[] = [];
+    const reads: Reads = { pending: [], failure: undefined };
     const { malloc, free } = p.pdfium.wasmExports;
-    // FPDF_FILEACCESS.m_GetBlock(param, position, pBuf, size): 1 on success, 0 on failure.
+    // FPDF_FILEACCESS.m_GetBlock(param, position, pBuf, size): 1 on success, 0 on failure. It
+    // never throws: an exception would unwind through PDFium's C++ frames. A throwing or short
+    // read is recorded and reported after the engine call returns.
     const getBlock = p.pdfium.addFunction((_param: number, position: number, buf: number, size: number) => {
       const at = position >>> 0;
       const length = size >>> 0;
-      const bytes = source.readSync(at, length);
-      if (bytes === undefined || bytes.length !== length) {
-        if (bytes === undefined) pending.push([at, length]);
+      try {
+        const bytes = source.readSync(at, length);
+        if (bytes === undefined) {
+          reads.pending.push([at, length]);
+          return 0;
+        }
+        if (bytes.length !== length) {
+          reads.failure ??= new RenderError("source", `bytes ${at}..+${length} of the input could not be read`);
+          return 0;
+        }
+        new Uint8Array(heap(p).buffer, buf, length).set(bytes);
+        return 1;
+      } catch (e) {
+        reads.failure ??= isRenderError(e)
+          ? e
+          : new RenderError("source", `bytes ${at}..+${length} of the input could not be read`);
         return 0;
       }
-      new Uint8Array(heap(p).buffer, buf, length).set(bytes);
-      return 1;
     }, "iiiii");
     // FPDF_FILEACCESS on wasm32: m_FileLen (unsigned long), m_GetBlock, m_Param: 12 bytes.
     const access = malloc(12);
+    if (access === 0) {
+      p.pdfium.removeFunction(getBlock);
+      throw new RenderError("render-failed", "the pdfium backend could not allocate memory");
+    }
     p.pdfium.setValue(access, source.size >>> 0, "i32");
     p.pdfium.setValue(access + 4, getBlock, "i32");
     p.pdfium.setValue(access + 8, 0, "i32");
@@ -176,7 +206,8 @@ class PdfiumDocument implements RenderDocument {
     if (doc === 0) {
       const error = p.FPDF_GetLastError();
       release();
-      if (pending.length > 0) throw pendingError(pending);
+      const refused = refusal(reads);
+      if (refused !== undefined) throw refused;
       if (error === FPDF_ERR_PASSWORD) {
         throw options.password === undefined
           ? new RenderError("password-required", "the document is encrypted and needs a password")
@@ -184,16 +215,21 @@ class PdfiumDocument implements RenderDocument {
       }
       throw new RenderError("render-failed", "the pdfium backend could not open the document");
     }
-    // PDFium may open after refused reads by rebuilding the structure: that open is pending too.
-    if (pending.length > 0) {
-      p.FPDF_CloseDocument(doc);
-      release();
-      throw pendingError(pending);
-    }
     const formInfo = p.PDFiumExt_OpenFormFillInfo();
     const form = p.PDFiumExt_InitFormFillEnvironment(doc, formInfo);
     const count = p.FPDF_GetPageCount(doc);
-    return new PdfiumDocument(p, { doc, form, formInfo, access, getBlock, count }, pending, limitsOf(options.limits));
+    // PDFium may open after refused reads by rebuilding the structure, and the form environment
+    // and the page count read more: any refusal up to here makes the open fail, so a document
+    // never keeps a page count read from a partial file.
+    const refused = refusal(reads);
+    if (refused !== undefined) {
+      if (form !== 0) p.PDFiumExt_ExitFormFillEnvironment(form);
+      if (formInfo !== 0) p.PDFiumExt_CloseFormFillInfo(formInfo);
+      p.FPDF_CloseDocument(doc);
+      release();
+      throw refused;
+    }
+    return new PdfiumDocument(p, { doc, form, formInfo, access, getBlock, count }, reads, limitsOf(options.limits));
   }
 
   #live(): number {
@@ -201,17 +237,21 @@ class PdfiumDocument implements RenderDocument {
     return this.#doc;
   }
 
-  /** Runs `f` with the pending list cleared; any refused read makes the outcome `data-pending`. */
+  /**
+   * Runs `f` with the refusals cleared; any read the source refused makes the outcome that
+   * refusal (`source` or `data-pending`), success or not.
+   */
   #reading<T>(f: () => T): T {
-    this.#pending.length = 0;
+    this.#reads.pending.length = 0;
+    this.#reads.failure = undefined;
     let outcome: T;
     try {
       outcome = f();
     } catch (e) {
-      if (this.#pending.length > 0) throw pendingError(this.#pending);
-      throw e;
+      throw refusal(this.#reads) ?? e;
     }
-    if (this.#pending.length > 0) throw pendingError(this.#pending);
+    const refused = refusal(this.#reads);
+    if (refused !== undefined) throw refused;
     return outcome;
   }
 
@@ -275,6 +315,7 @@ class PdfiumDocument implements RenderDocument {
           (flags.grayscale ? FPDF_GRAYSCALE : 0) |
           FPDF_REVERSE_BYTE_ORDER;
         const buffer = malloc(plan.byteLength);
+        if (buffer === 0) throw new RenderError("render-failed", "the pdfium backend could not allocate the tile");
         const bitmap = p.FPDFBitmap_CreateEx(width, height, FPDFBITMAP_BGRA, buffer, width * 4);
         let scratch = 0;
         try {
@@ -293,6 +334,7 @@ class PdfiumDocument implements RenderDocument {
           } else {
             // FS_MATRIX (6 floats) then FS_RECTF (left, top, right, bottom).
             scratch = malloc(40);
+            if (scratch === 0) throw new RenderError("render-failed", "the pdfium backend could not allocate memory");
             const floats = new Float32Array(heap(p).buffer, scratch, 10);
             floats.set([...pageToTile(plan, info, request.rotation ?? 0), 0, 0, width, height]);
             p.FPDF_RenderPageBitmapWithMatrix(bitmap, page, scratch, scratch + 24, renderFlags);

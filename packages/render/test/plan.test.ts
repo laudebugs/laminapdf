@@ -1,6 +1,6 @@
 // The tile planner against Rust's TilePlan (lamina-render's request.rs tests, same cases).
 import { describe, expect, it } from "vitest";
-import { DEFAULT_LIMITS, isRenderError, pageToTile, planTile, RenderError } from "../src/index.js";
+import { DEFAULT_LIMITS, isRenderError, pageToTile, planTile, RenderError, reviveRenderError } from "../src/index.js";
 
 const LETTER = { width: 612, height: 792, rotate: 0 };
 
@@ -54,6 +54,18 @@ describe("planTile", () => {
   });
 });
 
+describe("planTile backgrounds", () => {
+  it("rejects channels outside 0–255 or not integers", () => {
+    for (const background of [
+      { r: 0, g: 256, b: 0, a: 255 },
+      { r: -1, g: 0, b: 0, a: 255 },
+      { r: 0.5, g: 0, b: 0, a: 255 },
+    ]) {
+      expect(code(() => planTile(LETTER, { page: 0, scale: 1, background }, DEFAULT_LIMITS))).toBe("invalid-argument");
+    }
+  });
+});
+
 describe("pageToTile", () => {
   const apply = (m: readonly number[], x: number, y: number) => [
     (m[0] ?? 0) * x + (m[2] ?? 0) * y + (m[4] ?? 0),
@@ -77,5 +89,13 @@ describe("RenderError", () => {
     expect([e.name, e.code, e.kind, e.ranges]).toEqual(["RenderError", "data-pending", "state", [[0, 10]]]);
     expect(isRenderError(e, "data-pending")).toBe(true);
     expect(isRenderError(e, "render-failed")).toBe(false);
+  });
+
+  it("survives structured clone through toJSON and reviveRenderError", () => {
+    const e = new RenderError("data-pending", "missing", [[0, 10]]);
+    const posted = structuredClone(e.toJSON());
+    expect(isRenderError(posted, "data-pending")).toBe(true);
+    const revived = reviveRenderError(posted);
+    expect([revived instanceof RenderError, revived.code, revived.ranges]).toEqual([true, "data-pending", [[0, 10]]]);
   });
 });
