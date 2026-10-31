@@ -139,7 +139,7 @@ Todos: [A1](../todos/done/A1-foundation-adrs.md) (ADRs), [A2](../todos/done/A2-m
 
 ### Round B — Core model and the first package
 - [x] Write ADRs 0003, 0005, 0006, 0007, 0018 ([B1a](../todos/done/B1a-round-b-adrs.md); 0005 §6, the generation strategy, settled by `krilla-fit`)
-- [ ] Write ADRs 0016 ([B6a](../todos/done/B6a-lamina-wasm-and-adr-0016.md): [done](../decisions/0016-package-design.md)), 0017 ([B7b](../todos/ready/B7b-versioning-and-0-1-0-alpha.md))
+- [ ] Write ADRs 0016 ([B6a](../todos/done/B6a-lamina-wasm-and-adr-0016.md): [done](../decisions/0016-package-design.md)), 0017 ([B7b](../todos/ongoing/B7b-versioning-and-0-1-0-alpha.md))
 - [x] `krilla-fit` spike ([B1b](../todos/done/B1b-krilla-fit-spike.md), [result](../../spikes/krilla-fit/README.md)), then decide the generation strategy (Option B, recorded in [ADR 0005 §6](../decisions/0005-document-model.md))
 - [x] `lamina-model`: typed pages, annotations, fields, outline; stable IDs (pages, outline, Info, name trees and page labels with their IDs done; annotations and fields come later. [B2a](../todos/done/B2a-limits-owned-document.md) owned `Document` and `Limits`, [B2b](../todos/done/B2b-standard-security-decryption.md) decryption, [B2c](../todos/done/B2c-lamina-model-corpus-fuzz.md) views and IDs; annotations and fields in the editor rounds)
 - [x] `lamina-ops`: `Op` enum, `transact()`, inverses, undo/redo ([B3a](../todos/done/B3a-overlay-and-ops.md))
@@ -154,7 +154,7 @@ Todos: [A1](../todos/done/A1-foundation-adrs.md) (ADRs), [A2](../todos/done/A2-m
 - [x] Golden-file and corpus test harness in CI (full lane) ([X4](../todos/done/X4-full-lane-gate.md) full lane)
 - [x] Linux CI on a self-hosted runner in a container on the Mac ([X5](../todos/done/X5-linux-ci-container.md))
 - [ ] Windows CI coverage, parked ([X6](../todos/ready/X6-windows-ci.md))
-- [ ] Changesets + Cargo version sync; tag `0.1.0-alpha` locally (no registry publish yet) ([B7b](../todos/ready/B7b-versioning-and-0-1-0-alpha.md); docs site [B7a](../todos/done/B7a-docs-site.md))
+- [ ] Changesets + Cargo version sync; tag `0.1.0-alpha` locally (no registry publish yet) ([B7b](../todos/ongoing/B7b-versioning-and-0-1-0-alpha.md); docs site [B7a](../todos/done/B7a-docs-site.md))
 
 ### Round C — Web reader
 
