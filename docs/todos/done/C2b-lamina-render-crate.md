@@ -13,7 +13,7 @@
 | Branch | `feat/c2b-lamina-render` |
 | PR title | `feat(render): add lamina-render with the RenderBackend trait and pdfium and hayro adapters` |
 | Size | L (600–1,500 lines incl. tests and xtask changes; PNG goldens excluded) |
-| PR | — |
+| PR | [#113](https://github.com/laudebugs/lamina/pull/113) |
 
 ## Goal
 
