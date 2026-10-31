@@ -20,9 +20,9 @@
     "./package.json": "./package.json"
   },
   "scripts": {
-    "build:wasm": "pnpm --filter @lamina/render --filter @lamina/render-pdfium run build && tsc -p tsconfig.build.json",
-    "typecheck:wasm": "pnpm --filter @lamina/render --filter @lamina/render-pdfium run build && tsc -p tsconfig.build.json && tsc --noEmit -p tsconfig.json",
-    "test:wasm": "pnpm --filter @lamina/render --filter @lamina/render-pdfium run build && tsc -p tsconfig.build.json && tsc --noEmit -p tsconfig.json && vitest run -c vitest.node.config.ts"
+    "build:wasm": "pnpm --filter @lamina/render --filter @lamina/render-pdfium run build && pnpm --filter @lamina/render-hayro run build:wasm && tsc -p tsconfig.build.json",
+    "typecheck:wasm": "pnpm --filter @lamina/render --filter @lamina/render-pdfium run build && pnpm --filter @lamina/render-hayro run build:wasm && tsc -p tsconfig.build.json && tsc --noEmit -p tsconfig.json",
+    "test:wasm": "pnpm --filter @lamina/render --filter @lamina/render-pdfium run build && pnpm --filter @lamina/render-hayro run build:wasm && tsc -p tsconfig.build.json && tsc --noEmit -p tsconfig.json && vitest run -c vitest.node.config.ts"
   },
   "dependencies": {
     "@lamina/pdf": "workspace:*",
