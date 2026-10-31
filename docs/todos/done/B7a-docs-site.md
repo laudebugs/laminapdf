@@ -7,7 +7,7 @@
 | Plan | [pdf-library §7 B7](../../plans/pdf-library.md#b7-docs-examples-and-first-release), [§6](../../plans/pdf-library.md#6-docs-examples-and-publishing) |
 | Round / milestone | Round B (library) — M1 |
 | Depends on | [B2b](./B2b-standard-security-decryption.md), [B6b](./B6b-lamina-pdf-package.md), [B6c](./B6c-runtime-matrix.md) |
-| Blocks | [B7b](../ongoing/B7b-versioning-and-0-1-0-alpha.md), [L5a](../ready/L5a-agent-docs.md), [U5a](../ready/U5a-pricing-and-promises-page.md) |
+| Blocks | [B7b](./B7b-versioning-and-0-1-0-alpha.md), [L5a](../ready/L5a-agent-docs.md), [U5a](../ready/U5a-pricing-and-promises-page.md) |
 | ADRs | Follows [0015](../../decisions/0015-monorepo-layout-and-tooling.md) (apps in the pnpm workspace), [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) (npm licences), 0016 (API names); Cloudflare deploy conventions until ADR 0011 (web C2) |
 | Branch | `docs/b7a-docs-site` |
 | PR title | `feat(docs): Starlight docs site with quick starts, guides and TypeDoc, deployed per PR` |
@@ -36,7 +36,7 @@ Publish usable documentation for `lamina` and `@lamina/pdf` before the first tag
 
 **Out of scope** (and which todo covers it)
 
-- Changesets, tag, install verification: [B7b](../ongoing/B7b-versioning-and-0-1-0-alpha.md).
+- Changesets, tag, install verification: [B7b](./B7b-versioning-and-0-1-0-alpha.md).
 - PDF/UA and PDF/A guides: [B8b](../ready/B8b-conformance-profiles-and-verapdf.md).
 - docs.rs publishing: [P2](../ready/P2-first-registry-prerelease.md).
 

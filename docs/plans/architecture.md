@@ -56,7 +56,7 @@ ADRs go in `docs/decisions/`, one file per decision (`NNNN-title.md`). Each roun
 | [0006](../decisions/0006-op-log-and-undo.md) | Op log, transactions, undo semantics | Round B | Accepted |
 | [0007](../decisions/0007-save-planner.md) | Save planner and `SaveConstraint` | Round B | Accepted |
 | [0016](../decisions/0016-package-design.md) | Package design: ESM-only, export conditions, split WASM modules, size budgets | Round B | Accepted |
-| 0017 | Versioning and release: lockstep core, OIDC trusted publishing, attestations | Round B | Propose |
+| [0017](../decisions/0017-versioning-and-release.md) | Versioning and release: lockstep core, Changesets + Cargo version sync, release lane; OIDC trusted publishing, attestations (P1) | Round B | Accepted (versioning; publishing part Proposed, P1) |
 | [0018](../decisions/0018-test-strategy.md) | Test strategy: goldens, differential corpus, fuzzing, veraPDF | Round B | Accepted |
 | [0023](../decisions/0023-content-stream-reading.md) | Content-stream reading: `lamina-content` (tokenizer, visitor), tolerance rules, operator and XObject-depth limits | Round B (B9a) | Accepted |
 | [0004](../decisions/0004-render-backend.md) | `RenderBackend`; PDFium default; hayro oracle; MuPDF prohibited | Round C | Accepted |
@@ -139,7 +139,7 @@ Todos: [A1](../todos/done/A1-foundation-adrs.md) (ADRs), [A2](../todos/done/A2-m
 
 ### Round B — Core model and the first package
 - [x] Write ADRs 0003, 0005, 0006, 0007, 0018 ([B1a](../todos/done/B1a-round-b-adrs.md); 0005 §6, the generation strategy, settled by `krilla-fit`)
-- [ ] Write ADRs 0016 ([B6a](../todos/done/B6a-lamina-wasm-and-adr-0016.md): [done](../decisions/0016-package-design.md)), 0017 ([B7b](../todos/ongoing/B7b-versioning-and-0-1-0-alpha.md))
+- [x] Write ADRs 0016 ([B6a](../todos/done/B6a-lamina-wasm-and-adr-0016.md): [done](../decisions/0016-package-design.md)), 0017 ([B7b](../todos/done/B7b-versioning-and-0-1-0-alpha.md): [versioning part](../decisions/0017-versioning-and-release.md); the publishing part is [P1](../todos/ready/P1-reserve-names-and-trusted-publishing.md))
 - [x] `krilla-fit` spike ([B1b](../todos/done/B1b-krilla-fit-spike.md), [result](../../spikes/krilla-fit/README.md)), then decide the generation strategy (Option B, recorded in [ADR 0005 §6](../decisions/0005-document-model.md))
 - [x] `lamina-model`: typed pages, annotations, fields, outline; stable IDs (pages, outline, Info, name trees and page labels with their IDs done; annotations and fields come later. [B2a](../todos/done/B2a-limits-owned-document.md) owned `Document` and `Limits`, [B2b](../todos/done/B2b-standard-security-decryption.md) decryption, [B2c](../todos/done/B2c-lamina-model-corpus-fuzz.md) views and IDs; annotations and fields in the editor rounds)
 - [x] `lamina-ops`: `Op` enum, `transact()`, inverses, undo/redo ([B3a](../todos/done/B3a-overlay-and-ops.md))
@@ -154,7 +154,7 @@ Todos: [A1](../todos/done/A1-foundation-adrs.md) (ADRs), [A2](../todos/done/A2-m
 - [x] Golden-file and corpus test harness in CI (full lane) ([X4](../todos/done/X4-full-lane-gate.md) full lane)
 - [x] Linux CI on a self-hosted runner in a container on the Mac ([X5](../todos/done/X5-linux-ci-container.md))
 - [ ] Windows CI coverage, parked ([X6](../todos/ready/X6-windows-ci.md))
-- [ ] Changesets + Cargo version sync; tag `0.1.0-alpha` locally (no registry publish yet) ([B7b](../todos/ongoing/B7b-versioning-and-0-1-0-alpha.md); docs site [B7a](../todos/done/B7a-docs-site.md))
+- [x] Changesets + Cargo version sync; tag `0.1.0-alpha` locally (no registry publish yet) ([B7b](../todos/done/B7b-versioning-and-0-1-0-alpha.md): every crate and both packages at `0.1.0-alpha.0`, `cargo xtask version sync`, the release lane and `verify-install`; the `v0.1.0-alpha.0` tag is the owner's post-merge step; docs site [B7a](../todos/done/B7a-docs-site.md))
 
 ### Round C — Web reader
 
