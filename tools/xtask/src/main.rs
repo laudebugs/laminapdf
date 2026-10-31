@@ -467,8 +467,8 @@ fn ts_tests(ws: &Workspace) -> Result<()> {
     ws.pnpm(&["-r", "--if-present", "run", "test"])
 }
 
-/// Builds the docs site (apps/docs): its TypeDoc reference, the snippets read from the example
-/// files and the code table from codes.json; the build fails on any broken internal link.
+/// Builds the docs site (`apps/docs`): its `TypeDoc` reference, the snippets read from the example
+/// files and the code table from `codes.json`; the build fails on any broken internal link.
 fn docs_site(ws: &Workspace) -> Result<()> {
     step("docs site: astro build of apps/docs (TypeDoc, snippets, code table, link check)");
     ws.pnpm(&["--filter", "@lamina/docs", "run", "build"])
