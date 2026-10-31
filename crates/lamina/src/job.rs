@@ -3,7 +3,6 @@
 //!
 //! [ADR 0028]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0028-facade-rules-jobs-and-cancellation.md
 
-use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Weak};
 
 use lamina_save::{Save as _, SaveMode, SaveOptions};
@@ -11,43 +10,14 @@ use lamina_save::{Save as _, SaveMode, SaveOptions};
 use crate::document::{Document, Instance, Saved};
 use crate::error::{Error, Result};
 
-/// A cancel flag shared by the jobs and calls it is passed to ([ADR 0028] §5). Cloning
-/// shares the flag: cancel one clone and every holder sees it.
-///
-/// An atomic flag, not a lock or a cache, so the document stays `Send + !Sync` (ADR 0005
-/// §7). The core polls it at the start of every step, at every budget check and inside long
-/// loops; a tripped token makes the call fail with `cancelled`.
-///
-/// [ADR 0028]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0028-facade-rules-jobs-and-cancellation.md
-#[derive(Debug, Clone, Default)]
-pub struct CancelToken(Arc<AtomicBool>);
+pub use lamina_syntax::CancelToken;
 
-impl CancelToken {
-    /// A token that is not cancelled.
-    #[must_use]
-    pub fn new() -> Self {
-        Self::default()
-    }
-
-    /// Cancels every job and call holding this token (or a clone).
-    pub fn cancel(&self) {
-        // Relaxed is enough: a flag, no data is published through it.
-        self.0.store(true, Ordering::Relaxed);
-    }
-
-    /// Whether [`CancelToken::cancel`] was called.
-    #[must_use]
-    pub fn is_cancelled(&self) -> bool {
-        self.0.load(Ordering::Relaxed)
-    }
-
-    /// `Err(cancelled)` once cancelled.
-    pub(crate) fn check(&self) -> Result<()> {
-        if self.is_cancelled() {
-            Err(Error::Cancelled)
-        } else {
-            Ok(())
-        }
+/// `Err(cancelled)` once `token` is cancelled.
+pub(crate) fn check(token: &CancelToken) -> Result<()> {
+    if token.is_cancelled() {
+        Err(Error::Cancelled)
+    } else {
+        Ok(())
     }
 }
 
@@ -146,7 +116,7 @@ impl JobCore {
         if self.finished {
             return Err(Error::JobFinished);
         }
-        let outcome = self.cancel.check().and_then(|()| {
+        let outcome = check(&self.cancel).and_then(|()| {
             let same = self.instance.ptr_eq(&Arc::downgrade(doc.instance())) && self.revision == doc.revision();
             if same { Ok(()) } else { Err(Error::DocumentChanged) }
         });
@@ -257,7 +227,7 @@ impl SaveJob {
 
     fn run(&mut self, doc: &mut Document, mut units: u32) -> Result<Step<Saved>> {
         loop {
-            self.core.cancel().check()?;
+            check(self.core.cancel())?;
             if units == 0 {
                 return Ok(self.progress());
             }
@@ -293,7 +263,7 @@ impl SaveJob {
                 Stage::Parse { numbers, next } => {
                     while units > 0 {
                         let Some(&number) = numbers.get(*next) else { break };
-                        self.core.cancel().check()?;
+                        check(self.core.cancel())?;
                         // A broken object is the writer's to report (or to drop, as the
                         // tolerant reader does); only errors that must propagate end here.
                         lamina_cos::tolerant(doc.ops().cos().object(number))?;

@@ -31,6 +31,7 @@
 //! writer live one layer up, in `lamina-cos`.
 #![forbid(unsafe_code)]
 
+mod cancel;
 pub mod crypt;
 mod diagnostic;
 mod error;
@@ -45,6 +46,7 @@ pub mod text;
 #[path = "../../lamina-cos/tests/common/codes.rs"]
 mod test_codes;
 
+pub use cancel::CancelToken;
 pub use diagnostic::{ErrorKind, Location, Position};
 pub use error::{Error, Result};
 pub use lexer::{Lexer, Token, is_delimiter, is_regular, is_whitespace};

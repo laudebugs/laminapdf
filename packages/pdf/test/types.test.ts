@@ -30,11 +30,13 @@ function kindOf(code: ErrorCode): ErrorKind {
     case "missing-glyph":
     case "invalid-image":
     case "invalid-icc-profile":
+    case "render-failed":
       return "input";
     case "source":
     case "sink":
     case "fetch-failed":
     case "source-changed":
+    case "render-backend-unavailable":
       return "io";
     case "encrypted-base":
     case "unsupported-security-handler":
@@ -50,6 +52,7 @@ function kindOf(code: ErrorCode): ErrorKind {
     case "encoding-full":
     case "image-too-large":
     case "source-budget-exceeded":
+    case "render-too-large":
       return "limit";
     case "password-required":
     case "wrong-password":

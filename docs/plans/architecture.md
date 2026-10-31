@@ -162,7 +162,7 @@ Todos: see the [web-app plan §6](web-app.md#6-rounds) (C1a–C7c).
 
 - [x] `pdfium-wasm` and `hayro-parity` spikes, with written results (`hayro-parity` done: [C1a](../todos/done/C1a-hayro-parity-spike.md), [result](../../spikes/hayro-parity/README.md); `pdfium-wasm` done: [C1b](../todos/done/C1b-pdfium-wasm-spike.md), [result](../../spikes/pdfium-wasm/README.md))
 - [x] Write ADRs 0004, 0009, 0010, 0011 ([C2a](../todos/done/C2a-render-adrs.md))
-- [ ] `lamina-render` with the `RenderBackend` trait and PDFium/hayro adapters
+- [x] `lamina-render` with the `RenderBackend` trait and PDFium/hayro adapters ([C2b](../todos/done/C2b-lamina-render-crate.md))
 - [ ] `@lamina/render-pdfium` (ships pdfium.wasm, used by the web reader) and `@lamina/render-hayro` (pure-Rust renderer as its own .wasm), both optional so `@lamina/pdf` stays small
 - [ ] `@lamina/viewer`: worker RPC, page virtualiser, canvas pool, text layer, search
 - [ ] `@lamina/ui` (React 19) and `apps/web` on Workers static assets; per-PR previews

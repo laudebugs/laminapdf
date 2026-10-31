@@ -52,6 +52,8 @@ The scripts behind the research-chapter files live in [`docs/research/pdf/exampl
 
 `render-golden/` holds the render goldens of those examples (ADR 0018 tier 8, todo B5c): each page of `golden/examples/*.pdf` rendered at 72 dpi by PDFium and by hayro, as `<example>/<page>-<engine>.png`, with the limits and known differences in `render-golden/thresholds.toml`; written only by `cargo xtask render-golden --update` (see [`render-golden/README.md`](render-golden/README.md)).
 
+`golden/render/` holds `lamina-render`'s render goldens (todo C2b, ADR 0004): every page of every `corpus/` file rendered at 96 dpi on white by each backend, as `<backend>/<stem>-p<N>.png` (N 1-based; `pdfium` is `pdfium-binaries` `chromium/7881`, `hayro` is hayro 0.8.0), and `skip.json`, the files a backend can't render with a reason (none today). Generated, ours (the inputs are the corpus files above); written on macOS arm64 by `cargo xtask render-golden --update` (`crates/lamina-render-pdfium/examples/goldens.rs`), checked by its ignored `tests/golden.rs` (SSIM ≥ 0.99 against the backend's own PNG).
+
 The `text-*.pdf` goldens are rebuilt by `cargo xtask golden --update` like the others; [`tools/fixtures/text_facts.py`](../tools/fixtures/text_facts.py) then rewrites `text/extracted.json` (below).
 
 ### `images/`

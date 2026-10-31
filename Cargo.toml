@@ -36,6 +36,8 @@ lamina-text = { path = "crates/lamina-text" }
 # No default features: dependents ask for `text` (fonts and text) explicitly (ADR 0016 §4).
 lamina-build = { path = "crates/lamina-build", default-features = false }
 lamina = { path = "crates/lamina", default-features = false }
+lamina-render = { path = "crates/lamina-render" }
+lamina-render-pdfium = { path = "crates/lamina-render-pdfium" }
 
 # Flate (zlib) codec, pure Rust; `with-alloc` is the default feature, named so it stays on.
 # MIT OR Zlib OR Apache-2.0 (dependency adler2: 0BSD OR MIT OR Apache-2.0)
@@ -69,6 +71,13 @@ pdf-writer = { version = "=0.15.0", default-features = false }
 # crc32fast, fdeflate, flate2, miniz_oxide 0.8 [a second copy, deny.toml warns], simd-adler32:
 # MIT OR Apache-2.0 / Zlib)
 png = { version = "0.18.1", default-features = false }
+# The pure-Rust renderer behind lamina-render's `hayro` feature (ADR 0004): the same pin as
+# tools/render and the hayro-parity spike. MIT OR Apache-2.0 (dependencies: kurbo, vello_cpu,
+# skrifa-family crates, moxcms, pic-scale, …: MIT/Apache/BSD/Zlib; cargo-deny checks them).
+hayro = { version = "=0.8.0" }
+# PDFium bindings for lamina-render-pdfium (ADR 0004 §3): loaded at runtime, never linked at build
+# time; `thread_safe` serialises every FFI call. MIT OR Apache-2.0 (libloading: ISC).
+pdfium-render = { version = "=0.9.4", default-features = false, features = ["pdfium_7881", "thread_safe"] }
 
 # Shaping, bidi and line breaking (lamina-text, B4b; ADR 0005 §6). HarfRust: HarfBuzz's shaping
 # algorithm in Rust. Pinned to 0.8.0, the last release on read-fonts 0.39 (skrifa 0.42's, see
