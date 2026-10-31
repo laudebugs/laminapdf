@@ -64,6 +64,7 @@ Ship Paper's two UI typefaces from lamina's own origin: Newsreader (titles, outl
 - [ ] Add a size test: total of all WOFF2 files and the preloaded file each under budget (see Acceptance).
 - [ ] Add a glyph-coverage test: every character used in the UI message catalogue (`@lamina/ui`, once it exists; until then the design language's sample strings) is in the Latin subsets, or in an explicit "system fallback" list.
 - [ ] README: faces, ranges, sizes, how other scripts fall back, how to regenerate, licence table (font, version, licence, copyright line) for the future notices file.
+- [ ] Switch the docs site to `@lamina/fonts` (it themes Starlight with an interim copy from [U6g](../done/U6g-docs-site-paper.md)) and delete `apps/docs/src/fonts/` and the `@font-face` rules in `apps/docs/src/styles/paper.css`.
 
 ## Acceptance criteria
 

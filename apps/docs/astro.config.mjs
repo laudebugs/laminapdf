@@ -57,6 +57,8 @@ export default defineConfig({
           }
         : {}),
       lastUpdated: false,
+      // The Paper design language (docs/design/paper/design-language.md): tokens, fonts, titles.
+      customCss: ["./src/styles/paper.css"],
       plugins: [
         starlightLinksValidator({
           errorOnLocalLinks: true,
