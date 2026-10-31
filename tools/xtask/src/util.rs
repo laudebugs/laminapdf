@@ -1,12 +1,14 @@
 //! Small helpers the nightly tasks share: GitHub Actions outputs and job summaries, appending
 //! to files, and reading one line from git.
 
+use std::fmt::Write as _;
 use std::fs;
 use std::io::Write as _;
 use std::path::Path;
 use std::process::Command;
 
 use anyhow::Result;
+use sha2::{Digest, Sha256};
 
 /// Appends `text` to `path`, creating it if needed.
 pub(crate) fn append(path: &Path, text: &str) -> Result<()> {
@@ -40,6 +42,14 @@ pub(crate) fn git_stdout(dir: &Path, args: &[&str]) -> Option<String> {
         .then(|| String::from_utf8_lossy(&output.stdout).trim().to_owned())
 }
 
+/// The SHA-256 of `bytes` as lowercase hex.
+pub(crate) fn sha256_hex(bytes: &[u8]) -> String {
+    Sha256::digest(bytes).iter().fold(String::new(), |mut s, b| {
+        let _ = write!(s, "{b:02x}");
+        s
+    })
+}
+
 /// `text` safe inside a Markdown table cell (a `|` would end the cell, even in a code span).
 pub(crate) fn md_cell(text: &str) -> String {
     text.replace('|', "\\|").replace('\n', " ")
@@ -47,7 +57,15 @@ pub(crate) fn md_cell(text: &str) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::md_cell;
+    use super::{md_cell, sha256_hex};
+
+    #[test]
+    fn sha256_hex_should_match_the_known_digest() {
+        assert_eq!(
+            sha256_hex(b"abc"),
+            "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"
+        );
+    }
 
     #[test]
     fn md_cell_should_escape_pipes_and_newlines() {

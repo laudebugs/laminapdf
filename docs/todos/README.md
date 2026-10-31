@@ -12,24 +12,26 @@ New todos start from [`TEMPLATE.md`](TEMPLATE.md). The workflow is in [git workf
 
 IDs: `A`/`P`/`X` [architecture](../plans/architecture.md) (foundations, publishing, cross-cutting), `B` [library](../plans/pdf-library.md), `L` [shareable libraries](../plans/shareable-libraries.md) (contracts, worker, extraction, CLI, agent docs, mobile), `C` [web reader](../plans/web-app.md), `D` [desktop reader](../plans/desktop-app.md), `U` [UI/UX](../plans/ui-ux.md), `E` [editor](../plans/full-editor.md), `H` hosted service ([full-editor](../plans/full-editor.md)). A letter suffix (`B2a`, `B2b`) splits a round into PRs.
 
-**1 ongoing · 196 ready · 51 done** (248 total).
+**0 ongoing · 196 ready · 52 done** (248 total).
 
 ## Can start now
 
 Ready todos whose dependencies are all done:
 
+- [B8b](ready/B8b-conformance-profiles-and-verapdf.md): Conformance profiles (PDF/UA-1, PDF/A-2b/2u/3b), output intents, veraPDF nightly and `0.2.0-alpha`
 - [L2b](ready/L2b-disposal-and-memory.md): Disposal and memory bounds: `Symbol.dispose` on every handle, `disposed` code, capped wasm memory, `reset()` and trap recovery
 - [L3a](ready/L3a-lamina-extract-reading-order.md): ADR 0030 and `lamina-extract`: blocks, reading order, headings, lists, header/footer removal, hidden-text flags
 - [L4a](ready/L4a-lamina-cli.md): ADR 0031 and `crates/lamina-cli`: `info`, `check`, `pages rotate`, `extract`, `explain`
 - [L5a](ready/L5a-agent-docs.md): Docs for agents: `llms.txt`, Markdown twins, docs shipped in the packages, `AGENTS.md` snippet, rename log and an agent-eval baseline
 - [C3a](ready/C3a-viewer-worker-rpc.md): `@lamina/viewer` part 1: document worker and typed RPC
 - [U1a](ready/U1a-adr-0024-app-shell-ux.md): ADR 0024: app shell UX (layout, modes, command registry, selection, page appearance, mobile)
+- [P1](ready/P1-reserve-names-and-trusted-publishing.md): Reserve names, ADR 0017 publishing part, OIDC trusted publishing and the release workflow
 - [X3b](ready/X3b-render-diff-nightly.md): Nightly hayro-vs-PDFium render diffs
 - [X6](ready/X6-windows-ci.md): Windows CI coverage
 
 ## Ongoing
 
-- [B7b](ongoing/B7b-versioning-and-0-1-0-alpha.md): Changesets, Cargo version sync, ADR 0017 (versioning) and the local `0.1.0-alpha.0` tag
+Nothing claimed right now.
 
 ## Architecture — Round A
 
@@ -64,10 +66,10 @@ Ready todos whose dependencies are all done:
 | B6b | [`@lamina/pdf`: the TypeScript API, `init()`, export conditions, publint and attw](done/B6b-lamina-pdf-package.md) | done | [B2b](done/B2b-standard-security-decryption.md), [B6a](done/B6a-lamina-wasm-and-adr-0016.md) |
 | B6c | [Runtime matrix in CI: browsers, Node 22/24/26, Deno, Bun and workerd](done/B6c-runtime-matrix.md) | done | [B6b](done/B6b-lamina-pdf-package.md) |
 | B7a | [Docs site (`apps/docs`): Starlight, quick starts, guides and TypeDoc, with per-PR previews](done/B7a-docs-site.md) | done | [B2b](done/B2b-standard-security-decryption.md), [B6b](done/B6b-lamina-pdf-package.md), [B6c](done/B6c-runtime-matrix.md) |
-| B7b | [Changesets, Cargo version sync, ADR 0017 (versioning) and the local `0.1.0-alpha.0` tag](ongoing/B7b-versioning-and-0-1-0-alpha.md) | ongoing | [B6c](done/B6c-runtime-matrix.md), [B7a](done/B7a-docs-site.md), [X3a](done/X3a-nightly-lane.md) |
+| B7b | [Changesets, Cargo version sync, ADR 0017 (versioning) and the local `0.1.0-alpha.0` tag](done/B7b-versioning-and-0-1-0-alpha.md) | done | [B6c](done/B6c-runtime-matrix.md), [B7a](done/B7a-docs-site.md), [X3a](done/X3a-nightly-lane.md) |
 | B7c | [The docs site at `docs.laminapdf.com`, and the domain filled in everywhere](done/B7c-docs-custom-domain.md) | done | [B7a](done/B7a-docs-site.md) |
 | B8a | [Tagged PDF: structure tree builder, artifacts, alt text, MCIDs and ParentTree](done/B8a-structure-tree.md) | done | [B5c](done/B5c-lamina-facade-and-examples.md), [B6b](done/B6b-lamina-pdf-package.md) |
-| B8b | [Conformance profiles (PDF/UA-1, PDF/A-2b/2u/3b), output intents, veraPDF nightly and `0.2.0-alpha`](ready/B8b-conformance-profiles-and-verapdf.md) | ready | [B4c](done/B4c-standard-14-and-simple-fonts.md), [B7b](ongoing/B7b-versioning-and-0-1-0-alpha.md), [B8a](done/B8a-structure-tree.md), [X3a](done/X3a-nightly-lane.md) |
+| B8b | [Conformance profiles (PDF/UA-1, PDF/A-2b/2u/3b), output intents, veraPDF nightly and `0.2.0-alpha`](ready/B8b-conformance-profiles-and-verapdf.md) | ready | [B4c](done/B4c-standard-14-and-simple-fonts.md), [B7b](done/B7b-versioning-and-0-1-0-alpha.md), [B8a](done/B8a-structure-tree.md), [X3a](done/X3a-nightly-lane.md) |
 | B9a | [ADR 0023 and `lamina-content`: read-only content-stream interpreter](done/B9a-lamina-content-and-adr-0023.md) | done | [B2c](done/B2c-lamina-model-corpus-fuzz.md), [X4](done/X4-full-lane-gate.md) |
 | B9b | [Text extraction in `lamina-text`: fonts from files, encodings, ToUnicode, glyph runs and quads](done/B9b-text-extraction-core.md) | done | [B2b](done/B2b-standard-security-decryption.md), [B4a](done/B4a-font-loading-and-subsetting.md), [B4c](done/B4c-standard-14-and-simple-fonts.md), [B5c](done/B5c-lamina-facade-and-examples.md), [B9a](done/B9a-lamina-content-and-adr-0023.md) |
 | B9c | [`page.text()` in WASM and TypeScript; differential and quad tests; extraction fuzzing](done/B9c-text-extraction-bindings-and-differential.md) | done | [B6b](done/B6b-lamina-pdf-package.md), [B6c](done/B6c-runtime-matrix.md), [B9d](done/B9d-text-runs-quads-and-page-text.md) |
@@ -313,7 +315,7 @@ Ready todos whose dependencies are all done:
 
 | ID | Todo | State | Depends on |
 | --- | --- | --- | --- |
-| P1 | [Reserve names, ADR 0017 publishing part, OIDC trusted publishing and the release workflow](ready/P1-reserve-names-and-trusted-publishing.md) | ready | [B7b](ongoing/B7b-versioning-and-0-1-0-alpha.md) |
+| P1 | [Reserve names, ADR 0017 publishing part, OIDC trusted publishing and the release workflow](ready/P1-reserve-names-and-trusted-publishing.md) | ready | [B7b](done/B7b-versioning-and-0-1-0-alpha.md) |
 | P2 | [First registry pre-release, public stability policy and changelog, cargo-semver-checks](ready/P2-first-registry-prerelease.md) | ready | [P1](ready/P1-reserve-names-and-trusted-publishing.md) |
 
 ## Cross-cutting
