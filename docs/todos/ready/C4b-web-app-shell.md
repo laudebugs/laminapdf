@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [web reader §6 C4. App shell on Cloudflare](../../plans/web-app.md#c4-app-shell-on-cloudflare) |
 | Round / milestone | Round C (web reader) — M2 Web reader v0.1 |
-| Depends on | [C2a](../ongoing/C2a-render-adrs.md), [C4a](./C4a-ui-chrome-and-platform.md), [U6b](./U6b-self-hosted-fonts.md) |
+| Depends on | [C2a](../done/C2a-render-adrs.md), [C4a](./C4a-ui-chrome-and-platform.md), [U6b](./U6b-self-hosted-fonts.md) |
 | Blocks | [C4c](./C4c-remote-files-encryption-privacy.md), [C4d](./C4d-deploy-previews-and-production.md), [D7b](./D7b-settings-renderer-switch-and-download-page.md), [U3a](./U3a-responsive-mobile-and-touch.md) |
 | ADRs | Implements 0011 (Worker with static assets, `_headers`, CSP, no `/api`), 0009 (Vite 8, module worker), 0010 (web `Platform`) |
 | Branch | `feat/c4b-web-app-shell` |
@@ -21,7 +21,7 @@ Ship the first runnable reader: `apps/web`, a Vite 8 SPA that composes `@lamina/
 ## Context
 
 - **Design (Paper):** [R01 Home / open](../../design/paper/reader-a.md#r01-home--open), [R04 Repaired / damaged file](../../design/paper/reader-a.md#r04-repaired--damaged-file). Build to match these screens; record any deviation in the area document ([Paper design plan §5](../../plans/paper-design.md#5-how-the-designs-are-used)).
-- ADR 0011 (from [C2a](../ongoing/C2a-render-adrs.md)) — topology, header values, Wrangler pinning.
+- ADR 0011 (from [C2a](../done/C2a-render-adrs.md)) — topology, header values, Wrangler pinning.
 - [Research: Cloudflare section](../../research/architecture/app-and-package-architecture.md#cloudflare-hosts-everything-for-about-5-a-month-with-heavy-jobs-in-containers) and [cloudflare notes §1](../../research/architecture/notes/cloudflare.md) — `not_found_handling: "single-page-application"`, no `main` script needed for a pure SPA, `_headers` applies to assets only, 25 MiB per asset (PDFium WASM fits), compat date ≥ 2025-04-01 navigation behaviour.
 - [web-frontend notes](../../research/architecture/notes/web-frontend.md) §5 (COOP/COEP only for a threaded variant), §6 (`showOpenFilePicker` not Baseline; input + drag-drop fallback), §8 (Vite 8 + Rolldown, module workers + WASM).
 - [web-app.md §4 functional 1, 9, 10](../../plans/web-app.md#functional) and [privacy and security](../../plans/web-app.md#privacy-and-security) (strict CSP values).
@@ -36,7 +36,7 @@ Ship the first runnable reader: `apps/web`, a Vite 8 SPA that composes `@lamina/
 - Opening flows: file input, drag-and-drop on the whole window, paste of a PDF file from the clipboard, `showOpenFilePicker` where available — all via `Platform.openFiles` → `ByteSource` over `File.slice()` → viewer worker.
 - PDFium and lamina WASM lazy-loaded at app start in parallel with file selection (from C3a), served as hashed static assets.
 - Repair/warning notices and error states wired from viewer events to `@lamina/ui`.
-- Debug menu (`?debug`) switching backend PDFium ↔ hayro.
+- Debug menu (`#debug`, a fragment per ADR 0011 §3.6) switching backend PDFium ↔ hayro.
 - Playwright e2e project for `apps/web` against `wrangler dev` (production-equivalent assets + headers).
 
 **Out of scope** (and which todo covers it)

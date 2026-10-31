@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [web reader §6 C4. App shell on Cloudflare](../../plans/web-app.md#c4-app-shell-on-cloudflare) |
 | Round / milestone | Round C (web reader) — M2 Web reader v0.1 |
-| Depends on | [C2a](../ongoing/C2a-render-adrs.md), [C3b](./C3b-viewer-virtualiser-and-zoom.md), [U1a](./U1a-adr-0024-app-shell-ux.md), [U6e](./U6e-overlays-and-sheets.md) |
+| Depends on | [C2a](../done/C2a-render-adrs.md), [C3b](./C3b-viewer-virtualiser-and-zoom.md), [U1a](./U1a-adr-0024-app-shell-ux.md), [U6e](./U6e-overlays-and-sheets.md) |
 | Blocks | [C4b](./C4b-web-app-shell.md), [D2a](./D2a-adr-0008-and-desktop-scaffold.md), [D2d](./D2d-tile-transport-and-first-document.md), [U1b](./U1b-command-registry-and-palette.md), [U1c](./U1c-inverted-l-shell-and-modes.md), [E1d](./E1d-edit-session-undo-ui.md), [E10e](./E10e-timestamps-and-tsa-proxy.md) |
 | ADRs | Implements 0009 (React chrome around the framework-free viewer) and 0010 (`Platform` interface, capability flags, web implementation) |
 | Branch | `feat/c4a-ui-chrome` |
@@ -22,7 +22,7 @@ Build the reusable reader UI both shells share: `@lamina/ui`, a React 19 (React 
 
 - **Design (Paper):** [F01](../../design/paper/screens.md#f-foundations-the-chosen-paper-boards). Build to match these screens; record any deviation in the area document ([Paper design plan §5](../../plans/paper-design.md#5-how-the-designs-are-used)).
 - [UI/UX plan §5.1–§5.2](../../plans/ui-ux.md#51-desktop-and-web-layout-r1-r2) — `ReaderShell` must expose the left-rail, inspector, secondary-toolbar and status slots that [U1c](./U1c-inverted-l-shell-and-modes.md) fills; ADR 0024 ([U1a](./U1a-adr-0024-app-shell-ux.md)) fixes the layout first, so this todo depends on it; toolbar buttons become command ids in [U1b](./U1b-command-registry-and-palette.md), so keep handlers in `ReaderController`, not in components.
-- ADR 0009 and ADR 0010 (from [C2a](../ongoing/C2a-render-adrs.md)).
+- ADR 0009 and ADR 0010 (from [C2a](../done/C2a-render-adrs.md)).
 - [Research: the web client](../../research/architecture/app-and-package-architecture.md#the-web-client-is-react-chrome-around-an-imperative-viewer-core) — React 19 + Compiler; interaction modes in a state machine; view state in an external store; `Platform` flags (`canWriteInPlace`, `canWatchFiles`, `hasNativePrint`, `multiWindow`).
 - [web-frontend notes](../../research/architecture/notes/web-frontend.md) §1 (framework, accessible primitives: React Aria / Radix / Base UI), §4 (state), §7 (a11y, theming via CSS custom properties).
 - [web-app.md §4 functional 1, 8, 10](../../plans/web-app.md#functional) — open affordances, keyboard, error handling.
@@ -34,7 +34,7 @@ Build the reusable reader UI both shells share: `@lamina/ui`, a React 19 (React 
 
 - The reader shell in `packages/ui` (`@lamina/ui`), which [U6d](./U6d-core-components.md) creates (package scaffold, React 19, tests, Biome config) and [U6e](./U6e-overlays-and-sheets.md) extends; C4a adds the shell and platform modules to it and does not re-scaffold the package.
 - Accessible primitives library chosen per ADR 0009 (recommendation: React Aria Components for i18n/RTL/keyboard) — licence checked (Apache-2.0).
-- Components: `ReaderShell` (layout: toolbar, optional sidebar slot, viewer slot, status region), `Toolbar` (open, page indicator with input, prev/next, zoom out/in, zoom menu with fit width / fit page / actual size / presets, rotate, download/print placeholders disabled by capability, overflow menu), `OpenDropZone` (empty state with "Open a file", drag-and-drop target, paste hint), `PasswordDialog`, `ErrorBanner` / `RepairNotice` (ADR 0003 warnings in plain words, list of unsupported features), `LoadingState`, `DebugMenu` slot (backend switch hayro/PDFium for diffing — hidden behind `?debug`).
+- Components: `ReaderShell` (layout: toolbar, optional sidebar slot, viewer slot, status region), `Toolbar` (open, page indicator with input, prev/next, zoom out/in, zoom menu with fit width / fit page / actual size / presets, rotate, download/print placeholders disabled by capability, overflow menu), `OpenDropZone` (empty state with "Open a file", drag-and-drop target, paste hint), `PasswordDialog`, `ErrorBanner` / `RepairNotice` (ADR 0003 warnings in plain words, list of unsupported features), `LoadingState`, `DebugMenu` slot (backend switch hayro/PDFium for diffing — hidden behind `#debug`, a fragment per ADR 0011 §3.6).
 - `useViewer(viewer)` hooks over the store (`useSyncExternalStore`), `ReaderController` that owns the interaction state machine (`empty → opening → needs-password → open → error`).
 - `Platform` interface + `createWebPlatform()`: `openFiles()` (`showOpenFilePicker` when available, else hidden `<input type=file>`), `saveAs(bytes, name)` (download via `Blob` URL; `showSaveFilePicker` where available), `print(job)` (stub until C6c), `copyText`, `openExternal(url)`, capability flags with web values, `storage` (OPFS/IndexedDB handles, used by C7b).
 - Theming foundation: CSS custom properties tokens (light/dark/high-contrast hooks used by C7a), no CSS-in-JS runtime.

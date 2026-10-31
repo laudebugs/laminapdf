@@ -59,10 +59,10 @@ ADRs go in `docs/decisions/`, one file per decision (`NNNN-title.md`). Each roun
 | 0017 | Versioning and release: lockstep core, OIDC trusted publishing, attestations | Round B | Propose |
 | [0018](../decisions/0018-test-strategy.md) | Test strategy: goldens, differential corpus, fuzzing, veraPDF | Round B | Accepted |
 | [0023](../decisions/0023-content-stream-reading.md) | Content-stream reading: `lamina-content` (tokenizer, visitor), tolerance rules, operator and XObject-depth limits | Round B (B9a) | Accepted |
-| 0004 | `RenderBackend`; PDFium default; hayro oracle; MuPDF prohibited | Round C | Propose |
-| 0009 | Web client: React chrome + framework-free viewer core; typed worker RPC | Round C | Propose |
-| 0010 | Platform adapter and capability flags | Round C | Propose |
-| 0011 | Cloudflare topology, privacy/retention rules and the hosted service (accounts, cloud storage, sync) | Round C | Propose |
+| [0004](../decisions/0004-render-backend.md) | `RenderBackend`; PDFium default; hayro oracle; MuPDF prohibited | Round C | Accepted |
+| [0009](../decisions/0009-web-client-architecture.md) | Web client: React chrome + framework-free viewer core; typed worker RPC | Round C | Accepted |
+| [0010](../decisions/0010-platform-adapter.md) | Platform adapter and capability flags | Round C | Accepted |
+| [0011](../decisions/0011-cloudflare-topology-and-privacy.md) | Cloudflare topology, privacy/retention rules and the hosted service (accounts, cloud storage, sync) | Round C | Accepted (login stack by amendment after H1) |
 | 0008 | Desktop shell: Tauri 2, process model, tile transport, Linux fallback | Round D (after IPC spike) | Propose |
 | 0014 | Desktop distribution: update Worker + R2, channels, signing (the owner as publisher), key custody | Round D | Propose |
 | 0024 | App shell UX: inverted-L layout, modes, one command registry, selection surfaces, page appearance modes, phone layout ([UI/UX plan](ui-ux.md)) | Round U (U1a) | Propose |
@@ -161,7 +161,7 @@ Todos: [A1](../todos/done/A1-foundation-adrs.md) (ADRs), [A2](../todos/done/A2-m
 Todos: see the [web-app plan §6](web-app.md#6-rounds) (C1a–C7c).
 
 - [x] `pdfium-wasm` and `hayro-parity` spikes, with written results (`hayro-parity` done: [C1a](../todos/done/C1a-hayro-parity-spike.md), [result](../../spikes/hayro-parity/README.md); `pdfium-wasm` done: [C1b](../todos/done/C1b-pdfium-wasm-spike.md), [result](../../spikes/pdfium-wasm/README.md))
-- [ ] Write ADRs 0004, 0009, 0010, 0011
+- [x] Write ADRs 0004, 0009, 0010, 0011 ([C2a](../todos/done/C2a-render-adrs.md))
 - [ ] `lamina-render` with the `RenderBackend` trait and PDFium/hayro adapters
 - [ ] `@lamina/render-pdfium` (ships pdfium.wasm, used by the web reader) and `@lamina/render-hayro` (pure-Rust renderer as its own .wasm), both optional so `@lamina/pdf` stays small
 - [ ] `@lamina/viewer`: worker RPC, page virtualiser, canvas pool, text layer, search

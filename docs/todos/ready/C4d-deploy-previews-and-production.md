@@ -20,7 +20,7 @@ Every PR that touches the reader gets a working preview URL commented on the PR,
 
 ## Context
 
-- ADR 0011 (from [C2a](../ongoing/C2a-render-adrs.md)) — production at `<domain>`, previews per PR via Workers preview URLs, Wrangler pinned.
+- ADR 0011 (from [C2a](../done/C2a-render-adrs.md)) — production at `<domain>`, previews per PR via Workers preview URLs, Wrangler pinned.
 - [cloudflare notes §1](../../research/architecture/notes/cloudflare.md) — Workers needs `preview_urls: true` and a `previews` block; previews at `<preview-name>.<your-domain>`; custom domain must be a Cloudflare zone; unverified whether Workers Builds creates PR previews automatically; `cf` CLI is beta (try later).
 - [Git workflow §5–7](../../guidelines/git-workflow.md#5-pull-requests) — PR process; CI must be green.
 - [ADR 0018 §2](../../decisions/0018-test-strategy.md#2-ci-lanes) — path-filtering inside jobs, never workflow-level `paths` on required checks.
