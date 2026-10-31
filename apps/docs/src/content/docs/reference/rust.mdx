@@ -1,0 +1,11 @@
+---
+title: Rust API (rustdoc)
+description: Where to read the lamina crate's API documentation.
+---
+
+Every public item of every crate is documented, because `missing_docs` is denied workspace-wide. The crates aren't on crates.io yet, so docs.rs has no copy. Read them one of two ways:
+
+- **From CI:** each run of the fast lane's Rust job on `main` uploads the rendered docs as the **`rustdoc`** artefact. Open the latest [CI run on `main`](https://github.com/laudebugs/lamina/actions/workflows/ci.yml?query=branch%3Amain), download `rustdoc`, unzip it and open `lamina/index.html`. You need access to the repository.
+- **Locally:** `cargo doc --workspace --no-deps --all-features --open`. That is the build `cargo xtask check rust` runs, with warnings denied.
+
+Start with the `lamina` crate. It's the façade: `Document`, `Builder`, `Error`, `Warning`, jobs and `CancelToken`. The core crates under it (`lamina-syntax`, `lamina-cos`, `lamina-model`, `lamina-ops`, `lamina-save`, `lamina-content`, `lamina-text`, `lamina-build`) are documented the same way.

@@ -1,0 +1,21 @@
+---
+title: Node
+description: Generate a PDF from Node with @lamina/pdf.
+sidebar:
+  order: 2
+---
+
+import Snippet from "../../../components/Snippet.astro";
+
+Node (22 or newer) resolves the `node` export condition, which reads each `.wasm` file from `@lamina/wasm` as bytes. Call `await init({ text: true })` once. After that, every call is synchronous.
+
+The smallest document is one page with a line of text in a standard 14 font. Its bytes are the same as those of the Rust `hello` example:
+
+<Snippet file="packages/pdf/examples/hello.ts" />
+
+This is how the package's tests run it, with every other example, in Node 22, 24 and 26: `init` once, then each example's bytes compared with the Rust golden.
+
+<Snippet file="packages/pdf/test/examples.test.ts" />
+
+- **Coordinates** are page space: points from the top-left corner of the displayed page, with y going down. A text run's `at[1]` is its baseline.
+- **Free documents** you're done with (`doc.free()`, or `using doc = …`), so a long-running server doesn't wait for the garbage collector to release WebAssembly memory.

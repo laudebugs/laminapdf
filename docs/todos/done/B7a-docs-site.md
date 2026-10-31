@@ -3,10 +3,10 @@
 | Field | Value |
 | --- | --- |
 | ID | `B7a` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [pdf-library §7 B7](../../plans/pdf-library.md#b7-docs-examples-and-first-release), [§6](../../plans/pdf-library.md#6-docs-examples-and-publishing) |
 | Round / milestone | Round B (library) — M1 |
-| Depends on | [B2b](../done/B2b-standard-security-decryption.md), [B6b](../done/B6b-lamina-pdf-package.md), [B6c](../done/B6c-runtime-matrix.md) |
+| Depends on | [B2b](./B2b-standard-security-decryption.md), [B6b](./B6b-lamina-pdf-package.md), [B6c](./B6c-runtime-matrix.md) |
 | Blocks | [B7b](../ready/B7b-versioning-and-0-1-0-alpha.md), [L5a](../ready/L5a-agent-docs.md), [U5a](../ready/U5a-pricing-and-promises-page.md) |
 | ADRs | Follows [0015](../../decisions/0015-monorepo-layout-and-tooling.md) (apps in the pnpm workspace), [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) (npm licences), 0016 (API names); Cloudflare deploy conventions until ADR 0011 (web C2) |
 | Branch | `docs/b7a-docs-site` |
@@ -42,22 +42,22 @@ Publish usable documentation for `lamina` and `@lamina/pdf` before the first tag
 
 ## Tasks
 
-- [ ] Scaffold `apps/docs` (pinned Astro/Starlight versions), add to pnpm workspace; npm licence check
-- [ ] Content pages and generated code table (`cargo xtask gen codes --md`)
-- [ ] TypeDoc integration; rustdoc artefact link
-- [ ] `wrangler.toml`, deploy workflow with preview comments (secrets: `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID` — owner provides)
-- [ ] Fast-lane TS checks for `apps/docs`. Nothing to add to the full lane ([X4](../done/X4-full-lane-gate.md)): every path under `apps/`, its Markdown content included, is already code there
+- [x] Scaffold `apps/docs` (pinned Astro/Starlight versions), add to pnpm workspace; npm licence check
+- [x] Content pages and generated code table (`cargo xtask gen codes --md`)
+- [x] TypeDoc integration; rustdoc artefact link
+- [x] `wrangler.toml`, deploy workflow with preview comments (secrets: `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID` — owner provides)
+- [x] Fast-lane TS checks for `apps/docs`. Nothing to add to the full lane ([X4](../done/X4-full-lane-gate.md)): every path under `apps/`, its Markdown content included, is already code there
 
 ## Acceptance criteria
 
-- [ ] `pnpm --filter docs build` succeeds with zero broken internal links
-- [ ] Every PR touching `apps/docs/`, `packages/pdf/` or examples gets a preview URL comment (this PR's own preview included)
-- [ ] Every code snippet on the site is imported from a tested example file (the Worker, Deno and Bun quick starts from [B6c](../done/B6c-runtime-matrix.md)'s `packages/pdf/examples/worker/` and its Deno/Bun runners)
-- [ ] The error/warning code table matches `fixtures/codes.json` (generated)
+- [x] `pnpm --filter docs build` succeeds with zero broken internal links
+- [ ] Every PR touching `apps/docs/`, `packages/pdf/` or examples gets a preview URL comment (this PR's own preview included). **Not yet:** the workflow (`.github/workflows/docs.yml`) is in place, but the repository has no `CLOUDFLARE_API_TOKEN`/`CLOUDFLARE_ACCOUNT_ID` secrets, so it skips with a notice; the owner's steps are in [`apps/docs/README.md`](../../../apps/docs/README.md#what-the-owner-needs-to-do). Tick this once a PR shows its preview comment
+- [x] Every code snippet on the site is imported from a tested example file (the Worker, Deno and Bun quick starts from [B6c](../done/B6c-runtime-matrix.md)'s `packages/pdf/examples/worker/` and its Deno/Bun runners)
+- [x] The error/warning code table matches `fixtures/codes.json` (generated)
 
 ## Post-merge checks
 
-- [ ] The first push to `main` after merge deploys production (workers.dev until the owner picks a domain); link the run and URL in the done todo
+- [ ] The first push to `main` after merge deploys production (workers.dev until the owner picks a domain); link the run and URL in the done todo. Waits for the owner's secrets (above): until then the run skips with a notice
 
 ## Tests
 
@@ -65,8 +65,8 @@ Site build in CI; snippet sources are already tested by [B5c](../done/B5c-lamina
 
 ## Docs to update
 
-- [ ] [pdf-library §10 B7](../../plans/pdf-library.md#10-to-dos): tick `apps/docs` and per-PR preview deploys
-- [ ] `CLAUDE.md` (layout: `apps/docs`; commands), `README.md` (link to docs)
+- [x] [pdf-library §10 B7](../../plans/pdf-library.md#10-to-dos): tick `apps/docs` and per-PR preview deploys
+- [x] `CLAUDE.md` (layout: `apps/docs`; commands), `README.md` (link to docs)
 
 ## Risks and open questions
 
@@ -75,8 +75,17 @@ Site build in CI; snippet sources are already tested by [B5c](../done/B5c-lamina
 
 ## Definition of done
 
-- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [x] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
 - [ ] Work PR opened from a fresh worktree; **PR** field filled in
 - [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+
+## Outcome
+
+- `apps/docs` (`@lamina/docs`): Astro 7.3.8, Starlight 0.42.7, starlight-typedoc 0.23.1 with TypeDoc 0.28.20 and typedoc-plugin-markdown 4.14.1 (on TypeScript 6.0.3 from the `typedoc` catalog: TypeDoc needs the compiler API TypeScript 7 lacks), starlight-links-validator 0.27.0, wrangler from the catalog. Astro 7.3.x rather than 7.4 because 7.4.4 requires Node ≥ 22.23.4 and `engineStrict` would refuse an older Node 22 on a runner.
+- Pages: overview, install, six quick starts, seven guides, the code reference (from `fixtures/codes.json`, every group by its key), the Rust API page (the fast lane's `rustdoc` artefact), the examples gallery (TS and Rust source, the golden PDFs), the TypeDoc reference.
+- Snippets: `<Snippet file="…" />` reads the file at build time from a fixed glob (the TS and Rust examples, the Worker, the Vite, Node, Deno and Bun runners); shell commands are prose, not snippets. The encrypted-files, limits and errors guides needed an example none of the existing ones covered: `packages/pdf/examples/open-untrusted.ts`, tested in `test/examples.test.ts`.
+- Headers: ADR 0011 §4's, with `script-src` hashes of the build's inline scripts instead of a plain `'self'`, `style-src 'unsafe-inline'` (Expressive Code's style attributes) and no CSP on the example PDFs; checked in Chromium against `wrangler dev` (no violations, search works).
+- `cargo xtask check ts` builds the site; the deploy workflow skips cleanly without the secrets.
+

@@ -1,0 +1,147 @@
+# Docs site deploys (todo B7a): apps/docs on Cloudflare Workers static assets (apps/docs/wrangler.toml).
+# - A pull request that touches the site or what it shows (apps/docs/, packages/pdf/, the Rust
+#   examples, their goldens, codes.json) uploads a preview version under the alias pr-<number>
+#   and comments its URL on the PR (one comment, updated on every push).
+# - A push to main, or a manual run on main, deploys production (workers.dev until the owner picks
+#   a domain, architecture §8 Q3).
+# - Fork PRs are skipped: they must never see the secrets (and can't run on self-hosted runners).
+# - Without the secrets CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID, every step after the check
+#   is skipped with a notice and the job passes. The build itself is checked on every PR by the
+#   fast lane (`cargo xtask check ts` builds the site), not here.
+# Runs on the self-hosted macOS runners like the other lanes (pnpm in the runner's temp dir; no
+# Rust needed). Actions are pinned by full commit SHA with the release in a comment (ADR 0019).
+name: Docs site
+
+on:
+  pull_request:
+    paths:
+      - apps/docs/**
+      - packages/pdf/**
+      - crates/lamina/examples/**
+      - fixtures/golden/examples/**
+      - fixtures/codes.json
+      - pnpm-lock.yaml
+      - .github/workflows/docs.yml
+  push:
+    branches: [main]
+    paths:
+      - apps/docs/**
+      - packages/pdf/**
+      - crates/lamina/examples/**
+      - fixtures/golden/examples/**
+      - fixtures/codes.json
+      - pnpm-lock.yaml
+      - .github/workflows/docs.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: docs-${{ github.event.pull_request.number || github.ref }}
+  # Superseded PR previews are cancelled; production deploys run one after another.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  # Wrangler's usage metrics off (ADR 0011: no telemetry), Astro's too.
+  WRANGLER_SEND_METRICS: "false"
+  ASTRO_TELEMETRY_DISABLED: "1"
+
+jobs:
+  deploy:
+    name: Docs ${{ github.event_name == 'pull_request' && 'preview' || 'production' }}
+    # Pull requests from forks never get the secrets; production only from main.
+    if: >-
+      ${{ (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository)
+      || (github.event_name != 'pull_request' && github.ref == 'refs/heads/main') }}
+    runs-on: [self-hosted, macOS, ARM64]
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      # The preview comment.
+      pull-requests: write
+    steps:
+      - name: Check for the Cloudflare secrets
+        id: secrets
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          if [ -n "$CLOUDFLARE_API_TOKEN" ] && [ -n "$CLOUDFLARE_ACCOUNT_ID" ]; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice title=Docs deploy skipped::The repository secrets CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID are not set. The owner needs to add them (see apps/docs/README.md) to deploy the docs site; until then this job only skips."
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+          fi
+      - if: steps.secrets.outputs.enabled == 'true'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - if: steps.secrets.outputs.enabled == 'true'
+        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+        with:
+          # Per-job install dir: the default (~/setup-pnpm) is shared by every self-hosted
+          # runner on the same machine, and concurrent jobs delete each other's pnpm.
+          dest: ${{ runner.temp }}/setup-pnpm
+      - if: steps.secrets.outputs.enabled == 'true'
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - if: steps.secrets.outputs.enabled == 'true'
+        run: pnpm install --frozen-lockfile
+      - name: Build the site
+        if: steps.secrets.outputs.enabled == 'true'
+        run: pnpm --filter @lamina/docs build
+      - name: Upload a preview version
+        id: preview
+        if: steps.secrets.outputs.enabled == 'true' && github.event_name == 'pull_request'
+        working-directory: apps/docs
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          PR: ${{ github.event.pull_request.number }}
+          SHA: ${{ github.event.pull_request.head.sha }}
+          WRANGLER_OUTPUT_FILE_PATH: ${{ runner.temp }}/wrangler-output.ndjson
+        run: |
+          # Previews are never indexed (ADR 0011 §1's rule for non-production builds).
+          printf '\n/*\n  X-Robots-Tag: noindex\n' >> dist/_headers
+          rm -f "$WRANGLER_OUTPUT_FILE_PATH"
+          pnpm exec wrangler versions upload --preview-alias "pr-$PR" --message "PR #$PR at $SHA"
+          url=$(node -e '
+            const lines = require("node:fs").readFileSync(process.argv[1], "utf8").split("\n").filter(Boolean);
+            const upload = lines.map((l) => JSON.parse(l)).filter((e) => e.type === "version-upload").at(-1);
+            process.stdout.write(upload?.preview_alias_url ?? upload?.preview_url ?? "");
+          ' "$WRANGLER_OUTPUT_FILE_PATH")
+          if [ -z "$url" ]; then
+            echo "::error::wrangler printed no preview URL (is preview_urls on for the lamina-docs Worker?)"
+            exit 1
+          fi
+          echo "url=$url" >> "$GITHUB_OUTPUT"
+          echo "Docs preview: $url" >> "$GITHUB_STEP_SUMMARY"
+      - name: Comment the preview URL on the PR
+        if: steps.preview.outputs.url != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          PR: ${{ github.event.pull_request.number }}
+          SHA: ${{ github.event.pull_request.head.sha }}
+          URL: ${{ steps.preview.outputs.url }}
+        run: |
+          marker="<!-- lamina-docs-preview -->"
+          body=$(printf '%s\n**Docs preview:** %s\n\nBuilt from %s. Updated on every push to this PR.' "$marker" "$URL" "$SHA")
+          id=$(gh api "repos/$REPO/issues/$PR/comments" --paginate \
+            --jq ".[] | select(.user.login == \"github-actions[bot]\" and (.body | startswith(\"$marker\"))) | .id" | head -n 1)
+          if [ -n "$id" ]; then
+            gh api --method PATCH "repos/$REPO/issues/comments/$id" -f body="$body" > /dev/null
+          else
+            gh api --method POST "repos/$REPO/issues/$PR/comments" -f body="$body" > /dev/null
+          fi
+      - name: Deploy production
+        if: steps.secrets.outputs.enabled == 'true' && github.event_name != 'pull_request'
+        working-directory: apps/docs
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          SHA: ${{ github.sha }}
+        run: pnpm exec wrangler deploy --message "main at $SHA"

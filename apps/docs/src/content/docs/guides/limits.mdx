@@ -1,0 +1,37 @@
+---
+title: Limits
+description: Bound what an untrusted file can make lamina decode, read or draw.
+sidebar:
+  order: 7
+---
+
+import Snippet from "../../../components/Snippet.astro";
+
+A small PDF can ask for a lot of work: a stream that inflates to gigabytes, a page tree thousands of levels deep, forms drawn inside forms. lamina keeps such files within `Limits`, which you pass when you open one. Every field has a safe default, and you set only the ones you want to change.
+
+- **Hard limits** stop the call with `limit-exceeded`. Its `data.limit` names the limit, so you can tell the user which one.
+- **Soft limits** drop the excess with a warning and carry on.
+
+| Limit (TypeScript) | Kind | Default | Bounds |
+| --- | --- | --- | --- |
+| `maxNestingDepth` | hard | 256 | arrays and dictionaries inside each other; saved graphics states (`q`) |
+| `maxStreamDecoded` | hard | 64 MiB | bytes one stream decodes to, per filter stage |
+| `maxDecodedTotal` | hard | 1 GiB | bytes one call (`open`, one page's content, one read) decodes, across all streams |
+| `maxFilterChain` | hard | 8 | filters on one stream |
+| `maxResolveDepth` | hard | 32 | indirect objects in flight while resolving a chain of references |
+| `maxPageTreeDepth` | hard | 256 | `/Kids` levels below the page-tree root (a deeper subtree is skipped with a warning) |
+| `maxTreeDepth` | hard | 64 | name and number tree levels, outline depth |
+| `maxStringLength` | hard | 16 MiB | bytes in one string or name |
+| `maxXrefSections` | soft | 4,096 | `/Prev` hops in the cross-reference chain (past it, the table is rebuilt by scanning) |
+| `maxObjectNumber` | soft | 8,388,607 | the highest object number kept |
+| `maxWarnings` | soft | 1,000 | warnings kept per document (then one `warnings-truncated`) |
+| `maxContentOperators` | hard | 10,000,000 | operators run in one content call, forms each time they are drawn |
+| `maxXobjectDepth` | hard | 32 | forms drawn inside forms |
+| `maxImagePixels` | hard (reserved) | 2²⁸ | pixels of one image |
+| `maxReadWindow` | hard | 256 MiB | one read from a range source (`Document.openRange`) |
+
+- **`strict: true`** refuses any file that needs repair, instead of repairing it with warnings.
+
+In TypeScript the names are camelCase. In Rust they're `Limits::new().with_max_stream_decoded(…)` and so on. This example opens uploads with tighter decode limits than the defaults:
+
+<Snippet file="packages/pdf/examples/open-untrusted.ts" />

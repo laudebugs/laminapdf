@@ -1,0 +1,18 @@
+---
+title: Rust
+description: Generate a PDF with the lamina crate.
+sidebar:
+  order: 6
+---
+
+import Snippet from "../../../components/Snippet.astro";
+
+The `lamina` crate is the façade over the core crates. Add it as a [path dependency](/install/#rust-lamina), then build a document. This is the `hello` example, whose bytes are checked against `fixtures/golden/examples/hello.pdf` in CI:
+
+<Snippet file="crates/lamina/examples/hello.rs" />
+
+Run it with `cargo run -p lamina --example hello`, which writes `target/examples-out/hello.pdf`.
+
+- **Everything from the environment is given:** the file ID, the producer and the dates. The output is the same on every run and every platform.
+- **`CancelToken`:** long work (saving, jobs) takes a token, so another thread can stop it. `save_job` returns a job that you step through with a work budget instead.
+- The [Rust API reference](/reference/rust/) documents every public item.

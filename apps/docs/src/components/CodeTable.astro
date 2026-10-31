@@ -1,0 +1,61 @@
+---
+// Every error and warning code, read from fixtures/codes.json at build time (ADR 0026 §3): one
+// table per group, in the file's order. A group added to codes.json (any key the schema's
+// `^(warnings|errors|[a-z][A-Za-z]*(Errors|Warnings))$` matches) appears without a change here.
+import codes from "../../../../fixtures/codes.json";
+
+interface Entry {
+  readonly code: string;
+  readonly kind: string;
+  readonly summary: string;
+  readonly hint: string;
+  readonly since: string;
+}
+
+const GROUP = /^(warnings|errors|[a-z][A-Za-z]*(Errors|Warnings))$/;
+const { base, suffix } = codes.docsUrl;
+
+/** `textWarnings` → "Text warnings", `warnings` → "Warnings". */
+function title(key: string): string {
+  const words = key.replace(/([A-Z])/g, " $1").toLowerCase();
+  return words.charAt(0).toUpperCase() + words.slice(1);
+}
+
+const groups = Object.entries(codes as Record<string, unknown>)
+  .filter(([key, value]) => GROUP.test(key) && Array.isArray(value))
+  .map(([key, value]) => ({ key, title: title(key), entries: value as Entry[] }));
+---
+
+{
+  groups.map((g) => (
+    <>
+      <h2 id={g.key}>{g.title}</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Code</th>
+            <th>Kind</th>
+            <th>What happened</th>
+            <th>What to do</th>
+          </tr>
+        </thead>
+        <tbody>
+          {g.entries.map((e) => (
+            <tr>
+              <td>
+                <a href={`${base}${e.code}${suffix}`}>
+                  <code>{e.code}</code>
+                </a>
+              </td>
+              <td>
+                <code>{e.kind}</code>
+              </td>
+              <td>{e.summary}</td>
+              <td>{e.hint}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </>
+  ))
+}

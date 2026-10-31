@@ -1,0 +1,27 @@
+---
+title: Links, outlines and metadata
+description: URI, page and named links, destinations, the outline, page labels, viewer preferences and metadata.
+sidebar:
+  order: 3
+---
+
+import { Tabs, TabItem } from "@astrojs/starlight/components";
+import Snippet from "../../../components/Snippet.astro";
+
+- **Links:** `surface.link(rect, target, contents)`, where the target is `{ type: "uri" }`, `{ type: "page", index }` or `{ type: "named", name }`. A text run takes a `link` option too. Targets are checked when the builder finishes: `page-index-out-of-range` and `unknown-destination`.
+- **Named destinations:** `builder.destination(name, index)`.
+- **Outline:** `builder.outline([...])`, with nested entries, colour, bold, italic and `open`.
+- **Page labels:** `builder.pageLabels([{ start, style }])`. Here, roman numerals for the front matter, then decimal from page 3.
+- **Viewer preferences:** for example `pageMode: "outlines"`, which opens the file with the outline showing.
+- **Metadata:** `builder.metadata({ title, author, … })` writes the Info dictionary and an XMP packet from the same values ([Open, edit and save](/guides/open-edit-and-save/) uses it).
+
+<Tabs syncKey="lang">
+  <TabItem label="TypeScript">
+    <Snippet file="packages/pdf/examples/links-and-outlines.ts" />
+  </TabItem>
+  <TabItem label="Rust">
+    <Snippet file="crates/lamina/examples/links_and_outlines.rs" />
+  </TabItem>
+</Tabs>
+
+[See the output](/examples/#links-and-outlines).
