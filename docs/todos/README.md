@@ -12,13 +12,12 @@ New todos start from [`TEMPLATE.md`](TEMPLATE.md). The workflow is in [git workf
 
 IDs: `A`/`P`/`X` [architecture](../plans/architecture.md) (foundations, publishing, cross-cutting), `B` [library](../plans/pdf-library.md), `L` [shareable libraries](../plans/shareable-libraries.md) (contracts, worker, extraction, CLI, agent docs, mobile), `C` [web reader](../plans/web-app.md), `D` [desktop reader](../plans/desktop-app.md), `U` [UI/UX](../plans/ui-ux.md), `E` [editor](../plans/full-editor.md), `H` hosted service ([full-editor](../plans/full-editor.md)). A letter suffix (`B2a`, `B2b`) splits a round into PRs.
 
-**2 ongoing · 197 ready · 49 done** (248 total).
+**2 ongoing · 196 ready · 50 done** (248 total).
 
 ## Can start now
 
 Ready todos whose dependencies are all done:
 
-- [L2a](ready/L2a-worker-client.md): `@lamina/pdf/worker`: the async twin of the sync API, with typed RPC, version handshake, `AbortSignal`, transfer lists and progress
 - [L2b](ready/L2b-disposal-and-memory.md): Disposal and memory bounds: `Symbol.dispose` on every handle, `disposed` code, capped wasm memory, `reset()` and trap recovery
 - [L3a](ready/L3a-lamina-extract-reading-order.md): ADR 0030 and `lamina-extract`: blocks, reading order, headings, lists, header/footer removal, hidden-text flags
 - [L4a](ready/L4a-lamina-cli.md): ADR 0031 and `crates/lamina-cli`: `info`, `check`, `pages rotate`, `extract`, `explain`
@@ -30,7 +29,7 @@ Ready todos whose dependencies are all done:
 ## Ongoing
 
 - [B7b](ongoing/B7b-versioning-and-0-1-0-alpha.md): Changesets, Cargo version sync, ADR 0017 (versioning) and the local `0.1.0-alpha.0` tag
-- [C2c](ongoing/C2c-render-packages.md): `@lamina/render-pdfium` and `@lamina/render-hayro`: the web render adapters
+- [L2a](ongoing/L2a-worker-client.md): `@lamina/pdf/worker`: the async twin of the sync API, with typed RPC, version handshake, `AbortSignal`, transfer lists and progress
 
 ## Architecture — Round A
 
@@ -83,7 +82,7 @@ Ready todos whose dependencies are all done:
 | L1a | [Contract ADRs 0026 (errors), 0027 (coordinates and units), 0028 (façade rules, jobs, cancellation)](done/L1a-contract-adrs.md) | done | — |
 | L1b | [Error and diagnostic contract: codegen from `fixtures/codes.json` into Rust, TypeScript and JSON Schema, with `explain` text](done/L1b-error-contract-codegen.md) | done | [B6b](done/B6b-lamina-pdf-package.md), [L1a](done/L1a-contract-adrs.md), [L1c](done/L1c-error-contract-core.md) |
 | L1c | [Error contract in the Rust core: `codes.json` v2 with kinds and hints, tagged locations, no document text in messages](done/L1c-error-contract-core.md) | done | [L1a](done/L1a-contract-adrs.md) |
-| L2a | [`@lamina/pdf/worker`: the async twin of the sync API, with typed RPC, version handshake, `AbortSignal`, transfer lists and progress](ready/L2a-worker-client.md) | ready | [B6b](done/B6b-lamina-pdf-package.md), [L1a](done/L1a-contract-adrs.md), [L1b](done/L1b-error-contract-codegen.md) |
+| L2a | [`@lamina/pdf/worker`: the async twin of the sync API, with typed RPC, version handshake, `AbortSignal`, transfer lists and progress](ongoing/L2a-worker-client.md) | ongoing | [B6b](done/B6b-lamina-pdf-package.md), [L1a](done/L1a-contract-adrs.md), [L1b](done/L1b-error-contract-codegen.md) |
 | L2b | [Disposal and memory bounds: `Symbol.dispose` on every handle, `disposed` code, capped wasm memory, `reset()` and trap recovery](ready/L2b-disposal-and-memory.md) | ready | [B6b](done/B6b-lamina-pdf-package.md), [L1b](done/L1b-error-contract-codegen.md) |
 | L2c | [Range `ByteSource`: `DataPending` ranges at the edges (HTTP Range, JS callback, native file and mmap), core stays synchronous](done/L2c-range-byte-source.md) | done | [B2d](done/B2d-windowed-reading.md), [B6b](done/B6b-lamina-pdf-package.md) |
 | L3a | [ADR 0030 and `lamina-extract`: blocks, reading order, headings, lists, header/footer removal, hidden-text flags](ready/L3a-lamina-extract-reading-order.md) | ready | [B8a](done/B8a-structure-tree.md), [B9d](done/B9d-text-runs-quads-and-page-text.md), [L1a](done/L1a-contract-adrs.md), [U2b](done/U2b-reading-order-ground-truth.md) |
@@ -105,8 +104,8 @@ Ready todos whose dependencies are all done:
 | C1b | [`pdfium-wasm` spike: PDFium-WASM next to `lamina-wasm` in one worker](done/C1b-pdfium-wasm-spike.md) | done | [B3c](done/B3c-save-planner-and-roundtrip.md), [B6b](done/B6b-lamina-pdf-package.md), [C1a](done/C1a-hayro-parity-spike.md) |
 | C2a | [ADRs 0004, 0009, 0010, 0011: render backend, web client, platform adapter, Cloudflare and privacy](done/C2a-render-adrs.md) | done | [C1a](done/C1a-hayro-parity-spike.md), [C1b](done/C1b-pdfium-wasm-spike.md), [X1](done/X1-docs-link-checker.md) |
 | C2b | [`crates/lamina-render`: the `RenderBackend` trait, PDFium and hayro adapters, render goldens](done/C2b-lamina-render-crate.md) | done | [B2c](done/B2c-lamina-model-corpus-fuzz.md), [C2a](done/C2a-render-adrs.md) |
-| C2c | [`@lamina/render-pdfium` and `@lamina/render-hayro`: the web render adapters](ongoing/C2c-render-packages.md) | ongoing | [B6b](done/B6b-lamina-pdf-package.md), [C2b](done/C2b-lamina-render-crate.md) |
-| C3a | [`@lamina/viewer` part 1: document worker and typed RPC](ready/C3a-viewer-worker-rpc.md) | ready | [B6b](done/B6b-lamina-pdf-package.md), [L2a](ready/L2a-worker-client.md), [C2a](done/C2a-render-adrs.md), [C2c](ongoing/C2c-render-packages.md) |
+| C2c | [`@lamina/render-pdfium` and `@lamina/render-hayro`: the web render adapters](done/C2c-render-packages.md) | done | [B6b](done/B6b-lamina-pdf-package.md), [C2b](done/C2b-lamina-render-crate.md) |
+| C3a | [`@lamina/viewer` part 1: document worker and typed RPC](ready/C3a-viewer-worker-rpc.md) | ready | [B6b](done/B6b-lamina-pdf-package.md), [L2a](ongoing/L2a-worker-client.md), [C2a](done/C2a-render-adrs.md), [C2c](done/C2c-render-packages.md) |
 | C3b | [`@lamina/viewer` part 2: virtualiser, canvas pool, progressive tiles and anchored zoom](ready/C3b-viewer-virtualiser-and-zoom.md) | ready | [C3a](ready/C3a-viewer-worker-rpc.md) |
 | C3c | [Viewer performance harness: long tasks, memory and time-to-first-page in CI](ready/C3c-viewer-perf-harness.md) | ready | [C3b](ready/C3b-viewer-virtualiser-and-zoom.md) |
 | C4a | [`@lamina/ui`: React 19 reader chrome and the `Platform` adapter](ready/C4a-ui-chrome-and-platform.md) | ready | [C2a](done/C2a-render-adrs.md), [C3b](ready/C3b-viewer-virtualiser-and-zoom.md), [U1a](ready/U1a-adr-0024-app-shell-ux.md), [U6e](ready/U6e-overlays-and-sheets.md) |
@@ -126,8 +125,8 @@ Ready todos whose dependencies are all done:
 
 | ID | Todo | State | Depends on |
 | --- | --- | --- | --- |
-| D1a | [`desktop-ipc` spike: tile transport and COOP/COEP in the three webviews](ready/D1a-desktop-ipc-spike.md) | ready | [C2c](ongoing/C2c-render-packages.md), [C3b](ready/C3b-viewer-virtualiser-and-zoom.md) |
-| D1b | [`desktop-print` spike: faithful printing from Tauri on each OS](ready/D1b-desktop-print-spike.md) | ready | [C2c](ongoing/C2c-render-packages.md), [C3b](ready/C3b-viewer-virtualiser-and-zoom.md), [D1a](ready/D1a-desktop-ipc-spike.md) |
+| D1a | [`desktop-ipc` spike: tile transport and COOP/COEP in the three webviews](ready/D1a-desktop-ipc-spike.md) | ready | [C2c](done/C2c-render-packages.md), [C3b](ready/C3b-viewer-virtualiser-and-zoom.md) |
+| D1b | [`desktop-print` spike: faithful printing from Tauri on each OS](ready/D1b-desktop-print-spike.md) | ready | [C2c](done/C2c-render-packages.md), [C3b](ready/C3b-viewer-virtualiser-and-zoom.md), [D1a](ready/D1a-desktop-ipc-spike.md) |
 | D2a | [ADR 0008 and the `apps/desktop` Tauri 2 scaffold](ready/D2a-adr-0008-and-desktop-scaffold.md) | ready | [C2a](done/C2a-render-adrs.md), [C4a](ready/C4a-ui-chrome-and-platform.md), [D1a](ready/D1a-desktop-ipc-spike.md), [D1b](ready/D1b-desktop-print-spike.md), [U6b](ready/U6b-self-hosted-fonts.md) |
 | D2b | [Engine child process: protocol, file byte source, restart on crash](ready/D2b-engine-process.md) | ready | [C2b](done/C2b-lamina-render-crate.md), [C4c](ready/C4c-remote-files-encryption-privacy.md), [C4d](ready/C4d-deploy-previews-and-production.md), [D2a](ready/D2a-adr-0008-and-desktop-scaffold.md) |
 | D2c | [Sandbox the engine process on macOS, Windows and Linux](ready/D2c-engine-sandbox.md) | ready | [D2b](ready/D2b-engine-process.md) |

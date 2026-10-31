@@ -1,0 +1,345 @@
+// The web render contract of ADR 0004 (todo C2c): the interface both web adapters implement
+// (@lamina/render-pdfium, @lamina/render-hayro), the tile planner they share, and RenderError.
+// It mirrors lamina-render's Rust trait: bounded tiles of a page at a scale, straight-alpha RGBA8
+// rows of width × 4 bytes, validated once by planTile so both adapters agree on sizes.
+
+/**
+ * The bytes of a document, read synchronously (PDFium's file access can't await). A read
+ * returns `undefined` when those bytes haven't arrived yet: the call then throws `data-pending`
+ * with the ranges to fetch (ADR 0004 §1, the web form of `Pending`).
+ */
+export interface RenderSource {
+  readonly size: number;
+  readSync(offset: number, length: number): Uint8Array | undefined;
+}
+
+/** A source over bytes already in memory. */
+export function bytesSource(bytes: Uint8Array): RenderSource {
+  return {
+    size: bytes.length,
+    readSync: (offset, length) => bytes.subarray(offset, Math.min(bytes.length, offset + length)),
+  };
+}
+
+/** Bounds on one render, checked before anything is allocated (`render-too-large`). */
+export interface RenderLimits {
+  /** Most pixels in one tile. Default 16,777,216 (4096 × 4096), iOS Safari's per-canvas cap. */
+  readonly maxRenderPixels: number;
+  /** Most pixels on either side of one tile. Default 16,384. */
+  readonly maxRenderSide: number;
+  /** Most input bytes a backend that reads the whole file (hayro) reads. Default 1 GiB. */
+  readonly maxInputBytes: number;
+}
+
+export const DEFAULT_LIMITS: RenderLimits = Object.freeze({
+  maxRenderPixels: 16_777_216,
+  maxRenderSide: 16_384,
+  maxInputBytes: 2 ** 30,
+});
+
+/** A view rotation, clockwise, added to the page's own `/Rotate`. */
+export type ViewRotation = 0 | 90 | 180 | 270;
+
+/** What to draw besides the page content. */
+export interface RenderFlags {
+  /** Annotation appearance streams. Default on. */
+  readonly annotations: boolean;
+  /** Form widgets, read-only; drawn only when `annotations` is on too. Default on. */
+  readonly formWidgets: boolean;
+  /** Print intent: honours annotation `Print`/`NoView` flags. Default off. */
+  readonly print: boolean;
+  /** Grayscale content (the background keeps its colour). Default off. */
+  readonly grayscale: boolean;
+}
+
+export const DEFAULT_FLAGS: RenderFlags = Object.freeze({
+  annotations: true,
+  formWidgets: true,
+  print: false,
+  grayscale: false,
+});
+
+/** A rectangle in the whole page's output pixels (after scale and view rotation), y down. */
+export interface PixelRect {
+  readonly x: number;
+  readonly y: number;
+  readonly width: number;
+  readonly height: number;
+}
+
+/** A straight-alpha sRGB colour, each channel 0–255. */
+export interface Rgba8 {
+  readonly r: number;
+  readonly g: number;
+  readonly b: number;
+  readonly a: number;
+}
+
+export const WHITE: Rgba8 = Object.freeze({ r: 255, g: 255, b: 255, a: 255 });
+
+/** One render: a page, a scale, an optional tile, a view rotation, flags and a background. */
+export interface RenderRequest {
+  /** 0-based (ADR 0027). */
+  readonly page: number;
+  /** Output pixels per point, device pixel ratio applied (1 is 72 DPI). */
+  readonly scale: number;
+  /** The tile; omitted is the whole page (still bounded by the limits). */
+  readonly clip?: PixelRect;
+  readonly rotation?: ViewRotation;
+  readonly flags?: Partial<RenderFlags>;
+  /** Omitted is white; `null` is transparent. */
+  readonly background?: Rgba8 | null;
+}
+
+/** A page as a backend reports it: displayed size in points (`/Rotate` applied) and `/Rotate`. */
+export interface RenderPage {
+  readonly width: number;
+  readonly height: number;
+  readonly rotate: number;
+}
+
+/** The geometry of one validated request. */
+export interface TilePlan {
+  /** The whole page's pixel size at the scale, after the view rotation. */
+  readonly pageWidth: number;
+  readonly pageHeight: number;
+  readonly tile: PixelRect;
+  /** `tile.width × tile.height × 4`. */
+  readonly byteLength: number;
+}
+
+/** A rendered tile: straight-alpha RGBA8, ready for `new ImageData(pixels, width, height)`. */
+export interface RenderedTile {
+  readonly width: number;
+  readonly height: number;
+  readonly pixels: Uint8ClampedArray<ArrayBuffer>;
+}
+
+export interface RenderOpenOptions {
+  /** Used by `open` only; the backend keeps no copy (ADR 0004 §1). */
+  readonly password?: string;
+  readonly limits?: Partial<RenderLimits>;
+}
+
+/** One open document. One call at a time (renders are synchronous). */
+export interface RenderDocument extends Disposable {
+  readonly pageCount: number;
+  /** @throws RenderError `page-index-out-of-range`, `data-pending`, `render-failed`. */
+  page(index: number): RenderPage;
+  /** Validates `request` for this document. */
+  plan(request: RenderRequest): TilePlan;
+  /**
+   * Renders `request`. `signal` is checked before and after the engine call: an aborted
+   * request throws a `DOMException` named `AbortError`, and nothing it allocated survives.
+   */
+  render(request: RenderRequest, options?: { readonly signal?: AbortSignal }): RenderedTile;
+  /** Frees the engine's document. Idempotent. */
+  close(): void;
+}
+
+/** A rendering engine. */
+export interface RenderBackend {
+  readonly name: "pdfium" | "hayro";
+  readonly version: string;
+  /** @throws RenderError `password-required`, `wrong-password`, `data-pending`, `render-failed`. */
+  open(source: RenderSource, options?: RenderOpenOptions): RenderDocument;
+}
+
+/**
+ * The codes a render backend throws (ADR 0026). They are defined in `fixtures/codes.json`
+ * (`renderErrors` and the groups whose codes it reuses); test/codes.test.ts checks this union
+ * and its kinds against that file, so a drift fails the tests.
+ */
+export type RenderErrorCode =
+  | "render-too-large"
+  | "render-failed"
+  | "render-backend-unavailable"
+  | "invalid-argument"
+  | "page-index-out-of-range"
+  | "password-required"
+  | "wrong-password"
+  | "data-pending"
+  | "source"
+  | "cancelled"
+  | "disposed";
+
+const KINDS: Record<RenderErrorCode, string> = {
+  "render-too-large": "limit",
+  "render-failed": "input",
+  "render-backend-unavailable": "io",
+  "invalid-argument": "usage",
+  "page-index-out-of-range": "usage",
+  "password-required": "security",
+  "wrong-password": "security",
+  "data-pending": "state",
+  source: "io",
+  cancelled: "cancelled",
+  disposed: "state",
+};
+
+/** A render backend's error, in the ADR 0026 contract. Messages carry no document text. */
+export class RenderError extends Error {
+  override readonly name = "RenderError";
+  readonly code: RenderErrorCode;
+  readonly kind: string;
+  /** For `data-pending`: the `[offset, length]` ranges to fetch before calling again. */
+  readonly ranges: readonly (readonly [number, number])[] | undefined;
+
+  constructor(code: RenderErrorCode, message: string, ranges?: readonly (readonly [number, number])[]) {
+    super(message);
+    this.code = code;
+    this.kind = KINDS[code];
+    this.ranges = ranges;
+  }
+
+  /**
+   * A plain object that survives `postMessage` (structured clone keeps neither a custom error
+   * name nor own properties): post `e.toJSON()`, then `reviveRenderError` on the other side.
+   */
+  toJSON(): SerializedRenderError {
+    return {
+      name: "RenderError",
+      code: this.code,
+      kind: this.kind,
+      message: this.message,
+      ...(this.ranges === undefined ? {} : { ranges: this.ranges }),
+    };
+  }
+}
+
+/** A RenderError as a plain, cloneable object. */
+export interface SerializedRenderError {
+  readonly name: "RenderError";
+  readonly code: RenderErrorCode;
+  readonly kind: string;
+  readonly message: string;
+  readonly ranges?: readonly (readonly [number, number])[];
+}
+
+/** A RenderError again, from `toJSON()`'s object (after `postMessage`). */
+export function reviveRenderError(e: SerializedRenderError): RenderError {
+  return new RenderError(e.code, e.message, e.ranges);
+}
+
+/** Whether `e` is a RenderError (with `code`, if given). */
+export function isRenderError<C extends RenderErrorCode>(e: unknown, code?: C): e is RenderError & { code: C } {
+  // Structural, not instanceof: module copies give one class per copy, and a serialised error
+  // (`toJSON()`, posted across a worker boundary) is a plain object (ADR 0009 §3).
+  if (typeof e !== "object" || e === null || (e as { name?: unknown }).name !== "RenderError") return false;
+  const actual = (e as { code?: unknown }).code;
+  return typeof actual === "string" && (code === undefined || actual === code);
+}
+
+/** Whether `code` is one of the codes a render backend throws. */
+export function isRenderErrorCode(code: unknown): code is RenderErrorCode {
+  return typeof code === "string" && Object.hasOwn(KINDS, code);
+}
+
+/**
+ * Merges limits over the defaults. Sides are clamped to 2^32 − 1 (a u32 in the Rust planner),
+ * so both planners see the same limit.
+ */
+export function limitsOf(limits?: Partial<RenderLimits>): RenderLimits {
+  const merged = { ...DEFAULT_LIMITS, ...limits };
+  return { ...merged, maxRenderSide: Math.min(Math.max(0, Math.floor(merged.maxRenderSide)), 0xffff_ffff) };
+}
+
+/** Merges flags over the defaults. */
+export function flagsOf(flags?: Partial<RenderFlags>): RenderFlags {
+  return { ...DEFAULT_FLAGS, ...flags };
+}
+
+/**
+ * Validates `request` against `page` and `limits` (the port of Rust's `TilePlan::new`): the
+ * whole page is `max(1, floor(points × scale))` pixels per side after the view rotation, and the
+ * tile must lie inside it and within the limits.
+ *
+ * @throws RenderError `invalid-argument` or `render-too-large`.
+ */
+export function planTile(page: RenderPage, request: RenderRequest, limits: RenderLimits): TilePlan {
+  const { scale } = request;
+  // The Rust planner sees the scale as an f32: check that value, so both agree.
+  if (!Number.isFinite(Math.fround(scale)) || Math.fround(scale) <= 0) {
+    throw new RenderError("invalid-argument", "invalid render request: scale must be finite and positive");
+  }
+  if (!(page.width > 0 && page.height > 0 && Number.isFinite(page.width) && Number.isFinite(page.height))) {
+    throw new RenderError("invalid-argument", "invalid render request: the page has no drawable area");
+  }
+  const background = request.background;
+  if (background !== undefined && background !== null) {
+    const channels = [background.r, background.g, background.b, background.a];
+    if (!channels.every((c) => Number.isInteger(c) && c >= 0 && c <= 255)) {
+      throw new RenderError("invalid-argument", "invalid render request: colour channels must be integers 0–255");
+    }
+  }
+  const rotation = request.rotation ?? 0;
+  if (![0, 90, 180, 270].includes(rotation)) {
+    throw new RenderError("invalid-argument", "invalid render request: rotation must be 0, 90, 180 or 270");
+  }
+  const quarter = rotation === 90 || rotation === 270;
+  const pixels = (points: number): number => {
+    // f32 like the Rust planner, so both agree on the floor at every scale.
+    const v = Math.max(1, Math.floor(Math.fround(points) * Math.fround(scale)));
+    if (v > 2_147_483_647) {
+      throw new RenderError(
+        "invalid-argument",
+        "invalid render request: the page is too large to address at this scale",
+      );
+    }
+    return v;
+  };
+  const pageWidth = pixels(quarter ? page.height : page.width);
+  const pageHeight = pixels(quarter ? page.width : page.height);
+  const tile = request.clip ?? { x: 0, y: 0, width: pageWidth, height: pageHeight };
+  const ints = [tile.x, tile.y, tile.width, tile.height];
+  if (!ints.every((v) => Number.isInteger(v) && v >= 0)) {
+    throw new RenderError("invalid-argument", "invalid render request: the tile must be whole pixels");
+  }
+  if (tile.width === 0 || tile.height === 0) {
+    throw new RenderError("invalid-argument", "invalid render request: the tile is empty");
+  }
+  if (tile.x + tile.width > pageWidth || tile.y + tile.height > pageHeight) {
+    throw new RenderError("invalid-argument", "invalid render request: the tile extends past the page");
+  }
+  if (tile.width > limits.maxRenderSide || tile.height > limits.maxRenderSide) {
+    throw new RenderError(
+      "render-too-large",
+      `a ${tile.width}×${tile.height} pixel tile exceeds the render limit of ${limits.maxRenderSide} pixels per side`,
+    );
+  }
+  if (tile.width * tile.height > limits.maxRenderPixels) {
+    throw new RenderError(
+      "render-too-large",
+      `a ${tile.width}×${tile.height} pixel tile exceeds the render limit of ${limits.maxRenderPixels} pixels`,
+    );
+  }
+  return { pageWidth, pageHeight, tile, byteLength: tile.width * tile.height * 4 };
+}
+
+/**
+ * The affine matrix `[a, b, c, d, e, f]` from the displayed page space (points, top-left origin,
+ * y down, `/Rotate` applied) to the tile's pixels: Rust's `TilePlan::page_to_tile`.
+ */
+export function pageToTile(plan: TilePlan, page: RenderPage, rotation: ViewRotation = 0): readonly number[] {
+  const quarter = rotation === 90 || rotation === 270;
+  const w0 = quarter ? plan.pageHeight : plan.pageWidth;
+  const h0 = quarter ? plan.pageWidth : plan.pageHeight;
+  const sx = w0 / page.width;
+  const sy = h0 / page.height;
+  const { x: tx, y: ty } = plan.tile;
+  switch (rotation) {
+    case 0:
+      return [sx, 0, 0, sy, -tx, -ty];
+    case 90:
+      return [0, sx, -sy, 0, h0 - tx, -ty];
+    case 180:
+      return [-sx, 0, 0, -sy, w0 - tx, h0 - ty];
+    case 270:
+      return [0, -sx, sy, 0, -tx, w0 - ty];
+  }
+}
+
+/** Throws the `AbortError` a cancelled render throws, if `signal` is aborted. */
+export function throwIfAborted(signal: AbortSignal | undefined): void {
+  if (signal?.aborted) throw new DOMException("the render was aborted", "AbortError");
+}

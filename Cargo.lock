@@ -1184,6 +1184,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "lamina-render-wasm"
+version = "0.0.0"
+dependencies = [
+ "js-sys",
+ "lamina-render",
+ "wasm-bindgen",
+]
+
+[[package]]
 name = "lamina-save"
 version = "0.0.0"
 dependencies = [
