@@ -114,7 +114,7 @@ Each round is split into todos (one PR each) on the [todo board](../todos/README
 
 ### L2. TypeScript hardening
 
-**Todos:** [L2a](../todos/ready/L2a-worker-client.md) (`@lamina/pdf/worker`), [L2b](../todos/ready/L2b-disposal-and-memory.md) (disposal and memory bounds), [L2c](../todos/done/L2c-range-byte-source.md) (range `ByteSource` over `Error::DataPending`).
+**Todos:** [L2a](../todos/ongoing/L2a-worker-client.md) (`@lamina/pdf/worker`), [L2b](../todos/ready/L2b-disposal-and-memory.md) (disposal and memory bounds), [L2c](../todos/done/L2c-range-byte-source.md) (range `ByteSource` over `Error::DataPending`).
 
 **Deliverable:** a worker client with the same method names as the sync API, version handshake, `AbortSignal` and transfer lists, which `@lamina/viewer` (C3a) consumes; `Symbol.dispose` on every handle, a capped wasm memory and an abort-and-reinstantiate wrapper; range reading for large and remote files.
 **Accepted when:** a 50 MB file opens in a worker with no long task over 50 ms on the main thread; opening and disposing a document in a loop keeps wasm memory at its post-warm-up size (± one 64 KiB page; linear memory never shrinks, so the high-water mark is the baseline); opening a remote file fetches only the ranges it needs.
