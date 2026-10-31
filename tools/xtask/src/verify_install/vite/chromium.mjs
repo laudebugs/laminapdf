@@ -4,26 +4,15 @@
 // from LAMINA_TOOLS_FROM; the app's own dependencies are only the installed tarballs.
 
 import { createRequire } from "node:module";
-import { createServer } from "node:net";
 import { cwd, env } from "node:process";
 import { pathToFileURL } from "node:url";
+import { freePort } from "./free-port.mjs";
 
 const from = createRequire(env.LAMINA_TOOLS_FROM ?? "");
 const { build, preview } = await import(pathToFileURL(from.resolve("vite")).href);
 // playwright's entry is CommonJS: its exports arrive as the module's default.
 const playwright = await import(pathToFileURL(from.resolve("playwright")).href);
 const { chromium } = playwright.default ?? playwright;
-
-/** A free TCP port on 127.0.0.1. */
-const freePort = () =>
-  new Promise((resolve, reject) => {
-    const server = createServer();
-    server.on("error", reject);
-    server.listen(0, "127.0.0.1", () => {
-      const { port } = server.address();
-      server.close(() => resolve(port));
-    });
-  });
 
 const root = cwd();
 await build({ root, configFile: false, logLevel: "warn" });

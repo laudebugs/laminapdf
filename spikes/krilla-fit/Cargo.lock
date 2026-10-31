@@ -331,7 +331,7 @@ dependencies = [
 
 [[package]]
 name = "lamina-cos"
-version = "0.0.0"
+version = "0.1.0-alpha.0"
 dependencies = [
  "lamina-syntax",
  "thiserror",
@@ -354,7 +354,7 @@ dependencies = [
 
 [[package]]
 name = "lamina-model"
-version = "0.0.0"
+version = "0.1.0-alpha.0"
 dependencies = [
  "lamina-cos",
  "lamina-syntax",
@@ -363,7 +363,7 @@ dependencies = [
 
 [[package]]
 name = "lamina-ops"
-version = "0.0.0"
+version = "0.1.0-alpha.0"
 dependencies = [
  "lamina-cos",
  "lamina-model",
@@ -375,7 +375,7 @@ dependencies = [
 
 [[package]]
 name = "lamina-save"
-version = "0.0.0"
+version = "0.1.0-alpha.0"
 dependencies = [
  "lamina-cos",
  "lamina-model",
@@ -387,7 +387,7 @@ dependencies = [
 
 [[package]]
 name = "lamina-syntax"
-version = "0.0.0"
+version = "0.1.0-alpha.0"
 dependencies = [
  "aes",
  "md-5",

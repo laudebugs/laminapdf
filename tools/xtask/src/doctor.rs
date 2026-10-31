@@ -356,7 +356,7 @@ pub(crate) fn run(ws: &Workspace, install: bool) -> Result<()> {
 }
 
 /// `[toolchain] channel` in `rust-toolchain.toml`.
-fn toolchain_channel(ws: &Workspace) -> Result<String> {
+pub(crate) fn toolchain_channel(ws: &Workspace) -> Result<String> {
     let text = fs::read_to_string(ws.root.join("rust-toolchain.toml")).context("reading rust-toolchain.toml")?;
     parse_channel(&text)
 }

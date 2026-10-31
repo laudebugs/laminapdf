@@ -14,8 +14,8 @@ use std::path::{Path, PathBuf};
 
 use anyhow::{Context, Result, bail};
 
-use crate::corpus::sha256_hex;
 use crate::step;
+use crate::util::sha256_hex;
 use crate::workspace::Workspace;
 
 /// The pinned release (the build `pdfium-render`'s `pdfium_7881` feature targets).

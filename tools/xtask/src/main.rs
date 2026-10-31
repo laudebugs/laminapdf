@@ -158,7 +158,7 @@ tasks:
   version sync [--check]
                     copy the npm fixed group's version (@lamina/wasm, @lamina/pdf; Changesets)
                     into [workspace.package] version, the internal [workspace.dependencies],
-                    Cargo.lock, fuzz/Cargo.lock and CHANGELOG.md (ADR 0017); --check only verifies
+                    every tracked Cargo.lock and CHANGELOG.md (ADR 0017); --check only verifies
                     (and that every member crate has version.workspace = true)
   version check-tag <tag>
                     fail unless <tag> is v<version> (the release lane)
@@ -169,9 +169,10 @@ tasks:
                     Worker under wrangler dev --local, and Rust binaries with a path and a git
                     dependency on lamina (default ref: HEAD; default URL: this clone); each
                     output must equal fixtures/golden/examples/hello.pdf (needs `wasm` first)
-  release-guard [--run <id>]
-                    fail unless the latest completed nightly.yml run on main (or run <id>)
-                    succeeded (gh; the release lane's first job)
+  release-guard [--run <id>] [--commit <rev>]
+                    fail unless the latest completed scheduled nightly.yml run on main (or run
+                    <id>) succeeded on <rev> (default HEAD) or an ancestor (gh; the release
+                    lane's first job)
   ci                check + wasm + size: the whole fast lane, locally
   doctor [--install]
                     check that external tools are installed at their pinned versions;
@@ -209,7 +210,7 @@ fn main() -> Result<()> {
     }
     // Needs only gh: no `cargo metadata`.
     if task == "release-guard" {
-        return release::guard(release::parse_args(rest)?.as_deref());
+        return release::guard(&repo_root()?, &release::parse_args(rest)?);
     }
     let ws = Workspace::load(repo_root()?)?;
 

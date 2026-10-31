@@ -3,8 +3,8 @@
 # publishes NOTHING: no npm publish, no cargo publish, no GitHub release, no `changeset publish`.
 # Publishing (OIDC trusted publishing, provenance, attestations) is todo P1.
 #
-#   guard           refuses to go on while the latest completed nightly.yml run on main failed
-#                   (`cargo xtask release-guard`), and checks that a tag names the version
+#   guard           refuses to go on unless the latest completed scheduled nightly.yml run on main
+#                   succeeded on the release commit or an ancestor (`cargo xtask release-guard`), and checks that a tag names the version
 #                   (`cargo xtask version check-tag`)
 #   fast            the fast lane: `cargo xtask check` (with `version sync --check`) and `size`,
 #                   over `cargo xtask wasm` (which runs publint and attw on @lamina/pdf)
@@ -97,21 +97,23 @@ jobs:
             fi
           fi
           echo "linux=$linux" >> "$GITHUB_OUTPUT"
+      # Full history: the guard checks the nightly run's commit is an ancestor of this one.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ steps.ref.outputs.ref }}
           persist-credentials: false
+          fetch-depth: 0
       - uses: ./.github/actions/isolate-rust-home
         with:
           target-dir: xtask
       - uses: ./.github/actions/host-rust
         with:
           cache: false
-      - name: Refuse while the latest nightly run on main is red
+      - name: Refuse unless the latest scheduled nightly on main is green on an ancestor
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
-        run: cargo xtask release-guard
+        run: cargo xtask release-guard --commit HEAD
       - name: A tag must name the version (v<version>)
         env:
           REF: ${{ steps.ref.outputs.ref }}
@@ -375,8 +377,11 @@ jobs:
         run: cargo xtask pdf-runtimes "$RUNTIME"
 
   # The nightly lane's jobs on the release commit (X3a's nightly.yml has `workflow_call` for
-  # this). Its bench and pdf-runtimes jobs record history on main only; a failure opens the
-  # issue "Nightly lane failing on <tag>".
+  # this), with `record: false`: no benchmark history pushed to bench-data, no fuzz cache saved,
+  # no issue opened (the `release` job fails instead). The two write permissions are only there
+  # because GitHub refuses to call a workflow whose jobs declare more than the caller grants; the
+  # steps that would use them are gated on `record` (release.rs's no-publish test checks that).
+  # Its own concurrency group, so it neither waits for nor cancels a night on main.
   nightly:
     name: Nightly suites
     needs: guard
@@ -386,6 +391,8 @@ jobs:
     uses: ./.github/workflows/nightly.yml
     with:
       fuzz-seconds: ${{ inputs.fuzz-seconds || '600' }}
+      record: false
+      concurrency-group: release-nightly-${{ github.run_id }}
 
   # Clean installs outside the checkout (ADR 0018 §2). Full history, so the git dependency on
   # this clone (verify-install's default --git-url) finds the tag or commit under test.
@@ -444,7 +451,20 @@ jobs:
   release:
     name: Release checks passed (nothing published)
     if: always()
-    needs: [guard, fast, differential, fuzz, check-linux, roundtrip, examples, capabilities, pdf-runtimes, nightly, verify-install]
+    needs:
+      [
+        guard,
+        fast,
+        differential,
+        fuzz,
+        check-linux,
+        roundtrip,
+        examples,
+        capabilities,
+        pdf-runtimes,
+        nightly,
+        verify-install,
+      ]
     runs-on: [self-hosted, macOS, ARM64]
     timeout-minutes: 5
     steps:

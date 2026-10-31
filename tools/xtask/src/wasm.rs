@@ -19,9 +19,9 @@ use std::process::Command;
 
 use anyhow::{Context, Result, bail};
 use serde_json::{Value, json};
-use sha2::{Digest, Sha256};
 
 use crate::doctor::{self, BINARYEN_VERSION};
+use crate::util::sha256_hex;
 use crate::workspace::Workspace;
 
 /// The SHA-256 of each binaryen [`BINARYEN_VERSION`] release asset, from the release's `.sha256`
@@ -268,7 +268,7 @@ fn download_binaryen(dir: &Path) -> Result<()> {
     let archive = dir.join(&file);
     let archive_arg = archive.to_string_lossy().into_owned();
     crate::run(dir, "curl", &["-fsSL", "--retry", "3", "-o", &archive_arg, &url])?;
-    let found = hex(&Sha256::digest(fs::read(&archive)?));
+    let found = sha256_hex(&fs::read(&archive)?);
     if found != sha256 {
         fs::remove_file(&archive)?;
         bail!("{file}: SHA-256 {found}, want {sha256}");
@@ -276,13 +276,6 @@ fn download_binaryen(dir: &Path) -> Result<()> {
     crate::run(dir, "tar", &["-xzf", &archive_arg])?;
     fs::remove_file(&archive)?;
     Ok(())
-}
-
-fn hex(bytes: &[u8]) -> String {
-    bytes.iter().fold(String::new(), |mut out, b| {
-        let _ = write!(out, "{b:02x}");
-        out
-    })
 }
 
 // ---------------------------------------------------------------------------------------------

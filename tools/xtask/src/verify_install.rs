@@ -25,9 +25,8 @@ use std::process::Command;
 
 use anyhow::{Context, Result, bail};
 use serde_json::Value;
-use sha2::{Digest, Sha256};
 
-use crate::util::{git_stdout, summary};
+use crate::util::{git_stdout, sha256_hex, summary};
 use crate::workspace::Workspace;
 use crate::{program_path, step};
 
@@ -48,6 +47,7 @@ const REPORT_TS: &str = include_str!("verify_install/report.ts");
 const MAIN_TS: &str = include_str!("verify_install/main.ts");
 const VITE_INDEX: &str = include_str!("verify_install/vite/index.html");
 const VITE_MAIN: &str = include_str!("verify_install/vite/main.ts");
+const FREE_PORT: &str = include_str!("verify_install/free-port.mjs");
 const CHROMIUM_RUNNER: &str = include_str!("verify_install/vite/chromium.mjs");
 const WORKER_INDEX: &str = include_str!("verify_install/worker/index.ts");
 const WRANGLER_TOML: &str = include_str!("verify_install/worker/wrangler.toml");
@@ -94,13 +94,24 @@ pub(crate) fn parse_args(args: &[String]) -> Result<Args> {
     Ok(parsed)
 }
 
-/// How the git dependency names its commit: `rev` for a full SHA, `tag` otherwise.
-fn git_spec(git_ref: &str) -> (&'static str, &str) {
-    if git_ref.len() == 40 && git_ref.bytes().all(|b| b.is_ascii_hexdigit()) {
-        ("rev", git_ref)
-    } else {
-        ("tag", git_ref)
+/// How the git dependency names `git_ref`, resolved in the clone at `root`: `tag = <ref>` when
+/// it is an existing tag, otherwise `rev = <full SHA>` of the commit it names (a branch, a short
+/// SHA, `HEAD`…), so Cargo never takes a branch for a tag.
+fn git_spec(root: &Path, git_ref: &str) -> Result<(&'static str, String)> {
+    let is_tag = git_stdout(
+        root,
+        &["rev-parse", "--verify", "--quiet", &format!("refs/tags/{git_ref}")],
+    )
+    .is_some();
+    if is_tag {
+        return Ok(("tag", git_ref.to_owned()));
     }
+    let sha = git_stdout(
+        root,
+        &["rev-parse", "--verify", "--quiet", &format!("{git_ref}^{{commit}}")],
+    )
+    .with_context(|| format!("--git-ref {git_ref:?} names no tag or commit in this clone"))?;
+    Ok(("rev", sha))
 }
 
 /// One runtime's result: its label (with the version found) and what went wrong, if anything.
@@ -112,7 +123,7 @@ struct Outcome {
 /// `cargo xtask verify-install …`: every runtime runs even when an earlier one failed; the
 /// failures are listed at the end, with a table on stdout and in the job summary.
 pub(crate) fn run(ws: &Workspace, args: &Args) -> Result<()> {
-    let golden = sha256(&fs::read(ws.root.join(GOLDEN)).with_context(|| format!("reading {GOLDEN}"))?);
+    let golden = sha256_hex(&fs::read(ws.root.join(GOLDEN)).with_context(|| format!("reading {GOLDEN}"))?);
     let work = std::env::temp_dir().join(format!("lamina-verify-install-{}", std::process::id()));
     let root = ws.root.canonicalize().unwrap_or_else(|_| ws.root.clone());
     let parent = std::env::temp_dir()
@@ -217,13 +228,6 @@ fn table(outcomes: &[Outcome]) -> String {
         );
     }
     out
-}
-
-fn sha256(bytes: &[u8]) -> String {
-    Sha256::digest(bytes).iter().fold(String::new(), |mut s, b| {
-        let _ = write!(s, "{b:02x}");
-        s
-    })
 }
 
 /// The repository's pinned `name` (a dev dependency of `@lamina/pdf`), else `name` on `PATH`.
@@ -342,6 +346,9 @@ fn install_js(ws: &Workspace, work: &Path) -> Result<()> {
     write(&js.join("vite/index.html"), VITE_INDEX)?;
     write(&js.join("vite/main.ts"), VITE_MAIN)?;
     write(&js.join("vite/chromium.mjs"), CHROMIUM_RUNNER)?;
+    for dir in ["vite", "worker"] {
+        write(&js.join(dir).join("free-port.mjs"), FREE_PORT)?;
+    }
     write(&js.join("worker/src/index.ts"), WORKER_INDEX)?;
     write(&js.join("worker/wrangler.toml"), WRANGLER_TOML)?;
     write(&js.join("worker/workerd.mjs"), WORKERD_RUNNER)?;
@@ -460,20 +467,14 @@ fn split(label: &str, result: Result<(Option<String>, String)>) -> Outcome {
 /// The two Rust binaries: `lamina` by path and by git, built with the pinned toolchain into one
 /// shared target directory (their third-party crates build once).
 fn rust(ws: &Workspace, work: &Path, args: &Args, golden: &str) -> Vec<Outcome> {
-    let git_ref = args
-        .git_ref
-        .clone()
-        .or_else(|| git_stdout(&ws.root, &["rev-parse", "HEAD"]))
-        .unwrap_or_default();
+    let git_ref = args.git_ref.clone().unwrap_or_else(|| "HEAD".to_owned());
     let git_url = args.git_url.clone().or_else(|| {
         git_stdout(&ws.root, &["rev-parse", "--path-format=absolute", "--git-common-dir"])
             .map(|dir| format!("file://{dir}"))
     });
     let path_dep = format!("{{ path = {:?} }}", ws.root.join("crates/lamina").to_string_lossy());
-    let (kind, value) = git_spec(&git_ref);
-    let git_dep = git_url
-        .as_deref()
-        .map(|url| format!("{{ git = {url:?}, {kind} = {value:?} }}"));
+    let spec = git_spec(&ws.root, &git_ref);
+    let (kind, value) = spec.as_ref().map_or(("rev", git_ref.clone()), |(k, v)| (*k, v.clone()));
     let mut outcomes = vec![Outcome {
         label: "Rust binary, `lamina = { path = … }`".to_owned(),
         result: rust_project(ws, work, "rust-path", &path_dep, golden),
@@ -483,9 +484,16 @@ fn rust(ws: &Workspace, work: &Path, args: &Args, golden: &str) -> Vec<Outcome> 
             "Rust binary, `lamina = {{ git = {}, {kind} = \"{value}\" }}`",
             git_url.as_deref().unwrap_or("?")
         ),
-        result: match (&git_dep, git_ref.is_empty()) {
-            (Some(dep), false) => rust_project(ws, work, "rust-git", dep, golden),
-            _ => Err(anyhow::anyhow!("no git ref or URL: pass --git-ref and --git-url")),
+        result: match (&git_url, spec) {
+            (Some(url), Ok(_)) => rust_project(
+                ws,
+                work,
+                "rust-git",
+                &format!("{{ git = {url:?}, {kind} = {value:?} }}"),
+                golden,
+            ),
+            (None, _) => Err(anyhow::anyhow!("no git URL: pass --git-url")),
+            (_, Err(error)) => Err(error),
         },
     });
     outcomes
@@ -507,7 +515,7 @@ fn rust_project(ws: &Workspace, work: &Path, name: &str, dependency: &str, golde
     // The repository's lockfile, so the third-party crates are the versions CI tests (Cargo
     // drops the entries this project doesn't use).
     fs::copy(ws.root.join("Cargo.lock"), dir.join("Cargo.lock")).context("copying Cargo.lock")?;
-    let toolchain = pinned_toolchain(&ws.root)?;
+    let toolchain = crate::doctor::toolchain_channel(ws)?;
     let target = work.join("rust-target").to_string_lossy().into_owned();
     let out = dir.join("out");
     let out_arg = out.to_string_lossy().into_owned();
@@ -524,7 +532,7 @@ fn rust_project(ws: &Workspace, work: &Path, name: &str, dependency: &str, golde
         ],
     )?;
     let bytes = fs::read(out.join("hello.pdf")).context("the binary wrote no hello.pdf")?;
-    let sha = sha256(&bytes);
+    let sha = sha256_hex(&bytes);
     if sha != golden {
         bail!(
             "hello.pdf ({} bytes) has SHA-256 {sha}, not the golden's {golden} ({GOLDEN})",
@@ -534,21 +542,12 @@ fn rust_project(ws: &Workspace, work: &Path, name: &str, dependency: &str, golde
     Ok(format!("{} bytes, identical to {GOLDEN}", bytes.len()))
 }
 
-/// `channel` from rust-toolchain.toml.
-fn pinned_toolchain(root: &Path) -> Result<String> {
-    let text = fs::read_to_string(root.join("rust-toolchain.toml")).context("reading rust-toolchain.toml")?;
-    let table: toml::Table = toml::from_str(&text).context("rust-toolchain.toml is not valid TOML")?;
-    table
-        .get("toolchain")
-        .and_then(|t| t.get("channel"))
-        .and_then(toml::Value::as_str)
-        .map(str::to_owned)
-        .context("rust-toolchain.toml has no [toolchain] channel")
-}
-
 #[cfg(test)]
 mod tests {
+    use std::path::Path;
+
     use super::{Args, check_line, git_spec, parse_args};
+    use crate::util::git_stdout;
 
     fn args(list: &[&str]) -> Args {
         parse_args(&list.iter().map(|s| (*s).to_owned()).collect::<Vec<_>>()).unwrap()
@@ -589,13 +588,61 @@ mod tests {
         assert!(parse_args(&["firefox".to_owned()]).is_err());
     }
 
+    /// A scratch repository with two commits, a branch and a tag on the first commit.
+    fn scratch_repo(name: &str) -> (crate::tracked::TempTree, String) {
+        let tree = crate::tracked::TempTree::new(name, &[("a.txt", "a")]);
+        let git = |args: &[&str]| {
+            let ok = std::process::Command::new("git")
+                .args([
+                    "-c",
+                    "user.name=t",
+                    "-c",
+                    "user.email=t@example.invalid",
+                    "-c",
+                    "commit.gpgsign=false",
+                ])
+                .args(args)
+                .current_dir(&tree.0)
+                .status()
+                .unwrap()
+                .success();
+            assert!(ok, "git {args:?}");
+        };
+        git(&["init", "-q"]);
+        git(&["add", "a.txt"]);
+        git(&["commit", "-q", "-m", "first"]);
+        git(&["tag", "v0.0.0-test.1"]);
+        git(&["branch", "feature"]);
+        git(&["commit", "-q", "--allow-empty", "-m", "second"]);
+        let first = git_stdout(&tree.0, &["rev-parse", "HEAD~1"]).unwrap();
+        (tree, first)
+    }
+
     #[test]
-    fn git_spec_should_pin_a_sha_by_rev_and_anything_else_by_tag() {
-        let sha = "0123456789abcdef0123456789abcdef01234567";
+    fn git_spec_should_pin_a_tag_by_tag() {
+        let (tree, _) = scratch_repo("spec-tag");
         assert_eq!(
-            [git_spec(sha), git_spec("v0.1.0-alpha.0")],
-            [("rev", sha), ("tag", "v0.1.0-alpha.0")]
+            git_spec(&tree.0, "v0.0.0-test.1").unwrap(),
+            ("tag", "v0.0.0-test.1".to_owned())
         );
+    }
+
+    #[test]
+    fn git_spec_should_pin_a_branch_by_its_full_sha() {
+        let (tree, first) = scratch_repo("spec-branch");
+        assert_eq!(git_spec(&tree.0, "feature").unwrap(), ("rev", first));
+    }
+
+    #[test]
+    fn git_spec_should_expand_a_short_sha() {
+        let (tree, first) = scratch_repo("spec-short");
+        assert_eq!(git_spec(&tree.0, first.get(..8).unwrap()).unwrap(), ("rev", first));
+    }
+
+    #[test]
+    fn git_spec_should_reject_an_unknown_ref() {
+        let (tree, _) = scratch_repo("spec-unknown");
+        assert!(git_spec(Path::new(&tree.0), "no-such-ref").is_err());
     }
 
     #[test]

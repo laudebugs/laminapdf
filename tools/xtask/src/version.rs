@@ -7,8 +7,9 @@
 //!   `version.workspace = true`, which `--check` requires);
 //! - the `version` of every internal `[workspace.dependencies]` entry (`path = "crates/…"`), which
 //!   `cargo publish` will need;
-//! - the internal crates' entries in `Cargo.lock` and `fuzz/Cargo.lock` (edited in place, so the
-//!   sync needs neither the network nor a build, and `--locked` builds keep working);
+//! - the internal crates' entries in every tracked `Cargo.lock` (the root's, `fuzz/`'s and the
+//!   spikes' that depend on the core crates by path; edited in place, so the sync needs neither the
+//!   network nor a build, and `--locked` builds keep working);
 //! - the root `CHANGELOG.md`, a copy of the one Changesets writes for `@lamina/pdf` (the fixed
 //!   group's entries are the same for both packages).
 //!
@@ -27,8 +28,8 @@ use serde_json::Value;
 const FIXED_GROUP: [(&str, &str); 2] = [("@lamina/wasm", "packages/wasm"), ("@lamina/pdf", "packages/pdf")];
 /// The package whose `CHANGELOG.md` becomes the root one.
 const CHANGELOG_SOURCE: &str = "packages/pdf/CHANGELOG.md";
-/// Lockfiles holding internal crates: the root workspace's and the fuzz workspace's (which
-/// depends on the core crates by path; tools/render depends on none).
+/// The lockfiles to sync outside a git checkout (tests): every tracked `Cargo.lock` otherwise
+/// ([`lockfiles`]); one without internal path packages is left as it is.
 const LOCKFILES: [&str; 2] = ["Cargo.lock", "fuzz/Cargo.lock"];
 /// The root changelog's preamble; the package changelog's entries follow it.
 const CHANGELOG_HEADER: &str = "# Changelog\n\n\
@@ -156,11 +157,7 @@ fn plan(root: &Path) -> Result<Plan> {
         internal.insert(name);
     }
 
-    for lockfile in LOCKFILES {
-        let path = root.join(lockfile);
-        if !path.is_file() {
-            continue;
-        }
+    for path in lockfiles(root) {
         let text = read(&path)?;
         let synced = sync_lockfile(&text, &internal, &version);
         update(path, &text, synced);
@@ -176,6 +173,26 @@ fn plan(root: &Path) -> Result<Plan> {
         updates,
         problems,
     })
+}
+
+/// Every tracked `Cargo.lock` (`git ls-files`), else the [`LOCKFILES`] that exist.
+fn lockfiles(root: &Path) -> Vec<PathBuf> {
+    let tracked = std::process::Command::new("git")
+        .args(["ls-files", "-z", "--", "*Cargo.lock"])
+        .current_dir(root)
+        .output()
+        .ok()
+        .filter(|o| o.status.success() && !o.stdout.is_empty());
+    match tracked {
+        Some(output) => output
+            .stdout
+            .split(|b| *b == 0)
+            .filter(|p| !p.is_empty())
+            .map(|p| root.join(String::from_utf8_lossy(p).as_ref()))
+            .filter(|p| p.is_file())
+            .collect(),
+        None => LOCKFILES.iter().map(|l| root.join(l)).filter(|p| p.is_file()).collect(),
+    }
 }
 
 fn read(path: &Path) -> Result<String> {
