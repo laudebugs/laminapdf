@@ -25,7 +25,7 @@ Make the viewer scroll a 1,000-page document like a native app. A prefix-sum pag
 - [web-frontend notes §2](../../research/architecture/notes/web-frontend.md) — prefix-sum virtualiser, zoom anchoring needs custom logic, pooled canvases, low-res then tiles, cap canvas area (Safari/iOS canvas memory limits).
 - [rendering notes §4](../../research/architecture/notes/rendering.md) — visible ± N pages, placeholder sizes from page boxes, LRU bitmap cache, thumbnails on a lower-priority queue.
 - [web-app.md §4 functional 2–3](../../plans/web-app.md#functional) and [non-functional targets](../../plans/web-app.md#non-functional-targets-are-recommendations-measured-from-c3-onward) (no main-thread task > 50 ms; sharp within 300 ms of stopping; ≤ 600 MB).
-- [C3a](./C3a-viewer-worker-rpc.md) — RPC, priorities, cancellation guarantees this builds on.
+- [C3a](../ongoing/C3a-viewer-worker-rpc.md) — RPC, priorities, cancellation guarantees this builds on.
 
 ## Scope
 
