@@ -15,8 +15,8 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 use anyhow::{Context, Result, bail};
-use sha2::{Digest, Sha256};
 
+use crate::util::sha256_hex;
 use crate::workspace::Workspace;
 use crate::{run, step};
 
@@ -459,13 +459,6 @@ fn walk(root: &Path, dir: &Path, out: &mut Vec<String>) -> Result<()> {
     Ok(())
 }
 
-pub(crate) fn sha256_hex(bytes: &[u8]) -> String {
-    Sha256::digest(bytes).iter().fold(String::new(), |mut s, b| {
-        let _ = write!(s, "{b:02x}");
-        s
-    })
-}
-
 /// Differences between the manifest's list and the files on disk: missing, changed (size or
 /// SHA-256) and unlisted files.
 pub(crate) fn compare(listed: &[Entry], actual: &[Entry]) -> Vec<String> {
@@ -716,13 +709,5 @@ mod tests {
         fs::remove_dir_all(&dir).unwrap();
         fs::remove_dir_all(&repo).unwrap();
         assert_eq!(state, (b"abc".to_vec(), false));
-    }
-
-    #[test]
-    fn sha256_hex_should_match_the_known_digest() {
-        assert_eq!(
-            sha256_hex(b"abc"),
-            "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"
-        );
     }
 }

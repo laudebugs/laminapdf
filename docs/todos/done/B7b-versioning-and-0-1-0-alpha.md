@@ -3,16 +3,16 @@
 | Field | Value |
 | --- | --- |
 | ID | `B7b` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [pdf-library §7 B7](../../plans/pdf-library.md#b7-docs-examples-and-first-release), [architecture: Publishing (later)](../../plans/architecture.md#publishing-later) |
 | Round / milestone | Round B (library) — **M1 Library alpha** |
-| Depends on | [B6c](../done/B6c-runtime-matrix.md), [B7a](../done/B7a-docs-site.md), [X3a](../done/X3a-nightly-lane.md) |
+| Depends on | [B6c](./B6c-runtime-matrix.md), [B7a](./B7a-docs-site.md), [X3a](./X3a-nightly-lane.md) |
 | Blocks | [B8b](../ready/B8b-conformance-profiles-and-verapdf.md), [P1](../ready/P1-reserve-names-and-trusted-publishing.md) |
 | ADRs | Writes **0017** (versioning and release: lockstep core, Changesets, version sync; publishing part deferred to [P1](../ready/P1-reserve-names-and-trusted-publishing.md)); follows [0015](../../decisions/0015-monorepo-layout-and-tooling.md), [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) |
 | Branch | `build/b7b-versioning` |
 | PR title | `build: Changesets with Cargo version sync, ADR 0017 and the local 0.1.0-alpha.0 tag` |
 | Size | M (≈ 400–700 lines incl. ADR and verify scripts) |
-| PR | — |
+| PR | [#123](https://github.com/laudebugs/lamina/pull/123) |
 
 ## Goal
 
@@ -44,20 +44,22 @@ Version the library as one lockstep release and prove it installs outside the re
 
 ## Tasks
 
-- [ ] Add Changesets; configure fixed group and private package handling
-- [ ] `cargo xtask version sync [--check]`; add `--check` to `cargo xtask check`
-- [ ] Write `docs/decisions/0017-versioning-and-release.md`; index it; update architecture §3
-- [ ] Draft `docs/stability-policy.md` and enable changelog generation
-- [ ] `cargo xtask verify-install` with per-runtime temp projects; release-lane workflow (calls X3a's nightly jobs; guard on the latest nightly status)
-- [ ] Bump to `0.1.0-alpha.0` via a changeset; tag after merge; run the release lane on the tag
+- [x] Add Changesets; configure fixed group and private package handling (`@changesets/cli` 3.0.3, `.changeset/config.json`, pre mode `alpha`)
+- [x] `cargo xtask version sync [--check]`; add `--check` to `cargo xtask check` (in `check docs`, so both lanes run it on every PR)
+- [x] Write `docs/decisions/0017-versioning-and-release.md`; index it; update architecture §3
+- [x] Draft `docs/stability-policy.md` and enable changelog generation (each package's `CHANGELOG.md` by Changesets; the root one copied by `version sync`)
+- [x] `cargo xtask verify-install` with per-runtime temp projects; release-lane workflow (calls X3a's nightly jobs; guard on the latest nightly status: `cargo xtask release-guard`)
+- [x] Bump to `0.1.0-alpha.0` via a changeset (`.changeset/pre/first-alpha.md`); tagging after merge and running the lane on the tag are the post-merge check below
 
 ## Acceptance criteria
 
-- [ ] `cargo xtask version sync --check` passes; changing one crate's version by hand makes it fail
-- [ ] `pnpm changeset version` bumps npm packages and the sync updates every crate to the same version
+- [x] `cargo xtask version sync --check` passes; changing one crate's version by hand makes it fail (unit tests in `tools/xtask/src/version.rs`, and by hand on the tree)
+- [x] `pnpm changeset version` bumps npm packages and the sync updates every crate to the same version
 - [ ] `cargo xtask verify-install` passes on Linux for Node 22/24/26, Deno, Bun, Chromium (Vite app), workerd (local) and a Rust binary using both a path and a git dependency; before merge the git dependency points at the PR head (`rev = <HEAD sha>` or the throwaway `v0.0.0-test.N` tag), since `v0.1.0-alpha.0` only exists after merge
+  - **Not run on Linux:** the Linux runner was off. Run on macOS ARM64 (2026-10-31) instead, all passing, every output byte-identical to `fixtures/golden/examples/hello.pdf`: Node 22.18.0 and 24.19.0 (Node 26 isn't installed on the Mac; the release lane runs 22, 24 and 26), Deno 2.9.6, Bun 1.4.3, Chromium 156 (Vite production build), workerd (`wrangler` 4.149.0 `dev --local`), and Rust binaries with `lamina = { path = … }` and `lamina = { git = "ssh://git@github.com/laudebugs/lamina.git", rev = <the pushed PR head> }`. Tick this on the first Linux run (the release lane's own runs are macOS).
 - [ ] The release-lane workflow passes `actionlint`, contains no publish step, and runs on the branch (temporary `push` trigger on a throwaway `v0.0.0-test.N` tag pushed from the branch, or `act`); the guard refuses when the latest nightly is red (tested by pointing it at a failed run)
-- [ ] ADR 0017 Accepted (versioning part)
+  - Done: `actionlint` 1.7.12 (with shellcheck) passes; `release_workflow_should_have_no_publish_step` (xtask test) fails on any publish, release, tag or push command or an `id-token` permission; the guard refuses on the latest main nightly run (41189623523, failed) and passes on 41037694815 (succeeded), with unit tests on the decision. **Not done:** running it on the branch: no throwaway tag was pushed (the owner's decision) and `act` isn't installed. It has a `workflow_dispatch` trigger for that: after merge, `gh workflow run release.yml --ref main` (or `--ref v0.1.0-alpha.0` once tagged). Note that the latest nightly on `main` is red, so the guard refuses until it is green again.
+- [x] ADR 0017 Accepted (versioning part)
 
 ## Post-merge checks
 
@@ -69,9 +71,9 @@ Version the library as one lockstep release and prove it installs outside the re
 
 ## Docs to update
 
-- [ ] [pdf-library §10 B7](../../plans/pdf-library.md#10-to-dos): tick Changesets + sync + ADR 0017, the local tag + install verification, and the stability-policy draft
-- [ ] [architecture §3](../../plans/architecture.md#3-decisions-to-record-adrs) (0017 link and status) and [§7 Round B](../../plans/architecture.md#round-b--core-model-and-the-first-package) (ADR 0017 half; "Changesets + Cargo version sync; tag `0.1.0-alpha` locally")
-- [ ] `docs/decisions/README.md`, `CLAUDE.md` (commands), contributing guide (changesets)
+- [x] [pdf-library §10 B7](../../plans/pdf-library.md#10-to-dos): tick Changesets + sync + ADR 0017, the local tag + install verification, and the stability-policy draft
+- [x] [architecture §3](../../plans/architecture.md#3-decisions-to-record-adrs) (0017 link and status) and [§7 Round B](../../plans/architecture.md#round-b--core-model-and-the-first-package) (ADR 0017 half; "Changesets + Cargo version sync; tag `0.1.0-alpha` locally")
+- [x] `docs/decisions/README.md`, `CLAUDE.md` (commands), contributing guide (changesets)
 - [ ] [roadmap](../../plans/roadmap.md) milestone M1 status (by the parent/owner)
 
 ## Risks and open questions
@@ -82,8 +84,8 @@ Version the library as one lockstep release and prove it installs outside the re
 
 ## Definition of done
 
-- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [x] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
 - [ ] Work PR opened from a fresh worktree; **PR** field filled in
 - [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated

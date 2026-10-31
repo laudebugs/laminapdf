@@ -1,0 +1,13 @@
+{
+  "$schema": "https://unpkg.com/@changesets/config@4.0.1/schema.json",
+  "baseBranch": "main",
+  "fixed": [["@lamina/wasm", "@lamina/pdf"]],
+  "linked": [],
+  "ignore": ["@lamina/docs"],
+  "privatePackages": { "version": true, "tag": true },
+  "access": "restricted",
+  "changelog": "@changesets/cli/changelog",
+  "commit": false,
+  "format": false,
+  "updateInternalDependencies": "patch"
+}

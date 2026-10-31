@@ -12,7 +12,7 @@ members = ["crates/*", "tools/xtask", "tools/std14-gen"]
 exclude = ["spikes", "fuzz", "tools/render"]
 
 [workspace.package]
-version = "0.0.0"
+version = "0.1.0-alpha.0"
 edition = "2024"
 # MSRV policy (rust.md): while nothing is published, the MSRV tracks the pinned toolchain in
 # rust-toolchain.toml. Before the first public release we move to N-2. CI's `msrv` job checks it.
@@ -22,23 +22,24 @@ repository = "https://github.com/laudebugs/lamina"
 publish = false
 
 [workspace.dependencies]
-# Internal crates are added here as `lamina-x = { path = "crates/lamina-x" }`.
+# Internal crates are added here as `lamina-x = { path = "crates/lamina-x" }`; `cargo xtask version sync`
+# gives each the workspace version (ADR 0017).
 # No default features: `saslprep` (R5/R6 passwords, ~130 KB of Unicode tables in WASM) is asked
 # for by the crates and builds that want it (lamina-cos and the façade by default; ADR 0016 §5).
-lamina-syntax = { path = "crates/lamina-syntax", default-features = false }
-lamina-cos = { path = "crates/lamina-cos", default-features = false }
-lamina-model = { path = "crates/lamina-model" }
-lamina-ops = { path = "crates/lamina-ops" }
-lamina-source = { path = "crates/lamina-source" }
-lamina-save = { path = "crates/lamina-save" }
-lamina-content = { path = "crates/lamina-content" }
-lamina-text = { path = "crates/lamina-text" }
+lamina-syntax = { version = "0.1.0-alpha.0", path = "crates/lamina-syntax", default-features = false }
+lamina-cos = { version = "0.1.0-alpha.0", path = "crates/lamina-cos", default-features = false }
+lamina-model = { version = "0.1.0-alpha.0", path = "crates/lamina-model" }
+lamina-ops = { version = "0.1.0-alpha.0", path = "crates/lamina-ops" }
+lamina-source = { version = "0.1.0-alpha.0", path = "crates/lamina-source" }
+lamina-save = { version = "0.1.0-alpha.0", path = "crates/lamina-save" }
+lamina-content = { version = "0.1.0-alpha.0", path = "crates/lamina-content" }
+lamina-text = { version = "0.1.0-alpha.0", path = "crates/lamina-text" }
 # No default features: dependents ask for `text` (fonts and text) explicitly (ADR 0016 §4).
-lamina-build = { path = "crates/lamina-build", default-features = false }
-lamina = { path = "crates/lamina", default-features = false }
-lamina-render = { path = "crates/lamina-render" }
-lamina-render-pdfium = { path = "crates/lamina-render-pdfium" }
-lamina-render-wasm = { path = "crates/lamina-render-wasm" }
+lamina-build = { version = "0.1.0-alpha.0", path = "crates/lamina-build", default-features = false }
+lamina = { version = "0.1.0-alpha.0", path = "crates/lamina", default-features = false }
+lamina-render = { version = "0.1.0-alpha.0", path = "crates/lamina-render" }
+lamina-render-pdfium = { version = "0.1.0-alpha.0", path = "crates/lamina-render-pdfium" }
+lamina-render-wasm = { version = "0.1.0-alpha.0", path = "crates/lamina-render-wasm" }
 
 # Flate (zlib) codec, pure Rust; `with-alloc` is the default feature, named so it stays on.
 # MIT OR Zlib OR Apache-2.0 (dependency adler2: 0BSD OR MIT OR Apache-2.0)

@@ -17,12 +17,15 @@ mod nightly;
 mod pdf_runtimes;
 mod pdfium;
 mod portable_paths;
+mod release;
 mod render;
 mod roundtrip;
 mod runner;
 mod todos;
 mod tracked;
 mod util;
+mod verify_install;
+mod version;
 mod wasm;
 mod workspace;
 
@@ -42,8 +45,8 @@ tasks:
   check [rust|ts|docs]
                     everything a PR must pass (default: docs, rust and ts)
                     docs: docs-links, todos --check, portable paths, the capability
-                    matrix's static checks (capabilities --check runs the tests) and
-                    gen codes --check
+                    matrix's static checks (capabilities --check runs the tests),
+                    gen codes --check and version sync --check
                     rust: fmt --check, portability, clippy (native + wasm32), tests, rustdoc, cargo-deny
                     ts:   biome ci, typecheck and tests of the pnpm
                           workspace, the docs site's build (apps/docs), npm licences
@@ -152,6 +155,24 @@ tasks:
                     list the paths changed since the merge base with <rev> (default origin/main)
                     and say whether any is code (not docs); sets `code` in $GITHUB_OUTPUT
                     (default base: origin/main, or main when there is no origin/main)
+  version sync [--check]
+                    copy the npm fixed group's version (@lamina/wasm, @lamina/pdf; Changesets)
+                    into [workspace.package] version, the internal [workspace.dependencies],
+                    every tracked Cargo.lock and CHANGELOG.md (ADR 0017); --check only verifies
+                    (and that every member crate has version.workspace = true)
+  version check-tag <tag>
+                    fail unless <tag> is v<version> (the release lane)
+  verify-install [node|deno|bun|chromium|workerd|rust]… [--node <binary>]… [--git-ref <tag-or-sha>]
+                 [--git-url <url>] [--keep]
+                    pnpm pack both packages and run the quick start in clean projects in the
+                    temp directory: Node (each --node), Deno, Bun, a Vite app in Chromium, a
+                    Worker under wrangler dev --local, and Rust binaries with a path and a git
+                    dependency on lamina (default ref: HEAD; default URL: this clone); each
+                    output must equal fixtures/golden/examples/hello.pdf (needs `wasm` first)
+  release-guard [--run <id>] [--commit <rev>]
+                    fail unless the latest completed scheduled nightly.yml run on main (or run
+                    <id>) succeeded on <rev> (default HEAD) or an ancestor (gh; the release
+                    lane's first job)
   ci                check + wasm + size: the whole fast lane, locally
   doctor [--install]
                     check that external tools are installed at their pinned versions;
@@ -181,6 +202,15 @@ fn main() -> Result<()> {
             [flag, base] if flag == "--base" => changes::run(&repo_root()?, base),
             _ => bail!("usage: cargo xtask changes [--base <rev>]"),
         };
+    }
+    // `version` rewrites Cargo.toml and Cargo.lock, so it can't wait for `cargo metadata --locked`
+    // (which fails on a manifest bumped by hand, the case `--check` reports).
+    if task == "version" {
+        return version::run(&repo_root()?, &version::parse_args(rest)?);
+    }
+    // Needs only gh: no `cargo metadata`.
+    if task == "release-guard" {
+        return release::guard(&repo_root()?, &release::parse_args(rest)?);
     }
     let ws = Workspace::load(repo_root()?)?;
 
@@ -245,6 +275,7 @@ fn main() -> Result<()> {
         ("pdf-runtimes", args) => pdf_runtimes::run(&ws, &pdf_runtimes::parse_args(args)?),
         ("nightly", args) => nightly::nightly(&ws, nightly::parse_nightly_args(args)?),
         ("roundtrip", args) => roundtrip::run_suite(&ws, &roundtrip::parse_args(args)?),
+        ("verify-install", args) => verify_install::run(&ws, &verify_install::parse_args(args)?),
         ("ci", []) => {
             check_docs(&ws)?;
             check_rust(&ws)?;
@@ -276,6 +307,7 @@ fn check_docs(ws: &Workspace) -> Result<()> {
     step("capabilities: manifest vs 06 §3, tags, and no README claim beyond the tagged tests");
     capabilities::check_static(&ws.root)?;
     codegen::codes(ws, true)?;
+    version::run(&ws.root, &version::Command::Sync { check: true })?;
     step("Docs checks passed");
     Ok(())
 }
