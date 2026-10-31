@@ -12,7 +12,7 @@
 | Branch | `docs/b7a-docs-site` |
 | PR title | `feat(docs): Starlight docs site with quick starts, guides and TypeDoc, deployed per PR` |
 | Size | L (≈ 600–1,000 lines of config, MDX and workflow) |
-| PR | — |
+| PR | [#117](https://github.com/laudebugs/lamina/pull/117) |
 
 ## Goal
 
@@ -76,7 +76,7 @@ Site build in CI; snippet sources are already tested by [B5c](../done/B5c-lamina
 ## Definition of done
 
 - [x] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
-- [ ] Work PR opened from a fresh worktree; **PR** field filled in
+- [x] Work PR opened from a fresh worktree; **PR** field filled in
 - [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
 - [ ] CI green
 - [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
