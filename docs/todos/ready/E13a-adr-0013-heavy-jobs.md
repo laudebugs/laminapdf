@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [full-editor §E13](../../plans/full-editor.md#e13-ocr-and-conversion) |
 | Round / milestone | Editor phase 6 (E11–E17) — M9 Advanced |
-| Depends on | [C2b](./C2b-lamina-render-crate.md), [E12a](./E12a-redaction-feature-plan.md) |
+| Depends on | [C2b](../ongoing/C2b-lamina-render-crate.md), [E12a](./E12a-redaction-feature-plan.md) |
 | Blocks | [E13b](./E13b-ocr-and-conversion-feature-plan.md) |
 | Dependency notes | [E12a](E12a-redaction-feature-plan.md), `C2` ([web-app §C2](../../plans/web-app.md#c2-render-backend-and-adrs): `lamina-render`, ADR 0011) |
 | ADRs | Writes ADR 0013; amends/uses ADR 0011 |

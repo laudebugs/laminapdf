@@ -41,7 +41,7 @@ Answer the [architecture §4](../../plans/architecture.md#4-spikes-to-close-open
 **Out of scope** (and which todo covers it)
 
 - PDFium-WASM size, memory and reload-after-incremental-save measurements in the browser → [C1b](../done/C1b-pdfium-wasm-spike.md).
-- The product `RenderBackend` trait and adapters, render goldens on `fixtures/` → [C2b](../ready/C2b-lamina-render-crate.md); the nightly diff job → [X3b](../ready/X3b-render-diff-nightly.md).
+- The product `RenderBackend` trait and adapters, render goldens on `fixtures/` → [C2b](../ongoing/C2b-lamina-render-crate.md); the nightly diff job → [X3b](../ready/X3b-render-diff-nightly.md).
 - Writing ADR 0004 itself → [C2a](../done/C2a-render-adrs.md).
 - Any MuPDF comparison (AGPL, excluded by ADR 0001).
 

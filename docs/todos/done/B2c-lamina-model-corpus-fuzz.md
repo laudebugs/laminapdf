@@ -7,7 +7,7 @@
 | Plan | [pdf-library §7 B2](../../plans/pdf-library.md#b2-document-model), [architecture §7 Round B](../../plans/architecture.md#round-b--core-model-and-the-first-package) |
 | Round / milestone | Round B (library) — M1 |
 | Depends on | [B2a](./B2a-limits-owned-document.md) |
-| Blocks | [B3a](./B3a-overlay-and-ops.md), [B9a](./B9a-lamina-content-and-adr-0023.md), [C2b](../ready/C2b-lamina-render-crate.md), [C6a](../ready/C6a-thumbnails-outline-page-labels.md), [X3a](./X3a-nightly-lane.md), [X4](./X4-full-lane-gate.md) |
+| Blocks | [B3a](./B3a-overlay-and-ops.md), [B9a](./B9a-lamina-content-and-adr-0023.md), [C2b](../ongoing/C2b-lamina-render-crate.md), [C6a](../ready/C6a-thumbnails-outline-page-labels.md), [X3a](./X3a-nightly-lane.md), [X4](./X4-full-lane-gate.md) |
 | ADRs | Implements [0005](../../decisions/0005-document-model.md) §4–§5; [0018](../../decisions/0018-test-strategy.md) tiers 3, 4, 6, 9; follows [0003](../../decisions/0003-reader-tolerance-and-limits.md) (per-field tolerance, `max_tree_depth`) |
 | Branch | `feat/b2c-lamina-model` |
 | PR title | `feat(model): typed page, outline, info and name-tree views with LaminaIds; corpus facts and fuzz targets` |
