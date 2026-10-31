@@ -59,15 +59,18 @@ pub trait RenderBackend: Send {
 /// it needs (`'static`), so it can move to the shell's render thread.
 pub trait RenderDocument: Send {
     fn page_count(&self) -> u32;
-    /// Boxes and `/Rotate` in points, ADR 0027 (0-based `index`).
+    /// Displayed size and `/Rotate` in points, ADR 0027 (0-based `index`).
     fn page(&self, index: u32) -> Result<RenderPage, RenderError>;
-    /// Renders `request` into `out` (exactly `request.byte_len()` bytes), checking `cancel`.
+    fn limits(&self) -> &RenderLimits;
+    /// Validates `request`: the tile geometry and the bytes it needs (provided method).
+    fn plan(&self, request: &RenderRequest) -> Result<TilePlan, RenderError>;
+    /// Renders `request` into `out` (exactly `plan.byte_len()` bytes), checking `cancel`.
     fn render(&self, request: &RenderRequest, out: &mut [u8], cancel: &CancelToken)
-        -> Result<RenderedTile, RenderError>;
+        -> Result<TilePlan, RenderError>;
 }
 ```
 
-- **`ByteSource`** is `lamina-cos`'s trait (ADR 0005 §2). The renderer reads the same source as lamina, never a second copy. A source that answers `Pending` makes `open`, `page` or `render` fail with `data-pending` and the ranges, as lamina's own reads do. The PDFium adapter maps PDFium's availability API (`FPDFAvail_*` with download hints) onto it, and C2b verifies that.
+- **`ByteSource`** is `lamina-cos`'s trait (ADR 0005 §2). The renderer reads the same source as lamina, never a second copy. A source that answers `Pending` makes `open`, `page` or `render` fail with `data-pending` and the ranges, as lamina's own reads do. The native PDFium adapter records every read its custom file access found pending and fails the call with those ranges (C2b). The web adapter uses `FPDFAvail_*` download hints (below).
 - **The web adapters' contract.** On the web, PDFium is a separate Emscripten module and can't read a Rust `ByteSource` inside `@lamina/pdf`'s memory. So the shared source is **one JS-level reader in the document worker**, which both engines read through (ADR 0009 §2):
 
   ```ts
@@ -90,7 +93,9 @@ pub trait RenderDocument: Send {
   - `max_render_pixels`, default 16,777,216 (4096 × 4096, the iOS per-canvas cap);
   - `max_render_side`, default 16,384 px.
 
-  Above either, the request fails with `render-too-large` before any allocation.
+  - `max_input_bytes`, default 1 GiB: the most a backend that needs the whole file in memory (hayro) reads.
+
+  Above any of them, the request fails with `render-too-large` before any allocation.
 - **`RenderRequest`:**
   - `page: u32`.
   - `scale: f32`: output pixels per point, with the device pixel ratio already applied, so 1.0 is 72 DPI.
@@ -99,9 +104,9 @@ pub trait RenderDocument: Send {
   - `flags`: `annotations` (default on: appearance streams, `FPDF_ANNOT`), `form_widgets` (default on, drawn read-only), `print` (print intent: honours `/Print` flags and hides `NoView`), `grayscale`.
   - `background: Option<Rgba8>`: `None` means transparent; the reader passes white.
 - **Pixel format:** RGBA8, **straight (not premultiplied) alpha**, sRGB, rows packed at `width × 4` with no padding. That is what `ImageData` and `createImageBitmap` take, so the web path never converts. Adapters repack internally: PDFium uses `FPDF_REVERSE_BYTE_ORDER`, and hayro un-premultiplies.
-- **`RenderedTile`:** the `width` and `height` written, and whether annotations were drawn.
+- **`TilePlan`:** the whole page's pixel size and the tile's rectangle. `plan` returns it before rendering, so the caller can size the buffer, and `render` returns it again (C2b replaced the planned `RenderedTile` with it).
 - **Cancellation:** a `CancelToken` (ADR 0028), returning the `cancelled` code.
-  - **Where the token can flip during a call:** natively, another thread can cancel it. PDFium then uses progressive rendering (`FPDF_RenderPageBitmap_Start` / `FPDF_RenderPage_Continue`) with a pause callback that polls the token. C2b checks that the native build exports it.
+  - **Where the token can flip during a call:** natively, another thread can cancel it, but `pdfium-render` 0.9.4 doesn't expose PDFium's progressive rendering (`FPDF_RenderPageBitmap_Start` / `FPDF_RenderPage_Continue`). So the native adapter also checks before and after the call (C2b). Progressive rendering with a pause callback that polls the token is a follow-up if long native renders need it.
   - **Single-threaded WebAssembly:** a `cancel` message can't run while the render does (ADR 0028 §5: cancellation lands between steps). The token can only stop work that hasn't started, so web renders are kept small (tiles: 2–15 ms per page in C1b) and cancellation drops queued tiles.
   - **A render already running on the web** finishes, and its result is discarded (ADR 0009 §3.5). Only terminating the worker stops it sooner.
   - **Exception:** C2c may make the web PDFium adapter yield to the event loop between `FPDF_RenderPage_Continue` steps, if the WASM build exports them and C3c shows long single tiles.

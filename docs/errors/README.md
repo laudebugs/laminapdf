@@ -144,6 +144,14 @@ A PR that adds a code adds:
 | [`unknown-destination`](unknown-destination.md) | `usage` | a link or outline item names a destination that was never defined |
 | [`invalid-page-labels`](invalid-page-labels.md) | `usage` | page label ranges that don't start at page 0, don't increase, start past the last page or number from 0 |
 
+## Render errors (`lamina-render`)
+
+| Code | Kind | Summary |
+| --- | --- | --- |
+| [`render-too-large`](render-too-large.md) | `limit` | the requested tile is larger than the render limits allow; nothing was allocated |
+| [`render-failed`](render-failed.md) | `input` | the render engine could not open the document or draw the page |
+| [`render-backend-unavailable`](render-backend-unavailable.md) | `io` | the render engine is not available: its library or module could not be loaded |
+
 ## Façade errors (`lamina`)
 
 | Code | Kind | Summary |

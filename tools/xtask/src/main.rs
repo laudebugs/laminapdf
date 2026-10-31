@@ -15,6 +15,7 @@ mod licenses;
 mod live;
 mod nightly;
 mod pdf_runtimes;
+mod pdfium;
 mod portable_paths;
 mod render;
 mod roundtrip;
@@ -89,6 +90,9 @@ tasks:
                     own workspace) at 72 dpi, compare with fixtures/render-golden/ (thresholds.toml;
                     diff images in target/xtask/render-golden/), and hayro vs PDFium at 150 dpi;
                     --update rewrites the PNGs (and still fails on a parity disagreement)
+                    then lamina-render's PDFium and hayro adapters on fixtures/corpus/ at 96 dpi
+                    against fixtures/golden/render/ (fetches PDFium first; lamina-render-pdfium's
+                    ignored tests, or its `goldens` example with --update)
   corpus facts      rewrite fixtures/corpus/expected.json with pypdf (needs Python: see
                     tools/corpus-facts/requirements.txt; $LAMINA_PYTHON or python3)
   corpus fetch [--source <name>]… [--update-manifest]
@@ -109,6 +113,9 @@ tasks:
                     nightly: lamina's page text vs live pdf.js and pdftotext over the external
                     corpus (whitespace and bidi controls removed; a page agrees when lamina
                     matches one tool); report in target/nightly/differential-text/
+  fetch-pdfium      download the pinned native PDFium (pdfium-binaries chromium/7881) for this host,
+                    check its SHA-256, unpack the library and its notices, print LAMINA_PDFIUM_DIR
+                    (cache: $LAMINA_PDFIUM_CACHE, $RUNNER_TOOL_CACHE/lamina-pdfium or target/pdfium)
   quads [--update]  lamina's glyph quads vs PDFium's character boxes from the precomputed
                     fixtures/text/charboxes.json; --update regenerates it (tools/render/charbox.py,
                     pypdfium2 from tools/render/requirements.txt; $LAMINA_PYTHON or python3)
@@ -223,6 +230,7 @@ fn main() -> Result<()> {
         ("golden", []) => harness::golden(&ws, false),
         ("golden", [flag]) if flag == "--update" => harness::golden(&ws, true),
         ("examples", []) => examples::run(&ws),
+        ("fetch-pdfium", []) => pdfium::fetch(&ws).map(|_| ()),
         ("render-golden", []) => render::run(&ws, false),
         ("render-golden", [flag]) if flag == "--update" => render::run(&ws, true),
         ("corpus", [what]) if what == "facts" => harness::corpus_facts(&ws),
@@ -484,7 +492,7 @@ fn run<S: AsRef<OsStr>>(dir: &Path, program: &str, args: &[S]) -> Result<()> {
 }
 
 /// [`run`] with extra environment variables.
-fn run_env<S: AsRef<OsStr>>(dir: &Path, program: &str, args: &[S], envs: &[(&str, &str)]) -> Result<()> {
+pub(crate) fn run_env<S: AsRef<OsStr>>(dir: &Path, program: &str, args: &[S], envs: &[(&str, &str)]) -> Result<()> {
     let shown: Vec<_> = args.iter().map(|a| a.as_ref().to_string_lossy()).collect();
     let shown_envs: Vec<String> = envs.iter().map(|(k, v)| format!("{k}={v} ")).collect();
     step(&format!("{}{program} {}", shown_envs.concat(), shown.join(" ")));
