@@ -7,7 +7,7 @@
 | Plan | [architecture §7 Cross-cutting](../../plans/architecture.md#cross-cutting) |
 | Round / milestone | Cross-cutting (any time; recommended first) |
 | Depends on | None |
-| Blocks | [C2a](../ready/C2a-render-adrs.md) |
+| Blocks | [C2a](../ongoing/C2a-render-adrs.md) |
 | ADRs | Follows [0015](../../decisions/0015-monorepo-layout-and-tooling.md) (xtask is the single entry point; CI runs what xtask runs) |
 | Branch | `feat/x1-docs-link-checker` |
 | PR title | `feat(xtask): docs link checker and todo-board check (X1)` |

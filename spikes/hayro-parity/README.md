@@ -1,7 +1,7 @@
 # Spike: `hayro-parity` (Round C1a)
 
 - **Date:** 2026-10-28
-- **Status:** done. The recommendation below is input to ADR 0004 ([C2a](../../docs/todos/ready/C2a-render-adrs.md)); it decides nothing on its own.
+- **Status:** done. The recommendation below is input to ADR 0004 ([C2a](../../docs/todos/ongoing/C2a-render-adrs.md)); it decides nothing on its own.
 - **Plan:** [architecture §4](../../docs/plans/architecture.md#4-spikes-to-close-open-questions) (`hayro-parity`), [web-app plan §6 C1](../../docs/plans/web-app.md#c1-rendering-spikes)
 - **Todo:** [C1a](../../docs/todos/done/C1a-hayro-parity-spike.md)
 - **Code:** throwaway-quality, outside both workspaces, never imported by product code ([code organisation §12](../../docs/guidelines/code-organization.md#12-spikes-vs-product-code)).

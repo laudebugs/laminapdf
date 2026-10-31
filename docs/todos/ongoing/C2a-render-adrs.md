@@ -3,11 +3,11 @@
 | Field | Value |
 | --- | --- |
 | ID | `C2a` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [web reader §6 C2. Render backend and ADRs](../../plans/web-app.md#c2-render-backend-and-adrs) |
 | Round / milestone | Round C (web reader) — M2 Web reader v0.1 |
 | Depends on | [C1a](../done/C1a-hayro-parity-spike.md), [C1b](../done/C1b-pdfium-wasm-spike.md), [X1](../done/X1-docs-link-checker.md) |
-| Blocks | [C2b](./C2b-lamina-render-crate.md), [C3a](./C3a-viewer-worker-rpc.md), [C4a](./C4a-ui-chrome-and-platform.md), [C4b](./C4b-web-app-shell.md), [D2a](./D2a-adr-0008-and-desktop-scaffold.md), [D5a](./D5a-update-worker-and-adr-0014.md), [U1a](./U1a-adr-0024-app-shell-ux.md) |
+| Blocks | [C2b](../ready/C2b-lamina-render-crate.md), [C3a](../ready/C3a-viewer-worker-rpc.md), [C4a](../ready/C4a-ui-chrome-and-platform.md), [C4b](../ready/C4b-web-app-shell.md), [D2a](../ready/D2a-adr-0008-and-desktop-scaffold.md), [D5a](../ready/D5a-update-worker-and-adr-0014.md), [U1a](../ready/U1a-adr-0024-app-shell-ux.md) |
 | ADRs | **Writes** 0004, 0009, 0010, 0011 (status `Accepted` on merge). Must stay consistent with [0001](../../decisions/0001-core-language-and-licence.md), [0002](../../decisions/0002-binding-strategy.md), [0003](../../decisions/0003-reader-tolerance-and-limits.md), [0005](../../decisions/0005-document-model.md), [0018](../../decisions/0018-test-strategy.md), [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) |
 | Branch | `docs/c2a-render-and-web-adrs` |
 | PR title | `docs(decisions): add ADRs 0004, 0009, 0010 and 0011 for the web reader` |
@@ -20,7 +20,7 @@ Record the four Round C decisions before any product code depends on them, so C2
 
 ## Context
 
-- [UI/UX plan §5.6](../../plans/ui-ux.md#56-perceived-performance-r6-r7) — ADR 0004's `RenderBackend` renders tiles `(page, scale, clip rect)` into bounded bitmaps and never allocates a full-page canvas (iOS Safari caps one canvas at ≈ 16.7 MP and all canvases at 224–384 MB); every renderer is read-only, all writes go through the save planner (ADR 0007). ADR 0024 ([U1a](./U1a-adr-0024-app-shell-ux.md)) builds on 0009 and 0010.
+- [UI/UX plan §5.6](../../plans/ui-ux.md#56-perceived-performance-r6-r7) — ADR 0004's `RenderBackend` renders tiles `(page, scale, clip rect)` into bounded bitmaps and never allocates a full-page canvas (iOS Safari caps one canvas at ≈ 16.7 MP and all canvases at 224–384 MB); every renderer is read-only, all writes go through the save planner (ADR 0007). ADR 0024 ([U1a](../ready/U1a-adr-0024-app-shell-ux.md)) builds on 0009 and 0010.
 - [Architecture plan §2 principles](../../plans/architecture.md#principles-each-becomes-part-of-an-adr) (4 rendering swappable, 5 UI framework off the hot path, 6 privacy first) and [§3 ADR table](../../plans/architecture.md#3-decisions-to-record-adrs).
 - [Architecture §8 Q2](../../plans/architecture.md#8-open-questions-for-the-team): lamina **will** be a hosted service with login and cloud features, opt-in; the `auth` spike picks the login stack (owned by the editor/hosted todos, not here).
 - [Research report](../../research/architecture/app-and-package-architecture.md): rendering, web client, and Cloudflare sections; "ADRs to record" list.
@@ -41,7 +41,7 @@ Record the four Round C decisions before any product code depends on them, so C2
 
 **Out of scope** (and which todo covers it)
 
-- Code for the trait and adapters → [C2b](./C2b-lamina-render-crate.md), [C2c](./C2c-render-packages.md).
+- Code for the trait and adapters → [C2b](../ready/C2b-lamina-render-crate.md), [C2c](../ready/C2c-render-packages.md).
 - The login/auth stack choice → the `auth` spike (editor/hosted todos); 0011 only fixes the principles and says the stack is added by amendment after that spike.
 - ADR 0008 (desktop shell) and 0014 (distribution) → desktop todos.
 
@@ -87,7 +87,7 @@ Docs only. Run `cargo xtask docs-links` ([X1](../done/X1-docs-link-checker.md)) 
 ## Risks and open questions
 
 - **Domain and product name** ([web-app §8](../../plans/web-app.md#8-open-questions) Q1) are still open: write 0011 with `<domain>` placeholders and a note on how to fill them.
-- **Telemetry** (Q3): decided by the owner 2026-10-29: none in v0.1, then optional and opt-in ([U5c](./U5c-opt-in-usage-telemetry.md)); ADR 0011 records the allowed payload (aggregate, content-free) and retention.
+- **Telemetry** (Q3): decided by the owner 2026-10-29: none in v0.1, then optional and opt-in ([U5c](../ready/U5c-opt-in-usage-telemetry.md)); ADR 0011 records the allowed payload (aggregate, content-free) and retention.
 - **Embedding/publishing `@lamina/viewer`** (Q4) affects how public the RPC types are; record "internal until the API settles" unless the owner decides otherwise.
 - If C1b showed PDFium-WASM cannot meet the first-page budget, 0004 must say what changes (e.g. hayro for first paint) rather than paper over it.
 

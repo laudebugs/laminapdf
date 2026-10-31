@@ -8,7 +8,7 @@
 | Round / milestone | Round L2 (shareable libraries) — before C3a |
 | Depends on | [B6b](../done/B6b-lamina-pdf-package.md), [L1a](../done/L1a-contract-adrs.md), [L1b](../done/L1b-error-contract-codegen.md) |
 | Blocks | [C3a](./C3a-viewer-worker-rpc.md) |
-| ADRs | Follows 0028 (jobs, `CancelToken`, async only at the edges) and 0026 (errors cross as JSON, not `Error` objects), both from [L1a](../done/L1a-contract-adrs.md); [0002](../../decisions/0002-binding-strategy.md) §1 (sync core after `init()`); 0016 (export conditions, from [B6a](../done/B6a-lamina-wasm-and-adr-0016.md)); informs proposed 0009 (typed worker RPC, [C2a](./C2a-render-adrs.md)) |
+| ADRs | Follows 0028 (jobs, `CancelToken`, async only at the edges) and 0026 (errors cross as JSON, not `Error` objects), both from [L1a](../done/L1a-contract-adrs.md); [0002](../../decisions/0002-binding-strategy.md) §1 (sync core after `init()`); 0016 (export conditions, from [B6a](../done/B6a-lamina-wasm-and-adr-0016.md)); informs proposed 0009 (typed worker RPC, [C2a](../ongoing/C2a-render-adrs.md)) |
 | Branch | `feat/l2a-worker-client` |
 | PR title | `feat(pdf): @lamina/pdf/worker async client with typed RPC, version handshake and AbortSignal` |
 | Size | L (≈ 600–900 lines of TS + tests) |
