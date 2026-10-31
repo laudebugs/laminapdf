@@ -33,7 +33,7 @@ Create a PDF from images (one page per image, JPEG passthrough, PNG → Flate + 
 - `lamina_build::images_to_pdf(images, options)`
 - `render::export_pages(doc, pages, format, dpi)` via `RenderBackend` (PDFium default)
 - TIFF encoder choice per E3a (licence-checked), multi-page TIFF optional
-- Export dialog in `@lamina/ui`
+- Export dialog in `@laminapdf/ui`
 
 **Out of scope** (and which todo covers it)
 
@@ -42,7 +42,7 @@ Create a PDF from images (one page per image, JPEG passthrough, PNG → Flate + 
 **Editor facts**
 
 - **Operations shipped** ([06 §3](../../research/pdf/06-feature-inventory.md#3-full-operation-inventory-with-mechanisms) IDs): `H.02` images → PDF; `H.06` pages → PNG/JPEG/TIFF; `H.11` render pages to images
-- **Crates and packages:** `lamina-build`, `lamina-render`, `@lamina/ui`
+- **Crates and packages:** `lamina-build`, `lamina-render`, `@laminapdf/ui`
 - **`SaveConstraint`:** new document (full write) for images → PDF
 - **Web vs desktop:** desktop writes files to a folder (native render, multi-threaded); web zips and streams; web memory capped by `Limits`
 - **Server features:** none (this PR adds no server feature; all processing stays on the device)

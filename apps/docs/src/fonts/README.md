@@ -17,4 +17,4 @@ Both families are under the SIL Open Font License 1.1: [`OFL-Newsreader.txt`](OF
 
 To update them, `npm pack` the packages above, copy the same files from `files/` and the `LICENSE`, and update this table.
 
-These files are an interim copy for the docs site ([U6g](../../../../docs/todos/done/U6g-docs-site-paper.md)). [U6b](../../../../docs/todos/ready/U6b-self-hosted-fonts.md)'s `@lamina/fonts` (fonts subsetted from upstream sources, fallback metrics, a preload) replaces them, and the docs site then imports that package and deletes this folder.
+These files are an interim copy for the docs site ([U6g](../../../../docs/todos/done/U6g-docs-site-paper.md)). [U6b](../../../../docs/todos/ready/U6b-self-hosted-fonts.md)'s `@laminapdf/fonts` (fonts subsetted from upstream sources, fallback metrics, a preload) replaces them, and the docs site then imports that package and deletes this folder.

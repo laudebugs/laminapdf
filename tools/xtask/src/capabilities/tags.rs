@@ -390,7 +390,7 @@ mod pages {
     #[test]
     fn scan_ts_should_reject_any_tag_for_now() {
         let text = "test(\"[cap C.04 pdf round-trip] reorders\", () => {});";
-        assert!(scan_ts(Path::new("packages/pdf/src/a.test.ts"), text).is_err());
+        assert!(scan_ts(Path::new("packages/sdk/src/a.test.ts"), text).is_err());
     }
 
     const LIBTEST: &str = "

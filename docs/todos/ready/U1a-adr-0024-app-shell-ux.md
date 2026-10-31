@@ -16,7 +16,7 @@
 
 ## Goal
 
-Record the interaction model every shell and editor round builds into, so `@lamina/ui`, the desktop menus and the editor modes don't each invent their own: the docked inverted-L layout, modes with one secondary toolbar, the single command registry, selection surfaces (desktop toolbar, touch bottom bar, never over the OS menu), page appearance modes separate from UI themes, the phone layout, and the design-token layers. These are cheap to decide now and expensive to change after C4a–C7a ship.
+Record the interaction model every shell and editor round builds into, so `@laminapdf/ui`, the desktop menus and the editor modes don't each invent their own: the docked inverted-L layout, modes with one secondary toolbar, the single command registry, selection surfaces (desktop toolbar, touch bottom bar, never over the OS menu), page appearance modes separate from UI themes, the phone layout, and the design-token layers. These are cheap to decide now and expensive to change after C4a–C7a ship.
 
 ## Context
 

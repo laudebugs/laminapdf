@@ -39,7 +39,7 @@
 **Editor facts**
 
 - **Operations shipped** ([06 §3](../../research/pdf/06-feature-inventory.md#3-full-operation-inventory-with-mechanisms) IDs): `A.01` add text anywhere on a page; `A.12` insert special characters and symbols; `B.01` insert, delete, replace images; `B.02` resize, rotate, crop, reposition; `B.04` adjust transparency/opacity; `B.05` draw lines, rectangles, circles, polygons; `B.09` add logos, icons, stamps
-- **Crates and packages:** `@lamina/ui`, `@lamina/viewer`
+- **Crates and packages:** `@laminapdf/ui`, `@laminapdf/viewer`
 - **`SaveConstraint`:** as E6b–E6c
 - **Web vs desktop:** identical; desktop paste of images from the OS clipboard
 - **Server features:** none (this PR adds no server feature; all processing stays on the device)

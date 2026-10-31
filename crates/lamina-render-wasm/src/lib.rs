@@ -1,9 +1,9 @@
 //! wasm-bindgen bindings of `lamina-render`'s hayro adapter ([ADR 0004] §5), wrapped by
-//! `@lamina/render-hayro`, which gives it the same `RenderBackend` interface as
-//! `@lamina/render-pdfium`.
+//! `@laminapdf/render-hayro`, which gives it the same `RenderBackend` interface as
+//! `@laminapdf/render-pdfium`.
 //!
 //! The surface is deliberately flat: numbers and byte arrays, no records, so the glue stays
-//! tiny. The wrapper validates every request with `@lamina/render`'s planner first (the port of
+//! tiny. The wrapper validates every request with `@laminapdf/render`'s planner first (the port of
 //! the Rust one), so both web adapters refuse the same requests.
 //!
 //! The module is built with `panic = "abort"` (the `wasm-release` profile; stable wasm32 has no

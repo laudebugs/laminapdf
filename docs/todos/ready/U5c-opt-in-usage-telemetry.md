@@ -29,7 +29,7 @@ The plan's task-split assumption (viewing ≈ 70% of time) is unverified, and it
 
 **In scope**
 
-- Both shells: the counter lives in `@lamina/ui` on the command registry; each shell sends through its `Platform` adapter (web: our origin; desktop: the same endpoint from the main process, next to D7a's crash-report consent).
+- Both shells: the counter lives in `@laminapdf/ui` on the command registry; each shell sends through its `Platform` adapter (web: our origin; desktop: the same endpoint from the main process, next to D7a's crash-report consent).
 - Off by default; a clear opt-in in settings with the exact payload shown (one setting per install, separate from crash reports).
 - Payload: daily aggregate counts per command id and mode, app version, platform family; no document data, no user or device identifiers, no IP retention (state and verify the Worker's handling).
 - Batching and a single endpoint on our origin (CSP unchanged); the U4a indicator shows these requests.

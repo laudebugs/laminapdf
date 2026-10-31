@@ -34,7 +34,7 @@ Make the web reader good on phones and tablets, not just "works": a thumb-reacha
 - Layout below the phone breakpoint: auto-hiding top bar (title, back, overflow) and a bottom bar (Search, Pages, Reader when U4b exists, More); tablet: the desktop layout with touch targets.
 - `BottomSheet` with medium and large detents, drag handle plus buttons (SC 2.5.7), focus trap and Escape; hosts thumbnails, outline, properties and settings.
 - `viewport-fit=cover`, `env(safe-area-inset-*)` padding, `100dvh` sizing; no horizontal page scroll at 320 px width.
-- Gestures in `@lamina/viewer`: `touch-action: none` on the canvas, pan with momentum, pinch around the focal point (CSS transform during the gesture, tiles after), double-tap to fit width / zoom in; long-press passes through for text selection.
+- Gestures in `@laminapdf/viewer`: `touch-action: none` on the canvas, pan with momentum, pinch around the focal point (CSS transform during the gesture, tiles after), double-tap to fit width / zoom in; long-press passes through for text selection.
 - Bitmap budgets on coarse-pointer devices: tile ≤ 5 MP, total budget from `navigator.deviceMemory` when available (else a conservative default), LRU eviction.
 - Touch targets ≥ 44 px.
 
@@ -47,8 +47,8 @@ Make the web reader good on phones and tablets, not just "works": a thumb-reacha
 
 - [ ] Claim via a claim PR (see Definition of done); then a fresh worktree off the updated `main`.
 - [ ] Add Playwright device profiles (iPhone 15, Pixel 8, iPad) to the e2e suite with touch emulation.
-- [ ] Implement the bottom bar and sheets in `@lamina/ui`; reuse U1b commands.
-- [ ] Implement the gesture recogniser in `@lamina/viewer` with unit tests for pinch focal-point maths and double-tap timing.
+- [ ] Implement the bottom bar and sheets in `@laminapdf/ui`; reuse U1b commands.
+- [ ] Implement the gesture recogniser in `@laminapdf/viewer` with unit tests for pinch focal-point maths and double-tap timing.
 - [ ] Implement budgets and eviction; add a memory probe to the perf harness for mobile profiles.
 - [ ] Manual pass on a real iPhone (Safari) and Android phone (Chrome): record results in the PR.
 

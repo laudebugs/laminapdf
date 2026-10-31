@@ -1,6 +1,6 @@
 [package]
 name = "lamina-render-wasm"
-description = "wasm-bindgen bindings of lamina-render's hayro adapter (ADR 0004 §5): one module, lamina_render_hayro, built by `cargo xtask wasm` into @lamina/wasm and wrapped by @lamina/render-hayro."
+description = "wasm-bindgen bindings of lamina-render's hayro adapter (ADR 0004 §5): one module, lamina_render_hayro, built by `cargo xtask wasm` into @laminapdf/wasm and wrapped by @laminapdf/render-hayro."
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true

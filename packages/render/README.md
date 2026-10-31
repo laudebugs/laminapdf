@@ -1,6 +1,6 @@
-# @lamina/render
+# @laminapdf/render
 
-The web render contract of [ADR 0004](../../docs/decisions/0004-render-backend.md), the TypeScript twin of the Rust `lamina-render` crate. Two packages implement it: [`@lamina/render-pdfium`](../render-pdfium/README.md), the default, and [`@lamina/render-hayro`](../render-hayro/README.md), the oracle and debug choice. Both run inside the document worker ([ADR 0009](../../docs/decisions/0009-web-client-architecture.md) §2). This package is private and internal, and isn't published.
+The web render contract of [ADR 0004](../../docs/decisions/0004-render-backend.md), the TypeScript twin of the Rust `lamina-render` crate. Two packages implement it: [`@laminapdf/render-pdfium`](../render-pdfium/README.md), the default, and [`@laminapdf/render-hayro`](../render-hayro/README.md), the oracle and debug choice. Both run inside the document worker ([ADR 0009](../../docs/decisions/0009-web-client-architecture.md) §2). This package is private and internal, and isn't published.
 
 ```ts
 const backend = await initPdfium(wasmUrl);            // or initHayro()
@@ -23,7 +23,7 @@ self.postMessage(await createImageBitmap(new ImageData(pixels, width, height)));
 
 ## Tests
 
-- **Unit tests:** `pnpm --filter @lamina/render test`, for the planner and the error, in Node.
+- **Unit tests:** `pnpm --filter @laminapdf/render test`, for the planner and the error, in Node.
 - **The contract suite:** `test/contract.ts` isn't run here. Both adapters run it, in Node and in Chromium, Firefox and WebKit. It checks:
   - every corpus file's page count and size, against lamina's facts;
   - a blank tile is white;

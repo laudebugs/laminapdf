@@ -1,13 +1,13 @@
 # Error and warning codes
 
-One page per code in [`fixtures/codes.json`](../../fixtures/codes.json), as [ADR 0026](../decisions/0026-error-and-diagnostic-contract.md) §6 requires. Every `docsUrl` points here, `lamina::explain(code)` (the façade's `explain` feature) and `@lamina/pdf/explain` return these pages, and `lamina explain <code>` ([L4a](../todos/ready/L4a-lamina-cli.md)) will print them.
+One page per code in [`fixtures/codes.json`](../../fixtures/codes.json), as [ADR 0026](../decisions/0026-error-and-diagnostic-contract.md) §6 requires. Every `docsUrl` points here, `lamina::explain(code)` (the façade's `explain` feature) and `@laminapdf/sdk/explain` return these pages, and `lamina explain <code>` ([L4a](../todos/ready/L4a-lamina-cli.md)) will print them.
 
 A PR that adds a code adds:
 
 - its entry in `codes.json` (`code`, `kind`, `summary`, `hint`, `since`; the file's schema is [`fixtures/codes.schema.json`](../../fixtures/codes.schema.json)): the summary is one lowercase sentence saying what happened, the hint one sentence saying what to do, neither with document text nor a trailing period (ADR 0026 §4, §5);
 - the arm in its type's `code()` and `kind()` (the core crates' `kind()` is an exhaustive match, checked against `codes.json` by that crate's tests);
 - its page here, with the headings *What happened*, *Why*, *How to fix*, *Example* and *Data fields* and a `- Kind:` line matching `codes.json`; *Data fields* lists the `data` keys, marking the ones that can carry document or caller text *untrusted*;
-- the output of `cargo xtask gen codes`, which regenerates the façade's `ErrorCode`/`WarningCode`, `@lamina/pdf`'s unions, tables and explain text, the `lamina.error/1` schema and the tables below. `cargo xtask check docs` fails, naming the file, when any of them is stale.
+- the output of `cargo xtask gen codes`, which regenerates the façade's `ErrorCode`/`WarningCode`, `@laminapdf/sdk`'s unions, tables and explain text, the `lamina.error/1` schema and the tables below. `cargo xtask check docs` fails, naming the file, when any of them is stale.
 
 `crates/lamina-cos/tests/codes.rs` checks the entries and pages, and that every page here is for a listed code.
 
@@ -169,17 +169,17 @@ A PR that adds a code adds:
 | [`source-budget-exceeded`](source-budget-exceeded.md) | `limit` | a sparse source was given more bytes than its byte budget allows |
 | [`unknown-option`](unknown-option.md) | `usage` | an options record passed to a binding has a key lamina does not know |
 
-## Package errors (`@lamina/pdf`)
+## Package errors (`@laminapdf/sdk`)
 
 | Code | Kind | Summary |
 | --- | --- | --- |
 | [`already-initialized`](already-initialized.md) | `state` | init() or loadText() named a different source for a module that is already loaded or loading |
 | [`extract-module-not-loaded`](extract-module-not-loaded.md) | `state` | page.text() was called on a document opened in the base module, which has no text extraction |
 | [`fetch-failed`](fetch-failed.md) | `io` | a range source could not fetch input bytes: a network error, an HTTP status other than 200 and 206, a 206 whose Content-Range or length doesn't match the request, or a read that returned the wrong number of bytes |
-| [`not-initialized`](not-initialized.md) | `state` | an @lamina/pdf function was called before init() finished loading the WebAssembly module |
+| [`not-initialized`](not-initialized.md) | `state` | an @laminapdf/sdk function was called before init() finished loading the WebAssembly module |
 | [`source-changed`](source-changed.md) | `io` | a remote file changed while it was being read: its ETag or length differs from the first response |
 | [`text-module-not-loaded`](text-module-not-loaded.md) | `state` | a font or text call was made on a builder of the base module, which has no fonts or text |
 | [`disposed`](disposed.md) | `state` | a document, builder or other handle was used after free(), or after the using block that held it ended |
 | [`worker-version-mismatch`](worker-version-mismatch.md) | `usage` | the worker answered with a different protocol or package version than the client |
 | [`worker-crashed`](worker-crashed.md) | `internal` | the worker running lamina stopped (an uncaught error, a WebAssembly trap or out of memory); calls in flight were rejected |
-| [`worker-failed`](worker-failed.md) | `internal` | the worker client failed with an error that isn't lamina's (a bug in @lamina/pdf/worker, or a result it couldn't send) |
+| [`worker-failed`](worker-failed.md) | `internal` | the worker client failed with an error that isn't lamina's (a bug in @laminapdf/sdk/worker, or a result it couldn't send) |

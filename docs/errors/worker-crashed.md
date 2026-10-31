@@ -5,7 +5,7 @@
 
 ## What happened
 
-The worker running `@lamina/pdf` (from `@lamina/pdf/worker`) stopped: an uncaught error, a WebAssembly trap or the browser killing it (out of memory). Every call still in flight was rejected with this code, and the client emitted a `crashed` event.
+The worker running `@laminapdf/sdk` (from `@laminapdf/sdk/worker`) stopped: an uncaught error, a WebAssembly trap or the browser killing it (out of memory). Every call still in flight was rejected with this code, and the client emitted a `crashed` event.
 
 ## Why
 

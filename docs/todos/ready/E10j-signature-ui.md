@@ -40,7 +40,7 @@ Sign/certify flow (choose field or draw one, choose identity, appearance, reason
 **Editor facts**
 
 - **Operations shipped** ([06 §3](../../research/pdf/06-feature-inventory.md#3-full-operation-inventory-with-mechanisms) IDs): `F.03` certificate-based digital signatures; `F.04` verify signatures; `F.05` certify a document; `F.06` trusted timestamps; `F.07` inspect signer identity and certificates; `F.08` lock fields after signing; `F.09` allowed changes after certification; `F.10` signature status and modification warnings
-- **Crates and packages:** `@lamina/ui`
+- **Crates and packages:** `@laminapdf/ui`
 - **`SaveConstraint`:** signing makes the document `AppendOnly`; adding a signature is allowed without certification and under DocMDP P2/P3, and is a violation under P1 (ADR 0007 §2); signing always runs last in a save (redact → rewrite → sign, ADR 0007 §4); `Sign` is a barrier op (ADR 0006 §5)
 - **Web vs desktop:** identical apart from identity sources
 - **Server features:** none (this PR adds no server feature; all processing stays on the device)

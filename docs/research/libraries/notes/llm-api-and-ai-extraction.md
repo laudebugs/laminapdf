@@ -233,7 +233,7 @@ let md: String = out.to_markdown(MarkdownOptions::default());
 
 TypeScript (wasm):
 ```ts
-import { openDocument } from "@lamina/core";
+import { openDocument } from "@laminapdf/core";
 const doc = await openDocument(bytes);
 const res = doc.extract({ readingOrder: "tagged-then-xycut", coords: { origin: "top-left", unit: "pt", normalized: true },
                           drop: ["invisible", "running-headers"], tables: "lattice" });

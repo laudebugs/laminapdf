@@ -162,7 +162,7 @@ pub(crate) fn pick<T: Copy>(argument: &'static str, name: &str, known: &[(&str, 
     })
 }
 
-/// A structure element from `@lamina/pdf`, which checks the names: `kind` indexes
+/// A structure element from `@laminapdf/sdk`, which checks the names: `kind` indexes
 /// [`TagKind::ALL`] (a custom type's role when `custom` names it), `scope` is 0 (none), 1 (row),
 /// 2 (column) or 3 (both). Indices keep the type names and their suggestions out of the module.
 ///

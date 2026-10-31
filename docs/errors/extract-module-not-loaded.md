@@ -5,11 +5,11 @@
 
 ## What happened
 
-`page.text()` of `@lamina/pdf` was called on a page of a document opened in the base module, which has no text extraction.
+`page.text()` of `@laminapdf/sdk` was called on a page of a document opened in the base module, which has no text extraction.
 
 ## Why
 
-`@lamina/pdf` ships three WebAssembly modules ([ADR 0016](../decisions/0016-package-design.md) §4): base (open, read, edit, save), extract (base plus text extraction) and text (base plus fonts, shaping and extraction). A document lives in the module it was opened in, and opening uses the richest one loaded at that moment: text, then extract, then base. A document opened before the extract or text module was loaded stays in the base module.
+`@laminapdf/sdk` ships three WebAssembly modules ([ADR 0016](../decisions/0016-package-design.md) §4): base (open, read, edit, save), extract (base plus text extraction) and text (base plus fonts, shaping and extraction). A document lives in the module it was opened in, and opening uses the richest one loaded at that moment: text, then extract, then base. A document opened before the extract or text module was loaded stays in the base module.
 
 ## How to fix
 

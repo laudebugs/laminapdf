@@ -31,7 +31,7 @@ Close round E1: make the C6 document properties dialog editable (title, author, 
 
 - Editable properties dialog bound to `SetMetadata`/`RemoveMetadata` with validation (date pickers, keywords chips)
 - Inline `ConformanceWarning`s and an "edits are kept in earlier revisions" notice for `RemoveMetadata` on incremental saves
-- Capability page in `@lamina/ui` rendering `docs/capabilities/README.md` data (JSON emitted by `cargo xtask capabilities`) bundled at build time, filterable by group and surface
+- Capability page in `@laminapdf/ui` rendering `docs/capabilities/README.md` data (JSON emitted by `cargo xtask capabilities`) bundled at build time, filterable by group and surface
 - e2e round-trip tests for J.01–J.03, J.10 on web and desktop (flipping web/desktop columns)
 
 **Out of scope** (and which todo covers it)
@@ -41,7 +41,7 @@ Close round E1: make the C6 document properties dialog editable (title, author, 
 **Editor facts**
 
 - **Operations shipped** ([06 §3](../../research/pdf/06-feature-inventory.md#3-full-operation-inventory-with-mechanisms) IDs): `J.01` title, author, subject, keywords; `J.02` creation/modification dates; `J.03` producer and creator; `J.10` remove selected metadata
-- **Crates and packages:** `@lamina/ui`, `apps/web`, `apps/desktop`; `tools/xtask` (JSON output of the matrix if `X2` doesn't emit it)
+- **Crates and packages:** `@laminapdf/ui`, `apps/web`, `apps/desktop`; `tools/xtask` (JSON output of the matrix if `X2` doesn't emit it)
 - **`Op` variants:** uses `SetMetadata`, `RemoveMetadata`
 - **`SaveConstraint`:** as E1c; the dialog shows the banner state from E1e
 - **Web vs desktop:** identical; desktop opens the dialog from the native File → Properties menu

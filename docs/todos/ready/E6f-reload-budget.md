@@ -38,7 +38,7 @@ Measure how long it takes, on web (PDFium-WASM) and desktop (native PDFium), to 
 
 **Editor facts**
 
-- **Crates and packages:** `@lamina/viewer`, `lamina-render`, `apps/desktop`
+- **Crates and packages:** `@laminapdf/viewer`, `lamina-render`, `apps/desktop`
 - **`SaveConstraint`:** no new save behaviour beyond the round's: incremental on `Free`; content changes are DocMDP violations under any certification (gated, override names the signatures); with approval signatures only they are `AppendOnly` incremental updates
 - **Web vs desktop:** measured separately per shell
 - **Server features:** none (this PR adds no server feature; all processing stays on the device)

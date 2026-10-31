@@ -51,8 +51,8 @@ Publish usable documentation for `lamina` and `@lamina/pdf` before the first tag
 ## Acceptance criteria
 
 - [x] `pnpm --filter docs build` succeeds with zero broken internal links
-- [ ] Every PR touching `apps/docs/`, `packages/pdf/` or examples gets a preview URL comment (this PR's own preview included). **Not yet:** the workflow (`.github/workflows/docs.yml`) is in place, but the repository has no `CLOUDFLARE_API_TOKEN`/`CLOUDFLARE_ACCOUNT_ID` secrets, so it skips with a notice; the owner's steps are in [`apps/docs/README.md`](../../../apps/docs/README.md#what-the-owner-needs-to-do). Tick this once a PR shows its preview comment
-- [x] Every code snippet on the site is imported from a tested example file (the Worker, Deno and Bun quick starts from [B6c](../done/B6c-runtime-matrix.md)'s `packages/pdf/examples/worker/` and its Deno/Bun runners)
+- [ ] Every PR touching `apps/docs/`, `packages/sdk/` or examples gets a preview URL comment (this PR's own preview included). **Not yet:** the workflow (`.github/workflows/docs.yml`) is in place, but the repository has no `CLOUDFLARE_API_TOKEN`/`CLOUDFLARE_ACCOUNT_ID` secrets, so it skips with a notice; the owner's steps are in [`apps/docs/README.md`](../../../apps/docs/README.md#what-the-owner-needs-to-do). Tick this once a PR shows its preview comment
+- [x] Every code snippet on the site is imported from a tested example file (the Worker, Deno and Bun quick starts from [B6c](../done/B6c-runtime-matrix.md)'s `packages/sdk/examples/worker/` and its Deno/Bun runners)
 - [x] The error/warning code table matches `fixtures/codes.json` (generated)
 
 ## Post-merge checks
@@ -85,7 +85,7 @@ Site build in CI; snippet sources are already tested by [B5c](../done/B5c-lamina
 
 - `apps/docs` (`@lamina/docs`): Astro 7.3.8, Starlight 0.42.7, starlight-typedoc 0.23.1 with TypeDoc 0.28.20 and typedoc-plugin-markdown 4.14.1 (on TypeScript 6.0.3 from the `typedoc` catalog: TypeDoc needs the compiler API TypeScript 7 lacks), starlight-links-validator 0.27.0, wrangler from the catalog. Astro 7.3.x rather than 7.4 because 7.4.4 requires Node ≥ 22.23.4 and `engineStrict` would refuse an older Node 22 on a runner.
 - Pages: overview, install, six quick starts, seven guides, the code reference (from `fixtures/codes.json`, every group by its key), the Rust API page (the fast lane's `rustdoc` artefact), the examples gallery (TS and Rust source, the golden PDFs), the TypeDoc reference.
-- Snippets: `<Snippet file="…" />` reads the file at build time from a fixed glob (the TS and Rust examples, the Worker, the Vite, Node, Deno and Bun runners); shell commands are prose, not snippets. The encrypted-files, limits and errors guides needed an example none of the existing ones covered: `packages/pdf/examples/open-untrusted.ts`, tested in `test/examples.test.ts`.
+- Snippets: `<Snippet file="…" />` reads the file at build time from a fixed glob (the TS and Rust examples, the Worker, the Vite, Node, Deno and Bun runners); shell commands are prose, not snippets. The encrypted-files, limits and errors guides needed an example none of the existing ones covered: `packages/sdk/examples/open-untrusted.ts`, tested in `test/examples.test.ts`.
 - Headers: ADR 0011 §4's, with `script-src` hashes of the build's inline scripts instead of a plain `'self'`, `style-src 'unsafe-inline'` (Expressive Code's style attributes) and no CSP on the example PDFs; checked in Chromium against `wrangler dev` (no violations, search works).
 - `cargo xtask check ts` builds the site; the deploy workflow skips cleanly without the secrets.
 - After review: the code table links each code to its page on the site (`/reference/codes/<code>/`, the `docs/errors/` pages); no GitHub links unless built with `LAMINA_DOCS_GITHUB=1` (the repository is private); the preview is built without secrets and deployed by a job that runs no PR code; the `rustdoc` artefact is rendered fresh, on pushes to `main` only.

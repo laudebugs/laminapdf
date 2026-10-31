@@ -1,8 +1,8 @@
 // ADR 0004's second web renderer and CI oracle (todo C2c): lamina-render's hayro adapter, built by
-// `cargo xtask wasm` as lamina_render_hayro (crates/lamina-render-wasm) into @lamina/wasm, behind
-// @lamina/render's RenderBackend. hayro reads the whole file, so `open` fills the module's input
+// `cargo xtask wasm` as lamina_render_hayro (crates/lamina-render-wasm) into @laminapdf/wasm, behind
+// @laminapdf/render's RenderBackend. hayro reads the whole file, so `open` fills the module's input
 // buffer from the source in one pass, chunk by chunk (every missing range in one `data-pending`),
-// and the module borrows it. Requests are validated by @lamina/render's planner (the Rust one,
+// and the module borrows it. Requests are validated by @laminapdf/render's planner (the Rust one,
 // ported), so both web adapters refuse the same requests; Rust re-checks them.
 
 import {
@@ -24,8 +24,8 @@ import {
   type TilePlan,
   throwIfAborted,
   WHITE,
-} from "@lamina/render";
-import initGlue, { HayroDocument, type InitInput, InputBuffer } from "@lamina/wasm/render-hayro";
+} from "@laminapdf/render";
+import initGlue, { HayroDocument, type InitInput, InputBuffer } from "@laminapdf/wasm/render-hayro";
 
 /** The pinned hayro version (the workspace's `=0.8.0`). */
 export const HAYRO_VERSION = "0.8.0";

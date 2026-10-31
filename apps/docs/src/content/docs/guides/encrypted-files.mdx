@@ -16,6 +16,6 @@ lamina reads files encrypted with the standard security handler: RC4 (R2–R4), 
 
 This example opens an upload with a password and returns the outcome as a value. Its test opens an AES-256 (R6) fixture with the right password, then with none and a wrong one:
 
-<Snippet file="packages/pdf/examples/open-untrusted.ts" />
+<Snippet file="packages/sdk/examples/open-untrusted.ts" />
 
 The password goes only to the WebAssembly module. lamina never stores or logs it, and never puts it in an error.

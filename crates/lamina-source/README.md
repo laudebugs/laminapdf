@@ -16,7 +16,7 @@ let doc = open_with(&source, &lamina::OpenOptions::default(), &RetryOptions::def
 let pages = retry(&source, &RetryOptions::default(), |range| fetch(range), || doc.page_infos())?;
 ```
 
-The wasm edge wraps `SparseSource` as `WasmSparseSource` (`lamina-wasm`), and `@lamina/pdf` runs the same loop with `await` in `Document.openRange` / `doc.ensure` ([its README](../../packages/pdf/README.md#remote-and-large-files)).
+The wasm edge wraps `SparseSource` as `WasmSparseSource` (`lamina-wasm`), and `@laminapdf/sdk` runs the same loop with `await` in `Document.openRange` / `doc.ensure` ([its README](../../packages/sdk/README.md#remote-and-large-files)).
 
 ```sh
 cargo test -p lamina-source --all-features

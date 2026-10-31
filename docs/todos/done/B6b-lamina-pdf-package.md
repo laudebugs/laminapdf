@@ -4,7 +4,7 @@
 | --- | --- |
 | ID | `B6b` |
 | Status | `done` |
-| Plan | [pdf-library §7 B6](../../plans/pdf-library.md#b6-wasm-and-laminapdf), [§5 TS sketch](../../plans/pdf-library.md#api-sketch-illustrative-not-final) |
+| Plan | [pdf-library §7 B6](../../plans/pdf-library.md#b6-wasm-and-laminapdfsdk), [§5 TS sketch](../../plans/pdf-library.md#api-sketch-illustrative-not-final) |
 | Round / milestone | Round B (library) — M1 |
 | Depends on | [B2b](./B2b-standard-security-decryption.md), [B6a](./B6a-lamina-wasm-and-adr-0016.md) |
 | Blocks | [B5d](./B5d-text-report-generation-performance.md), [B6c](./B6c-runtime-matrix.md), [B7a](./B7a-docs-site.md), [B8a](./B8a-structure-tree.md), [B9c](./B9c-text-extraction-bindings-and-differential.md), [L1b](./L1b-error-contract-codegen.md), [L2a](./L2a-worker-client.md), [L2b](../ready/L2b-disposal-and-memory.md), [L2c](./L2c-range-byte-source.md), [C1b](./C1b-pdfium-wasm-spike.md), [C2c](./C2c-render-packages.md), [C3a](../ongoing/C3a-viewer-worker-rpc.md), [C4c](../ready/C4c-remote-files-encryption-privacy.md), [C6a](../ready/C6a-thumbnails-outline-page-labels.md), [E1c](../ready/E1c-metadata-ops.md), [E1d](../ready/E1d-edit-session-undo-ui.md) |
@@ -29,12 +29,12 @@ Give TypeScript users the same library as Rust: `init()`, then a synchronous, ty
 
 **In scope**
 
-- `packages/pdf` (`@lamina/pdf`, private for now): `init(input?)` (URL, `Response`, `ArrayBuffer`/`Uint8Array`, `WebAssembly.Module`; idempotent; text module loaded on first text use or via `init({ text: true })`), `Builder`, `Page`, `Surface`, `Font.fromBytes`, `Document.open(bytes, { password?, strict?, limits? })`, `doc.pages`, `doc.outline`, `doc.info`, `doc.warnings`, `doc.transact(tx => …)`, `doc.apply(ops)`, `doc.undo()/redo()`, `doc.save({ mode })` → `Uint8Array`, `doc.free()` + `Symbol.dispose` support.
+- `packages/sdk` (`@lamina/pdf`, private for now): `init(input?)` (URL, `Response`, `ArrayBuffer`/`Uint8Array`, `WebAssembly.Module`; idempotent; text module loaded on first text use or via `init({ text: true })`), `Builder`, `Page`, `Surface`, `Font.fromBytes`, `Document.open(bytes, { password?, strict?, limits? })`, `doc.pages`, `doc.outline`, `doc.info`, `doc.warnings`, `doc.transact(tx => …)`, `doc.apply(ops)`, `doc.undo()/redo()`, `doc.save({ mode })` → `Uint8Array`, `doc.free()` + `Symbol.dispose` support.
 - `LaminaError` with every [ADR 0026](../../decisions/0026-error-and-diagnostic-contract.md) §1 field (`code`, `kind`, `message`, `hint`, `location`, `data`, `docsUrl`; `didYouMean` from the unknown-key check), built from the JSON `lamina-wasm` returns (B5c's `Serialize`), and `LaminaWarning`. Kinds and hints come from `fixtures/codes.json` v2 ([L1c](../done/L1c-error-contract-core.md)); [L1b](./L1b-error-contract-codegen.md) later generates the unions, the schema and `explain`, without changing the shape; codes generated from `fixtures/codes.json` into a TS union type.
 - Op types re-exported from tsify output; JSON samples in `fixtures/ops/v1` round-trip through TS.
 - `package.json` `exports` with conditions `browser`, `workerd`, `node`, `deno`, `default`; `.wasm` shipped as an asset referenced by `new URL(..., import.meta.url)`; Workers path imports a `WebAssembly.Module`.
 - Build with `tsc` (or tsup/tsdown — pick per guideline) to `dist/`; `publint` and `attw --pack` in `cargo xtask check ts`.
-- TS example suite in `packages/pdf/examples/` (hello, invoice, multilingual, images-and-vectors, links-and-outlines, generate-then-edit) run as Vitest tests with byte goldens shared with Rust.
+- TS example suite in `packages/sdk/examples/` (hello, invoice, multilingual, images-and-vectors, links-and-outlines, generate-then-edit) run as Vitest tests with byte goldens shared with Rust.
 - TS half of the codes test (ADR 0003 §4) and of `fixtures/ops` tests (ADR 0018 §5).
 
 **Out of scope** (and which todo covers it)
@@ -47,13 +47,13 @@ Give TypeScript users the same library as Rust: `init()`, then a synchronous, ty
 ## Tasks
 
 - [x] Read the TS guideline and ADR 0016
-- [x] Create `packages/pdf` (`package.json`, `tsconfig.json` extending base, `src/`, `test/`, `examples/`)
+- [x] Create `packages/sdk` (`package.json`, `tsconfig.json` extending base, `src/`, `test/`, `examples/`)
 - [x] `src/init.ts` (input forms, environment detection only via export conditions, no `process`/`fs`)
 - [x] `src/document.ts`, `builder.ts`, `font.ts`, `errors.ts`, `transaction.ts`, `types.ts` (tsify re-exports)
 - [x] Code generator for error codes (`cargo xtask gen codes` → `src/codes.generated.ts`)
 - [x] Examples as tests comparing bytes with `fixtures/golden/examples/*.pdf`
 - [x] publint and `attw --pack` wired into `cargo xtask wasm` (deviation: not `check ts`, they need the generated dist/; see Outcome); JS glue + API min+gz measured by `cargo xtask size` against the ADR 0016 budget (≤ 20 KB per plan)
-- [x] `packages/pdf/README.md` quick start
+- [x] `packages/sdk/README.md` quick start
 
 ## Acceptance criteria
 
@@ -71,13 +71,13 @@ None.
 
 ## Tests
 
-- Vitest unit tests in `packages/pdf/test/` (Node environment); example goldens; codes and ops shared-fixture tests.
+- Vitest unit tests in `packages/sdk/test/` (Node environment); example goldens; codes and ops shared-fixture tests.
 
 ## Docs to update
 
-- [x] [pdf-library §10 B6](../../plans/pdf-library.md#10-to-dos): tick `packages/pdf`, export conditions + publint/attw
+- [x] [pdf-library §10 B6](../../plans/pdf-library.md#10-to-dos): tick `packages/sdk`, export conditions + publint/attw
 - [x] [architecture §7 Round B](../../plans/architecture.md#round-b--core-model-and-the-first-package): tick "`lamina-wasm` … and `@lamina/pdf`"
-- [x] `CLAUDE.md` (layout: `packages/pdf`), package README
+- [x] `CLAUDE.md` (layout: `packages/sdk`), package README
 
 ## Risks and open questions
 
@@ -86,7 +86,7 @@ None.
 
 ## Outcome
 
-- Delivered: `packages/pdf` (`@lamina/pdf`, private): `init(input?)` (URL or string, `Response` or a promise of one, `ArrayBuffer`/`Uint8Array`, `WebAssembly.Module`; `{ module, text }`; idempotent, retryable), `loadText()`, `isInitialized()`, `isTextLoaded()`, `wasmMemory()`; `Document` (`open` with the password as given, then NFKC after `wrong-password`, `strict`, `limits`; `pageCount`, `pages`, `pageInfo`, `page`/`pageById` → `PageRef`, `info`, `warnings`, `apply`, `applyLog`, `transact`, `undo`, `redo`, `save`, `saveWithReport`, `saveJob` → `SaveJob`, `rebase`, `free`, `Symbol.dispose`); `Builder` (`page`, `font`, `destination`, `outline`, `pageLabels`, `metadata`, `lang`, `viewerPreferences`, `finish`, `free`), `Page` (boxes, rotation, `finish`), `Surface` (state, colours, opacity, blend, `transform` with `Matrix`, `path` → `PendingPath`, `image`, `link`, `text`, `textBox`), `Font.fromBytes`/`Font.standard`, `Image.jpeg`/`png`/`rgba`; `LaminaError` (every ADR 0026 §1 field, `toJSON`), `isLaminaError`, `LaminaWarning`; the tsify records re-exported (`Op`, `SaveOptions`, `LinkTarget`, …).
+- Delivered: `packages/sdk` (`@lamina/pdf`, private): `init(input?)` (URL or string, `Response` or a promise of one, `ArrayBuffer`/`Uint8Array`, `WebAssembly.Module`; `{ module, text }`; idempotent, retryable), `loadText()`, `isInitialized()`, `isTextLoaded()`, `wasmMemory()`; `Document` (`open` with the password as given, then NFKC after `wrong-password`, `strict`, `limits`; `pageCount`, `pages`, `pageInfo`, `page`/`pageById` → `PageRef`, `info`, `warnings`, `apply`, `applyLog`, `transact`, `undo`, `redo`, `save`, `saveWithReport`, `saveJob` → `SaveJob`, `rebase`, `free`, `Symbol.dispose`); `Builder` (`page`, `font`, `destination`, `outline`, `pageLabels`, `metadata`, `lang`, `viewerPreferences`, `finish`, `free`), `Page` (boxes, rotation, `finish`), `Surface` (state, colours, opacity, blend, `transform` with `Matrix`, `path` → `PendingPath`, `image`, `link`, `text`, `textBox`), `Font.fromBytes`/`Font.standard`, `Image.jpeg`/`png`/`rgba`; `LaminaError` (every ADR 0026 §1 field, `toJSON`), `isLaminaError`, `LaminaWarning`; the tsify records re-exported (`Op`, `SaveOptions`, `LinkTarget`, …).
 - Export conditions `workerd` (static `.wasm` imports), `deno`/`browser`/`default` (the glue's `new URL(…, import.meta.url)`, streaming compile), `node` (the file read as bytes); a Vite test (dev server with the package excluded from pre-bundling, and a production build whose bundle runs) covers the browser condition.
 - Codes: `cargo xtask gen codes [--check]` writes `src/codes.generated.ts` (`ErrorCode`, `WarningCode`, `LimitName`, the code lists, and kind + hint of the codes the TS layer raises); `check ts` runs `--check`. New `packageErrors` group in `fixtures/codes.json` with pages: `already-initialized`, `not-initialized`, `text-module-not-loaded` (all `state`), left out of the façade's hint tables (TS-only).
 - Tests (Vitest, Node, against the built `dist/`): 65, in `test/` (examples byte-identical to the six Rust goldens; codes; ops samples; init forms, the browser entry over HTTP; Vite; builder errors and 1,000 freed builds at constant WASM memory; packaging: same exports per entry, no Node API in `src/` outside the Node loader).

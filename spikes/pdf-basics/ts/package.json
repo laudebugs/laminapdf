@@ -1,5 +1,5 @@
 {
-  "name": "@lamina/pdf-basics-spike",
+  "name": "@laminapdf/pdf-basics-spike",
   "version": "0.0.0",
   "private": true,
   "description": "Research spike: minimal PDF core (object model, reader, writer, content builder) in TypeScript.",

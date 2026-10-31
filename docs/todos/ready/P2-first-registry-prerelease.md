@@ -16,7 +16,7 @@
 
 ## Goal
 
-Publish lamina for the first time: a `0.x` pre-release of every public crate on crates.io and `@lamina/wasm` + `@lamina/pdf` on npm through the [P1](./P1-reserve-names-and-trusted-publishing.md) workflow, verify installation and the quick start from the registries in each runtime, publish the stability policy and changelog, and from then on check every PR for semver breaks against the published version.
+Publish lamina for the first time: a `0.x` pre-release of every public crate on crates.io and `@laminapdf/wasm` + `@laminapdf/sdk` on npm through the [P1](./P1-reserve-names-and-trusted-publishing.md) workflow, verify installation and the quick start from the registries in each runtime, publish the stability policy and changelog, and from then on check every PR for semver breaks against the published version.
 
 ## Context
 

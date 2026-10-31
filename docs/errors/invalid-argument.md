@@ -5,7 +5,7 @@
 
 ## What happened
 
-A value passed from JavaScript to `@lamina/wasm` is not of the type its declaration describes: a record with a field of the wrong type, a string that names no known value (a blend mode, a fill rule, a standard 14 font, an op), a path in the flat encoding cut short, a colour with the wrong number of components, an ID that isn't 32 hex digits.
+A value passed from JavaScript to `@laminapdf/wasm` is not of the type its declaration describes: a record with a field of the wrong type, a string that names no known value (a blend mode, a fill rule, a standard 14 font, an op), a path in the flat encoding cut short, a colour with the wrong number of components, an ID that isn't 32 hex digits.
 
 ## Why
 

@@ -7,7 +7,7 @@
 
 ## What we are building
 
-1. **Packages:** `lamina` (Rust) and `@lamina/pdf` (TypeScript) that generate PDFs, then read and edit them with the same `Document` API.
+1. **Packages:** `lamina` (Rust) and `@laminapdf/sdk` (TypeScript) that generate PDFs, then read and edit them with the same `Document` API.
 2. **A web reader** on Cloudflare, privacy-first, growing into a full editor.
 3. **A desktop reader** (Tauri 2, macOS/Windows/Linux) with the same UI, updated from Cloudflare.
 4. **A full editor** on web and desktop covering all 13 feature groups of the [feature inventory](../research/pdf/06-feature-inventory.md).
@@ -36,8 +36,8 @@ All four share one Rust core, so every operation is built once ([architecture §
 - **A before everything.** Workspace, CI fast lane and `lamina-syntax`/`lamina-cos` ([architecture §5](architecture.md#5-rounds)).
 - **Library first** (recommended in [architecture §8](architecture.md#8-open-questions-for-the-team), question 1): B1–B3 produce the model (with decryption, so readers can open password-protected files), ops and save path everyone needs.
 - **Web reader after B6:** C1's PDFium spike loads `lamina-wasm` next to PDFium-WASM, so it starts once B6 has merged (its `hayro-parity` half can start earlier). C5's text layer needs B9 (text extraction), which runs alongside C1–C4. B7, B8 and B9 run in parallel with the reader rounds. Technically B9a (the `lamina-content` interpreter) only needs B2c, so it may start before B6 if people are free; B9c (bindings) needs B6b.
-- **Desktop after the web packages:** D1 can start after C3; D2 needs `@lamina/ui` from C4.
-- **UI/UX alongside the readers** ([UI/UX plan](ui-ux.md)): ADR 0024 (U1a) comes before `@lamina/ui` (C4a), the command registry and shell (U1b, U1c) right after it, and Round U adds selection, page modes, the phone layout and the network indicator before the web launch (C7a, C7c wait for them). Reader mode, the mobile spike and the product promises (pricing page, benchmark, opt-in telemetry) follow the launch; the pricing page and the benchmark also wait for the desktop beta (D7c).
+- **Desktop after the web packages:** D1 can start after C3; D2 needs `@laminapdf/ui` from C4.
+- **UI/UX alongside the readers** ([UI/UX plan](ui-ux.md)): ADR 0024 (U1a) comes before `@laminapdf/ui` (C4a), the command registry and shell (U1b, U1c) right after it, and Round U adds selection, page modes, the phone layout and the network indicator before the web launch (C7a, C7c wait for them). Reader mode, the mobile spike and the product promises (pricing page, benchmark, opt-in telemetry) follow the launch; the pricing page and the benchmark also wait for the desktop beta (D7c).
 - **Editor after both readers** ship v0.1, so phase 1 (core viewer) is done once and E-rounds add features to both shells and the packages at the same time.
 - **Shareable libraries (L1–L6)** run alongside B and C: L1 (contracts) lands before the B5 builder so the first public API follows it; L2 follows B6; L3 (AI-ready extraction) follows B9; L4 (CLI and MCP) follows B5c and B9c; L6 (mobile spike, then a mobile plan) follows B5c and C2b ([shareable libraries §7](shareable-libraries.md#7-rounds)).
 - **B8 and later E-rounds** can overlap with reader work as people allow; they don't block each other except where listed.
@@ -47,7 +47,7 @@ All four share one Rust core, so every operation is built once ([architecture §
 | Milestone | Rounds | What ships |
 | --- | --- | --- |
 | M0 Foundations | A | Monorepo, CI fast lane, `lamina-syntax` + `lamina-cos`, ADRs 0001/0002/0015/0019 |
-| M1 Library alpha | B1–B7 | `lamina` and `@lamina/pdf` `0.1.0-alpha` (local and tagged, not published to registries yet): generate PDFs with fonts, shaping, images, vectors, links, outlines, metadata; open (including encrypted files)/edit/save basics; docs site |
+| M1 Library alpha | B1–B7 | `lamina` and `@laminapdf/sdk` `0.1.0-alpha` (local and tagged, not published to registries yet): generate PDFs with fonts, shaping, images, vectors, links, outlines, metadata; open (including encrypted files)/edit/save basics; docs site |
 | M2 Web reader v0.1 | B9, C1–C7, U1, U2, U3a, U4a | Text extraction in the library; hosted reader on Cloudflare: render, search, select, navigate, print, offline, accessible, no upload; command palette, column-aware copy, page appearance modes, phone layout, network indicator |
 | M3 Desktop reader beta | D1–D7 | Signed installers for three OSes, file associations, tabs, auto-update channels |
 | M4 Library 0.2 | B8 | Tagged PDF, PDF/UA-1, PDF/A-2/3 profiles, veraPDF-clean |
@@ -73,7 +73,7 @@ One row per round. Each round is split into one or more todos, one PR each, on t
 | B3 | [library](pdf-library.md#b3-ops-and-save) | Ops, undo, save planner | — |
 | B4 | [library](pdf-library.md#b4-fonts-and-text) | Fonts, shaping, subsetting | — |
 | B5 | [library](pdf-library.md#b5-builder-and-the-lamina-crate) | Builder and `lamina` crate | — |
-| B6 | [library](pdf-library.md#b6-wasm-and-laminapdf) | `lamina-wasm`, `@lamina/pdf`, runtime matrix | 0016 |
+| B6 | [library](pdf-library.md#b6-wasm-and-laminapdfsdk) | `lamina-wasm`, `@laminapdf/sdk`, runtime matrix | 0016 |
 | B7 | [library](pdf-library.md#b7-docs-examples-and-first-release) | Docs site, examples, `0.1.0-alpha` (local) | 0017 |
 | B8 | [library](pdf-library.md#b8-tagged-pdf-pdfua-and-pdfa) | Tagged PDF, PDF/UA, PDF/A, `0.2.0-alpha` (local) | — |
 | B9 | [library](pdf-library.md#b9-text-extraction) | `lamina-content` read-only interpreter, text extraction (after B6, before C5) | 0023 (proposed) |
@@ -84,8 +84,8 @@ One row per round. Each round is split into one or more todos, one PR each, on t
 | L6 | [shareable libraries](shareable-libraries.md#l6-mobile) | `lamina-ffi` spike, mobile SDK plan | 0029 |
 | C1 | [web](web-app.md#c1-rendering-spikes) | Rendering spikes | `pdfium-wasm`, `hayro-parity` |
 | C2 | [web](web-app.md#c2-render-backend-and-adrs) | `lamina-render`, render packages | 0004, 0009, 0010, 0011 |
-| C3 | [web](web-app.md#c3-viewer-core) | `@lamina/viewer` | — |
-| C4 | [web](web-app.md#c4-app-shell-on-cloudflare) | `@lamina/ui`, `apps/web`, previews | — |
+| C3 | [web](web-app.md#c3-viewer-core) | `@laminapdf/viewer` | — |
+| C4 | [web](web-app.md#c4-app-shell-on-cloudflare) | `@laminapdf/ui`, `apps/web`, previews | — |
 | C5 | [web](web-app.md#c5-text-selection-and-search) | Text layer, selection, search | — |
 | C6 | [web](web-app.md#c6-navigation-print-and-properties) | Navigation, print, properties | — |
 | C7 | [web](web-app.md#c7-accessibility-offline-and-launch) | Accessibility, PWA, launch | — |
@@ -140,6 +140,7 @@ One row per round. Each round is split into one or more todos, one PR each, on t
 - **Shareable libraries** (2026-10-29, project owner): the `lamina-ffi` UniFFI spike ([L6a](../todos/done/L6a-lamina-ffi-spike.md)) runs right after B5c, in parallel with B6; UniFFI is pinned to `=0.32.x`; ADR 0016 ([B6a](../todos/done/B6a-lamina-wasm-and-adr-0016.md)) sets a size budget per wasm module, with 350 KB gz for the base module ([shareable libraries §11](shareable-libraries.md#11-open-questions)).
 - **Domain** (2026-10-31, project owner): `laminapdf.com`. The reader goes to the apex (staging at `staging.laminapdf.com`), the docs site is at `docs.laminapdf.com`, desktop updates and downloads at `updates.` and `downloads.laminapdf.com` ([ADR 0011 §1](../decisions/0011-cloudflare-topology-and-privacy.md#1-topology), [web-app §8](web-app.md#8-open-questions) Q1).
 - **Visual design** (2026-10-29, project owner): the **Paper** direction (calm, editorial: warm off-white chrome, ink text, deep teal accent, Newsreader and Source Sans 3) for every surface; screens and documentation in the [Paper design plan](paper-design.md), built in Round U6.
+- **npm scope** (2026-10-31, project owner): the npm packages are published under `@laminapdf` (`@laminapdf/sdk`, `@laminapdf/wasm`, …); the TypeScript API package is `@laminapdf/sdk` (was `@lamina/pdf`, ADR 0016); crate names and the product name stay lamina ([architecture §8](architecture.md#8-open-questions-for-the-team), Q3; [P0](../todos/done/P0-npm-scope-laminapdf.md); ADR 0015).
 
 ## Decisions this roadmap assumes (recommendations, not yet decided)
 

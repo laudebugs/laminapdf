@@ -39,7 +39,7 @@ Place a handwritten-signature image, a drawn (ink) or typed (font) e-signature a
 **Editor facts**
 
 - **Operations shipped** ([06 §3](../../research/pdf/06-feature-inventory.md#3-full-operation-inventory-with-mechanisms) IDs): `F.01` handwritten signature image; `F.02` draw/type e-signature
-- **Crates and packages:** `lamina-build`, `@lamina/ui`
+- **Crates and packages:** `lamina-build`, `@laminapdf/ui`
 - **`Op` variants:** `AddAnnot` spec `Stamp`/`Ink` (class `Annotation`); content placement reuses `AddContentObject` (class `Content`)
 - **`SaveConstraint`:** as a Stamp or Ink annotation, annotation rules (see E4b): class `Annotation`, allowed under DocMDP P3 or when there is no certification signature (approval-only files save `AppendOnly`); under P1/P2 a violation → warn and gate. Placed as content, class `Content`: a violation at every DocMDP level (P1, P2 and P3), saved only through the override that names the signatures (ADR 0007 §3); with approval signatures only `AppendOnly` (the signature panel, E10h, reports the content change). The UI therefore offers "place as content" only when the file is unsigned or approval-only, and explains that a picture of a signature is not a digital signature
 - **Web vs desktop:** desktop app-data, web IndexedDB
@@ -55,7 +55,7 @@ Place a handwritten-signature image, a drawn (ink) or typed (font) e-signature a
 
 ## Acceptance criteria
 
-- [ ] Library parity ([full-editor §5](../../plans/full-editor.md#5-requirements-that-hold-for-every-round) req. 7): every new `Op` is exposed in `lamina` and `@lamina/pdf` in this PR, with rustdoc/TSDoc, a runnable example, tsify-generated TS types, and serde samples frozen in `fixtures/ops/v1/` (unknown ops and fields rejected, ADR 0006 §1, §6)
+- [ ] Library parity ([full-editor §5](../../plans/full-editor.md#5-requirements-that-hold-for-every-round) req. 7): every new `Op` is exposed in `lamina` and `@laminapdf/sdk` in this PR, with rustdoc/TSDoc, a runnable example, tsify-generated TS types, and serde samples frozen in `fixtures/ops/v1/` (unknown ops and fields rejected, ADR 0006 §1, §6)
 - [ ] Every new op reports exactly one `ModificationClass` and `requires_rewrite` (ADR 0006 §1); a test per op runs `planner.would_violate(&op)` on the signed fixtures (no certification, DocMDP P1, P2, P3, FieldMDP lock) and asserts the verdict ([ADR 0007](../../decisions/0007-save-planner.md) §2), because a misclassified op is a security bug
 - [ ] Round-trip: open → op → save → reopen in lamina, pdf.js and PDFium preserves the change and everything else (page count, outline, annotations, fields, struct tree facts in `expected.json`); `qpdf --check` is clean
 - [ ] UI never calls these "digital signatures" (copy test)

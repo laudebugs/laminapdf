@@ -1,4 +1,4 @@
-# C3a — `@lamina/viewer` part 1: document worker and typed RPC
+# C3a — `@laminapdf/viewer` part 1: document worker and typed RPC
 
 | Field | Value |
 | --- | --- |
@@ -8,7 +8,7 @@
 | Round / milestone | Round C (web reader) — M2 Web reader v0.1 |
 | Depends on | [B6b](../done/B6b-lamina-pdf-package.md), [L2a](../done/L2a-worker-client.md), [C2a](../done/C2a-render-adrs.md), [C2c](../done/C2c-render-packages.md) |
 | Blocks | [C3b](../ready/C3b-viewer-virtualiser-and-zoom.md), [E10i](../ready/E10i-platform-signers.md) |
-| Dependency notes | [C2c](../done/C2c-render-packages.md) (web render adapters); [C2a](../done/C2a-render-adrs.md) (ADR 0009 RPC requirements); library **B6** (`@lamina/pdf` `Document` in the worker; [pdf-library B6](../../plans/pdf-library.md#b6-wasm-and-laminapdf)) |
+| Dependency notes | [C2c](../done/C2c-render-packages.md) (web render adapters); [C2a](../done/C2a-render-adrs.md) (ADR 0009 RPC requirements); library **B6** (`@laminapdf/sdk` `Document` in the worker; [pdf-library B6](../../plans/pdf-library.md#b6-wasm-and-laminapdfsdk)) |
 | ADRs | Implements 0009 (typed worker RPC) and 0004 (backend selection). Follows [0003](../../decisions/0003-reader-tolerance-and-limits.md) (`Limits`, warning codes surfaced to the UI), [0005](../../decisions/0005-document-model.md) (`ByteSource`) |
 | Branch | `feat/c3a-viewer-worker-rpc` |
 | PR title | `feat(viewer): add the document worker and typed rpc with priorities and cancellation` |
@@ -17,23 +17,23 @@
 
 ## Goal
 
-Create `packages/viewer` and its foundation: one **document worker** per open document that hosts `lamina-wasm` (via `@lamina/pdf`) and a `RenderBackend` adapter, and a **hand-written typed RPC** between the main thread and that worker, with request IDs, a method union, priority queues, transfer lists, `AbortSignal` cancellation and automatic restart after a crash. Everything later in the viewer (virtualiser, text layer, find, thumbnails, print) talks to the document only through this RPC, so its shape and cancellation semantics are the most important thing to get right in Round C.
+Create `packages/viewer` and its foundation: one **document worker** per open document that hosts `lamina-wasm` (via `@laminapdf/sdk`) and a `RenderBackend` adapter, and a **hand-written typed RPC** between the main thread and that worker, with request IDs, a method union, priority queues, transfer lists, `AbortSignal` cancellation and automatic restart after a crash. Everything later in the viewer (virtualiser, text layer, find, thumbnails, print) talks to the document only through this RPC, so its shape and cancellation semantics are the most important thing to get right in Round C.
 
 ## Context
 
-- **Delivered by [L2a](../done/L2a-worker-client.md):** `@lamina/pdf/worker` (`packages/pdf/src/worker/`) already has the envelopes (`protocol.ts`: `call`/`cancel`/`result`/`progress`/`crashed`, `PROTOCOL_VERSION` plus the package version in a hello/welcome handshake), monotonic request IDs, a handle table, `AbortSignal` cancellation (a queued call never runs; `save` is stepped and stops at the next step; late answers dropped), throttled progress events, transfers, ADR 0026 error rebuilding, and crash detection with `restart()`. This todo adds the viewer's concerns on top: render messages, priorities, coalescing, timeouts, the password re-prompt and the re-open policy after a crash.
+- **Delivered by [L2a](../done/L2a-worker-client.md):** `@laminapdf/sdk/worker` (`packages/sdk/src/worker/`) already has the envelopes (`protocol.ts`: `call`/`cancel`/`result`/`progress`/`crashed`, `PROTOCOL_VERSION` plus the package version in a hello/welcome handshake), monotonic request IDs, a handle table, `AbortSignal` cancellation (a queued call never runs; `save` is stepped and stops at the next step; late answers dropped), throttled progress events, transfers, ADR 0026 error rebuilding, and crash detection with `restart()`. This todo adds the viewer's concerns on top: render messages, priorities, coalescing, timeouts, the password re-prompt and the re-open policy after a crash.
 - ADR 0009 (from [C2a](../done/C2a-render-adrs.md)) — RPC requirements, single-threaded baseline, no Comlink.
 - [Research: the web client](../../research/architecture/app-and-package-architecture.md#the-web-client-is-react-chrome-around-an-imperative-viewer-core) — "fast scrolling cancels stale render jobs"; shell owns threads.
 - [web-frontend notes](../../research/architecture/notes/web-frontend.md) §2 (render path (b): rasterise in WASM, `createImageBitmap`, transfer) and §5 (custom RPC, COOP/COEP) and §6 (stream `File.slice()`; avoid double copies; OPFS).
 - [C1b result](../done/C1b-pdfium-wasm-spike.md) — chosen input strategy and instantiate timings.
 - [web-app.md §4 functional 1–2, 10](../../plans/web-app.md#functional) and [privacy and security](../../plans/web-app.md#privacy-and-security) (hostile files crash the worker, not the page; password stays in worker memory).
-- [TypeScript guidelines](../../guidelines/typescript.md) — `@lamina/viewer` is a browser UI package (DOM globals allowed), still ESM-only, named exports, Vitest browser mode.
+- [TypeScript guidelines](../../guidelines/typescript.md) — `@laminapdf/viewer` is a browser UI package (DOM globals allowed), still ESM-only, named exports, Vitest browser mode.
 
 ## Scope
 
 **In scope**
 
-- `packages/viewer` scaffold (`@lamina/viewer`, `private: true`, ESM, Vitest browser mode + Playwright, nested `biome.json` that allows DOM globals with a reason).
+- `packages/viewer` scaffold (`@laminapdf/viewer`, `private: true`, ESM, Vitest browser mode + Playwright, nested `biome.json` that allows DOM globals with a reason).
 - `src/rpc/protocol.ts`: method union, request/response/event envelopes, error codes (shared with `fixtures/codes.json`), versioned protocol constant.
 - `src/rpc/client.ts` (main thread) and `src/worker/server.ts` (worker): request IDs, promises, `AbortSignal` → `cancel` message, transfer lists, events (progress, warnings), per-call slow/hard timeouts for long renders (no heartbeat), restart with re-open on crash.
 - `src/worker/scheduler.ts`: priority queues (`visible` > `prefetch` > `thumbnail` > `background` (search, text)), coalescing of duplicate requests, cancellation before start and between render steps.
@@ -59,14 +59,14 @@ Create `packages/viewer` and its foundation: one **document worker** per open do
 - [ ] Scheduler: one active render at a time per worker (synchronous WASM), priority queue, coalesce identical `(page, scale, rect, flags)` requests, check cancellation before starting and after each backend step; expose queue depth for the perf harness.
 - [ ] Crash handling — **no heartbeat**: the worker runs one synchronous WASM call at a time and cannot answer anything during a long render, so silence is not a crash signal. A crash is only: the worker's `error` or `messageerror` event, or the server reporting a WASM trap (`RuntimeError`, out-of-memory) after which it marks the module poisoned. Then: reject all pending with `worker-crashed`, emit `crashed`, spawn a new worker, re-open the document from the same `ByteSource`, resume — but do **not** automatically re-issue the request that was running when it crashed (that page shows "Couldn't render this page — Retry"), so a hostile page can't cause a crash loop.
 - [ ] Long renders: each `render` call has a **soft timeout** (default 10 s, configurable) after which the client emits `render-slow { page }` so the UI can offer "This page is taking a long time — Stop", and a **hard cap** (default 120 s). Only a user Stop or the hard cap terminates the worker (`worker.terminate()`), then the same restart path as a crash runs with `reason: "cancelled" | "hard-timeout"`, without re-issuing that render. For an **encrypted** document, terminating means re-entering the password, so the hard cap does not terminate automatically: the client emits `render-stuck { page, needsPassword: true }` and the UI warns ("Stopping will ask for the password again") and terminates only on the user's confirmation. The main thread **never caches the password**: it lives only in the worker that received it, so it dies with a crashed worker. Re-opening an encrypted document after a crash therefore returns `needs-password` and the client emits a `password-required` event so the UI re-prompts (C4c wires the dialog); unencrypted documents re-open without user action.
-- [ ] Open: `@lamina/pdf` `Document.open` and backend open in parallel (both from the same `ByteSource`); surface ADR 0003 warnings (e.g. repaired xref) as events; return page count and sizes.
+- [ ] Open: `@laminapdf/sdk` `Document.open` and backend open in parallel (both from the same `ByteSource`); surface ADR 0003 warnings (e.g. repaired xref) as events; return page count and sizes.
 - [ ] Backend loading: `init({ wasmUrl })` for each module, started as soon as the worker is created (before a file is chosen) so WASM downloads in parallel with file selection ([§4 target](../../plans/web-app.md#non-functional-targets-are-recommendations-measured-from-c3-onward)).
 - [ ] Minimal `examples/rpc-demo.html` (served by Vitest/Vite dev) that opens a file and draws page 1 to a canvas — enough for manual checks before C3b.
 - [ ] Wire into `cargo xtask check ts`.
 
 ## Acceptance criteria
 
-- [ ] The viewer's worker protocol builds on `@lamina/pdf/worker` ([L2a](../done/L2a-worker-client.md)): render and viewer messages extend it rather than defining a second RPC ([shareable-libraries §8](../../plans/shareable-libraries.md#8-changes-to-existing-todos))
+- [ ] The viewer's worker protocol builds on `@laminapdf/sdk/worker` ([L2a](../done/L2a-worker-client.md)): render and viewer messages extend it rather than defining a second RPC ([shareable-libraries §8](../../plans/shareable-libraries.md#8-changes-to-existing-todos))
 - [ ] Typed: calling an unknown method or passing wrong params fails `tsc` (type tests with `expectTypeOf`).
 - [ ] Opening `fixtures/corpus/*.pdf` returns page count and sizes matching `fixtures/corpus/expected.json` in Chromium, Firefox and WebKit.
 - [ ] Cancellation: a test issues 100 render requests and aborts 90 before they finish; no aborted request resolves, every transferred bitmap for an aborted ID is closed, and the 10 kept ones resolve in priority order.

@@ -75,7 +75,7 @@ None.
 
 ## Tests
 
-- Unit tests (MCID allocation, ParentTree writer); `crates/lamina-build/tests/tagging.rs`; TS tests in `packages/pdf/test/tagging.test.ts`.
+- Unit tests (MCID allocation, ParentTree writer); `crates/lamina-build/tests/tagging.rs`; TS tests in `packages/sdk/test/tagging.test.ts`.
 
 ## Docs to update
 

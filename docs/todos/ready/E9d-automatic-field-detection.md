@@ -38,7 +38,7 @@ Suggest fields on flat (non-interactive) forms from ruling lines, boxes, undersc
 
 **Editor facts**
 
-- **Crates and packages:** `lamina-content`, `lamina-text`, `@lamina/ui`
+- **Crates and packages:** `lamina-content`, `lamina-text`, `@laminapdf/ui`
 - **`Op` variants:** suggestions become `CreateField` ops on accept
 - **`SaveConstraint`:** `Free` → incremental. Signed: creating/changing field definitions is not form filling (class `Document`), so it is a DocMDP violation at every certification level (ADR 0007 §2: P1 allows no changes; P2 allows only form filling, page templates and signing; P3 adds annotations) → saved only after the user confirms invalidating the named signatures (ADR 0007 §3 override). With approval signatures only (no certification): `AppendOnly`, an incremental update that keeps their `/ByteRange` intact; changing or removing a field locked by FieldMDP/`/Lock`, or a signature field, is a violation
 - **Web vs desktop:** identical

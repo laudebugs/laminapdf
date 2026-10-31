@@ -3,7 +3,7 @@
 - **Status:** Draft
 - **Date:** 2026-10-28
 - **Builds on:** [architecture plan](architecture.md) Round D (ADRs 0008, 0014; spike `desktop-ipc`) and the [architecture research report](../research/architecture/app-and-package-architecture.md) (Tauri and distribution sections, [desktop notes](../research/architecture/notes/desktop-shell.md))
-- **Depends on:** [web-app.md](web-app.md) Rounds C2–C4 (`lamina-render`, `@lamina/viewer`, `@lamina/ui`, `Platform` adapter)
+- **Depends on:** [web-app.md](web-app.md) Rounds C2–C4 (`lamina-render`, `@laminapdf/viewer`, `@laminapdf/ui`, `Platform` adapter)
 - **UI/UX:** [ui-ux.md](ui-ux.md) (layout, modes, command registry; native menus in D4b are generated from it)
 - **Roadmap:** [roadmap.md](roadmap.md)
 
@@ -48,7 +48,7 @@ A native **PDF reader for macOS, Windows and Linux** built with Tauri 2. It reus
 ### Functional
 
 1. **Open** from file association, argv, drag-drop, menu, recent files; `single-instance` forwards to the running app; macOS `RunEvent::Opened` handled.
-2. **Parity** with the web reader UI (shared `@lamina/ui`); differences go through `Platform` capability flags, never `if (isTauri)`.
+2. **Parity** with the web reader UI (shared `@laminapdf/ui`); differences go through `Platform` capability flags, never `if (isTauri)`.
 3. **Native core**: `src-tauri` links `crates/*` by path. Parse and render in a child process; a crash shows "document process restarted" and reloads the document.
 4. **Tiles** reach the webview over the transport chosen by the `desktop-ipc` spike (Channel with raw RGBA, `ipc::Response`, or `lamina://tile/...` custom scheme).
 5. **Windows and tabs**: new window, new tab, move tab to window, restore session.
@@ -81,7 +81,7 @@ A native **PDF reader for macOS, Windows and Linux** built with Tauri 2. It reus
 
 Architecture details are in [architecture.md](architecture.md) and the report; the desktop app adds:
 
-- **Layout**: `apps/desktop` is a pnpm package (frontend: `@lamina/ui` + desktop `Platform` adapter) with `src-tauri/` as a Cargo workspace member ([code organisation §1](../guidelines/code-organization.md#1-top-level-layout)).
+- **Layout**: `apps/desktop` is a pnpm package (frontend: `@laminapdf/ui` + desktop `Platform` adapter) with `src-tauri/` as a Cargo workspace member ([code organisation §1](../guidelines/code-organization.md#1-top-level-layout)).
 - **Process model** (ADR 0008): Tauri main process (windows, menus, updater, file I/O only: positioned reads and file watching) → one sandboxed engine process per window or per N documents that does all parsing and rendering of untrusted files with the core crates + `lamina-render` (native PDFium via `pdfium-render`). Tiles of 256–512 px.
 - **Platform adapter**: `canWriteInPlace: true`, `canWatchFiles: true`, `hasNativePrint: true`, `multiWindow: true`.
 - **Distribution** (ADR 0014): GitHub Actions + tauri-action matrix → R2 `releases/{version}/{target}-{arch}/` with `.sig` files → channel manifests in R2/KV → `apps/updates` Worker at `updates.laminapdf.com/{channel}/{target}/{arch}/{current_version}` returning 204 or 200 JSON; downloads from `downloads.laminapdf.com` (R2 custom domain). Rollout percentage from a hash of an anonymous install ID. The updater URL only substitutes `{{target}}`, `{{arch}}` and `{{current_version}}`, so the app sends the ID in a custom request header (`Lamina-Install-Id`) set with the updater plugin's `UpdaterBuilder::header` in Rust or `check({ headers })` in JS ([Tauri updater plugin](https://v2.tauri.app/plugin/updater/)). The ID is a random UUID created on first run, stored only in the app's config, resettable in settings and never linked to crash reports; the Worker hashes it with the release version to pick a bucket and does not log it. A request without the header is served only releases at 100% rollout. ADR 0014 and the privacy page describe this.

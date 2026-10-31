@@ -18,6 +18,6 @@ Both have the same fields on every surface: `code`, `kind` (`input`, `limit`, `u
 - **`kind` sorts errors by who can fix them.** For example, a server returns a 4xx for `input` and `limit` and a 5xx for the rest. The [Worker quick start](/quick-start/workers/) does exactly that.
 - **Text from the document is untrusted.** It's never in `message` or `hint`. It goes only in `data`.
 
-<Snippet file="packages/pdf/examples/open-untrusted.ts" />
+<Snippet file="packages/sdk/examples/open-untrusted.ts" />
 
 Every code, with its kind, summary and hint, is listed in the [code reference](/reference/codes/), which is generated from `fixtures/codes.json`.
