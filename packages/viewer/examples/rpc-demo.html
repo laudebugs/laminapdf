@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Viewer RPC demo</title>
+    <style>
+      body { font: 15px/1.4 system-ui, sans-serif; margin: 16px; background: #f7f5f0; color: #1f1d1a; }
+      canvas { display: block; margin-top: 12px; max-width: 100%; box-shadow: 0 1px 4px #0003; background: #fff; }
+      #status { margin-top: 8px; color: #5c574f; }
+    </style>
+  </head>
+  <body>
+    <h1>Viewer RPC demo</h1>
+    <p>Open a PDF: the document worker opens it and draws page 1 (C3a manual check).</p>
+    <input id="file" type="file" accept="application/pdf" />
+    <div id="status">Starting the worker…</div>
+    <canvas id="page"></canvas>
+    <script type="module" src="./rpc-demo.ts"></script>
+  </body>
+</html>

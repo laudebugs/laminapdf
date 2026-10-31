@@ -5,8 +5,8 @@ import type { Diagnostic } from "../errors.js";
 import type { ErrorCode } from "../generated/codes.js";
 import { VERSION } from "../version.js";
 
-/** Bumped whenever a message's shape changes. */
-export const PROTOCOL_VERSION = 1;
+/** Bumped whenever a message's shape changes (2: priorities, coalescing keys, extension events). */
+export const PROTOCOL_VERSION = 2;
 
 /** What both ends compare on connect. */
 export interface Handshake {
@@ -37,6 +37,10 @@ export interface Request {
   readonly handle: number;
   readonly method: string;
   readonly params: readonly unknown[];
+  /** Higher runs first (default 0); FIFO within one priority. */
+  readonly priority?: number;
+  /** Calls with the same key are coalesced: they run once, and each caller gets its own answer. */
+  readonly key?: string;
 }
 
 /** Stops call `id`: dropped if it hasn't started, cancelled at its next step if it is stepped. */
@@ -52,7 +56,9 @@ export type Response =
 /** Fire-and-forget news from the worker. */
 export type Event =
   | { readonly kind: "progress"; readonly id: number; readonly progress: unknown }
-  | { readonly kind: "crashed"; readonly reason: string };
+  | { readonly kind: "crashed"; readonly reason: string }
+  /** An extension's own news (`emit()` in the worker, `on("event")` on the page). */
+  | { readonly kind: "event"; readonly name: string; readonly data: unknown };
 
 export type ToWorker = Hello | Request | Cancel;
 export type FromWorker = Welcome | Response | Event;

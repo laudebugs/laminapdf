@@ -1,0 +1,28 @@
+{
+  "$schema": "../../node_modules/@biomejs/biome/configuration_schema.json",
+  "root": false,
+  "extends": "//",
+  "overrides": [
+    {
+      "includes": ["src/**", "test/**", "examples/**"],
+      "linter": {
+        "rules": {
+          "correctness": {
+            "noNodejsModules": "error"
+          },
+          "style": {
+            "noRestrictedGlobals": {
+              "level": "error",
+              "options": {
+                "deniedGlobals": {
+                  "Buffer": "Node-only: use Uint8Array.",
+                  "process": "Node-only: pass configuration in from the caller."
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}

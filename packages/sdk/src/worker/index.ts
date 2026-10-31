@@ -3,4 +3,4 @@ export type { ConnectOptions, RemoteHttpOptions, WorkerInitOptions, WorkerWasmSo
 export { connect, WorkerClient } from "./client.js";
 export { PROTOCOL_VERSION } from "./protocol.js";
 export type { ExcludedDocumentMembers, ExcludedPageMembers } from "./support.js";
-export type { CallOptions, RemoteDocument, RemoteMember, RemotePage, RemoteResult } from "./types.js";
+export type { CallOptions, RemoteDocument, RemoteMember, RemotePage, RemoteResult, RequestOptions } from "./types.js";
