@@ -174,8 +174,16 @@ fn commands(runtime: &str) -> Result<Vec<Vec<&'static str>>> {
 fn render_suites(ws: &Workspace, browser: &str) -> Result<()> {
     crate::run(&ws.root, "pnpm", &["--filter", "@laminapdf/render", "run", "build"])?;
     // The viewer's document worker and RPC (C3a), over the built package.
-    crate::run(&ws.root, "pnpm", &["--filter", "@laminapdf/viewer", "run", "build:wasm"])?;
-    for package in ["@laminapdf/render-pdfium", "@laminapdf/render-hayro", "@laminapdf/viewer"] {
+    crate::run(
+        &ws.root,
+        "pnpm",
+        &["--filter", "@laminapdf/viewer", "run", "build:wasm"],
+    )?;
+    for package in [
+        "@laminapdf/render-pdfium",
+        "@laminapdf/render-hayro",
+        "@laminapdf/viewer",
+    ] {
         let mut args = vec!["--filter", package, "exec"];
         args.extend(vitest("vitest.browser.config.ts", &[browser]));
         crate::run(&ws.root, "pnpm", &args)?;
