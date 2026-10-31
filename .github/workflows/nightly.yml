@@ -434,7 +434,8 @@ jobs:
   render-diff:
     name: Render diffs (hayro vs PDFium)
     runs-on: [self-hosted, macOS, ARM64]
-    timeout-minutes: 120
+    # The whole corpus took about an hour on the shared Mac (2,172 files, 5,108 pages).
+    timeout-minutes: 180
     permissions:
       contents: write
     outputs:
