@@ -70,6 +70,7 @@ Turn the Paper design language's colours, type, spacing, shape, depth and layout
 - [ ] Wire `pnpm --filter @lamina/tokens generate --check` into the package's `test` script so `cargo xtask check ts` catches stale output; add the generated paths to `.gitattributes`.
 - [ ] Apply the owner's answers: approved values get `status: "approved"`; changed values are changed in the JSON, the design language and (noted for the next canvas edit) the canvases; refused values are replaced before merge.
 - [ ] Update the design language (see Docs to update) and the package README (layers, how to add a token, how to declare a pair, the generated table of pairs and ratios).
+- [ ] Switch the docs site to `@lamina/tokens` (it themes Starlight with an interim copy from [U6g](../done/U6g-docs-site-paper.md)) and delete its `--paper-*` block in `apps/docs/src/styles/paper.css`.
 
 ## Acceptance criteria
 

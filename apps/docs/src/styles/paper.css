@@ -2,9 +2,11 @@
  * The docs site in lamina's Paper design language (docs/design/paper/design-language.md):
  * warm paper grounds, ink text, hairline rules, one deep teal accent, Newsreader for titles and
  * Source Sans 3 for everything else. Starlight is themed through its CSS custom properties
- * (`--sl-*`); the `--paper-*` names are the design language's tokens (§2), so the site and
- * `@lamina/ui` read the same values. Light is the design language's §2.1 theme; dark is its
- * proposed §2.3 theme. Colours for asides (note, tip, caution, danger) map to `accent`,
+ * (`--sl-*`); the `--paper-*` names are the design language's token names (§2) and their
+ * values are copied from it by hand. Keep them in step with the design language until U6a's
+ * `@lamina/tokens` and U6b's `@lamina/fonts` exist; then this file imports those packages and
+ * drops its copies (a task in both todos). Light is the design language's §2.1 theme; dark is
+ * its proposed §2.3 theme. Colours for asides (note, tip, caution, danger) map to `accent`,
  * Plum, `warning` and `danger`.
  */
 
@@ -41,6 +43,17 @@
     U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
 }
 @font-face {
+  font-family: "Newsreader";
+  font-style: italic;
+  font-display: swap;
+  font-weight: 200 800;
+  src: url("../fonts/newsreader-latin-ext-standard-italic.woff2") format("woff2-variations");
+  unicode-range:
+    U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308,
+    U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113,
+    U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
   font-family: "Source Sans 3";
   font-style: normal;
   font-display: swap;
@@ -71,9 +84,23 @@
     U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304,
     U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
 }
+@font-face {
+  font-family: "Source Sans 3";
+  font-style: italic;
+  font-display: swap;
+  font-weight: 200 900;
+  src: url("../fonts/source-sans-3-latin-ext-wght-italic.woff2") format("woff2-variations");
+  unicode-range:
+    U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308,
+    U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113,
+    U+2C60-2C7F, U+A720-A7FF;
+}
 
-/* Dark: the proposed Paper dark theme (§2.3). Starlight's default (unthemed) mode is dark. */
-:root {
+/* Dark: the proposed Paper dark theme (§2.3). Starlight's default (unthemed) mode is dark.
+   `::backdrop` as well, as Starlight does: it doesn't inherit from `:root` in every browser,
+   and the search dialog's overlay reads `--sl-color-backdrop-overlay` there. */
+:root,
+::backdrop {
   --paper-ground: #1e1d1a;
   --paper-surface: #262421;
   --paper-raised: #2e2c28;
@@ -117,7 +144,9 @@
   --sl-color-hairline-shade: var(--paper-ground);
   --sl-color-backdrop-overlay: rgba(0, 0, 0, 0.5);
 
-  /* Asides (dark): low is the background, base the edge, high the text. (proposed) */
+  /* Asides (dark, proposed for U6a to review): low is the background, base the edge, high the
+     title. WCAG ratios on low: high 6.61 / 6.34 / 8.08 / 7.55 / 7.53 (blue, purple, orange, red,
+     green), body text 9.19 to 10.68, edge 5.06 to 6.16. */
   --sl-color-blue-low: var(--paper-accent-tint);
   --sl-color-blue: var(--paper-accent);
   --sl-color-blue-high: var(--paper-accent-strong);
@@ -140,7 +169,8 @@
 }
 
 /* Light: the Paper light theme (§2.1). */
-:root[data-theme="light"] {
+:root[data-theme="light"],
+[data-theme="light"] ::backdrop {
   --paper-ground: #f7f4ee;
   --paper-surface: #fbf9f5;
   --paper-raised: #ffffff;
@@ -187,7 +217,9 @@
   --sl-color-hairline-shade: var(--paper-hairline);
   --sl-color-backdrop-overlay: rgba(31, 29, 26, 0.3);
 
-  /* Asides (light): tints over `surface`, the token as the edge and the text (§2.1). */
+  /* Asides (light): tints over `surface`, the token as the edge and the title (§2.1, §2.8).
+     WCAG ratios on low: title 8.37 / 9.63 / 5.21 / 6.31 / 5.32 (blue, purple, orange, red,
+     green), body text 13.16 to 13.92. */
   --sl-color-blue-low: var(--paper-accent-tint);
   --sl-color-blue: var(--paper-accent);
   --sl-color-blue-high: var(--paper-accent-strong);
@@ -230,19 +262,11 @@ h1#_top,
   color: var(--paper-text);
 }
 
-/* Links: the accent, underlined, `accent-strong` on hover (§2.1). */
-.sl-markdown-content a:not(:where(.not-content *)) {
-  color: var(--paper-accent);
-  text-underline-offset: 0.15em;
-}
-.sl-markdown-content a:not(:where(.not-content *)):hover {
-  color: var(--paper-accent-strong);
-}
-
-/* Focus: the accent, 2 px (§2.1 `focus`). */
+/* Focus: the accent, 2 px (§2.1 `focus`). Only colour and width: Starlight's own offsets stay
+   (inside offsets on the table of contents and tabs, whose containers would clip a ring drawn
+   outside). */
 :focus-visible {
   outline: 2px solid var(--paper-accent);
-  outline-offset: 2px;
 }
 
 /* Tables: hairline rules instead of boxes, tabular numerals (§3 rules). */
