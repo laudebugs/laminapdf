@@ -2,7 +2,7 @@
 // the sync one on the corpus, the handshake refuses another build, cancellation before and
 // during a stepped save, transfers, rebuilt LaminaErrors, crash and restart, async disposal.
 import { Document, init, isLaminaError, LaminaError, loadText } from "@lamina/pdf";
-import { connect, type RemoteDocument, type WorkerClient } from "@lamina/pdf/worker";
+import { connect, type RemoteDocument, WorkerClient } from "@lamina/pdf/worker";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { report } from "../../examples/report.js";
 import { workerClient } from "../../examples/worker-client.js";
@@ -231,6 +231,59 @@ describe("the worker client's lifecycle", () => {
   });
 });
 
+describe("the worker client, second review", () => {
+  it("passes openRange's budget through openUrl", async () => {
+    const path = "fixtures/corpus/text-example.pdf";
+    const url = new URL(urls[`../../../../${path}`] ?? "", globalThis.location.href).href;
+    const e = await rejection(client.openUrl(url, { budget: 1024, blockSize: 1024 }));
+    expect(isLaminaError(e, "source-budget-exceeded")).toBe(true);
+  });
+
+  it("reuses one handle per page", async () => {
+    const before = (await stats()).handles;
+    await using doc = await client.open(await read("fixtures/corpus/hello.pdf"));
+    await doc.page(0);
+    await doc.page(0);
+    expect((await stats()).handles).toBe(before + 2);
+  });
+
+  it("copies, not detaches, a subarray passed with transfer: true", async () => {
+    const bytes = await read("fixtures/corpus/hello.pdf");
+    const big = new Uint8Array(bytes.byteLength + 16);
+    big.set(bytes, 16);
+    await using doc = await client.open(big.subarray(16), { transfer: true });
+    expect(big.byteLength).toBe(bytes.byteLength + 16);
+    expect(await doc.pageCount()).toBe(1);
+  });
+
+  it("rejects an init the worker can't receive with invalid-argument", async () => {
+    const e = await rejection(connect({ init: { module: new Response("x") as never } }));
+    expect(isLaminaError(e, "invalid-argument")).toBe(true);
+  });
+
+  it("ends a worker stuck in its handshake on terminate(), and an aborted call waiting for it", async () => {
+    const silent = new Worker(
+      URL.createObjectURL(new Blob(["self.onmessage = () => {};"], { type: "text/javascript" })),
+    );
+    const stuck = new WorkerClient({ worker: silent });
+    const starting = stuck.start();
+    const controller = new AbortController();
+    const waiting = stuck.loadText({ signal: controller.signal });
+    controller.abort();
+    expect(isLaminaError(await rejection(waiting), "cancelled")).toBe(true);
+    stuck.terminate();
+    expect(isLaminaError(await rejection(starting), "worker-crashed")).toBe(true);
+  });
+
+  it("leaves no cancel behind for calls that already finished", async () => {
+    const controller = new AbortController();
+    await using doc = await client.open(await read("fixtures/corpus/hello.pdf"));
+    await doc.pageCount({ signal: controller.signal });
+    controller.abort();
+    expect((await stats()).cancels).toBe(0);
+  });
+});
+
 /** A test-only method of the worker (`__stats`, `__budget`, `__crash`). */
 function internal(method: string, params: unknown[] = []): Promise<unknown> {
   return (client as unknown as { call: (h: number, m: string, p: unknown[]) => Promise<unknown> }).call(
@@ -240,6 +293,6 @@ function internal(method: string, params: unknown[] = []): Promise<unknown> {
   );
 }
 
-async function stats(): Promise<{ started: number; handles: number }> {
-  return (await internal("__stats")) as { started: number; handles: number };
+async function stats(): Promise<{ started: number; handles: number; cancels: number }> {
+  return (await internal("__stats")) as { started: number; handles: number; cancels: number };
 }

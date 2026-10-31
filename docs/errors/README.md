@@ -182,3 +182,4 @@ A PR that adds a code adds:
 | [`disposed`](disposed.md) | `state` | a document, builder or other handle was used after free(), or after the using block that held it ended |
 | [`worker-version-mismatch`](worker-version-mismatch.md) | `usage` | the worker answered with a different protocol or package version than the client |
 | [`worker-crashed`](worker-crashed.md) | `internal` | the worker running lamina stopped (an uncaught error, a WebAssembly trap or out of memory); calls in flight were rejected |
+| [`worker-failed`](worker-failed.md) | `internal` | the worker client failed with an error that isn't lamina's (a bug in @lamina/pdf/worker, or a result it couldn't send) |

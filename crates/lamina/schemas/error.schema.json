@@ -83,7 +83,8 @@
             "text-module-not-loaded",
             "disposed",
             "worker-version-mismatch",
-            "worker-crashed"
+            "worker-crashed",
+            "worker-failed"
           ]
         },
         "data": {

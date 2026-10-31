@@ -154,14 +154,15 @@ const updated = await doc.save({ mode: "incremental" }, { signal, onProgress: (p
   - `Builder`: its callbacks (`path`, `tag`) can't cross either. Build on the main thread or in your own worker.
 
   `tsc` fails if a new sync method is neither served nor excluded (`src/worker/support.ts`).
-- **Remote files:** `client.openUrl(url, options)` opens a file by range requests in the worker; every call fetches what it needs first. Its options are `httpRangeSource`'s, without a custom `fetch` (a function can't be sent to the worker).
+- **Remote files:** `client.openUrl(url, options)` opens a file by range requests in the worker; every call fetches what it needs first. Its options are `httpRangeSource`'s, without a custom `fetch` (a function can't be sent to the worker), and `openRange`'s (`budget`, `readahead`, `maxRounds`). Aborting the call's `signal` also cancels the fetches in flight.
 - **Cancellation:** pass `signal` to any call. An aborted call rejects at once with `LaminaError` `cancelled`, whose `cause` is the signal's reason, and a late answer is dropped.
   - **Not started yet:** the call never runs.
   - **`save` / `saveWithReport`:** they run as stepped jobs and stop at the next step. The document stays usable.
   - **Every other call:** one synchronous call in the worker, so it can't be stopped midway (`open` included). `client.terminate()` is the hard stop.
 - **Transfers:** `save()` bytes and page text arrays come back transferred. Inputs are copied unless you pass `transfer: true`, which detaches your buffer.
 - **Errors:** errors are `LaminaError` on the main thread, with every ADR 0026 field. If the worker crashes (an uncaught error, a WebAssembly trap, out of memory), pending calls reject with `worker-crashed` and `client.on("crashed", …)` fires. `client.restart()` starts a new worker. Calls made while it starts wait for it, and the old worker's handles reject with `disposed` (their `close()` does nothing). `terminate()` doesn't fire `crashed`. There's no heartbeat, so a long call is not a crash.
-- **Unsendable parameters:** a parameter the worker can't receive (a function, an untransferable buffer with `transfer: true`) rejects with `invalid-argument`, as do unknown methods.
+- **Unsendable parameters:** a parameter the worker can't receive (a function) rejects with `invalid-argument`, as do unknown methods. With `transfer: true`, only a buffer the input covers whole moves; a subarray or a `SharedArrayBuffer` view is copied. An error inside the worker that isn't lamina's is `worker-failed` (internal: a bug to report).
+- **`init`:** `connect({ init })` takes what can be sent to a worker: a URL (string or `URL`, resolved against the page), bytes or a `WebAssembly.Module`, alone or as `{ module, text, extract }`. A `Response` can't cross.
 - **Version handshake:** on connect, the worker and the client compare their protocol and package versions. A worker from another build rejects `connect()` with `worker-version-mismatch` (PDF.js's version-mismatch lesson).
 - **Bundlers:** `connect()` contains the literal `new Worker(new URL("./entry.js", import.meta.url), { type: "module" })`, which Vite and webpack bundle with no config (`test/browser/vite-build.test.ts` builds and runs one). In Vite, keep the package out of pre-bundling (`optimizeDeps: { exclude: ["@lamina/pdf"] }`), as for the main entry.
 - **CSP or your own hosting:** pass `connect({ worker: () => new Worker(url, { type: "module" }) })`. A factory, so that `restart()` can make a new one.

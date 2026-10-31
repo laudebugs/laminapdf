@@ -13,7 +13,8 @@ export interface CallOptions {
   readonly onProgress?: (progress: Progress) => void;
   /**
    * Transfer the input buffer to the worker instead of copying it: faster for large files, but
-   * the caller's buffer is detached (empty) afterwards. Default `false` (copy).
+   * the caller's buffer is detached (empty) afterwards. Default `false` (copy). Only a buffer
+   * the input covers whole moves: a subarray or a `SharedArrayBuffer` view is copied.
    */
   readonly transfer?: boolean;
 }

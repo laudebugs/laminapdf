@@ -103,6 +103,7 @@ function kindOf(code: ErrorCode): ErrorKind {
       return "cancelled";
     case "unset-object":
     case "worker-crashed":
+    case "worker-failed":
       return "internal";
     default: {
       const unhandled: never = code;

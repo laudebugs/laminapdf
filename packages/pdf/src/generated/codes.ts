@@ -93,7 +93,8 @@ export type ErrorCode =
   | "text-module-not-loaded"
   | "disposed"
   | "worker-version-mismatch"
-  | "worker-crashed";
+  | "worker-crashed"
+  | "worker-failed";
 
 /** Every warning code (ADR 0026 §3; `fixtures/codes.json`). */
 export type WarningCode =
@@ -230,6 +231,7 @@ export const ERROR_CODES: readonly ErrorCode[] = [
   "disposed",
   "worker-version-mismatch",
   "worker-crashed",
+  "worker-failed",
 ];
 
 /** Every warning code, in `codes.json` order. */
@@ -389,6 +391,7 @@ export const KINDS: { readonly [C in ErrorCode | WarningCode]: ErrorKind } = {
   "disposed": "state",
   "worker-version-mismatch": "usage",
   "worker-crashed": "internal",
+  "worker-failed": "internal",
 };
 
 /** The hint of every code (ADR 0026 §5), with its `{limit}`/`{option}` parameters unfilled. */
@@ -508,6 +511,7 @@ export const HINTS: { readonly [C in ErrorCode | WarningCode]: string } = {
   "disposed": "free a handle only after its last use; to keep working, open the document again or create a new builder",
   "worker-version-mismatch": "serve the worker file from the same @lamina/pdf build as the page; don't load it from a CDN or an older deploy",
   "worker-crashed": "call client.restart() and open the document again; report the file if it keeps happening",
+  "worker-failed": "this is a lamina bug: report it with the call and the message; the worker keeps running",
 };
 
 /** `docsUrl` = base + code + suffix (ADR 0026 §6). */
@@ -558,4 +562,5 @@ export const RAISED_BY_PACKAGE = {
   "disposed": { kind: "state", hint: "free a handle only after its last use; to keep working, open the document again or create a new builder" },
   "worker-version-mismatch": { kind: "usage", hint: "serve the worker file from the same @lamina/pdf build as the page; don't load it from a CDN or an older deploy" },
   "worker-crashed": { kind: "internal", hint: "call client.restart() and open the document again; report the file if it keeps happening" },
+  "worker-failed": { kind: "internal", hint: "this is a lamina bug: report it with the call and the message; the worker keeps running" },
 } as const;

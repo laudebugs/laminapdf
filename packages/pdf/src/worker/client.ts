@@ -8,8 +8,8 @@
 // with `worker-crashed` and emits `crashed`; `restart()` starts a new worker. No heartbeat.
 import { type Diagnostic, LaminaError, packageError } from "../errors.js";
 import type { ErrorCode } from "../generated/codes.js";
-import type { InitOptions, WasmSource } from "../init.js";
 import type { HttpRangeOptions } from "../source/http.js";
+import type { RangeOptions } from "../source/range.js";
 import { PageText } from "../text.js";
 import type { OpenOptions, Progress } from "../types.js";
 import {
@@ -28,8 +28,59 @@ import type { CallOptions, RemoteDocument } from "./types.js";
 /** `Symbol.asyncDispose` where the runtime has it, else the registered symbol (no globals touched). */
 const ASYNC_DISPOSE: symbol = (Symbol as { asyncDispose?: symbol }).asyncDispose ?? Symbol.for("Symbol.asyncDispose");
 
-/** `openUrl`'s HTTP options: everything but a custom `fetch` (a function can't reach the worker). */
-export type RemoteHttpOptions = Omit<HttpRangeOptions, "fetch" | "signal">;
+/**
+ * `openUrl`'s options besides `OpenOptions`: `httpRangeSource`'s without a custom `fetch` (a
+ * function can't reach the worker), and `openRange`'s (`budget`, `readahead`, `maxRounds`).
+ * `signal` is the call's (`CallOptions`), and cancels the fetches in flight too.
+ */
+export type RemoteHttpOptions = Omit<HttpRangeOptions, "fetch" | "signal"> & Omit<RangeOptions, "signal">;
+
+/**
+ * Where the worker loads a WebAssembly module from: what can be sent to a worker. A string or
+ * `URL` is resolved against the page (not the worker file) before it is sent. A `Response`
+ * can't cross: pass its bytes, or a `WebAssembly.Module`.
+ */
+export type WorkerWasmSource = string | URL | ArrayBuffer | ArrayBufferView | WebAssembly.Module;
+
+/** `init()`'s options, with sources the worker can receive. */
+export interface WorkerInitOptions {
+  readonly module?: WorkerWasmSource;
+  readonly text?: boolean | WorkerWasmSource;
+  readonly extract?: boolean | WorkerWasmSource;
+}
+
+/** `source` as sent to the worker: URLs made absolute against the page. */
+function sendable<T>(source: T): T | string {
+  if (source instanceof URL) return source.href;
+  if (typeof source === "string") {
+    const base = (globalThis as { location?: { href: string } }).location?.href;
+    return base === undefined ? source : new URL(source, base).href;
+  }
+  return source;
+}
+
+function sendableInit(init: WorkerWasmSource | WorkerInitOptions): unknown {
+  if (
+    typeof init === "string" ||
+    init instanceof URL ||
+    init instanceof ArrayBuffer ||
+    ArrayBuffer.isView(init) ||
+    init instanceof WebAssembly.Module
+  ) {
+    return sendable(init);
+  }
+  const out: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(init)) if (v !== undefined) out[k] = typeof v === "boolean" ? v : sendable(v);
+  return out;
+}
+
+/** The buffer of `p` if transferring it moves exactly `p` (not a larger or shared buffer). */
+function whole(p: unknown): ArrayBuffer[] {
+  if (p instanceof ArrayBuffer) return [p];
+  if (!ArrayBuffer.isView(p)) return [];
+  const { buffer } = p;
+  return buffer instanceof ArrayBuffer && p.byteOffset === 0 && p.byteLength === buffer.byteLength ? [buffer] : [];
+}
 
 export interface ConnectOptions {
   /**
@@ -41,7 +92,7 @@ export interface ConnectOptions {
   /** Aborts connecting. */
   readonly signal?: AbortSignal;
   /** What the worker passes to `init()`: where the WebAssembly comes from, and options. */
-  readonly init?: WasmSource | InitOptions;
+  readonly init?: WorkerWasmSource | WorkerInitOptions;
 }
 
 interface Pending {
@@ -74,13 +125,14 @@ export async function connect(options: ConnectOptions = {}): Promise<WorkerClien
 /** A connection to one lamina worker. */
 export class WorkerClient {
   readonly #factory: () => Worker;
-  readonly #init: WasmSource | InitOptions | undefined;
+  readonly #init: WorkerWasmSource | WorkerInitOptions | undefined;
   readonly #pending = new Map<number, Pending>();
   readonly #listeners = new Set<CrashListener>();
   /** The worker once its handshake succeeded; undefined while starting, stopped or crashed. */
   #worker: Worker | undefined;
-  /** The handshake in progress (calls made meanwhile wait for it). */
+  /** The handshake in progress (calls made meanwhile wait for it), and how `#stop` ends it. */
   #starting: Promise<void> | undefined;
+  #cancelStart: ((error: unknown) => void) | undefined;
   /**
    * Bumped for each worker: a handle remembers the generation it was made in, so a handle of a
    * worker that's gone is `disposed` instead of reaching the new worker's objects.
@@ -129,6 +181,7 @@ export class WorkerClient {
       const welcome = await new Promise<{ worker: Handshake; error?: Diagnostic<ErrorCode> }>((resolve, reject) => {
         onAbort = () => reject(packageError("cancelled", "connecting was cancelled", { cause: signal?.reason }));
         signal?.addEventListener("abort", onAbort, { once: true });
+        this.#cancelStart = reject;
         worker.onmessage = (event: MessageEvent<FromWorker>) => {
           if (event.data.kind === "welcome") resolve(event.data);
         };
@@ -136,12 +189,17 @@ export class WorkerClient {
           event.preventDefault();
           reject(crashed("the worker failed to start", "error"));
         };
+        worker.onmessageerror = () => reject(crashed("the worker's answer couldn't be read", "messageerror"));
         const hello: ToWorker = {
           kind: "hello",
           client: HANDSHAKE,
-          ...(this.#init === undefined ? {} : { init: this.#init }),
+          ...(this.#init === undefined ? {} : { init: sendableInit(this.#init) }),
         };
-        worker.postMessage(hello);
+        try {
+          worker.postMessage(hello);
+        } catch (e) {
+          reject(packageError("invalid-argument", "connect()'s `init` can't be sent to the worker", { cause: e }));
+        }
       });
       if (welcome.worker.protocol !== HANDSHAKE.protocol || welcome.worker.version !== HANDSHAKE.version) {
         throw packageError("worker-version-mismatch", "the worker is from another @lamina/pdf build", {
@@ -153,6 +211,7 @@ export class WorkerClient {
       worker.terminate();
       throw e;
     } finally {
+      this.#cancelStart = undefined;
       if (onAbort !== undefined) signal?.removeEventListener("abort", onAbort);
     }
     if (generation !== this.#generation) {
@@ -198,6 +257,8 @@ export class WorkerClient {
     // Handles of this worker, and a start in progress, are now stale.
     this.#generation++;
     worker?.terminate();
+    // A worker still in its handshake (a stalled `init()`) is ended too.
+    this.#cancelStart?.(crashed("the worker was stopped while it started", reason));
     const pending = [...this.#pending.values()];
     this.#pending.clear();
     for (const p of pending) p.reject(crashed("the worker stopped", reason));
@@ -244,8 +305,12 @@ export class WorkerClient {
     generation?: number,
   ): Promise<unknown> {
     if (this.#worker === undefined && this.#starting !== undefined) {
-      // The start's own error reaches its caller; here, the call just finds no worker.
-      await this.#starting.catch(() => {});
+      // The start's own error reaches its caller; here, the call just finds no worker. The
+      // call's signal still rejects it meanwhile.
+      await waitWithSignal(
+        this.#starting.catch(() => {}),
+        options.signal,
+      );
     }
     const worker = this.#worker;
     if (worker === undefined) {
@@ -274,10 +339,8 @@ export class WorkerClient {
       signal?.addEventListener("abort", onAbort, { once: true });
       this.#pending.set(id, { resolve: settle(resolve), reject: settle(reject), onProgress });
       const request: Request = { kind: "call", id, handle, method, params };
-      const buffers =
-        transfer === true
-          ? params.flatMap((p) => (ArrayBuffer.isView(p) ? [p.buffer] : p instanceof ArrayBuffer ? [p] : []))
-          : [];
+      // Only a buffer the parameter covers whole moves; a subarray or a shared buffer is copied.
+      const buffers = transfer === true ? params.flatMap(whole) : [];
       try {
         worker.postMessage(request, buffers as Transferable[]);
       } catch (e) {
@@ -337,6 +400,25 @@ export class WorkerClient {
       return value;
     };
     return remote(this, ref.$handle, generation, DOCUMENT_METHODS, close, incoming) as RemoteDocument;
+  }
+}
+
+/** Waits for `p`, or rejects with `cancelled` when `signal` aborts first. */
+async function waitWithSignal(p: Promise<unknown>, signal: AbortSignal | undefined): Promise<void> {
+  if (signal === undefined) {
+    await p;
+    return;
+  }
+  let onAbort: (() => void) | undefined;
+  const aborted = new Promise<never>((_, reject) => {
+    onAbort = () => reject(packageError("cancelled", "the call was cancelled", { cause: signal.reason }));
+    if (signal.aborted) onAbort();
+    else signal.addEventListener("abort", onAbort, { once: true });
+  });
+  try {
+    await Promise.race([p, aborted]);
+  } finally {
+    if (onAbort !== undefined) signal.removeEventListener("abort", onAbort);
   }
 }
 

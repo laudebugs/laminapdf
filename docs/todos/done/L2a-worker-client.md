@@ -120,7 +120,7 @@ What shipped, and where it differs from the plan above:
   - The worker cancels a running `save` at its next step, which yields to the event loop between steps.
   - Other calls aren't interruptible: `terminate()` is the hard stop.
 - **Warnings:** not sent as events. They are read with `doc.warnings()`, as in the sync API.
-- **Errors:** two new package codes, `worker-version-mismatch` and `worker-crashed` (with pages in `docs/errors/`). `packageError` gained a `cause`, and `ALSO_RAISED_BY_TS` lists `cancelled`.
+- **Errors:** three new package codes, `worker-version-mismatch`, `worker-crashed` and `worker-failed` (an internal error in the worker client), with pages in `docs/errors/`. `packageError` gained a `cause`, and `ALSO_RAISED_BY_TS` lists `cancelled`.
 - **Sizes:** `cargo xtask size` now measures three bundles: the worker client (budget 5 KB gzip, measured 3.7 KB) and the worker file (20 KB, measured 14.6 KB), beside the main entry.
 - **Tests:**
   - `test/browser/worker.browser.test.ts` runs in Chromium, Firefox and WebKit. It covers corpus parity, pages and text, `openUrl`, errors, transfers, abort before start and mid-save, async disposal emptying the handle table, the handshake mismatch (a fake worker), crash and restart, and the example.

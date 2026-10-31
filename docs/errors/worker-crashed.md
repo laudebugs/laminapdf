@@ -24,4 +24,4 @@ await doc.save(); // rejects with LaminaError { code: "worker-crashed", … } if
 
 ## Data fields
 
-- `reason`: what ended the worker (`error`, `messageerror` or `trap`).
+- `reason`: what ended the worker: `error`, `messageerror` or `trap` (a crash, which emits `crashed`), or `terminated` (`client.terminate()`, `restart()`, or a call made when no worker runs).
