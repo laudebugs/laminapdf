@@ -104,7 +104,7 @@ Each round is split into one or more todos (one pull request each) on the [todo 
 
 **Deliverable:** ADRs 0004, 0009, 0010, 0011; `crates/lamina-render` with the `RenderBackend` trait and PDFium and hayro adapters; `@lamina/render-pdfium`.
 **Accepted when:** golden render tests pass for both adapters on `fixtures/`; the hayro-vs-PDFium diff runs in the nightly lane.
-**Todos:** [C2a](../todos/ready/C2a-render-adrs.md), [C2b](../todos/ready/C2b-lamina-render-crate.md), [C2c](../todos/ready/C2c-render-packages.md)
+**Todos:** [C2a](../todos/ongoing/C2a-render-adrs.md), [C2b](../todos/ready/C2b-lamina-render-crate.md), [C2c](../todos/ready/C2c-render-packages.md)
 
 ### C3. Viewer core
 

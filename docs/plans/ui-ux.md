@@ -137,7 +137,7 @@ The pipeline for every page view ([C3b](../todos/ready/C3b-viewer-virtualiser-an
 3. Sharp 256–512 px tiles for the viewport plus a margin, cancelled on scroll or zoom.
 4. During a pinch, a CSS transform only; tiles re-render when the gesture ends.
 
-`RenderBackend` takes `(page, scale, clip rect)` and returns a bounded bitmap; no backend allocates a full-page canvas (ADR 0004, [C2a](../todos/ready/C2a-render-adrs.md)). PDFium stays read-only, in a growable-heap WASM build ([C1b](../todos/done/C1b-pdfium-wasm-spike.md)). Sidebars may show skeletons; the canvas never shows a blank page.
+`RenderBackend` takes `(page, scale, clip rect)` and returns a bounded bitmap; no backend allocates a full-page canvas (ADR 0004, [C2a](../todos/ongoing/C2a-render-adrs.md)). PDFium stays read-only, in a growable-heap WASM build ([C1b](../todos/done/C1b-pdfium-wasm-spike.md)). Sidebars may show skeletons; the canvas never shows a blank page.
 
 **Targets.** The owner adopted the research's desktop cold-start and installer-size numbers as release gates (2026-10-29); the other research numbers stay published stretch goals ([U5a](../todos/ready/U5a-pricing-and-promises-page.md)). All are measured against other readers in [U5b](../todos/ready/U5b-reader-benchmark.md).
 
@@ -219,13 +219,13 @@ The research and the owner's decisions on it change todos in other plans (each n
 | Todo | Change |
 | --- | --- |
 | [C1b](../todos/done/C1b-pdfium-wasm-spike.md) | Choose a growable-heap PDFium WASM build; one PDFium instance per worker; record upstream licence notices |
-| [C2a](../todos/ready/C2a-render-adrs.md) | ADR 0004's `RenderBackend` renders tiles `(page, scale, clip)` into bounded bitmaps; PDFium never writes documents |
+| [C2a](../todos/ongoing/C2a-render-adrs.md) | ADR 0004's `RenderBackend` renders tiles `(page, scale, clip)` into bounded bitmaps; PDFium never writes documents |
 | [C3b](../todos/ready/C3b-viewer-virtualiser-and-zoom.md) | The four-step render pipeline in §5.6 and the mobile bitmap caps |
 | [C4a](../todos/ready/C4a-ui-chrome-and-platform.md) | Depends on U1a (ADR 0024 fixes the layout first); `ReaderShell` exposes the rail, inspector and secondary-toolbar slots that U1c fills; buttons reference command ids once U1b lands |
 | [C5a](../todos/ready/C5a-text-layer-and-selection.md) | The viewer emits selection events with rects and runs for U2a |
 | [C6a](../todos/ready/C6a-thumbnails-outline-page-labels.md) | Depends on U1c; thumbnails and outline fill the left rail's tabs instead of a sidebar of their own |
 | [C7a](../todos/ready/C7a-accessibility-and-theming.md) | Depends on U1b and U1c; the keymap and help dialog come from the command registry; the "night reading" filter is replaced by U2c's page modes |
-| [C2a](../todos/ready/C2a-render-adrs.md) (ADR 0011) | Telemetry optional, opt-in and off by default (owner decision 2026-10-29) |
+| [C2a](../todos/ongoing/C2a-render-adrs.md) (ADR 0011) | Telemetry optional, opt-in and off by default (owner decision 2026-10-29) |
 | [C7c](../todos/ready/C7c-performance-gates-and-launch.md) | Also depends on U2a, U2c, U3a and U4a; web gates unchanged (stretch goals are U5a's); launch copy states v0.1's pricing status |
 | [D2d](../todos/ready/D2d-tile-transport-and-first-document.md), [D2e](../todos/ready/D2e-desktop-e2e-webdriverio.md), [D6b](../todos/ready/D6b-release-workflow-and-linux-packages.md), [D7c](../todos/ready/D7c-desktop-beta-release.md) | Desktop gates (owner decision 2026-10-29): cold start < 300 ms measured in D2d and asserted by D2e on the reference runner, installer < 15 MB in D6b's budget step; a miss blocks D7c |
 | [D7a](../todos/ready/D7a-crash-reporting.md), [H1](../todos/ready/H1-auth-spike.md), [H2](../todos/ready/H2-accounts-and-login.md) | Usage analytics via U5c only; pricing questions decided once, in U5a |

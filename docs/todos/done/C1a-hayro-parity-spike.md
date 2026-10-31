@@ -7,7 +7,7 @@
 | Plan | [web reader §6 C1. Rendering spikes](../../plans/web-app.md#c1-rendering-spikes) |
 | Round / milestone | Round C (web reader) — M2 Web reader v0.1 |
 | Depends on | None |
-| Blocks | [C1b](./C1b-pdfium-wasm-spike.md), [C2a](../ready/C2a-render-adrs.md) |
+| Blocks | [C1b](./C1b-pdfium-wasm-spike.md), [C2a](../ongoing/C2a-render-adrs.md) |
 | Dependency notes | None (needs only the merged Round A workspace; it does not load any lamina crate, so it can start before B6 merges) |
 | ADRs | Informs ADR 0004 (`RenderBackend`; PDFium default; hayro oracle; MuPDF prohibited). Must follow [0001](../../decisions/0001-core-language-and-licence.md) (no AGPL/GPL, so no MuPDF even as a comparison), [0018](../../decisions/0018-test-strategy.md) §3 (corpora stay out of git, pinned by SHA-256), [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) |
 | Branch | `spike/c1a-hayro-parity` |
@@ -42,7 +42,7 @@ Answer the [architecture §4](../../plans/architecture.md#4-spikes-to-close-open
 
 - PDFium-WASM size, memory and reload-after-incremental-save measurements in the browser → [C1b](../done/C1b-pdfium-wasm-spike.md).
 - The product `RenderBackend` trait and adapters, render goldens on `fixtures/` → [C2b](../ready/C2b-lamina-render-crate.md); the nightly diff job → [X3b](../ready/X3b-render-diff-nightly.md).
-- Writing ADR 0004 itself → [C2a](../ready/C2a-render-adrs.md).
+- Writing ADR 0004 itself → [C2a](../ongoing/C2a-render-adrs.md).
 - Any MuPDF comparison (AGPL, excluded by ADR 0001).
 
 ## Tasks
