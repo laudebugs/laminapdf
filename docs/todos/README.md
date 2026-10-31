@@ -12,7 +12,7 @@ New todos start from [`TEMPLATE.md`](TEMPLATE.md). The workflow is in [git workf
 
 IDs: `A`/`P`/`X` [architecture](../plans/architecture.md) (foundations, publishing, cross-cutting), `B` [library](../plans/pdf-library.md), `L` [shareable libraries](../plans/shareable-libraries.md) (contracts, worker, extraction, CLI, agent docs, mobile), `C` [web reader](../plans/web-app.md), `D` [desktop reader](../plans/desktop-app.md), `U` [UI/UX](../plans/ui-ux.md), `E` [editor](../plans/full-editor.md), `H` hosted service ([full-editor](../plans/full-editor.md)). A letter suffix (`B2a`, `B2b`) splits a round into PRs.
 
-**1 ongoing · 201 ready · 44 done** (246 total).
+**2 ongoing · 200 ready · 44 done** (246 total).
 
 ## Can start now
 
@@ -23,13 +23,13 @@ Ready todos whose dependencies are all done:
 - [L2b](ready/L2b-disposal-and-memory.md): Disposal and memory bounds: `Symbol.dispose` on every handle, `disposed` code, capped wasm memory, `reset()` and trap recovery
 - [L3a](ready/L3a-lamina-extract-reading-order.md): ADR 0030 and `lamina-extract`: blocks, reading order, headings, lists, header/footer removal, hidden-text flags
 - [L4a](ready/L4a-lamina-cli.md): ADR 0031 and `crates/lamina-cli`: `info`, `check`, `pages rotate`, `extract`, `explain`
-- [C2b](ready/C2b-lamina-render-crate.md): `crates/lamina-render`: the `RenderBackend` trait, PDFium and hayro adapters, render goldens
 - [U1a](ready/U1a-adr-0024-app-shell-ux.md): ADR 0024: app shell UX (layout, modes, command registry, selection, page appearance, mobile)
 - [X6](ready/X6-windows-ci.md): Windows CI coverage
 
 ## Ongoing
 
 - [B9f](ongoing/B9f-live-text-differential.md): Live text differential in the nightly lane: lamina's page text vs pdf.js and pdftotext over the external corpus
+- [C2b](ongoing/C2b-lamina-render-crate.md): `crates/lamina-render`: the `RenderBackend` trait, PDFium and hayro adapters, render goldens
 
 ## Architecture — Round A
 
@@ -88,12 +88,12 @@ Ready todos whose dependencies are all done:
 | L3b | [Lattice tables, Markdown/JSON/chunk serialisers, extraction in the façade, WASM and `@lamina/pdf`](ready/L3b-extract-tables-and-serialisers.md) | ready | [B9c](done/B9c-text-extraction-bindings-and-differential.md), [L3a](ready/L3a-lamina-extract-reading-order.md) |
 | L3c | [Model plug-ins: `LayoutModel` and `OcrEngine` traits in core, an optional ONNX layout edge crate](ready/L3c-model-plugins.md) | ready | [L3b](ready/L3b-extract-tables-and-serialisers.md) |
 | L4a | [ADR 0031 and `crates/lamina-cli`: `info`, `check`, `pages rotate`, `extract`, `explain`](ready/L4a-lamina-cli.md) | ready | [B5c](done/B5c-lamina-facade-and-examples.md), [B9c](done/B9c-text-extraction-bindings-and-differential.md), [L1b](done/L1b-error-contract-codegen.md) |
-| L4b | [CLI batch mode, `render`, `extract --format md|json`, `schema`, completions and man pages](ready/L4b-cli-batch-render-schema.md) | ready | [L3b](ready/L3b-extract-tables-and-serialisers.md), [L4a](ready/L4a-lamina-cli.md), [C2b](ready/C2b-lamina-render-crate.md) |
+| L4b | [CLI batch mode, `render`, `extract --format md|json`, `schema`, completions and man pages](ready/L4b-cli-batch-render-schema.md) | ready | [L3b](ready/L3b-extract-tables-and-serialisers.md), [L4a](ready/L4a-lamina-cli.md), [C2b](ongoing/C2b-lamina-render-crate.md) |
 | L4c | [`lamina mcp`: a stdio MCP server over the CLI commands, with `--root` and read-only defaults](ready/L4c-mcp-mode.md) | ready | [L4a](ready/L4a-lamina-cli.md) |
 | L4d | [CLI distribution: release binaries with cargo-dist, Homebrew tap and an npm wrapper](ready/L4d-cli-distribution.md) | ready | [L4a](ready/L4a-lamina-cli.md), [P1](ready/P1-reserve-names-and-trusted-publishing.md) |
 | L5a | [Docs for agents: `llms.txt`, Markdown twins, docs shipped in the packages, `AGENTS.md` snippet, rename log and an agent-eval baseline](ready/L5a-agent-docs.md) | ready | [B7a](ready/B7a-docs-site.md), [L1b](done/L1b-error-contract-codegen.md) |
 | L6a | [`lamina-ffi` spike (start right after B5c): UniFFI over the façade, XCFramework and AARs, size report, ADR 0029](done/L6a-lamina-ffi-spike.md) | done | [B5c](done/B5c-lamina-facade-and-examples.md), [L1a](done/L1a-contract-adrs.md) |
-| L6b | [Mobile SDK plan: `LaminaView` (SwiftUI) and `LaminaViewer` (Compose), rounds and todos](ready/L6b-mobile-sdk-plan.md) | ready | [L6a](done/L6a-lamina-ffi-spike.md), [C2b](ready/C2b-lamina-render-crate.md), [U3b](ready/U3b-mobile-shell-spike.md) |
+| L6b | [Mobile SDK plan: `LaminaView` (SwiftUI) and `LaminaViewer` (Compose), rounds and todos](ready/L6b-mobile-sdk-plan.md) | ready | [L6a](done/L6a-lamina-ffi-spike.md), [C2b](ongoing/C2b-lamina-render-crate.md), [U3b](ready/U3b-mobile-shell-spike.md) |
 
 ## Web reader — Round C
 
@@ -102,8 +102,8 @@ Ready todos whose dependencies are all done:
 | C1a | [`hayro-parity` spike: hayro vs PDFium pass rate on the pdf.js and PDFBox corpora](done/C1a-hayro-parity-spike.md) | done | — |
 | C1b | [`pdfium-wasm` spike: PDFium-WASM next to `lamina-wasm` in one worker](done/C1b-pdfium-wasm-spike.md) | done | [B3c](done/B3c-save-planner-and-roundtrip.md), [B6b](done/B6b-lamina-pdf-package.md), [C1a](done/C1a-hayro-parity-spike.md) |
 | C2a | [ADRs 0004, 0009, 0010, 0011: render backend, web client, platform adapter, Cloudflare and privacy](done/C2a-render-adrs.md) | done | [C1a](done/C1a-hayro-parity-spike.md), [C1b](done/C1b-pdfium-wasm-spike.md), [X1](done/X1-docs-link-checker.md) |
-| C2b | [`crates/lamina-render`: the `RenderBackend` trait, PDFium and hayro adapters, render goldens](ready/C2b-lamina-render-crate.md) | ready | [B2c](done/B2c-lamina-model-corpus-fuzz.md), [C2a](done/C2a-render-adrs.md) |
-| C2c | [`@lamina/render-pdfium` and `@lamina/render-hayro`: the web render adapters](ready/C2c-render-packages.md) | ready | [B6b](done/B6b-lamina-pdf-package.md), [C2b](ready/C2b-lamina-render-crate.md) |
+| C2b | [`crates/lamina-render`: the `RenderBackend` trait, PDFium and hayro adapters, render goldens](ongoing/C2b-lamina-render-crate.md) | ongoing | [B2c](done/B2c-lamina-model-corpus-fuzz.md), [C2a](done/C2a-render-adrs.md) |
+| C2c | [`@lamina/render-pdfium` and `@lamina/render-hayro`: the web render adapters](ready/C2c-render-packages.md) | ready | [B6b](done/B6b-lamina-pdf-package.md), [C2b](ongoing/C2b-lamina-render-crate.md) |
 | C3a | [`@lamina/viewer` part 1: document worker and typed RPC](ready/C3a-viewer-worker-rpc.md) | ready | [B6b](done/B6b-lamina-pdf-package.md), [L2a](ready/L2a-worker-client.md), [C2a](done/C2a-render-adrs.md), [C2c](ready/C2c-render-packages.md) |
 | C3b | [`@lamina/viewer` part 2: virtualiser, canvas pool, progressive tiles and anchored zoom](ready/C3b-viewer-virtualiser-and-zoom.md) | ready | [C3a](ready/C3a-viewer-worker-rpc.md) |
 | C3c | [Viewer performance harness: long tasks, memory and time-to-first-page in CI](ready/C3c-viewer-perf-harness.md) | ready | [C3b](ready/C3b-viewer-virtualiser-and-zoom.md) |
@@ -127,7 +127,7 @@ Ready todos whose dependencies are all done:
 | D1a | [`desktop-ipc` spike: tile transport and COOP/COEP in the three webviews](ready/D1a-desktop-ipc-spike.md) | ready | [C2c](ready/C2c-render-packages.md), [C3b](ready/C3b-viewer-virtualiser-and-zoom.md) |
 | D1b | [`desktop-print` spike: faithful printing from Tauri on each OS](ready/D1b-desktop-print-spike.md) | ready | [C2c](ready/C2c-render-packages.md), [C3b](ready/C3b-viewer-virtualiser-and-zoom.md), [D1a](ready/D1a-desktop-ipc-spike.md) |
 | D2a | [ADR 0008 and the `apps/desktop` Tauri 2 scaffold](ready/D2a-adr-0008-and-desktop-scaffold.md) | ready | [C2a](done/C2a-render-adrs.md), [C4a](ready/C4a-ui-chrome-and-platform.md), [D1a](ready/D1a-desktop-ipc-spike.md), [D1b](ready/D1b-desktop-print-spike.md), [U6b](ready/U6b-self-hosted-fonts.md) |
-| D2b | [Engine child process: protocol, file byte source, restart on crash](ready/D2b-engine-process.md) | ready | [C2b](ready/C2b-lamina-render-crate.md), [C4c](ready/C4c-remote-files-encryption-privacy.md), [C4d](ready/C4d-deploy-previews-and-production.md), [D2a](ready/D2a-adr-0008-and-desktop-scaffold.md) |
+| D2b | [Engine child process: protocol, file byte source, restart on crash](ready/D2b-engine-process.md) | ready | [C2b](ongoing/C2b-lamina-render-crate.md), [C4c](ready/C4c-remote-files-encryption-privacy.md), [C4d](ready/C4d-deploy-previews-and-production.md), [D2a](ready/D2a-adr-0008-and-desktop-scaffold.md) |
 | D2c | [Sandbox the engine process on macOS, Windows and Linux](ready/D2c-engine-sandbox.md) | ready | [D2b](ready/D2b-engine-process.md) |
 | D2d | [Tile transport and the desktop engine client: open and read one document](ready/D2d-tile-transport-and-first-document.md) | ready | [C3b](ready/C3b-viewer-virtualiser-and-zoom.md), [C4a](ready/C4a-ui-chrome-and-platform.md), [D2a](ready/D2a-adr-0008-and-desktop-scaffold.md), [D2b](ready/D2b-engine-process.md) |
 | D2e | [Desktop end-to-end tests with WebdriverIO on three OSes](ready/D2e-desktop-e2e-webdriverio.md) | ready | [D2c](ready/D2c-engine-sandbox.md), [D2d](ready/D2d-tile-transport-and-first-document.md) |
@@ -155,9 +155,9 @@ Ready todos whose dependencies are all done:
 | U1c | [Inverted-L shell: left rail, docked inspector, modes and focus mode](ready/U1c-inverted-l-shell-and-modes.md) | ready | [C4a](ready/C4a-ui-chrome-and-platform.md), [U1a](ready/U1a-adr-0024-app-shell-ux.md), [U1b](ready/U1b-command-registry-and-palette.md) |
 | U2a | [Selection surfaces and copy modes (copy as paragraph, copy exact, column selection)](ready/U2a-selection-surfaces-and-copy-modes.md) | ready | [C5a](ready/C5a-text-layer-and-selection.md), [U1b](ready/U1b-command-registry-and-palette.md), [U2b](done/U2b-reading-order-ground-truth.md), [U3a](ready/U3a-responsive-mobile-and-touch.md) |
 | U2b | [Reading-order ground-truth corpus and metric](done/U2b-reading-order-ground-truth.md) | done | [B9d](done/B9d-text-runs-quads-and-page-text.md) |
-| U2c | [Page appearance modes: Original, Sepia, Dark and High contrast](ready/U2c-page-appearance-modes.md) | ready | [C2b](ready/C2b-lamina-render-crate.md), [C7a](ready/C7a-accessibility-and-theming.md) |
+| U2c | [Page appearance modes: Original, Sepia, Dark and High contrast](ready/U2c-page-appearance-modes.md) | ready | [C2b](ongoing/C2b-lamina-render-crate.md), [C7a](ready/C7a-accessibility-and-theming.md) |
 | U3a | [Responsive mobile and touch layout for the web reader](ready/U3a-responsive-mobile-and-touch.md) | ready | [C4b](ready/C4b-web-app-shell.md), [U1b](ready/U1b-command-registry-and-palette.md), [U1c](ready/U1c-inverted-l-shell-and-modes.md) |
-| U3b | [`mobile-shell` spike: Tauri 2 mobile vs UniFFI with native UI](ready/U3b-mobile-shell-spike.md) | ready | [C2b](ready/C2b-lamina-render-crate.md), [U3a](ready/U3a-responsive-mobile-and-touch.md) |
+| U3b | [`mobile-shell` spike: Tauri 2 mobile vs UniFFI with native UI](ready/U3b-mobile-shell-spike.md) | ready | [C2b](ongoing/C2b-lamina-render-crate.md), [U3a](ready/U3a-responsive-mobile-and-touch.md) |
 | U4a | [Network indicator and CSP-backed privacy proof](ready/U4a-network-indicator-and-privacy-proof.md) | ready | [C4c](ready/C4c-remote-files-encryption-privacy.md), [U1c](ready/U1c-inverted-l-shell-and-modes.md) |
 | U4b | [Reader mode (reflow) from the structure tree](ready/U4b-reader-mode-from-structure-tree.md) | ready | [B8a](done/B8a-structure-tree.md), [C5a](ready/C5a-text-layer-and-selection.md), [U1c](ready/U1c-inverted-l-shell-and-modes.md), [U2b](done/U2b-reading-order-ground-truth.md) |
 | U4c | [Approximate reader mode for untagged PDFs](ready/U4c-approximate-reader-mode.md) | ready | [U4b](ready/U4b-reader-mode-from-structure-tree.md) |
@@ -175,7 +175,7 @@ Ready todos whose dependencies are all done:
 
 | ID | Todo | State | Depends on |
 | --- | --- | --- | --- |
-| H1 | [`auth` spike: Better Auth / Auth.js on D1 vs hosted vendors](ready/H1-auth-spike.md) | ready | [C2b](ready/C2b-lamina-render-crate.md), [C4d](ready/C4d-deploy-previews-and-production.md), [D2e](ready/D2e-desktop-e2e-webdriverio.md) |
+| H1 | [`auth` spike: Better Auth / Auth.js on D1 vs hosted vendors](ready/H1-auth-spike.md) | ready | [C2b](ongoing/C2b-lamina-render-crate.md), [C4d](ready/C4d-deploy-previews-and-production.md), [D2e](ready/D2e-desktop-e2e-webdriverio.md) |
 | H2 | [Accounts and login for the hosted service](ready/H2-accounts-and-login.md) | ready | [C7c](ready/C7c-performance-gates-and-launch.md), [D5b](ready/D5b-updater-in-app.md), [H1](ready/H1-auth-spike.md) |
 | H3 | [Opt-in cloud storage of documents (R2 blobs, D1 index, per-user access)](ready/H3-cloud-document-storage.md) | ready | [E1e](ready/E1e-save-and-constraint-banner.md), [H2](ready/H2-accounts-and-login.md) |
 | H4 | [Sync of cloud documents across devices](ready/H4-document-sync.md) | ready | [D3b](ready/D3b-recent-files-and-file-watching.md), [H3](ready/H3-cloud-document-storage.md) |
@@ -206,7 +206,7 @@ Ready todos whose dependencies are all done:
 | E3e | [General XMP editor (custom and extension schemas)](ready/E3e-xmp-editor.md) | ready | [B8b](ready/B8b-conformance-profiles-and-verapdf.md), [E1c](ready/E1c-metadata-ops.md), [E3a](ready/E3a-navigation-attachments-inspection-feature-plan.md), [X3a](done/X3a-nightly-lane.md) |
 | E3f | [Attachments panel, associated files (`/AF`) and portfolios (read)](ready/E3f-attachments-and-associated-files.md) | ready | [B8b](ready/B8b-conformance-profiles-and-verapdf.md), [E3a](ready/E3a-navigation-attachments-inspection-feature-plan.md), [E3b](ready/E3b-bookmarks-and-destinations.md), [X3a](done/X3a-nightly-lane.md) |
 | E3g | [Version, conformance, fonts, colour profiles and object inspector](ready/E3g-inspectors.md) | ready | [E3a](ready/E3a-navigation-attachments-inspection-feature-plan.md) |
-| E3h | [Images → PDF and page export to PNG/JPEG/TIFF](ready/E3h-images-to-pdf-and-page-export.md) | ready | [C2b](ready/C2b-lamina-render-crate.md), [E3a](ready/E3a-navigation-attachments-inspection-feature-plan.md) |
+| E3h | [Images → PDF and page export to PNG/JPEG/TIFF](ready/E3h-images-to-pdf-and-page-export.md) | ready | [C2b](ongoing/C2b-lamina-render-crate.md), [E3a](ready/E3a-navigation-attachments-inspection-feature-plan.md) |
 | E3i | [Extract text, images, links and bookmarks](ready/E3i-extraction.md) | ready | [B9c](done/B9c-text-extraction-bindings-and-differential.md), [E3a](ready/E3a-navigation-attachments-inspection-feature-plan.md) |
 | E4a | [Markup and drawing annotations: feature plan](ready/E4a-markup-and-drawing-annotations-feature-plan.md) | ready | [E2e](ready/E2e-content-append-api.md), [E3a](ready/E3a-navigation-attachments-inspection-feature-plan.md) |
 | E4b | [Annotation model with `/NM` IDs, annotation ops and overlay rendering](ready/E4b-annotation-model-and-overlay.md) | ready | [E1d](ready/E1d-edit-session-undo-ui.md), [E3c](ready/E3c-links.md), [E4a](ready/E4a-markup-and-drawing-annotations-feature-plan.md) |
@@ -268,7 +268,7 @@ Ready todos whose dependencies are all done:
 | E12d | [Scrub non-content layers, full rewrite and verification report](ready/E12d-scrub-and-rewrite.md) | ready | [E8c](ready/E8c-acroform-field-model.md), [E10d](ready/E10d-pades-signing-core.md), [E11d](ready/E11d-sanitiser.md), [E12c](ready/E12c-apply-content-removal.md) |
 | E12e | [Search sensitive content to redact](ready/E12e-sensitive-search.md) | ready | [C5b](ready/C5b-find-in-document.md), [E12b](ready/E12b-mark-and-review.md), [E12d](ready/E12d-scrub-and-rewrite.md) |
 | E12f | [Redaction leak tests across pdf.js, PDFium, pypdf and pdftotext; round close](ready/E12f-leak-tests.md) | ready | [E12d](ready/E12d-scrub-and-rewrite.md), [E12e](ready/E12e-sensitive-search.md), [X3a](done/X3a-nightly-lane.md) |
-| E13a | [ADR 0013: heavy jobs on Workflows + Containers; OCR and conversion engines and licences](ready/E13a-adr-0013-heavy-jobs.md) | ready | [C2b](ready/C2b-lamina-render-crate.md), [E12a](ready/E12a-redaction-feature-plan.md) |
+| E13a | [ADR 0013: heavy jobs on Workflows + Containers; OCR and conversion engines and licences](ready/E13a-adr-0013-heavy-jobs.md) | ready | [C2b](ongoing/C2b-lamina-render-crate.md), [E12a](ready/E12a-redaction-feature-plan.md) |
 | E13b | [OCR and conversion: feature plan](ready/E13b-ocr-and-conversion-feature-plan.md) | ready | [E13a](ready/E13a-adr-0013-heavy-jobs.md) |
 | E13c | [Invisible OCR text layer from hOCR/ALTO](ready/E13c-ocr-text-layer.md) | ready | [B4b](done/B4b-shaping-bidi-line-breaking.md), [B4c](done/B4c-standard-14-and-simple-fonts.md), [E2e](ready/E2e-content-append-api.md), [E13b](ready/E13b-ocr-and-conversion-feature-plan.md) |
 | E13d | [Client-side OCR on web and local OCR on desktop](ready/E13d-local-ocr.md) | ready | [E13c](ready/E13c-ocr-text-layer.md) |
@@ -321,7 +321,7 @@ Ready todos whose dependencies are all done:
 | X1 | [Docs link checker and todo-board check in `cargo xtask`, run in CI](done/X1-docs-link-checker.md) | done | — |
 | X2 | [Capability matrix generator: ~180 operations, test-backed statuses](done/X2-capability-matrix.md) | done | [B3c](done/B3c-save-planner-and-roundtrip.md) |
 | X3a | [Nightly CI lane: external-corpus differential, extended fuzzing, scaling tests and benchmarks](done/X3a-nightly-lane.md) | done | [B2c](done/B2c-lamina-model-corpus-fuzz.md) |
-| X3b | [Nightly hayro-vs-PDFium render diffs](ready/X3b-render-diff-nightly.md) | ready | [C2b](ready/C2b-lamina-render-crate.md), [X3a](done/X3a-nightly-lane.md) |
+| X3b | [Nightly hayro-vs-PDFium render diffs](ready/X3b-render-diff-nightly.md) | ready | [C2b](ongoing/C2b-lamina-render-crate.md), [X3a](done/X3a-nightly-lane.md) |
 | X3c | [Nightly external link check of the docs](done/X3c-nightly-link-check.md) | done | [X3a](done/X3a-nightly-lane.md) |
 | X4 | [Full PR lane with an always-running gate job](done/X4-full-lane-gate.md) | done | [B2c](done/B2c-lamina-model-corpus-fuzz.md) |
 | X5 | [Linux CI on a self-hosted runner in a container on the Mac](done/X5-linux-ci-container.md) | done | [X4](done/X4-full-lane-gate.md) |

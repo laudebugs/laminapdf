@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [architecture §4 Spikes](../../plans/architecture.md#4-spikes-to-close-open-questions) (`auth`) |
 | Round / milestone | Hosted service foundation (accounts, cloud storage, sync) — before the first round that needs accounts |
-| Depends on | [C2b](./C2b-lamina-render-crate.md), [C4d](./C4d-deploy-previews-and-production.md), [D2e](./D2e-desktop-e2e-webdriverio.md) |
+| Depends on | [C2b](../ongoing/C2b-lamina-render-crate.md), [C4d](./C4d-deploy-previews-and-production.md), [D2e](./D2e-desktop-e2e-webdriverio.md) |
 | Blocks | [E18a](./E18a-adr-0012-collaboration.md), [H2](./H2-accounts-and-login.md) |
 | Dependency notes | `C4` ([web-app §C4](../../plans/web-app.md#c4-app-shell-on-cloudflare): `@lamina/ui`, `apps/web`), `C2` ([web-app §C2](../../plans/web-app.md#c2-render-backend-and-adrs): `lamina-render`, ADR 0011), `D2` ([desktop-app §D2](../../plans/desktop-app.md#d2-shell-and-native-core): Tauri shell and engine process) |
 | ADRs | Feeds ADR 0011 (amends it with the login stack) |

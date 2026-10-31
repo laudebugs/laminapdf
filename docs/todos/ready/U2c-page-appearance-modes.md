@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [UI/UX §6 U2. Reading quality](../../plans/ui-ux.md#u2-reading-quality) |
 | Round / milestone | Round U (UI/UX) — M2 Web reader v0.1 |
-| Depends on | [C2b](./C2b-lamina-render-crate.md), [C7a](./C7a-accessibility-and-theming.md) |
+| Depends on | [C2b](../ongoing/C2b-lamina-render-crate.md), [C7a](./C7a-accessibility-and-theming.md) |
 | Blocks | [C7c](./C7c-performance-gates-and-launch.md) |
 | ADRs | Implements 0024 (page appearance); extends 0004 (`RenderBackend` options) |
 | Branch | `feat/u2c-page-appearance-modes` |
@@ -23,7 +23,7 @@ Let people read comfortably at night and in sepia without the broken photo negat
 - **Design (Paper):** [R10 View settings](../../design/paper/reader-b.md#r10-view-settings). Build to match these screens; record any deviation in the area document ([Paper design plan §5](../../plans/paper-design.md#5-how-the-designs-are-used)).
 - [UI/UX plan §5.5](../../plans/ui-ux.md#55-page-appearance-and-themes-r8) and ADR 0024.
 - [Research: dark mode](../../research/product/pdf-app-product-and-ux.md#reflow-organiser-dark-mode-and-perceived-speed) — pdf.js `pageColors` with `Canvas`/`CanvasText`; PDFium's forced-colours path recolours text and paths only; PDF Expert's Night and Sepia themes.
-- [C2b](./C2b-lamina-render-crate.md) — `RenderBackend` and its PDFium and hayro adapters; [C7a](./C7a-accessibility-and-theming.md) — UI themes and `forced-colors` handling.
+- [C2b](../ongoing/C2b-lamina-render-crate.md) — `RenderBackend` and its PDFium and hayro adapters; [C7a](./C7a-accessibility-and-theming.md) — UI themes and `forced-colors` handling.
 
 ## Scope
 
