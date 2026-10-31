@@ -16,7 +16,7 @@
 //! `Wasm` prefix; methods are the façade's, camelCase (F12); bytes are `Uint8Array` in and
 //! out (F7); options and results are plain JSON records with `.d.ts` types from tsify (F5,
 //! F6: optional fields, unknown keys refused with `unknown-option`); every error is the
-//! [ADR 0026] §1 object (thrown as a plain object; `@laminapdf/pdf` wraps it in `LaminaError`);
+//! [ADR 0026] §1 object (thrown as a plain object; `@laminapdf/sdk` wraps it in `LaminaError`);
 //! the API is synchronous once the module is instantiated.
 //!
 //! This is an edge crate: `unsafe` exists only in wasm-bindgen's generated glue.

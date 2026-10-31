@@ -6,10 +6,10 @@
 //! Cargo.lock), optimises with `wasm-opt` (binaryen pinned below, rustc's feature set passed
 //! explicitly) keeping a named copy in `target/wasm/` for size reports, strips it into
 //! `packages/wasm/dist/`, and runs the `wasm-bindgen-test` suite (Node) and the package's Node
-//! smoke test, then builds `@laminapdf/pdf` over them, runs its tests (Node and Vite) and checks its
+//! smoke test, then builds `@laminapdf/sdk` over them, runs its tests (Node and Vite) and checks its
 //! packaging with publint and `attw --pack` (they need `dist/`, so they run here rather than in
 //! `check ts`). `size` measures what `wasm` wrote and fails above
-//! `packages/wasm/size-budgets.json`, `@laminapdf/pdf`'s JS (glue + TS API, min+gzip) included.
+//! `packages/wasm/size-budgets.json`, `@laminapdf/sdk`'s JS (glue + TS API, min+gzip) included.
 
 use std::collections::BTreeMap;
 use std::fmt::Write as _;
@@ -81,7 +81,7 @@ pub(crate) struct Module {
 
 impl Module {
     /// Whether this is one of lamina's own modules (`lamina-wasm`'s builds), which its
-    /// `wasm-bindgen-test` suite and `@laminapdf/pdf` cover.
+    /// `wasm-bindgen-test` suite and `@laminapdf/sdk` cover.
     fn is_lamina(&self) -> bool {
         self.krate == "lamina-wasm"
     }
@@ -110,7 +110,7 @@ pub(crate) const MODULES: [Module; 4] = [
         features: &["--features", "extract"],
     },
     // lamina-render's hayro adapter (C2c, ADR 0004 §5): its own crate, wrapped by
-    // @laminapdf/render-hayro; never loaded by @laminapdf/pdf.
+    // @laminapdf/render-hayro; never loaded by @laminapdf/sdk.
     Module {
         name: "render_hayro",
         krate: "lamina-render-wasm",
@@ -222,7 +222,7 @@ fn build_module(ws: &Workspace, module: &Module, wasm_opt: &Path, out: &Path) ->
 }
 
 /// The `wasm-bindgen-test` suite (Node) for each module's features, the package's smoke test
-/// (Vitest, Node) over `dist/`, then `@laminapdf/pdf`: build, typecheck, tests, publint and attw;
+/// (Vitest, Node) over `dist/`, then `@laminapdf/sdk`: build, typecheck, tests, publint and attw;
 /// then `@laminapdf/render-hayro`'s `RenderBackend` contract over `lamina_render_hayro` (C2c).
 fn test(ws: &Workspace) -> Result<()> {
     crate::step("lamina-wasm tests in Node (wasm-bindgen-test-runner)");
@@ -246,9 +246,9 @@ fn test(ws: &Workspace) -> Result<()> {
         )?;
     }
     ws.pnpm(&["--filter", "@laminapdf/wasm", "run", "test:wasm"])?;
-    crate::step("@laminapdf/pdf over the modules: build, typecheck, Vitest (Node, Vite), publint, attw --pack");
-    ws.pnpm(&["--filter", "@laminapdf/pdf", "run", "test:wasm"])?;
-    ws.pnpm(&["--filter", "@laminapdf/pdf", "run", "lint:package"])?;
+    crate::step("@laminapdf/sdk over the modules: build, typecheck, Vitest (Node, Vite), publint, attw --pack");
+    ws.pnpm(&["--filter", "@laminapdf/sdk", "run", "test:wasm"])?;
+    ws.pnpm(&["--filter", "@laminapdf/sdk", "run", "lint:package"])?;
     crate::step(
         "@laminapdf/render-hayro over lamina_render_hayro: build, typecheck, the RenderBackend contract (Node)",
     );
@@ -468,18 +468,18 @@ fn minified(ws: &Workspace, js: &Path) -> Result<Vec<u8>> {
     Ok(output.stdout)
 }
 
-/// A `@laminapdf/pdf` entry (`dist/<entry>`) bundled with its imports and minified (esbuild), as a
+/// A `@laminapdf/sdk` entry (`dist/<entry>`) bundled with its imports and minified (esbuild), as a
 /// page that imports it downloads it (the `.wasm` files are measured as modules; the worker
 /// client's `new URL("./entry.js", …)` is not followed, so the worker file is its own entry).
 fn package_js(ws: &Workspace, entry: &str) -> Result<Vec<u8>> {
-    let entry = ws.root.join("packages/pdf/dist").join(entry);
+    let entry = ws.root.join("packages/sdk/dist").join(entry);
     if !entry.exists() {
         bail!("{} is missing: run `cargo xtask wasm` first", entry.display());
     }
     let output = Command::new(crate::program_path("pnpm"))
         .args([
             "--filter",
-            "@laminapdf/pdf",
+            "@laminapdf/sdk",
             "exec",
             "esbuild",
             "--bundle",
@@ -583,13 +583,13 @@ fn pdfium_size(
     })
 }
 
-/// The JS bundles `size` measures: (budget name under `packages`, entry in `packages/pdf/dist/`,
+/// The JS bundles `size` measures: (budget name under `packages`, entry in `packages/sdk/dist/`,
 /// table label). ADR 0016 §6: glue + TS API ≤ 20 KB min+gzip; L2a: the worker client, and the
 /// worker file it starts.
 const PDF_BUNDLES: [(&str, &str, &str); 3] = [
-    ("@laminapdf/pdf", "index.js", "JS: glue + API"),
-    ("@laminapdf/pdf/worker", "worker/index.js", "JS: worker client"),
-    ("@laminapdf/pdf/worker/entry", "worker/entry.js", "JS: the worker file"),
+    ("@laminapdf/sdk", "index.js", "JS: glue + API"),
+    ("@laminapdf/sdk/worker", "worker/index.js", "JS: worker client"),
+    ("@laminapdf/sdk/worker/entry", "worker/entry.js", "JS: the worker file"),
 ];
 
 /// How many items the baseline keeps and the growth diff compares.
@@ -935,26 +935,26 @@ mod tests {
 
     #[test]
     fn a_package_over_its_js_budget_fails() {
-        let budgets = BTreeMap::from([("@laminapdf/pdf".to_owned(), 20_000)]);
-        assert!(package_violation("@laminapdf/pdf", 20_001, &budgets).is_some());
+        let budgets = BTreeMap::from([("@laminapdf/sdk".to_owned(), 20_000)]);
+        assert!(package_violation("@laminapdf/sdk", 20_001, &budgets).is_some());
     }
 
     #[test]
     fn a_package_within_its_js_budget_passes() {
-        let budgets = BTreeMap::from([("@laminapdf/pdf".to_owned(), 20_000)]);
-        assert_eq!(package_violation("@laminapdf/pdf", 20_000, &budgets), None);
+        let budgets = BTreeMap::from([("@laminapdf/sdk".to_owned(), 20_000)]);
+        assert_eq!(package_violation("@laminapdf/sdk", 20_000, &budgets), None);
     }
 
     #[test]
     fn a_malformed_js_budget_is_an_error_naming_the_field() {
-        let file = serde_json::json!({ "packages": { "@laminapdf/pdf": { "jsGzip": "20 KB" } } });
+        let file = serde_json::json!({ "packages": { "@laminapdf/sdk": { "jsGzip": "20 KB" } } });
         let message = package_budgets(&file).map_or_else(|e| e.to_string(), |_| String::new());
-        assert!(message.contains("packages.@laminapdf/pdf.jsGzip"), "{message}");
+        assert!(message.contains("packages.@laminapdf/sdk.jsGzip"), "{message}");
     }
 
     #[test]
     fn a_package_without_a_js_budget_fails() {
-        assert!(package_violation("@laminapdf/pdf", 1, &BTreeMap::new()).is_some());
+        assert!(package_violation("@laminapdf/sdk", 1, &BTreeMap::new()).is_some());
     }
 
     #[test]

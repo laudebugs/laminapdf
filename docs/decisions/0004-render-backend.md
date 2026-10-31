@@ -71,7 +71,7 @@ pub trait RenderDocument: Send {
 ```
 
 - **`ByteSource`** is `lamina-cos`'s trait (ADR 0005 §2). The renderer reads the same source as lamina, never a second copy. A source that answers `Pending` makes `open`, `page` or `render` fail with `data-pending` and the ranges, as lamina's own reads do. The native PDFium adapter records every read its custom file access found pending and fails the call with those ranges (C2b). The web adapter uses `FPDFAvail_*` download hints (below).
-- **The web adapters' contract.** On the web, PDFium is a separate Emscripten module and can't read a Rust `ByteSource` inside `@laminapdf/pdf`'s memory. So the shared source is **one JS-level reader in the document worker**, which both engines read through (ADR 0009 §2):
+- **The web adapters' contract.** On the web, PDFium is a separate Emscripten module and can't read a Rust `ByteSource` inside `@laminapdf/sdk`'s memory. So the shared source is **one JS-level reader in the document worker**, which both engines read through (ADR 0009 §2):
 
   ```ts
   interface RenderSource {
@@ -124,7 +124,7 @@ pub trait RenderDocument: Send {
 | Web reader (`apps/web`) | **PDFium-WASM** in the document worker (`@laminapdf/render-pdfium`) | hayro (`@laminapdf/render-hayro`), selectable in the debug menu (`#debug`, a fragment, so it never reaches our server, ADR 0011 §3.6) |
 | Desktop (`apps/desktop`, Round D) | **Native PDFium** through `pdfium-render`, in the engine process (ADR 0008) | hayro, in the debug menu |
 | Mobile (later, ADR 0025/0029) | **Native PDFium**, the same pinned binaries | hayro |
-| Library users and edge runtimes (`@laminapdf/pdf` on Cloudflare Workers, Deno, Node) | **None bundled.** `@laminapdf/render-hayro` is the recommended optional renderer: pure Rust, no Emscripten glue or C++ surface, and about 1.1 MB gzip with fonts and CMaps fetched separately (1.7 MB with them built in) against PDFium's 2.1 MB | `@laminapdf/render-pdfium` where its size fits (Workers paid plan) |
+| Library users and edge runtimes (`@laminapdf/sdk` on Cloudflare Workers, Deno, Node) | **None bundled.** `@laminapdf/render-hayro` is the recommended optional renderer: pure Rust, no Emscripten glue or C++ surface, and about 1.1 MB gzip with fonts and CMaps fetched separately (1.7 MB with them built in) against PDFium's 2.1 MB | `@laminapdf/render-pdfium` where its size fits (Workers paid plan) |
 | CI | **Both**: the render goldens (C2b), and the nightly hayro-vs-PDFium diff over the pinned corpora with C1a's metric (X3b) | — |
 
 PDFium is the default wherever lamina ships a viewer, because a reader that grows into an editor needs fidelity on day one, and C1a shows hayro is not there yet. hayro is wired in from day one as the oracle and the debug choice, so a switch is a configuration change.
@@ -167,7 +167,7 @@ lamina parses for the model, and PDFium parses for pixels. They are kept consist
 
 - **`crates/lamina-render`** (layer `core`): the trait, the types, request validation and the hayro adapter behind feature `hayro`, off by default. It has no `pdfium` feature and never depends on the PDFium crate.
 - **`crates/lamina-render-pdfium`** (layer `edge`): the PDFium adapter, always this separate crate. It depends on `lamina-render` and implements its trait, with dynamic loading and `unsafe` FFI under `// SAFETY:`. Shells that want PDFium depend on it directly, so there is no feature cycle.
-- **npm:** `@laminapdf/render-pdfium` (the PDFium-WASM adapter) and `@laminapdf/render-hayro` (`lamina-render`'s hayro adapter as its own `.wasm`) are **optional packages**. `@laminapdf/pdf` never depends on either, so its size budgets (ADR 0016 §6) don't move. Each gets its own budget in `packages/wasm/size-budgets.json` when C2c creates it.
+- **npm:** `@laminapdf/render-pdfium` (the PDFium-WASM adapter) and `@laminapdf/render-hayro` (`lamina-render`'s hayro adapter as its own `.wasm`) are **optional packages**. `@laminapdf/sdk` never depends on either, so its size budgets (ADR 0016 §6) don't move. Each gets its own budget in `packages/wasm/size-budgets.json` when C2c creates it.
 - **Worker only:** both web adapters run only inside a worker (ADR 0009). The PDFium adapter reads its input through PDFium's custom file access (`FPDF_LoadCustomDocument`) over the worker's `RenderSource` (§1), which is C1b's default strategy.
 
 ### 6. When hayro becomes the default (C1a's criteria)
@@ -189,7 +189,7 @@ The criteria apply per surface: desktop could switch before web, or the reverse.
 - **Bounded output:** tiles and `max_render_pixels` make full-page canvases impossible by construction, as the UI/UX plan requires.
 - **A C++ engine parses untrusted input.** That is acceptable only because it runs in a worker (web) or a separate engine process (desktop, ADR 0008), with `Limits` on lamina's side.
 - **Two parsers can disagree.** The rule in §4 and the nightly quads and size checks turn disagreement into tracked bugs instead of silent drift.
-- **Library users keep a pure-Rust option:** `@laminapdf/pdf` stays small, and `@laminapdf/render-hayro` is the small optional renderer.
+- **Library users keep a pure-Rust option:** `@laminapdf/sdk` stays small, and `@laminapdf/render-hayro` is the small optional renderer.
 - **PDFium updates are operational work:** pins, hashes and goldens move together, in their own PR.
 
 ## Alternatives considered

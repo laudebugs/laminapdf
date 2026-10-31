@@ -8,7 +8,7 @@
 | Round / milestone | Editor phase 2 (E1–E3) — M5 Organiser |
 | Depends on | [B6b](../done/B6b-lamina-pdf-package.md), [C4a](./C4a-ui-chrome-and-platform.md), [D4b](./D4b-native-menus.md), [E1a](./E1a-editing-foundation-feature-plan.md) |
 | Blocks | [E1e](./E1e-save-and-constraint-banner.md), [E4b](./E4b-annotation-model-and-overlay.md) |
-| Dependency notes | [E1a](E1a-editing-foundation-feature-plan.md), `C4` ([web-app §C4](../../plans/web-app.md#c4-app-shell-on-cloudflare): `@laminapdf/ui`, `apps/web`), `D4` ([desktop-app §D4](../../plans/desktop-app.md#d4-windows-tabs-menus-and-printing): windows, tabs, menus), `B6` ([pdf-library §B6](../../plans/pdf-library.md#b6-wasm-and-laminapdfpdf): `lamina-wasm` and `@laminapdf/pdf`) |
+| Dependency notes | [E1a](E1a-editing-foundation-feature-plan.md), `C4` ([web-app §C4](../../plans/web-app.md#c4-app-shell-on-cloudflare): `@laminapdf/ui`, `apps/web`), `D4` ([desktop-app §D4](../../plans/desktop-app.md#d4-windows-tabs-menus-and-printing): windows, tabs, menus), `B6` ([pdf-library §B6](../../plans/pdf-library.md#b6-wasm-and-laminapdfsdk): `lamina-wasm` and `@laminapdf/sdk`) |
 | ADRs | Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
 | Branch | `feat/e1d-edit-session-undo-ui` |
 | PR title | `feat(ui): edit session with undo/redo and history panel` |

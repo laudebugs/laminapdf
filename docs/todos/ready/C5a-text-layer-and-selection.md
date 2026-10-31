@@ -8,7 +8,7 @@
 | Round / milestone | Round C (web reader) — M2 Web reader v0.1 |
 | Depends on | [B9c](../done/B9c-text-extraction-bindings-and-differential.md), [C3c](./C3c-viewer-perf-harness.md), [C4c](./C4c-remote-files-encryption-privacy.md) |
 | Blocks | [C5b](./C5b-find-in-document.md), [C6b](./C6b-links-and-history.md), [C6c](./C6c-print-download-properties.md), [U2a](./U2a-selection-surfaces-and-copy-modes.md), [U4b](./U4b-reader-mode-from-structure-tree.md) |
-| Dependency notes | Library **B9** (text extraction: `lamina-content`, `lamina-text`, `page.text()` in `@laminapdf/pdf`; [pdf-library B9](../../plans/pdf-library.md#b9-text-extraction)); [C4c](./C4c-remote-files-encryption-privacy.md) (app opens local, remote and encrypted files); [C3c](./C3c-viewer-perf-harness.md) (perf harness scenario and long-task budget) |
+| Dependency notes | Library **B9** (text extraction: `lamina-content`, `lamina-text`, `page.text()` in `@laminapdf/sdk`; [pdf-library B9](../../plans/pdf-library.md#b9-text-extraction)); [C4c](./C4c-remote-files-encryption-privacy.md) (app opens local, remote and encrypted files); [C3c](./C3c-viewer-perf-harness.md) (perf harness scenario and long-task budget) |
 | ADRs | Follows 0004's two-parsers rule (text geometry from lamina, never from the renderer), 0009 (framework-free layer in `@laminapdf/viewer`), ADR 0023 (content-stream reading, from B9) |
 | Branch | `feat/c5a-text-layer` |
 | PR title | `feat(viewer): add the text layer with selection, copy and struct-tree linking` |
@@ -34,7 +34,7 @@ Make text in every rendered page selectable, copyable and readable by screen rea
 **In scope**
 
 - RPC methods: `pageText(page) → { runs: GlyphRun[] }` (Unicode string, per-glyph or per-run quads in PDF user space, font size, direction LTR/RTL/TTB, `ActualText` replacement, MCID), `structTree(page)` and `markInfo()`; low priority (`background`) with per-page LRU cache in the worker.
-- If B9 doesn't expose the struct tree read API, add a minimal read-only view (`StructTreeRoot` → elements with type, alt, lang, MCID refs) in `lamina-model` / `lamina-wasm` / `@laminapdf/pdf` **in this PR** (small) — coordinate with the library owner; otherwise split it out as `C5a-pre`.
+- If B9 doesn't expose the struct tree read API, add a minimal read-only view (`StructTreeRoot` → elements with type, alt, lang, MCID refs) in `lamina-model` / `lamina-wasm` / `@laminapdf/sdk` **in this PR** (small) — coordinate with the library owner; otherwise split it out as `C5a-pre`.
 - `packages/viewer/src/layers/text-layer.ts`: per page, absolutely positioned `span`s per run (or per word for long runs), transformed with CSS `matrix()` from PDF space to CSS px at the current zoom/rotation, horizontally scaled (`scaleX`) so each span's width matches the glyph quads; `color: transparent`; selection highlight via `::selection`; `dir` and `lang` attributes; line breaks / end-of-line markers so copy yields sensible newlines. **Selection scope (decided): real cross-page selection with a single selection root.** The document's page container is the one selection root: `user-select: text` on text-layer spans only, `user-select: none` on canvases, page gaps, other layers and the app chrome. There is no per-page `user-select` boundary, so a drag selection continues from one mounted page into the next. While a selection exists, the virtualiser keeps every page the selection touches mounted (it pins them) so the selection is not destroyed by scrolling. `ctrl/cmd+A` with focus in the document selects the text of the mounted pages only (not the whole document; full-document text is reached via find); the help text says so.
 - Copy: intercept `copy` to normalise output (remove soft hyphen artefacts, apply `ActualText`, join across pages in order) using the extracted Unicode rather than DOM text where they differ.
 - Struct-tree layer: hidden-but-accessible tree (`role`s mapped from standard structure types: H1–H6, P, L/LI, Table/TR/TH/TD, Figure with alt) whose leaves `aria-owns` the matching text spans by MCID; untagged documents announce "untagged document" once and expose text in extraction order.
@@ -50,7 +50,7 @@ Make text in every rendered page selectable, copyable and readable by screen rea
 ## Tasks
 
 - [ ] Claim via a claim PR (see Definition of done); then a fresh worktree off the updated `main`.
-- [ ] Confirm B9's `@laminapdf/pdf` API (`page.text()` shape); write a worker adapter producing compact, transferable run data (`Float32Array` of quads + string table) to keep RPC cheap.
+- [ ] Confirm B9's `@laminapdf/sdk` API (`page.text()` shape); write a worker adapter producing compact, transferable run data (`Float32Array` of quads + string table) to keep RPC cheap.
 - [ ] Add RPC methods and types; worker cache keyed by page; cancellation on page unmount.
 - [ ] Text-layer builder with a pure function `layoutSpans(runs, viewport) → SpanSpec[]` (unit-testable) and a DOM renderer that reuses span elements across zoom changes.
 - [ ] Width fitting: measure each span's natural width once (canvas `measureText` with a generic font, cached per font-size bucket) and set `transform: … scaleX(k)`; avoid layout thrash (batch reads then writes).

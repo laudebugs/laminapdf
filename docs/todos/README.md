@@ -87,7 +87,7 @@ Ready todos whose dependencies are all done:
 | L2b | [Disposal and memory bounds: `Symbol.dispose` on every handle, `disposed` code, capped wasm memory, `reset()` and trap recovery](ready/L2b-disposal-and-memory.md) | ready | [B6b](done/B6b-lamina-pdf-package.md), [L1b](done/L1b-error-contract-codegen.md) |
 | L2c | [Range `ByteSource`: `DataPending` ranges at the edges (HTTP Range, JS callback, native file and mmap), core stays synchronous](done/L2c-range-byte-source.md) | done | [B2d](done/B2d-windowed-reading.md), [B6b](done/B6b-lamina-pdf-package.md) |
 | L3a | [ADR 0030 and `lamina-extract`: blocks, reading order, headings, lists, header/footer removal, hidden-text flags](ready/L3a-lamina-extract-reading-order.md) | ready | [B8a](done/B8a-structure-tree.md), [B9d](done/B9d-text-runs-quads-and-page-text.md), [L1a](done/L1a-contract-adrs.md), [U2b](done/U2b-reading-order-ground-truth.md) |
-| L3b | [Lattice tables, Markdown/JSON/chunk serialisers, extraction in the façade, WASM and `@laminapdf/pdf`](ready/L3b-extract-tables-and-serialisers.md) | ready | [B9c](done/B9c-text-extraction-bindings-and-differential.md), [L3a](ready/L3a-lamina-extract-reading-order.md) |
+| L3b | [Lattice tables, Markdown/JSON/chunk serialisers, extraction in the façade, WASM and `@laminapdf/sdk`](ready/L3b-extract-tables-and-serialisers.md) | ready | [B9c](done/B9c-text-extraction-bindings-and-differential.md), [L3a](ready/L3a-lamina-extract-reading-order.md) |
 | L3c | [Model plug-ins: `LayoutModel` and `OcrEngine` traits in core, an optional ONNX layout edge crate](ready/L3c-model-plugins.md) | ready | [L3b](ready/L3b-extract-tables-and-serialisers.md) |
 | L4a | [ADR 0031 and `crates/lamina-cli`: `info`, `check`, `pages rotate`, `extract`, `explain`](ready/L4a-lamina-cli.md) | ready | [B5c](done/B5c-lamina-facade-and-examples.md), [B9c](done/B9c-text-extraction-bindings-and-differential.md), [L1b](done/L1b-error-contract-codegen.md) |
 | L4b | [CLI batch mode, `render`, `extract --format md|json`, `schema`, completions and man pages](ready/L4b-cli-batch-render-schema.md) | ready | [L3b](ready/L3b-extract-tables-and-serialisers.md), [L4a](ready/L4a-lamina-cli.md), [C2b](done/C2b-lamina-render-crate.md) |
@@ -314,7 +314,7 @@ Ready todos whose dependencies are all done:
 
 | ID | Todo | State | Depends on |
 | --- | --- | --- | --- |
-| P0 | [Publish the npm packages under `@laminapdf`](done/P0-npm-scope-laminapdf.md) | done | — |
+| P0 | [Publish the npm packages under `@laminapdf`, with `@lamina/pdf` as `@laminapdf/sdk`](done/P0-npm-scope-laminapdf.md) | done | — |
 | P1 | [Reserve names, ADR 0017 publishing part, OIDC trusted publishing and the release workflow](ready/P1-reserve-names-and-trusted-publishing.md) | ready | [B7b](done/B7b-versioning-and-0-1-0-alpha.md), [P0](done/P0-npm-scope-laminapdf.md) |
 | P2 | [First registry pre-release, public stability policy and changelog, cargo-semver-checks](ready/P2-first-registry-prerelease.md) | ready | [P1](ready/P1-reserve-names-and-trusted-publishing.md) |
 

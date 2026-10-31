@@ -33,7 +33,7 @@ Let web apps keep lamina off the main thread without learning a second API. `@la
 
 **In scope**
 
-- **`./worker` subpath** in `packages/pdf`:
+- **`./worker` subpath** in `packages/sdk`:
   - `connect(options?)` returns a `WorkerClient`. Options: `{ worker?, signal?, init? }`, where `init` passes the wasm URL or `WebAssembly.Module`.
   - The package contains the literal `new Worker(new URL("./worker.js", import.meta.url), { type: "module" })`, so Vite and webpack bundle the worker with no config. `{ worker }` accepts a caller-made `Worker` for CSP-restricted pages.
   - The worker entry (`src/worker/entry.ts` → `dist/worker.js`) calls `init()` and serves the API.
@@ -81,8 +81,8 @@ Let web apps keep lamina off the main thread without learning a second API. `@la
   - [x] Error serialisation
 - [x] Remote handles with `Symbol.asyncDispose` (use `Symbol.asyncDispose ?? Symbol.for("Symbol.asyncDispose")`, without mutating globals)
 - [x] `package.json`: add the `./worker` export and the worker file to `files`; check publint and `attw --pack` still pass; include `worker.js` in `cargo xtask size`
-- [x] Vitest browser mode (Playwright: Chromium, Firefox, WebKit) in `packages/pdf`, if [B6c](../done/B6c-runtime-matrix.md) has not set it up yet; Deno and Bun smoke tests through B6c's runners, if present
-- [x] A worker example in `packages/pdf/examples/worker-client/` (open, page count, save, abort), run as a test
+- [x] Vitest browser mode (Playwright: Chromium, Firefox, WebKit) in `packages/sdk`, if [B6c](../done/B6c-runtime-matrix.md) has not set it up yet; Deno and Bun smoke tests through B6c's runners, if present
+- [x] A worker example in `packages/sdk/examples/worker-client/` (open, page count, save, abort), run as a test
 - [x] README section: when to use the worker client, bundler notes (Vite `optimizeDeps.exclude`), CSP and `{ worker }`
 
 ## Acceptance criteria
@@ -100,7 +100,7 @@ Let web apps keep lamina off the main thread without learning a second API. `@la
 
 What shipped, and where it differs from the plan above:
 
-- **Layout:** `packages/pdf/src/worker/`:
+- **Layout:** `packages/sdk/src/worker/`:
   - `protocol.ts`: the envelopes, `PROTOCOL_VERSION`, and the hello/welcome handshake with the package version from `src/version.ts`, which `test/version.test.ts` checks against package.json.
   - `support.ts`: the served members with their arity.
   - `types.ts`: `RemoteDocument`, `RemotePage`, `RemoteMember<T>` (the plan's `Promisified<T>`), `CallOptions`.
@@ -130,7 +130,7 @@ What shipped, and where it differs from the plan above:
 - **Long tasks:** `test/browser/worker-longtask.browser.test.ts` opens and fully rewrites a generated ~50 MB file, once on the main thread and once through the worker. Opening alone is lazy, so it showed no long task even on the main thread.
   - It records both longest tasks as measurements, shown in the pdf-runtimes job summary. Locally: 207 ms on the main thread, 0 ms through the worker.
   - It is recorded, never asserted, so it runs with the Chromium suite in both lanes (ADR 0018 forbids wall-clock asserts, not measurements).
-- **Example:** `packages/pdf/examples/worker-client.ts`. The docs site gets a guide (Off the main thread) and a gallery entry.
+- **Example:** `packages/sdk/examples/worker-client.ts`. The docs site gets a guide (Off the main thread) and a gallery entry.
 
 ## Post-merge checks
 
@@ -138,14 +138,14 @@ What shipped, and where it differs from the plan above:
 
 ## Tests
 
-- `packages/pdf/test/worker/*.test.ts` in Vitest browser mode: types, round-trip parity over `fixtures/corpus`, handshake, abort before and during a job, transfers, error rebuilding, crash and restart, async disposal (the worker's handle table returns to empty).
+- `packages/sdk/test/worker/*.test.ts` in Vitest browser mode: types, round-trip parity over `fixtures/corpus`, handshake, abort before and during a job, transfers, error rebuilding, crash and restart, async disposal (the worker's handle table returns to empty).
 - Type tests for `Promisified<T>` and the `Methods` map.
 - Full-lane long-task test with a 50 MB file generated in the test (many pages or a large image stream); no fixture committed.
 
 ## Docs to update
 
 - [x] [shareable-libraries §9 L2](../../plans/shareable-libraries.md#9-to-dos): tick the worker-client to-do
-- [x] `packages/pdf/README.md` (worker client section); `CLAUDE.md` if the layout or commands change
+- [x] `packages/sdk/README.md` (worker client section); `CLAUDE.md` if the layout or commands change
 - [x] [C3a](../ongoing/C3a-viewer-worker-rpc.md): note in its Context which parts this PR delivered (protocol, cancellation, crash detection), so C3a only adds viewer concerns
 
 ## Risks and open questions

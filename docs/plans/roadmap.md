@@ -7,7 +7,7 @@
 
 ## What we are building
 
-1. **Packages:** `lamina` (Rust) and `@laminapdf/pdf` (TypeScript) that generate PDFs, then read and edit them with the same `Document` API.
+1. **Packages:** `lamina` (Rust) and `@laminapdf/sdk` (TypeScript) that generate PDFs, then read and edit them with the same `Document` API.
 2. **A web reader** on Cloudflare, privacy-first, growing into a full editor.
 3. **A desktop reader** (Tauri 2, macOS/Windows/Linux) with the same UI, updated from Cloudflare.
 4. **A full editor** on web and desktop covering all 13 feature groups of the [feature inventory](../research/pdf/06-feature-inventory.md).
@@ -47,7 +47,7 @@ All four share one Rust core, so every operation is built once ([architecture §
 | Milestone | Rounds | What ships |
 | --- | --- | --- |
 | M0 Foundations | A | Monorepo, CI fast lane, `lamina-syntax` + `lamina-cos`, ADRs 0001/0002/0015/0019 |
-| M1 Library alpha | B1–B7 | `lamina` and `@laminapdf/pdf` `0.1.0-alpha` (local and tagged, not published to registries yet): generate PDFs with fonts, shaping, images, vectors, links, outlines, metadata; open (including encrypted files)/edit/save basics; docs site |
+| M1 Library alpha | B1–B7 | `lamina` and `@laminapdf/sdk` `0.1.0-alpha` (local and tagged, not published to registries yet): generate PDFs with fonts, shaping, images, vectors, links, outlines, metadata; open (including encrypted files)/edit/save basics; docs site |
 | M2 Web reader v0.1 | B9, C1–C7, U1, U2, U3a, U4a | Text extraction in the library; hosted reader on Cloudflare: render, search, select, navigate, print, offline, accessible, no upload; command palette, column-aware copy, page appearance modes, phone layout, network indicator |
 | M3 Desktop reader beta | D1–D7 | Signed installers for three OSes, file associations, tabs, auto-update channels |
 | M4 Library 0.2 | B8 | Tagged PDF, PDF/UA-1, PDF/A-2/3 profiles, veraPDF-clean |
@@ -73,7 +73,7 @@ One row per round. Each round is split into one or more todos, one PR each, on t
 | B3 | [library](pdf-library.md#b3-ops-and-save) | Ops, undo, save planner | — |
 | B4 | [library](pdf-library.md#b4-fonts-and-text) | Fonts, shaping, subsetting | — |
 | B5 | [library](pdf-library.md#b5-builder-and-the-lamina-crate) | Builder and `lamina` crate | — |
-| B6 | [library](pdf-library.md#b6-wasm-and-laminapdfpdf) | `lamina-wasm`, `@laminapdf/pdf`, runtime matrix | 0016 |
+| B6 | [library](pdf-library.md#b6-wasm-and-laminapdfsdk) | `lamina-wasm`, `@laminapdf/sdk`, runtime matrix | 0016 |
 | B7 | [library](pdf-library.md#b7-docs-examples-and-first-release) | Docs site, examples, `0.1.0-alpha` (local) | 0017 |
 | B8 | [library](pdf-library.md#b8-tagged-pdf-pdfua-and-pdfa) | Tagged PDF, PDF/UA, PDF/A, `0.2.0-alpha` (local) | — |
 | B9 | [library](pdf-library.md#b9-text-extraction) | `lamina-content` read-only interpreter, text extraction (after B6, before C5) | 0023 (proposed) |
@@ -140,7 +140,7 @@ One row per round. Each round is split into one or more todos, one PR each, on t
 - **Shareable libraries** (2026-10-29, project owner): the `lamina-ffi` UniFFI spike ([L6a](../todos/done/L6a-lamina-ffi-spike.md)) runs right after B5c, in parallel with B6; UniFFI is pinned to `=0.32.x`; ADR 0016 ([B6a](../todos/done/B6a-lamina-wasm-and-adr-0016.md)) sets a size budget per wasm module, with 350 KB gz for the base module ([shareable libraries §11](shareable-libraries.md#11-open-questions)).
 - **Domain** (2026-10-31, project owner): `laminapdf.com`. The reader goes to the apex (staging at `staging.laminapdf.com`), the docs site is at `docs.laminapdf.com`, desktop updates and downloads at `updates.` and `downloads.laminapdf.com` ([ADR 0011 §1](../decisions/0011-cloudflare-topology-and-privacy.md#1-topology), [web-app §8](web-app.md#8-open-questions) Q1).
 - **Visual design** (2026-10-29, project owner): the **Paper** direction (calm, editorial: warm off-white chrome, ink text, deep teal accent, Newsreader and Source Sans 3) for every surface; screens and documentation in the [Paper design plan](paper-design.md), built in Round U6.
-- **npm scope** (2026-10-31, project owner): the npm packages are published under `@laminapdf` (`@laminapdf/pdf`, `@laminapdf/wasm`, …); crate names and the product name stay lamina ([architecture §8](architecture.md#8-open-questions-for-the-team), Q3; [P0](../todos/done/P0-npm-scope-laminapdf.md); ADR 0015).
+- **npm scope** (2026-10-31, project owner): the npm packages are published under `@laminapdf` (`@laminapdf/sdk`, `@laminapdf/wasm`, …); the TypeScript API package is `@laminapdf/sdk` (was `@lamina/pdf`, ADR 0016); crate names and the product name stay lamina ([architecture §8](architecture.md#8-open-questions-for-the-team), Q3; [P0](../todos/done/P0-npm-scope-laminapdf.md); ADR 0015).
 
 ## Decisions this roadmap assumes (recommendations, not yet decided)
 

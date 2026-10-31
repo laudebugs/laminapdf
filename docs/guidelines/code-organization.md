@@ -27,7 +27,7 @@ lamina/
 │   ├── lamina-wasm/        #   e.g. wasm-bindgen binding (edge)
 │   └── lamina-cli/         #   e.g. command-line binary (consumer, like an app)
 ├── packages/               # TypeScript packages published or shared as @laminapdf/*
-│   ├── pdf/                #   e.g. @laminapdf/pdf: idiomatic TS API over lamina-wasm
+│   ├── pdf/                #   e.g. @laminapdf/sdk: idiomatic TS API over lamina-wasm
 │   └── viewer/             #   e.g. @laminapdf/viewer: UI components
 ├── apps/                   # deployable things, never depended on
 │   ├── web/                #   e.g. web app deployed to Cloudflare
@@ -93,7 +93,7 @@ Apps and binaries (`apps/*`, including the Tauri crate in `apps/desktop/src-taur
 | Rust module/file | `snake_case` | `xref_stream.rs` |
 | Rust binaries, examples, integration test files | `kebab-case` for bins/examples; `snake_case.rs` for test files | `src/bin/lamina-dump.rs`, `tests/round_trip.rs` |
 | Cargo feature | short noun, no `use-`/`with-`/`no-` | `std`, `render`, `pdfium` |
-| npm package | `@laminapdf/<name>`, directory is `<name>` | `packages/pdf` → `@laminapdf/pdf` |
+| npm package | `@laminapdf/<name>`, directory is `<name>` | `packages/sdk` → `@laminapdf/sdk` |
 | Internal-only npm package | `@laminapdf/<name>` with `"private": true` | `@laminapdf/test-utils` |
 | TS source file | `kebab-case.ts` | `content-builder.ts` |
 | Fixture file | `kebab-case`, describes the case, not the bug number | `xref-stream-hybrid.pdf` |
@@ -119,16 +119,16 @@ Everything public will be used by someone, so keep the surface small and deliber
 
 - **MUST:** every package declares its entry points in `package.json` `"exports"`. Anything not listed can't be imported, which is the point ([TS modules reference](https://www.typescriptlang.org/docs/handbook/modules/reference.html)). Use the `"types"` condition first, then `"import"`/`"default"`.
 - **MUST:** named exports only, no `export default`.
-- **SHOULD:** a single root `src/index.ts` lists its exports *by name* (`export { open, PdfDocument } from "./document.js"`). Avoid `export *` (it leaks internals by accident) and avoid internal barrel files (`index.ts` in sub-folders). Barrels force bundlers and dev servers to load every re-exported module ([Vite: avoid barrel files](https://vite.dev/guide/performance#avoid-barrel-files)). For large packages, prefer subpath exports (`@laminapdf/pdf/forms`).
+- **SHOULD:** a single root `src/index.ts` lists its exports *by name* (`export { open, PdfDocument } from "./document.js"`). Avoid `export *` (it leaks internals by accident) and avoid internal barrel files (`index.ts` in sub-folders). Barrels force bundlers and dev servers to load every re-exported module ([Vite: avoid barrel files](https://vite.dev/guide/performance#avoid-barrel-files)). For large packages, prefer subpath exports (`@laminapdf/sdk/forms`).
 - **MUST:** set `"sideEffects": false` unless the package really has import-time side effects.
 
-**Across languages.** If a TS package wraps a Rust crate, the TS API is designed for TS users and is not a transliteration of the Rust API. Error codes, warning codes and option names that both expose **MUST** match, because they are part of both APIs. The spike's `PdfErrorCode` union mirrored the Rust `Error` variants; `@laminapdf/pdf` generates its `ErrorCode` union from `fixtures/codes.json` ([ADR 0026](../decisions/0026-error-and-diagnostic-contract.md)).
+**Across languages.** If a TS package wraps a Rust crate, the TS API is designed for TS users and is not a transliteration of the Rust API. Error codes, warning codes and option names that both expose **MUST** match, because they are part of both APIs. The spike's `PdfErrorCode` union mirrored the Rust `Error` variants; `@laminapdf/sdk` generates its `ErrorCode` union from `fixtures/codes.json` ([ADR 0026](../decisions/0026-error-and-diagnostic-contract.md)).
 
 ## 5. Error handling, by layer
 
 | Layer | Rust | TypeScript |
 | --- | --- | --- |
-| Core library | One `thiserror` enum per crate (or per major module), `#[non_exhaustive]`, with byte offsets where relevant. No panics: no `unwrap`/`expect`/`panic!`/`todo!`/`unimplemented!`/unchecked indexing (all denied in `[workspace.lints.clippy]`) | One error class per package (`class LaminaError extends Error` in `@laminapdf/pdf`) with a string-literal `code` union, the [ADR 0026](../decisions/0026-error-and-diagnostic-contract.md) fields (`kind`, `hint`, `location`, `data`, `docsUrl`) and an `isLaminaError` guard. Throw only `Error` subclasses |
+| Core library | One `thiserror` enum per crate (or per major module), `#[non_exhaustive]`, with byte offsets where relevant. No panics: no `unwrap`/`expect`/`panic!`/`todo!`/`unimplemented!`/unchecked indexing (all denied in `[workspace.lints.clippy]`) | One error class per package (`class LaminaError extends Error` in `@laminapdf/sdk`) with a string-literal `code` union, the [ADR 0026](../decisions/0026-error-and-diagnostic-contract.md) fields (`kind`, `hint`, `location`, `data`, `docsUrl`) and an `isLaminaError` guard. Throw only `Error` subclasses |
 | Binding | Map core errors 1:1 to the target's idiom (a JS `Error` with a `code`, a Swift `Error`) and never drop the code or any other ADR 0026 field | Re-throw binding errors as the package's own error class |
 | App / CLI / xtask | `anyhow` with `.context(…)` is fine | Catch at the boundary, log, and show a user-facing message |
 
@@ -146,7 +146,7 @@ crates/lamina-core/
 │   ├── corpus.rs
 │   └── round_trip.rs
 └── benches/
-packages/pdf/
+packages/sdk/
 ├── src/parser.ts
 ├── src/parser.test.ts     # unit tests colocated with the source
 └── test/                  # integration / cross-module / WASM-interop tests

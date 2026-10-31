@@ -123,7 +123,7 @@ mod tests {
     /// tests, a docs site's content) or sits outside the allowlisted folders.
     const CODE_MARKDOWN: [&str; 7] = [
         "crates/lamina-cos/README.md",
-        "packages/pdf/README.md",
+        "packages/sdk/README.md",
         "apps/docs/src/content/docs/index.md",
         "tools/corpus-facts/README.md",
         "fuzz/README.md",

@@ -1,6 +1,6 @@
 // `cargo xtask verify-install chromium`: builds the Vite app in this folder for production, serves
 // it with `vite preview` and opens it in Playwright's Chromium, then prints the page's check line.
-// Vite and Playwright are the repository's (pinned dev dependencies of @laminapdf/pdf), resolved
+// Vite and Playwright are the repository's (pinned dev dependencies of @laminapdf/sdk), resolved
 // from LAMINA_TOOLS_FROM; the app's own dependencies are only the installed tarballs.
 
 import { createRequire } from "node:module";

@@ -805,8 +805,8 @@
     {
       "code": "not-initialized",
       "kind": "state",
-      "summary": "an @laminapdf/pdf function was called before init() finished loading the WebAssembly module",
-      "hint": "await init() once before calling anything else in @laminapdf/pdf",
+      "summary": "an @laminapdf/sdk function was called before init() finished loading the WebAssembly module",
+      "hint": "await init() once before calling anything else in @laminapdf/sdk",
       "since": "0.1.0"
     },
     {
@@ -834,7 +834,7 @@
       "code": "worker-version-mismatch",
       "kind": "usage",
       "summary": "the worker answered with a different protocol or package version than the client",
-      "hint": "serve the worker file from the same @laminapdf/pdf build as the page; don't load it from a CDN or an older deploy",
+      "hint": "serve the worker file from the same @laminapdf/sdk build as the page; don't load it from a CDN or an older deploy",
       "since": "0.1.0"
     },
     {
@@ -847,7 +847,7 @@
     {
       "code": "worker-failed",
       "kind": "internal",
-      "summary": "the worker client failed with an error that isn't lamina's (a bug in @laminapdf/pdf/worker, or a result it couldn't send)",
+      "summary": "the worker client failed with an error that isn't lamina's (a bug in @laminapdf/sdk/worker, or a result it couldn't send)",
       "hint": "this is a lamina bug: report it with the call and the message; the worker keeps running",
       "since": "0.1.0"
     }

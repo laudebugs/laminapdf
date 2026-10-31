@@ -1,6 +1,6 @@
 ---
 title: Bun
-description: Use @laminapdf/pdf in Bun.
+description: Use @laminapdf/sdk in Bun.
 sidebar:
   order: 4
 ---
@@ -11,6 +11,6 @@ Bun resolves the `node` export condition, as Node does, and reads each `.wasm` f
 
 This is the Bun runner of the example suite, which CI runs with `cargo xtask pdf-runtimes bun`:
 
-<Snippet file="packages/pdf/test/bun/examples.test.ts" />
+<Snippet file="packages/sdk/test/bun/examples.test.ts" />
 
 `runSuite` calls `await init({ text: true })` once. Then each example, such as [`hello`](/quick-start/node/), builds its bytes synchronously.

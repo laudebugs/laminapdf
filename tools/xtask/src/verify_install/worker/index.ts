@@ -1,6 +1,6 @@
 // `cargo xtask verify-install workerd`: a Worker over the installed tarballs (the `workerd` export
 // condition: the `.wasm` files bundled as modules) that answers every request with the check line.
-import { init } from "@laminapdf/pdf";
+import { init } from "@laminapdf/sdk";
 import { hello } from "./hello.ts";
 import { report } from "./report.ts";
 

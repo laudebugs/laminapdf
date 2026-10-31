@@ -1,20 +1,20 @@
 ---
 title: Browser and bundlers
-description: Load @laminapdf/pdf in a web page through Vite or another bundler.
+description: Load @laminapdf/sdk in a web page through Vite or another bundler.
 sidebar:
   order: 1
 ---
 
 import Snippet from "../../../components/Snippet.astro";
 
-In a browser, `@laminapdf/pdf` resolves through its `browser` export condition. The glue finds each `.wasm` file with `new URL("…", import.meta.url)`, so your bundler emits the files as assets next to your code, and they load from your own origin.
+In a browser, `@laminapdf/sdk` resolves through its `browser` export condition. The glue finds each `.wasm` file with `new URL("…", import.meta.url)`, so your bundler emits the files as assets next to your code, and they load from your own origin.
 
-This app is bundled by Vite and run in Chromium in CI (`packages/pdf/test/vite.test.ts`). It loads the base module, opens a document, then loads the text module and builds a page:
+This app is bundled by Vite and run in Chromium in CI (`packages/sdk/test/vite.test.ts`). It loads the base module, opens a document, then loads the text module and builds a page:
 
-<Snippet file="packages/pdf/test/vite-app/main.ts" />
+<Snippet file="packages/sdk/test/vite-app/main.ts" />
 
 - **Two modules, loaded on demand.** `init()` loads the base module (open, edit, save, vector pages). `loadText()` (or `init({ text: true })`) adds fonts and text. A page that never draws text never downloads the text module.
-- **Vite:** exclude the package from dependency pre-bundling (`optimizeDeps.exclude: ["@laminapdf/pdf"]` in `vite.config.ts`), so the `.wasm` URLs stay next to the glue.
+- **Vite:** exclude the package from dependency pre-bundling (`optimizeDeps.exclude: ["@laminapdf/sdk"]` in `vite.config.ts`), so the `.wasm` URLs stay next to the glue.
 - **Content Security Policy:** compiling WebAssembly needs `script-src 'wasm-unsafe-eval'`. Nothing else is needed.
 
 Next: draw text with [fonts](/guides/fonts-and-text/), or [open and edit](/guides/open-edit-and-save/) a file.

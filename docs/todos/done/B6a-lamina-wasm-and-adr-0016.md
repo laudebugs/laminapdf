@@ -4,7 +4,7 @@
 | --- | --- |
 | ID | `B6a` |
 | Status | `done` |
-| Plan | [pdf-library §7 B6](../../plans/pdf-library.md#b6-wasm-and-laminapdfpdf), non-functional targets [§4](../../plans/pdf-library.md#non-functional) |
+| Plan | [pdf-library §7 B6](../../plans/pdf-library.md#b6-wasm-and-laminapdfsdk), non-functional targets [§4](../../plans/pdf-library.md#non-functional) |
 | Round / milestone | Round B (library) — M1 |
 | Depends on | [B5c](./B5c-lamina-facade-and-examples.md) |
 | Blocks | [B6b](./B6b-lamina-pdf-package.md) |

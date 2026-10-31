@@ -64,7 +64,7 @@ RFC 3161 timestamp tokens as CMS unsigned attributes (PAdES B-T) and document ti
 - [ ] B-T signatures validate in EU DSS
 - [ ] `AddDocumentTimestamp` on DocMDP P1, P2 and P3 certified fixtures: `would_violate` is empty, the save is `AppendOnly` and incremental, and the certification signature still validates (EU DSS, pyHanko) with the timestamp revision reported as an allowed LTV update
 - [ ] `Sign { timestamp }` reports class `Signature` and `requires_rewrite = false`; a test per op runs `planner.would_violate(&op)` on the signed fixtures (no certification, DocMDP P1, P2, P3, FieldMDP lock) and asserts the verdict ([ADR 0007](../../decisions/0007-save-planner.md) §2): violation only on P1 for `Sign`, none anywhere for `AddDocumentTimestamp`
-- [ ] Library parity ([full-editor §5](../../plans/full-editor.md#5-requirements-that-hold-for-every-round) req. 7): every new `Op` is exposed in `lamina` and `@laminapdf/pdf` in this PR, with rustdoc/TSDoc, a runnable example, tsify-generated TS types, and serde samples frozen in `fixtures/ops/v1/` (unknown ops and fields rejected, ADR 0006 §1, §6)
+- [ ] Library parity ([full-editor §5](../../plans/full-editor.md#5-requirements-that-hold-for-every-round) req. 7): every new `Op` is exposed in `lamina` and `@laminapdf/sdk` in this PR, with rustdoc/TSDoc, a runnable example, tsify-generated TS types, and serde samples frozen in `fixtures/ops/v1/` (unknown ops and fields rejected, ADR 0006 §1, §6)
 - [ ] Worker tests assert no body other than a TimeStampReq is forwarded and nothing is logged
 
 ## Post-merge checks

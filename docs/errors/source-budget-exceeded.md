@@ -5,7 +5,7 @@
 
 ## What happened
 
-A sparse source (`WasmSparseSource` in `@laminapdf/wasm`, or a `@laminapdf/pdf` range document) was handed bytes that would make it hold more than the byte budget it was created with. The bytes were not added.
+A sparse source (`WasmSparseSource` in `@laminapdf/wasm`, or a `@laminapdf/sdk` range document) was handed bytes that would make it hold more than the byte budget it was created with. The bytes were not added.
 
 ## Why
 

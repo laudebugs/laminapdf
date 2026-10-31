@@ -6,7 +6,7 @@ description: Create, read, edit and save PDFs from Rust and TypeScript, with one
 lamina creates, reads, edits and saves PDFs. One Rust core does the work. It runs natively, and as WebAssembly in browsers, Node, Deno, Bun and Cloudflare Workers. It takes bytes and gives back bytes: it doesn't touch the file system or the network, and it reads no clock.
 
 - **[`lamina`](/reference/rust/)** is the Rust crate: `Document::open_bytes`, `Builder`, saving and jobs you can cancel.
-- **[`@laminapdf/pdf`](/reference/pdf/readme/)** is the TypeScript API over the WebAssembly build. After one `await init()`, every call is synchronous, and the API is the same in every runtime.
+- **[`@laminapdf/sdk`](/reference/sdk/readme/)** is the TypeScript API over the WebAssembly build. After one `await init()`, every call is synchronous, and the API is the same in every runtime.
 
 :::caution[Not published yet]
 Neither package is on a registry yet. [Install](/install/) explains how to use them from a checkout, a `pnpm pack` tarball or a path dependency.

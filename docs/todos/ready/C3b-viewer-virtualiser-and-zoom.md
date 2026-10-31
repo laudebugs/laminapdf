@@ -74,7 +74,7 @@ None.
 
 ## Tests
 
-Unit tests (layout, zoom maths, cache eviction, pool caps) in `packages/viewer/src/**/*.test.ts`; Vitest browser-mode integration tests for mount/unmount and cancellation; Playwright specs under `packages/viewer/e2e/` against the demo page in three engines. The 1,000-page fixture is generated at test setup with `@laminapdf/pdf`'s builder (not committed), seeded and deterministic.
+Unit tests (layout, zoom maths, cache eviction, pool caps) in `packages/viewer/src/**/*.test.ts`; Vitest browser-mode integration tests for mount/unmount and cancellation; Playwright specs under `packages/viewer/e2e/` against the demo page in three engines. The 1,000-page fixture is generated at test setup with `@laminapdf/sdk`'s builder (not committed), seeded and deterministic.
 
 ## Docs to update
 

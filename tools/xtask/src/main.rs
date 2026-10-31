@@ -53,9 +53,9 @@ tasks:
   gen codes [--check|--md]
                     validate fixtures/codes.json against fixtures/codes.schema.json and write
                     the error contract from it: the façade's ErrorCode/WarningCode
-                    (crates/lamina/src/generated/), @laminapdf/pdf's unions, tables and explain
-                    pages (packages/pdf/src/generated/), the lamina.error/1 JSON Schema
-                    (packages/pdf/schemas/, crates/lamina/schemas/) and docs/errors/README.md's
+                    (crates/lamina/src/generated/), @laminapdf/sdk's unions, tables and explain
+                    pages (packages/sdk/src/generated/), the lamina.error/1 JSON Schema
+                    (packages/sdk/schemas/, crates/lamina/schemas/) and docs/errors/README.md's
                     tables; --check fails naming each stale file; --md prints the tables
   fmt [--check]     format Rust (cargo fmt) and TS/JSON (biome); --check only verifies
   lint              clippy native (all targets) and wasm32 (core crates), biome ci
@@ -145,7 +145,7 @@ tasks:
   bench [--quick] [--history <dir> [--runner <label>] [--record]]
                     nightly: criterion benches; with --history, flag >10% regressions (never fails)
   pdf-runtimes [node|chromium|firefox|webkit|deno|bun|workerd]… [--history <dir> --runner <label> --record]
-                    @laminapdf/pdf's example suite in each runtime (default: all; needs `wasm` first;
+                    @laminapdf/sdk's example suite in each runtime (default: all; needs `wasm` first;
                     installs the Playwright browsers it runs): byte-identical to the goldens, with
                     the timings and WebAssembly memory against pdf-library §4 in the job summary
                     and target/xtask/pdf-runtimes/; --record appends them to <dir>/history.jsonl
@@ -159,7 +159,7 @@ tasks:
                     copy the npm fixed group's version (`fixed` in .changeset/config.json;
                     every member must agree) into [workspace.package] version, the internal
                     [workspace.dependencies], every tracked Cargo.lock, CHANGELOG.md and
-                    packages/pdf/src/version.ts (ADR 0017); --check only verifies
+                    packages/sdk/src/version.ts (ADR 0017); --check only verifies
                     (and that every member crate has version.workspace = true)
   version check-tag <tag>
                     fail unless <tag> is v<version> (the release lane)

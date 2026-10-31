@@ -82,7 +82,7 @@ A fast, accessible, privacy-first **PDF reader in the browser**, served from Clo
 
 Architecture details live in [architecture.md](architecture.md) and the research report. The reader adds:
 
-- **Packages**: `@laminapdf/viewer` (framework-free: worker RPC client, virtualiser, canvas pool, text layer, find controller, link layer), `@laminapdf/ui` (React 19 chrome: toolbar, sidebars, dialogs, `Platform` adapter interface), `@laminapdf/render-pdfium` (PDFium WASM adapter) and `@laminapdf/render-hayro` (pure-Rust renderer as its own `.wasm`), both optional so `@laminapdf/pdf` stays small.
+- **Packages**: `@laminapdf/viewer` (framework-free: worker RPC client, virtualiser, canvas pool, text layer, find controller, link layer), `@laminapdf/ui` (React 19 chrome: toolbar, sidebars, dialogs, `Platform` adapter interface), `@laminapdf/render-pdfium` (PDFium WASM adapter) and `@laminapdf/render-hayro` (pure-Rust renderer as its own `.wasm`), both optional so `@laminapdf/sdk` stays small.
 - **Worker**: one document worker running `lamina-wasm` plus PDFium-WASM, a typed RPC with request IDs, priorities, transfer lists and `AbortSignal` cancellation (ADR 0009).
 - **Platform adapter** (ADR 0010): the web implementation provides file open/save, print, clipboard and capability flags (`canWriteInPlace: false` on most browsers, `multiWindow: false`).
 - **Hosting** (ADR 0011): one Worker with static assets, `not_found_handling: "single-page-application"`, immutable hashed assets, `_headers` for security headers, Wrangler pinned in CI. Production at `laminapdf.com` (deployed only from `web-v*` release tags), staging from `main`, previews per PR via Workers preview URLs.

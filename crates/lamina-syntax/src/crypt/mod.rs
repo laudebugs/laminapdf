@@ -201,7 +201,7 @@ fn saslprep_mapping(text: &str) -> String {
 /// step (RFC 4013 §2.1: non-ASCII spaces to U+0020, characters "commonly mapped to nothing"
 /// removed) is applied; NFKC normalisation and the prohibited-character and bidi checks are
 /// left out, so a password that differs from its NFKC form must be normalised by the caller
-/// (`@laminapdf/pdf` does), and a password SASLprep would reject is tried mapped.
+/// (`@laminapdf/sdk` does), and a password SASLprep would reject is tried mapped.
 fn candidates(password: &[u8], revision: u8) -> Vec<Vec<u8>> {
     let text = std::str::from_utf8(password).ok();
     if revision >= 5 {

@@ -27,7 +27,7 @@ The [C1b spike](../../spikes/pdfium-wasm/README.md) measured the worker on one m
 - **Input by ranges:** PDFium's `FPDF_LoadCustomDocument` and lamina's `Document.openRange`, both over `File.slice()`, cut the 100 MB scan from 95 + 237 MiB of heap (plus a JS copy) to 1 + 113 MiB. Ranges are also the only way WebKit opened a 500 MB file.
 - **Saves:** Chromium runs one long save about 10× slower in a fresh worker until V8 optimises the code.
 
-[ADR 0004](0004-render-backend.md) fixes the render contract, and L2a's `@laminapdf/pdf/worker` ([shareable-libraries §5 L2](../plans/shareable-libraries.md)) is the async twin of the sync API.
+[ADR 0004](0004-render-backend.md) fixes the render contract, and L2a's `@laminapdf/sdk/worker` ([shareable-libraries §5 L2](../plans/shareable-libraries.md)) is the async twin of the sync API.
 
 ## Decision
 
@@ -50,7 +50,7 @@ The [C1b spike](../../spikes/pdfium-wasm/README.md) measured the worker on one m
 ### 2. One document worker per open document
 
 - **Each open document gets its own module worker**, which runs:
-  - `@laminapdf/pdf` (lamina's WebAssembly: the base module, plus `lamina_extract` when C5's text layer needs it, loaded lazily);
+  - `@laminapdf/sdk` (lamina's WebAssembly: the base module, plus `lamina_extract` when C5's text layer needs it, loaded lazily);
   - the ADR 0004 render adapter: `@laminapdf/render-pdfium` by default, `@laminapdf/render-hayro` from the debug menu.
 - **Isolation:** a hostile file can crash its own worker, never the page or another document.
 - **Single-threaded, one call at a time:** within a worker, every WebAssembly call is synchronous, so render and lamina calls are serialised by the scheduler (§3).
@@ -64,7 +64,7 @@ The [C1b spike](../../spikes/pdfium-wasm/README.md) measured the worker on one m
 
 ### 3. The worker RPC
 
-The viewer's protocol **extends `@laminapdf/pdf/worker`** (L2a) rather than defining a second one. It is hand-written and typed, not Comlink. C3a implements these requirements:
+The viewer's protocol **extends `@laminapdf/sdk/worker`** (L2a) rather than defining a second one. It is hand-written and typed, not Comlink. C3a implements these requirements:
 
 1. **Request IDs.** Every request has a monotonically increasing `id` per connection. Responses are `{ id, ok: true, result }` or `{ id, ok: false, error }`, where `error` is the ADR 0026 object; an `Error` is never posted, because structured clone loses its fields. **Worker events** use L2a's envelope `{ kind, id? }`. `progress` carries the `id` of the call it belongs to, so per-call `onProgress` routes correctly. `warning` is document-wide and carries none. **Client events** are raised on the main thread by the client's own timers and crash detection, because a worker stuck in a synchronous call can't post anything:
    - `render-slow { id, page }`;

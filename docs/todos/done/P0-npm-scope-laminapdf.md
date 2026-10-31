@@ -1,4 +1,4 @@
-# P0 — Publish the npm packages under `@laminapdf`
+# P0 — Publish the npm packages under `@laminapdf`, with `@lamina/pdf` as `@laminapdf/sdk`
 
 | Field | Value |
 | --- | --- |
@@ -16,7 +16,7 @@
 
 ## Goal
 
-The owner decided (2026-10-31) that lamina's npm packages are published under the **`@laminapdf`** scope instead of `@lamina`, matching the `laminapdf.com` domain. Rename the scope everywhere: package manifests, imports, the xtask tasks and `pnpm --filter` calls, CI, generated files, the docs site and the documentation. The owner asked for this work directly, so it had no claim PR.
+The owner decided (2026-10-31) that lamina's npm packages are published under the **`@laminapdf`** scope instead of `@lamina`, matching the `laminapdf.com` domain. Rename the scope everywhere: package manifests, imports, the xtask tasks and `pnpm --filter` calls, CI, generated files, the docs site and the documentation. The owner asked for this work directly, so it had no claim PR. In the same PR the owner also renamed the TypeScript API package from `@lamina/pdf` to **`@laminapdf/sdk`** (directory `packages/sdk`, subpaths `@laminapdf/sdk/explain` and `@laminapdf/sdk/worker`, the docs site's reference at `/reference/sdk/`).
 
 ## Context
 
@@ -28,7 +28,7 @@ The owner decided (2026-10-31) that lamina's npm packages are published under th
 
 **In scope**
 
-- `@laminapdf/pdf`, `@laminapdf/wasm`, `@laminapdf/docs` (manifests, imports in `packages/pdf` src, tests, examples and bench, Vite/Vitest config), `pnpm-lock.yaml` (regenerated with `pnpm install`), `packages/wasm/size-budgets.json`.
+- `@laminapdf/sdk` (was `@lamina/pdf`; `packages/pdf` → `packages/sdk`), `@laminapdf/wasm`, `@laminapdf/docs`, the render packages (manifests, imports in `packages/sdk` src, tests, examples and bench, Vite/Vitest config), `pnpm-lock.yaml` (regenerated with `pnpm install`), `packages/wasm/size-budgets.json`.
 - `tools/xtask` (`wasm`, `size`, `pdf-runtimes`, `codegen`, the docs-site build, the slug test), then the files generated from `fixtures/codes.json` (`cargo xtask gen codes`).
 - `.github/workflows/*`: `pnpm --filter @laminapdf/docs` in `docs.yml`, job names and comments (committed by the owner: the session that made the PR could not push workflow files).
 - `apps/docs` (pages, TypeDoc sidebar label), Rust doc comments that name the packages.
@@ -47,6 +47,7 @@ The owner decided (2026-10-31) that lamina's npm packages are published under th
 - [x] Rename `@lamina/` to `@laminapdf/` outside history; regenerate the lockfile, the codes and the board
 - [x] Fix the anchors whose slug changed (`pdf-library.md#b6-wasm-and-laminapdfpdf`)
 - [x] Record the decision (§8 Q3, roadmap, ADR 0015, code organization guide, P1)
+- [x] Rename `@laminapdf/pdf` to `@laminapdf/sdk` and `packages/pdf` to `packages/sdk`; amend ADR 0016
 - [x] The workflow files' `@lamina/` lines (owner, on the PR branch)
 
 ## Acceptance criteria

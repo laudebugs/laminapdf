@@ -2,7 +2,7 @@
 
 **Draft, not yet in force.** It describes what lamina promises once it is on a registry; it is published with the first registry pre-release ([P2](todos/ready/P2-first-registry-prerelease.md)). Versioning itself is [ADR 0017](decisions/0017-versioning-and-release.md).
 
-lamina is one library with one version: every crate and the npm packages `@laminapdf/wasm`, `@laminapdf/pdf`, `@laminapdf/render`, `@laminapdf/render-hayro` and `@laminapdf/render-pdfium` move together (lockstep). The version is `0.x`, currently `0.1.0-alpha.0`.
+lamina is one library with one version: every crate and the npm packages `@laminapdf/wasm`, `@laminapdf/sdk`, `@laminapdf/render`, `@laminapdf/render-hayro` and `@laminapdf/render-pdfium` move together (lockstep). The version is `0.x`, currently `0.1.0-alpha.0`.
 
 ## What a version number tells you
 

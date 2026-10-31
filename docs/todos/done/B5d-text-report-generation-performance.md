@@ -39,7 +39,7 @@ Plan §4 asks for a 100-page text report in ≤ 500 ms after `init()`. B6b measu
 
 ## Tasks
 
-- [x] Add the report as a bench (native) and a Node script under `packages/pdf/` (not a test: no wall-clock asserts)
+- [x] Add the report as a bench (native) and a Node script under `packages/sdk/` (not a test: no wall-clock asserts)
 - [x] Profile, record the top items before and after in this todo's Outcome
 - [x] Fix (shaping caches per run/font, fewer reshapes in line breaking, fewer copies across the binding; deviation: the binding was not the cost, see Outcome)
 - [x] Check that the text module stays within its 960 KB budget (`cargo xtask size`)
@@ -69,7 +69,7 @@ The existing golden and example tests (bytes must not change); the new bench.
 
 ## Outcome
 
-- Benchmarks: `crates/lamina/benches/report.rs` (criterion, in `cargo xtask bench`'s list, so its history goes to `bench-data` nightly): `generate/report_100_pages`, the Rust twin of `packages/pdf/examples/report.ts` (B6c's report, the one `cargo xtask pdf-runtimes` times in every runtime; the bench checks its bytes against the TS suite's `REPORT_SHA256` before timing), and `generate/report_100_pages_text_boxes`, B6b's shape (a Helvetica-Bold heading and six 4-sentence Noto Sans text boxes per page). In the façade rather than `lamina-build`: the report ends with a save, as in Node. `packages/pdf/bench/reports.mjs` times both reports in Node over the built `dist/` (`node packages/pdf/bench/reports.mjs [runs]`; Node ≥ 22.18 for the type-stripped import of `examples/report.ts`).
+- Benchmarks: `crates/lamina/benches/report.rs` (criterion, in `cargo xtask bench`'s list, so its history goes to `bench-data` nightly): `generate/report_100_pages`, the Rust twin of `packages/sdk/examples/report.ts` (B6c's report, the one `cargo xtask pdf-runtimes` times in every runtime; the bench checks its bytes against the TS suite's `REPORT_SHA256` before timing), and `generate/report_100_pages_text_boxes`, B6b's shape (a Helvetica-Bold heading and six 4-sentence Noto Sans text boxes per page). In the façade rather than `lamina-build`: the report ends with a save, as in Node. `packages/sdk/bench/reports.mjs` times both reports in Node over the built `dist/` (`node packages/sdk/bench/reports.mjs [runs]`; Node ≥ 22.18 for the type-stripped import of `examples/report.ts`).
 - Profiles (native: macOS `sample` on the bench; WASM: `node --cpu-prof` with the named `target/wasm/text/lamina_text.named.wasm`), share of the B6c report's time:
   - Before: shaping 46 %, of which building HarfRust's shape plan for every run (`ShapePlan::new`: `find_language_feature`, `langsys`, the map compile) 25 % and the shaping itself the rest; line breaking shaped each short text twice (once for the estimates, once as the line); `pdf_run` 21 % (per-glyph `String`s and `Vec`s for the ToUnicode claims); Flate of the content streams and fonts 10 %.
   - After (native): Flate 26 % (it fixes the output bytes, so it stays), shaping 20 %, `pdf_run` 20 %, itemisation 7 %. Node (B6c report): text layout 34 % (shaping 15 %, itemisation 7 %), page writing 28 % (`pdf_run` 15 %, Flate 9 %), font subsetting 2 %; the JS glue is about 5 %, so the binding was not the cost.

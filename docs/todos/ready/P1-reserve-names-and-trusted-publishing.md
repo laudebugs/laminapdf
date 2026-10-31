@@ -29,7 +29,7 @@ Prepare publishing so the first release is safe and needs no long-lived tokens: 
 **In scope**
 
 - Name reservation (owner action, documented step by step): crates.io placeholder `0.0.0` publishes for `lamina` and each planned `lamina-*` crate (manual, owner's account, first publish), npm `@laminapdf` org/scope (create the `laminapdf` npm organisation on the owner's account).
-- Switch each crate to trusted-publishing-only on crates.io; configure npm trusted publishers for `@laminapdf/wasm` and `@laminapdf/pdf` (GitHub Actions OIDC, repo + workflow file + environment).
+- Switch each crate to trusted-publishing-only on crates.io; configure npm trusted publishers for `@laminapdf/wasm` and `@laminapdf/sdk` (GitHub Actions OIDC, repo + workflow file + environment).
 - `.github/workflows/release.yml`: on `main`, Changesets action opens/updates the version PR; on merge of the version PR, a `publish` job in a protected `release` environment (required reviewer: owner) runs the release lane suites, builds, `pnpm publish --provenance`, `cargo publish` per crate in dependency order (via OIDC token exchange), uploads `.wasm` and SBOMs with `actions/attest-build-provenance`.
 - SBOM generation (CycloneDX for Cargo and npm) attached to GitHub releases.
 - ADR 0017 publishing section; `publish = false` removed only for crates meant to be public (keep xtask, test kits, `lamina-wasm` crate private).

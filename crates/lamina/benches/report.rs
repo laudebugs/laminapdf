@@ -3,7 +3,7 @@
 //! façade so the WASM timings of `cargo xtask pdf-runtimes` can be split into core cost and
 //! binding cost.
 //!
-//! - `report_100_pages`: the Rust twin of `packages/pdf/examples/report.ts` (B6c), the report
+//! - `report_100_pages`: the Rust twin of `packages/sdk/examples/report.ts` (B6c), the report
 //!   every runtime builds: Noto Sans and Noto Sans SC, a heading, a paragraph box, a line of
 //!   Chinese, a 20-row table of text runs and right-aligned boxes with hairlines, a footer. Its
 //!   bytes are checked against the TS suite's `REPORT_SHA256` before timing, so both measure the
@@ -41,10 +41,10 @@ use sha2::{Digest, Sha256};
 const NOTO_SANS: &[u8] = include_bytes!("../../../fixtures/fonts/NotoSans-Regular.ttf");
 const NOTO_SANS_SC: &[u8] = include_bytes!("../../../fixtures/fonts/NotoSansSC-Regular.otf");
 
-/// `REPORT_SHA256` in `packages/pdf/test/suite/examples.ts` (the bytes every runtime
+/// `REPORT_SHA256` in `packages/sdk/test/suite/examples.ts` (the bytes every runtime
 /// produces), read from that file when the bench compiles, so there is no copy to go stale; a
 /// change to how the file declares it fails the build (clippy builds benches on every PR).
-const REPORT_SHA256: &str = suite_hash(include_str!("../../../packages/pdf/test/suite/examples.ts"));
+const REPORT_SHA256: &str = suite_hash(include_str!("../../../packages/sdk/test/suite/examples.ts"));
 
 /// The 64 hex digits after `export const REPORT_SHA256 = "` in `suite`.
 const fn suite_hash(suite: &str) -> &str {
@@ -71,7 +71,7 @@ const fn suite_hash(suite: &str) -> &str {
         }
         at += 1;
     }
-    panic!("packages/pdf/test/suite/examples.ts no longer declares `export const REPORT_SHA256 = \"…\"`")
+    panic!("packages/sdk/test/suite/examples.ts no longer declares `export const REPORT_SHA256 = \"…\"`")
 }
 
 const PAGES: u32 = 100;
@@ -90,7 +90,7 @@ fn options(id: [u8; 16]) -> BuildOptions {
         .with_creation_date("D:20261030120000Z".parse().unwrap())
 }
 
-/// `packages/pdf/examples/report.ts`, call for call.
+/// `packages/sdk/examples/report.ts`, call for call.
 fn report() -> Vec<u8> {
     let at = PointPt::from_points;
     let mut b = Builder::new(options(*b"lamina-ex-report"));

@@ -5,7 +5,7 @@
 
 ## What happened
 
-`init()` or `loadText()` of `@laminapdf/pdf` named a source (a URL, `Response`, bytes or `WebAssembly.Module`) for a module that an earlier call had already loaded, or started loading, from another source (or from the default file).
+`init()` or `loadText()` of `@laminapdf/sdk` named a source (a URL, `Response`, bytes or `WebAssembly.Module`) for a module that an earlier call had already loaded, or started loading, from another source (or from the default file).
 
 ## Why
 

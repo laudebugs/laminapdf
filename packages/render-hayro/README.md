@@ -1,6 +1,6 @@
 # @laminapdf/render-hayro
 
-ADR 0004's second web renderer, the CI oracle and the debug-menu choice: `lamina-render`'s pure-Rust hayro adapter, compiled to its own WebAssembly module, behind [`@laminapdf/render`](../render/README.md)'s `RenderBackend`. Private; `@laminapdf/pdf` never depends on it.
+ADR 0004's second web renderer, the CI oracle and the debug-menu choice: `lamina-render`'s pure-Rust hayro adapter, compiled to its own WebAssembly module, behind [`@laminapdf/render`](../render/README.md)'s `RenderBackend`. Private; `@laminapdf/sdk` never depends on it.
 
 ```ts
 import { initHayro } from "@laminapdf/render-hayro";

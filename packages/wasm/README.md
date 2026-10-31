@@ -1,6 +1,6 @@
 # `@laminapdf/wasm`
 
-lamina's WebAssembly modules and their [wasm-bindgen](https://github.com/wasm-bindgen/wasm-bindgen) glue, built from [`crates/lamina-wasm`](../../crates/lamina-wasm) by `cargo xtask wasm` into `dist/` (generated, gitignored; this `package.json` is committed so `pnpm install --frozen-lockfile` works before a build, [ADR 0002](../../docs/decisions/0002-binding-strategy.md) §2). Private: `@laminapdf/pdf` (B6b) is the API to use; this package is its raw layer ([ADR 0016](../../docs/decisions/0016-package-design.md)).
+lamina's WebAssembly modules and their [wasm-bindgen](https://github.com/wasm-bindgen/wasm-bindgen) glue, built from [`crates/lamina-wasm`](../../crates/lamina-wasm) by `cargo xtask wasm` into `dist/` (generated, gitignored; this `package.json` is committed so `pnpm install --frozen-lockfile` works before a build, [ADR 0002](../../docs/decisions/0002-binding-strategy.md) §2). Private: `@laminapdf/sdk` (B6b) is the API to use; this package is its raw layer ([ADR 0016](../../docs/decisions/0016-package-design.md)).
 
 | Export | File | What it has |
 | --- | --- | --- |

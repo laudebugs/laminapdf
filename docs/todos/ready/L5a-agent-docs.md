@@ -43,17 +43,17 @@ Users get an `AGENTS.md` snippet for their own repositories. A machine-readable 
   - Both name the package version they describe.
 - **`.md` twin of every page**: `/guides/fonts/` also served as `/guides/fonts.md`, rendered from the MDX source with imported snippets inlined. The API reference comes as Markdown via a TypeDoc Markdown plugin. Recommendation: evaluate an existing Starlight llms plugin first, after a licence check; otherwise use a small Astro integration in `apps/docs`.
 - **Docs inside the packages**, built at pack time from the same Markdown:
-  - `packages/pdf/docs/` (guides, API Markdown, `explain` pages, `schemas/`, `renames.json`, `llms.txt`), listed in `files`.
+  - `packages/sdk/docs/` (guides, API Markdown, `explain` pages, `schemas/`, `renames.json`, `llms.txt`), listed in `files`.
   - The `lamina` crate's `docs/` via `include` in `Cargo.toml`.
   - Each file's front matter carries `version`, equal to the package version.
 - **`AGENTS.md` snippet**: a docs page "Using lamina with coding agents" with a copy-paste block for users' `AGENTS.md` (or `CLAUDE.md`). It covers:
-  - where the version-matched docs live (`node_modules/@laminapdf/pdf/docs/`);
+  - where the version-matched docs live (`node_modules/@laminapdf/sdk/docs/`);
   - `init()` before sync calls;
   - top-left points and 0-based page index (ADR 0027);
   - errors by `code`, with `explain` pages;
   - the `llms.txt` URL.
 
-  The same block goes in `packages/pdf/examples/AGENTS.md`.
+  The same block goes in `packages/sdk/examples/AGENTS.md`.
 - **Rename log**: `renames.json` with schema `lamina.renames/1`: `[{ from, to, surface: "rust" | "ts" | "cli", kind, since, note }]`.
   - A check fails when a `#[deprecated]` Rust item or `@deprecated` TSDoc tag has no entry naming its replacement, and when an entry points at a symbol that no longer exists.
   - Shipped in the packages and on the site.
@@ -73,9 +73,9 @@ Users get an `AGENTS.md` snippet for their own repositories. A machine-readable 
 - [ ] Read the report section, the LLM note (A), B7a's `apps/docs` on `main` and llmstxt.org
 - [ ] Choose the generation route (plugin vs own integration). Check licences with `cargo xtask npm-licenses`. Pin versions
 - [ ] Generate `.md` twins for every route. Inline imported snippets (the twin must be self-contained). Emit `llms.txt` and `llms-full.txt` with the version
-- [ ] TypeDoc Markdown output for `@laminapdf/pdf`; rustdoc stays linked (Markdown rustdoc is out of scope unless cheap)
-- [ ] `cargo xtask docs-pack`, or a pack step in the existing build: copy the Markdown, `explain` pages (from [L1b](../done/L1b-error-contract-codegen.md)), schemas and `renames.json` into `packages/pdf/docs/` and the crate's `docs/`; stamp `version`; add to `files` / `include`
-- [ ] The "Using lamina with coding agents" page and `packages/pdf/examples/AGENTS.md` (same text, one source)
+- [ ] TypeDoc Markdown output for `@laminapdf/sdk`; rustdoc stays linked (Markdown rustdoc is out of scope unless cheap)
+- [ ] `cargo xtask docs-pack`, or a pack step in the existing build: copy the Markdown, `explain` pages (from [L1b](../done/L1b-error-contract-codegen.md)), schemas and `renames.json` into `packages/sdk/docs/` and the crate's `docs/`; stamp `version`; add to `files` / `include`
+- [ ] The "Using lamina with coding agents" page and `packages/sdk/examples/AGENTS.md` (same text, one source)
 - [ ] `renames.json`, its schema, and the deprecation check in `cargo xtask check docs` (grep `#[deprecated` and `@deprecated` in `crates/` and `packages/`; every hit has an entry)
 - [ ] `tools/agent-eval/`:
   - [ ] Task files, checkers and the runner script
@@ -87,7 +87,7 @@ Users get an `AGENTS.md` snippet for their own repositories. A machine-readable 
 
 - [ ] `pnpm --filter docs build` emits `llms.txt`, `llms-full.txt` and one `.md` per HTML page (a build test compares the two lists)
 - [ ] `llms.txt` passes a format check (H1, blockquote, H2 link sections, every link resolves to an emitted `.md`)
-- [ ] The `pnpm pack` tarball of `@laminapdf/pdf` contains `docs/` with guides, API Markdown, every `explain` page, the schemas and `renames.json`, all stamped with the package's version (test over the tarball listing)
+- [ ] The `pnpm pack` tarball of `@laminapdf/sdk` contains `docs/` with guides, API Markdown, every `explain` page, the schemas and `renames.json`, all stamped with the package's version (test over the tarball listing)
 - [ ] `cargo package --list -p lamina` lists the crate's `docs/` with the same version
 - [ ] Adding `@deprecated` to a TS export (or `#[deprecated]` to a Rust item) without a `renames.json` entry fails `cargo xtask check docs`
 - [ ] `renames.json` validates against `lamina.renames/1`
@@ -100,14 +100,14 @@ Users get an `AGENTS.md` snippet for their own repositories. A machine-readable 
 ## Tests
 
 - `apps/docs` build tests: route list vs `.md` list; `llms.txt` format; snippets inlined.
-- Tarball test in `packages/pdf/test/pack.test.ts` (or xtask): contents and version stamps.
+- Tarball test in `packages/sdk/test/pack.test.ts` (or xtask): contents and version stamps.
 - xtask unit tests for the deprecation check and the `renames.json` schema.
 - The agent eval is a manual tool with its own checkers; it is not part of `cargo xtask test`.
 
 ## Docs to update
 
 - [ ] [shareable-libraries §9 L5](../../plans/shareable-libraries.md#9-to-dos): tick the agent-docs to-do
-- [ ] `CLAUDE.md` (layout: `tools/agent-eval`; the new xtask command), `docs/research/libraries/README.md` (baseline file), `packages/pdf/README.md` ("Docs for agents" pointer)
+- [ ] `CLAUDE.md` (layout: `tools/agent-eval`; the new xtask command), `docs/research/libraries/README.md` (baseline file), `packages/sdk/README.md` ("Docs for agents" pointer)
 - [ ] [TypeScript guideline](../../guidelines/typescript.md) and [Rust guideline](../../guidelines/rust.md): a line that every deprecation needs a `renames.json` entry
 
 ## Risks and open questions

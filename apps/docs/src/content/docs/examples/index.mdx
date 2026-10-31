@@ -7,7 +7,7 @@ tableOfContents: true
 import { Tabs, TabItem } from "@astrojs/starlight/components";
 import Snippet from "../../../components/Snippet.astro";
 
-Each example exists twice: in Rust (`crates/lamina/examples/`) and in TypeScript (`packages/pdf/examples/`). Both write the same bytes, the golden in `fixtures/golden/examples/`. CI checks that in Rust and in every JavaScript runtime: Node, Chromium, Firefox, WebKit, Deno, Bun and workerd. The source below is those files, and each PDF link is the golden itself.
+Each example exists twice: in Rust (`crates/lamina/examples/`) and in TypeScript (`packages/sdk/examples/`). Both write the same bytes, the golden in `fixtures/golden/examples/`. CI checks that in Rust and in every JavaScript runtime: Node, Chromium, Firefox, WebKit, Deno, Bun and workerd. The source below is those files, and each PDF link is the golden itself.
 
 Run them yourself with `cargo run -p lamina --example <name>` (written to `target/examples-out/`), or `cargo xtask examples` to compare all of them with the goldens.
 
@@ -16,7 +16,7 @@ Run them yourself with `cargo run -p lamina --example <name>` (written to `targe
 One A4 page with a line of text in a standard 14 font. [Open the PDF](/examples/pdf/hello.pdf).
 
 <Tabs syncKey="lang">
-  <TabItem label="TypeScript"><Snippet file="packages/pdf/examples/hello.ts" /></TabItem>
+  <TabItem label="TypeScript"><Snippet file="packages/sdk/examples/hello.ts" /></TabItem>
   <TabItem label="Rust"><Snippet file="crates/lamina/examples/hello.rs" /></TabItem>
 </Tabs>
 
@@ -25,7 +25,7 @@ One A4 page with a line of text in a standard 14 font. [Open the PDF](/examples/
 An embedded, subset font and a standard 14 one, a coloured band, right-aligned text boxes, hairlines and a link. It's tagged: headings, a table and a link element, with the decorations marked as artifacts. [Open the PDF](/examples/pdf/invoice.pdf).
 
 <Tabs syncKey="lang">
-  <TabItem label="TypeScript"><Snippet file="packages/pdf/examples/invoice.ts" /></TabItem>
+  <TabItem label="TypeScript"><Snippet file="packages/sdk/examples/invoice.ts" /></TabItem>
   <TabItem label="Rust"><Snippet file="crates/lamina/examples/invoice.rs" /></TabItem>
 </Tabs>
 
@@ -34,7 +34,7 @@ An embedded, subset font and a standard 14 one, a coloured band, right-aligned t
 Latin, Arabic, Devanagari, Hebrew and Chinese, each in its own embedded font: a shaped line and a paragraph broken into a narrow box. [Open the PDF](/examples/pdf/multilingual.pdf).
 
 <Tabs syncKey="lang">
-  <TabItem label="TypeScript"><Snippet file="packages/pdf/examples/multilingual.ts" /></TabItem>
+  <TabItem label="TypeScript"><Snippet file="packages/sdk/examples/multilingual.ts" /></TabItem>
   <TabItem label="Rust"><Snippet file="crates/lamina/examples/multilingual.rs" /></TabItem>
 </Tabs>
 
@@ -43,7 +43,7 @@ Latin, Arabic, Devanagari, Hebrew and Chinese, each in its own embedded font: a 
 Paths, dashed strokes, gray, RGB, CMYK and hex colour, transparency and a blend mode, a clip, a rotated transform, a JPEG and an RGBA image with a soft mask. [Open the PDF](/examples/pdf/vectors.pdf).
 
 <Tabs syncKey="lang">
-  <TabItem label="TypeScript"><Snippet file="packages/pdf/examples/images-and-vectors.ts" /></TabItem>
+  <TabItem label="TypeScript"><Snippet file="packages/sdk/examples/images-and-vectors.ts" /></TabItem>
   <TabItem label="Rust"><Snippet file="crates/lamina/examples/vectors.rs" /></TabItem>
 </Tabs>
 
@@ -52,7 +52,7 @@ Paths, dashed strokes, gray, RGB, CMYK and hex colour, transparency and a blend 
 URI, page and named-destination links, an outline with a heading, colour and styles, page labels, and the outline shown when the file opens. [Open the PDF](/examples/pdf/links_and_outlines.pdf).
 
 <Tabs syncKey="lang">
-  <TabItem label="TypeScript"><Snippet file="packages/pdf/examples/links-and-outlines.ts" /></TabItem>
+  <TabItem label="TypeScript"><Snippet file="packages/sdk/examples/links-and-outlines.ts" /></TabItem>
   <TabItem label="Rust"><Snippet file="crates/lamina/examples/links_and_outlines.rs" /></TabItem>
 </Tabs>
 
@@ -61,7 +61,7 @@ URI, page and named-destination links, an outline with a heading, colour and sty
 Generate a file, open its bytes, edit the metadata in one transaction and save incrementally. [Open the PDF](/examples/pdf/generate_then_edit.pdf).
 
 <Tabs syncKey="lang">
-  <TabItem label="TypeScript"><Snippet file="packages/pdf/examples/generate-then-edit.ts" /></TabItem>
+  <TabItem label="TypeScript"><Snippet file="packages/sdk/examples/generate-then-edit.ts" /></TabItem>
   <TabItem label="Rust"><Snippet file="crates/lamina/examples/generate_then_edit.rs" /></TabItem>
 </Tabs>
 
@@ -69,7 +69,7 @@ Generate a file, open its bytes, edit the metadata in one transaction and save i
 
 A 100-page report with two embedded fonts: the performance case each runtime times. It has no golden file. Every runtime checks the report's SHA-256 instead, and so does the Rust benchmark that builds the same bytes.
 
-<Snippet file="packages/pdf/examples/report.ts" />
+<Snippet file="packages/sdk/examples/report.ts" />
 
 ## Worker
 
@@ -79,10 +79,10 @@ A Cloudflare Worker that generates a PDF per request. See the [Workers quick sta
 
 Opening someone else's file with a password and tighter limits, with the outcome returned as a value. It writes no PDF. See [Encrypted files](/guides/encrypted-files/).
 
-<Snippet file="packages/pdf/examples/open-untrusted.ts" />
+<Snippet file="packages/sdk/examples/open-untrusted.ts" />
 
 ## worker client (TypeScript)
 
 The same API in a Web Worker: open, count the pages, save with progress, and abort a save. It runs in browsers. See [Off the main thread](/guides/off-the-main-thread/).
 
-<Snippet file="packages/pdf/examples/worker-client.ts" />
+<Snippet file="packages/sdk/examples/worker-client.ts" />

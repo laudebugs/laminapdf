@@ -51,7 +51,7 @@ Make links in PDFs work safely. A DOM link layer on each mounted page turns link
 - [ ] Confirmation dialog, URL normalisation and display (punycode shown for IDN hosts to prevent spoofing), scheme allow-list.
 - [ ] Named actions and unsupported-action reporting.
 - [ ] `NavigationHistory` with unit tests; toolbar back/forward buttons; fragment integration and `popstate` handling.
-- [ ] Facts: link targets (page index for internal, URI for external) for corpus files added to `expected.json` via an independent tool (pypdf/pdf.js); a generated fixture with every link kind (`@laminapdf/pdf` builder supports links and named destinations per B5).
+- [ ] Facts: link targets (page index for internal, URI for external) for corpus files added to `expected.json` via an independent tool (pypdf/pdf.js); a generated fixture with every link kind (`@laminapdf/sdk` builder supports links and named destinations per B5).
 
 ## Acceptance criteria
 

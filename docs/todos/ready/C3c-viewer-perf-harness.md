@@ -43,7 +43,7 @@ Measure the [§4 non-functional targets](../../plans/web-app.md#non-functional-t
 ## Tasks
 
 - [ ] Claim via a claim PR (see Definition of done); then a fresh worktree off the updated `main`.
-- [ ] Fixture generator `perf/fixtures.ts`: 10-page ~1 MB mixed text/image PDF and 1,000-page text PDF (plus a 300-page image-heavy PDF) generated with `@laminapdf/pdf` builder, seeded; cached in a gitignored dir.
+- [ ] Fixture generator `perf/fixtures.ts`: 10-page ~1 MB mixed text/image PDF and 1,000-page text PDF (plus a 300-page image-heavy PDF) generated with `@laminapdf/sdk` builder, seeded; cached in a gitignored dir.
 - [ ] Instrumentation hook in the demo: expose `window.__laminaPerf` (only in the demo/perf build) collecting `renderstats`, long tasks, memory samples every 500 ms.
 - [ ] Scenario specs `perf/*.perf.ts` with deterministic scrolling (`mouse.wheel` steps at fixed intervals) and network throttling for the cold scenario.
 - [ ] Reporter writing `perf-results/<browser>.json` and `perf-results/summary.md` comparing to §4 targets (pass/fail columns, informational).

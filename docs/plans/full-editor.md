@@ -10,7 +10,7 @@
 
 ## 1. Goal
 
-Grow the web and desktop readers into one **Acrobat-class editor** that covers all 13 feature groups (A–M, ~180 operations) in [06 §3](../research/pdf/06-feature-inventory.md#3-full-operation-inventory-with-mechanisms), in the order of [06 §9](../research/pdf/06-feature-inventory.md#9-suggested-phasing). Every operation is a typed `Op` in the core, so each one ships to the web app, the desktop app and the `@laminapdf/pdf` / `lamina` packages in the same PR ([architecture §2](architecture.md#2-the-architecture-in-one-picture)). Documents stay on the device; server features are optional and opt-in.
+Grow the web and desktop readers into one **Acrobat-class editor** that covers all 13 feature groups (A–M, ~180 operations) in [06 §3](../research/pdf/06-feature-inventory.md#3-full-operation-inventory-with-mechanisms), in the order of [06 §9](../research/pdf/06-feature-inventory.md#9-suggested-phasing). Every operation is a typed `Op` in the core, so each one ships to the web app, the desktop app and the `@laminapdf/sdk` / `lamina` packages in the same PR ([architecture §2](architecture.md#2-the-architecture-in-one-picture)). Documents stay on the device; server features are optional and opt-in.
 
 ## 2. Scope and non-goals
 
@@ -28,7 +28,7 @@ Grow the web and desktop readers into one **Acrobat-class editor** that covers a
 The capability matrix is the editor's roadmap and progress report ([06 §10](../research/pdf/06-feature-inventory.md#10-implications-for-lamina), [architecture §7 cross-cutting](architecture.md#7-to-dos)).
 
 - **Rows:** one per operation in 06 §3, with a stable ID `<group>.<nn>` in the order the operations appear there (for example `C.04` = reorder pages).
-- **Columns:** `core` (Rust), `pdf` (`@laminapdf/pdf`), `web`, `desktop`, `target round`.
+- **Columns:** `core` (Rust), `pdf` (`@laminapdf/sdk`), `web`, `desktop`, `target round`.
 - **Statuses:**
   - `unsupported`: detected and reported to the user, never silently dropped.
   - `read`: displayed or extracted faithfully.
@@ -58,7 +58,7 @@ The capability matrix is the editor's roadmap and progress report ([06 §10](../
 4. **Correctness traps are tested**, not documented away: redaction that only covers content, crop that only hides content, incremental saves that keep deleted content, flattening without appearances, edits that break PDF/A or PDF/UA ([06 §10](../research/pdf/06-feature-inventory.md#10-implications-for-lamina)). The UI warns when an edit breaks a claimed conformance level.
 5. **Same features on web and desktop** through `Platform` capability flags. Differences are listed per round.
 6. **Privacy:** server features are off by default, opt-in per document, and say what leaves the device (ADR 0011).
-7. **Library parity:** each op is exposed in `lamina` and `@laminapdf/pdf` in the same PR, with docs and an example.
+7. **Library parity:** each op is exposed in `lamina` and `@laminapdf/sdk` in the same PR, with docs and an example.
 
 ## 6. Design summary
 
@@ -302,7 +302,7 @@ Todos: [X2](../todos/done/X2-capability-matrix.md) (capability matrix; E1a and E
 - [ ] Undo/redo commands, shortcuts and history panel
 - [ ] Save, Save as and Download copy through the `Platform` adapter
 - [ ] `SaveConstraint` banner and explanations
-- [ ] Metadata editing ops (J.01–J.03, J.10) writing Info and XMP in sync, with round-trip tests in core, `@laminapdf/pdf`, web, desktop
+- [ ] Metadata editing ops (J.01–J.03, J.10) writing Info and XMP in sync, with round-trip tests in core, `@laminapdf/sdk`, web, desktop
 - [ ] XMP packet parse/update for Info-mapped properties; create a packet when missing
 - [ ] PDF/A-aware metadata edits: keep `pdfaid:`, warn before a save that breaks the claim; tests that veraPDF still passes on edited PDF/A fixtures
 

@@ -1,15 +1,15 @@
 ---
 title: Off the main thread
-description: Run lamina in a Web Worker with @laminapdf/pdf/worker, so a large file never blocks the page.
+description: Run lamina in a Web Worker with @laminapdf/sdk/worker, so a large file never blocks the page.
 sidebar:
   order: 8
 ---
 
 import Snippet from "../../../components/Snippet.astro";
 
-`@laminapdf/pdf` is synchronous after `init()`. On the main thread, a full rewrite of a 50 MB file blocks the page for about 200 ms. `@laminapdf/pdf/worker` runs the same API in a Web Worker. You call the same method names, and each returns a `Promise`.
+`@laminapdf/sdk` is synchronous after `init()`. On the main thread, a full rewrite of a 50 MB file blocks the page for about 200 ms. `@laminapdf/sdk/worker` runs the same API in a Web Worker. You call the same method names, and each returns a `Promise`.
 
-<Snippet file="packages/pdf/examples/worker-client.ts" />
+<Snippet file="packages/sdk/examples/worker-client.ts" />
 
 - **Same names, async.** Getters become methods: `await doc.pageCount()`. `doc.page(i)` returns a remote page, and `page.text()` returns a `PageText` (call `client.loadExtract()` first).
 - **Not served:**
@@ -22,5 +22,5 @@ import Snippet from "../../../components/Snippet.astro";
   - Any other call runs to the end in the worker, because it is one synchronous call. `client.terminate()` is the hard stop.
 - **Buffers.** Saved bytes and page text come back transferred, not copied. Your input is copied unless you pass `transfer: true`, which moves it and leaves your buffer empty.
 - **Crashes.** If the worker dies, pending calls reject with `worker-crashed` and `client.on("crashed", …)` fires. `client.restart()` starts a fresh worker, and documents must be opened again.
-- **Version.** `connect()` checks that the worker comes from the same `@laminapdf/pdf` build, and rejects with `worker-version-mismatch` otherwise.
-- **Bundlers and CSP.** Vite and webpack bundle the worker with no setup. In Vite, exclude `@laminapdf/pdf` from `optimizeDeps`, as for the main entry. To host the worker file yourself, pass `connect({ worker: () => new Worker(url, { type: "module" }) })`.
+- **Version.** `connect()` checks that the worker comes from the same `@laminapdf/sdk` build, and rejects with `worker-version-mismatch` otherwise.
+- **Bundlers and CSP.** Vite and webpack bundle the worker with no setup. In Vite, exclude `@laminapdf/sdk` from `optimizeDeps`, as for the main entry. To host the worker file yourself, pass `connect({ worker: () => new Worker(url, { type: "module" }) })`.

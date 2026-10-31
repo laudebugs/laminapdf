@@ -31,7 +31,7 @@ Give power users and developers read-only inspection: header/catalog version and
 
 - Core APIs: `doc.conformance()`, `doc.fonts()` (per page, via B9 font reading), `doc.color_profiles()`, `doc.objects()` iterator, `doc.object(ref)`, `doc.revisions()` summary
 - Inspector panels in `@laminapdf/ui`: Properties → Conformance; Fonts; Colour; Object browser (tree from trailer, jump to ref, hex/text stream views with size caps)
-- Bindings for all of the above in `lamina-wasm` / `@laminapdf/pdf`
+- Bindings for all of the above in `lamina-wasm` / `@laminapdf/sdk`
 
 **Out of scope** (and which todo covers it)
 

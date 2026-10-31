@@ -1,5 +1,5 @@
 //! The shared `page.text()` snapshot (todo B9c): `fixtures/text/page-text.json` holds what
-//! `Document::page_text` returns for the text fixtures, and `@laminapdf/pdf`'s
+//! `Document::page_text` returns for the text fixtures, and `@laminapdf/sdk`'s
 //! `test/text.test.ts` builds the same JSON through the WASM and compares it with the same file,
 //! so Rust and TypeScript give the same text, runs and quads.
 //!

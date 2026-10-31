@@ -16,7 +16,7 @@
 
 ## Goal
 
-Expose the revision index built for signature diffing in E10h (`/Prev` chain, byte ranges, objects changed per revision) as a public API in `lamina` and `@laminapdf/pdf`, and let users open any prior revision read-only in a revisions panel.
+Expose the revision index built for signature diffing in E10h (`/Prev` chain, byte ranges, objects changed per revision) as a public API in `lamina` and `@laminapdf/sdk`, and let users open any prior revision read-only in a revisions panel.
 
 ## Context
 

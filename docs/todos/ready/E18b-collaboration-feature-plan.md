@@ -48,7 +48,7 @@ The short feature-plan PR that opens round E18 ([full-editor §E18](../../plans/
 ## Tasks
 
 - [ ] Create `docs/plans/editor/e18-collaboration.md` (Status: Draft) with: goal; the synced record types (annotations, field values, page order), the ops each maps to, conflict rules per ADR 0012, presence and notification features, and targets (latency, concurrent users)
-- [ ] Describe model and crate changes (new typed views, new modules, public API in `lamina` and `@laminapdf/pdf`), and the UI tools/panels in `@laminapdf/ui`
+- [ ] Describe model and crate changes (new typed views, new modules, public API in `lamina` and `@laminapdf/sdk`), and the UI tools/panels in `@laminapdf/ui`
 - [ ] Write the `SaveConstraint` table for the round: behaviour on `Free`, `AppendOnly` (DocMDP P1/P2/P3, FieldMDP), `RequiresRewrite` and `Conflict`, and the UI warnings
 - [ ] List web vs desktop differences through `Platform` capability flags, and any server feature (off by default, opt-in, what leaves the device)
 - [ ] List fixtures to add (with provenance and licence in `fixtures/README.md`), and the test plan per op: unit, golden, round-trip (lamina, pdf.js, PDFium, qpdf), differential, fuzz, Playwright and WebdriverIO e2e

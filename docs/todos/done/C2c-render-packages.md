@@ -8,7 +8,7 @@
 | Round / milestone | Round C (web reader) — M2 Web reader v0.1 |
 | Depends on | [B6b](./B6b-lamina-pdf-package.md), [C2b](./C2b-lamina-render-crate.md) |
 | Blocks | [C3a](../ongoing/C3a-viewer-worker-rpc.md), [D1a](../ready/D1a-desktop-ipc-spike.md), [D1b](../ready/D1b-desktop-print-spike.md) |
-| Dependency notes | [C2b](../done/C2b-lamina-render-crate.md) (trait + hayro adapter to compile); library **B6** (`lamina-wasm` build pipeline, ADR 0016 package conventions, size-budget checks; [pdf-library B6](../../plans/pdf-library.md#b6-wasm-and-laminapdfpdf)) |
+| Dependency notes | [C2b](../done/C2b-lamina-render-crate.md) (trait + hayro adapter to compile); library **B6** (`lamina-wasm` build pipeline, ADR 0016 package conventions, size-budget checks; [pdf-library B6](../../plans/pdf-library.md#b6-wasm-and-laminapdfsdk)) |
 | ADRs | Implements 0004 (web side) and follows 0009 (worker-only use); follows [0002](../../decisions/0002-binding-strategy.md) (wasm-bindgen + tsify), 0016 (package design, from B6), [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) (pinned, hashed third-party binary) |
 | Branch | `feat/c2c-render-packages` |
 | PR title | `feat(render-pdfium): add the pdfium-wasm and hayro web render adapters` |
@@ -17,7 +17,7 @@
 
 ## Goal
 
-Give the browser the same `RenderBackend` contract the Rust crate has. `@laminapdf/render-pdfium` ships the pinned PDFium-WASM build behind a small TypeScript adapter; `@laminapdf/render-hayro` ships `lamina-render`'s hayro adapter compiled to its own `.wasm`. Both are optional packages, loaded only inside the document worker, so `@laminapdf/pdf` stays small ([pdf-library B6](../../plans/pdf-library.md#b6-wasm-and-laminapdfpdf) budgets) and the viewer can switch backends at runtime (debug menu, diffing).
+Give the browser the same `RenderBackend` contract the Rust crate has. `@laminapdf/render-pdfium` ships the pinned PDFium-WASM build behind a small TypeScript adapter; `@laminapdf/render-hayro` ships `lamina-render`'s hayro adapter compiled to its own `.wasm`. Both are optional packages, loaded only inside the document worker, so `@laminapdf/pdf` stays small ([pdf-library B6](../../plans/pdf-library.md#b6-wasm-and-laminapdfsdk) budgets) and the viewer can switch backends at runtime (debug menu, diffing).
 
 ## Context
 
@@ -25,7 +25,7 @@ Give the browser the same `RenderBackend` contract the Rust crate has. `@laminap
 - [C1b result](../done/C1b-pdfium-wasm-spike.md) (`spikes/pdfium-wasm/README.md`) — loading strategy, input strategy (`File.slice()` custom access vs OPFS), measured sizes.
 - [TypeScript guidelines](../../guidelines/typescript.md) — ESM-only, `exports` with `types` first, `sideEffects: false`, named exports, no Node APIs, Vitest; [modules and packaging](../../guidelines/typescript.md#modules-and-packaging).
 - [web-app.md §5](../../plans/web-app.md#5-design-summary) — packages list and optionality.
-- B6's `packages/pdf` and `crates/lamina-wasm` — copy their build, `init()` and size-budget patterns.
+- B6's `packages/sdk` and `crates/lamina-wasm` — copy their build, `init()` and size-budget patterns.
 
 ## Scope
 

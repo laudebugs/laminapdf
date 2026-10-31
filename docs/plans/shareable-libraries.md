@@ -9,7 +9,7 @@
 
 ## 1. Goal
 
-Make lamina's libraries good for three kinds of user at once: frontend and mobile engineers who need smooth UI, backend and command-line users who need composable tools, and LLMs and AI agents that write code against the API and read its output. The [PDF library plan](pdf-library.md) delivers the Rust core, the `lamina` crate and `@laminapdf/pdf`. This plan adds what that plan leaves out:
+Make lamina's libraries good for three kinds of user at once: frontend and mobile engineers who need smooth UI, backend and command-line users who need composable tools, and LLMs and AI agents that write code against the API and read its output. The [PDF library plan](pdf-library.md) delivers the Rust core, the `lamina` crate and `@laminapdf/sdk`. This plan adds what that plan leaves out:
 
 1. **One contract** across every surface: errors, coordinates and units, jobs and cancellation, versioned JSON schemas.
 2. **TypeScript hardening:** a worker client, disposal and memory bounds, range loading.
@@ -44,7 +44,7 @@ The research found the opening is real: in October 2026 no permissively licensed
 
 ## 4. Principles (recommendations, recorded in ADRs 0026–0031)
 
-1. **Design the façade to UniFFI's rules now** ([report §2](../research/libraries/shareable-libraries.md#design-the-façade-to-the-stricter-binding-now)): handles that a binding can make `Send + Sync` (UniFFI needs this). The `lamina` façade is a core crate, and ADR 0005 §7 allows no `Mutex` in core, so [ADR 0028](../decisions/0028-facade-rules-jobs-and-cancellation.md) §2 puts the lock in the binding edge crate (`lamina-ffi` wraps the `Send` document in a `Mutex`; ADR 0005 unchanged) rather than making the core `Sync`. Also: `&self`-friendly methods, owned handles instead of borrowed returns, no generics across the boundary, a string-payload error enum, an explicit `CancelToken`, resumable `Job::step`. UniFFI forbids `&mut self`; fixing this after `@laminapdf/pdf` ships would break the TypeScript API.
+1. **Design the façade to UniFFI's rules now** ([report §2](../research/libraries/shareable-libraries.md#design-the-façade-to-the-stricter-binding-now)): handles that a binding can make `Send + Sync` (UniFFI needs this). The `lamina` façade is a core crate, and ADR 0005 §7 allows no `Mutex` in core, so [ADR 0028](../decisions/0028-facade-rules-jobs-and-cancellation.md) §2 puts the lock in the binding edge crate (`lamina-ffi` wraps the `Send` document in a `Mutex`; ADR 0005 unchanged) rather than making the core `Sync`. Also: `&self`-friendly methods, owned handles instead of borrowed returns, no generics across the boundary, a string-payload error enum, an explicit `CancelToken`, resumable `Job::step`. UniFFI forbids `&mut self`; fixing this after `@laminapdf/sdk` ships would break the TypeScript API.
 2. **One error shape everywhere:** `{ code, kind, message, hint, location, docsUrl }`, kebab-case codes as today (ADR 0003 §2), generated from [`fixtures/codes.json`](../../fixtures/codes.json) into Rust, TypeScript and JSON Schema. Messages never quote document text (prompt-injection hygiene).
 3. **Explicit coordinates:** high-level and extraction APIs use **top-left origin, points**, with typed units (`Pt`, `Mm`) and an explicit `coordinates` block in every JSON output; low-level APIs keep raw PDF user space, named as such. Pages: 0-based `index` plus 1-based `number` in output.
 4. **The core stays synchronous.** Long work is a `Job` the caller steps with a budget counted in work units (core crates have no clock; time limits live at the edges); cancellation and progress are lamina API, not binding features (UniFFI has no built-in cancellation). Async lives at the edges: the TS worker client, Swift `async`, Kotlin `suspend`.
@@ -73,8 +73,8 @@ let out = loop {
 ```
 
 ```ts
-// @laminapdf/pdf/worker (L2a): the async twin of the sync API, in a Web Worker
-import { connect } from "@laminapdf/pdf/worker";
+// @laminapdf/sdk/worker (L2a): the async twin of the sync API, in a Web Worker
+import { connect } from "@laminapdf/sdk/worker";
 const pdf = await connect({ signal });
 await using doc = await pdf.open(bytes, { transfer: true }); // zero-copy; the default copies. Symbol.asyncDispose
 const md = await doc.extract({ format: "markdown", pages: "1-5" });
@@ -114,7 +114,7 @@ Each round is split into todos (one PR each) on the [todo board](../todos/README
 
 ### L2. TypeScript hardening
 
-**Todos:** [L2a](../todos/done/L2a-worker-client.md) (`@laminapdf/pdf/worker`), [L2b](../todos/ready/L2b-disposal-and-memory.md) (disposal and memory bounds), [L2c](../todos/done/L2c-range-byte-source.md) (range `ByteSource` over `Error::DataPending`).
+**Todos:** [L2a](../todos/done/L2a-worker-client.md) (`@laminapdf/sdk/worker`), [L2b](../todos/ready/L2b-disposal-and-memory.md) (disposal and memory bounds), [L2c](../todos/done/L2c-range-byte-source.md) (range `ByteSource` over `Error::DataPending`).
 
 **Deliverable:** a worker client with the same method names as the sync API, version handshake, `AbortSignal` and transfer lists, which `@laminapdf/viewer` (C3a) consumes; `Symbol.dispose` on every handle, a capped wasm memory and an abort-and-reinstantiate wrapper; range reading for large and remote files.
 **Accepted when:** a 50 MB file opens in a worker with no long task over 50 ms on the main thread; opening and disposing a document in a loop keeps wasm memory at its post-warm-up size (± one 64 KiB page; linear memory never shrinks, so the high-water mark is the baseline); opening a remote file fetches only the ranges it needs.
@@ -155,7 +155,7 @@ This plan adjusts these todos (edited in the same PR):
 - [B5c](../todos/done/B5c-lamina-facade-and-examples.md): acceptance criteria add ADR 0028's façade rules.
 - [B6a](../todos/done/B6a-lamina-wasm-and-adr-0016.md): ADR 0016 states per-module budgets (base, text, extract, render, sign) and adds twiggy diffs.
 - [B6b](../todos/done/B6b-lamina-pdf-package.md): per-condition wasm loaders and the `init({ module })` escape hatch.
-- [C3a](../todos/ongoing/C3a-viewer-worker-rpc.md) depends on L2a: the viewer reuses `@laminapdf/pdf/worker` instead of a second protocol.
+- [C3a](../todos/ongoing/C3a-viewer-worker-rpc.md) depends on L2a: the viewer reuses `@laminapdf/sdk/worker` instead of a second protocol.
 - [C2a](../todos/done/C2a-render-adrs.md): ADR 0004 picks the render backend per surface (desktop, web, edge, mobile) using hayro's measured wasm size.
 - [L3a](../todos/ready/L3a-lamina-extract-reading-order.md) depends on [U2b](../todos/done/U2b-reading-order-ground-truth.md) (UI/UX plan): reading order is measured on its ground-truth corpus, and the reader's copy and reader mode reuse `lamina-extract`'s ordering.
 - [L6a](../todos/done/L6a-lamina-ffi-spike.md) feeds [U3b](../todos/ready/U3b-mobile-shell-spike.md) (`mobile-shell` spike, ADR 0025); [L6b](../todos/ready/L6b-mobile-sdk-plan.md) waits for U3b. U3b decides lamina's own mobile apps; L6 is the SDK for other developers, which needs UniFFI either way.
@@ -171,7 +171,7 @@ This plan adjusts these todos (edited in the same PR):
 
 ### L2. TypeScript hardening
 
-- [x] `@laminapdf/pdf/worker`: typed RPC, version handshake, `AbortSignal`, transfer lists ([L2a](../todos/done/L2a-worker-client.md))
+- [x] `@laminapdf/sdk/worker`: typed RPC, version handshake, `AbortSignal`, transfer lists ([L2a](../todos/done/L2a-worker-client.md))
 - [ ] `Symbol.dispose` on every handle, capped wasm memory, abort-and-reinstantiate wrapper
 - [x] Range `ByteSource` reporting missing ranges through `Error::DataPending` (ADR 0005 §2), with edge adapters (HTTP range, JS callback, native positioned reads)
 
