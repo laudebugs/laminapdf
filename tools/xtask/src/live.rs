@@ -267,7 +267,15 @@ pub(crate) fn run_live(ws: &Workspace, args: &LiveArgs) -> Result<()> {
         "--example",
         "differential-facts",
     ])?;
-    let (mut reports, broken) = run_readers(ws, args, &inputs, &out)?;
+    let mut readers = vec![runner::Reader {
+        name: "lamina",
+        program: example_binary(ws, "differential-facts").into_os_string(),
+        args: Vec::new(),
+        dir: ws.root.clone(),
+        reports_repair: true,
+    }];
+    readers.extend(args.tools.iter().map(|tool| tool.reader(ws)));
+    let (mut reports, broken) = run_readers(&readers, &inputs, &out)?;
     let lamina = reports.remove(0);
     let comparison = compare(&lamina, &reports, &exceptions);
     let context = RunContext {
@@ -303,23 +311,14 @@ pub(crate) fn run_live(ws: &Workspace, args: &LiveArgs) -> Result<()> {
     Ok(())
 }
 
-/// Runs lamina and every tool over `inputs` at once (each in its own processes, see
-/// runner.rs) and writes their reports to `out`; returns the reports, lamina's first, and the
-/// readers that broke or reported the wrong files.
+/// Runs every reader over `inputs` at once (each in its own processes, see runner.rs) and
+/// writes their reports to `out/<name>.json`; returns the reports in `readers` order and the
+/// readers that broke or reported the wrong files. Both lanes (facts and `--text`) use it.
 fn run_readers(
-    ws: &Workspace,
-    args: &LiveArgs,
+    readers: &[runner::Reader],
     inputs: &[(String, PathBuf)],
     out: &Path,
 ) -> Result<(Vec<Report>, Vec<String>)> {
-    let mut readers = vec![runner::Reader {
-        name: "lamina",
-        program: example_binary(ws, "differential-facts").into_os_string(),
-        args: Vec::new(),
-        dir: ws.root.clone(),
-        reports_repair: true,
-    }];
-    readers.extend(args.tools.iter().map(|tool| tool.reader(ws)));
     // Every reader runs at once, each in its own processes (see runner.rs).
     let runs: Vec<Result<runner::Run>> = std::thread::scope(|scope| {
         let handles: Vec<_> = readers
@@ -448,12 +447,9 @@ impl Report {
 /// How an exception relates lamina's value to a tool's (`relation` in a `[[class]]`).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum Relation {
-    /// lamina skipped what it could not read: a lower page count, outline titles that are a
-    /// shorter subsequence of the tool's, or page text whose characters are a shorter
-    /// subsequence of the tool's.
+    /// lamina skipped what it could not read: a lower page count, or outline titles that are
+    /// a shorter subsequence of the tool's.
     LaminaSkips,
-    /// Page text with the same characters as the tool's, in another order.
-    SameCharacters,
     /// Page text that differs from the tool's only by lamina's U+FFFD for glyphs without a
     /// Unicode value, where the tool writes nothing or a C0 control character.
     Unmapped,
@@ -467,21 +463,6 @@ impl Relation {
                 (Value::Array(a), Value::Array(b)) => {
                     let mut rest = b.iter();
                     a.len() < b.len() && a.iter().all(|x| rest.any(|y| y == x))
-                }
-                (Value::String(a), Value::String(b)) => {
-                    let mut rest = b.chars();
-                    a.len() < b.len() && a.chars().all(|x| rest.any(|y| y == x))
-                }
-                _ => false,
-            },
-            Self::SameCharacters => match (ours, theirs) {
-                (Value::String(a), Value::String(b)) => {
-                    let sorted = |s: &str| {
-                        let mut chars: Vec<char> = s.chars().collect();
-                        chars.sort_unstable();
-                        chars
-                    };
-                    a != b && sorted(a) == sorted(b)
                 }
                 _ => false,
             },
@@ -519,15 +500,58 @@ struct Class {
 }
 
 impl Class {
+    /// A `[[class]]` entry (its rule required).
+    fn read(entry: &toml::Value) -> Result<Self> {
+        let e = Entry::read(entry, "class")?;
+        e.require_rule()?;
+        let relation = match entry.get("relation").and_then(toml::Value::as_str) {
+            None => None,
+            Some("lamina-skips") => Some(Relation::LaminaSkips),
+            Some("unmapped") => Some(Relation::Unmapped),
+            Some(other) => bail!("[[class]] relation {other:?}: \"lamina-skips\" or \"unmapped\""),
+        };
+        let file = match e.files.as_slice() {
+            [] => "*".to_owned(),
+            [one] => one.clone(),
+            _ => bail!("a [[class]] takes one `file` glob: {entry:?}"),
+        };
+        Ok(Self {
+            file,
+            facts: e.facts,
+            tools: e.tools,
+            lamina: entry.get("lamina").map(toml_to_json),
+            lamina_facts: entry
+                .get("lamina_facts")
+                .and_then(toml::Value::as_table)
+                .map(|t| t.iter().map(|(k, v)| (k.clone(), toml_to_json(v))).collect())
+                .unwrap_or_default(),
+            theirs: entry.get("theirs").map(toml_to_json),
+            relation,
+            lamina_warning: entry
+                .get("lamina_warning")
+                .and_then(toml::Value::as_str)
+                .map(str::to_owned),
+            rule: e.rule,
+        })
+    }
+
     fn matches(&self, file: &str, fact: &str, tool: &str, lamina: &Value, theirs: &Value) -> bool {
+        let ours = lamina.get(fact).unwrap_or(&Value::Null);
+        self.could_apply(file, fact, tool, lamina)
+            && self.theirs.as_ref().is_none_or(|v| v == theirs)
+            && self.relation.is_none_or(|r| r.holds(ours, theirs))
+    }
+
+    /// Whether everything on lamina's side holds (the file, the fact, the tool, lamina's
+    /// values and warning), so the class could excuse a disagreement here: a class that could
+    /// apply in a run and excused nothing is stale.
+    fn could_apply(&self, file: &str, fact: &str, tool: &str, lamina: &Value) -> bool {
         let ours = lamina.get(fact).unwrap_or(&Value::Null);
         glob(&self.file, file)
             && self.lamina_facts.iter().all(|(k, v)| lamina.get(k) == Some(v))
             && self.facts.iter().any(|f| f == fact)
             && (self.tools.is_empty() || self.tools.iter().any(|t| t == tool))
             && self.lamina.as_ref().is_none_or(|v| v == ours)
-            && self.theirs.as_ref().is_none_or(|v| v == theirs)
-            && self.relation.is_none_or(|r| r.holds(ours, theirs))
             && self.lamina_warning.as_ref().is_none_or(|code| {
                 lamina
                     .get("warnings")
@@ -568,11 +592,14 @@ enum Excuse {
 /// pypdf, the PR lanes' only tool.
 /// `[[class]]` and `[[known]]` entries are read by the nightly lane only. Every `[[exception]]`
 /// and `[[class]]` names the ADR 0003 rule behind lamina's answer; a `[[known]]` names its issue.
+/// Page-text entries (`facts = ["text"]`) are split off into `text` when the file is read, so
+/// the facts lane never sees them.
 #[derive(Debug, Default)]
 pub(crate) struct Exceptions {
     files: BTreeSet<(String, String, String)>,
     classes: Vec<Class>,
     known: Vec<Known>,
+    text: text::TextEntries,
 }
 
 fn toml_to_json(value: &toml::Value) -> Value {
@@ -616,6 +643,8 @@ impl Exceptions {
         self.files.extend(other.files);
         self.classes.extend(other.classes);
         self.known.extend(other.known);
+        self.text.classes.extend(other.text.classes);
+        self.text.known.extend(other.text.known);
     }
 
     /// `[[known]]` files whose tracking issue is still [`PENDING_ISSUE`].
@@ -662,40 +691,12 @@ impl Exceptions {
             }
         }
         for entry in entries("class") {
-            let e = Entry::read(&entry, "class")?;
-            e.require_rule()?;
-            let relation = match entry.get("relation").and_then(toml::Value::as_str) {
-                None => None,
-                Some("lamina-skips") => Some(Relation::LaminaSkips),
-                Some("same-characters") => Some(Relation::SameCharacters),
-                Some("unmapped") => Some(Relation::Unmapped),
-                Some(other) => {
-                    bail!("[[class]] relation {other:?}: \"lamina-skips\", \"same-characters\" or \"unmapped\"")
-                }
-            };
-            let file = match e.files.as_slice() {
-                [] => "*".to_owned(),
-                [one] => one.clone(),
-                _ => bail!("a [[class]] takes one `file` glob: {entry:?}"),
-            };
-            out.classes.push(Class {
-                file,
-                facts: e.facts,
-                tools: e.tools,
-                lamina: entry.get("lamina").map(toml_to_json),
-                lamina_facts: entry
-                    .get("lamina_facts")
-                    .and_then(toml::Value::as_table)
-                    .map(|t| t.iter().map(|(k, v)| (k.clone(), toml_to_json(v))).collect())
-                    .unwrap_or_default(),
-                theirs: entry.get("theirs").map(toml_to_json),
-                relation,
-                lamina_warning: entry
-                    .get("lamina_warning")
-                    .and_then(toml::Value::as_str)
-                    .map(str::to_owned),
-                rule: e.rule,
-            });
+            let class = Class::read(&entry)?;
+            if text::is_text(&class.facts) {
+                out.text.classes.push(class);
+            } else {
+                out.classes.push(class);
+            }
         }
         for entry in entries("known") {
             let e = Entry::read(&entry, "known")?;
@@ -707,6 +708,12 @@ impl Exceptions {
             };
             if e.reason.is_empty() {
                 bail!("every [[known]] gives a `reason`: {entry:?}");
+            }
+            if text::is_text(&e.facts) {
+                out.text
+                    .known
+                    .extend(text::TextKnown::read(&entry, &e, issue.as_deref())?);
+                continue;
             }
             if e.files.is_empty() || e.files.iter().any(|f| f.contains('*')) {
                 bail!("a [[known]] names its `file` or `files` (no globs): {entry:?}");
@@ -1192,16 +1199,10 @@ impl Comparison {
                 );
             }
         }
-        // Page-text entries are the text report's (`differential --live --text`).
-        let is_text = |facts: &[String]| facts.iter().any(|f| f == text::TEXT);
-        if exceptions.classes.iter().any(|c| !is_text(&c.facts)) || exceptions.known.iter().any(|k| !is_text(&k.facts))
-        {
+        if !exceptions.classes.is_empty() || !exceptions.known.is_empty() {
             let _ = writeln!(md, "\n### Classes and known issues\n");
             let _ = writeln!(md, "| Entry | Disagreements excused |\n| --- | --- |");
             for i in 0..exceptions.classes.len() {
-                if exceptions.classes.get(i).is_some_and(|c| is_text(&c.facts)) {
-                    continue;
-                }
                 let hits = self.class_hits.get(&i).copied().unwrap_or_default();
                 let _ = writeln!(
                     md,
@@ -1210,9 +1211,6 @@ impl Comparison {
                 );
             }
             for i in 0..exceptions.known.len() {
-                if exceptions.known.get(i).is_some_and(|k| is_text(&k.facts)) {
-                    continue;
-                }
                 let hits = self.known_hits.get(&i).copied().unwrap_or_default();
                 let file = exceptions.known.get(i).map_or("", |k| k.file.as_str());
                 let _ = writeln!(
@@ -1640,22 +1638,6 @@ mod tests {
         let with_tools: Vec<String> = ["--text", "--tools", "qpdf"].map(String::from).to_vec();
         let with_mutants: Vec<String> = ["--text", "--corpus", "mutants"].map(String::from).to_vec();
         assert!(parse_args(&with_tools).is_err() && parse_args(&with_mutants).is_err());
-    }
-
-    #[test]
-    fn lamina_skips_should_hold_for_text_that_is_a_shorter_subsequence() {
-        let skips = Relation::LaminaSkips;
-        assert!(skips.holds(&json!("ac"), &json!("abc")) && !skips.holds(&json!("ca"), &json!("abc")));
-    }
-
-    #[test]
-    fn same_characters_should_hold_for_reordered_text_only() {
-        let same = Relation::SameCharacters;
-        assert!(
-            same.holds(&json!("cab"), &json!("abc"))
-                && !same.holds(&json!("abc"), &json!("abc"))
-                && !same.holds(&json!("abd"), &json!("abc"))
-        );
     }
 
     #[test]

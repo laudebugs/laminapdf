@@ -43,10 +43,13 @@ fn facts(bytes: Vec<u8>) -> Value {
         pages.iter().map(|p| json!(p.lines().join("\n"))).collect()
     } else {
         // One page failed: read them one by one to find which (each call walks the page tree,
-        // so only on this path).
-        let count = match doc.page_count() {
-            Ok(count) => count,
+        // so only on this path). The count comes from the same walk `page_text` does: asking
+        // for a page past the end answers with it, where `page_count` would also build every
+        // page's facts (boxes, rotation) and fail on one bad page.
+        let count = match doc.page_text(u32::MAX, &options) {
+            Err(lamina::Error::PageIndexOutOfRange { count, .. }) => count,
             Err(e) => return json!({"outcome": "failed", "error": e.error_code().as_str(), "pages": null}),
+            Ok(_) => panic!("a page at index u32::MAX"),
         };
         (0..count)
             .map(|i| match doc.page_text(i, &options) {

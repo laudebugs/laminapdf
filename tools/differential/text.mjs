@@ -7,7 +7,8 @@
 //   node tools/differential/text.mjs --facts pdfjs|pdftotext <list.tsv> <out.json>
 //     `cargo xtask differential --live --text`: one tool's text for every `<name>\t<path>` line
 //     of the list, in the report shape of the other differential runners ({tool, version,
-//     reports_repair, facts: {name: {outcome, pages}}}), run under tools/xtask/src/runner.rs.
+//     reports_repair, facts: {name: {outcome, pages, page_errors?}}}; a pdf.js page that throws
+//     is null, its message in page_errors), run under tools/xtask/src/runner.rs.
 //
 // pdf.js: `getTextContent()` per page, items joined, a newline after `hasEOL`. pdftotext: the
 // whole file (`-enc UTF-8`, reading order, no `-layout`), split on form feeds. Both are stored
@@ -23,9 +24,11 @@ const PER_FILE_MS = 60_000;
 
 /**
  * The pages' text, or null when pdf.js can't open the file (an encrypted one, say). `started`
- * gets the loading task, so a caller that gives up can destroy it.
+ * gets the loading task, so a caller that gives up can destroy it. With `pageErrors` (an
+ * object), a page whose getPage or getTextContent throws is null and its message is recorded
+ * by page index; without it, such a page fails the whole file (the PR lane's text.json).
  */
-async function pdfjs(path, started = () => {}) {
+async function pdfjs(path, started = () => {}, pageErrors = undefined) {
   const task = getDocument({
     data: new Uint8Array(readFileSync(path)),
     isEvalSupported: false,
@@ -38,8 +41,14 @@ async function pdfjs(path, started = () => {}) {
     const doc = await task.promise;
     const pages = [];
     for (let i = 1; i <= doc.numPages; i++) {
-      const content = await (await doc.getPage(i)).getTextContent();
-      pages.push(content.items.map((item) => ("str" in item ? item.str + (item.hasEOL ? "\n" : "") : "")).join(""));
+      try {
+        const content = await (await doc.getPage(i)).getTextContent();
+        pages.push(content.items.map((item) => ("str" in item ? item.str + (item.hasEOL ? "\n" : "") : "")).join(""));
+      } catch (error) {
+        if (pageErrors === undefined) throw error;
+        pageErrors[i - 1] = String(error?.message ?? error);
+        pages.push(null);
+      }
     }
     return pages;
   } catch {
@@ -78,13 +87,16 @@ async function textFacts(tool, path) {
   }
   let timer;
   let task;
+  const pageErrors = {};
   const timeout = new Promise((resolve) => {
     timer = setTimeout(() => resolve("timeout"), PER_FILE_MS);
   });
   try {
-    const pages = await Promise.race([pdfjs(path, (t) => (task = t)), timeout]);
+    const pages = await Promise.race([pdfjs(path, (t) => (task = t), pageErrors), timeout]);
     if (pages === "timeout") await task?.destroy();
-    return outcome(pages);
+    const facts = outcome(pages);
+    if (facts.pages !== null && Object.keys(pageErrors).length > 0) facts.page_errors = pageErrors;
+    return facts;
   } finally {
     clearTimeout(timer);
   }

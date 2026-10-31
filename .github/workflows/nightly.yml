@@ -134,8 +134,9 @@ jobs:
       - name: Differential
         run: cargo xtask differential --live ${DIFFERENTIAL_SAMPLE:+--sample "$DIFFERENTIAL_SAMPLE"}
       # Page text (todo B9f) runs even when the structural differential failed, so one night
-      # reports both. pdftotext is the runner's own Homebrew poppler (nothing is downloaded);
-      # xtask checks it is the version doctor.rs pins. Agreement per source goes to the summary.
+      # reports both. pdftotext is the runner's own Homebrew poppler (nothing is downloaded): at
+      # the version doctor.rs pins it takes part, otherwise xtask warns and compares with pdf.js
+      # only, so a brew upgrade doesn't fail the night. Agreement per source goes to the summary.
       - name: Text differential
         if: ${{ !cancelled() }}
         run: cargo xtask differential --live --text ${DIFFERENTIAL_SAMPLE:+--sample "$DIFFERENTIAL_SAMPLE"}
