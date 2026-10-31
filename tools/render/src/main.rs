@@ -121,13 +121,7 @@ fn run() -> Result<bool> {
             let hayro = doc.render(index, dpi(PARITY_DPI))?;
             let pdfium = image::read_ppm(&page.pdfium_render(&args.pdfium, PARITY_DPI))?;
             // The engines may round the page size differently by a pixel; compare the common part.
-            let (w, h) = (hayro.width.min(pdfium.width), hayro.height.min(pdfium.height));
-            let near = hayro.width.abs_diff(pdfium.width) <= 1 && hayro.height.abs_diff(pdfium.height) <= 1;
-            let (hayro, pdfium) = if near {
-                (hayro.crop(w, h), pdfium.crop(w, h))
-            } else {
-                (hayro, pdfium)
-            };
+            let (hayro, pdfium) = compare::common_part(&hayro, &pdfium);
             let limits = thresholds.for_page(&example, index, &Check::Parity, &mut known_used);
             let diff = compare::parity(&pdfium, &hayro);
             if let Some(problem) = limits.violated(diff.as_ref()) {

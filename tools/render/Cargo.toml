@@ -21,6 +21,8 @@ default-run = "render-golden"
 anyhow = "1.0.104"
 # render-diff renders through lamina's own adapters (ADR 0004): the hayro adapter and the PDFium
 # one (pdfium-render, bound at runtime to the library `cargo xtask fetch-pdfium` unpacks).
+# lamina's own page count stands in for a file neither engine could open (its rows count once per page).
+lamina-cos = { path = "../../crates/lamina-cos" }
 lamina-render = { path = "../../crates/lamina-render", features = ["hayro"] }
 lamina-render-pdfium = { path = "../../crates/lamina-render-pdfium" }
 # The pure-Rust PDF renderer, the CI oracle of the hayro-parity spike (C1a): same pin. Tools

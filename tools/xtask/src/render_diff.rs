@@ -18,7 +18,7 @@
 //! `regression=true` in `$GITHUB_OUTPUT`, never a failure. `--record` appends this run.
 //! `--dry-run` prints the issue that the nightly lane would open.
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use std::fmt::Write as _;
 use std::fs;
 use std::io::BufRead as _;
@@ -111,8 +111,10 @@ pub(crate) fn parse_args(args: &[String]) -> Result<Args> {
     Ok(parsed)
 }
 
-/// The tracked classes, in report order.
-const CLASSES: [&str; 7] = [
+/// The tracked classes, in report order. `io-error` (a file that couldn't be read, a diff image
+/// that couldn't be written) is neither engine's doing: it is reported, never blamed, and left
+/// out of the rates.
+const CLASSES: [&str; 8] = [
     "pass",
     "minor",
     "fail",
@@ -120,6 +122,7 @@ const CLASSES: [&str; 7] = [
     "pdfium-error",
     "both-error",
     "timeout",
+    "io-error",
 ];
 
 /// One row of the report: a page both engines were asked to render, or a whole file that no
@@ -139,10 +142,10 @@ struct Row {
 }
 
 impl Row {
-    fn file(file: &str, class: &str, detail: String) -> Self {
+    fn file(file: &str, page: Option<u64>, class: &str, detail: String) -> Self {
         Self {
             file: file.to_owned(),
-            page: None,
+            page,
             class: class.to_owned(),
             diff_percent: None,
             ssim: None,
@@ -171,73 +174,139 @@ struct Blame {
     pdfium: bool,
 }
 
-/// The rows of one file's fact (the reader's report entry); `blame` is the single-engine
-/// verdict for a crash or a timeout.
-fn rows_of(file: &str, fact: &Value, blame: Option<Blame>) -> Vec<Row> {
+/// What the `--rows` files say about one file: the most pages any reading of it reported
+/// (lamina's, or an engine's once it opened the file), and the rows of the pages both engines
+/// finished, by page (a later attempt's row replaces an earlier one's).
+#[derive(Debug, Default, Clone, PartialEq)]
+struct Partial {
+    pages: Option<u64>,
+    rows: BTreeMap<u64, Value>,
+}
+
+/// Reads the readers' `--rows` files (JSON lines; a torn last line of a killed process is
+/// skipped): page counts from every file's headers, page rows from the compared ones (they
+/// carry a `class`; the single-engine reruns' don't).
+fn read_rows(paths: &[PathBuf]) -> BTreeMap<String, Partial> {
+    let mut out: BTreeMap<String, Partial> = BTreeMap::new();
+    for path in paths {
+        let Ok(text) = fs::read_to_string(path) else { continue };
+        for line in text.lines() {
+            let Ok(value) = serde_json::from_str::<Value>(line) else {
+                continue;
+            };
+            let Some(file) = value.get("file").and_then(Value::as_str) else {
+                continue;
+            };
+            let partial = out.entry(file.to_owned()).or_default();
+            if value.get("header").and_then(Value::as_bool) == Some(true) {
+                let counts = ["lamina_pages", "hayro_pages", "pdfium_pages"]
+                    .iter()
+                    .filter_map(|k| value.get(*k).and_then(Value::as_u64));
+                partial.pages = partial.pages.into_iter().chain(counts).max();
+            } else if value.get("class").is_some()
+                && let Some(page) = value.get("page").and_then(Value::as_u64)
+            {
+                partial.rows.insert(page, value);
+            }
+        }
+    }
+    out
+}
+
+/// The rows of one file. A compared file has a row per page it rendered; a file that crashed or
+/// hung keeps the pages it finished and gets a failure row for each other page it has (by
+/// `partial`'s count, capped at `cap`), and one opened by neither engine a row per page by
+/// lamina's count. Without any count it is one row. So a worse outcome never counts for fewer
+/// rows than the page errors it replaces. `blame` is the single-engine verdict for a crash or a
+/// timeout.
+fn rows_of(file: &str, fact: &Value, blame: Option<Blame>, partial: &Partial, cap: Option<u32>) -> Vec<Row> {
+    let capped = |n: Option<u64>| n.map(|n| cap.map_or(n, |c| n.min(u64::from(c))));
     let outcome = fact.get("outcome").and_then(Value::as_str).unwrap_or("missing");
     if outcome != "compared" {
-        let who = match blame {
-            Some(Blame {
-                hayro: true,
-                pdfium: true,
-            }) => "both engines",
-            Some(Blame {
-                hayro: true,
-                pdfium: false,
-            }) => "hayro",
-            Some(Blame {
-                hayro: false,
-                pdfium: true,
-            }) => "PDFium",
-            _ => "neither engine alone (only together)",
-        };
-        let class = match (outcome, blame) {
-            ("timeout", _) => "timeout",
+        let (class, who) = match (outcome, blame) {
+            (
+                _,
+                Some(Blame {
+                    hayro: true,
+                    pdfium: true,
+                }),
+            ) => ("both-error", "both engines"),
             (
                 _,
                 Some(Blame {
                     hayro: true,
                     pdfium: false,
                 }),
-            ) => "hayro-error",
+            ) => ("hayro-error", "hayro"),
             (
                 _,
                 Some(Blame {
                     hayro: false,
                     pdfium: true,
                 }),
-            ) => "pdfium-error",
-            _ => "both-error",
+            ) => ("pdfium-error", "PDFium"),
+            _ => ("both-error", "neither engine alone (only together)"),
         };
-        return vec![Row::file(file, class, format!("{outcome} ({who} on its own)"))];
+        let class = if outcome == "timeout" { "timeout" } else { class };
+        let detail = format!("{outcome} ({who} on its own)");
+        let mut rows = page_rows(file, &partial.rows.values().cloned().collect::<Vec<_>>());
+        match capped(partial.pages) {
+            Some(n) if n > 0 => rows.extend(
+                (1..=n)
+                    .filter(|p| !partial.rows.contains_key(p))
+                    .map(|p| Row::file(file, Some(p), class, detail.clone())),
+            ),
+            _ if rows.is_empty() => rows.push(Row::file(file, None, class, detail)),
+            _ => {}
+        }
+        rows.sort_by_key(|r| r.page);
+        return rows;
+    }
+    if let Some(error) = fact.get("io_error").and_then(Value::as_str) {
+        return vec![Row::file(file, None, "io-error", error.to_owned())];
     }
     let pages = fact.get("pages").and_then(Value::as_array).cloned().unwrap_or_default();
-    if pages.is_empty() {
-        let error = |key: &str| fact.get(key).and_then(Value::as_str).map(str::to_owned);
-        let (h, p) = (error("hayro_open_error"), error("pdfium_open_error"));
-        let class = match (&h, &p) {
-            (Some(_), None) => "hayro-error",
-            (None, Some(_)) => "pdfium-error",
-            _ => "both-error",
-        };
-        let detail = match (h, p) {
-            (None, None) => "no pages in either engine".to_owned(),
-            (h, p) => format!(
-                "hayro: {}; PDFium: {}",
-                h.as_deref().unwrap_or("opened"),
-                p.as_deref().unwrap_or("opened")
-            ),
-        };
-        return vec![Row::file(file, class, detail)];
+    if !pages.is_empty() {
+        return page_rows(file, &pages);
     }
+    let error = |key: &str| fact.get(key).and_then(Value::as_str).map(str::to_owned);
+    let (h, p) = (error("hayro_open_error"), error("pdfium_open_error"));
+    let class = match (&h, &p) {
+        (Some(_), None) => "hayro-error",
+        (None, Some(_)) => "pdfium-error",
+        _ => "both-error",
+    };
+    let detail = match (h, p) {
+        (None, None) => "no pages in either engine".to_owned(),
+        (h, p) => format!(
+            "hayro: {}; PDFium: {}",
+            h.as_deref().unwrap_or("opened"),
+            p.as_deref().unwrap_or("opened")
+        ),
+    };
+    match capped(fact.get("lamina_pages").and_then(Value::as_u64)) {
+        Some(n) if n > 0 => (1..=n)
+            .map(|p| Row::file(file, Some(p), class, detail.clone()))
+            .collect(),
+        _ => vec![Row::file(file, None, class, detail)],
+    }
+}
+
+/// The rows of the reader's page entries.
+fn page_rows(file: &str, pages: &[Value]) -> Vec<Row> {
     pages
         .iter()
         .map(|page| {
             let class = page.get("class").and_then(Value::as_str).unwrap_or("both-error");
             let error = |engine: &str| page.pointer(&format!("/{engine}/error")).and_then(Value::as_str);
-            let detail = match (error("hayro"), error("pdfium")) {
-                (None, None) => None,
-                (h, p) => Some(format!("hayro: {}; PDFium: {}", h.unwrap_or("ok"), p.unwrap_or("ok"))),
+            let detail = match (
+                error("hayro"),
+                error("pdfium"),
+                page.get("io_error").and_then(Value::as_str),
+            ) {
+                (_, _, Some(io)) => Some(io.to_owned()),
+                (None, None, None) => None,
+                (h, p, None) => Some(format!("hayro: {}; PDFium: {}", h.unwrap_or("ok"), p.unwrap_or("ok"))),
             };
             Row {
                 file: file.to_owned(),
@@ -269,21 +338,19 @@ impl Tally {
         self.classes.get(class).copied().unwrap_or_default()
     }
 
-    /// The tracked number: pass + minor over all rows, in basis points (10,000 = 100 %).
+    /// The rows the rates are over: all but `io-error`, which is neither engine's doing.
+    fn rated(&self) -> u64 {
+        self.rows - self.count("io-error")
+    }
+
+    /// The tracked number: pass + minor over the rated rows, in basis points (10,000 = 100 %).
     fn rate_bp(&self) -> u64 {
-        if self.rows == 0 {
-            return 0;
-        }
-        let good = self.count("pass") + self.count("minor");
-        (good * 10_000 + self.rows / 2) / self.rows
+        share_bp(self.count("pass") + self.count("minor"), self.rated())
     }
 
     /// The pass share alone, in basis points.
     fn pass_bp(&self) -> u64 {
-        if self.rows == 0 {
-            return 0;
-        }
-        (self.count("pass") * 10_000 + self.rows / 2) / self.rows
+        share_bp(self.count("pass"), self.rated())
     }
 
     fn json(&self) -> Value {
@@ -294,6 +361,11 @@ impl Tally {
             "pass_percent": percent(self.pass_bp()),
         })
     }
+}
+
+/// `part / whole` in basis points, rounded; 0 for an empty whole.
+fn share_bp(part: u64, whole: u64) -> u64 {
+    (part * 10_000 + whole / 2).checked_div(whole).unwrap_or(0)
 }
 
 #[expect(clippy::cast_precision_loss, reason = "basis points are at most 10,000")]
@@ -344,6 +416,20 @@ struct Sampling {
 }
 
 impl Sampling {
+    /// The sampling of a run; the sources are sorted and deduplicated, so `--source` order
+    /// doesn't change which history records compare.
+    fn new(pages: Option<u32>, sample: Option<usize>, sources: &[String]) -> Self {
+        let mut sources = sources.to_vec();
+        sources.sort();
+        sources.dedup();
+        Self {
+            dpi: DPI,
+            pages,
+            sample,
+            sources,
+        }
+    }
+
     fn json(&self) -> Value {
         json!({"dpi": self.dpi, "pages": self.pages, "sample": self.sample, "sources": self.sources})
     }
@@ -694,10 +780,24 @@ fn blame(
             "render-diff: {} files crashed or hung; each engine alone",
             failed.len()
         ));
-        // One file per process, so every crash is "broken" to the runner: expected here.
-        let one = runner::Limits { chunk: 1, ..limits() };
-        let (hayro, _) = run_lanes(&engine("hayro"), &failed, jobs, one, out)?;
-        let (pdfium, _) = run_lanes(&engine("pdfium"), &failed, jobs, one, out)?;
+        // One file per process, under the per-file limit (a chunk of one gets no longer), so
+        // every crash is "broken" to the runner: expected here. Both engines at once.
+        let one = runner::Limits {
+            chunk: 1,
+            chunk_timeout: limits().file_timeout,
+            ..limits()
+        };
+        let (hayro_reader, pdfium_reader) = (engine("hayro"), engine("pdfium"));
+        let (hayro, pdfium) = std::thread::scope(|scope| {
+            let hayro = scope.spawn(|| run_lanes(&hayro_reader, &failed, jobs, one, out));
+            let pdfium = scope.spawn(|| run_lanes(&pdfium_reader, &failed, jobs, one, out));
+            let join = |h: std::thread::ScopedJoinHandle<'_, _>| {
+                h.join()
+                    .unwrap_or_else(|_| Err(anyhow::anyhow!("a blame lane panicked")))
+            };
+            (join(hayro), join(pdfium))
+        });
+        let ((hayro, _), (pdfium, _)) = (hayro?, pdfium?);
         let bad = |facts: &serde_json::Map<String, Value>, name: &str| {
             facts.get(name).and_then(|f| f.get("outcome")).and_then(Value::as_str) != Some("compared")
         };
@@ -721,6 +821,8 @@ struct Rendered {
     facts: serde_json::Map<String, Value>,
     header: Value,
     blames: BTreeMap<String, Blame>,
+    /// From the readers' `--rows` files: what a file that crashed or hung got done.
+    partials: BTreeMap<String, Partial>,
 }
 
 /// Renders and compares every input in `--jobs` lanes, then reruns each file that crashed or
@@ -750,6 +852,10 @@ fn render_all(ws: &Workspace, args: &Args, inputs: &[(String, PathBuf)], out: &P
             if name == "render-diff" { "both" } else { name }.into(),
         ];
         a.extend(common.iter().cloned());
+        a.extend([
+            "--rows".into(),
+            out.join(format!("work/rows-{name}.jsonl")).into_os_string(),
+        ]);
         runner::Reader {
             name,
             program: reader.clone().into_os_string(),
@@ -764,11 +870,20 @@ fn render_all(ws: &Workspace, args: &Args, inputs: &[(String, PathBuf)], out: &P
 
     let header = header(&both, out)?;
     let (facts, broken) = run_lanes(&both, inputs, args.jobs, limits(), out)?;
-    if !broken.is_empty() {
-        bail!("the render-diff reader is broken: {}", broken.join("; "));
+    // The header run proved the reader works, so a chunk whose every file crashed is that many
+    // crashes (the runner has marked each one), not a broken reader.
+    for why in &broken {
+        println!("::warning::render-diff: {why}; each file counts as a crash");
     }
     let blames = blame(&engine, &facts, inputs, args.jobs, out)?;
-    Ok(Rendered { facts, header, blames })
+    let partials =
+        read_rows(&["render-diff", "hayro", "pdfium"].map(|name| out.join(format!("work/rows-{name}.jsonl"))));
+    Ok(Rendered {
+        facts,
+        header,
+        blames,
+        partials,
+    })
 }
 
 /// Compares this run with the last point of `<dir>/history.jsonl` (writes `regression.md` and
@@ -828,14 +943,39 @@ fn compare_history(args: &Args, out: &Path, record: &Value, sampling: &Sampling,
 }
 
 /// Moves the diff images of `top` from `out/work/images` (every minor and fail page) to
-/// `out/diffs` (what the HTML summary shows); the rest go with the work folder.
-fn keep_images(top: &[&Row], out: &Path) -> Result<()> {
+/// `out/diffs` (what the HTML summary shows) and returns the names it moved; the rest go with
+/// the work folder. An image that isn't there (a reader killed while writing it) is reported
+/// and skipped.
+fn keep_images(top: &[&Row], out: &Path) -> Result<BTreeSet<String>> {
     let (images, diffs) = (out.join("work/images"), out.join("diffs"));
     fs::create_dir_all(&diffs)?;
+    let mut kept = BTreeSet::new();
     for image in top.iter().filter_map(|r| r.image.as_ref()) {
-        fs::rename(images.join(image), diffs.join(image)).with_context(|| format!("moving {image}"))?;
+        match fs::rename(images.join(image), diffs.join(image)) {
+            Ok(()) => {
+                kept.insert(image.clone());
+            }
+            Err(e) => println!("::warning::render-diff: diff image {image}: {e}"),
+        }
     }
-    Ok(())
+    Ok(kept)
+}
+
+/// Every input's rows (see [`rows_of`]), in input order.
+fn all_rows(inputs: &[(String, PathBuf)], rendered: &Rendered, cap: Option<u32>) -> Vec<Row> {
+    let none = Partial::default();
+    inputs
+        .iter()
+        .flat_map(|(name, _)| {
+            rows_of(
+                name,
+                rendered.facts.get(name).unwrap_or(&Value::Null),
+                rendered.blames.get(name).copied(),
+                rendered.partials.get(name).unwrap_or(&none),
+                cap,
+            )
+        })
+        .collect()
 }
 
 /// `cargo xtask render-diff …`.
@@ -853,14 +993,16 @@ pub(crate) fn run(ws: &Workspace, args: &Args) -> Result<()> {
         fs::remove_dir_all(&out).with_context(|| format!("removing {}", out.display()))?;
     }
     fs::create_dir_all(out.join("work/images"))?;
-    let Rendered { facts, header, blames } = render_all(ws, args, &inputs, &out)?;
-    let rows: Vec<Row> = inputs
-        .iter()
-        .flat_map(|(name, _)| rows_of(name, facts.get(name).unwrap_or(&Value::Null), blames.get(name).copied()))
-        .collect();
+    let rendered = render_all(ws, args, &inputs, &out)?;
+    let rows = all_rows(&inputs, &rendered, args.pages);
+    let header = rendered.header;
     let tallies = tally(&rows);
     let top = worst(&rows, args.top);
-    keep_images(&top, &out)?;
+    let kept = keep_images(&top, &out)?;
+    let top: Vec<&Row> = top
+        .into_iter()
+        .filter(|r| r.image.as_ref().is_some_and(|i| kept.contains(i)))
+        .collect();
     let errors: Vec<&Row> = rows
         .iter()
         .filter(|r| !matches!(r.class.as_str(), "pass" | "minor" | "fail"))
@@ -868,12 +1010,7 @@ pub(crate) fn run(ws: &Workspace, args: &Args) -> Result<()> {
 
     let commit = crate::util::git_stdout(&ws.root, &["rev-parse", "HEAD"]).unwrap_or_else(|| "unknown".to_owned());
     let date = crate::util::git_stdout(&ws.root, &["show", "-s", "--format=%cI", "HEAD"]).unwrap_or_default();
-    let sampling = Sampling {
-        dpi: DPI,
-        pages: args.pages,
-        sample: args.sample,
-        sources: args.sources.clone(),
-    };
+    let sampling = Sampling::new(args.pages, args.sample, &args.sources);
     let all = tallies.get("all").cloned().unwrap_or_default();
     let context = format!(
         "{} files ({}), {} rows at {DPI} DPI, {}; {} on commit {}. pass+minor {:.2} %, pass {:.2} %. \
@@ -969,7 +1106,10 @@ mod tests {
     fn rows_of_should_keep_one_row_per_page() {
         let fact =
             json!({"outcome": "compared", "pages": [page("pass", Some(0.1), false), page("fail", Some(3.0), true)]});
-        assert_eq!(classes(&rows_of("pdfjs/a.pdf", &fact, None)), ["pass", "fail"]);
+        assert_eq!(
+            classes(&rows_of("pdfjs/a.pdf", &fact, None, &Partial::default(), None)),
+            ["pass", "fail"]
+        );
     }
 
     #[test]
@@ -978,7 +1118,13 @@ mod tests {
             hayro: true,
             pdfium: false,
         };
-        let rows = rows_of("pdfjs/a.pdf", &json!({"outcome": "crash"}), Some(blame));
+        let rows = rows_of(
+            "pdfjs/a.pdf",
+            &json!({"outcome": "crash"}),
+            Some(blame),
+            &Partial::default(),
+            None,
+        );
         assert_eq!(classes(&rows), ["hayro-error"]);
     }
 
@@ -988,14 +1134,116 @@ mod tests {
             hayro: false,
             pdfium: true,
         };
-        let rows = rows_of("pdfjs/a.pdf", &json!({"outcome": "timeout"}), Some(blame));
+        let rows = rows_of(
+            "pdfjs/a.pdf",
+            &json!({"outcome": "timeout"}),
+            Some(blame),
+            &Partial::default(),
+            None,
+        );
         assert_eq!(classes(&rows), ["timeout"]);
     }
 
     #[test]
     fn rows_of_should_count_a_file_only_pdfium_failed_to_open() {
         let fact = json!({"outcome": "compared", "pages": [], "pdfium_open_error": "render-failed"});
-        assert_eq!(classes(&rows_of("qpdf/a.pdf", &fact, None)), ["pdfium-error"]);
+        assert_eq!(
+            classes(&rows_of("qpdf/a.pdf", &fact, None, &Partial::default(), None)),
+            ["pdfium-error"]
+        );
+    }
+
+    const PDFIUM_CRASH: Blame = Blame {
+        hayro: false,
+        pdfium: true,
+    };
+
+    #[test]
+    fn rows_of_should_count_a_crashed_file_once_per_page_it_has() {
+        let partial = Partial {
+            pages: Some(30),
+            rows: BTreeMap::from([(1, page("pass", Some(0.1), false))]),
+        };
+        let rows = rows_of(
+            "pdfjs/a.pdf",
+            &json!({"outcome": "crash"}),
+            Some(PDFIUM_CRASH),
+            &partial,
+            Some(20),
+        );
+        let pages: Vec<Option<u64>> = rows.iter().map(|r| r.page).collect();
+        assert_eq!(
+            (classes(&rows)[..2].to_vec(), pages.len(), pages[19]),
+            (vec!["pass", "pdfium-error"], 20, Some(20))
+        );
+    }
+
+    #[test]
+    fn a_crash_should_not_raise_the_rate_above_the_page_errors_it_replaces() {
+        // Three pages: one passes, two hit a PDFium error; or PDFium crashes on page 2.
+        let pages = json!({"outcome": "compared", "pages": [
+            page("pass", Some(0.1), false), page("pdfium-error", None, false), page("pdfium-error", None, false)]});
+        let errors = tally(&rows_of("pdfjs/a.pdf", &pages, None, &Partial::default(), None));
+        let partial = Partial {
+            pages: Some(3),
+            rows: BTreeMap::from([(1, page("pass", Some(0.1), false))]),
+        };
+        let crash = tally(&rows_of(
+            "pdfjs/a.pdf",
+            &json!({"outcome": "crash"}),
+            Some(PDFIUM_CRASH),
+            &partial,
+            None,
+        ));
+        assert!(crash["all"].rate_bp() <= errors["all"].rate_bp());
+    }
+
+    #[test]
+    fn rows_of_should_count_a_file_neither_engine_opened_by_lamina_pages() {
+        let fact = json!({"outcome": "compared", "pages": [], "lamina_pages": 4,
+                          "hayro_open_error": "x", "pdfium_open_error": "y"});
+        assert_eq!(
+            classes(&rows_of("qpdf/a.pdf", &fact, None, &Partial::default(), None)),
+            ["both-error"; 4]
+        );
+    }
+
+    #[test]
+    fn rows_of_should_keep_an_unreadable_file_out_of_the_engines_blame() {
+        let fact = json!({"outcome": "compared", "pages": [], "io_error": "reading x: denied"});
+        let rows = rows_of("qpdf/a.pdf", &fact, None, &Partial::default(), None);
+        assert_eq!((classes(&rows), tally(&rows)["all"].rated()), (vec!["io-error"], 0));
+    }
+
+    #[test]
+    fn read_rows_should_keep_page_rows_and_the_largest_page_count() {
+        let dir = std::env::temp_dir().join(format!("xtask-render-rows-{}", std::process::id()));
+        fs::create_dir_all(&dir).unwrap();
+        let path = dir.join("rows.jsonl");
+        let mut row = page("fail", Some(3.0), false);
+        row["file"] = json!("pdfjs/a.pdf");
+        let text = format!(
+            "{}\n{}\n{}\n{{\"torn",
+            json!({"file": "pdfjs/a.pdf", "header": true, "lamina_pages": 3}),
+            json!({"file": "pdfjs/a.pdf", "header": true, "hayro_pages": 5, "pdfium_pages": null}),
+            row
+        );
+        fs::write(&path, text).unwrap();
+        let partials = read_rows(&[path]);
+        fs::remove_dir_all(&dir).unwrap();
+        let partial = &partials["pdfjs/a.pdf"];
+        assert_eq!((partial.pages, partial.rows.len()), (Some(5), 1));
+    }
+
+    #[test]
+    fn sampling_should_not_depend_on_source_order() {
+        let a = Sampling::new(
+            Some(20),
+            None,
+            &["qpdf".to_owned(), "pdfjs".to_owned(), "qpdf".to_owned()],
+        );
+        let b = Sampling::new(Some(20), None, &["pdfjs".to_owned(), "qpdf".to_owned()]);
+        assert_eq!(a.json(), b.json());
     }
 
     #[test]

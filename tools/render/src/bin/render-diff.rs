@@ -3,7 +3,8 @@
 //! costs one file:
 //!
 //! ```sh
-//! render-diff [--engine both|hayro|pdfium] [--dpi 96] [--pages N] [--images <dir>] [--pdfium-dir <dir>] <list.tsv> <out.json>
+//! render-diff [--engine both|hayro|pdfium] [--dpi 96] [--pages N] [--images <dir>] [--pdfium-dir <dir>]
+//!             [--rows <file.jsonl>] <list.tsv> <out.json>
 //! ```
 //!
 //! Every `<name>\t<path>` line of the list is opened with `lamina-render`'s hayro adapter and
@@ -15,6 +16,12 @@
 //! classified ([`classify`]). A page that isn't `pass` gets a PDFium | hayro | diff image in
 //! `<images>/`. The report is the runner's format: `{"tool", "version", "reports_repair",
 //! "facts": {<name>: {...}}}`.
+//!
+//! With `--rows`, each file's header (`{"file", "header": true, "page_count", …}`, once both
+//! engines opened it) and each page's row are also appended to that file as JSON lines as soon
+//! as they are known, so xtask keeps the pages a process finished before it crashed or hung.
+//! A panic while rendering a page is that page's error; an I/O error (reading a file, writing an
+//! image) is an `io-error` row, and the run goes on.
 //!
 //! With `--engine hayro` or `--engine pdfium` only that engine renders and nothing is compared:
 //! xtask reruns a file that crashed or hung that way, to tell which engine did it.
@@ -38,6 +45,8 @@ mod image;
 
 use std::collections::BTreeMap;
 use std::fs;
+use std::io::Write as _;
+use std::panic::{AssertUnwindSafe, catch_unwind};
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 use std::sync::Arc;
@@ -87,12 +96,13 @@ struct Args {
     pages: Option<u32>,
     images: Option<PathBuf>,
     pdfium_dir: Option<PathBuf>,
+    rows: Option<PathBuf>,
     list: PathBuf,
     out: PathBuf,
 }
 
 const USAGE: &str = "usage: render-diff [--engine both|hayro|pdfium] [--dpi 96] [--pages N] [--images <dir>] \
-                     [--pdfium-dir <dir>] <list.tsv> <out.json>";
+                     [--pdfium-dir <dir>] [--rows <file.jsonl>] <list.tsv> <out.json>";
 
 fn parse_args(args: &[String]) -> Result<Args> {
     let mut engines = Engines::Both;
@@ -100,6 +110,7 @@ fn parse_args(args: &[String]) -> Result<Args> {
     let mut pages = None;
     let mut images = None;
     let mut pdfium_dir = None;
+    let mut rows = None;
     let mut positional = Vec::new();
     let mut rest = args.iter();
     while let Some(arg) = rest.next() {
@@ -117,6 +128,7 @@ fn parse_args(args: &[String]) -> Result<Args> {
             "--pages" => pages = Some(value()?.parse().context("--pages")?),
             "--images" => images = Some(PathBuf::from(value()?)),
             "--pdfium-dir" => pdfium_dir = Some(PathBuf::from(value()?)),
+            "--rows" => rows = Some(PathBuf::from(value()?)),
             _ => positional.push(arg.clone()),
         }
     }
@@ -129,6 +141,7 @@ fn parse_args(args: &[String]) -> Result<Args> {
         pages,
         images,
         pdfium_dir,
+        rows,
         list: list.into(),
         out: out.into(),
     })
@@ -160,15 +173,29 @@ fn run(args: &Args) -> Result<()> {
             )?)
         };
     let list = fs::read_to_string(&args.list).with_context(|| format!("reading {}", args.list.display()))?;
+    let mut rows = match &args.rows {
+        Some(path) => Some(Rows(
+            fs::OpenOptions::new()
+                .create(true)
+                .append(true)
+                .open(path)
+                .with_context(|| format!("opening {}", path.display()))?,
+        )),
+        None => None,
+    };
+    let engines = Engine {
+        hayro: hayro.as_ref().map(|b| b as &dyn RenderBackend),
+        pdfium: pdfium.as_ref().map(|b| b as &dyn RenderBackend),
+    };
     let mut facts = serde_json::Map::new();
     for line in list.lines().filter(|l| !l.is_empty()) {
         let (name, path) = line.split_once('\t').context("a list line without a tab")?;
-        let bytes = fs::read(path).with_context(|| format!("reading {path}"))?;
-        let engines = Engine {
-            hayro: hayro.as_ref().map(|b| b as &dyn RenderBackend),
-            pdfium: pdfium.as_ref().map(|b| b as &dyn RenderBackend),
+        let fact = match fs::read(path) {
+            Ok(bytes) => engines.file(name, bytes, args, rows.as_mut()),
+            // Not the engines' doing: its own class, never blamed on either.
+            Err(e) => json!({"outcome": "compared", "io_error": format!("reading {path}: {e}"), "pages": []}),
         };
-        facts.insert(name.to_owned(), engines.file(name, bytes, args)?);
+        facts.insert(name.to_owned(), fact);
     }
     let version = format!(
         "hayro {} / PDFium {}",
@@ -192,6 +219,21 @@ fn run(args: &Args) -> Result<()> {
         .with_context(|| format!("writing {}", args.out.display()))
 }
 
+/// The `--rows` file: one JSON line per write, appended (lanes run several processes at once,
+/// each file in one of them).
+struct Rows(fs::File);
+
+impl Rows {
+    /// Appends `value` as one line; a failure is reported and the run goes on, since the
+    /// report at the end still has every row.
+    fn push(&mut self, value: &Value) {
+        let line = value.to_string() + "\n";
+        if let Err(e) = self.0.write_all(line.as_bytes()) {
+            eprintln!("render-diff: writing a row: {e}");
+        }
+    }
+}
+
 /// The engines of one run (either may be off: `--engine`).
 struct Engine<'a> {
     hayro: Option<&'a dyn RenderBackend>,
@@ -203,8 +245,20 @@ type Opened = Option<Result<Box<dyn RenderDocument>, String>>;
 
 impl Engine<'_> {
     /// Every page of one file (at most `--pages`), both engines and the comparison.
-    fn file(&self, name: &str, bytes: Vec<u8>, args: &Args) -> Result<Value> {
+    fn file(&self, name: &str, bytes: Vec<u8>, args: &Args, mut rows: Option<&mut Rows>) -> Value {
         let source: Arc<dyn ByteSource> = Arc::new(bytes);
+        // Before either engine touches the file: how many pages it has by lamina's reading, so
+        // a file that crashes, hangs or opens in neither engine still counts once per page.
+        let lamina_pages = catch_unwind(AssertUnwindSafe(|| {
+            lamina_cos::Document::open(Arc::clone(&source), lamina_cos::OpenOptions::default())
+                .and_then(|doc| doc.page_count())
+                .ok()
+        }))
+        .ok()
+        .flatten();
+        if let Some(rows) = rows.as_deref_mut() {
+            rows.push(&json!({"file": name, "header": true, "lamina_pages": lamina_pages}));
+        }
         let open = |backend: Option<&dyn RenderBackend>| -> Opened {
             backend.map(|b| {
                 b.open(Arc::clone(&source), &RenderOpenOptions::new())
@@ -216,22 +270,35 @@ impl Engine<'_> {
         let (hayro_pages, pdfium_pages) = (count(&hayro), count(&pdfium));
         let total = hayro_pages.max(pdfium_pages).unwrap_or(0);
         let pages = args.pages.map_or(total, |cap| total.min(cap));
-        let mut rows = Vec::new();
-        for index in 0..pages {
-            let h = hayro.as_ref().map(|d| render(d, index, args.dpi));
-            let p = pdfium.as_ref().map(|d| render(d, index, args.dpi));
-            rows.push(page_row(name, index, h.as_ref(), p.as_ref(), args.images.as_deref())?);
-        }
         let error = |doc: &Opened| doc.as_ref().and_then(|d| d.as_ref().err().cloned());
-        Ok(json!({
+        let mut fact = json!({
             "outcome": "compared",
             "page_count": total,
+            "lamina_pages": lamina_pages,
             "hayro_pages": hayro_pages,
             "pdfium_pages": pdfium_pages,
             "hayro_open_error": error(&hayro),
             "pdfium_open_error": error(&pdfium),
-            "pages": rows,
-        }))
+        });
+        if let Some(rows) = rows.as_deref_mut() {
+            let mut header = fact.clone();
+            set(&mut header, "file", json!(name));
+            set(&mut header, "header", json!(true));
+            rows.push(&header);
+        }
+        let mut done = Vec::new();
+        for index in 0..pages {
+            let h = hayro.as_ref().map(|d| guarded_render("hayro", d, index, args.dpi));
+            let p = pdfium.as_ref().map(|d| guarded_render("PDFium", d, index, args.dpi));
+            let mut row = page_row(name, index, h.as_ref(), p.as_ref(), args.images.as_deref());
+            if let Some(rows) = rows.as_deref_mut() {
+                set(&mut row, "file", json!(name));
+                rows.push(&row);
+            }
+            done.push(row);
+        }
+        set(&mut fact, "pages", json!(done));
+        fact
     }
 }
 
@@ -262,6 +329,22 @@ fn render(doc: &Result<Box<dyn RenderDocument>, String>, index: u32, dpi: f32) -
     }
 }
 
+/// Sets `key` on a JSON object (`value` is always one here).
+fn set(value: &mut Value, key: &str, to: Value) {
+    if let Some(map) = value.as_object_mut() {
+        map.insert(key.to_owned(), to);
+    }
+}
+
+/// [`render`], with a panic turned into that page's error (the hayro adapter catches its own;
+/// this covers the rest), so it costs one page instead of the file.
+fn guarded_render(engine: &str, doc: &Result<Box<dyn RenderDocument>, String>, index: u32, dpi: f32) -> Rendered {
+    catch_unwind(AssertUnwindSafe(|| render(doc, index, dpi))).unwrap_or_else(|_| Rendered {
+        image: Err(format!("{engine} panicked rendering the page")),
+        ms: 0.0,
+    })
+}
+
 /// Straight-alpha RGBA laid over white, as opaque RGB (the request's background is already
 /// white, so this only matters for a pixel a backend left translucent).
 fn over_white(rgba: &[u8]) -> Vec<u8> {
@@ -283,7 +366,7 @@ fn page_row(
     hayro: Option<&Rendered>,
     pdfium: Option<&Rendered>,
     images: Option<&Path>,
-) -> Result<Value> {
+) -> Value {
     let side = |r: Option<&Rendered>| -> Value {
         r.map_or(Value::Null, |r| match &r.image {
             Ok(img) => json!({"width": img.width, "height": img.height, "ms": r.ms}),
@@ -297,51 +380,50 @@ fn page_row(
     ]);
     let (Some(Rendered { image: h, .. }), Some(Rendered { image: p, .. })) = (hayro, pdfium) else {
         // One engine only (`--engine`): nothing to compare.
-        return Ok(json!(row));
+        return json!(row);
     };
     let class = match (h, p) {
         (Err(_), Err(_)) => "both-error",
         (Err(_), Ok(_)) => "hayro-error",
         (Ok(_), Err(_)) => "pdfium-error",
         (Ok(hayro), Ok(pdfium)) => {
-            let (hayro, pdfium) = common_part(hayro, pdfium);
+            let (hayro, pdfium) = compare::common_part(hayro, pdfium);
             let diff = compare::parity(&pdfium, &hayro);
             let metric = diff.as_ref().map(|d| (d.percent, d.ssim));
-            let class = classify(metric);
+            let mut class = classify(metric);
             row.insert("diff_percent", json!(metric.map(|m| m.0)));
             row.insert("ssim", json!(metric.map(|m| m.1)));
             if class != "pass"
                 && let Some(dir) = images
             {
                 let file = image_name(name, index);
-                image::write_png(
-                    &dir.join(&file),
-                    &compare::triptych(&pdfium, &hayro, diff.as_ref().map(|d| d.mask.as_slice())),
-                )?;
-                row.insert("image", json!(file));
+                let triptych = compare::triptych(&pdfium, &hayro, diff.as_ref().map(|d| d.mask.as_slice()));
+                match image::write_png(&dir.join(&file), &triptych) {
+                    Ok(()) => {
+                        row.insert("image", json!(file));
+                    }
+                    // The comparison stands, but the page can't be shown: its own class, never
+                    // blamed on an engine.
+                    Err(e) => {
+                        row.insert("io_error", json!(format!("writing {file}: {e:#}")));
+                        row.insert("compared_class", json!(class));
+                        class = "io-error";
+                    }
+                }
             }
             class
         }
     };
     row.insert("class", json!(class));
-    Ok(json!(row))
+    json!(row)
 }
 
-/// The engines may floor the page size differently by a pixel (each from its own page box, as
-/// in the spike); then the common part is compared, as `render-golden`'s parity check does. A
-/// larger difference stays, and `compare::parity` reports it as a size mismatch.
-fn common_part(hayro: &Rgb, pdfium: &Rgb) -> (Rgb, Rgb) {
-    let near = hayro.width.abs_diff(pdfium.width) <= 1 && hayro.height.abs_diff(pdfium.height) <= 1;
-    if near {
-        let (w, h) = (hayro.width.min(pdfium.width), hayro.height.min(pdfium.height));
-        (hayro.crop(w, h), pdfium.crop(w, h))
-    } else {
-        (hayro.clone(), pdfium.clone())
-    }
-}
-
-/// `<name>-p<N>.png` with every character outside `[A-Za-z0-9._-]` replaced by `_`.
+/// `<name>-<hash>-p<N>.png`: every character outside `[A-Za-z0-9._-]` replaced by `_`, and
+/// the FNV-1a hash of the full name (low 32 bits), so names that flatten alike stay apart.
 fn image_name(name: &str, index: u32) -> String {
+    let hash = name.bytes().fold(0xcbf2_9ce4_8422_2325_u64, |h, b| {
+        (h ^ u64::from(b)).wrapping_mul(0x0100_0000_01b3)
+    });
     let safe: String = name
         .chars()
         .map(|c| {
@@ -352,7 +434,7 @@ fn image_name(name: &str, index: u32) -> String {
             }
         })
         .collect();
-    format!("{safe}-p{}.png", index + 1)
+    format!("{safe}-{:08x}-p{}.png", hash & 0xffff_ffff, index + 1)
 }
 
 #[cfg(test)]
@@ -390,19 +472,13 @@ mod tests {
     }
 
     #[test]
-    fn common_part_should_crop_a_one_pixel_difference() {
-        let a = Rgb::new(10, 11, vec![255; 10 * 11 * 3]).unwrap();
-        let b = Rgb::new(11, 11, vec![255; 11 * 11 * 3]).unwrap();
-        let (a, b) = common_part(&a, &b);
-        assert_eq!((a.width, b.width, a.height, b.height), (10, 10, 11, 11));
+    fn image_name_should_flatten_paths() {
+        assert!(image_name("pdfjs/test/pdfs/a b.pdf", 0).starts_with("pdfjs_test_pdfs_a_b.pdf-"));
     }
 
     #[test]
-    fn image_name_should_flatten_paths() {
-        assert_eq!(
-            image_name("pdfjs/test/pdfs/a b.pdf", 0),
-            "pdfjs_test_pdfs_a_b.pdf-p1.png"
-        );
+    fn image_name_should_keep_names_that_flatten_alike_apart() {
+        assert_ne!(image_name("pdfjs/a b.pdf", 0), image_name("pdfjs/a_b.pdf", 0));
     }
 
     #[test]
