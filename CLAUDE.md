@@ -15,7 +15,7 @@ lamina is a platform for anything and everything PDF: creating PDFs from code, p
 ├── Cargo.toml           # Rust workspace (virtual manifest): shared package fields, deps, lints, profiles
 ├── rust-toolchain.toml  # pinned Rust toolchain + targets (wasm32, iOS, Android)
 ├── package.json         # private pnpm root: dev tooling only; pnpm-workspace.yaml lists packages/*, apps/*
-├── .changeset/          # Changesets (ADR 0017): config.json (fixed group: @lamina/wasm, pdf, render, render-hayro, render-pdfium), pre.json (alpha pre mode)
+├── .changeset/          # Changesets (ADR 0017): config.json (fixed group: @lamina/wasm, pdf, render, render-hayro, render-pdfium, viewer), pre.json (alpha pre mode)
 ├── CHANGELOG.md         # generated: the fixed group's changelogs merged by `cargo xtask version sync`
 ├── biome.json  tsconfig.base.json  deny.toml  clippy.toml  rustfmt.toml
 ├── crates/              # Rust crates, flat: crates/lamina-<name>

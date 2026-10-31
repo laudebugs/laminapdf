@@ -100,7 +100,7 @@ What shipped, and where it differs from the plan above:
   - After a crash or `stop()`, the client restarts the worker, reloads the backend and reopens the document. The UI re-requesting its visible tiles is C3b's. Nothing pending is re-sent.
   - A document that needed a password isn't reopened: `password-required` fires.
 - **Not done:** the lamina `RemoteDocument` methods (L2a's `open`/`openUrl`) are served by the same worker, but `ViewerClient` doesn't expose them; C5a/C5b add text and search through the same `call`. An extra `render-start` event exists for C3c's harness.
-- **Versioning:** `@lamina/viewer` starts at `0.1.0-alpha.0`. It joins `.changeset/config.json`'s fixed group in whichever lands second, this PR or Rex's lockstep follow-up: today's `version sync --check` accepts only `@lamina/wasm` + `@lamina/pdf`.
+- **Versioning:** `@lamina/viewer` starts at `0.1.0-alpha.0`, in `.changeset/config.json`'s fixed group (added after Rex's lockstep follow-up, #131, made `version sync` read the group from that file).
 - **CI:** `cargo xtask wasm` runs the viewer's `:wasm` scripts (build, typecheck, the Node type tests). `cargo xtask pdf-runtimes chromium|firefox|webkit` runs its browser suite after the render adapters'.
 
 ## Post-merge checks
