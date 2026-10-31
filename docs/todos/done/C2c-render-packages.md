@@ -13,7 +13,7 @@
 | Branch | `feat/c2c-render-packages` |
 | PR title | `feat(render-pdfium): add the pdfium-wasm and hayro web render adapters` |
 | Size | L (600–1,500 lines; vendored `.wasm` excluded) |
-| PR | — |
+| PR | [#119](https://github.com/laudebugs/lamina/pull/119) |
 
 ## Goal
 
