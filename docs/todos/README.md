@@ -12,7 +12,7 @@ New todos start from [`TEMPLATE.md`](TEMPLATE.md). The workflow is in [git workf
 
 IDs: `A`/`P`/`X` [architecture](../plans/architecture.md) (foundations, publishing, cross-cutting), `B` [library](../plans/pdf-library.md), `L` [shareable libraries](../plans/shareable-libraries.md) (contracts, worker, extraction, CLI, agent docs, mobile), `C` [web reader](../plans/web-app.md), `D` [desktop reader](../plans/desktop-app.md), `U` [UI/UX](../plans/ui-ux.md), `E` [editor](../plans/full-editor.md), `H` hosted service ([full-editor](../plans/full-editor.md)). A letter suffix (`B2a`, `B2b`) splits a round into PRs.
 
-**2 ongoing · 194 ready · 52 done** (248 total).
+**1 ongoing · 194 ready · 53 done** (248 total).
 
 ## Can start now
 
@@ -23,13 +23,13 @@ Ready todos whose dependencies are all done:
 - [L3a](ready/L3a-lamina-extract-reading-order.md): ADR 0030 and `lamina-extract`: blocks, reading order, headings, lists, header/footer removal, hidden-text flags
 - [L4a](ready/L4a-lamina-cli.md): ADR 0031 and `crates/lamina-cli`: `info`, `check`, `pages rotate`, `extract`, `explain`
 - [L5a](ready/L5a-agent-docs.md): Docs for agents: `llms.txt`, Markdown twins, docs shipped in the packages, `AGENTS.md` snippet, rename log and an agent-eval baseline
+- [C3b](ready/C3b-viewer-virtualiser-and-zoom.md): `@lamina/viewer` part 2: virtualiser, canvas pool, progressive tiles and anchored zoom
 - [U1a](ready/U1a-adr-0024-app-shell-ux.md): ADR 0024: app shell UX (layout, modes, command registry, selection, page appearance, mobile)
 - [P1](ready/P1-reserve-names-and-trusted-publishing.md): Reserve names, ADR 0017 publishing part, OIDC trusted publishing and the release workflow
 - [X6](ready/X6-windows-ci.md): Windows CI coverage
 
 ## Ongoing
 
-- [C3a](ongoing/C3a-viewer-worker-rpc.md): `@lamina/viewer` part 1: document worker and typed RPC
 - [X3b](ongoing/X3b-render-diff-nightly.md): Nightly hayro-vs-PDFium render diffs
 
 ## Architecture — Round A
@@ -106,8 +106,8 @@ Ready todos whose dependencies are all done:
 | C2a | [ADRs 0004, 0009, 0010, 0011: render backend, web client, platform adapter, Cloudflare and privacy](done/C2a-render-adrs.md) | done | [C1a](done/C1a-hayro-parity-spike.md), [C1b](done/C1b-pdfium-wasm-spike.md), [X1](done/X1-docs-link-checker.md) |
 | C2b | [`crates/lamina-render`: the `RenderBackend` trait, PDFium and hayro adapters, render goldens](done/C2b-lamina-render-crate.md) | done | [B2c](done/B2c-lamina-model-corpus-fuzz.md), [C2a](done/C2a-render-adrs.md) |
 | C2c | [`@lamina/render-pdfium` and `@lamina/render-hayro`: the web render adapters](done/C2c-render-packages.md) | done | [B6b](done/B6b-lamina-pdf-package.md), [C2b](done/C2b-lamina-render-crate.md) |
-| C3a | [`@lamina/viewer` part 1: document worker and typed RPC](ongoing/C3a-viewer-worker-rpc.md) | ongoing | [B6b](done/B6b-lamina-pdf-package.md), [L2a](done/L2a-worker-client.md), [C2a](done/C2a-render-adrs.md), [C2c](done/C2c-render-packages.md) |
-| C3b | [`@lamina/viewer` part 2: virtualiser, canvas pool, progressive tiles and anchored zoom](ready/C3b-viewer-virtualiser-and-zoom.md) | ready | [C3a](ongoing/C3a-viewer-worker-rpc.md) |
+| C3a | [`@lamina/viewer` part 1: document worker and typed RPC](done/C3a-viewer-worker-rpc.md) | done | [B6b](done/B6b-lamina-pdf-package.md), [L2a](done/L2a-worker-client.md), [C2a](done/C2a-render-adrs.md), [C2c](done/C2c-render-packages.md) |
+| C3b | [`@lamina/viewer` part 2: virtualiser, canvas pool, progressive tiles and anchored zoom](ready/C3b-viewer-virtualiser-and-zoom.md) | ready | [C3a](done/C3a-viewer-worker-rpc.md) |
 | C3c | [Viewer performance harness: long tasks, memory and time-to-first-page in CI](ready/C3c-viewer-perf-harness.md) | ready | [C3b](ready/C3b-viewer-virtualiser-and-zoom.md) |
 | C4a | [`@lamina/ui`: React 19 reader chrome and the `Platform` adapter](ready/C4a-ui-chrome-and-platform.md) | ready | [C2a](done/C2a-render-adrs.md), [C3b](ready/C3b-viewer-virtualiser-and-zoom.md), [U1a](ready/U1a-adr-0024-app-shell-ux.md), [U6e](ready/U6e-overlays-and-sheets.md) |
 | C4b | [`apps/web`: the reader on Cloudflare Workers static assets, with local file opening](ready/C4b-web-app-shell.md) | ready | [C2a](done/C2a-render-adrs.md), [C4a](ready/C4a-ui-chrome-and-platform.md), [U6b](ready/U6b-self-hosted-fonts.md) |
@@ -258,7 +258,7 @@ Ready todos whose dependencies are all done:
 | E10f | [Certification (DocMDP), field locking (FieldMDP) and allowed changes](ready/E10f-certification-and-locking.md) | ready | [E10d](ready/E10d-pades-signing-core.md) |
 | E10g | [Signature validation: integrity, chain, revocation, signer inspection](ready/E10g-signature-validation.md) | ready | [E10d](ready/E10d-pades-signing-core.md) |
 | E10h | [Revision diff analysis, modification warnings and attack-catalogue tests](ready/E10h-revision-diff-and-attacks.md) | ready | [E10f](ready/E10f-certification-and-locking.md), [E10g](ready/E10g-signature-validation.md) |
-| E10i | [Platform key storage: OS keychains and PKCS#11 (desktop), WebCrypto and PKCS#12 (web)](ready/E10i-platform-signers.md) | ready | [C3a](ongoing/C3a-viewer-worker-rpc.md), [D2c](ready/D2c-engine-sandbox.md), [E10d](ready/E10d-pades-signing-core.md) |
+| E10i | [Platform key storage: OS keychains and PKCS#11 (desktop), WebCrypto and PKCS#12 (web)](ready/E10i-platform-signers.md) | ready | [C3a](done/C3a-viewer-worker-rpc.md), [D2c](ready/D2c-engine-sandbox.md), [E10d](ready/E10d-pades-signing-core.md) |
 | E10j | [Signing flow and signature panel UI](ready/E10j-signature-ui.md) | ready | [E10c](ready/E10c-visual-signatures.md), [E10e](ready/E10e-timestamps-and-tsa-proxy.md), [E10h](ready/E10h-revision-diff-and-attacks.md), [E10i](ready/E10i-platform-signers.md) |
 | E11a | [Security and sanitisation: feature plan](ready/E11a-security-and-sanitisation-feature-plan.md) | ready | [E10b](ready/E10b-signatures-feature-plan.md) |
 | E11b | [AES-256 encryption on write, passwords and permissions; inspect encryption](ready/E11b-encrypt-on-write.md) | ready | [B2b](done/B2b-standard-security-decryption.md), [E11a](ready/E11a-security-and-sanitisation-feature-plan.md) |

@@ -44,6 +44,10 @@
       "types": "./dist/worker/index.d.ts",
       "default": "./dist/worker/index.js"
     },
+    "./worker/server": {
+      "types": "./dist/worker/server.d.ts",
+      "default": "./dist/worker/server.js"
+    },
     "./schemas/error.schema.json": "./schemas/error.schema.json",
     "./package.json": "./package.json"
   },

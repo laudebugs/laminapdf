@@ -280,7 +280,7 @@ describe("the worker client, second review", () => {
     await using doc = await client.open(await read("fixtures/corpus/hello.pdf"));
     await doc.pageCount({ signal: controller.signal });
     controller.abort();
-    expect((await stats()).cancels).toBe(0);
+    expect((await stats()).queued).toBe(0);
   });
 });
 
@@ -293,6 +293,6 @@ function internal(method: string, params: unknown[] = []): Promise<unknown> {
   );
 }
 
-async function stats(): Promise<{ started: number; handles: number; cancels: number }> {
-  return (await internal("__stats")) as { started: number; handles: number; cancels: number };
+async function stats(): Promise<{ started: number; handles: number; queued: number }> {
+  return (await internal("__stats")) as { started: number; handles: number; queued: number };
 }

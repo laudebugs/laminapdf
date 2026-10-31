@@ -214,6 +214,43 @@ importers:
         specifier: 'catalog:'
         version: 5.0.5(@types/node@24.19.2)(@vitest/browser-playwright@5.0.5)(@vitest/ui@5.0.5)(vite@8.3.5(@types/node@24.19.2)(esbuild@0.28.2)(yaml@2.9.1))
 
+  packages/viewer:
+    dependencies:
+      '@lamina/pdf':
+        specifier: workspace:*
+        version: link:../pdf
+      '@lamina/render':
+        specifier: workspace:*
+        version: link:../render
+      '@lamina/render-hayro':
+        specifier: workspace:*
+        version: link:../render-hayro
+      '@lamina/render-pdfium':
+        specifier: workspace:*
+        version: link:../render-pdfium
+    devDependencies:
+      '@embedpdf/pdfium':
+        specifier: 2.15.1
+        version: 2.15.1
+      '@types/node':
+        specifier: 'catalog:'
+        version: 24.19.2
+      '@vitest/browser-playwright':
+        specifier: 'catalog:'
+        version: 5.0.5(playwright@1.64.1)(vite@8.3.5(@types/node@24.19.2)(esbuild@0.28.2)(yaml@2.9.1))(vitest@5.0.5)
+      playwright:
+        specifier: 'catalog:'
+        version: 1.64.1
+      typescript:
+        specifier: 'catalog:'
+        version: 7.0.2
+      vite:
+        specifier: 'catalog:'
+        version: 8.3.5(@types/node@24.19.2)(esbuild@0.28.2)(yaml@2.9.1)
+      vitest:
+        specifier: 'catalog:'
+        version: 5.0.5(@types/node@24.19.2)(@vitest/browser-playwright@5.0.5)(@vitest/ui@5.0.5)(vite@8.3.5(@types/node@24.19.2)(esbuild@0.28.2)(yaml@2.9.1))
+
   packages/wasm:
     devDependencies:
       '@types/node':

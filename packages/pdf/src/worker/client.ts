@@ -23,7 +23,7 @@ import {
   type ToWorker,
 } from "./protocol.js";
 import { DOCUMENT_METHODS, PAGE_METHODS } from "./support.js";
-import type { CallOptions, RemoteDocument } from "./types.js";
+import type { CallOptions, RemoteDocument, RequestOptions } from "./types.js";
 
 /** `Symbol.asyncDispose` where the runtime has it, else the registered symbol (no globals touched). */
 const ASYNC_DISPOSE: symbol = (Symbol as { asyncDispose?: symbol }).asyncDispose ?? Symbol.for("Symbol.asyncDispose");
@@ -93,7 +93,24 @@ export interface ConnectOptions {
   readonly signal?: AbortSignal;
   /** What the worker passes to `init()`: where the WebAssembly comes from, and options. */
   readonly init?: WorkerWasmSource | WorkerInitOptions;
+  /**
+   * Called with each answer that arrives for a call already rejected (aborted, or after a crash
+   * or terminate), which nobody will read. The default closes the ImageBitmaps in it (at the top
+   * level or one level down), so a cancelled render's bitmap is freed, never painted.
+   */
+  readonly onDiscard?: (value: unknown) => void;
 }
+
+/** Closes the ImageBitmaps in `value` and its direct members. */
+function closeBitmaps(value: unknown): void {
+  const close = (v: unknown) => {
+    if (typeof ImageBitmap !== "undefined" && v instanceof ImageBitmap) v.close();
+  };
+  close(value);
+  if (typeof value === "object" && value !== null) for (const v of Object.values(value)) close(v);
+}
+
+type EventListener = (name: string, data: unknown) => void;
 
 interface Pending {
   readonly resolve: (value: unknown) => void;
@@ -128,6 +145,8 @@ export class WorkerClient {
   readonly #init: WorkerWasmSource | WorkerInitOptions | undefined;
   readonly #pending = new Map<number, Pending>();
   readonly #listeners = new Set<CrashListener>();
+  readonly #events = new Set<EventListener>();
+  readonly #onDiscard: (value: unknown) => void;
   /** The worker once its handshake succeeded; undefined while starting, stopped or crashed. */
   #worker: Worker | undefined;
   /** The handshake in progress (calls made meanwhile wait for it), and how `#stop` ends it. */
@@ -161,6 +180,7 @@ export class WorkerClient {
       };
     }
     this.#init = options.init;
+    this.#onDiscard = options.onDiscard ?? closeBitmaps;
   }
 
   /** @internal Starts a worker and checks its handshake. */
@@ -233,12 +253,18 @@ export class WorkerClient {
       case "result": {
         const pending = this.#pending.get(message.id);
         // A late answer to a call already rejected (aborted or crashed) is dropped.
-        if (pending === undefined) return;
+        if (pending === undefined) {
+          if (message.ok) this.#onDiscard(message.result);
+          return;
+        }
         this.#pending.delete(message.id);
         if (message.ok) pending.resolve(message.result);
         else pending.reject(rebuild(message.error));
         return;
       }
+      case "event":
+        for (const listener of this.#events) listener(message.name, message.data);
+        return;
       case "progress":
         this.#pending.get(message.id)?.onProgress?.(message.progress as Progress);
         return;
@@ -271,10 +297,29 @@ export class WorkerClient {
   }
 
   /** Listens for the worker crashing (`reason`: `error`, `messageerror` or `trap`; not `terminate()`). */
-  on(event: "crashed", listener: CrashListener): () => void {
-    if (event !== "crashed") throw new TypeError(`unknown event ${String(event)}`);
-    this.#listeners.add(listener);
-    return () => this.#listeners.delete(listener);
+  on(event: "crashed", listener: CrashListener): () => void;
+  /** Listens for an extension's events (`emit()` in the worker). */
+  on(event: "event", listener: EventListener): () => void;
+  on(event: "crashed" | "event", listener: CrashListener | EventListener): () => void {
+    if (event === "crashed") {
+      const l = listener as CrashListener;
+      this.#listeners.add(l);
+      return () => this.#listeners.delete(l);
+    }
+    if (event === "event") {
+      const l = listener as EventListener;
+      this.#events.add(l);
+      return () => this.#events.delete(l);
+    }
+    throw new TypeError(`unknown event ${String(event)}`);
+  }
+
+  /**
+   * Calls an extension method in the worker (for packages that extend it with `serve(…)`, such
+   * as `@lamina/viewer`). Same cancellation, transfers and errors as every other call.
+   */
+  request(method: string, params: readonly unknown[], options: RequestOptions = {}): Promise<unknown> {
+    return this.call(0, method, params, options);
   }
 
   /** Ends the worker; pending calls reject with `worker-crashed` (no `crashed` event). */
@@ -338,7 +383,16 @@ export class WorkerClient {
         };
       signal?.addEventListener("abort", onAbort, { once: true });
       this.#pending.set(id, { resolve: settle(resolve), reject: settle(reject), onProgress });
-      const request: Request = { kind: "call", id, handle, method, params };
+      const { priority, key } = options as RequestOptions;
+      const request: Request = {
+        kind: "call",
+        id,
+        handle,
+        method,
+        params,
+        ...(priority === undefined ? {} : { priority }),
+        ...(key === undefined ? {} : { key }),
+      };
       // Only a buffer the parameter covers whole moves; a subarray or a shared buffer is copied.
       const buffers = transfer === true ? params.flatMap(whole) : [];
       try {

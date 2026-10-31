@@ -167,6 +167,11 @@ const updated = await doc.save({ mode: "incremental" }, { signal, onProgress: (p
 - **Bundlers:** `connect()` contains the literal `new Worker(new URL("./entry.js", import.meta.url), { type: "module" })`, which Vite and webpack bundle with no config (`test/browser/vite-build.test.ts` builds and runs one). In Vite, keep the package out of pre-bundling (`optimizeDeps: { exclude: ["@lamina/pdf"] }`), as for the main entry.
 - **CSP or your own hosting:** pass `connect({ worker: () => new Worker(url, { type: "module" }) })`. A factory, so that `restart()` can make a new one.
 - **Runtimes:** browsers (Chromium, Firefox, WebKit), and Deno and Bun web Workers (smoke-tested). Node's `worker_threads` isn't a web `Worker` and isn't supported.
+- **Extending the worker:** `@lamina/pdf/worker/server`'s `serve({ methods })` serves the same protocol with more methods in the same worker. `@lamina/viewer` adds its render methods this way (C3a, ADR 0009 §3).
+  - The page calls them with `client.request(method, params, { priority, key, signal })`.
+  - The worker runs the highest `priority` first, and runs calls with the same `key` once. Each caller still gets its own answer: an extension method's `reply(result)` builds one per caller, so each can be given its own transferables.
+  - `emit(name, data)` in the worker reaches `client.on("event", …)`.
+  - `connect({ onDiscard })` sees the answers of calls already rejected. By default it closes the `ImageBitmap`s in them.
 
 ## Memory
 
