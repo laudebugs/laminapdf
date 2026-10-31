@@ -7,7 +7,7 @@
 | Plan | [pdf-library §7 B9](../../plans/pdf-library.md#b9-text-extraction) |
 | Round / milestone | Round B (library) — M2 Web reader v0.1 (prerequisite) |
 | Depends on | [B6b](./B6b-lamina-pdf-package.md), [B6c](./B6c-runtime-matrix.md), [B9d](./B9d-text-runs-quads-and-page-text.md) |
-| Blocks | [B9f](../ready/B9f-live-text-differential.md), [L3b](../ready/L3b-extract-tables-and-serialisers.md), [L4a](../ready/L4a-lamina-cli.md), [C5a](../ready/C5a-text-layer-and-selection.md), [C5b](../ready/C5b-find-in-document.md), [C6c](../ready/C6c-print-download-properties.md), [E2a](../ready/E2a-page-organisation-feature-plan.md), [E2e](../ready/E2e-content-append-api.md), [E3i](../ready/E3i-extraction.md), [E7a](../ready/E7a-adr-0022-content-editing.md) |
+| Blocks | [B9f](../ongoing/B9f-live-text-differential.md), [L3b](../ready/L3b-extract-tables-and-serialisers.md), [L4a](../ready/L4a-lamina-cli.md), [C5a](../ready/C5a-text-layer-and-selection.md), [C5b](../ready/C5b-find-in-document.md), [C6c](../ready/C6c-print-download-properties.md), [E2a](../ready/E2a-page-organisation-feature-plan.md), [E2e](../ready/E2e-content-append-api.md), [E3i](../ready/E3i-extraction.md), [E7a](../ready/E7a-adr-0022-content-editing.md) |
 | ADRs | Follows 0023, 0016 (module placement: extraction lives in the text module or base — decide by size), [0018](../../decisions/0018-test-strategy.md) tiers 6 and 9 |
 | Branch | `feat/b9c-text-bindings` |
 | PR title | `feat(pdf): page.text() in WASM and TypeScript with differential and quad tests` |
@@ -34,7 +34,7 @@ Expose text extraction everywhere the readers need it and prove it against indep
 - Differential: `cargo xtask differential --text` comparing per-page text with pdf.js (`getTextContent`, normalised) and pdftotext (`-layout` off) on `fixtures/corpus` + `fixtures/text`; precomputed expectations in `fixtures/differential/text.json` for the PR lane, live tools in the full/nightly lanes; exceptions file with reasons.
 - Quad test: PDFium (`pypdfium2` `get_charbox`) vs lamina quads per glyph, tolerance in points (e.g. ≤ 1 pt or ≤ 10% of font size, documented), on fixtures where both map glyphs 1:1.
 - Fuzz target `extract_text` (open + extract all pages), added to the nightly workflow's fuzz matrix (`.github/workflows/nightly.yml`, 10 min) and to `FUZZ_TARGETS`.
-- **Split off to [B9f](../ready/B9f-live-text-differential.md)** (the PR-lane differential below meets the acceptance criteria): nightly external-corpus text differential: a `--text` option (or a `text` fact) for `cargo xtask differential --live`, with pdf.js and pdftotext runners in `tools/differential/` and its classes in `exceptions.toml`, run by the nightly workflow's differential job ([X3a](../done/X3a-nightly-lane.md) built the lane; this todo adds the text part).
+- **Split off to [B9f](../ongoing/B9f-live-text-differential.md)** (the PR-lane differential below meets the acceptance criteria): nightly external-corpus text differential: a `--text` option (or a `text` fact) for `cargo xtask differential --live`, with pdf.js and pdftotext runners in `tools/differential/` and its classes in `exceptions.toml`, run by the nightly workflow's differential job ([X3a](../done/X3a-nightly-lane.md) built the lane; this todo adds the text part).
 - Size: measure the extraction code's WASM cost and record it against the ADR 0016 budgets.
 
 **Out of scope** (and which todo covers it)

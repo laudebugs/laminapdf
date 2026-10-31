@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `B9f` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [pdf-library §7 B9](../../plans/pdf-library.md#b9-text-extraction) |
 | Round / milestone | Round B (library) — M2 Web reader v0.1 (hardening) |
 | Depends on | [B9c](../done/B9c-text-extraction-bindings-and-differential.md), [X3a](../done/X3a-nightly-lane.md) |
