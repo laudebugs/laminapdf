@@ -72,3 +72,6 @@ __diff_output__/
 
 # Claude Code local files
 .claude/settings.local.json
+
+# Vitest browser mode attachments and failure screenshots
+.vitest/
