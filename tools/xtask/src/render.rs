@@ -125,4 +125,4 @@ fn corpus(ws: &Workspace, update: bool) -> Result<()> {
 }
 
 /// The variable `lamina-render-pdfium` reads the library folder from.
-const PDFIUM_DIR_ENV: &str = "LAMINA_PDFIUM_DIR";
+pub(crate) const PDFIUM_DIR_ENV: &str = "LAMINA_PDFIUM_DIR";

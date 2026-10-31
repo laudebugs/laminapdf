@@ -127,7 +127,8 @@ pub struct PixelRect {
 pub struct RenderFlags {
     /// Annotation appearance streams (default on; PDFium's `FPDF_ANNOT`).
     pub annotations: bool,
-    /// Form widgets, drawn read-only (default on).
+    /// Form widgets, drawn read-only (default on). Widgets are annotations: they are drawn only
+    /// when `annotations` is on too.
     pub form_widgets: bool,
     /// Print intent: honours annotation `Print`/`NoView` flags (PDFium's `FPDF_PRINTING`).
     pub print: bool,
@@ -266,6 +267,11 @@ impl TilePlan {
         if !scale.is_finite() || scale <= 0.0 {
             return Err(RenderError::InvalidRequest {
                 what: "scale must be finite and positive",
+            });
+        }
+        if !(page.width.is_finite() && page.height.is_finite() && page.width > 0.0 && page.height > 0.0) {
+            return Err(RenderError::InvalidRequest {
+                what: "the page has no drawable area",
             });
         }
         let (w, h) = if request.rotation.is_quarter_turn() {
@@ -438,6 +444,19 @@ mod tests {
                     what: "the tile extends past the page"
                 }
             );
+        }
+
+        #[test]
+        fn rejects_a_page_without_area() {
+            for (width, height) in [(0.0, 792.0), (612.0, -1.0), (f32::NAN, 792.0)] {
+                let page = RenderPage {
+                    width,
+                    height,
+                    rotate: 0,
+                };
+                let err = TilePlan::new(&page, &RenderRequest::page(0, 1.0), &RenderLimits::default()).unwrap_err();
+                assert_eq!(err.code(), "invalid-argument", "{width}×{height}");
+            }
         }
 
         #[test]

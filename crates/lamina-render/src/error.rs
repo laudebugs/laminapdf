@@ -24,6 +24,15 @@ pub enum RenderError {
         /// `pixels` (per tile) or `pixels per side`.
         unit: &'static str,
     },
+    /// The input is longer than [`RenderLimits::max_input_bytes`](crate::RenderLimits) for a
+    /// backend that reads the whole file into memory (`render-too-large`).
+    #[error("the input is {len} bytes, over the render limit of {limit} bytes")]
+    InputTooLarge {
+        /// The input's length.
+        len: u64,
+        /// The limit.
+        limit: u64,
+    },
     /// A request that can never be valid: a non-finite or non-positive scale, an empty tile, a
     /// tile outside the page (`invalid-argument`).
     #[error("invalid render request: {what}")]
@@ -97,7 +106,7 @@ impl RenderError {
     #[must_use]
     pub const fn code(&self) -> &'static str {
         match self {
-            Self::TooLarge { .. } => "render-too-large",
+            Self::TooLarge { .. } | Self::InputTooLarge { .. } => "render-too-large",
             Self::InvalidRequest { .. } | Self::BufferSize { .. } => "invalid-argument",
             Self::PageIndexOutOfRange { .. } => "page-index-out-of-range",
             Self::PasswordRequired => "password-required",
@@ -117,7 +126,7 @@ impl RenderError {
     #[must_use]
     pub const fn kind(&self) -> ErrorKind {
         match self {
-            Self::TooLarge { .. } => ErrorKind::Limit,
+            Self::TooLarge { .. } | Self::InputTooLarge { .. } => ErrorKind::Limit,
             Self::InvalidRequest { .. } | Self::BufferSize { .. } | Self::PageIndexOutOfRange { .. } => {
                 ErrorKind::Usage
             }
@@ -136,6 +145,7 @@ impl RenderError {
         match self {
             Self::Source { offset, .. } => Location::from(Position::FileOffset(*offset)),
             Self::TooLarge { .. }
+            | Self::InputTooLarge { .. }
             | Self::InvalidRequest { .. }
             | Self::BufferSize { .. }
             | Self::PageIndexOutOfRange { .. }
@@ -176,6 +186,7 @@ mod tests {
                 limit: 0,
                 unit: "pixels",
             },
+            RenderError::InputTooLarge { len: 2, limit: 1 },
             RenderError::InvalidRequest { what: "x" },
             RenderError::BufferSize { expected: 4, actual: 0 },
             RenderError::PageIndexOutOfRange { index: 1, count: 1 },

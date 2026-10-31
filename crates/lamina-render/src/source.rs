@@ -7,7 +7,8 @@ use crate::error::RenderError;
 /// How much is read per call: lamina-cos's window size.
 const CHUNK: usize = 64 * 1024;
 
-/// Reads all of `source` into memory, at most `max_bytes`.
+/// Reads all of `source` into memory, at most `max_bytes` (an in-memory source is copied:
+/// backends that can borrow its slice, like hayro, check [`ByteSource::as_slice`] first).
 ///
 /// One pass over the whole source: every range it answers `Pending` for is collected, so a
 /// single `data-pending` error lists everything the shell must fetch before calling again.
@@ -18,22 +19,12 @@ const CHUNK: usize = 64 * 1024;
 pub fn read_all(source: &dyn ByteSource, max_bytes: u64) -> Result<Vec<u8>, RenderError> {
     let len = source.len();
     if len > max_bytes {
-        return Err(RenderError::TooLarge {
-            width: len,
-            height: 1,
-            limit: max_bytes,
-            unit: "bytes of input",
-        });
+        return Err(RenderError::InputTooLarge { len, limit: max_bytes });
     }
     if let Some(bytes) = source.as_slice() {
         return Ok(bytes.to_vec());
     }
-    let size = usize::try_from(len).map_err(|_| RenderError::TooLarge {
-        width: len,
-        height: 1,
-        limit: max_bytes,
-        unit: "bytes of input",
-    })?;
+    let size = usize::try_from(len).map_err(|_| RenderError::InputTooLarge { len, limit: max_bytes })?;
     let mut out = vec![0; size];
     let mut pending = Vec::new();
     let mut at = 0;

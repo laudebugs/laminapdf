@@ -20,8 +20,8 @@ use std::sync::Arc;
 
 use hayro::hayro_interpret::InterpreterSettings;
 use hayro::hayro_interpret::util::TransformExt as _;
-use hayro::hayro_syntax::Pdf;
 use hayro::hayro_syntax::page::Rotation;
+use hayro::hayro_syntax::{Pdf, PdfData};
 use hayro::kurbo::Affine;
 use hayro::vello_cpu::color::AlphaColor;
 use hayro::vello_cpu::color::palette::css::TRANSPARENT;
@@ -32,7 +32,7 @@ use lamina_syntax::CancelToken;
 
 use crate::backend::{RenderBackend, RenderDocument};
 use crate::error::RenderError;
-use crate::request::{RenderLimits, RenderOpenOptions, RenderPage, RenderRequest, TilePlan};
+use crate::request::{RenderLimits, RenderOpenOptions, RenderPage, RenderRequest, Rgba8, TilePlan};
 use crate::source::read_all;
 
 const NAME: &str = "hayro";
@@ -65,10 +65,22 @@ impl RenderBackend for HayroBackend {
         options: &RenderOpenOptions,
     ) -> Result<Box<dyn RenderDocument>, RenderError> {
         let limits = *options.limits();
-        let bytes = read_all(source.as_ref(), limits.max_input_bytes)?;
+        // An in-memory source is borrowed, not copied (ADR 0004: never a second copy);
+        // anything else is read whole, which hayro needs.
+        let data: PdfData = if source.as_slice().is_some() {
+            if source.len() > limits.max_input_bytes {
+                return Err(RenderError::InputTooLarge {
+                    len: source.len(),
+                    limit: limits.max_input_bytes,
+                });
+            }
+            Arc::new(InMemory(source)).into()
+        } else {
+            Arc::new(read_all(source.as_ref(), limits.max_input_bytes)?).into()
+        };
         let password = options.password().unwrap_or("");
-        let loaded = catch_unwind(AssertUnwindSafe(|| Pdf::new_with_password(Arc::new(bytes), password)))
-            .map_err(|_| failed("open"))?;
+        let loaded =
+            catch_unwind(AssertUnwindSafe(|| Pdf::new_with_password(data, password))).map_err(|_| failed("open"))?;
         let pdf = loaded.map_err(|e| match e {
             hayro::hayro_syntax::LoadPdfError::Decryption(hayro::hayro_syntax::DecryptionError::PasswordProtected) => {
                 if options.password().is_some() {
@@ -80,6 +92,16 @@ impl RenderBackend for HayroBackend {
             _ => failed("open"),
         })?;
         Ok(Box::new(HayroDocument { pdf, limits }))
+    }
+}
+
+/// An in-memory [`ByteSource`] as hayro's input, without a copy.
+struct InMemory(Arc<dyn ByteSource>);
+
+impl AsRef<[u8]> for InMemory {
+    fn as_ref(&self) -> &[u8] {
+        // Only built for sources whose `as_slice` is `Some`.
+        self.0.as_slice().unwrap_or_default()
     }
 }
 
@@ -148,9 +170,13 @@ impl RenderDocument for HayroDocument {
             render_annotations: request.flags.annotations,
             ..InterpreterSettings::default()
         };
-        let background = request
-            .background
-            .map_or(TRANSPARENT, |c| AlphaColor::from_rgba8(c.r, c.g, c.b, c.a));
+        // Grayscale applies to the content only (as PDFium's FPDF_GRAYSCALE): draw on transparent,
+        // gray it, then lay it over the background.
+        let grayscale = request.flags.grayscale;
+        let background = match request.background {
+            Some(c) if !grayscale => AlphaColor::from_rgba8(c.r, c.g, c.b, c.a),
+            _ => TRANSPARENT,
+        };
         let pixmap = catch_unwind(AssertUnwindSafe(|| {
             let cache = RenderCache::new();
             let mut ctx = RenderContext::new(tw, th);
@@ -171,7 +197,8 @@ impl RenderDocument for HayroDocument {
         if cancel.is_cancelled() {
             return Err(RenderError::Cancelled);
         }
-        unpremultiply_into(pixmap.data_as_u8_slice(), out, request.flags.grayscale);
+        let under = if grayscale { request.background } else { None };
+        unpremultiply_into(pixmap.data_as_u8_slice(), out, grayscale, under);
         Ok(plan)
     }
 }
@@ -195,19 +222,38 @@ const fn failed(stage: &'static str) -> RenderError {
     RenderError::Failed { backend: NAME, stage }
 }
 
-/// hayro's premultiplied RGBA8 into straight-alpha RGBA8 (optionally gray), same size.
-fn unpremultiply_into(src: &[u8], out: &mut [u8], grayscale: bool) {
+/// hayro's premultiplied RGBA8 into straight-alpha RGBA8, same size: optionally gray (Rec. 601
+/// luma, which is linear, so it applies to premultiplied channels), then laid over `under`.
+fn unpremultiply_into(src: &[u8], out: &mut [u8], grayscale: bool, under: Option<Rgba8>) {
     for (&[r, g, b, a], d) in src.as_chunks::<4>().0.iter().zip(out.as_chunks_mut::<4>().0) {
-        let [r, g, b] = if a == 0 {
-            [0, 0, 0]
-        } else if a == 255 {
-            [r, g, b]
-        } else {
-            [r, g, b].map(|c| unpremultiply(c, a))
-        };
         let [r, g, b] = if grayscale { [luma(r, g, b); 3] } else { [r, g, b] };
-        *d = [r, g, b, a];
+        // Source-over in premultiplied space: c + u·ua·(1 − a), alpha a + ua·(1 − a).
+        let (r, g, b, a) = match under {
+            Some(u) if a < 255 => {
+                let rest = 255 - u32::from(a);
+                let ua = u32::from(u.a);
+                let over = |c: u8, uc: u8| clamp(u32::from(c) + (u32::from(uc) * ua * rest + 255 * 127) / (255 * 255));
+                (
+                    over(r, u.r),
+                    over(g, u.g),
+                    over(b, u.b),
+                    clamp(u32::from(a) + (ua * rest + 127) / 255),
+                )
+            }
+            _ => (r, g, b, a),
+        };
+        *d = if a == 0 {
+            [0, 0, 0, 0]
+        } else if a == 255 {
+            [r, g, b, a]
+        } else {
+            [unpremultiply(r, a), unpremultiply(g, a), unpremultiply(b, a), a]
+        };
     }
+}
+
+fn clamp(v: u32) -> u8 {
+    u8::try_from(v.min(255)).unwrap_or(u8::MAX)
 }
 
 /// `round(c × 255 / a)`, clamped (a premultiplied channel can't exceed alpha, but rounding in
@@ -226,6 +272,7 @@ fn luma(r: u8, g: u8, b: u8) -> u8 {
 #[cfg(test)]
 mod tests {
     use super::{luma, unpremultiply, unpremultiply_into};
+    use crate::Rgba8;
 
     #[test]
     fn unpremultiply_restores_straight_channels() {
@@ -237,8 +284,25 @@ mod tests {
     #[test]
     fn transparent_pixels_become_zero() {
         let mut out = [9; 4];
-        unpremultiply_into(&[10, 20, 30, 0], &mut out, false);
+        unpremultiply_into(&[10, 20, 30, 0], &mut out, false, None);
         assert_eq!(out, [0, 0, 0, 0]);
+    }
+
+    #[test]
+    fn grayscale_keeps_the_background_colour() {
+        let sepia = Rgba8 {
+            r: 255,
+            g: 240,
+            b: 200,
+            a: 255,
+        };
+        let mut out = [0; 4];
+        // A fully transparent content pixel: the background shows, ungrayed.
+        unpremultiply_into(&[0, 0, 0, 0], &mut out, true, Some(sepia));
+        assert_eq!(out, [255, 240, 200, 255]);
+        // Opaque red content: gray, background hidden.
+        unpremultiply_into(&[255, 0, 0, 255], &mut out, true, Some(sepia));
+        assert_eq!(out, [76, 76, 76, 255]);
     }
 
     #[test]

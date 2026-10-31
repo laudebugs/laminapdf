@@ -24,6 +24,7 @@ doc.render(&req, &mut out, &CancelToken::new())?; // render-too-large
 
 ## Data fields
 
-- `width`, `height`: the tile's size (for the input limit: its length in bytes, and 1).
+- `width`, `height`: the tile's size (tile limits).
 - `limit`: the limit exceeded.
-- `unit`: `pixels`, `pixels per side` or `bytes of input`.
+- `unit`: `pixels`, `pixels per side` or `pixels per side (hayro)` (tile limits).
+- `len`: the input's length in bytes (the input limit, with `limit`).

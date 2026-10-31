@@ -16,6 +16,8 @@
 //!
 //! [ADR 0004]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0004-render-backend.md
 
+use std::cell::RefCell;
+use std::collections::BTreeMap;
 use std::io::{self, Read, Seek, SeekFrom};
 use std::path::Path;
 use std::sync::{Arc, Mutex, MutexGuard, OnceLock, PoisonError};
@@ -148,6 +150,7 @@ impl RenderBackend for PdfiumBackend {
             count,
             pending,
             limits: *options.limits(),
+            pages: RefCell::new(BTreeMap::new()),
         }))
     }
 }
@@ -156,8 +159,11 @@ impl RenderBackend for PdfiumBackend {
 struct PdfiumDocument {
     doc: Option<PdfDocument<'static>>,
     count: u32,
-    pending: Arc<Mutex<Vec<(u64, u64)>>>,
+    pending: Arc<Mutex<Vec<Refusal>>>,
     limits: RenderLimits,
+    /// Page geometry already read: `plan` then `render` loads the page once. The document never
+    /// changes, so entries never go stale. A `RefCell`: the document is `Send + !Sync`.
+    pages: RefCell<BTreeMap<u32, RenderPage>>,
 }
 
 impl PdfiumDocument {
@@ -180,8 +186,8 @@ impl PdfiumDocument {
         self.doc.as_ref().ok_or_else(|| failed("render"))
     }
 
-    /// Runs `f` under the engine lock with the pending list cleared; any read the source refused
-    /// during `f` turns the outcome into `data-pending`, success or not (PDFium falls back to
+    /// Runs `f` under the engine lock with the refusals cleared; any read the source refused
+    /// during `f` turns the outcome into `source` or `data-pending`, success or not (PDFium falls back to
     /// defaults, such as a 612 × 792 page, when it can't read inherited values).
     fn with_engine<T>(&self, f: impl FnOnce() -> Result<T, RenderError>) -> Result<T, RenderError> {
         let _guard = engine();
@@ -227,7 +233,12 @@ impl RenderDocument for PdfiumDocument {
     }
 
     fn page(&self, index: u32) -> Result<RenderPage, RenderError> {
-        self.with_engine(|| self.load(index).map(|page| geometry(&page)))
+        if let Some(page) = self.pages.borrow().get(&index) {
+            return Ok(*page);
+        }
+        let page = self.with_engine(|| self.load(index).map(|page| geometry(&page)))?;
+        self.pages.borrow_mut().insert(index, page);
+        Ok(page)
     }
 
     fn limits(&self) -> &RenderLimits {
@@ -235,7 +246,7 @@ impl RenderDocument for PdfiumDocument {
     }
 
     fn render(&self, request: &RenderRequest, out: &mut [u8], cancel: &CancelToken) -> Result<TilePlan, RenderError> {
-        self.with_engine(|| {
+        let (plan, info) = self.with_engine(|| {
             // One page load for the geometry and the drawing.
             let page = self.load(request.page)?;
             let info = geometry(&page);
@@ -255,7 +266,8 @@ impl RenderDocument for PdfiumDocument {
                 .set_reverse_byte_order(true)
                 .clear_before_rendering(true)
                 .set_clear_color(background);
-            let config = if request.flags.form_widgets {
+            // Widgets are annotations: drawn only when annotations are (as hayro does).
+            let config = if request.flags.annotations && request.flags.form_widgets {
                 // pdfium-render's form path: FPDF_RenderPageBitmap then FPDF_FFLDraw at the whole
                 // page's pixel size, shifted so the tile lands in the tile-sized bitmap.
                 config
@@ -297,8 +309,11 @@ impl RenderDocument for PdfiumDocument {
             if cancel.is_cancelled() {
                 return Err(RenderError::Cancelled);
             }
-            Ok(plan)
-        })
+            Ok((plan, info))
+        })?;
+        // Only geometry read without a refused read is cached (with_engine succeeded).
+        self.pages.borrow_mut().insert(request.page, info);
+        Ok(plan)
     }
 }
 
@@ -311,17 +326,38 @@ const fn rotation(r: ViewRotation) -> PdfPageRenderRotation {
     }
 }
 
-fn lock_pending(pending: &Mutex<Vec<(u64, u64)>>) -> MutexGuard<'_, Vec<(u64, u64)>> {
+fn lock_pending(pending: &Mutex<Vec<Refusal>>) -> MutexGuard<'_, Vec<Refusal>> {
     pending.lock().unwrap_or_else(PoisonError::into_inner)
 }
 
-fn clear_pending(pending: &Mutex<Vec<(u64, u64)>>) {
+fn clear_pending(pending: &Mutex<Vec<Refusal>>) {
     lock_pending(pending).clear();
 }
 
-/// `data-pending` with every range PDFium asked for that the source didn't have, if any.
-fn take_pending(pending: &Mutex<Vec<(u64, u64)>>) -> Option<RenderError> {
-    let ranges = std::mem::take(&mut *lock_pending(pending));
+/// A read the source refused: not there yet, or failed.
+#[derive(Debug, Clone, Copy)]
+enum Refusal {
+    Pending(u64, u64),
+    Failed(u64, u64),
+}
+
+/// The error for the reads refused during a call, if any: a failed read is `source` (the
+/// first one); otherwise every pending range, merged, is `data-pending`.
+fn take_pending(pending: &Mutex<Vec<Refusal>>) -> Option<RenderError> {
+    let refusals = std::mem::take(&mut *lock_pending(pending));
+    if let Some((offset, len)) = refusals.iter().find_map(|r| match *r {
+        Refusal::Failed(o, l) => Some((o, l)),
+        Refusal::Pending(..) => None,
+    }) {
+        return Some(RenderError::Source { offset, len });
+    }
+    let ranges: Vec<(u64, u64)> = refusals
+        .iter()
+        .filter_map(|r| match *r {
+            Refusal::Pending(o, l) => Some((o, l)),
+            Refusal::Failed(..) => None,
+        })
+        .collect();
     (!ranges.is_empty()).then(|| RenderError::DataPending {
         ranges: merge_ranges(ranges),
     })
@@ -331,7 +367,7 @@ fn take_pending(pending: &Mutex<Vec<(u64, u64)>>) -> Option<RenderError> {
 struct SourceReader {
     source: Arc<dyn ByteSource>,
     position: u64,
-    pending: Arc<Mutex<Vec<(u64, u64)>>>,
+    pending: Arc<Mutex<Vec<Refusal>>>,
 }
 
 impl Read for SourceReader {
@@ -352,7 +388,7 @@ impl Read for SourceReader {
                 Ok(n) => done += n,
                 Err(e) => {
                     self.position = at;
-                    return Err(self.refused(&e));
+                    return Err(self.refused(&e, at));
                 }
             }
         }
@@ -363,13 +399,15 @@ impl Read for SourceReader {
 
 impl SourceReader {
     /// Records a pending range and turns the source error into an I/O error for PDFium.
-    fn refused(&self, e: &SourceError) -> io::Error {
-        if let SourceError::Pending { offset, len } = *e {
-            lock_pending(&self.pending).push((offset, len));
-            io::Error::other("data pending")
-        } else {
-            io::Error::other("source failed")
-        }
+    fn refused(&self, e: &SourceError, at: u64) -> io::Error {
+        let refusal = match *e {
+            SourceError::Pending { offset, len } => Refusal::Pending(offset, len),
+            SourceError::Failed { offset, len } => Refusal::Failed(offset, len),
+            // SourceError is non_exhaustive: an unknown refusal is a failed read here.
+            _ => Refusal::Failed(at, 0),
+        };
+        lock_pending(&self.pending).push(refusal);
+        io::Error::other("source refused a read")
     }
 }
 

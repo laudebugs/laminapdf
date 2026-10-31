@@ -139,6 +139,18 @@ fn verify(path: &Path, sha: &str) -> Result<bool> {
 mod tests {
     use super::ASSETS;
 
+    /// xtask can't depend on lamina-render-pdfium (it would build PDFium's bindings for every
+    /// task), so the build tag and the variable are checked against the crate's source.
+    #[test]
+    fn the_tag_and_variable_match_the_crate() {
+        let crate_src = include_str!("../../../crates/lamina-render-pdfium/src/lib.rs");
+        assert!(crate_src.contains(&format!("pub const PDFIUM_BUILD: &str = \"{}\";", super::TAG)));
+        assert!(crate_src.contains(&format!(
+            "pub const PDFIUM_DIR_ENV: &str = \"{}\";",
+            crate::render::PDFIUM_DIR_ENV
+        )));
+    }
+
     #[test]
     fn every_asset_is_pinned_by_a_sha256() {
         for (os, arch, asset, sha, _) in ASSETS {

@@ -21,11 +21,13 @@ fn every_corpus_page_matches_its_golden() {
     let mut checked = 0;
     for backend in common::backends() {
         let skip = common::skipped(backend.name());
+        let mut rendered = std::collections::BTreeSet::new();
         for file in common::corpus() {
             if skip.contains_key(&file) {
                 continue;
             }
             for (i, bitmap) in render_file(backend.as_ref(), &file).iter().enumerate() {
+                rendered.insert(golden_name(&file, i));
                 let path = golden_dir(backend.name()).join(golden_name(&file, i));
                 if !path.is_file() {
                     failures.push(format!(
@@ -51,6 +53,16 @@ fn every_corpus_page_matches_its_golden() {
                     failures.push(format!("{}: SSIM {score:.4} < {MIN_SSIM}", path.display()));
                 }
                 checked += 1;
+            }
+        }
+        // A golden of a page that no longer renders (a lost page) fails too.
+        for entry in std::fs::read_dir(golden_dir(backend.name())).unwrap() {
+            let name = entry.unwrap().file_name().to_string_lossy().into_owned();
+            let png = std::path::Path::new(&name)
+                .extension()
+                .is_some_and(|e| e.eq_ignore_ascii_case("png"));
+            if png && !rendered.contains(&name) {
+                failures.push(format!("{}/{name}: no page renders to it any more", backend.name()));
             }
         }
     }

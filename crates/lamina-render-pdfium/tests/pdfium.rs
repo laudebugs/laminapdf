@@ -105,8 +105,10 @@ mod errors {
         fn read_at(&self, offset: u64, buf: &mut [u8]) -> Result<usize, SourceError> {
             let len = self.0.len() as u64;
             let end = (offset + buf.len() as u64).min(len);
-            let available = |at: u64| at < 1024 || at >= len.saturating_sub(1024);
-            if !(available(offset) && available(end.saturating_sub(1))) {
+            // The whole read must lie in the head or in the tail.
+            let in_head = end <= 1024;
+            let in_tail = offset >= len.saturating_sub(1024);
+            if !(in_head || in_tail) {
                 return Err(SourceError::Pending {
                     offset,
                     len: end - offset,
