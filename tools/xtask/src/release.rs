@@ -323,7 +323,8 @@ mod tests {
     }
 
     /// The release lane calls nightly.yml with `record: false`, and every nightly step or job that
-    /// writes (the bench-data pushes, the fuzz cache save, the issue) is gated on that input.
+    /// writes (the bench-data pushes, the fuzz cache save, a history `--record`, the issues) is
+    /// gated on that input.
     #[test]
     fn release_lane_should_call_the_nightly_lane_without_recording() {
         const RELEASE: &str = include_str!("../../../.github/workflows/release.yml");
@@ -347,8 +348,13 @@ mod tests {
             .filter(|step| {
                 let writes = (step.contains("bench-history") && step.contains("mode: push"))
                     || step.contains("actions/cache/save")
-                    || step.contains("fuzz cmin");
-                writes && !(step.contains("env.RECORD == 'true'") || step.contains("env.NIGHTLY_RECORD == 'true'"))
+                    || step.contains("fuzz cmin")
+                    || step.contains("--record");
+                // Gated in the expression, or in the shell (pdf-runtimes' `--record` branch).
+                let gated = step.contains("env.RECORD == 'true'")
+                    || step.contains("env.NIGHTLY_RECORD == 'true'")
+                    || step.contains("if [ \"$RECORD\" = true ]");
+                writes && !gated
             })
             .map(|step| step.lines().next().unwrap_or_default())
             .collect();
@@ -362,7 +368,7 @@ mod tests {
             .filter(|l| l.trim_start().starts_with("RECORD: "))
             .collect::<Vec<_>>();
         assert!(
-            record_env.len() == 2
+            record_env.len() == 3
                 && record_env
                     .iter()
                     .all(|l| l.contains("toJSON(inputs.record) != 'false'")),
@@ -375,6 +381,26 @@ mod tests {
             report_if.contains("toJSON(inputs.record) != 'false'"),
             "the report job must skip when not recording"
         );
+        // Issues are filed only by the report job, so its gate covers every one (bench and
+        // render-diff regressions included).
+        // Each job: from one two-space-indented `<id>:` line to the next.
+        let mut jobs: Vec<(String, String)> = Vec::new();
+        for line in code.lines() {
+            let job_line = line.starts_with("  ") && !line.starts_with("   ") && line.trim_end().ends_with(':');
+            match jobs.last_mut() {
+                Some((_, body)) if !job_line => body.push_str(line),
+                _ => jobs.push((line.trim().to_owned(), String::new())),
+            }
+        }
+        let filing: Vec<&str> = jobs
+            .iter()
+            .filter(|(_, body)| body.contains("gh issue"))
+            .map(|(id, _)| id.as_str())
+            .collect();
+        assert_eq!(filing, ["report:"], "only the report job may file issues");
+        for output in ["needs.bench.outputs.regression", "needs.render-diff.outputs.regression"] {
+            assert!(report_if.contains(output), "the report job must handle {output}");
+        }
     }
 
     #[test]

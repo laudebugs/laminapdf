@@ -7,7 +7,7 @@
 | Plan | [web reader §6 C2. Render backend and ADRs](../../plans/web-app.md#c2-render-backend-and-adrs) |
 | Round / milestone | Round C (web reader) — M2 Web reader v0.1 |
 | Depends on | [B2c](./B2c-lamina-model-corpus-fuzz.md), [C2a](./C2a-render-adrs.md) |
-| Blocks | [L4b](../ready/L4b-cli-batch-render-schema.md), [L6b](../ready/L6b-mobile-sdk-plan.md), [C2c](./C2c-render-packages.md), [D2b](../ready/D2b-engine-process.md), [U2c](../ready/U2c-page-appearance-modes.md), [U3b](../ready/U3b-mobile-shell-spike.md), [E3h](../ready/E3h-images-to-pdf-and-page-export.md), [E13a](../ready/E13a-adr-0013-heavy-jobs.md), [H1](../ready/H1-auth-spike.md), [X3b](../ongoing/X3b-render-diff-nightly.md) |
+| Blocks | [L4b](../ready/L4b-cli-batch-render-schema.md), [L6b](../ready/L6b-mobile-sdk-plan.md), [C2c](./C2c-render-packages.md), [D2b](../ready/D2b-engine-process.md), [U2c](../ready/U2c-page-appearance-modes.md), [U3b](../ready/U3b-mobile-shell-spike.md), [E3h](../ready/E3h-images-to-pdf-and-page-export.md), [E13a](../ready/E13a-adr-0013-heavy-jobs.md), [H1](../ready/H1-auth-spike.md), [X3b](./X3b-render-diff-nightly.md) |
 | Dependency notes | [C2a](../done/C2a-render-adrs.md) (ADR 0004 defines the trait); library B2 (`Document::open`, page boxes; [pdf-library B2](../../plans/pdf-library.md#b2-document-model)) |
 | ADRs | Implements 0004. Follows [0001](../../decisions/0001-core-language-and-licence.md), [0003](../../decisions/0003-reader-tolerance-and-limits.md) (`Limits`), [0015](../../decisions/0015-monorepo-layout-and-tooling.md), [0018](../../decisions/0018-test-strategy.md) tier 8 and §2 lanes, [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) |
 | Branch | `feat/c2b-lamina-render` |
@@ -17,7 +17,7 @@
 
 ## Goal
 
-Create the single Rust abstraction every lamina surface renders through. `crates/lamina-render` defines `RenderBackend` exactly as ADR 0004 specifies, with a PDFium adapter (native, `pdfium-render`) and a hayro adapter behind Cargo features, render goldens for both on `fixtures/`, and `cargo xtask render-golden`; the nightly hayro-vs-PDFium diff over the external corpus builds on this crate in [X3b](../ongoing/X3b-render-diff-nightly.md). This is what desktop links natively and what the hayro WASM package (C2c) compiles.
+Create the single Rust abstraction every lamina surface renders through. `crates/lamina-render` defines `RenderBackend` exactly as ADR 0004 specifies, with a PDFium adapter (native, `pdfium-render`) and a hayro adapter behind Cargo features, render goldens for both on `fixtures/`, and `cargo xtask render-golden`; the nightly hayro-vs-PDFium diff over the external corpus builds on this crate in [X3b](./X3b-render-diff-nightly.md). This is what desktop links natively and what the hayro WASM package (C2c) compiles.
 
 ## Context
 
@@ -42,7 +42,7 @@ Create the single Rust abstraction every lamina surface renders through. `crates
 - The PDFium-**WASM** TS adapter and the hayro `.wasm` package → [C2c](../done/C2c-render-packages.md).
 - Worker RPC and tiles in the browser → [C3a](../done/C3a-viewer-worker-rpc.md), [C3b](../ready/C3b-viewer-virtualiser-and-zoom.md).
 - Desktop engine process wiring → desktop D2.
-- Nightly hayro-vs-PDFium diffs over the external corpus (`cargo xtask render-diff`, reporting the C1a metric) → [X3b](../ongoing/X3b-render-diff-nightly.md); `cargo xtask corpus fetch` and the pinned corpus manifest (including the pdf.js/PDFBox corpora C1a used) → [X3a](../done/X3a-nightly-lane.md). This PR does not add or extend `corpus fetch`.
+- Nightly hayro-vs-PDFium diffs over the external corpus (`cargo xtask render-diff`, reporting the C1a metric) → [X3b](./X3b-render-diff-nightly.md); `cargo xtask corpus fetch` and the pinned corpus manifest (including the pdf.js/PDFBox corpora C1a used) → [X3a](../done/X3a-nightly-lane.md). This PR does not add or extend `corpus fetch`.
 
 ## Tasks
 
@@ -57,7 +57,7 @@ Create the single Rust abstraction every lamina surface renders through. `crates
 - [x] **Feature gating so the fast lane never runs goldens.** `cargo xtask check`/`test` use `--workspace --all-features`, which turns on `pdfium` and `hayro`. So: (a) the PDFium adapter loads the library **dynamically at runtime** (no build-time link), so `--all-features` builds and clippy pass on every OS without a fetched library; (b) every golden test and every test that needs the PDFium library is `#[ignore = "render golden: run via cargo xtask render-golden --check (full lane, Linux)"]`; (c) `cargo xtask render-golden --check` runs `cargo test -p lamina-render --features pdfium,hayro -- --ignored` after `fetch-pdfium`, and is the only thing that runs them. The fast lane and dev machines therefore run only the pure tests (request validation, hayro error mapping), never the PDFium/hayro goldens. (`cargo test -- --include-ignored` locally runs them if you have fetched PDFium.)
 - [x] `tests/errors.rs`: wrong password, damaged file (`hello-broken.pdf`), oversize request, out-of-range page → typed errors.
 - [x] `tests/determinism.rs`: rendering the same page twice gives identical bytes for each backend.
-- [x] CI: add `cargo xtask render-golden --check` to the full lane (Linux; PDFium fetched and cached) — see [X4](../done/X4-full-lane-gate.md). The nightly external-corpus diff is [X3b](../ongoing/X3b-render-diff-nightly.md)'s.
+- [x] CI: add `cargo xtask render-golden --check` to the full lane (Linux; PDFium fetched and cached) — see [X4](../done/X4-full-lane-gate.md). The nightly external-corpus diff is [X3b](./X3b-render-diff-nightly.md)'s.
 - [x] `deny.toml`: allow the licences `pdfium-render`, `hayro` and their deps bring (all permissive); `cargo xtask deny` passes.
 - [x] `README.md` for the crate: what the trait is, feature flags, how to fetch PDFium, how to update goldens.
 - [x] Update `CLAUDE.md` layout (new crate) and commands (`cargo xtask fetch-pdfium`, `cargo xtask render-golden`).

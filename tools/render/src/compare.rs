@@ -19,6 +19,8 @@
               means of u8 values stay in 0..=255; the names are the formulas' (SSIM, CIELAB)"
 )]
 
+use std::borrow::Cow;
+
 use crate::image::Rgb;
 
 /// ΔE76 above which a parity pixel counts (≈ "clearly visible", the spike's value).
@@ -80,6 +82,20 @@ pub fn parity(a: &Rgb, b: &Rgb) -> Option<Diff> {
         }
     }
     Some(finish(mask, ssim))
+}
+
+/// What two engines' renders of one page should be compared on: when their sizes differ by at
+/// most one pixel per side (each engine floors the page size from its own page box), the common
+/// top-left part; otherwise both as they are, which [`parity`] reports as a size mismatch.
+/// Borrowed unless a crop is needed.
+pub fn common_part<'a>(a: &'a Rgb, b: &'a Rgb) -> (Cow<'a, Rgb>, Cow<'a, Rgb>) {
+    let same = (a.width, a.height) == (b.width, b.height);
+    let near = a.width.abs_diff(b.width) <= 1 && a.height.abs_diff(b.height) <= 1;
+    if same || !near {
+        return (Cow::Borrowed(a), Cow::Borrowed(b));
+    }
+    let (w, h) = (a.width.min(b.width), a.height.min(b.height));
+    (Cow::Owned(a.crop(w, h)), Cow::Owned(b.crop(w, h)))
 }
 
 fn finish(mask: Vec<bool>, ssim: f64) -> Diff {
@@ -286,6 +302,26 @@ mod tests {
         let a = with_vertical_line(page(64, 64), 20);
         let b = with_vertical_line(page(64, 64), 21);
         assert_eq!(parity(&a, &b).unwrap().differing, 0);
+    }
+
+    #[test]
+    fn common_part_should_crop_a_one_pixel_difference() {
+        let (a, b) = (page(10, 11), page(11, 11));
+        let (a, b) = common_part(&a, &b);
+        assert_eq!((a.width, b.width, a.height, b.height), (10, 10, 11, 11));
+    }
+
+    #[test]
+    fn common_part_should_borrow_equal_sizes() {
+        let (a, b) = (page(8, 8), page(8, 8));
+        assert!(matches!(common_part(&a, &b), (Cow::Borrowed(_), Cow::Borrowed(_))));
+    }
+
+    #[test]
+    fn common_part_should_leave_a_real_size_mismatch() {
+        let (a, b) = (page(8, 8), page(8, 12));
+        let (a, b) = common_part(&a, &b);
+        assert!(parity(&a, &b).is_none());
     }
 
     #[test]

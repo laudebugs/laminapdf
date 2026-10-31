@@ -19,6 +19,7 @@ mod pdfium;
 mod portable_paths;
 mod release;
 mod render;
+mod render_diff;
 mod roundtrip;
 mod runner;
 mod todos;
@@ -96,6 +97,13 @@ tasks:
                     then lamina-render's PDFium and hayro adapters on fixtures/corpus/ at 96 dpi
                     against fixtures/golden/render/ (fetches PDFium first; lamina-render-pdfium's
                     ignored tests, or its `goldens` example with --update)
+  render-diff [--corpus external] [--source <name>]… [--pages N] [--sample N] [--jobs N] [--top N]
+              [--history <dir> [--runner <label>] [--record] [--dry-run]]
+                    nightly: every page of the external corpus by lamina-render's hayro and PDFium
+                    adapters at 96 dpi, compared with the hayro-parity spike's metric (tools/render's
+                    render-diff, per-file processes with time limits); report.json, summary.html
+                    with the worst diffs in target/nightly/render-diff/; with --history, a pass-rate
+                    drop of more than 2 points writes regression.md (--dry-run prints the issue)
   corpus facts      rewrite fixtures/corpus/expected.json with pypdf (needs Python: see
                     tools/corpus-facts/requirements.txt; $LAMINA_PYTHON or python3)
   corpus fetch [--source <name>]… [--update-manifest]
@@ -150,7 +158,7 @@ tasks:
                     the timings and WebAssembly memory against pdf-library §4 in the job summary
                     and target/xtask/pdf-runtimes/; --record appends them to <dir>/history.jsonl
   nightly [--quick] the whole nightly lane locally (corpus, differential, fuzz, scaling, bench,
-                    wasm + pdf-runtimes)
+                    wasm + pdf-runtimes, render-diff, external links)
   changes [--base <rev>]
                     list the paths changed since the merge base with <rev> (default origin/main)
                     and say whether any is code (not docs); sets `code` in $GITHUB_OUTPUT
@@ -264,6 +272,7 @@ fn main() -> Result<()> {
         ("fetch-pdfium", []) => pdfium::fetch(&ws).map(|_| ()),
         ("render-golden", []) => render::run(&ws, false),
         ("render-golden", [flag]) if flag == "--update" => render::run(&ws, true),
+        ("render-diff", args) => render_diff::run(&ws, &render_diff::parse_args(args)?),
         ("corpus", [what]) if what == "facts" => harness::corpus_facts(&ws),
         ("corpus", [what, args @ ..]) if what == "fetch" => corpus::fetch(&ws, &corpus::parse_fetch_args(args)?),
         ("quads", args) => harness::quads(&ws, args),

@@ -195,7 +195,8 @@ Todos: [P1](../todos/ready/P1-reserve-names-and-trusted-publishing.md) and [P2](
 - [x] Capability matrix: generate a test-backed table of the ~180 operations (unsupported / read / write / round-trip) ([X2](../todos/done/X2-capability-matrix.md), [`docs/capabilities/`](../capabilities/README.md))
 - [x] Nightly lane: differential tests vs pdf.js, PDFium, qpdf, pypdf; benchmarks; 10-minute fuzzing; scaling tests ([X3a](../todos/done/X3a-nightly-lane.md), `.github/workflows/nightly.yml`)
 - [x] Nightly external link check of the docs ([X3c](../todos/done/X3c-nightly-link-check.md))
-- [ ] Nightly lane: hayro-vs-PDFium render diffs ([X3b](../todos/ongoing/X3b-render-diff-nightly.md)); veraPDF ([B8b](../todos/ready/B8b-conformance-profiles-and-verapdf.md))
+- [x] Nightly lane: hayro-vs-PDFium render diffs ([X3b](../todos/done/X3b-render-diff-nightly.md), `cargo xtask render-diff`)
+- [ ] Nightly lane: veraPDF ([B8b](../todos/ready/B8b-conformance-profiles-and-verapdf.md))
 - [x] Docs link checker in `cargo xtask`, run in CI, so links to todos survive their moves between folders ([X1](../todos/done/X1-docs-link-checker.md))
 - [ ] Decide product questions (§8; Q2 and Q5 answered 2026-10-28)
 

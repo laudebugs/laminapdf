@@ -42,7 +42,7 @@ Close Round U6 with the guard rails that keep code and design together: a dev-on
 
 **Out of scope** (and which todo covers it)
 
-- Full-app states (reader with a document, dialogs in context) and the manual screen-reader pass → [C7a](./C7a-accessibility-and-theming.md); render-backend screenshots of PDF pages → [X3b](../ongoing/X3b-render-diff-nightly.md).
+- Full-app states (reader with a document, dialogs in context) and the manual screen-reader pass → [C7a](./C7a-accessibility-and-theming.md); render-backend screenshots of PDF pages → [X3b](../done/X3b-render-diff-nightly.md).
 - Deploying the gallery publicly or as a docs-site page → [B7a](../done/B7a-docs-site.md) may embed it later; preview deploys → [C4d](./C4d-deploy-previews-and-production.md) could add it.
 - Writing the missing area documents or canvases → the paper-design work and each area's todos; this todo only checks them.
 - Screenshots in Firefox and WebKit (their rendering of fonts differs; axe runs there instead): revisit if a cross-engine visual bug slips through.

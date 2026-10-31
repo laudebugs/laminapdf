@@ -17,9 +17,14 @@
 #                 (`cargo xtask pdf-runtimes --record`; todo B6c); never a regression issue
 #   links         every external URL in the tracked Markdown answers, with retries, a per-host
 #                 rate limit and an allowlist (`cargo xtask docs-links --external`; todo X3c)
+#   render-diff   every page (the first 20 per file) of the external corpus by lamina-render's
+#                 hayro and PDFium adapters at 96 DPI, compared with the hayro-parity spike's
+#                 metric; the pass rate per source goes to the bench-data history
+#                 (`render-diff/<source>`), and a drop of more than 2 points opens an issue,
+#                 never a failure (`cargo xtask render-diff`; todo X3b)
 #
 # Every step is a `cargo xtask …` command that runs locally too; `cargo xtask nightly --quick`
-# runs them all with short budgets. veraPDF (B8b) and render diffs (X3b) add their jobs here.
+# runs them all with short budgets. veraPDF (B8b) adds its job here.
 # Actions are pinned by full commit SHA with the release in a comment (ADR 0019).
 name: Nightly
 
@@ -33,6 +38,9 @@ on:
         default: "600"
       differential-sample:
         description: Inputs for the differential (empty for all)
+        default: ""
+      render-diff-sample:
+        description: Files for the render diff (empty for all)
         default: ""
       force-failure:
         description: Fail on purpose, to check that an issue is opened
@@ -60,6 +68,10 @@ on:
         description: Inputs for the differential (empty for all)
         type: string
         default: ""
+      render-diff-sample:
+        description: Files for the render diff (empty for all)
+        type: string
+        default: ""
       force-failure:
         description: Fail on purpose, to check that an issue is opened
         type: boolean
@@ -77,6 +89,7 @@ env:
   CARGO_INCREMENTAL: 0
   FUZZ_SECONDS: ${{ inputs.fuzz-seconds || '600' }}
   DIFFERENTIAL_SAMPLE: ${{ inputs.differential-sample || '' }}
+  RENDER_DIFF_SAMPLE: ${{ inputs.render-diff-sample || '' }}
   # "false" only when a caller passed `record: false` (schedule and dispatch have no such input).
   # inputs.record is null on scheduled and dispatched runs, and GitHub's == coerces null and false
   # both to 0, so `inputs.record != false` would be false there too. toJSON keeps them apart.
@@ -412,6 +425,65 @@ jobs:
           path: target/nightly/links/
           if-no-files-found: ignore
 
+  # Todo X3b: hayro vs PDFium on the external corpus (ADR 0004 §6: tracked, never gated). PDFium
+  # is the pinned native build that `cargo xtask fetch-pdfium` keeps in the runner's tool cache
+  # (render-diff fetches it the same way); the corpus is the differential's. A crash or hang
+  # costs one file (per-file processes with time limits, tools/xtask/src/runner.rs). The pass
+  # rates go to history.jsonl on bench-data (main only); the comparison with the last point
+  # runs on every run and sets `regression`, which the report job turns into an issue.
+  render-diff:
+    name: Render diffs (hayro vs PDFium)
+    runs-on: [self-hosted, macOS, ARM64]
+    # The whole corpus took about an hour on the shared Mac (2,172 files, 5,108 pages).
+    timeout-minutes: 180
+    permissions:
+      contents: write
+    outputs:
+      regression: ${{ steps.render-diff.outputs.regression }}
+    env:
+      RECORD: ${{ github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && toJSON(inputs.record) != 'false' }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/isolate-rust-home
+        with:
+          target-dir: nightly-render-diff
+      - uses: ./.github/actions/host-rust
+        with:
+          cache: false
+      - name: Point xtask at the corpus folder
+        run: echo "LAMINA_CORPUS_DIR=$RUNNER_TOOL_CACHE/lamina-corpus" >> "$GITHUB_ENV"
+      - run: cargo xtask corpus fetch
+      - run: cargo xtask fetch-pdfium
+      # As in the bench job: the token only reaches the bench-history steps.
+      - name: Fetch the benchmark history
+        uses: ./.github/actions/bench-history
+        with:
+          mode: fetch
+          token: ${{ github.token }}
+      - id: render-diff
+        name: Render diff
+        run: >-
+          cargo xtask render-diff --corpus external --pages 20
+          ${RENDER_DIFF_SAMPLE:+--sample "$RENDER_DIFF_SAMPLE"}
+          --history "$HISTORY" --runner self-hosted-macos-arm64
+          ${{ env.RECORD == 'true' && '--record' || '' }}
+      - name: Push the benchmark history
+        if: ${{ env.RECORD == 'true' }}
+        uses: ./.github/actions/bench-history
+        with:
+          mode: push
+          token: ${{ github.token }}
+          message: "bench(render-diff): ${{ github.sha }}"
+      - name: Upload the report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: render-diff
+          path: target/nightly/render-diff/
+          if-no-files-found: ignore
+
   # workflow_dispatch with force-failure: checks the issue-on-failure path end to end.
   forced-failure:
     name: Forced failure (on request)
@@ -425,16 +497,17 @@ jobs:
 
   # Opens or comments on one issue per kind and ref (labelled `nightly`): "Nightly lane failing
   # on <ref>" for a failed job or a flaky scaling test, "Nightly benchmark regression on <ref>"
-  # for a >10% regression. The ref in the title keeps a branch or tag run from appending to
+  # for a >10% regression, "Nightly render-diff regression on <ref>" for a pass rate more than
+  # 2 points below the last point (`cargo xtask render-diff --dry-run` prints that issue locally). The ref in the title keeps a branch or tag run from appending to
   # main's issue (and main's runs from reusing an issue a test run opened).
   report:
     name: Open an issue on failure
-    needs: [differential, fuzz, scaling, bench, pdf-runtimes, links, forced-failure]
+    needs: [differential, fuzz, scaling, bench, pdf-runtimes, links, render-diff, forced-failure]
     # Never for a caller that passed `record: false` (the release lane fails on its own result).
     if: >-
       ${{ always() && toJSON(inputs.record) != 'false' && (contains(needs.*.result, 'failure')
       || needs.scaling.outputs.flaky == 'true' || needs.links.outputs.flaky == 'true'
-      || needs.bench.outputs.regression == 'true') }}
+      || needs.bench.outputs.regression == 'true' || needs.render-diff.outputs.regression == 'true') }}
     runs-on: [self-hosted, macOS, ARM64]
     timeout-minutes: 10
     permissions:
@@ -454,6 +527,13 @@ jobs:
         with:
           name: links-report
           path: artefacts/links-report
+      - name: Download the render-diff report
+        if: ${{ needs.render-diff.outputs.regression == 'true' }}
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        continue-on-error: true
+        with:
+          name: render-diff
+          path: artefacts/render-diff
       - name: Open or update the issues
         env:
           GH_TOKEN: ${{ github.token }}
@@ -463,6 +543,7 @@ jobs:
           FLAKY: ${{ needs.scaling.outputs.flaky }}
           LINKS_FLAKY: ${{ needs.links.outputs.flaky }}
           REGRESSION: ${{ needs.bench.outputs.regression }}
+          RENDER_REGRESSION: ${{ needs.render-diff.outputs.regression }}
         run: |
           set -euo pipefail
           gh label create nightly --color B60205 --description "Nightly lane failure (ADR 0018)" --force
@@ -538,4 +619,12 @@ jobs:
               cat artefacts/bench-results/regressions.md 2>/dev/null || true
             } > regression.md
             upsert "Nightly benchmark regression on $GITHUB_REF_NAME" regression.md
+          fi
+          if [ "$RENDER_REGRESSION" = "true" ]; then
+            {
+              echo "The [nightly run]($RUN_URL) on \`$GITHUB_SHA\` found a render-diff regression (todo X3b; report and diff images in the run's \`render-diff\` artefact)."
+              echo
+              cat artefacts/render-diff/regression.md 2>/dev/null || true
+            } > render-regression.md
+            upsert "Nightly render-diff regression on $GITHUB_REF_NAME" render-regression.md
           fi

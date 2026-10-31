@@ -143,13 +143,13 @@ pub(crate) fn parse_args(args: &[String]) -> Result<LiveArgs> {
 
 /// The group a sampled input belongs to: its external source (`pdfjs/…` → `pdfjs`), or
 /// `mutants` for the `fixtures/corpus` set.
-fn group(name: &str) -> &str {
+pub(crate) fn group(name: &str) -> &str {
     name.split_once('/').map_or("mutants", |(source, _)| source)
 }
 
 /// At most `n` of the sorted `items`, stratified by [`group`]: each group gets a share
 /// proportional to its size and at least one input (while `n` allows), spread evenly within it.
-fn sample(items: Vec<(String, PathBuf)>, n: usize) -> Vec<(String, PathBuf)> {
+pub(crate) fn sample(items: Vec<(String, PathBuf)>, n: usize) -> Vec<(String, PathBuf)> {
     let len = items.len();
     if n >= len {
         return items;
