@@ -17,14 +17,16 @@ export default defineConfig({
   use: { baseURL: "http://localhost:5199" },
   webServer: { command: "pnpm exec vite", url: "http://localhost:5199", reuseExistingServer: true, timeout: 120_000 },
   projects: [
-    { name: "chromium", use: { ...devices["Desktop Chrome"] } },
+    // The presets' fixed user agents are dropped, so results record the real browser and platform.
+    { name: "chromium", use: { ...devices["Desktop Chrome"], userAgent: undefined } },
     {
       name: "firefox",
       use: {
         ...devices["Desktop Firefox"],
+        userAgent: undefined,
         launchOptions: { env: { ...process.env, MOZ_APP_DATA: firefoxData, MOZ_LOCAL_APP_DATA: firefoxData } },
       },
     },
-    { name: "webkit", use: { ...devices["Desktop Safari"] } },
+    { name: "webkit", use: { ...devices["Desktop Safari"], userAgent: undefined } },
   ],
 });

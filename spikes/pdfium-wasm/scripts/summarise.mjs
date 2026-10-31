@@ -11,7 +11,9 @@ const ms = (v) => (typeof v === "number" ? `${v < 10 ? v.toFixed(1) : Math.round
 const mb = (v) => (typeof v === "number" ? (v / 1048576).toFixed(0) : "—");
 const median = (xs) => {
   const s = xs.filter((x) => typeof x === "number").sort((a, b) => a - b);
-  return s.length === 0 ? undefined : s[Math.floor(s.length / 2)];
+  if (s.length === 0) return undefined;
+  const m = Math.floor(s.length / 2);
+  return s.length % 2 === 1 ? s[m] : (s[m - 1] + s[m]) / 2;
 };
 
 /** Every result of `browser`, with its run's label. */

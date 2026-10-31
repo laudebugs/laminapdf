@@ -33,13 +33,18 @@ async function boot(): Promise<Record<string, number>> {
     })(),
     (async () => {
       const t = performance.now();
+      let reject: (e: unknown) => void = () => {};
+      const failed = new Promise<never>((_, r) => {
+        reject = r;
+      });
       // Streaming compile while the bytes download, as lamina's loader does.
-      pdfium = await initPdfium({
+      pdfium = await Promise.race([failed, initPdfium({
         instantiateWasm: (imports: WebAssembly.Imports, done: (instance: WebAssembly.Instance) => void) => {
-          WebAssembly.instantiateStreaming(fetch(pdfiumWasmUrl), imports).then((r) => done(r.instance));
+          // A failed fetch or compile must fail boot, not leave initPdfium pending forever.
+          WebAssembly.instantiateStreaming(fetch(pdfiumWasmUrl), imports).then((r) => done(r.instance), reject);
           return {};
         },
-      } as unknown as Parameters<typeof initPdfium>[0]);
+      } as unknown as Parameters<typeof initPdfium>[0])]);
       pdfium.PDFiumExt_Init();
       pdfiumMs = performance.now() - t;
     })(),
@@ -65,6 +70,8 @@ function pdfiumOpen(p: Pdfium, bytes: Uint8Array, password = ""): { doc: number;
  * Positions and the length are unsigned 32-bit on wasm32 (`unsigned long`): files up to 4 GiB.
  */
 function pdfiumOpenCustom(p: Pdfium, file: File, password = ""): { doc: number; release: () => void } {
+  // FPDF_FILEACCESS.m_FileLen is a 32-bit `unsigned long` on wasm32: refuse what it can't describe.
+  if (file.size > 0xffff_ffff) throw new Error(`${file.name} is ${file.size} bytes: custom access on wasm32 is limited to 4 GiB`);
   const reader = new FileReaderSync();
   const getBlock = p.pdfium.addFunction((_param: number, position: number, buf: number, size: number) => {
     const start = position >>> 0;
@@ -79,7 +86,7 @@ function pdfiumOpenCustom(p: Pdfium, file: File, password = ""): { doc: number; 
     p.pdfium.wasmExports.free(access);
     p.pdfium.removeFunction(getBlock);
   };
-  p.pdfium.setValue(access, file.size >>> 0, "i32");
+  p.pdfium.setValue(access, file.size, "i32");
   p.pdfium.setValue(access + 4, getBlock, "i32");
   p.pdfium.setValue(access + 8, 0, "i32");
   const doc = p.FPDF_LoadCustomDocument(access, password);
@@ -113,27 +120,46 @@ async function render(p: Pdfium, doc: number, index: number, scale: number): Pro
   if (page === 0) throw new Error(`PDFium could not load page ${index}`);
   const width = Math.max(1, Math.floor(p.FPDF_GetPageWidthF(page) * scale));
   const height = Math.max(1, Math.floor(p.FPDF_GetPageHeightF(page) * scale));
-  const t0 = performance.now();
-  const bmp = p.FPDFBitmap_Create(width, height, 1);
-  p.FPDFBitmap_FillRect(bmp, 0, 0, width, height, 0xffffffff);
-  p.FPDF_RenderPageBitmap(bmp, page, 0, 0, width, height, 0, FPDF_ANNOT | FPDF_REVERSE_BYTE_ORDER);
-  const t1 = performance.now();
-  const ptr = p.FPDFBitmap_GetBuffer(bmp);
-  const stride = p.FPDFBitmap_GetStride(bmp);
-  const pixels = new Uint8ClampedArray(width * height * 4);
-  const src = new Uint8Array(heap(p).buffer, ptr, stride * height);
-  for (let y = 0; y < height; y++) pixels.set(src.subarray(y * stride, y * stride + width * 4), y * width * 4);
-  const t2 = performance.now();
-  const bitmap = await createImageBitmap(new ImageData(pixels, width, height));
-  const t3 = performance.now();
-  p.FPDFBitmap_Destroy(bmp);
-  p.FPDF_ClosePage(page);
-  return { times: { renderMs: t1 - t0, copyMs: t2 - t1, bitmapMs: t3 - t2, width, height }, bitmap };
+  let bmp = 0;
+  let pageClosed = false;
+  try {
+    const t0 = performance.now();
+    bmp = p.FPDFBitmap_Create(width, height, 1);
+    if (bmp === 0) throw new Error(`PDFium could not allocate a ${width}×${height} bitmap for page ${index}`);
+    p.FPDFBitmap_FillRect(bmp, 0, 0, width, height, 0xffffffff);
+    p.FPDF_RenderPageBitmap(bmp, page, 0, 0, width, height, 0, FPDF_ANNOT | FPDF_REVERSE_BYTE_ORDER);
+    const t1 = performance.now();
+    const ptr = p.FPDFBitmap_GetBuffer(bmp);
+    const stride = p.FPDFBitmap_GetStride(bmp);
+    const pixels = new Uint8ClampedArray(width * height * 4);
+    const src = new Uint8Array(heap(p).buffer, ptr, stride * height);
+    for (let y = 0; y < height; y++) pixels.set(src.subarray(y * stride, y * stride + width * 4), y * width * 4);
+    // The pixels are out of the heap: free PDFium's bitmap and page before the async step.
+    p.FPDFBitmap_Destroy(bmp);
+    bmp = 0;
+    p.FPDF_ClosePage(page);
+    pageClosed = true;
+    const t2 = performance.now();
+    const bitmap = await createImageBitmap(new ImageData(pixels, width, height));
+    const t3 = performance.now();
+    return { times: { renderMs: t1 - t0, copyMs: t2 - t1, bitmapMs: t3 - t2, width, height }, bitmap };
+  } catch (e) {
+    if (bmp !== 0) p.FPDFBitmap_Destroy(bmp);
+    if (!pageClosed) p.FPDF_ClosePage(page);
+    throw e;
+  }
 }
 
 function stats(values: number[]): { median: number; p95: number; n: number } {
   const s = [...values].sort((a, b) => a - b);
-  const at = (q: number) => s[Math.min(s.length - 1, Math.floor(q * s.length))] ?? 0;
+  // Linear interpolation between closest ranks (the usual "type 7" percentile).
+  const at = (q: number) => {
+    if (s.length === 0) return 0;
+    const r = q * (s.length - 1);
+    const lo = Math.floor(r);
+    const hi = Math.min(s.length - 1, lo + 1);
+    return (s[lo] ?? 0) + ((s[hi] ?? 0) - (s[lo] ?? 0)) * (r - lo);
+  };
   return { median: at(0.5), p95: at(0.95), n: s.length };
 }
 
@@ -221,12 +247,15 @@ async function bench(id: number, req: BenchRequest): Promise<Record<string, unkn
   let closePdfium: (() => void) | undefined = opened.closePdfium;
   try {
     const lamina = opened.lamina;
-    const pages = await lamina.ensure(() => lamina.pageCount);
+    // Pages are indexed in PDFium, so its count drives rendering; lamina's is recorded beside it.
+    const laminaPages = await lamina.ensure(() => lamina.pageCount);
+    const pages = p.FPDF_GetPageCount(opened.pdfiumDoc);
+    if (pages === 0) throw new Error("PDFium found no pages");
     const first = await render(p, opened.pdfiumDoc, 0, 1);
     result.firstPageInWorkerMs = performance.now() - t0;
     self.postMessage({ id, first: true, bitmap: first.bitmap }, { transfer: [first.bitmap] });
-    result.pages = pages;
-    result.pdfiumPages = p.FPDF_GetPageCount(opened.pdfiumDoc);
+    result.pages = laminaPages;
+    result.pdfiumPages = pages;
 
     // Page 1 and a middle page at 1× and 2× DPR.
     const steps: Record<string, RenderTimes> = {};

@@ -12,7 +12,7 @@ Can PDFium-WASM and lamina's WebAssembly share one web worker in Chromium, Firef
 
 ## Answer in one paragraph
 
-**Yes, and it is cheap, except for four things a product must design around.** Both engines instantiate side by side in about 30 ms (Chromium, WebKit) to 120 ms (Firefox, noisy). Each module has its own `WebAssembly.Memory`, so they don't conflict. Page 1 of the 10-page 1 MB file is visible in **17–62 ms cold and 6–19 ms warm**, far inside the 700 ms target. A text page renders in 2–4 ms and a full-page image in 13–15 ms (Chromium, WebKit). Encrypted files open in both engines, with the password kept in the worker.
+**Yes, and it is cheap, except for four things a product must design around.** Both engines instantiate side by side in 24–57 ms (Chromium fastest, Firefox slowest). Each module has its own `WebAssembly.Memory`, so they don't conflict. Page 1 of the 10-page 1 MB file is visible in **15–39 ms cold and 6–8 ms warm**, far inside the 700 ms target. A text page renders in 2–4 ms and a full-page image in 13–15 ms (Chromium, WebKit). Encrypted files open in both engines, with the password kept in the worker.
 
 The four things:
 1. **Memory doubles when both engines hold a copy.** The 100 MB scan peaks at 95 MiB (lamina) + 237 MiB (PDFium), plus the whole file as a JS `ArrayBuffer`. Custom file access (`FPDF_LoadCustomDocument` and `Document.openRange`, both over `File.slice()`) brings that down to 1 + 113 MiB and no JS copy.
@@ -23,7 +23,7 @@ The four things:
 ## Method
 
 - **One page and one module worker** (`index.html`, `src/main.ts`, `src/worker.ts`; Vite 8.3.5, cross-origin isolated with COOP/COEP).
-- **The worker** instantiates `@embedpdf/pdfium` 2.15.1 (its `pdfium.wasm`, fetched and passed as `wasmBinary`) and `@lamina/pdf` (the local build of `main` at this PR, packed by `scripts/pack-lamina.sh`) in parallel with `Promise.all`.
+- **The worker** instantiates `@embedpdf/pdfium` 2.15.1 (its `pdfium.wasm`, compiled while it downloads through Emscripten's `instantiateWasm` hook) and `@lamina/pdf` (the local build of `main` at this PR, packed by `scripts/pack-lamina.sh`) in parallel with `Promise.all`.
 - **Rendering:** PDFium renders into an RGBA bitmap (`FPDF_REVERSE_BYTE_ORDER`, annotations on), which is copied out of its heap into `ImageData`, then `createImageBitmap`, and transferred to the page, which draws it on a canvas.
 - **Input strategies:**
   - **copy:** `File.arrayBuffer()`, then a copy into each module (`Document.open`, `FPDF_LoadMemDocument`).
@@ -40,6 +40,7 @@ The four things:
   - `reload-50mb.pdf` and `reload-500mb.pdf`: the same kind of pages, 52 MB and 501 MB.
   - The render-time sample: the 14 files of `fixtures/corpus` and the 6 golden examples. C1a's external corpora weren't checked out in this worktree.
   - Encrypted: `fixtures/encrypted/r6-aes-256-user.pdf` (password `Pässwört-6`, non-ASCII) and `r4-aes-128-user.pdf`.
+- **Toolchain:** Vite 8.3.5 (rolldown 1.2.16, lightningcss 1.33.0), Playwright 1.64.1, TypeScript 5.9.3 for the type check; no lockfile is committed (see `pnpm-workspace.yaml`).
 - **Machine:** C1a's: Apple M1 Pro, 16 GB, macOS 27.0.1. Browsers are Playwright 1.64.1's Chromium 156, Firefox 157 and WebKit (Safari 27.2), headless. The machine was also running other builds (a second agent's CI work), so single numbers are noisy, Firefox's most. The tables are the last of five runs; earlier runs are quoted where they differ.
 
 ### Reproduce
@@ -68,47 +69,47 @@ pnpm exec vite                                    # or by hand: http://localhost
 PDFium is 5.6× lamina's base module gzipped; together they are about 2.5 MB gzip (2.0 MB brotli). That's the download a web reader pays before page 1 on a cold cache, about 5 s on Fast 4G at 4 Mbit/s. That's over the 3 s cold target in [web-app §4](../../docs/plans/web-app.md#non-functional-targets-are-recommendations-measured-from-c3-onward) unless the fetch starts with the app shell and runs in parallel with the user picking a file.
 
 **User agents:**
-- chromium: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.8078.4 Safari/537.36
-- firefox: Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:157.0) Gecko/20100101 Firefox/157.0
+- chromium: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/156.0.8078.4 Safari/537.36
+- firefox: Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:157.0) Gecko/20100101 Firefox/157.0
 - webkit: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/27.2 Safari/605.1.15
 
 ### Instantiate (ms; median over the runs' fresh workers)
 
 |  | chromium | firefox | webkit |
 | --- | ---: | ---: | ---: |
-| laminaMs | 17 | 56 | 36 |
-| pdfiumMs | 25 | 77 | 41 |
-| combinedMs | 25 | 77 | 41 |
+| laminaMs | 17 | 40 | 38 |
+| pdfiumMs | 24 | 57 | 45 |
+| combinedMs | 24 | 57 | 46 |
 
 ### First page visible (ms, from the File handed to the worker to page 1 drawn on the page)
 
 | File | chromium | firefox | webkit |
 | --- | ---: | ---: | ---: |
-| ten-page, cold (first file after boot) | 38 | 17 | 62 |
-| ten-page, warm (second time) | 6.4 | 11 | 19 |
-| ten-page, custom file access | 40 | 24 | 66 |
-| thousand-page, copy | 37 | 28 | 65 |
-| thousand-page, custom | 50 | 32 | 96 |
-| scan-100mb, copy | 96 | 163 | 190 |
-| scan-100mb, custom | 52 | 121 | 112 |
+| ten-page, cold (first file after boot) | 38 | 15 | 39 |
+| ten-page, warm (second time) | 6.3 | 7.3 | 8.4 |
+| ten-page, custom file access | 38 | 17 | 52 |
+| thousand-page, copy | 35 | 24 | 49 |
+| thousand-page, custom | 49 | 33 | 69 |
+| scan-100mb, copy | 105 | 203 | 127 |
+| scan-100mb, custom | 51 | 47 | 73 |
 
 ### Render steps, ten-page page 1 (ms: PDFium render / copy out of the heap / createImageBitmap)
 
 |  | chromium | firefox | webkit |
 | --- | ---: | ---: | ---: |
-| first@1x | 4.3 / 0.3 / 0.9 (595×841) | 5.8 / 0.9 / 1.9 (595×841) | 5.5 / 0.4 / 0.1 (595×841) |
-| first@2x | 8.0 / 1.5 / 4.2 (1190×1683) | 16 / 1.1 / 4.5 (1190×1683) | 11 / 1.5 / 1.7 (1190×1683) |
-| middle@1x | 2.9 / 0.3 / 0.9 (595×841) | 10 / 0.2 / 1.3 (595×841) | 4.4 / 0.4 / 0.3 (595×841) |
-| middle@2x | 6.9 / 0.9 / 4.1 (1190×1683) | 12 / 0.9 / 2.8 (1190×1683) | 9.2 / 1.3 / 1.4 (1190×1683) |
+| first@1x | 4.8 / 0.3 / 0.9 (595×841) | 6.0 / 0.5 / 0.7 (595×841) | 5.0 / 0.5 / 0.2 (595×841) |
+| first@2x | 8.2 / 1.0 / 3.9 (1190×1683) | 13 / 1.3 / 3.2 (1190×1683) | 7.6 / 1.1 / 0.9 (1190×1683) |
+| middle@1x | 2.7 / 0.3 / 0.8 (595×841) | 3.7 / 0.2 / 0.6 (595×841) | 2.9 / 0.4 / 0.5 (595×841) |
+| middle@2x | 7.2 / 1.1 / 4.6 (1190×1683) | 7.9 / 1.0 / 2.7 (1190×1683) | 6.5 / 1.1 / 1.0 (1190×1683) |
 
 ### Per-page render, 1× (ms, PDFium render + copy + ImageBitmap; median / p95)
 
 | File | chromium | firefox | webkit |
 | --- | ---: | ---: | ---: |
-| thousand-page, every page | 2.9 / 3.4 | 2.7 / 8.6 | 2.2 / 2.8 |
-| scan-100mb, every page | 15 / 16 | 15 / 23 | 15 / 21 |
-| ten-page | 4.4 / 8.7 | 4.2 / 14 | 4.1 / 7.4 |
-| corpus sample (median of the files' medians) | 1.3 | 2.1 | 1.3 |
+| thousand-page, every page | 2.8 / 3.2 | 2.6 / 2.8 | 2.1 / 2.4 |
+| scan-100mb, every page | 14 / 16 | 15 / 16 | 13 / 15 |
+| ten-page | 3.8 / 6.3 | 3.8 / 5.4 | 3.3 / 5.4 |
+| corpus sample (median of the files' medians) | 1.3 | 0.9 | 1.6 |
 
 ### Peak WebAssembly memory (MiB: lamina base module / PDFium), per input strategy
 
@@ -126,20 +127,20 @@ PDFium is 5.6× lamina's base module gzipped; together they are about 2.5 MB gzi
 
 | Input | chromium | firefox | webkit |
 | --- | ---: | ---: | ---: |
-| ten-page (1 MB) | 65 / 0.6 / 0.4 / 5.5 / **71** | 6.3 / 0.1 / 0.3 / 13 / **20** | 12 / 0.6 / 1.6 / 7.8 / **22** |
-| reload-50mb | 3035 / 0.4 / 9.1 / 18 / **3063** | 277 / 0.1 / 2.3 / 16 / **296** | 278 / 0.4 / 11 / 14 / **304** |
-| reload-50mb, heap already grown by the 100 MB file | 3100 / 0.1 / 8.1 / 19 / **3128** | 294 / 0.1 / 4.4 / 15 / **313** | 289 / 0.1 / 8.2 / 14 / **312** |
-| reload-50mb, after a small save in the same worker | 222 / 0.1 / 6.6 / 16 / **245** | 280 / 0.1 / 4.0 / 15 / **299** | 245 / 0.2 / 2.7 / 13 / **261** |
-| reload-500mb | 29854 / 1.4 / 335 / 24 / **30214** | 3947 / 1.9 / 153 / 25 / **4127** | fails: Error: The I/O read operation failed. |
-| reload-50mb, custom (appended revision only, reopened by ranges) | 446 / 0.4 / 3.5 / 21 / **471** | 443 / 0.4 / 2.0 / 26 / **471** | 474 / 0.4 / 17 / 19 / **511** |
-| reload-500mb, custom | 3944 / 0.5 / 2.6 / 16 / **3964** | 3910 / 0.8 / 2.4 / 20 / **3933** | 4927 / 0.7 / 1008 / 17 / **5952** |
+| ten-page (1 MB) | 62 / 0.6 / 0.4 / 5.2 / **68** | 6.3 / 0.1 / 0.3 / 11 / **18** | 8.7 / 0.4 / 0.6 / 4.6 / **14** |
+| reload-50mb | 2920 / 0.3 / 7.0 / 17 / **2944** | 384 / 0.1 / 6.2 / 19 / **409** | 274 / 0.6 / 11 / 14 / **299** |
+| reload-50mb, heap already grown by the 100 MB file | 2931 / 0.1 / 6.4 / 16 / **2953** | 348 / 0.1 / 2.6 / 19 / **370** | 259 / 0.2 / 7.1 / 13 / **280** |
+| reload-50mb, after a small save in the same worker | 208 / 0.1 / 2.1 / 15 / **225** | 339 / 0.1 / 5.6 / 29 / **374** | 254 / 0.2 / 2.8 / 13 / **270** |
+| reload-500mb | 29702 / 10 / 1090 / 24 / **30826** | 3396 / 1.1 / 404 / 24 / **3825** | fails: Error: The I/O read operation failed. |
+| reload-50mb, custom (appended revision only, reopened by ranges) | 412 / 0.3 / 2.9 / 16 / **431** | 433 / 0.4 / 1.6 / 20 / **455** | 483 / 0.6 / 8.5 / 17 / **509** |
+| reload-500mb, custom | 3900 / 0.8 / 2.5 / 16 / **3919** | 3904 / 0.8 / 2.1 / 20 / **3927** | 4714 / 0.8 / 1011 / 17 / **5743** |
 
 ### Peak WebAssembly memory during the reload (MiB: lamina / PDFium, from the save to the re-render)
 
 | Input | chromium | firefox | webkit |
 | --- | ---: | ---: | ---: |
 | reload-50mb, copy | 179 / 128 (appended 0.4 KiB) | 179 / 128 (appended 0.4 KiB) | 179 / 128 (appended 0.4 KiB) |
-| reload-50mb, custom | 62 / 65 (appended 0.4 KiB) | 57 / 65 (appended 0.4 KiB) | 62 / 65 (appended 0.4 KiB) |
+| reload-50mb, custom | 62 / 65 (appended 0.4 KiB) | 62 / 65 (appended 0.4 KiB) | 62 / 65 (appended 0.4 KiB) |
 | reload-500mb, copy | 1504 / 776 (appended 0.4 KiB) | 1504 / 776 (appended 0.4 KiB) | fails |
 | reload-500mb, custom | 491 / 334 (appended 0.4 KiB) | 486 / 334 (appended 0.4 KiB) | 491 / 334 (appended 0.4 KiB) |
 
@@ -159,7 +160,7 @@ Earlier runs (before the review fixes: no streaming compile for PDFium, and the 
 ## Findings
 
 1. **One worker holds both engines without conflict.** Each module has its own `WebAssembly.Memory` (two heaps, sizes in the tables), and nothing clashes: no symbol, import or memory conflicts. `@embedpdf/pdfium` is an Emscripten build with a **growable heap** (`emscripten_resize_heap` is linked), so the fixed-heap out-of-memory problem pdfium-render warns about doesn't apply. PDFium isn't thread-safe; one instance per worker, as here, is the model.
-2. **First page is fast; the download is the cost.** In every browser, cold first page of the 1 MB file is under 70 ms once both modules are instantiated (≈ 30 ms). The 2.1 MB gzip PDFium download dominates a cold start.
+2. **First page is fast; the download is the cost.** In every browser, cold first page of the 1 MB file is under 40 ms once both modules are instantiated (≈ 25–60 ms). The 2.1 MB gzip PDFium download dominates a cold start.
 3. **Render cost is PDFium's, and small.** Copying the bitmap out of the heap and `createImageBitmap` add under 1 ms at 1× and 1–5 ms at 2× DPR. RGBA output (`FPDF_REVERSE_BYTE_ORDER`) avoids a BGRA swizzle in JS.
 4. **Memory: custom access halves PDFium's heap and removes both copies.** On the 100 MB scan:
    - **copy:** the whole file once in JS (`File.arrayBuffer()`, kept until the reload), then 95 MiB in lamina's heap and 237 MiB in PDFium's (the file plus its decode buffers).
@@ -167,10 +168,10 @@ Earlier runs (before the review fixes: no streaming compile for PDFium, and the 
 
    Text files are small either way, since their decode buffers are small.
 5. **PDFium's side of the reload is cheap; lamina's save is the cost.**
-   - **PDFium:** closing takes under 2 ms. Reopening takes 2–11 ms for 50 MB; at 500 MB it is 150–335 ms with the copy strategy (copying the bytes into its heap) and under 3 ms with custom access in Chromium and Firefox (WebKit: about 1 s, reading the joined `File`). Re-rendering is a normal render.
+   - **PDFium:** closing takes under 2 ms. Reopening takes 2–11 ms for 50 MB; at 500 MB it is 0.4–1.1 s with the copy strategy (copying the bytes into its heap) and under 3 ms with custom access in Chromium and Firefox (WebKit: about 1 s, reading the joined `File`). Re-rendering is a normal render.
    - **lamina, copy strategy (whole output):** the save peaks at about 3× the file in lamina's heap (179 MiB for 50 MB, 1,504 MiB for 500 MB: the base, the output, and the rebase onto it).
    - **lamina, custom strategy (appended revision only):** the output is 0.4 KiB, but the save still reads the whole base once to hash it for `/ID` (`IncrementalWriter`'s documented two passes). Opened by ranges, that pulls the whole file into lamina's sparse source: about 4 s and 491 MiB for 500 MB, in every browser. *Follow-up for the save API:* an `/ID` that doesn't need the whole base (keep the base's first `/ID` element, which ISO 32000-2 §14.4 says stays permanent, and generate the second from what the save already knows, such as the revision's bytes, the base's length and its trailer), so an appended-only save on a range-opened document reads only what it changes.
-6. **Chromium (V8) runs one long whole-output save in a fresh instance about 10× slower.** The same save after a small one in the same worker takes 220–250 ms for 50 MB, like Firefox and WebKit. That fits V8's tiering: functions start in the Liftoff baseline compiler and are optimised only after enough calls, so a save called once runs its hashing and writing loops in baseline code throughout. Firefox optimises in the background. The custom-strategy save (no whole output) runs at the same speed in all three browsers. *Recommendation:* run large saves as lamina save jobs, `doc.saveJob()` stepped in small budgets, which also keeps the worker responsive; or warm the save path once after `init()`. Measure both in C2b.
+6. **Chromium (V8) runs one long whole-output save in a fresh instance about 10× slower.** The same save after a small one in the same worker takes 210–340 ms for 50 MB, like Firefox and WebKit. That fits V8's tiering: functions start in the Liftoff baseline compiler and are optimised only after enough calls, so a save called once runs its hashing and writing loops in baseline code throughout. Firefox optimises in the background. The custom-strategy save (no whole output) runs at the same speed in all three browsers. *Recommendation:* run large saves as lamina save jobs, `doc.saveJob()` stepped in small budgets, which also keeps the worker responsive; or warm the save path once after `init()`. Measure both in C2b.
 7. **WebKit can't read a 500 MB `File` into one `ArrayBuffer`**: `File.arrayBuffer()` in the worker fails with "The I/O read operation failed" (the page's `fetch()` of the same file into a `Blob` succeeded). Chromium and Firefox do. With custom access, WebKit opens, renders, saves and reloads the same file (first page and reload numbers in the tables).
 8. **The wasm32 ceiling is close when both engines hold a copy.** At 500 MB the copy strategy's heaps peak at about 2.3 GB together during the reload (1,504 + 776 MiB), plus the JS `ArrayBuffer`. Each module has its own 4 GiB limit, but a browser tab's total budget is the real limit. Custom access stays at about 0.8 GB, and only lamina's `/ID` hash keeps it from being far less (finding 5). Custom access reads positions as unsigned 32-bit, so it works up to 4 GiB; beyond that PDFium's 64-bit file access (`FPDF_FILEACCESS` has a 32-bit length on wasm32) would be needed.
 9. **Encryption works in both engines**, including R6 AES-256 with a non-ASCII password (`Pässwört-6`: PDFium takes it as UTF-8 through `cwrap`'s `string`) and both input strategies. The password is passed to both inside the worker only. lamina refuses to save incrementally onto an encrypted base (`encrypted-base`, by design until editor round E11), so editing an encrypted file in the reader needs E11 or a decrypted full rewrite. A failed open (a wrong password) frees PDFium's file-access struct and callback, so a reader can retry passwords without leaking.

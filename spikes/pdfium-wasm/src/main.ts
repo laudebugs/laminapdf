@@ -38,7 +38,9 @@ worker.onmessage = (event: MessageEvent) => {
 };
 
 // A worker that dies (out of memory, a crash) settles every pending call instead of hanging it.
+let dead: string | undefined;
 const failAll = (reason: string) => {
+  dead = reason;
   for (const [, p] of pending) p.reject(new Error(reason));
   pending.clear();
 };
@@ -46,6 +48,7 @@ worker.onerror = (e) => failAll(`worker error: ${e.message}`);
 worker.onmessageerror = () => failAll("worker message could not be read");
 
 function call(type: string, payload?: unknown, onId?: (id: number) => void): Promise<unknown> {
+  if (dead !== undefined) return Promise.reject(new Error(`the worker is gone (${dead}); reload the page`));
   const id = next++;
   onId?.(id);
   return new Promise((resolve, reject) => {
@@ -80,11 +83,18 @@ async function uaMemory(): Promise<number | null> {
 async function bench(file: File, job: Omit<Job, "url" | "name">): Promise<unknown> {
   const selected = performance.now();
   let id = -1;
-  const result = (await call("bench", { file, ...job }, (i) => {
-    id = i;
-  })) as Record<string, unknown>;
+  let result: Record<string, unknown>;
+  try {
+    result = (await call("bench", { file, ...job }, (i) => {
+      id = i;
+    })) as Record<string, unknown>;
+  } catch (e) {
+    drawnAt.delete(id);
+    throw e;
+  }
   // From the file being handed over to page 1 drawn on the main thread's canvas.
   const drawn = drawnAt.get(id);
+  drawnAt.delete(id);
   result.firstPageVisibleMs = drawn === undefined ? null : drawn - selected;
   result.uaMemoryBytes = await uaMemory();
   return result;
@@ -92,7 +102,11 @@ async function bench(file: File, job: Omit<Job, "url" | "name">): Promise<unknow
 
 const spike = {
   boot: () => {
-    booted ??= call("boot");
+    // A failed boot isn't cached, so the next click retries it.
+    booted ??= call("boot").catch((e: unknown) => {
+      booted = undefined;
+      throw e;
+    });
     return booted;
   },
   /** Fetches each fixture, hands it to the worker as a File, and returns every result. */

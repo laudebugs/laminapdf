@@ -105,7 +105,7 @@ Only the Playwright benchmark spec in the spike (run by hand, not in CI). Smoke:
 
 ## Outcome
 
-- **Result:** [`spikes/pdfium-wasm/README.md`](../../../spikes/pdfium-wasm/README.md). One worker holds both engines in Chromium, Firefox and WebKit: about 30 ms to instantiate, page 1 of the 1 MB file in 17–62 ms cold and 6–19 ms warm. PDFium is 2.1 MB gzip, about 5.6 times lamina's base module.
+- **Result:** [`spikes/pdfium-wasm/README.md`](../../../spikes/pdfium-wasm/README.md). One worker holds both engines in Chromium, Firefox and WebKit: 25–60 ms to instantiate, page 1 of the 1 MB file in 15–39 ms cold and 6–8 ms warm. PDFium is 2.1 MB gzip, about 5.6 times lamina's base module.
 - **Reload:** PDFium reopens the saved bytes in milliseconds (custom access: `File` plus the appended revision, by ranges); lamina's save is the cost. It reads the whole base to hash `/ID` even for an appended-only save (a follow-up for the save API), and Chromium's first whole-output save is about 10 times slower until V8 tiers up the code.
 - **Memory:** custom file access cuts the 100 MB scan from 95 + 237 MiB (plus a JS copy) to 1 + 113 MiB. WebKit can't read a 500 MB file into one ArrayBuffer, but opens, saves and reloads it with custom access.
 - **Recommendation:** the joint one for ADRs 0004 and 0009 is the README's last section.
