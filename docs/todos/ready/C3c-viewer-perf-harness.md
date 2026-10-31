@@ -23,7 +23,7 @@ Measure the [§4 non-functional targets](../../plans/web-app.md#non-functional-t
 - [web-app.md §4 non-functional table](../../plans/web-app.md#non-functional-targets-are-recommendations-measured-from-c3-onward) — the numbers.
 - [ADR 0018 §1 tier 11, §2](../../decisions/0018-test-strategy.md#1-tiers) — perf runs in the nightly lane; PR lanes don't assert durations; a >10 % regression opens an issue.
 - [C3b](./C3b-viewer-virtualiser-and-zoom.md) `renderstats` events and the demo page.
-- [C1b result](../ongoing/C1b-pdfium-wasm-spike.md) — memory-measurement methods per browser.
+- [C1b result](../done/C1b-pdfium-wasm-spike.md) — memory-measurement methods per browser.
 
 ## Scope
 

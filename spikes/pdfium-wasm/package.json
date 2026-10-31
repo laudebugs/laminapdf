@@ -1,0 +1,26 @@
+{
+  "name": "lamina-spike-pdfium-wasm",
+  "private": true,
+  "description": "Spike C1b: PDFium-WASM (@embedpdf/pdfium) beside lamina's WebAssembly in one web worker; measurements only, never shipped.",
+  "license": "MIT OR Apache-2.0",
+  "type": "module",
+  "packageManager": "pnpm@11.20.0",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "pack-lamina": "sh scripts/pack-lamina.sh",
+    "fixtures": "node scripts/make-fixtures.mjs",
+    "dev": "vite",
+    "bench": "playwright test"
+  },
+  "dependencies": {
+    "@embedpdf/pdfium": "2.15.1",
+    "@lamina/pdf": "file:vendor/lamina-pdf-0.0.0.tgz",
+    "@lamina/wasm": "file:vendor/lamina-wasm-0.0.0.tgz"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.64.1",
+    "vite": "8.3.5"
+  }
+}

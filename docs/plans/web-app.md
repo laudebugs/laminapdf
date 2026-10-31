@@ -98,7 +98,7 @@ Each round is split into one or more todos (one pull request each) on the [todo 
 
 **Deliverable:** `spikes/pdfium-wasm/` (PDFium-WASM next to `lamina-wasm` in one worker: size, memory, render time, reload after incremental save) and `spikes/hayro-parity/` (pass rate vs PDFium on the pdf.js and PDFBox corpora), each with a written result.
 **Accepted when:** both READMEs report numbers on the same machine and corpus, and recommend the defaults that ADR 0004 records.
-**Todos:** [C1a](../todos/done/C1a-hayro-parity-spike.md), [C1b](../todos/ongoing/C1b-pdfium-wasm-spike.md)
+**Todos:** [C1a](../todos/done/C1a-hayro-parity-spike.md), [C1b](../todos/done/C1b-pdfium-wasm-spike.md)
 
 ### C2. Render backend and ADRs
 
@@ -162,11 +162,11 @@ Each round's todos (one per PR, with dependencies) are linked from [§6](#6-roun
 Ticked by the PR that completes them.
 
 ### C1. Rendering spikes
-- [ ] Build `spikes/pdfium-wasm`: load PDFium-WASM and `lamina-wasm` in one worker
-- [ ] Measure bundle size, peak memory and render time per page on 3 reference files
-- [ ] Measure reload cost after an incremental save from `lamina-save`
+- [x] Build `spikes/pdfium-wasm`: load PDFium-WASM and `lamina-wasm` in one worker ([C1b](../todos/done/C1b-pdfium-wasm-spike.md), [result](../../spikes/pdfium-wasm/README.md))
+- [x] Measure bundle size, peak memory and render time per page on 3 reference files
+- [x] Measure reload cost after an incremental save from `lamina-save`
 - [x] Build `spikes/hayro-parity`: render the pdf.js and PDFBox corpora with hayro and PDFium; compute pass rate at a perceptual threshold ([C1a](../todos/done/C1a-hayro-parity-spike.md), [result](../../spikes/hayro-parity/README.md): 81.8 % pass, 90.8 % pass+minor at 96 DPI)
-- [ ] Write both results with a recommendation for ADR 0004
+- [x] Write both results with a recommendation for ADR 0004 (and ADR 0009: [C1b's joint recommendation](../../spikes/pdfium-wasm/README.md#recommendation-for-adrs-0004-and-0009-joint-with-c1a))
 
 ### C2. Render backend and ADRs
 - [ ] Write ADR 0004 (`RenderBackend`, PDFium default, hayro oracle, MuPDF prohibited)
