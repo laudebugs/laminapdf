@@ -16,7 +16,7 @@ What the research found ([Cloudflare notes §1, §4](../research/architecture/no
 - **The `cf` CLI** has been in beta since 2026-09-28 and is the planned successor to Wrangler. Its config and commands may change, and secondary sources say it sends anonymous telemetry by default.
 - **Retention:** Workers Logs keeps 3 days on Free and 7 on Paid. R2 lifecycle rules can expire objects. Workflows, Queues and D1 Time Travel have their own retention.
 
-Telemetry was decided by the owner on 2026-10-29: none in v0.1; afterwards optional, opt-in and off by default ([U5c](../todos/ready/U5c-opt-in-usage-telemetry.md)). The domain and product name are still open ([web-app §8](../plans/web-app.md#8-open-questions) Q1), so `laminapdf.com` below is a placeholder.
+Telemetry was decided by the owner on 2026-10-29: none in v0.1; afterwards optional, opt-in and off by default ([U5c](../todos/ready/U5c-opt-in-usage-telemetry.md)). The domain, `laminapdf.com`, was chosen by the owner on 2026-10-31 ([web-app §8](../plans/web-app.md#8-open-questions) Q1); the product name is still open.
 
 ## Decision
 
@@ -39,7 +39,7 @@ Telemetry was decided by the owner on 2026-10-29: none in v0.1; afterwards optio
   - Built files are content-hashed and served with `Cache-Control: public, max-age=31536000, immutable`.
   - `index.html`, the service worker and the web manifest are served `no-cache`.
   - The WASM modules are static assets of the same origin (ADR 0009 §2), never a CDN's.
-- **The domain is `laminapdf.com`** (the owner's choice, 2026-10-31; it was a `<domain>` placeholder until then). The docs site is at `docs.laminapdf.com`, the updater and downloads at `updates.laminapdf.com` and `downloads.laminapdf.com` (ADR 0014). The HSTS preload submission waits for the reader at the apex (§4).
+- **The domain is `laminapdf.com`** (the owner's choice, 2026-10-31; it was a `<domain>` placeholder until then). The docs site is at `docs.laminapdf.com`, the updater and downloads at `updates.laminapdf.com` and `downloads.laminapdf.com` ([desktop plan §5](../plans/desktop-app.md#5-design-summary); ADR 0014, written in D5a). The HSTS preload submission waits for the reader at the apex (§4).
 
 ### 2. Documents never pass through our servers
 

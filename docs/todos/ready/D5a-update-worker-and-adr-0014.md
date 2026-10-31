@@ -118,7 +118,7 @@ Decide and build the server side of desktop updates. ADR 0014 records channels, 
 
 ## Post-merge checks
 
-- [ ] The production deploy from `main` succeeds and `GET https://updates.laminapdf.com/healthz` returns 200 (or the staging route until the domain exists — record which).
+- [ ] The production deploy from `main` succeeds and `GET https://updates.laminapdf.com/healthz` returns 200.
 - [ ] A request for an unseeded channel/version on production returns 204 and no request header appears in Workers Logs (spot check recorded).
 
 ## Tests

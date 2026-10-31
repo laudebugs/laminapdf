@@ -54,7 +54,7 @@ The example PDFs drop the CSP, so the browser's PDF viewer can open them. PR pre
    - **Account → Workers Scripts → Edit**: uploads versions and deploys the Worker, including its workers.dev route and preview URLs.
    - **Account → Account Settings → Read**: lets Wrangler read the account it deploys to.
 
-   - **Zone → Workers Routes → Edit** on the `laminapdf.com` zone (Zone Resources → Include → Specific zone): attaches the custom domain `docs.laminapdf.com`.
+   - **Zone → Workers Routes → Edit** on the `laminapdf.com` zone (Zone Resources → Include → Specific zone): attaches the custom domain `docs.laminapdf.com`. If the deploy still fails with a permission error on the domain, add **Zone → DNS → Edit** on the same zone (Cloudflare creates the `docs` record).
 
    Scope it to the one account (Account Resources → Include → that account). Optionally, set a TTL and restrict client IPs.
 2. Add two repository secrets (Settings → Secrets and variables → Actions): `CLOUDFLARE_API_TOKEN` (the token) and `CLOUDFLARE_ACCOUNT_ID` (the account ID, shown on the account's Workers overview page).

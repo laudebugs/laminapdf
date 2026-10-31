@@ -61,7 +61,7 @@ Finish the desktop settings page so every user-facing control the beta needs is 
 - [ ] On Linux, choosing *Compatibility* and restarting launches with `WEBKIT_DISABLE_DMABUF_RENDERER=1` in the process environment (unit test of the decision function + manual check via `/proc/<pid>/environ`).
 - [ ] Two abnormal exits within 10 s on Linux trigger the automatic fallback and a notice (unit test of the guard).
 - [ ] Every setting stored by D3b, D4a, D4c, D5b and D7a is visible and changeable in the settings page; axe reports zero serious violations on the settings route.
-- [ ] `laminapdf.com/download` (preview deploy) offers the right installer first on macOS arm64, Windows x64 and Linux x64 browsers (Playwright with UA/client-hint overrides) and lists all artefacts with SHA-256 values matching `SHA256SUMS` (test against the mocked JSON).
+- [ ] `/download` on the PR's preview deploy offers the right installer first on macOS arm64, Windows x64 and Linux x64 browsers (Playwright with UA/client-hint overrides) and lists all artefacts with SHA-256 values matching `SHA256SUMS` (test against the mocked JSON).
 - [ ] The download page works without JavaScript errors in Chromium, Firefox and WebKit (web Playwright suite).
 
 ## Post-merge checks

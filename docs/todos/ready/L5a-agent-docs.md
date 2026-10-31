@@ -115,7 +115,7 @@ Users get an `AGENTS.md` snippet for their own repositories. A machine-readable 
 - **Evidence is thin:** no controlled study shows llms.txt improves agent correctness ([LLM note (A) gaps](../../research/libraries/notes/llm-api-and-ai-extraction.md#a-what-makes-llmsagents-write-correct-code-against-a-library-api-and-what-lamina-should-do)). The baseline eval is how lamina finds out for itself; keep the work small.
 - **Tarball size:** shipping docs grows the npm package. Recommendation: Markdown only (no images), with the size reported by `cargo xtask size` and a soft budget. The owner decides on a hard budget.
 - **Eval reproducibility:** agent output varies run to run. Recommendation: three runs per task and condition, with pass counts recorded. Pin the agent version, and record the cost.
-- **Docs site domain** is still open ([architecture §8](../../plans/architecture.md#8-open-questions-for-the-team)); `llms.txt` links must use the final host. Generate them from the same constant as ADR 0026's `docsUrl`.
+- **Docs site host** is `https://docs.laminapdf.com` ([architecture §8](../../plans/architecture.md#8-open-questions-for-the-team) Q3); `llms.txt` links use it. Generate them from the same constant as ADR 0026's `docsUrl`.
 - **Crate `include` limits:** crates.io caps the package size (10 MB, to verify). Markdown docs should fit; check with `cargo package`.
 
 ## Definition of done

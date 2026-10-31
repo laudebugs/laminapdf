@@ -12,7 +12,7 @@
 | Branch | `docs/domain-laminapdf` |
 | PR title | `docs: laminapdf.com, with the docs site at docs.laminapdf.com` |
 | Size | S (one route, one config line, ≈ 40 lines of docs) |
-| PR | (filled in when opened) |
+| PR | [#122](https://github.com/laudebugs/lamina/pull/122) |
 
 ## Goal
 
