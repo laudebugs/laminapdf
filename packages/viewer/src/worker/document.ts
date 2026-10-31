@@ -1,7 +1,7 @@
 // The one document a viewer worker holds (ADR 0009 §2: one worker per document): lamina's
 // Document for the model (page sizes, warnings, later text and structure) and a RenderDocument
 // for pixels, both opened from the same bytes. The password is used here and kept nowhere else.
-import { Document } from "@lamina/pdf";
+import { Document, isLaminaError } from "@lamina/pdf";
 import { emit } from "@lamina/pdf/worker/server";
 import { bytesSource, type RenderBackend, type RenderDocument } from "@lamina/render";
 import { initHayro } from "@lamina/render-hayro";
@@ -10,18 +10,26 @@ import type { BackendInit, OpenedDocument, SourceInit, ViewerOpenOptions } from 
 import { readAll, sourceOf } from "../source.js";
 
 let backend: RenderBackend | undefined;
-let loading: Promise<RenderBackend> | undefined;
+/** Backends loaded or loading, by name; a failed load is forgotten, so the next call retries. */
+const loading = new Map<string, Promise<RenderBackend>>();
 
 interface Open {
+  readonly id: number;
   readonly model: Document;
   readonly render: RenderDocument;
 }
 let open: Open | undefined;
+let nextDocument = 1;
 
-/** Loads the backend once (the client asks as soon as the worker starts, before a file is chosen). */
+/** Loads the backend (the client asks as soon as the worker starts, before a file is chosen). */
 export async function initBackend(init: BackendInit): Promise<{ name: string; version: string }> {
-  loading ??= init.backend === "hayro" ? initHayro(init.wasm as never) : initPdfium(init.wasm as never);
-  const loaded = await loading;
+  let pending = loading.get(init.backend);
+  if (pending === undefined) {
+    pending = init.backend === "hayro" ? initHayro(init.wasm as never) : initPdfium(init.wasm as never);
+    loading.set(init.backend, pending);
+    pending.catch(() => loading.delete(init.backend));
+  }
+  const loaded = await pending;
   backend = loaded;
   return { name: loaded.name, version: loaded.version };
 }
@@ -45,13 +53,25 @@ export async function openDocument(
   signal: AbortSignal,
 ): Promise<OpenedDocument> {
   const engine = currentBackend();
-  const bytes = await readAll(sourceOf(init), signal);
-  closeOpen();
+  // Bytes are used as they are; a Blob is read in slices.
+  const bytes =
+    init instanceof Blob
+      ? await readAll(sourceOf(init), signal)
+      : init instanceof Uint8Array
+        ? init
+        : new Uint8Array(init);
   const { password, limits, renderLimits } = options;
-  const model = Document.open(bytes, {
-    ...(password === undefined ? {} : { password }),
-    ...(limits === undefined ? {} : { limits }),
-  });
+  const withLimits = limits === undefined ? {} : { limits };
+  // Whether the file needs the password: a restarted worker can reopen it without one only if not.
+  let needsPassword = false;
+  let model: Document;
+  try {
+    model = Document.open(bytes, withLimits);
+  } catch (e) {
+    if (password === undefined || password === "" || !isLaminaError(e, "password-required")) throw e;
+    model = Document.open(bytes, { ...withLimits, password });
+    needsPassword = true;
+  }
   let render: RenderDocument;
   try {
     render = engine.open(bytesSource(bytes), {
@@ -62,13 +82,17 @@ export async function openDocument(
     model.free();
     throw e;
   }
-  open = { model, render };
+  // The new pair is open: only now is the previous document closed, so a failed open (a wrong
+  // password, a broken file) leaves it working.
+  closeOpen();
+  open = { id: nextDocument++, model, render };
   // ADR 0003 warnings (a repaired xref, a dropped object) for the UI.
   for (const warning of model.warnings) emit("warning", warning);
   return {
     pageCount: model.pageCount,
     pages: model.pages,
-    needsPassword: password !== undefined && password !== "",
+    id: open.id,
+    needsPassword,
     backend: { name: engine.name, version: engine.version },
   };
 }
@@ -78,10 +102,10 @@ export function closeDocument(): undefined {
   return undefined;
 }
 
-/** The open document (`disposed` when there is none). */
-export function current(): Open {
-  if (open === undefined) {
-    throw { code: "disposed", kind: "state", message: "no document is open in this worker" };
+/** The open document (`disposed` when there is none, or when `id` names a document since replaced). */
+export function current(id?: number): Open {
+  if (open === undefined || (id !== undefined && id !== open.id)) {
+    throw { code: "disposed", kind: "state", message: "that document is not open in this worker" };
   }
   return open;
 }

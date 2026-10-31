@@ -30,10 +30,12 @@ export interface ViewerOpenOptions {
 
 /** An open document, as layout needs it up front. */
 export interface OpenedDocument {
+  /** Which open of this worker it is: renders name it, so one queued for a replaced document fails. */
+  readonly id: number;
   readonly pageCount: number;
   /** Every page's displayed size in points (`/Rotate` applied), rotation, ID and label. */
   readonly pages: readonly PageInfo[];
-  /** Whether opening needed a password, so a restarted worker must ask for it again. */
+  /** Whether the file can't be opened without its password, so a restarted worker must ask again. */
   readonly needsPassword: boolean;
   readonly backend: { readonly name: BackendName; readonly version: string };
 }
@@ -51,7 +53,7 @@ export interface Methods {
   openDocument: { params: [source: SourceInit, options: ViewerOpenOptions]; result: OpenedDocument };
   closeDocument: { params: []; result: undefined };
   pageInfo: { params: [index: number]; result: PageInfo };
-  render: { params: [RenderRequest]; result: RenderedBitmap };
+  render: { params: [request: RenderRequest, document: number]; result: RenderedBitmap };
   /** Test-only: blocks the worker synchronously for `ms`. */
   __busy: { params: [ms: number]; result: undefined };
   /** Test-only: every render's `scale` in the order they started. */
@@ -79,13 +81,14 @@ export const PRIORITY: { readonly [P in Priority | "document"]: number } = Objec
 });
 
 /**
- * The coalescing key of a render: the whole normalised RenderRequest (page, scale, clip,
- * rotation, flags and background), so two requests share a run only when their pixels are the
- * same (ADR 0009 §3.3).
+ * The coalescing key of a render on document `id`: the document and the whole normalised
+ * RenderRequest (page, scale, clip, rotation, flags and background), so two requests share a run
+ * only when their pixels are the same (ADR 0009 §3.3).
  */
-export function renderKey(request: RenderRequest): string {
+export function renderKey(request: RenderRequest, id: number): string {
   const { page, scale, clip, rotation = 0, flags, background } = request;
   return JSON.stringify([
+    id,
     page,
     scale,
     clip === undefined ? null : [clip.x, clip.y, clip.width, clip.height],

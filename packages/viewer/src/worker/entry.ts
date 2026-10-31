@@ -15,7 +15,7 @@ const methods: Record<string, ExtensionMethod> = {
   closeDocument: { run: () => closeDocument() },
   pageInfo: { run: ([index]) => current().model.pageInfo(index as number) },
   render: {
-    run: ([request], { signal }) => render(request as RenderRequest, signal),
+    run: ([request, id], { signal }) => render(request as RenderRequest, id as number, signal),
     reply: (tile) => reply(tile as Parameters<typeof reply>[0]),
   },
   __busy: {

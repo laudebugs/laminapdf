@@ -13,7 +13,7 @@
 // crash and ends the worker.
 import { Document, PageRef } from "../document.js";
 import { type Diagnostic, isDiagnostic, LaminaError, packageError } from "../errors.js";
-import { docsUrl, ERROR_CODES, type ErrorCode } from "../generated/codes.js";
+import { docsUrl, ERROR_CODES, type ErrorCode, HINTS } from "../generated/codes.js";
 import { init, loadExtract, loadText } from "../index.js";
 import { httpRangeSource } from "../source/http.js";
 import type { RangeOptions } from "../source/range.js";
@@ -108,7 +108,8 @@ export function emit(name: string, data?: unknown, transfer: Transferable[] = []
 /**
  * The ADR 0026 object for anything thrown. lamina's own errors pass through, and so does any
  * error shaped like one whose code `codes.json` lists (`@lamina/render`'s RenderError: `code`,
- * `kind`, `message`), given its docs URL. Anything else is a failure of the worker itself
+ * `kind`, `message`, and `ranges` for `data-pending`), given its hint and docs URL, with the
+ * ranges as `data.ranges` (`LaminaError.ranges`). Anything else is a failure of the worker itself
  * (`worker-failed`, kind internal). Caller mistakes the worker detects (an unknown method) are
  * thrown as `invalid-argument` where they are found.
  */
@@ -116,10 +117,20 @@ function diagnostic(e: unknown): Diagnostic<ErrorCode> {
   if (e instanceof LaminaError) return e.toJSON();
   if (isDiagnostic(e)) return e;
   if (typeof e === "object" && e !== null) {
-    const { code, kind, message } = e as Record<string, unknown>;
+    const { code, kind, message, ranges } = e as Record<string, unknown>;
     if (typeof code === "string" && knownCodes.has(code) && typeof kind === "string" && typeof message === "string") {
       const c = code as ErrorCode;
-      return { code: c, kind: kind as Diagnostic<ErrorCode>["kind"], message, docsUrl: docsUrl(c) };
+      const data = Array.isArray(ranges)
+        ? { ranges: (ranges as [number, number][]).map(([offset, length]) => ({ offset, length })) }
+        : undefined;
+      return {
+        code: c,
+        kind: kind as Diagnostic<ErrorCode>["kind"],
+        message,
+        hint: HINTS[c],
+        ...(data === undefined ? {} : { data }),
+        docsUrl: docsUrl(c),
+      };
     }
   }
   return packageError("worker-failed", e instanceof Error ? e.message : String(e)).toJSON();
@@ -342,6 +353,9 @@ async function execute(job: Job): Promise<void> {
       if (isHandleRef(result)) release(result.$handle);
       throw packageError("cancelled", "the call was cancelled");
     }
+    // The result is in: no caller joins this job any more (a reply can take a while, and a caller
+    // that joined now would get none); a same-key call from here on runs again.
+    current = undefined;
     const own = extensionMethod(job.first);
     const waiters = [...job.waiters];
     for (const [i, w] of waiters.entries()) {
@@ -430,7 +444,16 @@ function cancel(id: number): void {
     job.waiters.findIndex((w) => w.id === id),
     1,
   );
-  if (job.waiters.length > 0) return;
+  if (job.waiters.length > 0) {
+    // The job keeps the priority of its most urgent remaining caller.
+    const priority = Math.max(...job.waiters.map((w) => w.priority ?? 0));
+    if (job !== current && priority !== job.priority) {
+      queue.splice(queue.indexOf(job), 1);
+      job.priority = priority;
+      enqueue(job);
+    }
+    return;
+  }
   if (job === current) {
     job.controller.abort();
     return;

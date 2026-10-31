@@ -5,9 +5,10 @@
 // - typed calls (`call(method, params)`, checked against `Methods`), and `open`/`render`/…;
 // - cancellation that rejects with an `AbortError` at once; a late answer's bitmap is closed by
 //   the worker client, so a cancelled render never paints;
-// - render timers on the page (a worker stuck in a synchronous render can't post): `render-slow`
-//   after the soft timeout, and after the hard cap either a restart (`hard-timeout`) or, for an
-//   encrypted document, `render-stuck` and a restart only on `stop()`;
+// - render timers on the page, started when the worker reports it began drawing (a render waiting
+//   in the queue isn't slow) and kept on the page because a worker stuck in a synchronous render
+//   can't post: `render-slow` after the soft timeout, and after the hard cap either a restart
+//   (`hard-timeout`) or, for an encrypted document, `render-stuck` and a restart only on `stop()`;
 // - restart after a crash (the worker's error, messageerror or a reported trap; never silence):
 //   pending calls reject with `worker-crashed`, a new worker reopens the document from the same
 //   source, but the call that was running is never re-sent (the UI offers Retry). An encrypted
@@ -54,7 +55,7 @@ export interface ViewerEvents {
   /** An ADR 0003 warning about the open document (a repaired xref, …). */
   warning: { readonly code: string; readonly message: string };
   /** The worker started drawing a render (for the perf harness, C3c). */
-  "render-start": { readonly page: number; readonly scale: number };
+  "render-start": { readonly page: number; readonly scale: number; readonly key: string };
   /** A render passed the soft timeout: offer Stop. */
   "render-slow": { readonly id: number; readonly page: number };
   /** An encrypted document's render passed the hard cap: `stop()` would ask for the password again. */
@@ -65,6 +66,8 @@ export interface ViewerEvents {
   restarted: { readonly reason: RestartReason; readonly reopened: boolean };
   /** The restarted worker can't reopen the document without its password: open it again. */
   "password-required": Record<string, never>;
+  /** A restart failed (the backend couldn't load again, …): the client serves nothing until `stop()` works. */
+  "restart-failed": { readonly reason: RestartReason; readonly error: unknown };
 }
 
 export type ViewerEvent = keyof ViewerEvents;
@@ -96,6 +99,8 @@ export class ViewerClient {
   #recovering: Promise<void> | undefined;
   #nextRender = 1;
   #discarded = 0;
+  /** Renders waiting to start, by coalescing key: their timers start on `render-start`. */
+  readonly #waiting = new Map<string, Set<() => void>>();
 
   private constructor(pdf: WorkerClient, options: ViewerOptions) {
     this.#pdf = pdf;
@@ -103,11 +108,18 @@ export class ViewerClient {
     this.#timeouts = { ...DEFAULT_TIMEOUTS, ...options.timeouts };
     pdf.on("event", (name, data) => {
       if (name === "warning") this.#emit("warning", data as ViewerEvents["warning"]);
-      else if (name === "render-start") this.#emit("render-start", data as ViewerEvents["render-start"]);
+      else if (name === "render-start") {
+        const started = data as ViewerEvents["render-start"];
+        for (const start of this.#waiting.get(started.key) ?? []) start();
+        this.#waiting.delete(started.key);
+        this.#emit("render-start", started);
+      }
     });
     pdf.on("crashed", (reason) => {
       this.#emit("crashed", { reason });
-      void this.#recover(reason as RestartReason);
+      this.#recover(reason as RestartReason).catch((error) =>
+        this.#emit("restart-failed", { reason: reason as RestartReason, error }),
+      );
     });
   }
 
@@ -131,7 +143,13 @@ export class ViewerClient {
       ...(options.lamina === undefined ? {} : { init: options.lamina }),
     });
     client = new ViewerClient(pdf, options);
-    await pdf.request("initBackend", [options.backend], { priority: PRIORITY.document });
+    try {
+      await pdf.request("initBackend", [options.backend], { priority: PRIORITY.document });
+    } catch (e) {
+      // Nobody will hold this client: end its worker.
+      pdf.terminate();
+      throw e;
+    }
     return client;
   }
 
@@ -219,13 +237,30 @@ export class ViewerClient {
    */
   render(request: RenderRequest, options: ViewerCallOptions = {}): Promise<RenderedBitmap> {
     const id = this.#nextRender++;
+    // 0 names no document: the worker answers `disposed`.
+    const documentId = this.#document?.id ?? 0;
     const needsPassword = this.#document?.needsPassword === true;
-    const soft = setTimeout(() => this.#emit("render-slow", { id, page: request.page }), this.#timeouts.soft);
-    const hard = setTimeout(() => {
-      if (needsPassword) this.#emit("render-stuck", { id, page: request.page, needsPassword: true });
-      else void this.stop("hard-timeout");
-    }, this.#timeouts.hard);
-    return this.call("render", [request], { ...options, key: renderKey(request) }).finally(() => {
+    const key = renderKey(request, documentId);
+    let soft: ReturnType<typeof setTimeout> | undefined;
+    let hard: ReturnType<typeof setTimeout> | undefined;
+    const start = () => {
+      soft = setTimeout(() => this.#emit("render-slow", { id, page: request.page }), this.#timeouts.soft);
+      hard = setTimeout(() => {
+        if (needsPassword) this.#emit("render-stuck", { id, page: request.page, needsPassword: true });
+        else
+          this.stop("hard-timeout").catch((error) => this.#emit("restart-failed", { reason: "hard-timeout", error }));
+      }, this.#timeouts.hard);
+    };
+    let waiting = this.#waiting.get(key);
+    if (waiting === undefined) {
+      waiting = new Set();
+      this.#waiting.set(key, waiting);
+    }
+    waiting.add(start);
+    return this.call("render", [request, documentId], { ...options, key }).finally(() => {
+      const set = this.#waiting.get(key);
+      set?.delete(start);
+      if (set?.size === 0) this.#waiting.delete(key);
       clearTimeout(soft);
       clearTimeout(hard);
     });
@@ -237,6 +272,8 @@ export class ViewerClient {
    * encrypted document asks for its password again.
    */
   stop(reason: "cancelled" | "hard-timeout" = "cancelled"): Promise<void> {
+    // A restart already under way serves: a second would end the worker it is starting.
+    if (this.#recovering !== undefined) return this.#recovering;
     this.#pdf.terminate();
     return this.#recover(reason);
   }
@@ -249,6 +286,7 @@ export class ViewerClient {
   }
 
   #recover(reason: RestartReason): Promise<void> {
+    if (this.#recovering !== undefined) return this.#recovering;
     const recovering = (async () => {
       await this.#pdf.restart();
       await this.#pdf.request("initBackend", [this.#backend], { priority: PRIORITY.document });

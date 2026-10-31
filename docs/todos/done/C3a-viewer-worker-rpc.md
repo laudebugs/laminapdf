@@ -13,7 +13,7 @@
 | Branch | `feat/c3a-viewer-worker-rpc` |
 | PR title | `feat(viewer): add the document worker and typed rpc with priorities and cancellation` |
 | Size | L (600–1,500 lines incl. tests) |
-| PR | — |
+| PR | [#132](https://github.com/laudebugs/lamina/pull/132) |
 
 ## Goal
 
@@ -93,7 +93,8 @@ What shipped, and where it differs from the plan above:
 - **Open:**
   - The worker reads the whole source (a Blob in 4 MiB `slice()`s), then opens lamina's Document and the backend's RenderDocument from the same bytes. They open in sequence, not in parallel: both are synchronous in one worker.
   - Page sizes are `PageInfo`'s displayed width and height, rotation, ID and label. It has no other boxes yet.
-  - `needsPassword` is whether a non-empty password was given.
+  - `needsPassword` is whether the file fails to open without its password (`password-required`), so a password given to a plain file doesn't block a reopen.
+  - Each open has an `id`. Renders name it (in their coalescing key, too), so a render queued for a replaced document fails with `disposed`. A failed open leaves the previous document open.
 - **Backends:** the PDFium `.wasm` URL is an option (`backend: { backend: "pdfium", wasm }`), because a library can't resolve a dependency's asset without the app's bundler. Hayro loads its own.
 - **Restart:**
   - After a crash or `stop()`, the client restarts the worker, reloads the backend and reopens the document. The UI re-requesting its visible tiles is C3b's. Nothing pending is re-sent.

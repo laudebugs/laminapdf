@@ -4,23 +4,26 @@
 
 import { emit } from "@lamina/pdf/worker/server";
 import type { RenderedTile, RenderRequest } from "@lamina/render";
-import type { RenderedBitmap } from "../protocol.js";
+import { type RenderedBitmap, renderKey } from "../protocol.js";
 import { current } from "./document.js";
 
 /** Test hook: every render's scale, in start order (the priority tests read it). */
 export const renderLog: number[] = [];
 
-export function render(request: RenderRequest, signal: AbortSignal): RenderedTile {
+/** Renders `request` on document `id` (a render queued for a document since replaced is `disposed`). */
+export function render(request: RenderRequest, id: number, signal: AbortSignal): RenderedTile {
+  const doc = current(id);
   renderLog.push(request.scale);
-  // For the perf harness (C3c) and the tests: which render the worker is now busy with.
-  emit("render-start", { page: request.page, scale: request.scale });
-  return current().render.render(request, { signal });
+  // The client starts its timers now (not while the render waits), and the perf harness (C3c)
+  // sees what the worker is busy with.
+  emit("render-start", { page: request.page, scale: request.scale, key: renderKey(request, id) });
+  return doc.render.render(request, { signal });
 }
 
 /** One caller's bitmap of `tile`. */
 export async function reply(tile: RenderedTile): Promise<[RenderedBitmap, Transferable[]]> {
   const { width, height, pixels } = tile;
-  // A fresh copy per caller: ImageData takes ownership of nothing, but each bitmap is separate.
-  const bitmap = await createImageBitmap(new ImageData(new Uint8ClampedArray(pixels), width, height));
+  // Each createImageBitmap takes its own snapshot of the pixels: no copy is needed per caller.
+  const bitmap = await createImageBitmap(new ImageData(pixels, width, height));
   return [{ bitmap, width, height }, [bitmap]];
 }

@@ -50,11 +50,12 @@ There is one protocol, not two: the viewer's worker is `@lamina/pdf/worker`'s se
 | --- | --- | --- | --- |
 | `warning` | worker | ADR 0003 warning | e.g. a repaired xref |
 | `render-start` | worker | `{ page, scale }` | for the perf harness |
-| `render-slow` | page | `{ id, page }` | the soft timeout passed |
+| `render-slow` | page | `{ id, page }` | the soft timeout passed, counted from `render-start`: waiting in the queue isn't slow |
 | `render-stuck` | page | `{ id, page, needsPassword }` | an encrypted document's render passed the hard cap |
 | `crashed` | page | `{ reason }` | the worker crashed |
 | `restarted` | page | `{ reason, reopened }` | a new worker serves again |
 | `password-required` | page | — | the new worker can't reopen without the password |
+| `restart-failed` | page | `{ reason, error }` | a restart failed (for example, the backend wouldn't load again) |
 
 ## Semantics
 

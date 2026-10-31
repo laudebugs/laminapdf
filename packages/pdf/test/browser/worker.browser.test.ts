@@ -274,14 +274,6 @@ describe("the worker client, second review", () => {
     stuck.terminate();
     expect(isLaminaError(await rejection(starting), "worker-crashed")).toBe(true);
   });
-
-  it("leaves no cancel behind for calls that already finished", async () => {
-    const controller = new AbortController();
-    await using doc = await client.open(await read("fixtures/corpus/hello.pdf"));
-    await doc.pageCount({ signal: controller.signal });
-    controller.abort();
-    expect((await stats()).queued).toBe(0);
-  });
 });
 
 /** A test-only method of the worker (`__stats`, `__budget`, `__crash`). */

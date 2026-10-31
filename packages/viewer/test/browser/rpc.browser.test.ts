@@ -112,6 +112,33 @@ describe("cancellation and priorities", () => {
     expect(await client.call("__renderLog", [])).toEqual([0.2, 0.11, 0.12, 0.13]);
   });
 
+  it("answers a same-key render sent after the first one started", async () => {
+    const client = await track(viewer());
+    await client.open(await read("fixtures/corpus/hello.pdf"));
+    const started = next(client, "render-start");
+    const first = client.render({ page: 0, scale: 2 });
+    await started;
+    const second = client.render({ page: 0, scale: 2 });
+    for (const r of await Promise.all([first, second])) r.bitmap.close();
+  });
+
+  it("drops a shared job back to its remaining caller's priority when the urgent one cancels", async () => {
+    const client = await track(viewer());
+    await client.open(await read("fixtures/corpus/hello.pdf"));
+    const busy = client.call("__busy", [200]);
+    const background = client.render({ page: 0, scale: 0.11 }, { priority: "background" });
+    const controller = new AbortController();
+    const urgent = rejection(
+      client.render({ page: 0, scale: 0.11 }, { priority: "visible", signal: controller.signal }),
+    );
+    const prefetch = client.render({ page: 0, scale: 0.2 }, { priority: "prefetch" });
+    controller.abort();
+    await busy;
+    expect(isAbort(await urgent)).toBe(true);
+    for (const r of await Promise.all([background, prefetch])) r.bitmap.close();
+    expect(await client.call("__renderLog", [])).toEqual([0.2, 0.11]);
+  });
+
   it("draws identical renders once and gives each caller its own bitmap", async () => {
     const client = await track(viewer());
     await client.open(await read("fixtures/corpus/hello.pdf"));
@@ -140,14 +167,26 @@ describe("long renders", () => {
   });
 
   it("emits render-slow past the soft timeout and keeps the worker", async () => {
-    const client = await track(viewer("pdfium", { timeouts: { soft: 50, hard: 60_000 } }));
+    const client = await track(viewer("pdfium", { timeouts: { soft: 1, hard: 60_000 } }));
     await client.open(await read("fixtures/corpus/hello.pdf"));
     const slow = next(client, "render-slow");
-    const busy = client.call("__busy", [400]);
-    const render = client.render({ page: 0, scale: 0.5 });
+    const render = client.render({ page: 0, scale: 4 });
     expect((await slow).page).toBe(0);
+    (await render).bitmap.close();
+  });
+
+  it("doesn't count time waiting in the queue against a render", async () => {
+    const client = await track(viewer("pdfium", { timeouts: { soft: 300, hard: 60_000 } }));
+    await client.open(await read("fixtures/corpus/hello.pdf"));
+    let slow = false;
+    client.on("render-slow", () => {
+      slow = true;
+    });
+    const busy = client.call("__busy", [600]);
+    const render = client.render({ page: 0, scale: 0.2 });
     await busy;
     (await render).bitmap.close();
+    expect(slow).toBe(false);
   });
 
   it("restarts on stop() without re-sending the blocked render", async () => {
@@ -165,22 +204,47 @@ describe("long renders", () => {
   });
 
   it("emits render-stuck for an encrypted document at the hard cap, and restarts only on stop()", async () => {
-    const client = await track(viewer("pdfium", { timeouts: { soft: 20, hard: 100 } }));
+    const client = await track(viewer("pdfium", { timeouts: { soft: 1, hard: 2 } }));
     await client.open(await read(ENCRYPTED), { password: PASSWORD });
     let restarted = false;
     client.on("restarted", () => {
       restarted = true;
     });
     const stuck = next(client, "render-stuck");
-    const busy = client.call("__busy", [600]);
-    const render = client.render({ page: 0, scale: 0.5 });
+    const render = client.render({ page: 0, scale: 4 });
     expect((await stuck).needsPassword).toBe(true);
-    await busy;
     (await render).bitmap.close();
     expect(restarted).toBe(false);
     const required = next(client, "password-required");
     await client.stop();
     await required;
+  });
+});
+
+describe("documents", () => {
+  it("keeps the open document when another fails to open", async () => {
+    const client = await track(viewer());
+    await client.open(await read("fixtures/corpus/hello.pdf"));
+    await rejection(client.open(new TextEncoder().encode("not a pdf")));
+    (await client.render({ page: 0, scale: 0.5 })).bitmap.close();
+  });
+
+  it("fails a render queued for a document that another open replaced", async () => {
+    const client = await track(viewer());
+    await client.open(await read("fixtures/corpus/hello.pdf"));
+    const busy = client.call("__busy", [200]);
+    const stale = rejection(client.render({ page: 0, scale: 0.5 }, { priority: "background" }));
+    await client.open(await read("fixtures/corpus/fpdf2.pdf"));
+    await busy;
+    expect(isLaminaError(await stale, "disposed")).toBe(true);
+  });
+
+  it("only reports needsPassword for a file that can't open without it", async () => {
+    const client = await track(viewer());
+    expect((await client.open(await read("fixtures/corpus/hello.pdf"), { password: "unused" })).needsPassword).toBe(
+      false,
+    );
+    expect((await client.open(await read(ENCRYPTED), { password: PASSWORD })).needsPassword).toBe(true);
   });
 });
 
