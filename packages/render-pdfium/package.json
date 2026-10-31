@@ -1,0 +1,40 @@
+{
+  "name": "@lamina/render-pdfium",
+  "version": "0.0.0",
+  "private": true,
+  "description": "ADR 0004's default web renderer: the pinned PDFium-WASM build (@embedpdf/pdfium 2.15.1, SHA-256 checked) behind @lamina/render's RenderBackend interface, for the document worker.",
+  "license": "MIT OR Apache-2.0",
+  "type": "module",
+  "sideEffects": false,
+  "engines": {
+    "node": ">=22"
+  },
+  "files": [
+    "dist",
+    "THIRD_PARTY_NOTICES.md"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "scripts": {
+    "build": "node scripts/verify-pdfium.mjs && tsc -p tsconfig.build.json",
+    "typecheck": "node scripts/verify-pdfium.mjs && tsc -p tsconfig.build.json && tsc --noEmit -p tsconfig.json",
+    "test": "node scripts/verify-pdfium.mjs && tsc -p tsconfig.build.json && vitest run -c vitest.node.config.ts"
+  },
+  "dependencies": {
+    "@embedpdf/pdfium": "2.15.1",
+    "@lamina/render": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "@vitest/browser-playwright": "catalog:",
+    "playwright": "catalog:",
+    "typescript": "catalog:",
+    "vite": "catalog:",
+    "vitest": "catalog:"
+  }
+}

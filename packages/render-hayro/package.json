@@ -1,0 +1,39 @@
+{
+  "name": "@lamina/render-hayro",
+  "version": "0.0.0",
+  "private": true,
+  "description": "ADR 0004's second web renderer and CI oracle: lamina-render's hayro adapter as its own WebAssembly module (lamina_render_hayro in @lamina/wasm) behind @lamina/render's RenderBackend interface.",
+  "license": "MIT OR Apache-2.0",
+  "type": "module",
+  "sideEffects": false,
+  "engines": {
+    "node": ">=22"
+  },
+  "files": [
+    "dist"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "scripts": {
+    "build:wasm": "tsc -p tsconfig.build.json",
+    "typecheck:wasm": "tsc -p tsconfig.build.json && tsc --noEmit -p tsconfig.json",
+    "test:wasm": "tsc -p tsconfig.build.json && tsc --noEmit -p tsconfig.json && vitest run -c vitest.node.config.ts"
+  },
+  "dependencies": {
+    "@lamina/render": "workspace:*",
+    "@lamina/wasm": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "@vitest/browser-playwright": "catalog:",
+    "playwright": "catalog:",
+    "typescript": "catalog:",
+    "vite": "catalog:",
+    "vitest": "catalog:"
+  }
+}

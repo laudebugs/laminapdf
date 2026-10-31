@@ -7,7 +7,7 @@
 | Plan | [web reader §6 C2. Render backend and ADRs](../../plans/web-app.md#c2-render-backend-and-adrs) |
 | Round / milestone | Round C (web reader) — M2 Web reader v0.1 |
 | Depends on | [B2c](./B2c-lamina-model-corpus-fuzz.md), [C2a](./C2a-render-adrs.md) |
-| Blocks | [L4b](../ready/L4b-cli-batch-render-schema.md), [L6b](../ready/L6b-mobile-sdk-plan.md), [C2c](../ongoing/C2c-render-packages.md), [D2b](../ready/D2b-engine-process.md), [U2c](../ready/U2c-page-appearance-modes.md), [U3b](../ready/U3b-mobile-shell-spike.md), [E3h](../ready/E3h-images-to-pdf-and-page-export.md), [E13a](../ready/E13a-adr-0013-heavy-jobs.md), [H1](../ready/H1-auth-spike.md), [X3b](../ready/X3b-render-diff-nightly.md) |
+| Blocks | [L4b](../ready/L4b-cli-batch-render-schema.md), [L6b](../ready/L6b-mobile-sdk-plan.md), [C2c](./C2c-render-packages.md), [D2b](../ready/D2b-engine-process.md), [U2c](../ready/U2c-page-appearance-modes.md), [U3b](../ready/U3b-mobile-shell-spike.md), [E3h](../ready/E3h-images-to-pdf-and-page-export.md), [E13a](../ready/E13a-adr-0013-heavy-jobs.md), [H1](../ready/H1-auth-spike.md), [X3b](../ready/X3b-render-diff-nightly.md) |
 | Dependency notes | [C2a](../done/C2a-render-adrs.md) (ADR 0004 defines the trait); library B2 (`Document::open`, page boxes; [pdf-library B2](../../plans/pdf-library.md#b2-document-model)) |
 | ADRs | Implements 0004. Follows [0001](../../decisions/0001-core-language-and-licence.md), [0003](../../decisions/0003-reader-tolerance-and-limits.md) (`Limits`), [0015](../../decisions/0015-monorepo-layout-and-tooling.md), [0018](../../decisions/0018-test-strategy.md) tier 8 and §2 lanes, [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) |
 | Branch | `feat/c2b-lamina-render` |
@@ -39,7 +39,7 @@ Create the single Rust abstraction every lamina surface renders through. `crates
 
 **Out of scope** (and which todo covers it)
 
-- The PDFium-**WASM** TS adapter and the hayro `.wasm` package → [C2c](../ongoing/C2c-render-packages.md).
+- The PDFium-**WASM** TS adapter and the hayro `.wasm` package → [C2c](../done/C2c-render-packages.md).
 - Worker RPC and tiles in the browser → [C3a](../ready/C3a-viewer-worker-rpc.md), [C3b](../ready/C3b-viewer-virtualiser-and-zoom.md).
 - Desktop engine process wiring → desktop D2.
 - Nightly hayro-vs-PDFium diffs over the external corpus (`cargo xtask render-diff`, reporting the C1a metric) → [X3b](../ready/X3b-render-diff-nightly.md); `cargo xtask corpus fetch` and the pinned corpus manifest (including the pdf.js/PDFBox corpora C1a used) → [X3a](../done/X3a-nightly-lane.md). This PR does not add or extend `corpus fetch`.
