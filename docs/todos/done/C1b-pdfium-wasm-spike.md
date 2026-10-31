@@ -13,7 +13,7 @@
 | Branch | `spike/c1b-pdfium-wasm` |
 | PR title | `spike(pdfium-wasm): measure pdfium-wasm beside lamina-wasm in one web worker` |
 | Size | M (200–600 lines of spike TS + README) |
-| PR | — |
+| PR | [#102](https://github.com/laudebugs/lamina/pull/102) |
 
 ## Goal
 
