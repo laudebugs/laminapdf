@@ -12,7 +12,7 @@
 | Branch | `test/b9f-live-text-differential` |
 | PR title | `test(text): live text differential in the nightly lane` |
 | Size | M (≈ 300–500 lines of Rust, JS and TOML) |
-| PR | — |
+| PR | [#111](https://github.com/laudebugs/lamina/pull/111) |
 
 ## Goal
 
