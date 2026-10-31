@@ -54,7 +54,7 @@ Open large and remote PDFs without downloading or loading them whole, while the 
     - fetches the tail first.
   - `await Document.openRange(source, opts)` runs the fetch-and-retry loop.
   - `await doc.ensure(fn)` runs a sync call and, on `data-pending`, fetches the ranges and retries, so lazy calls after open work.
-  - The worker client ([L2a](../ongoing/L2a-worker-client.md)), if merged, runs the same loop inside the worker, so remote handles stay plain async.
+  - The worker client ([L2a](../done/L2a-worker-client.md)), if merged, runs the same loop inside the worker, so remote handles stay plain async.
 - **Native edge crate** `crates/lamina-source` (layer `edge`):
   - `FileSource`: positioned reads (`FileExt::read_at` / `seek_read`), no `unsafe`. A short read after truncation becomes `SourceError`, not a crash.
   - `MmapSource` behind an `mmap` feature (`memmap2`, licence-checked) with a `// SAFETY:` note and the documented `SIGBUS` risk. `as_slice` returns the mapping.
@@ -85,7 +85,7 @@ Open large and remote PDFs without downloading or loading them whole, while the 
   - [x] `Cargo.toml` with `[package.metadata.lamina] layer = "edge"`
   - [x] `FileSource`; `MmapSource` behind `mmap`
   - [x] `cargo deny` passes
-- [x] Wire `httpRangeSource` into [L2a](../ongoing/L2a-worker-client.md)'s worker if merged; otherwise leave a TODO in the worker README (L2a isn't merged: the note is in L2a's Context)
+- [x] Wire `httpRangeSource` into [L2a](../done/L2a-worker-client.md)'s worker if merged; otherwise leave a TODO in the worker README (L2a isn't merged: the note is in L2a's Context)
 - [x] README sections: remote files (CORS: `Range` triggers a preflight, `Content-Range`/`ETag` must be exposed; `Content-Encoding` breaks ranges), large local files (`FileSource` vs `MmapSource`)
 
 ## Acceptance criteria

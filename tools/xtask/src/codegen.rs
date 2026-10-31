@@ -71,8 +71,9 @@ const GROUPS: [(&str, &str); 11] = [
 ];
 
 /// Codes of other groups that `@lamina/pdf` raises itself; each must be listed in `codes.json`.
-const ALSO_RAISED_BY_TS: [&str; 4] = [
+const ALSO_RAISED_BY_TS: [&str; 5] = [
     "builder-finished",
+    "cancelled",
     "invalid-argument",
     "nested-transaction",
     "no-transaction",
@@ -756,7 +757,7 @@ mod tests {
             "docsUrl": { "base": "https://example.org/errors/", "suffix": ".md" },
             "limits": ["max_x"],
             "warnings": [entry("w-one", "input")],
-            "errors": [entry("not-pdf", "input"), entry("limit-exceeded", "limit")],
+            "errors": [entry("not-pdf", "input"), entry("limit-exceeded", "limit"), entry("cancelled", "state")],
             "opErrors": [entry("nested-transaction", "state"), entry("no-transaction", "state")],
             "bindingErrors": [entry("builder-finished", "state"), entry("invalid-argument", "usage")],
             "packageErrors": [entry("p-only", "state")],
@@ -828,6 +829,7 @@ mod tests {
                 "w-one",
                 "not-pdf",
                 "limit-exceeded",
+                "cancelled",
                 "nested-transaction",
                 "no-transaction",
                 "builder-finished",

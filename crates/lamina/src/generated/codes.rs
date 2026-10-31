@@ -1096,6 +1096,9 @@ pub fn explain(code: &str) -> Option<&'static str> {
         "source-changed" => include_str!("../../../../docs/errors/source-changed.md"),
         "text-module-not-loaded" => include_str!("../../../../docs/errors/text-module-not-loaded.md"),
         "disposed" => include_str!("../../../../docs/errors/disposed.md"),
+        "worker-version-mismatch" => include_str!("../../../../docs/errors/worker-version-mismatch.md"),
+        "worker-crashed" => include_str!("../../../../docs/errors/worker-crashed.md"),
+        "worker-failed" => include_str!("../../../../docs/errors/worker-failed.md"),
         _ => return None,
     })
 }

@@ -27,6 +27,8 @@ pub enum ErrorCode {
     NotPdf,
     /// `limit-exceeded`: what happened.
     LimitExceeded,
+    /// `cancelled`: what happened.
+    Cancelled,
     /// `nested-transaction`: what happened.
     NestedTransaction,
     /// `no-transaction`: what happened.
@@ -42,6 +44,7 @@ impl ErrorCode {
     pub const ALL: &'static [Self] = &[
         Self::NotPdf,
         Self::LimitExceeded,
+        Self::Cancelled,
         Self::NestedTransaction,
         Self::NoTransaction,
         Self::BuilderFinished,
@@ -54,6 +57,7 @@ impl ErrorCode {
         Some(match code.as_bytes() {
             b"not-pdf" => Self::NotPdf,
             b"limit-exceeded" => Self::LimitExceeded,
+            b"cancelled" => Self::Cancelled,
             b"nested-transaction" => Self::NestedTransaction,
             b"no-transaction" => Self::NoTransaction,
             b"builder-finished" => Self::BuilderFinished,
@@ -68,6 +72,7 @@ impl ErrorCode {
         match self {
             Self::NotPdf => "not-pdf",
             Self::LimitExceeded => "limit-exceeded",
+            Self::Cancelled => "cancelled",
             Self::NestedTransaction => "nested-transaction",
             Self::NoTransaction => "no-transaction",
             Self::BuilderFinished => "builder-finished",
@@ -81,6 +86,7 @@ impl ErrorCode {
         match self {
             Self::NotPdf => ErrorKind::Input,
             Self::LimitExceeded => ErrorKind::Limit,
+            Self::Cancelled => ErrorKind::State,
             Self::NestedTransaction => ErrorKind::State,
             Self::NoTransaction => ErrorKind::State,
             Self::BuilderFinished => ErrorKind::State,
@@ -94,6 +100,7 @@ impl ErrorCode {
         match self {
             Self::NotPdf => "what happened",
             Self::LimitExceeded => "what happened",
+            Self::Cancelled => "what happened",
             Self::NestedTransaction => "what happened",
             Self::NoTransaction => "what happened",
             Self::BuilderFinished => "what happened",
@@ -107,6 +114,7 @@ impl ErrorCode {
         match self {
             Self::NotPdf => "what to do",
             Self::LimitExceeded => "what to do",
+            Self::Cancelled => "what to do",
             Self::NestedTransaction => "what to do",
             Self::NoTransaction => "what to do",
             Self::BuilderFinished => "what to do",
@@ -194,6 +202,7 @@ pub fn explain(code: &str) -> Option<&'static str> {
         "w-one" => include_str!("../../../../docs/errors/w-one.md"),
         "not-pdf" => include_str!("../../../../docs/errors/not-pdf.md"),
         "limit-exceeded" => include_str!("../../../../docs/errors/limit-exceeded.md"),
+        "cancelled" => include_str!("../../../../docs/errors/cancelled.md"),
         "nested-transaction" => include_str!("../../../../docs/errors/nested-transaction.md"),
         "no-transaction" => include_str!("../../../../docs/errors/no-transaction.md"),
         "builder-finished" => include_str!("../../../../docs/errors/builder-finished.md"),

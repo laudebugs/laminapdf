@@ -136,10 +136,14 @@ export function isDiagnostic(value: unknown): value is Diagnostic<ErrorCode> {
 export function packageError<C extends keyof typeof RAISED_BY_PACKAGE>(
   code: C,
   message: string,
-  extra: Pick<Diagnostic<C>, "didYouMean" | "data"> = {},
+  extra: Pick<Diagnostic<C>, "didYouMean" | "data"> & { readonly cause?: unknown } = {},
 ): LaminaError<C> {
   const { kind, hint } = RAISED_BY_PACKAGE[code];
-  return new LaminaError<C>({ code, kind, message, hint, ...extra, docsUrl: docsUrl(code) });
+  const { cause, ...fields } = extra;
+  return new LaminaError<C>(
+    { code, kind, message, hint, ...fields, docsUrl: docsUrl(code) },
+    cause === undefined ? undefined : { cause },
+  );
 }
 
 /** The names in `known` within two edits of `given` (case-insensitive), closest first. */
