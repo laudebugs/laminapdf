@@ -8,7 +8,7 @@
 
 ## Question
 
-**How close is hayro to PDFium today?** Render every page of the pdf.js and PDFBox test corpora with hayro (pure Rust) and with PDFium (native, through `pdfium-render`), compare them with a perceptual metric, and report the pass rate, the failure classes, the speed and the memory. This is the baseline for "PDFium is the default, hayro is the CI oracle and the future default" (architecture principle 4), and it defines the metric the nightly diff ([X3b](../../docs/todos/ready/X3b-render-diff-nightly.md)) tracks.
+**How close is hayro to PDFium today?** Render every page of the pdf.js and PDFBox test corpora with hayro (pure Rust) and with PDFium (native, through `pdfium-render`), compare them with a perceptual metric, and report the pass rate, the failure classes, the speed and the memory. This is the baseline for "PDFium is the default, hayro is the CI oracle and the future default" (architecture principle 4), and it defines the metric the nightly diff ([X3b](../../docs/todos/ongoing/X3b-render-diff-nightly.md)) tracks.
 
 ## Answer in one paragraph
 
