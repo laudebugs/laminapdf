@@ -12,13 +12,12 @@ New todos start from [`TEMPLATE.md`](TEMPLATE.md). The workflow is in [git workf
 
 IDs: `A`/`P`/`X` [architecture](../plans/architecture.md) (foundations, publishing, cross-cutting), `B` [library](../plans/pdf-library.md), `L` [shareable libraries](../plans/shareable-libraries.md) (contracts, worker, extraction, CLI, agent docs, mobile), `C` [web reader](../plans/web-app.md), `D` [desktop reader](../plans/desktop-app.md), `U` [UI/UX](../plans/ui-ux.md), `E` [editor](../plans/full-editor.md), `H` hosted service ([full-editor](../plans/full-editor.md)). A letter suffix (`B2a`, `B2b`) splits a round into PRs.
 
-**1 ongoing · 200 ready · 45 done** (246 total).
+**2 ongoing · 199 ready · 45 done** (246 total).
 
 ## Can start now
 
 Ready todos whose dependencies are all done:
 
-- [B7a](ready/B7a-docs-site.md): Docs site (`apps/docs`): Starlight, quick starts, guides and TypeDoc, with per-PR previews
 - [L2a](ready/L2a-worker-client.md): `@lamina/pdf/worker`: the async twin of the sync API, with typed RPC, version handshake, `AbortSignal`, transfer lists and progress
 - [L2b](ready/L2b-disposal-and-memory.md): Disposal and memory bounds: `Symbol.dispose` on every handle, `disposed` code, capped wasm memory, `reset()` and trap recovery
 - [L3a](ready/L3a-lamina-extract-reading-order.md): ADR 0030 and `lamina-extract`: blocks, reading order, headings, lists, header/footer removal, hidden-text flags
@@ -28,6 +27,7 @@ Ready todos whose dependencies are all done:
 
 ## Ongoing
 
+- [B7a](ongoing/B7a-docs-site.md): Docs site (`apps/docs`): Starlight, quick starts, guides and TypeDoc, with per-PR previews
 - [C2b](ongoing/C2b-lamina-render-crate.md): `crates/lamina-render`: the `RenderBackend` trait, PDFium and hayro adapters, render goldens
 
 ## Architecture — Round A
@@ -62,8 +62,8 @@ Ready todos whose dependencies are all done:
 | B6a | [`lamina-wasm`, `@lamina/wasm` build, ADR 0016 and size budgets](done/B6a-lamina-wasm-and-adr-0016.md) | done | [B5c](done/B5c-lamina-facade-and-examples.md) |
 | B6b | [`@lamina/pdf`: the TypeScript API, `init()`, export conditions, publint and attw](done/B6b-lamina-pdf-package.md) | done | [B2b](done/B2b-standard-security-decryption.md), [B6a](done/B6a-lamina-wasm-and-adr-0016.md) |
 | B6c | [Runtime matrix in CI: browsers, Node 22/24/26, Deno, Bun and workerd](done/B6c-runtime-matrix.md) | done | [B6b](done/B6b-lamina-pdf-package.md) |
-| B7a | [Docs site (`apps/docs`): Starlight, quick starts, guides and TypeDoc, with per-PR previews](ready/B7a-docs-site.md) | ready | [B2b](done/B2b-standard-security-decryption.md), [B6b](done/B6b-lamina-pdf-package.md), [B6c](done/B6c-runtime-matrix.md) |
-| B7b | [Changesets, Cargo version sync, ADR 0017 (versioning) and the local `0.1.0-alpha.0` tag](ready/B7b-versioning-and-0-1-0-alpha.md) | ready | [B6c](done/B6c-runtime-matrix.md), [B7a](ready/B7a-docs-site.md), [X3a](done/X3a-nightly-lane.md) |
+| B7a | [Docs site (`apps/docs`): Starlight, quick starts, guides and TypeDoc, with per-PR previews](ongoing/B7a-docs-site.md) | ongoing | [B2b](done/B2b-standard-security-decryption.md), [B6b](done/B6b-lamina-pdf-package.md), [B6c](done/B6c-runtime-matrix.md) |
+| B7b | [Changesets, Cargo version sync, ADR 0017 (versioning) and the local `0.1.0-alpha.0` tag](ready/B7b-versioning-and-0-1-0-alpha.md) | ready | [B6c](done/B6c-runtime-matrix.md), [B7a](ongoing/B7a-docs-site.md), [X3a](done/X3a-nightly-lane.md) |
 | B8a | [Tagged PDF: structure tree builder, artifacts, alt text, MCIDs and ParentTree](done/B8a-structure-tree.md) | done | [B5c](done/B5c-lamina-facade-and-examples.md), [B6b](done/B6b-lamina-pdf-package.md) |
 | B8b | [Conformance profiles (PDF/UA-1, PDF/A-2b/2u/3b), output intents, veraPDF nightly and `0.2.0-alpha`](ready/B8b-conformance-profiles-and-verapdf.md) | ready | [B4c](done/B4c-standard-14-and-simple-fonts.md), [B7b](ready/B7b-versioning-and-0-1-0-alpha.md), [B8a](done/B8a-structure-tree.md), [X3a](done/X3a-nightly-lane.md) |
 | B9a | [ADR 0023 and `lamina-content`: read-only content-stream interpreter](done/B9a-lamina-content-and-adr-0023.md) | done | [B2c](done/B2c-lamina-model-corpus-fuzz.md), [X4](done/X4-full-lane-gate.md) |
@@ -90,7 +90,7 @@ Ready todos whose dependencies are all done:
 | L4b | [CLI batch mode, `render`, `extract --format md|json`, `schema`, completions and man pages](ready/L4b-cli-batch-render-schema.md) | ready | [L3b](ready/L3b-extract-tables-and-serialisers.md), [L4a](ready/L4a-lamina-cli.md), [C2b](ongoing/C2b-lamina-render-crate.md) |
 | L4c | [`lamina mcp`: a stdio MCP server over the CLI commands, with `--root` and read-only defaults](ready/L4c-mcp-mode.md) | ready | [L4a](ready/L4a-lamina-cli.md) |
 | L4d | [CLI distribution: release binaries with cargo-dist, Homebrew tap and an npm wrapper](ready/L4d-cli-distribution.md) | ready | [L4a](ready/L4a-lamina-cli.md), [P1](ready/P1-reserve-names-and-trusted-publishing.md) |
-| L5a | [Docs for agents: `llms.txt`, Markdown twins, docs shipped in the packages, `AGENTS.md` snippet, rename log and an agent-eval baseline](ready/L5a-agent-docs.md) | ready | [B7a](ready/B7a-docs-site.md), [L1b](done/L1b-error-contract-codegen.md) |
+| L5a | [Docs for agents: `llms.txt`, Markdown twins, docs shipped in the packages, `AGENTS.md` snippet, rename log and an agent-eval baseline](ready/L5a-agent-docs.md) | ready | [B7a](ongoing/B7a-docs-site.md), [L1b](done/L1b-error-contract-codegen.md) |
 | L6a | [`lamina-ffi` spike (start right after B5c): UniFFI over the façade, XCFramework and AARs, size report, ADR 0029](done/L6a-lamina-ffi-spike.md) | done | [B5c](done/B5c-lamina-facade-and-examples.md), [L1a](done/L1a-contract-adrs.md) |
 | L6b | [Mobile SDK plan: `LaminaView` (SwiftUI) and `LaminaViewer` (Compose), rounds and todos](ready/L6b-mobile-sdk-plan.md) | ready | [L6a](done/L6a-lamina-ffi-spike.md), [C2b](ongoing/C2b-lamina-render-crate.md), [U3b](ready/U3b-mobile-shell-spike.md) |
 
@@ -160,7 +160,7 @@ Ready todos whose dependencies are all done:
 | U4a | [Network indicator and CSP-backed privacy proof](ready/U4a-network-indicator-and-privacy-proof.md) | ready | [C4c](ready/C4c-remote-files-encryption-privacy.md), [U1c](ready/U1c-inverted-l-shell-and-modes.md) |
 | U4b | [Reader mode (reflow) from the structure tree](ready/U4b-reader-mode-from-structure-tree.md) | ready | [B8a](done/B8a-structure-tree.md), [C5a](ready/C5a-text-layer-and-selection.md), [U1c](ready/U1c-inverted-l-shell-and-modes.md), [U2b](done/U2b-reading-order-ground-truth.md) |
 | U4c | [Approximate reader mode for untagged PDFs](ready/U4c-approximate-reader-mode.md) | ready | [U4b](ready/U4b-reader-mode-from-structure-tree.md) |
-| U5a | [Pricing, promises and performance targets pages](ready/U5a-pricing-and-promises-page.md) | ready | [B7a](ready/B7a-docs-site.md), [C7c](ready/C7c-performance-gates-and-launch.md), [D7c](ready/D7c-desktop-beta-release.md) |
+| U5a | [Pricing, promises and performance targets pages](ready/U5a-pricing-and-promises-page.md) | ready | [B7a](ongoing/B7a-docs-site.md), [C7c](ready/C7c-performance-gates-and-launch.md), [D7c](ready/D7c-desktop-beta-release.md) |
 | U5b | [Reader benchmark: lamina vs other PDF readers](ready/U5b-reader-benchmark.md) | ready | [C7c](ready/C7c-performance-gates-and-launch.md), [D7c](ready/D7c-desktop-beta-release.md) |
 | U5c | [Opt-in, content-free usage telemetry](ready/U5c-opt-in-usage-telemetry.md) | ready | [C7c](ready/C7c-performance-gates-and-launch.md), [D7a](ready/D7a-crash-reporting.md) |
 | U6a | [`@lamina/tokens`: Paper design tokens, themes, page appearances and a contrast test](ready/U6a-paper-tokens.md) | ready | [U1a](ready/U1a-adr-0024-app-shell-ux.md) |

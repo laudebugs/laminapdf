@@ -80,7 +80,7 @@ None.
 ## Docs to update
 
 - [x] [pdf-library §10 B8](../../plans/pdf-library.md#10-to-dos): tick "Add structure-tree building"
-- [ ] Docs site guide stub "Accessible PDFs" (completed in [B8b](../ready/B8b-conformance-profiles-and-verapdf.md)): not written, there is no docs site yet ([B7a](../ready/B7a-docs-site.md) is still `ready`); B8b writes the page
+- [ ] Docs site guide stub "Accessible PDFs" (completed in [B8b](../ready/B8b-conformance-profiles-and-verapdf.md)): not written, there is no docs site yet ([B7a](../ongoing/B7a-docs-site.md) is still `ready`); B8b writes the page
 
 ## Risks and open questions
 

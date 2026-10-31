@@ -3,11 +3,11 @@
 | Field | Value |
 | --- | --- |
 | ID | `B7a` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [pdf-library §7 B7](../../plans/pdf-library.md#b7-docs-examples-and-first-release), [§6](../../plans/pdf-library.md#6-docs-examples-and-publishing) |
 | Round / milestone | Round B (library) — M1 |
 | Depends on | [B2b](../done/B2b-standard-security-decryption.md), [B6b](../done/B6b-lamina-pdf-package.md), [B6c](../done/B6c-runtime-matrix.md) |
-| Blocks | [B7b](./B7b-versioning-and-0-1-0-alpha.md), [L5a](./L5a-agent-docs.md), [U5a](./U5a-pricing-and-promises-page.md) |
+| Blocks | [B7b](../ready/B7b-versioning-and-0-1-0-alpha.md), [L5a](../ready/L5a-agent-docs.md), [U5a](../ready/U5a-pricing-and-promises-page.md) |
 | ADRs | Follows [0015](../../decisions/0015-monorepo-layout-and-tooling.md) (apps in the pnpm workspace), [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) (npm licences), 0016 (API names); Cloudflare deploy conventions until ADR 0011 (web C2) |
 | Branch | `docs/b7a-docs-site` |
 | PR title | `feat(docs): Starlight docs site with quick starts, guides and TypeDoc, deployed per PR` |
@@ -29,16 +29,16 @@ Publish usable documentation for `lamina` and `@lamina/pdf` before the first tag
 **In scope**
 
 - `apps/docs` (Astro + Starlight), in the pnpm workspace, Biome + typecheck in `cargo xtask check ts`.
-- Pages: Overview; Install (local tarball and path/git deps while unpublished — wording updated by [P2](./P2-first-registry-prerelease.md)); Quick start for browser/bundler, Node, Deno, Bun, Cloudflare Workers, Rust; Guides: fonts and text (shaping, scripts, fsType), images and vectors, links/outlines/labels/metadata, open/edit/save (`transact`, undo, save modes, `SaveConstraint`), encrypted files (password), errors and warnings (code table generated from `fixtures/codes.json`), limits; API: TypeDoc output for `@lamina/pdf` (via `starlight-typedoc` or a generated folder), link to rustdoc built by CI as an artefact; Examples gallery with source and output PDF.
+- Pages: Overview; Install (local tarball and path/git deps while unpublished — wording updated by [P2](../ready/P2-first-registry-prerelease.md)); Quick start for browser/bundler, Node, Deno, Bun, Cloudflare Workers, Rust; Guides: fonts and text (shaping, scripts, fsType), images and vectors, links/outlines/labels/metadata, open/edit/save (`transact`, undo, save modes, `SaveConstraint`), encrypted files (password), errors and warnings (code table generated from `fixtures/codes.json`), limits; API: TypeDoc output for `@lamina/pdf` (via `starlight-typedoc` or a generated folder), link to rustdoc built by CI as an artefact; Examples gallery with source and output PDF.
 - Code snippets imported from the example files (single source of truth), not copied.
 - Deploy: `wrangler` Workers static assets config `apps/docs/wrangler.toml`; GitHub workflow deploying a preview per PR (comment with URL) and production from `main` (domain TBD; workers.dev until the owner picks, architecture §8 Q3).
 - Link checking inside the site build (Starlight's) plus repo-wide [X1](../done/X1-docs-link-checker.md) if merged.
 
 **Out of scope** (and which todo covers it)
 
-- Changesets, tag, install verification: [B7b](./B7b-versioning-and-0-1-0-alpha.md).
-- PDF/UA and PDF/A guides: [B8b](./B8b-conformance-profiles-and-verapdf.md).
-- docs.rs publishing: [P2](./P2-first-registry-prerelease.md).
+- Changesets, tag, install verification: [B7b](../ready/B7b-versioning-and-0-1-0-alpha.md).
+- PDF/UA and PDF/A guides: [B8b](../ready/B8b-conformance-profiles-and-verapdf.md).
+- docs.rs publishing: [P2](../ready/P2-first-registry-prerelease.md).
 
 ## Tasks
 

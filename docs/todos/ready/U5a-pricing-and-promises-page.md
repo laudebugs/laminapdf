@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [UI/UX §6 U5. Product promises](../../plans/ui-ux.md#u5-product-promises) |
 | Round / milestone | Round U (UI/UX) — after M2 |
-| Depends on | [B7a](./B7a-docs-site.md), [C7c](./C7c-performance-gates-and-launch.md), [D7c](./D7c-desktop-beta-release.md) |
+| Depends on | [B7a](../ongoing/B7a-docs-site.md), [C7c](./C7c-performance-gates-and-launch.md), [D7c](./D7c-desktop-beta-release.md) |
 | Blocks | None |
 | ADRs | Follows 0011 (hosted service, privacy, telemetry) — the pricing page must agree with it |
 | Branch | `docs/u5a-pricing-and-promises` |
@@ -24,7 +24,7 @@ lamina will be priced (owner decision, 2026-10-29). The research found that user
 - [UI/UX plan §4 principle 10 and §5.9](../../plans/ui-ux.md#59-product-promises-r18-r19) — "priced, never hostile" and the fair-pricing rules.
 - [Research: monetisation](../../research/product/pdf-app-product-and-ux.md#monetisation-the-obsidian-template) — Obsidian (free core, paid services), Stirling-PDF's paid tiers, the GoodNotes/LiquidText/PDF Expert backlash after changed deals; Acrobat Studio's AI tier. The free-core model was considered and not chosen.
 - [UI/UX plan §5.6](../../plans/ui-ux.md#56-perceived-performance-r6-r7) — the targets table (desktop gates: cold start < 300 ms, installer < 15 MB).
-- [B7a](./B7a-docs-site.md) — the docs site these pages live on; [C7c](./C7c-performance-gates-and-launch.md) and [D7c](./D7c-desktop-beta-release.md) — the web launch and desktop beta they follow, so every promise and gate can be checked against shipped builds.
+- [B7a](../ongoing/B7a-docs-site.md) — the docs site these pages live on; [C7c](./C7c-performance-gates-and-launch.md) and [D7c](./D7c-desktop-beta-release.md) — the web launch and desktop beta they follow, so every promise and gate can be checked against shipped builds.
 - [Architecture §8 Q2](../../plans/architecture.md#8-open-questions-for-the-team) and [H2](./H2-accounts-and-login.md) — the hosted service and accounts, one possible way to check entitlements.
 
 ## Scope
