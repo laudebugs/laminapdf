@@ -12,14 +12,13 @@ New todos start from [`TEMPLATE.md`](TEMPLATE.md). The workflow is in [git workf
 
 IDs: `A`/`P`/`X` [architecture](../plans/architecture.md) (foundations, publishing, cross-cutting), `B` [library](../plans/pdf-library.md), `L` [shareable libraries](../plans/shareable-libraries.md) (contracts, worker, extraction, CLI, agent docs, mobile), `C` [web reader](../plans/web-app.md), `D` [desktop reader](../plans/desktop-app.md), `U` [UI/UX](../plans/ui-ux.md), `E` [editor](../plans/full-editor.md), `H` hosted service ([full-editor](../plans/full-editor.md)). A letter suffix (`B2a`, `B2b`) splits a round into PRs.
 
-**0 ongoing · 202 ready · 44 done** (246 total).
+**1 ongoing · 201 ready · 44 done** (246 total).
 
 ## Can start now
 
 Ready todos whose dependencies are all done:
 
 - [B7a](ready/B7a-docs-site.md): Docs site (`apps/docs`): Starlight, quick starts, guides and TypeDoc, with per-PR previews
-- [B9f](ready/B9f-live-text-differential.md): Live text differential in the nightly lane: lamina's page text vs pdf.js and pdftotext over the external corpus
 - [L2a](ready/L2a-worker-client.md): `@lamina/pdf/worker`: the async twin of the sync API, with typed RPC, version handshake, `AbortSignal`, transfer lists and progress
 - [L2b](ready/L2b-disposal-and-memory.md): Disposal and memory bounds: `Symbol.dispose` on every handle, `disposed` code, capped wasm memory, `reset()` and trap recovery
 - [L3a](ready/L3a-lamina-extract-reading-order.md): ADR 0030 and `lamina-extract`: blocks, reading order, headings, lists, header/footer removal, hidden-text flags
@@ -30,7 +29,7 @@ Ready todos whose dependencies are all done:
 
 ## Ongoing
 
-Nothing claimed right now.
+- [B9f](ongoing/B9f-live-text-differential.md): Live text differential in the nightly lane: lamina's page text vs pdf.js and pdftotext over the external corpus
 
 ## Architecture — Round A
 
@@ -73,7 +72,7 @@ Nothing claimed right now.
 | B9c | [`page.text()` in WASM and TypeScript; differential and quad tests; extraction fuzzing](done/B9c-text-extraction-bindings-and-differential.md) | done | [B6b](done/B6b-lamina-pdf-package.md), [B6c](done/B6c-runtime-matrix.md), [B9d](done/B9d-text-runs-quads-and-page-text.md) |
 | B9d | [Text extraction: glyph quads, runs with `ActualText` and MCIDs, `page.text()`](done/B9d-text-runs-quads-and-page-text.md) | done | [B9b](done/B9b-text-extraction-core.md) |
 | B9e | [Text extraction: a separator where the pen jumps back on a line](done/B9e-separators-at-backward-jumps.md) | done | [B9d](done/B9d-text-runs-quads-and-page-text.md), [U2b](done/U2b-reading-order-ground-truth.md) |
-| B9f | [Live text differential in the nightly lane: lamina's page text vs pdf.js and pdftotext over the external corpus](ready/B9f-live-text-differential.md) | ready | [B9c](done/B9c-text-extraction-bindings-and-differential.md), [X3a](done/X3a-nightly-lane.md) |
+| B9f | [Live text differential in the nightly lane: lamina's page text vs pdf.js and pdftotext over the external corpus](ongoing/B9f-live-text-differential.md) | ongoing | [B9c](done/B9c-text-extraction-bindings-and-differential.md), [X3a](done/X3a-nightly-lane.md) |
 
 ## Shareable libraries — Rounds L1–L6
 
