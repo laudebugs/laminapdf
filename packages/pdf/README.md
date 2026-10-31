@@ -127,7 +127,7 @@ const bytes = await doc.ensure(() => doc.save({ mode: "fullRewrite" })); // fetc
 - **CORS:** a `Range` header makes a cross-origin request preflighted. The server must answer with `Access-Control-Allow-Headers: Range` and expose `Content-Range`, `Content-Length` and `ETag` (`Access-Control-Expose-Headers`). It must not compress the response: `Content-Encoding` breaks byte ranges.
 - **`callbackSource(size, read)`:** any other random-access input (a `Blob`'s `slice`, a file handle, an IPC call).
 - **Options:** `signal` (for the open; aborting rejects and cancels its requests in flight; `ensure(f, { signal })` takes its own), `blockSize`, `readahead`, `budget` (the most bytes the document may hold; more is `source-budget-exceeded`) and `maxRounds`.
-- **Workers:** each `ensure` call can take several round trips. The worker client ([L2a](../../docs/todos/ready/L2a-worker-client.md)) will hide the loop behind its async API.
+- **Workers:** each `ensure` call can take several round trips. The worker client ([L2a](../../docs/todos/ongoing/L2a-worker-client.md)) will hide the loop behind its async API.
 - **Large local files in Rust:** `lamina-source`'s `FileSource` (positioned reads) or, for files nothing changes, `MmapSource` ([its README](../../crates/lamina-source/README.md)).
 
 ## Memory
