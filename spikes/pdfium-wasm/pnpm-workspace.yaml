@@ -1,0 +1,10 @@
+# Its own pnpm project, outside the root workspace (spikes are never imported; pnpm-workspace.yaml
+# at the root doesn't match spikes/). No lockfile is committed: it would pin the integrity of the
+# locally packed lamina tarballs, which change with every build. Direct dependencies are exact
+# versions in package.json; the README records the resolved toolchain. Install with
+# `pnpm --dir spikes/pdfium-wasm install` after `sh scripts/pack-lamina.sh`.
+packages: []
+
+# @lamina/pdf's tarball depends on @lamina/wasm 0.0.0, which isn't published: use the local one.
+overrides:
+  "@lamina/wasm": "file:vendor/lamina-wasm-0.0.0.tgz"

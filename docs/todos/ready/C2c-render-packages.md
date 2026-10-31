@@ -22,7 +22,7 @@ Give the browser the same `RenderBackend` contract the Rust crate has. `@lamina/
 ## Context
 
 - ADR 0004 (from [C2a](./C2a-render-adrs.md)) — which PDFium build, its hash and update policy; trait surface.
-- [C1b result](../ongoing/C1b-pdfium-wasm-spike.md) (`spikes/pdfium-wasm/README.md`) — loading strategy, input strategy (`File.slice()` custom access vs OPFS), measured sizes.
+- [C1b result](../done/C1b-pdfium-wasm-spike.md) (`spikes/pdfium-wasm/README.md`) — loading strategy, input strategy (`File.slice()` custom access vs OPFS), measured sizes.
 - [TypeScript guidelines](../../guidelines/typescript.md) — ESM-only, `exports` with `types` first, `sideEffects: false`, named exports, no Node APIs, Vitest; [modules and packaging](../../guidelines/typescript.md#modules-and-packaging).
 - [web-app.md §5](../../plans/web-app.md#5-design-summary) — packages list and optionality.
 - B6's `packages/pdf` and `crates/lamina-wasm` — copy their build, `init()` and size-budget patterns.
