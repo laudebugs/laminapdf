@@ -53,7 +53,7 @@ Prove, in a real browser worker, that PDFium-WASM and `lamina-wasm` can share on
 - [x] Claim via a claim PR (see Definition of done); then a fresh worktree `spike-c1b-pdfium-wasm` off the updated `main`.
 - [x] Check licences: `@embedpdf/pdfium` (MIT), PDFium (Apache-2.0 + third-party: FreeType FTL/BSD, libjpeg-turbo, OpenJPEG BSD-2, lcms2 MIT, zlib, ICU). List them in the README; confirm nothing GPL/AGPL is linked.
 - [x] Build B6 locally (`cargo xtask wasm`, `pnpm --filter @lamina/pdf build`) and depend on it from the spike by path or `pnpm pack` tarball.
-- [x] Create `spikes/pdfium-wasm/` with `package.json` (private), `index.html`, `src/main.ts` (file input, buttons, result table), `src/worker.ts` (loads both WASM modules), `src/bench.ts`, `scripts/make-fixtures.ts` (generates the 1,000-page PDF with `@lamina/pdf`), `playwright.config.ts`, `tests/bench.spec.ts`, `.gitignore` (large inputs, `out/`).
+- [x] Create `spikes/pdfium-wasm/` with `package.json` (private), `index.html`, `src/main.ts` (file input, buttons, result table), `src/worker.ts` (loads both WASM modules), `scripts/make-fixtures.ts` (generates the 1,000-page PDF with `@lamina/pdf`), `playwright.config.ts`, `tests/bench.spec.ts`, `.gitignore` (large inputs, `out/`). (Built as `.mjs` scripts and `tests/bench.spec.mjs`; the bench lives in `src/worker.ts`, and `scripts/summarise.mjs` prints the tables.)
 - [x] Worker: instantiate both modules with `WebAssembly.instantiateStreaming` in parallel; report instantiate time for each and combined; check for symbol or memory conflicts (two separate `WebAssembly.Memory` instances; record both sizes).
 - [x] Input path: from a `File`, avoid double copies — compare (a) `arrayBuffer()` then copy into each module, (b) PDFium custom file access (`FPDF_LoadCustomDocument` with a `getBlock` callback over `File.slice()`), (c) OPFS `createSyncAccessHandle` read by both. Record memory for each. (a) and (b) measured; (c) not built, listed under the README's limitations.
 - [x] Render: page → RGBA buffer in PDFium memory → `ImageData` → `createImageBitmap` → transfer to main thread → `drawImage`. Time each step at 1× and 2× DPR for page 1 and a mid page.
@@ -61,13 +61,13 @@ Prove, in a real browser worker, that PDFium-WASM and `lamina-wasm` can share on
 - [x] Reload after incremental save: implement the open → op → `save({ mode: "incremental" })` → reload-in-PDFium cycle; time the save, the copy, `FPDF_CloseDocument` + reload, and re-render; repeat with large inputs; record when the 4 GB wasm32 ceiling bites.
 - [x] Encrypted file: open `fixtures/corpus/enc.pdf` (and B2's encrypted fixtures) in both engines with the password; confirm both decrypt and that the password never leaves the worker. (enc.pdf in the corpus run; `r6-aes-256-user.pdf` with a non-ASCII password and `r4-aes-128-user.pdf` with a password.)
 - [x] Note what a threaded PDFium/lamina build would need (COOP/COEP, `crossOriginIsolated`), without building it.
-- [x] Run everything in Chromium, Firefox and WebKit through Playwright on the C1a machine; save `out/results.json`.
+- [x] Run everything in Chromium, Firefox and WebKit through Playwright on the C1a machine; save `out/results.json`. (Saved per browser as `out/results-<browser>.json`.)
 - [x] Write `spikes/pdfium-wasm/README.md`: question, setup, reproduce steps, results tables per browser, the reload numbers, memory per strategy, licences, limitations, and a **joint recommendation for ADR 0004 and ADR 0009** with C1a: which PDFium build to pin (and how to hash it), lazy-load strategy (start fetching on app load, in parallel with file selection), input strategy (`ByteSource` over `File.slice()` vs OPFS), reload strategy after edits, single-threaded baseline vs threaded variant, and whether the §4 budgets look achievable.
 - [x] Add the spike to `CLAUDE.md` (layout line) and mark `pdfium-wasm` done in [architecture §4](../../plans/architecture.md#4-spikes-to-close-open-questions).
 
 ## Acceptance criteria
 
-- [x] One worker loads both PDFium-WASM and `lamina-wasm` and renders page 1 of all three reference files in Chromium, Firefox and WebKit (Playwright run committed as `tests/bench.spec.ts`, passing).
+- [x] One worker loads both PDFium-WASM and `lamina-wasm` and renders page 1 of all three reference files in Chromium, Firefox and WebKit (Playwright run committed as `tests/bench.spec.mjs`, passing).
 - [x] README reports, on the same machine as C1a: bundle sizes (raw/gz/br) for each module, instantiate time, first-page-visible time for the 10-page 1 MB file (target context: ≤ 700 ms warm), per-page render median/p95, peak memory for the 1,000-page file scrolled through, and the reload-after-incremental-save timings for at least three input sizes.
 - [x] README compares at least two input strategies by peak memory.
 - [x] README states licences of every shipped component and confirms no GPL/AGPL code.
@@ -105,8 +105,7 @@ Only the Playwright benchmark spec in the spike (run by hand, not in CI). Smoke:
 
 ## Outcome
 
-- **Result:** [`spikes/pdfium-wasm/README.md`](../../../spikes/pdfium-wasm/README.md). One worker holds both engines in Chromium, Firefox and WebKit: about 30 ms to instantiate, page 1 of the 1 MB file in 17–44 ms cold and 7–10 ms warm. PDFium is 2.1 MB gzip, about 5.6 times lamina's base module.
-- **Reload:** PDFium reopens the saved bytes in milliseconds; lamina's save is the cost. Chromium's first large save in a fresh worker is about 10 times slower until V8 tiers up the code.
-- **Memory:** custom file access cuts the 100 MB scan from 95 + 237 MiB to 1 + 113 MiB. WebKit can't read a 500 MB file into one ArrayBuffer.
+- **Result:** [`spikes/pdfium-wasm/README.md`](../../../spikes/pdfium-wasm/README.md). One worker holds both engines in Chromium, Firefox and WebKit: about 30 ms to instantiate, page 1 of the 1 MB file in 17–62 ms cold and 6–19 ms warm. PDFium is 2.1 MB gzip, about 5.6 times lamina's base module.
+- **Reload:** PDFium reopens the saved bytes in milliseconds (custom access: `File` plus the appended revision, by ranges); lamina's save is the cost. It reads the whole base to hash `/ID` even for an appended-only save (a follow-up for the save API), and Chromium's first whole-output save is about 10 times slower until V8 tiers up the code.
+- **Memory:** custom file access cuts the 100 MB scan from 95 + 237 MiB (plus a JS copy) to 1 + 113 MiB. WebKit can't read a 500 MB file into one ArrayBuffer, but opens, saves and reloads it with custom access.
 - **Recommendation:** the joint one for ADRs 0004 and 0009 is the README's last section.
-

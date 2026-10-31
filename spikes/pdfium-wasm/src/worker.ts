@@ -33,8 +33,13 @@ async function boot(): Promise<Record<string, number>> {
     })(),
     (async () => {
       const t = performance.now();
-      const wasmBinary = await (await fetch(pdfiumWasmUrl)).arrayBuffer();
-      pdfium = await initPdfium({ wasmBinary });
+      // Streaming compile while the bytes download, as lamina's loader does.
+      pdfium = await initPdfium({
+        instantiateWasm: (imports: WebAssembly.Imports, done: (instance: WebAssembly.Instance) => void) => {
+          WebAssembly.instantiateStreaming(fetch(pdfiumWasmUrl), imports).then((r) => done(r.instance));
+          return {};
+        },
+      } as unknown as Parameters<typeof initPdfium>[0]);
       pdfium.PDFiumExt_Init();
       pdfiumMs = performance.now() - t;
     })(),
@@ -57,27 +62,36 @@ function pdfiumOpen(p: Pdfium, bytes: Uint8Array, password = ""): { doc: number;
 /**
  * Opens `file` in PDFium without copying it into the heap: FPDF_LoadCustomDocument with a
  * getBlock callback that reads File.slice() synchronously (FileReaderSync, workers only).
+ * Positions and the length are unsigned 32-bit on wasm32 (`unsigned long`): files up to 4 GiB.
  */
 function pdfiumOpenCustom(p: Pdfium, file: File, password = ""): { doc: number; release: () => void } {
   const reader = new FileReaderSync();
   const getBlock = p.pdfium.addFunction((_param: number, position: number, buf: number, size: number) => {
-    const chunk = new Uint8Array(reader.readAsArrayBuffer(file.slice(position, position + size)));
+    const start = position >>> 0;
+    const length = size >>> 0;
+    const chunk = new Uint8Array(reader.readAsArrayBuffer(file.slice(start, start + length)));
     new Uint8Array(heap(p).buffer, buf, chunk.length).set(chunk);
-    return chunk.length === size ? 1 : 0;
+    return chunk.length === length ? 1 : 0;
   }, "iiiii");
   // FPDF_FILEACCESS: m_FileLen (unsigned long), m_GetBlock, m_Param: 12 bytes on wasm32.
   const access = p.pdfium.wasmExports.malloc(12);
-  p.pdfium.setValue(access, file.size, "i32");
+  const free = () => {
+    p.pdfium.wasmExports.free(access);
+    p.pdfium.removeFunction(getBlock);
+  };
+  p.pdfium.setValue(access, file.size >>> 0, "i32");
   p.pdfium.setValue(access + 4, getBlock, "i32");
   p.pdfium.setValue(access + 8, 0, "i32");
   const doc = p.FPDF_LoadCustomDocument(access, password);
-  if (doc === 0) throw new Error(`PDFium could not open the file (FPDF_GetLastError ${p.FPDF_GetLastError()})`);
+  if (doc === 0) {
+    free();
+    throw new Error(`PDFium could not open the file (FPDF_GetLastError ${p.FPDF_GetLastError()})`);
+  }
   return {
     doc,
     release: () => {
       p.FPDF_CloseDocument(doc);
-      p.pdfium.wasmExports.free(access);
-      p.pdfium.removeFunction(getBlock);
+      free();
     },
   };
 }
@@ -138,120 +152,147 @@ interface BenchRequest {
   reload?: boolean;
 }
 
+/** A document open in both engines, each closable on its own. */
 interface Opened {
   pdfiumDoc: number;
   lamina: Document;
-  close: () => void;
+  /** The bytes the copy strategy read (kept until the reload, as an app would). */
+  bytes?: Uint8Array;
+  closePdfium: () => void;
 }
 
-async function openBoth(p: Pdfium, req: BenchRequest): Promise<Opened & { bytes?: Uint8Array }> {
-  const { file, password = "" } = req;
-  const options = password === "" ? {} : { password };
-  if (req.strategy === "custom") {
+/** Opens `file` in PDFium by `strategy` (whole copy, or custom access over the File). */
+function pdfiumBy(p: Pdfium, strategy: string, file: File, bytes: Uint8Array | undefined, password: string) {
+  if (strategy === "custom" || bytes === undefined) {
     const custom = pdfiumOpenCustom(p, file, password);
-    const read = (offset: number, length: number) =>
-      file.slice(offset, offset + length).arrayBuffer().then((b) => new Uint8Array(b));
-    const lamina = await Document.openRange(callbackSource(file.size, read), options);
-    return {
-      pdfiumDoc: custom.doc,
-      lamina,
-      close: () => {
-        custom.release();
-        lamina.free();
-      },
-    };
+    return { doc: custom.doc, close: custom.release };
   }
-  const bytes = new Uint8Array(await file.arrayBuffer());
-  const lamina = Document.open(bytes, options);
   const opened = pdfiumOpen(p, bytes, password);
   return {
-    pdfiumDoc: opened.doc,
-    lamina,
-    bytes,
+    doc: opened.doc,
     close: () => {
       p.FPDF_CloseDocument(opened.doc);
       p.pdfium.wasmExports.free(opened.ptr);
-      lamina.free();
     },
   };
+}
+
+async function openBoth(p: Pdfium, req: BenchRequest): Promise<Opened> {
+  const { file, password = "" } = req;
+  const options = password === "" ? {} : { password };
+  if (req.strategy === "custom") {
+    const read = (offset: number, length: number) =>
+      file.slice(offset, offset + length).arrayBuffer().then((b) => new Uint8Array(b));
+    const lamina = await Document.openRange(callbackSource(file.size, read), options);
+    try {
+      const pdf = pdfiumBy(p, "custom", file, undefined, password);
+      return { pdfiumDoc: pdf.doc, lamina, closePdfium: pdf.close };
+    } catch (e) {
+      lamina.free();
+      throw e;
+    }
+  }
+  // The copy strategy: one ArrayBuffer of the whole file in JS, then a copy in each module.
+  const bytes = new Uint8Array(await file.arrayBuffer());
+  const lamina = Document.open(bytes, options);
+  try {
+    const pdf = pdfiumBy(p, "copy", file, bytes, password);
+    return { pdfiumDoc: pdf.doc, lamina, bytes, closePdfium: pdf.close };
+  } catch (e) {
+    lamina.free();
+    throw e;
+  }
+}
+
+function maxMemory(a: Record<string, number>, b: Record<string, number>): Record<string, number> {
+  return Object.fromEntries([...new Set([...Object.keys(a), ...Object.keys(b)])].map((k) => [k, Math.max(a[k] ?? 0, b[k] ?? 0)]));
 }
 
 async function bench(id: number, req: BenchRequest): Promise<Record<string, unknown>> {
   const p = pdfium;
   if (p === undefined) throw new Error("boot first");
   const { password = "" } = req;
-  const result: Record<string, unknown> = {
-    file: req.file.name,
-    size: req.file.size,
-    strategy: req.strategy ?? "copy",
-    memoryBefore: memory(),
-  };
+  const strategy = req.strategy ?? "copy";
+  const result: Record<string, unknown> = { file: req.file.name, size: req.file.size, strategy, memoryBefore: memory() };
 
   // First page visible: the file in, both engines open, page 1 rendered and sent to the page.
   const t0 = performance.now();
   const opened = await openBoth(p, req);
-  const pages = await opened.lamina.ensure(() => opened.lamina.pageCount);
-  const first = await render(p, opened.pdfiumDoc, 0, 1);
-  result.firstPageInWorkerMs = performance.now() - t0;
-  self.postMessage({ id, first: true, bitmap: first.bitmap }, { transfer: [first.bitmap] });
-  result.pages = pages;
-  result.pdfiumPages = p.FPDF_GetPageCount(opened.pdfiumDoc);
-
-  // Page 1 and a middle page at 1× and 2× DPR.
-  const steps: Record<string, RenderTimes> = {};
-  for (const [name, index] of [["first", 0], ["middle", Math.floor(pages / 2)]] as const) {
-    for (const scale of [1, 2]) {
-      const r = await render(p, opened.pdfiumDoc, index, scale);
-      r.bitmap.close();
-      steps[`${name}@${scale}x`] = r.times;
-    }
-  }
-  result.steps = steps;
-
-  // Per-page render times: every page, or up to 50 spread across the document.
-  const sample = req.allPages ? pages : Math.min(pages, 50);
-  const times: number[] = [];
-  let peak = memory();
-  for (let k = 0; k < sample; k++) {
-    const index = req.allPages ? k : Math.floor((k * pages) / sample);
-    const r = await render(p, opened.pdfiumDoc, index, 1);
-    r.bitmap.close();
-    times.push(r.times.renderMs + r.times.copyMs + r.times.bitmapMs);
-    const now = memory();
-    peak = Object.fromEntries(Object.entries(now).map(([k2, v]) => [k2, Math.max(v, peak[k2] ?? 0)]));
-  }
-  result.renderMs = stats(times);
-  result.peakWasmMemory = peak;
-
-  // Reload after an incremental save: lamina edits and saves, PDFium reopens the new bytes.
-  if (req.reload && opened.bytes !== undefined) {
+  let closePdfium: (() => void) | undefined = opened.closePdfium;
+  try {
     const lamina = opened.lamina;
-    const r0 = performance.now();
-    lamina.transact((tx) => tx.setInfo({ title: "reloaded" }));
-    const saved = lamina.save({ mode: "incremental" });
-    const r1 = performance.now();
-    p.FPDF_CloseDocument(opened.pdfiumDoc);
-    const r2 = performance.now();
-    const reopened = pdfiumOpen(p, saved, password);
-    const r3 = performance.now();
-    const again = await render(p, reopened.doc, 0, 1);
-    again.bitmap.close();
-    const r4 = performance.now();
-    result.reload = {
-      savedBytes: saved.length,
-      appendedBytes: saved.length - opened.bytes.length,
-      saveMs: r1 - r0,
-      closeMs: r2 - r1,
-      copyAndReopenMs: r3 - r2,
-      rerenderMs: r4 - r3,
-      totalMs: r4 - r0,
-      memoryAfter: memory(),
-    };
-    p.FPDF_CloseDocument(reopened.doc);
-    p.pdfium.wasmExports.free(reopened.ptr);
-    lamina.free();
-  } else {
-    opened.close();
+    const pages = await lamina.ensure(() => lamina.pageCount);
+    const first = await render(p, opened.pdfiumDoc, 0, 1);
+    result.firstPageInWorkerMs = performance.now() - t0;
+    self.postMessage({ id, first: true, bitmap: first.bitmap }, { transfer: [first.bitmap] });
+    result.pages = pages;
+    result.pdfiumPages = p.FPDF_GetPageCount(opened.pdfiumDoc);
+
+    // Page 1 and a middle page at 1× and 2× DPR.
+    const steps: Record<string, RenderTimes> = {};
+    for (const [name, index] of [["first", 0], ["middle", Math.floor(pages / 2)]] as const) {
+      for (const scale of [1, 2]) {
+        const r = await render(p, opened.pdfiumDoc, index, scale);
+        r.bitmap.close();
+        steps[`${name}@${scale}x`] = r.times;
+      }
+    }
+    result.steps = steps;
+
+    // Per-page render times: every page, or up to 50 spread across the document.
+    const sample = req.allPages ? pages : Math.min(pages, 50);
+    const times: number[] = [];
+    let peak = memory();
+    for (let k = 0; k < sample; k++) {
+      const index = req.allPages ? k : Math.floor((k * pages) / sample);
+      const r = await render(p, opened.pdfiumDoc, index, 1);
+      r.bitmap.close();
+      times.push(r.times.renderMs + r.times.copyMs + r.times.bitmapMs);
+      peak = maxMemory(peak, memory());
+    }
+    result.renderMs = stats(times);
+    result.peakWasmMemory = peak;
+
+    // Reload after an incremental save: lamina edits and saves; PDFium closes and reopens the new
+    // bytes. Copy: the whole saved file, copied into PDFium's heap (the original copy freed
+    // first). Custom: only the appended revision, joined to the File as a Blob, read by ranges.
+    if (req.reload) {
+      const r0 = performance.now();
+      lamina.transact((tx) => tx.setInfo({ title: "reloaded" }));
+      const saved =
+        strategy === "custom"
+          ? await lamina.ensure(() => lamina.save({ mode: "incremental", output: "appendedOnly" }))
+          : lamina.save({ mode: "incremental" });
+      const r1 = performance.now();
+      let reloadPeak = memory();
+      closePdfium();
+      closePdfium = undefined;
+      const r2 = performance.now();
+      const next =
+        strategy === "custom"
+          ? new File([req.file, saved as Uint8Array<ArrayBuffer>], req.file.name, { type: "application/pdf" })
+          : req.file;
+      const reopened = pdfiumBy(p, strategy, next, strategy === "custom" ? undefined : saved, password);
+      closePdfium = reopened.close;
+      const r3 = performance.now();
+      reloadPeak = maxMemory(reloadPeak, memory());
+      const again = await render(p, reopened.doc, 0, 1);
+      again.bitmap.close();
+      const r4 = performance.now();
+      result.reload = {
+        savedBytes: saved.length,
+        appendedBytes: strategy === "custom" ? saved.length : saved.length - (opened.bytes?.length ?? 0),
+        saveMs: r1 - r0,
+        closeMs: r2 - r1,
+        copyAndReopenMs: r3 - r2,
+        rerenderMs: r4 - r3,
+        totalMs: r4 - r0,
+        peakWasmMemory: maxMemory(reloadPeak, memory()),
+      };
+    }
+  } finally {
+    closePdfium?.();
+    opened.lamina.free();
   }
   return result;
 }

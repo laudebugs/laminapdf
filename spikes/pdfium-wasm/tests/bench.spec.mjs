@@ -24,7 +24,14 @@ const runs = [
   // After a small save in the same worker: does Chromium's tiering (functions start in the baseline
   // compiler, optimised only after many calls) explain a slow first large save?
   { label: "reload 50 MB after a small save", jobs: [f("ten-page.pdf", { reload: true }), f("reload-50mb.pdf", { reload: true })] },
-  ...(large ? [{ label: "reload 500 MB", jobs: [f("reload-500mb.pdf", { reload: true })] }] : []),
+  // Custom access throughout: lamina saves only the appended revision; PDFium reopens File + appended by ranges.
+  { label: "reload 50 MB custom", jobs: [f("reload-50mb.pdf", { reload: true, strategy: "custom" })] },
+  ...(large
+    ? [
+        { label: "reload 500 MB", jobs: [f("reload-500mb.pdf", { reload: true })] },
+        { label: "reload 500 MB custom", jobs: [f("reload-500mb.pdf", { reload: true, strategy: "custom" })] },
+      ]
+    : []),
   {
     label: "encrypted",
     jobs: [
@@ -34,7 +41,8 @@ const runs = [
       f("encrypted-r4.pdf", { password: "user-pw" }),
     ],
   },
-  { label: "corpus", jobs: corpus.map((c) => f(`corpus/${c.name}`)) },
+  // One page per corpus file too, so a failing file can't skew the next one's memory.
+  ...corpus.map((c) => ({ label: `corpus ${c.name}`, jobs: [f(`corpus/${c.name}`)] })),
 ];
 
 test("both engines in one worker: boot, render, reload, input strategies", async ({ browser, browserName }) => {

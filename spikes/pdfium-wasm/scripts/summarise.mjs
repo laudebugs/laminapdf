@@ -95,6 +95,7 @@ out.push(
       ["scan-100mb, custom", "scan-100mb.pdf", "custom"],
       ["reload-50mb, copy", "reload-50mb.pdf", "copy"],
       ["reload-500mb, copy", "reload-500mb.pdf", "copy"],
+      ["reload-500mb, custom", "reload-500mb.pdf", "custom"],
     ].map(([label, file, strategy]) => [
       label,
       ...browsers.map((b) => {
@@ -127,13 +128,36 @@ out.push(
       ["reload-50mb, heap already grown by the 100 MB file", "reload-50mb.pdf", 1],
       ["reload-50mb, after a small save in the same worker", "reload-50mb.pdf", 2],
       ["reload-500mb", "reload-500mb.pdf"],
-    ].map(([label, file, index = 0]) => [
+      ["reload-50mb, custom (appended revision only, reopened by ranges)", "reload-50mb.pdf", 0, "custom"],
+      ["reload-500mb, custom", "reload-500mb.pdf", 0, "custom"],
+    ].map(([label, file, index = 0, strategy = "copy"]) => [
       label,
       ...browsers.map((b) => {
-        const r = find(b, file, "copy", index);
+        const r = find(b, file, strategy, index);
         if (r?.error) return `fails: ${r.error.split("\n")[0].replace(/^Error: page.evaluate: /, "")}`;
         const x = r?.reload;
         return x === undefined ? "—" : `${ms(x.saveMs)} / ${ms(x.closeMs)} / ${ms(x.copyAndReopenMs)} / ${ms(x.rerenderMs)} / **${ms(x.totalMs)}**`;
+      }),
+    ]),
+  ),
+);
+
+out.push("", "### Peak WebAssembly memory during the reload (MiB: lamina / PDFium, from the save to the re-render)", "");
+out.push(
+  table(
+    ["Input", ...browsers],
+    [
+      ["reload-50mb, copy", "reload-50mb.pdf", "copy"],
+      ["reload-50mb, custom", "reload-50mb.pdf", "custom"],
+      ["reload-500mb, copy", "reload-500mb.pdf", "copy"],
+      ["reload-500mb, custom", "reload-500mb.pdf", "custom"],
+    ].map(([label, file, strategy]) => [
+      label,
+      ...browsers.map((b) => {
+        const r = find(b, file, strategy);
+        if (r?.error) return "fails";
+        const p = r?.reload?.peakWasmMemory;
+        return p === undefined ? "—" : `${mb(p.base)} / ${mb(p.pdfium)} (appended ${(r.reload.appendedBytes / 1024).toFixed(1)} KiB)`;
       }),
     ]),
   ),

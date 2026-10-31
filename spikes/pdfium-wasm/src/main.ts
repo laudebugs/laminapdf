@@ -37,6 +37,14 @@ worker.onmessage = (event: MessageEvent) => {
   else p?.reject(new Error(error));
 };
 
+// A worker that dies (out of memory, a crash) settles every pending call instead of hanging it.
+const failAll = (reason: string) => {
+  for (const [, p] of pending) p.reject(new Error(reason));
+  pending.clear();
+};
+worker.onerror = (e) => failAll(`worker error: ${e.message}`);
+worker.onmessageerror = () => failAll("worker message could not be read");
+
 function call(type: string, payload?: unknown, onId?: (id: number) => void): Promise<unknown> {
   const id = next++;
   onId?.(id);
@@ -109,5 +117,5 @@ document.getElementById("run")?.addEventListener("click", async () => {
   const out = document.getElementById("out") as HTMLPreElement;
   out.textContent = "booting…";
   const boot = await spike.boot();
-  out.textContent = JSON.stringify({ boot, result: await bench(file, { reload: true }) }, null, 2);
+  out.textContent = JSON.stringify({ boot, result: await bench(file, {}) }, null, 2);
 });
