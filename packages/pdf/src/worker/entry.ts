@@ -6,7 +6,6 @@
 // are transferred. A WebAssembly trap is reported as a crash and ends the worker.
 import { Document, PageRef } from "../document.js";
 import { isDiagnostic, LaminaError, packageError } from "../errors.js";
-import type { ErrorCode } from "../generated/codes.js";
 import { init, loadExtract, loadText } from "../index.js";
 import { httpRangeSource } from "../source/http.js";
 import { PageText, rawOf } from "../text.js";
@@ -17,6 +16,7 @@ import {
   HANDSHAKE,
   type HandleRef,
   type Hello,
+  isHandleRef,
   type Request,
   type ToWorker,
 } from "./protocol.js";
@@ -54,17 +54,16 @@ function post(message: FromWorker, transfer: Transferable[] = []): void {
   scope.postMessage(message, transfer);
 }
 
-/** The ADR 0026 object for anything thrown. */
+/**
+ * The ADR 0026 object for anything thrown. Errors that aren't lamina's come from what the caller
+ * sent (an unknown method, a parameter or result the worker can't use or clone): the sync API
+ * would have taken them as a type error, so they are `invalid-argument`, with the original
+ * message.
+ */
 function diagnostic(e: unknown) {
   if (e instanceof LaminaError) return e.toJSON();
   if (isDiagnostic(e)) return e;
-  const message = e instanceof Error ? e.message : String(e);
-  return {
-    code: "invalid-argument" as ErrorCode,
-    kind: "usage" as const,
-    message,
-    docsUrl: "https://github.com/laudebugs/lamina/blob/main/docs/errors/invalid-argument.md",
-  };
+  return packageError("invalid-argument", e instanceof Error ? e.message : String(e)).toJSON();
 }
 
 function register(entry: Entry, fields?: Record<string, unknown>): HandleRef {
@@ -88,6 +87,17 @@ function outgoing(result: unknown): [unknown, Transferable[]] {
     return [result, [result.bytes.buffer]];
   }
   return [result, []];
+}
+
+/** Frees a document handle (and its pages), or a page handle. */
+function release(handle: number): void {
+  const entry = handles.get(handle);
+  if (entry === undefined) return;
+  handles.delete(handle);
+  if (entry.type === "document") {
+    for (const [h, e] of handles) if (e.type === "page" && e.document === handle) handles.delete(h);
+    entry.value.free();
+  }
 }
 
 async function stepSave(id: number, doc: Document, method: string, options: SaveOptions | undefined) {
@@ -160,9 +170,7 @@ async function documentCall(
 ) {
   const doc = entry.value;
   if (method === "close") {
-    for (const [h, e] of handles) if (e.type === "page" && e.document === handle) handles.delete(h);
-    handles.delete(handle);
-    doc.free();
+    release(handle);
     return undefined;
   }
   if (!Object.hasOwn(DOCUMENT_METHODS, method)) throw new TypeError(`Document has no remote method ${method}`);
@@ -203,7 +211,11 @@ async function execute(request: Request): Promise<void> {
           ? await documentCall(id, handle, entry, method, params)
           : await pageCall(entry, method, params);
     }
-    if (cancelled.has(id)) throw packageError("cancelled", "the call was cancelled");
+    if (cancelled.has(id)) {
+      // Nobody will hold a handle the cancelled call made (`openUrl` aborted mid-fetch): free it.
+      if (isHandleRef(result)) release(result.$handle);
+      throw packageError("cancelled", "the call was cancelled");
+    }
     const [value, transfer] = outgoing(result);
     post({ kind: "result", id, ok: true, result: value }, transfer);
   } catch (e) {
@@ -252,6 +264,7 @@ async function hello(message: Hello): Promise<void> {
     await init(message.init as Parameters<typeof init>[0]);
     ready = true;
     post({ kind: "welcome", worker: HANDSHAKE });
+    void drain();
   } catch (e) {
     post({ kind: "welcome", worker: HANDSHAKE, error: diagnostic(e) });
   }
@@ -267,9 +280,9 @@ scope.addEventListener("message", (event) => {
       cancelled.add((message as Cancel).id);
       return;
     case "call":
-      if (!ready) return;
+      // Calls before the handshake finished wait for it (hello() drains them).
       queue.push(message);
-      void drain();
+      if (ready) void drain();
       return;
   }
 });

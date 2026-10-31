@@ -169,6 +169,68 @@ describe("the worker client", () => {
   });
 });
 
+describe("the worker client's lifecycle", () => {
+  it("makes handles of a stopped worker disposed, and their close() a no-op", async () => {
+    const old = await client.open(await read("fixtures/corpus/hello.pdf"));
+    await client.restart();
+    await using fresh = await client.open(await read("fixtures/corpus/hello.pdf"));
+    const e = await rejection(old.pageCount());
+    expect(isLaminaError(e, "disposed")).toBe(true);
+    await old.close();
+    expect(await fresh.pageCount()).toBe(1);
+  });
+
+  it("serves a call made while restart() is still starting", async () => {
+    const restarting = client.restart();
+    const opened = client.open(await read("fixtures/corpus/hello.pdf"));
+    await restarting;
+    await using doc = await opened;
+    expect(await doc.pageCount()).toBe(1);
+  });
+
+  it("rejects calls after a failed restart instead of hanging", async () => {
+    const controller = new AbortController();
+    controller.abort();
+    expect(isLaminaError(await rejection(client.restart(controller.signal)), "cancelled")).toBe(true);
+    expect(isLaminaError(await rejection(client.loadText()), "worker-crashed")).toBe(true);
+    await client.restart();
+  });
+
+  it("doesn't fire crashed on terminate()", async () => {
+    const crashes: string[] = [];
+    const off = client.on("crashed", (reason) => crashes.push(reason));
+    client.terminate();
+    await client.restart();
+    off();
+    expect(crashes).toEqual([]);
+  });
+
+  it("rejects a parameter that can't be sent with invalid-argument, and keeps serving", async () => {
+    const e = await rejection(client.openUrl("https://example.invalid/a.pdf", { headers: { x: (() => {}) as never } }));
+    expect(isLaminaError(e, "invalid-argument")).toBe(true);
+    await using doc = await client.open(await read("fixtures/corpus/hello.pdf"));
+    expect(await doc.pageCount()).toBe(1);
+  });
+
+  it("closes twice without error", async () => {
+    const doc = await client.open(await read("fixtures/corpus/hello.pdf"));
+    await doc.close();
+    await doc.close();
+  });
+
+  it("frees the document of an openUrl aborted while it fetches", async () => {
+    const before = (await stats()).handles;
+    const path = "fixtures/corpus/text-example.pdf";
+    const url = new URL(urls[`../../../../${path}`] ?? "", globalThis.location.href).href;
+    const controller = new AbortController();
+    const opening = client.openUrl(url, { signal: controller.signal });
+    setTimeout(() => controller.abort(), 0);
+    expect(isLaminaError(await rejection(opening), "cancelled")).toBe(true);
+    // Calls run one at a time, so this answers after the aborted open has finished.
+    expect((await stats()).handles).toBe(before);
+  });
+});
+
 /** A test-only method of the worker (`__stats`, `__budget`, `__crash`). */
 function internal(method: string, params: unknown[] = []): Promise<unknown> {
   return (client as unknown as { call: (h: number, m: string, p: unknown[]) => Promise<unknown> }).call(

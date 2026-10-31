@@ -12,7 +12,7 @@
 | Branch | `feat/l2a-worker-client` |
 | PR title | `feat(pdf): @lamina/pdf/worker async client with typed RPC, version handshake and AbortSignal` |
 | Size | L (≈ 600–900 lines of TS + tests) |
-| PR | — |
+| PR | [#128](https://github.com/laudebugs/lamina/pull/128) |
 
 ## Goal
 

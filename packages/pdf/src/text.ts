@@ -96,10 +96,10 @@ export class TextRun {
   }
 }
 
-/** A page's extracted text: lines in reading order, and runs with their glyphs' quads. */
 /** @internal The raw arrays of a PageText (the worker client sends them, L2a). */
 export let rawOf: (text: PageText) => PageTextJs;
 
+/** A page's extracted text: lines in reading order, and runs with their glyphs' quads. */
 export class PageText {
   readonly #raw: PageTextJs;
   #runs: readonly TextRun[] | undefined;
