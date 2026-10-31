@@ -112,6 +112,17 @@ function closeBitmaps(value: unknown): void {
 
 type EventListener = (name: string, data: unknown) => void;
 
+/** Runs a listener; one that throws is reported (asynchronously) and doesn't stop the others. */
+function safely(f: () => void): void {
+  try {
+    f();
+  } catch (e) {
+    queueMicrotask(() => {
+      throw e;
+    });
+  }
+}
+
 interface Pending {
   readonly resolve: (value: unknown) => void;
   readonly reject: (error: unknown) => void;
@@ -263,7 +274,7 @@ export class WorkerClient {
         return;
       }
       case "event":
-        for (const listener of this.#events) listener(message.name, message.data);
+        for (const listener of this.#events) safely(() => listener(message.name, message.data));
         return;
       case "progress":
         this.#pending.get(message.id)?.onProgress?.(message.progress as Progress);
@@ -288,7 +299,7 @@ export class WorkerClient {
     const pending = [...this.#pending.values()];
     this.#pending.clear();
     for (const p of pending) p.reject(crashed("the worker stopped", reason));
-    if (notify) for (const listener of this.#listeners) listener(reason);
+    if (notify) for (const listener of this.#listeners) safely(() => listener(reason));
   }
 
   #crash(reason: string): void {

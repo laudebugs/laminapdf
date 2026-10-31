@@ -101,6 +101,8 @@ export class ViewerClient {
   #discarded = 0;
   /** Renders waiting to start, by coalescing key: their timers start on `render-start`. */
   readonly #waiting = new Map<string, Set<() => void>>();
+  /** The key the worker is drawing now: a render that joins it starts its timers at once. */
+  #drawing: string | undefined;
 
   private constructor(pdf: WorkerClient, options: ViewerOptions) {
     this.#pdf = pdf;
@@ -110,6 +112,7 @@ export class ViewerClient {
       if (name === "warning") this.#emit("warning", data as ViewerEvents["warning"]);
       else if (name === "render-start") {
         const started = data as ViewerEvents["render-start"];
+        this.#drawing = started.key;
         for (const start of this.#waiting.get(started.key) ?? []) start();
         this.#waiting.delete(started.key);
         this.#emit("render-start", started);
@@ -166,7 +169,16 @@ export class ViewerClient {
   }
 
   #emit<E extends ViewerEvent>(event: E, data: ViewerEvents[E]): void {
-    for (const listener of this.#listeners.get(event) ?? []) (listener as (d: ViewerEvents[E]) => void)(data);
+    for (const listener of this.#listeners.get(event) ?? []) {
+      // One listener that throws is reported and doesn't stop the others.
+      try {
+        (listener as (d: ViewerEvents[E]) => void)(data);
+      } catch (e) {
+        queueMicrotask(() => {
+          throw e;
+        });
+      }
+    }
   }
 
   /** A typed call: `method` and `params` are checked against `Methods`. */
@@ -235,8 +247,10 @@ export class ViewerClient {
    * Renders `request` as an ImageBitmap (close it when done). Identical requests in flight are
    * drawn once. An aborted render rejects with `AbortError` and never paints.
    */
-  render(request: RenderRequest, options: ViewerCallOptions = {}): Promise<RenderedBitmap> {
+  async render(request: RenderRequest, options: ViewerCallOptions = {}): Promise<RenderedBitmap> {
     const id = this.#nextRender++;
+    // A restarted worker numbers its documents again: read the ID once it serves.
+    if (this.#recovering !== undefined) await this.#recovering.catch(() => {});
     // 0 names no document: the worker answers `disposed`.
     const documentId = this.#document?.id ?? 0;
     const needsPassword = this.#document?.needsPassword === true;
@@ -256,14 +270,19 @@ export class ViewerClient {
       waiting = new Set();
       this.#waiting.set(key, waiting);
     }
-    waiting.add(start);
-    return this.call("render", [request, documentId], { ...options, key }).finally(() => {
+    // Joining a render already being drawn: its render-start has passed.
+    if (this.#drawing === key) start();
+    else waiting.add(start);
+    try {
+      return await this.call("render", [request, documentId], { ...options, key });
+    } finally {
       const set = this.#waiting.get(key);
       set?.delete(start);
       if (set?.size === 0) this.#waiting.delete(key);
+      if (this.#drawing === key) this.#drawing = undefined;
       clearTimeout(soft);
       clearTimeout(hard);
-    });
+    }
   }
 
   /**

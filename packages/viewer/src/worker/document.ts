@@ -2,7 +2,7 @@
 // Document for the model (page sizes, warnings, later text and structure) and a RenderDocument
 // for pixels, both opened from the same bytes. The password is used here and kept nowhere else.
 import { Document, isLaminaError } from "@lamina/pdf";
-import { emit } from "@lamina/pdf/worker/server";
+import { emit, yieldToMessages } from "@lamina/pdf/worker/server";
 import { bytesSource, type RenderBackend, type RenderDocument } from "@lamina/render";
 import { initHayro } from "@lamina/render-hayro";
 import { initPdfium } from "@lamina/render-pdfium";
@@ -63,6 +63,7 @@ export async function openDocument(
   const { password, limits, renderLimits } = options;
   const withLimits = limits === undefined ? {} : { limits };
   // Whether the file needs the password: a restarted worker can reopen it without one only if not.
+  // Trying without it first is cheap: opening reads the cross-reference table, not the file.
   let needsPassword = false;
   let model: Document;
   try {
@@ -81,6 +82,14 @@ export async function openDocument(
   } catch (e) {
     model.free();
     throw e;
+  }
+  // A cancel sent while the synchronous opens ran is only read now: an aborted open must not
+  // replace the document the page still thinks is open.
+  await yieldToMessages();
+  if (signal.aborted) {
+    render.close();
+    model.free();
+    throw { code: "cancelled", kind: "cancelled", message: "the open was cancelled" };
   }
   // The new pair is open: only now is the previous document closed, so a failed open (a wrong
   // password, a broken file) leaves it working.

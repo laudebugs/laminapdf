@@ -239,6 +239,31 @@ describe("documents", () => {
     expect(isLaminaError(await stale, "disposed")).toBe(true);
   });
 
+  it("keeps the open document when an open is aborted while it runs", async () => {
+    const client = await track(viewer());
+    const first = await client.open(await read("fixtures/corpus/hello.pdf"));
+    const controller = new AbortController();
+    const opening = rejection(
+      client.open(await read("fixtures/corpus/text-example.pdf"), {}, { signal: controller.signal }),
+    );
+    // The cancel crosses while the worker opens synchronously.
+    queueMicrotask(() => controller.abort());
+    expect(isAbort(await opening)).toBe(true);
+    expect(client.document?.id).toBe(first.id);
+    (await client.render({ page: 0, scale: 0.5 })).bitmap.close();
+  });
+
+  it("renders the reopened document when asked during a restart", async () => {
+    const client = await track(viewer());
+    await client.open(await read("fixtures/corpus/hello.pdf"));
+    await client.open(await read("fixtures/corpus/fpdf2.pdf"));
+    const restarted = next(client, "restarted");
+    await rejection(client.call("__crash", []));
+    const render = client.render({ page: 0, scale: 0.5 });
+    await restarted;
+    (await render).bitmap.close();
+  });
+
   it("only reports needsPassword for a file that can't open without it", async () => {
     const client = await track(viewer());
     expect((await client.open(await read("fixtures/corpus/hello.pdf"), { password: "unused" })).needsPassword).toBe(

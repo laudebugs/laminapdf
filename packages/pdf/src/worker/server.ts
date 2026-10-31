@@ -144,17 +144,28 @@ function whole(view: ArrayBufferView): ArrayBuffer[] {
     : [];
 }
 
-/** Lets queued messages (a `cancel`) in, without the 4 ms clamp of nested `setTimeout`s. */
-function yieldToMessages(): Promise<void> {
+/** One channel for every yield, and the yields waiting on it (in order). */
+let yieldChannel: MessageChannel | undefined;
+const yielding: (() => void)[] = [];
+
+/**
+ * Lets queued messages (calls, a `cancel`) in, without the 4 ms clamp of nested `setTimeout`s.
+ * Exported for extensions whose methods must notice a cancel before committing a change.
+ */
+export function yieldToMessages(): Promise<void> {
+  if (yieldChannel === undefined) {
+    yieldChannel = new MessageChannel();
+    yieldChannel.port1.onmessage = () => yielding.shift()?.();
+  }
+  const channel = yieldChannel;
   return new Promise((resolve) => {
-    const channel = new MessageChannel();
-    channel.port1.onmessage = () => {
-      channel.port1.close();
-      resolve();
-    };
+    yielding.push(resolve);
     channel.port2.postMessage(null);
   });
 }
+
+/** The client methods the worker itself serves; an extension can't reuse their names. */
+const BUILT_IN = new Set(["open", "openUrl", "loadText", "loadExtract", "__budget", "__stats", "__crash"]);
 
 function register(entry: Entry, fields?: Record<string, unknown>): HandleRef {
   const handle = nextHandle++;
@@ -321,7 +332,7 @@ function pageCall(
 
 /** The extension method `request` calls, if it is one (it may build a reply per caller). */
 function extensionMethod(request: Request): ExtensionMethod | undefined {
-  return request.handle === 0 && Object.hasOwn(extension.methods, request.method)
+  return request.handle === 0 && !BUILT_IN.has(request.method) && Object.hasOwn(extension.methods, request.method)
     ? extension.methods[request.method]
     : undefined;
 }
@@ -359,15 +370,21 @@ async function execute(job: Job): Promise<void> {
     const own = extensionMethod(job.first);
     const waiters = [...job.waiters];
     for (const [i, w] of waiters.entries()) {
-      let value: unknown;
-      let transfer: Transferable[];
-      if (own?.reply !== undefined) [value, transfer] = await own.reply(result);
-      else {
-        [value, transfer] = outgoing(result);
-        // One set of buffers: transferred to the last caller, copied to the others.
-        if (i < waiters.length - 1) transfer = [];
+      // Each caller's answer on its own: a reply that fails (createImageBitmap out of memory)
+      // fails only that caller, and those already answered aren't answered twice.
+      try {
+        let value: unknown;
+        let transfer: Transferable[];
+        if (own?.reply !== undefined) [value, transfer] = await own.reply(result);
+        else {
+          [value, transfer] = outgoing(result);
+          // One set of buffers: transferred to the last caller, copied to the others.
+          if (i < waiters.length - 1) transfer = [];
+        }
+        post({ kind: "result", id: w.id, ok: true, result: value }, transfer);
+      } catch (e) {
+        post({ kind: "result", id: w.id, ok: false, error: diagnostic(e) });
       }
-      post({ kind: "result", id: w.id, ok: true, result: value }, transfer);
     }
   } catch (e) {
     if (e instanceof WebAssembly.RuntimeError) {
@@ -413,11 +430,14 @@ function call(request: Request): void {
   const { key } = request;
   const priority = request.priority ?? 0;
   if (key !== undefined) {
-    if (current?.first.key === key && !current.controller.signal.aborted) {
+    // Same key, method and handle: a key from one method never answers another's call.
+    const same = (j: Job) =>
+      j.first.key === key && j.first.method === request.method && j.first.handle === request.handle;
+    if (current !== undefined && same(current) && !current.controller.signal.aborted) {
       current.waiters.push(request);
       return;
     }
-    const queued = queue.find((j) => j.first.key === key);
+    const queued = queue.find(same);
     if (queued !== undefined) {
       queued.waiters.push(request);
       if (priority > queued.priority) {
@@ -492,8 +512,13 @@ let serving = false;
  */
 export function serve(ext?: ServerExtension): void {
   if (serving) throw packageError("invalid-argument", "serve() was already called in this worker");
+  if (ext !== undefined) {
+    const clash = Object.keys(ext.methods).find((m) => BUILT_IN.has(m));
+    if (clash !== undefined)
+      throw packageError("invalid-argument", `an extension can't redefine the built-in method ${clash}`);
+    extension = ext;
+  }
   serving = true;
-  if (ext !== undefined) extension = ext;
   scope.addEventListener("message", (event) => {
     const message = event.data;
     switch (message.kind) {
