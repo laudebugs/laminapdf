@@ -13,6 +13,16 @@
           }
         }
       }
+    },
+    {
+      "includes": ["astro.config.mjs", "plugins/**"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedGlobals": "off"
+          }
+        }
+      }
     }
   ]
 }

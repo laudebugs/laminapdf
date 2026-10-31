@@ -1,0 +1,28 @@
+---
+import { getCollection } from "astro:content";
+// One page per error and warning code: docs/errors/<code>.md (the page each code's docsUrl
+// names in the repository), rendered on the site. plugins/error-pages.mjs points its links to other
+// codes at their pages here and drops links to repository files the site doesn't have.
+import StarlightPage from "@astrojs/starlight/components/StarlightPage.astro";
+import codes from "../../../../../../fixtures/codes.json";
+import { errorPageHtml } from "../../../../plugins/error-pages.mjs";
+
+export async function getStaticPaths() {
+  const pages = await getCollection("errors");
+  return pages.map((entry) => ({ params: { code: entry.id }, props: { entry } }));
+}
+
+const { entry } = Astro.props;
+const html = errorPageHtml(entry.rendered?.html ?? "");
+const headings = (entry.rendered?.metadata?.headings ?? []).filter((h) => h.depth > 1);
+const summary = Object.values(codes as Record<string, unknown>)
+  .flatMap((group) => (Array.isArray(group) ? group : []))
+  .find((e) => typeof e === "object" && e !== null && (e as { code?: unknown }).code === entry.id) as
+  | { summary: string }
+  | undefined;
+---
+
+<StarlightPage frontmatter={{ title: entry.id, description: summary?.summary ?? `The ${entry.id} code` }} headings={headings}>
+  <p><a href="/reference/codes/">All codes</a></p>
+  <Fragment set:html={html} />
+</StarlightPage>

@@ -2,7 +2,7 @@
 
 A platform for anything and everything PDF — creating, reading, rendering, editing, filling, signing and transforming PDF documents from code.
 
-> **Status:** foundations. Research is done and the first architecture decisions are accepted ([ADRs](docs/decisions/README.md)); Round A is under way: the monorepo skeleton (Cargo + pnpm workspaces, `cargo xtask`, CI) is in place, and the first core crates exist: `lamina-syntax` and `lamina-cos` (reading and writing PDF file structure, ported from the research spike), `lamina-model` (typed views and stable IDs), `lamina-ops` (typed edits with transactions and undo) and `lamina-content` (a read-only content-stream interpreter). No packages or apps yet.
+> **Status:** early, nothing published yet. The core crates read, edit, save and generate PDFs (`lamina-syntax`, `lamina-cos`, `lamina-model`, `lamina-ops`, `lamina-save`, `lamina-content`, `lamina-text`, `lamina-build`), behind the `lamina` façade. Its WebAssembly build (`@lamina/wasm`) and the TypeScript API over it (`@lamina/pdf`) are private packages, and the docs site is the first app (`apps/docs`). Decisions are recorded as [ADRs](docs/decisions/README.md); the plans and the todo board are in [`docs/`](docs/README.md).
 
 ## Documentation
 

@@ -1,8 +1,10 @@
 ---
 // Every error and warning code, read from fixtures/codes.json at build time (ADR 0026 §3): one
-// table per group, in the file's order. A group added to codes.json (any key the schema's
-// `^(warnings|errors|[a-z][A-Za-z]*(Errors|Warnings))$` matches) appears without a change here.
+// table per group, in the file's order. A group added to codes.json (any key matching the
+// schema's group pattern, read from fixtures/codes.schema.json) appears without a change here.
+// Each code links to its page on this site (/reference/codes/<code>/, from docs/errors/).
 import codes from "../../../../fixtures/codes.json";
+import schema from "../../../../fixtures/codes.schema.json";
 
 interface Entry {
   readonly code: string;
@@ -12,8 +14,9 @@ interface Entry {
   readonly since: string;
 }
 
-const GROUP = /^(warnings|errors|[a-z][A-Za-z]*(Errors|Warnings))$/;
-const { base, suffix } = codes.docsUrl;
+const patterns = Object.keys(schema.patternProperties);
+if (patterns.length !== 1) throw new Error("codes.schema.json: expected one group pattern in patternProperties");
+const GROUP = new RegExp(patterns[0] ?? "");
 
 /** `textWarnings` → "Text warnings", `warnings` → "Warnings". */
 function title(key: string): string {
@@ -43,7 +46,7 @@ const groups = Object.entries(codes as Record<string, unknown>)
           {g.entries.map((e) => (
             <tr>
               <td>
-                <a href={`${base}${e.code}${suffix}`}>
+                <a href={`/reference/codes/${e.code}/`}>
                   <code>{e.code}</code>
                 </a>
               </td>
