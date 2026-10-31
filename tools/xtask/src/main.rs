@@ -156,9 +156,10 @@ tasks:
                     and say whether any is code (not docs); sets `code` in $GITHUB_OUTPUT
                     (default base: origin/main, or main when there is no origin/main)
   version sync [--check]
-                    copy the npm fixed group's version (@laminapdf/wasm, @laminapdf/pdf; Changesets)
-                    into [workspace.package] version, the internal [workspace.dependencies],
-                    every tracked Cargo.lock and CHANGELOG.md (ADR 0017); --check only verifies
+                    copy the npm fixed group's version (`fixed` in .changeset/config.json;
+                    every member must agree) into [workspace.package] version, the internal
+                    [workspace.dependencies], every tracked Cargo.lock, CHANGELOG.md and
+                    packages/pdf/src/version.ts (ADR 0017); --check only verifies
                     (and that every member crate has version.workspace = true)
   version check-tag <tag>
                     fail unless <tag> is v<version> (the release lane)
