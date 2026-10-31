@@ -44,7 +44,7 @@ Prove, in a real browser worker, that PDFium-WASM and `lamina-wasm` can share on
 **Out of scope** (and which todo covers it)
 
 - hayro fidelity → [C1a](../done/C1a-hayro-parity-spike.md).
-- Product RPC, virtualiser, canvas pool → [C3a](../ready/C3a-viewer-worker-rpc.md), [C3b](../ready/C3b-viewer-virtualiser-and-zoom.md).
+- Product RPC, virtualiser, canvas pool → [C3a](../ongoing/C3a-viewer-worker-rpc.md), [C3b](../ready/C3b-viewer-virtualiser-and-zoom.md).
 - Writing ADRs 0004/0009 → [C2a](../done/C2a-render-adrs.md).
 - The threaded (SharedArrayBuffer) build in production; only noted as an option here.
 

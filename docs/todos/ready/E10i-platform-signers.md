@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [full-editor §E10](../../plans/full-editor.md#e10-signatures) |
 | Round / milestone | Editor phase 5 (E8–E10) — M8 Forms and signing |
-| Depends on | [C3a](./C3a-viewer-worker-rpc.md), [D2c](./D2c-engine-sandbox.md), [E10d](./E10d-pades-signing-core.md) |
+| Depends on | [C3a](../ongoing/C3a-viewer-worker-rpc.md), [D2c](./D2c-engine-sandbox.md), [E10d](./E10d-pades-signing-core.md) |
 | Blocks | [E10j](./E10j-signature-ui.md), [E11e](./E11e-public-key-security.md) |
 | Dependency notes | [E10d](E10d-pades-signing-core.md) (`Signer` trait), [D2c](D2c-engine-sandbox.md) (the engine sandbox policy that must allow keychain/CNG/NSS and PKCS#11 module access), [C3a](C3a-viewer-worker-rpc.md) (the web worker that holds WebCrypto keys) |
 | ADRs | Implements ADR 0020; Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
