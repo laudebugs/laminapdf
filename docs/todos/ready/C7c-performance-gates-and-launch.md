@@ -41,7 +41,7 @@ Ship **web v0.1**. Turn the §4 performance targets into CI gates (app-shell siz
 **Out of scope** (and which todo covers it)
 
 - Publishing `@lamina/*` packages to npm (stays local; [architecture: Publishing (later)](../../plans/architecture.md#publishing-later)).
-- Domain purchase/naming if still open ([web-app §8 Q1](../../plans/web-app.md#8-open-questions)) — owner action; launch can use the workers.dev hostname if needed.
+- Product naming if still open ([web-app §8 Q1](../../plans/web-app.md#8-open-questions)); the domain is `laminapdf.com`.
 - Accounts/login (hosted-service rounds after the `auth` spike).
 
 ## Tasks
@@ -87,7 +87,7 @@ Size-budget script unit tests; release-lane perf gates (C3c harness); Lighthouse
 ## Risks and open questions
 
 - **Reference machine for runtime gates**: GitHub-hosted runners are noisy; a self-hosted runner or a fixed large runner is needed for gating; until then, gates run manually on the maintainer's reference machine and results are attached (decide with the owner).
-- **Domain** question ([§8](../../plans/web-app.md#8-open-questions) Q1) must be settled before launch copy is final; telemetry (Q3) is settled: none in v0.1.
+- **Domain** is settled (`laminapdf.com`, [§8](../../plans/web-app.md#8-open-questions) Q1); telemetry (Q3) is settled: none in v0.1.
 - **Pricing status at launch**: lamina will be priced (owner decision 2026-10-29), but the pricing page ([U5a](./U5a-pricing-and-promises-page.md)) follows the launch. So that later tiers aren't a changed deal ([UI/UX principle 10](../../plans/ui-ux.md#4-principles)), the owner states before launch what v0.1 is (for example a free preview, or the free tier) and the launch copy says that lamina will be a paid product.
 - **Safari/iPadOS** issues found late may force waivers; budget a stabilisation week before tagging.
 

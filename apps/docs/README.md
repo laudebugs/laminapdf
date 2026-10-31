@@ -41,7 +41,7 @@ The example PDFs drop the CSP, so the browser's PDF viewer can open them. PR pre
 
 ## Deploying
 
-`wrangler.toml` is the Worker `lamina-docs`: static assets only, no script, `preview_urls` on, workers.dev until the owner picks a domain. `.github/workflows/docs.yml` deploys it. It runs for changes to the site or anything it's built from (`apps/docs/`, `packages/pdf/`, the Rust examples and their goldens, `codes.json` and its schema, `docs/errors/`, the workspace's `package.json`, lockfile, `pnpm-workspace.yaml`, `tsconfig.base.json` and `.nvmrc`):
+`wrangler.toml` is the Worker `lamina-docs`: static assets only, no script, served at **https://docs.laminapdf.com** (a Workers custom domain) with `preview_urls` on for the per-PR previews on workers.dev. `.github/workflows/docs.yml` deploys it. It runs for changes to the site or anything it's built from (`apps/docs/`, `packages/pdf/`, the Rust examples and their goldens, `codes.json` and its schema, `docs/errors/`, the workspace's `package.json`, lockfile, `pnpm-workspace.yaml`, `tsconfig.base.json` and `.nvmrc`):
 
 - **`preview-build`** (pull requests): builds the PR's site with no secrets and uploads `dist/` as an artifact.
 - **`preview-deploy`** (pull requests): holds the secrets and never checks out or runs PR code. It reads `wrangler.toml` and the Wrangler version from the default branch, installs that exact Wrangler with `npx` into a fresh npm cache, and uploads the artifact as a preview version (`--preview-alias pr-<n>`). Then it posts one comment with the URL and updates it on each push. It skips with a notice until the default branch has `apps/docs/wrangler.toml`.
@@ -54,8 +54,10 @@ The example PDFs drop the CSP, so the browser's PDF viewer can open them. PR pre
    - **Account → Workers Scripts → Edit**: uploads versions and deploys the Worker, including its workers.dev route and preview URLs.
    - **Account → Account Settings → Read**: lets Wrangler read the account it deploys to.
 
-   Scope it to the one account (Account Resources → Include → that account). No zone permissions are needed until a custom domain is added. Optionally, set a TTL and restrict client IPs.
+   - **Zone → Workers Routes → Edit** on the `laminapdf.com` zone (Zone Resources → Include → Specific zone): attaches the custom domain `docs.laminapdf.com`.
+
+   Scope it to the one account (Account Resources → Include → that account). Optionally, set a TTL and restrict client IPs.
 2. Add two repository secrets (Settings → Secrets and variables → Actions): `CLOUDFLARE_API_TOKEN` (the token) and `CLOUDFLARE_ACCOUNT_ID` (the account ID, shown on the account's Workers overview page).
 3. After this site is on `main`, run the **Docs site** workflow there once (Actions → Docs site → Run workflow). The first `wrangler deploy` creates the Worker, and previews need it to exist. The account also needs a workers.dev subdomain, which the dashboard asks for on first use of Workers.
 4. When the repository becomes public, set `LAMINA_DOCS_GITHUB: "1"` in the workflow's `env` so the site links to GitHub.
-5. Later, to use a custom domain: put the zone on Cloudflare, add a `routes = [{ pattern = "docs.<domain>", custom_domain = true }]` entry to `wrangler.toml`, and give the token **Zone → Workers Routes → Edit** on that zone.
+5. The custom domain: `laminapdf.com` is a zone on the same Cloudflare account, and `wrangler.toml` routes `docs.laminapdf.com` to the Worker (`custom_domain = true`). The next production deploy creates the DNS record and certificate; it fails if the token lacks the zone permission above or if a DNS record for `docs` already exists (delete it first, or attach the domain once in the dashboard: Worker → Settings → Domains & Routes).

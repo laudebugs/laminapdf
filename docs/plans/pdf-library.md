@@ -158,7 +158,7 @@ Node support follows the LTS lines current at each release. On 2026-10-28, Node 
 
 ## 6. Docs, examples and publishing
 
-- **Docs site** (recommendation): Starlight (MIT) in `apps/docs`, deployed to Workers static assets at `docs.<domain>`, with TypeDoc output for `@lamina/pdf`; Rust API docs on docs.rs. Every public item documented (`missing_docs` denied).
+- **Docs site** (recommendation): Starlight (MIT) in `apps/docs`, deployed to Workers static assets at `docs.laminapdf.com`, with TypeDoc output for `@lamina/pdf`; Rust API docs on docs.rs. Every public item documented (`missing_docs` denied).
 - **Examples**: `examples/` in the façade crate (`cargo run --example invoice`) and a TS examples folder run as tests. Minimum set: hello world, invoice, multilingual (Latin + Arabic + Devanagari + CJK), images and vectors, links and outlines, Worker endpoint, PDF/UA report, PDF/A archive, "generate then edit".
 - **Publishing (deferred, decided 2026-10-28)**: crates and npm packages stay local for now. Consumers use workspace/path dependencies, git dependencies or `pnpm pack` tarballs. When the owner decides to publish: reserve names, first manual crates.io publish then trusted-only, npm via OIDC with provenance, GitHub artifact attestations for `.wasm`, `0.x` pre-releases with a written stability policy ([architecture: Publishing (later)](architecture.md#publishing-later)).
 
@@ -210,7 +210,7 @@ Architecture Round B is delivered as rounds B1–B9, each split into todos (one 
 
 ### B7. Docs, examples and first release
 
-**Todos:** [B7a](../todos/done/B7a-docs-site.md) (docs site; done), [B7b](../todos/ongoing/B7b-versioning-and-0-1-0-alpha.md) (Changesets, ADR 0017, local `0.1.0-alpha.0`); publishing later: [P1](../todos/ready/P1-reserve-names-and-trusted-publishing.md), [P2](../todos/ready/P2-first-registry-prerelease.md).
+**Todos:** [B7a](../todos/done/B7a-docs-site.md) (docs site; done), [B7c](../todos/done/B7c-docs-custom-domain.md) (`docs.laminapdf.com`; done), [B7b](../todos/ongoing/B7b-versioning-and-0-1-0-alpha.md) (Changesets, ADR 0017, local `0.1.0-alpha.0`); publishing later: [P1](../todos/ready/P1-reserve-names-and-trusted-publishing.md), [P2](../todos/ready/P2-first-registry-prerelease.md).
 
 **Deliverable:** `apps/docs` site; examples; Changesets with Cargo version sync; ADR 0017 (versioning; publishing part deferred); `0.1.0-alpha.0` versioned and tagged, **not published**.
 **Accepted when:** docs deploy on a preview URL per PR; a fresh project outside the repo installs the packed tarballs (`pnpm pack`) and a git/path dependency on the `lamina` crate, and runs the quick start in each runtime.
@@ -323,6 +323,7 @@ Each round's todos (one per PR, with dependencies) are linked from [§7](#7-roun
 
 - [x] Create `apps/docs` (Starlight) with quick start per runtime, guides and TypeDoc API ([B7a](../todos/done/B7a-docs-site.md))
 - [x] Deploy docs to Workers static assets with per-PR preview URLs ([B7a](../todos/done/B7a-docs-site.md): `.github/workflows/docs.yml`; it deploys once the owner adds the Cloudflare secrets, `apps/docs/README.md`)
+- [x] Serve the docs at `docs.laminapdf.com` and fill in the domain everywhere ([B7c](../todos/done/B7c-docs-custom-domain.md))
 - [ ] Add Changesets and the Cargo version-sync script; write ADR 0017
 - [ ] Tag `0.1.0-alpha.0` locally (not published); verify install from `pnpm pack` tarballs and a git/path crate dependency in a clean project in each runtime
 - [ ] Write the stability policy and changelog (published with the first registry release)

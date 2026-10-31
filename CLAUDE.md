@@ -59,7 +59,7 @@ lamina is a platform for anything and everything PDF: creating PDFs from code, p
 │                        #   files (src/components/Snippet.astro), the code table from fixtures/codes.json, code pages from
 │                        #   docs/errors/ (src/pages/, plugins/error-pages.mjs), post-build checks (plugins/); public/_headers
 │                        #   (ADR 0011 §4, inline-script hashes filled in after the build); wrangler.toml (Workers static
-│                        #   assets, workers.dev); deployed by .github/workflows/docs.yml; README.md has the owner's setup
+│                        #   assets, docs.laminapdf.com); deployed by .github/workflows/docs.yml; README.md has the owner's setup
 ├── fixtures/            # shared test inputs: golden/ (byte-exact), corpus/ + expected.json + exceptions.toml
 │                        #   + pdfjs-operators.json, content/ (operator fixture), differential/ (pypdf expectations),
 │                        #   ops/v1/ (op JSON samples), fonts/ (OFL Noto subsets), images/ (JPEG, ICC), text/ (pypdf extraction facts),

@@ -41,6 +41,8 @@ const typeDoc = starlightTypeDoc({
 
 // A default export because that is how Astro reads its configuration.
 export default defineConfig({
+  // Production's address: canonical links and the sitemap use it (previews too; they're noindex).
+  site: "https://docs.laminapdf.com",
   // Telemetry is off in the package scripts (ASTRO_TELEMETRY_DISABLED).
   devToolbar: { enabled: false },
   integrations: [

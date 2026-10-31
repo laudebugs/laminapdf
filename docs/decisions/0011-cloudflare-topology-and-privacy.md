@@ -16,7 +16,7 @@ What the research found ([Cloudflare notes §1, §4](../research/architecture/no
 - **The `cf` CLI** has been in beta since 2026-09-28 and is the planned successor to Wrangler. Its config and commands may change, and secondary sources say it sends anonymous telemetry by default.
 - **Retention:** Workers Logs keeps 3 days on Free and 7 on Paid. R2 lifecycle rules can expire objects. Workflows, Queues and D1 Time Travel have their own retention.
 
-Telemetry was decided by the owner on 2026-10-29: none in v0.1; afterwards optional, opt-in and off by default ([U5c](../todos/ready/U5c-opt-in-usage-telemetry.md)). The domain and product name are still open ([web-app §8](../plans/web-app.md#8-open-questions) Q1), so `<domain>` below is a placeholder.
+Telemetry was decided by the owner on 2026-10-29: none in v0.1; afterwards optional, opt-in and off by default ([U5c](../todos/ready/U5c-opt-in-usage-telemetry.md)). The domain and product name are still open ([web-app §8](../plans/web-app.md#8-open-questions) Q1), so `laminapdf.com` below is a placeholder.
 
 ## Decision
 
@@ -32,19 +32,19 @@ Telemetry was decided by the owner on 2026-10-29: none in v0.1; afterwards optio
 - **`compatibility_date` is pinned** in `apps/web/wrangler.jsonc`, ≥ 2025-04-01, so browser navigations go straight to assets.
 - **Tooling:** Wrangler is pinned exactly in CI, at the workspace catalog's version (4.149.0 today). The `cf` CLI is tried in a branch once it reaches GA, with its telemetry turned off; adopting it is a deliberate PR.
 - **Environments are two Workers,** so a staging deploy can never replace production. Both come from one `wrangler.jsonc` with a Wrangler environment `staging`.
-  - **`lamina-web-staging`:** custom domain `staging.<domain>`, deployed from every push to `main`. Its PR previews are Workers preview URLs on `workers.dev`, posted as a PR comment (C4d).
-  - **`lamina-web`:** custom domain `<domain>`, deployed **only from `web-v*` release tags**, after the release lane's gates pass (C7c), with preview URLs off.
+  - **`lamina-web-staging`:** custom domain `staging.laminapdf.com`, deployed from every push to `main`. Its PR previews are Workers preview URLs on `workers.dev`, posted as a PR comment (C4d).
+  - **`lamina-web`:** custom domain `laminapdf.com`, deployed **only from `web-v*` release tags**, after the release lane's gates pass (C7c), with preview URLs off.
 - **`noindex`:** the build takes the environment as an input (`LAMINA_ENV=staging|production`) and writes `_headers` from one template. Staging and preview builds add `X-Robots-Tag: noindex`; production doesn't. Everything else in §4 is identical, and C4d compares the two files.
 - **Assets:**
   - Built files are content-hashed and served with `Cache-Control: public, max-age=31536000, immutable`.
   - `index.html`, the service worker and the web manifest are served `no-cache`.
   - The WASM modules are static assets of the same origin (ADR 0009 §2), never a CDN's.
-- **Filling in `<domain>`:** when the owner picks the domain, one PR replaces every placeholder (`git grep '<domain>'`) and adds the HSTS preload submission (§4).
+- **The domain is `laminapdf.com`** (the owner's choice, 2026-10-31; it was a `<domain>` placeholder until then). The docs site is at `docs.laminapdf.com`, the updater and downloads at `updates.laminapdf.com` and `downloads.laminapdf.com` (ADR 0014). The HSTS preload submission waits for the reader at the apex (§4).
 
 ### 2. Documents never pass through our servers
 
 - **Local files** are read in the document worker and never leave the device.
-- **Remote documents** come from the **`#url=` fragment** only (`https://<domain>/#url=https://…`). Browsers never send a fragment, so neither our Worker nor Cloudflare's request logs learn which document was opened. The worker fetches the file **directly from its host**:
+- **Remote documents** come from the **`#url=` fragment** only (`https://laminapdf.com/#url=https://…`). Browsers never send a fragment, so neither our Worker nor Cloudflare's request logs learn which document was opened. The worker fetches the file **directly from its host**:
   - with range requests (`httpRangeSource`, L2c);
   - with `credentials: "omit"`, `referrerPolicy: "no-referrer"` and `cache: "no-store"`;
   - following the host's own HTTP redirects (`redirect: "follow"`; hosted PDFs often redirect to a storage or CDN host). The viewer shows the final host's name in the document's properties.
@@ -88,7 +88,7 @@ Cross-Origin-Resource-Policy: same-origin
 - **`connect-src https:`** is what lets the worker fetch a remote document from any host (§2); everything else is `'self'`.
 - **`frame-src 'self'` with `frame-ancestors 'self'` and `X-Frame-Options: SAMEORIGIN`** allow the same-origin print iframe (C6c) and refuse framing by every other site. Styles are set through the CSSOM, never through `style` attributes in markup.
 - **No COOP or COEP in v0.1** (ADR 0009 §5). The threaded variant would add them on its own route.
-- **`preload` is added to HSTS** once `<domain>` is chosen and every subdomain is HTTPS.
+- **`preload` is added to HSTS** once `lamina-web` serves `laminapdf.com` and every subdomain is HTTPS (C4d): the preload list checks the apex's header.
 - **Changes are amendments:** a change that loosens any directive is an amendment to this ADR, and C4d's header test pins the exact values.
 
 ### 5. Observability without content
@@ -130,7 +130,7 @@ These rules bind every later round that adds a server feature: telemetry (U5c), 
 - **No proxy means some files can't open:** remote documents without CORS don't open, and the app explains why instead of quietly proxying.
 - **`connect-src https:`** is broader than `'self'`. It is required by direct fetching, and contained by allowing scripts from `'self'` only.
 - **Every later server feature starts from opt-in, per-document consent and fixed retention.** Its ADR has to justify any exception.
-- **One more governance task:** the domain choice touches every `<domain>` placeholder in a single PR.
+- **One more governance task:** the domain choice touched every `<domain>` placeholder in a single PR (`laminapdf.com`, 2026-10-31).
 
 ## Alternatives considered
 
