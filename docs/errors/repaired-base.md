@@ -17,7 +17,11 @@ Save with a full rewrite instead.
 
 ## Example
 
-To be added ([L1b](../todos/ongoing/L1b-error-contract-codegen.md)).
+```rust
+let doc = Document::open_bytes(bytes_needing_repair, OpenOptions::default())?; // warns xref-repaired
+let err = doc.save(&SaveOptions::default().with_mode(SaveMode::Incremental), &CancelToken::new());
+// repaired-base; SaveMode::Auto (the default) writes a full rewrite instead
+```
 
 ## Data fields
 

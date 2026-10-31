@@ -13,11 +13,14 @@ Hand-written or corrupted op logs.
 
 ## How to fix
 
-Validate the log against the op schema.
+Validate the log against the op schema; the samples in `fixtures/ops/v1/` show the format.
 
 ## Example
 
-To be added ([L1b](../todos/ongoing/L1b-error-contract-codegen.md)).
+```rust
+doc.apply_log(r#"{ "v": 1, "ops": [{ "op": "rotate" }] }"#)?;
+// invalid-op-log: "rotate" is not an op (it is "rotatePage"); data.detail has serde's message
+```
 
 ## Data fields
 

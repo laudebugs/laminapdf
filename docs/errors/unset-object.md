@@ -13,11 +13,11 @@ A lamina bug.
 
 ## How to fix
 
-Report it.
+Report it at https://github.com/laudebugs/lamina/issues with the steps (and, if you can share it, the file) that led to it.
 
 ## Example
 
-To be added ([L1b](../todos/ongoing/L1b-error-contract-codegen.md)).
+Raised by a writer when an object number reserved during a save never received its object. No input should cause it.
 
 ## Data fields
 

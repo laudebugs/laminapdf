@@ -1,0 +1,33 @@
+
+## Warnings
+
+| Code | Kind | Summary |
+| --- | --- | --- |
+| [`w-one`](w-one.md) | `input` | what happened |
+
+## Errors
+
+| Code | Kind | Summary |
+| --- | --- | --- |
+| [`not-pdf`](not-pdf.md) | `input` | what happened |
+| [`limit-exceeded`](limit-exceeded.md) | `limit` | what happened |
+
+## Op errors
+
+| Code | Kind | Summary |
+| --- | --- | --- |
+| [`nested-transaction`](nested-transaction.md) | `state` | what happened |
+| [`no-transaction`](no-transaction.md) | `state` | what happened |
+
+## Binding errors (`lamina-wasm`)
+
+| Code | Kind | Summary |
+| --- | --- | --- |
+| [`builder-finished`](builder-finished.md) | `state` | what happened |
+| [`invalid-argument`](invalid-argument.md) | `usage` | what happened |
+
+## Package errors (`@lamina/pdf`)
+
+| Code | Kind | Summary |
+| --- | --- | --- |
+| [`p-only`](p-only.md) | `state` | what happened |

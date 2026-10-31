@@ -17,7 +17,12 @@ Raise `max_warnings` if you need the full list.
 
 ## Example
 
-To be added ([L1b](../todos/ongoing/L1b-error-contract-codegen.md)).
+A damaged file raising 50,000 repairs with the default `max_warnings`: the first warnings are kept, then one `warnings-truncated`, and the rest are dropped.
+
+```rust
+let limits = lamina::Limits::default().with_max_warnings(100_000);
+let doc = lamina::Document::open_bytes(bytes, lamina::OpenOptions::default().with_limits(limits))?;
+```
 
 ## Data fields
 

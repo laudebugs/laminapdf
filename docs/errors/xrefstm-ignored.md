@@ -9,7 +9,7 @@ A hybrid file's `/XRefStm` could not be read and was ignored.
 
 ## Why
 
-The stream is damaged or points at the wrong offset.
+Hybrid files carry a classic xref table for old readers and an xref stream for objects in object streams. An editor that moved bytes without updating `/XRefStm`, or a damaged stream, leaves the stream unreadable.
 
 ## How to fix
 
@@ -17,7 +17,11 @@ Nothing; the classic table is used.
 
 ## Example
 
-To be added ([L1b](../todos/ongoing/L1b-error-contract-codegen.md)).
+```text
+trailer << /Size 40 /Root 1 0 R /XRefStm 99999 >>
+```
+
+A hybrid-reference file (ISO 32000-2 §7.5.8.4) points `/XRefStm` at an offset with no stream. lamina ignores it and reads the classic table; objects only the stream listed may be missing.
 
 ## Data fields
 

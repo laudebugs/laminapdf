@@ -7,7 +7,7 @@
 | Plan | [shareable-libraries §7 L1](../../plans/shareable-libraries.md#l1-contracts), [§4 principle 2](../../plans/shareable-libraries.md#4-principles-recommendations-recorded-in-adrs-00260031) |
 | Round / milestone | Round L1 (shareable libraries) — before B5c |
 | Depends on | [L1a](./L1a-contract-adrs.md) |
-| Blocks | [B5c](./B5c-lamina-facade-and-examples.md), [L1b](../ongoing/L1b-error-contract-codegen.md) |
+| Blocks | [B5c](./B5c-lamina-facade-and-examples.md), [L1b](./L1b-error-contract-codegen.md) |
 | ADRs | Implements the Rust-core half of [0026](../../decisions/0026-error-and-diagnostic-contract.md) (§1.1 locations, §2 kinds, §3 codes, §4 no document text, §5 hints); follows [0003](../../decisions/0003-reader-tolerance-and-limits.md) §2 and §4 (codes listed once, checked by test) |
 | Branch | `feat/l1c-error-contract-core` |
 | PR title | `feat(codes): kinds, hints and tagged locations for every error and warning code` |
@@ -16,7 +16,7 @@
 
 ## Goal
 
-Give every existing Rust error and warning the parts of ADR 0026 that the façade (B5c) and the first TypeScript package (B6b) need to emit the final shape from day one. That means a `kind`, a `hint`, an unambiguous `location`, and messages without document text. L1b used to own this but comes after B6b, which depends on B5c through B6a. Without this todo, B5c and B6b would ship an error shape that changes later. Code generation, JSON Schema and TS polish stay in [L1b](../ongoing/L1b-error-contract-codegen.md).
+Give every existing Rust error and warning the parts of ADR 0026 that the façade (B5c) and the first TypeScript package (B6b) need to emit the final shape from day one. That means a `kind`, a `hint`, an unambiguous `location`, and messages without document text. L1b used to own this but comes after B6b, which depends on B5c through B6a. Without this todo, B5c and B6b would ship an error shape that changes later. Code generation, JSON Schema and TS polish stay in [L1b](../done/L1b-error-contract-codegen.md).
 
 ## Context
 
@@ -37,7 +37,7 @@ Give every existing Rust error and warning the parts of ADR 0026 that the façad
 **Out of scope** (and which todo covers it)
 
 - `lamina::Error`, `hint()`/`docs_url()`/`Serialize` into the §1 shape, and the job codes `cancelled`/`job-finished`/`document-changed`: [B5c](./B5c-lamina-facade-and-examples.md).
-- `cargo xtask gen codes`, TS unions, the JSON Schema, the `explain` feature, the marker-text test: [L1b](../ongoing/L1b-error-contract-codegen.md).
+- `cargo xtask gen codes`, TS unions, the JSON Schema, the `explain` feature, the marker-text test: [L1b](../done/L1b-error-contract-codegen.md).
 
 ## Tasks
 

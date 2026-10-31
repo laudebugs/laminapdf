@@ -17,7 +17,9 @@ Use an index below `Font::collection_len(bytes)`.
 
 ## Example
 
-To be added ([L1b](../todos/ongoing/L1b-error-contract-codegen.md)).
+```rust
+let font = Font::from_collection(ttc_bytes, 4)?; // the collection has 4 members (0..=3): collection-index
+```
 
 ## Data fields
 

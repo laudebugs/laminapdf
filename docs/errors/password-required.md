@@ -13,11 +13,17 @@ Encrypted input.
 
 ## How to fix
 
-Pass the password in `OpenOptions`.
+Ask the user for the password and pass it in `OpenOptions` (`{ password }` in TS).
 
 ## Example
 
-To be added ([L1b](../todos/ongoing/L1b-error-contract-codegen.md)).
+```ts
+try {
+  Document.open(bytes);
+} catch (e) {
+  if (isLaminaError(e, "password-required")) Document.open(bytes, { password: await ask() });
+}
+```
 
 ## Data fields
 

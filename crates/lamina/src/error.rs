@@ -7,6 +7,7 @@ use serde::{Serialize, Serializer};
 use crate::codes;
 use crate::data;
 use crate::diagnostic::Diagnostic;
+use crate::generated::codes::ErrorCode;
 
 /// Everything that can go wrong in the façade: the errors of the core crates, flattened so
 /// a COS error is always [`Error::Cos`] whichever layer raised it, plus the job codes of
@@ -81,38 +82,37 @@ impl Error {
     /// [ADR 0026]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0026-error-and-diagnostic-contract.md
     #[must_use]
     pub const fn code(&self) -> &'static str {
+        self.error_code().as_str()
+    }
+
+    /// The code as the generated [`ErrorCode`] (one per entry of `fixtures/codes.json`),
+    /// from which [`code`](Error::code), [`kind`](Error::kind), [`hint`](Error::hint) and
+    /// [`docs_url`](Error::docs_url) are read. A wrapped crate's code is looked up in the
+    /// table; the build fails if any code a crate declares is missing from it.
+    #[must_use]
+    pub const fn error_code(&self) -> ErrorCode {
         match self {
-            Self::Cos(e) => e.code(),
-            Self::Ops(e) => e.code(),
-            Self::Save(e) => e.code(),
+            Self::Cos(e) => codes::error_code(e.code()),
+            Self::Ops(e) => codes::error_code(e.code()),
+            Self::Save(e) => codes::error_code(e.code()),
             #[cfg(feature = "extract")]
-            Self::Text(e) => e.code(),
+            Self::Text(e) => codes::error_code(e.code()),
             #[cfg(feature = "build")]
-            Self::Build(e) => e.code(),
-            Self::PageIndexOutOfRange { .. } => "page-index-out-of-range",
-            Self::Cancelled => "cancelled",
-            Self::JobFinished => "job-finished",
-            Self::DocumentChanged => "document-changed",
+            Self::Build(e) => codes::error_code(e.code()),
+            Self::PageIndexOutOfRange { .. } => ErrorCode::PageIndexOutOfRange,
+            Self::Cancelled => ErrorCode::Cancelled,
+            Self::JobFinished => ErrorCode::JobFinished,
+            Self::DocumentChanged => ErrorCode::DocumentChanged,
         }
     }
 
-    /// The kind ([ADR 0026] §2): what the caller can do about it.
+    /// The kind ([ADR 0026] §2): what the caller can do about it, from the generated
+    /// [`ErrorCode`] table.
     ///
     /// [ADR 0026]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0026-error-and-diagnostic-contract.md
     #[must_use]
     pub const fn kind(&self) -> ErrorKind {
-        match self {
-            Self::Cos(e) => e.kind(),
-            Self::Ops(e) => e.kind(),
-            Self::Save(e) => e.kind(),
-            #[cfg(feature = "extract")]
-            Self::Text(e) => e.kind(),
-            #[cfg(feature = "build")]
-            Self::Build(e) => e.kind(),
-            Self::PageIndexOutOfRange { .. } => ErrorKind::Usage,
-            Self::Cancelled => ErrorKind::Cancelled,
-            Self::JobFinished | Self::DocumentChanged => ErrorKind::State,
-        }
+        self.error_code().kind()
     }
 
     /// Where the error was found ([ADR 0026] §1.1); empty when nothing is known.
@@ -140,7 +140,7 @@ impl Error {
     /// [ADR 0026]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0026-error-and-diagnostic-contract.md
     #[must_use]
     pub fn hint(&self) -> Option<String> {
-        codes::hint(self.code(), self.limit_name())
+        codes::fill_hint(self.error_code().hint(), self.limit_name())
     }
 
     /// The code's explain page (`docsUrl`, [ADR 0026] §6).
@@ -148,7 +148,7 @@ impl Error {
     /// [ADR 0026]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0026-error-and-diagnostic-contract.md
     #[must_use]
     pub fn docs_url(&self) -> String {
-        codes::docs_url(self.code())
+        self.error_code().docs_url()
     }
 
     /// The [ADR 0026] §1 object as a plain record of strings and numbers: what

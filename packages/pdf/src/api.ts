@@ -10,12 +10,12 @@ export type {
   TextOptions,
 } from "./builder.js";
 export { Builder, PAGE_SIZES, Page, PendingPath, Surface } from "./builder.js";
-export type { ErrorCode, LimitName, WarningCode } from "./codes.generated.js";
 export { Document, PageRef, SaveJob } from "./document.js";
 export type { Diagnostic, ErrorKind, LaminaWarning, Location } from "./errors.js";
 export { isLaminaError, LaminaError } from "./errors.js";
 export type { FontInfo, Standard14 } from "./font.js";
 export { Font, Image } from "./font.js";
+export type { ErrorCode, LimitName, WarningCode } from "./generated/codes.js";
 export type { InitOptions, WasmMemory, WasmSource } from "./init.js";
 export { isExtractLoaded, isInitialized, isTextLoaded, wasmMemory } from "./init.js";
 export type { Transform } from "./matrix.js";

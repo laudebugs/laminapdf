@@ -17,7 +17,10 @@ Use the key returned by this registry's `add`.
 
 ## Example
 
-To be added ([L1b](../todos/ongoing/L1b-error-contract-codegen.md)).
+```rust
+let key = registry_a.add(font, EmbedPolicy::Respect)?;
+registry_b.encode(key, "Hi")?; // unknown-font: key came from registry_a
+```
 
 ## Data fields
 

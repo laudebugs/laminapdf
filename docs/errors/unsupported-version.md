@@ -17,7 +17,9 @@ Upgrade lamina.
 
 ## Example
 
-To be added ([L1b](../todos/ongoing/L1b-error-contract-codegen.md)).
+```rust
+doc.apply_log(r#"{ "v": 9, "ops": [] }"#)?; // unsupported-version, data.version = 9
+```
 
 ## Data fields
 

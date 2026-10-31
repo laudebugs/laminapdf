@@ -17,7 +17,11 @@ Use another copy of the file.
 
 ## Example
 
-To be added ([L1b](../todos/ongoing/L1b-error-contract-codegen.md)).
+```text
+5 0 obj << /Filter /FlateDecode /Length 40 >> stream (40 bytes that are not zlib data) endstream
+```
+
+Inflating fails before producing any output, so the stream has no data.
 
 ## Data fields
 

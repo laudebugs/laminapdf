@@ -17,7 +17,9 @@ Pass finite values; values outside the axis range are clamped, so there is no ne
 
 ## Example
 
-To be added ([L1b](../todos/ongoing/L1b-error-contract-codegen.md)).
+```rust
+font.instance(&[(Tag::WEIGHT, f32::NAN)])?; // invalid-axis-value
+```
 
 ## Data fields
 

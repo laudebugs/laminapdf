@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [shareable-libraries §7 L3](../../plans/shareable-libraries.md#l3-ai-ready-extraction), principles [§4](../../plans/shareable-libraries.md#4-principles-recommendations-recorded-in-adrs-00260031) (3, 5, 7) |
 | Round / milestone | Round L3 (shareable libraries) — AI-ready extraction |
-| Depends on | [B8a](./B8a-structure-tree.md), [B9d](../done/B9d-text-runs-quads-and-page-text.md), [L1a](../done/L1a-contract-adrs.md), [U2b](../done/U2b-reading-order-ground-truth.md) |
+| Depends on | [B8a](../ongoing/B8a-structure-tree.md), [B9d](../done/B9d-text-runs-quads-and-page-text.md), [L1a](../done/L1a-contract-adrs.md), [U2b](../done/U2b-reading-order-ground-truth.md) |
 | Blocks | [L3b](./L3b-extract-tables-and-serialisers.md) |
 | ADRs | Writes **0030** (extraction output `lamina.extract/1` and model plug-in policy); follows 0026 (errors), 0027 (coordinates, top-left points), 0028 (jobs, cancellation) from [L1a](../done/L1a-contract-adrs.md), 0023 (from [B9a](../done/B9a-lamina-content-and-adr-0023.md)), [0001](../../decisions/0001-core-language-and-licence.md) (licences, bytes in / bytes out), [0003](../../decisions/0003-reader-tolerance-and-limits.md) (warnings, `Limits`), [0018](../../decisions/0018-test-strategy.md) (goldens, fuzz) |
 | Branch | `feat/l3a-lamina-extract` |
@@ -28,7 +28,7 @@ Turn B9's glyph runs into document structure an LLM or a RAG pipeline can use: b
 - [Research 03 §8.1](../../research/pdf/03-text-and-fonts.md#81-how-extractors-work), [§8.5](../../research/pdf/03-text-and-fonts.md#85-layout-analysis-and-ml-document-understanding-state-of-the-art-2026), [§9.1](../../research/pdf/03-text-and-fonts.md#91-the-model), [§9.3](../../research/pdf/03-text-and-fonts.md#93-language-alt-text-reading-order), [§2.5 text rendering modes](../../research/pdf/03-text-and-fonts.md#25-text-rendering-modes-tr).
 - ISO 32000-2 §14.7 (logical structure, `/K`, `/ParentTree`, `RoleMap`), §14.8.2.2 (artifacts, `/Type /Pagination` with `/Subtype /Header|/Footer`), §14.8.4 (standard structure types), §14.9.4 (`/ActualText`), §14.9.5 (`/MarkInfo`), §9.3.6 (text rendering mode).
 - XY-Cut++ ([arXiv 2504.10258](https://arxiv.org/abs/2504.10258)); Docstrum (O'Gorman 1993) for line and block grouping.
-- [B9b](../done/B9b-text-extraction-core.md) and [B9d](../done/B9d-text-runs-quads-and-page-text.md) (glyph runs, quads, MCIDs, `ActualText`, `Tr 3` flag) and [B8a](./B8a-structure-tree.md) (the read-only `StructTree` view in `lamina-model`).
+- [B9b](../done/B9b-text-extraction-core.md) and [B9d](../done/B9d-text-runs-quads-and-page-text.md) (glyph runs, quads, MCIDs, `ActualText`, `Tr 3` flag) and [B8a](../ongoing/B8a-structure-tree.md) (the read-only `StructTree` view in `lamina-model`).
 
 ## Scope
 
@@ -49,7 +49,7 @@ Turn B9's glyph runs into document structure an LLM or a RAG pipeline can use: b
 - **Visibility flags per span**, with the dropped list recording reason, page, bbox and character count: `invisible` (`Tr 3` and `Tr 7`), `clipped` (glyph quad outside the clip bbox tracked by `lamina-content`; bbox-level approximation, documented), `offPage` (outside the CropBox), `lowContrast` (fill colour within a documented distance of white when no fill is painted beneath it in the same region; heuristic, documented), `tiny` (font size below a threshold). Flagged text is never in `Block::text`; it stays available in spans only when the caller asks (`Drop` options).
 - **Coordinates** per ADR 0027: `RectPt` in top-left points relative to the CropBox after `/Rotate`, scaled by `/UserUnit`; `bboxNorm` in [0, 1] of the CropBox (serde name; `bbox_norm` in Rust); the `coordinates` block (ADR 0027's shape: `origin`, `unit`, `box`, `rotate`, `userUnit`) records unit, origin, box and `rotate`.
 - **API:** `lamina_extract::extract(&Document, &ExtractOptions) -> ExtractJob`, a resumable job per ADR 0028 (`step(Budget)` returns progress per page or the `Extraction`; `CancelToken` polled per page and inside XY-Cut recursion); `ExtractOptions { pages, reading_order, drop, headers_footers, dehyphenate, coords }` with `Default`. Options are plain owned data (UniFFI-compatible per ADR 0028).
-- **Limits and warnings:** soft limits (max blocks per page, XY-Cut recursion depth, header/footer comparison window) drop work with a warning; new codes in `fixtures/codes.json` (e.g. `extract-struct-tree-ignored`, `extract-untagged-content`, `extract-reading-order-ambiguous`, `extract-limit-blocks`), each with an `explain` entry per [L1b](../ongoing/L1b-error-contract-codegen.md) if merged.
+- **Limits and warnings:** soft limits (max blocks per page, XY-Cut recursion depth, header/footer comparison window) drop work with a warning; new codes in `fixtures/codes.json` (e.g. `extract-struct-tree-ignored`, `extract-untagged-content`, `extract-reading-order-ambiguous`, `extract-limit-blocks`), each with an `explain` entry per [L1b](../done/L1b-error-contract-codegen.md) if merged.
 - **Fuzz target** `extract` (open + extract every page under default limits).
 
 **Out of scope** (and which todo covers it)

@@ -98,8 +98,8 @@ fn listed_codes() -> Vec<String> {
         .collect()
 }
 
-/// One value of every error and warning that has data, by code.
-fn samples() -> BTreeMap<&'static str, serde_json::Value> {
+/// One value of every error and warning that has data.
+fn sample_values() -> (Vec<Error>, Vec<Warning>) {
     use lamina_build::{Error as B, ImageFormat};
     use lamina_text::{Error as T, FsType, Tag, Warning as TW};
     let s = String::new;
@@ -285,6 +285,12 @@ fn samples() -> BTreeMap<&'static str, serde_json::Value> {
         .into(),
         TW::WholeFontRebuilt { font: s() }.into(),
     ];
+    (errors, warnings)
+}
+
+/// The data of every sample, by code.
+fn samples() -> BTreeMap<&'static str, serde_json::Value> {
+    let (errors, warnings) = sample_values();
     let mut out = BTreeMap::new();
     for e in errors {
         out.insert(e.code(), serde_json::to_value(e.diagnostic().data).unwrap());
@@ -330,4 +336,43 @@ fn every_sample_is_for_a_listed_code() {
         .filter(|c| !listed.iter().any(|l| l == c))
         .collect();
     assert!(unknown.is_empty(), "{unknown:?}");
+}
+
+/// The wrapped crate's own code and kind of `e` (its `kind()` is an exhaustive match each
+/// crate's tests check against `codes.json`), or `None` for the façade's own variants.
+fn core_code_and_kind(e: &Error) -> Option<(&'static str, lamina::ErrorKind)> {
+    match e {
+        Error::Cos(i) => Some((i.code(), i.kind())),
+        Error::Ops(i) => Some((i.code(), i.kind())),
+        Error::Save(i) => Some((i.code(), i.kind())),
+        Error::Text(i) => Some((i.code(), i.kind())),
+        Error::Build(i) => Some((i.code(), i.kind())),
+        _ => None,
+    }
+}
+
+/// The façade reads code and kind from the generated `ErrorCode`/`WarningCode` tables; the
+/// wrapped crates compute them with their own exhaustive matches. They must agree for every
+/// sample, so a stale table or a wrong `codes.json` kind fails here.
+#[test]
+fn the_generated_tables_agree_with_the_wrapped_crates() {
+    let (errors, warnings) = sample_values();
+    let mut wrong: Vec<String> = errors
+        .iter()
+        .filter_map(|e| {
+            let (code, kind) = core_code_and_kind(e)?;
+            ((e.code(), e.kind()) != (code, kind)).then(|| format!("{code}: façade says {} {:?}", e.code(), e.kind()))
+        })
+        .collect();
+    for w in &warnings {
+        let (code, kind) = match w {
+            Warning::Document(i) => (i.code(), i.kind()),
+            Warning::Font(i) => (i.code(), i.kind()),
+            _ => continue,
+        };
+        if (w.code(), w.kind()) != (code, kind) {
+            wrong.push(format!("{code}: façade says {} {:?}", w.code(), w.kind()));
+        }
+    }
+    assert!(wrong.is_empty(), "{wrong:?}");
 }

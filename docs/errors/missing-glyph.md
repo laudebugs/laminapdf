@@ -17,7 +17,9 @@ Use a font that covers the character (check with `Font::glyph_for`), or split th
 
 ## Example
 
-To be added ([L1b](../todos/ongoing/L1b-error-contract-codegen.md)).
+```rust
+registry.encode(latin_font, "東京")?; // missing-glyph: the font has no CJK glyphs
+```
 
 ## Data fields
 

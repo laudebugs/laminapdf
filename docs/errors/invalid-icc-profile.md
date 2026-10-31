@@ -17,7 +17,9 @@ Pass the complete bytes of an input, display, output or colour-space profile wit
 
 ## Example
 
-To be added ([L1b](../todos/ongoing/L1b-error-contract-codegen.md)).
+```rust
+let profile = IccProfile::new(b"not a profile".to_vec())?; // invalid-icc-profile
+```
 
 ## Data fields
 

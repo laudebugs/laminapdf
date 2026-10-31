@@ -83,6 +83,19 @@ impl Script {
     /// The `Script` property of `ch` (UAX #24).
     #[must_use]
     pub fn of(ch: char) -> Self {
+        // ASCII without the lookups (Scripts.txt: the letters are Latin, the rest Common).
+        if ch.is_ascii() {
+            return if ch.is_ascii_alphabetic() {
+                Self::LATIN
+            } else {
+                Self::COMMON
+            };
+        }
+        Self::lookup(ch)
+    }
+
+    /// The `Script` property of `ch` from the Unicode data.
+    fn lookup(ch: char) -> Self {
         let script: IcuScript = CodePointMapData::<IcuScript>::new().get(ch);
         PropertyNamesShort::<IcuScript>::new()
             .get_locale_script(script)
@@ -416,11 +429,44 @@ mod tests {
     }
 
     #[test]
+    fn script_of_ascii_matches_the_unicode_data() {
+        for ch in (0..=0x7f_u8).map(char::from) {
+            assert_eq!(Script::of(ch), Script::lookup(ch), "{ch:?}");
+        }
+    }
+
+    #[test]
     fn script_direction_follows_the_script() {
         assert_eq!(Script::ARABIC.direction(), Direction::RightToLeft);
         assert_eq!(Script::HEBREW.direction(), Direction::RightToLeft);
         assert_eq!(Script::LATIN.direction(), Direction::LeftToRight);
         assert_eq!(Script::COMMON.direction(), Direction::LeftToRight);
+    }
+
+    #[test]
+    fn cached_plans_shape_as_fresh_ones_per_feature_list() {
+        let font = crate::test_fonts::font("NotoSans-Regular.ttf");
+        let liga_off = ShapeOptions::new().with_feature("liga=0".parse().unwrap());
+        let count = |options: &ShapeOptions| HarfRust.shape(&font, "fi", options).unwrap().glyphs.len();
+        // Default, then without ligatures, then default again: each feature list keeps its plan.
+        assert_eq!(
+            [
+                count(&ShapeOptions::new()),
+                count(&liga_off),
+                count(&ShapeOptions::new())
+            ],
+            [1, 2, 1]
+        );
+        assert_eq!(font.cached_plans(), 2);
+    }
+
+    #[test]
+    fn clones_share_cached_plans() {
+        let font = crate::test_fonts::font("NotoSans-Regular.ttf");
+        let first = HarfRust.shape(&font, "office", &ShapeOptions::new()).unwrap();
+        let clone = font.clone();
+        assert_eq!(HarfRust.shape(&clone, "office", &ShapeOptions::new()).unwrap(), first);
+        assert_eq!(font.cached_plans(), 1);
     }
 
     #[test]

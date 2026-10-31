@@ -3,11 +3,11 @@
 | Field | Value |
 | --- | --- |
 | ID | `C1b` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [web reader §6 C1. Rendering spikes](../../plans/web-app.md#c1-rendering-spikes) |
 | Round / milestone | Round C (web reader) — M2 Web reader v0.1 |
 | Depends on | [B3c](../done/B3c-save-planner-and-roundtrip.md), [B6b](../done/B6b-lamina-pdf-package.md), [C1a](../done/C1a-hayro-parity-spike.md) |
-| Blocks | [C2a](./C2a-render-adrs.md) |
+| Blocks | [C2a](../ready/C2a-render-adrs.md) |
 | Dependency notes | Library **B6** (`lamina-wasm` + `@lamina/pdf`; [pdf-library §7 B6](../../plans/pdf-library.md#b6-wasm-and-laminapdf)) — and through it B3 (`lamina-save` incremental save); [C1a](../done/C1a-hayro-parity-spike.md) (same machine and corpus; the joint recommendation builds on its numbers) |
 | ADRs | Informs ADR 0004 (render backend) and ADR 0009 (worker topology, single- vs multi-threaded WASM). Must follow [0001](../../decisions/0001-core-language-and-licence.md), [0002](../../decisions/0002-binding-strategy.md), [0005](../../decisions/0005-document-model.md) §2–3 (`ByteSource`, overlay, incremental save), [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) |
 | Branch | `spike/c1b-pdfium-wasm` |
@@ -44,8 +44,8 @@ Prove, in a real browser worker, that PDFium-WASM and `lamina-wasm` can share on
 **Out of scope** (and which todo covers it)
 
 - hayro fidelity → [C1a](../done/C1a-hayro-parity-spike.md).
-- Product RPC, virtualiser, canvas pool → [C3a](./C3a-viewer-worker-rpc.md), [C3b](./C3b-viewer-virtualiser-and-zoom.md).
-- Writing ADRs 0004/0009 → [C2a](./C2a-render-adrs.md).
+- Product RPC, virtualiser, canvas pool → [C3a](../ready/C3a-viewer-worker-rpc.md), [C3b](../ready/C3b-viewer-virtualiser-and-zoom.md).
+- Writing ADRs 0004/0009 → [C2a](../ready/C2a-render-adrs.md).
 - The threaded (SharedArrayBuffer) build in production; only noted as an option here.
 
 ## Tasks
@@ -97,7 +97,7 @@ Only the Playwright benchmark spec in the spike (run by hand, not in CI). Smoke:
 
 ## Definition of done
 
-- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [x] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
 - [ ] Work PR opened from a fresh worktree; **PR** field filled in
 - [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
 - [ ] CI green

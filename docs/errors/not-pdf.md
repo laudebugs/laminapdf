@@ -9,7 +9,7 @@ The input does not look like a PDF at all.
 
 ## Why
 
-It is empty, or contains no `n g obj` anywhere.
+The bytes are empty, or no `n g obj` header appears anywhere in them: an HTML error page saved as `.pdf`, a different format, or the wrong buffer.
 
 ## How to fix
 
@@ -17,7 +17,10 @@ Check that you passed the right bytes.
 
 ## Example
 
-To be added ([L1b](../todos/ongoing/L1b-error-contract-codegen.md)).
+```rust
+let err = lamina::Document::open_bytes(b"<html>…</html>".to_vec(), Default::default()).unwrap_err();
+assert_eq!(err.code(), "not-pdf");
+```
 
 ## Data fields
 
