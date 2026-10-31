@@ -98,15 +98,17 @@ Gzip bytes as `cargo xtask size` measures them (deflate level 9 plus the gzip he
 
 | Module | Measured (2026-10-30, after the review fixes and B9d; unchanged by B6b, whose TS-only codes stay out of the WASM) | Budget | Headroom |
 | --- | ---: | ---: | ---: |
-| base (`lamina_base.wasm`) | 382,000 (brotli 304,955; L2c, 2026-10-30) | **390,000** (amended 2026-10-30; was 380,000) | 2.1 % |
-| text (`lamina_text.wasm`) | 1,008,844 (brotli 770,741; with extraction, B9c) | **1,020,000** (amended 2026-10-30; was 960,000) | 1.1 % |
+| base (`lamina_base.wasm`) | 382,000 (brotli 304,955; L2c, 2026-10-30) | **410,000** (amended 2026-10-31; was 390,000) | 6.8 % |
+| text (`lamina_text.wasm`) | 1,008,844 (brotli 770,741; with extraction, B9c) | **1,070,000** (amended 2026-10-31; was 1,020,000) | 5.7 % |
 | JS glue per module (wasm-bindgen output, minified by esbuild) | 3,769 base, 3,978 text | **5,000** each | |
 | `@lamina/pdf` JS: both glues + the TS API, bundled and minified by esbuild (B6b, `packages` in `size-budgets.json`) | 10,041 | **20,000** | 50 % |
-| extract (`lamina_extract.wasm`, B9c) | 526,184 (brotli 414,641) | **535,000** (owner, 2026-10-30) | 1.7 % |
+| extract (`lamina_extract.wasm`, B9c) | 526,184 (brotli 414,641) | **560,000** (amended 2026-10-31; was 535,000) | 6.0 % |
 | render (C2) | — | placeholder: decided by C2's ADRs | |
 | sign (E10) | — | placeholder: decided by E10a | |
 
 The `@lamina/pdf` TS layer has its own budget (glue + API ≤ 20 KB min+gzip, plan §4), enforced by B6b. A module without a budget fails the check, so a new module can't ship unmeasured. A module that grows more than 5 % over the baseline in `size-budgets.json` gets a twiggy top-items diff against the baseline in the job summary; `cargo xtask size --update-baseline` records a new baseline when a growth is accepted. Raising a budget is an amendment of this table, approved by the owner.
+
+**Amendment (owner, 2026-10-31):** every module's budget rises by about 5 %: base from 390,000 to 410,000 bytes, extract from 535,000 to 560,000 and text from 1,020,000 to 1,070,000. With L1b (generated error codes), B9c (text extraction) and B8a (tagged PDF) together, the modules measured base 389,668, extract 534,032 and text 1,019,875: 332, 968 and 125 bytes under their budgets, so the next feature would fail the check. The table's headroom is against its last recorded measurements; against the combined ones it is 5.0 %, 4.6 % and 4.7 %. The raise buys headroom for Round B's remaining features (B8b's conformance profiles first) without a budget amendment per PR; growth is still visible on every PR as a twiggy diff once a module passes 5 % over its baseline.
 
 **Amendment (owner, 2026-10-30, B9c):** the extract module's budget is 535,000 bytes, and the text module's rises from 960,000 to 1,020,000, both for text extraction (§4).
 
