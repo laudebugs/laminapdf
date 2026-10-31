@@ -416,7 +416,9 @@ export class Surface {
   image(image: Image, rect: Rect, alt?: string): this {
     const raw = image.in(this.#builder.glue);
     const draw = () => guard(() => this.#page.get().image(raw, rect[0], rect[1], rect[2], rect[3]));
-    return alt === undefined ? (draw(), this) : this.tag({ type: "Figure", alt }, draw);
+    if (alt !== undefined) return this.tag({ type: "Figure", alt }, draw);
+    draw();
+    return this;
   }
 
   /**

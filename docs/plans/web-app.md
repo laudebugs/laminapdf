@@ -104,7 +104,7 @@ Each round is split into one or more todos (one pull request each) on the [todo 
 
 **Deliverable:** ADRs 0004, 0009, 0010, 0011; `crates/lamina-render` with the `RenderBackend` trait and PDFium and hayro adapters; `@lamina/render-pdfium`.
 **Accepted when:** golden render tests pass for both adapters on `fixtures/`; the hayro-vs-PDFium diff runs in the nightly lane.
-**Todos:** [C2a](../todos/done/C2a-render-adrs.md), [C2b](../todos/done/C2b-lamina-render-crate.md), [C2c](../todos/ongoing/C2c-render-packages.md)
+**Todos:** [C2a](../todos/done/C2a-render-adrs.md), [C2b](../todos/done/C2b-lamina-render-crate.md), [C2c](../todos/done/C2c-render-packages.md)
 
 ### C3. Viewer core
 
@@ -174,7 +174,7 @@ Ticked by the PR that completes them.
 - [x] Write [ADR 0010](../decisions/0010-platform-adapter.md) (Platform adapter and capability flags)
 - [x] Write [ADR 0011](../decisions/0011-cloudflare-topology-and-privacy.md) (Cloudflare topology, privacy and retention, telemetry policy, and the hosted service: login, accounts, cloud storage and sync as opt-in features; the login stack is added after the `auth` spike)
 - [x] Create `crates/lamina-render` with the trait and PDFium and hayro adapters behind features ([C2b](../todos/done/C2b-lamina-render-crate.md): the hayro adapter behind `hayro`, the PDFium adapter in the edge crate `lamina-render-pdfium`)
-- [ ] Create `packages/render-pdfium` (pin and hash the PDFium build) and `packages/render-hayro`
+- [x] Create `packages/render-pdfium` (pin and hash the PDFium build) and `packages/render-hayro` ([C2c](../todos/done/C2c-render-packages.md), with the shared `packages/render` contract)
 - [ ] Add golden render tests and the nightly hayro-vs-PDFium diff
 
 ### C3. Viewer core

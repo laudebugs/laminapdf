@@ -38,6 +38,7 @@ lamina-build = { path = "crates/lamina-build", default-features = false }
 lamina = { path = "crates/lamina", default-features = false }
 lamina-render = { path = "crates/lamina-render" }
 lamina-render-pdfium = { path = "crates/lamina-render-pdfium" }
+lamina-render-wasm = { path = "crates/lamina-render-wasm" }
 
 # Flate (zlib) codec, pure Rust; `with-alloc` is the default feature, named so it stays on.
 # MIT OR Zlib OR Apache-2.0 (dependency adler2: 0BSD OR MIT OR Apache-2.0)

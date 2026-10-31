@@ -41,7 +41,7 @@ Record the four Round C decisions before any product code depends on them, so C2
 
 **Out of scope** (and which todo covers it)
 
-- Code for the trait and adapters → [C2b](../done/C2b-lamina-render-crate.md), [C2c](../ongoing/C2c-render-packages.md).
+- Code for the trait and adapters → [C2b](../done/C2b-lamina-render-crate.md), [C2c](../done/C2c-render-packages.md).
 - The login/auth stack choice → the `auth` spike (editor/hosted todos); 0011 only fixes the principles and says the stack is added by amendment after that spike.
 - ADR 0008 (desktop shell) and 0014 (distribution) → desktop todos.
 
