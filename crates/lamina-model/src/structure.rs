@@ -10,7 +10,6 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use lamina_cos::{Dict, ObjRef, Object, Result, Warning};
-use lamina_syntax::text::decode_text_string;
 
 use crate::document::{Document, object_number};
 use crate::id::PageId;
@@ -75,8 +74,11 @@ impl StructElem {
         let mut stack = vec![self];
         while let Some(e) = stack.pop() {
             out.push(e);
-            let children: Vec<&StructElem> = e.children().collect();
-            stack.extend(children.into_iter().rev());
+            // Pushed last child first, so the first is visited next.
+            stack.extend(e.kids.iter().rev().filter_map(|k| match k {
+                StructKid::Elem(child) => Some(child),
+                _ => None,
+            }));
         }
         out
     }
@@ -136,26 +138,20 @@ impl Walk<'_> {
         })
     }
 
-    fn text(&self, dict: &Dict, key: &str) -> Result<Option<String>> {
-        let Some(value) = dict.get(key) else {
-            return Ok(None);
-        };
-        Ok(match self.doc.read(value)?.as_deref() {
-            Some(Object::String(s)) => Some(decode_text_string(&s.bytes)),
-            _ => None,
-        })
+    /// Whether the element at `obj` may be visited: not deeper than the limit, not reached
+    /// before (each refusal is warned about).
+    fn admit(&mut self, obj: &Object, depth: usize) -> Result<bool> {
+        let fresh = obj.as_ref().is_none_or(|r| self.visited.insert(r.num));
+        if depth > self.max_depth || !fresh {
+            self.skip(obj)?;
+            return Ok(false);
+        }
+        Ok(true)
     }
 
     /// The element at `obj` (`None` when it is skipped).
     fn elem(&mut self, obj: &Object, depth: usize) -> Result<Option<StructElem>> {
-        if depth > self.max_depth {
-            self.skip(obj)?;
-            return Ok(None);
-        }
-        if let Some(r) = obj.as_ref()
-            && !self.visited.insert(r.num)
-        {
-            self.skip(obj)?;
+        if !self.admit(obj, depth)? {
             return Ok(None);
         }
         let Some(node) = self.doc.read(obj)? else {
@@ -166,25 +162,31 @@ impl Walk<'_> {
             self.skip(obj)?;
             return Ok(None);
         };
+        self.read_elem(obj.as_ref(), dict, depth).map(Some)
+    }
+
+    /// The element whose dictionary is `dict` (already resolved and admitted).
+    fn read_elem(&mut self, object: Option<ObjRef>, dict: &Dict, depth: usize) -> Result<StructElem> {
+        let doc = self.doc;
         let page = page_of(dict);
         let mut elem = StructElem {
-            object: obj.as_ref(),
+            object,
             kind: dict.get_name("S").map(<[u8]>::to_vec).unwrap_or_default(),
             page: page.clone(),
-            alt: self.text(dict, "Alt")?,
-            actual_text: self.text(dict, "ActualText")?,
-            expansion: self.text(dict, "E")?,
-            lang: self.text(dict, "Lang")?,
+            alt: doc.text_entry(dict, "Alt")?,
+            actual_text: doc.text_entry(dict, "ActualText")?,
+            expansion: doc.text_entry(dict, "E")?,
+            lang: doc.text_entry(dict, "Lang")?,
             kids: Vec::new(),
         };
         if let Some(k) = dict.get("K") {
-            for item in kids_of(self.doc, k)? {
+            for item in kids_of(doc, k)? {
                 if let Some(kid) = self.kid(&item, page.as_ref(), depth)? {
                     elem.kids.push(kid);
                 }
             }
         }
-        Ok(Some(elem))
+        Ok(elem)
     }
 
     fn kid(&mut self, item: &Object, page: Option<&PageId>, depth: usize) -> Result<Option<StructKid>> {
@@ -212,7 +214,12 @@ impl Walk<'_> {
                 .get("Obj")
                 .and_then(Object::as_ref)
                 .map(|object| StructKid::Object { page: kid_page, object }),
-            _ => return Ok(self.elem(item, depth + 1)?.map(StructKid::Elem)),
+            _ => {
+                if !self.admit(item, depth + 1)? {
+                    return Ok(None);
+                }
+                return Ok(Some(StructKid::Elem(self.read_elem(item.as_ref(), dict, depth + 1)?)));
+            }
         };
         if kid.is_none() {
             self.skip(item)?;

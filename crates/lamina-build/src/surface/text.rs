@@ -433,6 +433,7 @@ impl<'s> TextRun<'s> {
     /// also a link holds a `Link` element with the text and the annotation.
     pub fn tag(self, tag: impl Into<Tag>) -> Self {
         let tag = Box::new(tag.into());
+        self.surface.mark_tagged();
         self.edit(|c| c.tag = Some(tag))
     }
 

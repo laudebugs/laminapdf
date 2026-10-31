@@ -389,6 +389,74 @@ mod diagnostics {
     }
 
     #[test]
+    fn report_a_link_inside_an_artifact() {
+        let mut b = Builder::new(BuildOptions::default().with_tagged(true));
+        let mut page = b.page(PageSize::A4);
+        page.surface()
+            .artifact(ArtifactKind::Pagination, |s| {
+                s.link(
+                    rect(10.0, 10.0, 10.0, 10.0),
+                    lamina_build::LinkTarget::Uri("https://example.com".into()),
+                    None,
+                );
+                Ok(())
+            })
+            .unwrap();
+        page.finish().unwrap();
+        assert_eq!(
+            b.tagging_diagnostics(),
+            [TagDiagnostic::Untagged {
+                page: 0,
+                content: ContentKind::Link,
+                count: 1
+            }]
+        );
+    }
+
+    #[test]
+    fn report_what_pages_finished_before_tagging_began_drew_and_linked() {
+        let mut b = Builder::new(BuildOptions::default());
+        let mut first = b.page(PageSize::A4);
+        first
+            .surface()
+            .path(|p| {
+                p.rect(rect(10.0, 10.0, 10.0, 10.0));
+            })
+            .fill(FillRule::NonZero)
+            .link(
+                rect(10.0, 10.0, 10.0, 10.0),
+                lamina_build::LinkTarget::Uri("https://example.com".into()),
+                None,
+            );
+        first.finish().unwrap();
+        let mut second = b.page(PageSize::A4);
+        second
+            .surface()
+            .tag(TagKind::Figure, |s| {
+                s.path(|p| {
+                    p.rect(rect(10.0, 10.0, 10.0, 10.0));
+                })
+                .fill(FillRule::NonZero);
+                Ok(())
+            })
+            .unwrap();
+        second.finish().unwrap();
+        let untagged = |content| TagDiagnostic::Untagged {
+            page: 0,
+            content,
+            count: 1,
+        };
+        assert_eq!(
+            b.tagging_diagnostics(),
+            [
+                untagged(ContentKind::Path),
+                untagged(ContentKind::Link),
+                TagDiagnostic::MissingAlt { page: 1 }
+            ]
+        );
+    }
+
+    #[test]
     fn a_clip_alone_is_not_content() {
         let mut b = Builder::new(BuildOptions::default().with_tagged(true));
         let mut page = b.page(PageSize::A4);
@@ -529,6 +597,89 @@ mod documents {
         appender.finish().unwrap();
         let last = doc.pages().unwrap().len() - 1;
         assert_eq!((marks(&doc, last).seen.len(), doc.structure().unwrap()), (0, None));
+    }
+
+    #[test]
+    fn an_appended_page_with_a_tag_and_a_link_gets_no_tab_order() {
+        let mut doc = reopen(&fixture("golden/hello.pdf"));
+        let mut appender = Builder::on(&mut doc, &BuildOptions::default()).unwrap();
+        let mut page = appender.page(PageSize::A4);
+        page.surface()
+            .tag(TagKind::Link, |s| {
+                s.link(
+                    rect(10.0, 10.0, 10.0, 10.0),
+                    lamina_build::LinkTarget::Uri("https://example.com".into()),
+                    None,
+                );
+                Ok(())
+            })
+            .unwrap();
+        page.finish().unwrap();
+        appender.finish().unwrap();
+        let pages = doc.pages().unwrap();
+        let last = pages.get(pages.len() - 1).unwrap();
+        assert_eq!(last.dict().get("Tabs"), None);
+    }
+
+    #[test]
+    fn tab_order_and_expansions_raise_a_1_4_document_to_1_5() {
+        let mut b = Builder::new(BuildOptions::default().with_version(lamina_build::PdfVersion::V1_4));
+        let mut page = b.page(PageSize::A4);
+        page.surface()
+            .tag(Tag::new(TagKind::Span).with_expansion("for example"), |s| {
+                s.path(|p| {
+                    p.rect(rect(10.0, 10.0, 10.0, 10.0));
+                })
+                .fill(FillRule::NonZero);
+                Ok(())
+            })
+            .unwrap();
+        page.finish().unwrap();
+        let doc = reopen(&save(b.finish().unwrap()));
+        assert_eq!(doc.catalog().unwrap().get_name("Version"), Some(&b"1.5"[..]));
+    }
+
+    #[test]
+    fn a_tagged_1_4_document_without_links_or_expansions_stays_1_4() {
+        let mut b = Builder::new(BuildOptions::default().with_version(lamina_build::PdfVersion::V1_4));
+        let mut page = b.page(PageSize::A4);
+        page.surface()
+            .tag(TagKind::P, |s| {
+                s.path(|p| {
+                    p.rect(rect(10.0, 10.0, 10.0, 10.0));
+                })
+                .fill(FillRule::NonZero);
+                Ok(())
+            })
+            .unwrap();
+        page.finish().unwrap();
+        let doc = reopen(&save(b.finish().unwrap()));
+        assert_eq!(doc.catalog().unwrap().get_name("Version"), None);
+    }
+
+    #[test]
+    fn a_custom_name_that_is_a_standard_type_is_written_unmapped() {
+        let mut b = Builder::new(BuildOptions::default());
+        let mut page = b.page(PageSize::A4);
+        for name in ["Div", "BlockQuote", "THead"] {
+            page.surface()
+                .tag(Tag::custom(name, TagKind::Sect), |s| {
+                    s.path(|p| {
+                        p.rect(rect(10.0, 10.0, 10.0, 10.0));
+                    })
+                    .fill(FillRule::NonZero);
+                    Ok(())
+                })
+                .unwrap();
+        }
+        page.finish().unwrap();
+        let doc = reopen(&save(b.finish().unwrap()));
+        let tree = tree(&doc);
+        let kinds: Vec<Vec<u8>> = below_document(&tree).iter().map(|(_, e)| e.kind.clone()).collect();
+        assert_eq!(
+            (kinds, tree.role_map.len()),
+            (vec![b"Div".to_vec(), b"BlockQuote".to_vec(), b"THead".to_vec()], 0)
+        );
     }
 
     #[test]

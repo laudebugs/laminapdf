@@ -144,6 +144,18 @@ describe("tagging", () => {
     expect(doc.pageCount).toBe(1);
   });
 
+  it("reports the drawing callback's error, not ending the element on a finished page", () => {
+    const b = new Builder();
+    const page = b.page("A6");
+    const s = page.surface();
+    expect(() =>
+      s.tag("P", () => {
+        page.finish(); // ending the element afterwards would throw builder-finished
+        throw new Error("drawing failed");
+      }),
+    ).toThrow("drawing failed");
+  });
+
   it("rejects an unknown type without a role, suggesting the closest", () => {
     const b = new Builder();
     const e = thrown(() =>

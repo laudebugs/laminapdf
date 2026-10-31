@@ -466,22 +466,34 @@ export class Surface {
 
   /** Runs `draw`, then ends the element or artifact just begun. */
   #within(draw: (s: this) => void): void {
+    this.#ended(() => draw(this));
+  }
+
+  /**
+   * Runs `draw`, then ends the innermost element or artifact. When `draw` throws, its error is
+   * the one thrown (ending is still tried, and its own failure, a finished page, ignored).
+   */
+  #ended<T>(draw: () => T): T {
+    let result: T;
     try {
-      draw(this);
-    } finally {
-      guard(() => this.#page.get().endTag());
+      result = draw();
+    } catch (e) {
+      try {
+        this.#page.get().endTag();
+      } catch {
+        // `draw`'s error is the one to report.
+      }
+      throw e;
     }
+    guard(() => this.#page.get().endTag());
+    return result;
   }
 
   /** Runs `draw` inside `tag`, when there is one. */
   #tagged<T>(tag: Tag | undefined, draw: () => T): T {
     if (tag === undefined) return draw();
     this.#begin(tag);
-    try {
-      return draw();
-    } finally {
-      guard(() => this.#page.get().endTag());
-    }
+    return this.#ended(draw);
   }
 
   /** A link annotation over `rect`, with `contents` as its alternate text. */

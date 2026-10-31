@@ -167,7 +167,7 @@ pub(crate) fn pick<T: Copy>(argument: &'static str, name: &str, known: &[(&str, 
 /// 2 (column) or 3 (both). Indices keep the type names and their suggestions out of the module.
 ///
 /// # Errors
-/// `invalid-argument` for an index out of range.
+/// `invalid-argument` for a `kind` or `scope` out of range.
 pub(crate) fn tag(kind: u8, custom: Option<String>, attributes: [Option<String>; 4], scope: u8) -> JsResult<Tag> {
     let out_of_range = || invalid_argument("kind", "not a structure type index".to_owned(), Vec::new());
     let kind = *TagKind::ALL.get(usize::from(kind)).ok_or_else(out_of_range)?;
@@ -188,13 +188,20 @@ pub(crate) fn tag(kind: u8, custom: Option<String>, attributes: [Option<String>;
     if let Some(expansion) = expansion {
         tag = tag.with_expansion(expansion);
     }
-    match scope {
-        1 => tag = tag.with_scope(TableScope::Row),
-        2 => tag = tag.with_scope(TableScope::Column),
-        3 => tag = tag.with_scope(TableScope::Both),
-        _ => {}
-    }
-    Ok(tag)
+    let scope = match scope {
+        0 => return Ok(tag),
+        1 => TableScope::Row,
+        2 => TableScope::Column,
+        3 => TableScope::Both,
+        _ => {
+            return Err(invalid_argument(
+                "scope",
+                "not a table scope index".to_owned(),
+                Vec::new(),
+            ));
+        }
+    };
+    Ok(tag.with_scope(scope))
 }
 
 /// An artifact kind by index (`layout`, `page`, `pagination`, `background`).

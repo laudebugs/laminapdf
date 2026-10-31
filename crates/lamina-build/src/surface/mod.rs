@@ -159,6 +159,8 @@ pub struct Surface {
     error: Option<&'static str>,
     /// Elements and artifacts begun and not yet ended.
     marks_open: usize,
+    /// Whether anything drawn opened an element or artifact.
+    tagged: bool,
 }
 
 /// A path built by [`Surface::path`], waiting to be painted. Dropping it draws nothing.
@@ -375,6 +377,7 @@ impl Surface {
     /// open is ended at the end of the page.
     pub fn begin_tag(&mut self, tag: impl Into<Tag>) -> &mut Self {
         self.marks_open += 1;
+        self.tagged = true;
         self.commands.push(Command::BeginTag(Box::new(tag.into())));
         self
     }
@@ -382,6 +385,7 @@ impl Surface {
     /// Opens an artifact until the matching [`Surface::end_tag`] (see [`Surface::artifact`]).
     pub fn begin_artifact(&mut self, kind: ArtifactKind) -> &mut Self {
         self.marks_open += 1;
+        self.tagged = true;
         self.commands.push(Command::BeginArtifact(kind));
         self
     }
@@ -402,13 +406,14 @@ impl Surface {
     }
 
     /// Whether anything drawn opens an element or artifact.
-    pub(crate) fn uses_tags(&self) -> bool {
-        self.commands.iter().any(|c| match c {
-            Command::BeginTag(_) | Command::BeginArtifact(_) => true,
-            #[cfg(feature = "text")]
-            Command::Text(t) => t.tag.is_some(),
-            _ => false,
-        })
+    pub(crate) const fn uses_tags(&self) -> bool {
+        self.tagged
+    }
+
+    /// Notes that a text run became an element ([`TextRun::tag`]).
+    #[cfg(feature = "text")]
+    pub(crate) const fn mark_tagged(&mut self) {
+        self.tagged = true;
     }
 
     /// Removes the last thing drawn when it is a text run, and says whether it did: a caller
@@ -756,19 +761,16 @@ impl Writer {
     }
 
     fn command(&mut self, command: &Command, from_user: &Matrix, resources: &mut PageResources) {
-        match command {
-            Command::Save | Command::Restore => self.marking.close(&mut self.content),
-            Command::Paint(_, Paint::Clip(_)) => {}
-            Command::Paint(..) => self.marking.mark(&mut self.content, ContentKind::Path),
-            Command::Image(..) => self.marking.mark(&mut self.content, ContentKind::Image),
-            _ => {}
-        }
+        // Every arm that draws marks first (a clip draws nothing), and `q`/`Q` close the open
+        // sequence, so a new command can't be drawn outside the marking.
         match command {
             Command::Save => {
+                self.marking.close(&mut self.content);
                 self.saved.push(self.state.clone());
                 self.content.save_state();
             }
             Command::Restore => {
+                self.marking.close(&mut self.content);
                 self.state = self.saved.pop().unwrap_or_default();
                 self.content.restore_state();
             }
@@ -783,12 +785,18 @@ impl Writer {
                 let name = resources.gstate(*key);
                 self.content.set_parameters(Name(name.as_bytes()));
             }
-            Command::Paint(segments, paint) => self.paint(segments, paint),
+            Command::Paint(segments, paint) => {
+                if !matches!(paint, Paint::Clip(_)) {
+                    self.marking.mark(&mut self.content, ContentKind::Path);
+                }
+                self.paint(segments, paint);
+            }
             // Written by `render` itself (they need the fonts or produce annotations).
             #[cfg(feature = "text")]
             Command::Text(_) => {}
             Command::Link(..) | Command::BeginTag(_) | Command::BeginArtifact(_) | Command::EndMarked => {}
             Command::Image(image, r) => {
+                self.marking.mark(&mut self.content, ContentKind::Image);
                 let name = resources.image(image);
                 let (w, h) = (r.width().get(), r.height().get());
                 // The unit square, upright: its bottom-left at the rect's bottom-left.

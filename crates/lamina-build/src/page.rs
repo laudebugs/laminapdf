@@ -252,7 +252,8 @@ impl<'b> PageBuilder<'b> {
         }
         let mut resources = PageResources::default();
         let state = &mut *self.target.state;
-        let tagged = state.tag.tagged || self.surface.uses_tags();
+        // Appended pages are never tagged (no structure tree to merge into).
+        let tagged = state.tagging && (state.tag.tagged || self.surface.uses_tags());
         let crop = frame.crop_box().to_array().map(crate::surface::n);
         let rendered = self.surface.render(
             &frame,
@@ -295,10 +296,15 @@ impl<'b> PageBuilder<'b> {
                 });
             }
             page.insert("Annots", annots.iter().map(|r| Object::Ref(*r)).collect::<Vec<_>>());
-            if tagged || rendered.marks.used {
-                // Annotations in structure order (§12.5.1; PDF/UA requires it).
+            if tagged {
+                // Annotations in structure order (§12.5.1, PDF 1.5; PDF/UA requires it).
                 page.insert("Tabs", Name::from("S"));
+                state.require((1, 5));
             }
+        }
+        if rendered.marks.elems.iter().any(|e| e.tag.expansion().is_some()) {
+            // `/E` is PDF 1.5 (§14.9.5); the rest of the structure 1.3 and `/MarkInfo` 1.4.
+            state.require((1, 5));
         }
         let r = cos.create(Object::Dict(page))?;
         let index = u32::try_from(state.pages.len()).unwrap_or(u32::MAX);

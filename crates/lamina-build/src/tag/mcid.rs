@@ -52,7 +52,7 @@ pub(crate) struct PageMarks {
     /// link outside the structure (untagged pages, artifacts).
     pub(crate) links: Vec<Option<usize>>,
     /// Drawings outside every element and artifact, by [`ContentKind::ALL`].
-    pub(crate) untagged: [usize; 3],
+    pub(crate) untagged: [usize; 4],
     /// Whether the page used any element or artifact.
     pub(crate) used: bool,
 }
@@ -232,8 +232,14 @@ impl Marking {
             Some(Frame::Elem(i)) if self.enabled => Some(i),
             _ => None,
         };
-        if let Some(elem) = owner.and_then(|i| self.marks.elems.get_mut(i)) {
-            elem.kids.push(PageKid::Link(link));
+        match owner.and_then(|i| self.marks.elems.get_mut(i)) {
+            Some(elem) => elem.kids.push(PageKid::Link(link)),
+            None if self.enabled => {
+                if let Some(count) = self.marks.untagged.get_mut(ContentKind::Link as usize) {
+                    *count += 1;
+                }
+            }
+            None => {}
         }
         self.marks.links.push(owner);
     }
@@ -317,7 +323,7 @@ mod tests {
             m.mark(c, ContentKind::Path);
             m.mark(c, ContentKind::Path);
         });
-        assert_eq!((text.as_str(), marks.untagged), ("", [2, 0, 0]));
+        assert_eq!((text.as_str(), marks.untagged), ("", [2, 0, 0, 0]));
     }
 
     #[test]

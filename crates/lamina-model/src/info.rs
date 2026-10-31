@@ -3,7 +3,6 @@
 use std::sync::Arc;
 
 use lamina_cos::{Object, Result, Warning};
-use lamina_syntax::text::decode_text_string;
 
 use crate::date::PdfDate;
 use crate::document::{Document, object_number};
@@ -54,13 +53,10 @@ impl<'d> Info<'d> {
     /// # Errors
     /// [`lamina_cos::Error::DataPending`] / [`lamina_cos::Error::Source`].
     pub fn text(&self, key: &str) -> Result<Option<String>> {
-        let Some(value) = self.dict.as_dict().and_then(|d| d.get(key)) else {
-            return Ok(None);
-        };
-        Ok(match self.doc.read(value)?.as_deref() {
-            Some(Object::String(s)) => Some(decode_text_string(&s.bytes)),
-            _ => None,
-        })
+        match self.dict.as_dict() {
+            Some(d) => self.doc.text_entry(d, key),
+            None => Ok(None),
+        }
     }
 
     /// `/Title`.

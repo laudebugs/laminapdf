@@ -211,9 +211,11 @@ impl Tag {
         }
     }
 
-    /// An element with a custom type `name`, which the `RoleMap` maps to `role` (§14.8.3). A
-    /// `name` that is a standard type's ([`TagKind::from_name`]) is that type: standard types
-    /// are never remapped.
+    /// An element with a custom type `name`, which the `RoleMap` maps to `role` (§14.8.3).
+    /// Standard types are never remapped: a `name` that is one of [`TagKind`]'s is that kind,
+    /// and any other standard type of PDF 1.7 or 2.0 (`Div`, `BlockQuote`, `TOC`, `THead`,
+    /// `Formula`, `H7`, …) is written as `/S` unmapped, with `role` only saying how the builder
+    /// treats it (a `Formula` written with the role `Figure` needs alternate text).
     #[must_use]
     pub fn custom(name: impl Into<String>, role: TagKind) -> Self {
         let name = name.into();
@@ -326,15 +328,24 @@ pub enum ContentKind {
     Image,
     /// A text run or text box.
     Text,
+    /// A link annotation without a `Link` element (`/StructParent`): drawn inside an
+    /// artifact, or on a page finished before the document was tagged.
+    Link,
 }
 
 impl ContentKind {
-    pub(crate) const ALL: [Self; 3] = [Self::Path, Self::Image, Self::Text];
+    /// In declaration order (`kind as usize` indexes it).
+    pub(crate) const ALL: [Self; 4] = [Self::Path, Self::Image, Self::Text, Self::Link];
 }
 
 /// What a tagged document lacks, found while its pages were drawn
 /// ([`Builder::tagging_diagnostics`](crate::Builder::tagging_diagnostics)). Conformance profiles
 /// ([B8b]) turn these into errors; the builder itself writes the document either way.
+///
+/// The builder counts on every page whether or not the document is tagged yet, so a document
+/// that becomes tagged only when a later page uses an element still reports everything its
+/// earlier pages drew and linked as [`TagDiagnostic::Untagged`]: the list is empty only when
+/// every drawing and every link annotation has structure (or is an artifact's drawing).
 ///
 /// [B8b]: https://github.com/laudebugs/lamina/blob/main/docs/todos/ready/B8b-conformance-profiles-and-verapdf.md
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]

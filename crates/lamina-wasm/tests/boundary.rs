@@ -190,3 +190,20 @@ fn a_text_call_that_fails_draws_nothing() {
     let bytes = js_sys::Uint8Array::new(&get(&saved, "bytes")).to_vec();
     assert!(!bytes.windows(5).any(|w| w == b"Hello"));
 }
+
+#[wasm_bindgen_test]
+fn a_tag_scope_out_of_range_is_an_invalid_argument() {
+    let builder = WasmBuilder::new(&JsValue::UNDEFINED).unwrap();
+    let mut page = builder.page(100.0, 100.0);
+    // 16 is `TH`; scopes are 0 (none) to 3 (both).
+    let error = page.begin_tag(16, None, None, None, None, None, 4).err().unwrap();
+    assert_eq!(string(&error, "code").as_deref(), Some("invalid-argument"));
+}
+
+#[wasm_bindgen_test]
+fn a_tag_kind_out_of_range_is_an_invalid_argument() {
+    let builder = WasmBuilder::new(&JsValue::UNDEFINED).unwrap();
+    let mut page = builder.page(100.0, 100.0);
+    let error = page.begin_tag(25, None, None, None, None, None, 0).err().unwrap();
+    assert_eq!(string(&error, "code").as_deref(), Some("invalid-argument"));
+}
