@@ -105,6 +105,10 @@ tasks:
   differential --live [--corpus external|mutants|all] [--source <name>]… [--tools a,b] [--sample N]
                     nightly: lamina vs live pdf.js, PDFium, qpdf and pypdf over the external corpus
                     and 250 mutants per corpus file; report in target/nightly/differential/
+  differential --live --text [--source <name>]… [--sample N]
+                    nightly: lamina's page text vs live pdf.js and pdftotext over the external
+                    corpus (whitespace and bidi controls removed; a page agrees when lamina
+                    matches one tool); report in target/nightly/differential-text/
   quads [--update]  lamina's glyph quads vs PDFium's character boxes from the precomputed
                     fixtures/text/charboxes.json; --update regenerates it (tools/render/charbox.py,
                     pypdfium2 from tools/render/requirements.txt; $LAMINA_PYTHON or python3)

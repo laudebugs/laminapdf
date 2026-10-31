@@ -108,6 +108,8 @@ fn every_example_file_is_listed_here_and_in_the_manifest() {
     let mut in_manifest: Vec<String> = manifest
         .split("[[example]]")
         .skip(1)
+        // An entry with its own `path` (examples/differential/) is a tool, not a golden example.
+        .filter(|block| !block.contains("\npath = "))
         .filter_map(|block| block.split('"').nth(1).map(str::to_owned))
         .collect();
     in_manifest.sort();

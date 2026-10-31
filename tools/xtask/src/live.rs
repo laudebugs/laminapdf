@@ -9,6 +9,11 @@
 //! the disagreement is not excused by `fixtures/differential/exceptions.toml`, or when lamina
 //! panics. Disagreements where at least one tool agrees with lamina are listed in the report
 //! (they are differences between the tools as much as bugs) but don't fail the run.
+//!
+//! `--text` runs the text differential instead ([`text`], todo B9f): lamina's page text
+//! against pdf.js and pdftotext over the external corpus.
+
+mod text;
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::ffi::OsString;
@@ -75,6 +80,8 @@ pub(crate) struct LiveArgs {
     pub(crate) sources: Vec<String>,
     pub(crate) tools: Vec<Tool>,
     pub(crate) sample: Option<usize>,
+    /// `--text`: the text differential (external corpus; pdf.js and pdftotext).
+    pub(crate) text: bool,
 }
 
 impl Default for LiveArgs {
@@ -84,20 +91,25 @@ impl Default for LiveArgs {
             sources: Vec::new(),
             tools: Tool::ALL.to_vec(),
             sample: None,
+            text: false,
         }
     }
 }
 
 const USAGE: &str = "usage: cargo xtask differential --live [--corpus external|mutants|all] \
-                     [--source <name>]… [--tools pdfjs,pdfium,qpdf,pypdf] [--sample <N>]";
+                     [--source <name>]… [--tools pdfjs,pdfium,qpdf,pypdf] [--sample <N>]\n       \
+                     cargo xtask differential --live --text [--source <name>]… [--sample <N>]";
 
 pub(crate) fn parse_args(args: &[String]) -> Result<LiveArgs> {
     let mut parsed = LiveArgs::default();
+    let (mut corpus, mut tools) = (false, false);
     let mut rest = args.iter();
     while let Some(arg) = rest.next() {
         let mut value = || rest.next().with_context(|| format!("{arg} needs a value; {USAGE}"));
         match arg.as_str() {
+            "--text" => parsed.text = true,
             "--corpus" => {
+                corpus = true;
                 parsed.inputs = match value()?.as_str() {
                     "external" => Inputs::External,
                     "mutants" => Inputs::Mutants,
@@ -107,6 +119,7 @@ pub(crate) fn parse_args(args: &[String]) -> Result<LiveArgs> {
             }
             "--source" => parsed.sources.push(value()?.clone()),
             "--tools" => {
+                tools = true;
                 parsed.tools = value()?.split(',').map(Tool::parse).collect::<Result<_>>()?;
                 parsed.tools.sort();
                 parsed.tools.dedup();
@@ -121,6 +134,9 @@ pub(crate) fn parse_args(args: &[String]) -> Result<LiveArgs> {
             }
             other => bail!("unknown argument {other:?}; {USAGE}"),
         }
+    }
+    if parsed.text && (tools || (corpus && parsed.inputs != Inputs::External)) {
+        bail!("--text reads the external corpus with pdf.js and pdftotext: no --tools or mutants; {USAGE}");
     }
     Ok(parsed)
 }
@@ -204,6 +220,9 @@ fn example_binary(ws: &Workspace, name: &str) -> PathBuf {
 
 /// `cargo xtask differential --live …`.
 pub(crate) fn run_live(ws: &Workspace, args: &LiveArgs) -> Result<()> {
+    if args.text {
+        return text::run(ws, args);
+    }
     // Everything that can fail fast does so before hours of work.
     let mut exceptions = Exceptions::default();
     for file in EXCEPTIONS {
@@ -429,9 +448,15 @@ impl Report {
 /// How an exception relates lamina's value to a tool's (`relation` in a `[[class]]`).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum Relation {
-    /// lamina skipped what it could not read: a lower page count, or outline titles that are
-    /// a shorter subsequence of the tool's.
+    /// lamina skipped what it could not read: a lower page count, outline titles that are a
+    /// shorter subsequence of the tool's, or page text whose characters are a shorter
+    /// subsequence of the tool's.
     LaminaSkips,
+    /// Page text with the same characters as the tool's, in another order.
+    SameCharacters,
+    /// Page text that differs from the tool's only by lamina's U+FFFD for glyphs without a
+    /// Unicode value, where the tool writes nothing or a C0 control character.
+    Unmapped,
 }
 
 impl Relation {
@@ -443,6 +468,32 @@ impl Relation {
                     let mut rest = b.iter();
                     a.len() < b.len() && a.iter().all(|x| rest.any(|y| y == x))
                 }
+                (Value::String(a), Value::String(b)) => {
+                    let mut rest = b.chars();
+                    a.len() < b.len() && a.chars().all(|x| rest.any(|y| y == x))
+                }
+                _ => false,
+            },
+            Self::SameCharacters => match (ours, theirs) {
+                (Value::String(a), Value::String(b)) => {
+                    let sorted = |s: &str| {
+                        let mut chars: Vec<char> = s.chars().collect();
+                        chars.sort_unstable();
+                        chars
+                    };
+                    a != b && sorted(a) == sorted(b)
+                }
+                _ => false,
+            },
+            Self::Unmapped => match (ours, theirs) {
+                (Value::String(a), Value::String(b)) => {
+                    let ours: String = a.chars().filter(|c| *c != '\u{FFFD}').collect();
+                    let theirs: String = b
+                        .chars()
+                        .filter(|c| *c != '\u{FFFD}' && !c.is_ascii_control())
+                        .collect();
+                    ours.len() < a.len() && ours == theirs
+                }
                 _ => false,
             },
         }
@@ -451,8 +502,9 @@ impl Relation {
 
 /// A `[[class]]` of deliberate differences: every disagreement on `facts` with `tools` (all
 /// when empty) in a file matching `file` (a glob, `*` for any run of characters), where lamina's
-/// value is `lamina` and the tool's `theirs` (either may be omitted), `relation` holds, and
-/// lamina's other facts (including its `error` code) match `lamina_facts`.
+/// value is `lamina` and the tool's `theirs` (either may be omitted), `relation` holds,
+/// lamina's other facts (including its `error` code) match `lamina_facts`, and lamina raised
+/// the warning `lamina_warning` (text only: the text facts list the file's warning codes).
 #[derive(Debug)]
 struct Class {
     file: String,
@@ -462,6 +514,7 @@ struct Class {
     lamina_facts: BTreeMap<String, Value>,
     theirs: Option<Value>,
     relation: Option<Relation>,
+    lamina_warning: Option<String>,
     rule: String,
 }
 
@@ -475,6 +528,12 @@ impl Class {
             && self.lamina.as_ref().is_none_or(|v| v == ours)
             && self.theirs.as_ref().is_none_or(|v| v == theirs)
             && self.relation.is_none_or(|r| r.holds(ours, theirs))
+            && self.lamina_warning.as_ref().is_none_or(|code| {
+                lamina
+                    .get("warnings")
+                    .and_then(Value::as_array)
+                    .is_some_and(|w| w.iter().any(|w| w == code.as_str()))
+            })
     }
 }
 
@@ -584,6 +643,11 @@ impl Exceptions {
             if e.files.is_empty() {
                 bail!("every [[exception]] names its `file` or `files`: {entry:?}");
             }
+            if e.facts.iter().any(|f| f == text::TEXT) {
+                bail!(
+                    "page text takes a [[class]] or [[known]] entry, not an [[exception]] (the PR lane reads those): {entry:?}"
+                );
+            }
             let tools = if e.tools.is_empty() {
                 vec![Tool::Pypdf.name().to_owned()]
             } else {
@@ -603,7 +667,11 @@ impl Exceptions {
             let relation = match entry.get("relation").and_then(toml::Value::as_str) {
                 None => None,
                 Some("lamina-skips") => Some(Relation::LaminaSkips),
-                Some(other) => bail!("[[class]] relation {other:?}: only \"lamina-skips\""),
+                Some("same-characters") => Some(Relation::SameCharacters),
+                Some("unmapped") => Some(Relation::Unmapped),
+                Some(other) => {
+                    bail!("[[class]] relation {other:?}: \"lamina-skips\", \"same-characters\" or \"unmapped\"")
+                }
             };
             let file = match e.files.as_slice() {
                 [] => "*".to_owned(),
@@ -622,6 +690,10 @@ impl Exceptions {
                     .unwrap_or_default(),
                 theirs: entry.get("theirs").map(toml_to_json),
                 relation,
+                lamina_warning: entry
+                    .get("lamina_warning")
+                    .and_then(toml::Value::as_str)
+                    .map(str::to_owned),
                 rule: e.rule,
             });
         }
@@ -636,15 +708,18 @@ impl Exceptions {
             if e.reason.is_empty() {
                 bail!("every [[known]] gives a `reason`: {entry:?}");
             }
-            let [file] = e.files.as_slice() else {
-                bail!("a [[known]] names exactly one `file`: {entry:?}");
-            };
-            out.known.push(Known {
-                file: file.clone(),
-                facts: e.facts,
-                tools: e.tools,
-                issue,
-            });
+            if e.files.is_empty() || e.files.iter().any(|f| f.contains('*')) {
+                bail!("a [[known]] names its `file` or `files` (no globs): {entry:?}");
+            }
+            // One entry per file, so each is reported (and goes stale) on its own.
+            for file in e.files {
+                out.known.push(Known {
+                    file,
+                    facts: e.facts.clone(),
+                    tools: e.tools.clone(),
+                    issue: issue.clone(),
+                });
+            }
         }
         Ok(out)
     }
@@ -696,7 +771,8 @@ struct Entry {
     /// `file` or `files` (exactly one of them, or neither).
     files: Vec<String>,
     facts: Vec<String>,
-    /// Validated tool names (`pdfjs`, `pdfium`, `qpdf`, `pypdf`).
+    /// Validated tool names (`pdfjs`, `pdfium`, `qpdf`, `pypdf`; `pdfjs` and `pdftotext` for
+    /// page text).
     tools: Vec<String>,
     rule: String,
     reason: String,
@@ -725,12 +801,22 @@ impl Entry {
             Ok(out)
         };
         let facts = strings("facts")?;
-        if facts.is_empty() || facts.iter().any(|f| !FACTS.contains(&f.as_str())) {
-            bail!("[[{kind}]] needs `facts` from {FACTS:?}: {entry:?}");
+        let is_text = facts == [text::TEXT];
+        if facts.is_empty() || !(is_text || facts.iter().all(|f| FACTS.contains(&f.as_str()))) {
+            bail!(
+                "[[{kind}]] needs `facts` from {FACTS:?}, or [\"{}\"] alone: {entry:?}",
+                text::TEXT
+            );
         }
         let tools = strings("tools")?;
         for tool in &tools {
-            Tool::parse(tool).with_context(|| format!("[[{kind}]] {entry:?}"))?;
+            if is_text {
+                if !text::TOOLS.contains(&tool.as_str()) {
+                    bail!("[[{kind}]] text tools are {:?}: {entry:?}", text::TOOLS);
+                }
+            } else {
+                Tool::parse(tool).with_context(|| format!("[[{kind}]] {entry:?}"))?;
+            }
         }
         let files = match (entry.get("file"), entry.get("files")) {
             (None, None) => Vec::new(),
@@ -1106,10 +1192,16 @@ impl Comparison {
                 );
             }
         }
-        if !exceptions.classes.is_empty() || !exceptions.known.is_empty() {
+        // Page-text entries are the text report's (`differential --live --text`).
+        let is_text = |facts: &[String]| facts.iter().any(|f| f == text::TEXT);
+        if exceptions.classes.iter().any(|c| !is_text(&c.facts)) || exceptions.known.iter().any(|k| !is_text(&k.facts))
+        {
             let _ = writeln!(md, "\n### Classes and known issues\n");
             let _ = writeln!(md, "| Entry | Disagreements excused |\n| --- | --- |");
             for i in 0..exceptions.classes.len() {
+                if exceptions.classes.get(i).is_some_and(|c| is_text(&c.facts)) {
+                    continue;
+                }
                 let hits = self.class_hits.get(&i).copied().unwrap_or_default();
                 let _ = writeln!(
                     md,
@@ -1118,6 +1210,9 @@ impl Comparison {
                 );
             }
             for i in 0..exceptions.known.len() {
+                if exceptions.known.get(i).is_some_and(|k| is_text(&k.facts)) {
+                    continue;
+                }
                 let hits = self.known_hits.get(&i).copied().unwrap_or_default();
                 let file = exceptions.known.get(i).map_or("", |k| k.file.as_str());
                 let _ = writeln!(
@@ -1435,6 +1530,7 @@ mod tests {
                 sources: Vec::new(),
                 tools: vec![Tool::Pdfjs, Tool::Qpdf],
                 sample: Some(50),
+                text: false,
             }
         );
     }
@@ -1513,9 +1609,64 @@ mod tests {
     }
 
     #[test]
+    fn known_entries_should_read_files_lists_one_entry_per_file() {
+        let known = "[[known]]\nfiles = [\"a.pdf\", \"b.pdf\"]\nfacts = [\"page_count\"]\n\
+                     issue = \"https://github.com/laudebugs/lamina/issues/1\"\nreason = \"r\"\n";
+        let e = Exceptions::parse(known).unwrap();
+        let (ours, theirs) = (json!({"page_count": 1}), json!(2));
+        assert_eq!(
+            (e.known.len(), e.excuse("b.pdf", "page_count", "qpdf", &ours, &theirs)),
+            (2, Some(Excuse::Known(1)))
+        );
+    }
+
+    #[test]
     fn known_entries_should_require_an_issue_url() {
         let known = "[[known]]\nfile = \"a.pdf\"\nfacts = [\"page_count\"]\nissue = \"#1\"\nreason = \"r\"\n";
         assert!(Exceptions::parse(known).is_err());
+    }
+
+    #[test]
+    fn live_args_should_read_text() {
+        let args: Vec<String> = ["--text", "--source", "pdfjs", "--sample", "50"]
+            .map(String::from)
+            .to_vec();
+        let parsed = parse_args(&args).unwrap();
+        assert!(parsed.text && parsed.sources == ["pdfjs"] && parsed.sample == Some(50));
+    }
+
+    #[test]
+    fn live_args_should_reject_text_with_tools_or_mutants() {
+        let with_tools: Vec<String> = ["--text", "--tools", "qpdf"].map(String::from).to_vec();
+        let with_mutants: Vec<String> = ["--text", "--corpus", "mutants"].map(String::from).to_vec();
+        assert!(parse_args(&with_tools).is_err() && parse_args(&with_mutants).is_err());
+    }
+
+    #[test]
+    fn lamina_skips_should_hold_for_text_that_is_a_shorter_subsequence() {
+        let skips = Relation::LaminaSkips;
+        assert!(skips.holds(&json!("ac"), &json!("abc")) && !skips.holds(&json!("ca"), &json!("abc")));
+    }
+
+    #[test]
+    fn same_characters_should_hold_for_reordered_text_only() {
+        let same = Relation::SameCharacters;
+        assert!(
+            same.holds(&json!("cab"), &json!("abc"))
+                && !same.holds(&json!("abc"), &json!("abc"))
+                && !same.holds(&json!("abd"), &json!("abc"))
+        );
+    }
+
+    #[test]
+    fn unmapped_should_hold_where_lamina_has_only_replacement_characters_more() {
+        let unmapped = Relation::Unmapped;
+        assert!(
+            unmapped.holds(&json!("a\u{FFFD}b"), &json!("ab"))
+                && unmapped.holds(&json!("\u{FFFD}"), &json!("\u{0}"))
+                && !unmapped.holds(&json!("\u{FFFD}\u{FFFD}"), &json!("different"))
+                && !unmapped.holds(&json!("ab"), &json!("ab"))
+        );
     }
 
     #[test]

@@ -3,7 +3,9 @@
 # next release (B7b's release lane checks this workflow's latest run on main), not unrelated PRs.
 #
 #   differential  lamina vs live pdf.js, PDFium, qpdf and pypdf over the external corpus and the
-#                 nightly mutant set (`cargo xtask corpus fetch`, `cargo xtask differential --live`)
+#                 nightly mutant set (`cargo xtask corpus fetch`, `cargo xtask differential --live`),
+#                 then lamina's page text vs pdf.js and pdftotext over the external corpus
+#                 (`cargo xtask differential --live --text`; todo B9f)
 #   fuzz          every target for 10 minutes, corpus kept in the Actions cache, crashes minimised
 #                 and uploaded (`cargo xtask fuzz <target> --time 600`, `cargo xtask fuzz tmin`)
 #   scaling       release-mode #[ignore]d tests, one retry that only reports flakiness
@@ -73,7 +75,7 @@ jobs:
   # on the runner between nights (scheduled runs on main get their own directories; see the
   # action). The fuzz matrix shares one: its jobs build the same targets the same way.
   differential:
-    name: Differential (pdf.js, PDFium, qpdf, pypdf)
+    name: Differential (pdf.js, PDFium, qpdf, pypdf, pdftotext)
     runs-on: [self-hosted, macOS, ARM64]
     timeout-minutes: 180
     env:
@@ -131,6 +133,12 @@ jobs:
       # or hang costs one file, not the run (tools/xtask/src/runner.rs).
       - name: Differential
         run: cargo xtask differential --live ${DIFFERENTIAL_SAMPLE:+--sample "$DIFFERENTIAL_SAMPLE"}
+      # Page text (todo B9f) runs even when the structural differential failed, so one night
+      # reports both. pdftotext is the runner's own Homebrew poppler (nothing is downloaded);
+      # xtask checks it is the version doctor.rs pins. Agreement per source goes to the summary.
+      - name: Text differential
+        if: ${{ !cancelled() }}
+        run: cargo xtask differential --live --text ${DIFFERENTIAL_SAMPLE:+--sample "$DIFFERENTIAL_SAMPLE"}
       - name: Upload the report
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -139,13 +147,17 @@ jobs:
           path: |
             target/nightly/differential/*.json
             target/nightly/differential/*.log
+            target/nightly/differential-text/*.json
+            target/nightly/differential-text/*.log
           if-no-files-found: ignore
       - name: Upload the report (Markdown)
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: differential-report-md
-          path: target/nightly/differential/report.md
+          path: |
+            target/nightly/differential/report.md
+            target/nightly/differential-text/report.md
           if-no-files-found: ignore
 
   fuzz:
