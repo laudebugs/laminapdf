@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [shareable-libraries §7 L5](../../plans/shareable-libraries.md#l5-docs-for-agents) |
 | Round / milestone | Round L5 (shareable libraries) — before the first registry prerelease |
-| Depends on | [B7a](./B7a-docs-site.md), [L1b](../done/L1b-error-contract-codegen.md) |
+| Depends on | [B7a](../ongoing/B7a-docs-site.md), [L1b](../done/L1b-error-contract-codegen.md) |
 | Blocks | None |
 | ADRs | Follows 0026 (error codes and `explain` pages, from [L1a](../done/L1a-contract-adrs.md)), [0015](../../decisions/0015-monorepo-layout-and-tooling.md) (xtask, pnpm workspace), [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) (new docs tooling licences), 0017 (lockstep versions, from [B7b](./B7b-versioning-and-0-1-0-alpha.md)), [0018](../../decisions/0018-test-strategy.md) (the eval is recorded, not gating) |
 | Branch | `docs/l5a-agent-docs` |
@@ -28,7 +28,7 @@ Users get an `AGENTS.md` snippet for their own repositories. A machine-readable 
 
 - [Report: a new library is a rare API to every model](../../research/libraries/shareable-libraries.md#a-new-library-is-a-rare-api-to-every-model): CloudAPIBench and GitChameleon results, llms.txt with `.md` twins (Stripe), docs in the npm tarball (Vercel AI SDK), Context7, AGENTS.md. No controlled study shows llms.txt itself helps; it is cheap.
 - [LLM note (A)](../../research/libraries/notes/llm-api-and-ai-extraction.md#a-what-makes-llmsagents-write-correct-code-against-a-library-api-and-what-lamina-should-do): the llms.txt format (H1, blockquote, H2 link lists to `.md` pages; `llms-ctx.txt` variant), the four channels to ship, deprecated aliases and a machine-readable rename changelog.
-- [B7a](./B7a-docs-site.md): the Starlight site in `apps/docs`, TypeDoc, snippets imported from tested examples, per-PR previews.
+- [B7a](../ongoing/B7a-docs-site.md): the Starlight site in `apps/docs`, TypeDoc, snippets imported from tested examples, per-PR previews.
 - [L1b](../done/L1b-error-contract-codegen.md): `explain` pages and the `lamina.error/1` schema, both shipped here.
 - [B7b](./B7b-versioning-and-0-1-0-alpha.md): lockstep versions and `pnpm pack` install checks; the docs in the tarball must carry the same version.
 - [Code organisation §1](../../guidelines/code-organization.md#1-top-level-layout): where `tools/` scripts and `apps/docs` live.
@@ -66,7 +66,7 @@ Users get an `AGENTS.md` snippet for their own repositories. A machine-readable 
 
 - A Context7 listing and an MCP docs server: after the first registry prerelease ([P2](./P2-first-registry-prerelease.md)); a `lamina docs <symbol>` command belongs with the CLI ([L4b](./L4b-cli-batch-render-schema.md)).
 - Running the eval in CI or gating on it: not planned (it needs a paid API key and is non-deterministic).
-- Writing the guides themselves: [B7a](./B7a-docs-site.md).
+- Writing the guides themselves: [B7a](../ongoing/B7a-docs-site.md).
 
 ## Tasks
 
