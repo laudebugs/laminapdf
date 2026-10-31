@@ -30,7 +30,8 @@ Coordinates are page space: points from the top-left of the displayed page, y do
 | Module | gzip | What it can do |
 | --- | ---: | --- |
 | base (`init()`) | ≈ 373 KB | Open (passwords, limits, strict mode), read pages and Info, warnings, edit with ops (transactions, undo/redo), save (auto, incremental, full rewrite; save jobs); build vector and image pages with links, outline, page labels, metadata |
-| text (`init({ text: true })` or `loadText()`) | ≈ 944 KB | Everything in base, plus fonts (`Font.fromBytes`, the standard 14), shaped text runs and text boxes |
+| extract (`init({ extract: true })` or `loadExtract()`) | ≈ 526 KB | Everything in base, plus text extraction (`page.text()`) |
+| text (`init({ text: true })` or `loadText()`) | ≈ 1,009 KB | Everything in base, plus fonts (`Font.fromBytes`, the standard 14), shaped text runs and text boxes, and text extraction |
 
 A page that never draws text never downloads the text module. A `Builder` is built in the text module when it is loaded at the time the builder is created (or with `new Builder({ text: true })`); drawing text on a base-module builder throws `text-module-not-loaded`.
 
@@ -90,7 +91,27 @@ try {
 }
 ```
 
-`doc.warnings` lists what the reader repaired, as `LaminaWarning` objects of the same shape.
+`isLaminaError(e, code)` narrows: inside the `if`, `e.code` has the type `"wrong-password"`. `LaminaError<C>` is generic over the `ErrorCode` union, so a `switch (e.code)` with a `never` default is checked for exhaustiveness, and stops compiling when a new code arrives until you handle it. `toJSON()` validates against the `lamina.error/1` JSON Schema, shipped as `@lamina/pdf/schemas/error.schema.json`.
+
+`doc.warnings` lists what the reader repaired, as `LaminaWarning` objects of the same shape (without `didYouMean`), typed by `WarningCode`.
+
+`@lamina/pdf/explain` is a separate entry, kept out of the main bundle: `explain(code)` returns the code's page as Markdown (what happened, why, how to fix, an example, the `data` fields), with `KINDS`, `HINTS` and `docsUrl(code)` for every code.
+
+```ts
+import { explain } from "@lamina/pdf/explain";
+if (isLaminaError(e)) console.error(e.message, e.hint, explain(e.code));
+```
+
+## Extracting text
+
+`page.text()` returns a page's text: `lines` (in content order, trimmed), `text()` (the lines joined with `\n`), `runs` (font, size, direction, marked-content ID, `ActualText`, visibility, bounds; `glyphs()` gives each glyph's text and quad) and `buffers` (every glyph's quad in one `Float32Array`, 8 numbers per glyph in ADR 0027 page space, and the glyph text with UTF-16 offsets, to transfer from a worker). Documents open in the richest module loaded (text, then extract, then base): load the extract or text module before opening (or building) a document whose text you need, or `page.text()` throws `extract-module-not-loaded`; `doc.canExtractText` tells which module a document is in. With the text module loaded, the extract module isn't loaded (the text module extracts too), and documents live in the text module's memory. In Cloudflare Workers, pass the module yourself so other Workers don't bundle it: `import extract from "@lamina/wasm/lamina_extract.wasm"; await loadExtract(extract);`.
+
+```ts
+await init({ extract: true });
+const doc = Document.open(bytes);
+const text = doc.page(0).text({ skipInvisible: true });
+console.log(text.text());
+```
 
 ## Remote and large files
 
@@ -161,5 +182,5 @@ CI: the fast lane runs Node 22 and 26 and Chromium on every PR (Node 24, `.nvmrc
 cargo xtask wasm   # builds @lamina/wasm, then this package (tsc), its tests (Vitest: Node, Vite), publint, attw --pack
 cargo xtask pdf-runtimes   # the example suite in every runtime (see Runtimes)
 cargo xtask size   # includes this package's JS (glue + API, min+gzip) against its 20 KB budget
-cargo xtask gen codes   # regenerate src/codes.generated.ts from fixtures/codes.json (`check ts` fails when stale)
+cargo xtask gen codes   # regenerate src/generated/ and schemas/ from fixtures/codes.json (`check docs` fails when stale)
 ```

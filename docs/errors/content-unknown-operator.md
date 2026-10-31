@@ -17,7 +17,12 @@ Nothing to do; check the page's rendering if the operator mattered.
 
 ## Example
 
-To be added ([L1b](../todos/ongoing/L1b-error-contract-codegen.md)).
+```text
+BT /F1 12 Tf 72 720 Td (Hi) Tj ET
+0 0 1 setcolor
+```
+
+`setcolor` is not an Annex A operator and is not inside `BX`/`EX`, so it is skipped with its operands. `data.offset` is its byte offset in the decoded content.
 
 ## Data fields
 

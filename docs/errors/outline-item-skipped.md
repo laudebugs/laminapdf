@@ -13,11 +13,15 @@ Damaged outlines.
 
 ## How to fix
 
-Nothing.
+Nothing to do; the skipped item and its children are missing from the outline.
 
 ## Example
 
-To be added ([L1b](../todos/ongoing/L1b-error-contract-codegen.md)).
+```text
+10 0 obj << /Type /Outlines /First 11 0 R >>   % object 11 is missing
+```
+
+The first item can't be read, so it and everything under it are left out of `outline()`.
 
 ## Data fields
 

@@ -1,9 +1,11 @@
 // Document: open, read, edit with ops (transactions, undo), save. A thin layer over
 // WasmDocument (ADR 0028 F12): every call is synchronous and throws LaminaError.
 import type { WasmDocument, WasmPage, WasmSaveJob } from "@lamina/wasm/base";
+import type { PageTextJs } from "@lamina/wasm/extract";
 import { guard, isLaminaError, type LaminaWarning, packageError } from "./errors.js";
-import { baseModule } from "./init.js";
+import { extractsText, readingModule } from "./init.js";
 import { type RangeOptions, type RangeSource, type RangeState, settle, wholeBytes } from "./source/range.js";
+import { PageText, type TextOptions } from "./text.js";
 import { Transaction } from "./transaction.js";
 import type {
   DocumentInfo,
@@ -74,6 +76,32 @@ export class PageRef {
   /** The page's facts now. @throws {@link LaminaError} `unknown-page` when it is gone. */
   get info(): PageInfo {
     return guard(() => this.#page.info());
+  }
+
+  /**
+   * The page's text: lines in reading order, runs, and every glyph's quad in page space.
+   * Needs a document opened while the extract or text module was loaded.
+   *
+   * @example
+   * ```ts
+   * await init({ extract: true });
+   * const doc = Document.open(bytes);
+   * const text = doc.page(0).text().text();
+   * ```
+   * @param options - `skipInvisible` leaves out invisible text (OCR layers).
+   * @throws {@link LaminaError} `extract-module-not-loaded` for a document opened in the base
+   *   module; `unknown-page`; reading errors (`data-pending` for a range document: use `ensure`).
+   */
+  text(options?: TextOptions): PageText {
+    const page = this.#page as WasmPage & { text?: (options: TextOptions | undefined) => PageTextJs };
+    if (typeof page.text !== "function") {
+      throw packageError(
+        "extract-module-not-loaded",
+        "page.text() needs a document opened while the extract or text module was loaded",
+      );
+    }
+    const extract = page.text.bind(page);
+    return new PageText(guard(() => extract(options)));
   }
 }
 
@@ -161,7 +189,7 @@ export class Document {
     // are, rather than copying them into a sparse source as well.
     const whole = wholeBytes(src);
     if (whole !== undefined) return Document.open(whole, open);
-    const wasm = baseModule();
+    const wasm = readingModule();
     const sparse = guard(() => new wasm.WasmSparseSource(src.size, budget));
     const state: RangeState = {
       sparse,
@@ -230,7 +258,7 @@ export class Document {
    *   `strict`, …; `unknown-option` / `invalid-argument` for bad options; `not-initialized`.
    */
   static open(bytes: Uint8Array | ArrayBuffer, options?: OpenOptions): Document {
-    const wasm = baseModule();
+    const wasm = readingModule();
     const data = bytesOf(bytes);
     const attempts = passwordAttempts(options ?? {});
     for (let i = 0; ; i++) {
@@ -240,6 +268,15 @@ export class Document {
         if (!tryNext(e, i, attempts.length)) throw e;
       }
     }
+  }
+
+  /**
+   * Whether `page(i).text()` works on this document: it was opened or built while the extract or
+   * the text module was loaded. A document opened before the module loaded stays in the base
+   * module; save and reopen it to move it.
+   */
+  get canExtractText(): boolean {
+    return extractsText(this.#doc);
   }
 
   /** The number of pages. @throws {@link LaminaError} reading errors. */

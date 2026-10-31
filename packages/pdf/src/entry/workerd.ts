@@ -1,6 +1,6 @@
 // The `workerd` entry (Cloudflare Workers): the modules are imported as `WebAssembly.Module`s.
 import type { InitOptions, WasmSource } from "../init.js";
-import { initWith, loadTextWith } from "../init.js";
+import { initWith, loadExtractWith, loadTextWith } from "../init.js";
 import { locate } from "../loader/workerd.js";
 
 /**
@@ -27,6 +27,16 @@ export function init(input?: WasmSource | InitOptions): Promise<void> {
  */
 export function loadText(source?: WasmSource): Promise<void> {
   return loadTextWith(locate, source);
+}
+
+/**
+ * Loads the extract module (reading plus text extraction). Documents opened afterwards can
+ * extract text with `page.text()`. Idempotent; not needed when the text module is loaded.
+ *
+ * @param source - where it comes from; omitted, the file next to the package.
+ */
+export function loadExtract(source?: WasmSource): Promise<void> {
+  return loadExtractWith(locate, source);
 }
 
 export * from "../api.js";

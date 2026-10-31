@@ -17,7 +17,15 @@ Raise `max_object_number` only for trusted input.
 
 ## Example
 
-To be added ([L1b](../todos/ongoing/L1b-error-contract-codegen.md)).
+```text
+xref
+0 1
+0000000000 65535 f
+9999999 1
+0000000015 00000 n
+```
+
+Object 9,999,999 is above `Limits::max_object_number`; its entry is dropped so a hostile xref can't make lamina allocate for it. References to it resolve to `null`.
 
 ## Data fields
 

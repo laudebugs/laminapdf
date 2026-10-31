@@ -17,7 +17,9 @@ Pass glyph IDs from the font you registered.
 
 ## Example
 
-To be added ([L1b](../todos/ongoing/L1b-error-contract-codegen.md)).
+```rust
+registry.use_glyph(key, GlyphId::new(60_000), "x")?; // the font has 1,200 glyphs
+```
 
 ## Data fields
 

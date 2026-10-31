@@ -5,7 +5,8 @@ lamina's WebAssembly modules and their [wasm-bindgen](https://github.com/wasm-bi
 | Export | File | What it has |
 | --- | --- | --- |
 | `@lamina/wasm/base` | `dist/lamina_base.js`, `.d.ts`, `lamina_base.wasm` | Open, read, edit with ops, undo, save (save jobs, warnings); build vector and image pages with links, outline, labels, metadata |
-| `@lamina/wasm/text` | `dist/lamina_text.js`, `.d.ts`, `lamina_text.wasm` | All of base, plus fonts (`fontBytes`, `standardFont`), `text` and `textBox` |
+| `@lamina/wasm/text` | `dist/lamina_text.js`, `.d.ts`, `lamina_text.wasm` | All of base, plus fonts (`fontBytes`, `standardFont`), `text` and `textBox`, and `WasmPage.text` |
+| `@lamina/wasm/extract` | `dist/lamina_extract.js`, `.d.ts`, `lamina_extract.wasm` | All of base, plus `WasmPage.text` (text extraction; B9c) |
 
 Each glue module exports a default async `init(input)` (a URL, `Response`, bytes or `WebAssembly.Module`) and `initSync({ module })`; after either, every call is synchronous. Errors are thrown as the [ADR 0026](../../docs/decisions/0026-error-and-diagnostic-contract.md) §1 object. Paths are flat `Float64Array`s (verb, numbers…: `0 x y` moveTo, `1 x y` lineTo, `2 x1 y1 x2 y2 x y` cubicTo, `3 x1 y1 x y` quadTo, `4` close, `5 x y w h` rect, `6 x y w h` ellipse, `7 cx cy r` circle), colours arrays of 1, 3 or 4 components.
 

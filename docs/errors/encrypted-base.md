@@ -17,7 +17,10 @@ Save with `SaveOptions::with_remove_encryption(true)` to write a plaintext full 
 
 ## Example
 
-To be added ([L1b](../todos/ongoing/L1b-error-contract-codegen.md)).
+```rust
+let err = doc.save(&SaveOptions::default(), &CancelToken::new()).unwrap_err(); // encrypted-base
+let saved = doc.save(&SaveOptions::default().with_remove_encryption(true), &CancelToken::new())?;
+```
 
 ## Data fields
 

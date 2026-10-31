@@ -17,7 +17,10 @@ Call `begin` first, or use `transact`.
 
 ## Example
 
-To be added ([L1b](../todos/ongoing/L1b-error-contract-codegen.md)).
+```rust
+// lamina_ops::Document, without begin():
+ops.commit()?; // no-transaction
+```
 
 ## Data fields
 

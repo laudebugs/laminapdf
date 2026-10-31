@@ -98,7 +98,7 @@ Each round is split into one or more todos (one pull request each) on the [todo 
 
 **Deliverable:** `spikes/pdfium-wasm/` (PDFium-WASM next to `lamina-wasm` in one worker: size, memory, render time, reload after incremental save) and `spikes/hayro-parity/` (pass rate vs PDFium on the pdf.js and PDFBox corpora), each with a written result.
 **Accepted when:** both READMEs report numbers on the same machine and corpus, and recommend the defaults that ADR 0004 records.
-**Todos:** [C1a](../todos/done/C1a-hayro-parity-spike.md), [C1b](../todos/ready/C1b-pdfium-wasm-spike.md)
+**Todos:** [C1a](../todos/done/C1a-hayro-parity-spike.md), [C1b](../todos/ongoing/C1b-pdfium-wasm-spike.md)
 
 ### C2. Render backend and ADRs
 
@@ -120,7 +120,7 @@ Each round is split into one or more todos (one pull request each) on the [todo 
 
 ### C5. Text, selection and search
 
-**Deliverable:** text layer from the extraction API of [library B9](pdf-library.md#b9-text-extraction) (`lamina-content` interpreter + `lamina-text`), selection and copy, find bar with streaming results and highlights.
+**Deliverable:** text layer from the extraction API of [library B9](pdf-library.md#b9-text-extraction) (`lamina-content` interpreter + `lamina-text`), selection and copy, find bar with streaming results and highlights. The API exists ([B9c](../todos/done/B9c-text-extraction-bindings-and-differential.md)): `await init({ extract: true })` loads the extract module (about 525 KB gzip), and `doc.page(i).text()` returns lines, runs and every glyph's quad in page space, with `buffers` to transfer the arrays from a worker.
 **Accepted when:** copy from fixtures in five scripts equals expected text, including encrypted fixtures; search results match pdf.js counts on the corpus; selection works with screen readers on tagged fixtures.
 **Todos:** [C5a](../todos/ready/C5a-text-layer-and-selection.md), [C5b](../todos/ready/C5b-find-in-document.md)
 

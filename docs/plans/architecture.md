@@ -160,7 +160,7 @@ Todos: [A1](../todos/done/A1-foundation-adrs.md) (ADRs), [A2](../todos/done/A2-m
 
 Todos: see the [web-app plan §6](web-app.md#6-rounds) (C1a–C7c).
 
-- [ ] `pdfium-wasm` and `hayro-parity` spikes, with written results (`hayro-parity` done: [C1a](../todos/done/C1a-hayro-parity-spike.md), [result](../../spikes/hayro-parity/README.md); `pdfium-wasm`: [C1b](../todos/ready/C1b-pdfium-wasm-spike.md))
+- [ ] `pdfium-wasm` and `hayro-parity` spikes, with written results (`hayro-parity` done: [C1a](../todos/done/C1a-hayro-parity-spike.md), [result](../../spikes/hayro-parity/README.md); `pdfium-wasm`: [C1b](../todos/ongoing/C1b-pdfium-wasm-spike.md))
 - [ ] Write ADRs 0004, 0009, 0010, 0011
 - [ ] `lamina-render` with the `RenderBackend` trait and PDFium/hayro adapters
 - [ ] `@lamina/render-pdfium` (ships pdfium.wasm, used by the web reader) and `@lamina/render-hayro` (pure-Rust renderer as its own .wasm), both optional so `@lamina/pdf` stays small

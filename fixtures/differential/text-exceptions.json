@@ -1,0 +1,35 @@
+{
+  "comment": "Pages where lamina's page_texts and pdf.js or pdftotext disagree after whitespace and bidi controls are removed (crates/lamina/tests/text_differential.rs, todo B9c), each with the reason. Every entry must still disagree.",
+  "exceptions": [
+    {
+      "file": "fixtures/corpus/reportlab.pdf",
+      "page": 0,
+      "tool": "pdfjs",
+      "reason": "the content stream is ASCII85Decode-filtered, a filter lamina doesn't decode yet, so the page has no text for lamina (fixtures/README.md; pdfjs-exceptions.toml lists the same page)"
+    },
+    {
+      "file": "fixtures/corpus/reportlab.pdf",
+      "page": 0,
+      "tool": "pdftotext",
+      "reason": "the content stream is ASCII85Decode-filtered, a filter lamina doesn't decode yet (as for pdf.js)"
+    },
+    {
+      "file": "fixtures/corpus/signed.pdf",
+      "page": 0,
+      "tool": "pdftotext",
+      "reason": "the only text is the signature widget's appearance stream; pdftotext extracts annotation appearances, lamina (like pdf.js's getTextContent) extracts the page content only"
+    },
+    {
+      "file": "fixtures/corpus/tampered.pdf",
+      "page": 0,
+      "tool": "pdftotext",
+      "reason": "the only text is the signature widget's appearance stream; pdftotext extracts annotation appearances, lamina (like pdf.js's getTextContent) extracts the page content only"
+    },
+    {
+      "file": "fixtures/golden/text-shaped.pdf",
+      "page": 0,
+      "tool": "pdftotext",
+      "reason": "pdftotext writes right-to-left text as displayed: phrases in visual order (the Arabic and Hebrew lines' words come out reversed), lamina in logical order; the same behaviour fixtures/text/extraction-exceptions.json records, https://gitlab.freedesktop.org/poppler/poppler/-/blob/poppler-26.10.0/poppler/TextOutputDev.cc"
+    }
+  ]
+}

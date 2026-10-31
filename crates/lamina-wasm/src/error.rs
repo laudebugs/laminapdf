@@ -6,45 +6,20 @@
 //! value from JavaScript of the wrong shape), `unknown-option` (a key the record doesn't have,
 //! with `didYouMean`; ADR 0028 F6), `builder-finished` (an owned page or the builder used after
 //! the builder's `finish`) and `source-budget-exceeded` (a sparse source given more than its
-//! budget).
+//! budget). Their kind, hint and `docsUrl` come from the façade's generated
+//! [`lamina::ErrorCode`] table, like every other code's.
 //!
 //! [ADR 0026]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0026-error-and-diagnostic-contract.md
 
 use serde::Serialize;
 use wasm_bindgen::JsValue;
 
+use lamina::ErrorCode;
+
 use crate::convert::to_js;
 
 /// What every binding call returns: the value, or the §1 object thrown in JavaScript.
 pub(crate) type JsResult<T> = Result<T, JsValue>;
-
-/// `docsUrl` = base + code + suffix (`codes.json` `docsUrl`; checked by the tests below).
-const DOCS_BASE: &str = "https://github.com/laudebugs/lamina/blob/main/docs/errors/";
-const DOCS_SUFFIX: &str = ".md";
-
-/// The codes the binding raises (its `bindingErrors` group), with their kind and hint.
-pub(crate) const CODES: [(&str, &str, &str); 4] = [
-    (
-        "builder-finished",
-        "state",
-        "create a new builder or page: a finished one takes no more drawing, pages, fonts or settings",
-    ),
-    (
-        "invalid-argument",
-        "usage",
-        "pass the value the type declarations describe; the data field says what was wrong",
-    ),
-    (
-        "source-budget-exceeded",
-        "limit",
-        "raise the source's budget, or open the file with fewer bytes fetched (smaller blocks, no readahead)",
-    ),
-    (
-        "unknown-option",
-        "usage",
-        "remove the key or correct its spelling; didYouMean lists the closest known names",
-    ),
-];
 
 /// A core error as the §1 object.
 pub(crate) fn lamina_error(e: &lamina::Error) -> JsValue {
@@ -79,19 +54,15 @@ struct BindingData {
     detail: Option<String>,
 }
 
-fn binding(code: &'static str, message: &'static str, did_you_mean: Vec<String>, data: BindingData) -> JsValue {
-    let (kind, hint) = CODES
-        .iter()
-        .find(|(c, ..)| *c == code)
-        .map_or(("usage", ""), |(_, kind, hint)| (*kind, *hint));
+fn binding(code: ErrorCode, message: &'static str, did_you_mean: Vec<String>, data: BindingData) -> JsValue {
     to_js(&BindingDiagnostic {
-        code,
-        kind,
+        code: code.as_str(),
+        kind: code.kind().as_str(),
         message,
-        hint,
+        hint: code.hint(),
         did_you_mean,
         data,
-        docs_url: format!("{DOCS_BASE}{code}{DOCS_SUFFIX}"),
+        docs_url: code.docs_url(),
     })
 }
 
@@ -99,7 +70,7 @@ fn binding(code: &'static str, message: &'static str, did_you_mean: Vec<String>,
 #[cfg(feature = "build")]
 pub(crate) fn builder_finished() -> JsValue {
     binding(
-        "builder-finished",
+        ErrorCode::BuilderFinished,
         "the builder or page has already finished",
         Vec::new(),
         BindingData {
@@ -114,7 +85,7 @@ pub(crate) fn builder_finished() -> JsValue {
 /// the closest allowed values when it names an unknown one.
 pub(crate) fn invalid_argument(argument: &'static str, detail: String, did_you_mean: Vec<String>) -> JsValue {
     binding(
-        "invalid-argument",
+        ErrorCode::InvalidArgument,
         "an argument does not have the type its declaration describes",
         did_you_mean,
         BindingData {
@@ -129,7 +100,7 @@ pub(crate) fn invalid_argument(argument: &'static str, detail: String, did_you_m
 /// much; lamina's own numbers).
 pub(crate) fn source_budget_exceeded(detail: String) -> JsValue {
     binding(
-        "source-budget-exceeded",
+        ErrorCode::SourceBudgetExceeded,
         "the source would hold more bytes than its budget allows",
         Vec::new(),
         BindingData {
@@ -145,7 +116,7 @@ pub(crate) fn source_budget_exceeded(detail: String) -> JsValue {
 pub(crate) fn unknown_option(argument: &'static str, option: Option<String>, known: &[String]) -> JsValue {
     let did_you_mean = option.as_deref().map(|o| did_you_mean(o, known)).unwrap_or_default();
     binding(
-        "unknown-option",
+        ErrorCode::UnknownOption,
         "an options record has a key lamina does not know",
         did_you_mean,
         BindingData {
@@ -189,39 +160,22 @@ fn distance(a: &str, b: &str) -> usize {
 
 #[cfg(test)]
 mod tests {
-    use super::{CODES, DOCS_BASE, DOCS_SUFFIX, did_you_mean};
+    use super::did_you_mean;
 
-    fn codes_json() -> serde_json::Value {
-        let path = concat!(env!("CARGO_MANIFEST_DIR"), "/../../fixtures/codes.json");
-        serde_json::from_slice(&std::fs::read(path).unwrap()).unwrap()
-    }
-
+    /// Every `bindingErrors` code is in the generated `ErrorCode` table the binding takes its
+    /// kind and hint from (the façade's tests check that table against `codes.json`).
     #[test]
-    fn binding_codes_match_codes_json() {
-        let codes = codes_json();
-        let listed: Vec<(String, String, String)> = codes["bindingErrors"]
+    fn binding_codes_are_in_the_generated_table() {
+        let path = concat!(env!("CARGO_MANIFEST_DIR"), "/../../fixtures/codes.json");
+        let codes: serde_json::Value = serde_json::from_slice(&std::fs::read(path).unwrap()).unwrap();
+        let missing: Vec<&str> = codes["bindingErrors"]
             .as_array()
             .unwrap()
             .iter()
-            .map(|e| {
-                let field = |k: &str| e[k].as_str().unwrap().to_owned();
-                (field("code"), field("kind"), field("hint"))
-            })
+            .filter_map(|e| e["code"].as_str())
+            .filter(|c| lamina::ErrorCode::from_code(c).is_none())
             .collect();
-        let ours: Vec<(String, String, String)> = CODES
-            .iter()
-            .map(|(c, k, h)| ((*c).to_owned(), (*k).to_owned(), (*h).to_owned()))
-            .collect();
-        assert_eq!(ours, listed);
-    }
-
-    #[test]
-    fn docs_url_parts_match_codes_json() {
-        let codes = codes_json();
-        assert_eq!(
-            (codes["docsUrl"]["base"].as_str(), codes["docsUrl"]["suffix"].as_str()),
-            (Some(DOCS_BASE), Some(DOCS_SUFFIX))
-        );
+        assert_eq!(missing, Vec::<&str>::new());
     }
 
     fn names(names: &[&str]) -> Vec<String> {

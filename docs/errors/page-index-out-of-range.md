@@ -17,7 +17,10 @@ Use an index below the document's page count, or add the page before finishing.
 
 ## Example
 
-To be added ([L1b](../todos/ongoing/L1b-error-contract-codegen.md)).
+```rust
+surface.link(rect, LinkTarget::Page { index: 5, fit: Fit::Page }, None);
+builder.finish()?; // page-index-out-of-range: the document has 2 pages
+```
 
 ## Data fields
 

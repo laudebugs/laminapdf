@@ -17,7 +17,9 @@ Scale the image down before adding it, or use a JPEG, which is embedded without 
 
 ## Example
 
-To be added ([L1b](../todos/ongoing/L1b-error-contract-codegen.md)).
+```rust
+let img = Image::png(&png_of_30000_by_30000_pixels)?; // image-too-large: over 256 MiB decoded
+```
 
 ## Data fields
 

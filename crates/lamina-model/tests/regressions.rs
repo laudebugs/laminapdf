@@ -35,7 +35,10 @@ fn every_regressions_folder_is_a_fuzz_target() {
         let name = dir.unwrap().file_name().to_string_lossy().into_owned();
         // `content` and the save targets (`ops_json`, `save_roundtrip`) are replayed by
         // lamina-content's and lamina-save's own `tests/regressions.rs`.
-        let elsewhere = matches!(name.as_str(), "content" | "ops_json" | "save_roundtrip");
+        let elsewhere = matches!(
+            name.as_str(),
+            "content" | "ops_json" | "save_roundtrip" | "extract_text"
+        );
         assert!(
             elsewhere || TARGETS.iter().any(|(t, _)| *t == name),
             "fixtures/regressions/{name} is no fuzz target"

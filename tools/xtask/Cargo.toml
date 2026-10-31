@@ -10,6 +10,7 @@ publish.workspace = true
 
 [dependencies]
 anyhow = { workspace = true }
+boon = { workspace = true }
 brotli = { workspace = true }
 miniz_oxide = { workspace = true }
 pulldown-cmark = { workspace = true }

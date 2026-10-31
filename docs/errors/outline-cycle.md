@@ -17,7 +17,11 @@ Nothing; the outline is shown without the loop.
 
 ## Example
 
-To be added ([L1b](../todos/ongoing/L1b-error-contract-codegen.md)).
+```text
+11 0 obj << /Title (Chapter 1) /Parent 10 0 R /Next 11 0 R >>
+```
+
+Item 11 is its own `/Next`; the outline walk stops that branch the second time it reaches it.
 
 ## Data fields
 

@@ -17,7 +17,10 @@ Use another font, or, if your licence allows embedding, register it with `EmbedP
 
 ## Example
 
-To be added ([L1b](../todos/ongoing/L1b-error-contract-codegen.md)).
+```rust
+registry.add(restricted_font, EmbedPolicy::Respect)?;  // font-not-embeddable
+registry.add(restricted_font, EmbedPolicy::Override)?; // only if your licence allows embedding
+```
 
 ## Data fields
 

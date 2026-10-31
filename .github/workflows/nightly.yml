@@ -155,7 +155,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        target: [lex, parse_object, flate_decode, open, page_tree, content, ops_json, save_roundtrip]
+        target: [lex, parse_object, flate_decode, open, page_tree, content, ops_json, save_roundtrip, extract_text]
     env:
       TARGET: ${{ matrix.target }}
     steps:

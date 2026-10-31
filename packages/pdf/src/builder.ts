@@ -6,7 +6,7 @@ import type { WasmBuilder as TextBuilder, WasmPageBuilder as TextPageBuilder, Wa
 import { Document } from "./document.js";
 import { didYouMean, guard, packageError } from "./errors.js";
 import type { Font, FontInfo, Image } from "./font.js";
-import { type BaseGlue, baseModule, type TextGlue, textModule } from "./init.js";
+import { type BaseGlue, readingModule, type TextGlue, textModule } from "./init.js";
 import type { Transform } from "./matrix.js";
 import { type PathBuilder, PathEncoder } from "./path.js";
 import type {
@@ -610,7 +610,7 @@ export class Page {
 /**
  * Builds a new document: pages, navigation and metadata; {@link Builder.finish} returns a
  * {@link Document} to save. Created in the text module when it is loaded (or `text: true`),
- * else in the base module (vector and image pages only).
+ * else in the reading module (text, extract, then base; vector and image pages only).
  *
  * @example
  * ```ts
@@ -637,13 +637,14 @@ export class Builder {
    * @throws {@link LaminaError} `not-initialized`, `text-module-not-loaded`; `unknown-option`.
    */
   constructor(options: BuilderOptions = {}) {
-    const base = baseModule();
     const text = textModule();
     if (options.text === true && text === undefined) {
       throw packageError("text-module-not-loaded", "the text module is not loaded");
     }
     this.#text = options.text ?? text !== undefined;
-    this.glue = this.#text && text !== undefined ? text : base;
+    // Without text, the reading module (text, extract, then base): the built document can then
+    // extract text whenever a module that extracts is loaded.
+    this.glue = this.#text && text !== undefined ? text : readingModule();
     const glue = this.glue;
     const init = rest(options, ["text", "id"]) ?? {};
     const record = options.id === undefined ? init : { ...init, id: hexId(options.id) };

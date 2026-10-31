@@ -17,7 +17,11 @@ Use a tool that supports the filter.
 
 ## Example
 
-To be added ([L1b](../todos/ongoing/L1b-error-contract-codegen.md)).
+```text
+5 0 obj << /Filter /JBIG2Decode /Length 2048 >> stream …
+```
+
+Decoding this stream fails; the rest of the document reads normally. `data.filter` is the filter's name as read from the file.
 
 ## Data fields
 

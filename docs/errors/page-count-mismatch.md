@@ -17,7 +17,11 @@ Nothing; lamina uses the walked count.
 
 ## Example
 
-To be added ([L1b](../todos/ongoing/L1b-error-contract-codegen.md)).
+```text
+2 0 obj << /Type /Pages /Kids [3 0 R 4 0 R] /Count 7 >>
+```
+
+The root says 7 pages but two are reachable: `page_count()` is 2, and the warning's `data` is `{ "declared": 7, "walked": 2 }`.
 
 ## Data fields
 

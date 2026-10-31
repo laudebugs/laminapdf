@@ -1,0 +1,3 @@
+BT /F1 12 Tf 72 700 Td (Hello AB) Tj T* [(W) 120 (orld)] TJ 3 Tr (hidden) Tj 0 Tr
+/Span << /ActualText (fi) >> BDC (AB) Tj EMC 0 1 -1 0 300 300 Tm (rot) Tj ET
+BT /F2 9 Tf 1 0 0 -1 50 50 Tm <00010010> Tj ET

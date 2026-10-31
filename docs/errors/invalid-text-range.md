@@ -17,7 +17,9 @@ Take ranges from lamina's own results (`line_breaks`, `itemize`, `break_lines`, 
 
 ## Example
 
-To be added ([L1b](../todos/ongoing/L1b-error-contract-codegen.md)).
+```rust
+shaper.shape_range(&font, "héllo", 0..2, &options)?; // byte 2 is inside 'é'
+```
 
 ## Data fields
 

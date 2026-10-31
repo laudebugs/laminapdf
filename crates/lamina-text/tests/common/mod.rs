@@ -18,6 +18,7 @@
 )]
 
 pub mod extract;
+pub mod fuzz_entry;
 pub mod samples;
 pub mod shaped;
 
