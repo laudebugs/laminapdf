@@ -91,7 +91,25 @@ jobs:
         with:
           tool: cargo-nextest@0.9.150,cargo-deny@0.20.2
       - run: cargo xtask check docs
+      # On pushes to main, `check rust` renders the rustdoc into an empty doc/ (cargo rewrites
+      # every crate's pages when they are missing), so the artefact below holds this commit's
+      # crates only: the job's CARGO_TARGET_DIR is kept between runs and would carry pages of
+      # renamed or removed crates.
+      - name: Start the rustdoc from an empty directory
+        if: github.event_name == 'push'
+        run: rm -rf "${CARGO_TARGET_DIR:?isolate-rust-home sets it}/doc"
       - run: cargo xtask check rust
+      # The rendered rustdoc of every workspace crate (`check rust` builds it with warnings
+      # denied), from main only: the docs site's Rust API page points here until the crates are
+      # on docs.rs (B7a).
+      - name: Upload the rustdoc
+        if: github.event_name == 'push'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: rustdoc
+          path: ${{ env.CARGO_TARGET_DIR }}/doc/
+          if-no-files-found: error
+          retention-days: 30
 
   # The @lamina/wasm modules (ADR 0016): built, tested in Node (wasm-bindgen-test and the
   # package's smoke test), and measured against the size budgets, failing above them.

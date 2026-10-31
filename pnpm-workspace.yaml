@@ -33,5 +33,13 @@ catalog:
   vitest: 5.0.5
   wrangler: 4.149.0
 
+# Named catalogs: versions one package needs apart from the default catalog's.
+catalogs:
+  typedoc:
+    # apps/docs: TypeDoc 0.28 runs on the TypeScript compiler API, which TypeScript 7 (the
+    # native compiler above) no longer has; its peer range ends at 6.0. Only the docs site's
+    # API reference and typecheck use it.
+    typescript: 6.0.3
+
 # Fail installs on the wrong Node version instead of warning.
 engineStrict: true

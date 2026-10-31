@@ -1,0 +1,3 @@
+# Astro's generated types and the TypeDoc pages written at build time.
+.astro/
+src/content/docs/reference/pdf/

@@ -1,0 +1,38 @@
+---
+title: Install
+description: Use lamina before its first release, from a checkout, a packed tarball or a path dependency.
+---
+
+lamina isn't published to npm or crates.io yet. Until it is, use it from a checkout of the repository, which needs Rust (the toolchain in `rust-toolchain.toml` installs itself), Node 22 or newer and pnpm.
+
+## TypeScript: `@lamina/pdf`
+
+Build the WebAssembly modules and the package once:
+
+```sh
+pnpm install
+cargo xtask wasm      # builds packages/wasm/dist/ and packages/pdf/dist/, then tests them
+```
+
+Then use one of these:
+
+- **A tarball:** run `pnpm pack` in `packages/wasm` and in `packages/pdf`, then add both `.tgz` files to your project. `@lamina/pdf` depends on `@lamina/wasm`, so install both tarballs at once.
+- **A workspace dependency:** inside this repository, add `"@lamina/pdf": "workspace:*"` to a package under `packages/` or `apps/`.
+
+The package is ESM only. It has one entry per runtime (the `workerd`, `deno`, `browser`, `node` and `default` export conditions), and each entry loads the `.wasm` its own way. The [quick starts](/quick-start/browser/) show each one.
+
+## Rust: `lamina`
+
+Add a path dependency on the façade crate:
+
+```toml
+[dependencies]
+lamina = { path = "../lamina/crates/lamina" }
+```
+
+A git dependency (`lamina = { git = "…" }`) works too, once you can read the repository. The default features are `text` (fonts and text, which includes the builder and text extraction) and `saslprep` (passwords for AES-256 files). For reading and editing only, use `default-features = false`.
+
+## API docs
+
+- TypeScript: the [`@lamina/pdf` reference](/reference/pdf/readme/), generated from the package's TSDoc comments.
+- Rust: [rustdoc](/reference/rust/), built by CI or by `cargo doc --open`.

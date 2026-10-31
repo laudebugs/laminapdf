@@ -3,6 +3,7 @@
 // report's hash and the performance smoke are test/node/measure.test.ts.
 import { Builder, Font, init } from "@lamina/pdf";
 import { beforeAll, describe, expect, it } from "vitest";
+import { openUntrusted } from "../examples/open-untrusted.js";
 import { read } from "./helpers.js";
 import { runSuite } from "./suite/examples.js";
 
@@ -27,5 +28,13 @@ describe("examples", () => {
     };
     const helvetica = Font.standard("Helvetica");
     expect(build(() => Font.standard("Helvetica"))).toEqual(build(() => helvetica));
+  });
+
+  it("opens an encrypted upload with its password and reports a missing or wrong one by code", () => {
+    const file = read("fixtures/encrypted/r6-aes-256-user.pdf");
+    expect(openUntrusted(file, "Pässwört-6")).toEqual({ ok: true, pages: 2, warnings: [] });
+    expect(openUntrusted(file)).toMatchObject({ ok: false, code: "password-required" });
+    expect(openUntrusted(file, "nope")).toMatchObject({ ok: false, code: "wrong-password" });
+    expect(openUntrusted(new TextEncoder().encode("not a PDF"))).toMatchObject({ ok: false, code: "not-pdf" });
   });
 });

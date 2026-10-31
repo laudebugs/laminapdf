@@ -154,7 +154,7 @@ Todos: [A1](../todos/done/A1-foundation-adrs.md) (ADRs), [A2](../todos/done/A2-m
 - [x] Golden-file and corpus test harness in CI (full lane) ([X4](../todos/done/X4-full-lane-gate.md) full lane)
 - [x] Linux CI on a self-hosted runner in a container on the Mac ([X5](../todos/done/X5-linux-ci-container.md))
 - [ ] Windows CI coverage, parked ([X6](../todos/ready/X6-windows-ci.md))
-- [ ] Changesets + Cargo version sync; tag `0.1.0-alpha` locally (no registry publish yet) ([B7b](../todos/ready/B7b-versioning-and-0-1-0-alpha.md); docs site [B7a](../todos/ongoing/B7a-docs-site.md))
+- [ ] Changesets + Cargo version sync; tag `0.1.0-alpha` locally (no registry publish yet) ([B7b](../todos/ready/B7b-versioning-and-0-1-0-alpha.md); docs site [B7a](../todos/done/B7a-docs-site.md))
 
 ### Round C — Web reader
 

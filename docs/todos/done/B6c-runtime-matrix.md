@@ -7,7 +7,7 @@
 | Plan | [pdf-library §7 B6](../../plans/pdf-library.md#b6-wasm-and-laminapdf), [§5 platform matrix](../../plans/pdf-library.md#platform-matrix) |
 | Round / milestone | Round B (library) — M1 |
 | Depends on | [B6b](./B6b-lamina-pdf-package.md) |
-| Blocks | [B7a](../ongoing/B7a-docs-site.md), [B7b](../ready/B7b-versioning-and-0-1-0-alpha.md), [B9c](./B9c-text-extraction-bindings-and-differential.md) |
+| Blocks | [B7a](./B7a-docs-site.md), [B7b](../ready/B7b-versioning-and-0-1-0-alpha.md), [B9c](./B9c-text-extraction-bindings-and-differential.md) |
 | ADRs | Implements 0016's runtime support claims; [0018](../../decisions/0018-test-strategy.md) §2 (lanes: which runtimes run per PR vs nightly/release) |
 | Branch | `ci/b6c-runtime-matrix` |
 | PR title | `ci(pdf): run the @lamina/pdf example suite in browsers, Node, Deno, Bun and workerd` |
@@ -31,7 +31,7 @@ Prove the package works where the plan says it does. The same TS example suite r
 - Vitest workspace configs in `packages/pdf/`: `vitest.node.config.ts`, `vitest.browser.config.ts` (Playwright provider: chromium, firefox, webkit), `vitest.workers.config.ts` (`@cloudflare/vitest-pool-workers`, `wrangler.toml` test fixture importing the `.wasm` as a module).
 - Deno and Bun smoke runners (`deno test` / `bun test`) over a shared `examples` entry using the `deno`/`default` conditions.
 - Workflow jobs: Node matrix (22, 24, 26) + Chromium in the fast lane; Firefox, WebKit, Deno, Bun, workerd in the full lane ([X4](../done/X4-full-lane-gate.md)) and the release lane.
-- A Worker example (`packages/pdf/examples/worker/`) that generates a PDF per request — also used by docs ([B7a](../ongoing/B7a-docs-site.md)).
+- A Worker example (`packages/pdf/examples/worker/`) that generates a PDF per request — also used by docs ([B7a](./B7a-docs-site.md)).
 - Performance smoke (not asserted in PR lanes; recorded): hello and 100-page report timings per runtime written to the job summary; the nightly trend is a job in `.github/workflows/nightly.yml` added here, recording the timings in the benchmark history (`history.jsonl` on `bench-data`, the record format of `cargo xtask bench` from [X3a](../done/X3a-nightly-lane.md)).
 
 **Out of scope** (and which todo covers it)

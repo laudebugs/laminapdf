@@ -1,0 +1,23 @@
+---
+title: Cloudflare Workers
+description: Generate PDFs per request in a Cloudflare Worker.
+sidebar:
+  order: 5
+---
+
+import Snippet from "../../../components/Snippet.astro";
+
+Workers can't compile WebAssembly at run time. Wrangler bundles the `workerd` export condition instead, which imports both `.wasm` files as `WebAssembly.Module`s. `init` instantiates them once per isolate.
+
+This Worker returns a one-page letter at `/?name=…` and the 100-page report at `/report`. CI runs it in workerd (`cargo xtask pdf-runtimes workerd`):
+
+<Snippet file="packages/pdf/examples/worker/src/index.ts" />
+
+Its Wrangler configuration bundles the fonts as `Data` modules:
+
+<Snippet file="packages/pdf/examples/worker/wrangler.toml" />
+
+Run it locally from `packages/pdf` with `pnpm exec wrangler dev -c examples/worker/wrangler.toml`.
+
+- **Errors the caller caused** (kind `input` or `limit`) become a `400` with the error's JSON. See [Errors and warnings](/guides/errors-and-warnings/).
+- **Memory:** both functions free their builder and document as soon as the bytes are saved, because one isolate serves many requests.

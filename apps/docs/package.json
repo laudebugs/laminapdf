@@ -1,0 +1,27 @@
+{
+  "name": "@lamina/docs",
+  "version": "0.0.0",
+  "private": true,
+  "description": "lamina's documentation site (Astro + Starlight): quick starts, guides, the @lamina/pdf API reference (TypeDoc) and the examples, deployed to Cloudflare Workers static assets.",
+  "license": "MIT OR Apache-2.0",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "ASTRO_TELEMETRY_DISABLED=1 astro dev",
+    "build": "ASTRO_TELEMETRY_DISABLED=1 astro build",
+    "preview": "ASTRO_TELEMETRY_DISABLED=1 astro preview",
+    "typecheck": "ASTRO_TELEMETRY_DISABLED=1 LAMINA_DOCS_TYPEDOC=0 astro sync && tsc --noEmit"
+  },
+  "devDependencies": {
+    "@astrojs/starlight": "0.42.7",
+    "astro": "7.3.8",
+    "starlight-links-validator": "0.27.0",
+    "starlight-typedoc": "0.23.1",
+    "typedoc": "0.28.20",
+    "typedoc-plugin-markdown": "4.14.1",
+    "typescript": "catalog:typedoc",
+    "wrangler": "catalog:"
+  }
+}
