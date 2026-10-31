@@ -3,4 +3,4 @@
 // forgets this file fails.
 
 /** `@lamina/pdf`'s version. */
-export const VERSION = "0.0.0";
+export const VERSION = "0.1.0-alpha.0";
