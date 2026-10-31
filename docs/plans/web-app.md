@@ -104,7 +104,7 @@ Each round is split into one or more todos (one pull request each) on the [todo 
 
 **Deliverable:** ADRs 0004, 0009, 0010, 0011; `crates/lamina-render` with the `RenderBackend` trait and PDFium and hayro adapters; `@lamina/render-pdfium`.
 **Accepted when:** golden render tests pass for both adapters on `fixtures/`; the hayro-vs-PDFium diff runs in the nightly lane.
-**Todos:** [C2a](../todos/ongoing/C2a-render-adrs.md), [C2b](../todos/ready/C2b-lamina-render-crate.md), [C2c](../todos/ready/C2c-render-packages.md)
+**Todos:** [C2a](../todos/done/C2a-render-adrs.md), [C2b](../todos/ready/C2b-lamina-render-crate.md), [C2c](../todos/ready/C2c-render-packages.md)
 
 ### C3. Viewer core
 
@@ -169,10 +169,10 @@ Ticked by the PR that completes them.
 - [x] Write both results with a recommendation for ADR 0004 (and ADR 0009: [C1b's joint recommendation](../../spikes/pdfium-wasm/README.md#recommendation-for-adrs-0004-and-0009-joint-with-c1a))
 
 ### C2. Render backend and ADRs
-- [ ] Write ADR 0004 (`RenderBackend`, PDFium default, hayro oracle, MuPDF prohibited)
-- [ ] Write ADR 0009 (React chrome + framework-free viewer, typed worker RPC)
-- [ ] Write ADR 0010 (Platform adapter and capability flags)
-- [ ] Write ADR 0011 (Cloudflare topology, privacy and retention, telemetry policy, and the hosted service: login, accounts, cloud storage and sync as opt-in features; the login stack is added after the `auth` spike)
+- [x] Write [ADR 0004](../decisions/0004-render-backend.md) (`RenderBackend`, PDFium default, hayro oracle, MuPDF prohibited)
+- [x] Write [ADR 0009](../decisions/0009-web-client-architecture.md) (React chrome + framework-free viewer, typed worker RPC)
+- [x] Write [ADR 0010](../decisions/0010-platform-adapter.md) (Platform adapter and capability flags)
+- [x] Write [ADR 0011](../decisions/0011-cloudflare-topology-and-privacy.md) (Cloudflare topology, privacy and retention, telemetry policy, and the hosted service: login, accounts, cloud storage and sync as opt-in features; the login stack is added after the `auth` spike)
 - [ ] Create `crates/lamina-render` with the trait and PDFium and hayro adapters behind features
 - [ ] Create `packages/render-pdfium` (pin and hash the PDFium build) and `packages/render-hayro`
 - [ ] Add golden render tests and the nightly hayro-vs-PDFium diff

@@ -53,6 +53,7 @@ pdf.js (Apache-2.0) is the most actively released permissive web engine, at 6.4.
 ### Gaps
 - No published, current neutral fidelity benchmark comparing pdf.js, PDFium, hayro, and MuPDF on the same corpus. A 2026 dev.to post notes the same gap ([dev.to feed](https://dev.to/feed/9haroon)). The PDF Association's 2021 survey ([pdfa.org](https://pdfa.org/wp-content/uploads/2021/06/Survey-of-OpenSource-Solutions.pdf)) could not be parsed into rankings.
 - Not found or verified: hayro WASM bundle size, memory profile, ICC/colour-management support, encryption support status in 0.8.0.
+  - *Update (2026-10-31, [ADR 0004](../../../decisions/0004-render-backend.md#context)):* hayro 0.8.0 on wasm32 (`opt-level = "z"`, LTO, no wasm-opt) is 1,678,932 bytes gzip with its default embedded fonts and CMaps and 1,111,619 without them, against `pdfium.wasm`'s 2,136,390. So the "hayro WASM is likely smallest" inference below holds, but by a fifth to a half, not by a multiple.
 - pdfium-render's latest version date and exact licence string were not confirmed in this session. It is believed to be MIT OR Apache-2.0, so check crates.io.
   - *Update (2026-10-28):* confirmed on crates.io: `pdfium-render` 0.9.4 (2026-09-06) is `MIT OR Apache-2.0`. See the [`hayro-parity` spike](../../../../spikes/hayro-parity/README.md#licences), which also measures hayro against PDFium on the pdf.js and PDFBox corpora (the "no published pass/fail table" gap above).
 - Apple PDFKit and Core Graphics details (fidelity, API changes in macOS 26/27) were not researched with sources.
