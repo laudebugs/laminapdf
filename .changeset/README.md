@@ -9,7 +9,8 @@ sync` reads, so a new member needs no code change), and the sync gives every cra
 - Add one with `pnpm changeset` in any PR that changes what users of the library see. See
   [contributing: changesets](../docs/guidelines/contributing.md#changesets) for the bump to pick.
 - Release prep: `pnpm changeset version` (bumps the five packages and writes their `CHANGELOG.md`),
-  then `cargo xtask version sync` (the crates, `Cargo.lock`, the root `CHANGELOG.md` and
+  then `cargo xtask version sync` (the crates, `Cargo.lock`, the root `CHANGELOG.md` merged from
+  every member's, and
   `@lamina/pdf`'s `VERSION` in `packages/pdf/src/version.ts`).
 - `pre.json` exists while the versions are pre-releases (`-alpha.N`).
 

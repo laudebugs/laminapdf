@@ -16,7 +16,7 @@ lamina is a platform for anything and everything PDF: creating PDFs from code, p
 ├── rust-toolchain.toml  # pinned Rust toolchain + targets (wasm32, iOS, Android)
 ├── package.json         # private pnpm root: dev tooling only; pnpm-workspace.yaml lists packages/*, apps/*
 ├── .changeset/          # Changesets (ADR 0017): config.json (fixed group: @lamina/wasm, pdf, render, render-hayro, render-pdfium), pre.json (alpha pre mode)
-├── CHANGELOG.md         # generated: @lamina/pdf's changelog, copied by `cargo xtask version sync`
+├── CHANGELOG.md         # generated: the fixed group's changelogs merged by `cargo xtask version sync`
 ├── biome.json  tsconfig.base.json  deny.toml  clippy.toml  rustfmt.toml
 ├── crates/              # Rust crates, flat: crates/lamina-<name>
 │   ├── lamina-syntax/   #   core: object model + serialization, lexer, parser, filters (Flate, PNG predictors), Limits
@@ -219,11 +219,11 @@ pnpm changeset               # add a changeset to a user-visible change (contrib
 pnpm changeset version       # release prep: consume the changesets, bump the fixed group's packages, write their CHANGELOG.md
 cargo xtask version sync [--check]  # the fixed group's version (members read from .changeset/config.json; all must agree)
                              #   into [workspace.package], the internal [workspace.dependencies], every tracked
-                             #   Cargo.lock, CHANGELOG.md and @lamina/pdf's VERSION (packages/pdf/src/version.ts);
+                             #   Cargo.lock, CHANGELOG.md (every member's entries merged) and @lamina/pdf's VERSION (packages/pdf/src/version.ts);
                              #   --check fails on any drift or a crate without version.workspace = true (part of `check docs`)
 cargo xtask version check-tag <tag>  # fail unless <tag> is v<version> (the release lane)
 cargo xtask verify-install [node|deno|bun|chromium|workerd|rust]… [--node <bin>]… [--git-ref <tag-or-sha>] [--git-url <url>] [--keep]
-                             # after `wasm`: pnpm pack both packages, run the quick start in clean projects in the temp dir
+                             # after `wasm`: pnpm pack @lamina/wasm and @lamina/pdf (not the render packages yet), run the quick start in clean projects in the temp dir
                              #   (npm-installed tarballs; a Vite app in Playwright's Chromium; a Worker under wrangler dev
                              #   --local; Rust binaries with path and git deps on lamina, git default HEAD of this clone);
                              #   each output must equal fixtures/golden/examples/hello.pdf
