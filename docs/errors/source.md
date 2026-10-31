@@ -17,7 +17,7 @@ Retry, or check the source.
 
 ## Example
 
-To be added ([L1b](../todos/ongoing/L1b-error-contract-codegen.md)).
+A `ByteSource` reading from a network answered with an error for bytes 4096..+65536; the call fails with `source` and the same call can be retried once the connection is back.
 
 ## Data fields
 

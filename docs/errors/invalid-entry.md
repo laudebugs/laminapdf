@@ -9,15 +9,19 @@ An entry a view reads is unreadable or of the wrong type; it reads as absent or 
 
 ## Why
 
-Writer bugs.
+A writer bug: an entry of the wrong type, or a reference that does not resolve.
 
 ## How to fix
 
-Nothing.
+Nothing to do; the view uses the entry's default.
 
 ## Example
 
-To be added ([L1b](../todos/ongoing/L1b-error-contract-codegen.md)).
+```text
+1 0 obj << /Type /Catalog /Pages 2 0 R /Outlines (none) >>
+```
+
+`/Outlines` should be a dictionary; the outline reads as empty and `data` is `{ "key": "Outlines" }`.
 
 ## Data fields
 

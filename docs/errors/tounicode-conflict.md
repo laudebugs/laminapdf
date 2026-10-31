@@ -17,7 +17,7 @@ Mark the second occurrence with `/ActualText` (§14.9.4) so extraction gets its 
 
 ## Example
 
-To be added ([L1b](../todos/ongoing/L1b-error-contract-codegen.md)).
+A CFF font in which one space glyph is used for both U+0020 and U+00A0: the ToUnicode CMap maps it to U+0020 (the first use), and the warning names the glyph (`gid`) and the second text.
 
 ## Data fields
 

@@ -17,7 +17,11 @@ Use a complete copy of the file.
 
 ## Example
 
-To be added ([L1b](../todos/ongoing/L1b-error-contract-codegen.md)).
+```text
+1 0 obj << /Type /Catalog /Pages 2 0 R
+```
+
+The file ends inside a dictionary; the `location` is the file offset where reading stopped.
 
 ## Data fields
 

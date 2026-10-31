@@ -17,7 +17,9 @@ Check `font.info().axes` before choosing coordinates, or use a variable font.
 
 ## Example
 
-To be added ([L1b](../todos/ongoing/L1b-error-contract-codegen.md)).
+```rust
+let bold = static_font.instance(&[(Tag::WEIGHT, 700.0)])?; // unknown-axis: no wght axis
+```
 
 ## Data fields
 

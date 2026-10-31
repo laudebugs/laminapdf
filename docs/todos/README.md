@@ -12,20 +12,21 @@ New todos start from [`TEMPLATE.md`](TEMPLATE.md). The workflow is in [git workf
 
 IDs: `A`/`P`/`X` [architecture](../plans/architecture.md) (foundations, publishing, cross-cutting), `B` [library](../plans/pdf-library.md), `L` [shareable libraries](../plans/shareable-libraries.md) (contracts, worker, extraction, CLI, agent docs, mobile), `C` [web reader](../plans/web-app.md), `D` [desktop reader](../plans/desktop-app.md), `U` [UI/UX](../plans/ui-ux.md), `E` [editor](../plans/full-editor.md), `H` hosted service ([full-editor](../plans/full-editor.md)). A letter suffix (`B2a`, `B2b`) splits a round into PRs.
 
-**4 ongoing · 202 ready · 39 done** (245 total).
+**3 ongoing · 202 ready · 40 done** (245 total).
 
 ## Can start now
 
 Ready todos whose dependencies are all done:
 
 - [B7a](ready/B7a-docs-site.md): Docs site (`apps/docs`): Starlight, quick starts, guides and TypeDoc, with per-PR previews
+- [L2a](ready/L2a-worker-client.md): `@lamina/pdf/worker`: the async twin of the sync API, with typed RPC, version handshake, `AbortSignal`, transfer lists and progress
+- [L2b](ready/L2b-disposal-and-memory.md): Disposal and memory bounds: `Symbol.dispose` on every handle, `disposed` code, capped wasm memory, `reset()` and trap recovery
 - [X6](ready/X6-windows-ci.md): Windows CI coverage
 
 ## Ongoing
 
 - [B8a](ongoing/B8a-structure-tree.md): Tagged PDF: structure tree builder, artifacts, alt text, MCIDs and ParentTree
 - [B9c](ongoing/B9c-text-extraction-bindings-and-differential.md): `page.text()` in WASM and TypeScript; differential and quad tests; extraction fuzzing
-- [L1b](ongoing/L1b-error-contract-codegen.md): Error and diagnostic contract: codegen from `fixtures/codes.json` into Rust, TypeScript and JSON Schema, with `explain` text
 - [C1b](ongoing/C1b-pdfium-wasm-spike.md): `pdfium-wasm` spike: PDFium-WASM next to `lamina-wasm` in one worker
 
 ## Architecture — Round A
@@ -75,19 +76,19 @@ Ready todos whose dependencies are all done:
 | ID | Todo | State | Depends on |
 | --- | --- | --- | --- |
 | L1a | [Contract ADRs 0026 (errors), 0027 (coordinates and units), 0028 (façade rules, jobs, cancellation)](done/L1a-contract-adrs.md) | done | — |
-| L1b | [Error and diagnostic contract: codegen from `fixtures/codes.json` into Rust, TypeScript and JSON Schema, with `explain` text](ongoing/L1b-error-contract-codegen.md) | ongoing | [B6b](done/B6b-lamina-pdf-package.md), [L1a](done/L1a-contract-adrs.md), [L1c](done/L1c-error-contract-core.md) |
+| L1b | [Error and diagnostic contract: codegen from `fixtures/codes.json` into Rust, TypeScript and JSON Schema, with `explain` text](done/L1b-error-contract-codegen.md) | done | [B6b](done/B6b-lamina-pdf-package.md), [L1a](done/L1a-contract-adrs.md), [L1c](done/L1c-error-contract-core.md) |
 | L1c | [Error contract in the Rust core: `codes.json` v2 with kinds and hints, tagged locations, no document text in messages](done/L1c-error-contract-core.md) | done | [L1a](done/L1a-contract-adrs.md) |
-| L2a | [`@lamina/pdf/worker`: the async twin of the sync API, with typed RPC, version handshake, `AbortSignal`, transfer lists and progress](ready/L2a-worker-client.md) | ready | [B6b](done/B6b-lamina-pdf-package.md), [L1a](done/L1a-contract-adrs.md), [L1b](ongoing/L1b-error-contract-codegen.md) |
-| L2b | [Disposal and memory bounds: `Symbol.dispose` on every handle, `disposed` code, capped wasm memory, `reset()` and trap recovery](ready/L2b-disposal-and-memory.md) | ready | [B6b](done/B6b-lamina-pdf-package.md), [L1b](ongoing/L1b-error-contract-codegen.md) |
+| L2a | [`@lamina/pdf/worker`: the async twin of the sync API, with typed RPC, version handshake, `AbortSignal`, transfer lists and progress](ready/L2a-worker-client.md) | ready | [B6b](done/B6b-lamina-pdf-package.md), [L1a](done/L1a-contract-adrs.md), [L1b](done/L1b-error-contract-codegen.md) |
+| L2b | [Disposal and memory bounds: `Symbol.dispose` on every handle, `disposed` code, capped wasm memory, `reset()` and trap recovery](ready/L2b-disposal-and-memory.md) | ready | [B6b](done/B6b-lamina-pdf-package.md), [L1b](done/L1b-error-contract-codegen.md) |
 | L2c | [Range `ByteSource`: `DataPending` ranges at the edges (HTTP Range, JS callback, native file and mmap), core stays synchronous](done/L2c-range-byte-source.md) | done | [B2d](done/B2d-windowed-reading.md), [B6b](done/B6b-lamina-pdf-package.md) |
 | L3a | [ADR 0030 and `lamina-extract`: blocks, reading order, headings, lists, header/footer removal, hidden-text flags](ready/L3a-lamina-extract-reading-order.md) | ready | [B8a](ongoing/B8a-structure-tree.md), [B9d](done/B9d-text-runs-quads-and-page-text.md), [L1a](done/L1a-contract-adrs.md), [U2b](done/U2b-reading-order-ground-truth.md) |
 | L3b | [Lattice tables, Markdown/JSON/chunk serialisers, extraction in the façade, WASM and `@lamina/pdf`](ready/L3b-extract-tables-and-serialisers.md) | ready | [B9c](ongoing/B9c-text-extraction-bindings-and-differential.md), [L3a](ready/L3a-lamina-extract-reading-order.md) |
 | L3c | [Model plug-ins: `LayoutModel` and `OcrEngine` traits in core, an optional ONNX layout edge crate](ready/L3c-model-plugins.md) | ready | [L3b](ready/L3b-extract-tables-and-serialisers.md) |
-| L4a | [ADR 0031 and `crates/lamina-cli`: `info`, `check`, `pages rotate`, `extract`, `explain`](ready/L4a-lamina-cli.md) | ready | [B5c](done/B5c-lamina-facade-and-examples.md), [B9c](ongoing/B9c-text-extraction-bindings-and-differential.md), [L1b](ongoing/L1b-error-contract-codegen.md) |
+| L4a | [ADR 0031 and `crates/lamina-cli`: `info`, `check`, `pages rotate`, `extract`, `explain`](ready/L4a-lamina-cli.md) | ready | [B5c](done/B5c-lamina-facade-and-examples.md), [B9c](ongoing/B9c-text-extraction-bindings-and-differential.md), [L1b](done/L1b-error-contract-codegen.md) |
 | L4b | [CLI batch mode, `render`, `extract --format md|json`, `schema`, completions and man pages](ready/L4b-cli-batch-render-schema.md) | ready | [L3b](ready/L3b-extract-tables-and-serialisers.md), [L4a](ready/L4a-lamina-cli.md), [C2b](ready/C2b-lamina-render-crate.md) |
 | L4c | [`lamina mcp`: a stdio MCP server over the CLI commands, with `--root` and read-only defaults](ready/L4c-mcp-mode.md) | ready | [L4a](ready/L4a-lamina-cli.md) |
 | L4d | [CLI distribution: release binaries with cargo-dist, Homebrew tap and an npm wrapper](ready/L4d-cli-distribution.md) | ready | [L4a](ready/L4a-lamina-cli.md), [P1](ready/P1-reserve-names-and-trusted-publishing.md) |
-| L5a | [Docs for agents: `llms.txt`, Markdown twins, docs shipped in the packages, `AGENTS.md` snippet, rename log and an agent-eval baseline](ready/L5a-agent-docs.md) | ready | [B7a](ready/B7a-docs-site.md), [L1b](ongoing/L1b-error-contract-codegen.md) |
+| L5a | [Docs for agents: `llms.txt`, Markdown twins, docs shipped in the packages, `AGENTS.md` snippet, rename log and an agent-eval baseline](ready/L5a-agent-docs.md) | ready | [B7a](ready/B7a-docs-site.md), [L1b](done/L1b-error-contract-codegen.md) |
 | L6a | [`lamina-ffi` spike (start right after B5c): UniFFI over the façade, XCFramework and AARs, size report, ADR 0029](done/L6a-lamina-ffi-spike.md) | done | [B5c](done/B5c-lamina-facade-and-examples.md), [L1a](done/L1a-contract-adrs.md) |
 | L6b | [Mobile SDK plan: `LaminaView` (SwiftUI) and `LaminaViewer` (Compose), rounds and todos](ready/L6b-mobile-sdk-plan.md) | ready | [L6a](done/L6a-lamina-ffi-spike.md), [C2b](ready/C2b-lamina-render-crate.md), [U3b](ready/U3b-mobile-shell-spike.md) |
 

@@ -17,7 +17,7 @@ Check the destination and retry the save. The document is unchanged; the sink ma
 
 ## Example
 
-To be added ([L1b](../todos/ongoing/L1b-error-contract-codegen.md)).
+An upload sink whose connection closed halfway through: the save fails with `sink`, the document is unchanged, and `data.kind` is the I/O error kind (`BrokenPipe`).
 
 ## Data fields
 

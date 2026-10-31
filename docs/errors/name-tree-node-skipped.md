@@ -9,15 +9,19 @@ A name- or number-tree node was malformed, reached twice or too deep, and was sk
 
 ## Why
 
-Damaged trees.
+Damaged trees: a node that is not a dictionary, a kid reached twice (a cycle), or a tree deeper than `max_tree_depth`.
 
 ## How to fix
 
-Entries under the skipped node are missing.
+Nothing to do; the entries under the skipped node are missing from the tree.
 
 ## Example
 
-To be added ([L1b](../todos/ongoing/L1b-error-contract-codegen.md)).
+```text
+<< /Kids [20 0 R 21 0 R] >>   % 21 0 obj is (oops), not a dictionary
+```
+
+The walk of the `/Dests` name tree skips node 21 and keeps the entries under node 20.
 
 ## Data fields
 

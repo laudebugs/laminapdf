@@ -9,7 +9,7 @@ A reference's generation number did not match its xref entry, so it resolved to 
 
 ## Why
 
-Stale references left by an editor.
+An editor deleted and reused an object number (bumping its generation) but left a reference with the old generation behind.
 
 ## How to fix
 
@@ -17,7 +17,11 @@ Nothing; the reference is treated as missing.
 
 ## Example
 
-To be added ([L1b](../todos/ongoing/L1b-error-contract-codegen.md)).
+```text
+/Contents 7 1 R      % but the xref entry for object 7 has generation 0
+```
+
+The reference resolves to `null` (ISO 32000-2 §7.3.10), as if object 7 were missing, and the warning carries `generation` 1.
 
 ## Data fields
 

@@ -17,7 +17,9 @@ Give `IccProfile::components()` values.
 
 ## Example
 
-To be added ([L1b](../todos/ongoing/L1b-error-contract-codegen.md)).
+```rust
+let c = Color::icc(&cmyk_profile, &[0.1, 0.2, 0.3])?; // color-components: 4 expected
+```
 
 ## Data fields
 

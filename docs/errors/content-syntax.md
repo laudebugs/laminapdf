@@ -17,7 +17,11 @@ Check the page's content around the reported offset.
 
 ## Example
 
-To be added ([L1b](../todos/ongoing/L1b-error-contract-codegen.md)).
+```text
+BT (unbalanced Tj ET
+```
+
+The string never closes, so the bytes to the end of the token are skipped with the pending operands.
 
 ## Data fields
 

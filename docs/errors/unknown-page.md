@@ -17,7 +17,11 @@ Use a `PageId` from this document.
 
 ## Example
 
-To be added ([L1b](../todos/ongoing/L1b-error-contract-codegen.md)).
+```rust
+let other = Document::open_bytes(other_bytes, OpenOptions::default())?;
+let id = other.page_info(0)?.id;
+doc.apply(vec![Op::from(RotatePage::new(id, Rotation::Clockwise90))]); // unknown-page
+```
 
 ## Data fields
 

@@ -1,0 +1,77 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/laudebugs/lamina/blob/main/fixtures/codes.schema.json",
+  "title": "lamina codes.json v2",
+  "description": "The one list of lamina's error and warning codes (ADR 0003 §2, ADR 0026 §3). `cargo xtask gen codes` validates fixtures/codes.json against this schema before it generates anything; crates/lamina-cos/tests/codes.rs checks the rest (pages, unique codes, the Rust enums).",
+  "type": "object",
+  "required": ["version", "docsUrl", "limits", "warnings", "errors"],
+  "properties": {
+    "version": { "const": 2 },
+    "docsUrl": {
+      "description": "docsUrl = base + code + suffix (ADR 0026 §6): one constant for every surface.",
+      "type": "object",
+      "required": ["base", "suffix"],
+      "additionalProperties": false,
+      "properties": {
+        "base": { "type": "string", "pattern": "^https://[^\\s]+/$" },
+        "suffix": { "type": "string", "pattern": "^[^\\s/]*$" }
+      }
+    },
+    "limits": {
+      "description": "The names of the Limits fields (ADR 0003 §3), in declaration order: data.limit of limit-exceeded.",
+      "type": "array",
+      "uniqueItems": true,
+      "items": { "type": "string", "pattern": "^[a-z][a-z0-9]*(_[a-z0-9]+)*$" }
+    }
+  },
+  "patternProperties": {
+    "^(warnings|errors|[a-z][A-Za-z]*(Errors|Warnings))$": { "$ref": "#/$defs/group" }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "group": {
+      "description": "One group of codes. Keys ending in Warnings (or `warnings`) list warnings; the others list errors.",
+      "type": "array",
+      "items": { "$ref": "#/$defs/entry" }
+    },
+    "entry": {
+      "type": "object",
+      "required": ["code", "kind", "summary", "hint", "since"],
+      "additionalProperties": false,
+      "properties": {
+        "code": {
+          "description": "Kebab-case, never renamed or reused (ADR 0026 §3).",
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9]*(-[a-z0-9]+)*$"
+        },
+        "kind": { "$ref": "#/$defs/kind" },
+        "summary": {
+          "description": "One lowercase sentence without a trailing period: what happened. A warning's message.",
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^[^\\s].*[^.\\s]$"
+        },
+        "hint": {
+          "description": "One actionable sentence without a trailing period (ADR 0026 §5). Fixed text; the only parameters are {limit} and {option}.",
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^[^\\s].*[^.\\s]$"
+        },
+        "since": {
+          "description": "The version that added the code.",
+          "type": "string",
+          "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+        },
+        "retired": {
+          "description": "The version that retired the code; it stays listed and keeps its page (ADR 0026 §3).",
+          "type": "string",
+          "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+        }
+      }
+    },
+    "kind": {
+      "description": "The nine kinds of ADR 0026 §2: a closed set.",
+      "enum": ["input", "io", "unsupported", "limit", "security", "usage", "state", "cancelled", "internal"]
+    }
+  }
+}

@@ -17,7 +17,11 @@ Call `rebase` with the saved bytes, then retry.
 
 ## Example
 
-To be added ([L1b](../todos/ongoing/L1b-error-contract-codegen.md)).
+```rust
+ops.save(&mut write_only_sink, &options)?;  // full rewrite; the document waits for rebase
+ops.apply(op);                               // saved-not-rebased
+ops.rebase(saved_bytes)?;                    // then edits work again
+```
 
 ## Data fields
 

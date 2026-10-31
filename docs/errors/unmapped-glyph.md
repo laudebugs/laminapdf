@@ -17,7 +17,11 @@ Nothing to do in lamina. A producer that writes ToUnicode CMaps (lamina does) av
 
 ## Example
 
-To be added ([L1b](../todos/ongoing/L1b-error-contract-codegen.md)).
+```text
+<< /Subtype /Type0 /BaseFont /ABCDEF+Subset /Encoding /Identity-H >>   % no /ToUnicode
+```
+
+A subset font with Identity-H and no ToUnicode: unless its embedded `cmap` maps the glyphs, they extract as U+FFFD and the warning carries the font's `object`.
 
 ## Data fields
 

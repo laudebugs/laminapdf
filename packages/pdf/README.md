@@ -72,7 +72,16 @@ try {
 }
 ```
 
-`doc.warnings` lists what the reader repaired, as `LaminaWarning` objects of the same shape.
+`isLaminaError(e, code)` narrows: inside the `if`, `e.code` has the type `"wrong-password"`. `LaminaError<C>` is generic over the `ErrorCode` union, so a `switch (e.code)` with a `never` default is checked for exhaustiveness, and stops compiling when a new code arrives until you handle it. `toJSON()` validates against the `lamina.error/1` JSON Schema, shipped as `@lamina/pdf/schemas/error.schema.json`.
+
+`doc.warnings` lists what the reader repaired, as `LaminaWarning` objects of the same shape (without `didYouMean`), typed by `WarningCode`.
+
+`@lamina/pdf/explain` is a separate entry, kept out of the main bundle: `explain(code)` returns the code's page as Markdown (what happened, why, how to fix, an example, the `data` fields), with `KINDS`, `HINTS` and `docsUrl(code)` for every code.
+
+```ts
+import { explain } from "@lamina/pdf/explain";
+if (isLaminaError(e)) console.error(e.message, e.hint, explain(e.code));
+```
 
 ## Remote and large files
 
@@ -143,5 +152,5 @@ CI: the fast lane runs Node 22 and 26 and Chromium on every PR (Node 24, `.nvmrc
 cargo xtask wasm   # builds @lamina/wasm, then this package (tsc), its tests (Vitest: Node, Vite), publint, attw --pack
 cargo xtask pdf-runtimes   # the example suite in every runtime (see Runtimes)
 cargo xtask size   # includes this package's JS (glue + API, min+gzip) against its 20 KB budget
-cargo xtask gen codes   # regenerate src/codes.generated.ts from fixtures/codes.json (`check ts` fails when stale)
+cargo xtask gen codes   # regenerate src/generated/ and schemas/ from fixtures/codes.json (`check docs` fails when stale)
 ```

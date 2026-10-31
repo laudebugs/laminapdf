@@ -7,9 +7,9 @@ rust-version.workspace = true
 license.workspace = true
 repository.workspace = true
 publish.workspace = true
-# The hint table and the docs URL come from fixtures/codes.json (build.rs), so `cargo package`
-# would need it inside the crate; nothing is published yet (pdf-library §6).
-build = "build.rs"
+# `explain` includes docs/errors/*.md (src/generated/codes.rs, generated from
+# fixtures/codes.json by `cargo xtask gen codes`), so `cargo package` would need them inside the
+# crate; nothing is published yet (pdf-library §6).
 
 # Read by `cargo xtask`: core crates get the portability checks (no I/O, clocks or threads;
 # no runtime/binding dependencies; #![forbid(unsafe_code)]; wasm32/iOS/Android builds).
@@ -27,6 +27,9 @@ saslprep = ["lamina-cos/saslprep"]
 build = ["dep:lamina-build"]
 # Fonts and text on top of the builder (lamina-text: shaping, bidi, line breaking, subsetting).
 text = ["build", "dep:lamina-text", "lamina-build/text"]
+# `lamina::explain(code)`: every code's explain page (docs/errors/<code>.md, ADR 0026 §6), about
+# 80 KB of text. Off by default and in the WASM modules; the CLI turns it on.
+explain = []
 
 [dependencies]
 lamina-cos = { workspace = true }
@@ -40,10 +43,9 @@ serde = { workspace = true }
 serde_json = { workspace = true }
 thiserror = { workspace = true }
 
-[build-dependencies]
-serde_json = { workspace = true }
-
 [dev-dependencies]
+# Validates serialised errors against the generated lamina.error/1 schema (tests/error_contract.rs).
+boon = { workspace = true }
 # The data-fields test builds one value of every variant of the wrapped crates' errors.
 lamina-build = { workspace = true, features = ["text"] }
 lamina-text = { workspace = true }

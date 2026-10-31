@@ -17,7 +17,10 @@ Draw standard 14 text with `FontRegistry::encode` (one glyph per character, kern
 
 ## Example
 
-To be added ([L1b](../todos/ongoing/L1b-error-contract-codegen.md)).
+```rust
+let helvetica = Font::standard(Standard14::Helvetica);
+shaper.shape(&helvetica, "Hello", &options)?; // font-not-shapable
+```
 
 ## Data fields
 

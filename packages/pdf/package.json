@@ -10,7 +10,8 @@
     "node": ">=22"
   },
   "files": [
-    "dist"
+    "dist",
+    "schemas"
   ],
   "exports": {
     ".": {
@@ -35,6 +36,11 @@
         "default": "./dist/index.js"
       }
     },
+    "./explain": {
+      "types": "./dist/explain.d.ts",
+      "default": "./dist/explain.js"
+    },
+    "./schemas/error.schema.json": "./schemas/error.schema.json",
     "./package.json": "./package.json"
   },
   "scripts": {
@@ -50,6 +56,7 @@
     "@arethetypeswrong/cli": "catalog:",
     "@types/node": "catalog:",
     "@vitest/browser-playwright": "catalog:",
+    "ajv": "catalog:",
     "bun": "catalog:",
     "deno": "catalog:",
     "esbuild": "catalog:",

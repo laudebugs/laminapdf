@@ -17,7 +17,11 @@ Nothing to do.
 
 ## Example
 
-To be added ([L1b](../todos/ongoing/L1b-error-contract-codegen.md)).
+```text
+0 0 m 100 100 l
+```
+
+The content stream ends after building a path without `S`, `f` or `n`: the path is dropped, as the spec intends.
 
 ## Data fields
 

@@ -17,7 +17,9 @@ Re-encode the image as a baseline or progressive 8-bit JPEG, or as PNG.
 
 ## Example
 
-To be added ([L1b](../todos/ongoing/L1b-error-contract-codegen.md)).
+```rust
+let img = Image::jpeg(lossless_jpeg_bytes)?; // unsupported-image: data.feature says which
+```
 
 ## Data fields
 

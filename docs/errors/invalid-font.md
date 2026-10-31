@@ -17,7 +17,9 @@ Pass the bytes of a `.ttf`, `.otf`, `.ttc` or `.otc` file; check that the file i
 
 ## Example
 
-To be added ([L1b](../todos/ongoing/L1b-error-contract-codegen.md)).
+```rust
+let err = lamina::Font::from_bytes(std::fs::read("font.woff2")?).unwrap_err(); // invalid-font
+```
 
 ## Data fields
 

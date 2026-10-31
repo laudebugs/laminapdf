@@ -80,7 +80,7 @@ Shared packages run in browsers, Cloudflare Workers, Deno, Bun, Node, React Nati
 
 ## Errors
 
-- **MUST:** each package defines one error class, extending `Error`, with `name` set, a `readonly code` typed as a string-literal union, and structured fields. It also exports an `isXError(e: unknown): e is XError` guard. In `@lamina/pdf` this is **`LaminaError<C extends ErrorCode>`** with `isLaminaError(e, code?)` and `toJSON()`, carrying the [ADR 0026](../decisions/0026-error-and-diagnostic-contract.md) fields (`code`, `kind`, `hint`, `didYouMean`, `location`, `data`, `docsUrl`). Codes shared with the Rust core **MUST** match `fixtures/codes.json` (generated, never hand-written).
+- **MUST:** each package defines one error class, extending `Error`, with `name` set, a `readonly code` typed as a string-literal union, and structured fields. It also exports an `isXError(e: unknown): e is XError` guard. In `@lamina/pdf` this is **`LaminaError<C extends ErrorCode>`** with `isLaminaError(e, code?)` and `toJSON()`, carrying the [ADR 0026](../decisions/0026-error-and-diagnostic-contract.md) fields (`code`, `kind`, `hint`, `didYouMean`, `location`, `data`, `docsUrl`). Codes shared with the Rust core **MUST** match `fixtures/codes.json`: the unions and tables are generated into `src/generated/` by `cargo xtask gen codes`, never written by hand, and generated files are excluded from Biome.
 - **MUST NOT:** put document text in `message` or `hint`; it goes only in `data` (ADR 0026 §4).
 - **MUST:** throw only instances of that class (or other `Error` subclasses). Never throw strings or plain objects. When wrapping, pass `{ cause }`.
 - **MUST NOT:** swallow errors silently. Recoverable irregularities in input are returned as `warnings` on the result, as in Rust.

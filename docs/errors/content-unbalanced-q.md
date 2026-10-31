@@ -17,7 +17,11 @@ Nothing to do; each stream balances on its own.
 
 ## Example
 
-To be added ([L1b](../todos/ongoing/L1b-error-contract-codegen.md)).
+```text
+q 1 0 0 1 72 72 cm 0 0 10 10 re f Q Q
+```
+
+The second `Q` has no matching `q` and is ignored.
 
 ## Data fields
 

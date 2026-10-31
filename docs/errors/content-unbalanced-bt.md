@@ -17,7 +17,11 @@ Nothing to do; text operators were handled tolerantly.
 
 ## Example
 
-To be added ([L1b](../todos/ongoing/L1b-error-contract-codegen.md)).
+```text
+BT /F1 12 Tf (one) Tj BT (two) Tj ET
+```
+
+The second `BT` opens a text object inside one; lamina treats it as a new text object and carries on.
 
 ## Data fields
 
