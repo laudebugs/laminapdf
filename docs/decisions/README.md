@@ -30,9 +30,13 @@ Numbers follow the [architecture plan §3](../plans/architecture.md#3-decisions-
 | [0001](0001-core-language-and-licence.md) | Core language (Rust), licence (MIT OR Apache-2.0) and the bytes-in/bytes-out rule | Accepted |
 | [0002](0002-binding-strategy.md) | Binding strategy: wasm-bindgen + tsify; UniFFI later; napi-rs and Component Model deferred | Accepted |
 | [0003](0003-reader-tolerance-and-limits.md) | Reader tolerance policy, warning codes and `Limits` defaults | Accepted |
+| [0004](0004-render-backend.md) | Render backend: `RenderBackend` trait (tiles in straight RGBA, `CancelToken`, `RenderLimits`), PDFium by default per surface (pinned and hashed), hayro as CI oracle with switch criteria, MuPDF prohibited, the two-parsers rule | Accepted |
 | [0005](0005-document-model.md) | Document model: lazy COS over `ByteSource`, dirty overlay, typed views, `LaminaId`s | Accepted (generation strategy: own builder over the overlay, per the [`krilla-fit` spike](../../spikes/krilla-fit/README.md)) |
 | [0006](0006-op-log-and-undo.md) | Op log, transactions, undo/redo and barrier ops | Accepted |
 | [0007](0007-save-planner.md) | Save planner, `SaveMode` and `SaveConstraint` | Accepted |
+| [0009](0009-web-client-architecture.md) | Web client: React 19 chrome in `@lamina/ui`, framework-free `@lamina/viewer`, one document worker per document, typed RPC on `@lamina/pdf/worker`, transferred `ImageBitmap`s, single-threaded v0.1 without COOP/COEP | Accepted |
+| [0010](0010-platform-adapter.md) | Platform adapter: one `Platform` interface, `PlatformFile`, capability flags with web values, no platform checks in UI code | Accepted |
+| [0011](0011-cloudflare-topology-and-privacy.md) | Cloudflare topology (one static-assets Worker, previews, tagged production), the v0.1 privacy guarantees, security headers, telemetry and hosted-service rules | Accepted (login stack by amendment after H1) |
 | [0015](0015-monorepo-layout-and-tooling.md) | Monorepo layout and tooling (Cargo + pnpm + xtask) | Accepted |
 | [0016](0016-package-design.md) | Package design: ESM-only, export conditions, base and text WASM modules, per-module size budgets | Accepted |
 | [0018](0018-test-strategy.md) | Test strategy: tiers, CI lanes, corpora, fuzzing, flaky tests | Accepted |

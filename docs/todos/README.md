@@ -12,7 +12,7 @@ New todos start from [`TEMPLATE.md`](TEMPLATE.md). The workflow is in [git workf
 
 IDs: `A`/`P`/`X` [architecture](../plans/architecture.md) (foundations, publishing, cross-cutting), `B` [library](../plans/pdf-library.md), `L` [shareable libraries](../plans/shareable-libraries.md) (contracts, worker, extraction, CLI, agent docs, mobile), `C` [web reader](../plans/web-app.md), `D` [desktop reader](../plans/desktop-app.md), `U` [UI/UX](../plans/ui-ux.md), `E` [editor](../plans/full-editor.md), `H` hosted service ([full-editor](../plans/full-editor.md)). A letter suffix (`B2a`, `B2b`) splits a round into PRs.
 
-**1 ongoing · 202 ready · 43 done** (246 total).
+**0 ongoing · 202 ready · 44 done** (246 total).
 
 ## Can start now
 
@@ -24,11 +24,13 @@ Ready todos whose dependencies are all done:
 - [L2b](ready/L2b-disposal-and-memory.md): Disposal and memory bounds: `Symbol.dispose` on every handle, `disposed` code, capped wasm memory, `reset()` and trap recovery
 - [L3a](ready/L3a-lamina-extract-reading-order.md): ADR 0030 and `lamina-extract`: blocks, reading order, headings, lists, header/footer removal, hidden-text flags
 - [L4a](ready/L4a-lamina-cli.md): ADR 0031 and `crates/lamina-cli`: `info`, `check`, `pages rotate`, `extract`, `explain`
+- [C2b](ready/C2b-lamina-render-crate.md): `crates/lamina-render`: the `RenderBackend` trait, PDFium and hayro adapters, render goldens
+- [U1a](ready/U1a-adr-0024-app-shell-ux.md): ADR 0024: app shell UX (layout, modes, command registry, selection, page appearance, mobile)
 - [X6](ready/X6-windows-ci.md): Windows CI coverage
 
 ## Ongoing
 
-- [C2a](ongoing/C2a-render-adrs.md): ADRs 0004, 0009, 0010, 0011: render backend, web client, platform adapter, Cloudflare and privacy
+Nothing claimed right now.
 
 ## Architecture — Round A
 
@@ -100,14 +102,14 @@ Ready todos whose dependencies are all done:
 | --- | --- | --- | --- |
 | C1a | [`hayro-parity` spike: hayro vs PDFium pass rate on the pdf.js and PDFBox corpora](done/C1a-hayro-parity-spike.md) | done | — |
 | C1b | [`pdfium-wasm` spike: PDFium-WASM next to `lamina-wasm` in one worker](done/C1b-pdfium-wasm-spike.md) | done | [B3c](done/B3c-save-planner-and-roundtrip.md), [B6b](done/B6b-lamina-pdf-package.md), [C1a](done/C1a-hayro-parity-spike.md) |
-| C2a | [ADRs 0004, 0009, 0010, 0011: render backend, web client, platform adapter, Cloudflare and privacy](ongoing/C2a-render-adrs.md) | ongoing | [C1a](done/C1a-hayro-parity-spike.md), [C1b](done/C1b-pdfium-wasm-spike.md), [X1](done/X1-docs-link-checker.md) |
-| C2b | [`crates/lamina-render`: the `RenderBackend` trait, PDFium and hayro adapters, render goldens](ready/C2b-lamina-render-crate.md) | ready | [B2c](done/B2c-lamina-model-corpus-fuzz.md), [C2a](ongoing/C2a-render-adrs.md) |
+| C2a | [ADRs 0004, 0009, 0010, 0011: render backend, web client, platform adapter, Cloudflare and privacy](done/C2a-render-adrs.md) | done | [C1a](done/C1a-hayro-parity-spike.md), [C1b](done/C1b-pdfium-wasm-spike.md), [X1](done/X1-docs-link-checker.md) |
+| C2b | [`crates/lamina-render`: the `RenderBackend` trait, PDFium and hayro adapters, render goldens](ready/C2b-lamina-render-crate.md) | ready | [B2c](done/B2c-lamina-model-corpus-fuzz.md), [C2a](done/C2a-render-adrs.md) |
 | C2c | [`@lamina/render-pdfium` and `@lamina/render-hayro`: the web render adapters](ready/C2c-render-packages.md) | ready | [B6b](done/B6b-lamina-pdf-package.md), [C2b](ready/C2b-lamina-render-crate.md) |
-| C3a | [`@lamina/viewer` part 1: document worker and typed RPC](ready/C3a-viewer-worker-rpc.md) | ready | [B6b](done/B6b-lamina-pdf-package.md), [L2a](ready/L2a-worker-client.md), [C2a](ongoing/C2a-render-adrs.md), [C2c](ready/C2c-render-packages.md) |
+| C3a | [`@lamina/viewer` part 1: document worker and typed RPC](ready/C3a-viewer-worker-rpc.md) | ready | [B6b](done/B6b-lamina-pdf-package.md), [L2a](ready/L2a-worker-client.md), [C2a](done/C2a-render-adrs.md), [C2c](ready/C2c-render-packages.md) |
 | C3b | [`@lamina/viewer` part 2: virtualiser, canvas pool, progressive tiles and anchored zoom](ready/C3b-viewer-virtualiser-and-zoom.md) | ready | [C3a](ready/C3a-viewer-worker-rpc.md) |
 | C3c | [Viewer performance harness: long tasks, memory and time-to-first-page in CI](ready/C3c-viewer-perf-harness.md) | ready | [C3b](ready/C3b-viewer-virtualiser-and-zoom.md) |
-| C4a | [`@lamina/ui`: React 19 reader chrome and the `Platform` adapter](ready/C4a-ui-chrome-and-platform.md) | ready | [C2a](ongoing/C2a-render-adrs.md), [C3b](ready/C3b-viewer-virtualiser-and-zoom.md), [U1a](ready/U1a-adr-0024-app-shell-ux.md), [U6e](ready/U6e-overlays-and-sheets.md) |
-| C4b | [`apps/web`: the reader on Cloudflare Workers static assets, with local file opening](ready/C4b-web-app-shell.md) | ready | [C2a](ongoing/C2a-render-adrs.md), [C4a](ready/C4a-ui-chrome-and-platform.md), [U6b](ready/U6b-self-hosted-fonts.md) |
+| C4a | [`@lamina/ui`: React 19 reader chrome and the `Platform` adapter](ready/C4a-ui-chrome-and-platform.md) | ready | [C2a](done/C2a-render-adrs.md), [C3b](ready/C3b-viewer-virtualiser-and-zoom.md), [U1a](ready/U1a-adr-0024-app-shell-ux.md), [U6e](ready/U6e-overlays-and-sheets.md) |
+| C4b | [`apps/web`: the reader on Cloudflare Workers static assets, with local file opening](ready/C4b-web-app-shell.md) | ready | [C2a](done/C2a-render-adrs.md), [C4a](ready/C4a-ui-chrome-and-platform.md), [U6b](ready/U6b-self-hosted-fonts.md) |
 | C4c | [Remote files via `#url=`, encrypted files, and the privacy test suite](ready/C4c-remote-files-encryption-privacy.md) | ready | [B2b](done/B2b-standard-security-decryption.md), [B6b](done/B6b-lamina-pdf-package.md), [C4b](ready/C4b-web-app-shell.md) |
 | C4d | [Deploy pipeline: preview URL per PR, staging from `main`, production from release tags](ready/C4d-deploy-previews-and-production.md) | ready | [C4b](ready/C4b-web-app-shell.md) |
 | C5a | [Text layer, selection and copy (from lamina's extraction), with struct-tree linking](ready/C5a-text-layer-and-selection.md) | ready | [B9c](done/B9c-text-extraction-bindings-and-differential.md), [C3c](ready/C3c-viewer-perf-harness.md), [C4c](ready/C4c-remote-files-encryption-privacy.md) |
@@ -125,7 +127,7 @@ Ready todos whose dependencies are all done:
 | --- | --- | --- | --- |
 | D1a | [`desktop-ipc` spike: tile transport and COOP/COEP in the three webviews](ready/D1a-desktop-ipc-spike.md) | ready | [C2c](ready/C2c-render-packages.md), [C3b](ready/C3b-viewer-virtualiser-and-zoom.md) |
 | D1b | [`desktop-print` spike: faithful printing from Tauri on each OS](ready/D1b-desktop-print-spike.md) | ready | [C2c](ready/C2c-render-packages.md), [C3b](ready/C3b-viewer-virtualiser-and-zoom.md), [D1a](ready/D1a-desktop-ipc-spike.md) |
-| D2a | [ADR 0008 and the `apps/desktop` Tauri 2 scaffold](ready/D2a-adr-0008-and-desktop-scaffold.md) | ready | [C2a](ongoing/C2a-render-adrs.md), [C4a](ready/C4a-ui-chrome-and-platform.md), [D1a](ready/D1a-desktop-ipc-spike.md), [D1b](ready/D1b-desktop-print-spike.md), [U6b](ready/U6b-self-hosted-fonts.md) |
+| D2a | [ADR 0008 and the `apps/desktop` Tauri 2 scaffold](ready/D2a-adr-0008-and-desktop-scaffold.md) | ready | [C2a](done/C2a-render-adrs.md), [C4a](ready/C4a-ui-chrome-and-platform.md), [D1a](ready/D1a-desktop-ipc-spike.md), [D1b](ready/D1b-desktop-print-spike.md), [U6b](ready/U6b-self-hosted-fonts.md) |
 | D2b | [Engine child process: protocol, file byte source, restart on crash](ready/D2b-engine-process.md) | ready | [C2b](ready/C2b-lamina-render-crate.md), [C4c](ready/C4c-remote-files-encryption-privacy.md), [C4d](ready/C4d-deploy-previews-and-production.md), [D2a](ready/D2a-adr-0008-and-desktop-scaffold.md) |
 | D2c | [Sandbox the engine process on macOS, Windows and Linux](ready/D2c-engine-sandbox.md) | ready | [D2b](ready/D2b-engine-process.md) |
 | D2d | [Tile transport and the desktop engine client: open and read one document](ready/D2d-tile-transport-and-first-document.md) | ready | [C3b](ready/C3b-viewer-virtualiser-and-zoom.md), [C4a](ready/C4a-ui-chrome-and-platform.md), [D2a](ready/D2a-adr-0008-and-desktop-scaffold.md), [D2b](ready/D2b-engine-process.md) |
@@ -135,7 +137,7 @@ Ready todos whose dependencies are all done:
 | D4a | [Multiple windows, tabs, tab drag between windows, session restore](ready/D4a-windows-tabs-and-session-restore.md) | ready | [D3b](ready/D3b-recent-files-and-file-watching.md) |
 | D4b | [Native menus and accelerators from the shared shortcut map](ready/D4b-native-menus.md) | ready | [C7a](ready/C7a-accessibility-and-theming.md), [D4a](ready/D4a-windows-tabs-and-session-restore.md), [U1b](ready/U1b-command-registry-and-palette.md) |
 | D4c | [Native printing per the `desktop-print` spike](ready/D4c-native-printing.md) | ready | [C6c](ready/C6c-print-download-properties.md), [D1b](ready/D1b-desktop-print-spike.md), [D4b](ready/D4b-native-menus.md) |
-| D5a | [ADR 0014 and the `apps/updates` Worker: channels, staged rollout, kill switch](ready/D5a-update-worker-and-adr-0014.md) | ready | [C2a](ongoing/C2a-render-adrs.md), [C4d](ready/C4d-deploy-previews-and-production.md), [D2a](ready/D2a-adr-0008-and-desktop-scaffold.md), [D3b](ready/D3b-recent-files-and-file-watching.md) |
+| D5a | [ADR 0014 and the `apps/updates` Worker: channels, staged rollout, kill switch](ready/D5a-update-worker-and-adr-0014.md) | ready | [C2a](done/C2a-render-adrs.md), [C4d](ready/C4d-deploy-previews-and-production.md), [D2a](ready/D2a-adr-0008-and-desktop-scaffold.md), [D3b](ready/D3b-recent-files-and-file-watching.md) |
 | D5b | [Updater in the app: settings, install-ID header, managed policy, staging e2e](ready/D5b-updater-in-app.md) | ready | [D4b](ready/D4b-native-menus.md), [D5a](ready/D5a-update-worker-and-adr-0014.md) |
 | D6a | [Signing runbook and owner setup (certificates, accounts, secrets, Windows eligibility)](ready/D6a-signing-runbook-and-owner-setup.md) | ready | [D2a](ready/D2a-adr-0008-and-desktop-scaffold.md), [D5a](ready/D5a-update-worker-and-adr-0014.md) |
 | D6b | [Release workflow (tauri-action matrix → R2), Linux packages and signing, nightly channel](ready/D6b-release-workflow-and-linux-packages.md) | ready | [D5b](ready/D5b-updater-in-app.md), [D6a](ready/D6a-signing-runbook-and-owner-setup.md) |
@@ -149,7 +151,7 @@ Ready todos whose dependencies are all done:
 
 | ID | Todo | State | Depends on |
 | --- | --- | --- | --- |
-| U1a | [ADR 0024: app shell UX (layout, modes, command registry, selection, page appearance, mobile)](ready/U1a-adr-0024-app-shell-ux.md) | ready | [C2a](ongoing/C2a-render-adrs.md) |
+| U1a | [ADR 0024: app shell UX (layout, modes, command registry, selection, page appearance, mobile)](ready/U1a-adr-0024-app-shell-ux.md) | ready | [C2a](done/C2a-render-adrs.md) |
 | U1b | [Command registry and command palette (`@lamina/ui`)](ready/U1b-command-registry-and-palette.md) | ready | [C4a](ready/C4a-ui-chrome-and-platform.md), [U1a](ready/U1a-adr-0024-app-shell-ux.md), [U6e](ready/U6e-overlays-and-sheets.md) |
 | U1c | [Inverted-L shell: left rail, docked inspector, modes and focus mode](ready/U1c-inverted-l-shell-and-modes.md) | ready | [C4a](ready/C4a-ui-chrome-and-platform.md), [U1a](ready/U1a-adr-0024-app-shell-ux.md), [U1b](ready/U1b-command-registry-and-palette.md) |
 | U2a | [Selection surfaces and copy modes (copy as paragraph, copy exact, column selection)](ready/U2a-selection-surfaces-and-copy-modes.md) | ready | [C5a](ready/C5a-text-layer-and-selection.md), [U1b](ready/U1b-command-registry-and-palette.md), [U2b](done/U2b-reading-order-ground-truth.md), [U3a](ready/U3a-responsive-mobile-and-touch.md) |

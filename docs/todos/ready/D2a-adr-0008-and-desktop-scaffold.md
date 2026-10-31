@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [Desktop app §6 D2](../../plans/desktop-app.md#d2-shell-and-native-core) |
 | Round / milestone | Round D (desktop) — M3 Desktop reader beta |
-| Depends on | [C2a](../ongoing/C2a-render-adrs.md), [C4a](./C4a-ui-chrome-and-platform.md), [D1a](./D1a-desktop-ipc-spike.md), [D1b](./D1b-desktop-print-spike.md), [U6b](./U6b-self-hosted-fonts.md) |
+| Depends on | [C2a](../done/C2a-render-adrs.md), [C4a](./C4a-ui-chrome-and-platform.md), [D1a](./D1a-desktop-ipc-spike.md), [D1b](./D1b-desktop-print-spike.md), [U6b](./U6b-self-hosted-fonts.md) |
 | Blocks | [D2b](./D2b-engine-process.md), [D2d](./D2d-tile-transport-and-first-document.md), [D5a](./D5a-update-worker-and-adr-0014.md), [D6a](./D6a-signing-runbook-and-owner-setup.md) |
 | Dependency notes | [D1a](D1a-desktop-ipc-spike.md), [D1b](D1b-desktop-print-spike.md); web plan **C4** (`@lamina/ui` with the `Platform` interface, [web-app §C4](../../plans/web-app.md#c4-app-shell-on-cloudflare)) and therefore ADR 0010 from web **C2** ([web-app §C2](../../plans/web-app.md#c2-render-backend-and-adrs)) |
 | ADRs | **Writes ADR 0008** (desktop shell). Implements ADR 0010 (Platform adapter) for desktop. Follows [0001](../../decisions/0001-core-language-and-licence.md), [0015](../../decisions/0015-monorepo-layout-and-tooling.md), [0018](../../decisions/0018-test-strategy.md), [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) |

@@ -8,7 +8,7 @@
 | Round / milestone | Round L6 (shareable libraries) — Mobile |
 | Depends on | [L6a](../done/L6a-lamina-ffi-spike.md), [C2b](./C2b-lamina-render-crate.md), [U3b](./U3b-mobile-shell-spike.md) |
 | Blocks | None |
-| ADRs | Follows 0029 (from [L6a](../done/L6a-lamina-ffi-spike.md)), 0028 (jobs, cancellation), 0027 (coordinates), 0026 (errors) from [L1a](../done/L1a-contract-adrs.md), 0004 (render backend per surface, from [C2a](../ongoing/C2a-render-adrs.md)), [0002](../../decisions/0002-binding-strategy.md), [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md); lists the ADRs the mobile rounds will need |
+| ADRs | Follows 0029 (from [L6a](../done/L6a-lamina-ffi-spike.md)), 0028 (jobs, cancellation), 0027 (coordinates), 0026 (errors) from [L1a](../done/L1a-contract-adrs.md), 0004 (render backend per surface, from [C2a](../done/C2a-render-adrs.md)), [0002](../../decisions/0002-binding-strategy.md), [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md); lists the ADRs the mobile rounds will need |
 | Branch | `docs/l6b-mobile-sdk-plan` |
 | PR title | `docs(plans): mobile SDK plan with SwiftUI and Compose viewers, rounds and todos` |
 | Size | S–M (docs only: one plan plus its todo files) |

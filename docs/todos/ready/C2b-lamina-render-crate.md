@@ -6,9 +6,9 @@
 | Status | `ready` |
 | Plan | [web reader §6 C2. Render backend and ADRs](../../plans/web-app.md#c2-render-backend-and-adrs) |
 | Round / milestone | Round C (web reader) — M2 Web reader v0.1 |
-| Depends on | [B2c](../done/B2c-lamina-model-corpus-fuzz.md), [C2a](../ongoing/C2a-render-adrs.md) |
+| Depends on | [B2c](../done/B2c-lamina-model-corpus-fuzz.md), [C2a](../done/C2a-render-adrs.md) |
 | Blocks | [L4b](./L4b-cli-batch-render-schema.md), [L6b](./L6b-mobile-sdk-plan.md), [C2c](./C2c-render-packages.md), [D2b](./D2b-engine-process.md), [U2c](./U2c-page-appearance-modes.md), [U3b](./U3b-mobile-shell-spike.md), [E3h](./E3h-images-to-pdf-and-page-export.md), [E13a](./E13a-adr-0013-heavy-jobs.md), [H1](./H1-auth-spike.md), [X3b](./X3b-render-diff-nightly.md) |
-| Dependency notes | [C2a](../ongoing/C2a-render-adrs.md) (ADR 0004 defines the trait); library B2 (`Document::open`, page boxes; [pdf-library B2](../../plans/pdf-library.md#b2-document-model)) |
+| Dependency notes | [C2a](../done/C2a-render-adrs.md) (ADR 0004 defines the trait); library B2 (`Document::open`, page boxes; [pdf-library B2](../../plans/pdf-library.md#b2-document-model)) |
 | ADRs | Implements 0004. Follows [0001](../../decisions/0001-core-language-and-licence.md), [0003](../../decisions/0003-reader-tolerance-and-limits.md) (`Limits`), [0015](../../decisions/0015-monorepo-layout-and-tooling.md), [0018](../../decisions/0018-test-strategy.md) tier 8 and §2 lanes, [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) |
 | Branch | `feat/c2b-lamina-render` |
 | PR title | `feat(render): add lamina-render with the RenderBackend trait and pdfium and hayro adapters` |
@@ -21,7 +21,7 @@ Create the single Rust abstraction every lamina surface renders through. `crates
 
 ## Context
 
-- ADR 0004 (written in [C2a](../ongoing/C2a-render-adrs.md)) — trait surface, adapters, two-parsers rule, switch criteria.
+- ADR 0004 (written in [C2a](../done/C2a-render-adrs.md)) — trait surface, adapters, two-parsers rule, switch criteria.
 - [C1a result](../done/C1a-hayro-parity-spike.md) (`spikes/hayro-parity/README.md`) — thresholds and comparison metric to reuse; the nightly metric to track.
 - [ADR 0018 §1 tier 8 and §2](../../decisions/0018-test-strategy.md#1-tiers) — render goldens are PNGs per page compared with perceptual thresholds, updated only by `cargo xtask render-golden --update`; full lane runs them on PRs; nightly runs hayro vs PDFium.
 - [Rust guidelines](../../guidelines/rust.md) and [code organization §2](../../guidelines/code-organization.md#2-boundaries-and-dependency-direction) — `lamina-render` is an **edge** crate when it links PDFium (FFI/dynamic loading); the trait itself stays pure. Load `/rust-best-practices` before writing code.

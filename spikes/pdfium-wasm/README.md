@@ -1,7 +1,7 @@
 # Spike: `pdfium-wasm` (Round C1b)
 
 - **Date:** 2026-10-30
-- **Status:** done. The recommendation at the end, with [C1a](../hayro-parity/README.md)'s, is input to ADRs 0004 and 0009 ([C2a](../../docs/todos/ongoing/C2a-render-adrs.md)); it decides nothing on its own.
+- **Status:** done. The recommendation at the end, with [C1a](../hayro-parity/README.md)'s, is input to ADRs 0004 and 0009 ([C2a](../../docs/todos/done/C2a-render-adrs.md)); it decides nothing on its own.
 - **Plan:** [web-app plan §6 C1](../../docs/plans/web-app.md#c1-rendering-spikes), [architecture §4](../../docs/plans/architecture.md#4-spikes-to-close-open-questions) (`pdfium-wasm`)
 - **Todo:** [C1b](../../docs/todos/done/C1b-pdfium-wasm-spike.md)
 - **Code:** throwaway-quality, outside both workspaces and the pnpm workspace, never imported by product code ([code organisation §12](../../docs/guidelines/code-organization.md#12-spikes-vs-product-code)); not in CI.
