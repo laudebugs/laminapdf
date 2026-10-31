@@ -70,7 +70,7 @@ Expose text extraction everywhere the readers need it and prove it against indep
 ## Docs to update
 
 - [x] [pdf-library §10 B9](../../plans/pdf-library.md#10-to-dos): tick "expose `page.text()` …" and "Extraction tests … quad tests … fuzz target"
-- [x] Docs site guide "Extracting text" (if [B7a](../ready/B7a-docs-site.md) merged; it isn't: the `@lamina/pdf` README has an "Extracting text" section)
+- [x] Docs site guide "Extracting text" (if [B7a](../ongoing/B7a-docs-site.md) merged; it isn't: the `@lamina/pdf` README has an "Extracting text" section)
 - [x] Web plan C5 can now reference the API (parent updates web-app.md)
 
 ## Risks and open questions
