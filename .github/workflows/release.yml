@@ -7,9 +7,9 @@
 #                   succeeded on the release commit or an ancestor (`cargo xtask release-guard`), and checks that a tag names the version
 #                   (`cargo xtask version check-tag`)
 #   fast            the fast lane: `cargo xtask check` (with `version sync --check`) and `size`,
-#                   over `cargo xtask wasm` (which runs publint and attw on @lamina/pdf)
+#                   over `cargo xtask wasm` (which runs publint and attw on @laminapdf/pdf)
 #   full suites     the full lane's: the full differential set, every fuzz target, the round
-#                   trip, the examples and render goldens, the capability matrix, @lamina/pdf in
+#                   trip, the examples and render goldens, the capability matrix, @laminapdf/pdf in
 #                   every runtime, and `cargo xtask check` on Linux while that runner is on
 #   nightly         nightly.yml itself, called as a reusable workflow on the release commit
 #   verify-install  `cargo xtask verify-install`: the `pnpm pack` tarballs and the `lamina` crate
@@ -153,7 +153,7 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: cargo xtask check
-      # Builds the modules and @lamina/pdf, tests them in Node and Vite, and runs publint
+      # Builds the modules and @laminapdf/pdf, tests them in Node and Vite, and runs publint
       # --strict and attw --pack on the package (the packaging checks).
       - run: cargo xtask wasm
       - name: Upload the built packages
@@ -326,10 +326,10 @@ jobs:
           cache: false
       - run: cargo xtask capabilities --check
 
-  # @lamina/pdf's example suite in every runtime over the fast job's build (the fast lane runs
+  # @laminapdf/pdf's example suite in every runtime over the fast job's build (the fast lane runs
   # Node 22, 26 and Chromium, the full lane the rest; the release runs them all).
   pdf-runtimes:
-    name: "@lamina/pdf in ${{ matrix.runtime }}${{ matrix.node && format(' {0}', matrix.node) || '' }}"
+    name: "@laminapdf/pdf in ${{ matrix.runtime }}${{ matrix.node && format(' {0}', matrix.node) || '' }}"
     needs: [guard, fast]
     runs-on: [self-hosted, macOS, ARM64]
     timeout-minutes: 20
@@ -433,7 +433,7 @@ jobs:
           node-version: ${{ matrix.node }}
           node-version-file: .nvmrc
           cache: pnpm
-      # Deno, Bun, Vite, Playwright and wrangler are @lamina/pdf's pinned dev dependencies.
+      # Deno, Bun, Vite, Playwright and wrangler are @laminapdf/pdf's pinned dev dependencies.
       - run: pnpm install --frozen-lockfile
       - name: Keep the Playwright browsers in the runner's tool cache
         run: echo "PLAYWRIGHT_BROWSERS_PATH=$RUNNER_TOOL_CACHE/ms-playwright" >> "$GITHUB_ENV"

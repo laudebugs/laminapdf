@@ -12,7 +12,7 @@
 #                 (`cargo xtask scaling`)
 #   bench         criterion benchmarks with history on the `bench-data` branch; a regression over
 #                 10% opens an issue, never fails the run (`cargo xtask bench`)
-#   pdf-runtimes  @lamina/pdf's example suite in Node, Chromium, Firefox, WebKit, Deno, Bun and
+#   pdf-runtimes  @laminapdf/pdf's example suite in Node, Chromium, Firefox, WebKit, Deno, Bun and
 #                 workerd, its timings and WebAssembly memory recorded in the benchmark history
 #                 (`cargo xtask pdf-runtimes --record`; todo B6c); never a regression issue
 #   links         every external URL in the tracked Markdown answers, with retries, a per-host
@@ -317,7 +317,7 @@ jobs:
   # that fails fails the job (and opens the nightly issue); the timings themselves are recorded,
   # not compared.
   pdf-runtimes:
-    name: "@lamina/pdf in every runtime (timings)"
+    name: "@laminapdf/pdf in every runtime (timings)"
     needs: bench
     if: ${{ !cancelled() }}
     runs-on: [self-hosted, macOS, ARM64]
