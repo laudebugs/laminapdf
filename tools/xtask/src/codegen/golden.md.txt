@@ -11,6 +11,7 @@
 | --- | --- | --- |
 | [`not-pdf`](not-pdf.md) | `input` | what happened |
 | [`limit-exceeded`](limit-exceeded.md) | `limit` | what happened |
+| [`cancelled`](cancelled.md) | `state` | what happened |
 
 ## Op errors
 

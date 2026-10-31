@@ -320,7 +320,36 @@ fn table(measurements: &[Measurement]) -> String {
             cell(cases.get("wasm-memory").copied(), memory_target, "MB"),
         );
     }
+    long_tasks(&by_runtime, &mut out);
     out
+}
+
+/// L2a's main-thread check: the longest long task while a 50 MB file is opened and fully
+/// rewritten on the main thread and through `@lamina/pdf/worker` (Chromium's `longtask` entries;
+/// 0 is none over 50 ms).
+fn long_tasks(by_runtime: &BTreeMap<&str, BTreeMap<&str, f64>>, out: &mut String) {
+    let rows: Vec<_> = by_runtime
+        .iter()
+        .filter_map(|(runtime, cases)| {
+            let worker = cases.get("worker-rewrite-50mb-longest-task").copied()?;
+            Some((*runtime, cases.get("sync-rewrite-50mb-longest-task").copied(), worker))
+        })
+        .collect();
+    if rows.is_empty() {
+        return;
+    }
+    out.push_str(
+        "\n### Main-thread long tasks, 50 MB open + full rewrite\n\n\
+         | Runtime | Main thread | Worker client |\n| --- | --- | --- |\n",
+    );
+    for (runtime, sync, worker) in rows {
+        let _ = writeln!(
+            out,
+            "| {runtime} | {} | {} |",
+            cell(sync, None, "ms"),
+            cell(Some(worker), None, "ms")
+        );
+    }
 }
 
 /// The history keys and values of `measurements`: `pdf/<runtime>/<case>` in nanoseconds
@@ -415,6 +444,33 @@ mod tests {
         assert!(parse_args(&args(&["--history", "h", "--runner", "r"])).is_err());
         assert!(parse_args(&args(&["--history", "h", "--record"])).is_err());
         assert!(parse_args(&args(&["--history", "h", "--runner", "r", "--record"])).is_ok());
+    }
+
+    #[test]
+    fn table_should_list_the_worker_long_tasks_when_measured() {
+        let measurements = [
+            Measurement {
+                runtime: "chromium".into(),
+                case: "sync-rewrite-50mb-longest-task".into(),
+                value: 207.0,
+            },
+            Measurement {
+                runtime: "chromium".into(),
+                case: "worker-rewrite-50mb-longest-task".into(),
+                value: 0.0,
+            },
+        ];
+        assert!(table(&measurements).contains("| chromium | 207.0 ms | 0.0 ms |"));
+    }
+
+    #[test]
+    fn table_should_leave_out_the_long_tasks_when_not_measured() {
+        let measurements = [Measurement {
+            runtime: "node-24".into(),
+            case: "hello".into(),
+            value: 1.0,
+        }];
+        assert!(!table(&measurements).contains("long tasks"));
     }
 
     #[test]

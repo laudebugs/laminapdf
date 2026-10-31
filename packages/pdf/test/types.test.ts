@@ -80,6 +80,7 @@ function kindOf(code: ErrorCode): ErrorKind {
     case "invalid-page-labels":
     case "invalid-argument":
     case "unknown-option":
+    case "worker-version-mismatch":
       return "usage";
     case "data-pending":
     case "repaired-base":
@@ -101,6 +102,7 @@ function kindOf(code: ErrorCode): ErrorKind {
     case "cancelled":
       return "cancelled";
     case "unset-object":
+    case "worker-crashed":
       return "internal";
     default: {
       const unhandled: never = code;

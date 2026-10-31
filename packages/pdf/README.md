@@ -127,8 +127,44 @@ const bytes = await doc.ensure(() => doc.save({ mode: "fullRewrite" })); // fetc
 - **CORS:** a `Range` header makes a cross-origin request preflighted. The server must answer with `Access-Control-Allow-Headers: Range` and expose `Content-Range`, `Content-Length` and `ETag` (`Access-Control-Expose-Headers`). It must not compress the response: `Content-Encoding` breaks byte ranges.
 - **`callbackSource(size, read)`:** any other random-access input (a `Blob`'s `slice`, a file handle, an IPC call).
 - **Options:** `signal` (for the open; aborting rejects and cancels its requests in flight; `ensure(f, { signal })` takes its own), `blockSize`, `readahead`, `budget` (the most bytes the document may hold; more is `source-budget-exceeded`) and `maxRounds`.
-- **Workers:** each `ensure` call can take several round trips. The worker client ([L2a](../../docs/todos/ongoing/L2a-worker-client.md)) will hide the loop behind its async API.
+- **Workers:** each `ensure` call can take several round trips. The worker client (`client.openUrl`, [L2a](../../docs/todos/done/L2a-worker-client.md)) hides the loop behind its async API.
 - **Large local files in Rust:** `lamina-source`'s `FileSource` (positioned reads) or, for files nothing changes, `MmapSource` ([its README](../../crates/lamina-source/README.md)).
+
+## Off the main thread: `@lamina/pdf/worker`
+
+The API is synchronous, so a large file opened on the main thread blocks the page. `@lamina/pdf/worker` runs the same API in a Web Worker and gives you async twins of `Document` and its pages.
+
+```ts
+import { connect } from "@lamina/pdf/worker";
+
+const client = await connect(); // starts the worker, checks its version, calls init() there
+await using doc = await client.open(bytes); // copied; { transfer: true } moves it instead
+console.log(await doc.pageCount());
+const page = await doc.page(0);
+const text = await page.text(); // a PageText, rebuilt from the transferred arrays (after client.loadExtract())
+const updated = await doc.save({ mode: "incremental" }, { signal, onProgress: (p) => bar(p) });
+```
+
+- **Same names, async:** every served member of `Document` and `PageRef` is a method of the same name returning a `Promise`. Getters become methods: `await doc.pageCount()`. A page is a remote handle too.
+- **Not served:**
+  - `transact`: a callback can't cross to a worker. Use `apply(ops)` instead.
+  - `saveJob`: the remote `save` is a stepped job already.
+  - `ensure`: the worker fetches a range document's bytes itself.
+  - `free`: use `close()` or `await using`.
+  - `Builder`: its callbacks (`path`, `tag`) can't cross either. Build on the main thread or in your own worker.
+
+  `tsc` fails if a new sync method is neither served nor excluded (`src/worker/support.ts`).
+- **Remote files:** `client.openUrl(url, options)` opens a file by range requests in the worker; every call fetches what it needs first.
+- **Cancellation:** pass `signal` to any call. An aborted call rejects at once with `LaminaError` `cancelled`, whose `cause` is the signal's reason, and a late answer is dropped.
+  - **Not started yet:** the call never runs.
+  - **`save` / `saveWithReport`:** they run as stepped jobs and stop at the next step. The document stays usable.
+  - **Every other call:** one synchronous call in the worker, so it can't be stopped midway (`open` included). `client.terminate()` is the hard stop.
+- **Transfers:** `save()` bytes and page text arrays come back transferred. Inputs are copied unless you pass `transfer: true`, which detaches your buffer.
+- **Errors:** errors are `LaminaError` on the main thread, with every ADR 0026 field. If the worker crashes (an uncaught error, a WebAssembly trap, out of memory), pending calls reject with `worker-crashed` and `client.on("crashed", …)` fires. `client.restart()` starts a new worker, and the old handles are gone. There's no heartbeat, so a long call is not a crash.
+- **Version handshake:** on connect, the worker and the client compare their protocol and package versions. A worker from another build rejects `connect()` with `worker-version-mismatch` (PDF.js's version-mismatch lesson).
+- **Bundlers:** `connect()` contains the literal `new Worker(new URL("./entry.js", import.meta.url), { type: "module" })`, which Vite and webpack bundle with no config (`test/browser/vite-build.test.ts` builds and runs one). In Vite, keep the package out of pre-bundling (`optimizeDeps: { exclude: ["@lamina/pdf"] }`), as for the main entry.
+- **CSP or your own hosting:** pass `connect({ worker: () => new Worker(url, { type: "module" }) })`. A factory, so that `restart()` can make a new one.
+- **Runtimes:** browsers (Chromium, Firefox, WebKit), and Deno and Bun web Workers (smoke-tested). Node's `worker_threads` isn't a web `Worker` and isn't supported.
 
 ## Memory
 

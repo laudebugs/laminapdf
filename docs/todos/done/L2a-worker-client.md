@@ -3,10 +3,10 @@
 | Field | Value |
 | --- | --- |
 | ID | `L2a` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [shareable-libraries §7 L2](../../plans/shareable-libraries.md#l2-typescript-hardening), [§5 design summary](../../plans/shareable-libraries.md#5-design-summary) |
 | Round / milestone | Round L2 (shareable libraries) — before C3a |
-| Depends on | [B6b](../done/B6b-lamina-pdf-package.md), [L1a](../done/L1a-contract-adrs.md), [L1b](../done/L1b-error-contract-codegen.md) |
+| Depends on | [B6b](./B6b-lamina-pdf-package.md), [L1a](./L1a-contract-adrs.md), [L1b](./L1b-error-contract-codegen.md) |
 | Blocks | [C3a](../ready/C3a-viewer-worker-rpc.md) |
 | ADRs | Follows 0028 (jobs, `CancelToken`, async only at the edges) and 0026 (errors cross as JSON, not `Error` objects), both from [L1a](../done/L1a-contract-adrs.md); [0002](../../decisions/0002-binding-strategy.md) §1 (sync core after `init()`); 0016 (export conditions, from [B6a](../done/B6a-lamina-wasm-and-adr-0016.md)); informs proposed 0009 (typed worker RPC, [C2a](../done/C2a-render-adrs.md)) |
 | Branch | `feat/l2a-worker-client` |
@@ -64,37 +64,73 @@ Let web apps keep lamina off the main thread without learning a second API. `@la
 
 ## Tasks
 
-- [ ] Read the report section, the TS note §3–§4, C3a, ADR 0028 and B6b's `src/` on `main`
-- [ ] Write the public types first (`src/worker/index.ts`: `connect`, `WorkerClient`, `RemoteDocument`, `RemotePage`, `Promisified<T>`, `CallOptions { signal?, onProgress?, transfer? }`) and review them in the PR
-- [ ] `protocol.ts`:
-  - [ ] Envelopes and a `PROTOCOL_VERSION` constant
-  - [ ] `Methods` derived from the sync classes (no hand-maintained list where a mapped type can do it)
-  - [ ] Error and warning payloads in ADR 0026 shape
-- [ ] `client.ts`:
-  - [ ] Monotonic IDs; a pending map; abort handling; late-response dropping
-  - [ ] Transfer lists; progress dispatch
-  - [ ] Crash detection; `restart()`, `terminate()`
-- [ ] `entry.ts` (worker):
-  - [ ] Handshake; `init()`
-  - [ ] A handle table; dispatch to the sync API
-  - [ ] Job stepping with `CancelToken` and a throttled progress callback for long methods (`save`, and later render and extract)
-  - [ ] Error serialisation
-- [ ] Remote handles with `Symbol.asyncDispose` (use `Symbol.asyncDispose ?? Symbol.for("Symbol.asyncDispose")`, without mutating globals)
-- [ ] `package.json`: add the `./worker` export and the worker file to `files`; check publint and `attw --pack` still pass; include `worker.js` in `cargo xtask size`
-- [ ] Vitest browser mode (Playwright: Chromium, Firefox, WebKit) in `packages/pdf`, if [B6c](../done/B6c-runtime-matrix.md) has not set it up yet; Deno and Bun smoke tests through B6c's runners, if present
-- [ ] A worker example in `packages/pdf/examples/worker-client/` (open, page count, save, abort), run as a test
-- [ ] README section: when to use the worker client, bundler notes (Vite `optimizeDeps.exclude`), CSP and `{ worker }`
+- [x] Read the report section, the TS note §3–§4, C3a, ADR 0028 and B6b's `src/` on `main`
+- [x] Write the public types first (`src/worker/index.ts`: `connect`, `WorkerClient`, `RemoteDocument`, `RemotePage`, `Promisified<T>`, `CallOptions { signal?, onProgress?, transfer? }`) and review them in the PR
+- [x] `protocol.ts`:
+  - [x] Envelopes and a `PROTOCOL_VERSION` constant
+  - [x] `Methods` derived from the sync classes (no hand-maintained list where a mapped type can do it)
+  - [x] Error and warning payloads in ADR 0026 shape
+- [x] `client.ts`:
+  - [x] Monotonic IDs; a pending map; abort handling; late-response dropping
+  - [x] Transfer lists; progress dispatch
+  - [x] Crash detection; `restart()`, `terminate()`
+- [x] `entry.ts` (worker):
+  - [x] Handshake; `init()`
+  - [x] A handle table; dispatch to the sync API
+  - [x] Job stepping with `CancelToken` and a throttled progress callback for long methods (`save`, and later render and extract)
+  - [x] Error serialisation
+- [x] Remote handles with `Symbol.asyncDispose` (use `Symbol.asyncDispose ?? Symbol.for("Symbol.asyncDispose")`, without mutating globals)
+- [x] `package.json`: add the `./worker` export and the worker file to `files`; check publint and `attw --pack` still pass; include `worker.js` in `cargo xtask size`
+- [x] Vitest browser mode (Playwright: Chromium, Firefox, WebKit) in `packages/pdf`, if [B6c](../done/B6c-runtime-matrix.md) has not set it up yet; Deno and Bun smoke tests through B6c's runners, if present
+- [x] A worker example in `packages/pdf/examples/worker-client/` (open, page count, save, abort), run as a test
+- [x] README section: when to use the worker client, bundler notes (Vite `optimizeDeps.exclude`), CSP and `{ worker }`
 
 ## Acceptance criteria
 
-- [ ] For every public method of the sync `Document` (and `Page`, `Builder`), the remote handle has a method of the same name returning a `Promise` of the same result type (type test with `expectTypeOf` over the mapped type). Adding a sync method without worker support fails `tsc`
-- [ ] Opening every file in `fixtures/corpus` through the client gives the same page count, warnings and `save()` bytes as the sync API, in Chromium, Firefox and WebKit
-- [ ] A client built from a different `version` or `PROTOCOL_VERSION` than the worker rejects `connect()` with the mismatch code. Nothing else is sent
-- [ ] Abort before start: the request never runs (asserted via a worker-side counter). Abort during a stepped job: the job stops at the next step, the promise rejects, and the handle stays usable
-- [ ] `save()` output arrives as a transferred buffer (the worker-side buffer is detached); with `{ transfer: true }` the caller's input buffer is detached; without it, the input is unchanged
-- [ ] Errors from the worker are `instanceof LaminaError` on the main thread, with all ADR 0026 fields intact
-- [ ] A test-only `__crash` method makes pending calls reject with `worker-crashed` and emits `crashed`; `restart()` then serves new calls
-- [ ] Full lane (not PR lanes, per ADR 0018): opening a generated 50 MB file through the client in Chromium produces no main-thread long task over 50 ms (`PerformanceObserver` `longtask`), recorded in the job summary
+- [x] For every public method of the sync `Document` (and `Page`; `Builder` is not served, see [Outcome](#outcome)), the remote handle has a method of the same name returning a `Promise` of the same result type (type test with `expectTypeOf` over the mapped type). Adding a sync method without worker support fails `tsc`
+- [x] Opening every file in `fixtures/corpus` through the client gives the same page count, warnings and `save()` bytes as the sync API, in Chromium, Firefox and WebKit
+- [x] A client built from a different `version` or `PROTOCOL_VERSION` than the worker rejects `connect()` with the mismatch code. Nothing else is sent
+- [x] Abort before start: the request never runs (asserted via a worker-side counter). Abort during a stepped job: the job stops at the next step, the promise rejects, and the handle stays usable
+- [x] `save()` output arrives as a transferred buffer (the worker-side buffer is detached); with `{ transfer: true }` the caller's input buffer is detached; without it, the input is unchanged
+- [x] Errors from the worker are `instanceof LaminaError` on the main thread, with all ADR 0026 fields intact
+- [x] A test-only `__crash` method makes pending calls reject with `worker-crashed` and emits `crashed`; `restart()` then serves new calls
+- [x] Full lane (not PR lanes, per ADR 0018): opening a generated 50 MB file through the client in Chromium produces no main-thread long task over 50 ms (`PerformanceObserver` `longtask`), recorded in the job summary
+
+## Outcome
+
+What shipped, and where it differs from the plan above:
+
+- **Layout:** `packages/pdf/src/worker/`:
+  - `protocol.ts`: the envelopes, `PROTOCOL_VERSION`, and the hello/welcome handshake with the package version from `src/version.ts`, which `test/version.test.ts` checks against package.json.
+  - `support.ts`: the served members with their arity.
+  - `types.ts`: `RemoteDocument`, `RemotePage`, `RemoteMember<T>` (the plan's `Promisified<T>`), `CallOptions`.
+  - `client.ts` and `entry.ts`.
+
+  The worker file is `dist/worker/entry.js`, not `dist/worker.js`, and `connect()` holds the literal `new Worker(new URL("./entry.js", import.meta.url), { type: "module" })`.
+- **Drift check:** `support.ts` maps every `Document` and `PageRef` member, minus a named exclusion list, with `satisfies Record<…, number>`. A new sync member that is neither served nor excluded fails `tsc`.
+- **Not served:**
+  - `transact`: it takes a callback.
+  - `saveJob`: the remote `save`/`saveWithReport` are stepped jobs already.
+  - `ensure`: the worker runs it around every call on a range document.
+  - `free`/`Symbol.dispose`: replaced by `close()`/`Symbol.asyncDispose`.
+  - `Builder`: its `path`/`tag` callbacks can't cross. It's documented in the README; a remote builder would need a flat op list, which is a later todo if a use case appears.
+- **Range documents:** `client.openUrl(url, options)` runs `Document.openRange(httpRangeSource(url))` in the worker, and each call runs inside `doc.ensure`.
+- **Cancellation:** abort rejects at once with `cancelled`, with `cause` set to the signal's reason, and posts `cancel { id }`.
+  - The worker drops a queued call (the `__stats` counter proves it never started).
+  - The worker cancels a running `save` at its next step, which yields to the event loop between steps.
+  - Other calls aren't interruptible: `terminate()` is the hard stop.
+- **Warnings:** not sent as events. They are read with `doc.warnings()`, as in the sync API.
+- **Errors:** two new package codes, `worker-version-mismatch` and `worker-crashed` (with pages in `docs/errors/`). `packageError` gained a `cause`, and `ALSO_RAISED_BY_TS` lists `cancelled`.
+- **Sizes:** `cargo xtask size` now measures three bundles: the worker client (budget 5 KB gzip, measured 3.7 KB) and the worker file (20 KB, measured 14.6 KB), beside the main entry.
+- **Tests:**
+  - `test/browser/worker.browser.test.ts` runs in Chromium, Firefox and WebKit. It covers corpus parity, pages and text, `openUrl`, errors, transfers, abort before start and mid-save, async disposal emptying the handle table, the handshake mismatch (a fake worker), crash and restart, and the example.
+  - `test/worker-types.test.ts`: the type tests.
+  - Deno and Bun smoke tests (`test/{deno,bun}/worker.test.ts`).
+  - A Vite production build with a worker entry (`test/vite-app/worker.ts`). It needs no Vite worker config.
+- **Long tasks:** `test/browser/worker-longtask.browser.test.ts` opens and fully rewrites a generated ~50 MB file, once on the main thread and once through the worker. Opening alone is lazy, so it showed no long task even on the main thread.
+  - It records both longest tasks as measurements, shown in the pdf-runtimes job summary. Locally: 207 ms on the main thread, 0 ms through the worker.
+  - It is recorded, never asserted, so it runs with the Chromium suite in both lanes (ADR 0018 forbids wall-clock asserts, not measurements).
+- **Example:** `packages/pdf/examples/worker-client.ts`. The docs site gets a guide (Off the main thread) and a gallery entry.
 
 ## Post-merge checks
 
@@ -108,9 +144,9 @@ Let web apps keep lamina off the main thread without learning a second API. `@la
 
 ## Docs to update
 
-- [ ] [shareable-libraries §9 L2](../../plans/shareable-libraries.md#9-to-dos): tick the worker-client to-do
-- [ ] `packages/pdf/README.md` (worker client section); `CLAUDE.md` if the layout or commands change
-- [ ] [C3a](../ready/C3a-viewer-worker-rpc.md): note in its Context which parts this PR delivered (protocol, cancellation, crash detection), so C3a only adds viewer concerns
+- [x] [shareable-libraries §9 L2](../../plans/shareable-libraries.md#9-to-dos): tick the worker-client to-do
+- [x] `packages/pdf/README.md` (worker client section); `CLAUDE.md` if the layout or commands change
+- [x] [C3a](../ready/C3a-viewer-worker-rpc.md): note in its Context which parts this PR delivered (protocol, cancellation, crash detection), so C3a only adds viewer concerns
 
 ## Risks and open questions
 
@@ -123,8 +159,8 @@ Let web apps keep lamina off the main thread without learning a second API. `@la
 
 ## Definition of done
 
-- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
-- [ ] Work PR opened from a fresh worktree; **PR** field filled in
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
-- [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [x] Work PR opened from a fresh worktree; **PR** field filled in
+- [x] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
+- [x] CI green
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated

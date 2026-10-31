@@ -229,6 +229,12 @@
   "packages": {
     "@lamina/pdf": {
       "jsGzip": 20000
+    },
+    "@lamina/pdf/worker": {
+      "jsGzip": 5000
+    },
+    "@lamina/pdf/worker/entry": {
+      "jsGzip": 20000
     }
   },
   "thirdParty": {

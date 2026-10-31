@@ -180,3 +180,5 @@ A PR that adds a code adds:
 | [`source-changed`](source-changed.md) | `io` | a remote file changed while it was being read: its ETag or length differs from the first response |
 | [`text-module-not-loaded`](text-module-not-loaded.md) | `state` | a font or text call was made on a builder of the base module, which has no fonts or text |
 | [`disposed`](disposed.md) | `state` | a document, builder or other handle was used after free(), or after the using block that held it ended |
+| [`worker-version-mismatch`](worker-version-mismatch.md) | `usage` | the worker answered with a different protocol or package version than the client |
+| [`worker-crashed`](worker-crashed.md) | `internal` | the worker running lamina stopped (an uncaught error, a WebAssembly trap or out of memory); calls in flight were rejected |

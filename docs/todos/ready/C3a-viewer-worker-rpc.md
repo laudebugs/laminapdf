@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [web reader §6 C3. Viewer core](../../plans/web-app.md#c3-viewer-core) |
 | Round / milestone | Round C (web reader) — M2 Web reader v0.1 |
-| Depends on | [B6b](../done/B6b-lamina-pdf-package.md), [L2a](../ongoing/L2a-worker-client.md), [C2a](../done/C2a-render-adrs.md), [C2c](../done/C2c-render-packages.md) |
+| Depends on | [B6b](../done/B6b-lamina-pdf-package.md), [L2a](../done/L2a-worker-client.md), [C2a](../done/C2a-render-adrs.md), [C2c](../done/C2c-render-packages.md) |
 | Blocks | [C3b](./C3b-viewer-virtualiser-and-zoom.md), [E10i](./E10i-platform-signers.md) |
 | Dependency notes | [C2c](../done/C2c-render-packages.md) (web render adapters); [C2a](../done/C2a-render-adrs.md) (ADR 0009 RPC requirements); library **B6** (`@lamina/pdf` `Document` in the worker; [pdf-library B6](../../plans/pdf-library.md#b6-wasm-and-laminapdf)) |
 | ADRs | Implements 0009 (typed worker RPC) and 0004 (backend selection). Follows [0003](../../decisions/0003-reader-tolerance-and-limits.md) (`Limits`, warning codes surfaced to the UI), [0005](../../decisions/0005-document-model.md) (`ByteSource`) |
@@ -21,6 +21,7 @@ Create `packages/viewer` and its foundation: one **document worker** per open do
 
 ## Context
 
+- **Delivered by [L2a](../done/L2a-worker-client.md):** `@lamina/pdf/worker` (`packages/pdf/src/worker/`) already has the envelopes (`protocol.ts`: `call`/`cancel`/`result`/`progress`/`crashed`, `PROTOCOL_VERSION` plus the package version in a hello/welcome handshake), monotonic request IDs, a handle table, `AbortSignal` cancellation (a queued call never runs; `save` is stepped and stops at the next step; late answers dropped), throttled progress events, transfers, ADR 0026 error rebuilding, and crash detection with `restart()`. This todo adds the viewer's concerns on top: render messages, priorities, coalescing, timeouts, the password re-prompt and the re-open policy after a crash.
 - ADR 0009 (from [C2a](../done/C2a-render-adrs.md)) — RPC requirements, single-threaded baseline, no Comlink.
 - [Research: the web client](../../research/architecture/app-and-package-architecture.md#the-web-client-is-react-chrome-around-an-imperative-viewer-core) — "fast scrolling cancels stale render jobs"; shell owns threads.
 - [web-frontend notes](../../research/architecture/notes/web-frontend.md) §2 (render path (b): rasterise in WASM, `createImageBitmap`, transfer) and §5 (custom RPC, COOP/COEP) and §6 (stream `File.slice()`; avoid double copies; OPFS).
@@ -65,7 +66,7 @@ Create `packages/viewer` and its foundation: one **document worker** per open do
 
 ## Acceptance criteria
 
-- [ ] The viewer's worker protocol builds on `@lamina/pdf/worker` ([L2a](../ongoing/L2a-worker-client.md)): render and viewer messages extend it rather than defining a second RPC ([shareable-libraries §8](../../plans/shareable-libraries.md#8-changes-to-existing-todos))
+- [ ] The viewer's worker protocol builds on `@lamina/pdf/worker` ([L2a](../done/L2a-worker-client.md)): render and viewer messages extend it rather than defining a second RPC ([shareable-libraries §8](../../plans/shareable-libraries.md#8-changes-to-existing-todos))
 - [ ] Typed: calling an unknown method or passing wrong params fails `tsc` (type tests with `expectTypeOf`).
 - [ ] Opening `fixtures/corpus/*.pdf` returns page count and sizes matching `fixtures/corpus/expected.json` in Chromium, Firefox and WebKit.
 - [ ] Cancellation: a test issues 100 render requests and aborts 90 before they finish; no aborted request resolves, every transferred bitmap for an aborted ID is closed, and the 10 kept ones resolve in priority order.

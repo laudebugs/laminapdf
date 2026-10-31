@@ -81,7 +81,9 @@
             "not-initialized",
             "source-changed",
             "text-module-not-loaded",
-            "disposed"
+            "disposed",
+            "worker-version-mismatch",
+            "worker-crashed"
           ]
         },
         "data": {

@@ -829,6 +829,20 @@
       "summary": "a document, builder or other handle was used after free(), or after the using block that held it ended",
       "hint": "free a handle only after its last use; to keep working, open the document again or create a new builder",
       "since": "0.1.0"
+    },
+    {
+      "code": "worker-version-mismatch",
+      "kind": "usage",
+      "summary": "the worker answered with a different protocol or package version than the client",
+      "hint": "serve the worker file from the same @lamina/pdf build as the page; don't load it from a CDN or an older deploy",
+      "since": "0.1.0"
+    },
+    {
+      "code": "worker-crashed",
+      "kind": "internal",
+      "summary": "the worker running lamina stopped (an uncaught error, a WebAssembly trap or out of memory); calls in flight were rejected",
+      "hint": "call client.restart() and open the document again; report the file if it keeps happening",
+      "since": "0.1.0"
     }
   ]
 }

@@ -473,10 +473,11 @@ fn minified(ws: &Workspace, js: &Path) -> Result<Vec<u8>> {
     Ok(output.stdout)
 }
 
-/// `@lamina/pdf`'s browser entry bundled with its glue and minified (esbuild), as a page that
-/// imports the whole API downloads it (the `.wasm` files are measured as modules).
-fn package_js(ws: &Workspace) -> Result<Vec<u8>> {
-    let entry = ws.root.join("packages/pdf/dist/index.js");
+/// A `@lamina/pdf` entry (`dist/<entry>`) bundled with its imports and minified (esbuild), as a
+/// page that imports it downloads it (the `.wasm` files are measured as modules; the worker
+/// client's `new URL("./entry.js", …)` is not followed, so the worker file is its own entry).
+fn package_js(ws: &Workspace, entry: &str) -> Result<Vec<u8>> {
+    let entry = ws.root.join("packages/pdf/dist").join(entry);
     if !entry.exists() {
         bail!("{} is missing: run `cargo xtask wasm` first", entry.display());
     }
@@ -525,7 +526,7 @@ pub(crate) fn package_violation(name: &str, gzip: u64, budgets: &BTreeMap<String
             "{name}: no budget under packages in packages/wasm/size-budgets.json"
         )),
         Some(&budget) if gzip > budget => Some(format!(
-            "{name}: its JS (glue + API, minified) is {gzip} B gzip, over its budget of {budget} B"
+            "{name}: its JS (minified, bundled) is {gzip} B gzip, over its budget of {budget} B"
         )),
         Some(_) => None,
     }
@@ -587,8 +588,14 @@ fn pdfium_size(
     })
 }
 
-/// The package whose JS `size` measures (ADR 0016 §6: glue + TS API ≤ 20 KB min+gzip).
-const PDF_PACKAGE: &str = "@lamina/pdf";
+/// The JS bundles `size` measures: (budget name under `packages`, entry in `packages/pdf/dist/`,
+/// table label). ADR 0016 §6: glue + TS API ≤ 20 KB min+gzip; L2a: the worker client, and the
+/// worker file it starts.
+const PDF_BUNDLES: [(&str, &str, &str); 3] = [
+    ("@lamina/pdf", "index.js", "JS: glue + API"),
+    ("@lamina/pdf/worker", "worker/index.js", "JS: worker client"),
+    ("@lamina/pdf/worker/entry", "worker/entry.js", "JS: the worker file"),
+];
 
 /// How many items the baseline keeps and the growth diff compares.
 const TOP_ITEMS: usize = 40;
@@ -741,20 +748,24 @@ pub(crate) fn size(ws: &Workspace, update_baseline: bool) -> Result<()> {
             }),
         );
     }
-    let pdf = Sizes::of(&package_js(ws)?);
     let package_budgets = package_budgets(&file)?;
-    let pdf_budget = package_budgets.get(PDF_PACKAGE).copied();
-    let _ = writeln!(
-        table,
-        "| {PDF_PACKAGE} (JS: glue + API) | — | — | — | — | {} | {} | {} |",
-        pdf.raw,
-        pdf.gzip,
-        pdf_budget.map_or("—".to_owned(), |b| b.to_string()),
-    );
-    report.insert(
-        PDF_PACKAGE.to_owned(),
-        json!({ "jsMinified": pdf.json(), "budget": pdf_budget.map(|b| json!({ "jsGzip": b })) }),
-    );
+    let mut bundles = Vec::new();
+    for (name, entry, label) in PDF_BUNDLES {
+        let js = Sizes::of(&package_js(ws, entry)?);
+        let budget = package_budgets.get(name).copied();
+        let _ = writeln!(
+            table,
+            "| {name} ({label}) | — | — | — | — | {} | {} | {} |",
+            js.raw,
+            js.gzip,
+            budget.map_or("—".to_owned(), |b| b.to_string()),
+        );
+        report.insert(
+            name.to_owned(),
+            json!({ "jsMinified": js.json(), "budget": budget.map(|b| json!({ "jsGzip": b })) }),
+        );
+        bundles.push((name, js.gzip));
+    }
     let pdfium = pdfium_size(ws, &file, &mut table, &mut report)?;
     println!("{table}");
     fs::create_dir_all(ws.root.join("target"))?;
@@ -772,7 +783,11 @@ pub(crate) fn size(ws: &Workspace, update_baseline: bool) -> Result<()> {
     }
 
     let mut problems = violations(&measured, &budgets);
-    problems.extend(package_violation(PDF_PACKAGE, pdf.gzip, &package_budgets));
+    problems.extend(
+        bundles
+            .iter()
+            .filter_map(|&(name, gzip)| package_violation(name, gzip, &package_budgets)),
+    );
     problems.extend(pdfium);
     if problems.is_empty() {
         crate::step("WASM sizes are within budget");
