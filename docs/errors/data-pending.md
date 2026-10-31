@@ -17,7 +17,11 @@ Fetch the ranges and retry the call; the document stays usable.
 
 ## Example
 
-To be added ([L1b](../todos/ongoing/L1b-error-contract-codegen.md)).
+```ts
+const doc = await Document.openRange(httpRangeSource(url));
+// pages() needs bytes that haven't arrived: ensure() fetches e.ranges and retries
+const pages = await doc.ensure(() => doc.pages);
+```
 
 ## Data fields
 

@@ -22,7 +22,7 @@ pub(crate) fn of_error(error: &Error) -> Data {
         Error::Cos(e) => cos(e),
         Error::Ops(e) => ops(e),
         Error::Save(e) => save(e),
-        #[cfg(feature = "text")]
+        #[cfg(feature = "extract")]
         Error::Text(e) => text(e),
         #[cfg(feature = "build")]
         Error::Build(e) => build(e),
@@ -137,7 +137,7 @@ fn signature(s: &lamina_save::SignatureInfo) -> Value {
     })
 }
 
-#[cfg(feature = "text")]
+#[cfg(feature = "extract")]
 fn text(e: &lamina_text::Error) -> Data {
     use lamina_text::Error as E;
     match e {
@@ -199,7 +199,7 @@ fn build(e: &lamina_build::Error) -> Data {
 pub(crate) fn of_warning(warning: &Warning) -> Data {
     match warning {
         Warning::Document(w) => cos_warning(*w),
-        #[cfg(feature = "text")]
+        #[cfg(feature = "extract")]
         Warning::Font(w) => text_warning(w),
     }
 }
@@ -232,7 +232,7 @@ fn cos_warning(w: lamina_cos::Warning) -> Data {
     }
 }
 
-#[cfg(feature = "text")]
+#[cfg(feature = "extract")]
 fn text_warning(w: &lamina_text::Warning) -> Data {
     use lamina_text::Warning as W;
     match w {

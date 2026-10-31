@@ -17,7 +17,11 @@ Use another copy of the file.
 
 ## Example
 
-To be added ([L1b](../todos/ongoing/L1b-error-contract-codegen.md)).
+```text
+1 0 obj << /Type /Catalog /Pages 2 0 R >> >> endobj
+```
+
+A stray `>>` where an object should end: parsing that object fails with `syntax` at its offset.
 
 ## Data fields
 

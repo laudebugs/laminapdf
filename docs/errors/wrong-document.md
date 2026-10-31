@@ -17,7 +17,10 @@ Use one `FontRegistry` per document, and pass `finish_fonts` the document its `r
 
 ## Example
 
-To be added ([L1b](../todos/ongoing/L1b-error-contract-codegen.md)).
+```rust
+let id = registry.reference(key, &doc_a)?;
+registry.finish_fonts(&mut doc_b.edit())?; // wrong-document: the fonts were reserved in doc_a
+```
 
 ## Data fields
 

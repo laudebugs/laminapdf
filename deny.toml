@@ -46,6 +46,11 @@ exceptions = [
     { name = "uniffi_meta", allow = ["MPL-2.0"] },
     { name = "uniffi_pipeline", allow = ["MPL-2.0"] },
     { name = "uniffi_udl", allow = ["MPL-2.0"] },
+    # MIT-0 (MIT without the notice condition; OSI-approved, more permissive than MIT). Reached
+    # only through boon → fluent-uri, the JSON Schema validator of xtask and the façade's tests
+    # (L1b): never in a library build. Every 2020-12 validator in Rust (boon, jsonschema) uses
+    # fluent-uri.
+    { name = "borrow-or-share", allow = ["MIT-0"] },
 ]
 
 [licenses.private]

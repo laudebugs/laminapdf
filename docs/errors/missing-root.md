@@ -17,7 +17,11 @@ Use another copy of the file.
 
 ## Example
 
-To be added ([L1b](../todos/ongoing/L1b-error-contract-codegen.md)).
+```text
+trailer << /Size 3 >>      % no /Root, and no object with /Type /Catalog in the file
+```
+
+Repair found no catalog to use, so `open` fails.
 
 ## Data fields
 

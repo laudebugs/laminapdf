@@ -17,7 +17,11 @@ Nothing to do.
 
 ## Example
 
-To be added ([L1b](../todos/ongoing/L1b-error-contract-codegen.md)).
+```text
+72 Td
+```
+
+`Td` takes two numbers; with one, the operator is skipped.
 
 ## Data fields
 

@@ -4,6 +4,7 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import * as base from "../dist/lamina_base.js";
+import * as extract from "../dist/lamina_extract.js";
 import * as text from "../dist/lamina_text.js";
 
 const root = new URL("../../../", import.meta.url);
@@ -11,6 +12,7 @@ const read = (path: string): Uint8Array => new Uint8Array(readFileSync(new URL(p
 
 base.initSync({ module: read("packages/wasm/dist/lamina_base.wasm") });
 text.initSync({ module: read("packages/wasm/dist/lamina_text.wasm") });
+extract.initSync({ module: read("packages/wasm/dist/lamina_extract.wasm") });
 
 /** What a failed call threw: the ADR 0026 §1 object. */
 function thrown(f: () => unknown): Record<string, unknown> {
@@ -111,5 +113,14 @@ describe("lamina_text", () => {
     page.finish();
     const bytes = b.finish().save(undefined).bytes;
     expect(bytes).toEqual(read("fixtures/golden/examples/hello.pdf"));
+  });
+});
+
+describe("lamina_extract", () => {
+  it("reads and extracts text, without fonts or shaping", () => {
+    expect(extract.hasText()).toBe(false);
+    const doc = extract.WasmDocument.openBytes(read("fixtures/golden/examples/hello.pdf"), undefined);
+    const text = doc.page(0).text(undefined);
+    expect([text.lines, text.runs.length, text.quads.length]).toEqual([["Hello, world!"], 1, 13 * 8]);
   });
 });

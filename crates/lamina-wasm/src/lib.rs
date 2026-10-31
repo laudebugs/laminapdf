@@ -1,14 +1,16 @@
 //! WebAssembly bindings of the `lamina` façade (ADR 0002, ADR 0028), built into
 //! `@lamina/wasm` by `cargo xtask wasm`.
 //!
-//! One crate, built twice ([ADR 0016] §4):
+//! One crate, built three times ([ADR 0016] §4):
 //!
 //! * **base** (`lamina_base.wasm`, no features): [`WasmDocument`] (open, read, edit with ops,
 //!   undo, save, save jobs, warnings), [`WasmPage`], and [`WasmBuilder`] /
 //!   [`WasmPageBuilder`] / [`WasmImage`] for vector and image pages and the document's
 //!   navigation and metadata.
 //! * **text** (`lamina_text.wasm`, feature `text`): all of the base plus fonts (`WasmFont`),
-//!   shaped text runs and text boxes.
+//!   shaped text runs and text boxes, and text extraction (`WasmPage.text`).
+//! * **extract** (`lamina_extract.wasm`, feature `extract`; B9c): all of the base plus text
+//!   extraction (`WasmPage.text`), without fonts for building or shaping.
 //!
 //! The rules the bindings follow ([ADR 0016] §7): classes are the façade's types with a
 //! `Wasm` prefix; methods are the façade's, camelCase (F12); bytes are `Uint8Array` in and
@@ -31,6 +33,8 @@ mod document;
 mod dto;
 mod error;
 mod source;
+#[cfg(feature = "extract")]
+mod text;
 
 #[cfg(feature = "text")]
 pub use builder::WasmFont;

@@ -1,6 +1,7 @@
 // Loading the WebAssembly modules (ADR 0016 §2, §3): `init()` compiles and instantiates the base
-// module once; the text module is loaded by `init({ text: true })` or `loadText()`. After that,
-// every call is synchronous. Each export condition supplies its own `Locate` (src/loader/), so
+// module once; the text module is loaded by `init({ text: true })` or `loadText()`, the extract
+// module (base + text extraction, B9c) by `init({ extract: true })` or `loadExtract()`. After
+// that, every call is synchronous. Each export condition supplies its own `Locate` (src/loader/), so
 // this file has no environment detection and no runtime-specific API.
 import * as baseGlue from "@lamina/wasm/base";
 import { packageError } from "./errors.js";
@@ -9,6 +10,8 @@ import { packageError } from "./errors.js";
 export type BaseGlue = typeof baseGlue;
 /** The text module's wasm-bindgen glue (a superset of the base module's API). */
 export type TextGlue = typeof import("@lamina/wasm/text");
+/** The extract module's wasm-bindgen glue (the base module's API plus `WasmPage.text`). */
+export type ExtractGlue = typeof import("@lamina/wasm/extract");
 
 /**
  * Where a module comes from: a URL (or URL string) to fetch, a `Response` (or a promise of one),
@@ -32,13 +35,19 @@ export interface InitOptions {
    * from. Without it, only builders created after a later {@link loadText} can draw text.
    */
   readonly text?: boolean | WasmSource;
+  /**
+   * Also load the extract module (reading plus text extraction, about half the text module's
+   * size): `true` for the default file, or where it comes from. Documents opened afterwards can
+   * extract text ({@link PageRef.text}). Not needed when the text module is loaded.
+   */
+  readonly extract?: boolean | WasmSource;
 }
 
 /**
  * How an export condition finds a module's default file; `undefined` lets the wasm-bindgen glue
  * fetch the `.wasm` next to itself.
  */
-export type Locate = (module: "base" | "text") => WasmSource | undefined | Promise<WasmSource | undefined>;
+export type Locate = (module: "base" | "text" | "extract") => WasmSource | undefined | Promise<WasmSource | undefined>;
 
 /** The `memory` export every wasm-bindgen module has. */
 interface Exports {
@@ -55,6 +64,7 @@ interface Slot<G> {
 
 const base: Slot<BaseGlue> = {};
 const text: Slot<TextGlue> = {};
+const extract: Slot<ExtractGlue> = {};
 
 function isOptions(input: unknown): input is InitOptions {
   if (typeof input !== "object" || input === null || "then" in input) return false;
@@ -71,7 +81,7 @@ type GlueInit = (input?: { module_or_path: unknown }) => Promise<unknown>;
  */
 function load<G extends { default: GlueInit }>(
   slot: Slot<G>,
-  name: "base" | "text",
+  name: "base" | "text" | "extract",
   glue: () => Promise<G>,
   locate: Locate,
   source: WasmSource | undefined,
@@ -106,12 +116,33 @@ export function loadTextWith(locate: Locate, source?: WasmSource): Promise<void>
   return load(text, "text", () => import("@lamina/wasm/text"), locate, source);
 }
 
+/**
+ * Loads the extract module (once; a failed load can be retried). Not when the text module is
+ * loaded or loading: it extracts too, and documents open in it first, so the extract module
+ * would never be used.
+ */
+export function loadExtractWith(locate: Locate, source?: WasmSource): Promise<void> {
+  const loadIt = () => load(extract, "extract", () => import("@lamina/wasm/extract"), locate, source);
+  // A source given is honoured as for any module; without one, a text module loaded or loading
+  // makes the extract module unnecessary, unless that load fails.
+  if (source !== undefined || text.pending === undefined) return loadIt();
+  return text.pending.catch(loadIt);
+}
+
 /** `init` for an export condition's `locate`. */
 export async function initWith(locate: Locate, input?: WasmSource | InitOptions): Promise<void> {
   const options: InitOptions = input === undefined ? {} : isOptions(input) ? input : { module: input };
   const loads = [load(base, "base", async () => baseGlue, locate, options.module)];
   if (options.text !== undefined && options.text !== false) {
     loads.push(loadTextWith(locate, options.text === true ? undefined : options.text));
+  }
+  // The text module extracts too: with it, the extract module would never be used.
+  if (
+    options.extract !== undefined &&
+    options.extract !== false &&
+    (options.text === undefined || options.text === false)
+  ) {
+    loads.push(loadExtractWith(locate, options.extract === true ? undefined : options.extract));
   }
   await Promise.all(loads);
 }
@@ -122,6 +153,33 @@ export function baseModule(): BaseGlue {
     throw packageError("not-initialized", "init() has not finished loading the WebAssembly module");
   }
   return base.loaded.glue;
+}
+
+/**
+ * The module documents are opened in: the text module when loaded, else the extract module, else
+ * the base one (each a superset of the base module's reading API; the first two extract text).
+ * @throws {@link LaminaError} `not-initialized` before `init()`.
+ */
+export function readingModule(): BaseGlue {
+  const base = baseModule();
+  return (text.loaded?.glue ?? extract.loaded?.glue ?? base) as BaseGlue;
+}
+
+/**
+ * Whether documents opened or built from now on can extract text: the extract or the text module
+ * is loaded. A document opened earlier stays in the module it was opened in; ask it with
+ * {@link Document.canExtractText}.
+ */
+export function isExtractLoaded(): boolean {
+  return extract.loaded !== undefined || text.loaded !== undefined;
+}
+
+/** Whether `doc` lives in a module that extracts text (the extract or the text module). */
+export function extractsText(doc: object): boolean {
+  return (
+    (text.loaded !== undefined && doc instanceof text.loaded.glue.WasmDocument) ||
+    (extract.loaded !== undefined && doc instanceof extract.loaded.glue.WasmDocument)
+  );
 }
 
 /** The text module's glue, when loaded. */
@@ -145,6 +203,8 @@ export interface WasmMemory {
   readonly base?: number;
   /** The text module's (absent until it is loaded). */
   readonly text?: number;
+  /** The extract module's (absent until it is loaded). */
+  readonly extract?: number;
 }
 
 /**
@@ -157,5 +217,6 @@ export function wasmMemory(): WasmMemory {
   return {
     ...(base.loaded === undefined ? {} : { base: base.loaded.exports.memory.buffer.byteLength }),
     ...(text.loaded === undefined ? {} : { text: text.loaded.exports.memory.buffer.byteLength }),
+    ...(extract.loaded === undefined ? {} : { extract: extract.loaded.exports.memory.buffer.byteLength }),
   };
 }

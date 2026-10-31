@@ -9,7 +9,7 @@ A page boundary box is not four numbers; it reads as absent (ADR 0027 §3 for th
 
 ## Why
 
-Writer bugs.
+A writer bug: a box that is not an array of four numbers (too few, or names or strings in it).
 
 ## How to fix
 
@@ -17,7 +17,11 @@ Nothing; the page uses the next box in the chain.
 
 ## Example
 
-To be added ([L1b](../todos/ongoing/L1b-error-contract-codegen.md)).
+```text
+3 0 obj << /Type /Page /MediaBox [0 0 612 792] /CropBox [0 0 612] >>
+```
+
+The CropBox has three numbers, so it reads as absent and the page uses its MediaBox (ADR 0027 §3). `data` is `{ "key": "CropBox" }`.
 
 ## Data fields
 

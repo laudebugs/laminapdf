@@ -1,6 +1,6 @@
 // The `browser` condition through Vite (ADR 0016 §2; shareable-libraries §8): with @lamina/pdf
 // excluded from dependency pre-bundling, the dev server serves the package as it is and the
-// `.wasm` next to the glue; a production build emits both modules as assets, and the bundle runs.
+// `.wasm` next to the glue; a production build emits every module as an asset, and the bundle runs.
 import { mkdtempSync, readdirSync, rmSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -47,7 +47,7 @@ describe("Vite", () => {
     }
   });
 
-  it("emits both modules as assets and the bundle runs", async () => {
+  it("emits every module as an asset and the bundle runs", async () => {
     await build({
       ...config,
       build: {
@@ -73,7 +73,7 @@ describe("Vite", () => {
       };
       const result = await run(read("fixtures/golden/examples/hello.pdf"));
       expect([assets.map((a) => a.replace(/-[\w-]+\.wasm$/, "")).sort(), result]).toEqual([
-        ["lamina_base", "lamina_text"],
+        ["lamina_base", "lamina_extract", "lamina_text"],
         [1, 1],
       ]);
     } finally {

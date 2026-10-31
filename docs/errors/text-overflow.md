@@ -17,7 +17,10 @@ Make the box taller or wider, the font smaller or the text shorter; or use `Over
 
 ## Example
 
-To be added ([L1b](../todos/ongoing/L1b-error-contract-codegen.md)).
+```rust
+let options = TextBoxOptions::default().with_overflow(Overflow::Error);
+surface.text_box(long_text, &font, Pt::new(12.0), small_rect, &options)?; // text-overflow
+```
 
 ## Data fields
 

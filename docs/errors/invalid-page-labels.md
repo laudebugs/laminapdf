@@ -17,7 +17,9 @@ Give the ranges sorted by first page, the first starting at page 0, each start a
 
 ## Example
 
-To be added ([L1b](../todos/ongoing/L1b-error-contract-codegen.md)).
+```rust
+builder.page_labels([PageLabel::new(1, Some(LabelStyle::Decimal))]); // invalid-page-labels at finish: no range starts at page 0
+```
 
 ## Data fields
 

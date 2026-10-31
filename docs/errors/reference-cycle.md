@@ -17,7 +17,12 @@ Use another copy of the file.
 
 ## Example
 
-To be added ([L1b](../todos/ongoing/L1b-error-contract-codegen.md)).
+```text
+5 0 obj 6 0 R endobj
+6 0 obj 5 0 R endobj
+```
+
+Resolving object 5 leads back to itself; the call fails instead of looping. A page tree whose `/Kids` lead back to an ancestor fails the same way.
 
 ## Data fields
 

@@ -766,6 +766,13 @@
       "since": "0.1.0"
     },
     {
+      "code": "extract-module-not-loaded",
+      "kind": "state",
+      "summary": "page.text() was called on a document opened in the base module, which has no text extraction",
+      "hint": "load the extract module (init with the extract option, or loadExtract) or the text module before opening the document",
+      "since": "0.1.0"
+    },
+    {
       "code": "fetch-failed",
       "kind": "io",
       "summary": "a range source could not fetch input bytes: a network error, an HTTP status other than 200 and 206, a 206 whose Content-Range or length doesn't match the request, or a read that returned the wrong number of bytes",
@@ -791,6 +798,13 @@
       "kind": "state",
       "summary": "a font or text call was made on a builder of the base module, which has no fonts or text",
       "hint": "load the text module with init and the text option, or with loadText, before creating the builder that draws text",
+      "since": "0.1.0"
+    },
+    {
+      "code": "disposed",
+      "kind": "state",
+      "summary": "a document, builder or other handle was used after free(), or after the using block that held it ended",
+      "hint": "free a handle only after its last use; to keep working, open the document again or create a new builder",
       "since": "0.1.0"
     }
   ]

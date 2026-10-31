@@ -40,14 +40,19 @@ usage: cargo xtask <task> [args]
 tasks:
   check [rust|ts|docs]
                     everything a PR must pass (default: docs, rust and ts)
-                    docs: docs-links, todos --check, portable paths and the capability
-                    matrix's static checks (capabilities --check runs the tests)
+                    docs: docs-links, todos --check, portable paths, the capability
+                    matrix's static checks (capabilities --check runs the tests) and
+                    gen codes --check
                     rust: fmt --check, portability, clippy (native + wasm32), tests, rustdoc, cargo-deny
-                    ts:   biome ci, gen codes --check, typecheck and tests of the pnpm
+                    ts:   biome ci, typecheck and tests of the pnpm
                           workspace, npm licences
-  gen codes [--check]
-                    write @lamina/pdf's code unions (packages/pdf/src/codes.generated.ts) from
-                    fixtures/codes.json; --check fails when the file is stale
+  gen codes [--check|--md]
+                    validate fixtures/codes.json against fixtures/codes.schema.json and write
+                    the error contract from it: the façade's ErrorCode/WarningCode
+                    (crates/lamina/src/generated/), @lamina/pdf's unions, tables and explain
+                    pages (packages/pdf/src/generated/), the lamina.error/1 JSON Schema
+                    (packages/pdf/schemas/, crates/lamina/schemas/) and docs/errors/README.md's
+                    tables; --check fails naming each stale file; --md prints the tables
   fmt [--check]     format Rust (cargo fmt) and TS/JSON (biome); --check only verifies
   lint              clippy native (all targets) and wasm32 (core crates), biome ci
   test              Rust tests (cargo-nextest when installed, else cargo test) + doc tests, TS tests
@@ -89,14 +94,20 @@ tasks:
   corpus fetch [--source <name>]… [--update-manifest]
                     check out the external corpora pinned in fixtures/corpus-manifest.toml into
                     target/corpus/ and verify every file's SHA-256 (--update-manifest rewrites the lists)
-  differential [--full] [--update]
+  differential [--full | --text] [--update]
                     lamina vs pypdf over the corpus and fixed-seed mutants, from the precomputed
                     fixtures/differential/expected.json; --update regenerates it with pypdf.
                     --full: the full lane's 36 mutants per corpus file instead (full.json),
                     run through cargo-nextest
+                    --text: lamina's page text vs pdf.js and pdftotext (whitespace and bidi
+                    controls removed) from fixtures/differential/text.json; --update regenerates
+                    it (tools/differential/text.mjs; pdftotext at the pinned poppler)
   differential --live [--corpus external|mutants|all] [--source <name>]… [--tools a,b] [--sample N]
                     nightly: lamina vs live pdf.js, PDFium, qpdf and pypdf over the external corpus
                     and 250 mutants per corpus file; report in target/nightly/differential/
+  quads [--update]  lamina's glyph quads vs PDFium's character boxes from the precomputed
+                    fixtures/text/charboxes.json; --update regenerates it (tools/render/charbox.py,
+                    pypdfium2 from tools/render/requirements.txt; $LAMINA_PYTHON or python3)
   roundtrip [--tools qpdf,pdfjs,pdfium]
                     lamina saves every fixture x proving op x mode, reopens each output and
                     checks it with qpdf --check, pdf.js and PDFium (needs qpdf, Node and
@@ -173,6 +184,7 @@ fn main() -> Result<()> {
         ("check", [scope]) if scope == "ts" => check_ts(&ws),
         ("gen", [what]) if what == "codes" => codegen::codes(&ws, false),
         ("gen", [what, flag]) if what == "codes" && flag == "--check" => codegen::codes(&ws, true),
+        ("gen", [what, flag]) if what == "codes" && flag == "--md" => codegen::markdown(&ws),
         ("fmt", []) => fmt(&ws, false),
         ("fmt", [flag]) if flag == "--check" => fmt(&ws, true),
         ("lint", []) => {
@@ -211,6 +223,7 @@ fn main() -> Result<()> {
         ("render-golden", [flag]) if flag == "--update" => render::run(&ws, true),
         ("corpus", [what]) if what == "facts" => harness::corpus_facts(&ws),
         ("corpus", [what, args @ ..]) if what == "fetch" => corpus::fetch(&ws, &corpus::parse_fetch_args(args)?),
+        ("quads", args) => harness::quads(&ws, args),
         ("differential", [flag, args @ ..]) if flag == "--live" => live::run_live(&ws, &live::parse_args(args)?),
         ("differential", args) => harness::differential(&ws, &harness::parse_differential_args(args)?),
         ("fuzz", [cmd, target]) if cmd == "tmin" => nightly::fuzz_tmin(&ws, harness::known_fuzz_target(target)?),
@@ -250,6 +263,7 @@ fn check_docs(ws: &Workspace) -> Result<()> {
     portable_paths::check(&ws.root)?;
     step("capabilities: manifest vs 06 §3, tags, and no README claim beyond the tagged tests");
     capabilities::check_static(&ws.root)?;
+    codegen::codes(ws, true)?;
     step("Docs checks passed");
     Ok(())
 }
@@ -267,7 +281,6 @@ fn check_rust(ws: &Workspace) -> Result<()> {
 
 fn check_ts(ws: &Workspace) -> Result<()> {
     biome_ci(ws)?;
-    codegen::codes(ws, true)?;
     ws.pnpm(&["-r", "--if-present", "run", "typecheck"])?;
     ts_tests(ws)?;
     licenses::check_npm(ws)?;
@@ -315,7 +328,10 @@ fn clippy(ws: &Workspace) -> Result<()> {
     for features in [
         &["-p", "lamina-wasm"][..],
         &["-p", "lamina-wasm", "--features", "text"],
+        &["-p", "lamina-wasm", "--features", "extract"],
         &["-p", "lamina", "--no-default-features"],
+        // The reader configuration: extraction without the builder (B9c).
+        &["-p", "lamina", "--no-default-features", "--features", "extract"],
     ] {
         let mut args = vec!["clippy", "--locked", "--target", WASM_TARGET, "--lib"];
         args.extend(features);

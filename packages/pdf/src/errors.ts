@@ -1,19 +1,9 @@
 // LaminaError and LaminaWarning (ADR 0026 §1, §7): every error @lamina/pdf throws is a
 // LaminaError built from the §1 object the WASM throws, or raised here with the kind and hint
 // codes.json gives the code.
-import { DOCS_URL, type ErrorCode, RAISED_BY_PACKAGE, type WarningCode } from "./codes.generated.js";
+import { docsUrl, type ErrorCode, type ErrorKind, RAISED_BY_PACKAGE, type WarningCode } from "./generated/codes.js";
 
-/** The nine kinds of ADR 0026 §2: what the caller can do about an error. */
-export type ErrorKind =
-  | "input"
-  | "io"
-  | "unsupported"
-  | "limit"
-  | "security"
-  | "usage"
-  | "state"
-  | "cancelled"
-  | "internal";
+export type { ErrorKind };
 
 /** Where a problem is (ADR 0026 §1.1); each field has one meaning, all lamina-made values. */
 export interface Location {
@@ -89,7 +79,9 @@ export class LaminaError<C extends ErrorCode = ErrorCode> extends Error {
     this.kind = diagnostic.kind;
     this.docsUrl = diagnostic.docsUrl;
     if (diagnostic.hint !== undefined) this.hint = diagnostic.hint;
-    if (diagnostic.didYouMean !== undefined) this.didYouMean = diagnostic.didYouMean;
+    // ADR 0026 §1: optional keys are omitted, and an empty list is no candidates at all.
+    if (diagnostic.didYouMean !== undefined && diagnostic.didYouMean.length > 0)
+      this.didYouMean = diagnostic.didYouMean;
     if (diagnostic.location !== undefined) this.location = diagnostic.location;
     if (diagnostic.data !== undefined) this.data = diagnostic.data;
   }
@@ -147,8 +139,7 @@ export function packageError<C extends keyof typeof RAISED_BY_PACKAGE>(
   extra: Pick<Diagnostic<C>, "didYouMean" | "data"> = {},
 ): LaminaError<C> {
   const { kind, hint } = RAISED_BY_PACKAGE[code];
-  const docsUrl = `${DOCS_URL.base}${code}${DOCS_URL.suffix}`;
-  return new LaminaError<C>({ code, kind, message, hint, ...extra, docsUrl });
+  return new LaminaError<C>({ code, kind, message, hint, ...extra, docsUrl: docsUrl(code) });
 }
 
 /** The names in `known` within two edits of `given` (case-insensitive), closest first. */

@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [shareable-libraries §7 L3](../../plans/shareable-libraries.md#l3-ai-ready-extraction), principles [§4](../../plans/shareable-libraries.md#4-principles-recommendations-recorded-in-adrs-00260031) (5, 6) |
 | Round / milestone | Round L3 (shareable libraries) — AI-ready extraction |
-| Depends on | [B9c](../ongoing/B9c-text-extraction-bindings-and-differential.md), [L3a](./L3a-lamina-extract-reading-order.md) |
+| Depends on | [B9c](../done/B9c-text-extraction-bindings-and-differential.md), [L3a](./L3a-lamina-extract-reading-order.md) |
 | Blocks | [L3c](./L3c-model-plugins.md), [L4b](./L4b-cli-batch-render-schema.md) |
 | ADRs | Implements 0030 (from [L3a](./L3a-lamina-extract-reading-order.md)); follows 0026, 0027, 0028 (from [L1a](../done/L1a-contract-adrs.md)), 0016 (from [B6a](../done/B6a-lamina-wasm-and-adr-0016.md): separate extract module and its budget), [0002](../../decisions/0002-binding-strategy.md) (wasm-bindgen + tsify), [0001](../../decisions/0001-core-language-and-licence.md), [0018](../../decisions/0018-test-strategy.md), [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) |
 | Branch | `feat/l3b-extract-tables-and-output` |
@@ -25,7 +25,7 @@ Finish the L3 deliverable. Detect tables from vector ruling lines (with a conser
 - [Report: the 350 KB budget fits parse, edit and save only](../../research/libraries/shareable-libraries.md#the-350-kb-budget-fits-parse-edit-and-save-only): extract is its own `.wasm` with its own budget.
 - [Research 03 §8.4 table extraction](../../research/pdf/03-text-and-fonts.md#84-table-extraction), [Research 02 §5 paths](../../research/pdf/02-imaging-model.md#5-paths) (`re`, `m`/`l`, stroke vs fill, CTM).
 - ISO 32000-2 §8.5 (path construction and painting), §14.8.4.8.3 table structure types (`Table`, `TR`, `TH`, `TD`, `/Scope`, `/RowSpan`, `/ColSpan`).
-- [B9c](../ongoing/B9c-text-extraction-bindings-and-differential.md): the WASM text bindings pattern (struct-of-arrays, transferable buffers) and Node/Chromium test setup to reuse.
+- [B9c](../done/B9c-text-extraction-bindings-and-differential.md): the WASM text bindings pattern (struct-of-arrays, transferable buffers) and Node/Chromium test setup to reuse.
 
 ## Scope
 

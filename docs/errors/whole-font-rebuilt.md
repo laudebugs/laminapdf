@@ -17,7 +17,7 @@ Check the font's licence allows this, or use a static TrueType/CFF version of th
 
 ## Example
 
-To be added ([L1b](../todos/ongoing/L1b-error-contract-codegen.md)).
+Registering a variable font instance (`font.instance(&[(Tag::WEIGHT, 700.0)])`) whose `fsType` forbids subsetting: the font is embedded with every glyph, but instanced, so not byte for byte.
 
 ## Data fields
 

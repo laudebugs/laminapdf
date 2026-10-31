@@ -17,7 +17,11 @@ Nothing to do. Text or positions extracted for that font may be off; regeneratin
 
 ## Example
 
-To be added ([L1b](../todos/ongoing/L1b-error-contract-codegen.md)).
+```text
+<< /Type /Font /Subtype /Type0 /BaseFont /Foo /Encoding /Identity-H /DescendantFonts 99 0 R >>
+```
+
+The descendant font is missing, so text in this font is decoded with defaults: two-byte codes, default widths. The `location` is the font dictionary's `object`.
 
 ## Data fields
 

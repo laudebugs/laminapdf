@@ -1,0 +1,267 @@
+{
+  "$defs": {
+    "error": {
+      "properties": {
+        "code": {
+          "description": "The stable kebab-case code (fixtures/codes.json).",
+          "enum": [
+            "not-pdf",
+            "missing-root",
+            "reference-cycle",
+            "limit-exceeded",
+            "strict",
+            "data-pending",
+            "source",
+            "type",
+            "invalid-structure",
+            "unset-object",
+            "repaired-base",
+            "encrypted-base",
+            "password-required",
+            "wrong-password",
+            "unsupported-security-handler",
+            "unexpected-eof",
+            "syntax",
+            "unsupported-filter",
+            "decompress",
+            "nested-transaction",
+            "no-transaction",
+            "unknown-page",
+            "direct-page",
+            "unsupported-version",
+            "invalid-op-log",
+            "saved-not-rebased",
+            "no-pending-save",
+            "sink",
+            "not-rebased",
+            "sink-not-empty",
+            "would-invalidate-signatures",
+            "requires-rewrite",
+            "invalid-font",
+            "collection-index",
+            "unknown-axis",
+            "font-not-embeddable",
+            "missing-glyph",
+            "glyph-out-of-range",
+            "unknown-font",
+            "subset-failed",
+            "invalid-axis-value",
+            "wrong-document",
+            "invalid-feature",
+            "invalid-text-range",
+            "unsupported-layout-option",
+            "font-mismatch",
+            "encoding-full",
+            "font-not-shapable",
+            "invalid-image",
+            "unsupported-image",
+            "image-too-large",
+            "image-data-length",
+            "invalid-icc-profile",
+            "color-components",
+            "invalid-color",
+            "invalid-geometry",
+            "text-overflow",
+            "page-index-out-of-range",
+            "unknown-destination",
+            "invalid-page-labels",
+            "cancelled",
+            "job-finished",
+            "document-changed",
+            "builder-finished",
+            "invalid-argument",
+            "source-budget-exceeded",
+            "unknown-option",
+            "already-initialized",
+            "extract-module-not-loaded",
+            "fetch-failed",
+            "not-initialized",
+            "source-changed",
+            "text-module-not-loaded",
+            "disposed"
+          ]
+        },
+        "data": {
+          "description": "Code-specific fields, listed on the code's page; the only place document-derived strings appear (untrusted).",
+          "type": "object"
+        },
+        "didYouMean": {
+          "description": "For usage errors: the closest names from lamina's own vocabulary.",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "type": "array"
+        },
+        "docsUrl": {
+          "description": "The code's explain page: base + code + suffix (ADR 0026 §6).",
+          "pattern": "^https:\\/\\/github\\.com\\/laudebugs\\/lamina\\/blob\\/main\\/docs\\/errors\\/[a-z0-9-]+\\.md$",
+          "type": "string"
+        },
+        "hint": {
+          "description": "One actionable sentence for this code. Never document text.",
+          "minLength": 1,
+          "type": "string"
+        },
+        "kind": {
+          "$ref": "#/$defs/kind"
+        },
+        "location": {
+          "$ref": "#/$defs/location"
+        },
+        "message": {
+          "description": "One lowercase sentence. Never document text (ADR 0026 §4).",
+          "minLength": 1,
+          "type": "string"
+        }
+      },
+      "required": [
+        "code",
+        "kind",
+        "message",
+        "docsUrl"
+      ],
+      "type": "object"
+    },
+    "kind": {
+      "description": "The nine kinds of ADR 0026 §2.",
+      "enum": [
+        "input",
+        "io",
+        "unsupported",
+        "limit",
+        "security",
+        "usage",
+        "state",
+        "cancelled",
+        "internal"
+      ]
+    },
+    "location": {
+      "additionalProperties": false,
+      "dependentRequired": {
+        "streamOffset": [
+          "object"
+        ]
+      },
+      "description": "Where the problem is (ADR 0026 §1.1); every value is lamina-made.",
+      "properties": {
+        "id": {
+          "description": "A LaminaId (p12.0).",
+          "type": "string"
+        },
+        "object": {
+          "description": "Object number of the indirect object the problem is in or at.",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "offset": {
+          "description": "Byte offset in the input file.",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "pageIndex": {
+          "description": "0-based page index (ADR 0027 §6).",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "streamOffset": {
+          "description": "Byte offset in the decoded data of `object`.",
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "type": "object"
+    },
+    "warning": {
+      "properties": {
+        "code": {
+          "description": "The stable kebab-case code (fixtures/codes.json).",
+          "enum": [
+            "missing-header",
+            "xref-repaired",
+            "xrefstm-ignored",
+            "stream-length-recovered",
+            "stale-generation",
+            "page-tree-node-skipped",
+            "page-count-mismatch",
+            "flate-truncated",
+            "objstm-index-mismatch",
+            "object-number-out-of-range",
+            "aes-padding-invalid",
+            "perms-mismatch",
+            "warnings-truncated",
+            "invalid-box",
+            "invalid-rotate",
+            "name-tree-node-skipped",
+            "outline-cycle",
+            "outline-item-skipped",
+            "invalid-date",
+            "invalid-page-label",
+            "invalid-entry",
+            "content-unknown-operator",
+            "content-bad-operands",
+            "content-unbalanced-q",
+            "content-unbalanced-bt",
+            "content-unbalanced-marked",
+            "content-syntax",
+            "content-resource-missing",
+            "inline-image-unterminated",
+            "xobject-cycle",
+            "content-path-unpainted",
+            "font-invalid",
+            "cmap-invalid",
+            "unmapped-glyph",
+            "tounicode-conflict",
+            "whole-font-rebuilt"
+          ]
+        },
+        "data": {
+          "description": "Code-specific fields, listed on the code's page; the only place document-derived strings appear (untrusted).",
+          "type": "object"
+        },
+        "didYouMean": false,
+        "docsUrl": {
+          "description": "The code's explain page: base + code + suffix (ADR 0026 §6).",
+          "pattern": "^https:\\/\\/github\\.com\\/laudebugs\\/lamina\\/blob\\/main\\/docs\\/errors\\/[a-z0-9-]+\\.md$",
+          "type": "string"
+        },
+        "hint": {
+          "description": "One actionable sentence for this code. Never document text.",
+          "minLength": 1,
+          "type": "string"
+        },
+        "kind": {
+          "$ref": "#/$defs/kind"
+        },
+        "location": {
+          "$ref": "#/$defs/location"
+        },
+        "message": {
+          "description": "One lowercase sentence. Never document text (ADR 0026 §4).",
+          "minLength": 1,
+          "type": "string"
+        }
+      },
+      "required": [
+        "code",
+        "kind",
+        "message",
+        "docsUrl"
+      ],
+      "type": "object"
+    }
+  },
+  "$id": "https://github.com/laudebugs/lamina/blob/main/packages/pdf/schemas/error.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "description": "An error or warning of every lamina surface (ADR 0026 §1): camelCase keys, optional keys omitted (never null). Generated from fixtures/codes.json by `cargo xtask gen codes`; do not edit. New optional keys may appear within version 1; consumers ignore unknown keys.",
+  "oneOf": [
+    {
+      "$ref": "#/$defs/error"
+    },
+    {
+      "$ref": "#/$defs/warning"
+    }
+  ],
+  "title": "lamina.error/1"
+}
