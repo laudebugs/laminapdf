@@ -42,7 +42,7 @@ Let signed-in users store chosen documents in the cloud: per-document opt-in upl
 
 **Editor facts**
 
-- **Crates and packages:** `apps/web` Worker, `@lamina/ui`, platform adapters
+- **Crates and packages:** `apps/web` Worker, `@laminapdf/ui`, platform adapters
 - **`SaveConstraint`:** saving to the cloud uploads the saved bytes (incremental saves upload a new revision; dedupe by hash)
 - **Web vs desktop:** identical; desktop keeps local files as the source of truth unless the user opens the cloud copy
 - **Server features:** R2, D1, Workers

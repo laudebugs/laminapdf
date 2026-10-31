@@ -5,7 +5,7 @@
 - **Rules it serves:** the [UI/UX plan](../../plans/ui-ux.md), principles [§4](../../plans/ui-ux.md#4-principles) and layout and patterns §5.
 - **Screens to design with it:** the [screen inventory](screens.md).
 
-Designers: copy the snippets below rather than redrawing a component. Engineers: the token names in §2–§4 are the names to use in `@lamina/ui` (as CSS custom properties, `--paper-<name>`).
+Designers: copy the snippets below rather than redrawing a component. Engineers: the token names in §2–§4 are the names to use in `@laminapdf/ui` (as CSS custom properties, `--paper-<name>`).
 
 ## 1. Personality
 

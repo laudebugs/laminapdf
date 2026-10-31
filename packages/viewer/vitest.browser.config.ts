@@ -13,7 +13,7 @@ mkdirSync(data, { recursive: true });
 const firefox = playwright({ launchOptions: { env: { ...env, MOZ_APP_DATA: data, MOZ_LOCAL_APP_DATA: data } } });
 
 export default defineConfig({
-  optimizeDeps: { exclude: ["@lamina/wasm", "@lamina/pdf", "@embedpdf/pdfium", "@lamina/viewer"] },
+  optimizeDeps: { exclude: ["@laminapdf/wasm", "@laminapdf/sdk", "@embedpdf/pdfium", "@laminapdf/viewer"] },
   server: { fs: { allow: ["../.."] } },
   test: {
     testTimeout: 60_000,

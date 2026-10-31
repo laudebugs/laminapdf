@@ -24,7 +24,7 @@ Let power users work with many documents: each window holds tabs, a tab can be d
 - [Desktop plan §4 req. 5](../../plans/desktop-app.md#functional) and §6 D4.
 - Tauri: `WebviewWindowBuilder::new(app, label, WebviewUrl::App("index.html".into()))`, `app.webview_windows()`, `Emitter::emit_to(EventTarget::webview_window(label), …)`, `WindowEvent::CloseRequested { api }` (`api.prevent_close()`), capabilities targeting windows by glob (`"windows": ["main", "doc-*"]`), [`tauri-plugin-window-state`](https://v2.tauri.app/plugin/window-state/) for geometry (`StateFlags`).
 - D2b: `EngineSupervisor` per window label, `DocumentRegistry` (trusted path sources); D3a: open routing; D3b: the "Remember recent files" privacy setting (session restore does **not** read `RecentFiles` entries — see Scope).
-- `@lamina/ui` (web C4): tab strip doesn't exist on web (`multiWindow: false`); add a shared `Tabs` component rendered only when the `Platform` reports `multiWindow` — no `isTauri` checks.
+- `@laminapdf/ui` (web C4): tab strip doesn't exist on web (`multiWindow: false`); add a shared `Tabs` component rendered only when the `Platform` reports `multiWindow` — no `isTauri` checks.
 
 ## Scope
 
@@ -53,7 +53,7 @@ Let power users work with many documents: each window holds tabs, a tab can be d
 - [ ] Add `tauri-plugin-window-state` (licence check); configure `StateFlags::SIZE | POSITION | MAXIMIZED` and skip restoring off-screen positions (monitor changes).
 - [ ] `WindowRegistry` + commands (manifest + capability): `new_window`, `close_tab`, `activate_tab`, `move_tab(doc, target_window | new)`, `detach_tab(doc, x, y)`, `reorder_tabs(order)`, `session_state()`.
 - [ ] Per-window engine lifecycle: spawn on window creation, shut down on close; document hand-over on moves (close in source engine after the target reports `Opened`).
-- [ ] Shared `Tabs` component in `@lamina/ui` (keyboard accessible: roving tabindex, `role="tablist"`, close buttons with labels), desktop-only via `Platform.multiWindow`.
+- [ ] Shared `Tabs` component in `@laminapdf/ui` (keyboard accessible: roving tabindex, `role="tablist"`, close buttons with labels), desktop-only via `Platform.multiWindow`.
 - [ ] Session persistence and restore (`src-tauri/src/session.rs`: `SessionFile`, `TabRef { path, stamp, bookmark, view }`, `fn load(dir) -> Result<Option<SessionFile>, SessionError>`, `fn save(dir, &SessionFile)`, `fn resolve(tab: &TabRef) -> Resolved { Found(PathBuf) | Moved(PathBuf) | Missing }`), the macOS bookmark helper, and the privacy rule above; `RunEvent::Reopen` on macOS; `RunEvent::ExitRequested` flushes the session.
 - [ ] Memory measurements; ADR 0008 amendment answering open question 3.
 - [ ] e2e scenarios: open 3 files → 3 tabs; move tab to new window (via context-menu command, deterministic); restart app → same windows/tabs/pages restored; close all tabs → behaviour per OS.

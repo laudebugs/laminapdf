@@ -1,10 +1,10 @@
-# @lamina/viewer
+# @laminapdf/viewer
 
 The web reader's viewer core ([ADR 0009](../../docs/decisions/0009-web-client-architecture.md)): framework-free, with React chrome around it later. Part 1 ([C3a](../../docs/todos/done/C3a-viewer-worker-rpc.md)) is the **document worker** and its **typed RPC**. The virtualiser, tiles and zoom are [C3b](../../docs/todos/ready/C3b-viewer-virtualiser-and-zoom.md). Private, ESM-only.
 
 ```ts
 import pdfiumWasm from "@embedpdf/pdfium/pdfium.wasm?url";
-import { ViewerClient } from "@lamina/viewer";
+import { ViewerClient } from "@laminapdf/viewer";
 
 const viewer = await ViewerClient.create({ backend: { backend: "pdfium", wasm: pdfiumWasm } });
 const doc = await viewer.open(file); // a File/Blob, or bytes
@@ -18,18 +18,18 @@ bitmap.close();
 ```text
  main thread                                   document worker (one per open document)
 ┌────────────────────────────┐   postMessage   ┌──────────────────────────────────────────┐
-│ ViewerClient                │ ─────────────▶ │ @lamina/pdf/worker/server  serve({ … })   │
+│ ViewerClient                │ ─────────────▶ │ @laminapdf/sdk/worker/server  serve({ … })   │
 │  call(method, params, opts) │  call / cancel │  handshake · priority queue · coalescing  │
 │  render timers (slow/stuck) │                │  cancellation · ADR 0026 errors · traps   │
 │  restart + reopen on crash  │ ◀───────────── │   ├─ viewer methods (src/worker/)         │
 │  AbortError on abort        │ result / event │   │   openDocument → lamina Document +    │
-│ @lamina/pdf/worker client   │  (transferred  │   │                  RenderDocument       │
+│ @laminapdf/sdk/worker client   │  (transferred  │   │                  RenderDocument       │
 │  request() · onDiscard      │   ImageBitmap) │   │   render → backend → ImageBitmap      │
 └────────────────────────────┘                 │   └─ lamina's own methods (open, …)       │
                                                └──────────────────────────────────────────┘
 ```
 
-There is one protocol, not two: the viewer's worker is `@lamina/pdf/worker`'s server with the viewer's methods added (`serve({ methods })`), and the client calls them through `WorkerClient.request` (ADR 0009 §3, [L2a](../../docs/todos/done/L2a-worker-client.md)).
+There is one protocol, not two: the viewer's worker is `@laminapdf/sdk/worker`'s server with the viewer's methods added (`serve({ methods })`), and the client calls them through `WorkerClient.request` (ADR 0009 §3, [L2a](../../docs/todos/done/L2a-worker-client.md)).
 
 ## Methods
 
@@ -65,7 +65,7 @@ There is one protocol, not two: the viewer's worker is `@lamina/pdf/worker`'s se
 - **Cancellation:** `signal` rejects the call at once with a `DOMException` named `AbortError` (ADR 0009 §3.5).
   - A queued render is dropped.
   - A running one finishes, because synchronous WebAssembly can't be interrupted. Its late answer's bitmap is closed unpainted (`onDiscard`).
-  - (`@lamina/pdf/worker` itself rejects with a `cancelled` LaminaError; the viewer maps it to `AbortError`.)
+  - (`@laminapdf/sdk/worker` itself rejects with a `cancelled` LaminaError; the viewer maps it to `AbortError`.)
 - **Timeouts:** the page keeps the timers, because a worker inside a render can't post anything.
   - Defaults are `soft` 10 s (`render-slow`) and `hard` 120 s.
   - At the hard cap the client calls `stop("hard-timeout")`. For a document that needed a password, it emits `render-stuck` instead and waits for the user's `stop()`.
@@ -94,4 +94,4 @@ There is one protocol, not two: the viewer's worker is `@lamina/pdf/worker`'s se
   - crashes, including an encrypted file;
   - the password count.
 - `test/types.test.ts` (Node) holds the type tests.
-- `examples/rpc-demo.html` is a manual check: run `pnpm --filter @lamina/viewer exec vite examples`, pick a PDF, and page 1 is drawn.
+- `examples/rpc-demo.html` is a manual check: run `pnpm --filter @laminapdf/viewer exec vite examples`, pick a PDF, and page 1 is drawn.

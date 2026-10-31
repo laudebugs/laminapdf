@@ -1,12 +1,12 @@
-# `@lamina/wasm`
+# `@laminapdf/wasm`
 
-lamina's WebAssembly modules and their [wasm-bindgen](https://github.com/wasm-bindgen/wasm-bindgen) glue, built from [`crates/lamina-wasm`](../../crates/lamina-wasm) by `cargo xtask wasm` into `dist/` (generated, gitignored; this `package.json` is committed so `pnpm install --frozen-lockfile` works before a build, [ADR 0002](../../docs/decisions/0002-binding-strategy.md) §2). Private: `@lamina/pdf` (B6b) is the API to use; this package is its raw layer ([ADR 0016](../../docs/decisions/0016-package-design.md)).
+lamina's WebAssembly modules and their [wasm-bindgen](https://github.com/wasm-bindgen/wasm-bindgen) glue, built from [`crates/lamina-wasm`](../../crates/lamina-wasm) by `cargo xtask wasm` into `dist/` (generated, gitignored; this `package.json` is committed so `pnpm install --frozen-lockfile` works before a build, [ADR 0002](../../docs/decisions/0002-binding-strategy.md) §2). Private: `@laminapdf/sdk` (B6b) is the API to use; this package is its raw layer ([ADR 0016](../../docs/decisions/0016-package-design.md)).
 
 | Export | File | What it has |
 | --- | --- | --- |
-| `@lamina/wasm/base` | `dist/lamina_base.js`, `.d.ts`, `lamina_base.wasm` | Open, read, edit with ops, undo, save (save jobs, warnings); build vector and image pages with links, outline, labels, metadata |
-| `@lamina/wasm/text` | `dist/lamina_text.js`, `.d.ts`, `lamina_text.wasm` | All of base, plus fonts (`fontBytes`, `standardFont`), `text` and `textBox`, and `WasmPage.text` |
-| `@lamina/wasm/extract` | `dist/lamina_extract.js`, `.d.ts`, `lamina_extract.wasm` | All of base, plus `WasmPage.text` (text extraction; B9c) |
+| `@laminapdf/wasm/base` | `dist/lamina_base.js`, `.d.ts`, `lamina_base.wasm` | Open, read, edit with ops, undo, save (save jobs, warnings); build vector and image pages with links, outline, labels, metadata |
+| `@laminapdf/wasm/text` | `dist/lamina_text.js`, `.d.ts`, `lamina_text.wasm` | All of base, plus fonts (`fontBytes`, `standardFont`), `text` and `textBox`, and `WasmPage.text` |
+| `@laminapdf/wasm/extract` | `dist/lamina_extract.js`, `.d.ts`, `lamina_extract.wasm` | All of base, plus `WasmPage.text` (text extraction; B9c) |
 
 Each glue module exports a default async `init(input)` (a URL, `Response`, bytes or `WebAssembly.Module`) and `initSync({ module })`; after either, every call is synchronous. Errors are thrown as the [ADR 0026](../../docs/decisions/0026-error-and-diagnostic-contract.md) §1 object. Paths are flat `Float64Array`s (verb, numbers…: `0 x y` moveTo, `1 x y` lineTo, `2 x1 y1 x2 y2 x y` cubicTo, `3 x1 y1 x y` quadTo, `4` close, `5 x y w h` rect, `6 x y w h` ellipse, `7 cx cy r` circle), colours arrays of 1, 3 or 4 components.
 

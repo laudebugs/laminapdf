@@ -31,7 +31,7 @@ Export extracted content: text (plain, with positions as JSON), original embedde
 **In scope**
 
 - `doc.extract_text(options)` (plain/JSON), `doc.extract_images()` with passthrough and decode paths, `doc.links()`, `doc.outline()` export
-- Extract dialog in `@lamina/ui`
+- Extract dialog in `@laminapdf/ui`
 
 **Out of scope** (and which todo covers it)
 

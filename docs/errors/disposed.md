@@ -5,7 +5,7 @@
 
 ## What happened
 
-A `Document`, `Builder` or other handle of `@lamina/pdf` was used after `free()` released it, or after the `using` block that held it ended (`Symbol.dispose`).
+A `Document`, `Builder` or other handle of `@laminapdf/sdk` was used after `free()` released it, or after the `using` block that held it ended (`Symbol.dispose`).
 
 ## Why
 

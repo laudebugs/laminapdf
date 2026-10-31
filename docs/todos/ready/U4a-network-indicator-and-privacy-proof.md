@@ -43,7 +43,7 @@
 
 - [ ] Claim via a claim PR (see Definition of done); then a fresh worktree off the updated `main`.
 - [ ] Implement the three feeds; in the page, wrap `WebSocket` and `navigator.sendBeacon` too (WebSockets produce no Resource Timing entries); verify fetch, XHR, images, fonts, beacons and WebSocket attempts are caught from the page and the document worker, and that worker CSP violations reach the panel.
-- [ ] Build the status item and panel in `@lamina/ui`; message strings in the catalogue.
+- [ ] Build the status item and panel in `@laminapdf/ui`; message strings in the catalogue.
 - [ ] Playwright: open local fixtures and assert that the indicator shows 0 and that Playwright's browser-context request log (which includes worker requests) agrees; open a `#url=` fixture and assert the worker's range requests are counted and only that origin appears.
 - [ ] In a test, attempt from the worker a raw `fetch` that doesn't use any lamina helper (it must still be counted), then a plain-HTTP request (CSP blocks it; the panel shows the violation) and an HTTPS request to a third origin from the page and from the worker (CSP allows it; the indicator must count it).
 

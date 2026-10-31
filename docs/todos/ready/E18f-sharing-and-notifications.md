@@ -39,7 +39,7 @@ Share a cloud document for review: invites and share links (per ADR 0012's Q6 an
 
 **Editor facts**
 
-- **Crates and packages:** `apps/collab`, `@lamina/ui`
+- **Crates and packages:** `apps/collab`, `@laminapdf/ui`
 - **`SaveConstraint`:** no new save behaviour beyond the round's: base PDFs immutable; content edits and redactions via lease or server job minting a new base revision
 - **Web vs desktop:** identical
 - **Server features:** D1, Workers, email provider (decided in E18b)

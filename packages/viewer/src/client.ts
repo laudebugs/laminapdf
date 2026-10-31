@@ -1,5 +1,5 @@
 // The page side of the document worker (C3a, ADR 0009 §3): a ViewerClient owns one worker for one
-// document, through `@lamina/pdf/worker`'s client (`request` with a priority and a coalescing
+// document, through `@laminapdf/sdk/worker`'s client (`request` with a priority and a coalescing
 // key). On top of it:
 //
 // - typed calls (`call(method, params)`, checked against `Methods`), and `open`/`render`/…;
@@ -14,9 +14,10 @@
 //   source, but the call that was running is never re-sent (the UI offers Retry). An encrypted
 //   document isn't reopened: the password lived only in the dead worker, so `password-required`
 //   fires and the caller opens again with the password.
-import { isLaminaError } from "@lamina/pdf";
-import { connect, type WorkerClient, type WorkerInitOptions, type WorkerWasmSource } from "@lamina/pdf/worker";
-import type { RenderRequest } from "@lamina/render";
+
+import type { RenderRequest } from "@laminapdf/render";
+import { isLaminaError } from "@laminapdf/sdk";
+import { connect, type WorkerClient, type WorkerInitOptions, type WorkerWasmSource } from "@laminapdf/sdk/worker";
 import {
   type BackendInit,
   type MethodName,
@@ -37,7 +38,7 @@ export const DEFAULT_TIMEOUTS = Object.freeze({ soft: 10_000, hard: 120_000 });
 export interface ViewerOptions {
   /** The render engine; PDFium needs its `.wasm` URL from your bundler (`pdfium.wasm?url`). */
   readonly backend: BackendInit;
-  /** Where the worker loads lamina's own WebAssembly from (`@lamina/pdf/worker`'s `init`). */
+  /** Where the worker loads lamina's own WebAssembly from (`@laminapdf/sdk/worker`'s `init`). */
   readonly lamina?: WorkerWasmSource | WorkerInitOptions;
   /** Render timeouts in ms (`soft` emits `render-slow`; `hard` restarts or emits `render-stuck`). */
   readonly timeouts?: { readonly soft?: number; readonly hard?: number };

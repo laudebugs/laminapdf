@@ -16,7 +16,7 @@
 
 ## Goal
 
-`formFill` mode: form widgets as accessible DOM overlays in `@lamina/viewer` (inputs, checkboxes, radios, selects), tab order following `/Tabs`, required/read-only UI, push buttons executing non-JS actions (GoTo, URI with confirm, ResetForm, Hide), and SubmitForm off by default with a per-submit confirmation that says what leaves the device.
+`formFill` mode: form widgets as accessible DOM overlays in `@laminapdf/viewer` (inputs, checkboxes, radios, selects), tab order following `/Tabs`, required/read-only UI, push buttons executing non-JS actions (GoTo, URI with confirm, ResetForm, Hide), and SubmitForm off by default with a per-submit confirmation that says what leaves the device.
 
 ## Context
 
@@ -42,7 +42,7 @@
 **Editor facts**
 
 - **Operations shipped** ([06 §3](../../research/pdf/06-feature-inventory.md#3-full-operation-inventory-with-mechanisms) IDs): `E.01` text fields (single/multi-line); `E.02` checkboxes and radio buttons; `E.03` dropdowns and list boxes; `E.04` push buttons; `E.06` required and read-only; `E.09` tab order; `E.16` submit to external endpoints
-- **Crates and packages:** `@lamina/viewer`, `@lamina/ui`
+- **Crates and packages:** `@laminapdf/viewer`, `@laminapdf/ui`
 - **`Op` variants:** `SetFieldValue` via UI
 - **`SaveConstraint`:** `Free` → incremental. Signed: class `FormFill` is allowed under DocMDP P2 and P3 and under approval signatures, except for fields locked by FieldMDP (`/Lock`) or by a signature's field-lock dictionary → blocked with the locking signature named
 - **Web vs desktop:** identical; submit uses `fetch` on web and the HTTP plugin on desktop (allow-listed scope)

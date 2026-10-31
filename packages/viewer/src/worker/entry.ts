@@ -1,8 +1,9 @@
-// The viewer's document worker (C3a): `@lamina/pdf/worker`'s server with the viewer's methods
+// The viewer's document worker (C3a): `@laminapdf/sdk/worker`'s server with the viewer's methods
 // added, so it speaks the same protocol (handshake, queue, cancellation, errors, crash reports).
 // Started by ViewerClient (`new Worker(new URL("./worker/entry.js", import.meta.url))`).
-import { type ExtensionMethod, serve } from "@lamina/pdf/worker/server";
-import type { RenderRequest } from "@lamina/render";
+
+import type { RenderRequest } from "@laminapdf/render";
+import { type ExtensionMethod, serve } from "@laminapdf/sdk/worker/server";
 import type { BackendInit, SourceInit, ViewerOpenOptions } from "../protocol.js";
 import { closeDocument, current, initBackend, openDocument } from "./document.js";
 import { render, renderLog, reply } from "./render.js";

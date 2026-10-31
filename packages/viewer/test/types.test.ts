@@ -1,6 +1,6 @@
 // The viewer's RPC types (C3a): `call` takes only known methods, with their params, and returns
 // their results.
-import type { PageInfo } from "@lamina/pdf";
+import type { PageInfo } from "@laminapdf/sdk";
 import { describe, expectTypeOf, it } from "vitest";
 import type { ViewerClient } from "../src/client.js";
 import type { OpenedDocument, RenderedBitmap } from "../src/protocol.js";

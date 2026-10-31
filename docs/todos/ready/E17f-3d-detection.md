@@ -37,7 +37,7 @@ Detect 3D annotations (U3D/PRC), show the poster appearance and an "unsupported 
 **Editor facts**
 
 - **Operations shipped** ([06 §3](../../research/pdf/06-feature-inventory.md#3-full-operation-inventory-with-mechanisms) IDs): `M.06` embed 3D models
-- **Crates and packages:** `lamina-model`, `@lamina/ui`
+- **Crates and packages:** `lamina-model`, `@laminapdf/ui`
 - **`SaveConstraint`:** no new save behaviour beyond the round's: incremental on `Free`
 - **Web vs desktop:** identical
 - **Server features:** none (this PR adds no server feature; all processing stays on the device)

@@ -2,8 +2,8 @@
 // worker makes an ImageBitmap of it and transfers it, so the page never copies pixels. A
 // coalesced render is drawn once; each caller gets its own bitmap of the same pixels.
 
-import { emit } from "@lamina/pdf/worker/server";
-import type { RenderedTile, RenderRequest } from "@lamina/render";
+import type { RenderedTile, RenderRequest } from "@laminapdf/render";
+import { emit } from "@laminapdf/sdk/worker/server";
 import { type RenderedBitmap, renderKey } from "../protocol.js";
 import { current } from "./document.js";
 

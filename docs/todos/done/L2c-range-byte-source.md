@@ -43,7 +43,7 @@ Open large and remote PDFs without downloading or loading them whole, while the 
   - No I/O, clocks or threads; `Send + Sync`.
 - **Retry helper (same edge crate):** `open_with(source, opts, fetch: impl FnMut(&[Range]) -> Result<…>)`, a synchronous loop that calls the shell's fetch closure on `DataPending` and retries. Native shells and the wasm edge then don't each re-implement the loop.
 - **wasm edge (`lamina-wasm`):** expose `SparseSource` (`supply` takes a `Uint8Array`), and surface `DataPending` as a `LaminaError` with `ranges: { offset, length }[]`.
-- **TypeScript (`packages/pdf`):**
+- **TypeScript (`packages/sdk`):**
   - A `RangeSource` interface `{ size, read(offset, length, { signal }) => Promise<Uint8Array> }`, matching C3a's.
   - Adapters: `httpRangeSource(url, { headers?, credentials?, signal?, blockSize? })` and `callbackSource(size, read)`.
   - The HTTP adapter:
@@ -79,7 +79,7 @@ Open large and remote PDFs without downloading or loading them whole, while the 
   - [x] Stop when a retry asks for the same ranges again (no progress)
   - [x] Cap the rounds via `Limits` or an option, failing with a coded error (`data-pending` with the last ranges)
 - [x] `lamina-wasm`: `SparseSource` class; `DataPending` → `LaminaError { code: "data-pending", ranges }`
-- [x] `packages/pdf/src/source/`: `RangeSource`, `httpRangeSource`, `callbackSource`, `Document.openRange`, `doc.ensure`. `AbortSignal` passes through to `fetch`. Never put document bytes or the URL in error messages (ADR 0026)
+- [x] `packages/sdk/src/source/`: `RangeSource`, `httpRangeSource`, `callbackSource`, `Document.openRange`, `doc.ensure`. `AbortSignal` passes through to `fetch`. Never put document bytes or the URL in error messages (ADR 0026)
 - [x] Add codes `source-changed` and `range-unsupported` (if a warning is wanted for the 200 fallback) to `fixtures/codes.json` and regenerate (added `source-changed`, `fetch-failed` and the binding code `source-budget-exceeded`; no warning for the `200` fallback, which is a supported mode)
 - [x] `crates/lamina-source` (edge):
   - [x] `Cargo.toml` with `[package.metadata.lamina] layer = "edge"`
@@ -106,12 +106,12 @@ None.
 
 - `crates/lamina-source/tests/sparse_source.rs`: corpus parity, bytes-supplied accounting, no-progress and round-cap failures.
 - `crates/lamina-source/tests/`: `FileSource` and `MmapSource` parity; truncation (create a temp copy in the test, truncate it, read).
-- `packages/pdf/test/source/*.test.ts`: a tiny local HTTP server in the test harness (range support on/off, wrong `Content-Range`, changing `ETag`, slow responses for abort); `callbackSource`; `doc.ensure`. Fixtures: `fixtures/corpus`, plus a large file generated in the test.
+- `packages/sdk/test/source/*.test.ts`: a tiny local HTTP server in the test harness (range support on/off, wrong `Content-Range`, changing `ETag`, slow responses for abort); `callbackSource`; `doc.ensure`. Fixtures: `fixtures/corpus`, plus a large file generated in the test.
 
 ## Docs to update
 
 - [x] [shareable-libraries §9 L2](../../plans/shareable-libraries.md#9-to-dos): tick the range `ByteSource` to-do
-- [x] `crates/lamina-source/README.md` (sparse sources, `open_with`, native sources), `packages/pdf/README.md` (remote and large files)
+- [x] `crates/lamina-source/README.md` (sparse sources, `open_with`, native sources), `packages/sdk/README.md` (remote and large files)
 - [x] `CLAUDE.md` (layout: `crates/lamina-source`; reading API paragraph mentions range sources)
 - [x] ADR 0005 §2: implementation note naming `SparseSource` and the edge crate
 - [x] [C4c](../ready/C4c-remote-files-encryption-privacy.md): a Context line pointing at `httpRangeSource`, so the viewer wraps it instead of duplicating it

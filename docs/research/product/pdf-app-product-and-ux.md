@@ -114,7 +114,7 @@ The strongest UX evidence is negative, and it is recent:
 - The Office ribbon research adds a quantitative warning, via secondary accounts. About 80% of saves came from the toolbar icon and only 20% from Ctrl+S, so **visible affordances beat shortcuts** for most users ([GNOME blog](https://blogs.gnome.org/bolsh/?p=582)). The ribbon's lasting contribution was contextual tabs that appear only when relevant ([Thurrott](https://www.thurrott.com/office/161324/vaults-office-ribbon)).
 - Microsoft's own guidance warns that controls appearing and disappearing unexpectedly make an interface feel unstable ([Microsoft Learn](https://learn.microsoft.com/sk-sk/windows/win32/uxguide/ctrl-progressive-disclosure-controls)).
 
-**[Opinion]** The synthesis for `@lamina/ui` has five parts:
+**[Opinion]** The synthesis for `@laminapdf/ui` has five parts:
 
 - **Top bar.** A slim bar with file actions, a mode switcher, find, and the Cmd/Ctrl+K entry point.
 - **Left rail.** A collapsible rail for thumbnails, outline and bookmarks.
@@ -138,7 +138,7 @@ Wikimedia's mobile editor found that the native menu covered its own toolbar. On
 
 On mobile, show a contextual **bottom action bar** while a selection exists (Highlight, Underline, Comment, Copy, More), and leave the native menu alone.
 
-The viewer should only *emit* selection events with client rects, and `@lamina/ui` should own the menu. That keeps `@lamina/viewer` headless.
+The viewer should only *emit* selection events with client rects, and `@laminapdf/ui` should own the menu. That keeps `@laminapdf/viewer` headless.
 
 ### A command palette built on one command registry
 
@@ -190,7 +190,7 @@ Other platform facts that shape the layout:
 1. When the file is tagged, derive the layout from the structure tree. This builds on B8a; read ISO 32000-2 §14.8 first.
 2. Otherwise, run a heuristic layout analysis in pure Rust and label the result **"Approximate"**.
 
-Never reflow tables, figures or maths; show them as cropped page images with `/Alt` text. Always offer "back to page" at the matching position. The core emits semantic blocks and `@lamina/ui` renders them, which keeps the core bytes-in/bytes-out.
+Never reflow tables, figures or maths; show them as cropped page images with `/Alt` text. Always offer "back to page" at the matching position. The core emits semantic blocks and `@laminapdf/ui` renders them, which keeps the core bytes-in/bytes-out.
 
 **Page organiser.** **[Fact]** dnd-kit's current version announces drag events through a live region and supports keyboard dragging ([dnd kit](https://dndkit.com/guides/accessibility)). `@dnd-kit/accessibility` is MIT; the licences of `@dnd-kit/dom` and `@dnd-kit/react` were not confirmed. **[Opinion]** Use a multi-select grid with an insertion bar rather than live swapping. Add a "Move to page…" dialog to satisfy SC 2.5.7. Every move is one op in the op log (ADR 0006), so a single Cmd/Ctrl+Z undoes a multi-page move.
 
@@ -211,7 +211,7 @@ Annotation colours never change, because they carry meaning. The page backdrop (
 - **[Fact]** pdf.js caps a canvas at about 33.5 MP, and at **5 MP on mobile** ([app_options.js](https://github.com/mozilla/pdf.js/blob/master/web/app_options.js)).
 - **[Fact]** Nutrient's Android SDK draws low-resolution images first, sized by device class ([PSPDFKit](https://pspdfkit.com/guides/android/features/low-res-render-api)).
 
-**[Opinion]** `@lamina/viewer` should render the way map apps do:
+**[Opinion]** `@laminapdf/viewer` should render the way map apps do:
 
 1. Page-size placeholders with the right aspect ratio, so the layout never shifts.
 2. A cached low-resolution bitmap stretched to the current zoom.
@@ -323,10 +323,10 @@ All entries below are **[Opinion]**.
 
 | # | Recommendation | Where it lands |
 |---|---|---|
-| R1 | Inverted-L chrome: top bar, collapsible left rail, docked right panel shown on selection, focus toggle; no free-floating palettes over the page | `@lamina/ui`, C4a |
-| R2 | Modes (Read / Comment / Fill & Sign / Organise / Edit), each swapping one secondary toolbar; Read is the default and minimal | `@lamina/ui`, C4a; editor E1a |
+| R1 | Inverted-L chrome: top bar, collapsible left rail, docked right panel shown on selection, focus toggle; no free-floating palettes over the page | `@laminapdf/ui`, C4a |
+| R2 | Modes (Read / Comment / Fill & Sign / Organise / Edit), each swapping one secondary toolbar; Read is the default and minimal | `@laminapdf/ui`, C4a; editor E1a |
 | R3 | One command registry (id, title, keywords, shortcut, `enabled(ctx)`, typed arguments) feeding the cmdk palette, native menus, context menus and the shortcut help | New todo; C4a, D4b, C7a |
-| R4 | Selection: the viewer emits rects; the UI shows a desktop mini toolbar and a mobile bottom action bar; the native OS menu is never covered | `@lamina/viewer` C5a, `@lamina/ui` |
+| R4 | Selection: the viewer emits rects; the UI shows a desktop mini toolbar and a mobile bottom action bar; the native OS menu is never covered | `@laminapdf/viewer` C5a, `@laminapdf/ui` |
 | R5 | Column-aware selection with "Copy as paragraph" by default and "Copy exact" as the alternative, built on lamina's extraction plus a ground-truth reading-order corpus | B9b, B9c, C5a |
 | R6 | `RenderBackend` takes a tile (page, scale, clip) and returns a bounded bitmap; low-res first, then sharp tiles, with cancellation; total bitmap memory capped, 5 MP on mobile | C2a (ADR 0004), C2b, C3b, C3c |
 | R7 | PDFium is read-only; pick a growable-heap WASM build; one instance per worker; check upstream licence notices | C1b, C2a |

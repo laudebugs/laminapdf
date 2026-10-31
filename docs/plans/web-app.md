@@ -10,7 +10,7 @@
 
 ## 1. Goal
 
-A fast, accessible, privacy-first **PDF reader in the browser**, served from Cloudflare Workers static assets. It opens local and remote files, renders them with PDFium through the `RenderBackend` trait, and never uploads a document unless the user explicitly opts in to a server feature. The reader is the first shell of the eventual [editor](full-editor.md) and ships the packages (`@lamina/viewer`, `@lamina/ui`, `@lamina/render-pdfium`) that the [desktop app](desktop-app.md) reuses.
+A fast, accessible, privacy-first **PDF reader in the browser**, served from Cloudflare Workers static assets. It opens local and remote files, renders them with PDFium through the `RenderBackend` trait, and never uploads a document unless the user explicitly opts in to a server feature. The reader is the first shell of the eventual [editor](full-editor.md) and ships the packages (`@laminapdf/viewer`, `@laminapdf/ui`, `@laminapdf/render-pdfium`) that the [desktop app](desktop-app.md) reuses.
 
 ## 2. Scope and non-goals
 
@@ -38,7 +38,7 @@ A fast, accessible, privacy-first **PDF reader in the browser**, served from Clo
 | --- | --- |
 | Anyone with a PDF | Read a file without installing anything and without uploading it |
 | Privacy-conscious users, legal/medical/finance | Open sensitive documents with a guarantee that bytes stay on the device |
-| Developers and sites | Link to `https://laminapdf.com/#url=…` to show a PDF; later embed `@lamina/viewer` |
+| Developers and sites | Link to `https://laminapdf.com/#url=…` to show a PDF; later embed `@laminapdf/viewer` |
 | Users of assistive technology | Read tagged PDFs with a screen reader; navigate by keyboard |
 | Users with huge files | Scroll a 1,000-page manual or a 500 MB scan without the tab crashing |
 
@@ -82,7 +82,7 @@ A fast, accessible, privacy-first **PDF reader in the browser**, served from Clo
 
 Architecture details live in [architecture.md](architecture.md) and the research report. The reader adds:
 
-- **Packages**: `@lamina/viewer` (framework-free: worker RPC client, virtualiser, canvas pool, text layer, find controller, link layer), `@lamina/ui` (React 19 chrome: toolbar, sidebars, dialogs, `Platform` adapter interface), `@lamina/render-pdfium` (PDFium WASM adapter) and `@lamina/render-hayro` (pure-Rust renderer as its own `.wasm`), both optional so `@lamina/pdf` stays small.
+- **Packages**: `@laminapdf/viewer` (framework-free: worker RPC client, virtualiser, canvas pool, text layer, find controller, link layer), `@laminapdf/ui` (React 19 chrome: toolbar, sidebars, dialogs, `Platform` adapter interface), `@laminapdf/render-pdfium` (PDFium WASM adapter) and `@laminapdf/render-hayro` (pure-Rust renderer as its own `.wasm`), both optional so `@laminapdf/sdk` stays small.
 - **Worker**: one document worker running `lamina-wasm` plus PDFium-WASM, a typed RPC with request IDs, priorities, transfer lists and `AbortSignal` cancellation (ADR 0009).
 - **Platform adapter** (ADR 0010): the web implementation provides file open/save, print, clipboard and capability flags (`canWriteInPlace: false` on most browsers, `multiWindow: false`).
 - **Hosting** (ADR 0011): one Worker with static assets, `not_found_handling: "single-page-application"`, immutable hashed assets, `_headers` for security headers, Wrangler pinned in CI. Production at `laminapdf.com` (deployed only from `web-v*` release tags), staging from `main`, previews per PR via Workers preview URLs.
@@ -102,19 +102,19 @@ Each round is split into one or more todos (one pull request each) on the [todo 
 
 ### C2. Render backend and ADRs
 
-**Deliverable:** ADRs 0004, 0009, 0010, 0011; `crates/lamina-render` with the `RenderBackend` trait and PDFium and hayro adapters; `@lamina/render-pdfium`.
+**Deliverable:** ADRs 0004, 0009, 0010, 0011; `crates/lamina-render` with the `RenderBackend` trait and PDFium and hayro adapters; `@laminapdf/render-pdfium`.
 **Accepted when:** golden render tests pass for both adapters on `fixtures/`; the hayro-vs-PDFium diff runs in the nightly lane.
 **Todos:** [C2a](../todos/done/C2a-render-adrs.md), [C2b](../todos/done/C2b-lamina-render-crate.md), [C2c](../todos/done/C2c-render-packages.md)
 
 ### C3. Viewer core
 
-**Deliverable:** `@lamina/viewer`: worker RPC, page virtualiser, canvas pool, progressive rendering, zoom with anchoring; a minimal demo page; performance harness.
+**Deliverable:** `@laminapdf/viewer`: worker RPC, page virtualiser, canvas pool, progressive rendering, zoom with anchoring; a minimal demo page; performance harness.
 **Accepted when:** a 1,000-page fixture scrolls end to end in Playwright (Chromium, Firefox, WebKit) within the memory and long-task budgets; cancelled renders never paint.
 **Todos:** [C3a](../todos/done/C3a-viewer-worker-rpc.md), [C3b](../todos/ready/C3b-viewer-virtualiser-and-zoom.md), [C3c](../todos/ready/C3c-viewer-perf-harness.md)
 
 ### C4. App shell on Cloudflare
 
-**Deliverable:** `@lamina/ui` chrome (toolbar, page indicator, zoom, open dialogs, error and password prompts), `apps/web` Worker with static assets, `_headers`, CSP, per-PR preview deploys, staging deploy from `main`, production deploy from `web-v*` release tags.
+**Deliverable:** `@laminapdf/ui` chrome (toolbar, page indicator, zoom, open dialogs, error and password prompts), `apps/web` Worker with static assets, `_headers`, CSP, per-PR preview deploys, staging deploy from `main`, production deploy from `web-v*` release tags.
 **Accepted when:** each PR gets a preview URL comment; local open, drag-drop and `#url=` (CORS-enabled) work; encrypted fixtures open after the password prompt; securityheaders-style checks pass; Playwright asserts that no request body carries document bytes and that no request to our origin (URL, request line or headers, including `Referer`) contains the remote document URL.
 **Todos:** [C4a](../todos/ready/C4a-ui-chrome-and-platform.md), [C4b](../todos/ready/C4b-web-app-shell.md), [C4c](../todos/ready/C4c-remote-files-encryption-privacy.md), [C4d](../todos/ready/C4d-deploy-previews-and-production.md)
 
@@ -152,7 +152,7 @@ Each round is split into one or more todos (one pull request each) on the [todo 
 1. ~~Domain and product name for the hosted reader?~~ **Domain answered 2026-10-31 (project owner):** `laminapdf.com`, with the docs at `docs.laminapdf.com` ([ADR 0011 §1](../decisions/0011-cloudflare-topology-and-privacy.md#1-topology)). The product name stays lamina unless the owner says otherwise.
 2. Do we offer an opt-in CORS proxy for remote URLs, given it sees the bytes?
 3. ~~Any telemetry at all in v0.1, or none until there is a privacy review?~~ **Answered 2026-10-29:** none in v0.1; afterwards optional and opt-in ([U5c](../todos/ready/U5c-opt-in-usage-telemetry.md)).
-4. Should `@lamina/viewer` be published for embedding in v0.1, or after the API settles?
+4. Should `@laminapdf/viewer` be published for embedding in v0.1, or after the API settles?
 5. Is iPad/tablet touch UX in scope for v0.1 beyond "works"?
 
 ## 9. To-dos

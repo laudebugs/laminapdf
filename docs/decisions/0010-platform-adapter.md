@@ -5,7 +5,7 @@
 
 ## Context
 
-The same UI packages (`@lamina/ui`, `@lamina/viewer`, [ADR 0009](0009-web-client-architecture.md)) run in browsers and in the Tauri desktop app (ADR 0008, Round D), and later possibly on mobile (ADR 0025). The platforms differ in what they can do with files, windows, printing and storage ([web-frontend notes §6](../research/architecture/notes/web-frontend.md#6-offlinepwa-file-system-access-api-opfs-large-local-files-drag-and-drop); [research: the web client](../research/architecture/app-and-package-architecture.md#the-web-client-is-react-chrome-around-an-imperative-viewer-core)):
+The same UI packages (`@laminapdf/ui`, `@laminapdf/viewer`, [ADR 0009](0009-web-client-architecture.md)) run in browsers and in the Tauri desktop app (ADR 0008, Round D), and later possibly on mobile (ADR 0025). The platforms differ in what they can do with files, windows, printing and storage ([web-frontend notes §6](../research/architecture/notes/web-frontend.md#6-offlinepwa-file-system-access-api-opfs-large-local-files-drag-and-drop); [research: the web client](../research/architecture/app-and-package-architecture.md#the-web-client-is-react-chrome-around-an-imperative-viewer-core)):
 
 - **File pickers:** `showOpenFilePicker` / `showSaveFilePicker` are still not Baseline (Chromium only). Firefox and Safari have `<input type=file>`, drag and drop, and download-based saving. Safari 26 can write through a handle (`createWritable`) but has no pickers.
 - **OPFS:** available in all three engines, including the worker-only `createSyncAccessHandle` (Firefox 111, Safari 15.2).
@@ -18,7 +18,7 @@ If UI code asked "is this Tauri?" or sniffed the user agent, every feature would
 
 ### 1. The interface
 
-`@lamina/ui` defines `Platform` and `Capabilities` in `src/platform/types.ts` (C4a). Each shell creates exactly one implementation at startup and passes it down through a `PlatformProvider`. The web shell uses `createWebPlatform()`; the desktop shell uses `createDesktopPlatform()` in `apps/desktop` (D2a).
+`@laminapdf/ui` defines `Platform` and `Capabilities` in `src/platform/types.ts` (C4a). Each shell creates exactly one implementation at startup and passes it down through a `PlatformProvider`. The web shell uses `createWebPlatform()`; the desktop shell uses `createDesktopPlatform()` in `apps/desktop` (D2a).
 
 ```ts
 export interface Platform {

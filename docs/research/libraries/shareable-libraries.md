@@ -1,6 +1,6 @@
 # Ship one hardened core through five front ends
 
-lamina should build one handle-based Rust façade and keep it strict enough for UniFFI's rules from day one: `&self` methods only, `Send + Sync` handles, no generics, no borrowed returns, explicit cancellation. Thin edge crates then expose it as `@lamina/pdf` (wasm-bindgen + tsify), Swift and Kotlin SDKs (UniFFI), and a `lamina` CLI that doubles as an MCP server. The opening is real. In October 2026 no permissively licensed library covers parse, edit, incremental save, sign and render in one engine across web, Node, iOS and Android. pdf-lib has not shipped a release since November 2021. LibPDF is the strongest TypeScript successor, but it is beta and does not render. hayro is the best pure-Rust renderer, but it does not edit. The permissive CLIs stop at structure, because text extraction and rendering on the command line mean AGPL or GPL tools. What decides adoption in all three audiences is the contract, more than the feature list: one coordinate convention, one error shape with stable codes, versioned JSON schemas, deterministic output, and docs that ship with the package. Those choices serve a frontend engineer, a backend script and an LLM agent at the same time. The accepted decisions stand, but the evidence presses on three planned choices, which this report raises as open questions: the 350 KB gzip budget, the "UniFFI later" timing (ADR 0002) and the PDFium-default rendering plan (proposed ADR 0004). The last section turns all of this into proposed work items and ADRs.
+lamina should build one handle-based Rust façade and keep it strict enough for UniFFI's rules from day one: `&self` methods only, `Send + Sync` handles, no generics, no borrowed returns, explicit cancellation. Thin edge crates then expose it as `@laminapdf/sdk` (wasm-bindgen + tsify), Swift and Kotlin SDKs (UniFFI), and a `lamina` CLI that doubles as an MCP server. The opening is real. In October 2026 no permissively licensed library covers parse, edit, incremental save, sign and render in one engine across web, Node, iOS and Android. pdf-lib has not shipped a release since November 2021. LibPDF is the strongest TypeScript successor, but it is beta and does not render. hayro is the best pure-Rust renderer, but it does not edit. The permissive CLIs stop at structure, because text extraction and rendering on the command line mean AGPL or GPL tools. What decides adoption in all three audiences is the contract, more than the feature list: one coordinate convention, one error shape with stable codes, versioned JSON schemas, deterministic output, and docs that ship with the package. Those choices serve a frontend engineer, a backend script and an LLM agent at the same time. The accepted decisions stand, but the evidence presses on three planned choices, which this report raises as open questions: the 350 KB gzip budget, the "UniFFI later" timing (ADR 0002) and the PDFium-default rendering plan (proposed ADR 0004). The last section turns all of this into proposed work items and ADRs.
 
 Everything labelled **Recommendation** below is the author's proposal, not existing lamina code or an accepted decision. Claims marked **[unverified]** come from the researchers' prior knowledge and were not re-checked against a source in this round.
 
@@ -45,7 +45,7 @@ for w in doc.warnings() { eprintln!("{} {}", w.code, w.message); }
 ```
 
 ```ts
-// TypeScript (@lamina/pdf, sync after init)
+// TypeScript (@laminapdf/sdk, sync after init)
 await init();
 using doc = Document.open(bytes);
 doc.form.fill({ name: "Jane", agreed: true });
@@ -138,7 +138,7 @@ $ lamina render big.pdf --pages 1 --scale 2 --timeout 10s -o p1.png
 
 ### Rendering: hayro is the small-footprint candidate; PDFium wins on fidelity at about 2 MB
 
-**hayro 0.8.0 renders on the CPU through `vello_cpu`, emits SVG, and has its own JPX, JBIG2 and CCITT decoders.** It lacks knockout groups, CMYK blending and glyph caching ([GitHub](https://github.com/LaurenzV/hayro), [deps](https://crates.io/api/v1/crates/hayro/0.8.0/dependencies)). It has no published wasm build, so its size is unknown. Its parser, hayro-syntax, is separate from `lamina-cos`, so lamina would either parse twice or adapt at hayro-interpret's `Device` trait. PDFium through `pdfium-render 0.9.4` has the best fidelity. It costs about **2.15 MB gz** on the web, or a native library per platform, and brings C++ memory-safety exposure ([crates.io](https://crates.io/api/v1/crates/pdfium-render/0.9.4/dependencies), [embedpdf](https://registry.npmjs.org/@embedpdf/pdfium/-/pdfium-2.15.1.tgz)). lamina's plan (proposed ADR 0004) makes PDFium the default and hayro the CI oracle, and the C1a hayro-parity and C1b pdfium-wasm spikes will measure both. The research does not overturn that plan. It does add two inputs. On mobile, PDFium means shipping the C++ binary weight that pushes developers away from AndroidPdfViewer. And a hayro wasm build may be the only renderer small enough for an edge-runtime `@lamina/pdf/render`. ADR 0004 should therefore decide per surface rather than once for all.
+**hayro 0.8.0 renders on the CPU through `vello_cpu`, emits SVG, and has its own JPX, JBIG2 and CCITT decoders.** It lacks knockout groups, CMYK blending and glyph caching ([GitHub](https://github.com/LaurenzV/hayro), [deps](https://crates.io/api/v1/crates/hayro/0.8.0/dependencies)). It has no published wasm build, so its size is unknown. Its parser, hayro-syntax, is separate from `lamina-cos`, so lamina would either parse twice or adapt at hayro-interpret's `Device` trait. PDFium through `pdfium-render 0.9.4` has the best fidelity. It costs about **2.15 MB gz** on the web, or a native library per platform, and brings C++ memory-safety exposure ([crates.io](https://crates.io/api/v1/crates/pdfium-render/0.9.4/dependencies), [embedpdf](https://registry.npmjs.org/@embedpdf/pdfium/-/pdfium-2.15.1.tgz)). lamina's plan (proposed ADR 0004) makes PDFium the default and hayro the CI oracle, and the C1a hayro-parity and C1b pdfium-wasm spikes will measure both. The research does not overturn that plan. It does add two inputs. On mobile, PDFium means shipping the C++ binary weight that pushes developers away from AndroidPdfViewer. And a hayro wasm build may be the only renderer small enough for an edge-runtime `@laminapdf/sdk/render`. ADR 0004 should therefore decide per surface rather than once for all.
 
 ### Signing: prepare, hand off the digest, finish
 
@@ -197,11 +197,11 @@ Public signatures take `Uint8Array` (and so accept Node `Buffer` for free) and r
 
 ### The worker client is the async twin of the sync API, and it should be shared with the viewer
 
-PDF.js shows what a mandatory worker costs: users must set `GlobalWorkerOptions.workerSrc`, and the worker must be "the _exact_ same version" as the main library ([pdf.js FAQ](https://github.com/mozilla/pdf.js/wiki/Frequently-Asked-Questions)). unpdf goes the other way and inlines the worker, because serverless runtimes "can't load separate worker files" ([unpdf README](https://github.com/unjs/unpdf)). The recommendation keeps ADR 0002's synchronous core and adds an optional `@lamina/pdf/worker`. It exposes the same method names as Promises, typed by a mapped type generated from the sync interface. It transfers ArrayBuffers both ways, takes `AbortSignal` and `onProgress`, and does a version handshake on connect. Vite only detects a worker when `new URL()` sits literally inside `new Worker()` ([Vite features](https://raw.githubusercontent.com/vitejs/vite/main/docs/guide/features.md)), so the package should contain that literal and also accept `{ worker }` for CSP-restricted setups. lamina's C3a already plans exactly this kind of hand-written typed RPC (request IDs, priorities, transfer lists, cancellation, crash restart, no Comlink) inside `@lamina/viewer`. **Building it once in `@lamina/pdf/worker` and having the viewer consume it** avoids two protocols.
+PDF.js shows what a mandatory worker costs: users must set `GlobalWorkerOptions.workerSrc`, and the worker must be "the _exact_ same version" as the main library ([pdf.js FAQ](https://github.com/mozilla/pdf.js/wiki/Frequently-Asked-Questions)). unpdf goes the other way and inlines the worker, because serverless runtimes "can't load separate worker files" ([unpdf README](https://github.com/unjs/unpdf)). The recommendation keeps ADR 0002's synchronous core and adds an optional `@laminapdf/sdk/worker`. It exposes the same method names as Promises, typed by a mapped type generated from the sync interface. It transfers ArrayBuffers both ways, takes `AbortSignal` and `onProgress`, and does a version handshake on connect. Vite only detects a worker when `new URL()` sits literally inside `new Worker()` ([Vite features](https://raw.githubusercontent.com/vitejs/vite/main/docs/guide/features.md)), so the package should contain that literal and also accept `{ worker }` for CSP-restricted setups. lamina's C3a already plans exactly this kind of hand-written typed RPC (request IDs, priorities, transfer lists, cancellation, crash restart, no Comlink) inside `@laminapdf/viewer`. **Building it once in `@laminapdf/sdk/worker` and having the viewer consume it** avoids two protocols.
 
 ### Tree-shaking cannot remove wasm code, so subpaths must mean separate binaries
 
-JavaScript tree-shaking drops unused glue, not unused wasm functions. jSquash's one-package-per-codec layout is the working precedent ([jSquash README](https://github.com/jamsinclair/jSquash)). `@lamina/pdf` should load the base module, and `/extract`, `/render` and `/sign` should each load their own `.wasm` on `init()`. The cost is duplicated core code in each binary, which twiggy should measure in B6a.
+JavaScript tree-shaking drops unused glue, not unused wasm functions. jSquash's one-package-per-codec layout is the working precedent ([jSquash README](https://github.com/jamsinclair/jSquash)). `@laminapdf/sdk` should load the base module, and `/extract`, `/render` and `/sign` should each load their own `.wasm` on `init()`. The cost is duplicated core code in each binary, which twiggy should measure in B6a.
 
 ### Disposal: `using` first, FinalizationRegistry as a backstop, memory bounded three ways
 
@@ -230,7 +230,7 @@ pub enum SaveOptions { Auto, Incremental, Full { object_streams: Option<bool> } 
 ```
 
 ```console
-$ npx @lamina/cli info a.pdf --json      # CLI shipped the biome way: meta package + per-platform optionalDependencies
+$ npx @laminapdf/cli info a.pdf --json      # CLI shipped the biome way: meta package + per-platform optionalDependencies
 ```
 
 The npm route for the CLI follows `@biomejs/biome`: a meta package whose `optionalDependencies` point at per-platform binaries ([biome package.json](https://raw.githubusercontent.com/biomejs/biome/main/packages/%40biomejs/biome/package.json)). The CI matrix B6c plans (Vitest browser mode, workerd via vitest-pool-workers, Deno and Bun smoke tests against the packed tarball, and bundler fixture apps) matches what jSquash and unpdf use as integration checks ([unpdf README](https://github.com/unjs/unpdf)).
@@ -365,7 +365,7 @@ for c in out.chunks(ChunkOptions { max_tokens: 512, overlap: 64, split_on: Split
 ```
 
 ```ts
-import { extract } from "@lamina/pdf/extract";
+import { extract } from "@laminapdf/sdk/extract";
 const res = extract(doc, { readingOrder: "tagged-then-xycut", drop: ["invisible", "running-headers"], tables: "lattice" });
 for (const c of res.chunks({ maxTokens: 512, splitOn: "headings" }))
   await store.add({ text: c.text, meta: { pages: c.pages, regions: c.regions, path: c.headingPath } });
@@ -446,7 +446,7 @@ async fn lamina_info(&self, Parameters(a): Parameters<commands::InfoArgs>) -> Re
 
 ```ts
 // A Node script consuming the CLI's NDJSON with types generated from `lamina schema check.json`
-import type { CheckResult, Summary } from "@lamina/cli/schema";
+import type { CheckResult, Summary } from "@laminapdf/cli/schema";
 for await (const line of readline.createInterface({ input: child.stdout }))
   { const m = JSON.parse(line) as CheckResult | Summary; if (m.type === "result" && m.status !== "ok") fail(m); }
 ```
@@ -469,7 +469,7 @@ Each item names what it is, why it is needed, and which existing round or todo i
 | L2 | **Error and diagnostic contract**: `{code, kind, message, hint, location, docsUrl}` generated from `fixtures/codes.json` into Rust, TS and JSON Schema; `lamina explain <code>` text | One error shape for TS, Swift, Kotlin, CLI and MCP; models self-correct from hints | B2a codes (done), B6a |
 | L3 | **Split wasm modules**: base / text / extract / render / sign as separate `.wasm` with per-module budgets and twiggy diffs in CI | Rendering and signing cannot fit 350 KB; tree-shaking cannot remove wasm code | B6a (extends its split), C2c |
 | L4 | **Per-condition loaders and `init({ module })` escape hatch** (workerd static import, Node `readFile`, browser `compileStreaming`, opt-in `/inline`) | No single loader works across runtimes in 2026 | B6b, B6c |
-| L5 | **`@lamina/pdf/worker`**: the C3a typed RPC moved into the library package, with a version handshake, `AbortSignal`, transfer lists and a Promisified mapped type; `@lamina/viewer` consumes it | Avoids two worker protocols; PDF.js version-mismatch lesson | B6b; replaces part of C3a |
+| L5 | **`@laminapdf/sdk/worker`**: the C3a typed RPC moved into the library package, with a version handshake, `AbortSignal`, transfer lists and a Promisified mapped type; `@laminapdf/viewer` consumes it | Avoids two worker protocols; PDF.js version-mismatch lesson | B6b; replaces part of C3a |
 | L6 | **Disposal and memory hardening**: `Symbol.dispose` on all handles, `DISPOSED` code, wasm max-memory link flag, `reset()`, abort-and-reinstantiate wrapper | Linear memory never shrinks; Safari `using` support unclear | B6b |
 | L7 | **Range `ByteSource` with `NeedData`** at the edges (HTTP range, JS callback, mmap) | Large and remote files without an async core | B2d |
 | L8 | **Two-phase signing API** (`prepare_signature` / `finish`, P1363-to-DER conversion) as the E10d `Signer` shape | WebCrypto, the Secure Enclave and HSMs are async or remote; the core stays sync | E10d, E10i |
@@ -501,7 +501,7 @@ Numbers 0020–0023 are already reserved in todos (signatures, JavaScript policy
 
 The first concerns **UniFFI timing** (ADR 0002 §5). The decision stands, but the research suggests bringing forward the façade *rules* and a small `lamina-ffi` spike (L16). Waiting risks a TypeScript API that UniFFI cannot express. The version pin also needs a choice between ubrn compatibility and 0.32's zero-copy bytes.
 
-The second concerns the **350 KB budget** (library plan §4). krilla-fit's 377 KB measurement and every comparable renderer show that the budget can only cover the base module. ADR 0016 (B6a) should restate it per module rather than for "`@lamina/pdf` including shaping".
+The second concerns the **350 KB budget** (library plan §4). krilla-fit's 377 KB measurement and every comparable renderer show that the budget can only cover the base module. ADR 0016 (B6a) should restate it per module rather than for "`@laminapdf/sdk` including shaping".
 
 The third concerns **render backend per surface** (proposed ADR 0004, not yet accepted). PDFium as the default suits the desktop. For edge runtimes (2.15 MB gz) and for mobile binary size, hayro may be the better default if C1a shows acceptable fidelity and size.
 

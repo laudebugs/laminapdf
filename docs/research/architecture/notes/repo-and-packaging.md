@@ -109,7 +109,7 @@ I found few primary 2026 sources in the budget. The established practice: ship a
   - Vite needs either `vite-plugin-wasm` or the `?url` import pattern.
   - webpack 5 supports `asyncWebAssembly`.
   - esbuild needs a loader (`file`/`binary`).
-- A dual package design: `@lamina/core` (TS API, pure TS where possible), `@lamina/wasm` (generated glue), and an optional `@lamina/node` (napi), selected via export conditions (`browser`, `workerd`, `node`, `deno`, `default`).
+- A dual package design: `@laminapdf/core` (TS API, pure TS where possible), `@laminapdf/wasm` (generated glue), and an optional `@laminapdf/node` (napi), selected via export conditions (`browser`, `workerd`, `node`, `deno`, `default`).
 - JSR can publish the TS layer with native TS sources. Its support for shipping `.wasm` assets needs checking.
 
 ### Gaps
@@ -135,7 +135,7 @@ Both registries support OIDC trusted publishing from GitHub Actions. npm reached
 ### Inferences
 - For Lamina:
   - Use Changesets for the npm packages and release-plz for the crates. Both open "release PRs" and publish on merge through OIDC with no stored secrets.
-  - Alternatively, use one unified version (lockstep) driven by Changesets, with a script that syncs `Cargo.toml` versions. This is simpler when `@lamina/wasm` is tightly coupled to `lamina-core`.
+  - Alternatively, use one unified version (lockstep) driven by Changesets, with a script that syncs `Cargo.toml` versions. This is simpler when `@laminapdf/wasm` is tightly coupled to `lamina-core`.
 - Reserve the crate names and npm scope early with a manual first publish, then switch each crate to "trusted publishing only".
 - Use GitHub environments (`release`) with required reviewers as the human gate. Note the crates.io trigger restrictions.
 - For signing: npm provenance (Sigstore) plus GitHub artifact attestations (`actions/attest-build-provenance`) for desktop binaries and `.wasm`. Tauri updater signing is separate (see §6).

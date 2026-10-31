@@ -1,8 +1,8 @@
 {
-  "name": "@lamina/viewer",
+  "name": "@laminapdf/viewer",
   "version": "0.1.0-alpha.0",
   "private": true,
-  "description": "The web reader's framework-free viewer core (ADR 0009). Part 1 (C3a): one document worker per document, hosting @lamina/pdf and a RenderBackend, behind a typed RPC that extends @lamina/pdf/worker with priorities, coalescing, cancellation, timeouts and restart.",
+  "description": "The web reader's framework-free viewer core (ADR 0009). Part 1 (C3a): one document worker per document, hosting @laminapdf/sdk and a RenderBackend, behind a typed RPC that extends @laminapdf/sdk/worker with priorities, coalescing, cancellation, timeouts and restart.",
   "license": "MIT OR Apache-2.0",
   "type": "module",
   "sideEffects": false,
@@ -20,15 +20,15 @@
     "./package.json": "./package.json"
   },
   "scripts": {
-    "build:wasm": "pnpm --filter @lamina/render --filter @lamina/render-pdfium run build && pnpm --filter @lamina/render-hayro run build:wasm && tsc -p tsconfig.build.json",
-    "typecheck:wasm": "pnpm --filter @lamina/render --filter @lamina/render-pdfium run build && pnpm --filter @lamina/render-hayro run build:wasm && tsc -p tsconfig.build.json && tsc --noEmit -p tsconfig.json",
-    "test:wasm": "pnpm --filter @lamina/render --filter @lamina/render-pdfium run build && pnpm --filter @lamina/render-hayro run build:wasm && tsc -p tsconfig.build.json && tsc --noEmit -p tsconfig.json && vitest run -c vitest.node.config.ts"
+    "build:wasm": "pnpm --filter @laminapdf/render --filter @laminapdf/render-pdfium run build && pnpm --filter @laminapdf/render-hayro run build:wasm && tsc -p tsconfig.build.json",
+    "typecheck:wasm": "pnpm --filter @laminapdf/render --filter @laminapdf/render-pdfium run build && pnpm --filter @laminapdf/render-hayro run build:wasm && tsc -p tsconfig.build.json && tsc --noEmit -p tsconfig.json",
+    "test:wasm": "pnpm --filter @laminapdf/render --filter @laminapdf/render-pdfium run build && pnpm --filter @laminapdf/render-hayro run build:wasm && tsc -p tsconfig.build.json && tsc --noEmit -p tsconfig.json && vitest run -c vitest.node.config.ts"
   },
   "dependencies": {
-    "@lamina/pdf": "workspace:*",
-    "@lamina/render": "workspace:*",
-    "@lamina/render-hayro": "workspace:*",
-    "@lamina/render-pdfium": "workspace:*"
+    "@laminapdf/sdk": "workspace:*",
+    "@laminapdf/render": "workspace:*",
+    "@laminapdf/render-hayro": "workspace:*",
+    "@laminapdf/render-pdfium": "workspace:*"
   },
   "devDependencies": {
     "@embedpdf/pdfium": "2.15.1",

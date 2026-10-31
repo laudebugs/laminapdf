@@ -5,19 +5,19 @@ description: Use lamina before its first release, from a checkout, a packed tarb
 
 lamina isn't published to npm or crates.io yet. Until it is, use it from a checkout of the repository, which needs Rust (the toolchain in `rust-toolchain.toml` installs itself), Node 22 or newer and pnpm.
 
-## TypeScript: `@lamina/pdf`
+## TypeScript: `@laminapdf/sdk`
 
 Build the WebAssembly modules and the package once:
 
 ```sh
 pnpm install
-cargo xtask wasm      # builds packages/wasm/dist/ and packages/pdf/dist/, then tests them
+cargo xtask wasm      # builds packages/wasm/dist/ and packages/sdk/dist/, then tests them
 ```
 
 Then use one of these:
 
-- **A tarball:** run `pnpm pack` in `packages/wasm` and in `packages/pdf`, then add both `.tgz` files to your project. `@lamina/pdf` depends on `@lamina/wasm`, so install both tarballs at once.
-- **A workspace dependency:** inside this repository, add `"@lamina/pdf": "workspace:*"` to a package under `packages/` or `apps/`.
+- **A tarball:** run `pnpm pack` in `packages/wasm` and in `packages/sdk`, then add both `.tgz` files to your project. `@laminapdf/sdk` depends on `@laminapdf/wasm`, so install both tarballs at once.
+- **A workspace dependency:** inside this repository, add `"@laminapdf/sdk": "workspace:*"` to a package under `packages/` or `apps/`.
 
 The package is ESM only. It has one entry per runtime (the `workerd`, `deno`, `browser`, `node` and `default` export conditions), and each entry loads the `.wasm` its own way. The [quick starts](/quick-start/browser/) show each one.
 
@@ -34,5 +34,5 @@ A git dependency (`lamina = { git = "…" }`) works too, once you can read the r
 
 ## API docs
 
-- TypeScript: the [`@lamina/pdf` reference](/reference/pdf/readme/), generated from the package's TSDoc comments.
+- TypeScript: the [`@laminapdf/sdk` reference](/reference/sdk/readme/), generated from the package's TSDoc comments.
 - Rust: [rustdoc](/reference/rust/), built by CI or by `cargo doc --open`.

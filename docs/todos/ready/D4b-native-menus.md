@@ -58,7 +58,7 @@ A JSON export of U1b's command registry (no second map): per command `{ id, titl
 ## Tasks
 
 - [ ] Fresh worktree; this todo is already claimed via the claim PR (see DoD). Load `tauri-v2` and `rust-best-practices`.
-- [ ] Add the JSON export of U1b's registry (`pnpm --filter @lamina/ui build:shortcuts`), with a CI check that the generated JSON is up to date.
+- [ ] Add the JSON export of U1b's registry (`pnpm --filter @laminapdf/ui build:shortcuts`), with a CI check that the generated JSON is up to date.
 - [ ] `menu.rs` builder + `on_menu_event` dispatch; `MenuContext` (recent files, windows, focus state); rebuild Open Recent and Window submenus on change.
 - [ ] `menu_state` command (manifest + capability) and the UI side that reports state.
 - [ ] Export Copy: Rust-side save dialog (`DialogExt::file().save_file`) and byte copy of the original file; never via the webview.

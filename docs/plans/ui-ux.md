@@ -3,7 +3,7 @@
 - **Status:** Draft
 - **Date:** 2026-10-29
 - **Builds on:** the [product and UX research report](../research/product/pdf-app-product-and-ux.md) (recommendations R1–R19) and its [five notes](../research/product/README.md); the [architecture plan](architecture.md) (ADRs 0004, 0009, 0010, 0011) and the [web-frontend notes](../research/architecture/notes/web-frontend.md)
-- **Applies to:** [web reader](web-app.md) (C rounds), [desktop reader](desktop-app.md) (D rounds), [full editor](full-editor.md) (E rounds); `@lamina/ui` and `@lamina/viewer` are shared by both shells
+- **Applies to:** [web reader](web-app.md) (C rounds), [desktop reader](desktop-app.md) (D rounds), [full editor](full-editor.md) (E rounds); `@laminapdf/ui` and `@laminapdf/viewer` are shared by both shells
 - **Roadmap:** [roadmap.md](roadmap.md) (Round U)
 
 ## 1. Goal
@@ -84,7 +84,7 @@ Delivered by [C4a](../todos/ready/C4a-ui-chrome-and-platform.md) (shell and top 
 
 ### 5.2 Command registry and palette (R3)
 
-A command is `{ id, title, keywords, group, shortcut?, icon?, enabled(ctx), run(ctx, args), args? }`, where `args` is a typed schema (page range, zoom percentage, file). The registry lives in `@lamina/ui` and feeds:
+A command is `{ id, title, keywords, group, shortcut?, icon?, enabled(ctx), run(ctx, args), args? }`, where `args` is a typed schema (page range, zoom percentage, file). The registry lives in `@laminapdf/ui` and feeds:
 
 - the **palette** (cmdk, MIT): fuzzy search over titles and keywords, recents first, a shortcut chip on every row, argument parsing inline (`extract 4-8`, `zoom 150`, `go to 12`) and a pushed page for arguments typed afterwards; the APG combobox pattern (focus stays in the input, `aria-activedescendant` on the active row);
 - **native menus** on desktop ([D4b](../todos/ready/D4b-native-menus.md)) and the web overflow menu;
@@ -95,7 +95,7 @@ Shortcuts are declared once per command with per-platform variants (`Mod` = Cmd/
 
 ### 5.3 Selection and copy (R4, R5)
 
-- `@lamina/viewer` stays headless: it **emits** selection events with client rects and the selected text runs; `@lamina/ui` owns every menu.
+- `@laminapdf/viewer` stays headless: it **emits** selection events with client rects and the selected text runs; `@laminapdf/ui` owns every menu.
 - **Desktop/web with a fine pointer**: a mini toolbar (`role="toolbar"`) above the first selected line, flipped below on collision, shown on `pointerup` (never during a drag), reachable with Shift+F10, dismissed with Escape. Its actions also exist in the context menu, menu bar and palette.
 - **Touch**: no floating toolbar. While a selection exists, a contextual **bottom action bar** (Copy, Highlight, Comment, Share, More) replaces the bottom bar; the OS selection menu is left alone (on iOS, scrolling hides it and code can't bring it back).
 - **Copy as paragraph** is the default: column-aware, line breaks joined inside paragraphs, hyphenation repaired from lamina's extraction (B9). **Copy exact** keeps the layout's line breaks. Rectangular (column) selection with Alt/Option-drag, as in Preview.
@@ -162,7 +162,7 @@ The pipeline for every page view ([C3b](../todos/ready/C3b-viewer-virtualiser-an
 
 - **Tier 1, tagged files** ([U4b](../todos/ready/U4b-reader-mode-from-structure-tree.md)): derive semantic blocks from the structure tree (ISO 32000-2 §14.8; PDF Association "Deriving HTML from PDF"); about half of web PDFs are tagged since mid-2025. Tables, figures and formulas show as cropped page images with their `/Alt` text; "back to page" returns to the matching position. Font size, line spacing, width and page mode are adjustable.
 - **Tier 2, untagged files** ([U4c](../todos/ready/U4c-approximate-reader-mode.md)): heuristic layout analysis in pure Rust from lamina's extraction, labelled **"Approximate"**.
-- The core emits blocks (bytes-in/bytes-out); `@lamina/ui` renders them. No cloud processing and no page cap (Liquid Mode needs Adobe's cloud and skips files over 200 pages).
+- The core emits blocks (bytes-in/bytes-out); `@laminapdf/ui` renders them. No cloud processing and no page cap (Liquid Mode needs Adobe's cloud and skips files over 200 pages).
 - **OCR and semantic search** come with E13 and later: OCR behind one trait (platform OCR on native, ocrs or PP-OCR in WASM), model weights licence-audited separately from code (DocLayout-YOLO is AGPL; Marker's weights are OpenRAIL-M with commercial limits).
 
 ### 5.9 Product promises (R18, R19)
@@ -179,7 +179,7 @@ Each round is split into todos (one pull request each) on the [todo board](../to
 
 ### U1. Shell foundations
 
-**Deliverable:** ADR 0024 (layout, modes, command registry, selection surfaces, page appearance, mobile layout, tokens); the command registry and palette; the left rail, inspector, mode switcher and focus mode in `@lamina/ui`.
+**Deliverable:** ADR 0024 (layout, modes, command registry, selection surfaces, page appearance, mobile layout, tokens); the command registry and palette; the left rail, inspector, mode switcher and focus mode in `@laminapdf/ui`.
 **Accepted when:** every reader command is in the registry and reachable from the palette, a menu and its shortcut; the help dialog and desktop menus are generated from it; axe reports no serious violations on the shell.
 **Todos:** [U1a](../todos/ready/U1a-adr-0024-app-shell-ux.md), [U1b](../todos/ready/U1b-command-registry-and-palette.md), [U1c](../todos/ready/U1c-inverted-l-shell-and-modes.md)
 
@@ -252,7 +252,7 @@ The research and the owner's decisions on it change todos in other plans (each n
 
 1. ~~Does the owner adopt the free-core pledge?~~ **Answered 2026-10-29:** no, lamina will be priced. Still open: the pricing model (one-time, subscription, or both), what each tier includes, and how licences are checked. On-device features must keep working without an account and offline (architecture principle 6, the hosted-service decision, ADR 0011), so local features need offline licence keys or store purchases; account-based checks fit only hosted services, unless the owner changes that rule. U5a needs these.
 2. Tablet stylus annotation (Apple Pencil, S Pen) in the web reader, or only in native apps after ADR 0025?
-3. ~~When does a visual design pass (typography, iconography, brand) happen, and who does it?~~ **Answered 2026-10-29:** the owner chose the **Paper** direction; every screen is designed and documented in the [Paper design plan](paper-design.md), and Round U6 builds it into `@lamina/tokens` and `@lamina/ui`. Still open: a brand mark.
+3. ~~When does a visual design pass (typography, iconography, brand) happen, and who does it?~~ **Answered 2026-10-29:** the owner chose the **Paper** direction; every screen is designed and documented in the [Paper design plan](paper-design.md), and Round U6 builds it into `@laminapdf/tokens` and `@laminapdf/ui`. Still open: a brand mark.
 4. Should citation previews (Semantic Reader style) and Zotero integration get their own plan for the academic persona?
 5. ~~Telemetry: none at all, or U5c's opt-in counts?~~ **Answered 2026-10-29:** telemetry is optional (opt-in, off by default); U5c goes ahead after v0.1.
 
@@ -264,7 +264,7 @@ Ticked by the PR that completes them.
 
 ### U1. Shell foundations
 - [ ] Write ADR 0024 (layout, modes, command registry, selection surfaces, page appearance, mobile layout, tokens)
-- [ ] Command registry in `@lamina/ui` with typed arguments, shortcuts and collision test
+- [ ] Command registry in `@laminapdf/ui` with typed arguments, shortcuts and collision test
 - [ ] Command palette (cmdk) with argument parsing, recents and shortcut chips
 - [ ] Left rail, docked inspector, mode switcher, secondary toolbar slot and focus mode
 

@@ -55,16 +55,16 @@ Paper fits the research's primary personas (people who read long documents: boar
 
 1. **Every UI todo links its screens.** Each todo that builds a screen lists it under **Context** ("Design: …"). Its acceptance includes "matches the linked Paper screens; any deviation is recorded in the area document".
 2. **Changing a design.** A PR that changes a screen updates the area document and, when the look changes, the canvas and its committed files in the same PR. Small implementation details (exact spacing found in code) don't need a canvas change; behavioural or visual changes do.
-3. **Tokens come from one place.** U6a turns the design language's tokens into `@lamina/tokens`; from then on the design language cites that package's file as the source of truth, and the canvases are updated to match it when they drift.
+3. **Tokens come from one place.** U6a turns the design language's tokens into `@laminapdf/tokens`; from then on the design language cites that package's file as the source of truth, and the canvases are updated to match it when they drift.
 4. **Feature plans own behaviour; design owns look.** Where an area document and a feature plan disagree on behaviour, the feature plan (and its ADRs) wins and the area document is corrected.
 
 ## 6. Round U6: Paper in code
 
-The design system is built once, in `@lamina/tokens` and `@lamina/ui`, before the shell and the editor rounds use it. U6 runs after U1a (ADR 0024 fixes token layers and component rules) and alongside C4.
+The design system is built once, in `@laminapdf/tokens` and `@laminapdf/ui`, before the shell and the editor rounds use it. U6 runs after U1a (ADR 0024 fixes token layers and component rules) and alongside C4.
 
 ### U6. Design system
 
-**Deliverable:** tokens package (light, dark, high contrast, page appearances), self-hosted fonts, the icon set, core components and overlays in `@lamina/ui`, and a component gallery with visual and accessibility tests.
+**Deliverable:** tokens package (light, dark, high contrast, page appearances), self-hosted fonts, the icon set, core components and overlays in `@laminapdf/ui`, and a component gallery with visual and accessibility tests.
 **Accepted when:** every component in the design language exists with its states; contrast pairs are tested in CI; the gallery renders each component in each theme and screenshot tests guard them; no font or icon is fetched from a third-party host at runtime (the network indicator stays at 0).
 **Todos:** [U6a](../todos/ready/U6a-paper-tokens.md) (tokens), [U6b](../todos/ready/U6b-self-hosted-fonts.md) (fonts), [U6c](../todos/ready/U6c-icon-set.md) (icons), [U6d](../todos/ready/U6d-core-components.md) (core components), [U6e](../todos/ready/U6e-overlays-and-sheets.md) (dialogs, sheets, menus, palette shell), [U6f](../todos/ready/U6f-gallery-and-visual-tests.md) (gallery and visual tests), [U6g](../todos/done/U6g-docs-site-paper.md) (the docs site in Paper, an interim copy until U6a and U6b)
 
@@ -72,7 +72,7 @@ The design system is built once, in `@lamina/tokens` and `@lamina/ui`, before th
 
 - [U1a](../todos/ready/U1a-adr-0024-app-shell-ux.md): ADR 0024's token layers and visual identity take their values from the Paper design language; the "visual identity" out-of-scope line is resolved.
 - [C4a](../todos/ready/C4a-ui-chrome-and-platform.md) and every todo that builds UI in Rounds C, D, E, H and U: a "Design" line under Context links its Paper screens (from [screens.md](../design/paper/screens.md)), and acceptance includes matching them.
-- [C7a](../todos/ready/C7a-accessibility-and-theming.md): themes are Paper light, Paper dark and high contrast from `@lamina/tokens`.
+- [C7a](../todos/ready/C7a-accessibility-and-theming.md): themes are Paper light, Paper dark and high contrast from `@laminapdf/tokens`.
 
 ## 7. Risks
 

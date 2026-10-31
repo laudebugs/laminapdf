@@ -1,4 +1,4 @@
-//! `WasmSparseSource`: a source filled range by range from JavaScript (L2c). `@lamina/pdf`'s
+//! `WasmSparseSource`: a source filled range by range from JavaScript (L2c). `@laminapdf/sdk`'s
 //! range adapters fetch what `data-pending` asks for and `supply` it, then retry the call.
 
 use std::sync::Arc;

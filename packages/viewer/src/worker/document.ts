@@ -1,11 +1,12 @@
 // The one document a viewer worker holds (ADR 0009 §2: one worker per document): lamina's
 // Document for the model (page sizes, warnings, later text and structure) and a RenderDocument
 // for pixels, both opened from the same bytes. The password is used here and kept nowhere else.
-import { Document, isLaminaError } from "@lamina/pdf";
-import { emit, yieldToMessages } from "@lamina/pdf/worker/server";
-import { bytesSource, type RenderBackend, type RenderDocument } from "@lamina/render";
-import { initHayro } from "@lamina/render-hayro";
-import { initPdfium } from "@lamina/render-pdfium";
+
+import { bytesSource, type RenderBackend, type RenderDocument } from "@laminapdf/render";
+import { initHayro } from "@laminapdf/render-hayro";
+import { initPdfium } from "@laminapdf/render-pdfium";
+import { Document, isLaminaError } from "@laminapdf/sdk";
+import { emit, yieldToMessages } from "@laminapdf/sdk/worker/server";
 import type { BackendInit, OpenedDocument, SourceInit, ViewerOpenOptions } from "../protocol.js";
 import { readAll, sourceOf } from "../source.js";
 

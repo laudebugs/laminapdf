@@ -1,5 +1,5 @@
 // The document worker and its RPC in Chromium, Firefox and WebKit (C3a's acceptance criteria).
-import { isLaminaError } from "@lamina/pdf";
+import { isLaminaError } from "@laminapdf/sdk";
 import { afterEach, describe, expect, it } from "vitest";
 import { CORPUS, ENCRYPTED, expected, next, PASSWORD, read, rejection, viewer } from "./helpers.js";
 

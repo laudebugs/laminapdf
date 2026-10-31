@@ -1,7 +1,7 @@
-// The C3a manual check: `pnpm --filter @lamina/viewer exec vite examples` (after `cargo xtask
+// The C3a manual check: `pnpm --filter @laminapdf/viewer exec vite examples` (after `cargo xtask
 // wasm`), open the page, pick a PDF. The worker starts and loads PDFium before a file is chosen.
 import pdfiumWasm from "@embedpdf/pdfium/pdfium.wasm?url";
-import { ViewerClient } from "@lamina/viewer";
+import { ViewerClient } from "@laminapdf/viewer";
 
 const status = document.querySelector<HTMLDivElement>("#status");
 const canvas = document.querySelector<HTMLCanvasElement>("#page");

@@ -6,7 +6,7 @@ import {
   type ViewerEvent,
   type ViewerEvents,
   type ViewerOptions,
-} from "@lamina/viewer";
+} from "@laminapdf/viewer";
 
 const urls = import.meta.glob<string>(
   [

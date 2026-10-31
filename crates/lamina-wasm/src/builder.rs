@@ -465,7 +465,7 @@ impl WasmPageBuilder {
     /// types (`Document`, `Part`, `Sect`, `H1`–`H6`, `P`, `L`, `LI`, `Lbl`, `LBody`, `Table`,
     /// `TR`, `TH`, `TD`, `Figure`, `Caption`, `Link`, `Span`, `Quote`, `Note`, `Code`), the role
     /// of `custom` when given; `/Alt`, `/ActualText`, `/Lang`, `/E`; `scope` 0 (none), 1 (row),
-    /// 2 (column), 3 (both). `@lamina/pdf` turns names into these indices and checks them.
+    /// 2 (column), 3 (both). `@laminapdf/sdk` turns names into these indices and checks them.
     ///
     /// # Errors
     /// `invalid-argument` for an index out of range.

@@ -1,10 +1,11 @@
-// The viewer's methods on the document worker (C3a, ADR 0009 §3). They extend `@lamina/pdf/worker`
+// The viewer's methods on the document worker (C3a, ADR 0009 §3). They extend `@laminapdf/sdk/worker`
 // (L2a): one protocol, one queue and one cancellation path for both, with the viewer's methods
 // added through `serve({ methods })` in the worker and `client.request` on the page. This module
 // holds what both sides agree on: the method map (params and results), the priorities and the
 // coalescing key.
-import type { Limits, PageInfo } from "@lamina/pdf";
-import { flagsOf, type RenderLimits, type RenderRequest } from "@lamina/render";
+
+import { flagsOf, type RenderLimits, type RenderRequest } from "@laminapdf/render";
+import type { Limits, PageInfo } from "@laminapdf/sdk";
 
 /** Which engine draws the pages (ADR 0004: PDFium by default, hayro the CI oracle). */
 export type BackendName = "pdfium" | "hayro";

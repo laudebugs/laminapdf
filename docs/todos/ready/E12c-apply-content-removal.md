@@ -32,7 +32,7 @@
 - Removal engine in `lamina-content` over the IR
 - Image redaction (JPEG re-encode, Flate, JPX: decode where possible or remove the image with a report)
 - Overlay drawing
-- **Gate:** `ApplyRedactions` is partial after this PR (content only; annotations, forms, metadata, bookmarks, attachments and the rewrite scrub come in E12d), so it must not be usable as "redaction" yet. The `Op::ApplyRedactions` variant and its engine sit behind the off-by-default cargo feature `unstable-redaction` in `lamina-ops`/`lamina-content`; without it the variant does not exist, so `{"op":"applyRedactions"}` fails to deserialise as an unknown op (ADR 0006 §1). `lamina`, `lamina-wasm`/`@lamina/pdf`, the web and desktop apps are built without the feature, so the op is not in the public Rust or TS API, the JSON schema or the UI. Only this crate's tests (and E12d's) enable it. [E12d](E12d-scrub-and-rewrite.md) removes the gate
+- **Gate:** `ApplyRedactions` is partial after this PR (content only; annotations, forms, metadata, bookmarks, attachments and the rewrite scrub come in E12d), so it must not be usable as "redaction" yet. The `Op::ApplyRedactions` variant and its engine sit behind the off-by-default cargo feature `unstable-redaction` in `lamina-ops`/`lamina-content`; without it the variant does not exist, so `{"op":"applyRedactions"}` fails to deserialise as an unknown op (ADR 0006 §1). `lamina`, `lamina-wasm`/`@laminapdf/sdk`, the web and desktop apps are built without the feature, so the op is not in the public Rust or TS API, the JSON schema or the UI. Only this crate's tests (and E12d's) enable it. [E12d](E12d-scrub-and-rewrite.md) removes the gate
 
 **Out of scope** (and which todo covers it)
 
@@ -62,8 +62,8 @@
 - [ ] Property tests: for every new op, before save, undo restores the snapshot and the next save is byte-identical to the previous one (ADR 0006 §3); redo re-applies the same bytes
 - [ ] Text under areas is absent from the content streams (token scan) and the remaining glyph positions do not depend on removed widths (test from E12a)
 - [ ] Image pixels under areas are blanked (decode-and-check test)
-- [ ] Gate holds: with default features, `applyRedactions` JSON is rejected as an unknown op, `lamina` and the generated `@lamina/pdf` types contain no `ApplyRedactions` (a test greps the generated `.d.ts`), and the web/desktop builds expose no apply action
-- [ ] Library parity ([full-editor §5](../../plans/full-editor.md#5-requirements-that-hold-for-every-round) req. 7) is deliberately deferred: the op is exposed in `lamina` and `@lamina/pdf`, with docs, example and frozen `fixtures/ops/v1/` sample, in [E12d](E12d-scrub-and-rewrite.md) when the gate is removed; no v1 sample is frozen for a gated op
+- [ ] Gate holds: with default features, `applyRedactions` JSON is rejected as an unknown op, `lamina` and the generated `@laminapdf/sdk` types contain no `ApplyRedactions` (a test greps the generated `.d.ts`), and the web/desktop builds expose no apply action
+- [ ] Library parity ([full-editor §5](../../plans/full-editor.md#5-requirements-that-hold-for-every-round) req. 7) is deliberately deferred: the op is exposed in `lamina` and `@laminapdf/sdk`, with docs, example and frozen `fixtures/ops/v1/` sample, in [E12d](E12d-scrub-and-rewrite.md) when the gate is removed; no v1 sample is frozen for a gated op
 - [ ] Behind the feature, `ApplyRedactions` reports `requires_rewrite = true`; a test runs `planner.would_violate(&op)` on the signed fixtures (no certification, DocMDP P1, P2, P3, FieldMDP lock) and asserts `Conflict` on each ([ADR 0007](../../decisions/0007-save-planner.md) §2)
 
 ## Post-merge checks

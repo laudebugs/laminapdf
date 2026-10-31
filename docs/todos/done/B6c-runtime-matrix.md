@@ -4,7 +4,7 @@
 | --- | --- |
 | ID | `B6c` |
 | Status | `done` |
-| Plan | [pdf-library §7 B6](../../plans/pdf-library.md#b6-wasm-and-laminapdf), [§5 platform matrix](../../plans/pdf-library.md#platform-matrix) |
+| Plan | [pdf-library §7 B6](../../plans/pdf-library.md#b6-wasm-and-laminapdfsdk), [§5 platform matrix](../../plans/pdf-library.md#platform-matrix) |
 | Round / milestone | Round B (library) — M1 |
 | Depends on | [B6b](./B6b-lamina-pdf-package.md) |
 | Blocks | [B7a](./B7a-docs-site.md), [B7b](./B7b-versioning-and-0-1-0-alpha.md), [B9c](./B9c-text-extraction-bindings-and-differential.md) |
@@ -28,10 +28,10 @@ Prove the package works where the plan says it does. The same TS example suite r
 
 **In scope**
 
-- Vitest workspace configs in `packages/pdf/`: `vitest.node.config.ts`, `vitest.browser.config.ts` (Playwright provider: chromium, firefox, webkit), `vitest.workers.config.ts` (`@cloudflare/vitest-pool-workers`, `wrangler.toml` test fixture importing the `.wasm` as a module).
+- Vitest workspace configs in `packages/sdk/`: `vitest.node.config.ts`, `vitest.browser.config.ts` (Playwright provider: chromium, firefox, webkit), `vitest.workers.config.ts` (`@cloudflare/vitest-pool-workers`, `wrangler.toml` test fixture importing the `.wasm` as a module).
 - Deno and Bun smoke runners (`deno test` / `bun test`) over a shared `examples` entry using the `deno`/`default` conditions.
 - Workflow jobs: Node matrix (22, 24, 26) + Chromium in the fast lane; Firefox, WebKit, Deno, Bun, workerd in the full lane ([X4](../done/X4-full-lane-gate.md)) and the release lane.
-- A Worker example (`packages/pdf/examples/worker/`) that generates a PDF per request — also used by docs ([B7a](./B7a-docs-site.md)).
+- A Worker example (`packages/sdk/examples/worker/`) that generates a PDF per request — also used by docs ([B7a](./B7a-docs-site.md)).
 - Performance smoke (not asserted in PR lanes; recorded): hello and 100-page report timings per runtime written to the job summary; the nightly trend is a job in `.github/workflows/nightly.yml` added here, recording the timings in the benchmark history (`history.jsonl` on `bench-data`, the record format of `cargo xtask bench` from [X3a](../done/X3a-nightly-lane.md)).
 
 **Out of scope** (and which todo covers it)
@@ -46,7 +46,7 @@ Prove the package works where the plan says it does. The same TS example suite r
 - [x] Deno/Bun runners; Vite build smoke
 - [x] Workflow jobs (fast vs full lanes) with Playwright browser cache
 - [x] Worker example + memory measurement (workerd reports) for the 100-page report with two fonts
-- [x] Document how to run each runtime locally in `packages/pdf/README.md` and `CLAUDE.md`
+- [x] Document how to run each runtime locally in `packages/sdk/README.md` and `CLAUDE.md`
 
 ## Acceptance criteria
 
@@ -60,7 +60,7 @@ None.
 
 ## Tests
 
-As above; all under `packages/pdf/test/` sharing one example list.
+As above; all under `packages/sdk/test/` sharing one example list.
 
 ## Docs to update
 
@@ -74,8 +74,8 @@ As above; all under `packages/pdf/test/` sharing one example list.
 
 ## Outcome
 
-- Delivered: one example list, `packages/pdf/test/suite/examples.ts` (the six Rust twins against their goldens, and `examples/report.ts`: 100 A4 pages with two embedded fonts, Noto Sans and Noto Sans SC, checked against `REPORT_SHA256` since it has no Rust golden), run by a runner per runtime: `vitest.node.config.ts` (Node; the old `vitest.config.ts`), `vitest.browser.config.ts` (Vitest browser mode with `@vitest/browser-playwright`: one project per browser, fixtures fetched as Vite `?url` assets, plus a `vite-build` project that serves a Vite production build of `test/vite-app/` with `vite preview` and runs it in a Chromium page), `test/deno/` (`deno test`, the `deno` condition), `test/bun/` (`bun test`, the `node` condition) and `vitest.workers.config.ts` (workerd, see below). Every runner prints `LAMINA_MEASUREMENT {json}` lines; `cargo xtask pdf-runtimes [runtime…] [--history <dir> --runner <label> --record]` runs the runners, collects the lines into `target/xtask/pdf-runtimes/measurements.json` and a job-summary table against §4 (misses marked, never a failure), and appends `pdf/<runtime>/<case>` records to `history.jsonl`.
-- Worker example: `packages/pdf/examples/worker/` (`/?name=` a letter in Helvetica, a 400 with the `LaminaError` as JSON for a name it can't draw: `missing-glyph` or `encoding-full`; every builder and document freed per request; `/report` the report; fonts bundled as `Data` modules), also served in the workerd run, which checks the report's hash and the 400.
+- Delivered: one example list, `packages/sdk/test/suite/examples.ts` (the six Rust twins against their goldens, and `examples/report.ts`: 100 A4 pages with two embedded fonts, Noto Sans and Noto Sans SC, checked against `REPORT_SHA256` since it has no Rust golden), run by a runner per runtime: `vitest.node.config.ts` (Node; the old `vitest.config.ts`), `vitest.browser.config.ts` (Vitest browser mode with `@vitest/browser-playwright`: one project per browser, fixtures fetched as Vite `?url` assets, plus a `vite-build` project that serves a Vite production build of `test/vite-app/` with `vite preview` and runs it in a Chromium page), `test/deno/` (`deno test`, the `deno` condition), `test/bun/` (`bun test`, the `node` condition) and `vitest.workers.config.ts` (workerd, see below). Every runner prints `LAMINA_MEASUREMENT {json}` lines; `cargo xtask pdf-runtimes [runtime…] [--history <dir> --runner <label> --record]` runs the runners, collects the lines into `target/xtask/pdf-runtimes/measurements.json` and a job-summary table against §4 (misses marked, never a failure), and appends `pdf/<runtime>/<case>` records to `history.jsonl`.
+- Worker example: `packages/sdk/examples/worker/` (`/?name=` a letter in Helvetica, a 400 with the `LaminaError` as JSON for a name it can't draw: `missing-glyph` or `encoding-full`; every builder and document freed per request; `/report` the report; fonts bundled as `Data` modules), also served in the workerd run, which checks the report's hash and the 400.
 - Measurements: `measure()` runs first in a fresh module instance in every runtime (Node: its own file, the `measure` project of `vitest.node.config.ts`, kept out of `cargo xtask wasm`; browsers, Deno, Bun: the first test of the file; workerd: the first request to a fresh Worker, with `scheduler.wait(0)` around each clock reading because workerd's clock only advances across I/O), so the first hello is cold and the memory is the hello and report runs' alone.
 - CI: fast lane `pdf-runtimes` (Node 22, 26 and Chromium, over the `wasm` job's build uploaded as an artifact; Node 24, `.nvmrc`, is the `wasm` job's own run of the suite); full lane `pdf-build` (`cargo xtask wasm` once) and `pdf-runtimes` (Firefox, WebKit, Deno, Bun, workerd), both in `gate`'s `needs`; nightly `pdf-runtimes` (every runtime, after `bench`, recording on `main` and pushing `bench-data`; the release lane gets it through `workflow_call`); both nightly jobs fetch and push the history with `.github/actions/bench-history` (a refused push is re-appended to the branch as it is now and retried). Playwright browsers live in each runner's tool cache (`PLAYWRIGHT_BROWSERS_PATH`); Deno, Bun and wrangler are dev dependencies (pinned in the pnpm catalog), so CI and local runs use the same versions with no system install. `cargo xtask nightly` runs `wasm` and `pdf-runtimes` too.
 - Measured locally (M-series Mac shared with other work; one run each; hello is the median of 20 after a first call, the report the median of 3; WebAssembly memory is both modules' linear memory after the report, its peak since it never shrinks):
