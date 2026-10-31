@@ -12,7 +12,7 @@ New todos start from [`TEMPLATE.md`](TEMPLATE.md). The workflow is in [git workf
 
 IDs: `A`/`P`/`X` [architecture](../plans/architecture.md) (foundations, publishing, cross-cutting), `B` [library](../plans/pdf-library.md), `L` [shareable libraries](../plans/shareable-libraries.md) (contracts, worker, extraction, CLI, agent docs, mobile), `C` [web reader](../plans/web-app.md), `D` [desktop reader](../plans/desktop-app.md), `U` [UI/UX](../plans/ui-ux.md), `E` [editor](../plans/full-editor.md), `H` hosted service ([full-editor](../plans/full-editor.md)). A letter suffix (`B2a`, `B2b`) splits a round into PRs.
 
-**1 ongoing · 197 ready · 48 done** (246 total).
+**1 ongoing · 197 ready · 49 done** (247 total).
 
 ## Can start now
 
@@ -170,6 +170,7 @@ Ready todos whose dependencies are all done:
 | U6d | [`@lamina/ui` core components: buttons, mode switcher, tabs, form controls, swatches, badges, notices, progress, status items, rows](ready/U6d-core-components.md) | ready | [U6a](ready/U6a-paper-tokens.md), [U6c](ready/U6c-icon-set.md) |
 | U6e | [`@lamina/ui` overlays: dialogs, bottom sheets, popovers and menus, selection toolbar positioning, palette shell, toasts, z-order](ready/U6e-overlays-and-sheets.md) | ready | [U6d](ready/U6d-core-components.md) |
 | U6f | [Component gallery, screenshot tests, axe on every page and the screens docs check](ready/U6f-gallery-and-visual-tests.md) | ready | [U6b](ready/U6b-self-hosted-fonts.md), [U6e](ready/U6e-overlays-and-sheets.md) |
+| U6g | [The docs site in the Paper design language (interim, before `@lamina/tokens` and `@lamina/fonts`)](done/U6g-docs-site-paper.md) | done | [B7a](done/B7a-docs-site.md) |
 
 ## Hosted service
 
