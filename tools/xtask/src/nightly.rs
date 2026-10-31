@@ -29,11 +29,15 @@ const BASELINE_RUNS: usize = 5;
 
 /// The release-mode `#[ignore]`d tests: scaling ratios and anything else too slow or
 /// timing-sensitive for the PR lanes.
-const SCALING_ARGS: [&str; 9] = [
+const SCALING_ARGS: [&str; 11] = [
     "test",
     "--release",
     "--locked",
     "--workspace",
+    // Its ignored tests need native PDFium and hold only on the macOS arm64 runner:
+    // `cargo xtask render-golden` runs them.
+    "--exclude",
+    "lamina-render-pdfium",
     "--all-features",
     "--tests",
     "--",

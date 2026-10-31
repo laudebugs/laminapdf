@@ -156,10 +156,13 @@ fn page_text_matches_the_shared_snapshot() {
     );
 }
 
-/// Writes the snapshot to `$LAMINA_SNAPSHOT_OUT` (run by `cargo xtask golden --update`).
+/// Writes the snapshot to `$LAMINA_SNAPSHOT_OUT` (run by `cargo xtask golden`). Without the
+/// variable it does nothing: the nightly scaling job runs every ignored test.
 #[test]
 #[ignore = "run by cargo xtask golden"]
 fn write_snapshot() {
-    let out = std::env::var("LAMINA_SNAPSHOT_OUT").unwrap();
+    let Some(out) = std::env::var_os("LAMINA_SNAPSHOT_OUT") else {
+        return;
+    };
     std::fs::write(out, text(&snapshot())).unwrap();
 }
