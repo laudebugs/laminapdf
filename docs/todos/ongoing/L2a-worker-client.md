@@ -3,11 +3,11 @@
 | Field | Value |
 | --- | --- |
 | ID | `L2a` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [shareable-libraries §7 L2](../../plans/shareable-libraries.md#l2-typescript-hardening), [§5 design summary](../../plans/shareable-libraries.md#5-design-summary) |
 | Round / milestone | Round L2 (shareable libraries) — before C3a |
 | Depends on | [B6b](../done/B6b-lamina-pdf-package.md), [L1a](../done/L1a-contract-adrs.md), [L1b](../done/L1b-error-contract-codegen.md) |
-| Blocks | [C3a](./C3a-viewer-worker-rpc.md) |
+| Blocks | [C3a](../ready/C3a-viewer-worker-rpc.md) |
 | ADRs | Follows 0028 (jobs, `CancelToken`, async only at the edges) and 0026 (errors cross as JSON, not `Error` objects), both from [L1a](../done/L1a-contract-adrs.md); [0002](../../decisions/0002-binding-strategy.md) §1 (sync core after `init()`); 0016 (export conditions, from [B6a](../done/B6a-lamina-wasm-and-adr-0016.md)); informs proposed 0009 (typed worker RPC, [C2a](../done/C2a-render-adrs.md)) |
 | Branch | `feat/l2a-worker-client` |
 | PR title | `feat(pdf): @lamina/pdf/worker async client with typed RPC, version handshake and AbortSignal` |
@@ -16,7 +16,7 @@
 
 ## Goal
 
-Let web apps keep lamina off the main thread without learning a second API. `@lamina/pdf/worker` runs the sync `@lamina/pdf` API inside a Web Worker. It exposes the same method names returning Promises, typed by a `Promisified<T>` mapped type derived from the sync interfaces, so the two never drift. It does a version handshake on connect, takes `AbortSignal` and `onProgress`, and transfers buffers instead of cloning them. `@lamina/viewer` ([C3a](./C3a-viewer-worker-rpc.md)) builds on it, so lamina has one worker protocol, not two ([report: the worker client is the async twin](../../research/libraries/shareable-libraries.md#the-worker-client-is-the-async-twin-of-the-sync-api-and-it-should-be-shared-with-the-viewer)).
+Let web apps keep lamina off the main thread without learning a second API. `@lamina/pdf/worker` runs the sync `@lamina/pdf` API inside a Web Worker. It exposes the same method names returning Promises, typed by a `Promisified<T>` mapped type derived from the sync interfaces, so the two never drift. It does a version handshake on connect, takes `AbortSignal` and `onProgress`, and transfers buffers instead of cloning them. `@lamina/viewer` ([C3a](../ready/C3a-viewer-worker-rpc.md)) builds on it, so lamina has one worker protocol, not two ([report: the worker client is the async twin](../../research/libraries/shareable-libraries.md#the-worker-client-is-the-async-twin-of-the-sync-api-and-it-should-be-shared-with-the-viewer)).
 
 ## Context
 
@@ -25,7 +25,7 @@ Let web apps keep lamina off the main thread without learning a second API. `@la
 - [TypeScript note §3](../../research/libraries/notes/typescript-web-dx.md#3-worker-offloading): the API sketch, the handshake, and why progress is sent as fire-and-forget messages instead of Comlink callbacks.
 - [TypeScript note §4](../../research/libraries/notes/typescript-web-dx.md#4-tree-shaking-subpath-exports-multiple-wasm-modules): `Promisified<T>` keeps sync and async in lockstep.
 - [Report: cancellation and progress](../../research/libraries/shareable-libraries.md#cancellation-and-progress-belong-in-laminas-api-not-the-bindings): a busy sync wasm call cannot see a JS `cancel()`. Work must be chunked with `job.step()`, or the worker terminated.
-- [C3a](./C3a-viewer-worker-rpc.md): the viewer's planned RPC (request IDs, priorities, crash restart, no Comlink, never `postMessage` an `Error`). Its scope now builds on this package.
+- [C3a](../ready/C3a-viewer-worker-rpc.md): the viewer's planned RPC (request IDs, priorities, crash restart, no Comlink, never `postMessage` an `Error`). Its scope now builds on this package.
 - [TypeScript guideline](../../guidelines/typescript.md): ESM-only, named exports, no Node-only APIs in shared packages.
 - [ADR 0018](../../decisions/0018-test-strategy.md#2-ci-lanes): no wall-clock assertions in the PR lanes.
 
@@ -50,14 +50,14 @@ Let web apps keep lamina off the main thread without learning a second API. `@la
 - **Crash detection:**
   - The worker's `error`/`messageerror` event, or a reported wasm trap, rejects all pending calls with `worker-crashed` and emits `crashed`.
   - `client.restart()` respawns the worker.
-  - Automatic re-open and retry policy stays with the caller ([C3a](./C3a-viewer-worker-rpc.md) for the viewer).
+  - Automatic re-open and retry policy stays with the caller ([C3a](../ready/C3a-viewer-worker-rpc.md) for the viewer).
   - Silence is not a crash: no heartbeat.
 - Runtimes: browsers (Chromium, Firefox, WebKit), Deno and Bun web Workers.
 
 **Out of scope** (and which todo covers it)
 
-- Viewer priorities, coalescing, render scheduling, soft/hard render timeouts, password re-prompt: [C3a](./C3a-viewer-worker-rpc.md) (built on this client).
-- In-thread disposal, memory caps and trap recovery: [L2b](./L2b-disposal-and-memory.md).
+- Viewer priorities, coalescing, render scheduling, soft/hard render timeouts, password re-prompt: [C3a](../ready/C3a-viewer-worker-rpc.md) (built on this client).
+- In-thread disposal, memory caps and trap recovery: [L2b](../ready/L2b-disposal-and-memory.md).
 - Range loading through the worker: [L2c](../done/L2c-range-byte-source.md) (the worker runs its fetch-and-retry loop).
 - Node `worker_threads` adapter and a worker pool: later, if a use case appears (see Risks).
 - SharedArrayBuffer and threaded wasm: excluded by ADR 0002 and proposed ADR 0009.
@@ -110,7 +110,7 @@ Let web apps keep lamina off the main thread without learning a second API. `@la
 
 - [ ] [shareable-libraries §9 L2](../../plans/shareable-libraries.md#9-to-dos): tick the worker-client to-do
 - [ ] `packages/pdf/README.md` (worker client section); `CLAUDE.md` if the layout or commands change
-- [ ] [C3a](./C3a-viewer-worker-rpc.md): note in its Context which parts this PR delivered (protocol, cancellation, crash detection), so C3a only adds viewer concerns
+- [ ] [C3a](../ready/C3a-viewer-worker-rpc.md): note in its Context which parts this PR delivered (protocol, cancellation, crash detection), so C3a only adds viewer concerns
 
 ## Risks and open questions
 

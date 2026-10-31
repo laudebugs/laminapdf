@@ -48,7 +48,7 @@ Finish the L3 deliverable. Detect tables from vector ruling lines (with a conser
 
 - Layout models, borderless-table models, OCR: [L3c](./L3c-model-plugins.md).
 - `lamina extract` CLI commands and `lamina schema extract/1`: [L4b](./L4b-cli-batch-render-schema.md).
-- `@lamina/pdf/worker` wrapping of `extract`: [L2a](./L2a-worker-client.md) (it wraps whatever the sync API exposes).
+- `@lamina/pdf/worker` wrapping of `extract`: [L2a](../ongoing/L2a-worker-client.md) (it wraps whatever the sync API exposes).
 - Agent-facing docs for extraction: [L5a](./L5a-agent-docs.md).
 - Editor UI for extraction (export dialog): full-editor [E3i](./E3i-extraction.md).
 
