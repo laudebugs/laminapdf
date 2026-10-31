@@ -6,9 +6,9 @@
 | Status | `ready` |
 | Plan | [web reader §6 C2. Render backend and ADRs](../../plans/web-app.md#c2-render-backend-and-adrs) |
 | Round / milestone | Round C (web reader) — M2 Web reader v0.1 |
-| Depends on | [B6b](../done/B6b-lamina-pdf-package.md), [C2b](./C2b-lamina-render-crate.md) |
+| Depends on | [B6b](../done/B6b-lamina-pdf-package.md), [C2b](../ongoing/C2b-lamina-render-crate.md) |
 | Blocks | [C3a](./C3a-viewer-worker-rpc.md), [D1a](./D1a-desktop-ipc-spike.md), [D1b](./D1b-desktop-print-spike.md) |
-| Dependency notes | [C2b](./C2b-lamina-render-crate.md) (trait + hayro adapter to compile); library **B6** (`lamina-wasm` build pipeline, ADR 0016 package conventions, size-budget checks; [pdf-library B6](../../plans/pdf-library.md#b6-wasm-and-laminapdf)) |
+| Dependency notes | [C2b](../ongoing/C2b-lamina-render-crate.md) (trait + hayro adapter to compile); library **B6** (`lamina-wasm` build pipeline, ADR 0016 package conventions, size-budget checks; [pdf-library B6](../../plans/pdf-library.md#b6-wasm-and-laminapdf)) |
 | ADRs | Implements 0004 (web side) and follows 0009 (worker-only use); follows [0002](../../decisions/0002-binding-strategy.md) (wasm-bindgen + tsify), 0016 (package design, from B6), [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) (pinned, hashed third-party binary) |
 | Branch | `feat/c2c-render-packages` |
 | PR title | `feat(render-pdfium): add the pdfium-wasm and hayro web render adapters` |
