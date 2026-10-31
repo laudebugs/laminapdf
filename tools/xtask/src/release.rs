@@ -262,7 +262,29 @@ mod tests {
 
     #[test]
     fn is_ancestor_should_tell_ancestors_from_later_commits() {
-        let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
+        // A scratch repository: CI's checkout is shallow, so the real one may have no HEAD~1.
+        let tree = crate::tracked::TempTree::new("release-ancestor", &[("a.txt", "a")]);
+        let root = tree.0.as_path();
+        let git = |args: &[&str]| {
+            let ok = std::process::Command::new("git")
+                .args([
+                    "-c",
+                    "user.name=t",
+                    "-c",
+                    "user.email=t@example.invalid",
+                    "-c",
+                    "commit.gpgsign=false",
+                ])
+                .args(args)
+                .current_dir(root)
+                .status()
+                .is_ok_and(|s| s.success());
+            assert!(ok, "git {args:?}");
+        };
+        git(&["init", "-q"]);
+        git(&["add", "a.txt"]);
+        git(&["commit", "-q", "-m", "first"]);
+        git(&["commit", "-q", "--allow-empty", "-m", "second"]);
         let head = crate::util::git_stdout(root, &["rev-parse", "HEAD"]).unwrap();
         let parent = crate::util::git_stdout(root, &["rev-parse", "HEAD~1"]).unwrap();
         assert_eq!(
