@@ -10,7 +10,9 @@ import { pathToFileURL } from "node:url";
 
 const from = createRequire(env.LAMINA_TOOLS_FROM ?? "");
 const { build, preview } = await import(pathToFileURL(from.resolve("vite")).href);
-const { chromium } = await import(pathToFileURL(from.resolve("playwright")).href);
+// playwright's entry is CommonJS: its exports arrive as the module's default.
+const playwright = await import(pathToFileURL(from.resolve("playwright")).href);
+const { chromium } = playwright.default ?? playwright;
 
 /** A free TCP port on 127.0.0.1. */
 const freePort = () =>

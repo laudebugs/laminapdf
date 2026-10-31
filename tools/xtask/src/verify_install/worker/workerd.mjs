@@ -39,8 +39,6 @@ try {
     try {
       const response = await fetch(`http://127.0.0.1:${port}/`);
       if (response.ok) {
-        const version = response.headers.get("server") ?? "";
-        console.log(`LAMINA_VERIFY_VERSION workerd ${version}`.trim());
         console.log(await response.text());
         break;
       }
