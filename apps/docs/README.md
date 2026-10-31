@@ -20,6 +20,19 @@ Two environment variables change what the build writes (`astro.config.mjs`):
 | `LAMINA_DOCS_GITHUB` | off | `1` adds every link to GitHub: the repository in the header, "Edit page", TypeDoc's "Defined in" source links, and links to the repository inside the code pages. Off while the repository is private, since those links would 404 for readers. Turn it on (in `.github/workflows/docs.yml`'s build steps) when the repository is public. |
 | `LAMINA_DOCS_TYPEDOC` | on | `0` leaves the TypeDoc reference out. `typecheck` uses it, so each lane runs TypeDoc once, in the build. |
 
+## Look
+
+The site uses lamina's [Paper design language](../../docs/design/paper/design-language.md), the look of the apps:
+- **Ground and accent:** warm paper grounds and ink text, with one deep-teal accent.
+- **Type:** Newsreader for titles, Source Sans 3 for everything else.
+- **Themes:** Starlight's light theme is Paper's light theme (§2.1), and its dark theme is Paper's proposed dark theme (§2.3).
+
+`src/styles/paper.css` (Starlight's `customCss`) maps the design language's tokens (`--paper-*`) onto Starlight's `--sl-*` properties:
+- **Colours:** asides use Paper's accent, Plum, `warning` and `danger`, and the sidebar marks the current page as a selected row.
+- **Fonts:** self-hosted from `src/fonts/` (the CSP allows fonts from `'self'` only); their provenance and OFL licences are in [`src/fonts/README.md`](src/fonts/README.md).
+
+When the design language's tokens change, change them here too.
+
 ## How the pages get their content
 
 - **Snippets are the tested files.** `src/components/Snippet.astro` reads a file of the repository at build time (`<Snippet file="packages/pdf/examples/hello.ts" />`). It can show only the files its `import.meta.glob` lists: the TS examples and the Worker example in `packages/pdf/examples/`, the runtime runners in `packages/pdf/test/`, and the Rust examples in `crates/lamina/examples/`. All of them run in CI, so the code on the site is code that runs. Don't paste code into a page: add or extend an example and show that.
