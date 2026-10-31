@@ -109,6 +109,10 @@ tasks:
   differential --live [--corpus external|mutants|all] [--source <name>]… [--tools a,b] [--sample N]
                     nightly: lamina vs live pdf.js, PDFium, qpdf and pypdf over the external corpus
                     and 250 mutants per corpus file; report in target/nightly/differential/
+  differential --live --text [--source <name>]… [--sample N]
+                    nightly: lamina's page text vs live pdf.js and pdftotext over the external
+                    corpus (whitespace and bidi controls removed; a page agrees when lamina
+                    matches one tool); report in target/nightly/differential-text/
   fetch-pdfium      download the pinned native PDFium (pdfium-binaries chromium/7881) for this host,
                     check its SHA-256, unpack the library and its notices, print LAMINA_PDFIUM_DIR
                     (cache: $LAMINA_PDFIUM_CACHE, $RUNNER_TOOL_CACHE/lamina-pdfium or target/pdfium)

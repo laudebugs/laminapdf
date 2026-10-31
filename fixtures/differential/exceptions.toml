@@ -17,6 +17,19 @@
 # `{ page_count = 0 }`) and `relation` ("lamina-skips": a lower page count, or outline titles
 # that are a shorter subsequence of the tool's).
 #
+# Page text (nightly lane only, `cargo xtask differential --live --text`, todo B9f): `[[class]]`
+# and `[[known]]` entries with `facts = ["text"]` (alone), kept apart from the entries above
+# when the file is read; `tools` from pdfjs, pdftotext. A class's `lamina` / `theirs` are the
+# page's text with whitespace and bidi controls removed; `lamina_facts` can match the file's
+# `outcome` or `error`, or the page's `page_error` (the code its extraction failed with);
+# `lamina_warning` names a warning code lamina raised on the file; `relation = "unmapped"`: the
+# texts differ only by lamina's U+FFFD where the tool writes nothing or a control character.
+# A text `[[known]]` lists the pages it excuses per file in its `[known.pages]` table
+# (`"<file>" = "0-3, 7"`, 0-based, or `{ pages = "0-3", tools = ["pdftotext"] }`); a
+# disagreement on any other page fails. Text entries that could have applied in a run and
+# excused nothing are listed in the text report as stale. Per-file `[[exception]]`s don't take
+# text (the PR lanes read them).
+#
 # [[known]] (nightly lane only): a disagreement that is a lamina bug or an open question, not a
 # rule, tracked by `issue` (its URL; "PENDING" is accepted but warned about on every run and
 # listed in the report) until it is fixed, like an ignored flaky test (ADR 0018 §4).
@@ -242,3 +255,281 @@ file = "pdfjs/test/pdfs/issue22011.pdf"
 facts = ["page_count"]
 issue = "https://github.com/laudebugs/lamina/issues/37"
 reason = "lamina walks 56 pages, PDFium, qpdf and pypdf 57 (a skipped kid, excused by the lamina-skips class) and pdf.js 40"
+
+# ---- Nightly lane: page text (`differential --live --text`, todo B9f) ----
+
+[[class]]
+facts = ["text"]
+lamina = ""
+lamina_facts = { page_error = "unsupported-filter" }
+rule = "ADR 0003 §1: Unsupported filter (the document opens; only decoding that stream fails)"
+reason = "a content stream of the page uses a filter lamina doesn't decode (ASCIIHexDecode, ASCII85Decode, BrotliDecode, an image filter in /Contents), so the page's extraction fails and it has no text; the tool decodes it. The missing standard filters are https://github.com/laudebugs/lamina/issues/108"
+
+[[class]]
+facts = ["text"]
+lamina = ""
+lamina_facts = { page_error = "decompress" }
+rule = "ADR 0003 §1: Truncated Flate data (no output → Error::Decompress)"
+reason = "the page's Flate content gives no output (an empty or damaged stream); lamina's extraction of the page fails with decompress, the tool reads what it can or an empty page"
+
+[[class]]
+facts = ["text"]
+lamina = ""
+lamina_facts = { page_error = "unexpected-eof" }
+rule = "ADR 0003 §1: Rejected (a malformed object is an error for the call that resolves it)"
+reason = "an object the page's content needs is truncated; lamina's extraction of that page fails, the tool recovers part of it"
+
+[[class]]
+facts = ["text"]
+lamina_facts = { error = "reference-cycle" }
+rule = "ADR 0003 §1: Page tree (a node reached twice is ReferenceCycle)"
+reason = "a page or node appears twice in the page tree; lamina rejects the document (so no page text), the tool skips the repeat or the loop and extracts the pages"
+
+[[class]]
+facts = ["text"]
+lamina_facts = { error = "missing-root" }
+rule = "ADR 0003 §1: Rejected (no catalog even after repair)"
+reason = "the catalog doesn't parse or resolve; lamina rejects the document (so no page text), the tool recovers a partial catalog or scans for pages"
+
+[[class]]
+facts = ["text"]
+relation = "unmapped"
+lamina_warning = "unmapped-glyph"
+rule = "ADR 0003 §2: warnings (unmapped-glyph: a glyph without a Unicode value is U+FFFD, with the warning)"
+reason = "the texts differ only where lamina writes U+FFFD for a glyph that has no Unicode value (no ToUnicode entry, glyph name or cmap), and the tool writes nothing or a control character for it"
+
+[[known]]
+facts = ["text"]
+issue = "https://github.com/laudebugs/lamina/issues/106"
+reason = "lamina writes U+FFFD for glyphs pdf.js or pdftotext map to Unicode (built-in encodings of embedded fonts, predefined CJK CMaps without ToUnicode, symbolic fonts)"
+
+[known.pages]
+"pdfbox/pdfbox-layout-awt/src/test/resources/pdf/GlyphLayoutBidi.pdf" = "0"
+"pdfbox/pdfbox-layout-awt/src/test/resources/pdf/GlyphLayoutDIN91379.pdf" = "0"
+"pdfbox/pdfbox-layout-awt/src/test/resources/pdf/GlyphLayoutDIN91379Form.pdf" = "0"
+"pdfbox/pdfbox-layout-awt/src/test/resources/pdf/GlyphLayoutLigaturesAndKerning.pdf" = "0"
+"pdfbox/pdfbox-layout-awt/src/test/resources/pdf/HelloWorld.pdf" = { pages = "0", tools = ["pdfjs"] }
+"pdfbox/pdfbox-layout-fop/src/test/resources/pdf/GlyphLayoutBidi.pdf" = "0"
+"pdfbox/pdfbox-layout-fop/src/test/resources/pdf/GlyphLayoutDIN91379.pdf" = "0"
+"pdfbox/pdfbox-layout-fop/src/test/resources/pdf/GlyphLayoutDIN91379Form.pdf" = "0"
+"pdfbox/pdfbox-layout-fop/src/test/resources/pdf/GlyphLayoutLigaturesAndKerning.pdf" = "0"
+"pdfbox/pdfbox/src/test/resources/input/PDFBOX-3044-010197-p5-ligatures.pdf" = "0"
+"pdfbox/pdfbox/src/test/resources/input/PDFBOX-4322-Empty-ToUnicode-reduced.pdf" = "0"
+"pdfbox/pdfbox/src/test/resources/input/cweb.pdf" = "0-13, 16-17, 25-27"
+"pdfbox/pdfbox/src/test/resources/input/sample_fonts_solidconvertor.pdf" = "0"
+"pdfbox/pdfbox/src/test/resources/org/apache/pdfbox/pdfparser/embedded_zip.pdf" = "0"
+"pdfium/testing/resources/bigtable_mini.pdf" = "0"
+"pdfium/testing/resources/bug_1029.pdf" = "0"
+"pdfium/testing/resources/bug_1139.pdf" = { pages = "0", tools = ["pdftotext"] }
+"pdfium/testing/resources/bug_402562387.pdf" = "0"
+"pdfium/testing/resources/bug_488948351.pdf" = "0"
+"pdfium/testing/resources/bug_642.pdf" = "0"
+"pdfium/testing/resources/bug_707673.pdf" = "0"
+"pdfium/testing/resources/bug_921.pdf" = "0"
+"pdfium/testing/resources/control_characters.pdf" = { pages = "0", tools = ["pdftotext"] }
+"pdfium/testing/resources/pixel/bug_1308.pdf" = { pages = "0", tools = ["pdftotext"] }
+"pdfium/testing/resources/rotated_text.pdf" = { pages = "0", tools = ["pdftotext"] }
+"pdfium/testing/resources/rotated_text_90.pdf" = { pages = "0", tools = ["pdftotext"] }
+"pdfjs/test/pdfs/90ms_rksj_h_sample.pdf" = { pages = "0", tools = ["pdftotext"] }
+"pdfjs/test/pdfs/ContentStreamCycleType3insideType3.pdf" = "0"
+"pdfjs/test/pdfs/ContentStreamNoCycleType3insideType3.pdf" = "0"
+"pdfjs/test/pdfs/PDFJS-7562-reduced.pdf" = "0"
+"pdfjs/test/pdfs/SimFang-variant.pdf" = "0"
+"pdfjs/test/pdfs/TAMReview.pdf" = "1-21"
+"pdfjs/test/pdfs/ThuluthFeatures.pdf" = "0"
+"pdfjs/test/pdfs/Type3WordSpacing.pdf" = "0"
+"pdfjs/test/pdfs/arial_unicode_en_cidfont.pdf" = { pages = "0", tools = ["pdftotext"] }
+"pdfjs/test/pdfs/bug1011159.pdf" = "0"
+"pdfjs/test/pdfs/bug1027533.pdf" = "0"
+"pdfjs/test/pdfs/bug1028735.pdf" = { pages = "0", tools = ["pdfjs"] }
+"pdfjs/test/pdfs/bug1146106.pdf" = "0"
+"pdfjs/test/pdfs/bug1151216.pdf" = "0"
+"pdfjs/test/pdfs/bug1365930.pdf" = { pages = "0", tools = ["pdfjs"] }
+"pdfjs/test/pdfs/bug1650302_reduced.pdf" = "0"
+"pdfjs/test/pdfs/bug1771477.pdf" = "0"
+"pdfjs/test/pdfs/bug1885505.pdf" = "0"
+"pdfjs/test/pdfs/bug859204.pdf" = "0"
+"pdfjs/test/pdfs/bug911034.pdf" = { pages = "0", tools = ["pdfjs"] }
+"pdfjs/test/pdfs/bug920426.pdf" = { pages = "0", tools = ["pdfjs"] }
+"pdfjs/test/pdfs/cff_bluescale_small_zones.pdf" = "0"
+"pdfjs/test/pdfs/complex_ttf_font.pdf" = "0"
+"pdfjs/test/pdfs/font_ascent_descent.pdf" = "0"
+"pdfjs/test/pdfs/french_diacritics.pdf" = "0"
+"pdfjs/test/pdfs/issue10175.pdf" = "0"
+"pdfjs/test/pdfs/issue10640.pdf" = "0"
+"pdfjs/test/pdfs/issue11045.pdf" = "0"
+"pdfjs/test/pdfs/issue11131_reduced.pdf" = "0"
+"pdfjs/test/pdfs/issue11242_reduced.pdf" = "0"
+"pdfjs/test/pdfs/issue11279.pdf" = "0"
+"pdfjs/test/pdfs/issue11403_reduced.pdf" = { pages = "0", tools = ["pdfjs"] }
+"pdfjs/test/pdfs/issue11473.pdf" = "0"
+"pdfjs/test/pdfs/issue11555.pdf" = { pages = "0", tools = ["pdftotext"] }
+"pdfjs/test/pdfs/issue11578_reduced.pdf" = "0"
+"pdfjs/test/pdfs/issue1171.pdf" = "0"
+"pdfjs/test/pdfs/issue11768_reduced.pdf" = { pages = "0", tools = ["pdftotext"] }
+"pdfjs/test/pdfs/issue11915.pdf" = "0"
+"pdfjs/test/pdfs/issue12418_reduced.pdf" = "0"
+"pdfjs/test/pdfs/issue12504.pdf" = "0"
+"pdfjs/test/pdfs/issue12750.pdf" = "0"
+"pdfjs/test/pdfs/issue13147.pdf" = { pages = "0", tools = ["pdftotext"] }
+"pdfjs/test/pdfs/issue13343.pdf" = { pages = "0-1", tools = ["pdftotext"] }
+"pdfjs/test/pdfs/issue1350.pdf" = "0-2"
+"pdfjs/test/pdfs/issue13916.pdf" = "0"
+"pdfjs/test/pdfs/issue14438.pdf" = "0"
+"pdfjs/test/pdfs/issue14565.pdf" = "0"
+"pdfjs/test/pdfs/issue14999_reduced.pdf" = "0"
+"pdfjs/test/pdfs/issue15012.pdf" = "0"
+"pdfjs/test/pdfs/issue15441.pdf" = "0"
+"pdfjs/test/pdfs/issue15443.pdf" = "0"
+"pdfjs/test/pdfs/issue15594_reduced.pdf" = "0"
+"pdfjs/test/pdfs/issue15977_reduced.pdf" = "0"
+"pdfjs/test/pdfs/issue16176.pdf" = { pages = "0", tools = ["pdftotext"] }
+"pdfjs/test/pdfs/issue16316.pdf" = "0"
+"pdfjs/test/pdfs/issue16538.pdf" = { pages = "0", tools = ["pdftotext"] }
+"pdfjs/test/pdfs/issue19550.pdf" = "0"
+"pdfjs/test/pdfs/issue19695.pdf" = "0"
+"pdfjs/test/pdfs/issue2017r.pdf" = "0"
+"pdfjs/test/pdfs/issue20453.pdf" = "0"
+"pdfjs/test/pdfs/issue20489.pdf" = "0"
+"pdfjs/test/pdfs/issue2128r.pdf" = { pages = "0", tools = ["pdftotext"] }
+"pdfjs/test/pdfs/issue2833.pdf" = "0"
+"pdfjs/test/pdfs/issue2884_reduced.pdf" = { pages = "0", tools = ["pdftotext"] }
+"pdfjs/test/pdfs/issue3263r.pdf" = "0-1"
+"pdfjs/test/pdfs/issue3521.pdf" = { pages = "0", tools = ["pdftotext"] }
+"pdfjs/test/pdfs/issue3566.pdf" = "0"
+"pdfjs/test/pdfs/issue3584.pdf" = "0"
+"pdfjs/test/pdfs/issue4402_reduced.pdf" = { pages = "0", tools = ["pdfjs"] }
+"pdfjs/test/pdfs/issue4550.pdf" = "0-1"
+"pdfjs/test/pdfs/issue4722.pdf" = "0"
+"pdfjs/test/pdfs/issue5010.pdf" = "0"
+"pdfjs/test/pdfs/issue5039.pdf" = "0"
+"pdfjs/test/pdfs/issue5070.pdf" = "0"
+"pdfjs/test/pdfs/issue5377.pdf" = "0"
+"pdfjs/test/pdfs/issue5501.pdf" = "0"
+"pdfjs/test/pdfs/issue5801.pdf" = "0"
+"pdfjs/test/pdfs/issue5874.pdf" = "0"
+"pdfjs/test/pdfs/issue5994.pdf" = { pages = "0", tools = ["pdfjs"] }
+"pdfjs/test/pdfs/issue6127.pdf" = "0-2"
+"pdfjs/test/pdfs/issue6132.pdf" = "0"
+"pdfjs/test/pdfs/issue6231_1.pdf" = "0"
+"pdfjs/test/pdfs/issue6721_reduced.pdf" = { pages = "0", tools = ["pdfjs"] }
+"pdfjs/test/pdfs/issue6901.pdf" = "0"
+"pdfjs/test/pdfs/issue7696.pdf" = { pages = "0", tools = ["pdftotext"] }
+"pdfjs/test/pdfs/issue7835.pdf" = { pages = "0", tools = ["pdfjs"] }
+"pdfjs/test/pdfs/issue8586.pdf" = "0"
+"pdfjs/test/pdfs/issue8844.pdf" = "0"
+"pdfjs/test/pdfs/issue918.pdf" = "0"
+"pdfjs/test/pdfs/issue9655_reduced.pdf" = "0"
+"pdfjs/test/pdfs/issue9915_reduced.pdf" = "0"
+"pdfjs/test/pdfs/noembed-eucjp.pdf" = { pages = "0", tools = ["pdftotext"] }
+"pdfjs/test/pdfs/noembed-identity-2.pdf" = { pages = "0", tools = ["pdftotext"] }
+"pdfjs/test/pdfs/noembed-identity.pdf" = "0"
+"pdfjs/test/pdfs/noembed-jis7.pdf" = "0"
+"pdfjs/test/pdfs/noembed-sjis.pdf" = { pages = "0", tools = ["pdftotext"] }
+"pdfjs/test/pdfs/prefilled_f1040.pdf" = { pages = "1", tools = ["pdftotext"] }
+"pdfjs/test/pdfs/simpletype3font.pdf" = "0"
+"pdfjs/test/pdfs/standard_fonts.pdf" = "0-13"
+"pdfjs/test/pdfs/tracemonkey_a11y.pdf" = "0"
+"pdfjs/test/pdfs/vertical.pdf" = { pages = "0", tools = ["pdftotext"] }
+"qpdf/qpdf/qtest/qpdf/issue-202.pdf" = "2, 4-8"
+
+[[known]]
+facts = ["text"]
+issue = "https://github.com/laudebugs/lamina/issues/107"
+reason = "lamina keeps ligature code points (U+FB00–U+FB06), soft hyphens and zero-width spaces that pdf.js and pdftotext decompose or drop"
+
+[known.pages]
+"pdfbox/pdfbox/src/test/resources/input/PDFBOX-3110-poems-beads-cropbox.pdf" = "0-1"
+"pdfbox/pdfbox/src/test/resources/input/PDFBOX-3110-poems-beads.pdf" = "0-1"
+"pdfjs/test/pdfs/bug1392647.pdf" = "0"
+"pdfjs/test/pdfs/bug1669099.pdf" = "0"
+"pdfjs/test/pdfs/bug1873345.pdf" = "0"
+"pdfjs/test/pdfs/bug1992868.pdf" = "0-13"
+"pdfjs/test/pdfs/bug1997343.pdf" = "0"
+"pdfjs/test/pdfs/comments.pdf" = "0-13"
+"pdfjs/test/pdfs/highlights.pdf" = "0-13"
+"pdfjs/test/pdfs/issue12337.pdf" = "0-13"
+"pdfjs/test/pdfs/issue18911.pdf" = "0-13"
+"pdfjs/test/pdfs/issue19239.pdf" = "0-13"
+"pdfjs/test/pdfs/issue19971.pdf" = "1, 5"
+"pdfjs/test/pdfs/issue7014.pdf" = "0"
+"pdfjs/test/pdfs/openoffice.pdf" = "0"
+"pdfjs/test/pdfs/tracemonkey.pdf" = "0-13"
+"pdfjs/test/pdfs/tracemonkey_annotation_on_page_8.pdf" = "0-13"
+"pdfjs/test/pdfs/tracemonkey_freetext.pdf" = "0-13"
+"pdfjs/test/pdfs/tracemonkey_with_annotations.pdf" = "0-13"
+"pdfjs/test/pdfs/tracemonkey_with_editable_annotations.pdf" = "0-13"
+
+[[known]]
+facts = ["text"]
+issue = "https://github.com/laudebugs/lamina/issues/109"
+reason = "lamina fails with password-required where pdf.js and pdftotext open the file without a password (only embedded files encrypted, or crypt filters)"
+
+[known.pages]
+"pdfjs/test/pdfs/auth-event-ef-open.pdf" = "0"
+"pdfjs/test/pdfs/encrypted-attachment.pdf" = { pages = "0", tools = ["pdftotext"] }
+"qpdf/qpdf/qtest/qpdf/enc-XI-R6,V5,U=attachment,encrypted-attachments.pdf" = "0-29"
+"qpdf/qpdf/qtest/qpdf/nontrivial-crypt-filter.pdf" = "0"
+"qpdf/qpdf/qtest/qpdf/unfilterable-with-crypt.pdf" = "0-29"
+
+[[known]]
+facts = ["text"]
+issue = "https://github.com/laudebugs/lamina/issues/110"
+reason = "page text differs from both tools for reasons still to triage (order of RTL, bidi or vertical text; text outside the crop box or invisible; text in Form XObjects or widgets; other encodings)"
+
+[known.pages]
+"pdfbox/pdfbox-layout-awt/src/test/resources/pdf/GlyphLayoutBidi_ActualText.pdf" = "0"
+"pdfbox/pdfbox/src/test/resources/input/FC60_Times.pdf" = "0"
+"pdfbox/pdfbox/src/test/resources/input/PDFBOX-4531-bidi-ligature-2.pdf" = "0"
+"pdfbox/pdfbox/src/test/resources/input/PDFBOX-5838-0024320-reduced.pdf" = "0"
+"pdfbox/pdfbox/src/test/resources/org/apache/pdfbox/text/BidiSample.pdf" = "0"
+"pdfbox/tools/src/test/resources/input/ImageIOUtil/raw_image_demo.pdf" = "0"
+"pdfium/testing/resources/actual_text_rtl.pdf" = "0"
+"pdfium/testing/resources/bug_1893.pdf" = "0"
+"pdfium/testing/resources/bug_547706.pdf" = { pages = "0", tools = ["pdfjs"] }
+"pdfium/testing/resources/bug_889099.pdf" = "0"
+"pdfium/testing/resources/cropped_text.pdf" = "0-3"
+"pdfium/testing/resources/vertical_text.pdf" = "0"
+"pdfium/testing/resources/weblinks.pdf" = "0"
+"pdfjs/test/pdfs/Brotli-Prototype-FileA.pdf" = "0-24"
+"pdfjs/test/pdfs/ShowText-ShadingPattern.pdf" = "0"
+"pdfjs/test/pdfs/Test-plusminus.pdf" = "0"
+"pdfjs/test/pdfs/XiaoBiaoSong.pdf" = "0"
+"pdfjs/test/pdfs/ZapfDingbats.pdf" = "0-1"
+"pdfjs/test/pdfs/annotation-text-without-popup.pdf" = "0"
+"pdfjs/test/pdfs/bug1953099.pdf" = "0"
+"pdfjs/test/pdfs/bug946506.pdf" = "0"
+"pdfjs/test/pdfs/freeculture.pdf" = "2-351"
+"pdfjs/test/pdfs/issue11549_reduced.pdf" = "0"
+"pdfjs/test/pdfs/issue11922_reduced.pdf" = "0"
+"pdfjs/test/pdfs/issue12705.pdf" = "0"
+"pdfjs/test/pdfs/issue12823.pdf" = "0"
+"pdfjs/test/pdfs/issue14297.pdf" = "0"
+"pdfjs/test/pdfs/issue19182.pdf" = "0"
+"pdfjs/test/pdfs/issue19326.pdf" = "0"
+"pdfjs/test/pdfs/issue19802.pdf" = "0"
+"pdfjs/test/pdfs/issue22011.pdf" = "39-55"
+"pdfjs/test/pdfs/issue22044.pdf" = "0"
+"pdfjs/test/pdfs/issue2537r.pdf" = "0"
+"pdfjs/test/pdfs/issue5677.pdf" = "0"
+"pdfjs/test/pdfs/issue6286.pdf" = "0"
+"pdfjs/test/pdfs/issue7454.pdf" = "0"
+"pdfjs/test/pdfs/issue9418.pdf" = { pages = "0", tools = ["pdfjs"] }
+"pdfjs/test/pdfs/mixedfonts.pdf" = "0"
+"pdfjs/test/pdfs/operator-in-TJ-array.pdf" = "0"
+"pdfjs/test/pdfs/pattern_text_rotated_fallback_glyphs.pdf" = "0"
+"pdfjs/test/pdfs/pr6531_2.pdf" = { pages = "0", tools = ["pdftotext"] }
+"pdfjs/test/pdfs/vertical_rotated_fallback_glyphs.pdf" = "0"
+"qpdf/qpdf/qtest/qpdf/appearances-a-more.pdf" = "0"
+"qpdf/qpdf/qtest/qpdf/appearances-a-more2.pdf" = "0"
+"qpdf/qpdf/qtest/qpdf/appearances-a-more3.pdf" = "0"
+"qpdf/qpdf/qtest/qpdf/appearances-a.pdf" = "0"
+"qpdf/qpdf/qtest/qpdf/fax-decode-parms.pdf" = "3"
+"qpdf/qpdf/qtest/qpdf/form-filled-by-acrobat-out.pdf" = "0"
+"qpdf/qpdf/qtest/qpdf/form-xobjects-some-resources1-out.pdf" = "0"
+"qpdf/qpdf/qtest/qpdf/form-xobjects-some-resources1.pdf" = "0"
+"qpdf/qpdf/qtest/qpdf/form-xobjects-some-resources2-out.pdf" = "0"
+"qpdf/qpdf/qtest/qpdf/form-xobjects-some-resources2.pdf" = "0"
+"qpdf/qpdf/qtest/qpdf/fx-overlay-64.pdf" = "1"
+"qpdf/qpdf/qtest/qpdf/fx-overlay-66.pdf" = "1"
+"qpdf/qpdf/qtest/qpdf/stream-line-enders.pdf" = "0"
