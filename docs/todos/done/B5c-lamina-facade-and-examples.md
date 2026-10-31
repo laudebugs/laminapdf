@@ -42,7 +42,7 @@ Give Rust users one crate, `lamina`, whose docs open with the invoice example an
 - PDF/UA and PDF/A examples: [B8b](../ready/B8b-conformance-profiles-and-verapdf.md).
 - Worker endpoint example: [B6c](../done/B6c-runtime-matrix.md)/[B7a](./B7a-docs-site.md).
 - `lamina-render` / `RenderBackend`: web C2.
-- Nightly hayro-vs-PDFium diffs over external corpora: [X3b](../ongoing/X3b-render-diff-nightly.md).
+- Nightly hayro-vs-PDFium diffs over external corpora: [X3b](./X3b-render-diff-nightly.md).
 
 ## Tasks
 

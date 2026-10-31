@@ -15,7 +15,7 @@ use serde_json::{Value, json};
 
 use crate::util::{append, github_output, summary};
 use crate::workspace::Workspace;
-use crate::{corpus, docs_links, harness, live, pdf_runtimes, step};
+use crate::{corpus, docs_links, harness, live, pdf_runtimes, render_diff, step};
 
 /// A benchmark regressed when it is this much slower than its baseline (ADR 0018 tier 11).
 const REGRESSION_RATIO: f64 = 1.10;
@@ -23,6 +23,9 @@ const REGRESSION_RATIO: f64 = 1.10;
 /// The criterion benchmark targets `cargo xtask bench` runs: `(package, bench)`. `lamina`'s
 /// `report` is the 100-page text report of pdf-library §4 (B5d).
 const BENCHES: [(&str, &str); 3] = [("lamina-cos", "read"), ("lamina-save", "save"), ("lamina", "report")];
+
+/// The pages per file the nightly render diff renders (`--pages`; nightly.yml passes the same).
+const RENDER_DIFF_PAGES: u32 = 20;
 
 /// The baseline is the median of this many previous records from the same runner.
 const BASELINE_RUNS: usize = 5;
@@ -243,7 +246,7 @@ pub(crate) fn bench(ws: &Workspace, args: &BenchArgs) -> Result<()> {
 
 /// The records in `history.jsonl`: none when the file doesn't exist yet (the first run);
 /// any other read or parse error fails, so a broken history never hides a regression.
-fn read_history(path: &Path) -> Result<Vec<Value>> {
+pub(crate) fn read_history(path: &Path) -> Result<Vec<Value>> {
     let text = match fs::read_to_string(path) {
         Ok(text) => text,
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(Vec::new()),
@@ -325,7 +328,7 @@ pub(crate) fn parse_nightly_args(args: &[String]) -> Result<bool> {
 /// `cargo xtask nightly [--quick]`: the whole nightly lane locally, in the workflow's order;
 /// every part runs even when an earlier one failed, and the failures are listed at the end.
 /// `--quick` shortens it (a 300-file differential sample, 30 s per fuzz target, quick
-/// benchmarks); the full lane takes hours.
+/// benchmarks, a 100-file render diff); the full lane takes hours.
 pub(crate) fn nightly(ws: &Workspace, quick: bool) -> Result<()> {
     let mut failed: Vec<String> = Vec::new();
     let mut part = |name: &str, result: Result<()>| {
@@ -361,6 +364,12 @@ pub(crate) fn nightly(ws: &Workspace, quick: bool) -> Result<()> {
         "pdf-runtimes",
         crate::wasm(ws).and_then(|()| pdf_runtimes::run(ws, &pdf_runtimes::Args::default())),
     );
+    let render_args = render_diff::Args {
+        pages: Some(RENDER_DIFF_PAGES),
+        sample: quick.then_some(100),
+        ..render_diff::Args::default()
+    };
+    part("render-diff", render_diff::run(ws, &render_args));
     part("docs-links --external", docs_links::external::run(&ws.root, false));
     if failed.is_empty() {
         step("Nightly lane passed");

@@ -3,14 +3,14 @@
 | Field | Value |
 | --- | --- |
 | ID | `X3b` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [architecture §7 Cross-cutting](../../plans/architecture.md#cross-cutting), web plan [C2](../../plans/web-app.md#c2-render-backend-and-adrs) ("the hayro-vs-PDFium diff runs in the nightly lane") |
 | Round / milestone | Cross-cutting (with Round C) |
-| Depends on | [C2b](../done/C2b-lamina-render-crate.md), [X3a](../done/X3a-nightly-lane.md) |
+| Depends on | [C2b](./C2b-lamina-render-crate.md), [X3a](./X3a-nightly-lane.md) |
 | Blocks | None |
-| ADRs | Follows [0018](../../decisions/0018-test-strategy.md) §2 (nightly: hayro vs PDFium render diffs), ADR 0004 (written in C2) |
+| ADRs | Follows [0018](../../decisions/0018-test-strategy.md) §2 (nightly: hayro vs PDFium render diffs), [0004](../../decisions/0004-render-backend.md) §6 (the metric, thresholds and tracked number: its X3b implementation note) |
 | Branch | `ci/x3b-render-diffs` |
-| PR title | `ci: nightly hayro-vs-PDFium render diffs with pass-rate history` |
+| PR title | `ci: nightly hayro-vs-PDFium render diffs (X3b)` |
 | Size | M (≈ 300–600 lines) |
 | PR | — |
 
@@ -22,7 +22,7 @@ Measure, every night, how far hayro is from PDFium on the external corpus, so th
 
 - [Architecture §2 principle 4](../../plans/architecture.md#principles-each-becomes-part-of-an-adr) (rendering is swappable; hayro becomes default at parity), [§4 `hayro-parity` spike](../../plans/architecture.md#4-spikes-to-close-open-questions).
 - [Rendering notes §1, §5](../../research/architecture/notes/rendering.md#5-recommendation-options-and-risks).
-- Render-golden tooling from [B5c](../done/B5c-lamina-facade-and-examples.md) (thresholds, diff images).
+- Render-golden tooling from [B5c](./B5c-lamina-facade-and-examples.md) (thresholds, diff images).
 
 ## Scope
 
@@ -38,9 +38,9 @@ Measure, every night, how far hayro is from PDFium on the external corpus, so th
 
 ## Tasks
 
-- [ ] Implement `render-diff` on top of `lamina-render`
-- [ ] Nightly job, history storage, issue on regression
-- [ ] Document the metric and thresholds in ADR 0004 notes or the C2 docs
+- [x] Implement `render-diff` on top of `lamina-render` (`tools/xtask/src/render_diff.rs`; the reader is `tools/render/src/bin/render-diff.rs`, which reuses `render-golden`'s parity comparison)
+- [x] Nightly job, history storage, issue on regression (`render-diff` in `nightly.yml`; the report job files the issue; every write gated on `record`)
+- [x] Document the metric and thresholds in ADR 0004 notes or the C2 docs (ADR 0004 §6, implementation note)
 
 ## Acceptance criteria
 
@@ -58,8 +58,8 @@ Unit tests for the comparator and report generator.
 
 ## Docs to update
 
-- [ ] [architecture §7 Cross-cutting](../../plans/architecture.md#cross-cutting): tick the render-diff part of the nightly-lane item
-- [ ] `CLAUDE.md`
+- [x] [architecture §7 Cross-cutting](../../plans/architecture.md#cross-cutting): tick the render-diff part of the nightly-lane item (split from veraPDF's)
+- [x] `CLAUDE.md` (layout, commands, the nightly paragraph)
 
 ## Risks and open questions
 
@@ -68,8 +68,8 @@ Unit tests for the comparator and report generator.
 
 ## Definition of done
 
-- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [x] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
 - [ ] Work PR opened from a fresh worktree; **PR** field filled in
 - [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
 - [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
