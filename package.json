@@ -15,10 +15,12 @@
     "format": "biome format --write .",
     "typecheck": "pnpm -r --if-present run typecheck",
     "test": "pnpm -r --if-present run test",
-    "licenses": "cargo xtask npm-licenses"
+    "licenses": "cargo xtask npm-licenses",
+    "changeset": "changeset"
   },
   "devDependencies": {
     "@biomejs/biome": "catalog:",
+    "@changesets/cli": "catalog:",
     "typescript": "catalog:"
   }
 }

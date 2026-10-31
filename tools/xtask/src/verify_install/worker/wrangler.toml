@@ -1,0 +1,5 @@
+# `cargo xtask verify-install workerd`: the Worker in src/ (index.ts, hello.ts, report.ts), run
+# locally in workerd by `wrangler dev --local` (workerd.mjs).
+name = "lamina-verify-install"
+main = "src/index.ts"
+compatibility_date = "2026-10-01"
