@@ -3,8 +3,8 @@
 // observer sees long tasks at all. Chromium only (the `longtask` entry type). Recorded as a measurement in the job summary
 // (`cargo xtask pdf-runtimes chromium`), never asserted: no wall-clock assertions in the PR
 // lanes (ADR 0018).
-import { Builder, Document, Image, init } from "@lamina/pdf";
-import { connect } from "@lamina/pdf/worker";
+import { Builder, Document, Image, init } from "@laminapdf/pdf";
+import { connect } from "@laminapdf/pdf/worker";
 import { expect, it } from "vitest";
 import { server } from "vitest/browser";
 import { printMeasurement } from "../suite/examples.js";

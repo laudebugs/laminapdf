@@ -43,7 +43,7 @@ impl fmt::Display for Status {
     }
 }
 
-/// A column of the matrix: the Rust core, `@lamina/pdf`, the web app, the desktop app.
+/// A column of the matrix: the Rust core, `@laminapdf/pdf`, the web app, the desktop app.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub(crate) enum Surface {
     Core,

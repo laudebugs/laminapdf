@@ -1,4 +1,4 @@
-// The worker side of `@lamina/pdf/worker` (L2a): `dist/worker/entry.js`, started by `connect()`.
+// The worker side of `@laminapdf/pdf/worker` (L2a): `dist/worker/entry.js`, started by `connect()`.
 // It answers the handshake, calls `init()`, keeps the documents and pages it made in a handle
 // table, and runs one call at a time (the WASM is synchronous). A queued call can be cancelled
 // before it starts; `save` and `saveWithReport` run as stepped save jobs that yield to the event

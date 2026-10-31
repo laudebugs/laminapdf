@@ -1,5 +1,5 @@
-// A browser app using @lamina/pdf, bundled by test/vite.test.ts.
-import { Builder, Document, Font, init, loadText } from "@lamina/pdf";
+// A browser app using @laminapdf/pdf, bundled by test/vite.test.ts.
+import { Builder, Document, Font, init, loadText } from "@laminapdf/pdf";
 
 /** Opens `bytes`, then builds a page of text: both modules, loaded the way a page would. */
 export async function run(bytes: Uint8Array): Promise<readonly [number, number]> {

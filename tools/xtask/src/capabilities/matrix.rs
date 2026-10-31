@@ -79,7 +79,7 @@ Rows, IDs and target rounds are in [`manifest.toml`](manifest.toml); a status ap
 **Statuses**, weakest first: 🔴 `unsupported` (detected and reported, never silently dropped), 🟡 `read` (displayed or \
 extracted faithfully), 🔵 `write` (created or changed; output passes qpdf `--check` and opens in pdf.js and PDFium), \
 🟢 `round-trip` (open → change → save → reopen preserves the feature and everything else). `—` means no evidence yet; \
-`n/a` means the row doesn't target that surface. **Columns:** `core` (the Rust crates), `pdf` (`@lamina/pdf`), `web`, \
+`n/a` means the row doesn't target that surface. **Columns:** `core` (the Rust crates), `pdf` (`@laminapdf/pdf`), `web`, \
 `desktop`; *Target* is the round that must reach the target status on every targeted surface.
 
 **Evidence.** A Rust test claims a status with a doc-comment line above it, `/// capability: C.08 core round-trip` \

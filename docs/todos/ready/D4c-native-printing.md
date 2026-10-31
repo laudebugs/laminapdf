@@ -53,7 +53,7 @@ Ship faithful printing on macOS, Windows and Linux using the path D1b recommende
 - [ ] Port the D1b spike's chosen code paths into `src-tauri/src/print/`, replacing spike shortcuts (`unwrap`, blocking on the main thread) with proper error handling and `run_on_main_thread` where APIs require it; every FFI `unsafe` with `// SAFETY:`.
 - [ ] Engine `RenderPrintPage` message + streaming with back-pressure; protocol version bump; tests.
 - [ ] `print` command (manifest + capability) invoked from the menu event and the toolbar's print button via `Platform.print()`.
-- [ ] Progress + cancel UI in `@lamina/ui` (shared component; web uses it for C6's print preparation too if useful).
+- [ ] Progress + cancel UI in `@laminapdf/ui` (shared component; web uses it for C6's print preparation too if useful).
 - [ ] Settings: "Print using: system (recommended) / compatibility (webview)".
 - [ ] Fixtures: reuse D1b's three fixtures (50-page, mixed sizes, vector-heavy).
 - [ ] Manual print checklist `apps/desktop/e2e/MANUAL-PRINT.md` with a results table: OS, version, printer/driver, fixture, range, duplex, result, SSIM vs reference (print-to-PDF).

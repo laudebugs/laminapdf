@@ -30,7 +30,7 @@ Decide how native iOS and Android apps would be built before anyone builds one. 
 
 **In scope**
 
-- `spikes/mobile-shell/tauri/`: Tauri 2 mobile app reusing `@lamina/ui` + `@lamina/viewer` with a native render path; iOS and Android builds.
+- `spikes/mobile-shell/tauri/`: Tauri 2 mobile app reusing `@laminapdf/ui` + `@laminapdf/viewer` with a native render path; iOS and Android builds.
 - `spikes/mobile-shell/native/`: a minimal SwiftUI app and a minimal Compose app calling the core through UniFFI and rendering pages with PDFium.
 - Measurements on the same devices: cold start, first page, scroll smoothness (dropped frames), memory on a 1,000-page file, pen-to-ink latency (high-speed video or system tracing), native selection menu behaviour over the page, share-sheet open, Files/Storage Access Framework open and save, Vision / ML Kit OCR call from each shell, app size.
 - A README with the table, a recommendation, and a draft of ADR 0025.

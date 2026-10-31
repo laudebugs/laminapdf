@@ -16,7 +16,7 @@
 
 ## Goal
 
-Close Round U6 with the guard rails that keep code and design together: a dev-only gallery app that renders every token, icon and component of `@lamina/ui` in every state, in each UI theme (Paper light, Paper dark, high contrast and forced colours) and, for page-related components, in each page appearance; Playwright screenshot tests over it with a clear workflow for reviewing and updating images; axe on every gallery page; and a docs check that every screen ID in the screen inventory has a section in its area document and a committed design file. After this, a PR that changes how a component looks shows the change as an image diff, and a screen cannot be added to the inventory without its design.
+Close Round U6 with the guard rails that keep code and design together: a dev-only gallery app that renders every token, icon and component of `@laminapdf/ui` in every state, in each UI theme (Paper light, Paper dark, high contrast and forced colours) and, for page-related components, in each page appearance; Playwright screenshot tests over it with a clear workflow for reviewing and updating images; axe on every gallery page; and a docs check that every screen ID in the screen inventory has a section in its area document and a committed design file. After this, a PR that changes how a component looks shows the change as an image diff, and a screen cannot be added to the inventory without its design.
 
 ## Context
 
@@ -31,9 +31,9 @@ Close Round U6 with the guard rails that keep code and design together: a dev-on
 
 **In scope**
 
-- `apps/gallery` (private, never deployed to production; Vite; depends on `@lamina/tokens`, `@lamina/fonts`, `@lamina/icons`, `@lamina/ui`): one route per component group (tokens: colours with their contrast pairs, type scale, spacing, radii, shadows; icons; buttons and toggles; mode switcher and tabs; form controls; swatches and appearance chips; badges, notices, toasts; progress and empty states; status bar items; thumbnails and outline rows; dialogs; sheets; menus and popovers; selection toolbar shell; palette shell), each rendering every state from `test/states.ts`.
+- `apps/gallery` (private, never deployed to production; Vite; depends on `@laminapdf/tokens`, `@laminapdf/fonts`, `@laminapdf/icons`, `@laminapdf/ui`): one route per component group (tokens: colours with their contrast pairs, type scale, spacing, radii, shadows; icons; buttons and toggles; mode switcher and tabs; form controls; swatches and appearance chips; badges, notices, toasts; progress and empty states; status bar items; thumbnails and outline rows; dialogs; sheets; menus and popovers; selection toolbar shell; palette shell), each rendering every state from `test/states.ts`.
 - Global controls: theme (light, dark, high contrast), page appearance (Original, Sepia, Dark, High contrast) for page-related routes, density (desktop, touch), direction (LTR, RTL), reduced motion; reflected in the URL so a screenshot can address any combination.
-- Playwright screenshot tests (`apps/gallery/e2e/visual.spec.ts`, `toHaveScreenshot`): every route × {light, dark, high contrast} in Chromium at 1× and a touch-density pass at a 390 px viewport; page-related routes × four page appearances; a `forcedColors: "active"` pass per route; one RTL pass per route. Fonts load from `@lamina/fonts`; animations disabled; a fixed date and locale.
+- Playwright screenshot tests (`apps/gallery/e2e/visual.spec.ts`, `toHaveScreenshot`): every route × {light, dark, high contrast} in Chromium at 1× and a touch-density pass at a 390 px viewport; page-related routes × four page appearances; a `forcedColors: "active"` pass per route; one RTL pass per route. Fonts load from `@laminapdf/fonts`; animations disabled; a fixed date and locale.
 - Deterministic environment: tests run in the pinned Playwright Docker image (version pinned with the `@playwright/test` version), locally and in CI, so Linux screenshots match on every machine.
 - Review and update workflow: `cargo xtask gallery` (build and serve), `cargo xtask gallery --test` (run in the Docker image), `cargo xtask gallery --update` (regenerate screenshots in the Docker image and print the changed files); CI uploads expected, actual and diff images as an artifact on failure; the PR includes the updated PNGs, and the reviewer checks them in GitHub's image diff. Only `--update` writes snapshots; tests never update them.
 - axe (via `@axe-core/playwright`) on every route in every theme, in Chromium, Firefox and WebKit: zero violations.
@@ -50,12 +50,12 @@ Close Round U6 with the guard rails that keep code and design together: a dev-on
 ## Tasks
 
 - [ ] Claim via a claim PR (see Definition of done); then a fresh worktree off the updated `main`. Load the `/rust-best-practices` skill before writing the xtask module.
-- [ ] Scaffold `apps/gallery` (Vite, React 19, `"private": true`, nested `biome.json` with DOM globals, `tsconfig.json` with `"module": "preserve"`), import `@lamina/tokens/tokens.css` and `@lamina/fonts/fonts.css`, preload the UI font.
-- [ ] Build the routes from Scope; each route imports the state lists from `@lamina/ui`'s test helpers (exported on a `./testing` subpath) instead of repeating them.
+- [ ] Scaffold `apps/gallery` (Vite, React 19, `"private": true`, nested `biome.json` with DOM globals, `tsconfig.json` with `"module": "preserve"`), import `@laminapdf/tokens/tokens.css` and `@laminapdf/fonts/fonts.css`, preload the UI font.
+- [ ] Build the routes from Scope; each route imports the state lists from `@laminapdf/ui`'s test helpers (exported on a `./testing` subpath) instead of repeating them.
 - [ ] Add the global controls and URL parameters; an index page listing every route.
 - [ ] Add `@playwright/test` and `@axe-core/playwright` (licence-check: Apache-2.0 and MPL-2.0, dev only); `playwright.config.ts` with the projects above; pin the Docker image tag next to the npm version and check they match in a test.
 - [ ] `e2e/visual.spec.ts` (screenshots), `e2e/a11y.spec.ts` (axe on every route × theme × engine), `e2e/fonts.spec.ts` (no request leaves the origin: complements [U6b](./U6b-self-hosted-fonts.md)).
-- [ ] A coverage test: every exported component of `@lamina/ui` appears on at least one route (compare the package's export list with a registry in the gallery).
+- [ ] A coverage test: every exported component of `@laminapdf/ui` appears on at least one route (compare the package's export list with a registry in the gallery).
 - [ ] `cargo xtask gallery [--test|--update]` in `tools/xtask` (calls `pnpm` and `docker`; a clear error if Docker is missing, with the CI fallback: run the "update screenshots" `workflow_dispatch` job, which uploads the new PNGs as an artifact).
 - [ ] `tools/xtask/src/design_screens.rs` with unit tests on small Markdown inputs (ID found, heading missing, file missing, "Not yet drawn" exemption), wired into `check docs`; run it on the real tree and either fix gaps or list them under "Not yet drawn" in screens.md in this PR.
 - [ ] CI: the gallery job (Docker image, `pnpm install --frozen-lockfile`, `cargo xtask gallery --test`), artifact upload on failure; the `workflow_dispatch` update job.
@@ -63,7 +63,7 @@ Close Round U6 with the guard rails that keep code and design together: a dev-on
 
 ## Acceptance criteria
 
-- [ ] The gallery renders every exported component of `@lamina/ui` (coverage test) in every theme, and page-related components in every page appearance.
+- [ ] The gallery renders every exported component of `@laminapdf/ui` (coverage test) in every theme, and page-related components in every page appearance.
 - [ ] Screenshot tests pass in CI and locally in the Docker image; changing a token value (e.g. `accent`) makes them fail with diff images in the artifact (shown once in the PR description).
 - [ ] `cargo xtask gallery --update` regenerates screenshots and nothing else; no test writes snapshots.
 - [ ] axe reports zero violations on every route, theme and engine.

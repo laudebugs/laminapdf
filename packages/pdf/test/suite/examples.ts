@@ -3,7 +3,7 @@
 // framework; each runner supplies the fixture bytes its own way (`runSuite`'s `read`, or the
 // Worker's bundled `INPUT_PATHS`) and the output is compared with the Rust golden, so every
 // runtime produces the same bytes.
-import { init, wasmMemory } from "@lamina/pdf";
+import { init, wasmMemory } from "@laminapdf/pdf";
 import { generateThenEdit } from "../../examples/generate-then-edit.js";
 import { hello } from "../../examples/hello.js";
 import { imagesAndVectors } from "../../examples/images-and-vectors.js";

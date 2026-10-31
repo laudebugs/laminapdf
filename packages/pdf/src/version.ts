@@ -2,5 +2,5 @@
 // must be one build. test/version.test.ts checks it against package.json, so a version bump that
 // forgets this file fails.
 
-/** `@lamina/pdf`'s version. */
+/** `@laminapdf/pdf`'s version. */
 export const VERSION = "0.1.0-alpha.0";

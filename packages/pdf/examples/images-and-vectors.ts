@@ -2,7 +2,7 @@
 // gray/RGB/CMYK/hex colour, transparency and a blend mode, a clip, a rotated transform, a JPEG
 // passed through and an RGBA image with a soft mask. Needs only the base module. The TS twin of
 // crates/lamina/examples/vectors.rs (fixtures/golden/examples/vectors.pdf).
-import { Builder, Image, Matrix } from "@lamina/pdf";
+import { Builder, Image, Matrix } from "@laminapdf/pdf";
 
 /** A 16×16 RGBA gradient whose alpha falls off towards the right. */
 function gradient(): Uint8Array {

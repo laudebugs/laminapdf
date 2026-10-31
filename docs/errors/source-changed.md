@@ -5,7 +5,7 @@
 
 ## What happened
 
-A remote file changed while `@lamina/pdf` was reading it range by range: a response's `ETag` or total length differs from the first one (or the server ignored `If-Range` and sent a different file).
+A remote file changed while `@laminapdf/pdf` was reading it range by range: a response's `ETag` or total length differs from the first one (or the server ignored `If-Range` and sent a different file).
 
 ## Why
 

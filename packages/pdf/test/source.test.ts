@@ -3,7 +3,7 @@
 import { readdirSync } from "node:fs";
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
 import type { AddressInfo } from "node:net";
-import { callbackSource, Document, httpRangeSource, init, isLaminaError, type LaminaError } from "@lamina/pdf";
+import { callbackSource, Document, httpRangeSource, init, isLaminaError, type LaminaError } from "@laminapdf/pdf";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { read } from "./helpers.js";
 

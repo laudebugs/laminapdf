@@ -1,7 +1,7 @@
 // page.text() in a browser (B9c): the extract module through the `browser` export condition,
 // fetched next to its glue, gives the shared snapshot's lines (fixtures/text/page-text.json,
 // written from the Rust output), so the browser build extracts what Node and Rust extract.
-import { Document, init } from "@lamina/pdf";
+import { Document, init } from "@laminapdf/pdf";
 import { beforeAll, describe, expect, it } from "vitest";
 import { server } from "vitest/browser";
 

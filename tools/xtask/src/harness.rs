@@ -62,7 +62,7 @@ fn files_in(dir: &Path) -> Result<Vec<PathBuf>> {
 
 /// The shared `page.text()` snapshot (todo B9c): `crates/lamina/tests/page_text_snapshot.rs`
 /// writes it (its ignored `write_snapshot` test, to a scratch file); with `update`, into
-/// `fixtures/text/page-text.json`, else compared. `@lamina/pdf`'s text test reads the same file.
+/// `fixtures/text/page-text.json`, else compared. `@laminapdf/pdf`'s text test reads the same file.
 fn page_text_snapshot(ws: &Workspace, update: bool) -> Result<Vec<String>> {
     let out = scratch(ws, "page-text")?.join("page-text.json");
     let out_arg = out.to_string_lossy().into_owned();

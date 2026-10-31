@@ -1,7 +1,7 @@
 // Navigation: URI, page and named-destination links, an outline with a heading, colour and
 // styles, page labels and the outline shown on open. The TS twin of
 // crates/lamina/examples/links_and_outlines.rs.
-import { Builder, Font, type Rect } from "@lamina/pdf";
+import { Builder, Font, type Rect } from "@laminapdf/pdf";
 
 const TITLES = ["Title page", "Contents", "Chapter 1", "Chapter 2"] as const;
 

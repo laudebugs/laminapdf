@@ -4,7 +4,7 @@
 | --- | --- |
 | ID | `B6c` |
 | Status | `done` |
-| Plan | [pdf-library §7 B6](../../plans/pdf-library.md#b6-wasm-and-laminapdf), [§5 platform matrix](../../plans/pdf-library.md#platform-matrix) |
+| Plan | [pdf-library §7 B6](../../plans/pdf-library.md#b6-wasm-and-laminapdfpdf), [§5 platform matrix](../../plans/pdf-library.md#platform-matrix) |
 | Round / milestone | Round B (library) — M1 |
 | Depends on | [B6b](./B6b-lamina-pdf-package.md) |
 | Blocks | [B7a](./B7a-docs-site.md), [B7b](./B7b-versioning-and-0-1-0-alpha.md), [B9c](./B9c-text-extraction-bindings-and-differential.md) |

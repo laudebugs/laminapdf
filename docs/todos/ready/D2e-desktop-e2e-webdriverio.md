@@ -70,7 +70,7 @@ Close Round D2's acceptance bar: the reader's end-to-end scenarios run against t
 - [ ] All eight scenarios pass on each OS that runs WebdriverIO; the 1 GB scenario reports its first-page time.
 - [ ] The web build's Playwright suite still runs on all three OSes (no change, verified in the PR).
 - [ ] The release build contains no e2e plugin/commands (CI guard green).
-- [ ] `pnpm --filter @lamina/desktop e2e` runs locally on Linux and Windows with documented prerequisites.
+- [ ] `pnpm --filter @laminapdf/desktop e2e` runs locally on Linux and Windows with documented prerequisites.
 
 ## Post-merge checks
 
@@ -84,7 +84,7 @@ This PR is tests: WebdriverIO scenarios under `apps/desktop/e2e/specs/`, fixture
 
 - ADR 0008 §test strategy (final), including any macOS gap.
 - `docs/plans/desktop-app.md` §9 D2: tick "Port the reader end-to-end scenarios to WebdriverIO…" and "Record the per-OS test strategy and any macOS gap in ADR 0008".
-- `CLAUDE.md` commands (`pnpm --filter @lamina/desktop e2e`), `apps/desktop/README.md`, `tools/xtask` doctor pins.
+- `CLAUDE.md` commands (`pnpm --filter @laminapdf/desktop e2e`), `apps/desktop/README.md`, `tools/xtask` doctor pins.
 - `docs/decisions/0018-test-strategy.md`: if the lanes change, a short amendment note (desktop e2e in the full lane).
 
 ## Risks and open questions

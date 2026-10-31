@@ -4,7 +4,7 @@
  * Source Sans 3 for everything else. Starlight is themed through its CSS custom properties
  * (`--sl-*`); the `--paper-*` names are the design language's token names (§2) and their
  * values are copied from it by hand. Keep them in step with the design language until U6a's
- * `@lamina/tokens` and U6b's `@lamina/fonts` exist; then this file imports those packages and
+ * `@laminapdf/tokens` and U6b's `@laminapdf/fonts` exist; then this file imports those packages and
  * drops its copies (a task in both todos). Light is the design language's §2.1 theme; dark is
  * its proposed §2.3 theme. Colours for asides (note, tip, caution, danger) map to `accent`,
  * Plum, `warning` and `danger`.

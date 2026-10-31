@@ -1,15 +1,15 @@
 # `apps/docs`: the docs site
 
-lamina's documentation site ([todo B7a](../../docs/todos/done/B7a-docs-site.md)): [Astro](https://astro.build/) with [Starlight](https://starlight.astro.build/), served from Cloudflare Workers static assets. It has quick starts per runtime, guides, an examples gallery, the `@lamina/pdf` API reference (TypeDoc) and a page on the Rust API (rustdoc).
+lamina's documentation site ([todo B7a](../../docs/todos/done/B7a-docs-site.md)): [Astro](https://astro.build/) with [Starlight](https://starlight.astro.build/), served from Cloudflare Workers static assets. It has quick starts per runtime, guides, an examples gallery, the `@laminapdf/pdf` API reference (TypeDoc) and a page on the Rust API (rustdoc).
 
 ```sh
 pnpm install                        # once per worktree
-pnpm --filter @lamina/docs dev      # http://localhost:4321 (no CSP in dev)
-pnpm --filter @lamina/docs build    # dist/: what deploys; fails on a broken internal link
-pnpm --filter @lamina/docs typecheck
+pnpm --filter @laminapdf/docs dev      # http://localhost:4321 (no CSP in dev)
+pnpm --filter @laminapdf/docs build    # dist/: what deploys; fails on a broken internal link
+pnpm --filter @laminapdf/docs typecheck
 ```
 
-`cargo xtask check ts` runs the build (the fast lane's TypeScript job), so a broken link, a snippet that names a missing file, or TypeDoc failing on `@lamina/pdf` fails CI.
+`cargo xtask check ts` runs the build (the fast lane's TypeScript job), so a broken link, a snippet that names a missing file, or TypeDoc failing on `@laminapdf/pdf` fails CI.
 
 ## Build settings
 

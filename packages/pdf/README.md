@@ -1,11 +1,11 @@
-# `@lamina/pdf`
+# `@laminapdf/pdf`
 
-Create, read, edit and save PDFs from TypeScript. lamina's Rust core runs as WebAssembly ([`@lamina/wasm`](../wasm)); after one `await init()`, the API is synchronous and the same in browsers, Node, Deno, Bun and Cloudflare Workers ([ADR 0016](../../docs/decisions/0016-package-design.md)). ESM only, private until the first release (P1/P2).
+Create, read, edit and save PDFs from TypeScript. lamina's Rust core runs as WebAssembly ([`@laminapdf/wasm`](../wasm)); after one `await init()`, the API is synchronous and the same in browsers, Node, Deno, Bun and Cloudflare Workers ([ADR 0016](../../docs/decisions/0016-package-design.md)). ESM only, private until the first release (P1/P2).
 
 ## Quick start
 
 ```ts
-import { Builder, Document, Font, init } from "@lamina/pdf";
+import { Builder, Document, Font, init } from "@laminapdf/pdf";
 
 await init({ text: true }); // the base module, and the text module for fonts and text
 
@@ -41,9 +41,9 @@ A page that never draws text never downloads the text module. A `Builder` is bui
 
 | Condition | Entry | How the `.wasm` is loaded |
 | --- | --- | --- |
-| `workerd` | `dist/entry/workerd.js` | `import wasm from "@lamina/wasm/lamina_base.wasm"`: a `WebAssembly.Module` bundled with the Worker (both modules) |
+| `workerd` | `dist/entry/workerd.js` | `import wasm from "@laminapdf/wasm/lamina_base.wasm"`: a `WebAssembly.Module` bundled with the Worker (both modules) |
 | `deno`, `browser`, `default` | `dist/index.js` | the glue's `new URL("lamina_base.wasm", import.meta.url)`, fetched and compiled streaming; bundlers emit it as an asset |
-| `node` (Node, Bun) | `dist/entry/node.js` | the file of `@lamina/wasm`, read as bytes |
+| `node` (Node, Bun) | `dist/entry/node.js` | the file of `@laminapdf/wasm`, read as bytes |
 
 The escape hatch is the input of `init`: a URL or string, a `Response` (or a promise of one), bytes (`ArrayBuffer`, `Uint8Array`) or a compiled `WebAssembly.Module`, for the base module (`init(source)` or `init({ module })`) and the text module (`init({ text: source })` or `loadText(source)`). `init` is idempotent and a failed load can be retried; naming a different source after a module is loaded (or loading) throws `already-initialized`.
 
@@ -51,7 +51,7 @@ The escape hatch is the input of `init`: a URL or string, a `Response` (or a pro
 
 ```ts
 // vite.config.ts
-export default { optimizeDeps: { exclude: ["@lamina/pdf"] } };
+export default { optimizeDeps: { exclude: ["@laminapdf/pdf"] } };
 ```
 
 ## Passwords, fonts and images
@@ -91,20 +91,20 @@ try {
 }
 ```
 
-`isLaminaError(e, code)` narrows: inside the `if`, `e.code` has the type `"wrong-password"`. `LaminaError<C>` is generic over the `ErrorCode` union, so a `switch (e.code)` with a `never` default is checked for exhaustiveness, and stops compiling when a new code arrives until you handle it. `toJSON()` validates against the `lamina.error/1` JSON Schema, shipped as `@lamina/pdf/schemas/error.schema.json`.
+`isLaminaError(e, code)` narrows: inside the `if`, `e.code` has the type `"wrong-password"`. `LaminaError<C>` is generic over the `ErrorCode` union, so a `switch (e.code)` with a `never` default is checked for exhaustiveness, and stops compiling when a new code arrives until you handle it. `toJSON()` validates against the `lamina.error/1` JSON Schema, shipped as `@laminapdf/pdf/schemas/error.schema.json`.
 
 `doc.warnings` lists what the reader repaired, as `LaminaWarning` objects of the same shape (without `didYouMean`), typed by `WarningCode`.
 
-`@lamina/pdf/explain` is a separate entry, kept out of the main bundle: `explain(code)` returns the code's page as Markdown (what happened, why, how to fix, an example, the `data` fields), with `KINDS`, `HINTS` and `docsUrl(code)` for every code.
+`@laminapdf/pdf/explain` is a separate entry, kept out of the main bundle: `explain(code)` returns the code's page as Markdown (what happened, why, how to fix, an example, the `data` fields), with `KINDS`, `HINTS` and `docsUrl(code)` for every code.
 
 ```ts
-import { explain } from "@lamina/pdf/explain";
+import { explain } from "@laminapdf/pdf/explain";
 if (isLaminaError(e)) console.error(e.message, e.hint, explain(e.code));
 ```
 
 ## Extracting text
 
-`page.text()` returns a page's text: `lines` (in content order, trimmed), `text()` (the lines joined with `\n`), `runs` (font, size, direction, marked-content ID, `ActualText`, visibility, bounds; `glyphs()` gives each glyph's text and quad) and `buffers` (every glyph's quad in one `Float32Array`, 8 numbers per glyph in ADR 0027 page space, and the glyph text with UTF-16 offsets, to transfer from a worker). Documents open in the richest module loaded (text, then extract, then base): load the extract or text module before opening (or building) a document whose text you need, or `page.text()` throws `extract-module-not-loaded`; `doc.canExtractText` tells which module a document is in. With the text module loaded, the extract module isn't loaded (the text module extracts too), and documents live in the text module's memory. In Cloudflare Workers, pass the module yourself so other Workers don't bundle it: `import extract from "@lamina/wasm/lamina_extract.wasm"; await loadExtract(extract);`.
+`page.text()` returns a page's text: `lines` (in content order, trimmed), `text()` (the lines joined with `\n`), `runs` (font, size, direction, marked-content ID, `ActualText`, visibility, bounds; `glyphs()` gives each glyph's text and quad) and `buffers` (every glyph's quad in one `Float32Array`, 8 numbers per glyph in ADR 0027 page space, and the glyph text with UTF-16 offsets, to transfer from a worker). Documents open in the richest module loaded (text, then extract, then base): load the extract or text module before opening (or building) a document whose text you need, or `page.text()` throws `extract-module-not-loaded`; `doc.canExtractText` tells which module a document is in. With the text module loaded, the extract module isn't loaded (the text module extracts too), and documents live in the text module's memory. In Cloudflare Workers, pass the module yourself so other Workers don't bundle it: `import extract from "@laminapdf/wasm/lamina_extract.wasm"; await loadExtract(extract);`.
 
 ```ts
 await init({ extract: true });
@@ -130,12 +130,12 @@ const bytes = await doc.ensure(() => doc.save({ mode: "fullRewrite" })); // fetc
 - **Workers:** each `ensure` call can take several round trips. The worker client (`client.openUrl`, [L2a](../../docs/todos/done/L2a-worker-client.md)) hides the loop behind its async API.
 - **Large local files in Rust:** `lamina-source`'s `FileSource` (positioned reads) or, for files nothing changes, `MmapSource` ([its README](../../crates/lamina-source/README.md)).
 
-## Off the main thread: `@lamina/pdf/worker`
+## Off the main thread: `@laminapdf/pdf/worker`
 
-The API is synchronous, so a large file opened on the main thread blocks the page. `@lamina/pdf/worker` runs the same API in a Web Worker and gives you async twins of `Document` and its pages.
+The API is synchronous, so a large file opened on the main thread blocks the page. `@laminapdf/pdf/worker` runs the same API in a Web Worker and gives you async twins of `Document` and its pages.
 
 ```ts
-import { connect } from "@lamina/pdf/worker";
+import { connect } from "@laminapdf/pdf/worker";
 
 const client = await connect(); // starts the worker, checks its version, calls init() there
 await using doc = await client.open(bytes); // copied; { transfer: true } moves it instead
@@ -164,7 +164,7 @@ const updated = await doc.save({ mode: "incremental" }, { signal, onProgress: (p
 - **Unsendable parameters:** a parameter the worker can't receive (a function) rejects with `invalid-argument`, as do unknown methods. With `transfer: true`, only a buffer the input covers whole moves; a subarray or a `SharedArrayBuffer` view is copied. An error inside the worker that isn't lamina's is `worker-failed` (internal: a bug to report).
 - **`init`:** `connect({ init })` takes what can be sent to a worker: a URL (string or `URL`, resolved against the page), bytes or a `WebAssembly.Module`, alone or as `{ module, text, extract }`. A `Response` can't cross.
 - **Version handshake:** on connect, the worker and the client compare their protocol and package versions. A worker from another build rejects `connect()` with `worker-version-mismatch` (PDF.js's version-mismatch lesson).
-- **Bundlers:** `connect()` contains the literal `new Worker(new URL("./entry.js", import.meta.url), { type: "module" })`, which Vite and webpack bundle with no config (`test/browser/vite-build.test.ts` builds and runs one). In Vite, keep the package out of pre-bundling (`optimizeDeps: { exclude: ["@lamina/pdf"] }`), as for the main entry.
+- **Bundlers:** `connect()` contains the literal `new Worker(new URL("./entry.js", import.meta.url), { type: "module" })`, which Vite and webpack bundle with no config (`test/browser/vite-build.test.ts` builds and runs one). In Vite, keep the package out of pre-bundling (`optimizeDeps: { exclude: ["@laminapdf/pdf"] }`), as for the main entry.
 - **CSP or your own hosting:** pass `connect({ worker: () => new Worker(url, { type: "module" }) })`. A factory, so that `restart()` can make a new one.
 - **Runtimes:** browsers (Chromium, Firefox, WebKit), and Deno and Bun web Workers (smoke-tested). Node's `worker_threads` isn't a web `Worker` and isn't supported.
 
@@ -217,7 +217,7 @@ CI: the fast lane runs Node 22 and 26 and Chromium on every PR (Node 24, `.nvmrc
 ## Development
 
 ```sh
-cargo xtask wasm   # builds @lamina/wasm, then this package (tsc), its tests (Vitest: Node, Vite), publint, attw --pack
+cargo xtask wasm   # builds @laminapdf/wasm, then this package (tsc), its tests (Vitest: Node, Vite), publint, attw --pack
 cargo xtask pdf-runtimes   # the example suite in every runtime (see Runtimes)
 cargo xtask size   # includes this package's JS (glue + API, min+gzip) against its 20 KB budget
 cargo xtask gen codes   # regenerate src/generated/ and schemas/ from fixtures/codes.json (`check docs` fails when stale)

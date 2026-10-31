@@ -1,4 +1,4 @@
-// A Vite production build of a tiny app importing @lamina/pdf (test/vite-app/), run in Chromium:
+// A Vite production build of a tiny app importing @laminapdf/pdf (test/vite-app/), run in Chromium:
 // the bundle and both `.wasm` assets served by `vite preview`, the app imported by a real page
 // (Playwright). Runs in Node as the `vite-build` project of vitest.browser.config.ts;
 // test/vite.test.ts covers the same build with the bundle run in Node.
@@ -29,7 +29,7 @@ const config: InlineConfig = {
       { find: /^@lamina\/pdf$/, replacement: pkg },
     ],
   },
-  optimizeDeps: { exclude: ["@lamina/pdf"], noDiscovery: true },
+  optimizeDeps: { exclude: ["@laminapdf/pdf"], noDiscovery: true },
   build: {
     outDir: out,
     emptyOutDir: true,

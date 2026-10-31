@@ -1,8 +1,8 @@
 {
-  "name": "@lamina/docs",
+  "name": "@laminapdf/docs",
   "version": "0.0.0",
   "private": true,
-  "description": "lamina's documentation site (Astro + Starlight): quick starts, guides, the @lamina/pdf API reference (TypeDoc) and the examples, deployed to Cloudflare Workers static assets.",
+  "description": "lamina's documentation site (Astro + Starlight): quick starts, guides, the @laminapdf/pdf API reference (TypeDoc) and the examples, deployed to Cloudflare Workers static assets.",
   "license": "MIT OR Apache-2.0",
   "type": "module",
   "engines": {

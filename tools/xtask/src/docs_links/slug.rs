@@ -69,7 +69,7 @@ mod tests {
 
     #[test]
     fn at_sign_and_slash_are_dropped() {
-        assert_eq!(slug("B6. WASM and @lamina/pdf"), "b6-wasm-and-laminapdf");
+        assert_eq!(slug("B6. WASM and @laminapdf/pdf"), "b6-wasm-and-laminapdfpdf");
     }
 
     #[test]

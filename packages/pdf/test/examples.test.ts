@@ -1,7 +1,7 @@
 // The TS examples produce the Rust examples' bytes (fixtures/golden/examples/, ADR 0018 §5) in
 // Node: the shared list (test/suite/examples.ts) every runtime of the B6c matrix runs. The
 // report's hash and the performance smoke are test/node/measure.test.ts.
-import { Builder, Font, init } from "@lamina/pdf";
+import { Builder, Font, init } from "@laminapdf/pdf";
 import { beforeAll, describe, expect, it } from "vitest";
 import { openUntrusted } from "../examples/open-untrusted.js";
 import { read } from "./helpers.js";

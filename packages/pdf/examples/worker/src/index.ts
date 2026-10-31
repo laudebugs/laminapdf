@@ -2,7 +2,7 @@
 // error as JSON for a name the standard font can't draw), `/report` the 100-page report with two
 // embedded fonts (examples/report.ts). The fonts are this repository's fixtures; in your own
 // Worker, bundle your font files the same way (wrangler.toml `rules`).
-import { Builder, Font, init, isLaminaError, type LaminaError } from "@lamina/pdf";
+import { Builder, Font, init, isLaminaError, type LaminaError } from "@laminapdf/pdf";
 import notoSans from "../../../../../fixtures/fonts/NotoSans-Regular.ttf";
 import notoSansSC from "../../../../../fixtures/fonts/NotoSansSC-Regular.otf";
 import { report } from "../../report.js";

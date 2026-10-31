@@ -8,7 +8,7 @@
 | Round / milestone | Editor phase 2 (E1–E3) — M5 Organiser |
 | Depends on | [B3c](../done/B3c-save-planner-and-roundtrip.md), [B6b](../done/B6b-lamina-pdf-package.md), [B8b](./B8b-conformance-profiles-and-verapdf.md), [E1b](./E1b-xmp-packet-model.md), [X3a](../done/X3a-nightly-lane.md) |
 | Blocks | [E1e](./E1e-save-and-constraint-banner.md), [E1f](./E1f-metadata-ui-capability-page.md), [E2b](./E2b-page-structure-ops.md), [E3e](./E3e-xmp-editor.md) |
-| Dependency notes | [E1b](E1b-xmp-packet-model.md), `B3` ([pdf-library §B3](../../plans/pdf-library.md#b3-ops-and-save): ops and save planner), `B6` ([pdf-library §B6](../../plans/pdf-library.md#b6-wasm-and-laminapdf): `lamina-wasm` and `@lamina/pdf`) |
+| Dependency notes | [E1b](E1b-xmp-packet-model.md), `B3` ([pdf-library §B3](../../plans/pdf-library.md#b3-ops-and-save): ops and save planner), `B6` ([pdf-library §B6](../../plans/pdf-library.md#b6-wasm-and-laminapdfpdf): `lamina-wasm` and `@laminapdf/pdf`) |
 | ADRs | Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
 | Branch | `feat/e1c-metadata-ops` |
 | PR title | `feat(ops): metadata ops writing Info and XMP together` |
@@ -37,7 +37,7 @@ The first user-visible write ops: set title/author/subject/keywords, dates, prod
 - Save-time metadata as a classified op, never an unclassified write: when the shell passes `SaveOptions { metadata_date, instance_id }` and the overlay is non-empty, the planner adds a synthetic `Op::UpdateSaveMetadata { metadata_date, instance_id }` (class `Metadata`, `requires_rewrite = false`) to the pending changes and runs it through `ModificationClass`/`would_violate` like any other op (no clocks in core). It sets `xmp:MetadataDate`, `xmp:ModifyDate`/Info `ModDate` and `xmpMM:InstanceID`. If it would add a violation or change `constraint.kind()` (e.g. a form fill or a signature on a DocMDP P2/P3-certified file, where `Metadata` is not allowed), the planner leaves it out, writes nothing to Info or `/Metadata`, and reports `SaveReport::metadata_not_updated` so the shell can say why. It is not recorded in the undo history
 - PDF 2.0: XMP authoritative; Info keeps only `CreationDate`/`ModDate` unless the file already has others (kept, flagged)
 - PDF/A claim check: keep `pdfaid:`; validate Info/XMP equivalence after the op; `ConformanceWarning` returned by the planner before save
-- Bindings in `lamina-wasm` / `@lamina/pdf`: `doc.setMetadata()`, `doc.removeMetadata()`, `doc.metadata()`
+- Bindings in `lamina-wasm` / `@laminapdf/pdf`: `doc.setMetadata()`, `doc.removeMetadata()`, `doc.metadata()`
 
 **Out of scope** (and which todo covers it)
 
@@ -70,7 +70,7 @@ The first user-visible write ops: set title/author/subject/keywords, dates, prod
 
 ## Acceptance criteria
 
-- [ ] Library parity ([full-editor §5](../../plans/full-editor.md#5-requirements-that-hold-for-every-round) req. 7): every new `Op` is exposed in `lamina` and `@lamina/pdf` in this PR, with rustdoc/TSDoc, a runnable example, tsify-generated TS types, and serde samples frozen in `fixtures/ops/v1/` (unknown ops and fields rejected, ADR 0006 §1, §6)
+- [ ] Library parity ([full-editor §5](../../plans/full-editor.md#5-requirements-that-hold-for-every-round) req. 7): every new `Op` is exposed in `lamina` and `@laminapdf/pdf` in this PR, with rustdoc/TSDoc, a runnable example, tsify-generated TS types, and serde samples frozen in `fixtures/ops/v1/` (unknown ops and fields rejected, ADR 0006 §1, §6)
 - [ ] Property tests: for every new op, apply then undo leaves the overlay empty and the next save is byte-identical to the previous one (ADR 0006 §3); redo re-applies the same bytes
 - [ ] Every new op reports its `ModificationClass` and `requires_rewrite` (ADR 0006 §1); a test per op runs `planner.would_violate(&op)` on the signed fixtures (no certification, DocMDP P1, P2, P3, FieldMDP lock) and asserts the verdict ([ADR 0007](../../decisions/0007-save-planner.md) §2), because a misclassified op is a security bug. Expected for `SetMetadata`, `RemoveMetadata` and `UpdateSaveMetadata`: violation on P1, P2 and P3; none on the approval-only and FieldMDP-lock (approval) fixtures, where the save is `AppendOnly`
 - [ ] Save-time metadata never escapes classification: a title edit on an unsigned file updates `MetadataDate`, `ModDate` and `InstanceID`; a form fill (stub `FormFill`-class test op) on the P2 fixture saves `AppendOnly`, the appended revision touches neither Info nor `/Metadata`, and `metadata_not_updated` is set; a save on the approval-only fixture updates them incrementally
@@ -95,7 +95,7 @@ The first user-visible write ops: set title/author/subject/keywords, dates, prod
 
 ## Docs to update
 
-- `@lamina/pdf` and `lamina` API docs pages for metadata
+- `@laminapdf/pdf` and `lamina` API docs pages for metadata
 - `fixtures/README.md` for new PDF/A and signed fixtures
 - [full-editor §E1](../../plans/full-editor.md#e1-editing-foundation) and its §10 to-dos: tick what this PR completes and point the round's todo link at `done/`
 - `docs/capabilities/manifest.toml` statuses (regenerated `docs/capabilities/README.md` via `cargo xtask capabilities`)

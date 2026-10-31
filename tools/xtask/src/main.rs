@@ -53,7 +53,7 @@ tasks:
   gen codes [--check|--md]
                     validate fixtures/codes.json against fixtures/codes.schema.json and write
                     the error contract from it: the façade's ErrorCode/WarningCode
-                    (crates/lamina/src/generated/), @lamina/pdf's unions, tables and explain
+                    (crates/lamina/src/generated/), @laminapdf/pdf's unions, tables and explain
                     pages (packages/pdf/src/generated/), the lamina.error/1 JSON Schema
                     (packages/pdf/schemas/, crates/lamina/schemas/) and docs/errors/README.md's
                     tables; --check fails naming each stale file; --md prints the tables
@@ -63,7 +63,7 @@ tasks:
   portability       core crates: forbidden-API grep, dependency and unsafe rules,
                     cargo check for wasm32, iOS and Android
   wasm              build the wasm32 crates with the size-optimised `wasm-release` profile, then
-                    the @lamina/wasm modules (lamina_base, lamina_text) into packages/wasm/dist/
+                    the @laminapdf/wasm modules (lamina_base, lamina_text) into packages/wasm/dist/
                     (wasm-bindgen, wasm-opt) and their tests in Node
   size [--update-baseline]
                     measure packages/wasm/dist/ (raw, gzip, brotli; glue min+gzip), write
@@ -145,7 +145,7 @@ tasks:
   bench [--quick] [--history <dir> [--runner <label>] [--record]]
                     nightly: criterion benches; with --history, flag >10% regressions (never fails)
   pdf-runtimes [node|chromium|firefox|webkit|deno|bun|workerd]… [--history <dir> --runner <label> --record]
-                    @lamina/pdf's example suite in each runtime (default: all; needs `wasm` first;
+                    @laminapdf/pdf's example suite in each runtime (default: all; needs `wasm` first;
                     installs the Playwright browsers it runs): byte-identical to the goldens, with
                     the timings and WebAssembly memory against pdf-library §4 in the job summary
                     and target/xtask/pdf-runtimes/; --record appends them to <dir>/history.jsonl
@@ -156,7 +156,7 @@ tasks:
                     and say whether any is code (not docs); sets `code` in $GITHUB_OUTPUT
                     (default base: origin/main, or main when there is no origin/main)
   version sync [--check]
-                    copy the npm fixed group's version (@lamina/wasm, @lamina/pdf; Changesets)
+                    copy the npm fixed group's version (@laminapdf/wasm, @laminapdf/pdf; Changesets)
                     into [workspace.package] version, the internal [workspace.dependencies],
                     every tracked Cargo.lock and CHANGELOG.md (ADR 0017); --check only verifies
                     (and that every member crate has version.workspace = true)
@@ -484,7 +484,7 @@ fn wasm(ws: &Workspace) -> Result<()> {
         ws.wasm_crates().filter(|c| *c != "lamina-wasm"),
         "wasm32",
     )?);
-    // Every wasm32 crate builds with the shipping profile; then the two modules of @lamina/wasm
+    // Every wasm32 crate builds with the shipping profile; then the two modules of @laminapdf/wasm
     // (ADR 0016), written gitignored into packages/wasm/dist/, and their tests.
     ws.cargo(&args)?;
     wasm::build(ws)
@@ -511,7 +511,7 @@ fn ts_tests(ws: &Workspace) -> Result<()> {
 /// files and the code table from `codes.json`; the build fails on any broken internal link.
 fn docs_site(ws: &Workspace) -> Result<()> {
     step("docs site: astro build of apps/docs (TypeDoc, snippets, code table, link check)");
-    ws.pnpm(&["--filter", "@lamina/docs", "run", "build"])
+    ws.pnpm(&["--filter", "@laminapdf/docs", "run", "build"])
 }
 
 fn step(message: &str) {

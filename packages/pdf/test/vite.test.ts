@@ -1,4 +1,4 @@
-// The `browser` condition through Vite (ADR 0016 §2; shareable-libraries §8): with @lamina/pdf
+// The `browser` condition through Vite (ADR 0016 §2; shareable-libraries §8): with @laminapdf/pdf
 // excluded from dependency pre-bundling, the dev server serves the package as it is and the
 // `.wasm` next to the glue; a production build emits every module as an asset, and the bundle runs.
 import { mkdtempSync, readdirSync, rmSync } from "node:fs";
@@ -19,10 +19,10 @@ const config: InlineConfig = {
   base: "./",
   configFile: false,
   logLevel: "silent",
-  // The app's package.json would name @lamina/pdf as a dependency; the alias stands in for that
+  // The app's package.json would name @laminapdf/pdf as a dependency; the alias stands in for that
   // install and still resolves through the package's `exports` (the `browser` condition).
-  resolve: { alias: { "@lamina/pdf": pkg } },
-  optimizeDeps: { exclude: ["@lamina/pdf"], noDiscovery: true },
+  resolve: { alias: { "@laminapdf/pdf": pkg } },
+  optimizeDeps: { exclude: ["@laminapdf/pdf"], noDiscovery: true },
 };
 
 afterAll(() => rmSync(out, { recursive: true, force: true }));

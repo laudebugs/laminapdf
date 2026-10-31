@@ -1,4 +1,4 @@
-// `@lamina/pdf/explain` (ADR 0026 §6): every code's explain page, kind and hint, for tools and
+// `@laminapdf/pdf/explain` (ADR 0026 §6): every code's explain page, kind and hint, for tools and
 // agents that want to tell a user what a code means and what to do. A separate subpath, so the
 // ~80 KB of page text and the tables stay out of the main bundle (and out of the WebAssembly).
 import { type ErrorCode, HINTS, type WarningCode } from "./generated/codes.js";
@@ -20,7 +20,7 @@ export function isCode(code: string): code is ErrorCode | WarningCode {
  * @param code - an error or warning code, such as `LaminaError.code`.
  * @example
  * ```ts
- * import { explain } from "@lamina/pdf/explain";
+ * import { explain } from "@laminapdf/pdf/explain";
  * console.log(explain("wrong-password"));
  * ```
  */

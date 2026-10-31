@@ -16,7 +16,7 @@
 
 ## Goal
 
-`formDesign` mode in `@lamina/ui`: draw fields, move/resize with snapping, property inspector (name, tooltip `/TU`, flags, options, format, validation, calculation via the native declarative settings from E8f), calculation-order and tab-order editors, and accessible labels.
+`formDesign` mode in `@laminapdf/ui`: draw fields, move/resize with snapping, property inspector (name, tooltip `/TU`, flags, options, format, validation, calculation via the native declarative settings from E8f), calculation-order and tab-order editors, and accessible labels.
 
 ## Context
 
@@ -39,7 +39,7 @@
 **Editor facts**
 
 - **Operations shipped** ([06 §3](../../research/pdf/06-feature-inventory.md#3-full-operation-inventory-with-mechanisms) IDs): `E.07` input validation; `E.08` automatic calculations; `E.09` tab order; `L.06` accessible form labels
-- **Crates and packages:** `@lamina/ui`, `@lamina/viewer`
+- **Crates and packages:** `@laminapdf/ui`, `@laminapdf/viewer`
 - **`Op` variants:** E9b ops; `SetTabOrder`, `SetCalculationOrder` (class `Document`)
 - **`SaveConstraint`:** `Free` → incremental. Signed: creating/changing field definitions is not form filling (class `Document`), so it is a DocMDP violation at every certification level (ADR 0007 §2: P1 allows no changes; P2 allows only form filling, page templates and signing; P3 adds annotations) → saved only after the user confirms invalidating the named signatures (ADR 0007 §3 override). With approval signatures only (no certification): `AppendOnly`, an incremental update that keeps their `/ByteRange` intact; changing or removing a field locked by FieldMDP/`/Lock`, or a signature field, is a violation
 - **Web vs desktop:** identical
@@ -55,7 +55,7 @@
 
 ## Acceptance criteria
 
-- [ ] Library parity ([full-editor §5](../../plans/full-editor.md#5-requirements-that-hold-for-every-round) req. 7): every new `Op` is exposed in `lamina` and `@lamina/pdf` in this PR, with rustdoc/TSDoc, a runnable example, tsify-generated TS types, and serde samples frozen in `fixtures/ops/v1/` (unknown ops and fields rejected, ADR 0006 §1, §6)
+- [ ] Library parity ([full-editor §5](../../plans/full-editor.md#5-requirements-that-hold-for-every-round) req. 7): every new `Op` is exposed in `lamina` and `@laminapdf/pdf` in this PR, with rustdoc/TSDoc, a runnable example, tsify-generated TS types, and serde samples frozen in `fixtures/ops/v1/` (unknown ops and fields rejected, ADR 0006 §1, §6)
 - [ ] Every new op reports exactly one `ModificationClass` and `requires_rewrite` (ADR 0006 §1); a test per op runs `planner.would_violate(&op)` on the signed fixtures (no certification, DocMDP P1, P2, P3, FieldMDP lock) and asserts the verdict ([ADR 0007](../../decisions/0007-save-planner.md) §2), because a misclassified op is a security bug
 - [ ] e2e: design a form with each field type, save, fill it in pdf.js
 - [ ] axe zero serious violations

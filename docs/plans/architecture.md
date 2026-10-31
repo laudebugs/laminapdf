@@ -9,7 +9,7 @@
 
 One architecture that lets lamina ship, in order:
 
-1. **Packages:** a Rust crate family (`lamina`) and a TypeScript package (`@lamina/pdf`) that generate PDFs, and later read and edit them.
+1. **Packages:** a Rust crate family (`lamina`) and a TypeScript package (`@laminapdf/pdf`) that generate PDFs, and later read and edit them.
 2. **A web app** on Cloudflare: a reader first, growing into a full editor.
 3. **A desktop app** (macOS, Windows, Linux) with the same features, with downloads and updates served from Cloudflare.
 
@@ -19,7 +19,7 @@ All three share one engine, so each of the ~180 operations in the [feature inven
 
 ```
    apps/web (Cloudflare)        apps/desktop (Tauri 2)          packages
-   React chrome +               same UI packages +              @lamina/pdf (npm)
+   React chrome +               same UI packages +              @laminapdf/pdf (npm)
    framework-free viewer        native menus, updater           lamina (crates.io)
         │ typed RPC                  │ Channel / lamina://            │ direct calls
         ▼ (Web Worker)               ▼ (native, sandboxed process)    ▼ (WASM or native)
@@ -96,8 +96,8 @@ The research couldn't answer these. Each is a small, time-boxed spike under `spi
 Each round is split into todos, one pull request each, every one in its own worktree and reviewed before merge (see [Todos](#todos) below).
 
 - **Round A — Foundations** (done: [A1](../todos/done/A1-foundation-adrs.md), [A2](../todos/done/A2-monorepo-skeleton.md), [A3](../todos/done/A3-port-spike-core.md)). ADRs 0001, 0002, 0015, 0019. Monorepo skeleton (`crates/`, `packages/`, `apps/`, `fixtures/`, `tools/xtask`, `deny.toml`, `rust-toolchain.toml`, pnpm workspace). CI fast lane. Port the spike's core into `crates/lamina-syntax` and `lamina-cos`, keeping its tests.
-- **Round B — Core model and the first package** (todos B1a–B9c, listed in the [library plan §7](pdf-library.md#7-rounds)). ADRs 0003, 0005–0007, 0016–0018. `lamina-model`, `lamina-ops`, `lamina-save`, `lamina-build`; the `lamina` façade crate; `lamina-wasm` + `@lamina/pdf` with generation; the `krilla-fit` spike. CI full lane with golden tests ([X4](../todos/done/X4-full-lane-gate.md)). The first `0.1.0-alpha` is versioned and tagged but **not published**: crates and npm packages stay local until the owner decides to publish (see [Publishing (later)](#publishing-later)).
-- **Round C — Web reader** (todos C1a–C7c, listed in the [web-app plan §6](web-app.md#6-rounds)). ADRs 0004, 0009–0011. `pdfium-wasm` and `hayro-parity` spikes; `@lamina/viewer`, `@lamina/ui`, `apps/web` on Workers static assets; Playwright tests; preview deploys per PR.
+- **Round B — Core model and the first package** (todos B1a–B9c, listed in the [library plan §7](pdf-library.md#7-rounds)). ADRs 0003, 0005–0007, 0016–0018. `lamina-model`, `lamina-ops`, `lamina-save`, `lamina-build`; the `lamina` façade crate; `lamina-wasm` + `@laminapdf/pdf` with generation; the `krilla-fit` spike. CI full lane with golden tests ([X4](../todos/done/X4-full-lane-gate.md)). The first `0.1.0-alpha` is versioned and tagged but **not published**: crates and npm packages stay local until the owner decides to publish (see [Publishing (later)](#publishing-later)).
+- **Round C — Web reader** (todos C1a–C7c, listed in the [web-app plan §6](web-app.md#6-rounds)). ADRs 0004, 0009–0011. `pdfium-wasm` and `hayro-parity` spikes; `@laminapdf/viewer`, `@laminapdf/ui`, `apps/web` on Workers static assets; Playwright tests; preview deploys per PR.
 - **Round D — Desktop reader** (todos D1a–D7c, listed in the [desktop-app plan §6](desktop-app.md#6-rounds)). `desktop-ipc` spike; ADRs 0008, 0014; `apps/desktop` (Tauri 2); `apps/updates` Worker + R2; signing and notarisation in CI.
 - **Round U — UI/UX** (todos U1a–U5c, listed in the [UI/UX plan §6](ui-ux.md#6-rounds)). ADR 0024; `mobile-shell` spike (ADR 0025). Runs alongside C, D and E: command registry and palette, inverted-L shell and modes, selection surfaces and copy modes, reading-order corpus, page appearance modes, phone layout, network indicator, reader mode, pricing and promises page, benchmark, opt-in telemetry. Its v0.1 parts gate C7a and C7c.
 - **Later rounds** (todos E1a–E18h and H1–H4, listed in the [full-editor plan §7](full-editor.md#7-phases-and-rounds)). Editing features by phase ([06 §9](../research/pdf/06-feature-inventory.md)), collaboration (ADR 0012), heavy jobs (ADR 0013). Each feature group gets its own plan and pull requests.
@@ -149,7 +149,7 @@ Todos: [A1](../todos/done/A1-foundation-adrs.md) (ADRs), [A2](../todos/done/A2-m
 - [x] Promote the spike's content builder and golden samples (`hello`, `imaging_demo`), until then test support in `crates/lamina-cos/tests/common/`, into `lamina-build` (API and examples) ([B5a](../todos/done/B5a-lamina-build-core.md): the builder uses `pdf_writer::Content`; the spike's builder and the two frozen goldens are `lamina-build`'s test support)
 - [x] `lamina` façade crate: re-exports the public API of the core crates; this is what goes to crates.io ([B5c](../todos/done/B5c-lamina-facade-and-examples.md))
 - [x] `lamina-text`: font embedding and subsetting for generation (see [03](../research/pdf/03-text-and-fonts.md)) (B4a done: loading, TTC, variable instances, subsetting, Type 0 with `/W` and ToUnicode; B4b done: HarfRust shaping, ICU4X bidi and line breaking, greedy layout; B4c done: the standard 14 with AFM metrics, simple-font encodings, the AGL) ([B4a](../todos/done/B4a-font-loading-and-subsetting.md), [B4b](../todos/done/B4b-shaping-bidi-line-breaking.md), [B4c](../todos/done/B4c-standard-14-and-simple-fonts.md))
-- [x] `lamina-wasm` (wasm-bindgen + tsify) and `@lamina/pdf` (ESM-only, `init()`, export conditions; publint + attw) (`lamina-wasm` and `@lamina/wasm` done in [B6a](../todos/done/B6a-lamina-wasm-and-adr-0016.md), `@lamina/pdf` in [B6b](../todos/done/B6b-lamina-pdf-package.md); the runtime matrix is [B6c](../todos/done/B6c-runtime-matrix.md))
+- [x] `lamina-wasm` (wasm-bindgen + tsify) and `@laminapdf/pdf` (ESM-only, `init()`, export conditions; publint + attw) (`lamina-wasm` and `@laminapdf/wasm` done in [B6a](../todos/done/B6a-lamina-wasm-and-adr-0016.md), `@laminapdf/pdf` in [B6b](../todos/done/B6b-lamina-pdf-package.md); the runtime matrix is [B6c](../todos/done/B6c-runtime-matrix.md))
 - [x] Fuzz targets under `fuzz/`, with a scheduled 10-minute run, and the golden, corpus-facts and differential harness in the fast lane ([B2c](../todos/done/B2c-lamina-model-corpus-fuzz.md))
 - [x] Golden-file and corpus test harness in CI (full lane) ([X4](../todos/done/X4-full-lane-gate.md) full lane)
 - [x] Linux CI on a self-hosted runner in a container on the Mac ([X5](../todos/done/X5-linux-ci-container.md))
@@ -163,9 +163,9 @@ Todos: see the [web-app plan §6](web-app.md#6-rounds) (C1a–C7c).
 - [x] `pdfium-wasm` and `hayro-parity` spikes, with written results (`hayro-parity` done: [C1a](../todos/done/C1a-hayro-parity-spike.md), [result](../../spikes/hayro-parity/README.md); `pdfium-wasm` done: [C1b](../todos/done/C1b-pdfium-wasm-spike.md), [result](../../spikes/pdfium-wasm/README.md))
 - [x] Write ADRs 0004, 0009, 0010, 0011 ([C2a](../todos/done/C2a-render-adrs.md))
 - [x] `lamina-render` with the `RenderBackend` trait and PDFium/hayro adapters ([C2b](../todos/done/C2b-lamina-render-crate.md))
-- [x] `@lamina/render-pdfium` (ships pdfium.wasm, used by the web reader) and `@lamina/render-hayro` (pure-Rust renderer as its own .wasm), both optional so `@lamina/pdf` stays small ([C2c](../todos/done/C2c-render-packages.md))
-- [ ] `@lamina/viewer`: worker RPC, page virtualiser, canvas pool, text layer, search
-- [ ] `@lamina/ui` (React 19) and `apps/web` on Workers static assets; per-PR previews
+- [x] `@laminapdf/render-pdfium` (ships pdfium.wasm, used by the web reader) and `@laminapdf/render-hayro` (pure-Rust renderer as its own .wasm), both optional so `@laminapdf/pdf` stays small ([C2c](../todos/done/C2c-render-packages.md))
+- [ ] `@laminapdf/viewer`: worker RPC, page virtualiser, canvas pool, text layer, search
+- [ ] `@laminapdf/ui` (React 19) and `apps/web` on Workers static assets; per-PR previews
 - [ ] Playwright and visual regression tests; accessibility checks
 
 ### Round D — Desktop reader
@@ -173,7 +173,7 @@ Todos: see the [web-app plan §6](web-app.md#6-rounds) (C1a–C7c).
 Todos: see the [desktop-app plan §6](desktop-app.md#6-rounds) (D1a–D7c).
 
 - [ ] `desktop-ipc` and `desktop-print` spikes, then ADR 0008
-- [ ] `apps/desktop` (Tauri 2) reusing `@lamina/ui`. Process model: all parsing and rendering of untrusted files runs in a sandboxed engine process; the main process only does file I/O (mmap, file watching) and passes bytes and tiles across the boundary
+- [ ] `apps/desktop` (Tauri 2) reusing `@laminapdf/ui`. Process model: all parsing and rendering of untrusted files runs in a sandboxed engine process; the main process only does file I/O (mmap, file watching) and passes bytes and tiles across the boundary
 - [ ] `apps/updates`: Worker + R2 update manifests with channels and staged rollout
 - [ ] Signing: Apple notarisation, Windows Artifact Signing, Linux AppImage/deb; tauri-action release workflow
 - [ ] Write ADR 0014
@@ -184,7 +184,8 @@ Decided 2026-10-28 by the project owner: crates and npm packages stay local (wor
 
 Todos: [P1](../todos/ready/P1-reserve-names-and-trusted-publishing.md) and [P2](../todos/ready/P2-first-registry-prerelease.md), both blocked on the owner's decision to publish.
 
-- [ ] Reserve names: `lamina` and `lamina-*` on crates.io, the `@lamina` scope on npm ([P1](../todos/ready/P1-reserve-names-and-trusted-publishing.md))
+- [x] Choose the npm scope: `@laminapdf` (2026-10-31; [P0](../todos/done/P0-npm-scope-laminapdf.md))
+- [ ] Reserve names: `lamina` and `lamina-*` on crates.io, the `@laminapdf` scope on npm ([P1](../todos/ready/P1-reserve-names-and-trusted-publishing.md))
 - [ ] Write ADR 0017's publishing part ([P1](../todos/ready/P1-reserve-names-and-trusted-publishing.md)): OIDC trusted publishing on npm and crates.io (first crates.io publish is manual), provenance, GitHub artifact attestations for `.wasm`
 - [ ] Add the release workflow (Changesets version PR → publish job) and switch every crate to trusted-publishing-only ([P1](../todos/ready/P1-reserve-names-and-trusted-publishing.md))
 - [ ] Publish the first pre-release; verify install and quick start from the registries in each runtime ([P2](../todos/ready/P2-first-registry-prerelease.md))
@@ -200,8 +201,8 @@ Todos: [P1](../todos/ready/P1-reserve-names-and-trusted-publishing.md) and [P2](
 
 ## 8. Open questions for the team
 
-1. Which ships first, `@lamina/pdf` or the web reader? The research recommends packages first.
+1. Which ships first, `@laminapdf/pdf` or the web reader? The research recommends packages first.
 2. ~~Is a hosted lamina service a goal, or just a reference deployment for forks?~~ **Answered 2026-10-28 (project owner):** lamina **will** be a hosted service with user login and cloud features (accounts, cloud storage and sync), not just a reference deployment. Privacy-first local processing stays the default: the apps work without an account, and nothing is uploaded unless the user opts in. ADR 0011 records the topology; the `auth` spike (§4) picks the login stack.
-3. Names: package scope, crate names, domain. **Domain answered 2026-10-31 (project owner):** `laminapdf.com` ([ADR 0011 §1](../decisions/0011-cloudflare-topology-and-privacy.md#1-topology)); the package scope and crate names wait for publishing ([Publishing (later)](#publishing-later)).
+3. Names: package scope, crate names, domain. **Domain answered 2026-10-31 (project owner):** `laminapdf.com` ([ADR 0011 §1](../decisions/0011-cloudflare-topology-and-privacy.md#1-topology)). **Package scope answered 2026-10-31 (project owner):** the npm packages are published under **`@laminapdf`** (`@laminapdf/pdf`, `@laminapdf/wasm`, …), not `@lamina` ([P0](../todos/done/P0-npm-scope-laminapdf.md), ADR 0015). Crate names (`lamina-*`, the façade `lamina`) and the product name stay lamina; reserving them waits for publishing ([Publishing (later)](#publishing-later)).
 4. Are the Mac App Store, Flathub and mobile (Tauri mobile vs UniFFI with native UIs) in scope, and when? For mobile, the [UI/UX plan](ui-ux.md#54-mobile-and-touch-r17) recommends the responsive web reader first ([U3a](../todos/ready/U3a-responsive-mobile-and-touch.md)), then the `mobile-shell` spike ([U3b](../todos/ready/U3b-mobile-shell-spike.md)) and ADR 0025 before any native app work. For a mobile SDK for other developers, the [shareable libraries plan](shareable-libraries.md#l6-mobile) adds a `lamina-ffi` UniFFI spike (L6a, whose measurements feed U3b) and a mobile SDK plan after ADR 0025 (L6b).
 5. ~~Who is the legal entity for code signing?~~ **Answered 2026-10-28 (project owner):** the owner, personally, as the publisher, code-signs the desktop app for Windows, macOS and Linux. To check: Windows Artifact Signing accepts public-trust individuals only in the US and Canada; if the owner is elsewhere, Windows needs an OV certificate in a cloud HSM (§6). ADR 0014 records the identities and key custody.

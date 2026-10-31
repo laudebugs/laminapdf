@@ -1,13 +1,13 @@
 ---
 title: Node
-description: Generate a PDF from Node with @lamina/pdf.
+description: Generate a PDF from Node with @laminapdf/pdf.
 sidebar:
   order: 2
 ---
 
 import Snippet from "../../../components/Snippet.astro";
 
-Node (22 or newer) resolves the `node` export condition, which reads each `.wasm` file from `@lamina/wasm` as bytes. Call `await init({ text: true })` once. After that, every call is synchronous.
+Node (22 or newer) resolves the `node` export condition, which reads each `.wasm` file from `@laminapdf/wasm` as bytes. Call `await init({ text: true })` once. After that, every call is synchronous.
 
 The smallest document is one page with a line of text in a standard 14 font. Its bytes are the same as those of the Rust `hello` example:
 

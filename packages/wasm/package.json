@@ -1,8 +1,8 @@
 {
-  "name": "@lamina/wasm",
+  "name": "@laminapdf/wasm",
   "version": "0.1.0-alpha.0",
   "private": true,
-  "description": "lamina's WebAssembly modules and their wasm-bindgen glue: lamina_base (open, read, edit, save, vector and image pages), lamina_text (all of base plus fonts and text) and lamina_extract (all of base plus text extraction); and lamina_render_hayro, lamina-render's hayro adapter, which @lamina/render-hayro wraps. Generated into dist/ by `cargo xtask wasm`; @lamina/pdf is the API to use.",
+  "description": "lamina's WebAssembly modules and their wasm-bindgen glue: lamina_base (open, read, edit, save, vector and image pages), lamina_text (all of base plus fonts and text) and lamina_extract (all of base plus text extraction); and lamina_render_hayro, lamina-render's hayro adapter, which @laminapdf/render-hayro wraps. Generated into dist/ by `cargo xtask wasm`; @laminapdf/pdf is the API to use.",
   "license": "MIT OR Apache-2.0",
   "type": "module",
   "sideEffects": false,

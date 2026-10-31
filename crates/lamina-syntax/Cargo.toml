@@ -21,7 +21,7 @@ default = ["saslprep"]
 # SASLprep (RFC 4013) for R5/R6 passwords (ISO 32000-2 §7.6.4.3.3): stringprep and its Unicode
 # tables. Without it a password is tried as its UTF-8 bytes only, which is the same for ASCII
 # passwords and for non-ASCII ones already in their prepared form (the WASM base module leaves it
-# out and `@lamina/pdf` normalises passwords to NFKC; ADR 0016 §5).
+# out and `@laminapdf/pdf` normalises passwords to NFKC; ADR 0016 §5).
 saslprep = ["dep:stringprep"]
 
 [dependencies]

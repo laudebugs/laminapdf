@@ -505,11 +505,11 @@ export const HINTS: { readonly [C in ErrorCode | WarningCode]: string } = {
   "already-initialized": "call init and loadText with a source once, before the first load; later calls need no source",
   "extract-module-not-loaded": "load the extract module (init with the extract option, or loadExtract) or the text module before opening the document",
   "fetch-failed": "check that the URL is reachable and that the server sends the CORS headers range requests need (Content-Range must be exposed); data.reason and data.status say what failed",
-  "not-initialized": "await init() once before calling anything else in @lamina/pdf",
+  "not-initialized": "await init() once before calling anything else in @laminapdf/pdf",
   "source-changed": "open the file again; the document already read parts of the old version and can't mix in the new one",
   "text-module-not-loaded": "load the text module with init and the text option, or with loadText, before creating the builder that draws text",
   "disposed": "free a handle only after its last use; to keep working, open the document again or create a new builder",
-  "worker-version-mismatch": "serve the worker file from the same @lamina/pdf build as the page; don't load it from a CDN or an older deploy",
+  "worker-version-mismatch": "serve the worker file from the same @laminapdf/pdf build as the page; don't load it from a CDN or an older deploy",
   "worker-crashed": "call client.restart() and open the document again; report the file if it keeps happening",
   "worker-failed": "this is a lamina bug: report it with the call and the message; the worker keeps running",
 };
@@ -541,12 +541,12 @@ export const WARNING_GROUPS: readonly string[] = [
   "textWarnings",
 ];
 
-/** The groups whose codes only `@lamina/pdf` raises (not in the Rust enums or the WASM). */
+/** The groups whose codes only `@laminapdf/pdf` raises (not in the Rust enums or the WASM). */
 export const TS_ONLY_GROUPS: readonly string[] = [
   "packageErrors",
 ];
 
-/** Kind and hint of the codes `@lamina/pdf` raises itself (the WASM fills in the others). */
+/** Kind and hint of the codes `@laminapdf/pdf` raises itself (the WASM fills in the others). */
 export const RAISED_BY_PACKAGE = {
   "nested-transaction": { kind: "state", hint: "commit or roll back the open transaction first, or use a savepoint inside it" },
   "no-transaction": { kind: "state", hint: "call begin first, or use transact" },
@@ -556,11 +556,11 @@ export const RAISED_BY_PACKAGE = {
   "already-initialized": { kind: "state", hint: "call init and loadText with a source once, before the first load; later calls need no source" },
   "extract-module-not-loaded": { kind: "state", hint: "load the extract module (init with the extract option, or loadExtract) or the text module before opening the document" },
   "fetch-failed": { kind: "io", hint: "check that the URL is reachable and that the server sends the CORS headers range requests need (Content-Range must be exposed); data.reason and data.status say what failed" },
-  "not-initialized": { kind: "state", hint: "await init() once before calling anything else in @lamina/pdf" },
+  "not-initialized": { kind: "state", hint: "await init() once before calling anything else in @laminapdf/pdf" },
   "source-changed": { kind: "io", hint: "open the file again; the document already read parts of the old version and can't mix in the new one" },
   "text-module-not-loaded": { kind: "state", hint: "load the text module with init and the text option, or with loadText, before creating the builder that draws text" },
   "disposed": { kind: "state", hint: "free a handle only after its last use; to keep working, open the document again or create a new builder" },
-  "worker-version-mismatch": { kind: "usage", hint: "serve the worker file from the same @lamina/pdf build as the page; don't load it from a CDN or an older deploy" },
+  "worker-version-mismatch": { kind: "usage", hint: "serve the worker file from the same @laminapdf/pdf build as the page; don't load it from a CDN or an older deploy" },
   "worker-crashed": { kind: "internal", hint: "call client.restart() and open the document again; report the file if it keeps happening" },
   "worker-failed": { kind: "internal", hint: "this is a lamina bug: report it with the call and the message; the worker keeps running" },
 } as const;

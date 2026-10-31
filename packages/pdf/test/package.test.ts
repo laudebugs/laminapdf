@@ -17,7 +17,7 @@ async function exportsOf(entry: string): Promise<string[]> {
     metafile: true,
     format: "esm",
     platform: "neutral",
-    external: ["@lamina/wasm/*", "node:*"],
+    external: ["@laminapdf/wasm/*", "node:*"],
     logLevel: "silent",
   });
   return Object.values(result.metafile.outputs)

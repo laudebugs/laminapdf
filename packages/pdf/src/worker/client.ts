@@ -1,4 +1,4 @@
-// The page side of `@lamina/pdf/worker` (L2a): `connect()` starts the worker (the literal
+// The page side of `@laminapdf/pdf/worker` (L2a): `connect()` starts the worker (the literal
 // `new Worker(new URL(…, import.meta.url))` lets Vite and webpack bundle it), checks the
 // handshake, and returns a WorkerClient whose documents and pages are remote handles: proxies
 // whose methods post typed calls. Calls get monotonically increasing IDs; an aborted call is
@@ -86,7 +86,7 @@ export interface ConnectOptions {
   /**
    * The worker to use, or a function that makes one (needed for `restart()`). Omitted, the
    * package's own worker file. Pass one for a CSP that forbids the bundled URL, or to serve the
-   * worker yourself (from the same `@lamina/pdf` build: the handshake checks).
+   * worker yourself (from the same `@laminapdf/pdf` build: the handshake checks).
    */
   readonly worker?: Worker | (() => Worker);
   /** Aborts connecting. */
@@ -202,7 +202,7 @@ export class WorkerClient {
         }
       });
       if (welcome.worker.protocol !== HANDSHAKE.protocol || welcome.worker.version !== HANDSHAKE.version) {
-        throw packageError("worker-version-mismatch", "the worker is from another @lamina/pdf build", {
+        throw packageError("worker-version-mismatch", "the worker is from another @laminapdf/pdf build", {
           data: { expected: HANDSHAKE, actual: welcome.worker },
         });
       }

@@ -1,4 +1,4 @@
-# A Cloudflare Worker that generates a PDF per request with @lamina/pdf (B6c; the docs site's
+# A Cloudflare Worker that generates a PDF per request with @laminapdf/pdf (B6c; the docs site's
 # Worker example). `pnpm exec wrangler dev -c examples/worker/wrangler.toml` from packages/pdf.
 # Wrangler bundles the `workerd` export condition, which imports both `.wasm` files as
 # `WebAssembly.Module`s (Workers can't compile WebAssembly at run time).

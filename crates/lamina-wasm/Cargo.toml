@@ -1,6 +1,6 @@
 [package]
 name = "lamina-wasm"
-description = "wasm-bindgen bindings of the lamina façade: owned handles for documents, builders, pages, fonts and images, JSON records with tsify types, errors as the ADR 0026 object; built twice by `cargo xtask wasm` (base and text modules) into @lamina/wasm."
+description = "wasm-bindgen bindings of the lamina façade: owned handles for documents, builders, pages, fonts and images, JSON records with tsify types, errors as the ADR 0026 object; built twice by `cargo xtask wasm` (base and text modules) into @laminapdf/wasm."
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true

@@ -6,7 +6,7 @@
 /// Top-level keys of `codes.json` that are not groups of codes.
 pub const NOT_CODE_GROUPS: [&str; 3] = ["version", "docsUrl", "limits"];
 
-/// Groups whose codes only `@lamina/pdf` raises: left out of the Rust `ErrorCode` enum (and
+/// Groups whose codes only `@laminapdf/pdf` raises: left out of the Rust `ErrorCode` enum (and
 /// so of the WASM).
 pub const TS_ONLY_GROUPS: [&str; 1] = ["packageErrors"];
 

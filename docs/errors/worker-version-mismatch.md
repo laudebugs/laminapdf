@@ -5,7 +5,7 @@
 
 ## What happened
 
-`connect()` from `@lamina/pdf/worker` started a worker, and the worker's handshake named a different protocol or package version than the client. The client rejected `connect()` and sent nothing else.
+`connect()` from `@laminapdf/pdf/worker` started a worker, and the worker's handshake named a different protocol or package version than the client. The client rejected `connect()` and sent nothing else.
 
 ## Why
 
@@ -13,7 +13,7 @@ The client and the worker exchange messages whose shape belongs to one build. A 
 
 ## How to fix
 
-Let the bundler serve the worker from the same `@lamina/pdf` package as the page: `connect()` contains the literal `new Worker(new URL(…, import.meta.url))` that Vite and webpack follow. If you pass `{ worker }` yourself, build it from the same package version.
+Let the bundler serve the worker from the same `@laminapdf/pdf` package as the page: `connect()` contains the literal `new Worker(new URL(…, import.meta.url))` that Vite and webpack follow. If you pass `{ worker }` yourself, build it from the same package version.
 
 ## Example
 

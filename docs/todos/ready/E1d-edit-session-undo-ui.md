@@ -8,7 +8,7 @@
 | Round / milestone | Editor phase 2 (E1–E3) — M5 Organiser |
 | Depends on | [B6b](../done/B6b-lamina-pdf-package.md), [C4a](./C4a-ui-chrome-and-platform.md), [D4b](./D4b-native-menus.md), [E1a](./E1a-editing-foundation-feature-plan.md) |
 | Blocks | [E1e](./E1e-save-and-constraint-banner.md), [E4b](./E4b-annotation-model-and-overlay.md) |
-| Dependency notes | [E1a](E1a-editing-foundation-feature-plan.md), `C4` ([web-app §C4](../../plans/web-app.md#c4-app-shell-on-cloudflare): `@lamina/ui`, `apps/web`), `D4` ([desktop-app §D4](../../plans/desktop-app.md#d4-windows-tabs-menus-and-printing): windows, tabs, menus), `B6` ([pdf-library §B6](../../plans/pdf-library.md#b6-wasm-and-laminapdf): `lamina-wasm` and `@lamina/pdf`) |
+| Dependency notes | [E1a](E1a-editing-foundation-feature-plan.md), `C4` ([web-app §C4](../../plans/web-app.md#c4-app-shell-on-cloudflare): `@laminapdf/ui`, `apps/web`), `D4` ([desktop-app §D4](../../plans/desktop-app.md#d4-windows-tabs-menus-and-printing): windows, tabs, menus), `B6` ([pdf-library §B6](../../plans/pdf-library.md#b6-wasm-and-laminapdfpdf): `lamina-wasm` and `@laminapdf/pdf`) |
 | ADRs | Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
 | Branch | `feat/e1d-edit-session-undo-ui` |
 | PR title | `feat(ui): edit session with undo/redo and history panel` |
@@ -17,12 +17,12 @@
 
 ## Goal
 
-Turn the readers into an editor shell: an edit session per open document that holds the op log in the worker/engine process, the interaction-mode state machine in `@lamina/ui` that later rounds add tools to, dirty state, undo/redo commands with shortcuts and menus on both shells, and a history panel listing transactions.
+Turn the readers into an editor shell: an edit session per open document that holds the op log in the worker/engine process, the interaction-mode state machine in `@laminapdf/ui` that later rounds add tools to, dirty state, undo/redo commands with shortcuts and menus on both shells, and a history panel listing transactions.
 
 ## Context
 
 - **Design (Paper):** [O01 Edit session and history](../../design/paper/edit-session-organise.md#o01-edit-session-and-history). Build to match these screens; record any deviation in the area document ([Paper design plan §5](../../plans/paper-design.md#5-how-the-designs-are-used)).
-- [full-editor §6](../../plans/full-editor.md#6-design-summary): interaction modes as one state machine; tools as small modules over `@lamina/viewer` layers
+- [full-editor §6](../../plans/full-editor.md#6-design-summary): interaction modes as one state machine; tools as small modules over `@laminapdf/viewer` layers
 - [ADR 0006](../../decisions/0006-op-log-and-undo.md) §4: undo per document, local origin only, `UndoOutcome::Partial`; §7 two dirty levels
 - [web C3](../../plans/web-app.md#c3-viewer-core) and [desktop D4](../../plans/desktop-app.md#d4-windows-tabs-menus-and-printing): the worker RPC, menus and accelerators this extends
 - [editing notes §2](../../research/architecture/notes/editing-architecture.md#2-command-pattern--operation-log-undoredo-transactions-dirty-tracking): command pattern, transactions, coalescing
@@ -32,7 +32,7 @@ Turn the readers into an editor shell: an edit session per open document that ho
 **In scope**
 
 - `EditSession` in the worker RPC (web) and engine-process commands (desktop): `apply(ops)`, `undo()`, `redo()`, `history()`, dirty events with touched pages
-- Interaction-mode state machine in `@lamina/ui`: `select`, `hand`, `textSelect` now; typed extension points for `annotate`, `formFill`, `formDesign`, `contentEdit`, `redact`, `measure`
+- Interaction-mode state machine in `@laminapdf/ui`: `select`, `hand`, `textSelect` now; typed extension points for `annotate`, `formFill`, `formDesign`, `contentEdit`, `redact`, `measure`
 - Undo/redo toolbar buttons, keyboard shortcuts (Cmd/Ctrl+Z, Shift+Cmd+Z / Ctrl+Y), native menu items on desktop (shared shortcut map test from D4)
 - History panel: transaction list with labels, current position, `Partial`/`Skipped` outcomes surfaced as toasts
 - Unsaved indicator (semantic dirty) in the tab/title; close/quit guards on both shells
@@ -45,7 +45,7 @@ Turn the readers into an editor shell: an edit session per open document that ho
 
 **Editor facts**
 
-- **Crates and packages:** `lamina-wasm` (session bindings), `apps/desktop/src-tauri` (engine commands), `@lamina/viewer` (touched-page invalidation), `@lamina/ui`
+- **Crates and packages:** `lamina-wasm` (session bindings), `apps/desktop/src-tauri` (engine commands), `@laminapdf/viewer` (touched-page invalidation), `@laminapdf/ui`
 - **`Op` variants:** none new (uses B3 `RotatePage` and E1c ops to exercise it)
 - **`SaveConstraint`:** no saving here; dirty state follows ADR 0006 §7
 - **Web vs desktop:** identical behaviour. Desktop: native Edit menu items and window-close guard (Tauri `CloseRequested`); web: `beforeunload` guard
@@ -80,7 +80,7 @@ None.
 
 ## Docs to update
 
-- `@lamina/ui` README (modes and how tools register)
+- `@laminapdf/ui` README (modes and how tools register)
 - Keyboard map/help dialog from C7 (new shortcuts)
 - [full-editor §E1](../../plans/full-editor.md#e1-editing-foundation) and its §10 to-dos: tick what this PR completes and point the round's todo link at `done/`
 

@@ -31,11 +31,11 @@ const UNBUILDABLE: [(&str, &str); 11] = [
     ("invalid-argument", "raised by lamina-wasm"),
     ("unknown-option", "raised by lamina-wasm"),
     ("source-budget-exceeded", "raised by lamina-wasm"),
-    // `packageErrors`: raised by @lamina/pdf; packages/pdf/test/source.test.ts checks the keys.
-    ("fetch-failed", "raised by @lamina/pdf"),
+    // `packageErrors`: raised by @laminapdf/pdf; packages/pdf/test/source.test.ts checks the keys.
+    ("fetch-failed", "raised by @laminapdf/pdf"),
     // packages/pdf/test/browser/worker.browser.test.ts checks these two's keys.
-    ("worker-version-mismatch", "raised by @lamina/pdf/worker"),
-    ("worker-crashed", "raised by @lamina/pdf/worker"),
+    ("worker-version-mismatch", "raised by @laminapdf/pdf/worker"),
+    ("worker-crashed", "raised by @laminapdf/pdf/worker"),
     // `renderErrors`: raised by lamina-render (not the façade); the fields are RenderError's.
     ("render-too-large", "raised by lamina-render"),
     ("render-failed", "raised by lamina-render"),

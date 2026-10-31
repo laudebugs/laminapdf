@@ -1,6 +1,6 @@
 // ADR 0018 §5, TS half: the frozen op samples (fixtures/ops/v1) apply through doc.apply and
 // round-trip through the TS types; unknown ops and fields are refused.
-import { Document, init, isLaminaError, type Op, type OpLog } from "@lamina/pdf";
+import { Document, init, isLaminaError, type Op, type OpLog } from "@laminapdf/pdf";
 import { beforeAll, describe, expect, it } from "vitest";
 import { read, readText, thrown } from "./helpers.js";
 

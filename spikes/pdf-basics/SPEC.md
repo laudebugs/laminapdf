@@ -75,7 +75,7 @@ spikes/pdf-basics/
 ├── SPEC.md          # this file
 ├── fixtures/        # shared golden + corpus files
 ├── rust/            # cargo crate `lamina-pdf-basics`
-└── ts/              # npm package `@lamina/pdf-basics-spike` (pnpm)
+└── ts/              # npm package `@laminapdf/pdf-basics-spike` (pnpm)
 ```
 
 `rust/README.md` and `ts/README.md`: how to build/test, and a results section (test counts, LOC of src, build sizes: rlib/wasm size, minified+gzipped ESM size, any spec questions hit).

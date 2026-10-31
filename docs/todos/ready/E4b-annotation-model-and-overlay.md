@@ -44,7 +44,7 @@ Typed annotation views in `lamina-model` (common dictionary, markup dictionary, 
 
 **Editor facts**
 
-- **Crates and packages:** `lamina-model` (annotations), `lamina-ops`, `lamina-build` (appearance trait), `@lamina/viewer` (edit layer)
+- **Crates and packages:** `lamina-model` (annotations), `lamina-ops`, `lamina-build` (appearance trait), `@laminapdf/viewer` (edit layer)
 - **`Op` variants:** `AddAnnot`, `UpdateAnnot`, `DeleteAnnot` (class `Annotation`)
 - **`SaveConstraint`:** `Free` → incremental. Signed: class `Annotation` is allowed only under DocMDP P3 or when there is no certification signature (approval signatures alone allow annotations); otherwise a violation → warn and gate. Note the Evil Annotation Attack: annotations added after certification are shown as such in the signature panel (E10)
 - **Web vs desktop:** identical
@@ -61,7 +61,7 @@ Typed annotation views in `lamina-model` (common dictionary, markup dictionary, 
 
 ## Acceptance criteria
 
-- [ ] Library parity ([full-editor §5](../../plans/full-editor.md#5-requirements-that-hold-for-every-round) req. 7): every new `Op` is exposed in `lamina` and `@lamina/pdf` in this PR, with rustdoc/TSDoc, a runnable example, tsify-generated TS types, and serde samples frozen in `fixtures/ops/v1/` (unknown ops and fields rejected, ADR 0006 §1, §6)
+- [ ] Library parity ([full-editor §5](../../plans/full-editor.md#5-requirements-that-hold-for-every-round) req. 7): every new `Op` is exposed in `lamina` and `@laminapdf/pdf` in this PR, with rustdoc/TSDoc, a runnable example, tsify-generated TS types, and serde samples frozen in `fixtures/ops/v1/` (unknown ops and fields rejected, ADR 0006 §1, §6)
 - [ ] Property tests: for every new op, apply then undo leaves the overlay empty and the next save is byte-identical to the previous one (ADR 0006 §3); redo re-applies the same bytes
 - [ ] Every new op reports its `ModificationClass` and `requires_rewrite` (ADR 0006 §1); a test per op runs `planner.would_violate(&op)` on the signed fixtures (no certification, DocMDP P1, P2, P3, FieldMDP lock) and asserts the verdict ([ADR 0007](../../decisions/0007-save-planner.md) §2), because a misclassified op is a security bug
 - [ ] Unknown annotation keys survive an update (round-trip test)

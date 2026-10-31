@@ -1,5 +1,5 @@
 // The web render contract of ADR 0004 (todo C2c): the interface both web adapters implement
-// (@lamina/render-pdfium, @lamina/render-hayro), the tile planner they share, and RenderError.
+// (@laminapdf/render-pdfium, @laminapdf/render-hayro), the tile planner they share, and RenderError.
 // It mirrors lamina-render's Rust trait: bounded tiles of a page at a scale, straight-alpha RGBA8
 // rows of width × 4 bytes, validated once by planTile so both adapters agree on sizes.
 

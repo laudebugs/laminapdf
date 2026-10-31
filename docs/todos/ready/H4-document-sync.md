@@ -44,7 +44,7 @@ Keep a user's cloud documents in sync across their devices: new revisions pushed
 
 **Editor facts**
 
-- **Crates and packages:** `apps/web` Worker, `apps/desktop`, `@lamina/ui`
+- **Crates and packages:** `apps/web` Worker, `apps/desktop`, `@laminapdf/ui`
 - **`SaveConstraint`:** not applicable (no PDF writes)
 - **Web vs desktop:** desktop syncs in the background and offline; web syncs when the document is open
 - **Server features:** R2, D1, Workers (polling only)

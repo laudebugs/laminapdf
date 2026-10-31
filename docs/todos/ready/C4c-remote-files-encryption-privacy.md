@@ -21,7 +21,7 @@ Complete the reader's opening story and prove its privacy promise. Remote PDFs o
 
 ## Context
 
-- **Range loading exists:** `httpRangeSource` and `Document.openRange` / `doc.ensure` in `@lamina/pdf` ([L2c](../done/L2c-range-byte-source.md)): Range requests with tail-first probing, `If-Range` + `ETag` checks (`source-changed`), the `200` fallback and `AbortSignal`. Wrap it (OPFS block cache, privacy fetch options) rather than writing a second HTTP source.
+- **Range loading exists:** `httpRangeSource` and `Document.openRange` / `doc.ensure` in `@laminapdf/pdf` ([L2c](../done/L2c-range-byte-source.md)): Range requests with tail-first probing, `If-Range` + `ETag` checks (`source-changed`), the `200` fallback and `AbortSignal`. Wrap it (OPFS block cache, privacy fetch options) rather than writing a second HTTP source.
 - **Design (Paper):** [R01 Home / open](../../design/paper/reader-a.md#r01-home--open), [R03 Password prompt](../../design/paper/reader-a.md#r03-password-prompt). Build to match these screens; record any deviation in the area document ([Paper design plan §5](../../plans/paper-design.md#5-how-the-designs-are-used)).
 - [web-app.md §4 functional 1](../../plans/web-app.md#functional) and [privacy and security](../../plans/web-app.md#privacy-and-security) — exact requirements; [§3 users](../../plans/web-app.md#3-users-and-use-cases) (`https://laminapdf.com/#url=…` links).
 - ADR 0011 (from [C2a](../done/C2a-render-adrs.md)) — testable privacy statements; no CORS proxy in v0.1 ([§8 Q2](../../plans/web-app.md#8-open-questions)).

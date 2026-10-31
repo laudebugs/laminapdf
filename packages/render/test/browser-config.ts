@@ -11,7 +11,7 @@ import { defineConfig } from "vitest/config";
  * own profile, and fails with "Could not find profile folder." where it can't (macOS refuses it
  * on the self-hosted runners). MOZ_APP_DATA and MOZ_LOCAL_APP_DATA point it at a folder of its
  * own, in the package's node_modules (so runners sharing a machine don't share it). The same
- * workaround is in @lamina/pdf's vitest.browser.config.ts.
+ * workaround is in @laminapdf/pdf's vitest.browser.config.ts.
  */
 function firefox(packageDir: URL) {
   const data = fileURLToPath(new URL("node_modules/.cache/lamina-firefox/", packageDir));
@@ -27,7 +27,7 @@ export function renderBrowserConfig(packageDir: URL) {
       projects: [
         {
           extends: true,
-          optimizeDeps: { exclude: ["@lamina/wasm", "@embedpdf/pdfium"] },
+          optimizeDeps: { exclude: ["@laminapdf/wasm", "@embedpdf/pdfium"] },
           test: {
             name: "browser",
             include: ["test/browser/*.browser.test.ts"],

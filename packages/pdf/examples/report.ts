@@ -5,7 +5,7 @@
 // that each produces the same bytes (test/suite/examples.ts). Its Rust twin is the
 // `report_100_pages` bench in crates/lamina/benches/report.rs, which checks it builds the same
 // bytes (REPORT_SHA256): change both together.
-import { Builder, Font } from "@lamina/pdf";
+import { Builder, Font } from "@laminapdf/pdf";
 
 /** The number of pages. */
 export const REPORT_PAGES = 100;

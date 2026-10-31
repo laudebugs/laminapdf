@@ -16,7 +16,7 @@
 
 ## Goal
 
-Keep `@lamina/pdf` from leaking or growing without bound in long-lived pages and servers. wasm linear memory grows but never shrinks, so one large file can leave an instance huge. A wasm trap (OOM, a bug) poisons the instance for every later call. This todo does five things:
+Keep `@laminapdf/pdf` from leaking or growing without bound in long-lived pages and servers. wasm linear memory grows but never shrinks, so one large file can leave an instance huge. A wasm trap (OOM, a bug) poisons the instance for every later call. This todo does five things:
 
 1. Every handle supports `using`.
 2. A call on a disposed handle throws a coded error instead of a glue-level null-pointer failure.
@@ -62,7 +62,7 @@ Keep `@lamina/pdf` from leaking or growing without bound in long-lived pages and
 ## Tasks
 
 - [ ] Load the `/rust-best-practices` skill and follow [docs/guidelines/rust.md](../../guidelines/rust.md) for the `lamina-wasm` changes. Core crates do not change and stay bytes-in/bytes-out
-- [ ] Inventory every wasm-backed class exported by `packages/pdf` and `@lamina/wasm`; list them in the PR description
+- [ ] Inventory every wasm-backed class exported by `packages/pdf` and `@laminapdf/wasm`; list them in the PR description
 - [ ] `src/internal/handle.ts`:
   - [ ] A base `Handle` with `disposed` state, `[Symbol.dispose]`, `free()`/`close()` aliases, child tracking and the `assertLive()` check
   - [ ] Every public class extends or wraps it

@@ -1,5 +1,5 @@
 // The records of the API: the tsify types `lamina-wasm` generates (ADR 0016 §7), re-exported
-// under @lamina/pdf's names. They are the Rust façade's records, camelCase; only `OpenOptions`
+// under @laminapdf/pdf's names. They are the Rust façade's records, camelCase; only `OpenOptions`
 // and `Color` are written here.
 import type {
   AlignInit,
@@ -26,7 +26,7 @@ import type {
   TextRunJs,
   UndoOutcomeJs,
   ViewerPreferencesInit,
-} from "@lamina/wasm/text";
+} from "@laminapdf/wasm/text";
 
 /** An edit (ADR 0006 §6: `{ op: "setInfo" | "rotatePage", args }`), as in `fixtures/ops/v1`. */
 export type Op = OpJs;

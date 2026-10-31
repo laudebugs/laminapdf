@@ -1,4 +1,4 @@
-# U6c — `@lamina/icons`: the Paper stroke icon set, `<Icon>`, gallery and grid lint
+# U6c — `@laminapdf/icons`: the Paper stroke icon set, `<Icon>`, gallery and grid lint
 
 | Field | Value |
 | --- | --- |
@@ -10,13 +10,13 @@
 | Blocks | [U6d](./U6d-core-components.md) |
 | ADRs | Follows 0024 (component rules; from [U1a](./U1a-adr-0024-app-shell-ux.md)), 0009 (React chrome around a framework-free viewer; from [C2a](../done/C2a-render-adrs.md)), [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) (licence of any dev dependency) |
 | Branch | `feat/u6c-icon-set` |
-| PR title | `feat(icons): add @lamina/icons with the paper stroke icon set and grid lint` |
+| PR title | `feat(icons): add @laminapdf/icons with the paper stroke icon set and grid lint` |
 | Size | M (≈ 300–400 lines of generator, `<Icon>`, lint and tests; the SVG sources and generated module don't count) |
 | PR | — |
 
 ## Goal
 
-Make the design language's icons a typed, tested package so every screen uses the same glyphs, drawn the same way: 24-unit grid, 1.5 px stroke, `currentColor`, no fills. `@lamina/icons` holds one SVG file per icon and a generated, framework-free module of their markup (usable by the React chrome and by the framework-free viewer alike), plus a small typed React `<Icon>` component on a separate subpath with explicit decorative and labelled modes. A lint test rejects any icon that breaks the grid or stroke rules, a gallery page shows them all at every rendered size, and the README lists which icons each screen area needs, so later rounds add icons by rule rather than by taste.
+Make the design language's icons a typed, tested package so every screen uses the same glyphs, drawn the same way: 24-unit grid, 1.5 px stroke, `currentColor`, no fills. `@laminapdf/icons` holds one SVG file per icon and a generated, framework-free module of their markup (usable by the React chrome and by the framework-free viewer alike), plus a small typed React `<Icon>` component on a separate subpath with explicit decorative and labelled modes. A lint test rejects any icon that breaks the grid or stroke rules, a gallery page shows them all at every rendered size, and the README lists which icons each screen area needs, so later rounds add icons by rule rather than by taste.
 
 ## Context
 
@@ -30,12 +30,12 @@ Make the design language's icons a typed, tested package so every screen uses th
 
 **In scope**
 
-- **Decision: a separate package `packages/icons` (`@lamina/icons`, private)**, not a module of `@lamina/ui`, because the framework-free `@lamina/viewer` and non-React surfaces (desktop native menus' template images, the docs site) need the same glyphs without React. It has no runtime dependencies.
+- **Decision: a separate package `packages/icons` (`@laminapdf/icons`, private)**, not a module of `@laminapdf/ui`, because the framework-free `@laminapdf/viewer` and non-React surfaces (desktop native menus' template images, the docs site) need the same glyphs without React. It has no runtime dependencies.
 - `packages/icons/svg/<kebab-name>.svg`: one file per icon, exactly the design language's markup wrapped in the standard `<svg>` element.
 - Generator `scripts/generate.ts` → committed `src/generated/icons.ts` (`@generated` header): `ICONS` (`as const` record of name → inner markup and optional `strokeWidth` override), `IconName` literal union, and `iconSvg(name, { size, title? })` returning a complete SVG string; `--check` mode for CI.
-- A React subpath `@lamina/icons/react` (React 19 as an *optional* peer dependency via `catalog:`, so the root entry stays framework-free): `src/react/icon.tsx` with `<Icon name size />` (decorative: `aria-hidden="true"`, `focusable="false"`) and `<Icon name size label="…" />` (labelled: `role="img"` + `aria-label`, used only where the icon stands alone and is not inside a labelled button); sizes typed as `14 | 15 | 16 | 18 | 20 | 22 | 32` (32 for empty states). `@lamina/ui` ([U6d](./U6d-core-components.md)) re-exports it.
+- A React subpath `@laminapdf/icons/react` (React 19 as an *optional* peer dependency via `catalog:`, so the root entry stays framework-free): `src/react/icon.tsx` with `<Icon name size />` (decorative: `aria-hidden="true"`, `focusable="false"`) and `<Icon name size label="…" />` (labelled: `role="img"` + `aria-label`, used only where the icon stands alone and is not inside a labelled button); sizes typed as `14 | 15 | 16 | 18 | 20 | 22 | 32` (32 for empty states). `@laminapdf/ui` ([U6d](./U6d-core-components.md)) re-exports it.
 - Accessibility helpers: `iconButtonProps(label)` or a lint rule/test that every `IconButton` has an accessible name (the button component itself is [U6d](./U6d-core-components.md)'s; this todo provides the helper and the test utility).
-- **Icon lint** (`src/lint.test.ts`, also runnable as `pnpm --filter @lamina/icons lint:icons`): parses every SVG and checks viewBox, root attributes, `stroke-width` 1.5 (or the declared override), no `fill` other than `none` (circles drawn as dots such as More's `r="0.9"` are allowed only through an explicit `dots` allowance), no `style`, `class`, `transform`, `id`, `stroke-linecap`/`stroke-linejoin` other than defaults, only `path`, `circle`, `rect`, `line`, `polyline`, `polygon`, `ellipse` elements, and a bounding box inside the 24 grid with ≥ 2 units of margin (warn when outside the 3.5–4.5 unit target, fail below 2).
+- **Icon lint** (`src/lint.test.ts`, also runnable as `pnpm --filter @laminapdf/icons lint:icons`): parses every SVG and checks viewBox, root attributes, `stroke-width` 1.5 (or the declared override), no `fill` other than `none` (circles drawn as dots such as More's `r="0.9"` are allowed only through an explicit `dots` allowance), no `style`, `class`, `transform`, `id`, `stroke-linecap`/`stroke-linejoin` other than defaults, only `path`, `circle`, `rect`, `line`, `polyline`, `polygon`, `ellipse` elements, and a bounding box inside the 24 grid with ≥ 2 units of margin (warn when outside the 3.5–4.5 unit target, fail below 2).
 - **Icon gallery page** (a static page in `packages/icons/gallery/`, or the first page of [U6f](./U6f-gallery-and-visual-tests.md)'s gallery if that lands first): every icon at 14, 16, 18, 20, 22 px in `text-3`, `accent` and dark-theme colours, with its name and the label convention.
 - **The icons each area needs**, in `packages/icons/README.md` (derived from the design language, [screens.md](../../design/paper/screens.md) and the area documents present at the time), marking which exist, which this PR draws, and which the area's own todo draws. This PR draws the reader v0.1 set and the icons [U6d](./U6d-core-components.md) and [U6e](./U6e-overlays-and-sheets.md) need (see Tasks).
 
@@ -61,12 +61,12 @@ Make the design language's icons a typed, tested package so every screen uses th
 
 ## Acceptance criteria
 
-- [ ] Every icon in the design language's §5 table exists in `@lamina/icons` with identical path data (test compares against the Markdown table).
+- [ ] Every icon in the design language's §5 table exists in `@laminapdf/icons` with identical path data (test compares against the Markdown table).
 - [ ] The lint passes for every icon, and fails for a fixture SVG with stroke 2, a fill, a `transform` and a shape touching the edge (negative tests in `test/fixtures/`).
 - [ ] `IconName` is a literal union; `<Icon name="nope" />` fails to type-check (a `@ts-expect-error` test).
 - [ ] `<Icon>` renders `aria-hidden="true"` without `label`, and `role="img"` with an accessible name with `label` (Testing Library); axe reports no violation on the gallery page.
 - [ ] Every icon added in this PR is in the design language's §5 table and was approved by the owner (linked in the PR).
-- [ ] The root entry `@lamina/icons` imports nothing from React (a test resolves its module graph); `@lamina/viewer` can use `iconSvg` without React.
+- [ ] The root entry `@laminapdf/icons` imports nothing from React (a test resolves its module graph); `@laminapdf/viewer` can use `iconSvg` without React.
 - [ ] `cargo xtask check` passes.
 
 ## Post-merge checks
@@ -79,12 +79,12 @@ None.
 
 ## Docs to update
 
-- [Design language §5](../../design/paper/design-language.md#5-iconography): say that `packages/icons/svg/` is the source of truth for icon markup, add the new icons, and replace "add them to this table when a board introduces one" with "add the SVG to `@lamina/icons` (the lint enforces the rules) and the row here".
+- [Design language §5](../../design/paper/design-language.md#5-iconography): say that `packages/icons/svg/` is the source of truth for icon markup, add the new icons, and replace "add them to this table when a board introduces one" with "add the SVG to `@laminapdf/icons` (the lint enforces the rules) and the row here".
 - `packages/icons/README.md` (new, with the per-area list). `CLAUDE.md` layout: `packages/icons`.
 
 ## Risks and open questions
 
-- **Separate package vs a module of `@lamina/ui`**: chosen separate for the framework-free viewer; if no non-React consumer appears by the end of Round C, folding it into `@lamina/ui` is cheap (one re-export). Note the decision in the README.
+- **Separate package vs a module of `@laminapdf/ui`**: chosen separate for the framework-free viewer; if no non-React consumer appears by the end of Round C, folding it into `@laminapdf/ui` is cheap (one re-export). Note the decision in the README.
 - **New icons drawn by engineers** may not match the designer's hand: the lint catches grid and stroke, not style. Owner approval of each new icon in the PR covers taste; when a designer redraws one, only the SVG file changes.
 - **The 0.9-radius dots in More** are drawn as stroked circles that read as filled dots; the lint needs an explicit allowance rather than accepting small circles everywhere.
 - **Area documents** listed in the plan may not be in the repository yet; the per-area list is then derived from screens.md and the design language, and each area's first UI todo completes its row.

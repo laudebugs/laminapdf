@@ -102,12 +102,12 @@ export const WARNING_GROUPS: readonly string[] = [
   "textWarnings",
 ];
 
-/** The groups whose codes only `@lamina/pdf` raises (not in the Rust enums or the WASM). */
+/** The groups whose codes only `@laminapdf/pdf` raises (not in the Rust enums or the WASM). */
 export const TS_ONLY_GROUPS: readonly string[] = [
   "packageErrors",
 ];
 
-/** Kind and hint of the codes `@lamina/pdf` raises itself (the WASM fills in the others). */
+/** Kind and hint of the codes `@laminapdf/pdf` raises itself (the WASM fills in the others). */
 export const RAISED_BY_PACKAGE = {
   "cancelled": { kind: "state", hint: "what to do" },
   "nested-transaction": { kind: "state", hint: "what to do" },

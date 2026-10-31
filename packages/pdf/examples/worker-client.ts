@@ -1,8 +1,8 @@
-// `@lamina/pdf/worker`: the sync API's async twin in a Web Worker, so a large file never blocks
+// `@laminapdf/pdf/worker`: the sync API's async twin in a Web Worker, so a large file never blocks
 // the page. Open, count the pages, save with progress, and abort a save the user cancels. Runs
 // in browsers (test/browser/worker.browser.test.ts).
-import { isLaminaError } from "@lamina/pdf";
-import { connect } from "@lamina/pdf/worker";
+import { isLaminaError } from "@laminapdf/pdf";
+import { connect } from "@laminapdf/pdf/worker";
 
 /** What the example saw: the page count, the saved size, and whether the abort was reported. */
 export interface WorkerClientResult {

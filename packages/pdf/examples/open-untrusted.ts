@@ -1,7 +1,7 @@
 // Open bytes from someone else: a password, tighter limits than the defaults, and the outcome as
 // a value rather than an exception (the docs site's encrypted files, limits and errors guides).
 // It has no Rust golden: it writes nothing; test/examples.test.ts checks what it reports.
-import { Document, isLaminaError } from "@lamina/pdf";
+import { Document, isLaminaError } from "@laminapdf/pdf";
 
 /** What opening a file gave: its page count and warning codes, or why it didn't open. */
 export type Opened =

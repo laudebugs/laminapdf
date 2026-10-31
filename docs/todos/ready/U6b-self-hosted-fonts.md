@@ -1,4 +1,4 @@
-# U6b — `@lamina/fonts`: self-hosted, subsetted Newsreader and Source Sans 3
+# U6b — `@laminapdf/fonts`: self-hosted, subsetted Newsreader and Source Sans 3
 
 | Field | Value |
 | --- | --- |
@@ -16,7 +16,7 @@
 
 ## Goal
 
-Ship Paper's two UI typefaces from lamina's own origin: Newsreader (titles, outline, quotes) and Source Sans 3 (every control and message), as subsetted WOFF2 files in a `@lamina/fonts` package with their OFL-1.1 licences, `@font-face` rules with the right `font-display`, and a preload for the UI face. No page of lamina may fetch a font from Google Fonts or any other third-party host at runtime: the canvases link `fonts.googleapis.com` only because they are mockups, and principle 7 ("prove, don't claim") means the network indicator must read 0 on a local file. The desktop app bundles the same files, so it works offline from first launch.
+Ship Paper's two UI typefaces from lamina's own origin: Newsreader (titles, outline, quotes) and Source Sans 3 (every control and message), as subsetted WOFF2 files in a `@laminapdf/fonts` package with their OFL-1.1 licences, `@font-face` rules with the right `font-display`, and a preload for the UI face. No page of lamina may fetch a font from Google Fonts or any other third-party host at runtime: the canvases link `fonts.googleapis.com` only because they are mockups, and principle 7 ("prove, don't claim") means the network indicator must read 0 on a local file. The desktop app bundles the same files, so it works offline from first launch.
 
 ## Context
 
@@ -32,7 +32,7 @@ Ship Paper's two UI typefaces from lamina's own origin: Newsreader (titles, outl
 
 **In scope**
 
-- `packages/fonts` (`@lamina/fonts`, private): `files/*.woff2`, `fonts.css` (`@font-face` rules with relative `url()` so Vite, the Tauri frontend build and the gallery emit them as hashed assets), `LICENSES/Newsreader-OFL.txt`, `LICENSES/SourceSans3-OFL.txt`, `fonts.lock.json` (upstream repository, release tag or commit, SHA-256 of each source file and of each output), `README.md`, and a typed export of the preload URL(s) for apps.
+- `packages/fonts` (`@laminapdf/fonts`, private): `files/*.woff2`, `fonts.css` (`@font-face` rules with relative `url()` so Vite, the Tauri frontend build and the gallery emit them as hashed assets), `LICENSES/Newsreader-OFL.txt`, `LICENSES/SourceSans3-OFL.txt`, `fonts.lock.json` (upstream repository, release tag or commit, SHA-256 of each source file and of each output), `README.md`, and a typed export of the preload URL(s) for apps.
 - Faces: Source Sans 3 400, 500, 600 (upright; italic only if a screen uses it); Newsreader 400, 500, 600 upright with the optical-size axis kept if the variable file fits the budget (else static instances at the sizes the type scale uses), plus Newsreader italic 400 for quotes.
 - Subsets: **Latin** and **Latin Extended** as two `unicode-range` files per face (the browser downloads Latin Extended only when the text needs it), including the punctuation the writing style uses (’ “ ” · … – — €, tabular figures and the `tnum` feature, which must survive subsetting). Other scripts (Greek, Cyrillic, CJK, Arabic, Hebrew, Indic …) fall back to the system font stack per glyph, as the CSS fallbacks already say; document this in the README and keep the fallbacks in the family tokens.
 - Glyphs outside the fonts that the UI uses: shortcut-chip symbols (⌘ ⌥ ⇧ ⌫ ↵ ↑ ↓) and arrows. Decide per glyph: in the subset if the font has it, otherwise the system font (test that each one renders with a non-zero width in three engines).
@@ -49,26 +49,26 @@ Ship Paper's two UI typefaces from lamina's own origin: Newsreader (titles, outl
 - The CSP `font-src 'self'` header and the network indicator itself → [C4c](./C4c-remote-files-encryption-privacy.md), [U4a](./U4a-network-indicator-and-privacy-proof.md); this todo adds a test that the gallery makes no third-party request.
 - The generated third-party notices file shipped in apps → at first release ([ADR 0019 SBOM and notices](../../decisions/0019-supply-chain-and-licence-hygiene.md#sbom-and-notices-at-first-release)); this todo commits the licence texts and a README table it can be generated from.
 - Using the fonts in components → [U6d](./U6d-core-components.md); screenshot stability with them → [U6f](./U6f-gallery-and-visual-tests.md).
-- Desktop app wiring → [D2a](./D2a-adr-0008-and-desktop-scaffold.md) imports `@lamina/fonts/fonts.css` like the web app.
+- Desktop app wiring → [D2a](./D2a-adr-0008-and-desktop-scaffold.md) imports `@laminapdf/fonts/fonts.css` like the web app.
 
 ## Tasks
 
 - [ ] Claim via a claim PR (see Definition of done); then a fresh worktree off the updated `main`.
 - [ ] Download the upstream font sources from their official repositories (not from Google Fonts' CSS API) into a gitignored scratch folder; record repository, tag/commit and SHA-256 in `fonts.lock.json`; copy each `OFL.txt` verbatim into `LICENSES/` and note any Reserved Font Name.
-- [ ] Licence check per ADR 0019: OFL-1.1 is on the allow-list for bundled fonts; if the npm licence check reads `package.json` `license`, set `"license": "OFL-1.1"` for `@lamina/fonts` and make sure the allow-list accepts it for this package (or document the exception in the xtask's licence config).
+- [ ] Licence check per ADR 0019: OFL-1.1 is on the allow-list for bundled fonts; if the npm licence check reads `package.json` `license`, set `"license": "OFL-1.1"` for `@laminapdf/fonts` and make sure the allow-list accepts it for this package (or document the exception in the xtask's licence config).
 - [ ] Write `tools/fonts/subset.sh` (`set -euo pipefail`, `shellcheck` clean) and `requirements.txt`: one `pyftsubset` call per face × range with `--flavor=woff2 --layout-features='kern,liga,calt,tnum,lnum,case,ss01…'` (keep the features the type scale needs; check which the fonts have), `--unicodes` for Latin and Latin Extended, `--no-hinting` unless hinting visibly helps on Windows at 12 px (compare in the gallery), and name-table licence entries kept.
 - [ ] Measure variable vs static files for both families; pick the smaller set that meets the budget and record the numbers in the README.
 - [ ] Write `fonts.css`: one `@font-face` per file with `font-family` names matching [U6a](./U6a-paper-tokens.md)'s tokens, `font-weight` ranges for variable files, `font-style`, `unicode-range`, `font-display`; plus metric-adjusted fallback faces.
 - [ ] Export `FONT_PRELOADS` (typed array of `{ href, type }` resolved with `new URL("./files/….woff2", import.meta.url)`) from `src/index.ts` with TSDoc.
 - [ ] Add a guard test (in this package, scanning the repository's `packages/` and `apps/` sources) that fails on `fonts.googleapis.com`, `fonts.gstatic.com`, `use.typekit.net` or any `@import url(http…)` for fonts; `docs/design/` (the canvases) is excluded.
 - [ ] Add a size test: total of all WOFF2 files and the preloaded file each under budget (see Acceptance).
-- [ ] Add a glyph-coverage test: every character used in the UI message catalogue (`@lamina/ui`, once it exists; until then the design language's sample strings) is in the Latin subsets, or in an explicit "system fallback" list.
+- [ ] Add a glyph-coverage test: every character used in the UI message catalogue (`@laminapdf/ui`, once it exists; until then the design language's sample strings) is in the Latin subsets, or in an explicit "system fallback" list.
 - [ ] README: faces, ranges, sizes, how other scripts fall back, how to regenerate, licence table (font, version, licence, copyright line) for the future notices file.
-- [ ] Switch the docs site to `@lamina/fonts` (it themes Starlight with an interim copy from [U6g](../done/U6g-docs-site-paper.md)) and delete `apps/docs/src/fonts/` and the `@font-face` rules in `apps/docs/src/styles/paper.css`.
+- [ ] Switch the docs site to `@laminapdf/fonts` (it themes Starlight with an interim copy from [U6g](../done/U6g-docs-site-paper.md)) and delete `apps/docs/src/fonts/` and the `@font-face` rules in `apps/docs/src/styles/paper.css`.
 
 ## Acceptance criteria
 
-- [ ] `@lamina/fonts` ships WOFF2 files for Source Sans 3 (400/500/600) and Newsreader (400/500/600 + italic 400) in Latin and Latin Extended subsets, with both OFL texts and `fonts.lock.json`; re-running `tools/fonts/subset.sh` reproduces byte-identical files (or the README explains why not and the lock records output hashes).
+- [ ] `@laminapdf/fonts` ships WOFF2 files for Source Sans 3 (400/500/600) and Newsreader (400/500/600 + italic 400) in Latin and Latin Extended subsets, with both OFL texts and `fonts.lock.json`; re-running `tools/fonts/subset.sh` reproduces byte-identical files (or the README explains why not and the lock records output hashes).
 - [ ] **Size budget** (recommendation; adjust once measured, in this PR, with the owner's agreement): the preloaded Source Sans 3 Latin 400 file ≤ 30 KB; all Latin files together ≤ 200 KB; Latin Extended files are loaded only when used (verified in the browser test by checking `document.fonts` after rendering Latin-only text).
 - [ ] A Playwright (or Vitest browser) test loads a page using the fonts (the gallery stub or a test page) and records every request: all font requests are same-origin and there are **zero** requests to any other host.
 - [ ] The guard test fails if a product source file references a font CDN (shown once in the PR description).
@@ -86,7 +86,7 @@ Ship Paper's two UI typefaces from lamina's own origin: Newsreader (titles, outl
 ## Docs to update
 
 - `packages/fonts/README.md` (new).
-- [Design language §3](../../design/paper/design-language.md#3-typography): next to the mockup `<link>` line, say that the product uses `@lamina/fonts` and never this link.
+- [Design language §3](../../design/paper/design-language.md#3-typography): next to the mockup `<link>` line, say that the product uses `@laminapdf/fonts` and never this link.
 - `CLAUDE.md`: layout (`packages/fonts`, `tools/fonts/`) and the regenerate command (`tools/fonts/subset.sh`, needs Python with the pinned fontTools).
 - [Paper design plan §9](../../plans/paper-design.md#9-to-dos): nothing to tick yet (the combined U6 line is ticked by [U6f](./U6f-gallery-and-visual-tests.md)).
 

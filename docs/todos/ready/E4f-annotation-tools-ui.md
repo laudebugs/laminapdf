@@ -40,7 +40,7 @@ Annotate mode in both apps: toolbar tools (highlight, underline, strike-through,
 **Editor facts**
 
 - **Operations shipped** ([06 §3](../../research/pdf/06-feature-inventory.md#3-full-operation-inventory-with-mechanisms) IDs): `D.01` highlight / underline / strike through; `D.02` sticky notes and text comments; `D.03` text-correction annotations; `D.04` freehand ink; `D.05` shapes, lines, arrows; `D.06` callouts and text boxes; `B.06` arrows, paths, freehand drawing
-- **Crates and packages:** `@lamina/ui`, `@lamina/viewer`
+- **Crates and packages:** `@laminapdf/ui`, `@laminapdf/viewer`
 - **`SaveConstraint`:** banner and gating from E1e on signed files
 - **Web vs desktop:** identical; pressure only where `PointerEvent.pressure` is meaningful
 - **Server features:** none (this PR adds no server feature; all processing stays on the device)

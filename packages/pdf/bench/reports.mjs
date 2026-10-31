@@ -11,7 +11,7 @@
 // Prints the minimum and median of `runs` builds (default 10) after one warm-up build.
 import { readFileSync } from "node:fs";
 import { argv } from "node:process";
-import { Builder, Font, init } from "@lamina/pdf";
+import { Builder, Font, init } from "@laminapdf/pdf";
 import { REPORT_PAGES, report } from "../examples/report.ts";
 
 const root = new URL("../../../", import.meta.url);

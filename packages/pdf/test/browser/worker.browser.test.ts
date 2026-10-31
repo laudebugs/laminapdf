@@ -1,8 +1,8 @@
-// `@lamina/pdf/worker` in a browser (Chromium, Firefox, WebKit; L2a): the remote API matches
+// `@laminapdf/pdf/worker` in a browser (Chromium, Firefox, WebKit; L2a): the remote API matches
 // the sync one on the corpus, the handshake refuses another build, cancellation before and
 // during a stepped save, transfers, rebuilt LaminaErrors, crash and restart, async disposal.
-import { Document, init, isLaminaError, LaminaError, loadText } from "@lamina/pdf";
-import { connect, type RemoteDocument, WorkerClient } from "@lamina/pdf/worker";
+import { Document, init, isLaminaError, LaminaError, loadText } from "@laminapdf/pdf";
+import { connect, type RemoteDocument, WorkerClient } from "@laminapdf/pdf/worker";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { report } from "../../examples/report.js";
 import { workerClient } from "../../examples/worker-client.js";

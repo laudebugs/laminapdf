@@ -1,6 +1,6 @@
 // Document: open, read, errors as LaminaError, edits (transactions, undo), saves.
-import { Document, init, isLaminaError, LaminaError } from "@lamina/pdf";
-import * as wasm from "@lamina/wasm/base";
+import { Document, init, isLaminaError, LaminaError } from "@laminapdf/pdf";
+import * as wasm from "@laminapdf/wasm/base";
 import { beforeAll, describe, expect, it } from "vitest";
 import { read, thrown } from "./helpers.js";
 

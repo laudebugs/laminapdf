@@ -3,7 +3,7 @@
 // performance smoke's figures and the report's hash. Request `/measure` first, in a fresh
 // isolate: hello-first is then cold and the WebAssembly memory is the hello and report runs'
 // alone (memory never shrinks).
-import { init } from "@lamina/pdf";
+import { init } from "@laminapdf/pdf";
 import notoSans from "../../../../fixtures/fonts/NotoSans-Regular.ttf";
 import notoSansArabic from "../../../../fixtures/fonts/NotoSansArabic-Regular.ttf";
 import notoSansDevanagari from "../../../../fixtures/fonts/NotoSansDevanagari-Regular.ttf";

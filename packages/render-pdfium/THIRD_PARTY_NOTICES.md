@@ -1,4 +1,4 @@
-# Third-party notices: `@lamina/render-pdfium`
+# Third-party notices: `@laminapdf/render-pdfium`
 
 This package loads `pdfium.wasm` from [`@embedpdf/pdfium`](https://www.npmjs.com/package/@embedpdf/pdfium) 2.15.1 (SHA-256 `5e4cd023c3dad4a895b3571ca573d3fc51bac6de48360d95283134385b954eaa`, checked by `scripts/verify-pdfium.mjs`). The `@embedpdf/pdfium` package ships none of the notices below ([C1b](../../spikes/pdfium-wasm/README.md#licences)); [ADR 0004 §3](../../docs/decisions/0004-render-backend.md#3-the-pinned-pdfium-builds) requires every product that ships PDFium to carry them. An app that bundles this package ships this file, plus the full licence texts it links to, with its other notices.
 

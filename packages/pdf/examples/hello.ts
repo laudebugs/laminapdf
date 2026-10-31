@@ -1,6 +1,6 @@
 // The smallest document: one A4 page with a line of text in a standard 14 font. The TS twin of
 // crates/lamina/examples/hello.rs: the same bytes (fixtures/golden/examples/hello.pdf).
-import { Builder, Font } from "@lamina/pdf";
+import { Builder, Font } from "@laminapdf/pdf";
 
 /** The document's bytes: the same on every run and every platform. Needs `init({ text: true })`. */
 export function hello(): Uint8Array {

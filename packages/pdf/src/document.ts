@@ -1,7 +1,7 @@
 // Document: open, read, edit with ops (transactions, undo), save. A thin layer over
 // WasmDocument (ADR 0028 F12): every call is synchronous and throws LaminaError.
-import type { WasmDocument, WasmPage, WasmSaveJob } from "@lamina/wasm/base";
-import type { PageTextJs } from "@lamina/wasm/extract";
+import type { WasmDocument, WasmPage, WasmSaveJob } from "@laminapdf/wasm/base";
+import type { PageTextJs } from "@laminapdf/wasm/extract";
 import { guard, isLaminaError, type LaminaWarning, packageError } from "./errors.js";
 import { extractsText, readingModule } from "./init.js";
 import { type RangeOptions, type RangeSource, type RangeState, settle, wholeBytes } from "./source/range.js";

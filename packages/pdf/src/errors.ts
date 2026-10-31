@@ -1,4 +1,4 @@
-// LaminaError and LaminaWarning (ADR 0026 §1, §7): every error @lamina/pdf throws is a
+// LaminaError and LaminaWarning (ADR 0026 §1, §7): every error @laminapdf/pdf throws is a
 // LaminaError built from the §1 object the WASM throws, or raised here with the kind and hint
 // codes.json gives the code.
 import { docsUrl, type ErrorCode, type ErrorKind, RAISED_BY_PACKAGE, type WarningCode } from "./generated/codes.js";
@@ -38,7 +38,7 @@ export interface Diagnostic<C extends string = ErrorCode> {
 export type LaminaWarning = Omit<Diagnostic<WarningCode>, "didYouMean">;
 
 /**
- * The one error class of `@lamina/pdf` (ADR 0026 §7). `message`, `hint` and `didYouMean` never
+ * The one error class of `@laminapdf/pdf` (ADR 0026 §7). `message`, `hint` and `didYouMean` never
  * hold document text (ADR 0026 §4); that goes in `data`, marked untrusted on the code's page at
  * `docsUrl`.
  *
@@ -132,7 +132,7 @@ export function isDiagnostic(value: unknown): value is Diagnostic<ErrorCode> {
   return typeof v.code === "string" && typeof v.kind === "string" && typeof v.docsUrl === "string";
 }
 
-/** A LaminaError for a code `@lamina/pdf` raises itself (kind and hint from codes.json). */
+/** A LaminaError for a code `@laminapdf/pdf` raises itself (kind and hint from codes.json). */
 export function packageError<C extends keyof typeof RAISED_BY_PACKAGE>(
   code: C,
   message: string,

@@ -40,7 +40,7 @@ Ship **web v0.1**. Turn the §4 performance targets into CI gates (app-shell siz
 
 **Out of scope** (and which todo covers it)
 
-- Publishing `@lamina/*` packages to npm (stays local; [architecture: Publishing (later)](../../plans/architecture.md#publishing-later)).
+- Publishing `@laminapdf/*` packages to npm (stays local; [architecture: Publishing (later)](../../plans/architecture.md#publishing-later)).
 - Product naming if still open ([web-app §8 Q1](../../plans/web-app.md#8-open-questions)); the domain is `laminapdf.com`.
 - Accounts/login (hosted-service rounds after the `auth` spike).
 

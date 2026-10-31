@@ -43,7 +43,7 @@ The short feature-plan PR that opens round E4 ([full-editor §E4](../../plans/fu
 **Editor facts**
 
 - **Operations shipped** ([06 §3](../../research/pdf/06-feature-inventory.md#3-full-operation-inventory-with-mechanisms) IDs): `D.01` highlight / underline / strike through; `D.02` sticky notes and text comments; `D.03` text-correction annotations; `D.04` freehand ink; `D.05` shapes, lines, arrows; `D.06` callouts and text boxes; `D.16` generate appearance streams (cross-cutting); `B.06` arrows, paths, freehand drawing
-- **Crates and packages:** (planned for the round) `lamina-model` annotations (`/NM` from `LaminaId`), appearance generator in `lamina-build`, overlay rendering in `@lamina/viewer`
+- **Crates and packages:** (planned for the round) `lamina-model` annotations (`/NM` from `LaminaId`), appearance generator in `lamina-build`, overlay rendering in `@laminapdf/viewer`
 - **`SaveConstraint`:** (round summary from the plan; the feature plan details it per op) incremental; signed files: annotations only under DocMDP P3 or without certification, otherwise warn
 - **Web vs desktop:** identical; stylus pressure for ink where reported
 - **Server features:** none
@@ -52,7 +52,7 @@ The short feature-plan PR that opens round E4 ([full-editor §E4](../../plans/fu
 ## Tasks
 
 - [ ] Create `docs/plans/editor/e4-markup-and-drawing-annotations.md` (Status: Draft) with: goal; the operations in scope by inventory ID (`D.01`, `D.02`, `D.03`, `D.04`, `D.05`, `D.06`, `D.16`, `B.06`) and the target status of each; for each op its `Op` variant name, payload sketch (by `LaminaId`, no ambient inputs), `ModificationClass` and `requires_rewrite`
-- [ ] Describe model and crate changes (new typed views, new modules, public API in `lamina` and `@lamina/pdf`), and the UI tools/panels in `@lamina/ui`
+- [ ] Describe model and crate changes (new typed views, new modules, public API in `lamina` and `@laminapdf/pdf`), and the UI tools/panels in `@laminapdf/ui`
 - [ ] Write the `SaveConstraint` table for the round: behaviour on `Free`, `AppendOnly` (DocMDP P1/P2/P3, FieldMDP), `RequiresRewrite` and `Conflict`, and the UI warnings
 - [ ] List web vs desktop differences through `Platform` capability flags, and any server feature (off by default, opt-in, what leaves the device)
 - [ ] List fixtures to add (with provenance and licence in `fixtures/README.md`), and the test plan per op: unit, golden, round-trip (lamina, pdf.js, PDFium, qpdf), differential, fuzz, Playwright and WebdriverIO e2e

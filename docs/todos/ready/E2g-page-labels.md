@@ -30,7 +30,7 @@ Edit the `/PageLabels` number tree (style, prefix, start) per range, keep labels
 
 - `SetPageLabels { ranges: Vec<LabelRange> }` op over the `NumberTree` view from B2, written with [E2b](E2b-page-structure-ops.md)'s number-tree writer (E2g does not write its own)
 - Label maintenance is E2b's `PageLabels::remap`, already called by every page op (E2b's insert/delete/duplicate/move/reverse, E2c's `InsertPagesFrom`/`ReplacePages`/extract, E2d's merge/split). This todo owns the cross-op test that a `SetPageLabels` edit followed by each of those ops keeps every surviving page's label
-- Labels editor dialog in `@lamina/ui` (ranges table, preview)
+- Labels editor dialog in `@laminapdf/ui` (ranges table, preview)
 
 **Out of scope** (and which todo covers it)
 
@@ -39,7 +39,7 @@ Edit the `/PageLabels` number tree (style, prefix, start) per range, keep labels
 **Editor facts**
 
 - **Operations shipped** ([06 §3](../../research/pdf/06-feature-inventory.md#3-full-operation-inventory-with-mechanisms) IDs): `C.14` labels, page numbers, headers/footers; `I.10` page labels
-- **Crates and packages:** `lamina-model` (`PageLabels` write), `lamina-ops`, `@lamina/ui`
+- **Crates and packages:** `lamina-model` (`PageLabels` write), `lamina-ops`, `@laminapdf/ui`
 - **`Op` variants:** `SetPageLabels` (class `Document`)
 - **`SaveConstraint`:** `Free` → incremental; signed: page labels are class `Document`, a DocMDP violation at every certification level (ADR 0007 §2: P1 allows no changes; P2 allows only form filling, page templates and signing; P3 adds annotations) → warn and gate (override names the signatures). With approval signatures only (no certification): `AppendOnly`, an incremental update that keeps their `/ByteRange` intact; a violation only when it changes a field locked by FieldMDP/`/Lock`
 - **Web vs desktop:** identical
@@ -54,7 +54,7 @@ Edit the `/PageLabels` number tree (style, prefix, start) per range, keep labels
 
 ## Acceptance criteria
 
-- [ ] Library parity ([full-editor §5](../../plans/full-editor.md#5-requirements-that-hold-for-every-round) req. 7): every new `Op` is exposed in `lamina` and `@lamina/pdf` in this PR, with rustdoc/TSDoc, a runnable example, tsify-generated TS types, and serde samples frozen in `fixtures/ops/v1/` (unknown ops and fields rejected, ADR 0006 §1, §6)
+- [ ] Library parity ([full-editor §5](../../plans/full-editor.md#5-requirements-that-hold-for-every-round) req. 7): every new `Op` is exposed in `lamina` and `@laminapdf/pdf` in this PR, with rustdoc/TSDoc, a runnable example, tsify-generated TS types, and serde samples frozen in `fixtures/ops/v1/` (unknown ops and fields rejected, ADR 0006 §1, §6)
 - [ ] Property tests: for every new op, apply then undo leaves the overlay empty and the next save is byte-identical to the previous one (ADR 0006 §3); redo re-applies the same bytes
 - [ ] Every new op reports exactly one `ModificationClass` and `requires_rewrite` (ADR 0006 §1); a test per op runs `planner.would_violate(&op)` on the signed fixtures (no certification, DocMDP P1, P2, P3, FieldMDP lock) and asserts the verdict ([ADR 0007](../../decisions/0007-save-planner.md) §2), because a misclassified op is a security bug
 - [ ] Round-trip: open → op → save → reopen in lamina, pdf.js and PDFium preserves the change and everything else (page count, outline, annotations, fields, struct tree facts in `expected.json`); `qpdf --check` is clean

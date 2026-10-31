@@ -45,7 +45,7 @@ Let users save edits safely on both shells: Save (incremental by default), Save 
 
 **Editor facts**
 
-- **Crates and packages:** `lamina-save` (sinks), `lamina-wasm` (streaming sink adapter), `@lamina/ui` (banner, dialogs), `apps/web` and `apps/desktop` platform adapters
+- **Crates and packages:** `lamina-save` (sinks), `lamina-wasm` (streaming sink adapter), `@laminapdf/ui` (banner, dialogs), `apps/web` and `apps/desktop` platform adapters
 - **`SaveConstraint`:** implements the UI for all four kinds: `Free` → incremental default; `AppendOnly` → incremental only, full rewrite blocked; `RequiresRewrite` → full rewrite, old revisions dropped (said in the dialog); `Conflict` → blocked unless the user confirms invalidating the named signatures
 - **Web vs desktop:** Desktop saves in place (`canWriteInPlace: true`) and watches for external changes (D3); web saves in place only where the File System Access API exists, otherwise downloads a copy. Web without FSA API: "Save" becomes "Download" and the document rebases onto what was downloaded
 - **Server features:** none (this PR adds no server feature; all processing stays on the device)
@@ -56,7 +56,7 @@ Let users save edits safely on both shells: Save (incremental by default), Save 
 - [ ] Extend the `Platform` adapter (ADR 0010) with `saveInPlace`, `saveAs`, `download`, `canWriteInPlace` already defined; add `readableSpool()` for rebase
 - [ ] Web: streaming writable sink in the worker; fallback download path; OPFS spool; tests for Chromium (FSA) and Firefox/WebKit (download)
 - [ ] Desktop (load `/tauri-v2` first): Rust commands for append-in-place and atomic rewrite; watcher suppression token; conflict detection by size+mtime+hash of the base
-- [ ] Banner and dialogs in `@lamina/ui` with copy reviewed against ADR 0007 wording
+- [ ] Banner and dialogs in `@laminapdf/ui` with copy reviewed against ADR 0007 wording
 - [ ] Rebase handling: after a full rewrite to a non-readable sink, call `rebase` with the spooled bytes; block ops while `SavedNotRebased`
 - [ ] Error paths: disk full, permission denied, FSA permission revoked → document stays dirty, overlay untouched
 

@@ -1,7 +1,7 @@
 // Five scripts, each with its own embedded font: a shaped line and a paragraph broken into a
 // narrow box (right-to-left for Arabic and Hebrew). The TS twin of
 // crates/lamina/examples/multilingual.rs.
-import { Builder, type Direction, Font } from "@lamina/pdf";
+import { Builder, type Direction, Font } from "@laminapdf/pdf";
 
 /** Each script's line, its paragraph and the paragraph's direction (fonts in the same order). */
 export const SCRIPTS: readonly (readonly [line: string, paragraph: string, direction: Direction])[] = [

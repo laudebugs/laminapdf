@@ -2,8 +2,8 @@
 // has its explain page, LaminaError.toJSON() validates against lamina.error/1, and the shared
 // cases of fixtures/errors/contract.json (ADR 0018 §5) throw exactly the object the Rust façade
 // serialises (crates/lamina/tests/error_contract.rs checks the same file).
-import { Document, init, LaminaError, type OpenOptions } from "@lamina/pdf";
-import { DOCS_URL, docsUrl, ERROR_CODES, explain, HINTS, isCode, KINDS, WARNING_CODES } from "@lamina/pdf/explain";
+import { Document, init, LaminaError, type OpenOptions } from "@laminapdf/pdf";
+import { DOCS_URL, docsUrl, ERROR_CODES, explain, HINTS, isCode, KINDS, WARNING_CODES } from "@laminapdf/pdf/explain";
 import { Ajv2020 } from "ajv/dist/2020.js";
 import { beforeAll, describe, expect, it } from "vitest";
 import { ERROR_GROUPS, RAISED_BY_PACKAGE, WARNING_GROUPS } from "../src/generated/codes.js";
@@ -66,7 +66,7 @@ describe("generated codes", () => {
   });
 });
 
-describe("@lamina/pdf/explain", () => {
+describe("@laminapdf/pdf/explain", () => {
   it("returns docs/errors/<code>.md for every code", () => {
     const wrong = all.filter((e) => explain(e.code) !== readText(`docs/errors/${e.code}.md`)).map((e) => e.code);
     expect(wrong).toEqual([]);

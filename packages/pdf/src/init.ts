@@ -3,15 +3,15 @@
 // module (base + text extraction, B9c) by `init({ extract: true })` or `loadExtract()`. After
 // that, every call is synchronous. Each export condition supplies its own `Locate` (src/loader/), so
 // this file has no environment detection and no runtime-specific API.
-import * as baseGlue from "@lamina/wasm/base";
+import * as baseGlue from "@laminapdf/wasm/base";
 import { packageError } from "./errors.js";
 
 /** The base module's wasm-bindgen glue. */
 export type BaseGlue = typeof baseGlue;
 /** The text module's wasm-bindgen glue (a superset of the base module's API). */
-export type TextGlue = typeof import("@lamina/wasm/text");
+export type TextGlue = typeof import("@laminapdf/wasm/text");
 /** The extract module's wasm-bindgen glue (the base module's API plus `WasmPage.text`). */
-export type ExtractGlue = typeof import("@lamina/wasm/extract");
+export type ExtractGlue = typeof import("@laminapdf/wasm/extract");
 
 /**
  * Where a module comes from: a URL (or URL string) to fetch, a `Response` (or a promise of one),
@@ -113,7 +113,7 @@ function load<G extends { default: GlueInit }>(
 
 /** Loads the text module (once; a failed load can be retried). */
 export function loadTextWith(locate: Locate, source?: WasmSource): Promise<void> {
-  return load(text, "text", () => import("@lamina/wasm/text"), locate, source);
+  return load(text, "text", () => import("@laminapdf/wasm/text"), locate, source);
 }
 
 /**
@@ -122,7 +122,7 @@ export function loadTextWith(locate: Locate, source?: WasmSource): Promise<void>
  * would never be used.
  */
 export function loadExtractWith(locate: Locate, source?: WasmSource): Promise<void> {
-  const loadIt = () => load(extract, "extract", () => import("@lamina/wasm/extract"), locate, source);
+  const loadIt = () => load(extract, "extract", () => import("@laminapdf/wasm/extract"), locate, source);
   // A source given is honoured as for any module; without one, a text module loaded or loading
   // makes the extract module unnecessary, unless that load fails.
   if (source !== undefined || text.pending === undefined) return loadIt();

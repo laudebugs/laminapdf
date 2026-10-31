@@ -5,7 +5,7 @@
 
 ## Context
 
-lamina has to serve three kinds of product from one engine: importable packages (a Rust crate family and `@lamina/pdf` on npm), a web app on Cloudflare, and a desktop app on macOS, Windows and Linux, with mobile possible later ([architecture plan §1](../plans/architecture.md#1-goal)). Every one of them parses untrusted PDF input, the main source of memory-safety bugs in C and C++ PDF engines ([research ch. 05 §8.2](../research/pdf/05-creating-pdfs-from-code.md#82-candidate-core-languages)).
+lamina has to serve three kinds of product from one engine: importable packages (a Rust crate family and `@laminapdf/pdf` on npm), a web app on Cloudflare, and a desktop app on macOS, Windows and Linux, with mobile possible later ([architecture plan §1](../plans/architecture.md#1-goal)). Every one of them parses untrusted PDF input, the main source of memory-safety bugs in C and C++ PDF engines ([research ch. 05 §8.2](../research/pdf/05-creating-pdfs-from-code.md#82-candidate-core-languages)).
 
 The licensing landscape matters as much as the technology. The engines that cover the whole PDF lifecycle are AGPL or commercial (MuPDF, iText, Ghostscript, PDFsharp since 6.5), and licences drift: QuestPDF moved to a revenue-gated licence in 2023 and PDFsharp to AGPL in 2026. Permissive projects each cover a slice. "The permissive, full-stack slot is empty" ([ch. 05 §8.1](../research/pdf/05-creating-pdfs-from-code.md#81-what-the-landscape-tells-us)). Meanwhile most modern permissive PDF infrastructure (`pdf-writer`, `krilla`, `subsetter`, `hayro`, `skrifa`, `rustybuzz`/`harfrust`) is written in Rust under MIT/Apache-2.0 and compiles to WASM without emscripten.
 

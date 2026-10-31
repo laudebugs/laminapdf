@@ -1,5 +1,5 @@
 // The shared example list (test/suite/examples.ts) in Bun, through the `node` export condition
-// (Bun resolves it like Node: the `.wasm` read from @lamina/wasm). Run by
+// (Bun resolves it like Node: the `.wasm` read from @laminapdf/wasm). Run by
 // `cargo xtask pdf-runtimes bun` (`bun test ./test/bun/`); bun.d.ts declares `bun:test` for tsc.
 // The measurement registers first, so it runs cold in this file's fresh module instance.
 import { test } from "bun:test";

@@ -27,13 +27,13 @@ The [C1b spike](../../spikes/pdfium-wasm/README.md) measured the worker on one m
 - **Input by ranges:** PDFium's `FPDF_LoadCustomDocument` and lamina's `Document.openRange`, both over `File.slice()`, cut the 100 MB scan from 95 + 237 MiB of heap (plus a JS copy) to 1 + 113 MiB. Ranges are also the only way WebKit opened a 500 MB file.
 - **Saves:** Chromium runs one long save about 10× slower in a fresh worker until V8 optimises the code.
 
-[ADR 0004](0004-render-backend.md) fixes the render contract, and L2a's `@lamina/pdf/worker` ([shareable-libraries §5 L2](../plans/shareable-libraries.md)) is the async twin of the sync API.
+[ADR 0004](0004-render-backend.md) fixes the render contract, and L2a's `@laminapdf/pdf/worker` ([shareable-libraries §5 L2](../plans/shareable-libraries.md)) is the async twin of the sync API.
 
 ## Decision
 
 ### 1. Packages and the framework line
 
-- **`@lamina/viewer`** is framework-free TypeScript with no React import. That is enforced by a dependency check in `cargo xtask check ts` (C3a). It holds:
+- **`@laminapdf/viewer`** is framework-free TypeScript with no React import. That is enforced by a dependency check in `cargo xtask check ts` (C3a). It holds:
   - the worker RPC client;
   - the prefix-sum page virtualiser with zoom anchoring;
   - the canvas pool;
@@ -42,16 +42,16 @@ The [C1b spike](../../spikes/pdfium-wasm/README.md) measured the worker on one m
   - a small view store.
 
   It is the hot path, and it is what other shells and embedders reuse.
-- **`@lamina/ui`** holds the chrome only, in **React 19 with React Compiler 1.0**: toolbar, sidebars, dialogs and panels. Accessible primitives come from **React Aria Components** (Apache-2.0, chosen for keyboard, i18n and RTL support).
+- **`@laminapdf/ui`** holds the chrome only, in **React 19 with React Compiler 1.0**: toolbar, sidebars, dialogs and panels. Accessible primitives come from **React Aria Components** (Apache-2.0, chosen for keyboard, i18n and RTL support).
 - **View state** (current page, zoom, scroll anchor, selection, search results) lives in the viewer's external store. React reads it with `useSyncExternalStore`, and **page shells are never React state**.
-- **Interaction modes** (empty → opening → needs-password → open → error, and later the editor's tools) are a state machine in `@lamina/ui`'s `ReaderController`. ADR 0024 builds on it.
-- **Embedding:** `@lamina/viewer`'s API and its RPC types stay **internal until the API settles**. They are published with the workspace but documented as unstable, and nothing promises compatibility before the owner decides to publish them ([web-app §8](../plans/web-app.md#8-open-questions) Q4).
+- **Interaction modes** (empty → opening → needs-password → open → error, and later the editor's tools) are a state machine in `@laminapdf/ui`'s `ReaderController`. ADR 0024 builds on it.
+- **Embedding:** `@laminapdf/viewer`'s API and its RPC types stay **internal until the API settles**. They are published with the workspace but documented as unstable, and nothing promises compatibility before the owner decides to publish them ([web-app §8](../plans/web-app.md#8-open-questions) Q4).
 
 ### 2. One document worker per open document
 
 - **Each open document gets its own module worker**, which runs:
-  - `@lamina/pdf` (lamina's WebAssembly: the base module, plus `lamina_extract` when C5's text layer needs it, loaded lazily);
-  - the ADR 0004 render adapter: `@lamina/render-pdfium` by default, `@lamina/render-hayro` from the debug menu.
+  - `@laminapdf/pdf` (lamina's WebAssembly: the base module, plus `lamina_extract` when C5's text layer needs it, loaded lazily);
+  - the ADR 0004 render adapter: `@laminapdf/render-pdfium` by default, `@laminapdf/render-hayro` from the debug menu.
 - **Isolation:** a hostile file can crash its own worker, never the page or another document.
 - **Single-threaded, one call at a time:** within a worker, every WebAssembly call is synchronous, so render and lamina calls are serialised by the scheduler (§3).
 - **Thumbnails** use the same worker at `background` priority. A separate thumbnail worker is allowed only if C3c's perf harness shows the visible queue starving, and it would open its own copy of the document.
@@ -64,7 +64,7 @@ The [C1b spike](../../spikes/pdfium-wasm/README.md) measured the worker on one m
 
 ### 3. The worker RPC
 
-The viewer's protocol **extends `@lamina/pdf/worker`** (L2a) rather than defining a second one. It is hand-written and typed, not Comlink. C3a implements these requirements:
+The viewer's protocol **extends `@laminapdf/pdf/worker`** (L2a) rather than defining a second one. It is hand-written and typed, not Comlink. C3a implements these requirements:
 
 1. **Request IDs.** Every request has a monotonically increasing `id` per connection. Responses are `{ id, ok: true, result }` or `{ id, ok: false, error }`, where `error` is the ADR 0026 object; an `Error` is never posted, because structured clone loses its fields. **Worker events** use L2a's envelope `{ kind, id? }`. `progress` carries the `id` of the call it belongs to, so per-call `onProgress` routes correctly. `warning` is document-wide and carries none. **Client events** are raised on the main thread by the client's own timers and crash detection, because a worker stuck in a synchronous call can't post anything:
    - `render-slow { id, page }`;
@@ -105,13 +105,13 @@ The worker renders tiles into its WebAssembly heap (ADR 0004's straight RGBA), w
 
 ### 6. Build and test
 
-- **Build:** Vite 8 (Rolldown), ESM-only (ADR 0016). `@lamina/*` WASM packages are excluded from Vite's pre-bundling.
-- **Unit and component tests:** Vitest. `@lamina/viewer` runs in Vitest browser mode on Chromium, Firefox and WebKit through Playwright.
+- **Build:** Vite 8 (Rolldown), ESM-only (ADR 0016). `@laminapdf/*` WASM packages are excluded from Vite's pre-bundling.
+- **Unit and component tests:** Vitest. `@laminapdf/viewer` runs in Vitest browser mode on Chromium, Firefox and WebKit through Playwright.
 - **End-to-end:** Playwright on Chromium, Firefox and WebKit (C3c's perf harness, C4's privacy assertions, C7's accessibility pass with axe).
 
 ## Consequences
 
-- **The framework choice is reversible.** Replacing React touches `@lamina/ui` only, and the desktop app (ADR 0008) reuses both packages.
+- **The framework choice is reversible.** Replacing React touches `@laminapdf/ui` only, and the desktop app (ADR 0008) reuses both packages.
 - **One worker protocol for lamina** (L2a's), so the library's users and the viewer can't drift apart.
 - **The memory budget is the hard part, and it is bounded by design:** range input instead of copies, tiles under `max_render_pixels`, and a capped canvas pool. The §4 web-app targets (600 MB for 1,000 pages) are C3c's to measure.
 - **More main-thread code than OffscreenCanvas would need** (pool, scheduler, bitmap lifetime), traded for simpler layout and recycling.

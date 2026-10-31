@@ -43,7 +43,7 @@ Measure the [§4 non-functional targets](../../plans/web-app.md#non-functional-t
 ## Tasks
 
 - [ ] Claim via a claim PR (see Definition of done); then a fresh worktree off the updated `main`.
-- [ ] Fixture generator `perf/fixtures.ts`: 10-page ~1 MB mixed text/image PDF and 1,000-page text PDF (plus a 300-page image-heavy PDF) generated with `@lamina/pdf` builder, seeded; cached in a gitignored dir.
+- [ ] Fixture generator `perf/fixtures.ts`: 10-page ~1 MB mixed text/image PDF and 1,000-page text PDF (plus a 300-page image-heavy PDF) generated with `@laminapdf/pdf` builder, seeded; cached in a gitignored dir.
 - [ ] Instrumentation hook in the demo: expose `window.__laminaPerf` (only in the demo/perf build) collecting `renderstats`, long tasks, memory samples every 500 ms.
 - [ ] Scenario specs `perf/*.perf.ts` with deterministic scrolling (`mouse.wheel` steps at fixed intervals) and network throttling for the cold scenario.
 - [ ] Reporter writing `perf-results/<browser>.json` and `perf-results/summary.md` comparing to §4 targets (pass/fail columns, informational).
@@ -53,7 +53,7 @@ Measure the [§4 non-functional targets](../../plans/web-app.md#non-functional-t
 
 ## Acceptance criteria
 
-- [ ] The harness runs locally with one command (`pnpm --filter @lamina/viewer perf`) and in CI for Chromium, Firefox and WebKit.
+- [ ] The harness runs locally with one command (`pnpm --filter @laminapdf/viewer perf`) and in CI for Chromium, Firefox and WebKit.
 - [ ] On the reference machine, the report shows for the 1,000-page fixture: no main-thread task > 50 ms during scroll; visible pages sharp within 300 ms of stopping; total memory ≤ 600 MB and stable on the second pass; cancelled-render paints = 0. Any target missed is listed with an issue link (C7c must close it).
 - [ ] First page visible for the 10-page file reported (target ≤ 700 ms warm, ≤ 3 s cold Fast 4G).
 - [ ] The nightly job's steps run on the PR branch (the `perf` PR job, or the same script invoked locally with the nightly flags) and produce a history entry; the regression-issue step is exercised once against a forced regression (a dry-run mode that prints the issue it would open is enough before merge).

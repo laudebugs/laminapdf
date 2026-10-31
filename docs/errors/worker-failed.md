@@ -5,7 +5,7 @@
 
 ## What happened
 
-A call through `@lamina/pdf/worker` failed inside the worker with an error that isn't a `LaminaError`. The call was rejected with this code and the error's message; the worker and its documents keep working.
+A call through `@laminapdf/pdf/worker` failed inside the worker with an error that isn't a `LaminaError`. The call was rejected with this code and the error's message; the worker and its documents keep working.
 
 ## Why
 

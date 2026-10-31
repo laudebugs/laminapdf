@@ -2,7 +2,7 @@
 // The TS twin of lamina-build's tagged report is byte-identical to its Rust golden
 // (fixtures/golden/tagged-report.pdf, whose structure crates/lamina-build/tests/tagging.rs
 // checks with lamina-model, pdf.js and PDFium).
-import { Builder, Document, Font, Image, init, isLaminaError, type Surface } from "@lamina/pdf";
+import { Builder, Document, Font, Image, init, isLaminaError, type Surface } from "@laminapdf/pdf";
 import { beforeAll, describe, expect, it } from "vitest";
 import { read, thrown } from "./helpers.js";
 

@@ -5,7 +5,7 @@
 
 ## Context
 
-[ADR 0002 §3](0002-binding-strategy.md) requires a handle-based façade in the `lamina` crate, designed once and wrapped by `lamina-wasm` (wasm-bindgen + tsify), Tauri commands and, later, `lamina-ffi` (UniFFI). It names the principles (owned types, opaque handles, bytes in and out, no lifetimes or generics) but not the rules. B5c will write the façade, so the rules have to exist first. Fixing them after `@lamina/pdf` ships would break its API ([report: design the façade to the stricter binding now](../research/libraries/shareable-libraries.md#design-the-façade-to-the-stricter-binding-now)).
+[ADR 0002 §3](0002-binding-strategy.md) requires a handle-based façade in the `lamina` crate, designed once and wrapped by `lamina-wasm` (wasm-bindgen + tsify), Tauri commands and, later, `lamina-ffi` (UniFFI). It names the principles (owned types, opaque handles, bytes in and out, no lifetimes or generics) but not the rules. B5c will write the façade, so the rules have to exist first. Fixing them after `@laminapdf/pdf` ships would break its API ([report: design the façade to the stricter binding now](../research/libraries/shareable-libraries.md#design-the-façade-to-the-stricter-binding-now)).
 
 Constraints from the binding tools:
 
@@ -136,7 +136,7 @@ The core is synchronous and single-threaded. How each surface drives a job:
 
 | Surface | How it drives a job |
 | --- | --- |
-| TS sync (`@lamina/pdf`) | `doc.extract(opts)` runs to completion. `doc.extractJob(opts)` returns an `ExtractJob` with `step(units: number)` returning `{ done: false, progress: { done, total?, phase } }` or `{ done: true, value }`, for callers who slice work themselves. All numbers are plain JS numbers (F5) |
+| TS sync (`@laminapdf/pdf`) | `doc.extract(opts)` runs to completion. `doc.extractJob(opts)` returns an `ExtractJob` with `step(units: number)` returning `{ done: false, progress: { done, total?, phase } }` or `{ done: true, value }`, for callers who slice work themselves. All numbers are plain JS numbers (F5) |
 | TS worker client (L2a) | Steps in the worker with a time-sliced budget and yields to the event loop between steps. `AbortSignal` → `cancel { id }` → `token.cancel()`. Rejects with `LaminaError` `cancelled` (`cause` = `signal.reason`). Progress arrives as events |
 | Swift (L6a, ADR 0029) | A hand-written `async throws` layer steps the job off the main actor. `withTaskCancellationHandler` trips the token; progress is an `AsyncStream` |
 | Kotlin (L6a, ADR 0029) | A `suspend` function on `Dispatchers.Default` steps the job. `ensureActive()` between steps and `invokeOnCancellation` trip the token; progress is a `Flow` |

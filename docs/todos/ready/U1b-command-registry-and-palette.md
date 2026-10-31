@@ -1,4 +1,4 @@
-# U1b — Command registry and command palette (`@lamina/ui`)
+# U1b — Command registry and command palette (`@laminapdf/ui`)
 
 | Field | Value |
 | --- | --- |

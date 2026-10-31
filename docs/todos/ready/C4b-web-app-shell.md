@@ -16,7 +16,7 @@
 
 ## Goal
 
-Ship the first runnable reader: `apps/web`, a Vite 8 SPA that composes `@lamina/ui` and `@lamina/viewer`, served by one Cloudflare Worker with static assets and strict security headers. Users can open local PDFs by file input, drag and drop, paste and `showOpenFilePicker`, and see damaged-file notices. It runs locally with `wrangler dev` exactly as it will in production, and it has no server routes, so nothing can be uploaded.
+Ship the first runnable reader: `apps/web`, a Vite 8 SPA that composes `@laminapdf/ui` and `@laminapdf/viewer`, served by one Cloudflare Worker with static assets and strict security headers. Users can open local PDFs by file input, drag and drop, paste and `showOpenFilePicker`, and see damaged-file notices. It runs locally with `wrangler dev` exactly as it will in production, and it has no server routes, so nothing can be uploaded.
 
 ## Context
 
@@ -30,12 +30,12 @@ Ship the first runnable reader: `apps/web`, a Vite 8 SPA that composes `@lamina/
 
 **In scope**
 
-- `apps/web/` (package name `@lamina/web`, `private: true`, never depended on): `package.json`, `vite.config.ts` (Vite 8, React plugin + React Compiler, worker `format: "es"`, WASM as hashed asset URLs), `index.html` (no inline script or style), `src/main.tsx`, `src/app.tsx`, `public/_headers`, `wrangler.jsonc`.
+- `apps/web/` (package name `@laminapdf/web`, `private: true`, never depended on): `package.json`, `vite.config.ts` (Vite 8, React plugin + React Compiler, worker `format: "es"`, WASM as hashed asset URLs), `index.html` (no inline script or style), `src/main.tsx`, `src/app.tsx`, `public/_headers`, `wrangler.jsonc`.
 - `wrangler.jsonc`: `name: "lamina-web"`, `compatibility_date` pinned (≥ 2025-04-01), `assets: { directory: "./dist", not_found_handling: "single-page-application" }`, no `main`, no bindings; `preview_urls` set for C4d.
 - `_headers`: CSP `default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; worker-src 'self'; style-src 'self'; img-src 'self' blob: data:; connect-src 'self' https:` (https: needed for `#url=` fetches in C4c — confirm in ADR 0011; this is the production policy, and C4c adds a test-mode build variant that also allows `http://localhost:*`/`http://127.0.0.1:*` for local fixture hosts, never in production); `object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'none'`; `Referrer-Policy: no-referrer`; `Permissions-Policy` denying camera, microphone, geolocation, etc.; `X-Content-Type-Options: nosniff`; `Strict-Transport-Security`; `Cross-Origin-Opener-Policy: same-origin` (no COEP in the single-threaded baseline, per ADR 0009/0011); all of the above on a `/*` rule. **Caching** (checked against [Cloudflare's `_headers` docs](https://developers.cloudflare.com/workers/static-assets/headers/): rules match the request path, not the served file, so a rule keyed on `index.html` never matches `/` or SPA-fallback deep links; every matching rule's headers are inherited and a header set twice is comma-joined; `! Header` detaches one): `/assets/*` gets `Cache-Control: public, max-age=31536000, immutable`, and **no** `/*` rule sets `Cache-Control` (that would join into `no-cache, public, max-age=31536000, immutable` on assets). HTML — `/`, `/index.html` and every SPA-fallback path — keeps the static-assets default `Cache-Control: public, max-age=0, must-revalidate` (revalidated on every load via the ETag), so users are never pinned to a stale shell. If a later `/*` rule ever needs a `Cache-Control`, the `/assets/*` rule must first detach it with `! Cache-Control`.
 - Opening flows: file input, drag-and-drop on the whole window, paste of a PDF file from the clipboard, `showOpenFilePicker` where available — all via `Platform.openFiles` → `ByteSource` over `File.slice()` → viewer worker.
 - PDFium and lamina WASM lazy-loaded at app start in parallel with file selection (from C3a), served as hashed static assets.
-- Repair/warning notices and error states wired from viewer events to `@lamina/ui`.
+- Repair/warning notices and error states wired from viewer events to `@laminapdf/ui`.
 - Debug menu (`#debug`, a fragment per ADR 0011 §3.6) switching backend PDFium ↔ hayro.
 - Playwright e2e project for `apps/web` against `wrangler dev` (production-equivalent assets + headers).
 
@@ -47,9 +47,9 @@ Ship the first runnable reader: `apps/web`, a Vite 8 SPA that composes `@lamina/
 
 ## Tasks
 
-- [ ] Load the self-hosted Paper fonts from `@lamina/fonts` ([U6b](./U6b-self-hosted-fonts.md)): import its `fonts.css` and add its preload link for Source Sans 3 Latin 400; no font CDN (the network indicator must stay at 0).
+- [ ] Load the self-hosted Paper fonts from `@laminapdf/fonts` ([U6b](./U6b-self-hosted-fonts.md)): import its `fonts.css` and add its preload link for Source Sans 3 Latin 400; no font CDN (the network indicator must stay at 0).
 - [ ] Claim via a claim PR (see Definition of done); then a fresh worktree off the updated `main`.
-- [ ] Scaffold `apps/web` (`"name": "@lamina/web"`) with Vite 8; add to `pnpm-workspace.yaml` (already covers `apps/*`); depend on `@lamina/ui`, `@lamina/viewer`, `@lamina/render-pdfium`, `@lamina/render-hayro` via `workspace:*`.
+- [ ] Scaffold `apps/web` (`"name": "@laminapdf/web"`) with Vite 8; add to `pnpm-workspace.yaml` (already covers `apps/*`); depend on `@laminapdf/ui`, `@laminapdf/viewer`, `@laminapdf/render-pdfium`, `@laminapdf/render-hayro` via `workspace:*`.
 - [ ] Pin Wrangler as a devDependency (exact version) and add scripts: `dev` (Vite), `build`, `preview` (`wrangler dev` serving `dist/`), `e2e`.
 - [ ] `wrangler.jsonc` and `public/_headers` as in scope; verify headers with `curl -I` against `wrangler dev` for `/`, `/index.html`, `/some/deep/link` (SPA fallback 200), `/assets/*.js`, `/assets/*.wasm` (`Content-Type: application/wasm`).
 - [ ] Ensure no inline scripts/styles in the build (Vite `build.modulePreload.polyfill: false` if it injects inline code; check `index.html` output in a test).
@@ -62,7 +62,7 @@ Ship the first runnable reader: `apps/web`, a Vite 8 SPA that composes `@lamina/
 
 ## Acceptance criteria
 
-- [ ] `pnpm --filter @lamina/web build && pnpm --filter @lamina/web preview` (filter by package name; a bare `apps/web` is a name selector that matches nothing and exits 0) serves the reader locally through Wrangler; opening `fixtures/corpus/hello.pdf` via input, drag-drop and paste renders page 1 in Chromium, Firefox and WebKit (Playwright).
+- [ ] `pnpm --filter @laminapdf/web build && pnpm --filter @laminapdf/web preview` (filter by package name; a bare `apps/web` is a name selector that matches nothing and exits 0) serves the reader locally through Wrangler; opening `fixtures/corpus/hello.pdf` via input, drag-drop and paste renders page 1 in Chromium, Firefox and WebKit (Playwright).
 - [ ] Response headers on `/`, `/index.html`, a deep link and a hashed asset match the ADR 0011 policy (asserted in e2e), with **exact** `Cache-Control` values: `public, max-age=0, must-revalidate` (exactly one value, no `immutable`) on `/`, `/index.html` and the deep link; `public, max-age=31536000, immutable` (exactly, no comma-joined extras) on `/assets/*.js` and `/assets/*.wasm`.
 - [ ] No inline script/style in `dist/index.html`; zero CSP violations during the e2e suite.
 - [ ] Opening a local file makes no network request except for same-origin static assets (asserted by request interception).

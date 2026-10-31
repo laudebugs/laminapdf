@@ -47,7 +47,7 @@ Users get an `AGENTS.md` snippet for their own repositories. A machine-readable 
   - The `lamina` crate's `docs/` via `include` in `Cargo.toml`.
   - Each file's front matter carries `version`, equal to the package version.
 - **`AGENTS.md` snippet**: a docs page "Using lamina with coding agents" with a copy-paste block for users' `AGENTS.md` (or `CLAUDE.md`). It covers:
-  - where the version-matched docs live (`node_modules/@lamina/pdf/docs/`);
+  - where the version-matched docs live (`node_modules/@laminapdf/pdf/docs/`);
   - `init()` before sync calls;
   - top-left points and 0-based page index (ADR 0027);
   - errors by `code`, with `explain` pages;
@@ -73,7 +73,7 @@ Users get an `AGENTS.md` snippet for their own repositories. A machine-readable 
 - [ ] Read the report section, the LLM note (A), B7a's `apps/docs` on `main` and llmstxt.org
 - [ ] Choose the generation route (plugin vs own integration). Check licences with `cargo xtask npm-licenses`. Pin versions
 - [ ] Generate `.md` twins for every route. Inline imported snippets (the twin must be self-contained). Emit `llms.txt` and `llms-full.txt` with the version
-- [ ] TypeDoc Markdown output for `@lamina/pdf`; rustdoc stays linked (Markdown rustdoc is out of scope unless cheap)
+- [ ] TypeDoc Markdown output for `@laminapdf/pdf`; rustdoc stays linked (Markdown rustdoc is out of scope unless cheap)
 - [ ] `cargo xtask docs-pack`, or a pack step in the existing build: copy the Markdown, `explain` pages (from [L1b](../done/L1b-error-contract-codegen.md)), schemas and `renames.json` into `packages/pdf/docs/` and the crate's `docs/`; stamp `version`; add to `files` / `include`
 - [ ] The "Using lamina with coding agents" page and `packages/pdf/examples/AGENTS.md` (same text, one source)
 - [ ] `renames.json`, its schema, and the deprecation check in `cargo xtask check docs` (grep `#[deprecated` and `@deprecated` in `crates/` and `packages/`; every hit has an entry)
@@ -87,7 +87,7 @@ Users get an `AGENTS.md` snippet for their own repositories. A machine-readable 
 
 - [ ] `pnpm --filter docs build` emits `llms.txt`, `llms-full.txt` and one `.md` per HTML page (a build test compares the two lists)
 - [ ] `llms.txt` passes a format check (H1, blockquote, H2 link sections, every link resolves to an emitted `.md`)
-- [ ] The `pnpm pack` tarball of `@lamina/pdf` contains `docs/` with guides, API Markdown, every `explain` page, the schemas and `renames.json`, all stamped with the package's version (test over the tarball listing)
+- [ ] The `pnpm pack` tarball of `@laminapdf/pdf` contains `docs/` with guides, API Markdown, every `explain` page, the schemas and `renames.json`, all stamped with the package's version (test over the tarball listing)
 - [ ] `cargo package --list -p lamina` lists the crate's `docs/` with the same version
 - [ ] Adding `@deprecated` to a TS export (or `#[deprecated]` to a Rust item) without a `renames.json` entry fails `cargo xtask check docs`
 - [ ] `renames.json` validates against `lamina.renames/1`

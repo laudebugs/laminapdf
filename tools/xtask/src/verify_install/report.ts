@@ -1,7 +1,7 @@
 // `cargo xtask verify-install`'s check, copied next to the quick start in each temporary
 // project: reopens the quick start's bytes and returns one `LAMINA_VERIFY {json}` line with their
 // SHA-256, length and page count, which xtask compares with the Rust golden (hello.pdf).
-import { Document } from "@lamina/pdf";
+import { Document } from "@laminapdf/pdf";
 
 /** The `LAMINA_VERIFY` line for `bytes`. */
 export async function report(bytes: Uint8Array): Promise<string> {

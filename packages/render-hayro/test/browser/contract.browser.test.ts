@@ -1,6 +1,6 @@
 // The RenderBackend contract in a browser (Chromium, Firefox, WebKit), with C2b's hayro goldens
 // (native hayro 0.8.0; this is the same code compiled to wasm32).
-import wasmUrl from "@lamina/wasm/lamina_render_hayro.wasm?url";
+import wasmUrl from "@laminapdf/wasm/lamina_render_hayro.wasm?url";
 import { decodePng, fetcher } from "../../../render/test/browser-harness.js";
 import { renderContract } from "../../../render/test/contract.js";
 import { type HayroBackend, initHayro } from "../../src/index.js";

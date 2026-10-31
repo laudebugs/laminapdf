@@ -99,7 +99,7 @@ importers:
 
   packages/pdf:
     dependencies:
-      '@lamina/wasm':
+      '@laminapdf/wasm':
         specifier: workspace:*
         version: link:../wasm
     devDependencies:
@@ -160,10 +160,10 @@ importers:
 
   packages/render-hayro:
     dependencies:
-      '@lamina/render':
+      '@laminapdf/render':
         specifier: workspace:*
         version: link:../render
-      '@lamina/wasm':
+      '@laminapdf/wasm':
         specifier: workspace:*
         version: link:../wasm
     devDependencies:
@@ -191,7 +191,7 @@ importers:
       '@embedpdf/pdfium':
         specifier: 2.15.1
         version: 2.15.1
-      '@lamina/render':
+      '@laminapdf/render':
         specifier: workspace:*
         version: link:../render
     devDependencies:

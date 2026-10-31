@@ -1,7 +1,7 @@
 // Range sources (L2c): a document whose bytes arrive range by range. The WASM reads
 // synchronously from a sparse source; when bytes are missing it throws `data-pending` with the
 // ranges it needs, and the loop here fetches them, supplies them and calls again.
-import type { WasmSparseSource } from "@lamina/wasm/base";
+import type { WasmSparseSource } from "@laminapdf/wasm/base";
 import { guard, isLaminaError, type LaminaError, packageError } from "../errors.js";
 
 /** A byte range of the input. */

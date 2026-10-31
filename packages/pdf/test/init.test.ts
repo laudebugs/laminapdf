@@ -10,7 +10,7 @@ import {
   isTextLoaded,
   loadText,
   wasmMemory,
-} from "@lamina/pdf";
+} from "@laminapdf/pdf";
 import { describe, expect, it } from "vitest";
 import { read, thrown } from "./helpers.js";
 

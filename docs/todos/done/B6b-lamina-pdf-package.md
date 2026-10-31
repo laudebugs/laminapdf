@@ -4,7 +4,7 @@
 | --- | --- |
 | ID | `B6b` |
 | Status | `done` |
-| Plan | [pdf-library §7 B6](../../plans/pdf-library.md#b6-wasm-and-laminapdf), [§5 TS sketch](../../plans/pdf-library.md#api-sketch-illustrative-not-final) |
+| Plan | [pdf-library §7 B6](../../plans/pdf-library.md#b6-wasm-and-laminapdfpdf), [§5 TS sketch](../../plans/pdf-library.md#api-sketch-illustrative-not-final) |
 | Round / milestone | Round B (library) — M1 |
 | Depends on | [B2b](./B2b-standard-security-decryption.md), [B6a](./B6a-lamina-wasm-and-adr-0016.md) |
 | Blocks | [B5d](./B5d-text-report-generation-performance.md), [B6c](./B6c-runtime-matrix.md), [B7a](./B7a-docs-site.md), [B8a](./B8a-structure-tree.md), [B9c](./B9c-text-extraction-bindings-and-differential.md), [L1b](./L1b-error-contract-codegen.md), [L2a](./L2a-worker-client.md), [L2b](../ready/L2b-disposal-and-memory.md), [L2c](./L2c-range-byte-source.md), [C1b](./C1b-pdfium-wasm-spike.md), [C2c](./C2c-render-packages.md), [C3a](../ongoing/C3a-viewer-worker-rpc.md), [C4c](../ready/C4c-remote-files-encryption-privacy.md), [C6a](../ready/C6a-thumbnails-outline-page-labels.md), [E1c](../ready/E1c-metadata-ops.md), [E1d](../ready/E1d-edit-session-undo-ui.md) |

@@ -1,6 +1,6 @@
 // With the text module loaded, the extract module isn't (the text module extracts too), and
 // documents extract text from the text module (B9c). Its own file: a fresh module instance.
-import { Document, init, isExtractLoaded, wasmMemory } from "@lamina/pdf";
+import { Document, init, isExtractLoaded, wasmMemory } from "@laminapdf/pdf";
 import { beforeAll, expect, it } from "vitest";
 import { read } from "./helpers.js";
 

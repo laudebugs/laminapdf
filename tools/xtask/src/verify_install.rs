@@ -1,13 +1,13 @@
 //! `cargo xtask verify-install`: does the library install and run outside this repository?
 //! (ADR 0017, todo B7b; ADR 0018 §2's clean-install smoke tests of the release lane.)
 //!
-//! It packs `@lamina/wasm` and `@lamina/pdf` with `pnpm pack`, then builds temporary projects in
+//! It packs `@laminapdf/wasm` and `@laminapdf/pdf` with `pnpm pack`, then builds temporary projects in
 //! the system temp directory, outside the repository, whose only lamina dependencies are those
 //! tarballs or the `lamina` crate, and runs the quick start (`packages/pdf/examples/hello.ts`,
 //! `crates/lamina/examples/hello.rs`, copied in) in each runtime:
 //!
 //! - `node`: every `--node <binary>` (default: `node` on `PATH`; Node ≥ 22.18 runs `.ts` files);
-//! - `deno`, `bun`: the repository's pinned binaries (dev dependencies of `@lamina/pdf`);
+//! - `deno`, `bun`: the repository's pinned binaries (dev dependencies of `@laminapdf/pdf`);
 //! - `chromium`: a Vite app built for production and opened in Playwright's Chromium;
 //! - `workerd`: a Worker run by `wrangler dev --local`;
 //! - `rust`: a binary with a `path =` dependency on `crates/lamina`, and one with a `git =`
@@ -230,7 +230,7 @@ fn table(outcomes: &[Outcome]) -> String {
     out
 }
 
-/// The repository's pinned `name` (a dev dependency of `@lamina/pdf`), else `name` on `PATH`.
+/// The repository's pinned `name` (a dev dependency of `@laminapdf/pdf`), else `name` on `PATH`.
 fn tool(ws: &Workspace, name: &str) -> String {
     let pinned = ws.root.join(TOOLS_PACKAGE).join("node_modules/.bin").join(name);
     if pinned.exists() {
@@ -319,8 +319,8 @@ fn install_js(ws: &Workspace, work: &Path) -> Result<()> {
             &["pack", "--pack-destination", &destination],
         )?;
     }
-    let wasm = find_tarball(&tarballs, "lamina-wasm-")?;
-    let pdf = find_tarball(&tarballs, "lamina-pdf-")?;
+    let wasm = find_tarball(&tarballs, "laminapdf-wasm-")?;
+    let pdf = find_tarball(&tarballs, "laminapdf-pdf-")?;
     check_packed_dependency(&pdf)?;
 
     let js = work.join("js");
@@ -329,8 +329,8 @@ fn install_js(ws: &Workspace, work: &Path) -> Result<()> {
         "private": true,
         "type": "module",
         "dependencies": {
-            "@lamina/pdf": format!("file:{}", pdf.display()),
-            "@lamina/wasm": format!("file:{}", wasm.display()),
+            "@laminapdf/pdf": format!("file:{}", pdf.display()),
+            "@laminapdf/wasm": format!("file:{}", wasm.display()),
         },
     });
     write(
@@ -353,7 +353,7 @@ fn install_js(ws: &Workspace, work: &Path) -> Result<()> {
     write(&js.join("worker/wrangler.toml"), WRANGLER_TOML)?;
     write(&js.join("worker/workerd.mjs"), WORKERD_RUNNER)?;
     // npm, not pnpm: a plain project, as a user would set one up; the tarballs need nothing from
-    // a registry (@lamina/pdf's one dependency is the @lamina/wasm tarball beside it).
+    // a registry (@laminapdf/pdf's one dependency is the @laminapdf/wasm tarball beside it).
     crate::run(
         &js,
         "npm",
@@ -390,7 +390,7 @@ fn find_tarball(dir: &Path, prefix: &str) -> Result<PathBuf> {
     }
 }
 
-/// The packed `@lamina/pdf` must depend on `@lamina/wasm` at its own version (`pnpm pack`
+/// The packed `@laminapdf/pdf` must depend on `@laminapdf/wasm` at its own version (`pnpm pack`
 /// replaces `workspace:*`): a user installing the tarballs would otherwise need the workspace.
 fn check_packed_dependency(pdf: &Path) -> Result<()> {
     let output = Command::new("tar")
@@ -404,9 +404,11 @@ fn check_packed_dependency(pdf: &Path) -> Result<()> {
     }
     let package: Value = serde_json::from_slice(&output.stdout).context("the packed package.json is not JSON")?;
     let version = package.get("version").and_then(Value::as_str);
-    let dependency = package.pointer("/dependencies/@lamina~1wasm").and_then(Value::as_str);
+    let dependency = package
+        .pointer("/dependencies/@laminapdf~1wasm")
+        .and_then(Value::as_str);
     if version.is_none() || dependency != version {
-        bail!("the packed @lamina/pdf depends on @lamina/wasm {dependency:?}, not its own version {version:?}");
+        bail!("the packed @laminapdf/pdf depends on @laminapdf/wasm {dependency:?}, not its own version {version:?}");
     }
     Ok(())
 }
@@ -418,7 +420,14 @@ fn chromium(ws: &Workspace, work: &Path, golden: &str) -> Outcome {
         crate::run(
             &ws.root,
             "pnpm",
-            &["--filter", "@lamina/pdf", "exec", "playwright", "install", "chromium"],
+            &[
+                "--filter",
+                "@laminapdf/pdf",
+                "exec",
+                "playwright",
+                "install",
+                "chromium",
+            ],
         )?;
         let from = ws.root.join(TOOLS_PACKAGE).join("package.json");
         let from = from.to_string_lossy();

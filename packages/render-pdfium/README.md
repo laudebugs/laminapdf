@@ -1,10 +1,10 @@
-# @lamina/render-pdfium
+# @laminapdf/render-pdfium
 
-ADR 0004's default web renderer: PDFium as WebAssembly behind [`@lamina/render`](../render/README.md)'s `RenderBackend`. It runs inside the document worker only ([ADR 0009](../../docs/decisions/0009-web-client-architecture.md) §2). Private; `@lamina/pdf` never depends on it.
+ADR 0004's default web renderer: PDFium as WebAssembly behind [`@laminapdf/render`](../render/README.md)'s `RenderBackend`. It runs inside the document worker only ([ADR 0009](../../docs/decisions/0009-web-client-architecture.md) §2). Private; `@laminapdf/pdf` never depends on it.
 
 ```ts
 import wasmUrl from "@embedpdf/pdfium/pdfium.wasm?url";
-import { initPdfium } from "@lamina/render-pdfium";
+import { initPdfium } from "@laminapdf/render-pdfium";
 
 const pdfium = await initPdfium(wasmUrl); // a URL, Response, bytes or compiled WebAssembly.Module
 ```
@@ -26,5 +26,5 @@ const pdfium = await initPdfium(wasmUrl); // a URL, Response, bytes or compiled 
 
 ## Tests
 
-- **Node:** `pnpm --filter @lamina/render-pdfium test` (part of `cargo xtask check ts`) runs the verifier and the RenderBackend contract over the installed `pdfium.wasm`.
-- **Browsers:** `pnpm --filter @lamina/render-pdfium exec vitest run -c vitest.browser.config.ts --project chromium` runs the contract in Chromium, and likewise `firefox` and `webkit`. `cargo xtask pdf-runtimes <browser>` runs it too. The browser runs add C2b's goldens: EmbedPDF's build against native `chromium/7881` goldens, at SSIM ≥ 0.98.
+- **Node:** `pnpm --filter @laminapdf/render-pdfium test` (part of `cargo xtask check ts`) runs the verifier and the RenderBackend contract over the installed `pdfium.wasm`.
+- **Browsers:** `pnpm --filter @laminapdf/render-pdfium exec vitest run -c vitest.browser.config.ts --project chromium` runs the contract in Chromium, and likewise `firefox` and `webkit`. `cargo xtask pdf-runtimes <browser>` runs it too. The browser runs add C2b's goldens: EmbedPDF's build against native `chromium/7881` goldens, at SSIM ≥ 0.98.

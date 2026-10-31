@@ -1,4 +1,4 @@
-//! `cargo xtask pdf-runtimes`: @lamina/pdf's example suite (`packages/pdf/test/suite/`) in every
+//! `cargo xtask pdf-runtimes`: @laminapdf/pdf's example suite (`packages/pdf/test/suite/`) in every
 //! runtime the package supports (todo B6c; pdf-library §5): Node (whichever `node` is on PATH),
 //! Chromium, Firefox and `WebKit` (Vitest browser mode with Playwright), Deno, Bun and workerd.
 //! Each runner compares every example's bytes with its Rust golden and prints the performance
@@ -134,7 +134,7 @@ fn vitest<'a>(config: &'a str, projects: &[&'a str]) -> Vec<&'a str> {
     args
 }
 
-/// The commands that run `runtime`'s suite, in order, as `pnpm --filter @lamina/pdf exec …`
+/// The commands that run `runtime`'s suite, in order, as `pnpm --filter @laminapdf/pdf exec …`
 /// arguments. `node` runs the `measure` project first (alone, so its timings don't compete with
 /// the other test files), then the rest of the Node suite.
 fn commands(runtime: &str) -> Result<Vec<Vec<&'static str>>> {
@@ -167,12 +167,12 @@ fn commands(runtime: &str) -> Result<Vec<Vec<&'static str>>> {
     })
 }
 
-/// The web render adapters' `RenderBackend` contract in `browser` (todo C2c): `@lamina/render`
-/// built, then `@lamina/render-pdfium` and `@lamina/render-hayro` (over the `wasm` job's
+/// The web render adapters' `RenderBackend` contract in `browser` (todo C2c): `@laminapdf/render`
+/// built, then `@laminapdf/render-pdfium` and `@laminapdf/render-hayro` (over the `wasm` job's
 /// `lamina_render_hayro.wasm`), each with C2b's goldens. They record no measurements.
 fn render_suites(ws: &Workspace, browser: &str) -> Result<()> {
-    crate::run(&ws.root, "pnpm", &["--filter", "@lamina/render", "run", "build"])?;
-    for package in ["@lamina/render-pdfium", "@lamina/render-hayro"] {
+    crate::run(&ws.root, "pnpm", &["--filter", "@laminapdf/render", "run", "build"])?;
+    for package in ["@laminapdf/render-pdfium", "@laminapdf/render-hayro"] {
         let mut args = vec!["--filter", package, "exec"];
         args.extend(vitest("vitest.browser.config.ts", &[browser]));
         crate::run(&ws.root, "pnpm", &args)?;
@@ -180,9 +180,9 @@ fn render_suites(ws: &Workspace, browser: &str) -> Result<()> {
     Ok(())
 }
 
-/// Runs `pnpm --filter @lamina/pdf exec <args>`, echoing its stdout as it comes, and returns it.
+/// Runs `pnpm --filter @laminapdf/pdf exec <args>`, echoing its stdout as it comes, and returns it.
 fn run_captured(ws: &Workspace, args: &[&str]) -> Result<String> {
-    let mut full = vec!["--filter", "@lamina/pdf", "exec"];
+    let mut full = vec!["--filter", "@laminapdf/pdf", "exec"];
     full.extend_from_slice(args);
     step(&format!("pnpm {}", full.join(" ")));
     let mut child = Command::new(program_path("pnpm"))
@@ -231,7 +231,7 @@ pub(crate) fn run(ws: &Workspace, args: &Args) -> Result<()> {
                 crate::run(
                     &ws.root,
                     "pnpm",
-                    &["--filter", "@lamina/pdf", "exec", "playwright", "install", runtime],
+                    &["--filter", "@laminapdf/pdf", "exec", "playwright", "install", runtime],
                 )?;
             }
             let mut found = Vec::new();
@@ -302,7 +302,7 @@ fn table(measurements: &[Measurement]) -> String {
         by_runtime.entry(&m.runtime).or_default().insert(&m.case, m.value);
     }
     let mut out = String::from(
-        "## @lamina/pdf in every runtime\n\n\
+        "## @laminapdf/pdf in every runtime\n\n\
          Recorded, not asserted (pdf-library §4: hello ≤ 5 ms after `init()`, a 100-page report ≤ 500 ms, \
          < 64 MB peak in a Worker); ⚠️ marks a miss. Hello is the median of 20 runs, the report of 3. \
          WebAssembly memory is both modules' linear memory after the report (it never shrinks, so it is \
@@ -325,7 +325,7 @@ fn table(measurements: &[Measurement]) -> String {
 }
 
 /// L2a's main-thread check: the longest long task while a 50 MB file is opened and fully
-/// rewritten on the main thread and through `@lamina/pdf/worker` (Chromium's `longtask` entries;
+/// rewritten on the main thread and through `@laminapdf/pdf/worker` (Chromium's `longtask` entries;
 /// 0 is none over 50 ms).
 fn long_tasks(by_runtime: &BTreeMap<&str, BTreeMap<&str, f64>>, out: &mut String) {
     let rows: Vec<_> = by_runtime
@@ -387,7 +387,10 @@ fn record(ws: &Workspace, history: &Path, runner: &str, measurements: &[Measurem
     fs::create_dir_all(history)?;
     let path = history.join("history.jsonl");
     append(&path, &(serde_json::to_string(&record)? + "\n"))?;
-    step(&format!("Appended the @lamina/pdf measurements to {}", path.display()));
+    step(&format!(
+        "Appended the @laminapdf/pdf measurements to {}",
+        path.display()
+    ));
     Ok(())
 }
 

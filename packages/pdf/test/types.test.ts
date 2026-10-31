@@ -9,8 +9,8 @@ import {
   LaminaError,
   type LaminaWarning,
   type WarningCode,
-} from "@lamina/pdf";
-import { ERROR_CODES, KINDS } from "@lamina/pdf/explain";
+} from "@laminapdf/pdf";
+import { ERROR_CODES, KINDS } from "@laminapdf/pdf/explain";
 import { describe, expect, expectTypeOf, it } from "vitest";
 
 /** Every error code by hand, grouped by kind: a new code in codes.json fails here first. */

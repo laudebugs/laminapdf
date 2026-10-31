@@ -870,7 +870,7 @@ mod external {
     }
 }
 
-/// `@lamina/pdf` passes structure types to the WASM module by their index in `TagKind::ALL`.
+/// `@laminapdf/pdf` passes structure types to the WASM module by their index in `TagKind::ALL`.
 #[test]
 fn the_ts_tag_names_are_tag_kind_all_in_order() {
     let source = String::from_utf8(fixture("../packages/pdf/src/builder.ts")).unwrap();

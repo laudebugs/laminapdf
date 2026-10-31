@@ -19,7 +19,7 @@ Start here. This page is the checklist. The linked guides have the rules and the
 
 ## Changesets
 
-lamina has one version for every crate, `@lamina/wasm` and `@lamina/pdf` ([ADR 0017](../decisions/0017-versioning-and-release.md)). A PR that changes what users of the library see (an API, behaviour, output bytes, a fix they'd notice) adds a **changeset**: run `pnpm changeset`, pick `@lamina/pdf` and `@lamina/wasm` (they are one fixed group, so either bumps both), choose the bump and write one or two sentences for the changelog. It writes `.changeset/<name>.md`; commit it with the change. Docs, CI, tests and internal refactors need none.
+lamina has one version for every crate, `@laminapdf/wasm` and `@laminapdf/pdf` ([ADR 0017](../decisions/0017-versioning-and-release.md)). A PR that changes what users of the library see (an API, behaviour, output bytes, a fix they'd notice) adds a **changeset**: run `pnpm changeset`, pick `@laminapdf/pdf` and `@laminapdf/wasm` (they are one fixed group, so either bumps both), choose the bump and write one or two sentences for the changelog. It writes `.changeset/<name>.md`; commit it with the change. Docs, CI, tests and internal refactors need none.
 
 - **Bump while the version is `0.x`:** `minor` for a breaking change (see the [stability policy](../stability-policy.md) for what counts), `patch` for everything else. Never `major`.
 - **Never edit a version by hand.** `cargo xtask check` runs `cargo xtask version sync --check`, which fails when a crate, `Cargo.lock` or `CHANGELOG.md` disagrees with the packages' version, or when a crate sets its own version instead of `version.workspace = true`.

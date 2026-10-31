@@ -1,4 +1,4 @@
-# TypeScript / Web DX for @lamina/pdf (Rust WASM core, universal ESM package)
+# TypeScript / Web DX for @laminapdf/pdf (Rust WASM core, universal ESM package)
 
 Scope note: about 17 fetches this session. The session's network blocks developers.cloudflare.com, vite.dev, typescriptlang.org and npmjs.com (403). Some sources were therefore read through their raw GitHub mirrors. Claims marked **[PK]** come from prior knowledge (training data, mid‑2026). Their URLs are the canonical ones, but those pages were **not re-fetched this session**, so treat them as lower confidence. Everything else was verified by fetch on 2026‑10‑29.
 
@@ -78,7 +78,7 @@ wasm-bindgen's new `--target module` (source-phase imports) is the future-proof 
   }
   ```
 - **Why `new URL(..., import.meta.url)`.** Webpack 5, Vite, Rollup (with a plugin), esbuild (with the file loader), Rspack and Turbopack all recognise this static pattern, so it is the most portable asset reference. Keep it literal: no variables. Bundler support beyond Vite was not verified this session.
-- **Inline base64.** It costs about +33% size before gzip, can't use `compileStreaming`, and is blocked on workerd. Offer it only as an opt-in subpath (`@lamina/pdf/inline`), never as the default.
+- **Inline base64.** It costs about +33% size before gzip, can't use `compileStreaming`, and is blocked on workerd. Offer it only as an opt-in subpath (`@laminapdf/pdf/inline`), never as the default.
 - **Escape hatch.** Always accept `init({ module: WebAssembly.Module | Response | BufferSource | URL | string })`. Every surveyed library that skipped this got bug reports from bundler users (inferred from the jSquash/Vite workarounds above).
 
 ### Gaps
@@ -107,7 +107,7 @@ Public signatures should be `Uint8Array` (and accept `ArrayBuffer | ArrayBufferV
 ## 3. Worker offloading
 
 ### Takeaway
-Keep the core API synchronous and in-thread. Ship an optional `@lamina/pdf/worker` that exposes the same document API as async proxies over `postMessage`:
+Keep the core API synchronous and in-thread. Ship an optional `@laminapdf/pdf/worker` that exposes the same document API as async proxies over `postMessage`:
 - Transfer ArrayBuffers both ways.
 - Take `AbortSignal` and an `onProgress` callback.
 - The worker owns the wasm instance; documents are handles (ids).
@@ -135,7 +135,7 @@ PDF.js shows the cost of making the worker mandatory: the `workerSrc` configurat
 Ideal API sketch:
 ```ts
 // main thread, zero config in Vite/webpack because the URL literal is inside the package:
-import { createWorkerClient } from "@lamina/pdf/worker";
+import { createWorkerClient } from "@laminapdf/pdf/worker";
 const lamina = await createWorkerClient();            // internally: new Worker(new URL("./worker.js", import.meta.url), { type: "module" })
 const ac = new AbortController();
 await using doc = await lamina.open(bytes, { transfer: true, signal: ac.signal });
@@ -163,10 +163,10 @@ A wasm-bindgen module is a single binary. JS tree shaking can drop unused *JS gl
 
 ### Inferences
 - **Proposed layout:**
-  - `@lamina/pdf`: parse, inspect, edit, save; the core wasm.
-  - `@lamina/pdf/extract`: text and images.
-  - `@lamina/pdf/render`: raster; a separate, heavier wasm.
-  - `@lamina/pdf/sign`: CMS; could use WebCrypto for the private-key operations.
+  - `@laminapdf/pdf`: parse, inspect, edit, save; the core wasm.
+  - `@laminapdf/pdf/extract`: text and images.
+  - `@laminapdf/pdf/render`: raster; a separate, heavier wasm.
+  - `@laminapdf/pdf/sign`: CMS; could use WebCrypto for the private-key operations.
 - Each subpath's `init()` loads its own wasm.
 - **Cost:** every separate wasm binary duplicates shared Rust code (core parsing), and objects can't be passed between instances except as bytes. Options:
   - Pass serialized bytes between modules.
@@ -303,9 +303,9 @@ lamina should copy @libpdf/core's one-liners, add a top-left/unit-aware layout l
 - **PDF.js, render:** set `GlobalWorkerOptions.workerSrc`, then `getDocument({ url })`, then `page.render(renderContext)`. The canvas is sized as viewport × `devicePixelRatio`. — [pdf.js helloworld](https://raw.githubusercontent.com/mozilla/pdf.js/master/examples/learning/helloworld.html)
 - **[PK] jsPDF:** `const doc = new jsPDF(); doc.text("Hello world!", 10, 10); doc.save("a4.pdf");`. The API is imperative, with a top-left origin and units set in the constructor (`{ unit: "mm" }`), and `save()` triggers a browser download. — [jsPDF README](https://github.com/parallax/jsPDF) (unverified this session)
 
-### Inferences — ideal @lamina/pdf API (sync after init)
+### Inferences — ideal @laminapdf/pdf API (sync after init)
 ```ts
-import { init, Document, pt, mm } from "@lamina/pdf";
+import { init, Document, pt, mm } from "@laminapdf/pdf";
 await init();                                          // once; idempotent; accepts { wasm } override
 
 // create + text (top-left origin by default, units explicit; layout box with wrapping)
@@ -327,7 +327,7 @@ const filled = src.save({ mode: "incremental" });
 // merge
 const merged = Document.merge([a, b, c]);               // bytes in, bytes out
 // extract text
-import { extractText } from "@lamina/pdf/extract";
+import { extractText } from "@laminapdf/pdf/extract";
 const { pages } = extractText(src, { pages: [0, 1] as PageIndex[] });
 // render (worker)
 const bmp = await (await createWorkerClient()).render(bytes, { page: 0, scale: 2 });

@@ -2,7 +2,7 @@
 // arrays (runs as records, every glyph's quad in one Float32Array, every glyph's text in one
 // string); the objects here are built from it on demand, and `buffers` gives the arrays as they
 // are, to post to a worker or the main thread without copying.
-import type { PageTextJs, TextRunJs } from "@lamina/wasm/extract";
+import type { PageTextJs, TextRunJs } from "@laminapdf/wasm/extract";
 
 /** Options for {@link PageRef.text}. */
 export interface TextOptions {

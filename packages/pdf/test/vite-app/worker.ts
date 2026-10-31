@@ -1,6 +1,6 @@
 // The worker client in a Vite build (L2a): `connect()`'s literal `new Worker(new URL(…))` must
 // make Vite emit the worker file, and the worker must load the `.wasm` from the build's assets.
-import { connect } from "@lamina/pdf/worker";
+import { connect } from "@laminapdf/pdf/worker";
 
 /** [page count, 1 if save() returned bytes] of `bytes`, opened through the worker. */
 export async function run(bytes: Uint8Array): Promise<[number, number]> {

@@ -1,7 +1,7 @@
 // Fonts and images: descriptions that any builder can use. A document is built in one WASM
 // instance (base or text, ADR 0016 §4), so the instance-side objects are made per builder (fonts)
 // or per module (images) when first used.
-import type { WasmImage } from "@lamina/wasm/base";
+import type { WasmImage } from "@laminapdf/wasm/base";
 import { guard } from "./errors.js";
 import { type BaseGlue, baseModule, type TextGlue } from "./init.js";
 

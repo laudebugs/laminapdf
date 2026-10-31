@@ -1,4 +1,4 @@
-# L2a — `@lamina/pdf/worker`: the async twin of the sync API, with typed RPC, version handshake, `AbortSignal`, transfer lists and progress
+# L2a — `@laminapdf/pdf/worker`: the async twin of the sync API, with typed RPC, version handshake, `AbortSignal`, transfer lists and progress
 
 | Field | Value |
 | --- | --- |
@@ -10,7 +10,7 @@
 | Blocks | [C3a](../ongoing/C3a-viewer-worker-rpc.md) |
 | ADRs | Follows 0028 (jobs, `CancelToken`, async only at the edges) and 0026 (errors cross as JSON, not `Error` objects), both from [L1a](../done/L1a-contract-adrs.md); [0002](../../decisions/0002-binding-strategy.md) §1 (sync core after `init()`); 0016 (export conditions, from [B6a](../done/B6a-lamina-wasm-and-adr-0016.md)); informs proposed 0009 (typed worker RPC, [C2a](../done/C2a-render-adrs.md)) |
 | Branch | `feat/l2a-worker-client` |
-| PR title | `feat(pdf): @lamina/pdf/worker async client with typed RPC, version handshake and AbortSignal` |
+| PR title | `feat(pdf): @laminapdf/pdf/worker async client with typed RPC, version handshake and AbortSignal` |
 | Size | L (≈ 600–900 lines of TS + tests) |
 | PR | [#128](https://github.com/laudebugs/lamina/pull/128) |
 

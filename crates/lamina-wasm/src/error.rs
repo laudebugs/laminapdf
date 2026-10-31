@@ -1,5 +1,5 @@
 //! Errors across the boundary: always the [ADR 0026] §1 object (a plain JS object, never a
-//! string), which `@lamina/pdf` turns into its `LaminaError` (ADR 0026 §7).
+//! string), which `@laminapdf/pdf` turns into its `LaminaError` (ADR 0026 §7).
 //!
 //! Core errors are [`lamina::Error::diagnostic`] as it is. The binding adds the codes only it
 //! can raise (listed under `bindingErrors` in `fixtures/codes.json`): `invalid-argument` (a

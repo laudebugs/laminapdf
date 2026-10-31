@@ -1,6 +1,6 @@
 // The worker client's smoke test for runtimes outside Vitest's browser mode (Deno and Bun web
 // Workers, L2a): connect, open, page count, save.
-import { connect } from "@lamina/pdf/worker";
+import { connect } from "@laminapdf/pdf/worker";
 
 /** Throws unless `bytes` (hello.pdf) opens and saves through a worker. */
 export async function workerSmoke(bytes: Uint8Array): Promise<void> {

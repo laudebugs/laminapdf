@@ -10,7 +10,7 @@
 
 ## 1. Goal
 
-Grow the web and desktop readers into one **Acrobat-class editor** that covers all 13 feature groups (A–M, ~180 operations) in [06 §3](../research/pdf/06-feature-inventory.md#3-full-operation-inventory-with-mechanisms), in the order of [06 §9](../research/pdf/06-feature-inventory.md#9-suggested-phasing). Every operation is a typed `Op` in the core, so each one ships to the web app, the desktop app and the `@lamina/pdf` / `lamina` packages in the same PR ([architecture §2](architecture.md#2-the-architecture-in-one-picture)). Documents stay on the device; server features are optional and opt-in.
+Grow the web and desktop readers into one **Acrobat-class editor** that covers all 13 feature groups (A–M, ~180 operations) in [06 §3](../research/pdf/06-feature-inventory.md#3-full-operation-inventory-with-mechanisms), in the order of [06 §9](../research/pdf/06-feature-inventory.md#9-suggested-phasing). Every operation is a typed `Op` in the core, so each one ships to the web app, the desktop app and the `@laminapdf/pdf` / `lamina` packages in the same PR ([architecture §2](architecture.md#2-the-architecture-in-one-picture)). Documents stay on the device; server features are optional and opt-in.
 
 ## 2. Scope and non-goals
 
@@ -28,7 +28,7 @@ Grow the web and desktop readers into one **Acrobat-class editor** that covers a
 The capability matrix is the editor's roadmap and progress report ([06 §10](../research/pdf/06-feature-inventory.md#10-implications-for-lamina), [architecture §7 cross-cutting](architecture.md#7-to-dos)).
 
 - **Rows:** one per operation in 06 §3, with a stable ID `<group>.<nn>` in the order the operations appear there (for example `C.04` = reorder pages).
-- **Columns:** `core` (Rust), `pdf` (`@lamina/pdf`), `web`, `desktop`, `target round`.
+- **Columns:** `core` (Rust), `pdf` (`@laminapdf/pdf`), `web`, `desktop`, `target round`.
 - **Statuses:**
   - `unsupported`: detected and reported to the user, never silently dropped.
   - `read`: displayed or extracted faithfully.
@@ -58,13 +58,13 @@ The capability matrix is the editor's roadmap and progress report ([06 §10](../
 4. **Correctness traps are tested**, not documented away: redaction that only covers content, crop that only hides content, incremental saves that keep deleted content, flattening without appearances, edits that break PDF/A or PDF/UA ([06 §10](../research/pdf/06-feature-inventory.md#10-implications-for-lamina)). The UI warns when an edit breaks a claimed conformance level.
 5. **Same features on web and desktop** through `Platform` capability flags. Differences are listed per round.
 6. **Privacy:** server features are off by default, opt-in per document, and say what leaves the device (ADR 0011).
-7. **Library parity:** each op is exposed in `lamina` and `@lamina/pdf` in the same PR, with docs and an example.
+7. **Library parity:** each op is exposed in `lamina` and `@laminapdf/pdf` in the same PR, with docs and an example.
 
 ## 6. Design summary
 
 The editing architecture (lazy COS overlay, typed model, op log, save planner, overlays for annotations and fields, reload of touched pages after content edits) is in [architecture.md](architecture.md) and the [report](../research/architecture/app-and-package-architecture.md). This plan adds three things:
 
-- **Interaction modes** (select, hand, text-select, annotate tools, form-fill, form-design, content-edit, redact, measure) as one state machine in `@lamina/ui`, with each tool a small module over `@lamina/viewer` layers.
+- **Interaction modes** (select, hand, text-select, annotate tools, form-fill, form-design, content-edit, redact, measure) as one state machine in `@laminapdf/ui`, with each tool a small module over `@laminapdf/viewer` layers.
 - **A content-stream layer** in the crate `lamina-content` ([05 §8.5](../research/pdf/05-creating-pdfs-from-code.md#85-proposed-architecture-for-discussion)), grown in three steps:
   1. **Read** ([library B9](pdf-library.md#b9-text-extraction), ADR 0023): a read-only interpreter used for text extraction, created before the readers' text layer.
   2. **Append** (E2): a minimal write API that never parses existing operators. It wraps a page's existing content in `q … Q` by adding new streams to the page's `/Contents` array, appends new streams (for example `q <cm> /Fm1 Do Q`), and registers Form XObjects under unused resource names. A token scan (B9's lexer) checks that existing streams balance `q`/`Q` and adds closing `Q`s when they don't. Resize (E2), flattening (E5) and adding content (E6) use it.
@@ -159,7 +159,7 @@ Editor rounds are larger than reader rounds. Each starts with a short **feature-
 #### E8. Form filling and data
 
 - **Ships (group E):** fill text fields (single/multi-line), checkboxes and radio buttons, dropdowns and list boxes, push buttons (non-JS actions), date/formatted input, required and read-only, tab order (follow `/Tabs`), reset form, import/export form data (FDF, XFDF, JSON), populate fields programmatically (library), flatten forms. Input validation, automatic calculations and conditional behaviour: declarative cases (Hide actions, `/CO` order) first; JavaScript-driven ones depend on ADR 0021. Submit to external endpoints: off by default, confirm per submit. XFA: detect and report.
-- **Crates:** `lamina-model` AcroForm field tree; appearance generation for field values ([04 §3.5](../research/pdf/04-interactive-security.md)); widgets as DOM overlays in `@lamina/viewer`.
+- **Crates:** `lamina-model` AcroForm field tree; appearance generation for field values ([04 §3.5](../research/pdf/04-interactive-security.md)); widgets as DOM overlays in `@laminapdf/viewer`.
 - **Save:** incremental. Signed files: field filling allowed when DocMDP P2/P3 permit, blocked for locked fields.
 - **Web vs desktop:** identical.
 - **Todos:** [E8a](../todos/ready/E8a-adr-0021-javascript-policy.md) ADR 0021: PDF JavaScript policy · [E8b](../todos/ready/E8b-form-filling-feature-plan.md) feature plan · [E8c](../todos/ready/E8c-acroform-field-model.md) AcroForm field model, value ops, flags and XFA detection · [E8d](../todos/ready/E8d-field-appearances.md) Value appearance generation for every field type · [E8e](../todos/ready/E8e-field-widgets-ui.md) Field widgets as DOM overlays, tab order, required/read-only, push buttons and submit · [E8f](../todos/ready/E8f-declarative-behaviour.md) Formatting, validation, calculation and conditional behaviour (declarative and per ADR 0021) · [E8g](../todos/ready/E8g-form-data-and-flatten.md) Form data import/export (FDF, XFDF, JSON), reset, programmatic fill and flatten.
@@ -167,7 +167,7 @@ Editor rounds are larger than reader rounds. Each starts with a short **feature-
 #### E9. Form authoring
 
 - **Ships (group E):** create, move, resize and configure all field types, signature fields, validation and format settings, calculation order, tab order editor, accessible field labels (`/TU`, overlaps L), automatic field detection on flat forms (heuristic, optional).
-- **Crates:** as E8, plus form-design mode in `@lamina/ui`.
+- **Crates:** as E8, plus form-design mode in `@laminapdf/ui`.
 - **Save:** incremental on `Free`; authoring on a signed file is blocked unless signatures are removed.
 - **Web vs desktop:** identical.
 - **Todos:** [E9a](../todos/ready/E9a-form-authoring-feature-plan.md) feature plan · [E9b](../todos/ready/E9b-field-creation-ops.md) Field creation and configuration ops, including signature fields · [E9c](../todos/ready/E9c-form-design-mode.md) Form-design mode: inspector, validation/format/calculation settings, tab-order editor, accessible labels · [E9d](../todos/ready/E9d-automatic-field-detection.md) Automatic field detection on flat forms (optional).
@@ -298,11 +298,11 @@ Todos: [X2](../todos/done/X2-capability-matrix.md) (capability matrix; E1a and E
 
 ### E1. Editing foundation
 - [ ] Feature-plan PR for E1
-- [ ] Interaction-mode state machine in `@lamina/ui`
+- [ ] Interaction-mode state machine in `@laminapdf/ui`
 - [ ] Undo/redo commands, shortcuts and history panel
 - [ ] Save, Save as and Download copy through the `Platform` adapter
 - [ ] `SaveConstraint` banner and explanations
-- [ ] Metadata editing ops (J.01–J.03, J.10) writing Info and XMP in sync, with round-trip tests in core, `@lamina/pdf`, web, desktop
+- [ ] Metadata editing ops (J.01–J.03, J.10) writing Info and XMP in sync, with round-trip tests in core, `@laminapdf/pdf`, web, desktop
 - [ ] XMP packet parse/update for Info-mapped properties; create a packet when missing
 - [ ] PDF/A-aware metadata edits: keep `pdfaid:`, warn before a save that breaks the claim; tests that veraPDF still passes on edited PDF/A fixtures
 

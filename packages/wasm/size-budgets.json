@@ -227,13 +227,13 @@
     }
   },
   "packages": {
-    "@lamina/pdf": {
+    "@laminapdf/pdf": {
       "jsGzip": 20000
     },
-    "@lamina/pdf/worker": {
+    "@laminapdf/pdf/worker": {
       "jsGzip": 5000
     },
-    "@lamina/pdf/worker/entry": {
+    "@laminapdf/pdf/worker/entry": {
       "jsGzip": 20000
     }
   },

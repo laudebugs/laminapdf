@@ -1,4 +1,4 @@
-# C3b — `@lamina/viewer` part 2: virtualiser, canvas pool, progressive tiles and anchored zoom
+# C3b — `@laminapdf/viewer` part 2: virtualiser, canvas pool, progressive tiles and anchored zoom
 
 | Field | Value |
 | --- | --- |
@@ -16,7 +16,7 @@
 
 ## Goal
 
-Make the viewer scroll a 1,000-page document like a native app. A prefix-sum page layout mounts only visible pages ± a margin, canvases come from a fixed pool, each page paints a low-resolution pass first and then sharp tiles, and zoom (fit width, fit page, actual size, pinch, ctrl+wheel, keyboard) keeps the point under the cursor fixed. Everything is framework-free TypeScript with an imperative API and a subscribe-able view state, so `@lamina/ui` (React) and the desktop app can drive it without being on the hot path ([architecture principle 5](../../plans/architecture.md#principles-each-becomes-part-of-an-adr)).
+Make the viewer scroll a 1,000-page document like a native app. A prefix-sum page layout mounts only visible pages ± a margin, canvases come from a fixed pool, each page paints a low-resolution pass first and then sharp tiles, and zoom (fit width, fit page, actual size, pinch, ctrl+wheel, keyboard) keeps the point under the cursor fixed. Everything is framework-free TypeScript with an imperative API and a subscribe-able view state, so `@laminapdf/ui` (React) and the desktop app can drive it without being on the hot path ([architecture principle 5](../../plans/architecture.md#principles-each-becomes-part-of-an-adr)).
 
 ## Context
 
@@ -74,7 +74,7 @@ None.
 
 ## Tests
 
-Unit tests (layout, zoom maths, cache eviction, pool caps) in `packages/viewer/src/**/*.test.ts`; Vitest browser-mode integration tests for mount/unmount and cancellation; Playwright specs under `packages/viewer/e2e/` against the demo page in three engines. The 1,000-page fixture is generated at test setup with `@lamina/pdf`'s builder (not committed), seeded and deterministic.
+Unit tests (layout, zoom maths, cache eviction, pool caps) in `packages/viewer/src/**/*.test.ts`; Vitest browser-mode integration tests for mount/unmount and cancellation; Playwright specs under `packages/viewer/e2e/` against the demo page in three engines. The 1,000-page fixture is generated at test setup with `@laminapdf/pdf`'s builder (not committed), seeded and deterministic.
 
 ## Docs to update
 

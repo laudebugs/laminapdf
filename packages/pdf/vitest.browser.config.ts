@@ -29,7 +29,7 @@ export default defineConfig({
     projects: [
       {
         extends: true,
-        optimizeDeps: { exclude: ["@lamina/pdf"] },
+        optimizeDeps: { exclude: ["@laminapdf/pdf"] },
         test: {
           name: "browser",
           include: ["test/browser/*.browser.test.ts"],

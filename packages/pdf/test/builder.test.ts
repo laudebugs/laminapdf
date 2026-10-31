@@ -1,5 +1,5 @@
 // Builder, Page and Surface in the base module: drawing, errors, and freeing in a loop.
-import { Builder, Document, Image, init, isLaminaError, Matrix, wasmMemory } from "@lamina/pdf";
+import { Builder, Document, Image, init, isLaminaError, Matrix, wasmMemory } from "@laminapdf/pdf";
 import { beforeAll, describe, expect, it } from "vitest";
 import { thrown } from "./helpers.js";
 

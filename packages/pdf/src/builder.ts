@@ -1,8 +1,8 @@
 // Builder, Page and Surface: new documents, page by page, in page space (points from the top-left
 // of the displayed page, y down; ADR 0027). Over WasmBuilder / WasmPageBuilder (ADR 0016 §7):
 // paths cross as flat Float64Arrays, colours as component arrays.
-import type { WasmBuilder as BaseBuilder, WasmDocument } from "@lamina/wasm/base";
-import type { WasmBuilder as TextBuilder, WasmPageBuilder as TextPageBuilder, WasmFont } from "@lamina/wasm/text";
+import type { WasmBuilder as BaseBuilder, WasmDocument } from "@laminapdf/wasm/base";
+import type { WasmBuilder as TextBuilder, WasmPageBuilder as TextPageBuilder, WasmFont } from "@laminapdf/wasm/text";
 import { Document } from "./document.js";
 import { didYouMean, guard, packageError } from "./errors.js";
 import type { Font, FontInfo, Image } from "./font.js";
