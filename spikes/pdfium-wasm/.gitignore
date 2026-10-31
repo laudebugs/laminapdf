@@ -1,0 +1,5 @@
+node_modules/
+vendor/
+out/
+test-results/
+playwright-report/

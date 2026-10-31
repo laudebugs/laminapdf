@@ -12,13 +12,14 @@ New todos start from [`TEMPLATE.md`](TEMPLATE.md). The workflow is in [git workf
 
 IDs: `A`/`P`/`X` [architecture](../plans/architecture.md) (foundations, publishing, cross-cutting), `B` [library](../plans/pdf-library.md), `L` [shareable libraries](../plans/shareable-libraries.md) (contracts, worker, extraction, CLI, agent docs, mobile), `C` [web reader](../plans/web-app.md), `D` [desktop reader](../plans/desktop-app.md), `U` [UI/UX](../plans/ui-ux.md), `E` [editor](../plans/full-editor.md), `H` hosted service ([full-editor](../plans/full-editor.md)). A letter suffix (`B2a`, `B2b`) splits a round into PRs.
 
-**4 ongoing · 202 ready · 39 done** (245 total).
+**3 ongoing · 202 ready · 40 done** (245 total).
 
 ## Can start now
 
 Ready todos whose dependencies are all done:
 
 - [B7a](ready/B7a-docs-site.md): Docs site (`apps/docs`): Starlight, quick starts, guides and TypeDoc, with per-PR previews
+- [C2a](ready/C2a-render-adrs.md): ADRs 0004, 0009, 0010, 0011: render backend, web client, platform adapter, Cloudflare and privacy
 - [X6](ready/X6-windows-ci.md): Windows CI coverage
 
 ## Ongoing
@@ -26,7 +27,6 @@ Ready todos whose dependencies are all done:
 - [B8a](ongoing/B8a-structure-tree.md): Tagged PDF: structure tree builder, artifacts, alt text, MCIDs and ParentTree
 - [B9c](ongoing/B9c-text-extraction-bindings-and-differential.md): `page.text()` in WASM and TypeScript; differential and quad tests; extraction fuzzing
 - [L1b](ongoing/L1b-error-contract-codegen.md): Error and diagnostic contract: codegen from `fixtures/codes.json` into Rust, TypeScript and JSON Schema, with `explain` text
-- [C1b](ongoing/C1b-pdfium-wasm-spike.md): `pdfium-wasm` spike: PDFium-WASM next to `lamina-wasm` in one worker
 
 ## Architecture — Round A
 
@@ -96,8 +96,8 @@ Ready todos whose dependencies are all done:
 | ID | Todo | State | Depends on |
 | --- | --- | --- | --- |
 | C1a | [`hayro-parity` spike: hayro vs PDFium pass rate on the pdf.js and PDFBox corpora](done/C1a-hayro-parity-spike.md) | done | — |
-| C1b | [`pdfium-wasm` spike: PDFium-WASM next to `lamina-wasm` in one worker](ongoing/C1b-pdfium-wasm-spike.md) | ongoing | [B3c](done/B3c-save-planner-and-roundtrip.md), [B6b](done/B6b-lamina-pdf-package.md), [C1a](done/C1a-hayro-parity-spike.md) |
-| C2a | [ADRs 0004, 0009, 0010, 0011: render backend, web client, platform adapter, Cloudflare and privacy](ready/C2a-render-adrs.md) | ready | [C1a](done/C1a-hayro-parity-spike.md), [C1b](ongoing/C1b-pdfium-wasm-spike.md), [X1](done/X1-docs-link-checker.md) |
+| C1b | [`pdfium-wasm` spike: PDFium-WASM next to `lamina-wasm` in one worker](done/C1b-pdfium-wasm-spike.md) | done | [B3c](done/B3c-save-planner-and-roundtrip.md), [B6b](done/B6b-lamina-pdf-package.md), [C1a](done/C1a-hayro-parity-spike.md) |
+| C2a | [ADRs 0004, 0009, 0010, 0011: render backend, web client, platform adapter, Cloudflare and privacy](ready/C2a-render-adrs.md) | ready | [C1a](done/C1a-hayro-parity-spike.md), [C1b](done/C1b-pdfium-wasm-spike.md), [X1](done/X1-docs-link-checker.md) |
 | C2b | [`crates/lamina-render`: the `RenderBackend` trait, PDFium and hayro adapters, render goldens](ready/C2b-lamina-render-crate.md) | ready | [B2c](done/B2c-lamina-model-corpus-fuzz.md), [C2a](ready/C2a-render-adrs.md) |
 | C2c | [`@lamina/render-pdfium` and `@lamina/render-hayro`: the web render adapters](ready/C2c-render-packages.md) | ready | [B6b](done/B6b-lamina-pdf-package.md), [C2b](ready/C2b-lamina-render-crate.md) |
 | C3a | [`@lamina/viewer` part 1: document worker and typed RPC](ready/C3a-viewer-worker-rpc.md) | ready | [B6b](done/B6b-lamina-pdf-package.md), [L2a](ready/L2a-worker-client.md), [C2a](ready/C2a-render-adrs.md), [C2c](ready/C2c-render-packages.md) |
