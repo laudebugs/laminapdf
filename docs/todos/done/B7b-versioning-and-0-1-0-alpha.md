@@ -12,7 +12,7 @@
 | Branch | `build/b7b-versioning` |
 | PR title | `build: Changesets with Cargo version sync, ADR 0017 and the local 0.1.0-alpha.0 tag` |
 | Size | M (≈ 400–700 lines incl. ADR and verify scripts) |
-| PR | — |
+| PR | [#123](https://github.com/laudebugs/lamina/pull/123) |
 
 ## Goal
 
