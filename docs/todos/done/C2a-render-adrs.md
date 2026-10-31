@@ -12,7 +12,7 @@
 | Branch | `docs/c2a-render-and-web-adrs` |
 | PR title | `docs(decisions): add ADRs 0004, 0009, 0010 and 0011 for the web reader` |
 | Size | M (four ADRs, ~400–600 lines of Markdown) |
-| PR | — |
+| PR | [#105](https://github.com/laudebugs/lamina/pull/105) |
 
 ## Goal
 
