@@ -28,7 +28,7 @@ Open large and remote PDFs without downloading or loading them whole, while the 
 - [ADR 0005 §2](../../decisions/0005-document-model.md#2-bytesource-and-ownership-of-the-input): `ByteSource` (`Send + Sync`, `read_at`, `as_slice`), the `Pending` → `DataPending` retry pattern, "edge implementations: mmap, `FileReaderSync`, HTTP-range cache … none in core crates".
 - [B2d](../done/B2d-windowed-reading.md): windows, chunked repair, `DataPending` carrying only the needed ranges, and its risk that lazy calls after open can also return `DataPending`.
 - [Report: bytes cross once](../../research/libraries/shareable-libraries.md#bytes-cross-once-ranges-are-pulled-and-the-core-stays-synchronous) and [rust-core-bridge note §4](../../research/libraries/notes/rust-core-bridge.md#4-zero-copy-streaming-partial-loading): pdf.js range/stream/auto-fetch options, PDFium's `FPDF_AVAIL` pull model **[unverified]**, the tail-first read for non-linearized files, and incremental save returning only the appended part.
-- [C3a](../ready/C3a-viewer-worker-rpc.md) (a TS `ByteSource` interface `read(offset, length, signal)`, `size`) and [C4c](../ready/C4c-remote-files-encryption-privacy.md) (`HttpRangeByteSource` in the viewer with block cache, `ETag` check → `source-changed`, privacy fetch options). Align with both, so the viewer can reuse this source instead of writing its own.
+- [C3a](../ongoing/C3a-viewer-worker-rpc.md) (a TS `ByteSource` interface `read(offset, length, signal)`, `size`) and [C4c](../ready/C4c-remote-files-encryption-privacy.md) (`HttpRangeByteSource` in the viewer with block cache, `ETag` check → `source-changed`, privacy fetch options). Align with both, so the viewer can reuse this source instead of writing its own.
 - [D2b](../ready/D2b-engine-process.md): the desktop main process uses positioned reads, **not** `memmap2`, because a mapped file truncated underneath raises `SIGBUS`.
 - [Code organisation §2](../../guidelines/code-organization.md#2-boundaries-and-dependency-direction) and [Rust guideline: unsafe](../../guidelines/rust.md#unsafe): fs and `unsafe` only in edge crates, with `// SAFETY:` comments.
 
@@ -43,7 +43,7 @@ Open large and remote PDFs without downloading or loading them whole, while the 
   - No I/O, clocks or threads; `Send + Sync`.
 - **Retry helper (same edge crate):** `open_with(source, opts, fetch: impl FnMut(&[Range]) -> Result<…>)`, a synchronous loop that calls the shell's fetch closure on `DataPending` and retries. Native shells and the wasm edge then don't each re-implement the loop.
 - **wasm edge (`lamina-wasm`):** expose `SparseSource` (`supply` takes a `Uint8Array`), and surface `DataPending` as a `LaminaError` with `ranges: { offset, length }[]`.
-- **TypeScript (`packages/pdf`):**
+- **TypeScript (`packages/sdk`):**
   - A `RangeSource` interface `{ size, read(offset, length, { signal }) => Promise<Uint8Array> }`, matching C3a's.
   - Adapters: `httpRangeSource(url, { headers?, credentials?, signal?, blockSize? })` and `callbackSource(size, read)`.
   - The HTTP adapter:
@@ -54,7 +54,7 @@ Open large and remote PDFs without downloading or loading them whole, while the 
     - fetches the tail first.
   - `await Document.openRange(source, opts)` runs the fetch-and-retry loop.
   - `await doc.ensure(fn)` runs a sync call and, on `data-pending`, fetches the ranges and retries, so lazy calls after open work.
-  - The worker client ([L2a](../ongoing/L2a-worker-client.md)), if merged, runs the same loop inside the worker, so remote handles stay plain async.
+  - The worker client ([L2a](../done/L2a-worker-client.md)), if merged, runs the same loop inside the worker, so remote handles stay plain async.
 - **Native edge crate** `crates/lamina-source` (layer `edge`):
   - `FileSource`: positioned reads (`FileExt::read_at` / `seek_read`), no `unsafe`. A short read after truncation becomes `SourceError`, not a crash.
   - `MmapSource` behind an `mmap` feature (`memmap2`, licence-checked) with a `// SAFETY:` note and the documented `SIGBUS` risk. `as_slice` returns the mapping.
@@ -79,13 +79,13 @@ Open large and remote PDFs without downloading or loading them whole, while the 
   - [x] Stop when a retry asks for the same ranges again (no progress)
   - [x] Cap the rounds via `Limits` or an option, failing with a coded error (`data-pending` with the last ranges)
 - [x] `lamina-wasm`: `SparseSource` class; `DataPending` → `LaminaError { code: "data-pending", ranges }`
-- [x] `packages/pdf/src/source/`: `RangeSource`, `httpRangeSource`, `callbackSource`, `Document.openRange`, `doc.ensure`. `AbortSignal` passes through to `fetch`. Never put document bytes or the URL in error messages (ADR 0026)
+- [x] `packages/sdk/src/source/`: `RangeSource`, `httpRangeSource`, `callbackSource`, `Document.openRange`, `doc.ensure`. `AbortSignal` passes through to `fetch`. Never put document bytes or the URL in error messages (ADR 0026)
 - [x] Add codes `source-changed` and `range-unsupported` (if a warning is wanted for the 200 fallback) to `fixtures/codes.json` and regenerate (added `source-changed`, `fetch-failed` and the binding code `source-budget-exceeded`; no warning for the `200` fallback, which is a supported mode)
 - [x] `crates/lamina-source` (edge):
   - [x] `Cargo.toml` with `[package.metadata.lamina] layer = "edge"`
   - [x] `FileSource`; `MmapSource` behind `mmap`
   - [x] `cargo deny` passes
-- [x] Wire `httpRangeSource` into [L2a](../ongoing/L2a-worker-client.md)'s worker if merged; otherwise leave a TODO in the worker README (L2a isn't merged: the note is in L2a's Context)
+- [x] Wire `httpRangeSource` into [L2a](../done/L2a-worker-client.md)'s worker if merged; otherwise leave a TODO in the worker README (L2a isn't merged: the note is in L2a's Context)
 - [x] README sections: remote files (CORS: `Range` triggers a preflight, `Content-Range`/`ETag` must be exposed; `Content-Encoding` breaks ranges), large local files (`FileSource` vs `MmapSource`)
 
 ## Acceptance criteria
@@ -106,12 +106,12 @@ None.
 
 - `crates/lamina-source/tests/sparse_source.rs`: corpus parity, bytes-supplied accounting, no-progress and round-cap failures.
 - `crates/lamina-source/tests/`: `FileSource` and `MmapSource` parity; truncation (create a temp copy in the test, truncate it, read).
-- `packages/pdf/test/source/*.test.ts`: a tiny local HTTP server in the test harness (range support on/off, wrong `Content-Range`, changing `ETag`, slow responses for abort); `callbackSource`; `doc.ensure`. Fixtures: `fixtures/corpus`, plus a large file generated in the test.
+- `packages/sdk/test/source/*.test.ts`: a tiny local HTTP server in the test harness (range support on/off, wrong `Content-Range`, changing `ETag`, slow responses for abort); `callbackSource`; `doc.ensure`. Fixtures: `fixtures/corpus`, plus a large file generated in the test.
 
 ## Docs to update
 
 - [x] [shareable-libraries §9 L2](../../plans/shareable-libraries.md#9-to-dos): tick the range `ByteSource` to-do
-- [x] `crates/lamina-source/README.md` (sparse sources, `open_with`, native sources), `packages/pdf/README.md` (remote and large files)
+- [x] `crates/lamina-source/README.md` (sparse sources, `open_with`, native sources), `packages/sdk/README.md` (remote and large files)
 - [x] `CLAUDE.md` (layout: `crates/lamina-source`; reading API paragraph mentions range sources)
 - [x] ADR 0005 §2: implementation note naming `SparseSource` and the edge crate
 - [x] [C4c](../ready/C4c-remote-files-encryption-privacy.md): a Context line pointing at `httpRangeSource`, so the viewer wraps it instead of duplicating it

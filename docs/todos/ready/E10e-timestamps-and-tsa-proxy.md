@@ -8,7 +8,7 @@
 | Round / milestone | Editor phase 5 (E8–E10) — M8 Forms and signing |
 | Depends on | [C4a](./C4a-ui-chrome-and-platform.md), [E10d](./E10d-pades-signing-core.md) |
 | Blocks | [E10j](./E10j-signature-ui.md) |
-| Dependency notes | [E10d](E10d-pades-signing-core.md), `C4` ([web-app §C4](../../plans/web-app.md#c4-app-shell-on-cloudflare): `@lamina/ui`, `apps/web`) |
+| Dependency notes | [E10d](E10d-pades-signing-core.md), `C4` ([web-app §C4](../../plans/web-app.md#c4-app-shell-on-cloudflare): `@laminapdf/ui`, `apps/web`) |
 | ADRs | Implements ADR 0020; Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
 | Branch | `feat/e10e-timestamps-and-tsa-proxy` |
 | PR title | `feat(sign): RFC 3161 timestamps and TSA proxy` |
@@ -64,7 +64,7 @@ RFC 3161 timestamp tokens as CMS unsigned attributes (PAdES B-T) and document ti
 - [ ] B-T signatures validate in EU DSS
 - [ ] `AddDocumentTimestamp` on DocMDP P1, P2 and P3 certified fixtures: `would_violate` is empty, the save is `AppendOnly` and incremental, and the certification signature still validates (EU DSS, pyHanko) with the timestamp revision reported as an allowed LTV update
 - [ ] `Sign { timestamp }` reports class `Signature` and `requires_rewrite = false`; a test per op runs `planner.would_violate(&op)` on the signed fixtures (no certification, DocMDP P1, P2, P3, FieldMDP lock) and asserts the verdict ([ADR 0007](../../decisions/0007-save-planner.md) §2): violation only on P1 for `Sign`, none anywhere for `AddDocumentTimestamp`
-- [ ] Library parity ([full-editor §5](../../plans/full-editor.md#5-requirements-that-hold-for-every-round) req. 7): every new `Op` is exposed in `lamina` and `@lamina/pdf` in this PR, with rustdoc/TSDoc, a runnable example, tsify-generated TS types, and serde samples frozen in `fixtures/ops/v1/` (unknown ops and fields rejected, ADR 0006 §1, §6)
+- [ ] Library parity ([full-editor §5](../../plans/full-editor.md#5-requirements-that-hold-for-every-round) req. 7): every new `Op` is exposed in `lamina` and `@laminapdf/sdk` in this PR, with rustdoc/TSDoc, a runnable example, tsify-generated TS types, and serde samples frozen in `fixtures/ops/v1/` (unknown ops and fields rejected, ADR 0006 §1, §6)
 - [ ] Worker tests assert no body other than a TimeStampReq is forwarded and nothing is logged
 
 ## Post-merge checks

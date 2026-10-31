@@ -5,7 +5,7 @@
 
 ## Context
 
-Every lamina surface reports failures: the Rust crates, `@lamina/pdf`, the worker client, the CLI, the MCP mode and, later, Swift and Kotlin. Today only the Rust side has a contract. [ADR 0003 §2](0003-reader-tolerance-and-limits.md#2-warnings-stable-enumerated-codes) gives every warning and error a kebab-case `code()` that is never renamed or reused. `fixtures/codes.json` lists them (`warnings`, `errors`, `opErrors`), and a test checks the Rust enums against it ([§4](0003-reader-tolerance-and-limits.md#4-enforcement)). Messages are free text from `thiserror` `Display`, and some of them quote the document. `Error::UnsupportedFilter(String)` prints the filter name read from the file. `Error::UnsupportedSecurityHandler { filter: String, .. }` prints the `/Filter` value. `lamina_ops::Error::InvalidLog(String)` prints serde's message, which can quote the caller's JSON.
+Every lamina surface reports failures: the Rust crates, `@laminapdf/sdk`, the worker client, the CLI, the MCP mode and, later, Swift and Kotlin. Today only the Rust side has a contract. [ADR 0003 §2](0003-reader-tolerance-and-limits.md#2-warnings-stable-enumerated-codes) gives every warning and error a kebab-case `code()` that is never renamed or reused. `fixtures/codes.json` lists them (`warnings`, `errors`, `opErrors`), and a test checks the Rust enums against it ([§4](0003-reader-tolerance-and-limits.md#4-enforcement)). Messages are free text from `thiserror` `Display`, and some of them quote the document. `Error::UnsupportedFilter(String)` prints the filter name read from the file. `Error::UnsupportedSecurityHandler { filter: String, .. }` prints the `/Filter` value. `lamina_ops::Error::InvalidLog(String)` prints serde's message, which can quote the caller's JSON.
 
 The research says three things ([report: errors and schemas as a single contract](../research/libraries/shareable-libraries.md#errors-and-schemas-as-a-single-contract); [LLM note (A)](../research/libraries/notes/llm-api-and-ai-extraction.md#a-what-makes-llmsagents-write-correct-code-against-a-library-api-and-what-lamina-should-do)):
 
@@ -80,7 +80,7 @@ impl serde::Serialize for Error { /* writes the §1 object; variant fields go to
 ```
 
 ```ts
-// @lamina/pdf (B6b ships the class with the §1 fields; L1b generates the code unions). Illustrative.
+// @laminapdf/sdk (B6b ships the class with the §1 fields; L1b generates the code unions). Illustrative.
 export type ErrorKind = "input" | "io" | "unsupported" | "limit" | "security" | "usage" | "state" | "cancelled" | "internal";
 export class LaminaError<C extends ErrorCode = ErrorCode> extends Error {
   readonly code: C; readonly kind: ErrorKind; readonly hint?: string; readonly didYouMean?: readonly string[];
@@ -153,7 +153,7 @@ Today three variants break this rule: `lamina_syntax::Error::UnsupportedFilter(S
 | Rust core crates | One `thiserror` enum per crate as today (`code()` exists). They gain `kind()` and `location()` (L1c: a table checked against `codes.json` by test; generated from L1b on). No `hint`/`docs_url` text in core crates: it stays out of the base wasm |
 | Rust façade (`lamina`) | `lamina::Error` with `code()`, `kind()`, `hint()`, `location()`, `docs_url()` and `Serialize` into §1. Warnings likewise |
 | wasm edge (`lamina-wasm`) | Returns the §1 object. The TS layer turns it into a `LaminaError` (ADR 0002 §1's "JS `Error` with a stable `code`", with all §1 fields) |
-| TypeScript (`@lamina/pdf`, worker client) | **`LaminaError<C>`** (decided; `PdfError` is not used), `isLaminaError(e, code?)`, `toJSON()` to §1. Warnings are plain `LaminaWarning` objects. The worker sends §1 JSON and the client rebuilds `LaminaError`, because structured clone drops `Error` fields |
+| TypeScript (`@laminapdf/sdk`, worker client) | **`LaminaError<C>`** (decided; `PdfError` is not used), `isLaminaError(e, code?)`, `toJSON()` to §1. Warnings are plain `LaminaWarning` objects. The worker sends §1 JSON and the client rebuilds `LaminaError`, because structured clone drops `Error` fields |
 | Swift and Kotlin (UniFFI, L6a/ADR 0029) | A `LaminaError` error enum with **one variant per kind**, each carrying a `Diagnostic` record of strings and integers (the §1 fields). That is the "string-payload error enum" of [ADR 0028](0028-facade-rules-jobs-and-cancellation.md) §1. Swift catches `LaminaError.cancelled`; Kotlin gets the generated exception class, named as ADR 0029 records |
 | CLI (ADR 0031) | Text mode, rustc style on stderr: `error[wrong-password]: wrong password`, then `= hint: …` and `= see: <docsUrl>`. `--json` writes §1 objects on stderr, one per line, warnings included |
 | MCP (L4c) | Tool errors carry the §1 object in `structuredContent` |

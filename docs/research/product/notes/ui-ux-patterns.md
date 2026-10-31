@@ -1,6 +1,6 @@
 # UI/UX architecture patterns for a fast, simple cross-platform PDF app (2026)
 
-Scope: design guidance for lamina's UI plan: React 19 chrome (`@lamina/ui`) over a framework-free viewer (`@lamina/viewer`), shipped as a web app and a Tauri 2 desktop app, with a responsive mobile layout.
+Scope: design guidance for lamina's UI plan: React 19 chrome (`@laminapdf/ui`) over a framework-free viewer (`@laminapdf/viewer`), shipped as a web app and a Tauri 2 desktop app, with a responsive mobile layout.
 
 Method note: WebFetch could not reach www.w3.org, web.dev, pdfa.org, github.blog or uxmatters.com from this session (DNS blocked by the session's network allowlist). Claims about those sites come from search-result summaries or secondary sources, and are marked as such. github.com was reachable, so the cmdk README and the pdf.js `app_options.js` were read directly. Everything under "Inferences" is opinion or recommendation, not sourced fact.
 
@@ -59,7 +59,7 @@ On touch devices the OS or browser already shows its own selection menu (Android
   - It must be reachable from the keyboard after a keyboard selection, e.g. by Shift+F10 or a documented shortcut, and Escape returns focus to the text.
   - Every action must also exist in the menu bar or palette, so the floating menu is never the only path.
   - Announce "Selection actions available" with a polite live region rather than moving focus automatically.
-- (Opinion) Because the viewer is framework-free, the viewer should emit a selection event with client rects. `@lamina/ui` owns the menu, which keeps the viewer headless.
+- (Opinion) Because the viewer is framework-free, the viewer should emit a selection event with client rects. `@laminapdf/ui` owns the menu, which keeps the viewer headless.
 
 ### Gaps
 - Could not fetch the WAI-ARIA APG toolbar or menu patterns (w3.org blocked) or the Apple HIG edit-menu page. No primary source was found on suppressing the iOS Safari or WKWebView selection menu from web content. The usual approach is `-webkit-touch-callout: none` together with a custom selection layer; that is unverified.
@@ -151,7 +151,7 @@ Other apps and the PDF Association spec:
   2. Otherwise, run a heuristic layout analysis (columns, reading order, headings by font size, header/footer removal across pages) and label the result "Approximate".
 - (Opinion) Never reflow figures, tables or math. Render them as cropped page images with alt text from `/Alt` when present. Always offer a one-tap "back to page" that maps the scroll position to the original page, as Liquid Mode does.
 - (Opinion) Tables, multi-column magazines, footnotes and formulas are the known failure modes. Consider a per-block "show original" toggle, and treat reflow as read-only.
-- (Opinion) Reflow output is HTML in the chrome layer. It should be a core-crate output (structure → semantic blocks), with `@lamina/ui` rendering it, which keeps the core bytes-in/bytes-out.
+- (Opinion) Reflow output is HTML in the chrome layer. It should be a core-crate output (structure → semantic blocks), with `@laminapdf/ui` rendering it, which keeps the core bytes-in/bytes-out.
 
 ### Gaps
 - Microsoft Edge's PDF reader has no documented reflow mode found in this pass. Nothing was found on PDF Expert's reflow or ReadEra (no confirmation of a reflow mode).
@@ -202,7 +202,7 @@ Target INP ≤ 200 ms at p75 (Google's "good" threshold, a Core Web Vital since 
 - Apple's sample ZoomingPDFViewer uses a tiled scroll view (CATiledLayer) for zoomed PDF. — [Apple ZoomingPDFViewer sample](https://developer.apple.com/library/archive/samplecode/ZoomingPDFViewer/Listings/ZoomingPDFViewerSwift_ZoomingPDFViewer_TiledPDFScrollView_swift.html)
 
 ### Inferences
-- (Opinion) Render pipeline for `@lamina/viewer`:
+- (Opinion) Render pipeline for `@laminapdf/viewer`:
   1. Page-size placeholders with correct aspect ratio from the page tree, so there is no layout shift.
   2. A cached thumbnail or low-DPI bitmap stretched to the current zoom.
   3. Full-res tiles (e.g. 256–512 px) for the viewport plus a margin, rendered in a worker or wasm with cancellation on scroll or zoom.

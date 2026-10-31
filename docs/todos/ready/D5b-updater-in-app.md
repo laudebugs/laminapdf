@@ -58,7 +58,7 @@ Make the desktop app update itself safely from the D5a Worker: check at start an
 - [ ] Add `tauri-plugin-updater` and `uuid` (licence checks); register the plugin; config keys above.
 - [ ] Implement settings/policy/service modules with unit tests; ensure no lock is held across `await`.
 - [ ] Commands + capabilities (separate `capabilities/settings.json` for the `settings` window, created in D4b and already listed in `app.security.capabilities` and `tauri.e2e.conf.json`; extend the forbidden-permissions guard from D2a to forbid `updater:` in any capability).
-- [ ] Settings UI in `@lamina/ui` (desktop-only section rendered when `Platform.hasUpdater`).
+- [ ] Settings UI in `@laminapdf/ui` (desktop-only section rendered when `Platform.hasUpdater`).
 - [ ] Menu wiring.
 - [ ] Staging e2e workflow (above) with a test updater keypair (`pnpm tauri signer generate`) stored as `TAURI_TEST_SIGNING_PRIVATE_KEY`; document that this key is **not** the production key.
 - [ ] Privacy: update the privacy page draft (owned by web C7/ADR 0011) with the update endpoint data and the reset option — via a PR note if the page doesn't exist yet.

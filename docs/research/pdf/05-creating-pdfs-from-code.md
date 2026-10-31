@@ -856,7 +856,7 @@ The sizes are all within 2× of each other because none embeds a font. With a re
                          lamina-wasm     lamina-node    lamina-python   lamina-ffi (C ABI)   lamina-cli
                          (browser/edge)  (napi-rs)      (PyO3)          → Swift/Kotlin/Go/.NET
                                 │
-                       @lamina/js (TS API, idiomatic; optional React/JSX layer later)
+                       @laminapdf/js (TS API, idiomatic; optional React/JSX layer later)
 ```
 
 ### 8.6 Recommendation

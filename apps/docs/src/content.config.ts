@@ -1,5 +1,5 @@
 // Starlight's docs collection: src/content/docs/ (the TypeDoc pages are generated into
-// src/content/docs/reference/pdf/ at build time and gitignored). `errors` is docs/errors/: one
+// src/content/docs/reference/sdk/ at build time and gitignored). `errors` is docs/errors/: one
 // page per code, rendered at /reference/codes/<code>/ by src/pages/reference/codes/[code].astro.
 
 import { defineCollection } from "astro:content";

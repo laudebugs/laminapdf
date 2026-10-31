@@ -33,7 +33,7 @@ Ship opt-in accounts: sign-up/sign-in/sign-out with the H1 stack on the `apps/we
 **In scope**
 
 - `/api/auth/*` routes; D1 migrations (users, sessions, credentials) with Wrangler
-- Sign-in UI in `@lamina/ui` (hidden behind "Sign in" — never required)
+- Sign-in UI in `@laminapdf/ui` (hidden behind "Sign in" — never required)
 - Desktop: deep-link callback, token stored in the OS keychain
 - Account deletion (hard delete within N days) and data export
 - Appearance sync: Theme and Accent colour ([design §2.8](../../design/paper/design-language.md#28-accent-colours-proposed)) are saved to the account and applied on every signed-in device (no switch). At a device's first sign-in the account's value wins if it has one, else the device's choice is uploaded; after that the latest change wins. Each device keeps a local cache applied before first paint
@@ -46,7 +46,7 @@ Ship opt-in accounts: sign-up/sign-in/sign-out with the H1 stack on the `apps/we
 
 **Editor facts**
 
-- **Crates and packages:** `apps/web` (Worker routes), `@lamina/ui`, `apps/desktop/src-tauri`
+- **Crates and packages:** `apps/web` (Worker routes), `@laminapdf/ui`, `apps/desktop/src-tauri`
 - **`SaveConstraint`:** not applicable (no PDF writes)
 - **Web vs desktop:** web: cookie session; desktop: system-browser sign-in + keychain token
 - **Server features:** Workers, D1 (and the vendor if H1 chose one)

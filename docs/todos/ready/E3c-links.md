@@ -31,7 +31,7 @@ Create, edit and delete Link annotations: internal (GoTo/destination), external 
 **In scope**
 
 - Ops: `AddLink { page, rect, quads, target: Dest|NamedDest|Uri }`, `UpdateLink`, `DeleteLink` with `/NM` = ID. They are the link-specific ops for good (frozen on the wire in `fixtures/ops/v1/`): when [E4b](E4b-annotation-model-and-overlay.md) adds the generic annotation core, these three become thin wrappers over it (same undo records, same IDs, same `/NM` and `/P` handling), and E4b's `AddAnnot` has no `Link` spec, so there is exactly one way to create a link
-- Link tool in `@lamina/ui`: draw a rect or make a link from the current text selection; edit target in a popover; `/Contents` description (accessibility, overlaps L.07)
+- Link tool in `@laminapdf/ui`: draw a rect or make a link from the current text selection; edit target in a popover; `/Contents` description (accessibility, overlaps L.07)
 - URI validation and scheme allow-list (http, https, mailto)
 
 **Out of scope** (and which todo covers it)
@@ -41,7 +41,7 @@ Create, edit and delete Link annotations: internal (GoTo/destination), external 
 **Editor facts**
 
 - **Operations shipped** ([06 §3](../../research/pdf/06-feature-inventory.md#3-full-operation-inventory-with-mechanisms) IDs): `I.02` internal page links; `I.03` external hyperlinks; `A.09` add hyperlinks to text
-- **Crates and packages:** `lamina-model` (Link annotation view), `lamina-ops`, `@lamina/ui`
+- **Crates and packages:** `lamina-model` (Link annotation view), `lamina-ops`, `@laminapdf/ui`
 - **`Op` variants:** `AddLink`, `UpdateLink`, `DeleteLink` (class `Annotation`)
 - **`SaveConstraint`:** `Free` → incremental. Signed: link annotations are class `Annotation`, allowed only under DocMDP P3 or when there is no certification signature (approval signatures alone allow annotations, saved `AppendOnly`); under P1/P2 a violation → warn and gate (ADR 0007 §2: P1 allows no changes; P2 allows only form filling, page templates and signing; P3 adds annotations)
 - **Web vs desktop:** identical
@@ -57,7 +57,7 @@ Create, edit and delete Link annotations: internal (GoTo/destination), external 
 
 ## Acceptance criteria
 
-- [ ] Library parity ([full-editor §5](../../plans/full-editor.md#5-requirements-that-hold-for-every-round) req. 7): every new `Op` is exposed in `lamina` and `@lamina/pdf` in this PR, with rustdoc/TSDoc, a runnable example, tsify-generated TS types, and serde samples frozen in `fixtures/ops/v1/` (unknown ops and fields rejected, ADR 0006 §1, §6)
+- [ ] Library parity ([full-editor §5](../../plans/full-editor.md#5-requirements-that-hold-for-every-round) req. 7): every new `Op` is exposed in `lamina` and `@laminapdf/sdk` in this PR, with rustdoc/TSDoc, a runnable example, tsify-generated TS types, and serde samples frozen in `fixtures/ops/v1/` (unknown ops and fields rejected, ADR 0006 §1, §6)
 - [ ] Property tests: for every new op, apply then undo leaves the overlay empty and the next save is byte-identical to the previous one (ADR 0006 §3); redo re-applies the same bytes
 - [ ] Every new op reports its `ModificationClass` and `requires_rewrite` (ADR 0006 §1); a test per op runs `planner.would_violate(&op)` on the signed fixtures (no certification, DocMDP P1, P2, P3, FieldMDP lock) and asserts the verdict ([ADR 0007](../../decisions/0007-save-planner.md) §2), because a misclassified op is a security bug
 - [ ] Round-trip: open → op → save → reopen in lamina, pdf.js and PDFium preserves the change and everything else (page count, outline, annotations, fields, struct tree facts in `expected.json`); `qpdf --check` is clean

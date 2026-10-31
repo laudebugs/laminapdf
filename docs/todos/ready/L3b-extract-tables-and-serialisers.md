@@ -1,4 +1,4 @@
-# L3b — Lattice tables, Markdown/JSON/chunk serialisers, extraction in the façade, WASM and `@lamina/pdf`
+# L3b — Lattice tables, Markdown/JSON/chunk serialisers, extraction in the façade, WASM and `@laminapdf/sdk`
 
 | Field | Value |
 | --- | --- |
@@ -16,7 +16,7 @@
 
 ## Goal
 
-Finish the L3 deliverable. Detect tables from vector ruling lines (with a conservative stream fallback), serialise an `Extraction` to Markdown, `lamina.extract/1` JSON and retrieval-sized chunks with provenance, and expose it on every surface: `lamina::Document::extract` in Rust, the extract module in `lamina-wasm`, and `doc.extract({ format })` in `@lamina/pdf`. Measure reading-order and table scores on a licence-clean public benchmark subset and record them, so users know what rules achieve before models (L3c).
+Finish the L3 deliverable. Detect tables from vector ruling lines (with a conservative stream fallback), serialise an `Extraction` to Markdown, `lamina.extract/1` JSON and retrieval-sized chunks with provenance, and expose it on every surface: `lamina::Document::extract` in Rust, the extract module in `lamina-wasm`, and `doc.extract({ format })` in `@laminapdf/sdk`. Measure reading-order and table scores on a licence-clean public benchmark subset and record them, so users know what rules achieve before models (L3c).
 
 ## Context
 
@@ -41,14 +41,14 @@ Finish the L3 deliverable. Detect tables from vector ruling lines (with a conser
 - **JSON Schema** 2020-12 for `lamina.extract/1` generated from the Rust types (schemars, licence-checked, behind a build-time feature or xtask, not a runtime dependency of core), committed under the schema location ADR 0030 chose; a check fails if the committed schema is stale.
 - **Façade** (`lamina` crate): `Document::extract(ExtractOptions) -> ExtractJob` and `Extraction::{to_markdown, to_json, to_text, chunks}`, behind a feature `extract` so structure-only builds stay small.
 - **WASM** (`lamina-wasm`): extract bindings in the separate extract module per ADR 0016; JSON output crosses as a string (one copy) and chunk iteration is lazy; size measured against the module budget.
-- **TypeScript** (`@lamina/pdf`): `doc.extract({ format: "markdown" | "json" | "text" | "chunks", pages?, readingOrder?, drop?, tables?, chunk? })` with discriminated return types (`string` for Markdown and text, typed `Extraction` for JSON, `Chunk[]` or an iterator for chunks); tsify types generated from Rust; unknown option keys rejected with a "did you mean" hint (ADR 0026); the subpath (e.g. `@lamina/pdf/extract`) follows B6a's module split.
+- **TypeScript** (`@laminapdf/sdk`): `doc.extract({ format: "markdown" | "json" | "text" | "chunks", pages?, readingOrder?, drop?, tables?, chunk? })` with discriminated return types (`string` for Markdown and text, typed `Extraction` for JSON, `Chunk[]` or an iterator for chunks); tsify types generated from Rust; unknown option keys rejected with a "did you mean" hint (ADR 0026); the subpath (e.g. `@laminapdf/sdk/extract`) follows B6a's module split.
 - **Benchmark**: `cargo xtask extract-bench` runs extraction on a pinned public benchmark subset fetched by URL and SHA-256 (never committed unless the licence allows redistribution), computes a reading-order score (normalised edit distance over block order, as OmniDocBench defines it, or the benchmark's own metric) and table TEDS, and writes a results table. Results recorded in the crate README with the tool version, subset IDs and date.
 
 **Out of scope** (and which todo covers it)
 
 - Layout models, borderless-table models, OCR: [L3c](./L3c-model-plugins.md).
 - `lamina extract` CLI commands and `lamina schema extract/1`: [L4b](./L4b-cli-batch-render-schema.md).
-- `@lamina/pdf/worker` wrapping of `extract`: [L2a](../ongoing/L2a-worker-client.md) (it wraps whatever the sync API exposes).
+- `@laminapdf/sdk/worker` wrapping of `extract`: [L2a](../done/L2a-worker-client.md) (it wraps whatever the sync API exposes).
 - Agent-facing docs for extraction: [L5a](./L5a-agent-docs.md).
 - Editor UI for extraction (export dialog): full-editor [E3i](./E3i-extraction.md).
 
@@ -60,7 +60,7 @@ Finish the L3 deliverable. Detect tables from vector ruling lines (with a conser
 - [ ] Schema generation: schemars derives behind a feature; `cargo xtask schemas [--check]` (or extend L1b's codegen command if it exists) writes the committed schema file
 - [ ] Façade: `lamina` feature `extract`, re-exports, docs with a runnable example (`examples/extract_markdown.rs`)
 - [ ] `lamina-wasm`: extract module bindings; size measurement recorded against ADR 0016's extract budget
-- [ ] `@lamina/pdf`: `doc.extract()` overloads, types, tests in Node and Chromium (B6c config); README section
+- [ ] `@laminapdf/sdk`: `doc.extract()` overloads, types, tests in Node and Chromium (B6c config); README section
 - [ ] `tools/xtask`: `extract-bench` with a pinned dataset manifest (`tools/bench/extract-datasets.toml`: URL, SHA-256, licence, subset IDs); run it and record scores
 - [ ] Check every benchmark dataset's licence before use (see Risks); record licence and source in the manifest
 - [ ] New warning codes (e.g. `extract-table-ambiguous`, `extract-table-limit`) in `fixtures/codes.json` with tests
@@ -92,7 +92,7 @@ Finish the L3 deliverable. Detect tables from vector ruling lines (with a conser
 ## Docs to update
 
 - [ ] [shareable-libraries §9 L3](../../plans/shareable-libraries.md#9-to-dos): tick "Lattice tables; Markdown, JSON and chunk serialisers; expose in Rust, WASM and TS"
-- [ ] `crates/lamina-extract/README.md` (tables, formats, benchmark results), `packages/pdf/README.md` (extract section), `lamina` crate docs
+- [ ] `crates/lamina-extract/README.md` (tables, formats, benchmark results), `packages/sdk/README.md` (extract section), `lamina` crate docs
 - [ ] `fixtures/README.md` (table fixtures), `tools/` README for the bench manifest
 - [ ] ADR 0016 note if the extract budget changes; ADR 0030 if the schema gains keys during the work
 

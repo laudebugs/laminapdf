@@ -65,7 +65,7 @@ Expose text extraction everywhere the readers need it and prove it against indep
 
 ## Tests
 
-- `packages/pdf/test/text.test.ts`; `crates/lamina-wasm/tests/text.rs`; differential and quad xtask suites (fast lane: precomputed; full lane: live tools).
+- `packages/sdk/test/text.test.ts`; `crates/lamina-wasm/tests/text.rs`; differential and quad xtask suites (fast lane: precomputed; full lane: live tools).
 
 ## Docs to update
 

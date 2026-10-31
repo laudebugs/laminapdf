@@ -81,7 +81,7 @@ The measured findings:
 
 - The façade stays binding-agnostic, and the rules ADR 0028 wrote for UniFFI held without a change.
 - **Swift panics:** an export added without a `Result` is a crash risk in Swift. L6b adds a test that every exported function in the generated Swift `throws`.
-- **Passwords:** `@lamina/pdf` retries a failed password with its NFKC form; the spike passes the UTF-8 bytes as given. L6b's layer does the same retry (or the façade takes it over for every binding), so a password works the same on every surface.
+- **Passwords:** `@laminapdf/sdk` retries a failed password with its NFKC form; the spike passes the UTF-8 bytes as given. L6b's layer does the same retry (or the façade takes it over for every binding), so a password works the same on every surface.
 - **Kotlin error field:** Kotlin users read `detail`, not `message`, on `FfiException.Lamina`. The idiomatic layer can expose a `LaminaException` with `message` set from `detail`.
 - **Copies:** large inputs are copied once into Rust through the zero-copy `&[u8]` path (a direct `ByteBuffer` in Kotlin, from its position); a Kotlin `ByteArray` costs a second copy through a `RustBuffer`. Files of 50 MB and more should open through a host `ByteSource` (a mapped file) in L6b rather than through bytes.
 - **Licence:** adds an MPL-2.0 dependency at the edge (the owner allowed it for the UniFFI crates, 2026-10-30).

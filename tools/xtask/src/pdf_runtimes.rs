@@ -1,4 +1,4 @@
-//! `cargo xtask pdf-runtimes`: @lamina/pdf's example suite (`packages/pdf/test/suite/`) in every
+//! `cargo xtask pdf-runtimes`: @laminapdf/sdk's example suite (`packages/sdk/test/suite/`) in every
 //! runtime the package supports (todo B6c; pdf-library §5): Node (whichever `node` is on PATH),
 //! Chromium, Firefox and `WebKit` (Vitest browser mode with Playwright), Deno, Bun and workerd.
 //! Each runner compares every example's bytes with its Rust golden and prints the performance
@@ -25,7 +25,7 @@ use crate::{program_path, step};
 /// Every runtime, in the order a full run takes them.
 const RUNTIMES: [&str; 7] = ["node", "chromium", "firefox", "webkit", "deno", "bun", "workerd"];
 
-/// The prefix of a measurement line (`MEASUREMENT_PREFIX` in packages/pdf/test/suite/examples.ts).
+/// The prefix of a measurement line (`MEASUREMENT_PREFIX` in packages/sdk/test/suite/examples.ts).
 const PREFIX: &str = "LAMINA_MEASUREMENT ";
 
 /// pdf-library §4: hello after `init()`, the 100-page report, and peak memory in a Worker.
@@ -134,7 +134,7 @@ fn vitest<'a>(config: &'a str, projects: &[&'a str]) -> Vec<&'a str> {
     args
 }
 
-/// The commands that run `runtime`'s suite, in order, as `pnpm --filter @lamina/pdf exec …`
+/// The commands that run `runtime`'s suite, in order, as `pnpm --filter @laminapdf/sdk exec …`
 /// arguments. `node` runs the `measure` project first (alone, so its timings don't compete with
 /// the other test files), then the rest of the Node suite.
 fn commands(runtime: &str) -> Result<Vec<Vec<&'static str>>> {
@@ -167,12 +167,12 @@ fn commands(runtime: &str) -> Result<Vec<Vec<&'static str>>> {
     })
 }
 
-/// The web render adapters' `RenderBackend` contract in `browser` (todo C2c): `@lamina/render`
-/// built, then `@lamina/render-pdfium` and `@lamina/render-hayro` (over the `wasm` job's
+/// The web render adapters' `RenderBackend` contract in `browser` (todo C2c): `@laminapdf/render`
+/// built, then `@laminapdf/render-pdfium` and `@laminapdf/render-hayro` (over the `wasm` job's
 /// `lamina_render_hayro.wasm`), each with C2b's goldens. They record no measurements.
 fn render_suites(ws: &Workspace, browser: &str) -> Result<()> {
-    crate::run(&ws.root, "pnpm", &["--filter", "@lamina/render", "run", "build"])?;
-    for package in ["@lamina/render-pdfium", "@lamina/render-hayro"] {
+    crate::run(&ws.root, "pnpm", &["--filter", "@laminapdf/render", "run", "build"])?;
+    for package in ["@laminapdf/render-pdfium", "@laminapdf/render-hayro"] {
         let mut args = vec!["--filter", package, "exec"];
         args.extend(vitest("vitest.browser.config.ts", &[browser]));
         crate::run(&ws.root, "pnpm", &args)?;
@@ -180,9 +180,9 @@ fn render_suites(ws: &Workspace, browser: &str) -> Result<()> {
     Ok(())
 }
 
-/// Runs `pnpm --filter @lamina/pdf exec <args>`, echoing its stdout as it comes, and returns it.
+/// Runs `pnpm --filter @laminapdf/sdk exec <args>`, echoing its stdout as it comes, and returns it.
 fn run_captured(ws: &Workspace, args: &[&str]) -> Result<String> {
-    let mut full = vec!["--filter", "@lamina/pdf", "exec"];
+    let mut full = vec!["--filter", "@laminapdf/sdk", "exec"];
     full.extend_from_slice(args);
     step(&format!("pnpm {}", full.join(" ")));
     let mut child = Command::new(program_path("pnpm"))
@@ -210,14 +210,14 @@ fn run_captured(ws: &Workspace, args: &[&str]) -> Result<String> {
 /// `cargo xtask pdf-runtimes [runtime…] [--history <dir> --runner <label> --record]`: runs each
 /// runtime's suite in turn (all of them by default); every runtime runs even when an earlier
 /// one failed, and the failures are listed at the end. Needs `cargo xtask wasm` first (it
-/// builds `packages/wasm/dist/` and `packages/pdf/dist/`); installs the Playwright browsers it
+/// builds `packages/wasm/dist/` and `packages/sdk/dist/`); installs the Playwright browsers it
 /// needs (`playwright install`, a no-op when they are present).
 pub(crate) fn run(ws: &Workspace, args: &Args) -> Result<()> {
     ws.require_node_modules()?;
     for dist in [
         "packages/wasm/dist/lamina_text.wasm",
         "packages/wasm/dist/lamina_render_hayro.wasm",
-        "packages/pdf/dist/index.js",
+        "packages/sdk/dist/index.js",
     ] {
         if !ws.root.join(dist).is_file() {
             bail!("{dist} is missing: run `cargo xtask wasm` first");
@@ -231,7 +231,7 @@ pub(crate) fn run(ws: &Workspace, args: &Args) -> Result<()> {
                 crate::run(
                     &ws.root,
                     "pnpm",
-                    &["--filter", "@lamina/pdf", "exec", "playwright", "install", runtime],
+                    &["--filter", "@laminapdf/sdk", "exec", "playwright", "install", runtime],
                 )?;
             }
             let mut found = Vec::new();
@@ -302,7 +302,7 @@ fn table(measurements: &[Measurement]) -> String {
         by_runtime.entry(&m.runtime).or_default().insert(&m.case, m.value);
     }
     let mut out = String::from(
-        "## @lamina/pdf in every runtime\n\n\
+        "## @laminapdf/sdk in every runtime\n\n\
          Recorded, not asserted (pdf-library §4: hello ≤ 5 ms after `init()`, a 100-page report ≤ 500 ms, \
          < 64 MB peak in a Worker); ⚠️ marks a miss. Hello is the median of 20 runs, the report of 3. \
          WebAssembly memory is both modules' linear memory after the report (it never shrinks, so it is \
@@ -320,7 +320,36 @@ fn table(measurements: &[Measurement]) -> String {
             cell(cases.get("wasm-memory").copied(), memory_target, "MB"),
         );
     }
+    long_tasks(&by_runtime, &mut out);
     out
+}
+
+/// L2a's main-thread check: the longest long task while a 50 MB file is opened and fully
+/// rewritten on the main thread and through `@laminapdf/sdk/worker` (Chromium's `longtask` entries;
+/// 0 is none over 50 ms).
+fn long_tasks(by_runtime: &BTreeMap<&str, BTreeMap<&str, f64>>, out: &mut String) {
+    let rows: Vec<_> = by_runtime
+        .iter()
+        .filter_map(|(runtime, cases)| {
+            let worker = cases.get("worker-rewrite-50mb-longest-task").copied()?;
+            Some((*runtime, cases.get("sync-rewrite-50mb-longest-task").copied(), worker))
+        })
+        .collect();
+    if rows.is_empty() {
+        return;
+    }
+    out.push_str(
+        "\n### Main-thread long tasks, 50 MB open + full rewrite\n\n\
+         | Runtime | Main thread | Worker client |\n| --- | --- | --- |\n",
+    );
+    for (runtime, sync, worker) in rows {
+        let _ = writeln!(
+            out,
+            "| {runtime} | {} | {} |",
+            cell(sync, None, "ms"),
+            cell(Some(worker), None, "ms")
+        );
+    }
 }
 
 /// The history keys and values of `measurements`: `pdf/<runtime>/<case>` in nanoseconds
@@ -358,7 +387,10 @@ fn record(ws: &Workspace, history: &Path, runner: &str, measurements: &[Measurem
     fs::create_dir_all(history)?;
     let path = history.join("history.jsonl");
     append(&path, &(serde_json::to_string(&record)? + "\n"))?;
-    step(&format!("Appended the @lamina/pdf measurements to {}", path.display()));
+    step(&format!(
+        "Appended the @laminapdf/sdk measurements to {}",
+        path.display()
+    ));
     Ok(())
 }
 
@@ -415,6 +447,33 @@ mod tests {
         assert!(parse_args(&args(&["--history", "h", "--runner", "r"])).is_err());
         assert!(parse_args(&args(&["--history", "h", "--record"])).is_err());
         assert!(parse_args(&args(&["--history", "h", "--runner", "r", "--record"])).is_ok());
+    }
+
+    #[test]
+    fn table_should_list_the_worker_long_tasks_when_measured() {
+        let measurements = [
+            Measurement {
+                runtime: "chromium".into(),
+                case: "sync-rewrite-50mb-longest-task".into(),
+                value: 207.0,
+            },
+            Measurement {
+                runtime: "chromium".into(),
+                case: "worker-rewrite-50mb-longest-task".into(),
+                value: 0.0,
+            },
+        ];
+        assert!(table(&measurements).contains("| chromium | 207.0 ms | 0.0 ms |"));
+    }
+
+    #[test]
+    fn table_should_leave_out_the_long_tasks_when_not_measured() {
+        let measurements = [Measurement {
+            runtime: "node-24".into(),
+            case: "hello".into(),
+            value: 1.0,
+        }];
+        assert!(!table(&measurements).contains("long tasks"));
     }
 
     #[test]

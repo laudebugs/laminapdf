@@ -8,7 +8,7 @@
 | Round / milestone | Round D (desktop) — M3 Desktop reader beta |
 | Depends on | [C2a](../done/C2a-render-adrs.md), [C4a](./C4a-ui-chrome-and-platform.md), [D1a](./D1a-desktop-ipc-spike.md), [D1b](./D1b-desktop-print-spike.md), [U6b](./U6b-self-hosted-fonts.md) |
 | Blocks | [D2b](./D2b-engine-process.md), [D2d](./D2d-tile-transport-and-first-document.md), [D5a](./D5a-update-worker-and-adr-0014.md), [D6a](./D6a-signing-runbook-and-owner-setup.md) |
-| Dependency notes | [D1a](D1a-desktop-ipc-spike.md), [D1b](D1b-desktop-print-spike.md); web plan **C4** (`@lamina/ui` with the `Platform` interface, [web-app §C4](../../plans/web-app.md#c4-app-shell-on-cloudflare)) and therefore ADR 0010 from web **C2** ([web-app §C2](../../plans/web-app.md#c2-render-backend-and-adrs)) |
+| Dependency notes | [D1a](D1a-desktop-ipc-spike.md), [D1b](D1b-desktop-print-spike.md); web plan **C4** (`@laminapdf/ui` with the `Platform` interface, [web-app §C4](../../plans/web-app.md#c4-app-shell-on-cloudflare)) and therefore ADR 0010 from web **C2** ([web-app §C2](../../plans/web-app.md#c2-render-backend-and-adrs)) |
 | ADRs | **Writes ADR 0008** (desktop shell). Implements ADR 0010 (Platform adapter) for desktop. Follows [0001](../../decisions/0001-core-language-and-licence.md), [0015](../../decisions/0015-monorepo-layout-and-tooling.md), [0018](../../decisions/0018-test-strategy.md), [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) |
 | Branch | `feat/d2a-desktop-scaffold` |
 | PR title | `feat(desktop): add ADR 0008 and the Tauri 2 app scaffold` |
@@ -17,7 +17,7 @@
 
 ## Goal
 
-Record the desktop shell decision (ADR 0008) from the D1 spike results and land a buildable, CI-checked `apps/desktop`: a Tauri 2 app whose frontend is `@lamina/ui` with a desktop `Platform` implementation and whose `src-tauri` crate is added to the Cargo workspace `members`. It opens one window showing the reader chrome with no document yet. Everything later in Round D (engine process, tile transport, file handling, menus, updater, signing) builds on the security baseline (CSP, capabilities, app-command permissions) fixed here, so it must be right from the first PR.
+Record the desktop shell decision (ADR 0008) from the D1 spike results and land a buildable, CI-checked `apps/desktop`: a Tauri 2 app whose frontend is `@laminapdf/ui` with a desktop `Platform` implementation and whose `src-tauri` crate is added to the Cargo workspace `members`. It opens one window showing the reader chrome with no document yet. Everything later in Round D (engine process, tile transport, file handling, menus, updater, signing) builds on the security baseline (CSP, capabilities, app-command permissions) fixed here, so it must be right from the first PR.
 
 ## Context
 
@@ -27,7 +27,7 @@ Record the desktop shell decision (ADR 0008) from the D1 spike results and land 
 - D1a and D1b READMEs (`spikes/desktop-ipc/`, `spikes/desktop-print/`): numbers ADR 0008 cites.
 - [Code organisation §1](../../guidelines/code-organization.md#1-top-level-layout) and [ADR 0015](../../decisions/0015-monorepo-layout-and-tooling.md): `apps/desktop` is a pnpm package and its `src-tauri` crate is a Cargo workspace member; `publish = false`; layer `app`. The root `Cargo.toml` currently has `members = ["crates/*", "tools/xtask"]`, so **this PR adds `"apps/*/src-tauri"`** (the glob ADR 0015 describes).
 - [Rust guidelines](../../guidelines/rust.md) and [TypeScript guidelines](../../guidelines/typescript.md): edition 2024, workspace lints, no `unwrap`/`expect` (the Tauri template's `.expect("error while running tauri application")` must be replaced), named exports, Biome.
-- Web plan C4 `@lamina/ui` and ADR 0010 `Platform` interface; web plan [C3](../../plans/web-app.md#c3-viewer-core) `@lamina/viewer`.
+- Web plan C4 `@laminapdf/ui` and ADR 0010 `Platform` interface; web plan [C3](../../plans/web-app.md#c3-viewer-core) `@laminapdf/viewer`.
 - Tauri docs: [configuration reference](https://v2.tauri.app/reference/config/), [capabilities](https://v2.tauri.app/security/capabilities/), [permissions / app manifest](https://v2.tauri.app/security/permissions/), [CSP](https://v2.tauri.app/security/csp/), [HTTP headers](https://v2.tauri.app/security/http-headers/).
 
 ## Scope
@@ -44,12 +44,12 @@ Record the desktop shell decision (ADR 0008) from the D1 spike results and land 
   7. **Linux fallback**: Canvas2D-only paint, renderer switch (env workarounds), Electron-on-Linux as the documented last resort; triggers for revisiting.
   8. **Test strategy per OS** (filled in by D2e): WebdriverIO + `@wdio/tauri-service`; `tauri-driver` on Windows/Linux; embedded WebDriver plugin on macOS behind a Cargo feature.
   9. Printing: link to D1b's recommendation (implemented in D4c).
-- `apps/desktop/` pnpm package `@lamina/desktop` (`"private": true`): Vite 8 + React 19 frontend that mounts `@lamina/ui`'s shell with a **desktop `Platform` implementation** (`src/platform/desktop.ts`) reporting `canWriteInPlace: true, canWatchFiles: true, hasNativePrint: true, multiWindow: true` (the methods that need later todos return a typed "not yet supported" error, never `if (isTauri)` branches in shared UI).
+- `apps/desktop/` pnpm package `@laminapdf/desktop` (`"private": true`): Vite 8 + React 19 frontend that mounts `@laminapdf/ui`'s shell with a **desktop `Platform` implementation** (`src/platform/desktop.ts`) reporting `canWriteInPlace: true, canWatchFiles: true, hasNativePrint: true, multiWindow: true` (the methods that need later todos return a typed "not yet supported" error, never `if (isTauri)` branches in shared UI).
 - `apps/desktop/src-tauri/`: crate `lamina-desktop` (lib `lamina_desktop_lib`, bin `lamina-desktop`), edition 2024, `[lints] workspace = true`, `publish = false`, `[package.metadata.lamina] layer = "app"`; thin `main.rs`; `lib.rs` with `pub fn run() -> Result<(), DesktopError>` (no `expect`), `#[cfg_attr(mobile, tauri::mobile_entry_point)]` not needed (desktop only — state it).
 - `tauri.conf.json` baseline (keys below), `capabilities/main.json`, `build.rs` with an **app manifest** so every app command needs an explicit `allow-*` permission.
 - Plugins registered now: `tauri-plugin-dialog` (Rust-side use only; no `dialog:*` permission granted to the webview), `tauri-plugin-log` (file + stdout, no document paths at `info` level), `tauri-plugin-opener` (Rust-side only).
 - One command: `app_info` → `{ version, os, arch, webview_version }` to prove the IPC + permission plumbing end to end.
-- CI: a `desktop` job in the full lane building `apps/desktop` on `ubuntu-22.04`, `macos-14`, `windows-2022` (`pnpm --filter @lamina/desktop tauri build --debug --no-bundle`), plus clippy/test of `lamina-desktop` in `cargo xtask check rust` (Linux needs `libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev` installed in CI).
+- CI: a `desktop` job in the full lane building `apps/desktop` on `ubuntu-22.04`, `macos-14`, `windows-2022` (`pnpm --filter @laminapdf/desktop tauri build --debug --no-bundle`), plus clippy/test of `lamina-desktop` in `cargo xtask check rust` (Linux needs `libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev` installed in CI).
 - `cargo xtask` updates: `check ts` covers `apps/desktop`; `doctor` lists the Linux system packages; `portability` keeps excluding app-layer crates.
 - `cargo deny` passes with Tauri's dependency tree (add licence exceptions only with justification per ADR 0019).
 
@@ -62,10 +62,10 @@ Record the desktop shell decision (ADR 0008) from the D1 spike results and land 
 
 ## Tasks
 
-- [ ] Bundle the self-hosted Paper fonts from `@lamina/fonts` ([U6b](./U6b-self-hosted-fonts.md)) in the desktop frontend (import `fonts.css`, preload Source Sans 3 Latin 400); nothing is fetched at runtime.
+- [ ] Bundle the self-hosted Paper fonts from `@laminapdf/fonts` ([U6b](./U6b-self-hosted-fonts.md)) in the desktop frontend (import `fonts.css`, preload Source Sans 3 Latin 400); nothing is fetched at runtime.
 - [ ] Fresh worktree `feat-d2a-desktop-scaffold`; this todo is already claimed via the claim PR (see DoD), so do not move it here. Load `tauri-v2` and `rust-best-practices`.
 - [ ] Write `docs/decisions/0008-desktop-shell.md` using the ADR template in `docs/decisions/README.md`; cite D1a/D1b numbers and research sources; add it to the decisions index and the architecture §3 table.
-- [ ] `apps/desktop/package.json`: deps `@lamina/ui`, `@lamina/viewer` (workspace), `@tauri-apps/api@^2` (pinned via pnpm `catalog:`), devDeps `@tauri-apps/cli@^2`, `vite`, `@vitejs/plugin-react`; scripts `dev` (`vite`), `build` (`vite build`), `tauri` (`tauri`), `typecheck`, `test` (Vitest). Add `@tauri-apps/*` to the Dependabot group (ADR 0019).
+- [ ] `apps/desktop/package.json`: deps `@laminapdf/ui`, `@laminapdf/viewer` (workspace), `@tauri-apps/api@^2` (pinned via pnpm `catalog:`), devDeps `@tauri-apps/cli@^2`, `vite`, `@vitejs/plugin-react`; scripts `dev` (`vite`), `build` (`vite build`), `tauri` (`tauri`), `typecheck`, `test` (Vitest). Add `@tauri-apps/*` to the Dependabot group (ADR 0019).
 - [ ] `apps/desktop/vite.config.ts`: fixed port (`strictPort: true`, e.g. 1420), `clearScreen: false`, `envPrefix: ['VITE_', 'TAURI_ENV_*']`, `build.target` per `TAURI_ENV_PLATFORM` (`safari15`/`chrome105`), no sourcemaps in release.
 - [ ] `apps/desktop/src/platform/desktop.ts`: implement the ADR 0010 `Platform` interface; `isDesktop()` detection uses `isTauri()` from `@tauri-apps/api/core` once at startup, in the app entry only.
 - [ ] Root `Cargo.toml`: add `"apps/*/src-tauri"` to `[workspace] members` (keep `exclude = ["spikes", "fuzz"]`); confirm `cargo metadata --no-deps` lists `lamina-desktop` and that `cargo xtask check rust` (fmt, clippy, test) now covers it.
@@ -83,13 +83,13 @@ Record the desktop shell decision (ADR 0008) from the D1 spike results and land 
 - [ ] `apps/desktop/src-tauri/src/lib.rs`: `DesktopError` (`thiserror`, `impl serde::Serialize` as a tagged `{ kind, message }` so the UI can map errors), builder with plugins and `invoke_handler(tauri::generate_handler![commands::app_info])`, `setup` creating the `main` window, `run()` returns `Result`; `main.rs` logs and exits non-zero on error.
 - [ ] Generated `gen/schemas` committed or ignored consistently (Tauri regenerates them; ignore and document).
 - [ ] CI job `desktop-build` (matrix) in `.github/workflows/ci.yml` gated by path filter `apps/desktop/**`, `packages/**`, `crates/**`; actions pinned by SHA (ADR 0019); cache Cargo with the existing setup.
-- [ ] `apps/desktop/README.md`: how to run (`pnpm --filter @lamina/desktop tauri dev`), Linux prerequisites, layout.
+- [ ] `apps/desktop/README.md`: how to run (`pnpm --filter @laminapdf/desktop tauri dev`), Linux prerequisites, layout.
 - [ ] Update `CLAUDE.md` layout tree (`apps/desktop`) and commands; `docs/decisions/README.md` index.
 
 ## Acceptance criteria
 
 - [ ] ADR 0008 exists, is **Accepted**, cites D1a and D1b results, and records every item listed in Scope.
-- [ ] `pnpm --filter @lamina/desktop tauri dev` opens a window titled "Lamina" showing the `@lamina/ui` shell on macOS, Windows and Linux (screenshots in the PR).
+- [ ] `pnpm --filter @laminapdf/desktop tauri dev` opens a window titled "Lamina" showing the `@laminapdf/ui` shell on macOS, Windows and Linux (screenshots in the PR).
 - [ ] The `desktop-build` CI job is green on all three OSes; `cargo xtask check` passes including clippy `-D warnings` on `lamina-desktop`.
 - [ ] Invoking any command not in the app manifest from the devtools console is rejected with a permission error (checked manually, noted in the PR); `invoke('plugin:dialog|open')` from the webview is rejected.
 - [ ] The root `Cargo.toml` `members` includes `"apps/*/src-tauri"`; `cargo metadata --no-deps --format-version 1` lists `lamina-desktop`.
@@ -123,7 +123,7 @@ None.
 - **CI cost**: three-OS desktop builds are slow; keep them in the full lane with path filters, not the fast lane.
 - **Linux build deps** on `ubuntu-22.04` (WebKitGTK 4.1); Ubuntu 22.04 is the oldest supported target, so build there for glibc compatibility.
 - **CSP and the transport**: if D1a picked a custom scheme, the CSP must allow it on each OS's URL form; verify on Windows (`http://lamina.localhost`).
-- ADR 0010's `Platform` interface may lack desktop-only methods (watching, print, multi-window); extend it in `@lamina/ui` in this PR with web stubs, coordinating with whoever owns C-round code.
+- ADR 0010's `Platform` interface may lack desktop-only methods (watching, print, multi-window); extend it in `@laminapdf/ui` in this PR with web stubs, coordinating with whoever owns C-round code.
 
 ## Definition of done
 

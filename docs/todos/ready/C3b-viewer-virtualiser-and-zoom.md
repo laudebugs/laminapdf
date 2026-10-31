@@ -1,4 +1,4 @@
-# C3b — `@lamina/viewer` part 2: virtualiser, canvas pool, progressive tiles and anchored zoom
+# C3b — `@laminapdf/viewer` part 2: virtualiser, canvas pool, progressive tiles and anchored zoom
 
 | Field | Value |
 | --- | --- |
@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [web reader §6 C3. Viewer core](../../plans/web-app.md#c3-viewer-core) |
 | Round / milestone | Round C (web reader) — M2 Web reader v0.1 |
-| Depends on | [C3a](./C3a-viewer-worker-rpc.md) |
+| Depends on | [C3a](../ongoing/C3a-viewer-worker-rpc.md) |
 | Blocks | [C3c](./C3c-viewer-perf-harness.md), [C4a](./C4a-ui-chrome-and-platform.md), [D1a](./D1a-desktop-ipc-spike.md), [D1b](./D1b-desktop-print-spike.md), [D2d](./D2d-tile-transport-and-first-document.md) |
 | ADRs | Implements 0009 (framework-free viewer core, `ImageBitmap` transfer, pooled canvases) |
 | Branch | `feat/c3b-viewer-virtualiser` |
@@ -16,7 +16,7 @@
 
 ## Goal
 
-Make the viewer scroll a 1,000-page document like a native app. A prefix-sum page layout mounts only visible pages ± a margin, canvases come from a fixed pool, each page paints a low-resolution pass first and then sharp tiles, and zoom (fit width, fit page, actual size, pinch, ctrl+wheel, keyboard) keeps the point under the cursor fixed. Everything is framework-free TypeScript with an imperative API and a subscribe-able view state, so `@lamina/ui` (React) and the desktop app can drive it without being on the hot path ([architecture principle 5](../../plans/architecture.md#principles-each-becomes-part-of-an-adr)).
+Make the viewer scroll a 1,000-page document like a native app. A prefix-sum page layout mounts only visible pages ± a margin, canvases come from a fixed pool, each page paints a low-resolution pass first and then sharp tiles, and zoom (fit width, fit page, actual size, pinch, ctrl+wheel, keyboard) keeps the point under the cursor fixed. Everything is framework-free TypeScript with an imperative API and a subscribe-able view state, so `@laminapdf/ui` (React) and the desktop app can drive it without being on the hot path ([architecture principle 5](../../plans/architecture.md#principles-each-becomes-part-of-an-adr)).
 
 ## Context
 
@@ -25,7 +25,7 @@ Make the viewer scroll a 1,000-page document like a native app. A prefix-sum pag
 - [web-frontend notes §2](../../research/architecture/notes/web-frontend.md) — prefix-sum virtualiser, zoom anchoring needs custom logic, pooled canvases, low-res then tiles, cap canvas area (Safari/iOS canvas memory limits).
 - [rendering notes §4](../../research/architecture/notes/rendering.md) — visible ± N pages, placeholder sizes from page boxes, LRU bitmap cache, thumbnails on a lower-priority queue.
 - [web-app.md §4 functional 2–3](../../plans/web-app.md#functional) and [non-functional targets](../../plans/web-app.md#non-functional-targets-are-recommendations-measured-from-c3-onward) (no main-thread task > 50 ms; sharp within 300 ms of stopping; ≤ 600 MB).
-- [C3a](./C3a-viewer-worker-rpc.md) — RPC, priorities, cancellation guarantees this builds on.
+- [C3a](../ongoing/C3a-viewer-worker-rpc.md) — RPC, priorities, cancellation guarantees this builds on.
 
 ## Scope
 
@@ -74,7 +74,7 @@ None.
 
 ## Tests
 
-Unit tests (layout, zoom maths, cache eviction, pool caps) in `packages/viewer/src/**/*.test.ts`; Vitest browser-mode integration tests for mount/unmount and cancellation; Playwright specs under `packages/viewer/e2e/` against the demo page in three engines. The 1,000-page fixture is generated at test setup with `@lamina/pdf`'s builder (not committed), seeded and deterministic.
+Unit tests (layout, zoom maths, cache eviction, pool caps) in `packages/viewer/src/**/*.test.ts`; Vitest browser-mode integration tests for mount/unmount and cancellation; Playwright specs under `packages/viewer/e2e/` against the demo page in three engines. The 1,000-page fixture is generated at test setup with `@laminapdf/sdk`'s builder (not committed), seeded and deterministic.
 
 ## Docs to update
 

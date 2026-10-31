@@ -65,7 +65,7 @@ None.
 
 ## Tests
 
-Unit tests for the copy pipeline in `packages/ui` (or `@lamina/viewer` if the logic lives there); Vitest browser tests for the toolbar; Playwright desktop and mobile profiles.
+Unit tests for the copy pipeline in `packages/ui` (or `@laminapdf/viewer` if the logic lives there); Vitest browser tests for the toolbar; Playwright desktop and mobile profiles.
 
 ## Docs to update
 

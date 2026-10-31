@@ -1,4 +1,4 @@
-# U6d — `@lamina/ui` core components: buttons, mode switcher, tabs, form controls, swatches, badges, notices, progress, status items, rows
+# U6d — `@laminapdf/ui` core components: buttons, mode switcher, tabs, form controls, swatches, badges, notices, progress, status items, rows
 
 | Field | Value |
 | --- | --- |
@@ -16,7 +16,7 @@
 
 ## Goal
 
-Build the Paper component library the shells and editor modes compose: every control in the design language with every state it defines (default, hover, pressed, selected, focus, disabled, error), keyboard behaviour, right-to-left layout and touch sizes, in `@lamina/ui`. The components are presentational (props in, events out; no viewer store, no command registry), so [C4a](./C4a-ui-chrome-and-platform.md)'s reader chrome, [U1c](./U1c-inverted-l-shell-and-modes.md)'s shell, [C6a](./C6a-thumbnails-outline-page-labels.md)'s rail and [U4a](./U4a-network-indicator-and-privacy-proof.md)'s network indicator all wire behaviour into the same look instead of styling their own buttons.
+Build the Paper component library the shells and editor modes compose: every control in the design language with every state it defines (default, hover, pressed, selected, focus, disabled, error), keyboard behaviour, right-to-left layout and touch sizes, in `@laminapdf/ui`. The components are presentational (props in, events out; no viewer store, no command registry), so [C4a](./C4a-ui-chrome-and-platform.md)'s reader chrome, [U1c](./U1c-inverted-l-shell-and-modes.md)'s shell, [C6a](./C6a-thumbnails-outline-page-labels.md)'s rail and [U4a](./U4a-network-indicator-and-privacy-proof.md)'s network indicator all wire behaviour into the same look instead of styling their own buttons.
 
 ## Context
 
@@ -32,7 +32,7 @@ Build the Paper component library the shells and editor modes compose: every con
 
 **In scope**
 
-- Create `packages/ui` (`@lamina/ui`, private) if it doesn't exist: React 19 as a peer dependency via `catalog:`, the primitives library ADR 0009 names (React Aria Components recommended: i18n, RTL and keyboard come with it; licence Apache-2.0), React Compiler in the consumer build, Vitest browser mode with Testing Library and `axe-core`, a nested `biome.json` allowing DOM globals, `"sideEffects": ["*.css"]`, plain CSS per component (CSS modules or `@layer`-scoped files; no CSS-in-JS runtime) using only `var(--paper-…)` tokens.
+- Create `packages/ui` (`@laminapdf/ui`, private) if it doesn't exist: React 19 as a peer dependency via `catalog:`, the primitives library ADR 0009 names (React Aria Components recommended: i18n, RTL and keyboard come with it; licence Apache-2.0), React Compiler in the consumer build, Vitest browser mode with Testing Library and `axe-core`, a nested `biome.json` allowing DOM globals, `"sideEffects": ["*.css"]`, plain CSS per component (CSS modules or `@layer`-scoped files; no CSS-in-JS runtime) using only `var(--paper-…)` tokens.
 - Components, each a named export with typed props, TSDoc and every state from §7.0:
   - **Button** variants `primary`, `secondary`, `ghost`, `danger` (ghost) and `danger-filled` (only as a destructive dialog's confirm), sizes `32` / `30` / `26` and `touch` (≥ 44); text-only, icon + text; `loading` state that keeps width.
   - **IconButton**: sizes 26, 28, 32 and 44 (touch, 22 px icon); requires `label` (type-level).
@@ -66,7 +66,7 @@ Build the Paper component library the shells and editor modes compose: every con
 ## Tasks
 
 - [ ] Claim via a claim PR (see Definition of done); then a fresh worktree off the updated `main`. Load the project's TypeScript guidelines; check whether `packages/ui` exists (C4a may have landed) and extend it rather than re-scaffolding.
-- [ ] Scaffold or extend `packages/ui` as in Scope; import `@lamina/tokens/tokens.css` once in a `styles/base.css` (root font, colour, `button { font: inherit; color: inherit }`).
+- [ ] Scaffold or extend `packages/ui` as in Scope; import `@laminapdf/tokens/tokens.css` once in a `styles/base.css` (root font, colour, `button { font: inherit; color: inherit }`).
 - [ ] Licence-check new dependencies (`react-aria-components` and its `@react-aria/*`/`@internationalized/*` packages, `axe-core` MPL-2.0 as a dev dependency only, Testing Library MIT); `cargo xtask npm-licenses` passes.
 - [ ] For each component: types first (`index.ts` exports reviewed in the PR), then implementation, CSS from tokens only (a test greps component CSS for hex colours and `px` values that are not tokens, except the 1 px border width), then tests.
 - [ ] A shared `test/states.ts` helper that renders a component in each of its states (forcing hover/pressed via data attributes for screenshots, real events for behaviour tests) so [U6f](./U6f-gallery-and-visual-tests.md) can reuse it.
@@ -81,7 +81,7 @@ Build the Paper component library the shells and editor modes compose: every con
 - [ ] Component tests (Vitest browser mode, Chromium, Firefox, WebKit) cover keyboard operation for each interactive component, `aria-pressed` / `aria-selected` / `aria-checked` / `aria-current` / `aria-expanded` where applicable, and error text wiring (`aria-describedby`, `aria-invalid`).
 - [ ] axe-core reports zero violations for every component, state, theme (light, dark, high contrast) and direction.
 - [ ] Target sizes: ≥ 24 × 24 on desktop density and ≥ 44 × 44 on touch density, measured in tests.
-- [ ] No component CSS contains a literal colour; all colours come from `@lamina/tokens` (test).
+- [ ] No component CSS contains a literal colour; all colours come from `@laminapdf/tokens` (test).
 - [ ] The components render correctly with `dir="rtl"` (asserted via computed logical positions in a test; visual check in [U6f](./U6f-gallery-and-visual-tests.md)).
 - [ ] No component imports a viewer, a store or the command registry (lint test on imports).
 - [ ] Matches the linked Paper screens (F01–F05); any deviation is recorded in the design language.
@@ -103,7 +103,7 @@ None.
 
 ## Risks and open questions
 
-- **Order with C4a (decided here: U6d before C4a).** C4a creates `@lamina/ui` and its chrome; built first, its buttons, dialogs and `tokens.css` would be restyled and partly rewritten once U6d and [U6e](./U6e-overlays-and-sheets.md) land. Building the components first avoids that rework at little schedule cost: C4a also waits for [C3b](./C3b-viewer-virtualiser-and-zoom.md)'s viewer, which is the longer path, and U6a–U6e need only U1a. So this todo does **not** depend on C4a; it creates `packages/ui` itself, and **C4a should depend on [U6e](./U6e-overlays-and-sheets.md)** (which needs U6d), drop its own scaffold and `tokens.css` tasks, and compose these components (its `PasswordDialog` uses U6e's dialog). Update C4a's **Depends on** in the claim PR of this todo (or in a board-only PR) so the board shows the order.
+- **Order with C4a (decided here: U6d before C4a).** C4a creates `@laminapdf/ui` and its chrome; built first, its buttons, dialogs and `tokens.css` would be restyled and partly rewritten once U6d and [U6e](./U6e-overlays-and-sheets.md) land. Building the components first avoids that rework at little schedule cost: C4a also waits for [C3b](./C3b-viewer-virtualiser-and-zoom.md)'s viewer, which is the longer path, and U6a–U6e need only U1a. So this todo does **not** depend on C4a; it creates `packages/ui` itself, and **C4a should depend on [U6e](./U6e-overlays-and-sheets.md)** (which needs U6d), drop its own scaffold and `tokens.css` tasks, and compose these components (its `PasswordDialog` uses U6e's dialog). Update C4a's **Depends on** in the claim PR of this todo (or in a board-only PR) so the board shows the order.
 - **Primitives library**: if ADR 0009 does not name one, decide here (React Aria Components recommended) and amend ADR 0009 in this PR; it is a long-lived dependency.
 - **Size**: the list is long. If the PR passes ~800 lines, split into U6d-a (buttons, toggles, mode switcher, tabs, form controls, swatches, chips) and U6d-b (badges, notices, progress, empty state, status items, thumbnail, outline row) with a board-only PR.
 - **Proposed styles** (§7.19–§7.23) depend on the owner's sign-off in [U6a](./U6a-paper-tokens.md); if a style changes later, only its CSS changes.

@@ -3,7 +3,7 @@
 //! - Every error and warning serialises to JSON that validates against the generated
 //!   `lamina.error/1` schema (`crates/lamina/schemas/error.schema.json`).
 //! - The shared cases of `fixtures/errors/contract.json` (ADR 0018 §5) give exactly the
-//!   expected object; `packages/pdf/test/codes.test.ts` checks the same cases through the WASM.
+//!   expected object; `packages/sdk/test/codes.test.ts` checks the same cases through the WASM.
 //! - No `message` or `hint` carries document text (§4): `fixtures/errors/marker-text.pdf`
 //!   (`tools/fixtures/marker_text.py`) puts one marker string in its names, strings and `/Info`
 //!   values, and every error and warning it provokes is checked for it.
@@ -264,7 +264,7 @@ fn every_warning_kind_matches_codes_json() {
 fn both_schema_copies_are_the_same() {
     assert_eq!(
         read("crates/lamina/schemas/error.schema.json"),
-        read("packages/pdf/schemas/error.schema.json")
+        read("packages/sdk/schemas/error.schema.json")
     );
 }
 

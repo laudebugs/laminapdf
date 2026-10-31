@@ -26,7 +26,7 @@ Give readers the two classic ways to move through a long document: a virtualised
 - [04 §1 navigation](../../research/pdf/04-interactive-security.md#1-navigation) — outlines (§12.3.3), destinations (§12.3.2), page labels (§12.4.2) as a number tree in `/PageLabels`.
 - [rendering notes §4](../../research/architecture/notes/rendering.md) — thumbnails at low DPI in a separate lower-priority queue.
 - [web-app.md §4 functional 6](../../plans/web-app.md#functional).
-- [C3a](./C3a-viewer-worker-rpc.md) priorities (`thumbnail`), [C3b](./C3b-viewer-virtualiser-and-zoom.md) virtualiser patterns and `goToPage`.
+- [C3a](../ongoing/C3a-viewer-worker-rpc.md) priorities (`thumbnail`), [C3b](./C3b-viewer-virtualiser-and-zoom.md) virtualiser patterns and `goToPage`.
 - `fixtures/corpus/expected.json` — outline facts from pypdf (ADR 0018 tier 4); B2 adds outline titles.
 
 ## Scope
@@ -34,9 +34,9 @@ Give readers the two classic ways to move through a long document: a virtualised
 **In scope**
 
 - RPC: `outline() → OutlineItem[]` (title, resolved destination `{ page, x?, y?, zoom?, fit }`, children, open/closed state from `/Count`, colour/style flags, stable `LaminaId`), `pageLabels() → string[]` (or a compact range form), `resolveDestination(dest | name)`.
-- If B2's views don't expose page labels or destination resolution, add read-only accessors in `lamina-model`/`lamina-wasm`/`@lamina/pdf` in this PR (small; coordinate with the library owner) — page-label number tree walking with `/S` styles D, R, r, A, a, `/P` prefix, `/St` start.
-- `@lamina/viewer`: `ThumbnailStrip` (framework-free virtualised list using the C3b layout code at thumbnail scale, own small canvas pool, `thumbnail` priority, cancels when scrolled away, current page highlighted), destination navigation (`goToDestination(dest)` with fit modes XYZ/Fit/FitH/FitV/FitR/FitB mapped to zoom + scroll).
-- `@lamina/ui`: `Sidebar` with tabs (Thumbnails, Outline), resizable and collapsible, remembered per session; `OutlineTree` (WAI-ARIA tree pattern: arrow keys, Home/End, expand/collapse, type-ahead), current-section tracking (deepest item whose destination is at or before the top of the viewport); page indicator shows labels (`iv (4 / 120)`) and go-to-page accepts labels or numbers (ambiguity: label wins, show both in a hint).
+- If B2's views don't expose page labels or destination resolution, add read-only accessors in `lamina-model`/`lamina-wasm`/`@laminapdf/sdk` in this PR (small; coordinate with the library owner) — page-label number tree walking with `/S` styles D, R, r, A, a, `/P` prefix, `/St` start.
+- `@laminapdf/viewer`: `ThumbnailStrip` (framework-free virtualised list using the C3b layout code at thumbnail scale, own small canvas pool, `thumbnail` priority, cancels when scrolled away, current page highlighted), destination navigation (`goToDestination(dest)` with fit modes XYZ/Fit/FitH/FitV/FitR/FitB mapped to zoom + scroll).
+- `@laminapdf/ui`: `Sidebar` with tabs (Thumbnails, Outline), resizable and collapsible, remembered per session; `OutlineTree` (WAI-ARIA tree pattern: arrow keys, Home/End, expand/collapse, type-ahead), current-section tracking (deepest item whose destination is at or before the top of the viewport); page indicator shows labels (`iv (4 / 120)`) and go-to-page accepts labels or numbers (ambiguity: label wins, show both in a hint).
 - `page=N` and `nameddest=<name>` fragment keys (C4c's fragment format, parsed by `parseFragment` and written by `buildFragment`, so they combine with an encoded `url`, e.g. `#url=<encoded>&page=5`) navigate after load; a change to only these keys navigates within the open document (C4c's `hashchange` rule).
 
 **Out of scope** (and which todo covers it)
@@ -53,7 +53,7 @@ Give readers the two classic ways to move through a long document: a virtualised
 - [ ] `ThumbnailStrip`: ~120 px wide renders, aspect from page sizes, LRU bitmap cache with its own budget (e.g. 32 MB), click/Enter navigates, keyboard roving focus, `aria-label` with the page label.
 - [ ] `OutlineTree` component (React, primitives from C4a), virtualised if > 500 items; current-section tracking subscribed to viewer state with throttling.
 - [ ] Page-label support in the page indicator and in thumbnails; go-to-page parsing.
-- [ ] Facts: extend `expected.json` (via the independent tool, pypdf/pdf.js, never lamina) with outline destinations (page index) and page labels for corpus files that have them; add a fixture with roman/arabic labels and a nested outline (generated with `@lamina/pdf` builder per B5 — builder already supports outlines and page labels).
+- [ ] Facts: extend `expected.json` (via the independent tool, pypdf/pdf.js, never lamina) with outline destinations (page index) and page labels for corpus files that have them; add a fixture with roman/arabic labels and a nested outline (generated with `@laminapdf/sdk` builder per B5 — builder already supports outlines and page labels).
 - [ ] Playwright specs.
 
 ## Acceptance criteria

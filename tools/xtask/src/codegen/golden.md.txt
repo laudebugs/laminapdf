@@ -11,6 +11,7 @@
 | --- | --- | --- |
 | [`not-pdf`](not-pdf.md) | `input` | what happened |
 | [`limit-exceeded`](limit-exceeded.md) | `limit` | what happened |
+| [`cancelled`](cancelled.md) | `state` | what happened |
 
 ## Op errors
 
@@ -26,7 +27,7 @@
 | [`builder-finished`](builder-finished.md) | `state` | what happened |
 | [`invalid-argument`](invalid-argument.md) | `usage` | what happened |
 
-## Package errors (`@lamina/pdf`)
+## Package errors (`@laminapdf/sdk`)
 
 | Code | Kind | Summary |
 | --- | --- | --- |

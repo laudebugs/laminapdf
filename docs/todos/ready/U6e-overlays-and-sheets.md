@@ -1,4 +1,4 @@
-# U6e — `@lamina/ui` overlays: dialogs, bottom sheets, popovers and menus, selection toolbar positioning, palette shell, toasts, z-order
+# U6e — `@laminapdf/ui` overlays: dialogs, bottom sheets, popovers and menus, selection toolbar positioning, palette shell, toasts, z-order
 
 | Field | Value |
 | --- | --- |
@@ -38,7 +38,7 @@ Give every short-lived layer in lamina one implementation with correct focus, ke
 - **Command palette shell** (§7.10): modal over the scrim, 96 px from the top, `max-width` 600; input with `role="combobox"`, `aria-expanded`, `aria-controls`, `aria-activedescendant` (focus stays in the input); `role="listbox"` with grouped options (section overlines "Recent", "Commands"), option rows (title with the matched part in 600, group name, shortcut chip, disabled with reason), empty state, a "pushed page" slot for commands that need arguments, and the hint footer; arrow keys, Home/End, Page Up/Down, Enter, Escape. It takes items and a filter result as props; no ranking or commands inside.
 - **Toast region** (§7.20): one `role="status"` region (polite), bottom centre 24 px above the status bar (phone: above the bottom bar, replacing the page pill); stacks up to three, newest at the bottom, older ones collapse; 4 s timeout paused on hover and focus; optional action (e.g. "Undo") reachable by keyboard (F6 or a documented shortcut) without stealing focus; `toast()` API returning a dismiss handle.
 - **Layer manager**: one stack of open layers so Escape closes the innermost (mini toolbar → palette/dialog → menu …) and focus restoration is consistent; nested layers (a menu inside a dialog) work.
-- **Z-order tokens** added to [`@lamina/tokens`](./U6a-paper-tokens.md) (`z.page`, `z.page-overlay`, `z.chrome`, `z.floating-toolbar`, `z.popover`, `z.sheet`, `z.modal`, `z.toast`) from the design language's proposed table, with owner sign-off as in U6a, and used by every overlay here.
+- **Z-order tokens** added to [`@laminapdf/tokens`](./U6a-paper-tokens.md) (`z.page`, `z.page-overlay`, `z.chrome`, `z.floating-toolbar`, `z.popover`, `z.sheet`, `z.modal`, `z.toast`) from the design language's proposed table, with owner sign-off as in U6a, and used by every overlay here.
 
 **Out of scope** (and which todo covers it)
 
@@ -53,7 +53,7 @@ Give every short-lived layer in lamina one implementation with correct focus, ke
 
 - [ ] Claim via a claim PR (see Definition of done); then a fresh worktree off the updated `main`.
 - [ ] Re-read ADR 0024's Escape order, selection-surface and palette sections, and the APG dialog, menu button, combobox and toolbar patterns (primary W3C pages); note any gap with the primitives library's components and how this PR closes it.
-- [ ] Add the z-order tokens to `@lamina/tokens` (JSON, regenerate, tests) and get the owner's approval of the proposed values.
+- [ ] Add the z-order tokens to `@laminapdf/tokens` (JSON, regenerate, tests) and get the owner's approval of the proposed values.
 - [ ] `src/overlays/layer-stack.ts`: a small stack (push/pop, `isTopmost`, Escape routing, focus restore targets) with unit tests.
 - [ ] `Dialog` on the primitives library's modal (React Aria `Modal`/`Dialog` recommended) styled per §7.18; `inert` on the app root; tests for trap, return focus, Escape, required-question mode, scrim click, nested menu.
 - [ ] `BottomSheet`: pointer handling with `pointerdown/move/up` and `setPointerCapture`, detent snapping, grabber button, modal and non-modal modes, resize on virtual keyboard (`visualViewport`), safe-area padding; tests for click-cycling, keyboard activation of the grabber, drag snapping (synthetic pointer events), reduced motion.

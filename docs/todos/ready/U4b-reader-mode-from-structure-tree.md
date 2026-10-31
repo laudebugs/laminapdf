@@ -46,7 +46,7 @@ Give phone readers and people who need larger text a one-tap reader mode that tu
 - [ ] Read the spec sections and the PDF Association document; write the role-mapping table (standard structure types, role map) in the module docs.
 - [ ] Implement `from_structure` with unit tests over generated tagged fixtures (from B8 builders) and real tagged files.
 - [ ] Implement the sanity checks with tests on deliberately broken trees; calibrate thresholds on U2b's corpus and record them.
-- [ ] Bind through `lamina-wasm` and the worker RPC; build the reading view in `@lamina/ui`.
+- [ ] Bind through `lamina-wasm` and the worker RPC; build the reading view in `@laminapdf/ui`.
 - [ ] Position sync: map scroll position to block and block to page bbox; Playwright test for round-trips.
 - [ ] Score reader-mode block order against U2b's tagged fixtures.
 

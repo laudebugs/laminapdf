@@ -20,7 +20,7 @@ on:
   pull_request:
     paths: &inputs
       - apps/docs/**
-      - packages/pdf/**
+      - packages/sdk/**
       - packages/wasm/package.json
       - crates/lamina/examples/**
       - fixtures/golden/examples/**
@@ -73,7 +73,7 @@ jobs:
           node-version-file: .nvmrc
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm --filter @lamina/docs build
+      - run: pnpm --filter @laminapdf/docs build
       # Previews are never indexed (ADR 0011 §1's rule for non-production builds).
       - name: Mark the preview noindex
         run: |
@@ -237,7 +237,7 @@ jobs:
         run: pnpm install --frozen-lockfile
       - name: Build the site
         if: steps.secrets.outputs.enabled == 'true'
-        run: pnpm --filter @lamina/docs build
+        run: pnpm --filter @laminapdf/docs build
       - name: Deploy production
         if: steps.secrets.outputs.enabled == 'true'
         working-directory: apps/docs

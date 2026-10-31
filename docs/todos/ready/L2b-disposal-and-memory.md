@@ -16,7 +16,7 @@
 
 ## Goal
 
-Keep `@lamina/pdf` from leaking or growing without bound in long-lived pages and servers. wasm linear memory grows but never shrinks, so one large file can leave an instance huge. A wasm trap (OOM, a bug) poisons the instance for every later call. This todo does five things:
+Keep `@laminapdf/sdk` from leaking or growing without bound in long-lived pages and servers. wasm linear memory grows but never shrinks, so one large file can leave an instance huge. A wasm trap (OOM, a bug) poisons the instance for every later call. This todo does five things:
 
 1. Every handle supports `using`.
 2. A call on a disposed handle throws a coded error instead of a glue-level null-pointer failure.
@@ -55,14 +55,14 @@ Keep `@lamina/pdf` from leaking or growing without bound in long-lived pages and
 
 **Out of scope** (and which todo covers it)
 
-- Worker termination as the memory-reclaim path and worker crash handling: [L2a](../ongoing/L2a-worker-client.md), [C3a](./C3a-viewer-worker-rpc.md).
+- Worker termination as the memory-reclaim path and worker crash handling: [L2a](../done/L2a-worker-client.md), [C3a](../ongoing/C3a-viewer-worker-rpc.md).
 - Rust-side allocation budgets beyond today's `Limits`: an ADR 0003 amendment if measurement shows a need.
 - `panic=unwind` wasm builds (nightly only): not planned; native `catch_unwind` at the edge belongs to [L6a](../done/L6a-lamina-ffi-spike.md).
 
 ## Tasks
 
 - [ ] Load the `/rust-best-practices` skill and follow [docs/guidelines/rust.md](../../guidelines/rust.md) for the `lamina-wasm` changes. Core crates do not change and stay bytes-in/bytes-out
-- [ ] Inventory every wasm-backed class exported by `packages/pdf` and `@lamina/wasm`; list them in the PR description
+- [ ] Inventory every wasm-backed class exported by `packages/sdk` and `@laminapdf/wasm`; list them in the PR description
 - [ ] `src/internal/handle.ts`:
   - [ ] A base `Handle` with `disposed` state, `[Symbol.dispose]`, `free()`/`close()` aliases, child tracking and the `assertLive()` check
   - [ ] Every public class extends or wraps it
@@ -94,14 +94,14 @@ None.
 
 ## Tests
 
-- `packages/pdf/test/dispose.test.ts`: inventory, `using`, double dispose, children, `disposed` errors.
-- `packages/pdf/test/memory.test.ts`: the 1,000-iteration baseline loop (byte counts, no timing), the cap and `__grow`, `__trap`, `reset()`, leak hook. Run in Node in the fast lane, and in browser mode where [B6c](../done/B6c-runtime-matrix.md) provides it.
+- `packages/sdk/test/dispose.test.ts`: inventory, `using`, double dispose, children, `disposed` errors.
+- `packages/sdk/test/memory.test.ts`: the 1,000-iteration baseline loop (byte counts, no timing), the cap and `__grow`, `__trap`, `reset()`, leak hook. Run in Node in the fast lane, and in browser mode where [B6c](../done/B6c-runtime-matrix.md) provides it.
 - xtask: unit test for the export check on the release build.
 
 ## Docs to update
 
 - [ ] [shareable-libraries §9 L2](../../plans/shareable-libraries.md#9-to-dos): tick the disposal to-do
-- [ ] `packages/pdf/README.md` (memory and disposal section); ADR 0016 (max-memory value), if merged; `fixtures/README.md` if the codes format note changes
+- [ ] `packages/sdk/README.md` (memory and disposal section); ADR 0016 (max-memory value), if merged; `fixtures/README.md` if the codes format note changes
 
 ## Risks and open questions
 

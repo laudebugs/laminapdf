@@ -29,7 +29,7 @@ The [code-organization guide](../guidelines/code-organization.md) has since turn
    | Folder | Holds | Workspace |
    | --- | --- | --- |
    | `crates/` | Rust crates, flat, directory name = crate name (`lamina-*`) | Cargo |
-   | `packages/` | TypeScript packages, `@lamina/<dir>` | pnpm |
+   | `packages/` | TypeScript packages, `@laminapdf/<dir>` | pnpm |
    | `apps/` | Deployables (`web`, `desktop` with `src-tauri/`, `updates`); never depended on | pnpm (+ Cargo for `src-tauri`) |
    | `fixtures/` | Shared test inputs and goldens, with provenance and licence per file | neither |
    | `tools/xtask/` | Repo automation as a Rust binary | Cargo |
@@ -42,6 +42,8 @@ The [code-organization guide](../guidelines/code-organization.md) has since turn
 5. **No Turborepo, Nx or moon initially.** Cargo already schedules and caches the Rust graph. We revisit (with an ADR) if TypeScript-side CI time or the lack of remote caching becomes a measured problem; Turborepo on the pnpm graph only would be the first candidate.
 
 6. **Pinned toolchains.** `rust-toolchain.toml` pins the Rust toolchain, components and targets (`wasm32-unknown-unknown`, `aarch64-apple-ios`, `aarch64-linux-android`); the root `package.json` pins pnpm via `packageManager`; Node is pinned in `.nvmrc` and declared in `engines`, with `engine-strict=true` in `.npmrc` (details in [ADR 0019](0019-supply-chain-and-licence-hygiene.md)).
+
+**Amendment (owner, 2026-10-31):** the npm scope is **`@laminapdf`**, not `@lamina` as first written: `packages/<dir>` is `@laminapdf/<dir>` (`@laminapdf/sdk`, `@laminapdf/wasm`) and apps use it too (`@laminapdf/docs`), matching the `laminapdf.com` domain. Crate names (`lamina-*`) and the product name are unchanged ([P0](../todos/done/P0-npm-scope-laminapdf.md), [architecture §8 Q3](../plans/architecture.md#8-open-questions-for-the-team)).
 
 The detailed rules (naming, dependency direction, public API, tests, configuration inheritance, generated code, when to split a crate) are in [`docs/guidelines/code-organization.md`](../guidelines/code-organization.md). Where this ADR and the guide disagree, update one of them in the same PR so they agree again.
 
@@ -60,4 +62,4 @@ The detailed rules (naming, dependency direction, public API, tests, configurati
 - **Turborepo, Nx or moon at the root.** Useful for large TS graphs and remote caching, but none of the comparable Rust + JS projects uses one, and their Cargo support is experimental or partial. Added complexity before a measured need.
 - **Grouped crate folders** (`crates/core/*`, `crates/bindings/*`). Helps at 50+ crates, costs a placement decision for every new crate. Revisit if the flat list gets hard to scan.
 - **Separate repositories** for the core, packages and apps. Cross-cutting changes (a new op exposed in core, WASM and UI) would need coordinated releases across repos; the shared fixtures would have to be duplicated or vendored.
-- **Rust inside the JS tree** (`packages/pdf/rust/`). Hides the crate graph from Cargo tooling and couples the crate's layout to one consumer.
+- **Rust inside the JS tree** (`packages/sdk/rust/`). Hides the crate graph from Cargo tooling and couples the crate's layout to one consumer.

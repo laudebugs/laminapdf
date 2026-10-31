@@ -25,7 +25,7 @@ Finish the reader's output features. **Print** rasterises pages at print DPI in 
 - [web-app.md §4 functional 7](../../plans/web-app.md#functional) — print via rasterised pages in a hidden iframe, native PDF printing where supported; download returns original bytes.
 - [web-app.md §2](../../plans/web-app.md#2-scope-and-non-goals) — properties scope (metadata, fonts, version, encryption, signatures present).
 - [04 §7 encryption](../../research/pdf/04-interactive-security.md#7-encryption-76) (handler, revision, permissions), [04 §8 signatures](../../research/pdf/04-interactive-security.md) (signature fields presence), [03](../../research/pdf/03-text-and-fonts.md) (font types, embedding, subset tags).
-- [C3a](./C3a-viewer-worker-rpc.md) (background priority, cancellation), [C4c](./C4c-remote-files-encryption-privacy.md) (`ByteSource` for remote files).
+- [C3a](../ongoing/C3a-viewer-worker-rpc.md) (background priority, cancellation), [C4c](./C4c-remote-files-encryption-privacy.md) (`ByteSource` for remote files).
 
 ## Scope
 
@@ -35,7 +35,7 @@ Finish the reader's output features. **Print** rasterises pages at print DPI in 
 - Keyboard: `ctrl/cmd+P` triggers our print (preventDefault) when a document is open.
 - Download: `Platform.saveAs(originalBytes, filename)` — for local files reuse the `File`; for remote files stream from the `ByteSource` (full fetch, using the block cache) without modification; filename from the URL path or `Content-Disposition`, sanitised; encrypted files download still encrypted (original bytes).
 - RPC `properties() → { info, xmp (parsed subset: dc:title, dc:creator, xmp:CreateDate, pdf:Producer…), version, pageCount, pageSizes summary, fileSize, linearised?, tagged?, encryption { filter, V, R, keyLength, method, permissions } | null, fonts[{ name, type, embedded, subset, encoding }], signatures { count, fieldNames } , hasJavaScript, hasEmbeddedFiles, hasForms }` from lamina (not PDFium); add small read-only accessors to `lamina-model`/`lamina-wasm` where missing (coordinate with library owner).
-- `PropertiesDialog` in `@lamina/ui` (tabs or sections: Description, Document, Fonts, Security), dates formatted with `Intl.DateTimeFormat`, copy-to-clipboard for values.
+- `PropertiesDialog` in `@laminapdf/ui` (tabs or sections: Description, Document, Fonts, Security), dates formatted with `Intl.DateTimeFormat`, copy-to-clipboard for values.
 
 **Out of scope** (and which todo covers it)
 

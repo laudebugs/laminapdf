@@ -1,5 +1,5 @@
 // ADR 0004's default web renderer (todo C2c): the pinned PDFium-WASM build behind
-// @lamina/render's RenderBackend. It mirrors the native adapter (lamina-render-pdfium):
+// @laminapdf/render's RenderBackend. It mirrors the native adapter (lamina-render-pdfium):
 // - input through PDFium's custom file access over a RenderSource (no whole copy); a read the
 //   source can't answer yet makes the call throw `data-pending` with the ranges;
 // - a form-fill environment per document, so widgets are drawn by FPDF_FFLDraw and can be left
@@ -27,7 +27,7 @@ import {
   type TilePlan,
   throwIfAborted,
   WHITE,
-} from "@lamina/render";
+} from "@laminapdf/render";
 
 /** The pinned package (ADR 0004 §3); its pdfium.wasm's SHA-256 is checked at build time. */
 export const PDFIUM_PACKAGE = "@embedpdf/pdfium@2.15.1";

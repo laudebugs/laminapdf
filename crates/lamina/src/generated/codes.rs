@@ -19,7 +19,7 @@ pub const DOCS_URL_BASE: &str = "https://github.com/laudebugs/lamina/blob/main/d
 pub const DOCS_URL_SUFFIX: &str = ".md";
 
 /// Every error code lamina's Rust crates and its WASM binding raise (the codes only
-/// `@lamina/pdf` raises are not here), in `codes.json` order.
+/// `@laminapdf/sdk` raises are not here), in `codes.json` order.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 #[non_exhaustive]
 pub enum ErrorCode {
@@ -976,7 +976,7 @@ impl WarningCode {
 }
 
 /// The `explain` page of `code`: the Markdown of `docs/errors/<code>.md`, for every code
-/// in `codes.json` (including the ones only `@lamina/pdf` raises); `None` for an unknown
+/// in `codes.json` (including the ones only `@laminapdf/sdk` raises); `None` for an unknown
 /// code. Behind the `explain` feature, so the text never reaches a build without it
 /// (the WASM modules).
 #[cfg(feature = "explain")]
@@ -1096,6 +1096,9 @@ pub fn explain(code: &str) -> Option<&'static str> {
         "source-changed" => include_str!("../../../../docs/errors/source-changed.md"),
         "text-module-not-loaded" => include_str!("../../../../docs/errors/text-module-not-loaded.md"),
         "disposed" => include_str!("../../../../docs/errors/disposed.md"),
+        "worker-version-mismatch" => include_str!("../../../../docs/errors/worker-version-mismatch.md"),
+        "worker-crashed" => include_str!("../../../../docs/errors/worker-crashed.md"),
+        "worker-failed" => include_str!("../../../../docs/errors/worker-failed.md"),
         _ => return None,
     })
 }

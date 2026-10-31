@@ -30,8 +30,8 @@ Give power users and developers read-only inspection: header/catalog version and
 **In scope**
 
 - Core APIs: `doc.conformance()`, `doc.fonts()` (per page, via B9 font reading), `doc.color_profiles()`, `doc.objects()` iterator, `doc.object(ref)`, `doc.revisions()` summary
-- Inspector panels in `@lamina/ui`: Properties → Conformance; Fonts; Colour; Object browser (tree from trailer, jump to ref, hex/text stream views with size caps)
-- Bindings for all of the above in `lamina-wasm` / `@lamina/pdf`
+- Inspector panels in `@laminapdf/ui`: Properties → Conformance; Fonts; Colour; Object browser (tree from trailer, jump to ref, hex/text stream views with size caps)
+- Bindings for all of the above in `lamina-wasm` / `@laminapdf/sdk`
 
 **Out of scope** (and which todo covers it)
 
@@ -40,7 +40,7 @@ Give power users and developers read-only inspection: header/catalog version and
 **Editor facts**
 
 - **Operations shipped** ([06 §3](../../research/pdf/06-feature-inventory.md#3-full-operation-inventory-with-mechanisms) IDs): `J.07` inspect version and conformance; `J.08` identify fonts and colour profiles; `J.09` inspect internal objects, streams, references
-- **Crates and packages:** `lamina-model`, `lamina-cos` (revision summary), `lamina-text` (font facts), `@lamina/ui`
+- **Crates and packages:** `lamina-model`, `lamina-cos` (revision summary), `lamina-text` (font facts), `@laminapdf/ui`
 - **`SaveConstraint`:** read-only
 - **Web vs desktop:** identical (object inspector ships on both)
 - **Server features:** none (this PR adds no server feature; all processing stays on the device)

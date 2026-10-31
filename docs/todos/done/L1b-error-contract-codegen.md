@@ -7,7 +7,7 @@
 | Plan | [shareable-libraries §7 L1](../../plans/shareable-libraries.md#l1-contracts), [§4 principle 2](../../plans/shareable-libraries.md#4-principles-recommendations-recorded-in-adrs-00260031) |
 | Round / milestone | Round L1 (shareable libraries) |
 | Depends on | [B6b](./B6b-lamina-pdf-package.md), [L1a](./L1a-contract-adrs.md), [L1c](./L1c-error-contract-core.md) |
-| Blocks | [L2a](../ongoing/L2a-worker-client.md), [L2b](../ready/L2b-disposal-and-memory.md), [L4a](../ready/L4a-lamina-cli.md), [L5a](../ready/L5a-agent-docs.md) |
+| Blocks | [L2a](./L2a-worker-client.md), [L2b](../ready/L2b-disposal-and-memory.md), [L4a](../ready/L4a-lamina-cli.md), [L5a](../ready/L5a-agent-docs.md) |
 | ADRs | Implements 0026 (from [L1a](../done/L1a-contract-adrs.md)); follows [0003](../../decisions/0003-reader-tolerance-and-limits.md) §2 and §4 (codes listed once, Rust and TS tests), [0002](../../decisions/0002-binding-strategy.md) §1 (errors map 1:1 to a JS `Error` with `code`), [0018](../../decisions/0018-test-strategy.md) §5 (shared expectations), [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) (new dev dependencies) |
 | Branch | `feat/l1b-error-contract` |
 | PR title | `feat(codes): generate the error contract into Rust, TypeScript and JSON Schema with explain text` |
@@ -23,7 +23,7 @@ Make ADR 0026's error shape real on every surface, from one file. `fixtures/code
 - [ADR 0026](../../decisions/0026-error-and-diagnostic-contract.md) from [L1a](../done/L1a-contract-adrs.md): fields (incl. `data`, the only place for document-derived strings, and `location.pageIndex`/`id`), the `kind` list with an initial assignment for every current code (§2), code and hint rules, no document text in messages, `docsUrl`, TS class name. Decided there: the class is **`LaminaError`** (B6b ships it; `PdfError` is never used); `explain` pages live in **`docs/errors/<code>.md`**; `docsUrl` uses one generated base constant, the GitHub-rendered page until the domain is chosen.
 - Already done before this todo (re-sequenced after L1a's review): [L1c](../done/L1c-error-contract-core.md) converts `fixtures/codes.json` to v2 (kind, summary, hint), adds `kind()`/`location()` with tagged positions to the core errors, and removes document text from `Display`. [B5c](../done/B5c-lamina-facade-and-examples.md) adds `lamina::Error`'s `hint()`/`docs_url()`/`Serialize` and the job codes. [B6b](../done/B6b-lamina-pdf-package.md) ships `LaminaError` with every field. This todo replaces those hand-checked tables with generated ones and adds what is listed below.
 - [ADR 0003 §2](../../decisions/0003-reader-tolerance-and-limits.md#2-warnings-stable-enumerated-codes) and [§4](../../decisions/0003-reader-tolerance-and-limits.md#4-enforcement): codes in `fixtures/codes.json`, checked by `crates/lamina-cos/tests/codes.rs` and (from B6b) a TS test.
-- [B6b](../done/B6b-lamina-pdf-package.md): introduces `cargo xtask gen codes` → `packages/pdf/src/codes.generated.ts` and `LaminaError`; this todo extends both.
+- [B6b](../done/B6b-lamina-pdf-package.md): introduces `cargo xtask gen codes` → `packages/sdk/src/codes.generated.ts` and `LaminaError`; this todo extends both.
 - [Report: strict types](../../research/libraries/shareable-libraries.md#strict-types-branded-units-discriminated-options-codes-generated-from-one-file) and the [TypeScript note §6](../../research/libraries/notes/typescript-web-dx.md#6-strict-typescript-types-errors-tooling): `LaminaError<C>`, `isLaminaError(e, code)`.
 - [Code organisation §9](../../guidelines/code-organization.md#9-generated-code): `@generated` header, dedicated location, `linguist-generated`, a CI check that regeneration gives no diff.
 - [Rust guideline: errors](../../guidelines/rust.md#errors) and [TypeScript guideline: errors](../../guidelines/typescript.md#errors).
@@ -40,11 +40,11 @@ Make ADR 0026's error shape real on every surface, from one file. `fixtures/code
   - `lamina::Error` and `Warning` keep B5c's `kind()`, `hint()`, `docs_url()` and `Serialize`, now backed by the generated tables instead of hand-written ones.
   - `lamina::explain(code) -> Option<&'static str>` behind an `explain` feature that is off in the wasm base build, so the text costs no wasm size.
 - **TypeScript (generated):**
-  - `packages/pdf/src/generated/codes.ts`: the `ErrorCode` and `WarningCode` unions, plus `kind`/`hint`/`docsUrl` tables.
+  - `packages/sdk/src/generated/codes.ts`: the `ErrorCode` and `WarningCode` unions, plus `kind`/`hint`/`docsUrl` tables.
   - `LaminaError` made generic, `LaminaError<C extends ErrorCode>`, so `code` narrows; `toJSON()` validated against the schema.
   - `isLaminaError(e, code?)` that narrows; warnings typed by `WarningCode`.
   - `explain` text as an opt-in subpath (`@lamina/pdf/explain`) so it stays out of the main bundle.
-- **JSON Schema (generated):** a 2020-12 schema `lamina.error/1` for the error and warning objects, with `code` as an `enum`. It lives in the location ADR 0026 picks (recommendation: `packages/pdf/schemas/` and the façade crate's package, served by the docs site later). Recommendation: generate it with `schemars` from the Rust types, if its licence and wasm-free use pass `cargo deny`; otherwise emit it from xtask directly.
+- **JSON Schema (generated):** a 2020-12 schema `lamina.error/1` for the error and warning objects, with `code` as an `enum`. It lives in the location ADR 0026 picks (recommendation: `packages/sdk/schemas/` and the façade crate's package, served by the docs site later). Recommendation: generate it with `schemars` from the Rust types, if its licence and wasm-free use pass `cargo deny`; otherwise emit it from xtask directly.
 - **Staleness check:** `cargo xtask gen codes --check` regenerates into memory and fails on any diff. Wired into `cargo xtask check docs` (fast, no build needed). Generated files carry the `@generated` header and are marked `linguist-generated=true`.
 - **Codes the plan already needs**, if not added earlier: `disposed` ([L2b](../ready/L2b-disposal-and-memory.md)) and `unknown-option` (the "did you mean" hint). `cancelled`, `job-finished` and `document-changed` come with B5c's jobs.
 
@@ -70,7 +70,7 @@ Make ADR 0026's error shape real on every surface, from one file. `fixtures/code
   - [x] Include the generated module
   - [x] Replace B5c's hand-written `kind()`/`hint()`/`docs_url()` tables with the generated module. No `match` arms written by hand per code beyond `code()`
   - [x] The `explain` feature
-- [x] `packages/pdf`:
+- [x] `packages/sdk`:
   - [x] Replace `codes.generated.ts` with `src/generated/codes.ts`
   - [x] `LaminaError<C extends ErrorCode>` (generic over the generated union)
   - [x] `isLaminaError`, `toJSON()`
@@ -94,7 +94,7 @@ None.
 ## Tests
 
 - Rust: `crates/lamina-cos/tests/codes.rs` (v2, completeness); `crates/lamina/tests/error_contract.rs` (serialisation, schema validation with a JSON Schema dev dependency such as `jsonschema`, after a licence check; the no-document-text test over a new fixture `fixtures/corpus/marker-text.pdf` with provenance in `fixtures/README.md`).
-- TS: `packages/pdf/test/codes.test.ts` (codes equal `codes.json`, exhaustive narrowing type tests, `toJSON()` validated with `ajv` or the same schema validator, shared JSON expectations per ADR 0018 §5).
+- TS: `packages/sdk/test/codes.test.ts` (codes equal `codes.json`, exhaustive narrowing type tests, `toJSON()` validated with `ajv` or the same schema validator, shared JSON expectations per ADR 0018 §5).
 - xtask: unit tests for the generator (golden output for a small `codes.json`) and for `--check` failing on a diff.
 
 ## Docs to update
@@ -102,7 +102,7 @@ None.
 - [x] [shareable-libraries §9 L1](../../plans/shareable-libraries.md#9-to-dos): tick the codegen to-do
 - [x] `CLAUDE.md` (the codes paragraph and the `cargo xtask gen codes` command), `fixtures/README.md` (v2 format, new fixture), `docs/README.md` (`docs/errors/`)
 - [x] [TypeScript guideline: errors](../../guidelines/typescript.md#errors) and [code organisation §5](../../guidelines/code-organization.md#5-error-handling-by-layer), if L1a left the class rename to this PR
-- [x] `packages/pdf/README.md`: error handling section with `isLaminaError`
+- [x] `packages/sdk/README.md`: error handling section with `isLaminaError`
 
 ## Risks and open questions
 
@@ -114,7 +114,7 @@ None.
 
 ## Outcome
 
-- **Generated where:** `cargo xtask gen codes` (`tools/xtask/src/codegen.rs`) validates `fixtures/codes.json` against `fixtures/codes.schema.json` (with `boon`), then writes `crates/lamina/src/generated/codes.rs` (`ErrorCode`, `WarningCode`, `explain` behind the façade's `explain` feature, via `include_str!` of the pages), `packages/pdf/src/generated/codes.ts` and `explain.ts`, `lamina.error/1` in `packages/pdf/schemas/` and `crates/lamina/schemas/`, and the tables of `docs/errors/README.md` (also printed by `--md`). `--check` runs in `cargo xtask check docs` (no build, no `node_modules`), so the TS files are written as they are and excluded from Biome rather than passed through `biome format`.
+- **Generated where:** `cargo xtask gen codes` (`tools/xtask/src/codegen.rs`) validates `fixtures/codes.json` against `fixtures/codes.schema.json` (with `boon`), then writes `crates/lamina/src/generated/codes.rs` (`ErrorCode`, `WarningCode`, `explain` behind the façade's `explain` feature, via `include_str!` of the pages), `packages/sdk/src/generated/codes.ts` and `explain.ts`, `lamina.error/1` in `packages/sdk/schemas/` and `crates/lamina/schemas/`, and the tables of `docs/errors/README.md` (also printed by `--md`). `--check` runs in `cargo xtask check docs` (no build, no `node_modules`), so the TS files are written as they are and excluded from Biome rather than passed through `biome format`.
 - **Schema:** emitted by xtask, not `schemars`: the façade gains no dependency, and the code enums come from `codes.json` rather than from Rust types. Validation uses `boon` (Rust, xtask and tests) and `ajv` (TS tests) instead of `jsonschema` (a larger graph with a network resolver by default).
 - **Tables:** the façade's `kind()`, `hint()`, `docs_url()` and warning summaries, and `lamina-wasm`'s binding-code table, now come from the generated enums. The core crates keep their own `kind()` matches (L1c, checked by their tests): they can't depend on the façade, and generating into each core crate was not in this todo's scope. The first generation reproduced every kind, summary and hint (the façade's `generated_tables_match_codes_json` test); the deliberate differences are the TS file's group order (now `codes.json` order instead of alphabetical by group key), the generated `docs/errors/README.md` tables gaining a summary column, and the new `disposed` code.
 - **Explain in TS:** `@lamina/pdf/explain` exports `explain`, `KINDS`, `HINTS`, `ERROR_CODES`, `WARNING_CODES` and `docsUrl`; the main entry exports only the types, so its bundle is unchanged.

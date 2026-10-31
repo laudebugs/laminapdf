@@ -81,7 +81,10 @@
             "not-initialized",
             "source-changed",
             "text-module-not-loaded",
-            "disposed"
+            "disposed",
+            "worker-version-mismatch",
+            "worker-crashed",
+            "worker-failed"
           ]
         },
         "data": {
@@ -255,7 +258,7 @@
       "type": "object"
     }
   },
-  "$id": "https://github.com/laudebugs/lamina/blob/main/packages/pdf/schemas/error.schema.json",
+  "$id": "https://github.com/laudebugs/lamina/blob/main/packages/sdk/schemas/error.schema.json",
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "description": "An error or warning of every lamina surface (ADR 0026 §1): camelCase keys, optional keys omitted (never null). Generated from fixtures/codes.json by `cargo xtask gen codes`; do not edit. New optional keys may appear within version 1; consumers ignore unknown keys.",
   "oneOf": [

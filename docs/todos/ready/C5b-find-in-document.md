@@ -24,7 +24,7 @@ Let users find text across a whole document without blocking scrolling: the work
 - **Design (Paper):** [R05 Find in document](../../design/paper/reader-a.md#r05-find-in-document). Build to match these screens; record any deviation in the area document ([Paper design plan §5](../../plans/paper-design.md#5-how-the-designs-are-used)).
 - [web-app.md §4 functional 5](../../plans/web-app.md#functional) and [non-functional targets](../../plans/web-app.md#non-functional-targets-are-recommendations-measured-from-c3-onward) (search row).
 - [C5a](./C5a-text-layer-and-selection.md) — text runs and quads; text-layer span mapping used for highlight rectangles.
-- [C3a](./C3a-viewer-worker-rpc.md) — priorities and cancellation (a new query cancels the old one).
+- [C3a](../ongoing/C3a-viewer-worker-rpc.md) — priorities and cancellation (a new query cancels the old one).
 - [C3c](./C3c-viewer-perf-harness.md) — harness to measure search timings.
 - [ADR 0018 §1](../../decisions/0018-test-strategy.md#1-tiers) — expected facts produced by independent tools (pdf.js) and stored in `fixtures/corpus/expected.json`, with an exceptions file for deliberate differences.
 
@@ -34,8 +34,8 @@ Let users find text across a whole document without blocking scrolling: the work
 
 - Worker search engine `packages/viewer/src/worker/search.ts`: normalised page text (Unicode NFKC-ish folding consistent with pdf.js's normalisation: ligatures, diacritics option off by default, hyphenation at line ends, whitespace collapse) with offset maps back to glyph indices; case-insensitive and whole-word matching (Unicode word boundaries via `Intl.Segmenter`); iterate pages from the current page forward with wrap-around; yield between pages; stream `match` events `{ page, index, quads }` and `progress`; cancel on new query.
 - RPC: `find(query, options) → stream`, `cancelFind`.
-- `FindController` in `@lamina/viewer`: state (query, options, total, current index, per-page counts, pending/complete), next/previous, scroll-into-view of the current match (centering, respecting zoom), highlight layer (`lamina-layer-highlight` rectangles from quads, current match styled differently), works for unmounted pages lazily.
-- `@lamina/ui` find bar: input, match count "3 of 120" (or "120+" while counting), previous/next buttons, case and whole-word toggles, close; `ctrl/cmd+F` opens it (intercepting the browser's find only when focus is in the reader — decide with C7a's keyboard map), `Enter`/`Shift+Enter` and `F3`/`Shift+F3` navigate, `Esc` closes and returns focus.
+- `FindController` in `@laminapdf/viewer`: state (query, options, total, current index, per-page counts, pending/complete), next/previous, scroll-into-view of the current match (centering, respecting zoom), highlight layer (`lamina-layer-highlight` rectangles from quads, current match styled differently), works for unmounted pages lazily.
+- `@laminapdf/ui` find bar: input, match count "3 of 120" (or "120+" while counting), previous/next buttons, case and whole-word toggles, close; `ctrl/cmd+F` opens it (intercepting the browser's find only when focus is in the reader — decide with C7a's keyboard map), `Enter`/`Shift+Enter` and `F3`/`Shift+F3` navigate, `Esc` closes and returns focus.
 - Live-region announcements of result counts (polite, throttled) — wiring here, full audit in C7a.
 - Facts script: `tools/` script (Node, dev-only) that runs pdf.js's find logic or text content over `fixtures/corpus` and the B9 text fixtures for a fixed query list and writes `search` facts into `expected.json` (or a sibling `search-expected.json`) with an exceptions file.
 
@@ -52,7 +52,7 @@ Let users find text across a whole document without blocking scrolling: the work
 - [ ] Worker search loop with cooperative yielding (`await` between pages; check cancellation), reusing C5a's per-page text cache; background priority so renders preempt it.
 - [ ] Streaming RPC (multiple `match`/`progress` events per request) — extend the C3a protocol with a stream type if not already present.
 - [ ] `FindController` + highlight layer; current-match scroll; state store subscription for UI.
-- [ ] Find bar component in `@lamina/ui` and wiring in `apps/web`.
+- [ ] Find bar component in `@laminapdf/ui` and wiring in `apps/web`.
 - [ ] Facts script + committed facts (queries chosen to cover ligatures, hyphenation, case, whole word, RTL, CJK); exceptions file with reasons.
 - [ ] Perf scenario in the C3c harness: search a common word and a rare word in the 1,000-page fixture; record first-result and full-pass times; confirm no long tasks on the main thread.
 

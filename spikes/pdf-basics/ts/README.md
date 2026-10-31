@@ -1,4 +1,4 @@
-# `@lamina/pdf-basics-spike` (TypeScript)
+# `@laminapdf/pdf-basics-spike` (TypeScript)
 
 The TypeScript half of the [`pdf-basics` spike](../SPEC.md). It is a minimal PDF core: object model, lexer/parser, tolerant reader with repair, a writer (classic, incremental and compact), Flate with PNG predictors, and a content-stream builder. The Rust twin lives in [`../rust`](../rust). Both run against the same fixtures in [`../fixtures`](../fixtures).
 

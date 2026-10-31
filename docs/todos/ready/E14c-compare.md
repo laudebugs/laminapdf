@@ -39,7 +39,7 @@ Compare two documents or revisions: page alignment, pixel diff via `lamina-rende
 **Editor facts**
 
 - **Operations shipped** ([06 §3](../../research/pdf/06-feature-inventory.md#3-full-operation-inventory-with-mechanisms) IDs): `M.13` compare versions visually and structurally
-- **Crates and packages:** `lamina-render`, `lamina-text`, `lamina-model`, `@lamina/ui`
+- **Crates and packages:** `lamina-render`, `lamina-text`, `lamina-model`, `@laminapdf/ui`
 - **`SaveConstraint`:** read-only (report is a new document)
 - **Web vs desktop:** identical; web caps pages per `Limits`
 - **Server features:** none (this PR adds no server feature; all processing stays on the device)

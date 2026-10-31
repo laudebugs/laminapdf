@@ -1,8 +1,8 @@
 {
-  "name": "@lamina/render",
-  "version": "0.0.0",
+  "name": "@laminapdf/render",
+  "version": "0.1.0-alpha.0",
   "private": true,
-  "description": "The web render contract of ADR 0004: the RenderBackend interface @lamina/render-pdfium and @lamina/render-hayro implement, the tile planner they share, RenderError, and the contract test suite both run.",
+  "description": "The web render contract of ADR 0004: the RenderBackend interface @laminapdf/render-pdfium and @laminapdf/render-hayro implement, the tile planner they share, RenderError, and the contract test suite both run.",
   "license": "MIT OR Apache-2.0",
   "type": "module",
   "sideEffects": false,

@@ -7,12 +7,12 @@
 //!   (`as_str`, `from_code`, `kind`, `summary`, `hint`, `docs_url`) and, behind the façade's
 //!   `explain` feature, `explain(code)` over the `docs/errors/<code>.md` pages (`include_str!`,
 //!   so the text is never copied and never reaches a build without the feature);
-//! - `packages/pdf/src/generated/codes.ts`: the `ErrorKind`, `ErrorCode`, `WarningCode` and
+//! - `packages/sdk/src/generated/codes.ts`: the `ErrorKind`, `ErrorCode`, `WarningCode` and
 //!   `LimitName` unions, the code lists, `KINDS`, `HINTS`, `docsUrl()` and the kind and hint of
 //!   the codes the TS layer raises itself;
-//! - `packages/pdf/src/generated/explain.ts`: every page's text, for the `@lamina/pdf/explain`
+//! - `packages/sdk/src/generated/explain.ts`: every page's text, for the `@laminapdf/sdk/explain`
 //!   subpath only;
-//! - the JSON Schema `lamina.error/1` of the ADR 0026 §1 object, in `packages/pdf/schemas/` and
+//! - the JSON Schema `lamina.error/1` of the ADR 0026 §1 object, in `packages/sdk/schemas/` and
 //!   `crates/lamina/schemas/`;
 //! - the code tables of `docs/errors/README.md` (below its marker line), which `--md` prints.
 //!
@@ -43,10 +43,10 @@ const CODES_SCHEMA: &str = "fixtures/codes.schema.json";
 
 /// The outputs.
 const RUST: &str = "crates/lamina/src/generated/codes.rs";
-const TS: &str = "packages/pdf/src/generated/codes.ts";
-const TS_EXPLAIN: &str = "packages/pdf/src/generated/explain.ts";
+const TS: &str = "packages/sdk/src/generated/codes.ts";
+const TS_EXPLAIN: &str = "packages/sdk/src/generated/explain.ts";
 const SCHEMAS: [&str; 2] = [
-    "packages/pdf/schemas/error.schema.json",
+    "packages/sdk/schemas/error.schema.json",
     "crates/lamina/schemas/error.schema.json",
 ];
 const ERRORS_README: &str = "docs/errors/README.md";
@@ -67,12 +67,13 @@ const GROUPS: [(&str, &str); 11] = [
     ("renderErrors", "Render errors (`lamina-render`)"),
     ("facadeErrors", "Façade errors (`lamina`)"),
     ("bindingErrors", "Binding errors (`lamina-wasm`)"),
-    ("packageErrors", "Package errors (`@lamina/pdf`)"),
+    ("packageErrors", "Package errors (`@laminapdf/sdk`)"),
 ];
 
-/// Codes of other groups that `@lamina/pdf` raises itself; each must be listed in `codes.json`.
-const ALSO_RAISED_BY_TS: [&str; 4] = [
+/// Codes of other groups that `@laminapdf/sdk` raises itself; each must be listed in `codes.json`.
+const ALSO_RAISED_BY_TS: [&str; 5] = [
     "builder-finished",
+    "cancelled",
     "invalid-argument",
     "nested-transaction",
     "no-transaction",
@@ -93,7 +94,7 @@ impl Entry {
         is_warning_group(&self.group)
     }
 
-    /// Raised only by `@lamina/pdf`, so absent from the Rust enums.
+    /// Raised only by `@laminapdf/sdk`, so absent from the Rust enums.
     fn is_ts_only(&self) -> bool {
         TS_ONLY_GROUPS.contains(&self.group.as_str())
     }
@@ -246,7 +247,7 @@ fn parse(json: &Value, schema: &Value) -> Result<Codes> {
         .iter()
         .find(|c| !entries.iter().any(|e| e.code == **c))
     {
-        bail!("{CODES} does not list {missing:?}, which @lamina/pdf raises (ALSO_RAISED_BY_TS)");
+        bail!("{CODES} does not list {missing:?}, which @laminapdf/sdk raises (ALSO_RAISED_BY_TS)");
     }
     Ok(Codes {
         docs_base: text(&json["docsUrl"], "base")?,
@@ -307,7 +308,7 @@ fn render_rust(codes: &Codes) -> String {
     rust_enum(
         &mut out,
         "ErrorCode",
-        "Every error code lamina's Rust crates and its WASM binding raise (the codes only\n/// `@lamina/pdf` raises are not here), in `codes.json` order.",
+        "Every error code lamina's Rust crates and its WASM binding raise (the codes only\n/// `@laminapdf/sdk` raises are not here), in `codes.json` order.",
         &errors,
     );
     rust_enum(
@@ -318,7 +319,7 @@ fn render_rust(codes: &Codes) -> String {
     );
     out.push_str(
         "\n/// The `explain` page of `code`: the Markdown of `docs/errors/<code>.md`, for every code\n\
-         /// in `codes.json` (including the ones only `@lamina/pdf` raises); `None` for an unknown\n\
+         /// in `codes.json` (including the ones only `@laminapdf/sdk` raises); `None` for an unknown\n\
          /// code. Behind the `explain` feature, so the text never reaches a build without it\n\
          /// (the WASM modules).\n\
          #[cfg(feature = \"explain\")]\n\
@@ -561,7 +562,7 @@ fn ts_groups(out: &mut String) {
     );
     ts_list(
         out,
-        "The groups whose codes only `@lamina/pdf` raises (not in the Rust enums or the WASM).",
+        "The groups whose codes only `@laminapdf/sdk` raises (not in the Rust enums or the WASM).",
         "TS_ONLY_GROUPS",
         "string",
         &TS_ONLY_GROUPS,
@@ -571,7 +572,7 @@ fn ts_groups(out: &mut String) {
 /// `RAISED_BY_PACKAGE`: kind and hint of the codes the TS layer raises itself.
 fn ts_raised_by_package(out: &mut String, codes: &Codes) {
     out.push_str(
-        "/** Kind and hint of the codes `@lamina/pdf` raises itself (the WASM fills in the others). */\n\
+        "/** Kind and hint of the codes `@laminapdf/sdk` raises itself (the WASM fills in the others). */\n\
          export const RAISED_BY_PACKAGE = {\n",
     );
     for e in codes
@@ -594,7 +595,7 @@ fn ts_raised_by_package(out: &mut String, codes: &Codes) {
 fn render_ts_explain(pages: &[(String, String)]) -> String {
     let mut out = format!(
         "{HEADER}\n// From docs/errors/<code>.md; `cargo xtask check docs` fails when it is stale. Imported only\n\
-         // by the `@lamina/pdf/explain` subpath, so the text stays out of the main bundle.\n\n\
+         // by the `@laminapdf/sdk/explain` subpath, so the text stays out of the main bundle.\n\n\
          import type {{ ErrorCode, WarningCode }} from \"./codes.js\";\n\n\
          /** Every code's explain page (ADR 0026 §6), as Markdown. */\n\
          export const PAGES: {{ readonly [C in ErrorCode | WarningCode]: string }} = {{\n"
@@ -664,7 +665,7 @@ fn render_error_schema(codes: &Codes) -> Result<String> {
     };
     let schema = json!({
         "$schema": "https://json-schema.org/draft/2020-12/schema",
-        "$id": "https://github.com/laudebugs/lamina/blob/main/packages/pdf/schemas/error.schema.json",
+        "$id": "https://github.com/laudebugs/lamina/blob/main/packages/sdk/schemas/error.schema.json",
         "title": "lamina.error/1",
         "description": "An error or warning of every lamina surface (ADR 0026 §1): camelCase keys, optional keys omitted (never null). Generated from fixtures/codes.json by `cargo xtask gen codes`; do not edit. New optional keys may appear within version 1; consumers ignore unknown keys.",
         "oneOf": [{ "$ref": "#/$defs/error" }, { "$ref": "#/$defs/warning" }],
@@ -756,7 +757,7 @@ mod tests {
             "docsUrl": { "base": "https://example.org/errors/", "suffix": ".md" },
             "limits": ["max_x"],
             "warnings": [entry("w-one", "input")],
-            "errors": [entry("not-pdf", "input"), entry("limit-exceeded", "limit")],
+            "errors": [entry("not-pdf", "input"), entry("limit-exceeded", "limit"), entry("cancelled", "state")],
             "opErrors": [entry("nested-transaction", "state"), entry("no-transaction", "state")],
             "bindingErrors": [entry("builder-finished", "state"), entry("invalid-argument", "usage")],
             "packageErrors": [entry("p-only", "state")],
@@ -828,6 +829,7 @@ mod tests {
                 "w-one",
                 "not-pdf",
                 "limit-exceeded",
+                "cancelled",
                 "nested-transaction",
                 "no-transaction",
                 "builder-finished",

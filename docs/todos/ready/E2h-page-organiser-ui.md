@@ -43,7 +43,7 @@ Expose every E2 op in the apps: a page-organiser mode with multi-select thumbnai
 **Editor facts**
 
 - **Operations shipped** ([06 §3](../../research/pdf/06-feature-inventory.md#3-full-operation-inventory-with-mechanisms) IDs): `C.01` insert blank pages; `C.02` insert pages from other PDFs; `C.03` delete and duplicate pages; `C.04` reorder pages; `C.05` extract selected pages; `C.06` merge multiple documents; `C.07` split by count, ranges, bookmarks; `C.08` rotate pages 90/180/270; `C.09` crop display area; `C.10` resize page dimensions; `C.11` modify margins and page boxes; `C.12` portrait ↔ landscape; `C.13` reverse page order; `C.16` replace pages, preserving the rest; `H.10` export pages/ranges
-- **Crates and packages:** `@lamina/ui`, `@lamina/viewer` (thumbnail drag layer), `apps/web` (zip via a small streaming zip writer, licence-checked), `apps/desktop`
+- **Crates and packages:** `@laminapdf/ui`, `@laminapdf/viewer` (thumbnail drag layer), `apps/web` (zip via a small streaming zip writer, licence-checked), `apps/desktop`
 - **`SaveConstraint`:** banner from E1e shows violations as the user drags on signed files; drops are refused before applying when `would_violate`
 - **Web vs desktop:** identical except outputs (zip vs folder) and desktop multi-file merge from the OS
 - **Server features:** none (this PR adds no server feature; all processing stays on the device)
