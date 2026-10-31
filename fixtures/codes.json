@@ -704,6 +704,29 @@
       "since": "0.1.0"
     }
   ],
+  "renderErrors": [
+    {
+      "code": "render-too-large",
+      "kind": "limit",
+      "summary": "the requested tile is larger than the render limits allow; nothing was allocated",
+      "hint": "request smaller tiles (256 to 512 pixels at high zoom) or raise RenderLimits if the larger bitmap is intended",
+      "since": "0.1.0"
+    },
+    {
+      "code": "render-failed",
+      "kind": "input",
+      "summary": "the render engine could not open the document or draw the page",
+      "hint": "the file may be damaged or use a feature this engine can't draw; try the other backend, or report the file",
+      "since": "0.1.0"
+    },
+    {
+      "code": "render-backend-unavailable",
+      "kind": "io",
+      "summary": "the render engine is not available: its library or module could not be loaded",
+      "hint": "run cargo xtask fetch-pdfium or set LAMINA_PDFIUM_DIR to the folder holding the PDFium library",
+      "since": "0.1.0"
+    }
+  ],
   "facadeErrors": [
     {
       "code": "cancelled",

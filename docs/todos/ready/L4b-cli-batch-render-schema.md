@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [shareable libraries §7 L4](../../plans/shareable-libraries.md#l4-cli-and-mcp) |
 | Round / milestone | Round L4 (shareable libraries) |
-| Depends on | [L3b](./L3b-extract-tables-and-serialisers.md), [L4a](./L4a-lamina-cli.md), [C2b](../ongoing/C2b-lamina-render-crate.md) |
+| Depends on | [L3b](./L3b-extract-tables-and-serialisers.md), [L4a](./L4a-lamina-cli.md), [C2b](../done/C2b-lamina-render-crate.md) |
 | Blocks | None |
 | ADRs | Implements 0031 (batch and NDJSON rules, from [L4a](./L4a-lamina-cli.md)). Follows 0026 (errors), 0027 (coordinates in output), 0030 (`lamina.extract/1`, from [L3a](./L3a-lamina-extract-reading-order.md)), [0003](../../decisions/0003-reader-tolerance-and-limits.md) (`Limits`), [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) (new dependencies) |
 | Branch | `feat/l4b-cli-batch-render-schema` |
@@ -26,7 +26,7 @@ Make the CLI useful at scale and self-describing for agents. Commands accept man
 - [CLI spec note §4](../../research/libraries/notes/cli-spec.md#4-agent-readiness-schemas-mcp-security-what-agents-need): `schema` from `schemars`, reused as MCP `inputSchema`/`outputSchema`; token economy (`--fields`, `--max-chars`).
 - [CLI spec note §5](../../research/libraries/notes/cli-spec.md#5-rust-implementation-and-distribution): clap_complete, clap_mangen, indicatif, schemars versions.
 - ADR 0031 (from [L4a](./L4a-lamina-cli.md)): exit codes and JSON rules this PR must follow.
-- [C2b](../ongoing/C2b-lamina-render-crate.md): the `RenderBackend` trait and its backends. [L3b](./L3b-extract-tables-and-serialisers.md): Markdown, JSON and chunk serialisers.
+- [C2b](../done/C2b-lamina-render-crate.md): the `RenderBackend` trait and its backends. [L3b](./L3b-extract-tables-and-serialisers.md): Markdown, JSON and chunk serialisers.
 
 ## Scope
 

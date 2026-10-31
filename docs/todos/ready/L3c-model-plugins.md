@@ -25,7 +25,7 @@ Let models improve extraction where rules fail (complex untagged layouts, border
 - [Report: cancellation and progress belong in lamina's API](../../research/libraries/shareable-libraries.md#cancellation-and-progress-belong-in-laminas-api-not-the-bindings): the core stays synchronous; async hosts (WebCrypto-style, platform OCR) need a request/provide shape.
 - [Research 03 §8.3 scanned PDFs and OCR](../../research/pdf/03-text-and-fonts.md#83-scanned-pdfs-and-ocr), [§8.5 layout analysis](../../research/pdf/03-text-and-fonts.md#85-layout-analysis-and-ml-document-understanding-state-of-the-art-2026).
 - [E13d](./E13d-local-ocr.md) (local OCR on web and desktop) and [full-editor E13](../../plans/full-editor.md#e13-ocr-and-conversion): the editor's OCR engines should implement this PR's `OcrEngine` rather than a second interface.
-- [C2b](../ongoing/C2b-lamina-render-crate.md): models need page images; rendering stays in `lamina-render`, never in `lamina-extract`.
+- [C2b](../done/C2b-lamina-render-crate.md): models need page images; rendering stays in `lamina-render`, never in `lamina-extract`.
 
 ## Scope
 

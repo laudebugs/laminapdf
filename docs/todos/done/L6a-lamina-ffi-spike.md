@@ -52,7 +52,7 @@ Answer one question with measurements before any mobile SDK work: **does the B5c
 **Out of scope** (and which todo covers it)
 
 - The product `crates/lamina-ffi`, release pipelines, Maven Central and SPM publishing: rounds from [L6b](../ready/L6b-mobile-sdk-plan.md) (and [P1](../ready/P1-reserve-names-and-trusted-publishing.md) for name reservation).
-- Rendering and tiles (`render_tile`, `trim`): need [C2b](../ongoing/C2b-lamina-render-crate.md); planned in [L6b](../ready/L6b-mobile-sdk-plan.md).
+- Rendering and tiles (`render_tile`, `trim`): need [C2b](../done/C2b-lamina-render-crate.md); planned in [L6b](../ready/L6b-mobile-sdk-plan.md).
 - SwiftUI and Compose views: [L6b](../ready/L6b-mobile-sdk-plan.md).
 - React Native (ubrn) and Kotlin Multiplatform (Gobley): measured only as "does the pin allow it"; no bindings built.
 - Adding mobile jobs to the PR lane: the spike is not in CI (like `spikes/krilla-fit/`); ADR 0029 states the CI plan for the product crate.

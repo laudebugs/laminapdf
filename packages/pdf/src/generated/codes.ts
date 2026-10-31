@@ -75,6 +75,9 @@ export type ErrorCode =
   | "page-index-out-of-range"
   | "unknown-destination"
   | "invalid-page-labels"
+  | "render-too-large"
+  | "render-failed"
+  | "render-backend-unavailable"
   | "cancelled"
   | "job-finished"
   | "document-changed"
@@ -206,6 +209,9 @@ export const ERROR_CODES: readonly ErrorCode[] = [
   "page-index-out-of-range",
   "unknown-destination",
   "invalid-page-labels",
+  "render-too-large",
+  "render-failed",
+  "render-backend-unavailable",
   "cancelled",
   "job-finished",
   "document-changed",
@@ -360,6 +366,9 @@ export const KINDS: { readonly [C in ErrorCode | WarningCode]: ErrorKind } = {
   "page-index-out-of-range": "usage",
   "unknown-destination": "usage",
   "invalid-page-labels": "usage",
+  "render-too-large": "limit",
+  "render-failed": "input",
+  "render-backend-unavailable": "io",
   "cancelled": "cancelled",
   "job-finished": "state",
   "document-changed": "state",
@@ -474,6 +483,9 @@ export const HINTS: { readonly [C in ErrorCode | WarningCode]: string } = {
   "page-index-out-of-range": "use a 0-based index below the document's page count",
   "unknown-destination": "define it with Builder::destination before the build finishes, or link to a page",
   "invalid-page-labels": "give ranges sorted by first page, the first at page 0, numbered from 1",
+  "render-too-large": "request smaller tiles (256 to 512 pixels at high zoom) or raise RenderLimits if the larger bitmap is intended",
+  "render-failed": "the file may be damaged or use a feature this engine can't draw; try the other backend, or report the file",
+  "render-backend-unavailable": "run cargo xtask fetch-pdfium or set LAMINA_PDFIUM_DIR to the folder holding the PDFium library",
   "cancelled": "nothing to do: this is the outcome the caller asked for; start a new job to try again",
   "job-finished": "stop stepping a job once a step returned its result or an error; create a new job",
   "document-changed": "pass the document the job was created from, and don't change it while the job runs; create a new job",
@@ -505,6 +517,7 @@ export const ERROR_GROUPS: readonly string[] = [
   "saveErrors",
   "textErrors",
   "buildErrors",
+  "renderErrors",
   "facadeErrors",
   "bindingErrors",
   "packageErrors",
