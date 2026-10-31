@@ -340,14 +340,17 @@ mod tests {
             .filter(|l| l.trim_start().starts_with("RECORD: "))
             .collect::<Vec<_>>();
         assert!(
-            record_env.len() == 2 && record_env.iter().all(|l| l.contains("inputs.record != false")),
+            record_env.len() == 2
+                && record_env
+                    .iter()
+                    .all(|l| l.contains("toJSON(inputs.record) != 'false'")),
             "{record_env:?}"
         );
-        assert!(NIGHTLY.contains("NIGHTLY_RECORD: ${{ inputs.record != false }}"));
+        assert!(NIGHTLY.contains("NIGHTLY_RECORD: ${{ toJSON(inputs.record) != 'false' }}"));
         let report = NIGHTLY.split("\n  report:\n").nth(1).unwrap_or_default();
         let report_if = report.split("runs-on:").next().unwrap_or_default();
         assert!(
-            report_if.contains("inputs.record != false"),
+            report_if.contains("toJSON(inputs.record) != 'false'"),
             "the report job must skip when not recording"
         );
     }

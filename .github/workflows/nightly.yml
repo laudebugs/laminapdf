@@ -78,7 +78,9 @@ env:
   FUZZ_SECONDS: ${{ inputs.fuzz-seconds || '600' }}
   DIFFERENTIAL_SAMPLE: ${{ inputs.differential-sample || '' }}
   # "false" only when a caller passed `record: false` (schedule and dispatch have no such input).
-  NIGHTLY_RECORD: ${{ inputs.record != false }}
+  # inputs.record is null on scheduled and dispatched runs, and GitHub's == coerces null and false
+  # both to 0, so `inputs.record != false` would be false there too. toJSON keeps them apart.
+  NIGHTLY_RECORD: ${{ toJSON(inputs.record) != 'false' }}
 
 jobs:
   # Every job runs on the self-hosted runners ([self-hosted, macOS, ARM64]), like the PR lanes
@@ -270,7 +272,7 @@ jobs:
     outputs:
       regression: ${{ steps.bench.outputs.regression }}
     env:
-      RECORD: ${{ github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && inputs.record != false }}
+      RECORD: ${{ github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && toJSON(inputs.record) != 'false' }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -323,7 +325,7 @@ jobs:
     permissions:
       contents: write
     env:
-      RECORD: ${{ github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && inputs.record != false }}
+      RECORD: ${{ github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && toJSON(inputs.record) != 'false' }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -430,7 +432,7 @@ jobs:
     needs: [differential, fuzz, scaling, bench, pdf-runtimes, links, forced-failure]
     # Never for a caller that passed `record: false` (the release lane fails on its own result).
     if: >-
-      ${{ always() && inputs.record != false && (contains(needs.*.result, 'failure')
+      ${{ always() && toJSON(inputs.record) != 'false' && (contains(needs.*.result, 'failure')
       || needs.scaling.outputs.flaky == 'true' || needs.links.outputs.flaky == 'true'
       || needs.bench.outputs.regression == 'true') }}
     runs-on: [self-hosted, macOS, ARM64]
