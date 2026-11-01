@@ -19,5 +19,5 @@ Its Wrangler configuration bundles the fonts as `Data` modules:
 
 Run it locally from `packages/sdk` with `pnpm exec wrangler dev -c examples/worker/wrangler.toml`.
 
-- **Errors the caller caused** (kind `input` or `limit`) become a `400` with the error's JSON. See [Errors and warnings](/guides/errors-and-warnings/).
+- **Errors the caller caused** (kind `input` or `limit`) become a `400` with the error's JSON. See [Errors and warnings](/concepts/errors-and-warnings/).
 - **Memory:** both functions free their builder and document as soon as the bytes are saved, because one isolate serves many requests.
