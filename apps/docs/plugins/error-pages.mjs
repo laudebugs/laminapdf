@@ -10,7 +10,7 @@
  * A page's Markdown without its "For contributors" section, which is always last: everything
  * from the last such heading outside a code fence. Trailing spaces and CRLF line ends are fine.
  */
-export function readerMarkdown(markdown) {
+function readerMarkdown(markdown) {
   const lines = markdown.split("\n");
   let fence;
   let cut = -1;
