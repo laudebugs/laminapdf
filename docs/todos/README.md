@@ -12,7 +12,7 @@ New todos start from [`TEMPLATE.md`](TEMPLATE.md). The workflow is in [git workf
 
 IDs: `A`/`P`/`X` [architecture](../plans/architecture.md) (foundations, publishing, cross-cutting), `B` [library](../plans/pdf-library.md), `L` [shareable libraries](../plans/shareable-libraries.md) (contracts, worker, extraction, CLI, agent docs, mobile), `C` [web reader](../plans/web-app.md), `D` [desktop reader](../plans/desktop-app.md), `U` [UI/UX](../plans/ui-ux.md), `E` [editor](../plans/full-editor.md), `H` hosted service ([full-editor](../plans/full-editor.md)), `Q` [docs and code quality](../plans/quality.md). A letter suffix (`B2a`, `B2b`) splits a round into PRs.
 
-**3 ongoing · 218 ready · 66 done** (287 total).
+**3 ongoing · 219 ready · 66 done** (288 total).
 
 ## Can start now
 
@@ -36,6 +36,7 @@ Ready todos whose dependencies are all done:
 - [Q2v](ready/Q2v-did-you-mean.md): One did-you-mean rule, pinned in both languages
 - [Q2y](ready/Q2y-facade-error-wrapping.md): Decide and implement how the façade wraps crate errors
 - [X6](ready/X6-windows-ci.md): Windows CI coverage
+- [X7](ready/X7-fast-lane-gate.md): A required check for the fast lane
 
 ## Ongoing
 
@@ -384,4 +385,5 @@ Ready todos whose dependencies are all done:
 | X4 | [Full PR lane with an always-running gate job](done/X4-full-lane-gate.md) | done | [B2c](done/B2c-lamina-model-corpus-fuzz.md) |
 | X5 | [Linux CI on a self-hosted runner in a container on the Mac](done/X5-linux-ci-container.md) | done | [X4](done/X4-full-lane-gate.md) |
 | X6 | [Windows CI coverage](ready/X6-windows-ci.md) | ready | [X5](done/X5-linux-ci-container.md) |
+| X7 | [A required check for the fast lane](ready/X7-fast-lane-gate.md) | ready | [X4](done/X4-full-lane-gate.md) |
 
