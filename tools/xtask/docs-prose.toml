@@ -50,10 +50,9 @@ proper_nouns = [
 ]
 
 # Internal vocabulary reader text never contains (docs-writing.md, "Write in plain English").
-# Todo IDs (a capital letter, a number and a lowercase suffix such as B8b) and "ADR" followed
-# by a four-digit number are matched by the check itself.
-internal_words = ["golden", "goldens", "CI"]          # case-sensitive whole words; "Round" followed by
-                                                      # a round such as B1 is matched by the check
+# Todo IDs (a capital letter, a number and a lowercase suffix such as B8b), "ADR" followed by a
+# four-digit number, and "Round" followed by a round such as B1 are matched by the check itself.
+internal_words = ["golden", "goldens", "CI"]          # case-sensitive whole words
 internal_phrases = ["fast lane", "full lane"]          # case-insensitive
 repository_paths = ["crates/", "packages/", "fixtures/", "tools/", "apps/", "docs/", "spikes/"]  # prefixes, case-sensitive
 

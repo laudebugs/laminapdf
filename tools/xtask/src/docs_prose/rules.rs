@@ -275,7 +275,7 @@ fn internal_ids(block: &Block, config: &Config) -> Vec<Finding> {
             let mut chars = next.chars();
             chars.next().is_some_and(|c| c.is_ascii_uppercase()) && chars.next().is_some_and(|c| c.is_ascii_digit())
         });
-        if *word == "Round" && round_id {
+        if word.eq_ignore_ascii_case("round") && round_id {
             found.insert("a round (\"Round …\")".to_owned());
         }
         if config.internal_words.iter().any(|internal| internal == word) {
@@ -304,7 +304,7 @@ fn internal_ids(block: &Block, config: &Config) -> Vec<Finding> {
             finding(
                 block.line,
                 "internal-id",
-                format!("remove {what} from reader text; contributors find those in `docs/`"),
+                format!("remove {what} from reader text; contributors look these up in `docs/`"),
             )
         })
         .collect()
@@ -420,8 +420,9 @@ fn sentence_case(block: &Block, config: &Config) -> Vec<Finding> {
             block.line,
             "sentence-case",
             format!(
-                "write the heading in sentence case: make {} lowercase, or add it to `proper_nouns` in tools/xtask/docs-prose.toml",
-                capitalised.join(", ")
+                "write the heading in sentence case: make {} lowercase, or add {} to `proper_nouns` in tools/xtask/docs-prose.toml",
+                capitalised.join(", "),
+                if capitalised.len() == 1 { "it" } else { "them" }
             ),
         )]
     }

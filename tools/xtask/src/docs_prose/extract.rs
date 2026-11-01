@@ -126,16 +126,21 @@ fn read_frontmatter(lines: &[&str]) -> Frontmatter {
             in_prose = trimmed == "prose:";
             let key_value = trimmed.split_once(':').map(|(key, value)| (key.trim(), value.trim()));
             if let Some((key @ ("title" | "description"), value)) = key_value {
-                let value = if [">", ">-", "|", "|-"].contains(&value) {
-                    // A block scalar: the indented lines below it, joined.
+                let value = if value.is_empty() || value.starts_with(['>', '|']) {
+                    // A block scalar (`>-`, `|+`, `>2` …) or a plain value continued on indented
+                    // lines: the indented and blank lines below it, joined.
                     let block: Vec<&str> = lines
                         .iter()
                         .skip(index)
-                        .take_while(|next| next.starts_with(' '))
+                        .take_while(|next| next.starts_with(' ') || next.trim().is_empty())
                         .map(|next| next.trim())
                         .collect();
                     index += block.len();
-                    block.join(" ")
+                    block
+                        .into_iter()
+                        .filter(|part| !part.is_empty())
+                        .collect::<Vec<_>>()
+                        .join(" ")
                 } else {
                     unquote(value)
                 };
@@ -181,32 +186,47 @@ fn blank_mdx_statements(body: &str) -> String {
             String::new()
         }
     };
+    // Brace depth of the statement being blanked; a statement ends when it returns to zero.
+    let depth_change = |line: &str| {
+        let opens = line.matches('{').count();
+        let closes = line.matches('}').count();
+        i64::try_from(opens).unwrap_or(0) - i64::try_from(closes).unwrap_or(0)
+    };
     let mut in_header = true;
-    let mut in_statement = false;
+    let mut depth = 0_i64;
     let mut fence: Option<String> = None;
     body.split_inclusive('\n')
         .map(|line| {
             let trimmed = line.trim_start();
-            if in_statement {
-                in_statement =
-                    !(trimmed.contains(" from ") || trimmed.starts_with("from ") || trimmed.trim_end().ends_with(';'));
+            if depth > 0 {
+                depth += depth_change(trimmed);
                 return blank(line);
             }
             if in_header {
-                let keyword = trimmed.starts_with("import ") || trimmed.starts_with("export ");
-                let complete = trimmed.contains(" from ") || trimmed.trim_end().ends_with(';');
+                let keyword = trimmed
+                    .strip_prefix("import ")
+                    .or_else(|| trimmed.strip_prefix("export "));
                 // Prose may start with "import" too: a statement looks like code.
-                if keyword && (complete || trimmed.contains('{')) {
-                    in_statement = !complete && trimmed.contains('{') && !trimmed.contains('}');
+                let code_like = keyword.is_some_and(|rest| {
+                    rest.starts_with(['"', '\'', '{', '*'])
+                        || rest.contains(" from ")
+                        || rest.contains('=')
+                        || rest.trim_end().ends_with(';')
+                });
+                if code_like {
+                    depth = depth_change(trimmed).max(0);
                     return blank(line);
                 }
                 in_header = trimmed.trim().is_empty();
             }
-            // Code fences close only on the same marker, at least as long.
+            // A fence closes only on the same marker (at least as long) with nothing after it,
+            // indented less than four spaces.
+            let indent = line.len() - trimmed.len();
             let marker: String = trimmed.chars().take_while(|c| *c == '`' || *c == '~').collect();
-            if marker.len() >= 3 {
+            if marker.len() >= 3 && indent < 4 {
+                let rest_is_blank = trimmed.get(marker.len()..).is_some_and(|rest| rest.trim().is_empty());
                 match &fence {
-                    Some(open) if marker.starts_with(open.as_str()) => fence = None,
+                    Some(open) if marker.starts_with(open.as_str()) && rest_is_blank => fence = None,
                     None => fence = Some(marker),
                     Some(_) => {}
                 }
@@ -325,8 +345,9 @@ impl Walker {
     /// Components arrive as HTML: classify them; inline HTML inside prose is dropped.
     fn html(&mut self, html: &str, line: usize) {
         let trimmed = html.trim_start();
-        // A `<Snippet>` right under a line of text arrives as inline HTML: it ends the paragraph.
-        if self.open.is_some() {
+        // A `<Snippet>` right under a line of text arrives as inline HTML: it ends the paragraph,
+        // and any text after it starts a new one of the same kind.
+        if let Some(kind) = self.open.as_ref().map(|block| block.kind) {
             if trimmed.starts_with("<Snippet") {
                 self.close();
                 self.blocks.push(Block {
@@ -334,7 +355,17 @@ impl Walker {
                     line,
                     segments: Vec::new(),
                 });
+                self.open = Some(Block {
+                    kind,
+                    line,
+                    segments: Vec::new(),
+                });
             }
+            return;
+        }
+        // The later lines of a component written over several lines (`file="…"`, `/>`) belong to
+        // the block its first line made.
+        if !trimmed.starts_with('<') {
             return;
         }
         let kind = if trimmed.starts_with("<Snippet") {
@@ -479,6 +510,51 @@ mod tests {
     fn a_snippet_under_a_line_of_text_should_be_a_snippet() {
         let page = parse("This builds a page:\n<Snippet file=\"a.ts\" />\n");
         assert_eq!(kinds(&page), vec![Kind::Paragraph, Kind::Snippet]);
+    }
+
+    #[test]
+    fn a_multi_line_export_without_a_semicolon_should_end_at_its_closing_brace() {
+        let page = parse("export const meta = {\n  a: 1,\n}\n\nThe page text.\n");
+        assert_eq!(page.blocks.first().map(Block::text), Some("The page text.".into()));
+    }
+
+    #[test]
+    fn a_side_effect_import_should_be_blanked() {
+        let page = parse("import \"./styles.css\"\n\nThe page text.\n");
+        assert_eq!(page.blocks.first().map(Block::text), Some("The page text.".into()));
+    }
+
+    #[test]
+    fn a_fence_should_not_close_on_a_line_with_an_info_string() {
+        let page = parse("```md\n```ts\n:::note\n```\n\nAfter.\n");
+        assert_eq!(page.blocks.last().map(Block::text), Some("After.".into()));
+    }
+
+    #[test]
+    fn descriptions_over_several_lines_should_be_read() {
+        let folded = parse("---\ntitle: T\ndescription: >+\n  One\n\n  two.\n---\n\nText.\n");
+        assert_eq!(folded.frontmatter.and_then(|f| f.description), Some("One two.".into()));
+        let plain = parse("---\ntitle: T\ndescription:\n  One line\n  and another.\n---\n\nText.\n");
+        assert_eq!(
+            plain.frontmatter.and_then(|f| f.description),
+            Some("One line and another.".into())
+        );
+    }
+
+    #[test]
+    fn a_snippet_written_over_several_lines_should_be_one_block() {
+        let page = parse("Intro:\n\n<Snippet\n  file=\"a.ts\"\n/>\n");
+        assert_eq!(kinds(&page), vec![Kind::Paragraph, Kind::Snippet]);
+    }
+
+    #[test]
+    fn text_after_an_inline_snippet_should_be_kept() {
+        let page = parse("Intro:\n<Snippet file=\"a.ts\" /> and more text.\n");
+        let texts: Vec<String> = page.blocks.iter().map(Block::text).collect();
+        assert_eq!(
+            texts.last().map(|text| text.trim().to_owned()),
+            Some("and more text.".into())
+        );
     }
 
     #[test]
