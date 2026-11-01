@@ -12,7 +12,7 @@ New todos start from [`TEMPLATE.md`](TEMPLATE.md). The workflow is in [git workf
 
 IDs: `A`/`P`/`X` [architecture](../plans/architecture.md) (foundations, publishing, cross-cutting), `B` [library](../plans/pdf-library.md), `L` [shareable libraries](../plans/shareable-libraries.md) (contracts, worker, extraction, CLI, agent docs, mobile), `C` [web reader](../plans/web-app.md), `D` [desktop reader](../plans/desktop-app.md), `U` [UI/UX](../plans/ui-ux.md), `E` [editor](../plans/full-editor.md), `H` hosted service ([full-editor](../plans/full-editor.md)), `Q` [docs and code quality](../plans/quality.md). A letter suffix (`B2a`, `B2b`) splits a round into PRs.
 
-**1 ongoing · 223 ready · 63 done** (287 total).
+**2 ongoing · 222 ready · 63 done** (287 total).
 
 ## Can start now
 
@@ -26,7 +26,6 @@ Ready todos whose dependencies are all done:
 - [D1a](ready/D1a-desktop-ipc-spike.md): `desktop-ipc` spike: tile transport and COOP/COEP in the three webviews
 - [U1a](ready/U1a-adr-0024-app-shell-ux.md): ADR 0024: app shell UX (layout, modes, command registry, selection, page appearance, mobile)
 - [P1](ready/P1-reserve-names-and-trusted-publishing.md): Reserve names, ADR 0017 publishing part, OIDC trusted publishing and the release workflow
-- [Q1c](ready/Q1c-examples-checks.md): The examples checks: `docs-snippets`, a Biome override and `clippy-examples`
 - [Q1d](ready/Q1d-example-api-cleanups.md): API fixes the examples need
 - [Q2a](ready/Q2a-maintainability-checks-rust.md): `check maintainability` for Rust: module budget and new lints
 - [Q2f](ready/Q2f-page-attributes-one-owner.md): One reader of page attributes and one rotation type (fixes `/Rotate 90.0`)
@@ -41,6 +40,7 @@ Ready todos whose dependencies are all done:
 
 ## Ongoing
 
+- [Q1c](ongoing/Q1c-examples-checks.md): The examples checks: `docs-snippets`, a Biome override and `clippy-examples`
 - [Q2k](ongoing/Q2k-boundary-errors-ts.md): One error wire shape in TypeScript (fixes lost render ranges)
 
 ## Architecture — Round A
@@ -335,11 +335,11 @@ Ready todos whose dependencies are all done:
 | --- | --- | --- | --- |
 | Q1a | [One sans-serif font on the docs site (Source Sans 3)](done/Q1a-docs-font-source-sans.md) | done | — |
 | Q1b | [The `docs-prose` check for reader-facing text](done/Q1b-docs-prose-check.md) | done | — |
-| Q1c | [The examples checks: `docs-snippets`, a Biome override and `clippy-examples`](ready/Q1c-examples-checks.md) | ready | — |
+| Q1c | [The examples checks: `docs-snippets`, a Biome override and `clippy-examples`](ongoing/Q1c-examples-checks.md) | ongoing | — |
 | Q1d | [API fixes the examples need](ready/Q1d-example-api-cleanups.md) | ready | — |
-| Q1e | [Runnable quick-start apps for every runtime](ready/Q1e-quick-start-apps.md) | ready | [Q1c](ready/Q1c-examples-checks.md) |
-| Q1f | [Examples readers can copy](ready/Q1f-examples-readable.md) | ready | [Q1c](ready/Q1c-examples-checks.md), [Q1d](ready/Q1d-example-api-cleanups.md) |
-| Q1g | [Worker examples that work outside this repository](ready/Q1g-worker-examples.md) | ready | [Q1c](ready/Q1c-examples-checks.md) |
+| Q1e | [Runnable quick-start apps for every runtime](ready/Q1e-quick-start-apps.md) | ready | [Q1c](ongoing/Q1c-examples-checks.md) |
+| Q1f | [Examples readers can copy](ready/Q1f-examples-readable.md) | ready | [Q1c](ongoing/Q1c-examples-checks.md), [Q1d](ready/Q1d-example-api-cleanups.md) |
+| Q1g | [Worker examples that work outside this repository](ready/Q1g-worker-examples.md) | ready | [Q1c](ongoing/Q1c-examples-checks.md) |
 | Q1h | [The docs as a story: start pages, concepts, glossary and an explicit sidebar](ready/Q1h-docs-story.md) | ready | [Q1b](done/Q1b-docs-prose-check.md), [Q1e](ready/Q1e-quick-start-apps.md) |
 | Q1i | [Plain-English guides: creating PDFs](ready/Q1i-guides-create.md) | ready | [Q1h](ready/Q1h-docs-story.md) |
 | Q1j | [Recipes, one page per example, and troubleshooting](ready/Q1j-recipes-and-troubleshooting.md) | ready | [Q1f](ready/Q1f-examples-readable.md), [Q1g](ready/Q1g-worker-examples.md), [Q1h](ready/Q1h-docs-story.md) |

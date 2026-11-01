@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [Quality plan §6](../../plans/quality.md#6-todos) |
 | Round / milestone | Round Q (docs and code quality) |
-| Depends on | [Q1c](./Q1c-examples-checks.md) |
+| Depends on | [Q1c](../ongoing/Q1c-examples-checks.md) |
 | Blocks | [Q1h](./Q1h-docs-story.md) |
 | ADRs | None |
 | Branch | `feat/q1e-quick-start-apps` |

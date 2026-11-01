@@ -3,11 +3,11 @@
 | Field | Value |
 | --- | --- |
 | ID | `Q1c` |
-| Status | `ready` |
+| Status | `ongoing` |
 | Plan | [Quality plan §6](../../plans/quality.md#6-todos) |
 | Round / milestone | Round Q (docs and code quality) |
 | Depends on | None |
-| Blocks | [Q1e](./Q1e-quick-start-apps.md), [Q1f](./Q1f-examples-readable.md), [Q1g](./Q1g-worker-examples.md) |
+| Blocks | [Q1e](../ready/Q1e-quick-start-apps.md), [Q1f](../ready/Q1f-examples-readable.md), [Q1g](../ready/Q1g-worker-examples.md) |
 | ADRs | None |
 | Branch | `feat/q1c-examples-checks` |
 | PR title | `feat(xtask): docs-snippets, the examples Biome override and clippy-examples` |
@@ -43,11 +43,11 @@ The owner asked for a check that keeps examples maintainable while we write them
 
 **Out of scope** (and which todo covers it)
 
-- Rewriting the examples ([Q1e](./Q1e-quick-start-apps.md), [Q1f](./Q1f-examples-readable.md), [Q1g](./Q1g-worker-examples.md)).
+- Rewriting the examples ([Q1e](../ready/Q1e-quick-start-apps.md), [Q1f](../ready/Q1f-examples-readable.md), [Q1g](../ready/Q1g-worker-examples.md)).
 
 ## Tasks
 
-- [ ] Claim via a claim PR (see Definition of done); then a fresh worktree off the updated `main`.
+- [x] Claim via a claim PR (see Definition of done); then a fresh worktree off the updated `main`.
 - [ ] Write `docs-snippets` with unit tests; read the glob from `Snippet.astro` and the uses from the `.mdx` files.
 - [ ] Add the Biome override; run it and list today's violations.
 - [ ] Add `clippy-examples` and its configuration directory; run it and list today's violations.
@@ -77,7 +77,7 @@ Biome rule names can differ between versions: confirm each with `biome explain` 
 
 ## Definition of done
 
-- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [x] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
 - [ ] Work PR opened from a fresh worktree; **PR** field filled in
 - [ ] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
 - [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
