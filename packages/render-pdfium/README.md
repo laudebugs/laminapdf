@@ -10,7 +10,7 @@ const pdfium = await initPdfium(wasmUrl); // a URL, Response, bytes or compiled 
 ```
 
 - **The build:** [`@embedpdf/pdfium`](https://www.npmjs.com/package/@embedpdf/pdfium) **2.15.1**, an npm dependency pinned exactly. Its `pdfium.wasm` must have SHA-256 `5e4cd023…4eaa`.
-  - **Checking:** `scripts/verify-pdfium.mjs` checks the hash before every `build`, `typecheck` and `test`, so any other file fails them; `test/verify.test.ts` tests the verifier.
+  - **Checking:** the hash is checked before every build and test, so any other file fails them.
   - **Fetched, not vendored:** pnpm's lockfile pins the tarball's integrity, and the 4.6 MB binary stays out of git.
   - **Revision:** the package doesn't record its PDFium revision. It is built from EmbedPDF's fork, [`embedpdf/runtime`](https://github.com/embedpdf/runtime), without XFA, V8 or Skia.
 - **Loading:** `initPdfium(wasm)` loads the module through Emscripten's `instantiateWasm` hook. URLs are compiled while they download when served as `application/wasm`. The caller decides where the `.wasm` comes from, which controls caching and lazy loading. There are no top-level side effects.
@@ -21,11 +21,14 @@ const pdfium = await initPdfium(wasmUrl); // a URL, Response, bytes or compiled 
   - **Output:** `FPDF_REVERSE_BYTE_ORDER` gives RGBA, which is copied out of the heap once. Bitmap and buffer are freed on every path.
 - **Cancellation:** the `AbortSignal` is checked before and after the synchronous engine call. Progressive rendering is exported by the build, but not used yet; that's a follow-up if long single tiles need it.
 - **Notices:** `@embedpdf/pdfium` ships none for PDFium's bundled libraries. [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md) lists them, and apps ship it.
-- **Size:** `pdfium.wasm` is 2,136,390 B gzip. Its budget in `packages/wasm/size-budgets.json` (`thirdParty.pdfium`) is that plus 5 %, checked by `cargo xtask size`.
+- **Size:** `pdfium.wasm` is 2,136,390 B gzip.
 
 ## For contributors
 
 It is the default renderer of [ADR 0004](../../docs/decisions/0004-render-backend.md), pinned per [§3](../../docs/decisions/0004-render-backend.md#3-the-pinned-pdfium-builds), in the document worker of [ADR 0009](../../docs/decisions/0009-web-client-architecture.md) §2; its size was measured by [C1b](../../docs/todos/done/C1b-pdfium-wasm-spike.md). A re-pin changes `package.json`, the hash in the script, ADR 0004 and `THIRD_PARTY_NOTICES.md` together.
+
+- **Hash check:** `scripts/verify-pdfium.mjs` checks the hash before every `build`, `typecheck` and `test`; `test/verify.test.ts` tests the verifier.
+- **Size budget:** `thirdParty.pdfium` in `packages/wasm/size-budgets.json` is the measured size plus 5 %, checked by `cargo xtask size`.
 
 ### Tests
 

@@ -9,7 +9,7 @@ The Web Worker running `@laminapdf/sdk` (from `@laminapdf/sdk/worker`) stopped: 
 
 ## Why
 
-Silence doesn't count as a crash: a long synchronous call can keep the Web Worker busy without answering, so there is no heartbeat. Only the Web Worker's `error` or `messageerror` event, or a trap it reports, counts as a crash.
+A long synchronous call can keep the Web Worker busy without answering, so lamina has no heartbeat and never treats silence as a crash. Only the Web Worker's `error` or `messageerror` event, or a trap it reports, counts as a crash.
 
 ## How to fix
 

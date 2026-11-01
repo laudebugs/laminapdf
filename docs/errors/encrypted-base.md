@@ -9,7 +9,7 @@ A save was requested for an encrypted document without `SaveOptions::with_remove
 
 ## Why
 
-lamina can't encrypt on save yet, and lamina never drops or corrupts encryption silently.
+lamina can't encrypt on save yet, and it never drops or corrupts encryption silently.
 
 ## How to fix
 

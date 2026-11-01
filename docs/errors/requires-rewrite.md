@@ -9,7 +9,12 @@ An incremental save was requested, but only a full rewrite is safe for this docu
 
 ## Why
 
-The save planner found a reason the file must be rewritten. A repaired base has cross-reference data an appended revision can't build on. An encrypted base is being saved without its encryption. A document built from scratch has no base bytes at all. Or a pending op, such as a redaction, removes content that an earlier revision would keep.
+The save planner found one of four reasons the file must be rewritten:
+
+- a repaired base, whose cross-reference data an appended revision can't build on;
+- an encrypted base being saved without its encryption;
+- a document built from scratch, with no base bytes at all;
+- a pending op, such as a redaction, that removes content an earlier revision would keep.
 
 ## How to fix
 

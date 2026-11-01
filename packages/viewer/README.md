@@ -2,7 +2,7 @@
 
 `@laminapdf/viewer` shows a PDF in a web page: it scrolls a 1,000-page document smoothly, draws each page sharp, and zooms around the cursor. It has no UI framework inside, so a React toolbar or the desktop app drives it from outside. It has two parts:
 
-- **The viewer** handles layout, virtualisation, canvases and zoom.
+- **The view** handles layout, virtualisation, canvases and zoom.
 - **The document Web Worker**, one per open document, opens and renders the file away from the page's main thread.
 
 The package is private and ESM-only.
@@ -18,9 +18,9 @@ viewer.open(await client.open(file)); // a File, a Blob or bytes
 viewer.subscribe(() => toolbar.update(viewer.getState())); // page, zoom, rotation
 ```
 
-## The viewer
+## The view
 
-The viewer keeps only the pages near the viewport in the DOM and paints each in two passes through the document Web Worker. Six parts do that work:
+The view keeps only the pages near the viewport in the DOM and paints each in two passes through the document Web Worker. Six parts do that work:
 
 - **Layout.** Every page's size comes from its displayed size in points, the zoom and the view rotation. The pages stack in one column with a gap. The offsets are prefix sums, so finding the page at a scroll position is a binary search, and a zoom change costs one pass over the pages (`PageLayout`).
 - **Virtualisation.** The viewer mounts a shell for each page in view, plus a margin of 2 pages or one viewport each side, whichever is larger. A shell that leaves the margin aborts its renders. If a result still arrives for that page, the viewer drops it and never draws it. Scroll handling reads the DOM first and writes it once per animation frame.

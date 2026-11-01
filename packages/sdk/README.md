@@ -52,12 +52,12 @@ A page that never draws text never downloads the text module. A `Builder` is bui
 | Condition | Entry | How the `.wasm` is loaded |
 | --- | --- | --- |
 | `workerd` | `dist/entry/workerd.js` | `import wasm from "@laminapdf/wasm/lamina_base.wasm"`: a `WebAssembly.Module` bundled with the Worker (both modules) |
-| `deno`, `browser`, `default` | `dist/index.js` | the glue's `new URL("lamina_base.wasm", import.meta.url)`, fetched and compiled streaming; bundlers emit it as an asset |
+| `deno`, `browser`, `default` | `dist/index.js` | `new URL("lamina_base.wasm", import.meta.url)` in the package's loader, fetched and compiled streaming; bundlers emit it as an asset |
 | `node` (Node, Bun) | `dist/entry/node.js` | the file of `@laminapdf/wasm`, read as bytes |
 
 The escape hatch is the input of `init`: a URL or string, a `Response` (or a promise of one), bytes (`ArrayBuffer`, `Uint8Array`) or a compiled `WebAssembly.Module`, for the base module (`init(source)` or `init({ module })`) and the text module (`init({ text: source })` or `loadText(source)`). `init` is idempotent and a failed load can be retried; naming a different source after a module is loaded (or loading) throws `already-initialized`.
 
-**Vite:** exclude the package from dependency pre-bundling, so the `.wasm` URLs stay next to the glue:
+**Vite:** exclude the package from dependency pre-bundling, so the `.wasm` files stay next to the JavaScript that loads them:
 
 ```ts
 // vite.config.ts
@@ -123,7 +123,7 @@ if (isLaminaError(e)) console.error(e.message, e.hint, explain(e.code));
 
 Documents open in the richest module loaded: text, then extract, then base. Load the extract or text module before you open or build a document whose text you need; otherwise `page.text()` throws `extract-module-not-loaded`. `doc.canExtractText` tells which module a document is in.
 
-The text module extracts text too, so with it loaded the extract module isn't, and documents live in the text module's memory. In Cloudflare Workers, pass the module yourself so Cloudflare Workers that don't extract text don't bundle it: `import extract from "@laminapdf/wasm/lamina_extract.wasm"; await loadExtract(extract);`.
+The text module also extracts text. Once it is loaded, lamina doesn't load the extract module, and documents live in the text module's memory. In a Cloudflare Worker, pass the module yourself, so a Cloudflare Worker that doesn't extract text doesn't bundle it: `import extract from "@laminapdf/wasm/lamina_extract.wasm"; await loadExtract(extract);`.
 
 ```ts
 await init({ extract: true });
@@ -193,7 +193,7 @@ const updated = await doc.save({ mode: "incremental" }, { signal, onProgress: (p
 
 ## Memory
 
-Documents, builders, pages and images live in WebAssembly memory. `doc.free()` (or `using doc = Document.open(…)`) frees a document at once; `page.finish()` and `builder.finish()` free their own side; unreleased objects are freed by the glue's `FinalizationRegistry` when collected. `wasmMemory()` reports each module's memory size.
+Documents, builders, pages and images live in WebAssembly memory. `doc.free()` (or `using doc = Document.open(…)`) frees a document at once; `page.finish()` and `builder.finish()` free their own side; the garbage collector frees anything you don't release, through a `FinalizationRegistry`. `wasmMemory()` reports each module's memory size.
 
 ## Examples
 

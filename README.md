@@ -2,7 +2,7 @@
 
 lamina creates, reads, edits and saves PDFs from code, in Rust and in TypeScript on every JavaScript runtime.
 
-**Documentation:** [docs.laminapdf.com](https://docs.laminapdf.com): quick starts for the browser, Node, Deno, Bun, Cloudflare Workers and Rust, guides, examples and the API reference.
+**Documentation:** [docs.laminapdf.com](https://docs.laminapdf.com) has quick starts for each runtime, guides, examples and the API reference.
 
 ```ts
 import { Builder, Font, init } from "@laminapdf/sdk";
