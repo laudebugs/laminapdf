@@ -86,6 +86,18 @@ export const PRIORITY: { readonly [P in Priority | "document"]: number } = Objec
  * RenderRequest (page, scale, clip, rotation, flags and background), so two requests share a run
  * only when their pixels are the same (ADR 0009 §3.3).
  */
+/** The fields of a render key that say which pixels it holds (see {@link renderKey}). */
+export interface RenderKeyFields {
+  readonly scale: number;
+  readonly rotation: number;
+}
+
+/** Reads back the scale and rotation from a {@link renderKey}. */
+export function renderKeyFields(key: string): RenderKeyFields {
+  const fields = JSON.parse(key) as unknown[];
+  return { scale: fields[2] as number, rotation: fields[4] as number };
+}
+
 export function renderKey(request: RenderRequest, id: number): string {
   const { page, scale, clip, rotation = 0, flags, background } = request;
   return JSON.stringify([

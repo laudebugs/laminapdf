@@ -3,10 +3,10 @@
 | Field | Value |
 | --- | --- |
 | ID | `C3b` |
-| Status | `ongoing` |
+| Status | `done` |
 | Plan | [web reader §6 C3. Viewer core](../../plans/web-app.md#c3-viewer-core) |
 | Round / milestone | Round C (web reader) — M2 Web reader v0.1 |
-| Depends on | [C3a](../done/C3a-viewer-worker-rpc.md) |
+| Depends on | [C3a](./C3a-viewer-worker-rpc.md) |
 | Blocks | [C3c](../ready/C3c-viewer-perf-harness.md), [C4a](../ready/C4a-ui-chrome-and-platform.md), [D1a](../ready/D1a-desktop-ipc-spike.md), [D1b](../ready/D1b-desktop-print-spike.md), [D2d](../ready/D2d-tile-transport-and-first-document.md) |
 | ADRs | Implements 0009 (framework-free viewer core, `ImageBitmap` transfer, pooled canvases) |
 | Branch | `feat/c3b-viewer-virtualiser` |
@@ -47,26 +47,37 @@ Make the viewer scroll a 1,000-page document like a native app. A prefix-sum pag
 
 ## Tasks
 
-- [ ] Claim via a claim PR (see Definition of done); then a fresh worktree off the updated `main`.
-- [ ] `PageLayout` with unit tests: prefix sums for 10,000 variable-size pages computed in < 5 ms equivalent work (asserted by operation count, not wall clock), `pageAt` by binary search, recompute on zoom/rotation in O(n) once.
-- [ ] Page shells: one `div.lamina-page` per mounted page with `data-page-index`, fixed size from layout, child slots in z-order: `canvas` (raster), `div.lamina-layer-text`, `div.lamina-layer-annot`, `div.lamina-layer-highlight` (empty for now), with a `PageLayerHost` API to register layers (`onMount/onUnmount/onZoom`) so later todos plug in.
-- [ ] Virtualisation: mount visible range ± margin (default 2 pages or 1 viewport, whichever is larger); unmount releases canvases and cancels in-flight requests via `AbortController` per page.
-- [ ] `CanvasPool`: max N canvases (default 12), hard cap on total canvas pixels (default 64 Mpx, lower on iOS detected by capability, not UA sniffing where possible); reuse resets size and context state.
-- [ ] Progressive render: low-res pass → `drawImage` scaled; then tiles for the visible part of the page at full DPR; tile bitmaps drawn into the page canvas when all are ready or progressively; stale tiles (old zoom) kept until the new ones arrive (no white flash) and then closed.
-- [ ] `BitmapCache` with byte accounting (`width × height × 4`), default budget 256 MB, evicting farthest-from-viewport first; `close()` every evicted bitmap.
-- [ ] Zoom anchoring: compute the document point under the anchor (cursor or viewport centre) before zoom, re-layout, then set `scrollTop/Left` so the point stays put; debounce sharp re-render until zoom gestures settle (e.g. 150 ms) and show CSS-scaled bitmaps meanwhile.
-- [ ] Scroll performance: all DOM writes in a single rAF; no layout reads after writes in the same frame; passive listeners; `content-visibility`/`contain: strict` on page shells.
-- [ ] Public API (named exports): `createViewer(options)`, `Viewer#open(doc)`, `goToPage(index, { anchor })`, `setZoom(value | mode, { anchor })`, `rotate(delta)`, `subscribe(listener)`, `getState()`, `destroy()`; events for `pagechange`, `zoomchange`, `renderstats` (for the harness).
-- [ ] Demo page and README section.
+- [x] Claim via a claim PR (see Definition of done); then a fresh worktree off the updated `main`.
+- [x] `PageLayout` with unit tests: prefix sums for 10,000 variable-size pages computed in < 5 ms equivalent work (asserted by operation count, not wall clock), `pageAt` by binary search, recompute on zoom/rotation in O(n) once.
+- [x] Page shells: one `div.lamina-page` per mounted page with `data-page-index`, fixed size from layout, child slots in z-order: `canvas` (raster), `div.lamina-layer-text`, `div.lamina-layer-annot`, `div.lamina-layer-highlight` (empty for now), with a `PageLayerHost` API to register layers (`onMount/onUnmount/onZoom`) so later todos plug in.
+- [x] Virtualisation: mount visible range ± margin (default 2 pages or 1 viewport, whichever is larger); unmount releases canvases and cancels in-flight requests via `AbortController` per page.
+- [x] `CanvasPool`: max N canvases (default 12), hard cap on total canvas pixels (default 64 Mpx, lower on iOS detected by capability, not UA sniffing where possible); reuse resets size and context state.
+- [x] Progressive render: low-res pass → `drawImage` scaled; then tiles for the visible part of the page at full DPR; tile bitmaps drawn into the page canvas when all are ready or progressively; stale tiles (old zoom) kept until the new ones arrive (no white flash) and then closed.
+- [x] `BitmapCache` with byte accounting (`width × height × 4`), default budget 256 MB, evicting farthest-from-viewport first; `close()` every evicted bitmap.
+- [x] Zoom anchoring: compute the document point under the anchor (cursor or viewport centre) before zoom, re-layout, then set `scrollTop/Left` so the point stays put; debounce sharp re-render until zoom gestures settle (e.g. 150 ms) and show CSS-scaled bitmaps meanwhile.
+- [x] Scroll performance: all DOM writes in a single rAF; no layout reads after writes in the same frame; passive listeners; `content-visibility`/`contain: strict` on page shells.
+- [x] Public API (named exports): `createViewer(options)`, `Viewer#open(doc)`, `goToPage(index, { anchor })`, `setZoom(value | mode, { anchor })`, `rotate(delta)`, `subscribe(listener)`, `getState()`, `destroy()`; events for `pagechange`, `zoomchange`, `renderstats` (for the harness).
+- [x] Demo page and README section.
 
 ## Acceptance criteria
 
-- [ ] In Playwright (Chromium, Firefox, WebKit), scrolling the demo from page 1 to 1,000 of a generated 1,000-page fixture never mounts more than `visible + 2 × margin` page shells and never holds more than the pool's max canvases (asserted through `renderstats`).
-- [ ] **Cancelled renders never paint**: a test scrolls fast past 200 pages; no `drawImage` occurs for a page that is unmounted at the time the result arrives (instrumented counter = 0).
-- [ ] Zoom anchoring: after ctrl+wheel zoom 100 % → 200 % → 50 % at a fixed cursor position, the document point under the cursor moves by ≤ 1 CSS px (asserted from layout maths and screenshots).
-- [ ] Fit width / fit page / actual size produce the expected scale for portrait, landscape and rotated pages (unit tests).
-- [ ] After scrolling stops, every visible page reaches sharp tiles (state `sharp` in `renderstats`) — the timing budget itself is enforced by [C3c](../ready/C3c-viewer-perf-harness.md).
-- [ ] No React or other framework import in `packages/viewer` (lint rule / test scanning imports).
+- [x] In Playwright (Chromium, Firefox, WebKit), scrolling the demo from page 1 to 1,000 of a generated 1,000-page fixture never mounts more than `visible + 2 × margin` page shells and never holds more than the pool's max canvases (asserted through `renderstats`).
+- [x] **Cancelled renders never paint**: a test scrolls fast past 200 pages; no `drawImage` occurs for a page that is unmounted at the time the result arrives (instrumented counter = 0).
+- [x] Zoom anchoring: after ctrl+wheel zoom 100 % → 200 % → 50 % at a fixed cursor position, the document point under the cursor moves by ≤ 1 CSS px (asserted from layout maths and screenshots).
+- [x] Fit width / fit page / actual size produce the expected scale for portrait, landscape and rotated pages (unit tests).
+- [x] After scrolling stops, every visible page reaches sharp tiles (state `sharp` in `renderstats`) — the timing budget itself is enforced by [C3c](../ready/C3c-viewer-perf-harness.md).
+- [x] No React or other framework import in `packages/viewer` (lint rule / test scanning imports).
+
+## Outcome
+
+The viewer shipped as planned, with five differences.
+
+- **Browser tests:** the Playwright specs run as Vitest browser-mode tests (`test/browser/viewer.browser.test.ts`), not as a separate `e2e/` suite. They run in the same three engines through the same Playwright provider, so one runner covers both C3a's and C3b's tests. The scroll test drives the viewer API in a test page rather than the demo, which C3c measures.
+- **Anchoring across:** the point under the cursor holds vertically at every zoom. Horizontally it holds while the pages are wider than the viewport. Narrower pages are centred, so no horizontal scroll can keep the point; the test checks x only while the pages are wider than the viewport. The acceptance check uses the layout maths and real ctrl+wheel events, not screenshots.
+- **Tall documents:** a document taller than 16 million CSS px at the chosen zoom gets its zoom capped. A scaled scroll space, which maps the scroll position, waits until a real document needs it. 1,000 letter pages at 400 % come to about 4.2 million CSS px.
+- **Pixel cap on iOS:** the pool's 64-million-pixel cap is an option (`pool: { maxPixels }`), but there is no detection that lowers it on iOS. [U3a](../ready/U3a-responsive-mobile-and-touch.md) tunes the mobile caps.
+- **Prefetched pages:** pages in the margin get only the blurry pass, at `prefetch` priority. Their sharp tiles are drawn when they scroll into view.
+- **API names:** the factory's options type is `CreateViewerOptions`, because `ViewerOptions` already names the client's. The view state includes `pageCount` and `percent`.
 
 ## Post-merge checks
 
@@ -89,8 +100,8 @@ Unit tests (layout, zoom maths, cache eviction, pool caps) in `packages/viewer/s
 
 ## Definition of done
 
-- [ ] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
-- [ ] Work PR opened from a fresh worktree; **PR** field filled in
-- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
-- [ ] CI green
-- [ ] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated
+- [x] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [x] Work PR opened from a fresh worktree; **PR** field filled in
+- [x] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings)
+- [x] CI green
+- [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated

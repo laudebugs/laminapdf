@@ -25,7 +25,7 @@ Write `docs/plans/mobile-sdk.md`: how lamina becomes a drop-in PDF SDK for iOS a
 - [Mobile SDK note](../../research/libraries/notes/mobile-sdk.md): [§1 platform and vendor APIs](../../research/libraries/notes/mobile-sdk.md#1-platform-and-vendor-api-surfaces-pdfkit-pdfrenderer-androidxpdf-nutrient-apryse-foxit-pdfium), [§2 tiles](../../research/libraries/notes/mobile-sdk.md#2-tile-based-virtualized-rendering), [§3 memory](../../research/libraries/notes/mobile-sdk.md#3-memory), [§4 stylus](../../research/libraries/notes/mobile-sdk.md#4-stylus-input-and-ink), [§7 accessibility, dark mode, RTL](../../research/libraries/notes/mobile-sdk.md#7-accessibility-dark-mode-rtl), [§8 complaints](../../research/libraries/notes/mobile-sdk.md#8-what-developers-complain-about-and-why-they-pay), [API sketch](../../research/libraries/notes/mobile-sdk.md#ideal-drop-in-api-sketch-recommendation-not-sourced).
 - [Report: rendering per surface](../../research/libraries/shareable-libraries.md#rendering-hayro-is-the-small-footprint-candidate-pdfium-wins-on-fidelity-at-about-2-mb): PDFium's native weight on mobile vs hayro; ADR 0004 decides per surface.
 - [L6a](../done/L6a-lamina-ffi-spike.md) results (spike README, sizes, cancellation findings) and ADR 0029.
-- [C2b](../done/C2b-lamina-render-crate.md) (`RenderBackend`, tile requests, `max_tile_pixels`), [C3b](../ongoing/C3b-viewer-virtualiser-and-zoom.md) (web virtualiser and zoom ideas to reuse), [E4d](./E4d-appearances-ink-and-shapes.md) (ink appearances), [full-editor E4](../../plans/full-editor.md#e4-markup-and-drawing-annotations) and [E8](../../plans/full-editor.md#e8-form-filling-and-data) (annotation and form models the SDK reuses), [E10i](./E10i-platform-signers.md) (Secure Enclave and Android Keystore signers).
+- [C2b](../done/C2b-lamina-render-crate.md) (`RenderBackend`, tile requests, `max_tile_pixels`), [C3b](../done/C3b-viewer-virtualiser-and-zoom.md) (web virtualiser and zoom ideas to reuse), [E4d](./E4d-appearances-ink-and-shapes.md) (ink appearances), [full-editor E4](../../plans/full-editor.md#e4-markup-and-drawing-annotations) and [E8](../../plans/full-editor.md#e8-form-filling-and-data) (annotation and form models the SDK reuses), [E10i](./E10i-platform-signers.md) (Secure Enclave and Android Keystore signers).
 - [Research 03 §9.3](../../research/pdf/03-text-and-fonts.md#93-language-alt-text-reading-order) and [L3a](./L3a-lamina-extract-reading-order.md) (reading order for accessibility on untagged files).
 - ISO 32000-2 §12.5.6.13 (ink annotations, `/InkList`), §12.5.5 (appearance streams), §12.2 (`/ViewerPreferences /Direction`), §14.7–14.9 (structure, alt text).
 
@@ -55,7 +55,7 @@ Write `docs/plans/mobile-sdk.md`: how lamina becomes a drop-in PDF SDK for iOS a
 
 - Any code, including the product `crates/lamina-ffi`: the first todo of the new plan.
 - React Native, Flutter and Kotlin Multiplatform bindings: listed as later options with the ubrn/UniFFI pin constraint from ADR 0029.
-- Desktop and web viewers: web plan ([C3b](../ongoing/C3b-viewer-virtualiser-and-zoom.md)) and desktop plan.
+- Desktop and web viewers: web plan ([C3b](../done/C3b-viewer-virtualiser-and-zoom.md)) and desktop plan.
 
 ## Tasks
 
