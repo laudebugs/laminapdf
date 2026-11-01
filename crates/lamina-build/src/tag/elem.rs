@@ -9,13 +9,13 @@
 //! writes them out.
 
 use lamina_cos::{CosMut, Dict, Name, ObjRef, Object, PdfString};
-use lamina_syntax::text::encode_text_string;
 
 use super::mcid::{PageKid, PageMarks};
 use super::parent_tree::ParentTree;
-use super::rolemap::role_map;
+use super::rolemap::{is_standard, role_map};
 use super::{ContentKind, Tag, TagDiagnostic};
 use crate::error::Result;
+use crate::text_string;
 
 /// The structure tree root's and the `Document` element's object numbers.
 #[derive(Debug, Clone, Copy)]
@@ -33,14 +33,34 @@ pub(crate) struct PageKeys {
     refs: Vec<ObjRef>,
 }
 
+/// One element's standard type and its parent's, in structure order (depth-first: elements
+/// are opened parent first, siblings in order, pages in order), for the profiles' structure
+/// checks.
+///
+/// The types are strings, not [`TagKind`](super::TagKind)s: a custom name that is a standard
+/// type outside `TagKind` (`THead`, `TBody`, `H`, `H7`, `Formula`) is that type, and the
+/// checks need it.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) struct ElemInfo {
+    pub(crate) page: u32,
+    /// The standard type: the name when it is one, else the role it maps to.
+    pub(crate) kind: String,
+    /// The parent's standard type; `None` under the `Document` element.
+    pub(crate) parent: Option<String>,
+    /// The parent's index in the list of every element; `None` under the `Document` element.
+    pub(crate) parent_index: Option<usize>,
+}
+
 /// Where a page started, to forget it if writing it fails.
 #[derive(Debug, Clone, Copy)]
 pub(crate) struct TagMark {
     tagged: bool,
     elems: usize,
+    infos: usize,
     roots: usize,
     diagnostics: usize,
     roles: usize,
+    ids: usize,
     tree: (usize, i64),
 }
 
@@ -60,11 +80,9 @@ pub(crate) struct TagState {
     roles: Vec<Tag>,
     tree: ParentTree,
     diagnostics: Vec<TagDiagnostic>,
-}
-
-/// A text string.
-fn text(s: &str) -> PdfString {
-    PdfString::literal(encode_text_string(s))
+    infos: Vec<ElemInfo>,
+    /// Each `Note` element's `/ID` and object, in structure order, for the `IDTree`.
+    ids: Vec<(Vec<u8>, ObjRef)>,
 }
 
 impl TagState {
@@ -79,9 +97,11 @@ impl TagState {
         TagMark {
             tagged: self.tagged,
             elems: self.elems.len(),
+            infos: self.infos.len(),
             roots: self.roots.len(),
             diagnostics: self.diagnostics.len(),
             roles: self.roles.len(),
+            ids: self.ids.len(),
             tree: self.tree.mark(),
         }
     }
@@ -90,15 +110,22 @@ impl TagState {
     pub(crate) fn rollback(&mut self, mark: TagMark) {
         self.tagged = mark.tagged;
         self.elems.truncate(mark.elems);
+        self.infos.truncate(mark.infos);
         self.roots.truncate(mark.roots);
         self.diagnostics.truncate(mark.diagnostics);
         self.roles.truncate(mark.roles);
+        self.ids.truncate(mark.ids);
         self.tree.truncate(mark.tree);
     }
 
     /// What the tagged document lacks so far; nothing for an untagged one.
     pub(crate) fn diagnostics(&self) -> &[TagDiagnostic] {
         if self.tagged { &self.diagnostics } else { &[] }
+    }
+
+    /// Every element so far, in structure order.
+    pub(crate) fn infos(&self) -> &[ElemInfo] {
+        &self.infos
     }
 
     fn roots_ref(&mut self, doc: &lamina_cos::Document) -> Result<Roots> {
@@ -155,6 +182,24 @@ impl TagState {
         }
         let Some(roots) = self.roots_ref else { return };
         let elem = |i: usize| keys.refs.get(i).map_or(Object::Null, |r| Object::Ref(*r));
+        let standard = |t: &Tag| {
+            let name = t.name();
+            if is_standard(name) {
+                name.to_owned()
+            } else {
+                t.kind().as_str().to_owned()
+            }
+        };
+        let first = self.infos.len();
+        for pe in &marks.elems {
+            let parent = pe.parent.and_then(|p| marks.elems.get(p)).map(|p| standard(&p.tag));
+            self.infos.push(ElemInfo {
+                page: index,
+                kind: standard(&pe.tag),
+                parent,
+                parent_index: pe.parent.map(|p| first + p),
+            });
+        }
         for &r in &marks.roots {
             self.roots.push(elem(r));
         }
@@ -190,7 +235,7 @@ impl TagState {
                 ("Lang", tag.lang()),
             ] {
                 if let Some(v) = value {
-                    d.insert(key, text(v));
+                    d.insert(key, text_string(v));
                 }
             }
             if let Some(scope) = tag.scope() {
@@ -199,6 +244,13 @@ impl TagState {
                 a.insert("O", Name::from("Table"));
                 a.insert("Scope", Name::from(scope.as_str()));
                 d.insert("A", Object::Dict(a));
+            }
+            if standard(&tag) == "Note" {
+                // PDF/UA-1 §7.9 (Matterhorn 19-003, 19-004): every note has a unique `/ID`;
+                // numbered in structure order, so the output stays deterministic.
+                let id = format!("Note{}", self.ids.len() + 1).into_bytes();
+                d.insert("ID", PdfString::literal(id.clone()));
+                self.ids.push((id, *r));
             }
             if tag.custom_name().is_some() {
                 self.roles.push(tag);
@@ -238,6 +290,18 @@ impl TagState {
         tree.insert("ParentTreeNextKey", Object::Integer(self.tree.next_key()));
         if let Some(map) = role_map(&self.roles) {
             tree.insert("RoleMap", Object::Dict(map));
+        }
+        if !self.ids.is_empty() {
+            // §14.7.2: the name tree from each `/ID` to its element, keys in byte order.
+            let mut ids = std::mem::take(&mut self.ids);
+            ids.sort_by(|a, b| a.0.cmp(&b.0));
+            let names = ids
+                .into_iter()
+                .flat_map(|(id, r)| [Object::String(PdfString::literal(id)), Object::Ref(r)])
+                .collect();
+            let mut id_tree = Dict::new();
+            id_tree.insert("Names", Object::Array(names));
+            tree.insert("IDTree", Object::Dict(id_tree));
         }
         cos.set(root, Object::Dict(tree))?;
         let mut mark_info = Dict::new();

@@ -4,7 +4,7 @@
  "qpdf_version": "12.4.2",
  "files": {
   "tagged-report.pdf": {
-   "sha256": "d51a6cd41de2d0607d4f896baccc13ae800833e848fbfebbb8091893523bfd6f",
+   "sha256": "b2f6312426198e8f41bb552108d32518d680bf1aaa329fe3f25450f5134c23c9",
    "qpdf_check": true,
    "pdfjs": {
     "pages": [

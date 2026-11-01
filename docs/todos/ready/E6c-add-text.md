@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [full-editor §E6](../../plans/full-editor.md#e6-adding-content-to-pages) |
 | Round / milestone | Editor phase 4 (E6–E7) — M7 Content editor |
-| Depends on | [B4b](../done/B4b-shaping-bidi-line-breaking.md), [B4c](../done/B4c-standard-14-and-simple-fonts.md), [B8a](../done/B8a-structure-tree.md), [B8b](../ongoing/B8b-conformance-profiles-and-verapdf.md), [E6b](./E6b-place-images-and-shapes.md), [X3a](../done/X3a-nightly-lane.md) |
+| Depends on | [B4b](../done/B4b-shaping-bidi-line-breaking.md), [B4c](../done/B4c-standard-14-and-simple-fonts.md), [B8a](../done/B8a-structure-tree.md), [B8b](../done/B8b-conformance-profiles-and-verapdf.md), [E6b](./E6b-place-images-and-shapes.md), [X3a](../done/X3a-nightly-lane.md) |
 | Blocks | [E6d](./E6d-watermarks-headers-footers.md), [E6e](./E6e-content-tools-ui.md), [E7f](./E7f-font-handling-and-styling.md) |
 | Dependency notes | [E6b](E6b-place-images-and-shapes.md), `B4` ([pdf-library §B4](../../plans/pdf-library.md#b4-fonts-and-text): fonts, shaping, subsetting) |
 | ADRs | Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |

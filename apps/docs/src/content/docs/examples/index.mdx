@@ -7,9 +7,9 @@ tableOfContents: true
 import { Tabs, TabItem } from "@astrojs/starlight/components";
 import Snippet from "../../../components/Snippet.astro";
 
-Each example exists twice: in Rust (`crates/lamina/examples/`) and in TypeScript (`packages/sdk/examples/`). Both write the same bytes, the golden in `fixtures/golden/examples/`. CI checks that in Rust and in every JavaScript runtime: Node, Chromium, Firefox, WebKit, Deno, Bun and workerd. The source below is those files, and each PDF link is the golden itself.
+Each example exists twice: in Rust (`crates/lamina/examples/`) and in TypeScript (`packages/sdk/examples/`). Both write the same bytes, kept as a reference file in `fixtures/golden/examples/`. Automated tests check that in Rust and in every JavaScript runtime: Node, Chromium, Firefox, WebKit, Deno, Bun and workerd. The source below is those files, and each PDF link opens that reference file.
 
-Run them yourself with `cargo run -p lamina --example <name>` (written to `target/examples-out/`), or `cargo xtask examples` to compare all of them with the goldens.
+Run them yourself with `cargo run -p lamina --example <name>` (written to `target/examples-out/`), or `cargo xtask examples` to compare all of them with the reference files.
 
 ## hello
 
@@ -65,15 +65,42 @@ Generate a file, open its bytes, edit the metadata in one transaction and save i
   <TabItem label="Rust"><Snippet file="crates/lamina/examples/generate_then_edit.rs" /></TabItem>
 </Tabs>
 
+## PDF/UA report
+
+An accessible report (PDF/UA-1): headings, a table with header cells, a chart as a figure with alternate text, a described link, and the running header as an artifact. See [Accessible PDFs](/guides/accessible-pdfs/). [Open the PDF](/examples/pdf/pdf_ua_report.pdf).
+
+<Tabs syncKey="lang">
+  <TabItem label="TypeScript"><Snippet file="packages/sdk/examples/pdf-ua-report.ts" /></TabItem>
+  <TabItem label="Rust"><Snippet file="crates/lamina/examples/pdf_ua_report.rs" /></TabItem>
+</Tabs>
+
+## PDF/A archive
+
+An archived letter, written twice: as PDF/A-2b, and as PDF/A-2u that is also PDF/UA-1. See [Archival PDFs](/guides/archival-pdfs/). Open the [PDF/A-2b](/examples/pdf/pdf_a_archive-2b.pdf) or the [PDF/A-2u](/examples/pdf/pdf_a_archive-2u.pdf) PDF.
+
+<Tabs syncKey="lang">
+  <TabItem label="TypeScript"><Snippet file="packages/sdk/examples/pdf-a-archive.ts" /></TabItem>
+  <TabItem label="Rust"><Snippet file="crates/lamina/examples/pdf_a_archive.rs" /></TabItem>
+</Tabs>
+
+## PDF/A-3 invoice with XML
+
+A PDF/A-3b invoice with the same invoice attached as XML, associated with the document as an alternative representation. [Open the PDF](/examples/pdf/pdf_a3_invoice_with_xml.pdf).
+
+<Tabs syncKey="lang">
+  <TabItem label="TypeScript"><Snippet file="packages/sdk/examples/pdf-a3-invoice-with-xml.ts" /></TabItem>
+  <TabItem label="Rust"><Snippet file="crates/lamina/examples/pdf_a3_invoice_with_xml.rs" /></TabItem>
+</Tabs>
+
 ## report (TypeScript)
 
-A 100-page report with two embedded fonts: the performance case each runtime times. It has no golden file. Every runtime checks the report's SHA-256 instead, and so does the Rust benchmark that builds the same bytes.
+A 100-page report with two embedded fonts: the performance case each runtime times. It has no reference file. Every runtime checks the report's SHA-256 instead, and so does the Rust benchmark that builds the same bytes.
 
 <Snippet file="packages/sdk/examples/report.ts" />
 
-## Worker
+## Cloudflare Worker
 
-A Cloudflare Worker that generates a PDF per request. See the [Workers quick start](/quick-start/workers/).
+A Cloudflare Worker that generates a PDF per request. See the [Cloudflare Workers quick start](/quick-start/workers/).
 
 ## open untrusted (TypeScript)
 
@@ -81,7 +108,7 @@ Opening someone else's file with a password and tighter limits, with the outcome
 
 <Snippet file="packages/sdk/examples/open-untrusted.ts" />
 
-## worker client (TypeScript)
+## Web Worker client (TypeScript)
 
 The same API in a Web Worker: open, count the pages, save with progress, and abort a save. It runs in browsers. See [Off the main thread](/guides/off-the-main-thread/).
 

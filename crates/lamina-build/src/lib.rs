@@ -55,6 +55,11 @@
 //!   MCIDs per page, `/StructParents`, the `ParentTree`, `OBJR`s for links, the `RoleMap`
 //!   and `/MarkInfo`; [`Builder::tagging_diagnostics`] ([`TagDiagnostic`]) for what is left
 //!   untagged.
+//! * Conformance: [`BuildOptions::with_profile`] ([`Profile`]: PDF/UA-1, PDF/A-2b,
+//!   PDF/A-2u, PDF/A-3b) turns each machine-checkable rule the document breaks into a coded
+//!   error at [`Builder::finish`], and writes the XMP identification, `/DisplayDocTitle` and
+//!   the PDF/A output intent with an embedded sRGB profile; [`Builder::attach`]
+//!   ([`Attachment`], [`AfRelationship`]) adds associated files for PDF/A-3b.
 //!
 //! [ADR 0005]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0005-document-model.md
 //! [ADR 0027]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0027-coordinates-units-and-page-indexing.md
@@ -63,21 +68,29 @@
 #![forbid(unsafe_code)]
 
 mod annot;
+mod attach;
 mod builder;
 mod error;
 mod finish;
 mod meta;
 mod nav;
 mod page;
+mod profile;
 mod resources;
 mod surface;
 mod tag;
+
+/// A text string (ISO 32000-2 §7.9.2.2): PDFDocEncoding when it can hold `s`, else UTF-16BE.
+pub(crate) fn text_string(s: &str) -> lamina_cos::PdfString {
+    lamina_cos::PdfString::literal(lamina_syntax::text::encode_text_string(s))
+}
 
 // What `fixtures/codes.json` lists, for the kind tests (shared with the other crates' tests).
 #[cfg(test)]
 #[path = "../../lamina-cos/tests/common/codes.rs"]
 mod test_codes;
 
+pub use attach::{AfRelationship, Attachment};
 pub use builder::{Appender, BuildOptions, Builder, PdfVersion};
 pub use error::{Error, ImageFormat, Result};
 pub use lamina_model::{LabelStyle, OutlineItemId, PageFrame, PageId, PdfDate, PointPt, Pt, RectPt, Rotation};
@@ -86,6 +99,7 @@ pub use lamina_text::{Alignment, Direction, EmbedPolicy, Feature, Standard14};
 pub use meta::{Metadata, PageLayout, PageMode, ViewerPreferences};
 pub use nav::{Fit, LinkTarget, OutlineEntry, PageLabel};
 pub use page::{PageBuilder, PageSize};
+pub use profile::Profile;
 pub use surface::color::{Color, IccProfile};
 pub use surface::image::{Image, MAX_DECODED_IMAGE_BYTES, PngOptions};
 pub use surface::path::{FillRule, Matrix, PathBuilder};

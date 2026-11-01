@@ -203,7 +203,7 @@ impl<'b> PageBuilder<'b> {
         #[cfg(feature = "text")]
         let fonts = self.surface.has_text().then(|| state.fonts.clone());
         let resources = state.resources.clone();
-        let (links, required, tags) = (state.links.len(), state.required, state.tag.mark());
+        let (links, required, tags, cmyk) = (state.links.len(), state.required, state.tag.mark(), state.device_cmyk);
         let written = self.write();
         if written.is_err() {
             // Should the rollback fail too, the first error is the one to report.
@@ -216,6 +216,7 @@ impl<'b> PageBuilder<'b> {
             state.resources = resources;
             state.links.truncate(links);
             state.required = required;
+            state.device_cmyk = cmyk;
             state.tag.rollback(tags);
         }
         written
@@ -279,6 +280,10 @@ impl<'b> PageBuilder<'b> {
             Stream::new(Dict::new(), content)
         };
         page.insert("Contents", cos.create(Object::Stream(stream))?);
+        let index = u32::try_from(state.pages.len()).unwrap_or(u32::MAX);
+        if resources.uses_device_cmyk() && state.device_cmyk.is_none() {
+            state.device_cmyk = Some(index);
+        }
         let mut annots = Vec::with_capacity(rendered.links.len());
         if !rendered.links.is_empty() {
             // Reserved now, written when the build finishes: a link may name a later page.
@@ -293,6 +298,7 @@ impl<'b> PageBuilder<'b> {
                     object,
                     dict,
                     target: link.target,
+                    page: index,
                 });
             }
             page.insert("Annots", annots.iter().map(|r| Object::Ref(*r)).collect::<Vec<_>>());
@@ -307,7 +313,6 @@ impl<'b> PageBuilder<'b> {
             state.require((1, 5));
         }
         let r = cos.create(Object::Dict(page))?;
-        let index = u32::try_from(state.pages.len()).unwrap_or(u32::MAX);
         state.tag.add_page(index, r, rendered.marks, &keys, &annots);
         state.pages.push(r);
         state.frames.push(frame);

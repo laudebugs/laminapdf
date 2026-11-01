@@ -7,7 +7,7 @@ use lamina_cos::{CosMut, Dict, Name, ObjRef, Object, Stream};
 
 use crate::error::Result;
 use crate::surface::color::{IccProfile, IccSpace};
-use crate::surface::image::{Image, Samples};
+use crate::surface::image::{Image, ImageColor, Samples};
 use crate::surface::style::BlendMode;
 
 /// An `ExtGState` the builder writes (§8.4.5).
@@ -61,6 +61,8 @@ pub(crate) struct PageResources {
     fonts: Vec<ObjRef>,
     /// Whether the content uses `/ActualText` (PDF 1.5).
     actual_text: bool,
+    /// Whether the content sets a `DeviceCMYK` colour.
+    device_cmyk: bool,
 }
 
 fn name_of(prefix: &str, index: usize) -> String {
@@ -101,6 +103,16 @@ impl PageResources {
             self.fonts.len() - 1
         });
         name_of("F", index)
+    }
+
+    /// Notes a `DeviceCMYK` colour.
+    pub(crate) fn note_device_cmyk(&mut self) {
+        self.device_cmyk = true;
+    }
+
+    /// Whether the content draws with `DeviceCMYK`: a colour, or a CMYK image.
+    pub(crate) fn uses_device_cmyk(&self) -> bool {
+        self.device_cmyk || self.images.iter().any(|i| i.data.color == ImageColor::Cmyk)
     }
 
     #[cfg(feature = "text")]
