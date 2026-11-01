@@ -12,7 +12,7 @@
 | Branch | `feat/q1b-docs-prose-check` |
 | PR title | `feat(xtask): docs-prose check for reader-facing text` |
 | Size | M |
-| PR | — |
+| PR | [#144](https://github.com/laudebugs/lamina/pull/144) |
 
 ## Goal
 
