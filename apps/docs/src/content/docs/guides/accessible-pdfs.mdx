@@ -14,19 +14,20 @@ This guide builds a report that screen-reader users can read, which you need whe
 
 PDF/UA-1 (ISO 14289-1, "Universal Accessibility") is the standard for accessible PDF. A PDF/UA file is tagged: its structure tree says which content is a heading, a paragraph, a list, a table or a figure, and in what order to read it. Everything else, such as running headers and decorative rules, is marked as an artifact, which assistive technology skips. The file also needs a title, a language, alternate text for every figure, a description for every link and embedded fonts that map each glyph to characters.
 
-Turn the profile on with one option. Then `finish()` checks the rules a program can check and fails with a coded error for the first one the document breaks:
+Turn the profile on with one option: `profiles: ["PDF/UA-1"]` in TypeScript, `BuildOptions::default().with_profile(Profile::PdfUa1)` in Rust. Then `finish()` checks the rules a program can check and fails with a coded error for the first one the document breaks:
 
 | Rule | Error |
 | --- | --- |
-| The metadata has a title | [`missing-title`](/reference/codes/) |
-| The document has a language (`lang`) | `missing-lang` |
-| Everything drawn is tagged or an artifact | `untagged-content` |
-| Every figure has alternate text | `missing-alt-text` |
-| Headings start at `H1` and skip no level going down | `heading-level-skipped` |
-| Table cells sit in rows, rows in tables, list items in lists | `invalid-structure-nesting` |
-| Every link has a `Link` element and a description | `link-without-structure`, `link-without-contents` |
-| Every font is embedded (no standard 14 font) | `font-not-embedded` |
-| Every glyph maps to Unicode | `glyph-without-unicode` |
+| The metadata has a title | [`missing-title`](/reference/codes/missing-title/) |
+| The document has a language (`lang`) | [`missing-lang`](/reference/codes/missing-lang/) |
+| Everything drawn is tagged or an artifact | [`untagged-content`](/reference/codes/untagged-content/) |
+| Every figure and formula has alternate text | [`missing-alt-text`](/reference/codes/missing-alt-text/) |
+| Headings start at `H1` and skip no level going down | [`heading-level-skipped`](/reference/codes/heading-level-skipped/) |
+| One unnumbered `H` per section, never beside `H1`–`H6` | [`unnumbered-heading-misused`](/reference/codes/unnumbered-heading-misused/) |
+| Table cells sit in rows, rows in tables, list items in lists | [`invalid-structure-nesting`](/reference/codes/invalid-structure-nesting/) |
+| Every link has a `Link` element and a description | [`link-without-structure`](/reference/codes/link-without-structure/), [`link-without-contents`](/reference/codes/link-without-contents/) |
+| Every font is embedded (no standard 14 font) | [`font-not-embedded`](/reference/codes/font-not-embedded/) |
+| Every glyph maps to Unicode | [`glyph-without-unicode`](/reference/codes/glyph-without-unicode/) |
 
 The builder writes the rest for you. It puts the PDF/UA identifier in the document's XMP metadata, the XML packet in the file that describes it. It also asks viewers to show the title instead of the file name, and orders links by the structure.
 
@@ -51,6 +52,6 @@ About half of PDF/UA's requirements need a person. lamina can check that a figur
 
 ## How lamina checks its own output
 
-Every example on this site that claims PDF/UA-1 is validated each night with veraPDF, the open-source validator the PDF Association backs. Any violation fails the run. You can run the same check locally with `cargo xtask verapdf` from a clone of the repository.
+Every example on this site that claims PDF/UA-1 is validated each night with veraPDF, the open-source validator the PDF Association backs.
 
 To make a document both accessible and archival, add a PDF/A profile next to `PDF/UA-1`: see [Archival PDFs](/guides/archival-pdfs/).

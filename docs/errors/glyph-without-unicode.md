@@ -5,15 +5,15 @@
 
 ## What happened
 
-Under PDF/A-2u or PDF/UA-1, a glyph was drawn that stands for no text of its own (one of several glyphs a shaped cluster was drawn with), or whose text is U+0000, U+FEFF or U+FFFE.
+Under PDF/A-2u or PDF/UA-1, a glyph was drawn that stands for no text of its own, or whose text is U+0000, U+FEFF or U+FFFE. A glyph stands for no text when shaping draws one cluster, a group of characters that display as one unit, with several glyphs: the text belongs to the first, and the others have none.
 
 ## Why
 
-PDF/A-2u, an archival standard (ISO 19005-2 §6.2.11.7.2), and PDF/UA-1, the standard for accessible PDF (ISO 14289-1 §7.21.7; Matterhorn Protocol 31-027 to 31-029), ask for every glyph to map to a usable Unicode value, so the text can be searched, copied and read aloud. lamina maps a glyph that stands for no text to an empty value, which these profiles don't accept.
+Software can search, copy or read text aloud only when every glyph maps to a usable Unicode value. The PDF/A-2u archival standard (ISO 19005-2 §6.2.11.7.2) and the PDF/UA-1 standard for accessible PDF (ISO 14289-1 §7.21.7) both need that mapping. These are conditions 31-027 to 31-029 of the Matterhorn Protocol, the PDF Association's checklist of PDF/UA failures. lamina maps a glyph that stands for no text to an empty value, which these profiles reject.
 
 ## How to fix
 
-Check the text for control characters and byte-order marks. For scripts whose shaping draws several glyphs per character cluster, choose PDF/A-2b, which doesn't need Unicode for every glyph.
+Check the text for control characters and byte-order marks. If shaping draws several glyphs for one cluster, choose a font that draws each cluster as one glyph. An archive that needs no accessibility can use PDF/A-2b instead, which doesn't need Unicode for every glyph. PDF/UA-1 has no such level, so a PDF/UA-1 document needs the font change.
 
 ## Example
 

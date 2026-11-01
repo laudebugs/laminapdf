@@ -8,7 +8,7 @@ sidebar:
 import { Tabs, TabItem } from "@astrojs/starlight/components";
 import Snippet from "../../../components/Snippet.astro";
 
-This guide builds PDF/A documents, which you need when a file must stay readable and look the same for decades: contracts, records kept by law, e-invoices.
+This guide builds PDF/A documents, which you need when a file must stay readable and look the same for decades: contracts, records kept by law, e-invoices. lamina writes PDF/A as it generates a document; it doesn't convert existing files to PDF/A.
 
 ## What PDF/A asks for
 
@@ -18,19 +18,20 @@ PDF/A (ISO 19005) is the archival subset of PDF. A PDF/A file carries everything
 - **PDF/A-2u** ("Unicode"): PDF/A-2b, and every glyph maps to Unicode, so the text can be searched and copied.
 - **PDF/A-3b** (ISO 19005-3): PDF/A-2b that may carry attached files of any kind.
 
-Choose one with the `profiles` option. The builder then writes what the standard asks for. First, the identification in the document's XMP metadata (the XML packet in the file that describes it), always written and always agreeing with the Info dictionary. Second, an output intent: a declaration of the colour space that device colours mean. It embeds an ICC profile, the standard file format that describes a colour space. lamina's output intent is sRGB, so RGB and gray colour are defined, and its profile is 480 bytes.
+Choose one with the `profiles` option (`BuildOptions::with_profile` in Rust). The builder then writes two things the standard asks for. It writes the PDF/A identification in the document's XMP metadata, the XML packet in the file that describes it. That packet always agrees with the Info dictionary, the older list of the same facts (title, author, dates) that PDF readers also show. It also writes an output intent, a declaration of the colour space that device colours mean, with an embedded ICC profile, the standard file format that describes a colour space. lamina's output intent is sRGB, so RGB and gray colour are defined.
 
 `finish()` fails with a coded error for each rule the document breaks:
 
 | Rule | Error |
 | --- | --- |
-| Every font is embedded (no standard 14 font) | [`font-not-embedded`](/reference/codes/) |
-| No `DeviceCMYK` colour or CMYK image (the output intent is sRGB) | `device-color-without-output-intent` |
-| PDF/A-2u: every glyph maps to Unicode | `glyph-without-unicode` |
-| PDF/A-2b, PDF/A-2u: no attached files | `embedded-file-forbidden` |
-| The PDF version is 1.7 or lower | `profile-version-conflict` |
+| Every font is embedded (no standard 14 font) | [`font-not-embedded`](/reference/codes/font-not-embedded/) |
+| No `DeviceCMYK` colour or CMYK image (the output intent is sRGB) | [`device-color-without-output-intent`](/reference/codes/device-color-without-output-intent/) |
+| PDF/A-2u: every glyph maps to Unicode | [`glyph-without-unicode`](/reference/codes/glyph-without-unicode/) |
+| PDF/A-2b, PDF/A-2u: no attached files | [`embedded-file-forbidden`](/reference/codes/embedded-file-forbidden/) |
+| Every attached file has a MIME type | [`embedded-file-without-mime-type`](/reference/codes/embedded-file-without-mime-type/) |
+| The PDF version is 1.7 or lower | [`profile-version-conflict`](/reference/codes/profile-version-conflict/) |
 
-For CMYK colour under PDF/A, give the colour an ICC profile (`Color::icc` in Rust): an ICC-based colour defines itself. Transparency is allowed in PDF/A-2 and PDF/A-3.
+`DeviceCMYK` is CMYK colour given as plain numbers, with no profile to say which inks they mean (`Color::cmyk` in Rust, four numbers in TypeScript). For CMYK colour under PDF/A, give the colour an ICC profile instead (`Color::icc` in Rust): an ICC-based colour defines itself. Transparency is allowed in PDF/A-2 and PDF/A-3.
 
 ## An archived letter
 
@@ -66,4 +67,6 @@ PDF/A-3 lets a document carry other files, provided each one is associated with 
 
 ## How lamina checks its own output
 
-Every example on this site that claims a PDF/A profile is validated each night with veraPDF, the open-source PDF/A and PDF/UA validator the PDF Association backs, and any violation fails the run. Run the same check with `cargo xtask verapdf` from a clone of the repository. lamina writes PDF/A at generation time; it doesn't convert existing files to PDF/A.
+Every example on this site that claims a PDF/A profile is validated each night with veraPDF, the open-source PDF/A and PDF/UA validator the PDF Association backs.
+
+Next: make the same documents accessible too, in [Accessible PDFs](/guides/accessible-pdfs/).

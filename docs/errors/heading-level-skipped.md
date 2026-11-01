@@ -5,11 +5,11 @@
 
 ## What happened
 
-Under PDF/UA-1, the document's headings skip a level: the first numbered heading is not `H1`, or a heading is more than one level below the heading before it (an `H3` straight after an `H1`).
+Under PDF/UA-1, the document's headings skip a level. Numbered headings are `H1`, `H2` and so on, as opposed to the unnumbered `H`. Either the first numbered heading is not `H1`, or a heading is more than one level below the heading before it (an `H3` straight after an `H1`).
 
 ## Why
 
-Screen-reader users move through a document by its headings, and a skipped level suggests a missing section. PDF/UA-1, the standard for accessible PDF (ISO 14289-1), in §7.4.2 requires numbered headings to start at `H1` and to go down one level at a time (Matterhorn Protocol 14-002 and 14-003; the protocol is the PDF Association's checklist of PDF/UA failures). Going back up any number of levels is fine.
+Screen-reader users move through a document by its headings, and a skipped level suggests a missing section. The PDF/UA-1 standard for accessible PDF (ISO 14289-1 §7.4.2) requires numbered headings to start at `H1` and to go down one level at a time. These are conditions 14-002 and 14-003 of the Matterhorn Protocol, the PDF Association's checklist of PDF/UA failures. Going back up any number of levels is fine.
 
 ## How to fix
 

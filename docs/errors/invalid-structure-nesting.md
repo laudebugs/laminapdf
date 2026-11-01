@@ -5,11 +5,11 @@
 
 ## What happened
 
-Under PDF/UA-1, a table or list element sits in a parent its type doesn't allow. Examples: a `TD` or `TH` outside a `TR`, a `TR` outside a `Table`, an `LI` outside an `L`, or a paragraph directly inside a `Table`, `TR`, `L` or `LI`.
+Under PDF/UA-1, a table or list element sits in a parent its type doesn't allow. A table (`Table`) holds rows (`TR`), each holding header cells (`TH`) and data cells (`TD`); a list (`L`) holds list items (`LI`), each holding a label (`Lbl`, its bullet or number) and a body (`LBody`). Examples of a wrong parent: a `TD` or `TH` outside a `TR`, a `TR` outside a `Table`, an `LI` outside an `L`, or a paragraph directly inside a `Table`, `TR`, `L` or `LI`.
 
 ## Why
 
-ISO 32000-1 Tables 336 and 337 define how tables and lists are built, and assistive technology relies on that shape to announce rows, columns and list items. PDF/UA-1, the standard for accessible PDF (ISO 14289-1), in §7.2 requires it (Matterhorn Protocol 09-004 and 09-005; the protocol is the PDF Association's checklist of PDF/UA failures).
+ISO 32000-1 Tables 336 and 337 define how tables and lists are built, and assistive technology relies on that shape to announce rows, columns and list items. The PDF/UA-1 standard for accessible PDF (ISO 14289-1 §7.2) requires tables and lists to have that shape. These are conditions 09-004 and 09-005 of the Matterhorn Protocol, the PDF Association's checklist of PDF/UA failures.
 
 ## How to fix
 

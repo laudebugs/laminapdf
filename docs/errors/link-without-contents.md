@@ -9,7 +9,7 @@ Under PDF/UA-1, a link annotation has no description: `Surface::link` or `TextRu
 
 ## Why
 
-A screen reader announces a link by its `/Contents`, its alternate description. PDF/UA-1, the standard for accessible PDF (ISO 14289-1), in §7.18.5 requires one on every link (Matterhorn Protocol 28-012; the protocol is the PDF Association's checklist of PDF/UA failures).
+A screen reader announces a link by its `/Contents`, its alternate description. The PDF/UA-1 standard for accessible PDF (ISO 14289-1 §7.18.5) requires one on every link. This is condition 28-012 of the Matterhorn Protocol, the PDF Association's checklist of PDF/UA failures.
 
 ## How to fix
 

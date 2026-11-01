@@ -9,7 +9,7 @@ Under PDF/UA-1, a page has a `Figure` or `Formula` element without alternate tex
 
 ## Why
 
-A screen reader can't describe a picture or a formula by itself. PDF/UA-1, the standard for accessible PDF (ISO 14289-1), in §7.3 requires every `Figure` and every `Formula` to carry a text alternative (Matterhorn Protocol 13-004 and 17-002; the protocol is the PDF Association's checklist of PDF/UA failures). lamina checks only that a description exists; whether it describes the figure well is for a person to judge.
+A screen reader can't describe a picture or a formula by itself. The PDF/UA-1 standard for accessible PDF (ISO 14289-1 §7.3) requires every `Figure` and every `Formula` to carry a text alternative. These are conditions 13-004 and 17-002 of the Matterhorn Protocol, the PDF Association's checklist of PDF/UA failures. lamina checks only that a description exists; whether it describes the figure well is for a person to judge.
 
 ## How to fix
 

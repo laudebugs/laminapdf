@@ -9,7 +9,7 @@ Text was drawn with one of the standard 14 fonts (`Builder::standard_font`) unde
 
 ## Why
 
-PDF/A (ISO 19005, the standard for archival PDF) needs every font embedded so the document looks the same everywhere in the future (ISO 19005-2 §6.2.11.4.1), and PDF/UA-1 needs it so text can be rendered and mapped to characters reliably (the standard for accessible PDF: ISO 14289-1 §7.21.4.1; Matterhorn Protocol 31-009).
+The PDF/A standard for archival PDF (ISO 19005-2 §6.2.11.4.1) needs every font embedded, so the document looks the same everywhere in the future. The PDF/UA-1 standard for accessible PDF (ISO 14289-1 §7.21.4.1) needs it too, so viewers can render the text and map it to characters reliably. This is condition 31-009 of the Matterhorn Protocol, the PDF Association's checklist of PDF/UA failures.
 
 ## How to fix
 
