@@ -88,6 +88,7 @@ The [todo board](../todos/README.md) is the work queue. A todo is one pull reque
 ## 7. Review and merge process
 
 - **MUST:** after opening a PR, run `/code-review` on it **without** `--comment`: `/code-review high <PR#>`. Non-trivial PRs use effort **high**. Findings are not posted as PR comments.
+- **MUST:** when a PR adds or changes prose people will read, also run `/writing-review` on that prose before review: docs-site pages, guides, READMEs, `docs/errors/` pages, plans, ADRs, todos, guidelines and the PR description. Draft such prose with `/writing` in the first place. Fix its findings like code-review findings. Where a finding conflicts with a repository rule (for example a term the docs-writing guideline fixes, or a required section heading), the repository rule wins; say so in the commit message. The two skills are installed in the maintainer's Claude configuration, not in this repository; a session without them says so in the PR description, and the reviewer applies the same check by hand.
 - **MUST:** fix the findings in new commits. Each fix commit's message lists the findings it addresses and how each was fixed (or why one won't be fixed), so the review is recorded in the history.
 - **MUST:** if the first review found **more than 6** issues, run a second, low-effort review after the fixes are pushed (`/code-review low <PR#>`) and record its findings and fixes the same way.
 - **SHOULD:** for large diffs, run the review as several scoped passes (by path) so no file is skipped; a pass whose diff was truncated doesn't count.
