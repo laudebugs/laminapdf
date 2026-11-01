@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [Desktop app §6 D1](../../plans/desktop-app.md#d1-ipc-and-print-spikes) |
 | Round / milestone | Round D (desktop) — M3 Desktop reader beta |
-| Depends on | [C2c](../done/C2c-render-packages.md), [C3b](./C3b-viewer-virtualiser-and-zoom.md) |
+| Depends on | [C2c](../done/C2c-render-packages.md), [C3b](../ongoing/C3b-viewer-virtualiser-and-zoom.md) |
 | Blocks | [D1b](./D1b-desktop-print-spike.md), [D2a](./D2a-adr-0008-and-desktop-scaffold.md) |
 | Dependency notes | Web plan **C3** (viewer core, [web-app §C3](../../plans/web-app.md#c3-viewer-core)): the spike's webview half reuses the `@laminapdf/viewer` canvas pool / `ImageBitmap` paint path so the numbers match what the reader will do. C3 brings C2's `lamina-render` with it. |
 | ADRs | Informs ADR 0008 (desktop shell, written in D2a). Follows [0001](../../decisions/0001-core-language-and-licence.md), [0015](../../decisions/0015-monorepo-layout-and-tooling.md) (spikes live outside both workspaces), [0019](../../decisions/0019-supply-chain-and-licence-hygiene.md) |
