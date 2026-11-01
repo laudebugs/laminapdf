@@ -11,6 +11,7 @@ import type { Transform } from "./matrix.js";
 import { type PathBuilder, PathEncoder } from "./path.js";
 import type {
   Align,
+  AttachmentOptions,
   BuildOptions,
   Color,
   Direction,
@@ -635,7 +636,8 @@ export class Builder {
   readonly glue: BaseGlue | TextGlue;
 
   /**
-   * @param options - version, file ID, producer, creation date, compression; `text`.
+   * @param options - version, file ID, producer, creation date, compression, tagging,
+   *   conformance `profiles`; `text`.
    * @throws {@link LaminaError} `not-initialized`, `text-module-not-loaded`; `unknown-option`.
    */
   constructor(options: BuilderOptions = {}) {
@@ -740,6 +742,16 @@ export class Builder {
     return this;
   }
 
+  /**
+   * Attaches a file: `name`, its bytes and its MIME type (`text/xml`), with how it relates to
+   * the document. PDF/A-3b's associated files, such as an e-invoice's XML; the same name again
+   * replaces the file. PDF/A-2b and PDF/A-2u refuse attachments at {@link Builder.finish}.
+   */
+  attach(name: string, bytes: Uint8Array, mime: string, options?: AttachmentOptions): this {
+    guard(() => this.#builder.attach(name, bytes, mime, options));
+    return this;
+  }
+
   /** How viewers present the document when it opens. */
   viewerPreferences(preferences: ViewerPreferences): this {
     guard(() => this.#builder.viewerPreferences(preferences));
@@ -752,7 +764,12 @@ export class Builder {
    *
    * @returns the new document (unsaved; its save is a full rewrite).
    * @throws {@link LaminaError} `page-index-out-of-range`, `unknown-destination`,
-   *   `invalid-page-labels`, `invalid-geometry`, `subset-failed`, `builder-finished`.
+   *   `invalid-page-labels`, `invalid-geometry`, `subset-failed`, `builder-finished`; under a
+   *   profile (`profiles` in the options), the first rule the document breaks:
+   *   `missing-title`, `missing-lang`, `untagged-content`, `missing-alt-text`,
+   *   `heading-level-skipped`, `invalid-structure-nesting`, `link-without-structure`,
+   *   `link-without-contents`, `font-not-embedded`, `glyph-without-unicode`,
+   *   `device-color-without-output-intent`, `embedded-file-forbidden`, `profile-version-conflict`.
    */
   finish(): Document {
     const builder = this.#builder;

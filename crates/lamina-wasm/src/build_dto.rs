@@ -6,9 +6,9 @@
 //! [ADR 0027]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0027-coordinates-units-and-page-indexing.md
 
 use lamina::{
-    ArtifactKind, BlendMode, BuildOptions, Color, Dash, FillRule, Fit, LineCap, LineJoin, LinkTarget, Matrix, Metadata,
-    OutlineEntry, PageLabel, PageLayout, PageMode, PathBuilder, PdfVersion, PointPt, Pt, RectPt, StrokeStyle,
-    TableScope, Tag, TagKind, ViewerPreferences,
+    AfRelationship, ArtifactKind, Attachment, BlendMode, BuildOptions, Color, Dash, FillRule, Fit, LineCap, LineJoin,
+    LinkTarget, Matrix, Metadata, OutlineEntry, PageLabel, PageLayout, PageMode, PathBuilder, PdfVersion, PointPt,
+    Profile, Pt, RectPt, StrokeStyle, TableScope, Tag, TagKind, ViewerPreferences,
 };
 use serde::Deserialize;
 use tsify::Tsify;
@@ -427,6 +427,91 @@ pub struct BuildOptionsInit {
     /// `false`; a page using `beginTag` or `beginArtifact` makes it tagged either way).
     #[tsify(optional)]
     pub tagged: Option<bool>,
+    /// Conformance profiles: `PDF/UA-1` with at most one PDF/A profile. `finish` then fails
+    /// with a coded error for each machine-checkable rule the document breaks.
+    #[tsify(optional)]
+    pub profiles: Option<Vec<ProfileInit>>,
+}
+
+/// A conformance profile.
+#[derive(Debug, Clone, Copy, Deserialize, Tsify)]
+pub enum ProfileInit {
+    /// PDF/UA-1 (ISO 14289-1).
+    #[serde(rename = "PDF/UA-1")]
+    PdfUa1,
+    /// PDF/A-2b (ISO 19005-2).
+    #[serde(rename = "PDF/A-2b")]
+    PdfA2b,
+    /// PDF/A-2u.
+    #[serde(rename = "PDF/A-2u")]
+    PdfA2u,
+    /// PDF/A-3b (ISO 19005-3).
+    #[serde(rename = "PDF/A-3b")]
+    PdfA3b,
+}
+
+impl ProfileInit {
+    const fn to_profile(self) -> Profile {
+        match self {
+            Self::PdfUa1 => Profile::PdfUa1,
+            Self::PdfA2b => Profile::PdfA2b,
+            Self::PdfA2u => Profile::PdfA2u,
+            Self::PdfA3b => Profile::PdfA3b,
+        }
+    }
+}
+
+/// How an attached file relates to the document (`/AFRelationship`).
+#[derive(Debug, Clone, Copy, Deserialize, Tsify)]
+#[serde(rename_all = "camelCase")]
+pub enum AfRelationshipInit {
+    /// The original the document was made from.
+    Source,
+    /// Data the content was derived from.
+    Data,
+    /// Another representation of the same content.
+    Alternative,
+    /// A supplement to the content.
+    Supplement,
+    /// None of these (the default).
+    Unspecified,
+}
+
+/// An attached file's options.
+#[derive(Debug, Default, Deserialize, Tsify)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct AttachmentInit {
+    /// How the file relates to the document (default `unspecified`).
+    #[tsify(optional)]
+    pub relationship: Option<AfRelationshipInit>,
+    /// `/Desc`, shown next to the file.
+    #[tsify(optional)]
+    pub description: Option<String>,
+    /// When the file last changed, a PDF date (default: the document's creation date).
+    #[tsify(optional)]
+    pub mod_date: Option<String>,
+}
+
+impl AttachmentInit {
+    pub(crate) fn to_attachment(&self, name: &str, bytes: Vec<u8>, mime: &str) -> JsResult<Attachment> {
+        let mut file = Attachment::new(name, bytes, mime);
+        if let Some(r) = self.relationship {
+            file = file.with_relationship(match r {
+                AfRelationshipInit::Source => AfRelationship::Source,
+                AfRelationshipInit::Data => AfRelationship::Data,
+                AfRelationshipInit::Alternative => AfRelationship::Alternative,
+                AfRelationshipInit::Supplement => AfRelationship::Supplement,
+                AfRelationshipInit::Unspecified => AfRelationship::Unspecified,
+            });
+        }
+        if let Some(d) = &self.description {
+            file = file.with_description(d.clone());
+        }
+        if let Some(date) = &self.mod_date {
+            file = file.with_mod_date(parse_date(date, "options.modDate")?);
+        }
+        Ok(file)
+    }
 }
 
 impl BuildOptionsInit {
@@ -457,6 +542,9 @@ impl BuildOptionsInit {
         }
         if let Some(tagged) = self.tagged {
             options = options.with_tagged(tagged);
+        }
+        for profile in self.profiles.iter().flatten() {
+            options = options.with_profile(profile.to_profile());
         }
         Ok(options)
     }
