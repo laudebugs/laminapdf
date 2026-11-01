@@ -9,8 +9,10 @@ mod codegen;
 mod corpus;
 mod docs_links;
 mod docs_prose;
+mod docs_snippets;
 mod doctor;
 mod examples;
+mod examples_lints;
 mod harness;
 mod licenses;
 mod lines;
@@ -22,6 +24,7 @@ mod portable_paths;
 mod release;
 mod render;
 mod render_diff;
+mod reports;
 mod roundtrip;
 mod runner;
 mod todos;
@@ -49,18 +52,26 @@ usage: cargo xtask <task> [args]
 tasks:
   check [rust|ts|docs]
                     everything a PR must pass (default: docs, rust and ts)
-                    docs: docs-links, docs-prose, todos --check, portable paths, the capability
+                    docs: docs-links, docs-prose, docs-snippets, todos --check, portable paths, the capability
                     matrix's static checks (capabilities --check runs the tests),
                     gen codes --check and version sync --check
+                    rust: fmt --check, portability, clippy (native + wasm32), clippy-examples, tests, rustdoc, cargo-deny
+                    ts:   biome ci, biome-examples, typecheck and tests of the pnpm
+                          workspace, the docs site's build (apps/docs), npm licences
   check docs-prose [--all-strict] [--warnings] [--json]
                     reader-facing text (docs site, docs/errors, package READMEs) against
                     docs/guidelines/docs-writing.md: errors on files changed since the merge
                     base with main (drafts included), counted warnings elsewhere;
                     --all-strict fails on every report, --warnings lists them
                     (--json lists every report, so it takes no --warnings)
-                    rust: fmt --check, portability, clippy (native + wasm32), tests, rustdoc, cargo-deny
-                    ts:   biome ci, typecheck and tests of the pnpm
-                          workspace, the docs site's build (apps/docs), npm licences
+  check docs-snippets [--all-strict] [--warnings] [--json]
+                    the examples and Snippet's glob against docs/guidelines/examples.md: strict on
+                    changed examples, warnings elsewhere; TS/Rust pairs in tools/xtask/docs-snippets.toml
+  biome-examples [--all-strict]
+                    Biome with --error-on-warnings on the changed TS examples (all with --all-strict)
+  clippy-examples [--all-strict] [--warnings] [--json]
+                    clippy on lamina's examples (functions of at most 40 lines, no discarded
+                    results): strict on changed examples, warnings elsewhere
   gen codes [--check|--md]
                     validate fixtures/codes.json against fixtures/codes.schema.json and write
                     the error contract from it: ErrorCode/WarningCode
@@ -247,7 +258,8 @@ fn main() -> Result<()> {
             check_ts(&ws)
         }
         ("check", [scope]) if scope == "docs" => check_docs(&ws),
-        ("check", [scope, flags @ ..]) if scope == "docs-prose" => docs_prose::run(&ws.root, prose_options(flags)?),
+        ("check", [scope, flags @ ..]) if is_docs_ratchet(scope) => ratchet(&ws, &format!("check {scope}"), flags),
+        (command @ ("biome-examples" | "clippy-examples"), flags) => ratchet(&ws, command, flags),
         ("check", [scope]) if scope == "rust" => check_rust(&ws),
         ("check", [scope]) if scope == "ts" => check_ts(&ws),
         ("gen", [what]) if what == "codes" => codegen::codes(&ws, false),
@@ -326,12 +338,32 @@ fn repo_root() -> Result<PathBuf> {
         .context("xtask must live at <root>/tools/xtask")
 }
 
+/// `check docs-prose` and `check docs-snippets`, the `check` scopes that [`ratchet`] runs.
+fn is_docs_ratchet(scope: &str) -> bool {
+    matches!(scope, "docs-prose" | "docs-snippets")
+}
+
+/// Runs a check that is strict on changed files and warns elsewhere ([`reports`]), as `command`
+/// (`check docs-prose`, `clippy-examples`) names it, with its flags.
+fn ratchet(ws: &Workspace, command: &str, flags: &[String]) -> Result<()> {
+    let options = reports::Options::parse(command, flags)?;
+    match command {
+        "check docs-prose" => docs_prose::run(&ws.root, options),
+        "check docs-snippets" => docs_snippets::run(&ws.root, options),
+        "biome-examples" => examples_lints::biome(ws, options),
+        "clippy-examples" => examples_lints::clippy(ws, options),
+        _ => bail!("{command} is not a ratcheting check"),
+    }
+}
+
 /// The documentation checks: fast and network-free, so they run first.
 fn check_docs(ws: &Workspace) -> Result<()> {
     step("docs-links: relative links and anchors in tracked Markdown");
     docs_links::run(&ws.root, false)?;
     step("docs-prose: reader-facing text against docs/guidelines/docs-writing.md (strict on changed files)");
-    docs_prose::run(&ws.root, docs_prose::Options::default())?;
+    docs_prose::run(&ws.root, reports::Options::default())?;
+    step("docs-snippets: the examples against docs/guidelines/examples.md (strict on changed files)");
+    docs_snippets::run(&ws.root, reports::Options::default())?;
     step("todos --check: the todo board and Blocks fields are up to date");
     todos::run(&ws.root, true)?;
     step("portable paths: every tracked path checks out on Windows, macOS and Linux");
@@ -344,24 +376,12 @@ fn check_docs(ws: &Workspace) -> Result<()> {
     Ok(())
 }
 
-/// `check docs-prose`'s flags.
-fn prose_options(flags: &[String]) -> Result<docs_prose::Options> {
-    let mut options = docs_prose::Options::default();
-    for flag in flags {
-        match flag.as_str() {
-            "--all-strict" => options.all_strict = true,
-            "--warnings" => options.warnings = true,
-            "--json" => options.json = true,
-            _ => bail!("usage: cargo xtask check docs-prose [--all-strict] [--warnings] [--json]"),
-        }
-    }
-    Ok(options)
-}
-
 fn check_rust(ws: &Workspace) -> Result<()> {
     fmt_rust(ws, true)?;
     portability(ws)?;
     clippy(ws)?;
+    step("clippy-examples: lamina's examples, functions of at most 40 lines (strict on changed examples)");
+    examples_lints::clippy(ws, reports::Options::default())?;
     rust_tests(ws)?;
     docs(ws)?;
     cargo_deny(ws)?;
@@ -378,6 +398,7 @@ fn api_docs(ws: &Workspace) -> Result<()> {
 
 fn check_ts(ws: &Workspace) -> Result<()> {
     biome_ci(ws)?;
+    examples_lints::biome(ws, reports::Options::default())?;
     ws.pnpm(&["-r", "--if-present", "run", "typecheck"])?;
     ts_tests(ws)?;
     api_docs(ws)?;

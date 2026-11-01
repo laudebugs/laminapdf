@@ -20,7 +20,7 @@ Once the rewrites have cleared every report, this todo makes the docs checks str
 
 ## Context
 
-- [Quality plan §4](../../plans/quality.md#4-standards); [Q1b](../done/Q1b-docs-prose-check.md), [Q1c](../ongoing/Q1c-examples-checks.md).
+- [Quality plan §4](../../plans/quality.md#4-standards); [Q1b](../done/Q1b-docs-prose-check.md), [Q1c](../done/Q1c-examples-checks.md).
 
 ## Scope
 

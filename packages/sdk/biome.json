@@ -43,6 +43,44 @@
           }
         }
       }
+    },
+    {
+      "includes": ["examples/**"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "warn",
+              "options": {
+                "patterns": [
+                  {
+                    "group": ["../**", "**/src/**", "**/test/**", "**/fixtures/**"],
+                    "message": "Examples import only public entry points (@laminapdf/sdk, @laminapdf/sdk/worker), never another folder of the repository: docs/guidelines/examples.md."
+                  }
+                ]
+              }
+            },
+            "noNonNullAssertion": "warn"
+          },
+          "suspicious": {
+            "noExplicitAny": "warn"
+          },
+          "complexity": {
+            "noExcessiveCognitiveComplexity": {
+              "level": "warn",
+              "options": {
+                "maxAllowedComplexity": 10
+              }
+            },
+            "noExcessiveLinesPerFunction": {
+              "level": "warn",
+              "options": {
+                "maxLines": 40
+              }
+            }
+          }
+        }
+      }
     }
   ]
 }

@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [Quality plan §6](../../plans/quality.md#6-todos) |
 | Round / milestone | Round Q (docs and code quality) |
-| Depends on | [Q1c](../ongoing/Q1c-examples-checks.md), [Q1d](./Q1d-example-api-cleanups.md) |
+| Depends on | [Q1c](../done/Q1c-examples-checks.md), [Q1d](./Q1d-example-api-cleanups.md) |
 | Blocks | [Q1j](./Q1j-recipes-and-troubleshooting.md), [Q1l](./Q1l-docs-checks-strict.md) |
 | ADRs | None |
 | Branch | `refactor/q1f-examples-readable` |

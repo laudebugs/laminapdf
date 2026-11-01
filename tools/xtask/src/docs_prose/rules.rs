@@ -6,6 +6,7 @@ use std::collections::BTreeSet;
 use serde::Deserialize;
 
 use super::extract::{Block, CODE, Kind, Page};
+use crate::reports::{Finding, finding};
 
 /// `tools/xtask/docs-prose.toml`.
 #[derive(Debug, Default, Deserialize)]
@@ -61,14 +62,6 @@ pub(crate) enum Scope {
     Rendered,
 }
 
-/// One rule broken at one line.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub(crate) struct Finding {
-    pub(crate) line: usize,
-    pub(crate) rule: &'static str,
-    pub(crate) message: String,
-}
-
 pub(crate) const MAX_SENTENCE_WORDS: usize = 40;
 pub(crate) const MAX_PARAGRAPH_WORDS: usize = 100;
 pub(crate) const MAX_OPENING_WORDS: usize = 50;
@@ -107,14 +100,6 @@ fn reader_blocks(page: &Page) -> &[Block] {
         .rposition(|block| block.kind == Kind::Heading(2) && block.text() == "For contributors")
         .unwrap_or(page.blocks.len());
     page.blocks.get(..end).unwrap_or(&page.blocks)
-}
-
-fn finding(line: usize, rule: &'static str, message: impl Into<String>) -> Finding {
-    Finding {
-        line,
-        rule,
-        message: message.into(),
-    }
 }
 
 /// Words of prose: whitespace-separated, with surrounding punctuation and a possessive `'s`
@@ -261,7 +246,7 @@ fn lengths(block: &Block, config: &Config) -> Vec<Finding> {
 /// IDs without a suffix (`X5`, `P1`) are left out on purpose: they read like paper sizes (`A4`),
 /// quarters (`Q3`) and revisions (`R5`). `id_exceptions` in the config lists words that look
 /// like IDs but aren't.
-fn is_todo_id(word: &str) -> bool {
+pub(crate) fn is_todo_id(word: &str) -> bool {
     let mut chars = word.chars();
     let letter = chars.next().is_some_and(|c| c.is_ascii_uppercase());
     let rest: Vec<char> = chars.collect();

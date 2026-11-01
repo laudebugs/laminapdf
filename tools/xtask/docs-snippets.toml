@@ -1,0 +1,41 @@
+# Configuration for `cargo xtask check docs-snippets` (docs/guidelines/examples.md).
+#
+# The TypeScript and Rust examples that show the same task. Each pair must share a name
+# (`links-and-outlines.ts`, `links_and_outlines.rs`) and the first sentence of its header comment.
+# A TypeScript example and a Rust example whose names match must be listed here.
+
+[[pair]]
+ts = "packages/sdk/examples/hello.ts"
+rust = "crates/lamina/examples/hello.rs"
+
+[[pair]]
+ts = "packages/sdk/examples/invoice.ts"
+rust = "crates/lamina/examples/invoice.rs"
+
+[[pair]]
+ts = "packages/sdk/examples/multilingual.ts"
+rust = "crates/lamina/examples/multilingual.rs"
+
+[[pair]]
+ts = "packages/sdk/examples/images-and-vectors.ts"
+rust = "crates/lamina/examples/vectors.rs"
+
+[[pair]]
+ts = "packages/sdk/examples/links-and-outlines.ts"
+rust = "crates/lamina/examples/links_and_outlines.rs"
+
+[[pair]]
+ts = "packages/sdk/examples/generate-then-edit.ts"
+rust = "crates/lamina/examples/generate_then_edit.rs"
+
+[[pair]]
+ts = "packages/sdk/examples/pdf-ua-report.ts"
+rust = "crates/lamina/examples/pdf_ua_report.rs"
+
+[[pair]]
+ts = "packages/sdk/examples/pdf-a-archive.ts"
+rust = "crates/lamina/examples/pdf_a_archive.rs"
+
+[[pair]]
+ts = "packages/sdk/examples/pdf-a3-invoice-with-xml.ts"
+rust = "crates/lamina/examples/pdf_a3_invoice_with_xml.rs"
