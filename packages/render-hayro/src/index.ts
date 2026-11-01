@@ -68,10 +68,9 @@ function isModuleError(e: unknown): e is ModuleError {
 
 /**
  * Converts what the module threw: its errors (the ADR 0026 object, `data.ranges` for
- * `data-pending`) into RenderError, and a
- * WebAssembly trap (a hayro panic: the module is built with `panic = "abort"`) into
- * `render-failed`, after which the instance is broken and the worker must be restarted
- * (ADR 0009 §3.6).
+ * `data-pending`) into RenderError, and a WebAssembly trap (a hayro panic: the module is built
+ * with `panic = "abort"`) into `render-failed`, after which the instance is broken and the
+ * worker must be restarted (ADR 0009 §3.6).
  */
 function rethrow(e: unknown): never {
   if (e instanceof WebAssembly.RuntimeError) {

@@ -150,7 +150,7 @@ Today three variants break this rule: `lamina_syntax::Error::UnsupportedFilter(S
 
 | Surface | Form |
 | --- | --- |
-| Rust core crates | One `thiserror` enum per crate as today (`code()` exists). They gain `kind()` and `location()` (L1c: a table checked against `codes.json` by test; generated from L1b on). Their error enums carry no `hint`/`docs_url` text: it lives only in the generated table (in `lamina-syntax` since Q2j, see the note below), linked only into builds that read it |
+| Rust core crates | One `thiserror` enum per crate as today (`code()` exists). They gain `kind()` and `location()` (L1c: a table checked against `codes.json` by test; generated from L1b on). Their error enums carry no `hint`/`docs_url` text. That text lives in the generated table in `lamina-syntax` (see the note below), and a build links the table only when it reads a hint |
 | Rust façade (`lamina`) | `lamina::Error` with `code()`, `kind()`, `hint()`, `location()`, `docs_url()` and `Serialize` into §1. Warnings likewise |
 | wasm edge (`lamina-wasm`) | Returns the §1 object. The TS layer turns it into a `LaminaError` (ADR 0002 §1's "JS `Error` with a stable `code`", with all §1 fields) |
 | TypeScript (`@laminapdf/sdk`, worker client) | **`LaminaError<C>`** (decided; `PdfError` is not used), `isLaminaError(e, code?)`, `toJSON()` to §1. Warnings are plain `LaminaWarning` objects. The worker sends §1 JSON and the client rebuilds `LaminaError`, because structured clone drops `Error` fields |
@@ -158,13 +158,13 @@ Today three variants break this rule: `lamina_syntax::Error::UnsupportedFilter(S
 | CLI (ADR 0031) | Text mode, rustc style on stderr: `error[wrong-password]: wrong password`, then `= hint: …` and `= see: <docsUrl>`. `--json` writes §1 objects on stderr, one per line, warnings included |
 | MCP (L4c) | Tool errors carry the §1 object in `structuredContent` |
 
-**Implementation note (Q2j).** Every boundary builds the §1 object from one record and one serialiser: `lamina_syntax::Diagnostic`, behind lamina-syntax's `json` feature. The generated `ErrorCode` and `WarningCode` tables moved down with it into lamina-syntax (`src/generated/codes.rs`), so a crate below the façade can build the object too, and the façade re-exports both. Three crates build it today:
+**Implementation note (Q2j).** Every boundary builds the §1 object from one record and one serialiser: `lamina_syntax::Diagnostic`, behind lamina-syntax's `json` feature. The generated `ErrorCode` and `WarningCode` tables moved down with it into lamina-syntax (`src/generated/codes.rs`), so a crate below the façade can build the object too, and the façade re-exports both. The façade keeps the `explain` pages (`src/generated/explain.rs`). Three crates build it today:
 
 - the façade, for `Error::diagnostic()` and `Warning::diagnostic()`;
 - `lamina-wasm`, for the codes only the binding raises (`invalid-argument`, `unknown-option`, `builder-finished`, `source-budget-exceeded`);
 - `lamina-render`, for `RenderError::diagnostic()`, which `lamina-render-wasm` throws as a plain object (a `data-pending` lists its ranges in `data.ranges`).
 
-The rule above still holds for the core crates' own error enums: they carry codes, kinds and locations, never hint text. The text sits in the one generated table, and a build links it only when something reads a hint. The base module already did, through the façade. The hayro render module now does too, so its errors carry a `hint` and a `docsUrl`. `packages/wasm/test/smoke.test.ts` checks errors from both modules against `lamina.error/1`, and `lamina-render`'s tests check every render error. The façade keeps the `explain` pages (`src/generated/explain.rs`).
+The rule above still holds for the core crates' own error enums: they carry codes, kinds and locations, never hint text. The text sits in the one generated table, and a build links it only when something reads a hint. The base module always linked it, because the façade reads hints. The hayro render module now links it too, so its errors carry a `hint` and a `docsUrl`.
 
 ## Consequences
 
