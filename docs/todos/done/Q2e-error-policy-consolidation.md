@@ -36,7 +36,7 @@ Text extraction decides which errors propagate with its own `fatal()`, which lea
 
 ## Tasks
 
-- [x] Claim via a claim PR (see Definition of done); then a fresh worktree off the updated `main`.
+- [x] Claim by opening the work PR from a fresh worktree off the updated `main` (see Definition of done).
 - [x] Move each policy into `error.rs` with a doc comment saying when to use it.
 - [x] Replace `or_repair` and `must_propagate` at their call sites; delete them.
 - [x] Replace `fatal`; write the regression test first and watch it fail.
@@ -64,13 +64,13 @@ ADR 0003's implementation note if it names policies, plan §9.
 
 Behaviour change for limits in extraction: decide it explicitly.
 
-**Decided (#180):** extraction keeps failing on hard limits. It reads fonts with `absent_if_malformed`, the policy for reads outside ADR 0003's tolerant paths, so it now also fails on `Error::Source` (the fix) and on reference cycles, which ADR 0003 rejects; a merely malformed entry still reads as absent with `font-invalid`.
+**Decided (#180):** extraction keeps failing on hard limits. It reads fonts with `absent_if_malformed`, the policy for reads outside ADR 0003's tolerant paths. So it now also fails on `Error::Source`, the bug this todo fixes, and on reference cycles, which ADR 0003 rejects. A malformed entry still reads as absent, with `font-invalid`. Looking a font up in the page's resources stays tolerant (`laminapdf-content`'s `tolerant` reads): a cycle there reads as a missing resource, with `content-resource-missing`, while a cycle inside the font's own entries fails the page.
 
 ## Definition of done
 
-- [x] Claimed: a small claim PR moved this file `ready/` → `ongoing/` on `main` (Status `ongoing`, links updated) before work started
+- [x] Claimed: the work PR's first commit moved this file `ready/` → `ongoing/` (Status `ongoing`, links updated) before work started
 - [x] Work PR opened from a fresh worktree; **PR** field filled in
 - [x] The change follows the guidelines that apply to it: [maintainability](../../guidelines/maintainability.md) for code, [docs writing](../../guidelines/docs-writing.md) and [examples](../../guidelines/examples.md) for what readers see
-- [x] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
-- [x] CI green
+- [ ] `/code-review` process followed (findings and fixes recorded in commit messages; second review if > 6 findings), and `/writing-review` on the PR's prose ([git workflow §7](../../guidelines/git-workflow.md#7-review-and-merge-process))
+- [ ] CI green
 - [x] This file moved `ongoing/` → `done/` in the work PR (Status `done`), links to it updated, plan to-dos ticked, board regenerated

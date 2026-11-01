@@ -549,12 +549,9 @@ fn scan(doc: &Document, perms: &Perms, found: &mut Signatures, seen: &[Object]) 
         if seen.iter().any(|v| v.as_ref().is_some_and(|r| r.num == num)) {
             continue;
         }
-        let object = match doc.object(num) {
-            Ok(object) => object,
-            Err(e @ (laminapdf_cos::Error::DataPending { .. } | laminapdf_cos::Error::Source(_))) => {
-                return Err(e.into());
-            }
-            Err(_) => continue,
+        // The scan is a tolerant path: an object that can't be read is no signature.
+        let Some(object) = laminapdf_cos::tolerant(doc.object(num))? else {
+            continue;
         };
         let Some(dict) = object.as_dict() else {
             continue;

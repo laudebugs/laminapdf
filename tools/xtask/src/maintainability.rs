@@ -71,7 +71,7 @@ const CHECKS: [Check; 7] = [
     },
     Check {
         name: "error-policy",
-        run: policy::error_policy_matches,
+        run: policy::error_policy_tests,
     },
 ];
 
@@ -223,6 +223,13 @@ impl Tree {
         };
         self
     }
+}
+
+/// The crate a library or binary source belongs to: `crates/<crate>/src/…`.
+fn crate_of(path: &str) -> Option<&str> {
+    let rest = path.strip_prefix("crates/")?;
+    let (krate, inside) = rest.split_once('/')?;
+    inside.starts_with("src/").then_some(krate)
 }
 
 /// Whether the checks read `path`: a `.rs` file under [`ROOTS`].

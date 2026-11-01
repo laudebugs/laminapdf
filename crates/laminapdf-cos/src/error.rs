@@ -292,13 +292,13 @@ impl Error {
 pub type Result<T> = core::result::Result<T, Error>;
 
 // The policies below decide which errors a read swallows. Each one is defined here and only
-// here (todo Q2e); `check maintainability` rejects a `matches!` on `LimitExceeded` or
-// `DataPending` anywhere else.
+// here: `check maintainability`'s `error-policy` check rejects a `matches!` or an error
+// or-pattern on `LimitExceeded` or `DataPending` anywhere else.
 
-/// `result` read on one of ADR 0003's tolerant paths (the page-tree walk's nodes, the xref
-/// loader falling back to repair, an op reading an entry it can do without): `Ok(Some(v))`,
-/// `Ok(None)` when the item is unreadable for any reason, hard limits included, or the error
-/// when it [must propagate](Error::must_propagate).
+/// `result` read on one of ADR 0003's tolerant paths: `Ok(Some(v))`, `Ok(None)` when the item
+/// is unreadable for any reason, hard limits included, or the error when it
+/// [must propagate](Error::must_propagate). The tolerant paths are the page-tree walk's nodes,
+/// the xref loader falling back to repair, and an op reading an entry it can do without.
 ///
 /// # Errors
 /// The errors of `result` for which [`Error::must_propagate`] is true.
@@ -310,19 +310,19 @@ pub fn tolerant<T>(result: Result<T>) -> Result<Option<T>> {
     }
 }
 
-/// `result` read outside ADR 0003's tolerant paths by a reader that falls back to "absent"
-/// (an inherited page attribute, `/Count`, a font's entries during text extraction):
-/// `Ok(Some(v))`, or `Ok(None)` for an object that is merely malformed. Cycles, hard limits
+/// `result` read outside ADR 0003's tolerant paths by a reader that falls back to "absent":
+/// `Ok(Some(v))`, or `Ok(None)` for an object that is malformed. Reference cycles, hard limits
 /// ([`Error::LimitExceeded`]) and errors that [must propagate](Error::must_propagate) are
-/// returned, as ADR 0003 §3 requires outside tolerant paths.
+/// returned, as ADR 0003 §3 requires outside tolerant paths. Such readers include an inherited
+/// page attribute, `/Count`, and a font's entries during text extraction.
 ///
 /// # Errors
-/// The errors of `result` that [end the page walk](Error::ends_page_walk) and
-/// [`Error::LimitExceeded`].
+/// [`Error::ReferenceCycle`], [`Error::LimitExceeded`] and the errors of `result` for which
+/// [`Error::must_propagate`] is true.
 pub fn absent_if_malformed<T>(result: Result<T>) -> Result<Option<T>> {
     match result {
         Ok(value) => Ok(Some(value)),
-        Err(e) if e.ends_page_walk() || matches!(e, Error::LimitExceeded { .. }) => Err(e),
+        Err(e) if e.must_propagate() || matches!(e, Error::ReferenceCycle(_) | Error::LimitExceeded { .. }) => Err(e),
         Err(_) => Ok(None),
     }
 }

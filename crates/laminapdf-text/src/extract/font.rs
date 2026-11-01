@@ -142,9 +142,9 @@ struct Reader<'d> {
 impl Reader<'_> {
     fn get(&mut self, dict: &Dict, key: &str) -> Result<Option<Arc<Object>>> {
         let Some(value) = dict.get(key) else { return Ok(None) };
-        let resolved = absent_if_malformed(self.doc.deref(value))?;
-        self.issues.font |= resolved.is_none();
-        Ok(resolved.map(laminapdf_cos::Resolved::into_arc))
+        Ok(self
+            .noted(self.doc.deref(value))?
+            .map(laminapdf_cos::Resolved::into_arc))
     }
 
     fn dict(&mut self, dict: &Dict, key: &str) -> Result<Option<Dict>> {
@@ -164,13 +164,18 @@ impl Reader<'_> {
         let Object::Stream(stream) = object else {
             return Ok(None);
         };
-        let bytes = absent_if_malformed(self.doc.decode_stream(stream))?;
-        self.issues.font |= bytes.is_none();
-        Ok(bytes)
+        self.noted(self.doc.decode_stream(stream))
     }
 
-    /// The numbers of an array (non-numbers dropped, and noted; a fatal error while
-    /// resolving an element ends the load).
+    /// `result` read with [`absent_if_malformed`], a malformed object noted as a font issue.
+    fn noted<T>(&mut self, result: Result<T>) -> Result<Option<T>> {
+        let value = absent_if_malformed(result)?;
+        self.issues.font |= value.is_none();
+        Ok(value)
+    }
+
+    /// The numbers of an array (non-numbers dropped, and noted; an error
+    /// [`absent_if_malformed`] returns while resolving an element ends the load).
     fn numbers(&mut self, object: &Object) -> Result<Vec<f64>> {
         let Some(items) = object.as_array() else {
             self.issues.font = true;

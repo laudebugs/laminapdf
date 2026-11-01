@@ -1,8 +1,8 @@
-//! Which errors end extraction (todo Q2e, ADR 0003): a source that fails while a font loads
-//! fails the page, and a font object that is merely malformed reads as absent.
+//! Which errors end extraction (ADR 0003): a source that fails while a font loads and a
+//! reference cycle in a font's entries fail the page; a font object that does not parse reads
+//! as absent, with `font-invalid`.
 #![allow(
     clippy::expect_used,
-    clippy::panic,
     clippy::unwrap_used,
     clippy::indexing_slicing,
     reason = "tests: a panic is a test failure"
@@ -12,10 +12,10 @@ use std::ops::Range;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 
-use laminapdf_cos::{ByteSource, Error, OpenOptions, SourceError};
+use laminapdf_cos::{ByteSource, Error, OpenOptions, SourceError, Warning};
 use laminapdf_model::Document;
 use laminapdf_save::Writer;
-use laminapdf_syntax::{Dict, Object, Stream};
+use laminapdf_syntax::{Dict, ObjRef, Object, Stream};
 use laminapdf_text::TextExtractor;
 
 /// Bytes that fail to read in `failing` once `armed`, as a file whose disk starts failing in
@@ -56,15 +56,15 @@ impl ByteSource for FailingRange {
     }
 }
 
-/// A one-page file whose font's `/ToUnicode` object, `to_unicode`, sits between two 256 KiB
-/// paddings, so no read of the header, the trailer or the other objects touches it. Returns the bytes and the
-/// byte range of the `/ToUnicode` object.
-fn file(to_unicode: Object) -> (Vec<u8>, Range<u64>) {
+/// A one-page file whose font's `/ToUnicode` object, written by `to_unicode`, sits between two
+/// 256 KiB paddings, so no read of the header, the trailer or the other objects touches it.
+/// Returns the bytes and the byte range of the `/ToUnicode` object, `obj` to `endobj`.
+fn file(to_unicode: impl FnOnce(&mut Writer) -> ObjRef) -> (Vec<u8>, Range<u64>) {
     let dict = |entries: Vec<(&str, Object)>| entries.into_iter().collect::<Dict>();
     let mut w = Writer::new(1, 7);
     let padding = || Stream::new(Dict::new(), vec![b' '; 256 * 1024]);
     w.add(padding());
-    let cmap = w.add(to_unicode);
+    let cmap = to_unicode(&mut w);
     w.add(padding());
     let font = w.add(dict(vec![
         ("Type", Object::name("Font")),
@@ -94,30 +94,34 @@ fn file(to_unicode: Object) -> (Vec<u8>, Range<u64>) {
     );
     let root = w.add(dict(vec![("Type", Object::name("Catalog")), ("Pages", pages.into())]));
     let bytes = w.finish(&[("Root", root)].into_iter().collect()).expect("writes");
-    let marker = format!("{} 0 obj", cmap.num);
-    let start = bytes
-        .windows(marker.len())
-        .position(|w| w == marker.as_bytes())
-        .expect("the /ToUnicode object");
-    let end = start + 64;
+    let find = |needle: &[u8], from: usize| {
+        bytes
+            .get(from..)
+            .and_then(|rest| rest.windows(needle.len()).position(|w| w == needle))
+            .map(|at| from + at)
+            .expect("the /ToUnicode object")
+    };
+    let start = find(format!("{} 0 obj", cmap.num).as_bytes(), 0);
+    let end = find(b"endobj", start) + b"endobj".len();
     (bytes, u64::try_from(start).unwrap()..u64::try_from(end).unwrap())
 }
 
-/// The text of the first page, extracted after `source` is armed.
-fn extract(source: FailingRange) -> laminapdf_cos::Result<laminapdf_text::PageText> {
+/// The text of the first page, extracted after `source` is armed, and the document's warnings.
+fn extract(source: FailingRange) -> (laminapdf_cos::Result<laminapdf_text::PageText>, Vec<Warning>) {
     let source = Arc::new(source);
     let doc = Document::open(Arc::clone(&source) as Arc<dyn ByteSource>, OpenOptions::default()).expect("opens");
     let pages = doc.pages().expect("pages");
     let page = pages.get(0).expect("a page");
     source.armed.store(true, Ordering::Relaxed);
-    TextExtractor::new().page(&doc, &page)
+    let text = TextExtractor::new().page(&doc, &page);
+    (text, doc.warnings())
 }
 
 #[test]
 fn extract_should_return_the_source_error_when_a_font_object_cannot_be_read() {
-    let (data, failing) = file(Stream::new(Dict::new(), b"not read".to_vec()).into());
+    let (data, failing) = file(|w| w.add(Stream::new(Dict::new(), b"not read".to_vec())));
 
-    let result = extract(FailingRange::new(data, failing));
+    let (result, _) = extract(FailingRange::new(data, failing));
 
     assert!(
         matches!(result, Err(Error::Source(SourceError::Failed { .. }))),
@@ -126,10 +130,26 @@ fn extract_should_return_the_source_error_when_a_font_object_cannot_be_read() {
 }
 
 #[test]
-fn extract_should_read_a_malformed_to_unicode_as_absent() {
-    let (data, _) = file(Object::Integer(7));
+fn extract_should_return_the_cycle_when_a_font_entry_refers_to_itself() {
+    let (data, _) = file(|w| {
+        let cmap = w.reserve();
+        w.set(cmap, Object::Ref(cmap));
+        cmap
+    });
 
-    let text = extract(FailingRange::new(data, 0..0)).expect("extracts");
+    let (result, _) = extract(FailingRange::new(data, 0..0));
 
-    assert_eq!(text.lines(), ["A"]);
+    assert!(matches!(result, Err(Error::ReferenceCycle(_))), "{result:?}");
+}
+
+#[test]
+fn extract_should_read_a_to_unicode_that_does_not_parse_as_absent() {
+    let (data, _) = file(|w| w.add_raw(b"<< /Unterminated [".to_vec()));
+
+    let (text, warnings) = extract(FailingRange::new(data, 0..0));
+
+    assert_eq!(
+        (text.expect("extracts").lines(), warnings),
+        (vec!["A".to_owned()], vec![Warning::FontInvalid { object: Some(4) }])
+    );
 }
