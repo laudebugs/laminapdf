@@ -137,6 +137,8 @@ Conventions that hold whatever the architecture ADRs decide (crate/package names
 - [`docs/guidelines/code-organization.md`](docs/guidelines/code-organization.md): layout (`crates/lamina-*`, `packages/` as `@laminapdf/*`, `apps/`, `fixtures/`, `tools/xtask`, `spikes/` outside every workspace), dependency direction (pure bytes-in/bytes-out core, platform code only at the edges), public API, tests, when to split.
 - [`docs/guidelines/rust.md`](docs/guidelines/rust.md): edition 2024, workspace `[lints]`, no `unwrap`/`expect`/`panic`/indexing in libraries, `unsafe` only in edge crates with `// SAFETY:`, `thiserror` errors.
 - [`docs/guidelines/typescript.md`](docs/guidelines/typescript.md): strict tsconfig, ESM-only, no Node-only APIs in shared packages, named exports only, Biome, Vitest.
+- [`docs/guidelines/maintainability.md`](docs/guidelines/maintainability.md): one home per concept (search before writing a helper), size budgets that only go down, one public path per item, no test code in shipped code, comments that say why.
+- [`docs/guidelines/docs-writing.md`](docs/guidelines/docs-writing.md) and [`docs/guidelines/examples.md`](docs/guidelines/examples.md): reader-facing docs tell a story in plain English, with no internal IDs; examples use only the public API, carry no test scaffolding and read like code we would merge.
 
 ## Commands
 

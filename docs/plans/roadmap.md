@@ -119,6 +119,7 @@ One row per round. Each round is split into one or more todos, one PR each, on t
 | E16 | [editor](full-editor.md#e16-optimisation-and-print-production) | Optimisation, print production | — |
 | E17 | [editor](full-editor.md#e17-advanced-interactions) | Advanced interactions | — |
 | E18 | [editor](full-editor.md#e18-collaboration-hosted-service) | Collaboration | 0012; `auth` |
+| Q | [quality](quality.md) | Docs as a story, readable examples, maintainability checks, reuse | — |
 
 ## How we track progress
 
