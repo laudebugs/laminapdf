@@ -363,6 +363,32 @@ fn brotli_len(bytes: &[u8]) -> u64 {
     }
 }
 
+/// The sizes of each module's `.wasm` and minified glue, one thread per module: brotli at quality
+/// 11 takes most of a minute on the larger modules, so measured one after another they took two
+/// minutes of every CI run.
+fn measure_modules(files: &[(&str, Vec<u8>, Vec<u8>)]) -> BTreeMap<String, ModuleSizes> {
+    std::thread::scope(|scope| {
+        let handles: Vec<_> = files
+            .iter()
+            .map(|(name, wasm, glue)| {
+                let handle = scope.spawn(|| ModuleSizes {
+                    wasm: Sizes::of(wasm),
+                    glue: Sizes::of(glue),
+                });
+                (*name, handle)
+            })
+            .collect();
+        handles
+            .into_iter()
+            .map(|(name, handle)| {
+                // A measuring thread only panics if the compressor does; pass the panic on.
+                let sizes = handle.join().unwrap_or_else(|panic| std::panic::resume_unwind(panic));
+                (name.to_owned(), sizes)
+            })
+            .collect()
+    })
+}
+
 /// One module's measurements: the `.wasm` and the JS glue minified (esbuild).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct ModuleSizes {
@@ -690,21 +716,16 @@ fn top_diff(before: &[(u64, String)], now: &[(u64, String)]) -> String {
 pub(crate) fn size(ws: &Workspace, update_baseline: bool) -> Result<()> {
     let (budgets, mut file) = read_budgets(ws)?;
     let out = dist(ws);
-    let mut measured = BTreeMap::new();
+    let mut files = Vec::new();
     for module in &MODULES {
         let stem = format!("lamina_{}", module.name);
         let wasm = out.join(format!("{stem}.wasm"));
         let wasm =
             fs::read(&wasm).with_context(|| format!("reading {}: run `cargo xtask wasm` first", wasm.display()))?;
         let glue = minified(ws, &out.join(format!("{stem}.js")))?;
-        measured.insert(
-            module.name.to_owned(),
-            ModuleSizes {
-                wasm: Sizes::of(&wasm),
-                glue: Sizes::of(&glue),
-            },
-        );
+        files.push((module.name, wasm, glue));
     }
+    let measured = measure_modules(&files);
     let baseline: BTreeMap<String, u64> = MODULES
         .iter()
         .filter_map(|m| {
@@ -848,9 +869,28 @@ mod tests {
     use std::collections::BTreeMap;
 
     use super::{
-        Budget, ModuleSizes, Sizes, grown, largest, package_budgets, package_violation, stable_name, top_diff,
-        violations,
+        Budget, ModuleSizes, Sizes, grown, largest, measure_modules, package_budgets, package_violation, stable_name,
+        top_diff, violations,
     };
+
+    #[test]
+    fn measure_modules_should_measure_each_module_like_sizes_of() {
+        let files = [
+            ("a", b"wasm a".repeat(50), b"glue a".to_vec()),
+            ("b", b"b".to_vec(), Vec::new()),
+        ];
+        let expected: BTreeMap<String, ModuleSizes> = files
+            .iter()
+            .map(|(name, wasm, glue)| {
+                let sizes = ModuleSizes {
+                    wasm: Sizes::of(wasm),
+                    glue: Sizes::of(glue),
+                };
+                ((*name).to_owned(), sizes)
+            })
+            .collect();
+        assert_eq!(measure_modules(&files), expected);
+    }
 
     #[test]
     fn largest_sums_the_data_segments_into_one_item() {

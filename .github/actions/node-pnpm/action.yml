@@ -1,0 +1,53 @@
+# pnpm (packageManager in package.json) and Node on the self-hosted macOS runners, with the pnpm
+# store kept between jobs.
+#
+# pnpm/action-setup installs pnpm into the job's temp dir (`dest`): the default (~/setup-pnpm) is
+# shared by every runner on the same machine, and concurrent jobs delete each other's pnpm. pnpm
+# puts its store next to itself, so without `pnpm_config_store_dir` every job would start with an
+# empty store, and setup-node's `cache: pnpm` refilled it by downloading ~290 MB from the Actions
+# cache (one to three minutes per job, and as long again to save it). Instead the store lives in
+# the runner's own tool cache, like isolate-rust-home's build directories: one per runner, used by
+# one job at a time, so `pnpm install` only links what it already has.
+#
+# Not for the Linux runner container (full.yml's check-linux, release.yml): it starts empty for
+# every job, so it keeps setup-node's cache.
+name: Node and pnpm on self-hosted runners
+description: Install pnpm and Node, keep the pnpm store in the runner's tool cache, and optionally install.
+inputs:
+  node-version:
+    description: Node version; empty uses .nvmrc.
+    required: false
+    default: ""
+  package-json-file:
+    description: The package.json whose packageManager names the pnpm version.
+    required: false
+    default: package.json
+  install:
+    description: >-
+      Folder to run `pnpm install --frozen-lockfile` in, relative to the checkout (`.` for the
+      root workspace); empty skips the install.
+    required: false
+    default: "."
+runs:
+  using: composite
+  steps:
+    - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      with:
+        dest: ${{ runner.temp }}/setup-pnpm
+        package_json_file: ${{ inputs.package-json-file }}
+    - name: Keep the pnpm store in the runner's tool cache
+      shell: bash
+      run: echo "pnpm_config_store_dir=$RUNNER_TOOL_CACHE/pnpm-store" >> "$GITHUB_ENV"
+    - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+      with:
+        # An empty node-version falls back to node-version-file.
+        node-version: ${{ inputs.node-version }}
+        node-version-file: .nvmrc
+        # The store above replaces setup-node's cache; `package-manager-cache: false` stops it
+        # from turning one on because package.json names pnpm.
+        package-manager-cache: false
+    - name: pnpm install
+      if: inputs.install != ''
+      shell: bash
+      working-directory: ${{ inputs.install }}
+      run: pnpm install --frozen-lockfile

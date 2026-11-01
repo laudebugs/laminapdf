@@ -7,12 +7,15 @@
 # `fast-gate`'s `needs`.
 # Every job runs on the self-hosted macOS ARM64 runners (labels [self-hosted, macOS, ARM64]):
 # GitHub-hosted minutes are not used. (The Linux runner container, tools/ci-runner/linux, only
-# serves full.yml's check-linux.) The runners share one machine, so jobs that install Rust
+# serves full.yml's check-linux.) Runners share a machine, so jobs that install Rust
 # run isolate-rust-home first, pnpm installs into the runner's temp dir, and rust-cache is off.
 # Instead, isolate-rust-home's `target-dir` keeps each job's build output on its runner between
 # runs, apart per job and per kind of trigger, so PR output is never reused on main (see the
-# action). Jobs that only build xtask share `xtask`. The spikes job keeps the checkout's target/:
-# the frozen spike's scripts and TS tests read its wasm from spikes/pdf-basics/rust/target/.
+# action). Jobs that only build xtask share `xtask`. The pdf-basics spike builds into the
+# checkout's target/: the frozen spike's scripts and TS tests read its wasm from
+# spikes/pdf-basics/rust/target/. Node and pnpm come from .github/actions/node-pnpm, which keeps
+# the pnpm store in the runner's tool cache. Short checks share a job (`msrv-and-spike`, the two
+# `pdf-runtimes` jobs): with the runners busy, a new job can wait longer than its tests take.
 # The repository is private, so fork PRs (which must never run on self-hosted runners) can't occur.
 # Actions are pinned by full commit SHA with the release in a comment (ADR 0019); Dependabot bumps them.
 name: CI
@@ -71,7 +74,7 @@ jobs:
         run: cargo xtask changes --base "$BASE"
 
   rust:
-    name: Rust (docs links and todo board, fmt, maintainability, portability, clippy, tests, docs, cargo-deny)
+    name: Rust (fmt, maintainability, portability, clippy, tests, rustdoc, cargo-deny)
     needs: changes
     if: ${{ !cancelled() && needs.changes.outputs.code == 'true' }}
     runs-on: [self-hosted, macOS, ARM64]
@@ -81,7 +84,7 @@ jobs:
         with:
           persist-credentials: false
           # The merge base with main: `check maintainability` compares its record files with
-          # main's, and the docs ratchets are strict on changed files.
+          # main's, and clippy-examples is strict on the examples a PR changes.
           fetch-depth: 0
       - uses: ./.github/actions/isolate-rust-home
         with:
@@ -97,7 +100,11 @@ jobs:
       - uses: taiki-e/install-action@86f7a0ffb25f40114606501a311ebcfaf882ea32 # v2.88.0
         with:
           tool: cargo-nextest@0.9.150,cargo-deny@0.20.2
-      - run: cargo xtask check docs
+      # On PRs the full lane's `changes` job runs these checks; it skips them on pushes to main,
+      # so they run here only then.
+      - name: Docs checks (links, todo board, prose, snippets, portable paths)
+        if: github.event_name == 'push'
+        run: cargo xtask check docs
       # On pushes to main, `check rust` renders the rustdoc into an empty doc/ (cargo rewrites
       # every crate's pages when they are missing), so the artefact below holds this commit's
       # crates only: the job's CARGO_TARGET_DIR is kept between runs and would carry pages of
@@ -149,16 +156,7 @@ jobs:
       - uses: taiki-e/install-action@86f7a0ffb25f40114606501a311ebcfaf882ea32 # v2.88.0
         with:
           tool: wasm-bindgen@0.2.129,twiggy@0.8.0
-      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
-        with:
-          # Per-job install dir: the default (~/setup-pnpm) is shared by every self-hosted
-          # runner on the same machine, and concurrent jobs delete each other's pnpm.
-          dest: ${{ runner.temp }}/setup-pnpm
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-        with:
-          node-version-file: .nvmrc
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
+      - uses: ./.github/actions/node-pnpm
       - run: cargo xtask wasm
       # The built modules and @laminapdf/sdk's dist/ for the pdf-runtimes jobs (paths are kept
       # relative to packages/).
@@ -183,25 +181,25 @@ jobs:
           if-no-files-found: warn
 
   # Todo B6c (pdf-library §5): @laminapdf/sdk's example suite, byte-identical to the Rust goldens,
-  # in Node 22 and 26 and in Chromium (with a Vite production build run in a Chromium page),
-  # over the `wasm` job's build. Node 24 (.nvmrc) is the `wasm` job's own run of the suite
-  # (`cargo xtask wasm`), so it has no leg here; its timings are the nightly lane's. Firefox, WebKit, Deno, Bun and workerd run in the full lane
-  # (full.yml) and the nightly lane. Timings and WebAssembly memory go to the job summary
-  # (`cargo xtask pdf-runtimes`; recorded, not asserted).
+  # in every runtime it supports, over the `wasm` job's build (Node 24, .nvmrc, is the `wasm`
+  # job's own run of the suite). Two jobs rather than one per runtime: each runtime's suite takes
+  # 20 to 70 s, less than setting up a job. `browsers` runs Chromium (with a Vite production
+  # build run in a Chromium page), Firefox and WebKit (Vitest browser mode with Playwright);
+  # `servers` runs Deno, Bun, workerd (wrangler's test harness) and Node 22 and 26. Every runtime
+  # runs even when one fails. Timings and WebAssembly memory go to the job summary (`cargo
+  # xtask pdf-runtimes`; recorded, not asserted).
   pdf-runtimes:
-    name: "@laminapdf/sdk in ${{ matrix.runtime == 'node' && format('Node {0}', matrix.node) || 'Chromium' }}"
+    name: "@laminapdf/sdk in ${{ matrix.label }}"
     needs: [changes, wasm]
     if: ${{ !cancelled() && needs.changes.outputs.code == 'true' && needs.wasm.outputs.dist == 'true' }}
     runs-on: [self-hosted, macOS, ARM64]
-    timeout-minutes: 20
+    timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
         include:
-          - { runtime: node, node: "22" }
-          - { runtime: node, node: "26" }
-          # Node from .nvmrc (an empty node-version falls back to node-version-file).
-          - { runtime: chromium, node: "" }
+          - { group: browsers, label: "Chromium, Firefox and WebKit", runtimes: "chromium firefox webkit" }
+          - { group: servers, label: "Deno, Bun, workerd and Node 22 and 26", runtimes: "deno bun workerd" }
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -217,38 +215,71 @@ jobs:
       - uses: ./.github/actions/host-rust
         with:
           cache: false
-      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
-        with:
-          # Per-job install dir: the default (~/setup-pnpm) is shared by every self-hosted
-          # runner on the same machine, and concurrent jobs delete each other's pnpm.
-          dest: ${{ runner.temp }}/setup-pnpm
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-        with:
-          node-version: ${{ matrix.node }}
-          node-version-file: .nvmrc
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
+      # Deno, Bun and wrangler (workerd) are dev dependencies of @laminapdf/sdk.
+      - uses: ./.github/actions/node-pnpm
       # The browsers stay in the runner's own tool cache between runs (`playwright install`
       # only downloads a missing or outdated one), like the corpus in nightly.yml.
       - name: Keep the Playwright browsers in the runner's tool cache
         run: echo "PLAYWRIGHT_BROWSERS_PATH=$RUNNER_TOOL_CACHE/ms-playwright" >> "$GITHUB_ENV"
-      - env:
-          RUNTIME: ${{ matrix.runtime }}
-        run: cargo xtask pdf-runtimes "$RUNTIME"
+      # Every runtime runs even when one before it failed (`!cancelled()`); the Node runs come
+      # last, each after switching the Node on PATH.
+      - name: "@laminapdf/sdk in ${{ matrix.runtimes }}"
+        env:
+          RUNTIMES: ${{ matrix.runtimes }}
+          LABEL: ${{ matrix.group }}
+        run: |
+          # Each run rewrites target/xtask/pdf-runtimes/measurements.json (also when a runtime
+          # fails), so it is kept under the run's own name for the upload.
+          trap 'mkdir -p target/xtask/measurements && cp target/xtask/pdf-runtimes/measurements.json "target/xtask/measurements/$LABEL.json" || true' EXIT
+          # shellcheck disable=SC2086 # one argument per runtime
+          cargo xtask pdf-runtimes $RUNTIMES
+      - if: ${{ !cancelled() && matrix.group == 'servers' }}
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "22"
+          package-manager-cache: false
+      - name: "@laminapdf/sdk in Node 22"
+        if: ${{ !cancelled() && matrix.group == 'servers' }}
+        env:
+          RUNTIMES: node
+          LABEL: node22
+        run: |
+          trap 'mkdir -p target/xtask/measurements && cp target/xtask/pdf-runtimes/measurements.json "target/xtask/measurements/$LABEL.json" || true' EXIT
+          # shellcheck disable=SC2086 # one argument per runtime
+          cargo xtask pdf-runtimes $RUNTIMES
+      - if: ${{ !cancelled() && matrix.group == 'servers' }}
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "26"
+          package-manager-cache: false
+      - name: "@laminapdf/sdk in Node 26"
+        if: ${{ !cancelled() && matrix.group == 'servers' }}
+        env:
+          RUNTIMES: node
+          LABEL: node26
+        run: |
+          trap 'mkdir -p target/xtask/measurements && cp target/xtask/pdf-runtimes/measurements.json "target/xtask/measurements/$LABEL.json" || true' EXIT
+          # shellcheck disable=SC2086 # one argument per runtime
+          cargo xtask pdf-runtimes $RUNTIMES
       - name: Upload the measurements
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: pdf-runtimes-${{ matrix.runtime }}${{ matrix.node }}
-          path: target/xtask/pdf-runtimes/
+          name: pdf-runtimes-${{ matrix.group }}
+          path: target/xtask/measurements/
           if-no-files-found: ignore
 
-  msrv:
-    name: MSRV (rust-version)
+  # Two short checks in one job, since each takes about a minute, less than waiting for a runner.
+  # MSRV: the workspace builds on the declared rust-version. The pdf-basics spike is frozen
+  # research code outside both workspaces, but its tests are the evidence behind several
+  # decisions. Its Rust core is ported to crates/lamina-syntax and crates/lamina-cos (Round A3);
+  # these steps keep the frozen record (incl. the TS twin) green.
+  msrv-and-spike:
+    name: MSRV (rust-version) and the pdf-basics spike (Rust + TS)
     needs: changes
     if: ${{ !cancelled() && needs.changes.outputs.code == 'true' }}
     runs-on: [self-hosted, macOS, ARM64]
-    timeout-minutes: 20
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -284,6 +315,27 @@ jobs:
         env:
           MSRV: ${{ steps.msrv.outputs.version }}
         run: cargo +"$MSRV" check --locked --workspace --all-targets --all-features
+      # The pinned toolchain with rust-toolchain.toml's components and targets, for the spike.
+      - if: ${{ !cancelled() }}
+        uses: actions-rust-lang/setup-rust-toolchain@ecabd13d1c56bd1345c230e542e9144811ad706f # v2.0.0
+        with:
+          cache: false
+      # The spike builds into its own target/ (unsetting the MSRV check's CARGO_TARGET_DIR): its
+      # scripts and TS tests read its wasm from spikes/pdf-basics/rust/target/.
+      - name: Rust spike (cross-target checks, wasm build, fmt, clippy, tests)
+        if: ${{ !cancelled() }}
+        run: env -u CARGO_TARGET_DIR spikes/pdf-basics/rust/scripts/check-targets.sh
+      - if: ${{ !cancelled() }}
+        uses: ./.github/actions/node-pnpm
+        with:
+          install: spikes/pdf-basics/ts
+      - name: TypeScript spike (typecheck, lint, tests incl. WASM interop)
+        if: ${{ !cancelled() }}
+        working-directory: spikes/pdf-basics/ts
+        run: |
+          pnpm typecheck
+          pnpm lint
+          pnpm test
 
   typescript:
     name: TypeScript (biome, typecheck, tests, npm licences)
@@ -298,17 +350,7 @@ jobs:
       - uses: ./.github/actions/isolate-rust-home
         with:
           target-dir: xtask
-      # No `version` input: uses packageManager from package.json.
-      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
-        with:
-          # Per-job install dir: the default (~/setup-pnpm) is shared by every self-hosted
-          # runner on the same machine, and concurrent jobs delete each other's pnpm.
-          dest: ${{ runner.temp }}/setup-pnpm
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-        with:
-          node-version-file: .nvmrc
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
+      - uses: ./.github/actions/node-pnpm
       # xtask is the entry point for the TS checks too, but it only needs to build for the host.
       - uses: ./.github/actions/host-rust
         with:
@@ -318,53 +360,13 @@ jobs:
           cache: false
       - run: cargo xtask check ts
 
-  # The pdf-basics spike is frozen research code outside both workspaces, but its tests are the
-  # evidence behind several decisions. Its Rust core is ported to crates/lamina-syntax and
-  # crates/lamina-cos (Round A3); this job keeps the frozen record (incl. the TS twin) green.
-  spikes:
-    name: Spike pdf-basics (Rust + TS)
-    needs: changes
-    if: ${{ !cancelled() && needs.changes.outputs.code == 'true' }}
-    runs-on: [self-hosted, macOS, ARM64]
-    timeout-minutes: 30
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-      - uses: ./.github/actions/isolate-rust-home
-      - uses: actions-rust-lang/setup-rust-toolchain@ecabd13d1c56bd1345c230e542e9144811ad706f # v2.0.0
-        with:
-          # rust-cache's post step on macOS runs `sudo /usr/sbin/purge`, which hangs forever on
-          # self-hosted runners without passwordless sudo. Self-hosted runners keep their own
-          # CARGO_HOME between jobs, so caching is only for GitHub-hosted runners.
-          cache: false
-          cache-workspaces: spikes/pdf-basics/rust
-      - run: spikes/pdf-basics/rust/scripts/check-targets.sh
-      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
-        with:
-          # Per-job install dir: the default (~/setup-pnpm) is shared by every self-hosted
-          # runner on the same machine, and concurrent jobs delete each other's pnpm.
-          dest: ${{ runner.temp }}/setup-pnpm
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-        with:
-          node-version-file: .nvmrc
-          cache: pnpm
-          cache-dependency-path: spikes/pdf-basics/ts/pnpm-lock.yaml
-      - name: TypeScript spike (typecheck, lint, tests incl. WASM interop)
-        working-directory: spikes/pdf-basics/ts
-        run: |
-          pnpm install --frozen-lockfile
-          pnpm typecheck
-          pnpm lint
-          pnpm test
-
   # The fast lane's required check (todo X7): every job above passed, or was skipped on a
   # docs-only PR. Rules for new jobs: see the header (tools/xtask/src/workflows.rs checks
   # `needs`). The shell is full.yml gate's without the Linux skip; change both together.
   fast-gate:
     name: fast-gate
     if: always()
-    needs: [changes, rust, wasm, pdf-runtimes, msrv, typescript, spikes]
+    needs: [changes, rust, wasm, pdf-runtimes, msrv-and-spike, typescript]
     runs-on: [self-hosted, macOS, ARM64]
     timeout-minutes: 5
     steps:
