@@ -1,8 +1,8 @@
-//! The generated [`ErrorCode`] and [`WarningCode`] tables (`src/generated/codes.rs`, written by
+//! The generated [`ErrorCode`] and [`WarningCode`] tables (`lamina-syntax`'s `src/generated/codes.rs`, written by
 //! `cargo xtask gen codes` from `fixtures/codes.json`) as the façade uses them: the code of a
 //! wrapped crate's error or warning, checked at compile time, and the hint with its parameter.
 
-use crate::generated::codes::{ErrorCode, WarningCode};
+use lamina_syntax::{ErrorCode, WarningCode};
 
 /// Whether every code in `codes` is in the generated [`ErrorCode`] table.
 const fn all_errors_listed(codes: &[&str]) -> bool {

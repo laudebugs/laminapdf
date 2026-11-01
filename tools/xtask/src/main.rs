@@ -63,7 +63,8 @@ tasks:
                           workspace, the docs site's build (apps/docs), npm licences
   gen codes [--check|--md]
                     validate fixtures/codes.json against fixtures/codes.schema.json and write
-                    the error contract from it: the façade's ErrorCode/WarningCode
+                    the error contract from it: ErrorCode/WarningCode
+                    (crates/lamina-syntax/src/generated/), the façade's explain pages
                     (crates/lamina/src/generated/), @laminapdf/sdk's unions, tables and explain
                     pages (packages/sdk/src/generated/), the lamina.error/1 JSON Schema
                     (packages/sdk/schemas/, crates/lamina/schemas/) and docs/errors/README.md's

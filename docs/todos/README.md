@@ -12,7 +12,7 @@ New todos start from [`TEMPLATE.md`](TEMPLATE.md). The workflow is in [git workf
 
 IDs: `A`/`P`/`X` [architecture](../plans/architecture.md) (foundations, publishing, cross-cutting), `B` [library](../plans/pdf-library.md), `L` [shareable libraries](../plans/shareable-libraries.md) (contracts, worker, extraction, CLI, agent docs, mobile), `C` [web reader](../plans/web-app.md), `D` [desktop reader](../plans/desktop-app.md), `U` [UI/UX](../plans/ui-ux.md), `E` [editor](../plans/full-editor.md), `H` hosted service ([full-editor](../plans/full-editor.md)), `Q` [docs and code quality](../plans/quality.md). A letter suffix (`B2a`, `B2b`) splits a round into PRs.
 
-**2 ongoing · 224 ready · 61 done** (287 total).
+**1 ongoing · 224 ready · 62 done** (287 total).
 
 ## Can start now
 
@@ -31,6 +31,7 @@ Ready todos whose dependencies are all done:
 - [Q2a](ready/Q2a-maintainability-checks-rust.md): `check maintainability` for Rust: module budget and new lints
 - [Q2f](ready/Q2f-page-attributes-one-owner.md): One reader of page attributes and one rotation type (fixes `/Rotate 90.0`)
 - [Q2h](ready/Q2h-text-writers-dedup.md): One ToUnicode writer and one FontDescriptor builder (fixes split surrogates)
+- [Q2k](ready/Q2k-boundary-errors-ts.md): One error wire shape in TypeScript (fixes lost render ranges)
 - [Q2l](ready/Q2l-boundary-lists-generated.md): Lists that cross the WASM boundary are generated
 - [Q2m](ready/Q2m-ts-test-utils.md): `@laminapdf/test-utils` for shared TypeScript test helpers
 - [Q2o](ready/Q2o-ts-hygiene.md): TypeScript hygiene: no test hooks in shipped code
@@ -42,7 +43,6 @@ Ready todos whose dependencies are all done:
 ## Ongoing
 
 - [Q1k](ongoing/Q1k-internal-ids-out-of-reader-text.md): Internal IDs out of error pages and READMEs
-- [Q2j](ongoing/Q2j-boundary-errors-rust.md): One error object at every Rust boundary
 
 ## Architecture — Round A
 
@@ -356,8 +356,8 @@ Ready todos whose dependencies are all done:
 | Q2g | [One `Matrix`, `FillRule`, `Dash` and `Color`](ready/Q2g-one-matrix.md) | ready | [Q2a](ready/Q2a-maintainability-checks-rust.md) |
 | Q2h | [One ToUnicode writer and one FontDescriptor builder (fixes split surrogates)](ready/Q2h-text-writers-dedup.md) | ready | — |
 | Q2i | [One PDF lexer and one PNG row filter](ready/Q2i-one-lexer-one-png-filter.md) | ready | [Q2a](ready/Q2a-maintainability-checks-rust.md) |
-| Q2j | [One error object at every Rust boundary](ongoing/Q2j-boundary-errors-rust.md) | ongoing | — |
-| Q2k | [One error wire shape in TypeScript (fixes lost render ranges)](ready/Q2k-boundary-errors-ts.md) | ready | [Q2j](ongoing/Q2j-boundary-errors-rust.md) |
+| Q2j | [One error object at every Rust boundary](done/Q2j-boundary-errors-rust.md) | done | — |
+| Q2k | [One error wire shape in TypeScript (fixes lost render ranges)](ready/Q2k-boundary-errors-ts.md) | ready | [Q2j](done/Q2j-boundary-errors-rust.md) |
 | Q2l | [Lists that cross the WASM boundary are generated](ready/Q2l-boundary-lists-generated.md) | ready | — |
 | Q2m | [`@laminapdf/test-utils` for shared TypeScript test helpers](ready/Q2m-ts-test-utils.md) | ready | — |
 | Q2n | [Shared code for the render adapters](ready/Q2n-render-adapter-shared.md) | ready | [Q2m](ready/Q2m-ts-test-utils.md) |

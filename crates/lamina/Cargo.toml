@@ -7,7 +7,7 @@ rust-version.workspace = true
 license.workspace = true
 repository.workspace = true
 publish.workspace = true
-# `explain` includes docs/errors/*.md (src/generated/codes.rs, generated from
+# `explain` includes docs/errors/*.md (src/generated/explain.rs, generated from
 # fixtures/codes.json by `cargo xtask gen codes`), so `cargo package` would need them inside the
 # crate; nothing is published yet (pdf-library §6).
 
@@ -39,7 +39,7 @@ lamina-cos = { workspace = true }
 lamina-model = { workspace = true }
 lamina-ops = { workspace = true }
 lamina-save = { workspace = true }
-lamina-syntax = { workspace = true }
+lamina-syntax = { workspace = true, features = ["json"] }
 lamina-text = { workspace = true, optional = true }
 lamina-build = { workspace = true, optional = true }
 serde = { workspace = true }

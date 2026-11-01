@@ -5,8 +5,7 @@ use serde::{Serialize, Serializer};
 
 use crate::codes;
 use crate::data;
-use crate::diagnostic::Diagnostic;
-use crate::generated::codes::WarningCode;
+use crate::{Diagnostic, WarningCode};
 
 /// A recoverable problem lamina repaired or worked around ([ADR 0003] §2), with the same
 /// accessors and serialisation as [`Error`](crate::Error) (no `didYouMean`).
@@ -81,16 +80,10 @@ impl Warning {
     /// [ADR 0026]: https://github.com/laudebugs/lamina/blob/main/docs/decisions/0026-error-and-diagnostic-contract.md
     #[must_use]
     pub fn diagnostic(&self) -> Diagnostic {
-        Diagnostic {
-            code: self.code().to_owned(),
-            kind: self.kind(),
-            message: self.warning_code().summary().to_owned(),
-            hint: self.hint(),
-            did_you_mean: Vec::new(),
-            location: self.location(),
-            data: data::of_warning(self),
-            docs_url: self.docs_url(),
-        }
+        Diagnostic::warning(self.warning_code())
+            .with_hint(self.hint())
+            .with_location(self.location())
+            .with_data(data::of_warning(self))
     }
 }
 

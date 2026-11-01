@@ -1165,6 +1165,7 @@ dependencies = [
 name = "lamina-render"
 version = "0.2.0-alpha.0"
 dependencies = [
+ "boon",
  "hayro",
  "lamina-cos",
  "lamina-syntax",
@@ -1225,6 +1226,7 @@ dependencies = [
  "aes",
  "md-5",
  "miniz_oxide 0.9.1",
+ "serde",
  "serde_json",
  "sha2",
  "stringprep",

@@ -1,7 +1,9 @@
 // Smoke test of the built modules in Node (todo B6a): both load, the base module opens, reads,
 // edits, saves and builds vector and image pages, and the text module builds the `hello`
-// example byte for byte like the Rust golden. Run by `cargo xtask wasm` after it fills dist/.
+// example byte for byte like the Rust golden. Every error the modules throw is the ADR 0026
+// object and validates against lamina.error/1. Run by `cargo xtask wasm` after it fills dist/.
 import { readFileSync } from "node:fs";
+import { Ajv2020 } from "ajv/dist/2020.js";
 import { describe, expect, it } from "vitest";
 import * as base from "../dist/lamina_base.js";
 import * as extract from "../dist/lamina_extract.js";
@@ -159,4 +161,38 @@ describe("lamina_render_hayro", () => {
     );
     expect([e.code, e.kind]).toEqual(["render-failed", "input"]);
   });
+});
+
+describe("errors thrown by both modules", () => {
+  const schema = JSON.parse(readFileSync(new URL("crates/lamina/schemas/error.schema.json", root), "utf8")) as object;
+  const validate = new Ajv2020({ allErrors: true, strict: true }).compile(schema);
+  const hello = (): Uint8Array => read("fixtures/corpus/hello.pdf");
+  const open = (bytes: Uint8Array, maxPixels = 16_777_216): hayro.HayroDocument =>
+    hayro.HayroDocument.open(input(bytes), undefined, maxPixels, 16_384, 2 ** 30);
+  // [module, code, a call that throws it]
+  const cases: [string, string, () => unknown][] = [
+    ["lamina_base", "not-pdf", () => base.WasmDocument.openBytes(new TextEncoder().encode("not a pdf"), undefined)],
+    [
+      "lamina_base",
+      "unknown-option",
+      () => base.WasmDocument.openBytes(hello(), { pasword: "x" } as unknown as base.OpenOptionsInit),
+    ],
+    [
+      "lamina_base",
+      "invalid-argument",
+      () => base.WasmDocument.openBytes(hello(), { strict: "yes" } as unknown as base.OpenOptionsInit),
+    ],
+    ["lamina_render_hayro", "render-failed", () => open(new TextEncoder().encode("not a pdf"))],
+    ["lamina_render_hayro", "invalid-argument", () => new hayro.InputBuffer(4).write(2, new Uint8Array(4))],
+    ["lamina_render_hayro", "page-index-out-of-range", () => open(hello()).page(5)],
+    ["lamina_render_hayro", "render-too-large", () => open(hello(), 0).plan(0, 1, 0, 0, 0, 0, 0, 0, undefined)],
+  ];
+
+  for (const [module, code, call] of cases) {
+    it(`${module} throws ${code} as an object that matches lamina.error/1`, () => {
+      const e = thrown(call);
+      expect(e.code).toBe(code);
+      expect(validate(e), JSON.stringify(validate.errors)).toBe(true);
+    });
+  }
 });
