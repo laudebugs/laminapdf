@@ -29,14 +29,24 @@ async function rejection(p: Promise<unknown>): Promise<unknown> {
   throw new Error("expected a rejection");
 }
 
+/** The test worker (test-worker.ts): the package's protocol and the `__stats`/`__crash` hooks. */
+function testWorker(name = "lamina-test"): Worker {
+  return new Worker(new URL("./test-worker.ts", import.meta.url), { type: "module", name });
+}
+
 let client: WorkerClient;
+/** Other clients a test started, ended with the suite (a test's documents close as it ends). */
+const others: WorkerClient[] = [];
 
 beforeAll(async () => {
   await init();
-  client = await connect();
+  client = await connect({ worker: () => testWorker() });
 });
 
-afterAll(() => client.terminate());
+afterAll(() => {
+  client.terminate();
+  for (const other of others) other.terminate();
+});
 
 describe("the worker client", () => {
   it("opens every corpus file with the sync API's page count, warnings and save() bytes", async () => {
@@ -122,8 +132,10 @@ describe("the worker client", () => {
     // The 100-page report: a full rewrite of it takes several save steps.
     await loadText();
     const bytes = report(await read(REPORT_INPUTS[0]), await read(REPORT_INPUTS[1]));
-    await using doc = await client.open(bytes);
-    await internal("__budget", [50]); // many small steps, so the abort lands between two
+    // Many small steps, so the abort lands between two.
+    const small = await connect({ worker: () => testWorker("budget-50") });
+    others.push(small);
+    await using doc = await small.open(bytes);
     await doc.apply([{ op: "setInfo", args: { patch: { title: "changed" } } }]);
     const controller = new AbortController();
     const saving = doc.save(
@@ -132,7 +144,6 @@ describe("the worker client", () => {
     );
     const e = await rejection(saving);
     expect(isLaminaError(e, "cancelled")).toBe(true);
-    await internal("__budget", [0]);
     expect((await doc.save({ mode: "fullRewrite" })).byteLength).toBeGreaterThan(0);
   });
 
@@ -276,7 +287,7 @@ describe("the worker client, second review", () => {
   });
 });
 
-/** A test-only method of the worker (`__stats`, `__budget`, `__crash`). */
+/** One of the test worker's hooks (`__stats`, `__crash`). */
 function internal(method: string, params: unknown[] = []): Promise<unknown> {
   return (client as unknown as { call: (h: number, m: string, p: unknown[]) => Promise<unknown> }).call(
     0,

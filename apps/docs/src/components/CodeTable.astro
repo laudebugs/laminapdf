@@ -1,32 +1,8 @@
 ---
-// Every error and warning code, read from fixtures/codes.json at build time (ADR 0026 §3): one
-// table per group, in the file's order. A group added to codes.json (any key matching the
-// schema's group pattern, read from fixtures/codes.schema.json) appears without a change here.
-// Each code links to its page on this site (/reference/codes/<code>/, from docs/errors/).
-import codes from "../../../../fixtures/codes.json";
-import schema from "../../../../fixtures/codes.schema.json";
-
-interface Entry {
-  readonly code: string;
-  readonly kind: string;
-  readonly summary: string;
-  readonly hint: string;
-  readonly since: string;
-}
-
-const patterns = Object.keys(schema.patternProperties);
-if (patterns.length !== 1) throw new Error("codes.schema.json: expected one group pattern in patternProperties");
-const GROUP = new RegExp(patterns[0] ?? "");
-
-/** `textWarnings` → "Text warnings", `warnings` → "Warnings". */
-function title(key: string): string {
-  const words = key.replace(/([A-Z])/g, " $1").toLowerCase();
-  return words.charAt(0).toUpperCase() + words.slice(1);
-}
-
-const groups = Object.entries(codes as Record<string, unknown>)
-  .filter(([key, value]) => GROUP.test(key) && Array.isArray(value))
-  .map(([key, value]) => ({ key, title: title(key), entries: value as Entry[] }));
+// Every error and warning code, read from fixtures/codes.json at build time (ADR 0026 §3, through
+// src/lib/codes.ts): one table per group, in the file's order. Each code links to its page on
+// this site (/reference/codes/<code>/, from docs/errors/).
+import { CODE_GROUPS as groups } from "../lib/codes";
 ---
 
 {

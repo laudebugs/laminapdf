@@ -11,7 +11,11 @@ import { entrySources, manifest, packageDirs } from "../../../tools/ts/package-e
 
 const ROOT = fileURLToPath(new URL("../../../", import.meta.url));
 
-/** A package's npm name, and its build tsconfig and entry sources as absolute paths. */
+/**
+ * A package's npm name, and its build tsconfig and entry sources as absolute paths.
+ *
+ * @param {string} dir
+ */
 function entriesOf(dir) {
   return {
     name: manifest(ROOT, dir).name,

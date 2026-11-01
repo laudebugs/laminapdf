@@ -4,9 +4,9 @@
 import type { PixelRect } from "@laminapdf/render";
 
 /** A tile's side in CSS px (256–512 per the plan; device px is this × DPR). */
-export const TILE_CSS = 512;
+const TILE_CSS = 512;
 /** The low-resolution pass: at most this many device px wide, and at most half the sharp scale. */
-export const LOW_MAX_WIDTH = 256;
+const LOW_MAX_WIDTH = 256;
 
 /** The render scale (output px per pt) of the low-resolution pass for a page `widthPt` wide. */
 export function lowScale(sharpScale: number, widthPt: number): number {

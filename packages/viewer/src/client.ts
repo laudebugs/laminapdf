@@ -17,7 +17,13 @@
 
 import type { RenderRequest } from "@laminapdf/render";
 import { isLaminaError } from "@laminapdf/sdk";
-import { connect, type WorkerClient, type WorkerInitOptions, type WorkerWasmSource } from "@laminapdf/sdk/worker";
+import {
+  connect,
+  Emitter,
+  type WorkerClient,
+  type WorkerInitOptions,
+  type WorkerWasmSource,
+} from "@laminapdf/sdk/worker";
 import {
   type BackendInit,
   type MethodName,
@@ -33,7 +39,7 @@ import {
 } from "./protocol.js";
 
 /** Default render timeouts (ADR 0009 §3.7), in ms. */
-export const DEFAULT_TIMEOUTS = Object.freeze({ soft: 10_000, hard: 120_000 });
+const DEFAULT_TIMEOUTS = Object.freeze({ soft: 10_000, hard: 120_000 });
 
 /** `ViewerClient.create`'s options: the backend, lamina's WebAssembly, the timeouts, the worker and a signal to stop starting. */
 export interface ViewerOptions {
@@ -95,13 +101,12 @@ export class ViewerClient {
   readonly #pdf: WorkerClient;
   readonly #backend: BackendInit;
   readonly #timeouts: { readonly soft: number; readonly hard: number };
-  readonly #listeners = new Map<ViewerEvent, Set<(data: never) => void>>();
+  readonly #events = new Emitter<ViewerEvents>();
   /** What to reopen after a restart: the source and the options without the password. */
   #reopen: { readonly source: SourceInit; readonly options: Omit<ViewerOpenOptions, "password"> } | undefined;
   #document: OpenedDocument | undefined;
   #recovering: Promise<void> | undefined;
   #nextRender = 1;
-  #discarded = 0;
   /** Renders waiting to start, by coalescing key: their timers start on `render-start`. */
   readonly #waiting = new Map<string, Set<() => void>>();
   /** The key the worker is drawing now: a render that joins it starts its timers at once. */
@@ -112,19 +117,19 @@ export class ViewerClient {
     this.#backend = options.backend;
     this.#timeouts = { ...DEFAULT_TIMEOUTS, ...options.timeouts };
     pdf.on("event", (name, data) => {
-      if (name === "warning") this.#emit("warning", data as ViewerEvents["warning"]);
+      if (name === "warning") this.#events.emit("warning", data as ViewerEvents["warning"]);
       else if (name === "render-start") {
         const started = data as ViewerEvents["render-start"];
         this.#drawing = started.key;
         for (const start of this.#waiting.get(started.key) ?? []) start();
         this.#waiting.delete(started.key);
-        this.#emit("render-start", started);
+        this.#events.emit("render-start", started);
       }
     });
     pdf.on("crashed", (reason) => {
-      this.#emit("crashed", { reason });
+      this.#events.emit("crashed", { reason });
       this.#recover(reason as RestartReason).catch((error) =>
-        this.#emit("restart-failed", { reason: reason as RestartReason, error }),
+        this.#events.emit("restart-failed", { reason: reason as RestartReason, error }),
       );
     });
   }
@@ -134,21 +139,17 @@ export class ViewerClient {
    * the user picks a file.
    */
   static async create(options: ViewerOptions): Promise<ViewerClient> {
-    let client: ViewerClient | undefined;
     const pdf = await connect({
       worker: options.worker ?? workerFactory,
       // A late answer to an aborted render: its bitmap is closed, never painted.
       onDiscard: (value) => {
         const bitmap = (value as { bitmap?: unknown } | undefined)?.bitmap;
-        if (bitmap instanceof ImageBitmap) {
-          bitmap.close();
-          if (client !== undefined) client.#discarded++;
-        }
+        if (bitmap instanceof ImageBitmap) bitmap.close();
       },
       ...(options.signal === undefined ? {} : { signal: options.signal }),
       ...(options.lamina === undefined ? {} : { init: options.lamina }),
     });
-    client = new ViewerClient(pdf, options);
+    const client = new ViewerClient(pdf, options);
     try {
       await pdf.request("initBackend", [options.backend], { priority: PRIORITY.document });
     } catch (e) {
@@ -161,27 +162,7 @@ export class ViewerClient {
 
   /** Listens for `event`; returns a function that stops listening. */
   on<E extends ViewerEvent>(event: E, listener: (data: ViewerEvents[E]) => void): () => void {
-    let set = this.#listeners.get(event);
-    if (set === undefined) {
-      set = new Set();
-      this.#listeners.set(event, set);
-    }
-    const l = listener as (data: never) => void;
-    set.add(l);
-    return () => set.delete(l);
-  }
-
-  #emit<E extends ViewerEvent>(event: E, data: ViewerEvents[E]): void {
-    for (const listener of this.#listeners.get(event) ?? []) {
-      // One listener that throws is reported and doesn't stop the others.
-      try {
-        (listener as (d: ViewerEvents[E]) => void)(data);
-      } catch (e) {
-        queueMicrotask(() => {
-          throw e;
-        });
-      }
-    }
+    return this.#events.on(event, listener);
   }
 
   /** A typed call: `method` and `params` are checked against `Methods`. */
@@ -226,16 +207,6 @@ export class ViewerClient {
     return this.#document;
   }
 
-  /** @internal Bitmaps of late answers closed unpainted (the cancellation tests read it). */
-  get discardedBitmaps(): number {
-    return this.#discarded;
-  }
-
-  /** @internal What a restart reopens with (the tests check it holds no password). */
-  get reopenState(): unknown {
-    return this.#reopen;
-  }
-
   /** Closes the document in the worker (the worker stays, ready for another `open`). */
   async close(): Promise<void> {
     this.#reopen = undefined;
@@ -263,11 +234,13 @@ export class ViewerClient {
     let soft: ReturnType<typeof setTimeout> | undefined;
     let hard: ReturnType<typeof setTimeout> | undefined;
     const start = () => {
-      soft = setTimeout(() => this.#emit("render-slow", { id, page: request.page }), this.#timeouts.soft);
+      soft = setTimeout(() => this.#events.emit("render-slow", { id, page: request.page }), this.#timeouts.soft);
       hard = setTimeout(() => {
-        if (needsPassword) this.#emit("render-stuck", { id, page: request.page, needsPassword: true });
+        if (needsPassword) this.#events.emit("render-stuck", { id, page: request.page, needsPassword: true });
         else
-          this.stop("hard-timeout").catch((error) => this.#emit("restart-failed", { reason: "hard-timeout", error }));
+          this.stop("hard-timeout").catch((error) =>
+            this.#events.emit("restart-failed", { reason: "hard-timeout", error }),
+          );
       }, this.#timeouts.hard);
     };
     let waiting = this.#waiting.get(key);
@@ -321,7 +294,7 @@ export class ViewerClient {
           // The password died with the worker; it is never kept on the page.
           this.#reopen = undefined;
           this.#document = undefined;
-          this.#emit("password-required", {});
+          this.#events.emit("password-required", {});
         } else {
           this.#document = (await this.#pdf.request("openDocument", [reopen.source, reopen.options], {
             priority: PRIORITY.document,
@@ -329,7 +302,7 @@ export class ViewerClient {
           reopened = true;
         }
       }
-      this.#emit("restarted", { reason, reopened });
+      this.#events.emit("restarted", { reason, reopened });
     })();
     const tracked = recovering.finally(() => {
       if (this.#recovering === tracked) this.#recovering = undefined;

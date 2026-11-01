@@ -13,7 +13,7 @@ export interface CanvasPoolOptions {
 }
 
 /** The default limits: 12 canvases, 64 million device pixels in all. */
-export const DEFAULT_POOL = Object.freeze({ max: 12, maxPixels: 64 * 1024 * 1024 });
+const DEFAULT_POOL = Object.freeze({ max: 12, maxPixels: 64 * 1024 * 1024 });
 
 /** A fixed set of canvases lent to mounted pages, within a total pixel cap. */
 export class CanvasPool {

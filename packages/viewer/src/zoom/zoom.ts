@@ -13,7 +13,7 @@ export const MIN_ZOOM = 10;
 export const MAX_ZOOM = 800;
 
 /** `percent` as CSS px per point, clamped to the range. */
-export function scaleOfPercent(percent: number): number {
+function scaleOfPercent(percent: number): number {
   const p = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, percent));
   return (p / 100) * CSS_PX_PER_PT;
 }

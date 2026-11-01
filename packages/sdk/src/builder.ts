@@ -3,6 +3,7 @@
 // paths cross as flat Float64Arrays, colours as component arrays.
 import type { WasmBuilder as BaseBuilder, WasmDocument } from "@laminapdf/wasm/base";
 import type { WasmBuilder as TextBuilder, WasmPageBuilder as TextPageBuilder, WasmFont } from "@laminapdf/wasm/text";
+import { defined } from "./defined.js";
 import { Document } from "./document.js";
 import { didYouMean, guard, packageError } from "./errors.js";
 import type { Font, FontInfo, Image } from "./font.js";
@@ -243,15 +244,8 @@ function hexId(id: string | Uint8Array): string {
 
 /** The record without the keys the TS layer handles, or `undefined` when nothing is left. */
 function rest<T extends object>(record: T, keys: readonly string[]): object | undefined {
-  const out: Record<string, unknown> = {};
-  let any = false;
-  for (const [k, v] of Object.entries(record)) {
-    if (!keys.includes(k) && v !== undefined) {
-      out[k] = v;
-      any = true;
-    }
-  }
-  return any ? out : undefined;
+  const out = Object.fromEntries(Object.entries(defined(record)).filter(([k]) => !keys.includes(k)));
+  return Object.keys(out).length > 0 ? out : undefined;
 }
 
 /** The raw page of a {@link Page}: freed when the page finishes, `builder-finished` afterwards. */

@@ -1,7 +1,7 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
-    "lib": ["ES2022", "DOM", "WebWorker.ImportScripts", "ESNext.Disposable"],
+    "lib": ["ES2022", "DOM", "ESNext.Disposable", "WebWorker.ImportScripts"],
     "rootDir": "src",
     "outDir": "dist"
   },

@@ -13,13 +13,23 @@ const HASHES = "'inline-script-hashes'";
  */
 const MAX_HEADER_LINE = 1_900;
 
-/** Every HTML file under `dir` (a file: URL), recursively. */
+/**
+ * Every HTML file under `dir` (a file: URL), recursively.
+ *
+ * @param {URL} dir
+ * @returns {Promise<URL[]>}
+ */
 async function htmlFiles(dir) {
   const entries = await readdir(dir, { recursive: true });
   return entries.filter((name) => name.endsWith(".html")).map((name) => new URL(name, dir));
 }
 
-/** Whether `url` names an existing file. */
+/**
+ * Whether `url` names an existing file.
+ *
+ * @param {URL} url
+ * @returns {Promise<boolean>}
+ */
 async function exists(url) {
   try {
     await access(url);
@@ -29,7 +39,12 @@ async function exists(url) {
   }
 }
 
-/** Copies the examples' golden PDFs (`goldens`, a directory URL) into the site at /examples/pdf/. */
+/**
+ * Copies the examples' golden PDFs (`goldens`, a directory URL) into the site at /examples/pdf/.
+ *
+ * @param {URL} goldens
+ * @returns {import("astro").AstroIntegration}
+ */
 export function examplePdfs(goldens) {
   return {
     name: "lamina-example-pdfs",
@@ -49,6 +64,8 @@ export function examplePdfs(goldens) {
  * Fails the build on a link from any page to a file the build didn't write, for the paths the
  * links validator leaves out: the example PDFs (`/examples/pdf/…`, not pages) and the code pages
  * (`/reference/codes/<code>/`, written by src/pages/, which the validator doesn't read).
+ *
+ * @type {import("astro").AstroIntegration}
  */
 export const checkedLinks = {
   name: "lamina-checked-links",
@@ -57,7 +74,7 @@ export const checkedLinks = {
       const broken = new Set();
       for (const file of await htmlFiles(dir)) {
         const html = await readFile(file, "utf8");
-        for (const [, path] of html.matchAll(/href="(\/(?:examples\/pdf|reference\/codes)\/[^"#?]+)/g)) {
+        for (const [, path = ""] of html.matchAll(/href="(\/(?:examples\/pdf|reference\/codes)\/[^"#?]+)/g)) {
           const target = new URL(`.${path.endsWith("/") ? `${path}index.html` : path}`, dir);
           if (!(await exists(target))) broken.add(path);
         }
@@ -72,6 +89,8 @@ export const checkedLinks = {
  * Code's copy button) into the CSP of dist/_headers, so `script-src` allows exactly those and
  * the site's own files: no 'unsafe-inline' (ADR 0011 §4). A script added or changed by an
  * upgrade gets its hash on the next build. Fails if the CSP line outgrows Cloudflare's limit.
+ *
+ * @type {import("astro").AstroIntegration}
  */
 export const inlineScriptHashes = {
   name: "lamina-csp-script-hashes",
@@ -80,7 +99,7 @@ export const inlineScriptHashes = {
       const hashes = new Set();
       for (const file of await htmlFiles(dir)) {
         const html = await readFile(file, "utf8");
-        for (const [, attributes, body] of html.matchAll(/<script(\s[^>]*)?>([\s\S]*?)<\/script>/g)) {
+        for (const [, attributes, body = ""] of html.matchAll(/<script(\s[^>]*)?>([\s\S]*?)<\/script>/g)) {
           if (/\ssrc=/.test(attributes ?? "") || body.length === 0) continue;
           hashes.add(`'sha256-${createHash("sha256").update(body, "utf8").digest("base64")}'`);
         }

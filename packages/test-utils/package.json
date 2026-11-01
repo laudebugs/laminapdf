@@ -15,6 +15,7 @@
     "./browser-config": "./src/browser-config.ts",
     "./firefox": "./src/firefox.ts",
     "./root": "./src/root.ts",
+    "./worker-hooks": "./src/worker-hooks.ts",
     "./package.json": "./package.json"
   },
   "scripts": {

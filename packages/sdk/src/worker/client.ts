@@ -6,12 +6,15 @@
 // a late answer is dropped. Errors come back as ADR 0026 objects and are rebuilt as LaminaError.
 // A worker `error` or `messageerror`, or a trap the worker reports, rejects every pending call
 // with `worker-crashed` and emits `crashed`; `restart()` starts a new worker. No heartbeat.
+
+import { defined } from "../defined.js";
 import { type Diagnostic, LaminaError, packageError } from "../errors.js";
 import type { ErrorCode } from "../generated/codes.js";
 import type { HttpRangeOptions } from "../source/http.js";
 import type { RangeOptions } from "../source/range.js";
 import { PageText } from "../text.js";
 import type { OpenOptions, Progress } from "../types.js";
+import { Emitter } from "./emitter.js";
 import {
   type FromWorker,
   HANDSHAKE,
@@ -23,6 +26,7 @@ import {
   type ToWorker,
 } from "./protocol.js";
 import { DOCUMENT_METHODS, PAGE_METHODS } from "./support.js";
+import { whole } from "./transfer.js";
 import type { CallOptions, RemoteDocument, RequestOptions } from "./types.js";
 
 /** `Symbol.asyncDispose` where the runtime has it, else the registered symbol (no globals touched). */
@@ -69,17 +73,9 @@ function sendableInit(init: WorkerWasmSource | WorkerInitOptions): unknown {
   ) {
     return sendable(init);
   }
-  const out: Record<string, unknown> = {};
-  for (const [k, v] of Object.entries(init)) if (v !== undefined) out[k] = typeof v === "boolean" ? v : sendable(v);
-  return out;
-}
-
-/** The buffer of `p` if transferring it moves exactly `p` (not a larger or shared buffer). */
-function whole(p: unknown): ArrayBuffer[] {
-  if (p instanceof ArrayBuffer) return [p];
-  if (!ArrayBuffer.isView(p)) return [];
-  const { buffer } = p;
-  return buffer instanceof ArrayBuffer && p.byteOffset === 0 && p.byteLength === buffer.byteLength ? [buffer] : [];
+  return Object.fromEntries(
+    Object.entries(defined(init)).map(([k, v]) => [k, typeof v === "boolean" ? v : sendable(v)]),
+  );
 }
 
 /** `connect()`'s options: the worker to start, a signal to stop connecting, the WebAssembly to load, and what to do with late answers. */
@@ -113,17 +109,6 @@ function closeBitmaps(value: unknown): void {
 
 type EventListener = (name: string, data: unknown) => void;
 
-/** Runs a listener; one that throws is reported (asynchronously) and doesn't stop the others. */
-function safely(f: () => void): void {
-  try {
-    f();
-  } catch (e) {
-    queueMicrotask(() => {
-      throw e;
-    });
-  }
-}
-
 interface Pending {
   readonly resolve: (value: unknown) => void;
   readonly reject: (error: unknown) => void;
@@ -156,8 +141,7 @@ export class WorkerClient {
   readonly #factory: () => Worker;
   readonly #init: WorkerWasmSource | WorkerInitOptions | undefined;
   readonly #pending = new Map<number, Pending>();
-  readonly #listeners = new Set<CrashListener>();
-  readonly #events = new Set<EventListener>();
+  readonly #emitter = new Emitter<{ crashed: string; event: { name: string; data: unknown } }>();
   readonly #onDiscard: (value: unknown) => void;
   /** The worker once its handshake succeeded; undefined while starting, stopped or crashed. */
   #worker: Worker | undefined;
@@ -275,7 +259,7 @@ export class WorkerClient {
         return;
       }
       case "event":
-        for (const listener of this.#events) safely(() => listener(message.name, message.data));
+        this.#emitter.emit("event", { name: message.name, data: message.data });
         return;
       case "progress":
         this.#pending.get(message.id)?.onProgress?.(message.progress as Progress);
@@ -300,7 +284,7 @@ export class WorkerClient {
     const pending = [...this.#pending.values()];
     this.#pending.clear();
     for (const p of pending) p.reject(crashed("the worker stopped", reason));
-    if (notify) for (const listener of this.#listeners) safely(() => listener(reason));
+    if (notify) this.#emitter.emit("crashed", reason);
   }
 
   #crash(reason: string): void {
@@ -313,15 +297,10 @@ export class WorkerClient {
   /** Listens for an extension's events (`emit()` in the worker). */
   on(event: "event", listener: EventListener): () => void;
   on(event: "crashed" | "event", listener: CrashListener | EventListener): () => void {
-    if (event === "crashed") {
-      const l = listener as CrashListener;
-      this.#listeners.add(l);
-      return () => this.#listeners.delete(l);
-    }
+    if (event === "crashed") return this.#emitter.on("crashed", listener as CrashListener);
     if (event === "event") {
       const l = listener as EventListener;
-      this.#events.add(l);
-      return () => this.#events.delete(l);
+      return this.#emitter.on("event", ({ name, data }) => l(name, data));
     }
     throw new TypeError(`unknown event ${String(event)}`);
   }
@@ -428,14 +407,14 @@ export class WorkerClient {
    */
   async open(bytes: Uint8Array | ArrayBuffer, options: OpenOptions & CallOptions = {}): Promise<RemoteDocument> {
     const { signal, onProgress, transfer, ...open } = options;
-    const ref = await this.call(0, "open", [bytes, open], pick({ signal, onProgress, transfer }));
+    const ref = await this.call(0, "open", [bytes, open], defined({ signal, onProgress, transfer }));
     return this.#remoteDocument(ref as HandleRef);
   }
 
   /** Opens a remote file by HTTP range requests (L2c): the worker fetches what each call needs. */
   async openUrl(url: string, options: OpenOptions & RemoteHttpOptions & CallOptions = {}): Promise<RemoteDocument> {
     const { signal, onProgress, transfer: _, ...open } = options;
-    const ref = await this.call(0, "openUrl", [url, open], pick({ signal, onProgress }));
+    const ref = await this.call(0, "openUrl", [url, open], defined({ signal, onProgress }));
     return this.#remoteDocument(ref as HandleRef);
   }
 
@@ -486,15 +465,6 @@ async function waitWithSignal(p: Promise<unknown>, signal: AbortSignal | undefin
   } finally {
     if (onAbort !== undefined) signal.removeEventListener("abort", onAbort);
   }
-}
-
-/** The defined members of `options`, so `exactOptionalPropertyTypes` holds. */
-function pick(options: {
-  signal?: AbortSignal | undefined;
-  onProgress?: ((p: Progress) => void) | undefined;
-  transfer?: boolean | undefined;
-}): CallOptions {
-  return Object.fromEntries(Object.entries(options).filter(([, v]) => v !== undefined)) as CallOptions;
 }
 
 /** A proxy whose members (by `arity`) post calls on `handle` of worker `generation`. */

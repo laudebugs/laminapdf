@@ -3,7 +3,9 @@
   "compilerOptions": {
     "declaration": false,
     "declarationMap": false,
-    "sourceMap": false
+    "sourceMap": false,
+    "allowJs": true,
+    "checkJs": true
   },
   "include": [".astro/types.d.ts", "**/*"],
   "exclude": ["dist", "astro.config.mjs"]

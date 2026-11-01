@@ -11,6 +11,8 @@
 // its callers cancelled: `save` and `saveWithReport` run as stepped jobs that yield between steps
 // (ADR 0028), and a range document's fetches take the signal. A WebAssembly trap is reported as a
 // crash and ends the worker.
+
+import { defined } from "../defined.js";
 import { Document, PageRef } from "../document.js";
 import { type Diagnostic, isDiagnostic, LaminaError, packageError } from "../errors.js";
 import type { ErrorCode } from "../generated/codes.js";
@@ -30,6 +32,7 @@ import {
   type ToWorker,
 } from "./protocol.js";
 import { DOCUMENT_METHODS, PAGE_METHODS } from "./support.js";
+import { whole } from "./transfer.js";
 
 /** What an extension method sees of its call. */
 export interface CallContext {
@@ -54,11 +57,26 @@ export interface ExtensionMethod {
 /** What a package adds to the worker: methods on the client (handle 0). */
 export interface ServerExtension {
   readonly methods: Readonly<Record<string, ExtensionMethod>>;
+  /**
+   * Work units per save step (default 20,000: a cancel waits at most a few milliseconds). A
+   * smaller budget answers a cancel sooner and reports progress more often, at some cost in speed.
+   */
+  readonly saveBudget?: number;
+}
+
+/** What the worker holds and has done: for diagnostics, such as checking that handles are freed. */
+export interface WorkerStats {
+  /** Calls that started running (a call cancelled while queued never starts). */
+  readonly started: number;
+  /** Documents and pages the page side holds a handle to. */
+  readonly handles: number;
+  /** Calls waiting their turn. */
+  readonly queued: number;
 }
 
 /** Work units per save step: small enough that a cancel waits at most a few milliseconds. */
 const SAVE_BUDGET = 20_000;
-/** The budget in use (`__budget`, test-only, shrinks it so a small save takes many steps). */
+/** The budget in use: `serve()`'s `saveBudget`, or the default. */
 let saveBudget = SAVE_BUDGET;
 /** Least time between two progress events of one call, in ms. */
 const PROGRESS_EVERY = 50;
@@ -91,7 +109,7 @@ interface Job {
 const queue: Job[] = [];
 let current: Job | undefined;
 let running = false;
-/** Jobs actually started (the tests check that a cancelled call never starts). */
+/** Jobs actually started (a cancelled call never starts). */
 let started = 0;
 let ready = false;
 let extension: ServerExtension = { methods: {} };
@@ -130,14 +148,6 @@ function fromToDiagnostic(e: unknown): Diagnostic<ErrorCode> | undefined {
   return isDiagnostic(value) ? value : undefined;
 }
 
-/** The buffer of `view` if transferring it moves exactly `view` (not a larger or shared buffer). */
-function whole(view: ArrayBufferView): ArrayBuffer[] {
-  const { buffer } = view;
-  return buffer instanceof ArrayBuffer && view.byteOffset === 0 && view.byteLength === buffer.byteLength
-    ? [buffer]
-    : [];
-}
-
 /** One channel for every yield, and the yields waiting on it (in order). */
 let yieldChannel: MessageChannel | undefined;
 const yielding: (() => void)[] = [];
@@ -159,7 +169,7 @@ export function yieldToMessages(): Promise<void> {
 }
 
 /** The client methods the worker itself serves; an extension can't reuse their names. */
-const BUILT_IN = new Set(["open", "openUrl", "loadText", "loadExtract", "__budget", "__stats", "__crash"]);
+const BUILT_IN = new Set(["open", "openUrl", "loadText", "loadExtract"]);
 
 function register(entry: Entry, fields?: Record<string, unknown>): HandleRef {
   const handle = nextHandle++;
@@ -208,7 +218,10 @@ function release(handle: number): void {
 
 async function stepSave(context: CallContext, doc: Document, method: string, options: SaveOptions | undefined) {
   const job = doc.saveJob(options);
-  let last = 0;
+  // The first progress event goes out after the first step, so a caller hears at once that a
+  // stepped save is under way; later ones at most every PROGRESS_EVERY ms. (Counting from 0 would
+  // wait for the worker's own clock, which starts when the worker does.)
+  let last = Number.NEGATIVE_INFINITY;
   try {
     for (;;) {
       if (context.signal.aborted) job.cancel();
@@ -242,10 +255,10 @@ async function clientCall(method: string, params: readonly unknown[], context: C
     case "openUrl": {
       const [url, options] = params as [string, Record<string, unknown> | undefined];
       const { password, strict, limits, ...http } = options ?? {};
-      const open: Record<string, unknown> = { signal };
-      for (const [k, v] of Object.entries({ password, strict, limits, blockSize: http.blockSize })) {
-        if (v !== undefined) open[k] = v;
-      }
+      const open: Record<string, unknown> = {
+        signal,
+        ...defined({ password, strict, limits, blockSize: http.blockSize }),
+      };
       for (const key of RANGE_KEYS) {
         if (http[key] !== undefined) open[key] = http[key];
         delete http[key];
@@ -260,17 +273,6 @@ async function clientCall(method: string, params: readonly unknown[], context: C
       return loadText();
     case "loadExtract":
       return loadExtract();
-    case "__budget":
-      saveBudget = typeof params[0] === "number" && params[0] > 0 ? params[0] : SAVE_BUDGET;
-      return saveBudget;
-    case "__stats":
-      return { started, handles: handles.size, queued: queue.length };
-    case "__crash":
-      // An uncaught error: the page sees the worker's `error` event.
-      setTimeout(() => {
-        throw new Error("crash requested by a test");
-      });
-      return new Promise(() => {});
     default: {
       const own = Object.hasOwn(extension.methods, method) ? extension.methods[method] : undefined;
       if (own === undefined) throw packageError("invalid-argument", `the worker client has no method ${method}`);
@@ -500,6 +502,11 @@ async function hello(message: Hello): Promise<void> {
 
 let serving = false;
 
+/** What this worker holds and has done (see {@link WorkerStats}). */
+export function workerStats(): WorkerStats {
+  return { started, handles: handles.size, queued: queue.length };
+}
+
 /**
  * Serves the worker client's protocol in this worker, with `ext`'s methods added. Call it once,
  * at the top of the worker's module.
@@ -511,6 +518,11 @@ export function serve(ext?: ServerExtension): void {
     if (clash !== undefined)
       throw packageError("invalid-argument", `an extension can't redefine the built-in method ${clash}`);
     extension = ext;
+    if (ext.saveBudget !== undefined) {
+      if (!(Number.isInteger(ext.saveBudget) && ext.saveBudget > 0))
+        throw packageError("invalid-argument", "saveBudget must be a positive whole number of work units");
+      saveBudget = ext.saveBudget;
+    }
   }
   serving = true;
   scope.addEventListener("message", (event) => {

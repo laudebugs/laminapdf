@@ -2,7 +2,7 @@
 import { isLaminaError, type LaminaError } from "@laminapdf/sdk";
 import { connect } from "@laminapdf/sdk/worker";
 import { afterEach, describe, expect, it } from "vitest";
-import { CORPUS, ENCRYPTED, expected, next, PASSWORD, read, rejection, viewer } from "./helpers.js";
+import { CORPUS, ENCRYPTED, expected, hook, next, PASSWORD, read, rejection, testViewer, viewer } from "./helpers.js";
 
 const clients: { terminate(): void }[] = [];
 async function track<T extends { terminate(): void }>(p: Promise<T>): Promise<T> {
@@ -72,9 +72,9 @@ describe("errors", () => {
 
 describe("cancellation and priorities", () => {
   it("never resolves the 90 of 100 renders aborted before they finish, and runs the 10 kept in priority order", async () => {
-    const client = await track(viewer());
+    const client = await track(testViewer());
     await client.open(await read("fixtures/corpus/hello.pdf"));
-    const busy = client.call("__busy", [300]);
+    const busy = hook(client, "__busy", [300]);
     const priorities = ["background", "prefetch", "visible"] as const;
     const kept: { scale: number; priority: (typeof priorities)[number] }[] = [];
     const calls = Array.from({ length: 100 }, (_, i) => {
@@ -101,36 +101,47 @@ describe("cancellation and priorities", () => {
     }
     const order = { visible: 0, prefetch: 1, background: 2 };
     const want = [...kept].sort((a, b) => order[a.priority] - order[b.priority]).map((k) => k.scale);
-    expect(await client.call("__renderLog", [])).toEqual(want);
+    expect(await hook(client, "__renderLog", [])).toEqual(want);
   });
 
   it("closes the bitmap of a render aborted while it runs, and never resolves it", async () => {
-    const client = await track(viewer());
+    const client = await track(testViewer());
     await client.open(await read("fixtures/corpus/hello.pdf"));
-    const controller = new AbortController();
-    const started = next(client, "render-start");
-    const p = client.render({ page: 0, scale: 3 }, { signal: controller.signal });
-    await started;
-    controller.abort();
-    expect(isAbort(await rejection(p))).toBe(true);
-    // The late answer arrives after the next call's (calls run in order).
-    await client.call("__renderLog", []);
-    expect(client.discardedBitmaps).toBe(1);
+    // Counts the page's ImageBitmap closes: only the late answer's bitmap is closed here.
+    const close = ImageBitmap.prototype.close;
+    let closed = 0;
+    ImageBitmap.prototype.close = function (this: ImageBitmap) {
+      closed++;
+      close.call(this);
+    };
+    try {
+      const controller = new AbortController();
+      const started = next(client, "render-start");
+      const p = client.render({ page: 0, scale: 3 }, { signal: controller.signal });
+      await started;
+      controller.abort();
+      expect(isAbort(await rejection(p))).toBe(true);
+      // The late answer arrives after the next call's (calls run in order).
+      await hook(client, "__renderLog", []);
+      expect(closed).toBe(1);
+    } finally {
+      ImageBitmap.prototype.close = close;
+    }
   });
 
   it("starts a new visible render before queued background work", async () => {
-    const client = await track(viewer());
+    const client = await track(testViewer());
     await client.open(await read("fixtures/corpus/hello.pdf"));
-    const busy = client.call("__busy", [200]);
+    const busy = hook(client, "__busy", [200]);
     const background = [0.11, 0.12, 0.13].map((scale) => client.render({ page: 0, scale }, { priority: "background" }));
     const visible = client.render({ page: 0, scale: 0.2 }, { priority: "visible" });
     await busy;
     for (const r of await Promise.all([...background, visible])) r.bitmap.close();
-    expect(await client.call("__renderLog", [])).toEqual([0.2, 0.11, 0.12, 0.13]);
+    expect(await hook(client, "__renderLog", [])).toEqual([0.2, 0.11, 0.12, 0.13]);
   });
 
   it("answers a same-key render sent after the first one started", async () => {
-    const client = await track(viewer());
+    const client = await track(testViewer());
     await client.open(await read("fixtures/corpus/hello.pdf"));
     const started = next(client, "render-start");
     const first = client.render({ page: 0, scale: 2 });
@@ -140,9 +151,9 @@ describe("cancellation and priorities", () => {
   });
 
   it("drops a shared job back to its remaining caller's priority when the urgent one cancels", async () => {
-    const client = await track(viewer());
+    const client = await track(testViewer());
     await client.open(await read("fixtures/corpus/hello.pdf"));
-    const busy = client.call("__busy", [200]);
+    const busy = hook(client, "__busy", [200]);
     const background = client.render({ page: 0, scale: 0.11 }, { priority: "background" });
     const controller = new AbortController();
     const urgent = rejection(
@@ -153,17 +164,17 @@ describe("cancellation and priorities", () => {
     await busy;
     expect(isAbort(await urgent)).toBe(true);
     for (const r of await Promise.all([background, prefetch])) r.bitmap.close();
-    expect(await client.call("__renderLog", [])).toEqual([0.2, 0.11]);
+    expect(await hook(client, "__renderLog", [])).toEqual([0.2, 0.11]);
   });
 
   it("draws identical renders once and gives each caller its own bitmap", async () => {
-    const client = await track(viewer());
+    const client = await track(testViewer());
     await client.open(await read("fixtures/corpus/hello.pdf"));
-    const busy = client.call("__busy", [100]);
+    const busy = hook(client, "__busy", [100]);
     const [a, b] = await Promise.all([client.render({ page: 0, scale: 0.3 }), client.render({ page: 0, scale: 0.3 })]);
     await busy;
     expect(a?.bitmap).not.toBe(b?.bitmap);
-    expect(await client.call("__renderLog", [])).toEqual([0.3]);
+    expect(await hook(client, "__renderLog", [])).toEqual([0.3]);
     a?.bitmap.close();
     b?.bitmap.close();
   });
@@ -171,20 +182,20 @@ describe("cancellation and priorities", () => {
 
 describe("long renders", () => {
   it("doesn't treat a busy worker as a crash", async () => {
-    const client = await track(viewer("pdfium", { timeouts: { soft: 5_000, hard: 60_000 } }));
+    const client = await track(testViewer("pdfium", { timeouts: { soft: 5_000, hard: 60_000 } }));
     await client.open(await read("fixtures/corpus/hello.pdf"));
     let crashed = false;
     client.on("crashed", () => {
       crashed = true;
     });
-    await client.call("__busy", [1_000]);
+    await hook(client, "__busy", [1_000]);
     const { bitmap } = await client.render({ page: 0, scale: 0.5 });
     bitmap.close();
     expect(crashed).toBe(false);
   });
 
   it("emits render-slow past the soft timeout and keeps the worker", async () => {
-    const client = await track(viewer("pdfium", { timeouts: { soft: 1, hard: 60_000 } }));
+    const client = await track(testViewer("pdfium", { timeouts: { soft: 1, hard: 60_000 } }));
     await client.open(await read("fixtures/corpus/hello.pdf"));
     const slow = next(client, "render-slow");
     const render = client.render({ page: 0, scale: 4 });
@@ -193,13 +204,13 @@ describe("long renders", () => {
   });
 
   it("doesn't count time waiting in the queue against a render", async () => {
-    const client = await track(viewer("pdfium", { timeouts: { soft: 300, hard: 60_000 } }));
+    const client = await track(testViewer("pdfium", { timeouts: { soft: 300, hard: 60_000 } }));
     await client.open(await read("fixtures/corpus/hello.pdf"));
     let slow = false;
     client.on("render-slow", () => {
       slow = true;
     });
-    const busy = client.call("__busy", [600]);
+    const busy = hook(client, "__busy", [600]);
     const render = client.render({ page: 0, scale: 0.2 });
     await busy;
     (await render).bitmap.close();
@@ -207,21 +218,21 @@ describe("long renders", () => {
   });
 
   it("restarts on stop() without re-sending the blocked render", async () => {
-    const client = await track(viewer());
+    const client = await track(testViewer());
     await client.open(await read("fixtures/corpus/hello.pdf"));
     const restarted = next(client, "restarted");
-    const blocked = rejection(client.call("__busy", [5_000]));
+    const blocked = rejection(hook(client, "__busy", [5_000]));
     const queued = rejection(client.render({ page: 0, scale: 0.77 }));
     await client.stop();
     expect(isLaminaError(await blocked, "worker-crashed")).toBe(true);
     expect(isLaminaError(await queued, "worker-crashed")).toBe(true);
     expect(await restarted).toEqual({ reason: "cancelled", reopened: true });
-    expect(await client.call("__renderLog", [])).toEqual([]);
+    expect(await hook(client, "__renderLog", [])).toEqual([]);
     (await client.render({ page: 0, scale: 0.5 })).bitmap.close();
   });
 
   it("emits render-stuck for an encrypted document at the hard cap, and restarts only on stop()", async () => {
-    const client = await track(viewer("pdfium", { timeouts: { soft: 1, hard: 2 } }));
+    const client = await track(testViewer("pdfium", { timeouts: { soft: 1, hard: 2 } }));
     await client.open(await read(ENCRYPTED), { password: PASSWORD });
     let restarted = false;
     client.on("restarted", () => {
@@ -240,16 +251,16 @@ describe("long renders", () => {
 
 describe("documents", () => {
   it("keeps the open document when another fails to open", async () => {
-    const client = await track(viewer());
+    const client = await track(testViewer());
     await client.open(await read("fixtures/corpus/hello.pdf"));
     await rejection(client.open(new TextEncoder().encode("not a pdf")));
     (await client.render({ page: 0, scale: 0.5 })).bitmap.close();
   });
 
   it("fails a render queued for a document that another open replaced", async () => {
-    const client = await track(viewer());
+    const client = await track(testViewer());
     await client.open(await read("fixtures/corpus/hello.pdf"));
-    const busy = client.call("__busy", [200]);
+    const busy = hook(client, "__busy", [200]);
     const stale = rejection(client.render({ page: 0, scale: 0.5 }, { priority: "background" }));
     await client.open(await read("fixtures/corpus/fpdf2.pdf"));
     await busy;
@@ -257,7 +268,7 @@ describe("documents", () => {
   });
 
   it("keeps the open document when an open is aborted while it runs", async () => {
-    const client = await track(viewer());
+    const client = await track(testViewer());
     const first = await client.open(await read("fixtures/corpus/hello.pdf"));
     const controller = new AbortController();
     const opening = rejection(
@@ -271,18 +282,18 @@ describe("documents", () => {
   });
 
   it("renders the reopened document when asked during a restart", async () => {
-    const client = await track(viewer());
+    const client = await track(testViewer());
     await client.open(await read("fixtures/corpus/hello.pdf"));
     await client.open(await read("fixtures/corpus/fpdf2.pdf"));
     const restarted = next(client, "restarted");
-    await rejection(client.call("__crash", []));
+    await rejection(hook(client, "__crash", []));
     const render = client.render({ page: 0, scale: 0.5 });
     await restarted;
     (await render).bitmap.close();
   });
 
   it("only reports needsPassword for a file that can't open without it", async () => {
-    const client = await track(viewer());
+    const client = await track(testViewer());
     expect((await client.open(await read("fixtures/corpus/hello.pdf"), { password: "unused" })).needsPassword).toBe(
       false,
     );
@@ -292,20 +303,20 @@ describe("documents", () => {
 
 describe("crashes", () => {
   it("rejects pending calls, reopens the document and renders again", async () => {
-    const client = await track(viewer());
+    const client = await track(testViewer());
     await client.open(await read("fixtures/corpus/hello.pdf"));
     const restarted = next(client, "restarted");
-    const crash = client.call("__crash", []);
+    const crash = hook(client, "__crash", []);
     expect(isLaminaError(await rejection(crash), "worker-crashed")).toBe(true);
     expect(await restarted).toEqual({ reason: "error", reopened: true });
     (await client.render({ page: 0, scale: 0.5 })).bitmap.close();
   });
 
   it("asks for the password again after a crash of an encrypted document", async () => {
-    const client = await track(viewer());
+    const client = await track(testViewer());
     await client.open(await read(ENCRYPTED), { password: PASSWORD });
     const required = next(client, "password-required");
-    await rejection(client.call("__crash", []));
+    await rejection(hook(client, "__crash", []));
     await required;
     expect(client.document).toBeUndefined();
     await client.open(await read(ENCRYPTED), { password: PASSWORD });
@@ -322,7 +333,7 @@ describe("secrets", () => {
       return (original as (...a: unknown[]) => void).call(this, message, ...rest);
     } as typeof Worker.prototype.postMessage;
     try {
-      const client = await track(viewer());
+      const client = await track(testViewer());
       const carries = (m: unknown): boolean =>
         m === PASSWORD ||
         (typeof m === "object" &&
@@ -332,14 +343,12 @@ describe("secrets", () => {
           Object.values(m).some(carries));
       await client.open(await read(ENCRYPTED), { password: PASSWORD });
       expect(posted.filter(carries).length).toBe(1);
-      expect(JSON.stringify(client.reopenState)).not.toContain(PASSWORD);
       const required = next(client, "password-required");
-      await rejection(client.call("__crash", []));
+      await rejection(hook(client, "__crash", []));
       await required;
       expect(posted.filter(carries).length).toBe(1);
       await client.open(await read(ENCRYPTED), { password: PASSWORD });
       expect(posted.filter(carries).length).toBe(2);
-      expect(JSON.stringify(client.reopenState)).not.toContain(PASSWORD);
     } finally {
       Worker.prototype.postMessage = original;
     }

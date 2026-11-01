@@ -18,6 +18,7 @@ Its modules are TypeScript source. Vitest compiles them for the tests, and Node 
 - **`@laminapdf/test-utils/browser-harness`:** `fetcher(urls, prefix)` reads fixtures served as Vite assets, and `decodePng(png)` decodes a PNG with the browser's own decoder.
 - **`@laminapdf/test-utils/browser-config`:** `renderBrowserConfig(packageDir)`, the Vitest browser config the render adapters share.
 - **`@laminapdf/test-utils/firefox`:** `firefoxProvider(packageDir)`, for every package's browser config. Playwright's Firefox looks for the user's Firefox data folder and fails where the system refuses access, as it does on the build machines. The provider gives it a folder of its own under the package's `node_modules`.
+- **`@laminapdf/test-utils/worker-hooks`:** `crashMethod`, a `__crash` method for the `serve({ methods })` of a test's own Web Worker: it throws an uncaught error, so the page sees that Web Worker crash.
 - **`@laminapdf/test-utils/root`:** `fromRoot(path)`, a file's URL from its path from the repository root (`fixtures/corpus/hello.pdf`), so a test needn't count `../` from its own folder.
 
 ## What keeps its own paths
