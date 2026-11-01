@@ -358,7 +358,7 @@ impl ContentKind {
 /// earlier pages drew and linked as [`TagDiagnostic::Untagged`]: the list is empty only when
 /// every drawing and every link annotation has structure (or is an artifact's drawing).
 ///
-/// [B8b]: https://github.com/laudebugs/lamina/blob/main/docs/todos/ready/B8b-conformance-profiles-and-verapdf.md
+/// [B8b]: https://github.com/laudebugs/lamina/blob/main/docs/todos/done/B8b-conformance-profiles-and-verapdf.md
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[non_exhaustive]
 pub enum TagDiagnostic {

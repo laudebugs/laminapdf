@@ -1,0 +1,69 @@
+---
+title: Archival PDFs
+description: Build PDF/A-2b, PDF/A-2u and PDF/A-3b documents that look the same in years to come, and attach files such as an e-invoice's XML.
+sidebar:
+  order: 10
+---
+
+import { Tabs, TabItem } from "@astrojs/starlight/components";
+import Snippet from "../../../components/Snippet.astro";
+
+This guide builds PDF/A documents, which you need when a file must stay readable and look the same for decades: contracts, records kept by law, e-invoices.
+
+## What PDF/A asks for
+
+PDF/A (ISO 19005) is the archival subset of PDF. A PDF/A file carries everything it needs to be displayed: its fonts are embedded, its colours are defined, and nothing depends on the viewer, the network or a password. lamina writes three PDF/A profiles:
+
+- **PDF/A-2b** ("basic", ISO 19005-2): the document looks the same everywhere.
+- **PDF/A-2u** ("Unicode"): PDF/A-2b, and every glyph maps to Unicode, so the text can be searched and copied.
+- **PDF/A-3b** (ISO 19005-3): PDF/A-2b that may carry attached files of any kind.
+
+Choose one with the `profiles` option. The builder then writes what the standard asks for. First, the identification in the document's XMP metadata (the XML packet in the file that describes it), always written and always agreeing with the Info dictionary. Second, an output intent: a declaration of the colour space that device colours mean, with its ICC profile embedded. lamina's output intent is sRGB, so RGB and gray colour are defined. The embedded profile is 480 bytes.
+
+`finish()` fails with a coded error for each rule the document breaks:
+
+| Rule | Error |
+| --- | --- |
+| Every font is embedded (no standard 14 font) | [`font-not-embedded`](/reference/codes/) |
+| No `DeviceCMYK` colour or CMYK image (the output intent is sRGB) | `device-color-without-output-intent` |
+| PDF/A-2u: every glyph maps to Unicode | `glyph-without-unicode` |
+| PDF/A-2b, PDF/A-2u: no attached files | `embedded-file-forbidden` |
+| The PDF version is 1.7 or lower | `profile-version-conflict` |
+
+For CMYK colour under PDF/A, give the colour an ICC profile (`Color::icc` in Rust): an ICC-based colour defines itself. Transparency is allowed in PDF/A-2 and PDF/A-3.
+
+## An archived letter
+
+The letter below is written twice, as PDF/A-2b and as PDF/A-2u. The PDF/A-2u copy is also PDF/UA-1, the accessibility standard (see [Accessible PDFs](/guides/accessible-pdfs/)): a document can be both archival and accessible.
+
+<Tabs syncKey="lang">
+  <TabItem label="TypeScript">
+    <Snippet file="packages/sdk/examples/pdf-a-archive.ts" />
+  </TabItem>
+  <TabItem label="Rust">
+    <Snippet file="crates/lamina/examples/pdf_a_archive.rs" />
+  </TabItem>
+</Tabs>
+
+[See the output](/examples/#pdfa-archive).
+
+## Attaching files: a hybrid invoice
+
+PDF/A-3 lets a document carry other files, provided each one is associated with the document and says how it relates to it: its source, the data it was made from, or another representation of the same content. E-invoicing formats such as Factur-X and ZUGFeRD use this to put the machine-readable invoice (XML) inside the human-readable one (PDF).
+
+`attach(name, bytes, mime, { relationship })` adds a file, its MIME type and its relationship, and lists it in the document's attachments. The example uses a made-up XML schema; a real e-invoice follows the EN 16931 standard and adds its own XMP metadata.
+
+<Tabs syncKey="lang">
+  <TabItem label="TypeScript">
+    <Snippet file="packages/sdk/examples/pdf-a3-invoice-with-xml.ts" />
+  </TabItem>
+  <TabItem label="Rust">
+    <Snippet file="crates/lamina/examples/pdf_a3_invoice_with_xml.rs" />
+  </TabItem>
+</Tabs>
+
+[See the output](/examples/#pdfa-3-invoice-with-xml).
+
+## How lamina checks its own output
+
+Every example on this site that claims a PDF/A profile is validated each night with veraPDF, the open-source PDF/A and PDF/UA validator the PDF Association backs, and any violation fails the run. Run the same check with `cargo xtask verapdf` from a clone of the repository. lamina writes PDF/A at generation time; it doesn't convert existing files to PDF/A.
