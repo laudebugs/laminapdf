@@ -42,7 +42,7 @@ Complete the builder's feature list for M1: shaped text runs and single-box para
 **Out of scope** (and which todo covers it)
 
 - Structure tree, `tag()`, artifacts, `Link` structure elements with OBJR, alt text: [B8a](./B8a-structure-tree.md).
-- PDF/A identification XMP schemas and output intents: [B8b](../ready/B8b-conformance-profiles-and-verapdf.md).
+- PDF/A identification XMP schemas and output intents: [B8b](../ongoing/B8b-conformance-profiles-and-verapdf.md).
 - Editing Info/XMP on existing documents in sync: full-editor E1.
 - Font fallback across fonts within one run: later.
 
