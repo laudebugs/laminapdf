@@ -25,7 +25,7 @@ Make links in PDFs work safely. A DOM link layer on each mounted page turns link
 - [web-app.md §2 scope](../../plans/web-app.md#2-scope-and-non-goals) — external links confirm before leaving; PDF JavaScript is never executed.
 - [web-app.md §4 functional 6](../../plans/web-app.md#functional) and [privacy and security](../../plans/web-app.md#privacy-and-security) (`Referrer-Policy: no-referrer`).
 - [C6a](./C6a-thumbnails-outline-page-labels.md) — destination resolution and mapping.
-- [C3b](../ongoing/C3b-viewer-virtualiser-and-zoom.md) — `lamina-layer-annot` slot.
+- [C3b](../done/C3b-viewer-virtualiser-and-zoom.md) — `lamina-layer-annot` slot.
 
 ## Scope
 

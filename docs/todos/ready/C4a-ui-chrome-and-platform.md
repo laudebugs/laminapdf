@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [web reader §6 C4. App shell on Cloudflare](../../plans/web-app.md#c4-app-shell-on-cloudflare) |
 | Round / milestone | Round C (web reader) — M2 Web reader v0.1 |
-| Depends on | [C2a](../done/C2a-render-adrs.md), [C3b](../ongoing/C3b-viewer-virtualiser-and-zoom.md), [U1a](./U1a-adr-0024-app-shell-ux.md), [U6e](./U6e-overlays-and-sheets.md) |
+| Depends on | [C2a](../done/C2a-render-adrs.md), [C3b](../done/C3b-viewer-virtualiser-and-zoom.md), [U1a](./U1a-adr-0024-app-shell-ux.md), [U6e](./U6e-overlays-and-sheets.md) |
 | Blocks | [C4b](./C4b-web-app-shell.md), [D2a](./D2a-adr-0008-and-desktop-scaffold.md), [D2d](./D2d-tile-transport-and-first-document.md), [U1b](./U1b-command-registry-and-palette.md), [U1c](./U1c-inverted-l-shell-and-modes.md), [E1d](./E1d-edit-session-undo-ui.md), [E10e](./E10e-timestamps-and-tsa-proxy.md) |
 | ADRs | Implements 0009 (React chrome around the framework-free viewer) and 0010 (`Platform` interface, capability flags, web implementation) |
 | Branch | `feat/c4a-ui-chrome` |

@@ -40,6 +40,11 @@ export const DEFAULT_LIMITS: RenderLimits = Object.freeze({
 /** A view rotation, clockwise, added to the page's own `/Rotate`. */
 export type ViewRotation = 0 | 90 | 180 | 270;
 
+/** Whether `rotation` turns the page a quarter (90° or 270°), which swaps its width and height. */
+export function isQuarterTurn(rotation: ViewRotation): boolean {
+  return rotation === 90 || rotation === 270;
+}
+
 /** What to draw besides the page content. */
 export interface RenderFlags {
   /** Annotation appearance streams. Default on. */
@@ -276,7 +281,7 @@ export function planTile(page: RenderPage, request: RenderRequest, limits: Rende
   if (![0, 90, 180, 270].includes(rotation)) {
     throw new RenderError("invalid-argument", "invalid render request: rotation must be 0, 90, 180 or 270");
   }
-  const quarter = rotation === 90 || rotation === 270;
+  const quarter = isQuarterTurn(rotation);
   const pixels = (points: number): number => {
     // f32 like the Rust planner, so both agree on the floor at every scale.
     const v = Math.max(1, Math.floor(Math.fround(points) * Math.fround(scale)));
@@ -321,7 +326,7 @@ export function planTile(page: RenderPage, request: RenderRequest, limits: Rende
  * y down, `/Rotate` applied) to the tile's pixels: Rust's `TilePlan::page_to_tile`.
  */
 export function pageToTile(plan: TilePlan, page: RenderPage, rotation: ViewRotation = 0): readonly number[] {
-  const quarter = rotation === 90 || rotation === 270;
+  const quarter = isQuarterTurn(rotation);
   const w0 = quarter ? plan.pageHeight : plan.pageWidth;
   const h0 = quarter ? plan.pageWidth : plan.pageHeight;
   const sx = w0 / page.width;
