@@ -7,7 +7,7 @@
 | Plan | [Quality plan §6](../../plans/quality.md#6-todos) |
 | Round / milestone | Round Q (docs and code quality) |
 | Depends on | [Q1c](./Q1c-examples-checks.md) |
-| Blocks | [Q1h](../ready/Q1h-docs-story.md) |
+| Blocks | [Q1h](../ongoing/Q1h-docs-story.md) |
 | ADRs | None |
 | Branch | `feat/q1e-quick-start-apps` |
 | PR title | `feat(docs): runnable quick-start examples for Node, Deno, Bun and the browser` |
@@ -34,7 +34,7 @@ Three of the six runtime pages show CI test runners, and the browser page shows 
 
 **Out of scope** (and which todo covers it)
 
-- The first-PDF and concept pages ([Q1h](../ready/Q1h-docs-story.md)).
+- The first-PDF and concept pages ([Q1h](../ongoing/Q1h-docs-story.md)).
 
 ## Tasks
 
