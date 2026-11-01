@@ -19,7 +19,9 @@ lamina is a platform for anything and everything PDF: creating PDFs from code, p
 ├── CHANGELOG.md         # generated: the fixed group's changelogs merged by `cargo xtask version sync`
 ├── biome.json  tsconfig.base.json  deny.toml  clippy.toml  rustfmt.toml
 ├── crates/              # Rust crates, flat: crates/lamina-<name>
-│   ├── lamina-syntax/   #   core: object model + serialization, lexer, parser, filters (Flate, PNG predictors), Limits
+│   ├── lamina-syntax/   #   core: object model + serialization, lexer, parser, filters (Flate, PNG predictors), Limits,
+│   │                    #     the error contract's shared parts: ErrorKind, Location, the generated ErrorCode/WarningCode
+│   │                    #     (src/generated/) and, with feature `json`, Diagnostic (the ADR 0026 object every boundary throws)
 │   ├── lamina-cos/      #   core: reader and overlay: Document over a ByteSource (xref, object streams, repair, page tree,
 │   │                    #     warnings), the overlay (CosMut, journal), rebase
 │   ├── lamina-model/    #   core: typed views (pages, outline, Info, name/number trees, page labels, structure tree)
@@ -174,7 +176,8 @@ cargo xtask pdf-runtimes [node|chromium|firefox|webkit|deno|bun|workerd]…  # @
                              #   Deno, Bun, wrangler and Playwright are dev deps (`playwright install` runs first);
                              #   --history <dir> --runner <label> --record appends them to history.jsonl (nightly)
 cargo xtask gen codes [--check|--md]  # validate fixtures/codes.json against codes.schema.json, then write the error contract:
-                             #   the façade's ErrorCode/WarningCode (crates/lamina/src/generated/codes.rs), @laminapdf/sdk's
+                             #   ErrorCode/WarningCode (crates/lamina-syntax/src/generated/codes.rs; the façade re-exports
+                             #   them), the façade's explain pages (crates/lamina/src/generated/explain.rs), @laminapdf/sdk's
                              #   unions, KINDS/HINTS and explain text (packages/sdk/src/generated/), the lamina.error/1
                              #   schema (packages/sdk/schemas/, crates/lamina/schemas/) and docs/errors/README.md's tables;
                              #   --check fails naming each stale file; --md prints the tables (for the docs site)

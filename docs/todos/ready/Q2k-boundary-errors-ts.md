@@ -6,7 +6,7 @@
 | Status | `ready` |
 | Plan | [Quality plan §6](../../plans/quality.md#6-todos) |
 | Round / milestone | Round Q (docs and code quality) |
-| Depends on | [Q2j](../ongoing/Q2j-boundary-errors-rust.md) |
+| Depends on | [Q2j](../done/Q2j-boundary-errors-rust.md) |
 | Blocks | None |
 | ADRs | None |
 | Branch | `fix/q2k-boundary-errors-ts` |

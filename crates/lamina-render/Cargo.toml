@@ -21,12 +21,13 @@ hayro = ["dep:hayro"]
 
 [dependencies]
 lamina-cos = { workspace = true }
-lamina-syntax = { workspace = true }
+lamina-syntax = { workspace = true, features = ["json"] }
+serde_json = { workspace = true }
 thiserror = { workspace = true }
 hayro = { workspace = true, optional = true }
 
 [dev-dependencies]
-serde_json = { workspace = true }
+boon = { workspace = true }
 
 [lints]
 workspace = true

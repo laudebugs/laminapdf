@@ -644,6 +644,8 @@ dependencies = [
  "aes",
  "md-5",
  "miniz_oxide",
+ "serde",
+ "serde_json",
  "sha2",
  "thiserror",
 ]

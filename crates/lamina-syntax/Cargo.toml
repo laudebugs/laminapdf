@@ -23,6 +23,9 @@ default = ["saslprep"]
 # passwords and for non-ASCII ones already in their prepared form (the WASM base module leaves it
 # out and `@laminapdf/sdk` normalises passwords to NFKC; ADR 0016 §5).
 saslprep = ["dep:stringprep"]
+# The ADR 0026 §1 object as `Diagnostic` and its serialisation (serde, serde_json): for the
+# crates that hand errors to another language (the façade, lamina-render).
+json = ["dep:serde", "dep:serde_json"]
 
 [dependencies]
 aes = { workspace = true }
@@ -30,6 +33,8 @@ md-5 = { workspace = true }
 sha2 = { workspace = true }
 stringprep = { workspace = true, optional = true }
 miniz_oxide = { workspace = true }
+serde = { workspace = true, optional = true }
+serde_json = { workspace = true, optional = true }
 thiserror = { workspace = true }
 
 [dev-dependencies]

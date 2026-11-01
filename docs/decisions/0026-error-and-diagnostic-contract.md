@@ -158,6 +158,14 @@ Today three variants break this rule: `lamina_syntax::Error::UnsupportedFilter(S
 | CLI (ADR 0031) | Text mode, rustc style on stderr: `error[wrong-password]: wrong password`, then `= hint: …` and `= see: <docsUrl>`. `--json` writes §1 objects on stderr, one per line, warnings included |
 | MCP (L4c) | Tool errors carry the §1 object in `structuredContent` |
 
+**Implementation note (Q2j).** Every boundary builds the §1 object from one record and one serialiser: `lamina_syntax::Diagnostic`, behind lamina-syntax's `json` feature. The generated `ErrorCode` and `WarningCode` tables moved down with it into lamina-syntax (`src/generated/codes.rs`), so a crate below the façade can build the object too, and the façade re-exports both. Three crates build it today:
+
+- the façade, for `Error::diagnostic()` and `Warning::diagnostic()`;
+- `lamina-wasm`, for the codes only the binding raises (`invalid-argument`, `unknown-option`, `builder-finished`, `source-budget-exceeded`);
+- `lamina-render`, for `RenderError::diagnostic()`, which `lamina-render-wasm` throws as a plain object (a `data-pending` lists its ranges in `data.ranges`).
+
+The rule above still holds for the core crates' own error enums: they carry codes, kinds and locations, never hint text. The text sits in the one generated table, and a build links it only when something reads a hint. The base module already did, through the façade. The hayro render module now does too, so its errors carry a `hint` and a `docsUrl`. `packages/wasm/test/smoke.test.ts` checks errors from both modules against `lamina.error/1`, and `lamina-render`'s tests check every render error. The façade keeps the `explain` pages (`src/generated/explain.rs`).
+
 ## Consequences
 
 - `codes.json` feeds every surface: by hand-checked tables from L1c, then by one generator (L1b). A new code is one JSON entry, one `explain` page and one `code()` arm.
