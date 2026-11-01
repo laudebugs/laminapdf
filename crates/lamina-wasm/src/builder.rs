@@ -580,7 +580,7 @@ impl WasmPageBuilder {
 /// A rectangle as returned to JavaScript.
 #[cfg(feature = "text")]
 #[derive(Debug, Serialize, Tsify)]
-pub struct RectJs {
+pub(crate) struct RectJs {
     /// Left.
     pub x: f64,
     /// Top.
@@ -686,7 +686,7 @@ mod text {
     /// Text rendering (`Tr`).
     #[derive(Debug, Clone, Copy, Deserialize, Tsify)]
     #[serde(rename_all = "camelCase")]
-    pub enum RenderModeInit {
+    pub(super) enum RenderModeInit {
         /// Fill (the default).
         Fill,
         /// Stroke.
@@ -719,7 +719,7 @@ mod text {
     /// A link over drawn text.
     #[derive(Debug, Deserialize, Tsify)]
     #[serde(deny_unknown_fields)]
-    pub struct TextLinkInit {
+    pub(super) struct TextLinkInit {
         /// Where it goes.
         pub target: LinkTargetInit,
         /// Alternate text.
@@ -730,7 +730,7 @@ mod text {
     /// How a run of text is drawn.
     #[derive(Debug, Default, Deserialize, Tsify)]
     #[serde(rename_all = "camelCase", deny_unknown_fields)]
-    pub struct TextOptionsInit {
+    pub(super) struct TextOptionsInit {
         /// The fill colour.
         #[tsify(optional)]
         pub fill: Option<ColorInit>,
@@ -754,7 +754,7 @@ mod text {
 
     /// What a run measures.
     #[derive(Debug, Serialize, Tsify)]
-    pub struct TextRunJs {
+    pub(super) struct TextRunJs {
         /// The advance width of its widest line.
         pub width: f64,
         /// Its box, page space.
@@ -766,7 +766,7 @@ mod text {
     /// Alignment of a text box's lines.
     #[derive(Debug, Clone, Copy, Deserialize, Tsify)]
     #[serde(rename_all = "camelCase")]
-    pub enum AlignInit {
+    pub(super) enum AlignInit {
         /// The start of the paragraph's direction (the default).
         Start,
         /// The end.
@@ -782,7 +782,7 @@ mod text {
     /// What happens to text that doesn't fit a text box.
     #[derive(Debug, Clone, Copy, Deserialize, Tsify)]
     #[serde(rename_all = "camelCase")]
-    pub enum OverflowInit {
+    pub(super) enum OverflowInit {
         /// Drawn up to the last line that fits (the default).
         Clip,
         /// `text-overflow`.
@@ -792,7 +792,7 @@ mod text {
     /// Options for `textBox`.
     #[derive(Debug, Default, Deserialize, Tsify)]
     #[serde(rename_all = "camelCase", deny_unknown_fields)]
-    pub struct TextBoxOptionsInit {
+    pub(super) struct TextBoxOptionsInit {
         /// Line alignment.
         #[tsify(optional)]
         pub align: Option<AlignInit>,
@@ -818,7 +818,7 @@ mod text {
     /// string indices).
     #[derive(Debug, Serialize, Tsify)]
     #[serde(rename_all = "camelCase")]
-    pub struct LineBoxJs {
+    pub(super) struct LineBoxJs {
         /// Where the line's text starts.
         pub start: u32,
         /// Where it ends (trailing spaces and the line break included).
@@ -833,7 +833,7 @@ mod text {
 
     /// How a text box laid its text out.
     #[derive(Debug, Serialize, Tsify)]
-    pub struct TextLayoutJs {
+    pub(super) struct TextLayoutJs {
         /// The lines drawn.
         pub lines: Vec<LineBoxJs>,
         /// Where the text that didn't fit starts (UTF-16 offset), if any.

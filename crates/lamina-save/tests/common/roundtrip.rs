@@ -57,7 +57,7 @@ const INFO: [(&str, &str); 4] = [
 const ROTATIONS: [Rotation; 3] = [Rotation::Clockwise90, Rotation::Half, Rotation::Clockwise270];
 
 /// The corpus files that open without repair and are neither signed nor encrypted.
-pub const PLAIN_CORPUS: [&str; 10] = [
+pub(crate) const PLAIN_CORPUS: [&str; 10] = [
     "hello.pdf",
     "hello-incremental.pdf",
     "hello-xrefstm.pdf",
@@ -71,7 +71,7 @@ pub const PLAIN_CORPUS: [&str; 10] = [
 ];
 
 /// B5b's goldens (text, links, outlines, labels, metadata).
-pub const B5B_BUILT: [&str; 4] = [
+pub(crate) const B5B_BUILT: [&str; 4] = [
     "build-text-latin.pdf",
     "build-text-multiscript.pdf",
     "links-and-outlines.pdf",
@@ -80,7 +80,7 @@ pub const B5B_BUILT: [&str; 4] = [
 
 /// The goldens `lamina-build` writes (B5a, then [`B5B_BUILT`]): plain files too, so the full
 /// lane's qpdf, pdf.js and PDFium checks cover the builder's output.
-pub const PLAIN_BUILT: [&str; 6] = [
+pub(crate) const PLAIN_BUILT: [&str; 6] = [
     "vectors.pdf",
     "images.pdf",
     B5B_BUILT[0],
@@ -92,10 +92,10 @@ pub const PLAIN_BUILT: [&str; 6] = [
 /// The byte that damages `corpus/tampered.pdf`'s newest catalog so the file repairs to the
 /// older, unsigned one: (offset, value), the mutation `lamina-cos`'s `policy.rs`
 /// (`signed_and_tampered_with_damaged_catalog_repair_to_one_page`) checks.
-pub const TAMPERED_CATALOG_DAMAGE: (usize, u8) = (590, 73);
+pub(crate) const TAMPERED_CATALOG_DAMAGE: (usize, u8) = (590, 73);
 
 /// `bytes` (`corpus/tampered.pdf`) with [`TAMPERED_CATALOG_DAMAGE`] applied.
-pub fn damage_newest_catalog(mut bytes: Vec<u8>) -> Vec<u8> {
+pub(crate) fn damage_newest_catalog(mut bytes: Vec<u8>) -> Vec<u8> {
     let (at, value) = TAMPERED_CATALOG_DAMAGE;
     bytes[at] = value;
     bytes
@@ -209,7 +209,7 @@ fn op(doc: &Document, name: &str, rotation: Rotation) -> Op {
 
 /// What a run produced.
 #[derive(Debug, Default)]
-pub struct Suite {
+pub(crate) struct Suite {
     /// Every saved output: its file name and bytes.
     pub outputs: Vec<(String, Vec<u8>)>,
     /// One entry per output: what the other tools must see.
@@ -223,7 +223,7 @@ pub struct Suite {
 }
 
 /// Runs every case over the fixtures under `root` (the repository root).
-pub fn run(root: &Path) -> Suite {
+pub(crate) fn run(root: &Path) -> Suite {
     let mut suite = Suite::default();
     for (index, (name, bytes, category)) in fixtures(root).into_iter().enumerate() {
         let rotation = ROTATIONS[index % ROTATIONS.len()];

@@ -157,6 +157,7 @@ missing_docs = "deny"
 future_incompatible = { level = "warn", priority = -1 }
 nonstandard_style = { level = "deny", priority = -1 }
 unused_qualifications = "warn"
+unreachable_pub = "warn"        # `pub` in a private module is `pub(crate)`: the public surface is only what lib.rs exports
 
 [workspace.lints.clippy]
 all = { level = "deny", priority = -1 }
@@ -173,6 +174,7 @@ todo = "deny"                   # unfinished code never merges; keep todo!/unimp
 unimplemented = "deny"
 allow_attributes = "deny"       # outer #[allow] is rejected: use #[expect] (inner #![allow] is not covered)
 allow_attributes_without_reason = "deny"   # every #[allow]/#[expect] states why
+cognitive_complexity = "warn"   # a nursery lint (not in `all` or `pedantic`), so it is named here; threshold: the default 25
 
 [workspace.lints.rustdoc]
 broken_intra_doc_links = "deny"

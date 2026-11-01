@@ -253,7 +253,7 @@ impl CMap {
 
 /// UTF-16 units to text; an unpaired surrogate becomes U+FFFD.
 #[must_use]
-pub fn utf16(units: &[u16]) -> String {
+pub(super) fn utf16(units: &[u16]) -> String {
     char::decode_utf16(units.iter().copied())
         .map(|c| c.unwrap_or(char::REPLACEMENT_CHARACTER))
         .collect()

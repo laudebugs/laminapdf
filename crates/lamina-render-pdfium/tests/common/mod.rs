@@ -21,24 +21,24 @@ use lamina_render::{
 use lamina_render_pdfium::PdfiumBackend;
 
 /// Render goldens' resolution.
-pub const DPI: f32 = 96.0;
+pub(crate) const DPI: f32 = 96.0;
 
-pub fn root() -> PathBuf {
+pub(crate) fn root() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..")
 }
 
-pub fn fixture(path: &str) -> Vec<u8> {
+pub(crate) fn fixture(path: &str) -> Vec<u8> {
     let p = root().join("fixtures").join(path);
     std::fs::read(&p).unwrap_or_else(|e| panic!("{}: {e}", p.display()))
 }
 
 /// The golden folder of `backend`.
-pub fn golden_dir(backend: &str) -> PathBuf {
+pub(crate) fn golden_dir(backend: &str) -> PathBuf {
     root().join("fixtures/golden/render").join(backend)
 }
 
 /// Every PDF of `fixtures/corpus/`, by file name.
-pub fn corpus() -> Vec<String> {
+pub(crate) fn corpus() -> Vec<String> {
     let mut names: Vec<String> = std::fs::read_dir(root().join("fixtures/corpus"))
         .unwrap()
         .map(|e| e.unwrap().file_name().to_string_lossy().into_owned())
@@ -50,7 +50,7 @@ pub fn corpus() -> Vec<String> {
 
 /// `fixtures/golden/render/skip.json`: per backend, the corpus files it doesn't render, each
 /// with its reason.
-pub fn skipped(backend: &str) -> BTreeMap<String, String> {
+pub(crate) fn skipped(backend: &str) -> BTreeMap<String, String> {
     let v: serde_json::Value =
         serde_json::from_slice(&std::fs::read(root().join("fixtures/golden/render/skip.json")).unwrap()).unwrap();
     v[backend]
@@ -64,18 +64,18 @@ pub fn skipped(backend: &str) -> BTreeMap<String, String> {
 }
 
 /// PDFium, bound from `LAMINA_PDFIUM_DIR` (`cargo xtask fetch-pdfium`).
-pub fn pdfium() -> PdfiumBackend {
+pub(crate) fn pdfium() -> PdfiumBackend {
     PdfiumBackend::from_env().unwrap_or_else(|e| {
         panic!("{e}: run `cargo xtask fetch-pdfium` and set LAMINA_PDFIUM_DIR (or use cargo xtask render-golden)")
     })
 }
 
 /// Both backends, PDFium first.
-pub fn backends() -> Vec<Box<dyn RenderBackend>> {
+pub(crate) fn backends() -> Vec<Box<dyn RenderBackend>> {
     vec![Box::new(pdfium()), Box::new(HayroBackend::new())]
 }
 
-pub fn open(
+pub(crate) fn open(
     backend: &dyn RenderBackend,
     bytes: Vec<u8>,
     options: &RenderOpenOptions,
@@ -85,14 +85,14 @@ pub fn open(
 }
 
 /// One rendered bitmap.
-pub struct Bitmap {
+pub(crate) struct Bitmap {
     pub width: u32,
     pub height: u32,
     /// Straight RGBA8.
     pub rgba: Vec<u8>,
 }
 
-pub fn render(doc: &dyn RenderDocument, req: &RenderRequest) -> Result<Bitmap, RenderError> {
+pub(crate) fn render(doc: &dyn RenderDocument, req: &RenderRequest) -> Result<Bitmap, RenderError> {
     let plan = doc.plan(req)?;
     let mut rgba = vec![0; plan.byte_len()];
     doc.render(req, &mut rgba, &CancelToken::new())?;
@@ -104,7 +104,7 @@ pub fn render(doc: &dyn RenderDocument, req: &RenderRequest) -> Result<Bitmap, R
 }
 
 /// Every page of `file` at the golden resolution, on white.
-pub fn render_file(backend: &dyn RenderBackend, file: &str) -> Vec<Bitmap> {
+pub(crate) fn render_file(backend: &dyn RenderBackend, file: &str) -> Vec<Bitmap> {
     let doc = open(backend, fixture(&format!("corpus/{file}")), &RenderOpenOptions::new())
         .unwrap_or_else(|e| panic!("{} can't open {file}: {e}", backend.name()));
     (0..doc.page_count())
@@ -116,11 +116,11 @@ pub fn render_file(backend: &dyn RenderBackend, file: &str) -> Vec<Bitmap> {
 }
 
 /// `<stem>-p<N>.png`, N 1-based.
-pub fn golden_name(file: &str, index: usize) -> String {
+pub(crate) fn golden_name(file: &str, index: usize) -> String {
     format!("{}-p{}.png", file.trim_end_matches(".pdf"), index + 1)
 }
 
-pub fn write_png(path: &Path, bitmap: &Bitmap) {
+pub(crate) fn write_png(path: &Path, bitmap: &Bitmap) {
     let file = std::fs::File::create(path).unwrap();
     let mut encoder = png::Encoder::new(std::io::BufWriter::new(file), bitmap.width, bitmap.height);
     encoder.set_color(png::ColorType::Rgba);
@@ -129,7 +129,7 @@ pub fn write_png(path: &Path, bitmap: &Bitmap) {
     encoder.write_header().unwrap().write_image_data(&bitmap.rgba).unwrap();
 }
 
-pub fn read_png(path: &Path) -> Bitmap {
+pub(crate) fn read_png(path: &Path) -> Bitmap {
     let decoder = png::Decoder::new(std::io::BufReader::new(
         std::fs::File::open(path).unwrap_or_else(|e| panic!("{}: {e}", path.display())),
     ));
@@ -146,7 +146,7 @@ pub fn read_png(path: &Path) -> Bitmap {
 }
 
 /// Mean SSIM of the two bitmaps' luma over 8 × 8 windows (stride 4). 1.0 is identical.
-pub fn ssim(a: &Bitmap, b: &Bitmap) -> f64 {
+pub(crate) fn ssim(a: &Bitmap, b: &Bitmap) -> f64 {
     assert_eq!((a.width, a.height), (b.width, b.height), "sizes differ");
     let luma = |bm: &Bitmap| -> Vec<f64> {
         bm.rgba

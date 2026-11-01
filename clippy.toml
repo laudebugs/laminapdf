@@ -4,6 +4,9 @@ allow-expect-in-tests = true
 allow-panic-in-tests = true
 allow-indexing-slicing-in-tests = true
 allow-dbg-in-tests = true
+# A function is at most 100 lines (docs/guidelines/maintainability.md, "Size"). 100 is clippy's
+# default too; it is set here so the budget is written down and a clippy release can't move it.
+too-many-lines-threshold = 100
 
 # Output must be byte-deterministic (ADR 0001): RandomState iteration order must never reach output.
 # Use BTreeMap/BTreeSet, IndexMap/IndexSet or a fixed-seed hasher.

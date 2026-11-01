@@ -32,6 +32,10 @@ use serde_json::{Value, json};
 use crate::workspace::Workspace;
 
 #[path = "../../../crates/lamina-cos/tests/common/code_groups.rs"]
+#[expect(
+    unreachable_pub,
+    reason = "shared with lamina-cos's tests, which re-export these items, so they stay `pub`"
+)]
 mod code_groups;
 
 use code_groups::{NOT_CODE_GROUPS, TS_ONLY_GROUPS, is_warning_group};

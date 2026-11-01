@@ -20,7 +20,7 @@ const KNOWN: &str = ".dependency-cruiser-known-violations.json";
 /// A violation as dependency-cruiser names it: rule, importing module, imported module.
 type Violation = (String, String, String);
 
-pub fn check(ws: &Workspace) -> Result<()> {
+pub(crate) fn check(ws: &Workspace) -> Result<()> {
     crate::step("TypeScript structure: import cycles, duplicates, unused code");
     let known =
         read_violations(&std::fs::read_to_string(ws.root.join(KNOWN)).with_context(|| format!("reading {KNOWN}"))?)?;
