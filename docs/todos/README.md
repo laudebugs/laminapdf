@@ -12,7 +12,7 @@ New todos start from [`TEMPLATE.md`](TEMPLATE.md). The workflow is in [git workf
 
 IDs: `A`/`P`/`X` [architecture](../plans/architecture.md) (foundations, publishing, cross-cutting), `B` [library](../plans/pdf-library.md), `L` [shareable libraries](../plans/shareable-libraries.md) (contracts, worker, extraction, CLI, agent docs, mobile), `C` [web reader](../plans/web-app.md), `D` [desktop reader](../plans/desktop-app.md), `U` [UI/UX](../plans/ui-ux.md), `E` [editor](../plans/full-editor.md), `H` hosted service ([full-editor](../plans/full-editor.md)), `Q` [docs and code quality](../plans/quality.md). A letter suffix (`B2a`, `B2b`) splits a round into PRs.
 
-**4 ongoing · 228 ready · 55 done** (287 total).
+**3 ongoing · 228 ready · 56 done** (287 total).
 
 ## Can start now
 
@@ -42,7 +42,6 @@ Ready todos whose dependencies are all done:
 
 - [B8b](ongoing/B8b-conformance-profiles-and-verapdf.md): Conformance profiles (PDF/UA-1, PDF/A-2b/2u/3b), output intents, veraPDF nightly and `0.2.0-alpha`
 - [C3b](ongoing/C3b-viewer-virtualiser-and-zoom.md): `@laminapdf/viewer` part 2: virtualiser, canvas pool, progressive tiles and anchored zoom
-- [Q1a](ongoing/Q1a-docs-font-source-sans.md): One sans-serif font on the docs site (Source Sans 3)
 - [Q2b](ongoing/Q2b-ts-lint-rules.md): TypeScript lint rules: complexity, function length, throws and TSDoc
 
 ## Architecture — Round A
@@ -335,7 +334,7 @@ Ready todos whose dependencies are all done:
 
 | ID | Todo | State | Depends on |
 | --- | --- | --- | --- |
-| Q1a | [One sans-serif font on the docs site (Source Sans 3)](ongoing/Q1a-docs-font-source-sans.md) | ongoing | — |
+| Q1a | [One sans-serif font on the docs site (Source Sans 3)](done/Q1a-docs-font-source-sans.md) | done | — |
 | Q1b | [The `docs-prose` check for reader-facing text](ready/Q1b-docs-prose-check.md) | ready | — |
 | Q1c | [The examples checks: `docs-snippets`, a Biome override and `clippy-examples`](ready/Q1c-examples-checks.md) | ready | — |
 | Q1d | [API fixes the examples need](ready/Q1d-example-api-cleanups.md) | ready | — |
