@@ -45,13 +45,18 @@ const OTHER_STANDARD: [&str; 32] = [
     "Artifact",
 ];
 
+/// The level of a numbered heading type (`H1` → 1, `H7` → 7; a level past `u32::MAX` is
+/// `u32::MAX`), `None` for any other name (`H`, `H0`, `Hx`).
+pub(crate) fn heading_level(name: &str) -> Option<u32> {
+    let digits = name.strip_prefix('H')?;
+    let numbered = !digits.is_empty() && !digits.starts_with('0') && digits.bytes().all(|b| b.is_ascii_digit());
+    numbered.then(|| digits.parse().unwrap_or(u32::MAX))
+}
+
 /// Whether `name` is a standard structure type (PDF 1.7 or 2.0 namespace), `H1`, `H7` and
 /// any other `Hn` included.
 pub(crate) fn is_standard(name: &str) -> bool {
-    let heading = name
-        .strip_prefix('H')
-        .is_some_and(|n| !n.is_empty() && !n.starts_with('0') && n.bytes().all(|b| b.is_ascii_digit()));
-    heading || OTHER_STANDARD.contains(&name) || super::TagKind::from_name(name).is_some()
+    heading_level(name).is_some() || OTHER_STANDARD.contains(&name) || super::TagKind::from_name(name).is_some()
 }
 
 /// The role map of `tags`, or `None` when every one is a standard type. A name used with two
@@ -101,6 +106,11 @@ mod tests {
             ],
             [true, true, false, false]
         );
+    }
+
+    #[test]
+    fn a_heading_level_too_large_for_u32_is_u32_max() {
+        assert_eq!(heading_level("H99999999999"), Some(u32::MAX));
     }
 
     #[test]

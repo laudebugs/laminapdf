@@ -1,6 +1,6 @@
 [package]
 name = "lamina-build"
-description = "Generating PDFs: a builder over the COS overlay with pages and boxes, paths, colour (device and ICC), opacity and blend modes, clipping, images (JPEG pass-through, PNG with soft masks, raw RGBA), shaped text and text boxes, links, named destinations, outlines, page labels, Info and XMP metadata (pure, bytes in / bytes out)."
+description = "Generating PDFs: a builder over the COS overlay with pages and boxes, paths, colour (device and ICC), opacity and blend modes, clipping, images (JPEG pass-through, PNG with soft masks, raw RGBA), shaped text and text boxes, links, named destinations, outlines, page labels, Info and XMP metadata, tagged PDF, PDF/UA-1 and PDF/A-2/3 profiles and attached files (pure, bytes in / bytes out)."
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true

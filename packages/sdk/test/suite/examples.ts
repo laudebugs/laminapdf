@@ -10,6 +10,9 @@ import { imagesAndVectors } from "../../examples/images-and-vectors.js";
 import { invoice } from "../../examples/invoice.js";
 import { linksAndOutlines } from "../../examples/links-and-outlines.js";
 import { multilingual } from "../../examples/multilingual.js";
+import { pdfAArchive } from "../../examples/pdf-a-archive.js";
+import { pdfA3InvoiceWithXml } from "../../examples/pdf-a3-invoice-with-xml.js";
+import { pdfUaReport } from "../../examples/pdf-ua-report.js";
 import { REPORT_PAGES, report } from "../../examples/report.js";
 
 /** The fixture files an example reads, by path from the repository root. */
@@ -59,6 +62,25 @@ export const EXAMPLES: readonly Example[] = [
   },
   { name: "links-and-outlines", golden: "links_and_outlines", inputs: [], build: () => linksAndOutlines() },
   { name: "generate-then-edit", golden: "generate_then_edit", inputs: [], build: () => generateThenEdit() },
+  { name: "pdf-ua-report", golden: "pdf_ua_report", inputs: [NOTO], build: (i) => pdfUaReport(input(i, NOTO)) },
+  {
+    name: "pdf-a-archive-2b",
+    golden: "pdf_a_archive-2b",
+    inputs: [NOTO, PHOTO],
+    build: (i) => pdfAArchive("2b", input(i, NOTO), input(i, PHOTO)),
+  },
+  {
+    name: "pdf-a-archive-2u",
+    golden: "pdf_a_archive-2u",
+    inputs: [NOTO, PHOTO],
+    build: (i) => pdfAArchive("2u", input(i, NOTO), input(i, PHOTO)),
+  },
+  {
+    name: "pdf-a3-invoice-with-xml",
+    golden: "pdf_a3_invoice_with_xml",
+    inputs: [NOTO],
+    build: (i) => pdfA3InvoiceWithXml(input(i, NOTO)),
+  },
 ];
 
 /** The fonts of the 100-page report. */

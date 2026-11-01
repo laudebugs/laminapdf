@@ -143,6 +143,21 @@ A PR that adds a code adds:
 | [`page-index-out-of-range`](page-index-out-of-range.md) | `usage` | a link, outline item or destination names a page index the document doesn't have |
 | [`unknown-destination`](unknown-destination.md) | `usage` | a link or outline item names a destination that was never defined |
 | [`invalid-page-labels`](invalid-page-labels.md) | `usage` | page label ranges that don't start at page 0, don't increase, start past the last page or number from 0 |
+| [`profile-version-conflict`](profile-version-conflict.md) | `usage` | the PDF version asked for is one the profile doesn't allow (PDF/UA-1, PDF/A-2 and PDF/A-3 are based on PDF 1.7) |
+| [`missing-title`](missing-title.md) | `usage` | PDF/UA-1 needs a document title, and the metadata gives none |
+| [`missing-lang`](missing-lang.md) | `usage` | PDF/UA-1 needs the document's natural language, and none was set |
+| [`missing-alt-text`](missing-alt-text.md) | `usage` | a Figure or Formula has no alternate text (/Alt or /ActualText), which PDF/UA-1 requires |
+| [`untagged-content`](untagged-content.md) | `usage` | content was drawn outside every structure element and artifact, which PDF/UA-1 forbids |
+| [`heading-level-skipped`](heading-level-skipped.md) | `usage` | a heading skips a level (the first is not H1, or an H3 follows an H1), which PDF/UA-1 forbids |
+| [`unnumbered-heading-misused`](unnumbered-heading-misused.md) | `usage` | an unnumbered H heading shares its parent with another H, or the document also uses H1-H6, which PDF/UA-1 forbids |
+| [`invalid-structure-nesting`](invalid-structure-nesting.md) | `usage` | a table or list element sits in a parent its type doesn't allow (a TD outside a TR, a P directly in a Table) |
+| [`link-without-structure`](link-without-structure.md) | `usage` | a link annotation has no Link structure element (it was drawn inside an artifact), which PDF/UA-1 forbids |
+| [`link-without-contents`](link-without-contents.md) | `usage` | a link annotation has no description (/Contents), which PDF/UA-1 requires |
+| [`font-not-embedded`](font-not-embedded.md) | `usage` | a standard 14 font, which is never embedded, was used under a profile that needs every font embedded |
+| [`glyph-without-unicode`](glyph-without-unicode.md) | `usage` | a glyph was drawn without a Unicode value, which PDF/A-2u and PDF/UA-1 forbid |
+| [`device-color-without-output-intent`](device-color-without-output-intent.md) | `usage` | a DeviceCMYK colour or image was used, but the PDF/A output intent is sRGB |
+| [`embedded-file-forbidden`](embedded-file-forbidden.md) | `usage` | PDF/A-2 doesn't allow attached files that aren't PDF/A themselves |
+| [`embedded-file-without-mime-type`](embedded-file-without-mime-type.md) | `usage` | an attached file has no MIME type, which every PDF/A profile requires |
 
 ## Render errors (`lamina-render`)
 

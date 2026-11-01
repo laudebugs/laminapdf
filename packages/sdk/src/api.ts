@@ -34,7 +34,9 @@ export { PageText, TextRun as PageTextRun } from "./text.js";
 export type { InfoPatch, Rotation } from "./transaction.js";
 export { Transaction } from "./transaction.js";
 export type {
+  AfRelationship,
   Align,
+  AttachmentOptions,
   BoxRect,
   BuildOptions,
   Color,
@@ -54,6 +56,7 @@ export type {
   PageInfo,
   PageLabel,
   Point,
+  Profile,
   Progress,
   Rect,
   RenderMode,
