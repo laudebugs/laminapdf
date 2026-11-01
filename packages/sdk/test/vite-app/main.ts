@@ -2,7 +2,7 @@
 // both modules loaded the way a page would.
 import { Builder, Document, Font, init, loadText } from "@laminapdf/sdk";
 import { hello } from "../../examples/quick-start/browser.js";
-import { HELLO_OPTIONS } from "../suite/examples.js";
+import { HELLO_OPTIONS } from "../suite/hello-options.js";
 
 /** The browser quick start's bytes, built with the hello golden's options. */
 export async function quickStart(): Promise<Uint8Array | undefined> {

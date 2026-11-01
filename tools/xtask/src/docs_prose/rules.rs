@@ -244,13 +244,14 @@ fn lengths(block: &Block, config: &Config) -> Vec<Finding> {
 
 /// An exclamation mark in the writer's own words: one inside double quotes ("Hello, world!") is
 /// quoted text, such as what an example draws, and is allowed.
+/// A `!` counts as quoted only with an open quote before it and a closing one after it, so a
+/// stray `"` (a measurement such as 3") can't hide the rest of the block.
 fn has_unquoted_exclamation(text: &str) -> bool {
-    let mut quoted = false;
-    text.chars().any(|c| {
-        if matches!(c, '"' | '“' | '”') {
-            quoted = c == '“' || (c == '"' && !quoted);
-        }
-        c == '!' && !quoted
+    text.match_indices('!').any(|(index, _)| {
+        let (before, after) = text.split_at(index);
+        let straight_open = before.matches('"').count() % 2 == 1 && after.contains('"');
+        let curly_open = before.rfind('“') > before.rfind('”') && after.contains('”');
+        !(straight_open || curly_open)
     })
 }
 
@@ -653,6 +654,11 @@ mod tests {
             Vec::<&str>::new()
         );
         assert_eq!(rules_for("It works!\n", false), vec!["banned-word"]);
+    }
+
+    #[test]
+    fn a_stray_quote_should_not_hide_a_later_exclamation() {
+        assert_eq!(rules_for("A 3\" margin. It works!\n", false), vec!["banned-word"]);
     }
 
     #[test]

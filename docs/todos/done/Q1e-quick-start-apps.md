@@ -39,11 +39,11 @@ Three of the six runtime pages show CI test runners, and the browser page shows 
 ## Tasks
 
 - [x] Claim via a claim PR (see Definition of done); then a fresh worktree off the updated `main`.
-- [x] Write the four apps, each taking the output path or a byte sink as a parameter so a runner can capture the bytes. Each takes a `save` callback (writing `hello.pdf`, or offering a download, by default) and the build options, which the runners fill with the hello golden's fixed ID, producer and date (`HELLO_OPTIONS` in the suite); `import.meta.main` runs it as a script.
+- [x] Write the four apps, each taking the output path or a byte sink as a parameter so a runner can capture the bytes. Each takes a `save` callback, which by default writes `hello.pdf` or offers a download. Each also takes the build options; the runners fill them with the hello golden's fixed ID, producer and date (`test/suite/hello-options.ts`). `import.meta.main` runs an app as a script.
 - [x] Change the Node, Deno, Bun and Vite runners to import the apps; run `cargo xtask pdf-runtimes`. The browser runner (Chromium, Firefox, WebKit) runs the browser app too; `pdf-runtimes` is left to CI (no local CI).
 - [x] Remove the `test/**` globs from `Snippet.astro`.
 - [x] Rewrite the six runtime pages; run `docs-prose` and `docs-snippets` on them. The Rust and Cloudflare Workers pages already showed examples, so only the other four changed. `docs-prose` now allows an exclamation mark inside double quotes ("Hello, world!").
-- [x] Check that `cargo xtask verify-install` still passes with the new apps. Deviation: verify-install keeps copying `hello.ts`, which is unchanged, into its clean projects; moving it onto the apps would rework its Vite and Worker projects too, so the runners above run the apps instead.
+- [x] Check that `cargo xtask verify-install` still passes with the new apps. Deviation: verify-install keeps copying the unchanged `packages/sdk/examples/hello.ts` into its clean projects; moving it onto the apps would rework its Vite and Worker projects too, so the runners above run the apps instead.
 
 ## Acceptance criteria
 
@@ -57,7 +57,7 @@ None.
 
 ## Tests
 
-The runtime runners (Node, Deno, Bun, Chromium through Vite, workerd) now run the apps; `verify-install` uses them.
+The Node, Deno, Bun and browser runners and the Vite bundle now run the apps; `verify-install` still uses `packages/sdk/examples/hello.ts` (see Tasks).
 
 ## Docs to update
 

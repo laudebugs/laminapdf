@@ -14,6 +14,7 @@ import { pdfAArchive } from "../../examples/pdf-a-archive.js";
 import { pdfA3InvoiceWithXml } from "../../examples/pdf-a3-invoice-with-xml.js";
 import { pdfUaReport } from "../../examples/pdf-ua-report.js";
 import { report } from "../../examples/report.js";
+import { HELLO_OPTIONS } from "./hello-options.js";
 
 /** The fixture files an example reads, by path from the repository root. */
 export type Inputs = Readonly<Record<string, Uint8Array>>;
@@ -168,13 +169,6 @@ export type QuickStartApp = (
   save: (pdf: Uint8Array) => void | Promise<void>,
   options?: BuilderOptions,
 ) => Promise<void>;
-
-/** What a quick start's environment would supply (file ID, producer, date), fixed so its bytes are the golden's. */
-export const HELLO_OPTIONS: BuilderOptions = {
-  id: new TextEncoder().encode("lamina-ex-hello!"),
-  producer: "lamina examples",
-  creationDate: "D:20261030120000Z",
-};
 
 /** Registers `runtime`'s quick-start app, which must hand `save` the hello golden's bytes. */
 export function registerQuickStart(runtime: string, read: Read, register: Register, app: QuickStartApp): void {

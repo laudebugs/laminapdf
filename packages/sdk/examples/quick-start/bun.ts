@@ -1,7 +1,11 @@
 // Builds a one-page PDF that says "Hello, world!" and writes it to hello.pdf, in Bun.
 import { Builder, type BuilderOptions, Font, init } from "@laminapdf/sdk";
 
-/** Builds the page and hands its bytes to `save`, which writes hello.pdf unless you pass your own. */
+/** The space between the page's edge and the text, in points (72 points = 1 inch). */
+const MARGIN = 72;
+const FONT_SIZE = 24;
+
+/** Builds the page and hands its bytes to `save`, which writes hello.pdf unless you pass another `save` function. */
 export async function hello(
   save: (pdf: Uint8Array) => void | Promise<void> = async (pdf) => {
     await Bun.write("hello.pdf", pdf);
@@ -11,8 +15,12 @@ export async function hello(
   await init({ text: true });
   using builder = new Builder(options);
   const page = builder.page("A4");
-  // Points from the page's top-left corner; the second number is the text's baseline.
-  page.surface().text("Hello, world!", { font: Font.standard("Helvetica"), size: 24, at: [72, 96] });
+  // Points from the page's top-left corner, y down; the text sits on a baseline one line below the margin.
+  page.surface().text("Hello, world!", {
+    font: Font.standard("Helvetica"),
+    size: FONT_SIZE,
+    at: [MARGIN, MARGIN + FONT_SIZE],
+  });
   page.finish();
   using doc = builder.finish();
   await save(doc.save());

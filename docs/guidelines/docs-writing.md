@@ -44,7 +44,7 @@ They build on the writing style in [design language §9](../design/paper/design-
   - Call a byte-exact reference output a "reference PDF", never a "golden".
   - Call the standard fonts "the standard 14 fonts".
 - **MUST:** write headings in sentence case.
-- **MUST NOT:** use "simply", "just", "easy", "obviously", "note that", "please", "etc.", "via", "utilize" or exclamation marks.
+- **MUST NOT:** use "simply", "just", "easy", "obviously", "note that", "please", "etc.", "via", "utilize" or exclamation marks (outside quoted text, such as what an example draws).
 
 ## Show code
 

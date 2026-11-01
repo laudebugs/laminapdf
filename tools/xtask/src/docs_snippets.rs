@@ -147,20 +147,20 @@ fn snippet_globs(source: &str) -> Vec<Glob> {
         return Vec::new();
     };
     let list = rest.get(..rest.find(']').unwrap_or(rest.len())).unwrap_or_default();
-    // Every double-quoted string in the list, however the formatter wrapped it.
+    let first_line = source.get(..start).map_or(1, |before| before.matches('\n').count() + 1);
+    // Every double-quoted string in the list, however the formatter wrapped it, outside comments.
     let mut globs = Vec::new();
-    let mut quotes = list.match_indices('"').map(|(index, _)| index);
-    while let (Some(open), Some(close)) = (quotes.next(), quotes.next()) {
-        let Some(pattern) = list.get(open + 1..close) else {
-            break;
-        };
-        let offset = start + open;
-        globs.push(Glob {
-            pattern: pattern.trim_start_matches("../").to_owned(),
-            line: source
-                .get(..offset)
-                .map_or(1, |before| before.matches('\n').count() + 1),
-        });
+    for (offset, line) in list.lines().enumerate() {
+        let code = line.split_once("//").map_or(line, |(code, _)| code);
+        let mut quotes = code.match_indices('"').map(|(index, _)| index);
+        while let (Some(open), Some(close)) = (quotes.next(), quotes.next()) {
+            if let Some(pattern) = code.get(open + 1..close) {
+                globs.push(Glob {
+                    pattern: pattern.trim_start_matches("../").to_owned(),
+                    line: first_line + offset,
+                });
+            }
+        }
     }
     globs
 }
@@ -568,6 +568,13 @@ mod tests {
         let source = "x\nconst F = import.meta.glob(\n  [\"../../a/*.ts\", \"../../b/*.rs\"],\n  {},\n);\n";
         let patterns: Vec<(String, usize)> = snippet_globs(source).into_iter().map(|g| (g.pattern, g.line)).collect();
         assert_eq!(patterns, vec![("a/*.ts".to_owned(), 3), ("b/*.rs".to_owned(), 3)]);
+    }
+
+    #[test]
+    fn quotes_in_glob_comments_should_be_ignored() {
+        let source = "const F = import.meta.glob(\n  [\n    // see \"x\"\n    \"../../a/*.ts\",\n  ],\n);\n";
+        let patterns: Vec<String> = snippet_globs(source).into_iter().map(|glob| glob.pattern).collect();
+        assert_eq!(patterns, vec!["a/*.ts"]);
     }
 
     #[test]
