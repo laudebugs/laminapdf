@@ -41,7 +41,7 @@ Merge whole documents with the hard parts done: outlines appended as subtrees, n
 **Editor facts**
 
 - **Operations shipped** ([06 §3](../../research/pdf/06-feature-inventory.md#3-full-operation-inventory-with-mechanisms) IDs): `C.06` merge multiple documents; `C.07` split by count, ranges, bookmarks
-- **Crates and packages:** `lamina-model` (outline, names, AcroForm, struct-tree merge helpers), `lamina-ops`
+- **Crates and packages:** `laminapdf-model` (outline, names, AcroForm, struct-tree merge helpers), `laminapdf-ops`
 - **`Op` variants:** `MergeDocuments` op (composite; exactly one class per ADR 0006 §1: `PageStructure`, the most restrictive of the changes it makes, since it inserts pages and is forbidden at every DocMDP level; its document-level merges (outline, names, AcroForm, struct tree) are covered by that verdict); split is a pure function producing new documents
 - **`SaveConstraint`:** `Free` → incremental. Signed: page insertion/deletion/reordering is class `PageStructure`. Under a certification signature it is a DocMDP violation at every level (ADR 0007 §2: P1 allows no changes; P2 allows only form filling, page templates and signing; P3 adds annotations) → blocked by default and allowed only by the explicit invalidation override (the warning names the signatures, ADR 0007 §3). With approval signatures only (no certification) it is `AppendOnly`: saved as an incremental update that keeps their `/ByteRange` intact (the signature panel, E10h, reports the later page change); it is a violation only when it changes a field locked by FieldMDP/`/Lock` (e.g. deleting or duplicating a page that carries a locked field's widget). Merging into a certified document is a violation at every DocMDP level; into an approval-only-signed document it is an incremental `AppendOnly` save. Split writes new documents (full write, `Free`)
 - **Web vs desktop:** identical; desktop multi-select in Finder/Explorer merges directly (E2h)
@@ -59,7 +59,7 @@ Merge whole documents with the hard parts done: outlines appended as subtrees, n
 
 ## Acceptance criteria
 
-- [ ] Library parity ([full-editor §5](../../plans/full-editor.md#5-requirements-that-hold-for-every-round) req. 7): every new `Op` is exposed in `lamina` and `@laminapdf/sdk` in this PR, with rustdoc/TSDoc, a runnable example, tsify-generated TS types, and serde samples frozen in `fixtures/ops/v1/` (unknown ops and fields rejected, ADR 0006 §1, §6)
+- [ ] Library parity ([full-editor §5](../../plans/full-editor.md#5-requirements-that-hold-for-every-round) req. 7): every new `Op` is exposed in `laminapdf` and `@laminapdf/sdk` in this PR, with rustdoc/TSDoc, a runnable example, tsify-generated TS types, and serde samples frozen in `fixtures/ops/v1/` (unknown ops and fields rejected, ADR 0006 §1, §6)
 - [ ] Every new op reports exactly one `ModificationClass` and `requires_rewrite` (ADR 0006 §1); a test per op runs `planner.would_violate(&op)` on the signed fixtures (no certification, DocMDP P1, P2, P3, FieldMDP lock) and asserts the verdict ([ADR 0007](../../decisions/0007-save-planner.md) §2), because a misclassified op is a security bug
 - [ ] Round-trip: open → op → save → reopen in lamina, pdf.js and PDFium preserves the change and everything else (page count, outline, annotations, fields, struct tree facts in `expected.json`); `qpdf --check` is clean
 - [ ] Merging two tagged PDF/UA fixtures gives a tagged result whose struct tree validates (veraPDF structure checks, ignoring the PDF/UA claim which is reported as lost unless both conform)
@@ -75,7 +75,7 @@ None.
 
 - Integration tests with tagged, form and OCG fixtures
 - qpdf `--check` and pdf.js open of every output
-- Benchmark in `crates/lamina/benches/merge.rs`
+- Benchmark in `crates/laminapdf/benches/merge.rs`
 
 ## Docs to update
 

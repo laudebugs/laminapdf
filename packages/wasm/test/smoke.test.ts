@@ -31,7 +31,7 @@ function thrown(f: () => unknown): Record<string, unknown> {
 const hex = (s: string): string =>
   [...new TextEncoder().encode(s)].map((b) => b.toString(16).padStart(2, "0")).join("");
 
-// ISO 216 A4 as lamina-model's `Pt::from_mm` computes it (mm * 72 / 25.4).
+// ISO 216 A4 as laminapdf-model's `Pt::from_mm` computes it (mm * 72 / 25.4).
 const A4 = [(210 * 72) / 25.4, (297 * 72) / 25.4] as const;
 
 describe("lamina_base", () => {
@@ -164,7 +164,7 @@ describe("lamina_render_hayro", () => {
 });
 
 describe("errors thrown by both modules", () => {
-  const schema = JSON.parse(readFileSync(fromRoot("crates/lamina/schemas/error.schema.json"), "utf8")) as object;
+  const schema = JSON.parse(readFileSync(fromRoot("crates/laminapdf/schemas/error.schema.json"), "utf8")) as object;
   const validate = new Ajv2020({ allErrors: true, strict: true }).compile(schema);
   const hello = (): Uint8Array => read("fixtures/corpus/hello.pdf");
   const open = (bytes: Uint8Array, maxPixels = 16_777_216): hayro.HayroDocument =>

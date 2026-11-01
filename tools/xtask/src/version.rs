@@ -744,9 +744,9 @@ version = \"0.0.0\" # the lockstep version
 edition = \"2024\"
 
 [workspace.dependencies]
-# A comment that must survive: `lamina-x = { path = \"crates/lamina-x\" }`.
-lamina-cos = { path = \"crates/lamina-cos\", default-features = false }
-lamina = { version = \"0.0.0\", path = \"crates/lamina\" }
+# A comment that must survive: `laminapdf-x = { path = \"crates/laminapdf-x\" }`.
+laminapdf-cos = { path = \"crates/laminapdf-cos\", default-features = false }
+laminapdf = { version = \"0.0.0\", path = \"crates/laminapdf\" }
 serde = { version = \"1.0.229\", features = [\"derive\"] }
 anyhow = \"1.0.104\"
 ";
@@ -760,14 +760,14 @@ version = \"1.0.104\"
 source = \"registry+https://github.com/rust-lang/crates.io-index\"
 
 [[package]]
-name = \"lamina\"
+name = \"laminapdf\"
 version = \"0.0.0\"
 dependencies = [
- \"lamina-cos\",
+ \"laminapdf-cos\",
 ]
 
 [[package]]
-name = \"lamina-cos\"
+name = \"laminapdf-cos\"
 version = \"0.0.0\"
 ";
 
@@ -787,7 +787,7 @@ version = \"0.0.0\"
     fn synced_tree(name: &str, cos_version_line: &str) -> TempTree {
         let version = "0.1.0-alpha.0";
         let version_ts = sync_version_ts(VERSION_TS, version).unwrap();
-        let internal: BTreeSet<String> = ["lamina", "lamina-cos", "xtask"].map(String::from).into();
+        let internal: BTreeSet<String> = ["laminapdf", "laminapdf-cos", "xtask"].map(String::from).into();
         let manifest = sync_manifest(MANIFEST, version).unwrap();
         let lockfile = sync_lockfile(LOCKFILE, &internal, version);
         let changelog = root_changelog(&[("@laminapdf/sdk", PDF_CHANGELOG)]).unwrap();
@@ -798,10 +798,13 @@ version = \"0.0.0\"
                 ("Cargo.lock", &lockfile),
                 ("CHANGELOG.md", &changelog),
                 (
-                    "crates/lamina/Cargo.toml",
-                    &member("lamina", "version.workspace = true"),
+                    "crates/laminapdf/Cargo.toml",
+                    &member("laminapdf", "version.workspace = true"),
                 ),
-                ("crates/lamina-cos/Cargo.toml", &member("lamina-cos", cos_version_line)),
+                (
+                    "crates/laminapdf-cos/Cargo.toml",
+                    &member("laminapdf-cos", cos_version_line),
+                ),
                 ("tools/xtask/Cargo.toml", &member("xtask", "version.workspace = true")),
                 (".changeset/config.json", CONFIG),
                 ("packages/wasm/package.json", &package_json("@laminapdf/wasm", version)),
@@ -834,7 +837,7 @@ version = \"0.0.0\"
     fn sync_manifest_should_keep_comments_and_external_dependencies() {
         let synced = sync_manifest(MANIFEST, "0.1.0-alpha.0").unwrap();
         assert!(
-            synced.contains("# A comment that must survive: `lamina-x = { path = \"crates/lamina-x\" }`.\n")
+            synced.contains("# A comment that must survive: `laminapdf-x = { path = \"crates/laminapdf-x\" }`.\n")
                 && synced.contains("serde = { version = \"1.0.229\", features = [\"derive\"] }\n")
                 && synced.contains("anyhow = \"1.0.104\"\n")
         );
@@ -862,19 +865,19 @@ version = \"0.0.0\"
 
     #[test]
     fn sync_lockfile_should_change_only_internal_path_packages() {
-        let internal: BTreeSet<String> = ["lamina", "lamina-cos", "anyhow"].map(String::from).into();
+        let internal: BTreeSet<String> = ["laminapdf", "laminapdf-cos", "anyhow"].map(String::from).into();
         let synced = sync_lockfile(LOCKFILE, &internal, "0.2.0");
         // anyhow has a `source`: a registry crate, never ours, even when the name matches.
         assert_eq!(
             synced,
             LOCKFILE
                 .replace(
-                    "name = \"lamina\"\nversion = \"0.0.0\"",
-                    "name = \"lamina\"\nversion = \"0.2.0\""
+                    "name = \"laminapdf\"\nversion = \"0.0.0\"",
+                    "name = \"laminapdf\"\nversion = \"0.2.0\""
                 )
                 .replace(
-                    "name = \"lamina-cos\"\nversion = \"0.0.0\"",
-                    "name = \"lamina-cos\"\nversion = \"0.2.0\""
+                    "name = \"laminapdf-cos\"\nversion = \"0.0.0\"",
+                    "name = \"laminapdf-cos\"\nversion = \"0.2.0\""
                 )
         );
     }
@@ -923,7 +926,9 @@ version = \"0.0.0\"
         let plan = plan(&tree.0).unwrap();
         assert_eq!(
             plan.problems,
-            ["crates/lamina-cos/Cargo.toml: set `version.workspace = true` (every crate shares the workspace version)"]
+            [
+                "crates/laminapdf-cos/Cargo.toml: set `version.workspace = true` (every crate shares the workspace version)"
+            ]
         );
     }
 

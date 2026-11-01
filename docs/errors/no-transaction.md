@@ -18,7 +18,7 @@ Call `begin` first, or use `transact`.
 ## Example
 
 ```rust
-// lamina_ops::Document, without begin():
+// laminapdf_ops::Document, without begin():
 ops.commit()?; // no-transaction
 ```
 

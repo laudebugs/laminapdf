@@ -1,5 +1,5 @@
 {
-  "comment": "Lines of fixtures/text/extracted.json where an extractor does not return the text lamina drew, each with the extractor behaviour behind it and a link to the upstream code (todos B4b, B4d). crates/lamina-text/tests/extraction.rs requires every other line to equal the input and every entry here to still match the facts.",
+  "comment": "Lines of fixtures/text/extracted.json where an extractor does not return the text lamina drew, each with the extractor behaviour behind it and a link to the upstream code (todos B4b, B4d). crates/laminapdf-text/tests/extraction.rs requires every other line to equal the input and every entry here to still match the facts.",
   "exceptions": [
     {
       "file": "text-shaped.pdf",

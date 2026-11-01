@@ -1,0 +1,45 @@
+[package]
+name = "laminapdf-wasm"
+description = "wasm-bindgen bindings of the lamina façade: owned handles for documents, builders, pages, fonts and images, JSON records with tsify types, errors as the ADR 0026 object; built twice by `cargo xtask wasm` (base and text modules) into @laminapdf/wasm."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+publish.workspace = true
+
+# Read by `cargo xtask`: an edge crate (wasm-bindgen, js-sys), also linted and built for wasm32.
+[package.metadata.lamina]
+layer = "edge"
+wasm = true
+
+[lib]
+# cdylib: the .wasm `cargo xtask wasm` post-processes; rlib: the native unit tests.
+crate-type = ["cdylib", "rlib"]
+
+[features]
+default = ["build"]
+# The builder without text (vector and image pages, navigation, metadata): part of the base
+# module. Off only to measure the read/edit/save core alone (ADR 0016 §5).
+build = ["laminapdf/build"]
+# The text module (ADR 0016 §4): fonts, shaped text and text boxes (lamina's `text`). Without it,
+# the base module: open, read, edit, save, and build vector and image pages.
+text = ["build", "extract", "laminapdf/text"]
+# Text extraction (`WasmPage.text`, B9c): lamina's extractor without the builder's text.
+extract = ["laminapdf/extract"]
+
+[dependencies]
+laminapdf = { workspace = true }
+laminapdf-ops = { workspace = true, features = ["tsify"] }
+laminapdf-source = { workspace = true }
+js-sys = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+tsify = { workspace = true }
+wasm-bindgen = { workspace = true, features = ["std"] }
+
+[dev-dependencies]
+wasm-bindgen-test = { workspace = true }
+
+[lints]
+workspace = true

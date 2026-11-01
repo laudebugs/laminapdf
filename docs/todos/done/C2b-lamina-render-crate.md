@@ -100,8 +100,8 @@ Crate README; `CLAUDE.md` (layout + commands); `fixtures/README.md` (render gold
 ## Outcome
 
 - **Crates:**
-  - [`crates/lamina-render`](../../../crates/lamina-render/README.md) (core): the trait, `TilePlan`, `RenderLimits`, `RenderError`, and `HayroBackend` behind `hayro`.
-  - [`crates/lamina-render-pdfium`](../../../crates/lamina-render-pdfium/README.md) (edge): `PdfiumBackend`, bound at runtime to `chromium/7881`.
+  - [`crates/lamina-render`](../../../crates/laminapdf-render/README.md) (core): the trait, `TilePlan`, `RenderLimits`, `RenderError`, and `HayroBackend` behind `hayro`.
+  - [`crates/lamina-render-pdfium`](../../../crates/laminapdf-render-pdfium/README.md) (edge): `PdfiumBackend`, bound at runtime to `chromium/7881`.
 - **ADR 0004** is amended to the implemented contract:
   - `render` returns the `TilePlan`, and `limits()`/`plan()` exist;
   - `RenderLimits::max_input_bytes`;

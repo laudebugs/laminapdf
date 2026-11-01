@@ -1,4 +1,4 @@
-// pdf.js's view of lamina-build's tagged goldens (todo B8a): per file and page, the structure
+// pdf.js's view of laminapdf-build's tagged goldens (todo B8a): per file and page, the structure
 // tree `page.getStructTree()` returns, reduced to each element's role, alternate text and
 // language, its children, and the marked content (MCIDs) and annotations it holds. Called by
 // tools/fixtures/structure_facts.py; prints JSON. Tools only, never run by tests.

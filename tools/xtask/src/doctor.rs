@@ -25,7 +25,7 @@ const CARGO_FUZZ_VERSION: &str = "0.13.2";
 pub(crate) const QPDF_VERSION: &str = "12.4.2";
 /// Poppler release behind the committed `pdftotext` facts (`tools/fixtures/text_facts.py`,
 /// todo B4d; tests read the facts, so only regenerating them needs it).
-/// `crates/lamina-text/tests/extraction.rs` checks the facts were written with it.
+/// `crates/laminapdf-text/tests/extraction.rs` checks the facts were written with it.
 pub(crate) const POPPLER_VERSION: &str = "26.10.0";
 /// Binaryen release for `wasm-opt`. Its output is part of the shipped .wasm, so bump it deliberately
 /// and review the wasm-opt feature list (ADR 0002) whenever this or `rust-toolchain.toml` changes.
@@ -35,11 +35,11 @@ pub(crate) const BINARYEN_VERSION: &str = "133";
 const TWIGGY_VERSION: &str = "0.8.0";
 /// HarfBuzz release behind the shaping goldens (`fixtures/shaping/`, written by
 /// `tools/shaping-goldens/goldens.py` with `hb-shape`); `golden --update` skips them on
-/// another version. `crates/lamina-text/tests/shaping_goldens.rs` checks the script's pin.
+/// another version. `crates/laminapdf-text/tests/shaping_goldens.rs` checks the script's pin.
 pub(crate) const HB_SHAPE_VERSION: &str = "14.3.0";
 /// pdfjs-dist release behind the pdf.js facts (`tools/fixtures/pdfjs_text.mjs`,
 /// `tools/corpus-facts/pdfjs-operators.mjs`): an npm package installed in a scratch
-/// directory, so `doctor` can't probe it; `crates/lamina-text/tests/extraction.rs` checks the
+/// directory, so `doctor` can't probe it; `crates/laminapdf-text/tests/extraction.rs` checks the
 /// scripts' pins against this one.
 const PDFJS_DIST_VERSION: &str = "6.4.299";
 /// veraPDF greenfield release for `cargo xtask verapdf` and the nightly `verapdf` job. Run as a
@@ -239,7 +239,7 @@ fn wasm_bindgen_tool(locked: Option<String>) -> Tool {
             None => "not needed until a crate depends on wasm-bindgen".to_owned(),
         },
         pin: locked.map_or(Pin::Any, Pin::Exact),
-        optional_for: Some("cargo xtask wasm (lamina-wasm); must match the wasm-bindgen crate in Cargo.lock"),
+        optional_for: Some("cargo xtask wasm (laminapdf-wasm); must match the wasm-bindgen crate in Cargo.lock"),
     }
 }
 

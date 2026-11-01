@@ -9,7 +9,7 @@ import Snippet from "../../../components/Snippet.astro";
 
 lamina reports problems in two ways:
 
-- **An error** stops the call. In TypeScript it's a `LaminaError`. In Rust it's `lamina::Error`.
+- **An error** stops the call. In TypeScript it's a `LaminaError`. In Rust it's `laminapdf::Error`.
 - **A warning** means the call went ahead, but something in the file was repaired, dropped or approximated: `doc.warnings` in TypeScript, `doc.warnings()` in Rust.
 
 Both have the same fields on every surface: `code`, `kind` (`input`, `limit`, `usage`, `state`, `io`, …), `message`, `hint`, `location`, `data` and `docsUrl`. `toJSON()` gives the same object in TypeScript as `serde` does in Rust.

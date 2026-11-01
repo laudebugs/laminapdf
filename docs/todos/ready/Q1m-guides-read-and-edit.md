@@ -21,7 +21,7 @@ This todo rewrites the "Read and edit" and "Production" guides to the [docs-writ
 ## Context
 
 - [Quality plan §2.1](../../plans/quality.md#21-docs-prose-and-navigation): the overlay passage and the password-order error.
-- `apps/docs/src/content/docs/guides/{open-edit-and-save,encrypted-files,limits,off-the-main-thread,errors-and-warnings}.mdx`; `crates/lamina-syntax/src/crypt/mod.rs` (owner password first for R5/R6).
+- `apps/docs/src/content/docs/guides/{open-edit-and-save,encrypted-files,limits,off-the-main-thread,errors-and-warnings}.mdx`; `crates/laminapdf-syntax/src/crypt/mod.rs` (owner password first for R5/R6).
 
 ## Scope
 

@@ -1,5 +1,5 @@
 {
-  "comment": "Pages where lamina's page_texts and pdf.js or pdftotext disagree after whitespace and bidi controls are removed (crates/lamina/tests/text_differential.rs, todo B9c), each with the reason. Every entry must still disagree.",
+  "comment": "Pages where lamina's page_texts and pdf.js or pdftotext disagree after whitespace and bidi controls are removed (crates/laminapdf/tests/text_differential.rs, todo B9c), each with the reason. Every entry must still disagree.",
   "exceptions": [
     {
       "file": "fixtures/corpus/reportlab.pdf",

@@ -21,16 +21,16 @@ Then use one of these:
 
 The package is ESM only. It has one entry per runtime (the `workerd`, `deno`, `browser`, `node` and `default` export conditions), and each entry loads the `.wasm` its own way. The [quick starts](/quick-start/browser/) show each one.
 
-## Rust: `lamina`
+## Rust: `laminapdf`
 
-Add a path dependency on the `lamina` crate:
+Add a path dependency on the `laminapdf` crate:
 
 ```toml
 [dependencies]
-lamina = { path = "../lamina/crates/lamina" }
+laminapdf = { path = "../lamina/crates/laminapdf" }
 ```
 
-A git dependency (`lamina = { git = "…" }`) works too, once you can read the repository. The default features are `text` (fonts and text, which includes the builder and text extraction) and `saslprep` (passwords for AES-256 files). For reading and editing only, use `default-features = false`.
+A git dependency (`laminapdf = { git = "…" }`) works too, once you can read the repository. The default features are `text` (fonts and text, which includes the builder and text extraction) and `saslprep` (passwords for AES-256 files). For reading and editing only, use `default-features = false`.
 
 ## API docs
 

@@ -1,4 +1,4 @@
-# E2e — `lamina-content` append API
+# E2e — `laminapdf-content` append API
 
 | Field | Value |
 | --- | --- |
@@ -8,7 +8,7 @@
 | Round / milestone | Editor phase 2 (E1–E3) — M5 Organiser |
 | Depends on | [B5c](../done/B5c-lamina-facade-and-examples.md), [B9c](../done/B9c-text-extraction-bindings-and-differential.md), [E2a](./E2a-page-organisation-feature-plan.md) |
 | Blocks | [E2f](./E2f-page-geometry.md), [E4a](./E4a-markup-and-drawing-annotations-feature-plan.md), [E5e](./E5e-flatten-and-summary.md), [E6a](./E6a-adding-content-feature-plan.md), [E6b](./E6b-place-images-and-shapes.md), [E8g](./E8g-form-data-and-flatten.md), [E13c](./E13c-ocr-text-layer.md) |
-| Dependency notes | [E2a](E2a-page-organisation-feature-plan.md), `B9` ([pdf-library §B9](../../plans/pdf-library.md#b9-text-extraction): content reading and text extraction), `B5` ([pdf-library §B5](../../plans/pdf-library.md#b5-builder-and-the-lamina-crate): builder and `lamina` crate) |
+| Dependency notes | [E2a](E2a-page-organisation-feature-plan.md), `B9` ([pdf-library §B9](../../plans/pdf-library.md#b9-text-extraction): content reading and text extraction), `B5` ([pdf-library §B5](../../plans/pdf-library.md#b5-builder-and-the-laminapdf-crate): builder and `laminapdf` crate) |
 | ADRs | Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md); extends the crate created by ADR 0023 (B9) |
 | Branch | `feat/e2e-content-append-api` |
 | PR title | `feat(content): append API that wraps and appends page content streams` |
@@ -17,7 +17,7 @@
 
 ## Goal
 
-Add the minimal write API to `lamina-content` that never interprets existing operators (the only change to existing content is blanking unmatched `Q` tokens): wrap a page's existing content in `q … Q` by adding new streams to its `/Contents` array, append new streams (e.g. `q <cm> /Fm1 Do Q`), register Form XObjects under unused resource names, and balance `q`/`Q` by a token scan. Resize (E2f), flattening (E5e, E8g) and adding content (E6) use it.
+Add the minimal write API to `laminapdf-content` that never interprets existing operators (the only change to existing content is blanking unmatched `Q` tokens): wrap a page's existing content in `q … Q` by adding new streams to its `/Contents` array, append new streams (e.g. `q <cm> /Fm1 Do Q`), register Form XObjects under unused resource names, and balance `q`/`Q` by a token scan. Resize (E2f), flattening (E5e, E8g) and adding content (E6) use it.
 
 ## Context
 
@@ -45,7 +45,7 @@ Add the minimal write API to `lamina-content` that never interprets existing ope
 
 **Editor facts**
 
-- **Crates and packages:** `lamina-content` (writer module), `lamina-build` (Form XObject construction), `lamina-ops`
+- **Crates and packages:** `laminapdf-content` (writer module), `laminapdf-build` (Form XObject construction), `laminapdf-ops`
 - **`Op` variants:** `AppendContent` (class `Content`)
 - **`SaveConstraint`:** `Free` → incremental. Signed: class `Content` is a DocMDP violation at every certification level (ADR 0007 §2: P1 allows no changes; P2 allows only form filling, page templates and signing; P3 adds annotations) → blocked unless the user confirms invalidating the named signatures (ADR 0007 §3 override). With approval signatures only (no certification): `AppendOnly`, an incremental update that keeps their `/ByteRange` intact (the signature panel, E10h, reports the content change); a violation only when it changes a field locked by FieldMDP/`/Lock`
 - **Web vs desktop:** identical (core)
@@ -75,7 +75,7 @@ None.
 
 ## Tests
 
-- Unit tests and golden outputs in `crates/lamina-content/tests/append.rs`
+- Unit tests and golden outputs in `crates/laminapdf-content/tests/append.rs`
 - Render diff tests with PDFium
 - Fuzz target `content_append_scan`
 

@@ -1,5 +1,5 @@
 //! Experiment A: krilla as-is. Generate the three pages with krilla, then hand the bytes to
-//! lamina-cos (open, inspect, incremental update, reopen).
+//! laminapdf-cos (open, inspect, incremental update, reopen).
 
 use anyhow::{Result, anyhow};
 use krilla::Document;

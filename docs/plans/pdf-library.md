@@ -9,7 +9,7 @@
 
 ## 1. Goal
 
-Ship an importable, permissively licensed library that **generates correct PDFs from code** in TypeScript (`@laminapdf/sdk` on npm) and Rust (`lamina` on crates.io). Both are thin façades over the same Rust core. A generated file comes back as a `Document`, so the same object can later be opened, edited and saved with the API the apps use ("generate first, read and edit later", [architecture §2](architecture.md#2-the-architecture-in-one-picture)).
+Ship an importable, permissively licensed library that **generates correct PDFs from code** in TypeScript (`@laminapdf/sdk` on npm) and Rust (`laminapdf` on crates.io). Both are thin façades over the same Rust core. A generated file comes back as a `Document`, so the same object can later be opened, edited and saved with the API the apps use ("generate first, read and edit later", [architecture §2](architecture.md#2-the-architecture-in-one-picture)).
 
 ## 2. Scope and non-goals
 
@@ -41,7 +41,7 @@ Ship an importable, permissively licensed library that **generates correct PDFs 
 | --- | --- | --- |
 | Web developer | Invoice/receipt/ticket generated in the browser, no server | Browser, bundlers (Vite, webpack, esbuild) |
 | Edge/backend developer | Generate a report in a Cloudflare Worker or a Node/Deno/Bun service | workerd (128 MB isolate), Node ≥ 22, Deno, Bun |
-| Rust developer | Native PDF output from a CLI, server or desktop app | `lamina` crate, no C toolchain by default |
+| Rust developer | Native PDF output from a CLI, server or desktop app | `laminapdf` crate, no C toolchain by default |
 | Public sector / regulated orgs | Accessible (PDF/UA) or archival (PDF/A) output by default | Both, with validator-clean output |
 | lamina apps | Images → PDF, blank pages, stamps, headers/footers in the editor | Same builder over an open `Document` |
 
@@ -65,7 +65,7 @@ Ship an importable, permissively licensed library that **generates correct PDFs 
 | --- | --- |
 | `@laminapdf/sdk` WASM, gzipped | Per module ([ADR 0016](../decisions/0016-package-design.md) §6, owner 2026-10-30): base ≤ 380 KB (measured 368 KB; the 350 KB of 2026-10-29 revised after measurement), text ≤ 960 KB (measured 937 KB); extract, render and sign get theirs when they exist (spike core: 74 KB; krilla-fit builder stack: 377 KB) |
 | JS glue + TS API, min+gz | ≤ 20 KB |
-| Rust `lamina` default features | No C dependencies; builds for `wasm32-unknown-unknown`, iOS and Android targets |
+| Rust `laminapdf` default features | No C dependencies; builds for `wasm32-unknown-unknown`, iOS and Android targets |
 | Hello-world generation | ≤ 5 ms after `init()` on a 2023 laptop; a 100-page text report ≤ 500 ms (B5d: 251–422 ms in Node 24 for the B6c report, 658–958 ms before, measured under a load average near 190 on 8 cores; natively 39 ms, 78 ms before; `cargo xtask pdf-runtimes` records it nightly) |
 | Memory in a Worker | 100-page report with two embedded fonts under 64 MB peak |
 | Output validity | qpdf `--check` clean, opens in pdf.js and PDFium, veraPDF-clean under each profile (B8) |
@@ -75,8 +75,8 @@ Ship an importable, permissively licensed library that **generates correct PDFs 
 
 The architecture is in [architecture.md](architecture.md); this section lists only what the library adds.
 
-- **Crates** (Round B): `lamina-model`, `lamina-ops`, `lamina-save`, `lamina-text`, `lamina-build`, `lamina-content` (B9, [ADR 0023](../decisions/0023-content-stream-reading.md)), the `lamina` façade and `lamina-wasm`. Decryption lives in `lamina-syntax` (crypt filters) and is wired into `Document::open` in B2. Packages: `@laminapdf/sdk` (TS API, ESM-only) over `@laminapdf/wasm` (build output). Layout per [code organisation §1](../guidelines/code-organization.md#1-top-level-layout).
-- **Generation strategy** depends on the `krilla-fit` spike ([architecture §4](architecture.md#4-spikes-to-close-open-questions)): either depend on krilla and adapt its output into `lamina-cos`, or build a krilla-like builder directly over `lamina-cos`, reusing `subsetter`, `skrifa` and HarfRust. The [spike result](../../spikes/krilla-fit/README.md) recommends the second (recorded in [ADR 0005 §6](../decisions/0005-document-model.md); accepted when the spike's PR merges).
+- **Crates** (Round B): `laminapdf-model`, `laminapdf-ops`, `laminapdf-save`, `laminapdf-text`, `laminapdf-build`, `laminapdf-content` (B9, [ADR 0023](../decisions/0023-content-stream-reading.md)), the `laminapdf` façade and `laminapdf-wasm`. Decryption lives in `laminapdf-syntax` (crypt filters) and is wired into `Document::open` in B2. Packages: `@laminapdf/sdk` (TS API, ESM-only) over `@laminapdf/wasm` (build output). Layout per [code organisation §1](../guidelines/code-organization.md#1-top-level-layout).
+- **Generation strategy** depends on the `krilla-fit` spike ([architecture §4](architecture.md#4-spikes-to-close-open-questions)): either depend on krilla and adapt its output into `laminapdf-cos`, or build a krilla-like builder directly over `laminapdf-cos`, reusing `subsetter`, `skrifa` and HarfRust. The [spike result](../../spikes/krilla-fit/README.md) recommends the second (recorded in [ADR 0005 §6](../decisions/0005-document-model.md); accepted when the spike's PR merges).
 - **Split WASM modules** (ADR 0016): the base module (COS, model, save, build) and a text module (shaping, subsetting) may be separate so pure-structure users don't pay for HarfRust. Decided by measurement in B6.
 - **TypeScript is synchronous after `init()`**. `init()` takes a URL, `Response`, bytes or a precompiled `WebAssembly.Module` (required on Workers). Export conditions: `browser`, `workerd`, `node`, `deno`, `default`; checked with publint and `attw --pack`.
 - **Lockstep versions** for the core crates, `@laminapdf/wasm`, `@laminapdf/sdk` and the render packages; OIDC trusted publishing (ADR 0017).
@@ -122,7 +122,7 @@ const updated = again.save({ mode: "incremental" });
 Rust:
 
 ```rust
-use lamina::{Builder, BuildOptions, Document, Font, Info, OpenOptions, PageSize, Profile, SaveOptions, Tag};
+use laminapdf::{Builder, BuildOptions, Document, Font, Info, OpenOptions, PageSize, Profile, SaveOptions, Tag};
 
 let inter = Font::from_bytes(inter_bytes)?;
 let mut b = Builder::new(BuildOptions {
@@ -152,7 +152,7 @@ doc.transact(|tx| tx.set_info(Info { subject: Some("Paid".into()), ..Default::de
 | Node 22/24/26 (LTS lines) | `node` condition, `.wasm` via `fs`-free `fetch(file URL)` or bytes | Vitest |
 | Deno, Bun | `deno`/`default` conditions | smoke tests per release |
 | Cloudflare Workers | `workerd` condition, precompiled `WebAssembly.Module` import | `@cloudflare/vitest-pool-workers` |
-| Native Rust | `lamina` crate | nextest on macOS, Windows, Linux; check-only for iOS/Android |
+| Native Rust | `laminapdf` crate | nextest on macOS, Windows, Linux; check-only for iOS/Android |
 
 Node support follows the LTS lines current at each release. On 2026-10-28, Node 22 and 24 are in maintenance LTS and Node 26 enters active LTS; Node 20 reached end of life on 2026-04-30 ([Node.js release schedule](https://github.com/nodejs/release#release-schedule)).
 
@@ -164,7 +164,7 @@ Node support follows the LTS lines current at each release. On 2026-10-28, Node 
 
 ## 7. Rounds
 
-Architecture Round B is delivered as rounds B1–B9, each split into todos (one PR each). B9 was added after review; it is numbered last to keep existing references stable, but it runs after B6 and in parallel with B7–B8, and it must merge before web reader round C5 ([roadmap](roadmap.md#sequence-and-dependencies)). Each PR is mergeable on its own, keeps CI green and follows the [~400-line guidance](../guidelines/git-workflow.md#5-pull-requests) where code allows. ADRs land in the PR that depends on them. Prerequisite: architecture Round A (`lamina-syntax`, `lamina-cos`, workspace, CI fast lane). Each round is split into todos (one PR each) in [`docs/todos/`](../todos/README.md); the links under each round below point to them, and their **Depends on** fields fix the order.
+Architecture Round B is delivered as rounds B1–B9, each split into todos (one PR each). B9 was added after review; it is numbered last to keep existing references stable, but it runs after B6 and in parallel with B7–B8, and it must merge before web reader round C5 ([roadmap](roadmap.md#sequence-and-dependencies)). Each PR is mergeable on its own, keeps CI green and follows the [~400-line guidance](../guidelines/git-workflow.md#5-pull-requests) where code allows. ADRs land in the PR that depends on them. Prerequisite: architecture Round A (`laminapdf-syntax`, `laminapdf-cos`, workspace, CI fast lane). Each round is split into todos (one PR each) in [`docs/todos/`](../todos/README.md); the links under each round below point to them, and their **Depends on** fields fix the order.
 
 ### B1. Decisions and spike
 
@@ -175,37 +175,37 @@ Architecture Round B is delivered as rounds B1–B9, each split into todos (one 
 
 ### B2. Document model
 
-**Todos:** [B2a](../todos/done/B2a-limits-owned-document.md) (`Limits`, warning codes, strict mode, owned `Document`; done in [#13](https://github.com/laudebugs/lamina/pull/13)), [B2b](../todos/done/B2b-standard-security-decryption.md) (decryption; done in [#22](https://github.com/laudebugs/lamina/pull/22)), [B2d](../todos/done/B2d-windowed-reading.md) (windowed reading; done in [#29](https://github.com/laudebugs/lamina/pull/29)), [B2c](../todos/done/B2c-lamina-model-corpus-fuzz.md) (`lamina-model`, IDs, corpus facts, pypdf differential, fuzz targets); B2b and B2c both follow B2a and can run in parallel.
+**Todos:** [B2a](../todos/done/B2a-limits-owned-document.md) (`Limits`, warning codes, strict mode, owned `Document`; done in [#13](https://github.com/laudebugs/lamina/pull/13)), [B2b](../todos/done/B2b-standard-security-decryption.md) (decryption; done in [#22](https://github.com/laudebugs/lamina/pull/22)), [B2d](../todos/done/B2d-windowed-reading.md) (windowed reading; done in [#29](https://github.com/laudebugs/lamina/pull/29)), [B2c](../todos/done/B2c-lamina-model-corpus-fuzz.md) (`laminapdf-model`, IDs, corpus facts, pypdf differential, fuzz targets); B2b and B2c both follow B2a and can run in parallel.
 
-**Deliverable:** `lamina-model` (typed `Page`, `Outline`, `Info`, `NameTree` views over lazy COS; `LaminaId`s); `Document::open(source, OpenOptions)` with `Limits`, strict mode and an optional password; standard security handler decryption in `lamina-syntax` (read only: R2–R4 with RC4 and AES-128 crypt filters, R5/R6 AES-256, `/Identity` and per-stream crypt filters, `/EncryptMetadata`; [04 §7](../research/pdf/04-interactive-security.md#7-encryption-76)); the golden and corpus harness and the first `fuzz/` targets. Writing encrypted files is [full-editor E11](full-editor.md#e11-security-and-sanitisation).
+**Deliverable:** `laminapdf-model` (typed `Page`, `Outline`, `Info`, `NameTree` views over lazy COS; `LaminaId`s); `Document::open(source, OpenOptions)` with `Limits`, strict mode and an optional password; standard security handler decryption in `laminapdf-syntax` (read only: R2–R4 with RC4 and AES-128 crypt filters, R5/R6 AES-256, `/Identity` and per-stream crypt filters, `/EncryptMetadata`; [04 §7](../research/pdf/04-interactive-security.md#7-encryption-76)); the golden and corpus harness and the first `fuzz/` targets. Writing encrypted files is [full-editor E11](full-editor.md#e11-security-and-sanitisation).
 **Accepted when:** every file in `fixtures/corpus` opens or fails with a coded error; encrypted fixtures for every standard revision (R2, R3, R4 RC4, R4 AES-128, R5, R6; user and owner passwords; empty user password) open and match the unencrypted original's page count, outline and strings; a wrong password fails with a coded error; fuzz targets run 10 min in CI without a panic; page count and outline match pypdf's on the corpus.
 
 ### B3. Ops and save
 
-**Todos:** [B3a](../todos/done/B3a-overlay-and-ops.md) (overlay, `lamina-ops`, undo; done in [#31](https://github.com/laudebugs/lamina/pull/31)), [B3b](../todos/done/B3b-lamina-save-writers.md) (`lamina-save` writers, `WriteSink`, rebase; done in [#35](https://github.com/laudebugs/lamina/pull/35)), [B3c](../todos/done/B3c-save-planner-and-roundtrip.md) (`SavePlanner`, `SaveConstraint`, round-trip; done in [#50](https://github.com/laudebugs/lamina/pull/50)).
+**Todos:** [B3a](../todos/done/B3a-overlay-and-ops.md) (overlay, `laminapdf-ops`, undo; done in [#31](https://github.com/laudebugs/lamina/pull/31)), [B3b](../todos/done/B3b-lamina-save-writers.md) (`laminapdf-save` writers, `WriteSink`, rebase; done in [#35](https://github.com/laudebugs/lamina/pull/35)), [B3c](../todos/done/B3c-save-planner-and-roundtrip.md) (`SavePlanner`, `SaveConstraint`, round-trip; done in [#50](https://github.com/laudebugs/lamina/pull/50)).
 
-**Deliverable:** `lamina-ops` (`Op`, `transact`, inverses, undo/redo) and `lamina-save` (`SavePlanner`, `SaveConstraint`, incremental and full writers over `WriteSink`). Proving ops: `SetInfo`, `RotatePage`.
+**Deliverable:** `laminapdf-ops` (`Op`, `transact`, inverses, undo/redo) and `laminapdf-save` (`SavePlanner`, `SaveConstraint`, incremental and full writers over `WriteSink`). Proving ops: `SetInfo`, `RotatePage`.
 **Accepted when:** open → op → save → reopen round-trips in lamina, pdf.js, PDFium and qpdf; signed fixtures report `AppendOnly` and refuse a full rewrite; undo restores byte-identical output.
 
 ### B4. Fonts and text
 
 **Todos:** [B4a](../todos/done/B4a-font-loading-and-subsetting.md) (font loading, subsetting, Type 0 + ToUnicode), [B4b](../todos/done/B4b-shaping-bidi-line-breaking.md) (HarfRust, ICU4X bidi and line breaking), [B4c](../todos/done/B4c-standard-14-and-simple-fonts.md) (standard 14, encodings).
 
-**Deliverable:** `lamina-text`: font loading (skrifa), shaping (HarfRust), bidi and line breaking (ICU4X), subsetting (`subsetter`), ToUnicode/`/W` writers, standard 14 metrics, missing-glyph diagnostics.
+**Deliverable:** `laminapdf-text`: font loading (skrifa), shaping (HarfRust), bidi and line breaking (ICU4X), subsetting (`subsetter`), ToUnicode/`/W` writers, standard 14 metrics, missing-glyph diagnostics.
 **Accepted when:** shaping goldens for Latin, Arabic, Devanagari, Hebrew and CJK match HarfBuzz output; extracted text from generated files (pdf.js, pypdf, pdftotext) equals the input string, including ligatures.
 
-### B5. Builder and the `lamina` crate
+### B5. Builder and the `laminapdf` crate
 
-**Todos:** [B5a](../todos/done/B5a-lamina-build-core.md) (builder, vectors, colour, images), [B5b](../todos/done/B5b-builder-text-and-document-features.md) (text, links, outlines, labels, metadata), [B5c](../todos/done/B5c-lamina-facade-and-examples.md) (`lamina` façade, examples, byte and render goldens), [B5d](../todos/done/B5d-text-report-generation-performance.md) (a 100-page text report within 500 ms: shape plans cached per font, a line holding a whole item reuses its shaping, fewer copies in `pdf_run`; the B6c report went from 658–958 ms to 251–422 ms in Node 24 on a heavily loaded machine, and is benchmarked nightly by `lamina`'s `report` bench).
+**Todos:** [B5a](../todos/done/B5a-lamina-build-core.md) (builder, vectors, colour, images), [B5b](../todos/done/B5b-builder-text-and-document-features.md) (text, links, outlines, labels, metadata), [B5c](../todos/done/B5c-lamina-facade-and-examples.md) (`laminapdf` façade, examples, byte and render goldens), [B5d](../todos/done/B5d-text-report-generation-performance.md) (a 100-page text report within 500 ms: shape plans cached per font, a line holding a whole item reuses its shaping, fewer copies in `pdf_run`; the B6c report went from 658–958 ms to 251–422 ms in Node 24 on a heavily loaded machine, and is benchmarked nightly by `laminapdf`'s `report` bench).
 
-**Deliverable:** `lamina-build` (pages, text, text boxes, images, paths, colour, links, named destinations, outlines, page labels, Info + XMP); `finish()` returns `Document`; the `lamina` façade crate with Rust examples.
+**Deliverable:** `laminapdf-build` (pages, text, text boxes, images, paths, colour, links, named destinations, outlines, page labels, Info + XMP); `finish()` returns `Document`; the `laminapdf` façade crate with Rust examples.
 **Accepted when:** every example produces byte-identical goldens; qpdf `--check` clean; golden renders match in PDFium and hayro within thresholds.
 
 ### B6. WASM and `@laminapdf/sdk`
 
-**Todos:** [B6a](../todos/done/B6a-lamina-wasm-and-adr-0016.md) (`lamina-wasm`, split base/text modules, ADR 0016, size budgets), [B6b](../todos/done/B6b-lamina-pdf-package.md) (`@laminapdf/sdk`), [B6c](../todos/done/B6c-runtime-matrix.md) (runtime matrix).
+**Todos:** [B6a](../todos/done/B6a-lamina-wasm-and-adr-0016.md) (`laminapdf-wasm`, split base/text modules, ADR 0016, size budgets), [B6b](../todos/done/B6b-lamina-pdf-package.md) (`@laminapdf/sdk`), [B6c](../todos/done/B6c-runtime-matrix.md) (runtime matrix).
 
-**Deliverable:** `lamina-wasm` (wasm-bindgen + tsify), `@laminapdf/wasm`, `@laminapdf/sdk` with `init()` and export conditions; ADR 0016; size budget checks; the runtime matrix in CI.
+**Deliverable:** `laminapdf-wasm` (wasm-bindgen + tsify), `@laminapdf/wasm`, `@laminapdf/sdk` with `init()` and export conditions; ADR 0016; size budget checks; the runtime matrix in CI.
 **Accepted when:** the same example suite passes in Chromium, Firefox, WebKit, Node 22/24/26, Deno, Bun and workerd; size budgets enforced (CI fails above budget); publint and attw clean.
 
 ### B7. Docs, examples and first release
@@ -213,7 +213,7 @@ Architecture Round B is delivered as rounds B1–B9, each split into todos (one 
 **Todos:** [B7a](../todos/done/B7a-docs-site.md) (docs site; done), [B7c](../todos/done/B7c-docs-custom-domain.md) (`docs.laminapdf.com`; done), [B7b](../todos/done/B7b-versioning-and-0-1-0-alpha.md) (Changesets, ADR 0017, local `0.1.0-alpha.0`; done); publishing later: [P1](../todos/ready/P1-reserve-names-and-trusted-publishing.md), [P2](../todos/ready/P2-first-registry-prerelease.md).
 
 **Deliverable:** `apps/docs` site; examples; Changesets with Cargo version sync; ADR 0017 (versioning; publishing part deferred); `0.1.0-alpha.0` versioned and tagged, **not published**.
-**Accepted when:** docs deploy on a preview URL per PR; a fresh project outside the repo installs the packed tarballs (`pnpm pack`) and a git/path dependency on the `lamina` crate, and runs the quick start in each runtime.
+**Accepted when:** docs deploy on a preview URL per PR; a fresh project outside the repo installs the packed tarballs (`pnpm pack`) and a git/path dependency on the `laminapdf` crate, and runs the quick start in each runtime.
 
 ### B8. Tagged PDF, PDF/UA and PDF/A
 
@@ -224,9 +224,9 @@ Architecture Round B is delivered as rounds B1–B9, each split into todos (one 
 
 ### B9. Text extraction
 
-**Todos:** [B9a](../todos/done/B9a-lamina-content-and-adr-0023.md) (ADR 0023, `lamina-content`), [B9b](../todos/done/B9b-text-extraction-core.md) (fonts, CMaps and Unicode per glyph in `lamina-text`), [B9d](../todos/done/B9d-text-runs-quads-and-page-text.md) (quads, runs, `ActualText`, MCIDs, the façade's `page.text()`), [B9e](../todos/done/B9e-separators-at-backward-jumps.md) (a separator where the pen jumps back on a line, found by U2b), [B9c](../todos/done/B9c-text-extraction-bindings-and-differential.md) (`page.text()` in WASM/TS, differential and quad tests; must merge before web C5), [B9f](../todos/done/B9f-live-text-differential.md) (the text differential in the nightly lane).
+**Todos:** [B9a](../todos/done/B9a-lamina-content-and-adr-0023.md) (ADR 0023, `laminapdf-content`), [B9b](../todos/done/B9b-text-extraction-core.md) (fonts, CMaps and Unicode per glyph in `laminapdf-text`), [B9d](../todos/done/B9d-text-runs-quads-and-page-text.md) (quads, runs, `ActualText`, MCIDs, the façade's `page.text()`), [B9e](../todos/done/B9e-separators-at-backward-jumps.md) (a separator where the pen jumps back on a line, found by U2b), [B9c](../todos/done/B9c-text-extraction-bindings-and-differential.md) (`page.text()` in WASM/TS, differential and quad tests; must merge before web C5), [B9f](../todos/done/B9f-live-text-differential.md) (the text differential in the nightly lane).
 
-**Deliverable:** ADR 0023 (content-stream reading: adds `lamina-content` to the crate list); `crates/lamina-content` as a **read-only** content-stream interpreter (tokenizer, graphics and text state, `q`/`Q`, `cm`, text operators, Form XObject recursion with depth limits, marked content); text extraction in `lamina-text` on top of it: font dictionaries read (simple and Type 0, `/Widths` and `/W`, embedded font metrics via skrifa), encodings and ToUnicode CMap parsing, glyph quads, `ActualText` and MCIDs; exposed in `lamina`, `lamina-wasm` and `@laminapdf/sdk` (`page.text()`). [Full-editor](full-editor.md#6-design-summary) E2 adds a content append API to this crate and E7 extends it for editing (ADR 0022).
+**Deliverable:** ADR 0023 (content-stream reading: adds `laminapdf-content` to the crate list); `crates/laminapdf-content` as a **read-only** content-stream interpreter (tokenizer, graphics and text state, `q`/`Q`, `cm`, text operators, Form XObject recursion with depth limits, marked content); text extraction in `laminapdf-text` on top of it: font dictionaries read (simple and Type 0, `/Widths` and `/W`, embedded font metrics via skrifa), encodings and ToUnicode CMap parsing, glyph quads, `ActualText` and MCIDs; exposed in `laminapdf`, `laminapdf-wasm` and `@laminapdf/sdk` (`page.text()`). [Full-editor](full-editor.md#6-design-summary) E2 adds a content append API to this crate and E7 extends it for editing (ADR 0022).
 **Accepted when:** extracted text for fixtures in five scripts (Latin, Arabic, Devanagari, Hebrew, CJK) matches expected text and pdf.js/pdftotext output on the corpus; glyph quads lie within tolerance of PDFium's character boxes; encrypted fixtures extract the same text as their originals; extraction fuzz target runs 10 min without a panic.
 
 ### After B9
@@ -237,7 +237,7 @@ Editing operations (merge, split, annotations, forms, signing…) are added to t
 
 | Risk | Mitigation |
 | --- | --- |
-| krilla cannot target our object graph, forcing a parallel builder | Confirmed by the [B1 spike](../../spikes/krilla-fit/README.md): own builder over `lamina-cos`, reusing `pdf-writer`/`subsetter`/`skrifa`/HarfRust and porting krilla's approaches with attribution |
+| krilla cannot target our object graph, forcing a parallel builder | Confirmed by the [B1 spike](../../spikes/krilla-fit/README.md): own builder over `laminapdf-cos`, reusing `pdf-writer`/`subsetter`/`skrifa`/HarfRust and porting krilla's approaches with attribution |
 | WASM size grows past budget (shaping, ICU4X data) | Split text module; ICU4X data slicing; budget gate in CI |
 | Font licensing (fsType, bundled fonts) | Respect fsType; bundle no fonts in the core package; OFL fonts only in examples |
 | PDF/UA and PDF/A rules not testable automatically (Matterhorn has human checks) | Profile errors cover machine-checkable rules; docs state the rest |
@@ -246,7 +246,7 @@ Editing operations (merge, split, annotations, forms, signing…) are added to t
 
 ## 9. Open questions
 
-1. ~~Generation strategy: depend on krilla or build over `lamina-cos`?~~ **Answered by the [`krilla-fit` spike](../../spikes/krilla-fit/README.md)** (recorded in [ADR 0005 §6](../decisions/0005-document-model.md); accepted when the spike's PR merges): krilla cannot write into an existing object graph (it only returns finished bytes). Recommendation: build `lamina-build` over `lamina-cos` and reuse `pdf-writer` (`Content`), `subsetter`, `skrifa` and HarfRust; use krilla as a reference and a test oracle, not as a core dependency.
+1. ~~Generation strategy: depend on krilla or build over `laminapdf-cos`?~~ **Answered by the [`krilla-fit` spike](../../spikes/krilla-fit/README.md)** (recorded in [ADR 0005 §6](../decisions/0005-document-model.md); accepted when the spike's PR merges): krilla cannot write into an existing object graph (it only returns finished bytes). Recommendation: build `laminapdf-build` over `laminapdf-cos` and reuse `pdf-writer` (`Content`), `subsetter`, `skrifa` and HarfRust; use krilla as a reference and a test oracle, not as a core dependency.
 2. Do we ship an optional `@laminapdf/fonts` package (Noto subsets) for zero-config text, or always require font bytes?
 3. Do we offer a JSX/declarative layer on top of the builder, and when?
 4. Is a layout engine (flowing text, tables, pagination) a library goal, and is Typst embedding the route?
@@ -264,17 +264,17 @@ Each round's todos (one per PR, with dependencies) are linked from [§7](#7-roun
 - [x] Write ADR 0006: `Op` enum shape, transactions, undo scope, barrier ops
 - [x] Write ADR 0007: `SavePlanner`, `SaveConstraint`, save ordering
 - [x] Write ADR 0018: goldens, corpus, differential and fuzz tiers
-- [x] Run the `krilla-fit` spike: generate a 3-page document into a `lamina-cos` graph and measure size and time ([result](../../spikes/krilla-fit/README.md))
+- [x] Run the `krilla-fit` spike: generate a 3-page document into a `laminapdf-cos` graph and measure size and time ([result](../../spikes/krilla-fit/README.md))
 - [x] Record the generation-strategy decision in the spike README and link it from ADR 0005
 
 ### B2. Document model
 
-- [x] Create `crates/lamina-model` with `Page`, `Outline`, `Info`, `NameTree` views (B2c; also `NumberTree`, `PageLabels`)
+- [x] Create `crates/laminapdf-model` with `Page`, `Outline`, `Info`, `NameTree` views (B2c; also `NumberTree`, `PageLabels`)
 - [x] Implement `Document::open(source, OpenOptions)` over an owned `ByteSource` ([ADR 0005](../decisions/0005-document-model.md)), with `OpenOptions` holding `Limits`, strict mode and an optional password ([ADR 0003](../decisions/0003-reader-tolerance-and-limits.md)) (B2a; the password is used for decryption since B2b; windowed reading of non-slice sources since B2d)
 - [x] Stable warning codes and strict mode; `fixtures/codes.json` checked against the Rust enums ([ADR 0003](../decisions/0003-reader-tolerance-and-limits.md) §2, §4) (B2a)
 - [x] Move the robustness tests' 30 s wall-clock budget to a nextest timeout ([ADR 0018](../decisions/0018-test-strategy.md)) (B2a)
 - [x] Windowed reading for sources without `as_slice` (64 KiB windows, chunked repair scan, `DataPending` with only the needed windows; [ADR 0005](../decisions/0005-document-model.md) §2) ([B2d](../todos/done/B2d-windowed-reading.md))
-- [x] Standard security handler decryption in `lamina-syntax`: R2–R4 (RC4, AES-128), R5/R6 (AES-256), crypt filters, `/EncryptMetadata` (B2b, [#22](https://github.com/laudebugs/lamina/pull/22))
+- [x] Standard security handler decryption in `laminapdf-syntax`: R2–R4 (RC4, AES-128), R5/R6 (AES-256), crypt filters, `/EncryptMetadata` (B2b, [#22](https://github.com/laudebugs/lamina/pull/22))
 - [x] Encrypted fixtures for every revision (user, owner and empty passwords); wrong-password error code (B2b, [#22](https://github.com/laudebugs/lamina/pull/22))
 - [x] Assign `LaminaId`s to pages and outline items; test stability across reopen (B2c; also across an incremental save, and path IDs for direct pages)
 - [x] Add `fixtures/corpus/expected.json` facts (page count, outline titles) and a corpus test (B2c; written by `tools/corpus-facts`, exceptions in `exceptions.toml`)
@@ -283,15 +283,15 @@ Each round's todos (one per PR, with dependencies) are linked from [§7](#7-roun
 
 ### B3. Ops and save
 
-- [x] Create `crates/lamina-ops`: `Op`, `transact`, inverse ops, undo/redo stack (B3a; inverses are computed at undo time from an undo record derived from the COS journal, plus savepoints, coalescing and the `OpLog` envelope)
-- [x] Create `crates/lamina-save`: `SavePlanner`, incremental and full writers, `WriteSink` (B3b: the crate, both writers over the overlay, `WriteSink`, `/ID` and rebase; B3c: `SavePlanner`, `Document::save`)
+- [x] Create `crates/laminapdf-ops`: `Op`, `transact`, inverse ops, undo/redo stack (B3a; inverses are computed at undo time from an undo record derived from the COS journal, plus savepoints, coalescing and the `OpLog` envelope)
+- [x] Create `crates/laminapdf-save`: `SavePlanner`, incremental and full writers, `WriteSink` (B3b: the crate, both writers over the overlay, `WriteSink`, `/ID` and rebase; B3c: `SavePlanner`, `Document::save`)
 - [x] Implement `SaveConstraint` detection (signatures → `AppendOnly`) (B3c: signature fields, `/Perms` DocMDP and UR3, transforms, FieldMDP locks, DocTimeStamp, a repaired file's objects; rewrite reasons; violations; the ADR 0007 §3 mode table and the explicit override)
 - [x] Implement proving ops `SetInfo` and `RotatePage` with undo tests (B3a: ops, undo and property tests; B3c: byte-identical output after undo)
 - [x] Round-trip test: reopen saved output in lamina, pdf.js, PDFium and qpdf `--check` (B3c: `cargo xtask roundtrip`, full lane)
 
 ### B4. Fonts and text
 
-- [x] Create `crates/lamina-text`: `Font::from_bytes`, TTC index, variable-font instancing ([B4a](../todos/done/B4a-font-loading-and-subsetting.md))
+- [x] Create `crates/laminapdf-text`: `Font::from_bytes`, TTC index, variable-font instancing ([B4a](../todos/done/B4a-font-loading-and-subsetting.md))
 - [x] Integrate HarfRust shaping behind a `Shaper` trait; add per-run OpenType features ([B4b](../todos/done/B4b-shaping-bidi-line-breaking.md))
 - [x] Add ICU4X bidi and line breaking; greedy breaking inside a box ([B4b](../todos/done/B4b-shaping-bidi-line-breaking.md))
 - [x] Integrate `subsetter`; deterministic subset tags; `/W` and chunked ToUnicode ([B4a](../todos/done/B4a-font-loading-and-subsetting.md))
@@ -300,19 +300,19 @@ Each round's todos (one per PR, with dependencies) are linked from [§7](#7-roun
 - [x] Shaping goldens for five scripts ([B4b](../todos/done/B4b-shaping-bidi-line-breaking.md))
 - [x] Extraction tests with pdf.js, pypdf, pdftotext that return the input in every script ([B4b](../todos/done/B4b-shaping-bidi-line-breaking.md): pdf.js and pypdf facts, exact for Latin and CJK; [B4d](../todos/done/B4d-tounicode-per-text-cids.md): one CID per glyph and text and pdftotext facts; Arabic, Devanagari (pypdf) and the mixed line now exact, the remaining lines listed as extractor bugs with upstream links)
 
-### B5. Builder and the `lamina` crate
+### B5. Builder and the `laminapdf` crate
 
-- [x] Create `crates/lamina-build`: `Builder`, `page()`, `surface()`, `finish() -> Document` ([B5a](../todos/done/B5a-lamina-build-core.md))
+- [x] Create `crates/laminapdf-build`: `Builder`, `page()`, `surface()`, `finish() -> Document` ([B5a](../todos/done/B5a-lamina-build-core.md))
 - [x] Surface ops: text, text box ([B5b](../todos/done/B5b-builder-text-and-document-features.md)); image (JPEG, PNG + SMask, raw RGBA), path, clip, opacity, colour spaces done in [B5a](../todos/done/B5a-lamina-build-core.md)
 - [x] Document ops: links, named destinations, outlines, page labels, Info + XMP, viewer preferences ([B5b](../todos/done/B5b-builder-text-and-document-features.md))
-- [x] Create the `lamina` façade crate; `lib.rs` docs open with the invoice example ([B5c](../todos/done/B5c-lamina-facade-and-examples.md))
+- [x] Create the `laminapdf` façade crate; `lib.rs` docs open with the invoice example ([B5c](../todos/done/B5c-lamina-facade-and-examples.md))
 - [x] Add Rust examples (hello, invoice, multilingual, vectors, links-and-outlines, generate-then-edit) ([B5c](../todos/done/B5c-lamina-facade-and-examples.md))
 - [x] Byte-identical goldens and render goldens (PDFium and hayro) for every example ([B5c](../todos/done/B5c-lamina-facade-and-examples.md): 72 dpi goldens per engine, hayro vs PDFium at 150 dpi)
-- [x] A 100-page text report within 500 ms after `init()`, benchmarked nightly ([B5d](../todos/done/B5d-text-report-generation-performance.md): `crates/lamina/benches/report.rs` in `cargo xtask bench`, `packages/sdk/bench/reports.mjs` in Node)
+- [x] A 100-page text report within 500 ms after `init()`, benchmarked nightly ([B5d](../todos/done/B5d-text-report-generation-performance.md): `crates/laminapdf/benches/report.rs` in `cargo xtask bench`, `packages/sdk/bench/reports.mjs` in Node)
 
 ### B6. WASM and `@laminapdf/sdk`
 
-- [x] Create `crates/lamina-wasm` (wasm-bindgen + tsify) and the `cargo xtask wasm` build with `wasm-opt` ([B6a](../todos/done/B6a-lamina-wasm-and-adr-0016.md); `-O1`, which gzips smaller than `-Oz`, ADR 0016 §5)
+- [x] Create `crates/laminapdf-wasm` (wasm-bindgen + tsify) and the `cargo xtask wasm` build with `wasm-opt` ([B6a](../todos/done/B6a-lamina-wasm-and-adr-0016.md); `-O1`, which gzips smaller than `-Oz`, ADR 0016 §5)
 - [x] Create `packages/sdk` with `init()`, `Builder`, `Document`, `Font`, `LaminaError` codes matching Rust ([B6b](../todos/done/B6b-lamina-pdf-package.md))
 - [x] Add export conditions and validate with publint and `attw --pack` ([B6b](../todos/done/B6b-lamina-pdf-package.md))
 - [x] Write ADR 0016 with measured sizes; decide split WASM modules ([B6a](../todos/done/B6a-lamina-wasm-and-adr-0016.md), [ADR 0016](../decisions/0016-package-design.md): base + text)
@@ -340,8 +340,8 @@ Each round's todos (one per PR, with dependencies) are linked from [§7](#7-roun
 
 ### B9. Text extraction
 
-- [x] Write ADR 0023 (content-stream reading; `lamina-content` crate; limits on operators and XObject depth) ([B9a](../todos/done/B9a-lamina-content-and-adr-0023.md))
-- [x] Create `crates/lamina-content`: tokenizer and read-only interpreter with graphics and text state (B9a; Form XObjects, marked content, the `content` fuzz target, operator counts checked against pdf.js)
+- [x] Write ADR 0023 (content-stream reading; `laminapdf-content` crate; limits on operators and XObject depth) ([B9a](../todos/done/B9a-lamina-content-and-adr-0023.md))
+- [x] Create `crates/laminapdf-content`: tokenizer and read-only interpreter with graphics and text state (B9a; Form XObjects, marked content, the `content` fuzz target, operator counts checked against pdf.js)
 - [x] Font dictionary reading: simple and Type 0 fonts, `/Widths`, `/W`, embedded metrics ([B9b](../todos/done/B9b-text-extraction-core.md))
 - [x] Encodings, glyph-name fallbacks and ToUnicode CMap parsing ([B9b](../todos/done/B9b-text-extraction-core.md))
 - [x] Glyph runs with Unicode, quads, direction, `ActualText`, MCIDs; `page.text()` in Rust ([B9d](../todos/done/B9d-text-runs-quads-and-page-text.md))

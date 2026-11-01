@@ -5,7 +5,7 @@
 
 ## What happened
 
-A save was requested for an encrypted document without `SaveOptions::with_remove_encryption(true)` (every mode: `Auto`, `Incremental` and `FullRewrite`). Nothing was written. `lamina_save::SaveError::EncryptedBase` and the writers' `lamina_cos::Error::EncryptedBase` share this code.
+A save was requested for an encrypted document without `SaveOptions::with_remove_encryption(true)` (every mode: `Auto`, `Incremental` and `FullRewrite`). Nothing was written. `laminapdf_save::SaveError::EncryptedBase` and the writers' `laminapdf_cos::Error::EncryptedBase` share this code.
 
 ## Why
 

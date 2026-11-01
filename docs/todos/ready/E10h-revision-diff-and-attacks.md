@@ -30,7 +30,7 @@ Diff every revision after a signature at object level and classify changes (LTV,
 **In scope**
 
 - Revision index (shared with E14b) and object diff
-- Classifier. The "LTV" class (a revision that only adds `/DSS` data and/or a `/DocTimeStamp` signature) is allowed at every DocMDP level, **including P1** (ISO 32000-2 §12.8.2.2.1, 2.0 errata §12.8.5.3; [04 §8.5](../../research/pdf/04-interactive-security.md#85-pades-baseline-levels-etsi-en-319-142-1-current-v121-2024-01)); it must match the planner rule in [E10e](E10e-timestamps-and-tsa-proxy.md), so both use one shared function in `lamina-sign`. A revision that mixes LTV additions with other changes is classified by the other changes
+- Classifier. The "LTV" class (a revision that only adds `/DSS` data and/or a `/DocTimeStamp` signature) is allowed at every DocMDP level, **including P1** (ISO 32000-2 §12.8.2.2.1, 2.0 errata §12.8.5.3; [04 §8.5](../../research/pdf/04-interactive-security.md#85-pades-baseline-levels-etsi-en-319-142-1-current-v121-2024-01)); it must match the planner rule in [E10e](E10e-timestamps-and-tsa-proxy.md), so both use one shared function in `laminapdf-sign`. A revision that mixes LTV additions with other changes is classified by the other changes
 - Render-compare of signed revision vs current as an optional deep check
 - Attack corpus generated from the papers' descriptions (scripts + provenance)
 
@@ -41,7 +41,7 @@ Diff every revision after a signature at object level and classify changes (LTV,
 **Editor facts**
 
 - **Operations shipped** ([06 §3](../../research/pdf/06-feature-inventory.md#3-full-operation-inventory-with-mechanisms) IDs): `F.09` allowed changes after certification; `F.10` signature status and modification warnings
-- **Crates and packages:** `lamina-sign`, `lamina-cos` (revisions)
+- **Crates and packages:** `laminapdf-sign`, `laminapdf-cos` (revisions)
 - **`SaveConstraint`:** read-only
 - **Web vs desktop:** identical
 - **Server features:** none (this PR adds no server feature; all processing stays on the device)

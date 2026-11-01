@@ -42,7 +42,7 @@ The short feature-plan PR that opens round E8 ([full-editor §E8](../../plans/fu
 **Editor facts**
 
 - **Operations shipped** ([06 §3](../../research/pdf/06-feature-inventory.md#3-full-operation-inventory-with-mechanisms) IDs): `E.01` text fields (single/multi-line); `E.02` checkboxes and radio buttons; `E.03` dropdowns and list boxes; `E.04` push buttons; `E.05` date/formatted input; `E.06` required and read-only; `E.07` input validation; `E.08` automatic calculations; `E.09` tab order; `E.10` conditional behaviour; `E.11` import and export form data; `E.12` populate fields programmatically; `E.13` reset form fields; `E.14` flatten forms; `E.16` submit to external endpoints; `E.17` XFA forms (cross-cutting)
-- **Crates and packages:** (planned for the round) `lamina-model` AcroForm, field appearance generation, widgets as DOM overlays
+- **Crates and packages:** (planned for the round) `laminapdf-model` AcroForm, field appearance generation, widgets as DOM overlays
 - **`SaveConstraint`:** (round summary from the plan; the feature plan details it per op) incremental; filling allowed without certification and under DocMDP P2/P3 (not P1), blocked for fields locked by FieldMDP/`/Lock`
 - **Web vs desktop:** identical
 - **Server features:** none (SubmitForm off by default, confirmed per submit)
@@ -51,7 +51,7 @@ The short feature-plan PR that opens round E8 ([full-editor §E8](../../plans/fu
 ## Tasks
 
 - [ ] Create `docs/plans/editor/e8-form-filling.md` (Status: Draft) with: goal; the operations in scope by inventory ID (`E.01`, `E.02`, `E.03`, `E.04`, `E.05`, `E.06`, `E.07`, `E.08`, `E.09`, `E.10`, `E.11`, `E.12`, `E.13`, `E.14`, `E.16`, `E.17`) and the target status of each; for each op its `Op` variant name, payload sketch (by `LaminaId`, no ambient inputs), `ModificationClass` and `requires_rewrite`
-- [ ] Describe model and crate changes (new typed views, new modules, public API in `lamina` and `@laminapdf/sdk`), and the UI tools/panels in `@laminapdf/ui`
+- [ ] Describe model and crate changes (new typed views, new modules, public API in `laminapdf` and `@laminapdf/sdk`), and the UI tools/panels in `@laminapdf/ui`
 - [ ] Write the `SaveConstraint` table for the round: behaviour on `Free`, `AppendOnly` (DocMDP P1/P2/P3, FieldMDP), `RequiresRewrite` and `Conflict`, and the UI warnings
 - [ ] List web vs desktop differences through `Platform` capability flags, and any server feature (off by default, opt-in, what leaves the device)
 - [ ] List fixtures to add (with provenance and licence in `fixtures/README.md`), and the test plan per op: unit, golden, round-trip (lamina, pdf.js, PDFium, qpdf), differential, fuzz, Playwright and WebdriverIO e2e

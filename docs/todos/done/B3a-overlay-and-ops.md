@@ -24,7 +24,7 @@ Make the document editable through one audited path: an overlay in `lamina-cos` 
 - [ADR 0006](../../decisions/0006-op-log-and-undo.md): §1 `Op` (adjacently tagged `op`/`args`, `deny_unknown_fields`, no ambient inputs, `ModificationClass`, `requires_rewrite`), §2 `transact`, `NestedTransaction`, `savepoint`, `Origin`, §3 `CosMut` + `CosChange` + `Applied` (undo record, touched pages), §4 undo at undo time with `UndoOutcome::{Applied, Partial, Skipped}`, depth 500, coalescing, §6 envelope `{ "v": 1, "ops": [...] }` and `fixtures/ops/v1/`, §7 two dirty levels.
 - [Editing notes §2](../../research/architecture/notes/editing-architecture.md#2-command-pattern--operation-log-undoredo-transactions-dirty-tracking).
 - [Research 04 §5.1 Info](../../research/pdf/04-interactive-security.md#51-the-info-dictionary-1433); ISO 32000-2 §14.3.3 (Info), §7.7.3.3 (`/Rotate`, multiple of 90, inheritable).
-- Code: `lamina-model` from [B2c](../done/B2c-lamina-model-corpus-fuzz.md) (`PageId`, `Page::rotate`), [`lamina-syntax/src/object.rs`](../../../crates/lamina-syntax/src/object.rs) (`Dict` keeps key order).
+- Code: `lamina-model` from [B2c](../done/B2c-lamina-model-corpus-fuzz.md) (`PageId`, `Page::rotate`), [`lamina-syntax/src/object.rs`](../../../crates/laminapdf-syntax/src/object.rs) (`Dict` keeps key order).
 
 ## Scope
 

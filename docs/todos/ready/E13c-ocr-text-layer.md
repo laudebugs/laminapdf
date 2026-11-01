@@ -40,7 +40,7 @@ Turn OCR output (hOCR or ALTO: words, boxes, baselines, confidence) into an invi
 **Editor facts**
 
 - **Operations shipped** ([06 §3](../../research/pdf/06-feature-inventory.md#3-full-operation-inventory-with-mechanisms) IDs): `A.11` convert outlined or scanned text via OCR; `H.13` scanned → searchable PDF
-- **Crates and packages:** `lamina-build`, `lamina-text`, `lamina-content`
+- **Crates and packages:** `laminapdf-build`, `laminapdf-text`, `laminapdf-content`
 - **`Op` variants:** `AddOcrLayer` (class `Content`)
 - **`SaveConstraint`:** `Free` → incremental; signed: the invisible text layer is a `Content` change, a DocMDP violation at every certification level (gated, override names the signatures); with approval signatures only `AppendOnly`
 - **Web vs desktop:** identical (engines differ, E13d)
@@ -55,7 +55,7 @@ Turn OCR output (hOCR or ALTO: words, boxes, baselines, confidence) into an invi
 
 ## Acceptance criteria
 
-- [ ] Library parity ([full-editor §5](../../plans/full-editor.md#5-requirements-that-hold-for-every-round) req. 7): every new `Op` is exposed in `lamina` and `@laminapdf/sdk` in this PR, with rustdoc/TSDoc, a runnable example, tsify-generated TS types, and serde samples frozen in `fixtures/ops/v1/` (unknown ops and fields rejected, ADR 0006 §1, §6)
+- [ ] Library parity ([full-editor §5](../../plans/full-editor.md#5-requirements-that-hold-for-every-round) req. 7): every new `Op` is exposed in `laminapdf` and `@laminapdf/sdk` in this PR, with rustdoc/TSDoc, a runnable example, tsify-generated TS types, and serde samples frozen in `fixtures/ops/v1/` (unknown ops and fields rejected, ADR 0006 §1, §6)
 - [ ] Every new op reports exactly one `ModificationClass` and `requires_rewrite` (ADR 0006 §1); a test per op runs `planner.would_violate(&op)` on the signed fixtures (no certification, DocMDP P1, P2, P3, FieldMDP lock) and asserts the verdict ([ADR 0007](../../decisions/0007-save-planner.md) §2), because a misclassified op is a security bug
 - [ ] Selecting text over a scan selects the OCR words at the right positions in pdf.js and PDFium
 - [ ] pdftotext extracts the OCR text

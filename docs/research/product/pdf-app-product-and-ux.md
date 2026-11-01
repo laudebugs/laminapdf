@@ -330,7 +330,7 @@ All entries below are **[Opinion]**.
 | R5 | Column-aware selection with "Copy as paragraph" by default and "Copy exact" as the alternative, built on lamina's extraction plus a ground-truth reading-order corpus | B9b, B9c, C5a |
 | R6 | `RenderBackend` takes a tile (page, scale, clip) and returns a bounded bitmap; low-res first, then sharp tiles, with cancellation; total bitmap memory capped, 5 MP on mobile | C2a (ADR 0004), C2b, C3b, C3c |
 | R7 | PDFium is read-only; pick a growable-heap WASM build; one instance per worker; check upstream licence notices | C1b, C2a |
-| R8 | Page appearance modes (Original, Sepia, Dark recoloured in the renderer, High contrast), separate from UI theme tokens; annotation colours never change | C7a, `lamina-render` |
+| R8 | Page appearance modes (Original, Sepia, Dark recoloured in the renderer, High contrast), separate from UI theme tokens; annotation colours never change | C7a, `laminapdf-render` |
 | R9 | Verifiable privacy: CSP `connect-src` limited to self, an in-app network indicator, offline PWA, no document-content analytics | C4c, C7b, ADR 0011 |
 | R10 | Explicit save only; incremental by default; the save-constraint banner explains what saving will do to signatures | E1d, E1e, ADR 0007 |
 | R11 | Annotations and form values written into the file with appearance streams; Zotero/Readwise-friendly highlight export | E4, E5d, E8d |

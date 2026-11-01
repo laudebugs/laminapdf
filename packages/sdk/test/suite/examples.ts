@@ -89,7 +89,7 @@ export const REPORT_INPUTS = [NOTO, "fixtures/fonts/NotoSansSC-Regular.otf"] as 
 
 /**
  * The SHA-256 (hex) of the 100-page report's bytes: it has no Rust golden, so every runtime
- * checks its output against this. When a change to lamina-build or lamina-text changes the
+ * checks its output against this. When a change to laminapdf-build or laminapdf-text changes the
  * output on purpose (the Rust goldens change too: `cargo xtask golden --update`), print the new
  * hash with `pnpm --dir packages/sdk exec vitest run -c vitest.node.config.ts --project measure`
  * (the failure shows it) and update it here.

@@ -4,7 +4,7 @@
 | --- | --- |
 | ID | `B5a` |
 | Status | `done` |
-| Plan | [pdf-library §7 B5](../../plans/pdf-library.md#b5-builder-and-the-lamina-crate), requirements [§4 F1, F4, F5](../../plans/pdf-library.md#functional) |
+| Plan | [pdf-library §7 B5](../../plans/pdf-library.md#b5-builder-and-the-laminapdf-crate), requirements [§4 F1, F4, F5](../../plans/pdf-library.md#functional) |
 | Round / milestone | Round B (library) — M1 |
 | Depends on | [B1b](./B1b-krilla-fit-spike.md), [B3c](./B3c-save-planner-and-roundtrip.md), [L1a](./L1a-contract-adrs.md) |
 | Blocks | [B5b](./B5b-builder-text-and-document-features.md) |
@@ -23,7 +23,7 @@ Create the generation API everything else hangs off: `Builder → page → surfa
 - [ADR 0005 §6](../../decisions/0005-document-model.md#6-generation-strategy--option-b-recommended-by-the-krilla-fit-spike-accepted-when-its-pr-merges): how the builder fits the overlay; [krilla-fit experiment C](../../../spikes/krilla-fit/src/exp_c.rs) (PNG + SMask, JPEG pass-through).
 - [pdf-library §5 API sketch](../../plans/pdf-library.md#api-sketch-illustrative-not-final): shapes to aim for (names fixed in ADR 0016).
 - [Research 02 imaging model](../../research/pdf/02-imaging-model.md): paths, colour spaces, ExtGState, images, SMask; [05 §5.1](../../research/pdf/05-creating-pdfs-from-code.md#51-writer-architecture-streaming-versus-in-memory-object-graph).
-- Code (moved here by this todo): [`crates/lamina-build/tests/common/content.rs`](../../../crates/lamina-build/tests/common/content.rs), [`legacy.rs`](../../../crates/lamina-build/tests/common/legacy.rs) (was `crates/lamina-save/tests/common/samples.rs`), goldens [`fixtures/golden/hello.pdf`](../../../fixtures/golden/hello.pdf), [`imaging-demo.pdf`](../../../fixtures/golden/imaging-demo.pdf).
+- Code (moved here by this todo): [`crates/lamina-build/tests/common/content.rs`](../../../crates/laminapdf-build/tests/common/content.rs), [`legacy.rs`](../../../crates/laminapdf-build/tests/common/legacy.rs) (was `crates/lamina-save/tests/common/samples.rs`), goldens [`fixtures/golden/hello.pdf`](../../../fixtures/golden/hello.pdf), [`imaging-demo.pdf`](../../../fixtures/golden/imaging-demo.pdf).
 
 ## Scope
 

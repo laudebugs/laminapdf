@@ -16,11 +16,11 @@
 
 ## Goal
 
-Did-you-mean suggestions are written in both Rust (`lamina-wasm`) and TypeScript (`@laminapdf/sdk`), and they break ties differently: Rust sorts by distance and then name, TypeScript keeps input order. The same typo gets different suggestions depending on which layer raised the error. This todo picks one rule and pins it with a shared fixture.
+Did-you-mean suggestions are written in both Rust (`laminapdf-wasm`) and TypeScript (`@laminapdf/sdk`), and they break ties differently: Rust sorts by distance and then name, TypeScript keeps input order. The same typo gets different suggestions depending on which layer raised the error. This todo picks one rule and pins it with a shared fixture.
 
 ## Context
 
-- [Quality plan §2.3](../../plans/quality.md#23-code-quality-and-reuse); the [maintainability guideline](../../guidelines/maintainability.md) ("One home per concept"); `lamina-wasm/src/error.rs:128-158`, `packages/sdk/src/errors.ts:150-169`.
+- [Quality plan §2.3](../../plans/quality.md#23-code-quality-and-reuse); the [maintainability guideline](../../guidelines/maintainability.md) ("One home per concept"); `laminapdf-wasm/src/error.rs:128-158`, `packages/sdk/src/errors.ts:150-169`.
 
 ## Scope
 

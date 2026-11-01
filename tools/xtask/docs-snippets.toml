@@ -6,36 +6,36 @@
 
 [[pair]]
 ts = "packages/sdk/examples/hello.ts"
-rust = "crates/lamina/examples/hello.rs"
+rust = "crates/laminapdf/examples/hello.rs"
 
 [[pair]]
 ts = "packages/sdk/examples/invoice.ts"
-rust = "crates/lamina/examples/invoice.rs"
+rust = "crates/laminapdf/examples/invoice.rs"
 
 [[pair]]
 ts = "packages/sdk/examples/multilingual.ts"
-rust = "crates/lamina/examples/multilingual.rs"
+rust = "crates/laminapdf/examples/multilingual.rs"
 
 [[pair]]
 ts = "packages/sdk/examples/images-and-vectors.ts"
-rust = "crates/lamina/examples/vectors.rs"
+rust = "crates/laminapdf/examples/vectors.rs"
 
 [[pair]]
 ts = "packages/sdk/examples/links-and-outlines.ts"
-rust = "crates/lamina/examples/links_and_outlines.rs"
+rust = "crates/laminapdf/examples/links_and_outlines.rs"
 
 [[pair]]
 ts = "packages/sdk/examples/generate-then-edit.ts"
-rust = "crates/lamina/examples/generate_then_edit.rs"
+rust = "crates/laminapdf/examples/generate_then_edit.rs"
 
 [[pair]]
 ts = "packages/sdk/examples/pdf-ua-report.ts"
-rust = "crates/lamina/examples/pdf_ua_report.rs"
+rust = "crates/laminapdf/examples/pdf_ua_report.rs"
 
 [[pair]]
 ts = "packages/sdk/examples/pdf-a-archive.ts"
-rust = "crates/lamina/examples/pdf_a_archive.rs"
+rust = "crates/laminapdf/examples/pdf_a_archive.rs"
 
 [[pair]]
 ts = "packages/sdk/examples/pdf-a3-invoice-with-xml.ts"
-rust = "crates/lamina/examples/pdf_a3_invoice_with_xml.rs"
+rust = "crates/laminapdf/examples/pdf_a3_invoice_with_xml.rs"

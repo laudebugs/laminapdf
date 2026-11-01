@@ -16,17 +16,17 @@
 
 ## Goal
 
-Fill rules, line caps and joins, blend modes, artifact kinds and table scopes are kept by hand in both `lamina-wasm/src/build_dto.rs` and `packages/sdk/src/builder.ts`. Some are matched by index with no check, so reordering one silently mis-tags documents, and they cross in two encodings (strings and `u8`). The render error codes and `HAYRO_VERSION` are also hand-copied into TypeScript. This todo defines each list once in Rust and generates the TypeScript side.
+Fill rules, line caps and joins, blend modes, artifact kinds and table scopes are kept by hand in both `laminapdf-wasm/src/build_dto.rs` and `packages/sdk/src/builder.ts`. Some are matched by index with no check, so reordering one silently mis-tags documents, and they cross in two encodings (strings and `u8`). The render error codes and `HAYRO_VERSION` are also hand-copied into TypeScript. This todo defines each list once in Rust and generates the TypeScript side.
 
 ## Context
 
-- The [maintainability guideline](../../guidelines/maintainability.md) ("One home per concept"); `lamina-wasm/src/build_dto.rs:185-257`, `packages/sdk/src/builder.ts:68-135`, `lamina-build/src/tag/mod.rs:80` (`TagKind::ALL`), `lamina-build/tests/tagging.rs:875` (scrapes TypeScript source today), `packages/render/src/index.ts:153-178`, `packages/render-hayro/src/index.ts:31`; `cargo xtask gen codes` (the generator to extend).
+- The [maintainability guideline](../../guidelines/maintainability.md) ("One home per concept"); `laminapdf-wasm/src/build_dto.rs:185-257`, `packages/sdk/src/builder.ts:68-135`, `laminapdf-build/src/tag/mod.rs:80` (`TagKind::ALL`), `laminapdf-build/tests/tagging.rs:875` (scrapes TypeScript source today), `packages/render/src/index.ts:153-178`, `packages/render-hayro/src/index.ts:31`; `cargo xtask gen codes` (the generator to extend).
 
 ## Scope
 
 **In scope**
 
-- `cargo xtask gen` writes `packages/sdk/src/generated/builder-enums.ts` and `packages/render/src/generated/codes.ts` (the render codes, their kinds and the `docsUrl` base `RenderError.toDiagnostic()` uses, all hand-copied in `packages/render/src/index.ts` today); strings on the wire; `HAYRO_VERSION` exported from lamina-render-wasm or checked against `Cargo.toml`; `--check` in `check docs`.
+- `cargo xtask gen` writes `packages/sdk/src/generated/builder-enums.ts` and `packages/render/src/generated/codes.ts` (the render codes, their kinds and the `docsUrl` base `RenderError.toDiagnostic()` uses, all hand-copied in `packages/render/src/index.ts` today); strings on the wire; `HAYRO_VERSION` exported from laminapdf-render-wasm or checked against `Cargo.toml`; `--check` in `check docs`.
 
 **Out of scope** (and which todo covers it)
 
@@ -37,7 +37,7 @@ Fill rules, line caps and joins, blend modes, artifact kinds and table scopes ar
 - [ ] Claim via a claim PR (see Definition of done); then a fresh worktree off the updated `main`.
 - [ ] Add `ALL` constants where a Rust enum lacks one.
 - [ ] Extend the generator; generate both files; commit them with the `@generated` header.
-- [ ] Switch the index-encoded values to strings on both sides; update `@laminapdf/sdk` and lamina-wasm together.
+- [ ] Switch the index-encoded values to strings on both sides; update `@laminapdf/sdk` and laminapdf-wasm together.
 - [ ] Delete the hand lists and the source-scraping test; add `--check` to `check docs`.
 
 ## Acceptance criteria

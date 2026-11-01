@@ -25,7 +25,7 @@ Turn the overlay into bytes, safely and deterministically, and keep the document
 - [ADR 0007 §7](../../decisions/0007-save-planner.md#7-moving-the-writer): which tests move.
 - [ADR 0005 §3](../../decisions/0005-document-model.md#3-base-overlay-and-the-save-cycle): rebase steps (1)–(5), `SavedNotRebased`.
 - [Research ch. 07 §4](../../research/pdf/07-spike-rust-and-typescript.md#4-what-we-learned) (xref-stream trailer keys), [01 §14](../../research/pdf/01-file-structure.md#14-implementation-guidance-for-lamina-summary).
-- Code (paths after the move): [`crates/lamina-save/src/legacy.rs`](../../../crates/lamina-save/src/legacy.rs), tests [`golden.rs`](../../../crates/lamina-save/tests/golden.rs), [`determinism.rs`](../../../crates/lamina-save/tests/determinism.rs), [`incremental.rs`](../../../crates/lamina-save/tests/incremental.rs), [`raw_writer.rs`](../../../crates/lamina-save/tests/raw_writer.rs), [`roundtrip.rs`](../../../crates/lamina-save/tests/roundtrip.rs).
+- Code (paths after the move): [`crates/lamina-save/src/legacy.rs`](../../../crates/laminapdf-save/src/legacy.rs), tests [`golden.rs`](../../../crates/laminapdf-save/tests/golden.rs), [`determinism.rs`](../../../crates/laminapdf-save/tests/determinism.rs), [`incremental.rs`](../../../crates/laminapdf-save/tests/incremental.rs), [`raw_writer.rs`](../../../crates/laminapdf-save/tests/raw_writer.rs), [`roundtrip.rs`](../../../crates/laminapdf-save/tests/roundtrip.rs).
 
 ## Scope
 

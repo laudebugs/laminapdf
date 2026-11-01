@@ -2,7 +2,7 @@
 //! render diff over the external corpus.
 //!
 //! Every page (at most `--pages` per file; `--sample` files, stratified per source) is rendered
-//! by `lamina-render`'s hayro and PDFium adapters at 96 DPI and compared with the hayro-parity
+//! by `laminapdf-render`'s hayro and PDFium adapters at 96 DPI and compared with the hayro-parity
 //! spike's metric (`tools/render`'s `render-diff`, which reuses `render-golden`'s parity
 //! comparison; classes `pass`, `minor`, `fail`, `hayro-error`, `pdfium-error`, `both-error`,
 //! `timeout`). The readers run through [`runner`] in `--jobs` parallel lanes, so a crash or a

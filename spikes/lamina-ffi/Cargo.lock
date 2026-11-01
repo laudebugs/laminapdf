@@ -546,30 +546,30 @@ dependencies = [
 ]
 
 [[package]]
-name = "lamina"
+name = "laminapdf"
 version = "0.2.0-alpha.0"
 dependencies = [
- "lamina-build",
- "lamina-cos",
- "lamina-model",
- "lamina-ops",
- "lamina-save",
- "lamina-syntax",
- "lamina-text",
+ "laminapdf-build",
+ "laminapdf-cos",
+ "laminapdf-model",
+ "laminapdf-ops",
+ "laminapdf-save",
+ "laminapdf-syntax",
+ "laminapdf-text",
  "serde",
  "serde_json",
  "thiserror",
 ]
 
 [[package]]
-name = "lamina-build"
+name = "laminapdf-build"
 version = "0.2.0-alpha.0"
 dependencies = [
- "lamina-cos",
- "lamina-model",
- "lamina-ops",
- "lamina-syntax",
- "lamina-text",
+ "laminapdf-cos",
+ "laminapdf-model",
+ "laminapdf-ops",
+ "laminapdf-syntax",
+ "laminapdf-text",
  "miniz_oxide",
  "pdf-writer",
  "sha2",
@@ -577,19 +577,19 @@ dependencies = [
 ]
 
 [[package]]
-name = "lamina-content"
+name = "laminapdf-content"
 version = "0.2.0-alpha.0"
 dependencies = [
- "lamina-cos",
- "lamina-model",
- "lamina-syntax",
+ "laminapdf-cos",
+ "laminapdf-model",
+ "laminapdf-syntax",
 ]
 
 [[package]]
-name = "lamina-cos"
+name = "laminapdf-cos"
 version = "0.2.0-alpha.0"
 dependencies = [
- "lamina-syntax",
+ "laminapdf-syntax",
  "thiserror",
 ]
 
@@ -597,7 +597,7 @@ dependencies = [
 name = "lamina-ffi"
 version = "0.0.0"
 dependencies = [
- "lamina",
+ "laminapdf",
  "serde_json",
  "sha2",
  "thiserror",
@@ -605,40 +605,40 @@ dependencies = [
 ]
 
 [[package]]
-name = "lamina-model"
+name = "laminapdf-model"
 version = "0.2.0-alpha.0"
 dependencies = [
- "lamina-cos",
- "lamina-syntax",
+ "laminapdf-cos",
+ "laminapdf-syntax",
  "thiserror",
 ]
 
 [[package]]
-name = "lamina-ops"
+name = "laminapdf-ops"
 version = "0.2.0-alpha.0"
 dependencies = [
- "lamina-cos",
- "lamina-model",
- "lamina-syntax",
+ "laminapdf-cos",
+ "laminapdf-model",
+ "laminapdf-syntax",
  "serde",
  "serde_json",
  "thiserror",
 ]
 
 [[package]]
-name = "lamina-save"
+name = "laminapdf-save"
 version = "0.2.0-alpha.0"
 dependencies = [
- "lamina-cos",
- "lamina-model",
- "lamina-ops",
- "lamina-syntax",
+ "laminapdf-cos",
+ "laminapdf-model",
+ "laminapdf-ops",
+ "laminapdf-syntax",
  "sha2",
  "thiserror",
 ]
 
 [[package]]
-name = "lamina-syntax"
+name = "laminapdf-syntax"
 version = "0.2.0-alpha.0"
 dependencies = [
  "aes",
@@ -651,16 +651,16 @@ dependencies = [
 ]
 
 [[package]]
-name = "lamina-text"
+name = "laminapdf-text"
 version = "0.2.0-alpha.0"
 dependencies = [
  "harfrust",
  "icu_properties",
  "icu_segmenter",
- "lamina-content",
- "lamina-cos",
- "lamina-model",
- "lamina-syntax",
+ "laminapdf-content",
+ "laminapdf-cos",
+ "laminapdf-model",
+ "laminapdf-syntax",
  "sha2",
  "skrifa",
  "subsetter",

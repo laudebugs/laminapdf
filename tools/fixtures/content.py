@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Writes fixtures/content/operators.pdf (no dependencies): one page whose content uses every
-kind of content-stream construct lamina-content interprets (B9a, ADR 0023), so its operator
+kind of content-stream construct laminapdf-content interprets (B9a, ADR 0023), so its operator
 counts can be compared with pdf.js's (tools/corpus-facts/pdfjs-operators.mjs).
 
 The page draws: graphics state operators (w J j M d ri i gs, q Q cm), paths with every

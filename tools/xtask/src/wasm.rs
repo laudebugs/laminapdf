@@ -1,7 +1,7 @@
 //! `cargo xtask wasm` and `cargo xtask size` (ADR 0002 §2, ADR 0016): the two WASM modules of
 //! `@laminapdf/wasm`, their tests in a wasm runtime, and the size budgets CI enforces.
 //!
-//! `wasm` builds `lamina-wasm` twice (base: no features; text: `--features text`) with the
+//! `wasm` builds `laminapdf-wasm` twice (base: no features; text: `--features text`) with the
 //! `wasm-release` profile, runs `wasm-bindgen --target web` (the CLI pinned to the crate in
 //! Cargo.lock), optimises with `wasm-opt` (binaryen pinned below, rustc's feature set passed
 //! explicitly) keeping a named copy in `target/wasm/` for size reports, strips it into
@@ -72,7 +72,7 @@ const TARGET: &str = "wasm32-unknown-unknown";
 pub(crate) struct Module {
     /// `base`, `text`, `extract` or `render_hayro`: the files are `lamina_<name>.{js,d.ts,wasm}`.
     pub(crate) name: &'static str,
-    /// The crate built (`lamina-wasm` for lamina's three modules).
+    /// The crate built (`laminapdf-wasm` for lamina's three modules).
     krate: &'static str,
     /// The crate's cdylib file stem in `target/wasm32-unknown-unknown/wasm-release/`.
     artefact: &'static str,
@@ -80,10 +80,10 @@ pub(crate) struct Module {
 }
 
 impl Module {
-    /// Whether this is one of lamina's own modules (`lamina-wasm`'s builds), which its
+    /// Whether this is one of lamina's own modules (`laminapdf-wasm`'s builds), which its
     /// `wasm-bindgen-test` suite and `@laminapdf/sdk` cover.
     fn is_lamina(&self) -> bool {
-        self.krate == "lamina-wasm"
+        self.krate == "laminapdf-wasm"
     }
 }
 
@@ -91,30 +91,30 @@ impl Module {
 pub(crate) const MODULES: [Module; 4] = [
     Module {
         name: "base",
-        krate: "lamina-wasm",
-        artefact: "lamina_wasm",
+        krate: "laminapdf-wasm",
+        artefact: "laminapdf_wasm",
         features: &[],
     },
     Module {
         name: "text",
-        krate: "lamina-wasm",
-        artefact: "lamina_wasm",
+        krate: "laminapdf-wasm",
+        artefact: "laminapdf_wasm",
         features: &["--features", "text"],
     },
     // Base plus text extraction (B9c; ADR 0016 §4): what a reader needs, about half the text
     // module, so a viewer's text layer doesn't need fonts and shaping.
     Module {
         name: "extract",
-        krate: "lamina-wasm",
-        artefact: "lamina_wasm",
+        krate: "laminapdf-wasm",
+        artefact: "laminapdf_wasm",
         features: &["--features", "extract"],
     },
-    // lamina-render's hayro adapter (C2c, ADR 0004 §5): its own crate, wrapped by
+    // laminapdf-render's hayro adapter (C2c, ADR 0004 §5): its own crate, wrapped by
     // @laminapdf/render-hayro; never loaded by @laminapdf/sdk.
     Module {
         name: "render_hayro",
-        krate: "lamina-render-wasm",
-        artefact: "lamina_render_wasm",
+        krate: "laminapdf-render-wasm",
+        artefact: "laminapdf_render_wasm",
         features: &[],
     },
 ];
@@ -168,7 +168,7 @@ fn build_module(ws: &Workspace, module: &Module, wasm_opt: &Path, out: &Path) ->
         fs::remove_dir_all(&work)?;
     }
     fs::create_dir_all(&work)?;
-    // lamina-wasm's artefact has one name for its three modules: copy it before the next build.
+    // laminapdf-wasm's artefact has one name for its three modules: copy it before the next build.
     let built = work.join(format!("{}.wasm", module.artefact));
     fs::copy(
         ws.target_dir
@@ -225,13 +225,13 @@ fn build_module(ws: &Workspace, module: &Module, wasm_opt: &Path, out: &Path) ->
 /// (Vitest, Node) over `dist/`, then `@laminapdf/sdk`: build, typecheck, tests, publint and attw;
 /// then `@laminapdf/render-hayro`'s `RenderBackend` contract over `lamina_render_hayro` (C2c).
 fn test(ws: &Workspace) -> Result<()> {
-    crate::step("lamina-wasm tests in Node (wasm-bindgen-test-runner)");
+    crate::step("laminapdf-wasm tests in Node (wasm-bindgen-test-runner)");
     for module in MODULES.iter().filter(|m| m.is_lamina()) {
         let mut args = vec![
             "test",
             "--locked",
             "-p",
-            "lamina-wasm",
+            "laminapdf-wasm",
             "--test",
             "boundary",
             "--target",
@@ -671,8 +671,8 @@ fn largest(items: impl Iterator<Item = (u64, String)>, n: usize) -> Vec<(u64, St
     out
 }
 
-/// `name` without rustc's crate disambiguators (`lamina_build[19234177ad06dfd]::…` →
-/// `lamina_build::…`), which change with every build and would make every item look new.
+/// `name` without rustc's crate disambiguators (`laminapdf_build[19234177ad06dfd]::…` →
+/// `laminapdf_build::…`), which change with every build and would make every item look new.
 fn stable_name(name: &str) -> String {
     let mut out = String::with_capacity(name.len());
     let mut rest = name;
@@ -932,8 +932,8 @@ mod tests {
     #[test]
     fn stable_name_drops_crate_disambiguators_only() {
         assert_eq!(
-            stable_name("<lamina_build[19234177ad06dfd]::page::PageBuilder>::write [u8; 4] x[]"),
-            "<lamina_build::page::PageBuilder>::write [u8; 4] x[]"
+            stable_name("<laminapdf_build[19234177ad06dfd]::page::PageBuilder>::write [u8; 4] x[]"),
+            "<laminapdf_build::page::PageBuilder>::write [u8; 4] x[]"
         );
     }
 

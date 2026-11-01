@@ -1,5 +1,5 @@
 //! `render-golden`: the render goldens of ADR 0018 tier 8 (todo B5c). `cargo xtask
-//! render-golden [--update]` runs the `lamina` examples, has `pdfium.py` render them with
+//! render-golden [--update]` runs the `laminapdf` examples, has `pdfium.py` render them with
 //! PDFium, then runs this:
 //!
 //! ```sh

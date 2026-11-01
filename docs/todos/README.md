@@ -12,15 +12,15 @@ New todos start from [`TEMPLATE.md`](TEMPLATE.md). The workflow is in [git workf
 
 IDs: `A`/`P`/`X` [architecture](../plans/architecture.md) (foundations, publishing, cross-cutting), `B` [library](../plans/pdf-library.md), `L` [shareable libraries](../plans/shareable-libraries.md) (contracts, worker, extraction, CLI, agent docs, mobile), `C` [web reader](../plans/web-app.md), `D` [desktop reader](../plans/desktop-app.md), `U` [UI/UX](../plans/ui-ux.md), `E` [editor](../plans/full-editor.md), `H` hosted service ([full-editor](../plans/full-editor.md)), `Q` [docs and code quality](../plans/quality.md). A letter suffix (`B2a`, `B2b`) splits a round into PRs.
 
-**0 ongoing · 216 ready · 72 done** (288 total).
+**0 ongoing · 216 ready · 73 done** (289 total).
 
 ## Can start now
 
 Ready todos whose dependencies are all done (an open PR may already have claimed one: check `gh pr list`):
 
 - [L2b](ready/L2b-disposal-and-memory.md): Disposal and memory bounds: `Symbol.dispose` on every handle, `disposed` code, capped wasm memory, `reset()` and trap recovery
-- [L3a](ready/L3a-lamina-extract-reading-order.md): ADR 0030 and `lamina-extract`: blocks, reading order, headings, lists, header/footer removal, hidden-text flags
-- [L4a](ready/L4a-lamina-cli.md): ADR 0031 and `crates/lamina-cli`: `info`, `check`, `pages rotate`, `extract`, `explain`
+- [L3a](ready/L3a-lamina-extract-reading-order.md): ADR 0030 and `laminapdf-extract`: blocks, reading order, headings, lists, header/footer removal, hidden-text flags
+- [L4a](ready/L4a-lamina-cli.md): ADR 0031 and `crates/laminapdf-cli`: `info`, `check`, `pages rotate`, `extract`, `explain`
 - [L5a](ready/L5a-agent-docs.md): Docs for agents: `llms.txt`, Markdown twins, docs shipped in the packages, `AGENTS.md` snippet, rename log and an agent-eval baseline
 - [C3c](ready/C3c-viewer-perf-harness.md): Viewer performance harness: long tasks, memory and time-to-first-page in CI
 - [D1a](ready/D1a-desktop-ipc-spike.md): `desktop-ipc` spike: tile transport and COOP/COEP in the three webviews
@@ -29,7 +29,7 @@ Ready todos whose dependencies are all done (an open PR may already have claimed
 - [Q1d](ready/Q1d-example-api-cleanups.md): API fixes the examples need
 - [Q1g](ready/Q1g-worker-examples.md): Worker examples that work outside this repository
 - [Q1m](ready/Q1m-guides-read-and-edit.md): Plain-English guides: reading and editing PDFs
-- [Q2c](ready/Q2c-test-fixtures-crate.md): `lamina-test-fixtures` for the core crates' test helpers
+- [Q2c](ready/Q2c-test-fixtures-crate.md): `laminapdf-test-fixtures` for the core crates' test helpers
 - [Q2e](ready/Q2e-error-policy-consolidation.md): One error-propagation policy per kind (fixes swallowed I/O errors)
 - [Q2f](ready/Q2f-page-attributes-one-owner.md): One reader of page attributes and one rotation type (fixes `/Rotate 90.0`)
 - [Q2g](ready/Q2g-one-matrix.md): One `Matrix`, `FillRule`, `Dash` and `Color`
@@ -103,10 +103,10 @@ Nothing on `main`; open PRs may hold claims (`gh pr list`).
 | L2a | [`@laminapdf/pdf/worker`: the async twin of the sync API, with typed RPC, version handshake, `AbortSignal`, transfer lists and progress](done/L2a-worker-client.md) | done | [B6b](done/B6b-lamina-pdf-package.md), [L1a](done/L1a-contract-adrs.md), [L1b](done/L1b-error-contract-codegen.md) |
 | L2b | [Disposal and memory bounds: `Symbol.dispose` on every handle, `disposed` code, capped wasm memory, `reset()` and trap recovery](ready/L2b-disposal-and-memory.md) | ready | [B6b](done/B6b-lamina-pdf-package.md), [L1b](done/L1b-error-contract-codegen.md) |
 | L2c | [Range `ByteSource`: `DataPending` ranges at the edges (HTTP Range, JS callback, native file and mmap), core stays synchronous](done/L2c-range-byte-source.md) | done | [B2d](done/B2d-windowed-reading.md), [B6b](done/B6b-lamina-pdf-package.md) |
-| L3a | [ADR 0030 and `lamina-extract`: blocks, reading order, headings, lists, header/footer removal, hidden-text flags](ready/L3a-lamina-extract-reading-order.md) | ready | [B8a](done/B8a-structure-tree.md), [B9d](done/B9d-text-runs-quads-and-page-text.md), [L1a](done/L1a-contract-adrs.md), [U2b](done/U2b-reading-order-ground-truth.md) |
+| L3a | [ADR 0030 and `laminapdf-extract`: blocks, reading order, headings, lists, header/footer removal, hidden-text flags](ready/L3a-lamina-extract-reading-order.md) | ready | [B8a](done/B8a-structure-tree.md), [B9d](done/B9d-text-runs-quads-and-page-text.md), [L1a](done/L1a-contract-adrs.md), [U2b](done/U2b-reading-order-ground-truth.md) |
 | L3b | [Lattice tables, Markdown/JSON/chunk serialisers, extraction in the façade, WASM and `@laminapdf/sdk`](ready/L3b-extract-tables-and-serialisers.md) | ready | [B9c](done/B9c-text-extraction-bindings-and-differential.md), [L3a](ready/L3a-lamina-extract-reading-order.md) |
 | L3c | [Model plug-ins: `LayoutModel` and `OcrEngine` traits in core, an optional ONNX layout edge crate](ready/L3c-model-plugins.md) | ready | [L3b](ready/L3b-extract-tables-and-serialisers.md) |
-| L4a | [ADR 0031 and `crates/lamina-cli`: `info`, `check`, `pages rotate`, `extract`, `explain`](ready/L4a-lamina-cli.md) | ready | [B5c](done/B5c-lamina-facade-and-examples.md), [B9c](done/B9c-text-extraction-bindings-and-differential.md), [L1b](done/L1b-error-contract-codegen.md) |
+| L4a | [ADR 0031 and `crates/laminapdf-cli`: `info`, `check`, `pages rotate`, `extract`, `explain`](ready/L4a-lamina-cli.md) | ready | [B5c](done/B5c-lamina-facade-and-examples.md), [B9c](done/B9c-text-extraction-bindings-and-differential.md), [L1b](done/L1b-error-contract-codegen.md) |
 | L4b | [CLI batch mode, `render`, `extract --format md|json`, `schema`, completions and man pages](ready/L4b-cli-batch-render-schema.md) | ready | [L3b](ready/L3b-extract-tables-and-serialisers.md), [L4a](ready/L4a-lamina-cli.md), [C2b](done/C2b-lamina-render-crate.md) |
 | L4c | [`lamina mcp`: a stdio MCP server over the CLI commands, with `--root` and read-only defaults](ready/L4c-mcp-mode.md) | ready | [L4a](ready/L4a-lamina-cli.md) |
 | L4d | [CLI distribution: release binaries with cargo-dist, Homebrew tap and an npm wrapper](ready/L4d-cli-distribution.md) | ready | [L4a](ready/L4a-lamina-cli.md), [P1](ready/P1-reserve-names-and-trusted-publishing.md) |
@@ -214,7 +214,7 @@ Nothing on `main`; open PRs may hold claims (`gh pr list`).
 | E2b | [Page-structure ops: insert blank, delete, duplicate, reorder, rotate, reverse](ready/E2b-page-structure-ops.md) | ready | [B8a](done/B8a-structure-tree.md), [B8b](done/B8b-conformance-profiles-and-verapdf.md), [E1c](ready/E1c-metadata-ops.md), [E2a](ready/E2a-page-organisation-feature-plan.md) |
 | E2c | [Insert pages from other PDFs, replace pages, extract and export ranges](ready/E2c-cross-document-pages.md) | ready | [E2b](ready/E2b-page-structure-ops.md) |
 | E2d | [Merge documents and split by count, ranges and bookmarks](ready/E2d-merge-and-split.md) | ready | [B8a](done/B8a-structure-tree.md), [B8b](done/B8b-conformance-profiles-and-verapdf.md), [E2c](ready/E2c-cross-document-pages.md) |
-| E2e | [`lamina-content` append API](ready/E2e-content-append-api.md) | ready | [B5c](done/B5c-lamina-facade-and-examples.md), [B9c](done/B9c-text-extraction-bindings-and-differential.md), [E2a](ready/E2a-page-organisation-feature-plan.md) |
+| E2e | [`laminapdf-content` append API](ready/E2e-content-append-api.md) | ready | [B5c](done/B5c-lamina-facade-and-examples.md), [B9c](done/B9c-text-extraction-bindings-and-differential.md), [E2a](ready/E2a-page-organisation-feature-plan.md) |
 | E2f | [Crop, resize, page boxes and orientation](ready/E2f-page-geometry.md) | ready | [E2b](ready/E2b-page-structure-ops.md), [E2e](ready/E2e-content-append-api.md) |
 | E2g | [Page labels editor](ready/E2g-page-labels.md) | ready | [E2b](ready/E2b-page-structure-ops.md), [E2c](ready/E2c-cross-document-pages.md), [E2d](ready/E2d-merge-and-split.md) |
 | E2h | [Page organiser UI: thumbnails drag-and-drop, multi-select and page dialogs](ready/E2h-page-organiser-ui.md) | ready | [E1e](ready/E1e-save-and-constraint-banner.md), [E2c](ready/E2c-cross-document-pages.md), [E2d](ready/E2d-merge-and-split.md), [E2f](ready/E2f-page-geometry.md), [E2g](ready/E2g-page-labels.md) |
@@ -332,7 +332,8 @@ Nothing on `main`; open PRs may hold claims (`gh pr list`).
 | ID | Todo | State | Depends on |
 | --- | --- | --- | --- |
 | P0 | [Publish the npm packages under `@laminapdf`, with `@lamina/pdf` as `@laminapdf/sdk`](done/P0-npm-scope-laminapdf.md) | done | — |
-| P1 | [Reserve names, ADR 0017 publishing part, OIDC trusted publishing and the release workflow](ready/P1-reserve-names-and-trusted-publishing.md) | ready | [B7b](done/B7b-versioning-and-0-1-0-alpha.md), [P0](done/P0-npm-scope-laminapdf.md) |
+| P0b | [Rename the crates `laminapdf-*` and the façade `laminapdf`](done/P0b-crate-names-laminapdf.md) | done | [P0](done/P0-npm-scope-laminapdf.md) |
+| P1 | [Reserve names, ADR 0017 publishing part, OIDC trusted publishing and the release workflow](ready/P1-reserve-names-and-trusted-publishing.md) | ready | [B7b](done/B7b-versioning-and-0-1-0-alpha.md), [P0](done/P0-npm-scope-laminapdf.md), [P0b](done/P0b-crate-names-laminapdf.md) |
 | P2 | [First registry pre-release, public stability policy and changelog, cargo-semver-checks](ready/P2-first-registry-prerelease.md) | ready | [P1](ready/P1-reserve-names-and-trusted-publishing.md) |
 
 ## Docs and code quality — Round Q
@@ -354,8 +355,8 @@ Nothing on `main`; open PRs may hold claims (`gh pr list`).
 | Q1m | [Plain-English guides: reading and editing PDFs](ready/Q1m-guides-read-and-edit.md) | ready | [Q1h](done/Q1h-docs-story.md) |
 | Q2a | [`check maintainability` for Rust: module budget and new lints](done/Q2a-maintainability-checks-rust.md) | done | — |
 | Q2b | [TypeScript lint rules: complexity, function length, throws and TSDoc](done/Q2b-ts-lint-rules.md) | done | — |
-| Q2c | [`lamina-test-fixtures` for the core crates' test helpers](ready/Q2c-test-fixtures-crate.md) | ready | [Q2a](done/Q2a-maintainability-checks-rust.md) |
-| Q2d | [One PDF serialiser: the test `Writer` built on lamina-save's helpers](ready/Q2d-one-serialiser.md) | ready | [Q2c](ready/Q2c-test-fixtures-crate.md) |
+| Q2c | [`laminapdf-test-fixtures` for the core crates' test helpers](ready/Q2c-test-fixtures-crate.md) | ready | [Q2a](done/Q2a-maintainability-checks-rust.md) |
+| Q2d | [One PDF serialiser: the test `Writer` built on laminapdf-save's helpers](ready/Q2d-one-serialiser.md) | ready | [Q2c](ready/Q2c-test-fixtures-crate.md) |
 | Q2e | [One error-propagation policy per kind (fixes swallowed I/O errors)](ready/Q2e-error-policy-consolidation.md) | ready | [Q2a](done/Q2a-maintainability-checks-rust.md) |
 | Q2f | [One reader of page attributes and one rotation type (fixes `/Rotate 90.0`)](ready/Q2f-page-attributes-one-owner.md) | ready | — |
 | Q2g | [One `Matrix`, `FillRule`, `Dash` and `Color`](ready/Q2g-one-matrix.md) | ready | [Q2a](done/Q2a-maintainability-checks-rust.md) |
@@ -375,7 +376,7 @@ Nothing on `main`; open PRs may hold claims (`gh pr list`).
 | Q2u | [TypeScript dependency tools: cycles, cross-package imports, duplication, unused exports](done/Q2u-ts-dependency-tools.md) | done | — |
 | Q2v | [One did-you-mean rule, pinned in both languages](ready/Q2v-did-you-mean.md) | ready | — |
 | Q2w | [Split the content interpreter's `execute`](ready/Q2w-split-content-interpreter.md) | ready | [Q2a](done/Q2a-maintainability-checks-rust.md) |
-| Q2x | [`lamina-test-fixtures` for the remaining crates](ready/Q2x-test-fixtures-migration.md) | ready | [Q2c](ready/Q2c-test-fixtures-crate.md) |
+| Q2x | [`laminapdf-test-fixtures` for the remaining crates](ready/Q2x-test-fixtures-migration.md) | ready | [Q2c](ready/Q2c-test-fixtures-crate.md) |
 | Q2y | [Decide and implement how the façade wraps crate errors](ready/Q2y-facade-error-wrapping.md) | ready | — |
 
 ## Cross-cutting

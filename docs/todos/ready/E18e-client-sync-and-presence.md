@@ -39,7 +39,7 @@ Clients connect to the document's DO, apply remote patches as `Remote` transacti
 
 **Editor facts**
 
-- **Crates and packages:** `lamina-sync`, `@laminapdf/viewer`, `@laminapdf/ui`, `apps/desktop`
+- **Crates and packages:** `laminapdf-sync`, `@laminapdf/viewer`, `@laminapdf/ui`, `apps/desktop`
 - **`SaveConstraint`:** no new save behaviour beyond the round's: base PDFs immutable; content edits and redactions via lease or server job minting a new base revision
 - **Web vs desktop:** identical; desktop works offline and syncs on reconnect
 - **Server features:** none (this PR adds no server feature; all processing stays on the device)

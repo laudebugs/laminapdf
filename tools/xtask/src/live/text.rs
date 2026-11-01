@@ -1,9 +1,9 @@
 //! `cargo xtask differential --live --text` (todo B9f; ADR 0018 tier 6): lamina's page text
 //! against pdf.js (`getTextContent`) and pdftotext over the external corpus, every night.
 //!
-//! The readers are lamina's `text-facts` example (`crates/lamina/examples/differential/`) and
+//! The readers are lamina's `text-facts` example (`crates/laminapdf/examples/differential/`) and
 //! `tools/differential/text.mjs --facts pdfjs|pdftotext`, each under [`runner`] like the other
-//! live readers. The comparison is B9c's (`crates/lamina/tests/text_differential.rs`): page by
+//! live readers. The comparison is B9c's (`crates/laminapdf/tests/text_differential.rs`): page by
 //! page, with whitespace and bidi controls removed on both sides; a page agrees when lamina
 //! matches at least one tool. A page where every tool that read it disagrees is a failure
 //! unless a text `[[class]]` or `[[known]]` entry (`facts = ["text"]` in
@@ -47,7 +47,7 @@ pub(super) fn is_text(facts: &[String]) -> bool {
 
 /// The text with every whitespace character and bidi control (U+200E, U+200F, U+202A–U+202E,
 /// U+2066–U+2069; pdftotext wraps right-to-left runs in embeddings) removed: B9c's rule, the
-/// same function as `squeeze` in `crates/lamina/tests/text_differential.rs`.
+/// same function as `squeeze` in `crates/laminapdf/tests/text_differential.rs`.
 pub(super) fn squeeze(text: &str) -> String {
     text.chars()
         .filter(|c| {
@@ -833,7 +833,7 @@ pub(super) fn run(ws: &Workspace, args: &LiveArgs) -> Result<()> {
         "--locked",
         "-q",
         "-p",
-        "lamina",
+        "laminapdf",
         "--example",
         "text-facts",
     ])?;

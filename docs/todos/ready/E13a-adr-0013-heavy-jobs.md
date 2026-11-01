@@ -8,7 +8,7 @@
 | Round / milestone | Editor phase 6 (E11–E17) — M9 Advanced |
 | Depends on | [C2b](../done/C2b-lamina-render-crate.md), [E12a](./E12a-redaction-feature-plan.md) |
 | Blocks | [E13b](./E13b-ocr-and-conversion-feature-plan.md) |
-| Dependency notes | [E12a](E12a-redaction-feature-plan.md), `C2` ([web-app §C2](../../plans/web-app.md#c2-render-backend-and-adrs): `lamina-render`, ADR 0011) |
+| Dependency notes | [E12a](E12a-redaction-feature-plan.md), `C2` ([web-app §C2](../../plans/web-app.md#c2-render-backend-and-adrs): `laminapdf-render`, ADR 0011) |
 | ADRs | Writes ADR 0013; amends/uses ADR 0011 |
 | Branch | `docs/e13a-adr-0013-heavy-jobs` |
 | PR title | `docs(adr): 0013 heavy jobs, OCR and conversion engines` |
@@ -34,7 +34,7 @@ Decide how lamina runs heavy, opt-in server jobs (OCR, Office ↔ PDF, PDF → W
 - ADR 0013 file: topology diagram, job lifecycle, retention, limits (Worker 128 MB vs Containers), cost model
 - Engine matrix: Tesseract (Apache-2.0, with Leptonica BSD-2), PaddleOCR (Apache-2.0), LibreOffice (MPL-2.0), others; WASM OCR size. ocrmypdf (MPL-2.0) is listed as excluded: it requires Ghostscript (AGPL-3.0) at run time, and container images we run as a service count as shipped artefacts under ADR 0001/0019
 - Licence rule for container images (the ADR records it): no AGPL component anywhere (in our binaries or in any container image, since images we run as a service count as shipped artefacts under ADR 0001/0019); GPL/LGPL code only as separate executables or system libraries of the base image that our code reaches across a process boundary (invoked as a program, never linked into a lamina binary), recorded in the SBOM; our own binaries link no GPL library. "No GPL in the image" is not achievable, because Linux base images ship GPL tools (bash, coreutils, glibc is LGPL), so the rule is about AGPL and about linking
-- OCR pipeline decision (recommended, no AGPL): Tesseract only, no ocrmypdf and no Ghostscript. lamina renders each page to an image (`lamina-render`), Tesseract produces hOCR, and lamina writes the invisible text layer into the original PDF (`AddOcrLayer`, E13c), so the PDF is never re-encoded by a third-party tool. Using ocrmypdf instead needs an explicit owner decision recorded in this ADR (an exception to ADR 0019 with the AGPL obligations for a network service spelled out); it is not the default
+- OCR pipeline decision (recommended, no AGPL): Tesseract only, no ocrmypdf and no Ghostscript. lamina renders each page to an image (`laminapdf-render`), Tesseract produces hOCR, and lamina writes the invisible text layer into the original PDF (`AddOcrLayer`, E13c), so the PDF is never re-encoded by a third-party tool. Using ocrmypdf instead needs an explicit owner decision recorded in this ADR (an exception to ADR 0019 with the AGPL obligations for a network service spelled out); it is not the default
 - Whether jobs require an account (links to H2) — decision or open question
 
 **Out of scope** (and which todo covers it)

@@ -2,7 +2,7 @@
 # workspace, excluded from the root one, because libFuzzer needs nightly Rust; the root
 # toolchain pin does not apply (`cargo +nightly fuzz …`). Run with `cargo xtask fuzz <target>`.
 [package]
-name = "lamina-fuzz"
+name = "laminapdf-fuzz"
 version = "0.0.0"
 edition = "2024"
 license = "MIT OR Apache-2.0"
@@ -15,13 +15,13 @@ cargo-fuzz = true
 # Fuzzing harness only, never shipped: (MIT OR Apache-2.0) AND NCSA (it bundles LLVM's
 # libFuzzer). Outside the root workspace, so cargo-deny's allow-list does not apply.
 libfuzzer-sys = "0.4.10"
-lamina-syntax = { path = "../crates/lamina-syntax" }
-lamina-cos = { path = "../crates/lamina-cos" }
-lamina-model = { path = "../crates/lamina-model" }
-lamina-content = { path = "../crates/lamina-content" }
-lamina-ops = { path = "../crates/lamina-ops" }
-lamina-save = { path = "../crates/lamina-save" }
-lamina-text = { path = "../crates/lamina-text" }
+laminapdf-syntax = { path = "../crates/laminapdf-syntax" }
+laminapdf-cos = { path = "../crates/laminapdf-cos" }
+laminapdf-model = { path = "../crates/laminapdf-model" }
+laminapdf-content = { path = "../crates/laminapdf-content" }
+laminapdf-ops = { path = "../crates/laminapdf-ops" }
+laminapdf-save = { path = "../crates/laminapdf-save" }
+laminapdf-text = { path = "../crates/laminapdf-text" }
 serde_json = "1.0.154"
 
 [workspace]

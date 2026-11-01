@@ -1,4 +1,4 @@
-# Q2d — One PDF serialiser: the test `Writer` built on lamina-save's helpers
+# Q2d — One PDF serialiser: the test `Writer` built on laminapdf-save's helpers
 
 | Field | Value |
 | --- | --- |
@@ -16,18 +16,18 @@
 
 ## Goal
 
-`lamina-save/src/legacy.rs`, the spike-era `Writer` and `incremental_update`, re-implements the classic xref, xref streams, object-stream packing, object framing and the header that `xref.rs` and `full.rs` already have. It also sits in lamina-save's public API, although only tests and doc examples use it. This todo rebuilds it on the shared helpers and moves it into `lamina-test-fixtures`.
+`laminapdf-save/src/legacy.rs`, the spike-era `Writer` and `incremental_update`, re-implements the classic xref, xref streams, object-stream packing, object framing and the header that `xref.rs` and `full.rs` already have. It also sits in laminapdf-save's public API, although only tests and doc examples use it. This todo rebuilds it on the shared helpers and moves it into `laminapdf-test-fixtures`.
 
 ## Context
 
-- [Quality plan §2.3](../../plans/quality.md#23-code-quality-and-reuse); `lamina-save/src/legacy.rs:62–481`, `full.rs`, `xref.rs`, `lib.rs` (`pub use legacy::…`); users in `lamina-ops/src/{tx,record}.rs` tests and in the docs of lamina-ops, lamina-model and lamina-content.
+- [Quality plan §2.3](../../plans/quality.md#23-code-quality-and-reuse); `laminapdf-save/src/legacy.rs:62–481`, `full.rs`, `xref.rs`, `lib.rs` (`pub use legacy::…`); users in `laminapdf-ops/src/{tx,record}.rs` tests and in the docs of laminapdf-ops, laminapdf-model and laminapdf-content.
 
 ## Scope
 
 **In scope**
 
 - `Writer` and `incremental_update` rebuilt on `xref::Rows`, `classic_table`, `stream_table` and `object_stream`; every byte they produce unchanged.
-- Moved into `lamina-test-fixtures` (which then depends on lamina-save), or behind a `test-support` feature if a dependency cycle forces it; `lamina-save`'s public API keeps only the product writers.
+- Moved into `laminapdf-test-fixtures` (which then depends on laminapdf-save), or behind a `test-support` feature if a dependency cycle forces it; `laminapdf-save`'s public API keeps only the product writers.
 - `XrefEol` stays in `options.rs`.
 
 **Out of scope** (and which todo covers it)
@@ -56,7 +56,7 @@ Existing tests and reference files.
 
 ## Docs to update
 
-The saving paragraph in CLAUDE.md, the lamina-save README, plan §9.
+The saving paragraph in CLAUDE.md, the laminapdf-save README, plan §9.
 
 ## Risks and open questions
 

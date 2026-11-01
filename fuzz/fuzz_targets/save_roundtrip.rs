@@ -2,4 +2,4 @@
 //! and reopens the output (`save_entry::save_roundtrip`).
 #![no_main]
 
-libfuzzer_sys::fuzz_target!(|data: &[u8]| lamina_fuzz::save_entry::save_roundtrip(data));
+libfuzzer_sys::fuzz_target!(|data: &[u8]| laminapdf_fuzz::save_entry::save_roundtrip(data));

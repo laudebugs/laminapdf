@@ -21,7 +21,7 @@ Some of the noise in the examples comes from the API, not the examples. This tod
 ## Context
 
 - [Quality plan §2.2](../../plans/quality.md#22-code-examples): 12 `let _ = s.text(…)?` lines, three hand-written `rect()` helpers, the Cloudflare Worker's cast, 10 `CancelToken::new()` calls in examples.
-- `crates/lamina-build/src/surface/text.rs` (`TextRun`'s `#[must_use]`), `crates/lamina-model/src/geometry.rs` (`PointPt::from_points`), `packages/sdk/src/document.ts` (`save`), `crates/lamina/src/document.rs` (`save`), `crates/lamina-ops/src/op.rs` (`SetInfo::new(patch, None)`).
+- `crates/laminapdf-build/src/surface/text.rs` (`TextRun`'s `#[must_use]`), `crates/laminapdf-model/src/geometry.rs` (`PointPt::from_points`), `packages/sdk/src/document.ts` (`save`), `crates/laminapdf/src/document.rs` (`save`), `crates/laminapdf-ops/src/op.rs` (`SetInfo::new(patch, None)`).
 - ADR 0028 (façade rules), which governs the save and cancel shape.
 
 ## Scope
@@ -51,7 +51,7 @@ Some of the noise in the examples comes from the API, not the examples. This tod
 ## Acceptance criteria
 
 - [ ] Every reference PDF is byte-identical.
-- [ ] No `let _ =` remains in `crates/lamina/examples/` or the façade docs.
+- [ ] No `let _ =` remains in `crates/laminapdf/examples/` or the façade docs.
 - [ ] A changeset is added; ADR 0028 is amended if the save shape needs it.
 
 ## Post-merge checks

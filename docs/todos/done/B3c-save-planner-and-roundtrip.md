@@ -20,7 +20,7 @@ Make unsafe saves impossible by default. `SavePlanner` inspects the base and the
 
 ## Context
 
-- [ADR 0007 §1–§4](../../decisions/0007-save-planner.md#1-api-lamina-save): `plan()`, `constraint()`, `mode()`, `would_invalidate()`; `SaveConstraint { signatures, doc_mdp, rewrite_reasons, violations }`; `kind()` (`Free`, `AppendOnly`, `RequiresRewrite`, `Conflict`); mode table; `SaveError::WouldInvalidateSignatures`, `RequiresRewrite`; `invalidate_signatures` override removing `/V` and `/Perms` entries; `would_violate(&op)`; canonical order.
+- [ADR 0007 §1–§4](../../decisions/0007-save-planner.md#1-api-laminapdf-save): `plan()`, `constraint()`, `mode()`, `would_invalidate()`; `SaveConstraint { signatures, doc_mdp, rewrite_reasons, violations }`; `kind()` (`Free`, `AppendOnly`, `RequiresRewrite`, `Conflict`); mode table; `SaveError::WouldInvalidateSignatures`, `RequiresRewrite`; `invalidate_signatures` override removing `/V` and `/Perms` entries; `would_violate(&op)`; canonical order.
 - [Research 04 §8](../../research/pdf/04-interactive-security.md#8-digital-signatures-128): signature dictionaries, `/ByteRange`/`/Contents`, DocMDP `/P` 1–3, FieldMDP, `/Lock`, UR3, DocTimeStamp.
 - [ADR 0018 §1](../../decisions/0018-test-strategy.md#1-tiers) tier 7; [§2](../../decisions/0018-test-strategy.md#2-ci-lanes) full lane "round-trip with qpdf".
 - `lamina-save` from [B3b](../done/B3b-lamina-save-writers.md), `lamina-ops` from [B3a](../done/B3a-overlay-and-ops.md).

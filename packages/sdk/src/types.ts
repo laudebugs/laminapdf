@@ -1,4 +1,4 @@
-// The records of the API: the tsify types `lamina-wasm` generates (ADR 0016 §7), re-exported
+// The records of the API: the tsify types `laminapdf-wasm` generates (ADR 0016 §7), re-exported
 // under @laminapdf/sdk's names. They are the Rust façade's records, camelCase; only `OpenOptions`
 // and `Color` are written here.
 import type {

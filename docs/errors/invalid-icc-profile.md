@@ -5,7 +5,7 @@
 
 ## What happened
 
-`IccProfile::new` (`lamina-build`) rejected the bytes.
+`IccProfile::new` (`laminapdf-build`) rejected the bytes.
 
 ## Why
 

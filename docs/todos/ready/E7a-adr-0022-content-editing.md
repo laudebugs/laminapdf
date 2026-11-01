@@ -42,7 +42,7 @@ Decide how lamina edits existing content: the IR (operators with object identity
 
 **Editor facts**
 
-- **Crates and packages:** (decision only) `lamina-content`
+- **Crates and packages:** (decision only) `laminapdf-content`
 - **`SaveConstraint`:** decides how edited streams are saved (new stream objects in the overlay; shared streams copy-on-write)
 - **Web vs desktop:** n/a
 - **Server features:** none (this PR adds no server feature; all processing stays on the device)

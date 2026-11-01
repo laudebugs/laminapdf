@@ -4,7 +4,7 @@
 | --- | --- |
 | ID | `B5b` |
 | Status | `done` |
-| Plan | [pdf-library §7 B5](../../plans/pdf-library.md#b5-builder-and-the-lamina-crate), requirements [§4 F2–F5](../../plans/pdf-library.md#functional) |
+| Plan | [pdf-library §7 B5](../../plans/pdf-library.md#b5-builder-and-the-laminapdf-crate), requirements [§4 F2–F5](../../plans/pdf-library.md#functional) |
 | Round / milestone | Round B (library) — M1 |
 | Depends on | [B4b](./B4b-shaping-bidi-line-breaking.md), [B4c](./B4c-standard-14-and-simple-fonts.md), [B5a](./B5a-lamina-build-core.md) |
 | Blocks | [B5c](./B5c-lamina-facade-and-examples.md) |

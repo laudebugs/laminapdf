@@ -1,4 +1,4 @@
 {
-  "comment": "Shaping cases where HarfRust is known to differ from hb-shape, each with an upstream issue link (todo B4b). crates/lamina-text/tests/shaping_goldens.rs skips their comparison and fails if a listed case starts matching again, so the list stays current. Entries: {\"script\": …, \"name\": …, \"upstream\": \"https://github.com/harfbuzz/harfrust/issues/…\"}.",
+  "comment": "Shaping cases where HarfRust is known to differ from hb-shape, each with an upstream issue link (todo B4b). crates/laminapdf-text/tests/shaping_goldens.rs skips their comparison and fails if a listed case starts matching again, so the list stays current. Entries: {\"script\": …, \"name\": …, \"upstream\": \"https://github.com/harfbuzz/harfrust/issues/…\"}.",
   "exceptions": []
 }

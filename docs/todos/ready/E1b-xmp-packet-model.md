@@ -8,7 +8,7 @@
 | Round / milestone | Editor phase 2 (E1–E3) — M5 Organiser |
 | Depends on | [B5c](../done/B5c-lamina-facade-and-examples.md), [B8b](../done/B8b-conformance-profiles-and-verapdf.md), [E1a](./E1a-editing-foundation-feature-plan.md), [X3a](../done/X3a-nightly-lane.md) |
 | Blocks | [E1c](./E1c-metadata-ops.md) |
-| Dependency notes | [E1a](E1a-editing-foundation-feature-plan.md), `B5` ([pdf-library §B5](../../plans/pdf-library.md#b5-builder-and-the-lamina-crate): builder and `lamina` crate) |
+| Dependency notes | [E1a](E1a-editing-foundation-feature-plan.md), `B5` ([pdf-library §B5](../../plans/pdf-library.md#b5-builder-and-the-laminapdf-crate): builder and `laminapdf` crate) |
 | ADRs | Follows [0005](../../decisions/0005-document-model.md), [0006](../../decisions/0006-op-log-and-undo.md), [0007](../../decisions/0007-save-planner.md) |
 | Branch | `feat/e1b-xmp-packet-model` |
 | PR title | `feat(model): parse and update the XMP metadata packet` |
@@ -17,12 +17,12 @@
 
 ## Goal
 
-Give `lamina-model` a typed view over the catalog's `/Metadata` XMP packet that can read and rewrite the properties mapped to the Info dictionary (`dc:title`, `dc:creator`, `dc:description`, `pdf:Keywords`, `pdf:Producer`, `xmp:CreatorTool`, `xmp:CreateDate`, `xmp:ModifyDate`, `xmp:MetadataDate`, `xmpMM:DocumentID`/`InstanceID`) while preserving everything else byte-for-byte where possible. The metadata ops (E1c) and the general XMP editor (E3e) build on it.
+Give `laminapdf-model` a typed view over the catalog's `/Metadata` XMP packet that can read and rewrite the properties mapped to the Info dictionary (`dc:title`, `dc:creator`, `dc:description`, `pdf:Keywords`, `pdf:Producer`, `xmp:CreatorTool`, `xmp:CreateDate`, `xmp:ModifyDate`, `xmp:MetadataDate`, `xmpMM:DocumentID`/`InstanceID`) while preserving everything else byte-for-byte where possible. The metadata ops (E1c) and the general XMP editor (E3e) build on it.
 
 ## Context
 
 - [04 §5 Metadata](../../research/pdf/04-interactive-security.md#5-metadata): Info dictionary keys, XMP schemas and how they map
-- [library B5](../../plans/pdf-library.md#b5-builder-and-the-lamina-crate): the Info + XMP writer used for generation, to be shared, not duplicated
+- [library B5](../../plans/pdf-library.md#b5-builder-and-the-laminapdf-crate): the Info + XMP writer used for generation, to be shared, not duplicated
 - [library B8](../../plans/pdf-library.md#b8-tagged-pdf-pdfua-and-pdfa): `pdfaid:`/`pdfuaid:` identification schemas written for generated files
 - [ADR 0005](../../decisions/0005-document-model.md) §4: views are thin, lazy and tolerant per field ([ADR 0003](../../decisions/0003-reader-tolerance-and-limits.md))
 - ISO 16684-1 (XMP) and ISO 32000-2 §14.3.2 (metadata streams), §14.3.3 (Info: deprecated in 2.0 except dates)
@@ -31,11 +31,11 @@ Give `lamina-model` a typed view over the catalog's `/Metadata` XMP packet that 
 
 **In scope**
 
-- `lamina_model::xmp` module: tolerant RDF/XML packet reader (xpacket wrapper, `rdf:Description` attributes and elements, `rdf:Alt`/`Seq`/`Bag`, `xml:lang`)
+- `laminapdf_model::xmp` module: tolerant RDF/XML packet reader (xpacket wrapper, `rdf:Description` attributes and elements, `rdf:Alt`/`Seq`/`Bag`, `xml:lang`)
 - `XmpPacket` typed accessors for the Info-mapped properties and the identification schemas (`pdfaid:part`/`conformance`, `pdfuaid:part`) read-only
 - A writer that updates only changed properties and keeps unknown schemas, extension schemas (`pdfaSchema:`), comments and padding; regenerates the packet canonically only when the input cannot be edited in place
 - Creating a minimal packet for files without `/Metadata`
-- Info ↔ XMP mapping table shared with `lamina-build` (B5) in one module
+- Info ↔ XMP mapping table shared with `laminapdf-build` (B5) in one module
 
 **Out of scope** (and which todo covers it)
 
@@ -45,7 +45,7 @@ Give `lamina-model` a typed view over the catalog's `/Metadata` XMP packet that 
 **Editor facts**
 
 - **Operations shipped** ([06 §3](../../research/pdf/06-feature-inventory.md#3-full-operation-inventory-with-mechanisms) IDs): `J.04` manage XMP
-- **Crates and packages:** `lamina-model` (new `xmp` module), shared mapping with `lamina-build`
+- **Crates and packages:** `laminapdf-model` (new `xmp` module), shared mapping with `laminapdf-build`
 - **`Op` variants:** none (views and a writer used by ops in E1c)
 - **`SaveConstraint`:** read-only here; the writer's output becomes a modified stream object in the overlay when an op uses it
 - **Web vs desktop:** identical (core only)
@@ -78,7 +78,7 @@ None.
 
 ## Tests
 
-- Unit tests in `crates/lamina-model/src/xmp/` for every RDF form (attribute, element, `rdf:Alt` with languages, `rdf:Seq`)
+- Unit tests in `crates/laminapdf-model/src/xmp/` for every RDF form (attribute, element, `rdf:Alt` with languages, `rdf:Seq`)
 - Golden packets in `fixtures/golden/xmp/` (input → edited output) — never rewritten by a test
 - Corpus test: round-trip of every packet in `fixtures/corpus`
 - Differential: values read vs `exiftool -j` on the corpus (nightly lane)
@@ -86,7 +86,7 @@ None.
 
 ## Docs to update
 
-- rustdoc for `lamina_model::xmp`
+- rustdoc for `laminapdf_model::xmp`
 - `fixtures/README.md` provenance for new XMP fixtures
 - [full-editor §E1](../../plans/full-editor.md#e1-editing-foundation) and its §10 to-dos: tick what this PR completes and point the round's todo link at `done/`
 

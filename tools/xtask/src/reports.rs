@@ -220,10 +220,16 @@ impl Ratchet {
 fn changed_files(root: &Path, untracked: &[String], name: &str) -> Option<BTreeSet<String>> {
     let base = default_base(root);
     let changed = git(root, &["merge-base", base, "HEAD"]).and_then(|merge_base| {
-        let diff = git(root, &["diff", "--name-only", "--no-renames", "-z", merge_base.trim()])?;
+        let merge_base = merge_base.trim();
+        let diff = git(root, &["diff", "--name-only", "--no-renames", "-z", merge_base])?;
+        let old_paths: BTreeMap<String, String> = crate::changes::renames(root, merge_base)?
+            .into_iter()
+            .map(|(old, new)| (new, old))
+            .collect();
         Ok(diff
             .split('\0')
             .filter(|path| !path.is_empty())
+            .filter(|path| !renamed_only(root, merge_base, path, old_paths.get(*path).map(String::as_str)))
             .map(str::to_owned)
             .chain(untracked.iter().cloned())
             .collect())
@@ -244,6 +250,33 @@ fn changed_files(root: &Path, untracked: &[String], name: &str) -> Option<BTreeS
     }
 }
 
+/// Names the repository renamed everywhere at once (new, old): the crates' `laminapdf` (todo P0b,
+/// which removes this exemption once no open branch predates the rename).
+const RENAMED: [(&str, &str); 1] = [("laminapdf", "lamina")];
+
+/// Whether `path`'s only change since `merge_base` is one of the [`RENAMED`] names and the
+/// line breaks that came with it (its old path, if it moved, is `old_path`). Such a file isn't
+/// changed for the ratchet, so a rename across the repository doesn't make every file it touches
+/// strict at once.
+fn renamed_only(root: &Path, merge_base: &str, path: &str, old_path: Option<&str>) -> bool {
+    let Ok(now) = std::fs::read_to_string(root.join(path)) else {
+        return false;
+    };
+    if !RENAMED.iter().any(|(new, _)| now.contains(new)) {
+        return false;
+    }
+    crate::changes::at_revision(root, merge_base, old_path.unwrap_or(path))
+        .is_ok_and(|before| without_renames(&before) == without_renames(&now))
+}
+
+/// `text` with each [`RENAMED`] name in its old form and no whitespace.
+fn without_renames(text: &str) -> String {
+    let text = RENAMED
+        .iter()
+        .fold(text.to_owned(), |text, (new, old)| text.replace(new, old));
+    text.split_whitespace().collect()
+}
+
 /// Untracked files that git doesn't ignore.
 fn untracked_files(root: &Path) -> Result<Vec<String>> {
     let listing = git(root, &["ls-files", "--others", "--exclude-standard", "-z"])?;
@@ -257,6 +290,14 @@ fn untracked_files(root: &Path) -> Result<Vec<String>> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn without_renames_should_match_a_file_whose_only_change_is_a_rename() {
+        let before = "use lamina::Document;\nfn main() { lamina_cos::open(); }\n";
+        let after = "use laminapdf::Document;\nfn main() {\n    laminapdf_cos::open();\n}\n";
+        assert_eq!(without_renames(before), without_renames(after));
+        assert_ne!(without_renames(before), without_renames("use laminapdf::Builder;\n"));
+    }
 
     fn flags(list: &[&str]) -> Vec<String> {
         list.iter().map(|flag| (*flag).to_owned()).collect()

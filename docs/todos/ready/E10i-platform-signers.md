@@ -42,7 +42,7 @@ Implement `Signer` adapters at the edges: macOS Keychain, Windows CNG/cert store
 **Editor facts**
 
 - **Operations shipped** ([06 §3](../../research/pdf/06-feature-inventory.md#3-full-operation-inventory-with-mechanisms) IDs): `F.03` certificate-based digital signatures
-- **Crates and packages:** `apps/desktop/src-tauri` (edge crate e.g. `lamina-sign-native`), `lamina-wasm`/web worker
+- **Crates and packages:** `apps/desktop/src-tauri` (edge crate e.g. `laminapdf-sign-native`), `laminapdf-wasm`/web worker
 - **`SaveConstraint`:** signing makes the document `AppendOnly`; adding a signature is allowed without certification and under DocMDP P2/P3, and is a violation under P1 (ADR 0007 §2); signing always runs last in a save (redact → rewrite → sign, ADR 0007 §4); `Sign` is a barrier op (ADR 0006 §5)
 - **Web vs desktop:** desktop: keychains + PKCS#11; web: WebCrypto + PKCS#12
 - **Server features:** none (this PR adds no server feature; all processing stays on the device)

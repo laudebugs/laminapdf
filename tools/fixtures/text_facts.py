@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Writes fixtures/text/extracted.json (todos B4a, B4b, B4d): for every
 fixtures/golden/text-*.pdf, its SHA-256, the text pypdf, pdf.js and pdftotext extract from
-page 1 (one line per text line) and whether `qpdf --check` passes. crates/lamina-text/tests/extraction.rs checks the facts against
+page 1 (one line per text line) and whether `qpdf --check` passes. crates/laminapdf-text/tests/extraction.rs checks the facts against
 the samples' input text and the goldens' current bytes, so tests need neither Python, Node
 nor qpdf.
 

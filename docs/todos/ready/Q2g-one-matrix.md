@@ -16,11 +16,11 @@
 
 ## Goal
 
-`Matrix` exists in lamina-build (`new([f64;6])`, `after`) and in lamina-content (six-argument `new`, `multiply`), with opposite composition orders, and raw `[f64; 6]` matrices appear in lamina-model, lamina-render and lamina-wasm. `FillRule`, `Dash` and `Color` are also duplicated. This todo puts one of each in lamina-model, which both crates already depend on.
+`Matrix` exists in laminapdf-build (`new([f64;6])`, `after`) and in laminapdf-content (six-argument `new`, `multiply`), with opposite composition orders, and raw `[f64; 6]` matrices appear in laminapdf-model, laminapdf-render and laminapdf-wasm. `FillRule`, `Dash` and `Color` are also duplicated. This todo puts one of each in laminapdf-model, which both crates already depend on.
 
 ## Context
 
-- [Quality plan §2.3](../../plans/quality.md#23-code-quality-and-reuse); `lamina-build/src/surface/{path.rs:12,174, style.rs:34, color.rs:22, mod.rs:748}`, `lamina-content/src/{state.rs:10,129,166, visitor.rs:136}`, `lamina-model/src/geometry.rs:378`, `lamina-render/src/request.rs:342,510`, `lamina-wasm/src/build_dto.rs:281`.
+- [Quality plan §2.3](../../plans/quality.md#23-code-quality-and-reuse); `laminapdf-build/src/surface/{path.rs:12,174, style.rs:34, color.rs:22, mod.rs:748}`, `laminapdf-content/src/{state.rs:10,129,166, visitor.rs:136}`, `laminapdf-model/src/geometry.rs:378`, `laminapdf-render/src/request.rs:342,510`, `laminapdf-wasm/src/build_dto.rs:281`.
 
 ## Scope
 
@@ -37,7 +37,7 @@
 
 - [ ] Claim via a claim PR (see Definition of done); then a fresh worktree off the updated `main`.
 - [ ] Write unit tests that pin each composition order.
-- [ ] Add the types to lamina-model; migrate lamina-build, then lamina-content, then the raw arrays in render and wasm.
+- [ ] Add the types to laminapdf-model; migrate laminapdf-build, then laminapdf-content, then the raw arrays in render and wasm.
 - [ ] Remove the allow-list entries; run every reference suite.
 
 ## Acceptance criteria

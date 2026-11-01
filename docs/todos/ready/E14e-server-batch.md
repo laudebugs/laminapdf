@@ -16,7 +16,7 @@
 
 ## Goal
 
-Run saved op sequences on the server for many files (Worker running `lamina-wasm` for small files, Containers for large), opt-in, with retention rules, if the E14a answer to full-editor §9 Q3 keeps a hosted batch. If it does not, this todo is closed as won't-do (see Risks) rather than left in `ready/`.
+Run saved op sequences on the server for many files (Worker running `laminapdf-wasm` for small files, Containers for large), opt-in, with retention rules, if the E14a answer to full-editor §9 Q3 keeps a hosted batch. If it does not, this todo is closed as won't-do (see Risks) rather than left in `ready/`.
 
 ## Context
 
@@ -41,7 +41,7 @@ Run saved op sequences on the server for many files (Worker running `lamina-wasm
 - **Crates and packages:** `apps/jobs`
 - **`SaveConstraint`:** no new save behaviour beyond the round's: read-only views; batch outputs follow each op's rules
 - **Web vs desktop:** web offers it; desktop batches locally
-- **Server features:** Workflows, Queues, Worker with `lamina-wasm`, Containers
+- **Server features:** Workflows, Queues, Worker with `laminapdf-wasm`, Containers
 - **Capability-matrix rows to flip:** none
 
 ## Tasks

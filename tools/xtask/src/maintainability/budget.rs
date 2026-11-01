@@ -36,6 +36,18 @@ pub(super) struct Baseline {
     modules: BTreeMap<String, usize>,
 }
 
+impl Baseline {
+    /// The same baseline with each module in `moved` (old path → new path) under its new path.
+    pub(super) fn follow_renames(mut self, moved: &BTreeMap<String, String>) -> Self {
+        self.modules = self
+            .modules
+            .into_iter()
+            .map(|(path, count)| (moved.get(&path).cloned().unwrap_or(path), count))
+            .collect();
+        self
+    }
+}
+
 /// Whether the module budget applies to `path`: library and binary sources (`src/` of a crate
 /// or tool, `src-tauri/src/` of an app), not tests, benches, examples or generated files.
 fn in_budget(path: &str) -> bool {
@@ -337,6 +349,15 @@ mod tests {
     fn a_raised_baseline_entry_should_fail_against_the_merge_base() {
         let messages = shrink_messages("[modules]\n\"a.rs\" = 901\n", "[modules]\n\"a.rs\" = 900\n");
         assert!(messages.len() == 1 && messages[0].contains("goes up from 900 to 901"));
+    }
+
+    #[test]
+    fn follow_renames_should_move_an_entry_to_its_new_path() {
+        let mut baseline = Baseline::default();
+        baseline.modules.insert("crates/a/src/big.rs".to_owned(), 900);
+        let moved = [("crates/a/src/big.rs".to_owned(), "crates/b/src/big.rs".to_owned())].into();
+        let modules: Vec<_> = baseline.follow_renames(&moved).modules.into_iter().collect();
+        assert_eq!(modules, [("crates/b/src/big.rs".to_owned(), 900)]);
     }
 
     #[test]

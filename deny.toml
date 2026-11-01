@@ -36,7 +36,7 @@ unused-allowed-license = "allow"
 # UniFFI (Swift/Kotlin bindings, ADR 0002 §5, ADR 0029): MPL-2.0, allowed for these crates only
 # (owner decision 2026-10-30). MPL-2.0 is file-level copyleft: lamina stays MIT OR Apache-2.0;
 # the unmodified UniFFI sources stay available on crates.io and the MPL-2.0 text ships with the
-# mobile SDK. Used by spikes/lamina-ffi now and crates/lamina-ffi (L6b) later.
+# mobile SDK. Used by spikes/lamina-ffi now and crates/laminapdf-ffi (L6b) later.
 exceptions = [
     { name = "uniffi", allow = ["MPL-2.0"] },
     { name = "uniffi_bindgen", allow = ["MPL-2.0"] },

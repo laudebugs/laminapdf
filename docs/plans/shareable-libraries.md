@@ -9,7 +9,7 @@
 
 ## 1. Goal
 
-Make lamina's libraries good for three kinds of user at once: frontend and mobile engineers who need smooth UI, backend and command-line users who need composable tools, and LLMs and AI agents that write code against the API and read its output. The [PDF library plan](pdf-library.md) delivers the Rust core, the `lamina` crate and `@laminapdf/sdk`. This plan adds what that plan leaves out:
+Make lamina's libraries good for three kinds of user at once: frontend and mobile engineers who need smooth UI, backend and command-line users who need composable tools, and LLMs and AI agents that write code against the API and read its output. The [PDF library plan](pdf-library.md) delivers the Rust core, the `laminapdf` crate and `@laminapdf/sdk`. This plan adds what that plan leaves out:
 
 1. **One contract** across every surface: errors, coordinates and units, jobs and cancellation, versioned JSON schemas.
 2. **TypeScript hardening:** a worker client, disposal and memory bounds, range loading.
@@ -44,7 +44,7 @@ The research found the opening is real: in October 2026 no permissively licensed
 
 ## 4. Principles (recommendations, recorded in ADRs 0026–0031)
 
-1. **Design the façade to UniFFI's rules now** ([report §2](../research/libraries/shareable-libraries.md#design-the-façade-to-the-stricter-binding-now)): handles that a binding can make `Send + Sync` (UniFFI needs this). The `lamina` façade is a core crate, and ADR 0005 §7 allows no `Mutex` in core, so [ADR 0028](../decisions/0028-facade-rules-jobs-and-cancellation.md) §2 puts the lock in the binding edge crate (`lamina-ffi` wraps the `Send` document in a `Mutex`; ADR 0005 unchanged) rather than making the core `Sync`. Also: `&self`-friendly methods, owned handles instead of borrowed returns, no generics across the boundary, a string-payload error enum, an explicit `CancelToken`, resumable `Job::step`. UniFFI forbids `&mut self`; fixing this after `@laminapdf/sdk` ships would break the TypeScript API.
+1. **Design the façade to UniFFI's rules now** ([report §2](../research/libraries/shareable-libraries.md#design-the-façade-to-the-stricter-binding-now)): handles that a binding can make `Send + Sync` (UniFFI needs this). The `laminapdf` façade is a core crate, and ADR 0005 §7 allows no `Mutex` in core, so [ADR 0028](../decisions/0028-facade-rules-jobs-and-cancellation.md) §2 puts the lock in the binding edge crate (`laminapdf-ffi` wraps the `Send` document in a `Mutex`; ADR 0005 unchanged) rather than making the core `Sync`. Also: `&self`-friendly methods, owned handles instead of borrowed returns, no generics across the boundary, a string-payload error enum, an explicit `CancelToken`, resumable `Job::step`. UniFFI forbids `&mut self`; fixing this after `@laminapdf/sdk` ships would break the TypeScript API.
 2. **One error shape everywhere:** `{ code, kind, message, hint, location, docsUrl }`, kebab-case codes as today (ADR 0003 §2), generated from [`fixtures/codes.json`](../../fixtures/codes.json) into Rust, TypeScript and JSON Schema. Messages never quote document text (prompt-injection hygiene).
 3. **Explicit coordinates:** high-level and extraction APIs use **top-left origin, points**, with typed units (`Pt`, `Mm`) and an explicit `coordinates` block in every JSON output; low-level APIs keep raw PDF user space, named as such. Pages: 0-based `index` plus 1-based `number` in output.
 4. **The core stays synchronous.** Long work is a `Job` the caller steps with a budget counted in work units (core crates have no clock; time limits live at the edges); cancellation and progress are lamina API, not binding features (UniFFI has no built-in cancellation). Async lives at the edges: the TS worker client, Swift `async`, Kotlin `suspend`.
@@ -57,8 +57,8 @@ The research found the opening is real: in October 2026 no permissively licensed
 The [report](../research/libraries/shareable-libraries.md) has side-by-side Rust, TypeScript, CLI, Swift and Kotlin sketches for each area. All snippets are illustrative, not final.
 
 ```rust
-// lamina façade (B5c, ADR 0028): Send + !Sync; lamina-ffi wraps it in a Mutex, lamina-wasm in Rc<RefCell<…>>
-let doc = lamina::Document::open_bytes(bytes, OpenOptions::default())?;
+// lamina façade (B5c, ADR 0028): Send + !Sync; laminapdf-ffi wraps it in a Mutex, laminapdf-wasm in Rc<RefCell<…>>
+let doc = laminapdf::Document::open_bytes(bytes, OpenOptions::default())?;
 let mut job = doc.extract_job(&ExtractOptions { format: Format::Markdown, ..Default::default() })?;
 let cancel = job.cancel_token();                       // clone it to another thread or the UI to cancel
 let out = loop {
@@ -121,16 +121,16 @@ Each round is split into todos (one PR each) on the [todo board](../todos/README
 
 ### L3. AI-ready extraction
 
-**Todos:** [L3a](../todos/ready/L3a-lamina-extract-reading-order.md) (ADR 0030, `lamina-extract` blocks and reading order), [L3b](../todos/ready/L3b-extract-tables-and-serialisers.md) (tables, Markdown/JSON/chunks, bindings), [L3c](../todos/ready/L3c-model-plugins.md) (model plug-in traits).
+**Todos:** [L3a](../todos/ready/L3a-lamina-extract-reading-order.md) (ADR 0030, `laminapdf-extract` blocks and reading order), [L3b](../todos/ready/L3b-extract-tables-and-serialisers.md) (tables, Markdown/JSON/chunks, bindings), [L3c](../todos/ready/L3c-model-plugins.md) (model plug-in traits).
 
-**Deliverable:** `lamina-extract` (core): reading order from the structure tree, else XY-Cut++; headings, lists, header/footer removal, de-hyphenation, hidden-text flags; lattice tables from ruling lines; Markdown, JSON and chunk output in the `lamina.extract/1` schema with page, bbox and structure path per block; `LayoutModel` and `OcrEngine` traits.
+**Deliverable:** `laminapdf-extract` (core): reading order from the structure tree, else XY-Cut++; headings, lists, header/footer removal, de-hyphenation, hidden-text flags; lattice tables from ruling lines; Markdown, JSON and chunk output in the `lamina.extract/1` schema with page, bbox and structure path per block; `LayoutModel` and `OcrEngine` traits.
 **Accepted when:** reading-order and table scores are measured on a public benchmark subset and recorded; every block carries a bbox in top-left points; hidden text never appears in Markdown and is flagged in JSON.
 
 ### L4. CLI and MCP
 
-**Todos:** [L4a](../todos/ready/L4a-lamina-cli.md) (ADR 0031, `lamina-cli` core commands), [L4b](../todos/ready/L4b-cli-batch-render-schema.md) (batch, render, extract, schema, completions), [L4c](../todos/ready/L4c-mcp-mode.md) (`lamina mcp`), [L4d](../todos/ready/L4d-cli-distribution.md) (distribution).
+**Todos:** [L4a](../todos/ready/L4a-lamina-cli.md) (ADR 0031, `laminapdf-cli` core commands), [L4b](../todos/ready/L4b-cli-batch-render-schema.md) (batch, render, extract, schema, completions), [L4c](../todos/ready/L4c-mcp-mode.md) (`lamina mcp`), [L4d](../todos/ready/L4d-cli-distribution.md) (distribution).
 
-**Deliverable:** the `lamina` binary (`crates/lamina-cli`, layer `app`): `info`, `check`, `pages`, `extract`, `render`, `schema`, `explain`; qpdf-style page ranges; stdin/stdout `-`; `--json` and NDJSON for batch; exit codes 0–5; `--jobs`; completions and man pages; an MCP stdio mode with `--root`, read-only by default (`--allow-write` to opt in); release binaries, Homebrew and an npm wrapper.
+**Deliverable:** the `laminapdf` binary (`crates/laminapdf-cli`, layer `app`): `info`, `check`, `pages`, `extract`, `render`, `schema`, `explain`; qpdf-style page ranges; stdin/stdout `-`; `--json` and NDJSON for batch; exit codes 0–5; `--jobs`; completions and man pages; an MCP stdio mode with `--root`, read-only by default (`--allow-write` to opt in); release binaries, Homebrew and an npm wrapper.
 **Accepted when:** every command has `--json` output validated against its schema in tests; exit codes are tested per case; the MCP mode passes the MCP inspector's conformance checks and refuses paths outside `--root`.
 
 ### L5. Docs for agents
@@ -157,7 +157,7 @@ This plan adjusts these todos (edited in the same PR):
 - [B6b](../todos/done/B6b-lamina-pdf-package.md): per-condition wasm loaders and the `init({ module })` escape hatch.
 - [C3a](../todos/done/C3a-viewer-worker-rpc.md) depends on L2a: the viewer reuses `@laminapdf/sdk/worker` instead of a second protocol.
 - [C2a](../todos/done/C2a-render-adrs.md): ADR 0004 picks the render backend per surface (desktop, web, edge, mobile) using hayro's measured wasm size.
-- [L3a](../todos/ready/L3a-lamina-extract-reading-order.md) depends on [U2b](../todos/done/U2b-reading-order-ground-truth.md) (UI/UX plan): reading order is measured on its ground-truth corpus, and the reader's copy and reader mode reuse `lamina-extract`'s ordering.
+- [L3a](../todos/ready/L3a-lamina-extract-reading-order.md) depends on [U2b](../todos/done/U2b-reading-order-ground-truth.md) (UI/UX plan): reading order is measured on its ground-truth corpus, and the reader's copy and reader mode reuse `laminapdf-extract`'s ordering.
 - [L6a](../todos/done/L6a-lamina-ffi-spike.md) feeds [U3b](../todos/ready/U3b-mobile-shell-spike.md) (`mobile-shell` spike, ADR 0025); [L6b](../todos/ready/L6b-mobile-sdk-plan.md) waits for U3b. U3b decides lamina's own mobile apps; L6 is the SDK for other developers, which needs UniFFI either way.
 - [E10d](../todos/ready/E10d-pades-signing-core.md): the `Signer` is two-phase (`prepare` returns the digest, `finish` takes the signature) so WebCrypto, the Secure Enclave and HSMs fit a synchronous core.
 
@@ -177,13 +177,13 @@ This plan adjusts these todos (edited in the same PR):
 
 ### L3. AI-ready extraction
 
-- [ ] Write ADR 0030; create `lamina-extract` with blocks, reading order, headings, lists, header/footer removal
+- [ ] Write ADR 0030; create `laminapdf-extract` with blocks, reading order, headings, lists, header/footer removal
 - [ ] Lattice tables; Markdown, JSON and chunk serialisers; expose in Rust, WASM and TS
 - [ ] `LayoutModel` and `OcrEngine` traits; optional model edge crate
 
 ### L4. CLI and MCP
 
-- [ ] Write ADR 0031; create `crates/lamina-cli` with `info`, `check`, `pages`, `extract` (text), `explain`
+- [ ] Write ADR 0031; create `crates/laminapdf-cli` with `info`, `check`, `pages`, `extract` (text), `explain`
 - [ ] Batch and NDJSON, `--jobs`, `render`, Markdown/JSON extraction, `schema`, completions, man pages
 - [ ] `lamina mcp` (rmcp, stdio), `--root`, read-only by default (`--allow-write`), honest tool annotations
 - [ ] Release binaries (cargo-dist), Homebrew tap, npm wrapper with per-platform packages

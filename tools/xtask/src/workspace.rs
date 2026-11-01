@@ -154,7 +154,7 @@ impl Workspace {
         for krate in self.crates.iter().filter(|c| c.layer == Layer::Core) {
             // The crate's own dependency graph, with only the features it (and its own
             // dependencies) enable: the workspace-wide resolve also has the features edge crates
-            // turn on (lamina-wasm's `tsify` on lamina-ops), which a core build never sees.
+            // turn on (laminapdf-wasm's `tsify` on laminapdf-ops), which a core build never sees.
             let (graph, root) = crate_graph(&self.root, &krate.name)?;
             for path in edge_only_paths(&graph, &root) {
                 problems.push(format!("{}: depends on edge-only crate: {path}", krate.name));
@@ -292,7 +292,7 @@ fn parse_tree(text: &str) -> (BTreeMap<String, Node>, String) {
 }
 
 /// Every edge-only crate reachable from `root` through normal dependencies, as a path
-/// (`lamina-x → helper → getrandom`). Proc-macros are not followed: their dependencies run on the
+/// (`laminapdf-x → helper → getrandom`). Proc-macros are not followed: their dependencies run on the
 /// host at build time and are not shipped. Dev- and build-dependencies are not in the graph.
 fn edge_only_paths(graph: &BTreeMap<String, Node>, root: &str) -> Vec<String> {
     let mut parent: BTreeMap<&str, &str> = BTreeMap::new();

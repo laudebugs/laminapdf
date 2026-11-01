@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Writes fixtures/images/ for lamina-build's image and colour tests (todo B5a); standard library
+"""Writes fixtures/images/ for laminapdf-build's image and colour tests (todo B5a); standard library
 only, plus macOS `sips` for the JPEG conversions.
 
 * `photo-rgb.jpg`: the krilla-fit spike's baseline JPEG (`spikes/krilla-fit/assets/photo.jpg`,

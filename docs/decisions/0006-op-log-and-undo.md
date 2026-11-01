@@ -9,7 +9,7 @@ Principle 2 of the [architecture plan](../plans/architecture.md#principles-each-
 
 ## Decision
 
-### 1. The `Op` enum (`lamina-ops`)
+### 1. The `Op` enum (`laminapdf-ops`)
 
 ```rust
 #[non_exhaustive]
@@ -74,7 +74,7 @@ doc.transact(|tx| {
 
 - Logs and sync messages carry a schema version in an envelope: `{ "v": 1, "ops": [ … ] }`, which also denies unknown fields; a `v` the reader doesn't know is rejected before any op is read. Op names (the `op` tag) and field names (inside `args`) are stable camelCase strings, enforced by the serde attributes in §1.
 - Adding an op or an optional field is compatible and keeps `v`. Older readers reject what they don't know, so peers negotiate the version on connect (ADR 0012).
-- Changing the meaning of a field, or removing one, bumps `v` and adds a `migrate_vN_to_vN+1` function in `lamina-ops`. Every older version stays loadable.
+- Changing the meaning of a field, or removing one, bumps `v` and adds a `migrate_vN_to_vN+1` function in `laminapdf-ops`. Every older version stays loadable.
 - Frozen JSON samples of each version live in `fixtures/ops/v1/…` and are deserialised and applied in tests ([ADR 0018](0018-test-strategy.md)).
 
 ### 7. Dirty state
@@ -85,7 +85,7 @@ Two levels: **semantic** (local transactions since the last save; the UI's "unsa
 
 How [B3a](../todos/done/B3a-overlay-and-ops.md) realised §1–§4 and §6–§7, where the sketch above left a choice:
 
-- **`transact` lives on a wrapper.** `lamina_ops::Document` wraps `lamina_model::Document` (and dereferences to it for reading) and owns the history and the open transaction; it hands out no `&mut` to the layers below. `lamina_cos::Document` provides the mechanism instead: `edit()` → `CosMut`, journal marks, `rollback_to` and `take_changes`. `transact` takes the origin: `doc.transact(Origin::Local, |tx| …)`. The handle form is `begin` / `apply` / `commit` / `rollback` on the same type, and `apply_all(origin, ops)` runs a list as one transaction.
+- **`transact` lives on a wrapper.** `laminapdf_ops::Document` wraps `laminapdf_model::Document` (and dereferences to it for reading) and owns the history and the open transaction; it hands out no `&mut` to the layers below. `laminapdf_cos::Document` provides the mechanism instead: `edit()` → `CosMut`, journal marks, `rollback_to` and `take_changes`. `transact` takes the origin: `doc.transact(Origin::Local, |tx| …)`. The handle form is `begin` / `apply` / `commit` / `rollback` on the same type, and `apply_all(origin, ops)` runs a list as one transaction.
 - **Undo records come from the journal.** An op only writes through `CosMut`; the transaction derives its `UndoRecord` from the journal (per changed object, or the trailer: the value before and after; per dictionary key for `properties()`). No op writes an inverse by hand. Undo restores a whole object when it still equals the transaction's `after` (which keeps key order, so undoing to the base empties the overlay), and otherwise key by key, putting a restored key back in its old position. `UndoOutcome::Skipped` carries the skipped properties, like `Partial`. A property is a `Field`: a dictionary key, a stream's data, or the whole value; a stream's data and its encoding keys are restored together, and a value whose kind (dictionary or stream) differs between before, after and now is skipped whole rather than mixed.
 - **`Tx::apply` is its own savepoint**: a failing op's changes are rolled back before the error returns, so a caught op error leaves the transaction usable and nothing half-applied.
 - **`OpLog::from_json`** reads `v` before any op (an unknown version is `UnsupportedVersion` even when its ops would not parse); the serde `Deserialize` impl also rejects an unknown `v`, in field order.

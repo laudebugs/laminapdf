@@ -15,7 +15,7 @@ export function isCode(code: string): code is ErrorCode | WarningCode {
 /**
  * The explain page of `code` as Markdown (`docs/errors/<code>.md`: what happened, why, how to fix,
  * an example and the `data` fields), or `undefined` for a string that is not a code. The same
- * text as `docsUrl` and `lamina::explain` in Rust.
+ * text as `docsUrl` and `laminapdf::explain` in Rust.
  *
  * @param code - an error or warning code, such as `LaminaError.code`.
  * @example

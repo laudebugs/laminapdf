@@ -39,7 +39,7 @@ Expose the revision index built for signature diffing in E10h (`/Prev` chain, by
 **Editor facts**
 
 - **Operations shipped** ([06 §3](../../research/pdf/06-feature-inventory.md#3-full-operation-inventory-with-mechanisms) IDs): `M.12` inspect incremental updates and revisions
-- **Crates and packages:** `lamina-cos`, `lamina-save`, `@laminapdf/ui`
+- **Crates and packages:** `laminapdf-cos`, `laminapdf-save`, `@laminapdf/ui`
 - **`SaveConstraint`:** read-only
 - **Web vs desktop:** identical
 - **Server features:** none (this PR adds no server feature; all processing stays on the device)

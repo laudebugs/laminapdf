@@ -20,7 +20,7 @@ const hayro = await initHayro(); // or a URL, Response, bytes or WebAssembly.Mod
 
 It is the second renderer of [ADR 0004](../../docs/decisions/0004-render-backend.md), the oracle in CI; its known differences are ADR 0004 §6, measured by [C1a](../../docs/todos/done/C1a-hayro-parity-spike.md), and the nightly oracle diff ([X3b](../../docs/todos/done/X3b-render-diff-nightly.md)) uses the default flags.
 
-`crates/lamina-render-wasm` (an edge crate, with a flat wasm-bindgen surface) is built by `cargo xtask wasm` as `lamina_render_hayro.{js,d.ts,wasm}` into `packages/wasm/dist/`, next to lamina's own modules. It goes through the same `wasm-bindgen` and `wasm-opt` pipeline, with its own size budget (`render_hayro` in `packages/wasm/size-budgets.json`).
+`crates/laminapdf-render-wasm` (an edge crate, with a flat wasm-bindgen surface) is built by `cargo xtask wasm` as `lamina_render_hayro.{js,d.ts,wasm}` into `packages/wasm/dist/`, next to lamina's own modules. It goes through the same `wasm-bindgen` and `wasm-opt` pipeline, with its own size budget (`render_hayro` in `packages/wasm/size-budgets.json`).
 
 ### Tests
 

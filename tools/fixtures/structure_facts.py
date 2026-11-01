@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Writes fixtures/build/structure.json (todo B8a): for each of lamina-build's tagged goldens,
+"""Writes fixtures/build/structure.json (todo B8a): for each of laminapdf-build's tagged goldens,
 its SHA-256, whether `qpdf --check` passes, and the structure tree pdf.js
 (`page.getStructTree()`, tools/fixtures/pdfjs_structure.mjs) and PDFium
 (`FPDF_StructTree_GetForPage`, through pypdfium2) read per page: each element's type, alternate
-text and language, its child elements and its MCIDs. crates/lamina-build/tests/tagging.rs checks
+text and language, its child elements and its MCIDs. crates/laminapdf-build/tests/tagging.rs checks
 them against the builder's input and the goldens' current bytes, so tests need neither Node,
 Python nor qpdf.
 

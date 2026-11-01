@@ -24,7 +24,7 @@ Let `Document::open` read files encrypted with the standard security handler whe
 - [04 §7.2](../../research/pdf/04-interactive-security.md#72-standard-security-handler-revisions): Algorithm 2 key derivation for R2–R4 (PAD, 50 MD5 rounds for R3+, `FF FF FF FF` when `/EncryptMetadata false` at R4), per-object keys (`sAlT` for AES), Algorithms 4–7 (user/owner checks), R6 Algorithm 2.A/2.B (SASLprep, SHA-256/384/512 loop, `/UE`/`/OE`, `/Perms` check).
 - [04 §7.3](../../research/pdf/04-interactive-security.md#73-verified-example-pypdf-6170-aes-256-empty-user-password) verified pypdf AES-256 example; [§7.4](../../research/pdf/04-interactive-security.md#74-permission-bits-p) permission bits (read `/P` as 32-bit, only defined bits); [§7.5](../../research/pdf/04-interactive-security.md#75-user-vs-owner-passwords-why-owner-only-protection-isnt-security); [§7.7 PDFex](../../research/pdf/04-interactive-security.md#77-pdfex-müller-et-al-acm-ccs-2019) (mixed plaintext/ciphertext).
 - ISO 32000-2 §7.6 (and ISO 32000-1 §7.6.3 for R2–R4).
-- Code: [`lamina-cos/src/reader/mod.rs`](../../../crates/lamina-cos/src/reader/mod.rs) (`is_encrypted`, `resolve`, `decode_stream`), [`reader/objstm.rs`](../../../crates/lamina-cos/src/reader/objstm.rs), [`lamina-syntax/src/filters.rs`](../../../crates/lamina-syntax/src/filters.rs).
+- Code: [`lamina-cos/src/reader/mod.rs`](../../../crates/laminapdf-cos/src/reader/mod.rs) (`is_encrypted`, `resolve`, `decode_stream`), [`reader/objstm.rs`](../../../crates/laminapdf-cos/src/reader/objstm.rs), [`lamina-syntax/src/filters.rs`](../../../crates/laminapdf-syntax/src/filters.rs).
 
 ## Scope
 

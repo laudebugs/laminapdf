@@ -5,7 +5,7 @@
 
 ## What happened
 
-The PDFium backend (`lamina-render-pdfium`) could not load the PDFium library, so nothing can be rendered with it.
+The PDFium backend (`laminapdf-render-pdfium`) could not load the PDFium library, so nothing can be rendered with it.
 
 ## Why
 

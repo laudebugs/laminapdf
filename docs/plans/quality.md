@@ -66,7 +66,7 @@ Six read-only reviews covered the docs prose and navigation, the code examples, 
 - **The repository README is stale.** It never links docs.laminapdf.com and still says the site lives on workers.dev.
 - **One factual error.**
   - `encrypted-files.mdx` says the password is tried as the user password, then the owner password.
-  - For R5/R6 the order is owner first (`lamina-syntax/src/crypt`).
+  - For R5/R6 the order is owner first (`laminapdf-syntax/src/crypt`).
 
 ### 2.2 Code examples
 
@@ -108,18 +108,18 @@ The code is disciplined where rules already exist. Workspace clippy `pedantic` r
 **Parallel implementations that already disagree.** These are bugs, not just tidiness:
 
 - **Render ranges lost in the worker.** The worker turns a render error's `ranges` into `{offset, length}` objects (`packages/sdk/src/worker/server.ts`). `LaminaError` only accepts `[offset, length]` tuples, so a render `data-pending` that crosses the worker arrives with no ranges.
-- **I/O errors swallowed by text extraction.** Extraction has its own error-propagation rule (`lamina-text/src/extract/font.rs` `fatal`) that leaves out `Error::Source`. An I/O failure from a `FileSource` reads as "no font", against ADR 0003.
-- **Surrogate pairs split.** There are two ToUnicode CMap writers in lamina-text, and the simple-font one can split a surrogate pair that the Type 0 one never splits.
-- **"Did you mean" that depends on the layer.** It is written in both Rust (`lamina-wasm`) and TypeScript (`@laminapdf/sdk`), and they break ties differently, so a typo's suggestion depends on which layer raised it.
-- **`/Rotate 90.0` read as unrotated.** `/Rotate` and `/MediaBox` are parsed in both `lamina-cos` and `lamina-model`, and ops (`rotate.rs`) reads the cos copy, which accepts integers only.
-- **Two `Matrix` types that compose in opposite orders.** lamina-build composes with `after` and lamina-content with `multiply`, so a matrix moved from one crate to the other needs its order reversed. `FillRule`, `Dash` and `Color` are also defined in both crates.
+- **I/O errors swallowed by text extraction.** Extraction has its own error-propagation rule (`laminapdf-text/src/extract/font.rs` `fatal`) that leaves out `Error::Source`. An I/O failure from a `FileSource` reads as "no font", against ADR 0003.
+- **Surrogate pairs split.** There are two ToUnicode CMap writers in laminapdf-text, and the simple-font one can split a surrogate pair that the Type 0 one never splits.
+- **"Did you mean" that depends on the layer.** It is written in both Rust (`laminapdf-wasm`) and TypeScript (`@laminapdf/sdk`), and they break ties differently, so a typo's suggestion depends on which layer raised it.
+- **`/Rotate 90.0` read as unrotated.** `/Rotate` and `/MediaBox` are parsed in both `laminapdf-cos` and `laminapdf-model`, and ops (`rotate.rs`) reads the cos copy, which accepts integers only.
+- **Two `Matrix` types that compose in opposite orders.** laminapdf-build composes with `after` and laminapdf-content with `multiply`, so a matrix moved from one crate to the other needs its order reversed. `FillRule`, `Dash` and `Color` are also defined in both crates.
 
 **Second implementations of things the codebase already has:**
 
-- **A second PDF serialiser.** The spike-era `Writer` in `lamina-save/src/legacy.rs` carries its own xref, object-stream and header code, and it sits in lamina-save's public API although only tests use it.
-- **A second PDF lexer** in `lamina-text/src/extract/cmap.rs`, about 150 lines, that skips `#xx` name decoding and ignores `Limits`.
-- **Two sets of PNG row filters**, in lamina-build and lamina-syntax.
-- **Two copies of the ADR 0026 error object**: the façade's `Diagnostic` and lamina-wasm's `BindingDiagnostic`.
+- **A second PDF serialiser.** The spike-era `Writer` in `laminapdf-save/src/legacy.rs` carries its own xref, object-stream and header code, and it sits in laminapdf-save's public API although only tests use it.
+- **A second PDF lexer** in `laminapdf-text/src/extract/cmap.rs`, about 150 lines, that skips `#xx` name decoding and ignores `Limits`.
+- **Two sets of PNG row filters**, in laminapdf-build and laminapdf-syntax.
+- **Two copies of the ADR 0026 error object**: the façade's `Diagnostic` and laminapdf-wasm's `BindingDiagnostic`.
 - **Two error serialisations for render errors.** One of them is unused; the viewer throws plain objects.
 - **A duplicated rotation enum.** `ViewRotation` copies `Rotation`.
 - **Hand-kept lists across the WASM boundary.**
@@ -142,14 +142,14 @@ The code is disciplined where rules already exist. Workspace clippy `pedantic` r
 
 **Large modules.**
 
-- `lamina-cos/src/reader/mod.rs` is 1,533 lines (1,080 of them code).
-- `lamina-content`'s `execute` is 318 lines behind an `#[expect]`.
-- Four other files are over the 800-line budget in total lines: `lamina-text/src/extract/font.rs` (1,321), `lamina-build/src/surface/mod.rs` (1,027), `lamina-wasm/src/builder.rs` (1,011) and `lamina-build/src/surface/png.rs` (872). In non-test lines, all four are within the budget (`lamina-text`'s `font.rs` is the closest, at 786). Q2a's baseline (`tools/xtask/maintainability-baseline.toml`) lists the four modules that are over it. They are the COS reader (1,080), `lamina-content`'s `interp.rs` (824) and two xtask modules (`live.rs`, 1,115; `render_diff.rs`, 923). Q2r now splits the two xtask modules too.
+- `laminapdf-cos/src/reader/mod.rs` is 1,533 lines (1,080 of them code).
+- `laminapdf-content`'s `execute` is 318 lines behind an `#[expect]`.
+- Four other files are over the 800-line budget in total lines: `laminapdf-text/src/extract/font.rs` (1,321), `laminapdf-build/src/surface/mod.rs` (1,027), `laminapdf-wasm/src/builder.rs` (1,011) and `laminapdf-build/src/surface/png.rs` (872). In non-test lines, all four are within the budget (`laminapdf-text`'s `font.rs` is the closest, at 786). Q2a's baseline (`tools/xtask/maintainability-baseline.toml`) lists the four modules that are over it. They are the COS reader (1,080), `laminapdf-content`'s `interp.rs` (824) and two xtask modules (`live.rs`, 1,115; `render_diff.rs`, 923). Q2r now splits the two xtask modules too.
 - In TypeScript, eight functions are over Biome's cognitive-complexity limit of 15; the PDFium `render` closure scores 39.
 
 **Façade names that collide.** Readers of the docs meet:
 
-- `lamina::TextRun` (drawn text) next to `lamina::extract::TextRun` (extracted text);
+- `laminapdf::TextRun` (drawn text) next to `laminapdf::extract::TextRun` (extracted text);
 - `Font` next to `FontHandle`;
 - `ops()`, which hands out a second `Document` type.
 
@@ -258,8 +258,8 @@ Start Q2 with the bug fixes (Q2f, Q2h, Q2v; Q2e after Q2a; Q2k after Q2j; Q2o af
 | --- | --- | --- | --- |
 | [Q2a](../todos/done/Q2a-maintainability-checks-rust.md) | `check maintainability` for Rust: module budget and new lints | M | — |
 | [Q2b](../todos/done/Q2b-ts-lint-rules.md) | TypeScript lint rules: complexity, function length, throws and TSDoc | S | — |
-| [Q2c](../todos/ready/Q2c-test-fixtures-crate.md) | `lamina-test-fixtures` for the core crates' test helpers | M | Q2a |
-| [Q2d](../todos/ready/Q2d-one-serialiser.md) | One PDF serialiser: the test `Writer` built on lamina-save's helpers | M | Q2c |
+| [Q2c](../todos/ready/Q2c-test-fixtures-crate.md) | `laminapdf-test-fixtures` for the core crates' test helpers | M | Q2a |
+| [Q2d](../todos/ready/Q2d-one-serialiser.md) | One PDF serialiser: the test `Writer` built on laminapdf-save's helpers | M | Q2c |
 | [Q2e](../todos/ready/Q2e-error-policy-consolidation.md) | One error-propagation policy per kind (fixes swallowed I/O errors) | S | Q2a |
 | [Q2f](../todos/ready/Q2f-page-attributes-one-owner.md) | One reader of page attributes and one rotation type (fixes `/Rotate 90.0`) | M | — |
 | [Q2g](../todos/ready/Q2g-one-matrix.md) | One `Matrix`, `FillRule`, `Dash` and `Color` | M | Q2a |
@@ -279,7 +279,7 @@ Start Q2 with the bug fixes (Q2f, Q2h, Q2v; Q2e after Q2a; Q2k after Q2j; Q2o af
 | [Q2u](../todos/done/Q2u-ts-dependency-tools.md) | TypeScript dependency tools: cycles, cross-package imports, duplication, unused exports | M | — |
 | [Q2v](../todos/ready/Q2v-did-you-mean.md) | One did-you-mean rule, pinned in both languages | S | — |
 | [Q2w](../todos/ready/Q2w-split-content-interpreter.md) | Split the content interpreter's `execute` | S | Q2a |
-| [Q2x](../todos/ready/Q2x-test-fixtures-migration.md) | `lamina-test-fixtures` for the remaining crates | M | Q2c |
+| [Q2x](../todos/ready/Q2x-test-fixtures-migration.md) | `laminapdf-test-fixtures` for the remaining crates | M | Q2c |
 | [Q2y](../todos/ready/Q2y-facade-error-wrapping.md) | Decide and implement how the façade wraps crate errors | S | — |
 
 ## 7. Risks

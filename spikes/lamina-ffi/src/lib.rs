@@ -1,6 +1,6 @@
-//! Spike L6a: the `lamina` façade bound with `UniFFI` 0.32 for Swift and Kotlin.
+//! Spike L6a: the `laminapdf` façade bound with `UniFFI` 0.32 for Swift and Kotlin.
 //!
-//! Every export is a thin wrapper over `lamina` (ADR 0028 §1: the edge crate holds binding
+//! Every export is a thin wrapper over `laminapdf` (ADR 0028 §1: the edge crate holds binding
 //! code only). The questions it answers are in the README: does the façade bind without
 //! changes, where the lock lives (ADR 0028 §2: here, a `Mutex` per document), how jobs and
 //! cancellation look from Swift and Kotlin, whether panics surface as foreign errors, and
@@ -20,7 +20,7 @@ use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
 use std::sync::{Arc, Mutex, MutexGuard, TryLockError};
 use std::task::{Context, Poll, Waker};
 
-use lamina::{
+use laminapdf::{
     Budget, CancelToken, Document, IncrementalOutput, InfoPatch, Op, OpenOptions, SaveMode, SaveOptions, SetInfo, Step,
 };
 
@@ -54,7 +54,7 @@ pub enum FfiError {
     /// The document's lock was poisoned by a panic in an earlier call.
     #[error("the document is unusable after an earlier panic")]
     Poisoned,
-    /// The façade returned something this binding doesn't know yet (a newer `lamina`).
+    /// The façade returned something this binding doesn't know yet (a newer `laminapdf`).
     #[error("unsupported by this binding: {what}")]
     Unsupported {
         /// What it was.
@@ -62,8 +62,8 @@ pub enum FfiError {
     },
 }
 
-impl From<lamina::Error> for FfiError {
-    fn from(e: lamina::Error) -> Self {
+impl From<laminapdf::Error> for FfiError {
+    fn from(e: laminapdf::Error) -> Self {
         let d = e.diagnostic();
         Self::Lamina {
             code: d.code.clone(),
@@ -144,7 +144,7 @@ pub enum FfiSaveMode {
     FullRewrite,
 }
 
-/// Save options (a subset of `lamina::SaveOptions`).
+/// Save options (a subset of `laminapdf::SaveOptions`).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, uniffi::Record)]
 pub struct FfiSaveOptions {
     /// The mode.
@@ -210,7 +210,7 @@ fn save_options(o: FfiSaveOptions) -> SaveOptions {
 /// The mode the writer used. `Auto` is a request, never a result, so a mode this list doesn't
 /// know is `None`, not a guess (and not an error: the save happened, and its bytes must reach
 /// the caller).
-fn saved(s: lamina::Saved) -> FfiSaved {
+fn saved(s: laminapdf::Saved) -> FfiSaved {
     let mode = match s.report.mode() {
         SaveMode::Incremental => Some(FfiSaveMode::Incremental),
         SaveMode::FullRewrite => Some(FfiSaveMode::FullRewrite),
@@ -223,15 +223,15 @@ fn saved(s: lamina::Saved) -> FfiSaved {
     }
 }
 
-/// Phase names, spelled out so they match `lamina-wasm`'s `phase_name` (crates/lamina-wasm/src/dto.rs).
-fn phase(p: lamina::Phase) -> String {
+/// Phase names, spelled out so they match `laminapdf-wasm`'s `phase_name` (crates/laminapdf-wasm/src/dto.rs).
+fn phase(p: laminapdf::Phase) -> String {
     match p {
-        lamina::Phase::Parse => "parse",
-        lamina::Phase::Layout => "layout",
-        lamina::Phase::Extract => "extract",
-        lamina::Phase::Render => "render",
-        lamina::Phase::Write => "write",
-        lamina::Phase::Sign => "sign",
+        laminapdf::Phase::Parse => "parse",
+        laminapdf::Phase::Layout => "layout",
+        laminapdf::Phase::Extract => "extract",
+        laminapdf::Phase::Render => "render",
+        laminapdf::Phase::Write => "write",
+        laminapdf::Phase::Sign => "sign",
         // A phase added to the non-exhaustive enum before this list learns it.
         _ => "other",
     }
@@ -239,7 +239,7 @@ fn phase(p: lamina::Phase) -> String {
 }
 
 // ---------------------------------------------------------------------------------------------
-// The document handle. `lamina::Document` is `Send + !Sync`; UniFFI objects must be
+// The document handle. `laminapdf::Document` is `Send + !Sync`; UniFFI objects must be
 // `Send + Sync`, so the lock lives here (ADR 0028 §2).
 // ---------------------------------------------------------------------------------------------
 
@@ -317,7 +317,7 @@ impl FfiDocument {
         self.waiters.register(cx.waker());
         cancel.waiters.register(cx.waker());
         if cancel.is_cancelled() {
-            return Poll::Ready(Err(lamina::Error::Cancelled.into()));
+            return Poll::Ready(Err(laminapdf::Error::Cancelled.into()));
         }
         match self.inner.try_lock() {
             Ok(guard) => Poll::Ready(Ok(DocGuard {
@@ -490,7 +490,7 @@ impl FfiDocument {
     /// # Errors
     /// `page-index-out-of-range` and reading errors.
     pub fn page_text(&self, index: u32) -> FfiResult<Vec<String>> {
-        let text = self.lock()?.page_text(index, &lamina::extract::TextOptions::new())?;
+        let text = self.lock()?.page_text(index, &laminapdf::extract::TextOptions::new())?;
         Ok(text.lines())
     }
 }
@@ -527,7 +527,7 @@ impl FfiCancelToken {
 #[derive(uniffi::Object)]
 pub struct FfiSaveJob {
     doc: Arc<FfiDocument>,
-    job: Mutex<lamina::SaveJob>,
+    job: Mutex<laminapdf::SaveJob>,
     token: CancelToken,
 }
 
@@ -600,7 +600,7 @@ impl FfiCountJob {
     /// `cancelled` once [`FfiCountJob::cancel`] was called (the façade's own error).
     pub fn step(&self) -> FfiResult<bool> {
         if self.token.is_cancelled() {
-            return Err(lamina::Error::Cancelled.into());
+            return Err(laminapdf::Error::Cancelled.into());
         }
         let done = self.done.fetch_add(1, Ordering::SeqCst).saturating_add(1);
         Ok(done >= self.total)

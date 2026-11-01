@@ -32,7 +32,7 @@ Encrypt on full rewrite with the standard security handler R6 (AES-256, `/V 5`, 
 
 **In scope**
 
-- Crypt filter encryption in `lamina-syntax` (RustCrypto `aes`, `cbc`, `sha2`; random IVs from an injected RNG — no ambient randomness in core; shells pass entropy)
+- Crypt filter encryption in `laminapdf-syntax` (RustCrypto `aes`, `cbc`, `sha2`; random IVs from an injected RNG — no ambient randomness in core; shells pass entropy)
 - `SetEncryption { user, owner, permissions, encrypt_metadata }` op (requires rewrite)
 - Incremental saves of encrypted bases encrypt new objects with the existing key
 - PDFex mitigations: refuse partially encrypted output; `/Perms` consistency
@@ -46,7 +46,7 @@ Encrypt on full rewrite with the standard security handler R6 (AES-256, `/V 5`, 
 **Editor facts**
 
 - **Operations shipped** ([06 §3](../../research/pdf/06-feature-inventory.md#3-full-operation-inventory-with-mechanisms) IDs): `G.01` document-open password; `G.02` encrypt a PDF; `G.03` permission passwords; `G.04` restrict print/copy/edit; `G.11` inspect encryption
-- **Crates and packages:** `lamina-syntax` (crypt filters write), `lamina-save`, `lamina-ops`, `@laminapdf/ui`
+- **Crates and packages:** `laminapdf-syntax` (crypt filters write), `laminapdf-save`, `laminapdf-ops`, `@laminapdf/ui`
 - **`Op` variants:** `SetEncryption` (class `Document`, `requires_rewrite = true`, barrier per ADR 0006 §5)
 - **`SaveConstraint`:** `RequiresRewrite`: a full rewrite, every earlier revision dropped. On signed files the constraint is `Conflict`: the UI names the signatures that will be invalidated and removed (ADR 0007 §3 override); order redact → rewrite → sign
 - **Web vs desktop:** identical; passwords never leave the device or the worker
@@ -64,7 +64,7 @@ Encrypt on full rewrite with the standard security handler R6 (AES-256, `/V 5`, 
 
 ## Acceptance criteria
 
-- [ ] Library parity ([full-editor §5](../../plans/full-editor.md#5-requirements-that-hold-for-every-round) req. 7): every new `Op` is exposed in `lamina` and `@laminapdf/sdk` in this PR, with rustdoc/TSDoc, a runnable example, tsify-generated TS types, and serde samples frozen in `fixtures/ops/v1/` (unknown ops and fields rejected, ADR 0006 §1, §6)
+- [ ] Library parity ([full-editor §5](../../plans/full-editor.md#5-requirements-that-hold-for-every-round) req. 7): every new `Op` is exposed in `laminapdf` and `@laminapdf/sdk` in this PR, with rustdoc/TSDoc, a runnable example, tsify-generated TS types, and serde samples frozen in `fixtures/ops/v1/` (unknown ops and fields rejected, ADR 0006 §1, §6)
 - [ ] Every new op reports its `ModificationClass` and `requires_rewrite` (ADR 0006 §1); a test per op runs `planner.would_violate(&op)` on the signed fixtures (no certification, DocMDP P1, P2, P3, FieldMDP lock) and asserts the verdict ([ADR 0007](../../decisions/0007-save-planner.md) §2), because a misclassified op is a security bug
 - [ ] Encrypted outputs open in pdf.js, PDFium, qpdf (`--check` with password) and Acrobat (manual); wrong passwords fail
 - [ ] Incremental edits on encrypted files stay encrypted (no plaintext objects: scan test)

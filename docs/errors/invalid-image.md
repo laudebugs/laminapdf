@@ -5,7 +5,7 @@
 
 ## What happened
 
-`Image::jpeg`, `Image::png` or `Image::png_with` (`lamina-build`) could not read the bytes as an image of that format.
+`Image::jpeg`, `Image::png` or `Image::png_with` (`laminapdf-build`) could not read the bytes as an image of that format.
 
 ## Why
 

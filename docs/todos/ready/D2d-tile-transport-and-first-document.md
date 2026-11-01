@@ -23,7 +23,7 @@ Make the desktop app a working single-window reader: File ▸ Open (via a button
 
 - ADR 0008 §tile transport and D1a's README (`spikes/desktop-ipc/`): primary/fallback transport, tile size, compression, in-flight limit.
 - ADR 0009 / web C3: the viewer's engine interface (request IDs, priorities, `AbortSignal` cancellation, `ImageBitmap` painting). The desktop client must implement exactly that interface.
-- D2b: `EngineSupervisor`, `DocumentRegistry`, `SessionPassword`, and the protocol (crate `lamina-desktop-protocol`): `RenderTile`/`Cancel`/`Tile`, `UnlockDocument`/`Unlocked`/`NeedsPassword`.
+- D2b: `EngineSupervisor`, `DocumentRegistry`, `SessionPassword`, and the protocol (crate `laminapdf-desktop-protocol`): `RenderTile`/`Cancel`/`Tile`, `UnlockDocument`/`Unlocked`/`NeedsPassword`.
 - [Desktop plan §4 non-functional](../../plans/desktop-app.md#non-functional-targets-and-release-gates): first page of a 1 GB PDF ≤ 1.5 s after open; idle memory ≤ 150 MB with one 10-page document.
 - [Desktop notes Q1](../../research/architecture/notes/desktop-shell.md#q1-shell-options-versions-size-memory-startup-webview-differences-licence-maturity-production-users): Canvas2D only on Linux; no WebGL dependency.
 - Tauri: `tauri::ipc::Channel`, `tauri::ipc::Response`, `InvokeResponseBody::Raw`, `register_asynchronous_uri_scheme_protocol` (per D1a's choice).

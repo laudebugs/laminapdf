@@ -43,7 +43,7 @@ The short feature-plan PR that opens round E11 ([full-editor §E11](../../plans/
 **Editor facts**
 
 - **Operations shipped** ([06 §3](../../research/pdf/06-feature-inventory.md#3-full-operation-inventory-with-mechanisms) IDs): `G.01` document-open password; `G.02` encrypt a PDF; `G.03` permission passwords; `G.04` restrict print/copy/edit; `G.05` remove security with authorisation; `G.08` remove hidden metadata and comments; `G.09` sanitise embedded content; `G.10` remove attachments and scripts; `G.11` inspect encryption; `G.12` certificate-based security; `G.13` remove hidden layers/information
-- **Crates and packages:** (planned for the round) `lamina-save` encryption on write over B2's crypt filters; public-key handler read; sanitiser ops with a report
+- **Crates and packages:** (planned for the round) `laminapdf-save` encryption on write over B2's crypt filters; public-key handler read; sanitiser ops with a report
 - **`SaveConstraint`:** (round summary from the plan; the feature plan details it per op) `RequiresRewrite`; signed files warned that signatures will be invalidated
 - **Web vs desktop:** identical; keys never leave the device
 - **Server features:** none
@@ -52,7 +52,7 @@ The short feature-plan PR that opens round E11 ([full-editor §E11](../../plans/
 ## Tasks
 
 - [ ] Create `docs/plans/editor/e11-security-and-sanitisation.md` (Status: Draft) with: goal; the operations in scope by inventory ID (`G.01`, `G.02`, `G.03`, `G.04`, `G.05`, `G.08`, `G.09`, `G.10`, `G.11`, `G.12`, `G.13`) and the target status of each; for each op its `Op` variant name, payload sketch (by `LaminaId`, no ambient inputs), `ModificationClass` and `requires_rewrite`
-- [ ] Describe model and crate changes (new typed views, new modules, public API in `lamina` and `@laminapdf/sdk`), and the UI tools/panels in `@laminapdf/ui`
+- [ ] Describe model and crate changes (new typed views, new modules, public API in `laminapdf` and `@laminapdf/sdk`), and the UI tools/panels in `@laminapdf/ui`
 - [ ] Write the `SaveConstraint` table for the round: behaviour on `Free`, `AppendOnly` (DocMDP P1/P2/P3, FieldMDP), `RequiresRewrite` and `Conflict`, and the UI warnings
 - [ ] List web vs desktop differences through `Platform` capability flags, and any server feature (off by default, opt-in, what leaves the device)
 - [ ] List fixtures to add (with provenance and licence in `fixtures/README.md`), and the test plan per op: unit, golden, round-trip (lamina, pdf.js, PDFium, qpdf), differential, fuzz, Playwright and WebdriverIO e2e

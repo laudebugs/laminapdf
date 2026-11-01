@@ -1,6 +1,6 @@
 # Spike: `lamina-ffi` (Round L6a)
 
-**Question.** Does the `lamina` façade (B5c, ADR 0028) bind to Swift and Kotlin through UniFFI 0.32 without changes? How do cancellation and panics behave from each language, how big are the libraries, and what should ADR 0029 decide?
+**Question.** Does the `laminapdf` façade (B5c, ADR 0028) bind to Swift and Kotlin through UniFFI 0.32 without changes? How do cancellation and panics behave from each language, how big are the libraries, and what should ADR 0029 decide?
 
 **Answer (2026-10-30).**
 - **Binding:** yes, the façade binds without changes. Every adaptation is edge-only (list below).
@@ -9,19 +9,19 @@
 - **Android:** every ABI builds, every `.so` is 16 KB-aligned, and the AAR builds. About 2.4 MB per ABI with `text`, 2.0 MB on iOS ([sizes](#sizes), [Mac half](#the-mac-half-2026-10-30)).
 - **Licence:** UniFFI is **MPL-2.0**; the owner allowed it for the UniFFI crates on 2026-10-30, as an exception in [`deny.toml`](../../deny.toml) (see [licence](#licence-uniffi-is-mpl-20)).
 
-Throwaway-quality code outside both workspaces (like `krilla-fit`). It depends on `crates/lamina` by path, and `cargo xtask check` doesn't see it.
+Throwaway-quality code outside both workspaces (like `krilla-fit`). It depends on `crates/laminapdf` by path, and `cargo xtask check` doesn't see it.
 
 ## What is here
 
 | Path | What |
 | --- | --- |
-| `src/lib.rs` | UniFFI exports over `lamina` (wrapper types only, nothing in core crates). See the export list below. |
+| `src/lib.rs` | UniFFI exports over `laminapdf` (wrapper types only, nothing in core crates). See the export list below. |
 | `kotlin/` | Gradle (Kotlin JVM) project: an idiomatic `suspend` layer (`LaminaDocument.kt`) and JUnit tests over JNA and the host library. `gradle aar` zips an AAR. |
 | `swift/` | Swift package: a binary target (XCFramework), the generated bindings as their own target, and an idiomatic `async` layer (`LaminaDocument.swift`), with XCTests. |
 | `scripts/` | `build-kotlin.sh` (bindings + JVM tests), `build-ios.sh` (XCFramework), `build-android.sh` (cargo-ndk), `check-alignment.sh` (16 KB), `size-report.sh`, `run-on-mac.sh` (all of the Mac half). |
 
 The exports in `src/lib.rs`:
-- **`FfiDocument`** (`Arc`, a `Mutex<lamina::Document>` inside): `open`, `open_borrowed(&[u8])`, `page_count`, `page_infos`, `page_text`, `info`, `set_info`, `undo`, `warnings`, `save`, `save_job`.
+- **`FfiDocument`** (`Arc`, a `Mutex<laminapdf::Document>` inside): `open`, `open_borrowed(&[u8])`, `page_count`, `page_infos`, `page_text`, `info`, `set_info`, `undo`, `warnings`, `save`, `save_job`.
 - **Jobs:** `FfiSaveJob` with `step(units)` and `cancel()`, and `FfiCancelToken`.
 - **Errors:** `FfiError`, carrying ADR 0026's fields.
 - **Test probes:**

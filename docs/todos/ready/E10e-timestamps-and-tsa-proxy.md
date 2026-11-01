@@ -32,7 +32,7 @@ RFC 3161 timestamp tokens as CMS unsigned attributes (PAdES B-T) and document ti
 
 **In scope**
 
-- TS request/response in `lamina-sign`
+- TS request/response in `laminapdf-sign`
 - Edge transport: desktop HTTP, web fetch (direct or proxy)
 - `apps/tsa-proxy` Worker (allow-listed TSAs, no logging of hashes, rate limits)
 - Settings: TSA URL, proxy opt-in
@@ -44,7 +44,7 @@ RFC 3161 timestamp tokens as CMS unsigned attributes (PAdES B-T) and document ti
 **Editor facts**
 
 - **Operations shipped** ([06 §3](../../research/pdf/06-feature-inventory.md#3-full-operation-inventory-with-mechanisms) IDs): `F.06` trusted timestamps
-- **Crates and packages:** `lamina-sign`, `apps/tsa-proxy` (new Worker)
+- **Crates and packages:** `laminapdf-sign`, `apps/tsa-proxy` (new Worker)
 - **`Op` variants:** `Sign { timestamp: Some(..) }`, `AddDocumentTimestamp` (barrier)
 - **`SaveConstraint`:** `Sign { timestamp }` follows E10d (an approval signature: allowed without certification and under DocMDP P2/P3, a violation under P1). **`AddDocumentTimestamp` and DSS (LTV) updates are not DocMDP changes at any level, including P1**: ISO 32000-2 §12.8.2.2.1 and the 2.0 errata (§12.8.5.3) say incremental updates that only add DSS data and/or document timestamps are ignored when evaluating DocMDP ([04 §8.5](../../research/pdf/04-interactive-security.md#85-pades-baseline-levels-etsi-en-319-142-1-current-v121-2024-01)). So the planner treats a revision holding only a `/DocTimeStamp` signature field + dictionary and `/DSS` additions as always allowed: `would_violate` is empty on P1, P2, P3 and FieldMDP-lock fixtures, and the save stays `AppendOnly`. Anything else in the same revision is classified on its own and may still violate. Signing and timestamping always run last in a save (redact → rewrite → sign, ADR 0007 §4); both are barrier ops (ADR 0006 §5). The same rule is what [E10h](E10h-revision-diff-and-attacks.md)'s classifier applies when validating existing files (its "LTV" class)
 - **Web vs desktop:** desktop calls TSAs directly; web uses the proxy only if the user opts in (sends the hash only)
@@ -53,7 +53,7 @@ RFC 3161 timestamp tokens as CMS unsigned attributes (PAdES B-T) and document ti
 
 ## Tasks
 
-- [ ] Core: `TimeStampReq` builder and `TimeStampResp`/token parser and validator in `lamina-sign`; B-T as the `signature-time-stamp` unsigned attribute; `AddDocumentTimestamp` writing a `/Type /DocTimeStamp` signature (`/SubFilter /ETSI.RFC3161`) in its own incremental revision
+- [ ] Core: `TimeStampReq` builder and `TimeStampResp`/token parser and validator in `laminapdf-sign`; B-T as the `signature-time-stamp` unsigned attribute; `AddDocumentTimestamp` writing a `/Type /DocTimeStamp` signature (`/SubFilter /ETSI.RFC3161`) in its own incremental revision
 - [ ] Planner: a `ModificationClass`-independent "LTV" exemption for revisions that only add a document timestamp and/or DSS data, applied at every DocMDP level (ISO 32000-2 §12.8.2.2.1)
 - [ ] Edge: desktop HTTP client, web fetch (direct or via proxy)
 - [ ] Worker (`apps/tsa-proxy`) with tests
@@ -64,7 +64,7 @@ RFC 3161 timestamp tokens as CMS unsigned attributes (PAdES B-T) and document ti
 - [ ] B-T signatures validate in EU DSS
 - [ ] `AddDocumentTimestamp` on DocMDP P1, P2 and P3 certified fixtures: `would_violate` is empty, the save is `AppendOnly` and incremental, and the certification signature still validates (EU DSS, pyHanko) with the timestamp revision reported as an allowed LTV update
 - [ ] `Sign { timestamp }` reports class `Signature` and `requires_rewrite = false`; a test per op runs `planner.would_violate(&op)` on the signed fixtures (no certification, DocMDP P1, P2, P3, FieldMDP lock) and asserts the verdict ([ADR 0007](../../decisions/0007-save-planner.md) §2): violation only on P1 for `Sign`, none anywhere for `AddDocumentTimestamp`
-- [ ] Library parity ([full-editor §5](../../plans/full-editor.md#5-requirements-that-hold-for-every-round) req. 7): every new `Op` is exposed in `lamina` and `@laminapdf/sdk` in this PR, with rustdoc/TSDoc, a runnable example, tsify-generated TS types, and serde samples frozen in `fixtures/ops/v1/` (unknown ops and fields rejected, ADR 0006 §1, §6)
+- [ ] Library parity ([full-editor §5](../../plans/full-editor.md#5-requirements-that-hold-for-every-round) req. 7): every new `Op` is exposed in `laminapdf` and `@laminapdf/sdk` in this PR, with rustdoc/TSDoc, a runnable example, tsify-generated TS types, and serde samples frozen in `fixtures/ops/v1/` (unknown ops and fields rejected, ADR 0006 §1, §6)
 - [ ] Worker tests assert no body other than a TimeStampReq is forwarded and nothing is logged
 
 ## Post-merge checks

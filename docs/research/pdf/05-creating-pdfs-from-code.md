@@ -841,7 +841,7 @@ The sizes are all within 2× of each other because none embeds a font. With a re
 ### 8.5 Proposed architecture (for discussion)
 
 ```
-                 ┌───────────────────────── lamina-core (Rust, no_std-friendly where possible) ─────────────────────────┐
+                 ┌───────────────────────── laminapdf-core (Rust, no_std-friendly where possible) ─────────────────────────┐
                  │ syntax: lexer · parser · xref/recovery · filters · crypto(decrypt)                                   │
                  │ cos:    lossless object graph · lazy load · incremental + full writer · object streams              │
                  │ model:  typed accessors generated from Arlington · page tree · resources · outlines · names        │
@@ -853,7 +853,7 @@ The sizes are all within 2× of each other because none embeds a font. With a re
                  │ check:  Arlington syntax validator · conformance pre-checks                                         │
                  └──────────────┬──────────────┬──────────────┬──────────────┬──────────────┬─────────────────────────┘
                                 │              │              │              │              │
-                         lamina-wasm     lamina-node    lamina-python   lamina-ffi (C ABI)   lamina-cli
+                         laminapdf-wasm     laminapdf-node    laminapdf-python   laminapdf-ffi (C ABI)   laminapdf-cli
                          (browser/edge)  (napi-rs)      (PyO3)          → Swift/Kotlin/Go/.NET
                                 │
                        @laminapdf/js (TS API, idiomatic; optional React/JSX layer later)

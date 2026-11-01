@@ -29,15 +29,15 @@ The measured findings:
    - **Upgrade policy:** upgrades are deliberate PRs that regenerate both bindings, diff them, and run the spike's scenario on Swift and Kotlin, with byte-equal output.
    - **Patch releases:** take the same path.
    - **React Native and Kotlin Multiplatform:** React Native (ubrn supports only `=0.31`) and Kotlin Multiplatform (Gobley) are re-evaluated when scheduled, not by moving the pin.
-2. **One edge crate, `crates/lamina-ffi`** (layer `edge`).
+2. **One edge crate, `crates/laminapdf-ffi`** (layer `edge`).
    - **What goes in it:** binding code only, meaning UniFFI wrapper types and conversions over `lamina`. No PDF logic.
-   - **No UniFFI in core crates:** derives live on wrapper types in `lamina-ffi`, not as `cfg_attr(feature = "uniffi", derive(…))` on core types. Core crates take no UniFFI dependency (none of the portability rules change, and the MPL code stays at the edge). The cost is duplicated record definitions, which a test keeps in step with the façade.
+   - **No UniFFI in core crates:** derives live on wrapper types in `laminapdf-ffi`, not as `cfg_attr(feature = "uniffi", derive(…))` on core types. Core crates take no UniFFI dependency (none of the portability rules change, and the MPL code stays at the edge). The cost is duplicated record definitions, which a test keeps in step with the façade.
 3. **Rules for the edge crate**, from the spike:
    - **Errors:** every export that locks or calls into `lamina` returns `Result<_, FfiError>`, because Swift calls infallible exports with `try!`, so a panic would trap the app. Exports that can't fail except by running out of memory may stay infallible: handle constructors that only allocate, atomic accessors and constant strings (the spike's full list, test probes included, is in its README). L6b's test lists them.
    - **Error fields:** `FfiError` carries ADR 0026's fields as `code`, `kind`, `detail` (ADR 0026's `message`), `hint`, `docs_url` and `json`. No field may be named `message`: it clashes with `Throwable.message` in Kotlin.
    - **Feature-gated exports:** each goes in its own `#[cfg(feature = …)] #[uniffi::export] impl` block. A `cfg` on one method inside an exported block is not honoured.
    - **Records:** one concrete record or enum per job step (`FfiSaveStep`), per ADR 0028 F3.
-   - **Locking:** a `Mutex<lamina::Document>` per handle. Jobs lock the job, then the document. `cancel()` takes no lock.
+   - **Locking:** a `Mutex<laminapdf::Document>` per handle. Jobs lock the job, then the document. `cancel()` takes no lock.
    - **Bytes in:** constructors take `&[u8]` (UniFFI 0.32 zero-copy), copied once into the owned document. In Kotlin that means a direct `ByteBuffer`, plus a `ByteArray` overload for convenience.
 4. **An idiomatic, hand-written layer per language, on top of the generated bindings** (which are internal).
    - **Generated code stays internal:** the layer holds the generated handle privately (`internal` in Swift and Kotlin) and doesn't re-export the generated module. The spike's layer still uses the generated records (`FfiSaved`, `FfiPageInfo`) in its signatures; L6b's layer wraps them, so apps never depend on the generated module.

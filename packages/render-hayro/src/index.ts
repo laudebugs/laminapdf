@@ -1,5 +1,5 @@
-// ADR 0004's second web renderer and CI oracle (todo C2c): lamina-render's hayro adapter, built by
-// `cargo xtask wasm` as lamina_render_hayro (crates/lamina-render-wasm) into @laminapdf/wasm, behind
+// ADR 0004's second web renderer and CI oracle (todo C2c): laminapdf-render's hayro adapter, built by
+// `cargo xtask wasm` as lamina_render_hayro (crates/laminapdf-render-wasm) into @laminapdf/wasm, behind
 // @laminapdf/render's RenderBackend. hayro reads the whole file, so `open` fills the module's input
 // buffer from the source in one pass, chunk by chunk (every missing range in one `data-pending`),
 // and the module borrows it. Requests are validated by @laminapdf/render's planner (the Rust one,
@@ -31,7 +31,7 @@ import initGlue, { HayroDocument, type InitInput, InputBuffer } from "@laminapdf
 /** The pinned hayro version (the workspace's `=0.8.0`). */
 export const HAYRO_VERSION = "0.8.0";
 
-/** Reads per call, as lamina-cos reads windows. */
+/** Reads per call, as laminapdf-cos reads windows. */
 const CHUNK = 64 * 1024;
 
 let memory: WebAssembly.Memory | undefined;
@@ -55,7 +55,7 @@ export async function initHayro(wasm?: InitInput | Promise<InitInput>): Promise<
 /** Set once the module trapped: its state may be half-updated, so nothing else runs in it. */
 let broken = false;
 
-/** What the module throws: the ADR 0026 §1 object (crates/lamina-render-wasm), a plain object. */
+/** What the module throws: the ADR 0026 §1 object (crates/laminapdf-render-wasm), a plain object. */
 interface ModuleError {
   readonly code: RenderErrorCode;
   readonly message: string;

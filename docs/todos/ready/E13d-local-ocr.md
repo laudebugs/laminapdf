@@ -27,7 +27,7 @@ Run OCR on the device: a WASM OCR engine in a worker for small documents on web 
 
 **In scope**
 
-- Web OCR worker with page-image rendering via `lamina-render`
+- Web OCR worker with page-image rendering via `laminapdf-render`
 - Desktop engine download/verify/run as a sidecar process
 - OCR dialog (languages, pages)
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Writes fixtures/errors/marker-text.pdf (no dependencies): a two-page PDF whose names,
 strings and /Info values carry one marker string, for the ADR 0026 §4 test that no error or
-warning `message` or `hint` ever contains document text (crates/lamina/tests/error_contract.rs).
+warning `message` or `hint` ever contains document text (crates/laminapdf/tests/error_contract.rs).
 
 Every repair it provokes involves a marker-bearing value: an invalid /Rotate, a boundary box of
 names, a /PageLabels style that is a name, an outline item that loops, an Info date that does not

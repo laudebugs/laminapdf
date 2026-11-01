@@ -41,7 +41,7 @@ The short feature-plan PR that opens round E10 ([full-editor §E10](../../plans/
 **Editor facts**
 
 - **Operations shipped** ([06 §3](../../research/pdf/06-feature-inventory.md#3-full-operation-inventory-with-mechanisms) IDs): `F.01` handwritten signature image; `F.02` draw/type e-signature; `F.03` certificate-based digital signatures; `F.04` verify signatures; `F.05` certify a document; `F.06` trusted timestamps; `F.07` inspect signer identity and certificates; `F.08` lock fields after signing; `F.09` allowed changes after certification; `F.10` signature status and modification warnings; `F.11` signing workflows via external services
-- **Crates and packages:** (planned for the round) ADR 0020; `lamina-sign` over `lamina-save` (ByteRange placeholder, incremental append), RustCrypto + `cms`
+- **Crates and packages:** (planned for the round) ADR 0020; `laminapdf-sign` over `laminapdf-save` (ByteRange placeholder, incremental append), RustCrypto + `cms`
 - **`SaveConstraint`:** (round summary from the plan; the feature plan details it per op) signing makes the document `AppendOnly`; signing runs after any pending rewrite
 - **Web vs desktop:** web: WebCrypto keys or PKCS#12 on the device; desktop adds OS keychains and PKCS#11
 - **Server features:** optional TSA proxy Worker (hash only)
@@ -50,7 +50,7 @@ The short feature-plan PR that opens round E10 ([full-editor §E10](../../plans/
 ## Tasks
 
 - [ ] Create `docs/plans/editor/e10-signatures.md` (Status: Draft) with: goal; the operations in scope by inventory ID (`F.01`, `F.02`, `F.03`, `F.04`, `F.05`, `F.06`, `F.07`, `F.08`, `F.09`, `F.10`, `F.11`) and the target status of each; for each op its `Op` variant name, payload sketch (by `LaminaId`, no ambient inputs), `ModificationClass` and `requires_rewrite`
-- [ ] Describe model and crate changes (new typed views, new modules, public API in `lamina` and `@laminapdf/sdk`), and the UI tools/panels in `@laminapdf/ui`
+- [ ] Describe model and crate changes (new typed views, new modules, public API in `laminapdf` and `@laminapdf/sdk`), and the UI tools/panels in `@laminapdf/ui`
 - [ ] Write the `SaveConstraint` table for the round: behaviour on `Free`, `AppendOnly` (DocMDP P1/P2/P3, FieldMDP), `RequiresRewrite` and `Conflict`, and the UI warnings
 - [ ] List web vs desktop differences through `Platform` capability flags, and any server feature (off by default, opt-in, what leaves the device)
 - [ ] List fixtures to add (with provenance and licence in `fixtures/README.md`), and the test plan per op: unit, golden, round-trip (lamina, pdf.js, PDFium, qpdf), differential, fuzz, Playwright and WebdriverIO e2e

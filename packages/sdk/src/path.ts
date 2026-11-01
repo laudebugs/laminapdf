@@ -1,4 +1,4 @@
-// Paths in the flat encoding lamina-wasm reads (ADR 0016 §7): a verb, then its numbers.
+// Paths in the flat encoding laminapdf-wasm reads (ADR 0016 §7): a verb, then its numbers.
 import type { Point, Rect } from "./types.js";
 
 /** Builds a path in page space; every method returns the builder, so calls chain. */

@@ -44,7 +44,7 @@ Users get an `AGENTS.md` snippet for their own repositories. A machine-readable 
 - **`.md` twin of every page**: `/guides/fonts/` also served as `/guides/fonts.md`, rendered from the MDX source with imported snippets inlined. The API reference comes as Markdown via a TypeDoc Markdown plugin. Recommendation: evaluate an existing Starlight llms plugin first, after a licence check; otherwise use a small Astro integration in `apps/docs`.
 - **Docs inside the packages**, built at pack time from the same Markdown:
   - `packages/sdk/docs/` (guides, API Markdown, `explain` pages, `schemas/`, `renames.json`, `llms.txt`), listed in `files`.
-  - The `lamina` crate's `docs/` via `include` in `Cargo.toml`.
+  - The `laminapdf` crate's `docs/` via `include` in `Cargo.toml`.
   - Each file's front matter carries `version`, equal to the package version.
 - **`AGENTS.md` snippet**: a docs page "Using lamina with coding agents" with a copy-paste block for users' `AGENTS.md` (or `CLAUDE.md`). It covers:
   - where the version-matched docs live (`node_modules/@laminapdf/sdk/docs/`);
@@ -88,7 +88,7 @@ Users get an `AGENTS.md` snippet for their own repositories. A machine-readable 
 - [ ] `pnpm --filter docs build` emits `llms.txt`, `llms-full.txt` and one `.md` per HTML page (a build test compares the two lists)
 - [ ] `llms.txt` passes a format check (H1, blockquote, H2 link sections, every link resolves to an emitted `.md`)
 - [ ] The `pnpm pack` tarball of `@laminapdf/sdk` contains `docs/` with guides, API Markdown, every `explain` page, the schemas and `renames.json`, all stamped with the package's version (test over the tarball listing)
-- [ ] `cargo package --list -p lamina` lists the crate's `docs/` with the same version
+- [ ] `cargo package --list -p laminapdf` lists the crate's `docs/` with the same version
 - [ ] Adding `@deprecated` to a TS export (or `#[deprecated]` to a Rust item) without a `renames.json` entry fails `cargo xtask check docs`
 - [ ] `renames.json` validates against `lamina.renames/1`
 - [ ] `docs/research/libraries/agent-eval-baseline.md` records a run of every task with and without docs: agent, model, date, lamina version and per-task result

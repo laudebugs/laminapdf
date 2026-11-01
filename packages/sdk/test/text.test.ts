@@ -11,7 +11,7 @@ function roundHalfAway(v: number): number {
   return Math.sign(v) * Math.round(Math.abs(v));
 }
 
-/** The snapshot's rounding (crates/lamina/tests/page_text_snapshot.rs `round`). */
+/** The snapshot's rounding (crates/laminapdf/tests/page_text_snapshot.rs `round`). */
 function round(x: number, step: number): number {
   const r = roundHalfAway(x / step) * step;
   return r === 0 ? 0 : roundHalfAway(r * 1000) / 1000;

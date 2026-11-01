@@ -20,9 +20,13 @@ use crate::{corpus, docs_links, harness, live, pdf_runtimes, render_diff, step};
 /// A benchmark regressed when it is this much slower than its baseline (ADR 0018 tier 11).
 const REGRESSION_RATIO: f64 = 1.10;
 
-/// The criterion benchmark targets `cargo xtask bench` runs: `(package, bench)`. `lamina`'s
+/// The criterion benchmark targets `cargo xtask bench` runs: `(package, bench)`. `laminapdf`'s
 /// `report` is the 100-page text report of pdf-library §4 (B5d).
-const BENCHES: [(&str, &str); 3] = [("lamina-cos", "read"), ("lamina-save", "save"), ("lamina", "report")];
+const BENCHES: [(&str, &str); 3] = [
+    ("laminapdf-cos", "read"),
+    ("laminapdf-save", "save"),
+    ("laminapdf", "report"),
+];
 
 /// The pages per file the nightly render diff renders (`--pages`; nightly.yml passes the same).
 const RENDER_DIFF_PAGES: u32 = 20;
@@ -40,7 +44,7 @@ const SCALING_ARGS: [&str; 11] = [
     // Its ignored tests need native PDFium and hold only on the macOS arm64 runner:
     // `cargo xtask render-golden` runs them.
     "--exclude",
-    "lamina-render-pdfium",
+    "laminapdf-render-pdfium",
     "--all-features",
     "--tests",
     "--",

@@ -22,24 +22,24 @@ repository = "https://github.com/laudebugs/lamina"
 publish = false
 
 [workspace.dependencies]
-# Internal crates are added here as `lamina-x = { path = "crates/lamina-x" }`; `cargo xtask version sync`
+# Internal crates are added here as `laminapdf-x = { path = "crates/laminapdf-x" }`; `cargo xtask version sync`
 # gives each the workspace version (ADR 0017).
 # No default features: `saslprep` (R5/R6 passwords, ~130 KB of Unicode tables in WASM) is asked
-# for by the crates and builds that want it (lamina-cos and the façade by default; ADR 0016 §5).
-lamina-syntax = { version = "0.2.0-alpha.0", path = "crates/lamina-syntax", default-features = false }
-lamina-cos = { version = "0.2.0-alpha.0", path = "crates/lamina-cos", default-features = false }
-lamina-model = { version = "0.2.0-alpha.0", path = "crates/lamina-model" }
-lamina-ops = { version = "0.2.0-alpha.0", path = "crates/lamina-ops" }
-lamina-source = { version = "0.2.0-alpha.0", path = "crates/lamina-source" }
-lamina-save = { version = "0.2.0-alpha.0", path = "crates/lamina-save" }
-lamina-content = { version = "0.2.0-alpha.0", path = "crates/lamina-content" }
-lamina-text = { version = "0.2.0-alpha.0", path = "crates/lamina-text" }
+# for by the crates and builds that want it (laminapdf-cos and the façade by default; ADR 0016 §5).
+laminapdf-syntax = { version = "0.2.0-alpha.0", path = "crates/laminapdf-syntax", default-features = false }
+laminapdf-cos = { version = "0.2.0-alpha.0", path = "crates/laminapdf-cos", default-features = false }
+laminapdf-model = { version = "0.2.0-alpha.0", path = "crates/laminapdf-model" }
+laminapdf-ops = { version = "0.2.0-alpha.0", path = "crates/laminapdf-ops" }
+laminapdf-source = { version = "0.2.0-alpha.0", path = "crates/laminapdf-source" }
+laminapdf-save = { version = "0.2.0-alpha.0", path = "crates/laminapdf-save" }
+laminapdf-content = { version = "0.2.0-alpha.0", path = "crates/laminapdf-content" }
+laminapdf-text = { version = "0.2.0-alpha.0", path = "crates/laminapdf-text" }
 # No default features: dependents ask for `text` (fonts and text) explicitly (ADR 0016 §4).
-lamina-build = { version = "0.2.0-alpha.0", path = "crates/lamina-build", default-features = false }
-lamina = { version = "0.2.0-alpha.0", path = "crates/lamina", default-features = false }
-lamina-render = { version = "0.2.0-alpha.0", path = "crates/lamina-render" }
-lamina-render-pdfium = { version = "0.2.0-alpha.0", path = "crates/lamina-render-pdfium" }
-lamina-render-wasm = { version = "0.2.0-alpha.0", path = "crates/lamina-render-wasm" }
+laminapdf-build = { version = "0.2.0-alpha.0", path = "crates/laminapdf-build", default-features = false }
+laminapdf = { version = "0.2.0-alpha.0", path = "crates/laminapdf", default-features = false }
+laminapdf-render = { version = "0.2.0-alpha.0", path = "crates/laminapdf-render" }
+laminapdf-render-pdfium = { version = "0.2.0-alpha.0", path = "crates/laminapdf-render-pdfium" }
+laminapdf-render-wasm = { version = "0.2.0-alpha.0", path = "crates/laminapdf-render-wasm" }
 
 # Flate (zlib) codec, pure Rust; `with-alloc` is the default feature, named so it stays on.
 # MIT OR Zlib OR Apache-2.0 (dependency adler2: 0BSD OR MIT OR Apache-2.0)
@@ -48,7 +48,7 @@ miniz_oxide = { version = "0.9.1", default-features = false, features = ["with-a
 # Standard security handler decryption (B2b): RustCrypto, pure Rust, no default features. RC4 is
 # our own (crypt/rc4.rs), so no API anywhere offers the broken primitives for writing.
 # AES block cipher (AESV2/AESV3 crypt filters, Algorithm 2.B); the CBC chaining is ours, a few
-# lines in lamina-syntax's crypt/aes.rs. MIT OR Apache-2.0 (cpufeatures → libc on aarch64 only
+# lines in laminapdf-syntax's crypt/aes.rs. MIT OR Apache-2.0 (cpufeatures → libc on aarch64 only
 # reads CPU capabilities; allowed by `cargo xtask portability`)
 aes = { version = "0.9.3", default-features = false }
 # MD5 (Algorithms 2-7, per-object keys; read-only, never offered for writing). MIT OR Apache-2.0
@@ -58,30 +58,30 @@ sha2 = { version = "0.11.1", default-features = false }
 # SASLprep (RFC 4013) for R6 passwords. MIT OR Apache-2.0
 stringprep = { version = "0.1.5", default-features = false }
 
-# Fonts (lamina-text, B4a; ADR 0005 §6). skrifa: font loading, cmap and metrics over read-fonts
+# Fonts (laminapdf-text, B4a; ADR 0005 §6). skrifa: font loading, cmap and metrics over read-fonts
 # (re-exported as `skrifa::raw`); pinned to the version subsetter's `variable-fonts` feature uses,
 # so the graph has one copy. MIT OR Apache-2.0 (read-fonts, font-types, bytemuck: likewise)
 skrifa = { version = "=0.42.0", default-features = false, features = ["std"] }
 # Subsetting TrueType/CFF/CFF2 into PDF-ready font programs, with variable-font instancing
 # (`variable-fonts`, its default feature: write-fonts, kurbo). MIT OR Apache-2.0
 subsetter = { version = "=0.2.6" }
-# Content-stream operators: lamina-build's content streams (ADR 0005 §6), lamina-text's tests and
+# Content-stream operators: laminapdf-build's content streams (ADR 0005 §6), laminapdf-text's tests and
 # goldens. MIT OR Apache-2.0
 pdf-writer = { version = "=0.15.0", default-features = false }
-# PNG encoding for lamina-build's tests, and the reference its own decoder (surface/png.rs, B6a)
+# PNG encoding for laminapdf-build's tests, and the reference its own decoder (surface/png.rs, B6a)
 # is compared with: a dev-dependency only. No default features. MIT OR Apache-2.0 (bitflags,
 # crc32fast, fdeflate, flate2, miniz_oxide 0.8 [a second copy, deny.toml warns], simd-adler32:
 # MIT OR Apache-2.0 / Zlib)
 png = { version = "0.18.1", default-features = false }
-# The pure-Rust renderer behind lamina-render's `hayro` feature (ADR 0004): the same pin as
+# The pure-Rust renderer behind laminapdf-render's `hayro` feature (ADR 0004): the same pin as
 # tools/render and the hayro-parity spike. MIT OR Apache-2.0 (dependencies: kurbo, vello_cpu,
 # skrifa-family crates, moxcms, pic-scale, …: MIT/Apache/BSD/Zlib; cargo-deny checks them).
 hayro = { version = "=0.8.0" }
-# PDFium bindings for lamina-render-pdfium (ADR 0004 §3): loaded at runtime, never linked at build
+# PDFium bindings for laminapdf-render-pdfium (ADR 0004 §3): loaded at runtime, never linked at build
 # time; `thread_safe` serialises every FFI call. MIT OR Apache-2.0 (libloading: ISC).
 pdfium-render = { version = "=0.9.4", default-features = false, features = ["pdfium_7881", "thread_safe"] }
 
-# Shaping, bidi and line breaking (lamina-text, B4b; ADR 0005 §6). HarfRust: HarfBuzz's shaping
+# Shaping, bidi and line breaking (laminapdf-text, B4b; ADR 0005 §6). HarfRust: HarfBuzz's shaping
 # algorithm in Rust. Pinned to 0.8.0, the last release on read-fonts 0.39 (skrifa 0.42's, see
 # above), so the graph keeps one read-fonts; move it with skrifa/subsetter. Its own Unicode
 # tables (no `icu` feature). MIT (bitflags, bytemuck, smallvec: MIT OR Apache-2.0 / Zlib)
@@ -102,7 +102,7 @@ unicode-bidi = { version = "0.3.18", default-features = false, features = ["std"
 
 # Library errors. MIT OR Apache-2.0
 thiserror = { version = "2.0.21", default-features = false }
-# Memory-mapped files for lamina-source's opt-in `mmap` feature (MIT OR Apache-2.0).
+# Memory-mapped files for laminapdf-source's opt-in `mmap` feature (MIT OR Apache-2.0).
 memmap2 = "0.9.12"
 # Binaries, xtask and tests only (never in library APIs). MIT OR Apache-2.0
 anyhow = "1.0.104"
@@ -117,9 +117,9 @@ serde_json = "1.0.154"
 # exception; ICU4X via idna: Unicode-3.0). Chosen
 # over `jsonschema` for its smaller graph and no network resolver.
 boon = "0.6.1"
-# TypeScript declarations for serde types (ADR 0002), only behind lamina-ops' optional `tsify`
-# feature (off by default, so core builds never see it; lamina-wasm enables it in B6a). tsify
-# needs `js` or `json`; `js` (serde-wasm-bindgen) is ADR 0002's. lamina-wasm uses only the declarations:
+# TypeScript declarations for serde types (ADR 0002), only behind laminapdf-ops' optional `tsify`
+# feature (off by default, so core builds never see it; laminapdf-wasm enables it in B6a). tsify
+# needs `js` or `json`; `js` (serde-wasm-bindgen) is ADR 0002's. laminapdf-wasm uses only the declarations:
 # its records cross as JSON (ADR 0016 §7), so the conversion code is never linked.
 # MIT OR Apache-2.0
 tsify = { version = "0.5.8", default-features = false, features = ["js"] }
@@ -127,10 +127,10 @@ tsify = { version = "0.5.8", default-features = false, features = ["js"] }
 # Edge-only (xtask portability): reachable from a core crate only through that optional feature.
 # MIT OR Apache-2.0
 wasm-bindgen = { version = "0.2.129", default-features = false }
-# lamina-wasm's JS values (objects, Uint8Array, JSON). Records cross as JSON through serde_json,
+# laminapdf-wasm's JS values (objects, Uint8Array, JSON). Records cross as JSON through serde_json,
 # not serde-wasm-bindgen (ADR 0016 §7). Edge-only. MIT OR Apache-2.0
 js-sys = { version = "0.3.106", default-features = false, features = ["std"] }
-# lamina-wasm's tests in a wasm runtime (Node), dev-dependency only. MIT OR Apache-2.0
+# laminapdf-wasm's tests in a wasm runtime (Node), dev-dependency only. MIT OR Apache-2.0
 wasm-bindgen-test = { version = "0.3", default-features = false, features = ["std"] }
 # Property tests (ADR 0018 tier 5), dev-dependency only; `std` without the fork/timeout runner
 # (which needs processes and temp files). MIT OR Apache-2.0

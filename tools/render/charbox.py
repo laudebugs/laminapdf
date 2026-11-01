@@ -5,7 +5,7 @@ Writes, for every page of every given PDF, PDFium's loose character boxes
 (`FPDFText_GetLooseCharBox`: the font's ascent to descent, as lamina's quads are) with each
 character's text, in PDF user space (origin bottom left), plus the page's CropBox and /Rotate.
 `cargo xtask quads --update` runs it into fixtures/text/charboxes.json;
-crates/lamina/tests/quads.rs compares lamina's glyph quads with it.
+crates/laminapdf/tests/quads.rs compares lamina's glyph quads with it.
 
     python3 tools/render/charbox.py <out.json> <repo-relative pdf>...
 """

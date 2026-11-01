@@ -2,4 +2,4 @@
 //! last four bytes (`fuzz_entry::flate`).
 #![no_main]
 
-libfuzzer_sys::fuzz_target!(|data: &[u8]| lamina_fuzz::fuzz_entry::flate(data));
+libfuzzer_sys::fuzz_target!(|data: &[u8]| laminapdf_fuzz::fuzz_entry::flate(data));

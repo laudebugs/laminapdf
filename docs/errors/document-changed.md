@@ -18,9 +18,9 @@ Pass the document the job was created from, don't change it while the job runs, 
 ## Example
 
 ```rust
-let mut job = doc.save_job(&lamina::SaveOptions::new());
-doc.apply(vec![lamina::Op::from(set_info)])?; // the revision moves on
-assert_eq!(job.step(&mut doc, lamina::Budget::UNLIMITED).unwrap_err().code(), "document-changed");
+let mut job = doc.save_job(&laminapdf::SaveOptions::new());
+doc.apply(vec![laminapdf::Op::from(set_info)])?; // the revision moves on
+assert_eq!(job.step(&mut doc, laminapdf::Budget::UNLIMITED).unwrap_err().code(), "document-changed");
 ```
 
 ## Data fields

@@ -258,7 +258,7 @@ jobs:
   # Two short checks in one job, since each takes about a minute, less than waiting for a runner.
   # MSRV: the workspace builds on the declared rust-version. The pdf-basics spike is frozen
   # research code outside both workspaces, but its tests are the evidence behind several
-  # decisions. Its Rust core is ported to crates/lamina-syntax and crates/lamina-cos (Round A3);
+  # decisions. Its Rust core is ported to crates/laminapdf-syntax and crates/laminapdf-cos (Round A3);
   # these steps keep the frozen record (incl. the TS twin) green.
   msrv-and-spike:
     name: MSRV (rust-version) and the pdf-basics spike (Rust + TS)

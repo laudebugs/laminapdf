@@ -4,7 +4,7 @@
 | --- | --- |
 | ID | `B5d` |
 | Status | `done` |
-| Plan | [pdf-library §4 non-functional](../../plans/pdf-library.md#non-functional), [§7 B5](../../plans/pdf-library.md#b5-builder-and-the-lamina-crate) |
+| Plan | [pdf-library §4 non-functional](../../plans/pdf-library.md#non-functional), [§7 B5](../../plans/pdf-library.md#b5-builder-and-the-laminapdf-crate) |
 | Round / milestone | Round B (library) — M1 |
 | Depends on | [B6b](./B6b-lamina-pdf-package.md) |
 | Blocks | None |
@@ -60,7 +60,7 @@ The existing golden and example tests (bytes must not change); the new bench.
 
 ## Docs to update
 
-- [x] [pdf-library §7 B5](../../plans/pdf-library.md#b5-builder-and-the-lamina-crate) and §4 (the measured numbers)
+- [x] [pdf-library §7 B5](../../plans/pdf-library.md#b5-builder-and-the-laminapdf-crate) and §4 (the measured numbers)
 
 ## Risks and open questions
 

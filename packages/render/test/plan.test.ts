@@ -1,4 +1,4 @@
-// The tile planner against Rust's TilePlan (lamina-render's request.rs tests, same cases).
+// The tile planner against Rust's TilePlan (laminapdf-render's request.rs tests, same cases).
 import { describe, expect, it } from "vitest";
 import { DEFAULT_LIMITS, isRenderError, pageToTile, planTile, RenderError } from "../src/index.js";
 

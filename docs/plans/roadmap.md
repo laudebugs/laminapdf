@@ -7,7 +7,7 @@
 
 ## What we are building
 
-1. **Packages:** `lamina` (Rust) and `@laminapdf/sdk` (TypeScript) that generate PDFs, then read and edit them with the same `Document` API.
+1. **Packages:** `laminapdf` (Rust) and `@laminapdf/sdk` (TypeScript) that generate PDFs, then read and edit them with the same `Document` API.
 2. **A web reader** on Cloudflare, privacy-first, growing into a full editor.
 3. **A desktop reader** (Tauri 2, macOS/Windows/Linux) with the same UI, updated from Cloudflare.
 4. **A full editor** on web and desktop covering all 13 feature groups of the [feature inventory](../research/pdf/06-feature-inventory.md).
@@ -33,9 +33,9 @@ All four share one Rust core, so every operation is built once ([architecture §
  C7 + D7 ─► E1 ─► E2 ─► E3 ─► E4 ─► E5 ─► E6 ─► E7 ─► E8 ─► E9 ─► E10 ─► E11 … E18 (editor phases 2–6)
 ```
 
-- **A before everything.** Workspace, CI fast lane and `lamina-syntax`/`lamina-cos` ([architecture §5](architecture.md#5-rounds)).
+- **A before everything.** Workspace, CI fast lane and `laminapdf-syntax`/`laminapdf-cos` ([architecture §5](architecture.md#5-rounds)).
 - **Library first** (recommended in [architecture §8](architecture.md#8-open-questions-for-the-team), question 1): B1–B3 produce the model (with decryption, so readers can open password-protected files), ops and save path everyone needs.
-- **Web reader after B6:** C1's PDFium spike loads `lamina-wasm` next to PDFium-WASM, so it starts once B6 has merged (its `hayro-parity` half can start earlier). C5's text layer needs B9 (text extraction), which runs alongside C1–C4. B7, B8 and B9 run in parallel with the reader rounds. Technically B9a (the `lamina-content` interpreter) only needs B2c, so it may start before B6 if people are free; B9c (bindings) needs B6b.
+- **Web reader after B6:** C1's PDFium spike loads `laminapdf-wasm` next to PDFium-WASM, so it starts once B6 has merged (its `hayro-parity` half can start earlier). C5's text layer needs B9 (text extraction), which runs alongside C1–C4. B7, B8 and B9 run in parallel with the reader rounds. Technically B9a (the `laminapdf-content` interpreter) only needs B2c, so it may start before B6 if people are free; B9c (bindings) needs B6b.
 - **Desktop after the web packages:** D1 can start after C3; D2 needs `@laminapdf/ui` from C4.
 - **UI/UX alongside the readers** ([UI/UX plan](ui-ux.md)): ADR 0024 (U1a) comes before `@laminapdf/ui` (C4a), the command registry and shell (U1b, U1c) right after it, and Round U adds selection, page modes, the phone layout and the network indicator before the web launch (C7a, C7c wait for them). Reader mode, the mobile spike and the product promises (pricing page, benchmark, opt-in telemetry) follow the launch; the pricing page and the benchmark also wait for the desktop beta (D7c).
 - **Editor after both readers** ship v0.1, so phase 1 (core viewer) is done once and E-rounds add features to both shells and the packages at the same time.
@@ -46,7 +46,7 @@ All four share one Rust core, so every operation is built once ([architecture §
 
 | Milestone | Rounds | What ships |
 | --- | --- | --- |
-| M0 Foundations | A | Monorepo, CI fast lane, `lamina-syntax` + `lamina-cos`, ADRs 0001/0002/0015/0019 |
+| M0 Foundations | A | Monorepo, CI fast lane, `laminapdf-syntax` + `laminapdf-cos`, ADRs 0001/0002/0015/0019 |
 | M1 Library alpha | B1–B7 | `lamina` and `@laminapdf/sdk` `0.1.0-alpha` (local and tagged, not published to registries yet): generate PDFs with fonts, shaping, images, vectors, links, outlines, metadata; open (including encrypted files)/edit/save basics; docs site |
 | M2 Web reader v0.1 | B9, C1–C7, U1, U2, U3a, U4a | Text extraction in the library; hosted reader on Cloudflare: render, search, select, navigate, print, offline, accessible, no upload; command palette, column-aware copy, page appearance modes, phone layout, network indicator |
 | M3 Desktop reader beta | D1–D7 | Signed installers for three OSes, file associations, tabs, auto-update channels |
@@ -72,18 +72,18 @@ One row per round. Each round is split into one or more todos, one PR each, on t
 | B2 | [library](pdf-library.md#b2-document-model) | Document model, decryption (read), corpus harness, fuzzing | — |
 | B3 | [library](pdf-library.md#b3-ops-and-save) | Ops, undo, save planner | — |
 | B4 | [library](pdf-library.md#b4-fonts-and-text) | Fonts, shaping, subsetting | — |
-| B5 | [library](pdf-library.md#b5-builder-and-the-lamina-crate) | Builder and `lamina` crate | — |
-| B6 | [library](pdf-library.md#b6-wasm-and-laminapdfsdk) | `lamina-wasm`, `@laminapdf/sdk`, runtime matrix | 0016 |
+| B5 | [library](pdf-library.md#b5-builder-and-the-laminapdf-crate) | Builder and `laminapdf` crate | — |
+| B6 | [library](pdf-library.md#b6-wasm-and-laminapdfsdk) | `laminapdf-wasm`, `@laminapdf/sdk`, runtime matrix | 0016 |
 | B7 | [library](pdf-library.md#b7-docs-examples-and-first-release) | Docs site, examples, `0.1.0-alpha` (local) | 0017 |
 | B8 | [library](pdf-library.md#b8-tagged-pdf-pdfua-and-pdfa) | Tagged PDF, PDF/UA, PDF/A, `0.2.0-alpha` (local) | — |
-| B9 | [library](pdf-library.md#b9-text-extraction) | `lamina-content` read-only interpreter, text extraction (after B6, before C5) | 0023 (proposed) |
+| B9 | [library](pdf-library.md#b9-text-extraction) | `laminapdf-content` read-only interpreter, text extraction (after B6, before C5) | 0023 (proposed) |
 | L1–L2 | [shareable libraries](shareable-libraries.md#l1-contracts) | Error, coordinate and façade contracts; worker client, disposal, range loading | 0026, 0027, 0028 |
-| L3 | [shareable libraries](shareable-libraries.md#l3-ai-ready-extraction) | `lamina-extract`: reading order, tables, Markdown/JSON with bounding boxes | 0030 |
+| L3 | [shareable libraries](shareable-libraries.md#l3-ai-ready-extraction) | `laminapdf-extract`: reading order, tables, Markdown/JSON with bounding boxes | 0030 |
 | L4 | [shareable libraries](shareable-libraries.md#l4-cli-and-mcp) | `lamina` CLI, MCP mode, distribution | 0031 |
 | L5 | [shareable libraries](shareable-libraries.md#l5-docs-for-agents) | `llms.txt`, docs in packages, agent eval | — |
 | L6 | [shareable libraries](shareable-libraries.md#l6-mobile) | `lamina-ffi` spike, mobile SDK plan | 0029 |
 | C1 | [web](web-app.md#c1-rendering-spikes) | Rendering spikes | `pdfium-wasm`, `hayro-parity` |
-| C2 | [web](web-app.md#c2-render-backend-and-adrs) | `lamina-render`, render packages | 0004, 0009, 0010, 0011 |
+| C2 | [web](web-app.md#c2-render-backend-and-adrs) | `laminapdf-render`, render packages | 0004, 0009, 0010, 0011 |
 | C3 | [web](web-app.md#c3-viewer-core) | `@laminapdf/viewer` | — |
 | C4 | [web](web-app.md#c4-app-shell-on-cloudflare) | `@laminapdf/ui`, `apps/web`, previews | — |
 | C5 | [web](web-app.md#c5-text-selection-and-search) | Text layer, selection, search | — |

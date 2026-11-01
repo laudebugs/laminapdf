@@ -3,10 +3,10 @@
 //!
 //! It validates `codes.json` against `fixtures/codes.schema.json`, then writes:
 //!
-//! - `crates/lamina-syntax/src/generated/codes.rs`: the `ErrorCode` and `WarningCode` enums
+//! - `crates/laminapdf-syntax/src/generated/codes.rs`: the `ErrorCode` and `WarningCode` enums
 //!   (`as_str`, `from_code`, `kind`, `summary`, `hint`, `docs_url`), in the bottom crate so every
 //!   crate that builds an ADR 0026 object reads the same table (the façade re-exports them);
-//! - `crates/lamina/src/generated/explain.rs`: behind the façade's `explain` feature,
+//! - `crates/laminapdf/src/generated/explain.rs`: behind the façade's `explain` feature,
 //!   `explain(code)` over the `docs/errors/<code>.md` pages (`include_str!`, so the text is
 //!   never copied and never reaches a build without the feature);
 //! - `packages/sdk/src/generated/codes.ts`: the `ErrorKind`, `ErrorCode`, `WarningCode` and
@@ -15,7 +15,7 @@
 //! - `packages/sdk/src/generated/explain.ts`: every page's text, for the `@laminapdf/sdk/explain`
 //!   subpath only;
 //! - the JSON Schema `lamina.error/1` of the ADR 0026 §1 object, in `packages/sdk/schemas/` and
-//!   `crates/lamina/schemas/`;
+//!   `crates/laminapdf/schemas/`;
 //! - the code tables of `docs/errors/README.md` (below its marker line), which `--md` prints.
 //!
 //! `--check` renders everything in memory and fails, naming each file, when any differs from
@@ -31,10 +31,10 @@ use serde_json::{Value, json};
 
 use crate::workspace::Workspace;
 
-#[path = "../../../crates/lamina-cos/tests/common/code_groups.rs"]
+#[path = "../../../crates/laminapdf-cos/tests/common/code_groups.rs"]
 #[expect(
     unreachable_pub,
-    reason = "shared with lamina-cos's tests, which re-export these items, so they stay `pub`"
+    reason = "shared with laminapdf-cos's tests, which re-export these items, so they stay `pub`"
 )]
 mod code_groups;
 
@@ -48,13 +48,13 @@ const CODES: &str = "fixtures/codes.json";
 const CODES_SCHEMA: &str = "fixtures/codes.schema.json";
 
 /// The outputs.
-const RUST: &str = "crates/lamina-syntax/src/generated/codes.rs";
-const RUST_EXPLAIN: &str = "crates/lamina/src/generated/explain.rs";
+const RUST: &str = "crates/laminapdf-syntax/src/generated/codes.rs";
+const RUST_EXPLAIN: &str = "crates/laminapdf/src/generated/explain.rs";
 const TS: &str = "packages/sdk/src/generated/codes.ts";
 const TS_EXPLAIN: &str = "packages/sdk/src/generated/explain.ts";
 const SCHEMAS: [&str; 2] = [
     "packages/sdk/schemas/error.schema.json",
-    "crates/lamina/schemas/error.schema.json",
+    "crates/laminapdf/schemas/error.schema.json",
 ];
 const ERRORS_README: &str = "docs/errors/README.md";
 
@@ -68,12 +68,12 @@ const GROUPS: [(&str, &str); 11] = [
     ("errors", "Errors"),
     ("opErrors", "Op errors"),
     ("saveErrors", "Save errors"),
-    ("textErrors", "Text errors (`lamina-text`)"),
-    ("textWarnings", "Text warnings (`lamina-text`)"),
-    ("buildErrors", "Build errors (`lamina-build`)"),
-    ("renderErrors", "Render errors (`lamina-render`)"),
-    ("facadeErrors", "Façade errors (`lamina`)"),
-    ("bindingErrors", "Binding errors (`lamina-wasm`)"),
+    ("textErrors", "Text errors (`laminapdf-text`)"),
+    ("textWarnings", "Text warnings (`laminapdf-text`)"),
+    ("buildErrors", "Build errors (`laminapdf-build`)"),
+    ("renderErrors", "Render errors (`laminapdf-render`)"),
+    ("facadeErrors", "Façade errors (`laminapdf`)"),
+    ("bindingErrors", "Binding errors (`laminapdf-wasm`)"),
     ("packageErrors", "Package errors (`@laminapdf/sdk`)"),
 ];
 

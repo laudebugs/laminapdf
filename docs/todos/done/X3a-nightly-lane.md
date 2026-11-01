@@ -21,7 +21,7 @@ Run the expensive, environment-sensitive checks every night on `main`, where a f
 ## Context
 
 - [ADR 0018 §2](../../decisions/0018-test-strategy.md#2-ci-lanes) nightly lane; [§3](../../decisions/0018-test-strategy.md#3-corpora-licensing-and-provenance) corpora (pdf.js, PDFium, qpdf suites, SafeDocs, veraPDF and Arlington test files) fetched by `cargo xtask corpus fetch`, pinned by SHA-256 with licences; tier 11 scaling (ratios, never absolute times; regressions > 10% open an issue).
-- Ignored scaling test: [`crates/lamina-cos/tests/reader_cache.rs`](../../../crates/lamina-cos/tests/reader_cache.rs) `pages_should_scale_linearly_with_shared_resources` ("run with --release in the nightly lane").
+- Ignored scaling test: [`crates/lamina-cos/tests/reader_cache.rs`](../../../crates/laminapdf-cos/tests/reader_cache.rs) `pages_should_scale_linearly_with_shared_resources` ("run with --release in the nightly lane").
 - Scheduled fuzz workflow from [B2c](../done/B2c-lamina-model-corpus-fuzz.md) (folded in here).
 
 ## Scope

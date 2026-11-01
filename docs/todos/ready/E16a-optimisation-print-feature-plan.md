@@ -45,7 +45,7 @@ The short feature-plan PR that opens round E16 ([full-editor §E16](../../plans/
 **Editor facts**
 
 - **Operations shipped** ([06 §3](../../research/pdf/06-feature-inventory.md#3-full-operation-inventory-with-mechanisms) IDs): `K.01` compress / reduce size; `K.02` downsample and recompress images; `K.03` embed or subset fonts; `K.04` remove unused objects; `K.05` deduplicate shared resources; `K.06` linearise for fast web view; `K.07` flatten transparency; `K.08` convert colour spaces; `K.09` ICC profiles and output intents; `K.10` bleed, trim, crop; `K.11` print-ready PDFs / preflight; `K.12` validate PDF/A or PDF/X; `K.13` imposition and booklet; `K.14` spot colours and overprint; `C.15` booklet / N-up layouts; `H.12` convert to PDF/A, PDF/X, PDF/UA
-- **Crates and packages:** (planned for the round) `lamina-save` (object streams, linearisation, GC), image codecs, colour module, preflight rules as data
+- **Crates and packages:** (planned for the round) `laminapdf-save` (object streams, linearisation, GC), image codecs, colour module, preflight rules as data
 - **`SaveConstraint`:** (round summary from the plan; the feature plan details it per op) `RequiresRewrite` for optimisation; signed files warned
 - **Web vs desktop:** desktop recommended for large print files; web enforces `Limits`
 - **Server features:** optional batch optimisation (ADR 0013)
@@ -54,7 +54,7 @@ The short feature-plan PR that opens round E16 ([full-editor §E16](../../plans/
 ## Tasks
 
 - [ ] Create `docs/plans/editor/e16-optimisation-print.md` (Status: Draft) with: goal; the operations in scope by inventory ID (`K.01`, `K.02`, `K.03`, `K.04`, `K.05`, `K.06`, `K.07`, `K.08`, `K.09`, `K.10`, `K.11`, `K.12`, `K.13`, `K.14`, `C.15`, `H.12`) and the target status of each; for each op its `Op` variant name, payload sketch (by `LaminaId`, no ambient inputs), `ModificationClass` and `requires_rewrite`
-- [ ] Describe model and crate changes (new typed views, new modules, public API in `lamina` and `@laminapdf/sdk`), and the UI tools/panels in `@laminapdf/ui`
+- [ ] Describe model and crate changes (new typed views, new modules, public API in `laminapdf` and `@laminapdf/sdk`), and the UI tools/panels in `@laminapdf/ui`
 - [ ] Write the `SaveConstraint` table for the round: behaviour on `Free`, `AppendOnly` (DocMDP P1/P2/P3, FieldMDP), `RequiresRewrite` and `Conflict`, and the UI warnings
 - [ ] List web vs desktop differences through `Platform` capability flags, and any server feature (off by default, opt-in, what leaves the device)
 - [ ] List fixtures to add (with provenance and licence in `fixtures/README.md`), and the test plan per op: unit, golden, round-trip (lamina, pdf.js, PDFium, qpdf), differential, fuzz, Playwright and WebdriverIO e2e

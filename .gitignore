@@ -35,7 +35,7 @@ dist/
 build/
 # Wrangler's local state and bundles (packages/sdk's Worker example and workerd test).
 .wrangler/
-# Committed fixtures (lamina-build's facts), not build output.
+# Committed fixtures (laminapdf-build's facts), not build output.
 !fixtures/build/
 out/
 coverage/

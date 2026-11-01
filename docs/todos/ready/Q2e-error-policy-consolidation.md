@@ -16,19 +16,19 @@
 
 ## Goal
 
-Text extraction decides which errors propagate with its own `fatal()`, which leaves out `Error::Source`, so an I/O failure from a `FileSource` reads as "no font" (against ADR 0003). lamina-cos has its own scattered set: `tolerant` and its duplicate `or_repair`, a `must_propagate` wrapper, `absent_if_malformed`, and inline matches for ending the page walk and security refusals. This todo puts every policy in `lamina_cos::error` and makes extraction use one.
+Text extraction decides which errors propagate with its own `fatal()`, which leaves out `Error::Source`, so an I/O failure from a `FileSource` reads as "no font" (against ADR 0003). laminapdf-cos has its own scattered set: `tolerant` and its duplicate `or_repair`, a `must_propagate` wrapper, `absent_if_malformed`, and inline matches for ending the page walk and security refusals. This todo puts every policy in `laminapdf_cos::error` and makes extraction use one.
 
 ## Context
 
-- [Quality plan §2.3](../../plans/quality.md#23-code-quality-and-reuse); ADR 0003; `lamina-cos/src/error.rs:246,267`, `lamina-cos/src/reader/mod.rs:274,280,290,298,408`, `lamina-text/src/extract/font.rs:137`, `lamina-ops/src/error.rs:150`.
+- [Quality plan §2.3](../../plans/quality.md#23-code-quality-and-reuse); ADR 0003; `laminapdf-cos/src/error.rs:246,267`, `laminapdf-cos/src/reader/mod.rs:274,280,290,298,408`, `laminapdf-text/src/extract/font.rs:137`, `laminapdf-ops/src/error.rs:150`.
 
 ## Scope
 
 **In scope**
 
 - Public, documented policies in `error.rs`: `tolerant`, `absent_if_malformed`, `ends_page_walk`, `is_security_refusal`; `or_repair` and the free `must_propagate` deleted.
-- lamina-text's `fatal` replaced; a regression test that a `Source` error from a fake source propagates out of font loading.
-- A ban in `check maintainability`: no `matches!` on `LimitExceeded` or `DataPending` outside `lamina_cos::error`.
+- laminapdf-text's `fatal` replaced; a regression test that a `Source` error from a fake source propagates out of font loading.
+- A ban in `check maintainability`: no `matches!` on `LimitExceeded` or `DataPending` outside `laminapdf_cos::error`.
 
 **Out of scope** (and which todo covers it)
 

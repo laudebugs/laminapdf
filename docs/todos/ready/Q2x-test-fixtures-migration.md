@@ -1,4 +1,4 @@
-# Q2x — `lamina-test-fixtures` for the remaining crates
+# Q2x — `laminapdf-test-fixtures` for the remaining crates
 
 | Field | Value |
 | --- | --- |
@@ -10,17 +10,17 @@
 | Blocks | None |
 | ADRs | None |
 | Branch | `refactor/q2x-test-fixtures-migration` |
-| PR title | `refactor(tests): move the remaining crates' test helpers to lamina-test-fixtures` |
+| PR title | `refactor(tests): move the remaining crates' test helpers to laminapdf-test-fixtures` |
 | Size | M |
 | PR | — |
 
 ## Goal
 
-This todo finishes [Q2c](./Q2c-test-fixtures-crate.md): it migrates lamina-content, lamina-text, lamina-build, lamina-source, lamina-render, lamina-render-pdfium and the `lamina` façade to `lamina-test-fixtures`, deletes their copies and `#[path]` includes, and empties the ban's baseline.
+This todo finishes [Q2c](./Q2c-test-fixtures-crate.md): it migrates laminapdf-content, laminapdf-text, laminapdf-build, laminapdf-source, laminapdf-render, laminapdf-render-pdfium and the `laminapdf` façade to `laminapdf-test-fixtures`, deletes their copies and `#[path]` includes, and empties the ban's baseline.
 
 ## Context
 
-- [Q2c](./Q2c-test-fixtures-crate.md) and its baseline; the copies in `tests/common/mod.rs` of each crate, plus `lamina/tests/facade.rs:16`, `lamina/tests/{page_text_snapshot,reading_order}.rs`, `lamina-render/tests/hayro.rs:22`, `lamina-text/tests/{extract_fonts,regressions}.rs`.
+- [Q2c](./Q2c-test-fixtures-crate.md) and its baseline; the copies in `tests/common/mod.rs` of each crate, plus `lamina/tests/facade.rs:16`, `lamina/tests/{page_text_snapshot,reading_order}.rs`, `laminapdf-render/tests/hayro.rs:22`, `laminapdf-text/tests/{extract_fonts,regressions}.rs`.
 
 ## Scope
 

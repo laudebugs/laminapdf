@@ -22,8 +22,8 @@ UniFFI is at **0.32.2 (crates.io, 2026-09-23)**; 0.32.0 (2026-06-30) added `#[un
 - Bitwarden: `bitwarden_uniffi` (mobile, UniFFI `Client` wrapper) and `bitwarden_wasm_internal` (web, wasm-bindgen `BitwardenClient`) are **separate leaf crates**, both over `bitwarden_pm` ("meant for the final application crates") — [bitwarden_uniffi src](https://sdk-api-docs.bitwarden.com/src/bitwarden_uniffi/lib.rs.html), [bitwarden_wasm_internal client.rs](https://sdk-api-docs.bitwarden.com/src/bitwarden_wasm_internal/client.rs.html), [bitwarden_pm](https://sdk-api-docs.bitwarden.com/bitwarden_pm/index.html). `bitwarden_core` exposes `uniffi` and `wasm` Cargo features — [docs.rs bitwarden-core](https://docs.rs/bitwarden-core). They have a `bitwarden_ffi_macro` crate — [bitwarden_ffi_macro](https://sdk-api-docs.bitwarden.com/bitwarden_ffi_macro/all.html), and a shared `bitwarden_error` crate — [bitwarden_error src](https://sdk-api-docs.bitwarden.com/src/bitwarden_error/lib.rs.html). A PR notes UniFFI and wasm-bindgen can't handle generics, so they added a non-generic wrapper struct — [sdk-internal PR #488](https://github.com/bitwarden/sdk-internal/pull/488).
 
 ### Inferences
-- **Pin UniFFI to 0.31.x** if lamina wants ubrn (React Native / `wasm2`) soon, or accept that Swift/Kotlin on 0.32 and ubrn on 0.31 can't share one `lamina-ffi` build. 0.32's zero-copy `&[u8]` arguments matter for PDF input (no copy of a 50 MB file into a `Vec<u8>`), so this is a real trade-off. Re-check ubrn before Round C.
-- UniFFI's `&self` + `Send + Sync` rule shapes the façade even for wasm: designing `lamina` handles as `Arc<Inner>` with `Mutex`/`RwLock` (or `parking_lot`) inner state works for both. On wasm32 without threads a `Mutex` costs little; `RefCell` would not compile for UniFFI.
+- **Pin UniFFI to 0.31.x** if lamina wants ubrn (React Native / `wasm2`) soon, or accept that Swift/Kotlin on 0.32 and ubrn on 0.31 can't share one `laminapdf-ffi` build. 0.32's zero-copy `&[u8]` arguments matter for PDF input (no copy of a 50 MB file into a `Vec<u8>`), so this is a real trade-off. Re-check ubrn before Round C.
+- UniFFI's `&self` + `Send + Sync` rule shapes the façade even for wasm: designing `laminapdf` handles as `Arc<Inner>` with `Mutex`/`RwLock` (or `parking_lot`) inner state works for both. On wasm32 without threads a `Mutex` costs little; `RefCell` would not compile for UniFFI.
 - Cancellation must be **in lamina's API** (a token object passed in, or a `cancel()` method on a job handle), because UniFFI doesn't map Swift `Task.cancel()`/Kotlin `Job.cancel()` into Rust.
 - **[prior knowledge]** UniFFI error enums: `#[derive(uniffi::Error)]` on a `thiserror` enum becomes a Swift `Error` enum / Kotlin exception subclass; `#[uniffi(flat_error)]` sends only the `Display` string. Callback interfaces (`#[uniffi::export(callback_interface)]` or `with_foreign`) let Swift/Kotlin implement Rust traits; Mozilla application-services uses them widely. Swift objects free on `deinit`; Kotlin objects implement `AutoCloseable` with `.destroy()`/`.close()` plus a `Cleaner` fallback. Not re-verified this session.
 - **[prior knowledge]** Packaging: iOS uses an XCFramework (`xcodebuild -create-xcframework` over the `aarch64-apple-ios`, `aarch64-apple-ios-sim`, `x86_64-apple-ios` static libs plus the generated modulemap). `cargo-swift` automates this into a Swift Package. Android uses `cargo-ndk` to build `.so` per ABI into `jniLibs`, then an AAR; Kotlin bindings depend on JNA (≈1 MB of `.so`/jar per ABI on top of yours). Gobley wires this into Gradle for KMP.
@@ -47,8 +47,8 @@ No surveyed project puts one attribute set on one type and gets both bindings fo
 
 ### Façade sketch (recommendation; derived from the cited constraints)
 ```rust
-// crates/lamina (core layer: no wasm-bindgen / uniffi deps; plain Rust, Send + Sync handles)
-pub struct Document { inner: Arc<RwLock<lamina_cos::Document>> }   // cheap Clone
+// crates/laminapdf (core layer: no wasm-bindgen / uniffi deps; plain Rust, Send + Sync handles)
+pub struct Document { inner: Arc<RwLock<laminapdf_cos::Document>> }   // cheap Clone
 #[derive(Clone, Debug)]
 #[cfg_attr(feature = "tsify",  derive(serde::Serialize, tsify::Tsify), tsify(into_wasm_abi))]
 #[cfg_attr(feature = "uniffi", derive(uniffi::Record))]
@@ -68,30 +68,30 @@ impl Document {
 }
 pub struct CancelToken(Arc<AtomicBool>);   // polled in long loops (save, render, text extraction)
 
-// crates/lamina-wasm (edge): newtype wrappers, JS naming, Uint8Array in/out
+// crates/laminapdf-wasm (edge): newtype wrappers, JS naming, Uint8Array in/out
 #[wasm_bindgen(js_name = Document)]
-pub struct WasmDocument(lamina::Document);
+pub struct WasmDocument(laminapdf::Document);
 #[wasm_bindgen(js_class = Document)]
 impl WasmDocument {
     #[wasm_bindgen(constructor)]
     pub fn open(bytes: &[u8], opts: JsOpenOptions) -> Result<WasmDocument, JsError> {
-        lamina::Document::open(bytes.to_vec(), opts.into()).map(Self).map_err(to_js) }
+        laminapdf::Document::open(bytes.to_vec(), opts.into()).map(Self).map_err(to_js) }
     #[wasm_bindgen(js_name = pageCount)] pub fn page_count(&self) -> u32 { self.0.page_count() }
     #[wasm_bindgen(js_name = pageInfo)]
-    pub fn page_info(&self, i: u32) -> Result<lamina::PageInfo, JsError> { self.0.page_info(i).map_err(to_js) }
+    pub fn page_info(&self, i: u32) -> Result<laminapdf::PageInfo, JsError> { self.0.page_info(i).map_err(to_js) }
     pub fn save(&self, c: &WasmCancel) -> Result<Vec<u8>, JsError> { self.0.save(&c.0).map_err(to_js) } // → Uint8Array
 }
 
-// crates/lamina-ffi (edge): UniFFI objects are Arc'd; &self only
-#[derive(uniffi::Object)] pub struct FfiDocument(lamina::Document);
+// crates/laminapdf-ffi (edge): UniFFI objects are Arc'd; &self only
+#[derive(uniffi::Object)] pub struct FfiDocument(laminapdf::Document);
 #[uniffi::export]
 impl FfiDocument {
     #[uniffi::constructor]
-    pub fn open(bytes: Vec<u8>, opts: lamina::OpenOptions) -> Result<Arc<Self>, lamina::LaminaError> {
-        lamina::Document::open(bytes, opts).map(|d| Arc::new(Self(d))) }
+    pub fn open(bytes: Vec<u8>, opts: laminapdf::OpenOptions) -> Result<Arc<Self>, laminapdf::LaminaError> {
+        laminapdf::Document::open(bytes, opts).map(|d| Arc::new(Self(d))) }
     pub fn page_count(&self) -> u32 { self.0.page_count() }
-    pub fn page_info(&self, i: u32) -> Result<lamina::PageInfo, lamina::LaminaError> { self.0.page_info(i) }
-    pub fn save(&self, c: Arc<FfiCancel>) -> Result<Vec<u8>, lamina::LaminaError> { self.0.save(&c.0) } // → Data / ByteArray
+    pub fn page_info(&self, i: u32) -> Result<laminapdf::PageInfo, laminapdf::LaminaError> { self.0.page_info(i) }
+    pub fn save(&self, c: Arc<FfiCancel>) -> Result<Vec<u8>, laminapdf::LaminaError> { self.0.save(&c.0) } // → Data / ByteArray
 }
 uniffi::setup_scaffolding!();
 ```
@@ -129,7 +129,7 @@ Comparable Rust WASM libraries sit far above lamina's ≤350 KB gz budget once t
 - Profile (lamina already has `wasm-release`): `opt-level = "z"` (try `"s"`, often similar size and faster), `lto = "fat"`, `codegen-units = 1`, `panic = "abort"`, `strip = true`, then `wasm-opt -Oz --enable-bulk-memory` (plus `--converge` if time allows). **[prior knowledge]** This typically gives 15–30% over an un-opted release build.
 - **std::fmt bloat** **[prior knowledge]**: every `format!`/`{:?}`/`panic!` message pulls in `core::fmt` (~20–40 KB). Avoid `Debug` derives in hot error paths of wasm builds, use static `&'static str` + code error variants, and `-Zlocation-detail=none` / `-Zfmt-debug=none` (nightly) for size builds. Panic messages vanish with `panic_immediate_abort` (`-Zbuild-std-features`, nightly).
 - **Feature gates:** `render`, `text-shaping` (HarfRust + ICU4X data, the biggest risk: ICU4X segmenter/normaliser data can be hundreds of KB, so use `icu_provider` baked data with a minimal locale/key set), `sign` (RustCrypto + rsa bignum), `jpx`/`jbig2` decoders. hayro-interpret already depends on `skrifa`, `moxcms` and `phf` — [crates.io hayro-interpret 0.8.0 deps](https://crates.io/api/v1/crates/hayro-interpret/0.8.0/dependencies) — so render pulls in font and colour management.
-- **Split modules:** ship `lamina_core.wasm` (parse/model/ops/save, target ≤350 KB gz), `lamina_render.wasm`, `lamina_text.wasm`, `lamina_sign.wasm` loaded on demand. Separate wasm-bindgen modules don't share memory, so pass bytes/handles across by serialisation. The other route is `wasm-split` (single build, lazily loaded chunks, sharing one memory), which is newer and less proven.
+- **Split modules:** ship `lamina_core.wasm` (parse/model/ops/save, target ≤350 KB gz), `lamina_render.wasm`, `lamina_text.wasm`, `laminapdf_sign.wasm` loaded on demand. Separate wasm-bindgen modules don't share memory, so pass bytes/handles across by serialisation. The other route is `wasm-split` (single build, lazily loaded chunks, sharing one memory), which is newer and less proven.
 - Enforce the budget in CI (`cargo xtask wasm` + gzip size check + `twiggy top`/`twiggy dominators` diff on PRs).
 - Native: **[prior knowledge]** iOS static `.a` files are large before linking (LLVM bitcode/metadata), but the app-size cost after dead-strip is what matters; measure with an Xcode app-thinning report. Android `.so` per ABI with `opt-level="z"`, LTO, `strip` is typically 1.5–3× the gz wasm size. Ship only `arm64-v8a` (+ `x86_64` for emulators).
 
@@ -184,7 +184,7 @@ Keep the core single-threaded and `Send + Sync`-safe. On web, use **one wasm ins
 - pdfium-render 0.9.4 (2026-09-06) depends on `libloading` (dynamic load of the PDFium library), `wasm-bindgen`, `web-sys`, `js-sys`, `chrono`, `console_error_panic_hook` — [crates.io pdfium-render deps](https://crates.io/api/v1/crates/pdfium-render/0.9.4/dependencies). PDFium as WASM (@embedpdf/pdfium) ≈ 2.15 MB gz **[measured]** — [npm tarball](https://registry.npmjs.org/@embedpdf/pdfium/-/pdfium-2.15.1.tgz).
 
 ### Inferences
-- hayro has its own parser (hayro-syntax), separate from lamina-cos. Using it for rendering means parsing twice or adapting. hayro-interpret's `Device` trait is the natural seam: lamina-content could target the same device abstraction, or lamina-render could feed hayro bytes of a (saved) document. Worth a spike before Round C. `image` and `fearless_simd` dependencies should be audited for wasm size and `unsafe` (render would be an edge or optional core crate).
+- hayro has its own parser (hayro-syntax), separate from laminapdf-cos. Using it for rendering means parsing twice or adapting. hayro-interpret's `Device` trait is the natural seam: laminapdf-content could target the same device abstraction, or laminapdf-render could feed hayro bytes of a (saved) document. Worth a spike before Round C. `image` and `fearless_simd` dependencies should be audited for wasm size and `unsafe` (render would be an edge or optional core crate).
 - GPU (`vello` + `wgpu`): **[prior knowledge]** wgpu adds a large binary (>1 MB gz wasm) and needs WebGPU/WebGL. Good for interactive zoom/tiling in apps, overkill for the core. Keep it as a later edge crate behind a `Device`-like abstraction, with `vello_cpu` as default.
 - PDFium as an optional native-only backend (desktop/mobile edge crate) is reasonable for fidelity fallbacks. Licence is BSD-3/Apache, but it brings C++ (and FreeType/OpenJPEG CVEs), which conflicts with the memory-safety goal.
 
@@ -203,7 +203,7 @@ The RustCrypto stack (`cms` 0.2.3 / 0.3.0-rc.0, `x509-cert` 0.3.0, `der` 0.8.3, 
 - pdf_oxide, a Rust PDF library, signs in its CMS module, but its Node/WASM bindings only read and verify signatures, with no CMS signer wired in — [pdf_oxide cms.rs](https://docs.rs/crate/pdf_oxide/0.3.76/source/src/signatures/cms.rs), [pdf_oxide digital signatures](https://pdf.oxide.fyi/docs/creation/digital-signatures).
 
 ### Inferences
-- RustCrypto version churn is high (stable/rc split across `rsa` 0.9→0.10, `cms` 0.2→0.3, `x509-cert` 0.3). Pin one coherent generation, and isolate it in `lamina-sign` behind a feature, so churn and size (RSA bignum, SHA-2) don't hit the default build.
+- RustCrypto version churn is high (stable/rc split across `rsa` 0.9→0.10, `cms` 0.2→0.3, `x509-cert` 0.3). Pin one coherent generation, and isolate it in `laminapdf-sign` behind a feature, so churn and size (RSA bignum, SHA-2) don't hit the default build.
 - **[prior knowledge]** `rsa` had the Marvin timing side-channel advisory (RUSTSEC-2023-0071). For *signing* with in-process keys this matters; external signers sidestep it. Check `cargo deny` advisories.
 - **[prior knowledge]** `aws-lc-rs`/`ring` need C/asm and aren't a good fit for `wasm32-unknown-unknown` (ring has partial wasm support), so RustCrypto is the only realistic pure-Rust core choice. `getrandom` needs the `wasm_js` backend feature on web (getrandom 0.3+), and it belongs only in edge or sign crates.
 - External-signer façade (recommendation):

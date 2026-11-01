@@ -16,11 +16,11 @@
 
 ## Goal
 
-lamina-text has two ToUnicode CMap writers that have drifted: the simple-font one caps text with `encode_utf16().take(MAX_DEST_UNITS)` and can split a surrogate pair. FontDescriptor building is written twice too, differing on `CapHeight` without saying why, and two helpers turn numbers into PDF objects with different rounding. This todo leaves one of each.
+laminapdf-text has two ToUnicode CMap writers that have drifted: the simple-font one caps text with `encode_utf16().take(MAX_DEST_UNITS)` and can split a surrogate pair. FontDescriptor building is written twice too, differing on `CapHeight` without saying why, and two helpers turn numbers into PDF objects with different rounding. This todo leaves one of each.
 
 ## Context
 
-- [Quality plan §2.3](../../plans/quality.md#23-code-quality-and-reuse); `lamina-text/src/{simple/tounicode.rs:36, embed/tounicode.rs:42, embed/type0.rs:62-82,206, simple/mod.rs:184-202, embed/subset.rs:278}`, `lamina-build/src/page.rs:334`.
+- [Quality plan §2.3](../../plans/quality.md#23-code-quality-and-reuse); `laminapdf-text/src/{simple/tounicode.rs:36, embed/tounicode.rs:42, embed/type0.rs:62-82,206, simple/mod.rs:184-202, embed/subset.rs:278}`, `laminapdf-build/src/page.rs:334`.
 
 ## Scope
 
@@ -38,7 +38,7 @@ lamina-text has two ToUnicode CMap writers that have drifted: the simple-font on
 - [ ] Write a test for a 257-unit text ending in an astral character and watch the simple-font writer split it.
 - [ ] Merge the writers behind `Codespace`; migrate both callers.
 - [ ] Merge the descriptor builders; document `CapHeight`.
-- [ ] Add the number helpers; migrate lamina-build and lamina-text.
+- [ ] Add the number helpers; migrate laminapdf-build and laminapdf-text.
 - [ ] Run the text reference PDFs and extraction facts; explain any changed file in the PR.
 
 ## Acceptance criteria

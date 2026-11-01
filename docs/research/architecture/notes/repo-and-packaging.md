@@ -43,12 +43,12 @@ The common convention is `crates/` (Rust), `packages/` (published npm packages),
 ### Inferences
 - Proposed Lamina layout, synthesized from the above:
   ```
-  crates/lamina-core, lamina-render, lamina-*      # pure Rust, no JS deps
-  crates/lamina-wasm                                # wasm-bindgen facade (cdylib) -> packages/lamina-wasm/dist
+  crates/laminapdf-core, laminapdf-render, laminapdf-*      # pure Rust, no JS deps
+  crates/laminapdf-wasm                                # wasm-bindgen facade (cdylib) -> packages/laminapdf-wasm/dist
   crates/lamina-napi (optional)                     # napi-rs facade
-  crates/lamina-ffi (optional)                      # UniFFI facade for mobile
-  packages/lamina (TS API, depends on lamina-wasm via workspace:*)
-  packages/lamina-wasm (generated glue + .wasm; committed only as build output, gitignored)
+  crates/laminapdf-ffi (optional)                      # UniFFI facade for mobile
+  packages/lamina (TS API, depends on laminapdf-wasm via workspace:*)
+  packages/laminapdf-wasm (generated glue + .wasm; committed only as build output, gitignored)
   apps/web (Cloudflare), apps/desktop (Tauri; src-tauri depends on crates/* by path)
   fixtures/ or tests/corpus/ (golden PDFs, git-LFS or fetched), fuzz/, xtask/ or tasks/, justfile
   ```
@@ -77,7 +77,7 @@ The `rustwasm` org was sunset in 2025. **wasm-bindgen** moved to a new `wasm-bin
 
 ### Inferences
 - Recommended for Lamina:
-  - `crates/lamina-wasm` built with `cargo build --target wasm32-unknown-unknown --release`, then `wasm-bindgen --target web` (or `bundler`), then `wasm-opt -Oz`, driven from `just`/xtask. This pins the wasm-bindgen CLI version to the crate version, which is required anyway.
+  - `crates/laminapdf-wasm` built with `cargo build --target wasm32-unknown-unknown --release`, then `wasm-bindgen --target web` (or `bundler`), then `wasm-opt -Oz`, driven from `just`/xtask. This pins the wasm-bindgen CLI version to the crate version, which is required anyway.
   - wasm-pack is acceptable but optional.
   - Use tsify (upstream) for data structs and `#[wasm_bindgen]` classes for handles (Document, Page). This keeps large PDF buffers as `Uint8Array` and avoids serde round-trips.
   - Use `wasm32-unknown-unknown` + wasm-bindgen for the browser and Workers. napi-rs suits a later Node-native package; its browser WASM requires SharedArrayBuffer/COOP-COEP, a burden for library consumers.
@@ -135,7 +135,7 @@ Both registries support OIDC trusted publishing from GitHub Actions. npm reached
 ### Inferences
 - For Lamina:
   - Use Changesets for the npm packages and release-plz for the crates. Both open "release PRs" and publish on merge through OIDC with no stored secrets.
-  - Alternatively, use one unified version (lockstep) driven by Changesets, with a script that syncs `Cargo.toml` versions. This is simpler when `@laminapdf/wasm` is tightly coupled to `lamina-core`.
+  - Alternatively, use one unified version (lockstep) driven by Changesets, with a script that syncs `Cargo.toml` versions. This is simpler when `@laminapdf/wasm` is tightly coupled to `laminapdf-core`.
 - Reserve the crate names and npm scope early with a manual first publish, then switch each crate to "trusted publishing only".
 - Use GitHub environments (`release`) with required reviewers as the human gate. Note the crates.io trigger restrictions.
 - For signing: npm provenance (Sigstore) plus GitHub artifact attestations (`actions/attest-build-provenance`) for desktop binaries and `.wasm`. Tauri updater signing is separate (see §6).

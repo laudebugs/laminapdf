@@ -4,7 +4,7 @@
 //! mutants, comparing the open/repair/fail outcome, the page count and the outline titles.
 //!
 //! Every tool writes the same JSON shape (`tools/differential/`, `examples/differential-facts.rs`
-//! in lamina-model); this module compares them, writes `target/nightly/differential/report.md`
+//! in laminapdf-model); this module compares them, writes `target/nightly/differential/report.md`
 //! and `report.json`, and fails when lamina disagrees with *every* tool that compared a fact and
 //! the disagreement is not excused by `fixtures/differential/exceptions.toml`, or when lamina
 //! panics. Disagreements where at least one tool agrees with lamina are listed in the report
@@ -211,7 +211,7 @@ const EXCEPTIONS: [&str; 2] = [
     "fixtures/differential/full-exceptions.toml",
 ];
 
-/// Where `cargo build --release` puts the lamina-model example.
+/// Where `cargo build --release` puts the laminapdf-model example.
 fn example_binary(ws: &Workspace, name: &str) -> PathBuf {
     ws.target_dir
         .join("release/examples")
@@ -263,7 +263,7 @@ pub(crate) fn run_live(ws: &Workspace, args: &LiveArgs) -> Result<()> {
         "--locked",
         "-q",
         "-p",
-        "lamina-model",
+        "laminapdf-model",
         "--example",
         "differential-facts",
     ])?;
@@ -366,7 +366,7 @@ fn write_mutants(ws: &Workspace, dir: &Path) -> Result<Vec<(String, PathBuf)>> {
         "--locked",
         "-q",
         "-p",
-        "lamina-model",
+        "laminapdf-model",
         "--example",
         "differential-inputs",
         "--",

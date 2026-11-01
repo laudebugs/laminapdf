@@ -39,7 +39,7 @@
 
 **Editor facts**
 
-- **Crates and packages:** `apps/collab`, `lamina-sync` (wasm in the DO)
+- **Crates and packages:** `apps/collab`, `laminapdf-sync` (wasm in the DO)
 - **`SaveConstraint`:** no new save behaviour beyond the round's: base PDFs immutable; content edits and redactions via lease or server job minting a new base revision
 - **Web vs desktop:** n/a (server)
 - **Server features:** Durable Objects, R2, D1

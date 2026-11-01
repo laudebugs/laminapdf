@@ -1,5 +1,5 @@
 {
-  "comment": "Shaping golden inputs (todo B4b): tools/shaping-goldens/goldens.py runs hb-shape on each case and writes fixtures/shaping/<script>.json; crates/lamina-text/tests/shaping_goldens.rs shapes the same cases with HarfRust and compares. Fonts are fixtures/fonts/ files; direction is ltr or rtl; features use HarfBuzz syntax.",
+  "comment": "Shaping golden inputs (todo B4b): tools/shaping-goldens/goldens.py runs hb-shape on each case and writes fixtures/shaping/<script>.json; crates/laminapdf-text/tests/shaping_goldens.rs shapes the same cases with HarfRust and compares. Fonts are fixtures/fonts/ files; direction is ltr or rtl; features use HarfBuzz syntax.",
   "cases": [
     { "script": "latin", "name": "kerning", "font": "NotoSans-Regular.ttf", "iso15924": "Latn", "direction": "ltr", "language": "en", "features": [], "text": "AVATAR Wave, To Yo! LT" },
     { "script": "latin", "name": "ligatures", "font": "NotoSans-Regular.ttf", "iso15924": "Latn", "direction": "ltr", "language": "en", "features": [], "text": "The office staff fill the affine waffle flask first." },

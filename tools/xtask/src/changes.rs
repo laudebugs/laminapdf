@@ -6,6 +6,7 @@
 //! (`.cargo/config.toml`, `.gitattributes`, `rust-toolchain.toml`, a new workflow) always runs
 //! the suites instead of slipping through.
 
+use std::collections::BTreeMap;
 use std::fs::OpenOptions;
 use std::io::Write as _;
 use std::path::Path;
@@ -39,6 +40,39 @@ pub(crate) fn run(root: &Path, base: &str) -> Result<()> {
         writeln!(file, "code={code}").context("writing $GITHUB_OUTPUT")?;
     }
     Ok(())
+}
+
+/// Old path → new path for each file renamed between `merge_base` and the working tree.
+pub(crate) fn renames(root: &Path, merge_base: &str) -> Result<BTreeMap<String, String>> {
+    let diff = git(
+        root,
+        &[
+            "diff",
+            "--name-status",
+            "-M",
+            "-l0",
+            "--diff-filter=R",
+            "-z",
+            merge_base,
+        ],
+    )?;
+    Ok(parse_renames(&diff))
+}
+
+/// The renames in `git diff --name-status --diff-filter=R -z` output: each is `R<score>`, the old
+/// path and the new one, each ended by a NUL.
+fn parse_renames(name_status: &str) -> BTreeMap<String, String> {
+    let fields: Vec<&str> = name_status.split('\0').filter(|field| !field.is_empty()).collect();
+    let (records, _partial) = fields.as_chunks::<3>();
+    records
+        .iter()
+        .map(|[_, old, new]| ((*old).to_owned(), (*new).to_owned()))
+        .collect()
+}
+
+/// The text of `path` at revision `rev`.
+pub(crate) fn at_revision(root: &Path, rev: &str, path: &str) -> Result<String> {
+    git(root, &["show", &format!("{rev}:{path}")])
 }
 
 /// True when any path is outside the docs allowlist. No paths at all is docs-only.
@@ -112,7 +146,7 @@ mod tests {
         "Cargo.lock",
         "pnpm-lock.yaml",
         "deny.toml",
-        "crates/lamina-cos/src/lib.rs",
+        "crates/laminapdf-cos/src/lib.rs",
         "fixtures/corpus/hello.pdf",
         "tools/xtask/src/main.rs",
         "docs.toml",
@@ -122,7 +156,7 @@ mod tests {
     /// Markdown that can be a build input (`#![doc = include_str!("../README.md")]`, doc
     /// tests, a docs site's content) or sits outside the allowlisted folders.
     const CODE_MARKDOWN: [&str; 7] = [
-        "crates/lamina-cos/README.md",
+        "crates/laminapdf-cos/README.md",
         "packages/sdk/README.md",
         "apps/docs/src/content/docs/index.md",
         "tools/corpus-facts/README.md",
@@ -151,7 +185,7 @@ mod tests {
 
     #[test]
     fn license_counts_only_at_the_root() {
-        assert!(!is_docs("crates/lamina-cos/LICENSE-MIT"));
+        assert!(!is_docs("crates/laminapdf-cos/LICENSE-MIT"));
     }
 
     #[test]
@@ -172,5 +206,17 @@ mod tests {
     #[test]
     fn an_empty_change_is_not_code() {
         assert!(!touches_code(&[]));
+    }
+
+    #[test]
+    fn parse_renames_should_map_each_old_path_to_its_new_one() {
+        let renames = super::parse_renames("R100\0crates/a/x.rs\0crates/b/x.rs\0R087\0a.md\0b.md\0");
+        assert_eq!(
+            renames.into_iter().collect::<Vec<_>>(),
+            [
+                ("a.md".to_owned(), "b.md".to_owned()),
+                ("crates/a/x.rs".to_owned(), "crates/b/x.rs".to_owned())
+            ]
+        );
     }
 }

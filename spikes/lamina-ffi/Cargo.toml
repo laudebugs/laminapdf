@@ -22,11 +22,11 @@ required-features = ["bindgen"]
 [features]
 default = ["text"]
 # The façade's `text` feature (fonts, builder): the size report measures with and without it.
-text = ["lamina/text"]
+text = ["laminapdf/text"]
 bindgen = ["uniffi/cli"]
 
 [dependencies]
-lamina = { path = "../../crates/lamina", default-features = false }
+laminapdf = { path = "../../crates/laminapdf", default-features = false }
 # Pinned exactly (owner decision 2026-10-29: UniFFI 0.32; ADR 0029 records the upgrade policy).
 uniffi = "=0.32.2"
 thiserror = "2"

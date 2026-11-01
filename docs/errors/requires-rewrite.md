@@ -1,6 +1,6 @@
 # `requires-rewrite`
 
-- Type: error (`lamina_save::SaveError::RequiresRewrite`)
+- Type: error (`laminapdf_save::SaveError::RequiresRewrite`)
 - Kind: `state` (the call isn't valid in the document's current state)
 
 ## What happened

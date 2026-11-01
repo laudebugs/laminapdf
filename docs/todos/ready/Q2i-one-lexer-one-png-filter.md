@@ -10,25 +10,25 @@
 | Blocks | [Q2r](./Q2r-split-surface-modules.md) |
 | ADRs | None |
 | Branch | `refactor/q2i-one-lexer-one-png-filter` |
-| PR title | `refactor(text,build): CMap parsing on lamina-syntax's lexer; PNG unfiltering from lamina-syntax` |
+| PR title | `refactor(text,build): CMap parsing on laminapdf-syntax's lexer; PNG unfiltering from laminapdf-syntax` |
 | Size | M |
 | PR | — |
 
 ## Goal
 
-`lamina-text/src/extract/cmap.rs` has its own 150-line PDF lexer that skips `#xx` name decoding and ignores `Limits::max_string_length`, although lamina-syntax's `Lexer` is a dependency and lamina-content already wraps it tolerantly. lamina-build's PNG decoder re-implements the row filters lamina-syntax has for Flate predictors. This todo reuses both.
+`laminapdf-text/src/extract/cmap.rs` has its own 150-line PDF lexer that skips `#xx` name decoding and ignores `Limits::max_string_length`, although laminapdf-syntax's `Lexer` is a dependency and laminapdf-content already wraps it tolerantly. laminapdf-build's PNG decoder re-implements the row filters laminapdf-syntax has for Flate predictors. This todo reuses both.
 
 ## Context
 
-- [Quality plan §2.3](../../plans/quality.md#23-code-quality-and-reuse); `lamina-text/src/extract/cmap.rs:285-455`, `lamina-syntax/src/lexer.rs`, `lamina-content/src/lexer.rs:7` (the tolerant wrapper to copy), `lamina-build/src/surface/png.rs:353,376`, `lamina-syntax/src/filters.rs:180,223`.
+- [Quality plan §2.3](../../plans/quality.md#23-code-quality-and-reuse); `laminapdf-text/src/extract/cmap.rs:285-455`, `laminapdf-syntax/src/lexer.rs`, `laminapdf-content/src/lexer.rs:7` (the tolerant wrapper to copy), `laminapdf-build/src/surface/png.rs:353,376`, `laminapdf-syntax/src/filters.rs:180,223`.
 
 ## Scope
 
 **In scope**
 
-- CMap tokens from a tolerant wrapper over `lamina_syntax::Lexer` (on an error, skip one byte), with a test for a `#xx` name in a CMap.
-- `pub fn unfilter_row(filter, raw, prev, out, bpp)` in lamina-syntax, used by `png.rs` (inflating stays separate: exact size versus budget).
-- A ban in `check maintainability`: no lexer outside lamina-syntax.
+- CMap tokens from a tolerant wrapper over `laminapdf_syntax::Lexer` (on an error, skip one byte), with a test for a `#xx` name in a CMap.
+- `pub fn unfilter_row(filter, raw, prev, out, bpp)` in laminapdf-syntax, used by `png.rs` (inflating stays separate: exact size versus budget).
+- A ban in `check maintainability`: no lexer outside laminapdf-syntax.
 
 **Out of scope** (and which todo covers it)
 
@@ -45,7 +45,7 @@
 ## Acceptance criteria
 
 - [ ] The extraction facts and image reference PDFs are unchanged, or any change is explained.
-- [ ] About 150 fewer lines in lamina-text; one row-filter implementation.
+- [ ] About 150 fewer lines in laminapdf-text; one row-filter implementation.
 
 ## Post-merge checks
 

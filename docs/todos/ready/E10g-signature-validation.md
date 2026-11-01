@@ -28,7 +28,7 @@ Validate each signature per the 04 §8.8 checklist: structural rules (ByteRange 
 
 **In scope**
 
-- Validator in `lamina-sign`
+- Validator in `laminapdf-sign`
 - Revocation fetcher interface (edge)
 - Certificate viewer data API
 
@@ -39,7 +39,7 @@ Validate each signature per the 04 §8.8 checklist: structural rules (ByteRange 
 **Editor facts**
 
 - **Operations shipped** ([06 §3](../../research/pdf/06-feature-inventory.md#3-full-operation-inventory-with-mechanisms) IDs): `F.04` verify signatures; `F.07` inspect signer identity and certificates
-- **Crates and packages:** `lamina-sign`
+- **Crates and packages:** `laminapdf-sign`
 - **`SaveConstraint`:** read-only
 - **Web vs desktop:** desktop uses OS trust store; web uses the trust list decided in E10b
 - **Server features:** none (this PR adds no server feature; all processing stays on the device)

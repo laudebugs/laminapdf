@@ -13,7 +13,7 @@ Reading the output back failed (for example a limit, or a source that can't deli
 
 ## How to fix
 
-Retry `rebase` with the output the error carries (`saved.source()`; in the `lamina` façade, `Error::saved_output()` and `Document::rebase`).
+Retry `rebase` with the output the error carries (`saved.source()`; in the `laminapdf` façade, `Error::saved_output()` and `Document::rebase`).
 
 ## Example
 

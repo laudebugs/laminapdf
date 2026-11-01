@@ -37,7 +37,7 @@ Place source pages as Form XObjects on new sheets: N-up grids, saddle-stitch boo
 **Editor facts**
 
 - **Operations shipped** ([06 §3](../../research/pdf/06-feature-inventory.md#3-full-operation-inventory-with-mechanisms) IDs): `K.13` imposition and booklet; `C.15` booklet / N-up layouts
-- **Crates and packages:** `lamina-build`
+- **Crates and packages:** `laminapdf-build`
 - **`SaveConstraint`:** new document
 - **Web vs desktop:** identical
 - **Server features:** none (this PR adds no server feature; all processing stays on the device)

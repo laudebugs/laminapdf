@@ -1,5 +1,5 @@
 //! Names with more than one home: a `pub struct` or `pub enum` name defined in two crates, and a
-//! name the `lamina` façade makes public twice. Today's cases are listed in [`DUPLICATES`] with a
+//! name the `laminapdf` façade makes public twice. Today's cases are listed in [`DUPLICATES`] with a
 //! reason each; the check fails on a new one and on an entry that no longer matches the code, and
 //! warns about an entry the merge base with `main` doesn't have, for a reviewer to look at.
 
@@ -12,7 +12,7 @@ use super::source::{Source, Token};
 use super::{Base, DUPLICATES, Problem, Tree, child_module_files, problem, warning};
 
 /// The façade's root module.
-const FACADE: &str = "crates/lamina/src/lib.rs";
+const FACADE: &str = "crates/laminapdf/src/lib.rs";
 
 /// The contents of [`DUPLICATES`].
 #[derive(Debug, Default, Clone, Deserialize)]
@@ -158,11 +158,11 @@ fn crate_of(path: &str) -> Option<&str> {
     inside.starts_with("src/").then_some(krate)
 }
 
-/// Names the `lamina` façade makes public more than once across its public modules, by a
+/// Names the `laminapdf` façade makes public more than once across its public modules, by a
 /// `pub use` or by defining a public item.
 pub(super) fn facade_collisions(tree: &Tree) -> Vec<Problem> {
     let mut found = Homes::new();
-    let mut modules = vec![(FACADE.to_owned(), "lamina".to_owned())];
+    let mut modules = vec![(FACADE.to_owned(), "laminapdf".to_owned())];
     while let Some((path, module)) = modules.pop() {
         let Some(source) = tree.sources.get(&path) else {
             continue;
@@ -374,7 +374,7 @@ mod tests {
     #[test]
     fn a_single_path_and_an_alias_should_yield_one_name_each() {
         assert_eq!(
-            names_of("pub use lamina_cos::Error as CosError;\npub use job::CancelToken;"),
+            names_of("pub use laminapdf_cos::Error as CosError;\npub use job::CancelToken;"),
             ["CosError", "CancelToken"]
         );
     }
@@ -466,21 +466,21 @@ mod tests {
             .collect()
     }
 
-    const LIB: &str = "mod job;\npub mod extract;\npub use job::CancelToken;\npub use lamina_build::TextRun;\n";
+    const LIB: &str = "mod job;\npub mod extract;\npub use job::CancelToken;\npub use laminapdf_build::TextRun;\n";
 
     #[test]
     fn a_name_re_exported_in_two_public_modules_should_fail() {
         let messages = facade_messages(&[
             (FACADE, LIB),
             (
-                "crates/lamina/src/extract.rs",
-                "pub use lamina_text::extract::{Glyph, TextRun};\n",
+                "crates/laminapdf/src/extract.rs",
+                "pub use laminapdf_text::extract::{Glyph, TextRun};\n",
             ),
         ]);
         assert!(
             messages.len() == 1
-                && messages[0].contains("lamina::TextRun")
-                && messages[0].contains("lamina::extract::TextRun")
+                && messages[0].contains("laminapdf::TextRun")
+                && messages[0].contains("laminapdf::extract::TextRun")
         );
     }
 
@@ -488,19 +488,22 @@ mod tests {
     fn a_re_export_inside_a_private_module_should_not_count() {
         let messages = facade_messages(&[
             (FACADE, LIB),
-            ("crates/lamina/src/job.rs", "pub use lamina_syntax::CancelToken;\n"),
+            (
+                "crates/laminapdf/src/job.rs",
+                "pub use laminapdf_syntax::CancelToken;\n",
+            ),
         ]);
         assert_eq!(messages, Vec::<String>::new());
     }
 
     #[test]
     fn an_allowed_facade_collision_should_pass() {
-        let allowed = "[[facade]]\nname = \"TextRun\"\npaths = [\"lamina::TextRun\", \"lamina::extract::TextRun\"]\nreason = \"x\"\n";
+        let allowed = "[[facade]]\nname = \"TextRun\"\npaths = [\"laminapdf::TextRun\", \"laminapdf::extract::TextRun\"]\nreason = \"x\"\n";
         let messages = facade_messages(&[
             (FACADE, LIB),
             (
-                "crates/lamina/src/extract.rs",
-                "pub use lamina_text::extract::TextRun;\n",
+                "crates/laminapdf/src/extract.rs",
+                "pub use laminapdf_text::extract::TextRun;\n",
             ),
             (DUPLICATES, allowed),
         ]);
@@ -509,7 +512,10 @@ mod tests {
 
     #[test]
     fn a_facade_item_named_like_a_re_export_should_fail() {
-        let messages = facade_messages(&[(FACADE, LIB), ("crates/lamina/src/extract.rs", "pub struct TextRun;\n")]);
+        let messages = facade_messages(&[
+            (FACADE, LIB),
+            ("crates/laminapdf/src/extract.rs", "pub struct TextRun;\n"),
+        ]);
         assert_eq!(messages.len(), 1);
     }
 
@@ -552,7 +558,7 @@ mod tests {
 
     #[test]
     fn a_stale_facade_entry_should_fail() {
-        let allowed = "[[facade]]\nname = \"TextRun\"\npaths = [\"lamina::TextRun\", \"lamina::extract::TextRun\"]\nreason = \"x\"\n";
+        let allowed = "[[facade]]\nname = \"TextRun\"\npaths = [\"laminapdf::TextRun\", \"laminapdf::extract::TextRun\"]\nreason = \"x\"\n";
         assert_eq!(facade_messages(&[(FACADE, LIB), (DUPLICATES, allowed)]).len(), 1);
     }
 }

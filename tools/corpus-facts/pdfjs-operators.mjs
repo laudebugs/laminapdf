@@ -1,5 +1,5 @@
 // pdf.js's operator list for every page of fixtures/corpus/, fixtures/golden/ and fixtures/content/, the
-// independent count that crates/lamina-content/tests/corpus.rs compares lamina's
+// independent count that crates/laminapdf-content/tests/corpus.rs compares lamina's
 // interpreter with (todo B9a, ADR 0023 §6). Never run by tests; rerun when a fixture changes.
 //
 //     cd "$(mktemp -d)" && npm init -y && npm i pdfjs-dist@6.4.299   # Apache-2.0; tools only

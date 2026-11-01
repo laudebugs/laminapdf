@@ -16,18 +16,18 @@
 
 ## Goal
 
-`/Rotate` and `/MediaBox` are parsed both in lamina-cos (`Page.rotate: i64`, integers only) and in lamina-model (integral reals too), and lamina-ops reads the cos copy, so ops treats `/Rotate 90.0` as unrotated while the model says 90°. lamina-render also has `ViewRotation`, a copy of `lamina_model::Rotation`, and degree parsing is written again in lamina-render-wasm and both adapters. This todo makes lamina-model the only reader of page attributes and keeps one rotation type.
+`/Rotate` and `/MediaBox` are parsed both in laminapdf-cos (`Page.rotate: i64`, integers only) and in laminapdf-model (integral reals too), and laminapdf-ops reads the cos copy, so ops treats `/Rotate 90.0` as unrotated while the model says 90°. laminapdf-render also has `ViewRotation`, a copy of `laminapdf_model::Rotation`, and degree parsing is written again in laminapdf-render-wasm and both adapters. This todo makes laminapdf-model the only reader of page attributes and keeps one rotation type.
 
 ## Context
 
-- [Quality plan §2.3](../../plans/quality.md#23-code-quality-and-reuse); `lamina-cos/src/reader/mod.rs:63-82,1359-1393`, `lamina-model/src/page.rs:17,242-360`, `lamina-ops/src/rotate.rs:137`, `lamina-render/src/request.rs:76`, `lamina-render-wasm/src/lib.rs:216`, `lamina-render/src/hayro.rs:207`, `lamina-render-pdfium/src/lib.rs:217`.
+- [Quality plan §2.3](../../plans/quality.md#23-code-quality-and-reuse); `laminapdf-cos/src/reader/mod.rs:63-82,1359-1393`, `laminapdf-model/src/page.rs:17,242-360`, `laminapdf-ops/src/rotate.rs:137`, `laminapdf-render/src/request.rs:76`, `laminapdf-render-wasm/src/lib.rs:216`, `laminapdf-render/src/hayro.rs:207`, `laminapdf-render-pdfium/src/lib.rs:217`.
 
 ## Scope
 
 **In scope**
 
-- `cos::Page` keeps the raw inherited values only; lamina-model adds a rotation reader that raises no warning, for ops; ops switches to it.
-- One `Rotation` with `from_degrees`, in the lowest crate lamina-render already depends on; `ViewRotation` removed or aliased; the hand-written degree parsers deleted.
+- `cos::Page` keeps the raw inherited values only; laminapdf-model adds a rotation reader that raises no warning, for ops; ops switches to it.
+- One `Rotation` with `from_degrees`, in the lowest crate laminapdf-render already depends on; `ViewRotation` removed or aliased; the hand-written degree parsers deleted.
 - A changeset for the API change.
 
 **Out of scope** (and which todo covers it)
@@ -53,15 +53,15 @@ None.
 
 ## Tests
 
-New tests in lamina-ops and lamina-render; existing reference images.
+New tests in laminapdf-ops and laminapdf-render; existing reference images.
 
 ## Docs to update
 
-Crate READMEs (lamina-model owns page attributes), CLAUDE.md if the render API changes, plan §9.
+Crate READMEs (laminapdf-model owns page attributes), CLAUDE.md if the render API changes, plan §9.
 
 ## Risks and open questions
 
-An API break in lamina-cos and lamina-render while alpha: the changeset says so.
+An API break in laminapdf-cos and laminapdf-render while alpha: the changeset says so.
 
 ## Definition of done
 

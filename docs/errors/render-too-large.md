@@ -5,7 +5,7 @@
 
 ## What happened
 
-A render backend (`lamina-render`) refused a request that is too large. The tile has more than `max_render_pixels` pixels or more than `max_render_side` pixels on a side (the document's `RenderLimits`), or more than 65,535 pixels on a side for hayro. Or, for hayro, which reads the whole file, the input is longer than `max_input_bytes`.
+A render backend (`laminapdf-render`) refused a request that is too large. The tile has more than `max_render_pixels` pixels or more than `max_render_side` pixels on a side (the document's `RenderLimits`), or more than 65,535 pixels on a side for hayro. Or, for hayro, which reads the whole file, the input is longer than `max_input_bytes`.
 
 ## Why
 

@@ -45,7 +45,7 @@ Let users save edits safely on both shells: Save (incremental by default), Save 
 
 **Editor facts**
 
-- **Crates and packages:** `lamina-save` (sinks), `lamina-wasm` (streaming sink adapter), `@laminapdf/ui` (banner, dialogs), `apps/web` and `apps/desktop` platform adapters
+- **Crates and packages:** `laminapdf-save` (sinks), `laminapdf-wasm` (streaming sink adapter), `@laminapdf/ui` (banner, dialogs), `apps/web` and `apps/desktop` platform adapters
 - **`SaveConstraint`:** implements the UI for all four kinds: `Free` → incremental default; `AppendOnly` → incremental only, full rewrite blocked; `RequiresRewrite` → full rewrite, old revisions dropped (said in the dialog); `Conflict` → blocked unless the user confirms invalidating the named signatures
 - **Web vs desktop:** Desktop saves in place (`canWriteInPlace: true`) and watches for external changes (D3); web saves in place only where the File System Access API exists, otherwise downloads a copy. Web without FSA API: "Save" becomes "Download" and the document rebases onto what was downloaded
 - **Server features:** none (this PR adds no server feature; all processing stays on the device)

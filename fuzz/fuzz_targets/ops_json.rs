@@ -2,4 +2,4 @@
 //! and undone op by op back to the unchanged base (`save_entry::ops_json`).
 #![no_main]
 
-libfuzzer_sys::fuzz_target!(|data: &[u8]| lamina_fuzz::save_entry::ops_json(data));
+libfuzzer_sys::fuzz_target!(|data: &[u8]| laminapdf_fuzz::save_entry::ops_json(data));

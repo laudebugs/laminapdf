@@ -22,7 +22,7 @@ on:
       - apps/docs/**
       - packages/sdk/**
       - packages/wasm/package.json
-      - crates/lamina/examples/**
+      - crates/laminapdf/examples/**
       - fixtures/golden/examples/**
       - fixtures/codes.json
       - fixtures/codes.schema.json

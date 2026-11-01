@@ -1,7 +1,7 @@
 // Tagged PDF (todo B8a): `tag`, `artifact`, `alt` and the `tag` option of text and text boxes.
-// The TS twin of lamina-build's tagged report is byte-identical to its Rust golden
-// (fixtures/golden/tagged-report.pdf, whose structure crates/lamina-build/tests/tagging.rs
-// checks with lamina-model, pdf.js and PDFium).
+// The TS twin of laminapdf-build's tagged report is byte-identical to its Rust golden
+// (fixtures/golden/tagged-report.pdf, whose structure crates/laminapdf-build/tests/tagging.rs
+// checks with laminapdf-model, pdf.js and PDFium).
 import { Builder, Document, Font, Image, init, isLaminaError, type Surface } from "@laminapdf/sdk";
 import { beforeAll, describe, expect, it } from "vitest";
 import { read, thrown } from "./helpers.js";
@@ -10,7 +10,7 @@ beforeAll(() => init({ text: true }));
 
 const latin1 = new TextDecoder("latin1");
 
-/** The tagged report of crates/lamina-build/tests/common/tagged.rs, call for call. */
+/** The tagged report of crates/laminapdf-build/tests/common/tagged.rs, call for call. */
 function taggedReport(): Uint8Array {
   const b = new Builder({
     id: new TextEncoder().encode("lamina-build-B8a"),

@@ -194,7 +194,7 @@ SPM with a binary XCFramework target is now the only forward-looking iOS channel
 
 ### Inferences
 - uniffi-bindgen-react-native's web/WASM flavour means one Rust core could feed RN mobile and RN-web; relevant given ADR 0002 (wasm-bindgen for web).
-- Ship: `Lamina.xcframework` (ios-arm64, ios-arm64-simulator, maybe macCatalyst) zipped as an SPM `.binaryTarget(url:checksum:)` + a source Swift target with the idiomatic wrapper; Android `lamina-core` (JNI .so for arm64-v8a, armeabi-v7a, x86_64) + `lamina-compose` AARs; rely on Play App Bundle ABI splits.
+- Ship: `Lamina.xcframework` (ios-arm64, ios-arm64-simulator, maybe macCatalyst) zipped as an SPM `.binaryTarget(url:checksum:)` + a source Swift target with the idiomatic wrapper; Android `laminapdf-core` (JNI .so for arm64-v8a, armeabi-v7a, x86_64) + `lamina-compose` AARs; rely on Play App Bundle ABI splits.
 
 ### Gaps
 - App-size impact numbers for a Rust PDF core (and for PDFium-based competitors), Kotlin Multiplatform packaging of UniFFI bindings (e.g. Gobley / uniffi-kotlin-multiplatform), flutter_rust_bridge status — not researched.

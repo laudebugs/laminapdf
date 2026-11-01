@@ -4,7 +4,7 @@
 | --- | --- |
 | ID | `B5c` |
 | Status | `done` |
-| Plan | [pdf-library §7 B5](../../plans/pdf-library.md#b5-builder-and-the-lamina-crate), [§6 docs and examples](../../plans/pdf-library.md#6-docs-examples-and-publishing) |
+| Plan | [pdf-library §7 B5](../../plans/pdf-library.md#b5-builder-and-the-laminapdf-crate), [§6 docs and examples](../../plans/pdf-library.md#6-docs-examples-and-publishing) |
 | Round / milestone | Round B (library) — M1 |
 | Depends on | [B5b](./B5b-builder-text-and-document-features.md), [L1a](./L1a-contract-adrs.md), [L1c](./L1c-error-contract-core.md), [X4](./X4-full-lane-gate.md) |
 | Blocks | [B6a](./B6a-lamina-wasm-and-adr-0016.md), [B8a](./B8a-structure-tree.md), [B9b](./B9b-text-extraction-core.md), [L4a](../ready/L4a-lamina-cli.md), [L6a](./L6a-lamina-ffi-spike.md), [E1a](../ready/E1a-editing-foundation-feature-plan.md), [E1b](../ready/E1b-xmp-packet-model.md), [E2e](../ready/E2e-content-append-api.md), [E6b](../ready/E6b-place-images-and-shapes.md) |
