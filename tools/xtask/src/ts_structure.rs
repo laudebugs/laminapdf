@@ -59,7 +59,13 @@ fn current_violations(ws: &Workspace) -> Result<BTreeSet<Violation>> {
         .current_dir(&ws.root)
         .output()
         .context("running dependency-cruiser through pnpm")?;
-    let json: Value = serde_json::from_slice(&output.stdout).context("reading dependency-cruiser's JSON")?;
+    let json: Value = serde_json::from_slice(&output.stdout).with_context(|| {
+        format!(
+            "reading dependency-cruiser's JSON (exit {}): {}",
+            output.status,
+            String::from_utf8_lossy(&output.stderr).trim()
+        )
+    })?;
     let violations = json
         .pointer("/summary/violations")
         .context("dependency-cruiser's JSON has no summary.violations")?;

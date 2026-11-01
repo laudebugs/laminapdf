@@ -2,17 +2,25 @@
   "threshold": 0,
   "minLines": 10,
   "minTokens": 50,
-  "format": ["typescript", "javascript"],
-  "path": ["packages"],
+  "format": [
+    "typescript",
+    "javascript"
+  ],
+  "path": [
+    "packages"
+  ],
   "ignore": [
     "**/node_modules/**",
     "**/dist/**",
     "**/src/generated/**",
     "**/*.test.ts",
     "**/sdk/src/entry/node.ts",
-    "**/sdk/src/entry/workerd.ts"
+    "**/sdk/src/entry/workerd.ts",
+    "**/examples/**"
   ],
-  "reporters": ["console"],
+  "reporters": [
+    "console"
+  ],
   "absolute": false,
   "gitignore": true,
   "pattern": "*/src/**/*.ts"
